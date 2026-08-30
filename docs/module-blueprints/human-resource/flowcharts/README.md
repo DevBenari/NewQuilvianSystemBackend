@@ -6,8 +6,8 @@
 | Folder | `flowcharts/` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
-| `input_revision` | `00-interview-decisions.md` revision `12`; `contracts/state-transition-matrix.md` `v1` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/state-transition-matrix.md` `v1` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 
 ---

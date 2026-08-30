@@ -5,9 +5,9 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `7` |
+| Revision | `9` |
 | Module status | `PARTIAL` |
-| Current phase | `HRD-PH-DECISION-CLOSURE` — lima blocker MVP ditutup pemilik; menunggu co-sign keamanan dan approval manusia |
+| Current phase | `HRD-PH-SECURITY-CLOSED` — seluruh blocker MVP dan co-sign keamanan selesai; menunggu approval akhir manusia |
 | Last verified at | `2026-08-30` — impact scan read-only terhadap HEAD kedua repository, bukan verifikasi runtime |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
 | Backend source SHA — diverifikasi berlaku pada | `16b8b71f4cd61e083213cf90722f4d768d339739` (`origin/QuilvianIntegrationBackend`, baseline canonical) |
@@ -275,11 +275,31 @@ artefak; penggantinya tercantum pada `blueprint-manifest.md` bagian 7.
 | ID | Menutup | Status |
 | --- | --- | --- |
 | `HRD-DEC-031` | `HRD-Q-19` | `approved` |
-| `HRD-DEC-032` | `HRD-Q-33` | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
-| `HRD-DEC-033` | `HRD-Q-20` | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| `HRD-DEC-032` | `HRD-Q-33` | **`SECURITY_APPROVED`** |
+| `HRD-DEC-033` | `HRD-Q-20` | **`SECURITY_APPROVED`** |
 | `HRD-DEC-034` | Isi konfigurasi workflow | `approved` untuk prinsip; isi rantai menunggu tinjauan |
 | `HRD-DEC-035` | `HRD-Q-49` untuk cakupan MVP | `approved` |
 | `HRD-DEC-036` | `HRD-Q-54` | `approved` — empat definisi alur terpisah |
+| `HRD-DEC-037` | Kewenangan konfigurasi kebijakan gaji | `approved` — kontrak sasaran |
+| `HRD-DEC-038` | Kepemilikan slip gaji dan otentikasi bertingkat | `approved` — kontrak sasaran |
+| `HRD-DEC-039` | Audit pembacaan gaji sensitif | `approved` — kontrak sasaran |
+| `HRD-DEC-040` | Perlindungan HTTP dan sisi klien | `approved` — kontrak sasaran |
+| `HRD-DEC-041` | Jenjang Pendidikan sebagai dimensi kebijakan gaji | `approved` — kontrak sasaran |
+| ~~`HRD-DEC-042`~~ | ~~Masa Kerja sebagai dimensi tersendiri~~ | **`SUPERSEDED FOR CURRENT MVP`** oleh `HRD-DEC-045`. Dipertahankan sebagai sejarah |
+| `HRD-DEC-043` | Kebijakan gaji berversi dan dapat dikonfigurasi | `approved` — kontrak sasaran |
+| `HRD-DEC-044` | Payroll Officer tanpa `: ViewAmount` | `approved` |
+| `HRD-DEC-045` | **Masa kerja bukan faktor kebijakan gaji MVP saat ini**; menggantikan `HRD-DEC-042` | `approved` |
+
+`HRD-Q-55` **ditutup**.
+
+`HRD-Q-56` berstatus **`DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP`** sejak `HRD-DEC-045`
+mengeluarkan masa kerja dari faktor kebijakan gaji. Ia **tidak perlu dijawab** untuk MVP
+administratif.
+
+**Co-sign keamanan selesai 2026-08-30** oleh `Project final decision authority — Security`.
+Hasilnya tercatat pada [`evidence/02-security-review-packet.md`](./evidence/02-security-review-packet.md).
+
+`HRD-Q-55` **ditutup** `HRD-DEC-041` dan `HRD-DEC-042` pada revisi `9`.
 
 **Isi rantai `T1` s.d. `T8` sudah disetujui** pada decision log bagian 27.2. `HRD-DEC-034` tidak
 lagi berstatus usulan. **Master data workflow belum diisi** — menyetujui isi konfigurasi tidak
@@ -295,7 +315,7 @@ yang sama.
 | Urutan | Tindakan | Pemilik |
 | --- | --- | --- |
 | 1 | Tinjau `04-prd-to-mvp.md` — batas MVP, gelombang pengiriman, dan Definition of Done | Pemilik produk HR bersama technical owner |
-| 2 | **Tinjau paket keamanan** pada [`evidence/02-security-review-packet.md`](./evidence/02-security-review-packet.md) untuk `HRD-DEC-032` dan `HRD-DEC-033` | Pemilik keamanan |
+| 2 | ~~Tinjau paket keamanan~~ — **selesai 2026-08-30**, kedua keputusan `SECURITY_APPROVED` | ~~Pemilik keamanan~~ |
 | 3 | Setujui `02-backend-architecture.md`, `03-frontend-architecture.md`, dan kelima kontrak | Owner masing-masing |
 | 4 | Baru setelah itu, `plan-module-delivery` | — |
 

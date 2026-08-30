@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/validation-matrix.md` |
-| `contract_version` | `v2` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` |
+| `last_changed_in` | `v5` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `12`; `contracts/state-transition-matrix.md` `v1` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/state-transition-matrix.md` `v1` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada aturan yang dihapus. Aturan baru bersifat memperketat, bukan melonggarkan |
 
@@ -318,6 +318,28 @@ memakai butir hak akses yang sama dengan buat dan ubah, dan tidak ada pemeriksaa
 persetujuan sebelum penempatan berlaku. Ini tercatat sebagai `IMPLEMENTATION_WORK`, bukan sebagai
 perilaku yang sudah ada.
 
+### 7.3 Keamanan data gaji dan slip gaji — `HRD-DEC-037` s.d. `HRD-DEC-040`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Slip gaji hanya milik sendiri | Slip gaji layanan mandiri | Pegawai meminta slip gaji milik pegawai lain, walaupun pengenalnya benar | "Anda hanya dapat melihat slip gaji milik Anda sendiri." | `403` |
+| Kepemilikan diturunkan backend | Sama | Permintaan menyertakan pengenal pegawai atau profil workforce dari layar | Pengenal itu **diabaikan**. Kepemilikan diturunkan dari pengguna yang masuk | — |
+| Otentikasi bertingkat wajib | Data gaji dan slip gaji | Data diminta tanpa sesi gaji sensitif yang berlaku | "Masukkan kata sandi Anda untuk membuka data gaji." | `401` |
+| Sesi gaji sensitif kedaluwarsa | Sama | Sesi melewati batas waktu bawaan lima menit | "Sesi data gaji sudah berakhir. Masukkan kata sandi Anda lagi." | `401` |
+| Sesi batal saat keadaan akun berubah | Sama | Pengguna keluar, sesi utama tidak sah, akun dinonaktifkan, atau kata sandi berubah | Sama seperti baris di atas | `401` |
+| Konfigurasi kebijakan gaji hanya HR Manager | Kebijakan dan master gaji | Pengguna selain pemegang kewenangan itu membaca atau mengubah | "Anda tidak memiliki hak atas konfigurasi kebijakan gaji." | `403` |
+| Faktor gaji tidak ditambah sendiri | Sama | Usulan faktor di luar Golongan, Level, Status kerja, dan Masa studi | Ditolak pada tinjauan, bukan oleh sistem | — |
+| Riwayat kebijakan tidak dihapus | Sama | Perubahan kebijakan mencoba menimpa versi lama | "Kebijakan lama tidak dapat dihapus. Buat versi baru dengan tanggal berlaku." | `409` |
+| Unduhan slip gaji lewat endpoint terautentikasi | Berkas slip gaji | Berkas diakses lewat URL statis yang dapat ditebak | Permintaan ditolak; berkas tidak dikembalikan | `403` |
+
+**Catatan bentuk jawaban.** Baris kedua **bukan** penolakan — ia menegaskan bahwa pengenal dari
+layar tidak dipakai sama sekali. Menolaknya justru akan membocorkan informasi tentang keberadaan
+pengenal itu; mengabaikannya tidak.
+
+**Keadaan hari ini:** seluruh aturan pada bagian 7.3 **belum ditegakkan**. Sesi gaji sensitif,
+otentikasi bertingkat, dan endpoint unduhan terautentikasi belum ada. Ini `IMPLEMENTATION_WORK`
+turunan `HRD-DEC-038` dan `HRD-DEC-040`, bukan perilaku yang sudah berjalan.
+
 ### 7.2 Keterlihatan nominal gaji — `HRD-DEC-033`
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -331,6 +353,24 @@ perilaku yang sudah ada.
 menyertakan nilainya pada jawaban, **bukan** dengan mengirim nilainya lalu menyembunyikannya di
 layar. Menyembunyikan di layar berarti nominal tetap terkirim melalui jaringan dan tetap terbaca
 siapa pun yang membuka alat pengembang peramban.
+
+### 7.4 Kebijakan gaji dan penyesuaiannya — `HRD-DEC-041` s.d. `HRD-DEC-043`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Hanya pendidikan terverifikasi | Evaluasi kebijakan gaji | Jenjang pendidikan belum diverifikasi HR | "Jenjang pendidikan belum diverifikasi, sehingga belum dapat dipakai untuk penyesuaian gaji." | `422` |
+| Verifikasi bukan oleh pencatatnya | Verifikasi pendidikan | Pihak yang mencatat pendidikan mencoba memverifikasinya sendiri | "Verifikasi pendidikan harus dilakukan petugas yang berbeda." | `403` |
+| Bukti dokumen wajib | Sama | Verifikasi dilakukan tanpa bukti dokumen terlampir | "Bukti pendidikan wajib dilampirkan sebelum diverifikasi." | `400` |
+| Gaji tidak berubah diam-diam | Perubahan faktor pegawai | Perubahan pendidikan, golongan, level, atau status kerja mencoba mengubah gaji efektif langsung | Tidak ada perubahan gaji. Yang terbentuk adalah **calon penyesuaian** | `200` |
+| Calon tidak mengubah gaji | Calon penyesuaian gaji | Calon diterima lalu mencoba langsung memberlakukan gaji | "Penyesuaian gaji harus melewati pengajuan dan persetujuan penetapan gaji." | `409` |
+| Kebijakan berlaku tidak disunting | Versi kebijakan gaji | Versi berstatus berlaku mencoba disunting | "Kebijakan yang sudah berlaku tidak dapat diubah. Buat versi baru." | `409` |
+| Riwayat kebijakan dipertahankan | Sama | Versi lama mencoba dihapus | "Versi kebijakan sebelumnya tidak dapat dihapus." | `409` |
+| Kewenangan kebijakan gaji | Sama | Selain `HR Manager` membaca atau mengubah kebijakan gaji | "Anda tidak memiliki hak atas konfigurasi kebijakan gaji." | `403` |
+| Masa kerja bukan faktor gaji | Evaluasi kebijakan gaji | Usulan memakai masa kerja sebagai kriteria kebijakan gaji | Ditolak pada tinjauan. **Di luar cakupan MVP saat ini** — `HRD-DEC-045` | — |
+
+**Keadaan hari ini:** seluruh aturan pada bagian 7.4 **belum ditegakkan**. Baris kedua khususnya —
+verifikasi pendidikan hari ini memakai butir hak akses yang sama dengan buat dan ubah.
+`IMPLEMENTATION_WORK` turunan `HRD-DEC-041` dan `HRD-DEC-043`.
 
 ## 8. Pengembangan Orang dan Lifecycle
 

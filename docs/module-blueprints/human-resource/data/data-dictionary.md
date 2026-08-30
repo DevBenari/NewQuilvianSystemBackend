@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `data/data-dictionary.md` |
-| `contract_version` | `v2` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v5` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik basis data untuk keputusan yang merusak data |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `12` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `15` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi pada `16b8b71` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh tabel dalam cakupan bersifat administratif ketenagakerjaan |
@@ -1195,6 +1195,37 @@ bawah **MUST NOT** masuk custom logger dalam bentuk apa pun.
 | `WfpDisciplinaryAction` | **Seluruh isi tabel** | Catatan kedisiplinan; jangkauan pembaca paling sempit di modul ini |
 | `TrxPayrollRun` | Kolom nominal total | Agregat nilai payroll |
 | `WfpSalaryAssignment`, `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment` | `RejectionReason` | Alasan penolakan perubahan penempatan; dapat menyebut keadaan pribadi |
+| `MstSalaryGrade`, `MstSalaryStructure` | `MinimumSalary`, `MidpointSalary`, `MaximumSalary`, `DefaultBaseSalary`, `MinimumBaseSalary`, `MaximumBaseSalary` | Nilai kebijakan gaji. `HRD-DEC-037` membatasi kewenangannya hanya pada `HR Manager` |
+
+---
+
+## 5.1 Master gaji — versi, tanggal berlaku, dan riwayat `HRD-DEC-037`
+
+| Aspek | Keadaan di source | Sasaran |
+| --- | --- | --- |
+| Tanggal berlaku | **Sudah ada** — `MstSalaryGrade.EffectiveStartDate` dan `EffectiveEndDate`; `MstSalaryStructure` serupa | Dipertahankan |
+| Versi kebijakan | Belum ada penanda versi tersendiri | Setiap perubahan menghasilkan versi baru yang dapat dirujuk |
+| Audit perubahan | Hanya kolom audit `IdentityModel` bawaan | Ditambah: rujukan versi sebelumnya, rujukan versi baru, dan tanggal berlaku |
+| Riwayat | Penghapusan sudah berupa penandaan `IsDelete`, bukan penghapusan baris | **Aturan lama MUST NOT dihapus** saat kebijakan berubah — termasuk tidak ditandai hapus |
+
+**Empat faktor penentu gaji** setelah `HRD-DEC-041` dan `HRD-DEC-045`:
+
+| # | Faktor | Padanan di source | Klasifikasi |
+| ---: | --- | --- | --- |
+| 1 | Golongan | `MstSalaryGrade.EmployeeGradeId`, `MstSalaryStructure.EmployeeCategoryId` | **`REUSE`** |
+| 2 | Level | `MstSalaryGrade.GradeLevel` | **`REUSE`** |
+| 3 | Status kerja | `MstSalaryStructure.EmploymentTypeId`, `EmployeeCategoryId` | **`REUSE`** |
+| 4 | **Jenjang Pendidikan** | `WfpEducation.EducationLevel` + `IsVerified` + `IsHighestEducation` | **`REUSE`** dengan dua celah: butir hak akses verifikasi terpisah, dan kosakata jenjang terkendali |
+| — | ~~**Masa Kerja**~~ | — | **Dikeluarkan dari cakupan MVP saat ini** `HRD-DEC-045`. Bukan faktor kebijakan gaji; `HRD-Q-56` `DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP` |
+
+Istilah "masa studi" **ditarik** — `HRD-DEC-041` menggantinya dengan Jenjang Pendidikan.
+`HRD-Q-55` **tertutup**. `HRD-DEC-042` yang sempat menambahkan Masa Kerja sebagai dimensi
+**digantikan** `HRD-DEC-045` untuk MVP saat ini; masa kerja **bukan** faktor kebijakan gaji.
+
+**Entity kebijakan gaji berversi belum ada.** Tidak ada tabel yang menyimpan versi kebijakan gaji
+beserta kriteria per dimensi. `MstSalaryGrade` menyimpan **rentang gaji**, bukan aturan
+kelayakan. Preseden bentuknya sudah ada pada `MstBenefitEligibilityRule` — lihat
+`../02-backend-architecture.md` bagian 11.2.4. **Tidak ada tabel yang dibuat pada pass ini.**
 
 ---
 

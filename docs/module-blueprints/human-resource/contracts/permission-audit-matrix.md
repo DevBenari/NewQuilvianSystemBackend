@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/permission-audit-matrix.md` |
-| `contract_version` | `v2` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` |
+| `last_changed_in` | `v5` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Pemilik keamanan bersama technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
 | `input_revision` | `contracts/api-contract.md` `v1`; `data/data-dictionary.md` `v1` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada butir hak akses yang dihapus atau diganti namanya |
 
@@ -127,9 +127,9 @@ keamanan**, bukan konfigurasi yang boleh langsung dipasang.
 | Field | Isi |
 | --- | --- |
 | Dasar | `HRD-DEC-032` |
-| Status | **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** |
+| Status | **`SECURITY_APPROVED`** — co-sign 2026-08-30 |
 | Disetujui | Pemilik teknis dan produk, 2026-08-30 |
-| Co-approver | Pemilik keamanan — **belum menandatangani** |
+| Co-approver | `Project final decision authority — Security` — **sudah menandatangani**, 2026-08-30 |
 
 **Aturan yang paling menentukan bagian ini:** nama peran fungsional pada bagian 2.2 **MUST NOT**
 dianggap sama dengan peran aplikasi pada Identity. Bagian 2.2 adalah **baseline fungsional**;
@@ -222,8 +222,8 @@ konfigurasi peran — karena menyetujui dan mengubah masih berbagi satu butir ya
 | Field | Isi |
 | --- | --- |
 | Dasar | `HRD-DEC-033` |
-| Status | **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** |
-| Co-approver | Pemilik keamanan — **belum menandatangani** |
+| Status | **`SECURITY_APPROVED`** — co-sign 2026-08-30 |
+| Co-approver | `Project final decision authority — Security` — **sudah menandatangani**, 2026-08-30 |
 
 **Prinsip:** `SALARY_AMOUNT_HIDDEN_BY_DEFAULT`.
 
@@ -235,12 +235,101 @@ konfigurasi peran — karena menyetujui dan mengubah masih berbagi satu butir ya
 
 | Butir hak akses baru | Dipegang | Catatan |
 | --- | --- | --- |
-| `WfpSalaryAssignment : ViewAmount` | HR Manager, Payroll Officer, dan pemilik data sendiri | Butir **sensitif**. Terpisah dari `WfpSalaryAssignment : Read` |
+| `WfpSalaryAssignment : ViewAmount` | **HR Manager**, dan pemilik data atas gajinya sendiri lewat jalur layanan mandiri yang tunduk `HRD-DEC-038`. **Payroll Officer TIDAK** — `HRD-DEC-044` | Butir **sensitif**. Terpisah dari `WfpSalaryAssignment : Read` |
 | `WfpSalaryAssignment : ViewAmountBulk` | **Belum diberikan kepada siapa pun pada MVP** | Memerlukan co-sign keamanan sebelum diberikan |
+| `WorkforceEducation : Verify` | HR Admin dan HR Manager | **Butir baru** `[DECISION]` `HRD-DEC-041`. Hari ini verifikasi pendidikan memakai `WorkforceEducation : Update` — butir **yang sama** dengan buat dan ubah, sehingga pihak yang mencatat pendidikan juga dapat memverifikasinya. Tanpa butir terpisah, invariant "hanya jenjang terverifikasi yang dipakai kebijakan gaji" tidak dapat dijaga mesin |
+| `SalaryPolicy : Read`, `: Create`, `: Update`, `: Activate` | **HR Manager saja** | `HRD-DEC-037` dan `HRD-DEC-043`. HR Admin biasa **MUST NOT** memegangnya |
 
 **Larangan yang mengikat:** nominal **MUST NOT** terbuka hanya karena pengguna memegang butir
 baca umum. `WfpSalaryAssignment : Read` **tidak** menyiratkan `: ViewAmount`. Memisahkan keduanya
 adalah inti keputusan ini — menggabungkannya kembali membatalkannya.
+
+### 2.5a Keamanan data gaji — `HRD-DEC-037` s.d. `HRD-DEC-040`
+
+| Field | Isi |
+| --- | --- |
+| Dasar | `HRD-DEC-037`, `HRD-DEC-038`, `HRD-DEC-039`, `HRD-DEC-040` |
+| Status | `approved` sebagai **kontrak sasaran** — belum diimplementasikan |
+| Otoritas | `Project final decision authority — Security`, 2026-08-30 |
+
+#### 2.5a.1 Kewenangan konfigurasi kebijakan gaji
+
+| Aspek | Isi |
+| --- | --- |
+| Siapa yang boleh mengetahui, membaca, dan mengubah kebijakan gaji serta master gaji | **Hanya `HR Manager`** |
+| Faktor penentu gaji yang sah | Golongan; Level; Status kerja; **Jenjang Pendidikan** — `HRD-DEC-041`. **Masa kerja tidak termasuk** — `HRD-DEC-045` |
+| Menambah faktor | **MUST NOT** ditambah perancang maupun implementer. Hanya lewat keputusan bisnis yang disetujui |
+| Bentuk konfigurasi | Berversi; bertanggal berlaku; dapat diaudit; riwayat lama **MUST NOT** dihapus saat kebijakan berubah |
+| Audit perubahan | Siapa; kapan; rujukan versi sebelumnya; rujukan versi baru; tanggal berlaku |
+
+**Diperbarui `HRD-DEC-041` dan `HRD-DEC-045`.** Istilah "masa studi" **ditarik**. Faktor yang
+berlaku ada **empat**: Golongan, Level, Status kerja, dan **Jenjang Pendidikan**.
+`HRD-Q-55` **tertutup**.
+
+**Masa kerja BUKAN faktor kebijakan gaji pada MVP saat ini.** `HRD-DEC-045` menggantikan
+`HRD-DEC-042`, dan `HRD-Q-56` berstatus `DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP`. Tidak ada
+faktor yang tertahan.
+
+#### 2.5a.2 Dua gerbang untuk slip gaji pegawai
+
+Butir `MyPayslip : Read` — atau padanan canonical — **tidak cukup** dengan sendirinya. Otorisasi
+menuntut dua gerbang sekaligus:
+
+| # | Gerbang | Bunyi |
+| ---: | --- | --- |
+| 1 | Kepemilikan sumber daya | Backend **MUST** menurunkan kepemilikan dari `pengguna terautentikasi → profil workforce → pemilik slip gaji`. Pengenal dari frontend **MUST NOT** dipercaya sebagai bukti otorisasi |
+| 2 | Otentikasi bertingkat gaji | `SALARY_SENSITIVE_SESSION` masih berlaku |
+
+Permintaan atas slip gaji pegawai lain **MUST** ditolak walaupun pengenalnya benar dan diketahui
+pemohon.
+
+#### 2.5a.3 Otentikasi bertingkat dan sesi gaji sensitif
+
+| Aspek | Sasaran |
+| --- | --- |
+| Pemicu | Sebelum data gaji atau slip gaji ditampilkan kepada pegawai |
+| Cara | Konfirmasi kata sandi yang sama dengan akun yang sedang masuk, diverifikasi lewat mekanisme Identity **canonical** |
+| Larangan | **Jangan** membuat pemverifikasi kata sandi baru untuk HR |
+| Hasil | Otorisasi berumur pendek `SALARY_SENSITIVE_SESSION`, bawaan **5 menit** |
+| Batal ketika | Pengguna keluar; sesi utama tidak sah; akun dinonaktifkan; keadaan kata sandi atau keamanan berubah |
+| Kata sandi **MUST NOT** disimpan pada | `localStorage`; `sessionStorage`; state frontend yang dipersistkan; persistensi Redux; basis data tambahan; log; analytics |
+
+#### 2.5a.4 Audit pembacaan gaji sensitif — pengecualian terhadap konvensi
+
+Konvensi project **tidak** mencatat permintaan `GET`. Untuk data gaji sensitif, konvensi itu
+**dikecualikan** — `SENSITIVE_GET_MUST_BE_AUDITED`.
+
+| Kejadian yang wajib meninggalkan jejak |
+| --- |
+| Nominal gaji dilihat |
+| Daftar slip gaji dibuka setelah otentikasi bertingkat |
+| Detail slip gaji dilihat |
+| Slip gaji diunduh |
+| Detail gaji administratif sensitif dilihat |
+| Percobaan yang ditolak terhadap gaji pegawai lain |
+| Otentikasi bertingkat yang gagal |
+
+| Boleh dicatat | **MUST NOT** dicatat |
+| --- | --- |
+| `UserId` pelaku; `WorkforceProfileId` pelaku bila ada; pengenal record yang dituju; pengenal periode payroll; aksi; waktu; berhasil atau gagal; IP, perangkat, user-agent bila didukung; pengenal korelasi | Kata sandi; **nominal gaji**; nomor rekening bank; nomor pajak; seluruh isi response sensitif; token otentikasi |
+
+**Perhatikan kolom kanan.** Audit mencatat **bahwa** nominal dibaca, bukan nominalnya. Mencatat
+nominalnya memindahkan kebocoran dari response ke log — tempat yang disimpan lebih lama dan
+dibaca lebih banyak orang.
+
+#### 2.5a.5 Perlindungan pada HTTP dan sisi klien
+
+| Aturan | Bunyi |
+| --- | --- |
+| Response gaji sensitif | `Cache-Control: no-store` atau padanan canonical |
+| Frontend **MUST NOT** menyimpan pada | Redux yang dipersistkan; `localStorage`; cache peramban berumur panjang; payload analytics |
+| Unduhan slip gaji | **MUST NOT** bergantung pada URL statis publik yang dapat ditebak. **MUST** lewat endpoint terautentikasi yang memeriksa otentikasi, kepemilikan atau hak administratif sensitif, dan sesi gaji sensitif yang masih berlaku |
+
+#### 2.5a.6 Keterlihatan massal tetap di luar MVP
+
+`ViewAmountBulk` dan ekspor gaji sensitif **belum diberikan kepada siapa pun**. Bila kelak
+dibutuhkan, ia memerlukan **seluruh** hal berikut: butir hak akses eksplisit; tinjauan keamanan
+tersendiri; kejadian audit; serta keputusan dan kontrak baru.
 
 ### 2.6 Yang **tidak** dipetakan di sini
 
@@ -274,12 +363,12 @@ atau tidak"*. Ia **tidak** menjawab *"boleh melakukannya pada baris data yang in
 | --- | --- | --- | --- |
 | Pemisahan peran pada tindakan disiplin | **Pembuat tindakan dapat menyetujui tindakannya sendiri** | Keputusan yang menyangkut nasib seorang pegawai diambil satu orang tanpa pengawasan | `[OPEN]` `HRD-Q-51` |
 | Tingkatan izin untuk data paling rahasia | Kasus kedisiplinan bertanda paling rahasia dapat dibaca siapa pun yang memegang butir baca umum | Data yang paling sensitif di modul ini justru dijaga sama seperti data biasa | `[OPEN]` `HRD-Q-52` |
-| Pembatasan siapa boleh membaca nominal gaji orang lain | **Diputuskan** `HRD-DEC-033`: nominal disembunyikan pada daftar lintas pegawai; butir `: ViewAmount` terpisah dari `: Read` | Penegakannya **belum ada di kode** — butir sensitifnya belum dibuat | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| Pembatasan siapa boleh membaca nominal gaji orang lain | **Diputuskan** `HRD-DEC-033`: nominal disembunyikan pada daftar lintas pegawai; butir `: ViewAmount` terpisah dari `: Read` | Penegakannya **belum ada di kode** — butir sensitifnya belum dibuat | **`SECURITY_APPROVED`** — co-sign 2026-08-30 |
 | Hak akses per aksi pada penempatan jadwal kerja | 8 endpoint tanpa butir hak akses | Siapa pun yang masuk dapat menempatkan, mengubah, dan menghapus jadwal kerja pegawai mana pun | Lihat bagian 6 |
 | Guard perubahan jadwal berlaku surut | Belum ada | Jadwal pada periode yang sudah diproses dapat diubah langsung | `[DECISION]` `HRD-DEC-027`, `MISSING` |
 | Permission khusus untuk membalikkan eksekusi cuti | Belum ada | Cuti yang sudah selesai dapat dibalikkan tanpa alasan dan tanpa pemeriksaan kunci payroll | `[DECISION]` `HRD-DEC-023`, `MISSING` |
 | Guard `Applied` terminal pada koreksi kehadiran | Belum ada | Penerapan koreksi dapat berjalan dua kali dan memutasi ulang kehadiran | `[DECISION]` `HRD-DEC-022`, `MISSING` |
-| Siapa yang berwenang membuka kembali periode | Mekanismenya ada, pemetaan perannya belum | Pemegang butir membuka kembali dapat membuka periode mana pun | `[OPEN]` `HRD-Q-23`, `HRD-Q-32` |
+| Siapa yang berwenang membuka kembali periode | Mekanismenya ada; peran fungsional `Payroll Officer` ditetapkan `HRD-DEC-032`, pemetaan ke peran Identity `MAPPING_REQUIRED` | Pemegang butir membuka kembali dapat membuka periode mana pun | `[OPEN]` `HRD-Q-23`, `HRD-Q-32` |
 
 ### 3.3 Contoh nyata supaya perbedaan kedua lapisan terbaca
 

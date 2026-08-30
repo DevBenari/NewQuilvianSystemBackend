@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/integration-contract.md` |
-| `contract_version` | `v2` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` |
+| `last_changed_in` | `v4` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik modul tetangga untuk setiap batas |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `12`; `flows/00-module-context-flow.md` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` | `00-interview-decisions.md` revision `15`; `flows/00-module-context-flow.md` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada kontrak lintas modul yang berubah. Sebagian besar batas justru **belum** punya kontrak |
 

@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v2` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` |
+| `last_changed_in` | `v5` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
 | `approved_by` / `approved_at` | **Belum ada** |
 | `input_revision` | `contracts/state-transition-matrix.md` `v2`; `contracts/validation-matrix.md` `v2`; `contracts/api-contract.md` `v2`; `flowcharts/**` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
 
@@ -238,13 +238,47 @@ Baris yang dibatalkan ditandai `Dibatalkan` beserta alasannya, bukan dihapus.
 
 ---
 
+## 11.1 Keamanan data gaji dan slip gaji — `HRD-DEC-037` s.d. `HRD-DEC-040`
+
+| ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `AT-HRD-SAL-01` | Slip gaji hanya milik sendiri | **Gagal:** Budi meminta slip gaji Ani memakai pengenal yang benar; ditolak `403`, isi tidak terkirim, dan jawaban **tidak** membocorkan apakah slip itu ada | `INTEGRATION` | Test otorisasi beserta isi jawaban yang diperiksa |
+| `AT-HRD-SAL-01b` | Kepemilikan diturunkan backend | **Gagal:** permintaan menyertakan pengenal profil workforce milik orang lain; pengenal itu **diabaikan**, yang dikembalikan tetap milik pengguna yang masuk | `INTEGRATION` | Test yang membuktikan pengenal dari layar tidak dipakai |
+| `AT-HRD-SAL-02` | Otentikasi bertingkat wajib | **Gagal:** data gaji diminta tanpa sesi gaji sensitif; ditolak `401` | `INTEGRATION` | Test penolakan |
+| `AT-HRD-SAL-02b` | Sama | **Berhasil:** setelah kata sandi dikonfirmasi, data gaji dapat dibaca | `INTEGRATION` | Test alur lengkap |
+| `AT-HRD-SAL-03` | Sesi sensitif kedaluwarsa | **Gagal:** setelah lima menit, permintaan berikutnya ditolak `401` dan meminta kata sandi lagi | `INTEGRATION` | Test batas waktu |
+| `AT-HRD-SAL-03b` | Sesi batal saat keadaan akun berubah | **Gagal:** setelah pengguna keluar atau akun dinonaktifkan, sesi sensitif tidak lagi berlaku | `INTEGRATION` | Test pembatalan |
+| `AT-HRD-SAL-04` | Memakai Identity canonical | **Gagal:** tidak ada pemverifikasi kata sandi kedua di dalam modul HR | `MANUAL` | Hasil penelusuran source beserta kesimpulannya |
+| `AT-HRD-SAL-05` | Kata sandi tidak disimpan | **Gagal:** setelah konfirmasi, kata sandi tidak ditemukan di `localStorage`, `sessionStorage`, Redux yang dipersistkan, log, maupun analytics | `E2E` | Isi penyimpanan peramban dan log yang diperiksa |
+| `AT-HRD-SAL-06` | Konfigurasi kebijakan gaji hanya HR Manager | **Gagal:** peran selain HR Manager membaca atau mengubah master gaji; ditolak `403` | `INTEGRATION` | Test otorisasi |
+| `AT-HRD-SAL-07` | Riwayat kebijakan tidak dihapus | **Berhasil:** kebijakan gaji diubah; versi lama **tetap ada** dan dapat dirujuk beserta tanggal berlakunya | `INTEGRATION` | Test yang membuktikan versi lama masih terbaca |
+| `AT-HRD-SAL-08` | Audit `GET` sensitif | **Berhasil:** membaca nominal gaji meninggalkan catatan audit berisi pelaku, sasaran, aksi, waktu, dan hasil | `INTEGRATION` | Isi catatan audit |
+| `AT-HRD-SAL-08b` | Audit tidak memuat nominal | **Gagal:** catatan audit **tidak** memuat nominal gaji, kata sandi, nomor rekening, nomor pajak, isi response, maupun token | `INTEGRATION` | Isi catatan audit yang diperiksa kolom per kolom |
+| `AT-HRD-SAL-08c` | Percobaan yang ditolak ikut dicatat | **Berhasil:** permintaan slip gaji milik orang lain meninggalkan catatan audit bertanda gagal | `INTEGRATION` | Isi catatan audit |
+| `AT-HRD-SAL-09` | Response gaji tidak disimpan cache | **Gagal:** response gaji sensitif membawa `Cache-Control: no-store`, dan tidak ditemukan pada cache peramban maupun Redux yang dipersistkan | `E2E` | Header response dan isi penyimpanan peramban |
+| `AT-HRD-SAL-10` | Unduhan slip gaji terautentikasi | **Gagal:** berkas slip gaji tidak dapat diambil lewat URL statis yang ditebak tanpa otentikasi, kepemilikan, dan sesi sensitif | `INTEGRATION` | Test yang mencoba URL langsung |
+| `AT-HRD-SAL-11` | Keterlihatan massal tidak tersedia | **Gagal:** tidak ada endpoint yang mengembalikan nominal gaji banyak pegawai sekaligus, dan `ViewAmountBulk` tidak dipegang peran mana pun | `MANUAL` | Hasil penelusuran endpoint dan konfigurasi peran |
+| `AT-HRD-SAL-12` | HR Manager tetap tidak dapat swa-setuju | **Gagal:** HR Manager yang membuat penetapan gaji tidak dapat menyetujuinya sendiri; ditolak `403` | `INTEGRATION` | Test yang membuktikan `HRD-DEC-031` tidak dilonggarkan `HRD-DEC-037` |
+| `AT-HRD-SAL-13` | Payroll Officer tidak memegang `: ViewAmount` — `HRD-DEC-044` | **Gagal:** Payroll Officer meminta nominal gaji; ditolak. Kesiapan payroll tetap dapat dikerjakannya | `INTEGRATION` | Test otorisasi beserta bukti kesiapan payroll tetap berjalan |
+| `AT-HRD-SAL-14` | Pendidikan belum terverifikasi tidak dipakai kebijakan gaji — `HRD-DEC-041` | **Gagal:** jenjang yang dilaporkan tetapi belum diverifikasi tidak menghasilkan calon penyesuaian | `INTEGRATION` | Test yang membuktikan tidak ada calon terbentuk |
+| `AT-HRD-SAL-14b` | Sama | **Berhasil:** setelah HR memverifikasi, evaluasi berjalan dan calon penyesuaian terbentuk | `INTEGRATION` | Test alur lengkap |
+| `AT-HRD-SAL-15` | Verifikasi pendidikan bukan oleh pencatatnya | **Gagal:** pihak yang mencatat pendidikan tidak dapat memverifikasinya sendiri | `INTEGRATION` | Test pemisahan peran. **Menutup celah butir `WorkforceEducation : Update` yang sekarang dipakai bersama** |
+| `AT-HRD-SAL-16` | Perubahan faktor tidak mengubah gaji langsung — `HRD-DEC-043` | **Gagal:** pendidikan terverifikasi naik **tidak** mengubah gaji efektif; hanya membentuk calon | `INTEGRATION` | Test yang membandingkan nilai gaji sebelum dan sesudah |
+| `AT-HRD-SAL-16b` | Sama | **Berhasil:** calon diterima → pengajuan `T8` → disetujui pihak berbeda → gaji berubah sejak tanggal berlaku | `INTEGRATION` | Test alur lengkap |
+| `AT-HRD-SAL-17` | Kebijakan gaji berversi | **Berhasil:** kebijakan diubah; versi lama tetap ada dan penetapan gaji lama tetap menunjuk versi yang menjadi dasarnya | `INTEGRATION` | Test yang membuktikan riwayat utuh |
+| `AT-HRD-SAL-17b` | Pertanyaan audit terjawab | **Berhasil:** untuk satu perubahan gaji, sistem menampilkan rekaman faktor, versi kebijakan, tanggal berlaku, penyesuaian, pelaku dan penyetuju | `INTEGRATION` | Isi jejak audit |
+| `AT-HRD-SAL-18` | Masa kerja bukan faktor gaji MVP — `HRD-DEC-045` | **Gagal:** tidak ada kriteria masa kerja, pita masa kerja, maupun penyesuaian gaji yang dipicu masa kerja pada kontrak sasaran MVP | `MANUAL` | Hasil penelusuran kontrak dan tinjauan desain |
+| `AT-HRD-SAL-19` | Aturan gaji tidak ditulis di source | **Gagal:** tidak ada persentase maupun nominal penyesuaian yang ditulis sebagai percabangan di kode | `MANUAL` | Hasil penelusuran source |
+
+---
+
 ## 12. Privasi dan jejak audit — berlaku lintas slice
 
 | ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
 | `AT-HRD-SEC-01` | Kolom sensitif tidak masuk custom logger | **Gagal:** memicu jalur yang menyentuh kolom bertanda sensitif tidak meninggalkan isinya di log | `INTEGRATION` | Isi log yang diperiksa, dengan nilai tersamarkan |
 | `AT-HRD-SEC-02` | Permintaan selain `GET` meninggalkan jejak | **Berhasil:** setiap permintaan yang mengubah data meninggalkan catatan siapa, kapan, dan apa yang diubah | `INTEGRATION` | Isi catatan audit |
-| `AT-HRD-SEC-03` | Permintaan `GET` tidak dicatat | **Berhasil:** pembacaan data tidak membanjiri catatan audit | `INTEGRATION` | Isi catatan audit yang membuktikan ketiadaan baris untuk pembacaan |
+| `AT-HRD-SEC-03` | Permintaan `GET` tidak dicatat, **kecuali data gaji sensitif** | **Berhasil:** pembacaan data biasa tidak membanjiri catatan audit. **Gagal:** pembacaan nominal gaji dan slip gaji **tetap** dicatat sesuai `HRD-DEC-039` | `INTEGRATION` | Isi catatan audit untuk kedua jenis pembacaan |
 | `AT-HRD-SEC-04` | Hak akses pada API dan frontend sama | **Gagal:** tidak ada tombol di layar yang dijaga hak akses berbeda dari endpoint yang dipanggilnya | `MANUAL` | Perbandingan baris pada `contracts/api-contract.md` dengan skema fitur pada `03-frontend-architecture.md` |
 | `AT-HRD-SEC-05` | Penghapusan bersifat penandaan | **Gagal:** tidak ada jalur yang benar-benar menghapus baris dari basis data | `INTEGRATION` | Test yang membuktikan baris masih ada dengan penanda hapus |
 

@@ -5,11 +5,12 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `evidence/02-security-review-packet.md` |
 | Jenis | **Paket tinjauan**, bukan kontrak. Bukan bagian dari ketiga belas artefak canonical |
-| Status | `menunggu tinjauan keamanan` |
+| Status | **`SECURITY_APPROVED`** — dijawab 2026-08-30 |
 | Disiapkan oleh | Pemilik teknis dan produk (`HRD-DEC-015`), 2026-08-30 |
 | Untuk | Pemilik keamanan |
 | Keputusan yang ditinjau | `HRD-DEC-032`, `HRD-DEC-033` |
-| Status kedua keputusan | **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** |
+| Status kedua keputusan | **`SECURITY_APPROVED`** |
+| Otoritas keamanan | `Project final decision authority — Security`, dinyatakan eksplisit dalam percakapan. Governance tidak menyediakan field nama orang, dan dokumen ini **tidak mengarang nama siapa pun** |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 
 ---
@@ -24,14 +25,16 @@ membaca seluruh blueprint HR** — seluruh yang dibutuhkan untuk memutuskan ada 
 
 | Jawaban | Artinya |
 | --- | --- |
-| `APPROVE` | Model diterima apa adanya. Keputusan naik dari `OWNER_DECIDED_PENDING_SECURITY_COSIGN` menjadi disetujui penuh |
+| `APPROVE` | Model diterima. Keputusan naik dari `OWNER_DECIDED_PENDING_SECURITY_COSIGN` menjadi `SECURITY_APPROVED`. **Inilah yang terjadi** |
 | `REQUEST_CHANGES` | Model perlu diubah. Sebutkan butir mana dan mengapa |
 
 **Yang tidak diminta:** membaca arsitektur, kontrak API, kamus data, maupun flowchart. Ketiganya
 dirujuk bila diperlukan, tetapi bukan syarat untuk menjawab.
 
-**Catatan penting:** tidak ada satu pun bagian dokumen ini yang sudah menuliskan persetujuan
-keamanan. Kolom tanda tangan sengaja dibiarkan kosong.
+**Keadaan dokumen ini sekarang:** tinjauan **sudah selesai**. Kedua bagian dijawab `APPROVE` oleh
+`Project final decision authority — Security` pada 2026-08-30, beserta empat keputusan sasaran
+tambahan yang dicatat pada decision log bagian 28. Isi paket di bawah dipertahankan apa adanya
+sebagai bahan yang ditinjau, bukan diubah setelah keputusan diberikan.
 
 ---
 
@@ -96,10 +99,15 @@ MUST NOT dianggap sama dengan peran aplikasi pada Identity.**
 
 | Field | Isi |
 | --- | --- |
-| Keputusan | ☐ `APPROVE`  ☐ `REQUEST_CHANGES` |
-| Butir yang diminta berubah | |
-| Nama peninjau | |
-| Tanggal | |
+| Keputusan | **`APPROVE`** |
+| Ketentuan yang menyertai | 1. Peran fungsional tetap menjadi model otorisasi HR. 2. Pemetaan ke peran Identity tetap lewat konfigurasi runtime administrator. 3. `MAPPING_REQUIRED` **bukan** alasan mengarang peran di source. 4. `SuperAdmin` **MUST NOT** dipakai sebagai pengganti peran HR pada operasi normal; ia tetap otoritas administratif dan darurat sesuai perilaku platform yang ada |
+| Otoritas peninjau | `Project final decision authority — Security` |
+| Tanggal | 2026-08-30 |
+
+**Jawaban atas tujuh pertanyaan bagian A.4:** seluruhnya diterima dengan ketentuan di atas.
+Butir 3 dijawab tegas — `SuperAdmin` yang melewati seluruh pemeriksaan **diterima** sebagai
+perilaku administratif dan darurat, **bukan** sebagai peran operasional HR. Butir 7 dijawab
+tegas — `ViewAmount` **wajib** terpisah dari `Read` dan `ReadAll`.
 
 ---
 
@@ -182,11 +190,24 @@ pencatatan yang berlaku sekarang tidak mencatat permintaan `GET`, sehingga pemba
 
 | Field | Isi |
 | --- | --- |
-| Keputusan | ☐ `APPROVE`  ☐ `REQUEST_CHANGES` |
-| Butir yang diminta berubah | |
-| Perlukah jejak audit khusus untuk pembacaan nominal? | ☐ Ya  ☐ Tidak |
-| Nama peninjau | |
-| Tanggal | |
+| Keputusan | **`APPROVE`** |
+| Perlukah jejak audit khusus untuk pembacaan nominal? | **Ya — `APPROVED — AUDIT REQUIRED`.** Pembacaan gaji dan slip gaji ditetapkan sebagai **pengecualian** terhadap konvensi project yang tidak mencatat `GET`. Aturannya `SENSITIVE_GET_MUST_BE_AUDITED`, dicatat sebagai `HRD-DEC-039` |
+| Otoritas peninjau | `Project final decision authority — Security` |
+| Tanggal | 2026-08-30 |
+
+**Model gaji diperluas melampaui pertanyaan awal paket ini.** Persetujuan disertai empat
+keputusan sasaran tambahan yang dicatat pada decision log bagian 28:
+
+| ID | Isi |
+| --- | --- |
+| `HRD-DEC-037` | Kewenangan konfigurasi kebijakan gaji hanya pada `HR Manager`; berversi, bertanggal berlaku, dapat diaudit, riwayat tidak dihapus |
+| `HRD-DEC-038` | Kepemilikan slip gaji diturunkan backend; otentikasi bertingkat memakai kata sandi Identity canonical; `SALARY_SENSITIVE_SESSION` bawaan 5 menit |
+| `HRD-DEC-039` | `SENSITIVE_GET_MUST_BE_AUDITED` beserta daftar isi audit yang boleh dan yang dilarang |
+| `HRD-DEC-040` | `Cache-Control: no-store`; larangan persistensi di sisi klien; unduhan slip gaji lewat endpoint terautentikasi, bukan URL statis publik |
+
+**Satu ketidaksesuaian dicatat, tidak diputuskan sendiri.** Faktor penentu gaji "masa studi"
+tidak punya padanan di source; ketiga faktor lain punya. Dicatat sebagai `HRD-Q-55` — lihat
+decision log bagian 28.2.1.
 
 ---
 
@@ -205,7 +226,9 @@ ingin memeriksa lebih jauh.
 
 | Jawaban | Tindakan berikutnya |
 | --- | --- |
-| `APPROVE` pada keduanya | `HRD-DEC-032` dan `HRD-DEC-033` naik menjadi disetujui penuh. `contracts/permission-audit-matrix.md` dan `03-frontend-architecture.md` berpindah dari `PENDING_SECURITY_COSIGN` menjadi `READY_TO_REVIEW` |
-| `REQUEST_CHANGES` | Keputusan yang bersangkutan direvisi, decision log naik revisi, dan paket ini disusun ulang. Keputusan **MUST NOT** dinyatakan disetujui sebagian |
+| `APPROVE` pada keduanya | **Terjadi.** `HRD-DEC-032` dan `HRD-DEC-033` naik menjadi `SECURITY_APPROVED`. `contracts/permission-audit-matrix.md` dan `03-frontend-architecture.md` berpindah dari `PENDING_SECURITY_COSIGN` menjadi `READY_TO_REVIEW` |
+| `REQUEST_CHANGES` | Tidak terjadi |
 
-**Sampai jawaban diberikan, tidak ada satu pun artefak yang boleh ditandai disetujui keamanan.**
+**Tinjauan keamanan selesai 2026-08-30.** Keempat keputusan sasaran `HRD-DEC-037` s.d.
+`HRD-DEC-040` adalah **kontrak sasaran**, bukan perilaku yang sudah berjalan — tidak satu pun
+sudah diimplementasikan, dan tidak satu pun boleh diimplementasikan dari dokumen ini.

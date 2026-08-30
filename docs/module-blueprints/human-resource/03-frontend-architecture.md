@@ -12,8 +12,8 @@
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `1` |
-| `input_revision` — decision log | `00-interview-decisions.md` revision `12` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `15` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Kompatibilitas | Tidak ada halaman existing yang dihapus. Satu halaman dipindahkan lokasinya (`S-A6`) dengan pengalihan |
 
 ---
@@ -476,8 +476,8 @@ Layar ini digambar terpisah karena datanya sensitif. Aturan keterlihatannya suda
 2. **Butir baca umum tidak membuka nominal.** `WfpSalaryAssignment : Read` maupun `: ReadAll`
    **tidak** menyiratkan `: ViewAmount`. Frontend **MUST NOT** menyimpulkan sebaliknya.
 
-Status keputusan ini **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** — sudah diputuskan pemilik
-produk, belum ditandatangani keamanan.
+Status keputusan ini **`SECURITY_APPROVED`** — diputuskan pemilik produk dan ditandatangani
+`Project final decision authority — Security` pada 2026-08-30.
 
 ### 4.3 `FE-HRD-30` — Kotak Masuk Persetujuan
 
@@ -824,6 +824,62 @@ disetujui pemilik produk. Nama-nama itu boleh diganti tanpa mengubah dokumen ini
 
 ---
 
+## 8.1 Keamanan data gaji di sisi layar — `HRD-DEC-038` dan `HRD-DEC-040`
+
+Seluruhnya **kontrak sasaran**, belum diimplementasikan.
+
+### 8.1.1 Alur konfirmasi kata sandi sebelum gaji ditampilkan
+
+```text
+sesi terautentikasi
+  → pegawai membuka layar Gaji / Slip Gaji
+  → layar meminta konfirmasi kata sandi
+  → backend memverifikasi lewat Identity canonical
+  → sesi gaji sensitif terbit, berlaku 5 menit
+  → data gaji dapat ditampilkan
+```
+
+Setelah lima menit, layar **MUST** meminta konfirmasi kata sandi lagi sebelum menampilkan data
+gaji berikutnya. Layar **MUST NOT** memperpanjang sesi itu sendiri.
+
+### 8.1.2 Larangan penyimpanan yang mengikat frontend
+
+| Yang dilarang | Berlaku pada |
+| --- | --- |
+| Menyimpan **kata sandi** | `localStorage`; `sessionStorage`; state yang dipersistkan; persistensi Redux; log; analytics |
+| Menyimpan **response gaji sensitif** | Redux yang dipersistkan; `localStorage`; cache peramban berumur panjang; payload analytics |
+
+**Kata sandi dikirim untuk diverifikasi, lalu dilupakan.** Ia **MUST NOT** disimpan di mana pun,
+termasuk di dalam state komponen yang bertahan setelah layar berpindah.
+
+### 8.1.3 Nominal gaji tidak dikirim, bukan disembunyikan
+
+Layar **MUST NOT** menerima nominal gaji lalu menyembunyikannya. Nilai yang tetap dikirim tetap
+melintas jaringan dan tetap terbaca lewat alat pengembang peramban. Penyembunyian di layar **bukan**
+kendali keamanan.
+
+### 8.1.4 Unduhan slip gaji
+
+Tautan unduh **MUST NOT** menunjuk URL statis yang dapat ditebak. Ia memanggil endpoint
+terautentikasi yang memeriksa otentikasi, kepemilikan, dan sesi gaji sensitif yang masih berlaku.
+
+### 8.1.5 Kewenangan UI yang **tidak** bebas
+
+Berbeda dari kebanyakan keputusan rupa pada dokumen ini, empat butir berikut **bukan**
+`DEV_DISCRETION`:
+
+| Butir | Alasan |
+| --- | --- |
+| Adanya langkah konfirmasi kata sandi | Ia gerbang keamanan, bukan pilihan pengalaman pengguna |
+| Larangan menyimpan kata sandi dan response gaji | Sama |
+| Ketiadaan nominal pada daftar lintas pegawai | Sama |
+| Unduhan lewat endpoint terautentikasi | Sama |
+
+Yang tetap `DEV_DISCRETION`: bentuk dialog konfirmasi, susunan layar gaji, penempatan tombol
+unduh, dan cara memberi tahu pengguna bahwa sesi sensitifnya berakhir.
+
+---
+
 ## 9. Ketergantungan test
 
 `HRD-TF-007` mencatat bahwa frontend hanya memiliki empat berkas test di seluruh repository, dan
@@ -857,10 +913,14 @@ manual** untuk setiap layar, dengan bukti yang dicatat pada laporan task:
 | Layar roster dan penjadwalan operasional | `HRD-DEC-026` |
 | Batas waktu dan eskalasi terlihat di kotak masuk | `HRD-DEC-030` |
 | Izin pulang cepat tidak dibuatkan layar pada pass ini | `HRD-DEC-029` + `HRD-Q-47` |
-| Kolom nominal gaji tidak ditampilkan pada daftar lintas-pegawai | `HRD-DEC-033` — `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| Kolom nominal gaji tidak ditampilkan pada daftar lintas-pegawai | `HRD-DEC-033` — **`SECURITY_APPROVED`** |
 | Perubahan penempatan dan remunerasi wajib disetujui pihak yang berbeda | `HRD-DEC-031` |
 | Peran fungsional tidak disamakan dengan peran Identity | `HRD-DEC-032` |
 | Empat transaksi penempatan dan remunerasi punya layar dan jejak audit terpisah | `HRD-DEC-036` |
+| Konfirmasi kata sandi sebelum data gaji ditampilkan | `HRD-DEC-038` |
+| Larangan persistensi kata sandi dan response gaji sensitif | `HRD-DEC-040` |
+| Calon penyesuaian gaji ditampilkan sebagai usulan, bukan perubahan gaji | `HRD-DEC-043` |
+| Payroll Officer tidak melihat nominal gaji | `HRD-DEC-044` |
 | Kemampuan yang dirancang berasal dari `HRD-CAP-01` s.d. `HRD-CAP-27` | `01-existing-capability-map.md` |
 
 ---

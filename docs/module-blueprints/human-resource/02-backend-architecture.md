@@ -13,8 +13,8 @@
 | Backend SHA yang diaudit (historis) | `ecdc135444f0110482c9702212bcea30043983c8` |
 | Backend SHA baseline terverifikasi | `16b8b71f4cd61e083213cf90722f4d768d339739` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
-| `input_revision` — decision log | `00-interview-decisions.md` revision `12` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `15` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | `input_revision` — capability map | `01-existing-capability-map.md` revision `1.1` |
 | `input_hash` — capability map | `f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510` |
 | `input_revision` — roadmap | `roadmap/00-slice-roadmap.md` revision `3` |
@@ -1370,6 +1370,124 @@ hanya menyatakan bentuk arsitekturnya.
 | Data sensitif | Gaji, rekam kesehatan kerja, dan kasus kedisiplinan. Kolom bertanda sensitif pada [`data/data-dictionary.md`](./data/data-dictionary.md) **MUST NOT** masuk payload logger |
 | Pencatatan | Konvensi project: `GET` tidak dicatat; selain `GET` dicatat. Payload log hanya `EntityId`, controller, action, dan status |
 | Masa simpan rekaman mentah kehadiran | `[OPEN]` — `HRD-Q-25`. Belum ada kebijakan retensi yang diputuskan |
+
+---
+
+## 11.1 Keamanan data gaji — `HRD-DEC-037` s.d. `HRD-DEC-040`
+
+Seluruh butir di bawah adalah **kontrak sasaran**. Tidak satu pun sudah berjalan hari ini.
+
+| Aspek | Sasaran | Keadaan sekarang |
+| --- | --- | --- |
+| Kewenangan konfigurasi kebijakan gaji | Hanya `HR Manager` | Belum ada pemisahan; master gaji dijaga butir hak akses umum |
+| Bentuk konfigurasi | Berversi, bertanggal berlaku, dapat diaudit, riwayat tidak dihapus | `MstSalaryGrade` dan `MstSalaryStructure` **sudah punya** `EffectiveStartDate` dan `EffectiveEndDate`; yang belum ada adalah penjagaan riwayat dan audit perubahannya |
+| Kepemilikan slip gaji | Diturunkan backend dari pengguna terautentikasi | **`MISSING`** — belum ada endpoint slip gaji layanan mandiri |
+| Otentikasi bertingkat | `SALARY_SENSITIVE_SESSION`, bawaan 5 menit, memakai Identity canonical | **`MISSING`** |
+| Audit `GET` sensitif | `SENSITIVE_GET_MUST_BE_AUDITED` | **`MISSING`** — konvensi sekarang tidak mencatat `GET` |
+| `Cache-Control: no-store` | Pada seluruh response gaji sensitif | **`MISSING`** |
+| Unduhan slip gaji | Endpoint terautentikasi, bukan URL statis | **`MISSING`** |
+
+**Larangan arsitektur yang mengikat:** modul HR **MUST NOT** membuat pemverifikasi kata sandi
+sendiri. Verifikasi memakai infrastruktur Identity canonical. Membuat pemverifikasi kedua berarti
+membuat permukaan serangan kedua yang tidak ikut dirawat bersama yang pertama.
+
+**Faktor penentu gaji** yang sah ada **empat**: Golongan, Level, Status kerja, dan
+**Jenjang Pendidikan**. Istilah "masa studi" ditarik dan diganti "Jenjang Pendidikan" oleh
+`HRD-DEC-041`. **Masa kerja BUKAN faktor kebijakan gaji pada MVP saat ini** — `HRD-DEC-045`
+menggantikan `HRD-DEC-042`. Rinciannya pada bagian 11.2.
+
+---
+
+## 11.2 Model faktor kebijakan gaji — `HRD-DEC-041` s.d. `HRD-DEC-043`
+
+Seluruhnya **kontrak sasaran**. Tidak ada tabel yang dibuat, dan tidak ada nilai kebijakan yang
+ditetapkan.
+
+### 11.2.1 Lima dimensi dan kecocokannya dengan source
+
+| # | Dimensi | Sumber kebenaran | Verifikasi | Pemicu evaluasi | Sensitif | Cakupan source hari ini |
+| ---: | --- | --- | --- | --- | :---: | --- |
+| 1 | Golongan | `MstSalaryGrade.EmployeeGradeId`, `MstSalaryStructure.EmployeeCategoryId` | Perubahan lewat `T8` | Golongan berubah | Tidak | **`REUSE`** — lengkap |
+| 2 | Level | `MstSalaryGrade.GradeLevel` | Sama | Level berubah | Tidak | **`REUSE`** — lengkap |
+| 3 | Status kerja | `MstSalaryStructure.EmploymentTypeId`, `EmployeeCategoryId` | Sama | Status kerja berubah | Tidak | **`REUSE`** — lengkap |
+| 4 | Jenjang pendidikan | `WfpEducation` yang `IsVerified` dan `IsHighestEducation` | **Wajib diverifikasi HR** | Pendidikan terverifikasi berubah | Tidak | **`REUSE` dengan dua celah** — lihat 11.2.2 |
+| — | ~~Masa kerja~~ | — | — | — | — | **Dikeluarkan dari cakupan MVP saat ini** `HRD-DEC-045`. Lihat 11.2.3 |
+
+### 11.2.2 Dimensi jenjang pendidikan — sudah ada, dua celah tercatat
+
+| Yang sudah ada | Bukti |
+| --- | --- |
+| `WfpEducation.EducationLevel`, `IsHighestEducation` | `WorkforceCore/Models/WfpEducation.cs` |
+| `IsVerified`, `VerifiedAt`, `VerifiedByUserId` | Sama, baris 46–48 |
+| Bukti dokumen: `CertificateNumber`, `FilePath`, `FileContentType` | Sama, baris 37–43 |
+| Endpoint verifikasi `PATCH /{id:guid}/verify` | `WfpEducationController.cs` baris 477 |
+
+| Celah | Akibatnya | Klasifikasi |
+| --- | --- | --- |
+| Verifikasi dijaga `WorkforceEducation : Update` — butir **yang sama** dengan buat dan ubah | Pihak yang mencatat pendidikan juga dapat memverifikasinya. Invariant "hanya yang terverifikasi" tidak dijaga mesin | **`IMPLEMENTATION_WORK`** — butuh butir `WorkforceEducation : Verify` |
+| `EducationLevel` berupa string bebas `varchar(100)` | `S1`, `S-1`, dan `Sarjana` menjadi tiga nilai berbeda yang tidak dapat dicocokkan kebijakan | **`IMPLEMENTATION_WORK`** — butuh kosakata terkendali |
+
+### 11.2.3 Masa kerja — dikeluarkan dari cakupan MVP saat ini
+
+`[DECISION]` `HRD-DEC-045`, menggantikan `HRD-DEC-042` untuk MVP saat ini.
+
+**Masa kerja BUKAN faktor kebijakan gaji pada MVP saat ini.** Pemilik belum menetapkan bahwa masa
+kerja — ambang mana pun, berkelanjutan, terakumulasi, maupun masa kerja sebelumnya yang diakui —
+menghasilkan penyesuaian gaji.
+
+**Yang MUST NOT ada pada kontrak sasaran MVP saat ini:** pita masa kerja untuk gaji; batas bawah
+maupun batas atas masa kerja untuk gaji; penyesuaian gaji yang dipicu masa kerja; perhitungan gaji
+berbasis masa kerja; dan pembentukan calon penyesuaian berbasis masa kerja.
+
+Masa kerja **tetap boleh** menjadi informasi kepegawaian bila source memilikinya. Yang dilarang
+adalah memakainya untuk **evaluasi kebijakan gaji**.
+
+**Catatan audit yang dipertahankan.** Penelusuran sumber tanggal mulai bekerja tercatat pada
+decision log bagian 29.3.1 — `MstWorkforceProfile` tidak punya tanggal dan tidak terhubung ke
+`MstEmployee`; `WfpContractHistory` adalah kandidat terkuat secara semantik. Catatan itu
+dipertahankan agar penelusuran yang sama tidak perlu diulang bila kebijakan masa kerja kelak
+benar-benar ditetapkan. **Tidak satu pun dari kandidat itu dipilih sekarang**, dan `HRD-Q-56`
+berstatus `DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP`.
+
+Kebijakan gaji berbasis masa kerja di masa depan memerlukan **keputusan bisnis baru** dan
+**tinjauan kontrak baru**.
+
+### 11.2.4 Kebijakan gaji berversi
+
+| Konsep logis yang dibutuhkan | Kegunaan |
+| --- | --- |
+| Identitas versi kebijakan | Penetapan gaji menunjuk versi yang menjadi dasarnya |
+| Berlaku sejak, berlaku sampai — boleh terbuka | Rentang berlakunya |
+| Status siklus hidup | Draf, akan datang, berlaku, digantikan |
+| Pembuat, penyetuju atau pengaktif | Jejak tanggung jawab |
+| Kriteria per dimensi | Golongan, level, status kerja, jenjang pendidikan |
+| Rujukan aturan penyesuaian | Menunjuk bentuknya, **tanpa** nilainya |
+| Riwayat versi lama | **Dipertahankan**, tidak ditimpa |
+
+**Preseden yang sudah ada di repository ini.** `MstBenefitEligibilityRule` sudah memakai bentuk
+yang hampir persis dibutuhkan: penyaring per dimensi (`EmployeeCategoryId`, `EmploymentTypeId`,
+`EmployeeGradeId`, `SalaryGradeId`, dan cakupan organisasi), ditambah `RequireHrVerification` dan
+`RequireManagerApproval`.
+
+Preseden itu juga memuat `MinimumServiceMonths`. Kolom itu **tidak dipakai** kebijakan gaji MVP
+saat ini — `HRD-DEC-045` mengeluarkan masa kerja dari cakupan. Ia disebut di sini hanya sebagai
+bagian dari gambaran preseden, **bukan** sebagai kriteria yang diadopsi.
+
+Yang belum ada padanya: dimensi jenjang pendidikan; identitas versi; dan rujukan aturan
+penyesuaian.
+
+**Konsekuensi:** entity kebijakan gaji **SHOULD** mengikuti bentuk `MstBenefitEligibilityRule`,
+bukan menciptakan bentuk baru. Keputusan bentuk akhirnya milik revisi arsitektur berikutnya.
+
+### 11.2.5 Larangan yang mengikat
+
+| Larangan | Sebabnya |
+| --- | --- |
+| Aturan gaji **MUST NOT** ditulis sebagai percabangan di source | Aturan yang tersebar di kode tidak dapat diubah pemilik kebijakan, diberi versi, maupun diaudit |
+| Dimensi baru **MUST NOT** ditambah perancang maupun implementer | Hanya lewat keputusan bisnis yang disetujui |
+| Nilai kebijakan **MUST NOT** ditulis di blueprint | Ambang, persentase, dan nominal adalah konfigurasi HR Manager |
+| Evaluasi kebijakan gaji **MUST NOT** menjadi mesin perhitungan payroll | Perhitungan payroll `POST-MVP` sesuai `HRD-DEC-035` |
+| Perubahan faktor **MUST NOT** mengubah gaji efektif secara langsung | Hanya menghasilkan calon penyesuaian yang melewati tinjauan dan persetujuan `T8` |
 
 ---
 

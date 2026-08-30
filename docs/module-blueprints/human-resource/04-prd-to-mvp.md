@@ -8,8 +8,8 @@
 | Modul | Human Resource (`human-resource`, prefix `HRD`) |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `04-prd-to-mvp.md` |
-| `contract_version` | `v2` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` |
+| `last_changed_in` | `v5` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Pemilik produk HR bersama technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
@@ -19,7 +19,7 @@
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi `16b8b71` |
 | Frontend SHA baseline | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
 | `input_revision` | `02-backend-architecture.md` rev `1`; `03-frontend-architecture.md` rev `1`; seluruh `contracts/` `v1`; `data/data-dictionary.md` `v1`; `flowcharts/**` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh kemampuan dalam cakupan bersifat administratif ketenagakerjaan |
 | Ringkasan cakupan | Menutup rantai pekerjaan HR harian dari jadwal terbit sampai payroll diserahkan, dengan pengecualian kemampuan klinis dan enam domain tanpa API yang tetap `BLOCKED` |
 
@@ -305,6 +305,68 @@ persetujuan penempatan dan remunerasi**; `MISSING / NEW` untuk layar.
 > **Keadaan hari ini:** perilaku ini **belum ada**. Endpoint persetujuan gaji memakai butir hak
 > akses yang sama dengan buat dan ubah, dan tidak ada pemeriksaan status persetujuan sebelum
 > penempatan berlaku. Tiga entity penempatan lainnya belum punya kolom persetujuan sama sekali.
+
+> **`FR-HRD-019` — Kebijakan gaji memakai empat dimensi yang dapat dikonfigurasi**
+>
+> Dasar: `HRD-DEC-041`, `HRD-DEC-043`, `HRD-DEC-045`. Golongan, Level, Status kerja, dan Jenjang
+> Pendidikan dievaluasi sebagai dimensi yang berdiri sendiri.
+>
+> **Masa kerja BUKAN faktor pada MVP saat ini** — `HRD-DEC-045` menggantikan `HRD-DEC-042`.
+>
+> **Contoh berhasil:** kebijakan diubah agar jenjang pendidikan tertentu menghasilkan penyesuaian.
+> Perubahan itu dilakukan **sebagai konfigurasi**, tanpa mengubah kode.
+>
+> **Contoh gagal:** usulan menuliskan persentase kenaikan sebagai percabangan di source ditolak
+> pada tinjauan. Begitu pula usulan menambahkan pita masa kerja, yang berada di luar cakupan MVP
+> saat ini.
+
+> **`FR-HRD-020` — Jenjang pendidikan hanya dipakai bila terverifikasi**
+>
+> Dasar: `HRD-DEC-041`.
+>
+> **Contoh berhasil:** Ani melaporkan ijazah `S2`, melampirkan buktinya, HR memverifikasi, lalu
+> evaluasi kebijakan gaji berjalan memakai jenjang barunya.
+>
+> **Contoh gagal:** jenjang yang dilaporkan tetapi belum diverifikasi **tidak** dipakai evaluasi,
+> dan tidak menghasilkan calon penyesuaian.
+
+> **`FR-HRD-021` — Perubahan faktor tidak mengubah gaji secara langsung**
+>
+> Dasar: `HRD-DEC-043`.
+>
+> **Contoh berhasil:** pendidikan Ani terverifikasi naik. Sistem membentuk **calon penyesuaian**,
+> bukan mengubah gajinya.
+>
+> **Contoh gagal:** tidak ada satu pun jalur yang mengubah gaji efektif tanpa melewati pengajuan
+> dan persetujuan penetapan gaji.
+
+> **`FR-HRD-016` — Slip gaji hanya dapat dilihat pemiliknya**
+>
+> Dasar: `HRD-DEC-038`. Backend menurunkan kepemilikan dari pengguna yang terautentikasi; pengenal
+> dari layar tidak dipercaya.
+>
+> **Contoh gagal:** Budi Santoso meminta slip gaji Ani Lestari memakai pengenal yang benar.
+> Permintaan ditolak, isinya tidak terkirim, dan jawabannya tidak membocorkan apakah slip itu ada.
+
+> **`FR-HRD-017` — Data gaji menuntut konfirmasi kata sandi**
+>
+> Dasar: `HRD-DEC-038`. Sebelum data gaji ditampilkan, pegawai mengonfirmasi kata sandi akunnya.
+> Sesi gaji sensitif berlaku **lima menit**.
+>
+> **Contoh berhasil:** Ani membuka Slip Gaji, memasukkan kata sandinya, lalu slip tampil.
+>
+> **Contoh gagal:** enam menit kemudian Ani membuka slip lain; sistem meminta kata sandi lagi.
+
+> **`FR-HRD-018` — Pembacaan gaji meninggalkan jejak audit, tanpa nominalnya**
+>
+> Dasar: `HRD-DEC-039`. Pembacaan gaji dan slip gaji adalah pengecualian terhadap konvensi yang
+> tidak mencatat `GET`.
+>
+> **Contoh berhasil:** membaca nominal gaji meninggalkan catatan berisi pelaku, sasaran, aksi,
+> waktu, dan hasil — **tanpa** nominalnya.
+>
+> **Contoh gagal:** catatan audit tidak memuat kata sandi, nominal, nomor rekening, nomor pajak,
+> isi response, maupun token.
 
 > **`FR-HRD-015` — Empat transaksi penempatan dan remunerasi berdiri sendiri**
 >
@@ -952,6 +1014,32 @@ Seluruh nama pada skenario di bawah adalah **nama samaran**. Tidak ada data pega
 > satu pun angka rupiah — dan **isi jawaban jaringan juga tidak memuat nominal**, bukan sekadar
 > menyembunyikannya di layar.
 
+> **`UAT-17` — Pegawai mencoba membuka slip gaji rekannya**
+>
+> **Kondisi awal:** Budi Santoso masuk sebagai pegawai dan mengetahui pengenal slip gaji Ani.
+>
+> **Langkah:** Budi memanggil langsung slip gaji Ani.
+>
+> **Hasil yang diharapkan:** ditolak. Isi slip tidak terkirim sama sekali, dan jawabannya tidak
+> memberi tahu apakah slip dengan pengenal itu ada. Percobaan ini tercatat di jejak audit.
+
+> **`UAT-18` — Layar gaji ditinggalkan terbuka**
+>
+> **Kondisi awal:** Ani sudah mengonfirmasi kata sandi dan membuka slip gajinya.
+>
+> **Langkah:** layar dibiarkan terbuka lebih dari lima menit, lalu Ani membuka slip periode lain.
+>
+> **Hasil yang diharapkan:** sistem meminta konfirmasi kata sandi lagi sebelum menampilkannya.
+
+> **`UAT-19` — Jejak audit tidak memuat nominal**
+>
+> **Kondisi awal:** seorang HR Manager membaca nominal gaji beberapa pegawai.
+>
+> **Langkah:** periksa catatan audit yang dihasilkan.
+>
+> **Hasil yang diharapkan:** setiap pembacaan tercatat, dan **tidak satu pun** catatan memuat
+> angka gajinya.
+
 ---
 
 ## 19. Definition of Done
@@ -974,6 +1062,10 @@ Setiap butir dijawab "ya" atau "belum", dan setiap jawaban menyebut buktinya.
 | Setiap layar punya jalan masuk yang sah — butir menu atau layar induk | `UAT-13`, peta butir menu pada `03-frontend-architecture.md` |
 | Perubahan penempatan dan remunerasi tidak berlaku tanpa persetujuan pihak yang berbeda | `UAT-14`, `UAT-15`, `AT-HRD-A1-03`, `AT-HRD-A1-07` |
 | Nominal gaji tidak tampil pada daftar lintas pegawai | `UAT-16`, `AT-HRD-A1-08` |
+| Pegawai hanya dapat melihat slip gaji miliknya sendiri | `UAT-17`, `AT-HRD-SAL-01` |
+| Data gaji hanya tampil setelah konfirmasi kata sandi | `UAT-18`, `AT-HRD-SAL-02` |
+| Pembacaan gaji tercatat, tanpa nominalnya | `UAT-19`, `AT-HRD-SAL-08`, `AT-HRD-SAL-08b` |
+| Keterlihatan nominal gaji secara massal tidak tersedia | `AT-HRD-SAL-11` |
 | Seluruh tabel master MVP sudah terisi | Rencana data master awal pada `02-backend-architecture.md` bagian 10 |
 | Hak akses pada tombol layar sama dengan hak akses pada endpoint yang dipanggilnya | `AT-HRD-SEC-04`, `NFR-005` |
 | Kolom bertanda sensitif tidak masuk catatan log | `AT-HRD-SEC-01`, `NFR-009` |
@@ -1022,6 +1114,8 @@ diselesaikan. Mendahulukan kehadiran justru menghasilkan tumpukan pengecualian p
 | Apakah pemisahan peran pengusul dan penyetuju diperlukan pada tindakan disiplin? (`HRD-Q-51`) | Pemilik proses HR | Seseorang dapat mengusulkan sekaligus menyetujui sanksi | **Ya** untuk `S-C5` |
 | Tingkatan izin apa yang berlaku bagi data paling terbatas? (`HRD-Q-52`) | Pemilik keamanan bersama pemilik proses | Tidak ada yang menetapkan siapa boleh membaca kasus kedisiplinan | **Ya** untuk `S-C5` |
 | Siapa pemilik kebijakan bisnis HR? (`HRD-Q-01`) | Manajemen | Blueprint tidak dapat disetujui secara keseluruhan | **Ya** untuk approval blueprint |
+| ~~`HRD-Q-55`~~ — arti "masa studi" | ~~Pemilik produk~~ | **Ditutup** `HRD-DEC-041`: istilah ditarik menjadi **Jenjang Pendidikan** | Tidak |
+| ~~`HRD-Q-56`~~ — tanggal mulai bekerja yang otoritatif | ~~Pemilik produk~~ | **`DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP`.** Masa kerja dikeluarkan dari faktor gaji oleh `HRD-DEC-045`, sehingga pertanyaannya kehilangan pemicunya | Tidak |
 | ~~`HRD-Q-54`~~ — satu definisi bersama atau empat terpisah | ~~Pemilik produk~~ | **Ditutup `HRD-DEC-036`:** empat definisi terpisah dengan pola awal yang sama | Tidak |
 
 **Dokumen ini memuat pertanyaan memblokir yang belum terjawab.** Sesuai kontrak, ia tetap boleh

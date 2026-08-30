@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/api-contract.md` |
-| `contract_version` | `v2` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v2` |
+| `contract_version` | `v5` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v4` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Backend, mengikuti `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `12` |
-| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
+| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `15` |
+| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | **Tidak ada perubahan yang memutus kontrak berjalan.** Seluruh perubahan bersifat penambahan endpoint atau penambahan route template alias |
 
@@ -675,6 +675,37 @@ Bentuk target bagi keempat entity penempatan dan remunerasi — `WfpSalaryAssign
 | `POST` | `/{id:guid}/reject` | Menolak perubahan beserta alasannya | `<Wfp Resource> : Approve` | `RejectAssignmentRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id:guid}/request-revision` | Meminta pembuat memperbaiki | `<Wfp Resource> : Approve` | `RequestRevisionRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id:guid}/amount` | Membaca nominal gaji satu penetapan | `WfpSalaryAssignment : ViewAmount` | — | `ApiResponse<SalaryAmountResponse>` | **Rencana (belum tersedia)** — hanya pada `WfpSalaryAssignment` |
+
+#### Keamanan yang mengikat seluruh endpoint gaji dan slip gaji
+
+`[DECISION]` `HRD-DEC-038`, `HRD-DEC-039`, `HRD-DEC-040`. Seluruhnya **kontrak sasaran** —
+belum ada satu pun yang berjalan hari ini.
+
+| Aturan | Bunyi |
+| --- | --- |
+| Otentikasi bertingkat | Endpoint yang mengembalikan nominal gaji atau slip gaji **MUST** menuntut `SALARY_SENSITIVE_SESSION` yang masih berlaku. Tanpa itu: `401` |
+| Kepemilikan diturunkan backend | Untuk endpoint layanan mandiri, kepemilikan diturunkan dari `pengguna terautentikasi → profil workforce → pemilik slip gaji`. Pengenal dari layar **MUST NOT** dipercaya |
+| Audit `GET` sensitif | **Pengecualian** terhadap konvensi project. Pembacaan nominal dan slip gaji **MUST** dicatat; nominalnya sendiri **MUST NOT** masuk catatan |
+| Cache | Response **MUST** memakai `Cache-Control: no-store` atau padanan canonical |
+| Unduhan berkas | **MUST NOT** memakai URL statis publik yang dapat ditebak |
+
+**Endpoint sasaran yang dibutuhkan keputusan ini:**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `api/v1/corporate/human-resource/salary-access/verify` | Konfirmasi kata sandi untuk membuka data gaji | Pengguna terautentikasi | `VerifySalaryAccessRequest` | `ApiResponse<SalarySensitiveSessionResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `api/v1/self-services/human-resource/my-payslips` | Daftar slip gaji milik sendiri | `MyPayslip : Read` **ditambah** sesi gaji sensitif | Query | `ApiResponse<PagedResult<PayslipResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `api/v1/self-services/human-resource/my-payslips/{id:guid}` | Detail slip gaji milik sendiri | Sama | — | `ApiResponse<PayslipDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `api/v1/self-services/human-resource/my-payslips/{id:guid}/download` | Mengunduh berkas slip gaji | Sama | — | Berkas, `no-store` | **Rencana (belum tersedia)** |
+
+**Kode status khas kelompok ini.** `401` berarti sesi gaji sensitif belum ada atau sudah
+kedaluwarsa — petugas diminta memasukkan kata sandi lagi, **bukan** diminta masuk ulang. `403`
+pada slip gaji berarti sumber daya itu bukan milik pemohon, dan jawabannya **MUST NOT**
+membocorkan apakah slip gaji dengan pengenal itu ada atau tidak.
+
+**Larangan implementasi yang mudah dilanggar:** jangan membuat pemverifikasi kata sandi baru
+untuk HR. Endpoint `salary-access/verify` **MUST** memakai infrastruktur verifikasi kata sandi
+Identity yang canonical.
 
 **Butir `: Approve` adalah inti keputusan ini.** Selama menyetujui dan mengubah masih berbagi satu
 butir `: Update`, pemisahan peran **tidak dapat** ditegakkan hanya dengan konfigurasi peran.
