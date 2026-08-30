@@ -27,6 +27,22 @@ public sealed class AdministrationFeePoliciesController : ControllerBase
 
     public AdministrationFeePoliciesController(AdministrationFeePolicyService service) => _service = service;
 
+    [HttpGet("filters/metadata")]
+    [AccessAction("Read", "Read Administration Fee Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AdministrationFeePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicyFilterMetadataResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetFilterMetadata() =>
+        Ok(ApiResponse<AdministrationFeePolicyFilterMetadataResponse>.Ok(
+            _service.GetFilterMetadata(), "Metadata filter policy biaya administrasi berhasil diambil."));
+
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Administration Fee Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AdministrationFeePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicySummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<AdministrationFeePolicySummaryResponse>.Ok(
+            await _service.GetSummaryAsync(cancellationToken), "Ringkasan policy biaya administrasi berhasil diambil."));
+
     [HttpGet]
     [AccessAction("Read", "Read Administration Fee Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("AdministrationFeePolicy", "Read")]
@@ -50,6 +66,37 @@ public sealed class AdministrationFeePoliciesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicyResponse>), StatusCodes.Status200OK)]
     public Task<IActionResult> Create([FromBody] CreateAdministrationFeePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteCommandAsync(() => _service.CreateAsync(request, CurrentUserId(), cancellationToken));
+
+    [HttpGet("options")]
+    [AccessAction("Read", "Read Administration Fee Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AdministrationFeePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<AdministrationFeePolicyOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOptions(
+        [FromQuery] string? serviceType,
+        [FromQuery] bool onlyActive = true,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(ApiResponse<List<AdministrationFeePolicyOptionResponse>>.Ok(
+            await _service.GetOptionsAsync(serviceType, onlyActive, search, cancellationToken),
+            "Data pilihan policy biaya administrasi berhasil diambil."));
+
+    [HttpGet("{id:guid}")]
+    [AccessAction("Read", "Read Administration Fee Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("AdministrationFeePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicyResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<AdministrationFeePolicyResponse>.Ok(result, "Detail policy biaya administrasi berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
 
     [HttpPut("{id:guid}")]
     [AccessAction("Update", "Update Administration Fee Policy", AccessType = AccessTypes.Update, SortOrder = 3)]

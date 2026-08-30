@@ -74,3 +74,45 @@ public sealed class AdministrationFeePolicyResponse
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
 }
+
+public sealed class AdministrationFeePolicyOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string ServiceType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class AdministrationFeePolicySummaryResponse
+{
+    public int TotalPolicy { get; set; }
+    public int ActivePolicy { get; set; }
+    public int InactivePolicy { get; set; }
+    public int RajalPolicy { get; set; }
+    public int IgdPolicy { get; set; }
+    public int OtcPolicy { get; set; }
+    public int RanapPolicy { get; set; }
+}
+
+public sealed class AdministrationFeePolicySortOptionResponse
+{
+    public string Value { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public sealed class AdministrationFeePolicyDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? ServiceType { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class AdministrationFeePolicyFilterMetadataResponse
+{
+    public AdministrationFeePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> ServiceTypes { get; set; } = new();
+}

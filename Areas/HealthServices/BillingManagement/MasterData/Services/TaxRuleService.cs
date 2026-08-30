@@ -50,6 +50,81 @@ public sealed class TaxRuleService
         };
     }
 
+    public async Task<TaxRuleResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<TaxRuleOptionResponse>> GetOptionsAsync(
+        string? taxableCategory,
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstTaxRules.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive) query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(taxableCategory))
+        {
+            var normalized = taxableCategory.Trim().ToUpperInvariant();
+            query = query.Where(x => x.TaxableCategory == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.TaxableCategory)
+            .ThenBy(x => x.Name)
+            .Select(x => new TaxRuleOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                TaxableCategory = x.TaxableCategory,
+                Rate = x.Rate,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<TaxRuleSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstTaxRules.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new TaxRuleSummaryResponse
+        {
+            TotalRule = await query.CountAsync(cancellationToken),
+            ActiveRule = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactiveRule = await query.CountAsync(x => !x.IsActive, cancellationToken)
+        };
+    }
+
+    // TaxableCategory tidak punya enum tetap di kode (lihat ValidateAsync - hanya divalidasi
+    // Required, bukan Normalize terhadap allow-list) sehingga daftar kategori diambil distinct
+    // dari data yang benar-benar ada, bukan dikarang sebagai konstanta.
+    public async Task<TaxRuleFilterMetadataResponse> GetFilterMetadataAsync(CancellationToken cancellationToken)
+    {
+        var taxableCategories = await _dbContext.MstTaxRules.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .Select(x => x.TaxableCategory)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
+        return new TaxRuleFilterMetadataResponse
+        {
+            DefaultFilter = new TaxRuleDefaultFilterResponse(),
+            PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+            RoundingModes = TaxRuleValues.RoundingModes.OrderBy(x => x).ToList(),
+            AllocationRules = TaxRuleValues.AllocationRules.OrderBy(x => x).ToList(),
+            TaxableCategories = taxableCategories
+        };
+    }
+
     public async Task<TaxRuleResponse> CreateAsync(CreateTaxRuleRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
         var values = await ValidateAsync(request, null, cancellationToken);
