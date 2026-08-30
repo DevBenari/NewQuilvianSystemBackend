@@ -12,8 +12,8 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260829053137_CheckDiffInterToYas")]
-    partial class CheckDiffInterToYas
+    [Migration("20260830151340_RepairPostCanonicalIntegration")]
+    partial class RepairPostCanonicalIntegration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
