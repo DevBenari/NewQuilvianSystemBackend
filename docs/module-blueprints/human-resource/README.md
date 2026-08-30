@@ -24,6 +24,26 @@ controller, entity, migration, database, maupun frontend.
    dulu sebelum tiap fase boleh jalan.
 5. [`roadmap/00-slice-roadmap.md`](./roadmap/00-slice-roadmap.md) — pekerjaan dipecah menjadi
    slice beserta status rilisnya.
+6. [`02-backend-architecture.md`](./02-backend-architecture.md) dan
+   [`03-frontend-architecture.md`](./03-frontend-architecture.md) — bentuk yang ingin dicapai.
+7. [`flowcharts/`](./flowcharts/) — urutan langkah yang dikerjakan orang, beserta jalur gagalnya.
+8. [`data/data-dictionary.md`](./data/data-dictionary.md) dan [`contracts/`](./contracts/) —
+   kontrak kolom, endpoint, status, validasi, hak akses, dan integrasi.
+9. [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) — **sampai mana modul ini dianggap selesai untuk
+   rilis pertama.** Ini dokumen yang dibaca pemilik produk saat memberi approval.
+
+## Struktur artefak canonical
+
+Ketiga belas artefak wajib mengikuti
+`design-business-module/references/blueprint-output-contract.md` versi canonical. Daftar lengkap
+beserta berkas yang **bukan** bagian ketiga belas artefak ada di
+[`blueprint-manifest.md`](./blueprint-manifest.md) bagian 7.
+
+**Folder `erd/` tidak dipakai dan tidak boleh dibuat.** Relasi entity ditulis sebagai Mermaid
+`classDiagram` di [`02-backend-architecture.md`](./02-backend-architecture.md); struktur tabel dan
+kolom ada di [`data/data-dictionary.md`](./data/data-dictionary.md); alur kerja pengguna ada di
+[`flowcharts/`](./flowcharts/); lifecycle status ada di
+[`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md).
 
 ## Yang khusus pada modul ini
 

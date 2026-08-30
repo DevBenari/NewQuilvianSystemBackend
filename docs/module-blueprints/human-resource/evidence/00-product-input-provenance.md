@@ -49,7 +49,7 @@ Susunan kewenangan yang berlaku:
 | --- | --- |
 | [`../00-interview-decisions.md`](../00-interview-decisions.md) | Keputusan manusia |
 | [`../01-existing-capability-map.md`](../01-existing-capability-map.md) | Bukti source apa adanya, hasil audit |
-| `../02-backend-architecture.md`, `../03-frontend-architecture.md`, `../contracts/**`, `../erd/**` | Desain target |
+| `../02-backend-architecture.md`, `../03-frontend-architecture.md`, `../contracts/**`, `../data/data-dictionary.md`, `../flowcharts/**` | Desain target |
 | `../04-prd-to-mvp.md` | **PRD resmi modul ini**, ditulis paling akhir |
 | Snapshot pada folder ini | Masukan produk historis. Tidak mengikat apa pun |
 

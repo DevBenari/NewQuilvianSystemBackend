@@ -506,7 +506,7 @@ kelayakan kerja tanpa isi medis.
 | Aspek | Isi |
 | --- | --- |
 | **Current State** | **68 model berada di dalam enam domain yang tidak punya satu pun controller.** Satu di antaranya, `MstWorkforceRequirement`, sudah punya API lewat domain lain, sehingga **67 entity** benar-benar belum punya API. Seluruh 68 model punya konfigurasi EF dan terdaftar sebagai `DbSet`, dan tabelnya sudah dibuat migration `20260726161839_initializeBigModulHRD2` |
-| **Target State** | ERD diturunkan ulang dari proses bisnis rumah sakit sesuai `HRD-DEC-004`. Model existing berstatus kandidat, bukan jawaban |
+| **Target State** | **Model data** diturunkan ulang dari proses bisnis rumah sakit sesuai `HRD-DEC-004`. Model existing berstatus kandidat, bukan jawaban. Istilah "ERD" pada decision itu bermakna penurunan model data; hasilnya ditulis sebagai `classDiagram` pada `02-backend-architecture.md` ditambah `data/data-dictionary.md`, **bukan** sebagai folder `erd/` |
 | **Backend Impact** | Tidak ditetapkan sebelum `HRD-Q-05` dijawab |
 | **Frontend Impact** | Tidak ditetapkan |
 | **Database Impact** | **Berpotensi merusak.** Penurunan ulang akan menghasilkan migration yang mengubah atau membuang tabel yang sudah ada, bukan membuat di ruang kosong |
