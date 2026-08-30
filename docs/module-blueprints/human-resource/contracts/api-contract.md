@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/api-contract.md` |
-| `contract_version` | `v1` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Backend, mengikuti `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `10` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `12` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | **Tidak ada perubahan yang memutus kontrak berjalan.** Seluruh perubahan bersifat penambahan endpoint atau penambahan route template alias |
 
@@ -240,6 +240,11 @@ Base URL: `api/v1/corporate/human-resource/attendance/correction-monitoring`
 
 Menyediakan pemantauan koreksi lintas pegawai beserta perbaikan massal. Hak akses
 `AttendanceCorrectionMonitoring : Read` dan `: Repair`.
+
+> **Batas MVP — `HRD-DEC-035`.** Grup di bawah tetap **di dalam MVP** karena ia menghasilkan
+> **masukan HR yang siap payroll**. Yang **keluar** dari MVP adalah orkestrasi putaran payroll:
+> pembuatan `TrxPayrollRun`, pemajuan statusnya, perhitungan, persetujuan, dan serah terima final.
+> Keduanya jangan tertukar — `Payroll Executed` **MUST NOT** dibaca sebagai `Employee Paid`.
 
 ### Corporate / Human Resource / Attendance Management / Attendance Payroll Handoff
 
@@ -654,6 +659,34 @@ Empat belas controller mengikuti satu pola yang seragam, dengan `<sumber-daya>` 
 `WfpSalaryAssignment` menambah dua endpoint khas: `PATCH /{id:guid}/approval` dengan hak akses
 `WfpSalaryAssignment : Update`, dan `PATCH /{id:guid}/primary` untuk menandai penetapan utama.
 
+#### Perubahan yang dituntut `HRD-DEC-031`
+
+Endpoint persetujuan yang ada hari ini **tidak memenuhi** `HRD-DEC-031` karena dua sebab: ia
+memakai butir hak akses yang **sama** dengan buat dan ubah, sehingga pembuat dapat menyetujui
+transaksinya sendiri; dan tidak ada pemeriksaan status persetujuan sebelum penempatan berlaku.
+
+Bentuk target bagi keempat entity penempatan dan remunerasi — `WfpSalaryAssignment`,
+`WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment`:
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id:guid}/submit` | Mengajukan perubahan untuk disetujui | `<Wfp Resource> : Update` | `SubmitAssignmentRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui perubahan | `<Wfp Resource> : Approve` | `ApproveAssignmentRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak perubahan beserta alasannya | `<Wfp Resource> : Approve` | `RejectAssignmentRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/request-revision` | Meminta pembuat memperbaiki | `<Wfp Resource> : Approve` | `RequestRevisionRequest` | `ApiResponse<DetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}/amount` | Membaca nominal gaji satu penetapan | `WfpSalaryAssignment : ViewAmount` | — | `ApiResponse<SalaryAmountResponse>` | **Rencana (belum tersedia)** — hanya pada `WfpSalaryAssignment` |
+
+**Butir `: Approve` adalah inti keputusan ini.** Selama menyetujui dan mengubah masih berbagi satu
+butir `: Update`, pemisahan peran **tidak dapat** ditegakkan hanya dengan konfigurasi peran.
+
+**Kode status khas grup ini.** `403` pada `approve` berarti penyetuju adalah pembuat transaksi itu
+sendiri — dan **tidak ada pengecualian**, termasuk ketika unit hanya punya satu petugas. `409`
+pada pemberlakuan penempatan berarti perubahan belum disetujui.
+
+Endpoint `PATCH /{id:guid}/approval` yang ada sekarang tetap hidup sebagai alias selama masa
+peralihan, mengikuti pola `HRD-DEC-016`, dan **MUST** ikut menegakkan pemisahan peran begitu
+penjaganya dibangun.
+
 ### Daftar lintas-pegawai — `S-A1`
 
 `[DECISION]` `HRD-DEC-012`: enam menu `Administrasi Kepegawaian` mendapat halaman daftar yang
@@ -669,9 +702,16 @@ Base URL: `api/v1/corporate/human-resource/workforce-core`
 | `GET` | `/employment-histories` | Seluruh riwayat kepegawaian | `WfpEmploymentHistory : ReadAll` | Query | `ApiResponse<PagedResult<CrossEmployeeResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/salary-assignments` | Seluruh penetapan gaji yang berlaku pada satu periode | `WfpSalaryAssignment : ReadAll` | Query | `ApiResponse<PagedResult<CrossEmployeeResponse>>` | **Rencana (belum tersedia)** |
 
-**Pembatasan yang berlaku pada `salary-assignments`.** Selama `HRD-Q-20` belum dijawab, response
+**Pembatasan yang berlaku pada `salary-assignments`** `[DECISION]` `HRD-DEC-033`. Response
 **MUST NOT** memuat nominal gaji. Ia memuat pegawai, unit, kelas gaji, tanggal berlaku, dan
 status — cukup untuk pekerjaan administratif, tanpa membuka nominal banyak orang sekaligus.
+
+Nominal dibaca terpisah lewat `GET /{id:guid}/amount` dengan butir sensitif
+`WfpSalaryAssignment : ViewAmount`. Penyembunyian **MUST** dilakukan dengan **tidak menyertakan**
+nilainya pada response, bukan dengan menyembunyikannya di layar — nilai yang tetap terkirim tetap
+terbaca siapa pun yang membuka alat pengembang peramban. Keterlihatan massal
+(`WfpSalaryAssignment : ViewAmountBulk`) **tidak diberikan pada MVP** dan memerlukan co-sign
+keamanan.
 
 Daftar lintas-pegawai untuk perubahan data pegawai **sudah ada**, yaitu
 `api/v1/corporate/human-resource/employee-profile-changes`, dan menjadi contoh bentuk bagi kelima

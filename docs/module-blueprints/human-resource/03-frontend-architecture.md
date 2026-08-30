@@ -12,8 +12,8 @@
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `1` |
-| `input_revision` — decision log | `00-interview-decisions.md` revision `10` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `12` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Kompatibilitas | Tidak ada halaman existing yang dihapus. Satu halaman dipindahkan lokasinya (`S-A6`) dengan pengalihan |
 
 ---
@@ -90,7 +90,7 @@ berbeda.
 | `FE-HRD-03` | Daftar Penempatan Jabatan | `/hr/workforce-core/position-assignments` | `S-A1` | `MISSING / NEW` |
 | `FE-HRD-04` | Daftar Relasi Atasan | `/hr/workforce-core/manager-assignments` | `S-A1` | `MISSING / NEW` |
 | `FE-HRD-05` | Daftar Riwayat Kepegawaian | `/hr/workforce-core/employment-histories` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-06` | Daftar Penetapan Gaji | `/hr/workforce-core/salary-assignments` | `S-A1` | `MISSING / NEW` — hak aksesnya `[OPEN]` `HRD-Q-20` |
+| `FE-HRD-06` | Daftar Penetapan Gaji | `/hr/workforce-core/salary-assignments` | `S-A1` | `MISSING / NEW` — nominal disembunyikan `[DECISION]` `HRD-DEC-033` |
 | `FE-HRD-07` | Detail Permohonan Perubahan Data | `/hr/workforce-core/employee-profile-changes/[slug]` | `S-A1` | `MISSING / NEW` — layar anak dari `FE-HRD-01` |
 
 ### 2.2 Kelompok B — Layanan mandiri pegawai (`S-A2` s.d. `S-A6`)
@@ -437,7 +437,7 @@ dan list utama — memang tersedia seragam di hampir seluruh controller HR `[EXI
 
 ### 4.2 `FE-HRD-06` — Daftar Penetapan Gaji
 
-Layar ini digambar terpisah karena datanya sensitif dan hak aksesnya belum diputuskan.
+Layar ini digambar terpisah karena datanya sensitif. Aturan keterlihatannya sudah diputuskan `[DECISION]` `HRD-DEC-033`.
 
 ```text
 +- Penetapan Gaji ---------------------------------------------- FE-HRD-06 -+
@@ -448,8 +448,9 @@ Layar ini digambar terpisah karena datanya sensitif dan hak aksesnya belum diput
 | Pegawai | Unit | Kelas Gaji | Berlaku Sejak | Status | Utama |             |
 | ------- | ---- | ---------- | ------------- | chip   | ya   | [Detail]    |
 +----------------------------------------------------------------------------+
-| Kolom nominal gaji ditampilkan hanya bila peran berhak. Bila tidak,        |
-| kolomnya TIDAK ADA sama sekali - bukan ditampilkan lalu disamarkan.        |
+| Kolom nominal gaji TIDAK ADA pada daftar ini - HRD-DEC-033.                |
+| Nominal dibaca terpisah di halaman detail, dan hanya oleh pemegang         |
+| butir sensitif ViewAmount. Nilainya tidak dikirim, bukan disamarkan.       |
 +----------------------------------------------------------------------------+
 ```
 
@@ -457,13 +458,26 @@ Layar ini digambar terpisah karena datanya sensitif dan hak aksesnya belum diput
 | --- | --- | --- | --- | --- |
 | Ringkasan | Jumlah penetapan pada periode berjalan | `GET .../salary-assignments/summary` | `WfpSalaryAssignment : Read` | Gagal → kartu diganti tombol coba lagi |
 | Tabel | Daftar lintas-pegawai | `GET /hr/workforce-core/salary-assignments` — **Rencana (belum tersedia)** | `WfpSalaryAssignment : ReadAll` — **Rencana** | Kosong → "Belum ada penetapan gaji pada periode ini." |
-| Kolom nominal | Gaji pokok dan tunjangan | bagian dari response yang sama | **`[OPEN]` `HRD-Q-20`** | **Tidak digambar sebagai bagian yang pasti ada.** Sampai `HRD-Q-20` dijawab, kolom nominal **MUST NOT** ditampilkan pada daftar lintas-pegawai |
+| Kolom nominal | **Tidak ada pada daftar** `[DECISION]` `HRD-DEC-033` | — | — | Nominal dibaca terpisah pada halaman detail lewat `GET .../{id}/amount` dengan butir `WfpSalaryAssignment : ViewAmount` |
 
-**Alasan pembatasan itu.** Daftar lintas-pegawai berarti satu layar menampilkan gaji banyak
-orang sekaligus. Siapa yang boleh melihatnya, dan sampai tingkat apa, adalah keputusan pemilik
-produk bersama keamanan — bukan pilihan teknis. Sampai dijawab, layarnya tetap dibuat, tetapi
-**tanpa kolom nominal**, dan nominal hanya terlihat di halaman detail pegawai yang sudah punya
-penjagaan hari ini.
+**Aturan yang berlaku** `[DECISION]` `HRD-DEC-033` — `SALARY_AMOUNT_HIDDEN_BY_DEFAULT`:
+
+| Tempat | Nominal gaji | Yang boleh tampil |
+| --- | --- | --- |
+| Daftar lintas pegawai — layar ini | **Tidak ada** | Pegawai, unit, kelas gaji, mata uang, tanggal berlaku, penanda utama, status persetujuan |
+| Detail gaji satu pegawai | Boleh, **hanya** bagi pemegang `WfpSalaryAssignment : ViewAmount` | Seluruh isi penetapan |
+| Laporan atau ekspor massal | **Tidak diberikan pada MVP** | — |
+
+**Dua aturan pelaksanaan yang mengikat frontend:**
+
+1. **Kolom nominal tidak dikirim, bukan disembunyikan.** Backend **MUST NOT** menyertakan
+   nilainya pada response daftar. Menyembunyikannya di layar berarti nominal tetap melintas
+   jaringan dan tetap terbaca siapa pun yang membuka alat pengembang peramban.
+2. **Butir baca umum tidak membuka nominal.** `WfpSalaryAssignment : Read` maupun `: ReadAll`
+   **tidak** menyiratkan `: ViewAmount`. Frontend **MUST NOT** menyimpulkan sebaliknya.
+
+Status keputusan ini **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** — sudah diputuskan pemilik
+produk, belum ditandatangani keamanan.
 
 ### 4.3 `FE-HRD-30` — Kotak Masuk Persetujuan
 
@@ -843,7 +857,10 @@ manual** untuk setiap layar, dengan bukti yang dicatat pada laporan task:
 | Layar roster dan penjadwalan operasional | `HRD-DEC-026` |
 | Batas waktu dan eskalasi terlihat di kotak masuk | `HRD-DEC-030` |
 | Izin pulang cepat tidak dibuatkan layar pada pass ini | `HRD-DEC-029` + `HRD-Q-47` |
-| Kolom nominal gaji tidak ditampilkan pada daftar lintas-pegawai | `HRD-Q-20` masih terbuka |
+| Kolom nominal gaji tidak ditampilkan pada daftar lintas-pegawai | `HRD-DEC-033` — `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| Perubahan penempatan dan remunerasi wajib disetujui pihak yang berbeda | `HRD-DEC-031` |
+| Peran fungsional tidak disamakan dengan peran Identity | `HRD-DEC-032` |
+| Empat transaksi penempatan dan remunerasi punya layar dan jejak audit terpisah | `HRD-DEC-036` |
 | Kemampuan yang dirancang berasal dari `HRD-CAP-01` s.d. `HRD-CAP-27` | `01-existing-capability-map.md` |
 
 ---

@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/integration-contract.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik modul tetangga untuk setiap batas |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `10`; `flows/00-module-context-flow.md` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `00-interview-decisions.md` revision `12`; `flows/00-module-context-flow.md` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada kontrak lintas modul yang berubah. Sebagian besar batas justru **belum** punya kontrak |
 
@@ -130,6 +130,32 @@ Sebelum bicara dengan Finance, ada tiga hal di sisi HR yang **belum ada**:
 | Cara putaran payroll dimulai dan dimajukan | **`[OPEN]`.** Tidak ditemukan controller maupun service yang menuliskan status putaran | `HRD-Q-49` |
 
 ---
+
+### 2.9 Batas MVP setelah `HRD-DEC-035`
+
+`HRD-DEC-035` memindahkan **orkestrasi putaran payroll** keluar dari jalur kritis MVP
+administratif. Akibatnya bagi batas ini tegas dan perlu dibaca apa adanya:
+
+| Pertanyaan | Jawaban |
+| --- | --- |
+| Apakah `HRD-Q-10` dan `HRD-Q-11` masih terbuka? | **Ya.** Keduanya tetap `EXTERNAL_OWNER / FINANCE` |
+| Apakah keduanya memblokir MVP administratif? | **Tidak.** Keduanya hanya memblokir penyelesaian batas serah terima itu sendiri |
+| Apa yang tetap dikerjakan HR pada MVP? | Menghasilkan **masukan HR yang siap payroll** — kesiapan kehadiran, masukan cuti, masukan lembur, rekonsiliasi sisi HR, dan validasi kesiapan |
+| Apa yang pindah ke `POST-MVP`? | Pembuatan putaran payroll, pemajuan statusnya, perhitungan, persetujuan, dan serah terima final |
+
+**Batas MVP berbunyi `HR produces payroll-ready HR inputs`, bukan
+`HR creates/pays/finalizes payroll run`.**
+
+**Dua penegasan yang mengikat:**
+
+1. `Payroll Executed` **MUST NOT** dianggap sama dengan `Employee Paid`. Keduanya peristiwa
+   berbeda, dimiliki pihak berbeda.
+2. Modul HR **MUST NOT** membuat putaran payroll sebelum batas dengan Finance disepakati lewat
+   keputusan tersendiri. `HRD-DEC-035` **tidak** menyetujui opsi itu; ia hanya menundanya.
+
+**Bukti yang mendasari.** `TrxPayrollRun` terbukti **hanya pernah dibaca** (`AsNoTracking`),
+tidak pernah dibuat maupun dimajukan. Jalur serah terima kehadiran mengandaikan putaran payroll
+sudah ada, dan tidak ada yang membuatnya.
 
 ## 3. `INT-HR-02` — Jadwal praktik dokter
 

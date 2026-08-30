@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/validation-matrix.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `10`; `contracts/state-transition-matrix.md` `v1` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `00-interview-decisions.md` revision `12`; `contracts/state-transition-matrix.md` `v1` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada aturan yang dihapus. Aturan baru bersifat memperketat, bukan melonggarkan |
 
@@ -302,6 +302,35 @@ walaupun keduanya tampil pada satu halaman.
 | Gaji berlaku surut ke periode tertutup | Menetapkan gaji dengan tanggal berlaku di masa lalu | Periode payroll yang tersentuh sudah tertutup | **`[OPEN]` `HRD-Q-18`** — perilakunya belum diputuskan. **MUST NOT** dirancang sekarang | — |
 
 ---
+
+### 7.1 Perubahan penempatan dan remunerasi — `HRD-DEC-031`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Persetujuan wajib sebelum berlaku | Empat jenis transaksi terpisah `HRD-DEC-036`: penetapan gaji, penempatan organisasi, penempatan jabatan, penetapan atasan | Penempatan diberlakukan sementara status persetujuannya belum disetujui | "Perubahan ini belum disetujui, sehingga belum dapat diberlakukan." | `409` |
+| Penyetuju tidak boleh sama dengan pembuat | Sama | Pengguna yang menyetujui adalah pengguna yang mengajukan perubahan itu | "Anda tidak dapat menyetujui perubahan yang Anda ajukan sendiri. Perubahan ini diteruskan kepada pejabat yang berwenang." | `403` |
+| Alasan penolakan wajib diisi | Sama | Penolakan dikirim tanpa alasan | "Alasan penolakan wajib diisi." | `400` |
+| Kekurangan personel bukan pengecualian | Sama | Unit hanya punya satu petugas dan mencoba menyetujui sendiri | "Unit ini belum memiliki pejabat penyetuju yang berbeda. Perubahan diteruskan ke otoritas di atasnya." | `403` |
+| Penyelesaian penyetuju otomatis | Sama | Pemrakarsa adalah satu-satunya pemegang butir `: Approve` di unitnya | Tidak ada pesan penolakan. Tugas **ditugaskan ulang** ke penyetuju tingkat lebih tinggi yang berwenang, dan muncul di daftar pengawasan HR bila tidak ada yang dapat ditentukan | `200` |
+
+**Keadaan hari ini:** keempat aturan di atas **belum ditegakkan**. Endpoint persetujuan gaji
+memakai butir hak akses yang sama dengan buat dan ubah, dan tidak ada pemeriksaan status
+persetujuan sebelum penempatan berlaku. Ini tercatat sebagai `IMPLEMENTATION_WORK`, bukan sebagai
+perilaku yang sudah ada.
+
+### 7.2 Keterlihatan nominal gaji — `HRD-DEC-033`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Nominal disembunyikan pada daftar lintas pegawai | Daftar penetapan gaji lintas pegawai | Permintaan daftar dikirim pengguna tanpa butir sensitif nominal | Tidak ada pesan penolakan. Jawaban tetap `200`, dan **kolom nominal tidak disertakan** | `200` |
+| Nominal pada detail memerlukan butir sensitif | Detail penetapan gaji satu pegawai | Pengguna tanpa butir `WfpSalaryAssignment : ViewAmount` meminta detail | "Anda tidak memiliki hak untuk melihat nominal gaji." Data non-nominal tetap dikembalikan | `200` dengan nominal tersamarkan |
+| Butir baca umum tidak membuka nominal | Sama | Pengguna memegang butir baca umum saja | Sama seperti baris di atas | `200` dengan nominal tersamarkan |
+| Keterlihatan massal tidak diberikan | Laporan atau ekspor gaji lintas pegawai | Permintaan ekspor nominal massal | "Ekspor nominal gaji lintas pegawai belum tersedia." | `403` |
+
+**Catatan bentuk jawaban yang penting.** Penyembunyian nominal **MUST** dilakukan dengan tidak
+menyertakan nilainya pada jawaban, **bukan** dengan mengirim nilainya lalu menyembunyikannya di
+layar. Menyembunyikan di layar berarti nominal tetap terkirim melalui jaringan dan tetap terbaca
+siapa pun yang membuka alat pengembang peramban.
 
 ## 8. Pengembangan Orang dan Lifecycle
 

@@ -5,39 +5,39 @@ blueprint_id: HRD-BP-001
 module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
-revision: 5
+revision: 7
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-DESIGN-COMPLETE
+current_phase: HRD-PH-DECISION-CLOSURE
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-08-30T00:00:00Z
-last_verified_at: 2026-08-30T00:00:00Z
+updated_at: 2026-08-30T18:00:00Z
+last_verified_at: 2026-08-30T18:00:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: e0ee42c752a5f92c5b1663ff88bef07a5859f79f
 frontend_source_sha: fff76a1b394d4b247c70a04f106c8ec098c9696e
 frontend_source_sha_previous: 2a1cea7841a4433f8637d486204e60314c09d131
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: 91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0
-decision_revision: 10
+input_revision_hash: 0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3
+decision_revision: 12
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.1
 capability_map_hash: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
-contract_versions: v1
+contract_versions: v2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: 91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0
+  00-interview-decisions.md: 0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3
   01-existing-capability-map.md: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
-  02-backend-architecture.md: 62266cea4dfe7da4bb890741ef75b465b48940f0754dd336e41963c0db554ba8
-  03-frontend-architecture.md: 2ee00763eb1002dd55e9c3b26cfb6a736f858a6d6e5a3c75a9ce6991fd260781
-  04-prd-to-mvp.md: 7be8d37a631e9bd1fe6f0e061ef0e8dd08e4ff3984e157f7e7d27b81c2b00056
-  data/data-dictionary.md: 0ac4fbd32f1bfbf87a4189217df2b240a65244e1b6fce99a4cfe639b6cdd9cd1
-  contracts/api-contract.md: c0a4506bc209c83763757bc4935965b10370959a101c1a0fc0c06beefff113b6
-  contracts/state-transition-matrix.md: e190758c19f9246039e00b5da4c58ec73f13dffb7005ae1a9aeeb9b4a1f3ed60
-  contracts/validation-matrix.md: d78affc421714bb59a486b286ce896b5b248e88297b7ceb444d35c7edd1f5b4d
-  contracts/integration-contract.md: d6d2015ab6dd5267408ad2fa05fefc2def23233fc977d62d2eaa37ac4272a2bc
-  contracts/permission-audit-matrix.md: 2f82d562ee72adde95ddee791d6720db7f6ef064e3e48d419600e219558007d5
-  testing/acceptance-test-matrix.md: 0010050867cc1d56a1b27813b1e54e96fbb5bb6d28f092fec067ac7e080553a6
+  02-backend-architecture.md: b7747cd96b38700af69610877af02e18555c024891460eb421b4967a3db1d21e
+  03-frontend-architecture.md: 08305024dd3fa7d08957cc5d92cd2a476cb52d9ecff77602c5f1cf438de93d1e
+  04-prd-to-mvp.md: e50b67f1bc915719282b0dc15a0a714cb1e96762658e9108484dde03f5d36af9
+  data/data-dictionary.md: c11b41b75eb7ef24ad6e4f211bf6be489d2ff17ed96a432edadb41614bc76fd6
+  contracts/api-contract.md: b5adc427b299408227ba82d354fbe1f58d3ec90df80132bb8a8edb0478f25168
+  contracts/state-transition-matrix.md: 477291eabe3a3849717ca83acd9ea018c4ed6c6d8b9e2c2f725f74efb2c184fd
+  contracts/validation-matrix.md: 44155151cd755ebf819ee63473cc6c4f5772c57d58a214d34914e195a5c0d9c5
+  contracts/integration-contract.md: 1eebac415e3e20e0df291ae2485b95a4179665298d199060ef85beb3db8891ab
+  contracts/permission-audit-matrix.md: 8d0a488989623372f83eb816285f24acf1c09a319701b72adff169791384b216
+  testing/acceptance-test-matrix.md: e6326a80dc5887d14577b25a3591e722b909fc114d996dd00ba0a120e437b9e1
   flowcharts/00-alur-utama.md: ef9b4d06e170d56963b72c398c197e1dd91cb184ba8bfea636ac5f2e189be485
 active_dependency_ids:
   - HRD-DEP-001
@@ -143,6 +143,12 @@ per artefak.
 | `HRD-DEC-016` | Kebab-case sebagai route canonical, route lama tetap hidup sebagai compatibility alias. **Bukan** hard breaking rename | `approved` |
 | `HRD-DEC-017` | ~~`Hrd` sebagai target naming; migrasi legacy bertahap per domain sebagai campaign~~ | `superseded` oleh `HRD-DEC-019` |
 | `HRD-DEC-018` | Satu UX kotak masuk; workflow, policy, permission, validasi, SLA, dan eskalasi tetap per jenis transaksi | `approved` |
+| `HRD-DEC-031` | **Persetujuan wajib dan pemisahan peran** untuk penetapan gaji, penempatan organisasi, penempatan jabatan, dan penetapan atasan. Penyetuju **MUST** berbeda dari pembuat; unit dengan satu petugas dieskalasi, **tidak pernah** swa-setuju | `approved` |
+| `HRD-DEC-036` | **Empat definisi alur terpisah** untuk penetapan gaji, penempatan organisasi, penempatan jabatan, dan penetapan atasan. Pola persetujuan awal boleh sama; **satu definisi bersama MUST NOT dibuat** | `approved` |
+| `HRD-DEC-032` | **Baseline peran fungsional.** Usulan peta peran menjadi baseline; nama peran fungsional **MUST NOT** disamakan dengan peran Identity. Hanya `SuperAdmin` dan `User` yang di-seed hari ini; seluruh peran HR berstatus `MAPPING_REQUIRED` | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| `HRD-DEC-033` | **Nominal gaji tersembunyi secara bawaan** pada daftar lintas pegawai. Butir `: ViewAmount` terpisah dari `: Read`. Keterlihatan massal tidak diberikan pada MVP | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| `HRD-DEC-034` | **Alur persetujuan bawaan per jenis transaksi**, bukan satu alur untuk semua. Override per unit lewat konfigurasi, tanpa pengembangan ulang | `approved` **seluruhnya** — prinsip dan isi rantai `T1` s.d. `T8` |
+| `HRD-DEC-035` | **Batas payroll MVP:** HR menghasilkan masukan yang siap payroll, **bukan** membuat, membayar, atau memfinalkan putaran payroll. Orkestrasi putaran payroll `POST-MVP` | `approved` |
 | `HRD-DEC-019` | **Kebijakan penamaan canonical HR.** `Mst` tetap master/reference. `Wfp` prefix yang sah untuk keluarga workforce, **bukan** legacy. `Hrd` canonical dan default untuk entity operasional HR baru. `Trx` legacy generik dengan **ratchet hanya saat materially touched** | `approved` |
 
 `HRD-DEC-016` menggantikan `HRD-DEC-014`. `HRD-DEC-017` menggantikan `HRD-DEC-008`, lalu
@@ -256,6 +262,8 @@ Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang 
 | `2` | 2026-08-27 | Amendment Pass 1.1. Menyerap `HRD-DEC-019` kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`. Memperbaiki hitungan slice dan definisi angka 68/67 | `HRD-DEC-019` |
 | `3` | 2026-08-27 | Baseline Impact Gate. Baseline backend berpindah ke `origin/QuilvianIntegrationBackend` dengan hasil `NO_IMPACT`; capability map tetap `CURRENT`. Koreksi kelas QBE `S-C4` per entity, revision decision log, dan jumlah flow | `HRD-Q-16`, `HRD-Q-17` |
 | `4` | 2026-08-27 | PHASE 2A. Lima flow inti administratif ditulis. `HRD-DEC-020` provenance masukan produk dan `HRD-DEC-021` baseline implementasi canonical. Enam belas pertanyaan baru `HRD-Q-18` s.d. `HRD-Q-33` |
+| `7` | 2026-08-30 | **PHASE 3.1 — Workflow Chain Approval.** Isi rantai `T1` s.d. `T8` disetujui pemilik; `HRD-DEC-034` tidak lagi berstatus usulan. `HRD-DEC-036` menutup `HRD-Q-54` dengan **empat definisi alur terpisah**. Paket tinjauan keamanan disiapkan untuk `HRD-DEC-032` dan `HRD-DEC-033`. `contract_versions` **tetap** `v2` — semantik kontrak tidak berubah, hanya dipertegas | `HRD-DEC-036` |
+| `6` | 2026-08-30 | **PHASE 3 — Owner Decision Closure.** `HRD-DEC-031` s.d. `HRD-DEC-035` menutup `HRD-Q-19`, `HRD-Q-33`, `HRD-Q-20`, isi konfigurasi workflow, dan `HRD-Q-49` untuk cakupan MVP. `HRD-Q-54` dicatat. `contract_versions` naik ke `v2` karena semantik kontrak berubah — pemisahan peran, butir hak akses sensitif nominal, dan batas payroll. Empat entity penempatan dan remunerasi naik menjadi `Diperbarui`. `FR-HRD-012` yang sebelumnya over-asserted diperbaiki | `HRD-DEC-031` s.d. `HRD-DEC-035` |
 | `5` | 2026-08-30 | **PHASE 3 — Design Completion.** Empat artefak canonical yang belum ada ditulis: `data/data-dictionary.md`, `flowcharts/**`, `testing/acceptance-test-matrix.md`, dan `04-prd-to-mvp.md`. `contract_versions` diisi `v1`; `artifact_hashes` diisi. Snapshot SHA disegarkan ke BE `e0ee42c` dan FE `fff76a1b39` dengan hasil `NO_CAPABILITY_IMPACT`. Satu koreksi berbasis bukti pada bagian 7.1 `02-backend-architecture.md`. Cleanup governance referensi `erd/` mengikuti `blueprint-output-contract` terbaru |
 
 Perubahan setelah approval membuat revision baru dan memicu impact scan pada kedua repository.

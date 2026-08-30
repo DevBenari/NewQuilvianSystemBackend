@@ -5,9 +5,9 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `5` |
+| Revision | `7` |
 | Module status | `PARTIAL` |
-| Current phase | `HRD-PH-DESIGN-COMPLETE` — desain selesai sebagai `draft`, menunggu approval manusia |
+| Current phase | `HRD-PH-DECISION-CLOSURE` — lima blocker MVP ditutup pemilik; menunggu co-sign keamanan dan approval manusia |
 | Last verified at | `2026-08-30` — impact scan read-only terhadap HEAD kedua repository, bukan verifikasi runtime |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
 | Backend source SHA — diverifikasi berlaku pada | `16b8b71f4cd61e083213cf90722f4d768d339739` (`origin/QuilvianIntegrationBackend`, baseline canonical) |
@@ -91,7 +91,7 @@ dari satu slice, misalnya "Layanan mandiri pegawai" mencakup lima slice `S-A2` s
 | --- | --- | --- | --- | --- |
 | `HRD-BLK-001` | Batas keselamatan klinis untuk kredensial dan kewenangan klinis belum ditetapkan pihak berwenang | `requirement-completeness-gate` lalu `hospital-domain-architect`, lalu Komite Medik | `HRD-PH-005` | **Ya.** Seluruh fase administratif tidak bergantung padanya |
 | `HRD-BLK-002` | Aturan akses rekam kesehatan kerja belum disahkan | Kedua skill hulu, lalu K3RS | `HRD-PH-006` | **Ya** |
-| `HRD-BLK-003` | Bentuk data serah terima payroll dan perilaku saat Finance menolak batch belum disepakati | Pemilik produk bersama Finance | Bagian akhir `HRD-PH-004` | **Ya.** Perhitungan payroll sisi HR tetap boleh dirancang |
+| `HRD-BLK-003` | Bentuk data serah terima payroll dan perilaku saat Finance menolak batch belum disepakati | Pemilik produk bersama Finance | **`POST-MVP` saja** sejak `HRD-DEC-035` | **Ya.** Orkestrasi putaran payroll keluar dari jalur kritis MVP; kesiapan payroll sisi HR tetap di dalam MVP |
 | `HRD-BLK-004` | Isi tabel 67 entity yang benar-benar belum punya API belum diketahui, sehingga keputusan skema yang merusak data tidak boleh diambil | Pemilik database | `HRD-PH-007` | **Ya** |
 | `HRD-BLK-005` | Nama pemilik kebijakan bisnis, wakil Komite Medik, dan wakil K3RS belum ada | Manajemen | Approval seluruh blueprint | **Ya** untuk desain; **tidak** untuk rilis produksi slice sensitif |
 
@@ -270,6 +270,24 @@ Snapshot SHA disegarkan sebagai pencatatan, bukan sebagai akibat perubahan kemam
 Folder `erd/` **tidak ada dan tidak boleh dibuat**. Kontrak keluaran terbaru menghapusnya sebagai
 artefak; penggantinya tercantum pada `blueprint-manifest.md` bagian 7.
 
+### 7.1a Keputusan pemilik yang ditutup 30 Agustus 2026
+
+| ID | Menutup | Status |
+| --- | --- | --- |
+| `HRD-DEC-031` | `HRD-Q-19` | `approved` |
+| `HRD-DEC-032` | `HRD-Q-33` | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| `HRD-DEC-033` | `HRD-Q-20` | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
+| `HRD-DEC-034` | Isi konfigurasi workflow | `approved` untuk prinsip; isi rantai menunggu tinjauan |
+| `HRD-DEC-035` | `HRD-Q-49` untuk cakupan MVP | `approved` |
+| `HRD-DEC-036` | `HRD-Q-54` | `approved` — empat definisi alur terpisah |
+
+**Isi rantai `T1` s.d. `T8` sudah disetujui** pada decision log bagian 27.2. `HRD-DEC-034` tidak
+lagi berstatus usulan. **Master data workflow belum diisi** — menyetujui isi konfigurasi tidak
+sama dengan mengisi datanya; pengisian dijadwalkan pada `MVP-0`.
+
+`HRD-Q-54` **ditutup** `HRD-DEC-036`: empat definisi alur terpisah dengan pola persetujuan awal
+yang sama.
+
 ### 7.2 Langkah berikutnya
 
 **Yang diperlukan sekarang adalah approval manusia, bukan skill berikutnya.**
@@ -277,7 +295,7 @@ artefak; penggantinya tercantum pada `blueprint-manifest.md` bagian 7.
 | Urutan | Tindakan | Pemilik |
 | --- | --- | --- |
 | 1 | Tinjau `04-prd-to-mvp.md` — batas MVP, gelombang pengiriman, dan Definition of Done | Pemilik produk HR bersama technical owner |
-| 2 | Jawab pertanyaan yang memblokir gelombang pengiriman pada `04-prd-to-mvp.md` bagian 20.2 | Pemilik masing-masing, tercantum di tabel itu |
+| 2 | **Tinjau paket keamanan** pada [`evidence/02-security-review-packet.md`](./evidence/02-security-review-packet.md) untuk `HRD-DEC-032` dan `HRD-DEC-033` | Pemilik keamanan |
 | 3 | Setujui `02-backend-architecture.md`, `03-frontend-architecture.md`, dan kelima kontrak | Owner masing-masing |
 | 4 | Baru setelah itu, `plan-module-delivery` | — |
 
@@ -290,8 +308,8 @@ dokumen dengan pertanyaan memblokir **MUST NOT** diteruskan ke perencanaan deliv
 | Pertanyaan | Pemilik | Yang terblokir |
 | --- | --- | --- |
 | `HRD-Q-47` — dampak izin pulang cepat terhadap saldo dan pembayaran | Pemilik proses HR | `EPIC HRD-03` bagian izin pulang cepat |
-| `HRD-Q-10` — bentuk data yang diterima Finance | Pemilik produk bersama Finance | Penyelesaian `EPIC HRD-09` |
-| `HRD-Q-11` — perilaku bila Finance menolak batch | Pemilik produk bersama Finance | Penyelesaian `EPIC HRD-09` |
+| `HRD-Q-10` — bentuk data yang diterima Finance | Pemilik produk bersama Finance | **`POST-MVP` saja.** Tidak memblokir MVP administratif sejak `HRD-DEC-035` |
+| `HRD-Q-11` — perilaku bila Finance menolak batch | Pemilik produk bersama Finance | **`POST-MVP` saja.** Sama |
 | `HRD-Q-05` — isi tabel 67 entity yang belum punya API | Pemilik basis data | Seluruh `POST-MVP` domain tanpa API; pemasangan unique constraint pada penempatan shift |
 | `HRD-Q-08` — wakil Komite Medik | Manajemen | `S-C1` |
 | Pengesahan `HRD-DEC-010` | K3RS | `S-C6` |

@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `contracts/state-transition-matrix.md` `v1`; `contracts/validation-matrix.md` `v1`; `contracts/api-contract.md` `v1`; `flowcharts/**` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `contracts/state-transition-matrix.md` `v2`; `contracts/validation-matrix.md` `v2`; `contracts/api-contract.md` `v2`; `flowcharts/**` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
 
@@ -66,7 +66,20 @@ Baris yang dibatalkan ditandai `Dibatalkan` beserta alasannya, bukan dihapus.
 | `AT-HRD-A1-01` | Permohonan perubahan data melewati verifikasi | **Berhasil:** permohonan Ani Lestari disetujui HR lalu diterapkan; data berubah sejak tanggal berlaku | `INTEGRATION` | Test alur permohonan sampai penerapan |
 | `AT-HRD-A1-01b` | Sama | **Gagal:** permohonan tanpa bukti pendukung dikembalikan; data **tidak** berubah | `INTEGRATION` | Test yang membuktikan data tidak berubah |
 | `AT-HRD-A1-02` | Verifikasi wajib menyebut alasan saat menolak | **Gagal:** penolakan tanpa alasan ditolak sistem | `UNIT` | Test validasi alasan wajib |
-| `AT-HRD-A1-03` | Perubahan gaji memerlukan persetujuan pejabat | **Gagal:** penerapan perubahan gaji tanpa persetujuan pejabat ditolak | `INTEGRATION` | Test yang membuktikan penerapan tertahan |
+| `AT-HRD-A1-03` | Perubahan penempatan dan remunerasi wajib disetujui — `HRD-DEC-031` | **Gagal:** pemberlakuan tanpa persetujuan ditolak `409` | `INTEGRATION` | Test yang membuktikan penerapan tertahan |
+| `AT-HRD-A1-07` | Penyetuju harus berbeda dari pembuat — `HRD-DEC-031` | **Gagal:** HR Admin Sari menyetujui pengajuannya sendiri; ditolak `403`, nilai gaji tidak berubah | `INTEGRATION` | Test yang membandingkan pembuat dan penyetuju |
+| `AT-HRD-A1-07b` | Sama | **Gagal:** unit dengan satu petugas **tetap** ditolak; pengajuan dieskalasi, bukan disetujui otomatis | `INTEGRATION` | Test yang membuktikan tidak ada jalur pengecualian |
+| `AT-HRD-A1-07c` | Sama | **Berhasil:** HR Manager Dewi menyetujui pengajuan Sari; nilai gaji berubah sejak tanggal berlaku | `INTEGRATION` | Test alur lengkap |
+| `AT-HRD-A1-08` | Nominal gaji tidak ada pada daftar lintas pegawai — `HRD-DEC-033` | **Gagal:** isi jawaban daftar **tidak memuat** nominal, bukan sekadar tersamarkan di layar | `CONTRACT` | Isi jawaban jaringan yang diperiksa |
+| `AT-HRD-A1-08b` | Sama | **Berhasil:** pemegang `WfpSalaryAssignment : ViewAmount` membaca nominal lewat endpoint detail terpisah | `CONTRACT` | Test kontrak endpoint nominal |
+| `AT-HRD-A1-08c` | Butir baca umum tidak membuka nominal | **Gagal:** pemegang `: Read`/`: ReadAll` saja tidak memperoleh nominal | `INTEGRATION` | Test otorisasi |
+| `AT-HRD-A1-09` | Empat transaksi penempatan berdiri sendiri — `HRD-DEC-036` | **Berhasil:** mengubah konfigurasi alur penetapan gaji **tidak** mengubah alur penempatan organisasi, jabatan, maupun atasan | `INTEGRATION` | Test yang membandingkan keempat definisi sesudah satu diubah |
+| `AT-HRD-A1-09b` | Sama | **Gagal:** usulan satu definisi alur bersama untuk keempatnya ditolak pada tinjauan | `MANUAL` | Catatan tinjauan yang menyebut `HRD-DEC-036` |
+| `AT-HRD-A1-10` | Persetujuan penetapan gaji | **Berhasil:** HR Manager menyetujui pengajuan HR Admin; gaji berlaku sejak tanggal berlaku. **Gagal:** pemrakarsa menyetujui sendiri, ditolak `403` | `INTEGRATION` | Test per transaksi, jejak audit menyebut jenis transaksinya |
+| `AT-HRD-A1-11` | Persetujuan penempatan organisasi | Sama bentuknya, **entity dan jejak audit berbeda** | `INTEGRATION` | Sama |
+| `AT-HRD-A1-12` | Persetujuan penempatan jabatan | Sama bentuknya, entity dan jejak audit berbeda | `INTEGRATION` | Sama |
+| `AT-HRD-A1-13` | Persetujuan penetapan atasan | Sama bentuknya, entity dan jejak audit berbeda | `INTEGRATION` | Sama |
+| `AT-HRD-A1-14` | Penyelesaian penyetuju saat pemrakarsa satu-satunya pemegang butir | **Berhasil:** tugas ditugaskan ulang ke penyetuju tingkat lebih tinggi. **Gagal:** tidak pernah menjadi swa-setuju | `INTEGRATION` | Test yang membuktikan tidak ada jalur swa-setuju |
 | `AT-HRD-A1-03b` | Sama | **Berhasil:** setelah pejabat menyetujui, penerapan berhasil dan nilai gaji berubah | `INTEGRATION` | Test alur lengkap |
 | `AT-HRD-A1-04` | HR tidak membuat atau mencabut akun aplikasi sendiri | **Gagal:** tidak ada satu pun endpoint HR yang membuat atau menghapus akun aplikasi | `MANUAL` | Hasil penelusuran endpoint beserta kesimpulannya |
 | `AT-HRD-A1-05` | Nilai gaji tidak masuk log | **Gagal:** memicu jalur yang menyentuh nilai gaji tidak meninggalkan nominal di log | `INTEGRATION` | Isi log yang diperiksa, dengan nominal tersamarkan |
@@ -177,13 +190,14 @@ Baris yang dibatalkan ditandai `Dibatalkan` beserta alasannya, bukan dihapus.
 
 | ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
-| `AT-HRD-B5-01` | Alur putaran payroll sampai serah terima | **Berhasil:** putaran payroll berjalan dari pengumpulan masukan sampai serah terima terlaksana | `INTEGRATION` | Test alur lengkap |
+| `AT-HRD-B5-01` | Masukan HR siap payroll — `HRD-DEC-035` | **Berhasil:** kesiapan kehadiran, cuti, dan lembur terkumpul dan tervalidasi sebagai masukan yang siap diserahkan | `INTEGRATION` | Test kesiapan masukan. **Orkestrasi putaran payroll di luar cakupan MVP** |
 | `AT-HRD-B5-01b` | Sama | **Gagal:** putaran payroll ditolak berjalan bila periode kehadiran belum ditutup | `INTEGRATION` | Test penolakan beserta kodenya |
 | `AT-HRD-B5-02` | Tanggung jawab HR berhenti setelah serah terima | **Gagal:** tidak ada endpoint HR yang menyimpan hasil pembayaran, jurnal akuntansi, atau perhitungan pajak | `MANUAL` | Hasil penelusuran endpoint beserta kesimpulannya |
 | `AT-HRD-B5-03` | Payroll memakai kehadiran final | **Berhasil:** angka masukan payroll sama persis dengan kehadiran harian pada periode yang sudah ditutup | `INTEGRATION` | Test yang membandingkan kedua angka |
 | `AT-HRD-B5-04` | Serah terima yang diulang tidak menghasilkan pengiriman ganda | **Berhasil:** menjalankan serah terima dua kali menghasilkan satu pengiriman | `INTEGRATION` | Test yang menghitung jumlah pengiriman |
-| `AT-HRD-B5-05` | Bentuk data yang diterima Finance | — | — | **Belum dapat diuji.** `BLOCKED` oleh `HRD-Q-10` |
-| `AT-HRD-B5-06` | Perilaku bila Finance menolak batch | — | — | **Belum dapat diuji.** `BLOCKED` oleh `HRD-Q-11` |
+| `AT-HRD-B5-05` | Bentuk data yang diterima Finance | — | — | **Di luar cakupan MVP** sejak `HRD-DEC-035`. Tetap `BLOCKED` oleh `HRD-Q-10`, tetapi **tidak** memblokir MVP administratif |
+| `AT-HRD-B5-06` | Perilaku bila Finance menolak batch | — | — | **Di luar cakupan MVP** sejak `HRD-DEC-035`. Tetap `BLOCKED` oleh `HRD-Q-11` |
+| `AT-HRD-B5-07` | Orkestrasi putaran payroll | — | — | **`POST-MVP`** sesuai `HRD-DEC-035`. Tidak ada jalur yang membuat putaran payroll hari ini |
 
 ---
 

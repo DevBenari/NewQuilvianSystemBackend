@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `data/data-dictionary.md` |
-| `contract_version` | `v1` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik basis data untuk keputusan yang merusak data |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `10` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `12` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi pada `16b8b71` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh tabel dalam cakupan bersifat administratif ketenagakerjaan |
@@ -56,7 +56,7 @@ dokumen yang sudah ditandai hapus tidak menghalangi penomoran baru.
 | `Diperbarui` | Seluruh kolom, termasuk kolom yang sudah ada dan tidak berubah |
 | `Sudah ada` | Kolom kunci saja — PK, FK, kolom status, dan kolom yang dipakai aturan bisnis modul ini — ditambah rujukan ke file model sebagai sumber lengkap |
 
-**Tidak ada tabel berstatus `Baru` pada rancangan ini.** Seluruh kemampuan target dipenuhi dengan
+**Tidak ada tabel berstatus `Baru` pada rancangan ini.** `HRD-DEC-031` menambah kolom pada empat entity penempatan dan remunerasi — lihat bagian 2.7 — **tanpa** membuat tabel baru. Seluruh kemampuan target dipenuhi dengan
 `EXTEND` terhadap tabel yang sudah ada. Ini bukan kebetulan: `02-backend-architecture.md` bagian
 7.4 mencatatnya sebagai keputusan, dan bagian 9 mencatat kemampuan yang sengaja **tidak**
 mendapat tabel sendiri.
@@ -89,7 +89,10 @@ rancangan ini punya barisnya di sini.
 | Entity | Status | Owner | Catatan |
 | --- | --- | --- | --- |
 | `MstWorkforceProfile` | `Sudah ada` | Human Resource | Akar identitas pegawai. Dirujuk hampir seluruh tabel transaksi HR |
-| `WfpSalaryAssignment` | `Sudah ada` | Human Resource | Penempatan gaji. Kolom nominal bersifat sensitif |
+| `WfpSalaryAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: tambah kolom persetujuan dan wiring workflow. Kolom nominal bersifat sensitif |
+| `WfpOrganizationAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: tambah seluruh kolom persetujuan dan wiring workflow |
+| `WfpPositionAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: sama |
+| `WfpManagerAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: sama. `CanApproveRequests` yang sudah ada **tidak** berubah artinya |
 | `TrxEmployeeProfileChangeRequest` | `Sudah ada` | Human Resource | Permohonan ubah data diri |
 | `HrdAttendanceRawLog` | `Sudah ada` | Human Resource | Rekaman mentah dari mesin absensi |
 | `HrdAttendanceDaily` | `Sudah ada` | Human Resource | Hasil olahan kehadiran per hari |
@@ -518,6 +521,86 @@ Alasannya bukan keraguan desain, melainkan keselamatan data: memasang unique con
 tabel yang **sudah berisi** baris ganda akan **menggagalkan migration** dan menghentikan proses
 pemasangan di tengah jalan. Apakah baris ganda itu ada hari ini belum diketahui, dan itulah isi
 `HRD-Q-05`. Sampai audit data menjawabnya, statusnya **`BLOCKED`**, bukan "nanti dikerjakan".
+
+---
+
+### 2.7 Empat entity penempatan dan remunerasi — `HRD-DEC-031`
+
+Keempat entity di bawah naik menjadi `Diperbarui` karena `HRD-DEC-031` menetapkan persetujuan
+wajib beserta pemisahan peran. Sebelum keputusan itu, keempatnya `Sudah ada` dan tidak disentuh.
+
+| Aspek | Isi |
+| --- | --- |
+| File model | `Areas/Corporate/HumanResource/WorkforceCore/Models/Wfp{Salary,Organization,Position,Manager}Assignment.cs` |
+| File configuration | `Repositories/Configurations/Corporate/HumanResource/WorkforceCore/` |
+| Alasan berubah | Perubahan yang mengubah posisi efektif dan remunerasi pegawai wajib disetujui pihak yang berbeda dari pembuatnya |
+
+#### 2.7.1 Kolom persetujuan yang ditambahkan pada keempatnya
+
+Kolom berikut ditambahkan **sama bentuknya** pada `WfpSalaryAssignment`,
+`WfpOrganizationAssignment`, `WfpPositionAssignment`, dan `WfpManagerAssignment`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `WorkflowDefinitionId` | `uuid` | Tidak | — | — | FK ke `MstWorkflowDefinition` | `Restrict` | Tidak | **`RENCANA`.** Definisi alur `T8` yang dipakai |
+| `WorkflowInstanceId` | `uuid` | Tidak | — | Unique terfilter bukan-null | FK ke `TrxWorkflowInstance` | `Restrict` | Tidak | **`RENCANA`.** Satu perubahan paling banyak satu instance workflow |
+| `ApprovalStatus` | `varchar(30)` | Ya | `"Draft"` | **Index baru** bersama `EffectiveStartDate` | — | — | Tidak | **`RENCANA`.** `Draft`, `Submitted`, `UnderReview`, `NeedRevision`, `Approved`, `Rejected`, `Cancelled` |
+| `SubmittedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | **`RENCANA`.** Pembuat yang mengajukan |
+| `SubmittedAt` | `timestamp with time zone` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Waktu diajukan |
+| `RejectedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | **`RENCANA`.** Penolak |
+| `RejectedAt` | `timestamp with time zone` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Waktu ditolak |
+| `RejectionReason` | `varchar(500)` | Tidak | — | — | — | — | **Ya** | **`RENCANA`.** Alasan penolakan; dapat menyebut keadaan pribadi |
+
+#### 2.7.2 Kolom persetujuan yang sudah ada, dan yang belum
+
+| Entity | `ApprovedByUserId` / `ApprovedAt` | Endpoint persetujuan | Yang perlu ditambahkan |
+| --- | --- | --- | --- |
+| `WfpSalaryAssignment` | **Sudah ada** | **Sudah ada** — `PATCH /{id}/approval` | Delapan kolom pada 2.7.1, **kecuali** `ApprovedByUserId`/`ApprovedAt` |
+| `WfpOrganizationAssignment` | Tidak ada | Tidak ada | Seluruh kolom 2.7.1 **ditambah** `ApprovedByUserId`, `ApprovedAt` |
+| `WfpPositionAssignment` | Tidak ada | Tidak ada | Sama |
+| `WfpManagerAssignment` | Tidak ada | Tidak ada | Sama |
+
+#### 2.7.3 Dua penjaga yang tidak berupa kolom
+
+**Menambahkan kolom saja tidak memenuhi `HRD-DEC-031`.** Kamus data hanya dapat menyiapkan
+tempatnya; yang membuat keputusan itu berlaku adalah dua penjaga di tingkat aturan bisnis:
+
+| Penjaga | Aturan | Keadaan hari ini |
+| --- | --- | --- |
+| **Gerbang efektivitas** | Penempatan **MUST NOT** berlaku sebelum `ApprovalStatus` bernilai `Approved` | **Belum ada.** Tidak ada satu pun pemeriksaan sebelum penempatan berlaku |
+| **Pemisahan peran** | `SubmittedByUserId` **MUST NOT** sama dengan `ApprovedByUserId` | **Belum ada.** Endpoint persetujuan gaji memakai butir hak akses yang sama dengan buat dan ubah |
+
+Keduanya adalah pekerjaan implementasi yang **wajib** direncanakan bersama penambahan kolomnya.
+Merencanakan kolom tanpa penjaganya menghasilkan tabel yang terlihat aman tetapi tidak menjaga
+apa pun.
+
+#### 2.7.4 Bentuk DDL
+
+```sql
+-- Bentuk perubahan sebagaimana akan dihasilkan EF Core. Bukan skrip untuk dijalankan.
+-- Berlaku sama untuk keempat tabel; contoh memakai WfpOrganizationAssignment.
+ALTER TABLE public."WfpOrganizationAssignment"
+    ADD COLUMN "WorkflowDefinitionId" uuid,                              -- RENCANA
+    ADD COLUMN "WorkflowInstanceId"   uuid,                              -- RENCANA
+    ADD COLUMN "ApprovalStatus"       varchar(30) NOT NULL DEFAULT 'Draft', -- RENCANA
+    ADD COLUMN "SubmittedByUserId"    uuid,                              -- RENCANA
+    ADD COLUMN "SubmittedAt"          timestamptz,                       -- RENCANA
+    ADD COLUMN "ApprovedByUserId"     uuid,                              -- RENCANA
+    ADD COLUMN "ApprovedAt"           timestamptz,                       -- RENCANA
+    ADD COLUMN "RejectedByUserId"     uuid,                              -- RENCANA
+    ADD COLUMN "RejectedAt"           timestamptz,                       -- RENCANA
+    ADD COLUMN "RejectionReason"      varchar(500);                      -- RENCANA, SENSITIF
+
+CREATE INDEX "IX_WfpOrganizationAssignment_ApprovalStatus_EffectiveStartDate"
+    ON public."WfpOrganizationAssignment" ("ApprovalStatus", "EffectiveStartDate");
+
+CREATE UNIQUE INDEX "IX_WfpOrganizationAssignment_WorkflowInstanceId"
+    ON public."WfpOrganizationAssignment" ("WorkflowInstanceId")
+    WHERE "WorkflowInstanceId" IS NOT NULL AND "IsDelete" = false;
+
+-- WfpSalaryAssignment TIDAK menambahkan "ApprovedByUserId" dan "ApprovedAt":
+-- keduanya sudah ada di tabel itu.
+```
 
 ---
 
@@ -1111,6 +1194,7 @@ bawah **MUST NOT** masuk custom logger dalam bentuk apa pun.
 | `WfpPerformanceReview` | Kolom nilai dan catatan penilaian | Penilaian kinerja perorangan |
 | `WfpDisciplinaryAction` | **Seluruh isi tabel** | Catatan kedisiplinan; jangkauan pembaca paling sempit di modul ini |
 | `TrxPayrollRun` | Kolom nominal total | Agregat nilai payroll |
+| `WfpSalaryAssignment`, `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment` | `RejectionReason` | Alasan penolakan perubahan penempatan; dapat menyebut keadaan pribadi |
 
 ---
 

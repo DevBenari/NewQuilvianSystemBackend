@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/permission-audit-matrix.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Pemilik keamanan bersama technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
 | `input_revision` | `contracts/api-contract.md` `v1`; `data/data-dictionary.md` `v1` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada butir hak akses yang dihapus atau diganti namanya |
 
@@ -122,7 +122,127 @@ keamanan**, bukan konfigurasi yang boleh langsung dipasang.
 | **Kepala unit penjadwalan** | `RosterPeriod` lengkap; `RosterAssignment` lengkap; `ShiftAssignment` lengkap; `ShiftReplacement`; `EmergencyStaffing`; `OnCallAssignment` | Seluruhnya **Rencana** — endpointnya belum ada |
 | **Auditor** | Seluruh butir dengan aksi `Read` saja | **Tidak boleh** memegang aksi apa pun selain `Read` |
 
-### 2.3 Yang **tidak** dipetakan di sini
+### 2.3 Pemetaan peran fungsional ke peran aplikasi — `HRD-DEC-032`
+
+| Field | Isi |
+| --- | --- |
+| Dasar | `HRD-DEC-032` |
+| Status | **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** |
+| Disetujui | Pemilik teknis dan produk, 2026-08-30 |
+| Co-approver | Pemilik keamanan — **belum menandatangani** |
+
+**Aturan yang paling menentukan bagian ini:** nama peran fungsional pada bagian 2.2 **MUST NOT**
+dianggap sama dengan peran aplikasi pada Identity. Bagian 2.2 adalah **baseline fungsional**;
+bagian ini adalah pemetaannya ke kenyataan.
+
+#### 2.3.1 Keadaan infrastruktur peran hari ini
+
+Hasil audit read-only:
+
+| Yang diperiksa | Temuan | Bukti |
+| --- | --- | --- |
+| Model peran | `ApplicationRole : IdentityRole<Guid>`, punya penanda `IsSystemRole` | `Models/ApplicationRole.cs` |
+| Peran yang di-seed | **Hanya `SuperAdmin` dan `User`** | `Seeders/SuperAdminSeeder.cs` baris 9–10 |
+| Peran HR | **Tidak ada satu pun.** Peran lain dibuat administrator saat aplikasi berjalan | — |
+| Katalog butir hak akses | **Dibangkitkan mesin** dari atribut `[AccessController]` dan `[AccessAction]` | `Seeders/AccessMenuSeeder.cs` |
+| Pengikat peran ke aksi | `SysAccessPolicy`, dibuat saat berjalan | `Areas/Administrator/Setting/Controllers/RoleAccessController.cs` — `POST /policies`, `POST /policies/copy` |
+| Urutan penegakan | Pengguna → peran Identity → kebijakan akses → aksi | `Filters/AccessPermissionFilter.cs`, `Services/Security/AccessPermissionService.cs` |
+
+**Kesimpulan yang jujur, dan perlu dibaca apa adanya:**
+
+- **Sisi hak akses sudah lengkap.** 152 controller HR memakai `[AccessPermission("<Resource>", "<Action>")]`, dan katalog butirnya dibangkitkan mesin. Tidak ada yang perlu dikarang.
+- **Sisi peran belum ada.** Tidak satu pun peran fungsional HR punya padanan di Identity hari ini.
+
+#### 2.3.2 Tabel pemetaan
+
+| Peran fungsional | Peran aplikasi yang benar-benar ada | Cakupan butir hak akses | Status pemetaan |
+| --- | --- | --- | --- |
+| **Employee** | **Tidak ditemukan** | Seluruh butir berawalan `My*`, aksi `Read`, `Create`, `Update`, `Submit`, `Cancel`, `Delete` | **`MAPPING_REQUIRED`** |
+| **Supervisor / Manager** | **Tidak ditemukan** | Butir `My*` miliknya sendiri; `ApprovalInbox : Read`, `: Approve`, `: Reject`, `: RequestRevision`, `: Return`; `AttendanceException : Classify` | **`MAPPING_REQUIRED`** |
+| **HR Admin** | **Tidak ditemukan** | Master data HR; butir `Wfp*` administrasi kepegawaian; `AttendanceDaily : Read`; `AttendanceRawLog : Read`, `: Create`, `: Update`; `AttendanceCorrection : Read`, `: Apply`, `: CreateOnBehalf`; `LeaveBalance : Read`; `LeaveAdjustment` lengkap; `OvertimePlan` lengkap; penjadwalan | **`MAPPING_REQUIRED`** |
+| **HR Manager** | **Tidak ditemukan** | Seluruh butir HR Admin, ditambah persetujuan `T8` perubahan penempatan dan remunerasi, ditambah butir sensitif nominal gaji | **`MAPPING_REQUIRED`** |
+| **Payroll Officer** | **Tidak ditemukan** | `AttendancePeriod : Create`, `: Close`, `: Reopen`, `: Cancel`; `AttendancePayrollHandoff : Execute`, `: Rollback`; kesiapan payroll sisi HR | **`MAPPING_REQUIRED`** |
+| **Scheduling Lead** | **Tidak ditemukan** | `RosterPeriod`, `ShiftAssignment`, `ScheduleChangeRequest`, `ShiftSwapRequest` — seluruh aksi | **`MAPPING_REQUIRED`** |
+| **Auditor** | **Tidak ditemukan** | Hanya aksi `Read` lintas domain HR. **MUST NOT** memegang butir sensitif nominal gaji tanpa keputusan tersendiri | **`MAPPING_REQUIRED`** |
+| — | `SuperAdmin` | **Melewati seluruh pemeriksaan** kecuali aksi bertanda khusus sistem | `EXISTS` — bukan peran HR; **MUST NOT** dipakai sebagai pengganti peran HR mana pun |
+| — | `User` | Peran bawaan tanpa kebijakan akses HR | `EXISTS` — tidak mencukupi untuk pekerjaan HR apa pun |
+
+#### 2.3.3 Aturan yang mengikat pemetaan ini
+
+| Larangan | Sebabnya |
+| --- | --- |
+| **MUST NOT** membuat peran baru pada source aplikasi dari pekerjaan blueprint | Pembuatan peran adalah tindakan administrator pada aplikasi yang berjalan, bukan perubahan source |
+| **MUST NOT** mengarang nama peran aplikasi | Peta yang menunjuk peran tidak ada adalah peta yang tidak menjaga apa pun |
+| **MUST NOT** memakai `SuperAdmin` sebagai pengganti peran HR | `SuperAdmin` melewati seluruh pemeriksaan. Memakainya berarti meniadakan matriks ini |
+| **MUST NOT** menutup `MAPPING_REQUIRED` tanpa co-sign keamanan | `HRD-DEC-032` menetapkan keamanan sebagai co-approver |
+
+**Yang harus terjadi sebelum baris `MAPPING_REQUIRED` dapat ditutup:** administrator membuat
+peran aplikasi yang bersesuaian, lalu mengikatnya ke butir hak akses lewat kebijakan akses. Itu
+pekerjaan konfigurasi pada aplikasi berjalan, **bukan** task backend maupun frontend.
+
+### 2.4 Pemisahan peran pada perubahan penempatan dan remunerasi — `HRD-DEC-031`
+
+| Field | Isi |
+| --- | --- |
+| Dasar | `HRD-DEC-031` |
+| Status | `approved` |
+| Berlaku pada | Penetapan gaji, penempatan organisasi, penempatan jabatan, penetapan atasan |
+
+| Aturan | Bunyi | Keadaan hari ini |
+| --- | --- | --- |
+| `APPROVAL_MANDATORY` | Perubahan **MUST NOT** berlaku efektif sebelum disetujui | **Belum dijaga.** Tidak ada yang memeriksa status persetujuan sebelum penempatan berlaku |
+| `APPROVER_MUST_DIFFER_FROM_CREATOR` | Pembuat **MUST NOT** menjadi penyetuju transaksinya sendiri | **Belum dijaga.** `PATCH /{id}/approval` pada penetapan gaji memakai butir `WfpSalaryAssignment : Update` yang sama dengan buat dan ubah |
+| Eskalasi, bukan pengecualian | Unit dengan satu petugas **MUST** dieskalasi ke otoritas berbeda, **MUST NOT** menjadi swa-setuju | **Belum ada** |
+
+**Butir hak akses baru yang dibutuhkan** supaya pemisahan peran dapat dijaga mesin, bukan hanya
+dijanjikan dokumen:
+
+| Butir | Dipegang | Jenis transaksi | Alasan |
+| --- | --- | --- | --- |
+| `WfpSalaryAssignment : Approve` | HR Manager | Perubahan penetapan gaji | Memisahkan wewenang menyetujui dari wewenang membuat dan mengubah |
+| `WfpOrganizationAssignment : Approve` | HR Manager | Perubahan penempatan organisasi | Sama |
+| `WfpPositionAssignment : Approve` | HR Manager | Perubahan penempatan jabatan | Sama |
+| `WfpManagerAssignment : Approve` | HR Manager | Perubahan penetapan atasan | Sama |
+
+**Keempat butir sengaja dipisah** `[DECISION]` `HRD-DEC-036`. Keempat perubahan adalah **empat
+jenis transaksi berbeda dengan definisi alur, siklus versi, dan jejak audit masing-masing**.
+Menggabungkannya menjadi satu butir akan membuat pertanyaan "siapa menyetujui perubahan yang
+mana" tidak dapat dijawab dari jejak audit.
+
+**Penyelesaian saat pemrakarsa sama dengan calon penyetuju.** Bila HR Admin yang mengajukan juga
+satu-satunya pemegang butir `: Approve` di unitnya, tugas persetujuan **MUST** diselesaikan ke
+penyetuju tingkat lebih tinggi yang berwenang sesuai konfigurasi. Ia **MUST NOT** menjadi
+swa-setuju, dan **MUST NOT** dilewati dengan alasan kekurangan personel.
+
+Selama keempat butir itu belum ada, pemisahan peran **tidak dapat** ditegakkan hanya dengan
+konfigurasi peran — karena menyetujui dan mengubah masih berbagi satu butir yang sama.
+
+### 2.5 Keterlihatan nominal gaji — `HRD-DEC-033`
+
+| Field | Isi |
+| --- | --- |
+| Dasar | `HRD-DEC-033` |
+| Status | **`OWNER_DECIDED_PENDING_SECURITY_COSIGN`** |
+| Co-approver | Pemilik keamanan — **belum menandatangani** |
+
+**Prinsip:** `SALARY_AMOUNT_HIDDEN_BY_DEFAULT`.
+
+| Tempat | Nominal gaji | Yang boleh tampil |
+| --- | --- | --- |
+| Daftar lintas pegawai | **Disembunyikan** | Struktur gaji, golongan, kelas jabatan, mata uang, tanggal berlaku, penanda utama, status persetujuan |
+| Detail gaji satu pegawai | **Boleh**, hanya bagi pemegang butir sensitif | Seluruh isi penetapan |
+| Laporan atau ekspor massal | **Tidak diberikan pada MVP** | — |
+
+| Butir hak akses baru | Dipegang | Catatan |
+| --- | --- | --- |
+| `WfpSalaryAssignment : ViewAmount` | HR Manager, Payroll Officer, dan pemilik data sendiri | Butir **sensitif**. Terpisah dari `WfpSalaryAssignment : Read` |
+| `WfpSalaryAssignment : ViewAmountBulk` | **Belum diberikan kepada siapa pun pada MVP** | Memerlukan co-sign keamanan sebelum diberikan |
+
+**Larangan yang mengikat:** nominal **MUST NOT** terbuka hanya karena pengguna memegang butir
+baca umum. `WfpSalaryAssignment : Read` **tidak** menyiratkan `: ViewAmount`. Memisahkan keduanya
+adalah inti keputusan ini — menggabungkannya kembali membatalkannya.
+
+### 2.6 Yang **tidak** dipetakan di sini
 
 | Peran | Alasan |
 | --- | --- |
@@ -154,7 +274,7 @@ atau tidak"*. Ia **tidak** menjawab *"boleh melakukannya pada baris data yang in
 | --- | --- | --- | --- |
 | Pemisahan peran pada tindakan disiplin | **Pembuat tindakan dapat menyetujui tindakannya sendiri** | Keputusan yang menyangkut nasib seorang pegawai diambil satu orang tanpa pengawasan | `[OPEN]` `HRD-Q-51` |
 | Tingkatan izin untuk data paling rahasia | Kasus kedisiplinan bertanda paling rahasia dapat dibaca siapa pun yang memegang butir baca umum | Data yang paling sensitif di modul ini justru dijaga sama seperti data biasa | `[OPEN]` `HRD-Q-52` |
-| Pembatasan siapa boleh membaca nominal gaji orang lain | Belum diputuskan | Daftar lintas-pegawai berpotensi membuka gaji banyak orang sekaligus | `[OPEN]` `HRD-Q-20` |
+| Pembatasan siapa boleh membaca nominal gaji orang lain | **Diputuskan** `HRD-DEC-033`: nominal disembunyikan pada daftar lintas pegawai; butir `: ViewAmount` terpisah dari `: Read` | Penegakannya **belum ada di kode** — butir sensitifnya belum dibuat | `OWNER_DECIDED_PENDING_SECURITY_COSIGN` |
 | Hak akses per aksi pada penempatan jadwal kerja | 8 endpoint tanpa butir hak akses | Siapa pun yang masuk dapat menempatkan, mengubah, dan menghapus jadwal kerja pegawai mana pun | Lihat bagian 6 |
 | Guard perubahan jadwal berlaku surut | Belum ada | Jadwal pada periode yang sudah diproses dapat diubah langsung | `[DECISION]` `HRD-DEC-027`, `MISSING` |
 | Permission khusus untuk membalikkan eksekusi cuti | Belum ada | Cuti yang sudah selesai dapat dibalikkan tanpa alasan dan tanpa pemeriksaan kunci payroll | `[DECISION]` `HRD-DEC-023`, `MISSING` |

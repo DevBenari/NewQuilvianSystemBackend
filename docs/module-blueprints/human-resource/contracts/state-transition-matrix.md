@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/state-transition-matrix.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `10`; `flows/` 15 berkas |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_revision` | `00-interview-decisions.md` revision `12`; `flows/` 15 berkas |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada nilai status yang dihapus. Satu nilai baru ditambahkan pada kosakata jenis pengecualian kehadiran |
 
@@ -649,6 +649,51 @@ maupun `Expired`.
 **Kewenangan "atasan atau HR" pada baris di atas belum diverifikasi.** Jangan menyimpulkannya
 dari pola domain lain.
 
+### 6.1a Perubahan penempatan dan remunerasi — `ApprovalStatus` `HRD-DEC-031`
+
+Nilai: `Draft`, `Submitted`, `UnderReview`, `NeedRevision`, `Approved`, `Rejected`, `Cancelled`.
+
+Berlaku pada empat jenis transaksi yang **terpisah** `[DECISION]` `HRD-DEC-036`:
+
+| Jenis transaksi | Entity | Definisi alur |
+| --- | --- | --- |
+| Perubahan penetapan gaji | `WfpSalaryAssignment` | Sendiri |
+| Perubahan penempatan organisasi | `WfpOrganizationAssignment` | Sendiri |
+| Perubahan penempatan jabatan | `WfpPositionAssignment` | Sendiri |
+| Perubahan penetapan atasan | `WfpManagerAssignment` | Sendiri |
+
+**Keempatnya memakai kosakata status yang sama dan pola persetujuan awal yang sama, tetapi
+MUST NOT memakai satu definisi alur bersama.** Perubahan kebijakan pada satu jenis transaksi
+**MUST NOT** menyeret ketiga jenis lainnya. Penggunaan ulang konfigurasi langkah atau template
+diperbolehkan bila mesin workflow memang memungkinkannya tanpa membuat definisi yang sama.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Draft` | Ajukan | `Submitted` | HR Admin pembuat | Isian lengkap; tanggal berlaku terisi | Ditolak `400` `[DECISION]` |
+| `Submitted` | Mulai tinjau | `UnderReview` | Pemegang butir `: Approve` | **Peninjau MUST berbeda dari pembuat** | Ditolak `403` `[DECISION]` |
+| `UnderReview` | Minta perbaikan | `NeedRevision` | Pemegang butir `: Approve` | Alasan wajib diisi | Ditolak `400` `[DECISION]` |
+| `NeedRevision` | Ajukan lagi | `Submitted` | HR Admin pembuat | — | `[DECISION]` |
+| `UnderReview` | Setujui | `Approved` | Pemegang butir `: Approve` | **Penyetuju MUST berbeda dari pembuat** | Ditolak `403` `[DECISION]` |
+| `Submitted` | Selesaikan penyetuju saat pemrakarsa sama dengan calon penyetuju | tetap `Submitted`, ditugaskan ulang | Sistem | Penyelesaian ke penyetuju tingkat lebih tinggi yang berwenang sesuai konfigurasi | Tugas tertahan dan muncul di daftar pengawasan HR. **MUST NOT** menjadi swa-setuju `[DECISION]` `HRD-DEC-036` |
+| `UnderReview` | Tolak | `Rejected` | Pemegang butir `: Approve` | Alasan wajib diisi | Ditolak `400` `[DECISION]` |
+| `Draft` atau `Submitted` | Batalkan | `Cancelled` | HR Admin pembuat | — | `[DECISION]` |
+
+**Perpindahan yang tidak sah dan harus ditolak** `[DECISION]` `HRD-DEC-031`:
+
+| Dari | Ke | Alasan ditolak |
+| --- | --- | --- |
+| `Draft` | `Approved` langsung | Melewati pengajuan dan peninjauan berarti meniadakan pemisahan peran |
+| mana pun | `Approved` oleh pembuatnya sendiri | Inti `APPROVER_MUST_DIFFER_FROM_CREATOR`. **Tidak ada pengecualian**, termasuk ketika unit hanya punya satu petugas |
+| `Rejected` | mana pun | Keadaan akhir. Perbaikan lewat pengajuan baru |
+| `Cancelled` | mana pun | Keadaan akhir |
+
+**Gerbang efektivitas yang mengikat.** Penempatan **MUST NOT** berlaku efektif selama
+`ApprovalStatus` belum bernilai `Approved`. Menyimpan barisnya saja tidak membuatnya berlaku.
+
+**Keadaan hari ini:** seluruh perpindahan di atas berstatus **`MISSING`**. Kosakata statusnya
+belum ada, dan tidak ada satu pun penjaga yang menegakkannya. Ini `IMPLEMENTATION_WORK` turunan
+`HRD-DEC-031`, bukan perilaku yang sudah berjalan.
+
 ### 6.2 Verifikasi perubahan data — `VerificationStatuses`
 
 Nilai: `Pending`, `Verified`, `Rejected`, `NeedRevision`.
@@ -825,6 +870,8 @@ Tabel ini adalah daftar pekerjaan pengerasan, disusun berdasarkan besar akibatny
 | 7 | Roster, shift harian, penggantian, tenaga darurat, dan siaga | `[VOCAB]` | Tidak ada mesin penjadwalan operasional sama sekali untuk rumah sakit 24 jam | `HRD-DEC-026` |
 | 8 | Onboarding, masa percobaan, pemberhentian, pensiun | `[VOCAB]` | Hanya pengunduran diri yang punya alur; keluar-masuk pegawai lainnya dikerjakan di luar sistem | — |
 | 9 | Kedaluwarsa delegasi persetujuan | `[VOCAB]` | Delegasi yang sudah lewat masa berlakunya mungkin masih aktif | — |
+| 10 | Persetujuan perubahan penempatan dan remunerasi | `MISSING` | Perubahan gaji dan penempatan berlaku tanpa persetujuan, dan pembuatnya dapat menyetujui sendiri | `HRD-DEC-031` |
+| 11 | Nominal gaji terbuka pada daftar lintas pegawai | `MISSING` | Butir sensitif nominal belum ada, sehingga butir baca umum sudah cukup untuk melihat nominal | `HRD-DEC-033` |
 
 ---
 

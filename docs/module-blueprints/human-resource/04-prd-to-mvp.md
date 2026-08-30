@@ -8,8 +8,8 @@
 | Modul | Human Resource (`human-resource`, prefix `HRD`) |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `04-prd-to-mvp.md` |
-| `contract_version` | `v1` |
-| `last_changed_in` | `v1` |
+| `contract_version` | `v2` |
+| `last_changed_in` | `v2` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Pemilik produk HR bersama technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
@@ -19,7 +19,7 @@
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi `16b8b71` |
 | Frontend SHA baseline | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
 | `input_revision` | `02-backend-architecture.md` rev `1`; `03-frontend-architecture.md` rev `1`; seluruh `contracts/` `v1`; `data/data-dictionary.md` `v1`; `flowcharts/**` |
-| `input_hash` — decision log | `91d62d4ea81aa11fd5bf4c1c922b6c8dbe1ad273a1609e4897bae0ecafa590c0` |
+| `input_hash` — decision log | `0f4bb66d96d5fcd10a388e7b98efa08510f9edf50e3033dddf84951ad09854a3` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh kemampuan dalam cakupan bersifat administratif ketenagakerjaan |
 | Ringkasan cakupan | Menutup rantai pekerjaan HR harian dari jadwal terbit sampai payroll diserahkan, dengan pengecualian kemampuan klinis dan enam domain tanpa API yang tetap `BLOCKED` |
 
@@ -250,8 +250,28 @@ Percabangan dan jalur pengecualian tidak diulang di sini; seluruhnya ada di `flo
 
 ### `EPIC HRD-02` — Administrasi kepegawaian yang dapat dicapai
 
-**Tujuan.** Menutup cacat menu yang sudah terlihat pengguna, dan menyediakan layar perubahan data.
-**Disposisi backend:** `EXISTING / REUSE` untuk API; `MISSING / NEW` untuk layar.
+**Tujuan.** Menutup cacat menu yang sudah terlihat pengguna, menyediakan layar perubahan data, dan
+membangun persetujuan penempatan serta remunerasi.
+**Disposisi backend:** `EXISTING / REUSE` untuk API perubahan data; **`MISSING / NEW` untuk seluruh
+persetujuan penempatan dan remunerasi**; `MISSING / NEW` untuk layar.
+
+> **Peringatan cakupan — jangan disembunyikan saat perencanaan.** `HRD-DEC-031` memperbesar epic
+> ini secara material. Tiga entity penempatan **tidak punya** kolom persetujuan, endpoint
+> persetujuan, maupun wiring workflow sama sekali; entity gaji punya kolom dan endpoint tetapi
+> tanpa gerbang efektivitas dan tanpa pemisahan peran.
+>
+> `HRD-DEC-036` menegaskan pekerjaannya **tidak** dapat diselesaikan sebagai satu potong. Saat
+> perencanaan delivery dijalankan kelak, epic ini **MUST** dipecah sekurang-kurangnya per
+> transaksi bisnis:
+>
+> 1. Persetujuan Penetapan Gaji
+> 2. Persetujuan Penempatan Organisasi
+> 3. Persetujuan Penempatan Jabatan
+> 4. Persetujuan Penetapan Atasan
+>
+> Infrastruktur workflow bersama boleh dipakai ulang **hanya bila memang generik**, bukan
+> dipaksakan agar terlihat hemat. Dua penjaga — gerbang efektivitas dan pemisahan peran — **MUST**
+> direncanakan bersama penambahan kolomnya, bukan sesudahnya.
 
 > **`FR-HRD-010` — Enam butir menu Administrasi Kepegawaian menuju halaman yang ada**
 >
@@ -267,12 +287,50 @@ Percabangan dan jalur pengecualian tidak diulang di sini; seluruhnya ada di `flo
 > **Contoh:** permohonan Ani Lestari mengubah nomor telepon berstatus menunggu verifikasi;
 > nomor lamanya masih yang berlaku sampai HR menyetujui.
 
-> **`FR-HRD-012` — Perubahan penempatan dan gaji memerlukan persetujuan pejabat**
+> **`FR-HRD-012` — Perubahan penempatan dan remunerasi wajib disetujui pihak yang berbeda**
 >
-> Penerapan perubahan gaji ditolak selama pejabat berwenang belum menyetujuinya.
+> Dasar: `HRD-DEC-031`. Berlaku pada penetapan gaji, penempatan organisasi, penempatan jabatan,
+> dan penetapan atasan.
 >
-> **Contoh:** HR menerapkan perubahan gaji Budi Santoso tanpa persetujuan pejabat; permintaan
-> ditolak dan nilai gajinya tidak berubah.
+> Perubahan **tidak berlaku efektif** sebelum disetujui, dan penyetuju **harus berbeda** dari
+> pembuat transaksi.
+>
+> **Contoh berhasil:** HR Admin Sari mengajukan perubahan gaji Budi Santoso. HR Manager Dewi
+> menyetujuinya. Nilai gaji berubah sejak tanggal berlaku.
+>
+> **Contoh gagal:** HR Admin Sari mengajukan perubahan gaji Budi Santoso lalu mencoba
+> menyetujuinya sendiri. Permintaan ditolak dengan `403`, dan nilai gaji **tidak** berubah —
+> termasuk ketika unit itu hanya punya satu petugas HR.
+>
+> **Keadaan hari ini:** perilaku ini **belum ada**. Endpoint persetujuan gaji memakai butir hak
+> akses yang sama dengan buat dan ubah, dan tidak ada pemeriksaan status persetujuan sebelum
+> penempatan berlaku. Tiga entity penempatan lainnya belum punya kolom persetujuan sama sekali.
+
+> **`FR-HRD-015` — Empat transaksi penempatan dan remunerasi berdiri sendiri**
+>
+> Dasar: `HRD-DEC-036`. Perubahan penetapan gaji, penempatan organisasi, penempatan jabatan, dan
+> penetapan atasan adalah **empat jenis transaksi terpisah**, masing-masing dengan definisi alur,
+> siklus versi konfigurasi, dan jejak audit sendiri.
+>
+> **Contoh berhasil:** kebijakan persetujuan penetapan gaji diubah menjadi dua tingkat.
+> Penempatan organisasi, jabatan, dan atasan **tetap** memakai rantai satu tingkat seperti semula.
+>
+> **Contoh gagal:** usulan membuat satu definisi alur bersama untuk keempatnya ditolak pada
+> tinjauan, karena membuat pertanyaan "siapa menyetujui perubahan yang mana" tidak terjawab dari
+> jejak audit.
+>
+> **Pola awal MVP untuk keempatnya sama:** HR Admin → HR Manager / `CorporateHr`, dengan
+> penyetuju berbeda dari pemrakarsa. Pola yang sama **tidak** berarti definisi yang sama.
+
+> **`FR-HRD-014` — Nominal gaji tidak tampil pada daftar lintas pegawai**
+>
+> Dasar: `HRD-DEC-033`. Response daftar penetapan gaji **tidak menyertakan** nominal.
+>
+> **Contoh berhasil:** HR Admin membuka daftar penetapan gaji satu unit dan melihat pegawai,
+> kelas gaji, dan tanggal berlaku — tanpa satu pun angka rupiah.
+>
+> **Contoh gagal:** pengguna yang hanya memegang butir baca umum meminta nominal; nilainya tidak
+> dikembalikan, bahkan tidak dalam bentuk tersamarkan di dalam payload.
 
 > **`FR-HRD-013` — Nilai gaji tidak masuk log**
 >
@@ -502,10 +560,22 @@ Percabangan dan jalur pengecualian tidak diulang di sini; seluruhnya ada di `flo
 >
 > Kehadiran pada tanggal berjadwal diolah memakai shift yang terbit untuk pegawai itu.
 
-### `EPIC HRD-09` — Payroll sampai serah terima
+### `EPIC HRD-09` — Kesiapan payroll sisi HR
 
-**Tujuan.** Menutup rantai MVP sampai batas tanggung jawab HR.
+**Tujuan.** Menghasilkan **masukan HR yang siap payroll**, dan berhenti di situ.
 **Disposisi backend:** `REUSE WITH ADAPTER`.
+
+**Batas epic ini setelah `HRD-DEC-035`.** Orkestrasi putaran payroll **keluar** dari MVP.
+
+| Tetap di dalam `EPIC HRD-09` | Pindah ke `POST-MVP` |
+| --- | --- |
+| Kesiapan kehadiran untuk payroll | Pembuatan `TrxPayrollRun` |
+| Masukan dan kesiapan cuti | Pemajuan status putaran payroll |
+| Masukan dan kesiapan lembur | Perhitungan payroll |
+| Rekonsiliasi sisi HR | Persetujuan putaran payroll |
+| Validasi bahwa data HR siap diserahkan | Serah terima final ke Finance |
+
+`Payroll Executed` **MUST NOT** dibaca sebagai `Employee Paid`.
 
 > **`FR-HRD-080` — Payroll memakai kehadiran final**
 >
@@ -862,6 +932,26 @@ Seluruh nama pada skenario di bawah adalah **nama samaran**. Tidak ada data pega
 >
 > **Hasil yang diharapkan:** penerapan ditolak, dan nilai gaji Ani tidak berubah.
 
+> **`UAT-15` — HR Admin mencoba menyetujui perubahan gaji yang ia ajukan sendiri**
+>
+> **Kondisi awal:** HR Admin Sari mengajukan perubahan gaji Budi Santoso. Unitnya hanya punya
+> satu petugas HR.
+>
+> **Langkah:** Sari membuka pengajuan itu lalu menekan setujui.
+>
+> **Hasil yang diharapkan:** permintaan ditolak. Nilai gaji Budi **tidak** berubah. Pengajuan
+> diteruskan ke otoritas di atasnya, **bukan** disetujui otomatis karena unit kekurangan personel.
+
+> **`UAT-16` — Nominal gaji pada daftar lintas pegawai**
+>
+> **Kondisi awal:** HR Admin membuka daftar penetapan gaji satu unit berisi 20 pegawai.
+>
+> **Langkah:** buka layar daftar, lalu periksa isi jawaban jaringan yang diterima peramban.
+>
+> **Hasil yang diharapkan:** layar menampilkan pegawai, kelas gaji, dan tanggal berlaku tanpa
+> satu pun angka rupiah — dan **isi jawaban jaringan juga tidak memuat nominal**, bukan sekadar
+> menyembunyikannya di layar.
+
 ---
 
 ## 19. Definition of Done
@@ -882,7 +972,8 @@ Setiap butir dijawab "ya" atau "belum", dan setiap jawaban menyebut buktinya.
 | Bekerja di luar jadwal tidak otomatis menjadi lembur | `UAT-11`, `AT-HRD-B1-07` |
 | Pengajuan tanpa penyetuju tidak hilang diam-diam | `UAT-12`, `AT-HRD-A7-05` |
 | Setiap layar punya jalan masuk yang sah — butir menu atau layar induk | `UAT-13`, peta butir menu pada `03-frontend-architecture.md` |
-| Perubahan gaji tidak berlaku tanpa persetujuan pejabat | `UAT-14`, `AT-HRD-A1-03` |
+| Perubahan penempatan dan remunerasi tidak berlaku tanpa persetujuan pihak yang berbeda | `UAT-14`, `UAT-15`, `AT-HRD-A1-03`, `AT-HRD-A1-07` |
+| Nominal gaji tidak tampil pada daftar lintas pegawai | `UAT-16`, `AT-HRD-A1-08` |
 | Seluruh tabel master MVP sudah terisi | Rencana data master awal pada `02-backend-architecture.md` bagian 10 |
 | Hak akses pada tombol layar sama dengan hak akses pada endpoint yang dipanggilnya | `AT-HRD-SEC-04`, `NFR-005` |
 | Kolom bertanda sensitif tidak masuk catatan log | `AT-HRD-SEC-01`, `NFR-009` |
@@ -900,14 +991,14 @@ Urutan ditulis sebagai gelombang, bukan tanggal. Penjadwalan tetap wewenang manu
 
 | Gelombang | Epic yang tercakup | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | `EPIC HRD-01` fondasi route dan registry; pengisian master data awal | Blueprint dan kontrak disetujui |
+| `MVP-0` | `EPIC HRD-01` fondasi route dan registry; pengisian master data awal, termasuk definisi dan langkah alur persetujuan `T1`–`T7` sesuai `HRD-DEC-034` | Blueprint dan kontrak disetujui |
 | `MVP-1` | `EPIC HRD-08` penjadwalan kerja | `MVP-0` selesai. Tanpa jadwal terbit, kehadiran tidak punya acuan pengolahan |
 | `MVP-2` | `EPIC HRD-03` layanan mandiri pegawai; `EPIC HRD-05` administrasi kehadiran | `MVP-1` selesai |
 | `MVP-3` | `EPIC HRD-04` kotak masuk persetujuan terpadu | `MVP-2` selesai. Kotak masuk memerlukan pengajuan yang benar-benar ada untuk diputuskan |
 | `MVP-4` | `EPIC HRD-06` administrasi cuti dan saldo; `EPIC HRD-07` administrasi lembur | `MVP-3` selesai |
-| `MVP-5` | `EPIC HRD-02` administrasi kepegawaian; `EPIC HRD-09` payroll sampai serah terima | `MVP-4` selesai |
+| `MVP-5` | `EPIC HRD-02` administrasi kepegawaian, termasuk **empat** alur persetujuan penempatan dan remunerasi sesuai `HRD-DEC-031` dan `HRD-DEC-036`; `EPIC HRD-09` kesiapan payroll sisi HR | `MVP-4` selesai. Isi alur sudah disetujui; **MUST** dipecah per transaksi bisnis saat perencanaan |
 | `MVP-6` | `EPIC HRD-10` jaring pengaman pengujian | Berjalan **bersama** setiap gelombang, bukan setelahnya. Ditulis terpisah agar tidak terlupa, bukan agar ditunda |
-| `POST-MVP` | Seluruh kemampuan yang ditunda pada bagian 8 | Di luar cakupan rilis pertama |
+| `POST-MVP` | Seluruh kemampuan yang ditunda pada bagian 8; **ditambah orkestrasi putaran payroll** sesuai `HRD-DEC-035` | Di luar cakupan rilis pertama. Orkestrasi payroll menunggu batas Finance disepakati |
 
 **Tidak ada gelombang yang memuat epic berstatus `OPEN DECISION`.**
 
@@ -923,14 +1014,15 @@ diselesaikan. Mendahulukan kehadiran justru menghasilkan tumpukan pengecualian p
 | Siapa pemegang hak membuka kembali periode kehadiran? (`HRD-Q-23`) | Pemilik proses HR bersama pemilik keamanan | Mekanismenya sudah ada, tetapi pemetaan perannya belum. `EPIC HRD-05` dapat berjalan; pemetaan peran diisi belakangan | Tidak |
 | Berapa nilai bawaan menit kerja terencana, menggantikan angka tetap 480? (`HRD-Q-48`) | Pemilik proses HR | Angka tetap yang ada sekarang terus dipakai. Memindahkannya ke master tanpa jawaban hanya memindahkan angka karangan | Tidak |
 | Apa dampak izin pulang cepat terhadap saldo dan pembayaran? (`HRD-Q-47`) | Pemilik proses HR | Layar izin pulang cepat tidak dapat diselesaikan | **Ya** untuk `EPIC HRD-03` bagian izin pulang cepat |
-| Apa bentuk data yang diterima Finance? (`HRD-Q-10`) | Pemilik produk bersama Finance | Serah terima dapat dijalankan, tetapi bentuk keluarannya belum terkunci | **Ya** untuk penyelesaian `EPIC HRD-09` |
-| Apa yang terjadi bila Finance menolak satu batch? (`HRD-Q-11`) | Pemilik produk bersama Finance | Tidak ada jalur pemulihan yang dirancang | **Ya** untuk penyelesaian `EPIC HRD-09` |
+| Apa bentuk data yang diterima Finance? (`HRD-Q-10`) | Pemilik produk bersama Finance | Hanya memblokir batas serah terima itu sendiri. `HRD-DEC-035` memindahkan orkestrasi payroll ke `POST-MVP`, sehingga MVP administratif tidak tertahan | Tidak |
+| Apa yang terjadi bila Finance menolak satu batch? (`HRD-Q-11`) | Pemilik produk bersama Finance | Sama seperti di atas. Di luar jalur kritis MVP sejak `HRD-DEC-035` | Tidak |
 | Apa isi tabel 67 entity yang belum punya API? (`HRD-Q-05`) | Pemilik basis data | Keputusan skema yang merusak data tidak boleh diambil. Ikut menahan pemasangan unique constraint pada penempatan shift | **Ya** untuk seluruh `POST-MVP` domain tanpa API |
 | Siapa wakil Komite Medik? (`HRD-Q-08`) | Manajemen | Kredensial dan kewenangan klinis tetap `BLOCKED` | **Ya** untuk `S-C1` |
 | Apakah `HRD-DEC-010` disahkan K3RS? | K3RS | Kesehatan kerja staf tetap `BLOCKED` | **Ya** untuk `S-C6` |
 | Apakah pemisahan peran pengusul dan penyetuju diperlukan pada tindakan disiplin? (`HRD-Q-51`) | Pemilik proses HR | Seseorang dapat mengusulkan sekaligus menyetujui sanksi | **Ya** untuk `S-C5` |
 | Tingkatan izin apa yang berlaku bagi data paling terbatas? (`HRD-Q-52`) | Pemilik keamanan bersama pemilik proses | Tidak ada yang menetapkan siapa boleh membaca kasus kedisiplinan | **Ya** untuk `S-C5` |
 | Siapa pemilik kebijakan bisnis HR? (`HRD-Q-01`) | Manajemen | Blueprint tidak dapat disetujui secara keseluruhan | **Ya** untuk approval blueprint |
+| ~~`HRD-Q-54`~~ — satu definisi bersama atau empat terpisah | ~~Pemilik produk~~ | **Ditutup `HRD-DEC-036`:** empat definisi terpisah dengan pola awal yang sama | Tidak |
 
 **Dokumen ini memuat pertanyaan memblokir yang belum terjawab.** Sesuai kontrak, ia tetap boleh
 berstatus `draft`, tetapi **MUST NOT** diteruskan ke `/plan-module-delivery` sebelum pertanyaan
