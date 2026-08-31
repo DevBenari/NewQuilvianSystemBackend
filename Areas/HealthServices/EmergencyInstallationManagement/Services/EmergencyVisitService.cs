@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -28,15 +29,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _documentNumberService = documentNumberService;
         }
 
-        public async Task<EmgSetting?> GetActiveSettingAsync(
+        /// <summary>
+        /// Pesan penolakan ketika pengaturan IGD tidak tersedia dan tidak dapat disimpulkan.
+        /// Dipakai bersama jalur controller supaya petugas membaca kalimat yang sama, beserta
+        /// langkah perbaikannya, dari endpoint mana pun penolakan itu datang.
+        /// </summary>
+        public const string PesanPengaturanTidakTersedia =
+            "Pengaturan IGD aktif belum tersedia dan unit IGD tidak dapat disimpulkan sendiri. " +
+            "Pastikan ada tepat satu unit pelayanan aktif bertipe gawat darurat pada master " +
+            "Unit Pelayanan, atau isi master Pengaturan IGD lebih dulu.";
+
+        public Task<EmgSetting?> GetActiveSettingAsync(
+            CancellationToken cancellationToken = default)
+            => ResolveActiveSettingAsync(_dbContext, cancellationToken);
+
+        /// <summary>
+        /// Menentukan pengaturan IGD yang berlaku. Mengembalikan <c>null</c> hanya bila tidak
+        /// ada baris tersimpan <b>dan</b> unit IGD tidak dapat disimpulkan.
+        /// </summary>
+        /// <remarks>
+        /// Baris <c>EmgSetting</c> tidak punya layar admin sendiri, sehingga rumah sakit yang
+        /// tabelnya masih kosong tidak punya jalan mengisinya lewat aplikasi. Selama itu,
+        /// setiap pendaftaran gawat darurat ditolak - bukan karena datanya salah, melainkan
+        /// karena satu baris konfigurasi belum ada. Menahan pasien IGD di pintu masuk karena
+        /// alasan itu adalah kegagalan yang paling mahal di modul ini.
+        ///
+        /// <para>
+        /// Karena itu, ketika tabelnya kosong dan di master Unit Pelayanan hanya ada
+        /// <b>tepat satu</b> unit aktif bertipe gawat darurat, unit itulah yang dipakai.
+        /// Tidak ada yang perlu ditebak ketika pilihannya tunggal, dan aturan ini sama persis
+        /// dengan yang sudah dipakai frontend saat memilih unit pendaftaran IGD - sehingga
+        /// kedua sisi tidak dapat menyimpulkan unit yang berbeda.
+        /// </para>
+        ///
+        /// <para>
+        /// Dua batas yang membuatnya tetap aman. Pertama, hasil simpulan ini <b>tidak pernah
+        /// disimpan</b>: ia dibentuk ulang tiap permintaan dan langsung kalah begitu ada satu
+        /// baris pengaturan sungguhan, sehingga keputusan rumah sakit selalu menang atas
+        /// simpulan aplikasi. <c>Id</c>-nya sengaja <c>Guid.Empty</c> sebagai penanda bahwa ia
+        /// bukan baris tabel; nol kolom di basis data menunjuk ke id pengaturan, jadi penanda
+        /// itu tidak dapat bocor menjadi foreign key. Kedua, bila unit gawat darurat aktif
+        /// berjumlah nol atau lebih dari satu, penolakan tetap terjadi - menebak unit di IGD
+        /// jauh lebih berbahaya daripada berhenti, karena pasien akan terdaftar di unit yang
+        /// salah dan tidak muncul pada antrean triase mana pun.
+        /// </para>
+        ///
+        /// <para>
+        /// Sisa nilai pengaturan memakai default yang sudah tertulis pada <c>EmgSetting</c>
+        /// sendiri, termasuk penjagaan seperti
+        /// <c>RequireRegistrationCompletionBeforeDisposition</c>. Sebelumnya penjagaan itu
+        /// ikut mati diam-diam saat tabelnya kosong, karena pemeriksaannya berbentuk
+        /// <c>setting?.X == true</c>.
+        /// </para>
+        /// </remarks>
+        public static async Task<EmgSetting?> ResolveActiveSettingAsync(
+            ApplicationDbContext dbContext,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<EmgSetting>()
+            var tersimpan = await dbContext.Set<EmgSetting>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
                 .OrderByDescending(x => x.IsDefault)
                 .ThenByDescending(x => x.CreateDateTime)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            if (tersimpan != null)
+                return tersimpan;
+
+            // Dua baris cukup untuk membedakan "tepat satu" dari "lebih dari satu"; jumlah
+            // persisnya tidak dipakai, sehingga tabel unit tidak perlu dihitung seluruhnya.
+            var unitGawatDarurat = await dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.IsActive &&
+                            x.ServiceUnitType == ServiceUnitType.Emergency)
+                .Select(x => x.Id)
+                .Take(2)
+                .ToListAsync(cancellationToken);
+
+            if (unitGawatDarurat.Count != 1)
+                return null;
+
+            return new EmgSetting
+            {
+                Id = Guid.Empty,
+                Code = "IMPLICIT",
+                Name = "Pengaturan IGD tersirat",
+                DefaultEmergencyServiceUnitId = unitGawatDarurat[0],
+                Notes = "Disimpulkan dari satu-satunya unit pelayanan aktif bertipe gawat " +
+                        "darurat karena master Pengaturan IGD masih kosong. Tidak tersimpan " +
+                        "di basis data dan digantikan begitu pengaturan sungguhan dibuat."
+            };
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -54,7 +137,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var setting = await GetActiveSettingAsync(cancellationToken);
             if (setting == null)
-                return "Setting IGD aktif belum tersedia.";
+                return PesanPengaturanTidakTersedia;
 
             if (request.ServiceUnitId != setting.DefaultEmergencyServiceUnitId)
                 return "Asal kunjungan harus IGD. ServiceUnitId harus sama dengan DefaultEmergencyServiceUnitId pada setting IGD aktif.";
