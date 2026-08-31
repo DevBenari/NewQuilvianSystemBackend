@@ -67,6 +67,80 @@ public sealed class DiscountPolicyService
         };
     }
 
+    public async Task<DiscountPolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<DiscountPolicyOptionResponse>> GetOptionsAsync(
+        string? discountType,
+        string? targetComponent,
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstDiscountPolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive)
+            query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(discountType))
+        {
+            var normalized = discountType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.DiscountType == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(targetComponent))
+        {
+            var normalized = targetComponent.Trim().ToUpperInvariant();
+            query = query.Where(x => x.TargetComponent == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.DiscountType)
+            .ThenBy(x => x.Name)
+            .Select(x => new DiscountPolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                DiscountType = x.DiscountType,
+                TargetComponent = x.TargetComponent,
+                ValueType = x.ValueType,
+                Value = x.Value,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DiscountPolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstDiscountPolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new DiscountPolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken),
+            PromoTotalPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.PromoTotal, cancellationToken),
+            PromoItemPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.PromoItem, cancellationToken),
+            DoctorPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.Doctor, cancellationToken)
+        };
+    }
+
+    public DiscountPolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new DiscountPolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        DiscountTypes = DiscountPolicyValues.DiscountTypes.OrderBy(x => x).ToList(),
+        TargetComponents = DiscountPolicyValues.TargetComponents.OrderBy(x => x).ToList(),
+        ValueTypes = DiscountPolicyValues.ValueTypes.OrderBy(x => x).ToList()
+    };
+
     public async Task<DiscountPolicyResponse> CreateAsync(
         CreateDiscountPolicyRequest request,
         Guid actorUserId,

@@ -20,6 +20,22 @@ public sealed class RoomChargePoliciesController : ControllerBase
     private readonly RoomChargePolicyService _service;
     public RoomChargePoliciesController(RoomChargePolicyService service) => _service = service;
 
+    [HttpGet("filters/metadata")]
+    [AccessAction("Read", "Read Room Charge Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("RoomChargePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<RoomChargePolicyFilterMetadataResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetFilterMetadata() =>
+        Ok(ApiResponse<RoomChargePolicyFilterMetadataResponse>.Ok(
+            _service.GetFilterMetadata(), "Metadata filter room charge policy berhasil diambil."));
+
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Room Charge Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("RoomChargePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<RoomChargePolicySummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<RoomChargePolicySummaryResponse>.Ok(
+            await _service.GetSummaryAsync(cancellationToken), "Ringkasan room charge policy berhasil diambil."));
+
     [HttpGet]
     [AccessAction("Read", "Read Room Charge Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("RoomChargePolicy", "Read")]
@@ -35,6 +51,29 @@ public sealed class RoomChargePoliciesController : ControllerBase
     [AccessPermission("RoomChargePolicy", "Create")]
     public Task<IActionResult> Create([FromBody] CreateRoomChargePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.CreateAsync(request, CurrentUserId(), cancellationToken));
+
+    [HttpGet("options")]
+    [AccessAction("Read", "Read Room Charge Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("RoomChargePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<RoomChargePolicyOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOptions(
+        [FromQuery] bool onlyActive = true,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(ApiResponse<List<RoomChargePolicyOptionResponse>>.Ok(
+            await _service.GetOptionsAsync(onlyActive, search, cancellationToken),
+            "Data pilihan room charge policy berhasil diambil."));
+
+    [HttpGet("{id:guid}")]
+    [AccessAction("Read", "Read Room Charge Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("RoomChargePolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<RoomChargePolicyResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<RoomChargePolicyResponse>.Ok(await _service.GetByIdAsync(id, cancellationToken), "Detail room charge policy berhasil diambil.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message)); }
+    }
 
     [HttpPut("{id:guid}")]
     [AccessAction("Update", "Update Room Charge Policy", AccessType = AccessTypes.Update, SortOrder = 3)]

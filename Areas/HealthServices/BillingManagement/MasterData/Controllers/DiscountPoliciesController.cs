@@ -27,6 +27,22 @@ public sealed class DiscountPoliciesController : ControllerBase
 
     public DiscountPoliciesController(DiscountPolicyService service) => _service = service;
 
+    [HttpGet("filters/metadata")]
+    [AccessAction("Read", "Read Discount Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("DiscountPolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountPolicyFilterMetadataResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetFilterMetadata() =>
+        Ok(ApiResponse<DiscountPolicyFilterMetadataResponse>.Ok(
+            _service.GetFilterMetadata(), "Metadata filter policy diskon berhasil diambil."));
+
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Discount Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("DiscountPolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountPolicySummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<DiscountPolicySummaryResponse>.Ok(
+            await _service.GetSummaryAsync(cancellationToken), "Ringkasan policy diskon berhasil diambil."));
+
     [HttpGet]
     [AccessAction("Read", "Read Discount Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("DiscountPolicy", "Read")]
@@ -49,6 +65,38 @@ public sealed class DiscountPoliciesController : ControllerBase
     [AccessPermission("DiscountPolicy", "Create")]
     public Task<IActionResult> Create([FromBody] CreateDiscountPolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteCommandAsync(() => _service.CreateAsync(request, CurrentUserId(), cancellationToken));
+
+    [HttpGet("options")]
+    [AccessAction("Read", "Read Discount Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("DiscountPolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<DiscountPolicyOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOptions(
+        [FromQuery] string? discountType,
+        [FromQuery] string? targetComponent,
+        [FromQuery] bool onlyActive = true,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(ApiResponse<List<DiscountPolicyOptionResponse>>.Ok(
+            await _service.GetOptionsAsync(discountType, targetComponent, onlyActive, search, cancellationToken),
+            "Data pilihan policy diskon berhasil diambil."));
+
+    [HttpGet("{id:guid}")]
+    [AccessAction("Read", "Read Discount Policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("DiscountPolicy", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountPolicyResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<DiscountPolicyResponse>.Ok(result, "Detail policy diskon berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
 
     [HttpPut("{id:guid}")]
     [AccessAction("Update", "Update Discount Policy", AccessType = AccessTypes.Update, SortOrder = 3)]
