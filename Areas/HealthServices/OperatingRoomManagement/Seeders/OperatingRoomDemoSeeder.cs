@@ -436,20 +436,44 @@ public static class OperatingRoomDemoSeeder
 
         // ------------------------------------------------------ menautkan akun ke dokter
         // Dilakukan setelah SaveChanges supaya baris dokter dipastikan sudah tersimpan.
-        if (user.DoctorId.HasValue)
-        {
-            result.UserLinkNote =
-                "Akun '" + user.UserName + "' sudah tertaut dokter " + user.DoctorId +
-                "; tautan dibiarkan apa adanya.";
-        }
-        else
+        // Dua tautan, bukan satu, dan keduanya dipakai untuk hal yang berbeda:
+        //
+        //   DoctorId          -> klaim doctor_id, dipakai saat MEMBUAT permintaan operasi
+        //   WorkforceProfileId -> dipakai setiap tindakan klinis untuk memeriksa apakah
+        //                         pengguna benar-benar anggota tim operasi ini
+        //
+        // Menautkan DoctorId saja membuat pembuatan kasus berhasil tetapi seluruh sign-off,
+        // pelaksanaan, material, dan recovery ditolak dengan "Akun pengguna tidak terhubung
+        // dengan data tenaga." Penolakan itu berstatus 403 sehingga mudah disangka masalah
+        // izin, padahal bukan.
+        var changed = new List<string>();
+
+        if (!user.DoctorId.HasValue)
         {
             user.DoctorId = doctorId;
+            changed.Add("DoctorId");
+        }
+
+        if (!user.WorkforceProfileId.HasValue || user.WorkforceProfileId.Value == Guid.Empty)
+        {
+            user.WorkforceProfileId = profileId;
+            changed.Add("WorkforceProfileId");
+        }
+
+        if (changed.Count > 0)
+        {
             await db.SaveChangesAsync(ct);
             result.LinkedUserName = user.UserName;
             result.UserLinkNote =
-                "Akun '" + user.UserName + "' ditautkan ke dokter demo. WAJIB logout lalu " +
-                "login lagi supaya klaim doctor_id ikut berubah pada token.";
+                "Akun '" + user.UserName + "' ditautkan (" + string.Join(" dan ", changed) +
+                ") ke tenaga demo. WAJIB logout lalu login lagi supaya klaimnya ikut berubah " +
+                "pada token.";
+        }
+        else
+        {
+            result.UserLinkNote =
+                "Akun '" + user.UserName + "' sudah tertaut dokter dan tenaga; " +
+                "tautan dibiarkan apa adanya.";
         }
 
         result.DoctorId = doctorId;
