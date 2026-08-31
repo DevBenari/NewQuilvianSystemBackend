@@ -8,7 +8,7 @@
 | `module_prefix` | `RJ-BIL` |
 | `revision` | `21` |
 | `status` | `PARTIAL` |
-| `current_phase` | `RJ-BIL-PH-009` — Delivery Execution |
+| `current_phase` | `RJ-BIL-PH-008` — Delivery Planning |
 | `created_at` | `2026-08-20T15:06:30+07:00` |
 | `updated_at` | `2026-08-28T14:02:11+07:00` |
 | `last_verified_at` | `2026-08-28T14:02:11+07:00` |
@@ -23,20 +23,14 @@
 | `supersedes` | `null` |
 | `domain_architecture_revision` | `1` |
 | `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_PARTIAL`; core internal/manual siap independen |
-| `owners` | Product/Domain: **Sukma Giri**. Juga Product/Domain Owner `LaboratoryManagement` sejak `RJ-BIL-DEC-007`. Billing/Revenue Cycle, API authority, Security/Privacy, Frontend authority: `OPEN` |
+| `owners` | Product/Domain owner; Billing/Revenue Cycle; API authority; Security/Privacy; Frontend authority |
 | `approved_by` | `User-provided approval authority` |
 | `approved_at` | `2026-08-21` |
 
 ## Artifact hashes
 
-Hash artefak target dihitung ulang pada `2026-08-26`. Semua artefak desain masih berstatus
-`draft` dan belum menjadi izin implementasi.
-
-**Catatan verifikasi `2026-08-26`.** Perhitungan sebelumnya dilakukan `2026-08-20`, sedangkan
-ketiga berkas `roadmap/` baru dibuat commit `fe6d15c` pada `2026-08-21`. Akibatnya ketiga hash
-roadmap tidak pernah cocok sejak awal — bukan drift desain, melainkan hash yang dicatat sebelum
-berkasnya ada. Sembilan artefak desain dan kontrak diverifikasi ulang pada tanggal ini dan
-**seluruhnya cocok**, sehingga tidak ada satu pun artefak desain yang berubah diam-diam.
+Hash artefak target dihitung pada `2026-08-20` untuk mendeteksi drift. Semua artefak desain masih
+berstatus `draft` dan belum menjadi izin implementasi.
 
 | Artifact | SHA-256 |
 |---|---|

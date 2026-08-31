@@ -107,11 +107,11 @@ internal static class EmergencyControllerTestWorld
                 new EmergencyDispositionService(context))
             .DenganPelaku(actorUserId);
 
-    internal static async Task<TrxEmergencyVisit> SimpanKunjunganAsync(
+    internal static async Task<EmgVisit> SimpanKunjunganAsync(
         ApplicationDbContext context,
         EmergencyVisitStatus status)
     {
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             EmergencyVisitNumber = $"IGD{Guid.NewGuid():N}"[..12],
@@ -119,7 +119,7 @@ internal static class EmergencyControllerTestWorld
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyVisit>().Add(visit);
+        context.Set<EmgVisit>().Add(visit);
         await context.SaveChangesAsync();
         return visit;
     }

@@ -54,4 +54,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public string RegisterName { get; set; } = string.Empty;
         public bool IsDelete { get; set; }
     }
+
+    public sealed class RegisterSummaryResponse
+    {
+        public int TotalRegister { get; set; }
+        public int ActiveRegister { get; set; }
+        public int InactiveRegister { get; set; }
+    }
+
+    public sealed class RegisterSortOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public sealed class RegisterDefaultFilterResponse
+    {
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
+    }
+
+    public sealed class RegisterFilterMetadataResponse
+    {
+        public RegisterDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<RegisterSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+    }
 }

@@ -17,9 +17,7 @@ public sealed class MstAdministrationFeePolicy : IdentityModel
 
     [Required, MaxLength(30)]
     public string ServiceType { get; set; } = string.Empty;
-
     public decimal Amount { get; set; }
-
     public bool OncePerPatientLocalDay { get; set; } = true;
 
     public int ReplacementPriority { get; set; }

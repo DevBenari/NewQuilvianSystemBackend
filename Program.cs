@@ -7,17 +7,20 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
@@ -26,6 +29,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
@@ -284,9 +288,6 @@ try
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();
-    builder.Services.AddScoped<BillingReconciliationService>();
-    builder.Services.AddScoped<BillingFinancialActionService>();
-    builder.Services.AddScoped<BillingFolioClosureService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
@@ -300,6 +301,16 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+
+    // Modul Rekam Medis — keutuhan dokumen klinis
+    builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
+    builder.Services.AddScoped<ClinicalNoteAddendumService>();
+    builder.Services.AddScoped<ClinicalNoteAuthorDelegationService>();
+    builder.Services.AddScoped<MedicalRecordBackfillService>();
+    builder.Services.AddScoped<MedicalRecordAccessAuditService>();
+    builder.Services.AddScoped<MedicalRecordAccessReviewService>();
+    builder.Services.AddScoped<MedicalRecordTimelineService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -309,7 +320,7 @@ try
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
     // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
     builder.Services.Configure<OperatingRoomSchedulingOptions>(
-        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Configuration.GetSection("OperatingRoom:Scheduling"));
     builder.Services.AddScoped<OperatingRoomSchedulingService>();
     builder.Services.AddScoped<OperatingRoomPreparationService>();
     builder.Services.AddScoped<OperatingRoomExecutionService>();
@@ -465,6 +476,65 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
     builder.Services.AddScoped<OvertimeSelfServiceService>();
 
+    //billing - master data
+    builder.Services.AddScoped<AdministrationFeePolicyService>();
+    builder.Services.AddScoped<DiscountPolicyService>();
+    builder.Services.AddScoped<RegisterService>();
+    builder.Services.AddScoped<RoomChargePolicyService>();
+    builder.Services.AddScoped<TaxRuleService>();
+    // ============================================================
+    // BILLING - ADAPTERS
+    // ============================================================
+
+    builder.Services.AddScoped<
+        IBillingChargeSourceAdapter,
+        ContractBillingChargeSourceAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingCoverageAdapter,
+        RegistrationBillingCoverageAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingPaymentProviderAdapter,
+        DeferredBillingPaymentProviderAdapter>();
+
+
+    // ============================================================
+    // BILLING - CORE SERVICES
+    // ============================================================
+
+    builder.Services.AddScoped<BillingModuleService>();
+
+    builder.Services.AddScoped<BillingNumberSeriesService>();
+
+    builder.Services.AddScoped<BillingAllocationService>();
+
+    builder.Services.AddScoped<BillingCalculationService>();
+
+    builder.Services.AddScoped<BillingInvoiceService>();
+
+    builder.Services.AddScoped<BillingDiscountService>();
+
+    builder.Services.AddScoped<BillingDepositService>();
+
+    builder.Services.AddScoped<BillingSettlementService>();
+
+    builder.Services.AddScoped<BillingRefundService>();
+
+    builder.Services.AddScoped<BillingFinalizationService>();
+
+    builder.Services.AddScoped<BillingArApHandoffService>();
+
+    builder.Services.AddScoped<BillingFinancialExceptionService>();
+
+
+    // ============================================================
+    // CASHIER
+    // ============================================================
+
+    builder.Services.AddScoped<CashierShiftService>();
+
+
     builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy("KioskRead", policy =>
@@ -563,6 +633,34 @@ try
 
     builder.Services.AddSwaggerGen(options =>
     {
+        // Keterangan pada endpoint, parameter, dan DTO ikut ditampilkan di halaman Swagger.
+        //
+        // Diperlukan karena beberapa perubahan perilaku tidak terlihat dari bentuk permintaan
+        // maupun responsnya — misalnya kolom yang tetap diterima tetapi nilainya diabaikan.
+        // Tanpa ini, satu-satunya cara mengetahuinya adalah membaca source.
+        //
+        // includeControllerXmlComments SENGAJA DIBIARKAN MATI. Bila dinyalakan, Swashbuckle
+        // menambahkan satu tag tingkat dokumen untuk tiap controller, dinamai menurut nama
+        // KELAS controller. Project ini mengelompokkan endpoint memakai atribut [Tags(...)]
+        // yang isinya kalimat panjang, sehingga kedua nama itu tidak pernah bertemu: tag dari
+        // nama kelas tidak dipakai satu endpoint pun, lalu tampil di Swagger sebagai judul grup
+        // besar yang kosong isinya.
+        //
+        // Mematikannya tidak menghilangkan keterangan apa pun yang dibutuhkan. Keterangan pada
+        // endpoint, parameter, dan schema tetap terbaca — di situlah keterangan perubahan
+        // perilaku diletakkan.
+        //
+        // Diperiksa keberadaannya lebih dulu supaya aplikasi tetap berjalan bila berkas
+        // dokumentasinya tidak ikut terbawa pada suatu keluaran build.
+        var xmlDokumentasi = Path.Combine(
+            AppContext.BaseDirectory,
+            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+
+        if (File.Exists(xmlDokumentasi))
+        {
+            options.IncludeXmlComments(xmlDokumentasi, includeControllerXmlComments: false);
+        }
+
         options.SwaggerDoc("auth", new OpenApiInfo
         {
             Title = $"{appName} - Authentication",

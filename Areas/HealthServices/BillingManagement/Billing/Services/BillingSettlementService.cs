@@ -22,6 +22,7 @@ public sealed class BillingSettlementService
     private readonly IBillingPaymentProviderAdapter _providerAdapter;
     private readonly BillingAllocationService _allocationService;
     private readonly CashierShiftService _cashierShiftService;
+    private readonly BillingNumberSeriesService _numberSeries;
     private readonly LoggerService _loggerService;
 
     public BillingSettlementService(
@@ -29,12 +30,14 @@ public sealed class BillingSettlementService
         IBillingPaymentProviderAdapter providerAdapter,
         BillingAllocationService allocationService,
         CashierShiftService cashierShiftService,
+        BillingNumberSeriesService numberSeries,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _providerAdapter = providerAdapter;
         _allocationService = allocationService;
         _cashierShiftService = cashierShiftService;
+        _numberSeries = numberSeries;
         _loggerService = loggerService;
     }
 
@@ -108,6 +111,7 @@ public sealed class BillingSettlementService
                 InvoiceId = request.InvoiceId,
                 DepositAccountId = request.DepositAccountId,
                 Purpose = request.Purpose,
+                Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
                 RequestedAmount = request.RequestedAmount,
                 SuccessfulAmount = 0,
                 AllocatedAmount = 0,
@@ -223,12 +227,22 @@ public sealed class BillingSettlementService
                         "Total metode pembayaran melebihi saldo yang harus dibayar.");
 
                 var now = DateTimeOffset.UtcNow;
+                // BKC-DEC-057: satu nomor Kwitansi dialokasikan setiap kali tender BARU dibuat
+                // (bukan pada replay idempotent di atas) - satu nomor per pembayaran, bukan per
+                // invoice. Alokasi terjadi di dalam transaction Serializable yang sama dengan
+                // penyimpanan tender, jadi keduanya sukses/gagal bersama.
+                var kwitansiNumber = await _numberSeries.AllocateKwitansiNumberAsync(
+                    actorUserId, now, cancellationToken);
                 tender = new BilTender
                 {
                     SettlementId = settlement.Id,
                     Settlement = settlement,
                     PaymentMethodId = request.PaymentMethodId,
                     Amount = request.Amount,
+                    CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
+                        ? null
+                        : request.CashierReferenceNote.Trim(),
+                    KwitansiNumber = kwitansiNumber,
                     Status = BillingTenderStatuses.Created,
                     IdempotencyKey = idempotencyKey,
                     PayloadHash = payloadHash,
@@ -907,6 +921,7 @@ public sealed class BillingSettlementService
             request.DepositAccountId?.ToString("N") ?? string.Empty,
             request.Purpose,
             request.RequestedAmount.ToString(CultureInfo.InvariantCulture),
+            request.Note ?? string.Empty,
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Hash(canonical);
@@ -920,6 +935,7 @@ public sealed class BillingSettlementService
             settlementId.ToString("N"),
             request.PaymentMethodId.ToString("N"),
             request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.CashierReferenceNote ?? string.Empty,
             request.ExpectedRowVersion.ToString("N"),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -956,6 +972,7 @@ public sealed class BillingSettlementService
             InvoiceId = settlement.InvoiceId,
             DepositAccountId = settlement.DepositAccountId,
             Purpose = settlement.Purpose,
+            Note = settlement.Note,
             Status = settlement.Status,
             RequestedAmount = settlement.RequestedAmount,
             SuccessfulAmount = settlement.SuccessfulAmount,
@@ -984,6 +1001,8 @@ public sealed class BillingSettlementService
         PaymentMethodId = tender.PaymentMethodId,
         Amount = tender.Amount,
         Status = tender.Status,
+        CashierReferenceNote = tender.CashierReferenceNote,
+        KwitansiNumber = tender.KwitansiNumber,
         ProviderReferenceMasked = MaskProviderReference(tender.ProviderReference),
         ProviderStatusCode = tender.ProviderStatusCode,
         AttemptedAt = tender.AttemptedAt,

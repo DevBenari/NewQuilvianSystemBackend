@@ -103,7 +103,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             // tinjauan finansial. Yang penting, angkanya bukan berasal dari modul klinis.
             Assert.Equal(BillingChargeCalculationStatus.PendingFinancialReview, charges[0].CalculationStatus);
 
-            var facts = await verify.BilClinicalMilestoneFacts
+            var facts = await verify.TrxClinicalMilestoneFacts
                 .Where(x => x.SourceAggregateId == prescriptionId)
                 .ToListAsync();
 
@@ -143,12 +143,12 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             Assert.Equal(1, await verify.BilChargeLines
                 .CountAsync(x => x.SourceAggregateId == prescriptionId));
 
-            Assert.Equal(1, await verify.BilClinicalMilestoneFacts
+            Assert.Equal(1, await verify.TrxClinicalMilestoneFacts
                 .CountAsync(x => x.SourceAggregateId == prescriptionId));
 
             // Kunci idempotency harus stabil, bukan dibangkitkan ulang setiap percobaan.
             // Bila stabil, mengirimkannya lagi langsung ke Billing menghasilkan replay canonical.
-            var fact = await verify.BilClinicalMilestoneFacts
+            var fact = await verify.TrxClinicalMilestoneFacts
                 .AsNoTracking()
                 .FirstAsync(x => x.SourceAggregateId == prescriptionId);
 
@@ -227,7 +227,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             Assert.Equal(2, await verify.BilProcessingEffects
                 .CountAsync(x => x.MilestoneFactId == pertama.MilestoneFactId));
 
-            Assert.Equal(2, await verify.BilClinicalMilestoneFacts
+            Assert.Equal(2, await verify.TrxClinicalMilestoneFacts
                 .CountAsync(x => x.SourceAggregateId == prescriptionId));
         }
 
@@ -258,7 +258,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             Assert.Equal(0, await verify.BilProcessingEffects.CountAsync(x => x.MilestoneFactId == hasil.MilestoneFactId));
 
             // Histori klinis tetap tercatat walaupun tidak ada akibat finansial.
-            var fact = await verify.BilClinicalMilestoneFacts
+            var fact = await verify.TrxClinicalMilestoneFacts
                 .SingleAsync(x => x.SourceAggregateId == prescriptionId);
 
             Assert.Equal(ClinicalMilestoneKind.ClinicalCancellation, fact.MilestoneKind);
@@ -301,7 +301,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             Assert.Equal(1, charge.MilestoneFactVersion);
 
             // Fakta pembatalan tercatat sebagai revisi baru atas identitas yang sama.
-            var faktaPembatalan = await verify.BilClinicalMilestoneFacts
+            var faktaPembatalan = await verify.TrxClinicalMilestoneFacts
                 .SingleAsync(x => x.SourceAggregateId == prescriptionId && x.MilestoneFactVersion == 2);
 
             Assert.Equal(ClinicalMilestoneKind.ClinicalCancellation, faktaPembatalan.MilestoneKind);
@@ -332,7 +332,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             // Meniru keadaan nyata: pengiriman terjadi tetapi hasilnya tidak terkonfirmasi.
             await using (var arrange = _fixture.CreateContext())
             {
-                var fact = await arrange.BilClinicalMilestoneFacts
+                var fact = await arrange.TrxClinicalMilestoneFacts
                     .SingleAsync(x => x.SourceAggregateId == prescriptionId);
 
                 fact.DispatchStatus = ClinicalFactDispatchStatus.OutcomeUnknown;
@@ -352,7 +352,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             await using var verify = _fixture.CreateContext();
 
             // Tidak ada revisi baru dan tidak ada koreksi finansial yang diterbitkan.
-            Assert.Equal(1, await verify.BilClinicalMilestoneFacts
+            Assert.Equal(1, await verify.TrxClinicalMilestoneFacts
                 .CountAsync(x => x.SourceAggregateId == prescriptionId));
 
             Assert.Equal(1, await verify.BilChargeLines
@@ -387,7 +387,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
             Assert.Equal("CLIN_FACT_SOURCE_INVALID", hasil.Code);
 
             await using var verify = _fixture.CreateContext();
-            Assert.Equal(0, await verify.BilClinicalMilestoneFacts.CountAsync(x => x.SourceAggregateId == aggregateId));
+            Assert.Equal(0, await verify.TrxClinicalMilestoneFacts.CountAsync(x => x.SourceAggregateId == aggregateId));
             Assert.Equal(0, await verify.BilChargeLines.CountAsync(x => x.SourceAggregateId == aggregateId));
         }
 

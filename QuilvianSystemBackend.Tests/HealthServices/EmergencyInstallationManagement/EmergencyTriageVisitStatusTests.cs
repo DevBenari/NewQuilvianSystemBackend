@@ -47,18 +47,18 @@ public class EmergencyTriageVisitStatusTests
     private static EmergencyTriageService BuatTriageService(ApplicationDbContext context)
         => new(context);
 
-    private static async Task<TrxEmergencyVisit> SimpanKunjunganAsync(
+    private static async Task<EmgVisit> SimpanKunjunganAsync(
         ApplicationDbContext context,
         EmergencyVisitStatus status)
     {
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = status,
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyVisit>().Add(visit);
+        context.Set<EmgVisit>().Add(visit);
         await context.SaveChangesAsync();
         return visit;
     }
@@ -157,7 +157,7 @@ public class EmergencyTriageVisitStatusTests
     {
         using var context = BuatContext();
         var service = BuatVisitService(context);
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = EmergencyVisitStatus.WaitingForTriage,
@@ -192,7 +192,7 @@ public class EmergencyTriageVisitStatusTests
     {
         using var context = BuatContext();
         var service = BuatVisitService(context);
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = status,
@@ -239,7 +239,7 @@ public class EmergencyTriageVisitStatusTests
     {
         using var context = BuatContext();
         var service = BuatVisitService(context);
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = EmergencyVisitStatus.Arrived,
@@ -275,7 +275,7 @@ public class EmergencyTriageVisitStatusTests
     {
         using var context = BuatContext();
         var service = BuatVisitService(context);
-        var visit = new TrxEmergencyVisit { Id = Guid.NewGuid(), VisitStatus = status };
+        var visit = new EmgVisit { Id = Guid.NewGuid(), VisitStatus = status };
 
         Assert.False(SudahMelewatiTriase(status));
 
@@ -333,12 +333,12 @@ public class EmergencyTriageVisitStatusTests
     // Kembaran cacat BE-IGD-019: lubang `Completed` yang sama ada di DUA tempat.
     // ---------------------------------------------------------------------------------
 
-    private static async Task<TrxEmergencyTriage> SimpanTriaseSelesaiAsync(
+    private static async Task<EmgTriage> SimpanTriaseSelesaiAsync(
         ApplicationDbContext context,
         Guid visitId,
         Guid levelId)
     {
-        var triage = new TrxEmergencyTriage
+        var triage = new EmgTriage
         {
             Id = Guid.NewGuid(),
             EmergencyVisitId = visitId,
@@ -348,7 +348,7 @@ public class EmergencyTriageVisitStatusTests
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyTriage>().Add(triage);
+        context.Set<EmgTriage>().Add(triage);
         await context.SaveChangesAsync();
         return triage;
     }
@@ -440,7 +440,7 @@ public class EmergencyTriageVisitStatusTests
     {
         using var context = BuatContext();
         var service = BuatVisitService(context);
-        var visit = new TrxEmergencyVisit
+        var visit = new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = status,

@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public TrxEmergencyTriage? EmergencyTriage { get; set; }
+        public EmgTriage? EmergencyTriage { get; set; }
 
         public EmgTriageIndicator? TriageIndicator { get; set; }
     }

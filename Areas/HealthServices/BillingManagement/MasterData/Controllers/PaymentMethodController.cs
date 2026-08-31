@@ -282,6 +282,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                     IsAvailableForRegistration = x.IsAvailableForRegistration,
                     IsAvailableForBilling = x.IsAvailableForBilling,
                     IsAvailableForRefund = x.IsAvailableForRefund,
+                    BankName = x.BankName,
+                    BankAccountNumber = x.BankAccountNumber,
+                    BankAccountName = x.BankAccountName,
                     AdminFeeAmount = x.AdminFeeAmount,
                     AdminFeePercent = x.AdminFeePercent
                 })

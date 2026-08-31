@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -45,11 +46,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -573,13 +571,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeLine> BilChargeLines { get; set; }
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
-        public DbSet<BilClinicalMilestoneFact> BilClinicalMilestoneFacts { get; set; }
-        public DbSet<BilReconciliationCase> BilReconciliationCases { get; set; }
-        public DbSet<MstBillingReconciliationPolicy> MstBillingReconciliationPolicies { get; set; }
-        public DbSet<BilFinancialActionRequest> BilFinancialActionRequests { get; set; }
-        public DbSet<BilFinancialApproval> BilFinancialApprovals { get; set; }
-        public DbSet<BilFolioClosureHistory> BilFolioClosureHistories { get; set; }
-        public DbSet<MstBillingApprovalPolicy> MstBillingApprovalPolicies { get; set; }
+        public DbSet<TrxClinicalMilestoneFact> TrxClinicalMilestoneFacts { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
@@ -656,9 +648,9 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
-        public DbSet<LabSpecimen> LabSpecimens { get; set; }
+        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
 
-        public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
+        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
@@ -696,14 +688,14 @@ namespace QuilvianSystemBackend.Repositories
         #endregion
 
         #region transaction
-        public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
-        public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
+        public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
-        public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
-        public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
-        public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
-        public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
-        public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
+        public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
+        public DbSet<EmgObservation> EmgObservations { get; set; }
+        public DbSet<EmgObservationDetail> EmgObservationDetails { get; set; }
+        public DbSet<EmgProcedureDetail> EmgProcedureDetails { get; set; }
+        public DbSet<EmgDisposition> EmgDispositions { get; set; }
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
@@ -728,6 +720,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
 
         #endregion
+
+        #region MEDICAL RECORD MANAGEMENT
+        public DbSet<TrxClinicalDocumentIntegrity> TrxClinicalDocumentIntegrities { get; set; }
+        public DbSet<TrxClinicalNoteAddendum> TrxClinicalNoteAddendums { get; set; }
+        public DbSet<TrxClinicalNoteAuthorDelegation> TrxClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<TrxMedicalRecordAccessLog> TrxMedicalRecordAccessLogs { get; set; }
+        public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
+        #endregion MEDICAL RECORD MANAGEMENT
 
         #endregion HEALTH SERVICE
 

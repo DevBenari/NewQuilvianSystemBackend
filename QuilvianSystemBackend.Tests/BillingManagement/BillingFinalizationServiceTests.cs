@@ -127,6 +127,33 @@ public sealed class BillingFinalizationServiceTests
         Assert.Equal("Istri sah", record.DebtorRelationship);
     }
 
+    // BIL-AT-018: skenario DAMA (pulang paksa) DENGAN bukti debtor harus tetap boleh finalisasi -
+    // melengkapi test di atas yang hanya menguji jalur Death, dan test di bawah yang hanya
+    // menguji jalur DAMA TANPA debtor (ditolak). Invoice tetap FINAL dengan outstanding tercatat
+    // ke debtor sah, BUKAN berubah menjadi status lunas/PAID.
+    [Fact]
+    public async Task DamaDepartureExceptionWithDebtorEvidenceIsAllowedAndInvoiceIsNotMarkedPaid()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var seeded = await SeedInvoiceAsync(db, 250_000m, "PERFORMED");
+        var service = CreateService(db);
+
+        var result = await service.FinalizeAsync(
+            seeded.Invoice.Id,
+            FinalizeRequest(seeded.Invoice.RowVersion, "Pasien pulang paksa (DAMA)",
+                BillingDepartureReasons.Dama, "Suami sah - Tn. Uji", "Suami sah"),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(result.IsDepartureException);
+        Assert.Equal(BillingDepartureReasons.Dama, result.DepartureReason);
+        Assert.Equal(250_000m, result.OutstandingAtFinalization);
+        Assert.Equal(BillingInvoiceStatuses.Final, result.InvoiceStatus);
+        Assert.NotEqual("PAID", result.InvoiceStatus);
+        var record = await db.BilFinalizationRecords.SingleAsync(x => x.InvoiceId == seeded.Invoice.Id);
+        Assert.Equal(BillingDepartureReasons.Dama, record.DepartureReason);
+        Assert.Equal("Suami sah", record.DebtorRelationship);
+    }
+
     [Fact]
     public async Task DepartureExceptionWithoutDebtorEvidenceIsRejected()
     {

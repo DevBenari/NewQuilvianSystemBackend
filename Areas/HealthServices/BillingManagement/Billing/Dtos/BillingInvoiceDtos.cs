@@ -22,9 +22,27 @@ public sealed class UpsertChargeRequest
     public DateTimeOffset OccurredAt { get; set; }
     public Guid CategoryId { get; set; }
     [Required, MaxLength(250)] public string DescriptionSnapshot { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.0001", "99999999999999.9999")] public decimal Quantity { get; set; }
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal UnitPrice { get; set; }
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal DoctorShare { get; set; }
+    [Range(
+        typeof(decimal),
+        "0.0001",
+        "99999999999999.9999",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Quantity { get; set; }
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal UnitPrice { get; set; }
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal DoctorShare { get; set; }
     [Required, MaxLength(30)] public string ContractVersion { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
@@ -52,6 +70,27 @@ public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
     public IReadOnlyList<InvoiceItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountResponse> Discounts { get; set; } = [];
     public IReadOnlyList<CalculationResponse> CalculationVersions { get; set; } = [];
+    // Hanya diisi oleh GetDetailAsync (layar Menu Pembayaran) - konteks pasien/kunjungan untuk
+    // ditampilkan kasir, bukan bagian dari alur charge/void/recalculate lain yang me-return
+    // InvoiceDetailResponse yang sama.
+    public InvoicePatientSummaryResponse? Patient { get; set; }
+}
+
+public sealed class InvoicePatientSummaryResponse
+{
+    public Guid PatientId { get; set; }
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Gender { get; set; }
+    public string? AgeText { get; set; }
+    public string EncounterNumber { get; set; } = string.Empty;
+    public DateTime EncounterDate { get; set; }
+    public string EncounterType { get; set; } = string.Empty;
+    public string PaymentType { get; set; } = string.Empty;
+    public string? RoomName { get; set; }
+    public string? ServiceUnitName { get; set; }
+    public string? PatientClassName { get; set; }
+    public string? GuarantorName { get; set; }
 }
 
 public sealed class InvoiceItemResponse
@@ -97,6 +136,7 @@ public sealed class CalculationResponse
     public int VersionNo { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
     public decimal ItemDiscount { get; set; }
     public decimal TotalDiscount { get; set; }
     public decimal TaxAmount { get; set; }
@@ -116,6 +156,7 @@ public sealed class CalculationBreakdownResponse
 {
     public string ContractVersion { get; set; } = BillingCalculationContract.Version;
     public AdministrationFeeCalculationResponse AdministrationFee { get; set; } = new();
+    public RoomChargeCalculationResponse RoomCharge { get; set; } = new();
     public IReadOnlyList<CalculationItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountCalculationResponse> Discounts { get; set; } = [];
     public IReadOnlyList<TaxCalculationResponse> Taxes { get; set; } = [];
@@ -133,6 +174,39 @@ public sealed class AdministrationFeeCalculationResponse
     public int ReplacementPriority { get; set; }
     public bool Coverable { get; set; }
     public bool ReplacesEarlierFee { get; set; }
+}
+
+// BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini
+// dihitung ulang penuh setiap recalculate persis seperti AdministrationFee - bukan
+// BilInvoiceItem, sehingga tidak lewat IBillingChargeSourceAdapter (BKC-DEC-039 memisahkan
+// room charge dari kontrak charge-source generik). LeaveRule policy SELALU diperlakukan
+// seperti INCLUDE_LEAVE karena belum ada model pencatatan cuti pasien di InPatientManagement -
+// ini gap yang disengaja dicatat di sini, bukan ditebak diam-diam.
+public sealed class RoomChargeCalculationResponse
+{
+    public Guid? PolicyId { get; set; }
+    public string? PolicyCode { get; set; }
+    public decimal AppliedAmount { get; set; }
+    public bool LeaveRuleEnforced { get; set; }
+    public IReadOnlyList<RoomChargeSegmentResponse> Segments { get; set; } = [];
+}
+
+public sealed class RoomChargeSegmentResponse
+{
+    public Guid PlacementId { get; set; }
+    public Guid RoomId { get; set; }
+    public Guid ServiceUnitId { get; set; }
+    public Guid PatientClassId { get; set; }
+    public DateTime StartDateTime { get; set; }
+    public DateTime? EndDateTime { get; set; }
+    public bool IsOngoing { get; set; }
+    public int OccupiedMinutes { get; set; }
+    public decimal ChargeUnits { get; set; }
+    public Guid? TariffId { get; set; }
+    public string? TariffCode { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal SegmentAmount { get; set; }
+    public bool MissingTariff { get; set; }
 }
 
 public sealed class CalculationItemResponse

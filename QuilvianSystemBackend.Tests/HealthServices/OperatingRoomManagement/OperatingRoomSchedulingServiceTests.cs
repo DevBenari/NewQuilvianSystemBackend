@@ -232,6 +232,47 @@ public class OperatingRoomSchedulingServiceTests
     }
 
     [Fact]
+    public async Task GetScheduleHistoryAsync_AfterRevision_ReturnsAllRevisionsNewestFirst()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var first = await fixture.Service.ScheduleAsync(fixture.CaseId, fixture.ValidRequest("history-first"));
+
+        var revision = fixture.ValidRequest("history-second", caseOffsetMinutes: 300);
+        revision.ExpectedVersion = first.Version;
+        revision.ChangeReason = "Ruang dipakai kasus darurat.";
+        await fixture.Service.ScheduleAsync(fixture.CaseId, revision);
+
+        var history = await fixture.Service.GetScheduleHistoryAsync(fixture.CaseId);
+
+        Assert.Equal(2, history.Count);
+        Assert.Equal([2, 1], history.Select(x => x.Revision).ToArray());
+        Assert.True(history[0].IsCurrent);
+        Assert.False(history[1].IsCurrent);
+        Assert.Equal("Ruang dipakai kasus darurat.", history[0].ChangeReason);
+        Assert.All(history, x => Assert.Equal(4, x.TeamMembers.Count));
+    }
+
+    [Fact]
+    public async Task GetScheduleHistoryAsync_CaseWithoutSchedule_ReturnsEmptyList()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var history = await fixture.Service.GetScheduleHistoryAsync(fixture.CaseId);
+
+        Assert.Empty(history);
+    }
+
+    [Fact]
+    public async Task GetScheduleHistoryAsync_UnknownCase_ReturnsEmptyList()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var history = await fixture.Service.GetScheduleHistoryAsync(Guid.NewGuid());
+
+        Assert.Empty(history);
+    }
+
+    [Fact]
     public async Task PostponeAsync_FromScheduled_ClearsCurrentPlanAndAllowsReschedule()
     {
         await using var fixture = await TestFixture.CreateAsync();

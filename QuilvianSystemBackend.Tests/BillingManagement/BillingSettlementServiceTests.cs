@@ -466,6 +466,98 @@ public sealed class BillingSettlementServiceTests
     }
 
     [Fact]
+    public async Task SettlementNoteAndTenderCashierReferenceNoteRoundTripIndependentlyOfProviderReference()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (invoice, paymentMethod, _) = await SeedInvoiceAsync(db, 100_000m);
+        var provider = new SequenceProviderAdapter();
+        provider.EnqueueResult(BillingPaymentProviderOutcome.Pending, null, "PROCESSING");
+        var service = CreateService(db, provider);
+        var createRequest = InvoiceSettlementRequest(invoice.Id, 100_000m);
+        createRequest.Note = "Pasien hanya membawa uang pas, sisanya menyusul.";
+        var settlement = await service.CreateAsync(
+            createRequest, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var tenderRequest = TenderRequest(paymentMethod.Id, 100_000m, settlement.RowVersion!.Value);
+        tenderRequest.CashierReferenceNote = "TRF-MANUAL-00123";
+
+        var tender = await service.AddTenderAsync(
+            settlement.Id!.Value, tenderRequest, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var result = await service.GetAsync(settlement.Id.Value, CancellationToken.None);
+
+        Assert.Equal("Pasien hanya membawa uang pas, sisanya menyusul.", result.Note);
+        Assert.Equal("TRF-MANUAL-00123", tender.CashierReferenceNote);
+        Assert.Null(tender.ProviderReferenceMasked);
+    }
+
+    // BKC-DEC-057: nomor Kwitansi dialokasikan SEKALI setiap tender baru dibuat - satu nomor per
+    // pembayaran, bukan per invoice - dan tetap dialokasikan terlepas dari hasil akhir tender
+    // (SUCCEEDED maupun FAILED), karena kasir sudah menerima pembayaran (atau percobaan
+    // pembayaran) itu pada saat tender dibuat.
+    [Fact]
+    public async Task KwitansiNumber_AllocatedForEveryTenderRegardlessOfOutcome()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (invoice, firstMethod, secondMethod) = await SeedInvoiceAsync(db, 1_000_000m);
+        var provider = new SequenceProviderAdapter();
+        provider.EnqueueResult(BillingPaymentProviderOutcome.Succeeded, "PROVIDER-SUCCESS-KWS-1", "PAID");
+        provider.EnqueueResult(BillingPaymentProviderOutcome.Failed, null, "DECLINED");
+        var service = CreateService(db, provider);
+        var settlement = await service.CreateAsync(
+            InvoiceSettlementRequest(invoice.Id, 1_000_000m),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        var first = await service.AddTenderAsync(
+            settlement.Id!.Value,
+            TenderRequest(firstMethod.Id, 300_000m, settlement.RowVersion!.Value),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var afterFirst = await service.GetAsync(settlement.Id.Value, CancellationToken.None);
+        var second = await service.AddTenderAsync(
+            settlement.Id.Value,
+            TenderRequest(secondMethod.Id, 700_000m, afterFirst.RowVersion!.Value),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(BillingTenderStatuses.Succeeded, first.Status);
+        Assert.Equal(BillingTenderStatuses.Failed, second.Status);
+        Assert.False(string.IsNullOrWhiteSpace(first.KwitansiNumber));
+        Assert.False(string.IsNullOrWhiteSpace(second.KwitansiNumber));
+        Assert.StartsWith("KWS-", first.KwitansiNumber);
+        Assert.StartsWith("KWS-", second.KwitansiNumber);
+        Assert.NotEqual(first.KwitansiNumber, second.KwitansiNumber);
+    }
+
+    [Fact]
+    public async Task KwitansiNumber_ReplaySameIdempotencyKeyReturnsSameNumberNotANewOne()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (invoice, _, _) = await SeedInvoiceAsync(db, 100_000m);
+        var cash = PaymentMethod("CASH", isCash: true);
+        db.MstPaymentMethods.Add(cash);
+        var actorId = Guid.NewGuid();
+        var shift = ActiveShift(actorId, 50_000m);
+        db.BilCashierShifts.Add(shift);
+        await db.SaveChangesAsync();
+        var provider = new SequenceProviderAdapter();
+        var service = CreateService(db, provider);
+        var settlement = await service.CreateAsync(
+            InvoiceSettlementRequest(invoice.Id, 100_000m),
+            Guid.NewGuid(), actorId, CancellationToken.None);
+        var request = TenderRequest(cash.Id, 100_000m, settlement.RowVersion!.Value);
+        var key = Guid.NewGuid();
+
+        var result = await service.AddTenderAsync(
+            settlement.Id!.Value, request, key, actorId, CancellationToken.None);
+        var replay = await service.AddTenderAsync(
+            settlement.Id.Value, request, key, actorId, CancellationToken.None);
+        var reprinted = await service.GetAsync(settlement.Id.Value, CancellationToken.None);
+
+        Assert.False(string.IsNullOrWhiteSpace(result.KwitansiNumber));
+        Assert.True(replay.IsReplay);
+        Assert.Equal(result.KwitansiNumber, replay.KwitansiNumber);
+        Assert.Equal(result.KwitansiNumber, reprinted.Tenders.Single().KwitansiNumber);
+        Assert.Single(db.BilNumberSeries.Where(x => x.SequenceKey == "BILLING_KWITANSI"));
+    }
+
+    [Fact]
     public void SettlementModelHasLockedUniquenessAndConcurrencyConfiguration()
     {
         using var db = IsolatedBillingDbContextFactory.Create();
@@ -637,6 +729,7 @@ public sealed class BillingSettlementServiceTests
             provider,
             new BillingAllocationService(db, logger),
             cashierShiftService,
+            numberSeries,
             logger);
     }
 

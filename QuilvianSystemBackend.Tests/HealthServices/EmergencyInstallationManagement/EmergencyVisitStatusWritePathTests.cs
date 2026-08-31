@@ -35,12 +35,12 @@ public class EmergencyVisitStatusWritePathTests
 {
     private static readonly Guid Pelaku = Guid.NewGuid();
 
-    private static async Task<TrxEmergencyObservation> SimpanObservasiAsync(
+    private static async Task<EmgObservation> SimpanObservasiAsync(
         ApplicationDbContext context,
         Guid visitId,
         EmergencyObservationStatus status)
     {
-        var observation = new TrxEmergencyObservation
+        var observation = new EmgObservation
         {
             Id = Guid.NewGuid(),
             EmergencyVisitId = visitId,
@@ -49,17 +49,17 @@ public class EmergencyVisitStatusWritePathTests
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyObservation>().Add(observation);
+        context.Set<EmgObservation>().Add(observation);
         await context.SaveChangesAsync();
         return observation;
     }
 
-    private static async Task<TrxEmergencyResuscitation> SimpanResusitasiAsync(
+    private static async Task<EmgResuscitation> SimpanResusitasiAsync(
         ApplicationDbContext context,
         Guid visitId,
         EmergencyResuscitationStatus status)
     {
-        var resuscitation = new TrxEmergencyResuscitation
+        var resuscitation = new EmgResuscitation
         {
             Id = Guid.NewGuid(),
             EmergencyVisitId = visitId,
@@ -68,17 +68,17 @@ public class EmergencyVisitStatusWritePathTests
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyResuscitation>().Add(resuscitation);
+        context.Set<EmgResuscitation>().Add(resuscitation);
         await context.SaveChangesAsync();
         return resuscitation;
     }
 
-    private static async Task<TrxEmergencyDisposition> SimpanTindakLanjutAsync(
+    private static async Task<EmgDisposition> SimpanTindakLanjutAsync(
         ApplicationDbContext context,
         Guid visitId,
         EmergencyDispositionStatus status)
     {
-        var disposition = new TrxEmergencyDisposition
+        var disposition = new EmgDisposition
         {
             Id = Guid.NewGuid(),
             EmergencyVisitId = visitId,
@@ -87,7 +87,7 @@ public class EmergencyVisitStatusWritePathTests
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyDisposition>().Add(disposition);
+        context.Set<EmgDisposition>().Add(disposition);
         await context.SaveChangesAsync();
         return disposition;
     }
@@ -95,7 +95,7 @@ public class EmergencyVisitStatusWritePathTests
     private static async Task<EmergencyVisitStatus> BacaStatusKunjunganAsync(
         ApplicationDbContext context,
         Guid visitId)
-        => (await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visitId))
+        => (await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visitId))
             .VisitStatus;
 
     // =================================================================================
@@ -149,7 +149,7 @@ public class EmergencyVisitStatusWritePathTests
         Assert.Equal(StatusCodes.Status200OK, KodeStatus((IActionResult)result));
         Assert.Equal(EmergencyVisitStatus.InTreatment, await BacaStatusKunjunganAsync(context, visit.Id));
 
-        var tersimpan = await context.Set<TrxEmergencyObservation>().AsNoTracking()
+        var tersimpan = await context.Set<EmgObservation>().AsNoTracking()
             .FirstAsync(x => x.Id == observation.Id);
         Assert.Equal("Kondisi memburuk, kembali ke penanganan aktif.", tersimpan.EscalationReason);
     }
@@ -201,7 +201,7 @@ public class EmergencyVisitStatusWritePathTests
         Assert.Equal(statusKunjungan, await BacaStatusKunjunganAsync(context, visit.Id));
 
         // Penolakan tidak boleh meninggalkan observasi yang terlanjur berubah status.
-        var tersimpan = await context.Set<TrxEmergencyObservation>().AsNoTracking()
+        var tersimpan = await context.Set<EmgObservation>().AsNoTracking()
             .FirstAsync(x => x.Id == observation.Id);
         Assert.Equal(EmergencyObservationStatus.Active, tersimpan.ObservationStatus);
     }
@@ -250,7 +250,7 @@ public class EmergencyVisitStatusWritePathTests
 
         Assert.Equal(StatusCodes.Status200OK, KodeStatus((IActionResult)result));
 
-        var tersimpan = await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
+        var tersimpan = await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
         Assert.Equal(EmergencyVisitStatus.InTreatment, tersimpan.VisitStatus);
         Assert.NotNull(tersimpan.TreatmentStartedAt);
     }
@@ -272,11 +272,11 @@ public class EmergencyVisitStatusWritePathTests
 
         Assert.Equal(StatusCodes.Status409Conflict, KodeStatus((IActionResult)result));
 
-        var tersimpanVisit = await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
+        var tersimpanVisit = await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
         Assert.Equal(EmergencyVisitStatus.Completed, tersimpanVisit.VisitStatus);
         Assert.Null(tersimpanVisit.TreatmentStartedAt);
 
-        var tersimpanResus = await context.Set<TrxEmergencyResuscitation>().AsNoTracking()
+        var tersimpanResus = await context.Set<EmgResuscitation>().AsNoTracking()
             .FirstAsync(x => x.Id == resuscitation.Id);
         Assert.Equal(EmergencyResuscitationStatus.Planned, tersimpanResus.ResuscitationStatus);
     }
@@ -302,7 +302,7 @@ public class EmergencyVisitStatusWritePathTests
 
         Assert.Equal(StatusCodes.Status200OK, KodeStatus((IActionResult)result));
 
-        var tersimpan = await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
+        var tersimpan = await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
         Assert.Equal(EmergencyVisitStatus.InTreatment, tersimpan.VisitStatus);
         Assert.NotNull(tersimpan.TreatmentStartedAt);
     }
@@ -328,7 +328,7 @@ public class EmergencyVisitStatusWritePathTests
 
         Assert.Equal(StatusCodes.Status200OK, KodeStatus((IActionResult)result));
 
-        var tersimpanVisit = await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
+        var tersimpanVisit = await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
         Assert.Equal(EmergencyVisitStatus.Disposed, tersimpanVisit.VisitStatus);
 
         // BE-IGD-008 — Disposed bukan penyelesaian klinis, jadi waktu selesai tetap kosong.
@@ -353,7 +353,7 @@ public class EmergencyVisitStatusWritePathTests
         Assert.Equal(StatusCodes.Status409Conflict, KodeStatus((IActionResult)result));
         Assert.Equal(EmergencyVisitStatus.Completed, await BacaStatusKunjunganAsync(context, visit.Id));
 
-        var tersimpan = await context.Set<TrxEmergencyDisposition>().AsNoTracking()
+        var tersimpan = await context.Set<EmgDisposition>().AsNoTracking()
             .FirstAsync(x => x.Id == disposition.Id);
         Assert.Equal(EmergencyDispositionStatus.Confirmed, tersimpan.DispositionStatus);
         Assert.Null(tersimpan.ExecutedAt);
@@ -397,7 +397,7 @@ public class EmergencyVisitStatusWritePathTests
 
         Assert.Equal(StatusCodes.Status200OK, KodeStatus((IActionResult)result));
 
-        var tersimpan = await context.Set<TrxEmergencyVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
+        var tersimpan = await context.Set<EmgVisit>().AsNoTracking().FirstAsync(x => x.Id == visit.Id);
         Assert.Equal(EmergencyVisitStatus.Completed, tersimpan.VisitStatus);
         Assert.NotNull(tersimpan.VisitCompletedAt);
     }
