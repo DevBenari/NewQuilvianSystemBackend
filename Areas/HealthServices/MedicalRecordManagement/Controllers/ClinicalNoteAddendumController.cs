@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -47,6 +48,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _loggerService = loggerService;
             _addendumService = addendumService;
             _accessPermissionService = accessPermissionService;
+        }
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAddendumFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Note Addendum", Description = "Melihat daftar pilihan penyaring koreksi catatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalNoteAddendum", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = new ClinicalNoteAddendumFilterMetadataResponse
+            {
+                DocumentKinds = MedicalRecordTimelineService.SeluruhJenis
+                    .Select(x => new MedicalRecordDocumentKindOptionResponse
+                    {
+                        Value = x,
+                        Name = MedicalRecordTimelineService.NamaJenis(x),
+                        IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(x)
+                    })
+                    .ToList(),
+                SortOptions =
+                [
+                    new() { Value = "sequence", Label = "Urutan koreksi" },
+                    new() { Value = "signedAt", Label = "Tanggal ditandatangani" }
+                ],
+                SortDirections = ["asc", "desc"],
+                PageSizeOptions = [10, 25, 50, 100],
+                QueryParameters =
+                [
+                    new()
+                    {
+                        Name = "documentKind",
+                        Type = "enum",
+                        Required = "Yes",
+                        Description = "Jenis dokumen yang dikoreksi.",
+                        Example = "ProgressNote"
+                    },
+                    new()
+                    {
+                        Name = "documentId",
+                        Type = "guid",
+                        Required = "Yes",
+                        Description = "Id dokumen pada tabel asalnya."
+                    }
+                ]
+            };
+
+            return Ok(ApiResponse<ClinicalNoteAddendumFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter koreksi catatan berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAddendumSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Note Addendum", Description = "Melihat rekap koreksi catatan klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalNoteAddendum", "Read")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var query = _dbContext.Set<TrxClinicalNoteAddendum>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            var hasil = new ClinicalNoteAddendumSummaryResponse
+            {
+                TotalAddendum = await query.CountAsync(),
+                BySubstituteAuthor = await query.CountAsync(x => x.IsSubstituteAuthor),
+                ByOriginalAuthor = await query.CountAsync(x => !x.IsSubstituteAuthor),
+                DocumentWithAddendum = await query.Select(x => x.IntegrityId).Distinct().CountAsync()
+            };
+
+            return Ok(ApiResponse<ClinicalNoteAddendumSummaryResponse>.Ok(
+                hasil, "Rekap koreksi catatan klinis berhasil diambil."));
         }
 
         [HttpGet("by-document/{documentKind}/{documentId:guid}")]
