@@ -244,6 +244,57 @@ public sealed class OperatingRoomSchedulingService
     public Task<OprScheduleResponse?> GetCurrentScheduleAsync(Guid caseId, CancellationToken cancellationToken = default) =>
         GetScheduleResponseAsync(caseId, cancellationToken);
 
+    /// <summary>
+    /// Seluruh revisi jadwal satu kasus, terbaru lebih dulu. Jadwal lama sengaja tidak
+    /// dihapus ketika direvisi (OPS-DEC-016), sehingga koordinator dapat menelusuri
+    /// jadwal mana yang digeser beserta alasannya.
+    /// </summary>
+    public async Task<List<OprScheduleResponse>> GetScheduleHistoryAsync(Guid caseId,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await _dbContext.OprCases.AsNoTracking()
+            .Where(x => x.Id == caseId && !x.IsDelete)
+            .Select(x => new { x.Id, x.CaseNumber, x.Status, x.Version })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (entity == null) return [];
+
+        var schedules = await _dbContext.OprSchedules.AsNoTracking()
+            .Where(x => x.OprCaseId == caseId && !x.IsDelete)
+            .Include(x => x.Room)
+            .Include(x => x.TeamMembers.Where(t => !t.IsDelete)).ThenInclude(t => t.Workforce)
+            .OrderByDescending(x => x.Revision)
+            .ToListAsync(cancellationToken);
+
+        return [.. schedules.Select(schedule => new OprScheduleResponse
+        {
+            Id = schedule.Id,
+            OprCaseId = entity.Id,
+            CaseNumber = entity.CaseNumber,
+            RoomId = schedule.RoomId,
+            RoomName = schedule.Room?.RoomName ?? string.Empty,
+            StartAt = schedule.StartAt,
+            EndAt = schedule.EndAt,
+            BufferBeforeMinutes = schedule.BufferBeforeMinutes,
+            BufferAfterMinutes = schedule.BufferAfterMinutes,
+            Revision = schedule.Revision,
+            ChangeReason = schedule.ChangeReason,
+            IsCurrent = schedule.IsCurrent,
+            Status = entity.Status,
+            Version = entity.Version,
+            TeamMembers = [.. schedule.TeamMembers.OrderBy(x => x.Role)
+                .Select(x => new OprTeamMemberResponse
+                {
+                    WorkforceId = x.WorkforceId,
+                    WorkforceName = x.Workforce?.DisplayName ?? string.Empty,
+                    Role = x.Role,
+                    IsLead = x.IsLead,
+                    CredentialCheckStatus = x.CredentialCheckStatus,
+                    CredentialCheckedAt = x.CredentialCheckedAt
+                })],
+            AvailableActions = AvailableActions(entity.Status)
+        })];
+    }
+
     /// <summary>Menonaktifkan jadwal dan tim berjalan; histori revisi tetap tersimpan.</summary>
     private static void RetireCurrentPlan(OprCase entity, Guid actorUserId, DateTime now, string? reason)
     {
@@ -383,6 +434,7 @@ public sealed class OperatingRoomSchedulingService
             BufferAfterMinutes = schedule.BufferAfterMinutes,
             Revision = schedule.Revision,
             ChangeReason = schedule.ChangeReason,
+            IsCurrent = schedule.IsCurrent,
             Status = entity.Status,
             Version = entity.Version,
             TeamMembers = schedule.TeamMembers.Where(x => !x.IsDelete).OrderBy(x => x.Role)

@@ -286,6 +286,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
     {
         public Guid Id { get; set; }
 
+        /// <summary>
+        /// Profil tenaga kerja pemilik pegawai ini. Modul lain yang menugaskan tenaga
+        /// memakai identitas ini, bukan `Id` pegawai. Mengikuti `DoctorOptionResponse`
+        /// yang sudah lebih dulu menyertakannya.
+        /// </summary>
+        public Guid WorkforceProfileId { get; set; }
+
         public string EmployeeCode { get; set; } = string.Empty;
 
         public string EmployeeNumber { get; set; } = string.Empty;

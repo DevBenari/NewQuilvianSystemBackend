@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -59,19 +60,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly QueueVoiceService _queueVoiceService;
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly DoctorConsultationLifecycleService _doctorConsultationLifecycleService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public DoctorQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueVoiceService queueVoiceService,
             QueueRealtimeService queueRealtimeService,
-            DoctorConsultationLifecycleService doctorConsultationLifecycleService)
+            DoctorConsultationLifecycleService doctorConsultationLifecycleService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueVoiceService = queueVoiceService;
             _queueRealtimeService = queueRealtimeService;
             _doctorConsultationLifecycleService = doctorConsultationLifecycleService;
+            _integrityService = integrityService;
         }
 
         [HttpGet("filters/metadata")]
@@ -461,6 +465,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 queue.Encounter.CompletedAt = now;
                 queue.Encounter.UpdateDateTime = now;
                 queue.Encounter.UpdateBy = actorUserId;
+
+                // RM-DEC-003 lapis kedua — catatan klinis yang belum ditandatangani terkunci
+                // otomatis saat kunjungan selesai. Ini jalur penyelesaian kunjungan yang paling
+                // sering dipakai, sehingga pemicunya tidak boleh hanya dipasang pada endpoint
+                // perubahan status umum.
+                //
+                // Penguncian ikut SaveChanges di bawah, sehingga bila gagal, penyelesaian
+                // konsultasi ikut dibatalkan.
+                await _integrityService.LockOpenDocumentsForEncounterAsync(
+                    queue.Encounter.Id, actorUserId, now, now);
             }
 
             await _dbContext.SaveChangesAsync();

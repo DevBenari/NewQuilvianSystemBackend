@@ -5,7 +5,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
 public sealed class DepositTopUpRequest
 {
     public Guid PaymentMethodId { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
     public Guid? ExpectedRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
