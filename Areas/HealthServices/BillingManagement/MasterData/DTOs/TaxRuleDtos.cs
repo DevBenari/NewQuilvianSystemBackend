@@ -69,3 +69,37 @@ public sealed class TaxRuleDeleteResponse
     public string Name { get; set; } = string.Empty;
     public bool IsDelete { get; set; }
 }
+
+public sealed class TaxRuleOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string TaxableCategory { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class TaxRuleSummaryResponse
+{
+    public int TotalRule { get; set; }
+    public int ActiveRule { get; set; }
+    public int InactiveRule { get; set; }
+}
+
+public sealed class TaxRuleDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? TaxableCategory { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class TaxRuleFilterMetadataResponse
+{
+    public TaxRuleDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> RoundingModes { get; set; } = new();
+    public List<string> AllocationRules { get; set; } = new();
+    public List<string> TaxableCategories { get; set; } = new();
+}

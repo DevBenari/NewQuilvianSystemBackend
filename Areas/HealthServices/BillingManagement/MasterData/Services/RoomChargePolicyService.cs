@@ -44,6 +44,61 @@ public sealed class RoomChargePolicyService
         };
     }
 
+    public async Task<RoomChargePolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<RoomChargePolicyOptionResponse>> GetOptionsAsync(
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstRoomChargePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive) query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.Name)
+            .Select(x => new RoomChargePolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                MinimumMinutes = x.MinimumMinutes,
+                PeriodMinutes = x.PeriodMinutes,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<RoomChargePolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstRoomChargePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new RoomChargePolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken)
+        };
+    }
+
+    public RoomChargePolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new RoomChargePolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        RemainderRoundings = RoomChargePolicyValues.RemainderRoundings.OrderBy(x => x).ToList(),
+        TariffMoments = RoomChargePolicyValues.TariffMoments.OrderBy(x => x).ToList(),
+        LeaveRules = RoomChargePolicyValues.LeaveRules.OrderBy(x => x).ToList()
+    };
+
     public async Task<RoomChargePolicyResponse> CreateAsync(CreateRoomChargePolicyRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
         var values = await ValidateAsync(request, null, cancellationToken);

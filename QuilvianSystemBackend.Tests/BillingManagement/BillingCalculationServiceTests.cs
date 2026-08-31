@@ -122,6 +122,55 @@ public sealed class BillingCalculationServiceTests
         Assert.Equal(50_000m, firstResult.AdministrationFeeAmount + secondResult.AdministrationFeeAmount + inpatientResult.AdministrationFeeAmount);
     }
 
+    // BIL-AT-011 (BE-BKC-017): "insurer cover flag true -> coverage mengikuti policy" untuk admin
+    // fee. Separuh acceptance ini (diskon admin fee ditolak) sudah dibuktikan di
+    // BillingDiscountServiceTests.AdministrationFeeCategoryCannotBeDiscounted; separuh ini
+    // membuktikan flag Coverable pada MstAdministrationFeePolicy benar-benar menjadi gerbang
+    // policy untuk coverage waterfall, bukan sekadar kolom dekoratif - lihat
+    // ApplyCoverageWaterfall/BuildCoverageComponents (coverableAmount hanya menjumlahkan komponen
+    // yang Coverable=true).
+    [Fact]
+    public async Task AdministrationFeeCoverableFlagGatesWhetherInsurerCanCoverIt()
+    {
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        // Item dasar 100.000 (selalu coverable, lihat SeedInvoiceAsync) + admin fee 20.000 -> total
+        // eligible 120.000. Decision penjamin mencoba menanggung SELURUH 120.000, termasuk admin
+        // fee - hanya sah bila policy admin fee Coverable=true.
+        var decision = new BillingCoverageDecision(
+            "INSURER-CONTRACT-TEST", "APPROVED", "NOT_CONFIGURED", 120_000m, 0, 0, []);
+
+        await using (var coverableDb = IsolatedBillingDbContextFactory.Create())
+        {
+            coverableDb.MstAdministrationFeePolicies.Add(
+                AdministrationPolicy("ADM-COVERABLE", "RAJAL", 20_000m, 10, at, coverable: true));
+            var invoice = await SeedInvoiceAsync(coverableDb, Guid.NewGuid(), "RAJAL", at);
+            await coverableDb.SaveChangesAsync();
+            var service = CreateService(coverableDb, new FixedCoverageAdapter(decision));
+
+            var result = await service.RecalculateAsync(
+                invoice.Id, Request(invoice.RowVersion, "Admin fee coverable"), Guid.NewGuid(), CancellationToken.None);
+
+            Assert.Equal(20_000m, result.AdministrationFeeAmount);
+            Assert.Equal(120_000m, result.PrimaryAmount);
+            Assert.Equal(0m, result.PatientAmount);
+        }
+
+        await using (var notCoverableDb = IsolatedBillingDbContextFactory.Create())
+        {
+            notCoverableDb.MstAdministrationFeePolicies.Add(
+                AdministrationPolicy("ADM-NOT-COVERABLE", "RAJAL", 20_000m, 10, at, coverable: false));
+            var invoice = await SeedInvoiceAsync(notCoverableDb, Guid.NewGuid(), "RAJAL", at);
+            await notCoverableDb.SaveChangesAsync();
+            var service = CreateService(notCoverableDb, new FixedCoverageAdapter(decision));
+
+            var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
+                service.RecalculateAsync(
+                    invoice.Id, Request(invoice.RowVersion, "Admin fee tidak coverable"), Guid.NewGuid(), CancellationToken.None));
+
+            Assert.Contains("melebihi biaya", exception.Message);
+        }
+    }
+
     // BE-BKC-017 hardening (26 Agustus 2026): CalculateAdministrationFeeAsync mendapat SQL pre-filter
     // pada TrxPatientEncounter.EncounterDate (menggantikan penarikan seluruh riwayat pasien ke memori)
     // - lihat catatan di BillingCalculationService.cs. Test ini secara khusus membuktikan pre-filter
@@ -439,7 +488,8 @@ public sealed class BillingCalculationServiceTests
         string serviceType,
         decimal amount,
         int priority,
-        DateTimeOffset at) => new()
+        DateTimeOffset at,
+        bool coverable = false) => new()
     {
         Code = code,
         Name = code,
@@ -447,7 +497,7 @@ public sealed class BillingCalculationServiceTests
         Amount = amount,
         OncePerPatientLocalDay = true,
         ReplacementPriority = priority,
-        Coverable = false,
+        Coverable = coverable,
         Discountable = false,
         EffectiveFrom = at.AddDays(-1),
         EffectiveTo = at.AddDays(1),

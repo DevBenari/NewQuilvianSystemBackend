@@ -64,6 +64,71 @@ public sealed class AdministrationFeePolicyService
         };
     }
 
+    public async Task<AdministrationFeePolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<AdministrationFeePolicyOptionResponse>> GetOptionsAsync(
+        string? serviceType,
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstAdministrationFeePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive)
+            query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(serviceType))
+        {
+            var normalized = serviceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.ServiceType == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.ServiceType)
+            .ThenBy(x => x.Name)
+            .Select(x => new AdministrationFeePolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                ServiceType = x.ServiceType,
+                Amount = x.Amount,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AdministrationFeePolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstAdministrationFeePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new AdministrationFeePolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken),
+            RajalPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Rajal, cancellationToken),
+            IgdPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Igd, cancellationToken),
+            OtcPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Otc, cancellationToken),
+            RanapPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Ranap, cancellationToken)
+        };
+    }
+
+    public AdministrationFeePolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new AdministrationFeePolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        ServiceTypes = AdministrationFeeServiceTypes.All.OrderBy(x => x).ToList()
+    };
+
     public async Task<AdministrationFeePolicyResponse> CreateAsync(
         CreateAdministrationFeePolicyRequest request,
         Guid actorUserId,

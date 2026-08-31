@@ -78,3 +78,43 @@ public sealed class DiscountPolicyDeleteResponse
     public string Name { get; set; } = string.Empty;
     public bool IsDelete { get; set; }
 }
+
+public sealed class DiscountPolicyOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string DiscountType { get; set; } = string.Empty;
+    public string TargetComponent { get; set; } = string.Empty;
+    public string ValueType { get; set; } = string.Empty;
+    public decimal Value { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class DiscountPolicySummaryResponse
+{
+    public int TotalPolicy { get; set; }
+    public int ActivePolicy { get; set; }
+    public int InactivePolicy { get; set; }
+    public int PromoTotalPolicy { get; set; }
+    public int PromoItemPolicy { get; set; }
+    public int DoctorPolicy { get; set; }
+}
+
+public sealed class DiscountPolicyDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? DiscountType { get; set; }
+    public string? TargetComponent { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class DiscountPolicyFilterMetadataResponse
+{
+    public DiscountPolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> DiscountTypes { get; set; } = new();
+    public List<string> TargetComponents { get; set; } = new();
+    public List<string> ValueTypes { get; set; } = new();
+}

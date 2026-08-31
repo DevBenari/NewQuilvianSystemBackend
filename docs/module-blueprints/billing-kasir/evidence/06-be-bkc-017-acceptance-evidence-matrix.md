@@ -2,15 +2,15 @@
 
 `contract_version: BIL-TEST-0.4` · Disusun 26 Agustus 2026 sebagai bagian pengerjaan `BE-BKC-017` (Hardening dan acceptance lintas-slice). Dokumen ini mengonsolidasikan bukti test untuk 24 ID di `testing/acceptance-test-matrix.md`, diverifikasi langsung terhadap source dan hasil `dotnet test` — bukan berdasarkan klaim dokumen lain. Status per ID mengikuti tiga label: **Covered** (ada test yang mengeksekusi skenario intinya), **Covered (catatan)** (skenario inti terbukti tapi detail literal — misalnya angka contoh spesifik — tidak identik), **Partial** (sebagian skenario terbukti, sebagian belum), **Tidak ditemukan** (tidak ada test).
 
-Validasi terakhir: `dotnet build` → 0 error. `dotnet test --filter FullyQualifiedName~BillingManagement` → **155/155 pass** (139 test slice sebelumnya + 15 test RBAC baru di `AccessPermissionEnforcementTests.cs` + 1 test regresi batas UTC/WIB untuk perbaikan performa admin-fee di `BillingCalculationServiceTests.cs`).
+Validasi terakhir: `dotnet build` → 0 error. `dotnet test --filter FullyQualifiedName~BillingManagement` → **190/190 pass** (155 test sebelumnya + 2 test hardening baru 28 Agustus 2026 yang menutup `BIL-AT-011` dan `BIL-AT-018` — lihat baris masing-masing dan `task/report/backend/BE-BKC-017.md`).
 
 ## Ringkasan
 
 | Status | Jumlah ID |
 | --- | --- |
-| Covered | 15 |
+| Covered | 17 |
 | Covered (catatan) | 5 |
-| Partial | 3 |
+| Partial | 1 |
 | Tidak ditemukan | 1 |
 
 ## Tabel evidence
@@ -27,14 +27,14 @@ Validasi terakhir: `dotnet build` → 0 error. `dotnet test --filter FullyQualif
 | `BIL-AT-008` | Covered | `BillingAllocationServiceTests.cs:75 BilAt008LowerRecalculationRecognizesRefundableCredit` | — |
 | `BIL-AT-009` | Covered | `BillingCalculationServiceTests.cs:95 AdministrationFeeIsOncePerLocalDayAndRanapAppliesReplacementDifference` | Dua encounter RAJAL, pasien sama, hari sama → fee kedua = 0 |
 | `BIL-AT-010` | Covered | Method sama dengan `BIL-AT-009` | Transfer ke RANAP menghasilkan fee = selisih (30.000 dari 50.000), `ReplacesEarlierFee = true`, tidak dobel |
-| `BIL-AT-011` | Partial | `BillingDiscountServiceTests.cs:181 AdministrationFeeCategoryCannotBeDiscounted` | Separuh "diskon admin ditolak" terbukti; separuh "insurer cover flag true → coverage ikut policy" belum ada test gabungan eksplisit |
+| `BIL-AT-011` | Covered (catatan) | `BillingDiscountServiceTests.cs:181 AdministrationFeeCategoryCannotBeDiscounted` + **`BillingCalculationServiceTests.cs:AdministrationFeeCoverableFlagGatesWhetherInsurerCanCoverIt`** (baru, 28 Agustus 2026) | Kedua separuh kini terbukti terpisah (bukan satu method gabungan): "diskon admin ditolak" oleh test pertama; "insurer cover flag true → coverage ikut policy" oleh test baru — membuktikan `MstAdministrationFeePolicy.Coverable=true` memperbolehkan penjamin menanggung admin fee penuh (`PatientAmount=0`), sedangkan `Coverable=false` dengan permintaan coverage yang sama ditolak (`melebihi biaya`) |
 | `BIL-AT-012` | Covered | `BillingDiscountServiceTests.cs:22 MasterPromoIsEffectiveImmediatelyAndReducesPatientPortion`, `:54 DoctorDiscountWaitsForCorrectDoctorAndOnlyThenChangesItemNet` | — |
 | `BIL-AT-013` | Covered | `BillingCalculationServiceTests.cs:44 CoverageWaterfallAppliesPrimaryThenExcessThenPatient` (60k/25k/15k), `BillingArApHandoffServiceTests.cs:71 InsuredInvoiceCreatesPayerArHandoffAndKeepsApNotReady` | — |
 | `BIL-AT-014` | Covered (catatan) | `BillingFinancialExceptionServiceTests.cs:19,41,60 RequesterCannotApproveOwnWriteOff` + **`AccessPermissionEnforcementTests.cs:HasAccessAsync_KasirWithoutFinanceRoleCannotApproveWriteOff`** (baru) | Self-approve (maker-checker) terbukti di level domain; penolakan role/permission murni (kasir tanpa hak Finance) kini juga terbukti di level RBAC — dua lapis proteksi berbeda, keduanya sekarang punya bukti |
 | `BIL-AT-015` | Covered | `BillingFinancialExceptionServiceTests.cs:96 ReversingFullWriteOffReopensInvoiceAndCreatesDebitAdjustmentIdempotently` | — |
 | `BIL-AT-016` | Covered | `CashierShiftServiceTests.cs:97 VarianceIsPersistedReviewedAndReopenedWithoutDeletingHistory` | — |
 | `BIL-AT-017` | Covered | `BillingSettlementServiceTests.cs:123 BilAt017LateNonCashSuccessUpdatesOriginalPendingTenderOnly`, `:342 LateQrisSuccessAfterShiftCloseDoesNotChangePhysicalShiftCash` | — |
-| `BIL-AT-018` | Partial | `BillingFinalizationServiceTests.cs:110 DepartureExceptionAllowsFinalizationWithOutstandingAndRecordsDebtor` (Death), `:131 DepartureExceptionWithoutDebtorEvidenceIsRejected` | Skenario Death+debtor sukses terbukti; skenario DAMA hanya diuji pada jalur penolakan (tanpa debtor) — belum ada test sukses DAMA-dengan-debtor |
+| `BIL-AT-018` | Covered | `BillingFinalizationServiceTests.cs:110 DepartureExceptionAllowsFinalizationWithOutstandingAndRecordsDebtor` (Death), `:131 DepartureExceptionWithoutDebtorEvidenceIsRejected` (DAMA ditolak tanpa debtor), **`:DamaDepartureExceptionWithDebtorEvidenceIsAllowedAndInvoiceIsNotMarkedPaid`** (baru, 28 Agustus 2026) | Ketiga jalur kini terbukti: Death+debtor sukses; DAMA tanpa debtor ditolak; DAMA DENGAN debtor sukses — invoice tetap `Final` dengan outstanding tercatat ke debtor sah, bukan berubah jadi status lunas/PAID |
 | `BIL-AT-019` | Covered | `BillingArApHandoffServiceTests.cs:20,71,107` | Self-pay AP-ready, insured AR-payer + AP-not-ready, post-final correction "once" |
 | `BIL-AT-020` | Covered (catatan) | `BillingAllocationServiceTests.cs:109 BilAt020StaleVersionLosesWithoutDuplicateAllocation`, `BillingCalculationServiceTests.cs:166` | Diuji sekuensial (panggil, lalu panggil lagi dengan versi basi) lewat EF InMemory — bukan concurrency paralel nyata. Lock produksi (`pg_advisory_xact_lock`) hanya jalan bila `IsRelational()`, sehingga tidak pernah tereksekusi di test manapun di suite ini. Korektnya *hasil* (satu sukses, satu ditolak) terbukti; penguncian nyata di bawah beban paralel belum |
 | `BIL-AT-021` | Covered | `BillingFinancialExceptionServiceTests.cs:126 PostedCreditAndDebitAdjustmentsNetIntoOutstandingCorrectly`, `BillingArApHandoffServiceTests.cs:107` | — |
@@ -45,11 +45,11 @@ Validasi terakhir: `dotnet build` → 0 error. `dotnet test --filter FullyQualif
 ## Gap yang masih terbuka setelah pengerjaan ini
 
 1. **`BIL-AT-023`** — terikat penuh pada `BKC-BLK-INT-001` (consumer AR/AP eksternal). Tidak bisa ditutup dari sisi kode Billing sendiri.
-2. **`BIL-AT-011`, `BIL-AT-018`** — partial, butuh satu test tambahan masing-masing (kombinasi admin-fee+coverage; DAMA-dengan-debtor sukses) untuk jadi Covered penuh.
-3. **`BIL-AT-020`** — korektnya hasil concurrency terbukti sekuensial; penguncian Postgres nyata (`pg_advisory_xact_lock`) tidak pernah dieksekusi oleh test manapun karena seluruh suite memakai EF InMemory (`IsRelational() == false`). Menutup ini butuh test terhadap database relasional nyata (Postgres lokal), bukan sekadar assertion tambahan.
-4. **Sanitized Swagger examples** — nol, belum dikerjakan sama sekali (di luar cakupan 24 acceptance ID, tapi tetap bagian scope `BE-BKC-017`).
-5. **Gap performa query admin-fee cross-invoice** — **sudah diperbaiki** 26 Agustus 2026. `CalculateAdministrationFeeAsync` kini memakai pre-filter SQL pada `TrxPatientEncounter.EncounterDate` (rentang UTC ±1 hari di sekitar businessDate WIB target) sebelum menarik `BreakdownSnapshot` ke memori, menggantikan penarikan seluruh riwayat kalkulasi pasien. Percobaan pertama sempat salah memakai `BilCalculationVersion.CalculatedAt` (jam kalkulasi dijalankan, bukan tanggal klinis) sebagai kolom filter — ditangkap oleh test yang gagal (`AdministrationFeeIsOncePerLocalDayAndRanapAppliesReplacementDifference`) sebelum sempat jadi regresi, lalu dikoreksi ke `EncounterDate`. Bukti tambahan: test baru `AdministrationFeeAcrossUtcMidnightBoundaryIsStillDetectedAsSameBusinessDay` membuktikan filter tetap benar untuk dua encounter pada businessDate WIB yang sama tapi tanggal kalender UTC berbeda (melintasi batas 17:00 UTC).
-6. **Seed data Finance** — `MstDiscountPolicy`/`MstTaxRule`/`MstRoomChargePolicy` nol baris seed; `MstAdministrationFeePolicy` baru draft `Amount = 0`. Di luar wewenang implementasi kode (`BKC-BLK-DATA-001`, perlu nominal sah dari Finance).
+2. **`BIL-AT-020`** — korektnya hasil concurrency terbukti sekuensial; penguncian Postgres nyata (`pg_advisory_xact_lock`) tidak pernah dieksekusi oleh test manapun karena seluruh suite memakai EF InMemory (`IsRelational() == false`). Menutup ini butuh test terhadap database relasional nyata (Postgres lokal), bukan sekadar assertion tambahan.
+3. **Sanitized Swagger examples** — nol, belum dikerjakan sama sekali (di luar cakupan 24 acceptance ID, tapi tetap bagian scope `BE-BKC-017`).
+4. **Gap performa query admin-fee cross-invoice** — **sudah diperbaiki** 26 Agustus 2026. `CalculateAdministrationFeeAsync` kini memakai pre-filter SQL pada `TrxPatientEncounter.EncounterDate` (rentang UTC ±1 hari di sekitar businessDate WIB target) sebelum menarik `BreakdownSnapshot` ke memori, menggantikan penarikan seluruh riwayat kalkulasi pasien. Percobaan pertama sempat salah memakai `BilCalculationVersion.CalculatedAt` (jam kalkulasi dijalankan, bukan tanggal klinis) sebagai kolom filter — ditangkap oleh test yang gagal (`AdministrationFeeIsOncePerLocalDayAndRanapAppliesReplacementDifference`) sebelum sempat jadi regresi, lalu dikoreksi ke `EncounterDate`. Bukti tambahan: test baru `AdministrationFeeAcrossUtcMidnightBoundaryIsStillDetectedAsSameBusinessDay` membuktikan filter tetap benar untuk dua encounter pada businessDate WIB yang sama tapi tanggal kalender UTC berbeda (melintasi batas 17:00 UTC).
+5. **Seed data Finance** — `MstDiscountPolicy`/`MstTaxRule`/`MstRoomChargePolicy` nol baris seed; `MstAdministrationFeePolicy` baru draft `Amount = 0`. Di luar wewenang implementasi kode (`BKC-BLK-DATA-001`, perlu nominal sah dari Finance).
+6. **`BIL-AT-011`, `BIL-AT-018`** — **ditutup 28 Agustus 2026**, lihat baris masing-masing di atas dan `task/report/backend/BE-BKC-017.md`.
 
 ## Metodologi
 
