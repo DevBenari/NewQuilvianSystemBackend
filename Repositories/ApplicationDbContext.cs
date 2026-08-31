@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.M
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -660,6 +661,26 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
+
+        #endregion
+
+        #region HEALTH SERVICE - Radiology Management
+
+        public DbSet<MstRadModality> MstRadModalities { get; set; }
+
+        public DbSet<MstRadSafetyRequirement> MstRadSafetyRequirements { get; set; }
+
+        public DbSet<MstRadModalitySafetyRule> MstRadModalitySafetyRules { get; set; }
+
+        public DbSet<RadOrder> RadOrders { get; set; }
+
+        public DbSet<RadStudy> RadStudies { get; set; }
+
+        public DbSet<RadStudySafetyCheck> RadStudySafetyChecks { get; set; }
+
+        public DbSet<RadAcquisitionConsumption> RadAcquisitionConsumptions { get; set; }
+
+        public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
 
         #endregion
 

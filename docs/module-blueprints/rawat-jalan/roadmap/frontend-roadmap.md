@@ -10,8 +10,8 @@ module_prefix: RJ-BIL
 repository: V2QuilvianSystemFrontendDev
 roadmap_revision: 1
 input_revisions:
-  blueprint-manifest.md: 18
-  00-interview-decisions.md: 13
+  blueprint-manifest.md: 19
+  00-interview-decisions.md: 14
 status: APPROVED_FOR_EXECUTION
 approval_gate: OWNER_APPROVED
 scope: Core internal/manual
@@ -25,11 +25,18 @@ approved_at: "2026-08-21"
 backend_prerequisite: "RJ-BIL-BE-001 — contract backend terkunci dan tersedia untuk consumer"
 source_commits:
   frontend: "ab4bd836e05c72d0679e02899258f3773f3869a2"
-implementation_authority: NOT_GRANTED
-builder_execution: NOT_AUTHORIZED
+implementation_authority: GRANTED
+implementation_authority_decision: RJ-BIL-DEC-013
+builder_execution:
+  authorized: [RJ-BIL-FE-001, RJ-BIL-FE-002, RJ-BIL-FE-004, RJ-BIL-FE-005]
+  not_authorized: [RJ-BIL-FE-003, RJ-BIL-FE-006, RJ-BIL-FE-007]
+  scope_exclusion: "RJ-BIL-FE-002 bagian Radiologi tetap di luar wewenang selama RJ-BIL-BE-004 terblokir"
+  executed: [RJ-BIL-FE-001, RJ-BIL-FE-002]
 external_adapter: "RJ-BIL-DEP-009 = INACTIVE / OUT OF CURRENT DELIVERY SCOPE"
 task_count: 7
-progress: "0 dari 7 task frontend dimulai per 2026-08-27"
+progress: "2 dari 7 task frontend selesai per 2026-08-28; RJ-BIL-FE-002 selesai untuk Resep/Tindakan/Lab, bagian Radiologi tetap terblokir"
+test_evidence: "88 test unit lulus, 0 gagal; 29 milik RJ-BIL-FE-001 dan 21 milik RJ-BIL-FE-002. Build next lulus exit 0. Component render test belum mungkin pada harness node --test."
+source_snapshot_drift: "SHA frontend pada manifest (ab4bd836) tertinggal 11 commit dari HEAD (bd31dc99). Sengaja tidak disamakan; wewenang pemilik frontend."
 ```
 
 ---
@@ -39,9 +46,16 @@ progress: "0 dari 7 task frontend dimulai per 2026-08-27"
 > **Roadmap ini berstatus `APPROVED_FOR_EXECUTION` sejak 2026-08-21.** Ketujuh task
 > `RJ-BIL-FE-001` s.d. `RJ-BIL-FE-007` sudah disetujui pemilik pekerjaan.
 >
-> Approval itu **bukan** izin menulis `.jsx`. `IMPLEMENTATION_AUTHORITY` masih `NOT_GRANTED` dan
-> `BUILDER_EXECUTION` masih `NOT_AUTHORIZED` untuk **seluruh** task frontend. Setiap task tetap
-> memerlukan handoff task dan wewenang tulis frontend pada waktu eksekusi.
+> **`RJ-BIL-DEC-013` pada 2026-08-28 menaikkan `IMPLEMENTATION_AUTHORITY` menjadi `GRANTED`.**
+> `BUILDER_EXECUTION` menjadi `AUTHORIZED` untuk **empat** task saja — `RJ-BIL-FE-001`,
+> `RJ-BIL-FE-002` bagian Lab, `RJ-BIL-FE-004`, dan `RJ-BIL-FE-005` — yaitu yang backend
+> pasangannya sudah selesai dan terbukti lulus test. `RJ-BIL-FE-003`, `RJ-BIL-FE-006`, dan
+> `RJ-BIL-FE-007` tetap `NOT_AUTHORIZED` karena endpoint-nya belum ada sama sekali.
+>
+> Wewenang itu mencakup penulisan code dan test frontend. Ia **tidak** mencakup commit, push,
+> merge, deployment, maupun perubahan backend. `FRONTEND_AUTHORITY` atas route, menu, dan bentuk
+> komponen pada `03-frontend-architecture.md` bagian `7` tetap `OPEN`, begitu pula
+> `SECURITY_PRIVACY_SIGNOFF`.
 >
 > **Tidak satu pun task di bawah boleh mengaktifkan `RJ-BIL-DEP-009`.** Adapter payer eksternal
 > tidak boleh punya tombol aktivasi produksi di layar mana pun.
@@ -53,16 +67,16 @@ progress: "0 dari 7 task frontend dimulai per 2026-08-27"
 | ✅ | **SELESAI** | Layar sudah dibuat, build lulus, dan test acceptance-nya lulus dengan bukti tercatat |
 | 🟡 | **KODE SIAP, BELUM DI-BUILD** | `.jsx` sudah ditulis, tetapi build dan test belum dijalankan — sehingga belum ada bukti apa pun bahwa layar itu berjalan |
 | ⛔ | **TERBLOKIR** | Endpoint backend pasangannya belum ada, atau task frontend pendahulunya belum selesai |
-| tanpa tanda | **Belum dikerjakan** | Endpoint backend pasangannya sudah ada; yang belum ada adalah wewenang tulis frontend |
+| tanpa tanda | **Belum dikerjakan** | Endpoint backend pasangannya sudah ada dan wewenang tulisnya sudah diberikan `RJ-BIL-DEC-013`; layarnya yang belum dibuat |
 
-**Keadaan hari ini, 27 Agustus 2026.**
+**Keadaan hari ini, 28 Agustus 2026.**
 
 | Hal | Keadaannya |
 | --- | --- |
-| Task frontend selesai | **0 dari 7.** Belum satu pun dimulai |
-| Task yang backend-nya sudah siap | **4** — `RJ-BIL-FE-001`, `RJ-BIL-FE-002` (bagian Lab), `RJ-BIL-FE-004`, `RJ-BIL-FE-005` |
+| Task frontend selesai | **2 dari 7** — `RJ-BIL-FE-001` dan `RJ-BIL-FE-002` ✅ selesai `2026-08-28`. Bagian Radiologi `FE-002` tetap ⛔ |
+| Task yang backend-nya sudah siap dan belum dikerjakan | **2** — `RJ-BIL-FE-004` dan `RJ-BIL-FE-005`; keduanya kini terbuka karena gerbangnya `FE-002` sudah selesai |
 | Task yang backend-nya masih terblokir | **3** — `RJ-BIL-FE-003`, `RJ-BIL-FE-006`, `RJ-BIL-FE-007` |
-| Wewenang tulis frontend | `NOT_GRANTED` untuk seluruh task |
+| Wewenang tulis frontend | **`GRANTED` sejak `RJ-BIL-DEC-013`**, terbatas pada 4 task yang backend-nya siap. 3 task sisanya tetap `NOT_AUTHORIZED` |
 
 Keadaan frontend hari ini, dari capability map pada commit `ab4bd83`:
 
@@ -70,9 +84,9 @@ Keadaan frontend hari ini, dari capability map pada commit `ab4bd83`:
 | --- | --- | --- |
 | Workspace Dokter/Rawat Jalan | **Ada dan dapat dijangkau.** Route, antrean, SOAP, CPPT, resep, tindakan, surat keterangan, serta penanganan loading dan error sudah tersedia | `RJ-BIL-CAP-002` — *Ready to reuse* |
 | Tab resep dan tindakan | **Ada.** Draft, autosave, dan finalize sudah terintegrasi | `RJ-BIL-CAP-018` — *Ready to reuse*. **Tidak boleh** dijadikan financial source of truth |
-| Tab order Lab dan Radiologi | **Tidak ada.** Yang muncul hanya label CPPT dan metadata master, bukan journey order operasional | `RJ-BIL-CAP-019` — *Missing*; `RJ-BIL-CONFLICT-003` |
-| Layar billing, folio, payer split, correction status | **Tidak ada satu pun consumer** | `RJ-BIL-CAP-020` — *Missing* |
-| Test frontend yang relevan | **Tidak ditemukan** pada snapshot audit | `RJ-BIL-CAP-021` — *Missing* |
+| Tab order Lab dan Radiologi | **Lab kini terbaca** lewat `RJ-BIL-FE-002`, sebagai status pada layar Billing — **bukan** sebagai journey order operasional, yang masih tidak ada. Radiologi tetap nihil | `RJ-BIL-CAP-019` — *Missing* pada snapshot audit; `RJ-BIL-CONFLICT-003` masih berlaku |
+| Layar billing, folio, payer split, correction status | **Sebagian tertutup `2026-08-28`.** Layar folio baca sudah ada lewat `RJ-BIL-FE-001`. Payer split dan correction status **masih tidak punya consumer** | `RJ-BIL-CAP-020` — *Missing* pada snapshot audit; folio kini terpenuhi |
+| Test frontend yang relevan | **Mulai ada.** 29 test unit `RJ-BIL-FE-001` pada `tests/unit/billing-folio-utils.test.mjs`. **Render test masih nihil** — harness `node --test` tanpa `@testing-library` | `RJ-BIL-CAP-021` — *Missing* pada snapshot audit; ditutup bertahap oleh `RJ-BIL-FE-007` |
 
 > **`RJ-BIL-CONFLICT-003` perlu diingat sebelum estimasi dibuat.** Jawaban closure menyatakan Lab
 > dan Radiologi sudah tersedia di menu dokter. Source frontend hanya membuktikan resep dan
@@ -128,11 +142,11 @@ kontrak" **belum** cukup; yang dihitung adalah endpoint pasangannya benar-benar 
 
 | Task frontend | Backend pasangannya | Keadaan backend per `2026-08-27` |
 | --- | --- | --- |
-| `RJ-BIL-FE-001` | `RJ-BIL-BE-001` | ✅ **Selesai** — boleh dikerjakan begitu wewenang tulis diberikan |
+| `RJ-BIL-FE-001` | `RJ-BIL-BE-001` + `RJ-BIL-BE-007` | ✅ **Selesai.** Layarnya sudah dikerjakan dan ✅ selesai `2026-08-28` |
 | `RJ-BIL-FE-002` | `RJ-BIL-BE-002`, `BE-003`, `BE-004` | ✅ Resep, tindakan, dan Lab selesai; ⛔ **Radiologi terblokir**. Bagian Radiologi menyusul |
 | `RJ-BIL-FE-003` | `RJ-BIL-BE-005` | ⛔ **Terblokir** — menunggu keputusan `RJ-BIL-CONFLICT-001` |
-| `RJ-BIL-FE-004` | `RJ-BIL-BE-006` | ✅ **Selesai `2026-08-27`** — boleh dikerjakan begitu wewenang tulis diberikan |
-| `RJ-BIL-FE-005` | `RJ-BIL-BE-007` | ✅ **Selesai** — boleh dikerjakan begitu wewenang tulis diberikan |
+| `RJ-BIL-FE-004` | `RJ-BIL-BE-006` | ✅ **Selesai `2026-08-27`** — wewenang tulis sudah diberikan `RJ-BIL-DEC-013`; layarnya belum dikerjakan |
+| `RJ-BIL-FE-005` | `RJ-BIL-BE-007` | ✅ **Selesai** — wewenang tulis sudah diberikan `RJ-BIL-DEC-013`; layarnya belum dikerjakan |
 | `RJ-BIL-FE-006` | `RJ-BIL-BE-008` | ⛔ **Terblokir** — menunggu `RJ-BIL-BE-005` |
 | `RJ-BIL-FE-007` | `RJ-BIL-FE-001` s.d. `FE-006` | ⛔ Paling akhir |
 
@@ -172,30 +186,31 @@ ringkasannya.
 
 ## 4. Task
 
-### `RJ-BIL-FE-001` — Petugas dapat membaca tagihan satu kunjungan
+### ✅ `RJ-BIL-FE-001` — Petugas dapat membaca tagihan satu kunjungan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-001` sudah ✅ selesai; yang belum ada adalah wewenang tulis frontend |
+| **Status** | ✅ **SELESAI `2026-08-28`.** Layar dibuat di bawah `RJ-BIL-DEC-013`; `next build` lulus (`exit 0`) dan route `[encounterId]` terbukti dihasilkan; 29 test baru lulus. `FRONTEND_AUTHORITY` visual dan `SECURITY_PRIVACY_SIGNOFF` tetap `OPEN` |
 | **Outcome** | Menyediakan consumer read-only Folio dan milestone status, sehingga petugas dapat melihat isi tagihan satu kunjungan tanpa satu pun angka dapat diubah dari layar |
 | **Trace** | `RJ-BIL-GATE-DEC-001`, `RJ-BIL-GATE-DEC-008`; `RJ-BIL-CAP-020` berstatus `Missing` |
 | **Kontrak** | API/Validation `RJ-BIL-API-001@1.0.0`, `RJ-BIL-VAL-001@1.0.0` |
 | **Reuse** | Konvensi Axios, Redux, dan penanganan loading/error yang sudah ada |
 | **Scope** | Query folio berdasarkan encounter atau id; tampilan charge line dan component; processing outcome; refresh; penjaga stale response |
-| **Dependency** | `RJ-BIL-BE-001`; frontend API authority |
+| **Dependency** | `RJ-BIL-BE-001`; **`RJ-BIL-BE-007`** — baris ini semula hanya menyebut `BE-001`, padahal `processing outcome` pada Scope hanya tersedia lewat `GET /reconciliation/processing-status` milik `BE-007`. Dicatat sebagai delta, **bukan** disunting sepihak sebagai kontrak; frontend API authority |
 | **Wewenang UI** | Detail tampilan `DEV_DISCRETION` |
 | **Acceptance criteria** | 1. `OutcomeUnknown` **bukan** failed dan **bukan** success. 2. `404` ditampilkan sebagai tidak ditemukan, **bukan** kosong. 3. `409` menampilkan konflik beserta reload terkontrol. 4. UUID **bukan** satu-satunya label di layar |
-| **Verifikasi** | Component/API/mock test; pemeriksaan accessibility |
+| **Verifikasi** | ✅ **Keempat kriteria terbukti test.** 29 test unit lulus; seluruh suite `67 lulus, 0 gagal`; lint `0 masalah`; build `exit 0`. **Component render test belum mungkin** — harness project memakai `node --test` tanpa `@testing-library`; batas ini menjadi cakupan `RJ-BIL-FE-007` |
 | **Risiko/pemilik** | Frontend authority |
-| **DoD** | Consumer kontrak teruji; **tidak ada satu pun mutasi finansial dari frontend** |
+| **DoD** | ✅ Consumer kontrak teruji; **tidak ada satu pun mutasi finansial dari frontend** — service layer sengaja hanya memuat operasi baca |
+| **Bukti** | [fe-rj-bil-001-baca-tagihan-satu-kunjungan.md](../task/report/frontend/fe-rj-bil-001-baca-tagihan-satu-kunjungan.md) |
 
 ---
 
-### `RJ-BIL-FE-002` — Pesanan klinis tidak pernah tampil sebagai lunas
+### ✅ `RJ-BIL-FE-002` — Pesanan klinis tidak pernah tampil sebagai lunas
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan.** Bagian resep, tindakan, dan Lab sudah dapat dikerjakan — `RJ-BIL-BE-002` dan `BE-003` ✅ selesai. **Bagian Radiologi menyusul**, karena `RJ-BIL-BE-004` masih ⛔ terblokir |
+| **Status** | ✅ **SELESAI `2026-08-28` untuk bagian Resep, Tindakan, dan Laboratorium.** `next build` lulus (`exit 0`), route `clinical-boundary/[encounterId]` terbukti dihasilkan, 21 test baru lulus. **Bagian Radiologi tetap ⛔** dan sengaja tidak dikerjakan — Radiologi belum terdaftar pada `BillingSourceContract` backend dan `RJ-BIL-BE-004` masih terblokir. Ketiadaannya **diumumkan di layar**, bukan didiamkan |
 | **Outcome** | Menampilkan clinical milestone dan financial boundary, sehingga petugas tidak pernah salah membaca pesanan klinis sebagai tagihan yang sudah lunas |
 | **Trace** | `RJ-BIL-GATE-DEC-001`, `003`, `004`, `007`; `RJ-BIL-CAP-019` berstatus `Missing` |
 | **Kontrak** | State `RJ-BIL-STATE-001@1.0.0` |
@@ -204,9 +219,11 @@ ringkasannya.
 | **Dependency** | `RJ-BIL-FE-001`; `RJ-BIL-BE-002`, `BE-003`, `BE-004` |
 | **Wewenang UI** | Detail tampilan `DEV_DISCRETION`; perbedaan kelima jenis status **tidak** `DEV_DISCRETION` |
 | **Acceptance criteria** | 1. UI **tidak** menampilkan order sebagai `Paid`. 2. Sumber dan versi status terlihat. 3. Stale response ditolak, tidak menimpa state yang lebih baru |
-| **Verifikasi** | UI state test; error test; accessibility test |
+| **Verifikasi** | ✅ **Ketiga kriteria terbukti test.** 21 test unit lulus; seluruh suite `88 lulus, 0 gagal`; lint `0 masalah`; build `exit 0`. **Component render test belum mungkin** — harness `node --test` tanpa `@testing-library`; cakupan `RJ-BIL-FE-007` |
 | **Risiko/pemilik** | Clinical, Pharmacy, dan Frontend |
-| **DoD** | Batas klinis–finansial ditinjau domain owner |
+| **DoD** | 🟡 Batas klinis–finansial **belum ditinjau domain owner**. Implementasinya selesai dan teruji, tetapi tinjauan domain owner adalah syarat yang hanya dapat dipenuhi manusia |
+| **Bukti** | [fe-rj-bil-002-batas-klinis-dan-finansial.md](../task/report/frontend/fe-rj-bil-002-batas-klinis-dan-finansial.md) |
+| **Temuan** | `PrescriptionResponse.paymentStatus` **masih mengirim nilai `Lunas`** walau `RJ-BIL-BE-002` sudah mencabut kewenangan finansial modul klinis — endpoint yang **menulis** dihapus, yang **membaca** belum. Layar menjinakkannya; keputusan menarik kolom itu dari payload adalah wewenang pemilik |
 
 ---
 
@@ -233,7 +250,7 @@ ringkasannya.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-006` sudah ✅ selesai `2026-08-27`; yang belum ada adalah wewenang tulis frontend. **Matriks nominal approval `RJ-BIL-OQ-004` belum ditetapkan**, sehingga tindakan yang bergantung ambang akan berbalas `BlockedByPolicyConfiguration` — layar wajib menampilkannya sebagai keadaan yang sah, bukan sebagai galat sistem |
+| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-006` sudah ✅ selesai `2026-08-27`, dan wewenang tulisnya sudah diberikan `RJ-BIL-DEC-013`. **Siap dikerjakan**. **Matriks nominal approval `RJ-BIL-OQ-004` belum ditetapkan**, sehingga tindakan yang bergantung ambang akan berbalas `BlockedByPolicyConfiguration` — layar wajib menampilkannya sebagai keadaan yang sah, bukan sebagai galat sistem |
 | **Outcome** | Menyediakan form financial action dan status approval, sehingga pembatalan, koreksi, dan pengembalian uang selalu terlihat sebagai **permintaan** — bukan sebagai perubahan yang sudah terjadi |
 | **Trace** | `RJ-BIL-GATE-DEC-006`; `RJ-BIL-CAP-014`, `RJ-BIL-CAP-015` |
 | **Kontrak** | Permission/State `RJ-BIL-PERM-001@1.0.0`, `RJ-BIL-STATE-001@1.0.0` |
@@ -252,7 +269,7 @@ ringkasannya.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-007` sudah ✅ selesai beserta delapan endpoint rekonsiliasinya; yang belum ada adalah wewenang tulis frontend |
+| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-007` sudah ✅ selesai beserta delapan endpoint rekonsiliasinya, dan wewenang tulisnya sudah diberikan `RJ-BIL-DEC-013`. **Siap dikerjakan** |
 | **Outcome** | Menampilkan reconciliation dan outage state, sehingga petugas tahu apa yang sedang terjadi dan apa tindakan berikutnya — bukan menekan tombol kirim berulang kali |
 | **Trace** | `RJ-BIL-GATE-DEC-008`; `RJ-BIL-CAP-017`, `RJ-BIL-CAP-021` |
 | **Kontrak** | Integration `RJ-BIL-INT-001@1.0.0` |

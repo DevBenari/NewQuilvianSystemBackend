@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -472,6 +472,55 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
                 await context.LabOrders
                     .Where(x => labOrderIds.Contains(x.Id))
+                    .ExecuteDeleteAsync(cancellationToken);
+            }
+
+            // Radiologi (RJ-BIL-BE-004) mengikuti pola yang sama: riwayat, konsumsi, dan
+            // jawaban keselamatan menggantung pada study; study menggantung pada order; order
+            // menggantung pada encounter.
+            var radOrderIds = await context.RadOrders
+                .Where(x => x.EncounterId == seed.EncounterId)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (radOrderIds.Count > 0)
+            {
+                var studyIds = await context.RadStudies
+                    .Where(x => radOrderIds.Contains(x.RadOrderId))
+                    .Select(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                await context.RadTransitionHistories
+                    .Where(x =>
+                        radOrderIds.Contains(x.RadOrderId) ||
+                        (x.RadStudyId != null && studyIds.Contains(x.RadStudyId.Value)))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.RadAcquisitionConsumptions
+                    .Where(x => studyIds.Contains(x.RadStudyId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.RadStudySafetyChecks
+                    .Where(x => studyIds.Contains(x.RadStudyId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                // Pengulangan membuat rantai study yang menunjuk study sebelumnya, sehingga
+                // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
+                while (await context.RadStudies
+                    .AnyAsync(x => radOrderIds.Contains(x.RadOrderId), cancellationToken))
+                {
+                    var removed = await context.RadStudies
+                        .Where(x =>
+                            radOrderIds.Contains(x.RadOrderId) &&
+                            !context.RadStudies.Any(child => child.RepeatOfStudyId == x.Id))
+                        .ExecuteDeleteAsync(cancellationToken);
+
+                    if (removed == 0)
+                        break;
+                }
+
+                await context.RadOrders
+                    .Where(x => radOrderIds.Contains(x.Id))
                     .ExecuteDeleteAsync(cancellationToken);
             }
 
