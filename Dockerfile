@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
 # ============================================================
-# Runtime base image
-# Keep this stage stable so OS/package layers can be reused
-# across deployments even when application build metadata changes.
+# Runtime base
+# Stable runtime dependencies. These layers should be reusable
+# by GitHub BuildKit once a successful build exports the cache.
 # ============================================================
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
@@ -34,24 +34,55 @@ RUN set -eux; \
 
 
 # ============================================================
-# Build stage
-# Restore once, then publish without triggering another restore.
+# Restore
+#
+# Deliberately use a normal Docker layer instead of a BuildKit
+# cache mount. The previous Dockerfile stalled on a RUN using:
+#   --mount=type=cache,...,sharing=locked
+#
+# With the project file copied first, Docker/GHA layer caching
+# can still reuse this restore layer while keeping the publish
+# step independent from a locked NuGet cache mount.
 # ============================================================
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
 WORKDIR /src
+
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+ENV DOTNET_NOLOGO=1
 
 COPY ["QuilvianSystemBackend.csproj", "./"]
 
-RUN --mount=type=cache,id=nuget-v2,target=/root/.nuget/packages,sharing=locked \
-    dotnet restore "QuilvianSystemBackend.csproj"
+RUN dotnet restore "QuilvianSystemBackend.csproj" \
+    --verbosity minimal
+
+
+# ============================================================
+# Build
+#
+# Build and publish are intentionally separate so GitHub Actions
+# logs show whether a future slowdown is in compilation or in the
+# publish packaging phase.
+# ============================================================
+FROM restore AS build
 
 COPY . .
 
-RUN --mount=type=cache,id=nuget-v2,target=/root/.nuget/packages,sharing=locked \
-    dotnet publish "QuilvianSystemBackend.csproj" \
+RUN dotnet build "QuilvianSystemBackend.csproj" \
+    -c Release \
+    --no-restore \
+    /p:UseAppHost=false \
+    /p:DebugSymbols=false \
+    /p:DebugType=None \
+    /p:RunAnalyzers=false \
+    /p:ContinuousIntegrationBuild=true \
+    /p:UseSharedCompilation=false \
+    --verbosity minimal
+
+RUN dotnet publish "QuilvianSystemBackend.csproj" \
     -c Release \
     -o /app/publish \
     --no-restore \
+    --no-build \
     /p:UseAppHost=false \
     /p:DebugSymbols=false \
     /p:DebugType=None \
@@ -62,8 +93,8 @@ RUN --mount=type=cache,id=nuget-v2,target=/root/.nuget/packages,sharing=locked \
 
 # ============================================================
 # Final image
-# Dynamic build metadata belongs here so it does not invalidate
-# the expensive runtime dependency layer above.
+# Dynamic build metadata stays in the final stage so it does not
+# invalidate restore/build/runtime dependency layers.
 # ============================================================
 FROM base AS final
 WORKDIR /app
