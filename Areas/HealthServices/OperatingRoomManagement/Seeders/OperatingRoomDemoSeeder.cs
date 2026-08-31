@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -194,6 +195,8 @@ public static class OperatingRoomDemoSeeder
         // Penjadwalan mewajibkan empat peran terisi: dokter bedah, dokter anestesi,
         // perawat instrumen, dan perawat sirkuler. Dokter bedah memakai profil di atas;
         // tiga sisanya dibuat di sini. Tanpa mereka penjadwalan ditolak dengan OPR004.
+        var teamProfileIds = new Dictionary<string, Guid>();
+
         var teamProfiles = new[]
         {
             ("Anestesi", "-WFP-ANEST", "dr. Demo Anestesi, Sp.An", UserType.PermanentDoctor),
@@ -216,6 +219,83 @@ public static class OperatingRoomDemoSeeder
                 x => x.Id, result, "MstWorkforceProfile", actor, now, ct);
 
             result.TeamWorkforceIds.Add(teamProfileId);
+            teamProfileIds[key] = teamProfileId;
+        }
+
+        // Profil tenaga saja tidak cukup untuk muncul di layar penjadwalan. Dropdown peran
+        // dokter membaca MstDoctor, dan dropdown peran perawat membaca MstEmployee; keduanya
+        // tidak pernah membaca MstWorkforceProfile secara langsung. Tanpa baris di bawah ini
+        // tenaga demo ada di basis data tetapi tidak dapat dipilih siapa pun.
+        var departmentId = await EnsureAsync(db.MstDepartments,
+            x => x.DepartmentCode == CodePrefix + "-DEPT",
+            () => new MstDepartment
+            {
+                Id = Deterministic("Department"),
+                DepartmentCode = CodePrefix + "-DEPT",
+                DepartmentName = "Kamar Operasi (Demo)"
+            },
+            x => x.Id, result, "MstDepartment", actor, now, ct);
+
+        var positionId = await EnsureAsync(db.MstPositions,
+            x => x.PositionCode == CodePrefix + "-POS",
+            () => new MstPosition
+            {
+                Id = Deterministic("Position"),
+                PositionCode = CodePrefix + "-POS",
+                PositionName = "Perawat Kamar Operasi (Demo)",
+                DepartmentId = departmentId
+            },
+            x => x.Id, result, "MstPosition", actor, now, ct);
+
+        await EnsureAsync(db.MstDoctors,
+            x => x.DoctorCode == CodePrefix + "-DR-ANEST",
+            () => new MstDoctor
+            {
+                Id = Deterministic("DoctorAnest"),
+                DoctorCode = CodePrefix + "-DR-ANEST",
+                DoctorNumber = CodePrefix + "-002",
+                FullName = "dr. Demo Anestesi, Sp.An",
+                WorkforceProfileId = teamProfileIds["Anestesi"],
+                WorkforceTypeId = workforceTypeId,
+                EmployeeCategoryId = employeeCategoryId,
+                EmploymentTypeId = employmentTypeId,
+                EmploymentStatusId = employmentStatusId,
+                ProfessionId = professionId,
+                IsActive = true
+            },
+            x => x.Id, result, "MstDoctor", actor, now, ct);
+
+        foreach (var (key, suffix, fullName, identityNumber) in new[]
+        {
+            ("PerawatInstrumen", "-EMP-SCRUB", "Perawat Instrumen Demo", "3200000000000001"),
+            ("PerawatSirkuler", "-EMP-CIRC", "Perawat Sirkuler Demo", "3200000000000002")
+        })
+        {
+            await EnsureAsync(db.MstEmployees,
+                x => x.EmployeeCode == CodePrefix + suffix,
+                () => new MstEmployee
+                {
+                    Id = Deterministic("Employee" + key),
+                    EmployeeCode = CodePrefix + suffix,
+                    EmployeeNumber = CodePrefix + suffix,
+                    FullName = fullName,
+                    WorkforceProfileId = teamProfileIds[key],
+                    BirthDate = new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    IdentityType = "KTP",
+                    // NIK dibatasi 16 karakter; memakai kode DEMO-OPR di sini membuat
+                    // PostgreSQL menolak seluruh penyimpanan dengan 22001.
+                    IdentityNumber = identityNumber,
+                    Email = key.ToLowerInvariant() + ".demo@contoh.invalid",
+                    PrimaryDepartmentId = departmentId,
+                    PrimaryPositionId = positionId,
+                    WorkforceTypeId = workforceTypeId,
+                    EmployeeCategoryId = employeeCategoryId,
+                    EmploymentTypeId = employmentTypeId,
+                    EmploymentStatusId = employmentStatusId,
+                    JoinDate = now,
+                    IsActive = true
+                },
+                x => x.Id, result, "MstEmployee", actor, now, ct);
         }
 
         // ------------------------------------------------------------- pelayanan pasien
