@@ -77,7 +77,26 @@ public static class OperatingRoomDemoSeeder
         }
 
         var now = DateTime.UtcNow;
-        var actor = Guid.Empty;
+
+        // Akun sasaran dicari lebih dulu, bukan di akhir, karena TrxPatientEncounter punya
+        // kolom RegisteredByUserId yang ber-foreign key ke AspNetUsers dan tidak boleh kosong.
+        // Mengisinya Guid.Empty membuat PostgreSQL menolak dengan 23503.
+        var user = string.IsNullOrWhiteSpace(targetUserName)
+            ? null
+            : await db.Set<ApplicationUser>().FirstOrDefaultAsync(x => x.UserName == targetUserName, ct);
+
+        if (user is null)
+        {
+            result.RefusedReason =
+                "Seeder demo Operasi membutuhkan satu akun yang sudah ada untuk dicatat sebagai " +
+                "pendaftar kunjungan, karena TrxPatientEncounter.RegisteredByUserId ber-foreign key " +
+                "ke AspNetUsers. Akun sasaran " +
+                (string.IsNullOrWhiteSpace(targetUserName) ? "belum ditentukan" : "'" + targetUserName + "' tidak ditemukan") +
+                ". Pastikan SuperAdminSeeder sudah berjalan, atau isi Seeders:OperatingRoomDemoTargetUserName.";
+            return result;
+        }
+
+        var actor = user.Id;
 
         // ---------------------------------------------------------------- ketenagakerjaan
         var workforceTypeId = await EnsureAsync(db.MstWorkforceTypes,
@@ -191,7 +210,8 @@ public static class OperatingRoomDemoSeeder
                 EncounterNumber = CodePrefix + "-ENC-001",
                 PatientId = patientId,
                 ServiceUnitId = serviceUnitId,
-                EncounterDate = now
+                EncounterDate = now,
+                RegisteredByUserId = actor
             },
             x => x.Id, result, "TrxPatientEncounter", actor, now, ct);
 
@@ -273,17 +293,7 @@ public static class OperatingRoomDemoSeeder
 
         // ------------------------------------------------------ menautkan akun ke dokter
         // Dilakukan setelah SaveChanges supaya baris dokter dipastikan sudah tersimpan.
-        var user = string.IsNullOrWhiteSpace(targetUserName)
-            ? null
-            : await db.Set<ApplicationUser>().FirstOrDefaultAsync(x => x.UserName == targetUserName, ct);
-
-        if (user is null)
-        {
-            result.UserLinkNote = string.IsNullOrWhiteSpace(targetUserName)
-                ? "Tidak ada akun sasaran yang ditentukan; penautan dokter dilewati."
-                : "Akun '" + targetUserName + "' tidak ditemukan; penautan dokter dilewati.";
-        }
-        else if (user.DoctorId.HasValue)
+        if (user.DoctorId.HasValue)
         {
             result.UserLinkNote =
                 "Akun '" + user.UserName + "' sudah tertaut dokter " + user.DoctorId +
