@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyA
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
@@ -188,6 +189,34 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstDoctor", actor, now, ct);
 
+        // ------------------------------------------------------------------ anggota tim
+        // Penjadwalan mewajibkan empat peran terisi: dokter bedah, dokter anestesi,
+        // perawat instrumen, dan perawat sirkuler. Dokter bedah memakai profil di atas;
+        // tiga sisanya dibuat di sini. Tanpa mereka penjadwalan ditolak dengan OPR004.
+        var teamProfiles = new[]
+        {
+            ("Anestesi", "-WFP-ANEST", "dr. Demo Anestesi, Sp.An", UserType.PermanentDoctor),
+            ("PerawatInstrumen", "-WFP-SCRUB", "Perawat Instrumen Demo", UserType.Employee),
+            ("PerawatSirkuler", "-WFP-CIRC", "Perawat Sirkuler Demo", UserType.Employee)
+        };
+
+        foreach (var (key, suffix, displayName, userType) in teamProfiles)
+        {
+            var teamProfileId = await EnsureAsync(db.MstWorkforceProfiles,
+                x => x.ProfileCode == CodePrefix + suffix,
+                () => new MstWorkforceProfile
+                {
+                    Id = Deterministic("WorkforceProfile" + key),
+                    ProfileCode = CodePrefix + suffix,
+                    DisplayName = displayName,
+                    UserType = userType,
+                    IsActive = true
+                },
+                x => x.Id, result, "MstWorkforceProfile", actor, now, ct);
+
+            result.TeamWorkforceIds.Add(teamProfileId);
+        }
+
         // ------------------------------------------------------------- pelayanan pasien
         var serviceUnitId = await EnsureAsync(db.MstServiceUnits,
             x => x.ServiceUnitCode == CodePrefix + "-SU",
@@ -198,6 +227,68 @@ public static class OperatingRoomDemoSeeder
                 ServiceUnitName = "Kamar Operasi (Demo)"
             },
             x => x.Id, result, "MstServiceUnit", actor, now, ct);
+
+        // Ruang operasi. RoomType WAJIB OperatingRoom; penjadwalan menyaring tepat pada
+        // nilai itu, sehingga kamar bertipe lain ditolak dengan "Ruang operasi tidak
+        // ditemukan atau tidak aktif" walaupun kamarnya ada dan aktif.
+        var roomId = await EnsureAsync(db.MstRooms,
+            x => x.RoomCode == CodePrefix + "-OK1",
+            () => new MstRoom
+            {
+                Id = Deterministic("Room"),
+                RoomCode = CodePrefix + "-OK1",
+                RoomName = "OK 1 (Demo)",
+                RoomType = RoomType.OperatingRoom,
+                ServiceUnitId = serviceUnitId,
+                Capacity = 1,
+                IsActive = true
+            },
+            x => x.Id, result, "MstRoom", actor, now, ct);
+
+        // Unit tujuan untuk serah terima pasca-recovery. Dibuat terpisah dari unit kamar
+        // operasi supaya perpindahan pasien benar-benar berpindah unit, bukan ke dirinya.
+        var destinationUnitId = await EnsureAsync(db.MstServiceUnits,
+            x => x.ServiceUnitCode == CodePrefix + "-SU-RANAP",
+            () => new MstServiceUnit
+            {
+                Id = Deterministic("ServiceUnitDestination"),
+                ServiceUnitCode = CodePrefix + "-SU-RANAP",
+                ServiceUnitName = "Rawat Inap Bedah (Demo)"
+            },
+            x => x.Id, result, "MstServiceUnit", actor, now, ct);
+
+        // Bahan dan implan untuk pencatatan pemakaian material. Modul Operasi membacanya
+        // dari master farmasi, bukan dari master miliknya sendiri.
+        var drugCategoryId = await EnsureAsync(db.MstDrugCategories,
+            x => x.DrugCategoryCode == CodePrefix + "-DCAT",
+            () => new MstDrugCategory
+            {
+                Id = Deterministic("DrugCategory"),
+                DrugCategoryCode = CodePrefix + "-DCAT",
+                DrugCategoryName = "Bahan Habis Pakai Operasi (Demo)"
+            },
+            x => x.Id, result, "MstDrugCategory", actor, now, ct);
+
+        foreach (var (suffix, code, name) in new[]
+        {
+            ("Consumable", CodePrefix + "-ITEM-A", "Kasa Steril (Demo)"),
+            ("Implant", CodePrefix + "-ITEM-B", "Mesh Hernia (Demo)")
+        })
+        {
+            var drugId = await EnsureAsync(db.MstDrugs,
+                x => x.DrugCode == code,
+                () => new MstDrug
+                {
+                    Id = Deterministic("Drug" + suffix),
+                    DrugCode = code,
+                    DrugName = name,
+                    DrugCategoryId = drugCategoryId,
+                    IsActive = true
+                },
+                x => x.Id, result, "MstDrug", actor, now, ct);
+
+            result.MaterialItemIds.Add(drugId);
+        }
 
         var patientId = await EnsureAsync(db.MstPatients,
             x => x.PatientCode == CodePrefix + "-PT",
@@ -328,6 +419,9 @@ public static class OperatingRoomDemoSeeder
 
         result.DoctorId = doctorId;
         result.PatientId = patientId;
+        result.RoomId = roomId;
+        result.SurgeonWorkforceId = profileId;
+        result.DestinationUnitId = destinationUnitId;
         result.EncounterId = encounterId;
         return result;
     }
@@ -470,9 +564,14 @@ public sealed class OperatingRoomDemoSeedResult
     public List<string> Created { get; } = [];
     public List<string> Reused { get; } = [];
     public List<Guid> PatientProcedureIds { get; } = [];
+    public List<Guid> TeamWorkforceIds { get; } = [];
+    public List<Guid> MaterialItemIds { get; } = [];
     public Guid DoctorId { get; set; }
     public Guid PatientId { get; set; }
     public Guid EncounterId { get; set; }
+    public Guid RoomId { get; set; }
+    public Guid SurgeonWorkforceId { get; set; }
+    public Guid DestinationUnitId { get; set; }
     public string? UserLinkNote { get; set; }
     public Guid CaseId { get; set; }
     public string? LinkedUserName { get; set; }

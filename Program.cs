@@ -827,6 +827,15 @@ try
             result.PatientId, result.EncounterId, result.DoctorId,
             string.Join(", ", result.PatientProcedureIds));
 
+        logger.LogInformation(
+            "[OperatingRoomDemo] Penjadwalan -> RoomId={RoomId}, KetuaTim(WorkforceId)={SurgeonWorkforceId}, " +
+            "AnggotaTimLain={TeamWorkforceIds}",
+            result.RoomId, result.SurgeonWorkforceId, string.Join(", ", result.TeamWorkforceIds));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Material -> ItemId={MaterialItemIds}. Serah terima -> UnitTujuan={DestinationUnitId}",
+            string.Join(", ", result.MaterialItemIds), result.DestinationUnitId);
+
         logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
 
         if (result.CaseId != Guid.Empty)
