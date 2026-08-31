@@ -623,15 +623,21 @@ public static class OperatingRoomDemoSeeder
 
             if (existing is not null)
             {
-                // Kata sandi akun yang sudah ada tidak pernah ditimpa; hanya tautan
-                // tenaganya yang dilengkapi bila memang belum terisi.
                 if (!existing.WorkforceProfileId.HasValue || existing.WorkforceProfileId.Value == Guid.Empty)
                 {
                     existing.WorkforceProfileId = workforceProfileId;
                     await userManager.UpdateAsync(existing);
                 }
 
-                notes.Add("Akun '" + userName + "' sudah ada; kata sandi dibiarkan apa adanya.");
+                // Kata sandi diselaraskan ulang. Ini hanya berlaku bagi dua akun demo milik
+                // seeder ini, bukan akun mana pun yang lain, dan hanya di luar produksi.
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(existing);
+                var reset = await userManager.ResetPasswordAsync(existing, resetToken, password);
+
+                notes.Add(reset.Succeeded
+                    ? "Akun '" + userName + "' sudah ada; kata sandinya diselaraskan."
+                    : "Akun '" + userName + "' sudah ada; penyelarasan sandi GAGAL: " +
+                        string.Join(", ", reset.Errors.Select(x => x.Description)));
                 continue;
             }
 

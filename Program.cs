@@ -841,7 +841,11 @@ try
         var demoUserNotes = await OperatingRoomDemoSeeder.EnsureDemoUsersAsync(
             scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
             result,
-            configuration["Seeders:OperatingRoomDemoUserPassword"],
+            // Ikut kata sandi SuperAdmin bila tidak ditentukan sendiri, supaya seluruh akun
+            // demo di basis data pengembangan memakai sandi yang sama.
+            string.IsNullOrWhiteSpace(configuration["Seeders:OperatingRoomDemoUserPassword"])
+                ? configuration["SeedSuperAdmin:Password"]
+                : configuration["Seeders:OperatingRoomDemoUserPassword"],
             cancellationToken);
 
         foreach (var note in demoUserNotes)
