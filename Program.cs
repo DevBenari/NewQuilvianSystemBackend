@@ -1007,6 +1007,27 @@ try
 
     app.MapHealthChecks("/health");
 
+    // Peringatan mencolok bila pemeriksaan hak akses sedang dimatikan, supaya keadaan ini
+    // tidak berlalu tanpa disadari dan tidak ikut terbawa saat lingkungan disalin.
+    if (!builder.Configuration.GetValue("Security:Authorization:Enabled", true))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] Security:Authorization:Enabled bernilai false, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Pemeriksaan hak akses tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] PEMERIKSAAN HAK AKSES DIMATIKAN pada lingkungan {Environment}. " +
+                "Setiap pengguna yang berhasil login dapat membuka dan mengubah apa pun. " +
+                "Nyalakan kembali dengan Security:Authorization:Enabled = true sebelum " +
+                "menguji hak akses atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
+
     await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));

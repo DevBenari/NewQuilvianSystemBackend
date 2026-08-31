@@ -11,16 +11,30 @@ namespace QuilvianSystemBackend.Services.Security
         private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly bool _enforceClinicalPolicyForSuperAdmin;
+        private readonly bool _authorizationDisabled;
 
         public AccessPermissionService(
             ApplicationDbContext dbContext,
             UserManager<ApplicationUser> userManager,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHostEnvironment environment)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _enforceClinicalPolicyForSuperAdmin = configuration.GetValue<bool>(
                 "Security:Authorization:EnforceClinicalPolicyForSuperAdmin");
+
+            // Saklar untuk mematikan SELURUH pemeriksaan hak akses selama pengembangan,
+            // ketika izin per departemen dan jabatan belum ditetapkan dan pemeriksaannya
+            // hanya menghalangi pengujian alur.
+            //
+            // Saklar ini SENGAJA tidak berlaku di produksi. Mematikan otorisasi di sana
+            // berarti siapa pun yang berhasil login dapat membuka rekam medis pasien mana
+            // pun dan menghapus data apa pun. Karena itu nilai konfigurasinya diabaikan
+            // begitu lingkungannya produksi, bukan sekadar diberi peringatan.
+            _authorizationDisabled =
+                !configuration.GetValue("Security:Authorization:Enabled", true) &&
+                !environment.IsProduction();
         }
 
         public async Task<bool> HasAccessAsync(
@@ -31,6 +45,13 @@ namespace QuilvianSystemBackend.Services.Security
             if (userPrincipal.Identity?.IsAuthenticated != true)
             {
                 return false;
+            }
+
+            // Pengguna tetap wajib login. Yang dilepas hanya pemeriksaan hak akses
+            // per controller dan aksi, bukan autentikasinya.
+            if (_authorizationDisabled)
+            {
+                return true;
             }
 
             var userIdText =

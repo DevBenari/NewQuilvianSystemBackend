@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Filters;
@@ -61,17 +62,24 @@ public sealed class AccessPermissionEnforcementTests
 
     private static AccessPermissionService CreateService(
         ApplicationDbContext dbContext,
-        bool enforceClinicalPolicyForSuperAdmin = false)
+        bool enforceClinicalPolicyForSuperAdmin = false,
+        bool authorizationEnabled = true,
+        string environmentName = "Development")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Security:Authorization:EnforceClinicalPolicyForSuperAdmin"] =
                     enforceClinicalPolicyForSuperAdmin ? "true" : "false",
+                ["Security:Authorization:Enabled"] =
+                    authorizationEnabled ? "true" : "false",
             })
             .Build();
 
-        return new AccessPermissionService(dbContext, CreateUserManager(dbContext), configuration);
+        var environment = new HostingEnvironment { EnvironmentName = environmentName };
+
+        return new AccessPermissionService(
+            dbContext, CreateUserManager(dbContext), configuration, environment);
     }
 
     private static LoggerService CreateLogger() =>
@@ -179,6 +187,50 @@ public sealed class AccessPermissionEnforcementTests
             authenticationType: "TestAuth"));
 
     private static ClaimsPrincipal UnauthenticatedPrincipal() => new(new ClaimsIdentity());
+
+    // --- Saklar mematikan otorisasi selama pengembangan ---
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_MeloloskanPenggunaTanpaPolicy_DiLuarProduksi()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        // Sengaja tidak diberi organisasi maupun policy apa pun.
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Development");
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(user.Id), BillingWriteOffController, ApproveAction);
+
+        Assert.True(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_TETAPMenolakDiProduksi()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Production");
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(user.Id), BillingWriteOffController, ApproveAction);
+
+        // Inilah batas yang paling menentukan: konfigurasi tidak boleh dapat mematikan
+        // otorisasi di produksi, karena akibatnya seluruh rekam medis terbuka bagi siapa pun
+        // yang berhasil login.
+        Assert.False(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_TidakMeloloskanPenggunaYangBelumLogin()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Development");
+
+        var hasAccess = await service.HasAccessAsync(
+            new ClaimsPrincipal(new ClaimsIdentity()), BillingWriteOffController, ApproveAction);
+
+        Assert.False(hasAccess);
+    }
 
     // --- Resolusi izin inti (AccessPermissionService.HasAccessAsync) ---
 
