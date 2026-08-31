@@ -70,6 +70,7 @@ COPY . .
 RUN dotnet build "QuilvianSystemBackend.csproj" \
     -c Release \
     --no-restore \
+    /p:ExcludeEfMigrationMetadata=true \
     /p:UseAppHost=false \
     /p:DebugSymbols=false \
     /p:DebugType=None \
@@ -83,6 +84,7 @@ RUN dotnet publish "QuilvianSystemBackend.csproj" \
     -o /app/publish \
     --no-restore \
     --no-build \
+    /p:ExcludeEfMigrationMetadata=true \
     /p:UseAppHost=false \
     /p:DebugSymbols=false \
     /p:DebugType=None \
