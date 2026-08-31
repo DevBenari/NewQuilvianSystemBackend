@@ -319,7 +319,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Risk/blocker** | Kriteria 1 adalah inti perbaikan revision ini. Menyediakan "tunai" sebagai pilihan terpilih otomatis mengulang cacat yang sama dalam bentuk lain. Owner: Frontend bersama Product/Domain |
 | **Gerbang skema** | `RWI-UI-GAP-002`: request kunjungan aktual belum membuktikan dukungan penjamin perusahaan |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | 🟡 Implementasi 5/5 AC tersedia; lint dan build lulus; E2E tidak dijalankan sesuai instruksi pengguna sehingga DoD belum lengkap — [laporan](../task/report/frontend/FE-RWI-024.md) |
 
 ---
 
@@ -656,11 +656,11 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | Gerbang | Keadaannya | Menahan |
 | --- | --- | --- |
 | `RWI-UI-GAP-001` jumlah langkah pasien lama | Revision `3` menulis delapan, tetapi urutan bernama menghasilkan sembilan bila Cetak Persetujuan dihitung | `FE-RWI-022`, `035` |
-| `RWI-UI-GAP-002` penjamin perusahaan | Request kunjungan source terkini belum membawa payer perusahaan | `FE-RWI-024`, `025`, `035` |
+| `RWI-UI-GAP-002` penjamin perusahaan | Pemilihan kartu perusahaan tersedia pada `FE-RWI-024`, tetapi request kunjungan source terkini belum membawa payer perusahaan | `FE-RWI-025`, `035` |
 | `RWI-UI-GAP-003` pemesanan tidak terbaca | **Terbuka sejak 28 Agustus 2026,** ditemukan saat `FE-RWI-020`. Tidak ada operasi baca yang mengembalikan reservation aktif, `ReservationId`, dan `ExpiresAt` sebuah episode `Draft`. Owner: Backend/API bersama Product/Domain | `FE-RWI-020` kriteria 2; `FE-RWI-026` untuk episode existing/board; `FE-RWI-030`; **memblokir `FE-RWI-032`** |
 | `RWI-UI-GAP-004` baca kelayakan keuangan | Tidak ada GET nilai/riwayat dan permission baca kasir belum terbukti | Delta `FE-RWI-013`; `FE-RWI-035` |
 | `RWI-UI-GAP-005` baca sesi koreksi | Tidak ada GET sesi; refresh tidak memulihkan sesi terbuka | Delta `FE-RWI-018`; `FE-RWI-035` |
-| `RWI-UI-GAP-006` route dan permission pasien/encounter | **Sebagian tertutup.** `FE-RWI-023` membuktikan route `/admin` PatientManagement dijaga RBAC petugas, bukan policy kiosk — [bukti](../task/report/frontend/FE-RWI-023.md). Route encounter/payer untuk `024`–`025` masih terbuka | `FE-RWI-024`–`025`, `035` |
+| `RWI-UI-GAP-006` route dan permission pasien/encounter | **Sebagian tertutup.** `FE-RWI-023` membuktikan route pasien `/admin`; `FE-RWI-024` membuktikan route payer `/admin/options` dan `/admin` dijaga RBAC petugas — [bukti pasien](../task/report/frontend/FE-RWI-023.md), [bukti payer](../task/report/frontend/FE-RWI-024.md). Route encounter untuk `FE-RWI-025` masih terbuka | `FE-RWI-025`, `035` |
 | `RWI-UI-GAP-007` data master/runtime belum layak | Screenshot pemilik menunjukkan pengaturan `DEFAULT` tidak ditemukan, butir administrasi kosong, papan nol bed, dan tidak ada episode untuk membuktikan aksi berbasis baris. Seeder ada di source, tetapi keterisiannya pada environment target belum terbukti | `FE-RWI-036`–`041`; **memblokir penuh `FE-RWI-041`** dan bukti runtime `FE-RWI-035` |
 | Approval blueprint revision 3 | ✅ **Tertutup.** `RWI-DEC-075` s.d. `RWI-DEC-079` disetujui Muhammad Hamzah pada 27 Agustus 2026 | Riwayat; tidak menyetujui revision 4 maupun 5 |
 | Approval skema/roadmap revision 5 | **Terbuka.** `05-skema-tampilan.md` `0.4` dan roadmap ini tetap `DRAFT` | Menahan pemakaian skema dan enam task repair sebagai brief UI mengikat |
