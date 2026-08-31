@@ -12,6 +12,16 @@
 		<DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
 	</PropertyGroup>
 
+	<PropertyGroup>
+		<ExcludeEfMigrationMetadata
+		  Condition="'$(ExcludeEfMigrationMetadata)' == ''">false</ExcludeEfMigrationMetadata>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(ExcludeEfMigrationMetadata)' == 'true'">
+		<Compile Remove="Migrations/**/*.Designer.cs" />
+		<Compile Remove="Migrations/ApplicationDbContextModelSnapshot.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<Compile Remove="QuilvianSystemBackend.Tests\**" />
 		<Compile Remove="Tests\**" />
