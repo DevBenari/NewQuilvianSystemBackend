@@ -838,6 +838,17 @@ try
 
         logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
 
+        var demoUserNotes = await OperatingRoomDemoSeeder.EnsureDemoUsersAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            result,
+            configuration["Seeders:OperatingRoomDemoUserPassword"],
+            cancellationToken);
+
+        foreach (var note in demoUserNotes)
+        {
+            logger.LogInformation("[OperatingRoomDemo] {Note}", note);
+        }
+
         if (result.CaseId != Guid.Empty)
         {
             logger.LogInformation(

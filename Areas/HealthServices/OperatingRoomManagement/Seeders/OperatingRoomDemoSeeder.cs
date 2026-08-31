@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -563,6 +564,107 @@ public static class OperatingRoomDemoSeeder
         result.DestinationUnitId = destinationUnitId;
         result.EncounterId = encounterId;
         return result;
+    }
+
+    /// <summary>
+    /// Membuat akun login untuk dokter anestesi dan perawat demo, masing-masing tertaut ke
+    /// profil tenaganya sendiri, supaya sign-off tiga peran dapat benar-benar diuji.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Sign-off kesiapan sengaja hanya menerima orang yang memegang peran itu di tim. Satu
+    /// akun karena itu tidak akan pernah bisa memberikan ketiganya, dan memang tidak boleh —
+    /// pemeriksaan silang antar profesi itulah inti checklist keselamatan operasi.
+    /// </para>
+    /// <para>
+    /// Akun ini diberi peran <c>SuperAdmin</c> semata-mata agar lolos pemeriksaan izin tanpa
+    /// perlu menyiapkan pemetaan role dan permission lebih dulu. Itu WAJAR HANYA untuk
+    /// mencoba alur di lingkungan pengembangan. Di pemakaian sungguhan, dokter anestesi dan
+    /// perawat mendapat izin lewat role mereka sendiri, bukan dengan dijadikan super admin.
+    /// </para>
+    /// <para>
+    /// Kata sandinya tidak pernah ditanam di dalam kode. Ia dibaca dari konfigurasi
+    /// <c>Seeders:OperatingRoomDemoUserPassword</c>; bila kosong, pembuatan akun dilewati
+    /// beserta alasannya.
+    /// </para>
+    /// </remarks>
+    public static async Task<List<string>> EnsureDemoUsersAsync(
+        UserManager<ApplicationUser> userManager,
+        OperatingRoomDemoSeedResult seedResult,
+        string? password,
+        CancellationToken ct = default)
+    {
+        var notes = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            notes.Add(
+                "Akun demo anestesi dan perawat DILEWATI karena " +
+                "Seeders:OperatingRoomDemoUserPassword belum diisi. Kata sandi tidak pernah " +
+                "ditanam di dalam kode; isi lewat user-secrets lalu jalankan ulang.");
+            return notes;
+        }
+
+        if (seedResult.TeamWorkforceIds.Count < 3)
+        {
+            notes.Add("Akun demo dilewati karena profil tenaga tim belum lengkap.");
+            return notes;
+        }
+
+        var accounts = new[]
+        {
+            ("opr.anestesi", "USR-DEMO-OPR-001", "dr. Demo Anestesi, Sp.An", seedResult.TeamWorkforceIds[0]),
+            ("opr.perawat", "USR-DEMO-OPR-002", "Perawat Instrumen Demo", seedResult.TeamWorkforceIds[1])
+        };
+
+        foreach (var (userName, userCode, displayName, workforceProfileId) in accounts)
+        {
+            var existing = await userManager.FindByNameAsync(userName);
+
+            if (existing is not null)
+            {
+                // Kata sandi akun yang sudah ada tidak pernah ditimpa; hanya tautan
+                // tenaganya yang dilengkapi bila memang belum terisi.
+                if (!existing.WorkforceProfileId.HasValue || existing.WorkforceProfileId.Value == Guid.Empty)
+                {
+                    existing.WorkforceProfileId = workforceProfileId;
+                    await userManager.UpdateAsync(existing);
+                }
+
+                notes.Add("Akun '" + userName + "' sudah ada; kata sandi dibiarkan apa adanya.");
+                continue;
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = userName,
+                // UserCode berindeks unik; membiarkannya kosong membuat akun kedua bentrok
+                // dengan yang pertama lewat 23505.
+                UserCode = userCode,
+                Email = userName + "@contoh.invalid",
+                EmailConfirmed = true,
+                DisplayName = displayName,
+                UserType = UserType.SuperAdmin,
+                WorkforceProfileId = workforceProfileId,
+                IsActive = true,
+                MustChangePassword = false,
+                CreateDateTime = DateTime.UtcNow
+            };
+
+            var created = await userManager.CreateAsync(user, password);
+
+            if (!created.Succeeded)
+            {
+                notes.Add("Akun '" + userName + "' GAGAL dibuat: " +
+                    string.Join(", ", created.Errors.Select(x => x.Description)));
+                continue;
+            }
+
+            await userManager.AddToRoleAsync(user, "SuperAdmin");
+            notes.Add("Akun '" + userName + "' dibuat dan ditautkan ke profil tenaganya.");
+        }
+
+        return notes;
     }
 
     /// <summary>
