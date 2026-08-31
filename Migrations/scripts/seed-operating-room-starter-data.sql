@@ -537,7 +537,9 @@ SELECT i.user_anesthetist, 'USR-00101', 'opr.anestesi', 'OPR.ANESTESI',
     i.ts
 FROM _ids i
 JOIN "AspNetUsers" s ON s."NormalizedUserName" = 'SUPERADMIN'
-ON CONFLICT ("Id") DO NOTHING;
+-- Tanpa target kolom, supaya bentrok pada indeks unik mana pun ikut dilewati,
+-- termasuk bila akun dengan nama sama sudah dibuat lebih dulu oleh seeder.
+ON CONFLICT DO NOTHING;
 
 INSERT INTO "AspNetUsers" (
     "Id", "UserCode", "UserName", "NormalizedUserName", "Email", "NormalizedEmail",
@@ -554,7 +556,9 @@ SELECT i.user_nurse, 'USR-00102', 'opr.perawat', 'OPR.PERAWAT',
     i.ts
 FROM _ids i
 JOIN "AspNetUsers" s ON s."NormalizedUserName" = 'SUPERADMIN'
-ON CONFLICT ("Id") DO NOTHING;
+-- Tanpa target kolom, supaya bentrok pada indeks unik mana pun ikut dilewati,
+-- termasuk bila akun dengan nama sama sudah dibuat lebih dulu oleh seeder.
+ON CONFLICT DO NOTHING;
 
 -- Peran SuperAdmin, mengikuti peran akun superadmin yang sudah ada.
 INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
