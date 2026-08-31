@@ -75,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             hasil.TotalProgressNote = await seluruhCppt.CountAsync(cancellationToken);
 
-            var sudahTerdaftarIds = _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var sudahTerdaftarIds = _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.DocumentKind == ClinicalDocumentKind.ProgressNote && !x.IsDelete)
                 .Select(x => x.DocumentId);
@@ -160,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 IsDryRun = isDryRun
             };
 
-            var sudahTerdaftarIds = _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var sudahTerdaftarIds = _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.DocumentKind == ClinicalDocumentKind.ProgressNote && !x.IsDelete)
                 .Select(x => x.DocumentId);
@@ -200,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 .Select(x => new { x.Id, x.EncounterStatus, x.CompletedAt, x.IsCancel })
                 .ToListAsync(cancellationToken);
 
-            var barisBaru = new List<TrxClinicalDocumentIntegrity>();
+            var barisBaru = new List<MrcClinicalDocumentIntegrity>();
 
             foreach (var cppt in antrean)
             {
@@ -250,7 +250,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     hasil.JumlahTetapDraf++;
                 }
 
-                barisBaru.Add(new TrxClinicalDocumentIntegrity
+                barisBaru.Add(new MrcClinicalDocumentIntegrity
                 {
                     DocumentKind = ClinicalDocumentKind.ProgressNote,
                     DocumentId = cppt.Id,
@@ -269,7 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             if (!isDryRun && barisBaru.Count > 0)
             {
-                await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+                await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                     .AddRangeAsync(barisBaru, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }

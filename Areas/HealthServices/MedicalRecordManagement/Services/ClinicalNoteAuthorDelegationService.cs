@@ -28,7 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         ///
         /// Menyimpan sendiri, karena hanya menyisipkan satu baris penetapan.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, TrxClinicalNoteAuthorDelegation? Delegation)> CreateAsync(
+        public async Task<(IntegrityGuardResult Result, MrcClinicalNoteAuthorDelegation? Delegation)> CreateAsync(
             Guid originalAuthorUserId,
             Guid grantedByUserId,
             string grantReason,
@@ -90,7 +90,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     "otomatis tanpa penetapan."), null);
             }
 
-            var sudahAda = await _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var sudahAda = await _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .AnyAsync(x => x.OriginalAuthorUserId == originalAuthorUserId
                                && x.IsActive
@@ -106,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     "Penulis ini sudah memiliki penetapan yang masih berlaku."), null);
             }
 
-            var penetapan = new TrxClinicalNoteAuthorDelegation
+            var penetapan = new MrcClinicalNoteAuthorDelegation
             {
                 OriginalAuthorUserId = originalAuthorUserId,
                 Trigger = AuthorDelegationTrigger.UnitHeadGrant,
@@ -119,7 +119,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 CreateBy = grantedByUserId
             };
 
-            await _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            await _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AddAsync(penetapan, cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -130,13 +130,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <summary>
         /// Mencabut penetapan lebih awal, sebelum batas waktunya berakhir.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, TrxClinicalNoteAuthorDelegation? Delegation)> RevokeAsync(
+        public async Task<(IntegrityGuardResult Result, MrcClinicalNoteAuthorDelegation? Delegation)> RevokeAsync(
             Guid delegationId,
             Guid revokedByUserId,
             DateTime nowUtc,
             CancellationToken cancellationToken = default)
         {
-            var penetapan = await _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var penetapan = await _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .FirstOrDefaultAsync(x => x.Id == delegationId && !x.IsDelete, cancellationToken);
 
             if (penetapan == null)

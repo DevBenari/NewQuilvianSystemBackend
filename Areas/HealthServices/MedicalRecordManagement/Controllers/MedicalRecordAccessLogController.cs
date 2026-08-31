@@ -251,7 +251,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
-            var query = _dbContext.Set<TrxMedicalRecordAccessLog>().AsNoTracking();
+            var query = _dbContext.Set<MrcAccessLog>().AsNoTracking();
 
             if (patientId.HasValue && patientId.Value != Guid.Empty)
                 query = query.Where(x => x.PatientId == patientId.Value);
@@ -297,7 +297,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil, "Daftar jejak akses berhasil diambil."));
         }
 
-        private static MedicalRecordAccessLogResponse ToResponse(TrxMedicalRecordAccessLog x) => new()
+        private static MedicalRecordAccessLogResponse ToResponse(MrcAccessLog x) => new()
         {
             Id = x.Id,
             PatientId = x.PatientId,

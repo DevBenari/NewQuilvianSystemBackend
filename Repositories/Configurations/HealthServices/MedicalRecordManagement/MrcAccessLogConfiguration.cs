@@ -4,12 +4,12 @@ using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.MedicalRecordManagement
 {
-    public class TrxMedicalRecordAccessLogConfiguration
-        : IEntityTypeConfiguration<TrxMedicalRecordAccessLog>
+    public class MrcAccessLogConfiguration
+        : IEntityTypeConfiguration<MrcAccessLog>
     {
-        public void Configure(EntityTypeBuilder<TrxMedicalRecordAccessLog> builder)
+        public void Configure(EntityTypeBuilder<MrcAccessLog> builder)
         {
-            builder.ToTable("TrxMedicalRecordAccessLog", "public");
+            builder.ToTable("MrcAccessLog", "public");
 
             // Kunci utama gabungan, bukan Id saja.
             //

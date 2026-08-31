@@ -69479,7 +69479,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstTariffCategory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalDocumentIntegrity", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalDocumentIntegrity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -69580,10 +69580,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PatientId", "IntegrityStatus", "IsDelete");
 
-                    b.ToTable("TrxClinicalDocumentIntegrity", "public");
+                    b.ToTable("MrcClinicalDocumentIntegrity", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalNoteAddendum", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalNoteAddendum", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -69664,10 +69664,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("IntegrityId", "Sequence")
                         .IsUnique();
 
-                    b.ToTable("TrxClinicalNoteAddendum", "public");
+                    b.ToTable("MrcClinicalNoteAddendum", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalNoteAuthorDelegation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalNoteAuthorDelegation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -69739,10 +69739,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("OriginalAuthorUserId", "IsActive", "ValidUntil");
 
-                    b.ToTable("TrxClinicalNoteAuthorDelegation", "public");
+                    b.ToTable("MrcClinicalNoteAuthorDelegation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxMedicalRecordAccessLog", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcAccessLog", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -69848,7 +69848,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsFlaggedForReview", "ReviewedAt", "AccessedAt");
 
-                    b.ToTable("TrxMedicalRecordAccessLog", "public");
+                    b.ToTable("MrcAccessLog", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprAnesthesiaRecord", b =>
@@ -95538,7 +95538,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TariffCategory");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalDocumentIntegrity", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalDocumentIntegrity", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
                         .WithMany()
@@ -95557,14 +95557,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Patient");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalNoteAddendum", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalNoteAddendum", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalNoteAuthorDelegation", "Delegation")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalNoteAuthorDelegation", "Delegation")
                         .WithMany()
                         .HasForeignKey("DelegationId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalDocumentIntegrity", "Integrity")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalDocumentIntegrity", "Integrity")
                         .WithMany("Addendums")
                         .HasForeignKey("IntegrityId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -95575,7 +95575,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Integrity");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxMedicalRecordAccessLog", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcAccessLog", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMedicalRecordAccessPurpose", "AccessPurpose")
                         .WithMany()
@@ -98193,7 +98193,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ChildStorageLocations");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxClinicalDocumentIntegrity", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalDocumentIntegrity", b =>
                 {
                     b.Navigation("Addendums");
                 });

@@ -22,13 +22,14 @@ Registry approval grants naming and ownership authority only. It does **not** au
 | HealthServices | InsuranceManagement / Insurance | BUSINESS DOMAIN / MODULE | Ins | PLANNED |
 | Corporate/HumanResource | WorkflowManagement / Workflow | SHARED PLATFORM CAPABILITY | Wfl | ACTIVE / LEGACY |
 | HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
-| HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | PLANNED |
+| HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | ACTIVE |
 
 ## Lifecycle change log
 
 | Date | Module | Change | Authority |
 |---|---|---|---|
 | 2026-08-24 | InPatientManagement / `Inp` | `PLANNED` → `ACTIVE` | Muhammad Hamzah, blueprint `RWI-BP-001` decision `RWI-DEC-068`. Lifts the QBE-MOD-002 bar on creating `Inp*` operational entities. Database execution outside local and deployment remain separate authorities. |
+| 2026-08-31 | MedicalRecordManagement / `Mrc` | `PLANNED` → `ACTIVE` | Yoga Aji Pratama, blueprint `RM-BP-001` decision `RM-DEC-029`. Membuka normalisasi LEGACY MIGRATION empat entity `Trx*` rekam medis menjadi `Mrc*` beserta tabel fisiknya (QBE-NAM-003), diterapkan migration `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix`. Wewenang ini mencakup source dan pembuatan migration; **eksekusi database di luar dev pemilik dan deployment tetap wewenang terpisah.** |
 
 DoctorAndScheduleManagement is MASTER / REFERENCE by current evidence and has no independent operational prefix. For a new operational entity use `<ApprovedOwnerPrefix><BusinessConcept>` without redundant owner text, e.g. `RegPatientEncounter`, `EmgVisit`, `WflInstance`, `LabOrder`.
 

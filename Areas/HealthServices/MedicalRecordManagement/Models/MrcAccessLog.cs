@@ -26,8 +26,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
     /// pada tabel yang sudah berisi jutaan baris.</item>
     /// </list>
     /// </summary>
-    [Table("TrxMedicalRecordAccessLog", Schema = "public")]
-    public class TrxMedicalRecordAccessLog : IdentityModel
+    [Table("MrcAccessLog", Schema = "public")]
+    public class MrcAccessLog : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

@@ -132,7 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             // Bila pernah ada penetapan tetapi sudah lewat, pesannya dibedakan supaya pengguna
             // tahu harus meminta perpanjangan, bukan mengira dirinya memang tidak berhak.
-            var pernahAdaPenetapan = await _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var pernahAdaPenetapan = await _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .AnyAsync(x => x.OriginalAuthorUserId == keutuhan.AuthorUserId && !x.IsDelete,
                           cancellationToken);
@@ -148,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// Menyimpan sendiri, karena hanya menyisipkan satu addendum dan memperbarui penghitung
         /// pada baris keutuhan. Isi dokumen induk tidak tersentuh — itulah inti addendum.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, TrxClinicalNoteAddendum? Addendum)> CreateAsync(
+        public async Task<(IntegrityGuardResult Result, MrcClinicalNoteAddendum? Addendum)> CreateAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             Guid actorUserId,
@@ -189,17 +189,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 return (IntegrityGuardResult.Denied(kode, kewenangan.Explanation), null);
             }
 
-            var keutuhan = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .FirstAsync(x => x.DocumentKind == documentKind
                                  && x.DocumentId == documentId
                                  && !x.IsDelete, cancellationToken);
 
-            var urutanTerakhir = await _dbContext.Set<TrxClinicalNoteAddendum>()
+            var urutanTerakhir = await _dbContext.Set<MrcClinicalNoteAddendum>()
                 .Where(x => x.IntegrityId == keutuhan.Id && !x.IsDelete)
                 .Select(x => (int?)x.Sequence)
                 .MaxAsync(cancellationToken) ?? 0;
 
-            var addendum = new TrxClinicalNoteAddendum
+            var addendum = new MrcClinicalNoteAddendum
             {
                 IntegrityId = keutuhan.Id,
                 Sequence = urutanTerakhir + 1,
@@ -215,7 +215,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 CreateBy = actorUserId
             };
 
-            await _dbContext.Set<TrxClinicalNoteAddendum>().AddAsync(addendum, cancellationToken);
+            await _dbContext.Set<MrcClinicalNoteAddendum>().AddAsync(addendum, cancellationToken);
 
             // Status dokumen SENGAJA tidak berubah. Dokumen yang Signed tetap Signed setelah
             // dikoreksi sepuluh kali. Addendum adalah lampiran, bukan perubahan keadaan.
@@ -231,7 +231,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <summary>
         /// Daftar addendum sebuah dokumen, urut dari koreksi pertama.
         /// </summary>
-        public async Task<List<TrxClinicalNoteAddendum>> ListByDocumentAsync(
+        public async Task<List<MrcClinicalNoteAddendum>> ListByDocumentAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             CancellationToken cancellationToken = default)
@@ -241,7 +241,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             if (keutuhan == null)
                 return [];
 
-            return await _dbContext.Set<TrxClinicalNoteAddendum>()
+            return await _dbContext.Set<MrcClinicalNoteAddendum>()
                 .AsNoTracking()
                 .Where(x => x.IntegrityId == keutuhan.Id && !x.IsDelete)
                 .OrderBy(x => x.Sequence)
@@ -251,11 +251,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <summary>
         /// Mencari penetapan berhalangan yang masih berlaku untuk seorang penulis.
         /// </summary>
-        public Task<TrxClinicalNoteAuthorDelegation?> CariPenetapanBerlakuAsync(
+        public Task<MrcClinicalNoteAuthorDelegation?> CariPenetapanBerlakuAsync(
             Guid originalAuthorUserId,
             DateTime nowUtc,
             CancellationToken cancellationToken = default)
-            => _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            => _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .Where(x => x.OriginalAuthorUserId == originalAuthorUserId
                             && x.IsActive
