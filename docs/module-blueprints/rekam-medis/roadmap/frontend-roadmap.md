@@ -106,23 +106,54 @@ menampilkan daftar kosong tanpa penjelasan yang membuat pengguna mengira sistemn
 
 ## 2. Ringkasan status seluruh task
 
-Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan pemeriksaan ulang terhadap
-source backend.
+Status per **31 Agustus 2026**, setelah seluruh task frontend dikerjakan dan dua task backend
+susulan (`BE-19`, `BE-20`) selesai.
 
 | Milestone | Task | Status | Keterangan |
 |---|---|---|---|
-| F0 | `FE-00` | **`SIAP`** | Lapisan service dan hook. **Kerjakan lebih dulu** — seluruh task lain bergantung padanya |
-| F1 | `FE-01` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-14`) |
-| F1 | `FE-02` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-11`, `BE-14`). Daftar keperluan dibaca dari `/filters/metadata` → `accessPurposes`, **bukan** dari `/options` yang belum ada. **Daftarnya masih kosong** sampai master terisi |
-| F2 | `FE-03`, `FE-04` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-04`, `BE-06`) |
-| F3 | `FE-05` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-12`) |
-| F3 | `FE-06` | **`TERTAHAN BACKEND`** | **Dikoreksi 27 Agustus 2026.** Keenam endpoint master keperluan akses belum ada — `BE-09` menyelesaikan tabelnya, bukan controller-nya. Perlu task backend baru lebih dulu |
-| F4 | `FE-07`, `FE-08` | **`SIAP`** setelah `FE-00` | — |
-| F5 | `FE-09` | **`SIAP`** setelah seluruh task pendahulu | — |
+| F0 | `FE-00` | **`SELESAI`** 27 Agustus 2026 | Lapisan service dan hook; 15 uji lulus. Endpoint kontrak bagian 7 sengaja belum dibuat servicenya karena backend-nya belum ada saat itu |
+| F1 | `FE-01` | **`SELESAI`** 31 Agustus 2026 | Kedua keadaan lengkap. Keadaan A sempat ditahan menunggu `BE-19`, dan dibuka setelahnya |
+| F1 | `FE-02` | **`SELESAI`** 28 Agustus 2026 | Kotak keperluan akses. Sempat gagal-tertutup — selalu muncul — selama penanda kunjungan aktif belum ada; **dinormalkan 31 Agustus 2026** setelah `BE-19` |
+| F2 | `FE-03`, `FE-04` | **`SELESAI`** 28 Agustus 2026 | Catatan belum ditandatangani, dan addendum di dalam kartu dokumen induknya |
+| F3 | `FE-05` | **`SELESAI`** 28 Agustus 2026 | Tinjauan akses; alasan akses hanya terbaca di panel tinjauan |
+| F3 | `FE-06` | **`SELESAI`** 31 Agustus 2026 | Dibuka `BE-20`. **Penyimpangan tercatat:** layar tidak memakai scaffolding 11-berkas + Redux seperti 24 layar master lain — lihat catatan di bawah |
+| F4 | `FE-07` | **`SELESAI`** 31 Agustus 2026 | Keempat entri menu terpasang dan seluruhnya dapat dibuka. Acceptance criteria nomor 2 tetap **tidak dapat dibuktikan** — lihat `RM-FE-013` |
+| F4 | `FE-08` | **`SELESAI`** 31 Agustus 2026 | Lima acceptance criteria terpenuhi untuk keempat layar |
+| F5 | `FE-09` | **`SELESAI`** 31 Agustus 2026 | Empat uji antarmuka `AT-RM-39` sampai `AT-RM-42` ada dan **lulus** terhadap aplikasi yang benar-benar berjalan |
 
-**Denominator: 10 task. Nol tertahan kontrak — gerbang kontrak memang terbuka. Sembilan task
-menunggu urutan dependency saja, dan `FE-00` adalah pintunya. Satu task, `FE-06`, tertahan
-backend dan tidak dapat dimulai sampai controller master keperluan akses dibuat.**
+**Denominator: 10 task. Sepuluh `SELESAI`, nol `SIAP`, nol tertahan. Seluruh pekerjaan frontend
+modul Rekam Medis selesai.**
+
+### `FE-09` menutup satu butir DoD `FE-02` yang sebelumnya menggantung
+
+`AT-RM-41` tidak hanya memeriksa bahwa kotak keperluan tampil. Ia mengumpulkan setiap URL yang
+benar-benar diminta halaman, lalu membuktikan bahwa **tidak satu pun** permintaan `/summary`,
+`/timeline`, maupun `/documents/` terkirim sebelum kotak dijawab — dan bahwa `/filters/metadata`
+yang memang tidak menghasilkan jejak akses boleh terkirim.
+
+Itu persis pemeriksaan lalu lintas jaringan yang dituntut DoD `FE-02` dan sebelumnya dilaporkan
+belum terbukti. **Sekarang terbukti otomatis**, dan akan tetap terbukti setiap kali uji ini
+dijalankan.
+
+Uji ini memalsukan balasan API lewat `page.route`, mengikuti pola `route-smoke.spec.mjs`. Ia
+karena itu tidak menyentuh database mana pun dan tidak menghasilkan jejak akses sungguhan —
+yang justru penting di modul ini.
+
+### Dua catatan yang mengikat pembacaan tabel di atas
+
+**`FE-06` menyimpang dari pola layar master data.** Arsitektur 11.5 menuntut "daftar, tambah,
+detail, dan pengaktifan, persis seperti 24 layar master lainnya"; keempat kemampuan itu ada,
+tetapi dibangun memakai base component langsung seperti `FE-03` dan `FE-05`, bukan scaffolding
+constants + tiga hook + Redux slice yang dipakai layar master lain. Alasannya: templat itu
+disalin utuh per layar tanpa factory bersama, sehingga mengikutinya berarti ~2.000 baris
+duplikasi, dan slice-nya akan menjadi satu-satunya pemakaian Redux di seluruh modul rekam
+medis. **Ini utang yang tercatat, bukan butir selesai** — bila konsistensi dengan 24 layar lain
+diinginkan, konversinya pekerjaan mekanis tersendiri.
+
+**`FE-07` acceptance criteria nomor 2 tetap tidak dapat dibuktikan**, persis seperti dinyatakan
+arsitektur bagian 10.5. Penyaringan menu per izin belum ada di frontend, dan memperbaikinya
+menuntut endpoint daftar izin pengguna yang belum ada di backend. `RM-FE-013` tetap utang
+terbuka; isinya tetap ditahan `403`.
 
 ---
 

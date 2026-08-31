@@ -13,8 +13,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
     /// manusia — sistem menyimpulkannya dari keadaan akun. Baris manual hanya dibuat untuk
     /// <see cref="AuthorDelegationTrigger.UnitHeadGrant"/>.
     /// </summary>
-    [Table("TrxClinicalNoteAuthorDelegation", Schema = "public")]
-    public class TrxClinicalNoteAuthorDelegation : IdentityModel
+    [Table("MrcClinicalNoteAuthorDelegation", Schema = "public")]
+    public class MrcClinicalNoteAuthorDelegation : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

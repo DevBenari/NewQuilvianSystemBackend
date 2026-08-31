@@ -588,7 +588,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             //
             // Sebelumnya baris ini memungkinkan penulis sebuah catatan dipindahkan ke orang lain
             // lewat permintaan ubah biasa (RM-CAP-012). Penentu penulis yang sah sekarang adalah
-            // AuthorUserId pada TrxClinicalDocumentIntegrity, yang tidak dapat disentuh
+            // AuthorUserId pada MrcClinicalDocumentIntegrity, yang tidak dapat disentuh
             // permintaan ubah dokumen.
             //
             // Nilai ProviderUserId yang dikirim klien diabaikan, bukan ditolak, supaya frontend

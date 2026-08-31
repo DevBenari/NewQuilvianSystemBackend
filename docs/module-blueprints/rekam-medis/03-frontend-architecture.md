@@ -206,7 +206,7 @@ proyek → kebijakan developer.
 | `RM-FE-010` | Tombol yang tidak berhak ditekan tidak ditampilkan | Frontend | `approved` | Wajib | Bagian 3 |
 | `RM-FE-004` | Susunan navigasi: satu menu induk `Rekam Medis` berisi tiga entri, ditambah satu entri pada menu Master Data yang sudah ada | Frontend | `approved` | Susunan dan rute mengikat; ikon, urutan visual, dan penamaan kelompok bebas | `RM-DEC-028`; bagian 10 |
 | `RM-FE-013` | Menu `Tinjauan Akses` hanya tampil bagi pemegang `MedicalRecordAccessLog : Read` | Security/privacy | `approved`, **belum ditegakkan** | Wajib sebagai aturan. Penegakannya **ditunda** 27 Agustus 2026 karena penyaringan menu per izin belum ada di frontend; tercatat sebagai utang terbuka. Isi tetap ditahan `403`. Menambal dengan pencocokan nama peran **dilarang** — lihat bagian 10.5 | permission-audit-matrix bagian 6; `RM-DEC-005` |
-| `RM-FE-014` | Berkas rekam medis dicapai lewat pencarian pasien, bukan lewat daftar seluruh pasien | Security/privacy | `approved` | Wajib; bentuk pencarian bebas | Bagian 11.1; kontrak hanya menyediakan endpoint per `patientId` |
+| `RM-FE-014` | Berkas rekam medis dicapai lewat pencarian pasien, bukan lewat daftar seluruh pasien | Security/privacy | `approved`, **berselisih dengan layar sejak 31 Agustus 2026** | Layar kini membuka daftar pasien yang dapat diramban, dengan pencarian tetap di atasnya. Perubahan itu diminta pemilik produk; aturan ini belum dicabut maupun diubah resmi — lihat catatan 11.1 | Bagian 11.1; kontrak hanya menyediakan endpoint per `patientId` |
 | `RM-FE-015` | Isi dokumen, addendum, dan `PrivateNote` dibuka dari panel detail, bukan langsung dari baris riwayat | Frontend | `approved` | Wajib; bentuk panel bebas | Bagian 11.1; `RM-FE-002`, `RM-FE-007` |
 | `RM-FE-016` | Layar master keperluan akses ditempatkan di bawah menu `Master Data` yang sudah ada, bukan di bawah menu `Rekam Medis` | Frontend | `approved` | Wajib; mengikuti pengelompokan API | api-contract bagian 7 |
 | `RM-FE-005` | Tata letak, warna, ikon, komponen tabel | Frontend | `DEV_DISCRETION` **terbatas** | Penempatan wilayah layar ditetapkan bagian 11. Warna, jarak, tipografi, dan pemilihan komponen tetap bebas | Bagian 11 |
@@ -374,7 +374,7 @@ hanyalah memastikan uji itu dijalankan ulang.
 
 | Rute | Cara mencapainya | Alasan |
 |---|---|---|
-| Berkas satu pasien | Dari hasil pencarian pada layar `Berkas Rekam Medis` | `RM-FE-014`. Menu yang langsung membuka daftar seluruh pasien akan menjadi daftar pasien rumah sakit yang dapat diramban bebas |
+| Berkas satu pasien | Klik ganda pada baris daftar rekam medis. Rutenya `/medical-records/{patientId}` | Sejak 31 Agustus 2026 berkas punya halamannya sendiri. Daftarnya kini dapat diramban — lihat catatan 11.1 dan status `RM-FE-014` |
 | Detail satu dokumen | Dari panel detail di dalam layar berkas | `RM-FE-015`. Dokumen hanya bermakna dalam konteks berkasnya |
 | Kotak isian keperluan akses | Muncul sendiri saat dibutuhkan | Ia penghalang, bukan tujuan |
 | Penetapan penulis berhalangan | **Tidak ada layarnya pada rilis pertama** | Ditunda 27 Agustus 2026; tercatat pada bagian 7. Rinciannya pada 10.6 |
@@ -476,9 +476,39 @@ jarak, tipografi, komponen tabel, dan bentuk penanda tetap `DEV_DISCRETION`.
 
 ### 11.1 Berkas Rekam Medis
 
-Satu rute, dua keadaan berurutan: mencari pasien, lalu membuka berkasnya.
+Dua rute, bukan lagi dua keadaan pada satu rute: daftar rekam medis, lalu halaman berkas satu
+pasien.
 
-#### Keadaan A — pencarian pasien
+> **Perubahan 31 Agustus 2026 — daftar menggantikan pencarian.**
+>
+> Diminta pemilik produk: keadaan A digambar sebagai tabel daftar rekam medis yang dapat
+> diramban dan disaring, dengan kotak pencarian tetap berada di atasnya; barisnya dibuka
+> dengan klik ganda, tanpa kolom aksi. Berkas satu pasien pindah ke rutenya sendiri,
+> `/medical-records/{patientId}`, diawali kartu identitas pasien.
+>
+> **Yang berselisih dengan `RM-FE-014` disebut terbuka:** daftar tanpa kata kunci kini
+> mungkin, sehingga daftar pasien rumah sakit dapat diramban oleh pemegang `Patient : Read`.
+> Aturan itu belum dicabut maupun diubah resmi, dan tetap tercatat `approved` sampai pemilik
+> aturan memutuskan.
+>
+> **Yang TIDAK berubah**, dan menjadi alasan perselisihan itu tidak melebar:
+>
+> - Daftar tetap hanya memuat identitas dan wilayah. Tidak ada diagnosis, alergi, maupun
+>   catatan — daftar bukan pratinjau rekam medis.
+> - Daftar tidak memanggil `/summary`, `/timeline`, maupun detail dokumen. Tidak satu pun
+>   jejak akses tercatat saat daftarnya diramban.
+> - Kotak keperluan akses tetap menjadi penghalang di halaman berkas, dan `RM-FE-003` tetap
+>   ditegakkan di sana.
+> - Wilayah A pada keadaan B kini berbagi satu kartu dengan identitas pasien, bukan dua kartu
+>   yang sama-sama menyebut nomor, nama, jenis kelamin, dan tanggal lahir. Isinya tidak
+>   berkurang: alergi aktif tetap terbaca tanpa digulir, diagnosis aktif, jumlah dokumen,
+>   penanda ringkasan tidak lengkap, dan keterangan akses tetap ada di kartu itu. Bagian
+>   klinisnya baru digambar setelah ringkasan dimuat — yaitu setelah keperluan dinyatakan.
+> - Penanda kunjungan yang dibawa ke halaman berkas hanyalah keterangan mendahului. Server
+>   menilai ulang setiap pembukaan, dan menolak `400` bila keperluan tidak dinyatakan untuk
+>   pasien di luar rawatan pemanggil.
+
+#### Keadaan A — daftar rekam medis
 
 ```text
 ┌ Rekam Medis › Berkas Rekam Medis ───────────────────────────────────────────┐

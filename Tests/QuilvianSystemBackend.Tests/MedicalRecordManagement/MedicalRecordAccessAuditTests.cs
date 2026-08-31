@@ -79,7 +79,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(MedicalRecordAccessType.RoutineCare, hasil.AccessType);
             Assert.False(hasil.IsFlaggedForReview);
 
-            var jejak = context.Set<TrxMedicalRecordAccessLog>().AsNoTracking().Single();
+            var jejak = context.Set<MrcAccessLog>().AsNoTracking().Single();
             Assert.Equal(konteks.PatientId, jejak.PatientId);
             Assert.Equal(dokter.Id, jejak.UserId);
             Assert.True(jejak.HasActiveEncounter);
@@ -138,7 +138,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(MedicalRecordAccessType.ReasonedAccess, hasil.AccessType);
             Assert.True(hasil.IsFlaggedForReview);
 
-            var jejak = context.Set<TrxMedicalRecordAccessLog>().AsNoTracking().Single();
+            var jejak = context.Set<MrcAccessLog>().AsNoTracking().Single();
             Assert.Equal(keperluan.Id, jejak.AccessPurposeId);
             Assert.True(jejak.IsFlaggedForReview);
             Assert.False(jejak.HasActiveEncounter);
@@ -235,7 +235,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.True(hasil.IsAllowed);
 
-            var jejak = context.Set<TrxMedicalRecordAccessLog>().AsNoTracking().Single();
+            var jejak = context.Set<MrcAccessLog>().AsNoTracking().Single();
             Assert.Equal(MedicalRecordAccessScope.PrivateNote, jejak.AccessScope);
             Assert.Equal(MedicalRecordAccessType.ReasonedAccess, jejak.AccessType);
         }
@@ -265,7 +265,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 Assert.True(hasil.IsAllowed);
             }
 
-            Assert.Equal(10, context.Set<TrxMedicalRecordAccessLog>().Count());
+            Assert.Equal(10, context.Set<MrcAccessLog>().Count());
         }
 
         // =====================================================================
@@ -360,7 +360,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.False(hasil.IsAllowed);
             Assert.Equal(StatusCodes.Status404NotFound, hasil.StatusCode);
-            Assert.Equal(0, context.Set<TrxMedicalRecordAccessLog>().Count());
+            Assert.Equal(0, context.Set<MrcAccessLog>().Count());
         }
 
         /// <summary>

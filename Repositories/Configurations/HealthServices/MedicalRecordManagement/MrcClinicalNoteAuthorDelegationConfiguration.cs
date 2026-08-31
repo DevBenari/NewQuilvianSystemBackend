@@ -4,12 +4,12 @@ using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.MedicalRecordManagement
 {
-    public class TrxClinicalNoteAuthorDelegationConfiguration
-        : IEntityTypeConfiguration<TrxClinicalNoteAuthorDelegation>
+    public class MrcClinicalNoteAuthorDelegationConfiguration
+        : IEntityTypeConfiguration<MrcClinicalNoteAuthorDelegation>
     {
-        public void Configure(EntityTypeBuilder<TrxClinicalNoteAuthorDelegation> builder)
+        public void Configure(EntityTypeBuilder<MrcClinicalNoteAuthorDelegation> builder)
         {
-            builder.ToTable("TrxClinicalNoteAuthorDelegation", "public");
+            builder.ToTable("MrcClinicalNoteAuthorDelegation", "public");
 
             builder.HasKey(x => x.Id);
 
