@@ -78,7 +78,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.False(addendum.IsSubstituteAuthor);
             Assert.Null(addendum.DelegationId);
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == documentId);
 
             // Status dokumen TIDAK berubah — addendum adalah lampiran, bukan perubahan keadaan.
@@ -110,7 +110,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 Assert.Equal(i, addendum!.Sequence);
             }
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == documentId);
 
             Assert.Equal(ClinicalDocumentIntegrityStatus.Signed, keutuhan.IntegrityStatus);

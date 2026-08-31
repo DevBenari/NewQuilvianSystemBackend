@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
     /// </summary>
     public class ClinicalDocumentIntegritySchemaTests
     {
-        private static TrxClinicalDocumentIntegrity Keutuhan(
+        private static MrcClinicalDocumentIntegrity Keutuhan(
             RekamMedisTestData.Konteks konteks,
             ClinicalDocumentKind kind,
             Guid documentId) => new()
@@ -37,9 +37,9 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             using var database = TestDatabase.Create();
             using var context = database.CreateContext();
 
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>().Count());
-            Assert.Equal(0, context.Set<TrxClinicalNoteAddendum>().Count());
-            Assert.Equal(0, context.Set<TrxClinicalNoteAuthorDelegation>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalNoteAddendum>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalNoteAuthorDelegation>().Count());
         }
 
         /// <summary>
@@ -58,11 +58,11 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var documentId = Guid.NewGuid();
 
-            context.Set<TrxClinicalDocumentIntegrity>()
+            context.Set<MrcClinicalDocumentIntegrity>()
                 .Add(Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, documentId));
             context.SaveChanges();
 
-            context.Set<TrxClinicalDocumentIntegrity>()
+            context.Set<MrcClinicalDocumentIntegrity>()
                 .Add(Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, documentId));
 
             Assert.Throws<DbUpdateException>(() => context.SaveChanges());
@@ -81,14 +81,14 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var documentId = Guid.NewGuid();
 
-            context.Set<TrxClinicalDocumentIntegrity>()
+            context.Set<MrcClinicalDocumentIntegrity>()
                 .Add(Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, documentId));
-            context.Set<TrxClinicalDocumentIntegrity>()
+            context.Set<MrcClinicalDocumentIntegrity>()
                 .Add(Keutuhan(konteks, ClinicalDocumentKind.Consultation, documentId));
 
             context.SaveChanges();
 
-            Assert.Equal(2, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(2, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         /// <summary>
@@ -105,10 +105,10 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
 
             var keutuhan = Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, Guid.NewGuid());
-            context.Set<TrxClinicalDocumentIntegrity>().Add(keutuhan);
+            context.Set<MrcClinicalDocumentIntegrity>().Add(keutuhan);
             context.SaveChanges();
 
-            context.Set<TrxClinicalNoteAddendum>().Add(new TrxClinicalNoteAddendum
+            context.Set<MrcClinicalNoteAddendum>().Add(new MrcClinicalNoteAddendum
             {
                 IntegrityId = keutuhan.Id,
                 Sequence = 1,
@@ -118,7 +118,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             });
             context.SaveChanges();
 
-            context.Set<TrxClinicalNoteAddendum>().Add(new TrxClinicalNoteAddendum
+            context.Set<MrcClinicalNoteAddendum>().Add(new MrcClinicalNoteAddendum
             {
                 IntegrityId = keutuhan.Id,
                 Sequence = 1,
@@ -143,11 +143,11 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var pertama = Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, Guid.NewGuid());
             var kedua = Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, Guid.NewGuid());
-            context.Set<TrxClinicalDocumentIntegrity>().AddRange(pertama, kedua);
+            context.Set<MrcClinicalDocumentIntegrity>().AddRange(pertama, kedua);
             context.SaveChanges();
 
-            context.Set<TrxClinicalNoteAddendum>().AddRange(
-                new TrxClinicalNoteAddendum
+            context.Set<MrcClinicalNoteAddendum>().AddRange(
+                new MrcClinicalNoteAddendum
                 {
                     IntegrityId = pertama.Id,
                     Sequence = 1,
@@ -155,7 +155,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                     AddendumText = "Koreksi pertama.",
                     CorrectionReason = "Salah tulis."
                 },
-                new TrxClinicalNoteAddendum
+                new MrcClinicalNoteAddendum
                 {
                     IntegrityId = pertama.Id,
                     Sequence = 2,
@@ -163,7 +163,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                     AddendumText = "Koreksi kedua.",
                     CorrectionReason = "Melengkapi koreksi sebelumnya."
                 },
-                new TrxClinicalNoteAddendum
+                new MrcClinicalNoteAddendum
                 {
                     IntegrityId = kedua.Id,
                     Sequence = 1,
@@ -174,7 +174,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             context.SaveChanges();
 
-            Assert.Equal(3, context.Set<TrxClinicalNoteAddendum>().Count());
+            Assert.Equal(3, context.Set<MrcClinicalNoteAddendum>().Count());
         }
 
         /// <summary>
@@ -197,10 +197,10 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
 
             var keutuhan = Keutuhan(konteks, ClinicalDocumentKind.ProgressNote, Guid.NewGuid());
-            context.Set<TrxClinicalDocumentIntegrity>().Add(keutuhan);
+            context.Set<MrcClinicalDocumentIntegrity>().Add(keutuhan);
             context.SaveChanges();
 
-            context.Set<TrxClinicalNoteAddendum>().Add(new TrxClinicalNoteAddendum
+            context.Set<MrcClinicalNoteAddendum>().Add(new MrcClinicalNoteAddendum
             {
                 IntegrityId = keutuhan.Id,
                 Sequence = 1,
@@ -212,10 +212,10 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             // Penolakan terjadi tepat saat penghapusan ditandai, bukan saat disimpan.
             Assert.Throws<InvalidOperationException>(
-                () => context.Set<TrxClinicalDocumentIntegrity>().Remove(keutuhan));
+                () => context.Set<MrcClinicalDocumentIntegrity>().Remove(keutuhan));
 
             // Addendum tetap ada setelah penghapusan ditolak.
-            Assert.Equal(1, context.Set<TrxClinicalNoteAddendum>().AsNoTracking().Count());
+            Assert.Equal(1, context.Set<MrcClinicalNoteAddendum>().AsNoTracking().Count());
         }
 
         /// <summary>
@@ -235,12 +235,12 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 var keutuhan = Keutuhan(konteks, ClinicalDocumentKind.Consultation, documentId);
                 keutuhan.IntegrityStatus = ClinicalDocumentIntegrityStatus.LockedUnsigned;
                 keutuhan.LockTrigger = ClinicalDocumentLockTrigger.EncounterClosed;
-                penulis.Set<TrxClinicalDocumentIntegrity>().Add(keutuhan);
+                penulis.Set<MrcClinicalDocumentIntegrity>().Add(keutuhan);
                 penulis.SaveChanges();
             }
 
             using var pembaca = database.CreateContext();
-            var tersimpan = pembaca.Set<TrxClinicalDocumentIntegrity>()
+            var tersimpan = pembaca.Set<MrcClinicalDocumentIntegrity>()
                 .Single(x => x.DocumentId == documentId);
 
             Assert.Equal(ClinicalDocumentKind.Consultation, tersimpan.DocumentKind);

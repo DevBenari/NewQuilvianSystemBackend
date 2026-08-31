@@ -89,7 +89,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(1, hasil.JumlahTetapDraf);
             Assert.Equal(1, hasil.JumlahDitandaiDibatalkan);
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>().AsNoTracking().ToList();
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>().AsNoTracking().ToList();
 
             var a = keutuhan.Single(x => x.DocumentId == cpptSelesai.Id);
             Assert.Equal(ClinicalDocumentIntegrityStatus.LockedUnsigned, a.IntegrityStatus);
@@ -124,7 +124,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             await Service(context).ExecuteBatchAsync(penulis.Id, Sekarang, 100, isDryRun: false);
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == cppt.Id);
 
             Assert.Equal(ClinicalDocumentIntegrityStatus.LockedUnsigned, keutuhan.IntegrityStatus);
@@ -160,7 +160,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(1, hasil.JumlahPenulisTidakDiketahui);
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == cppt.Id);
 
             Assert.False(keutuhan.IsAuthorKnown);
@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(1, hasil.JumlahDiproses);
             Assert.Equal(1, hasil.JumlahDilewatiTanpaKunjungan);
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         // =====================================================================
@@ -226,7 +226,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(1, percobaan.JumlahTetapDraf);
 
             // Tidak ada satu baris pun tersimpan.
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>().Count());
 
             var sungguhan = await Service(context).ExecuteBatchAsync(
                 penulis.Id, Sekarang, 100, isDryRun: false);
@@ -234,7 +234,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(percobaan.JumlahDiproses, sungguhan.JumlahDiproses);
             Assert.Equal(percobaan.JumlahTerkunciTanpaTandaTangan,
                          sungguhan.JumlahTerkunciTanpaTandaTangan);
-            Assert.Equal(2, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(2, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         /// <summary>
@@ -262,7 +262,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(1, pertama.JumlahDiproses);
             Assert.Equal(0, kedua.JumlahDiproses);
-            Assert.Equal(1, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(1, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             }
 
             Assert.Equal(7, total);
-            Assert.Equal(7, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(7, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         // =====================================================================
@@ -340,7 +340,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(1, telaah.PenulisTidakDiketahui);
 
             // Tidak ada yang berubah.
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
 
         /// <summary>
