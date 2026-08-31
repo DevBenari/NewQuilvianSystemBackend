@@ -807,6 +807,7 @@ try
             dbContext,
             environment.EnvironmentName,
             targetUserName,
+            configuration.GetValue<bool>("Seeders:OperatingRoomDemoCreateCase"),
             cancellationToken);
 
         if (result.RefusedReason is not null)
@@ -827,6 +828,14 @@ try
             string.Join(", ", result.PatientProcedureIds));
 
         logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
+
+        if (result.CaseId != Guid.Empty)
+        {
+            logger.LogInformation(
+                "[OperatingRoomDemo] Kasus contoh siap dicoba: CaseId={CaseId}. Kasus ini dibuat " +
+                "seeder, bukan lewat layar, jadi ia belum membuktikan form pembuatan berfungsi.",
+                result.CaseId);
+        }
     }
 
     static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)

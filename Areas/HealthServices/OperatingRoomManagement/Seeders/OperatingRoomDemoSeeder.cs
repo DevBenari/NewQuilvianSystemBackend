@@ -8,6 +8,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
@@ -48,8 +50,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.See
 /// </item>
 /// </list>
 /// <para>
-/// Seeder ini sengaja TIDAK membuat <c>OprCase</c>. Membuat kasus operasi justru itulah yang
-/// hendak dibuktikan bisa dilakukan lewat layar.
+/// Secara bawaan seeder ini TIDAK membuat <c>OprCase</c>, karena membuat kasus operasi
+/// justru itulah yang hendak dibuktikan bisa dilakukan lewat layar. Parameter
+/// <paramref name="createCase"/> membukanya sebagai jalan pintas ketika alur SESUDAH
+/// pembuatan — penjadwalan, persiapan, pelaksanaan, pemulihan — perlu dicoba lebih dulu
+/// sementara form pembuatannya masih bermasalah. Kasus hasil jalan pintas itu bukan bukti
+/// bahwa pembuatan lewat layar berfungsi, dan riwayat statusnya ditandai
+/// <c>Seeder:OperatingRoomDemo</c> supaya perbedaannya tetap terbaca kemudian.
 /// </para>
 /// </remarks>
 public static class OperatingRoomDemoSeeder
@@ -64,6 +71,7 @@ public static class OperatingRoomDemoSeeder
         ApplicationDbContext db,
         string? environmentName,
         string? targetUserName,
+        bool createCase = false,
         CancellationToken ct = default)
     {
         var result = new OperatingRoomDemoSeedResult();
@@ -291,6 +299,15 @@ public static class OperatingRoomDemoSeeder
 
         await db.SaveChangesAsync(ct);
 
+        // ------------------------------------------------------------ satu kasus operasi
+        // Hanya dibuat bila diminta. Bacalah catatan pada createCase di ringkasan hasil:
+        // kasus buatan seeder membuktikan alur SESUDAH pembuatan, bukan pembuatannya.
+        if (createCase)
+        {
+            await EnsureDemoCaseAsync(db, result, patientId, encounterId, doctorId, actor, now, ct);
+            await db.SaveChangesAsync(ct);
+        }
+
         // ------------------------------------------------------ menautkan akun ke dokter
         // Dilakukan setelah SaveChanges supaya baris dokter dipastikan sudah tersimpan.
         if (user.DoctorId.HasValue)
@@ -313,6 +330,95 @@ public static class OperatingRoomDemoSeeder
         result.PatientId = patientId;
         result.EncounterId = encounterId;
         return result;
+    }
+
+    /// <summary>
+    /// Membuat satu kasus operasi berstatus <c>Requested</c> beserta tindakan dan riwayat
+    /// statusnya, meniru bentuk yang dihasilkan
+    /// <c>OperatingRoomCaseService.CreateAsync</c>.
+    /// </summary>
+    /// <remarks>
+    /// Kasus ini menembus jalur layar. Ia berguna untuk mencoba alur sesudah pembuatan —
+    /// penjadwalan, persiapan, pelaksanaan, pemulihan — tetapi ia TIDAK membuktikan bahwa
+    /// pembuatan kasus lewat layar berfungsi. Pembuktian itu tetap harus dilakukan sendiri.
+    /// </remarks>
+    private static async Task EnsureDemoCaseAsync(
+        ApplicationDbContext db,
+        OperatingRoomDemoSeedResult result,
+        Guid patientId,
+        Guid encounterId,
+        Guid doctorId,
+        Guid actor,
+        DateTime now,
+        CancellationToken ct)
+    {
+        var caseId = Deterministic("Case");
+
+        if (await db.OprCases.AnyAsync(x => x.Id == caseId, ct))
+        {
+            result.Reused.Add("OprCase");
+            result.CaseId = caseId;
+            return;
+        }
+
+        var entity = new OprCase
+        {
+            Id = caseId,
+            CaseNumber = "OPR-" + caseId.ToString("N"),
+            PatientId = patientId,
+            EncounterId = encounterId,
+            RequesterDoctorId = doctorId,
+            PrimarySurgeonId = doctorId,
+            CaseType = OprCaseType.Elective,
+            Priority = OprPriority.Routine,
+            Status = OprCaseStatus.Requested,
+            Indication = "Kasus contoh buatan seeder untuk mencoba alur Operasi.",
+            EstimatedMinutes = 60,
+            RequestedAt = now,
+            Version = 0,
+            CreateDateTime = now,
+            CreateBy = actor
+        };
+
+        db.OprCases.Add(entity);
+
+        var sequence = 1;
+        foreach (var patientProcedureId in result.PatientProcedureIds)
+        {
+            db.OprCaseProcedures.Add(new OprCaseProcedure
+            {
+                Id = Deterministic("CaseProcedure" + sequence),
+                OprCaseId = caseId,
+                PatientProcedureId = patientProcedureId,
+                IsPrimary = sequence == 1,
+                Sequence = sequence,
+                CreateDateTime = now,
+                CreateBy = actor
+            });
+
+            sequence++;
+        }
+
+        // Sumbernya ditandai Seeder, bukan API, supaya baris ini jelas bukan hasil
+        // permintaan pengguna ketika riwayat status dibaca orang lain kelak.
+        db.OprStatusHistories.Add(new OprStatusHistory
+        {
+            Id = Deterministic("CaseHistory"),
+            OprCaseId = caseId,
+            FromStatus = null,
+            ToStatus = OprCaseStatus.Requested,
+            Action = "Request",
+            Reason = "Dibuat OperatingRoomDemoSeeder, bukan lewat layar.",
+            ActorUserId = actor,
+            OccurredAt = now,
+            Source = "Seeder:OperatingRoomDemo",
+            CorrelationId = "DEMO-OPR-CASE-001",
+            CreateDateTime = now,
+            CreateBy = actor
+        });
+
+        result.Created.Add("OprCase");
+        result.CaseId = caseId;
     }
 
     /// <summary>
@@ -368,5 +474,6 @@ public sealed class OperatingRoomDemoSeedResult
     public Guid PatientId { get; set; }
     public Guid EncounterId { get; set; }
     public string? UserLinkNote { get; set; }
+    public Guid CaseId { get; set; }
     public string? LinkedUserName { get; set; }
 }
