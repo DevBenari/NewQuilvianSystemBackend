@@ -316,9 +316,25 @@ Contract version: `0.1.1` — status `approved`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
 | `GET` | `/` | Daftar jejak akses | `MedicalRecordAccessLog : Read` | Query: `patientId`, `userId`, `accessType`, `isFlaggedForReview`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12` |
-| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12`. Dipakai `FE-05` |
+| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `accessType`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12`. Dipakai `FE-05`; tiga penyaring pertama ditambahkan 31 Agustus 2026, lihat catatan di bawah |
 | `PATCH` | `/{id}/mark-reviewed` | Menandai satu akses sudah ditinjau | `MedicalRecordAccessLog : Update` | `MarkAccessReviewedRequest` | `ApiResponse<MedicalRecordAccessLogResponse>` | **Tersedia** — `BE-12` |
 | `GET` | `/summary` | Rekap jumlah akses per jenis dan per periode | `MedicalRecordAccessLog : Read` | Query: `startDate`, `endDate` | `ApiResponse<MedicalRecordAccessSummaryResponse>` | **Tersedia** — `BE-12`. Belum dipakai layar mana pun pada rilis pertama |
+
+**Penambahan penyaring pada `/pending-review` — 31 Agustus 2026.** Endpoint antrean kini
+menerima `accessType`, `startDate`, dan `endDate`: penyaring yang sama persis dengan daftar
+seluruh jejak. Perubahannya **aditif** — ketiganya boleh dikosongkan, dan permintaan tanpa
+ketiganya berperilaku persis seperti sebelumnya, sehingga klien yang ditulis lebih dulu tidak
+perlu disesuaikan sedikit pun.
+
+Yang **tidak** ikut dibuka, dan tidak boleh dibuka: syarat antreannya sendiri.
+`isFlaggedForReview` dan syarat "belum ditinjau" tetap dipatok controller, bukan dikirim
+pemanggil. Penyaring layar hanya dapat mempersempit antrean, tidak pernah melebarkannya —
+begitu syarat itu dapat dipilih lewat kueri, "perlu ditinjau" berhenti berarti apa pun.
+
+Alasannya datang dari layar. `FE-05` menampilkan penyaring pada tab seluruh jejak tetapi tidak
+pada tab antrean, sehingga bilah penyaring tab antrean hanya berisi tombol muat ulang dan dua
+tab yang sama tampak menuntut dua tata cara berbeda. Kenaikan nomor versi kontrak beserta
+pengesahannya menunggu keputusan pemilik API.
 
 Tidak ada endpoint `POST`, `PUT`, maupun `DELETE` untuk jejak akses, dan itu bukan kelalaian.
 Baris jejak hanya dibuat sistem saat rekam medis dibuka, tidak pernah oleh permintaan manusia.
