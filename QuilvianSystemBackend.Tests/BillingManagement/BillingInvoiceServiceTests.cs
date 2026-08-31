@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -7,9 +8,11 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Services.Logging;
 using System.Reflection;
 
@@ -17,6 +20,58 @@ namespace QuilvianSystemBackend.Tests.BillingManagement;
 
 public sealed class BillingInvoiceServiceTests
 {
+    [Fact]
+    public async Task AdhocChargeFromMenuPembayaranIsAcceptedAndVoidableBeforeLock()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var service = CreateService(db);
+
+        var created = await service.UpsertChargeAsync(
+            Request(encounterId, categoryId, "ADHOC-1", "ADHOC", "ADDED"),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Single(created.Items);
+        Assert.Equal("ADHOC", created.Items[0].SourceDomain);
+
+        var voidRequest = VoidRequest(created.RowVersion);
+        voidRequest.SourceStatus = "VOIDED";
+        var voided = await service.VoidItemAsync(
+            created.Id, created.Items[0].Id,
+            voidRequest,
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0, voided.ActiveItemCount);
+    }
+
+    [Fact]
+    public async Task GetDetailIncludesPatientSummaryForMenuPembayaran()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var encounter = await db.TrxPatientEncounters.SingleAsync(x => x.Id == encounterId);
+        db.MstPatients.Add(new MstPatient
+        {
+            Id = encounter.PatientId,
+            PatientCode = "PAT-0001",
+            MedicalRecordNumber = "RM-0001",
+            FullName = "Andrea Wijaya",
+            Gender = Gender.Female
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+        var created = await service.UpsertChargeAsync(
+            Request(encounterId, categoryId, "PROC-PATIENT-1"),
+            Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        var detail = await service.GetDetailAsync(created.Id, CancellationToken.None);
+
+        Assert.NotNull(detail.Patient);
+        Assert.Equal("RM-0001", detail.Patient!.MedicalRecordNumber);
+        Assert.Equal("Andrea Wijaya", detail.Patient.FullName);
+        Assert.Equal(encounter.EncounterNumber, detail.Patient.EncounterNumber);
+    }
+
     [Fact]
     public async Task FirstChargeCreatesOneInvoiceAndAdditionalSourceReusesIt()
     {

@@ -24,6 +24,17 @@ public sealed class CashierShiftsController : ControllerBase
         _service = service;
     }
 
+    [HttpGet]
+    [AccessAction("Read", "Read Cashier Shift List", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("CashierShift", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CashierShiftResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Get([FromQuery] CashierShiftQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<CashierShiftResponse>>.Ok(
+            result, "Riwayat shift kasir berhasil diambil."));
+    }
+
     [HttpPost("open")]
     [AccessAction("Create", "Open Cashier Shift", AccessType = AccessTypes.Create, SortOrder = 1)]
     [AccessPermission("CashierShift", "Create")]

@@ -35,6 +35,17 @@ public class OperatingRoomScheduleController(OperatingRoomSchedulingService serv
             : Ok(ApiResponse<OprScheduleResponse>.Ok(result, "Jadwal kasus operasi berhasil diambil."));
     }
 
+    [HttpGet("{id:guid}/schedule/history")]
+    [ProducesResponseType(typeof(ApiResponse<List<OprScheduleResponse>>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Operating Room Case", Description = "Melihat riwayat revisi jadwal kasus operasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("OperatingRoomCase", "Read")]
+    public async Task<IActionResult> GetScheduleHistory(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await service.GetScheduleHistoryAsync(id, cancellationToken);
+        return Ok(ApiResponse<List<OprScheduleResponse>>.Ok(result,
+            "Riwayat jadwal kasus operasi berhasil diambil."));
+    }
+
     [HttpPatch("{id:guid}/schedule")]
     [ProducesResponseType(typeof(ApiResponse<OprScheduleResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

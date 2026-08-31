@@ -103,11 +103,94 @@ public sealed class DiscountPolicyServiceTests
     }
 
     [Fact]
+    public async Task Activate_ReactivatesDeactivatedPolicyWithoutCreatingNewVersion()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(
+            Request("PROMO-REACT", DiscountPolicyValues.PromoTotal, DiscountPolicyValues.PatientPortion),
+            Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(created.Id, new DeactivatePolicyRequest { Reason = "Sementara dihentikan" }, Guid.NewGuid(), CancellationToken.None);
+
+        var reactivated = await service.ActivateAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(reactivated.IsActive);
+        Assert.Equal(created.Id, reactivated.Id);
+    }
+
+    [Fact]
+    public async Task Activate_RejectsWhenAnotherActivePolicyNowOverlaps()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var first = Request("PROMO-OLD", DiscountPolicyValues.PromoTotal, DiscountPolicyValues.PatientPortion);
+        first.EffectiveTo = first.EffectiveFrom.AddDays(10);
+        var created = await service.CreateAsync(first, Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(created.Id, new DeactivatePolicyRequest { Reason = "Diganti policy baru" }, Guid.NewGuid(), CancellationToken.None);
+
+        dbContext.MstDiscountPolicies.Add(new Areas.HealthServices.BillingManagement.MasterData.Models.MstDiscountPolicy
+        {
+            Code = "PROMO-NEW",
+            Name = "PROMO-NEW",
+            DiscountType = DiscountPolicyValues.PromoTotal,
+            TargetComponent = DiscountPolicyValues.PatientPortion,
+            ValueType = DiscountPolicyValues.Percentage,
+            Value = 10,
+            EffectiveFrom = first.EffectiveFrom.AddDays(5),
+            EffectiveTo = first.EffectiveFrom.AddDays(15),
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = Guid.NewGuid()
+        });
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        await Assert.ThrowsAsync<DiscountPolicyConflictException>(() =>
+            service.ActivateAsync(created.Id, Guid.NewGuid(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Delete_RejectsWhilePolicyStillActive()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(
+            Request("PROMO-ACTIVE", DiscountPolicyValues.PromoTotal, DiscountPolicyValues.PatientPortion),
+            Guid.NewGuid(), CancellationToken.None);
+
+        await Assert.ThrowsAsync<DiscountPolicyValidationException>(() =>
+            service.DeleteAsync(created.Id, Guid.NewGuid(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Delete_SoftDeletesInactivePolicyAndAllowsCodeReuse()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(
+            Request("PROMO-DELETE", DiscountPolicyValues.PromoTotal, DiscountPolicyValues.PatientPortion),
+            Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(created.Id, new DeactivatePolicyRequest { Reason = "Tidak dipakai lagi" }, Guid.NewGuid(), CancellationToken.None);
+
+        var deleted = await service.DeleteAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(deleted.IsDelete);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.ActivateAsync(created.Id, Guid.NewGuid(), CancellationToken.None));
+
+        var recreated = await service.CreateAsync(
+            Request("PROMO-DELETE", DiscountPolicyValues.PromoTotal, DiscountPolicyValues.PatientPortion),
+            Guid.NewGuid(), CancellationToken.None);
+        Assert.Equal("PROMO-DELETE", recreated.Code);
+    }
+
+    [Fact]
     public void MutationEndpoints_RequireExactDiscountPolicyPermissions()
     {
         AssertPermission(nameof(DiscountPoliciesController.Create), "Create");
         AssertPermission(nameof(DiscountPoliciesController.Update), "Update");
         AssertPermission(nameof(DiscountPoliciesController.Deactivate), "Update");
+        AssertPermission(nameof(DiscountPoliciesController.Activate), "Update");
+        AssertPermission(nameof(DiscountPoliciesController.Delete), "Delete");
     }
 
     private static void AssertPermission(string methodName, string action)

@@ -14,6 +14,8 @@ public sealed class BilTender : IdentityModel
     [Required, MaxLength(30)] public string Status { get; set; } = BillingTenderStatuses.Created;
     [MaxLength(150)] public string? ProviderReference { get; set; }
     [MaxLength(50)] public string? ProviderStatusCode { get; set; }
+    [MaxLength(150)] public string? CashierReferenceNote { get; set; }
+    [MaxLength(50)] public string? KwitansiNumber { get; set; }
     public Guid IdempotencyKey { get; set; }
     [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }

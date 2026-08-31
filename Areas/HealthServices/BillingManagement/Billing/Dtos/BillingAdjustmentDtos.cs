@@ -6,7 +6,12 @@ public sealed class CreateAdjustmentRequest
 {
     public Guid InvoiceId { get; set; }
     [Required, MaxLength(10)] public string Direction { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
     public Guid ExpectedInvoiceRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
