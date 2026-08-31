@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -386,6 +387,40 @@ public static class OperatingRoomDemoSeeder
                 x => x.Id, result, "TrxPatientProcedure", actor, now, ct);
 
             result.PatientProcedureIds.Add(patientProcedureId);
+        }
+
+        // ------------------------------------------------------------------- consent
+        // Persiapan menuntut dua consent sah — tindakan operasi dan anestesi — sebelum
+        // kasus boleh naik ke status Ready. Tanpa keduanya kasus mentok di Scheduled
+        // dengan keterangan "Consent tindakan operasi belum sah".
+        foreach (var (key, code, type, title) in new[]
+        {
+            ("Surgery", CodePrefix + "-CONS-OP", PatientConsentType.Surgery,
+                "Persetujuan Tindakan Operasi (Demo)"),
+            ("Anesthesia", CodePrefix + "-CONS-AN", PatientConsentType.Anesthesia,
+                "Persetujuan Tindakan Anestesi (Demo)")
+        })
+        {
+            await EnsureAsync(db.Set<TrxPatientConsent>(),
+                x => x.ConsentNumber == code,
+                () => new TrxPatientConsent
+                {
+                    Id = Deterministic("Consent" + key),
+                    ConsentNumber = code,
+                    PatientId = patientId,
+                    EncounterId = encounterId,
+                    ConsentType = type,
+                    ConsentStatus = PatientConsentStatus.Signed,
+                    ConsentTitle = title,
+                    SignerName = "Penanggung Jawab Pasien Demo",
+                    SignedAt = now,
+                    IsDiagnosisExplained = true,
+                    IsProcedureExplained = true,
+                    IsRiskExplained = true,
+                    IsAlternativeExplained = true,
+                    IsPatientUnderstood = true
+                },
+                x => x.Id, result, "TrxPatientConsent", actor, now, ct);
         }
 
         await db.SaveChangesAsync(ct);
