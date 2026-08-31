@@ -175,6 +175,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NoShowEncounter = await query.CountAsync(x => x.NoShowAt.HasValue),
                 CashEncounter = await query.CountAsync(x => x.PaymentType == EncounterPaymentType.Cash),
                 InsuranceEncounter = await query.CountAsync(x => x.PaymentType == EncounterPaymentType.Insurance),
+                CompanyGuarantorEncounter = await query.CountAsync(x => x.PaymentType == EncounterPaymentType.CompanyGuarantor),
                 ReferralEncounter = await query.CountAsync(x => x.IsReferral),
                 FromKioskEncounter = await query.CountAsync(x => x.IsFromKiosk)
             };
@@ -392,7 +393,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Create")]
         public async Task<IActionResult> CreateEncounterForAdmin([FromBody] PatientEncounterCreateRequest request)
         {
-            return await CreateEncounterForKiosk(request);
+            // Jalur petugas admisi. Hanya route ini yang menerima Penjamin Perusahaan
+            // sesuai RWI-ENC-PAYER-001 bagian 7, sehingga wewenang kiosk tidak ikut meluas.
+            return await CreateEncounterCoreAsync(
+                request,
+                allowCompanyGuarantor: true,
+                logScope: "PatientEncounter.CreateEncounterForAdmin");
         }
 
         [HttpPost]
@@ -402,6 +408,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
+        {
+            // Kiosk tetap terbatas pada Tunai dan Asuransi.
+            return await CreateEncounterCoreAsync(
+                request,
+                allowCompanyGuarantor: false,
+                logScope: "PatientEncounter.CreateEncounterForKiosk");
+        }
+
+        /// <summary>
+        /// Proses pembuatan encounter yang dipakai bersama route petugas dan kiosk.
+        /// <paramref name="allowCompanyGuarantor"/> adalah satu-satunya pembeda kemampuan
+        /// keduanya, dan <paramref name="logScope"/> menjaga jejak audit tetap
+        /// membedakan asal permintaan.
+        /// </summary>
+        private async Task<IActionResult> CreateEncounterCoreAsync(
+            PatientEncounterCreateRequest request,
+            bool allowCompanyGuarantor,
+            string logScope)
         {
             var traceId = HttpContext.TraceIdentifier;
             Response.Headers["X-Trace-Id"] = traceId;
@@ -442,7 +466,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var validation = await ValidateCreateRequestAsync(
                 request,
                 targetEncounterDate,
-                operationalDate);
+                operationalDate,
+                allowCompanyGuarantor);
 
             if (!validation.IsValid)
             {
@@ -462,6 +487,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var room = roomResolution.Room;
 
             MstPatientInsurance? patientInsurance = null;
+            MstPatientCompanyGuarantor? patientCompanyGuarantor = null;
 
             if (request.PaymentType == EncounterPaymentType.Insurance)
             {
@@ -478,6 +504,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
 
                 patientInsurance = insuranceResult.Insurance;
+            }
+            else if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            {
+                var companyGuarantorResult = await LoadValidPatientCompanyGuarantorAsync(
+                    request.PatientId,
+                    request.PatientCompanyGuarantorId!.Value,
+                    targetEncounterDate);
+
+                if (companyGuarantorResult.PatientCompanyGuarantor == null)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        companyGuarantorResult.ErrorMessage
+                            ?? "Penjamin perusahaan pasien tidak valid."));
+                }
+
+                patientCompanyGuarantor = companyGuarantorResult.PatientCompanyGuarantor;
             }
 
             var actorUserId = GetCurrentUserId();
@@ -576,6 +619,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     encounter.Id,
                     request,
                     patientInsurance,
+                    patientCompanyGuarantor,
                     now,
                     actorUserId);
 
@@ -663,7 +707,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         {
                             await _loggerService.ErrorAsync(
                                 LogCategory,
-                                "PatientEncounter.CreateEncounterForKiosk.QueueNotification",
+                                $"{logScope}.QueueNotification",
                                 $"Encounter dan antrean berhasil disimpan, tetapi notifikasi realtime gagal. TraceId={traceId}; EncounterId={encounter.Id}; QueueId={queue.Id}.",
                                 notificationException);
                         }
@@ -721,7 +765,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 {
                     await _loggerService.InfoAsync(
                         LogCategory,
-                        "PatientEncounter.CreateEncounterForKiosk",
+                        logScope,
                         $"Membuat transaksi kunjungan pasien dengan satu sumber pembayaran. TraceId={traceId}.",
                         response);
                 }
@@ -777,6 +821,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     $"PaymentType={request.PaymentType}; " +
                     $"PaymentMethodId={request.PaymentMethodId}; " +
                     $"PatientInsuranceId={request.PatientInsuranceId}; " +
+                    $"PatientCompanyGuarantorId={request.PatientCompanyGuarantorId}; " +
                     $"KioskScanSessionId={request.KioskScanSessionId}; " +
                     $"SqlState={postgresException?.SqlState ?? "-"}; " +
                     $"Schema={postgresException?.SchemaName ?? "-"}; " +
@@ -793,7 +838,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 {
                     await _loggerService.ErrorAsync(
                         LogCategory,
-                        "PatientEncounter.CreateEncounterForKiosk.Database",
+                        $"{logScope}.Database",
                         databaseErrorMessage,
                         dbException);
                 }
@@ -833,7 +878,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 {
                     await _loggerService.ErrorAsync(
                         LogCategory,
-                        "PatientEncounter.CreateEncounterForKiosk",
+                        logScope,
                         $"TraceId={traceId}; " +
                         $"RegistrationMode={registrationMode}; " +
                         $"TransactionCommitted={transactionCommitted}; " +
@@ -1213,7 +1258,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             PatientEncounterCreateRequest request,
             DateTime targetEncounterDate,
-            DateTime operationalDate)
+            DateTime operationalDate,
+            bool allowCompanyGuarantor)
         {
             if (request.PatientId == Guid.Empty)
             {
@@ -1240,10 +1286,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Sumber registrasi tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            if (request.PaymentType != EncounterPaymentType.Cash &&
-                request.PaymentType != EncounterPaymentType.Insurance)
+            if (!Enum.IsDefined(typeof(EncounterPaymentType), request.PaymentType))
             {
-                return (false, "Tipe pembayaran registrasi hanya mendukung Tunai atau Asuransi.");
+                return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            // Penjamin Perusahaan hanya dibuka untuk registrasi petugas. Kiosk tetap
+            // pada dua metode lamanya supaya wewenangnya tidak ikut meluas.
+            if (request.PaymentType == EncounterPaymentType.CompanyGuarantor &&
+                !allowCompanyGuarantor)
+            {
+                return (false, "Tipe pembayaran Penjamin Perusahaan hanya tersedia pada registrasi petugas.");
             }
 
             var patientExists = await _dbContext.Set<MstPatient>()
@@ -1381,6 +1434,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     return (false, "PatientInsuranceId harus kosong untuk pembayaran Tunai.");
                 }
 
+                if (request.PatientCompanyGuarantorId.HasValue &&
+                    request.PatientCompanyGuarantorId.Value != Guid.Empty)
+                {
+                    return (false, "PatientCompanyGuarantorId harus kosong untuk pembayaran Tunai.");
+                }
+
                 if (request.PaymentMethodId.HasValue &&
                     request.PaymentMethodId.Value != Guid.Empty)
                 {
@@ -1398,12 +1457,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     }
                 }
             }
-            else
+            else if (request.PaymentType == EncounterPaymentType.Insurance)
             {
                 if (request.PaymentMethodId.HasValue &&
                     request.PaymentMethodId.Value != Guid.Empty)
                 {
                     return (false, "PaymentMethodId harus kosong untuk pembayaran Asuransi.");
+                }
+
+                if (request.PatientCompanyGuarantorId.HasValue &&
+                    request.PatientCompanyGuarantorId.Value != Guid.Empty)
+                {
+                    return (false, "PatientCompanyGuarantorId harus kosong untuk pembayaran Asuransi.");
                 }
 
                 if (!request.PatientInsuranceId.HasValue ||
@@ -1420,6 +1485,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 if (insuranceResult.Insurance == null)
                 {
                     return (false, insuranceResult.ErrorMessage ?? "Asuransi pasien tidak valid.");
+                }
+            }
+            else
+            {
+                if (request.PaymentMethodId.HasValue &&
+                    request.PaymentMethodId.Value != Guid.Empty)
+                {
+                    return (false, "PaymentMethodId harus kosong untuk pembayaran Penjamin Perusahaan.");
+                }
+
+                if (request.PatientInsuranceId.HasValue &&
+                    request.PatientInsuranceId.Value != Guid.Empty)
+                {
+                    return (false, "PatientInsuranceId harus kosong untuk pembayaran Penjamin Perusahaan.");
+                }
+
+                if (!request.PatientCompanyGuarantorId.HasValue ||
+                    request.PatientCompanyGuarantorId.Value == Guid.Empty)
+                {
+                    return (false, "PatientCompanyGuarantorId wajib diisi untuk pembayaran Penjamin Perusahaan.");
+                }
+
+                var companyGuarantorResult = await LoadValidPatientCompanyGuarantorAsync(
+                    request.PatientId,
+                    request.PatientCompanyGuarantorId.Value,
+                    targetEncounterDate);
+
+                if (companyGuarantorResult.PatientCompanyGuarantor == null)
+                {
+                    return (false, companyGuarantorResult.ErrorMessage
+                        ?? "Penjamin perusahaan pasien tidak valid.");
                 }
             }
 
@@ -1655,6 +1751,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return (insurance, null);
         }
 
+        /// <summary>
+        /// Memeriksa kartu hubungan pasien-perusahaan dengan urutan pemeriksaan yang sama
+        /// seperti asuransi: keberadaan, kepemilikan, keaktifan, eligibility, keaktifan
+        /// master perusahaan, lalu masa berlaku pada tanggal kunjungan.
+        /// </summary>
+        /// <remarks>
+        /// Pesan kegagalan sengaja tidak menyebut pasien, perusahaan, atau nomor karyawan
+        /// pemilik kartu, sehingga kartu milik pasien lain tidak dapat dipakai untuk
+        /// menyimpulkan data pasien tersebut.
+        /// </remarks>
+        private async Task<(MstPatientCompanyGuarantor? PatientCompanyGuarantor, string? ErrorMessage)>
+            LoadValidPatientCompanyGuarantorAsync(
+                Guid patientId,
+                Guid patientCompanyGuarantorId,
+                DateTime encounterDate)
+        {
+            if (patientCompanyGuarantorId == Guid.Empty)
+            {
+                return (null, "PatientCompanyGuarantorId wajib diisi.");
+            }
+
+            var companyGuarantor = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .AsNoTracking()
+                .Include(x => x.CompanyGuarantor)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == patientCompanyGuarantorId &&
+                    !x.IsDelete);
+
+            if (companyGuarantor == null)
+            {
+                return (null, "Penjamin perusahaan pasien tidak ditemukan.");
+            }
+
+            if (companyGuarantor.PatientId != patientId)
+            {
+                return (null, "Penjamin perusahaan yang dipilih bukan milik pasien pada encounter.");
+            }
+
+            if (!companyGuarantor.IsActive)
+            {
+                return (null, "Penjamin perusahaan pasien tidak aktif.");
+            }
+
+            if (!companyGuarantor.IsEligible)
+            {
+                return (null, "Penjamin perusahaan pasien tidak eligible.");
+            }
+
+            if (companyGuarantor.CompanyGuarantor == null ||
+                !companyGuarantor.CompanyGuarantor.IsActive ||
+                companyGuarantor.CompanyGuarantor.IsDelete)
+            {
+                return (null, "Perusahaan penjamin tidak valid atau tidak aktif.");
+            }
+
+            var encounterDay = ToUtcDate(encounterDate);
+
+            if (companyGuarantor.EffectiveStartDate.HasValue &&
+                ToUtcDate(companyGuarantor.EffectiveStartDate.Value) > encounterDay)
+            {
+                return (null, "Penjamin perusahaan belum berlaku pada tanggal kunjungan.");
+            }
+
+            if (companyGuarantor.EffectiveEndDate.HasValue &&
+                ToUtcDate(companyGuarantor.EffectiveEndDate.Value) < encounterDay)
+            {
+                return (null, "Penjamin perusahaan sudah kedaluwarsa pada tanggal kunjungan.");
+            }
+
+            return (companyGuarantor, null);
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage, DateTime TargetDate)> ResolveTargetEncounterDateAsync(
             PatientEncounterCreateRequest request,
             DateTime operationalDate)
@@ -1825,6 +1993,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             Guid encounterId,
             PatientEncounterCreateRequest request,
             MstPatientInsurance? patientInsurance,
+            MstPatientCompanyGuarantor? patientCompanyGuarantor,
             DateTime now,
             Guid actorUserId)
         {
@@ -1848,6 +2017,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 entity.PaymentSourceNameSnapshot = "Tunai";
                 entity.IsEligible = true;
                 entity.IsPolicyActive = false;
+                return entity;
+            }
+
+            if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            {
+                if (patientCompanyGuarantor == null)
+                {
+                    throw new InvalidOperationException(
+                        "Penjamin perusahaan pasien wajib tersedia untuk membentuk sumber pembayaran Penjamin Perusahaan.");
+                }
+
+                // Seluruh nilai di bawah adalah snapshot pada waktu registrasi, sehingga
+                // audit encounter tidak ikut berubah ketika master perusahaan disunting.
+                entity.PatientCompanyGuarantorId = patientCompanyGuarantor.Id;
+                entity.CompanyGuarantorId = patientCompanyGuarantor.CompanyGuarantorId;
+                entity.PaymentSourceNameSnapshot =
+                    patientCompanyGuarantor.CompanyGuarantor?.CompanyGuarantorName;
+                entity.CompanyGuarantorCodeSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.CompanyGuarantor?.CompanyGuarantorCode);
+                entity.EmployeeNumberSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.EmployeeNumber);
+                entity.EmployeeNameSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.EmployeeName);
+                entity.BenefitPlanCodeSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.BenefitPlanCode);
+                entity.PlanNameSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.BenefitPlanName);
+                entity.ClassNameSnapshot =
+                    NormalizeNullableText(patientCompanyGuarantor.ClassName);
+                entity.EffectiveStartDateSnapshot = patientCompanyGuarantor.EffectiveStartDate;
+                entity.EffectiveEndDateSnapshot = patientCompanyGuarantor.EffectiveEndDate;
+                entity.IsEligible = patientCompanyGuarantor.IsEligible;
+                entity.IsPolicyActive = true;
+
                 return entity;
             }
 
@@ -2400,6 +2603,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 BenefitPlanCodeSnapshot = entity.BenefitPlanCodeSnapshot,
                 EffectiveStartDateSnapshot = entity.EffectiveStartDateSnapshot,
                 EffectiveEndDateSnapshot = entity.EffectiveEndDateSnapshot,
+                PatientCompanyGuarantorId = entity.PatientCompanyGuarantorId,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorCodeSnapshot = entity.CompanyGuarantorCodeSnapshot,
+                EmployeeNumberSnapshot = entity.EmployeeNumberSnapshot,
+                EmployeeNameSnapshot = entity.EmployeeNameSnapshot,
                 IsEligible = entity.IsEligible,
                 IsPolicyActive = entity.IsPolicyActive,
                 IsActive = entity.IsActive,

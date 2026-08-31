@@ -28,7 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public Guid PatientId { get; set; }
 
         /// <summary>
-        /// Snapshot tipe pembayaran. Hanya Cash atau Insurance.
+        /// Snapshot tipe pembayaran: Cash, Insurance, atau CompanyGuarantor.
         /// </summary>
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
@@ -39,19 +39,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         // =========================
 
         /// <summary>
-        /// Diisi untuk Cash dan harus null untuk Insurance.
+        /// Diisi hanya untuk Cash. Harus null untuk Insurance dan CompanyGuarantor.
         /// </summary>
         public Guid? PaymentMethodId { get; set; }
 
         /// <summary>
-        /// Wajib untuk Insurance dan harus null untuk Cash.
+        /// Wajib untuk Insurance. Harus null untuk Cash dan CompanyGuarantor.
         /// </summary>
         public Guid? PatientInsuranceId { get; set; }
 
         /// <summary>
-        /// Wajib untuk Insurance dan harus null untuk Cash.
+        /// Wajib untuk Insurance. Harus null untuk Cash dan CompanyGuarantor.
         /// </summary>
         public Guid? InsuranceProviderId { get; set; }
+
+        /// <summary>
+        /// Kartu hubungan pasien-perusahaan yang dipilih saat registrasi.
+        /// Wajib untuk CompanyGuarantor dan harus null untuk Cash dan Insurance.
+        /// </summary>
+        public Guid? PatientCompanyGuarantorId { get; set; }
+
+        /// <summary>
+        /// Master perusahaan penjamin yang dirujuk kartu di atas.
+        /// Wajib untuk CompanyGuarantor dan harus null untuk Cash dan Insurance.
+        /// </summary>
+        public Guid? CompanyGuarantorId { get; set; }
 
         // =========================
         // REGISTRATION SNAPSHOT
@@ -78,19 +90,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(100)]
         public string? BenefitPlanCodeSnapshot { get; set; }
 
+        /// <summary>
+        /// Kode perusahaan penjamin saat registrasi. Diisi hanya untuk CompanyGuarantor.
+        /// </summary>
+        [MaxLength(50)]
+        public string? CompanyGuarantorCodeSnapshot { get; set; }
+
+        /// <summary>
+        /// Nomor karyawan pada kartu penjamin perusahaan saat registrasi.
+        /// Diisi hanya untuk CompanyGuarantor.
+        /// </summary>
+        [MaxLength(100)]
+        public string? EmployeeNumberSnapshot { get; set; }
+
+        /// <summary>
+        /// Nama karyawan pada kartu penjamin perusahaan saat registrasi.
+        /// Boleh kosong sesuai master.
+        /// </summary>
+        [MaxLength(200)]
+        public string? EmployeeNameSnapshot { get; set; }
+
         public DateTime? EffectiveStartDateSnapshot { get; set; }
 
         public DateTime? EffectiveEndDateSnapshot { get; set; }
 
         /// <summary>
-        /// Snapshot MstPatientInsurance.IsEligible pada waktu registrasi.
-        /// Cash selalu true.
+        /// Snapshot IsEligible kartu penjamin pada waktu registrasi, dibaca dari
+        /// MstPatientInsurance untuk Insurance dan MstPatientCompanyGuarantor untuk
+        /// CompanyGuarantor. Cash selalu true.
         /// </summary>
         public bool IsEligible { get; set; } = true;
 
         /// <summary>
-        /// True bila tanggal encounter berada dalam periode polis.
-        /// Cash selalu false karena bukan polis.
+        /// True bila tanggal encounter berada dalam masa berlaku kartu penjamin,
+        /// baik polis asuransi maupun kartu perusahaan.
+        /// Cash selalu false karena bukan kartu penjamin.
         /// </summary>
         public bool IsPolicyActive { get; set; } = false;
 
@@ -110,5 +144,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public MstPatientInsurance? PatientInsurance { get; set; }
 
         public MstInsuranceProvider? InsuranceProvider { get; set; }
+
+        public MstPatientCompanyGuarantor? PatientCompanyGuarantor { get; set; }
+
+        public MstCompanyGuarantor? CompanyGuarantor { get; set; }
     }
 }
