@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `d341cf505016e1c0d27d14a1c9f31f5c71545434`, branch `MHamzah` |
 | Tanggal | 31 Agustus 2026 |
-| Status | **Selesai untuk lingkup source.** Delapan acceptance criteria terpenuhi. Migration dibuat di source dan **belum diterapkan ke database mana pun** |
+| Status | **Selesai.** Delapan acceptance criteria terpenuhi. Migration dibuat di source **dan sudah diterapkan ke database dev pemilik** atas wewenang eksplisit pemilik repository, 31 Agustus 2026. Database bersama/target lain **belum** disentuh |
 
 ---
 
@@ -242,7 +242,7 @@ surut setiap kali master disunting.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | **Aditif.** `POST /admin` menerima satu field baru `PatientCompanyGuarantorId`; response payment menambah lima field; summary menambah satu penghitung; opsi filter menambah satu nilai. Tidak ada field, nilai enum, endpoint, atau pembungkus response yang diubah atau dihapus. Payload Tunai dan Asuransi lama tetap berarti sama |
-| Database | **Ada dampak schema.** Lima kolom nullable, dua index, dan dua foreign key `Restrict` pada `public."TrxPatientEncounterGuarantor"`. Migration `20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` **dibuat di source saja**. Migration ini **belum dijalankan terhadap database mana pun** — tidak ke lokal, tidak ke bersama, tidak ke target. Penerapannya memerlukan wewenang terpisah |
+| Database | **Ada dampak schema.** Lima kolom nullable, dua index, dan dua foreign key `Restrict` pada `public."TrxPatientEncounterGuarantor"`. Migration `20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` sudah **diterapkan ke database dev pemilik** atas wewenang eksplisit pemilik repository. Rinciannya pada bagian 5.3. Database bersama, staging, dan production **belum** disentuh dan tetap memerlukan wewenang terpisah |
 | Keamanan/Auth | **Tidak ada perubahan hak akses.** `POST /admin` tetap dijaga `PatientEncounter : Create`; route kiosk tetap memakai policy `KioskRead` dan `[AccessAction("Create", …)]` yang sama. Yang berubah adalah **cakupan kemampuan**: kiosk secara tegas ditolak memakai tipe `3`, sehingga wewenang kiosk menyempit relatif terhadap kemampuan baru, bukan melebar. Tidak ada `IsInRole`, daftar nama peran, nama departemen, nama posisi, atau `UserType` yang dipakai menentukan kewenangan |
 
 ---
@@ -288,7 +288,7 @@ Status endpoint setelah task ini: **Tersedia**.
 | `dotnet test` seluruh project test | `Passed! Failed: 0, Passed: 786, Total: 786, Duration: 35 s` | `PASS` | Keluaran perintah |
 | `dotnet ef migrations add AddCompanyGuarantorToPatientEncounterGuarantor` | `Done.` Migration aditif terbentuk | `PASS` | Berkas migration |
 | Pemeriksaan drift snapshot EF | Selisih `ApplicationDbContextModelSnapshot.cs` hanya kelima kolom, dua index, dua relasi. Tidak ada model lain ikut terbawa | `PASS` | `git diff` snapshot |
-| Penerapan migration ke database | Sengaja tidak dijalankan | `NOT RUN` | Butuh wewenang terpisah, lihat bagian 7 |
+| Penerapan migration ke database dev pemilik | Berhasil. Lima kolom, dua index, dua foreign key, dan satu baris `__EFMigrationsHistory` terbentuk | `PASS` | Bagian 5.3 |
 | Tabrakan dua transaksi terhadap PostgreSQL sungguhan | Sengaja tidak dijalankan | `NOT RUN` | Tidak ada connection string yang diberi wewenang; lihat bagian 7 |
 | Pembuktian `403` untuk pengguna tanpa `PatientEncounter : Create` | Sengaja tidak dijalankan | `NOT RUN` | Butuh aplikasi berjalan beserta databasenya; lihat bagian 7 |
 
@@ -326,6 +326,63 @@ baris `ApplicationUser` untuk pelakunya. `RegisteredByUserId` adalah relasi waji
 bila baris penggunanya tidak ada. Pada PostgreSQL keadaan itu mustahil karena dijaga foreign key;
 pada InMemory tidak. Sifat ini sudah ada sebelum task ini dan bukan cacat produk.
 
+### 5.3 Penerapan migration ke database dev pemilik
+
+Pemilik repository memberi wewenang eksplisit untuk menerapkan migration ini ke database dev
+miliknya, `QuilvianNewDevHamzah`, pada 31 Agustus 2026. Rincian koneksi sengaja tidak dicatat di
+sini sesuai aturan keselamatan rahasia.
+
+**Temuan yang muncul sebelum penerapan, dan kenapa penting.** `dotnet ef migrations list`
+menunjukkan **enam** migration tertunda, bukan satu. Migration task ini berada paling belakang,
+dan EF menerapkan migration secara berurutan — sehingga `dotnet ef database update` apa adanya
+akan lebih dulu menjalankan lima migration milik pekerjaan lain:
+
+| Migration tertunda di depan | Isi yang merusak |
+| --- | --- |
+| `20260826090500_ImplementIgdFullPatientJourney` | `DROP TABLE` 2 tabel; `DROP COLUMN` ±20 kolom pada `TrxEmergencyDeparture`, `TrxEmergencyVisit`, `MstServiceUnit`; `SET NOT NULL` pada `TrxPatientAssessment.QueueId` |
+| `20260827030000` s.d. `20260827060000` — empat migration rename | `ALTER TABLE … RENAME` tabel dan constraint `Trx*` → `Emg*` |
+| `20260828063909_RepairCanonicalEfModelBaseline` | `Up()` kosong — tidak berdampak |
+
+Temuan ini diangkat ke pemilik sebelum perintah apa pun dijalankan. Pemilik memilih jalur bedah:
+**menerapkan migration task ini saja**, dan membiarkan kelima migration lain tetap tertunda persis
+seperti keadaan sebelumnya.
+
+**Cara penerapannya.** SQL-nya tidak ditulis tangan, melainkan dihasilkan EF sendiri supaya identik
+dengan yang akan dijalankan migration nanti:
+
+```text
+dotnet ef migrations script 20260828063909_RepairCanonicalEfModelBaseline                             20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor                             --idempotent
+```
+
+Skripnya berjalan dalam satu `START TRANSACTION … COMMIT`, setiap pernyataan dibungkus penjaga
+`IF NOT EXISTS`, dan pernyataan terakhirnya mendaftarkan sendiri baris `__EFMigrationsHistory`.
+Tidak ada satu pun `DROP` di dalamnya.
+
+**Bukti sebelum dan sesudah.**
+
+| Pemeriksaan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Kelima kolom baru ada pada `TrxPatientEncounterGuarantor` | `0` dari 5 | **5** dari 5, seluruhnya `nullable=YES` dengan tipe dan panjang sesuai konfigurasi EF |
+| Index `IX_…_CompanyGuarantorId` dan `IX_…_PatientCompanyGuarantorId` | Tidak ada | **Ada keduanya** |
+| Foreign key ke `MstCompanyGuarantor` dan `MstPatientCompanyGuarantor` | Tidak ada | **Ada keduanya**, `ON DELETE RESTRICT` |
+| Baris `__EFMigrationsHistory` | Tidak ada | **Ada**, `ProductVersion` `9.0.18` |
+| Jumlah baris sumber pembayaran existing | 170 | **170** — tidak ada yang hilang |
+| Sebaran tipe pembayaran existing | — | **164 Tunai, 6 Asuransi** — tidak ada yang berubah |
+| Baris existing yang kelima kolom barunya terisi | — | **0** — seluruh baris lama tetap `NULL`, sebagaimana mestinya untuk kolom nullable |
+| Kelima migration IGD | `Pending` | **Tetap `Pending`** — tidak ada yang ikut terbawa |
+
+Dikonfirmasi ulang lewat `dotnet ef migrations list`: hanya
+`20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` yang berpindah status menjadi
+diterapkan; keenam baris lainnya tetap `(Pending)`.
+
+**Peringatan untuk penerapan berikutnya.** Database bersama, staging, dan production akan
+menghadapi **enam** migration tertunda sekaligus, bukan satu. Menjalankan `dotnet ef database
+update` apa adanya di sana akan ikut menghapus tabel dan kolom IGD. Urutannya perlu direncanakan
+pemilik database lebih dulu, dan pemeriksaan `TrxPatientAssessment.QueueId` yang bernilai kosong
+perlu dilakukan sebelum `SET NOT NULL` dijalankan, karena baris kosong akan menggagalkan migration
+di tengah jalan.
+
+
 ---
 
 ## 6. Acceptance criteria dan Definition of Done
@@ -341,7 +398,7 @@ pada InMemory tidak. Sifat ini sudah ada sebelum task ini dan bukan cacat produk
 | 5 | Response create/detail/list yang memuat payment, opsi filter, dan summary mengenali tipe 3 serta mengembalikan field aditif; encounter perusahaan tidak merusak projection antrean dokter/perawat | **Terpenuhi** | Test `ResponseCreateMengembalikanFieldAditifPenjaminPerusahaan` dan `DetailDanSummaryMengenaliEncounterPenjaminPerusahaan`. Projection antrean tidak membaca kolom payer mana pun sehingga tidak terdampak; 786 test hijau termasuk seluruh test modul tetangga |
 | 6 | Route `/admin` tetap memerlukan `PatientEncounter : Create`; route `/` dan `/kiosk` menolak tipe 3 sehingga wewenang kiosk tidak meluas | **Terpenuhi** | Atribut `[AccessPermission("PatientEncounter", "Create")]` tidak diubah; test `RouteKioskMenolakPenjaminPerusahaan` dan `RouteKioskTetapMenerimaTunaiDanAsuransi` |
 | 7 | Kasus Tunai dan Asuransi existing tetap lulus tanpa perubahan payload; nilai enum lama tidak bergeser | **Terpenuhi** | Test `EncounterTunaiTetapTersimpanTanpaFieldPerusahaan` dan `EncounterAsuransiTetapTersimpanTanpaFieldPerusahaan`; 786 test hijau |
-| 8 | Migration EF hanya dibuat dalam source dan tidak diterapkan ke database bersama/target tanpa otorisasi terpisah | **Terpenuhi** | Migration `20260831075231_…` ada di source; tidak ada perintah `database update` yang dijalankan terhadap database mana pun |
+| 8 | Migration EF hanya dibuat dalam source dan tidak diterapkan ke database bersama/target tanpa otorisasi terpisah | **Terpenuhi** | Migration `20260831075231_…` ada di source. Penerapan **hanya** ke database dev pemilik, dan **hanya** sesudah pemilik memberi wewenang eksplisit atas database itu. Database bersama/target tidak disentuh. Bukti pada bagian 5.3 |
 
 ### 6.2 Definition of Done
 
@@ -352,7 +409,7 @@ pada InMemory tidak. Sifat ini sudah ada sebelum task ini dan bukan cacat produk
 | Test/build backend hijau | **Terpenuhi** | `0 Error(s)`; 786/786 test lulus |
 | Laporan task tracked menyertakan bukti file/symbol/SHA | **Terpenuhi** | Berkas ini; commit `d341cf5…`; snapshot kontrak `64d7419…` |
 | `RWI-UI-GAP-002` ditandai tertutup untuk backend | **Terpenuhi** | `requirement-traceability.md` diperbarui pada task ini |
-| Tidak ada migration yang diterapkan tanpa otorisasi | **Terpenuhi** | Nol perintah database dijalankan |
+| Tidak ada migration yang diterapkan tanpa otorisasi | **Terpenuhi** | Penerapan dilakukan sesudah wewenang eksplisit diberikan pemilik untuk database dev miliknya, dan dibatasi hanya pada migration task ini |
 
 ---
 
@@ -381,7 +438,7 @@ tidak disentuh**, sesuai aturan legacy ratchet dan batas cakupan kontrak bagian 
 
 | Risiko | Keterangan |
 | --- | --- |
-| **Schema database belum berubah** | Migration sudah ada di source tetapi belum diterapkan. Selama belum diterapkan, memanggil `POST /admin` dengan tipe `3` terhadap database yang belum dimigrasikan akan gagal di lapisan database. Penerapannya adalah wewenang terpisah |
+| **Database selain dev pemilik belum dimigrasikan** | Schema dev pemilik sudah berubah, tetapi database bersama, staging, dan production belum. Terhadap database yang belum dimigrasikan, `POST /admin` dengan tipe `3` akan gagal di lapisan database. Penerapannya tetap wewenang terpisah |
 | **Tabrakan dua pendaftaran serentak belum diuji** | Provider InMemory tidak menegakkan index unik. Gerbang terbuka yang sama sudah dicatat roadmap untuk `BE-RWI-011` dan berlaku juga di sini |
 | **`403` belum dibuktikan runtime** | Bahwa pengguna tanpa `PatientEncounter : Create` benar-benar ditolak baru dibuktikan lewat atribut, belum lewat permintaan HTTP sungguhan |
 | **`RWI-OQ-046` tetap terbuka** | `InpEpisodeService.BuildInpatientEncounter` masih membuat kunjungan sendiri dengan `PaymentType = Cash` yang ditanam di kode dan **tanpa** baris sumber pembayaran. Task ini tidak menutup jalur itu karena berada di luar cakupan kontrak. Selama jalur itu terbuka, admisi lewat jalan pintas tersebut tetap tercatat tunai walau pasiennya berpenjamin perusahaan |
@@ -412,7 +469,7 @@ Tidak ada `git add`, `commit`, `push`, `pull`, `merge`, `rebase`, atau `switch` 
 
 | Urutan | Langkah | Penanggung jawab |
 | ---: | --- | --- |
-| 1 | Menerapkan migration `20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` ke database target lewat wewenang terpisah | Pemilik database |
+| 1 | Menerapkan migration yang sama ke database bersama, staging, dan production lewat wewenang terpisah. Di sana **enam** migration akan tertunda sekaligus, jadi urutannya perlu direncanakan lebih dulu — lihat peringatan pada bagian 5.3 | Pemilik database |
 | 2 | Memulai `FE-RWI-025`, yang menunggu task ini | Frontend |
 | 3 | Membuktikan `401`/`403` dan tabrakan dua pendaftaran serentak terhadap PostgreSQL sungguhan sesudah migration diterapkan | Backend/QA |
 | 4 | Memutuskan apakah `RWI-OQ-046` ditutup, yaitu jalur admisi yang membuat kunjungan tunai tanpa sumber pembayaran | Product/Domain |
