@@ -45,11 +45,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -702,6 +699,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
 
         #endregion
+
+        #region MEDICAL RECORD MANAGEMENT
+        public DbSet<MrcClinicalDocumentIntegrity> MrcClinicalDocumentIntegrities { get; set; }
+        public DbSet<MrcClinicalNoteAddendum> MrcClinicalNoteAddendums { get; set; }
+        public DbSet<MrcClinicalNoteAuthorDelegation> MrcClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
+        public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
+        #endregion MEDICAL RECORD MANAGEMENT
 
         #endregion HEALTH SERVICE
 

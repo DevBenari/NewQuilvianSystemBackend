@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
-
+using Microsoft.EntityFrameworkCore;
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Controllers;
 
 [ApiController]
@@ -19,6 +19,22 @@ public sealed class TaxRulesController : ControllerBase
 {
     private readonly TaxRuleService _service;
     public TaxRulesController(TaxRuleService service) => _service = service;
+
+    [HttpGet("filters/metadata")]
+    [AccessAction("Read", "Read Tax Rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("TaxRule", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<TaxRuleFilterMetadataResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<TaxRuleFilterMetadataResponse>.Ok(
+            await _service.GetFilterMetadataAsync(cancellationToken), "Metadata filter tax rule berhasil diambil."));
+
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Tax Rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("TaxRule", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<TaxRuleSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<TaxRuleSummaryResponse>.Ok(
+            await _service.GetSummaryAsync(cancellationToken), "Ringkasan tax rule berhasil diambil."));
 
     [HttpGet]
     [AccessAction("Read", "Read Tax Rule", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -36,6 +52,30 @@ public sealed class TaxRulesController : ControllerBase
     public Task<IActionResult> Create([FromBody] CreateTaxRuleRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.CreateAsync(request, CurrentUserId(), cancellationToken));
 
+    [HttpGet("options")]
+    [AccessAction("Read", "Read Tax Rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("TaxRule", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<TaxRuleOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOptions(
+        [FromQuery] string? taxableCategory,
+        [FromQuery] bool onlyActive = true,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(ApiResponse<List<TaxRuleOptionResponse>>.Ok(
+            await _service.GetOptionsAsync(taxableCategory, onlyActive, search, cancellationToken),
+            "Data pilihan tax rule berhasil diambil."));
+
+    [HttpGet("{id:guid}")]
+    [AccessAction("Read", "Read Tax Rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("TaxRule", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<TaxRuleResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<TaxRuleResponse>.Ok(await _service.GetByIdAsync(id, cancellationToken), "Detail tax rule berhasil diambil.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message)); }
+    }
+
     [HttpPut("{id:guid}")]
     [AccessAction("Update", "Update Tax Rule", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("TaxRule", "Update")]
@@ -47,6 +87,23 @@ public sealed class TaxRulesController : ControllerBase
     [AccessPermission("TaxRule", "Update")]
     public Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.DeactivateAsync(id, request, CurrentUserId(), cancellationToken));
+
+    [HttpPost("{id:guid}/activate")]
+    [AccessAction("Update", "Activate Tax Rule", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("TaxRule", "Update")]
+    public Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.ActivateAsync(id, CurrentUserId(), cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Tax Rule", AccessType = AccessTypes.Delete, SortOrder = 6)]
+    [AccessPermission("TaxRule", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<TaxRuleDeleteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<TaxRuleDeleteResponse>.Ok(await _service.DeleteAsync(id, CurrentUserId(), cancellationToken), "Tax rule berhasil dihapus.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (TaxRuleValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
+    }
 
     private async Task<IActionResult> ExecuteAsync(Func<Task<TaxRuleResponse>> command)
     {

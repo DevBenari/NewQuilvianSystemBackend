@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
@@ -202,6 +203,147 @@ public sealed class BillingDiscountService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    // Antrean approval milik dokter yang sedang login. Kepemilikan ditentukan dari DPJP encounter
+    // (User.DoctorId == TrxPatientEncounter.DoctorId) - aturan kepemilikan yang sama persis dipakai
+    // ApproveDoctorAsync, sehingga daftar ini tidak pernah menampilkan pengajuan yang pada akhirnya
+    // akan ditolak backend saat disetujui. Akun non-dokter mendapat daftar kosong, bukan error.
+    public async Task<PagedResult<DoctorDiscountApprovalResponse>> GetPendingDoctorApprovalsAsync(
+        DoctorDiscountApprovalQuery request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var empty = new PagedResult<DoctorDiscountApprovalResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = 0,
+            TotalPage = 0
+        };
+
+        if (actorUserId == Guid.Empty) return empty;
+
+        var actorDoctorId = await _dbContext.Users.AsNoTracking()
+            .Where(x => x.Id == actorUserId && x.IsActive)
+            .Select(x => x.DoctorId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!actorDoctorId.HasValue || actorDoctorId.Value == Guid.Empty) return empty;
+
+        var query =
+            from application in _dbContext.BilDiscountApplications.AsNoTracking()
+            join invoice in _dbContext.BilInvoices.AsNoTracking()
+                on application.InvoiceId equals invoice.Id
+            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+                on invoice.EncounterId equals encounter.Id
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id
+            join policy in _dbContext.MstDiscountPolicies.AsNoTracking()
+                on application.DiscountPolicyId equals policy.Id
+            where !application.IsDelete
+                && application.DiscountType == DiscountPolicyValues.Doctor
+                && application.ApprovalStatus == BillingDiscountApprovalStatuses.PendingDoctor
+                && !invoice.IsDelete
+                && invoice.Status == BillingInvoiceStatuses.Open
+                && !encounter.IsDelete
+                && !encounter.IsCancel
+                && encounter.DoctorId == actorDoctorId
+            select new { application, invoice, encounter, patient, policy };
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToUpper();
+            query = query.Where(x =>
+                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
+                x.patient.FullName.ToUpper().Contains(search) ||
+                x.patient.MedicalRecordNumber.ToUpper().Contains(search));
+        }
+
+        var totalData = await query.CountAsync(cancellationToken);
+        var rows = await query
+            .OrderBy(x => x.application.CreateDateTime)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new
+            {
+                x.application.Id,
+                x.application.InvoiceId,
+                x.invoice.InvoiceNumber,
+                x.invoice.ServiceType,
+                x.invoice.RowVersion,
+                x.invoice.EncounterId,
+                x.encounter.EncounterNumber,
+                PatientName = x.patient.FullName,
+                x.patient.MedicalRecordNumber,
+                PolicyCode = x.policy.Code,
+                PolicyName = x.policy.Name,
+                x.application.InvoiceItemId,
+                x.application.RequestedAmount,
+                x.application.Amount,
+                x.application.Reason,
+                x.application.RequestedBy,
+                x.application.CreateDateTime
+            })
+            .ToListAsync(cancellationToken);
+
+        var itemIds = rows.Where(x => x.InvoiceItemId.HasValue)
+            .Select(x => x.InvoiceItemId!.Value).Distinct().ToList();
+        var itemDescriptions = itemIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Where(x => itemIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DescriptionSnapshot, cancellationToken);
+
+        var requesterIds = rows.Select(x => x.RequestedBy).Distinct().ToList();
+        var requesterNames = requesterIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.Users.AsNoTracking()
+                .Where(x => requesterIds.Contains(x.Id))
+                .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
+                .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+        return new PagedResult<DoctorDiscountApprovalResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = totalData,
+            TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+            Items = rows.Select(x =>
+            {
+                var isSelfRequested = x.RequestedBy == actorUserId;
+                return new DoctorDiscountApprovalResponse
+                {
+                    Id = x.Id,
+                    InvoiceId = x.InvoiceId,
+                    InvoiceNumber = x.InvoiceNumber,
+                    ServiceType = x.ServiceType,
+                    InvoiceRowVersion = x.RowVersion,
+                    EncounterId = x.EncounterId,
+                    EncounterNumber = x.EncounterNumber,
+                    PatientName = x.PatientName,
+                    MedicalRecordNumber = x.MedicalRecordNumber,
+                    PolicyCode = x.PolicyCode,
+                    PolicyName = x.PolicyName,
+                    ItemDescription = x.InvoiceItemId.HasValue
+                        && itemDescriptions.TryGetValue(x.InvoiceItemId.Value, out var description)
+                            ? description
+                            : null,
+                    RequestedAmount = x.RequestedAmount,
+                    Amount = x.Amount,
+                    Reason = x.Reason,
+                    RequestedBy = x.RequestedBy,
+                    RequestedByName = requesterNames.TryGetValue(x.RequestedBy, out var name) ? name : null,
+                    CreateDateTime = x.CreateDateTime,
+                    CanApprove = !isSelfRequested,
+                    BlockedReason = isSelfRequested
+                        ? "Pengaju tidak dapat menyetujui pengajuannya sendiri."
+                        : null
+                };
+            }).ToList()
+        };
     }
 
     internal static decimal CalculatePolicyAmount(MstDiscountPolicy policy, decimal basisAmount)

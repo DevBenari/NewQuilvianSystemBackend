@@ -22,7 +22,7 @@ sama**, dan keduanya sah.
 | Cara pandang | Pertanyaan yang dijawab | Keadaan hari ini |
 | --- | --- | --- |
 | **Employee-centric** | "Apa saja data si Budi?" | **Sudah ada dan sudah dipakai** `[EXISTING]` |
-| **Cross-employee HR administration** | "Siapa saja yang gajinya berubah bulan ini?" | **Belum ada** `[EXISTING]` — gap |
+| **Cross-employee HR administration** | "Siapa saja yang gajinya berubah bulan ini?" | Target behavior: `[DECISION]` `HRD-DEC-012`. Current implementation: `[EXISTING]` `MISSING` — halaman belum ada |
 
 Perbedaan ini bukan soal tampilan. Keduanya menjawab pertanyaan kerja yang berbeda, dipakai
 orang yang berbeda, dan memerlukan bentuk data yang berbeda dari backend.
@@ -63,7 +63,7 @@ ini, tetapi keenamnya menunjuk halaman yang tidak ada. `[EXISTING]` — cacat pr
 | HR Manager | Menyetujui perubahan yang melampaui kewenangan HR Admin | `[OPEN]` — batas kewenangannya belum ditetapkan |
 | Pegawai | Mengajukan permohonan perubahan data pribadinya | `[EXISTING]` |
 | Atasan | Melihat data anak buahnya | `[OPEN]` — cakupan yang boleh dilihat belum ditetapkan |
-| Petugas payroll | Membaca penetapan gaji yang berlaku pada satu periode | `[EXISTING]` untuk datanya, `[EXISTING]` gap untuk halamannya |
+| Petugas payroll | Membaca penetapan gaji yang berlaku pada satu periode | Data: `[EXISTING]`. Halaman lintas-pegawai — target: `[DECISION]` `HRD-DEC-012`, saat ini: `[EXISTING]` `MISSING` |
 | Auditor | Membaca berkas pegawai tanpa mengubah | `[OPEN]` — peran read-only belum terbukti ada |
 
 ## 3. Trigger
@@ -74,7 +74,7 @@ ini, tetapi keenamnya menunjuk halaman yang tidak ada. `[EXISTING]` — cacat pr
 | Pegawai dipindahkan unit atau jabatan | Employee-centric | `[EXISTING]` |
 | Gaji ditetapkan atau diubah | Keduanya | `[EXISTING]` |
 | Pegawai mengajukan perubahan data pribadi | Employee-centric | `[EXISTING]` |
-| Periode payroll akan ditutup | Cross-employee | `[EXISTING]` gap |
+| Periode payroll akan ditutup | Cross-employee | Target: `[DECISION]` `HRD-DEC-012`. Current: `[EXISTING]` `MISSING` |
 | Audit atau akreditasi meminta bukti | Keduanya | `[OPEN]` |
 
 ## 4. Preconditions
@@ -96,9 +96,9 @@ ini, tetapi keenamnya menunjuk halaman yang tidak ada. `[EXISTING]` — cacat pr
 
 ### 5.2 Cross-employee
 
-1. HR Admin membuka halaman jenis data, misalnya Penetapan Gaji. `[EXISTING]` gap — halaman belum ada
-2. Menyaring berdasarkan periode, unit, atau status. `[EXISTING]` gap
-3. Melihat seluruh pegawai yang memenuhi saringan itu. `[EXISTING]` gap
+1. HR Admin membuka halaman jenis data, misalnya Penetapan Gaji. Target: `[DECISION]` `HRD-DEC-012`. Current: `[EXISTING]` `MISSING` — halaman belum ada
+2. Menyaring berdasarkan periode, unit, atau status. Target: `[DECISION]` `HRD-DEC-012`. Current: `[EXISTING]` `MISSING`
+3. Melihat seluruh pegawai yang memenuhi saringan itu. Target: `[DECISION]` `HRD-DEC-012`. Current: `[EXISTING]` `MISSING`
 4. Membuka satu baris untuk masuk ke pandangan employee-centric. `[EXISTING]`
 
 ### 5.3 Permohonan perubahan data oleh pegawai
@@ -140,17 +140,36 @@ bukan diisi sendiri.
 
 ## 9. State Transition
 
-Permohonan perubahan data pegawai. Nilai status diambil dari
-`LeaveRequestValueConstants.Status` yang dipakai pola pengajuan HR, dan perlu dikonfirmasi
-apakah `EmployeeProfileChange` memakai kosakata yang sama. `[OPEN]`
+**`HRD-Q-21` tertutup lewat audit source.** `EmployeeProfileChange` **tidak** memakai
+`LeaveRequestValueConstants.Status`. Statusnya adalah field `string` polos pada
+`TrxEmployeeProfileChangeRequest.RequestStatus` (`Areas/Corporate/HumanResource/WorkforceCore/**`),
+divalidasi oleh array privat pada `EmployeeProfileChangeService`
+(`RequestStatuses = { Draft, Submitted, UnderVerification, NeedRevision, Approved, Rejected,
+Cancelled, Applied }`), bukan oleh tipe atau namespace yang sama dengan `LeaveManagement`. Kedua
+kosakata **kebetulan** berbagi sebagian nama nilai (`Draft`, `Submitted`, `NeedRevision`,
+`Approved`, `Rejected`, `Cancelled`); `EmployeeProfileChange` menambah `UnderVerification` dan
+`Applied`, dan tidak memiliki `WaitingApproval`, `Taken`, `Recalled`, maupun `Expired`. Kedua
+kosakata adalah tipe yang **berbeda**, bukan yang sama. `[EXISTING]` — state vocabulary saja.
+
+Tabel di bawah memakai kosakata `EmployeeProfileChangeService` yang benar. **Transition edge**
+tetap `[OPEN]` / UNVERIFIED kecuali baris terakhir: audit hanya membuktikan keberadaan kosakata
+dan menemukan logika transisi di layanan (mis. rujukan `NeedRevision` pada beberapa titik
+layanan), tetapi belum membuktikan guard per-edge (state asal yang sah untuk setiap aksi) maupun
+siapa yang berwenang menjalankannya.
 
 | Dari | Tindakan | Ke | Siapa | Provenance |
 | --- | --- | --- | --- | --- |
-| `Draft` | Ajukan | `Submitted` | Pegawai | `[OPEN]` — perlu konfirmasi kosakata |
-| `Submitted` | Terima | `Approved` | Atasan atau HR | `[OPEN]` |
-| `Submitted` | Minta perbaikan | `NeedRevision` | Atasan atau HR | `[OPEN]` |
-| `Submitted` | Tolak | `Rejected` | Atasan atau HR | `[OPEN]` |
-| `Approved` | Terapkan | data profil berubah | Sistem | `[EXISTING]` |
+| `Draft` | Ajukan | `Submitted` | Pegawai | State vocabulary: `[EXISTING]`. Transition edge: `[OPEN]` — guard belum diverifikasi |
+| `Submitted` | Tinjau | `UnderVerification` | Atasan atau HR | State vocabulary: `[EXISTING]`. Transition edge: `[OPEN]` |
+| `UnderVerification` | Terima | `Approved` | Atasan atau HR | State vocabulary: `[EXISTING]`. Transition edge: `[OPEN]` |
+| `UnderVerification` | Minta perbaikan | `NeedRevision` | Atasan atau HR | State vocabulary: `[EXISTING]`. Transition edge: `[OPEN]` — ada rujukan logika di layanan, guard spesifik belum dikutip |
+| `UnderVerification` | Tolak | `Rejected` | Atasan atau HR | State vocabulary: `[EXISTING]`. Transition edge: `[OPEN]` |
+| `Approved` | Terapkan | `Applied` — data profil berubah | Sistem | `[EXISTING]` — nilai `Applied` terbukti ada dan terpisah dari `Approved`, menunjukkan penerapan adalah langkah tersendiri |
+
+Kewenangan "Atasan atau HR" pada tabel di atas **belum diverifikasi** — bagian ini tidak termasuk
+dalam empat transaksi yang diaudit otoritasnya pada bagian 5 dokumen interview decisions
+(Leave, Overtime, Attendance correction, Salary assignment). Jangan menyimpulkan kewenangannya
+dari pola flow lain.
 
 Penempatan dan penetapan gaji **tidak berstatus**. Yang berlaku adalah tanggal mulai berlaku,
 bukan status. `[EXISTING]`
@@ -179,7 +198,7 @@ sah menurut `HRD-DEC-019`.
 | Ringkasan profil | `GET api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/overview` | `READY TO REUSE` `[EXISTING]` |
 | Permohonan perubahan data | `api/v1/corporate/human-resource/employee-profile-changes` | `READY TO REUSE` `[EXISTING]` |
 | Layanan mandiri perubahan data | `api/v1/self-services/human-resource/profile-changes` | `READY TO REUSE` `[EXISTING]` |
-| **Daftar lintas-pegawai per jenis data** | Tidak ada | **`EXTEND`** `[EXISTING]` gap |
+| **Daftar lintas-pegawai per jenis data** | Tidak ada | Target: `[DECISION]` `HRD-DEC-012`. Current: **`EXTEND`** `[EXISTING]` `MISSING` |
 
 `WorkforceCore` menyediakan 145 endpoint pada 14 controller, seluruhnya berpola per profil.
 `EmployeeProfileChangeController` adalah satu-satunya yang sudah berbentuk lintas-pegawai, dan
@@ -192,8 +211,8 @@ itu menjadi contoh bentuk untuk `EXTEND`. `[EXISTING]`
 | Editor profil employee-centric | `src/lib/state/slice/hr/workforce-profile/workforce-profile-all.jsx` beserta 22 resource key | `READY TO REUSE` `[EXISTING]` |
 | Halaman detail pegawai | `src/app/hr/master-data/employee/[employeeSlug]/workforce/**` | `READY TO REUSE` `[EXISTING]` |
 | Halaman detail dokter dan pengguna eksternal | Pola yang sama | `READY TO REUSE` `[EXISTING]` |
-| **Enam halaman daftar lintas-pegawai** | Tidak ada | **`MISSING`** `[EXISTING]` |
-| Menu yang menjanjikan halaman itu | `menu-items.jsx:517-557` | **`REPAIR`** `[EXISTING]` |
+| **Enam halaman daftar lintas-pegawai** | Tidak ada | Target: `[DECISION]` `HRD-DEC-012`. Current: **`MISSING`** `[EXISTING]` |
+| Menu yang menjanjikan halaman itu | `menu-items.jsx:517-557` | Target: `[DECISION]` `HRD-DEC-012`. Current: **`REPAIR`** `[EXISTING]` |
 
 Yang perlu ditegaskan: pekerjaan ini **memakai ulang**, bukan membangun dari nol. Redux, komponen
 editor, dan kontrak backend per-profil semuanya sudah ada. `[DECISION]` `HRD-DEC-012`
@@ -226,7 +245,7 @@ editor, dan kontrak backend per-profil semuanya sudah ada. `[DECISION]` `HRD-DEC
 | `HRD-Q-18` | **Baru.** Apa yang terjadi bila penetapan gaji berlaku surut ke periode payroll yang sudah tertutup? Ini berpotensi mengubah gaji yang sudah dibayarkan | Memblokir desain final penetapan gaji berlaku surut |
 | `HRD-Q-19` | **Baru.** Apakah penetapan gaji dan penempatan memerlukan persetujuan? Source tidak menunjukkan jalur persetujuan untuk keduanya, padahal keduanya sensitif | Memblokir desain final jalur persetujuan administrasi |
 | `HRD-Q-20` | **Baru.** Siapa yang boleh membaca penetapan gaji pegawai lain, dan sampai tingkat apa? | Memblokir desain final hak akses halaman lintas-pegawai |
-| `HRD-Q-21` | **Baru.** Apakah `EmployeeProfileChange` memakai kosakata status yang sama dengan pengajuan HR lain? | Memblokir tabel state transition final |
+| `HRD-Q-21` | ~~Apakah `EmployeeProfileChange` memakai kosakata status yang sama dengan pengajuan HR lain?~~ | **Tertutup lewat audit source, 27 Agustus 2026.** Tidak — kosakatanya berbeda (`EmployeeProfileChangeService.RequestStatuses`, bukan `LeaveRequestValueConstants.Status`). Lihat bagian 9. Transition edge dan kewenangan aktor tetap `[OPEN]` |
 
 ## 16. Acceptance Criteria
 

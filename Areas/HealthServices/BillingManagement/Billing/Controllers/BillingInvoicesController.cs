@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -174,6 +174,23 @@ public sealed class BillingInvoicesController : ControllerBase
         CancellationToken cancellationToken) =>
         ExecuteDiscountCommandAsync(() => _discountService.ApproveDoctorAsync(
             id, discountId, request, CurrentUserId(), cancellationToken), "Diskon jasa dokter berhasil disetujui.");
+
+    // Antrean approval milik dokter yang login - dipakai layar "Persetujuan Diskon Dokter" yang
+    // berdiri sendiri, supaya dokter tidak perlu masuk Menu Pembayaran milik kasir untuk
+    // menyetujui. Kepemilikan disaring di service dari DPJP encounter, bukan dari query client.
+    [HttpGet("doctor-discounts/pending")]
+    [AccessAction("Read", "Read Pending Doctor Discount Approval", AccessType = AccessTypes.Read, SortOrder = 7)]
+    [AccessPermission("BillingDoctorDiscount", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorDiscountApprovalResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingDoctorDiscounts(
+        [FromQuery] DoctorDiscountApprovalQuery request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _discountService.GetPendingDoctorApprovalsAsync(
+            request, CurrentUserId(), cancellationToken);
+        return Ok(ApiResponse<PagedResult<DoctorDiscountApprovalResponse>>.Ok(
+            result, "Antrean approval diskon jasa dokter berhasil diambil."));
+    }
 
     private async Task<IActionResult> ExecuteDiscountCommandAsync(
         Func<Task<DiscountResponse>> command,

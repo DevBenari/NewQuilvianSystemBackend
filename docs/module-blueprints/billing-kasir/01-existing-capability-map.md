@@ -344,3 +344,131 @@ Hasil audit revision `0.2` menegaskan bahwa desain tidak boleh berangkat dari as
 Billing sudah ada”. Bukti legacy membantu menemukan pola dan konflik, tetapi tidak menjadi current
 capability. Handoff ke requirement gate wajib membawa approved decision revision `0.2`, termasuk
 `BKC-DEC-031`–`BKC-DEC-044`, tanpa mengadopsi policy legacy sebagai target.
+
+## 15. Impact scan — 27 Agustus 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Permintaan `/trace-existing-capabilities` setelah amendment `/grill-me` (`BKC-DEC-045`–`056`, Menu Pembayaran + Dokumen Kasir/Kwitansi) |
+| Backend SHA dibandingkan | `e6f6ecba1537783ea2eb379ac12cc97790707303` (audit revision `0.2`) → `b3c8363f0b1d81cdfe3ad76c031a1fba0c94b8c5` (HEAD saat ini) + working tree belum commit |
+| Commit di antara kedua SHA | 90 commit, di luar sesi ini (kemungkinan branch/sesi lain pada `Yasmina`) |
+| Working tree belum commit | Seluruh implementasi Menu Pembayaran + Dokumen Kasir/Kwitansi sesi ini (`git status --short`, 35 file) — lihat `blueprint-manifest.md` untuk daftar task terkait |
+| Status peta ini | **STALE untuk section 4 (evidence map)** — sebagian besar baris `Missing` pada bagian itu sudah punya implementasi source (lihat 15.1). Section 1–3 dan 5–14 (batas scope, kontrak as-is legacy yang TIDAK disentuh) masih valid berdasarkan bukti di bawah. |
+
+### 15.1 Baris `Missing` pada section 4 yang sudah punya implementasi source
+
+Bukti: `find`/`grep` atas `Areas/HealthServices/BillingManagement` menemukan model, service, dan
+controller berikut yang tidak ada pada audit `0.2`. Ini BUKAN hasil kerja sesi ini (sesi ini hanya
+menambah Menu Pembayaran, Kwitansi, dan Activate/Delete master data) — sudah ada di source sebelum
+sesi ini dimulai, kemungkinan dari sesi/branch lain yang belum tercermin di kolom "Status" section 4.
+
+| Baris section 4 (revision `0.2`) | Bukti source yang ditemukan sekarang |
+| --- | --- |
+| Aggregate invoice satu encounter (`Missing`) | `Billing/Models/BilInvoice.cs`, `Billing/Controllers/BillingInvoicesController.cs`, `Billing/Services/BillingInvoiceService.cs` |
+| Billing item dan idempotensi sumber (`Missing`) | `Billing/Services/BillingChargeSourceAdapter.cs` (`IBillingChargeSourceAdapter`, `UpsertChargeAsync` per `SourceDomain`+`SourceDetailId`) |
+| Payment, split tender, dan outstanding (`Missing`) | `Billing/Models/BilSettlement.cs`, `BilTender.cs`, `Billing/Services/BillingSettlementService.cs`, `Billing/Controllers/BillingSettlementsController.cs` |
+| Deposit/top-up/progress payment ranap (`Missing`) | `Billing/Models/BilDepositAccount.cs`, `BilDepositMovement.cs`, `Billing/Services/BillingDepositService.cs`, `Billing/Controllers/BillingPatientFundsController.cs` |
+| Refund dan reversal (`Missing`) | `Billing/Models/BilRefundCase.cs`, `BilRefundLine.cs`, `BilRefundableCredit.cs`, `Billing/Services/BillingRefundService.cs` |
+| Write-off pasien (`Missing`) | `Billing/Models/BilWriteOffCase.cs`, `Billing/Dtos/BillingWriteOffDtos.cs` (service/controller belum diverifikasi eksplisit pada scan ini) |
+| AP dokter readiness policy / AR penjamin (`Missing`) | `Billing/Models/BilHandoffAdjustment.cs`, `Billing/Services/BillingArApHandoffService.cs`, `BillingFinancialExceptionService.cs` |
+| Shift kasir dan selisih kas (`Missing`) | `Cashier/Models/BilCashierShift.cs`, `BilCashierShiftHandover.cs`, `BilCashVarianceReview.cs`, `Cashier/Services/CashierShiftService.cs`, `Cashier/Controllers/CashierShiftsController.cs` |
+| Workspace frontend Billing/Kasir (`Missing`) | Route `src/app/health-services/billing-management/**` sudah ada (invoice list/detail, Menu Pembayaran) — belum di-commit menurut `MODULE-STATUS.md` |
+
+Cross-check: temuan ini konsisten dengan rekonsiliasi yang SUDAH tercatat di
+[`MODULE-STATUS.md`](./MODULE-STATUS.md) tanggal 25 Agustus 2026 (`ISSUE-FE-003`). Dokumen itu
+sudah lebih akurat mengenai status implementasi transaksi Billing dibanding section 4 pada file
+ini — **rujuk `MODULE-STATUS.md` sebagai sumber current-state, bukan section 4 di atas**, sampai
+section 4 diperbarui formal ke revision baru.
+
+### 15.2 Temuan baru — belum tercatat di `MODULE-STATUS.md` manapun (perlu keputusan/tindak lanjut)
+
+**A. Fakta klinis (`ClinicalMilestoneFactProducer`) dan charge-source-adapter Billing TIDAK terhubung.**
+
+- Commit di luar sesi ini (bagian dari 90 commit di atas) menambahkan
+  `Areas/HealthServices/ClinicalBillingIntegration/` (`TrxClinicalMilestoneFact`,
+  `ClinicalMilestoneFactProducer`) di bawah blueprint **`rawat-jalan`** (dokumen
+  `docs/module-blueprints/rawat-jalan/execution-evidence-RJ-BIL-BE-002.md`,
+  `RJ-BIL-CONFLICT-001-source-audit.md`). `PatientProcedureController.ExecuteProcedure`/
+  `CancelProcedure` dan `PrescriptionWorkflowService` sudah diubah untuk MENYERAHKAN fakta klinis
+  lewat producer ini alih-alih menyatakan sendiri `IsBillingGenerated`/`PaymentStatus` (perbaikan
+  tepat atas baris "Tindakan pasien -> Billing" dan "Resep -> Billing" yang ditandai `Repair` pada
+  section 4).
+- `Billing/Services/BillingChargeSourceAdapter.cs` sudah punya `SourceDomain` yang cocok untuk
+  menerima fakta itu: `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE` (plus
+  `ADHOC` yang ditambah sesi ini).
+- **Tidak ditemukan satu pun kode yang membaca `TrxClinicalMilestoneFact` dan memanggil
+  `UpsertChargeAsync`/endpoint `from-source` untuk domain `PROCEDURE`/`LABORATORY`/`RADIOLOGY`/
+  `PHARMACY`/`CONSUMABLE`** (`grep -rl "TrxClinicalMilestoneFact"` hanya menunjuk ke folder
+  `ClinicalBillingIntegration` sendiri; `grep` pemanggil `UpsertChargeAsync`/`from-source` hanya
+  menunjuk ke Billing sendiri dan FE ad-hoc sesi ini). Produser fakta klinis dan konsumer Billing
+  sama-sama sudah dibangun, tetapi oleh dua alur kerja yang tampaknya tidak saling mengetahui.
+- **Dampak**: jalur `order pelayanan -> billing item idempotent` yang dinyatakan `Missing`
+  end-to-end pada audit `0.2` (lihat bagian 3) **masih belum terbukti end-to-end hari ini** —
+  gap-nya berpindah dari "belum ada produser maupun konsumer" menjadi "produser dan konsumer ada,
+  belum disambungkan". Ini TIDAK sama dengan `BKC-BLK-INT-001` (yang soal kontrak konsumer AR/AP di
+  hilir, bukan soal intake fakta klinis di hulu) — belum tercatat sebagai dependency/blocker di
+  `MODULE-STATUS.md` mana pun yang ditemukan pada scan ini.
+- **Perlu keputusan**: siapa pemilik pekerjaan menyambungkan keduanya (billing-kasir konsumsi
+  `TrxClinicalMilestoneFact`, atau rawat-jalan memanggil Billing langsung) — pertanyaan lintas
+  modul, tidak diputuskan pada scan ini.
+
+**B. Konflik granularitas nomor Kwitansi (`BKC-DEC-054`) vs bukti legacy `KasirQuilvian1`.**
+
+- `KasirQuilvian1/BeKasir/MainKasirDetail.cs` menyimpan `NoKwitansi` pada level **detail
+  pembayaran per angsuran** (`MainKasirDetailId`, `AngsuranKe`, `NominalPembayaran`,
+  `MetodePembayaranId` — satu baris per tender), bukan pada level header (`MainKasirId`/invoice).
+  `MainKasirController.cs` memanggil `_noKwitansiService.GenerateNoKwitansiAsync(...)` di dalam
+  loop per detail dengan komentar eksplisit "kwitansi unik per baris" (baris 437, 940-941, 1225) dan
+  "kwitansi sekarang per baris" (baris 1013).
+- `BKC-DEC-054` (hasil `/grill-me` sesi ini) memutuskan SATU nomor Kwitansi per **invoice**,
+  dialokasikan sekali dan dipakai ulang untuk semua reprint — sudah diimplementasikan di
+  `BilInvoice.KwitansiNumber` + `BillingInvoiceService.GetOrAllocateKwitansiNumberAsync`.
+- Rekomendasi yang saya berikan saat `/grill-me` (dipilih user sebagai opsi "Direkomendasikan")
+  DIBUAT TANPA memeriksa pola legacy ini terlebih dahulu. Kode `GenerateNoKwitansiAsync` yang
+  sebelumnya di-paste user sebagai referensi eksplisit ("saya menggunakan kode itu") berasal dari
+  file yang SAMA (`MainKasirController.cs`) yang justru memanggilnya per baris/tender, bukan sekali
+  per invoice.
+- **Perlu keputusan pemilik produk**: apakah granularitas per-invoice (sudah dibangun) tetap
+  dipertahankan, atau diganti ke per-tender (`BilTender` belum punya field nomor Kwitansi — akan
+  perlu kolom baru + alokasi per `AddTenderAsync`, bukan sekadar perubahan kecil) agar konsisten
+  dengan pola legacy dan kebutuhan audit "satu bukti bayar per transaksi tunai/transfer yang
+  benar-benar terjadi". Tidak diubah pada trace ini — hanya dicatat sebagai conflict.
+
+**C. Scope "Struk Pasien" pada Dokumen Kasir kemungkinan salah ditempatkan sebagai "milik modul lain".**
+
+- `BKC-DEC-052` (sesi ini) memutuskan hanya Kwitansi yang menjadi tanggung jawab billing-kasir;
+  Struk Pasien dkk. hanya placeholder tab yang menaut ke modul lain.
+- Bukti legacy: `KasirQuilvian1/FE kasir view/detail-pembayaran-sukses/Struk-Pasien.jsx` dan
+  `pembayaran-sukses.jsx` menunjukkan Struk Pasien historisnya JUSTRU dibangun dan dimiliki oleh
+  Kasir/Billing sendiri — data diambil dari `fetchBillingByKunjunganId` (slice Billing legacy),
+  berisi rincian obat/tindakan/racikan/biaya admin (identik dengan data yang sudah tampil di tabel
+  "Tagihan Pasien" pada Menu Pembayaran sesi ini), dan tombol WhatsApp/Email/Cetak pada layar itu
+  justru terpasang di komponen Struk Pasien ini, bukan di komponen Kwitansi terpisah.
+- Free-text jawaban user saat `/grill-me` ("Dokumen kasir terdiri dari SPT, Claim Letter, LML,
+  LMA, Resep Obat, dan Bukti Pembayaran") tidak menyebut "Struk Pasien" secara eksplisit — tab itu
+  hanya muncul dari screenshot referensi UI, sehingga belum tentu user bermaksud memasukkannya ke
+  daftar "bukan tanggung jawab billing-kasir".
+- **Perlu keputusan pemilik produk**: apakah Struk Pasien (rincian tagihan tercetak) sebenarnya
+  IN-SCOPE billing-kasir — dan bisa dibangun dengan reuse data yang sudah ada di Menu Pembayaran —
+  alih-alih tetap sebagai placeholder "milik modul lain". Tidak diubah pada trace ini.
+
+### 15.3 Verifikasi non-duplikasi (tidak ada tindak lanjut diperlukan)
+
+`InvoicePatientSummaryResponse` (baru, sesi ini, `Billing/Dtos/BillingInvoiceDtos.cs`) vs
+`PatientSummaryResponse` (`PatientManagement/MasterData/Controllers/PatientController.cs`) —
+DIPERIKSA, bukan duplikasi. `PatientSummaryResponse` adalah agregat dashboard (total/active/
+inactive/newborn/member/deceased/merged count pasien), bukan detail per-invoice/encounter. Nama
+mirip hanya kebetulan; tidak ada capability yang seharusnya di-reuse yang terlewat.
+
+### 15.4 Rekomendasi tindak lanjut
+
+1. Temuan 15.2.A (integrasi fakta klinis <-> charge intake) berdampak LEBIH LUAS dari sekadar
+   billing-kasir — melibatkan blueprint `rawat-jalan`. Sebaiknya dibawa ke pemilik kedua modul
+   sebagai keputusan lintas modul, bukan diputuskan sepihak oleh salah satu sesi build.
+2. Temuan 15.2.B dan 15.2.C berdampak langsung pada implementasi Kwitansi/Dokumen Kasir yang baru
+   selesai dibangun sesi ini — sebaiknya diklarifikasi ke Product/Domain Owner SEBELUM revision
+   `BKC-DEC-052`/`054` dinaikkan statusnya dari `draft` ke `approved`, karena keduanya berpotensi
+   mengubah desain yang sudah diimplementasikan.
+3. Section 4 pada file ini (revision `0.2`) sebaiknya di-refresh formal ke revision baru bila
+   kapasitas tersedia — `MODULE-STATUS.md` sudah menjadi sumber current-state yang lebih akurat
+   untuk sementara, tetapi bukan pengganti permanen capability map ini.

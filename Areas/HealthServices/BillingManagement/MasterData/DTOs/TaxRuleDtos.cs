@@ -34,7 +34,9 @@ public class CreateTaxRuleRequest
     [Required, MaxLength(30)] public string Code { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string TaxableCategory { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.000001", "100.000000")] public decimal Rate { get; set; }
+    [Range(typeof(decimal), "0.000001", "100.000000",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)] public decimal Rate { get; set; }
     [Required, MaxLength(30)] public string RoundingMode { get; set; } = string.Empty;
     [Required, MaxLength(50)] public string AllocationRule { get; set; } = string.Empty;
     public DateTimeOffset EffectiveFrom { get; set; }
@@ -58,4 +60,46 @@ public sealed class TaxRuleResponse
     public bool IsActive { get; set; }
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
+}
+
+public sealed class TaxRuleDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
+}
+
+public sealed class TaxRuleOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string TaxableCategory { get; set; } = string.Empty;
+    public decimal Rate { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class TaxRuleSummaryResponse
+{
+    public int TotalRule { get; set; }
+    public int ActiveRule { get; set; }
+    public int InactiveRule { get; set; }
+}
+
+public sealed class TaxRuleDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? TaxableCategory { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class TaxRuleFilterMetadataResponse
+{
+    public TaxRuleDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> RoundingModes { get; set; } = new();
+    public List<string> AllocationRules { get; set; } = new();
+    public List<string> TaxableCategories { get; set; } = new();
 }
