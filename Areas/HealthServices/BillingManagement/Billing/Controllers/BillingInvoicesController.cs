@@ -117,6 +117,47 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    [HttpGet("encounter-options")]
+    [AccessAction("Read", "Read Active Encounter Option", AccessType = AccessTypes.Read, SortOrder = 9)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<ActiveEncounterOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetActiveEncounterOptions(
+        [FromQuery] string? search,
+        [FromQuery] int limit,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetActiveEncounterOptionsAsync(
+            search, limit <= 0 ? 25 : limit, cancellationToken);
+        return Ok(ApiResponse<List<ActiveEncounterOptionResponse>>.Ok(
+            result, "Daftar kunjungan aktif berhasil diambil."));
+    }
+
+    // Kalkulasi tampilan: tidak menulis versi baru. Menu Pembayaran memanggilnya saat halaman
+    // dibuka supaya angka selalu segar tanpa melahirkan baris BilCalculationVersion tiap kunjungan.
+    [HttpGet("{id:guid}/calculation-preview")]
+    [AccessAction("Read", "Preview Billing Calculation", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CalculationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PreviewCalculation(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _calculationService.PreviewCalculationAsync(
+                id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<CalculationResponse>.Ok(
+                result, "Pratinjau kalkulasi invoice berhasil dihitung."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpPost("{id:guid}/items/{itemId:guid}/void")]
     [AccessAction("Update", "Void Eligible Billing Invoice Item", AccessType = AccessTypes.Update, SortOrder = 7)]
     [AccessPermission("BillingInvoice", "Update")]
