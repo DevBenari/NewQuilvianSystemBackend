@@ -575,7 +575,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             var idDokumen = isiHalaman.Select(x => x.DocumentId).Distinct().ToList();
 
-            var keutuhan = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.PatientId == patientId
                             && !x.IsDelete
@@ -833,7 +833,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 Sections = isi.Sections
             };
 
-            var keutuhan = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.DocumentKind == documentKind
@@ -850,7 +850,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             hasil.AuthorUserId = keutuhan.IsAuthorKnown ? keutuhan.AuthorUserId : null;
             hasil.AddendumCount = keutuhan.AddendumCount;
 
-            var addendum = await _dbContext.Set<TrxClinicalNoteAddendum>()
+            var addendum = await _dbContext.Set<MrcClinicalNoteAddendum>()
                 .AsNoTracking()
                 .Where(x => x.IntegrityId == keutuhan.Id && !x.IsDelete)
                 .OrderBy(x => x.Sequence)

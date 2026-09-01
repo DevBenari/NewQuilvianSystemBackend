@@ -77,7 +77,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(2, jumlah);
 
-            var seluruhnya = context.Set<TrxClinicalDocumentIntegrity>().AsNoTracking().ToList();
+            var seluruhnya = context.Set<MrcClinicalDocumentIntegrity>().AsNoTracking().ToList();
 
             var yangDikunci = seluruhnya
                 .Where(x => x.LockTrigger == ClinicalDocumentLockTrigger.EncounterClosed)
@@ -115,7 +115,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 konteks.EncounterId, penulisId, Sekarang, Sekarang);
             await context.SaveChangesAsync();
 
-            var seluruhDokumen = context.Set<TrxClinicalDocumentIntegrity>()
+            var seluruhDokumen = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Select(x => x.DocumentId)
                 .ToList();
@@ -156,7 +156,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             kunjungan.IsCancel = true;
             context.SaveChanges();
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == documentId);
 
             Assert.Equal(ClinicalDocumentIntegrityStatus.Draft, keutuhan.IntegrityStatus);
@@ -188,7 +188,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 konteks.PatientId, konteks.EncounterId, penulis.Id);
             await context.SaveChangesAsync();
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == susulan);
 
             Assert.Equal(ClinicalDocumentIntegrityStatus.Draft, keutuhan.IntegrityStatus);

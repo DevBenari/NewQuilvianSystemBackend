@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
+using System.Linq.Expressions;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services
 {
@@ -75,6 +76,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             EncounterStatus.Cancelled,
             EncounterStatus.NoShow
         ];
+
+        /// <summary>
+        /// Satu-satunya definisi "kunjungan masih berjalan" di sistem ini.
+        /// </summary>
+        /// <remarks>
+        /// Ia berbentuk expression, bukan disalin ke setiap pemanggil, karena definisinya
+        /// menentukan kewenangan: pasien yang dianggap sedang dirawat pengguna tidak dimintai
+        /// keperluan akses. Dua salinan aturan yang berbeda tipis akan membuat layar
+        /// menjanjikan sesuatu yang ditolak server — atau lebih buruk, sebaliknya.
+        /// </remarks>
+        private static readonly Expression<Func<TrxPatientEncounter, bool>> KunjunganMasihBerjalan =
+            x => !x.IsDelete
+                 && !x.IsCancel
+                 && x.CompletedAt == null
+                 && !StatusKunjunganSelesai.Contains(x.EncounterStatus);
 
         /// <summary>
         /// Menilai kewenangan lalu mencatat jejaknya. Panggil ini SEBELUM mengambil isi rekam
@@ -147,7 +163,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             var perluDitinjau = await PerluDitinjauAsync(
                 jenisAkses, request.AccessPurposeId, cancellationToken);
 
-            var jejak = new TrxMedicalRecordAccessLog
+            var jejak = new MrcAccessLog
             {
                 PatientId = request.PatientId,
                 UserId = request.UserId,
@@ -169,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             try
             {
-                await _dbContext.Set<TrxMedicalRecordAccessLog>()
+                await _dbContext.Set<MrcAccessLog>()
                     .AddAsync(jejak, cancellationToken);
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -264,16 +280,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             {
                 return await _dbContext.Set<TrxPatientEncounter>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.PatientId == patientId
-                                   && !x.IsDelete
-                                   && !x.IsCancel
-                                   && x.CompletedAt == null
-                                   && !StatusKunjunganSelesai.Contains(x.EncounterStatus),
-                              cancellationToken);
+                    .Where(KunjunganMasihBerjalan)
+                    .AnyAsync(x => x.PatientId == patientId, cancellationToken);
             }
             catch (Exception)
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Menilai keadaan kunjungan sekelompok pasien sekaligus, memakai aturan yang sama
+        /// persis dengan <see cref="PunyaKunjunganAktifAsync"/>.
+        /// </summary>
+        /// <remarks>
+        /// Dipakai daftar pasien supaya petugas tahu lebih dulu apakah membuka berkas seseorang
+        /// akan meminta keperluan akses — sebelum tombolnya ditekan, bukan sesudah.
+        ///
+        /// Satu query untuk seluruh halaman, bukan satu query per baris.
+        ///
+        /// Mengembalikan <c>null</c> bila penilaian gagal. Itu berbeda dari himpunan kosong:
+        /// kosong berarti tidak seorang pun punya kunjungan aktif, sedangkan <c>null</c> berarti
+        /// keadaannya tidak diketahui. Pemanggil WAJIB meneruskan ketidaktahuan itu apa adanya
+        /// dan tidak menurunkannya menjadi "tidak punya" — layar yang menyatakan pasien tidak
+        /// sedang dirawat padahal sebenarnya dirawat adalah keterangan yang keliru, bukan
+        /// sekadar keterangan yang hilang.
+        /// </remarks>
+        public async Task<HashSet<Guid>?> PasienDenganKunjunganAktifAsync(
+            IReadOnlyCollection<Guid> patientIds,
+            CancellationToken cancellationToken = default)
+        {
+            var idUnik = (patientIds ?? Array.Empty<Guid>())
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (idUnik.Count == 0)
+                return new HashSet<Guid>();
+
+            try
+            {
+                var berjalan = await _dbContext.Set<TrxPatientEncounter>()
+                    .AsNoTracking()
+                    .Where(KunjunganMasihBerjalan)
+                    .Where(x => idUnik.Contains(x.PatientId))
+                    .Select(x => x.PatientId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                return berjalan.ToHashSet();
+            }
+            catch (Exception)
+            {
+                return null;
             }
         }
 

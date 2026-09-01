@@ -118,7 +118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         {
             var sekarang = DateTime.UtcNow;
 
-            var query = _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var query = _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -157,7 +157,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
             var sekarang = DateTime.UtcNow;
 
-            var query = _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var query = _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -272,7 +272,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         }
 
         private static AuthorDelegationResponse ToResponse(
-            TrxClinicalNoteAuthorDelegation penetapan,
+            MrcClinicalNoteAuthorDelegation penetapan,
             Dictionary<Guid, string> nama,
             DateTime sekarang) => new()
             {

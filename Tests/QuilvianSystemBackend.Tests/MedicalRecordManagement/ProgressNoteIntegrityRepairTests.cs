@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(penulisId, tersimpan.ProviderUserId);
 
             // Penulis pada daftar keutuhan juga tidak berpindah.
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single(x => x.DocumentId == cppt.Id);
             Assert.Equal(penulisId, keutuhan.AuthorUserId);
         }
@@ -261,7 +261,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var cppt = context.Set<TrxPatientIntegratedProgressNote>()
                 .AsNoTracking().Single();
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking().Single();
 
             Assert.Equal(ClinicalDocumentKind.ProgressNote, keutuhan.DocumentKind);
@@ -357,7 +357,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 Assert.Equal(1, context.Set<TrxPatientIntegratedProgressNote>().Count());
             }
 
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>().Count());
         }
     }
 }
