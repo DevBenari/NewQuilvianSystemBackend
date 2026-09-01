@@ -1,9 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Configurations
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.LaboratoryManagement
 {
     // Konfigurasi LabOrder sendiri sudah ada sejak sebelum RJ-BIL-BE-003 pada
     // Repositories/Configurations/HealthServices/LabOrderConfiguration.cs dan diperluas di
@@ -58,58 +57,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Config
                 .WithMany()
                 .HasForeignKey(x => x.SupersededSpecimenId)
                 .OnDelete(DeleteBehavior.Restrict);
-        }
-    }
-
-    public class TrxLabTransitionHistoryConfiguration : IEntityTypeConfiguration<TrxLabTransitionHistory>
-    {
-        public void Configure(EntityTypeBuilder<TrxLabTransitionHistory> builder)
-        {
-            builder.ToTable("TrxLabTransitionHistory", "public");
-            builder.HasKey(x => x.Id);
-
-            builder.Property(x => x.Scope).HasConversion<int>().IsRequired();
-            builder.Property(x => x.Action).HasMaxLength(100).IsRequired();
-            builder.Property(x => x.FromStatus).HasMaxLength(50);
-            builder.Property(x => x.ToStatus).HasMaxLength(50).IsRequired();
-            builder.Property(x => x.ReasonCode).HasMaxLength(50);
-            builder.Property(x => x.ReasonNote).HasMaxLength(1000);
-
-            builder.HasIndex(x => new { x.LabOrderId, x.OccurredAt });
-            builder.HasIndex(x => x.LabSpecimenId);
-            builder.HasIndex(x => x.EncounterId);
-
-            builder.HasOne(x => x.LabOrder)
-                .WithMany()
-                .HasForeignKey(x => x.LabOrderId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.LabSpecimen)
-                .WithMany()
-                .HasForeignKey(x => x.LabSpecimenId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne<TrxPatientEncounter>()
-                .WithMany()
-                .HasForeignKey(x => x.EncounterId)
-                .OnDelete(DeleteBehavior.Restrict);
-        }
-    }
-
-    public class MstLabRejectionReasonConfiguration : IEntityTypeConfiguration<MstLabRejectionReason>
-    {
-        public void Configure(EntityTypeBuilder<MstLabRejectionReason> builder)
-        {
-            builder.ToTable("MstLabRejectionReason", "public");
-            builder.HasKey(x => x.Id);
-
-            builder.Property(x => x.ReasonCode).HasMaxLength(50).IsRequired();
-            builder.Property(x => x.ReasonName).HasMaxLength(200).IsRequired();
-            builder.Property(x => x.Description).HasMaxLength(500);
-
-            builder.HasIndex(x => x.ReasonCode)
-                .IsUnique()
-                .HasFilter("\"IsDelete\" = false");
         }
     }
 }
