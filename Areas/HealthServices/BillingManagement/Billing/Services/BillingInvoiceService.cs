@@ -90,7 +90,64 @@ public sealed class BillingInvoiceService
             .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
-        return MapDetail(invoice, false);
+        var response = MapDetail(invoice, false);
+        response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
+        return response;
+    }
+
+    // Ringkasan konteks pasien/kunjungan untuk layar Menu Pembayaran (kasir). InvoiceDetailResponse
+    // sendiri tidak menyimpan data ini (BilInvoice hanya punya EncounterId) - lihat catatan pada
+    // InvoiceDetailResponse.Patient. Dokter DPJP sengaja tidak disertakan di sini karena butuh join
+    // ke MstDoctor pada area Corporate/HumanResource; bisa ditambahkan pada task terpisah.
+    private async Task<InvoicePatientSummaryResponse?> LoadPatientSummaryAsync(
+        Guid encounterId, CancellationToken cancellationToken)
+    {
+        var row = await (
+            from encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id
+            where encounter.Id == encounterId && !encounter.IsDelete
+            select new { encounter, patient })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row is null) return null;
+
+        var roomName = row.encounter.RoomId.HasValue
+            ? await _dbContext.MstRooms.AsNoTracking()
+                .Where(x => x.Id == row.encounter.RoomId.Value)
+                .Select(x => (string?)x.RoomName)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var serviceUnitName = await _dbContext.MstServiceUnits.AsNoTracking()
+            .Where(x => x.Id == row.encounter.ServiceUnitId)
+            .Select(x => (string?)x.ServiceUnitName)
+            .FirstOrDefaultAsync(cancellationToken);
+        var patientClassName = row.encounter.PatientClassId.HasValue
+            ? await _dbContext.MstPatientClasses.AsNoTracking()
+                .Where(x => x.Id == row.encounter.PatientClassId.Value)
+                .Select(x => (string?)x.PatientClassName)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var guarantorName = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            .Where(x => x.EncounterId == encounterId && x.IsActive)
+            .Select(x => x.PaymentSourceNameSnapshot)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new InvoicePatientSummaryResponse
+        {
+            PatientId = row.patient.Id,
+            MedicalRecordNumber = row.patient.MedicalRecordNumber,
+            FullName = row.patient.FullName,
+            Gender = row.patient.Gender?.ToString(),
+            AgeText = row.encounter.AgeTextAtEncounter,
+            EncounterNumber = row.encounter.EncounterNumber,
+            EncounterDate = row.encounter.EncounterDate,
+            EncounterType = row.encounter.EncounterType.ToString(),
+            PaymentType = row.encounter.PaymentType.ToString(),
+            RoomName = roomName,
+            ServiceUnitName = serviceUnitName,
+            PatientClassName = patientClassName,
+            GuarantorName = guarantorName
+        };
     }
 
     public async Task<InvoiceDetailResponse> UpsertChargeAsync(

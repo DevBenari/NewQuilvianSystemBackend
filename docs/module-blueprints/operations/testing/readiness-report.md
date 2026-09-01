@@ -35,7 +35,7 @@ Yang **belum** terjadi, dan karena itu modul belum boleh dipakai perawat atau do
 | Backend | 11 dari 11 task ditulis | `BE-OPR-001` sampai `BE-OPR-011` |
 | Frontend | 0 dari 9 task | `FE-OPR-001` sampai `FE-OPR-009` belum dimulai |
 | Integrasi dan runtime | 0 dari 6 terbukti | Belum ada eksekusi database dan belum ada consumer nyata |
-| Cakupan pengujian | 126 test, 0 gagal | 114 test modul Operasi, 12 test modul Farmasi |
+| Cakupan pengujian | 129 test, 0 gagal | 117 test modul Operasi, 12 test modul Farmasi |
 
 ---
 
@@ -141,6 +141,7 @@ Base URL: `api/v1/health-services/operating-room-management/cases`
 | `POST` | `/` | Membuat permintaan operasi | `OperatingRoomCase : Create` | `BE-OPR-003` |
 | `PUT` | `/{id}` | Memperbaiki permintaan sebelum dijadwalkan | `OperatingRoomCase : Update` | `BE-OPR-003` |
 | `GET` | `/{id}/schedule` | Melihat jadwal dan tim yang berlaku | `OperatingRoomCase : Read` | `BE-OPR-004` |
+| `GET` | `/{id}/schedule/history` | Melihat riwayat revisi jadwal, terbaru lebih dulu | `OperatingRoomCase : Read` | `BE-OPR-004` |
 | `PATCH` | `/{id}/schedule` | Menetapkan atau merevisi jadwal dan tim | `OperatingRoomSchedule : Update` | `BE-OPR-004` |
 | `PATCH` | `/{id}/postpone` | Menunda kasus | `OperatingRoomSchedule : Update` | `BE-OPR-004` |
 | `PATCH` | `/{id}/start` | Memulai operasi | `OperatingRoomExecution : Update` | `BE-OPR-006` |
@@ -200,13 +201,16 @@ Base URL: `api/v1/health-services/operating-room-management/reports`
 
 ## 4. Penyimpangan dari kontrak yang disetujui
 
-Bagian ini sengaja dibuat menonjol. Ketiganya perlu keputusan pemilik sebelum modul disahkan.
+Bagian ini sengaja dibuat menonjol. Seluruhnya perlu keputusan pemilik sebelum modul disahkan.
+Nomor 1, 4, dan 5 sudah diputuskan; nomor 2 dan 3 masih terbuka.
 
 | No | Penyimpangan | Alasan implementasi | Yang dibutuhkan |
 | ---: | --- | --- | --- |
 | 1 | ~~Tiga sign-off kesiapan disimpan sebagai baris `OprStatusHistory` dengan `Action = "ReadinessSignOff"`, bukan tabel tersendiri~~ **Sudah ditutup** | `opr-api-v1` mensyaratkan `POST /sign-offs`, tetapi ERD yang disetujui tidak memuat tabel sign-off. `OprSafetyChecklist` hanya menyediakan satu penanda tangan per fase, sehingga tiga sign-off tidak muat | Selesai. Tercatat sebagai `OPS-DEC-026` pada `00-interview-decisions.md` revision 6, dijelaskan pada `erd/data-dictionary.md`, dan blueprint naik ke revision 3 |
 | 2 | Enam endpoint `GET` memakai permission baca yang belum ada di `opr-permission-v1`: `OperatingRoomAnesthesia : Read`, `OperatingRoomMaterial : Read`, `OperatingRoomHandover : Read`, `OperatingRoomIntegration : Read` | Frontend perlu memuat ulang satu bagian tanpa menarik seluruh workspace kasus. Permission dibuat lebih ketat daripada `OperatingRoomCase : Read`, bukan lebih longgar | Revisi `opr-permission-v1` dan `opr-api-v1`, lalu persetujuan security owner |
 | 3 | Item wajib checklist divalidasi dari isi permintaan, bukan dari master template | Blueprint melarang hardcode master checklist dan master-nya memang belum ditetapkan | Master template checklist perlu ditetapkan; setelah itu validasi harus pindah ke sisi server |
+| 4 | Endpoint tambahan `GET /cases/{id}/schedule/history` di luar `opr-api-v1` | Acceptance `FE-OPR-002` mensyaratkan histori jadwal terlihat, tetapi kontrak hanya menyediakan jadwal yang sedang berlaku. Data revisinya sudah tersimpan dan tidak pernah dihapus sesuai `OPS-DEC-016`, hanya belum dapat dibaca | Revisi `opr-api-v1` menambahkan endpoint ini, lalu persetujuan API owner. Disetujui pemilik kebutuhan pada 2026-08-24 |
+| 5 | `EmployeeOptionResponse` milik modul HR ditambah `WorkforceProfileId` | Penjadwalan operasi menugaskan tenaga memakai `MstWorkforceProfile.Id`. `DoctorOptionResponse` sudah menyertakannya, `EmployeeOptionResponse` belum, sehingga perawat instrumen dan perawat sirkuler tidak dapat dipilih dan setiap penjadwalan pasti ditolak `OPR004` | Sepenuhnya additive dan tidak memutus pemakai lama. Perlu sepengetahuan pemilik modul HR. Disetujui pemilik kebutuhan pada 2026-08-24 |
 
 Penyimpangan nomor 2 dijaga oleh pengujian otomatis: permission di luar kontrak hanya boleh
 dipakai endpoint `GET`, dan daftarnya harus benar-benar terpakai. Bila ada yang mencoba

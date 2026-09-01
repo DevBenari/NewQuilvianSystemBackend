@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
@@ -65,6 +66,80 @@ public sealed class DiscountPolicyService
             Items = items
         };
     }
+
+    public async Task<DiscountPolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<DiscountPolicyOptionResponse>> GetOptionsAsync(
+        string? discountType,
+        string? targetComponent,
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstDiscountPolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive)
+            query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(discountType))
+        {
+            var normalized = discountType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.DiscountType == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(targetComponent))
+        {
+            var normalized = targetComponent.Trim().ToUpperInvariant();
+            query = query.Where(x => x.TargetComponent == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.DiscountType)
+            .ThenBy(x => x.Name)
+            .Select(x => new DiscountPolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                DiscountType = x.DiscountType,
+                TargetComponent = x.TargetComponent,
+                ValueType = x.ValueType,
+                Value = x.Value,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DiscountPolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstDiscountPolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new DiscountPolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken),
+            PromoTotalPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.PromoTotal, cancellationToken),
+            PromoItemPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.PromoItem, cancellationToken),
+            DoctorPolicy = await query.CountAsync(x => x.DiscountType == DiscountPolicyValues.Doctor, cancellationToken)
+        };
+    }
+
+    public DiscountPolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new DiscountPolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        DiscountTypes = DiscountPolicyValues.DiscountTypes.OrderBy(x => x).ToList(),
+        TargetComponents = DiscountPolicyValues.TargetComponents.OrderBy(x => x).ToList(),
+        ValueTypes = DiscountPolicyValues.ValueTypes.OrderBy(x => x).ToList()
+    };
 
     public async Task<DiscountPolicyResponse> CreateAsync(
         CreateDiscountPolicyRequest request,
@@ -145,6 +220,63 @@ public sealed class DiscountPolicyService
         await _dbContext.SaveChangesAsync(cancellationToken);
         await AuditAsync("DiscountPolicy.Deactivate", entity, actorUserId, request.Reason.Trim());
         return Map(entity);
+    }
+
+    // Mengaktifkan kembali policy yang sebelumnya dinonaktifkan tanpa perlu membuat versi baru.
+    // Tidak mensyaratkan alasan (berbeda dari DeactivateAsync).
+    public async Task<DiscountPolicyResponse> ActivateAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            return Map(entity);
+
+        var overlaps = await _dbContext.MstDiscountPolicies.AnyAsync(
+            x => !x.IsDelete && x.IsActive && x.Id != entity.Id
+                && x.DiscountType == entity.DiscountType && x.TargetComponent == entity.TargetComponent
+                && x.EffectiveFrom < (entity.EffectiveTo ?? DateTimeOffset.MaxValue)
+                && (x.EffectiveTo == null || entity.EffectiveFrom < x.EffectiveTo),
+            cancellationToken);
+        if (overlaps)
+            throw new DiscountPolicyConflictException(
+                "Tidak dapat mengaktifkan; ada policy lain yang masih aktif dan bertumpang tindih untuk jenis dan target yang sama.");
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("DiscountPolicy.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat BilDiscountApplication yang
+    // sudah menyimpan snapshot policy tetap dapat ditelusuri. Hanya policy nonaktif yang boleh
+    // dihapus - mencegah penghapusan diam-diam atas policy yang masih hidup.
+    public async Task<DiscountPolicyDeleteResponse> DeleteAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new DiscountPolicyValidationException(
+                "Policy yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("DiscountPolicy.Delete", entity, actorUserId, null);
+
+        return new DiscountPolicyDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
     }
 
     private async Task<MstDiscountPolicy> FindAsync(Guid id, CancellationToken cancellationToken) =>

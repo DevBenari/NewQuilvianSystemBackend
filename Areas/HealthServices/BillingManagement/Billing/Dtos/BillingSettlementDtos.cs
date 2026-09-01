@@ -8,8 +8,14 @@ public sealed class CreateSettlementRequest
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal RequestedAmount { get; set; }
+    [MaxLength(500)] public string? Note { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 }
@@ -17,8 +23,14 @@ public sealed class CreateSettlementRequest
 public sealed class CreateTenderRequest
 {
     public Guid PaymentMethodId { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
+    [MaxLength(150)] public string? CashierReferenceNote { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
@@ -30,6 +42,7 @@ public sealed class SettlementResponse
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
     public string Purpose { get; set; } = BillingSettlementPurposes.DepositTopUp;
+    public string? Note { get; set; }
     public string Status { get; set; } = BillingSettlementStatuses.Draft;
     public decimal RequestedAmount { get; set; }
     public decimal SuccessfulAmount { get; set; }
@@ -54,6 +67,8 @@ public sealed class TenderResponse
     public Guid PaymentMethodId { get; set; }
     public decimal Amount { get; set; }
     public string Status { get; set; } = BillingTenderStatuses.Created;
+    public string? CashierReferenceNote { get; set; }
+    public string? KwitansiNumber { get; set; }
     public string? ProviderReferenceMasked { get; set; }
     public string? ProviderStatusCode { get; set; }
     public DateTimeOffset AttemptedAt { get; set; }

@@ -30,7 +30,11 @@ public class CreateAdministrationFeePolicyRequest
     [Required, MaxLength(30)] public string Code { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string ServiceType { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal Amount { get; set; }
+    
+    [Range(typeof(decimal), "0", "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)] 
+    public decimal Amount { get; set; }
     public bool Coverable { get; set; }
     public DateTimeOffset EffectiveFrom { get; set; }
     public DateTimeOffset? EffectiveTo { get; set; }
@@ -42,6 +46,14 @@ public sealed class UpdateAdministrationFeePolicyRequest : CreateAdministrationF
 public sealed class DeactivatePolicyRequest
 {
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class AdministrationFeePolicyDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
 }
 
 public sealed class AdministrationFeePolicyResponse
@@ -61,4 +73,46 @@ public sealed class AdministrationFeePolicyResponse
     public bool IsActive { get; set; }
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
+}
+
+public sealed class AdministrationFeePolicyOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string ServiceType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class AdministrationFeePolicySummaryResponse
+{
+    public int TotalPolicy { get; set; }
+    public int ActivePolicy { get; set; }
+    public int InactivePolicy { get; set; }
+    public int RajalPolicy { get; set; }
+    public int IgdPolicy { get; set; }
+    public int OtcPolicy { get; set; }
+    public int RanapPolicy { get; set; }
+}
+
+public sealed class AdministrationFeePolicySortOptionResponse
+{
+    public string Value { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public sealed class AdministrationFeePolicyDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? ServiceType { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class AdministrationFeePolicyFilterMetadataResponse
+{
+    public AdministrationFeePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> ServiceTypes { get; set; } = new();
 }

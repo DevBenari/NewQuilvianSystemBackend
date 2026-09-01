@@ -28,6 +28,7 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Purpose).HasMaxLength(30).IsRequired();
+        entity.Property(x => x.Note).HasMaxLength(500);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.RequestedAmount).HasPrecision(18, 2);

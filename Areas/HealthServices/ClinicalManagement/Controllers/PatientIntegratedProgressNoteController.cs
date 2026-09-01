@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -39,13 +41,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public PatientIntegratedProgressNoteController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _integrityService = integrityService;
         }
 
         [HttpGet("filters/metadata")]
@@ -336,6 +341,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.NoteText = NormalizeNullableText(request.NoteText) ?? BuildNoteText(entity);
 
             _dbContext.Set<TrxPatientIntegratedProgressNote>().Add(entity);
+
+            await RegisterIntegrityAsync(entity);
+
+            // Satu SaveChanges untuk CPPT dan baris keutuhannya sekaligus. EF Core
+            // membungkusnya dalam satu transaksi, sehingga bila pendaftaran keutuhan gagal,
+            // pembuatan CPPT ikut dibatalkan. CPPT tanpa baris keutuhan akan luput dari seluruh
+            // aturan penguncian, dan itu keadaan yang tidak boleh ada.
             await _dbContext.SaveChangesAsync();
 
             var response = ToCreateUpdateResponse(entity);
@@ -440,6 +452,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
 
             _dbContext.Set<TrxPatientIntegratedProgressNote>().Add(entity);
+
+            await RegisterIntegrityAsync(entity);
+
+            // Lihat keterangan pada CreateProgressNote: satu SaveChanges agar CPPT dan baris
+            // keutuhannya tersimpan bersama atau tidak sama sekali.
             await _dbContext.SaveChangesAsync();
 
             var response = ToCreateUpdateResponse(entity);
@@ -489,6 +506,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <remarks>
+        /// **Tiga hal yang perlu diketahui pemakai API sebelum memanggil endpoint ini.**
+        ///
+        /// **1. Catatan yang sudah terkunci menolak perubahan.** Bila catatan sudah
+        /// ditandatangani, atau terkunci karena kunjungannya ditutup, permintaan dijawab `400`
+        /// dengan pesan yang mengarahkan ke addendum. Pembetulan catatan terkunci dilakukan
+        /// lewat addendum, bukan dengan mengubah isinya — riwayat koreksi harus tetap terbaca.
+        ///
+        /// **2. `ProviderUserId` DIABAIKAN.** Penulis catatan ditetapkan sekali saat catatan
+        /// dibuat dan tidak dapat dipindahkan lewat permintaan ubah.
+        ///
+        /// **3. `IsReadOnlyGenerated` DIABAIKAN.** Penanda hanya-baca tidak dapat dilepas lewat
+        /// permintaan ubah.
+        ///
+        /// Dua kolom terakhir **tidak** menyebabkan permintaan ditolak bila tetap dikirim,
+        /// supaya klien lama tidak putus. Nilainya sekadar tidak berpengaruh. Perilaku ini
+        /// dinyatakan terbuka di sini karena mengabaikan kiriman klien tanpa pemberitahuan
+        /// bukan praktik yang baik.
+        ///
+        /// **Cakupan aturan keutuhan pada rilis ini.** Baru CPPT yang tunduk aturan keutuhan
+        /// rekam medis. Dua belas jenis dokumen klinis lain sudah punya nomor jenisnya, tetapi
+        /// belum ditegakkan — dokumen jenis itu masih dapat diubah tanpa pemeriksaan keutuhan.
+        /// </remarks>
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -524,13 +564,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // RM-DEC-003 — catatan yang sudah ditandatangani atau terkunci tidak dapat diubah.
+            // Koreksi dilakukan lewat addendum, bukan dengan menimpa isi lama.
+            // Menutup RM-CAP-011.
+            var integrityGuard = await _integrityService.EnsureMutableAsync(
+                ClinicalDocumentKind.ProgressNote, entity.Id);
+
+            if (!integrityGuard.IsAllowed)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    integrityGuard.StatusCode,
+                    integrityGuard.ErrorMessage ?? "Catatan ini tidak dapat diubah."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
             entity.NoteDateTime = request.NoteDateTime ?? entity.NoteDateTime;
             entity.ProfessionType = NormalizeProfessionType(request.ProfessionType);
             entity.ProfessionName = NormalizeNullableText(request.ProfessionName) ?? GetDefaultProfessionName(request.ProfessionType);
-            entity.ProviderUserId = NormalizeNullableGuid(request.ProviderUserId) ?? entity.ProviderUserId;
+            // ProviderUserId SENGAJA TIDAK ditetapkan dari isi permintaan.
+            //
+            // Sebelumnya baris ini memungkinkan penulis sebuah catatan dipindahkan ke orang lain
+            // lewat permintaan ubah biasa (RM-CAP-012). Penentu penulis yang sah sekarang adalah
+            // AuthorUserId pada MrcClinicalDocumentIntegrity, yang tidak dapat disentuh
+            // permintaan ubah dokumen.
+            //
+            // Nilai ProviderUserId yang dikirim klien diabaikan, bukan ditolak, supaya frontend
+            // yang sedang berjalan tidak putus. Perilaku ini wajib disebut pada catatan rilis
+            // dan Swagger.
             entity.ProviderDisplayNameSnapshot = NormalizeNullableText(request.ProviderDisplayNameSnapshot);
             entity.ProviderRoleSnapshot = NormalizeNullableText(request.ProviderRoleSnapshot);
             entity.ServiceUnitNameSnapshot = NormalizeNullableText(request.ServiceUnitNameSnapshot) ?? entity.ServiceUnitNameSnapshot;
@@ -547,7 +610,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.PrivateNote = NormalizeNullableText(request.PrivateNote);
             entity.NoteText = NormalizeNullableText(request.NoteText) ?? BuildNoteText(entity);
             entity.IsGeneratedFromSource = request.IsGeneratedFromSource;
-            entity.IsReadOnlyGenerated = request.IsReadOnlyGenerated;
+
+            // IsReadOnlyGenerated SENGAJA TIDAK ditetapkan dari isi permintaan.
+            //
+            // Sebelumnya baris ini memungkinkan penanda hanya-baca dilepas dari luar, sehingga
+            // catatan yang seharusnya tidak dapat diubah bisa dibuka kembali (RM-CAP-013).
+            // Penanda ini hanya boleh ditetapkan saat catatan dibuat.
+            //
+            // Sama seperti ProviderUserId, nilai dari klien diabaikan dan bukan ditolak.
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -1279,6 +1350,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (pageSize > 100) pageSize = 100;
 
             return (pageNumber, pageSize);
+        }
+
+        /// <summary>
+        /// Mendaftarkan CPPT yang baru dibuat ke daftar keutuhan rekam medis (RM-DEC-013).
+        ///
+        /// Tidak memanggil SaveChanges. Pemanggil wajib menyimpannya bersama CPPT-nya dalam
+        /// satu SaveChanges, supaya keduanya tersimpan bersama atau tidak sama sekali.
+        ///
+        /// CPPT tanpa kunjungan tidak dapat didaftarkan, karena baris keutuhan mensyaratkan
+        /// kunjungan sebagai pengelompokannya. Keadaan itu dilewati tanpa menggagalkan
+        /// pembuatan CPPT — menolak akan memblokir alur yang berjalan, padahal aturan keutuhan
+        /// memang belum dapat diterapkan pada catatan yang tidak melekat ke kunjungan mana pun.
+        /// </summary>
+        private async Task RegisterIntegrityAsync(TrxPatientIntegratedProgressNote entity)
+        {
+            if (!entity.EncounterId.HasValue || entity.EncounterId.Value == Guid.Empty)
+                return;
+
+            var authorUserId = entity.ProviderUserId ?? entity.CreateBy;
+
+            await _integrityService.RegisterAsync(
+                ClinicalDocumentKind.ProgressNote,
+                entity.Id,
+                entity.PatientId,
+                entity.EncounterId.Value,
+                authorUserId,
+                isAuthorKnown: entity.ProviderUserId.HasValue
+                               && entity.ProviderUserId.Value != Guid.Empty);
         }
 
         private static string NormalizeProfessionType(string? value)
