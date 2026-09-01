@@ -803,8 +803,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         private async Task<string> GenerateBedCodeAsync()
         {
             var existingCodes = await _dbContext.Set<MstBed>()
+                .IgnoreQueryFilters()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.BedCode.StartsWith(BedCodePrefix))
+                .Where(x => x.BedCode.StartsWith(BedCodePrefix))
                 .Select(x => x.BedCode)
                 .ToListAsync();
 
@@ -845,7 +846,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var normalizedCode = bedCode.Trim().ToUpperInvariant();
 
             var duplicateCode = await _dbContext.Set<MstBed>()
-                .AnyAsync(x => !x.IsDelete && x.BedCode.ToUpper() == normalizedCode);
+                .IgnoreQueryFilters()
+                .AnyAsync(x => x.BedCode.ToUpper() == normalizedCode);
 
             if (duplicateCode)
                 return (false, "Kode bed otomatis sudah digunakan. Silakan ulangi proses create.");
