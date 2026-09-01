@@ -205,7 +205,7 @@ FE-RWI-033 (keterjangkauan + menu)     ✅ SELESAI  ← butuh F8 s.d. F11
 FE-RWI-034 (bongkar layar admisi lama) ✅ SELESAI  ← butuh FE-RWI-027
 
 FE-RWI-036 (repair Papan)               ✅ SELESAI  ← butuh FE-RWI-026 + FE-RWI-030
-FE-RWI-037 (repair Census)                          ← butuh FE-RWI-033
+FE-RWI-037 (repair Census)               ✅ SELESAI  ← butuh FE-RWI-033
 FE-RWI-038 (repair Daftar Pantau)                   ← dapat berjalan sesudah approval
 FE-RWI-039 (repair Selisih Bed)                     ← butuh FE-RWI-036
 FE-RWI-040 (repair Butir Administrasi)              ← butuh FE-RWI-033
@@ -589,7 +589,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pada saat task dieksekusi: manual state berisi/kosong/gagal/peran dan e2e menuju Detail Episode. Tidak dijalankan pada penyusunan roadmap ini |
 | **Risk/blocker** | Tanpa episode `Admitted`/`DischargePending`, aksi baris tidak dapat dibuktikan pada environment target. Owner: Frontend; data: Admin Master Data/tim penyiap environment |
 | **DoD** | Keenam kriteria lulus dan laporan memuat bukti state berisi serta kosong |
-| **Status** | ⛔ `BLOCKED` — menunggu approval skema/roadmap; bukti runtime penuh menunggu gap 007 |
+| **Status** | ✅ **SELESAI 1 September 2026.** Approval skema diberikan pemilik. Census kini mempunyai delapan kolom yang disetujui, Detail Episode berbasis komponen baku, metadata filter existing, empty state dengan jalan ke Admisi/Daftar Kerja Episode, serta state gagal dengan **Coba Lagi** yang tidak menyerupai nol data. Permission-aware terpenuhi secara struktural karena frontend belum menerima katalog permission pengguna; server/halaman tujuan tetap mengunci akses. `npm run lint` `0 errors` (571 warning existing) dan `npm run build` berhasil; test `.mjs` tidak dijalankan atas arahan pengguna. Bukti runtime penuh tetap menunggu gap 007. Laporan: [FE-RWI-037](../task/report/frontend/FE-RWI-037.md) |
 
 ---
 
