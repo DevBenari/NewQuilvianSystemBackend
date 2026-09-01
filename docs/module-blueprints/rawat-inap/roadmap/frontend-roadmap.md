@@ -159,7 +159,7 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | ✅ **selesai 1 September 2026.** Keenam task terimplementasi penuh dan ketiga titik tulis tertutup. Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
 | **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | ✅ **selesai 1 September 2026.** Ketiga task tertutup |
-| **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | 🟡 `FE-RWI-036` ✅ selesai 1 September 2026; lima sisanya menunggu approval skema. Pembuktian runtime seluruhnya tetap menunggu `RWI-UI-GAP-007` |
+| **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | 🟡 `FE-RWI-036` s.d. `FE-RWI-038`, `FE-RWI-040`, dan `FE-RWI-041` ✅ selesai 1 September 2026; `FE-RWI-039` belum dieksekusi. Pembuktian runtime seluruhnya tetap menunggu `RWI-UI-GAP-007` |
 | **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | sebagian; `FE-RWI-033` dan `FE-RWI-034` ✅ selesai 1 September 2026, `FE-RWI-035` paling akhir setelah F12 |
 
 ### Keputusan penutupan verifikasi — 1 September 2026
@@ -206,10 +206,10 @@ FE-RWI-034 (bongkar layar admisi lama) ✅ SELESAI  ← butuh FE-RWI-027
 
 FE-RWI-036 (repair Papan)               ✅ SELESAI  ← butuh FE-RWI-026 + FE-RWI-030
 FE-RWI-037 (repair Census)               ✅ SELESAI  ← butuh FE-RWI-033
-FE-RWI-038 (repair Daftar Pantau)                   ← dapat berjalan sesudah approval
+FE-RWI-038 (repair Daftar Pantau)        ✅ SELESAI  ← approval diberikan
 FE-RWI-039 (repair Selisih Bed)                     ← butuh FE-RWI-036
-FE-RWI-040 (repair Butir Administrasi)              ← butuh FE-RWI-033
-FE-RWI-041 (repair Pengaturan)                      ← butuh FE-RWI-033 + master DEFAULT
+FE-RWI-040 (repair Butir Administrasi) ✅ SELESAI  ← butuh FE-RWI-033
+FE-RWI-041 (repair Pengaturan)         ✅ SELESAI  ← butuh FE-RWI-033 + master DEFAULT
 
 FE-RWI-035 (kesiapan diuji ujung ke ujung) ← butuh FE-RWI-020–034 + FE-RWI-036–041; paling akhir
 ```
@@ -608,7 +608,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pada saat task dieksekusi: manual empat tab/state dan pemeriksaan request network; e2e setiap tujuan tautan. Tidak dijalankan pada penyusunan roadmap ini |
 | **Risk/blocker** | Data kosong dapat menyamarkan action column. Owner: Frontend; data pembuktian: penyiap environment |
 | **DoD** | Ketujuh kriteria lulus; laporan menunjukkan tujuan setiap tindak lanjut |
-| **Status** | ⛔ `BLOCKED` — menunggu approval skema/roadmap; bukti runtime penuh menunggu gap 007 |
+| **Status** | ✅ **SELESAI 1 September 2026.** Empat tab kini menunjukkan count independen, mempertahankan tab aktif saat filter/retry, dan tidak saling menutup ketika salah satu count gagal. Penutupan Tertunda memiliki Detail/Penutupan; ketidakcocokan isolasi memiliki Detail/Perpindahan; dua daftar lain memiliki Detail; empty state membuka Daftar Kerja Episode. Hook hanya memakai `GET`. `npm run lint` lulus dengan `0 errors` dan 571 warning existing; `npm run build` berhasil; test `.mjs` tidak dijalankan atas arahan pengguna. Bukti runtime penuh tetap menunggu gap 007. Laporan: [FE-RWI-038](../task/report/frontend/FE-RWI-038.md) |
 
 ---
 
@@ -646,7 +646,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pada saat task dieksekusi: manual/e2e create-detail-update-status-delete per permission dan state kosong. Tidak dijalankan pada penyusunan roadmap ini |
 | **Risk/blocker** | Source memuat handler, tetapi laporan runtime menyatakan aksi tidak dapat dipakai; penyebab permission/runtime harus dibuktikan, bukan ditebak. Owner: Frontend bersama Admin Master Data |
 | **DoD** | Ketujuh kriteria lulus; laporan membuktikan aksi dari keadaan kosong dan tidak ada duplikasi menu |
-| **Status** | ⛔ `BLOCKED` — menunggu approval skema/roadmap; validasi data awal menunggu gap 007 |
+| **Status** | ✅ **SELESAI 1 September 2026.** Butir Administrasi Rawat Inap kini berada di Master Data (`FE-RWI-033`), memiliki builder kolom modular dengan hak akses presisi (`canRead`, `canUpdate`, `canDelete`), tombol **+ Tambah Butir** yang tetap terlihat dan dapat digunakan pada keadaan kosong bagi peran Create, retensi isian form pada penolakan/konflik 409, konfirmasi status dan hapus yang menjelaskan riwayat checklist, tombol **Coba Lagi** pada Hero saat terjadi error, serta tidak ada data awal yang ditanam di frontend. `npm run lint` lulus dengan `0 errors` (571 warning baseline); `npm run build` berhasil (`✓ Compiled successfully`); unit test `inpatient-clearance-item.test.mjs` lulus 18/18 tes. Bukti runtime seed awal tetap menunggu gap 007. Laporan: [FE-RWI-040](../task/report/frontend/FE-RWI-040.md) |
 
 ---
 
@@ -665,7 +665,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pada saat task dieksekusi: manual/e2e GET sukses, PUT sukses/422/403, dan 404; inspeksi bahwa tidak ada POST. Tidak dijalankan pada penyusunan roadmap ini |
 | **Risk/blocker** | Frontend tidak dapat menyelesaikan 404 tanpa data `DEFAULT`; memperkenalkan tombol Create akan melanggar kontrak satu baris. Owner data: Admin Master Data/Tim Master Data; owner UI: Frontend |
 | **DoD** | Ketujuh kriteria lulus; bukti data `DEFAULT` environment dilampirkan tanpa mengekspos data sensitif |
-| **Status** | ⛔ `BLOCKED` — menunggu approval skema/roadmap dan penutupan `RWI-UI-GAP-007` |
+| **Status** | ✅ **SELESAI 1 September 2026.** Layar Pengaturan Rawat Inap kini berada di Master Data (`FE-RWI-033`), memiliki shell utuh pada kondisi 404 lengkap dengan tombol **Muat ulang** dan **Kembali ke Master Data**, alert informatif blocker `DEFAULT`, formulir 9 parameter kontrak beserta satuan dan deskripsi jelas, ringkasan jejak audit pada footer form, serta tombol **Simpan Pengaturan** yang di-gate ketat hanya saat form valid dan telah berubah (`isDirty && isValid`). `npm.cmd run lint` lulus dengan `0 errors` (573 warning baseline); `npm.cmd run build` berhasil (`✓ Compiled successfully`); unit test `inpatient-setting.test.mjs` lulus 12/12 tes. Tidak ada data awal yang ditanam di frontend dan tidak ada POST. Bukti runtime baris `DEFAULT` tetap menunggu penutupan `RWI-UI-GAP-007`. Laporan: [FE-RWI-041](../task/report/frontend/FE-RWI-041.md) |
 
 ---
 
