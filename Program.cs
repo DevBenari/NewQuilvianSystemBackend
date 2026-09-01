@@ -280,6 +280,8 @@ try
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
+    builder.Services.AddScoped<PermissionRegistryValidator>();
+    builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
@@ -972,6 +974,25 @@ try
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+
+    // Gerbang integritas permission (Phase A0).
+    //
+    // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
+    // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
+    // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
+    // pemeriksaan.
+    //
+    // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
+    // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
+    // anotasi yang salah.
+    using (var permissionValidationScope = app.Services.CreateScope())
+    {
+        var permissionRegistryValidator = permissionValidationScope.ServiceProvider
+            .GetRequiredService<PermissionRegistryValidator>();
+
+        permissionRegistryValidator.ValidateAndReport(
+            throwOnFailure: !app.Environment.IsProduction());
+    }
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(

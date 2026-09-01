@@ -131,9 +131,16 @@ namespace QuilvianSystemBackend.Services.Security
                         policy.DepartmentId,
                         policy.PositionId
                     }
+                // Kelayakan penempatan. IsPrimary sengaja TIDAK diperiksa: penempatan sekunder
+                // yang aktif dan masih berlaku tetap menyumbang izin, sehingga izin efektif adalah
+                // gabungan seluruh penempatan yang sah.
+                //
+                // !IsCancel ditambahkan pada Phase A0. Sebelumnya penempatan yang sudah dibatalkan
+                // tetap memberi izin di jalur otorisasi, padahal jalur konteks HR sudah menolaknya.
                 where organization.UserId == user.Id
                       && organization.IsActive
                       && !organization.IsDelete
+                      && !organization.IsCancel
                       && (!organization.EffectiveStartDate.HasValue ||
                           organization.EffectiveStartDate.Value <= now)
                       && (!organization.EffectiveEndDate.HasValue ||
