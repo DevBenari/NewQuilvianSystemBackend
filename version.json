@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.3.2",
-  "releaseName": "Adjustment Prefix Medical Record Management, Update Clinical Management",
-  "description": "Release Adjustment Prefix Medical Record Management, Update Clinical Management"
+  "backendVersion": "0.3.3",
+  "releaseName": "Adjustment Clinical Management from Clinical Billing Integration",
+  "description": "Release Adjustment Clinical Management from Clinical Billing Integration"
 }
