@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -93,6 +93,93 @@ public sealed class BillingInvoiceService
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
         return response;
+    }
+
+    // Kunjungan yang masih bisa ditagih. Draft dikecualikan karena pendaftarannya belum rampung,
+    // Cancelled dan NoShow karena pelayanannya tidak pernah terjadi.
+    //
+    // Status inilah penentunya, bukan kolom IsActive. IsActive hanya dimatikan oleh pembatalan
+    // lewat endpoint registrasi dan soft delete; penyelesaian kunjungan, Draft, dan NoShow tidak
+    // menyentuhnya, dan pembatalan dari rawat inap (InpEpisodeService) melewatkannya sama sekali.
+    // IsActive tetap ikut disyaratkan pada query sebagai penjaga tambahan.
+    //
+    // Completed SENGAJA disertakan: penagihan justru umum terjadi setelah pelayanan selesai, dan
+    // kalau status itu dibuang, kunjungan yang paling sering perlu dibuatkan invoice malah tidak
+    // muncul di daftar.
+    private static readonly EncounterStatus[] BillableEncounterStatuses =
+    [
+        EncounterStatus.Registered,
+        EncounterStatus.Queued,
+        EncounterStatus.WaitingForNurse,
+        EncounterStatus.InNurseScreening,
+        EncounterStatus.WaitingForDoctor,
+        EncounterStatus.InConsultation,
+        EncounterStatus.ConsultationCompleted,
+        EncounterStatus.Billing,
+        EncounterStatus.Completed
+    ];
+
+    public async Task<List<ActiveEncounterOptionResponse>> GetActiveEncounterOptionsAsync(
+        string? search,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 100);
+
+        var query =
+            from encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id
+            where !encounter.IsDelete
+                && !encounter.IsCancel
+                && encounter.IsActive
+                && BillableEncounterStatuses.Contains(encounter.EncounterStatus)
+            select new { encounter, patient };
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x =>
+                x.patient.FullName.ToUpper().Contains(keyword) ||
+                x.patient.MedicalRecordNumber.ToUpper().Contains(keyword) ||
+                x.encounter.EncounterNumber.ToUpper().Contains(keyword));
+        }
+
+        var rows = await query
+            .OrderByDescending(x => x.encounter.EncounterDate)
+            .Take(safeLimit)
+            .Select(x => new
+            {
+                x.encounter.Id,
+                x.encounter.EncounterNumber,
+                x.encounter.EncounterType,
+                x.encounter.EncounterStatus,
+                x.encounter.EncounterDate,
+                PatientName = x.patient.FullName,
+                x.patient.MedicalRecordNumber
+            })
+            .ToListAsync(cancellationToken);
+
+        var encounterIds = rows.Select(x => x.Id).ToList();
+        var invoicedEncounterIds = encounterIds.Count == 0
+            ? []
+            : await _dbContext.BilInvoices.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && !x.IsDelete)
+                .Select(x => x.EncounterId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+        return rows.Select(x => new ActiveEncounterOptionResponse
+        {
+            Id = x.Id,
+            EncounterNumber = x.EncounterNumber,
+            PatientName = x.PatientName,
+            MedicalRecordNumber = x.MedicalRecordNumber,
+            EncounterType = x.EncounterType.ToString(),
+            EncounterStatus = x.EncounterStatus.ToString(),
+            EncounterDate = x.EncounterDate,
+            HasInvoice = invoicedEncounterIds.Contains(x.Id)
+        }).ToList();
     }
 
     // Ringkasan konteks pasien/kunjungan untuk layar Menu Pembayaran (kasir). InvoiceDetailResponse
