@@ -24,14 +24,18 @@ input_revisions:
   04-prd-to-mvp.md: 0.4.0
 artifact_hashes:
   blueprint-manifest.md: "a2f5dcf0d78e545701ac1f3616ee42195bd6516bea1e5ecf302af62c502d9892"
-  contracts/api-contract.md: "78d6c380ec1e7ad89c197df23736c484af73a83c4b85e74418d1924272ee3119"
+  contracts/api-contract.md: "30d14bf1b963cd969d8e31b5bd86f1087bd13077323ee1f6e6d1b3253df455dd"
   contracts/state-transition-matrix.md: "35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7"
   contracts/validation-matrix.md: "6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d"
   contracts/permission-audit-matrix.md: "50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b"
   contracts/integration-contract.md: "e6e86731ae4da27f482e6f659336a74cb0d2d9465f6a04e26fa7bcc6ac331fe1"
+  contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
+  contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
   - "API 0.4.0"
+  - "Encounter company guarantor addendum 1.0.0"
+  - "Bed board reservation metadata addendum 1.0.0"
   - "State transition 0.4.0"
   - "Validation 0.4.0"
   - "Integration 0.4.0"
@@ -41,7 +45,12 @@ contract_versions:
 source_commits:
   backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
-task_count: 34
+current_contract_gap_scan:
+  scanned_at: "2026-08-31"
+  backend: "64d7419415e473968d752d873ca02e1ae1fcded8"
+  frontend: "786bd247db47a3b7c97b8c08fb6ec633f57d0c72"
+  result: "RWI-UI-GAP-002_CONFIRMED; ADMIN_ROUTE_AND_PERMISSION_CONFIRMED"
+task_count: 36
 ```
 
 ---
@@ -66,6 +75,15 @@ task_count: 34
 > termasuk `POST /patient-encounters` milik `RegistrationManagement`, yang memang sudah membuat
 > baris kunjungan beserta penjaminnya. Dua butir terbuka baru yang **dimiliki backend** dicatat
 > pada bagian 5: `RWI-OQ-045` dan `RWI-OQ-046`. Keduanya tidak menahan task mana pun.
+
+> **Addendum disetujui 31 Agustus 2026.** Pemeriksaan source yang lebih sempit pada backend
+> `64d7419…` membuktikan klaim 27 Agustus tentang penjamin belum lengkap: endpoint admin memang
+> ada, tetapi enum, request, validasi, dan persistence encounter hanya mendukung Tunai/Asuransi.
+> Pemilik memilih mempertahankan tiga metode dan menyetujui kontrak backend Penjamin Perusahaan.
+> Karena itu ditambahkan satu task `BE-RWI-035` serta kontrak
+> [`RWI-ENC-PAYER-001` versi `1.0.0`](../contracts/encounter-company-guarantor-contract.md).
+> Addendum ini tidak mengubah arsitektur domain Rawat Inap atau 49 endpoint `inpatient`, sehingga
+> `roadmap_revision: 2` dan `API 0.4.0` dipertahankan.
 **Arti tanda status pada dokumen ini.**
 
 | Tanda | Artinya |
@@ -213,7 +231,8 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | ✅ `BE-RWI-023` s.d. `BE-RWI-027` |
 | **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | ✅ `BE-RWI-028` s.d. `BE-RWI-030` |
 | **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
-| **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033` |
+| **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033`, `BE-RWI-034` |
+| **S10 — Encounter membawa penjamin perusahaan** | Encounter admin dapat menyimpan payer perusahaan yang sah tanpa mengubah Tunai/Asuransi | `MVP-0`; `RWI-CAP-002` | ✅ `BE-RWI-035` |
 
 ### Urutan dependency
 
@@ -252,6 +271,7 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
 BE-RWI-032 (test regresi modul tetangga) — menempel pada BE-RWI-006, wajib selesai bersamanya
 BE-RWI-033 (bukti penerimaan) — paling akhir
 BE-RWI-034 (perbaikan hak akses + endpoint baca kelayakan keuangan) — berdiri sendiri, tidak menunggu apa pun
+BE-RWI-035 (penjamin perusahaan pada encounter admin)  ✅ SELESAI ──> FE-RWI-025
 ```
 
 **Yang boleh paralel.** Setelah `BE-RWI-004` selesai, empat jalur berikut tidak saling bergantung
@@ -867,6 +887,65 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
+### ✅ `BE-RWI-035` — Encounter admin dapat membawa penjamin perusahaan
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Petugas admisi dapat membuat encounter dengan satu payer Penjamin Perusahaan yang sah. Referensi dan snapshot perusahaan tersimpan bersama encounter tanpa mengubah arti atau perilaku Tunai dan Asuransi |
+| **Trace** | `RWI-CAP-002` **Wajib**; `RWI-DEC-075`; `RWI-UI-GAP-002`; `FE-RWI-024`; `FE-RWI-025`; persetujuan Product/Domain 31 Agustus 2026 untuk mempertahankan tiga metode pembayaran |
+| **Kontrak** | [`RWI-ENC-PAYER-001` versi `1.0.0`](../contracts/encounter-company-guarantor-contract.md), status `APPROVED`, hash `48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b` |
+| **Reuse** | `MstPatientCompanyGuarantor`, `MstCompanyGuarantor`, transaksi create di `PatientEncounterController`, tabel satu-ke-satu `TrxPatientEncounterGuarantor`, snapshot generic payer existing, generator nomor sumber pembayaran, `PatientEncounter : Create`, dan pola test `PatientEncounterController` existing |
+| **Scope** | Tambah enum `CompanyGuarantor = 3`; request/response dan summary secara aditif; validasi pasien–perusahaan; referensi serta snapshot persistence; konfigurasi EF dan migration code; mapping create/list/detail/queue yang terdampak; test regresi Tunai/Asuransi; pemutakhiran dokumentasi kontrak dan laporan task. Tidak mengubah frontend, billing, alur surat jaminan, ataupun permission |
+| **Dependency** | Tidak menunggu task backend lain. `FE-RWI-025` menunggu task ini selesai. Migration boleh dihasilkan, tetapi penerapannya ke database bersama/target memerlukan otorisasi terpisah |
+| **Acceptance criteria** | 1. `EncounterPaymentType` mempertahankan `Cash = 1` dan `Insurance = 2`, lalu menambah `CompanyGuarantor = 3` berlabel **Penjamin Perusahaan**. 2. `POST /api/v1/health-services/registration-management/patient-encounters/admin` menerima `PatientCompanyGuarantorId` hanya untuk tipe 3 dan menolak semua kombinasi payer campuran dengan kode 400 yang dapat dipahami. 3. Kartu perusahaan wajib aktif, tidak dihapus, eligible, milik `PatientId` yang sama, berlaku pada tanggal encounter, dan menunjuk perusahaan aktif; kegagalan tidak membocorkan data pasien lain. 4. Encounter dan satu payment source tersimpan atomik; payment source menyimpan kedua foreign key perusahaan dan snapshot yang dikunci kontrak, sementara ketiga referensi Tunai/Asuransi bernilai `null`. 5. Response create/detail/list yang memuat payment, opsi filter, dan summary mengenali tipe 3 serta mengembalikan field aditif; encounter perusahaan tidak merusak projection antrean dokter/perawat. 6. Route `/admin` tetap memerlukan `PatientEncounter : Create`; route `/` dan `/kiosk` menolak tipe 3 sehingga wewenang kiosk tidak meluas. 7. Kasus Tunai dan Asuransi existing tetap lulus tanpa perubahan payload; nilai enum lama tidak bergeser. 8. Migration EF hanya dibuat dalam source dan tidak diterapkan ke database bersama/target tanpa otorisasi terpisah |
+| **Verification** | Pada waktu eksekusi: jalankan QBE preflight dari `AGENTS.md`; periksa drift dari backend `64d7419…` dan frontend `786bd24…`; jalankan test fokus matriks tiga payer, ownership/active/eligible/periode, atomisitas, admin-vs-kiosk, mapping baca, dan regresi dua payer lama; lanjutkan `dotnet build` serta `dotnet test`. Lampirkan nama migration tanpa menjalankannya ke database bersama |
+| **Risk/blocker** | Risiko utama adalah memperluas method kiosk karena route admin saat ini mendelegasikan proses ke method kiosk, serta membuat snapshot yang tidak lengkap sehingga audit berubah ketika master diedit. Keduanya sudah ditutup oleh kontrak. Owner implementasi: Backend/API RegistrationManagement. Owner keputusan: Product/Domain |
+| **DoD** | Delapan acceptance criteria lulus; kontrak dan mapping source cocok; test/build backend hijau; laporan task tracked menyertakan bukti file/symbol/SHA; `RWI-UI-GAP-002` ditandai tertutup untuk backend; tidak ada migration yang diterapkan tanpa otorisasi |
+| **Status** | ✅ **SELESAI 31 Agustus 2026.** Kedelapan acceptance criteria dan seluruh butir DoD terbukti. `dotnet build` solution `0 Error(s)`; `dotnet test` **786/786 lulus**, termasuk 25 test baru khusus task ini. Bukti: [laporan](../task/report/backend/BE-RWI-035.md). Migration `20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` sudah **diterapkan ke database dev pemilik** atas wewenang eksplisit; database bersama/target **belum** dan tetap wewenang terpisah |
+
+#### Health Services / Registration Management / Patient Encounter
+
+Base URL: `api/v1/health-services/registration-management/patient-encounters`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/admin` | Membuat encounter petugas dengan satu sumber pembayaran, termasuk Penjamin Perusahaan | `PatientEncounter : Create` | `PatientEncounterCreateRequest` + `PatientCompanyGuarantorId` aditif | `ApiResponse<PatientEncounterCreateResponse>` |
+
+Sejak `BE-RWI-035` selesai 31 Agustus 2026, dukungan Penjamin Perusahaan pada baris ini berstatus
+**Tersedia** di source. Tunai dan Asuransi tetap berperilaku persis seperti sebelumnya. Route
+`POST /` dan `POST /kiosk` menolak tipe 3, sehingga wewenang kiosk tidak ikut meluas. Schema
+database dev pemilik sudah diperbarui, sehingga endpoint ini dapat langsung dipakai di sana.
+Database bersama/target masih menunggu penerapan migration yang merupakan wewenang terpisah.
+
+---
+
+### `BE-RWI-036` — Metadata reservasi aktif tersedia pada papan tempat tidur
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Papan tempat tidur mengembalikan identitas episode/pasien pemegang serta ID dan batas waktu reservasi aktif, sehingga konfirmasi pasien masuk dan pemulihan admisi tidak bergantung pada state sesi browser |
+| **Trace** | `RWI-CAP-006` **Wajib**; `FR-RI-105` s.d. `FR-RI-112`; `RWI-DEC-076`; `RWI-UI-GAP-003`; membuka dependency data `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-032`, dan `FE-RWI-036` |
+| **Kontrak** | [`RWI-BED-BOARD-RESERVATION-001` versi `1.0.0`](../contracts/bed-board-reservation-metadata-contract.md), status `APPROVED` oleh Muhammad Hamzah pada 1 September 2026 |
+| **Reuse** | `GET /bed-occupancies/bed-board`, `BedBoardBedResponse`, expiry-on-read `ExpireDueReservationsAsync`, projection penempatan/reservasi pada `InpBedOccupancyService`, serta permission `InpatientBedOccupancy : Read` yang sudah ada |
+| **Scope** | Menambah `HoldingEpisodeId`, `ReservationId`, dan `ReservationExpiresAt` secara nullable pada response bed; mengisi metadata hanya dari penempatan/reservasi aktif yang sah; mempertahankan `HoldingEpisodeNumber`, `PatientName`, counter, route, dan permission existing; test fokus dan dokumentasi. Tidak ada schema/migration, endpoint, frontend, atau perubahan lifecycle |
+| **Dependency** | `BE-RWI-010` sudah selesai. Tidak menunggu task backend lain |
+| **Acceptance criteria** | 1. Bed `Reserved` mengembalikan `ReservationId`, `HoldingEpisodeId`, `HoldingEpisodeNumber`, `PatientName`, dan `ReservationExpiresAt` dari reservasi aktif. 2. Reservasi kedaluwarsa digugurkan oleh perilaku expiry-on-read existing dan tidak mengekspos metadata reservasi. 3. Bed `Occupied` mempertahankan identitas penghuni, tetapi `ReservationId` dan `ReservationExpiresAt` bernilai `null`. 4. Bed tanpa pemegang tidak mengekspos identitas pasien/episode maupun metadata reservasi. 5. Counter dan field response existing tidak berubah makna. 6. Route dan permission tetap; tidak ada migration/database execution |
+| **Verification** | Test fokus keempat keadaan response—reserved, expired, occupied, dan tanpa pemegang—ditambah regresi suite rawat inap, `dotnet build`, serta `dotnet test`; pemeriksaan kontrak controller memastikan route/permission tidak berubah |
+| **Risk/blocker** | Risiko utama adalah reservasi kedaluwarsa tetap tampil atau data reservasi bocor pada bed yang sudah `Occupied`. Kedua cabang dikunci oleh contract invariant dan test. Owner implementasi: Backend/API InPatientManagement; owner keputusan: Product/Domain |
+| **DoD** | Keenam acceptance criteria lulus; kontrak/source/test cocok; build dan test backend hijau; laporan task tracked menyertakan bukti file/symbol/SHA; `RWI-UI-GAP-003` ditandai tertutup untuk kontrak dan source backend |
+| **Approval** | ✅ **APPROVED 1 September 2026** oleh Muhammad Hamzah melalui instruksi eksplisit untuk mencatat roadmap dan mengerjakan `BE-RWI-036` |
+| **Status** | ✅ **SELESAI 1 September 2026.** Keenam acceptance criteria terpenuhi. Test fokus 4/4 dan seluruh suite InPatientManagement 257/257 lulus; project test backend utama 790/790 lulus; build solution 0 error. Project Billing pada run solution memerlukan `QUILVIAN_BILLING_TEST_DB` khusus dan tidak dijalankan terhadap database karena di luar scope/wewenang. Bukti: [laporan](../task/report/backend/BE-RWI-036.md) |
+
+#### Health Services / Inpatient Management / Bed Occupancy
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/bed-board` | Papan ketersediaan beserta identitas pemegang dan metadata reservasi aktif | `InpatientBedOccupancy : Read` | Query `serviceUnitId` nullable | `ApiResponse<BedBoardResponse>`; field bed aditif sesuai `RWI-BED-BOARD-RESERVATION-001 1.0.0` |
+
+---
+
 ## 5. Gerbang yang masih terbuka
 
 | Gerbang | Keadaannya | Menahan |
@@ -883,6 +962,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | Cara pulang belum dapat dikoreksi lewat sesi koreksi | Dibuka `BE-RWI-030` 25 Agustus 2026. State matrix bagian 6.1 mengizinkannya, tetapi tidak ada endpoint yang menyediakannya | Kesalahan cara pulang pada episode tertutup tidak dapat dibetulkan |
 | **Penanggung jawab pembaca laporan selisih tempat tidur** | Dibuka `BE-RWI-029` 25 Agustus 2026. Laporan selisih adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul, dan ia hanya berguna bila ada yang membacanya berkala | Risiko penyimpangan `MstBed.BedStatus` tidak tertutup oleh kode mana pun |
 | **Sembilan endpoint yang hak aksesnya tidak dapat diberikan** | Dibuka `BE-RWI-034` 27 Agustus 2026. `[AccessAction]` dan `[AccessPermission]` menyebut nama yang berbeda, sehingga `AccessPermissionFilter` tidak pernah menemukan barisnya dan menjawab 403 untuk siapa pun kecuali SuperAdmin | Tanda tangan resume, kelayakan keuangan, penutupan episode, jalan keluar supervisor, kepergian pasien, perpindahan pasien, kebutuhan isolasi, dan sesi koreksi tidak dapat dipakai petugas sungguhan. `FE-RWI-009` s.d. `FE-RWI-015` ikut tertahan |
+| ~~**Penjamin perusahaan belum dapat dibawa oleh encounter**~~ | **DITUTUP 2026-08-31** oleh `BE-RWI-035`. Encounter petugas kini menyimpan payer perusahaan beserta referensi dan snapshot-nya. Migration sudah diterapkan ke database dev pemilik; sisa penerapan ke database bersama/target adalah wewenang terpisah, bukan gerbang keputusan | — |
 | **`RWI-OQ-046` jalur admisi tanpa `EncounterId`** | Dibuka 2026-08-27 lewat pembahasan ulang arsitektur frontend. `InpEpisodeService.BuildInpatientEncounter` membuat kunjungan sendiri dengan `PaymentType = EncounterPaymentType.Cash` yang ditanam di kode dan **tanpa** baris `TrxPatientEncounterGuarantor`, sehingga admisi lewat jalur itu tercatat tunai termasuk untuk pasien berpenjamin | Tidak menahan pekerjaan. Sejak `RWI-DEC-075` tidak ada layar yang menempuh jalur itu, tetapi jalurnya tetap terbuka bagi pemanggil lain. Perlu diputuskan apakah ditutup |
 | **`RWI-OQ-045` hak akses konfirmasi masuk** | Dibuka 2026-08-27 lewat `RWI-DEC-076`. `POST /bed-occupancies/placements` menuntut `InpatientBedOccupancy : Create`; kepala ruangan dan perawat hanya punya `Read` dan `Transfer`, sehingga konfirmasi kedatangan pasien tidak dapat dilakukan dari ruangan | Tidak menahan pekerjaan. `FE-RWI-030` berjalan dengan petugas admisi dan supervisor. Bila dibuka, menyentuh `contracts/permission-audit-matrix.md` dan seeder hak akses |
 | `RWI-RULE-021` batas waktu klinis | Menunggu pemilik klinis | Tidak menahan MVP; menahan pemakaian untuk pasien sungguhan |

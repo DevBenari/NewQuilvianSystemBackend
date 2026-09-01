@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums
+namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
 {
     /// <summary>
     /// Alasan klinis yang menyebabkan satu revisi fact diterbitkan.

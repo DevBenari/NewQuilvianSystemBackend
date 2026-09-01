@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `cf036c75753e04a8c7d192112f3be23f20e25954` |
 | Commit backend yang dijadikan rujukan | `4db8909e5c77b06aadf2603bd1617ccdcca093db` |
 | Tanggal | 2026-08-29 |
-| Status | **Implementasi 5/5 acceptance criteria tersedia; `npm run lint` dan `npm run build` lulus. Verifikasi E2E/manual tidak dijalankan atas instruksi pemilik** |
+| Status | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terimplementasi; `npm run lint` dan `npm run build` lulus. Butir DoD E2E/uji manual dikecualikan atas keputusan pengguna. Riwayat status sebelumnya beserta alasannya tetap tercatat pada bagian 6 dan 7 — lihat "Penutupan status" di akhir laporan |
 
 ---
 
@@ -214,3 +214,17 @@ instruksi pengguna.
 | Status Git frontend | Enam berkas source task berubah/baru pada branch `HamzahV2`; tidak ada stage, commit, push, pull, merge, rebase, atau deploy |
 | Status Git backend | Perubahan roadmap/traceability dan laporan `FE-RWI-021.md` sudah ada sebelum task ini. Task ini hanya menambah `task/report/frontend/FE-RWI-022.md` dan tidak mengubah roadmap maupun traceability sesuai instruksi pengguna |
 | Langkah berikutnya | Isi langkah Pasien Lama, Informasi Pasien Lama, dan Pendaftaran melalui `FE-RWI-023`; jalankan skenario E2E reload bila pemilik membuka izin test `.mjs` |
+
+
+---
+
+## Penutupan status — 1 September 2026
+
+| Field | Isi |
+| --- | --- |
+| Status akhir | ✅ **SELESAI** |
+| Dasar | Keputusan pemilik pekerjaan 1 September 2026: butir Definition of Done yang mensyaratkan test `.mjs`, E2E, atau uji manual **tidak lagi menahan status selesai** untuk task frontend yang seluruh acceptance criterianya sudah terpetakan ke source yang benar-benar ada. Dicatat pada [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) bagian "Keputusan penutupan verifikasi" |
+| Yang dikecualikan | Butir DoD e2e/`.mjs`/uji manual pada task ini |
+| Yang tidak dihapus | Seluruh catatan verifikasi di atas tetap berlaku apa adanya. Alasan teknisnya — repository tanpa `playwright.config.*`, `npm run test:unit` gagal oleh `ERR_UNSUPPORTED_DIR_IMPORT` pada Node `v24.13.0`, dan data master rawat inap yang belum layak (`RWI-UI-GAP-007`) — tidak dianggap gugur |
+| Pembuktian runtime ujung-ke-ujung | Tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
+| Register yang ikut diperbarui | [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md), [`requirement-traceability.md`](../../../roadmap/requirement-traceability.md) |

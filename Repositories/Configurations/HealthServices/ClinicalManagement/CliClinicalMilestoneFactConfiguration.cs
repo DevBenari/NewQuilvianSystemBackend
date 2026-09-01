@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Configurations
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.ClinicalManagement
 {
-    public class TrxClinicalMilestoneFactConfiguration : IEntityTypeConfiguration<TrxClinicalMilestoneFact>
+    public class CliClinicalMilestoneFactConfiguration : IEntityTypeConfiguration<CliClinicalMilestoneFact>
     {
-        public void Configure(EntityTypeBuilder<TrxClinicalMilestoneFact> builder)
+        public void Configure(EntityTypeBuilder<CliClinicalMilestoneFact> builder)
         {
-            builder.ToTable("TrxClinicalMilestoneFact", "public");
+            builder.ToTable("CliClinicalMilestoneFact", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.SourceContext).HasMaxLength(50).IsRequired();
