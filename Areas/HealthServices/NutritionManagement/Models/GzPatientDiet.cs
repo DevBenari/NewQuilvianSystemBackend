@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
@@ -27,8 +28,23 @@ public class GzPatientDiet : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [Required] public Guid NutritionOrderId { get; set; }
+    /// <summary>
+    /// Order konsultasi gizi, bila diet ini lahir dari rujukan ahli gizi. Boleh kosong,
+    /// karena sebagian besar pasien rawat inap memerlukan diet tanpa pernah dirujuk.
+    /// </summary>
+    public Guid? NutritionOrderId { get; set; }
+
     [Required] public Guid PatientId { get; set; }
+
+    /// <summary>
+    /// Kunjungan rawat inap tempat diet ini berlaku.
+    /// </summary>
+    /// <remarks>
+    /// Diet melekat pada kunjungan, bukan pada pasien. Pasien yang pernah dirawat dua kali
+    /// punya dua riwayat diet yang terpisah; tanpa kolom ini keduanya tercampur dan
+    /// pertanyaan "diet apa saat perawatan bulan lalu" tidak dapat dijawab.
+    /// </remarks>
+    [Required] public Guid EncounterId { get; set; }
 
     [Required] public Guid DietTypeId { get; set; }
     [Required] public Guid FoodFormId { get; set; }
@@ -51,31 +67,28 @@ public class GzPatientDiet : IdentityModel
     public int Version { get; set; }
 
     public GzNutritionOrder? NutritionOrder { get; set; }
+    public TrxPatientEncounter? Encounter { get; set; }
     public MstPatient? Patient { get; set; }
     public GzDietType? DietType { get; set; }
     public GzFoodForm? FoodForm { get; set; }
     public MstWorkforceProfile? PrescribedByWorkforce { get; set; }
-    public ICollection<GzMealDelivery> Deliveries { get; set; } = [];
 }
 
 /// <summary>
-/// Penyerahan makanan kepada satu pasien pada satu tanggal dan jadwal makan.
+/// Penyerahan makanan kepada satu pasien, berasal dari satu porsi pada batch produksi.
 /// </summary>
 /// <remarks>
-/// Baris ini dibuat saat makanan diserahkan, bukan direncanakan di muka. Rencana produksi
-/// dihitung dari diet yang aktif, sehingga tidak perlu disimpan lebih dulu dan tidak dapat
-/// menjadi basi.
+/// Menggantung pada <c>GzProductionBatchDetail</c>, bukan langsung pada diet, sehingga
+/// jejaknya utuh: produksi menghasilkan porsi, porsi diserahkan kepada pasien, dan porsi itu
+/// tahu diet mana serta kunjungan mana yang melatarinya. Bila digantungkan pada diet, makanan
+/// yang sudah terlanjur diproduksi kehilangan kaitannya begitu diet pasien berubah.
 /// </remarks>
 [Table("GzMealDelivery", Schema = "public")]
 public class GzMealDelivery : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [Required] public Guid PatientDietId { get; set; }
-    [Required] public Guid MealScheduleId { get; set; }
-
-    /// <summary>Tanggal pelayanan; dipisah dari waktu agar rekap harian sederhana.</summary>
-    public DateOnly ServiceDate { get; set; }
+    [Required] public Guid ProductionBatchDetailId { get; set; }
 
     public GzMealDeliveryStatus Status { get; set; } = GzMealDeliveryStatus.Delivered;
 
@@ -90,7 +103,6 @@ public class GzMealDelivery : IdentityModel
 
     [MaxLength(1000)] public string? Note { get; set; }
 
-    public GzPatientDiet? PatientDiet { get; set; }
-    public GzMealSchedule? MealSchedule { get; set; }
+    public GzProductionBatchDetail? ProductionBatchDetail { get; set; }
     public MstWorkforceProfile? DeliveredByWorkforce { get; set; }
 }

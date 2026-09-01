@@ -47,3 +47,21 @@ public enum GzMealDeliveryStatus
     /// <summary>Tidak tersaji karena alasan pelayanan, misalnya pasien sedang tindakan.</summary>
     NotServed = 3
 }
+
+/// <summary>
+/// Daur hidup satu angkatan produksi makanan.
+/// </summary>
+/// <remarks>
+/// Snapshot diambil saat batch berpindah dari <c>Draft</c> ke <c>Confirmed</c>. Sebelum
+/// dikonfirmasi, isinya masih dapat dihitung ulang; sesudahnya tidak, karena dapur sudah
+/// bekerja berdasarkan angka itu.
+/// </remarks>
+public enum GzProductionBatchStatus
+{
+    Draft = 1,
+    Confirmed = 2,
+    InProduction = 3,
+    ReadyForDistribution = 4,
+    Completed = 5,
+    Cancelled = 6
+}

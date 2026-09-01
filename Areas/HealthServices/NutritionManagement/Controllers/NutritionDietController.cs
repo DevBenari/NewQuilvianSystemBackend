@@ -9,7 +9,7 @@ using QuilvianSystemBackend.Responses;
 namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Controllers;
 
 /// <summary>
-/// Diet pasien, rekap produksi makanan, dan distribusi makanan.
+/// Daftar pasien gizi, diet pasien, produksi makanan, dan distribusi makanan.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -29,30 +29,42 @@ public class NutritionDietController : ControllerBase
 
     public NutritionDietController(NutritionDietService service) => _service = service;
 
-    /// <summary>Seluruh diet yang sedang berlaku. Inilah yang dibaca dapur.</summary>
-    [HttpGet("active")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzPatientDietResponse>>), StatusCodes.Status200OK)]
-    [AccessAction("Read", "Read Patient Diet",
-        Description = "Melihat diet pasien yang sedang berlaku", AccessType = AccessTypes.Read, SortOrder = 1)]
+    // --------------------------------------------------- 1. daftar pasien gizi
+
+    /// <summary>
+    /// Seluruh pasien rawat inap aktif beserta diet yang sedang berlaku.
+    /// </summary>
+    /// <remarks>
+    /// Berbeda dari daftar order konsultasi gizi: daftar ini memuat SEMUA pasien rawat
+    /// inap, karena setiap pasien yang dirawat perlu makan. Order konsultasi hanya untuk
+    /// pasien yang secara khusus dirujuk ke ahli gizi.
+    /// </remarks>
+    [HttpGet("patients")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<GzNutritionPatientResponse>>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Nutrition Patient",
+        Description = "Melihat daftar pasien gizi", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("NutritionPatientDiet", "Read")]
-    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPatients([FromQuery] GzNutritionPatientQuery query,
+        CancellationToken cancellationToken)
     {
-        var data = await _service.GetActiveDietsAsync(cancellationToken);
-        return Ok(ApiResponse<List<GzPatientDietResponse>>.Ok(data,
-            "Data diet aktif berhasil diambil."));
+        var data = await _service.GetNutritionPatientsAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<GzNutritionPatientResponse>>.Ok(data,
+            "Daftar pasien gizi berhasil diambil."));
     }
 
-    /// <summary>Riwayat diet pada satu order, termasuk diet yang sudah diganti.</summary>
-    [HttpGet("by-order/{orderId:guid}")]
+    // --------------------------------------------------------- 2. diet pasien
+
+    /// <summary>Riwayat diet satu kunjungan; diet lama tetap tersimpan utuh.</summary>
+    [HttpGet("history/{encounterId:guid}")]
     [ProducesResponseType(typeof(ApiResponse<List<GzPatientDietResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Patient Diet",
-        Description = "Melihat riwayat diet satu pasien", AccessType = AccessTypes.Read, SortOrder = 2)]
+        Description = "Melihat riwayat diet satu kunjungan", AccessType = AccessTypes.Read, SortOrder = 2)]
     [AccessPermission("NutritionPatientDiet", "Read")]
-    public async Task<IActionResult> GetByOrder(Guid orderId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetHistory(Guid encounterId, CancellationToken cancellationToken)
     {
-        var data = await _service.GetDietsByOrderAsync(orderId, cancellationToken);
+        var data = await _service.GetDietHistoryAsync(encounterId, cancellationToken);
         return Ok(ApiResponse<List<GzPatientDietResponse>>.Ok(data,
-            "Riwayat diet pasien berhasil diambil."));
+            "Riwayat diet berhasil diambil."));
     }
 
     [HttpPost]
@@ -99,40 +111,89 @@ public class NutritionDietController : ControllerBase
         catch (NutritionUnprocessableException ex) { return this.NutritionUnprocessable(ex); }
     }
 
-    /// <summary>
-    /// Rekap kebutuhan produksi. Seluruhnya hasil hitungan atas diet yang sedang aktif,
-    /// bukan data tersimpan, sehingga dapur tidak pernah memasak dari angka basi.
-    /// </summary>
-    [HttpGet("production")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzProductionSummaryResponse>>), StatusCodes.Status200OK)]
+    // ----------------------------------------------------------- 3. produksi
+
+    [HttpGet("batches")]
+    [ProducesResponseType(typeof(ApiResponse<List<GzProductionBatchSummaryResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Food Production",
-        Description = "Melihat rekap kebutuhan produksi makanan", AccessType = AccessTypes.Read, SortOrder = 5)]
+        Description = "Melihat daftar batch produksi", AccessType = AccessTypes.Read, SortOrder = 5)]
     [AccessPermission("NutritionPatientDiet", "Read")]
-    public async Task<IActionResult> GetProduction([FromQuery] DateOnly? serviceDate,
+    public async Task<IActionResult> GetBatches([FromQuery] DateOnly? serviceDate,
         CancellationToken cancellationToken)
     {
-        var data = await _service.GetProductionSummaryAsync(serviceDate, cancellationToken);
-        return Ok(ApiResponse<List<GzProductionSummaryResponse>>.Ok(data,
-            "Rekap kebutuhan produksi berhasil dihitung."));
+        var data = await _service.GetBatchesAsync(serviceDate, cancellationToken);
+        return Ok(ApiResponse<List<GzProductionBatchSummaryResponse>>.Ok(data,
+            "Daftar batch produksi berhasil diambil."));
     }
 
-    [HttpGet("distribution")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzMealDistributionRowResponse>>), StatusCodes.Status200OK)]
-    [AccessAction("Read", "Read Food Distribution",
-        Description = "Melihat daftar distribusi makanan", AccessType = AccessTypes.Read, SortOrder = 6)]
+    /// <summary>
+    /// Detail satu batch: rekap porsi untuk dapur, daftar distribusi per pasien, dan
+    /// penanda pasien yang dietnya berubah setelah batch dibuat.
+    /// </summary>
+    [HttpGet("batches/{batchId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<GzProductionBatchDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [AccessAction("Read", "Read Food Production",
+        Description = "Melihat detail batch dan distribusinya", AccessType = AccessTypes.Read, SortOrder = 6)]
     [AccessPermission("NutritionPatientDiet", "Read")]
-    public async Task<IActionResult> GetDistribution([FromQuery] Guid mealScheduleId,
-        [FromQuery] DateOnly? serviceDate, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetBatchDetail(Guid batchId, CancellationToken cancellationToken)
     {
-        var data = await _service.GetDistributionAsync(mealScheduleId, serviceDate, cancellationToken);
-        return Ok(ApiResponse<List<GzMealDistributionRowResponse>>.Ok(data,
-            "Daftar distribusi makanan berhasil diambil."));
+        var data = await _service.GetBatchDetailAsync(batchId, cancellationToken);
+        return data == null
+            ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound,
+                "Batch produksi tidak ditemukan."))
+            : Ok(ApiResponse<GzProductionBatchDetailResponse>.Ok(data,
+                "Detail batch produksi berhasil diambil."));
     }
+
+    [HttpPost("batches")]
+    [ProducesResponseType(typeof(ApiResponse<GzProductionBatchDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Update", "Update Food Production",
+        Description = "Membuat batch produksi makanan", AccessType = AccessTypes.Create, SortOrder = 7)]
+    [AccessPermission("NutritionPatientDiet", "Update")]
+    public async Task<IActionResult> CreateBatch([FromBody] CreateGzProductionBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.CreateBatchAsync(request, cancellationToken);
+            return Ok(ApiResponse<GzProductionBatchDetailResponse>.Ok(data,
+                "Batch produksi berhasil dibuat."));
+        }
+        catch (NutritionForbiddenException ex) { return this.NutritionForbidden(ex); }
+        catch (NutritionConflictException ex) { return this.NutritionConflict(ex); }
+        catch (NutritionUnprocessableException ex) { return this.NutritionUnprocessable(ex); }
+    }
+
+    [HttpPost("batches/{batchId:guid}/status")]
+    [ProducesResponseType(typeof(ApiResponse<GzProductionBatchDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Update", "Update Food Production",
+        Description = "Mengubah status batch produksi", AccessType = AccessTypes.Update, SortOrder = 8)]
+    [AccessPermission("NutritionPatientDiet", "Update")]
+    public async Task<IActionResult> ChangeBatchStatus(Guid batchId,
+        [FromBody] ChangeGzBatchStatusRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.ChangeBatchStatusAsync(batchId, request, cancellationToken);
+            return Ok(ApiResponse<GzProductionBatchDetailResponse>.Ok(data,
+                "Status batch produksi berhasil diperbarui."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (NutritionForbiddenException ex) { return this.NutritionForbidden(ex); }
+        catch (NutritionConflictException ex) { return this.NutritionConflict(ex); }
+        catch (NutritionUnprocessableException ex) { return this.NutritionUnprocessable(ex); }
+    }
+
+    // --------------------------------------------------------- 4. distribusi
 
     [HttpPost("distribution")]
-    [ProducesResponseType(typeof(ApiResponse<GzMealDistributionRowResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GzProductionBatchDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Food Distribution",
-        Description = "Mencatat penyerahan makanan", AccessType = AccessTypes.Update, SortOrder = 7)]
+        Description = "Mencatat penyerahan makanan", AccessType = AccessTypes.Update, SortOrder = 9)]
     [AccessPermission("NutritionPatientDiet", "Update")]
     public async Task<IActionResult> RecordDelivery(
         [FromBody] RecordGzMealDeliveryRequest request, CancellationToken cancellationToken)
@@ -140,7 +201,7 @@ public class NutritionDietController : ControllerBase
         try
         {
             var data = await _service.RecordDeliveryAsync(request, cancellationToken);
-            return Ok(ApiResponse<GzMealDistributionRowResponse>.Ok(data,
+            return Ok(ApiResponse<GzProductionBatchDetailResponse>.Ok(data,
                 "Penyerahan makanan berhasil dicatat."));
         }
         catch (KeyNotFoundException ex)
