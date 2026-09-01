@@ -66,6 +66,8 @@ diet ke dapur akan menjadi kontrak integrasi yang menunggu modul itu dibuat.
 | `GIZ-DEC-008` | Decision | Asuhan gizi ditutup ketika pasien keluar rawat inap, disertai catatan penutup ahli gizi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-009` | Decision | Diagnosis gizi menumpang `MstDiagnosis` yang sudah ada dengan `DiagnosisType` bernilai `NUTRITION`, bukan master tersendiri | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan master setelah audit kemampuan |
 | `GIZ-DEC-010` | Decision | Kunjungan ahli gizi ditulis sebagai baris CPPT `TrxPatientIntegratedProgressNote` dengan `ProfessionType` `Nutritionist` dan `SourceModule` `Nutrition`. Data terstruktur gizi disimpan entity milik Gizi yang menunjuk balik ke baris CPPT tersebut | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan kemampuan existing |
+| `GIZ-DEC-011` | Decision | Isi master diagnosis gizi diadopsi dari Quilvian v1. Kemiripan yang tidak persis dapat diterima; daftarnya diambil lewat ekspor dari v1, bukan disusun ulang maupun dikarang | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-01 | Jawaban `GIZ-OQ-002` |
+| `GIZ-DEC-012` | Decision | Kebutuhan nutrisi diketik ahli gizi, bukan dihitung sistem. Yang disimpan hanya kebutuhan energi dalam kkal | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-01 | Jawaban `GIZ-OQ-004` |
 
 ### GIZ-DEC-001 — Order konsultasi gizi memakai entity sendiri
 
@@ -172,9 +174,9 @@ diisi dan disahkan, fitur diagnosis gizi belum dapat dipakai.
 | ID | Pertanyaan | Owner | Memblokir |
 |---|---|---|---|
 | ~~`GIZ-OQ-001`~~ | ~~Siapa pemilik data skrining gizi awal?~~ **Tertutup oleh audit.** Skrining gizi sudah ada di `TrxPatientAssessment` milik Clinical Management, tingkat `L4`, memuat `NutritionRiskStatus`, `NutritionRiskScore`, dan `NutritionNote` | Clinical Management | Tidak lagi |
-| `GIZ-OQ-002` | Apa isi master diagnosis gizi yang disahkan rumah sakit? | Pemilik proses gizi | Ya, memblokir desain master |
+| ~~`GIZ-OQ-002`~~ | ~~Apa isi master diagnosis gizi?~~ **Tertutup `GIZ-DEC-011`.** Diadopsi dari Quilvian v1 lewat ekspor. Struktur sudah pasti; pengisian menjadi pekerjaan data | Pemilik kebutuhan | Tidak lagi |
 | `GIZ-OQ-003` | Apakah `MstProfession` sudah berisi baris untuk ahli gizi? Entity-nya tersedia di `L4`, tetapi isinya belum diperiksa karena audit bersifat read-only terhadap source | Human Resource | Tidak |
-| `GIZ-OQ-004` | Bentuk kebutuhan nutrisi apa yang harus dihitung dan disimpan, misalnya energi, protein, lemak, karbohidrat, dan cairan? | Pemilik proses gizi | Ya, memblokir desain penentuan diet |
+| ~~`GIZ-OQ-004`~~ | ~~Bentuk kebutuhan nutrisi apa yang disimpan?~~ **Tertutup `GIZ-DEC-012`.** Hanya energi dalam kkal, diketik ahli gizi, tanpa rumus di sistem | Pemilik kebutuhan | Tidak lagi |
 | `GIZ-OQ-005` | Berapa lama pasien tidak berisiko harus diskrining ulang, dan apakah pengulangan itu tanggung jawab modul Gizi? | Pemilik proses gizi | Tidak untuk versi pertama |
 | `GIZ-OQ-006` | Siapa pemilik proses bisnis modul Gizi yang berwenang menyetujui keputusan ini? | Belum ditentukan | Ya, terkait `KF-001` pada registry |
 
@@ -257,3 +259,47 @@ Gizi.
 **Batas yang tetap dijaga.** CPPT menyimpan narasi, bukan angka. Kolomnya teks bebas sehingga
 tidak dapat dipakai menghitung laporan mutu gizi. Karena itu diagnosis berkode, target
 intervensi, recall, dan diet tetap disimpan terstruktur di entity Gizi.
+
+### GIZ-DEC-011 — Master diagnosis gizi diadopsi dari Quilvian v1
+
+**Yang diputuskan.** Isi master diagnosis gizi tidak disusun ulang dan tidak dikarang. Ia
+diambil dari Quilvian v1 lewat ekspor. Pemilik kebutuhan menyatakan kemiripan yang tidak
+persis dapat diterima.
+
+**Wadahnya sudah ditetapkan `GIZ-DEC-009`:** `MstDiagnosis` dengan `DiagnosisType` bernilai
+`NUTRITION`. Jadi yang tersisa hanyalah mengisi, bukan merancang.
+
+**Yang ini buka dan yang ini tidak.** Keputusan ini menutup pertanyaan rancangan: struktur
+masternya sudah pasti, dan desain domain boleh berjalan. Yang belum selesai adalah pekerjaan
+data, yaitu mengekspor daftarnya dari v1 dan memasukkannya ke `MstDiagnosis`.
+
+**Sampai ekspor itu ada, masternya kosong.** Layar diagnosis gizi akan tampil tanpa pilihan.
+Ini perlu disadari saat menetapkan tanggal rilis, dan bukan alasan menunda desain.
+
+**Yang tetap tidak boleh.** Mengisi master dengan daftar karangan, sekadar agar layarnya
+tidak kosong. Daftar semacam itu akan terlihat resmi padahal tidak pernah disahkan siapa pun,
+dan diagnosis yang salah menempel pada rekam medis pasien.
+
+### GIZ-DEC-012 — Kebutuhan nutrisi diketik, bukan dihitung sistem
+
+**Yang diputuskan.** Ahli gizi menghitung kebutuhan pasien di luar sistem lalu mengetik
+hasilnya. Sistem tidak memuat rumus apa pun. Yang disimpan **hanya kebutuhan energi dalam
+kkal**.
+
+```text
+Catatan asuhan gizi
+  kebutuhan_energi_kkal : angka, diisi ahli gizi
+```
+
+**Alasan memilih ini.** Rumus kebutuhan gizi berbeda antar rumah sakit dan antar kondisi
+pasien. Menanamkannya di sistem berarti satu rumus yang keliru berdampak pada seluruh pasien
+sekaligus, dan kekeliruan itu sulit terlihat karena hasilnya tetap tampak masuk akal.
+Membiarkan ahli gizi yang menghitung menjaga tanggung jawab klinis tetap pada orangnya.
+
+**Konsekuensi yang diterima.** Sistem tidak dapat memeriksa kewajaran angka yang diketik,
+dan tidak dapat menghitung ulang bila berat badan pasien berubah. Keduanya diterima sebagai
+ganti dari kesederhanaan dan keamanan di atas.
+
+**Batas versi pertama.** Protein, lemak, karbohidrat, dan cairan **tidak** disimpan. Bila
+kelak dibutuhkan, penambahannya berupa kolom baru pada entity yang sama — bukan perombakan,
+karena bentuknya sudah angka bebas, bukan hasil rumus.

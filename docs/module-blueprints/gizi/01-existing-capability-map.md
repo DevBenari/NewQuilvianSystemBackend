@@ -175,3 +175,36 @@ berisi baris untuk ahli gizi, dan apakah `NutritionRiskStatus` benar-benar diisi
 praktik sehari-hari. Keduanya memerlukan pemeriksaan basis data berjalan, bukan pembacaan
 source.
 
+
+## Status gerbang desain
+
+Diperbarui 2026-09-01 setelah `GIZ-DEC-011` dan `GIZ-DEC-012`.
+
+| Pertanyaan | Status |
+|---|---|
+| `GIZ-OQ-001` pemilik data skrining | Tertutup lewat audit: ada di `TrxPatientAssessment` |
+| `GIZ-OQ-002` isi master diagnosis gizi | **Tertutup** `GIZ-DEC-011`: diadopsi dari Quilvian v1 |
+| `GIZ-OQ-003` penanda ahli gizi | Tertutup: `MstProfession` tersedia |
+| `GIZ-OQ-004` bentuk kebutuhan nutrisi | **Tertutup** `GIZ-DEC-012`: hanya energi kkal, diketik |
+| `GIZ-OQ-005` skrining ulang | Tidak memblokir versi pertama |
+| `GIZ-OQ-006` pemilik proses bisnis | Terbuka, tetapi tidak lagi memblokir desain |
+
+**Kebutuhan dinyatakan siap. Desain domain boleh dimulai.**
+
+Empat kemampuan yang harus dibuat baru, seluruhnya kini sudah tergambar bentuknya:
+
+| Kemampuan | Bentuk yang sudah ditetapkan |
+|---|---|
+| Order konsultasi gizi | Entity milik Gizi, menunjuk `PatientId` dan `EncounterId` (`GIZ-DEC-001`) |
+| Asuhan gizi per kunjungan | Data terstruktur milik Gizi, ditunjuk balik dari CPPT (`GIZ-DEC-010`) |
+| Recall asupan | Menempel pada kunjungan, bukan pada order (`GIZ-DEC-005`) |
+| Diet dan kebutuhan nutrisi | Satu angka kebutuhan energi kkal yang diketik (`GIZ-DEC-012`) |
+
+## Pekerjaan data yang tersisa
+
+Bukan penghalang desain, tetapi penentu apakah modul dapat dipakai saat rilis:
+
+| Pekerjaan | Akibat bila belum selesai |
+|---|---|
+| Ekspor daftar diagnosis gizi dari Quilvian v1 ke `MstDiagnosis` bertipe `NUTRITION` | Layar diagnosis gizi tampil tanpa pilihan |
+| Memastikan `MstProfession` memuat baris ahli gizi | Ahli gizi tidak dapat ditandai sebagai pelaku asuhan |
