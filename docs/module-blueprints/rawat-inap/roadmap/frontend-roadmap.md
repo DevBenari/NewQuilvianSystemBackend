@@ -158,7 +158,7 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | ✅ **selesai 1 September 2026.** Kedua task tertutup penuh; kriteria 2 `FE-RWI-020` ditutup dengan metadata reservation `BE-RWI-036` |
 | **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | ✅ **selesai 1 September 2026.** Keenam task terimplementasi penuh dan ketiga titik tulis tertutup. Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
-| **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | 🟡 `FE-RWI-030` ✅ selesai; `FE-RWI-032` ✅ selesai 1 September 2026; `FE-RWI-031` masih terbuka pada register walaupun sebagian source-nya sudah ada |
+| **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | ✅ **selesai 1 September 2026.** Ketiga task tertutup |
 | **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | ⛔ menunggu approval skema; pembuktian runtime juga menunggu `RWI-UI-GAP-007` |
 | **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | terbuka; `FE-RWI-035` paling akhir setelah F12 |
 
@@ -199,7 +199,7 @@ FE-RWI-022 (kerangka alur dua jalur)                 ✅ SELESAI
                                       └── FE-RWI-029 (cetak kartu pasien)    ✅ SELESAI
 
 FE-RWI-030 (konfirmasi pasien masuk)   ✅ SELESAI
-FE-RWI-031 (pembatalan admisi)         ← butuh FE-RWI-020
+FE-RWI-031 (pembatalan admisi)         ✅ SELESAI  ← butuh FE-RWI-020
 
 FE-RWI-033 (keterjangkauan + menu)     ← butuh F8 s.d. F11
 FE-RWI-034 (bongkar layar admisi lama) ← butuh FE-RWI-027
@@ -473,7 +473,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 ---
 
-### `FE-RWI-031` — Admisi yang keliru dapat dibatalkan
+### ✅ `FE-RWI-031` — Admisi yang keliru dapat dibatalkan
 
 | Field | Isi |
 | --- | --- |
@@ -488,7 +488,8 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | E2E per peran untuk kedua status; pemeriksaan papan sesudah pembatalan |
 | **Risk/blocker** | Kewenangannya **berbeda** menurut status episode — pola yang sama dengan tombol isolasi dan sama mudahnya salah. Owner: Frontend |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terpenuhi dan diperiksa satu per satu terhadap source serta kontrak backend. Sebagian besar source-nya sudah ada sebelum task ini dijalankan — dibawa commit `3e14079d6` — sehingga pekerjaan task ini adalah audit berbukti ditambah menutup celah skema tampilan 21.2: kedua dialog kini menyebut tempat tidur yang benar-benar dilepas, dan menghilangkan barisnya ketika tidak terbaca alih-alih mengarang. Kecocokan kewenangan dengan `InpEpisodeService.CancelAdmissionAsync` dibuktikan baris per baris. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada ketiga berkas task ini; `npm run build` `✓ Compiled successfully`; grep anti-regresi UI menambah nol hit baru. Test `.mjs` dan uji manual `NOT REQUIRED` atas arahan pengguna. Laporan: [FE-RWI-031](../task/report/frontend/FE-RWI-031.md) |
+| **Batas yang tercatat** | Kepala ruangan **tidak** dapat membatalkan episode `Draft` dari layar walaupun server menerimanya. Itu mengikuti acceptance criteria 1 apa adanya; mengubahnya berarti mengubah keputusan pada roadmap lebih dulu, bukan diam-diam di layar — [laporan](../task/report/frontend/FE-RWI-031.md) bagian 7.1 |
 
 ---
 
