@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
@@ -121,18 +122,34 @@ internal sealed class PatientEncounterTestWorld
             NullLogger<LoggerService>.Instance,
             new HttpContextAccessor());
 
+        var queueRealtimeService = new QueueRealtimeService(
+            dbContext,
+            new FakeQueueHubContext(),
+            loggerService);
+
+        var integrityService = new ClinicalDocumentIntegrityService(dbContext);
+
         var controller = new PatientEncounterController(
             dbContext,
             loggerService,
-            new QueueRealtimeService(dbContext, new FakeQueueHubContext(), loggerService));
+            queueRealtimeService,
+            integrityService);
 
         var identity = new ClaimsIdentity(
-            new[] { new Claim(ClaimTypes.NameIdentifier, ActorUserId.ToString()) },
+            new[]
+            {
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    ActorUserId.ToString())
+            },
             "TestAuth");
 
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            }
         };
 
         return controller;

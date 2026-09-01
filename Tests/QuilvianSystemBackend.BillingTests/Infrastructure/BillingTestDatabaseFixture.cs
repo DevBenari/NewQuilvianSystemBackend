@@ -1,3 +1,4 @@
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -183,6 +184,26 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         public static LoggerService CreateLoggerService() =>
             new(NullLogger<LoggerService>.Instance, new HttpContextAccessor());
 
+        /// <summary>
+        /// Menyediakan IHttpContextAccessor yang membawa identitas petugas. Service radiologi
+        /// menolak berjalan tanpa klaim <see cref="ClaimTypes.NameIdentifier"/> yang valid,
+        /// sehingga test yang memanggilnya harus menyediakan aktor secara eksplisit.
+        /// </summary>
+        public static IHttpContextAccessor CreateHttpContextAccessor(Guid actorUserId)
+        {
+            var identity = new ClaimsIdentity(
+                new[] { new Claim(ClaimTypes.NameIdentifier, actorUserId.ToString()) },
+                authenticationType: "BillingTest");
+
+            return new HttpContextAccessor
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+        }
+
         public ApplicationDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -338,9 +359,58 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     .ExecuteDeleteAsync(cancellationToken);
             }
 
+            // Radiologi (RJ-BIL-BE-004) mengikuti pola yang sama: riwayat, konsumsi, dan
+            // jawaban keselamatan menggantung pada study; study menggantung pada order; order
+            // menggantung pada encounter.
+            var radOrderIds = await context.RadOrders
+                .Where(x => x.EncounterId == seed.EncounterId)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (radOrderIds.Count > 0)
+            {
+                var studyIds = await context.RadStudies
+                    .Where(x => radOrderIds.Contains(x.RadOrderId))
+                    .Select(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                await context.RadTransitionHistories
+                    .Where(x =>
+                        radOrderIds.Contains(x.RadOrderId) ||
+                        (x.RadStudyId != null && studyIds.Contains(x.RadStudyId.Value)))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.RadAcquisitionConsumptions
+                    .Where(x => studyIds.Contains(x.RadStudyId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.RadStudySafetyChecks
+                    .Where(x => studyIds.Contains(x.RadStudyId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                // Pengulangan membuat rantai study yang menunjuk study sebelumnya, sehingga
+                // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
+                while (await context.RadStudies
+                    .AnyAsync(x => radOrderIds.Contains(x.RadOrderId), cancellationToken))
+                {
+                    var removed = await context.RadStudies
+                        .Where(x =>
+                            radOrderIds.Contains(x.RadOrderId) &&
+                            !context.RadStudies.Any(child => child.RepeatOfStudyId == x.Id))
+                        .ExecuteDeleteAsync(cancellationToken);
+
+                    if (removed == 0)
+                        break;
+                }
+
+                await context.RadOrders
+                    .Where(x => radOrderIds.Contains(x.Id))
+                    .ExecuteDeleteAsync(cancellationToken);
+            }
+
             // Ledger fakta klinis (RJ-BIL-BE-002) memiliki FK Restrict ke encounter, sehingga
             // wajib dihapus sebelum encounter-nya.
-            await context.TrxClinicalMilestoneFacts
+            await context.CliClinicalMilestoneFacts
                 .Where(x => x.EncounterId == seed.EncounterId)
                 .ExecuteDeleteAsync(cancellationToken);
 
