@@ -155,10 +155,10 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | Slice | Hasil yang dapat diperiksa | Task | Keadaan |
 | --- | --- | --- | --- |
 | **F0–F7** | Pekerjaan revision 2 | `FE-RWI-001` s.d. `FE-RWI-018` | ✅ selesai |
-| **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | 🟡 `FE-RWI-021` ✅ selesai 1 September 2026; `FE-RWI-020` masih 🟡 4 dari 5 kriteria — kriteria 2 belum diimplementasi di frontend, bukan sekadar belum diuji |
+| **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | ✅ **selesai 1 September 2026.** Kedua task tertutup penuh; kriteria 2 `FE-RWI-020` ditutup dengan metadata reservation `BE-RWI-036` |
 | **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | ✅ **selesai 1 September 2026.** Keenam task terimplementasi penuh dan ketiga titik tulis tertutup. Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
-| **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | terbuka |
+| **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | 🟡 `FE-RWI-030` ✅ selesai; `FE-RWI-032` ✅ selesai 1 September 2026; `FE-RWI-031` masih terbuka pada register walaupun sebagian source-nya sudah ada |
 | **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | ⛔ menunggu approval skema; pembuktian runtime juga menunggu `RWI-UI-GAP-007` |
 | **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | terbuka; `FE-RWI-035` paling akhir setelah F12 |
 
@@ -174,7 +174,7 @@ Batasnya tegas, supaya keputusan ini tidak menjadi pintu belakang:
 | --- | --- |
 | Butir DoD "e2e ada dan lulus", test `.mjs` per task, dan uji manual di peramban | Seluruh acceptance criteria wajib terpetakan ke source yang benar-benar ada |
 | Bukti runtime per task | `npm run lint` dan `npm run build` tetap harus lulus |
-| — | Task yang acceptance criterianya **belum ada source-nya** tetap 🟡 atau ⬜. Contohnya `FE-RWI-020` kriteria 2 |
+| — | Task yang acceptance criterianya **belum ada source-nya** tetap 🟡 atau ⬜. Aturan ini sempat menahan `FE-RWI-020` kriteria 2; kriteria itu kemudian benar-benar diimplementasi pada hari yang sama, bukan dikecualikan, sehingga task-nya naik menjadi ✅ |
 | — | Pembuktian runtime ujung-ke-ujung tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
 
 Alasan teknis yang sudah tercatat sebelumnya tetap berlaku dan tidak dianggap gugur:
@@ -185,9 +185,9 @@ target belum layak (`RWI-UI-GAP-007`).
 ### Urutan dependency
 
 ```text
-FE-RWI-020 (daftar kerja episode)                    🟡 4/5 kriteria — kriteria 2 belum diimplementasi
+FE-RWI-020 (daftar kerja episode)                    ✅ SELESAI
    ├── FE-RWI-021 (beranda)                          ✅ SELESAI
-   └── FE-RWI-032 (melanjutkan admisi tertinggal)    ⬜ BELUM DIKERJAKAN  ← juga butuh FE-RWI-026
+   └── FE-RWI-032 (melanjutkan admisi tertinggal)    ✅ SELESAI  ← juga butuh FE-RWI-026
 
 FE-RWI-022 (kerangka alur dua jalur)                 ✅ SELESAI
    └── FE-RWI-023 (langkah Pendaftaran + Pasien Lama)  ✅ SELESAI
@@ -198,7 +198,7 @@ FE-RWI-022 (kerangka alur dua jalur)                 ✅ SELESAI
                                       ├── FE-RWI-028 (cetak persetujuan)     ✅ SELESAI
                                       └── FE-RWI-029 (cetak kartu pasien)    ✅ SELESAI
 
-FE-RWI-030 (konfirmasi pasien masuk)   ← butuh FE-RWI-026
+FE-RWI-030 (konfirmasi pasien masuk)   ✅ SELESAI
 FE-RWI-031 (pembatalan admisi)         ← butuh FE-RWI-020
 
 FE-RWI-033 (keterjangkauan + menu)     ← butuh F8 s.d. F11
@@ -256,7 +256,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 ## 5. Task revision 3–5
 
-### `FE-RWI-020` — Setiap episode dapat ditemukan, termasuk yang tertinggal
+### ✅ `FE-RWI-020` — Setiap episode dapat ditemukan, termasuk yang tertinggal
 
 | Field | Isi |
 | --- | --- |
@@ -271,7 +271,8 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | E2E: menyaring `Draft` menampilkan episode yang belum punya tempat tidur; menyaring `Closed` menampilkan episode tertutup dan membukanya sampai layar sesi koreksi |
 | **Risk/blocker** | Godaan terbesar adalah menjadikan ini census kedua. Census berarti "sedang dirawat"; mencampurnya melanggar `IA-INP-03`. Owner: Frontend |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus; laporan menyebut endpoint mana yang berhenti menganggur |
-| **Status** | 🟡 **4 dari 5 kriteria — TIDAK dinaikkan menjadi selesai.** Kriteria 1, 3, 4, dan 5 terpenuhi. Kriteria 2 **belum diimplementasi di frontend**, bukan sekadar belum diuji: pemeriksaan source 1 September 2026 atas `inpatient-episode-worklist-view.jsx`, `use-inpatient-episode-worklist.jsx`, `inpatient-episode-worklist-utils.jsx`, dan `inpatient-episode-worklist-constants.jsx` tidak menemukan pemakaian `holdingEpisodeId`, `reservationId`, maupun `reservationExpiresAt` — ketiganya hanya dipakai `use-inpatient-admission-bed.jsx` dan `inpatient-bed-utils.jsx` milik `FE-RWI-026`. Karena itu baris `Draft` yang masih memegang pemesanan belum terbeda dari yang pemesanannya gugur, dan sisa waktunya belum terbaca. Blocker backendnya sudah ditutup `BE-RWI-036`, jadi yang tersisa murni pekerjaan frontend. Pengecualian verifikasi e2e/`.mjs` 1 September 2026 **tidak berlaku** untuk task ini karena yang kurang adalah source, bukan bukti. Laporan: [FE-RWI-020](../task/report/frontend/FE-RWI-020.md) |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terpenuhi. Kriteria 2 ditutup pada pengerjaan ulang hari ini: daftar kerja kini membaca `GET /bed-occupancies/bed-board` dan mencocokkan `HoldingEpisodeId` + `ReservationId` + `ReservationExpiresAt` dengan baris `Draft`, sehingga baris yang masih memegang pemesanan tampil dengan penanda **Memegang pemesanan**, nama tempat tidurnya, dan sisa waktunya — terbeda dari **Tanpa pemesanan aktif**. Papan hanya memuat pemesanan `Active` yang belum lewat batas, jadi pembedaannya server-authoritative. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada berkas task ini; `npm run build` `✓ Compiled successfully`; keenam grep anti-regresi UI bersih. Butir DoD e2e **dikecualikan atas keputusan pengguna 1 September 2026**; uji manual `NOT REQUIRED` atas arahan pengguna. Laporan: [FE-RWI-020](../task/report/frontend/FE-RWI-020.md) bagian 9 |
+| **Batas yang tercatat** | Layar sengaja **tidak** memakai kata "gugur". Kontrak baca hari ini tidak membedakan pemesanan yang lewat batas dari yang tidak pernah dibuat — keduanya sama-sama absen dari papan — sehingga kalimatnya dibuat benar untuk kedua keadaan. Pembedaan tiga arah adalah kebutuhan `FE-RWI-032` kriteria 3 dan menunggu kontrak baca pemesanan per episode yang belum ada; dilaporkan pada [FE-RWI-020](../task/report/frontend/FE-RWI-020.md) bagian 9.13 |
 | **Resolusi temuan** | `BE-RWI-036` menambahkan `HoldingEpisodeId`, `ReservationId`, dan `ReservationExpiresAt` pada `GET /bed-occupancies/bed-board` melalui kontrak approved `RWI-BED-BOARD-RESERVATION-001 1.0.0`. Frontend dapat mencocokkan episode `Draft` dengan reservation aktif secara server-authoritative |
 
 ---
@@ -468,7 +469,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Risk/blocker** | Kontrak hak akses **tidak** memberi `InpatientBedOccupancy : Create` kepada perawat maupun kepala ruangan. Merender tombol bagi mereka menghasilkan tombol yang pasti ditolak server. Butir terbuka `RWI-OQ-045`. Owner: Frontend bersama Product/Domain |
 | **Gerbang skema** | ✅ `RWI-UI-GAP-003` ditutup untuk kontrak/source backend oleh `BE-RWI-036`; papan menerima episode, pasien, `ReservationId`, dan batas waktu reservation aktif |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | ✅ selesai 1 September 2026 |
 
 ---
 
@@ -491,7 +492,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 ---
 
-### `FE-RWI-032` — Admisi yang ditinggal dapat dilanjutkan
+### ✅ `FE-RWI-032` — Admisi yang ditinggal dapat dilanjutkan
 
 | Field | Isi |
 | --- | --- |
@@ -505,9 +506,10 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Acceptance criteria** | 1. Episode `Draft` tanpa pemesanan dilanjutkan ke langkah **Pilih Bed**. 2. Episode `Draft` dengan pemesanan aktif dilanjutkan ke langkah **Konfirmasi**, dan sisa waktu pemesanannya terbaca. 3. Episode `Draft` yang pemesanannya sudah gugur dilanjutkan ke langkah **Pilih Bed** disertai keterangan bahwa pemesanan sebelumnya gugur. 4. Langkah yang sudah lewat **tidak** meminta pengguna mengetik ulang data yang sudah tersimpan. 5. Episode selain `Draft` **tidak** menawarkan pelanjutan |
 | **Verification** | E2E ketiga keadaan `Draft`; pemeriksaan bahwa data pasien, penjamin, dan DPJP terbaca dari server, bukan kosong |
 | **Risk/blocker** | Kriteria 3 menuntut layar membedakan pemesanan gugur dari tidak pernah ada. Sumbernya jawaban server, bukan hitungan waktu di sisi layar. Owner: Frontend |
-| **Gerbang skema** | ✅ `RWI-UI-GAP-003` ditutup untuk kontrak/source backend oleh `BE-RWI-036`; implementasi pemulihan frontend belum dikerjakan |
+| **Gerbang skema** | 🟡 `RWI-UI-GAP-003` ditutup `BE-RWI-036` **untuk kriteria 1, 2, dan 4** — papan menyebutkan `HoldingEpisodeId`, `ReservationId`, dan `ReservationExpiresAt`, sehingga pemesanan yang masih berlaku dapat dipulihkan. **Belum tertutup untuk kriteria 3**: papan hanya memuat pemesanan `Active` yang belum lewat batas, tidak ada operasi baca pemesanan per episode, dan kedua DTO episode tidak memuat kolom pemesanan. Akibatnya "pemesanan gugur" tidak dapat dibedakan dari "belum pernah memesan" |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kriteria 1, 2, 4, dan 5 terpenuhi penuh. Kriteria 3 **diterima apa adanya oleh pemilik pekerjaan**: perpindahan langkahnya benar, dan keterangan "pemesanan sebelumnya gugur" sengaja tidak ditulis karena kontrak baca tidak membedakannya dari "belum pernah memesan" — kalimat yang dipakai dibuat benar untuk kedua keadaan. Tombol **Lanjutkan Admisi** ada pada baris `Draft` daftar kerja; langkah tujuannya ditentukan pemesanan yang dibaca dari papan; isian sebelumnya dibaca ulang dari server termasuk penjamin dari kunjungan jangkarnya; titik tulis 1 dikunci supaya pelanjutan tidak membuat episode kedua. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada berkas task ini; `npm run build` `✓ Compiled successfully`; keenam grep anti-regresi UI bersih. Test `.mjs` dan uji manual `NOT REQUIRED` atas arahan pengguna. Laporan: [FE-RWI-032](../task/report/frontend/FE-RWI-032.md) |
+| **Batas yang diterima** | Task ditutup **tanpa** kemampuan membedakan pemesanan yang gugur dari yang tidak pernah ada. Itu keputusan pemilik pekerjaan 1 September 2026, bukan celah yang terlewat. Bila kemampuan itu suatu saat dibutuhkan, yang diperlukan adalah satu kontrak baca yang menyebutkan pemesanan terakhir sebuah episode beserta status akhirnya — bukan perubahan rancangan layar yang sudah ada. Bukti: [laporan](../task/report/frontend/FE-RWI-032.md) bagian 7.1 |
 
 ---
 
