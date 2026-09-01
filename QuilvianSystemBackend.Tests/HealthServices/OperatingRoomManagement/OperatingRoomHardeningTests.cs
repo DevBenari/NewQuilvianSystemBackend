@@ -161,11 +161,11 @@ public class OperatingRoomHardeningTests
     public async Task FullLifecycle_FromScheduledToCompleted_ProducesOneTransitionPerStatus()
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.Scheduled);
-        var preparation = new OperatingRoomPreparationService(ctx.Context, ctx.Accessor, ctx.Logger);
+        var preparation = new OperatingRoomPreparationService(ctx.Context, ctx.Accessor, ctx.Logger, OperatingRoomTestContext.StrictRules);
         var integration = new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
-        var recovery = new OperatingRoomRecoveryService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
+        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration, OperatingRoomTestContext.StrictRules);
+        var recovery = new OperatingRoomRecoveryService(ctx.Context, ctx.Accessor, ctx.Logger, OperatingRoomTestContext.StrictRules);
+        var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, integration, OperatingRoomTestContext.StrictRules);
 
         // Persiapan: checklist selesai lalu tiga sign-off menutup gerbang kesiapan.
         await preparation.SaveChecklistAsync(ctx.CaseId, OprChecklistPhase.SignIn, new SaveOprChecklistRequest
@@ -262,10 +262,10 @@ public class OperatingRoomHardeningTests
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.Completed);
         var integration = new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
+        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration, OperatingRoomTestContext.StrictRules);
         var scheduling = new OperatingRoomSchedulingService(ctx.Context, ctx.Accessor, ctx.Logger,
             new OperatingRoomCredentialResolver(ctx.Context),
-            Options.Create(new OperatingRoomSchedulingOptions()));
+            Options.Create(new OperatingRoomSchedulingOptions()), OperatingRoomTestContext.StrictRules);
 
         var cancel = await Assert.ThrowsAsync<OperatingRoomConflictException>(() =>
             execution.CancelAsync(ctx.CaseId, new CancelOprCaseRequest

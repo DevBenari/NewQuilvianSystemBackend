@@ -23,6 +23,19 @@ namespace QuilvianSystemBackend.Tests.HealthServices.OperatingRoomManagement;
 /// </summary>
 internal sealed class OperatingRoomTestContext : IAsyncDisposable
 {
+    /// <summary>
+    /// Aturan klinis dalam keadaan BERLAKU PENUH, yaitu keadaan bawaan sistem. Seluruh test
+    /// modul Operasi memakai ini supaya yang diuji adalah perilaku sesungguhnya, bukan
+    /// perilaku saat saklar pelepas aturan sedang menyala.
+    /// </summary>
+    public static QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options
+        .OperatingRoomRuleRelaxation StrictRules { get; } =
+        new(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build(),
+            new Microsoft.Extensions.Hosting.Internal.HostingEnvironment
+            {
+                EnvironmentName = "Development"
+            });
+
     private static readonly OprTeamRole[] TeamRoles =
     [
         OprTeamRole.PrimarySurgeon, OprTeamRole.Anesthesiologist,

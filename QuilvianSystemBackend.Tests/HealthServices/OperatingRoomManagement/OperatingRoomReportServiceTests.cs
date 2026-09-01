@@ -113,7 +113,7 @@ public class OperatingRoomReportServiceTests
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.InProgress);
         var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger,
-            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger));
+            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules);
         await material.RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
         {
             ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Implant, Quantity = 1,

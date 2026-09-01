@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
@@ -26,10 +27,13 @@ public sealed class OperatingRoomMaterialService
     private readonly LoggerService _loggerService;
     private readonly OperatingRoomIntegrationService _integrationService;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
     public OperatingRoomMaterialService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        OperatingRoomIntegrationService integrationService)
+        OperatingRoomIntegrationService integrationService, OperatingRoomRuleRelaxation relaxation)
     {
+        _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
@@ -172,6 +176,10 @@ public sealed class OperatingRoomMaterialService
 
     private async Task EnsureTeamMemberAsync(OprCase entity, Guid actorUserId, CancellationToken cancellationToken)
     {
+        // Dilepas saat aturan klinis dilonggarkan: siapa pun boleh mencatat pemakaian
+        // material tanpa perlu terdaftar sebagai anggota tim.
+        if (_relaxation.IsRelaxed) return;
+
         var workforceId = await _dbContext.Users.AsNoTracking()
             .Where(x => x.Id == actorUserId).Select(x => x.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);

@@ -373,7 +373,7 @@ public class OperatingRoomPreparationServiceTests
             return new TestFixture
             {
                 Context = context,
-                Service = new OperatingRoomPreparationService(context, accessor, logger),
+                Service = new OperatingRoomPreparationService(context, accessor, logger, OperatingRoomTestContext.StrictRules),
                 Accessor = accessor,
                 CaseId = caseId,
                 SurgeonUserId = userIds[0],

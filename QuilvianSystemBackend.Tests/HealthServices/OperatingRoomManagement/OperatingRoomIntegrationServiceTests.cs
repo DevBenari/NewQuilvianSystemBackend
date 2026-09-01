@@ -153,7 +153,7 @@ public class OperatingRoomIntegrationServiceTests
         new(ctx.Context, ctx.Accessor, ctx.Logger);
 
     private static Task RecordMaterialAsync(OperatingRoomTestContext ctx, string key) =>
-        new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, Build(ctx))
+        new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, Build(ctx), OperatingRoomTestContext.StrictRules)
             .RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
             {
                 ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Consumable, Quantity = 1,

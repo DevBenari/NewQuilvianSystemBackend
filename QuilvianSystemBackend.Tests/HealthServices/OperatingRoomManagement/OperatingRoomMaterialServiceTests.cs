@@ -207,7 +207,7 @@ public class OperatingRoomMaterialServiceTests
 
     private static OperatingRoomMaterialService Build(OperatingRoomTestContext ctx) =>
         new(ctx.Context, ctx.Accessor, ctx.Logger,
-            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger));
+            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules);
 
     private static async Task<Guid> AddDrugAsync(OperatingRoomTestContext ctx, string name, bool active)
     {

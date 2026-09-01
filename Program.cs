@@ -303,6 +303,7 @@ try
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
     // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
@@ -1006,6 +1007,26 @@ try
     app.UseMiddleware<GlobalExceptionMiddleware>();
 
     app.MapHealthChecks("/health");
+
+    if (builder.Configuration.GetValue("OperatingRoom:RelaxClinicalRules", false))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] OperatingRoom:RelaxClinicalRules bernilai true, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Aturan pelaku klinis tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] ATURAN KLINIS MODUL OPERASI DILEPAS pada lingkungan {Environment}. " +
+                "Siapa pun dapat membuat permintaan atas nama dokter lain, memulai operasi, dan " +
+                "memberi ketiga sign-off sendirian. Kesiapan tidak lagi menunggu consent maupun " +
+                "checklist. Kembalikan dengan OperatingRoom:RelaxClinicalRules = false sebelum " +
+                "menguji keselamatan atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
 
     // Peringatan mencolok bila pemeriksaan hak akses sedang dimatikan, supaya keadaan ini
     // tidak berlalu tanpa disadari dan tidak ikut terbawa saat lingkungan disalin.

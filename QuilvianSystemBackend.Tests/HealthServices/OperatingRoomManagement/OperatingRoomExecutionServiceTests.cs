@@ -273,7 +273,7 @@ public class OperatingRoomExecutionServiceTests
 
     private static OperatingRoomExecutionService Build(OperatingRoomTestContext ctx) =>
         new(ctx.Context, ctx.Accessor, ctx.Logger,
-            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger));
+            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules);
 
     private static StartOprCaseRequest ValidStart(string key) => new()
     {

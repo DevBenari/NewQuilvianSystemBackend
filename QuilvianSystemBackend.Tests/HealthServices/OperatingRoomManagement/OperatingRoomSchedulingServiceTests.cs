@@ -455,7 +455,7 @@ public class OperatingRoomSchedulingServiceTests
                 Context = context,
                 Service = new OperatingRoomSchedulingService(context, accessor, logger,
                     new OperatingRoomCredentialResolver(context),
-                    Options.Create(new OperatingRoomSchedulingOptions())),
+                    Options.Create(new OperatingRoomSchedulingOptions()), OperatingRoomTestContext.StrictRules),
                 CaseId = caseId,
                 SecondCaseId = secondCaseId,
                 ThirdCaseId = thirdCaseId,

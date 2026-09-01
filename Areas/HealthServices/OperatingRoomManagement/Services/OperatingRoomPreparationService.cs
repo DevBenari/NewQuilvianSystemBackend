@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -46,12 +47,16 @@ public sealed class OperatingRoomPreparationService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
     public OperatingRoomPreparationService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        OperatingRoomRuleRelaxation relaxation)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _relaxation = relaxation;
     }
 
     public async Task<OprPreparationResponse?> GetAsync(Guid caseId, CancellationToken cancellationToken = default)
@@ -290,6 +295,11 @@ public sealed class OperatingRoomPreparationService
         if (!entity.Schedules.Any(x => x.IsCurrent && !x.IsDelete))
             outstanding.Add("Jadwal aktif belum tersedia.");
 
+        // Saat aturan klinis dilonggarkan, jadwal aktif tetap menjadi satu-satunya syarat.
+        // Consent, checklist, dan ketiga sign-off tidak lagi menahan kasus di Terjadwal,
+        // sehingga statusnya naik ke Siap begitu jadwalnya ada.
+        if (_relaxation.IsRelaxed) return outstanding;
+
         var bypass = IsBypassActive(entity);
         if (!bypass)
         {
@@ -396,6 +406,10 @@ public sealed class OperatingRoomPreparationService
     private async Task EnsureSignOffAuthorityAsync(OprCase entity, OprReadinessRole role, Guid actorUserId,
         CancellationToken cancellationToken)
     {
+        // Sign-off boleh diberikan siapa saja saat aturan klinis dilonggarkan, sehingga satu
+        // akun dapat menyelesaikan ketiga peran tanpa tiga orang dan tanpa keanggotaan tim.
+        if (_relaxation.IsRelaxed) return;
+
         var workforceId = await _dbContext.Users.AsNoTracking()
             .Where(x => x.Id == actorUserId).Select(x => x.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);
