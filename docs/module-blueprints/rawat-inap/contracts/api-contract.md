@@ -109,7 +109,7 @@ Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku | `InpatientBedOccupancy : Read` | Query | `ApiResponse<AvailableBedPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
-| `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` + metadata aditif [`RWI-BED-BOARD-RESERVATION-001 1.0.0`](bed-board-reservation-metadata-contract.md) | ✅ **Tersedia** — metadata reservasi aktif dilengkapi `BE-RWI-036` pada 1 Sep 2026 |
 | `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `POST` | `/placements` | Menempatkan pasien ke tempat tidur dan mengaktifkan episode | `InpatientBedOccupancy : Create` | `PlacePatientRequest` | `ApiResponse<BedPlacementResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
