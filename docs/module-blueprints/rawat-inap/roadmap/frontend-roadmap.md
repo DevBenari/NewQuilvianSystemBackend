@@ -366,7 +366,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Risk/blocker** | Kriteria 5 adalah yang paling mudah dilanggar saat pengguna menekan tombol mundur. Aturan 3A.5 menuntut pembatalan lebih dulu. Owner: Frontend |
 | **Gerbang skema** | `RWI-UI-GAP-003`: alur baru dapat memakai hasil POST pada sesi aktif, tetapi episode existing/papan belum dapat membaca `ReservationId` dan `ExpiresAt` secara server-authoritative |
 | **DoD** | Keenam kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | 🟡 **Source selesai 1 September 2026; e2e tertahan data.** Keenam acceptance criteria dipetakan ke bukti implementasi. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada berkas task ini; `npm run build` `✓ Compiled successfully`; `node --test` atas empat berkas test yang menyentuh berkas task ini `24/24 PASS`; keenam grep anti-regresi UI bersih pada berkas baru. **Butir DoD e2e belum terpenuhi** karena data master rawat inap pada environment target belum layak — `RWI-UI-GAP-007` dan baris "Kesiapan data master"; menulis e2e dengan data tiruan dilarang gerbang skema. Bukti: [laporan](../task/report/frontend/FE-RWI-026.md) |
 
 ---
 
