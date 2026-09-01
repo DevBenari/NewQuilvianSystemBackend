@@ -18,6 +18,10 @@
 --   Password hash disalin dari akun Rendi Pangalila, sesuai permintaan. Tidak ada kata
 --   sandi yang ditulis di dalam berkas ini.
 --
+--   Akun yang sudah ada sebelumnya IKUT diselaraskan kata sandinya. Tanpa itu skrip
+--   tampak berhasil padahal kata sandinya masih yang lama, karena INSERT di bawah
+--   melewati baris yang sudah ada.
+--
 --   Konsekuensinya: keempat akun demo memakai kata sandi yang sama persis dengan milik
 --   Rendi. Bila kata sandi demo ini dibagikan kepada orang lain, kata sandi akun Rendi
 --   ikut diketahui. Ganti kata sandi akun-akun ini lewat aplikasi bila kelak dipakai
@@ -115,6 +119,26 @@ LEFT JOIN "MstDoctor" d      ON d."DoctorCode" = a.doctor_code
 -- Tanpa target kolom, supaya bentrok pada indeks unik mana pun ikut dilewati,
 -- termasuk bila akun dengan nama yang sama sudah pernah dibuat seeder.
 ON CONFLICT DO NOTHING;
+
+-- Menyelaraskan kata sandi akun yang SUDAH ADA sebelum skrip ini dijalankan.
+--
+-- Ini diperlukan karena INSERT di atas memakai ON CONFLICT DO NOTHING: akun yang sudah
+-- dibuat lebih dulu — misalnya oleh OperatingRoomDemoSeeder dengan kata sandi SuperAdmin —
+-- dilewati seluruhnya, termasuk kata sandinya. Tanpa langkah ini, skrip tampak berhasil
+-- tetapi kata sandinya bukan yang diharapkan, dan login gagal tanpa keterangan.
+--
+-- SecurityStamp ikut diganti supaya token dan cookie lama untuk akun-akun ini tidak lagi
+-- berlaku, sebagaimana perilaku ASP.NET Identity saat kata sandi berubah.
+--
+-- Hanya menyentuh empat akun demo yang namanya tercantum pada _akun. Akun lain, termasuk
+-- akun sumber kata sandinya sendiri, tidak pernah diubah.
+UPDATE "AspNetUsers" u
+SET "PasswordHash"    = s.password_hash,
+    "SecurityStamp"   = gen_random_uuid()::text,
+    "ConcurrencyStamp" = gen_random_uuid()::text
+FROM _akun a
+CROSS JOIN _src s
+WHERE UPPER(a.user_name) = u."NormalizedUserName";
 
 -- Melengkapi tautan pada akun yang sudah terlanjur ada sebelum skrip ini dijalankan.
 -- Hanya kolom yang masih kosong yang diisi; yang sudah terisi tidak pernah ditimpa.
