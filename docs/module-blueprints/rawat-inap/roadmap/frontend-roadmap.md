@@ -204,12 +204,12 @@ FE-RWI-031 (pembatalan admisi)         ✅ SELESAI  ← butuh FE-RWI-020
 FE-RWI-033 (keterjangkauan + menu)     ✅ SELESAI  ← butuh F8 s.d. F11
 FE-RWI-034 (bongkar layar admisi lama) ✅ SELESAI  ← butuh FE-RWI-027
 
-FE-RWI-036 (repair Papan)               ← butuh FE-RWI-026 + FE-RWI-030
-FE-RWI-037 (repair Census)              ← butuh FE-RWI-033
-FE-RWI-038 (repair Daftar Pantau)       ← dapat berjalan sesudah approval
-FE-RWI-039 (repair Selisih Bed)         ← butuh FE-RWI-036
-FE-RWI-040 (repair Butir Administrasi)  ← butuh FE-RWI-033
-FE-RWI-041 (repair Pengaturan)          ← butuh FE-RWI-033 + master DEFAULT
+FE-RWI-036 (repair Papan)               ✅ SELESAI  ← butuh FE-RWI-026 + FE-RWI-030
+FE-RWI-037 (repair Census)                          ← butuh FE-RWI-033
+FE-RWI-038 (repair Daftar Pantau)                   ← dapat berjalan sesudah approval
+FE-RWI-039 (repair Selisih Bed)                     ← butuh FE-RWI-036
+FE-RWI-040 (repair Butir Administrasi)              ← butuh FE-RWI-033
+FE-RWI-041 (repair Pengaturan)                      ← butuh FE-RWI-033 + master DEFAULT
 
 FE-RWI-035 (kesiapan diuji ujung ke ujung) ← butuh FE-RWI-020–034 + FE-RWI-036–041; paling akhir
 ```
