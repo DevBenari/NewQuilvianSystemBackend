@@ -48,6 +48,10 @@ Penyegaran ini dihitung dari atribut `[Route]`, `[Http*]`, dan `[AccessPermissio
 | 7 — Medical Record Access Purpose | 6 | 0 | `Rencana` | `Rencana` — **tetap benar**, lihat catatan bagian 7 |
 | **Total** | **26** | **20** | — | 20 hidup, 6 belum ada |
 
+> **Tabel di atas adalah riwayat revisi `0.1.1` per 27 Agustus 2026 dan sengaja tidak diubah.**
+> Keadaan hari ini berbeda: grup 7 dibangun `BE-20` pada 31 Agustus 2026, sehingga **26 dari 26
+> endpoint hidup** dan tidak ada lagi grup berstatus `Rencana`.
+
 Seluruh path, method, dan hak akses pada bagian 2 sampai 6 diperiksa satu per satu terhadap
 source dan **cocok persis**. Tidak ada endpoint yang berbeda dari yang dijanjikan kontrak, dan
 tidak ada endpoint tak terdaftar yang menyelinap masuk ke dalam grup mana pun.
@@ -312,9 +316,25 @@ Contract version: `0.1.1` — status `approved`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
 | `GET` | `/` | Daftar jejak akses | `MedicalRecordAccessLog : Read` | Query: `patientId`, `userId`, `accessType`, `isFlaggedForReview`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12` |
-| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12`. Dipakai `FE-05` |
+| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `accessType`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12`. Dipakai `FE-05`; tiga penyaring pertama ditambahkan 31 Agustus 2026, lihat catatan di bawah |
 | `PATCH` | `/{id}/mark-reviewed` | Menandai satu akses sudah ditinjau | `MedicalRecordAccessLog : Update` | `MarkAccessReviewedRequest` | `ApiResponse<MedicalRecordAccessLogResponse>` | **Tersedia** — `BE-12` |
 | `GET` | `/summary` | Rekap jumlah akses per jenis dan per periode | `MedicalRecordAccessLog : Read` | Query: `startDate`, `endDate` | `ApiResponse<MedicalRecordAccessSummaryResponse>` | **Tersedia** — `BE-12`. Belum dipakai layar mana pun pada rilis pertama |
+
+**Penambahan penyaring pada `/pending-review` — 31 Agustus 2026.** Endpoint antrean kini
+menerima `accessType`, `startDate`, dan `endDate`: penyaring yang sama persis dengan daftar
+seluruh jejak. Perubahannya **aditif** — ketiganya boleh dikosongkan, dan permintaan tanpa
+ketiganya berperilaku persis seperti sebelumnya, sehingga klien yang ditulis lebih dulu tidak
+perlu disesuaikan sedikit pun.
+
+Yang **tidak** ikut dibuka, dan tidak boleh dibuka: syarat antreannya sendiri.
+`isFlaggedForReview` dan syarat "belum ditinjau" tetap dipatok controller, bukan dikirim
+pemanggil. Penyaring layar hanya dapat mempersempit antrean, tidak pernah melebarkannya —
+begitu syarat itu dapat dipilih lewat kueri, "perlu ditinjau" berhenti berarti apa pun.
+
+Alasannya datang dari layar. `FE-05` menampilkan penyaring pada tab seluruh jejak tetapi tidak
+pada tab antrean, sehingga bilah penyaring tab antrean hanya berisi tombol muat ulang dan dua
+tab yang sama tampak menuntut dua tata cara berbeda. Kenaikan nomor versi kontrak beserta
+pengesahannya menunggu keputusan pemilik API.
 
 Tidak ada endpoint `POST`, `PUT`, maupun `DELETE` untuk jejak akses, dan itu bukan kelalaian.
 Baris jejak hanya dibuat sistem saat rekam medis dibuka, tidak pernah oleh permintaan manusia.
@@ -335,12 +355,23 @@ Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/` | Daftar keperluan akses | `MedicalRecordAccessPurpose : Read` | Query: `search`, `isActive`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessPurposeResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/options` | Pilihan untuk kotak isian alasan | `MedicalRecordAccessPurpose : Read` | — | `ApiResponse<List<OptionResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}` | Detail satu keperluan | `MedicalRecordAccessPurpose : Read` | — | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah keperluan | `MedicalRecordAccessPurpose : Create` | `CreateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah keperluan | `MedicalRecordAccessPurpose : Update` | `UpdateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan | `MedicalRecordAccessPurpose : Update` | `StatusRequest` | `ApiResponse<object>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar keperluan akses | `MedicalRecordAccessPurpose : Read` | Query: `search`, `isActive`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessPurposeResponse>>` | **Tersedia** — `BE-20` |
+| `GET` | `/options` | Pilihan untuk kotak isian alasan | `MedicalRecordAccessPurpose : Read` | — | `ApiResponse<List<OptionResponse>>` | **Tersedia** — `BE-20` |
+| `GET` | `/{id}` | Detail satu keperluan | `MedicalRecordAccessPurpose : Read` | — | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Tersedia** — `BE-20` |
+| `POST` | `/` | Menambah keperluan | `MedicalRecordAccessPurpose : Create` | `CreateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Tersedia** — `BE-20` |
+| `PUT` | `/{id}` | Mengubah keperluan | `MedicalRecordAccessPurpose : Update` | `UpdateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Tersedia** — `BE-20` |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan | `MedicalRecordAccessPurpose : Update` | `StatusRequest` | `ApiResponse<object>` | **Tersedia** — `BE-20` |
+
+> **DIKOREKSI 31 Agustus 2026.** Grup ini **sudah ada** sejak `BE-20`. Catatan di bawah ditulis
+> saat keenam endpoint belum dibangun dan dipertahankan sebagai riwayat, tetapi kalimat
+> "belum ada" di dalamnya tidak lagi berlaku. Yang masih berlaku: **isi masternya** memang
+> masih menunggu SOP rekam medis rumah sakit, dan sekarang dapat diisi lewat layar `FE-06`
+> tanpa meminta perubahan kode. Dua penahan itu berbeda dan tidak boleh tertukar.
+>
+> Delta terhadap rancangan semula: `/options` mengembalikan
+> `List<MedicalRecordAccessPurposeOptionResponse>`, bentuk yang sudah dipakai
+> `/medical-records/filters/metadata`, bukan tipe `OptionResponse` yang disebut tabel di atas —
+> tipe itu tidak ada di codebase. Penyaring halaman menerima `pageNumber` maupun `page`.
 
 ### Satu-satunya grup yang benar-benar belum ada
 

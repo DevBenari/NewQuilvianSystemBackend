@@ -14,8 +14,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
     /// dibuat sebagai addendum berikutnya dengan <see cref="Sequence"/> lebih tinggi. Karena itu
     /// tabel ini tidak memiliki kolom status — addendum hanya punya satu keadaan, yaitu ada.
     /// </summary>
-    [Table("TrxClinicalNoteAddendum", Schema = "public")]
-    public class TrxClinicalNoteAddendum : IdentityModel
+    [Table("MrcClinicalNoteAddendum", Schema = "public")]
+    public class MrcClinicalNoteAddendum : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -60,8 +60,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
         [MaxLength(64)]
         public string? SignatureIpAddress { get; set; }
 
-        public TrxClinicalDocumentIntegrity? Integrity { get; set; }
+        public MrcClinicalDocumentIntegrity? Integrity { get; set; }
 
-        public TrxClinicalNoteAuthorDelegation? Delegation { get; set; }
+        public MrcClinicalNoteAuthorDelegation? Delegation { get; set; }
     }
 }

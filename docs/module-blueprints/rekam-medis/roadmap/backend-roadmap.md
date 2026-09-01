@@ -103,12 +103,48 @@ Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
 | B3 | `BE-16` | **`SELESAI`** 27 Agustus 2026 | Pengaman pasien bernomor ganda, 4 pintu masuk dijaga, 7 uji lulus |
 | B4 | `BE-17` | **`SELESAI`** 27 Agustus 2026 | 14 jalur gagal seluruhnya punya uji dan lulus |
 | B4 | `BE-18` | **`SELESAI`** 27 Agustus 2026 | Swagger dan catatan rilis, 3 uji lulus. Catatan rilis disetujui pemilik API pada hari yang sama (`RM-DEC-028`) |
+| B5 | `BE-19` | **`SELESAI`** 31 Agustus 2026 | Penanda kunjungan aktif pada endpoint pencarian pasien, 12 uji lulus |
+| B5 | `BE-20` | **`SELESAI`** 31 Agustus 2026 | `MedicalRecordAccessPurposeController`, 6 endpoint, 9 uji lulus |
 
-**Denominator: 19 task. Enam belas `SELESAI`, dua `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
+**Denominator: 21 task. Delapan belas `SELESAI`, dua `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
 nol `SIAP`, nol `TERTAHAN APPROVAL`.**
 
 **SELURUH PEKERJAAN KODE BACKEND SELESAI.** Tidak ada lagi task yang menunggu ditulis. Yang
 tersisa seluruhnya bukan pekerjaan kode — lihat tabel di bawah.
+
+### Milestone B5 — dua task yang ditambahkan setelah frontend berjalan
+
+Keduanya lahir dari temuan saat frontend dibangun, bukan dari perencanaan awal. Itu sebabnya
+nomornya menyusul `BE-18` yang semula penutup roadmap.
+
+#### `BE-19` — Penanda kunjungan aktif pada pencarian pasien
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-19` |
+| **Status** | **`SELESAI`** 31 Agustus 2026 |
+| **Outcome** | Petugas tahu sebelum menekan tombol bahwa membuka berkas pasien tertentu akan meminta pernyataan keperluan akses |
+| **Asal** | Temuan `FE-01`: kolom `Kunjungan` yang diwajibkan arsitektur frontend 11.1 tidak punya sumber data. `PatientResponse` tidak membawanya, dan `isActive` pada endpoint kunjungan berarti flag aktif baris, bukan "kunjungan sedang berjalan" |
+| **Scope** | `PatientResponse.HasActiveEncounter` bertipe `bool?`; method batch pada `MedicalRecordAccessAuditService`; pengisian pada `GET /patients` |
+| **Acceptance criteria** | 1) Nilainya selalu sepadan dengan `access.hasActiveEncounter` pada balasan ringkasan rekam medis. 2) Satu query untuk seluruh halaman, bukan satu per baris. 3) Tiga keadaan dipertahankan: `true`, `false`, dan `null` untuk tidak dihitung |
+| **Verification** | 12 uji pada `ActiveEncounterFlagTests.cs`, membandingkan penilaian sekelompok terhadap penilaian satu per satu pada enam status kunjungan plus `CompletedAt`, `IsCancel`, dan pasien tanpa kunjungan |
+| **Keputusan yang melekat** | Aturan "kunjungan masih berjalan" diangkat menjadi satu expression yang dipakai bersama kedua jalur — satu aturan, satu tempat. Penanda **tidak** dipasang pada `/patients/options` yang dibagi dengan kiosk |
+| **DoD** | Terpenuhi |
+
+#### `BE-20` — Controller master keperluan akses
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-20` |
+| **Status** | **`SELESAI`** 31 Agustus 2026 |
+| **Outcome** | Unit rekam medis dapat mengisi master keperluan akses tanpa meminta perubahan kode — dan dengan itu berkas pasien di luar rawatan dapat dibuka sama sekali |
+| **Asal** | `BE-09` menyelesaikan tabel `MstMedicalRecordAccessPurpose` dan konfigurasi EF-nya, **bukan** controller-nya. Enam endpoint api-contract bagian 7 tidak pernah ditulis, dan `FE-06` tertahan karenanya |
+| **Scope** | `MedicalRecordAccessPurposeDtos.cs`, `MedicalRecordAccessPurposeService.cs`, `MedicalRecordAccessPurposeController.cs`, registrasi DI |
+| **Acceptance criteria** | 1) Keenam endpoint kontrak bagian 7 tersedia. 2) Kode keperluan kembar ditolak `409`. 3) Penonaktifan tidak menyentuh jejak akses yang sudah memakainya |
+| **Verification** | 9 uji pada `MedicalRecordAccessPurposeMasterTests.cs` |
+| **Keputusan yang melekat** | Controller tidak menyentuh `ApplicationDbContext` (QBE-SVC-001), berbeda dari 28 controller master data tetangganya. Tidak ada endpoint hapus. `/options` memakai `MedicalRecordAccessPurposeOptionResponse` yang sudah ada, bukan tipe `OptionResponse` yang disebut kontrak tetapi tidak ada di codebase |
+| **Migration** | Tidak diperlukan — entity, configuration, dan index unik `PurposeCode` sudah ada sejak `BE-09` |
+| **DoD** | Terpenuhi |
 
 Milestone B0, B1, dan B2 tuntas — kecuali dua hal yang bukan pekerjaan kode: isi awal master
 keperluan akses (`BE-09`, menunggu SOP) dan penjalanan pengisian data lama (`BE-08`).

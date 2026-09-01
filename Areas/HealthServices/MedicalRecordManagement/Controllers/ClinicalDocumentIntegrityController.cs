@@ -52,6 +52,113 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _integrityService = integrityService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalDocumentIntegrityFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat daftar pilihan penyaring keutuhan dokumen", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalDocumentIntegrity", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = new ClinicalDocumentIntegrityFilterMetadataResponse
+            {
+                DocumentKinds = MedicalRecordTimelineService.SeluruhJenis
+                    .Select(x => new MedicalRecordDocumentKindOptionResponse
+                    {
+                        Value = x,
+                        Name = MedicalRecordTimelineService.NamaJenis(x),
+                        IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(x)
+                    })
+                    .ToList(),
+                IntegrityStatuses = Enum.GetValues<ClinicalDocumentIntegrityStatus>()
+                    .Select(x => new MedicalRecordEnumOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = MedicalRecordTimelineService.NamaStatusKeutuhan(x)
+                    })
+                    .ToList(),
+                LockTriggers = Enum.GetValues<ClinicalDocumentLockTrigger>()
+                    .Select(x => new MedicalRecordEnumOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = NamaPemicu(x)
+                    })
+                    .ToList(),
+                SortOptions =
+                [
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "signedAt", Label = "Tanggal ditandatangani" },
+                    new() { Value = "lockedAt", Label = "Tanggal terkunci" },
+                    new() { Value = "integrityStatus", Label = "Status keutuhan" },
+                    new() { Value = "documentKind", Label = "Jenis dokumen" }
+                ],
+                SortDirections = ["asc", "desc"],
+                PageSizeOptions = [10, 25, 50, 100],
+                QueryParameters =
+                [
+                    new()
+                    {
+                        Name = "pageNumber",
+                        Type = "integer",
+                        Description = "Halaman, dimulai dari 1.",
+                        Example = "1"
+                    },
+                    new()
+                    {
+                        Name = "pageSize",
+                        Type = "integer",
+                        Description = "Jumlah baris per halaman. Bawaan 25, paling besar 100.",
+                        Example = "25"
+                    }
+                ]
+            };
+
+            return Ok(ApiResponse<ClinicalDocumentIntegrityFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter keutuhan dokumen berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalDocumentIntegritySummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat rekap keutuhan dokumen klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalDocumentIntegrity", "Read")]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? encounterId = null)
+        {
+            var query = _dbContext.Set<MrcClinicalDocumentIntegrity>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (patientId.HasValue && patientId.Value != Guid.Empty)
+                query = query.Where(x => x.PatientId == patientId.Value);
+
+            if (encounterId.HasValue && encounterId.Value != Guid.Empty)
+                query = query.Where(x => x.EncounterId == encounterId.Value);
+
+            var ditegakkan = MedicalRecordTimelineService.SeluruhJenis
+                .Count(ClinicalDocumentIntegrityService.DitegakkanUntuk);
+
+            var hasil = new ClinicalDocumentIntegritySummaryResponse
+            {
+                TotalDocument = await query.CountAsync(),
+                DraftDocument = await query.CountAsync(
+                    x => x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft),
+                SignedDocument = await query.CountAsync(
+                    x => x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Signed),
+                LockedUnsignedDocument = await query.CountAsync(
+                    x => x.IntegrityStatus == ClinicalDocumentIntegrityStatus.LockedUnsigned),
+                CancelledDocument = await query.CountAsync(
+                    x => x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Cancelled),
+                UnknownAuthorDocument = await query.CountAsync(x => !x.IsAuthorKnown),
+                TotalAddendum = await query.SumAsync(x => x.AddendumCount),
+                EnforcedDocumentKind = ditegakkan,
+                NotEnforcedDocumentKind = MedicalRecordTimelineService.SeluruhJenis.Count - ditegakkan
+            };
+
+            return Ok(ApiResponse<ClinicalDocumentIntegritySummaryResponse>.Ok(
+                hasil, "Rekap keutuhan dokumen klinis berhasil diambil."));
+        }
+
         [HttpGet("by-document/{documentKind}/{documentId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicalDocumentIntegrityResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -141,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             var actorUserId = GetCurrentUserId();
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
-            var query = _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var query = _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.AuthorUserId == actorUserId
                             && x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft
@@ -186,7 +293,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         [AccessPermission("ClinicalDocumentIntegrity", "Read")]
         public async Task<IActionResult> GetByEncounter(Guid encounterId)
         {
-            var daftar = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var daftar = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.EncounterId == encounterId && !x.IsDelete)
                 .OrderBy(x => x.CreateDateTime)
@@ -203,7 +310,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         }
 
         private async Task<ClinicalDocumentIntegrityResponse> ToResponseAsync(
-            TrxClinicalDocumentIntegrity keutuhan)
+            MrcClinicalDocumentIntegrity keutuhan)
         {
             var namaPenulis = await _dbContext.Set<ApplicationUser>()
                 .AsNoTracking()

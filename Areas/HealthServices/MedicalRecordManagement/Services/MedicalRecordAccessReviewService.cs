@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <summary>
         /// Menandai satu jejak akses sudah ditinjau.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, TrxMedicalRecordAccessLog? Log)> MarkReviewedAsync(
+        public async Task<(IntegrityGuardResult Result, MrcAccessLog? Log)> MarkReviewedAsync(
             Guid accessLogId,
             Guid reviewerUserId,
             string reviewNote,
@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     "Catatan tinjauan wajib diisi."), null);
             }
 
-            var jejak = await _dbContext.Set<TrxMedicalRecordAccessLog>()
+            var jejak = await _dbContext.Set<MrcAccessLog>()
                 .FirstOrDefaultAsync(x => x.Id == accessLogId, cancellationToken);
 
             if (jejak == null)
@@ -92,7 +92,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             DateTime endDate,
             CancellationToken cancellationToken = default)
         {
-            var query = _dbContext.Set<TrxMedicalRecordAccessLog>()
+            var query = _dbContext.Set<MrcAccessLog>()
                 .AsNoTracking()
                 .Where(x => x.AccessedAt >= startDate && x.AccessedAt <= endDate);
 

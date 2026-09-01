@@ -8,15 +8,24 @@ Aturan utamanya adalah:
 
 > Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `rules/backend/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `agents/rules/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
 Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
 ## Lapisan Operasional Tata Kelola
 
-`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya **tidak lagi tinggal di dalam repository ini**. Seluruhnya kini datang dari satu sumber global: repository `QuilvianEngineeringSkills`, yang terpasang di mesin Anda sebagai suite Skill Quilvian. Aturan itu mengikat agent mana pun pada vendor mana pun — Claude Code, Codex/GPT, Antigravity/Gemini, maupun agent lain — dipanggil lewat Skill atau tidak.
+`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya tinggal di dalam repository ini pada folder `agents/rules/`. Baca dokumen berikut hanya ketika kondisinya berlaku:
 
-Akar aturan terpasang berbeda per vendor, sehingga seluruh dokumen menyebutnya memakai jalur logis berawalan `rules/`:
+- Setiap task implementasi: `agents/rules/TASK_RULES.md`
+- Setiap implementasi aplikasi backend: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- Klasifikasi dan pemilihan model: `agents/rules/TASK_CLASSIFICATION.md`
+- Task lintas repository: `agents/rules/CROSS_REPO_RULES.md`
+- Sebelum penyelesaian: `agents/rules/REVIEW_RULES.md`
+- Menulis laporan task tracked: `agents/rules/REPORT_TEMPLATE.md`
+- Pekerjaan API/controller/DTO/contract: `agents/rules/API_RULES.md`
+- Pekerjaan entity/EF/database/migration: `agents/rules/DATABASE_RULES.md`
+
+Folder `agents/rules/` berlaku untuk agent mana pun yang mengerjakan repository ini; tidak ada lokasi aturan khusus per vendor.
 
 | Vendor | Akar `rules/` terpasang |
 | --- | --- |

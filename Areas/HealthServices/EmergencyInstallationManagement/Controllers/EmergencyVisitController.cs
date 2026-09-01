@@ -582,15 +582,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 (!request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty))
                 return "EncounterId wajib tersedia ketika registrasi IGD sudah terdaftar atau selesai.";
 
-            var emergencySetting = await _dbContext.Set<EmgSetting>()
-                .AsNoTracking()
-                .Where(x => x.IsActive && !x.IsDelete)
-                .OrderByDescending(x => x.IsDefault)
-                .ThenByDescending(x => x.CreateDateTime)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Penentuan pengaturan aktif milik EmergencyVisitService, dengan alasan yang
+            // sama seperti PeriksaJenisEncounter di bawah: bila jalur controller menyalin
+            // kueri ini sendiri, kedua jalur dapat menyimpulkan unit IGD yang berbeda.
+            var emergencySetting = await EmergencyVisitService.ResolveActiveSettingAsync(
+                _dbContext,
+                cancellationToken);
 
             if (emergencySetting == null)
-                return "Setting IGD aktif belum tersedia.";
+                return EmergencyVisitService.PesanPengaturanTidakTersedia;
 
             if (request.ServiceUnitId != emergencySetting.DefaultEmergencyServiceUnitId)
                 return "Asal kunjungan harus IGD. ServiceUnitId harus sama dengan DefaultEmergencyServiceUnitId pada setting IGD aktif.";

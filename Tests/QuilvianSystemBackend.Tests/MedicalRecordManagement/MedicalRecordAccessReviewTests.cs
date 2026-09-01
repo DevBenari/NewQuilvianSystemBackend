@@ -19,14 +19,14 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
         private static MedicalRecordAccessReviewService Service(ApplicationDbContext c) => new(c);
 
-        private static TrxMedicalRecordAccessLog BuatJejak(
+        private static MrcAccessLog BuatJejak(
             ApplicationDbContext context,
             Guid patientId,
             Guid userId,
             bool perluDitinjau,
             MedicalRecordAccessScope scope = MedicalRecordAccessScope.Timeline)
         {
-            var jejak = new TrxMedicalRecordAccessLog
+            var jejak = new MrcAccessLog
             {
                 PatientId = patientId,
                 UserId = userId,
@@ -42,7 +42,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 CreateBy = userId
             };
 
-            context.Set<TrxMedicalRecordAccessLog>().Add(jejak);
+            context.Set<MrcAccessLog>().Add(jejak);
             context.SaveChanges();
             return jejak;
         }

@@ -45,6 +45,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _backfillService = backfillService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<MedicalRecordBackfillFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Survey Medical Record Backfill", Description = "Melihat daftar pilihan penjalanan pengisian data lama", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MedicalRecordBackfill", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = new MedicalRecordBackfillFilterMetadataResponse
+            {
+                BatchSizeOptions = [100, 250, 500, 1000],
+                BatchSizeDefault = 500,
+                BatchSizeMax = 1000,
+                QueryParameters =
+                [
+                    new()
+                    {
+                        Name = "batchSize",
+                        Type = "integer",
+                        Description = "Jumlah catatan yang ditelaah atau diisi dalam satu potongan.",
+                        Example = "500"
+                    },
+                    new()
+                    {
+                        Name = "isDryRun",
+                        Type = "boolean",
+                        Description = "Bawaannya benar. Penjalanan percobaan tidak menyimpan apa pun.",
+                        Example = "true"
+                    }
+                ]
+            };
+
+            return Ok(ApiResponse<MedicalRecordBackfillFilterMetadataResponse>.Ok(
+                hasil, "Metadata pengisian data lama berhasil diambil."));
+        }
+
         [HttpGet("survey")]
         [ProducesResponseType(typeof(ApiResponse<MedicalRecordBackfillSurveyResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Survey Medical Record Backfill", Description = "Menelaah catatan lama sebelum pengisian dijalankan", AccessType = AccessTypes.Read, SortOrder = 1)]

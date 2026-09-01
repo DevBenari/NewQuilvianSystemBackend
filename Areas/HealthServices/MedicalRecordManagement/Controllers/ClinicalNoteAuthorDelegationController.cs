@@ -50,6 +50,100 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _delegationService = delegationService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAuthorDelegationFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Note Author Delegation", Description = "Melihat daftar pilihan penyaring penetapan berhalangan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalNoteAuthorDelegation", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = new ClinicalNoteAuthorDelegationFilterMetadataResponse
+            {
+                Triggers = Enum.GetValues<AuthorDelegationTrigger>()
+                    .Select(x => new MedicalRecordEnumOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = NamaPemicuPenetapan(x)
+                    })
+                    .ToList(),
+                SortOptions =
+                [
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "validFrom", Label = "Berlaku mulai" },
+                    new() { Value = "validUntil", Label = "Berlaku sampai" }
+                ],
+                SortDirections = ["asc", "desc"],
+                PageSizeOptions = [10, 25, 50, 100],
+                QueryParameters =
+                [
+                    new()
+                    {
+                        Name = "originalAuthorUserId",
+                        Type = "guid",
+                        Description = "Menyaring penetapan untuk satu penulis tertentu."
+                    },
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring penetapan yang masih membuka jalur koreksi.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "pageNumber",
+                        Type = "integer",
+                        Description = "Halaman, dimulai dari 1.",
+                        Example = "1"
+                    },
+                    new()
+                    {
+                        Name = "pageSize",
+                        Type = "integer",
+                        Description = "Jumlah baris per halaman. Bawaan 25, paling besar 100.",
+                        Example = "25"
+                    }
+                ]
+            };
+
+            return Ok(ApiResponse<ClinicalNoteAuthorDelegationFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter penetapan berhalangan berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAuthorDelegationSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinical Note Author Delegation", Description = "Melihat rekap penetapan penulis berhalangan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalNoteAuthorDelegation", "Read")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var sekarang = DateTime.UtcNow;
+
+            var query = _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            var hasil = new ClinicalNoteAuthorDelegationSummaryResponse
+            {
+                TotalDelegation = await query.CountAsync(),
+                ActiveDelegation = await query.CountAsync(
+                    x => x.IsActive
+                         && x.RevokedAt == null
+                         && (x.ValidUntil == null || x.ValidUntil >= sekarang)),
+                ExpiredDelegation = await query.CountAsync(
+                    x => x.RevokedAt == null
+                         && x.ValidUntil != null
+                         && x.ValidUntil < sekarang),
+                RevokedDelegation = await query.CountAsync(x => x.RevokedAt != null),
+                ByUnitHeadGrant = await query.CountAsync(
+                    x => x.Trigger == AuthorDelegationTrigger.UnitHeadGrant),
+                ByInactiveAccount = await query.CountAsync(
+                    x => x.Trigger == AuthorDelegationTrigger.InactiveAccount)
+            };
+
+            return Ok(ApiResponse<ClinicalNoteAuthorDelegationSummaryResponse>.Ok(
+                hasil, "Rekap penetapan penulis berhalangan berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseAuthorDelegationPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Note Author Delegation", Description = "Melihat penetapan penulis berhalangan", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -63,7 +157,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
             var sekarang = DateTime.UtcNow;
 
-            var query = _dbContext.Set<TrxClinicalNoteAuthorDelegation>()
+            var query = _dbContext.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -178,7 +272,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         }
 
         private static AuthorDelegationResponse ToResponse(
-            TrxClinicalNoteAuthorDelegation penetapan,
+            MrcClinicalNoteAuthorDelegation penetapan,
             Dictionary<Guid, string> nama,
             DateTime sekarang) => new()
             {
@@ -225,6 +319,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             if (pageSize > 100) pageSize = 100;
             return (pageNumber, pageSize);
         }
+
+        private static string NamaPemicuPenetapan(AuthorDelegationTrigger pemicu) => pemicu switch
+        {
+            AuthorDelegationTrigger.InactiveAccount => "Akun Nonaktif",
+            AuthorDelegationTrigger.UnitHeadGrant => "Penetapan Kepala Unit",
+            _ => pemicu.ToString()
+        };
 
         private Guid GetCurrentUserId()
         {
