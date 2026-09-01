@@ -70,7 +70,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             await context.SaveChangesAsync();
 
-            Assert.Equal(1, context.Set<TrxClinicalDocumentIntegrity>().Count());
+            Assert.Equal(1, context.Set<MrcClinicalDocumentIntegrity>().Count());
             Assert.Equal(ClinicalDocumentIntegrityStatus.Draft, ulang.IntegrityStatus);
         }
 
@@ -157,7 +157,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Null(keutuhan);
 
             // Status dokumen tidak berubah sedikit pun.
-            var tersimpan = context.Set<TrxClinicalDocumentIntegrity>()
+            var tersimpan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Single(x => x.DocumentId == documentId);
             Assert.Equal(ClinicalDocumentIntegrityStatus.Draft, tersimpan.IntegrityStatus);
@@ -279,7 +279,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var (_, documentId, _) = await DaftarkanCppt(context);
 
-            var keutuhan = context.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = context.Set<MrcClinicalDocumentIntegrity>()
                 .Single(x => x.DocumentId == documentId);
             keutuhan.IntegrityStatus = ClinicalDocumentIntegrityStatus.Cancelled;
             context.SaveChanges();
@@ -350,7 +350,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(3, jumlah);
 
-            var seluruhnya = context.Set<TrxClinicalDocumentIntegrity>().AsNoTracking().ToList();
+            var seluruhnya = context.Set<MrcClinicalDocumentIntegrity>().AsNoTracking().ToList();
             Assert.All(seluruhnya, x =>
             {
                 Assert.Equal(ClinicalDocumentIntegrityStatus.LockedUnsigned, x.IntegrityStatus);
@@ -384,7 +384,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             Assert.Equal(0, jumlah);
 
-            var tersimpan = context.Set<TrxClinicalDocumentIntegrity>()
+            var tersimpan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Single(x => x.DocumentId == documentId);
 
@@ -448,9 +448,9 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 kunjunganA.EncounterId, penulis.Id, Sekarang);
             await context.SaveChangesAsync();
 
-            var a = context.Set<TrxClinicalDocumentIntegrity>().AsNoTracking()
+            var a = context.Set<MrcClinicalDocumentIntegrity>().AsNoTracking()
                 .Single(x => x.DocumentId == dokumenA);
-            var b = context.Set<TrxClinicalDocumentIntegrity>().AsNoTracking()
+            var b = context.Set<MrcClinicalDocumentIntegrity>().AsNoTracking()
                 .Single(x => x.DocumentId == dokumenB);
 
             Assert.Equal(ClinicalDocumentIntegrityStatus.LockedUnsigned, a.IntegrityStatus);
@@ -489,7 +489,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             await context.SaveChangesAsync();
 
             Assert.Equal(7, jumlah);
-            Assert.Equal(0, context.Set<TrxClinicalDocumentIntegrity>()
+            Assert.Equal(0, context.Set<MrcClinicalDocumentIntegrity>()
                 .Count(x => x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft));
         }
 
@@ -512,7 +512,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             await Service(context).SignAsync(
                 ClinicalDocumentKind.ProgressNote, documentId, authorId, null, null, Sekarang);
 
-            var tersimpan = context.Set<TrxClinicalDocumentIntegrity>()
+            var tersimpan = context.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Single(x => x.DocumentId == documentId);
 

@@ -725,7 +725,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             using var verifikasi = database.CreateContext();
 
             // Dokumen tetap draf — tidak terkunci oleh penyelesaian yang gagal.
-            var keutuhan = verifikasi.Set<TrxClinicalDocumentIntegrity>()
+            var keutuhan = verifikasi.Set<MrcClinicalDocumentIntegrity>()
                 .Single(x => x.DocumentId == dokumenId);
             Assert.Equal(ClinicalDocumentIntegrityStatus.Draft, keutuhan.IntegrityStatus);
             Assert.Null(keutuhan.LockedAt);

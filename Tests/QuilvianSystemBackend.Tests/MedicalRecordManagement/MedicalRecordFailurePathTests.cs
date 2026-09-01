@@ -171,7 +171,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             using (var konteksPeriksa = database.CreateContext())
             {
-                Assert.Empty(await konteksPeriksa.Set<TrxMedicalRecordAccessLog>()
+                Assert.Empty(await konteksPeriksa.Set<MrcAccessLog>()
                     .AsNoTracking().ToListAsync());
             }
 
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             using var konteksBaca = database.CreateContext();
             var jejak = Assert.Single(
-                await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+                await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
 
             Assert.Equal(superAdmin.Id, jejak.UserId);
             Assert.Equal(MedicalRecordAccessType.ReasonedAccess, jejak.AccessType);
@@ -234,7 +234,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             context.SaveChanges();
 
             // Tabel jejak dihilangkan supaya pencatatannya gagal sungguhan.
-            HapusTabel<TrxMedicalRecordAccessLog>(context);
+            HapusTabel<MrcAccessLog>(context);
 
             var controller = ControllerRekamMedis(context, dokter.Id);
 
@@ -290,7 +290,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var penulis = RekamMedisTestData.BuatPengguna(context, "dokter");
 
             // Tabel keutuhan dihilangkan supaya pendaftarannya gagal sungguhan.
-            HapusTabel<TrxClinicalDocumentIntegrity>(context);
+            HapusTabel<MrcClinicalDocumentIntegrity>(context);
 
             var permintaan = new CreatePatientIntegratedProgressNoteRequest
             {
@@ -337,7 +337,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var petugas = RekamMedisTestData.BuatPengguna(context, "petugas");
 
             // Tabel keutuhan dihilangkan supaya penguncian gagal sungguhan.
-            HapusTabel<TrxClinicalDocumentIntegrity>(context);
+            HapusTabel<MrcClinicalDocumentIntegrity>(context);
 
             var permintaan = new PatientEncounterStatusRequest
             {
@@ -404,7 +404,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Null(penetapan);
 
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxClinicalNoteAuthorDelegation>()
+            Assert.Empty(await konteksBaca.Set<MrcClinicalNoteAuthorDelegation>()
                 .AsNoTracking().ToListAsync());
         }
 

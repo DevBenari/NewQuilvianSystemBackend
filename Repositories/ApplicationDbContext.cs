@@ -722,10 +722,10 @@ namespace QuilvianSystemBackend.Repositories
         #endregion
 
         #region MEDICAL RECORD MANAGEMENT
-        public DbSet<TrxClinicalDocumentIntegrity> TrxClinicalDocumentIntegrities { get; set; }
-        public DbSet<TrxClinicalNoteAddendum> TrxClinicalNoteAddendums { get; set; }
-        public DbSet<TrxClinicalNoteAuthorDelegation> TrxClinicalNoteAuthorDelegations { get; set; }
-        public DbSet<TrxMedicalRecordAccessLog> TrxMedicalRecordAccessLogs { get; set; }
+        public DbSet<MrcClinicalDocumentIntegrity> MrcClinicalDocumentIntegrities { get; set; }
+        public DbSet<MrcClinicalNoteAddendum> MrcClinicalNoteAddendums { get; set; }
+        public DbSet<MrcClinicalNoteAuthorDelegation> MrcClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
 

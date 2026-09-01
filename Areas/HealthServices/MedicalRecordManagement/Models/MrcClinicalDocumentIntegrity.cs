@@ -22,8 +22,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
     /// yang sedang dipakai IGD, antrean dokter, dan farmasi tidak perlu diubah sama sekali
     /// (RM-DEC-013).
     /// </summary>
-    [Table("TrxClinicalDocumentIntegrity", Schema = "public")]
-    public class TrxClinicalDocumentIntegrity : IdentityModel
+    [Table("MrcClinicalDocumentIntegrity", Schema = "public")]
+    public class MrcClinicalDocumentIntegrity : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -100,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
 
         public TrxPatientEncounter? Encounter { get; set; }
 
-        public ICollection<TrxClinicalNoteAddendum> Addendums { get; set; }
-            = new List<TrxClinicalNoteAddendum>();
+        public ICollection<MrcClinicalNoteAddendum> Addendums { get; set; }
+            = new List<MrcClinicalNoteAddendum>();
     }
 }

@@ -204,7 +204,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             await controller.GetTimeline(lama.PatientId);
 
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+            Assert.Empty(await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
         }
 
         /// <summary>

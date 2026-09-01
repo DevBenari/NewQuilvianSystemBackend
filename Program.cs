@@ -363,6 +363,11 @@ try
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
 
+    // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
+    // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
