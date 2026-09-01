@@ -305,6 +305,7 @@ try
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
     builder.Services.AddScoped<NutritionOrderService>();
+    builder.Services.AddScoped<NutritionDietService>();
     builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();

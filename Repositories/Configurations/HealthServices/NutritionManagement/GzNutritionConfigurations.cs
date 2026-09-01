@@ -93,3 +93,99 @@ public class GzNutritionOrderHistoryConfiguration : IEntityTypeConfiguration<GzN
             .HasForeignKey(x => x.NutritionOrderId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public class GzDietTypeConfiguration : IEntityTypeConfiguration<GzDietType>
+{
+    public void Configure(EntityTypeBuilder<GzDietType> builder)
+    {
+        builder.ToTable("GzDietType", "public");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.DietTypeCode).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.DietTypeName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(1000);
+        builder.HasIndex(x => x.DietTypeCode).IsUnique();
+    }
+}
+
+public class GzFoodFormConfiguration : IEntityTypeConfiguration<GzFoodForm>
+{
+    public void Configure(EntityTypeBuilder<GzFoodForm> builder)
+    {
+        builder.ToTable("GzFoodForm", "public");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.FoodFormCode).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.FoodFormName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(1000);
+        builder.HasIndex(x => x.FoodFormCode).IsUnique();
+    }
+}
+
+public class GzMealScheduleConfiguration : IEntityTypeConfiguration<GzMealSchedule>
+{
+    public void Configure(EntityTypeBuilder<GzMealSchedule> builder)
+    {
+        builder.ToTable("GzMealSchedule", "public");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.MealScheduleCode).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.MealScheduleName).HasMaxLength(200).IsRequired();
+        builder.HasIndex(x => x.MealScheduleCode).IsUnique();
+    }
+}
+
+public class GzPatientDietConfiguration : IEntityTypeConfiguration<GzPatientDiet>
+{
+    public void Configure(EntityTypeBuilder<GzPatientDiet> builder)
+    {
+        builder.ToTable("GzPatientDiet", "public");
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Instruction).HasMaxLength(1000);
+        builder.Property(x => x.ChangeReason).HasMaxLength(1000);
+        builder.Property(x => x.Version).IsConcurrencyToken();
+
+        builder.HasIndex(x => new { x.NutritionOrderId, x.StartAt });
+
+        // Satu pasien hanya boleh punya satu diet aktif pada satu waktu. Ditegakkan di
+        // basis data agar dapur tidak pernah menerima dua perintah berbeda untuk pasien
+        // yang sama, bahkan ketika dua petugas menyimpan bersamaan.
+        builder.HasIndex(x => x.PatientId)
+            .IsUnique()
+            .HasFilter($"\"Status\" = {(int)GzPatientDietStatus.Active} AND \"IsDelete\" = false");
+
+        builder.HasOne(x => x.NutritionOrder).WithMany().HasForeignKey(x => x.NutritionOrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.DietType).WithMany().HasForeignKey(x => x.DietTypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.FoodForm).WithMany().HasForeignKey(x => x.FoodFormId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.PrescribedByWorkforce).WithMany()
+            .HasForeignKey(x => x.PrescribedByWorkforceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class GzMealDeliveryConfiguration : IEntityTypeConfiguration<GzMealDelivery>
+{
+    public void Configure(EntityTypeBuilder<GzMealDelivery> builder)
+    {
+        builder.ToTable("GzMealDelivery", "public");
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Note).HasMaxLength(1000);
+
+        // Satu pasien hanya menerima satu kali pada satu jadwal makan di satu tanggal.
+        // Tanpa ini, penekanan tombol dua kali menghasilkan dua catatan penyerahan dan
+        // rekap sisa makanan menjadi keliru.
+        builder.HasIndex(x => new { x.PatientDietId, x.MealScheduleId, x.ServiceDate })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false");
+
+        builder.HasOne(x => x.PatientDiet).WithMany(x => x.Deliveries)
+            .HasForeignKey(x => x.PatientDietId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.MealSchedule).WithMany()
+            .HasForeignKey(x => x.MealScheduleId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.DeliveredByWorkforce).WithMany()
+            .HasForeignKey(x => x.DeliveredByWorkforceId).OnDelete(DeleteBehavior.Restrict);
+    }
+}

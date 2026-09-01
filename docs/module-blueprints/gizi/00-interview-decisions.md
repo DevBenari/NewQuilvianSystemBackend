@@ -59,7 +59,7 @@ diet ke dapur akan menjadi kontrak integrasi yang menunggu modul itu dibuat.
 | `GIZ-DEC-001` | Decision | Order konsultasi gizi memakai entity milik modul Gizi sendiri, menunjuk `PatientId` dan `EncounterId`, bukan menumpang `TrxDoctorConsultation` | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-002` | Decision | Versi pertama hanya melayani pasien rawat inap | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-003` | Decision | Skrining gizi dikerjakan perawat dalam 24 jam pertama, sebelum order. Pasien berisiko baru dirujuk ke ahli gizi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
-| `GIZ-DEC-004` | Decision | Modul Gizi berhenti di penentuan diet dan tidak mengurus pemesanan makanan ke dapur | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
+| `GIZ-DEC-004` | Decision | ~~Modul Gizi berhenti di penentuan diet dan tidak mengurus pemesanan makanan ke dapur~~ **DIGANTI `GIZ-DEC-013`** | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-005` | Decision | Asuhan gizi dicatat berulang per kunjungan ahli gizi, setiap kunjungan memuat asesmen, diagnosis gizi, intervensi, serta monitoring dan evaluasi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-006` | Decision | Diagnosis gizi dipilih dari master berkode, bukan isian bebas | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-007` | Decision | Order konsultasi gizi hanya boleh dibuat dokter penanggung jawab pasien | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
@@ -68,6 +68,7 @@ diet ke dapur akan menjadi kontrak integrasi yang menunggu modul itu dibuat.
 | `GIZ-DEC-010` | Decision | Kunjungan ahli gizi ditulis sebagai baris CPPT `TrxPatientIntegratedProgressNote` dengan `ProfessionType` `Nutritionist` dan `SourceModule` `Nutrition`. Data terstruktur gizi disimpan entity milik Gizi yang menunjuk balik ke baris CPPT tersebut | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan kemampuan existing |
 | `GIZ-DEC-011` | Decision | Isi master diagnosis gizi diadopsi dari Quilvian v1. Kemiripan yang tidak persis dapat diterima; daftarnya diambil lewat ekspor dari v1, bukan disusun ulang maupun dikarang | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-01 | Jawaban `GIZ-OQ-002` |
 | `GIZ-DEC-012` | Decision | Kebutuhan nutrisi diketik ahli gizi, bukan dihitung sistem. Yang disimpan hanya kebutuhan energi dalam kkal | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-01 | Jawaban `GIZ-OQ-004` |
+| `GIZ-DEC-013` | Decision | **Mengganti `GIZ-DEC-004`.** Scope Gizi diperluas mencakup diet pasien, produksi makanan, dan distribusi makanan, beserta master pendukungnya | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-01 | Struktur menu yang diminta pemilik kebutuhan |
 
 ### GIZ-DEC-001 — Order konsultasi gizi memakai entity sendiri
 
@@ -303,3 +304,39 @@ ganti dari kesederhanaan dan keamanan di atas.
 **Batas versi pertama.** Protein, lemak, karbohidrat, dan cairan **tidak** disimpan. Bila
 kelak dibutuhkan, penambahannya berupa kolom baru pada entity yang sama — bukan perombakan,
 karena bentuknya sudah angka bebas, bukan hasil rumus.
+
+### GIZ-DEC-013 — Scope diperluas sampai produksi dan distribusi makanan
+
+**Mengganti `GIZ-DEC-004`.** Keputusan sebelumnya menghentikan modul Gizi di penentuan diet
+dan menyerahkan urusan makanan kepada modul dapur yang belum ada. Pemilik kebutuhan
+menetapkan bahwa urusan itu masuk ke dalam modul Gizi.
+
+**Bentuk yang disepakati.**
+
+```text
+MODUL GIZI
+  Daftar Pasien Gizi
+  Pelayanan Gizi              asesmen, diagnosis, intervensi, konseling, evaluasi
+  Diet dan Makanan Pasien
+    Diet Pasien               diet aktif per pasien, beserta riwayat perubahannya
+    Produksi Makanan          rekap kebutuhan makanan per jadwal makan
+    Distribusi Makanan        penyerahan makanan per pasien per jadwal makan
+  Master Gizi                 jenis diet, bentuk makanan, jadwal makan
+  Laporan
+```
+
+**Batas yang tetap dijaga: struktur dibuat, isi tidak dikarang.**
+
+Master jenis diet, bentuk makanan, dan jadwal makan dibuat **kosong**. Isinya khas tiap rumah
+sakit — jam makan, nama diet, dan bentuk makanan berbeda antar tempat — dan menebaknya
+menghasilkan master yang terlihat resmi padahal tidak pernah disahkan siapa pun. Sama seperti
+sikap terhadap master diagnosis gizi pada `GIZ-DEC-011`.
+
+**Produksi makanan tidak menjadi entity tersendiri.** Kebutuhan produksi adalah **hasil
+hitungan** atas diet yang sedang aktif pada satu tanggal dan jadwal makan, bukan data yang
+diisi orang. Menyimpannya sebagai entity berarti menyimpan angka yang bisa berbeda dari diet
+yang sebenarnya berlaku, dan dapur akan memasak berdasarkan angka basi.
+
+**Yang masih di luar scope.** Menu, siklus menu, standar porsi, resep, dan stok bahan makanan.
+Kelimanya milik pengelolaan dapur sebagai unit produksi, bukan asuhan gizi pasien, dan
+memerlukan pemilik proses tersendiri. Bila kelak dibutuhkan, itu penambahan berikutnya.

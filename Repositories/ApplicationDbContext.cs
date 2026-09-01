@@ -691,6 +691,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
         public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
         public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
+        public DbSet<GzDietType> GzDietTypes { get; set; }
+        public DbSet<GzFoodForm> GzFoodForms { get; set; }
+        public DbSet<GzMealSchedule> GzMealSchedules { get; set; }
+        public DbSet<GzPatientDiet> GzPatientDiets { get; set; }
+        public DbSet<GzMealDelivery> GzMealDeliveries { get; set; }
 
         #endregion
 
