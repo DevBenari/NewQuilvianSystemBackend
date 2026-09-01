@@ -1,11 +1,24 @@
-# Requirement Traceability — Rawat Jalan Billing Roadmap
+# Requirement Traceability — Rawat Jalan
+
+> Bagian `0` memuat matriks kepemilikan lintas scope. Bagian `1` dan seterusnya adalah
+> traceability **scope Billing** (`RJ-BIL`), yang berlabel
+> `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE`. Traceability scope Dokter ada pada
+> [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `2.2` dan `4`.
 
 ## Metadata
+
+> **Metadata di bawah adalah `HISTORICAL SNAPSHOT` per `2026-08-28` — jangan dipakai sebagai
+> status saat ini.** Angka progress, bukti test, dan SHA di dalamnya belum diverifikasi ulang
+> terhadap backend `HEAD` `801a4f5` / frontend `HEAD` `baca965`. Bagian `0` adalah satu-satunya
+> bagian dokumen ini yang berstatus `CURRENT STATE`.
 
 ```yaml
 blueprint_id: RJ-BIL-BP-001
 module_slug: rawat-jalan
-roadmap_revision: 1
+roadmap_revision: 2
+snapshot_kind: HISTORICAL_SNAPSHOT
+snapshot_observed_at: "2026-08-28"
+current_state_section: "0 — matriks kepemilikan, diaudit 2026-08-31"
 status: APPROVED_FOR_EXECUTION
 approval: "OWNER_APPROVED untuk planning dan seluruh task pada 2026-08-21; handoff dan writer authority tetap wajib"
 contract_versions:
@@ -33,7 +46,128 @@ last_updated: "2026-08-28"
 
 ---
 
+## 0. Kepemilikan — dibaca lebih dulu
+
+> **Scope Dokter: `OWNER_APPROVED` `2026-08-31` dan kontrak `FROZEN`.**
+>
+> | Governance | Keadaan |
+> |---|---|
+> | Roadmap `RJ-DOC` revision `4` | `OWNER_APPROVED` — `RJ-DOC-DEC-001` |
+> | `RJ-DOC-INT-001` `RJ-DOC-COMPLETION-001@1.0.0` | `COMPLETE / FROZEN` — `RJ-DOC-DEC-006` |
+> | `RJ-DOC-INT-002` `RJ-DOC-HANDOFF-001@1.0.0` | `COMPLETE / FROZEN` — `RJ-DOC-DEC-006` |
+> | Open question `RJ-DOC-OQ-001` s.d. `OQ-006` | Seluruhnya **tertutup** |
+> | `IMPLEMENTATION_AUTHORITY` | **`GRANTED — RJ-DOC-BE-001` dan `RJ-DOC-BE-002`**; task lain `NOT_GRANTED` |
+> | `RJ-DOC-BE-001` | ✅ **`COMPLETE`** `2026-08-31` — [laporan](../task/report/backend/RJ-DOC-BE-001.md) |
+> | `RJ-DOC-BE-002` | ✅ **`COMPLETE`** `2026-08-31` — [laporan](../task/report/backend/RJ-DOC-BE-002.md) |
+>
+> Keputusan owner yang mengikat traceability ini: `RJ-DOC-DEC-002` menempatkan Lab dan Radiologi
+> sebagai `CONDITIONAL`, bukan mandatory baseline; `RJ-DOC-DEC-003` melarang reopen generik;
+> `RJ-DOC-DEC-004` memisahkan *doctor order creation* dari *ancillary execution*; `RJ-DOC-DEC-005`
+> membatasi `CompleteImmediately`.
+
+Blueprint `rawat-jalan` memuat **dua scope kepemilikan**. Setiap requirement wajib dapat dijawab
+*siapa pemiliknya* dan *apakah ia menahan Definition of Done Dokter*, tanpa membaca dokumen lain.
+
+| `OWNER` | Arti | Roadmap |
+|---|---|---|
+| `DOCTOR / CLINICAL` | Menghasilkan clinical intent, order, dan fakta klinis; berhenti pada `Selesai Konsultasi` | [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) — `OWNER_APPROVED` |
+| `BILLING` | Menafsirkan fakta klinis menjadi konsekuensi finansial | [backend-roadmap.md](backend-roadmap.md), [frontend-roadmap.md](frontend-roadmap.md) |
+| `PHARMACY` | Fulfillment resep setelah finalisasi klinis | Modul Farmasi |
+| `LAB` | Lifecycle specimen dan penerimaan pemeriksaan | `RJ-BIL-BE-003` |
+| `RADIOLOGY` | Safety gate, acquisition, dan study | `RJ-BIL-BE-004` |
+| `SHARED INTEGRATION` | Kontrak dan reliability antar modul | `contracts/integration-contract.md` |
+
+### 0.1 Matriks kepemilikan capability
+
+Kolom `Blocks Doctor DoD` dan `Blocks Billing DoD` adalah inti tabel ini. Keduanya menjawab
+pertanyaan yang sebelumnya tidak dapat dijawab blueprint: *apakah butir ini menahan pekerjaan
+saya, atau menahan pekerjaan orang lain?*
+
+Dua kolom terakhir memakai terminologi yang dipertegas pada revisi `2`, karena "blocking" ke arah
+downstream bukan hal yang sama dengan "blocking" terhadap DoD sendiri:
+
+| Nilai kolom | Artinya |
+|---|---|
+| `Blocks Doctor DoD` | Butir ini menahan pernyataan *pekerjaan Dokter selesai* |
+| `Blocks Billing DoD` | Butir ini menahan pernyataan *pekerjaan Billing selesai* |
+| `Blocks downstream <X> readiness` | Output Dokter yang ditunggu Billing. **Bukan** berarti implementasi Billing menahan Dokter — arah ketergantungannya justru sebaliknya |
+
+| Requirement | Capability | Owner | Producer | Consumer | Kelas | Status | Evidence | Dependency | Blocks Doctor DoD | Blocks Billing DoD |
+|---|---|---|---|---|---|---|---|---|:---:|:---:|
+| `RJ-DOC-CAP-003` | Mulai/lanjutkan konsultasi | `DOCTOR / CLINICAL` | Doctor | Clinical | `MANDATORY` | `COMPLETE` | `DoctorConsultationLifecycleService` | — | **YES** | `NO` |
+| `RJ-DOC-CAP-008A` | Prescription — pembuatan/draft clinical order | `DOCTOR / CLINICAL` | Doctor | Pharmacy | `MANDATORY` | `COMPLETE` | `PrescriptionController`; `PrescriptionWorkspaceService` | — | **YES** | `NO` |
+| `RJ-DOC-CAP-008B` | Prescription — finalisasi pada penyelesaian konsultasi | `DOCTOR / CLINICAL` | Doctor | Pharmacy, Billing | `MANDATORY` | ✅ `COMPLETE` | `RJ-DOC-BE-001`: finalisasi resep kini benar-benar tercapai dari jalur dokter | — | **TERTUTUP** | — |
+| `RJ-DOC-CAP-014` | Validasi authoritative sebelum konsultasi ditutup | `DOCTOR / CLINICAL` | Doctor | Pharmacy, Billing, RM | `MANDATORY` | ✅ `COMPLETE` | `RJ-DOC-BE-002` selesai `2026-08-31`; kedua permukaan memakai validator yang sama, ditambah tiga aturan keutuhan pesanan klinis | — | **TERTUTUP** | — |
+| `RJ-BIL-CAP-005` | Charge finansial resep | `BILLING` | Billing | Finance, Cashier | `DOWNSTREAM` | `PARTIAL` | `RJ-BIL-BE-002` | fact resep dari `RJ-DOC-BE-001` | `NO` | **YES** |
+| `RJ-DOC-CAP-009` | Procedure clinical order + eksekusi | `DOCTOR / CLINICAL` | Doctor | Billing | `MANDATORY` | `COMPLETE` | `PatientProcedureController` | — | **YES** | `NO` |
+| `RJ-BIL-CAP-008` | Tarif dan charge tindakan | `BILLING` | Billing | Finance | `DOWNSTREAM` | `PARTIAL` | `RJ-BIL-BE-002` | fact tindakan — **sudah terbit** | `NO` | **YES** |
+| `RJ-DOC-CAP-010` | Lab order dari workspace dokter | `DOCTOR / CLINICAL` | Doctor | Lab | `CONDITIONAL` | `MISSING` (FE) | BE `LabOrderController` ada; consumer frontend nihil | `RJ-DOC-OQ-003` | `CONDITIONAL` | `NO` |
+| `RJ-BIL-CAP-010` | Lifecycle specimen dan eligibility Lab | `LAB` | Lab | Billing | `DOWNSTREAM` | `COMPLETE` (BE) | `LabSpecimenService` ada pada `HEAD` | — | `NO` | **YES** |
+| `RJ-DOC-CAP-011` | Radiology order dari workspace dokter | `DOCTOR / CLINICAL` | Doctor | Radiology | `CONDITIONAL` | `MISSING` (FE) | BE `RadOrderController` ada; consumer frontend nihil | `RJ-DOC-OQ-003` | `CONDITIONAL` | `NO` |
+| `RJ-BIL-CAP-011` | Safety gate, acquisition, study | `RADIOLOGY` | Radiology | Billing | `DOWNSTREAM` | `SOURCE EXISTS — ROADMAP TASK STATUS NEEDS REVERIFICATION` | `RadiologyManagement` `17` berkas + `RadiologySafetyGateTests`; acceptance `RJ-BIL-BE-004` **belum** dinilai ulang | owner `RadiologyManagement` | `NO` | **YES** |
+| `RJ-DOC-CAP-015` | `Selesai Konsultasi` ke canonical finalization | `DOCTOR / CLINICAL` | Doctor | Billing, Pharmacy, RM | `MANDATORY` | ✅ `COMPLETE` | `RJ-DOC-BE-001` selesai `2026-08-31`; jalur antrean mendelegasikan ke finalisasi canonical | — | **TERTUTUP** | downstream prescription handoff readiness **terbuka** |
+| `RJ-DOC-CAP-018` | Idempotency finalisasi | `DOCTOR / CLINICAL` | Doctor | — | `MANDATORY` | `PARTIAL` | penjaga status TOCTOU | `RJ-DOC-BE-003` | **YES** | `NO` |
+| `RJ-DOC-CAP-020` | Completed-state protection | `DOCTOR / CLINICAL` | Doctor | RM | `MANDATORY` | `PARTIAL` | penjaga ada tetapi inert | `RJ-DOC-BE-004` | **YES** | `NO` |
+| `RJ-DOC-CAP-023` | Durabilitas dan recoverability producer handoff | `DOCTOR / CLINICAL` | Doctor | Billing | `MANDATORY` | `PARTIAL` | ledger durable; tanpa pembaca ulang | `RJ-DOC-BE-005` | **YES** | `NO` — tetapi **`Blocks downstream reliable consumption readiness: YES`** |
+| `RJ-DOC-CAP-030` | Satu canonical completion path | `DOCTOR / CLINICAL` | Doctor | Billing, RM, Registration | `MANDATORY` | ✅ `COMPLETE` | `RJ-DOC-BE-001`: jalur antrean menjadi orkestrasi, `CompleteImmediately` ditutup untuk Rawat Jalan, `EncounterStatus` seragam `ConsultationCompleted` | — | **TERTUTUP** | downstream prescription handoff readiness **terbuka** |
+| `RJ-DOC-INV-001` | Kegagalan Billing tidak me-rollback consultation | `SHARED INTEGRATION` | Doctor | Billing | `ARCHITECTURAL INVARIANT` | `VERIFIED` | `ClinicalMilestoneFactProducer:83-89` | — | tidak dihitung | tidak dihitung |
+| `RJ-DOC-INV-002` | Clinical endpoint tidak menetapkan status finansial | `SHARED INTEGRATION` | Doctor | Billing | `ARCHITECTURAL INVARIANT` | `VERIFIED` | `PrescriptionWorkflowService.cs:62-63` | — | tidak dihitung | tidak dihitung |
+| `RJ-DOC-INV-003` | Clinical module tidak menghitung tarif/total/alokasi | `SHARED INTEGRATION` | Doctor | Billing | `ARCHITECTURAL INVARIANT` | `VERIFIED` | `BuildPrescriptionSnapshot` | — | tidak dihitung | tidak dihitung |
+| `RJ-BIL-CAP-017` | Reconciliation case dan recovery report | `BILLING` | Billing Integration | Billing, Finance | `DOWNSTREAM` | `SOURCE ABSENT — ROADMAP TASK STATUS NEEDS REVERIFICATION` | Tidak ada model/service/endpoint rekonsiliasi pada `HEAD`; `BillingFolioController` hanya `3` route baseline | `RJ-BIL-BE-007` | `NO` | **YES** |
+| `RJ-BIL-CAP-013` | Payer allocation, patient responsibility | `BILLING` | Billing | Payer, Cashier | `DOWNSTREAM` | `MISSING` | `RJ-BIL-CONFLICT-001` `CONFIRMED` | `RJ-BIL-OQ-001/002/005` | `NO` | **YES** |
+| `RJ-BIL-CAP-014` | Void, adjustment, refund, write-off | `BILLING` | Billing | Finance | `DOWNSTREAM` | `SOURCE ABSENT — ROADMAP TASK STATUS NEEDS REVERIFICATION` | Tidak ada `BilFinancialAction` maupun approval policy pada `HEAD` | `RJ-BIL-BE-006` | `NO` | **YES** |
+| `RJ-BIL-CAP-022` | Klaim, settlement, payer eksternal | `BILLING` | Payer | Finance | `DOWNSTREAM` | `MISSING` | `RJ-BIL-DEP-009` `INACTIVE` | `RJ-BIL-BE-005` | `NO` | **YES** |
+| `RJ-BIL-CAP-020` | Layar Billing, folio, payer split | `BILLING` | Frontend Billing | Kasir, petugas | `DOWNSTREAM` | `PARTIAL` | Layar `billing-folio` dan `clinical-boundary` ada pada `HEAD`; berkas test yang diklaim tidak ditemukan | — | `NO` | **YES** |
+| — | `PrescriptionResponse.paymentStatus` terbaca dari endpoint klinis | `PHARMACY` + `BILLING` | Pharmacy | layar mana pun | `REFERENCE` | `REFERENCE` — bukan mutasi | `PrescriptionController.cs:217`, `:599`, `:671`, `:691` | — | `NO` | `NO` |
+
+**Tidak ada satu pun butir Dokter yang `Blocks Billing DoD = YES`, dan tidak ada satu pun butir
+Billing yang `Blocks Doctor DoD = YES`.** Kedua scope terpisah bersih.
+
+Yang ada adalah **downstream readiness dependency** — output Dokter yang ditunggu Billing. Tiga
+butir memilikinya: `RJ-DOC-CAP-015` dan `RJ-DOC-CAP-030` menahan *prescription handoff readiness*,
+`RJ-DOC-CAP-023` menahan *reliable consumption readiness*. Arah ketergantungannya Dokter → Billing,
+bukan sebaliknya, sehingga tidak satu pun membuat Billing menjadi blocker Dokter.
+
+### 0.2 Istilah finansial yang muncul di artefak Dokter
+
+Setiap istilah berikut wajib punya klasifikasi eksplisit supaya tidak terbaca sebagai pekerjaan
+Dokter.
+
+| Istilah | Klasifikasi | Alasan |
+|---|---|---|
+| `Paid`, `Settled`, `InsuranceApproved`, `PaymentWaived` | `OUT OF SCOPE` | Modul klinis tidak boleh menetapkannya; endpoint penulisnya sudah dihapus `RJ-BIL-BE-002` |
+| `Payment`, `Cashier`, `Invoice`, `Receipt` | `OUT OF SCOPE` | Tidak ada permukaan klinis yang menyentuhnya |
+| `Billing Folio`, `Charge`, `Tariff` | `DOWNSTREAM` | Consumer clinical fact; `RJ-BIL-BE-001` |
+| `Payer`, `Allocation`, `Patient responsibility` | `DOWNSTREAM` | `RJ-BIL-BE-005` |
+| `Financial Action`, approval finansial | `DOWNSTREAM` | `RJ-BIL-BE-006` |
+| `Reconciliation` (finansial) | `DOWNSTREAM` | `RJ-BIL-BE-007` |
+| `Claim`, `Settlement` | `DOWNSTREAM` | `RJ-BIL-BE-008` |
+| `TariffSnapshot` pada clinical fact | `REFERENCE` | Harga kotor sebagai rujukan; **bukan** perhitungan. Pembagian tanggungan sengaja tidak disertakan |
+| `PaymentStatus` pada response klinis | `REFERENCE` | Hanya dibaca; pemiliknya Farmasi bersama Billing |
+| Idempotency dan `OutcomeUnknown` pada handoff | `DEPENDENCY` | Milik Dokter di sisi produser (`RJ-DOC-BE-005`), milik Billing di sisi consumer (`RJ-BIL-BE-007`) |
+
+---
+
 ## 1. Cara membaca tabel ini
+
+> ### `HISTORICAL SNAPSHOT — DO NOT USE AS CURRENT STATUS`
+>
+> Bagian `1` sampai `4` adalah potret scope **Billing** per `2026-08-28`. Ia dipertahankan sebagai
+> jejak, **bukan** sebagai status saat ini.
+>
+> Audit `2026-08-31` menemukan tiga pernyataan di bawah tidak lagi cocok dengan backend `HEAD`
+> `801a4f5`. Menilai ulang status task Billing adalah **wewenang pemilik Billing** dan sengaja
+> tidak dilakukan dari task koreksi roadmap Dokter:
+>
+> | Pernyataan snapshot | Keadaan pada `HEAD` |
+> |---|---|
+> | `RJ-BIL-BE-004` Radiologi `⛔ Terblokir`, *"area belum ada pada source"* | `SOURCE EXISTS` — `17` berkas beserta `RadiologySafetyGateTests` dan `RadiologyStudyLifecycleTests`. Acceptance task **belum** dinilai ulang, sehingga statusnya **bukan** `COMPLETE` |
+> | `RJ-BIL-BE-006` `✅ Selesai`, *"46 test lulus"* | `SOURCE ABSENT` — tidak ada `BilFinancialAction`, approval policy, maupun endpoint financial action |
+> | `RJ-BIL-BE-007` `✅ Selesai`, *"delapan endpoint rekonsiliasi"* | `SOURCE ABSENT` — `BillingFolioController` hanya memuat `3` route baseline `BE-001`; tidak ada model/service rekonsiliasi |
+>
+> Manifest revisi `21` sendiri mencatat `BE-006` dan `BE-007` sebagai *working tree yang belum
+> di-commit*. Penjelasan yang paling sesuai bukti adalah working tree itu tidak pernah masuk ke
+> cabang ini. Pemilik Billing perlu memutuskan apakah ia dipulihkan atau dikerjakan ulang.
 
 Satu baris menjawab satu pertanyaan: **keputusan ini sudah menjadi apa, dan buktinya di mana.**
 

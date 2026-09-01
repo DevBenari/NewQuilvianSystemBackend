@@ -1,10 +1,43 @@
 # Roadmap Delivery Frontend — Modul Rawat Jalan Billing
 
+> ## `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE`
+>
+> Ketujuh task `RJ-BIL-FE-*` di dokumen ini adalah layar **Billing**: folio, batas klinis–finansial,
+> pembagian penanggung, tindakan finansial, rekonsiliasi, dan klaim manual. Tidak satu pun menjadi
+> Definition of Done developer Dokter / Rawat Jalan.
+>
+> | | |
+> |---|---|
+> | **Owner** | Billing / Revenue Cycle bersama Frontend authority |
+> | **Consumer dari** | Clinical fact yang diterbitkan Doctor / Clinical |
+> | **Blocks Doctor DoD** | `NO` untuk seluruh task, tanpa kecuali |
+>
+> Layar workspace dokter — antrean, SOAP/CPPT, resep, tindakan, surat keterangan, dan tombol
+> `Selesai Konsultasi` — **bukan** cakupan dokumen ini. Roadmap-nya ada pada
+> [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md).
+>
+> Progress `2 dari 7` adalah angka Billing dan **tidak boleh** dipakai sebagai progress Dokter.
+
+> ## `HISTORICAL SNAPSHOT — DO NOT USE AS CURRENT STATUS`
+>
+> Metadata, progress, dan bukti test di bawah adalah potret per `2026-08-28` dan **tidak**
+> diverifikasi ulang terhadap frontend `HEAD` `baca9650848ded164538ab85405190fafe8785a3`.
+>
+> | Pernyataan snapshot | Keadaan pada `HEAD` |
+> |---|---|
+> | `source_commits.frontend: ab4bd836…` | `HEAD` adalah `baca965`. Selisihnya belum dihitung; menyatakan snapshot mana yang menjadi bukti resmi adalah wewenang pemilik frontend |
+> | *"`88` test unit lulus; `29` milik `FE-001` dan `21` milik `FE-002`"* | Berkas test yang dirujuk **tidak ditemukan**. `tests/unit` memuat `22` berkas, tidak satu pun bernama billing/folio/clinical-boundary |
+> | `RJ-BIL-FE-001` dan `FE-002` `✅ SELESAI` | **Layarnya ada** — `src/app/health-services/billing-management/billing-folio/[encounterId]` dan `.../clinical-boundary/[encounterId]`. Yang hilang adalah bukti test-nya, kemungkinan besar saat integrasi. Menilai ulang adalah wewenang pemilik Billing |
+>
+> Rincian pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `2`.
+
 ## Metadata
 
 ```yaml
 blueprint_id: RJ-BIL-BP-001
 module_name: Dokter / Rawat Jalan Billing
+snapshot_kind: HISTORICAL_SNAPSHOT
+snapshot_observed_at: "2026-08-28"
 module_slug: rawat-jalan
 module_prefix: RJ-BIL
 repository: V2QuilvianSystemFrontendDev
@@ -330,7 +363,7 @@ ringkasannya.
 
 | Gerbang | Keadaannya | Menahan |
 | --- | --- | --- |
-| **`IMPLEMENTATION_AUTHORITY` frontend** | `NOT_GRANTED`; `BUILDER_EXECUTION` `NOT_AUTHORIZED` | **Seluruh task**, termasuk ketiga task yang backend-nya sudah siap |
+| ~~**`IMPLEMENTATION_AUTHORITY` frontend**~~ | **DITUTUP `2026-08-28` oleh `RJ-BIL-DEC-013`.** `GRANTED`; `BUILDER_EXECUTION` `AUTHORIZED` untuk `FE-001`, `FE-002` bagian Lab, `FE-004`, dan `FE-005` | `FE-003`, `FE-006`, `FE-007` tetap `NOT_AUTHORIZED` karena endpoint pasangannya belum ada |
 | **Frontend authority / UI visual authority** | Belum ditunjuk | Route final, menu, sidebar, modal/drawer, warna status, dan pustaka komponen tetap `DEV_DISCRETION` |
 | Endpoint `RJ-BIL-BE-005` tersedia | ⛔ Terblokir `RJ-BIL-CONFLICT-001` | `RJ-BIL-FE-003` |
 | ~~Endpoint `RJ-BIL-BE-006` tersedia~~ | **DITUTUP `2026-08-27`.** `RJ-BIL-BE-006` selesai; `46` test lulus dan migration-nya diterapkan | — |
@@ -358,8 +391,9 @@ Keenam butir itu adalah **keadaan yang disengaja**, bukan cakupan yang terlupa.
 
 ## 7. Aturan eksekusi dan handoff builder
 
-Roadmap ini sudah disetujui untuk eksekusi task, tetapi wewenang tulisnya **belum diberikan**.
-Setiap handoff ke `build-module-frontend` wajib menyertakan:
+Roadmap ini sudah disetujui untuk eksekusi task, dan wewenang tulisnya **sudah diberikan sebagian**
+oleh `RJ-BIL-DEC-013` pada `2026-08-28` — terbatas pada `RJ-BIL-FE-001`, `RJ-BIL-FE-002` bagian Lab,
+`RJ-BIL-FE-004`, dan `RJ-BIL-FE-005`. Setiap handoff ke `build-module-frontend` wajib menyertakan:
 
 | Yang wajib disertakan | Contoh |
 | --- | --- |
@@ -368,7 +402,7 @@ Setiap handoff ke `build-module-frontend` wajib menyertakan:
 | Kontrak terkunci | `RJ-BIL-API-001@1.0.0`, `RJ-BIL-VAL-001@1.0.0` |
 | Bukti endpoint benar-benar dapat dipanggil | Bukan sekadar tercantum pada dokumen kontrak |
 | Wewenang UI | Apa yang sudah disetujui, dan apa yang tetap `DEV_DISCRETION` |
-| Wewenang tulis frontend | Eksplisit — hari ini masih `NOT_GRANTED` |
+| Wewenang tulis frontend | Eksplisit — `GRANTED` hanya untuk keempat task yang disebut `RJ-BIL-DEC-013`; sisanya `NOT_AUTHORIZED` |
 | Bukti acceptance yang diminta | Sesuai baris **Verifikasi** dan **DoD** task tersebut |
 
 > **Tidak satu pun task di dokumen ini memberi izin** mengubah backend, mengaktifkan adapter

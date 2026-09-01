@@ -624,3 +624,43 @@ Disposition:
 5. Historical labels `LOCKED-DRAFT` di bagian sebelumnya dipertahankan sebagai rekam status pada saat masing-masing jawaban diterima; amendment ini adalah status efektif terbaru.
 
 Next required step adalah menjalankan ulang `requirement-completeness-gate` terhadap decision revision 10. Domain architecture tidak boleh menganggap assessment revision 1 otomatis current setelah perubahan material ini.
+
+---
+
+# Owner Approval Amendment — Doctor / Rawat Jalan Clinical, 31 Agustus 2026
+
+Bagian ini memuat keputusan otoritatif untuk scope **Doctor / Rawat Jalan Clinical** (`RJ-DOC`),
+yang terpisah dari scope Billing (`RJ-BIL`) di seluruh bagian sebelumnya. Keputusan diberikan
+Sukma Giri selaku pemilik/author blueprint `RJ-BIL-BP-001`.
+
+| ID | Jenis | Keputusan | Owner | Status | Catatan |
+|---|---|---|---|---|---|
+| `RJ-DOC-DEC-001` | Approval | **Roadmap Doctor / Rawat Jalan Clinical `roadmap/doctor-consultation-roadmap.md` revision `2` dinaikkan dari `READY_FOR_OWNER_APPROVAL` menjadi `OWNER_APPROVED`.** Approval mencakup: scope, ownership boundary, klasifikasi `MANDATORY`/`CONDITIONAL`/`ARCHITECTURAL INVARIANT`/`DOWNSTREAM`, arah canonical completion, contract planning, task definitions, dependency sequence, dan Doctor Definition of Done. Approval ini **bukan** izin mengubah application source, menjalankan builder, membuat/menjalankan migration, memutasi database, commit, push, merge, deploy, maupun mengerjakan Billing. `IMPLEMENTATION_AUTHORITY` tetap `NOT_GRANTED` dan diberikan terpisah per task setelah contract freeze | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026 |
+| `RJ-DOC-DEC-002` | Decision | **`RJ-DOC-OQ-003` — Lab dan Radiology pada first release: `CONDITIONAL — NOT PART OF CURRENT MANDATORY DOCTOR BASELINE`.** Untuk baseline saat ini: Prescription wajib mengikuti lifecycle existing; Procedure/Tindakan wajib mengikuti lifecycle existing; FE ordering Lab **bukan** blocker Doctor DoD; FE ordering Radiology **bukan** blocker Doctor DoD. Lab dan Radiology tetap dicatat sebagai clinical capability yang valid dan dapat dinaikkan menjadi mandatory pada rilis berikutnya melalui approval terpisah. Capability maupun gap implementasinya **tidak boleh dihapus** dari blueprint | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026. Menutup `RJ-DOC-OQ-003` |
+| `RJ-DOC-DEC-003` | Decision | **`RJ-DOC-OQ-004` — Correction/reopen setelah `COMPLETED`: `NO ARBITRARY REOPEN IN CURRENT BASELINE`.** Konsultasi ber-`ConsultationStatus = Completed` wajib protected/locked dari normal editing. **Dilarang menciptakan workflow reopen generik pada task saat ini.** Bila correction/reopen dibutuhkan di masa depan, ia menjadi capability tersendiri yang wajib memuat reason, actor, authorization, audit trail, version/correction semantics, dan approval owner eksplisit. Doctor DoD saat ini hanya membutuhkan completed-state protection | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026. Menutup `RJ-DOC-OQ-004`; mengikat `RJ-DOC-BE-004` |
+| `RJ-DOC-DEC-004` | Decision | **`RJ-DOC-OQ-005` — Open ancillary order saat Selesai Konsultasi: `ALLOWED WITH VALID DOCTOR-SIDE ORDER STATE`.** Dokter **boleh** menyelesaikan konsultasi walaupun downstream ancillary lifecycle masih berjalan: Lab order sudah dibuat tetapi specimen belum collected/received/resulted, dan Radiology order sudah dibuat tetapi study belum performed/resulted, **tidak** menahan penyelesaian. Lifecycle eksekusi/hasil ancillary adalah tanggung jawab unit Lab/Radiology dan berlanjut setelah konsultasi selesai. Sebaliknya penyelesaian **wajib ditolak** apabila clinical order yang sedang dibuat dokter berada dalam keadaan: request gagal, data invalid, save belum berhasil, pending client-side mutation belum flush, state tidak dapat dipastikan, atau pembuatan order belum menghasilkan authoritative server state. Ringkasnya: `DOCTOR ORDER CREATION MUST BE STABLE`, tetapi `ANCILLARY EXECUTION DOES NOT NEED TO BE FINISHED`. Aturan ini **wajib masuk validation contract** | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026. Menutup `RJ-DOC-OQ-005`; dibekukan pada `RJ-DOC-COMPLETION-001@1.0.0` bagian `1.6`; mengikat `RJ-DOC-BE-002` |
+| `RJ-DOC-DEC-005` | Decision | **`RJ-DOC-OQ-006` — `CompleteImmediately`: `DEPRECATE / RESTRICT AS ALTERNATE FINALIZATION PATH`.** `POST /doctor-consultations` dengan `CompleteImmediately=true` **tidak boleh** menjadi jalur finalisasi alternatif untuk workflow Rawat Jalan normal, karena saat ini menghasilkan `Completed` tanpa authoritative validation dan tanpa producer handoff. Canonical normal completion tetap `PATCH /doctor-consultations/{id}/complete`. **API tidak dihapus pada task ini.** Kontrak menyatakan: jalur tersebut bukan canonical; consumer baru dilarang memakainya untuk Rawat Jalan normal; treatment implementasi adalah restrict/deprecate/compatibility remediation; detail implementasi dikerjakan pada `RJ-DOC-BE-001` atau task terkait **setelah** contract freeze. Bila source membuktikan endpoint dipakai flow lain seperti IGD atau internal workflow, alur tersebut **tidak boleh dirusak** dan compatibility requirement-nya dicatat eksplisit | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026. Menutup `RJ-DOC-OQ-006`; dibekukan pada `RJ-DOC-COMPLETION-001@1.0.0` bagian `1.11` |
+| `RJ-DOC-DEC-006` | Decision | **`RJ-DOC-INT-001` dan `RJ-DOC-INT-002` dibekukan.** `RJ-DOC-COMPLETION-001@1.0.0` dan `RJ-DOC-HANDOFF-001@1.0.0` berstatus `FROZEN` pada `contracts/doctor-consultation-contracts.md`. Perubahan kontrak memerlukan kenaikan versi dan approval owner tersendiri. Pembekuan ini membuat `RJ-DOC-BE-001`, `BE-002`, `BE-003`, dan `BE-005` menjadi `ELIGIBLE`, **tetapi tidak memberikan implementation authority kepada satu pun di antaranya** | Sukma Giri | `approved` | Sukma Giri, 31 Agustus 2026 |
+
+## Compatibility requirement `RJ-DOC-DEC-005`
+
+Diverifikasi terhadap backend `801a4f5` dan frontend `baca965`. Tiga hal **tidak boleh** rusak
+ketika `CompleteImmediately` dibatasi:
+
+| Yang dijaga | Bukti |
+|---|---|
+| `POST /doctor-consultations` sebagai endpoint create — aktif dipakai frontend | `use-doctor-soap.js:327`, `use-doctor-prescription.js:239` |
+| Jalur IGD tanpa antrean — `QueueId` nullable, encounter di-resolve langsung | `DoctorConsultationController.cs:257-268`; komentar source `BE-IGD-028`, `FR-IGD-062` |
+| `CompleteImmediately` milik `PatientAssessmentController` — field bernama sama pada DTO **berbeda**, dipakai alur screening perawat; **di luar cakupan keputusan ini** | `PatientAssessmentDtos.cs:294`; `PatientAssessmentController.cs:296`, `:370-371`, `:678` |
+
+Consumer konsultasi yang mengirim `completeImmediately: true` pada frontend `baca965`: **tidak
+ada**. Seluruh pembuatan konsultasi memakai `false` (`use-doctor-prescription.js:210`). Kemunculan
+`completeImmediately` pada `use-doctor-queue.js:786` adalah milik payload **patient assessment**,
+bukan konsultasi. Karena itu pembatasan ini tidak memutus satu pun consumer yang diketahui.
+
+## Batas approval
+
+Approval `RJ-DOC-DEC-001` **tidak** mencakup: perubahan application source; eksekusi builder;
+pembuatan atau penerapan migration; mutasi database; commit; push; merge; deployment; pekerjaan
+Billing; maupun aktivasi `RJ-BIL-DEP-009`. `IMPLEMENTATION_AUTHORITY` scope Dokter tetap
+`NOT_GRANTED` sampai diberikan eksplisit per task.

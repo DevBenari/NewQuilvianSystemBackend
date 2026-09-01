@@ -1,10 +1,58 @@
-# Dokter / Rawat Jalan Billing — Module Status
+# Rawat Jalan — Module Status
+
+> **Blueprint ini adalah umbrella end-to-end Rawat Jalan, dari Dokter sampai Revenue Cycle.**
+> Ia memuat **dua scope kepemilikan yang terpisah** dan tidak boleh dinilai dengan satu angka.
+> Batas keduanya dijelaskan pada [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md)
+> bagian `1`.
+>
+> | Scope | Prefix | Roadmap | Pemilik |
+> |---|---|---|---|
+> | **Doctor / Clinical** — sampai `Selesai Konsultasi` dan clinical handoff | `RJ-DOC` | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) | Dokter / Clinical |
+> | **Billing / Revenue Cycle** — consumer clinical fact | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | Billing / Finance / Payer |
+>
+> **Ketidaklengkapan `RJ-BIL-*` bukan kekurangan developer Dokter.** Folio, charge, tarif, payer,
+> alokasi, financial action, rekonsiliasi, klaim, pembayaran, dan settlement adalah
+> `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE`.
+
+## Status per scope — audit `2026-08-31`
+
+`CURRENT STATE`. Diaudit terhadap backend `HEAD` `801a4f5` cabang `sukmagp` dan frontend `HEAD`
+`baca965` cabang `QuilvianDevV2`.
+
+| Scope | Status | Dasar |
+|---|---|---|
+| **Overall Rawat Jalan End-to-End** | `PARTIAL` | Kedua scope belum selesai |
+| **Doctor Clinical Delivery** | `PARTIAL` — roadmap `OWNER_APPROVED`, kontrak `FROZEN`, `RJ-DOC-BE-001` dan `RJ-DOC-BE-002` ✅ `COMPLETE` | Dari `28` capability `MANDATORY`: **`19` `COMPLETE`, `7` `PARTIAL`, `2` `MISSING`**. Jalur `Selesai Konsultasi` yang semula `BROKEN` sudah **disatukan** ke finalisasi canonical `2026-08-31`: konsultasi benar-benar menjadi `Completed`, resep difinalkan, dan kunjungan berhenti di `ConsultationCompleted`. Sisanya adalah pengetatan — validasi mengikat, idempotency/concurrency, penguncian, durabilitas handoff, audit, dan verifikasi |
+| **Billing Delivery** | `PARTIAL — NEEDS REVERIFICATION` | Angka `5 dari 9` dan `2 dari 7` adalah snapshot `2026-08-28` yang **tidak** cocok dengan `HEAD`; lihat peringatan di bawah |
+| **Cross-module Integration** | `PARTIAL` | Jalur fact tindakan, Lab, dan Radiologi hidup; **jalur fact resep tidak pernah terbit** karena finalisasi konsultasi tidak pernah tercapai |
+
+> **PERINGATAN STALENESS — seluruh angka Billing di bawah adalah `HISTORICAL SNAPSHOT`.**
+> Backend `HEAD` `801a4f5` tertinggal `144` commit dari `6b25e60` yang tercatat di sini. Audit
+> `2026-08-31` menemukan gambaran Billing **terbalik** dari yang tercatat:
+>
+> | Task | Klaim revisi `21` | Keadaan pada `HEAD` |
+> |---|---|---|
+> | `RJ-BIL-BE-004` Radiologi | `NOT_STARTED`, *"area belum ada sama sekali"* | **`SOURCE EXISTS`** — `17` berkas, `RadOrderController`, `RadStudyService`, `RadSafetyGateEvaluator`, dua berkas test. Acceptance **belum** dinilai ulang, sehingga **bukan** `COMPLETE` |
+> | `RJ-BIL-BE-006` financial action | `COMPLETE`, *"46 test lulus"* | **`SOURCE ABSENT`** — tidak ada `BilFinancialAction` maupun approval policy |
+> | `RJ-BIL-BE-007` rekonsiliasi | `COMPLETE`, *"delapan endpoint"* | **`SOURCE ABSENT`** — `BillingFolioController` hanya `3` route baseline `BE-001` |
+> | `RJ-BIL-FE-001`/`FE-002` | `COMPLETE`, *"88 test lulus"* | Layar **ada**; berkas test yang dirujuk **tidak ditemukan** |
+>
+> Manifest revisi `21` mencatat `BE-006` dan `BE-007` sebagai working tree yang belum di-commit.
+> Bukti menunjukkan working tree itu tidak pernah masuk cabang ini.
+>
+> **Menilai ulang status task Billing adalah wewenang pemilik Billing** dan sengaja tidak
+> dilakukan dari task koreksi roadmap Dokter. Keberadaan folder bukan bukti acceptance terpenuhi,
+> dan ketiadaan folder pada satu cabang bukan bukti pekerjaan tidak pernah ada.
+
+---
+
+## Billing scope — status revisi `21` (belum diverifikasi ulang)
 
 | Field | Value |
 |---|---|
 | Blueprint ID | `RJ-BIL-BP-001` |
 | Module name | Dokter / Rawat Jalan Billing |
-| Revision | `21` |
+| Revision | `25` |
 | Module status | `PARTIAL` |
 | Current phase | `RJ-BIL-PH-009` — Delivery Execution |
 | Last verified at | `2026-08-28T14:02:11+07:00` |
@@ -23,9 +71,47 @@
 
 ## Delivery state
 
+> Tabel ini menghitung **task Billing saja**. Ia bukan progress developer Dokter, dan tidak boleh
+> dipakai untuk menjawab apakah pekerjaan Dokter sudah selesai.
+
 | Backend | Frontend | Integration | Verification |
 |---|---|---|---|
 | `IN_PROGRESS` — `5` dari `9` task selesai | `IN_PROGRESS` — `2` dari `7` task selesai (`RJ-BIL-FE-001`, `RJ-BIL-FE-002`) | `NOT_STARTED` | `PARTIAL` — `BE-001`, `BE-002`, `BE-003`, `BE-006`, `BE-007`, `FE-001`, dan `FE-002` |
+
+### Delivery state scope Dokter — `CURRENT STATE`
+
+| Contract gate | Backend | Frontend | Verification |
+|---|---|---|---|
+| ✅ **`COMPLETE / FROZEN`** — `2` dari `2` (`RJ-DOC-INT-001`, `INT-002`) | `IN_PROGRESS` — **`2` dari `7`** task `RJ-DOC-BE-*` selesai (`BE-001` dan `BE-002` ✅ `2026-08-31`); `BE-003` dan `BE-005` `ELIGIBLE` | `NOT_STARTED` — `0` dari `4` task `RJ-DOC-FE-*`; `FE-001` s.d. `FE-003` `ELIGIBLE` | `PARTIAL` — `23` uji acceptance scope Dokter lulus; `155` uji project lulus `0` gagal |
+
+Capability `MANDATORY` per `2026-08-31` sesudah `RJ-DOC-BE-001` dan `RJ-DOC-BE-002`:
+**`19` `COMPLETE`** · `7` `PARTIAL` · `2` `MISSING` · `0` `NEEDS CONFIRMATION` — denominator `28`.
+
+Ditutup `RJ-DOC-BE-001`: `CAP-008B` finalisasi resep, `CAP-015` tombol ke finalisasi canonical,
+`CAP-016` status `COMPLETED`, `CAP-017` `CompletedAt`/`CompletedByUserId`, dan `CAP-030` satu
+canonical completion path. Ditutup `RJ-DOC-BE-002`: `CAP-014` validasi authoritative yang mengikat.
+
+`CAP-021` producer handoff resep **sengaja tetap `PARTIAL`**: jalur emisinya kini benar-benar
+terjangkau, tetapi belum dibuktikan uji end-to-end dengan resep, sehingga tidak dinaikkan tanpa
+bukti. `CAP-025` audit trail juga **sengaja tetap `PARTIAL`** — perluasannya adalah `RJ-DOC-BE-006`.
+Yang masih `PARTIAL`: `CAP-018`, `019`, `020`, `021`, `023`, `025`, `028`. Yang masih `MISSING`:
+`CAP-027` dan `CAP-029`.
+
+Capability `CONDITIONAL` (`2`) dan `ARCHITECTURAL INVARIANT` (`3`, seluruhnya `VERIFIED`)
+**tidak** ikut dihitung.
+
+| Governance scope Dokter | Keadaan |
+|---|---|
+| Roadmap | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) revision `5` — **`OWNER_APPROVED`** `2026-08-31`, `RJ-DOC-DEC-001` |
+| Kontrak | [contracts/doctor-consultation-contracts.md](contracts/doctor-consultation-contracts.md) — `RJ-DOC-COMPLETION-001@1.0.0` dan `RJ-DOC-HANDOFF-001@1.0.0`, keduanya **`FROZEN`** |
+| Open question | **Nihil.** `RJ-DOC-OQ-001` s.d. `OQ-006` seluruhnya tertutup |
+| `IMPLEMENTATION_AUTHORITY` | **`GRANTED — RJ-DOC-BE-001` dan `RJ-DOC-BE-002`**; task lain ⛔ `NOT_GRANTED` |
+| `BUILDER_EXECUTION` | **`EXECUTED — RJ-DOC-BE-001` dan `RJ-DOC-BE-002`**; task lain ⛔ `NOT_AUTHORIZED` |
+| `RJ-DOC-BE-001` | ✅ `COMPLETE` `2026-08-31` — [laporan](task/report/backend/RJ-DOC-BE-001.md) |
+| `RJ-DOC-BE-002` | ✅ `COMPLETE` `2026-08-31` — [laporan](task/report/backend/RJ-DOC-BE-002.md) |
+
+> `ELIGIBLE` berarti dependency kontraknya terpenuhi — **bukan** berarti boleh dikerjakan.
+> Wewenang tulis diberikan terpisah per task.
 
 ### Progress task backend
 
@@ -205,6 +291,17 @@ diuji dan tetap menjadi cakupan `RJ-BIL-BE-009`.
 
 ## Next recommended task
 
+> ### `HISTORICAL SNAPSHOT — DO NOT USE AS CURRENT STATUS`
+>
+> Seluruh bagian ini beserta subbagiannya adalah potret scope Billing per `2026-08-28`. Setiap
+> pernyataan `selesai`, `BLOCKED`, dan *"belum ada pada source"* di bawah **belum** diverifikasi
+> ulang terhadap `HEAD` `801a4f5`, dan sebagiannya terbukti terbalik — lihat peringatan staleness
+> pada bagian `Status per scope`. Menilai ulangnya adalah wewenang pemilik Billing.
+>
+> Langkah berikutnya untuk **scope Dokter** tidak ada di bagian ini, melainkan pada
+> [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) bagian `4`:
+> gerbang kontrak `RJ-DOC-INT-001` dan `RJ-DOC-INT-002`.
+
 Urutan dependency roadmap adalah `BE-001 → BE-002/BE-003/BE-004 → BE-005 → BE-006/BE-007 →
 BE-008 → BE-009`. `RJ-BIL-BE-001` dan `RJ-BIL-BE-002` sudah selesai.
 
@@ -294,6 +391,23 @@ tagihan ganda terhadap `RJ-BIL-BE-002`. Rinciannya pada
 
 `RJ-BIL-BE-004` berbeda keadaannya: area `RadiologyManagement` belum ada sama sekali pada source,
 sehingga bebannya jauh lebih besar daripada `RJ-BIL-BE-003`.
+
+> **KOREKSI `2026-08-31` — paragraf di atas adalah `HISTORICAL SNAPSHOT` dan sudah usang.**
+> Audit read-only terhadap backend `801a4f5` menemukan `Areas/HealthServices/RadiologyManagement/**`
+> **sudah ada**, berisi `17` berkas termasuk `RadOrderController`, `RadStudyController`,
+> `RadStudyService`, `RadSafetyGateEvaluator`, model `RadOrder`/`RadStudy`/`RadStudySafetyCheck`,
+> dan pemanggilan `ClinicalMilestoneFactProducer.EmitChargeEligibilityAsync` pada
+> `RadStudyService.cs:958`. Terdapat pula `Radiology/RadiologyStudyLifecycleTests.cs` dan
+> `Radiology/RadiologySafetyGateTests.cs`. Yang **masih** nihil adalah consumer frontend-nya.
+>
+> Klasifikasi yang berlaku: **`SOURCE EXISTS — ROADMAP TASK STATUS NEEDS REVERIFICATION`.**
+>
+> `RJ-BIL-BE-004` **tidak** ditandai `COMPLETE` dari koreksi ini. Keberadaan folder dan nama berkas
+> bukan bukti bahwa acceptance criteria task terpenuhi — safety gate menolak acquisition tanpa
+> identitas, performed study menjadi eligibility, dan repeat mempertahankan original semuanya perlu
+> dinilai satu per satu. Penilaian itu, penutupan blocker owner `RadiologyManagement`, dan
+> pemutakhiran bukti Billing lainnya adalah **wewenang pemilik Billing**, dan sengaja tidak
+> dilakukan dari task koreksi roadmap Dokter.
 
 Builder tetap memerlukan handoff task, wewenang tulis, dan preflight eksekusi untuk setiap task.
 Jangan mengaktifkan external adapter `RJ-BIL-DEP-009`.
