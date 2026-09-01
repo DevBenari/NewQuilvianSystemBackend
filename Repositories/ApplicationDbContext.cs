@@ -49,6 +49,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
@@ -682,6 +683,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
         #endregion
+
+        #endregion
+
+        #region HEALTH SERVICE - Nutrition Management
+
+        public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
+        public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
+        public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
 
         #endregion
 
