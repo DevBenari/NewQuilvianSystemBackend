@@ -130,6 +130,58 @@ WHERE NOT EXISTS (
       AND x."ActionAccessId"     = a.action_id
       AND NOT x."IsDelete");
 
+-- =====================================================================================
+-- Penautan akun ke data tenaga
+--
+-- Izin saja belum cukup. Modul Operasi membaca dua tautan pada akun untuk hal berbeda:
+--
+--   DoctorId           dipakai saat MEMBUAT permintaan operasi (klaim doctor_id)
+--   WorkforceProfileId dipakai setiap tindakan klinis untuk memeriksa keanggotaan tim
+--
+-- Keduanya diisi dari data tenaga yang SUDAH ADA, dicocokkan dengan nama pada akun.
+-- Bila tidak ada yang cocok, kolomnya dibiarkan kosong dan ringkasan di bawah akan
+-- menyebutkannya — data tenaga orang sungguhan tidak dikarang oleh skrip ini.
+--
+-- Kolom yang sudah terisi tidak pernah ditimpa.
+-- =====================================================================================
+
+-- Rendy Pangalila sebagai dokter.
+UPDATE "AspNetUsers" u
+SET "DoctorId" = d."Id"
+FROM "MstDoctor" d
+WHERE u."UserName" = 'rendi@admin.com'
+  AND u."DoctorId" IS NULL
+  AND d."IsActive" AND NOT d."IsDelete"
+  AND (d."FullName" ILIKE '%rend%pangalila%');
+
+-- Profil tenaga dokter diambil dari baris dokter yang baru saja ditautkan, supaya
+-- keduanya pasti menunjuk orang yang sama.
+UPDATE "AspNetUsers" u
+SET "WorkforceProfileId" = d."WorkforceProfileId"
+FROM "MstDoctor" d
+WHERE u."UserName" = 'rendi@admin.com'
+  AND u."WorkforceProfileId" IS NULL
+  AND d."Id" = u."DoctorId"
+  AND d."WorkforceProfileId" IS NOT NULL;
+
+-- Vina Aprilianti sebagai perawat. Profil tenaganya diambil lewat baris pegawainya.
+UPDATE "AspNetUsers" u
+SET "WorkforceProfileId" = e."WorkforceProfileId"
+FROM "MstEmployee" e
+WHERE u."UserName" = 'vina.aprilianti@rsmmc.local'
+  AND u."WorkforceProfileId" IS NULL
+  AND e."IsActive" AND NOT e."IsDelete"
+  AND e."FullName" ILIKE '%vina%aprilianti%';
+
+-- Bila baris pegawainya tidak ketemu, coba langsung ke profil tenaga.
+UPDATE "AspNetUsers" u
+SET "WorkforceProfileId" = w."Id"
+FROM "MstWorkforceProfile" w
+WHERE u."UserName" = 'vina.aprilianti@rsmmc.local'
+  AND u."WorkforceProfileId" IS NULL
+  AND w."IsActive" AND NOT w."IsDelete"
+  AND w."DisplayName" ILIKE '%vina%aprilianti%';
+
 COMMIT;
 
 -- =====================================================================================
@@ -157,3 +209,30 @@ LEFT JOIN "SysControllerAccess" ca ON ca."Id" = p."ControllerAccessId"
 WHERE u."UserName" IN ('rendi@admin.com', 'vina.aprilianti@rsmmc.local')
   AND (p."Id" IS NULL OR ca."Id" IS NOT NULL)
 GROUP BY u."Id", u."DisplayName", u."UserType", u."DoctorId", u."WorkforceProfileId";
+
+-- Kandidat penautan, hanya ditampilkan bila masih ada yang belum tertaut. Pakai daftar
+-- ini untuk menautkan secara manual bila pencocokan nama di atas tidak menemukan apa pun,
+-- misalnya karena ejaan namanya berbeda:
+--
+--   UPDATE "AspNetUsers" SET "DoctorId" = '<Id dari daftar>'
+--   WHERE "UserName" = 'rendi@admin.com';
+--
+--   UPDATE "AspNetUsers" SET "WorkforceProfileId" = '<Id dari daftar>'
+--   WHERE "UserName" = 'vina.aprilianti@rsmmc.local';
+
+SELECT 'MstDoctor untuk Rendi' AS kandidat, d."Id"::text, d."FullName", d."DoctorCode"
+FROM "MstDoctor" d
+WHERE d."IsActive" AND NOT d."IsDelete"
+  AND (d."FullName" ILIKE '%rend%' OR d."FullName" ILIKE '%pangalila%')
+  AND EXISTS (SELECT 1 FROM "AspNetUsers" u
+              WHERE u."UserName" = 'rendi@admin.com' AND u."DoctorId" IS NULL)
+
+UNION ALL
+
+SELECT 'MstWorkforceProfile untuk Vina', w."Id"::text, w."DisplayName", w."ProfileCode"
+FROM "MstWorkforceProfile" w
+WHERE w."IsActive" AND NOT w."IsDelete"
+  AND (w."DisplayName" ILIKE '%vina%' OR w."DisplayName" ILIKE '%aprilianti%')
+  AND EXISTS (SELECT 1 FROM "AspNetUsers" u
+              WHERE u."UserName" = 'vina.aprilianti@rsmmc.local'
+                AND u."WorkforceProfileId" IS NULL);
