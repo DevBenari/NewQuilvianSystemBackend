@@ -48,8 +48,8 @@ bed_board_reservation_contract_scan:
   contract: "RWI-BED-BOARD-RESERVATION-001 1.0.0 APPROVED"
   result: "BE-RWI-036_DONE_2026-09-01; RWI-UI-GAP-003_BACKEND_CONTRACT_SOURCE_CLOSED"
 task_count: 41
-task_count_done: 19
-task_count_open: 22
+task_count_done: 20
+task_count_open: 21
 supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-27; revision 2 tetap di roadmap/archive/revision-2/frontend-roadmap.md"
 ```
 
@@ -159,8 +159,8 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | ✅ **selesai 1 September 2026.** Keenam task terimplementasi penuh dan ketiga titik tulis tertutup. Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
 | **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | ✅ **selesai 1 September 2026.** Ketiga task tertutup |
-| **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | ⛔ menunggu approval skema; pembuktian runtime juga menunggu `RWI-UI-GAP-007` |
-| **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | terbuka; `FE-RWI-035` paling akhir setelah F12 |
+| **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | 🟡 `FE-RWI-036` ✅ selesai 1 September 2026; lima sisanya menunggu approval skema. Pembuktian runtime seluruhnya tetap menunggu `RWI-UI-GAP-007` |
+| **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | sebagian; `FE-RWI-033` dan `FE-RWI-034` ✅ selesai 1 September 2026, `FE-RWI-035` paling akhir setelah F12 |
 
 ### Keputusan penutupan verifikasi — 1 September 2026
 
@@ -201,8 +201,8 @@ FE-RWI-022 (kerangka alur dua jalur)                 ✅ SELESAI
 FE-RWI-030 (konfirmasi pasien masuk)   ✅ SELESAI
 FE-RWI-031 (pembatalan admisi)         ✅ SELESAI  ← butuh FE-RWI-020
 
-FE-RWI-033 (keterjangkauan + menu)     ← butuh F8 s.d. F11
-FE-RWI-034 (bongkar layar admisi lama) ← butuh FE-RWI-027
+FE-RWI-033 (keterjangkauan + menu)     ✅ SELESAI  ← butuh F8 s.d. F11
+FE-RWI-034 (bongkar layar admisi lama) ✅ SELESAI  ← butuh FE-RWI-027
 
 FE-RWI-036 (repair Papan)               ← butuh FE-RWI-026 + FE-RWI-030
 FE-RWI-037 (repair Census)              ← butuh FE-RWI-033
@@ -514,7 +514,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 ---
 
-### `FE-RWI-033` — Tidak ada lagi layar yang tidak dapat dicapai
+### ✅ `FE-RWI-033` — Tidak ada lagi layar yang tidak dapat dicapai
 
 | Field | Isi |
 | --- | --- |
@@ -529,11 +529,12 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Penelusuran manual seluruh 19 layar dari beranda dan kedua jalur master data, dilampirkan sebagai daftar jalur; pemeriksaan bahwa kedua item tidak terduplikasi dan direct URL existing tetap bekerja; e2e menuju sesi koreksi lewat daftar kerja |
 | **Risk/blocker** | Re-parent harus memindahkan definisi menu, bukan menyalinnya. Normalisasi URL tidak termasuk scope; bila dipaksakan tanpa compatibility redirect, deep link dan tautan internal dapat putus. Kriteria 6 menuntut pemeriksaan endpoint satu per satu terhadap bagian 11A. Owner: Frontend |
 | **DoD** | Ketujuh kriteria lulus; laporan memuat tabel jalur untuk seluruh 19 layar dan bukti hierarki tujuh operasional + dua master/configuration tanpa duplikasi |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | ✅ **SELESAI 1 September 2026.** Ketujuh acceptance criteria terpenuhi. Definisi menu `FE-INP-12` dan `FE-INP-13` **dipindahkan** — bukan disalin — ke `Pelayanan Kesehatan → Master Data`, label `FE-INP-13` menjadi **Butir Administrasi Rawat Inap**, dan submenu `Rawat Inap` kini berisi tepat tujuh butir sesuai urutan brief pemilik; `pathname` dan permission kedua butir tidak berubah sehingga direct URL lama tetap bekerja. `GET /census/filters/metadata` yang selama ini menganggur kini dimiliki `FE-INP-01`, sehingga penyaring census hanya menawarkan unit layanan dan kelas perawatan yang benar-benar berlaku untuk rawat inap. Penelusuran seluruh 19 layar membuktikan tidak ada yang melampaui tiga klik, dan pemeriksaan 49 operasi api-contract satu per satu menghasilkan nol endpoint tanpa pemilik. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada berkas task ini; `npm run build` `✓ Compiled successfully`. Test `.mjs` `NOT RUN` atas arahan pengguna. Laporan: [FE-RWI-033](../task/report/frontend/FE-RWI-033.md) |
+| **Batas yang tercatat** | Normalisasi URL menjadi `/health-services/master-data/...` **tidak** dikerjakan, sesuai aturan migrasi 4 skema bagian 23: memindahkan route tanpa compatibility redirect akan memutus deep link dan tautan internal. Kedua layar master juga tetap berstatus `REPAIR` — task ini memindahkan induk menu dan label, sedangkan layarnya diperbaiki `FE-RWI-040` dan `FE-RWI-041` |
 
 ---
 
-### `FE-RWI-034` — Layar admisi lama dibongkar, jalur gandanya hilang
+### ✅ `FE-RWI-034` — Layar admisi lama dibongkar, jalur gandanya hilang
 
 | Field | Isi |
 | --- | --- |
@@ -548,11 +549,12 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pencarian menyeluruh atas nama berkas lama; keluaran ketiga perintah dilampirkan apa adanya |
 | **Risk/blocker** | Menandai test lama sebagai dilewati alih-alih menghapusnya menyembunyikan penurunan cakupan. Owner: Frontend |
 | **DoD** | Keempat kriteria lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kriteria 1, 2, dan 3 terpenuhi penuh. Tiga berkas formulir admisi tunggal dihapus — `use-inpatient-admission.jsx`, `inpatient-admission-utils.jsx`, dan `inpatient-admission-constants.jsx` — setelah lima fungsi yang masih hidup **dipindahkan** ke `inpatient-episode-utils.jsx`, bukan disalin. Jalur ganda yang sebenarnya ternyata lebih halus daripada dugaan roadmap: `INPATIENT_ADMISSION_ROUTE` punya dua definisi, satu dipakai beranda dan satu dipakai alur pelanjutan; keduanya kini satu. Kedua berkas test formulir lama **dihapus**, bukan di-skip, dan lima pemeriksaan yang masih relevan dipindahkan atau diarahkan ke pemilik barunya. Pencarian menyeluruh atas nama berkas lama menghasilkan nol hit. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar; `npm run build` `✓ Compiled successfully`. Laporan: [FE-RWI-034](../task/report/frontend/FE-RWI-034.md) |
+| **Batas yang tercatat** | Kriteria 4 **terpenuhi sebagian**: `lint` dan `build` dijalankan dan lulus, sedangkan `test:unit` `NOT RUN` atas arahan pengguna 1 September 2026 yang membatasi validasi pada kedua perintah itu — bukan karena terhalang atau gagal. Kelima pemeriksaan test yang dipindahkan sudah diverifikasi manual terhadap source. Selain itu alur admisi berlangkah `FE-RWI-021` s.d. `027` masih belum punya berkas test unit sendiri; pembuktiannya milik `FE-RWI-035` |
 
 ---
 
-### `FE-RWI-036` — Papan Tempat Tidur kembali menjadi layar kerja
+### ✅ `FE-RWI-036` — Papan Tempat Tidur kembali menjadi layar kerja
 
 | Field | Isi |
 | --- | --- |
@@ -567,7 +569,8 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | Pada saat task dieksekusi: penelusuran manual keadaan Available/Reserved/Occupied/Unavailable, bukti per peran, dan e2e aksi reservation/placement. Tidak dijalankan pada penyusunan roadmap ini |
 | **Risk/blocker** | Metadata reservation sudah tersedia lewat `BE-RWI-036`; data bed runtime masih gap 007. Owner tersisa: Frontend dan Admin Master Data |
 | **DoD** | Keenam kriteria lulus; laporan membuktikan layar tidak lagi pasif dan tidak memakai mock tersembunyi |
-| **Status** | ⛔ `BLOCKED` — menunggu approval skema/roadmap; pembuktian penuh juga menunggu gap 007. Gap 003 sudah ditutup `BE-RWI-036` |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kriteria 1, 2, 5, dan 6 terpenuhi penuh; kriteria 3 dan 4 terpenuhi dengan satu batas yang sama dan tercatat. Enam aksi efektif kini ada di layar — **Muat Ulang**, **Coba Lagi**, **Konfirmasi Masuk**, **Batalkan Pesanan**, **Buka Master Tempat Tidur**, dan pembacaan ulang otomatis saat jendela kembali difokuskan. Tempat tidur `Reserved` kini menyebut pemegangnya beserta hitung mundur sisa waktu; ketika batas waktunya lewat, papan dibaca ulang satu kali alih-alih layar menyatakan sendiri pemesanannya gugur. Papan kosong membedakan master yang belum diisi dari penyaring yang tidak cocok, dan kegagalan baca mengosongkan ringkasan lama alih-alih membiarkannya terbaca seolah masih berlaku. `selectable` **tidak** diubah: memilih tempat tidur hanya bermakna di dalam alur admisi yang punya episode, dan yang dihapus adalah keadaan “layar tanpa aksi efektif”, bukan prop-nya. Pemeriksaan tampilan pemilik pada hari yang sama menemukan area papan masih dirangkai dari utility Bootstrap mentah sehingga terlihat tanpa style; itu bagian scope `Layout/status bed` dan ikut diperbaiki: ringkasan memakai `SummaryGrid`, unit layanan menjadi kartu, kamar menjadi kotak, dan tempat tidur menjadi kartu dalam grid responsif beraksen warna keadaan — seluruhnya dari token `globals.css` lewat satu stylesheet fitur baru. Dua sisa Bootstrap mentah terakhir ikut hilang. Dua belas elemen UI seluruhnya `REUSE`. `npm run lint` `0 errors` — 571 warning, sama persis dengan garis dasar dan nol pada berkas task ini; `npm run build` `✓ Compiled successfully in 31.5s`; kedelapan grep anti-regresi UI kini **seluruhnya kosong**. Test `.mjs` dan uji manual `NOT RUN` atas arahan pengguna. Laporan: [FE-RWI-036](../task/report/frontend/FE-RWI-036.md) |
+| **Batas yang tercatat** | Kriteria 3 dan 4 tertahan pada satu sebab yang sama: repository frontend **tidak memiliki katalog permission di sisi peramban**. Akibatnya **Konfirmasi Masuk**, **Batalkan Pesanan**, dan tautan **Buka Master Tempat Tidur** tampil bagi setiap pembaca papan, dan penolakannya baru terlihat setelah tombol ditekan — layar tetap dijaga `AccessDeniedGate` beserta `403` server. Menutupnya menuntut satu kontrak baca yang menyebutkan permission pengguna saat ini, yaitu perubahan backend, bukan perubahan rancangan layar. Pembuktian runtime keenam kriteria tetap menunggu `RWI-UI-GAP-007` dan dimiliki `FE-RWI-035` — [laporan](../task/report/frontend/FE-RWI-036.md) bagian 7 dan 8 |
 
 ---
 
