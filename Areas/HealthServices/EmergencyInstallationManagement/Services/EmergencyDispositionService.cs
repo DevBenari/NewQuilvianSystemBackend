@@ -73,12 +73,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
-                var setting = await _dbContext.Set<EmgSetting>()
-                    .AsNoTracking()
-                    .Where(x => x.IsActive && !x.IsDelete)
-                    .OrderByDescending(x => x.IsDefault)
-                    .ThenByDescending(x => x.CreateDateTime)
-                    .FirstOrDefaultAsync(cancellationToken);
+                var setting = await EmergencyVisitService.ResolveActiveSettingAsync(
+                    _dbContext,
+                    cancellationToken);
 
                 if (setting?.RequireRegistrationCompletionBeforeDisposition == true &&
                     visit.RegistrationStatus != EmergencyRegistrationStatus.Completed)
