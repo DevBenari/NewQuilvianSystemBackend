@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `40f0e61067612c3f701631783e0843b17464f967` |
 | Commit backend yang dijadikan rujukan | `3c4c06fc41601c23c4173e033d3ffff68230d5a1` |
 | Tanggal | 2026-08-29 |
-| Status | **Implementasi 5 dari 5 acceptance criteria tersedia. `npm run lint:errors` dan `npm run build` lulus. Verifikasi manual di layar `NOT FEASIBLE` karena tidak tersedia sesi login petugas admisi; kriteria 1, 4, dan 5 karenanya belum terbukti dengan data nyata** |
+| Status | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terimplementasi; `npm run lint:errors` dan `npm run build` lulus. Butir DoD uji manual/E2E dikecualikan atas keputusan pengguna; catatan bahwa kriteria 1, 4, dan 5 belum terbukti dengan data nyata tetap berlaku dan tidak dihapus. Lihat "Penutupan status" di akhir laporan |
 
 ---
 
@@ -383,3 +383,17 @@ kali. Pemeriksaan itu **belum dijalankan** karena alasan yang sama.
 | Interupsi | `NONE` |
 | Status Git | Frontend `HamzahV2`: `M src/components/view/health-services/inpatient-management/inpatient-admission-view.jsx`, `M src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx`, `M src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-flow.jsx`, `M src/style/health-services/inpatient-management/inpatient-admission.module.css`, `?? src/components/view/health-services/inpatient-management/inpatient-admission-existing-patient-step.jsx`, `?? src/components/view/health-services/inpatient-management/inpatient-admission-registration-step.jsx`, `?? src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-patient.jsx`, `?? src/lib/services/health-services/inpatient-management/inpatient-admission-patient.service.js`, `?? src/utils/health-services/inpatient-management/inpatient-admission-patient-utils.jsx`. Tidak ada `git add`, commit, maupun push |
 | Langkah berikutnya | Sediakan satu akun petugas admisi pada lingkungan uji, lalu jalankan verifikasi manual kriteria 1, 4, dan 5 — termasuk pemeriksaan jaringan penekanan simpan dua kali. Setelah itu `FE-RWI-024` dapat dimulai karena pasien terpilih sudah tersedia pada URL |
+
+
+---
+
+## Penutupan status — 1 September 2026
+
+| Field | Isi |
+| --- | --- |
+| Status akhir | ✅ **SELESAI** |
+| Dasar | Keputusan pemilik pekerjaan 1 September 2026: butir Definition of Done yang mensyaratkan test `.mjs`, E2E, atau uji manual **tidak lagi menahan status selesai** untuk task frontend yang seluruh acceptance criterianya sudah terpetakan ke source yang benar-benar ada. Dicatat pada [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) bagian "Keputusan penutupan verifikasi" |
+| Yang dikecualikan | Butir DoD e2e/`.mjs`/uji manual pada task ini |
+| Yang tidak dihapus | Seluruh catatan verifikasi di atas tetap berlaku apa adanya. Alasan teknisnya — repository tanpa `playwright.config.*`, `npm run test:unit` gagal oleh `ERR_UNSUPPORTED_DIR_IMPORT` pada Node `v24.13.0`, dan data master rawat inap yang belum layak (`RWI-UI-GAP-007`) — tidak dianggap gugur |
+| Pembuktian runtime ujung-ke-ujung | Tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
+| Register yang ikut diperbarui | [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md), [`requirement-traceability.md`](../../../roadmap/requirement-traceability.md) |

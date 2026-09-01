@@ -335,3 +335,31 @@ berbunyi "Belum menempati tempat tidur" — bukan tanda hubung yang terbaca sepe
 | Interupsi | Pengguna menghentikan `npm run lint:errors` dan meminta pengujian dilewati. Pekerjaan dilanjutkan dari kondisi terverifikasi terakhir; tidak ada perubahan yang diulang maupun digandakan |
 | Status Git | `M src/lib/state/slice/health-services/inpatient-management/inpatient-management-slice.jsx`<br>`M src/utils/menu-sidebar/menu-items.jsx`<br>`?? src/app/health-services/inpatient-management/episodes/page.jsx`<br>`?? src/components/view/health-services/inpatient-management/inpatient-episode-worklist-view.jsx`<br>`?? src/lib/constants/health-services/inpatient-management/inpatient-episode-worklist-constants.jsx`<br>`?? src/lib/hooks/health-services/inpatient-management/use-inpatient-episode-worklist.jsx`<br>`?? src/utils/health-services/inpatient-management/inpatient-episode-worklist-utils.jsx`<br>`?? tests/e2e/inpatient-episode-worklist.spec.mjs`<br>`?? tests/unit/inpatient-episode-worklist.test.mjs`<br>Tidak ada `git add`, commit, maupun push |
 | Langkah berikutnya | Jalankan `npm run lint:errors`, `npm run build`, lalu e2e ketika pengujian dibuka kembali; sesudah itu putuskan penyelesaian kriteria 2 bersama pemilik Backend/API |
+
+---
+
+## Pemeriksaan ulang status — 1 September 2026
+
+Task ini **tidak** dinaikkan menjadi selesai ketika `FE-RWI-021`, `022`, `023`, `024`, dan `026`
+ditutup pada 1 September 2026. Alasannya berbeda jenis: kelima task itu source-nya lengkap dan
+yang kurang hanya bukti, sedangkan di sini yang kurang adalah source-nya sendiri.
+
+| Yang diperiksa | Hasil |
+| --- | --- |
+| `inpatient-episode-worklist-view.jsx` | Tidak memakai `holdingEpisodeId`, `reservationId`, maupun `reservationExpiresAt` |
+| `use-inpatient-episode-worklist.jsx` | Sama; tidak memanggil `GET /bed-occupancies/bed-board` |
+| `inpatient-episode-worklist-utils.jsx` | Sama |
+| `inpatient-episode-worklist-constants.jsx` | Hanya memuat label status `Sedang disiapkan`; tidak ada kolom pemesanan |
+| Pemakai ketiga field itu di seluruh `src/` | Hanya `use-inpatient-admission-bed.jsx` dan `inpatient-bed-utils.jsx`, keduanya milik `FE-RWI-026` |
+
+Akibatnya kriteria 2 tetap **belum terpenuhi**: baris `Draft` yang masih memegang pemesanan belum
+terbeda dari yang pemesanannya sudah gugur, dan sisa waktunya belum terbaca.
+
+Blocker backendnya sudah gugur — `BE-RWI-036` menyediakan `HoldingEpisodeId`, `ReservationId`,
+dan `ReservationExpiresAt` pada `GET /bed-occupancies/bed-board` lewat kontrak approved
+`RWI-BED-BOARD-RESERVATION-001 1.0.0`. Yang tersisa murni pekerjaan frontend: menggabungkan
+metadata board itu ke baris `Draft` pada daftar kerja.
+
+**Keputusan pengecualian verifikasi 1 September 2026 tidak berlaku untuk task ini**, karena
+pengecualian itu hanya melepas butir DoD e2e/`.mjs`/uji manual, bukan acceptance criteria yang
+source-nya belum ada.

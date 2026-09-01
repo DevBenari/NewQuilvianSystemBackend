@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `133c2390fe6bd6c19bfa2958bd8871185c12b64d`, branch `HamzahV2` |
 | Commit backend yang dijadikan rujukan | `85439d32a884adcde3067304774151b317b058a2`, branch `MHamzah` |
 | Tanggal | 1 September 2026 |
-| Status | **Selesai untuk lingkup source.** Keenam acceptance criteria dipetakan ke bukti implementasi; `npm run lint` `0 errors`, `npm run build` `✓ Compiled successfully`, dan 24 test unit yang menyentuh berkas task ini lulus. **Satu butir DoD belum terpenuhi:** bukti e2e tidak dapat dijalankan karena data master rawat inap pada environment target belum layak — `RWI-UI-GAP-007` dan baris "Kesiapan data master" pada roadmap. Rinciannya di bagian 6 dan 7.1 |
+| Status | ✅ **SELESAI 1 September 2026.** Keenam acceptance criteria dipetakan ke bukti implementasi; `npm run lint` `0 errors`, `npm run build` `✓ Compiled successfully`, dan 24 test unit yang menyentuh berkas task ini lulus. Butir DoD e2e **dikecualikan atas keputusan pengguna 1 September 2026**; alasan teknisnya tetap berlaku dan tidak dihapus — data master rawat inap pada environment target belum layak (`RWI-UI-GAP-007` dan baris "Kesiapan data master" pada roadmap), rinciannya di bagian 6 dan 7.1 |
 
 ---
 
@@ -425,3 +425,17 @@ Working tree kedua repository bersih ketika task dimulai. Tidak ada `git add`, `
 | 3 | Menutup `RWI-UI-GAP-003` dengan operasi baca pemesanan aktif per episode, supaya pemesanan bertahan melewati muat ulang halaman dan `FE-RWI-032` terbuka | Backend/API bersama Product/Domain |
 | 4 | Memutuskan delta penyaring `GET /bed-board` pada bagian 8.1 | Product/Domain bersama Backend/API |
 | 5 | Melanjutkan ke `FE-RWI-027` — Konfirmasi, titik tulis 3 | Frontend |
+
+
+---
+
+## Penutupan status — 1 September 2026
+
+| Field | Isi |
+| --- | --- |
+| Status akhir | ✅ **SELESAI** |
+| Dasar | Keputusan pemilik pekerjaan 1 September 2026: butir Definition of Done yang mensyaratkan test `.mjs`, E2E, atau uji manual **tidak lagi menahan status selesai** untuk task frontend yang seluruh acceptance criterianya sudah terpetakan ke source yang benar-benar ada. Dicatat pada [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) bagian "Keputusan penutupan verifikasi" |
+| Yang dikecualikan | Butir DoD e2e/`.mjs`/uji manual pada task ini |
+| Yang tidak dihapus | Seluruh catatan verifikasi di atas tetap berlaku apa adanya. Alasan teknisnya — repository tanpa `playwright.config.*`, `npm run test:unit` gagal oleh `ERR_UNSUPPORTED_DIR_IMPORT` pada Node `v24.13.0`, dan data master rawat inap yang belum layak (`RWI-UI-GAP-007`) — tidak dianggap gugur |
+| Pembuktian runtime ujung-ke-ujung | Tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
+| Register yang ikut diperbarui | [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md), [`requirement-traceability.md`](../../../roadmap/requirement-traceability.md) |

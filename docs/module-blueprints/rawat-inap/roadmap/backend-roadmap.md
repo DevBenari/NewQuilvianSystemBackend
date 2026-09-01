@@ -24,16 +24,18 @@ input_revisions:
   04-prd-to-mvp.md: 0.4.0
 artifact_hashes:
   blueprint-manifest.md: "a2f5dcf0d78e545701ac1f3616ee42195bd6516bea1e5ecf302af62c502d9892"
-  contracts/api-contract.md: "78d6c380ec1e7ad89c197df23736c484af73a83c4b85e74418d1924272ee3119"
+  contracts/api-contract.md: "30d14bf1b963cd969d8e31b5bd86f1087bd13077323ee1f6e6d1b3253df455dd"
   contracts/state-transition-matrix.md: "35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7"
   contracts/validation-matrix.md: "6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d"
   contracts/permission-audit-matrix.md: "50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b"
   contracts/integration-contract.md: "e6e86731ae4da27f482e6f659336a74cb0d2d9465f6a04e26fa7bcc6ac331fe1"
   contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
+  contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
   - "API 0.4.0"
   - "Encounter company guarantor addendum 1.0.0"
+  - "Bed board reservation metadata addendum 1.0.0"
   - "State transition 0.4.0"
   - "Validation 0.4.0"
   - "Integration 0.4.0"
@@ -48,7 +50,7 @@ current_contract_gap_scan:
   backend: "64d7419415e473968d752d873ca02e1ae1fcded8"
   frontend: "786bd247db47a3b7c97b8c08fb6ec633f57d0c72"
   result: "RWI-UI-GAP-002_CONFIRMED; ADMIN_ROUTE_AND_PERMISSION_CONFIRMED"
-task_count: 35
+task_count: 36
 ```
 
 ---
@@ -914,6 +916,33 @@ Sejak `BE-RWI-035` selesai 31 Agustus 2026, dukungan Penjamin Perusahaan pada ba
 `POST /` dan `POST /kiosk` menolak tipe 3, sehingga wewenang kiosk tidak ikut meluas. Schema
 database dev pemilik sudah diperbarui, sehingga endpoint ini dapat langsung dipakai di sana.
 Database bersama/target masih menunggu penerapan migration yang merupakan wewenang terpisah.
+
+---
+
+### `BE-RWI-036` — Metadata reservasi aktif tersedia pada papan tempat tidur
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Papan tempat tidur mengembalikan identitas episode/pasien pemegang serta ID dan batas waktu reservasi aktif, sehingga konfirmasi pasien masuk dan pemulihan admisi tidak bergantung pada state sesi browser |
+| **Trace** | `RWI-CAP-006` **Wajib**; `FR-RI-105` s.d. `FR-RI-112`; `RWI-DEC-076`; `RWI-UI-GAP-003`; membuka dependency data `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-032`, dan `FE-RWI-036` |
+| **Kontrak** | [`RWI-BED-BOARD-RESERVATION-001` versi `1.0.0`](../contracts/bed-board-reservation-metadata-contract.md), status `APPROVED` oleh Muhammad Hamzah pada 1 September 2026 |
+| **Reuse** | `GET /bed-occupancies/bed-board`, `BedBoardBedResponse`, expiry-on-read `ExpireDueReservationsAsync`, projection penempatan/reservasi pada `InpBedOccupancyService`, serta permission `InpatientBedOccupancy : Read` yang sudah ada |
+| **Scope** | Menambah `HoldingEpisodeId`, `ReservationId`, dan `ReservationExpiresAt` secara nullable pada response bed; mengisi metadata hanya dari penempatan/reservasi aktif yang sah; mempertahankan `HoldingEpisodeNumber`, `PatientName`, counter, route, dan permission existing; test fokus dan dokumentasi. Tidak ada schema/migration, endpoint, frontend, atau perubahan lifecycle |
+| **Dependency** | `BE-RWI-010` sudah selesai. Tidak menunggu task backend lain |
+| **Acceptance criteria** | 1. Bed `Reserved` mengembalikan `ReservationId`, `HoldingEpisodeId`, `HoldingEpisodeNumber`, `PatientName`, dan `ReservationExpiresAt` dari reservasi aktif. 2. Reservasi kedaluwarsa digugurkan oleh perilaku expiry-on-read existing dan tidak mengekspos metadata reservasi. 3. Bed `Occupied` mempertahankan identitas penghuni, tetapi `ReservationId` dan `ReservationExpiresAt` bernilai `null`. 4. Bed tanpa pemegang tidak mengekspos identitas pasien/episode maupun metadata reservasi. 5. Counter dan field response existing tidak berubah makna. 6. Route dan permission tetap; tidak ada migration/database execution |
+| **Verification** | Test fokus keempat keadaan response—reserved, expired, occupied, dan tanpa pemegang—ditambah regresi suite rawat inap, `dotnet build`, serta `dotnet test`; pemeriksaan kontrak controller memastikan route/permission tidak berubah |
+| **Risk/blocker** | Risiko utama adalah reservasi kedaluwarsa tetap tampil atau data reservasi bocor pada bed yang sudah `Occupied`. Kedua cabang dikunci oleh contract invariant dan test. Owner implementasi: Backend/API InPatientManagement; owner keputusan: Product/Domain |
+| **DoD** | Keenam acceptance criteria lulus; kontrak/source/test cocok; build dan test backend hijau; laporan task tracked menyertakan bukti file/symbol/SHA; `RWI-UI-GAP-003` ditandai tertutup untuk kontrak dan source backend |
+| **Approval** | ✅ **APPROVED 1 September 2026** oleh Muhammad Hamzah melalui instruksi eksplisit untuk mencatat roadmap dan mengerjakan `BE-RWI-036` |
+| **Status** | ✅ **SELESAI 1 September 2026.** Keenam acceptance criteria terpenuhi. Test fokus 4/4 dan seluruh suite InPatientManagement 257/257 lulus; project test backend utama 790/790 lulus; build solution 0 error. Project Billing pada run solution memerlukan `QUILVIAN_BILLING_TEST_DB` khusus dan tidak dijalankan terhadap database karena di luar scope/wewenang. Bukti: [laporan](../task/report/backend/BE-RWI-036.md) |
+
+#### Health Services / Inpatient Management / Bed Occupancy
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/bed-board` | Papan ketersediaan beserta identitas pemegang dan metadata reservasi aktif | `InpatientBedOccupancy : Read` | Query `serviceUnitId` nullable | `ApiResponse<BedBoardResponse>`; field bed aditif sesuai `RWI-BED-BOARD-RESERVATION-001 1.0.0` |
 
 ---
 

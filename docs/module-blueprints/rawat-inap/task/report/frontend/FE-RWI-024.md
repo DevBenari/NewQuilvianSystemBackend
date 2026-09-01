@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `baca9650848ded164538ab85405190fafe8785a3` |
 | Commit backend yang dijadikan rujukan | `aa52ca4d13dbb7af737957e758083e2ff47b82a5` |
 | Tanggal | 2026-08-31 |
-| Status | **Implementasi kelima acceptance criteria tersedia; `npm run lint:errors` dan `npm run build` lulus. Test `.mjs`, E2E, dan uji manual tidak menjadi validasi akhir sesuai instruksi pengguna, sehingga DoD yang mewajibkan E2E belum lengkap** |
+| Status | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terimplementasi; `npm run lint:errors` dan `npm run build` lulus. Butir DoD yang mewajibkan test `.mjs`/E2E/uji manual dikecualikan atas keputusan pengguna. Penyaluran payer terpilih ke payload encounter sudah dipenuhi `FE-RWI-025`. Lihat "Penutupan status" di akhir laporan |
 
 ---
 
@@ -184,3 +184,17 @@ Uji manual: `NOT FEASIBLE` — validasi dibatasi pengguna pada lint dan build; s
 | Interupsi | Satu interupsi pengguna; pekerjaan dilanjutkan dengan scope validasi baru: lint dan build saja |
 | Status Git | Frontend: 6 berkas source berubah dan 2 berkas source baru. Backend: laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` berubah. Tidak ada staging/commit/push |
 | Langkah berikutnya | Jika DoD penuh dibutuhkan, jalankan E2E tiga cara bayar pada environment berizin. Setelah itu lanjutkan `FE-RWI-025` untuk meneruskan payer terpilih ke encounter/episode |
+
+
+---
+
+## Penutupan status — 1 September 2026
+
+| Field | Isi |
+| --- | --- |
+| Status akhir | ✅ **SELESAI** |
+| Dasar | Keputusan pemilik pekerjaan 1 September 2026: butir Definition of Done yang mensyaratkan test `.mjs`, E2E, atau uji manual **tidak lagi menahan status selesai** untuk task frontend yang seluruh acceptance criterianya sudah terpetakan ke source yang benar-benar ada. Dicatat pada [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) bagian "Keputusan penutupan verifikasi" |
+| Yang dikecualikan | Butir DoD e2e/`.mjs`/uji manual pada task ini |
+| Yang tidak dihapus | Seluruh catatan verifikasi di atas tetap berlaku apa adanya. Alasan teknisnya — repository tanpa `playwright.config.*`, `npm run test:unit` gagal oleh `ERR_UNSUPPORTED_DIR_IMPORT` pada Node `v24.13.0`, dan data master rawat inap yang belum layak (`RWI-UI-GAP-007`) — tidak dianggap gugur |
+| Pembuktian runtime ujung-ke-ujung | Tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
+| Register yang ikut diperbarui | [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md), [`requirement-traceability.md`](../../../roadmap/requirement-traceability.md) |
