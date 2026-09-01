@@ -20,7 +20,7 @@
 | Commit frontend saat mulai | `e2e74e3f637783bb89f47f62cc16f3e074efe999` |
 | Commit backend rujukan | `4db8909e5c77b06aadf2603bd1617ccdcca093db` |
 | Tanggal | 2026-08-29 |
-| Status | **Implementasi 5/5 kriteria tersedia; verifikasi DoD belum lengkap.** E2E sudah ditulis tetapi tidak dijalankan, dan build dihentikan atas arahan pengguna |
+| Status | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terimplementasi. Butir DoD E2E dikecualikan atas keputusan pengguna; blocker build gugur karena `npm run build` `✓ Compiled successfully` pada `FE-RWI-025` s.d. `029` mengompilasi route beranda ini juga. Riwayat status sebelumnya beserta alasannya tetap tercatat pada bagian 6 dan 7 — lihat "Penutupan status" di akhir laporan |
 
 ---
 
@@ -226,3 +226,17 @@ Perubahan visual yang diterapkan:
 
 Sesuai instruksi pemilik, revisi visual ini tidak mengubah roadmap, skema tampilan, atau
 `requirement-traceability.md`.
+
+
+---
+
+## Penutupan status — 1 September 2026
+
+| Field | Isi |
+| --- | --- |
+| Status akhir | ✅ **SELESAI** |
+| Dasar | Keputusan pemilik pekerjaan 1 September 2026: butir Definition of Done yang mensyaratkan test `.mjs`, E2E, atau uji manual **tidak lagi menahan status selesai** untuk task frontend yang seluruh acceptance criterianya sudah terpetakan ke source yang benar-benar ada. Dicatat pada [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) bagian "Keputusan penutupan verifikasi" |
+| Yang dikecualikan | Butir DoD e2e/`.mjs`/uji manual pada task ini |
+| Yang tidak dihapus | Seluruh catatan verifikasi di atas tetap berlaku apa adanya. Alasan teknisnya — repository tanpa `playwright.config.*`, `npm run test:unit` gagal oleh `ERR_UNSUPPORTED_DIR_IMPORT` pada Node `v24.13.0`, dan data master rawat inap yang belum layak (`RWI-UI-GAP-007`) — tidak dianggap gugur |
+| Pembuktian runtime ujung-ke-ujung | Tetap menjadi milik `FE-RWI-035` dan tidak dihapus dari roadmap |
+| Register yang ikut diperbarui | [`frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md), [`requirement-traceability.md`](../../../roadmap/requirement-traceability.md) |
