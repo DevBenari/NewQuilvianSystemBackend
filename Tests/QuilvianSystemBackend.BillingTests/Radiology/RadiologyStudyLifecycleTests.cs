@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;

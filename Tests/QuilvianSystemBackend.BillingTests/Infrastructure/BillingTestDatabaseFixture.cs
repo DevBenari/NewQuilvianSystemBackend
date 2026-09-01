@@ -410,7 +410,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
             // Ledger fakta klinis (RJ-BIL-BE-002) memiliki FK Restrict ke encounter, sehingga
             // wajib dihapus sebelum encounter-nya.
-            await context.TrxClinicalMilestoneFacts
+            await context.CliClinicalMilestoneFacts
                 .Where(x => x.EncounterId == seed.EncounterId)
                 .ExecuteDeleteAsync(cancellationToken);
 

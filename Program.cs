@@ -19,7 +19,6 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;

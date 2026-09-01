@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
