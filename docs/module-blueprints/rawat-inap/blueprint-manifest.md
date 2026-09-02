@@ -116,8 +116,9 @@ submodules:
     status: draft
     approved_by: null
     approved_at: null
-    contract_versions: 0.0.0
-    catatan: belum dirancang; kepemilikan tabel sudah diputuskan RWI-DEC-081
+    contract_versions: 0.1.0
+    designed_at: 2026-09-02
+    catatan: dirancang, menunggu approval; satu kemampuan CAP-016 OPEN DECISION (RWI-OQ-048)
   - slug: dokter-rawat-inap
     prefix: BE-RWI / FE-RWI
     kemampuan: 7
@@ -132,7 +133,7 @@ submodules:
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
 |---|---|:---:|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | `approved` | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
-| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` | [manifest](./keperawatan/blueprint-manifest.md) |
+| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` — **dirancang 2026-09-02** | [manifest](./keperawatan/blueprint-manifest.md) |
 | [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | `draft` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
