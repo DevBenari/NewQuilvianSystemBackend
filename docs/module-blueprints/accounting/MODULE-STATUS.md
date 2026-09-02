@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `ACC-BP-001` |
 | Module name | `Accounting` |
-| Revision | `7` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-041`; `ACC-PERMISSION` naik `0.1` → `0.2` |
+| Revision | `8` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-042`; `ACC-API` naik `0.1` → `0.2`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
 | Last verified at | `2 September 2026` — `BE-ACC-006` selesai; migration diterapkan owner, `CONTAMINATION GUARD` `CLEAN`, `ACC-DEP-009` **CLOSED** |
@@ -61,14 +61,14 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
-| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`READY`** — `ACC-DEC-041` melepas `ACC-DEP-008` sebagai penghalang; `BE-ACC-007` dapat dimulai atas instruksi owner. Task frontend masih menunggu `ACC-FE-001` |
+| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — `BE-ACC-007` `DONE` 2 September 2026, endpoint pertama berdiri. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — **6/14 task**, `MVP-0` tuntas | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `IN_PROGRESS` — **7/14 `DONE`** | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
 | Task | Status | Bukti |
 |---|---|---|
@@ -78,6 +78,7 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `BE-ACC-004` entity periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-004-entity-periode-akuntansi.md` |
 | `BE-ACC-005` entity jurnal, baris, riwayat, alokator nomor | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-005-entity-jurnal-baris-dan-riwayat-persetujuan.md` |
 | `BE-ACC-006` migration pertama dan data master awal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-006-migration-pertama-dan-data-master-awal.md`; gate dijalankan ulang di `evidence/04-migration-coordination-gate.md` bagian 10 |
+| `BE-ACC-007` API daftar akun | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-007-api-daftar-akun.md`. 8 endpoint, kelima acceptance terbukti **18 test** |
 
 `BE-ACC-001` sampai `BE-ACC-003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`;
 `BE-ACC-005` pada `2b152aa`; migration `BE-ACC-006` pada `f40177a`. Seeder dan test `BE-ACC-006`

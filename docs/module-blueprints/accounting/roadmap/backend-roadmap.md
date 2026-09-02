@@ -4,7 +4,7 @@
 
 ```yaml
 blueprint_id: ACC-BP-001
-blueprint_revision: 7   # naik dari 6 pada 2 Sep 2026 — ACC-DEC-041 menunda penyaringan badan hukum, ACC-PERMISSION naik 0.1 -> 0.2
+blueprint_revision: 8   # naik dari 7 pada 2 Sep 2026 — ACC-DEC-042, ACC-API naik 0.1 -> 0.2
 blueprint_status: approved
 roadmap_revision: 2
 roadmap_status: APPROVED
@@ -12,8 +12,8 @@ approved_by: [Rizki]
 approved_at: 2026-09-01
 source_backend: aa837d784ff51cb2b889cf975ada3a204018f1f5
 source_frontend: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-decision_revision: 1.4
-contracts: [ACC-API-0.1, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.2, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
+decision_revision: 1.5
+contracts: [ACC-API-0.2, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.2, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
 shared_engineering_rules: [QBE-MIG-001, QBE-MIG-002]   # PROPOSED — lihat ../06-shared-migration-coordination-rule.md
 ```
 
@@ -79,7 +79,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
-| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | **`ROADMAP_READY`** — `BE-ACC-007` dapat dimulai | `MVP-0` selesai ✅ |
+| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007` **`DONE`**, sisanya `ROADMAP_READY` | `MVP-0` selesai ✅ |
 | `MVP-2` Buku besar | `BE-ACC-012` | Berantai `MVP-1` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | Berantai `MVP-2` | `MVP-2` selesai |
 
@@ -321,7 +321,35 @@ dan menyisakan snapshot yang tetap salah.
 | Verifikasi | Test integrasi `FR-ACC-001` sampai `005`; `UAT-01`, `UAT-17` |
 | Risiko/pemilik | Owner Backend. Aturan (3) menuntut perhitungan saldo — pastikan menyaring `JournalStatus == Posted` |
 | DoD | Seluruh acceptance terbukti test, `[AccessPermission]` sesuai matriks, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — `BE-ACC-002` membuktikan mekanisme hak badan hukum tidak ada, sehingga butir (5) tidak dapat dipenuhi sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`DONE`** — 2 September 2026. Kelima acceptance terbukti **18 test**, seluruhnya lulus. Laporan: [`../task/report/backend/be-acc-007-api-daftar-akun.md`](../task/report/backend/be-acc-007-api-daftar-akun.md) |
+
+#### Hasil `BE-ACC-007` — dan apa yang masih menggantung
+
+Dibuat 5 berkas (1.127 baris) ditambah 1 baris `AddScoped`: `ChartOfAccountController` 8 endpoint,
+`AccChartOfAccountService`, `ChartOfAccountDtos`, ditambah `AccountingServiceResult` dan
+`AccountingLegalEntityGuard` yang diletakkan di `AccountingManagement/Services/` karena dipakai
+bersama `BE-ACC-008`..`014`. Build 0 error. Nol migration, snapshot tetap 545 tabel.
+
+Sepuluh aturan `ACC-VALIDATION-0.2` bagian 1 ditegakkan di service — bukan di controller — supaya
+`BE-ACC-010` dapat memakai ulang perhitungan saldonya. Penjaga `ACC-DEC-041` (acceptance 5b)
+dipanggil di kedelapan jalur service.
+
+**Kelima acceptance terbukti 18 test, dan dua yang paling berisiko lolos:**
+
+| Butir | Bila salah | Hasil |
+|---|---|---|
+| (3) penyaring `JournalStatus == Posted` | Akun terkunci padahal belum dipakai; build tetap hijau | ✅ `JurnalDraft_TidakMenguncikanAkun` |
+| (5b) penjaga `ACC-DEC-041` | Celah dua buku besar tercampur terbuka **diam-diam** | ✅ Empat jalur menolak `409`, nol baris tertulis |
+
+Dengan (5b) terbukti, syarat yang mengikat `ACC-DEC-041` terpenuhi — bukan sekadar dibangun.
+
+**Satu temuan sampingan dicatat sebagai `ACC-TD-001`:** check constraint
+`CK_AccJournalLine_TepatSatuSisiTerisi` **mustahil dipenuhi di SQLite**, karena EF menyimpan
+`decimal` sebagai TEXT di sana sedangkan di PostgreSQL ia `numeric(18,2)`. Bukan cacat produksi;
+`BE-ACC-010`..`012` akan menabrak hal yang sama.
+
+**Delta kontrak sudah diputuskan owner** lewat **`ACC-DEC-042`**: `AccountCode` dapat diubah
+selama akun belum dipakai jurnal disahkan. `ACC-API` naik `0.1` → `0.2`.
 
 ### `BE-ACC-008` — API jenis jurnal
 

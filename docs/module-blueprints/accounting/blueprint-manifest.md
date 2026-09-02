@@ -5,12 +5,12 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 7
+revision: 8
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-02T19:00:00+07:00
-last_verified_at: 2026-09-02T19:00:00+07:00
+updated_at: 2026-09-02T22:00:00+07:00
+last_verified_at: 2026-09-02T22:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,7 +29,7 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: 0f86e84
+verification_backend_source_sha: d9a5a6e
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
@@ -58,14 +58,14 @@ integration_baseline_note: >
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
-decision_revision: 1.4
+decision_revision: 1.5
 input_revisions:
-  interview_decisions: 5
+  interview_decisions: 6
   capability_map: 2
   requirement_gate: null
   hospital_domain_architecture: null
 contract_versions:
-  api: ACC-API-0.1
+  api: ACC-API-0.2
   state: ACC-STATE-0.1
   validation: ACC-VALIDATION-0.2
   integration: ACC-INTEGRATION-0.2
@@ -85,13 +85,13 @@ cross_module:
   depends_on_finance_contract: null
   open_cross_module_decisions: [ACC-XM-001]
 artifact_hashes:
-  00-interview-decisions.md: 4e9ddc0965ba24fd45255109439b30f364743e61f7bb114a90c5ad71215fa5c4
+  00-interview-decisions.md: e5efe25bb40dc5b52124d7a158781e2690323de1092430f37d70c3c0ea9b716d
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
   03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
   04-prd-to-mvp.md: 1da14a42f09030625641f9769ebd1839773125c4e8b94e36016e363e311ca081
   06-shared-migration-coordination-rule.md: e1111572749627931b81da86c779c472197ab821790a6e5568900068b608d428
-  contracts/api-contract.md: 0937282e651348eed9155564b1a5b13557e38a94a50eb049ce7745e0306243ae
+  contracts/api-contract.md: eb6d025528eb62300418af4779fe899a396264ec172aa8ad3dbccc60e7cd0301
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
   contracts/validation-matrix.md: 1efedc7e1ea53274544f6f7a1d5b92af35e756af1f9dad20f828ff6361e6b09b
   contracts/integration-contract.md: 1c773b03b30a272459de9db436bded581d0593e1897a89e847fdbc023679e094
@@ -99,7 +99,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: bff55978d5fbb9f9eea980c815c43b83af0ebc7593cbc87c2cc4cbcbe1271179
+  roadmap/backend-roadmap.md: a5fd46660b85e5712a69d06e64397527335a203e047a2869f2dbf52cc59e49c6
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
@@ -204,6 +204,57 @@ target, atau menandai task selesai **tidak** menaikkan `revision`. Setiap pembar
 mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
+
+### 2 September 2026 — `ACC-DEC-042` dan `BE-ACC-007` selesai, revisi 7 → 8
+
+Dinaikkan atas keputusan owner. Satu kontrak berubah versi: **`ACC-API-0.1` → `ACC-API-0.2`**.
+
+#### `ACC-DEC-042` — kode akun dapat diubah selama belum dipakai
+
+Menyelesaikan pertentangan yang ditemukan saat `BE-ACC-007`: `ACC-API-0.1` menulis `PUT` hanya
+mengubah "nama, induk, atau keterangan", sedangkan `ACC-VALIDATION-0.2` bagian 1 dan acceptance
+`BE-ACC-007` (4) sama-sama mengandaikan `AccountCode` **dapat** diubah pada keadaan lain. Aturan
+validasi yang melarang sesuatu yang tidak pernah mungkin adalah aturan kosong.
+
+Owner memilih bacaan validation matrix. Deskripsi `PUT` diperbaiki, dan implementasi sudah memakai
+bacaan itu sejak awal — **nol berkas kode berubah** karena keputusan ini.
+
+#### `BE-ACC-007` `DONE`
+
+Delapan endpoint daftar akun, lima berkas (1.127 baris), satu baris `AddScoped`. Kelima acceptance
+terbukti **18 test**; seluruh Accounting kini **42 test**, project `Tests/` **218 test**, nol
+gagal, nol regresi.
+
+Dua butir paling berisiko lolos: penyaring `JournalStatus == Posted` pada acceptance (3), dan
+penjaga `ACC-DEC-041` pada (5b). Dengan (5b) terbukti, syarat yang mengikat `ACC-DEC-041`
+terpenuhi — bukan sekadar dibangun.
+
+#### Register utang teknis dibuka
+
+Atas instruksi owner *"hiraukan blocking agar project bisa selesai, tinggal catat kekurangannya"*,
+dibuat **[UTANG-TEKNIS.md](UTANG-TEKNIS.md)** berisi sembilan butir `ACC-TD-001`..`009`. Dua yang
+berat: `ACC-TD-002` (penyaringan badan hukum, milik Security/Platform) dan `ACC-TD-009` (dua
+keputusan UI yang menahan seluruh frontend — **milik owner sendiri**).
+
+Satu butir baru ditemukan justru karena test dijalankan: **`ACC-TD-001`** — check constraint
+`CK_AccJournalLine_TepatSatuSisiTerisi` mustahil dipenuhi di SQLite karena EF menyimpan `decimal`
+sebagai TEXT di sana. Bukan cacat produksi; migration dan configuration keduanya benar untuk
+PostgreSQL.
+
+#### Yang berubah
+
+| Artefak | Perubahan |
+|---|---|
+| `00-interview-decisions.md` | `ACC-DEC-042` ditambahkan; `interview_decisions` 5 → 6 |
+| `contracts/api-contract.md` | `ACC-API-0.1` → `0.2`; deskripsi `PUT` diperbaiki |
+| `roadmap/backend-roadmap.md` | `BE-ACC-007` → `DONE` |
+| `MODULE-STATUS.md` | 7/14 task `DONE` |
+| `UTANG-TEKNIS.md` | **Baru** — 9 butir |
+| `evidence/07-acc-dep-007-ringkasan-untuk-lead.md` | **Baru** — serah terima satu baris registry |
+
+**Yang TIDAK berubah:** ERD, kamus data, `02-backend-architecture.md`, lima kontrak lain, dan
+`ACC-DEC-001`..`041`. Nol migration, snapshot tetap 545 tabel.
+
 
 ### 2 September 2026 — `ACC-DEC-041`, revisi 6 → 7
 

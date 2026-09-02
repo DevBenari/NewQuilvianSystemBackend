@@ -1,0 +1,175 @@
+# Accounting — Register Utang Teknis
+
+Berkas ini mencatat **apa yang sengaja dilewati agar modul dapat maju**, beserta akibatnya bila
+tidak pernah ditutup. Ia dibuat 2 September 2026 atas instruksi owner: *"hiraukan blocking atau
+acc lead sekalipun agar project ini bisa selesai, tinggal nanti catat kekurangannya saja."*
+
+Register ini **bukan** daftar keluhan dan bukan pengganti keputusan. Ia satu-satunya tempat yang
+menjawab pertanyaan *"apa saja yang belum beres di Accounting"* tanpa harus membaca ulang tujuh
+belas artefak.
+
+| Field | Isi |
+|---|---|
+| Dibuat | 2 September 2026 |
+| Pemilik register | Rizki (owner modul) |
+| Aturan | Satu butir ditutup hanya dengan bukti, bukan dengan pernyataan. Butir yang ditutup **tidak dihapus** — ditandai `CLOSED` beserta buktinya |
+
+## Ringkasan
+
+| ID | Ringkas | Pemilik | Berat | Status |
+|---|---|---|:---:|:---:|
+| `ACC-TD-001` | Check constraint mustahil dipenuhi di SQLite | Owner modul | Rendah | `OPEN` |
+| `ACC-TD-002` | Penyaringan badan hukum per pengguna tidak ada | Security/Platform | **Tinggi** | `OPEN` |
+| `ACC-TD-003` | Gerbang QBE akan menolak saat merge | Lead | Sedang | `OPEN` |
+| `ACC-TD-004` | Seeder jenis jurnal belum punya call site | Owner modul | Sedang | `OPEN` |
+| `ACC-TD-005` | `UAT-15` tidak dapat dijalankan | Owner modul | Rendah | `OPEN` |
+| `ACC-TD-006` | Aturan koordinasi migration belum canonical | Lead | Rendah | `OPEN` |
+| `ACC-TD-007` | Satu test Billing merah sejak merge integration | Owner Billing | Rendah | `OPEN` |
+| `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` |
+| `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
+
+---
+
+## `ACC-TD-001` — Check constraint mustahil dipenuhi di SQLite
+
+**Ditemukan:** `BE-ACC-007`, 2 September 2026, saat test pertama kali menyisipkan `AccJournalLine`.
+
+Di PostgreSQL, `DebitAmount` dan `CreditAmount` bertipe `numeric(18,2)`, sehingga
+`CK_AccJournalLine_TepatSatuSisiTerisi` membandingkan angka dengan angka dan berperilaku benar.
+Di SQLite — yang dipakai `TestDatabase` — EF Core menyimpan `decimal` sebagai **TEXT**. SQLite
+membandingkan lintas tipe menurut urutan tipe, dan nilai TEXT apa pun selalu lebih besar daripada
+angka apa pun. Akibatnya `"CreditAmount" = 0` **selalu salah**, dan constraint itu tidak dapat
+dipenuhi berapa pun nilainya.
+
+| Hal | Keterangan |
+|---|---|
+| **Ini cacat produksi?** | **Bukan.** Migration dan configuration keduanya benar untuk PostgreSQL |
+| Siasat yang dipakai | `ChartOfAccountServiceTests.SisipkanBarisJurnalLewatSqlAsync` menyisipkan baris lewat SQL mentah dengan literal angka, sehingga SQLite menyimpannya sebagai angka |
+| Risikonya | Setiap test berikutnya yang menyisipkan `AccJournalLine` lewat EF akan gagal dengan pesan yang **tidak menyebut** sebabnya — hanya `SQLite Error 19`. Penelusurannya mahal bila sebabnya sudah lupa |
+| Cara menutup | Pindahkan test Accounting ke PostgreSQL sungguhan seperti `QuilvianSystemBackend.BillingTests`, atau sediakan pembantu bersama di `Tests/.../Infrastructure/` supaya siasat itu tidak disalin-tempel |
+| Mengenai | `BE-ACC-010`, `BE-ACC-011`, `BE-ACC-012` — ketiganya akan banyak menyisipkan baris jurnal |
+
+---
+
+## `ACC-TD-002` — Penyaringan badan hukum per pengguna tidak ada
+
+**Sumber:** `ACC-DEP-008`, ditunda oleh `ACC-DEC-041` pada 2 September 2026.
+
+Ini butir **paling berat** di register ini, dan satu-satunya yang berakibat pada data keuangan
+sungguhan.
+
+Endpoint Accounting menerima `LegalEntityId` **dari pengirim permintaan**, bukan dari identitas
+pengguna. Diverifikasi 2 September 2026: 17 controller memakai `[FromQuery]`, **0** klaim badan
+hukum di JWT, **0** `HasQueryFilter` di seluruh repository.
+
+| Hal | Keterangan |
+|---|---|
+| Yang menahan celahnya sekarang | `AccountingLegalEntityGuard` — bila badan hukum aktif lebih dari satu, seluruh endpoint Accounting menolak `409` |
+| Yang **tidak** dijaga | Bila hanya ada satu badan hukum, tidak ada yang perlu dijaga. Penjaga itu memang menutup seluruh risikonya **selama syaratnya dipenuhi** |
+| **Kapan menjadi berbahaya** | Saat seseorang mendaftarkan badan hukum kedua lewat `LegalEntityController` yang sudah ada. Penjaga akan langsung mematikan seluruh modul Accounting — itu memang perilaku yang dikehendaki, tetapi akan terasa seperti kerusakan mendadak bila tidak ada yang tahu sebabnya |
+| Cara menutup | Security/Platform menetapkan model lima lapis pada `05-prerequisite-readiness.md` bagian `ACC-DEP-008` |
+| **Jangan** | Membuat penyaringan sendiri di dalam Accounting. Itu menjadi cara kedua yang berbeda dari platform, dan justru mempersulit penutupan yang benar |
+
+**Yang tetap berlaku dan sudah ditegakkan:** pemisahan data. Kode akun tetap unik per badan hukum,
+dan satu jurnal tetap tidak boleh mencampur dua badan hukum.
+
+---
+
+## `ACC-TD-003` — Gerbang QBE akan menolak saat merge
+
+**Sumber:** `ACC-DEP-007`. **Diabaikan atas instruksi owner** 2 September 2026 agar pekerjaan
+dapat berlanjut.
+
+Registry di `NewQuilvianSystemBackend:docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` berisi
+48 baris dan **nol baris `Acc`**, sedangkan registry canonical di suite skill
+`QuilvianEngineeringSkills` berisi 52 baris dengan `Acc` berstatus `ACTIVE`.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat | Checker QBE — yang sudah hidup kembali lewat PR #72 `b19c01e` — diperkirakan menolak **`QBE-MOD-002 VIOLATION`** atas tujuh entity `Acc*` saat merge ke `QuilvianIntegrationBackend` |
+| Tidak menghalangi | Penulisan kode lokal. Seluruh `BE-ACC-001`..`007` selesai tanpa terhalang ini |
+| **Yang menumpuk** | Setiap task yang selesai menambah isi merge yang kelak tertahan. Saat ini sudah tujuh task |
+| Cara menutup | Pemilik registry menambahkan satu baris di branch integration. Berkas serah terima: `evidence/03-acc-dep-007-governance-propagation.md` dan `evidence/07-acc-dep-007-ringkasan-untuk-lead.md` |
+
+---
+
+## `ACC-TD-004` — Seeder jenis jurnal belum punya call site
+
+**Sumber:** `BE-ACC-006`, keputusan owner 2 September 2026.
+
+`AccountingMasterDataSeeder` sudah ada dan terbukti enam test, tetapi **tidak dipanggil kode
+aplikasi mana pun**, sehingga tabel `AccJournalType` di database **masih kosong**.
+
+| Hal | Keterangan |
+|---|---|
+| Kenapa begitu | `02-backend-architecture.md` bagian 6 melarang pemanggilan seeder di `Program.cs`; dua seeder master lain di repository ini (`EmergencyMasterDataSeeder`, `InpatientMasterDataSeeder`) juga belum punya call site |
+| Akibat | `BE-ACC-010` tidak akan menemukan awalan nomor jurnal, sehingga penomoran jurnal gagal |
+| **Bukan** blocker | `BE-ACC-007`, `BE-ACC-008`, `BE-ACC-009` |
+| Cara menutup | Beri call site di `BE-ACC-008` — endpoint master data jenis jurnal adalah tempat yang wajar |
+
+---
+
+## `ACC-TD-005` — `UAT-15` tidak dapat dijalankan
+
+**Sumber:** `ACC-DEC-041`.
+
+`UAT-15` menguji pembukuan dua badan hukum tidak tercampur. Karena MVP diturunkan menjadi satu
+badan hukum, skenarionya tidak dapat dijalankan pada rilis pertama.
+
+Penegakan yang diujinya — kode akun unik per badan hukum, dan jurnal menolak akun milik badan
+hukum lain — **tetap dibangun dan tetap diuji**, lewat
+`ChartOfAccountServiceTests.KodeAkunSamaPadaBadanHukumBerbeda_Diterima` dan
+`IndukDariBadanHukumBerbeda_Ditolak409`, serta nanti `BE-ACC-010` acceptance (7).
+
+`UAT-15` kembali berlaku begitu `ACC-TD-002` ditutup.
+
+---
+
+## `ACC-TD-006` — Aturan koordinasi migration belum canonical
+
+**Sumber:** `ACC-DEP-005`. `QBE-MIG-001` dan `QBE-MIG-002` masih `PROPOSED`, rumah canonical-nya
+`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` di branch integration.
+
+Tidak lagi mengikat task mana pun — `BE-ACC-006` sudah lewat memakai teks usulannya, persis
+seperti yang diizinkan roadmap. Tetap dicatat karena modul lain yang membuat migration bersama
+tidak punya aturan tertulis yang mengikat.
+
+---
+
+## `ACC-TD-007` — Satu test Billing merah sejak merge integration
+
+`BillingFinalizationServiceTests.NormalFinalizationRequiresFullySettledOutstandingAndSetsInvoiceDate`
+gagal dengan `Expected: "FINAL", Actual: "CLOSED"`.
+
+Dibuktikan **pre-existing** pada 2 September 2026: berkas Accounting dipindahkan keluar, project
+di-build ulang, dan test yang sama gagal identik. Penyebabnya semantik status folio Billing yang
+bergeser lewat merge integration. **Milik owner Billing, bukan Accounting.**
+
+---
+
+## `ACC-TD-008` — 52 test Billing tidak dapat berjalan
+
+Seluruh 52 kegagalan di `Tests/QuilvianSystemBackend.BillingTests` bersebab satu: environment
+variable `QUILVIAN_BILLING_TEST_DB` tidak disetel. Fixture-nya **sengaja** menolak berjalan tanpa
+database test tersendiri, dan daftar penanda terlarangnya memuat `dev`, `shared`, dan `prod`.
+
+Nol test logic dijalankan. **Jangan menyetelnya sembarangan** — fixture itu menerapkan migration
+ke database yang ditunjuk.
+
+---
+
+## `ACC-TD-009` — Dua keputusan UI menahan seluruh frontend
+
+**Pemilik: Rizki.** Ini satu-satunya butir berat yang **berada di dalam wewenang owner sendiri**,
+dan ia menahan sebelas task frontend sekaligus.
+
+| Keputusan | Isi | Pilihan |
+|---|---|---|
+| `ACC-FE-001` | Letak menu Accounting di navigasi | Tiga usulan di `03-frontend-architecture.md` bagian 7 |
+| `ACC-FE-003` | Bentuk layar rincian jurnal | Halaman tersendiri, panel samping, atau modal |
+
+`FE-ACC-001` terhalang `ACC-FE-001` **dan** belum adanya endpoint. Endpoint pertama kini sudah ada
+(`BE-ACC-007`), sehingga tinggal keputusan menu yang menahan.
+
+**Bila tujuannya sampai ke frontend, butir inilah yang paling murah dibuka dan paling besar
+dampaknya.**

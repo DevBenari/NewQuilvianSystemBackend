@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-API-0.1` |
+| `contract_version` | `ACC-API-0.2` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner), owner API backend |
 | `approved_by` / `approved_at` | Belum ada |
@@ -26,7 +26,7 @@ pembuatan, ia bagian dari isi permintaan.
 ## Corporate / Accounting / Master Data / Chart of Account
 
 Base URL: `api/v1/corporate/accounting/master-data/chart-of-accounts`
-Contract version: `ACC-API-0.1` — status `draft`
+Contract version: `ACC-API-0.2` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -35,7 +35,7 @@ Contract version: `ACC-API-0.1` — status `draft`
 | `GET` | `/tree` | Menampilkan akun sebagai susunan induk dan anak untuk satu badan hukum | `ChartOfAccount : Read` | `legalEntityId` pada query | `ApiResponse<List<ChartOfAccountTreeDto>>` |
 | `GET` | `/options` | Daftar ringkas akun yang menerima transaksi dan aktif, untuk isian pilihan pada form jurnal | `ChartOfAccount : Read` | `legalEntityId`, `search` pada query | `ApiResponse<List<ChartOfAccountOptionDto>>` |
 | `POST` | `/` | Menambah akun baru | `ChartOfAccount : Create` | `CreateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
-| `PUT` | `/{id}` | Mengubah nama, induk, atau keterangan akun | `ChartOfAccount : Update` | `UpdateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
+| `PUT` | `/{id}` | Mengubah kode, nama, induk, tingkat, atau keterangan akun. **Kode hanya dapat diubah selama akun belum dipakai jurnal yang disahkan** (`ACC-DEC-042`) | `ChartOfAccount : Update` | `UpdateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
 | `PATCH` | `/{id}/deactivate` | Menonaktifkan akun | `ChartOfAccount : Update` | `DeactivateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
 | `PATCH` | `/{id}/activate` | Mengaktifkan kembali akun | `ChartOfAccount : Update` | — | `ApiResponse<ChartOfAccountDetailDto>` |
 
@@ -52,6 +52,28 @@ Arti kode status bagi pengguna:
   padahal sudah dipakai jurnal yang disahkan; akun hendak dinonaktifkan padahal saldonya belum
   nol.
 
+### `ACC-DEC-042` — kode akun dapat diubah selama belum dipakai
+
+Versi `0.1` menulis `PUT` hanya mengubah "nama, induk, atau keterangan", sehingga tampak seolah
+`AccountCode` tidak pernah dapat diubah. Itu bertentangan dengan dua artefak lain yang sama-sama
+canonical:
+
+| Artefak | Yang dikatakan |
+|---|---|
+| `contracts/validation-matrix.md` bagian 1 | "Kode tidak berubah setelah dipakai — **Ubah** — `AccountCode` diubah padahal sudah ada baris jurnal disahkan" ⇒ `409` |
+| `roadmap/backend-roadmap.md` acceptance `BE-ACC-007` (4) | "Kode akun bertransaksi **gagal diubah**" |
+
+Keduanya hanya punya isi bila kode **dapat** diubah pada keadaan lain. Aturan validasi yang
+melarang sesuatu yang memang tidak pernah mungkin adalah aturan kosong, dan acceptance yang
+mengujinya akan selalu lulus tanpa membuktikan apa pun.
+
+Owner memutuskan mengikuti bacaan validation matrix: **`AccountCode` dapat diubah selama akun
+belum dipakai baris jurnal yang disahkan.** Deskripsi `PUT` di atas diperbaiki mengikuti keputusan
+itu, dan `UpdateChartOfAccountDto` memuat `AccountCode`.
+
+Jurnal `Draft` **tidak** mengunci kode — ia belum menjadi transaksi. Dibuktikan
+`ChartOfAccountServiceTests.JurnalDraft_TidakMenguncikanAkun`.
+
 Endpoint `/options` sengaja hanya mengembalikan akun yang **menerima transaksi dan aktif**.
 Dengan begitu petugas tidak pernah melihat akun induk pada daftar pilihan, dan `ACC-DEC-022`
 terjaga sejak di layar, bukan hanya saat penyimpanan.
@@ -61,7 +83,7 @@ terjaga sejak di layar, bukan hanya saat penyimpanan.
 ## Corporate / Accounting / Master Data / Journal Type
 
 Base URL: `api/v1/corporate/accounting/master-data/journal-types`
-Contract version: `ACC-API-0.1` — status `draft`
+Contract version: `ACC-API-0.2` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -84,7 +106,7 @@ nomornya tidak dapat diubah, karena dipakai langsung oleh proses pembalikan dan 
 ## Corporate / Accounting / Journal Management / Journal
 
 Base URL: `api/v1/corporate/accounting/journals`
-Contract version: `ACC-API-0.1` — status `draft`
+Contract version: `ACC-API-0.2` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -127,7 +149,7 @@ pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 ## Corporate / Accounting / Accounting Period
 
 Base URL: `api/v1/corporate/accounting/periods`
-Contract version: `ACC-API-0.1` — status `draft`
+Contract version: `ACC-API-0.2` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -157,7 +179,7 @@ penyesuaian dan pembalikan yang boleh masuk.
 ## Corporate / Accounting / General Ledger
 
 Base URL: `api/v1/corporate/accounting/general-ledger`
-Contract version: `ACC-API-0.1` — status `draft`
+Contract version: `ACC-API-0.2` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
