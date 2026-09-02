@@ -9,7 +9,7 @@ revision: 8
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-02T07:30:00+07:00
+updated_at: 2026-09-02T08:00:00+07:00
 last_verified_at: null
 backend_source_sha: db08c14dbfb9d6b704e8d0bdfb4fd05e2b52a8cb
 backend_branch: sukmagp
@@ -72,7 +72,8 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: null
+active_roadmap_revision: 1
+roadmap_status: FORWARD-TEST
 supersedes: null
 ```
 

@@ -38,7 +38,7 @@ pada `BD-AGG-04` dan satu kumpulan atribut pada `BD-DOM-13` — sudah tertutup o
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | Penilaian per slice pada `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Dijalankan sampai revisi 3 dan menghasilkan `DOMAIN_ARCHITECTURE_READY` pada `03-domain-architecture.md`. Lima aggregate, dua puluh tiga konsep domain, sembilan bounded context. Seluruh sembilan gap arsitektur sudah tertutup. |
 | `BD-PH-005` | Penyusunan blueprint target | `IN_PROGRESS` | Desain `v1` (`draft`) sudah dihasilkan `design-business-module`: `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, lima `contracts/`, `flowcharts/`, `testing/`. Belum `DONE` — approval owner belum ada. |
-| `BD-PH-006` | Perencanaan delivery | `NOT_STARTED` | Menunggu `BD-PH-005`. |
+| `BD-PH-006` | Perencanaan delivery | `IN_PROGRESS` | Roadmap `FORWARD-TEST/DRAFT` revisi 1 dihasilkan `plan-module-delivery` (`roadmap/00-delivery-plan.md`): P0/P1/Future, seluruh task `BLOCKED` oleh `G1` approval, `G2` `BD-DEP-008`, `G3` `DEF-BD-004`. "Storage Location" ditandai coverage gap (di luar blueprint). |
 | `BD-PH-007` | Implementasi backend | `BLOCKED` | Terhalang `BD-DEP-008`, prefix modul belum terdaftar di registry. |
 | `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Menunggu kontrak API dibekukan. |
 | `BD-PH-009` | Verifikasi kesiapan | `NOT_STARTED` | — |
