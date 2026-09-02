@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -91,7 +91,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             await specimenService.CollectAsync(planned.Specimen.Id, new CollectLabSpecimenRequest());
             await specimenService.ReceiveAsync(planned.Specimen.Id, new ReceiveLabSpecimenRequest());
 
-            var jumlahFakta = await context.TrxClinicalMilestoneFacts
+            var jumlahFakta = await context.CliClinicalMilestoneFacts
                 .CountAsync(x => x.EncounterId == seed.EncounterId);
 
             var jumlahFolio = await context.BilFolios
@@ -206,7 +206,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Null(hasil.Handoff);
             Assert.Equal(LabSpecimenStatus.Rejected, hasil.Specimen.SpecimenStatus);
 
-            var adaFakta = await context.TrxClinicalMilestoneFacts
+            var adaFakta = await context.CliClinicalMilestoneFacts
                 .AnyAsync(x => x.SourceItemId == specimen.Id);
 
             Assert.False(adaFakta);

@@ -25,15 +25,15 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot = Split-Pat
 
 $requiredAuthority = @(
     'AGENTS.md',
-    'agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md',
-    'agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md'
+    'docs/engineering/BACKEND_ENGINEERING_CONTRACT.md',
+    'docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md'
 )
 $implementedRules = @('QBE-ENT-001','QBE-NAM-001','QBE-CFG-001','QBE-CODE-002','QBE-CODE-003','QBE-MOD-002','QBE-SVC-001')
 $root = [IO.Path]::GetFullPath($RepositoryRoot)
 foreach ($authority in $requiredAuthority) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $authority) -PathType Leaf)) { throw "Canonical governance missing: $authority" }
 }
-$contract = Get-Content -Raw -LiteralPath (Join-Path $root 'agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md')
+$contract = Get-Content -Raw -LiteralPath (Join-Path $root 'docs/engineering/BACKEND_ENGINEERING_CONTRACT.md')
 foreach ($rule in $implementedRules) { if ($contract -notmatch [regex]::Escape($rule)) { throw "Canonical contract does not define $rule" } }
 
 function Get-RelativePath([string]$file) {
@@ -82,7 +82,7 @@ function Add-Finding([string]$Rule, [string]$Level, [string]$Applicability, [str
     $script:findings.Add([pscustomobject]@{ RuleId=$Rule; Level=$Level; Applicability=$Applicability; File=$File; Line=$Line; Evidence=$Evidence; Reason=$Reason; RecommendedAction=$Action; Suppressed=$false; ExceptionId=$null })
 }
 function Get-ExceptionRegistryPath {
-    if ([string]::IsNullOrWhiteSpace($ExceptionRegistryPath)) { return Join-Path $root 'agents/rules/engineering/QBE_EXCEPTIONS.json' }
+    if ([string]::IsNullOrWhiteSpace($ExceptionRegistryPath)) { return Join-Path $root 'docs/engineering/QBE_EXCEPTIONS.json' }
     if ([IO.Path]::IsPathRooted($ExceptionRegistryPath)) { return [IO.Path]::GetFullPath($ExceptionRegistryPath) }
     return [IO.Path]::GetFullPath((Join-Path $root $ExceptionRegistryPath))
 }
@@ -159,7 +159,7 @@ function ConvertTo-SemanticToken([string]$value) {
     return ($value -replace '[^A-Za-z0-9]', '').ToLowerInvariant()
 }
 function Get-RegistryOwnershipRows {
-    $registryPath = Join-Path $root 'agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md'
+    $registryPath = Join-Path $root 'docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md'
     $rows = [System.Collections.Generic.List[object]]::new()
     foreach ($line in (Get-Content -LiteralPath $registryPath)) {
         $cells = @($line.Trim() -split '\|' | ForEach-Object { $_.Trim() })

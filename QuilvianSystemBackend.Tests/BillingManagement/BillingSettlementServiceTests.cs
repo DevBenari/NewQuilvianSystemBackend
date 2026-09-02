@@ -718,18 +718,43 @@ public sealed class BillingSettlementServiceTests
         var logger = new LoggerService(
             NullLogger<LoggerService>.Instance,
             new HttpContextAccessor());
+
         var numberSeries = new BillingNumberSeriesService(
             db,
             Options.Create(new BillingInvoiceNumberOptions()),
             Options.Create(new BillingDepositAccountNumberOptions()),
             Options.Create(new BillingCashierShiftNumberOptions()));
-        var cashierShiftService = new CashierShiftService(db, numberSeries, logger);
+
+        var cashierShiftService = new CashierShiftService(
+            db,
+            numberSeries,
+            logger);
+
+
+        // Dependency BillingFinalizationService
+        var chargeSourceAdapter = new ContractBillingChargeSourceAdapter();
+
+
+        var arApHandoffService = new BillingArApHandoffService(
+            db,
+            logger);
+
+
+        var finalizationService = new BillingFinalizationService(
+            db,
+            chargeSourceAdapter,
+            arApHandoffService,
+            logger
+        );
+
+
         return new BillingSettlementService(
             db,
             provider,
             new BillingAllocationService(db, logger),
             cashierShiftService,
             numberSeries,
+            finalizationService,
             logger);
     }
 
