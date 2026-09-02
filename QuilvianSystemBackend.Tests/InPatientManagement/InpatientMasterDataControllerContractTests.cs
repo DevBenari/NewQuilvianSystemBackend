@@ -67,10 +67,10 @@ public sealed class InpatientMasterDataControllerContractTests
     }
 
     [Fact]
-    public void KeduaControllerMenyediakanTepatDelapanEndpoint()
+    public void ControllerMenyediakanVarianSingletonDanSembilanEndpointBaseline()
     {
         Assert.Equal(2, EndpointsOf(typeof(InpatientSettingController)).Count);
-        Assert.Equal(6, EndpointsOf(typeof(InpatientClearanceItemController)).Count);
+        Assert.Equal(9, EndpointsOf(typeof(InpatientClearanceItemController)).Count);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class InpatientMasterDataControllerContractTests
 
         var clearance = EndpointsOf(typeof(InpatientClearanceItemController));
 
-        Assert.Equal(2, clearance.Count(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
+        Assert.Equal(5, clearance.Count(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
         Assert.Single(clearance.Where(x => x.GetCustomAttribute<HttpPostAttribute>() != null));
         Assert.Single(clearance.Where(x => x.GetCustomAttribute<HttpPutAttribute>() != null));
         Assert.Single(clearance.Where(x => x.GetCustomAttribute<HttpPatchAttribute>() != null));
