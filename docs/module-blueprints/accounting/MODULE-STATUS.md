@@ -7,24 +7,34 @@
 | Revision | `6` — dinaikkan 2 September 2026 atas persetujuan owner, karena `ACC-DEP-008` ditemukan |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-004` |
-| Last verified at | `2 September 2026` — `BE-ACC-002` selesai; `ACC-DEP-008` dibuka; akar `ACC-DEP-007` dikoreksi |
+| Last verified at | `2 September 2026` — `BE-ACC-005` selesai; Migration Coordination Gate dijalankan dan **tidak lulus**; `ACC-DEP-009` dibuka |
 | Backend source SHA — **approved** | `aa837d784ff51cb2b889cf975ada3a204018f1f5` (branch `rizkiG`) — baseline dasar approval, **tidak diganti** |
-| Backend source SHA — **verification** | `ca6b7e0ef3af4454cae11709739b1f36657352e2` — tempat verifikasi 2 September 2026 dijalankan |
+| Backend source SHA — **verification** | `2b152aaf2a28550c14b13549b315d2b743e4c039` — tempat verifikasi terakhir dijalankan |
+| Canonical integration baseline | `f90bcbe9a0b18d4f4425a4678a5a39a44356677b` — **`rizkiG` tertinggal 5 migration dan 8 tabel darinya** |
 | Frontend source SHA — **approved** | `31a82c8052a3c59445ae49e6f1ccce2bf717d6c0` (branch `QuilvianIntegrationFrontend`) |
 | Frontend source SHA — **verification** | `5336c4457c8ad77abe5c9d2c134760f34a334f55` — `31a82c8` adalah leluhurnya, fast-forward murni |
 
-**Perbedaan kedua baseline hanya dokumentasi/governance; source aplikasi identik.** Selisih
-`aa837d7..ca6b7e0` adalah 28 berkas, seluruhnya di `docs/module-blueprints/accounting/`, dan nol
-berkas source aplikasi. Baseline approved sengaja **tidak** digeser supaya tidak ada penggantian
-diam-diam atas dasar approval.
+Baseline approved sengaja **tidak** digeser supaya tidak ada penggantian diam-diam atas dasar
+approval. Selisih `aa837d7..2b152aa` seluruhnya pekerjaan Accounting sendiri — nol perubahan modul
+lain, nol sentuhan migration dan snapshot.
+
+**Yang perlu diperhatikan:** baseline verification tertinggal dari canonical integration. Ini
+tidak memengaruhi kode Accounting yang sudah ada, tetapi **menahan `BE-ACC-006`**. Rinciannya di
+`ACC-DEP-009`.
 
 Status `IN_PROGRESS` berarti ada pekerjaan aktif yang sudah diberi wewenang. Rinciannya:
-37 keputusan bisnis tertutup, blueprint target lengkap, dan **dua task backend sudah selesai** —
-`BE-ACC-001` (1 September) dan `BE-ACC-002` (2 September). Pembuatan entity **tidak lagi
-terhalang**: `ACC-DEP-001`, `ACC-DEP-002`, dan `ACC-DEP-006` seluruhnya tertutup.
+40 keputusan bisnis tertutup, blueprint target lengkap, dan **lima task backend selesai** —
+`BE-ACC-001` sampai `BE-ACC-005`. `MVP-0` di sisi entity tuntas.
 
-Yang masih terbuka dua, dan keduanya di luar wewenang owner modul: `ACC-DEP-007` menahan merge ke
-integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
+Tiga hal masih terbuka:
+
+| Dependency | Menahan | Pemilik |
+|---|---|---|
+| `ACC-DEP-009` | `BE-ACC-006` — migration | Owner modul |
+| `ACC-DEP-007` | Merge ke integration | Lead / pemilik registry |
+| `ACC-DEP-008` | `BE-ACC-007` ke atas — endpoint | Security / Platform |
+
+Hanya yang pertama berada di dalam wewenang owner modul.
 
 **FINAL OWNER APPROVAL diberikan Rizki, 1 September 2026**, atas `ACC-BP-001` revisi 5 beserta enam kontrak dan kedua roadmap. Rinciannya beserta batas wewenangnya di [blueprint-manifest.md](blueprint-manifest.md) bagian *Status approval*.
 
@@ -39,7 +49,7 @@ integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
 | `ACC-PH-001` | Penutupan 37 keputusan bisnis | `DONE` — 1 September 2026, bukti pada decision log |
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
-| `ACC-PH-004` | Pembuatan entity dan migration | `IN_PROGRESS` — `BE-ACC-001` dan `BE-ACC-002` `DONE`, `BE-ACC-003` `EXECUTION_READY`. Migration `BE-ACC-006` tetap tertahan Migration Coordination Gate dan `ACC-DEP-005` |
+| `ACC-PH-004` | Pembuatan entity dan migration | `IN_PROGRESS` — sisi entity **tuntas** (`BE-ACC-001`..`005` `DONE`, 7 entity). Migration `BE-ACC-006` tertahan `ACC-DEP-009` dan `ACC-DEP-005`; gate dijalankan 2 Sep 2026 dan tidak lulus |
 | `ACC-PH-005` | Implementasi backend dan frontend MVP | `BLOCKED` oleh `ACC-DEP-008` — endpoint tidak dapat menegakkan penyaringan badan hukum. Task frontend juga menunggu `ACC-FE-001` |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
@@ -56,7 +66,7 @@ integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
 | `BE-ACC-003` entity daftar akun dan jenis jurnal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-003-entity-daftar-akun-dan-jenis-jurnal.md` |
 | `BE-ACC-004` entity periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-004-entity-periode-akuntansi.md` |
 | `BE-ACC-005` entity jurnal, baris, riwayat, alokator nomor | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-005-entity-jurnal-baris-dan-riwayat-persetujuan.md` |
-| `BE-ACC-006` migration pertama dan data master awal | `BLOCKED` | Migration Coordination Gate + `ACC-DEP-005` |
+| `BE-ACC-006` migration pertama dan data master awal | **`BLOCKED`** | Migration Coordination Gate **dijalankan 2 Sep 2026 dan TIDAK LULUS** — `ACC-DEP-009` baseline tertinggal 8 tabel. Bukti: `evidence/04-migration-coordination-gate.md` |
 
 `BE-ACC-001` sampai `BE-ACC-003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`.
 `BE-ACC-005` **belum di-commit**.
@@ -79,7 +89,8 @@ DDL contohnya tidak lagi bertentangan dengan diagram ERD-nya sendiri.
 | --- | --- | --- | --- | --- |
 | ~~`ACC-DEP-002`~~ | ~~Prefix belum terdaftar~~ | — | — | **CLOSED 1 September 2026.** `Acc` terdaftar, Lifecycle `PLANNED` |
 | ~~`ACC-DEP-006`~~ | ~~Lifecycle `PLANNED`~~ | — | — | **CLOSED 1 September 2026** lewat `ACC-DEC-038`. Lifecycle `ACTIVE` |
-| `ACC-DEP-007` | Checker QBE membaca path governance yang tidak ada; gerbang CI mati. **Akar dikoreksi 2 September 2026:** perbaikan `c9692d0` sudah pernah masuk, lalu dibatalkan merge `3d14cac` | Lead | Merge ke integration | Penulisan kode lokal tetap jalan. Perbaikannya lima baris; laporan di `evidence/03-acc-dep-007-governance-propagation.md` |
+| `ACC-DEP-007` | **Separuh selesai.** PR #72 `b19c01e` memulihkan path checker (2 Sep 2026), tetapi registry backend masih nol baris `Acc`. Checker kini hidup dan diperkirakan menolak `QBE-MOD-002` | Lead / pemilik registry | Merge ke integration | Penulisan kode lokal tetap jalan. Perlu satu baris registry; rinciannya di `evidence/04-migration-coordination-gate.md` bagian 8 |
+| `ACC-DEP-009` | **Baseline `rizkiG` tertinggal 5 migration dan 8 tabel** dari `origin/QuilvianIntegrationBackend@f90bcbe` | Owner modul (Rizki) | `BE-ACC-006` saja | Seluruh task lain. Migration tidak boleh dibuat sebelum baseline disegarkan |
 | `ACC-DEP-005` | Aturan koordinasi migration bersama (`QBE-MIG-001`/`002`) belum canonical | Lead | `BE-ACC-006` saja | Seluruh task lain. Gate tetap dijalankan memakai teks usulan di `06-shared-migration-coordination-rule.md` |
 | `ACC-XM-001` | Siapa penerbit kejadian keuangan resmi — `CROSS_MODULE_DECISION_REQUIRED` | Owner Billing + Owner Finance/Yasmin + Rizki | `ACC-PH-006` Phase 2 | **Tidak memblokir MVP.** Bentuk batasnya sudah ditulis di `ACC-XMOD-0.1` |
 | `ACC-DEP-008` | **Legal Entity Authorization Model Availability** — mekanismenya tidak ada. Dibuktikan `BE-ACC-002` pada 2 September 2026, bukan lagi dugaan. Status `OPEN` | **Security / Platform** | `BE-ACC-007` sampai `BE-ACC-014` | `BE-ACC-003` sampai `BE-ACC-005` tetap jalan. Bukti di `evidence/02-legal-entity-authority.md`; kartu dependency di `05-prerequisite-readiness.md` |

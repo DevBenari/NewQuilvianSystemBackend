@@ -29,16 +29,23 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: a4df550c1321bab140e7da43fcef5234ac7824ea
+verification_backend_source_sha: 2b152aaf2a28550c14b13549b315d2b743e4c039
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 sepanjang 2 September 2026, dan tiap
   pergeseran diverifikasi impact scan lebih dahulu. ca6b7e0 menambah 28 berkas dokumentasi
   blueprint saja. e1ee173 adalah commit BE-ACC-001..003 oleh owner. a4df550 adalah commit
-  BE-ACC-004 oleh owner, tepat 8 berkas. Ketiganya nol sentuhan pada Migrations/, ModelSnapshot,
-  Program.cs, tooling/, agents/, .github/, dan modul lain, sehingga seluruh bukti terhadap
-  aa837d7 tetap berlaku. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak
-  relevan untuk task backend.
+  BE-ACC-004 oleh owner, tepat 8 berkas. 2b152aa adalah commit BE-ACC-005 oleh owner, 16 berkas.
+  Keempatnya nol sentuhan pada Migrations/, ModelSnapshot, Program.cs, tooling/, agents/,
+  .github/, dan modul lain, sehingga seluruh bukti terhadap aa837d7 tetap berlaku. Frontend:
+  31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak relevan untuk task backend.
+canonical_integration_baseline: f90bcbe9a0b18d4f4425a4678a5a39a44356677b
+integration_baseline_note: >
+  PERHATIAN. rizkiG@2b152aa tertinggal 5 migration dan 8 tabel dari canonical integration
+  baseline f90bcbe. Snapshot lokal 530 tabel, snapshot integration 538. Ini TIDAK memengaruhi
+  kode Accounting yang sudah ada, tetapi MENAHAN BE-ACC-006: migration yang dibuat dari snapshot
+  basi akan menghapus 8 tabel modul lain, pola kerusakan yang sama dengan ACC-DEP-001. Dilacak
+  sebagai ACC-DEP-009. Bukti: evidence/04-migration-coordination-gate.md.
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
@@ -86,7 +93,7 @@ artifact_hashes:
   roadmap/backend-roadmap.md: 4f4dd68b2c231438274bc019340dccc53ada2b50b1dedc8ca83ef585fd5f67f2
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
-active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006 CLOSED
+active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008, ACC-DEP-009]   # 001, 002, 006 CLOSED
 entity_prefix:
   prefix: Acc
   status: REGISTERED
