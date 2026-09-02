@@ -82,7 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         ///
         /// TIDAK menyimpan. Lihat aturan pemakaian transaksi pada keterangan kelas.
         /// </summary>
-        public async Task<TrxClinicalDocumentIntegrity> RegisterAsync(
+        public async Task<MrcClinicalDocumentIntegrity> RegisterAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             Guid patientId,
@@ -104,7 +104,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             if (sudahAda != null)
                 return sudahAda;
 
-            var keutuhan = new TrxClinicalDocumentIntegrity
+            var keutuhan = new MrcClinicalDocumentIntegrity
             {
                 DocumentKind = documentKind,
                 DocumentId = documentId,
@@ -116,7 +116,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 CreateBy = authorUserId
             };
 
-            await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AddAsync(keutuhan, cancellationToken);
 
             return keutuhan;
@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         ///
         /// Menyimpan sendiri, karena hanya menyentuh satu baris keutuhan.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, TrxClinicalDocumentIntegrity? Integrity)> SignAsync(
+        public async Task<(IntegrityGuardResult Result, MrcClinicalDocumentIntegrity? Integrity)> SignAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             Guid actorUserId,
@@ -261,7 +261,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             while (true)
             {
-                var potongan = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+                var potongan = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                     .Where(x => x.EncounterId == encounterId
                                 && x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft
                                 && !x.IsDelete)
@@ -295,11 +295,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// <summary>
         /// Mengambil baris keutuhan sebuah dokumen, atau null bila belum terdaftar.
         /// </summary>
-        public Task<TrxClinicalDocumentIntegrity?> FindAsync(
+        public Task<MrcClinicalDocumentIntegrity?> FindAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             CancellationToken cancellationToken = default)
-            => _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            => _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .FirstOrDefaultAsync(
                     x => x.DocumentKind == documentKind
                          && x.DocumentId == documentId

@@ -171,6 +171,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool IsForNewborn { get; set; }
 
+        /// <summary>
+        /// ID episode yang sedang memegang tempat tidur melalui penempatan atau reservasi aktif.
+        /// </summary>
+        public Guid? HoldingEpisodeId { get; set; }
+
         /// <summary>Nomor episode yang sedang memegang tempat tidur ini, bila memang ada.</summary>
         public string? HoldingEpisodeNumber { get; set; }
 
@@ -179,6 +184,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// memang berhak melihat census, sehingga nama pasien boleh tampil; isi klinis tidak.
         /// </summary>
         public string? PatientName { get; set; }
+
+        /// <summary>ID reservasi aktif. Kosong bila tempat tidur tidak sedang dipesan.</summary>
+        public Guid? ReservationId { get; set; }
+
+        /// <summary>Batas waktu reservasi aktif. Kosong bila tempat tidur tidak sedang dipesan.</summary>
+        public DateTime? ReservationExpiresAt { get; set; }
     }
 
     /// <summary>Bentuk permintaan memesan tempat tidur untuk satu episode <c>Draft</c>.</summary>

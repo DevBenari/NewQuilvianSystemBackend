@@ -103,7 +103,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         [AccessPermission("ClinicalNoteAddendum", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<TrxClinicalNoteAddendum>()
+            var query = _dbContext.Set<MrcClinicalNoteAddendum>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 

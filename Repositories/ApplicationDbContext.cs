@@ -7,10 +7,10 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
@@ -590,7 +590,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeLine> BilChargeLines { get; set; }
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
-        public DbSet<TrxClinicalMilestoneFact> TrxClinicalMilestoneFacts { get; set; }
+        public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
@@ -675,6 +675,26 @@ namespace QuilvianSystemBackend.Repositories
 
         #endregion
 
+        #region HEALTH SERVICE - Radiology Management
+
+        public DbSet<MstRadModality> MstRadModalities { get; set; }
+
+        public DbSet<MstRadSafetyRequirement> MstRadSafetyRequirements { get; set; }
+
+        public DbSet<MstRadModalitySafetyRule> MstRadModalitySafetyRules { get; set; }
+
+        public DbSet<RadOrder> RadOrders { get; set; }
+
+        public DbSet<RadStudy> RadStudies { get; set; }
+
+        public DbSet<RadStudySafetyCheck> RadStudySafetyChecks { get; set; }
+
+        public DbSet<RadAcquisitionConsumption> RadAcquisitionConsumptions { get; set; }
+
+        public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
+
+        #endregion
+
         #region HEALTH SERVICE - Emergency Installation Management
 
         #region master
@@ -721,10 +741,10 @@ namespace QuilvianSystemBackend.Repositories
         #endregion
 
         #region MEDICAL RECORD MANAGEMENT
-        public DbSet<TrxClinicalDocumentIntegrity> TrxClinicalDocumentIntegrities { get; set; }
-        public DbSet<TrxClinicalNoteAddendum> TrxClinicalNoteAddendums { get; set; }
-        public DbSet<TrxClinicalNoteAuthorDelegation> TrxClinicalNoteAuthorDelegations { get; set; }
-        public DbSet<TrxMedicalRecordAccessLog> TrxMedicalRecordAccessLogs { get; set; }
+        public DbSet<MrcClinicalDocumentIntegrity> MrcClinicalDocumentIntegrities { get; set; }
+        public DbSet<MrcClinicalNoteAddendum> MrcClinicalNoteAddendums { get; set; }
+        public DbSet<MrcClinicalNoteAuthorDelegation> MrcClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
 

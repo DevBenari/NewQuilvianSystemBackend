@@ -173,15 +173,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                                 startDate, endDate, hanyaBelumDitinjau: false,
                                 pageNumber, pageSize);
 
+        /// <summary>
+        /// Antrean akses yang ditandai perlu ditinjau dan belum dinilai siapa pun.
+        ///
+        /// Penyaring waktu dan jenis akses hanya dapat MEMPERSEMPIT antrean, tidak pernah
+        /// melebarkannya: `isFlaggedForReview` dan syarat "belum ditinjau" tetap dipatok di
+        /// sini, bukan dikirim pemanggil. Definisi "perlu ditinjau" adalah aturan privasi
+        /// milik server; begitu ia dapat dipilih lewat kueri, antrean berhenti berarti apa pun.
+        /// </summary>
         [HttpGet("pending-review")]
         [ProducesResponseType(typeof(ApiResponse<ResponseAccessLogPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat antrean akses yang perlu ditinjau", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("MedicalRecordAccessLog", "Read")]
         public Task<IActionResult> GetPendingReview(
+            [FromQuery] MedicalRecordAccessType? accessType = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
-            => AmbilDaftarAsync(null, null, null, isFlaggedForReview: true,
-                                null, null, hanyaBelumDitinjau: true,
+            => AmbilDaftarAsync(null, null, accessType, isFlaggedForReview: true,
+                                startDate, endDate, hanyaBelumDitinjau: true,
                                 pageNumber, pageSize);
 
         [HttpPatch("{id:guid}/mark-reviewed")]
@@ -251,7 +262,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
-            var query = _dbContext.Set<TrxMedicalRecordAccessLog>().AsNoTracking();
+            var query = _dbContext.Set<MrcAccessLog>().AsNoTracking();
 
             if (patientId.HasValue && patientId.Value != Guid.Empty)
                 query = query.Where(x => x.PatientId == patientId.Value);
@@ -297,7 +308,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil, "Daftar jejak akses berhasil diambil."));
         }
 
-        private static MedicalRecordAccessLogResponse ToResponse(TrxMedicalRecordAccessLog x) => new()
+        private static MedicalRecordAccessLogResponse ToResponse(MrcAccessLog x) => new()
         {
             Id = x.Id,
             PatientId = x.PatientId,

@@ -156,7 +156,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 konteks.PatientId, ClinicalDocumentKind.ProgressNote, cppt.Id));
 
             using var konteksBaca = database.CreateContext();
-            var jejak = await konteksBaca.Set<TrxMedicalRecordAccessLog>()
+            var jejak = await konteksBaca.Set<MrcAccessLog>()
                 .AsNoTracking()
                 .Where(x => x.PatientId == konteks.PatientId)
                 .ToListAsync();
@@ -202,7 +202,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             // Ditolak berarti tidak ada baris jejak keberhasilan yang terbentuk.
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+            Assert.Empty(await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
         }
 
         /// <summary>
@@ -547,7 +547,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             await controller.GetFilterMetadata();
 
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+            Assert.Empty(await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
         }
     }
 }

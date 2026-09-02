@@ -52,6 +52,32 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
         }
 
         /// <summary>
+        /// Konteks HTTP tiruan yang membawa identitas satu pengguna beserta peran `SuperAdmin`.
+        ///
+        /// Diperlukan uji yang menyasar perilaku sesudah pemeriksaan kepemilikan data, bukan
+        /// pemeriksaan itu sendiri. Beberapa controller menyaring baris menurut dokter yang
+        /// login, dan penyaringan itu punya uji tersendiri; uji yang menyasar perilaku lain
+        /// memakai konteks ini supaya tidak tersangkut pada penyaringan tersebut.
+        ///
+        /// Perhatikan bahwa ini **tidak** membuktikan apa pun tentang hak akses. Uji yang ingin
+        /// membuktikan penyaringan kepemilikan wajib memakai <see cref="BuatHttpContext"/>.
+        /// </summary>
+        public static DefaultHttpContext BuatHttpContextSuperAdmin(Guid userId)
+        {
+            var identity = new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim("sub", userId.ToString()),
+                new Claim(ClaimTypes.Role, "SuperAdmin")
+            ], authenticationType: "UjiOtomatis");
+
+            return new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            };
+        }
+
+        /// <summary>
         /// Memasang identitas pengguna pada controller yang sedang diuji.
         /// </summary>
         public static TController DenganPengguna<TController>(this TController controller, Guid userId)

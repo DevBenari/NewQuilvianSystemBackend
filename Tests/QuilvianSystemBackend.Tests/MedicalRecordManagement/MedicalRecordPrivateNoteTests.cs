@@ -212,7 +212,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             using var konteksBaca = database.CreateContext();
             var jejak = Assert.Single(
-                await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+                await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
 
             Assert.Equal(MedicalRecordAccessScope.PrivateNote, jejak.AccessScope);
             Assert.Equal(MedicalRecordAccessType.ReasonedAccess, jejak.AccessType);
@@ -341,7 +341,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Contains("tidak memiliki catatan pribadi", ControllerTestHarness.Pesan(hasil)!);
 
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+            Assert.Empty(await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
         }
 
         /// <summary>
@@ -378,7 +378,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             // Pembukaannya tetap tercatat, walaupun tidak ada isi yang dikembalikan.
             using var konteksBaca = database.CreateContext();
             var jejak = Assert.Single(
-                await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+                await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
             Assert.Equal(MedicalRecordAccessScope.PrivateNote, jejak.AccessScope);
         }
 
@@ -437,7 +437,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(StatusCodes.Status400BadRequest, ControllerTestHarness.KodeStatus(hasil));
 
             using var konteksBaca = database.CreateContext();
-            Assert.Empty(await konteksBaca.Set<TrxMedicalRecordAccessLog>().AsNoTracking().ToListAsync());
+            Assert.Empty(await konteksBaca.Set<MrcAccessLog>().AsNoTracking().ToListAsync());
         }
     }
 }

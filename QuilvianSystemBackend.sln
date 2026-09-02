@@ -11,9 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuilvianSystemBackend.BillingTests", "Tests\QuilvianSystemBackend.BillingTests\QuilvianSystemBackend.BillingTests.csproj", "{8606C5C3-E45F-468B-BA01-12E30F7AB9C4}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests (2)", "tests (2)", "{021941DA-29F3-4D71-B00D-AC1602DB712F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuilvianSystemBackend.Tests", "tests\QuilvianSystemBackend.Tests\QuilvianSystemBackend.Tests.csproj", "{159CE09E-721C-4137-93E7-F360AE2C6D1F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuilvianSystemBackend.Tests", "Tests\QuilvianSystemBackend.Tests\QuilvianSystemBackend.Tests.csproj", "{159CE09E-721C-4137-93E7-F360AE2C6D1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -19,11 +19,11 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
@@ -284,6 +284,8 @@ try
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
     builder.Services.AddScoped<LabSpecimenService>();
+    builder.Services.AddScoped<RadOrderService>();
+    builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
@@ -359,6 +361,11 @@ try
     // controller tidak menyentuh ApplicationDbContext langsung.
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
+    // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.

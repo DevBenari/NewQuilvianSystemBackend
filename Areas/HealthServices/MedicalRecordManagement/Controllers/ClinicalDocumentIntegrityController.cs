@@ -125,7 +125,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? encounterId = null)
         {
-            var query = _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var query = _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -248,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             var actorUserId = GetCurrentUserId();
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
-            var query = _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var query = _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.AuthorUserId == actorUserId
                             && x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft
@@ -293,7 +293,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         [AccessPermission("ClinicalDocumentIntegrity", "Read")]
         public async Task<IActionResult> GetByEncounter(Guid encounterId)
         {
-            var daftar = await _dbContext.Set<TrxClinicalDocumentIntegrity>()
+            var daftar = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
                 .Where(x => x.EncounterId == encounterId && !x.IsDelete)
                 .OrderBy(x => x.CreateDateTime)
@@ -310,7 +310,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         }
 
         private async Task<ClinicalDocumentIntegrityResponse> ToResponseAsync(
-            TrxClinicalDocumentIntegrity keutuhan)
+            MrcClinicalDocumentIntegrity keutuhan)
         {
             var namaPenulis = await _dbContext.Set<ApplicationUser>()
                 .AsNoTracking()
