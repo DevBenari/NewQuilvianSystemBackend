@@ -48,12 +48,31 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         }
 
         [Fact]
-        public void BillingSourceContract_MasihMenolakRadiology()
+        public void BillingSourceContract_MenerimaRadiologySetelahBoundaryAda()
         {
-            // RJ-BIL-BE-004 belum dikerjakan. Gerbang kontrak harus tetap menutup Radiology
-            // agar modul yang belum punya boundary tidak dapat membentuk tagihan.
-            Assert.False(BillingSourceContract.IsKnownSourceContext("Radiology"));
-            Assert.False(BillingSourceContract.IsAllowedEffectType("Radiology", "RadiologyCharge"));
+            // Test ini dahulu menuntut sebaliknya. Ia adalah kawat pemicu yang sengaja dipasang
+            // saat RJ-BIL-BE-003: selama Radiology belum punya operational boundary, ia tidak
+            // boleh membentuk tagihan. RJ-BIL-BE-004 membangun boundary itu, sehingga kawatnya
+            // sudah menjalankan tugasnya dan kini menegaskan keadaan yang baru.
+            //
+            // Yang TIDAK berubah adalah gerbangnya sendiri: source context di luar daftar tetap
+            // ditolak, dan effect type yang tidak cocok dengan context-nya tetap ditolak. Lihat
+            // BillingSourceContract_MenolakSourceContextTakDikenal di bawah.
+            Assert.True(BillingSourceContract.IsKnownSourceContext(
+                BillingSourceContract.RadiologySourceContext));
+
+            Assert.True(BillingSourceContract.IsAllowedEffectType(
+                BillingSourceContract.RadiologySourceContext,
+                BillingSourceContract.RadiologyChargeEffectType));
+
+            // Radiology tidak mewarisi kewenangan Laboratory, dan sebaliknya.
+            Assert.False(BillingSourceContract.IsAllowedEffectType(
+                BillingSourceContract.RadiologySourceContext,
+                BillingSourceContract.LaboratoryChargeEffectType));
+
+            Assert.False(BillingSourceContract.IsAllowedEffectType(
+                BillingSourceContract.LaboratorySourceContext,
+                BillingSourceContract.RadiologyChargeEffectType));
         }
 
         [Fact]

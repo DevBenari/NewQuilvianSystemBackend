@@ -1,6 +1,6 @@
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs
+namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
     /// <summary>
     /// Permintaan penerbitan satu fakta klinis ke Billing.

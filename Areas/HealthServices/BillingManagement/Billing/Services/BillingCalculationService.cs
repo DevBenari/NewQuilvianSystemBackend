@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -37,10 +37,47 @@ public sealed class BillingCalculationService
         _loggerService = loggerService;
     }
 
-    public async Task<CalculationResponse> RecalculateAsync(
+    public Task<CalculationResponse> RecalculateAsync(
         Guid invoiceId,
         RecalculateInvoiceRequest request,
         Guid actorUserId,
+        CancellationToken cancellationToken) =>
+        CalculateAsync(invoiceId, request, actorUserId, persist: true, cancellationToken);
+
+    /// <summary>
+    /// Menghitung invoice tanpa menyimpan apa pun: tidak ada baris BilCalculationVersion baru,
+    /// RowVersion invoice tidak berubah, dan tidak ada audit.
+    ///
+    /// Dipakai Menu Pembayaran saat halaman dibuka. Membuka halaman bukan peristiwa bisnis, jadi
+    /// tidak layak melahirkan versi kalkulasi; versi yang tersimpan hanya lahir saat kasir benar-
+    /// benar memulai pembayaran. Angka dari sini murni untuk ditampilkan.
+    /// </summary>
+    public async Task<CalculationResponse> PreviewCalculationAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
+
+        return await CalculateAsync(
+            invoiceId,
+            new RecalculateInvoiceRequest
+            {
+                ExpectedRowVersion = invoice.RowVersion,
+                Reason = "Pratinjau kalkulasi (tidak disimpan).",
+            },
+            actorUserId,
+            persist: false,
+            cancellationToken);
+    }
+
+    private async Task<CalculationResponse> CalculateAsync(
+        Guid invoiceId,
+        RecalculateInvoiceRequest request,
+        Guid actorUserId,
+        bool persist,
         CancellationToken cancellationToken)
     {
         if (request.ExpectedRowVersion == Guid.Empty)
@@ -62,11 +99,11 @@ public sealed class BillingCalculationService
         IDbContextTransaction? transaction = null;
         try
         {
-            if (_dbContext.Database.IsRelational() && _dbContext.Database.CurrentTransaction is null)
+            if (persist && _dbContext.Database.IsRelational() && _dbContext.Database.CurrentTransaction is null)
             {
                 transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
             }
-            if (_dbContext.Database.IsRelational())
+            if (persist && _dbContext.Database.IsRelational())
             {
                 await AcquireLockAsync($"BIL_CALCULATION_{invoiceId:N}", cancellationToken);
                 await AcquireLockAsync($"BIL_ENCOUNTER_{lockContext.EncounterId:N}", cancellationToken);
@@ -74,9 +111,10 @@ public sealed class BillingCalculationService
                     $"BIL_ADMIN_{lockContext.PatientId:N}_{lockedBusinessDate:yyyyMMdd}", cancellationToken);
             }
 
-            var invoice = await _dbContext.BilInvoices
+            var invoiceQuery = _dbContext.BilInvoices
                 .Include(x => x.Items).ThenInclude(x => x.Category)
-                .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
+                .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy);
+            var invoice = await (persist ? invoiceQuery : invoiceQuery.AsNoTracking())
                 .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
             if (invoice.Status != BillingInvoiceStatuses.Open)
@@ -141,13 +179,16 @@ public sealed class BillingCalculationService
             coverageResult.PatientAmount = Money(coverageResult.PatientAmount - patientPromos.TotalAmount);
             var totalDiscount = itemDiscount + patientPromos.TotalAmount;
             var appliedDiscounts = itemResult.Discounts.Concat(patientPromos.Discounts).ToList();
-            foreach (var discount in appliedDiscounts)
+            if (persist)
             {
-                var application = approvedDiscounts.Single(x => x.Id == discount.DiscountApplicationId);
-                if (application.Amount == discount.AppliedAmount) continue;
-                application.Amount = discount.AppliedAmount;
-                application.UpdateDateTime = DateTime.UtcNow;
-                application.UpdateBy = actorUserId;
+                foreach (var discount in appliedDiscounts)
+                {
+                    var application = approvedDiscounts.Single(x => x.Id == discount.DiscountApplicationId);
+                    if (application.Amount == discount.AppliedAmount) continue;
+                    application.Amount = discount.AppliedAmount;
+                    application.UpdateDateTime = DateTime.UtcNow;
+                    application.UpdateBy = actorUserId;
+                }
             }
 
             var breakdown = new CalculationBreakdownResponse
@@ -189,6 +230,14 @@ public sealed class BillingCalculationService
                 .Where(x => x.InvoiceId == invoice.Id && x.VersionNo == previousVersion && !x.IsDelete)
                 .Select(x => (decimal?)(x.PatientAmount + x.PrimaryAmount + x.ExcessAmount + x.UnresolvedCoverageAmount))
                 .FirstOrDefaultAsync(cancellationToken) ?? 0;
+
+            if (!persist)
+            {
+                // Nomor versi dikembalikan apa adanya (versi berjalan), bukan Current + 1: tidak ada
+                // versi baru yang lahir, dan client tidak boleh mengira ada.
+                version.VersionNo = invoice.CurrentCalculationVersion;
+                return MapResponse(version, invoice.RowVersion);
+            }
 
             _dbContext.BilCalculationVersions.Add(version);
             invoice.CurrentCalculationVersion = version.VersionNo;

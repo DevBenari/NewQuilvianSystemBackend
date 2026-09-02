@@ -1,8 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -42,6 +40,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            // RJ-DOC-BE-001, kontrak RJ-DOC-COMPLETION-001@1.0.0 bagian 1.2. Actor selalu berasal
+            // dari authentication context, tidak pernah dari payload. Bila klaimnya tidak dapat
+            // dibaca, GetCurrentUserId mengembalikan Guid.Empty — dan konsultasi yang selesai
+            // tanpa aktor yang dapat ditunjuk bukan audit trail, melainkan lubang audit.
+            // Ditolak di boundary finalisasi, bukan disimpan sebagai aktor kosong.
+            if (actorUserId == Guid.Empty)
+                return ConsultationFinalizationOperationResult.Fail("Aktor penyelesaian konsultasi tidak dapat ditentukan.");
+
             var now = DateTime.UtcNow;
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 

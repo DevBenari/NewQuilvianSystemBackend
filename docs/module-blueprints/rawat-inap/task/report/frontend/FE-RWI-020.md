@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `72531b8a51f7cc358557fff2e4b0ecf86b67065b` |
 | Commit backend yang dijadikan rujukan | `f102020611fc3d605fdef1949a3af23da93e4215` |
 | Tanggal | 2026-08-28 |
-| Status | **Selesai sebagian.** Kriteria 1, 3, 4, dan 5 terpenuhi. Kriteria 2 **belum terpenuhi** karena kontrak backend tidak menyediakan datanya — rinciannya pada bagian 7 dan 8 |
+| Status | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terpenuhi. Kriteria 2 ditutup pada pengerjaan ulang hari ini setelah `BE-RWI-036` membuka kontrak bacanya — rinciannya pada bagian 9. Bagian 1 sampai 8 di bawah adalah riwayat pengerjaan pertama dan sengaja tidak diubah |
 
 ---
 
@@ -335,3 +335,253 @@ berbunyi "Belum menempati tempat tidur" — bukan tanda hubung yang terbaca sepe
 | Interupsi | Pengguna menghentikan `npm run lint:errors` dan meminta pengujian dilewati. Pekerjaan dilanjutkan dari kondisi terverifikasi terakhir; tidak ada perubahan yang diulang maupun digandakan |
 | Status Git | `M src/lib/state/slice/health-services/inpatient-management/inpatient-management-slice.jsx`<br>`M src/utils/menu-sidebar/menu-items.jsx`<br>`?? src/app/health-services/inpatient-management/episodes/page.jsx`<br>`?? src/components/view/health-services/inpatient-management/inpatient-episode-worklist-view.jsx`<br>`?? src/lib/constants/health-services/inpatient-management/inpatient-episode-worklist-constants.jsx`<br>`?? src/lib/hooks/health-services/inpatient-management/use-inpatient-episode-worklist.jsx`<br>`?? src/utils/health-services/inpatient-management/inpatient-episode-worklist-utils.jsx`<br>`?? tests/e2e/inpatient-episode-worklist.spec.mjs`<br>`?? tests/unit/inpatient-episode-worklist.test.mjs`<br>Tidak ada `git add`, commit, maupun push |
 | Langkah berikutnya | Jalankan `npm run lint:errors`, `npm run build`, lalu e2e ketika pengujian dibuka kembali; sesudah itu putuskan penyelesaian kriteria 2 bersama pemilik Backend/API |
+
+---
+
+## 9. Pengerjaan ulang 1 September 2026 — kriteria 2 ditutup
+
+### 9.1 Metadata pengerjaan ulang
+
+| Field | Nilai |
+| --- | --- |
+| Yang dikerjakan | Hanya kriteria 2. Kriteria 1, 3, 4, dan 5 tidak disentuh |
+| Contract version | `RWI-BED-BOARD-RESERVATION-001 1.0.0`, approved, dibuka `BE-RWI-036` |
+| Wewenang UI | `DEV_DISCRETION` untuk urutan kolom dan bentuk penanda, sesuai roadmap. Batas "kelima nilai status wajib dapat dipilih" tidak disentuh |
+| Dependency | `BE-RWI-036` ✅ selesai |
+| Task mode | `FRONTEND` — backend strict read-only, kecuali laporan dan register modul ini |
+| Target tulis | `QuilvianSystemFrontendDev` untuk source; berkas laporan ini beserta roadmap dan `requirement-traceability.md` modul Rawat Inap |
+| Model | Claude Opus 5 |
+| Commit frontend saat dikerjakan | `24011d182` pada branch `HamzahV2` |
+| Commit backend yang dijadikan rujukan | `3a03648` pada branch `MHamzah` |
+| Klasifikasi | `LIGHT` — satu kriteria, empat berkas source, tanpa route baru, tanpa komponen baru |
+
+### 9.2 Kenapa kriteria 2 dulu tertahan, dan apa yang berubah
+
+Pengerjaan pertama menutup empat kriteria dan meninggalkan satu. Alasannya bukan kelalaian:
+`InpatientEpisodeListItemResponse` tidak punya satu pun kolom pemesanan. Kolom `CurrentBedName`
+dan `CurrentRoomName` di sana dibaca dari **penempatan**, dan episode `Draft` menurut definisinya
+belum punya penempatan — kedua kolom itu karena itu selalu kosong untuk baris `Draft`.
+
+`BE-RWI-036` menutup celah itu, bukan pada daftar episode melainkan pada papan tempat tidur.
+`GET /bed-occupancies/bed-board` kini mengirim `HoldingEpisodeId`, `ReservationId`, dan
+`ReservationExpiresAt` pada setiap tempat tidur.
+
+Satu sifat papan itu yang menentukan seluruh rancangan di bawah: **server hanya memuat pemesanan
+ber-status `Active` yang batas waktunya belum lewat.** Dibaca langsung dari
+`InpBedOccupancyService`, penyaringnya `ReservationStatus == Active && ExpiresAt > cutoff`. Jadi
+kehadiran sebuah episode di papan adalah pernyataan server bahwa pemesanannya masih dipegang, dan
+ketidakhadirannya berarti tidak ada pemesanan yang berlaku. Layar tidak perlu — dan tidak boleh —
+menghitung sendiri apakah sebuah pemesanan sudah gugur.
+
+### 9.3 Yang dilihat petugas di layar
+
+Kolom **Lokasi** pada baris berstatus **Sedang disiapkan** kini bercerita dua hal yang sengaja
+dipisah, persis seperti backend memisahkannya:
+
+1. **Baris pertama — di mana pasiennya.** Tetap berbunyi "Belum menempati tempat tidur" untuk
+   episode `Draft`, karena memang belum ada yang ditempati.
+2. **Blok pemesanan — tempat tidur mana yang sedang dipegang.** Sebuah penanda, lalu nama tempat
+   tidur dan kamarnya, lalu sisa waktunya.
+
+Menggabungkan keduanya menjadi satu baris akan membuat tempat tidur yang baru dipesan terbaca
+seperti sudah ditempati pasien, dan itu justru kesalahan yang paling mahal di layar ini.
+
+Ketiga bentuk penanda yang mungkin muncul:
+
+| Penanda | Kapan muncul | Kalimat pendukung |
+| --- | --- | --- |
+| **Memegang pemesanan** | Episode ada di papan dengan `ReservationId` terisi | Nama tempat tidur dan kamar, lalu "Sisa sekitar 12 menit." Di bawah satu menit berbunyi "Sisa kurang dari 1 menit." |
+| **Tanpa pemesanan aktif** | Episode tidak ada di papan | "Tidak sedang memegang tempat tidur mana pun." |
+| **Pemesanan tidak terbaca** | Papannya sendiri gagal dibaca | "Papan tempat tidur tidak dapat dibaca dari sini." |
+
+Contoh konkretnya: episode `RWI-2026-000009` yang ditinggal petugas sesudah memesan Bed 07 akan
+tampil sebagai baris **Sedang disiapkan** dengan penanda **Memegang pemesanan**, keterangan
+"Bed 07 — Melati 2", dan "Sisa sekitar 12 menit." Episode yang ditinggal lebih awal, sebelum
+langkah tempat tidur, tampil dengan penanda **Tanpa pemesanan aktif** tanpa nama tempat tidur.
+Keduanya karena itu **terbeda** pada pandangan pertama, dan itulah yang diminta kriteria 2.
+
+### 9.4 Satu hal yang sengaja TIDAK dikatakan layar
+
+Kriteria 2 menuliskan pembandingnya sebagai "pemesanannya sudah gugur". Layar ini **tidak** memakai
+kata itu, dan pilihan itu disengaja.
+
+Kontrak baca hari ini tidak dapat membedakan dua keadaan yang berbeda:
+
+- episode yang **pernah** memesan tempat tidur lalu pemesanannya lewat batas waktu; dan
+- episode yang **belum pernah** memesan apa pun, misalnya karena ditinggal pada langkah Dokter.
+
+Keduanya sama-sama tidak muncul di papan. Tidak ada endpoint yang menyebutkan pemesanan yang sudah
+lewat untuk satu episode — controller `bed-occupancies` hanya punya
+`placements/by-episode/{episodeId}` untuk penempatan, dan DTO episode tidak memuat kolom pemesanan
+sama sekali. Menulis "pemesanan sudah gugur" pada baris yang sebenarnya belum pernah memesan
+berarti memberi tahu petugas sesuatu yang tidak diketahui server.
+
+Karena itu kalimatnya dibuat benar untuk kedua keadaan: "Tidak sedang memegang tempat tidur mana
+pun." Sebuah test khusus menjaga agar kata "gugur", "kedaluwarsa", dan "habis" tidak pernah masuk
+ke kalimat itu di kemudian hari.
+
+Pembedaan tiga arah yang sesungguhnya adalah kebutuhan `FE-RWI-032` kriteria 3, dan itu memerlukan
+kontrak baca backend yang belum ada. Rinciannya pada bagian 9.12.
+
+### 9.5 Jalur tidak normal
+
+| Keadaan | Yang terjadi di layar |
+| --- | --- |
+| Halaman tidak memuat satu pun baris `Draft` | Papan **tidak diminta sama sekali**. Tidak ada permintaan jaringan yang sia-sia |
+| Papan ditolak `403` | Daftar episode tetap tampil utuh. Sebuah pemberitahuan kuning muncul di atas penyaring, dan setiap baris `Draft` memakai penanda **Pemesanan tidak terbaca** |
+| Papan gagal karena jaringan | Sama seperti di atas. Tombol **Coba Lagi** yang sudah ada ikut membaca ulang papan |
+| Papan menjawab kosong atau bentuknya tidak dikenali | Indeks pemesanan kosong, layar tidak jatuh, baris `Draft` memakai penanda **Tanpa pemesanan aktif** |
+| Batas waktu terlewati selagi layar terbuka | Penanda **tetap** Memegang pemesanan, dan kalimatnya berubah menjadi "Batas waktunya sudah lewat menurut jam peramban; muat ulang untuk keadaan terbaru." Layar tidak memutuskan sendiri pemesanan itu gugur |
+| Satu episode disebut memegang lebih dari satu tempat tidur | Yang pertama dipakai, sisanya diabaikan. `FR-RI-107` menetapkan satu pemesanan aktif per episode; menggabungkannya akan mengarang keadaan yang tidak ada aturannya |
+
+Perlu ditegaskan: kegagalan membaca papan **tidak** menggagalkan daftar. Papan dijaga izin
+`InpatientBedOccupancy : Read` yang terpisah dari `InpatientEpisode : Read` milik daftar ini,
+sehingga kasir yang boleh membaca daftar tetapi tidak boleh membaca papan tetap dapat bekerja.
+
+### 9.6 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/constants/health-services/inpatient-management/inpatient-episode-worklist-constants.jsx` | Menambah `EPISODE_RESERVATION_DESCRIPTIONS` berisi ketiga bentuk penanda, kalimat pemberitahuan papan gagal, dan selang pembacaan ulang `EPISODE_WORKLIST_RESERVATION_TICK_MS` |
+| `src/utils/health-services/inpatient-management/inpatient-episode-worklist-utils.jsx` | Menambah empat fungsi murni: `buildEpisodeReservationIndex`, `describeEpisodeReservation`, `describeReservationRemaining`, dan `collectDraftEpisodeIds` |
+| `src/lib/hooks/health-services/inpatient-management/use-inpatient-episode-worklist.jsx` | Membaca papan ketika halaman memuat baris `Draft`, menandai kegagalannya tanpa menjatuhkan daftar, dan membaca ulang sisa waktu tiap setengah menit |
+| `src/components/view/health-services/inpatient-management/inpatient-episode-worklist-view.jsx` | Kolom Lokasi menampilkan blok pemesanan; pemberitahuan kuning ketika papan tidak terbaca |
+| `tests/unit/inpatient-episode-worklist.test.mjs` | Sepuluh test kriteria 2 |
+
+### 9.7 Kepatuhan arsitektur dan gerbang base component
+
+Alur dependensinya tetap `view → hook → service → InstanceAxios`. Perhitungan dan penerjemahan
+kalimat berada di `utils` sebagai fungsi murni, kalimat baku di `constants`, dan pembacaan API di
+`hook`. Tidak ada route, package, base component, Redux slice, atau abstraksi baru. Papan dibaca
+memakai `bedOccupancyService` yang sudah ada, bukan Axios instance baru.
+
+`UI GATE: PASS` — empat elemen, seluruhnya `REUSE`, tidak ada `NEW` maupun `EXTEND`:
+
+| Kebutuhan UI | Kandidat base | Bukti | Status |
+| --- | --- | --- | --- |
+| Penanda keadaan pemesanan | `StatusBadge` | `base-features/status-badge.jsx`, sudah dipakai kolom Status pada view yang sama | `REUSE` |
+| Nama tempat tidur dan sisa waktu | teks sekunder `small text-secondary` | pola yang sama sudah dipakai empat kali pada view ini | `REUSE` |
+| Pemberitahuan papan tidak terbaca | `InformationAlert` | sudah di-import view ini untuk `loadError`; `variant="warning"` didukung | `REUSE` |
+| Hitungan sisa waktu | `getReservationRemainingMs` | `inpatient-bed-utils.jsx`, dipakai ulang dari `FE-RWI-026` alih-alih ditulis kedua kali | `REUSE` |
+
+Satu catatan kejujuran: kalimat sisa waktu untuk daftar ditulis terpisah dari
+`formatReservationCountdown` milik langkah pemesanan. Yang dipakai ulang adalah perhitungan
+milidetiknya; yang berbeda hanya bulatannya — menit di daftar, detik di langkah pemesanan. Daftar
+membaca ulang tiap setengah menit, dan menampilkan detik yang hanya berubah tiap tiga puluh detik
+akan terbaca seperti jam yang macet.
+
+### 9.8 Endpoint yang dikonsumsi
+
+#### Health Services / Inpatient Management / Bed Occupancy
+
+| Method | Path | Dipakai untuk | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/v1/health-services/inpatient-management/bed-occupancies/bed-board` | Mengetahui episode `Draft` mana yang masih memegang pemesanan, tempat tidurnya, dan batas waktunya | `InpatientBedOccupancy : Read` |
+
+Endpoint ini **sudah ada** sebelum task ini dan tidak berubah. Yang baru hanya pemakaiannya dari
+layar daftar kerja. Papan dibaca **tanpa penyaring**: penyaring daftar milik episode, sedangkan
+yang dicari di sini adalah tempat tidur mana pun yang sedang dipegang episode pada halaman ini,
+dan keduanya tidak selalu berada di unit layanan yang sama.
+
+Tidak ada endpoint tulis yang dipanggil pada pengerjaan ulang ini.
+
+### 9.9 State yang ditangani di layar
+
+| State | Yang dilihat pengguna |
+| --- | --- |
+| Memuat | Tidak berubah — `DataTable` menampilkan "Mengambil daftar kerja episode...". Papan dibaca terpisah dan tidak menahan tampilnya daftar |
+| Kosong | Tidak berubah — kalimat "Tidak ada episode yang cocok dengan penyaring ini." Halaman tanpa baris `Draft` tidak meminta papan sama sekali |
+| Gagal | Kegagalan daftar tetap memakai pesan server apa adanya beserta tombol **Coba Lagi**. Kegagalan papan ditampilkan terpisah sebagai pemberitahuan kuning dan tidak menutup daftarnya |
+| Tanpa hak akses | Penolakan pada daftar tetap ditangani `AccessDeniedGate`. Penolakan pada papan **tidak** memicu gerbang itu, melainkan hanya membuat kolom pemesanan mengaku tidak tahu |
+
+### 9.10 Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `npm run lint:errors` | Selesai tanpa keluaran | `PASS` | Keluaran perintah |
+| `npm run lint` | `571 problems (0 errors, 571 warnings)` — **sama persis** dengan garis dasar, dan **nol** warning pada keempat berkas task ini | `PASS` | Keluaran perintah |
+| `npm run build` | `✓ Compiled successfully in 38.2s`; route `/health-services/inpatient-management/episodes` terdaftar; `postbuild` selesai | `PASS` | Keluaran perintah |
+| Enam grep anti-regresi UI | Nol tombol non-base, nol `<table>` mentah, nol nilai visual literal, nol `!important`. Satu-satunya hit `fw-semibold` adalah komentar lama yang justru melarangnya | `PASS` | Keluaran grep |
+| Uji manual di peramban | Tidak dijalankan | `NOT REQUIRED` | Pemilik pekerjaan menyatakan cukup bukti source, tanpa uji manual |
+| Test `.mjs` sebagai gerbang selesai | Tidak dijadikan gerbang | `NOT REQUIRED` | Pemilik pekerjaan menyatakan tidak perlu pengujian `.mjs` |
+
+Uji manual: `NOT REQUIRED`.
+
+**Percobaan build yang pertama gagal, dan sebabnya bukan kode.** `npm run build` berhenti dengan
+`EBUSY: resource busy or locked, rmdir '.next\standalone'` karena aplikasi Quilvian sedang berjalan
+dari folder itu. Sesudah pemilik pekerjaan menyetujui penghentian server standalone dan server
+`dev`, build diulang dan lulus. Kegagalan pertama itu diklasifikasikan
+`EXISTING / ENVIRONMENT ISSUE`, bukan `NEW ERROR`.
+
+**Peringatan yang sempat muncul dan sudah ditutup.** Rancangan pertama mengosongkan indeks
+pemesanan lewat `setState` langsung di dalam badan effect. ESLint menandainya sebagai warning baru
+— jumlah warning naik dari 571 menjadi 572, dan tambahannya memang milik berkas task ini.
+Perbaikannya bukan mematikan aturan melainkan mengubah rancangannya: nilai kosong kini
+**diturunkan** saat render, bukan disimpan sebagai state kedua lalu dibersihkan. Sesudah itu
+jumlah warning kembali ke 571 dengan nol warning pada berkas task ini.
+
+**Yang sempat dijalankan sebelum arahan pengguna diterima.** Sebelum pemilik pekerjaan menyatakan
+pengujian `.mjs` tidak diperlukan, sepuluh test kriteria 2 sudah terlanjur ditulis dan dijalankan
+dengan hasil `23/23 PASS` pada berkas `tests/unit/inpatient-episode-worklist.test.mjs`, serta
+`35/35 PASS` ketika dijalankan bersama `inpatient-bed-board.test.mjs` dan
+`inpatient-episode-detail.test.mjs`. Test itu **tidak dihapus** karena sudah ada dan lulus, tetapi
+juga **tidak dijadikan gerbang selesai**. Angka di atas dicatat sebagai riwayat, bukan sebagai
+klaim pemenuhan Definition of Done.
+
+**Tidak dijalankan:** `npm run test:e2e` dan `npm run test:uat`. Repository tidak memiliki
+`playwright.config.*`, dan pemilik pekerjaan menyatakan pengujian tidak diperlukan.
+
+### 9.11 Acceptance criteria sesudah pengerjaan ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| 1. Kelima nilai status episode dapat disaring, termasuk `Draft`, `Cancelled`, dan `Closed` | **Terpenuhi** | Tidak disentuh pengerjaan ulang ini; bukti pada bagian 7 |
+| 2. Baris `Draft` yang masih memegang pemesanan tempat tidur terbeda dari yang pemesanannya sudah gugur, dan sisa waktunya terbaca | **Terpenuhi** | `buildEpisodeReservationIndex` membaca `HoldingEpisodeId`, `ReservationId`, dan `ReservationExpiresAt` dari papan; `describeEpisodeReservation` menghasilkan penanda **Memegang pemesanan** beserta nama tempat tidur dan sisa waktunya, terbeda dari **Tanpa pemesanan aktif**. Batasan istilah "gugur" dijelaskan pada bagian 9.4 |
+| 3. Setiap baris membuka detail episode | **Terpenuhi** | Tidak disentuh pengerjaan ulang ini; bukti pada bagian 7 |
+| 4. Kolom sensitif — diagnosis, catatan episode, keterangan isolasi — tidak muncul | **Terpenuhi** | Tidak disentuh. Papan hanya dibaca untuk `bedName`, `roomName`, `reservationId`, `holdingEpisodeId`, dan `reservationExpiresAt`; tidak ada kolom klinis yang diambil darinya |
+| 5. Keempat keadaan daftar bagian 5.1 terpenuhi | **Terpenuhi** | Tidak disentuh; keadaan baru "papan tidak terbaca" ditambahkan tanpa mengubah keempat keadaan lama |
+
+Definition of Done roadmap: "Kelima kriteria lulus; e2e ada dan lulus; laporan menyebut endpoint
+mana yang berhenti menganggur."
+
+- Kelima kriteria lulus — **terpenuhi**.
+- Endpoint yang berhenti menganggur — **terpenuhi**, disebut pada bagian 9.8:
+  `GET /bed-occupancies/bed-board` kini dipanggil layar daftar kerja, bukan hanya papan tempat
+  tidur dan langkah pemesanan.
+- E2E ada dan lulus — **dikecualikan atas keputusan pengguna 1 September 2026**, sejalan dengan
+  bagian "Keputusan penutupan verifikasi" pada roadmap.
+
+### 9.12 Catatan penutup pengerjaan ulang
+
+| Hal | Isi |
+| --- | --- |
+| Peringatan | Satu warning ESLint sempat muncul akibat `setState` sinkron di dalam effect, lalu ditutup dengan mengubah rancangan menjadi nilai turunan. Jumlah warning kembali ke garis dasar 571 |
+| Masalah yang diketahui | Layar tidak dapat membedakan pemesanan yang sudah lewat batas dari yang tidak pernah dibuat, karena kontrak baca backend tidak menyediakannya. Dijelaskan pada bagian 9.4 dan dibiarkan apa adanya, bukan ditutup dengan tebakan |
+| Dependency backend | `BE-RWI-036` ✅ selesai dan dipakai. Untuk `FE-RWI-032` kriteria 3 masih dibutuhkan kontrak baca pemesanan per episode yang **belum ada** — lihat bagian 9.13 |
+| Perubahan sampingan | `NONE` |
+| Interupsi | Tiga arahan pengguna diterima di tengah pekerjaan: pengujian `.mjs` tidak diperlukan, uji manual tidak diperlukan, dan persetujuan menghentikan server yang mengunci folder build. Ketiganya diterapkan tanpa membatalkan pekerjaan yang sudah berjalan |
+| Status Git frontend | `git status --short` kosong. Pemilik repository melakukan commit sendiri pada 11:50:59 sebagai `24011d182`, memuat kelima berkas task ini. Agent tidak melakukan stage, commit, push, pull, merge, rebase, maupun deploy |
+| Status Git backend | Hanya berkas laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` modul Rawat Inap yang disentuh. Tidak ada source backend yang diubah |
+| Langkah berikutnya | `FE-RWI-032` dapat dimulai; indeks pemesanan yang dibangun task ini dapat dipakai ulang untuk memutuskan langkah mana yang dilanjutkan |
+
+### 9.13 Temuan yang dilaporkan, bukan diperbaiki
+
+Dua hal ditemukan selama pengerjaan dan sengaja **tidak** diperbaiki karena berada di luar cakupan
+task ini.
+
+**Pertama — celah kontrak backend untuk `FE-RWI-032`.** Kriteria 3 task itu menuntut layar
+membedakan pemesanan yang sudah gugur dari yang tidak pernah ada, dan roadmap menegaskan sumbernya
+harus jawaban server. Hari ini tidak ada endpoint yang dapat menjawabnya:
+`GET /bed-occupancies/bed-board` sudah menyaring keluar pemesanan yang lewat batas, tidak ada
+`reservations/by-episode/{episodeId}`, dan `InpatientEpisodeDetailResponse` tidak memuat kolom
+pemesanan. Sesuai batas keselamatan lintas repository, temuan ini dilaporkan dan tidak diperbaiki
+diam-diam dari sisi frontend. Yang dibutuhkan adalah satu kontrak baca yang menyebutkan pemesanan
+terakhir sebuah episode beserta status akhirnya.
+
+**Kedua — selisih antara register dan source untuk `FE-RWI-031`.** Roadmap menyatakan task
+pembatalan admisi ⬜ belum dikerjakan, tetapi source pada commit `3e14079d6` sudah memuat
+`handleCancelAdmission`, `resolveAdmissionCancellationAuthority`, pemanggilan
+`PATCH /episodes/{id}/cancel`, dialog konfirmasi beralasan, dan berkas
+`tests/e2e/inpatient-admission-cancellation.spec.mjs`. Status registernya karena itu kemungkinan
+besar tertinggal dari kenyataan source. Tidak diubah di sini karena bukan task ini yang
+mengerjakannya dan acceptance criteria-nya belum ditelusuri satu per satu.
