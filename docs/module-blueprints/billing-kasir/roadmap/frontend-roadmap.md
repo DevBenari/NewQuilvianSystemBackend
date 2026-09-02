@@ -176,3 +176,66 @@ governance_dependency: BKC-BLK-FE-001
 
 Setelah API tersedia, `FE-BKC-001` dan `002` dapat paralel. `003`/`004` memakai detail invoice; `005`/`007` boleh paralel; `006` menunggu payment dan shift cash. `008` terpisah dari `009`, kemudian `010` terakhir. Tidak ada FE task yang boleh mengubah rumus atau status backend.
 
+## Amendment 2 September 2026 — Form "Buat Invoice Manual (Testing)" berbasis katalog tarif + coverage
+
+```yaml
+input_blueprint_revision: 0.5
+input_blueprint_status: approved
+approved_by: Product/Domain Owner (2 September 2026 13:53 WIB)
+source_frontend_at_design: 60febdcdbb39de6cebc2d825906bce949f3b5af3
+contracts: [BIL-API-0.4 (amendment 2 Sep 2026), BIL-PERMISSION-0.4 (amendment)]
+```
+
+**Catatan status `BKC-BLK-FE-001`**: blocker ini tercatat sejak roadmap `0.4` sebagai "root `AGENTS.md` frontend belum ditemukan". Pada sesi desain amendment ini (2 September 2026), `QuilvianSystemFrontendDev/AGENTS.md` **sudah ditemukan dan terbaca** — governance frontend tampak sudah tersedia. Ini **kemungkinan** membuat blocker tersebut resolved, tetapi belum diverifikasi ulang secara formal terhadap seluruh task lama (`FE-BKC-001`–`013`) pada roadmap ini. Builder task baru di bawah tetap **wajib** memverifikasi keberadaan/isi `AGENTS.md` frontend saat mulai eksekusi, bukan mengasumsikan otomatis clear dari catatan ini.
+
+Tiga task baru (`FE-BKC-014`–`016`) mengoperasikan `BKC-DEC-059`–`062`. Detail desain lengkap: [`03-frontend-architecture.md`](../03-frontend-architecture.md#amendment-2-september-2026--form-buat-invoice-manual-testing-berbasis-katalog-tarif--coverage), [`04-prd-to-mvp.md`](../04-prd-to-mvp.md).
+
+## `FE-BKC-014` — Dropdown tarif dan harga read-only pada form testing (pasien tunai)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir/penguji memilih item dari katalog tarif resmi; harga terisi otomatis, tidak dapat diketik manual |
+| Trace | `BKC-DEC-059`,`061`; `FR-BKC-001`,`002`,`004`; `UAT-01`,`02` (`04-prd-to-mvp.md`) |
+| Kontrak | `POST catalog-charges` (API amendment); `GET Tariff/options` (existing, reuse) |
+| Reuse | `getTariffOptions`/`selectTariffOptions` (`master-data-tariff-slice.jsx`, `CAP-02` Ready to reuse); pola serverSide-searchable `BaseSelectField` yang sudah dipakai field `encounterId` pada form yang sama |
+| Scope | Ganti field "Nama Item/Layanan" (text bebas) jadi dropdown searchable terfilter kategori+`ServiceUnitId`/`ClinicId`/`PatientClassId` encounter; ganti field "Harga (Rp)" jadi teks read-only terisi `NormalPrice`; thunk `addCatalogCharge` baru (`billing-invoice-slice.jsx`); ganti submit `use-create-manual-invoice.js` ke thunk baru |
+| Dependency | `BE-BKC-018`,`019`; `BKC-BLK-FE-001` — lihat catatan status di atas, verifikasi ulang wajib sebelum eksekusi |
+| Acceptance | `UAT-01`,`02`; disambiguasi multi-baris tarif nama sama tampil berlabel scope (`BKC-DEC-061`) |
+| Verifikasi | Component test dropdown filter+search; test submit tanpa field harga; lint/build |
+| Risiko/pemilik | Kasir salah pilih baris tarif berscoping mirip. Owner Frontend/Billing |
+| DoD | Field harga tidak punya `onChange`; tests/lint/build lulus; tidak ada field harga di request payload (structural, `BIL-VAL-026`) |
+
+## `FE-BKC-015` — Badge coverage dan disclaimer pada form testing (pasien asuransi)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir/penguji melihat status coverage per tarif sebelum memilih, dengan disclaimer bahwa ini perkiraan |
+| Trace | `BKC-DEC-060`; `FR-BKC-005`,`006`; `UAT-03`,`04` |
+| Kontrak | `GET catalog-charges/coverage-preview` (API amendment) |
+| Reuse | Pola loading/skeleton per-opsi existing pada base component; `FE-BKC-014` sebagai dasar dropdown |
+| Scope | Thunk `getCatalogChargeCoveragePreview`; badge 3 status (Tercover/Tercover Sebagian/Tidak Tercover) per opsi dropdown untuk pasien asuransi; teks disclaimer "Perkiraan — angka final dihitung ulang saat tagihan diproses di Menu Pembayaran"; fail-open bila preview gagal dimuat (tidak memblokir submit) |
+| Dependency | `BE-BKC-020`; `FE-BKC-014` |
+| Acceptance | `UAT-03`,`04`; badge tersembunyi total untuk pasien tunai; preview tidak dipanggil per keystroke |
+| Verifikasi | Component test 3 status badge; test fail-open saat API error; lint/build |
+| Risiko/pemilik | Kasir salah mengira badge = angka final — dimitigasi disclaimer wajib. Owner Frontend/Billing |
+| DoD | Disclaimer tampil setiap kali badge tampil; tests/lint/build lulus |
+
+## `FE-BKC-016` — Subtotal Mandiri dan Subtotal Asuransi terpisah di Menu Pembayaran
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir melihat dua subtotal berdampingan untuk invoice manapun, bukan satu total dikurangi baris penjamin |
+| Trace | `BKC-DEC-062`; `FR-BKC-008`; `CAP-09` |
+| Kontrak | Tidak ada kontrak API baru — murni komposisi ulang field `CalculationResponse` existing (`patientAmount`, `primaryAmount`, `excessAmount`) |
+| Reuse | `displayedCalculation` yang sudah dikonsumsi `menu-pembayaran-view.jsx` (`harusDibayar`, `subtotalAsuransi` existing) — `CAP-09` Ready to reuse untuk data |
+| Scope | Ganti komposisi tampilan: dua baris sejajar "Subtotal Mandiri"/"Subtotal Asuransi" menggantikan "Subtotal Tagihan" tunggal + baris pengurang "Ditanggung Penjamin"; baris "Penjamin Belum Terverifikasi" (`unresolvedCoverageAmount`) dipertahankan apa adanya |
+| Dependency | Tidak ada dependency backend baru dari slice ini (data sudah tersedia); **disarankan** dikerjakan setelah `BE-BKC-021` supaya angka yang ditampilkan sudah mencerminkan gating yang diperbarui, tapi tidak teknis wajib menunggu |
+| Acceptance | Invoice dengan `patientAmount` dan `primaryAmount`>0 menampilkan dua baris terpisah dengan nominal benar |
+| Verifikasi | Component test tampilan dua subtotal dengan beberapa kombinasi nilai (termasuk salah satu nol); lint/build |
+| Risiko/pemilik | Perubahan visual pada layar yang sudah dipakai kasir produksi — pastikan `unresolvedCoverageAmount` tidak ikut hilang. Owner Frontend/Billing |
+| DoD | Tests/lint/build lulus; tidak ada perubahan formula, murni tampilan |
+
+### Paralelisme slice ini
+
+`FE-BKC-014` dan `FE-BKC-016` boleh paralel (tidak saling bergantung). `FE-BKC-015` menunggu `FE-BKC-014` (menambah badge ke dropdown yang sama) dan `BE-BKC-020`.
+

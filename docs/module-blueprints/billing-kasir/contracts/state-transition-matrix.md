@@ -45,3 +45,7 @@ Settlement: `DRAFT → IN_PROGRESS → PARTIALLY_SETTLED → SETTLED`; `FAILED` 
 Exception death/emergency transfer/DAMA mengizinkan administrative departure dan AR debtor sah tanpa mengubah settlement menjadi paid. Tests: `BIL-AT-003`,`005`,`007`,`014`,`016`,`018`,`020`.
 
 Security/privacy: setiap command transisi diperiksa permission backend dan actor; audit menyimpan reason/nominal/status tetapi tidak menyimpan identitas pasien atau payload provider pada custom log. Trace keputusan `BKC-DEC-031`–`044`.
+
+## Amendment 2 September 2026
+
+Tidak ada status baru pada `BilInvoice`/`BilInvoiceItem`. `POST catalog-charges` (`BKC-DEC-059`–`062`, approved) memicu transisi "Tidak ada → `OPEN`"/"`OPEN` → `OPEN`" yang SAMA seperti `POST from-source` existing pada tabel Invoice di atas — hanya sumber datanya (katalog vs free-form) yang berbeda, bukan lifecycle status invoice-nya.

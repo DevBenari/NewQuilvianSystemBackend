@@ -6,6 +6,8 @@
 | --- | --- | :---: | --- |
 | `GET invoices` | `[AccessPermission("BillingInvoice", "Read")]` | Tidak | access log standar saja |
 | `POST from-source` | `[AccessPermission("BillingInvoice", "Create")]` | Ya | source tuple, result ID, correlation |
+| `POST catalog-charges` (**baru, approved**) | `[AccessPermission("BillingInvoice", "Create")]` | Ya | tariff ID, harga hasil lookup server, source tuple, correlation |
+| `GET catalog-charges/coverage-preview` (**baru, approved**) | `[AccessPermission("BillingInvoice", "Read")]` | Tidak | access log standar saja — read-only, tanpa mutasi |
 | recalculate/void | `[AccessPermission("BillingInvoice", "Update")]` | Ya | version, reason, before/after total |
 | apply discount | `[AccessPermission("BillingDiscount", "Create")]` | Ya | policy, target, amount, actor |
 | doctor approve | `[AccessPermission("BillingDoctorDiscount", "Approve")]` | Ya | doctor actor, own-share evidence |

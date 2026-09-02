@@ -7,7 +7,7 @@
 | Tabel | Kolom selain audit | Kunci/aturan | Sensitif |
 | --- | --- | --- | :---: |
 | `BilInvoice` | `Id`, `EncounterId`, `InvoiceNumber`, `ServiceType`, `Status`, `CurrentCalculationVersion`, `InvoiceDate`, `ClosedAt`, `RowVersion` | UK EncounterId, UK InvoiceNumber | EncounterId Ya |
-| `BilInvoiceItem` | `Id`, `InvoiceId`, `SourceDomain`, `SourceDetailId`, `CategoryId`, `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare`, `Status`, `VoidReason` | FK invoice/category; UK active source tuple | Description/Source Ya |
+| `BilInvoiceItem` | `Id`, `InvoiceId`, `SourceDomain`, `SourceDetailId`, `CategoryId`, `TariffId?` (**baru 2 Sep 2026**), `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare`, `Status`, `VoidReason` | FK invoice/category/tariff(opsional); UK active source tuple | Description/Source Ya |
 | `BilCalculationVersion` | `Id`, `InvoiceId`, `VersionNo`, `GrossAmount`, `ItemDiscount`, `TotalDiscount`, `TaxAmount`, `PatientAmount`, `PrimaryAmount`, `ExcessAmount`, `RoundingAmount`, `IsLocked`, `CalculatedAt`, `Reason` | UK InvoiceId+VersionNo; immutable | Ya |
 | `BilDiscountApplication` | `Id`, `InvoiceId`, `InvoiceItemId?`, `DiscountPolicyId`, `DiscountType`, `RequestedAmount`, `Amount`, `ApprovalStatus`, `RequestedBy`, `ApprovedBy?`, `Reason` | doctor approver wajib untuk doctor share | Ya |
 | `BilDepositAccount` | `Id`, `EncounterId`, `AccountNumber`, `AvailableBalance`, `Status`, `RowVersion` | UK encounter/account | Ya |
@@ -70,3 +70,23 @@ CREATE UNIQUE INDEX UK_BilAdjustment_Correlation ON BilAdjustment(CorrelationId)
 ```
 
 Empat master policy membutuhkan check `EffectiveTo > EffectiveFrom`, serta validasi service untuk mencegah periode aktif overlap. Seluruh FK finansial menggunakan delete restrict; histori tidak cascade-delete.
+
+## Amendment 2 September 2026 — `BilInvoiceItem.TariffId`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `TariffId` | `Guid?` | Tidak | `null` | Index (non-unik) | FK ke `MstTariff.Id` | `Restrict` | Tidak | Diisi hanya untuk item hasil entri katalog (`SourceDomain="ADHOC_CATALOG"`); `null` untuk item lama/free-form |
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+ALTER TABLE public."BilInvoiceItem"
+    ADD COLUMN "TariffId" uuid NULL;
+
+ALTER TABLE public."BilInvoiceItem"
+    ADD CONSTRAINT "FK_BilInvoiceItem_MstTariff_TariffId"
+    FOREIGN KEY ("TariffId") REFERENCES public."MstTariff" ("Id") ON DELETE RESTRICT;
+
+CREATE INDEX "IX_BilInvoiceItem_TariffId" ON public."BilInvoiceItem" ("TariffId");
+```
+
+`MstTariff` sudah ada (`Areas/HealthServices/MasterData/Models/MstTariff.cs`) — hanya kolom kunci yang relevan bagi modul ini: `Id` PK, `TariffCategoryId` FK ke `MstTariffCategory`, `NormalPrice` (dasar harga server-side), `IsActive`/`EffectiveStartDate`/`EffectiveEndDate` (dasar validasi `BIL-VAL-025`). Kolom lengkap lihat file model.

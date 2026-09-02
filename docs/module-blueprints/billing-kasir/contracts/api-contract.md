@@ -2,6 +2,8 @@
 
 `contract_version: BIL-API-0.4` · status **approved** · owner API/Billing/Security · approved 20 Agustus 2026 · input decision `0.2`/hash tercatat di manifest · kompatibilitas: additive API baru.
 
+**Amendment 2 September 2026 (approved Product/Domain Owner, `BKC-DEC-059`–`062`)**: dua endpoint baru ditambahkan pada grup Invoices di bawah (`POST catalog-charges`, `GET catalog-charges/coverage-preview`) untuk entri manual berbasis katalog tarif + coverage per item pada form "Buat Invoice Manual (Testing)". Keduanya **Rencana (belum tersedia)** — desain disetujui, belum ada di source (belum diimplementasikan). Detail desain: [`02-backend-architecture.md`](../02-backend-architecture.md#amendment-2-september-2026--entri-manual-berbasis-katalog-tarif--coverage-per-item).
+
 **Rekonsiliasi 25 Agustus 2026 (`ISSUE-FE-003`)**: seluruh endpoint transaksi di bawah **sudah diimplementasikan** di backend source sejak commit `1d61a5b` (part 1) dan `22bf9cf` (part 2) pada branch `Yasmina`/`AgentCodexBackend` — dokumen ini sebelumnya masih menandainya "Rencana (belum tersedia)" secara menyeluruh, padahal source sudah ada. Status "Diimplementasikan" pada tabel di bawah berarti **source backend ada dan sudah dibaca langsung dari controller/service terkait**, BUKAN berarti sudah diverifikasi lewat klik-coba ter-autentikasi atau migration sudah dieksekusi ke database bersama — keduanya masih tertunda untuk sebagian besar slice (lihat `MODULE-STATUS.md`). Endpoint `GET` tambahan pada Cashier Shifts (`{id}`) dan Financial Exceptions (`invoices/{invoiceId}`, `invoices/{invoiceId}/refundable-credits`, `refunds/{id}`, `adjustments/{id}`, `write-offs/{id}`), serta seluruh Master Data / Register, ditambahkan hari ini (`ISSUE-FE-006`, `ISSUE-FE-007`, `ISSUE-FE-008`) dan **belum tercantum** di tabel endpoint di bawah karena dokumen ini belum ditulis ulang penuh — lihat laporan task masing-masing untuk detail endpoint baru tersebut.
 
 ### Health Services / Billing Management / Billing / Invoices
@@ -17,6 +19,8 @@ Base URL: `api/v1/health-services/billing-management/billing/invoices`
 | `POST` | `/{id}/items/{itemId}/void` | Void item eligible | `BillingInvoice : Update` | `VoidInvoiceItemRequest` | `ApiResponse<InvoiceDetailResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/{id}/discounts` | Terapkan diskon | `BillingDiscount : Create` | `ApplyDiscountRequest` | `ApiResponse<DiscountResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/{id}/discounts/{discountId}/approve` | Approve diskon dokter | `BillingDoctorDiscount : Approve` | `ApproveDiscountRequest` | `ApiResponse<DiscountResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
+| `POST` | `/catalog-charges` | Tambah charge dari katalog `MstTariff` — harga diambil server-side, tidak dapat diinput manual (`BKC-DEC-059`) | `BillingInvoice : Create` | `AddCatalogChargeRequest` | `ApiResponse<InvoiceDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/catalog-charges/coverage-preview` | Preview coverage satu tarif untuk encounter (advisory, read-only) — query `encounterId`, `tariffId`, `quantity` (`BKC-DEC-060`) | `BillingInvoice : Read` | — | `ApiResponse<CatalogChargeCoveragePreviewResponse>` | **Rencana (belum tersedia)** |
 
 ### Health Services / Billing Management / Billing / Patient Funds
 

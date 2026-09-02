@@ -28,6 +28,10 @@
 | `BIL-AT-022` | Authorization | Kasir coba approve write-off/reopen shift | Security | `403`, tidak ada mutation, denied access evidence |
 | `BIL-AT-023` | Failure recovery | AR consumer down saat final | Resilience | Invoice FINAL, outbox retry, satu AR saat pulih |
 | `BIL-AT-024` | Privacy/a11y | Scan logs/UI keyboard/status | Security/UI | Tak ada field sensitif; status tidak hanya warna; fokus/label valid |
+| `BIL-AT-025` (**baru, approved**) | Harga katalog server-side (`BKC-DEC-059`) | Kasir pilih tarif Rp150.000 di dropdown; submit tanpa field harga sama sekali | API/domain | `BilInvoiceItem.UnitPrice` = `MstTariff.NormalPrice` persis; `TariffId` terisi; `SourceDomain="ADHOC_CATALOG"` |
+| `BIL-AT-026` (**baru, approved**) | Tolak tarif tidak aktif/kedaluwarsa | `TariffId` valid tapi `IsActive=false` atau di luar `EffectiveEndDate` | API | `422` dengan `BIL-VAL-025`; tidak ada `BilInvoiceItem` tersimpan |
+| `BIL-AT-027` (**baru, approved**) | Preview coverage 3 status, approval tidak menggagalkan (`BKC-DEC-060`,`062`) | Tarif dengan rule `CoverageStatus=Covered, IsNeedApproval=true` untuk pasien asuransi | Domain | Preview mengembalikan `CoveredAmount`/`PatientPayAmount` terhitung penuh, `IsNeedApproval=true` hanya sebagai info — BUKAN status `NotCovered`/gagal |
+| `BIL-AT-028` (**baru, approved**) | Disparitas preview vs kalkulasi final terdokumentasi (§ 16.2.A) | Tarif tanpa baris `MstInsuranceTariff` (preview → `NotCovered`) tapi ada `MstInsuranceCoverageRule` yang cocok (kalkulasi final `RegistrationBillingCoverageAdapter` → berpotensi coverable) | Domain/dokumentasi | Kedua angka BOLEH berbeda; UI menampilkan disclaimer preview bersifat perkiraan; angka final Menu Pembayaran tetap dari `RegistrationBillingCoverageAdapter`, tidak pernah dari preview |
 
 ## Exit evidence
 

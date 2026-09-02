@@ -318,7 +318,7 @@ audit. Invoice tertutup tidak boleh menerima billing item baru.
 | `BKC-DEC-039` | Decision | Billing item unik/idempotent pada `(SourceDomain, SourceDetailId)`; procedure/lab/radiology terbentuk saat order confirmed/accepted, performed menutup normal cancellation, pharmacy final mengikuti dispensed quantity, consumable per usage detail, admin dari Billing rule, dan room charge dipisah ke `043` | Producer Owners + Billing Owner | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
 | `BKC-DEC-040` | Decision | Posting final immutable; koreksi memakai Finance-approved adjustment version, debit/credit AR/AP, outstanding/refundable credit pasien, serta correlation/idempotency key | Billing/AR/AP/Finance Accounting | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
 | `BKC-DEC-041` | Decision | Pajak tidak global; effective-dated tax master menentukan taxable item/rate/basis, dihitung setelah item discount, dialokasikan menurut patient/payer responsibility dan contract, memakai decimal serta rounding konsisten | Finance/Tax Owner + Product/Domain Owner | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
-| `BKC-DEC-042` | Decision | Primary dihitung lebih dulu; excess hanya menilai residual dengan kontraknya sendiri; total coverage tidak melebihi eligible charge; AR final per debtor; rejected claim tidak otomatis pindah ke pasien kecuali contract/policy sah mengizinkan | Payer/Insurance + Finance/AR | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
+| `BKC-DEC-042` | Decision | Primary dihitung lebih dulu; excess hanya menilai residual dengan kontraknya sendiri; total coverage tidak melebihi eligible charge; AR final per debtor; rejected claim tidak otomatis pindah ke pasien kecuali contract/policy sah mengizinkan | Payer/Insurance + Finance/AR | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026. **Diamendemen sebagian oleh `BKC-DEC-062` (approved Product/Domain Owner, 2 September 2026 — TANPA konfirmasi terpisah Payer/Insurance+Finance/AR, lihat caveat pada baris `BKC-DEC-062`)** untuk kasus spesifik rule `CoverageStatus=Covered` yang butuh approval/surat jaminan — lihat amendment lanjutan di bawah. |
 | `BKC-DEC-043` | Decision | Occupancy timeline adalah source of truth; policy 24 jam, minimum satu hari, rounding sisa, tarif awal periode, leave, dan variasi kontrak dibuat configurable/effective-dated; transfer tidak overlap/reset minimum dan correction memakai adjustment | Inpatient + Billing/Finance | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
 | `BKC-DEC-044` | Decision | `InvoiceDate` ditetapkan saat final dan tidak berubah karena payment; self-pay due pada invoice date, payer due sesuai contract setelah claim diterima, AR age mulai posting, overdue terhadap `DueDate`, dan payment date hanya settlement | Billing/AR/Finance | `approved` | Pernyataan eksplisit approval amendment revision `0.2`, 20 Agustus 2026 |
 
@@ -612,3 +612,96 @@ FE kasir app/view) terhadap kapabilitas backend/frontend saat ini secara rinci �
 memverifikasi beberapa fakta source (`MstPaymentMethod`, `MstDiscountPolicy`, `BilTender`,
 `BilSettlement`) secara ad-hoc, belum melakukan audit menyeluruh gaya `01-existing-capability-map.md`
 khusus untuk Menu Pembayaran.
+
+## Amendment lanjutan 2 September 2026 — Entri manual berbasis katalog tarif + coverage per item
+
+**Pemicu:** Permintaan pemilik produk untuk merombak form "Buat Invoice Manual (Testing)"
+(`create-manual-invoice-view.jsx`) agar item/harga terikat `MstTariff`/`MstTariffCategory`
+(bukan free-text/free-price seperti sekarang), menampilkan status coverage per item untuk pasien
+asuransi, dan memisah subtotal mandiri/asuransi (termasuk perlakuan pajaknya) pada Menu
+Pembayaran. Pass ini masih **berjalan** — belum ditutup, belum ada approval formal. Sesi
+sebelumnya dicatat sebagai fakta di conversation, bukan di file ini; ringkasannya dituliskan di
+sini supaya tidak hilang.
+
+⚠️ SHA di `blueprint-manifest.md` (`backend_commit_sha: c99f0a5…`, `frontend_commit_sha: e555bf2…`)
+berbeda dari HEAD saat pass ini dimulai (`17b9c0e21e32b41a8dfd6dbde31462d52717646b` BE,
+`60febdcdbb39de6cebc2d825906bce949f3b5af3` FE) — capability map berpotensi basi. Interview tetap
+dijalankan; `/trace-existing-capabilities` disarankan sebelum desain final.
+
+### Fakta source terverifikasi (bukan keputusan bisnis, tercatat sebagai evidence)
+
+1. `BilInvoiceItem.CategoryId` sudah FK langsung ke `MstTariffCategory`
+   (`BilInvoiceItem.cs:19,31`) — bukan ke entity kategori lain.
+2. Form "Buat Invoice Manual (Testing)" SUDAH mengambil Kategori Biaya dari `MstTariffCategory`
+   lewat `getTariffCategoryOptions` (`use-create-manual-invoice.js:78`); yang belum ada: dropdown
+   item dari `MstTariff` (masih free-text `description`) dan harga otomatis (masih free-input
+   `unitPrice`).
+3. `MstTariff` punya `NormalPrice`, `TariffCategoryId`, `IsTaxable`, plus scoping opsional
+   `ServiceUnitId`/`ClinicId`/`PatientClassId` — satu nama layanan bisa berupa beberapa baris
+   tarif berbeda tergantung unit/klinik/kelas pasien.
+4. Mesin coverage per-item sudah ada dan sudah dipakai kalkulasi: `MstInsuranceCoverageRule`
+   (per `InsuranceProviderId` + `TariffId`/`TariffCategoryId`/dll., dengan `CoverageStatus`
+   Covered/NotCovered/NeedApproval, `CoveragePercent`, `CoPaymentPercent/Amount`,
+   `MaxCoverageAmount`, dll.) dikonsumsi oleh `RegistrationBillingCoverageAdapter.ResolveAsync`
+   (`BillingCoverageAdapter.cs`) yang sudah mencocokkan tiap `BillingCoverageComponent` satu per
+   satu (`Matches()`, `CalculateCoveredAmount()`). Namun `BillingCoverageDecision` yang
+   dikembalikan HANYA agregat (`PrimaryAmount`/`ExcessAmount`/`UnresolvedAmount` total) — status
+   coverage per item tidak diekspos ke API/UI manapun saat ini.
+5. Pajak sudah dialokasikan per komponen lewat `BillingCalculationService.ApplyInvoiceTax`, dan
+   `MstTaxRule.AllocationRule = "PATIENT"` sudah membuat seluruh pajak jadi tanggungan pasien,
+   tidak coverable asuransi sama sekali (`TaxComponentCoverable`,
+   `BillingCalculationService.cs:973-979`). Kemungkinan besar permintaan "pajak hanya di porsi
+   mandiri" sudah tercapai lewat konfigurasi master data, bukan kode baru — yang baru murni
+   tampilan split subtotal di Menu Pembayaran (saat ini hanya satu "Subtotal Tagihan" gabungan).
+6. Form "Buat Invoice Manual (Testing)" secara eksplisit berlabel testing tool di 3 tempat
+   berbeda pada source (komentar kode, eyebrow UI, alert "jangan dipakai untuk data produksi") —
+   pengganti sementara integrasi Rajal→Billing yang belum tersambung
+   (`create-manual-invoice-view.jsx:19-20,114,138-139`).
+7. Form ini dan panel "Tambah Biaya Lain-lain" di Menu Pembayaran memakai jalur ADHOC yang sama
+   (`BillingChargeSourceAdapter`), tapi "Tambah Biaya Lain-lain" terikat `BKC-DEC-047` (item/harga
+   sengaja bebas tanpa katalog, dikompensasi wajib audit log).
+8. `BKC-DEC-013` (approved) sudah menyatakan "Tarif, coverage, diskon, dan responsibility dinamis
+   selama invoice belum dikunci" — jadi status coverage per item yang akan ditampilkan di Menu
+   Pembayaran sudah seharusnya dihitung ulang tiap kalkulasi (live), bukan snapshot tetap saat
+   item ditambahkan. Tidak perlu keputusan baru untuk poin ini, cukup diterapkan konsisten.
+
+### Keputusan pass ini
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-059` | Decision | Perombakan katalog tarif HANYA berlaku pada form "Buat Invoice Manual (Testing)". Form tetap berlabel testing/development persis seperti sekarang (TIDAK naik kelas jadi fitur produksi permanen). Panel "Tambah Biaya Lain-lain" di Menu Pembayaran TIDAK disentuh — `BKC-DEC-047` tetap berlaku apa adanya. Konsekuensi teknis: perlu jalur/endpoint ADHOC baru khusus form ini, tidak lagi 100% berbagi command dengan `addBillingOtherCharge`, supaya perubahan tidak diam-diam mengubah perilaku "Tambah Biaya Lain-lain" yang sudah dipakai kasir produksi. | Product/Domain Owner | `approved` | Jawaban eksplisit sesi wawancara 2 September 2026: "pilihan A" atas pertanyaan cakupan/status perombakan form; disetujui Product/Domain Owner 2 September 2026 13:53 WIB ("approval eksplisit sekarang untuk BKC-DEC-059–062") |
+| `BKC-DEC-060` | Decision | Badge coverage per item pada dropdown dihitung LIVE dengan menggunakan ulang logika pencocokan rule yang sudah ada (`Matches()`/`CalculateCoveredAmount()` di `BillingCoverageAdapter.cs`), direpresentasikan sebagai TIGA status, bukan biner: "Tercover" (100%, tanpa syarat approval), "Tercover Sebagian/Bersyarat" (persentase < 100, ada co-payment, dan/atau butuh approval/surat jaminan), "Tidak Tercover" (rule eksplisit NotCovered, atau tidak ada rule yang cocok). Perlu endpoint preview coverage baru (dipanggil saat dropdown item dibuka, berdasar guarantor pasien terpilih pada encounter). | Product/Domain Owner | `approved` | Jawaban eksplisit sesi wawancara 2 September 2026: "pilihan A" atas pertanyaan mekanisme/representasi badge coverage; disetujui Product/Domain Owner 2 September 2026 13:53 WIB ("approval eksplisit sekarang untuk BKC-DEC-059–062") |
+| `BKC-DEC-061` | Decision | Dropdown item difilter otomatis berdasar konteks encounter terpilih: hanya tampilkan baris `MstTariff` yang scoping `ServiceUnitId`/`ClinicId`/`PatientClassId`-nya NULL (berlaku umum) atau persis cocok dengan encounter. Bila masih tersisa >1 baris untuk nama yang sama setelah difilter, tampilkan semua sebagai opsi terpisah berlabel scope (mis. "Konsultasi Dokter Umum — RSUD Melati") — tidak memilih diam-diam. | Product/Domain Owner | `approved` | Jawaban eksplisit sesi wawancara 2 September 2026: "pilihan A" atas pertanyaan disambiguasi baris `MstTariff` bernama sama; disetujui Product/Domain Owner 2 September 2026 13:53 WIB ("approval eksplisit sekarang untuk BKC-DEC-059–062") |
+| `BKC-DEC-062` | Decision | **Formula subtotal:** Subtotal Mandiri = item berstatus "Tidak Tercover" (rule eksplisit NotCovered atau tidak ada rule cocok) + co-payment dari item "Tercover Sebagian". Subtotal Asuransi = item "Tercover" penuh + porsi `CoveragePercent` dari item "Tercover Sebagian". **Perubahan mesin coverage (GLOBAL, bukan cuma form testing):** `RegistrationBillingCoverageAdapter.ResolveAsync` diubah — rule dengan `CoverageStatus=Covered` yang cocok SELALU dihitung tercover sesuai `CoveragePercent`-nya, TIDAK LAGI digeser ke "unresolved" hanya karena `IsNeedApproval`/`IsNeedGuaranteeLetter` bernilai true. `CoverageStatus=NeedApproval` dan `MaxAmountPerMonth`/`MaxQuantityPerMonth` TETAP menjadi gate (lihat catatan interpretasi — scope final dipersempit saat desain `02-backend-architecture.md`, tidak mencakup limit bulanan). Berlaku untuk SEMUA invoice (bukan cuma item dari form testing), karena `ResolveAsync` adalah satu mesin yang sama dipakai kalkulasi seluruh invoice. Rasional pemilik produk: begitu suatu tarif sudah dipetakan `Covered` di `MstInsuranceCoverageRule`, itu dianggap keputusan final data master ("beneran dicover"), bukan kondisi yang masih menunggu approval manual — dan pola ini akan jadi cetak biru untuk halaman input tindakan/obat resmi (belum dibangun) ketika integrasi Rajal→Billing selesai nanti, bukan cuma dipakai form testing. | Product/Domain Owner | `approved` | Jawaban eksplisit sesi wawancara 2 September 2026: "Pilihan b — karena nnt jika page input tindakan/obat2an dah jadi, maka pas milih akan ketahuan item yg dicover asuransi pasien dan tidak... saya ingin pada page testing input manual menjadi gambaran ketika digunakan secara global nanti". **Interpretasi dipersempit saat desain** (`02-backend-architecture.md` amendment 2 September 2026): cakupan "abaikan gating" HANYA mencakup `IsNeedApproval`/`IsNeedGuaranteeLetter` — `MaxAmountPerMonth`/`MaxQuantityPerMonth` TETAP gating karena belum pernah dikonfirmasi eksplisit terpisah dari flag approval; dicatat sebagai kemampuan yang ditunda di `04-prd-to-mvp.md` § 8, bukan bagian keputusan yang disetujui di sini. **CAVEAT WEWENANG:** keputusan ini mengamendemen sebagian `BKC-DEC-042` yang owner tercatatnya adalah Payer/Insurance + Finance/AR (bukan Product/Domain Owner generik). Disetujui Product/Domain Owner 2 September 2026 13:53 WIB ("approval eksplisit sekarang untuk BKC-DEC-059–062") TANPA konfirmasi terpisah dari Payer/Insurance + Finance/AR — dicatat apa adanya sebagai bukti provenance approval, bukan disembunyikan; bila di kemudian hari pemilik asli keberatan, `BKC-DEC-062` perlu direvisi ulang, bukan dianggap final selamanya. **Risiko operasional yang perlu diketahui:** bila klaim yang sudah dianggap tercover ternyata ditolak asuransi di dunia nyata, koreksinya lewat mekanisme Pengecualian Finansial yang sudah ada (refund/adjustment/write-off, `DEC-032`–`035`), bukan otomatis — ini pola "koreksi belakangan", bukan lagi "tunggu sampai jelas" seperti semula.
+
+### Status pass ini
+
+Keempat keputusan kritis (mekanisme tercover/tidak tercover, disambiguasi `MstTariff`,
+formula subtotal, cakupan pelepasan gating approval) sudah dijawab eksplisit DAN disetujui
+Product/Domain Owner 2 September 2026 13:53 WIB — lihat `BKC-DEC-059`–`062` di atas, status
+`approved`. `BKC-DEC-062` disetujui dengan CAVEAT wewenang tercatat pada barisnya sendiri:
+owner asli `BKC-DEC-042` yang diamendemen sebagian adalah **Payer/Insurance + Finance/AR**,
+dan approval yang diberikan adalah dari Product/Domain Owner TANPA konfirmasi terpisah dari
+pemilik tsb — bukan berarti belum disetujui, tapi provenance-nya dicatat apa adanya supaya bisa
+ditinjau ulang bila pemilik asli keberatan di kemudian hari.
+
+Sisa yang belum tertutup (tidak memblokir status `approved` di atas, tapi relevan sebelum
+implementasi selesai — lihat `04-prd-to-mvp.md` § 20 untuk daftar lengkap dengan status
+memblokir/tidak):
+
+- `/trace-existing-capabilities` (impact scan § 16, `01-existing-capability-map.md`) dan
+  `/design-business-module` (`02-backend-architecture.md`, `03-frontend-architecture.md`,
+  `erd/`, `contracts/`, `04-prd-to-mvp.md`, semua amendment 2 September 2026) sudah dijalankan
+  dan sudah menutup pertanyaan cakupan kontrak endpoint, field encounter yang dipakai
+  `BKC-DEC-061` (`ServiceUnitId`/`ClinicId`/`PatientClassId` pada `TrxPatientEncounter`,
+  di-extend ke `ActiveEncounterOptionResponse`), dan interpretasi cakupan gating `BKC-DEC-062`
+  (dipersempit HANYA ke `IsNeedApproval`/`IsNeedGuaranteeLetter` — lihat baris `BKC-DEC-062`
+  di atas dan `04-prd-to-mvp.md` § 8 untuk `MaxAmountPerMonth`/`MaxQuantityPerMonth` yang tetap
+  gating).
+- Nilai `AllocationRule` pada `MstTaxRule` yang aktif saat ini masih **belum diverifikasi**
+  (`CAP-07`) — eksplisit ditunda atas permintaan Product/Domain Owner 2 September 2026 ("bisa
+  menunggu keputusan bisnis lebih lanjut"), TIDAK memblokir implementasi, dicatat sebagai
+  pertanyaan tidak memblokir di `04-prd-to-mvp.md` § 20.
+- Wewenang tulis backend (task mode, branch) untuk mulai implementasi endpoint/service baru —
+  belum ditanyakan; ini prasyarat prosedural sebelum `build-module-backend` dijalankan, bukan
+  bagian dari interview kebutuhan bisnis.

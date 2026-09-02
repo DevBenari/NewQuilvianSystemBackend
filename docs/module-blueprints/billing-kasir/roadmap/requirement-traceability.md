@@ -30,6 +30,7 @@ frontend_source: e555bf2ad6848a1d6cc097ab8c6c5f5259edb151
 | Security/privacy/concurrency | Permission/Validation | `BE-BKC-001`,`017` | `FE-BKC-010` | `AT-020`,`022`,`024` | Covered/planned — evidence matrix `BE-BKC-017` diperbarui 28 Agustus 2026 (22/24 acceptance ID `Covered`; `AT-020` butuh Postgres nyata, `AT-023` blocked `BKC-BLK-INT-001`); lihat `evidence/06-be-bkc-017-acceptance-evidence-matrix.md` dan `task/report/backend/be-bkc-017-hardening-dan-acceptance-lintas-slice.md`. `FE-BKC-010` (`AT-024`) diaudit 30 Agustus 2026 lewat pembacaan source — privacy/status/label terpenuhi; scan a11y otomatis dan critical E2E journeys masih blocked (tooling/environment); lihat `task/report/frontend/fe-bkc-010-accessibility-privacy-dan-regression-lintas-workspace.md` |
 | Menu Pembayaran, Dokumen Kasir: Kwitansi per tender, Struk Pasien (`DEC-045`–`058`, amendment 27-28 Agustus 2026, di luar roadmap revisi 1 asli) | Belum ada dokumen kontrak `0.4` terpisah — desain lahir langsung dari `/grill-me` amendment, bukan `design-business-module` | `BE-BKC-017` slice (kwitansi per tender di `AddTenderAsync`, endpoint `POST .../kwitansi` lama dihapus) | `FE-BKC-011` | Tidak terpetakan ke `BIL-AT-001`–`024` (acceptance test matrix ditulis sebelum amendment ini) | Source selesai, lint/build lulus, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-011-dokumen-kasir-kwitansi-per-tender-dan-struk-pasien.md`. `BKC-DEC-052`–`058` masih `draft`, belum ada approval formal |
 | Master kategori billing item (`BE-BKC-002` scope asli — `MstBillingItemCategory`) | CPT-006/007 | `BE-BKC-002` (sudah ada sejak awal modul) | `FE-BKC-013` (baru) | `AT-009`–`011` (tidak langsung, digunakan admin fee/diskon/tax) | Frontend CRUD (list+create+update+activate/deactivate/delete) baru dibangun 31 Agustus 2026 — sebelumnya hanya ada slice `options` untuk dropdown picker, tidak ada halaman kelola sama sekali; lihat `task/report/frontend/fe-bkc-013-billing-item-category-crud.md`. Menunggu verifikasi manual |
+| Entri manual katalog tarif + coverage per item (`BKC-DEC-059`–`062`, amendment 2 September 2026, blueprint revision `0.5 approved`) | `02-backend-architecture.md`/`03-frontend-architecture.md` § Amendment 2 Sep 2026, `contracts/` amendment `BIL-API-0.4`/`BIL-VALIDATION-0.4`/`BIL-INTEGRATION-0.4`/`BIL-PERMISSION-0.4` | `BE-BKC-018`–`021` | `FE-BKC-014`–`016` | `BIL-AT-025`–`028` | Planned — belum ada source. Task individual belum disetujui eksekusi (blueprint approval ≠ task approval, lihat aturan eksekusi § README). `BE-BKC-021` berisiko tinggi (global, lihat catatan wewenang `BKC-DEC-062`) |
 
 ## Coverage acceptance test
 
@@ -41,12 +42,13 @@ frontend_source: e555bf2ad6848a1d6cc097ab8c6c5f5259edb151
 | `BIL-AT-014`–`017` | `BE-BKC-012`–`014`; `FE-BKC-007`,`008` | self-approval, reversal, variance, late settlement |
 | `BIL-AT-018`–`021` | `BE-BKC-006`,`008`,`011`,`015`,`016`; `FE-BKC-003`,`005`,`009` | departure unpaid, conflict, post-final correction |
 | `BIL-AT-022`–`024` | `BE-BKC-017`; `FE-BKC-010` | unauthorized, consumer down, privacy/a11y |
+| `BIL-AT-025`–`028` | `BE-BKC-018`–`021`; `FE-BKC-014`–`016` | tarif nonaktif/kedaluwarsa, disparitas preview vs kalkulasi final |
 
 ## Coverage gap dan blocker
 
 | ID | Gap | Dampak | Owner | Status/aksi |
 | --- | --- | --- | --- | --- |
-| `BKC-BLK-FE-001` | Root governance frontend tidak ditemukan | Semua FE write tertahan | Frontend authority | Tetapkan/restore sebelum builder |
+| `BKC-BLK-FE-001` | Root governance frontend tidak ditemukan | Semua FE write tertahan | Frontend authority | Tetapkan/restore sebelum builder. **Catatan 2 September 2026**: `QuilvianSystemFrontendDev/AGENTS.md` ditemukan dan terbaca pada sesi desain `FE-BKC-014`–`016` — kemungkinan sudah resolved, TAPI belum diverifikasi ulang formal terhadap seluruh task lama (`FE-BKC-001`–`013`). Builder tetap wajib memverifikasi saat mulai eksekusi |
 | `BKC-BLK-INT-001` | Schema/transport aktual AR dan AP belum dibuktikan di consumer | `BE-BKC-016` tidak dapat final | AR/AP + Integration | Contract discovery sebelum task approval |
 | `BKC-BLK-PROV-001` | Provider payment/refund sandbox dan callback contract belum dipilih | E2E `AT-006`,`013` refund provider | Treasury/Integration | Adapter bisa dibangun terhadap interface; aktivasi menunggu provider |
 | `BKC-BLK-DATA-001` | Nilai seed Finance/Inpatient belum dicantumkan | Master dapat dibuat tetapi tidak boleh diaktifkan | Finance/Inpatient | Serahkan nominal/rate/rules sebelum seed aktif |
