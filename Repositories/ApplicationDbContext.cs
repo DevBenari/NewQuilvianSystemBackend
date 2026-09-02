@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -520,6 +521,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
         public DbSet<AccJournalType> AccJournalTypes { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
+        public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
 
         #endregion CORPORATE
 

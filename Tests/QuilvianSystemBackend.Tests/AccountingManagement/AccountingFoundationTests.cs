@@ -3,6 +3,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -149,15 +150,13 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
         }
 
         /// <summary>
-        /// Penjaga batas task, diperbarui pada `BE-ACC-003`.
+        /// Penjaga batas task, diperbarui pada `BE-ACC-004`.
         ///
-        /// Sebelumnya test ini menuntut **nol** entity persisted Accounting, karena `BE-ACC-001`
-        /// memang belum boleh membuatnya. `BE-ACC-003` membuat dua entity pertama, sehingga
-        /// tuntutannya berubah: bukan lagi "belum ada satu pun", melainkan "persis dua yang
-        /// menjadi cakupan `BE-ACC-003`".
+        /// Riwayatnya: `BE-ACC-001` menuntut **nol** entity persisted; `BE-ACC-003` menaikkannya
+        /// menjadi **dua**; `BE-ACC-004` menaikkannya menjadi **tiga**.
         ///
-        /// Gunanya tetap sama. Bila ada yang menambahkan entity `BE-ACC-004` (periode akuntansi)
-        /// atau `BE-ACC-005` (jurnal dan barisnya) mendahului urutan task, test ini gagal dan
+        /// Gunanya tetap sama. Bila ada yang menambahkan entity `BE-ACC-005` — yaitu jurnal,
+        /// baris jurnal, dan riwayat persetujuan — mendahului urutan task, test ini gagal dan
         /// sebabnya terbaca langsung.
         ///
         /// Dibuktikan lewat refleksi, bukan lewat daftar berkas, supaya tetap berlaku walau
@@ -165,10 +164,12 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
         /// pewarisan <see cref="IdentityModel"/>.
         /// </summary>
         [Fact]
-        public void ModulAccounting_HanyaMemilikiEntityCakupanBeAcc003()
+        public void ModulAccounting_HanyaMemilikiEntityCakupanBeAcc004()
         {
             string[] entityDiizinkan =
             {
+                "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod"
+                + ".Models.AccAccountingPeriod",
                 "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData"
                 + ".ChartOfAccount.Models.AccChartOfAccount",
                 "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData"
@@ -190,8 +191,8 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
 
             Assert.True(
                 diLuarCakupan.Count == 0,
-                "Hanya entity cakupan BE-ACC-003 yang boleh ada. Entity periode akuntansi "
-                + "(BE-ACC-004) dan jurnal (BE-ACC-005) belum boleh dibuat. "
+                "Hanya entity cakupan BE-ACC-004 yang boleh ada. Entity jurnal, baris jurnal, "
+                + "dan riwayat persetujuan (BE-ACC-005) belum boleh dibuat. "
                 + $"Ditemukan di luar cakupan: {string.Join(", ", diLuarCakupan)}");
 
             foreach (string wajibAda in entityDiizinkan)
@@ -319,6 +320,93 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             // diturunkan dari AccountType == Expense, bukan disimpan.
             Assert.Null(coa.FindProperty("RequiresCostCenter"));
         }
+
+        /// <summary>
+        /// Acceptance criteria 2 `BE-ACC-004` — `PeriodCode` berpanjang 7, ditambah pemeriksaan
+        /// kolom lain terhadap kamus data bagian 3.
+        ///
+        /// Panjang 7 bukan angka sembarangan: ia persis muat untuk bentuk <c>2026-09</c>, yaitu
+        /// empat digit tahun, satu tanda hubung, dan dua digit bulan. Kelebihan satu karakter pun
+        /// akan membuka peluang bentuk lain yang tidak dikehendaki `ACC-DEC-013`.
+        /// </summary>
+        [Fact]
+        public void AccAccountingPeriod_SesuaiKamusData()
+        {
+            Assert.Equal(7, PanjangMaksimum<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.PeriodCode)));
+            Assert.Equal(500, PanjangMaksimum<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.LastReasonNote)));
+
+            Assert.True(WajibDiisi<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.LegalEntityId)));
+            Assert.True(WajibDiisi<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.PeriodCode)));
+
+            // Panjang 7 tepat memuat bentuk yang diwajibkan ACC-DEC-013.
+            Assert.Equal(7, "2026-09".Length);
+
+            // Empat kolom jejak penutupan boleh kosong: periode baru belum pernah ditutup
+            // maupun dibuka kembali.
+            Assert.Equal(typeof(Guid?), TipeProperti<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.ClosedBy)));
+            Assert.Equal(typeof(DateTime?), TipeProperti<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.ClosedAt)));
+            Assert.Equal(typeof(Guid?), TipeProperti<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.ReopenedBy)));
+            Assert.Equal(typeof(DateTime?), TipeProperti<AccAccountingPeriod>(
+                nameof(AccAccountingPeriod.ReopenedAt)));
+
+            // Periode baru selalu lahir dalam keadaan terbuka.
+            AccAccountingPeriod bawaan = new();
+            Assert.Equal(AccountingPeriodStatus.Open, bawaan.PeriodStatus);
+        }
+
+        /// <summary>
+        /// Acceptance criteria 1 `BE-ACC-004` — ketiga nilai status tersimpan sebagai integer,
+        /// bukan sebagai teks.
+        ///
+        /// Diperiksa dari model EF Core yang benar-benar terbentuk, sehingga membuktikan
+        /// <c>HasConversion&lt;int&gt;()</c> pada configuration memang berlaku.
+        /// </summary>
+        [Fact]
+        public void AccAccountingPeriod_MenyimpanTigaStatusSebagaiInteger()
+        {
+            using TestDatabase basisUji = TestDatabase.Create();
+            using ApplicationDbContext db = basisUji.CreateContext();
+
+            IEntityType periode = db.Model.FindEntityType(typeof(AccAccountingPeriod))!;
+
+            Assert.Equal("AccAccountingPeriod", periode.GetTableName());
+
+            IProperty status = periode.FindProperty(nameof(AccAccountingPeriod.PeriodStatus))!;
+            Assert.Equal(typeof(int), status.GetProviderClrType());
+
+            // Tepat tiga status, dengan nilai persis seperti ACC-DEC-012.
+            Assert.Equal(3, Enum.GetValues<AccountingPeriodStatus>().Length);
+            Assert.Equal(1, (int)AccountingPeriodStatus.Open);
+            Assert.Equal(2, (int)AccountingPeriodStatus.SoftClosed);
+            Assert.Equal(3, (int)AccountingPeriodStatus.Closed);
+
+            // Satu badan hukum hanya boleh punya satu periode per kode.
+            Assert.Contains(
+                periode.GetIndexes(),
+                i => i.IsUnique
+                     && i.Properties.Select(p => p.Name).SequenceEqual(
+                         new[] { "LegalEntityId", "PeriodCode" }));
+
+            // Seluruh relasi memakai Restrict — periode adalah kerangka pembukaan yang tidak
+            // boleh ikut terhapus bersama induknya.
+            foreach (IForeignKey fk in periode.GetForeignKeys())
+            {
+                Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior);
+            }
+
+            // BE-ACC-005 belum dikerjakan, jadi belum boleh ada relasi ke jurnal.
+            Assert.Null(periode.FindNavigation("Journals"));
+        }
+
+        private static Type TipeProperti<T>(string namaProperti) =>
+            typeof(T).GetProperty(namaProperti)!.PropertyType;
 
         private static int PanjangMaksimum<T>(string namaProperti) =>
             typeof(T).GetProperty(namaProperti)!

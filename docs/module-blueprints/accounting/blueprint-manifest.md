@@ -29,13 +29,15 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: ca6b7e0ef3af4454cae11709739b1f36657352e2
+verification_backend_source_sha: e1ee1734a9931c3b662001eadf832168480159aa
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
-  Perbedaan hanya dokumentasi/governance; source aplikasi identik. Backend: selisih
-  aa837d7..ca6b7e0 = 28 berkas, seluruhnya docs/module-blueprints/accounting/, nol berkas
-  source aplikasi. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), dan tidak
-  relevan untuk task backend. Diverifikasi 2 September 2026.
+  Backend digeser ca6b7e0 -> e1ee173 pada 2 September 2026 setelah impact scan. e1ee173 adalah
+  satu commit tunggal berisi pekerjaan BE-ACC-001, BE-ACC-002, dan BE-ACC-003 yang di-commit
+  owner; nol perubahan dari pihak lain, nol sentuhan pada Migrations/, ModelSnapshot, Program.cs,
+  tooling/, agents/, .github/, dan modul lain. Selisih aa837d7..ca6b7e0 sebelumnya adalah 28
+  berkas dokumentasi blueprint saja. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward
+  murni), tidak relevan untuk task backend.
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
@@ -80,7 +82,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 88658490456f7d74a2ce0834b7b6bf94389e2a7273e67b953e79a7dd8bf27364
   erd/data-dictionary.md: a5380edf9daf1b225d9751b30a4e153ed80a54e6d1c00888f48d916ae94c3986
-  roadmap/backend-roadmap.md: 6a58cedc17eeaf6c0811ca2d03409e54db0b72996a5ac40d69ef7007d532aaf9
+  roadmap/backend-roadmap.md: 31fc273cd122772968f4f74c32fad29002f99b9922d3e11a392d6599568287f0
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006 CLOSED

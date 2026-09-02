@@ -47,21 +47,23 @@ integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — 3/14 task | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `IN_PROGRESS` — 4/14 task | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
 | Task | Status | Bukti |
 |---|---|---|
 | `BE-ACC-001` kerangka modul, enum, test harness | **`DONE`** 1 September 2026 | `task/report/backend/be-acc-001-kerangka-modul-enum-dan-test-harness.md` |
 | `BE-ACC-002` audit hak akses badan hukum | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-002-audit-hak-akses-badan-hukum.md` |
 | `BE-ACC-003` entity daftar akun dan jenis jurnal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-003-entity-daftar-akun-dan-jenis-jurnal.md` |
-| `BE-ACC-004` entity periode akuntansi | `EXECUTION_READY` | Menunggu instruksi owner |
+| `BE-ACC-004` entity periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-004-entity-periode-akuntansi.md` |
+| `BE-ACC-005` entity jurnal, baris jurnal, riwayat persetujuan | `EXECUTION_READY` | Menunggu instruksi owner |
 
-Ketiga task yang selesai **belum di-commit**. Berkasnya masih untracked di working tree, kecuali
-`Repositories/ApplicationDbContext.cs` yang berstatus modified.
+`BE-ACC-001` sampai `BE-ACC-003` sudah **di-commit** pada `e1ee173`. `BE-ACC-004` **belum
+di-commit**.
 
-**Entity persisted pertama sudah berdiri** — `AccChartOfAccount` dan `AccJournalType` — tanpa satu
-pun migration. Model EF Core karena itu mendahului `ApplicationDbContextModelSnapshot.cs`. Ini
-disengaja: `BE-ACC-006` yang menyelesaikannya, lewat Migration Coordination Gate.
+**Tiga entity persisted sudah berdiri** — `AccChartOfAccount`, `AccJournalType`, dan
+`AccAccountingPeriod` — tanpa satu pun migration. Model EF Core karena itu mendahului
+`ApplicationDbContextModelSnapshot.cs`. Ini disengaja: `BE-ACC-006` yang menyelesaikannya, lewat
+Migration Coordination Gate.
 
 ## Blockers and owners
 
