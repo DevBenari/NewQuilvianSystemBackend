@@ -67,7 +67,7 @@ Ini **satu-satunya** arah tulis modul ini ke luar batasnya sendiri.
 | Idempotency | Penulisan bersifat menetapkan nilai, bukan menambah. Mengulang operasi yang sama menghasilkan keadaan yang sama |
 | Bila gagal | Seluruh transaksi dibatalkan. Tidak ada keadaan catatan penempatan berubah tetapi kolom status tidak, atau sebaliknya |
 | Rekonsiliasi | Laporan selisih `GET /monitoring/bed-drift`, lihat bagian 3 |
-| Persetujuan yang dibutuhkan | Pemilik `MasterData`, tercatat `RWI-OQ-033`, **belum ada** |
+| Persetujuan | Pemilik `MasterData` HealthServices, tercatat sebagai `RWI-OQ-033` — **sudah diberikan** 21 Agustus 2026 lewat `RWI-DEC-062`. Diterapkan `BE-RWI-006` pada 1 September 2026 |
 
 **Kapan penulisan terjadi:**
 

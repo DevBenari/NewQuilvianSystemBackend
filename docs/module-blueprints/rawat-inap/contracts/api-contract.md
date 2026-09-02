@@ -43,7 +43,8 @@ Tidak ada endpoint yang dihapus dan tidak ada bentuk request atau response yang 
 hanya berlaku pada jalur serah terima IGD, yaitu `INP-S09` yang di luar scope revisi ini. Untuk
 seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 
-> **DIPERBARUI 26 Agustus 2026 — ke-49 endpoint baru berstatus `Tersedia`.**
+> **DIPERBARUI 26 Agustus 2026 — ke-49 endpoint baru berstatus `Tersedia`.** Lihat pemutakhiran
+> 1 September 2026 di bawah.
 >
 > Catatan sebelumnya berbunyi *"Seluruh endpoint pada dokumen ini berstatus `Rencana (belum
 > tersedia)`. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`."* Pernyataan itu benar
@@ -59,8 +60,18 @@ seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 > | Operasi HTTP pada path `inpatient` | **49** — cocok persis dengan jumlah baris pada dokumen ini |
 > | Lima endpoint dipanggil tanpa token | **401** semuanya — `[Authorize]` tegak saat runtime |
 >
-> Baris `PATCH /{id}/availability` pada bagian Bed **tetap** `Rencana perubahan perilaku`: ia
-> milik `BE-RWI-006` yang masih terblokir `FE-RWI-001`.
+> Baris `PATCH /{id}/availability` pada bagian Bed saat itu **tetap** `Rencana perubahan
+> perilaku`, karena `BE-RWI-006` masih terblokir `FE-RWI-001`.
+>
+> **DIPERBARUI 1 September 2026 — kontrak modul tertutup penuh.**
+>
+> | Perubahan | Task |
+> | --- | --- |
+> | Endpoint baru ke-50, `GET /discharges/{episodeId}/financial-clearance`, berstatus `Tersedia` | `BE-RWI-034` |
+> | Sembilan baris kolom hak akses dibetulkan menjadi pasangan yang benar-benar didaftarkan `AccessMenuSeeder` | `BE-RWI-034` |
+> | Baris `PATCH /{id}/availability` naik dari `Rencana perubahan perilaku` menjadi **`Diterapkan`** | `BE-RWI-006` |
+>
+> Tidak ada lagi baris berstatus `Rencana` pada dokumen ini.
 
 Base URL modul: `api/v1/health-services/inpatient-management/`
 
@@ -147,10 +158,11 @@ Base URL: `api/v1/health-services/inpatient-management/discharges`
 | `PATCH` | `/{episodeId}/summary/sign` | DPJP menandatangani resume pulang | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `GET` | `/{episodeId}/clearance` | Daftar butir administrasi beserta status penandaannya | `InpatientDischarge : Read` | – | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `POST` | `/{episodeId}/clearance/{itemId}/mark` | Menandai satu butir daftar periksa administrasi | `InpatientDischarge : Update` | `MarkClearanceItemRequest` | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
-| `POST` | `/{episodeId}/financial-clearance` | Petugas kasir menandai kelayakan keuangan | `InpatientFinancialClearance : Update` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/financial-clearance` | Petugas kasir menandai kelayakan keuangan | `InpatientDischarge : MarkFinancialClearance` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
+| `GET` | `/{episodeId}/financial-clearance` | Membaca penandaan kelayakan keuangan beserta seluruh riwayatnya. Hak aksesnya butir tersendiri supaya kasir dapat diberi kemampuan ini tanpa ikut membaca isi resume pulang | `InpatientDischarge : ReadFinancialClearance` | – | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — dibuka `BE-RWI-034` pada 1 Sep 2026 |
 | `GET` | `/{episodeId}/closure-readiness` | Memeriksa kelima syarat penutupan dan menampilkan mana yang belum terpenuhi | `InpatientDischarge : Read` | – | `ApiResponse<ClosureReadinessResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
-| `POST` | `/{episodeId}/close` | Menutup episode dan melepas tempat tidur | `InpatientEpisode : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
-| `POST` | `/{episodeId}/close-with-override` | Supervisor menutup episode menembus gerbang keuangan | `InpatientEpisode : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/close` | Menutup episode dan melepas tempat tidur | `InpatientDischarge : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
+| `POST` | `/{episodeId}/close-with-override` | Supervisor menutup episode menembus gerbang keuangan | `InpatientDischarge : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
 
 Kode status tambahan yang khas bagian ini:
 
@@ -238,7 +250,7 @@ Sumber as-is: `Areas/HealthServices/MasterData/Controllers/BedController.cs` pad
 
 | Method | Path | Perubahan | Alasan | Status |
 | --- | --- | --- | --- | --- |
-| `PATCH` | `/{id}/availability` | Menolak nilai `Reserved` dan `Occupied` dengan kode 422. Nilai `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive` tetap diterima | `RWI-RULE-027` aturan 4 dan 5: status penghunian hanya boleh lahir dari tindakan Rawat Inap | **Rencana perubahan perilaku** |
+| `PATCH` | `/{id}/availability` | Menolak nilai `Reserved` dan `Occupied` dengan kode 422, juga menolak saat tempat tidur masih ditempati. Nilai `Available`, `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive` tetap diterima | `RWI-RULE-027` aturan 4 dan 5: status penghunian hanya boleh lahir dari tindakan Rawat Inap | ✅ **Diterapkan** — `BE-RWI-006` pada 1 Sep 2026, dengan test regresi `BE-RWI-032` |
 
 Pesan penolakannya: *"Status Terisi dan Dipesan hanya dapat diubah lewat modul Rawat Inap. Untuk
 menutup tempat tidur sementara, pakai status Pembersihan, Perbaikan, atau Diblokir."*
@@ -246,8 +258,8 @@ menutup tempat tidur sementara, pakai status Pembersihan, Perbaikan, atau Diblok
 **Yang tidak berubah:** bentuk request, bentuk response, kode status yang sudah ada, dan seluruh
 endpoint lain pada grup ini. Ini perubahan perilaku, bukan perubahan kontrak.
 
-**Persetujuan yang dibutuhkan:** pemilik modul `MasterData`, tercatat sebagai `RWI-OQ-033`, belum
-ada.
+**Persetujuan:** Pemilik `MasterData` HealthServices, tercatat sebagai `RWI-OQ-033` — **sudah diberikan** 21 Agustus 2026 lewat `RWI-DEC-062`. Diterapkan `BE-RWI-006` pada 1 September 2026, bersama test regresi
+`BE-RWI-032`.
 
 ---
 

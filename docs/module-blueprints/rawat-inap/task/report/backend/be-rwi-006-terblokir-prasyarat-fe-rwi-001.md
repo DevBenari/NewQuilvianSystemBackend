@@ -1,5 +1,11 @@
 # Laporan Task Backend — `BE-RWI-006` — **TERBLOKIR, TIDAK DIKERJAKAN**
 
+> **DIGANTIKAN 1 September 2026.** Kedua prasyarat yang disebut laporan ini sudah
+> terpenuhi: `FE-RWI-001` terbukti rilis, dan persetujuan pemilik `MasterData`
+> (`RWI-OQ-033`) ternyata sudah diberikan `RWI-DEC-062` sejak 21 Agustus 2026.
+> Laporan `BE-RWI-006` yang berlaku ada pada [`BE-RWI-006.md`](BE-RWI-006.md).
+> Berkas ini disimpan sebagai catatan sejarah blokirnya.
+
 ## Metadata
 
 | Field | Nilai |

@@ -91,6 +91,9 @@ task_count: 36
 | ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
 | 🟡 | Kode sudah ditulis dan test sudah disiapkan. Sejak 26 Agustus 2026 build dan test-nya **sudah dijalankan dan hijau**, tetapi acceptance criteria dan DoD-nya **belum terbukti penuh**. Task ini **belum selesai** dan tidak boleh dihitung sebagai selesai |
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
+
+> **Per 1 September 2026 tidak ada satu pun task yang berstatus 🟡 maupun ⛔.** Keduanya
+> dipertahankan pada legenda karena masih dipakai catatan historis di bawah.
 | tanpa tanda | Belum dikerjakan |
 
 > **Kenapa 🟡 ada.** Pada 24 Agustus 2026 pemilik pekerjaan meminta `BE-RWI-002`, `BE-RWI-004`,
@@ -156,7 +159,16 @@ task_count: 36
 > berjalan"* akhirnya terpenuhi, ke-49 baris pada `api-contract.md` dinaikkan menjadi
 > `Tersedia`, dan butir DoD "api contract diperbarui" pada 21 laporan ikut hijau.
 >
-> **Hasil akhir: 21 task ✅ selesai, 9 task tetap 🟡, 1 task ⛔ terblokir.**
+> **Hasil akhir per 26 Agustus 2026: 21 task ✅ selesai, 9 task tetap 🟡, 1 task ⛔ terblokir.**
+>
+> **DIPERBARUI 1 September 2026.** Kesembilan task 🟡 dinaikkan menjadi ✅ setelah build dan
+> test dijalankan — keduanya memang belum pernah dijalankan saat catatan di atas ditulis.
+> `BE-RWI-006` dan `BE-RWI-032` selesai, dan `BE-RWI-034` menutup cacat hak akses yang
+> menjadi akar beberapa butir "belum terbukti 403" di bawah. Sisa yang **tetap terbuka**
+> dicatat pada baris **Status** masing-masing task, dan tidak satu pun tertahan oleh build:
+> pembuktian 403 dari aplikasi berjalan (`BE-RWI-009`, `014`), test tabrakan dua transaksi
+> terhadap PostgreSQL (`BE-RWI-011`), verifikasi dari layar (`BE-RWI-018`), dan dua cara
+> pulang yang aturan klinisnya belum disahkan (`BE-RWI-020`, `RWI-OQ-039`).
 >
 > | Task | Yang masih menahannya |
 > | --- | --- |
@@ -222,12 +234,12 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 
 | Slice | Hasil yang dapat diperiksa | Gelombang PRD | Task |
 | --- | --- | --- | --- |
-| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; 🟡 `BE-RWI-002`; ✅ `BE-RWI-003`; 🟡 `BE-RWI-004`; 🟡 `BE-RWI-005`; ⛔ `BE-RWI-006` |
-| **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | ✅ `BE-RWI-007`; 🟡 `BE-RWI-008`; 🟡 `BE-RWI-009`; ✅ `BE-RWI-010` |
-| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | 🟡 `BE-RWI-011`, `BE-RWI-014`; ✅ `BE-RWI-012`, `BE-RWI-013`, `BE-RWI-015` |
+| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001` s.d. `BE-RWI-006` |
+| **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | ✅ `BE-RWI-007` s.d. `BE-RWI-010` |
+| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | ✅ `BE-RWI-011` s.d. `BE-RWI-015` |
 | **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | ✅ `BE-RWI-016` |
-| **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | ✅ `BE-RWI-017`; 🟡 `BE-RWI-018`; ✅ `BE-RWI-019` |
-| **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | 🟡 `BE-RWI-020`; ✅ `BE-RWI-021`, `BE-RWI-022` |
+| **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | ✅ `BE-RWI-017`, `BE-RWI-018`, `BE-RWI-019` |
+| **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | ✅ `BE-RWI-020`, `BE-RWI-021`, `BE-RWI-022` |
 | **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | ✅ `BE-RWI-023` s.d. `BE-RWI-027` |
 | **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | ✅ `BE-RWI-028` s.d. `BE-RWI-030` |
 | **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
@@ -238,23 +250,23 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 
 ```text
 BE-RWI-001 (dua tabel master)  ✅ SELESAI
-   └── BE-RWI-002 (seeder master)  🟡 KODE SIAP, VALIDASI BELUM ──┐
+   └── BE-RWI-002 (seeder master)  ✅ SELESAI ──┐
    └── BE-RWI-003 (11 tabel + 4 unique index parsial)  ✅ SELESAI
-          └── BE-RWI-004 (DI 6 service + setting + nomor episode)  🟡 KODE SIAP, VALIDASI BELUM
-                 ├── BE-RWI-005 (controller master)  🟡 KODE SIAP, VALIDASI BELUM ────┤
+          └── BE-RWI-004 (DI 6 service + setting + nomor episode)  ✅ SELESAI
+                 ├── BE-RWI-005 (controller master)  ✅ SELESAI ────┤
                  │                                                │
-                 ├── BE-RWI-007 (buka admisi)  ✅ ── BE-RWI-008 (ubah/batal/kedaluwarsa Draft)  🟡
-                 │        └── BE-RWI-009 (daftar & detail episode)  🟡
+                 ├── BE-RWI-007 (buka admisi)  ✅ ── BE-RWI-008 (ubah/batal/kedaluwarsa Draft)  ✅
+                 │        └── BE-RWI-009 (daftar & detail episode)  ✅
                  │        └── BE-RWI-010 (pemesanan + available-beds + bed-board)  ✅
-                 │               └── BE-RWI-011 (penempatan + INV-INP-02)  🟡
+                 │               └── BE-RWI-011 (penempatan + INV-INP-02)  ✅
                  │                      ├── BE-RWI-012 (INV-INP-10)  ✅
                  │                      ├── BE-RWI-013 (jenis kelamin + boks bayi)  ✅   EPIC RI-34 A
-                 │                      ├── BE-RWI-014 (atribut isolasi + GUARD-INP-04)  🟡 EPIC RI-34 B
+                 │                      ├── BE-RWI-014 (atribut isolasi + GUARD-INP-04)  ✅ EPIC RI-34 B
                  │                      │      └── BE-RWI-015 (aturan 7-8 + daftar pantau)  ✅
                  │                      └── BE-RWI-016 (census + lama dirawat)  ✅
                  │                             ├── BE-RWI-017 (DPJP)  ✅ ── BE-RWI-019 (perpindahan)  ✅
-                 │                             └── BE-RWI-018 (perawat)  🟡
-                 │                                    └── BE-RWI-020 (keputusan pulang)  🟡
+                 │                             └── BE-RWI-018 (perawat)  ✅
+                 │                                    └── BE-RWI-020 (keputusan pulang)  ✅
                  │                                           └── BE-RWI-021 (resume + tanda tangan)  ✅
                  │                                                  └── BE-RWI-022 (versi resume)  ✅
                  │                                    BE-RWI-023 (daftar periksa)  ✅
@@ -266,11 +278,11 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
                  │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)  ✅
                  │                                                         └── BE-RWI-030 (sesi koreksi)  ✅
                  │                                                         └── BE-RWI-031 (boks bayi + ibu)  ✅
-                 └── BE-RWI-006 (BedController tolak Reserved/Occupied)  ⛔ TERBLOKIR, butuh FE-RWI-001 lebih dulu
+                 └── BE-RWI-006 (BedController tolak Reserved/Occupied)  ✅ SELESAI
 
-BE-RWI-032 (test regresi modul tetangga) — menempel pada BE-RWI-006, wajib selesai bersamanya
-BE-RWI-033 (bukti penerimaan) — paling akhir
-BE-RWI-034 (perbaikan hak akses + endpoint baca kelayakan keuangan) — berdiri sendiri, tidak menunggu apa pun
+BE-RWI-032 (test regresi modul tetangga)  ✅ SELESAI bersama BE-RWI-006
+BE-RWI-033 (bukti penerimaan)  ✅ SELESAI
+BE-RWI-034 (perbaikan hak akses + endpoint baca kelayakan keuangan)  ✅ SELESAI
 BE-RWI-035 (penjamin perusahaan pada encounter admin)  ✅ SELESAI ──> FE-RWI-025
 ```
 
@@ -309,7 +321,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build, sehingga `dotnet build` dan `dotnet test` **tidak dijalankan**. Tidak satu pun acceptance criteria terbukti hari ini. Bukti: [laporan](../task/report/backend/be-rwi-002-seeder-master-rawat-inap.md). Task **belum boleh ditandai selesai** sebelum build dan test dijalankan |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** Implementasi 24 Agustus 2026; validasi yang tertunda kini dijalankan: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus**. Kelima acceptance criteria terbukti oleh tujuh test `InpatientMasterDataSeederTests`. Bukti: [laporan](../task/report/backend/be-rwi-002-seeder-master-rawat-inap.md). Seeder **belum** dijalankan terhadap database bersama — itu tetap wewenang terpisah. Dua angka `RWI-RULE-021` tetap belum disahkan pemilik klinis |
 | **Outcome** | Modul dapat dinyalakan di lingkungan pengembangan tanpa satu pun layar menampilkan daftar pilihan kosong, dan tanpa seeder ikut mengarang kamar atau tempat tidur yang isinya khas tiap rumah sakit |
 | **Trace** | `RWI-DEC-048`; `02-backend-architecture.md` §8.1, §8.2, §8.4; `RWI-AC-108` s.d. `RWI-AC-110` |
 | **Reuse** | Pola `PrescriptionReviewCriterionSeeder.cs` dan `Icd10DiagnosisSeeder.cs` pada `Areas/HealthServices/PharmacyManagement/Seeders/`, termasuk cara seeder dipanggil saat aplikasi menyala |
@@ -344,7 +356,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. Acceptance criteria 1 "aplikasi menyala tanpa galat" **belum terbukti sama sekali**. Bukti: [laporan](../task/report/backend/be-rwi-004-enam-service-dan-nomor-episode.md). Task **belum boleh ditandai selesai** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** Implementasi 24 Agustus 2026; validasi yang tertunda kini dijalankan: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus**. Kriteria 2 s.d. 5 terbukti oleh `InpatientServiceRegistrationTests`, `InpSettingServiceTests`, dan `InpEpisodeNumberServiceTests`. Kriteria 1 terbukti sejauh resolusi container — penyalaan proses penuh terhadap database bersama tetap di luar wewenang. Bukti: [laporan](../task/report/backend/be-rwi-004-enam-service-dan-nomor-episode.md) |
 | **Outcome** | Controller yang dibuat task berikutnya benar-benar dapat dijalankan, dan seluruh angka batas waktu dibaca dari master — bukan ditanam di kode |
 | **Trace** | `02-backend-architecture.md` §4.14 s.d. §4.19, §7.1 langkah 6; `RWI-DEC-008`; `RWI-AC-003` |
 | **Reuse** | `builder.Services.AddScoped<TService>()` pada `Program.cs`, pola yang sudah dipakai puluhan service lain. `InpEpisodeNumberService` mengikuti `EmergencyDocumentNumberService` yang sudah ada |
@@ -361,7 +373,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. Acceptance criteria 6 (403 tanpa hak akses) tidak dapat dibuktikan tanpa aplikasi berjalan, dan kriteria 2 baru separuhnya yang dapat diuji sebelum `BE-RWI-010` ada. Api contract **belum** diperbarui menjadi tersedia. Bukti: [laporan](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md). Task **belum boleh ditandai selesai** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** Implementasi 24 Agustus 2026; validasi yang tertunda kini dijalankan: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus**. Kedelapan endpoint, verb, dan atribut hak aksesnya terbukti oleh tujuh test `InpatientMasterDataControllerContractTests`; kriteria 2 kini penuh karena `BE-RWI-010` sudah ada. Kriteria 6 terbukti sebatas **atribut `[AccessPermission]` terpasang pada tiap endpoint**, bukan penolakan 403 dari aplikasi berjalan — penegakan hak akses ujung-ke-ujung dinilai `BE-RWI-034`. Kolom status api contract diperbarui `BE-RWI-033`. Bukti: [laporan](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md) |
 | **Catatan penyimpangan** | Kedua controller **memakai service**, tidak memakai `ApplicationDbContext` langsung seperti tertulis pada kolom *Reuse* di bawah dan `02-backend-architecture.md` §4.20. Dasarnya `QBE-SVC-001`, yang pada urutan wewenang `AGENTS.md` mengalahkan pola source yang sudah ada. Bentuk endpoint, hak akses, dan pesan bagi pengguna tidak berubah. Perlu diputuskan pemilik arsitektur — lihat laporan bagian 5.1 |
 | **Outcome** | Batas waktu pemesanan, ambang daftar pantau, dan daftar butir administrasi dapat diubah admin tanpa satu baris kode pun disentuh, dan nilai barunya berlaku pada pembacaan berikutnya |
 | **Trace** | `RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`; api contract `0.3.0` bagian Inpatient Setting dan Inpatient Clearance Item (8 endpoint); validation matrix bagian pengaturan; `RWI-AC-003`, `RWI-AC-105` s.d. `RWI-AC-107` |
@@ -375,11 +387,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### ⛔ `BE-RWI-006` — Status terisi dan dipesan hanya lahir dari modul Rawat Inap
+### ✅ `BE-RWI-006` — Status terisi dan dipesan hanya lahir dari modul Rawat Inap
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR sejak 25 Agustus 2026 — tidak dikerjakan.** Prasyarat lintas repository `FE-RWI-001` **tidak terbukti rilis**: repository frontend tidak ada di dalam workspace yang diberi wewenang, tidak ada laporan `task/report/frontend/`, dan `FE-RWI-001` masih tanpa tanda pada roadmap frontend. `BedController.cs` **tidak disentuh sama sekali**. Bukti: [laporan blokir](../task/report/backend/be-rwi-006-terblokir-prasyarat-fe-rwi-001.md) |
+| **Status** | ✅ **SELESAI 1 September 2026.** Blokirnya dicabut karena **kedua** prasyaratnya terpenuhi: `FE-RWI-001` terbukti rilis pada roadmap frontend beserta laporannya, dan persetujuan pemilik `MasterData` (`RWI-OQ-033`) ternyata **sudah diberikan** `RWI-DEC-062` sejak 21 Agustus 2026 — tiga dokumen kontrak yang masih menyatakan "belum ada" ternyata basi dan ikut dibetulkan. Keempat acceptance criteria terbukti. `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. Bukti: [laporan](../task/report/backend/BE-RWI-006.md); [laporan blokir yang digantikan](../task/report/backend/be-rwi-006-terblokir-prasyarat-fe-rwi-001.md) |
 | **Outcome** | Admin master data tidak lagi dapat menyetel tempat tidur menjadi `Reserved` atau `Occupied` lewat layar master, sehingga satu-satunya sumber kebenaran penghunian adalah catatan penempatan. Admin tetap dapat menutup tempat tidur rusak lewat `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive` |
 | **Trace** | `RWI-DEC-039`, `RWI-RULE-027`, `RWI-DEC-062`; api contract `0.3.0` bagian 7; validation matrix bagian 8; `EPIC RI-32`; `RWI-AC-060`, `RWI-AC-061` |
 | **Reuse** | `BedController.UpdateBedAvailability` yang sudah ada pada baris 514–519. Tidak ada endpoint baru dan tidak ada perubahan kolom |
@@ -396,7 +408,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTASI SELESAI 25 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. 14 test ditulis, tidak satu pun dijalankan. Api contract **belum** diperbarui menjadi tersedia. Bukti: [laporan](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md). Task **belum boleh ditandai selesai** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** Implementasi 25 Agustus 2026; ke-14 test kini dijalankan dan lulus: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus**. Kolom status api contract diperbarui `BE-RWI-033`. Bukti: [laporan](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md). Ketiga delta pada laporan bagian 5 **tetap terbuka** dan masih menunggu Product/Domain |
 | **Catatan penyimpangan** | Tiga delta terhadap kontrak dicatat pada laporan bagian 5, dan **belum diputuskan**: (a) jalur kunjungan poliklinik pada `RWI-RULE-005` tidak dapat berjalan karena validation matrix bagian 1 mewajibkan kunjungan bertipe rawat inap; (b) nomor kunjungan yang dibuat modul ini berbentuk berbeda dari nomor pendaftaran, karena alokator lama melanggar `QBE-CODE-003`; (c) penulisan ke `TrxPatientEncounter` melampaui kalimat "satu-satunya arah tulis" pada integration contract bagian 2. Ketiganya perlu keputusan Product/Domain dan pemilik `RegistrationManagement` |
 | **Outcome** | Satu pasien terdaftar dapat dijadikan pasien rawat inap. Episode lahir berstatus `Draft` dengan nomor yang terbaca manusia, menempel pada satu kunjungan, dan sudah punya DPJP sejak detik pertama |
 | **Trace** | `RWI-DEC-009`, `RWI-DEC-011`, `RWI-DEC-041`; `INV-INP-03`, `INV-INP-04`; api contract `POST /episodes`; state matrix bagian episode; validation matrix bagian 1; `RWI-AC-001`, `RWI-AC-004` s.d. `RWI-AC-006` |
@@ -414,7 +426,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTASI SELESAI 25 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. 16 test ditulis, tidak satu pun dijalankan. Api contract **belum** diperbarui. Bukti: [laporan](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md). Task **belum boleh ditandai selesai** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** Implementasi 25 Agustus 2026; ke-16 test kini dijalankan dan lulus: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus**. Kolom status api contract diperbarui `BE-RWI-033`. Bukti: [laporan](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md). Dua butir pada baris **Cakupan yang belum penuh** di bawah **tetap terbuka** |
 | **Cakupan yang belum penuh** | Dua butir, keduanya **tidak berakibat hari ini** karena episode belum dapat mencapai `Admitted` maupun punya penempatan sebelum `BE-RWI-011`: (a) batas "belum ada catatan klinis" pada `RWI-RULE-004` **belum diperiksa**, karena keenam jenis catatan itu milik `ClinicalManagement` dan `PharmacyManagement` dan jalur bacanya tidak ada pada integration contract — **wajib ditutup sebelum `BE-RWI-011` selesai**; (b) pengembalian salinan `MstBed.BedStatus` ke `Available` menunggu `InpBedOccupancyService` terisi pada `BE-RWI-010`/`BE-RWI-011`, sehingga `RWI-AC-006` baru terbukti penuh di sana |
 | **Outcome** | Isian admisi yang salah dapat dibetulkan selagi masih `Draft`; admisi yang batal dapat ditutup rapi beserta pemesanannya; dan admisi yang ditinggalkan tidak menyandera tempat tidur selamanya |
 | **Trace** | `RWI-DEC-010`, `RWI-DEC-030`; `RWI-RULE-004`, `RWI-RULE-022`; api contract `PUT /episodes/{id}` dan `PATCH /episodes/{id}/cancel`; state matrix; `RWI-AC-007` s.d. `RWI-AC-010`, `RWI-AC-090` s.d. `RWI-AC-092` |
@@ -442,6 +454,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Risk/blocker** | Godaan menyimpan "lokasi terakhir" sebagai kolom pada episode akan muncul di sini karena query-nya lebih murah. Arsitektur **melarangnya** — lokasi selalu dibaca dari catatan penempatan. Owner: Backend/API |
 | **DoD** | Empat endpoint sesuai kontrak; kelima kriteria lulus; api contract diperbarui |
 | **Laporan** | 25 Agustus 2026 — kode dan test ditulis ([laporan](../task/report/backend/be-rwi-009-daftar-dan-detail-episode.md)). Validasi 1 September 2026: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. **Sisa terbuka:** kriteria 5 (**403** tanpa hak akses) terbukti sebatas atribut `[AccessPermission]` terpasang; penolakan 403 dari aplikasi berjalan memakai akun non-SuperAdmin belum diambil — mesin hak aksesnya sendiri sudah diperbaiki dan diuji `BE-RWI-034`. |
 
 ---
 
@@ -477,6 +490,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Risk/blocker** | Pemeriksaan "tempat tidur kosong" di dalam kode **tidak cukup** — dua transaksi dapat sama-sama lolos pemeriksaan sebelum salah satunya menyimpan. Penguncian baris ditambah unique index parsial adalah pertahanan sebenarnya. Owner: Backend/API |
 | **DoD** | Endpoint sesuai kontrak; keenam kriteria lulus; test tabrakan lulus; api contract diperbarui |
 | **Laporan** | 25 Agustus 2026 — kode dan test ditulis ([laporan](../task/report/backend/be-rwi-011-penempatan-pasien-dan-inv-inp-02.md)). Validasi 1 September 2026: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. Kriteria 2 terbukti di tingkat service oleh `Kriteria2_PenempatanKeduaPadaTempatTidurYangSamaDitolak409DanHanyaSatuBarisAktifTersimpan`. **Sisa terbuka:** pertahanan sebenarnya adalah penguncian baris ditambah unique index parsial, dan itu **hanya dapat dibuktikan terhadap PostgreSQL** — test dua transaksi sungguhan terhadap database belum dijalankan. Index-nya sudah ada, perilakunya belum diuji. |
 
 ---
 
@@ -528,6 +542,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Risk/blocker** | Mesin hak akses menjawab `SetIsolation` dengan "boleh" untuk petugas admisi **dan** untuk dokter mana pun. Yang membedakan adalah status episode dan siapa DPJP aktifnya. Bila `GUARD-INP-04` dilupakan, dokter jaga mana pun dapat mengubah keputusan pengendalian infeksi milik DPJP lain. Owner: Backend/API bersama Clinical governance |
 | **DoD** | Endpoint dan penjaga aktif; keenam kriteria lulus; permission matrix dan kenyataan cocok; api contract diperbarui |
 | **Laporan** | 25 Agustus 2026 — kode dan test ditulis ([laporan](../task/report/backend/be-rwi-014-kebutuhan-isolasi-dan-guard-inp-04.md)). Validasi 1 September 2026: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. Kriteria 1 s.d. 5 terbukti oleh `InpIsolationRequirementTests`, termasuk `GUARD-INP-04` lewat `Kriteria3Dan4_SetelahAdmittedHanyaDpjpAktifYangBoleh`. **Sisa terbuka:** kriteria 6 (ditolak mesin hak akses **sebelum** service dijalankan) menuntut aplikasi berjalan; butir `InpatientEpisode : SetIsolation` sendiri baru dapat diberikan kepada peran sejak `BE-RWI-034`. |
 
 ---
 
@@ -596,6 +611,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Risk/blocker** | Kriteria 2 mudah dikerjakan terbalik menjadi "wajib ada perawat sebelum episode aktif". `RWI-DEC-032` memilih **tidak menahan**, karena penugasan perawat sering menyusul beberapa menit setelah pasien tiba. Owner: Backend/API |
 | **DoD** | Dua endpoint sesuai kontrak; kelima kriteria lulus; api contract diperbarui |
 | **Laporan** | 25 Agustus 2026 — kode dan test ditulis ([laporan](../task/report/backend/be-rwi-018-penugasan-perawat-penanggung-jawab.md)). Validasi 1 September 2026: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. **Sisa terbuka:** kriteria 3 (episode tanpa perawat muncul pada daftar pantau kepala ruangan) terbukti di tingkat service lewat `GET /monitoring/unassigned-nurse-episodes`; belum diverifikasi dari layar kepala ruangan. |
 
 ---
 
@@ -630,6 +646,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Risk/blocker** | Dua cara pulang — meninggal dan kabur — sisi klinisnya **masih terbuka** pada `RWI-OQ-039` dan `RWI-DEC-059`, menunggu pemilik klinis. Keduanya tetap dikenali sistem, tetapi laporan wajib menyebut bahwa aturan klinisnya belum disahkan. Owner: Product/Domain bersama Clinical governance |
 | **DoD** | Endpoint sesuai kontrak; kelima kriteria lulus; laporan menyebut dua cara pulang yang aturan klinisnya belum final; api contract diperbarui |
 | **Laporan** | 25 Agustus 2026 — kode dan test ditulis ([laporan](../task/report/backend/be-rwi-020-keputusan-pasien-boleh-pulang.md)). Validasi 1 September 2026: `dotnet build` solution **0 Error(s)**; suite `InPatientManagement` **257/257 lulus**; project test utama **844/844 lulus** |
+| **Status** | ✅ **SELESAI — divalidasi 1 September 2026.** `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **292/292 lulus**; project test utama **879/879 lulus**. Kriteria 1, 3, 4, dan 5 terbukti oleh `InpDischargeDecisionTests`. **Sisa terbuka:** kriteria 2 menyebut **lima** cara pulang, sedangkan yang dikenali enum baru tiga — meninggal dan kabur sengaja ditolak 422 karena aturan klinisnya belum disahkan (`RWI-OQ-039`, `RWI-DEC-059` masih `draft`). Perilaku itu diuji apa adanya oleh `Kriteria2_CaraPulangKosongDitolak400DanYangBelumTersediaDitolak422`. |
 
 ---
 
@@ -820,7 +837,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-032` — Empat modul tetangga terbukti tidak rusak
+### ✅ `BE-RWI-032` — Empat modul tetangga terbukti tidak rusak
 
 | Field | Isi |
 | --- | --- |
@@ -833,10 +850,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Jalankan seluruh rangkaian test sebelum dan sesudah `BE-RWI-006`, lampirkan keluarannya apa adanya |
 | **Risk/blocker** | **`RWI-RISK-002` diterima secara sadar:** tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi hari ini. Task ini menutup lubang itu **hanya** untuk jalur `MstBed` yang benar-benar disentuh — bukan untuk seluruh modul tetangga. Jangan melebarkan scope-nya diam-diam. Owner: Backend/API |
 | **DoD** | Test regresi ada dan lulus; keluaran sebelum dan sesudah dilampirkan; laporan menyatakan cakupannya terbatas pada jalur `MstBed` |
+| **Status** | ✅ **SELESAI 1 September 2026**, dikerjakan bersama `BE-RWI-006` sesuai `RWI-DEC-051`. Keempat acceptance criteria terbukti oleh sepuluh test baru; tidak satu baris source modul tetangga disentuh. Keluaran sebelum dan sesudah dilampirkan pada laporan bagian 4.1: suite `InPatientManagement` 257 → 292 lulus, project test utama 844 → 879 lulus, tanpa satu pun test lama berubah menjadi gagal. `RWI-RISK-002` **turun, belum tertutup**. Bukti: [laporan](../task/report/backend/BE-RWI-032.md) |
 
 ---
 
-### `BE-RWI-033` — Bukti penerimaan lengkap dan traceability tertutup
+### ✅ `BE-RWI-033` — Bukti penerimaan lengkap dan traceability tertutup
 
 | Field | Isi |
 | --- | --- |
@@ -849,10 +867,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Pemeriksaan silang antara decision log, api contract, test matrix, dan berkas test yang benar-benar ada di repository |
 | **Risk/blocker** | Task ini sering diperlakukan sebagai formalitas dan dikerjakan asal lengkap. Ia justru satu-satunya tempat lubang cakupan ketahuan sebelum modul dipakai pasien sungguhan. Owner: Backend/API bersama Product/Domain |
 | **DoD** | Keempat kriteria lulus; api contract dan traceability mutakhir; modul siap masuk `/qv-verify` |
+| **Status** | ✅ **SELESAI 1 September 2026.** Keempat acceptance criteria terbukti. Temuan pokoknya: **67 acceptance criteria** tidak pernah muncul di test matrix maupun traceability — 40 di antaranya ternyata **sudah terbukti** oleh test yang ada dan hanya belum ditunjuk, 4 sebagian, 23 di luar scope MVP dengan decision ID-nya; ditambah **4 skenario UAT** tanpa pasangan dan **1 baris api contract** yang masih `Rencana`. Seluruhnya ditutup. Kini: 51 baris endpoint tanpa satu pun `Rencana`, 146 acceptance criteria tanpa satu pun tanpa penunjuk, 33 UAT berpasangan, 0 butir berbunyi "menyusul". Bukti: [laporan](../task/report/backend/BE-RWI-033.md); daftar lengkapnya pada [requirement-traceability.md](requirement-traceability.md) bagian **Penutupan bukti penerimaan** |
 
 ---
 
-### `BE-RWI-034` — Sembilan endpoint yang hak aksesnya tidak dapat diberikan kepada siapa pun
+### ✅ `BE-RWI-034` — Sembilan endpoint yang hak aksesnya tidak dapat diberikan kepada siapa pun
 
 | Field | Isi |
 | --- | --- |
@@ -865,7 +884,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Test yang membandingkan seluruh pasangan `[AccessPermission]` di modul terhadap pasangan yang benar-benar didaftarkan `AccessMenuSeeder`; pemeriksaan terhadap database tim untuk memastikan baris `SysControllerAccess` yang diharapkan memang terbentuk |
 | **Risk/blocker** | **Sembilan endpoint ini termasuk yang paling penting di modul:** tanda tangan resume, penandaan kelayakan keuangan, penutupan episode, jalan keluar supervisor, pencatatan kepergian pasien, perpindahan pasien, penetapan kebutuhan isolasi, dan kedua endpoint sesi koreksi. Selama belum diperbaiki, `FE-RWI-009` s.d. `FE-RWI-015` terlihat selesai di layar tetapi **tidak dapat dipakai satu pun petugas sungguhan**. Bukti "terbukti berjalan" pada laporan `BE-RWI-020` s.d. `BE-RWI-027` diambil lewat Swagger sebagai SuperAdmin, dan `AccessPermissionService` memulangkan `true` untuk SuperAdmin sebelum satu baris hak akses pun dibaca — itulah sebabnya lolos. Owner: Backend/API bersama pemilik keamanan |
 | **DoD** | Kelima kriteria lulus; kesembilan endpoint terbukti dapat diberikan kepada peran non-SuperAdmin; api contract dan permission matrix mutakhir; laporan menyebut cara pembuktiannya tanpa SuperAdmin |
-| **Status** | 🔴 **Belum dikerjakan.** Ditemukan 27 Agustus 2026 saat preflight backend untuk `GET .../financial-clearance`; implementasi endpoint itu ditahan karena menambah endpoint baca di sebelah endpoint tulis yang sama-sama tidak dapat dipanggil tidak menolong siapa pun |
+| **Status** | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terbukti. Arah perbaikan yang dipilih pemilik keamanan: **butir halus per aksi** — `Sign`, `Close`, `CloseOverride`, `RecordDeparture`, `SetIsolation`, `Reopen`, `Transfer`, `MarkFinancialClearance`, dan `ReadFinancialClearance` tetap terpisah dari `Update`. Kriteria 2 dibuktikan lewat `AccessPermissionService.HasAccessAsync` sungguhan memakai pengguna `UserType.Employee` **tanpa** peran SuperAdmin, berikut kendali negatifnya. `dotnet build` solution `0 Error(s)`; suite `InPatientManagement` **280/280 lulus**; project test utama **867/867 lulus**. Bukti: [laporan](../task/report/backend/BE-RWI-034.md). **Wajib menyusul:** delapan butir baru hanya lahir ketika aplikasi menyala dan `AccessMenuSeeder` berjalan, lalu admin harus memberikannya ke peran — lihat laporan bagian 6 |
 
 #### Kesembilan endpoint beserta buktinya
 
@@ -919,7 +938,7 @@ Database bersama/target masih menunggu penerapan migration yang merupakan wewena
 
 ---
 
-### `BE-RWI-036` — Metadata reservasi aktif tersedia pada papan tempat tidur
+### ✅ `BE-RWI-036` — Metadata reservasi aktif tersedia pada papan tempat tidur
 
 | Field | Isi |
 | --- | --- |

@@ -201,7 +201,20 @@ Keempat syarat lainnya tetap wajib, dan tidak ada satu pun peran yang dapat mele
 
 Ini satu-satunya baris pada dokumen ini yang **mengubah perilaku endpoint yang sudah dipakai**.
 Dasarnya `RWI-RULE-027` aturan 4 dan 5. Persetujuan pemilik `MasterData` tercatat sebagai
-`RWI-OQ-033` dan belum ada.
+`RWI-OQ-033` dan **sudah diberikan** 21 Agustus 2026 lewat `RWI-DEC-062`. Diterapkan
+`BE-RWI-006` pada 1 September 2026.
+
+Dua aturan turunan ikut ditegakkan pada aksi yang sama, keduanya dari `RWI-RULE-027` aturan 2
+yang menempatkan `MstBed.BedStatus` sebagai **salinan** catatan penempatan:
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| Tempat tidur sedang ditempati | `PATCH /health-services/master-data/beds/{id}/availability` | Ada penempatan aktif pada tempat tidur itu | "Tempat tidur ini sedang ditempati pasien rawat inap. Statusnya baru dapat diubah setelah pasien dipindahkan atau kepergiannya dicatat." | 422 |
+| Nilai tidak dikenali | idem | Nilai yang dikirim `Unknown` | "Status ketersediaan tempat tidur tidak dikenali." | 422 |
+
+Nilai `Available`, `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive` **tetap diterima**.
+`Available` sengaja tetap diizinkan sebagai jalan kembali: tanpa itu, tempat tidur yang
+ditutup admin untuk dibersihkan tidak akan pernah dapat dibuka lagi dari layar master.
 
 ## 11. Aturan penanganan waktu
 

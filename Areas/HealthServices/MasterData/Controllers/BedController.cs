@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -511,9 +512,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        /// <summary>Admin master data menutup atau membuka kembali satu tempat tidur.</summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Perubahan perilaku, bukan penambahan fitur</b> — `BE-RWI-006`, dasar
+        /// <c>RWI-DEC-039</c> dan <c>RWI-RULE-027</c> aturan 4 dan 5, disetujui pemilik
+        /// `MasterData` lewat <c>RWI-DEC-062</c>.
+        /// </para>
+        /// <para>
+        /// Sejak modul Rawat Inap ada, <b>catatan penempatan</b> adalah satu-satunya sumber
+        /// kebenaran tentang siapa menempati tempat tidur mana dan sejak kapan. Kolom
+        /// <c>MstBed.BedStatus</c> turun kedudukan menjadi <b>salinan</b> dari catatan itu.
+        /// Karena itu <c>Reserved</c> dan <c>Occupied</c> tidak boleh lagi lahir dari layar
+        /// master: keduanya menyangkut pasien, dan menyetelnya di sini akan membuat sistem
+        /// mengaku tempat tidur terisi tanpa dapat menyebut pasiennya siapa.
+        /// </para>
+        /// <para>
+        /// Admin <b>tetap</b> dapat menutup tempat tidur rusak lewat <c>Cleaning</c>,
+        /// <c>Maintenance</c>, <c>Blocked</c>, dan <c>Inactive</c>, serta membukanya kembali
+        /// lewat <c>Available</c>. Kelima nilai itu tidak menyangkut pasien.
+        /// </para>
+        /// </remarks>
         [HttpPatch("{id:guid}/availability")]
         [ProducesResponseType(typeof(ApiResponse<BedUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Update Bed Availability", Description = "Mengubah status ketersediaan bed", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Bed", "Update")]
         public async Task<IActionResult> UpdateBedAvailability(Guid id, [FromBody] UpdateBedAvailabilityRequest request)
@@ -526,6 +549,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Bed tidak ditemukan."
+                ));
+            }
+
+            // RWI-RULE-027 aturan 4. Pesannya sama persis dengan validation matrix bagian 10.
+            if (request.BedStatus == BedStatus.Reserved || request.BedStatus == BedStatus.Occupied)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Status Terisi dan Dipesan hanya dapat diubah lewat modul Rawat Inap. " +
+                    "Untuk menutup tempat tidur sementara, pakai status Pembersihan, Perbaikan, atau Diblokir."
+                ));
+            }
+
+            if (request.BedStatus == BedStatus.Unknown)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Status ketersediaan tempat tidur tidak dikenali."
+                ));
+            }
+
+            // Tempat tidur yang sedang dipakai tidak boleh ditutup dari layar master. Menutupnya
+            // tidak memindahkan pasien ke mana pun — ia hanya membuat salinan status berbohong,
+            // dan pasien yang masih berbaring di sana menghilang dari papan tempat tidur.
+            var adaPenempatanAktif = await _dbContext.Set<InpBedPlacement>()
+                .AsNoTracking()
+                .AnyAsync(x => x.BedId == id && x.EndDateTime == null && !x.IsDelete);
+
+            if (adaPenempatanAktif)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Tempat tidur ini sedang ditempati pasien rawat inap. " +
+                    "Statusnya baru dapat diubah setelah pasien dipindahkan atau kepergiannya dicatat."
                 ));
             }
 

@@ -96,10 +96,20 @@ atribut yang sama, dan butir haknya muncul sendiri.
 | `PATCH /discharges/{episodeId}/summary/sign` | `InpatientDischarge` | `Sign` | `[AccessPermission("InpatientDischarge", "Sign")]` | Ya |
 | `GET /discharges/{episodeId}/clearance` | `InpatientDischarge` | `Read` | `[AccessPermission("InpatientDischarge", "Read")]` | Tidak |
 | `POST /discharges/{episodeId}/clearance/{itemId}/mark` | `InpatientDischarge` | `Update` | `[AccessPermission("InpatientDischarge", "Update")]` | Ya |
-| `POST /discharges/{episodeId}/financial-clearance` | `InpatientFinancialClearance` | `Update` | `[AccessPermission("InpatientFinancialClearance", "Update")]` | Ya |
+| `POST /discharges/{episodeId}/financial-clearance` | `InpatientDischarge` | `MarkFinancialClearance` | `[AccessPermission("InpatientDischarge", "MarkFinancialClearance")]` | Ya |
+| `GET /discharges/{episodeId}/financial-clearance` | `InpatientDischarge` | `ReadFinancialClearance` | `[AccessPermission("InpatientDischarge", "ReadFinancialClearance")]` | Tidak |
 | `GET /discharges/{episodeId}/closure-readiness` | `InpatientDischarge` | `Read` | `[AccessPermission("InpatientDischarge", "Read")]` | Tidak |
-| `POST /discharges/{episodeId}/close` | `InpatientEpisode` | `Close` | `[AccessPermission("InpatientEpisode", "Close")]` | Ya |
-| `POST /discharges/{episodeId}/close-with-override` | `InpatientEpisode` | `CloseOverride` | `[AccessPermission("InpatientEpisode", "CloseOverride")]` | Ya |
+| `POST /discharges/{episodeId}/close` | `InpatientDischarge` | `Close` | `[AccessPermission("InpatientDischarge", "Close")]` | Ya |
+| `POST /discharges/{episodeId}/close-with-override` | `InpatientDischarge` | `CloseOverride` | `[AccessPermission("InpatientDischarge", "CloseOverride")]` | Ya |
+
+> **Kolom `Resource` bukan pilihan bebas.** `AccessMenuSeeder` mendaftarkan baris memakai
+> `ControllerName` dari `[AccessController]` milik controller **tempat aksinya berada**,
+> sedangkan `AccessPermissionFilter` mencari baris memakai argumen pertama `[AccessPermission]`.
+> Bila keduanya berbeda, barisnya tidak pernah ditemukan dan hasilnya **403 permanen yang tidak
+> dapat diperbaiki dari layar Akses Role** — karena baris untuk dicentangnya memang tidak pernah
+> dibuat. Itulah sebabnya penutupan episode dan penandaan kelayakan keuangan kini berada di bawah
+> `InpatientDischarge`: keduanya adalah aksi pada `InpatientDischargeController`. Diperbaiki
+> `BE-RWI-034`; dijaga `InpatientRoleAccessContractTests`.
 
 ### 2.4 Census dan Monitoring
 
@@ -136,12 +146,12 @@ dilakukan admin lewat layar Role Access yang sudah ada, dan pemilik keamanan bel
 
 | Peran | Butir hak akses yang diusulkan |
 | --- | --- |
-| Petugas admisi | `InpatientEpisode : Read/Create/Update/Close/SetIsolation`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update/RecordDeparture`, `InpatientCensus : Read`, `InpatientMonitoring : Read`. `SetIsolation` hanya berlaku selagi episode `Draft`, dijaga service |
+| Petugas admisi | `InpatientEpisode : Read/Create/Update/SetIsolation`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update/Close/RecordDeparture`, `InpatientCensus : Read`, `InpatientMonitoring : Read`. `SetIsolation` hanya berlaku selagi episode `Draft`, dijaga service |
 | Perawat pelaksana | `InpatientEpisode : Read`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : RecordDeparture`, `InpatientCensus : Read` |
 | Kepala ruangan | Seperti perawat pelaksana, ditambah `InpatientEpisode : Update` untuk penugasan perawat dan pengalihan DPJP, serta `InpatientMonitoring : Read` |
 | Dokter dan DPJP | `InpatientEpisode : Read/SetIsolation`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : Read/Update/Sign`, `InpatientCensus : Read`. **Tanpa** `RecordDeparture`, karena kepergian dicatat petugas ruangan |
-| Petugas kasir atau billing | `InpatientEpisode : Read`, `InpatientFinancialClearance : Update`, `InpatientCensus : Read` |
-| Supervisor | Seluruh butir di atas, ditambah `InpatientEpisode : Reopen` dan `InpatientEpisode : CloseOverride` |
+| Petugas kasir atau billing | `InpatientEpisode : Read`, `InpatientDischarge : MarkFinancialClearance/ReadFinancialClearance`, `InpatientCensus : Read`. **Tanpa** `InpatientDischarge : Read`, sehingga kasir dapat memeriksa penandaan kelayakan keuangannya sendiri tanpa ikut membaca isi resume pulang |
+| Supervisor | Seluruh butir di atas, ditambah `InpatientEpisode : Reopen` dan `InpatientDischarge : CloseOverride` |
 | Admin master data | `InpatientSetting : Read/Update`, `InpatientClearanceItem : Read/Create/Update/Delete` |
 
 ---
