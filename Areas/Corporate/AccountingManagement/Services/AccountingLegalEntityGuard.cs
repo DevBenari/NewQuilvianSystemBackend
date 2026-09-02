@@ -6,7 +6,8 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services
 {
     /// <summary>
-    /// Penjaga jumlah badan hukum — syarat yang mengikat <c>ACC-DEC-041</c>.
+    /// Penjaga badan hukum Accounting — syarat yang mengikat <c>ACC-DEC-041</c>, dengan mekanisme
+    /// yang disempurnakan <c>ACC-DEC-043</c>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -16,21 +17,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services
     /// <c>HasQueryFilter</c>, dan <c>LegalEntityId</c> selalu datang dari pengirim permintaan).
     /// </para>
     /// <para>
-    /// Tanpa penjaga ini, keputusan tersebut menyimpan cacat yang muncul diam-diam: begitu badan
-    /// hukum kedua didaftarkan lewat <c>LegalEntityController</c> yang sudah ada, <b>setiap
-    /// pengguna langsung memperoleh akses ke dua buku besar sekaligus</b> tanpa ada yang
-    /// menyadarinya — dan jurnal yang sudah disahkan tidak dapat dihapus (<c>ACC-DEC-015</c>),
-    /// sehingga koreksinya harus lewat jurnal pembalik satu per satu.
+    /// <b>Kenapa mekanismenya berubah.</b> Versi pertama penjaga ini menolak bila badan hukum
+    /// aktif lebih dari satu. Saat diperiksa terhadap database sungguhan pada 2 September 2026,
+    /// ternyata sudah ada <b>tiga</b> badan hukum aktif yang dibuat modul lain — dan hanya satu,
+    /// <c>LE-MMC-001</c>, yang benar-benar dipakai: ia satu-satunya yang punya unit organisasi,
+    /// cost center, dan lokasi kerja, sekaligus satu-satunya bertanda <see cref="MstLegalEntity.IsDefault"/>.
+    /// Dua lainnya kosong.
     /// </para>
     /// <para>
-    /// Karena itu ia <b>menolak keras</b>, bukan sekadar mencatat peringatan di log. Pembukuan
-    /// tidak punya jalan mundur yang murah: tercampurnya dua buku besar baru ketahuan saat tutup
-    /// buku.
+    /// Menolak berdasarkan jumlah akan mematikan Accounting tanpa alasan yang sebenarnya, karena
+    /// bahaya yang dijaga bukanlah "ada lebih dari satu badan hukum di master", melainkan
+    /// <b>ketidakjelasan buku besar mana yang sedang disentuh</b>. <c>IsDefault</c> menjawab
+    /// pertanyaan itu, dan ia kolom platform yang sudah ada — bukan konsep baru yang dikarang
+    /// Accounting.
+    /// </para>
+    /// <para>
+    /// Karena itu penjaga ini menuntut <b>tepat satu</b> badan hukum bertanda default. Nol default
+    /// berarti tidak ada yang dapat ditunjuk; lebih dari satu berarti ambigu. Keduanya ditolak
+    /// keras — pembukuan tidak punya jalan mundur yang murah, dan tercampurnya dua buku besar baru
+    /// ketahuan saat tutup buku, sementara jurnal yang sudah disahkan tidak dapat dihapus
+    /// (<c>ACC-DEC-015</c>).
     /// </para>
     /// <para>
     /// Ini <b>bukan</b> sistem hak akses tandingan. Ia tidak menentukan siapa berhak atas apa —
-    /// ia hanya menolak berjalan pada keadaan yang belum dapat dijaga. Penyaringan yang
-    /// sesungguhnya tetap milik Security/Platform lewat <c>ACC-DEP-008</c>.
+    /// ia hanya memastikan hanya ada satu buku besar yang mungkin disentuh. Penyaringan per
+    /// pengguna tetap milik Security/Platform lewat <c>ACC-DEP-008</c>.
     /// </para>
     /// <para>
     /// Dibuat <c>static</c> dan menerima <see cref="ApplicationDbContext"/> sebagai parameter
@@ -40,26 +51,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services
     /// </remarks>
     public static class AccountingLegalEntityGuard
     {
-        public const string PesanPenolakan =
-            "Terdapat lebih dari satu badan hukum aktif, sementara penyaringan badan hukum per " +
-            "pengguna belum tersedia. Modul Accounting berhenti demi mencegah pembukuan dua badan " +
-            "hukum tercampur. Selesaikan ACC-DEP-008 lebih dahulu bersama Security/Platform.";
+        public const string PesanTanpaDefault =
+            "Belum ada badan hukum bertanda utama (IsDefault). Modul Accounting tidak dapat " +
+            "menentukan buku besar mana yang harus dipakai. Tetapkan satu badan hukum utama pada " +
+            "master badan hukum lebih dahulu.";
+
+        public const string PesanDefaultGanda =
+            "Terdapat lebih dari satu badan hukum bertanda utama (IsDefault), sementara " +
+            "penyaringan badan hukum per pengguna belum tersedia. Modul Accounting berhenti demi " +
+            "mencegah pembukuan dua badan hukum tercampur. Sisakan satu badan hukum utama, atau " +
+            "selesaikan ACC-DEP-008 lebih dahulu bersama Security/Platform.";
 
         /// <summary>
-        /// Menghitung badan hukum yang masih hidup. Badan hukum nonaktif maupun yang sudah
-        /// dihapus lunak tidak dihitung — keduanya tidak dapat menerima pembukuan baru.
+        /// Badan hukum yang menjadi tumpuan seluruh pembukuan Accounting selama
+        /// <c>ACC-DEP-008</c> belum selesai. <c>null</c> bila tidak tepat satu.
         /// </summary>
-        public static Task<int> HitungBadanHukumAktifAsync(
+        public static async Task<Guid?> AmbilBadanHukumUtamaAsync(
             ApplicationDbContext db,
             CancellationToken ct = default)
         {
-            return db.Set<MstLegalEntity>()
-                .Where(x => !x.IsDelete && x.IsActive)
-                .CountAsync(ct);
+            var utama = await db.Set<MstLegalEntity>()
+                .Where(x => !x.IsDelete && x.IsActive && x.IsDefault)
+                .Select(x => x.Id)
+                .Take(2)
+                .ToListAsync(ct);
+
+            return utama.Count == 1 ? utama[0] : null;
         }
 
         /// <summary>
-        /// Mengembalikan hasil gagal berkode <c>409</c> bila badan hukum aktif lebih dari satu,
+        /// Mengembalikan hasil gagal berkode <c>409</c> bila badan hukum utama tidak tepat satu,
         /// dan <c>null</c> bila aman dilanjutkan.
         /// </summary>
         /// <remarks>
@@ -71,10 +92,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services
             ApplicationDbContext db,
             CancellationToken ct = default)
         {
-            var jumlah = await HitungBadanHukumAktifAsync(db, ct);
+            var jumlahDefault = await db.Set<MstLegalEntity>()
+                .Where(x => !x.IsDelete && x.IsActive && x.IsDefault)
+                .Take(2)
+                .CountAsync(ct);
 
-            return jumlah > 1
-                ? AccountingServiceResult<T>.Fail(StatusCodes.Status409Conflict, PesanPenolakan)
+            if (jumlahDefault == 0)
+            {
+                return AccountingServiceResult<T>.Fail(
+                    StatusCodes.Status409Conflict, PesanTanpaDefault);
+            }
+
+            return jumlahDefault > 1
+                ? AccountingServiceResult<T>.Fail(StatusCodes.Status409Conflict, PesanDefaultGanda)
                 : null;
         }
     }

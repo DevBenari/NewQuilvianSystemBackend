@@ -59,9 +59,9 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             using var uji = TestDatabase.Create();
             await using var db = uji.CreateContext();
             var pt1 = await BuatBadanHukumAsync(db, "PT-01", "PT Sehat Sentosa");
-            // Badan hukum kedua sengaja NONAKTIF supaya penjaga ACC-DEC-041 tidak menyala;
-            // yang diuji di sini pemisahan data, bukan penjaganya.
-            var pt2 = await BuatBadanHukumAsync(db, "PT-02", "PT Sehat Mandiri", aktif: false);
+            // Badan hukum kedua AKTIF tetapi bukan yang utama — persis keadaan database
+            // sungguhan (ACC-DEC-043). Penjaga tidak menyala karena default-nya tetap satu.
+            var pt2 = await BuatBadanHukumAsync(db, "PT-02", "PT Sehat Mandiri", utama: false);
             var service = new AccChartOfAccountService(db);
 
             var a = await service.CreateAsync(Permintaan(pt1, "1-1001", "Kas Besar"), Actor);
@@ -257,7 +257,7 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
         // ------------------------------------------------------------------
 
         [Fact]
-        public async Task LebihDariSatuBadanHukumAktif_SeluruhEndpointMenolak()
+        public async Task LebihDariSatuBadanHukumUtama_SeluruhEndpointMenolak()
         {
             using var uji = TestDatabase.Create();
             await using var db = uji.CreateContext();
@@ -276,10 +276,51 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             Assert.False(tambah.Success);
 
             Assert.Equal(StatusCodes.Status409Conflict, tambah.StatusCode);
-            Assert.Contains("ACC-DEP-008", tambah.Message);
+            Assert.Contains("lebih dari satu badan hukum bertanda utama", tambah.Message);
 
             // Penjaga menolak SEBELUM menulis apa pun.
             Assert.Empty(db.AccChartOfAccounts);
+        }
+
+        /// <summary>
+        /// `ACC-DEC-043` — nol badan hukum utama juga ditolak. Tanpa penanda utama, modul tidak
+        /// dapat menentukan buku besar mana yang dipakai, dan menebaknya jauh lebih berbahaya
+        /// daripada berhenti.
+        /// </summary>
+        [Fact]
+        public async Task TanpaBadanHukumUtama_SeluruhEndpointMenolak()
+        {
+            using var uji = TestDatabase.Create();
+            await using var db = uji.CreateContext();
+            var pt = await BuatBadanHukumAsync(db, "PT-01", "PT Sehat Sentosa", utama: false);
+            var service = new AccChartOfAccountService(db);
+
+            var hasil = await service.CreateAsync(Permintaan(pt, "1-1001", "Kas Besar"), Actor);
+
+            Assert.False(hasil.Success);
+            Assert.Equal(StatusCodes.Status409Conflict, hasil.StatusCode);
+            Assert.Contains("bertanda utama", hasil.Message);
+            Assert.Empty(db.AccChartOfAccounts);
+        }
+
+        /// <summary>
+        /// Keadaan database sungguhan per 2 September 2026: tiga badan hukum aktif, hanya satu
+        /// bertanda utama. Penjaga **tidak** menyala, dan Accounting berjalan normal.
+        /// </summary>
+        [Fact]
+        public async Task TigaBadanHukumAktifDenganSatuUtama_AccountingTetapBerjalan()
+        {
+            using var uji = TestDatabase.Create();
+            await using var db = uji.CreateContext();
+            var mmc = await BuatBadanHukumAsync(db, "LE-MMC-001", "PT Metropolitan Medical Centre");
+            await BuatBadanHukumAsync(db, "LE-MDC-001", "PT Metropolitan Diagnostic Centre", utama: false);
+            await BuatBadanHukumAsync(db, "LE-MHS-001", "PT Metropolitan Healthcare Services", utama: false);
+            var service = new AccChartOfAccountService(db);
+
+            var hasil = await service.CreateAsync(Permintaan(mmc, "1-1001", "Kas Besar"), Actor);
+
+            Assert.True(hasil.Success);
+            Assert.Equal(mmc, hasil.Data!.LegalEntityId);
         }
 
         /// <summary>
@@ -287,7 +328,7 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
         /// dapat menerima pembukuan baru, jadi tidak menimbulkan risiko yang dijaga.
         /// </summary>
         [Fact]
-        public async Task BadanHukumNonaktif_TidakMenyalakanPenjaga()
+        public async Task BadanHukumUtamaYangNonaktifAtauTerhapus_TidakDihitung()
         {
             using var uji = TestDatabase.Create();
             await using var db = uji.CreateContext();
@@ -328,7 +369,7 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             using var uji = TestDatabase.Create();
             await using var db = uji.CreateContext();
             var pt1 = await BuatBadanHukumAsync(db, "PT-01", "PT Sehat Sentosa");
-            var pt2 = await BuatBadanHukumAsync(db, "PT-02", "PT Sehat Mandiri", aktif: false);
+            var pt2 = await BuatBadanHukumAsync(db, "PT-02", "PT Sehat Mandiri", utama: false);
             var service = new AccChartOfAccountService(db);
 
             var indukPt2 = (await service.CreateAsync(Permintaan(pt2, "1", "Aset"), Actor)).Data!;
@@ -500,7 +541,8 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             string kode = "PT-01",
             string nama = "PT Sehat Sentosa",
             bool aktif = true,
-            bool terhapus = false)
+            bool terhapus = false,
+            bool utama = true)
         {
             var entity = new MstLegalEntity
             {
@@ -508,7 +550,8 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
                 LegalEntityCode = kode,
                 LegalEntityName = nama,
                 IsActive = aktif,
-                IsDelete = terhapus
+                IsDelete = terhapus,
+                IsDefault = utama
             };
 
             db.Set<MstLegalEntity>().Add(entity);

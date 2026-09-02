@@ -27,6 +27,7 @@ belas artefak.
 | `ACC-TD-007` | Satu test Billing merah sejak merge integration | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
+| `ACC-TD-010` | Dua badan hukum kosong di master | Owner modul lain | Rendah | `OPEN` |
 
 ---
 
@@ -64,9 +65,10 @@ hukum di JWT, **0** `HasQueryFilter` di seluruh repository.
 
 | Hal | Keterangan |
 |---|---|
-| Yang menahan celahnya sekarang | `AccountingLegalEntityGuard` — bila badan hukum aktif lebih dari satu, seluruh endpoint Accounting menolak `409` |
-| Yang **tidak** dijaga | Bila hanya ada satu badan hukum, tidak ada yang perlu dijaga. Penjaga itu memang menutup seluruh risikonya **selama syaratnya dipenuhi** |
-| **Kapan menjadi berbahaya** | Saat seseorang mendaftarkan badan hukum kedua lewat `LegalEntityController` yang sudah ada. Penjaga akan langsung mematikan seluruh modul Accounting — itu memang perilaku yang dikehendaki, tetapi akan terasa seperti kerusakan mendadak bila tidak ada yang tahu sebabnya |
+| Yang menahan celahnya sekarang | `AccountingLegalEntityGuard` (`ACC-DEC-043`) — Accounting berjalan di atas badan hukum bertanda `IsDefault`, dan menolak `409` bila yang bertanda utama bukan tepat satu |
+| Keadaan nyata per 2 Sep 2026 | **Tiga** badan hukum aktif, **satu** bertanda utama: `LE-MMC-001` PT Metropolitan Medical Centre. Penjaga lolos, Accounting berjalan |
+| **Kapan menjadi berbahaya** | Saat ada yang menandai badan hukum kedua sebagai `IsDefault`, atau mencabut tanda utama dari MMC. Penjaga akan langsung mematikan seluruh modul Accounting — itu memang perilaku yang dikehendaki, tetapi akan terasa seperti kerusakan mendadak bila tidak ada yang tahu sebabnya |
+| **Yang tetap terbuka** | Pengguna mana pun masih dapat mengirim `LegalEntityId` milik `LE-MDC-001` atau `LE-MHS-001` pada permintaan, dan sistem tidak menolaknya berdasarkan hak akses. Penjaga hanya memastikan tidak ada **ambiguitas** buku besar utama, bukan menyaring per pengguna |
 | Cara menutup | Security/Platform menetapkan model lima lapis pada `05-prerequisite-readiness.md` bagian `ACC-DEP-008` |
 | **Jangan** | Membuat penyaringan sendiri di dalam Accounting. Itu menjadi cara kedua yang berbeda dari platform, dan justru mempersulit penutupan yang benar |
 
@@ -173,3 +175,29 @@ dan ia menahan sebelas task frontend sekaligus.
 
 **Bila tujuannya sampai ke frontend, butir inilah yang paling murah dibuka dan paling besar
 dampaknya.**
+
+
+---
+
+## `ACC-TD-010` — Dua badan hukum kosong di master
+
+**Ditemukan:** 2 September 2026, saat memeriksa database sebelum membuat badan hukum pertama.
+
+`MstLegalEntity` memuat tiga baris aktif, tetapi hanya satu yang benar-benar dipakai:
+
+| Kode | Nama | `IsDefault` | Site | Unit | Cost Center | Lokasi |
+|---|---|:---:|---:|---:|---:|---:|
+| `LE-MMC-001` | PT Metropolitan Medical Centre | **Ya** | 1 | 5 | 5 | 3 |
+| `LE-MDC-001` | PT Metropolitan Diagnostic Centre | — | 1 | 0 | 0 | 0 |
+| `LE-MHS-001` | PT Metropolitan Healthcare Services | — | 1 | 0 | 0 | 0 |
+
+Owner menyatakan hanya membangun untuk **satu rumah sakit**, sehingga dua baris terakhir tampak
+tidak terpakai. Keduanya **tidak disentuh** Accounting: masing-masing punya satu `MstHospitalSite`,
+dan modul lain mungkin merujuknya. Menonaktifkannya adalah keputusan pemilik master data
+organisasi, bukan Accounting.
+
+| Hal | Keterangan |
+|---|---|
+| Menghalangi Accounting? | **Tidak** sejak `ACC-DEC-043` — penjaga memakai `IsDefault`, bukan jumlah |
+| Risikonya | Pengguna dapat mengirim `LegalEntityId` milik keduanya pada permintaan Accounting. Akun dan jurnal akan tersimpan di bawah badan hukum yang tidak pernah dipakai, dan tidak muncul pada laporan MMC. Tidak ada yang menolaknya sampai `ACC-TD-002` ditutup |
+| Cara menutup | Pastikan frontend selalu mengirim badan hukum utama — `AccountingLegalEntityGuard.AmbilBadanHukumUtamaAsync` menyediakannya. Atau pemilik master data menonaktifkan kedua baris kosong itu |

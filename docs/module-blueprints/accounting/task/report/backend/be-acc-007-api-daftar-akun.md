@@ -19,7 +19,7 @@
 > ## ✅ STATUS: `DONE`
 >
 > **Diperbarui 2 September 2026, sesi lanjutan.** Owner mencabut larangan test, sehingga acceptance
-> yang sebelumnya kosong kini terbukti: **18 test baru, seluruhnya lulus**.
+> yang sebelumnya kosong kini terbukti: **20 test baru, seluruhnya lulus**.
 >
 > Laporan ini sempat berstatus `IMPLEMENTED_UNVERIFIED` di antara kedua sesi itu. Riwayat tersebut
 > **tidak dihapus** — bagian 11 mencatat urutannya apa adanya, termasuk apa yang ditemukan justru
@@ -185,16 +185,25 @@ memakainya tanpa registrasi DI baru, sesuai `02-backend-architecture.md` bagian 
 
 `AccountingLegalEntityGuard`, dipanggil di **kedelapan** jalur service sebelum operasi apa pun.
 
+> **Mekanismenya berubah 2 September 2026 lewat `ACC-DEC-043`.** Versi pertama menolak bila badan
+> hukum **aktif** lebih dari satu. Pemeriksaan database sungguhan menemukan **tiga** badan hukum
+> aktif, dan ambang itu akan mematikan Accounting tanpa alasan sebenarnya. Uraian di bawah sudah
+> versi final; riwayatnya di bagian 12.
+
 | Aspek | Keputusan |
 |---|---|
-| Ambang | `MstLegalEntity` yang `IsActive` dan tidak `IsDelete` **lebih dari satu** |
-| Tindakan | Menolak, `409 Conflict`, pesan menyebut `ACC-DEP-008` |
+| Ambang | Badan hukum bertanda `IsDefault`, aktif, tidak terhapus — harus **tepat satu** |
+| Tindakan | Menolak, `409 Conflict`. Nol default dan default ganda punya pesan berbeda |
 | Kenapa `409`, bukan `403` | Penolakan ini bukan soal hak akses — pengguna mana pun ditolak, termasuk yang berhak penuh. Yang bentrok adalah **keadaan data** terhadap batas `ACC-DEC-041` |
 | Kenapa menolak keras | Pembukuan tidak punya jalan mundur murah: tercampurnya dua buku besar baru ketahuan saat tutup buku, dan jurnal `Posted` tidak dapat dihapus (`ACC-DEC-015`) |
 | Kenapa `static` | Agar `BE-ACC-008`..`014` memakainya tanpa menambah registrasi di `Program.cs` |
+| Kenapa `IsDefault` | Bahaya yang dijaga bukan "ada lebih dari satu badan hukum di master", melainkan **ketidakjelasan buku besar mana yang disentuh**. `IsDefault` sudah menjawabnya, dan ia kolom platform yang sudah ada — bukan konsep baru yang dikarang Accounting |
 
 Badan hukum nonaktif maupun terhapus lunak **tidak** dihitung — keduanya tidak dapat menerima
 pembukuan baru, sehingga tidak menimbulkan risiko yang dijaga.
+
+`AmbilBadanHukumUtamaAsync` disediakan agar frontend dan task berikutnya dapat menanyakan badan
+hukum mana yang menjadi tumpuan, alih-alih menebaknya.
 
 **Ini bukan sistem hak akses tandingan.** Ia tidak menentukan siapa berhak atas apa. Penyaringan
 yang sesungguhnya tetap milik Security/Platform lewat `ACC-DEP-008`.
@@ -239,14 +248,14 @@ build: **nol warning berasal dari kelima berkas baru maupun dari berkas test**.
 | Verifikasi baseline revisi 7 + `ACC-PERMISSION-0.2` | Cocok | **PASS** | — |
 | Impact scan `0f86e84` → `d9a5a6e` | Nol berkas kode | **PASS** | — |
 | Pembacaan `ACC-API-0.1`, `ACC-VALIDATION-0.2`, `ACC-PERMISSION-0.2` | Selesai, 1 delta ditemukan | **PASS** | Bagian 6 |
-| `dotnet test --filter ChartOfAccountServiceTests` | **18 lulus**, 0 gagal, 50 detik | **PASS** | Bagian 9 |
-| `dotnet test --filter AccountingManagement` | **42 lulus**, 0 gagal, 51 detik | **PASS** | 24 lama + 18 baru |
-| `dotnet test Tests/QuilvianSystemBackend.Tests` | **218 lulus**, 0 gagal, 2 m 43 s | **PASS** | Nol regresi |
+| `dotnet test --filter ChartOfAccountServiceTests` | **20 lulus**, 0 gagal | **PASS** | Bagian 9 |
+| `dotnet test --filter AccountingManagement` | **44 lulus**, 0 gagal | **PASS** | 24 lama + 20 baru |
+| `dotnet test Tests/QuilvianSystemBackend.Tests` | **220 lulus**, 0 gagal | **PASS** | Nol regresi |
 | **Uji manual lewat Swagger** | **TIDAK DIJALANKAN** | **NOT RUN** | Tidak diperlukan lagi — test menutup kelima acceptance |
 
 ## 9. ACCEPTANCE CRITERIA `BE-ACC-007` — SELURUHNYA TERBUKTI
 
-18 test pada `Tests/QuilvianSystemBackend.Tests/AccountingManagement/ChartOfAccountServiceTests.cs`.
+20 test pada `Tests/QuilvianSystemBackend.Tests/AccountingManagement/ChartOfAccountServiceTests.cs`.
 
 | # | Kriteria | Hasil | Test yang membuktikan |
 |---|---|:---:|---|
@@ -255,7 +264,7 @@ build: **nol warning berasal dari kelima berkas baru maupun dari berkas test**.
 | 3 | Akun bersaldo bukan nol gagal dinonaktifkan, pesan menyebut jumlah | ✅ | `AkunBersaldo_GagalDinonaktifkan_PesanMenyebutJumlah` — pesannya memuat `15.000.000` |
 | 4 | Kode akun bertransaksi gagal diubah | ✅ | `KodeAkunBertransaksi_GagalDiubah_Ditolak409` |
 | 5 | ~~`403` badan hukum bukan hak pengguna~~ | — | `DEFERRED` `ACC-DEC-041` |
-| 5b | Badan hukum aktif > 1 ⇒ endpoint menolak | ✅ | `LebihDariSatuBadanHukumAktif_SeluruhEndpointMenolak` |
+| 5b | Badan hukum utama bukan tepat satu ⇒ endpoint menolak | ✅ | `LebihDariSatuBadanHukumUtama_SeluruhEndpointMenolak`, `TanpaBadanHukumUtama_SeluruhEndpointMenolak`, `TigaBadanHukumAktifDenganSatuUtama_AccountingTetapBerjalan` |
 
 ### Dua butir yang paling berisiko, dan hasilnya
 
@@ -284,7 +293,7 @@ daftar dapat disaring serta dihalamankan.
 
 | Butir DoD roadmap | Hasil |
 |---|:---:|
-| Seluruh acceptance terbukti test | ✅ 18 test, seluruhnya lulus |
+| Seluruh acceptance terbukti test | ✅ 20 test, seluruhnya lulus |
 | `[AccessPermission]` sesuai matriks | ✅ Disalin apa adanya dari `ACC-PERMISSION-0.2` bagian 7 |
 | Laporan task tersedia | ✅ Berkas ini |
 
@@ -330,6 +339,39 @@ benar.**
 
 Dicatat sebagai **`ACC-TD-001`** pada `UTANG-TEKNIS.md`, karena `BE-ACC-010` sampai `BE-ACC-012`
 akan banyak menyisipkan baris jurnal dan akan menabrak hal yang sama.
+
+## 12. `ACC-DEC-043` — penjaga disempurnakan setelah memeriksa data sungguhan
+
+Owner meminta badan hukum pertama dibuatkan. Pemeriksaan read-only dijalankan lebih dahulu —
+justru untuk memastikan penambahan itu tidak memperburuk keadaan — dan hasilnya mengubah
+rancangan.
+
+| Kode | Nama | `IsDefault` | Site | Unit | Cost Center | Lokasi |
+|---|---|:---:|---:|---:|---:|---:|
+| `LE-MMC-001` | PT Metropolitan Medical Centre | **Ya** | 1 | 5 | 5 | 3 |
+| `LE-MDC-001` | PT Metropolitan Diagnostic Centre | — | 1 | 0 | 0 | 0 |
+| `LE-MHS-001` | PT Metropolitan Healthcare Services | — | 1 | 0 | 0 | 0 |
+
+**Tiga badan hukum aktif, bukan nol dan bukan satu.** Penjaga versi pertama — yang menolak bila
+aktif lebih dari satu — akan langsung mematikan seluruh modul Accounting, termasuk saat frontend
+memanggilnya.
+
+Kalau permintaan owner dituruti tanpa memeriksa lebih dulu, jumlahnya menjadi **empat** dan
+keadaannya makin jauh dari rancangan. Ini alasan pemeriksaan itu tidak dilewati.
+
+**Yang diputuskan owner:** Accounting berjalan di atas badan hukum bertanda `IsDefault`, dan
+penjaga menuntut **tepat satu** default. Nol default maupun default ganda tetap ditolak keras.
+
+Dasarnya: bahaya yang dijaga bukan "ada lebih dari satu badan hukum di master", melainkan
+**ketidakjelasan buku besar mana yang disentuh**. `IsDefault` sudah menjawab pertanyaan itu, dan
+ia kolom platform yang sudah ada — bukan konsep baru yang dikarang Accounting.
+
+**Nol data modul lain disentuh.** `LE-MDC-001` dan `LE-MHS-001` dibiarkan apa adanya; keduanya
+punya `MstHospitalSite` dan mungkin dirujuk modul lain. Menonaktifkannya keputusan pemilik master
+data organisasi, dan dicatat sebagai `ACC-TD-010`.
+
+Diverifikasi terhadap database sungguhan: badan hukum utama berjumlah **1**, penjaga **lolos**,
+Accounting berjalan di atas `LE-MMC-001`.
 
 ## API CONTRACT IMPACT
 

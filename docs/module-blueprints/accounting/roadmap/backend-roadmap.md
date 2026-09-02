@@ -97,7 +97,7 @@ baris 106 memang sudah menetapkan MVP selesai ketika **satu badan hukum** berjal
 |---|---|
 | Kode akun unik per badan hukum | Unique index `(LegalEntityId, AccountCode)` — sudah berdiri |
 | Satu jurnal tidak mencampur dua badan hukum | `BE-ACC-010` acceptance (7) |
-| **Penjaga jumlah badan hukum** — lebih dari satu badan hukum aktif ⇒ tolak keras | **`BE-ACC-007` acceptance (5b)**, baru |
+| **Penjaga badan hukum utama** — bukan tepat satu `IsDefault` ⇒ tolak keras (`ACC-DEC-043`) | **`BE-ACC-007` acceptance (5b)** |
 
 Penjaga itu syarat `ACC-DEC-041`, bukan tambahan opsional. Tanpanya, mendaftarkan badan hukum
 kedua akan memberi setiap pengguna akses ke dua buku besar sekaligus tanpa ada yang menyadari.
@@ -317,7 +317,7 @@ dan menyisakan snapshot yang tetap salah.
 | Reuse | `ApiResponse<T>`, `PagedResult<T>`, `LoggerService`, atribut hak akses |
 | Cakupan | `ChartOfAccountController` (8 endpoint), `AccChartOfAccountService`, `ChartOfAccountDtos`, satu baris `AddScoped`. `/options` hanya mengembalikan akun yang menerima transaksi dan aktif, dan menyertakan `RequiresCostCenter` yang **diturunkan** dari jenis akun |
 | Dependency | `BE-ACC-006`, `BE-ACC-002` |
-| Acceptance | (1) Kode akun kembar pada badan hukum sama ditolak `409`. (2) Akun beranak tidak dapat `IsPostable = true`. (3) Akun bersaldo bukan nol gagal dinonaktifkan, pesannya menyebut jumlah saldo. (4) Kode akun bertransaksi gagal diubah. (5) ~~Permintaan atas badan hukum yang bukan hak pengguna ditolak `403`~~ **`DEFERRED` oleh `ACC-DEC-041`**. **(5b) PENGGANTINYA, wajib:** bila `MstLegalEntity` aktif berjumlah lebih dari satu, endpoint menolak dan menyebutkan bahwa penyaringan badan hukum per pengguna belum tersedia |
+| Acceptance | (1) Kode akun kembar pada badan hukum sama ditolak `409`. (2) Akun beranak tidak dapat `IsPostable = true`. (3) Akun bersaldo bukan nol gagal dinonaktifkan, pesannya menyebut jumlah saldo. (4) Kode akun bertransaksi gagal diubah. (5) ~~Permintaan atas badan hukum yang bukan hak pengguna ditolak `403`~~ **`DEFERRED` oleh `ACC-DEC-041`**. **(5b) PENGGANTINYA, wajib:** Accounting berjalan di atas badan hukum bertanda `IsDefault`; bila yang bertanda utama bukan tepat satu, endpoint menolak `409` (`ACC-DEC-043`) |
 | Verifikasi | Test integrasi `FR-ACC-001` sampai `005`; `UAT-01`, `UAT-17` |
 | Risiko/pemilik | Owner Backend. Aturan (3) menuntut perhitungan saldo — pastikan menyaring `JournalStatus == Posted` |
 | DoD | Seluruh acceptance terbukti test, `[AccessPermission]` sesuai matriks, laporan task tersedia |

@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `ACC-BP-001` |
 | Module name | `Accounting` |
-| Revision | `8` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-042`; `ACC-API` naik `0.1` → `0.2`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
+| Revision | `9` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-043`; `ACC-PERMISSION` naik `0.2` → `0.3`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
 | Last verified at | `2 September 2026` — `BE-ACC-006` selesai; migration diterapkan owner, `CONTAMINATION GUARD` `CLEAN`, `ACC-DEP-009` **CLOSED** |
@@ -78,7 +78,7 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `BE-ACC-004` entity periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-004-entity-periode-akuntansi.md` |
 | `BE-ACC-005` entity jurnal, baris, riwayat, alokator nomor | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-005-entity-jurnal-baris-dan-riwayat-persetujuan.md` |
 | `BE-ACC-006` migration pertama dan data master awal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-006-migration-pertama-dan-data-master-awal.md`; gate dijalankan ulang di `evidence/04-migration-coordination-gate.md` bagian 10 |
-| `BE-ACC-007` API daftar akun | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-007-api-daftar-akun.md`. 8 endpoint, kelima acceptance terbukti **18 test** |
+| `BE-ACC-007` API daftar akun | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-007-api-daftar-akun.md`. 8 endpoint, kelima acceptance terbukti **20 test** |
 
 `BE-ACC-001` sampai `BE-ACC-003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`;
 `BE-ACC-005` pada `2b152aa`; migration `BE-ACC-006` pada `f40177a`. Seeder dan test `BE-ACC-006`

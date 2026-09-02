@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-PERMISSION-0.2` |
+| `contract_version` | `ACC-PERMISSION-0.3` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner), owner keamanan platform |
 | `approved_by` / `approved_at` | Belum ada |
 | `input_revision` | `00-interview-decisions.md@3`, `02-backend-architecture.md@3` |
-| Traceability | `ACC-DEC-015`, `ACC-DEC-016`, `ACC-DEC-026`, `ACC-DEC-027`, `ACC-DEC-031`, `ACC-DEC-032`, `ACC-DEC-033`, **`ACC-DEC-041`** |
+| Traceability | `ACC-DEC-015`, `ACC-DEC-016`, `ACC-DEC-026`, `ACC-DEC-027`, `ACC-DEC-031`, `ACC-DEC-032`, `ACC-DEC-033`, **`ACC-DEC-041`**, disempurnakan **`ACC-DEC-043`** |
 | Dampak kompatibilitas | Menambah nilai `Resource` baru; tidak mengubah mekanisme hak akses yang ada |
 
 Nilai `[AccessPermission(...)]` di bawah ditulis **apa adanya** agar implementer menyalin, bukan
@@ -151,9 +151,9 @@ selalu datang dari pengirim permintaan, tidak pernah dari identitas.
 Karena itu `ACC-DEC-041` menurunkan MVP menjadi **satu badan hukum**, dan aturan ini ditunda
 sampai `ACC-DEP-008` selesai. **Penggantinya wajib ada, bukan opsional:**
 
-> **Penjaga jumlah badan hukum.** Bila `MstLegalEntity` yang `IsActive` dan tidak terhapus
-> berjumlah **lebih dari satu**, endpoint Accounting menolak permintaan dan menyebutkan bahwa
-> penyaringan badan hukum per pengguna belum tersedia.
+> **Penjaga badan hukum utama** (`ACC-DEC-043`). Accounting berjalan di atas badan hukum bertanda
+> `IsDefault`. Bila badan hukum utama yang aktif **bukan tepat satu** — nol maupun lebih dari
+> satu — endpoint Accounting menolak `409` dan menyebutkan sebabnya.
 
 Penjaga ini **bukan** sistem hak akses tandingan — ia tidak menentukan siapa berhak atas apa,
 hanya menolak berjalan pada keadaan yang belum dapat dijaga. Ditempatkan di `BE-ACC-007` sebagai

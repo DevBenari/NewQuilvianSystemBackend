@@ -5,12 +5,12 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 8
+revision: 9
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-02T22:00:00+07:00
-last_verified_at: 2026-09-02T22:00:00+07:00
+updated_at: 2026-09-02T23:30:00+07:00
+last_verified_at: 2026-09-02T23:30:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -58,9 +58,9 @@ integration_baseline_note: >
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
-decision_revision: 1.5
+decision_revision: 1.6
 input_revisions:
-  interview_decisions: 6
+  interview_decisions: 7
   capability_map: 2
   requirement_gate: null
   hospital_domain_architecture: null
@@ -69,7 +69,7 @@ contract_versions:
   state: ACC-STATE-0.1
   validation: ACC-VALIDATION-0.2
   integration: ACC-INTEGRATION-0.2
-  permission: ACC-PERMISSION-0.2
+  permission: ACC-PERMISSION-0.3
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
   cross_module: ACC-XMOD-0.1   # consumer-side Accounting disetujui; alignment Finance/Billing belum
@@ -85,7 +85,7 @@ cross_module:
   depends_on_finance_contract: null
   open_cross_module_decisions: [ACC-XM-001]
 artifact_hashes:
-  00-interview-decisions.md: e5efe25bb40dc5b52124d7a158781e2690323de1092430f37d70c3c0ea9b716d
+  00-interview-decisions.md: aaeb385f6194d707294777ab5c90ce178e216fc3c28097fd8198d51676759038
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
   03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
@@ -95,11 +95,11 @@ artifact_hashes:
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
   contracts/validation-matrix.md: 1efedc7e1ea53274544f6f7a1d5b92af35e756af1f9dad20f828ff6361e6b09b
   contracts/integration-contract.md: 1c773b03b30a272459de9db436bded581d0593e1897a89e847fdbc023679e094
-  contracts/permission-audit-matrix.md: cbe47b598c7705e34968773689394b64c2df7c2a698c0f7070f69013d0169885
+  contracts/permission-audit-matrix.md: 6200bdf8d32a568f3aff7aeb7d9c1446e6fec9061937a1d05ff06945ecc78d82
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: a5fd46660b85e5712a69d06e64397527335a203e047a2869f2dbf52cc59e49c6
+  roadmap/backend-roadmap.md: 83bfec02b799ca21265c7c11f0dd1b7fc9638b8078ad78b4d0289e46942a1749
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
@@ -204,6 +204,64 @@ target, atau menandai task selesai **tidak** menaikkan `revision`. Setiap pembar
 mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
+
+### 2 September 2026 — `ACC-DEC-043`, revisi 8 → 9
+
+Dinaikkan atas keputusan owner setelah **pemeriksaan read-only pertama terhadap database
+sungguhan**. `ACC-PERMISSION` naik `0.2` → `0.3`.
+
+#### Apa yang ditemukan
+
+Owner meminta badan hukum pertama dibuatkan, dengan keterangan hanya membangun untuk satu rumah
+sakit. Pemeriksaan dijalankan lebih dahulu — dan menemukan **tiga badan hukum aktif**, bukan nol:
+
+| Kode | Nama | `IsDefault` | Site | Unit | Cost Center | Lokasi |
+|---|---|:---:|---:|---:|---:|---:|
+| `LE-MMC-001` | PT Metropolitan Medical Centre | **Ya** | 1 | 5 | 5 | 3 |
+| `LE-MDC-001` | PT Metropolitan Diagnostic Centre | — | 1 | 0 | 0 | 0 |
+| `LE-MHS-001` | PT Metropolitan Healthcare Services | — | 1 | 0 | 0 | 0 |
+
+Penjaga `ACC-DEC-041` versi pertama menolak bila badan hukum **aktif** lebih dari satu, sehingga ia
+akan langsung mematikan seluruh modul Accounting. Bila permintaan owner dituruti tanpa memeriksa,
+jumlahnya menjadi empat dan keadaannya makin jauh dari rancangan.
+
+#### Yang diputuskan
+
+**Accounting berjalan di atas badan hukum bertanda `IsDefault`, dan penjaga menuntut tepat satu
+default.** Nol default maupun default ganda tetap ditolak keras `409`.
+
+Bahaya yang dijaga bukan "ada lebih dari satu badan hukum di master", melainkan **ketidakjelasan
+buku besar mana yang disentuh**. `IsDefault` sudah menjawabnya, dan ia kolom platform yang sudah
+ada — bukan konsep baru yang dikarang Accounting.
+
+`ACC-DEC-041` **tidak dibatalkan**; hanya mekanismenya yang disempurnakan. MVP tetap berjalan di
+atas satu badan hukum, dan `ACC-DEP-008` tetap `OPEN` serta `NON-BLOCKING`.
+
+#### Batas yang dijaga
+
+**Nol data modul lain disentuh.** `LE-MDC-001` dan `LE-MHS-001` dibiarkan apa adanya — keduanya
+punya `MstHospitalSite` dan mungkin dirujuk modul lain. Menonaktifkannya keputusan pemilik master
+data organisasi, dicatat sebagai `ACC-TD-010`.
+
+**Nol tulis ke database.** Seluruh pemeriksaan `SELECT`, dan badan hukum yang diminta owner
+**tidak jadi dibuat** — karena ternyata sudah ada, dan menambah satu lagi justru merugikan.
+
+Diverifikasi terhadap database sungguhan: badan hukum utama berjumlah **1**, penjaga **lolos**,
+Accounting berjalan di atas `LE-MMC-001`.
+
+#### Yang berubah
+
+| Artefak | Perubahan |
+|---|---|
+| `00-interview-decisions.md` | `ACC-DEC-043`; `interview_decisions` 6 → 7 |
+| `contracts/permission-audit-matrix.md` | `0.2` → `0.3`; uraian penjaga |
+| `roadmap/backend-roadmap.md` | Acceptance `BE-ACC-007` (5b) |
+| `UTANG-TEKNIS.md` | `ACC-TD-002` diperbarui; `ACC-TD-010` baru |
+| `AccountingLegalEntityGuard.cs` | Mekanisme `IsDefault`, ditambah `AmbilBadanHukumUtamaAsync` |
+
+Test Accounting 42 → **44**, project `Tests/` **220**, nol gagal. Nol migration, snapshot tetap
+545 tabel.
+
 
 ### 2 September 2026 — `ACC-DEC-042` dan `BE-ACC-007` selesai, revisi 7 → 8
 
