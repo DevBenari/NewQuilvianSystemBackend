@@ -4,10 +4,12 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Blueprint revision | `3` |
-| Capability map revision | `2` |
+| Capability map revision | `3` |
 | Status | `DRAFT` |
 | Sumber keputusan | `00-interview-decisions.md` revisi 2, `SCOPE-BD-001` sampai `DEC-BD-024` |
-| Backend SHA yang diaudit | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
+| Backend SHA audit penuh | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
+| Backend SHA impact scan terakhir | `4205d18a6d656555eedd781f14e8a18fb5ea20d1` cabang `sukmagp` — 3 September 2026 |
+| Status kesegaran | **`CURRENT`** — penanda `STALE` dicabut oleh impact scan di bawah |
 | Frontend SHA yang diaudit | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Tanggal audit | `2026-09-02` |
 | Mode | Read-only. Tidak ada satu pun berkas source aplikasi yang diubah. |
@@ -15,6 +17,106 @@
 Dokumen ini mencatat **apa yang sudah ada di sistem hari ini**, bukan arsitektur yang diinginkan.
 Setiap baris memakai tepat satu status dari taksonomi baku: `Ready to reuse`, `Reuse with adapter`,
 `Extend`, `Repair`, `Missing`, `Conflict`, atau `Unknown`.
+
+Rujukan bukti per baris tetap menyebut `@9522caa`, yaitu SHA saat audit penuh dijalankan. Itu
+disengaja: audit penuh memang dilakukan di sana, dan impact scan **tidak** menggantikannya. Bagian
+berikut mencatat apa yang diperiksa ulang pada `4205d18` beserta hasilnya.
+
+---
+
+## Impact scan terbatas — 3 September 2026
+
+**Pemicu.** Backend bergerak dari `a9bc9fd` ke `4205d18` lewat merge `QuilvianIntegrationBackend` ke
+`sukmagp`. Berbeda dengan seluruh pergerakan SHA sebelumnya pada modul ini — yang seluruhnya dokumen
+blueprint — merge ini membawa perubahan source aplikasi nyata, sehingga peta ditandai `STALE`.
+
+**Batas scan.** Terbatas pada `BD-CAP-014`, `BD-CAP-003`, dan dampak snapshot migration, ditambah dua
+baris yang areanya ikut tersentuh (`BD-CAP-015`, `BD-CAP-006`). **Bukan** audit ulang 24 kemampuan.
+
+### Cara batasnya dipertanggungjawabkan
+
+Membatasi scan pada beberapa baris hanya sah bila baris lain memang tidak tersentuh. Itu diperiksa
+secara menyeluruh, bukan diasumsikan: seluruh nama berkas `.cs` yang dikutip peta ini diadu dengan
+daftar berkas yang berubah antara `9522caa` dan `4205d18`.
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Berkas `.cs` yang dikutip peta | 24 |
+| Berkas `.cs` yang berubah karena merge | 28 |
+| **Irisan keduanya** | **1 berkas — `LabOrder.cs`** |
+
+Hanya satu berkas bukti yang tersentuh. Dua puluh tiga berkas bukti lainnya tidak berubah sama sekali,
+sehingga baris yang bergantung padanya tetap sahih tanpa perlu ditelusuri ulang.
+
+### Hasil per baris yang diperiksa
+
+| Baris | Bukti yang dikutip | Berubah? | Putusan |
+| --- | --- | --- | --- |
+| `BD-CAP-014` pola route & grup Swagger | `LabOrderController.cs` | **Tidak** | **Tetap `Ready to reuse`.** `[Route]`, `[Tags]`, `[Authorize]`, `[ApiController]`, `[AccessController]`, dan pembungkus `ApiResponse<T>` seluruhnya identik. Pola yang dicontoh `api-contract.md` `v4` tidak bergeser |
+| `BD-CAP-003` sinyal penutupan kunjungan | `InpEpisode.cs`, `EncounterStatus.cs` | **Tidak** | **Tetap `Reuse with adapter`.** Kelima field yang dipakai `DEC-BD-014` — `EpisodeStatus`, `DischargeDecidedAt`, `PhysicallyLeftAt`, `ClosedAt`, `DischargeType` — masih ada dan tidak berubah. Yang berubah hanya **controller** InPatient, yang tidak dipanggil Bank Darah |
+| `BD-CAP-007` pola pesanan terikat kunjungan | `LabOrder.cs` | **Ya, aditif** | **Tetap `Reuse with adapter`.** Yang bertambah satu kolom `Discipline`. Seluruh field yang dikutip — `EncounterId`, `ProcedureId`, `StatusBeforeHold`, `RequestedAt`, `RequestedByUserId`, `CompletedAt` — utuh |
+| `BD-CAP-010` token konkurensi | `LabOrder.cs#Version` | **Tidak** | **Tetap `Ready to reuse`.** `public int Version` tidak tersentuh sama sekali |
+| `BD-CAP-015` penyerahan fakta biaya | `BillingSourceContract.cs` | **Tidak** | **Tetap `Extend`.** Daftar sumber tertutup tidak berubah; Bank Darah tetap belum ada di dalamnya, sehingga `DEC-BD-016` tetap dibutuhkan |
+| `BD-CAP-006` klinik, ruangan, kelas pasien | `MstClinic.cs`, `MstRoom.cs`, `MstPatientClass.cs`, `MstServiceUnit.cs` | **Tidak** | **Tetap `Ready to reuse`.** Yang berubah di MasterData hanya `BedController` dan `InpatientClearanceItem*`, keduanya di luar pemakaian Bank Darah |
+
+### Dampak migration
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Migration baru sejak `9522caa` | `20260901082243_AddBilTenderKwitansiNumber`, `20260902042242_AddLabOrderDiscipline` |
+| Basis migration Bank Darah | Kini `20260902042242_AddLabOrderDiscipline`, bukan lagi migration per `9522caa` |
+| Entity Bank Darah di `ApplicationDbContextModelSnapshot.cs` | **Nihil** — tidak ada `Bbk*` maupun `MstBlood*`, sesuai harapan karena belum ada implementasi |
+| `MstServiceUnit` di snapshot | Ada, dengan `IsAvailableForDisplay`, `IsAvailableForRegistrationQueue`, `IsAvailableForScreening`, dan **satu index gabungan** atas ketiganya bersama `IsActive`, `IsDelete` |
+| `MstDrugStorageLocation` di snapshot | **Ada** — menguatkan `DEC-BD-035` yang menolak memakainya ulang, dan menegaskan celah cakupan audit pada `BD-CAP-006` |
+
+Rencana migration Bank Darah (`02-backend-architecture.md` §I) **tidak perlu berubah**: ketiga
+langkahnya tetap sah, dan seluruhnya membuat objek baru yang tidak bersinggungan dengan kedua migration
+baru itu. Yang bergeser hanya titik basisnya.
+
+### Dua temuan yang menguatkan blueprint, bukan membatalkannya
+
+**1. Laboratory menyatakan Bank Darah di luar scope-nya, dengan kata-katanya sendiri.**
+Enum `LabDiscipline` yang baru memuat keterangan:
+
+> *"Ketiganya berjalan sejajar dengan daftar pasien dan alur hasilnya masing-masing: Patologi Klinik,
+> Patologi Anatomi, dan Mikrobiologi. Bank Darah sengaja tidak ada di sini karena tetap berada di luar
+> scope modul."*
+
+Ini menguatkan `DEC-BD-015` dan `DEC-BD-018` — pemeriksaan golongan darah dan sampel Bank Darah berada
+di Bank Darah, bukan di Laboratorium — serta batas `BD-CTX-09` yang menyatakan keduanya "jalan
+sendiri-sendiri". Batas itu kini **berbukti dua arah**: bukan hanya keputusan Bank Darah, tetapi juga
+tercatat pada kode modul tetangganya.
+
+**2. Pemecahan butir hak akses ternyata pola rumah, bukan penemuan Bank Darah.**
+Tim InPatient memecah `AccessAction` menjadi butir tersendiri pada merge ini — `Sign`, `SetIsolation`,
+`Reopen`, `MarkFinancialClearance`, dan `ReadFinancialClearance` — dengan alasan yang dinyatakan
+langsung di kode: supaya kasir dapat diberi kemampuan menandai **tanpa** ikut memperoleh akses baca isi
+resume pulang.
+
+Itu persis alasan `DEC-BD-043` memecah `BloodUnit : Resolve` menjadi tiga dan `DEC-BD-044` memisahkan
+`BloodOrder : Cancel` dari `Update`. Rancangan hak akses `v4` karena itu **mengikuti konvensi yang
+sedang berlaku**, bukan menciptakan pola baru.
+
+### Satu catatan kecil untuk task migration, bukan cacat blueprint
+
+`MstServiceUnit` memasangkan ketiga penanda `IsAvailableFor*` yang sudah ada dengan **satu index
+gabungan**. Blueprint `BE-BD-002` menambahkan `IsAvailableForBloodOrder` tanpa menyebut index.
+
+Itu **bukan** kekeliruan: jalur akses utamanya adalah pemeriksaan satu unit berdasarkan `Id` saat order
+dibuat, yang tidak menuntut index. Index baru relevan hanya bila kelak ada layar yang menyaring daftar
+unit berdasarkan penanda ini. Dicatat sebagai bahan pertimbangan saat `BE-BD-002` dieksekusi, bukan
+sebagai perubahan kontrak.
+
+### Putusan impact scan
+
+**Blueprint Bank Darah tidak perlu diubah.** Tidak ada satu pun baris kemampuan yang berpindah status,
+tidak ada kontrak `v4` yang menjadi salah, dan tidak ada keputusan yang perlu ditinjau ulang. Penanda
+`STALE` **dicabut**.
+
+Yang berubah hanya dua hal administratif: basis migration bergeser ke
+`20260902042242_AddLabOrderDiscipline`, dan SHA impact scan tercatat `4205d18`.
+
+---
 
 ## Batas audit
 

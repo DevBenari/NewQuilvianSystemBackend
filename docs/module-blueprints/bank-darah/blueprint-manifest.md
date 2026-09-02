@@ -5,7 +5,7 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 15
+revision: 16
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
@@ -18,9 +18,11 @@ frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
 decision_revision: 9
-capability_map_revision: 2
-capability_map_status: STALE
-capability_map_stale_reason: terikat 9522caa; source bergerak ke 4205d18 lewat merge QuilvianIntegrationBackend yang membawa perubahan source aplikasi nyata (Laboratory, InPatient, Billing, MasterData, 5 migration). Impact scan terbatas diperlukan pada BD-CAP-014 dan BD-CAP-003
+capability_map_revision: 3
+capability_map_status: CURRENT
+capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
+capability_map_impact_scan_sha: 4205d18a6d656555eedd781f14e8a18fb5ea20d1
+capability_map_impact_scan_result: nol baris berpindah status; blueprint tidak perlu diubah
 prerequisite_readiness_revision: 3
 completeness_assessment_revision: 2
 domain_architecture_revision: 6
@@ -104,7 +106,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**, sehingga bukti kemampuan ditandai `STALE`. Rinciannya di `MODULE-STATUS.md`. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
@@ -238,9 +240,19 @@ Swagger, dan bentuk respons yang dicontoh seluruh `api-contract.md`; dan `BD-CAP
 kunjungan menempel pada bentuk episode dan kepulangan. Dampak pada area lain rendah, dan
 **`MstServiceUnit` tidak tersentuh**, sehingga titipan kolom `BE-BD-002` tetap aman.
 
-Penandaan ini **tidak** membatalkan scope yang tidak berkaitan dan **tidak** memaksa perancangan ulang.
-Yang dibutuhkan adalah impact scan terbatas lewat `trace-existing-capabilities`, dijalankan **sebelum**
-implementasi dimulai.
+**Impact scan terbatas sudah dijalankan pada 3 September 2026 dan penanda `STALE` dicabut.**
+Rinciannya ada di `02-existing-capability-map.md` §Impact scan terbatas. Ringkasnya: dari 24 berkas
+bukti yang dikutip peta, hanya **satu** yang tersentuh merge (`LabOrder.cs`), dan perubahannya aditif —
+seluruh field yang dikutip `BD-CAP-007` dan `BD-CAP-010` utuh. `LabOrderController.cs`, `InpEpisode.cs`,
+`EncounterStatus.cs`, dan `BillingSourceContract.cs` tidak berubah sama sekali.
+
+**Nol baris kemampuan berpindah status, dan blueprint tidak perlu diubah.** Yang bergeser hanya basis
+migration, kini `20260902042242_AddLabOrderDiscipline`.
+
+Dua temuan justru **menguatkan** blueprint: enum `LabDiscipline` yang baru menyatakan dengan kata-kata
+Laboratory sendiri bahwa Bank Darah berada di luar scope-nya — menguatkan `DEC-BD-015`, `DEC-BD-018`,
+dan batas `BD-CTX-09`; dan tim InPatient memecah butir hak akses dengan alasan yang sama persis dengan
+`DEC-BD-043`/`DEC-BD-044`, sehingga rancangan hak akses `v4` terbukti mengikuti konvensi rumah.
 
 **Delivery roadmap revisi 2 — 3 September 2026.** `plan-module-delivery` menyusun ulang
 `roadmap/00-delivery-plan.md` di atas set kontrak `v4`, register keputusan revisi 9, dan arsitektur

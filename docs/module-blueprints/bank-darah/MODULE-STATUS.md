@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `15` |
+| Revision | `16` |
 | Module status | `PARTIAL` |
 | Current phase | `BD-PH-006` |
 | Last verified at | `belum pernah diverifikasi` |
@@ -23,33 +23,58 @@ set kontrak `v4`, dan pendaftaran prefix entity di registry (`BD-DEP-008`).
 
 ---
 
-## ⚠️ Temuan pemeriksaan status 3 September 2026 — bukti kemampuan menjadi `STALE`
+## Pemeriksaan status dan impact scan 3 September 2026 — **selesai, blueprint tidak berubah**
 
-Backend bergerak dari `a9bc9fd` ke **`4205d18`** lewat merge `QuilvianIntegrationBackend` ke `sukmagp`.
-Berbeda dengan seluruh pergerakan SHA sebelumnya pada modul ini, merge ini **membawa perubahan source
-aplikasi yang nyata** — bukan hanya dokumen blueprint.
+**Pemicunya.** Backend bergerak dari `a9bc9fd` ke **`4205d18`** lewat merge `QuilvianIntegrationBackend`
+ke `sukmagp`. Berbeda dengan seluruh pergerakan SHA sebelumnya pada modul ini, merge ini **membawa
+perubahan source aplikasi yang nyata** — bukan hanya dokumen blueprint. Seluruh commit dokumen Bank
+Darah tetap docs-only sebagaimana tercatat; yang berubah adalah keadaan sesudahnya.
 
-Seluruh commit dokumen Bank Darah tetap docs-only sebagaimana tercatat sebelumnya; yang berubah adalah
-keadaan sesudahnya. Pemeriksaan `git diff --name-only 9522caa 4205d18` menghasilkan 216 berkas, dan
-setelah dokumen dikeluarkan tersisa perubahan source pada lima area.
+`02-existing-capability-map.md` karena itu sempat ditandai `STALE`. **Impact scan terbatas sudah
+dijalankan pada hari yang sama, dan penandanya dicabut.** Rincian buktinya ada di
+`02-existing-capability-map.md` §Impact scan terbatas; ringkasannya di bawah.
 
-`02-existing-capability-map.md` terikat pada backend `9522caa`. Karena source sudah bergerak,
-peta itu **ditandai `STALE`** sampai impact review terbatas dijalankan. Penandaan ini **tidak**
-membatalkan scope yang tidak berkaitan dan **tidak** memaksa perancangan ulang.
+### Cara batas scan dipertanggungjawabkan
 
-### Dampak per area terhadap kemampuan yang dipakai Bank Darah
+Membatasi scan pada beberapa baris hanya sah bila baris lain memang tidak tersentuh. Itu diperiksa,
+bukan diasumsikan: seluruh nama berkas `.cs` yang dikutip peta diadu dengan daftar berkas yang berubah.
 
-| Area yang berubah | Berkas | Kemampuan Bank Darah yang bergantung | Perlu ditinjau? |
-| --- | --- | --- | --- |
-| LaboratoryManagement | `LabOrder.cs`, `LabOrderDtos.cs`, `LabOrderService.cs`, `LaboratoryEnums.cs`, `LabOrderConfiguration.cs` | `BD-CAP-014` — `LabOrderController` dipakai sebagai **pola route, grup Swagger, dan bentuk respons** yang dicontoh seluruh `api-contract.md`. Juga batas `BD-CTX-09` | **Ya, prioritas pertama.** Pola yang dicontoh bergerak; migration `AddLabOrderDiscipline` menambah konsep baru pada Lab |
-| InPatientManagement | `InpatientEpisodeController.cs`, `InpatientDischargeController.cs`, `InpatientBedOccupancyController.cs` | `BD-CAP-003` — `BbkEncounterStatusReader` membaca waktu pasien meninggalkan rumah sakit (`DEC-BD-014`) | **Ya.** Pembaca status kunjungan menempel pada bentuk episode dan kepulangan |
-| Migrations + snapshot | 5 berkas termasuk `ApplicationDbContextModelSnapshot.cs` | Rencana migration Bank Darah (`02-backend-architecture.md` §I) | **Ya, saat penyusunan migration.** Snapshot sudah bergerak dua langkah |
-| MasterData | `BedController.cs`, `InpatientClearanceItem*` | `BD-CAP-006` — Bank Darah memakai `MstClinic`, `MstRoom`, `MstPatientClass`, `MstServiceUnit` | **Rendah.** Yang berubah Bed dan ClearanceItem. **`MstServiceUnit` tidak tersentuh**, sehingga titipan kolom `BE-BD-002` tetap aman |
-| BillingManagement | `BillingInvoicesController.cs`, `BillingInvoiceDtos.cs`, `BillingInvoiceService.cs` | `BD-CAP-015` — kontrak sumber biaya | **Rendah.** `DEC-BD-016` masih `OPEN DECISION`; tidak ada kontrak charge yang dirancang, sehingga tidak ada yang basi |
-| tooling QBE | `Invoke-QbeConformanceCheck.ps1` | Preflight QBE saat eksekusi task | Diperhatikan saat handoff ke builder, bukan sekarang |
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Berkas `.cs` yang dikutip peta kemampuan | 24 |
+| Berkas `.cs` yang berubah karena merge | 28 |
+| **Irisan keduanya** | **1 — `LabOrder.cs`**, dan perubahannya aditif |
 
-**Yang tidak berubah dan itu penting:** `MstServiceUnit`, `MstPatient`, `TrxPatientEncounter`, dan
-seluruh pola hak akses yang menjadi tumpuan `BD-CAP-001`, `BD-CAP-005`, dan `BD-CAP-013`.
+### Hasil per area
+
+| Area yang berubah | Kemampuan yang bergantung | Putusan |
+| --- | --- | --- |
+| LaboratoryManagement | `BD-CAP-014` pola API · `BD-CAP-007` pola pesanan · `BD-CAP-010` token konkurensi | **Tetap sahih.** `LabOrderController.cs` **tidak berubah**; route, `[Tags]`, `[AccessController]`, dan pembungkus `ApiResponse<T>` identik. `LabOrder.cs` bertambah satu kolom `Discipline`; seluruh field yang dikutip utuh, `Version` tidak tersentuh |
+| InPatientManagement | `BD-CAP-003` sinyal penutupan kunjungan | **Tetap sahih.** `InpEpisode.cs` dan `EncounterStatus.cs` **tidak berubah**; kelima field `DEC-BD-014` utuh. Yang berubah hanya controller, yang tidak dipanggil Bank Darah |
+| Migrations + snapshot | Rencana migration `02-backend-architecture.md` §I | **Tetap sahih.** Nol entity Bank Darah di snapshot, sesuai harapan. Yang bergeser hanya basis migration, kini `20260902042242_AddLabOrderDiscipline` |
+| MasterData | `BD-CAP-006` | **Tetap sahih.** Yang berubah `BedController` dan `InpatientClearanceItem*`; keempat master yang dipakai Bank Darah tidak tersentuh |
+| BillingManagement | `BD-CAP-015` | **Tetap `Extend`.** `BillingSourceContract.cs` **tidak berubah**; Bank Darah tetap belum ada di daftar sumber, sehingga `DEC-BD-016` tetap dibutuhkan |
+
+**Nol baris kemampuan berpindah status. Blueprint Bank Darah tidak perlu diubah.**
+
+### Dua temuan yang justru menguatkan blueprint
+
+1. **Laboratory menyatakan Bank Darah di luar scope-nya, dengan kata-katanya sendiri.** Enum
+   `LabDiscipline` yang baru memuat keterangan bahwa Bank Darah "sengaja tidak ada di sini karena tetap
+   berada di luar scope modul". Ini menguatkan `DEC-BD-015`, `DEC-BD-018`, dan batas `BD-CTX-09` —
+   batas itu kini berbukti **dua arah**, bukan hanya dari sisi Bank Darah.
+2. **Pemecahan butir hak akses ternyata pola rumah.** Tim InPatient memecah `AccessAction` menjadi
+   butir tersendiri (`Sign`, `SetIsolation`, `Reopen`, `MarkFinancialClearance`, `ReadFinancialClearance`)
+   dengan alasan yang dinyatakan di kode: agar kasir dapat menandai tanpa ikut memperoleh akses baca
+   resume pulang. Itu persis alasan `DEC-BD-043` dan `DEC-BD-044`. Rancangan hak akses `v4` terbukti
+   mengikuti konvensi yang sedang berlaku.
+
+### Satu catatan untuk task migration, bukan cacat blueprint
+
+`MstServiceUnit` memasangkan ketiga penanda `IsAvailableFor*` yang sudah ada dengan satu index
+gabungan. `BE-BD-002` menambahkan `IsAvailableForBloodOrder` tanpa menyebut index. Itu **bukan**
+kekeliruan — jalur akses utamanya pemeriksaan satu unit berdasarkan `Id`, yang tidak menuntut index.
+Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penanda ini.
 
 ---
 
@@ -58,7 +83,7 @@ seluruh pola hak akses yang menjadi tumpuan `BD-CAP-001`, `BD-CAP-005`, dan `BD-
 | Fase | Nama | Status | Keterangan |
 | --- | --- | --- | --- |
 | `BD-PH-001` | Discovery dan Requirement | `DONE` | Delapan pass wawancara: scope, closure, architecture gap closure, architecture gap final closure, Storage Location, Storage Location decision, gerbang pemberian, role & authority, role residue. `SCOPE-BD-001`, `DEC-BD-001`..`DEC-BD-044`, `INV-BD-011`..`INV-BD-035`, `AC-BD-001`..`AC-BD-097`. |
-| `BD-PH-002` | Audit kemampuan existing | `DONE` — **bukti `STALE`** | 24 baris kemampuan pada `02-existing-capability-map.md` revisi 2, terikat `9522caa`. Source sudah bergerak ke `4205d18`; perlu impact scan terbatas. Fase **tidak** dibuka ulang. |
+| `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan pada `02-existing-capability-map.md` revisi **3**. Audit penuh di `9522caa`; **impact scan terbatas di `4205d18` sudah dijalankan** 3 September 2026 dan penanda `STALE` dicabut. Nol baris berpindah status. |
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. **Catatan:** `BR-BD-020` (Storage Location) belum punya rumah slice resmi; sementara diperlakukan sebagai perluasan `BD-SLICE-03/04/10`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `IN_PROGRESS` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). Seluruhnya `draft`. Belum `DONE` — approval owner belum ada. |
@@ -71,7 +96,7 @@ seluruh pola hak akses yang menjadi tumpuan `BD-CAP-001`, `BD-CAP-005`, dan `BD-
 
 | Fase selesai | Fase berjalan | Fase terblokir |
 | --- | --- | --- |
-| `BD-PH-001`, `BD-PH-002` (bukti `STALE`), `BD-PH-003`, `BD-PH-004` | `BD-PH-005`, `BD-PH-006` | `BD-PH-007` |
+| `BD-PH-001`, `BD-PH-002`, `BD-PH-003`, `BD-PH-004` | `BD-PH-005`, `BD-PH-006` | `BD-PH-007` |
 
 ---
 
@@ -93,7 +118,6 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 | --- | --- | --- | --- | --- |
 | **`G1` approval** | Owner belum menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE | Seluruh pekerjaan perancangan sudah selesai; tidak ada yang menunggu selain approval |
 | **`BD-DEP-008`** | Prefix entity Bank Darah belum terdaftar di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Entity operasional `BLOCKED` (`QBE-MOD-002`, `QBE-MOD-003`) | Pemilik registry engineering | `BD-PH-007`; seluruh task entity `Bbk*` | **`MVP-0` tetap jalan** — `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` memakai prefix `Mst` yang sudah sah |
-| **Bukti kemampuan `STALE`** | `02-existing-capability-map.md` terikat `9522caa`; source kini `4205d18` | Pemilik blueprint | `BD-CAP-014` (pola API), `BD-CAP-003` (status kunjungan), rencana migration | Impact scan terbatas, bukan audit ulang penuh |
 | `DEC-BD-016` | Persetujuan pemilik Billing atas konteks sumber biaya Bank Darah | Pemilik BillingManagement | Penyerahan biaya ke Billing | Pencatatan tindakan tetap dirancang penuh tanpa penyaluran biaya |
 | `OQ-BD-011` | Mekanik label golongan darah | Pemilik proses klinis | Slice label | Pemeriksaan dan validasi golongan darah tetap dirancang penuh |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen | Titik pemeriksaan kecocokan tetap dirancang |
@@ -136,7 +160,7 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 
 | Artefak | SHA tercatat | SHA saat ini | Tinjauan dampak yang diperlukan |
 | --- | --- | --- | --- |
-| `02-existing-capability-map.md` | `9522caa` | `4205d18` | **`STALE`.** Impact scan terbatas pada `BD-CAP-014` (pola API dari Laboratory), `BD-CAP-003` (status kunjungan dari InPatient), dan snapshot migration. Area lain berdampak rendah |
+| `02-existing-capability-map.md` | audit penuh `9522caa` · impact scan `4205d18` | `4205d18` | **Sudah disegarkan.** Impact scan 3 September 2026: dari 24 berkas bukti, hanya `LabOrder.cs` tersentuh dan perubahannya aditif. Nol baris berpindah status |
 | `BUSINESS REQUIREMENTS DOCUMENT (BRD).md` | `8b298bb` | `4205d18` | Terbatas pada konfigurasi Laboratorium. Dampaknya menyempit sejak `DEC-BD-018` memisahkan sampel Bank Darah dari sampel Laboratorium |
 | `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `4205d18` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium sudah digantikan `DEC-BD-018` |
 
@@ -149,7 +173,7 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 | Artefak | Keadaan |
 | --- | --- |
 | `00-interview-decisions.md` | Revisi 9 — `DEC-BD-001`..`044`, `INV-BD-011`..`035`, `AC-BD-001`..`097` |
-| `02-existing-capability-map.md` | Revisi 2 — 24 kemampuan, **bukti `STALE`** |
+| `02-existing-capability-map.md` | Revisi 3 — 24 kemampuan, impact scan `4205d18` `CURRENT` |
 | `02-requirement-completeness-assessment.md` | Revisi 2 — `BR-BD-020` belum punya rumah slice |
 | `01-prerequisite-readiness.md` | Revisi 3 — `BD-DEP-001`..`015` |
 | `03-domain-architecture.md` | Revisi 6 — `DOMAIN_ARCHITECTURE_READY`, nol gap terbuka |
@@ -169,11 +193,13 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
-| 1 | **`trace-existing-capabilities` mode impact scan** — segarkan `02-existing-capability-map.md` dari `9522caa` ke `4205d18`, terbatas pada `BD-CAP-014`, `BD-CAP-003`, dan snapshot migration | Skill | Menghapus penanda `STALE` sebelum implementasi dimulai |
-| 2 | **`G1` approval** — owner menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Tindakan manusia**, bukan skill |
-| 3 | **`BD-DEP-008`** — daftarkan prefix entity di registry kepemilikan modul | Pemilik registry engineering | **Tindakan manusia**, bukan skill |
-| 4 | `build-module-backend` per task `MVP-0` | Skill | Hanya setelah `G1`; `MVP-0` tidak menunggu `BD-DEP-008` |
-| 5 | `grill-me` bila hendak menutup `OQ-BD-017` dan `OQ-BD-018` sekalian | Skill | Tidak menahan siapa pun |
+| 1 | **`G1` approval** — owner menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Tindakan manusia**, bukan skill |
+| 2 | **`BD-DEP-008`** — daftarkan prefix entity di registry kepemilikan modul | Pemilik registry engineering | **Tindakan manusia**, bukan skill |
+| 3 | `build-module-backend` per task `MVP-0` | Skill | Hanya setelah `G1`; `MVP-0` tidak menunggu `BD-DEP-008` |
+| 4 | `grill-me` bila hendak menutup `OQ-BD-017` dan `OQ-BD-018` sekalian | Skill | Tidak menahan siapa pun |
+
+**`trace-existing-capabilities` sudah dijalankan** 3 September 2026 sebagai impact scan terbatas dan
+**tidak perlu diulang** sampai backend SHA bergerak lagi.
 
 `grill-me` untuk keputusan bisnis **tidak** lagi diperlukan pada scope yang dinilai — tidak ada
 keputusan bisnis yang masih memblokir.
