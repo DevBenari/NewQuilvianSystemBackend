@@ -6,10 +6,10 @@
 | --- | --- |
 | Produk | Quilvian Hospital Information System |
 | Modul | Bank Darah (`bank-darah`) · kode PRD `BD` |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — status **`draft`** |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — status **`draft`** |
 | Repository target | `NewQuilvianSystemBackend` (backend) · `V2QuilvianSystemFrontendDev` (frontend) |
-| Commit SHA baseline | backend `db08c14` · frontend `afbb8ab` |
-| Arsitektur domain | `03-domain-architecture.md` revisi 3 — `DOMAIN_ARCHITECTURE_READY` |
+| Commit SHA baseline | backend `792acb9` · frontend `afbb8ab` |
+| Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 7 |
 | Ringkasan cakupan | MVP mencatat pemenuhan darah pasien dari order sampai kantong diberikan/diselesaikan, **tanpa** charge Billing, label cetak, dan integrasi luar |
 | `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
 
@@ -75,9 +75,11 @@ dengan PMI/HCLAB.
 | Kewenangan unit memesan darah | `BD-CAP-005` | Wajib; menentukan siapa boleh memesan |
 | Permintaan PMI + penerimaan (partial/berlebih/tutup) | `BD-CAP-019`, `BD-CAP-007` | Wajib; tanpa ini stok tak pernah masuk |
 | Katalog komponen darah | `BD-CAP-018` | Wajib; komponen tak boleh teks bebas |
+| **Lokasi penyimpanan darah + penyimpanan kantong** | `BD-CAP-019` | **Wajib.** Tanpa satu pun lokasi aktif, tidak ada kantong yang dapat dialokasikan sama sekali (`DEC-BD-035`, `DEC-BD-036`) |
+| **Perpindahan lokasi kantong** | `BD-CAP-019` | Wajib; satu-satunya jalan keluar kantong dari kulkas yang dinonaktifkan (`DEC-BD-037`) |
 | Pemeriksaan & validasi golongan darah + konflik | `BD-CAP-017` | Wajib; sumber sah untuk gerbang klinis |
 | Kantong: alokasi + pembatalan | `BD-CAP-019`, `BD-CAP-010` | Wajib; tanpa ini kantong tak sampai pasien |
-| Bukti kecocokan + pemberian + jalur darurat + gerbang masa berlaku | `BD-CAP-019` | Wajib; titik keselamatan inti |
+| Bukti kecocokan + pemberian + jalur darurat + gerbang masa berlaku **+ gerbang lokasi aktif** | `BD-CAP-019` | Wajib; titik keselamatan inti (`DEC-BD-038`) |
 | Penyelesaian kantong menunggu keputusan | `BD-CAP-019` | Wajib; kantong tak boleh jadi stok bebas |
 | Koreksi pencatatan pemberian | `BD-CAP-009` | Wajib; satu-satunya jalur perbaikan tanpa hapus |
 | Daftar alasan terkendali | `BD-CAP-019` | Wajib; alasan tak boleh teks bebas |
@@ -123,9 +125,15 @@ Jalur tidak normal lengkap: `flowcharts/`.
 | `EPIC BD-06` Koreksi pemberian | Catatan koreksi append-only | `MISSING / NEW` |
 | `EPIC BD-07` Golongan darah | Sampel, hasil, validasi, konflik, penyelesaian lewat pemeriksaan ulang | `MISSING / NEW` |
 | `EPIC BD-08` Tindakan Bank Darah | Pencatatan tindakan (tanpa charge) | `MISSING / NEW` |
-| `EPIC BD-09` Setup & kewenangan | Katalog komponen, daftar alasan (`NEW`); flag unit `IsAvailableForBloodOrder` (`EXTEND`) | `MISSING / NEW` + `EXTEND` |
+| `EPIC BD-09` Setup & kewenangan | Katalog komponen, daftar alasan, **master lokasi penyimpanan darah** (`NEW`); flag unit `IsAvailableForBloodOrder` (`EXTEND`) | `MISSING / NEW` + `EXTEND` |
+| **`EPIC BD-11` Penyimpanan kantong** | Penetapan lokasi pertama (`Received`→`Stored`→`Available`), perpindahan lokasi, riwayat penempatan append-only, gerbang alokasi | `MISSING / NEW` |
 | `EPIC BD-10` Daftar kerja | Tiga daftar operasional | `MISSING / NEW` |
 | — Penyaluran biaya ke Billing | Kirim fakta biaya tindakan | **`OPEN DECISION`** (`DEC-BD-016`) — **tidak** masuk gelombang |
+
+`EPIC BD-11` **bukan** epic tersendiri karena ada layar baru, melainkan karena ia memperkenalkan
+entity, master, dan gerbang yang berdiri sendiri. Perluasan gerbang **pemberian** (`DEC-BD-038`)
+sengaja **tidak** dijadikan epic terpisah: ia menambah satu syarat pada gerbang yang sudah menjadi
+milik `EPIC BD-04`, dan memecahnya akan membuat dua task menyentuh satu fungsi yang sama.
 
 FR bernomor yang dapat diuji (contoh kunci; lengkap dipetakan ke `AC-BD-*`):
 
@@ -143,7 +151,35 @@ FR bernomor yang dapat diuji (contoh kunci; lengkap dipetakan ke `AC-BD-*`):
 > setelah ada pemeriksaan ulang tervalidasi yang dinyatakan validator sebagai hasil berlaku; sistem tak
 > menghitung mayoritas. (`AC-BD-036/051/053/054`)
 
-Seluruh FR lain diturunkan dari `AC-BD-001`..`058` (`testing/acceptance-test-matrix.md`) dan
+> **`FR-BD-060` — Kantong wajib disimpan sebelum dapat dialokasikan.** Sistem menolak alokasi kantong
+> yang belum punya lokasi penyimpanan tercatat. **Contoh:** kantong `PMI-00912` diterima Senin pagi dan
+> langsung dicoba dialokasikan untuk Tn. S — ditolak dengan "Kantong belum disimpan pada lokasi
+> penyimpanan". Petugas menaruhnya di "Kulkas Besar", mencatat lokasinya, lalu alokasi berhasil.
+> (`AC-BD-059/060/061`)
+
+> **`FR-BD-061` — Perpindahan lokasi tidak pernah mengubah status dan tidak pernah menimpa riwayat.**
+> **Contoh:** kantong `PMI-00912` yang sedang dialokasikan untuk Tn. S dipindahkan dari "Kulkas Besar"
+> ke "Kulkas Kecil". Statusnya tetap `Allocated`, alokasinya tetap milik Tn. S, buktinya tetap berlaku,
+> dan riwayat menyimpan **dua** penempatan. Catatan penerimaan awal tidak tersentuh. (`AC-BD-063`)
+
+> **`FR-BD-062` — Penonaktifan lokasi menutup gerbang tanpa memindahkan kantong.** Sistem tidak pernah
+> memindahkan kantong sendiri dan tidak mengubah statusnya. **Contoh:** "Kulkas Lama" ditandai nonaktif
+> saat berisi tiga kantong. Ketiganya tetap tercatat di sana dan tetap `Available`, tetapi tidak satu
+> pun dapat dialokasikan sampai petugas memindahkannya. (`AC-BD-067/068/069/070`)
+
+> **`FR-BD-063` — Gerbang pemberian memuat gerbang alokasi dan dinilai ulang.** Sistem menolak
+> pemberian jalur normal bila lokasi penyimpanan kantong sedang nonaktif, walaupun alokasi dan bukti
+> kecocokannya sah. **Contoh:** kantong dialokasikan Senin saat kulkas masih aktif; Selasa kulkas
+> ditandai rusak; Selasa siang pemberian ditolak "Kantong berada di lokasi penyimpanan yang sudah tidak
+> aktif". Setelah dipindahkan ke kulkas aktif, pemberian berhasil. (`AC-BD-072/073`)
+
+> **`FR-BD-064` — Jalur darurat wajib menyebut gerbang yang dilewati.** Otorisasi darurat menyatakan
+> apakah yang dilewati bukti kecocokan, lokasi nonaktif, atau keduanya. **Contoh:** Tn. S perdarahan
+> hebat, kantong di kulkas rusak, buktinya ada dan berlaku. Penanda permanen menyebut **lokasi**, bukan
+> bukti — sehingga pembaca rekam berikutnya tahu darahnya cocok dan yang dipertaruhkan penyimpanannya.
+> (`AC-BD-074/075`)
+
+Seluruh FR lain diturunkan dari `AC-BD-001`..`076` (`testing/acceptance-test-matrix.md`) dan
 `contracts/validation-matrix.md`.
 
 ## 11. Model status yang diusulkan
@@ -152,7 +188,7 @@ Seluruh FR lain diturunkan dari `AC-BD-001`..`058` (`testing/acceptance-test-mat
 | --- | --- | --- |
 | Order | `Active`→`PartiallyFulfilled`→`FullyFulfilled` / `Cancelled` / `Expired` | Pemenuhan dihitung dari transaksi; `Expired` tak reopen |
 | Permintaan PMI | `Requested`→`PartiallyFulfilled`→`Fulfilled` / `Cancelled` / `ClosedEncounter` | Sisa ≥ 0 |
-| Kantong | `Available`→`Allocated`→`Issued`; `PendingReview`→`Reallocated`/`ReturnedToProvider`/`NotUsable` | 1 alokasi aktif; pemberian terminal |
+| Kantong | `Received`→`Stored`→`Available`→`Allocated`→`Issued`; `PendingReview`→`Reallocated`/`ReturnedToProvider`/`NotUsable` | 1 alokasi aktif; 1 penempatan berlaku; tak dapat dialokasikan sebelum `Stored` atau dari lokasi nonaktif; pemberian terminal |
 | Golongan darah | `SampleTaken`→`ResultRecorded`→`Validated` (+ konflik ditahan) | Hasil sah tak ditimpa; konflik lewat pemeriksaan ulang |
 | Tindakan | `Recorded`→`Completed` | 1 tindakan ≤ 1 fakta biaya (penyaluran tertunda) |
 
@@ -216,9 +252,10 @@ crossmatch, salinan master pasien/dokter/unit. Fakta biaya **tidak** disalurkan 
 ## 18. Skenario UAT
 
 > **`UAT-01` — Pemenuhan darah satu pasien (berhasil).** Kondisi: pasien dengan kunjungan aktif, unit
-> berwenang, master terisi. Langkah: buat order → buat permintaan → terima 1 kantong → periksa & validasi
-> golongan darah → alokasikan → catat bukti → berikan. Hasil: kantong `Issued`, order pemenuhan
-> bertambah, riwayat lengkap. (`EPIC BD-01/02/04/07`)
+> berwenang, master terisi **termasuk minimal satu lokasi penyimpanan aktif**. Langkah: buat order →
+> buat permintaan → terima 1 kantong → **simpan kantong di kulkas** → periksa & validasi golongan darah
+> → alokasikan → catat bukti → berikan. Hasil: kantong `Issued`, order pemenuhan bertambah, riwayat
+> lengkap termasuk riwayat penempatan. (`EPIC BD-01/02/04/07/11`)
 
 > **`UAT-02` — Dua petugas merebut kantong sama (gagal terkendali).** Kondisi: satu kantong `Available`.
 > Langkah: dua petugas alokasikan ke dua pasien hampir bersamaan. Hasil: satu berhasil, satu ditolak
@@ -241,6 +278,32 @@ crossmatch, salinan master pasien/dokter/unit. Fakta biaya **tidak** disalurkan 
 Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemetaan penuh di
 `testing/acceptance-test-matrix.md`.
 
+> **`UAT-11` — Alokasi kantong yang belum disimpan (gagal).** Kantong baru diterima, langsung dicoba
+> dialokasikan. Hasil: ditolak "Kantong belum disimpan pada lokasi penyimpanan, sehingga belum dapat
+> dialokasikan." Setelah lokasi ditetapkan, alokasi berhasil. (`EPIC BD-11`)
+
+> **`UAT-12` — Perpindahan lokasi kantong yang sedang dialokasikan (berhasil).** Kantong `Allocated`
+> untuk Tn. S dipindahkan dari "Kulkas Besar" ke "Kulkas Kecil". Hasil: status tetap `Allocated`,
+> alokasi tetap milik Tn. S, bukti tetap berlaku, riwayat memuat dua penempatan, catatan penerimaan awal
+> tidak berubah. (`EPIC BD-11`)
+
+> **`UAT-13` — Kulkas rusak dinonaktifkan (berhasil + terkendali).** "Kulkas Lama" berisi tiga kantong
+> ditandai nonaktif. Hasil: penonaktifan berhasil disertai peringatan jumlah kantong tertahan; ketiga
+> kantong tetap tercatat di sana dengan status tidak berubah; **tidak satu pun dipindahkan sistem**;
+> ketiganya tidak dapat dialokasikan. Setelah petugas memindahkan ke kulkas aktif, ketiganya dapat
+> dialokasikan kembali. (`EPIC BD-09/11`)
+
+> **`UAT-14` — Pemberian dari kulkas yang dinonaktifkan setelah alokasi (gagal).** Kantong dialokasikan
+> Senin saat kulkas masih aktif dan buktinya sah; Selasa kulkas ditandai rusak. Langkah: tekan berikan.
+> Hasil: ditolak "Kantong ini berada di lokasi penyimpanan yang sudah tidak aktif dan belum dapat
+> diberikan." **Pesannya menyebut lokasi, bukan bukti.** Setelah dipindahkan, pemberian berhasil.
+> (`EPIC BD-04/11`)
+
+> **`UAT-15` — Pemberian darurat dari kulkas nonaktif (berhasil, ditandai).** Keadaan `UAT-14` tetapi
+> pasien perdarahan hebat. Peran berwenang menerbitkan otorisasi darurat dengan alasan dan keterangan
+> gerbang yang dilewati. Hasil: darah diberikan; penanda permanen menyebut **lokasi nonaktif**, bukan
+> bukti kecocokan. Pencatatan tanpa keterangan gerbang ditolak. (`EPIC BD-04/11`)
+
 ## 19. Definition of Done
 
 | Butir | Bukti | Ya/Belum |
@@ -259,14 +322,21 @@ Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemet
 
 | Gelombang | Isi (epic) | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | Fondasi: `EPIC BD-09` (master + flag unit), migration, prefix registry | Blueprint disetujui + `BD-DEP-008` beres |
+| `MVP-0` | Fondasi: `EPIC BD-09` (**tiga** master termasuk lokasi penyimpanan + flag unit), migration, prefix registry | Blueprint disetujui + `BD-DEP-008` beres |
 | `MVP-1` | `EPIC BD-01`, `EPIC BD-02` (order → permintaan → penerimaan) | `MVP-0` selesai |
+| `MVP-1b` | **`EPIC BD-11`** (penyimpanan kantong: penetapan lokasi, perpindahan, riwayat penempatan) | `MVP-1` selesai. **Wajib mendahului `MVP-3`** — tanpa penyimpanan, tidak ada kantong yang dapat dialokasikan |
 | `MVP-2` | `EPIC BD-07` (golongan darah + konflik), `EPIC BD-10` (daftar kerja) | `MVP-1` selesai |
-| `MVP-3` | `EPIC BD-03`, `EPIC BD-04` (alokasi → bukti → pemberian → darurat) | `MVP-2` selesai |
+| `MVP-3` | `EPIC BD-03`, `EPIC BD-04` (alokasi → bukti → pemberian → darurat, **beserta gerbang lokasi**) | `MVP-2` **dan `MVP-1b`** selesai |
 | `MVP-4` | `EPIC BD-05`, `EPIC BD-06` (penyelesaian kantong, koreksi), `EPIC BD-08` (pencatatan tindakan) | `MVP-3` selesai |
 | `POST-MVP` | Penyaluran biaya Billing, label cetak, integrasi PMI/HCLAB | Di luar rilis pertama |
 
 Epic `OPEN DECISION` (penyaluran biaya Billing) **tidak** dimasukkan ke gelombang mana pun.
+
+**`EPIC BD-11` ditempatkan sebagai `MVP-1b`, bukan digabung ke `MVP-3`.** Alasannya urutan
+ketergantungan yang keras, bukan besarnya pekerjaan: gerbang alokasi pada `MVP-3` menuntut kantong sudah
+melewati `Stored`, sehingga mengerjakan `MVP-3` lebih dulu menghasilkan alur yang tidak dapat diuji
+ujung ke ujung. `MVP-1b` juga menuntut master lokasi dari `MVP-0` sudah terisi — bukan hanya tabelnya
+ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV-BD-025`).
 
 | Pertanyaan terbuka | Penjawab | Dampak bila belum dijawab | Memblokir |
 | --- | --- | --- | :---: |
@@ -275,7 +345,14 @@ Epic `OPEN DECISION` (penyaluran biaya Billing) **tidak** dimasukkan ke gelomban
 | Nilai jam masa berlaku bukti per komponen (`OQ-BD-012`) | Pemilik proses klinis | Gerbang fail-closed sampai diisi | Tidak (desain jalan; nilai dari konfigurasi) |
 | Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`) | Pemilik BillingManagement | Penyaluran biaya tak dapat dirancang | Hanya epic Billing (`OPEN DECISION`) |
 | Keadaan kantong setelah koreksi (`OQ-BD-014`) | Pemilik proses BDRS | Detail implementasi jalur koreksi | Tidak |
+| Daftar lokasi penyimpanan darah MMC yang sebenarnya | Pemilik proses BDRS | Master kosong menghentikan seluruh alur — kantong tak dapat disimpan, dialokasikan, maupun diberikan | Tidak memblokir rancangan; **memblokir go-live** |
+
+**Catatan `v2` untuk pertanyaan terbuka.** Rangkaian Storage Location (`DEC-BD-035` sampai
+`DEC-BD-038`) **tidak menambah satu pun pertanyaan memblokir**. `ARCH-BD-GAP-10` dan `OQ-BD-015` yang
+sempat terbuka sudah ditutup `DEC-BD-037` dan `DEC-BD-038`. Yang ditambahkan hanya satu baris
+prasyarat operasional di atas: master lokasi wajib terisi sebelum go-live.
 
 **Status dokumen `draft`.** Ada pertanyaan memblokir yang belum terjawab (`BD-DEP-008`, `DEF-BD-004`);
 karena itu dokumen ini **belum boleh** diteruskan ke `/plan-module-delivery` sampai keduanya tuntas.
-Approval manusia belum diklaim.
+Keadaan ini **tidak berubah** pada `v2` — kedua pemblokir itu sudah ada sejak `v1` dan tidak berkaitan
+dengan Storage Location. Approval manusia belum diklaim.

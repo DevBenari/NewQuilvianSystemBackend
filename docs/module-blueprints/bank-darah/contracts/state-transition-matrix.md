@@ -2,11 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — `draft` |
-| `last_changed_in` | `v1` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| `last_changed_in` | `v2` |
 | Owner | Pemilik proses BDRS (lifecycle operasional) · pemilik proses klinis (golongan darah) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
-| Sumber | `03-domain-architecture.md` revisi 3 §G · `00-interview-decisions.md` revisi 4 §5 |
+| Sumber | `03-domain-architecture.md` revisi 6 §G · `00-interview-decisions.md` revisi 7 §5 |
 | Nama status | **Nama teknis enum** (bagian F backend). Node status pada `flowcharts/` **MUST** memakai nama yang sama persis |
 
 Aturan umum: setiap perpindahan meninggalkan baris `BbkTransitionHistory` (pelaku, waktu, from, to,
@@ -52,14 +52,19 @@ kembali aktif.
 
 | Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
 | --- | --- | --- | --- | --- | --- |
-| — | Diterima fisik | `Available` | Petugas Bank Darah | Terikat permintaan asal | — |
-| `Available` | Alokasikan | `Allocated` | Petugas Bank Darah | Order aktif; **tak ada alokasi aktif lain** pada kantong ini | `VAL-BD-018` alokasi ganda (konkurensi) |
+| — | Diterima fisik | `Received` | Petugas Bank Darah | Terikat permintaan asal. **Belum punya lokasi, belum dapat dialokasikan** (`DEC-BD-036`) | — |
+| `Received` | **Tetapkan lokasi penyimpanan** | `Stored` | Petugas Bank Darah | Lokasi dipilih dari master yang **sedang aktif** (`INV-BD-027`); kantong belum pernah ditempatkan | `VAL-BD-060` lokasi nonaktif · `VAL-BD-061` sudah ditempatkan |
+| `Stored` | Masuk stok yang boleh dialokasikan | `Available` | Sistem, sebagai akibat penempatan | Tanpa tindakan manusia tambahan dan tanpa prasyarat tambahan (`ARCH-BD-POS-04`) | — |
+| `Stored` | Kantong berlebih, atau permintaan asalnya sudah `ClosedEncounter` | `PendingReview` | Sistem | `DEC-BD-025`, `DEC-BD-020`. Kantong tetap wajib disimpan lebih dulu | — |
+| `Stored` / `Available` / `Allocated` / `PendingReview` / `Reallocated` | **Pindahkan lokasi penyimpanan** | **status tidak berubah** | Petugas Bank Darah | Lokasi tujuan **sedang aktif** (`INV-BD-027`); kantong sudah pernah ditempatkan; kantong belum di status terminal. Berlaku juga ketika lokasi asalnya sudah dinonaktifkan | `VAL-BD-060` lokasi nonaktif · `VAL-BD-062` belum pernah ditempatkan |
+| `Stored` / `Available` / `Allocated` | **Lokasi penyimpanannya dinonaktifkan** | **status tidak berubah** | Pengelola Setup Bank Darah | Kantong **tidak** dipindahkan sistem dan **tidak** masuk `PendingReview`. Gerbang alokasi & pemberian tertutup sampai kantong dipindahkan (`DEC-BD-037`) | Peringatan `VAL-BD-068` |
+| `Available` | Alokasikan | `Allocated` | Petugas Bank Darah | Order aktif; **tak ada alokasi aktif lain** pada kantong ini; **sudah melewati `Stored`** (`INV-BD-025`); **lokasi penempatan terakhir sedang aktif** (`INV-BD-028`, `ARCH-BD-POS-06`) | `VAL-BD-018` alokasi ganda · `VAL-BD-063` belum disimpan · `VAL-BD-064` lokasi nonaktif |
 | `Allocated` | Catat bukti kecocokan | tetap `Allocated` (bukti lengkap) | Petugas berwenang | Bukti terhadap pasien tujuan | — |
-| `Allocated` (bukti berlaku) | Berikan | `Issued` | Petugas Bank Darah | Ada bukti kecocokan **untuk pasien tujuan & belum lewat masa berlaku** (`ARCH-BD-POS-02`) | `VAL-BD-018`..`020` gerbang pemberian |
-| `Allocated` | Berikan lewat jalur darurat | `Issued` (ditandai tanpa bukti) | **Peran berwenang** `DEF-BD-004` | Alasan wajib; penanda permanen | `VAL-BD-021` peran/alasan |
-| `Allocated` | Batalkan alokasi | `Available`, atau `PendingReview` bila order asal berakhir | Petugas Bank Darah | Kantong belum diberikan; alasan terkendali; keaktifan order dibaca `BbkEncounterStatusReader` | `VAL-BD-023` sudah diberikan · `VAL-BD-016` alasan |
+| `Allocated` (bukti berlaku) | Berikan | `Issued` | Petugas Bank Darah | **Tiga syarat sekaligus, dinilai ulang saat pemberian** (`INV-BD-029`, `ARCH-BD-POS-07`): sudah melewati `Stored` · lokasi penempatan terakhir **sedang aktif** · bukti kecocokan berlaku untuk pasien tujuan & belum lewat masa berlaku | `VAL-BD-018`..`020` gerbang bukti · `VAL-BD-065` lokasi nonaktif |
+| `Allocated` | Berikan lewat jalur darurat | `Issued` (ditandai melewati gerbang) | **Peran berwenang** `DEF-BD-004` | Alasan wajib; penanda permanen; **wajib menyebut gerbang yang dilewati** — bukti, lokasi nonaktif, atau keduanya (`INV-BD-030`) | `VAL-BD-021` peran/alasan · `VAL-BD-066` keterangan gerbang |
+| `Allocated` | Batalkan alokasi | `Available`, atau `PendingReview` bila order asal berakhir | Petugas Bank Darah | Kantong belum diberikan; alasan terkendali; keaktifan order dibaca `BbkEncounterStatusReader`. **Kembali ke `Available`, tidak pernah ke `Stored` maupun `Received`** — tonggak penempatan hanya dilewati sekali | `VAL-BD-023` sudah diberikan · `VAL-BD-016` alasan |
 | `Available` / `Allocated` | Order berakhir | `PendingReview` | Sistem | Order `Cancelled`/`Expired` | — |
-| `PendingReview` | Alihkan ke pasien lain | `Reallocated` | Petugas berwenang | Kelayakan dinyatakan manusia; alasan wajib; **bukti lama gugur** (`DEC-BD-028`) | `VAL-BD-016` |
+| `PendingReview` | Alihkan ke pasien lain | `Reallocated` | Petugas berwenang | Kelayakan dinyatakan manusia; alasan wajib; **bukti lama gugur** (`DEC-BD-028`); **lokasi penempatan terakhir sedang aktif** — pengalihan adalah alokasi dengan nama lain (`INV-BD-028`) | `VAL-BD-016` · `VAL-BD-064` lokasi nonaktif |
 | `PendingReview` | Kembalikan ke PMI | `ReturnedToProvider` | Petugas berwenang | Proses PMI mendukung (`OQ-BD-010`) | `VAL-BD-016` |
 | `PendingReview` | Nyatakan tidak layak | `NotUsable` | Petugas berwenang | Alasan wajib | `VAL-BD-016` |
 | `Issued` | Catat koreksi pencatatan | tetap `Issued` (koreksi melekat) | Peran berwenang `DEF-BD-004` | Menunjuk pemberian yang ada; alasan terkendali | `VAL-BD-024` peran · `VAL-BD-025` |
@@ -67,8 +72,28 @@ kembali aktif.
 **Terminal tak dapat dibatalkan:** `Issued`, `ReturnedToProvider`, `NotUsable`. Koreksi **tidak**
 memindahkan kantong keluar dari `Issued`, tidak mengembalikan ke `Available`, tidak membatalkan apa pun.
 
-**Kondisi turunan (bukan status):** lewatnya masa berlaku bukti kecocokan **tidak** memindahkan
-kantong; kantong tetap `Allocated`, hanya jawaban gerbang yang berubah (`ARCH-BD-POS-01`).
+**Kondisi turunan (bukan status).** Dua hal berikut **tidak** memindahkan kantong ke status mana pun;
+yang berubah hanya jawaban gerbang saat diperiksa:
+
+| Kondisi | Kantong tetap | Akibatnya |
+| --- | --- | --- |
+| Masa berlaku bukti kecocokan lewat | `Allocated` | Gerbang pemberian tertutup (`ARCH-BD-POS-01`) |
+| Lokasi penempatan terakhir dinonaktifkan | status apa adanya | Gerbang alokasi **dan** pemberian tertutup (`ARCH-BD-POS-06`, `DEC-BD-037`) |
+
+Keduanya sengaja **bukan** status, karena menjadikannya status menuntut penyuntingan massal setiap kali
+satu kulkas dinonaktifkan atau setiap kali waktu berjalan.
+
+**Transisi yang TIDAK sah** — disebutkan supaya tidak diusulkan sebagai "perbaikan":
+
+| Yang tidak sah | Sebabnya |
+| --- | --- |
+| `Received` → `Allocated` langsung | Gerbang penyimpanan wajib dilewati (`INV-BD-025`, `VAL-BD-063`) |
+| `Available`/`Allocated` → `Stored` atau `Received` | Tonggak penempatan hanya dilewati sekali; pembatalan alokasi mengembalikan ke `Available` |
+| Lokasi dinonaktifkan → kantong otomatis `PendingReview` | Ditolak `DEC-BD-037`; sistem tidak memindahkan dan tidak mengubah status |
+| Lokasi dinonaktifkan → kantong otomatis pindah lokasi | Ditolak `DEC-BD-037`; perpindahan fisik kewenangan petugas BDRS |
+| Perpindahan lokasi → mengubah status kantong | Perpindahan tidak pernah menjadi perpindahan status (`DEC-BD-036`) |
+| Perpindahan lokasi → mengubah/menghapus penempatan lama | Riwayat penempatan hanya bertambah (`INV-BD-026`) |
+| `Issued` lewat jalur normal dari lokasi nonaktif | Ditolak `DEC-BD-038` (`VAL-BD-065`); satu-satunya jalan adalah jalur darurat |
 
 ---
 

@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — `draft` |
-| Sumber | `00-interview-decisions.md` revisi 4 (`AC-BD-001`..`058`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| Sumber | `00-interview-decisions.md` revisi 7 (`AC-BD-001`..`076`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (aturan service), `Integ`
 (service + DB), `Concurrency` (perebutan data), `E2E/UAT` (jalur pengguna). Data samaran.
@@ -91,6 +91,45 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 
 ---
 
+## 7. Penyimpanan kantong dan gerbang lokasi — baru pada `v2`
+
+Menutup `AC-BD-059` sampai `AC-BD-076`. Jalur gagal ditulis lebih dulu karena di sinilah keselamatan
+pasien benar-benar dijaga.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-059` | Kantong baru diterima dari PMI | Integ | Status `Received`; belum dapat dialokasikan |
+| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-063`; pesan menyebut kantong belum disimpan |
+| `AC-BD-061` | Petugas menetapkan lokasi pada kantong `Received` | Integ | Kantong `Stored` lalu `Available`; satu baris riwayat penempatan bertambah |
+| `AC-BD-062` | Lokasi nonaktif dipilih untuk penyimpanan baru | Integ | **Ditolak** `VAL-BD-060` |
+| `AC-BD-063` | Kantong `Stored` dipindahkan ke lokasi lain | Integ | Riwayat bertambah; **status tidak berubah**; catatan penerimaan awal tidak tersentuh |
+| `AC-BD-064` | Sistem diminta mencatat suhu atau kapasitas storage | Unit | Tidak ada kolom maupun endpoint — di luar scope MVP |
+| `AC-BD-065` | Lokasi nonaktif dipilih untuk penyimpanan kantong baru | Integ | **Ditolak** `VAL-BD-060` |
+| `AC-BD-066` | Lokasi nonaktif dipilih sebagai **tujuan perpindahan** | Integ | **Ditolak** `VAL-BD-060` — aturan berlaku untuk perpindahan, bukan hanya penempatan pertama |
+| `AC-BD-067` | Lokasi dinonaktifkan sementara masih ada kantong di dalamnya | Integ | Penonaktifan **berhasil**; kantong tetap tercatat di sana; status kantong tidak berubah; peringatan `VAL-BD-068` menyebut jumlah |
+| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064` |
+| `AC-BD-069` | Sistem diminta memindahkan sendiri kantong saat lokasi dinonaktifkan | Integ | **Tidak terjadi** — nol baris riwayat penempatan baru, nol perubahan status, nol job berjalan |
+| `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali |
+| `AC-BD-071` | Kantong `PendingReview` di lokasi nonaktif dicoba dialihkan ke pasien lain | Integ | **Ditolak** `VAL-BD-064` — pengalihan adalah alokasi dengan nama lain |
+| `AC-BD-072` | Kantong sudah dialokasikan dan bukti masih berlaku, lokasinya dinonaktifkan **sesudah** alokasi, lalu dicoba diberikan | **Integ** | **Ditolak** `VAL-BD-065`. Skenario inti `DEC-BD-038` — membuktikan gerbang dinilai **ulang**, bukan diwarisi |
+| `AC-BD-073` | Kantong yang sama dipindahkan ke lokasi aktif lalu diberikan | Integ | Berhasil; alokasi ke pasien tujuan tidak pernah putus sepanjang kejadian |
+| `AC-BD-074` | Kantong di lokasi nonaktif diberikan lewat otorisasi darurat | Integ | Diizinkan; alasan, pelaku, waktu tercatat; penanda permanen melekat |
+| `AC-BD-075` | Pemberian darurat dicatat tanpa menyebut gerbang yang dilewati | Integ | **Ditolak** `VAL-BD-066` |
+| `AC-BD-076` | Gerbang pemberian dicoba dilewati dengan mewarisi hasil pemeriksaan saat alokasi | Unit | **Ditolak** — kedua gerbang wajib dinilai pada saat tindakan dicoba |
+
+Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancangan:
+
+| Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- |
+| Dua petugas memindahkan kantong yang sama ke dua lokasi berbeda hampir bersamaan | **Concurrency** | Tepat satu berhasil; kantong tidak pernah punya dua penempatan berlaku (filtered unique index + token `Version`) |
+| Master lokasi kosong sama sekali, kantong baru diterima | Integ | Kantong berhenti di `Received`; modul **fail-closed**; pesan mengarahkan ke Setup |
+| Lokasi dinonaktifkan lalu diaktifkan kembali | Integ | Gerbang kantong di dalamnya terbuka kembali tanpa satu pun kantong disunting |
+| Perpindahan lokasi pada kantong yang sedang `Allocated` | Integ | Alokasi, pasien tujuan, dan bukti kecocokan seluruhnya tetap utuh |
+| Percobaan mengubah atau menghapus baris riwayat penempatan | Unit | Tidak ada jalur bisnis yang menyediakannya (`INV-BD-026`) |
+| Penonaktifan lokasi pada 500 kantong sekaligus | **Concurrency** | Satu `UPDATE` pada satu baris master; **nol** penyuntingan baris kantong; waktu tanggap tidak bergantung jumlah kantong |
+
+---
+
 ## Definition of Done (ringkas — lengkap di `04-prd-to-mvp.md`)
 
 | Butir | Bukti |
@@ -99,5 +138,8 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | Satu kantong tak mungkin diberikan ke dua pasien | `AC-BD-018c` konkurensi |
 | Darah tak dapat diberikan tanpa bukti berlaku / golongan darah konflik tertahan | `AC-BD-018/038/041/034` |
 | Pemberian tak dapat dihapus | `AC-BD-048` |
-| Seluruh master MVP terisi | Rencana data master awal `02-backend-architecture.md` §J |
+| Kantong tak dapat dialokasikan sebelum disimpan | `AC-BD-060/061` |
+| Kantong di lokasi nonaktif tak dapat dialokasikan maupun diberikan lewat jalur normal | `AC-BD-068/072`; jalur darurat `AC-BD-074/075` |
+| Riwayat penempatan tak pernah ditimpa, dan sistem tak pernah memindahkan kantong sendiri | `AC-BD-063/069` |
+| Seluruh master MVP terisi — **termasuk minimal satu lokasi penyimpanan aktif** | Rencana data master awal `02-backend-architecture.md` §J. Tanpa ini modul berhenti total |
 | Billing charge & label **tidak** diuji pada MVP | `DEC-BD-016`, `OQ-BD-011` — di luar cakupan |

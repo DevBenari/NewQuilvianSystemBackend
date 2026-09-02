@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — `draft` |
-| `last_changed_in` | `v1` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| `last_changed_in` | `v2` |
 | Sumber | `02-backend-architecture.md` (model) · `contracts/` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`, `CreateBy`,
@@ -23,11 +23,14 @@ prefix final berbeda, seluruh nama tabel, kolom FK bernama `Bbk*`, dan Configura
 | --- | --- | --- | --- |
 | `BbkBloodOrder`, `BbkBloodOrderLine` | Baru | Bank Darah | — |
 | `BbkProviderRequest`, `BbkBloodUnitReceipt` | Baru | Bank Darah | — |
-| `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | — |
+| `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | `BbkBloodUnit` +`CurrentPlacementId`; `BbkEmergencyAuthorization` +`BypassScope` pada `v2` |
+| `BbkBloodUnitPlacement` | **Baru pada `v2`** | Bank Darah | Riwayat penempatan kantong, append-only (`BD-DOM-25`, `DEC-BD-036`) |
 | `BbkBloodGroupExam`, `BbkBloodGroupSample`, `BbkBloodGroupConflictResolution` | Baru | Bank Darah | — |
 | `BbkBloodBankProcedure` | Baru | Bank Darah | Tanpa penyaluran charge (`DEC-BD-016`) |
 | `BbkTransitionHistory` | Baru | Bank Darah | Append-only |
 | `MstBloodComponent`, `MstBloodBankReason` | Baru | Bank Darah (master) | Setup MVP |
+| `MstBloodStorageLocation` | **Baru pada `v2`** | Bank Darah (master) | Master ketiga Setup MVP (`BD-DOM-24`, `DEC-BD-035`). Prasyarat go-live |
+| `MstDrugStorageLocation` | Sudah ada | HealthServices Master Data (Farmasi) | **Tidak dipakai dan tidak disentuh.** Ditolak sebagai kandidat pakai-ulang oleh `DEC-BD-035` |
 | `MstServiceUnit` | **Diperbarui** | HealthServices Master Data | +1 kolom `IsAvailableForBloodOrder` |
 | `MstPatient`, `TrxPatientEncounter`, `InpEpisode`, `MstDoctor`, `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`/tarif | Sudah ada | modul masing-masing | Direferensikan, **MUST NOT** disalin |
 
@@ -90,16 +93,17 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
 | `Id` | `Guid` | Ya | `NewGuid()` | PK | — | — | Tidak | — |
 | `PmiBagNumber` | `string(50)` | Ya | — | Unique | — | — | **Ya** | Nomor kantong dari PMI |
-| `ProviderRequestId` | `Guid` | Ya | — | Index | FK `BbkProviderRequest` | `Restrict` | Asal — tak pernah putus |
-| `ReceiptId` | `Guid` | Ya | — | Index | FK `BbkBloodUnitReceipt` | `Restrict` | Penerimaan pelahir |
-| `BloodComponentId` | `Guid` | Ya | — | Index | FK `MstBloodComponent` | `Restrict` | Komponen |
+| `ProviderRequestId` | `Guid` | Ya | — | Index | FK `BbkProviderRequest` | `Restrict` | Tidak | Asal — tak pernah putus |
+| `ReceiptId` | `Guid` | Ya | — | Index | FK `BbkBloodUnitReceipt` | `Restrict` | Tidak | Penerimaan pelahir |
+| `BloodComponentId` | `Guid` | Ya | — | Index | FK `MstBloodComponent` | `Restrict` | Tidak | Komponen |
 | `IsExcess` | `bool` | Ya | `false` | — | — | — | Tidak | Kantong berlebih (`DEC-BD-025`) |
-| `UnitStatus` | `int` (`BbkBloodUnitStatus`) | Ya | `Available` | Index | — | — | Tidak | Status kantong |
-| `IssuedToPatientId` | `Guid?` | Tidak | — | Index | FK `MstPatient` | `Restrict` | Terisi saat `Issued` |
+| `UnitStatus` | `int` (`BbkBloodUnitStatus`) | Ya | **`Received`** | Index | — | — | Tidak | Status kantong. Bawaan berubah pada `v2`: kantong lahir **belum tersimpan** (`DEC-BD-036`) |
+| `CurrentPlacementId` | `Guid?` | Tidak | `null` | Index | FK `BbkBloodUnitPlacement` | `Restrict` | Tidak | **Kolom baru `v2`.** Penunjuk ke penempatan yang sedang berlaku. `NULL` selama `Received`. **Tidak pernah disunting sendiri** — hanya berpindah bersama penambahan penempatan, dalam satu transaksi (`ARCH-BD-POS-05`) |
+| `IssuedToPatientId` | `Guid?` | Tidak | — | Index | FK `MstPatient` | `Restrict` | **Ya** | Terisi saat `Issued` |
 | `IssuedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu pemberian (terminal) |
 | `IssuedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Pelaku pemberian |
 | `IssuedViaEmergency` | `bool` | Ya | `false` | — | — | — | Tidak | Penanda jalur darurat |
-| `CompatibilityEvidenceIdUsed` | `Guid?` | Tidak | — | — | FK `BbkCompatibilityEvidence` | `Restrict` | Bukti yang dipakai saat pemberian |
+| `CompatibilityEvidenceIdUsed` | `Guid?` | Tidak | — | — | FK `BbkCompatibilityEvidence` | `Restrict` | Tidak | Bukti yang dipakai saat pemberian |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Token — jaga alokasi tunggal |
 
 ### `BbkBloodUnitAllocation`
@@ -144,6 +148,35 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `AuthorizedAt` | `DateTime` | Ya | — | — | — |
 | `ReasonCode` | `string(30)` | Ya | — | FK `MstBloodBankReason.ReasonCode` | Alasan wajib |
 | `ReasonNote` | `string(500)?` | Tidak | — | — | Salinan teks |
+| `BypassScope` | `int` (`BbkEmergencyBypassScope`) | Ya | — | — | **Kolom baru `v2`.** Gerbang yang dilewati: `CompatibilityEvidence`, `InactiveStorageLocation`, atau `Both` (`INV-BD-030`, `DEC-BD-038`) |
+
+> Enum tiga nilai dipilih supaya keadaan "darurat yang tidak melewati gerbang apa pun" **tidak dapat
+> ditulis sama sekali**. Dua kolom bool akan memungkinkan `(false, false)` yang tak bermakna.
+
+### `BbkBloodUnitPlacement`
+
+Riwayat penempatan kantong. **Append-only** (`INV-BD-026`) — tidak ada jalur bisnis yang boleh mengubah
+atau menghapus barisnya, termasuk saat salah taruh; salah taruh diperbaiki dengan menambah penempatan
+baru.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `NewGuid()` | PK | — | — | Tidak | — |
+| `BloodUnitId` | `Guid` | Ya | — | Index | FK `BbkBloodUnit` | `Restrict` | Tidak | Kantong yang ditempatkan |
+| `StorageLocationId` | `Guid` | Ya | — | Index | FK `MstBloodStorageLocation` | `Restrict` | Tidak | Wajib menunjuk lokasi **aktif saat penempatan dibuat** (`INV-BD-027`) |
+| `PreviousPlacementId` | `Guid?` | Tidak | `null` | Index | FK `BbkBloodUnitPlacement` | `Restrict` | Tidak | `NULL` pada penempatan pertama; terisi pada perpindahan — inilah satu-satunya pembeda keduanya |
+| `PlacedAt` | `DateTime` | Ya | — | Index | — | — | Tidak | Sejak kapan kantong ada di lokasi itu |
+| `PlacedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | **Selalu manusia**; sistem tidak pernah menjadi pelaku perpindahan (`DEC-BD-037`) |
+| `IsCurrent` | `bool` | Ya | `true` | Filtered unique | — | — | Tidak | Maks. satu `true` per kantong (`INV-BD-026`) |
+| `Note` | `string(500)?` | Tidak | `null` | — | — | — | Tidak | Keterangan bebas. **Bukan** alasan terkendali — bukti yang disetujui tidak menuntut alasan pada perpindahan |
+
+> Keunikan "satu penempatan berlaku" dijaga **filtered unique index** `(BloodUnitId) WHERE IsCurrent = true`,
+> pola yang sama dengan alokasi aktif. Penempatan lama tetap tersimpan dengan `IsCurrent = false`.
+
+> **Kenapa tidak ada `RemovedAt`.** Bukti yang disetujui tidak menuntut pencatatan saat kantong keluar
+> dari lokasi. Rentang "sejak kapan sampai kapan" terbaca dari `PlacedAt` penempatan berikutnya, dan
+> status terminal kantong (`ReturnedToProvider`/`NotUsable`) menjelaskan mengapa ia tidak lagi di stok.
+> Menambah kolom yang tidak diminta berarti menuntut petugas mengisi data yang tidak ada aturannya.
 
 ### `BbkIssuanceCorrection`
 
@@ -238,6 +271,27 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `CompatibilityEvidenceValidityHours` | `int?` | Tidak | `null` | — | Masa berlaku per komponen (`DEC-BD-032`); kosong → gerbang fail-closed (`VAL-BD-020b`) |
 | `IsActive` | `bool` | Ya | `true` | — | — |
 
+### `MstBloodStorageLocation`
+
+Master lokasi penyimpanan darah milik BDRS. **Bukan** cold storage farmasi — lihat `MstDrugStorageLocation`
+pada tabel status, yang sengaja tidak dipakai (`DEC-BD-035`).
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Keterangan |
+| --- | --- | :---: | --- | --- | --- |
+| `Id` | `Guid` | Ya | `NewGuid()` | PK | — |
+| `StorageLocationCode` | `string(30)` | Ya | — | Unique | Kode lokasi, mis. `KLK-BSR` |
+| `StorageLocationName` | `string(150)` | Ya | — | — | Nama yang dikenali petugas, mis. `Kulkas Besar` |
+| `IsActive` | `bool` | Ya | `true` | Index | **Penanda yang menutup dua gerbang** saat bernilai `false` (`INV-BD-027`, `INV-BD-028`). Dibaca saat gerbang dinilai, **tidak pernah disalin** ke kantong |
+| `SortOrder` | `int` | Ya | `0` | — | Urutan tampil pilihan |
+| `Description` | `string(250)?` | Tidak | `null` | — | Keterangan bebas |
+
+> **Yang sengaja tidak ada di sini:** rentang suhu, kelembapan, kapasitas, rak/shelf/bin, hierarki
+> induk-anak, dan seluruh penanda farmasi. Semuanya di luar scope MVP (`DEC-BD-035`), dan ketiadaannya
+> disengaja — bukan kolom yang lupa dirancang.
+
+> **Lokasi nonaktif tidak pernah dihapus.** Penempatan lama menunjuk ke sini lewat `Restrict`, dan
+> riwayat kantong wajib tetap terbaca. Penonaktifan hanya mengubah `IsActive`.
+
 ### `MstBloodBankReason`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Keterangan |
@@ -297,7 +351,8 @@ CREATE TABLE public."BbkBloodUnit" (
     "ReceiptId"                   uuid        NOT NULL,
     "BloodComponentId"            uuid        NOT NULL,
     "IsExcess"                    boolean     NOT NULL,
-    "UnitStatus"                  integer     NOT NULL,   -- enum
+    "UnitStatus"                  integer     NOT NULL,   -- enum; bawaan Received (v2)
+    "CurrentPlacementId"          uuid,                   -- v2; NULL selama Received
     "IssuedToPatientId"           uuid,
     "IssuedAt"                    timestamp,
     "IssuedByUserId"              uuid,
@@ -306,10 +361,37 @@ CREATE TABLE public."BbkBloodUnit" (
     "Version"                     integer     NOT NULL,
     CONSTRAINT "PK_BbkBloodUnit" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_BbkBloodUnit_BbkProviderRequest_ProviderRequestId"
-        FOREIGN KEY ("ProviderRequestId") REFERENCES public."BbkProviderRequest" ("Id") ON DELETE RESTRICT
+        FOREIGN KEY ("ProviderRequestId") REFERENCES public."BbkProviderRequest" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_BbkBloodUnit_BbkBloodUnitPlacement_CurrentPlacementId"
+        FOREIGN KEY ("CurrentPlacementId") REFERENCES public."BbkBloodUnitPlacement" ("Id") ON DELETE RESTRICT
 );
 CREATE UNIQUE INDEX "IX_BbkBloodUnit_PmiBagNumber" ON public."BbkBloodUnit" ("PmiBagNumber");
 CREATE INDEX "IX_BbkBloodUnit_UnitStatus" ON public."BbkBloodUnit" ("UnitStatus");
+CREATE INDEX "IX_BbkBloodUnit_CurrentPlacementId" ON public."BbkBloodUnit" ("CurrentPlacementId");
+
+-- v2. FK melingkar dengan BbkBloodUnit: CurrentPlacementId nullable, diisi saat penempatan pertama.
+CREATE TABLE public."BbkBloodUnitPlacement" (
+    "Id"                  uuid        NOT NULL,
+    "BloodUnitId"         uuid        NOT NULL,
+    "StorageLocationId"   uuid        NOT NULL,
+    "PreviousPlacementId" uuid,                   -- NULL pada penempatan pertama
+    "PlacedAt"            timestamp   NOT NULL,
+    "PlacedByUserId"      uuid        NOT NULL,   -- selalu manusia
+    "IsCurrent"           boolean     NOT NULL,
+    "Note"                varchar(500),
+    CONSTRAINT "PK_BbkBloodUnitPlacement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BbkBloodUnitPlacement_BbkBloodUnit_BloodUnitId"
+        FOREIGN KEY ("BloodUnitId") REFERENCES public."BbkBloodUnit" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_BbkBloodUnitPlacement_MstBloodStorageLocation_StorageLocationId"
+        FOREIGN KEY ("StorageLocationId") REFERENCES public."MstBloodStorageLocation" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_BbkBloodUnitPlacement_BbkBloodUnitPlacement_PreviousPlacementId"
+        FOREIGN KEY ("PreviousPlacementId") REFERENCES public."BbkBloodUnitPlacement" ("Id") ON DELETE RESTRICT
+);
+-- Satu penempatan berlaku per kantong: unique parsial, pola sama dengan alokasi aktif
+CREATE UNIQUE INDEX "IX_BbkBloodUnitPlacement_CurrentUnit"
+    ON public."BbkBloodUnitPlacement" ("BloodUnitId") WHERE "IsCurrent" = true;
+CREATE INDEX "IX_BbkBloodUnitPlacement_StorageLocationId" ON public."BbkBloodUnitPlacement" ("StorageLocationId");
+CREATE INDEX "IX_BbkBloodUnitPlacement_PlacedAt" ON public."BbkBloodUnitPlacement" ("PlacedAt");
 
 CREATE TABLE public."BbkBloodUnitAllocation" (
     "Id"                uuid        NOT NULL,
@@ -339,6 +421,24 @@ CREATE TABLE public."MstBloodComponent" (
     CONSTRAINT "PK_MstBloodComponent" PRIMARY KEY ("Id")
 );
 CREATE UNIQUE INDEX "IX_MstBloodComponent_ComponentCode" ON public."MstBloodComponent" ("ComponentCode");
+
+-- v2. Master lokasi penyimpanan darah. Bersih dari atribut farmasi — bandingkan MstDrugStorageLocation
+-- yang sengaja TIDAK dipakai (DEC-BD-035).
+CREATE TABLE public."MstBloodStorageLocation" (
+    "Id"                  uuid         NOT NULL,
+    "StorageLocationCode" varchar(30)  NOT NULL,
+    "StorageLocationName" varchar(150) NOT NULL,
+    "IsActive"            boolean      NOT NULL,
+    "SortOrder"           integer      NOT NULL,
+    "Description"         varchar(250),
+    CONSTRAINT "PK_MstBloodStorageLocation" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_MstBloodStorageLocation_StorageLocationCode"
+    ON public."MstBloodStorageLocation" ("StorageLocationCode");
+CREATE INDEX "IX_MstBloodStorageLocation_IsActive" ON public."MstBloodStorageLocation" ("IsActive");
+
+-- v2. Kolom BypassScope pada BbkEmergencyAuthorization (tabel belum pernah dibuat; masuk CREATE):
+--   "BypassScope" integer NOT NULL  -- 0 CompatibilityEvidence, 1 InactiveStorageLocation, 2 Both
 
 -- Tabel Diperbarui: penambahan satu kolom, aman tanpa downtime
 ALTER TABLE public."MstServiceUnit"

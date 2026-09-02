@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — `draft` |
-| `last_changed_in` | `v1` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| `last_changed_in` | `v2` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `00-interview-decisions.md` revisi 4 (INV/AC) · `03-domain-architecture.md` revisi 3 |
@@ -67,6 +67,41 @@ ditemukan · `409` bentrok konkurensi atau status sudah berubah · `422` melangg
 | `VAL-BD-051` | Selesaikan konflik | Tidak menunjuk pemeriksaan ulang tervalidasi | "Perbedaan hasil hanya dapat diselesaikan setelah ada pemeriksaan ulang yang tervalidasi." | `422` |
 | `VAL-BD-054` | Selesaikan konflik | Percobaan menutup dengan pilihan "mayoritas" otomatis | "Sistem tidak menentukan hasil yang benar. Validator wajib menyatakan hasil yang berlaku." | `422` |
 
+## 4b. Penyimpanan kantong dan gerbang lokasi — baru pada `v2`
+
+Diturunkan dari `DEC-BD-035` sampai `DEC-BD-038` dan `INV-BD-025` sampai `INV-BD-030`.
+
+| Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | HTTP |
+| --- | --- | --- | --- | --- |
+| `VAL-BD-060` | Tetapkan / pindahkan lokasi | Lokasi tujuan sedang nonaktif | "Lokasi penyimpanan itu sudah tidak aktif dan tidak dapat dipilih. Pilih lokasi lain yang masih aktif." | `422` |
+| `VAL-BD-061` | Tetapkan lokasi pertama | Kantong sudah pernah ditempatkan | "Kantong ini sudah punya lokasi penyimpanan. Gunakan perpindahan lokasi bila ingin memindahkannya." | `422` |
+| `VAL-BD-062` | Pindahkan lokasi | Kantong belum pernah ditempatkan | "Kantong ini belum punya lokasi penyimpanan. Tetapkan lokasinya lebih dulu." | `422` |
+| `VAL-BD-063` | Alokasi | Kantong belum melewati penyimpanan (`Received`) | "Kantong belum disimpan pada lokasi penyimpanan, sehingga belum dapat dialokasikan. Tetapkan lokasi penyimpanannya lebih dulu." | `422` |
+| `VAL-BD-064` | Alokasi dan pengalihan ke pasien lain | Lokasi penempatan terakhir kantong sedang nonaktif | "Kantong ini berada di lokasi penyimpanan yang sudah tidak aktif. Pindahkan dulu ke lokasi yang aktif sebelum dialokasikan." | `422` |
+| `VAL-BD-065` | Pemberian jalur normal | Lokasi penempatan terakhir kantong sedang nonaktif | "Kantong ini berada di lokasi penyimpanan yang sudah tidak aktif dan belum dapat diberikan. Pindahkan dulu ke lokasi yang aktif." | `422` |
+| `VAL-BD-066` | Pemberian jalur darurat | Keterangan gerbang yang dilewati tidak diisi, atau tidak sesuai keadaan kantong | "Pemberian darurat wajib menyebutkan apa yang dilewati: bukti kecocokan, lokasi penyimpanan yang tidak aktif, atau keduanya." | `422` |
+| `VAL-BD-067` | Master lokasi penyimpanan | Kode atau nama lokasi sudah dipakai lokasi lain | "Kode lokasi penyimpanan itu sudah dipakai. Gunakan kode lain." | `422` |
+| `VAL-BD-068` | Menonaktifkan lokasi penyimpanan | Masih ada kantong yang tercatat di lokasi itu | **Peringatan, bukan penolakan.** "Lokasi dinonaktifkan. Ada N kantong yang masih tercatat di sana dan belum dapat dialokasikan sampai dipindahkan ke lokasi aktif." | `200` |
+
+**Kenapa `VAL-BD-068` meloloskan, bukan menolak.** Menonaktifkan lokasi justru dilakukan ketika ada
+yang salah dengan lokasi itu — rusak, tidak layak, tidak lagi dipercaya. Menolak penonaktifan karena
+masih ada isinya akan memaksa petugas memindahkan darah dari kulkas yang sudah diketahui bermasalah
+**sebelum** boleh menandainya bermasalah. Yang benar adalah sebaliknya: tandai dulu supaya gerbang
+tertutup, baru pindahkan (`DEC-BD-037`). Peringatan berisi jumlah kantong ada supaya pekerjaan yang
+menunggu itu terlihat, bukan supaya penonaktifannya dibatalkan.
+
+**Kenapa `VAL-BD-064` dan `VAL-BD-065` dua kode berbeda padahal kondisinya sama.** Keduanya dipicu
+keadaan yang sama tetapi pada langkah yang berbeda, dan petugas yang membacanya sedang mengerjakan hal
+yang berbeda. Menyatukannya membuat pesan "belum dapat dialokasikan" muncul saat petugas menekan tombol
+berikan — membingungkan, dan menyembunyikan bahwa gerbang pemberian memang dinilai **ulang**
+(`INV-BD-029`), bukan diwarisi dari alokasi.
+
+**Yang sengaja tidak divalidasi:** perpindahan lokasi **tidak** menuntut alasan terkendali. Bukti yang
+disetujui hanya menuntut lokasi asal, lokasi tujuan, pelaku, dan waktu (`INV-BD-026`). Menambah
+kewajiban alasan berarti mengarang aturan yang tidak diminta.
+
+---
+
 ## 5. Tindakan Bank Darah
 
 | Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | HTTP |
@@ -81,5 +116,10 @@ ditemukan · `409` bentrok konkurensi atau status sudah berubah · `422` melangg
 - Setiap kode di sini dirujuk oleh `state-transition-matrix.md` (kolom "Bila dilanggar") dan diuji oleh
   `testing/acceptance-test-matrix.md`.
 - Aturan bergerbang **fail-closed**: bila konfigurasi (mis. masa berlaku `VAL-BD-020b`) atau peran
-  (`DEF-BD-004`) belum ditetapkan, gerbang menolak — bukan meloloskan dengan nilai tebakan.
+  (`DEF-BD-004`) belum ditetapkan, gerbang menolak — bukan meloloskan dengan nilai tebakan. Hal yang
+  sama berlaku bila master lokasi penyimpanan kosong: tanpa satu pun lokasi aktif, tidak ada kantong
+  yang dapat melewati penyimpanan, sehingga tidak ada yang dapat dialokasikan (`VAL-BD-063`).
+- Gerbang pemberian dinilai **ulang** saat pemberian dicoba, tidak pernah mewarisi hasil pemeriksaan
+  saat alokasi (`INV-BD-029`). Karena itu sebuah kantong dapat lolos `VAL-BD-064` pada Senin dan tetap
+  tertahan `VAL-BD-065` pada Selasa — itu perilaku yang benar, bukan ketidakkonsistenan.
 - Pesan **MUST NOT** memuat data medis/pribadi pasien.

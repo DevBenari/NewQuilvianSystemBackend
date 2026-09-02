@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v1` — `draft` |
-| `last_changed_in` | `v1` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| `last_changed_in` | `v2` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -40,6 +40,35 @@ Kedaluwarsa order (`Expired`) tidak punya endpoint — dipicu sistem dari sinyal
 
 ---
 
+### Health Services / Master Data / Blood Storage Location
+
+Base URL: `api/v1/health-services/master-data/blood-storage-locations`
+
+Master lokasi penyimpanan darah milik BDRS (`DEC-BD-035`). **Bukan** cold storage farmasi —
+`MstDrugStorageLocation` punya controller sendiri dan tidak disentuh modul ini.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar lokasi penyimpanan darah | `BloodStorageLocation : Read` | `BloodStorageLocationPagedQuery` | `ApiResponse<PagedResult<BloodStorageLocationListDto>>` | Rencana |
+| `GET` | `/options` | Pilihan lokasi untuk dropdown; **hanya yang `IsActive = true`** | `BloodStorageLocation : Read` | — | `ApiResponse<List<OptionDto>>` | Rencana |
+| `GET` | `/{id}` | Detail satu lokasi | `BloodStorageLocation : Read` | — | `ApiResponse<BloodStorageLocationDto>` | Rencana |
+| `POST` | `/` | Tambah lokasi penyimpanan darah | `BloodStorageLocation : Create` | `CreateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
+| `PUT` | `/{id}` | Ubah kode, nama, urutan, keterangan | `BloodStorageLocation : Update` | `UpdateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
+| `PATCH` | `/{id}/status` | **Aktifkan atau nonaktifkan lokasi** (`DEC-BD-037`) | `BloodStorageLocation : Update` | `SetActiveStatusRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `200 VAL-BD-068` |
+
+`GET /options` sengaja menyaring hanya lokasi aktif, sehingga frontend tidak perlu menyaring sendiri dan
+tidak mungkin menawarkan lokasi nonaktif sebagai tujuan penyimpanan (`INV-BD-027`).
+
+`PATCH /{id}/status` **tidak** memindahkan kantong apa pun dan **tidak** mengembalikan daftar kantong
+terdampak sebagai akibat. Respons `200` disertai peringatan `VAL-BD-068` yang menyebut **berapa banyak**
+kantong kini tertahan, supaya petugas tahu ada pekerjaan yang menunggu — pekerjaan itu dikerjakan lewat
+`PUT /blood-units/{id}/storage-location`, satu per satu, oleh manusia (`DEC-BD-037`).
+
+Lokasi **tidak dapat dihapus**; hanya dinonaktifkan. Penempatan lama menunjuk ke sini lewat `Restrict`,
+dan riwayat kantong wajib tetap terbaca.
+
+---
+
 ### Health Services / Blood Bank Management / Provider Request
 
 Base URL: `api/v1/health-services/blood-bank-management/provider-requests`
@@ -64,18 +93,36 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/` | Daftar kantong; filter `status=PendingReview` = daftar kerja #2; filter `emergencyPendingEvidence=true` = daftar kerja #3 | `BloodUnit : Read` | `BloodUnitPagedQuery` | `ApiResponse<PagedResult<BloodUnitListDto>>` | Rencana |
 | `GET` | `/{id}` | Detail kantong + riwayat alokasi/bukti/koreksi | `BloodUnit : Read` | — | `ApiResponse<BloodUnitDetailDto>` | Rencana |
-| `POST` | `/{id}/allocate` | Alokasikan kantong ke satu baris kebutuhan | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `409 VAL-BD-018c` · `422 VAL-BD-033` |
+| `GET` | `/{id}/placements` | Riwayat penempatan kantong: di kulkas mana, sejak kapan, oleh siapa | `BloodUnit : Read` | — | `ApiResponse<List<BloodUnitPlacementDto>>` | Rencana |
+| `POST` | `/{id}/storage-location` | **Tetapkan lokasi penyimpanan pertama** — membawa kantong `Received`→`Stored`→`Available` (`DEC-BD-036`) | `BloodUnit : Store` | `AssignStorageLocationRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-060/061` |
+| `PUT` | `/{id}/storage-location` | **Pindahkan kantong ke lokasi lain** — status **tidak** berubah (`INV-BD-026`) | `BloodUnit : Store` | `MoveStorageLocationRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-060/062` |
+| `POST` | `/{id}/allocate` | Alokasikan kantong ke satu baris kebutuhan | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `409 VAL-BD-018c` · `422 VAL-BD-033/063/064` |
 | `POST` | `/{id}/cancel-allocation` | Batalkan alokasi keliru sebelum pemberian (`DEC-BD-029`) | `BloodUnit : Allocate` | `CancelWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-023` |
 | `POST` | `/{id}/compatibility-evidence` | Catat bukti kecocokan terhadap pasien tujuan | `BloodUnit : Compatibility` | `RecordEvidenceRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
-| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020` |
-| `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat (`DEC-BD-017`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021` |
+| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/065` |
+| `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat, melewati gerbang bukti dan/atau lokasi nonaktif (`DEC-BD-017`, `DEC-BD-038`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021` · `422 VAL-BD-066` |
 | `POST` | `/{id}/correction` | Catat koreksi pencatatan pemberian (`DEC-BD-030`) | `BloodUnit : Correct` | `IssuanceCorrectionRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-024` · `422 VAL-BD-025/049` |
-| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | `BloodUnit : Resolve` | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-016` |
+| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | `BloodUnit : Resolve` | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-016/064` |
 | `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | `BloodUnit : Resolve` | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
 | `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | `BloodUnit : Resolve` | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` (`VAL-BD-049`).
+
+**Dua endpoint penyimpanan memakai method berbeda dengan sengaja.** `POST /{id}/storage-location`
+adalah penetapan **pertama** dan satu-satunya yang memindahkan status (`Received`→`Stored`→`Available`);
+ia gagal bila kantong sudah pernah ditempatkan. `PUT /{id}/storage-location` adalah **perpindahan** dan
+tidak pernah menyentuh status; ia gagal bila kantong belum pernah ditempatkan. Keduanya sama-sama
+menambah satu baris riwayat yang tidak pernah dihapus (`INV-BD-026`), dan keduanya menolak lokasi
+tujuan yang nonaktif (`INV-BD-027`).
+
+**Tidak ada endpoint untuk memindahkan kantong secara massal saat lokasi dinonaktifkan.** Itu disengaja:
+`DEC-BD-037` menetapkan sistem tidak memindahkan kantong dengan sendirinya. Petugas memindahkan satu per
+satu lewat `PUT /{id}/storage-location`, dan setiap perpindahan menyimpan pelaku serta waktunya sendiri.
+
+**Tidak ada endpoint untuk "menutup gerbang".** Gerbang dinilai saat alokasi dan pemberian dicoba
+(`ARCH-BD-POS-06`, `ARCH-BD-POS-07`); menonaktifkan lokasi lewat endpoint master sudah cukup untuk
+menutupnya pada saat yang sama.
 
 ---
 
