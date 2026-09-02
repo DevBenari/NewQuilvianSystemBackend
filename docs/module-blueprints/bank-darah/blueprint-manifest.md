@@ -11,7 +11,7 @@ current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
 updated_at: 2026-09-03T17:00:00+07:00
 last_verified_at: null
-backend_source_sha: a9bc9fd8f2b9f0d7955953949adb78217939e842
+backend_source_sha: 4205d18a6d656555eedd781f14e8a18fb5ea20d1
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -19,6 +19,8 @@ skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
 decision_revision: 9
 capability_map_revision: 2
+capability_map_status: STALE
+capability_map_stale_reason: terikat 9522caa; source bergerak ke 4205d18 lewat merge QuilvianIntegrationBackend yang membawa perubahan source aplikasi nyata (Laboratory, InPatient, Billing, MasterData, 5 migration). Impact scan terbatas diperlukan pada BD-CAP-014 dan BD-CAP-003
 prerequisite_readiness_revision: 3
 completeness_assessment_revision: 2
 domain_architecture_revision: 6
@@ -102,7 +104,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd`; setiap tinjauan dampak sudah dijalankan dengan `git diff --name-only` dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**, sehingga bukti kemampuan ditandai `STALE`. Rinciannya di `MODULE-STATUS.md`. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
@@ -223,6 +225,22 @@ Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama
 `BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
 
 Pemblokir yang tersisa tinggal **satu**: `BD-DEP-008`. Approval manusia belum diklaim.
+
+⚠️ **Pemeriksaan status 3 September 2026 — bukti kemampuan menjadi `STALE`.** Backend bergerak ke
+`4205d18` lewat merge `QuilvianIntegrationBackend`. Berbeda dengan seluruh pergerakan SHA sebelumnya
+pada modul ini, merge ini membawa perubahan source aplikasi nyata: Laboratory (`LabOrder` beserta DTO,
+service, enum, configuration), InPatient (tiga controller episode/discharge/bed), Billing, MasterData
+(Bed, ClearanceItem), lima migration, dan snapshot model.
+
+`02-existing-capability-map.md` terikat `9522caa` dan karena itu ditandai **`STALE`**. Dua kemampuan
+menuntut tinjauan lebih dulu: `BD-CAP-014` — `LabOrderController` dipakai sebagai pola route, grup
+Swagger, dan bentuk respons yang dicontoh seluruh `api-contract.md`; dan `BD-CAP-003` — pembaca status
+kunjungan menempel pada bentuk episode dan kepulangan. Dampak pada area lain rendah, dan
+**`MstServiceUnit` tidak tersentuh**, sehingga titipan kolom `BE-BD-002` tetap aman.
+
+Penandaan ini **tidak** membatalkan scope yang tidak berkaitan dan **tidak** memaksa perancangan ulang.
+Yang dibutuhkan adalah impact scan terbatas lewat `trace-existing-capabilities`, dijalankan **sebelum**
+implementasi dimulai.
 
 **Delivery roadmap revisi 2 — 3 September 2026.** `plan-module-delivery` menyusun ulang
 `roadmap/00-delivery-plan.md` di atas set kontrak `v4`, register keputusan revisi 9, dan arsitektur
