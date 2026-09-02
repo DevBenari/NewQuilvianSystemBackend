@@ -157,14 +157,21 @@ public sealed class BillingCalculationService
 
             var grossAmount = itemResult.Items.Sum(x => x.GrossAmount);
             var itemDiscount = itemResult.Items.Sum(x => x.ItemDiscount);
-            var taxAmount = itemResult.Taxes.Sum(x => x.TaxAmount);
+
+            // Pajak dikenakan atas subtotal tagihan - item setelah diskon, ditambah biaya admin
+            // dan room charge - bukan dijumlahkan dari pajak per item.
+            var taxRule = await LoadInvoiceTaxRuleAsync(calculatedAt, cancellationToken);
+            var taxResult = ApplyInvoiceTax(
+                itemResult.Items, administrationFee, roomCharge, grossAmount - itemDiscount, taxRule);
+            var taxes = taxResult.Taxes;
+            var taxAmount = taxes.Sum(x => x.TaxAmount);
             var roundingAmount = 0m;
             var eligibleAmount = grossAmount + administrationFee.AppliedAmount + roomCharge.AppliedAmount
                 - itemDiscount + taxAmount + roundingAmount;
             if (eligibleAmount < 0)
                 throw new BillingCalculationValidationException("Nilai akhir invoice tidak boleh negatif.");
 
-            var components = BuildCoverageComponents(activeItems, itemResult, administrationFee, roomCharge);
+            var components = BuildCoverageComponents(activeItems, itemResult, taxResult, administrationFee, roomCharge);
             var coverage = await _coverageAdapter.ResolveAsync(
                 new BillingCoverageContext(invoice.Id, invoice.EncounterId, calculatedAt, eligibleAmount, components),
                 cancellationToken);
@@ -198,7 +205,7 @@ public sealed class BillingCalculationService
                 RoomCharge = roomCharge,
                 Items = itemResult.Items,
                 Discounts = appliedDiscounts,
-                Taxes = itemResult.Taxes,
+                Taxes = taxes,
                 Coverage = coverageResult
             };
 
@@ -576,20 +583,13 @@ public sealed class BillingCalculationService
         MissingTariff = tariff is null
     };
 
-    private async Task<ItemTaxResult> CalculateItemsAndTaxesAsync(
+    private Task<ItemTaxResult> CalculateItemsAndTaxesAsync(
         IReadOnlyList<BilInvoiceItem> activeItems,
         IReadOnlyList<BilDiscountApplication> approvedDiscounts,
         CancellationToken cancellationToken)
     {
-        var firstOccurredAt = activeItems.Min(x => x.SourceOccurredAt);
-        var lastOccurredAt = activeItems.Max(x => x.SourceOccurredAt);
-        var taxRules = await _dbContext.MstTaxRules.AsNoTracking()
-            .Where(x => !x.IsDelete && x.IsActive && x.EffectiveFrom <= lastOccurredAt
-                && (x.EffectiveTo == null || firstOccurredAt < x.EffectiveTo))
-            .ToListAsync(cancellationToken);
-
+        _ = cancellationToken;
         var items = new List<CalculationItemResponse>();
-        var taxes = new List<TaxCalculationResponse>();
         var discounts = new List<DiscountCalculationResponse>();
         foreach (var item in activeItems)
         {
@@ -629,49 +629,136 @@ public sealed class BillingCalculationService
                     throw new BillingCalculationValidationException("Total diskon item melebihi nilai bruto item.");
                 discounts.Add(MapDiscountCalculation(application, basis, appliedAmount));
             }
-            var matchingRules = taxRules.Where(x =>
-                    string.Equals(x.TaxableCategory, item.Category.BillingItemCategoryCode, StringComparison.OrdinalIgnoreCase)
-                    && x.EffectiveFrom <= item.SourceOccurredAt
-                    && (x.EffectiveTo == null || item.SourceOccurredAt < x.EffectiveTo))
-                .ToList();
-            if (matchingRules.Count > 1)
-                throw new BillingCalculationConflictException(
-                    $"Lebih dari satu tax rule aktif untuk kategori {item.Category.BillingItemCategoryCode} pada waktu pelayanan.");
-            var rule = matchingRules.SingleOrDefault();
-            var tax = 0m;
-            if (rule is not null)
-            {
-                tax = TaxRuleService.CalculateTax(gross, itemDiscount, rule.Rate, rule.RoundingMode, 2);
-                taxes.Add(new TaxCalculationResponse
-                {
-                    InvoiceItemId = item.Id,
-                    TaxRuleId = rule.Id,
-                    TaxRuleCode = rule.Code,
-                    BasisAmount = gross - itemDiscount,
-                    Rate = rule.Rate,
-                    RoundingMode = rule.RoundingMode,
-                    AllocationRule = rule.AllocationRule,
-                    UnroundedAmount = (gross - itemDiscount) * rule.Rate / 100m,
-                    TaxAmount = tax
-                });
-            }
-
+            // Pajak TIDAK dihitung di sini. Sejak BKC pajak dikenakan atas subtotal tagihan,
+            // bukan per item, sehingga nominalnya baru diketahui setelah biaya admin dan room
+            // charge ikut terhitung - lihat ApplyInvoiceTax.
             items.Add(new CalculationItemResponse
             {
                 InvoiceItemId = item.Id,
                 CategoryId = item.CategoryId,
-                CategoryCode = item.Category.BillingItemCategoryCode,
+                CategoryCode = item.Category.TariffCategoryCode,
                 SourceDomain = item.SourceDomain,
                 SourceVersion = item.SourceVersion,
                 GrossAmount = gross,
                 ItemDiscount = itemDiscount,
-                TaxAmount = tax,
-                NetAmount = gross - itemDiscount + tax,
+                TaxAmount = 0m,
+                NetAmount = gross - itemDiscount,
                 Coverable = item.Category.IsCoveredByInsuranceDefault
             });
         }
 
-        return new ItemTaxResult(items, taxes, discounts);
+        return Task.FromResult(new ItemTaxResult(items, [], discounts));
+    }
+
+    // Pajak dikenakan atas subtotal tagihan, jadi kategori item tidak lagi dipakai untuk
+    // mencocokkan rule. Yang menentukan sebuah rule berlaku hanyalah: aktif, dan periode
+    // efektifnya mencakup waktu perhitungan. Isi TaxableCategory kini murni label bagi pengguna
+    // dan tidak memengaruhi perhitungan sama sekali.
+    private async Task<MstTaxRule?> LoadInvoiceTaxRuleAsync(
+        DateTimeOffset effectiveAt,
+        CancellationToken cancellationToken)
+    {
+        var applicable = await _dbContext.MstTaxRules.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && x.EffectiveFrom <= effectiveAt
+                && (x.EffectiveTo == null || effectiveAt < x.EffectiveTo))
+            .OrderBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+
+        // Dua rule yang sama-sama berlaku tidak boleh dipilih diam-diam: nominal pajak pasien
+        // akan bergantung pada urutan baris di database. Kode keduanya disebutkan supaya
+        // pengguna tahu persis baris mana yang harus dinonaktifkan.
+        if (applicable.Count > 1)
+            throw new BillingCalculationConflictException(
+                "Lebih dari satu tax rule aktif pada waktu perhitungan: "
+                + string.Join(", ", applicable.Select(x => x.Code))
+                + ". Nonaktifkan salah satunya, atau batasi periode berlakunya.");
+
+        return applicable.SingleOrDefault();
+    }
+
+    // Pajak dihitung sekali atas subtotal, lalu dialokasikan proporsional kembali ke tiap komponen.
+    // Alokasi ini yang membuat pembagian porsi pasien dan penjamin tetap bisa dilakukan: coverage
+    // bekerja per komponen, sehingga satu angka pajak gelondongan tidak bisa dibagi tanpa dasar.
+    private static InvoiceTaxResult ApplyInvoiceTax(
+        IReadOnlyList<CalculationItemResponse> items,
+        AdministrationFeeCalculationResponse administrationFee,
+        RoomChargeCalculationResponse roomCharge,
+        decimal itemNetTotal,
+        MstTaxRule? rule)
+    {
+        var taxes = new List<TaxCalculationResponse>();
+        var empty = new InvoiceTaxResult(taxes, 0m, 0m, null);
+        if (rule is null) return empty;
+
+        var taxableBase = Money(itemNetTotal + administrationFee.AppliedAmount + roomCharge.AppliedAmount);
+        if (taxableBase <= 0) return empty;
+
+        var totalTax = TaxRuleService.CalculateTax(taxableBase, 0m, rule.Rate, rule.RoundingMode, 2);
+        if (totalTax <= 0) return empty;
+
+        // Basis alokasi per komponen. Biaya admin dan room charge ikut karena keduanya bagian dari
+        // subtotal yang dikenai pajak.
+        const string AdministrationFeeKind = "ADMINISTRATION_FEE";
+        const string RoomChargeKind = "ROOM_CHARGE";
+        const string ItemKind = "ITEM";
+
+        var bases = new List<(Guid Key, decimal Base, string Kind)>();
+        foreach (var item in items)
+        {
+            var componentBase = item.GrossAmount - item.ItemDiscount;
+            if (componentBase > 0) bases.Add((item.InvoiceItemId, componentBase, ItemKind));
+        }
+        if (administrationFee.AppliedAmount > 0)
+            bases.Add((administrationFee.PolicyId ?? Guid.Empty, administrationFee.AppliedAmount, AdministrationFeeKind));
+        if (roomCharge.AppliedAmount > 0)
+            bases.Add((roomCharge.PolicyId ?? Guid.Empty, roomCharge.AppliedAmount, RoomChargeKind));
+
+        if (bases.Count == 0) return empty;
+
+        var administrationFeeTax = 0m;
+        var roomChargeTax = 0m;
+        var allocated = 0m;
+        for (var index = 0; index < bases.Count; index++)
+        {
+            var (key, componentBase, kind) = bases[index];
+
+            // Sisa pembulatan dibebankan ke komponen terakhir supaya jumlah alokasi persis sama
+            // dengan pajak yang ditagihkan - tidak boleh ada selisih satu rupiah pun.
+            var share = index == bases.Count - 1
+                ? Money(totalTax - allocated)
+                : Money(totalTax * componentBase / taxableBase);
+            allocated += share;
+
+            if (kind == ItemKind)
+            {
+                var item = items.Single(x => x.InvoiceItemId == key);
+                item.TaxAmount = share;
+                item.NetAmount = item.GrossAmount - item.ItemDiscount + share;
+            }
+            else if (kind == AdministrationFeeKind)
+            {
+                administrationFeeTax = share;
+            }
+            else
+            {
+                roomChargeTax = share;
+            }
+
+            taxes.Add(new TaxCalculationResponse
+            {
+                InvoiceItemId = kind == ItemKind ? key : Guid.Empty,
+                TaxRuleId = rule.Id,
+                TaxRuleCode = rule.Code,
+                BasisAmount = componentBase,
+                Rate = rule.Rate,
+                RoundingMode = rule.RoundingMode,
+                AllocationRule = rule.AllocationRule,
+                UnroundedAmount = componentBase * rule.Rate / 100m,
+                TaxAmount = share
+            });
+        }
+
+        return new InvoiceTaxResult(taxes, administrationFeeTax, roomChargeTax, rule.AllocationRule);
     }
 
     private static PatientPromoResult ApplyPatientPromos(
@@ -713,10 +800,12 @@ public sealed class BillingCalculationService
     private static IReadOnlyList<BillingCoverageComponent> BuildCoverageComponents(
         IReadOnlyList<BilInvoiceItem> activeItems,
         ItemTaxResult itemResult,
+        InvoiceTaxResult taxResult,
         AdministrationFeeCalculationResponse administrationFee,
         RoomChargeCalculationResponse roomCharge)
     {
-        var taxByItem = itemResult.Taxes.ToDictionary(x => x.InvoiceItemId);
+        var taxByItem = taxResult.Taxes.Where(x => x.InvoiceItemId != Guid.Empty)
+            .ToDictionary(x => x.InvoiceItemId);
         var resultByItem = itemResult.Items.ToDictionary(x => x.InvoiceItemId);
         var components = new List<BillingCoverageComponent>();
 
@@ -730,15 +819,9 @@ public sealed class BillingCalculationService
                 itemCalculation.GrossAmount - itemCalculation.ItemDiscount,
                 itemCalculation.Coverable));
 
-            if (itemCalculation.TaxAmount > 0)
+            if (itemCalculation.TaxAmount > 0 && taxByItem.TryGetValue(item.Id, out var tax))
             {
-                var tax = taxByItem[item.Id];
-                var taxCoverable = tax.AllocationRule switch
-                {
-                    TaxRuleValues.Patient => false,
-                    TaxRuleValues.Guarantor => true,
-                    _ => itemCalculation.Coverable
-                };
+                var taxCoverable = TaxComponentCoverable(tax.AllocationRule, itemCalculation.Coverable);
                 components.Add(new BillingCoverageComponent(
                     tax.TaxRuleId, "TAX", itemType, sourceReference, item.Quantity,
                     itemCalculation.TaxAmount, taxCoverable));
@@ -755,6 +838,21 @@ public sealed class BillingCalculationService
                 1,
                 administrationFee.AppliedAmount,
                 administrationFee.Coverable));
+
+            // Porsi pajak atas biaya admin wajib ikut jadi komponen. Kalau tidak, batas
+            // "coverableAmount" pada waterfall lebih kecil dari kenyataan dan tanggungan penjamin
+            // yang sah bisa ditolak.
+            if (taxResult.AdministrationFeeTax > 0)
+            {
+                components.Add(new BillingCoverageComponent(
+                    administrationFee.PolicyId ?? Guid.Empty,
+                    "TAX",
+                    "ServiceCategory",
+                    null,
+                    1,
+                    taxResult.AdministrationFeeTax,
+                    TaxComponentCoverable(taxResult.AllocationRule, administrationFee.Coverable)));
+            }
         }
 
         if (roomCharge.AppliedAmount > 0)
@@ -769,6 +867,18 @@ public sealed class BillingCalculationService
                 1,
                 roomCharge.AppliedAmount,
                 true));
+
+            if (taxResult.RoomChargeTax > 0)
+            {
+                components.Add(new BillingCoverageComponent(
+                    roomCharge.PolicyId ?? Guid.Empty,
+                    "TAX",
+                    "ServiceCategory",
+                    null,
+                    1,
+                    taxResult.RoomChargeTax,
+                    TaxComponentCoverable(taxResult.AllocationRule, true)));
+            }
         }
 
         return components;
@@ -824,7 +934,7 @@ public sealed class BillingCalculationService
 
     private static string CoverageItemType(BilInvoiceItem item)
     {
-        if (item.Category.IsDrug || item.Category.IsPharmacy
+        if (item.Category.IsPharmacy
             || item.SourceDomain.Contains("PHARM", StringComparison.OrdinalIgnoreCase))
             return "Drug";
         if (item.Category.IsProcedure || item.SourceDomain.Contains("PROCEDURE", StringComparison.OrdinalIgnoreCase))
@@ -857,6 +967,22 @@ public sealed class BillingCalculationService
     private async Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
         await _dbContext.Database.ExecuteSqlRawAsync(
             "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+
+    // PATIENT: pajak selalu ditanggung pasien. GUARANTOR: selalu penjamin. PROPORTIONAL dan
+    // lainnya: mengikuti komponen yang dipajaki.
+    private static bool TaxComponentCoverable(string? allocationRule, bool underlyingCoverable) =>
+        allocationRule switch
+        {
+            TaxRuleValues.Patient => false,
+            TaxRuleValues.Guarantor => true,
+            _ => underlyingCoverable
+        };
+
+    private sealed record InvoiceTaxResult(
+        List<TaxCalculationResponse> Taxes,
+        decimal AdministrationFeeTax,
+        decimal RoomChargeTax,
+        string? AllocationRule);
 
     private sealed record ItemTaxResult(
         IReadOnlyList<CalculationItemResponse> Items,

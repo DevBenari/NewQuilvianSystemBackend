@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -24,7 +24,9 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at);
-        db.MstTaxRules.Add(TaxRule("PROC", at));
+        // "*" menandai tax rule tingkat invoice: pajak dikenakan atas subtotal tagihan, bukan
+        // dicocokkan per kategori item.
+        db.MstTaxRules.Add(TaxRule("*", at));
         await db.SaveChangesAsync();
         var service = CreateService(db, SelfPayCoverageAdapter.Instance);
 
@@ -427,11 +429,11 @@ public sealed class BillingCalculationServiceTests
             EncounterDate = at.UtcDateTime,
             IsActive = true
         };
-        var category = new MstBillingItemCategory
+        var category = new MstTariffCategory
         {
             Id = Guid.NewGuid(),
-            BillingItemCategoryCode = "PROC",
-            BillingItemCategoryName = "Procedure test",
+            TariffCategoryCode = "PROC",
+            TariffCategoryName = "Procedure test",
             IsProcedure = isProcedure,
             IsCoveredByInsuranceDefault = true,
             IsActive = true
@@ -464,7 +466,7 @@ public sealed class BillingCalculationServiceTests
         });
 
         db.TrxPatientEncounters.Add(encounter);
-        db.MstBillingItemCategories.Add(category);
+        db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         await db.SaveChangesAsync();
         return invoice;

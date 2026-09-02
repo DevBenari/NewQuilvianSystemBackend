@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -382,11 +383,11 @@ public sealed class BillingInvoiceServiceTests
         var encounterId = Guid.NewGuid();
         var categoryId = Guid.NewGuid();
         db.TrxPatientEncounters.Add(Encounter(encounterId, "ENC-1"));
-        db.MstBillingItemCategories.Add(new MstBillingItemCategory
+        db.MstTariffCategories.Add(new MstTariffCategory
         {
             Id = categoryId,
-            BillingItemCategoryCode = "PROC",
-            BillingItemCategoryName = "Procedure",
+            TariffCategoryCode = "PROC",
+            TariffCategoryName = "Procedure",
             IsActive = true
         });
         await db.SaveChangesAsync();

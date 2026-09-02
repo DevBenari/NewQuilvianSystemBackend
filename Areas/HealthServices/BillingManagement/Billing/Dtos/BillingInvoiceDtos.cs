@@ -25,9 +25,10 @@ public static class BillingOtherChargeTypes
     public const string CompanionMeal = "MAKANAN_PENDAMPING";
     public const string ExtraBed = "EKSTRA_BED";
 
-    // Kategori billing tujuan dicari berdasarkan kode ini lebih dulu, lalu namanya.
-    public const string CategoryCode = "BIAYA_LAIN_LAIN";
-    public const string CategoryName = "Biaya Lain-Lain";
+    // Kategori tarif tujuan seluruh entri biaya lain-lain kasir. Dicari berdasarkan kode lebih
+    // dulu, lalu namanya, pada MstTariffCategory.
+    public const string CategoryCode = "OTHER";
+    public const string CategoryName = "Other";
 
     public static readonly IReadOnlyDictionary<string, string> Labels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -164,6 +165,12 @@ public sealed class InvoiceItemResponse
     public string SourceStatus { get; set; } = string.Empty;
     public DateTimeOffset SourceOccurredAt { get; set; }
     public Guid CategoryId { get; set; }
+
+    // Kode dan nama kategori tarif dibawa bersama item supaya tagihan bisa dikelompokkan per
+    // kategori di layar tanpa permintaan tambahan ke master data.
+    public string CategoryCode { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+
     public string DescriptionSnapshot { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
@@ -202,6 +209,13 @@ public sealed class ActiveEncounterOptionResponse
     public string EncounterStatus { get; set; } = string.Empty;
     public DateTime EncounterDate { get; set; }
     public bool HasInvoice { get; set; }
+
+    // Konteks yang menentukan bagaimana tagihan diperlakukan, jadi harus terlihat sebelum invoice
+    // dibuat: asal kunjungan dalam istilah billing (RAJAL/IGD/RANAP/...) dan siapa yang membayar.
+    public string ServiceType { get; set; } = string.Empty;
+    public string PaymentType { get; set; } = string.Empty;
+    public string PaymentTypeLabel { get; set; } = string.Empty;
+    public string? GuarantorName { get; set; }
 }
 
 // Rekap tagihan satu kunjungan, dikelompokkan per kategori biaya.

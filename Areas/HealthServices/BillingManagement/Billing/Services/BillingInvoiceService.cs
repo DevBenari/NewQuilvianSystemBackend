@@ -10,7 +10,7 @@ using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
@@ -105,7 +105,7 @@ public sealed class BillingInvoiceService
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
-            .Include(x => x.Items)
+            .Include(x => x.Items).ThenInclude(x => x.Category)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
@@ -168,9 +168,9 @@ public sealed class BillingInvoiceService
             .Select(x => x.CategoryId!.Value).Distinct().ToList();
         var categoryNames = categoryIds.Count == 0
             ? new Dictionary<Guid, string>()
-            : await _dbContext.Set<MstBillingItemCategory>().AsNoTracking()
+            : await _dbContext.Set<MstTariffCategory>().AsNoTracking()
                 .Where(x => categoryIds.Contains(x.Id))
-                .ToDictionaryAsync(x => x.Id, x => x.BillingItemCategoryName, cancellationToken);
+                .ToDictionaryAsync(x => x.Id, x => x.TariffCategoryName, cancellationToken);
 
         foreach (var row in grouped)
         {
@@ -260,15 +260,15 @@ public sealed class BillingInvoiceService
             throw new BillingInvoiceValidationException(
                 "Jenis biaya lain-lain tidak dikenal.");
 
-        var category = await _dbContext.Set<MstBillingItemCategory>().AsNoTracking()
+        var category = await _dbContext.Set<MstTariffCategory>().AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive)
             .FirstOrDefaultAsync(
-                x => x.BillingItemCategoryCode == BillingOtherChargeTypes.CategoryCode
-                    || x.BillingItemCategoryName == BillingOtherChargeTypes.CategoryName,
+                x => x.TariffCategoryCode == BillingOtherChargeTypes.CategoryCode
+                    || x.TariffCategoryName == BillingOtherChargeTypes.CategoryName,
                 cancellationToken)
             ?? throw new BillingInvoiceValidationException(
-                $"Kategori billing \"{BillingOtherChargeTypes.CategoryName}\" belum ada di master data. " +
-                $"Buat kategori dengan kode {BillingOtherChargeTypes.CategoryCode} lebih dulu.");
+                $"Kategori tarif \"{BillingOtherChargeTypes.CategoryName}\" belum ada di master data. " +
+                $"Buat kategori tarif dengan kode {BillingOtherChargeTypes.CategoryCode} lebih dulu.");
 
         // Jenis biaya ikut ditulis di deskripsi: kategori billing-nya sama untuk semua entri, jadi
         // tanpa ini jenisnya hilang dari tagihan dan audit.
@@ -358,6 +358,7 @@ public sealed class BillingInvoiceService
                 x.encounter.EncounterType,
                 x.encounter.EncounterStatus,
                 x.encounter.EncounterDate,
+                x.encounter.PaymentType,
                 PatientName = x.patient.FullName,
                 x.patient.MedicalRecordNumber
             })
@@ -372,6 +373,20 @@ public sealed class BillingInvoiceService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
+        // Nama penjamin diambil dari snapshot pada encounter, bukan master penjamin: yang relevan
+        // bagi kasir adalah penjamin yang tercatat saat kunjungan itu didaftarkan.
+        var guarantorNames = encounterIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
+                .GroupBy(x => x.EncounterId)
+                .Select(group => new
+                {
+                    EncounterId = group.Key,
+                    Name = group.Select(x => x.PaymentSourceNameSnapshot).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.EncounterId, x => x.Name, cancellationToken);
+
         return rows.Select(x => new ActiveEncounterOptionResponse
         {
             Id = x.Id,
@@ -381,7 +396,13 @@ public sealed class BillingInvoiceService
             EncounterType = x.EncounterType.ToString(),
             EncounterStatus = x.EncounterStatus.ToString(),
             EncounterDate = x.EncounterDate,
-            HasInvoice = invoicedEncounterIds.Contains(x.Id)
+            HasInvoice = invoicedEncounterIds.Contains(x.Id),
+            ServiceType = MapServiceType(x.EncounterType),
+            PaymentType = x.PaymentType.ToString(),
+            PaymentTypeLabel = MapPaymentTypeLabel(x.PaymentType),
+            GuarantorName = guarantorNames.TryGetValue(x.Id, out var guarantorName)
+                ? guarantorName
+                : null
         }).ToList();
     }
 
@@ -475,11 +496,12 @@ public sealed class BillingInvoiceService
             var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
-            var categoryExists = await _dbContext.MstBillingItemCategories.AsNoTracking()
+            var categoryExists = await _dbContext.MstTariffCategories.AsNoTracking()
                 .AnyAsync(x => x.Id == request.CategoryId && !x.IsDelete && !x.IsCancel && x.IsActive, cancellationToken);
-            if (!categoryExists) throw new BillingInvoiceValidationException("Kategori billing tidak ditemukan atau tidak aktif.");
+            if (!categoryExists) throw new BillingInvoiceValidationException("Kategori tarif tidak ditemukan atau tidak aktif.");
 
-            var invoice = await _dbContext.BilInvoices.Include(x => x.Items)
+            // Category ikut dimuat karena MapDetail memakai namanya untuk pengelompokan tagihan.
+            var invoice = await _dbContext.BilInvoices.Include(x => x.Items).ThenInclude(x => x.Category)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
             var createdInvoice = invoice is null;
@@ -715,7 +737,7 @@ public sealed class BillingInvoiceService
             .Where(x => x.Id == itemId).Select(x => x.InvoiceId).SingleOrDefaultAsync(cancellationToken);
         if (invoiceId == Guid.Empty) throw new BillingInvoiceConflictException("Receipt idempotency tidak memiliki item Billing yang valid.");
         return await _dbContext.BilInvoices.AsNoTracking()
-            .Include(x => x.Items)
+            .Include(x => x.Items).ThenInclude(x => x.Category)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
@@ -868,6 +890,14 @@ public sealed class BillingInvoiceService
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
+    private static string MapPaymentTypeLabel(EncounterPaymentType paymentType) => paymentType switch
+    {
+        EncounterPaymentType.Cash => "Tunai",
+        EncounterPaymentType.Insurance => "Asuransi",
+        EncounterPaymentType.CompanyGuarantor => "Penjamin Perusahaan",
+        _ => paymentType.ToString()
+    };
+
     private static string MapServiceType(EncounterType encounterType) => encounterType switch
     {
         EncounterType.Outpatient => "RAJAL",
@@ -891,6 +921,8 @@ public sealed class BillingInvoiceService
                 SourceStatus = x.SourceStatus,
                 SourceOccurredAt = x.SourceOccurredAt,
                 CategoryId = x.CategoryId,
+                CategoryCode = x.Category != null ? x.Category.TariffCategoryCode : string.Empty,
+                CategoryName = x.Category != null ? x.Category.TariffCategoryName : string.Empty,
                 DescriptionSnapshot = x.DescriptionSnapshot,
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,

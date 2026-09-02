@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -28,7 +28,7 @@ public sealed class BilInvoiceItem : IdentityModel
     public Guid LastCausationId { get; set; }
     [Required, MaxLength(64)] public string SourcePayloadHash { get; set; } = string.Empty;
     public BilInvoice Invoice { get; set; } = null!;
-    public MstBillingItemCategory Category { get; set; } = null!;
+    public MstTariffCategory Category { get; set; } = null!;
 }
 
 public static class BillingInvoiceItemStatuses
