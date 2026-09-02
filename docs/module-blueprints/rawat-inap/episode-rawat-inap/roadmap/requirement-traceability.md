@@ -4,32 +4,43 @@
 
 ```yaml
 module_id: rawat-inap
-roadmap_revision: 5
+roadmap_revision: 6
+revision_6_scope: INPUT_RESYNC_ONLY
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
+blueprint_shape: COMPOSITE
+submodule: episode-rawat-inap
+blueprint_root: docs/module-blueprints/rawat-inap/episode-rawat-inap/
 approved_by: []
 approved_at: null
 approval_history:
   - "Revision 3 APPROVED oleh Muhammad Hamzah pada 2026-08-27 lewat RWI-DEC-075 s.d. RWI-DEC-079"
 input_revisions:
-  blueprint-manifest.md: 4
+  blueprint-manifest.md (tingkat modul): 5
+  blueprint-manifest.md (sub-modul): 5
   00-interview-decisions.md: 7
   01-existing-capability-map.md: 1.2
-  03-frontend-architecture.md: 0.4
+  02-module-map.md: 1
+  02-backend-architecture.md: 0.5
+  03-frontend-architecture.md: 0.5
   05-skema-tampilan.md: "0.4 (draft)"
-  04-prd-to-mvp.md: 0.4.0
+  04-prd-to-mvp.md: 0.4.1
   testing/acceptance-test-matrix.md: 0.4.0
 input_hashes:
-  blueprint-manifest.md: "aa32d66c60b3ceffcf9d1a51fd35cdd0aa04ce3d7a98b1f13d6b9aa72af19581"
-  00-interview-decisions.md: "895eed948a2138b7988d9444bf6cc598b9609fe453fb3769b5a7d27c0145db07"
-  03-frontend-architecture.md: "5856882920a21ce0ebe8c5543faab03cf22e017ffa969642f3a85393a9675006"
-  05-skema-tampilan.md: "de9aed86aa0251f7569d9ef51b822ea79c018b8e5393a9a1bbae39e267ca47ff"
-  04-prd-to-mvp.md: "58b1f281d15d2c5e00ca296762cc1d2968a287363481df68da1ae3e8d0a8f51a"
-  contracts/api-contract.md: "30d14bf1b963cd969d8e31b5bd86f1087bd13077323ee1f6e6d1b3253df455dd"
+  blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
+  blueprint-manifest.md (sub-modul): "6d3fedda94325aa43c70612159a3f4067e0be78605f4b0b17ef948614d5d5d83"
+  00-interview-decisions.md: "e9f2c957dfc68d609c426d7c91018f01223b4d163c85498be525804387724d9c"
+  01-existing-capability-map.md: "567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6"
+  02-module-map.md: "62be6c334caa1651fc89db3b43d197235da3fa6be1d309da45e5b57f9536e54d"
+  02-backend-architecture.md: "b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f"
+  03-frontend-architecture.md: "7be9f2b30409c23841161daaccc29c167ebeb0238a4b82ac1522826e9ca3df42"
+  05-skema-tampilan.md: "f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e"
+  04-prd-to-mvp.md: "f8c71b8479a0423ca68795427198a674e2dd9ad01939fa692a4c38a4d3457533"
+  contracts/api-contract.md: "0357e52c2e35a0812d439758c74887c17b93c1bc24e1443b9a0ad6787061d14a"
   contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
-  roadmap/backend-roadmap.md: "6ad0d1ff0a6196909428d1ecbfdbe16b9006ae3214be9eb9470cda8485d951da"
-  roadmap/frontend-roadmap.md: "ec4867be5b9ec6581974458accad828f5f5d2870de75616d7210bde5316f8429"
+  roadmap/backend-roadmap.md: "9ced4f769e4d34edea92abd8c2b95bbe44d0ebf22791bc04a03f53c54cbd57a6"
+  roadmap/frontend-roadmap.md: "9a09998742ff0014c0de419d4597b9341ed8769b0c9ac8899f367e3f259224ae"
 contract_versions:
   - "API 0.4.0"
   - "Encounter company guarantor addendum 1.0.0"
@@ -93,6 +104,87 @@ decision / IA / flow → skema `FE-INP` → task revision 5 → endpoint → buk
 
 Baris yang berbunyi "menyusul" **tidak diperbolehkan** di dokumen ini. Bila sesuatu belum dapat
 ditelusuri, tulis alasannya dan Decision ID yang menahannya.
+
+---
+
+## 0-A. Resync masukan — revision `6`, 2026-09-02
+
+**Revision `6` tidak mengubah satu baris trace pun yang sudah ada.** Ia menyambungkan dokumen ini
+ke masukan blueprint revision `5`, dan menambahkan **satu sumbu trace baru** yang sebelumnya tidak
+ada: kemampuan `CAP-###` dari baseline `PRD-RWI-FINAL-001`.
+
+| Yang berubah | Rinciannya |
+| --- | --- |
+| `input_revisions` dan `input_hashes` | Menunjuk blueprint revision `5`, dua manifest, `02-module-map.md` revision `1`, arsitektur `0.5`, PRD `0.4.1` |
+| Sumbu trace baru | Bagian 0-B: kemampuan `CAP-###` → epic → task. Sebelumnya dokumen ini bermula dari epic, dan epic bukan lagi hulu tertinggi sejak `RWI-DEC-080` |
+| Alasan basi `DEC-INP-001` | 16 baris diperbaiki. Kemampuan klinis keluar dari sub-modul ini karena **batas sub-modul** (`RWI-DEC-083`), bukan karena keputusan yang menggantung |
+| Gerbang | **Tidak berubah.** `UI_SCHEMA_APPROVAL_REQUIRED` tetap terbuka; dokumen tetap `DRAFT` |
+
+---
+
+## 0-B. Kemampuan → epic → task
+
+Sumbu ini lahir pada revision `6`. Sebabnya: `RWI-DEC-080` menjadikan `PRD-RWI-FINAL-001` sebagai
+baseline requirement, sehingga hulu tertinggi modul bukan lagi epic melainkan **kemampuan
+`CAP-001` s.d. `CAP-028`**. `RWI-DEC-083` memberikan **16** di antaranya kepada sub-modul ini.
+
+Tanpa sumbu ini, sebuah kemampuan dapat kehilangan task tanpa ada berkas yang memergokinya — epic
+hanya memeriksa dirinya sendiri, dan pemetaan kemampuan hidup di
+[`../../02-module-map.md`](../../02-module-map.md), bukan di sini.
+
+### 0-B.1 Kemampuan yang dikerjakan MVP
+
+| Kemampuan | ID | Epic | Task backend | Task frontend |
+| --- | --- | --- | --- | --- |
+| Memilih atau mendaftarkan pasien | `CAP-002` | `RI-21` | `BE-RWI-007` | `FE-RWI-022`, `FE-RWI-023` |
+| Menentukan penjamin atau cara bayar | `CAP-003` | `RI-21` | `BE-RWI-007`, `BE-RWI-035` | `FE-RWI-024`, `FE-RWI-025` |
+| Menentukan DPJP | `CAP-004` | `RI-21`, `RI-25` | `BE-RWI-017` | `FE-RWI-011`, `FE-RWI-025` |
+| Mencari tempat tidur tersedia | `CAP-005` | `RI-22`, `RI-34` | `BE-RWI-010`, `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-005`, `FE-RWI-026`, `FE-RWI-036` |
+| Mengunci, menempatkan, mengaktifkan episode | `CAP-006` | `RI-22`, `RI-23` | `BE-RWI-010`, `BE-RWI-011`, `BE-RWI-012`, `BE-RWI-036` | `FE-RWI-007`, `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-031` |
+| Census pasien dirawat | `CAP-008` | `RI-24` | `BE-RWI-016` | `FE-RWI-008`, `FE-RWI-037` |
+| Penugasan perawat penanggung jawab | `CAP-011` | `RI-25` | `BE-RWI-018` | `FE-RWI-011` |
+| Pindah kamar, tempat tidur, kelas | `CAP-017` | `RI-26` | `BE-RWI-019` | `FE-RWI-010` |
+| Resume medis atau resume pulang | `CAP-026` | `RI-27` | `BE-RWI-020`, `BE-RWI-021`, `BE-RWI-022` | `FE-RWI-012` |
+| Penutupan episode dan pelepasan tempat tidur | `CAP-028` | `RI-28` | `BE-RWI-023` s.d. `BE-RWI-027` | `FE-RWI-013`, `FE-RWI-014`, `FE-RWI-015` |
+
+Sepuluh kemampuan, **nol tanpa task**.
+
+### 0-B.2 Kemampuan yang ditunda, beserta apa yang sudah terlanjur ada
+
+Enam kemampuan ditandai `DEFERRED` pada `02-module-map.md` bagian 4.1. `DEFERRED` **bukan** gap:
+keenamnya punya sub-modul pemilik dan alasan bersebab. Yang perlu dibaca justru kolom terakhir.
+
+| Kemampuan | ID | Kenapa ditunda | Yang **sudah** ada hari ini |
+| --- | --- | --- | --- |
+| Rujukan dan daftar tunggu masuk | `CAP-001` | Ditunda setelah MVP | Tidak ada, dan memang tidak diklaim ada |
+| Cetak kartu, gelang, label | `CAP-007` | Ditunda setelah MVP | **Sebagian sudah ada.** `FE-RWI-028` mencetak persetujuan rawat inap tanpa menyimpannya (`RWI-DEC-077`), dan `FE-RWI-029` mencetak kartu pasien pada jalur pasien baru. Gelang dan label tetap belum ada — lihat 0-B.4 |
+| Dokumen persetujuan, serah terima, edukasi | `CAP-009` | `DEC-INP-003`, pemilik privasi belum ditunjuk | Cetak tanpa simpan lewat `FE-RWI-028`. **Penyimpanan** tetap tidak ada, dan layar dilarang menyatakan persetujuan tersimpan |
+| Deposit, estimasi biaya, cek manfaat | `CAP-010` | `BillingManagement` belum punya kemampuan transaksi | Tidak ada. Penggantinya: kelayakan keuangan ditandai manual kasir, `BE-RWI-024` |
+| Permintaan dan serah terima kamar operasi | `CAP-018` | `OperatingRoomManagement` berstatus `PLANNED` | Tidak ada |
+| Tagihan berjalan | `CAP-019` | `BillingManagement` belum punya kemampuan transaksi | Tidak ada. Riwayat kelas dan lama dirawat tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
+
+### 0-B.3 Pemeriksaan kemampuan yatim
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Kemampuan yang menjadi jatah sub-modul ini | **16** — `RWI-DEC-083` |
+| Baris pada 0-B.1 + 0-B.2 | 10 + 6 = **16** |
+| Kemampuan tanpa epic **dan** tanpa alasan penundaan | **Nol** |
+| Kemampuan milik sub-modul lain yang tersentuh roadmap ini | **Nol** |
+
+### 0-B.4 Coverage gap yang baru terlihat karena sumbu ini
+
+Dua hal berikut **tidak terlihat** selama traceability bermula dari epic, dan baru muncul ketika
+kemampuan dijadikan hulu.
+
+| No | Gap | Kenapa baru terlihat | Dampak | Pemilik |
+| ---: | --- | --- | --- | --- |
+| 1 | **`CAP-007` dinyatakan `DEFERRED` padahal sebagiannya sudah dikirim.** `../../00-interview-decisions.md` baris 193 menaruh "Cetak kartu, gelang, dan label pasien" pada daftar **Di luar scope** dengan keterangan "ditunda setelah MVP", dan `../../02-module-map.md` bagian 4.1 menyalinnya sebagai `DEFERRED`. Padahal `FE-RWI-029` sudah selesai dan **mencetak kartu pasien** pada jalur pasien baru. (`04-prd-to-mvp.md` bagian 8 **tidak** memuat baris ini sama sekali — itu sendiri bagian dari masalahnya) | Epic `RI-21` memiliki kedua task itu tanpa menyebut `CAP-007`, sehingga daftar kemampuan yang ditunda tidak pernah dibandingkan dengan task yang selesai | **Dokumentasi, bukan kode.** Pembaca daftar kemampuan akan mengira cetak kartu belum ada sama sekali. Tidak ada task yang perlu diulang. Yang tersisa benar-benar belum ada hanyalah **gelang dan label** | Product/Domain — pecah `CAP-007` menjadi bagian yang sudah dikirim dan yang masih ditunda, lewat `/qv-grill` |
+| 2 | **Tidak ada satu pun acceptance test yang menguji batas sub-modul.** Tidak ada test yang membuktikan modul ini **tidak** membuat tabel dokumentasi klinis | `RWI-DEC-081` baru lahir 2026-09-02; matriks acceptance `0.4.0` disusun sebelum bentuk `COMPOSITE` ada | Larangan `RWI-DEC-081` hari ini dijaga dokumen saja, tidak dijaga mesin apa pun. `BE-RWI-003` kriteria 5 sudah menjaga janji "nol perubahan kolom pada tabel modul lain", tetapi tidak menjaga "nol tabel klinis baru" | Backend/API bersama Product/Domain; layak menjadi satu acceptance criteria pada revisi kontrak berikutnya |
+
+Kedua gap **tidak menahan** task mana pun yang sedang berjalan. Keduanya dicatat, bukan
+diselesaikan diam-diam di sini: yang pertama adalah wewenang pemilik produk, yang kedua wewenang
+kontrak.
 
 ---
 
@@ -618,14 +710,14 @@ aktif di layar.
 
 | Yang tidak ada task-nya | Alasan | Decision ID |
 | --- | --- | --- |
-| Pengkajian, catatan dokter, CPPT, tindakan, visite | Slice di luar scope MVP | `DEC-INP-001` |
-| Resep rawat inap dan obat pulang | Terikat konsultasi; di luar scope | `DEC-INP-001` |
+| Pengkajian, catatan dokter, CPPT, tindakan, visite | **Bukan milik sub-modul ini** — `keperawatan/` dan `dokter-rawat-inap/`, belum dirancang | `RWI-DEC-081`, `RWI-DEC-083` |
+| Resep rawat inap dan obat pulang | **Bukan milik sub-modul ini** — `dokter-rawat-inap/`, belum dirancang | `RWI-DEC-046`, `RWI-DEC-083` |
 | Serah terima IGD ke rawat inap | Di luar scope | `DEC-INP-002` |
 | **Penyimpanan** persetujuan umum rawat inap | Di luar scope, menunggu pemilik hukum. Cetak tanpa menyimpan dikerjakan `FE-RWI-028` | `DEC-INP-003`, `RWI-DEC-077` |
 | Pengiriman SATUSEHAT | Di luar scope | `DEC-INP-005` |
 | Serah terima klinis antar shift | Di luar scope; isinya menunggu pemilik klinis | `DEC-INP-006`, `RWI-OQ-038` |
 | Aturan klinis pasien meninggal dan kabur | Cara pulangnya dikenali sistem, aturan klinisnya menunggu pemilik klinis | `DEC-INP-007`, `RWI-OQ-039`, `RWI-DEC-059` |
-| Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada slice di luar scope | `DEC-INP-001` |
+| Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada dokumentasi klinis milik dua sub-modul lain | `RWI-DEC-083` |
 | Masa simpan riwayat status | Sudah dijawab, menunggu pemilik hukum | `RWI-OQ-035`, `RWI-DEC-060` |
 | Tabel riwayat kebutuhan isolasi | Isolasi adalah **atribut**, bukan riwayat | `RWI-DEC-065` |
 | Kolom "boleh campur" pada `MstRoom` | Ditolak tegas; diperiksa dari penghuni yang sedang ada | `RWI-DEC-066` |
@@ -638,6 +730,7 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 
 | Yang diperiksa | Jumlah | Tertelusur | Lubang |
 | --- | ---: | ---: | ---: |
+| **Kemampuan `CAP-###` milik sub-modul ini** | **16** | **16** | **0** — sumbu baru revision `6`, bagian 0-B |
 | Epic | 14 | 14 | **0** |
 | Functional requirement | 62 | 62 | **0** |
 | Skenario UAT | 33 | 33 | **0** |
@@ -654,6 +747,11 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 | 149 acceptance criteria → berkas test yang benar-benar ada | Bukti historis backend 26 Agustus tetap berlaku pada snapshotnya. `BE-RWI-035` sudah punya bukti tersendiri sejak 31 Agustus 2026: 25 test pada `QuilvianSystemBackend.Tests/HealthServices/RegistrationManagement/`, dan `dotnet test` 786/786 lulus. Acceptance frontend revision `5` belum dikerjakan dan enam gap yang masih terbuka tidak boleh ditutup dengan mock atau data tiruan tersembunyi | `BE-RWI-033`, `FE-RWI-035`, `RWI-UI-GAP-001` s.d. `005` dan `007` |
 | 49 endpoint baru → status tersedia pada api contract | **Sudah ditutup 26 Agustus 2026.** Dokumen Swagger memuat 49 operasi HTTP `inpatient`, cocok dengan 49 baris kontrak. Sembilan operasi yang tadinya tidak punya layar kini memiliki pemilik pada bagian 1B. `BE-RWI-034` merencanakan satu endpoint baca tambahan; kontraknya baru boleh dihitung bertambah setelah task itu disetujui dan selesai | `BE-RWI-033`, `BE-RWI-034` |
 | Cakupan e2e frontend | Delapan belas task revision `2` mempunyai bukti masing-masing, tetapi revision `3/5` menambah empat layar, alur admisi baru, dan enam task repair. Cakupan lama tidak cukup untuk 19 layar dan alur dua jalur | `FE-RWI-035` |
+
+**Dua coverage gap baru pada revision `6`,** keduanya terlihat hanya setelah kemampuan dijadikan
+hulu: `CAP-007` yang ditandai ditunda padahal `FE-RWI-029` sudah mencetak kartu pasien, dan
+ketiadaan acceptance test yang menjaga larangan `RWI-DEC-081`. Rinciannya pada bagian 0-B.4.
+Keduanya tidak menahan task mana pun.
 
 Seluruh gap lama mempunyai trace. Dari tujuh gap hasil impact scan, `RWI-UI-GAP-006` sudah
 tertutup pada level route/permission dan `RWI-UI-GAP-002` sudah tertutup penuh lewat
@@ -751,9 +849,9 @@ sudah ada, hanya belum pernah ditunjuk. Sisanya milik slice yang memang di luar 
 | `RWI-AC-029` | Dokter yang bukan DPJP episode tersebut ditolak ketika mencoba memindahkan pasien itu | `RWI-RULE-016` | Terbukti | `InpBedTransferTests` — `GUARD-INP-01`, tanpa kolom keterangan yang dapat melewatinya |
 | `RWI-AC-030` | Tidak tersedia kolom keterangan apa pun yang memungkinkan dokter bukan DPJP melewati penolakan perpindahan | `RWI-RULE-016` | Terbukti | `InpBedTransferTests` — `GUARD-INP-01`, tanpa kolom keterangan yang dapat melewatinya |
 | `RWI-AC-031` | Setelah tanggung jawab DPJP dialihkan secara tercatat, DPJP yang baru dapat memindahkan pasien itu, dan DPJ... | `RWI-RULE-016` | Terbukti | `InpBedTransferTests` — `GUARD-INP-01`, tanpa kolom keterangan yang dapat melewatinya |
-| `RWI-AC-032` | Menulis satu catatan perkembangan dokter langsung menghasilkan satu visite tercatat untuk dokter dan tangga... | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan, yang milik slice dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`) |
-| `RWI-AC-033` | Kunjungan dokter yang tidak meninggalkan catatan tidak muncul di mana pun sebagai visite | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan, yang milik slice dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`) |
-| `RWI-AC-034` | Perawat tidak dapat mencatatkan visite atas nama dokter | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan, yang milik slice dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`) |
+| `RWI-AC-032` | Menulis satu catatan perkembangan dokter langsung menghasilkan satu visite tercatat untuk dokter dan tangga... | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan. Sejak `RWI-DEC-083` keduanya milik sub-modul **`dokter-rawat-inap/`** yang belum dirancang — **di luar sub-modul ini**, bukan lagi `DEC-INP-001` |
+| `RWI-AC-033` | Kunjungan dokter yang tidak meninggalkan catatan tidak muncul di mana pun sebagai visite | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan. Sejak `RWI-DEC-083` keduanya milik sub-modul **`dokter-rawat-inap/`** yang belum dirancang — **di luar sub-modul ini**, bukan lagi `DEC-INP-001` |
+| `RWI-AC-034` | Perawat tidak dapat mencatatkan visite atas nama dokter | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan. Sejak `RWI-DEC-083` keduanya milik sub-modul **`dokter-rawat-inap/`** yang belum dirancang — **di luar sub-modul ini**, bukan lagi `DEC-INP-001` |
 | `RWI-AC-035` | Penutupan episode ditolak selama ada butir wajib daftar periksa administrasi yang belum ditandai, dan pesan... | `RWI-RULE-018` | Terbukti | `InpClearanceAndFinancialTests` — daftar periksa administrasi yang menahan |
 | `RWI-AC-036` | Admin dapat menambah dan menonaktifkan butir daftar periksa lewat master data, dan butir baru langsung berl... | `RWI-RULE-018` | Terbukti | `InpClearanceAndFinancialTests` — daftar periksa administrasi yang menahan |
 | `RWI-AC-037` | Setiap penandaan butir daftar periksa menyimpan nama petugas dan waktu penandaannya | `RWI-RULE-018` | Terbukti | `InpClearanceAndFinancialTests` — daftar periksa administrasi yang menahan |
@@ -766,17 +864,17 @@ sudah ada, hanya belum pernah ditunjuk. Sisanya milik slice yang memang di luar 
 | `RWI-AC-044` | Episode `Draft` yang tidak disentuh lebih dari 1 hari terbaca `Cancelled` pada pembacaan berikutnya, tanpa ... | `RWI-RULE-022` | Terbukti | `InpEpisodeDraftLifecycleTests` — kedaluwarsa `Draft` dihitung saat dibaca |
 | `RWI-AC-045` | Kunjungan rawat inap yang dibuat untuk `Draft` yang gugur ikut ditandai batal dan tidak muncul pada laporan... | `RWI-RULE-022` | Terbukti | `InpEpisodeDraftLifecycleTests` — kedaluwarsa `Draft` dihitung saat dibaca |
 | `RWI-AC-046` | Batas 1 hari dapat diubah admin dan nilai barunya langsung dipakai pada pembacaan berikutnya | `RWI-RULE-022` | Terbukti | `InpEpisodeDraftLifecycleTests` — kedaluwarsa `Draft` dihitung saat dibaca |
-| `RWI-AC-047` | Dua catatan perkembangan dari dokter yang sama pada tanggal yang sama menghasilkan satu visite, dengan wakt... | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan, yang milik slice dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`) |
-| `RWI-AC-048` | Catatan dari dua dokter berbeda pada tanggal yang sama menghasilkan dua visite | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan, yang milik slice dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`) |
+| `RWI-AC-047` | Dua catatan perkembangan dari dokter yang sama pada tanggal yang sama menghasilkan satu visite, dengan wakt... | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan. Sejak `RWI-DEC-083` keduanya milik sub-modul **`dokter-rawat-inap/`** yang belum dirancang — **di luar sub-modul ini**, bukan lagi `DEC-INP-001` |
+| `RWI-AC-048` | Catatan dari dua dokter berbeda pada tanggal yang sama menghasilkan dua visite | `RWI-RULE-017` | Di luar scope | Visite dokter diturunkan dari catatan perkembangan. Sejak `RWI-DEC-083` keduanya milik sub-modul **`dokter-rawat-inap/`** yang belum dirancang — **di luar sub-modul ini**, bukan lagi `DEC-INP-001` |
 | `RWI-AC-049` | Episode yang berstatus `DischargePending` lebih dari 4 jam muncul sebagai terlambat pada daftar penutupan t... | `RWI-RULE-023` | Terbukti | `InpStatusHistoryAndMonitoringTests` — empat daftar pantau |
 | `RWI-AC-050` | Ketiga ambang daftar pantau dapat diubah admin tanpa mengubah program | `RWI-RULE-023` | Terbukti | `InpStatusHistoryAndMonitoringTests` — empat daftar pantau |
 | `RWI-AC-051` | Tidak ada daftar pantau yang menghalangi tindakan apa pun; ketiganya hanya memantau | `RWI-RULE-023` | Terbukti | `InpStatusHistoryAndMonitoringTests` — empat daftar pantau |
 | `RWI-AC-052` | Resep yang ditandai obat pulang terkirim ke Farmasi dengan konteks encounter yang sama seperti resep harian | `RWI-RULE-024` | Di luar scope | Obat pulang ditandai pada tabel resep milik Farmasi; implementasinya terblokir bersama `RWI-DEC-046` — **di luar scope MVP** |
-| `RWI-AC-054` | Perawat dapat menyimpan pengkajian awal untuk pasien rawat inap tanpa mengisi nomor antrean, dan pengkajian... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-055` | Dokter dapat menyimpan catatan pemeriksaan pada hari pertama dan hari kedua untuk satu pasien rawat inap ya... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-056` | Dokter dapat menyimpan resep pada hari pertama dan hari kedua untuk satu pasien rawat inap yang sama, dan r... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-057` | Untuk kunjungan bertipe rawat jalan, permintaan membuat konsultasi kedua tetap ditolak dengan pesan yang sa... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-058` | Pasien rawat inap tidak muncul pada daftar antrean poliklinik mana pun, dan tidak ada baris antrean yang di... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
+| `RWI-AC-054` | Perawat dapat menyimpan pengkajian awal untuk pasien rawat inap tanpa mengisi nomor antrean, dan pengkajian... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-055` | Dokter dapat menyimpan catatan pemeriksaan pada hari pertama dan hari kedua untuk satu pasien rawat inap ya... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-056` | Dokter dapat menyimpan resep pada hari pertama dan hari kedua untuk satu pasien rawat inap yang sama, dan r... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-057` | Untuk kunjungan bertipe rawat jalan, permintaan membuat konsultasi kedua tetap ditolak dengan pesan yang sa... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-058` | Pasien rawat inap tidak muncul pada daftar antrean poliklinik mana pun, dan tidak ada baris antrean yang di... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
 | `RWI-AC-071` | Setelah disposisi `RANAP` dijalankan dan admisi diselesaikan, kunjungan IGD pasien tersebut terbaca sudah d... | `RWI-RULE-029` | Di luar scope | Serah terima IGD ke rawat inap, jalur `INP-S09` — **di luar scope MVP** (`DEC-INP-002`) |
 | `RWI-AC-072` | Kunjungan IGD dan kunjungan rawat inap hasil serah terima terbaca sebagai satu rangkaian kedatangan, sehing... | `RWI-RULE-029` | Di luar scope | Serah terima IGD ke rawat inap, jalur `INP-S09` — **di luar scope MVP** (`DEC-INP-002`) |
 | `RWI-AC-073` | Kunjungan rawat inap hasil serah terima membawa unit layanan, kelas pasien, dan DPJP sesuai keputusan admis... | `RWI-RULE-029` | Di luar scope | Serah terima IGD ke rawat inap, jalur `INP-S09` — **di luar scope MVP** (`DEC-INP-002`) |
@@ -790,9 +888,9 @@ sudah ada, hanya belum pernah ditunjuk. Sisanya milik slice yang memang di luar 
 | `RWI-AC-099` | Setelah Farmasi menyerahkan obat pulang, butir "obat pulang sudah diserahkan" pada daftar periksa administr... | `RWI-RULE-024` | Di luar scope | Obat pulang ditandai pada tabel resep milik Farmasi; implementasinya terblokir bersama `RWI-DEC-046` — **di luar scope MVP** |
 | `RWI-AC-100` | Resep rawat jalan tidak terpengaruh penanda ini dan tetap berperilaku seperti sebelumnya | `RWI-RULE-024` | Di luar scope | Obat pulang ditandai pada tabel resep milik Farmasi; implementasinya terblokir bersama `RWI-DEC-046` — **di luar scope MVP** |
 | `RWI-AC-103` | Penggantian perawat menutup baris lama dengan waktu berakhir dan membuka baris baru; baris lama tetap terbaca | `RWI-RULE-033` | Terbukti | `InpDoctorAndNurseAssignmentTests` — penugasan perawat penanggung jawab |
-| `RWI-AC-141` | Dokter jaga shift kedua dapat menulis catatan konsultasi kedua pada satu kunjungan IGD yang sama, dan kedua... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-142` | Resep kedua pada satu kunjungan IGD tidak ditolak walaupun resep pertama masih aktif | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
-| `RWI-AC-143` | Untuk kunjungan rawat jalan dan medical check-up, permintaan tanpa antrean tetap ditolak dengan kode dan pe... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — **di luar scope MVP** (`DEC-INP-001`); pelaksananya modul klinis dan IGD |
+| `RWI-AC-141` | Dokter jaga shift kedua dapat menulis catatan konsultasi kedua pada satu kunjungan IGD yang sama, dan kedua... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-142` | Resep kedua pada satu kunjungan IGD tidak ditolak walaupun resep pertama masih aktif | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
+| `RWI-AC-143` | Untuk kunjungan rawat jalan dan medical check-up, permintaan tanpa antrean tetap ditolak dengan kode dan pe... | `RWI-RULE-026` | Di luar scope | Dokumentasi klinis rawat inap — sejak `RWI-DEC-083` milik sub-modul **`keperawatan/`** dan **`dokter-rawat-inap/`** yang belum dirancang; tabelnya milik `ClinicalManagement` (`RWI-DEC-081`). Bukan lagi `DEC-INP-001` |
 
 ### 3. Skenario UAT
 

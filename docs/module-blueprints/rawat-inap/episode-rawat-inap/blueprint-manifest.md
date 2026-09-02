@@ -76,6 +76,19 @@ pemindahan tabel kepemilikan data dan peta butir menu ke tingkat modul. `04-prd-
 `0.4.1` karena enam keterangan basi `DEC-INP-001` diperbaiki. Sisanya hanya berpindah tempat, atau
 berubah hanya pada rujukan path, sehingga revision-nya tidak bergerak.
 
+### 2.1 Roadmap dan traceability
+
+Ditulis `/qv-plan`, bukan skill desain. Ketiganya di-resync ke masukan revision `5` pada
+2026-09-02.
+
+| Artefak | Revision | Status | Gerbang |
+|---|---|---|---|
+| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `3` | `APPROVED` | `BLUEPRINT_APPROVED` — 36 dari 36 task selesai |
+| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `6` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 41** task selesai; 7 terbuka ditambah `FE-RWI-019` yang dibuka ulang dan cakupannya digantikan `FE-RWI-035` |
+| [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `6` | `DRAFT` | Mengikuti roadmap frontend |
+
+Revision `3` dan `6` berlingkup `INPUT_RESYNC_ONLY`: nol task ditambah, diubah, atau dihapus.
+
 Dua kontrak tambahan di luar himpunan canonical, dipertahankan apa adanya:
 
 | Artefak | Keterangan |

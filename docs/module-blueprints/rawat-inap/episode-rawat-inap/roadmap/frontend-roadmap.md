@@ -5,9 +5,13 @@
 ```yaml
 module_id: rawat-inap
 repository: QuilvianSystemFrontendDev
-roadmap_revision: 5
+roadmap_revision: 6
+revision_6_scope: INPUT_RESYNC_ONLY
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
+blueprint_shape: COMPOSITE
+submodule: episode-rawat-inap
+blueprint_root: docs/module-blueprints/rawat-inap/episode-rawat-inap/
 owners:
   - "Product/Domain: Muhammad Hamzah (RWI-DEC-061)"
   - "Frontend authority: sesuai 03-frontend-architecture.md bagian 9"
@@ -16,11 +20,21 @@ approved_at: null
 approval_history:
   - "Revision 3 APPROVED oleh Muhammad Hamzah pada 2026-08-27 lewat RWI-DEC-075 s.d. RWI-DEC-079"
 input_revisions:
-  blueprint-manifest.md: 4
-  03-frontend-architecture.md: 0.4
+  blueprint-manifest.md (tingkat modul): 5
+  blueprint-manifest.md (sub-modul): 5
+  02-module-map.md: 1
+  03-frontend-architecture.md: 0.5
   05-skema-tampilan.md: "0.4 (draft)"
-  04-prd-to-mvp.md: 0.4.0
+  04-prd-to-mvp.md: 0.4.1
   01-existing-capability-map.md: 1.2
+input_hashes:
+  blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
+  blueprint-manifest.md (sub-modul): "6d3fedda94325aa43c70612159a3f4067e0be78605f4b0b17ef948614d5d5d83"
+  02-module-map.md: "62be6c334caa1651fc89db3b43d197235da3fa6be1d309da45e5b57f9536e54d"
+  03-frontend-architecture.md: "7be9f2b30409c23841161daaccc29c167ebeb0238a4b82ac1522826e9ca3df42"
+  05-skema-tampilan.md: "f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e"
+  04-prd-to-mvp.md: "f8c71b8479a0423ca68795427198a674e2dd9ad01939fa692a4c38a4d3457533"
+  01-existing-capability-map.md: "567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6"
 contract_versions:
   - "API 0.4.0"
   - "Encounter company guarantor addendum 1.0.0"
@@ -48,10 +62,80 @@ bed_board_reservation_contract_scan:
   contract: "RWI-BED-BOARD-RESERVATION-001 1.0.0 APPROVED"
   result: "BE-RWI-036_DONE_2026-09-01; RWI-UI-GAP-003_BACKEND_CONTRACT_SOURCE_CLOSED"
 task_count: 41
-task_count_done: 20
-task_count_open: 21
+task_count_done: 33
+task_count_open: 8
+task_open_ids: "FE-RWI-019 (dibuka ulang, digantikan FE-RWI-035), FE-RWI-030, 035, 037, 038, 039, 040, 041"
+task_count_verified_at: "2026-09-02, dihitung ulang dari penanda pada bagian 4 dan 5"
 supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-27; revision 2 tetap di roadmap/archive/revision-2/frontend-roadmap.md"
 ```
+
+---
+
+## 0-A. Resync masukan — revision `6`, 2026-09-02
+
+**Revision `6` tidak menambah, menghapus, atau mengubah satu task pun.** Ia hanya
+menyambungkan kembali roadmap ini ke masukan blueprint yang sudah bergerak. Karena tidak ada isi
+task yang berubah, gerbang `UI_SCHEMA_APPROVAL_REQUIRED` **tidak** ikut tercabut dan roadmap ini **tetap `DRAFT`**. Ketujuh task yang belum selesai tetap menunggu approval skema tampilan, persis seperti pada revision `5`.
+
+### 0-A.1 Kenapa resync ini perlu
+
+Modul `rawat-inap` naik bentuk dari `SINGLE` menjadi `COMPOSITE` pada 2026-09-02 lewat
+`RWI-DEC-082`, dan blueprint naik ke revision `5`. Akibatnya seluruh `input_revisions`,
+`input_hashes`, dan `artifact_hashes` pada roadmap ini menunjuk berkas yang **sudah pindah tempat
+atau sudah berubah nomor revisinya**.
+
+`plan-module-delivery` **MUST** menghentikan perencanaan pada scope yang masukannya `stale`.
+Resync ini yang mencabut keadaan `stale` itu.
+
+| Masukan | Sebelum | Sesudah | Sebabnya |
+| --- | --- | --- | --- |
+| `blueprint-manifest.md` | revision `4`, satu berkas | revision `5`, **dua** berkas: tingkat modul dan sub-modul | Bentuk `COMPOSITE` memisahkan identitas modul dari status desain sub-modul |
+| `02-module-map.md` | tidak ada | revision `1`, **masukan baru** | Lahir hanya pada bentuk `COMPOSITE`; memegang tabel kepemilikan data, peta menu, dan urutan migration lintas sub-modul |
+| `02-backend-architecture.md` | `0.4` | `0.5` | Tabel kepemilikan data seluruh modul naik ke `02-module-map.md` |
+| `03-frontend-architecture.md` | `0.4` | `0.5` | Peta butir menu seluruh modul naik ke `02-module-map.md` |
+| `04-prd-to-mvp.md` | `0.4.0` | `0.4.1` | Enam keterangan basi `DEC-INP-001` diperbaiki |
+| Letak seluruh berkas | `rawat-inap/` | `rawat-inap/episode-rawat-inap/` | Gerakan ② migrasi bentuk |
+
+### 0-A.2 Pemeriksaan batas sub-modul
+
+`bentuk-blueprint.md` menuntut roadmap pada bentuk `COMPOSITE` diperiksa terhadap
+[`../../02-module-map.md`](../../02-module-map.md) sebelum slice dibentuk. Hasilnya:
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Ada task yang membuat tabel milik sub-modul lain? | **Tidak.** Ketiga belas tabel `Inp*` dan `MstInpatient*` seluruhnya milik `episode-rawat-inap` menurut `02-module-map.md` bagian 2.2 |
+| Ada task yang menyentuh kemampuan milik `keperawatan/` atau `dokter-rawat-inap/`? | **Tidak.** Kesembilan belas kemampuan itu tercatat pada bagian "Yang sengaja tidak ada di roadmap ini" |
+| Ada task yang menyentuh kemampuan berstatus `BLOCKED` atau tanpa pemilik? | **Tidak.** `02-module-map.md` bagian 4.4 membuktikan nol kemampuan yatim; tidak ada baris `BLOCKED` |
+| Ada task yang menyentuh baris kepemilikan yang **belum diputuskan**? | **Ya, satu — dan sudah berjalan.** Kelayakan keuangan `RWI-OQ-047`; lihat 0-A.4 |
+| Ada task yang melintasi dua sub-modul? | **Tidak.** Karena itu tidak ada baris dependency lintas sub-modul yang perlu ditulis |
+
+**Kesimpulan: nol pelanggaran batas.** Seluruh task pada roadmap ini berada di dalam jatah
+`episode-rawat-inap`.
+
+### 0-A.3 Penyimpangan hash kontrak yang ditemukan saat resync
+
+Empat kontrak hash-nya berbeda dari yang tercatat pada revision sebelumnya. Penyimpangan ini
+**mendahului** migrasi bentuk dan bukan akibatnya.
+
+| Kontrak | Sebab penyimpangan | Material? |
+| --- | --- | --- |
+| `api-contract.md` | Commit `97b621a` 2026-08-26 membalik ±50 baris `Rencana (belum tersedia)` menjadi `Tersedia` setelah endpoint-nya terbukti jalan, ditambah dua kontrak addendum | **Tidak** — pembukuan status, bukan endpoint baru. Kedua addendum sudah terdaftar pada `contract_versions` |
+| `validation-matrix.md` | 15 baris | **Tidak** — menyertai perubahan yang sama |
+| `permission-audit-matrix.md` | 22 baris | **Tidak** — menyertai `BE-RWI-034` |
+| `integration-contract.md` | 1 baris | **Tidak** |
+| `state-transition-matrix.md` | **nol baris** sejak approval | Tidak berubah sama sekali |
+
+Karena seluruhnya pembukuan, **tidak ada scope yang dihentikan** dan tidak ada task yang perlu
+diulang. Hash yang tercatat sekarang adalah hash sungguhan hari ini.
+
+### 0-A.4 `RWI-OQ-047` — satu baris kepemilikan yang belum diputuskan
+
+| Hal | Keadaannya |
+| --- | --- |
+| Isinya | Sumber kebenaran *Financial Clearance*: `PRD-RWI-FINAL-001` bagian 23.1 menaruhnya pada Billing Management; `RWI-RULE-028` aturan 7 memilikinya **sementara** lewat `InpFinancialClearance` |
+| Task yang menyentuhnya | `BE-RWI-024` kelayakan keuangan, `BE-RWI-025` kelima syarat penutupan, `BE-RWI-034` endpoint baca — ketiganya **sudah selesai dan dilaporkan** |
+| Apakah menahan roadmap ini? | **Tidak.** Bila `RWI-OQ-047` kelak memilih Billing, yang berubah adalah **sumber bacaan** satu penanda; kelima syarat penutupan dan seluruh alur pemulangan tetap berlaku apa adanya |
+| Apakah boleh diabaikan? | **Tidak.** Ia dicatat di sini supaya task berikutnya yang menyentuh kelayakan keuangan tahu bahwa kepemilikannya sementara |
 
 ---
 
@@ -717,10 +801,10 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 | Yang tidak dikerjakan | Alasan |
 | --- | --- |
-| Layar pengkajian, catatan dokter, CPPT, dan resep | Slice di luar scope MVP — `DEC-INP-001` |
+| Layar pengkajian, catatan dokter, CPPT, dan resep | **Bukan milik sub-modul ini** sejak `RWI-DEC-083`; layarnya menjadi jatah `keperawatan/` dan `dokter-rawat-inap/` yang belum dirancang. **Bukan** lagi `DEC-INP-001`, yang tertutup `RWI-DEC-062` 2026-08-21 |
 | Layar serah terima IGD | Di luar scope — `DEC-INP-002` |
 | **Penyimpanan** persetujuan umum rawat inap | `RWI-DEC-077` memilih cetak tanpa menyimpan. `RWI-CAP-031` dan `DEC-INP-003` tetap terbuka |
-| Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada slice yang di luar scope — `DEC-INP-001` |
+| Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada dokumentasi klinis, yang kini dimiliki `keperawatan/` dan `dokter-rawat-inap/` — `RWI-DEC-083`. **Bukan** `DEC-INP-001` |
 | Perubahan hak akses agar perawat dapat mengonfirmasi masuk | Wewenang kontrak, bukan wewenang roadmap frontend — `RWI-OQ-045` |
 | Penutupan jalur admisi tanpa `EncounterId` di backend | Wewenang Backend/API — `RWI-OQ-046` |
 | Mengisi baris `DEFAULT`, tiga butir administrasi awal, kamar, atau tempat tidur dari browser | Wewenang Admin Master Data/Tim Master Data dan seeder `BE-RWI-002`; dicatat sebagai `RWI-UI-GAP-007` |
