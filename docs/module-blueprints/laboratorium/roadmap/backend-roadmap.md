@@ -3,17 +3,17 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `5` |
+| Roadmap revision | `6` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
 | Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `23` |
+| Manifest | `blueprint-manifest.md` revision `24` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — seluruhnya `approved`, dikunci 2026-09-02 |
 | Masukan | Decisions rev `21`; capability map rev `2`; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4 |
-| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` (decisions), dihitung 2026-09-02 |
+| Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` (decisions), dihitung 2026-09-02 |
 | Slice in scope | `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
 
 > **Dokumen ini bukan izin menulis kode.** Ia daftar pekerjaan beserta syaratnya. Satu task baru
@@ -24,37 +24,38 @@
 
 ## 1. Gerbang yang Berlaku untuk Seluruh Task
 
-Empat penghambat berikut **tidak** menghalangi penerbitan roadmap ini, tetapi menghalangi
-**eksekusi**-nya. **Tiga sudah ditutup pada 2026-09-02; satu tersisa.** Selama yang tersisa itu
-belum dicabut, setiap task di bawah tidak boleh dikerjakan, walaupun rencananya sudah lengkap.
+Empat penghambat berikut dulu menghalangi **eksekusi** roadmap ini. **Keempatnya ditutup pada
+2026-09-02.** Yang tersisa hanya `LAB-OPEN-018b`, sebuah utang pemeliharaan yang tidak menahan
+satu task pun.
 
 | ID | Isi | Siapa yang mencabut | Yang tertahan |
 |---|---|---|---|
-| `LAB-OPEN-018` | Rules root runtime tidak memuat `GLOBAL_RULES.md` maupun `rules/backend/engineering/` — lihat catatan di bawah | **Muhammad Hamzah**, pemilik repo marketplace | **Seluruh** task backend. `AGENTS.md` memaksa berhenti dengan `BLOCKED — canonical governance unavailable` |
+| ~~`LAB-OPEN-018`~~ | ~~Rules root runtime tidak memuat `GLOBAL_RULES.md` maupun `rules/backend/engineering/`~~ | ✅ **Ditutup 2026-09-02** | Rules root runtime kini memuat **32 berkas**, naik dari 13. Gerbang `AGENTS.md` tidak lagi aktif |
+| `LAB-OPEN-018b` | Marketplace `quilvian` masih terdaftar ke `MHamzah1/QuilvianEngineeringSkillsClaude` | **Muhammad Hamzah** atau pemilik mesin | **Tidak menahan implementasi.** Tetapi `/plugin update` berikutnya akan mengembalikan rules root ke 13 berkas dan menghidupkan lagi gerbangnya |
 | ~~`LAB-OPEN-019`~~ | ~~Lifecycle registry masih `PLANNED`~~ | ✅ **Ditutup 2026-09-02** oleh Muhammad Hamzah | Baris registry kini `ACTIVE`. Entity `Lab*` dan migration tidak lagi tertahan `QBE-MOD-002` |
 | ~~`LAB-OPEN-020`~~ | ~~Checker QBE gagal `TOOL ERROR`~~ | ✅ **Ditutup 2026-09-02** atas persetujuan Andry Zain | Empat rujukan `agents/rules/engineering/` diganti `docs/engineering/`. Checker dijalankan ulang: `Final result: PASS`, exit 0 |
 | ~~`LAB-OPEN-021`~~ | ~~Prefix dua tabel batas nilai~~ | ✅ **Ditutup 2026-09-02** oleh Muhammad Hamzah | Ditetapkan `Lab`. Kedua tabel bernama `LabValueBound` dan `LabValueOption` |
 
-**Tinggal satu gerbang yang tersisa, dan ia menahan segalanya.** Ketiga penghambat lain sudah
-dicabut, tetapi `LAB-OPEN-018` berdiri sendiri: selama rules root runtime belum lengkap,
-`AGENTS.md` menghentikan setiap task backend sebelum baris kode pertama ditulis. Menutupnya
-adalah satu tindakan pengarahan marketplace — pilihan **B** sudah disetujui, tinggal dieksekusi
-pemilik repo marketplace.
+**Keempat gerbang eksekusi sudah terbuka.** Task backend kini boleh dikerjakan satu per satu
+lewat `quilvian-engineering-skills:build-module-backend`, dengan approval per task.
 
-> **`LAB-OPEN-018` tidak dapat ditutup dengan `/plugin update` — diperiksa 2026-09-02.**
-> Marketplace `quilvian` yang terpasang menunjuk repository
-> `MHamzah1/QuilvianEngineeringSkillsClaude`, **bukan** sumber canonical
-> `DevBenari/QuilvianEngineeringSkills`. Repo marketplace itu hanya punya dua commit, satu
-> branch, dan penelusuran seluruh riwayatnya menunjukkan `rules/backend/engineering/` maupun
-> `GLOBAL_RULES.md` **tidak pernah ada di sana**. Memperbarui plugin hanya menarik isi yang sama.
+> **Cara `LAB-OPEN-018` ditutup, dan utang yang menyertainya.** Marketplace `quilvian` yang
+> terpasang menunjuk `MHamzah1/QuilvianEngineeringSkillsClaude` — repo dua commit yang **tidak
+> pernah** memuat `rules/backend/engineering/` maupun `GLOBAL_RULES.md` di commit mana pun. Jadi
+> `/plugin update` memang tidak akan menolong.
 >
-> Penutupannya memerlukan salah satu dari dua hal, dan keduanya wewenang Muhammad Hamzah:
-> menerbitkan kedua dokumen tata kelola beserta `GLOBAL_RULES.md` ke repo marketplace itu, atau
-> mengarahkan marketplace ke sumber canonical `DevBenari/QuilvianEngineeringSkills`.
+> Atas persetujuan pilihan **B**, rules root runtime disegarkan langsung dari sumber canonical
+> `DevBenari/QuilvianEngineeringSkills` yang ada sebagai clone lokal. Hasilnya 32 berkas, naik
+> dari 13, termasuk `GLOBAL_RULES.md`, kedua dokumen tata kelola, `rule-output/bentuk-blueprint.md`,
+> dan 10 rules frontend yang sebelumnya hilang.
+>
+> **Ini penyegaran manual, bukan pemasangan ulang.** Pendaftaran marketplace belum berubah,
+> sehingga `/plugin update` berikutnya akan menimpanya kembali menjadi 13 berkas. Perbaikan
+> tetapnya dicatat sebagai `LAB-OPEN-018b`: daftarkan ulang marketplace ke sumber canonical.
 
-**Yang tetap bisa berjalan sekarang tanpa menunggu satu pun di atas:** penyusunan DTO dan bentuk
-request/response di atas kertas, penulisan skenario pengujian dari matriks acceptance, dan
-koordinasi tiga task eksternal `BE-EXT-01` sampai `BE-EXT-03`.
+**Yang tetap perlu diperhatikan sebelum mengeksekusi task:** `CLAUDE.md` backend mewajibkan
+setiap implementasi berjalan lewat `build-module-backend`, dan **pembuatan maupun eksekusi
+migration memerlukan konfirmasi terpisah** untuk masing-masing tindakan.
 
 ### Catatan wajib pada setiap handoff implementasi
 

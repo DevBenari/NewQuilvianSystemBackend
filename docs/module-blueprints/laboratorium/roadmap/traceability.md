@@ -3,16 +3,16 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `7` |
+| Roadmap revision | `8` |
 | Status | `DRAFT` |
 | Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `23` |
+| Manifest | `blueprint-manifest.md` revision `24` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — `approved` 2026-09-02 |
 | Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-02 |
 | Masukan | Decisions rev `21`; capability map rev `2` |
-| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` (decisions), dihitung 2026-09-02 |
+| Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` (decisions), dihitung 2026-09-02 |
 
 Dokumen ini menjawab satu pertanyaan: **untuk setiap kebutuhan, siapa yang mengerjakannya dan
 apa buktinya kalau sudah benar.** Baris yang tidak punya bukti muncul sebagai *coverage gap* di
@@ -206,7 +206,8 @@ sakit menetapkannya. Bukan penahan pembangunan; penahan pernyataan siap pakai.
 
 | ID | Yang tertahan | Pencabut |
 |---|---|---|
-| `LAB-OPEN-018` | Eksekusi seluruh task backend dan pijakan aturan frontend | **Muhammad Hamzah** — repo marketplace tidak pernah memuat dokumennya; `/plugin update` tidak menolong |
+| ~~`LAB-OPEN-018`~~ | ~~Eksekusi seluruh task backend~~ | ✅ Ditutup 2026-09-02 — rules root runtime 32 berkas |
+| `LAB-OPEN-018b` | Tidak menahan apa pun; `/plugin update` berikutnya mengembalikan rules root ke 13 berkas | Pendaftaran ulang marketplace ke `DevBenari/QuilvianEngineeringSkills` |
 | ~~`LAB-OPEN-019`~~ | ~~Entity `Lab*` dan migration~~ | ✅ Ditutup 2026-09-02 — registry kini `ACTIVE` |
 | ~~`LAB-OPEN-020`~~ | ~~Pemeriksaan konformansi QBE~~ | ✅ Ditutup 2026-09-02 — checker `PASS`, exit 0 |
 | ~~`LAB-OPEN-021`~~ | ~~Penamaan dua tabel batas nilai~~ | ✅ Ditutup 2026-09-02 — ditetapkan `Lab` |

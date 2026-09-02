@@ -5,7 +5,7 @@ blueprint_id: LAB-BP-001
 module_name: Laboratorium
 module_slug: laboratorium
 module_prefix: LAB
-revision: 23
+revision: 24
 status: approved-with-pending-reconciliation
 bentuk: SINGLE
 created_at: 2026-09-01T00:00:00+07:00
@@ -49,7 +49,7 @@ input_revisions:
   domain_architecture: LAB-DA-001-r4
 
 input_hashes:                  # sha256 penuh atas isi ber-line-ending LF, mengikuti konvensi pharmacy dan billing-kasir. Dihitung ulang 2026-09-02
-  00-interview-decisions.md: 75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61
+  00-interview-decisions.md: 6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82
   01-existing-capability-map.md: 703a8dffe23971ecc09f416a516e4d83e26cd834cae277a7875fab8c484f6117
   02-requirement-completeness-assessment.md: 3de86c8242a313a5a864a1eaa1cfffdb21149658789f01095d0ec847a9c072d1
   03-domain-architecture.md: 3279c0ef2309b52feab77d870f782f4ce02134b2457fa46bfd09d868d98493de
@@ -87,13 +87,9 @@ evidence_baseline:
 active_blockers:
   - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6
   - LAB-AMD-001     # amandemen rawat-jalan — memblokir S1b
-  - LAB-OPEN-018    # rules root runtime tidak memuat GLOBAL_RULES.md maupun backend/engineering/. Pilihan B disetujui Muhammad Hamzah 2026-09-02 tetapi BELUM dieksekusi: marketplace masih menunjuk MHamzah1/QuilvianEngineeringSkillsClaude yang tidak pernah memuat kedua dokumen. Memblokir SELURUH implementasi backend
+  - LAB-OPEN-018b   # SISA: marketplace quilvian masih terdaftar ke MHamzah1/QuilvianEngineeringSkillsClaude. Rules root runtime sudah lengkap lewat penyegaran manual, tetapi /plugin update berikutnya akan mengembalikannya ke 13 berkas. Perbaikan tetap: daftarkan ulang marketplace ke DevBenari/QuilvianEngineeringSkills. TIDAK memblokir implementasi saat ini
 
-closed_blockers:                # ditutup 2026-09-02, disimpan sebagai jejak
-  - LAB-OPEN-019    # lifecycle registry PLANNED -> ACTIVE, disetujui Muhammad Hamzah lewat LAB-REQ-002; diterapkan pada registry canonical dan salinan docs/engineering/
-  - LAB-OPEN-020    # Invoke-QbeConformanceCheck.ps1 diperbaiki atas persetujuan Andry Zain: empat rujukan agents/rules/engineering/ diganti docs/engineering/. Checker kini PASS, exit 0
-  - LAB-OPEN-021    # prefix data induk ditetapkan Lab; LabValueBound dan LabValueOption. MstLabRejectionReason tetap legacy
-  - LAB-OPEN-012    # jumlah data lab existing belum diverifikasi — prasyarat migration
+  - LAB-OPEN-012    # jumlah data lab existing belum diverifikasi — prasyarat migration BE-LAB-11
   - LAB-OPEN-013    # dampak cito dan duplo pada tarif
   - LAB-OPEN-014    # nilai kritis untuk mikrobiologi dan patologi anatomi
   - LAB-OPEN-017    # makna penanda Definitif
@@ -105,6 +101,12 @@ closed_blockers:                # ditutup 2026-09-02, disimpan sebagai jejak
   - LAB-P0-006      # kebijakan jejak audit
   - LAB-P0-007      # aturan tagihan dan cakupan
   - LAB-P0-008      # penyelarasan antaraplikasi
+
+closed_blockers:                # ditutup 2026-09-02, disimpan sebagai jejak
+  - LAB-OPEN-018    # rules root runtime kini memuat 32 berkas termasuk GLOBAL_RULES.md dan backend/engineering/. Disegarkan dari sumber canonical DevBenari/QuilvianEngineeringSkills atas persetujuan pilihan B. Gerbang AGENTS.md tidak lagi aktif. Sisa pekerjaan dicatat sebagai LAB-OPEN-018b
+  - LAB-OPEN-019    # lifecycle registry PLANNED -> ACTIVE, disetujui Muhammad Hamzah lewat LAB-REQ-002; diterapkan pada registry canonical dan salinan docs/engineering/
+  - LAB-OPEN-020    # Invoke-QbeConformanceCheck.ps1 diperbaiki atas persetujuan Andry Zain: empat rujukan agents/rules/engineering/ diganti docs/engineering/. Checker kini PASS, exit 0
+  - LAB-OPEN-021    # prefix data induk ditetapkan Lab; LabValueBound dan LabValueOption. MstLabRejectionReason tetap legacy
 
 cross_module_approvals:
   request_id: LAB-REQ-001
@@ -123,7 +125,7 @@ inherited_decisions:
 
 | Berkas | Ditulis oleh | Status |
 |---|---|---|
-| `blueprint-manifest.md` | `design-business-module` | rev 23 |
+| `blueprint-manifest.md` | `design-business-module` | rev 24 |
 | `00-interview-decisions.md` | `grill-me` | rev 21 — **36 keputusan `approved`**; 5 koordinasi lintas modul ditutup |
 | `01-existing-capability-map.md` | `trace-existing-capabilities` | rev 2 — impact scan 2026-09-02, `STALE` dicabut, tidak ada status kemampuan yang berubah |
 | `02-requirement-completeness-assessment.md` | `requirement-completeness-gate` | rev 5 — `PARTIALLY_READY`, 10 dari 21 bagian siap |

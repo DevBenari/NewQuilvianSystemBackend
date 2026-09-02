@@ -9,7 +9,7 @@
 | Owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
 | Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
-| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
+| Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Dampak kompatibilitas | **Breaking** pada endpoint sampel — lihat bagian 3 |
 | Backend SHA | `c87d9c0` |
 
