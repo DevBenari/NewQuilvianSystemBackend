@@ -117,6 +117,47 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    [HttpGet("other-charge-types")]
+    [AccessAction("Read", "Read Other Charge Type", AccessType = AccessTypes.Read, SortOrder = 10)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<OtherChargeTypeOptionResponse>>), StatusCodes.Status200OK)]
+    public IActionResult GetOtherChargeTypes() =>
+        Ok(ApiResponse<List<OtherChargeTypeOptionResponse>>.Ok(
+            BillingInvoiceService.GetOtherChargeTypeOptions(),
+            "Jenis biaya lain-lain berhasil diambil."));
+
+    // Kasir tidak mengirim Id kategori billing: backend menetapkannya ke "Biaya Lain-Lain".
+    [HttpPost("other-charges")]
+    [AccessAction("Create", "Add Billing Other Charge", AccessType = AccessTypes.Create, SortOrder = 11)]
+    [AccessPermission("BillingInvoice", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceDetailResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddOtherCharge(
+        [FromBody] AddOtherChargeRequest request,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.AddOtherChargeAsync(
+                request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceDetailResponse>.Ok(
+                result, "Biaya lain-lain berhasil ditambahkan."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("encounter-options")]
     [AccessAction("Read", "Read Active Encounter Option", AccessType = AccessTypes.Read, SortOrder = 9)]
     [AccessPermission("BillingInvoice", "Read")]
