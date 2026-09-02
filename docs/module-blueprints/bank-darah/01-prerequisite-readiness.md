@@ -22,6 +22,14 @@ Nilai `dependency_type` hanya boleh memakai `MODULE_FOUNDATION`, `PHASE`, `INTEG
 > **Perubahan pada revisi 3.** Dua `CONFLICT` yang muncul pada revisi 2 sudah ditutup keputusan
 > pemilik: `BD-DEP-002` oleh `DEC-BD-014`, dan `BD-DEP-007` oleh `DEC-BD-015`. Tidak ada lagi
 > dependency berstatus `CONFLICT`.
+>
+> **Catatan sinkronisasi 2 September 2026.** Keputusan sampai `DEC-BD-034` dan
+> `03-domain-architecture.md` revisi 3 (`DOMAIN_ARCHITECTURE_READY`) **tidak** menambah, menghapus,
+> atau mengubah status satu pun dependency di bawah. `BD-DEP-005` katalog komponen darah kini juga
+> memikul atribut masa berlaku bukti kecocokan per komponen (`DEC-BD-032`), tetapi tetap `MISSING` dan
+> tetap dibangun modul ini sendiri. Peta dependency terikat pada backend `9522caa`; backend kini
+> `db08c14` dengan perbedaan hanya dokumen blueprint, sehingga dokumen ini **tidak** basi. Revisi tidak
+> dinaikkan karena tidak ada dependency yang berubah secara material.
 
 ## Catatan dependency
 

@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `3` |
-| Decision revision | `3` |
+| Revision | `4` |
+| Decision revision | `4` |
 | Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86` cabang `sukmagp` |
 | Backend SHA saat bukti diaudit | `9522caacf29371b1fddd1584e9a71ad94fe48d19`. Perbedaan terhadap SHA di atas hanya berisi dokumen blueprint Bank Darah, nol berkas source aplikasi, sehingga `02-existing-capability-map.md` **tidak basi secara isi** |
@@ -123,6 +123,9 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | `INV-BD-019` | Bukti kecocokan yang sudah lewat masa berlakunya tidak membuka gerbang pemberian. Selama nilai masa berlaku belum dikonfigurasi, gerbang pemberian tertutup. | `DEC-BD-027` |
 | `INV-BD-020` | Bukti kecocokan terikat pada pasangan kantong dan pasien tertentu. Pengalihan kantong ke pasien lain menggugurkannya, dan bukti lama tidak pernah dipakai ulang untuk pasien tujuan. | `DEC-BD-028` |
 | `INV-BD-021` | Pemberian tidak pernah dihapus atau dibalik. Satu-satunya jalur koreksi adalah catatan koreksi tambahan yang mempertahankan pemberian asal. | `DEC-BD-030` |
+| `INV-BD-022` | Konflik golongan darah hanya dapat ditutup lewat pemeriksaan ulang yang tervalidasi dan pernyataan validator. Sistem tidak pernah menutup konflik dengan memilih salah satu hasil lama tanpa pemeriksaan baru, dan tidak pernah menghitung mayoritas. | `DEC-BD-031` |
+| `INV-BD-023` | Masa berlaku bukti kecocokan disimpan per komponen pada katalog komponen darah dan selalu dibaca dari konfigurasi. Tidak pernah ada angka masa berlaku yang ditanam di kode. | `DEC-BD-032` |
+| `INV-BD-024` | Koreksi pencatatan Bank Darah tidak pernah membalik atau mengubah fakta biaya secara otomatis. Keputusan peninjauan biaya adalah wewenang Billing. | `DEC-BD-034` |
 
 ---
 
@@ -182,7 +185,8 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 | Sampel tercatat | Catat hasil ABO dan Rhesus | Hasil tercatat | Pemeriksa dan waktu pemeriksaan tersimpan |
 | Hasil tercatat | Validasi hasil | Hasil tervalidasi | Peran validator ditetapkan `DEF-BD-004` |
 | Hasil tervalidasi | Muncul hasil tervalidasi baru yang **berbeda** ABO atau Rhesus-nya | Perbedaan tertahan — pasien tidak punya hasil sah | Terjadi otomatis. Ditutup hanya oleh peran validator (`DEC-BD-026`) |
-| Perbedaan tertahan | Selesaikan perbedaan | Satu hasil sah kembali berlaku | Peran validator (`DEF-BD-004`). Alasan, pelaku, dan waktu tersimpan; kedua hasil tetap terbaca |
+| Perbedaan tertahan | Catat pemeriksaan ulang | Perbedaan masih tertahan | Petugas Bank Darah. Sampel baru dan hasil baru tercatat, lalu divalidasi (`DEC-BD-031`) |
+| Perbedaan tertahan, ada hasil baru tervalidasi | Selesaikan perbedaan | Satu hasil sah kembali berlaku | Peran validator (`DEF-BD-004`) menyatakan hasil baru itu yang berlaku. Wajib ada pemeriksaan ulang tervalidasi; alasan, pelaku, dan waktu tersimpan; seluruh hasil tetap terbaca (`DEC-BD-031`) |
 
 Nama status di atas adalah nama bisnis. Nama teknis dan nilai enum yang sebenarnya ditetapkan pada
 fase perancangan, mengikuti kebiasaan penamaan status yang sudah dipakai repository.
@@ -253,6 +257,7 @@ sudah disetujui; lalu kebiasaan project; baru kemudian kebebasan pengembang.
 | `FE-BD-006` | Menu, route, susunan tab, modal, warna, tata letak | — | `DEV_DISCRETION` | Mengikuti kebiasaan frontend V2 dan komponen dasar yang sudah ada | PRD §8, `BD-CAP-021` |
 | `FE-BD-007` | Penanda hasil golongan darah yang sedang **bertentangan** | Pemilik proses klinis | `draft` | Wajib terlihat dan wajib menahan pemakaian. Bukan kebebasan pengembang | `DEC-BD-026`, `INV-BD-018` |
 | `FE-BD-008` | Penanda bukti kecocokan yang sudah lewat masa berlaku | Pemilik proses klinis | `draft` | Wajib terlihat sebelum petugas menekan pemberian. Bentuk tampilannya bebas | `DEC-BD-027`, `INV-BD-019` |
+| `FE-BD-009` | Penyelesaian konflik golongan darah dilakukan di dalam layar pemeriksaan golongan darah, bukan daftar kerja baru | Pemilik proses BDRS | `draft` | Wajib menampilkan histori hasil, status konflik, hasil pemeriksaan baru, status validasi, dan tindakan penyelesaian validator. Tidak menambah daftar kerja | `DEC-BD-033`, `OQ-BD-013` |
 
 ---
 
@@ -550,6 +555,98 @@ tidak diam-diam kembali menjadi tersedia.
 | `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan. `DEC-BD-026` menuntut ada tempat menyelesaikannya, sedangkan `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja | Pemilik proses BDRS | `DESIGN` satu layar saja. Usulan yang tidak memperluas scope: penyelesaian dilakukan di dalam layar pemeriksaan golongan darah, bukan sebagai daftar kerja keempat |
 | `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi. Secara fisik kantong itu mungkin masih ada | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi. **Tidak** memblokir `DESIGN` catatan koreksinya |
 
+`OQ-BD-013` dan bagian struktur `OQ-BD-012` sudah **ditutup** pada pass berikutnya — lihat §8.10.
+
+### 8.10 Architecture gap final closure pass
+
+Tiga gap arsitektur yang dibuka `03-domain-architecture.md` revisi 2 — `ARCH-BD-GAP-07`,
+`ARCH-BD-GAP-08`, dan `ARCH-BD-GAP-09` — ditutup pada sesi ini, bersama `OQ-BD-013` dan bagian
+struktur `OQ-BD-012`. Tidak ada satu pun keputusan sebelumnya yang dibuka ulang. Atas permintaan
+pemilik, tujuh hal ini sengaja **tidak** dibuka ulang: PMI sebagai penyedia darah, MMC sebagai
+pengguna sistem, unit pemesan MVP, pemenuhan sebagian, ketiadaan gerbang persetujuan pada alur
+normal, HCLAB di luar MVP, dan laporan di luar MVP.
+
+| Decision ID | Menutup | Type | Keputusan | Status |
+| --- | --- | --- | --- | --- |
+| `DEC-BD-031` | `ARCH-BD-GAP-07` | `Decision` | Konflik golongan darah diselesaikan lewat pemeriksaan ulang tervalidasi (Model C); sistem tidak menghitung mayoritas | `draft` |
+| `DEC-BD-032` | `ARCH-BD-GAP-08`, struktur `OQ-BD-012` | `Decision` | Masa berlaku bukti kecocokan disimpan per komponen pada katalog komponen darah, dari konfigurasi | `draft` |
+| `DEC-BD-033` | `OQ-BD-013` | `Decision` | Penyelesaian konflik dilakukan di dalam workflow pemeriksaan golongan darah, tanpa daftar kerja baru | `draft` |
+| `DEC-BD-034` | `ARCH-BD-GAP-09` | `Decision` | Koreksi pencatatan tidak membalik biaya otomatis; keputusan peninjauan biaya milik Billing lewat `DEC-BD-016` | `draft` |
+
+Owner keputusan: `DEC-BD-031` pemilik proses klinis · `DEC-BD-032` pemilik proses klinis bersama
+pemilik proses BDRS · `DEC-BD-033` pemilik proses BDRS · `DEC-BD-034` pemilik proses BDRS bersama
+pemilik BillingManagement. Seluruhnya berstatus `draft`. Dijawab dalam sesi wawancara tidak sama
+dengan disetujui pejabat berwenang, dan `approved_by` beserta `approved_at` masih kosong.
+
+### 8.11 Rincian keputusan architecture gap final closure pass
+
+**`DEC-BD-031` — Penyelesaian konflik golongan darah lewat pemeriksaan ulang (Model C).**
+Ketika hasil golongan darah tervalidasi terbaru berbeda ABO atau Rhesus-nya dari hasil sah
+sebelumnya, hasil lama **tidak** ditimpa, pasien tetap berada dalam keadaan "golongan darah konflik",
+dan pemakaian hasil itu untuk seluruh lifecycle Bank Darah **ditahan**. Konflik dianggap selesai
+hanya bila empat syarat terpenuhi bersama: ada hasil pemeriksaan baru, sampel baru tercatat, hasil
+baru tervalidasi petugas berwenang, dan validator menyatakan hasil itu yang berlaku.
+*Batas keputusan.* Quilvian **tidak** menentukan hasil mana yang benar. Ia hanya mencatat histori
+hasil sebelumnya, pemeriksaan ulang, keputusan validator, serta waktu dan pelakunya. Model mayoritas
+"dua dari tiga" ditolak, karena menuntut sistem menghitung mayoritas — persis yang dilarang
+`INV-BD-013`.
+*Konsekuensi yang perlu ditegaskan.* Bila sampel ulang justru menghasilkan nilai ketiga yang berbeda
+dari kedua hasil yang bentrok, nilai itu tetap boleh menjadi hasil sah **asalkan** validator
+menyatakannya. Sistem tidak pernah memaksa hasil baru cocok dengan salah satu hasil lama.
+*Contoh.* Ny. R punya hasil tervalidasi O Positif dari Januari. Pada Mei muncul hasil tervalidasi
+baru A Positif, dan sejak itu Ny. R tidak punya golongan darah sah. Petugas mengambil sampel baru,
+mencatat pemeriksaan ulang, dan hasilnya tervalidasi B Positif. Validator menyatakan hasil ketiga ini
+yang berlaku. Sejak saat itu Ny. R punya satu golongan darah sah kembali; ketiga hasil — O Positif,
+A Positif, B Positif — tetap terbaca sebagai riwayat.
+
+**`DEC-BD-032` — Masa berlaku bukti kecocokan sebagai atribut per komponen.**
+Masa berlaku bukti kecocokan disimpan sebagai atribut pada katalog komponen darah (`BD-DOM-13`), satu
+nilai untuk tiap komponen. Sebagai gambaran, tiap komponen darah — misalnya PRC (*Packed Red Cells*,
+sel darah merah pekat), TC (*Thrombocyte Concentrate*, konsentrat trombosit), dan FFP (*Fresh Frozen
+Plasma*, plasma beku segar) — memikul atribut masa berlaku (nama kerja
+`CompatibilityEvidenceValidityHours`; nama teknis final dibekukan pada fase perancangan). Nilai jamnya
+**tidak** ditentukan sistem, melainkan oleh kebijakan klinis MMC. Quilvian hanya membaca dan
+menerapkan konfigurasi itu, dan **tidak** pernah menyimpan angka masa berlaku yang ditanam di kode.
+*Alasan pemilihan.* Setiap komponen darah dapat memiliki kebijakan klinis yang berbeda, sehingga
+konfigurasi per komponen lebih luwes daripada satu nilai global.
+*Batas keputusan.* Penambahan atribut ini **bukan** penambahan menu Setup baru. Ia tetap berada di
+dalam katalog komponen darah yang sudah disepakati `DEC-BD-024`, sehingga scope Setup tidak melebar.
+*Contoh.* PRC dikonfigurasi masa berlaku 48 jam, sedangkan TC dikonfigurasi 24 jam. Bukti kecocokan
+sebuah kantong PRC yang diperiksa Senin pukul 16.00 masih membuka gerbang sampai Rabu pukul 16.00,
+sedangkan kantong TC dengan bukti pada jam yang sama gerbangnya sudah tertutup sejak Selasa pukul
+16.00. Keduanya dibaca dari katalog, bukan dari angka yang ditanam di kode.
+
+**`DEC-BD-033` — Penyelesaian konflik di dalam workflow pemeriksaan golongan darah.**
+Konflik hasil golongan darah diselesaikan di dalam alur pemeriksaan golongan darah (`BD-AGG-04`),
+**bukan** lewat daftar kerja operasional terpisah. Layar pemeriksaan wajib menampilkan lima hal:
+histori hasil sebelumnya, status konflik, hasil pemeriksaan baru, status validasi, dan tindakan
+penyelesaian oleh validator. Penyelesaiannya mengikuti `DEC-BD-031`.
+*Batas keputusan.* Tidak ada daftar kerja operasional keempat yang dibuat, sehingga `DEC-BD-023` yang
+mengunci MVP pada tepat tiga daftar kerja tetap utuh. Pemantauan konflik ditopang dua hal: status
+konflik yang melekat pada pemeriksaan golongan darah, dan mekanisme *fail-closed* yang menahan
+pemakaian hasil konflik untuk proses Bank Darah — sehingga konflik tidak dapat terlewat diam-diam.
+*Contoh.* Saat petugas hendak mengalokasikan kantong untuk seorang pasien yang golongan darahnya
+sedang konflik, gerbang menolak sendiri karena pasien itu tidak punya golongan darah sah. Petugas
+membuka layar pemeriksaan pasien tersebut, melihat status konflik, mencatat pemeriksaan ulang, dan
+setelah hasil baru tervalidasi serta dinyatakan validator, alokasi dapat dilanjutkan.
+
+**`DEC-BD-034` — Batas tanggung jawab koreksi terhadap biaya.**
+Koreksi pencatatan Bank Darah **tidak** secara otomatis membalik atau mengubah fakta biaya. Batas
+tanggung jawabnya tegas. Bank Darah: mencatat kejadian koreksi, mempertahankan histori pemberian
+asli, menyediakan informasi koreksi bila diperlukan, dan **tidak** menentukan pembatalan atau koreksi
+biaya. BillingManagement: menjadi pemilik keputusan apakah fakta biaya perlu ditinjau, dan menentukan
+apakah charge tetap, dikoreksi, atau dibalik sesuai kebijakan Billing.
+*Batas keputusan.* Tidak ada asumsi bahwa setiap koreksi Bank Darah otomatis mengubah biaya. Biaya
+berasal dari **tindakan** (`DEC-BD-021`), bukan dari kantong, dan koreksi bersifat hanya-tambah
+(`DEC-BD-030`). Bila Billing membutuhkan informasi koreksi, Bank Darah menyediakan kejadian atau
+notifikasi domain sesuai kontrak yang disepakati pada `DEC-BD-016`. Keputusan peninjauan biaya untuk
+kasus tepi — koreksi yang menghapus satu-satunya pemberian di bawah sebuah tindakan — tetap Open
+Question milik Billing, menempel pada `DEC-BD-016`.
+*Contoh.* Sebuah tindakan Bank Darah selesai dengan satu kantong diberikan, dan fakta biayanya sudah
+terkirim ke Billing. Kemudian petugas membuat catatan koreksi yang menyatakan pemberian itu salah
+catat. Bank Darah tidak menarik atau membalik biaya apa pun; ia hanya menerbitkan kejadian koreksi.
+Apakah biaya tindakan itu ditinjau ulang diputuskan Billing, bukan Bank Darah.
+
 ---
 
 ## 9. Acceptance Criteria
@@ -606,6 +703,14 @@ tidak diam-diam kembali menjadi tersedia.
 | `AC-BD-048` | Pencatatan pemberian dicoba dihapus atau dianulir | Ditolak — satu-satunya jalur adalah catatan koreksi |
 | `AC-BD-049` | Catatan koreksi dipakai untuk memindahkan pemberian ke pasien lain | Ditolak — koreksi mencatat kekeliruan pencatatan, bukan memindahkan darah antarpasien |
 | `AC-BD-050` | Catatan koreksi dibuat oleh peran yang tidak berwenang | Ditolak |
+| `AC-BD-051` | Perbedaan hasil golongan darah dicoba diselesaikan tanpa mencatat pemeriksaan ulang baru | Ditolak — penyelesaian menuntut pemeriksaan ulang tervalidasi (`DEC-BD-031`) |
+| `AC-BD-052` | Pemeriksaan ulang tervalidasi tercatat dan validator menyatakan hasil baru yang berlaku | Berhasil; satu hasil sah kembali berlaku; histori seluruh hasil tetap terbaca |
+| `AC-BD-053` | Pemeriksaan ulang menghasilkan nilai ketiga yang berbeda dari dua hasil bentrok, validator menyatakannya berlaku | Diterima — sistem tidak memaksa hasil baru cocok dengan salah satu hasil lama |
+| `AC-BD-054` | Konflik dicoba ditutup dengan sistem memilih otomatis hasil "mayoritas" | Ditolak — sistem tidak menghitung mayoritas atau memutus klinis |
+| `AC-BD-055` | Komponen PRC dan TC dikonfigurasi masa berlaku bukti kecocokan berbeda | Kedua nilai diterapkan sesuai komponennya masing-masing, dibaca dari katalog |
+| `AC-BD-056` | Nilai masa berlaku dicoba ditanam di kode, bukan dibaca dari konfigurasi katalog | Ditolak — melanggar `INV-BD-023` |
+| `AC-BD-057` | Konflik golongan darah muncul; petugas mencari daftar kerja operasional keempat untuk menyelesaikannya | Tidak ada; penyelesaian dilakukan di dalam layar pemeriksaan golongan darah (`DEC-BD-033`) |
+| `AC-BD-058` | Koreksi pencatatan pemberian dibuat; sistem mencoba otomatis membalik fakta biaya tindakan | Ditolak — koreksi tidak mengubah biaya; keputusan peninjauan milik Billing (`DEC-BD-034`) |
 
 Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 
@@ -622,8 +727,7 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
 | `BD-DEP-008` | Bank Darah belum terdaftar di registry kepemilikan modul dan prefix | Pemilik registry engineering | `IMPLEMENTATION` backend |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan |
-| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan, dan apakah nilainya sama untuk semua komponen darah. Bersinggungan dengan `DEF-BD-003` | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian |
-| `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan, mengingat `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja | Pemilik proses BDRS | `DESIGN` satu layar saja |
+| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan per komponen. Struktur penyimpanannya ditutup `DEC-BD-032` (per komponen di katalog); yang tersisa hanya angka jamnya dari kebijakan klinis MMC | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
 | `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi |
 
 ### Pertanyaan yang sudah tertutup
@@ -633,6 +737,9 @@ Closure pass: `DEC-BD-013`, `DEC-BD-014`, `DEC-BD-015`, `DEC-BD-017` sampai `DEC
 `DEF-BD-001` dan `DEF-BD-002`.
 Architecture gap closure pass: `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-06`, ditutup berturut-turut
 oleh `DEC-BD-025` sampai `DEC-BD-030`.
+Architecture gap final closure pass: `ARCH-BD-GAP-07`, `ARCH-BD-GAP-08`, `ARCH-BD-GAP-09`, dan
+`OQ-BD-013`, ditutup oleh `DEC-BD-031` sampai `DEC-BD-034`. Bagian struktur `OQ-BD-012` ditutup
+`DEC-BD-032`; sisa angka jamnya tetap terbuka sebagai masukan konfigurasi.
 
 ---
 
@@ -653,8 +760,8 @@ pemberian.
 | `DEF-BD-003` | Aturan bukti kecocokan per komponen | Tidak. `IMPLEMENTATION` saja |
 | `DEF-BD-004` | Peran jalur darurat, validator, dan pembuat catatan koreksi | Tidak. `IMPLEMENTATION` saja |
 | `OQ-BD-010` | Kesediaan PMI menerima pengembalian | Tidak |
-| `OQ-BD-012` | Nilai jam masa berlaku bukti kecocokan | Tidak. `IMPLEMENTATION` saja |
-| `OQ-BD-013` | Tempat penyelesaian perbedaan hasil golongan darah | Ya, terbatas pada satu layar |
+| `OQ-BD-012` | Nilai jam masa berlaku bukti kecocokan per komponen (struktur ditutup `DEC-BD-032`) | Tidak. `IMPLEMENTATION` saja |
+| `OQ-BD-013` | Tempat penyelesaian perbedaan hasil golongan darah | **Ditutup** `DEC-BD-033` — di layar pemeriksaan golongan darah |
 | `OQ-BD-014` | Keadaan kantong setelah koreksi pemberian | Tidak. `IMPLEMENTATION` saja |
 | `BD-DEP-008` | Pendaftaran registry kepemilikan modul dan prefix | Tidak. `IMPLEMENTATION` backend |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang hilang | Tidak |
@@ -662,11 +769,20 @@ pemberian.
 **Yang sudah dikerjakan sesudah pass ini.** Pass ulang `hospital-domain-architect` dijalankan pada
 hari yang sama dan menghasilkan `03-domain-architecture.md` revisi 2, yang menyerap `DEC-BD-025`
 sampai `DEC-BD-030` ke dalam `BD-AGG-02`, `BD-AGG-03`, dan `BD-AGG-04`. Statusnya tetap
-`DOMAIN_ARCHITECTURE_PARTIAL`, tetapi yang berhenti tinggal satu perpindahan pada `BD-AGG-04` dan satu
-kumpulan atribut pada `BD-DOM-13`.
+`DOMAIN_ARCHITECTURE_PARTIAL`, dengan dua hal yang berhenti: satu perpindahan pada `BD-AGG-04` dan
+satu kumpulan atribut pada `BD-DOM-13`.
 
-Pass arsitektur itu memunculkan tiga gap baru yang **belum** masuk decision log ini dan perlu satu
-closure pass `grill-me` lanjutan: `ARCH-BD-GAP-07` arti "menyelesaikan perbedaan" hasil golongan
-darah · `ARCH-BD-GAP-08` tempat penyimpanan nilai masa berlaku bukti kecocokan, yang bersinggungan
-dengan `OQ-BD-012` dan `DEC-BD-024` · `ARCH-BD-GAP-09` perlakuan fakta biaya ketika koreksi
-menghapuskan satu-satunya pemberian di bawah sebuah tindakan.
+**Architecture gap final closure pass.** Pass arsitektur itu memunculkan tiga gap baru yang kini
+sudah **ditutup** pada sesi `grill-me` lanjutan ini: `ARCH-BD-GAP-07` ditutup `DEC-BD-031` (Model C
+pemeriksaan ulang), `ARCH-BD-GAP-08` ditutup `DEC-BD-032` (atribut masa berlaku per komponen), dan
+`ARCH-BD-GAP-09` ditutup `DEC-BD-034` (batas koreksi terhadap biaya). Ditambah `OQ-BD-013` ditutup
+`DEC-BD-033` (penyelesaian konflik di layar pemeriksaan). Dengan begitu **dua hal yang menahan
+`BD-AGG-04` dan `BD-DOM-13` sudah terselesaikan**: perpindahan penyelesaian konflik kini punya
+prasyarat yang dapat diuji, dan kumpulan atribut katalog komponen darah sudah boleh dibekukan.
+
+**Langkah berikutnya yang disarankan.** Jalankan ulang `hospital-domain-architect` untuk menyerap
+`DEC-BD-031` sampai `DEC-BD-034` dan menilai apakah slice yang di dalam scope naik ke
+`DOMAIN_ARCHITECTURE_READY`, lalu lanjut ke `design-business-module`. Perbarui juga
+`blueprint-manifest.md` dan `MODULE-STATUS.md` lewat `manage-module-blueprint` agar `decision_revision`
+dan daftar blocker ikut tersinkron. Yang tetap di luar scope dan tidak dibuka ulang: penyerahan biaya
+ke Billing (`DEC-BD-016`) dan mekanik label golongan darah (`OQ-BD-011`).

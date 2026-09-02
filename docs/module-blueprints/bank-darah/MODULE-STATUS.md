@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `6` |
+| Revision | `7` |
 | Module status | `PARTIAL` |
 | Current phase | `BD-PH-005` |
 | Last verified at | `belum pernah diverifikasi` |
@@ -13,20 +13,21 @@
 | Frontend source SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Terakhir diperbarui | `2026-09-02` |
 
-Modul tetap `PARTIAL`. Arsitektur domain sudah disusun dan menghasilkan
-`DOMAIN_ARCHITECTURE_PARTIAL`. Setelah architecture gap closure pass pada 2 September 2026, enam gap
-arsitektur `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-06` sudah tertutup oleh `DEC-BD-025` sampai
-`DEC-BD-030`, sehingga jalur pemberian darah, pengalihan kantong, pembatalan alokasi, koreksi
-pemberian, dan aturan hasil golongan darah yang berlaku sudah punya aturan bisnisnya.
+Modul tetap `PARTIAL`, tetapi arsitektur domainnya kini `DOMAIN_ARCHITECTURE_READY` untuk seluruh
+scope yang dinilai. Setelah architecture gap final closure pass pada 2 September 2026, sembilan gap
+arsitektur `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-09` sudah tertutup oleh `DEC-BD-025` sampai
+`DEC-BD-034`, sehingga jalur pemberian darah, pengalihan kantong, pembatalan alokasi, koreksi
+pemberian, aturan hasil golongan darah, penyelesaian konflik lewat pemeriksaan ulang, masa berlaku
+bukti kecocokan per komponen, dan batas koreksi terhadap biaya semuanya sudah punya aturan bisnisnya.
 
-Yang masih menahan tinggal penyerahan biaya ke Billing (`DEC-BD-016`) dan mekanik label golongan
-darah (`OQ-BD-011`). Tidak ada blocker yang menghentikan seluruh modul.
+Yang masih menahan tinggal dua slice yang memang **di luar** scope yang dinilai: penyerahan biaya ke
+Billing (`DEC-BD-016`) dan mekanik label golongan darah (`OQ-BD-011`). Tidak ada blocker yang
+menghentikan slice yang sudah siap, dan tidak ada gap arsitektur yang tersisa.
 
-`03-domain-architecture.md` sudah naik ke revisi 2 dan **sudah** menyerap keenam keputusan itu.
-Statusnya tetap `DOMAIN_ARCHITECTURE_PARTIAL`, tetapi isinya berubah besar: yang berhenti bukan lagi
-dua slice utuh yang menyangkut keselamatan pasien, melainkan satu perpindahan pada `BD-AGG-04` dan
-satu kumpulan atribut pada `BD-DOM-13`. Jalur pemberian, pengalihan, pembatalan alokasi, dan koreksi
-pemberian kini boleh diserahkan ke penyusunan blueprint.
+`03-domain-architecture.md` sudah naik ke revisi 3 dan **sudah** menyerap kesepuluh keputusan closure.
+Statusnya kini `DOMAIN_ARCHITECTURE_READY`: dua potongan yang dulu menahan revisi 2 — satu perpindahan
+pada `BD-AGG-04` dan satu kumpulan atribut pada `BD-DOM-13` — sudah tertutup oleh `DEC-BD-031` dan
+`DEC-BD-032`. Seluruh slice yang dinilai boleh diserahkan ke penyusunan blueprint.
 
 ## Fase modul
 
@@ -35,8 +36,8 @@ pemberian kini boleh diserahkan ke penyusunan blueprint.
 | `BD-PH-001` | Discovery dan Requirement | `DONE` | Scope pass dan closure pass selesai: `SCOPE-BD-001` dan `DEC-BD-001` sampai `DEC-BD-024`. |
 | `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan berbukti pada `02-existing-capability-map.md`. Tidak ada lagi baris berstatus `Conflict`. |
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | Penilaian per slice pada `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. |
-| `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` sebagian | Dijalankan dan menghasilkan `DOMAIN_ARCHITECTURE_PARTIAL` pada `03-domain-architecture.md`. Lima aggregate, dua puluh konsep domain, sembilan bounded context. Enam gap arsitektur baru muncul. |
-| `BD-PH-005` | Penyusunan blueprint target | `READY` | Boleh berjalan untuk slice arsitektur yang dinyatakan siap pada handoff `03-domain-architecture.md`. |
+| `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Dijalankan sampai revisi 3 dan menghasilkan `DOMAIN_ARCHITECTURE_READY` pada `03-domain-architecture.md`. Lima aggregate, dua puluh tiga konsep domain, sembilan bounded context. Seluruh sembilan gap arsitektur sudah tertutup. |
+| `BD-PH-005` | Penyusunan blueprint target | `READY` | Boleh berjalan untuk seluruh scope yang dinyatakan `READY` pada handoff `03-domain-architecture.md` revisi 3. |
 | `BD-PH-006` | Perencanaan delivery | `NOT_STARTED` | Menunggu `BD-PH-005`. |
 | `BD-PH-007` | Implementasi backend | `BLOCKED` | Terhalang `BD-DEP-008`, prefix modul belum terdaftar di registry. |
 | `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Menunggu kontrak API dibekukan. |
@@ -46,7 +47,7 @@ pemberian kini boleh diserahkan ke penyusunan blueprint.
 
 | Fase selesai | Fase siap | Fase terblokir |
 | --- | --- | --- |
-| `BD-PH-001`, `BD-PH-002`, `BD-PH-003`, `BD-PH-004` sebagian | `BD-PH-005` | `BD-PH-007` |
+| `BD-PH-001`, `BD-PH-002`, `BD-PH-003`, `BD-PH-004` | `BD-PH-005` | `BD-PH-007` |
 
 ## Keadaan delivery
 
@@ -65,12 +66,8 @@ pemberian kini boleh diserahkan ke penyusunan blueprint.
 | `OQ-BD-010` | Apakah PMI menerima pengembalian kantong yang sudah keluar. Fakta di luar sistem. | Pemilik proses BDRS | Kegunaan pilihan `RETURNED_TO_PROVIDER` | Rancangannya tetap dibuat |
 | `BD-DEP-008` | Bank Darah belum terdaftar di `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Pembuatan entity operasional baru `BLOCKED` menurut `QBE-MOD-002` dan `QBE-MOD-003`. | Pemilik registry engineering | `BD-PH-007` | Seluruh fase perancangan tetap jalan |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository. | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan | Perancangan tetap jalan |
-| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan, dan apakah nilainya sama untuk semua komponen darah. Bentuk aturannya sudah dikunci `DEC-BD-027`; yang belum ada hanya angkanya. | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian | Seluruh perancangan gerbang pemberian tetap jalan; nilainya datang dari konfigurasi |
-| `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan. `DEC-BD-026` menuntut ada tempatnya, sedangkan `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja. | Pemilik proses BDRS | `DESIGN` satu layar saja | Usulan yang tidak memperluas scope: diselesaikan di dalam layar pemeriksaan golongan darah, bukan daftar kerja keempat |
+| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan per komponen. Struktur penyimpanannya sudah ditutup `DEC-BD-032` (atribut per komponen di katalog); yang belum ada hanya angkanya. | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian | Seluruh perancangan gerbang pemberian tetap jalan; nilainya datang dari konfigurasi katalog |
 | `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi. | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi | Konsep catatan koreksi `DEC-BD-030` tetap dapat dirancang penuh |
-| `ARCH-BD-GAP-07` | Apa artinya "menyelesaikan perbedaan" hasil golongan darah — validator menyatakan salah satu hasil tidak sah, atau wajib ada pemeriksaan ketiga sebagai penengah. | Pemilik proses klinis | Satu perpindahan pada `BD-AGG-04` | Deteksi dan penahanan hasil bertentangan sudah lengkap dan tetap dapat dirancang |
-| `ARCH-BD-GAP-08` | Di mana nilai masa berlaku bukti kecocokan disimpan. Bila per komponen, ia menumpang pada katalog komponen darah dan Setup tidak melebar; bila satu angka global, Setup melebar melampaui `DEC-BD-024`. | Pemilik proses klinis bersama BDRS | Pembekuan kumpulan atribut `BD-DOM-13` | Katalog komponen darah tetap dapat dirancang sebagai konsep. Sebaiknya dijawab bersama `OQ-BD-012` |
-| `ARCH-BD-GAP-09` | Bila koreksi menyatakan satu-satunya pemberian di bawah sebuah tindakan tidak pernah terjadi, apakah fakta biaya yang terlanjur terkirim perlu ditinjau ulang. | Pemilik BillingManagement | Menempel pada kontrak yang memang sudah tertahan `DEC-BD-016` | Tidak menahan apa pun yang baru |
 
 ## Blocker yang sudah ditutup
 
@@ -92,19 +89,24 @@ pemberian kini boleh diserahkan ke penyusunan blueprint.
 | Gugurnya bukti kecocokan saat pengalihan (`ARCH-BD-GAP-04`) | `DEC-BD-028` |
 | Pembatalan alokasi sebelum pemberian (`ARCH-BD-GAP-05`) | `DEC-BD-029` |
 | Koreksi pencatatan pemberian (`ARCH-BD-GAP-06`) | `DEC-BD-030` |
+| Arti "menyelesaikan perbedaan" hasil golongan darah (`ARCH-BD-GAP-07`) | `DEC-BD-031` |
+| Tempat menyimpan masa berlaku bukti kecocokan (`ARCH-BD-GAP-08`) | `DEC-BD-032` |
+| Perlakuan fakta biaya saat koreksi menghapus satu-satunya pemberian (`ARCH-BD-GAP-09`) | `DEC-BD-034` |
+| Tempat penyelesaian perbedaan hasil golongan darah (`OQ-BD-013`) | `DEC-BD-033` |
 
 ## Artefak arsitektur
 
-`03-domain-architecture.md` revisi 2 memuat sembilan bounded context, **dua puluh tiga** konsep
+`03-domain-architecture.md` revisi 3 memuat sembilan bounded context, **dua puluh tiga** konsep
 domain, lima aggregate, **empat** invariant lintas aggregate, **tiga** posisi arsitektur, model
 relasi, empat model lifecycle, tanggung jawab hak akses, model audit, model integrasi, dampak billing,
-dampak keselamatan klinis, peninjauan ulang batas aggregate dan batas ownership, serta tiga gap
-arsitektur baru.
+dampak keselamatan klinis, peninjauan ulang batas aggregate dan batas ownership, serta catatan
+penutupan seluruh gap arsitektur.
 
-**Yang berubah pada revisi 2.** Enam gap revisi 1 diserap dan ditutup. Lahir tiga konsep domain baru
-— `BD-DOM-21` golongan darah sah pasien, `BD-DOM-22` penyelesaian perbedaan hasil, `BD-DOM-23`
-catatan koreksi pemberian — ditambah dua invariant lintas aggregate `BD-XINV-03` dan `BD-XINV-04`.
-Tidak ada satu pun batas aggregate maupun batas ownership yang berpindah.
+**Yang berubah pada revisi 3.** Empat keputusan final `DEC-BD-031` sampai `DEC-BD-034` diserap, dan
+ketiga gap yang dibuka revisi 2 (`ARCH-BD-GAP-07`, `08`, `09`) ditutup. Tidak ada konsep domain baru;
+empat keputusan itu hanya mempertajam `BD-DOM-22` (wajib pemeriksaan ulang), `BD-DOM-13` (atribut masa
+berlaku per komponen), lifecycle `BD-AGG-04`, dan batas terhadap Billing. Tidak ada satu pun batas
+aggregate maupun batas ownership yang berpindah, dan status naik ke `DOMAIN_ARCHITECTURE_READY`.
 
 ## Bukti yang sudah usang
 
@@ -114,25 +116,26 @@ Tidak ada satu pun batas aggregate maupun batas ownership yang berpindah.
 | `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `9522caa` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium digantikan `DEC-BD-018`. |
 
 `02-existing-capability-map.md` terikat pada backend `9522caa` dan frontend `afbb8ab`. Backend kini
-berada di `9dc7637`. Pemeriksaan dampak sudah dijalankan pada 2 September 2026: seluruh perbedaan
-antara `9522caa` dan `9dc7637` hanya berisi sepuluh dokumen blueprint Bank Darah itu sendiri, nol
-berkas source aplikasi. Peta kemampuan **tidak ditandai** `STALE`, dan `BD-CAP-001` sampai
-`BD-CAP-024` tetap sahih. Frontend `afbb8ab` tidak berubah.
+berada di `db08c14` (lewat `9dc7637`). Pemeriksaan dampak sudah dijalankan pada 2 September 2026:
+seluruh perbedaan antara `9522caa` dan `db08c14` hanya berisi dokumen blueprint Bank Darah itu
+sendiri, nol berkas source aplikasi. Peta kemampuan **tidak ditandai** `STALE`, dan `BD-CAP-001`
+sampai `BD-CAP-024` tetap sahih. Frontend `afbb8ab` tidak berubah.
 
 ## Task berikutnya yang disarankan
 
-Pass ulang `hospital-domain-architect` sudah dijalankan pada 2 September 2026 dan menghasilkan
-revisi 2. Dua langkah berikutnya berjalan berdampingan:
+Architecture gap final closure pass (`grill-me`) dan pass ulang `hospital-domain-architect` revisi 3
+sudah dijalankan pada 2 September 2026. Seluruh gap arsitektur tertutup dan status arsitektur
+`DOMAIN_ARCHITECTURE_READY`. Langkah berikutnya:
 
-1. **`design-business-module`** untuk sembilan slice yang dinyatakan siap pada handoff
-   `03-domain-architecture.md` revisi 2, termasuk `BD-AGG-03` yang pada revisi 1 berhenti separuh.
-2. **`grill-me`** untuk tiga gap arsitektur baru `ARCH-BD-GAP-07`, `ARCH-BD-GAP-08`, dan
-   `ARCH-BD-GAP-09`, sebaiknya digabung dengan `OQ-BD-012` dan `OQ-BD-013`. Khususnya
-   `ARCH-BD-GAP-08` dan `OQ-BD-012` sebaiknya dijawab dalam satu tarikan, karena keduanya menanyakan
-   hal yang sama dari dua sisi: berapa nilainya, dan di mana ia disimpan.
+1. **`design-business-module`** untuk seluruh scope yang dinyatakan `READY` pada handoff
+   `03-domain-architecture.md` revisi 3 — membekukan arsitektur BE/FE, kamus data, kontrak API,
+   state-transition, dan PRD ke MVP.
+2. **`grill-me`** hanya bila hendak membuka dua slice yang masih di luar scope: penyerahan biaya ke
+   Billing (`DEC-BD-016`, pemilik BillingManagement) dan mekanik label golongan darah (`OQ-BD-011`,
+   pemilik proses klinis). Keduanya tidak menahan slice yang sudah siap.
 
-`trace-existing-capabilities` **tidak** perlu diulang. Peta kemampuan masih sahih dan revisi 2 tidak
-memunculkan kebutuhan bukti implementasi baru.
+`trace-existing-capabilities` **tidak** perlu diulang. Peta kemampuan masih sahih dan kesepuluh
+keputusan closure tidak memunculkan kebutuhan bukti implementasi baru.
 
 ## Kemajuan delivery
 
