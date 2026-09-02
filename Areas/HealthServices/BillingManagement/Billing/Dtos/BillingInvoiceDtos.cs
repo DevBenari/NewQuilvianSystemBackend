@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -127,6 +127,20 @@ public sealed class VoidInvoiceItemRequest
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
+}
+
+// Pilihan kunjungan aktif untuk layar Buat Invoice Manual. Tanpa ini penguji harus menyalin GUID
+// encounter dari database - lihat catatan pada create-manual-invoice-view.
+public sealed class ActiveEncounterOptionResponse
+{
+    public Guid Id { get; set; }
+    public string EncounterNumber { get; set; } = string.Empty;
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string EncounterType { get; set; } = string.Empty;
+    public string EncounterStatus { get; set; } = string.Empty;
+    public DateTime EncounterDate { get; set; }
+    public bool HasInvoice { get; set; }
 }
 
 public sealed class CalculationResponse
