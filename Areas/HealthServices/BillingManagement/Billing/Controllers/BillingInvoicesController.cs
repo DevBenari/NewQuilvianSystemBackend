@@ -117,6 +117,39 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    // Rekap tagihan satu kunjungan per kategori biaya. Angkanya dihitung backend dari mesin
+    // kalkulasi yang sama dengan Menu Pembayaran, bukan dijumlah ulang di client.
+    [HttpGet("encounters/{encounterId:guid}/charge-summary")]
+    [AccessAction("Read", "Read Encounter Charge Summary", AccessType = AccessTypes.Read, SortOrder = 12)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<EncounterChargeSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetChargeSummaryByEncounter(
+        Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetChargeSummaryByEncounterAsync(
+                encounterId, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<EncounterChargeSummaryResponse>.Ok(
+                result, "Rekap tagihan kunjungan berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("other-charge-types")]
     [AccessAction("Read", "Read Other Charge Type", AccessType = AccessTypes.Read, SortOrder = 10)]
     [AccessPermission("BillingInvoice", "Read")]

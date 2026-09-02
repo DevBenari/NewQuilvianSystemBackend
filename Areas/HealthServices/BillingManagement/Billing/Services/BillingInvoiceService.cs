@@ -51,27 +51,46 @@ public sealed class BillingInvoiceService
             var serviceType = request.ServiceType.Trim().ToUpperInvariant();
             query = query.Where(x => x.ServiceType == serviceType);
         }
+        // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
+        // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
+        // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
+        var joined =
+            from invoice in query
+            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+                on invoice.EncounterId equals encounter.Id into encounterGroup
+            from encounter in encounterGroup.DefaultIfEmpty()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id into patientGroup
+            from patient in patientGroup.DefaultIfEmpty()
+            select new { invoice, patient };
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
-            query = query.Where(x => x.InvoiceNumber.ToUpper().Contains(search));
+            joined = joined.Where(x =>
+                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
+                (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
+                (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
         }
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query.OrderByDescending(x => x.CreateDateTime)
+
+        var total = await joined.CountAsync(cancellationToken);
+        var items = await joined.OrderByDescending(x => x.invoice.CreateDateTime)
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
             .Select(x => new InvoiceSummaryResponse
             {
-                Id = x.Id,
-                EncounterId = x.EncounterId,
-                InvoiceNumber = x.InvoiceNumber,
-                ServiceType = x.ServiceType,
-                Status = x.Status,
-                CurrentCalculationVersion = x.CurrentCalculationVersion,
-                RunningGrossAmount = x.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
+                Id = x.invoice.Id,
+                EncounterId = x.invoice.EncounterId,
+                InvoiceNumber = x.invoice.InvoiceNumber,
+                PatientName = x.patient != null ? x.patient.FullName : string.Empty,
+                MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
+                ServiceType = x.invoice.ServiceType,
+                Status = x.invoice.Status,
+                CurrentCalculationVersion = x.invoice.CurrentCalculationVersion,
+                RunningGrossAmount = x.invoice.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
                     .Sum(i => i.Quantity * i.UnitPrice),
-                ActiveItemCount = x.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
-                CreateDateTime = x.CreateDateTime,
-                RowVersion = x.RowVersion
+                ActiveItemCount = x.invoice.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
+                CreateDateTime = x.invoice.CreateDateTime,
+                RowVersion = x.invoice.RowVersion
             }).ToListAsync(cancellationToken);
         return new PagedResult<InvoiceSummaryResponse>
         {
@@ -94,6 +113,130 @@ public sealed class BillingInvoiceService
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
         return response;
+    }
+
+    public async Task<EncounterChargeSummaryResponse> GetChargeSummaryByEncounterAsync(
+        Guid encounterId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingInvoiceValidationException("EncounterId wajib diisi.");
+
+        var invoices = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .Select(x => new
+            {
+                x.Id,
+                x.InvoiceNumber,
+                x.ServiceType,
+                x.Status,
+                x.CurrentCalculationVersion
+            })
+            .ToListAsync(cancellationToken);
+
+        if (invoices.Count == 0)
+            throw new KeyNotFoundException("Belum ada invoice untuk kunjungan ini.");
+
+        var invoice = invoices[0];
+
+        // Sumber angkanya sama dengan yang dipakai Menu Pembayaran, sehingga rekap per kategori
+        // dan total di layar tidak mungkin berbeda.
+        var calculation = await _calculationService.PreviewCalculationAsync(
+            invoice.Id, actorUserId, cancellationToken);
+        var breakdown = calculation.Breakdown;
+
+        var grouped = breakdown.Items
+            .GroupBy(x => new { x.CategoryId, x.CategoryCode })
+            .Select(group => new ChargeCategorySummaryResponse
+            {
+                CategoryId = group.Key.CategoryId,
+                CategoryCode = group.Key.CategoryCode,
+                Kind = ChargeSummaryKinds.Item,
+                ItemCount = group.Count(),
+                GrossAmount = group.Sum(x => x.GrossAmount),
+                DiscountAmount = group.Sum(x => x.ItemDiscount),
+                TaxAmount = group.Sum(x => x.TaxAmount),
+                NetAmount = group.Sum(x => x.NetAmount)
+            })
+            .ToList();
+
+        // Nama kategori tidak dibawa CalculationItemResponse (hanya kode), sedangkan layar
+        // membutuhkannya - jadi diambil sekali untuk seluruh kategori yang muncul.
+        var categoryIds = grouped.Where(x => x.CategoryId.HasValue)
+            .Select(x => x.CategoryId!.Value).Distinct().ToList();
+        var categoryNames = categoryIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.Set<MstBillingItemCategory>().AsNoTracking()
+                .Where(x => categoryIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.BillingItemCategoryName, cancellationToken);
+
+        foreach (var row in grouped)
+        {
+            row.CategoryName = row.CategoryId.HasValue
+                && categoryNames.TryGetValue(row.CategoryId.Value, out var name)
+                    ? name
+                    : row.CategoryCode;
+        }
+
+        var categories = grouped
+            .OrderBy(x => x.CategoryName)
+            .ToList();
+
+        var administrationFee = breakdown.AdministrationFee.AppliedAmount;
+        if (administrationFee != 0)
+        {
+            categories.Add(new ChargeCategorySummaryResponse
+            {
+                CategoryCode = "ADMINISTRATION_FEE",
+                CategoryName = "Biaya Administrasi",
+                Kind = ChargeSummaryKinds.AdministrationFee,
+                ItemCount = 1,
+                GrossAmount = administrationFee,
+                NetAmount = administrationFee
+            });
+        }
+
+        var roomCharge = breakdown.RoomCharge.AppliedAmount;
+        if (roomCharge != 0)
+        {
+            categories.Add(new ChargeCategorySummaryResponse
+            {
+                CategoryCode = "ROOM_CHARGE",
+                CategoryName = "Biaya Kamar",
+                Kind = ChargeSummaryKinds.RoomCharge,
+                ItemCount = breakdown.RoomCharge.Segments.Count,
+                GrossAmount = roomCharge,
+                NetAmount = roomCharge
+            });
+        }
+
+        return new EncounterChargeSummaryResponse
+        {
+            EncounterId = encounterId,
+            InvoiceId = invoice.Id,
+            InvoiceNumber = invoice.InvoiceNumber,
+            ServiceType = invoice.ServiceType,
+            Status = invoice.Status,
+            CurrentCalculationVersion = invoice.CurrentCalculationVersion,
+            InvoiceCount = invoices.Count,
+            Categories = categories,
+            Totals = new ChargeSummaryTotalResponse
+            {
+                GrossAmount = calculation.GrossAmount,
+                AdministrationFeeAmount = calculation.AdministrationFeeAmount,
+                RoomChargeAmount = calculation.RoomChargeAmount,
+                ItemDiscount = calculation.ItemDiscount,
+                PromoDiscount = calculation.TotalDiscount - calculation.ItemDiscount,
+                TotalDiscount = calculation.TotalDiscount,
+                TaxAmount = calculation.TaxAmount,
+                PatientAmount = calculation.PatientAmount,
+                PrimaryAmount = calculation.PrimaryAmount,
+                ExcessAmount = calculation.ExcessAmount,
+                UnresolvedCoverageAmount = calculation.UnresolvedCoverageAmount
+            }
+        };
     }
 
     public static List<OtherChargeTypeOptionResponse> GetOtherChargeTypeOptions() =>

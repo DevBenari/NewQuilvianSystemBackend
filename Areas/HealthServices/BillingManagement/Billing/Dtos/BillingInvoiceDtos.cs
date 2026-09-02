@@ -109,6 +109,11 @@ public class InvoiceSummaryResponse
     public Guid Id { get; set; }
     public Guid EncounterId { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
+
+    // Identitas pasien ikut dibawa daftar invoice. Nomor rekam medis disertakan bersama namanya
+    // karena nama pasien tidak unik - di daftar tagihan, salah orang berarti salah tagih.
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
     public string ServiceType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int CurrentCalculationVersion { get; set; }
@@ -197,6 +202,72 @@ public sealed class ActiveEncounterOptionResponse
     public string EncounterStatus { get; set; } = string.Empty;
     public DateTime EncounterDate { get; set; }
     public bool HasInvoice { get; set; }
+}
+
+// Rekap tagihan satu kunjungan, dikelompokkan per kategori biaya.
+//
+// Angkanya diambil dari kalkulasi pratinjau, bukan dari penjumlahan item mentah: diskon per item,
+// pajak, biaya admin, dan room charge semuanya lahir dari mesin kalkulasi. Kalau direkap dari
+// Quantity x UnitPrice saja, totalnya tidak akan pernah sama dengan "Harus Dibayar" yang dilihat
+// kasir - dan rekap yang tidak menjumlah ke total adalah rekap yang menyesatkan.
+public sealed class ChargeCategorySummaryResponse
+{
+    public Guid? CategoryId { get; set; }
+    public string CategoryCode { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+
+    // ITEM = kategori dari item invoice. ADMINISTRATION_FEE dan ROOM_CHARGE adalah komponen
+    // hitungan, bukan item, sehingga tidak punya kategori master - keduanya dimunculkan sebagai
+    // baris tersendiri supaya jumlah seluruh baris tetap rekonsiliasi dengan total invoice.
+    public string Kind { get; set; } = ChargeSummaryKinds.Item;
+
+    public int ItemCount { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal NetAmount { get; set; }
+}
+
+public static class ChargeSummaryKinds
+{
+    public const string Item = "ITEM";
+    public const string AdministrationFee = "ADMINISTRATION_FEE";
+    public const string RoomCharge = "ROOM_CHARGE";
+}
+
+public sealed class ChargeSummaryTotalResponse
+{
+    public decimal GrossAmount { get; set; }
+    public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
+    public decimal ItemDiscount { get; set; }
+
+    // Diskon promo total tidak menempel pada item manapun, jadi tidak muncul di baris kategori.
+    public decimal PromoDiscount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal TaxAmount { get; set; }
+
+    public decimal PatientAmount { get; set; }
+    public decimal PrimaryAmount { get; set; }
+    public decimal ExcessAmount { get; set; }
+    public decimal UnresolvedCoverageAmount { get; set; }
+}
+
+public sealed class EncounterChargeSummaryResponse
+{
+    public Guid EncounterId { get; set; }
+    public Guid InvoiceId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public string ServiceType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int CurrentCalculationVersion { get; set; }
+
+    // Kode memperlakukan satu kunjungan = satu invoice, tetapi skema tidak memaksakannya. Nilai
+    // di atas 1 berarti ada anomali data dan rekap ini hanya mewakili invoice terbaru.
+    public int InvoiceCount { get; set; }
+
+    public List<ChargeCategorySummaryResponse> Categories { get; set; } = [];
+    public ChargeSummaryTotalResponse Totals { get; set; } = new();
 }
 
 public sealed class CalculationResponse
