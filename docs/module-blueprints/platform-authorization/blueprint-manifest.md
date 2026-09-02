@@ -166,4 +166,5 @@ Ditetapkan pemilik sistem 2 September 2026, berdasarkan audit `BE-SEC-002`.
 | `evidence/01-be-sec-002-audit-architecture.md` | Audit dan arsitektur `BE-SEC-002` — **architecture evidence**, bukan laporan task |
 | `evidence/02-be-sec-002-decision-closure.md` | Decision closure dan epic decomposition — **architecture evidence** |
 | `evidence/03-be-sec-003-pre-implementation-impact.md` | Impact report `BE-SEC-003` beserta hasil query read-only database development |
+| `evidence/04-be-sec-003-implementation-plan.md` | Rencana implementasi `BE-SEC-003` — split matrix, audit lifecycle `AccessMenuSeeder`, deployment order, rollback, test plan, database impact, known limitations. **Checkpoint tracked sebelum implementasi** |
 | `task/report/backend/BE-SEC-001.md` | Laporan tracked Phase A0 |

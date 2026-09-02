@@ -29,15 +29,16 @@ tertanggal 2 September 2026. Kolom bukti menunjuk artefak yang benar-benar dapat
 
 | Requirement | Keputusan owner | Backend | Frontend | Bukti target | Status coverage |
 |---|---|---|---|---|---|
-| `SEC-REQ-013` — Identitas technical permission harus cukup granular sehingga satu izin tidak membuka endpoint bermakna bisnis berbeda | `D-ARCH-3`, `D-ARCH-6`, `D-ARCH-7` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian C–F; `evidence/03` matriks pemecahan 7 → 28 | Planned |
-| `SEC-REQ-014` — Pemecahan identitas tidak boleh mengubah kemampuan efektif satu pun Departemen × Posisi | `D-ARCH-2` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/03` legacy parity matrix; test parity per Departemen × Posisi | Planned |
+| `SEC-REQ-013` — Identitas technical permission harus cukup granular sehingga satu izin tidak membuka endpoint bermakna bisnis berbeda | `D-ARCH-3`, `D-ARCH-6`, `D-ARCH-7` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian C–F; `evidence/03` matriks pemecahan 7 → 28; **`evidence/04` bagian C** — split matrix lengkap per endpoint beserta reason, sensitivity, dan migration mapping | Planning complete — implementasi `Planned` |
+| `SEC-REQ-014` — Pemecahan identitas tidak boleh mengubah kemampuan efektif satu pun Departemen × Posisi | `D-ARCH-2` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/03` legacy parity matrix; **`evidence/04` bagian D** (strategi parity), **bagian H.2** (test parity), **bagian J.3** (dampak pengguna) | Planning complete — implementasi `Planned` |
 | `SEC-REQ-015` — Setiap kemampuan bisnis harus punya kode stabil yang tidak terikat nama class, route, maupun identifier teknis | `D-ARCH-1` | `BE-SEC-004`, `BE-SEC-005` | `NOT APPLICABLE` | `evidence/01` bagian I; `evidence/02` bagian B | Planned |
 | `SEC-REQ-016` — Satu Business Permission memetakan ke satu atau lebih technical permission, dan pemetaan itu satu-satunya tempat nama teknis muncul | `D-ARCH-1` | `BE-SEC-005` | `NOT APPLICABLE` | `SecBusinessPermissionMapping`; test pemetaan yatim | Planned |
 | `SEC-REQ-017` — Access Profile adalah bundel yang dapat dipakai ulang; satu Departemen + Posisi boleh punya lebih dari satu, dan izin efektifnya adalah UNION | `D-ARCH-5` | `BE-SEC-006` | `NOT APPLICABLE` | `SecAccessProfile`; `SecOrganizationAccessProfile`; test UNION | Planned |
 | `SEC-REQ-018` — Override langsung hanya bersifat ADDITIVE GRANT; tidak ada subtractive DENY dan tidak ada DENY precedence | `D-ARCH-5` | `BE-SEC-006`, `BE-SEC-008` | `FE-SEC-002` | `SecOrganizationPermissionGrant` tanpa kolom DENY; test anti-DENY | Planned |
 | `SEC-REQ-019` — Izin efektif adalah gabungan sumber legacy dan sumber Business Permission, dan sumber baru dapat dimatikan sehingga hasilnya kembali persis ke baseline `BE-SEC-001` | `D-ARCH-1`, `D-ARCH-2` | `BE-SEC-007`, `BE-SEC-008` | `NOT APPLICABLE` | `BusinessPermissionResolutionService`; test `DisablingProfileSourceReproducesA0Baseline` | Planned |
 | `SEC-REQ-020` — Frontend memperoleh kode Business Permission stabil dan tidak pernah membaca `ControllerName`, `ActionName`, `SysControllerAccessId`, maupun `SysActionAccessId` | `D-ARCH-1` | `BE-SEC-010` | `FE-SEC-001`, `FE-SEC-002`, `FE-SEC-003` | `GET /api/v1/access/me`; test kontrak response | Planned |
-| `SEC-REQ-021` — Endpoint audio panggilan antrean harus terlindungi tanpa `AllowAnonymous`, dan mengizinkan actor manusia maupun perangkat display lewat semantik OR yang benar-benar OR | `D-ARCH-8`, `O-1` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian J; `evidence/03` bagian 8 (audit semantik OR, rancangan filter, dampak) dan 14.1 (keputusan `O-1` beserta delapan Departemen × Posisi penerima) | Design closed — implementasi `Planned` |
+| `SEC-REQ-021` — Endpoint audio panggilan antrean harus terlindungi tanpa `AllowAnonymous`, dan mengizinkan actor manusia maupun perangkat display lewat semantik OR yang benar-benar OR | `D-ARCH-8`, `D-ARCH-10`, `O-1` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian J; `evidence/03` bagian 8 dan 14.1; **`evidence/04` bagian C.8** (identitas, otorisasi OR, cara pendaftaran tanpa mengubah descriptor) dan **bagian H.5** (test OR) | Planning complete — implementasi `Planned` |
+| `SEC-REQ-024` — Pemecahan identitas tidak boleh menimbulkan window ketika identitas lama sudah ditutup tetapi identitas baru belum diberikan | `D-ARCH-2` | `BE-SEC-003` | `NOT APPLICABLE` | **`evidence/04` bagian E** — audit lifecycle `AccessMenuSeeder` sampai urutan `SaveChanges`, dua jebakan (pre-seeding dan deployment tumpang tindih), rancangan `PermissionSplitExpansion` sebagai langkah startup terpisah; **bagian F** deployment order 20 langkah | Planning complete — implementasi `Planned` |
 | `SEC-REQ-022` — Kemampuan yang endpoint-nya tidak ada tidak boleh dipetakan ke technical permission apa pun | `D-ARCH-9` | `BE-SEC-005` | Task frontend terpisah | BP-19 terdaftar `BLOCKED` dengan nol pemetaan; fail closed secara konstruksi | Planned |
 | `SEC-REQ-023` — Kemampuan sensitif tidak diberikan otomatis kepada profil mana pun sebelum Departemen × Posisi penerimanya ditetapkan | `D-ARCH-6` | `BE-SEC-006` | `NOT APPLICABLE` | Test: `procedure.approve` tidak ada di `DOCTOR_OUTPATIENT_BASE` | Planned |
 
@@ -60,14 +61,25 @@ teknis yang belum selesai:
 
 ### Business Permission dan Access Profile
 
-`SEC-REQ-013` sampai `SEC-REQ-023` **belum ada satu pun yang diimplementasikan**. Yang sudah selesai
-adalah desain dan penutupan keputusannya:
+`SEC-REQ-013` sampai `SEC-REQ-024` **belum ada satu pun yang diimplementasikan**. Yang sudah selesai
+adalah desain, penutupan keputusan, dan — untuk `BE-SEC-003` — perencanaan implementasinya:
 
-| Requirement | Desain | Keputusan owner | Implementasi |
-| --- | --- | --- | --- |
-| `SEC-REQ-013`, `SEC-REQ-014` | Selesai — `evidence/03` bagian 5 dan 11 | Tertutup | `BE-SEC-003`, belum dimulai |
-| `SEC-REQ-021` | Selesai — `evidence/03` bagian 8 | Tertutup (`O-1`) | `BE-SEC-003`, belum dimulai |
-| `SEC-REQ-015` … `SEC-REQ-020`, `SEC-REQ-022`, `SEC-REQ-023` | Selesai — `evidence/01` dan `evidence/02` | Tertutup | `BE-SEC-004` dan sesudahnya, belum dimulai |
+| Requirement | Desain | Keputusan owner | Planning | Implementasi |
+| --- | --- | --- | --- | --- |
+| `SEC-REQ-013`, `SEC-REQ-014`, `SEC-REQ-021`, `SEC-REQ-024` | Selesai | Tertutup | **Selesai — `evidence/04`** | `BE-SEC-003`, belum dimulai |
+| `SEC-REQ-015` … `SEC-REQ-020`, `SEC-REQ-022`, `SEC-REQ-023` | Selesai — `evidence/01`, `evidence/02` | Tertutup | Belum | `BE-SEC-004` dan sesudahnya, belum dimulai |
+
+### Implementation readiness — `BE-SEC-003`
+
+| Aspek | Status |
+| --- | --- |
+| Dependency `BE-SEC-002` | **`CLOSED`** — arsitektur, klasifikasi 19 Business Permission, dan keputusan `D-ARCH-1`…`D-ARCH-10` berasal dari sana |
+| Impact evidence | **Selesai** — `evidence/03`, query read-only database development |
+| Planning evidence | **Selesai** — `evidence/04`, tracked sebagai checkpoint sebelum implementasi |
+| Keputusan owner yang menahan development | **Nol** |
+| Keputusan owner yang menahan lingkungan lain | **Satu** — `P-1`, topologi deployment |
+| Wewenang migrasi data development | `CONDITIONALLY APPROVED` |
+| Status | **`READY FOR IMPLEMENTATION`** untuk development |
 
 Requirement yang **belum** didefinisikan dan **tidak** dianggap tercakup:
 

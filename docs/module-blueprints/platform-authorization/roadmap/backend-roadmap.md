@@ -54,6 +54,9 @@ Bukti `BE-SEC-002`:
 [`../evidence/02-be-sec-002-decision-closure.md`](../evidence/02-be-sec-002-decision-closure.md),
 [`../evidence/03-be-sec-003-pre-implementation-impact.md`](../evidence/03-be-sec-003-pre-implementation-impact.md)
 
+Bukti planning `BE-SEC-003`:
+[`../evidence/04-be-sec-003-implementation-plan.md`](../evidence/04-be-sec-003-implementation-plan.md)
+
 ---
 
 ## Task implementasi berikutnya
@@ -62,18 +65,20 @@ Bukti `BE-SEC-002`:
 
 | Field | Isi |
 |---|---|
-| **Status** | `READY TO IMPLEMENT` — seluruh keputusan owner tertutup; menunggu wewenang eksekusi task |
+| **Status** | **`READY FOR IMPLEMENTATION`** — planning selesai dan tracked; seluruh keputusan owner tertutup; menunggu wewenang eksekusi task |
 | **Klasifikasi** | `HEAVY` (skor 11) |
+| **Planning evidence** | [`../evidence/04-be-sec-003-implementation-plan.md`](../evidence/04-be-sec-003-implementation-plan.md) — scope, split matrix, audit lifecycle seeder, deployment order, rollback, test plan, database impact, known limitations |
+| **Impact evidence** | [`../evidence/03-be-sec-003-pre-implementation-impact.md`](../evidence/03-be-sec-003-pre-implementation-impact.md) — hasil query read-only database development |
 | **Outcome** | Tujuh identitas technical permission yang terlalu kasar dipecah menjadi 28 identitas, tanpa satu pun Departemen × Posisi kehilangan atau memperoleh kemampuan |
-| **Trace** | `SEC-REQ-013`, `SEC-REQ-014`, `SEC-REQ-021`; keputusan `D-ARCH-3`, `D-ARCH-6`, `D-ARCH-7`, `D-ARCH-8` |
+| **Trace** | `SEC-REQ-013`, `SEC-REQ-014`, `SEC-REQ-021`; keputusan `D-ARCH-3`, `D-ARCH-6`, `D-ARCH-7`, `D-ARCH-8`, `D-ARCH-10`, `O-1` |
 | **Scope** | Pemecahan pada 6 controller pilot; identitas `QueueVoice.PlayAudio` beserta otorisasi OR; penutupan identitas lama tanpa hard delete; perluasan `SysAccessPolicy` ke *exact historical capability set*; pembaruan test terkunci |
 | **Di luar scope** | Business Permission, Access Profile, resolver, registry prefix, `MedicalCertificate`, penyempitan hak siapa pun, pemecahan platform-wide |
-| **Dependency** | Impact report `evidence/03` sudah ditinjau; wewenang migrasi data pada lingkungan sasaran |
-| **Database** | Tidak ada perubahan skema. Migrasi **data**: 28 baris `SysActionAccess` baru, 7 identitas lama ditutup, 9 baris `SysAccessPolicy` diperluas menjadi 40 |
-| **Acceptance criteria** | 1. 28 identitas terdaftar dan terbaca layar Akses Role. 2. Tujuh identitas lama tertutup tanpa hard delete. 3. **Parity**: untuk setiap Departemen × Posisi, himpunan endpoint yang dapat dijangkau identik sebelum dan sesudah — selisih nol di kedua arah. 4. `ReconcileNeverCreatesAccessPolicy` tetap hijau. 5. `CompatibilityFallbackMatchesApprovedLegacySetExactly` diperbarui secara sadar — **jumlah tetap 69**, yang berubah nama aksi dan klasifikasi dua endpoint audio. 6. Otorisasi audio terbukti **OR**, bukan AND, lewat test terpisah. 7. Tiga test SuperAdmin tetap hijau. 8. Build dan seluruh test lulus. 9. `has-pending-model-changes` bersih. 10. Smoke test akun non-SuperAdmin, termasuk perawat dapat memutar audio dan Manajer Finance tidak |
-| **Larangan implementasi** | 1. `AllowAnonymous` pada endpoint audio. 2. Menjadikan `QueueDisplayRuntimeRead` sebagai permission user dokter/perawat. 3. Dua atribut otorisasi yang runtime-nya menghasilkan AND. 4. Menyentuh `MedicalCertificate`. 5. Memperbarui `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. 6. Menyempitkan hak siapa pun di luar langkah 9 yang tercatat |
+| **Dependency** | **`BE-SEC-002` `CLOSED`** — arsitektur, klasifikasi, dan keputusan owner berasal dari sana. Impact report `evidence/03` sudah ditinjau. Wewenang migrasi data `CONDITIONALLY APPROVED` untuk development |
+| **Database** | Tidak ada perubahan skema, tidak ada EF migration. Migrasi **data**: `SysActionAccess` aktif 1.076 → 1.097 (28 baru, 7 ditutup); `SysAccessPolicy` fisik 498 → 537 (39 dibuat, nol dihapus); efektif 469 → 500, lalu 508 setelah langkah audio |
+| **Acceptance criteria** | **1. Technical permission split selesai** — 28 identitas terdaftar dan terbaca layar Akses Role; 7 identitas lama tertutup tanpa hard delete; `PatientProcedure.Create` tetap aktif dan `PatientProcedure.Select` dibuat. **2. Legacy parity terverifikasi** — untuk setiap Departemen × Posisi, himpunan endpoint yang dapat dijangkau identik sebelum dan sesudah; jumlah pasangan tetap 11. **3. Tidak ada privilege broadening** — nol Departemen × Posisi memperoleh endpoint baru, di luar penyempitan audio yang diputuskan `O-1`. **4. Tidak ada silent privilege loss** — nol Departemen × Posisi kehilangan endpoint; 6 pengguna terdampak diverifikasi satu per satu. **5. Migrasi teruji** — mode laporan dijalankan dan ditinjau lebih dulu; hasil mode tulis sama dengan laporannya; perluasan idempoten. **6. Rollback teruji** — skrip balik dijalankan pada database uji dan mengembalikan `SysAccessPolicy` efektif ke 469 serta pasangan Departemen × Posisi ke 11. **7.** `ReconcileNeverCreatesAccessPolicy` tetap hijau. **8.** `CompatibilityFallbackMatchesApprovedLegacySetExactly` diperbarui secara sadar — jumlah tetap 69. **9.** Otorisasi audio terbukti **OR**, bukan AND. **10.** Tiga test SuperAdmin tetap hijau; seluruh test suite lulus; `has-pending-model-changes` bersih; smoke test akun non-SuperAdmin |
+| **Larangan implementasi** | 1. `AllowAnonymous` pada endpoint audio. 2. Menjadikan `QueueDisplayRuntimeRead` sebagai permission user dokter/perawat. 3. Dua atribut otorisasi yang runtime-nya menghasilkan AND. 4. Menyentuh `MedicalCertificate`. 5. Memperbarui `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. 6. Menyempitkan hak siapa pun di luar langkah audio yang tercatat. 7. Menaruh perluasan policy di dalam `AccessMenuSeeder`. 8. Pre-seeding identitas baru sebelum deploy |
 | **Risiko/DoD** | Risiko tertinggi di rangkaian ini. DoD: source + migrasi data + test + laporan tracked + bukti parity per Departemen × Posisi |
-| **Rollback** | Mandiri. Balikkan source, jalankan skrip balik yang menciutkan N baris menjadi 1, pulihkan dari snapshot bila perlu |
+| **Rollback** | Mandiri, tanpa titik tanpa kembali. Balikkan source; seeder mendaftarkan ulang identitas lama; skrip balik mengaktifkan 8 policy lama dan menonaktifkan 39 policy baru; snapshot tersedia sebagai jaring pengaman |
 
 ---
 
@@ -151,7 +156,8 @@ BE-SEC-003  (hardening identitas)
 |---|---|---|
 | Daftar Departemen × Posisi yang berwenang **menyetujui** tindakan pasien | `BE-SEC-006` | Kewenangan klinis dan finansial. Default fail closed |
 | Daftar Departemen × Posisi yang berwenang **melaksanakan** tindakan pasien | `BE-SEC-006` | Kewenangan klinis |
-| Apakah Keperawatan × Bidan termasuk actor pemanggil pasien | Tidak menahan | Bidan dikecualikan dari penerima `QueueVoice.PlayAudio` karena **tidak memegang satu pun izin antrean**. Bila pemilik sistem menganggapnya actor pemanggil, penambahannya satu baris pada langkah 9 `BE-SEC-003` |
+| **`P-1`** — Topologi deployment untuk lingkungan selain development | Penerapan `BE-SEC-003` **di luar development** | Bila instance lama masih melayani traffic saat instance baru menyala, seeder instance baru menutup identitas lama di database bersama dan instance lama seketika menolak 6 pengguna. Dibutuhkan konfirmasi pola **hentikan-dulu-baru-nyalakan**. Tidak ditemukan setting replica pada source; topologi produksi tidak dapat disimpulkan. Lihat `evidence/04` bagian E.3 dan I.1 |
+| Apakah Keperawatan × Bidan termasuk actor pemanggil pasien | Tidak menahan | Bidan dikecualikan dari penerima `QueueVoice.PlayAudio` karena **tidak memegang satu pun izin antrean**. Bila pemilik sistem menganggapnya actor pemanggil, penambahannya satu baris pada langkah audio `BE-SEC-003` |
 | Penetapan frontend authority dan prefix `FE-SEC` | `FE-SEC-001` | Kepemilikan modul |
 | Siapa yang berwenang menandatangani surat dokter | Task terpisah | Ditunda sampai route diperbaiki |
 | Definisi "pegawai aktif" untuk baseline Self Service | `BE-SEC-011` | Keputusan HR |
