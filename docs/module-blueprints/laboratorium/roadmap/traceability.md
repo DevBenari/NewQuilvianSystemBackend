@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `8` |
+| Roadmap revision | `9` |
 | Status | `DRAFT` |
 | Tanggal | 2026-09-02 |
 | Manifest | `blueprint-manifest.md` revision `24` |
@@ -105,7 +105,7 @@ bagian 4, bukan disembunyikan.
 |---|---|---|---|---|---|---|---|
 | `FR-10.1` | `LAB-DEC-025` | `03-domain-architecture.md` `S15` | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` | Direncanakan |
 | `FR-10.2` | `LAB-DEC-025` | — | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` | Direncanakan |
-| `FR-10.3` | `LAB-DEC-025` | `erd/data-dictionary.md` | `LAB-API-v1` r3 | `BE-LAB-01` | — | `AC-11`, `AC-41` | Direncanakan |
+| `FR-10.3` | `LAB-DEC-025` | `erd/data-dictionary.md` | `LAB-API-v1` r3 | `BE-LAB-01` | — | `AC-11` **terbukti**, `AC-41` terbukti sebagian — [`task/report/backend/BE-LAB-01.md`](../task/report/backend/BE-LAB-01.md) bagian 6; migration terbukti dua arah pada `QuilvianNewDevYoga`, bagian 5.1 | **`SELESAI`** |
 
 ### `EPIC-LAB-07` — Layar Laboratorium
 
@@ -226,3 +226,4 @@ sakit menetapkannya. Bukan penahan pembangunan; penahan pernyataan siap pakai.
 | 3 | 2026-09-02 | `input_hashes` dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dari pharmacy dan billing-kasir dan diverifikasi. `LAB-OPEN-020` ditetapkan menjadi wewenang Andry Zain. Seluruh utang pembukuan tertutup | `DRAFT` |
 | 4 | 2026-09-02 | Audit cakupan endpoint ditambahkan sebagai dimensi ketiga di samping FR dan AC. Empat endpoint Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan pada roadmap backend. Total task backend menjadi 19 | `DRAFT` |
 | 5 | 2026-09-02 | Audit cakupan diperluas ke aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik. Temuan terpenting: `VAL-09`, aturan empat mata pada tingkat wadah, semula tidak dikutip task mana pun — kini dibebankan ke `BE-LAB-12`. Tujuh dimensi cakupan kini terperiksa | `DRAFT` |
+| 9 | 2026-09-02 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-10.3` berpindah dari `Direncanakan` menjadi **`SELESAI`**: `BE-LAB-01` tuntas pada tingkat source, test, pembuatan migration, dan eksekusi migration ke `QuilvianNewDevYoga` beserta pembuktian jalur `Down`. `AC-11` terbukti lewat tiga skenario kunjungan; `AC-41` terbukti separuh karena daftar pantau per disiplin adalah cakupan `BE-LAB-15`. Satu temuan lintas modul dibuka sebagai `LAB-REQ-003` — penyimpangan status `FINAL`/`CLOSED` pada Billing yang mematikan koreksi AR. Catatan pembukuan: revision 6 sampai 8 tidak pernah tercatat pada tabel ini walaupun kepala dokumen sudah menyebut revision 8 — selisih itu peninggalan sebelum task ini dan menjadi utang pemilik blueprint | `DRAFT` |

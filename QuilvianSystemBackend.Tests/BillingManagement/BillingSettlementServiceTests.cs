@@ -724,12 +724,18 @@ public sealed class BillingSettlementServiceTests
             Options.Create(new BillingDepositAccountNumberOptions()),
             Options.Create(new BillingCashierShiftNumberOptions()));
         var cashierShiftService = new CashierShiftService(db, numberSeries, logger);
+        var finalizationService = new BillingFinalizationService(
+            db,
+            new ContractBillingChargeSourceAdapter(),
+            new BillingArApHandoffService(db, logger),
+            logger);
         return new BillingSettlementService(
             db,
             provider,
             new BillingAllocationService(db, logger),
             cashierShiftService,
             numberSeries,
+            finalizationService,
             logger);
     }
 

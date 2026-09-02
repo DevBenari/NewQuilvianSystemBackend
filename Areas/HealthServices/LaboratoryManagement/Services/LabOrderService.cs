@@ -84,6 +84,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
                     IsCancel = x.IsCancel,
                     CreateDateTime = x.CreateDateTime,
+                    Discipline = x.Discipline != null ? x.Discipline.ToString() : null,
                     RequestedAt = x.RequestedAt,
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
@@ -103,6 +104,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             if (request.ProcedureId == Guid.Empty)
                 throw new ArgumentException("ProcedureId wajib diisi.");
+
+            // LAB-DEC-025: hanya tiga disiplin yang ada. Angka di luar ketiganya ditolak di
+            // sini, bukan disimpan diam-diam sebagai nilai enum yang tidak berarti apa pun.
+            if (request.Discipline.HasValue && !Enum.IsDefined(request.Discipline.Value))
+                throw new ArgumentException("Disiplin laboratorium tidak dikenal.");
 
             var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
                 .AsNoTracking()
@@ -133,6 +139,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 EncounterId = request.EncounterId,
                 ProcedureId = request.ProcedureId,
+                // Disiplin hanya boleh ditetapkan di sini. Setelah baris ini tersimpan, EF
+                // menolak setiap upaya mengubahnya (INV-21).
+                Discipline = request.Discipline,
                 OrderStatus = LabOrderStatus.Requested,
                 RequestedAt = now,
                 RequestedByUserId = actorUserId,
@@ -160,7 +169,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 LogCategory,
                 "LabOrder.Create",
                 "Membuat order laboratorium.",
-                new { entity.Id, entity.EncounterId, entity.ProcedureId, ActorUserId = actorUserId });
+                new
+                {
+                    entity.Id,
+                    entity.EncounterId,
+                    entity.ProcedureId,
+                    Discipline = entity.Discipline?.ToString(),
+                    ActorUserId = actorUserId
+                });
 
             return MapDetailResponse(entity, procedure);
         }
@@ -481,6 +497,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 AcceptedSpecimenCount = 0,
                 IsCancel = entity.IsCancel,
                 CreateDateTime = entity.CreateDateTime,
+                Discipline = entity.Discipline?.ToString(),
                 RequestedAt = entity.RequestedAt,
                 CompletedAt = entity.CompletedAt,
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),

@@ -87,6 +87,17 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-01` — Kolom disiplin pada pesanan laboratorium
 
+> **Status: `SELESAI` — 2026-09-02.** Seluruh butir DoD terpenuhi. Source, test, pembuatan
+> migration, dan eksekusi migration ke `QuilvianNewDevYoga` selesai dan terverifikasi; jalur
+> `Down` ikut dibuktikan. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-01.md`](../task/report/backend/BE-LAB-01.md).
+>
+> Dua butir yang berada **di luar** DoD task ini tetap perlu keputusan pemilik, dicatat pada
+> laporan bagian 3.3 dan 6.2: ruas `discipline` pada `CreateLabOrderRequest` sengaja dibuat
+> **tidak wajib** agar `LAB-API-v1` r3 tidak dilanggar, sehingga `INV-21` bagian "wajib memiliki
+> tepat satu disiplin" belum tegak penuh; dan `AC-41` baru terpenuhi separuh karena daftar pantau
+> per disiplin adalah cakupan `BE-LAB-15`.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Setiap pesanan laboratorium menyimpan disiplinnya — Patologi Klinik, Patologi Anatomi, atau Mikrobiologi — dan disiplin itu tidak dapat berpindah setelah pesanan dibuat |
@@ -396,7 +407,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
 |---|---|---|---|---|
-| `BE-LAB-01` | `MVP-0` | `S15` | Siap direncanakan | Gerbang global saja |
+| `BE-LAB-01` | `MVP-0` | `S15` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-01.md) | Tidak ada |
 | `BE-LAB-02` | `MVP-0` | `S3` | Siap direncanakan | Gerbang global saja |
 | `BE-LAB-03` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02` |
 | `BE-LAB-04` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02`, `BE-LAB-03` |
@@ -414,7 +425,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | `BE-LAB-12` | `MVP-2` | `S2` | Siap direncanakan | `BE-LAB-11` |
 | `BE-LAB-13` | `MVP-2` | `S10` | Siap direncanakan | `BE-LAB-11`, `BE-LAB-12` |
 | `BE-LAB-14` | `MVP-3` | `S7` | Siap direncanakan | `BE-LAB-10`, `BE-LAB-12` |
-| `BE-LAB-15` | `MVP-3` | `S15` | Siap direncanakan | `BE-LAB-01`, `BE-LAB-14` |
+| `BE-LAB-15` | `MVP-3` | `S15` | Siap direncanakan | `BE-LAB-14` — penahan `BE-LAB-01` sudah dicabut 2026-09-02 |
 
 **Dua task berstatus `BLOCKED` penuh dan satu sebagian**, di luar gerbang global yang berlaku
 untuk semuanya. Tidak satu pun `BLOCKED` itu dapat dicabut oleh modul Laboratorium sendiri.
