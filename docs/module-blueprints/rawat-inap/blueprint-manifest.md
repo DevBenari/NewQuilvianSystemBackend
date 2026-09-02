@@ -126,15 +126,16 @@ submodules:
     status: draft
     approved_by: null
     approved_at: null
-    contract_versions: 0.0.0
-    catatan: belum dirancang; kepemilikan tabel sudah diputuskan RWI-DEC-081
+    contract_versions: 0.1.0
+    designed_at: 2026-09-02
+    catatan: dirancang, menunggu approval; nol OPEN DECISION kepemilikan
 ```
 
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
 |---|---|:---:|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | `approved` | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
 | [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` — **dirancang 2026-09-02** | [manifest](./keperawatan/blueprint-manifest.md) |
-| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | `draft` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
+| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | `draft` — **dirancang 2026-09-02** | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
 
@@ -242,7 +243,8 @@ Blueprint ini adalah desain target, bukan spesifikasi implementasi yang disetuju
 |---|---|---|
 | Persetujuan pemilik modul tetangga | **TERBUKA SEBAGIAN.** Dicabut 2026-08-21 oleh `RWI-DEC-062` untuk `ClinicalManagement`, `PharmacyManagement`, dan `MasterData` HealthServices. Bagian `EmergencyInstallationManagement` terbuka kembali 2026-08-24 lewat `RWI-DEC-069`; pemiliknya **Rizki Gunawan**, persetujuan formalnya belum tercatat | `episode-rawat-inap`, hanya `INP-S09` |
 | Kesiapan data master | **MASIH TERBUKA.** Penanggung jawabnya `RWI-DEC-063`. Gerbang tertutup begitu datanya benar-benar terisi. Sejak revision `3` syaratnya bertambah: penanda jenis kelamin, isolasi, dan boks bayi harus **benar** | `episode-rawat-inap` |
-| *Shared inpatient clinical context resolver* | **BARU pada revision `5`.** Penghalang **teknis**, bukan keputusan bisnis. `PRD-RWI-FINAL-001` bagian 30.3 | `keperawatan`, `dokter-rawat-inap` |
+| *Shared inpatient clinical context resolver* | **BARU pada revision `5`.** Penghalang **teknis**, bukan keputusan bisnis. Audit 2026-09-02 menemukan bentuknya: **satu cabang validasi pada dua controller** — `PatientAssessmentController` dan `DoctorConsultationController` — bukan subsistem baru. `INT-KEP-01` dan `INT-DOK-01`, **wajib dikerjakan bersama** | `keperawatan`, `dokter-rawat-inap` |
+| Pelonggaran batas satu konsultasi per kunjungan dan satu resep aktif | **BARU dicatat sebagai gerbang 2026-09-02.** Keputusannya `approved` sejak `RWI-DEC-038`/`RWI-DEC-070`; kodenya belum ada. `INT-DOK-02` | `dokter-rawat-inap` |
 | Perbaikan tombol tempat tidur | Hari ini selalu gagal 404. `RWI-DEC-049`. Pekerjaan perbaikan, bukan keputusan | `episode-rawat-inap` |
 | Test regresi modul tetangga | Tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi. `RWI-DEC-051`. Pekerjaan uji, bukan keputusan | Ketiganya |
 | ~~Registry lifecycle~~ | **DICABUT** 2026-08-24 oleh `RWI-DEC-068` | — |

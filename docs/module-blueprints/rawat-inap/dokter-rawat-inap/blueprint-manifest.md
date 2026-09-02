@@ -11,7 +11,7 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `judul` | Dokter Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`draft`** — lahir 2026-09-02 bersama migrasi bentuk; **belum dirancang** |
+| `status` | **`draft`** — **dirancang 2026-09-02**, belum disetujui manusia. Approval tetap tindakan pemilik |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | — belum ada yang disetujui |
 | `approved_at` | — |
@@ -35,8 +35,16 @@ diputuskan** lahir berstatus `BLOCKED`. Sub-modul ini **tidak** dalam keadaan it
 | Masuknya dokumentasi klinis ke dalam scope modul | **Sudah diputuskan** 2026-09-02 | `RWI-DEC-080` |
 | Yang benar-benar tersisa | Pekerjaan desain yang belum dikerjakan, ditambah satu penghalang **teknis**: *shared inpatient clinical context resolver* | `PRD-RWI-FINAL-001` bagian 30.3 |
 
-**`BLOCKED` berarti menunggu orang. `draft` berarti menunggu pekerjaan.** Sub-modul ini menunggu
-pekerjaan.
+**`BLOCKED` berarti menunggu orang. `draft` berarti menunggu pekerjaan.**
+
+> **Diperbarui 2026-09-02 sore.** Desainnya **sudah dikerjakan**. Yang tersisa: **approval pemilik**
+> atas dokumen ini, ditambah dua perubahan teknis milik `ClinicalManagement` dan
+> `PharmacyManagement` — `INT-DOK-01` dan `INT-DOK-02` — yang keputusannya sudah turun sejak
+> 2026-08-21 tetapi kodenya belum ada.
+>
+> **Berbeda dari `keperawatan`, sub-modul ini tidak menyisakan satu pun `OPEN DECISION`
+> kepemilikan.** Ketujuh kemampuannya punya pemilik data yang tegas pada `PRD-RWI-FINAL-001`
+> bagian 23.1.
 
 ---
 
@@ -80,24 +88,24 @@ di `02-backend-architecture.md` sub-modul ini.
 
 ## 3. Daftar artefak dan hash
 
-Kesebelas berkas berikut **sudah dibuat** dan masing-masing berisi satu baris alasan bersebab,
-mengikuti `blueprint-output-contract.md` bagian "File yang tidak relevan bagi modul tertentu".
-Berkas dihapus tanpa jejak akan membuat pembaca tidak dapat membedakan "memang belum perlu" dari
-"terlupa ditulis".
+**Seluruhnya sudah berisi desain sungguhan sejak 2026-09-02.**
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.0` | `draft` | `3e439914e89ac90ae690caac58df4930b4ec44fba7933708d3c37007068326da` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.0` | `draft` | `82a74902d8403745af566186d09be72e344b92d40a854225137c62c8d5709e2e` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.0` | `draft` | `cf8c392c2d3bd98b79c3ffcb8ec6e99cb68e990e8d0697ca787572c6821be655` |
-| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.0` | `draft` | `70aadc6bd13107127e80fbc42c11e35491697a1f9709a89787a290c13af3710e` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.0` | `draft` | `f25fec05a2d091c370f16bce73c6792c4fb412d1c7f451f68444dd9677005a81` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.0` | `draft` | `033054f9765d91d7e8bbfc9ca627a61c825670f57e22e50bdb02529bdd7b5bc4` |
-| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.0` | `draft` | `2d8408c460a71a28ce65b8396d930a0b6d8bd5b831eee3c4eaa6dac8c9a9d737` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.0` | `draft` | `708d42cbfafbcf888732754fc409e226a897129647e5ba8fcda69d7e3130eef5` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.0` | `draft` | `2ee2422b154b9366853fe0e18a54f3049403425437954595967d593a5c10388a` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.0` | `draft` | `53e3d4160260b82e1f9b164d048f185342a9462b045a74f8100647909a2dffbd` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.0` | `draft` | `09cc8faaf6fbac6f96ab1d81baca7d6b9be463354370c97641182f6028c631cf` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.1` | `draft` | `5f61fd77012768fd6cf36fae63db18a3fdd3dfa73dcbafb2581e0915e40060e0` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.1` | `draft` | `3e6d28e20453491be24a6dfbd1837210768266ef1cae5edf261fa0995a00826f` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.1` | `draft` | `505328a54aecad35825d764754e04bce7fc06003661c6c0586da3260eff3e7ad` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.1` | `draft` | `90b947669d76f429e9a46e1b23521dd58cb960a870381d70852dae40c089e43f` |
+| [`flowcharts/01-catatan-harian-dan-visite.md`](./flowcharts/01-catatan-harian-dan-visite.md) | `0.1` | `draft` | `c9f8b567fb619777761f202b9d29702af75adf21572c4e57b700037a6ea84387` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.1` | `draft` | `f621fc875c537a4774fc8a40571132538b304d7212d047ee2b47bb8689e2c235` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.1.0` | `draft` | `6096aa168580c8c2f9e3f6b39ad17b4e885c78f1dd602b9695a725284574974e` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.1.0` | `draft` | `5c60238839a8377bc5cd02f482a47c2b5539fdbc8c7da5ad082dc4c5e500dbd5` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.1.0` | `draft` | `bcaffeafcc8e8e1cfe6d1b56ee31eb825f8c81cfb9df6621b5789c266446105a` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.1.0` | `draft` | `a9d9d8ab8e2395c950f01aa3d82e9e178c925e88779c89afa1e3c9f217bc3553` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.1.0` | `draft` | `5eb0032d0e58d40dbd2f4b7383c971a6488e886c0fe268dbac4b388cb17d3a07` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.1.0` | `draft` | `bb60db8796a905568b3e14713c60d6fde3c1b3ff04278881e5581e8d2d5c18e4` |
+
+`flowcharts/01-catatan-harian-dan-visite.md` adalah berkas per proses; jumlahnya mengikuti proses.
 
 `roadmap/` dan `task/report/` belum ada, dan **itu bukan penyimpangan struktur**: keduanya ditulis
 `/qv-plan` dan kedua skill build, bukan oleh skill desain.
@@ -108,12 +116,12 @@ Berkas dihapus tanpa jejak akan membuat pembaca tidak dapat membedakan "memang b
 
 | Kontrak | Version | `last_changed_in` | Status |
 |---|---|---|---|
-| API | `0.0.0` | — | `draft`, belum berisi |
-| State transition | `0.0.0` | — | `draft`, belum berisi |
-| Validation | `0.0.0` | — | `draft`, belum berisi |
-| Integration | `0.0.0` | — | `draft`, belum berisi |
-| Permission dan audit | `0.0.0` | — | `draft`, belum berisi |
-| Acceptance test | `0.0.0` | — | `draft`, belum berisi |
+| API | `0.1.0` | `0.1.0` | `draft` — 17 endpoint rencana, tersebar di 3 modul pemilik |
+| State transition | `0.1.0` | `0.1.0` | `draft` — 4 mesin dimiliki, 2 hanya dibaca |
+| Validation | `0.1.0` | `0.1.0` | `draft` — 25 aturan |
+| Integration | `0.1.0` | `0.1.0` | `draft` — 8 integrasi; `INT-DOK-01` dan `INT-DOK-02` menahan seluruh sub-modul |
+| Permission dan audit | `0.1.0` | `0.1.0` | `draft` — 1 Resource baru, 2 Action baru |
+| Acceptance test | `0.1.0` | `0.1.0` | `draft` — 28 skenario, 12 di antaranya jalur gagal |
 
 Angka ini bergerak **sendiri**, terpisah dari `contract_versions` milik `episode-rawat-inap` yang
 sudah berada di `0.4.0`. Itulah gunanya bentuk `COMPOSITE`: satu sub-modul boleh maju tanpa menunggu
@@ -141,7 +149,9 @@ Arah ketergantungannya satu arah: sub-modul ini butuh `episode-rawat-inap`, teta
 |---:|---|---|:---:|
 | 1 | Bentuk *shared inpatient clinical context resolver* — bagaimana dokumen klinis menemukan konteks rawat inap tanpa antrean dan tanpa konsultasi | Pemilik `ClinicalManagement`, yaitu Muhammad Hamzah lewat `RWI-DEC-062` | **Ya** — ini penghalang **teknis**, bukan keputusan bisnis |
 | 2 | Batas waktu klinis `RWI-RULE-021` | Pemilik klinis, **belum ditunjuk** | Ya, untuk aturan waktunya saja |
-| 3 | Butir menu sub-modul ini, mengingat kuota sembilan butir `IA-INP-05` sudah penuh | Blueprint, saat sub-modul dirancang | Tidak — dapat diputuskan bersamaan dengan desainnya |
+| 3 | ~~Butir menu sub-modul ini~~ | **Ditetapkan 2026-09-02** — nol butir menu tingkat dua; kedelapan layar menjadi layar anak `FE-INP-04` dan `FE-INP-09` | **Tertutup** |
+| 4 | **Pelonggaran batas satu konsultasi per kunjungan dan satu resep aktif per konsultasi** (`INT-DOK-02`). Keputusannya `approved` sejak `RWI-DEC-038`; kodenya belum ada | `ClinicalManagement`, `PharmacyManagement` | **Ya** — tanpanya dokter hanya dapat menulis satu catatan dan satu resep untuk seluruh masa perawatan |
+| 5 | Kajian medis memakai ulang `TrxPatientAssessment` atau tabel tersendiri | Product/Domain bersama `ClinicalManagement` | Tidak — keputusan struktur; lihat `02-backend-architecture.md` bagian 4.2 |
 
 Butir 1 dan 2 **tidak** menahan `episode-rawat-inap`.
 
@@ -151,9 +161,14 @@ Butir 1 dan 2 **tidak** menahan `episode-rawat-inap`.
 
 | Kondisi | Skill |
 |---|---|
-| Butir 1 pada bagian 6 sudah punya bentuk yang disepakati | `/qv-design` untuk sub-modul ini |
+| ~~Desain sub-modul ini~~ | **Selesai 2026-09-02.** Hasilnya `draft` |
+| Owner menyetujui dokumen ini | `/qv-plan` untuk sub-modul ini — **nol pertanyaan memblokir** |
+| Pertanyaan struktur butir 5 ingin ditutup lebih dulu | `/qv-grill` Amendment Pass |
 | Batas domain dokumentasi klinis ingin ditetapkan lebih dulu | `/qv-domain` (opsional) untuk slice ini |
 | Requirement kemampuannya ingin dinilai ulang terhadap `PRD-RWI-FINAL-001` | `/qv-gate` |
 | Pemilik klinis sudah ditunjuk dan `RWI-RULE-021` ingin ditutup | `/qv-grill` Amendment Pass |
 
-Sub-modul ini **MUST NOT** diteruskan ke `/qv-plan`: belum ada satu pun kontrak yang berisi.
+Sub-modul ini **dapat** diteruskan ke `/qv-plan` begitu owner menyetujui dokumen ini —
+`04-prd-to-mvp.md` bagian 20 tidak memuat satu pun pertanyaan memblokir. Pertanyaan struktur pada
+bagian 6 butir 5 sebaiknya dijawab lebih dulu supaya arsitekturnya tidak berubah di tengah
+pengerjaan.

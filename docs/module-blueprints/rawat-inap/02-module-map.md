@@ -45,7 +45,7 @@ Tiga sub-modul, hasil uji pemecahan `bentuk-blueprint.md` bagian 4.1 yang dicata
 |---|---|:---:|:---:|---|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | **5/5** | 16 | `approved` | Muhammad Hamzah | **Muhammad Hamzah, 2026-08-24** lewat `RWI-DEC-074` |
 | [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | **3/5** | 5 | `draft` | Muhammad Hamzah | Belum — **dirancang 2026-09-02**, menunggu approval |
-| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | **3/5** | 7 | `draft` | Muhammad Hamzah | Belum — belum dirancang |
+| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | **3/5** | 7 | `draft` | Muhammad Hamzah | Belum — **dirancang 2026-09-02**, menunggu approval |
 
 **Status modul diturunkan, bukan ditulis tangan.** Satu `approved` + dua `draft` = **`partial`**,
 mengikuti `bentuk-blueprint.md` bagian 7. Modul ini **tidak boleh** terlihat `approved` selama dua
@@ -228,7 +228,7 @@ layar anak beserta layar induknya. Berikut yang kedua.
 | Sub-modul | Butir menu tingkat dua | Rencana keterjangkauan |
 |---|:---:|---|
 | `keperawatan` | **Nol — ditetapkan 2026-09-02** | **Diputuskan saat sub-modul dirancang.** Keenam layarnya menjadi layar anak: `FE-KEP-01` s.d. `FE-KEP-05` dicapai dari Detail Episode `FE-INP-04` dan Census `FE-INP-01`; `FE-KEP-06` menjadi daftar ketiga di dalam Daftar Pantau `FE-INP-09`. Alasannya bukan sekadar kuota `IA-INP-05` yang penuh: pekerjaan perawat berputar pada satu pasien, bukan pada daftar dokumen. Rincian di `keperawatan/03-frontend-architecture.md` bagian 2 |
-| `dokter-rawat-inap` | **Nol, sementara** | Sama seperti di atas. Ruang kerja dokter berputar pada satu pasien yang sedang dirawat, bukan pada daftar tersendiri |
+| `dokter-rawat-inap` | **Nol — ditetapkan 2026-09-02** | **Diputuskan saat sub-modul dirancang.** Kedelapan layarnya menjadi layar anak: `FE-DOK-01` s.d. `FE-DOK-07` dicapai dari Detail Episode `FE-INP-04` dan Census `FE-INP-01`; `FE-DOK-08` menjadi daftar tambahan di dalam Daftar Pantau `FE-INP-09`. Rincian di `dokter-rawat-inap/03-frontend-architecture.md` bagian 2 |
 
 Keduanya **wajib** ditetapkan saat sub-modulnya dirancang, dan hasilnya **wajib** dituliskan
 kembali ke berkas ini — bukan ke `03-frontend-architecture.md` sub-modulnya. Sidebar hanya satu.
@@ -243,7 +243,7 @@ sub-modul tetap tinggal di `02-backend-architecture.md` sub-modul itu.
 | **M1** | `episode-rawat-inap` | 2 tabel master + 11 tabel transaksi berawalan `Inp`, index dan 4 unique index parsial, 13 `DbSet`, 6 service | Tidak ada | **Sudah dirancang**, rinciannya di `episode-rawat-inap/02-backend-architecture.md` §7 |
 | **M2** | `episode-rawat-inap` | Perubahan **perilaku** `BedController.UpdateBedAvailability` | M1 selesai | Sudah dirancang. Sengaja paling akhir di dalam M1 karena satu-satunya perubahan perilaku pada modul lain |
 | **M3** | `keperawatan` | **Nol tabel milik Rawat Inap.** Yang diminta kepada `ClinicalManagement`: 6 kolom pada `TrxPatientAssessment`, 4 tabel transaksi + 1 master baru, dan **satu pelonggaran validasi** (`INT-KEP-01`) | M1 selesai — pengkajian butuh episode sebagai konteks | **Dirancang 2026-09-02**, `draft` |
-| **M4** | `dokter-rawat-inap` | **Nol tabel.** Sumber yang sama | M1 selesai | Belum dirancang |
+| **M4** | `dokter-rawat-inap` | **Nol tabel milik Rawat Inap.** Yang diminta: **satu** tabel baru `TrxPhysicianVisit` milik `ClinicalManagement`, ditambah kolom pada konsultasi, CPPT, tindakan, resep (`PharmacyManagement`), dan pesanan lab (`LaboratoryManagement`); serta **dua** pelonggaran validasi (`INT-DOK-01`, `INT-DOK-02`) | M1 selesai. **`INT-DOK-01` wajib dikerjakan bersama `INT-KEP-01` milik M3** | **Dirancang 2026-09-02**, `draft` |
 
 **Temuan yang perlu dibaca sebelum menjadwalkan M3 dan M4.** Keduanya **tidak menambah satu tabel
 pun ke modul ini**. Yang mereka butuhkan adalah perubahan di dalam `ClinicalManagement` dan
@@ -300,13 +300,13 @@ bentuk `COMPOSITE` setiap `requirement-traceability.md` hanya memeriksa jatah su
 
 | Kemampuan | ID | Nama pada PRD final | Keadaan pada blueprint |
 |---|---|---|---|
-| Pemeriksaan penunjang — lab dan radiologi | `CAP-015` | Supporting Services | **Belum dirancang** — sub-modul `draft`. Modul Laboratory dan Radiology berstatus `PLANNED` |
-| Dokumentasi SOAP | `CAP-020` | Clinical Documentation — SOAP | **Belum dirancang** — sub-modul `draft` |
-| CPPT | `CAP-021` | Clinical Documentation — CPPT | **Belum dirancang** — sub-modul `draft`. Dibaca dan ditulis bersama `keperawatan` |
-| Kajian medis awal | `CAP-022` | Medical Assessment | **Belum dirancang** — sub-modul `draft` |
-| Resep rawat inap dan obat pulang | `CAP-023` | Medication Management | **Belum dirancang** — sub-modul `draft`. Pemenuhannya milik `PharmacyManagement` |
-| Tindakan dokter | `CAP-024` | Physician Procedures | **Belum dirancang** — sub-modul `draft` |
-| Pencatatan visite dokter | `CAP-025` | Physician Visit | **Belum dirancang** — sub-modul `draft`. Definisinya sudah ditutup `RWI-DEC-025`; `RWI-AC-032` s.d. `RWI-AC-034`, `RWI-AC-047`, `RWI-AC-048` menunggu di sini |
+| Pemeriksaan penunjang — laboratorium dan radiologi | `CAP-015` | Supporting Services | **Dirancang sebagian**, `draft`. **Laboratorium masuk MVP** — modulnya ada dan `LabOrder` tidak punya gerbang antrean. **Radiologi `DEFERRED`** — modulnya tidak ada di repository |
+| Dokumentasi SOAP | `CAP-020` | Clinical Documentation — SOAP | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-03`. SOAP **sudah ada** di dalam `TrxDoctorConsultation` |
+| CPPT | `CAP-021` | Clinical Documentation — CPPT | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-04`. Ditulis bersama `keperawatan`; kontraknya milik sub-modul ini |
+| Kajian medis awal | `CAP-022` | Medical Assessment | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-02`. Struktur tabelnya menunggu persetujuan pemilik |
+| Resep rawat inap dan obat pulang | `CAP-023` | Medication Management | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-06`. Mesin Farmasi **sudah lengkap** |
+| Tindakan dokter | `CAP-024` | Physician Procedures | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-06` |
+| Pencatatan visite dokter | `CAP-025` | Physician Visit | **Dirancang**, `draft`. `MUST HAVE`, `EPIC DOK-05`. **Satu-satunya tabel yang benar-benar baru** di seluruh dua sub-modul klinis. `RWI-AC-032` s.d. `034`, `047`, `048` menemukan tempatnya di sini |
 
 ### 4.4 Pemeriksaan kemampuan yatim
 
@@ -345,7 +345,8 @@ memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseli
 | `RWI-OQ-047` sumber kebenaran kelayakan keuangan | **Satu baris** pada bagian 2.4 | Product/Domain bersama pemilik `BillingManagement` |
 | **`RWI-OQ-048`** kepemilikan catatan pemakaian alat — **baru 2026-09-02** | **Satu baris** pada bagian 2.4, dan `EPIC KEP-06` pada `keperawatan/04-prd-to-mvp.md` | Product/Domain bersama pemilik persediaan |
 | ~~Butir menu `keperawatan`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; keenam layarnya menjadi layar anak | — |
-| Butir menu `dokter-rawat-inap` | Bagian 3.3 | Ditetapkan saat sub-modul itu dirancang |
+| ~~Butir menu `dokter-rawat-inap`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua |
+| **Urutan daftar di dalam `FE-INP-09` Daftar Pantau** — baru 2026-09-02 | Satu layar kini dipakai tiga sub-modul: 4 daftar `episode-rawat-inap`, 1 `keperawatan`, 1 `dokter-rawat-inap` | Ditetapkan saat salah satu daftar baru dikerjakan; **tidak boleh** diputuskan sendiri-sendiri |
 
 Tidak satu pun menahan pekerjaan `episode-rawat-inap`, dan `RWI-OQ-048` tidak menahan ketiga
 kemampuan `MUST HAVE` milik `keperawatan`.
