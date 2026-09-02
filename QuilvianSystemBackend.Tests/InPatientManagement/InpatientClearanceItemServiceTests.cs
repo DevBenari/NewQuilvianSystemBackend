@@ -173,6 +173,9 @@ public sealed class InpatientClearanceItemServiceTests
         await service.DeleteAsync(butir.Id, ActorUserId);
 
         var daftar = await service.GetPagedAsync(
+            startDate: null,
+            endDate: null,
+            customPeriod: null,
             search: null,
             isMandatory: null,
             isActive: null,
@@ -196,6 +199,9 @@ public sealed class InpatientClearanceItemServiceTests
         await service.CreateAsync(BuildCreateRequest("DISCHARGE-MED", isMandatory: false, sortOrder: 30), ActorUserId);
 
         var wajib = await service.GetPagedAsync(
+            startDate: null,
+            endDate: null,
+            customPeriod: null,
             search: null,
             isMandatory: true,
             isActive: null,
@@ -208,6 +214,9 @@ public sealed class InpatientClearanceItemServiceTests
         Assert.Equal(new[] { "ADM-DOC", "RETURN-ITEM" }, wajib.Items.Select(x => x.ItemCode));
 
         var pencarian = await service.GetPagedAsync(
+            startDate: null,
+            endDate: null,
+            customPeriod: null,
             search: "discharge",
             isMandatory: null,
             isActive: null,
@@ -218,6 +227,66 @@ public sealed class InpatientClearanceItemServiceTests
 
         Assert.Equal(1, pencarian.TotalData);
         Assert.Equal("DISCHARGE-MED", pencarian.Items[0].ItemCode);
+    }
+
+    [Fact]
+    public async Task MetadataRingkasanDanOptions_MengikutiBaselineMasterData()
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var service = new InpatientClearanceItemService(db);
+
+        await service.CreateAsync(
+            BuildCreateRequest("ADM-DOC", isMandatory: true, sortOrder: 20),
+            ActorUserId);
+        var optional = await service.CreateAsync(
+            BuildCreateRequest("DISCHARGE-MED", isMandatory: false, sortOrder: 10),
+            ActorUserId);
+        await service.UpdateStatusAsync(optional.Entity!.Id, false, ActorUserId);
+
+        var metadata = service.GetFilterMetadata();
+        Assert.Equal("sortOrder", metadata.DefaultFilter.SortBy);
+        Assert.Contains(metadata.CustomPeriods, x => x.Value == "last7days");
+        Assert.Equal(new[] { 10, 25, 50, 100 }, metadata.PageSizeOptions);
+        Assert.Contains(metadata.QueryParameters, x => x.Name == "isMandatory");
+
+        var summary = await service.GetSummaryAsync();
+        Assert.Equal(2, summary.TotalData);
+        Assert.Equal(1, summary.ActiveData);
+        Assert.Equal(1, summary.InactiveData);
+        Assert.Equal(1, summary.MandatoryData);
+        Assert.Equal(1, summary.OptionalData);
+
+        var options = await service.GetOptionsAsync(
+            onlyActive: true,
+            isMandatory: null,
+            search: null,
+            pageNumber: 1,
+            pageSize: 25);
+
+        Assert.Single(options.Items);
+        Assert.Equal("ADM-DOC", options.Items[0].ItemCode);
+    }
+
+    [Fact]
+    public async Task DaftarButir_MenolakRentangTanggalTidakValid()
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var service = new InpatientClearanceItemService(db);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.GetPagedAsync(
+                startDate: new DateTime(2026, 8, 31),
+                endDate: new DateTime(2026, 8, 1),
+                customPeriod: "custom",
+                search: null,
+                isMandatory: null,
+                isActive: null,
+                sortBy: null,
+                sortDirection: "asc",
+                pageNumber: 1,
+                pageSize: 25));
+
+        Assert.Contains("startDate", error.Message);
     }
 
     [Fact]
