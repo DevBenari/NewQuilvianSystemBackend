@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `4` |
-| Decision revision | `4` |
+| Revision | `5` |
+| Decision revision | `5` |
 | Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86` cabang `sukmagp` |
 | Backend SHA saat bukti diaudit | `9522caacf29371b1fddd1584e9a71ad94fe48d19`. Perbedaan terhadap SHA di atas hanya berisi dokumen blueprint Bank Darah, nol berkas source aplikasi, sehingga `02-existing-capability-map.md` **tidak basi secara isi** |
@@ -55,6 +55,7 @@ Status `confirmed` oleh pemilik kebutuhan pada 2026-09-02.
 | `BR-BD-017` | Pencatatan permintaan darah ke PMI sebagai penyedia darah dari luar | Baru, dari `DEC-BD-002` |
 | `BR-BD-018` | Pencatatan penerimaan fisik kantong darah dari PMI ke Bank Darah MMC | Baru, dari `DEC-BD-002` |
 | `BR-BD-019` | Kontrak penerimaan order darah dari unit pelayanan yang berwenang | Baru, dari `DEC-BD-004` |
+| `BR-BD-020` | Pencatatan lokasi penyimpanan fisik kantong darah (kulkas darah) dan perpindahannya | Baru, dari `DEC-BD-035`, `DEC-BD-036` |
 
 **Di luar scope — milik modul lain**
 
@@ -126,6 +127,8 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | `INV-BD-022` | Konflik golongan darah hanya dapat ditutup lewat pemeriksaan ulang yang tervalidasi dan pernyataan validator. Sistem tidak pernah menutup konflik dengan memilih salah satu hasil lama tanpa pemeriksaan baru, dan tidak pernah menghitung mayoritas. | `DEC-BD-031` |
 | `INV-BD-023` | Masa berlaku bukti kecocokan disimpan per komponen pada katalog komponen darah dan selalu dibaca dari konfigurasi. Tidak pernah ada angka masa berlaku yang ditanam di kode. | `DEC-BD-032` |
 | `INV-BD-024` | Koreksi pencatatan Bank Darah tidak pernah membalik atau mengubah fakta biaya secara otomatis. Keputusan peninjauan biaya adalah wewenang Billing. | `DEC-BD-034` |
+| `INV-BD-025` | Kantong darah tidak dapat dialokasikan sebelum memiliki lokasi penyimpanan dan melalui proses penyimpanan (status `STORED`). Storage Location adalah bagian kesiapan operasional kantong, bukan atribut informasi semata. | `DEC-BD-036` |
+| `INV-BD-026` | Perpindahan lokasi penyimpanan kantong dicatat sebagai histori perpindahan yang hanya bertambah; ia tidak pernah mengubah histori penerimaan awal kantong. | `DEC-BD-036` |
 
 ---
 
@@ -165,7 +168,10 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 
 | Dari status | Tindakan | Ke status | Syarat |
 | --- | --- | --- | --- |
-| — | Diterima secara fisik | Tersedia di Bank Darah | Terikat pada permintaan asalnya |
+| — | Diterima secara fisik dari PMI | `RECEIVED` | Terikat pada permintaan asalnya; belum punya lokasi penyimpanan, belum dapat dialokasikan (`DEC-BD-036`) |
+| `RECEIVED` | Tetapkan lokasi penyimpanan | `STORED` | Lokasi dipilih dari master lokasi penyimpanan darah yang aktif (`DEC-BD-035`) |
+| `STORED` | Siap dialokasikan | Tersedia di Bank Darah | Hanya kantong `STORED` yang dapat masuk proses ketersediaan/alokasi (`INV-BD-025`) |
+| `STORED` / Tersedia / Dialokasikan | Pindahkan lokasi penyimpanan | Status tidak berubah; lokasi diperbarui | Perpindahan dicatat sebagai histori; histori penerimaan awal tetap utuh (`INV-BD-026`) |
 | Tersedia | Dialokasikan | Dialokasikan | Order masih aktif, tidak ada alokasi bertentangan |
 | Dialokasikan | Diberikan ke pasien | Diberikan | Bukti kecocokan tercatat (`DEC-BD-013`) |
 | Dialokasikan | Diberikan lewat jalur darurat | Diberikan, ditandai tanpa bukti kecocokan | Otorisasi peran berwenang, alasan wajib (`DEC-BD-017`) |
@@ -647,6 +653,63 @@ terkirim ke Billing. Kemudian petugas membuat catatan koreksi yang menyatakan pe
 catat. Bank Darah tidak menarik atau membalik biaya apa pun; ia hanya menerbitkan kejadian koreksi.
 Apakah biaya tindakan itu ditinjau ulang diputuskan Billing, bukan Bank Darah.
 
+### 8.12 Storage Location closure pass
+
+Menutup coverage gap "Storage Location" yang dibuka roadmap `plan-module-delivery`. Owner kebutuhan
+menetapkan Storage Location **masuk MVP**. Temuan sumber: master `MstDrugStorageLocation` sudah ada di
+`Areas/HealthServices/MasterData/Models/` (tipe `ColdStorage`, rentang suhu, rak/shelf/bin) — capability
+audit `BD-CAP-006` melewatkannya; celah cakupan audit, bukan basi. Master itu berorientasi farmasi dan
+tidak dipakai.
+
+| Decision ID | Menutup | Type | Keputusan | Status |
+| --- | --- | --- | --- | --- |
+| `DEC-BD-035` | Coverage gap Storage Location (ownership & scope) | `Decision` | Storage Location darah = master baru `MstBloodStorageLocation` milik BDRS; bukan reuse master farmasi; generalisasi ditunda POST-MVP | `draft` |
+| `DEC-BD-036` | Coverage gap Storage Location (lifecycle) | `Decision` | Storage Location menjadi gerbang kesiapan operasional kantong: `RECEIVED` → `STORED` → tersedia → dialokasikan → diberikan | `draft` |
+
+Owner: `DEC-BD-035` dan `DEC-BD-036` pemilik proses BDRS. Keduanya `draft`; `approved_by`/`approved_at`
+kosong.
+
+`DEC-BD-024` (Setup MVP tepat dua hal) **diamandemen**: Setup Bank Darah kini memuat **tiga** master —
+katalog komponen darah, daftar alasan terkendali, dan master lokasi penyimpanan darah. Perluasan ini
+disanksi owner lewat keputusan memasukkan Storage Location ke MVP; substansi `DEC-BD-024` lainnya tetap.
+
+### 8.13 Rincian keputusan Storage Location closure pass
+
+**`DEC-BD-035` — Master lokasi penyimpanan darah milik Bank Darah.**
+Lokasi penyimpanan fisik kantong darah (contoh: Kulkas Besar, Kulkas Kecil) dicatat sebagai **master
+baru `MstBloodStorageLocation`** yang dimiliki dan dikelola pemilik proses BDRS. Kulkas darah MMC adalah
+fasilitas penyimpanan khusus Bank Darah; cold storage farmasi dan storage darah adalah dua konsep
+berbeda — berbeda owner, aturan bisnis, dan lifecycle. Karena itu master farmasi `MstDrugStorageLocation`
+**tidak** dipakai ulang.
+*Scope MVP.* Hanya: master lokasi penyimpanan darah, penanda lokasi aktif/nonaktif, referensi lokasi ke
+Blood Unit, dan perpindahan lokasi.
+*Batas keputusan — di luar MVP.* Monitoring suhu, IoT, kapasitas storage, dan inventory warehouse umum
+**tidak** termasuk. Karena master ini bebas dari flag/atribut farmasi, tidak ada rentang suhu yang ikut
+terbawa. Generalisasi menjadi `MstStorageLocation` bersama dapat dievaluasi setelah MVP bila ada
+kebutuhan lintas domain.
+*Contoh.* Petugas BDRS mendaftarkan "Kulkas Besar" dan "Kulkas Kecil" sebagai lokasi aktif. Kulkas lama
+yang rusak ditandai nonaktif sehingga tidak dapat dipilih untuk penyimpanan baru, tetapi kantong yang
+sudah tercatat di sana tetap terbaca pada riwayat.
+
+**`DEC-BD-036` — Storage Location sebagai gerbang kesiapan operasional kantong.**
+Blood Unit memiliki lifecycle: `RECEIVED` → `STORED` → tersedia → dialokasikan → diberikan.
+Ketentuannya: kantong yang baru diterima dari PMI masuk status `RECEIVED`; kantong **belum boleh
+dialokasikan** sebelum memiliki lokasi penyimpanan; setelah petugas menetapkan lokasi, kantong menjadi
+`STORED`; hanya kantong `STORED` yang dapat masuk proses ketersediaan/alokasi.
+*Invariant.* Kantong tidak dapat dialokasikan apabila belum memiliki Storage Location atau belum melalui
+proses penyimpanan (`INV-BD-025`). Storage Location bukan sekadar atribut informasi, melainkan bagian
+kesiapan operasional kantong.
+*Perpindahan lokasi.* Dicatat sebagai histori perpindahan yang hanya bertambah dan **tidak** mengubah
+histori penerimaan awal kantong (`INV-BD-026`).
+*Catatan pemodelan.* Apakah `STORED` dan keadaan tersedia/`Available` menjadi dua status terpisah atau
+`STORED` sekaligus berarti tersedia untuk alokasi, ditetapkan pada pass `hospital-domain-architect` —
+tanpa menciptakan status per atribut.
+*Contoh.* Kantong `PMI-00912` diterima Senin pagi → `RECEIVED`. Petugas mencoba mengalokasikannya
+langsung untuk Tn. S → ditolak karena belum punya lokasi. Petugas menaruhnya di "Kulkas Besar" dan
+menetapkan lokasi → `STORED`. Kini kantong dapat dialokasikan. Selasa kantong dipindah ke "Kulkas
+Kecil"; perpindahan tercatat, sedangkan catatan bahwa kantong diterima Senin pagi dari permintaan
+asalnya tetap utuh.
+
 ---
 
 ## 9. Acceptance Criteria
@@ -711,6 +774,12 @@ Apakah biaya tindakan itu ditinjau ulang diputuskan Billing, bukan Bank Darah.
 | `AC-BD-056` | Nilai masa berlaku dicoba ditanam di kode, bukan dibaca dari konfigurasi katalog | Ditolak — melanggar `INV-BD-023` |
 | `AC-BD-057` | Konflik golongan darah muncul; petugas mencari daftar kerja operasional keempat untuk menyelesaikannya | Tidak ada; penyelesaian dilakukan di dalam layar pemeriksaan golongan darah (`DEC-BD-033`) |
 | `AC-BD-058` | Koreksi pencatatan pemberian dibuat; sistem mencoba otomatis membalik fakta biaya tindakan | Ditolak — koreksi tidak mengubah biaya; keputusan peninjauan milik Billing (`DEC-BD-034`) |
+| `AC-BD-059` | Kantong baru diterima dari PMI | Status `RECEIVED`; belum dapat dialokasikan |
+| `AC-BD-060` | Kantong `RECEIVED` (belum punya lokasi) dicoba dialokasikan | Ditolak — kantong harus memiliki lokasi penyimpanan dan berstatus `STORED` lebih dulu (`INV-BD-025`) |
+| `AC-BD-061` | Petugas menetapkan lokasi penyimpanan pada kantong `RECEIVED` | Kantong menjadi `STORED` dan dapat masuk proses ketersediaan/alokasi |
+| `AC-BD-062` | Lokasi penyimpanan nonaktif dipilih untuk penyimpanan kantong baru | Ditolak — hanya lokasi aktif yang dapat dipilih |
+| `AC-BD-063` | Kantong `STORED` dipindahkan ke lokasi lain | Perpindahan tercatat sebagai histori; histori penerimaan awal tetap utuh (`INV-BD-026`) |
+| `AC-BD-064` | Sistem diminta mencatat suhu atau kapasitas storage pada MVP | Tidak ada — monitoring suhu, IoT, dan kapasitas di luar scope MVP (`DEC-BD-035`) |
 
 Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 
@@ -744,6 +813,19 @@ Architecture gap final closure pass: `ARCH-BD-GAP-07`, `ARCH-BD-GAP-08`, `ARCH-B
 ---
 
 ## 11. Langkah Berikutnya
+
+**Storage Location closure pass (terbaru).** `DEC-BD-035` dan `DEC-BD-036` menutup coverage gap Storage
+Location yang dibuka roadmap. Karena keputusan ini menambah konsep domain baru (`MstBloodStorageLocation`)
+dan mengubah lifecycle kantong (`RECEIVED` → `STORED`), tiga artefak hilir **belum tersinkron** dan perlu
+pass lanjutan sebelum implementasi:
+- `03-domain-architecture.md` — pass ulang `hospital-domain-architect` untuk menyerap konsep master
+  lokasi, memperluas lifecycle `BD-AGG-03`, dan menambahkan `INV-BD-025`/`INV-BD-026`.
+- `02-backend-architecture.md`, `data/`, `contracts/`, `03-frontend-architecture.md` — pass ulang
+  `design-business-module` untuk menambahkan `MstBloodStorageLocation`, status `RECEIVED`/`STORED`, kolom
+  lokasi pada kantong, serta endpoint penetapan & perpindahan lokasi.
+- `roadmap/00-delivery-plan.md` — Storage Location pindah dari coverage gap ke task P0.
+
+Amandemen `DEC-BD-024`: Setup Bank Darah kini tiga master (komponen, alasan, lokasi penyimpanan).
 
 Enam gap arsitektur `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-06` sudah tertutup oleh `DEC-BD-025` sampai
 `DEC-BD-030`. Dengan itu, dua slice yang semula berhenti karena alasan keselamatan — jalur
