@@ -117,7 +117,7 @@ inherited_decisions:
 
 | Berkas | Sifat | Status |
 |---|---|---|
-| `approval-requests/2026-09-01-permintaan-koordinasi-lintas-modul.md` | Operasional, bukan artefak desain | **`dijawab sebagian`** — 5 disetujui, 2 menunggu jawaban faktual, 1 di luar wewenang |
+| `approval-requests/2026-09-01-permintaan-koordinasi-lintas-modul.md` | Operasional, bukan artefak desain | **`dijawab sebagian`** — 6 selesai, 4 terbuka termasuk 2 butir baru |
 
 ## Catatan status
 

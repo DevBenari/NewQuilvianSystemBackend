@@ -6,7 +6,7 @@
 | `tanggal` | 2026-09-01 |
 | `pengaju` | Yoga Aji Pratama — Product/Domain Owner Laboratorium |
 | `rujukan` | `blueprint-manifest.md` revision `9`; `04-prd-to-mvp.md` bagian 15 |
-| `status` | `dijawab sebagian` — lihat bagian 0 |
+| `status` | `dijawab sebagian` — 6 selesai, 4 terbuka. Lihat bagian 0 dan 5 |
 | `disetujui oleh` | `andryzainhome` (`andryzain01@gmail.com`) dan `sukmagp` — Sukma Giri Pratama (`sukmagiri11@gmail.com`), selaku pemilik repository |
 | `tanggal persetujuan` | 2026-09-01 |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
@@ -36,11 +36,20 @@ modul Laboratorium.
 | No | Yang dibutuhkan | Kenapa persetujuan belum cukup |
 |---:|---|---|
 | 4 | Jumlah baris `TrxLabSpecimen` di basis data produksi | Yang diminta adalah **satu angka**, bukan izin. Menyetujui permintaan tidak memberi tahu berapa barisnya. Migration `MVP-2` tetap tidak boleh dijalankan sebelum angkanya diketahui |
-| 5 | ~~Lokasi `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`~~ | **TERJAWAB 2026-09-01** — lihat 3.2. Keduanya **masih berlaku** dan berada di `QuilvianEngineeringSkills/agents/rules/backend/engineering/`. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007` |
+| 5 | ~~Lokasi `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`~~ | **TERJAWAB 2026-09-01** — lihat 3.2. Keduanya masih berlaku, dan lokasi **canonical**-nya adalah `NewQuilvianSystemBackend/docs/engineering/` pada commit `c9692d0`. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007` |
 
-`LAB-OPEN-012` tetap terbuka. `LAB-OPEN-002` ditutup, tetapi menurunkan dua penghambat baru
-`LAB-OPEN-018` dan `LAB-OPEN-019` yang keduanya masih memerlukan tindakan pemilik repository
-backend — lihat 3.2.
+> **Peringatan lokasi — jangan sampai keliru.** Terdapat salinan kedua dokumen itu di
+> `QuilvianEngineeringSkills/agents/rules/backend/engineering/`. Salinan itu **bukan sumber
+> canonical**. `rules/README.md` pada repository skill menyatakan tegas bahwa yang berlaku saat
+> runtime tetap dokumen di repository backend target, dan salinan lokal **tidak boleh** dipakai
+> sebagai pengganti.
+>
+> Yang harus dibaca implementer adalah `docs/engineering/` di `NewQuilvianSystemBackend`, yang
+> muncul setelah checkout lokal ditarik ke `c9692d0`.
+
+`LAB-OPEN-012` tetap terbuka. `LAB-OPEN-002` ditutup, tetapi pembacaan dokumennya menurunkan
+dua penghambat baru — `LAB-OPEN-018` dan `LAB-OPEN-019` — yang keduanya memerlukan tindakan
+pemilik registry prefix. Lihat 3.3 dan 3.4.
 
 ### 0.3 Di luar wewenang pemberi persetujuan — satu butir
 
@@ -174,17 +183,79 @@ bukan bukti** — dan mengubah struktur tabel berdasarkan dugaan tidak dapat dit
 
 Yang dibutuhkan hanya satu perhitungan baris.
 
-### 3.2 Pemilik repository backend — dokumen tata kelola yang hilang
+### 3.2 Pemilik repository backend — dokumen tata kelola ~~yang hilang~~ **SUDAH TERJAWAB**
 
 | Butir | Isi |
 |---|---|
-| **Yang diminta** | Lokasi `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
-| **ID koordinasi** | `LAB-OPEN-002` |
-| **Yang diblokir** | **Seluruh implementasi backend**, gelombang mana pun |
-| **Akibat nyata bila tidak ada** | `AGENTS.md` menyatakan kedua dokumen itu berwenang atas implementasi backend, tetapi folder `docs/engineering/` dan `.codex/` tidak ditemukan pada `9124900`. Implementer tidak punya kontrak yang harus diikuti |
+| **ID koordinasi** | `LAB-OPEN-002` — **ditutup 2026-09-01** |
+| **Jawabannya** | Dokumennya **tidak hilang**. Keduanya ada pada commit `c9692d0` "Repair QBE canonical governance paths" |
+| **Sebab kekeliruan** | Checkout lokal berada di cabang `yoga` pada `9124900`, **7 commit tertinggal** dari `origin/yoga`. Folder `docs/engineering/` memang belum ada di working copy, tetapi ada di remote |
+| **Dampak pada blueprint** | Ketujuh commit itu **tidak menyentuh Laboratorium** — hanya IGD, dokumen, dan tooling. Capability map tetap sahih |
+| **Tindakan yang diperlukan** | Menarik ketujuh commit itu ke checkout lokal |
 
-Bila kedua dokumen memang sudah tidak berlaku, yang diminta adalah pernyataan itu secara
-tertulis, agar `AGENTS.md` dapat diperbarui.
+**Yang ditemukan setelah dokumennya dibaca.** Rancangan Laboratorium ternyata melanggar
+`QBE-NAM-001` — tiga entity baru diberi awalan `Trx*`, yang dilarang untuk kode baru. Sudah
+diperbaiki menjadi `LabExamination`, `LabValueBoundChangeRequest`, dan `LabValueBoundHistory`.
+
+Dua hal lain muncul dan **belum terjawab** — lihat bagian 3.3 dan 3.4.
+
+---
+
+### 3.3 Pemilik registry prefix — lifecycle Laboratorium masih `PLANNED`
+
+| Butir | Isi |
+|---|---|
+| **Yang diminta** | Menaikkan Lifecycle `LaboratoryManagement / Laboratory` dari `PLANNED` menjadi `ACTIVE`, **atau** pernyataan tertulis mengenai dasar pekerjaan yang sudah berjalan |
+| **ID koordinasi** | `LAB-OPEN-019` |
+| **Yang diblokir** | **Seluruh gelombang MVP.** `MVP-0` sampai `MVP-4` |
+
+**Kenapa ini serius.** `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` menyatakan tegas:
+
+> *"Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak** memberi
+> wewenang implementasi, migration, pekerjaan database, deployment, maupun aktivasi modul
+> berstatus `PLANNED`."*
+
+Baris registry yang berlaku:
+
+| Area | Module/pemilik | Category | Prefix | Lifecycle |
+|---|---|---|---|---|
+| HealthServices | LaboratoryManagement / Laboratory | BUSINESS DOMAIN / MODULE | Lab | **`PLANNED`** |
+
+**Keadaan yang perlu dijelaskan.** `LabOrder`, `TrxLabSpecimen`, `TrxLabTransitionHistory`, dan
+`MstLabRejectionReason` **sudah berjalan di produksi** beserta migration dan 31 pengujian.
+Padahal menurut registry, modul berstatus `PLANNED` belum berwenang menjalankan implementasi
+maupun migration.
+
+Dua kemungkinan, dan keduanya perlu ditutup:
+
+| Kemungkinan | Tindakan |
+|---|---|
+| Lifecycle-nya yang usang — pekerjaan itu memang sudah diberi wewenang | Naikkan ke `ACTIVE`, catat pada *Catatan perubahan lifecycle* |
+| Pekerjaan itu berjalan tanpa wewenang registry | Perlu ditinjau pemilik registry sebelum pekerjaan baru ditambahkan |
+
+Selama belum dijawab, blueprint ini **tidak boleh** diteruskan ke implementasi.
+
+---
+
+### 3.4 Pemilik registry prefix — prefix data induk Laboratorium
+
+| Butir | Isi |
+|---|---|
+| **Yang diminta** | Penetapan prefix untuk data induk yang dimiliki Laboratorium |
+| **ID koordinasi** | `LAB-OPEN-018` |
+| **Yang diblokir** | Penamaan dua tabel baru: batas nilai dan pilihan hasil |
+
+**Persoalannya.** `QBE-NAM-002` mewajibkan kode baru memakai prefix registry milik pemiliknya,
+dan `QBE-NAM-004` melarang menyimpulkan prefix sendiri. Registry punya dua baris yang sama-sama
+masuk akal:
+
+| Baris registry | Prefix | Bila dipakai | Sejalan dengan |
+|---|---|---|---|
+| Master / Reference | `Mst` | `MstLabValueBound`, `MstLabValueOption` | `MstLabRejectionReason` yang sudah ada |
+| LaboratoryManagement / Laboratory | `Lab` | `LabValueBound`, `LabValueOption` | Aturan `<PrefixPemilik><Konsep>`, karena pemiliknya Laboratorium |
+
+Blueprint **tidak memutuskan sendiri**. Sampai dijawab, penamaan kedua tabel berstatus belum
+final.
 
 #### Jawaban — 2026-09-01
 
@@ -264,23 +335,26 @@ kemampuan baru yang perlu dibangun di modul `rekam-medis`.
 
 ## 5. Ringkasan yang Diminta
 
-| No | Kepada | Yang diminta | Memblokir |
-|---:|---|---|---|
-| 1 | Pemilik `master-data` | Satu kolom disiplin pada `MstProcedure` | `MVP-0` |
-| 2 | Pemilik `master-data` | Dua data induk perujuk | `MVP-1` |
-| 3 | Pemilik `registration-management` | Kolom penunjuk perujuk + kontrak pemanggilan | `MVP-1` |
-| 4 | Pemilik repository backend / DBA | Jumlah baris `TrxLabSpecimen` di produksi | `MVP-2` |
-| 5 | Pemilik repository backend | Lokasi dua dokumen tata kelola | Seluruh implementasi |
-| 6 | Dokter PJ laboratorium / Komite Medis | Tanda tangan tiga keputusan keselamatan | Seluruh slice hasil |
-| 7 | Pemilik platform | Kesepakatan pemberitahuan sebagai kemampuan platform | Nilai kritis |
-| 8 | Pemilik `rekam-medis` | Satu jenis dokumen klinis baru | Hasil ke rekam medis |
+| No | Kepada | Yang diminta | Memblokir | Keadaan |
+|---:|---|---|---|---|
+| 1 | Pemilik `master-data` | Satu kolom disiplin pada `MstProcedure` | `MVP-0` | ✅ **Disetujui** |
+| 2 | Pemilik `master-data` | Dua data induk perujuk | `MVP-1` | ✅ **Disetujui** |
+| 3 | Pemilik `registration-management` | Kolom penunjuk perujuk + kontrak pemanggilan | `MVP-1` | ✅ **Disetujui** |
+| 4 | Pemilik repository backend / DBA | Jumlah baris `TrxLabSpecimen` di produksi | `MVP-2` | ⏳ Menunggu **angka** |
+| 5 | Pemilik repository backend | Lokasi dua dokumen tata kelola | Seluruh implementasi | ✅ **Terjawab sendiri** — lihat 3.2 |
+| 6 | Dokter PJ laboratorium / Komite Medis | Tanda tangan tiga keputusan keselamatan | Seluruh slice hasil | ⏳ Di luar wewenang pemilik repo |
+| 7 | Pemilik platform | Kesepakatan pemberitahuan sebagai kemampuan platform | Nilai kritis | ✅ **Disetujui** |
+| 8 | Pemilik `rekam-medis` | Satu jenis dokumen klinis baru | Hasil ke rekam medis | ✅ **Disetujui** |
+| **9** | **Pemilik registry prefix** | **Lifecycle Laboratorium dari `PLANNED` ke `ACTIVE`** | **Seluruh gelombang MVP** | 🔴 **Baru, belum diajukan** |
+| **10** | **Pemilik registry prefix** | **Prefix data induk Laboratorium: `Mst` atau `Lab`** | Penamaan dua tabel | 🔴 **Baru, belum diajukan** |
 
-**Nomor 1 sampai 3 adalah yang paling mendesak.** Tanpa ketiganya, gelombang pertama tidak
-dapat dimulai sama sekali. Ketiganya juga yang paling ringan — satu kolom, dua daftar, dan satu
-kesepakatan bentuk pemanggilan.
+**Nomor 9 adalah penghalang terberat yang tersisa.** Ia memblokir bukan sebagian, melainkan
+**seluruh** gelombang MVP. Nomor 1 sampai 3 yang sudah disetujui tidak berarti apa-apa selama
+registry masih menyatakan modul ini `PLANNED`.
 
-**Nomor 4 dan 5 murah dijawab.** Yang satu satu perhitungan baris, yang satu lagi keterangan
-lokasi berkas.
+**Nomor 4 masih menunggu satu angka.** Yang paling murah dijawab dari seluruh daftar.
+
+**Nomor 6 tidak dapat ditutup pemilik repository.** Wewenangnya klinis — lihat bagian 0.3.
 
 ---
 
@@ -302,5 +376,8 @@ Agar tidak disalahpahami, berikut yang **bukan** bagian permintaan ini:
 
 | Tanggal | Perubahan | Status |
 |---|---|---|
-| 2026-09-01 | Permintaan disusun dari `blueprint-manifest.md` revision 9 | `draft`, belum dikirim |
+| 2026-09-01 | Permintaan disusun dari `blueprint-manifest.md` revision 9 | `dikirim` |
+| 2026-09-01 | Butir 1, 2, 3, 7, 8 disetujui `andryzainhome` dan `sukmagp` | `dijawab sebagian` |
+| 2026-09-01 | Butir 5 terjawab lewat penelusuran sendiri: dokumennya ada di `c9692d0`, checkout lokal 7 commit tertinggal | `ditutup` |
+| 2026-09-01 | Butir 9 dan 10 ditambahkan setelah kontrak engineering dibaca | `belum diajukan` |
 | 2026-09-01 | Butir 5 terjawab lewat penelusuran repository: kedua dokumen tata kelola ditemukan di `QuilvianEngineeringSkills/agents/rules/backend/engineering/` dan **masih berlaku**. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007`; `LAB-OPEN-018` dan `LAB-OPEN-019` dibuka sebagai penghambat implementasi penggantinya | `draft` |
