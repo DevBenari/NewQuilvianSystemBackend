@@ -47,7 +47,7 @@ integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — 4/14 task | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `IN_PROGRESS` — 5/14 task | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
 | Task | Status | Bukti |
 |---|---|---|
@@ -55,15 +55,23 @@ integration, dan `ACC-DEP-008` menahan pembuatan endpoint mulai `BE-ACC-007`.
 | `BE-ACC-002` audit hak akses badan hukum | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-002-audit-hak-akses-badan-hukum.md` |
 | `BE-ACC-003` entity daftar akun dan jenis jurnal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-003-entity-daftar-akun-dan-jenis-jurnal.md` |
 | `BE-ACC-004` entity periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-004-entity-periode-akuntansi.md` |
-| `BE-ACC-005` entity jurnal, baris jurnal, riwayat persetujuan | `EXECUTION_READY` | Menunggu instruksi owner |
+| `BE-ACC-005` entity jurnal, baris, riwayat, alokator nomor | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-005-entity-jurnal-baris-dan-riwayat-persetujuan.md` |
+| `BE-ACC-006` migration pertama dan data master awal | `BLOCKED` | Migration Coordination Gate + `ACC-DEP-005` |
 
-`BE-ACC-001` sampai `BE-ACC-003` sudah **di-commit** pada `e1ee173`. `BE-ACC-004` **belum
-di-commit**.
+`BE-ACC-001` sampai `BE-ACC-003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`.
+`BE-ACC-005` **belum di-commit**.
 
-**Tiga entity persisted sudah berdiri** — `AccChartOfAccount`, `AccJournalType`, dan
-`AccAccountingPeriod` — tanpa satu pun migration. Model EF Core karena itu mendahului
-`ApplicationDbContextModelSnapshot.cs`. Ini disengaja: `BE-ACC-006` yang menyelesaikannya, lewat
-Migration Coordination Gate.
+**`MVP-0` di sisi entity tuntas — tujuh entity persisted berdiri** tanpa satu pun migration:
+`AccChartOfAccount`, `AccJournalType`, `AccAccountingPeriod`, `AccJournal`, `AccJournalLine`,
+`AccJournalApproval`, `AccNumberSeries`. Model EF Core karena itu mendahului
+`ApplicationDbContextModelSnapshot.cs`, dan `BE-ACC-006` akan menghasilkan **tujuh**
+`CreateTable`. Ini disengaja, dan gerbangnya ada di `BE-ACC-006`.
+
+**Dua pertentangan antar artefak canonical sudah SELESAI**, 2 September 2026, lewat
+`ACC-DEC-039` (nama entity riwayat tetap `AccJournalApproval`) dan `ACC-DEC-040` (tanggal bisnis
+`date`, waktu peristiwa `timestamp with time zone`). Keduanya menguatkan pilihan yang sudah
+diimplementasikan, sehingga **nol berkas kode berubah**. `erd/data-dictionary.md` diperbaiki agar
+DDL contohnya tidak lagi bertentangan dengan diagram ERD-nya sendiri.
 
 ## Blockers and owners
 

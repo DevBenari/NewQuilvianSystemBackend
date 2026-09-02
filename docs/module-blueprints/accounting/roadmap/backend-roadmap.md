@@ -78,7 +78,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
-| `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | 4 `DONE`, 1 `EXECUTION_READY`, 1 tertahan gate | Blueprint **disetujui** |
+| `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **5 `DONE`**, 1 tertahan Migration Coordination Gate | Blueprint **disetujui** |
 | `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-0` selesai **dan** `ACC-DEP-008` terselesaikan |
 | `MVP-2` Buku besar | `BE-ACC-012` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-2` selesai |
@@ -88,12 +88,21 @@ membuat endpoint. Ia **tidak** menahan `BE-ACC-003` sampai `BE-ACC-005`, karena 
 kolom `LegalEntityId` berbeda dari menegakkannya. Pemiliknya Security/Platform, bukan Accounting,
 dan Accounting **tidak** membuat solusi tandingannya.
 
-**Diperbarui 2 September 2026.** `BE-ACC-001` sampai `BE-ACC-004` **selesai**. Satu task
-`EXECUTION_READY`: **`BE-ACC-005`** — dependency `BE-ACC-004` sudah terpenuhi.
+**Diperbarui 2 September 2026.** `BE-ACC-001` sampai `BE-ACC-005` **selesai**. `MVP-0` di sisi
+entity **tuntas**.
 
-Tiga entity persisted sudah berdiri — `AccChartOfAccount`, `AccJournalType`,
-`AccAccountingPeriod` — tanpa satu pun migration. Model EF Core karena itu mendahului snapshot;
-disengaja, dan diselesaikan `BE-ACC-006` lewat gerbangnya sendiri.
+Tujuh entity persisted sudah berdiri — `AccChartOfAccount`, `AccJournalType`,
+`AccAccountingPeriod`, `AccJournal`, `AccJournalLine`, `AccJournalApproval`, `AccNumberSeries` —
+tanpa satu pun migration. Model EF Core karena itu mendahului snapshot, dan `BE-ACC-006` akan
+menghasilkan **tujuh** `CreateTable`.
+
+Yang tersisa di `MVP-0` hanya `BE-ACC-006`, dan ia **tidak** otomatis boleh jalan: tertahan
+Migration Coordination Gate, `ACC-DEP-005`, dan wewenang migration yang terpisah dari wewenang
+source.
+
+**Dua pertentangan antar artefak canonical menunggu keputusan owner** — nama entity riwayat, dan
+tipe kolom tanggal ERD-vs-DDL. Rinciannya di laporan `BE-ACC-005` bagian 15.A. Keduanya murah
+diubah sekarang dan mahal setelah migration terbit.
 
 Hasil `BE-ACC-002` menambah satu dependency yang perlu diketahui sebelum menjadwalkan `MVP-1`:
 **`ACC-DEP-008`**, mekanisme hak akses badan hukum tidak ada. Ia menahan `BE-ACC-007` ke atas,
@@ -185,7 +194,8 @@ berbeda dari menegakkannya; penjelasannya di `evidence/02-legal-entity-authority
 | Verifikasi | `dotnet build`; pembandingan terhadap kamus data dan bentuk DDL |
 | Risiko/pemilik | Owner Backend. Salah tipe kolom nilai berakibat langsung pada ketepatan angka — lihat `NFR-008` |
 | DoD | Build lulus, tanpa migration |
-| **Status** | `ROADMAP_READY` · `EXECUTION_READY` setelah dependency task-nya selesai. Tidak ada lagi penghalang lifecycle, dan **tidak tertahan `ACC-DEP-008`** — mendefinisikan kolom, bukan menegakkannya |
+| **Status** | **`DONE`** — 2 September 2026. Laporan: `task/report/backend/be-acc-005-entity-jurnal-baris-dan-riwayat-persetujuan.md` |
+| **Hasil** | 4 entity + 4 configuration + 4 `DbSet` + 1 check constraint. Build 0 error, 965 test lulus. **Nol migration, snapshot tidak berubah.** Dua pertentangan antar artefak dicatat pada bagian 15.A laporan dan menunggu keputusan owner |
 
 #### Kenapa `AccNumberSeries` ada, dan kenapa kolom tertentu sengaja tidak ada
 

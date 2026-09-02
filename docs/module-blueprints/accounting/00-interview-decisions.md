@@ -638,7 +638,23 @@ memakai pembedaan §35 apa adanya, keputusan itu perlu dinyatakan tersendiri.
 | `ACC-DEC-038` | Decision | **Lifecycle registry `Acc` dinaikkan `PLANNED` → `ACTIVE`.** Baris canonical `| Corporate | AccountingManagement / Accounting | BUSINESS DOMAIN / MODULE | Acc | ACTIVE |`. Accounting memasuki tahap implementasi source model persisted. Wewenangnya **hanya** source model; `dotnet ef migrations add`, `dotnet ef database update`, perubahan shared database, deployment, production activation, dan bypass Migration Coordination Gate **tidak** termasuk. `BE-ACC-006` tetap punya gerbang tersendiri. Entri `Finance` / `Fin` tidak diubah | Rizki | `approved` | Rizki, 1 September 2026 | FINAL OWNER APPROVAL `ACC-BP-001` revisi 5, sesi 1 September 2026. Preseden: `Inp` (`RWI-DEC-068`, 24 Agustus 2026) dan `Mrc` (`RM-DEC-029`, 31 Agustus 2026), keduanya diaktifkan pemilik modulnya sendiri. Termaterialisasi di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta catatan perubahan lifecycle |
 
 
+| `ACC-DEC-039` | Decision | **Nama entity riwayat persetujuan jurnal adalah `AccJournalApproval`, bukan `AccJournalApprovalHistory`.** Artefak canonical — `erd/02-journal.md`, `erd/00-context-erd.md`, `erd/data-dictionary.md` bagian 6 beserta DDL-nya, dan `roadmap/backend-roadmap.md` — seluruhnya memakai `AccJournalApproval`. **Nama pada instruksi task bukan sumber kebenaran yang lebih tinggi daripada artefak canonical.** Entity tidak diubah menjadi `...History` | Rizki | `approved` | Rizki, 2 September 2026 | Pertentangan ditemukan saat `BE-ACC-005`, dilaporkan pada bagian 15.A laporan task dan tidak diputuskan sepihak. Implementasi `BE-ACC-005` sudah memakai nama canonical, jadi keputusan ini **tidak menuntut perubahan kode** |
+| `ACC-DEC-040` | Decision | **Tanggal bisnis memakai `date`; waktu peristiwa memakai `timestamp with time zone`.** `AccountingDate` dan `DocumentDate` pada `AccJournal`, serta `StartDate` dan `EndDate` pada `AccAccountingPeriod`, bertipe `date`. `SubmittedAt`, `ApprovedAt`, `PostedAt`, `ActionAt`, `ClosedAt`, `ReopenedAt`, dan seluruh kolom waktu audit `IdentityModel` bertipe `timestamp with time zone`. Alasannya: **tanggal akuntansi menentukan periode pembukuan, bukan waktu kejadian** — menyimpan jam padanya membuka celah beda hari akibat zona waktu | Rizki | `approved` | Rizki, 2 September 2026 | Menyelesaikan pertentangan antara diagram ERD (`date`) dan DDL contoh pada `erd/data-dictionary.md` (`timestamp`). DDL contoh diperbaiki mengikuti keputusan ini. Implementasi `BE-ACC-004` dan `BE-ACC-005` sudah sesuai, jadi keputusan ini **tidak menuntut perubahan kode** |
+
 Keputusan `ACC-DEC-001` sampai `ACC-DEC-008` **tidak dibuka kembali** sesuai PRD §36 aturan 3.
+
+### Dua keputusan penyelesai pertentangan — 2 September 2026
+
+`ACC-DEC-039` dan `ACC-DEC-040` berbeda sifatnya dari 38 keputusan sebelumnya. Keduanya **tidak
+mengubah target**; keduanya memilih di antara dua bacaan yang sudah sama-sama ada di dalam
+artefak canonical dan saling bertentangan.
+
+Karena itu tidak ada satu pun berkas kode yang berubah akibat keduanya: implementasi `BE-ACC-004`
+dan `BE-ACC-005` kebetulan sudah memilih bacaan yang sama dengan yang kini disahkan.
+
+Nilai keputusan ini ada pada waktunya. Selama migration belum terbit, mengubah nama tabel atau
+tipe kolom hanya berarti menyunting berkas. Setelah migration terbit dan tabelnya berisi data,
+hal yang sama menjadi perubahan skema pada tabel produksi.
 
 ---
 

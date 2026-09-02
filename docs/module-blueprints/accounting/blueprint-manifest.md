@@ -29,19 +29,20 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: e1ee1734a9931c3b662001eadf832168480159aa
+verification_backend_source_sha: a4df550c1321bab140e7da43fcef5234ac7824ea
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
-  Backend digeser ca6b7e0 -> e1ee173 pada 2 September 2026 setelah impact scan. e1ee173 adalah
-  satu commit tunggal berisi pekerjaan BE-ACC-001, BE-ACC-002, dan BE-ACC-003 yang di-commit
-  owner; nol perubahan dari pihak lain, nol sentuhan pada Migrations/, ModelSnapshot, Program.cs,
-  tooling/, agents/, .github/, dan modul lain. Selisih aa837d7..ca6b7e0 sebelumnya adalah 28
-  berkas dokumentasi blueprint saja. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward
-  murni), tidak relevan untuk task backend.
+  Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 sepanjang 2 September 2026, dan tiap
+  pergeseran diverifikasi impact scan lebih dahulu. ca6b7e0 menambah 28 berkas dokumentasi
+  blueprint saja. e1ee173 adalah commit BE-ACC-001..003 oleh owner. a4df550 adalah commit
+  BE-ACC-004 oleh owner, tepat 8 berkas. Ketiganya nol sentuhan pada Migrations/, ModelSnapshot,
+  Program.cs, tooling/, agents/, .github/, dan modul lain, sehingga seluruh bukti terhadap
+  aa837d7 tetap berlaku. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak
+  relevan untuk task backend.
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
-decision_revision: 1.2
+decision_revision: 1.3
 input_revisions:
   interview_decisions: 4
   capability_map: 2
@@ -68,7 +69,7 @@ cross_module:
   depends_on_finance_contract: null
   open_cross_module_decisions: [ACC-XM-001]
 artifact_hashes:
-  00-interview-decisions.md: 78f2de75552f6e51725d78f5682873a6feabe8996778c51b55515d363086dc5f
+  00-interview-decisions.md: 3dbdd53cbaa8acc8c427c946cc8b6d19251887e6e29e2493fc20d78c07bd7895
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
   03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
@@ -81,8 +82,8 @@ artifact_hashes:
   contracts/permission-audit-matrix.md: 91a40a7fa0535024e6c300eb567cb54c33a0e9886bc188a7ed2e0041a7cfa195
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 88658490456f7d74a2ce0834b7b6bf94389e2a7273e67b953e79a7dd8bf27364
-  erd/data-dictionary.md: a5380edf9daf1b225d9751b30a4e153ed80a54e6d1c00888f48d916ae94c3986
-  roadmap/backend-roadmap.md: 31fc273cd122772968f4f74c32fad29002f99b9922d3e11a392d6599568287f0
+  erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
+  roadmap/backend-roadmap.md: 4f4dd68b2c231438274bc019340dccc53ada2b50b1dedc8ca83ef585fd5f67f2
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006 CLOSED
@@ -115,7 +116,7 @@ backend. Prefix entity wajib didaftarkan lebih dahulu oleh lead; lihat `ACC-DEP-
 | Masukan | Nilai | Keterangan |
 | --- | --- | --- |
 | Dokumen requirement | `ACC-PRD-001` revisi `0.1` | Status `OWNER_APPROVED_FOR_GRILL_ME`, disetujui 1 September 2026 |
-| Decision log | 37 dari 37 tertutup | 28 dijawab owner, 9 ditunda ke Phase 2 lewat `ACC-DEC-036` |
+| Decision log | 40 dari 40 tertutup | 28 dijawab owner, 9 ditunda ke Phase 2 lewat `ACC-DEC-036`, ditambah `ACC-DEC-038` (lifecycle) serta `ACC-DEC-039`/`040` (penyelesai pertentangan artefak) |
 | Capability map | Parsial | Pemeriksaan terarah, bukan audit penuh. `/trace-existing-capabilities` belum dijalankan |
 | Requirement completeness gate | **Belum dijalankan** | Tidak diwajibkan karena MVP diklasifikasikan sebagai kemampuan non-rumah-sakit |
 | Hospital domain architecture | **Belum dijalankan** | Alasan yang sama. **Wajib** dijalankan sebelum Phase 2 |
@@ -187,6 +188,33 @@ target, atau menandai task selesai **tidak** menaikkan `revision`. Setiap pembar
 mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
+
+### 2 September 2026 — `ACC-DEC-039` dan `ACC-DEC-040`, revisi tetap 6
+
+Dua keputusan owner yang **menyelesaikan pertentangan di dalam artefak canonical**, bukan
+mengubah target. Ditemukan dan dilaporkan saat `BE-ACC-005`, lalu diputuskan owner pada hari yang
+sama.
+
+| Keputusan | Isi |
+|---|---|
+| `ACC-DEC-039` | Nama entity riwayat adalah **`AccJournalApproval`**, bukan `AccJournalApprovalHistory`. Nama pada instruksi task **bukan** sumber kebenaran yang lebih tinggi daripada artefak canonical |
+| `ACC-DEC-040` | **Tanggal bisnis memakai `date`; waktu peristiwa memakai `timestamp with time zone`.** Tanggal akuntansi menentukan periode pembukuan, bukan waktu kejadian |
+
+`revision` **tetap 6**. Alasannya: tidak ada arsitektur target, contract version, dependency,
+maupun keputusan `APPROVED` sebelumnya yang berubah. Kedua keputusan memilih di antara dua bacaan
+yang sudah sama-sama ada di dalam artefak, dan bacaan yang dipilih persis yang sudah
+diimplementasikan `BE-ACC-004` dan `BE-ACC-005`. `decision_revision` naik `1.2` → `1.3`.
+
+Satu artefak diperbaiki agar tidak lagi bertentangan dengan dirinya sendiri:
+`erd/data-dictionary.md`. DDL contohnya menulis `timestamp` untuk kolom yang diagram ERD-nya
+menulis `date`. Sepuluh baris DDL disesuaikan mengikuti `ACC-DEC-040` — empat menjadi `date`
+(`StartDate`, `EndDate`, `DocumentDate`, `AccountingDate`, ditambah `EffectiveStartDate` pada
+`AccChartOfAccount`) dan enam menjadi `timestamptz` (`ClosedAt`, `ReopenedAt`, `SubmittedAt`,
+`ApprovedAt`, `PostedAt`, `ActionAt`).
+
+**Nol berkas kode berubah.** Ini bukan kebetulan yang beruntung, melainkan akibat langsung dari
+melaporkan pertentangan itu alih-alih memutuskannya sepihak: implementasinya sudah menunggu di
+bacaan yang kemudian disahkan.
 
 ### 2 September 2026 — `BE-ACC-002` selesai dan `ACC-DEP-008` ditemukan, revisi 5 → 6
 

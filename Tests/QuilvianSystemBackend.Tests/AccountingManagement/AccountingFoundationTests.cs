@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Tests.Infrastructure;
@@ -150,30 +152,34 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
         }
 
         /// <summary>
-        /// Penjaga batas task, diperbarui pada `BE-ACC-004`.
+        /// Penjaga batas task, diperbarui pada `BE-ACC-005`.
         ///
         /// Riwayatnya: `BE-ACC-001` menuntut **nol** entity persisted; `BE-ACC-003` menaikkannya
-        /// menjadi **dua**; `BE-ACC-004` menaikkannya menjadi **tiga**.
+        /// menjadi **dua**; `BE-ACC-004` menjadi **tiga**; `BE-ACC-005` menjadi **tujuh**.
         ///
-        /// Gunanya tetap sama. Bila ada yang menambahkan entity `BE-ACC-005` — yaitu jurnal,
-        /// baris jurnal, dan riwayat persetujuan — mendahului urutan task, test ini gagal dan
-        /// sebabnya terbaca langsung.
+        /// Tujuh ini menutup seluruh entity `MVP-0`. Sesudahnya yang tersisa hanya `BE-ACC-006`
+        /// yang membuat migration, bukan entity. Jadi bila daftar ini bertambah lagi, hampir
+        /// pasti ada entity Phase 2 yang masuk terlalu dini — misalnya kolom atau tabel
+        /// integrasi Finance/Billing yang memang sengaja ditunda.
         ///
         /// Dibuktikan lewat refleksi, bukan lewat daftar berkas, supaya tetap berlaku walau
         /// berkasnya dipindah folder. Entity persisted di repository ini dikenali dari
         /// pewarisan <see cref="IdentityModel"/>.
         /// </summary>
         [Fact]
-        public void ModulAccounting_HanyaMemilikiEntityCakupanBeAcc004()
+        public void ModulAccounting_HanyaMemilikiEntityCakupanBeAcc005()
         {
+            const string akar = "QuilvianSystemBackend.Areas.Corporate.AccountingManagement";
+
             string[] entityDiizinkan =
             {
-                "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod"
-                + ".Models.AccAccountingPeriod",
-                "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData"
-                + ".ChartOfAccount.Models.AccChartOfAccount",
-                "QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData"
-                + ".JournalType.Models.AccJournalType"
+                akar + ".AccountingPeriod.Models.AccAccountingPeriod",
+                akar + ".JournalManagement.Models.AccJournal",
+                akar + ".JournalManagement.Models.AccJournalApproval",
+                akar + ".JournalManagement.Models.AccJournalLine",
+                akar + ".JournalManagement.Models.AccNumberSeries",
+                akar + ".MasterData.ChartOfAccount.Models.AccChartOfAccount",
+                akar + ".MasterData.JournalType.Models.AccJournalType"
             };
 
             List<string> entityDitemukan = typeof(AccountType).Assembly
@@ -191,8 +197,8 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
 
             Assert.True(
                 diLuarCakupan.Count == 0,
-                "Hanya entity cakupan BE-ACC-004 yang boleh ada. Entity jurnal, baris jurnal, "
-                + "dan riwayat persetujuan (BE-ACC-005) belum boleh dibuat. "
+                "Hanya tujuh entity cakupan MVP-0 yang boleh ada. Entity di luar daftar itu "
+                + "berarti cakupan Phase 2 masuk terlalu dini. "
                 + $"Ditemukan di luar cakupan: {string.Join(", ", diLuarCakupan)}");
 
             foreach (string wajibAda in entityDiizinkan)
@@ -403,6 +409,139 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
 
             // BE-ACC-005 belum dikerjakan, jadi belum boleh ada relasi ke jurnal.
             Assert.Null(periode.FindNavigation("Journals"));
+        }
+
+        /// <summary>
+        /// Acceptance criteria 1 `BE-ACC-005` — seluruh kolom nilai memakai `decimal(18,2)`.
+        ///
+        /// Ini pemeriksaan yang paling berbahaya bila dilewatkan. Salah presisi pada kolom uang
+        /// tidak membuat build gagal maupun test lain merah; ia baru terlihat sebagai selisih
+        /// beberapa rupiah pada neraca, berbulan-bulan kemudian, dan sangat mahal ditelusuri.
+        /// `NFR-008` menandainya sebagai risiko langsung.
+        /// </summary>
+        [Fact]
+        public void SeluruhKolomNilai_MemakaiDecimal18Koma2()
+        {
+            using TestDatabase basisUji = TestDatabase.Create();
+            using ApplicationDbContext db = basisUji.CreateContext();
+
+            (Type entity, string kolom)[] kolomNilai =
+            {
+                (typeof(AccJournal), nameof(AccJournal.TotalDebit)),
+                (typeof(AccJournal), nameof(AccJournal.TotalCredit)),
+                (typeof(AccJournalLine), nameof(AccJournalLine.DebitAmount)),
+                (typeof(AccJournalLine), nameof(AccJournalLine.CreditAmount))
+            };
+
+            foreach ((Type entity, string kolom) in kolomNilai)
+            {
+                IProperty properti = db.Model.FindEntityType(entity)!.FindProperty(kolom)!;
+
+                Assert.Equal(typeof(decimal), properti.ClrType);
+                Assert.Equal(18, properti.GetPrecision());
+                Assert.Equal(2, properti.GetScale());
+            }
+        }
+
+        /// <summary>
+        /// Acceptance criteria 2 dan 3 `BE-ACC-005` — tiga unique index yang diminta, ditambah
+        /// foreign key ke `MstCostCenter` yang wajib ada dan wajib boleh kosong.
+        /// </summary>
+        [Fact]
+        public void JurnalDanAlokatorNomor_MemenuhiIndexDanRelasiKontrak()
+        {
+            using TestDatabase basisUji = TestDatabase.Create();
+            using ApplicationDbContext db = basisUji.CreateContext();
+
+            IEntityType jurnal = db.Model.FindEntityType(typeof(AccJournal))!;
+            IEntityType baris = db.Model.FindEntityType(typeof(AccJournalLine))!;
+            IEntityType riwayat = db.Model.FindEntityType(typeof(AccJournalApproval))!;
+            IEntityType deret = db.Model.FindEntityType(typeof(AccNumberSeries))!;
+
+            Assert.Equal("AccJournal", jurnal.GetTableName());
+            Assert.Equal("AccJournalLine", baris.GetTableName());
+            Assert.Equal("AccJournalApproval", riwayat.GetTableName());
+            Assert.Equal("AccNumberSeries", deret.GetTableName());
+
+            // Acceptance 2 — tiga unique index.
+            Assert.Contains(jurnal.GetIndexes(), i => i.IsUnique
+                && i.Properties.Select(p => p.Name)
+                    .SequenceEqual(new[] { "LegalEntityId", "JournalNumber" }));
+            Assert.Contains(baris.GetIndexes(), i => i.IsUnique
+                && i.Properties.Select(p => p.Name)
+                    .SequenceEqual(new[] { "JournalId", "LineNumber" }));
+            Assert.Contains(deret.GetIndexes(), i => i.IsUnique
+                && i.Properties.Select(p => p.Name)
+                    .SequenceEqual(new[] { "SequenceKey", "ScopeKey" }));
+
+            // Acceptance 3 — FK ke MstCostCenter ada, dan boleh kosong.
+            IForeignKey fkCostCenter = Assert.Single(
+                baris.GetForeignKeys(),
+                fk => fk.PrincipalEntityType.ClrType == typeof(MstCostCenter));
+            Assert.False(fkCostCenter.IsRequired);
+            Assert.Equal(DeleteBehavior.Restrict, fkCostCenter.DeleteBehavior);
+        }
+
+        /// <summary>
+        /// Perilaku hapus sengaja berbeda antar relasi, dan perbedaannya bermakna.
+        ///
+        /// Baris jurnal ikut terhapus bersama jurnalnya karena tidak punya makna sendiri.
+        /// Riwayat persetujuan justru <b>tidak boleh</b> ikut terhapus, karena ia bukti audit.
+        /// Kalau keduanya tertukar, jejak persetujuan bisa lenyap tanpa ada yang menyadari.
+        /// </summary>
+        [Fact]
+        public void PerilakuHapus_CascadeHanyaPadaBarisJurnal()
+        {
+            using TestDatabase basisUji = TestDatabase.Create();
+            using ApplicationDbContext db = basisUji.CreateContext();
+
+            IEntityType baris = db.Model.FindEntityType(typeof(AccJournalLine))!;
+            IEntityType riwayat = db.Model.FindEntityType(typeof(AccJournalApproval))!;
+            IEntityType jurnal = db.Model.FindEntityType(typeof(AccJournal))!;
+
+            IForeignKey barisKeJurnal = Assert.Single(
+                baris.GetForeignKeys(),
+                fk => fk.PrincipalEntityType.ClrType == typeof(AccJournal));
+            Assert.Equal(DeleteBehavior.Cascade, barisKeJurnal.DeleteBehavior);
+
+            IForeignKey riwayatKeJurnal = Assert.Single(
+                riwayat.GetForeignKeys(),
+                fk => fk.PrincipalEntityType.ClrType == typeof(AccJournal));
+            Assert.Equal(DeleteBehavior.Restrict, riwayatKeJurnal.DeleteBehavior);
+
+            // Seluruh relasi jurnal memakai Restrict, termasuk pembalikan ke dirinya sendiri.
+            foreach (IForeignKey fk in jurnal.GetForeignKeys())
+            {
+                Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior);
+            }
+
+            Assert.Contains(
+                jurnal.GetForeignKeys(),
+                fk => fk.PrincipalEntityType.ClrType == typeof(AccJournal)
+                      && fk.Properties.Select(p => p.Name)
+                          .SequenceEqual(new[] { "ReversalOfJournalId" }));
+        }
+
+        /// <summary>
+        /// Tiga kolom sengaja tidak dibuat, dan ketiadaannya adalah keputusan — bukan kelalaian.
+        ///
+        /// `SourceDomain` dan `SourceTransactionId` baru berguna saat ada jurnal otomatis, dan
+        /// MVP memang tidak punya satu pun (`ACC-DEC-009`). `CurrencyCode` tidak diperlukan
+        /// karena MVP hanya IDR (`ACC-DEC-020`).
+        ///
+        /// Test ini menjaga keputusan itu: menambahkan salah satunya "sekalian saja" akan
+        /// membuatnya gagal, sehingga penambahannya harus lewat keputusan sadar.
+        /// </summary>
+        [Fact]
+        public void AccJournal_TidakMemilikiKolomYangSengajaDitunda()
+        {
+            Assert.Null(typeof(AccJournal).GetProperty("SourceDomain"));
+            Assert.Null(typeof(AccJournal).GetProperty("SourceTransactionId"));
+            Assert.Null(typeof(AccJournal).GetProperty("CurrencyCode"));
+
+            // Baris jurnal tidak membawa LegalEntityId sendiri (ACC-DEC-037) — badan hukumnya
+            // diturunkan dari akun yang ditunjuk.
+            Assert.Null(typeof(AccJournalLine).GetProperty("LegalEntityId"));
         }
 
         private static Type TipeProperti<T>(string namaProperti) =>

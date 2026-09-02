@@ -217,7 +217,7 @@ CREATE TABLE public."AccChartOfAccount" (
     "NormalBalance"       integer       NOT NULL,  -- enum, HasConversion<int>
     "IsPostable"          boolean       NOT NULL DEFAULT false,
     "IsActive"            boolean       NOT NULL DEFAULT true,
-    "EffectiveStartDate"  timestamp,
+    "EffectiveStartDate"  date,
     "Description"         varchar(500),
 
     CONSTRAINT "PK_AccChartOfAccount" PRIMARY KEY ("Id"),
@@ -255,13 +255,13 @@ CREATE TABLE public."AccAccountingPeriod" (
     "PeriodCode"      varchar(7)   NOT NULL,
     "FiscalYear"      integer      NOT NULL,
     "PeriodMonth"     integer      NOT NULL,
-    "StartDate"       timestamp    NOT NULL,
-    "EndDate"         timestamp    NOT NULL,
+    "StartDate"       date         NOT NULL,
+    "EndDate"         date         NOT NULL,
     "PeriodStatus"    integer      NOT NULL DEFAULT 1,  -- enum, HasConversion<int>
     "ClosedBy"        uuid,
-    "ClosedAt"        timestamp,
+    "ClosedAt"        timestamptz,
     "ReopenedBy"      uuid,
-    "ReopenedAt"      timestamp,
+    "ReopenedAt"      timestamptz,
     "LastReasonNote"  varchar(500),
 
     CONSTRAINT "PK_AccAccountingPeriod" PRIMARY KEY ("Id"),
@@ -280,18 +280,18 @@ CREATE TABLE public."AccJournal" (
     "JournalTypeId"         uuid            NOT NULL,
     "AccountingPeriodId"    uuid            NOT NULL,
     "DocumentNumber"        varchar(50),
-    "DocumentDate"          timestamp,
-    "AccountingDate"        timestamp       NOT NULL,
+    "DocumentDate"          date,
+    "AccountingDate"        date            NOT NULL,
     "Description"           varchar(500)    NOT NULL,  -- SENSITIF
     "JournalStatus"         integer         NOT NULL DEFAULT 1,  -- enum, HasConversion<int>
     "TotalDebit"            numeric(18,2)   NOT NULL DEFAULT 0,  -- SENSITIF
     "TotalCredit"           numeric(18,2)   NOT NULL DEFAULT 0,  -- SENSITIF
     "SubmittedBy"           uuid,
-    "SubmittedAt"           timestamp,
+    "SubmittedAt"           timestamptz,
     "ApprovedBy"            uuid,
-    "ApprovedAt"            timestamp,
+    "ApprovedAt"            timestamptz,
     "PostedBy"              uuid,
-    "PostedAt"              timestamp,
+    "PostedAt"              timestamptz,
     "RejectionReason"       varchar(500),
     "ReversalOfJournalId"   uuid,
     "CorrectionType"        integer,  -- enum, HasConversion<int>
@@ -344,7 +344,7 @@ CREATE TABLE public."AccJournalApproval" (
     "JournalId"       uuid          NOT NULL,
     "ApprovalAction"  integer       NOT NULL,  -- enum, HasConversion<int>
     "ActionBy"        uuid          NOT NULL,
-    "ActionAt"        timestamp     NOT NULL,
+    "ActionAt"        timestamptz   NOT NULL,
     "Reason"          varchar(500),
 
     CONSTRAINT "PK_AccJournalApproval" PRIMARY KEY ("Id"),
