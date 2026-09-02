@@ -6,7 +6,7 @@
 | Bounded context | `BC-LAB` Operasional Laboratorium |
 | Revision | `2` |
 | Status | `draft` |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 
 Kolom audit warisan `IdentityModel` tidak digambar pada ERD ini. Penjelasannya ada di
 `data-dictionary.md`.

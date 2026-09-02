@@ -3,13 +3,15 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Status | `draft` |
+| Revision | `3` |
+| Status | `approved` — dikunci 2026-09-02 |
+| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | belum |
-| Input revision | Decisions rev 17; `LAB-DA-001` rev 4 |
-| Input hash | `3b25b87d970204cf` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
+| Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
+| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 
 String `[AccessPermission(...)]` ditulis apa adanya agar implementer menyalin, bukan
 menerjemahkan.
@@ -49,7 +51,7 @@ boleh** memuat kolom bertanda sensitif pada kamus data.
 menyatakan layak, karena `LAB-INH-007` memperlakukan "penerimaan/penolakan" sebagai satu
 kewenangan. Yang dipisah tegas adalah **mengambil** dan **menetapkan kelayakan** — dan
 pemisahan itu sudah dijaga pengujian
-`LaboratoryAuthorityTests.cs#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@9124900`.
+`LaboratoryAuthorityTests.cs#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@c87d9c0`.
 
 ---
 
@@ -181,7 +183,7 @@ Setiap baris menyimpan status asal dan tujuan, pelaku, waktu, dan penghubung ran
 | `ReasonNote` | `TrxLabTransitionHistory` | Sama seperti di atas |
 
 Barcode wadah **tidak** memuat identitas pasien — sudah dijaga pengujian
-`#BarcodeSampel_UnikDanTidakMemuatIdentitasPasien@9124900`. Aturan itu tetap berlaku setelah
+`#BarcodeSampel_UnikDanTidakMemuatIdentitasPasien@c87d9c0`. Aturan itu tetap berlaku setelah
 pemisahan wadah dan pemeriksaan.
 
 ---

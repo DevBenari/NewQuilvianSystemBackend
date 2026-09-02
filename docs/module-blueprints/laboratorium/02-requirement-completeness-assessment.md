@@ -8,7 +8,7 @@
 | Status | `draft` |
 | **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — seluruh blocker yang tersisa berada di luar wewenang pemilik modul |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Masukan | `00-interview-decisions.md` revision 14; `01-existing-capability-map.md` revision 1; `05-evidence-reconciliation.md` revision 2 |
 | Tanggal penilaian | 2026-09-01 |
@@ -163,8 +163,8 @@ Bank Darah, stok reagen, dan Radiologi.
 |---:|---|---|---|
 | 1 | `00-interview-decisions.md` revision 10 | Requirement eksplisit dari pemilik modul | 23 keputusan berstatus `approved` oleh Yoga Aji Pratama pada 2026-09-01 |
 | 2 | `RJ-BIL-GATE-DEC-003` pada blueprint `rawat-jalan` | Keputusan lintas modul, status `locked-draft` | Mewariskan `LAB-INH-001` sampai `LAB-INH-013`. **Tata kelola formalnya masih `OPEN`** — tanda tangan Lab, Clinical Governance, dan Billing belum dilampirkan |
-| 3 | `01-existing-capability-map.md` revision 1 | Bukti implementasi terverifikasi | 24 kemampuan diklasifikasikan pada BE `9124900` dan FE `688daff90` |
-| 4 | Source backend pada `9124900` | Bukti implementasi aktif | Dipakai hanya untuk menjawab "apa yang saat ini ada" |
+| 3 | `01-existing-capability-map.md` revision 1 | Bukti implementasi terverifikasi | 24 kemampuan diklasifikasikan pada BE `c87d9c0` dan FE `688daff90` |
+| 4 | Source backend pada `c87d9c0` | Bukti implementasi aktif | Dipakai hanya untuk menjawab "apa yang saat ini ada" |
 
 **Yang tidak tersedia dan perlu dicatat jujur:** tidak ada SOP rumah sakit yang disahkan, tidak
 ada notulen rapat, dan tidak ada bukti ClickUp yang disertakan pada sesi ini. Seluruh
@@ -482,7 +482,7 @@ perlu berurutan.
 | Modul | `laboratorium` |
 | Slice yang dikirim | `S1a`, `S2`, **`S3`**, `S7`, `S10`, `S11` |
 | Kesiapan | `READY_FOR_DOMAIN_DESIGN`, dinyatakan **independen** dari penilaian `PARTIALLY_READY` keseluruhan |
-| Snapshot bukti | Decisions revision 10; capability map revision 1; BE `9124900`; FE `688daff90` |
+| Snapshot bukti | Decisions revision 10; capability map revision 1; BE `c87d9c0`; FE `688daff90` |
 | Decision ID yang belum selesai | `LAB-SIGN-001`, `LAB-AMD-001`, `LAB-COORD-001`, `LAB-COORD-002` — **tidak satu pun menyentuh keenam slice yang dikirim** |
 | Decision ID yang mengikat slice yang dikirim | `LAB-DEC-013` (`S1a`, `S7`), `LAB-INH-002` dan `LAB-INH-009` (`S2`, `S10`), `LAB-DEC-006`, `LAB-DEC-018`, `LAB-DEC-021`, `LAB-DEC-023` (`S3`), `LAB-DEC-019` (`S11`) |
 | Dependency | `S7` bergantung pada `S1a`; keduanya dikirim bersama. `S3` berdiri sendiri dan menjadi fondasi `S4` yang belum dikirim |

@@ -6,9 +6,9 @@
 | Revision | `3` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
-| Masukan | Decisions rev 17; capability map rev 1; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2 |
+| Masukan | Decisions rev 20; capability map rev 2; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2 |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` untuk kesepuluh slice |
 
 > **Perubahan revision 2.** Analisis konsolidasi bukti lapangan diadopsi lewat `LAB-DEC-025`
@@ -457,16 +457,17 @@ Areas/HealthServices/LaboratoryManagement/
 │   ├── LabRejectionReasonService.cs             # Baru
 │   ├── LabPatientRegistrationService.cs         # Baru
 │   └── LabCatalogService.cs                     # Baru
-└── Configurations/
-    └── LaboratoryManagementConfigurations.cs    # Sudah ada — UTANG TEKNIS, lihat catatan
+
+# Catatan: folder Configurations/ di dalam Areas SUDAH DIHAPUS pada c87d9c0.
+# Seluruh configuration kini berada di Repositories/Configurations/ — lihat di bawah.
 
 Areas/HealthServices/MasterData/Models/
 └── (tidak ada berkas baru — MstProcedure, MstTariff, MstInsuranceTariff,
      dan MstAgeCategory dipakai apa adanya, tidak disentuh)
 
 Repositories/Configurations/HealthServices/
-├── LabOrderConfiguration.cs                     # Sudah ada — UTANG TEKNIS, lihat catatan
-└── LaboratoryManagement/                        # Baru, mengikuti pola standar
+├── LabOrderConfiguration.cs                     # Sudah ada — utang teknis tersisa, di luar folder submodul
+└── LaboratoryManagement/                        # SUDAH ADA sejak c87d9c0
     ├── LabExaminationConfiguration.cs        # Baru
     ├── LabValueBoundChangeRequestConfiguration.cs  # Baru
     ├── LabValueBoundHistoryConfiguration.cs  # Baru
@@ -543,25 +544,30 @@ registry **belum berwenang** menjalankan implementasi dan migration. Dicatat seb
 | **Khusus Laboratorium** | `Areas/HealthServices/LaboratoryManagement/Models/` | `MstLabRejectionReason`, `MstLabValueBound`, `MstLabValueOption` |
 | **Global, dipakai lintas modul** | `Areas/HealthServices/MasterData/Models/` | `MstProcedure`, `MstTariff`, `MstInsuranceTariff`, `MstAgeCategory` — **tidak disentuh** |
 
-Aturan ini mengikuti pola nyata pada `9124900`: **20 data induk khusus modul** sudah berada di
+Aturan ini mengikuti pola nyata pada `c87d9c0`: **20 data induk khusus modul** sudah berada di
 folder modulnya — HR Service, Lifecycle, Recruitment, Workforce Planning, Pharmacy, dan
 Laboratorium sendiri — sementara 61 data induk lintas modul berada di `MasterData/Models/`.
 
 > **Koreksi terhadap dokumen aturan.** `backend-structure-rules.md` menyatakan seluruh data
 > induk berada di `MasterData/Models/`, dengan contoh `MstEmergencyTriageLevel`. Berkas contoh
-> itu **tidak ditemukan** pada `9124900`, dan pola nyatanya adalah pemisahan menurut cakupan.
+> itu **tidak ditemukan** pada `c87d9c0`, dan pola nyatanya adalah pemisahan menurut cakupan.
 > Karena itu penempatan `MstLabRejectionReason` di folder Laboratorium **bukan penyimpangan**.
 
-### Utang teknis yang ditemukan — jangan ditiru, jangan dirapikan diam-diam
+### Utang teknis — satu sudah diperbaiki tim, satu tersisa
 
-| Penyimpangan | Keadaan nyata | Pola standar |
+| Penyimpangan | Keadaan pada `c87d9c0` | Status |
 |---|---|---|
-| Configuration di dalam `Areas/` | `Areas/HealthServices/LaboratoryManagement/Configurations/LaboratoryManagementConfigurations.cs@9124900` berisi tiga configuration sekaligus | `Repositories/Configurations/HealthServices/LaboratoryManagement/`, satu berkas per entity |
-| Configuration tanpa folder submodul | `Repositories/Configurations/HealthServices/LabOrderConfiguration.cs@9124900` berada langsung di bawah domain | Berada di dalam folder submodulnya |
+| Configuration di dalam `Areas/` | `LaboratoryManagementConfigurations.cs` **sudah dihapus**. Ketiga configuration kini berada di `Repositories/Configurations/HealthServices/LaboratoryManagement/`, satu berkas per entity | ✅ **Sudah diperbaiki tim** |
+| Configuration tanpa folder submodul | `Repositories/Configurations/HealthServices/LabOrderConfiguration.cs@c87d9c0` masih berada langsung di bawah domain, bukan di dalam `LaboratoryManagement/` | ⚠️ **Masih ada** |
 
-Keduanya **tidak** dirapikan oleh pekerjaan ini. Perapian wajib menjadi task tersendiri pada
-roadmap, dengan approval pemilik arsitektur backend, karena menyentuh source di luar scope dan
-berisiko memecah build.
+Yang tersisa **tidak** dirapikan oleh pekerjaan ini. Perapian wajib menjadi task tersendiri pada
+roadmap, dengan approval pemilik arsitektur backend.
+
+**Catatan yang menguatkan koreksi penamaan.** Pada rentang `9124900..c87d9c0`, tim menjalankan
+migration `RenameClinicalMilestoneFactToCliPrefix` yang mengubah `TrxClinicalMilestoneFact`
+menjadi **`CliClinicalMilestoneFact`** — persis pola `<PrefixPemilik><Konsep>` yang diwajibkan
+`QBE-NAM-001`. Koreksi penamaan pada blueprint ini — `TrxLabExamination` menjadi
+`LabExamination` — berjalan searah dengan normalisasi yang memang sedang dikerjakan tim.
 
 Berkas **baru** pada blueprint ini mengikuti pola standar, bukan meniru penyimpangan.
 
@@ -570,7 +576,7 @@ Berkas **baru** pada blueprint ini mengikuti pola standar, bukan meniru penyimpa
 > benar. Butirnya dihapus, bukan diperbaiki.
 >
 > `backend-structure-rules.md` juga menyebut penyimpangan
-> `Repositories/Configurations/HealthService/` dengan bentuk tunggal. Pada `9124900` folder
+> `Repositories/Configurations/HealthService/` dengan bentuk tunggal. Pada `c87d9c0` folder
 > yang ada adalah bentuk jamak, sesuai pola standar. Penyimpangan itu **sudah tidak ada**.
 
 ---

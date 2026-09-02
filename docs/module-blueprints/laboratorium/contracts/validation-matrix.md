@@ -3,12 +3,15 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Status | `draft` |
+| Revision | `3` |
+| Status | `approved` — dikunci 2026-09-02 |
+| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | belum |
-| Input revision | Decisions rev 17; `LAB-DA-001` rev 4 |
-| Input hash | `3b25b87d970204cf` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
+| Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
+| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
+| Backend SHA | `c87d9c0` |
 
 Pesan bagi pengguna ditulis dalam Bahasa Indonesia yang dipahami petugas, bukan istilah teknis.
 

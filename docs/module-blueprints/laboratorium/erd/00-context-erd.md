@@ -6,7 +6,7 @@
 | Revision | `2` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 
 Dokumen ini memetakan **hubungan antar bounded context** dan ke mana arah ketergantungannya.
 ERD rinci per konteks ada di `laboratory-operations.md`.
@@ -72,7 +72,7 @@ erDiagram
         uuid ProcedureId FK "milik Master Data"
         int ResultForm "angka atau pilihan"
     }
-    TrxClinicalMilestoneFact {
+    CliClinicalMilestoneFact {
         uuid Id PK
         int MilestoneKind "kelayakan tagih atau pembatalan"
         uuid SourceItemId FK "menunjuk pemeriksaan"
@@ -88,7 +88,7 @@ erDiagram
     LabOrder ||--o{ TrxLabSpecimen : "1:N — Diperbarui"
     LabOrder ||--o{ LabExamination : "1:N — Baru"
     TrxLabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
-    LabExamination ||--o{ TrxClinicalMilestoneFact : "1:N — Sudah ada, milik Billing Integration"
+    LabExamination ||--o{ CliClinicalMilestoneFact : "1:N — Sudah ada, milik Billing Integration"
 ```
 
 ---
@@ -140,7 +140,7 @@ Laboratorium **tidak mengerjakannya** dan **tidak menulis** ke sana.
 | `LabValueBoundChangeRequest` | **Baru** | Laboratorium | Pengajuan perubahan batas kritis |
 | `LabValueBoundHistory` | **Baru** | Laboratorium | Riwayat perubahan batas nilai |
 | `MstLabRejectionReason` | Sudah ada | Laboratorium | Tidak berubah |
-| `TrxClinicalMilestoneFact` | Sudah ada | Clinical Billing Integration | Diterbitkan modul ini, dimiliki integrasi Billing |
+| `CliClinicalMilestoneFact` | Sudah ada | Clinical Billing Integration | Diterbitkan modul ini, dimiliki integrasi Billing |
 | `BilChargeLine` | Sudah ada | Billing dan Kasir | **Tidak** disentuh modul ini |
 
 ---

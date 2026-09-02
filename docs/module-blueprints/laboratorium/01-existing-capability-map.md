@@ -3,21 +3,92 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `1` |
-| Status | `draft` |
-| Jenis audit | Audit penuh (bukan *impact scan*) |
+| Revision | `2` |
+| Status | `draft` — **`STALE` dicabut 2026-09-02** |
+| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas atas `CAP-11`, bagian utang teknis, dan verifikasi ulang SHA |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `9124900` |
-| Frontend SHA | `688daff90` |
+| Backend SHA | `c87d9c0` — diverifikasi sebagai `HEAD` pada 2026-09-02 |
+| Frontend SHA | `688daff90` — diverifikasi sebagai `HEAD` pada 2026-09-02 |
 | Masukan | `00-interview-decisions.md` revision 7, keputusan `LAB-DEC-001` sampai `LAB-DEC-014` |
-| Tanggal audit | 2026-09-01 |
+| Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 2 — 2026-09-02
+
+`blueprint-manifest.md` menandai peta ini `STALE` pada `CAP-11` dan bagian utang teknis, dan
+mensyaratkan impact scan ulang sebelum peta dipakai menyusun roadmap. Scan itu dijalankan
+2026-09-02. **Hasilnya: tidak ada satu status kemampuan pun yang berubah.** Penanda `STALE`
+dicabut.
+
+### Yang diperiksa dan hasilnya
+
+| Yang diperiksa | Klaim revision 1 | Keadaan pada `HEAD` | Hasil |
+|---|---|---|---|
+| `CAP-11` — berkas producer | `Areas/HealthServices/ClinicalManagement/Services/ClinicalMilestoneFactProducer.cs` | Ada di path yang sama | ✅ Tetap |
+| `CAP-11` — nilai enum | `ClinicalMilestoneKind` bernilai `ChargeEligibility` dan `ClinicalCancellation` | `ChargeEligibility = 1`, `ClinicalCancellation = 2` pada `Enums/ClinicalMilestoneFactEnums.cs:11-18` | ✅ Tetap |
+| `CAP-11` — pemanggilan dari Lab | Dipanggil dari `LabSpecimenService` | `LabSpecimenService.cs:193` dan `LabOrderService.cs:355` | ✅ Tetap |
+| Utang teknis — configuration di `Areas/` | `LaboratoryManagementConfigurations.cs` sudah dihapus | Tidak ditemukan di seluruh repository | ✅ Benar |
+| Utang teknis — tiga configuration pindah | Berada di `Repositories/Configurations/HealthServices/LaboratoryManagement/` | Ada tiga: `MstLabRejectionReasonConfiguration.cs`, `TrxLabSpecimenConfiguration.cs`, `TrxLabTransitionHistoryConfiguration.cs` | ✅ Benar |
+| Utang teknis — `LabOrderConfiguration.cs` masih longgar | Masih langsung di bawah `HealthServices/` | Benar, masih di sana | ⚠️ Tetap terbuka |
+| Frontend SHA | `688daff90` | `HEAD` frontend memang `688daff90` | ✅ Tidak bergeser |
+
+**Kenapa penggantian nama `TrxClinicalMilestoneFact` → `CliClinicalMilestoneFact` tidak
+membatalkan `CAP-11`.** Migration `RenameClinicalMilestoneFactToCliPrefix` mengubah nama
+**model dan tabelnya**. Bukti yang dikutip `CAP-11` seluruhnya menunjuk **service, enum, dan
+method** — `ClinicalMilestoneFactProducer`, `ClinicalMilestoneKind`, `EmitChargeEligibilityAsync`,
+`EmitClinicalCancellationAsync` — dan tidak satu pun dari nama itu ikut berubah. Karena itu
+statusnya tetap `Ready to reuse`.
+
+### Verifikasi silang atas kemampuan berisiko tinggi
+
+Sekalian diperiksa ulang kemampuan yang paling menentukan besarnya pekerjaan roadmap:
+
+| Kemampuan | Status revision 1 | Bukti pada `HEAD` | Hasil |
+|---|---|---|---|
+| `CAP-03` hasil pemeriksaan | `Missing` | `Areas/HealthServices/LaboratoryManagement/` hanya berisi 11 berkas: controller/DTO/service untuk LabOrder dan LabSpecimen, `LaboratoryEnums.cs`, dan empat model. Tidak ada model, service, maupun controller hasil | ✅ Tetap `Missing` |
+| `CAP-07` batas nilai | `Missing` | Tidak ada model batas nilai di folder tersebut | ✅ Tetap `Missing` |
+| `CAP-05` alasan penolakan | `Reuse with adapter` | `LabSpecimenController.cs:46` hanya `[HttpGet("rejection-reasons")]`. Tidak ada `HttpPost`, `HttpPut`, maupun `HttpDelete` untuk data induk ini | ✅ Tetap |
+| `CAP-18` pemberitahuan | `Missing` | Tidak ada berkas `*Notification*.cs` dan tidak ada `DbSet<...Notification...>` di seluruh repository. Dua kecocokan teks yang muncul hanyalah komentar pada `MstWorkflowStep.cs:29` dan konstanta jenis langkah `WorkflowValueConstants.cs:53` — bukan kemampuan pemberitahuan | ✅ Tetap `Missing` |
+| `CAP-21` frontend Laboratorium | `Missing` | Pencarian `laboratory-management`, `labOrder`, `labSpecimen`, `lab-order` pada `QuilvianSystemFrontendDev/src@688daff90` tetap nihil | ✅ Tetap `Missing` |
+| `CAP-01` kesegeraan | `Extend` | `LabOrder.cs` tidak memuat `Urgency`, `Cito`, `Priority`, maupun `IsUrgent` | ✅ Tetap `Extend` |
+| `CAP-02` migration sampel | `Ready to reuse` | `Migrations/20260815103436_initializeLabOrder.cs` dan `20260824091610_AddLaboratorySpecimenLifecycle.cs` ada | ✅ Tetap |
+| `CAP-13`, `CAP-14`, `CAP-19` | `Ready to reuse` / `Reuse with adapter` | `Attributes/AccessPermissionAttribute.cs`, `Filters/AccessPermissionFilter.cs`, `Services/Security/AccessPermissionService.cs`, `Seeders/AccessMenuSeeder.cs`, dan `Hubs/QueueHub.cs` seluruhnya ada | ✅ Tetap |
+
+### Dua koreksi faktual yang ditemukan scan ini
+
+**Koreksi 1 — jumlah pengujian keliru satu.** `CAP-24` menyebut
+`LaboratorySpecimenLifecycleTests.cs` berisi **19** pengujian. Hitungan sebenarnya pada `HEAD`
+adalah **18** — 18 atribut `[Fact]`, nol `[Theory]`. Berkas itu memuat 19 method publik, satu
+di antaranya method bantu, bukan pengujian. `LaboratoryAuthorityTests.cs` benar berisi 12.
+
+Jadi total pengujian Laboratorium adalah **30, bukan 31**. Angka 31 juga dikutip
+`approval-requests/2026-09-01-permintaan-koordinasi-lintas-modul.md` bagian 3.3 dan perlu ikut
+diperbaiki. Koreksi ini tidak mengubah status `CAP-24` yang tetap `Ready to reuse`.
+
+**Koreksi 2 — tanggal audit tidak mungkin benar.** Revision 1 menyatakan audit dijalankan
+2026-09-01 pada backend `c87d9c0`. Menurut reflog, commit `c87d9c0` **baru dibuat 2026-09-02
+pukul 08:51:14** oleh `pull --tags origin yoga`; sebelum itu `HEAD` berada di `c0b8549`.
+
+| Fakta | Nilai |
+|---|---|
+| `c87d9c0` dibuat | 2026-09-02 08:51:14 +0700, hasil merge dari pull |
+| `HEAD` sebelumnya | `c0b8549`, 2026-09-02 08:51:05 |
+| Artefak blueprint terakhir ditulis | 2026-09-02 08:54–08:55 |
+
+Karena artefaknya ditulis **setelah** commit itu ada, seluruh jangkar bukti `@c87d9c0`
+**tetap sahih**. Yang keliru hanya label tanggalnya. Tidak ada bukti yang perlu dicabut, tetapi
+tanggal audit pada revision 1 sebaiknya dibaca sebagai 2026-09-02.
+
+Hal yang sama menutup pertanyaan pada `approval-requests/...` bagian 3.2: pernyataan "checkout
+lokal 7 commit tertinggal" memang benar sebelum pukul 08:48, dan sudah tidak berlaku sesudahnya.
 
 ---
 
@@ -28,7 +99,7 @@ sudah berada di `688daff90`.
 
 | Repository | SHA di decision log | SHA saat audit | Keterangan |
 |---|---|---|---|
-| `NewQuilvianSystemBackend` | `9124900` | `9124900` | Sama, tidak ada pergeseran |
+| `NewQuilvianSystemBackend` | `c87d9c0` | `c87d9c0` | Sama, tidak ada pergeseran |
 | `QuilvianSystemFrontendDev` | `c79bb6ee4` | `688daff90` | **Berubah** |
 
 Audit ini memakai SHA terkini. Temuan pokok frontend tidak berubah: pada kedua SHA, modul
@@ -90,10 +161,10 @@ Format bukti: `repository/path#simbol@SHA`.
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-01` | Pesanan laboratorium beserta siklus hidupnya | Laboratorium | `NewQuilvianSystemBackend/Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs#LabOrder@9124900`; `Services/LabOrderService.cs@9124900`; `Controllers/LabOrderController.cs@9124900`; migration `Migrations/20260815103436_initializeLabOrder.cs@9124900` | `Extend` | Tidak ada kolom tingkat kesegeraan. `LAB-DEC-013` mewajibkan penanda cito dan batas waktunya | Sedang. Penambahan kolom memerlukan migration baru pada tabel yang sudah berisi data |
-| `CAP-02` | Siklus hidup sampel: rencana, ambil, terima, layak/tolak, ambil ulang | Laboratorium | `Models/TrxLabSpecimen.cs#TrxLabSpecimen@9124900`; `Services/LabSpecimenService.cs@9124900`; `Controllers/LabSpecimenController.cs@9124900`; migration `Migrations/20260824091610_AddLaboratorySpecimenLifecycle.cs@9124900` | `Ready to reuse` | Tidak ada | Rendah. Sudah lengkap dan teruji |
-| `CAP-03` | Hasil pemeriksaan: isi nilai, verifikasi, validasi, rilis, koreksi | Laboratorium | Tidak ditemukan model, service, controller, enum, maupun migration mana pun yang menyimpan nilai hasil pada `Areas/HealthServices/LaboratoryManagement/@9124900` | `Missing` | Seluruhnya harus dibangun. Ini inti Rilis 1 menurut `LAB-DEC-001` | Tinggi. Bagian terbesar pekerjaan Rilis 1 |
-| `CAP-04` | Riwayat perpindahan status yang tidak bisa diubah | Laboratorium | `Models/TrxLabTransitionHistory.cs#TrxLabTransitionHistory@9124900` — memuat `Scope`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `CorrelationId` | `Ready to reuse` | Tidak ada. `LabTransitionScope` cukup ditambah nilai baru untuk hasil bila diperlukan | Rendah. Sudah memenuhi seluruh isian yang diminta `LAB-INH-013` |
+| `CAP-01` | Pesanan laboratorium beserta siklus hidupnya | Laboratorium | `NewQuilvianSystemBackend/Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs#LabOrder@c87d9c0`; `Services/LabOrderService.cs@c87d9c0`; `Controllers/LabOrderController.cs@c87d9c0`; migration `Migrations/20260815103436_initializeLabOrder.cs@c87d9c0` | `Extend` | Tidak ada kolom tingkat kesegeraan. `LAB-DEC-013` mewajibkan penanda cito dan batas waktunya | Sedang. Penambahan kolom memerlukan migration baru pada tabel yang sudah berisi data |
+| `CAP-02` | Siklus hidup sampel: rencana, ambil, terima, layak/tolak, ambil ulang | Laboratorium | `Models/TrxLabSpecimen.cs#TrxLabSpecimen@c87d9c0`; `Services/LabSpecimenService.cs@c87d9c0`; `Controllers/LabSpecimenController.cs@c87d9c0`; migration `Migrations/20260824091610_AddLaboratorySpecimenLifecycle.cs@c87d9c0` | `Ready to reuse` | Tidak ada | Rendah. Sudah lengkap dan teruji |
+| `CAP-03` | Hasil pemeriksaan: isi nilai, verifikasi, validasi, rilis, koreksi | Laboratorium | Tidak ditemukan model, service, controller, enum, maupun migration mana pun yang menyimpan nilai hasil pada `Areas/HealthServices/LaboratoryManagement/@c87d9c0` | `Missing` | Seluruhnya harus dibangun. Ini inti Rilis 1 menurut `LAB-DEC-001` | Tinggi. Bagian terbesar pekerjaan Rilis 1 |
+| `CAP-04` | Riwayat perpindahan status yang tidak bisa diubah | Laboratorium | `Models/TrxLabTransitionHistory.cs#TrxLabTransitionHistory@c87d9c0` — memuat `Scope`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `CorrelationId` | `Ready to reuse` | Tidak ada. `LabTransitionScope` cukup ditambah nilai baru untuk hasil bila diperlukan | Rendah. Sudah memenuhi seluruh isian yang diminta `LAB-INH-013` |
 
 **Penjelasan `CAP-01` untuk pembaca non-teknis.** Pesanan lab sudah bisa dibuat, ditahan,
 dilanjutkan, dan dibatalkan. Yang belum ada hanyalah cara menandai sebuah pesanan sebagai
@@ -104,17 +175,17 @@ ditambah kolom, dan itulah sebabnya statusnya `Extend` dan bukan `Ready to reuse
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-05` | Daftar alasan penolakan sampel yang terkendali | Laboratorium | `Models/MstLabRejectionReason.cs#MstLabRejectionReason@9124900` — punya `ReasonCode`, `IsInternalHospitalError`, `RequiresNote`; dibaca lewat `Controllers/LabSpecimenController.cs#GetRejectionReasons@9124900` | `Reuse with adapter` | Hanya tersedia endpoint baca. **Tidak ada** endpoint tambah, ubah, atau nonaktifkan, dan tidak ditemukan seeder yang mengisinya | Sedang. Bila tabel kosong di lingkungan baru, petugas tidak bisa menolak sampel sama sekali |
-| `CAP-06` | Katalog jenis pemeriksaan laboratorium | `master-data` | `Areas/HealthServices/MasterData/Models/MstProcedure.cs#IsLaboratory@9124900`; dipakai sebagai komponen pemeriksaan di `TrxLabSpecimen.ProcedureId@9124900` | `Reuse with adapter` | Berfungsi sebagai katalog, tetapi tidak punya satuan hasil, jenis sampel, wadah, volume minimal, maupun metode. `LAB-DEC-001` memang menunda sisa katalog ke Rilis 2 | Rendah untuk Rilis 1, karena penundaannya sudah disetujui |
-| `CAP-07` | Tabel batas nilai: satuan, batas normal, batas kritis, batas waktu cito | Laboratorium | Tidak ditemukan kolom maupun tabel penyimpan batas nilai di seluruh `Areas/@9124900` | `Missing` | Seluruhnya harus dibangun. Diwajibkan `LAB-DEC-006` dan `LAB-DEC-013` | Tinggi. Tanpa ini, `LAB-DEC-004` tidak bisa dijalankan — sistem tidak akan tahu sebuah angka itu kritis |
+| `CAP-05` | Daftar alasan penolakan sampel yang terkendali | Laboratorium | `Models/MstLabRejectionReason.cs#MstLabRejectionReason@c87d9c0` — punya `ReasonCode`, `IsInternalHospitalError`, `RequiresNote`; dibaca lewat `Controllers/LabSpecimenController.cs#GetRejectionReasons@c87d9c0` | `Reuse with adapter` | Hanya tersedia endpoint baca. **Tidak ada** endpoint tambah, ubah, atau nonaktifkan, dan tidak ditemukan seeder yang mengisinya | Sedang. Bila tabel kosong di lingkungan baru, petugas tidak bisa menolak sampel sama sekali |
+| `CAP-06` | Katalog jenis pemeriksaan laboratorium | `master-data` | `Areas/HealthServices/MasterData/Models/MstProcedure.cs#IsLaboratory@c87d9c0`; dipakai sebagai komponen pemeriksaan di `TrxLabSpecimen.ProcedureId@c87d9c0` | `Reuse with adapter` | Berfungsi sebagai katalog, tetapi tidak punya satuan hasil, jenis sampel, wadah, volume minimal, maupun metode. `LAB-DEC-001` memang menunda sisa katalog ke Rilis 2 | Rendah untuk Rilis 1, karena penundaannya sudah disetujui |
+| `CAP-07` | Tabel batas nilai: satuan, batas normal, batas kritis, batas waktu cito | Laboratorium | Tidak ditemukan kolom maupun tabel penyimpan batas nilai di seluruh `Areas/@c87d9c0` | `Missing` | Seluruhnya harus dibangun. Diwajibkan `LAB-DEC-006` dan `LAB-DEC-013` | Tinggi. Tanpa ini, `LAB-DEC-004` tidak bisa dijalankan — sistem tidak akan tahu sebuah angka itu kritis |
 
 ### Klaster Episode dan Identitas Pasien
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-08` | Kunjungan pasien dari Rawat Jalan, Rawat Inap, dan IGD | `registration-management` | `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs#EncounterType@9124900`; `Enums/EncounterType.cs@9124900` bernilai `Outpatient = 1`, `Emergency = 2`, `Inpatient = 3`, `MedicalCheckup = 4`, `Telemedicine = 5`. `LabOrder.EncounterId` menunjuk ke entity ini | `Ready to reuse` | Tidak ada | Rendah. `LAB-DEC-009` sudah terpenuhi di tingkat data tanpa perubahan apa pun |
-| `CAP-09` | Identitas pasien dan dokter | `master-data` / `patient-management` | Diakses lewat `TrxPatientEncounter.PatientId` dan `TrxPatientEncounter.DoctorId@9124900` | `Ready to reuse` | Tidak ada. Laboratorium cukup menempel pada kunjungan | Rendah |
-| `CAP-10` | Tarif pemeriksaan beserta salinannya | `master-data` / `billing-kasir` | `Services/LabSpecimenService.cs#ResolveTariffAsync@9124900`; salinan disimpan pada `TrxLabSpecimen.TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot@9124900` | `Ready to reuse` | Tidak ada | Rendah. Pola salinan tarif sudah benar: harga saat itu ikut tersimpan sehingga tidak berubah bila tarif induk diubah kemudian |
+| `CAP-08` | Kunjungan pasien dari Rawat Jalan, Rawat Inap, dan IGD | `registration-management` | `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs#EncounterType@c87d9c0`; `Enums/EncounterType.cs@c87d9c0` bernilai `Outpatient = 1`, `Emergency = 2`, `Inpatient = 3`, `MedicalCheckup = 4`, `Telemedicine = 5`. `LabOrder.EncounterId` menunjuk ke entity ini | `Ready to reuse` | Tidak ada | Rendah. `LAB-DEC-009` sudah terpenuhi di tingkat data tanpa perubahan apa pun |
+| `CAP-09` | Identitas pasien dan dokter | `master-data` / `patient-management` | Diakses lewat `TrxPatientEncounter.PatientId` dan `TrxPatientEncounter.DoctorId@c87d9c0` | `Ready to reuse` | Tidak ada. Laboratorium cukup menempel pada kunjungan | Rendah |
+| `CAP-10` | Tarif pemeriksaan beserta salinannya | `master-data` / `billing-kasir` | `Services/LabSpecimenService.cs#ResolveTariffAsync@c87d9c0`; salinan disimpan pada `TrxLabSpecimen.TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot@c87d9c0` | `Ready to reuse` | Tidak ada | Rendah. Pola salinan tarif sudah benar: harga saat itu ikut tersimpan sehingga tidak berubah bila tarif induk diubah kemudian |
 
 **Contoh kenapa `CAP-08` penting.** `LAB-DEC-009` memutuskan Laboratorium melayani ketiga unit
 sekaligus. Sering kali keputusan seperti ini mahal karena data kunjungan tiap unit terpisah.
@@ -125,8 +196,8 @@ Di sini ternyata tidak: satu tabel `TrxPatientEncounter` sudah menampung ketigan
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-11` | Pengiriman fakta kelayakan tagih dan pembatalan klinis ke Billing | `billing-kasir` (penerima), Laboratorium (pengirim) | `Areas/HealthServices/ClinicalBillingIntegration/Services/ClinicalMilestoneFactProducer.cs@9124900`; dipanggil dari `LabSpecimenService.cs#EmitChargeEligibilityAsync` dan `#EmitClinicalCancellationAsync@9124900`; jenis fakta di `Enums/ClinicalMilestoneFactEnums.cs#ClinicalMilestoneKind@9124900` bernilai `ChargeEligibility` dan `ClinicalCancellation` | `Ready to reuse` | Tidak ada | Rendah. Sudah terpasang, terhubung, dan teruji |
-| `CAP-12` | Laboratorium tidak boleh punya kolom atau method finansial | Laboratorium | Diuji otomatis oleh `tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratoryAuthorityTests.cs#ModelLaboratorium_TidakMemilikiPropertiFinansialApaPun@9124900` dan `#ServiceLaboratorium_TidakMemilikiMethodKewenanganFinansial@9124900` | `Ready to reuse` | Tidak ada | Rendah. `AC-13` sudah dijaga pengujian otomatis, bukan sekadar niat |
+| `CAP-11` | Pengiriman fakta kelayakan tagih dan pembatalan klinis ke Billing | `billing-kasir` (penerima), Laboratorium (pengirim) | `Areas/HealthServices/ClinicalManagement/Services/ClinicalMilestoneFactProducer.cs@c87d9c0`; dipanggil dari `LabSpecimenService.cs#EmitChargeEligibilityAsync` dan `#EmitClinicalCancellationAsync@c87d9c0`; jenis fakta di `Enums/ClinicalMilestoneFactEnums.cs#ClinicalMilestoneKind@c87d9c0` bernilai `ChargeEligibility` dan `ClinicalCancellation` | `Ready to reuse` | Tidak ada | Rendah. Sudah terpasang, terhubung, dan teruji |
+| `CAP-12` | Laboratorium tidak boleh punya kolom atau method finansial | Laboratorium | Diuji otomatis oleh `Tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratoryAuthorityTests.cs#ModelLaboratorium_TidakMemilikiPropertiFinansialApaPun@c87d9c0` dan `#ServiceLaboratorium_TidakMemilikiMethodKewenanganFinansial@c87d9c0` | `Ready to reuse` | Tidak ada | Rendah. `AC-13` sudah dijaga pengujian otomatis, bukan sekadar niat |
 
 **Penjelasan `CAP-11` dengan contoh.** Saat petugas menyatakan sampel layak periksa, sistem
 otomatis mengirim satu "fakta" ke Billing yang berbunyi kira-kira: pemeriksaan ini sudah sah
@@ -138,11 +209,11 @@ berjalan, jadi `AC-12` tidak perlu dibangun ulang.
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-13` | Kewenangan berbeda untuk tiap tindakan lab | Platform | `Attributes/AccessPermissionAttribute.cs@9124900`; `Filters/AccessPermissionFilter.cs@9124900`; `Services/Security/AccessPermissionService.cs#HasAccessAsync@9124900`. Lab memakai `[AccessPermission("LabSpecimen","Collect")]`, `("LabSpecimen","Receive")`, `("LabSpecimen","Accept")`, dan seterusnya pada `Controllers/LabSpecimenController.cs@9124900` | `Ready to reuse` | Tidak ada | Rendah |
-| `CAP-14` | Pendaftaran otomatis permission ke basis data | Platform | `Seeders/AccessMenuSeeder.cs@9124900`, dijalankan saat aplikasi mulai lewat `Program.cs:974@9124900`. Controller lab sudah membawa `[AccessController(...)]` dan `[AccessAction(...)]` sehingga ikut terdaftar sendiri | `Ready to reuse` | Tidak ada | Rendah. Permission untuk endpoint hasil yang baru akan terdaftar otomatis asalkan atributnya dipasang |
-| `CAP-15` | Identitas petugas pelaku tindakan | Platform | `Services/LabSpecimenService.cs#GetCurrentUserId@9124900` lewat `IHttpContextAccessor`; tersimpan pada `TrxLabSpecimen.CollectedByUserId`, `ReceivedByUserId`, `DecidedByUserId@9124900` | `Ready to reuse` | Tidak ada | Rendah |
-| `CAP-16` | Penegakan prinsip empat mata: pengisi hasil tidak boleh memvalidasi hasil yang sama | Laboratorium | Tidak ditemukan. Sistem permission bekerja per aksi, **bukan** per orang pada satu baris data. `AccessPermissionService.HasAccessAsync@9124900` hanya menjawab "boleh atau tidak", tidak pernah membandingkan pelaku sebelumnya | `Missing` | Harus dibangun sebagai aturan di dalam service hasil, bukan lewat permission | **Tinggi.** Ini invariant keselamatan `LAB-DEC-003`. Bila keliru dianggap bisa ditutup permission, `AC-01` tidak akan terpenuhi |
-| `CAP-17` | Perlindungan dua petugas bertindak bersamaan | Laboratorium | `LabOrder.Version` dan `TrxLabSpecimen.Version@9124900`; diuji oleh `LaboratorySpecimenLifecycleTests.cs#DuaPetugasMenetapkanLayakBersamaan_SalahSatuDitolak@9124900` | `Ready to reuse` | Tidak ada. Pola yang sama tinggal diterapkan pada tabel hasil | Rendah |
+| `CAP-13` | Kewenangan berbeda untuk tiap tindakan lab | Platform | `Attributes/AccessPermissionAttribute.cs@c87d9c0`; `Filters/AccessPermissionFilter.cs@c87d9c0`; `Services/Security/AccessPermissionService.cs#HasAccessAsync@c87d9c0`. Lab memakai `[AccessPermission("LabSpecimen","Collect")]`, `("LabSpecimen","Receive")`, `("LabSpecimen","Accept")`, dan seterusnya pada `Controllers/LabSpecimenController.cs@c87d9c0` | `Ready to reuse` | Tidak ada | Rendah |
+| `CAP-14` | Pendaftaran otomatis permission ke basis data | Platform | `Seeders/AccessMenuSeeder.cs@c87d9c0`, dijalankan saat aplikasi mulai lewat `Program.cs:974@c87d9c0`. Controller lab sudah membawa `[AccessController(...)]` dan `[AccessAction(...)]` sehingga ikut terdaftar sendiri | `Ready to reuse` | Tidak ada | Rendah. Permission untuk endpoint hasil yang baru akan terdaftar otomatis asalkan atributnya dipasang |
+| `CAP-15` | Identitas petugas pelaku tindakan | Platform | `Services/LabSpecimenService.cs#GetCurrentUserId@c87d9c0` lewat `IHttpContextAccessor`; tersimpan pada `TrxLabSpecimen.CollectedByUserId`, `ReceivedByUserId`, `DecidedByUserId@c87d9c0` | `Ready to reuse` | Tidak ada | Rendah |
+| `CAP-16` | Penegakan prinsip empat mata: pengisi hasil tidak boleh memvalidasi hasil yang sama | Laboratorium | Tidak ditemukan. Sistem permission bekerja per aksi, **bukan** per orang pada satu baris data. `AccessPermissionService.HasAccessAsync@c87d9c0` hanya menjawab "boleh atau tidak", tidak pernah membandingkan pelaku sebelumnya | `Missing` | Harus dibangun sebagai aturan di dalam service hasil, bukan lewat permission | **Tinggi.** Ini invariant keselamatan `LAB-DEC-003`. Bila keliru dianggap bisa ditutup permission, `AC-01` tidak akan terpenuhi |
+| `CAP-17` | Perlindungan dua petugas bertindak bersamaan | Laboratorium | `LabOrder.Version` dan `TrxLabSpecimen.Version@c87d9c0`; diuji oleh `LaboratorySpecimenLifecycleTests.cs#DuaPetugasMenetapkanLayakBersamaan_SalahSatuDitolak@c87d9c0` | `Ready to reuse` | Tidak ada. Pola yang sama tinggal diterapkan pada tabel hasil | Rendah |
 
 **Penjelasan `CAP-16`, temuan paling penting dalam audit ini.** Sistem izin yang ada menjawab
 pertanyaan "apakah orang ini boleh memvalidasi hasil?". Ia tidak bisa menjawab "apakah orang
@@ -155,8 +226,8 @@ pengecualian beserta penandanya harus disimpan di tabel hasil, bukan di tabel iz
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-18` | Pemberitahuan tersimpan untuk dokter, dengan status sudah dibaca | Platform | Tidak ditemukan layanan notifikasi umum, tabel notifikasi, surel, SMS, maupun WhatsApp di seluruh `NewQuilvianSystemBackend@9124900` | `Missing` | Seluruhnya harus dibangun. Diwajibkan `LAB-DEC-012` | **Tinggi.** Ini kemampuan milik platform, bukan khusus Laboratorium. Membangunnya di dalam modul Laboratorium berisiko menjadi duplikasi ketika modul lain membutuhkan hal yang sama |
-| `CAP-19` | Pengiriman seketika ke pengguna yang sedang online | Platform | `Hubs/QueueHub.cs@9124900` dipetakan ke `/hubs/queues` oleh `Program.cs:1091@9124900`; pengelompokan peserta per *nurse station cluster* lewat `QueueHub#JoinNurseStationCluster@9124900` | `Reuse with adapter` | Hub yang ada khusus antrean dan mengelompokkan peserta berdasarkan nurse station, bukan berdasarkan dokter. Perlu hub baru atau perluasan pengelompokan | Sedang. Teknologinya sudah terbukti jalan, tinggal pola pengelompokannya yang berbeda |
+| `CAP-18` | Pemberitahuan tersimpan untuk dokter, dengan status sudah dibaca | Platform | Tidak ditemukan layanan notifikasi umum, tabel notifikasi, surel, SMS, maupun WhatsApp di seluruh `NewQuilvianSystemBackend@c87d9c0` | `Missing` | Seluruhnya harus dibangun. Diwajibkan `LAB-DEC-012` | **Tinggi.** Ini kemampuan milik platform, bukan khusus Laboratorium. Membangunnya di dalam modul Laboratorium berisiko menjadi duplikasi ketika modul lain membutuhkan hal yang sama |
+| `CAP-19` | Pengiriman seketika ke pengguna yang sedang online | Platform | `Hubs/QueueHub.cs@c87d9c0` dipetakan ke `/hubs/queues` oleh `Program.cs:1091@c87d9c0`; pengelompokan peserta per *nurse station cluster* lewat `QueueHub#JoinNurseStationCluster@c87d9c0` | `Reuse with adapter` | Hub yang ada khusus antrean dan mengelompokkan peserta berdasarkan nurse station, bukan berdasarkan dokter. Perlu hub baru atau perluasan pengelompokan | Sedang. Teknologinya sudah terbukti jalan, tinggal pola pengelompokannya yang berbeda |
 | `CAP-20` | Klien realtime di sisi frontend | Platform | `QuilvianSystemFrontendDev/src/lib/signalr/signalrHubClient.jsx@688daff90` (klien umum) dan `src/lib/realtime/queue-realtime-client.js@688daff90` (khusus antrean) | `Ready to reuse` | Tidak ada. Klien umumnya sudah terpisah dari kebutuhan antrean | Rendah |
 
 ### Klaster Frontend
@@ -171,7 +242,7 @@ pengecualian beserta penandanya harus disimpan di tabel hasil, bukan di tabel iz
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 |---|---|---|---|---|---|---|
-| `CAP-24` | Bukti otomatis bahwa aturan sampel dan batas kewenangan ditegakkan | Laboratorium | `tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratorySpecimenLifecycleTests.cs@9124900` berisi 19 pengujian, antara lain `#SebelumDinyatakanLayak_TidakAdaTagihanYangTerbentuk`, `#PengambilanUlangKesalahanInternal_HanyaMenghasilkanSatuTagihan`, `#PembatalanSetelahLayak_TidakMenghapusTagihanDanMemakaiRevisiBaru`, `#SampelDitolak_TidakMenerbitkanFaktaApaPun`. `LaboratoryAuthorityTests.cs@9124900` berisi 12 pengujian batas kewenangan | `Ready to reuse` | Tidak ada. Pengujian hasil pemeriksaan harus ditambahkan sendiri | Rendah. Justru menjadi contoh gaya pengujian yang bisa ditiru untuk slice hasil |
+| `CAP-24` | Bukti otomatis bahwa aturan sampel dan batas kewenangan ditegakkan | Laboratorium | `Tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratorySpecimenLifecycleTests.cs@c87d9c0` berisi 18 pengujian (dikoreksi dari 19 pada impact scan 2026-09-02), antara lain `#SebelumDinyatakanLayak_TidakAdaTagihanYangTerbentuk`, `#PengambilanUlangKesalahanInternal_HanyaMenghasilkanSatuTagihan`, `#PembatalanSetelahLayak_TidakMenghapusTagihanDanMemakaiRevisiBaru`, `#SampelDitolak_TidakMenerbitkanFaktaApaPun`. `LaboratoryAuthorityTests.cs@c87d9c0` berisi 12 pengujian batas kewenangan | `Ready to reuse` | Tidak ada. Pengujian hasil pemeriksaan harus ditambahkan sendiri | Rendah. Justru menjadi contoh gaya pengujian yang bisa ditiru untuk slice hasil |
 
 ---
 
@@ -187,13 +258,13 @@ pengecualian beserta penandanya harus disimpan di tabel hasil, bukan di tabel iz
 
 **Apa yang ditemukan.** `LAB-INH-001` — keputusan terkunci dari `RJ-BIL-GATE-DEC-003` —
 menyatakan alur pesanan dimulai dari `Draft`, lalu ke `Requested`. Di dalam kode, nilai `Draft`
-memang ada pada `Enums/LaboratoryEnums.cs#LabOrderStatus.Draft@9124900`, tetapi:
+memang ada pada `Enums/LaboratoryEnums.cs#LabOrderStatus.Draft@c87d9c0`, tetapi:
 
 1. Pembuatan pesanan **selalu** langsung berstatus `Requested`, lihat
-   `Services/LabOrderService.cs:136#OrderStatus = LabOrderStatus.Requested@9124900`.
+   `Services/LabOrderService.cs:136#OrderStatus = LabOrderStatus.Requested@c87d9c0`.
 2. Tidak ada satu pun endpoint atau method yang menetapkan status menjadi `Draft`.
 3. Satu-satunya tempat `Draft` disebut adalah pemeriksaan penjagaan di
-   `Services/LabSpecimenService.cs:228@9124900`, yaitu baris yang berbunyi
+   `Services/LabSpecimenService.cs:228@c87d9c0`, yaitu baris yang berbunyi
    "jika status pesanan `Draft` atau `Requested`". Baris itu tidak pernah benar-benar bertemu
    nilai `Draft` karena tidak ada yang membuatnya.
 
@@ -220,7 +291,7 @@ jalur pembatalan — bukan sekadar menyunting draf.
 | Status | `Unknown` |
 | Memblokir | `DESIGN` bagian penyajian hasil |
 
-Modul `rekam-medis` ada dan aktif di `Areas/HealthServices/MedicalRecordManagement/@9124900`.
+Modul `rekam-medis` ada dan aktif di `Areas/HealthServices/MedicalRecordManagement/@c87d9c0`.
 Decision log Laboratorium menempatkan penyimpanan dokumen rekam medis **di luar scope**, dan
 menyebut Laboratorium hanya "menyerahkan hasil sebagai isi rekam medis". Namun tidak ada
 keputusan yang menyatakan bentuk penyerahan itu: apakah hasil lab cukup dibaca lewat layar
@@ -244,7 +315,7 @@ pertanyaan teknis. Lihat `Q-LAB-02`.
 
 ## Kontrak As-Is
 
-Endpoint yang benar-benar ada pada `9124900`, disajikan seperti tampilan Swagger.
+Endpoint yang benar-benar ada pada `c87d9c0`, disajikan seperti tampilan Swagger.
 
 ### `[Tags("Health Services / Laboratory Management / Lab Order")]`
 
@@ -286,7 +357,7 @@ Seluruh endpoint memerlukan login (`[Authorize]`).
 dengan menyatakan layak, yaitu `LabSpecimen / Accept`. Ini **sesuai** `LAB-INH-007`, yang
 memang menyebut "penerimaan/penolakan" sebagai satu kewenangan. Yang dipisah tegas adalah
 pengambilan dan penetapan layak — dan pemisahan itu dijaga pengujian
-`LaboratoryAuthorityTests.cs#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@9124900`.
+`LaboratoryAuthorityTests.cs#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@c87d9c0`.
 
 ### Tabel basis data yang sudah ada
 
@@ -297,8 +368,8 @@ pengambilan dan penetapan layak — dan pemisahan itu dijaga pengujian
 | `TrxLabTransitionHistory` | `TrxLabTransitionHistory` | `20260824091610_AddLaboratorySpecimenLifecycle` |
 | `MstLabRejectionReason` | `MstLabRejectionReason` | `20260824091610_AddLaboratorySpecimenLifecycle` |
 
-Terdaftar di `Repositories/ApplicationDbContext.cs:648-654@9124900`.
-Layanan terdaftar di `Program.cs:285-286@9124900`.
+Terdaftar di `Repositories/ApplicationDbContext.cs:648-654@c87d9c0`.
+Layanan terdaftar di `Program.cs:285-286@c87d9c0`.
 
 ---
 
@@ -321,7 +392,7 @@ Peta ini menjadi basi dan wajib dipindai ulang secara terbatas bila salah satu t
 
 | Pemicu | Yang perlu diperiksa ulang |
 |---|---|
-| Backend bergerak dari `9124900` | `CAP-01` sampai `CAP-07`, `CAP-11` sampai `CAP-19`, `CAP-24`, dan seluruh kontrak as-is |
+| Backend bergerak dari `c87d9c0` | `CAP-01` sampai `CAP-07`, `CAP-11` sampai `CAP-19`, `CAP-24`, dan seluruh kontrak as-is |
 | Frontend bergerak dari `688daff90` | `CAP-20` sampai `CAP-23` |
 | Ada migration baru menyentuh tabel berawalan `Lab` | `CAP-01` sampai `CAP-05` dan tabel basis data |
 | `ClinicalMilestoneFactProducer` berubah | `CAP-11` dan pengujian `CAP-24` |
@@ -397,4 +468,5 @@ milik `master-data`, atau menjadi tabel tersendiri milik Laboratorium yang menun
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
-| 1 | 2026-09-01 | Audit penuh pertama pada backend `9124900` dan frontend `688daff90`. 24 kemampuan diklasifikasikan, 1 conflict dan 2 unknown dicatat, 5 pertanyaan penutup diajukan | `draft` |
+| 1 | 2026-09-01 | Audit penuh pertama pada backend `c87d9c0` dan frontend `688daff90`. 24 kemampuan diklasifikasikan, 1 conflict dan 2 unknown dicatat, 5 pertanyaan penutup diajukan | `draft` |
+| 2 | 2026-09-02 | *Impact scan* terbatas atas `CAP-11` dan bagian utang teknis, sesuai penanda `STALE` pada manifest. **Tidak ada status kemampuan yang berubah**; `STALE` dicabut. Sepuluh kemampuan berisiko tinggi diverifikasi silang. Dua koreksi faktual: jumlah pengujian `CAP-24` 19 → 18, dan tanggal audit revision 1 yang tidak mungkin benar karena `c87d9c0` baru dibuat 2026-09-02 | `draft` |

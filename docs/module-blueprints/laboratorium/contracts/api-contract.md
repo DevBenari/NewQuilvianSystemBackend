@@ -3,13 +3,15 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Status | `draft` |
+| Revision | `3` |
+| Status | `approved` — dikunci 2026-09-02 |
+| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
 | Owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| `approved_by` / `approved_at` | belum — approval adalah tindakan manusia |
-| Input revision | Decisions rev 17; `LAB-DA-001` rev 4 |
-| Input hash | `3b25b87d970204cf` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
+| Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
+| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Dampak kompatibilitas | **Breaking** pada endpoint sampel — lihat bagian 3 |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 
 Seluruh endpoint memerlukan login (`[Authorize]`). Pembungkus respons memakai
 `ApiResponse<T>.Ok(data, pesan)` dan `ApiResponse<T>.Fail(kode, pesan)`.
@@ -18,7 +20,7 @@ Endpoint yang belum ada di kode ditandai **`Rencana (belum tersedia)`**.
 
 ---
 
-## 1. Kontrak As-Is — yang benar-benar ada pada `9124900`
+## 1. Kontrak As-Is — yang benar-benar ada pada `c87d9c0`
 
 ### Health Services / Laboratory Management / Lab Order
 
@@ -54,7 +56,7 @@ Base URL: `api/v1/health-services/laboratory-management/lab-specimens`
 | `POST` | `/{id}/resume` | Melanjutkan sampel | `LabSpecimen : Hold` | `ResumeLabRequest` | `ApiResponse<LabSpecimenResponse>` | Tersedia |
 | `POST` | `/{id}/cancel` | Membatalkan sampel | `LabSpecimen : Update` | `CancelLabSpecimenRequest` | `ApiResponse<LabSpecimenResponse>` | Tersedia |
 
-**Batas kontrak as-is.** Pada `9124900`, `PlanLabSpecimenRequest` membawa satu `ProcedureId`,
+**Batas kontrak as-is.** Pada `c87d9c0`, `PlanLabSpecimenRequest` membawa satu `ProcedureId`,
 sehingga satu sampel sama dengan satu pemeriksaan. Ini yang diubah oleh `LAB-DEC-024`.
 
 ---
@@ -64,7 +66,7 @@ sehingga satu sampel sama dengan satu pemeriksaan. Ini yang diubah oleh `LAB-DEC
 ### Health Services / Laboratory Management / Lab Order
 
 Base URL: `api/v1/health-services/laboratory-management/lab-orders`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -80,7 +82,7 @@ bertambah satu ruas: `discipline` (`LAB-DEC-025`).
 ### Health Services / Laboratory Management / Lab Examination
 
 Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -97,7 +99,7 @@ Contract version: `LAB-API-v1` — status `draft`
 ### Health Services / Laboratory Management / Lab Specimen
 
 Base URL: `api/v1/health-services/laboratory-management/lab-specimens`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -110,7 +112,7 @@ Sembilan endpoint sampel lainnya tetap berlaku apa adanya.
 ### Health Services / Laboratory Management / Lab Value Bound
 
 Base URL: `api/v1/health-services/laboratory-management/lab-value-bounds`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -124,7 +126,7 @@ Contract version: `LAB-API-v1` — status `draft`
 ### Health Services / Laboratory Management / Lab Critical Bound Approval
 
 Base URL: `api/v1/health-services/laboratory-management/lab-value-bounds/{id}/critical-change-requests`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -137,7 +139,7 @@ Contract version: `LAB-API-v1` — status `draft`
 ### Health Services / Laboratory Management / Lab Worklist
 
 Base URL: `api/v1/health-services/laboratory-management/lab-worklists`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -147,7 +149,7 @@ Contract version: `LAB-API-v1` — status `draft`
 ### Health Services / Laboratory Management / Lab Rejection Reason
 
 Base URL: `api/v1/health-services/laboratory-management/lab-rejection-reasons`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -163,7 +165,7 @@ bagi petugas yang sedang menolak sampel. Endpoint pengelolaan di atas adalah jal
 ### Health Services / Laboratory Management / Lab Patient Registration
 
 Base URL: `api/v1/health-services/laboratory-management/lab-patient-registrations`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -182,7 +184,7 @@ seadanya — cukup untuk langsung membuat pesanan lab pada layar berikutnya.
 ### Health Services / Laboratory Management / Lab Catalog
 
 Base URL: `api/v1/health-services/laboratory-management/lab-catalog`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -200,7 +202,7 @@ Pengubahan tarif dilakukan lewat modul Master Data (`LAB-DEC-033`).
 ### Health Services / Laboratory Management / Lab Monitoring
 
 Base URL: `api/v1/health-services/laboratory-management/lab-monitoring`
-Contract version: `LAB-API-v1` — status `draft`
+Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|

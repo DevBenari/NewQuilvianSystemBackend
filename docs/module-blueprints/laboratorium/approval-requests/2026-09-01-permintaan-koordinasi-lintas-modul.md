@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | `request_id` | `LAB-REQ-001` |
-| `tanggal` | 2026-09-01 |
+| `tanggal` | 2026-09-01, diperbarui 2026-09-02 |
 | `pengaju` | Yoga Aji Pratama — Product/Domain Owner Laboratorium |
-| `rujukan` | `blueprint-manifest.md` revision `9`; `04-prd-to-mvp.md` bagian 15 |
-| `status` | `dijawab sebagian` — 6 selesai, 4 terbuka. Lihat bagian 0 dan 5 |
+| `rujukan` | `blueprint-manifest.md` revision `19`; `04-prd-to-mvp.md` bagian 15 |
+| `status` | `dijawab sebagian` — 6 selesai, 5 terbuka. Lihat bagian 0 dan 5 |
 | `disetujui oleh` | `andryzainhome` (`andryzain01@gmail.com`) dan `sukmagp` — Sukma Giri Pratama (`sukmagiri11@gmail.com`), selaku pemilik repository |
 | `tanggal persetujuan` | 2026-09-01 |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
@@ -36,20 +36,27 @@ modul Laboratorium.
 | No | Yang dibutuhkan | Kenapa persetujuan belum cukup |
 |---:|---|---|
 | 4 | Jumlah baris `TrxLabSpecimen` di basis data produksi | Yang diminta adalah **satu angka**, bukan izin. Menyetujui permintaan tidak memberi tahu berapa barisnya. Migration `MVP-2` tetap tidak boleh dijalankan sebelum angkanya diketahui |
-| 5 | ~~Lokasi `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`~~ | **TERJAWAB 2026-09-01** — lihat 3.2. Keduanya masih berlaku, dan lokasi **canonical**-nya adalah `NewQuilvianSystemBackend/docs/engineering/` pada commit `c9692d0`. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007` |
+| 5 | ~~Lokasi `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`~~ | **TERJAWAB 2026-09-01** — lihat 3.2. Keduanya masih berlaku. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007` |
+| 11 | Checker `Invoke-QbeConformanceCheck.ps1` gagal dijalankan | **Baru 2026-09-02.** Scriptnya mencari dokumen tata kelola pada path yang sudah tidak ada. Yang diminta perbaikan satu baris path, bukan izin. Lihat 3.5 |
 
-> **Peringatan lokasi — jangan sampai keliru.** Terdapat salinan kedua dokumen itu di
-> `QuilvianEngineeringSkills/agents/rules/backend/engineering/`. Salinan itu **bukan sumber
-> canonical**. `rules/README.md` pada repository skill menyatakan tegas bahwa yang berlaku saat
-> runtime tetap dokumen di repository backend target, dan salinan lokal **tidak boleh** dipakai
-> sebagai pengganti.
+> **Peringatan lokasi — sudah diperbaiki 2026-09-02.** Versi terdahulu dokumen ini menyatakan
+> lokasi canonical adalah `docs/engineering/` di repository backend. **Itu keliru**, dan
+> bertentangan dengan bagian 3.4 pada dokumen yang sama.
 >
-> Yang harus dibaca implementer adalah `docs/engineering/` di `NewQuilvianSystemBackend`, yang
-> muncul setelah checkout lokal ditarik ke `c9692d0`.
+> Yang berlaku menurut `AGENTS.md` baris 13 adalah: lapisan operasional tata kelola **tidak
+> lagi tinggal di repository backend**. Sumbernya adalah repository `QuilvianEngineeringSkills`
+> yang terpasang sebagai suite Skill, dibaca lewat jalur logis `rules/backend/engineering/`.
+>
+> Ketiga salinan yang ada hari ini berisi **teks yang identik**, jadi belum ada perbedaan isi
+> yang merugikan. Yang perlu diputuskan pemilik repository adalah salinan `docs/engineering/`
+> di backend: dipertahankan sebagai cermin baca-saja, atau dihapus. Selama dibiarkan tanpa
+> keterangan, ia akan menyimpang diam-diam dari sumbernya.
 
 `LAB-OPEN-012` tetap terbuka. `LAB-OPEN-002` ditutup, tetapi pembacaan dokumennya menurunkan
 dua penghambat baru — `LAB-OPEN-018` dan `LAB-OPEN-019` — yang keduanya memerlukan tindakan
-pemilik registry prefix. Lihat 3.3 dan 3.4.
+pemilik registry prefix. Lihat 3.3 dan 3.4. Pemeriksaan lanjutan 2026-09-02 menurunkan satu
+penghambat lagi, `LAB-OPEN-020`, yang merupakan wewenang Andry Zain selaku pemilik repository
+backend. Lihat 3.5.
 
 ### 0.3 Di luar wewenang pemberi persetujuan — satu butir
 
@@ -78,13 +85,27 @@ insiden, rumah sakit perlu menunjukkan bahwa pihak klinis ikut memutuskan.
 ## 1. Satu paragraf untuk yang tidak punya waktu
 
 Modul Laboratorium sudah punya blueprint lengkap — 36 keputusan disetujui, arsitektur domain
-siap, dan seluruh kontrak tersusun. **Pekerjaan tetap tidak bisa dimulai** karena tujuh hal
-berada di luar wewenang modul Laboratorium: tiga menyentuh tabel milik modul lain, satu
-memerlukan tanda tangan klinis, satu memerlukan pemeriksaan basis data, satu memerlukan
-kesepakatan platform, dan satu berupa dokumen tata kelola yang hilang dari repository.
+siap, dan seluruh kontrak tersusun. **Implementasi tetap tidak bisa dimulai** karena sebelas
+hal berada di luar wewenang modul Laboratorium.
+
+Enam sudah selesai pada 2026-09-01. **Lima masih terbuka**, dan yang paling berat bukan lagi
+izin menyentuh tabel modul lain, melainkan **status registry modul Laboratorium sendiri yang
+masih `PLANNED`** — yang menurut registry berarti belum berwenang menjalankan implementasi
+maupun migration.
 
 Yang diminta **bukan** persetujuan desain. Desainnya sudah selesai. Yang diminta adalah izin
-menyentuh milik orang lain, dan jawaban atas hal yang memang bukan urusan Laboratorium.
+menyentuh milik orang lain, penetapan status registry, dan jawaban atas hal yang memang bukan
+urusan Laboratorium.
+
+> **Yang tidak ikut terblokir — supaya tidak salah tunggu.** Butir 9 menahan **implementasi**,
+> bukan **perencanaan**. Registry sendiri menyatakan persetujuannya "tidak memberi wewenang
+> implementasi, migration, pekerjaan database, deployment", dan yang ditahan `QBE-MOD-002`
+> adalah pembuatan entity `Lab*` — bukan penyusunan roadmap.
+>
+> Karena itu roadmap backend dan frontend tetap boleh terbit lebih dulu, dengan task yang
+> menyentuh entity `Lab*` bertanda `BLOCKED` dan menyebut `LAB-OPEN-019` sebagai penahannya.
+> Menunda penerbitan roadmap sampai butir 9 dijawab adalah penundaan yang tidak diminta aturan
+> mana pun.
 
 ---
 
@@ -149,7 +170,7 @@ justru sebaliknya — layar pendaftaran berada di modul Laboratorium supaya petu
 berpindah aplikasi, tetapi **Registrasi yang membuat kunjungannya**. Laboratorium mengirim
 isian, menunggu jawaban, lalu menyimpan penunjuk kunjungan yang dikembalikan.
 
-**Kabar baiknya: sebagian besar sudah ada.** Pemeriksaan pada `9124900` menemukan Registrasi
+**Kabar baiknya: sebagian besar sudah ada.** Pemeriksaan pada `c87d9c0` menemukan Registrasi
 sudah memiliki `EncounterRegistrationSource.WalkIn`, kolom `IsWalkIn`, penanda `IsReferral`,
 `ReferralNumber`, `IsReferralRequired`, `IsReferralVerified`, dan `PatientEncounterController`
 yang sudah menangani pembuatan kunjungan datang langsung. Yang belum ada hanya kolom penunjuk
@@ -189,9 +210,26 @@ Yang dibutuhkan hanya satu perhitungan baris.
 |---|---|
 | **ID koordinasi** | `LAB-OPEN-002` — **ditutup 2026-09-01** |
 | **Jawabannya** | Dokumennya **tidak hilang**. Keduanya ada pada commit `c9692d0` "Repair QBE canonical governance paths" |
-| **Sebab kekeliruan** | Checkout lokal berada di cabang `yoga` pada `9124900`, **7 commit tertinggal** dari `origin/yoga`. Folder `docs/engineering/` memang belum ada di working copy, tetapi ada di remote |
+| **Sebab kekeliruan** | Checkout lokal berada di cabang `yoga` pada `c87d9c0`, **7 commit tertinggal** dari `origin/yoga`. Folder `docs/engineering/` memang belum ada di working copy, tetapi ada di remote |
 | **Dampak pada blueprint** | Ketujuh commit itu **tidak menyentuh Laboratorium** — hanya IGD, dokumen, dan tooling. Capability map tetap sahih |
-| **Tindakan yang diperlukan** | Menarik ketujuh commit itu ke checkout lokal |
+| **Tindakan yang diperlukan** | ~~Menarik ketujuh commit itu ke checkout lokal~~ — **selesai 2026-09-02.** `c9692d0` kini leluhur `HEAD`, dan `docs/engineering/` ada di working tree |
+
+**Koreksi atas lokasi canonical — 2026-09-02.** Baris "Jawabannya" di atas benar bahwa
+dokumennya tidak hilang, tetapi versi terdahulu bagian ini menyimpulkan bahwa sumber
+canonical-nya adalah `docs/engineering/` di repository backend. **Kesimpulan itu keliru** dan
+bertentangan dengan bagian 3.4.
+
+Yang berlaku menurut `AGENTS.md` baris 13: lapisan operasional tata kelola tidak lagi tinggal
+di repository backend, melainkan datang dari suite Skill terpasang lewat jalur logis
+`rules/backend/engineering/`. Jadi hari ini ada **tiga salinan** dokumen yang sama:
+
+| Salinan | Kedudukan |
+|---|---|
+| `QuilvianEngineeringSkills/agents/rules/backend/engineering/` | Sumber lintas vendor |
+| `QuilvianEngineeringSkills/Claude/.claude/rules/backend/engineering/` | Edisi Claude, identik |
+| `NewQuilvianSystemBackend/docs/engineering/` | **Kedudukannya belum ditetapkan** — lihat 3.5 |
+
+Ketiganya berisi teks identik per 2026-09-02, jadi belum ada perbedaan isi yang merugikan.
 
 **Yang ditemukan setelah dokumennya dibaca.** Rancangan Laboratorium ternyata melanggar
 `QBE-NAM-001` — tiga entity baru diberi awalan `Trx*`, yang dilarang untuk kode baru. Sudah
@@ -222,7 +260,9 @@ Baris registry yang berlaku:
 | HealthServices | LaboratoryManagement / Laboratory | BUSINESS DOMAIN / MODULE | Lab | **`PLANNED`** |
 
 **Keadaan yang perlu dijelaskan.** `LabOrder`, `TrxLabSpecimen`, `TrxLabTransitionHistory`, dan
-`MstLabRejectionReason` **sudah berjalan di produksi** beserta migration dan 31 pengujian.
+`MstLabRejectionReason` **sudah berjalan di produksi** beserta migration dan 30 pengujian
+(dikoreksi dari 31 lewat impact scan 2026-09-02: 18 pada `LaboratorySpecimenLifecycleTests.cs`,
+12 pada `LaboratoryAuthorityTests.cs`).
 Padahal menurut registry, modul berstatus `PLANNED` belum berwenang menjalankan implementasi
 maupun migration.
 
@@ -242,8 +282,13 @@ Selama belum dijawab, blueprint ini **tidak boleh** diteruskan ke implementasi.
 | Butir | Isi |
 |---|---|
 | **Yang diminta** | Penetapan prefix untuk data induk yang dimiliki Laboratorium |
-| **ID koordinasi** | `LAB-OPEN-018` |
+| **ID koordinasi** | `LAB-OPEN-021` — lihat catatan tabrakan ID di bawah |
 | **Yang diblokir** | Penamaan dua tabel baru: batas nilai dan pilihan hasil |
+
+> **Tabrakan ID — perlu dirapikan.** Versi terdahulu bagian ini memakai `LAB-OPEN-018`, padahal
+> ID yang sama sudah dipakai untuk persoalan rules root di akhir bagian ini. Satu ID untuk dua
+> penghambat berbeda. Pertanyaan prefix diberi ID sendiri, `LAB-OPEN-021`, per 2026-09-02.
+> `blueprint-manifest.md` bagian `active_blockers` ikut menyesuaikan.
 
 **Persoalannya.** `QBE-NAM-002` mewajibkan kode baru memakai prefix registry milik pemiliknya,
 dan `QBE-NAM-004` melarang menyimpulkan prefix sendiri. Registry punya dua baris yang sama-sama
@@ -257,7 +302,55 @@ masuk akal:
 Blueprint **tidak memutuskan sendiri**. Sampai dijawab, penamaan kedua tabel berstatus belum
 final.
 
-#### Jawaban — 2026-09-01
+#### Usulan yang dimintakan persetujuan — 2026-09-02
+
+Agar pertanyaan ini cukup dijawab **ya atau tidak**, berikut usulan beserta buktinya. Blueprint
+tetap tidak memutuskan; pemilik registry yang menetapkan.
+
+> **Usulan: pakai `Lab`.** Jadi `LabValueBound` dan `LabValueOption`, bukan `MstLabValueBound`
+> dan `MstLabValueOption`.
+
+Alasannya bukan selera, melainkan perilaku checker yang sudah berjalan.
+`tooling/qbe/Invoke-QbeConformanceCheck.ps1` menentukan pemilik sebuah entity **dari letak
+foldernya**, lalu mewajibkan prefixnya cocok:
+
+| Langkah checker | Hasil untuk `Areas/HealthServices/LaboratoryManagement/Models/` |
+|---|---|
+| Ambil segmen modul dari path | `laboratorymanagement` |
+| Cari baris registry yang namanya cocok | Baris `LaboratoryManagement / Laboratory`, prefix `Lab` |
+| Baris `Master / Reference` ikut dipertimbangkan? | **Tidak.** Aliasnya `master` dan `reference`, tidak cocok dengan segmen path mana pun |
+| Uji prefix | Entity wajib diawali `Lab` |
+
+Artinya `MstLabValueBound` yang diletakkan di folder Laboratorium akan dilaporkan checker
+sebagai pelanggaran `QBE-MOD-002`, dengan alasan *"Entity 'MstLabValueBound' does not use
+approved registry prefix 'Lab'"*. Prefix `Mst` hanya sah bila tabelnya benar-benar pindah ke
+folder Master Data dan kepemilikannya diserahkan ke Master Data — yang bertentangan dengan
+pernyataan blueprint sendiri bahwa kedua tabel ini milik Laboratorium.
+
+**Preseden `MstLabRejectionReason` justru memperkuat, bukan melemahkan.** Berkasnya ada di
+`Areas/HealthServices/LaboratoryManagement/Models/MstLabRejectionReason.cs` — pola yang sama
+persis, dan menurut aturan yang berlaku sekarang ia **tidak konform**. Ia lolos hanya karena
+checker mengecualikan legacy yang tidak disentuh. Mengikutinya untuk tabel baru berarti
+menyalin cacat yang sudah ada.
+
+**Yang perlu dirapikan apa pun jawabannya.** Blueprint saat ini memakai **dua penamaan
+sekaligus** untuk aggregate yang sama:
+
+| Artefak | Penamaan yang dipakai |
+|---|---|
+| `erd/`, `data-dictionary.md`, `02-backend-architecture.md` §4.4–4.5 | `MstLabValueBound`, `MstLabValueOption` |
+| `contracts/api-contract.md`, `contracts/permission-audit-matrix.md` | `LabValueBound` — sebagai nama resource hak akses dan DTO |
+| Dua entity anak pada aggregate yang sama | `LabValueBoundChangeRequest`, `LabValueBoundHistory` |
+
+Induknya berprefix `Mst`, kedua anaknya berprefix `Lab`, dan hak aksesnya bernama `Lab`.
+Selama ini dibiarkan, roadmap akan menerbitkan task yang kontraknya menyebut satu nama tabel
+sementara ERD-nya menyebut nama lain. Menjawab butir 10 sekaligus menutup ketidaksesuaian ini.
+
+#### Jawaban atas butir 5 — 2026-09-01
+
+> Bagian di bawah ini menjawab **butir 5** (lokasi dokumen tata kelola), bukan pertanyaan
+> prefix di atasnya. Letaknya di sini karena dari jawaban inilah `LAB-OPEN-018` dan
+> `LAB-OPEN-019` diturunkan.
 
 | Butir | Isi |
 |---|---|
@@ -265,18 +358,88 @@ final.
 | **Keduanya masih berlaku?** | **Ya.** Tidak dicabut. `AGENTS.md` tetap menempatkannya pada urutan wewenang ke-2 dan ke-3, dan `QBE-MOD-002`/`QBE-MOD-003`/`QBE-NAM-004` masih dikutip aktif oleh blueprint lain |
 | **Lokasi canonical** | `QuilvianEngineeringSkills/agents/rules/backend/engineering/` — sumber lintas vendor |
 | **Lokasi edisi Claude** | `QuilvianEngineeringSkills/Claude/.claude/rules/backend/engineering/` — identik byte-per-byte |
-| **Kenapa dulu tidak ketemu** | Kedua dokumen dipindahkan keluar dari repository backend ke repository suite Skill. Path `docs/engineering/` yang masih disebut `AGENTS.md` baris 11 dan 20 sudah usang dan bertentangan dengan baris 40 pada berkas yang sama |
+| **Kenapa dulu tidak ketemu** | Kedua dokumen dipindahkan keluar dari repository backend ke repository suite Skill, dan checkout lokal saat itu tertinggal 7 commit. **Catatan 2026-09-02:** anggapan bahwa `AGENTS.md` baris 11 dan 20 masih menunjuk `docs/engineering/` sudah tidak berlaku — keduanya kini memakai jalur logis `rules/backend/engineering/` |
 
 **Dua penghambat baru yang muncul dari jawaban ini — masih memerlukan tindakan:**
 
 | ID | Isi | Tindakan yang diminta |
 |---|---|---|
-| `LAB-OPEN-018` | Rules root yang **terpasang** (`${CLAUDE_PLUGIN_ROOT}/.claude/rules/`) tidak memuat subfolder `engineering/`. Plugin terpasang berasal dari `MHamzah1/QuilvianEngineeringSkillsClaude@f0136df`, bukan dari sumber canonical `DevBenari/QuilvianEngineeringSkills@59bd3e2` | Publikasikan/perbarui suite Skill sehingga rules root runtime memuat kedua dokumen. Selama belum, gerbang `AGENTS.md` sendiri memaksa setiap task backend berhenti dengan `BLOCKED — canonical governance unavailable` |
+| `LAB-OPEN-018` | Rules root yang **terpasang** (`${CLAUDE_PLUGIN_ROOT}/.claude/rules/`) tertinggal jauh dari sumbernya — lihat rinciannya di bawah | Perbarui suite Skill terpasang. Selama belum, gerbang `AGENTS.md` sendiri memaksa setiap task backend berhenti dengan `BLOCKED — canonical governance unavailable` |
 | `LAB-OPEN-019` | Registry mencatat `HealthServices / LaboratoryManagement / Laboratory`, prefix `Lab`, lifecycle `PLANNED`. Hak penamaan sudah ada, izin implementasi belum | Naikkan lifecycle `PLANNED` → `ACTIVE`, dengan preseden `RWI-DEC-068` untuk `InPatientManagement` |
 
-**Rapikan juga:** `AGENTS.md` backend perlu diperbarui agar baris 11 dan 20 tidak lagi menunjuk
-`docs/engineering/`, dan folder peninggalan `agents/rules/` (7 berkas) yang sudah dinyatakan
-dicabut oleh `AGENTS.md` baris 53 perlu dibereskan.
+**Rincian `LAB-OPEN-018` — pemeriksaan 2026-09-02 menemukan cakupannya jauh lebih luas.** Rules
+root terpasang berisi **13 berkas**; sumber canonical berisi **29**. Yang hilang bukan hanya
+subfolder `engineering/`:
+
+| Yang hilang dari rules root terpasang | Akibatnya |
+|---|---|
+| `GLOBAL_RULES.md` | `AGENTS.md` memerintahkan membacanya **paling awal**, sebelum dokumen lain |
+| `backend/engineering/` — kedua dokumen tata kelola | Gerbang `BLOCKED — canonical governance unavailable` |
+| `rule-output/bentuk-blueprint.md` | Dikutip `plan-module-delivery` langkah 6 sebagai penentu letak roadmap |
+| `backend/backend-project-profile.md`, `master-data-endpoint-standard.md`, `transaction-endpoint-standard.md`, `role-access-rules.md` | Standar endpoint dan hak akses tidak terbaca saat implementasi |
+| 10 dari 11 rules frontend — termasuk `base-component-catalog.md`, `design-tokens.md`, `master-data-feature-standard.md`, `page-composition-patterns.md` | `build-module-frontend` ikut kehilangan pijakan |
+
+Suite terpasang tercatat `0.1.0` pada `6301c62` (2026-08-24); repository skill kini sudah di
+`636377c`. **Ini wewenang pemasang di mesin masing-masing, bukan pihak ketiga** — cukup
+perbarui plugin dari marketplace `quilvian`.
+
+**Dua butir "rapikan juga" pada versi terdahulu sudah tidak berlaku — dicoret 2026-09-02:**
+
+| Butir lama | Keadaan sebenarnya di `HEAD` |
+|---|---|
+| ~~`AGENTS.md` baris 11 dan 20 masih menunjuk `docs/engineering/`~~ | **Sudah benar.** Keduanya memakai jalur logis `rules/backend/engineering/` |
+| ~~Folder peninggalan `agents/rules/` (7 berkas) perlu dibereskan~~ | **Sudah tidak ada.** Folder `agents/` tidak ada di repository backend |
+
+Yang menggantikan keduanya adalah satu temuan baru yang lebih serius — lihat 3.5.
+
+---
+
+### 3.5 Andry Zain — checker QBE tidak dapat dijalankan
+
+| Butir | Isi |
+|---|---|
+| **Yang diminta** | Perbaiki path dokumen tata kelola di dalam `tooling/qbe/Invoke-QbeConformanceCheck.ps1` |
+| **ID koordinasi** | `LAB-OPEN-020` — **baru 2026-09-02** |
+| **Kepada** | **Andry Zain** (`andryzainhome`, `andryzain01@gmail.com`), selaku pemilik repository backend — ditetapkan pemilik modul Laboratorium 2026-09-02 |
+| **Yang diblokir** | Setiap pemeriksaan konformansi QBE, termasuk gerbang CI pada setiap pull request |
+
+**Buktinya, dijalankan langsung pada `HEAD`:**
+
+```text
+> ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode ReportOnly
+TOOL ERROR: Canonical governance missing: agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md
+Final result: TOOL ERROR
+EXITCODE=2
+```
+
+**Sebabnya.** Script mencari dokumen tata kelola pada `agents/rules/engineering/` — path yang
+sudah tidak ada di repository ini, dan yang oleh `AGENTS.md` sendiri dinyatakan dicabut. Ada
+empat tempat di dalam script yang masih menunjuk ke sana:
+
+| Baris | Isinya |
+|---|---|
+| 29–30 | Daftar `$requiredAuthority` — dua dokumen tata kelola |
+| 36 | Pembacaan `BACKEND_ENGINEERING_CONTRACT.md` |
+| 85 | Default `QBE_EXCEPTIONS.json` |
+| 162 | Pembacaan tabel registry |
+
+**Yang membuatnya membingungkan: dokumentasinya sendiri sudah benar.**
+`tooling/qbe/README.md` menyebut `docs/engineering/`, dan menyatakan CI membaca
+`docs/engineering/QBE_EXCEPTIONS.json`. Ketiga berkas itu memang ada di sana. Hanya scriptnya
+yang belum ikut diperbarui.
+
+**Akibat yang perlu diketahui pemilik repository.** Workflow `QBE Conformance / QBE Strict
+GitRange` berjalan pada setiap pull request yang menyasar `QuilvianIntegrationBackend`, dan
+memanggil script yang sama. Selama path ini belum diperbaiki, gerbang QBE di CI **tidak sedang
+memeriksa apa pun** — ia gagal sebagai TOOL ERROR, bukan lolos.
+
+**Kenapa ini penting bagi Laboratorium.** Butir 9 dan 10 pada akhirnya ditegakkan oleh script
+ini: ia yang membaca kolom Lifecycle dan menolak entity berprefix salah. Menaikkan lifecycle ke
+`ACTIVE` tanpa memperbaiki script berarti wewenangnya bertambah sementara pemeriksaannya tetap
+mati. Sebaiknya keduanya berjalan bersamaan.
+
+> Perbaikannya sepenuhnya wewenang Andry Zain selaku pemilik repository backend dan tidak
+> menunggu siapa pun. Laboratorium tidak mengubah berkas ini.
 
 ---
 
@@ -311,7 +474,7 @@ sekaligus menyatakan bahwa wewenang klinis berada di pihak lain.
 | **Yang diblokir** | Nilai kritis dan pemberitahuan koreksi hasil |
 | **Akibat nyata bila dibangun di Laboratorium** | Ketika Farmasi dan Radiologi kelak membutuhkan hal serupa, dokter harus memeriksa tiga kotak pemberitahuan berbeda. Untuk nilai kritis, itu berbahaya |
 
-Pemeriksaan pada `9124900` menemukan platform **belum punya** sarana pemberitahuan apa pun —
+Pemeriksaan pada `c87d9c0` menemukan platform **belum punya** sarana pemberitahuan apa pun —
 tidak ada tabel notifikasi, tidak ada surel, tidak ada pesan singkat. Yang ada hanya
 `Hubs/QueueHub.cs` yang khusus melayani antrean nurse station.
 
@@ -345,12 +508,22 @@ kemampuan baru yang perlu dibangun di modul `rekam-medis`.
 | 6 | Dokter PJ laboratorium / Komite Medis | Tanda tangan tiga keputusan keselamatan | Seluruh slice hasil | ⏳ Di luar wewenang pemilik repo |
 | 7 | Pemilik platform | Kesepakatan pemberitahuan sebagai kemampuan platform | Nilai kritis | ✅ **Disetujui** |
 | 8 | Pemilik `rekam-medis` | Satu jenis dokumen klinis baru | Hasil ke rekam medis | ✅ **Disetujui** |
-| **9** | **Pemilik registry prefix** | **Lifecycle Laboratorium dari `PLANNED` ke `ACTIVE`** | **Seluruh gelombang MVP** | 🔴 **Baru, belum diajukan** |
-| **10** | **Pemilik registry prefix** | **Prefix data induk Laboratorium: `Mst` atau `Lab`** | Penamaan dua tabel | 🔴 **Baru, belum diajukan** |
+| **9** | **Pemilik registry prefix** | **Lifecycle Laboratorium dari `PLANNED` ke `ACTIVE`** | **Seluruh implementasi MVP** | 🟡 **Diajukan 2026-09-02** |
+| **10** | **Pemilik registry prefix** | **Prefix data induk Laboratorium — usulan `Lab`, tinggal disetujui atau ditolak** | Penamaan dua tabel + konsistensi kontrak | 🟡 **Diajukan 2026-09-02** |
+| **11** | **Andry Zain** — pemilik repository backend | **Perbaiki path tata kelola di `Invoke-QbeConformanceCheck.ps1`** | Gerbang QBE di CI | 🟡 **Diajukan 2026-09-02** |
 
-**Nomor 9 adalah penghalang terberat yang tersisa.** Ia memblokir bukan sebagian, melainkan
-**seluruh** gelombang MVP. Nomor 1 sampai 3 yang sudah disetujui tidak berarti apa-apa selama
-registry masih menyatakan modul ini `PLANNED`.
+**Nomor 9 adalah penghalang terberat yang tersisa** — tetapi terhadap **implementasi**, bukan
+perencanaan. Nomor 1 sampai 3 yang sudah disetujui tidak dapat dieksekusi selama registry masih
+menyatakan modul ini `PLANNED`. Roadmap backend dan frontend tetap boleh terbit lebih dulu
+dengan task bertanda `BLOCKED` — lihat kotak pada bagian 1.
+
+**Nomor 10 kini berbentuk usulan, bukan pertanyaan terbuka.** Cukup dijawab ya atau tidak.
+Buktinya ada di bagian 3.4: checker menurunkan pemilik dari letak folder, sehingga prefix `Mst`
+untuk tabel yang duduk di folder Laboratorium akan dilaporkan sebagai pelanggaran.
+
+**Nomor 11 tidak menunggu siapa pun.** Perbaikan path di satu berkas script, sepenuhnya di
+tangan Andry Zain selaku pemilik repository backend. Tanpa itu, menaikkan lifecycle pada nomor 9
+menambah wewenang tanpa menghidupkan pemeriksaannya.
 
 **Nomor 4 masih menunggu satu angka.** Yang paling murah dijawab dari seluruh daftar.
 
@@ -381,3 +554,12 @@ Agar tidak disalahpahami, berikut yang **bukan** bagian permintaan ini:
 | 2026-09-01 | Butir 5 terjawab lewat penelusuran sendiri: dokumennya ada di `c9692d0`, checkout lokal 7 commit tertinggal | `ditutup` |
 | 2026-09-01 | Butir 9 dan 10 ditambahkan setelah kontrak engineering dibaca | `belum diajukan` |
 | 2026-09-01 | Butir 5 terjawab lewat penelusuran repository: kedua dokumen tata kelola ditemukan di `QuilvianEngineeringSkills/agents/rules/backend/engineering/` dan **masih berlaku**. `LAB-OPEN-002` ditutup oleh `LAB-FACT-007`; `LAB-OPEN-018` dan `LAB-OPEN-019` dibuka sebagai penghambat implementasi penggantinya | `draft` |
+| 2026-09-02 | Pertentangan lokasi canonical antara bagian 3.2 dan 3.4 diperbaiki. Bagian 3.2 yang keliru; `AGENTS.md` baris 13 yang berlaku | `dikoreksi` |
+| 2026-09-02 | Dua butir "rapikan juga" dicoret setelah diverifikasi pada `HEAD`: `AGENTS.md` baris 11 dan 20 sudah benar, folder `agents/rules/` sudah tidak ada | `dikoreksi` |
+| 2026-09-02 | Cakupan `LAB-OPEN-018` diperluas setelah rules root terpasang dibandingkan dengan sumbernya — 13 berkas berbanding 29, termasuk `GLOBAL_RULES.md` dan `bentuk-blueprint.md` yang hilang | `diperbarui` |
+| 2026-09-02 | Tabrakan ID diperbaiki: pertanyaan prefix dipisahkan dari persoalan rules root, diberi ID `LAB-OPEN-021` | `dikoreksi` |
+| 2026-09-02 | Butir 10 diubah dari pertanyaan terbuka menjadi usulan `Lab` beserta bukti perilaku checker. Ketidaksesuaian penamaan lintas artefak didokumentasikan | `diajukan` |
+| 2026-09-02 | Butir 11 dibuka (`LAB-OPEN-020`): `Invoke-QbeConformanceCheck.ps1` gagal dengan TOOL ERROR karena menunjuk path tata kelola yang sudah dicabut. Gerbang QBE di CI tidak sedang memeriksa apa pun | `diajukan` |
+| 2026-09-02 | Butir 9 dan 10 diteruskan ke pemilik registry prefix | `diajukan` |
+| 2026-09-02 | Butir 11 ditujukan kepada **Andry Zain** (`andryzainhome`, `andryzain01@gmail.com`) selaku pemilik repository backend, atas penetapan pemilik modul Laboratorium | `diajukan` |
+| 2026-09-02 | Roadmap backend dan frontend diterbitkan di `roadmap/` beserta traceability-nya. `input_hashes` manifest dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dan diverifikasi | `berjalan` |

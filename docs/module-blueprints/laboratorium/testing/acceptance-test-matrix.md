@@ -3,10 +3,12 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `1` |
+| Revision | `3` |
 | Status | `draft` |
-| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` |
-| Backend SHA | `9124900` |
+| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
+| Backend SHA | `c87d9c0` |
+| Frontend SHA | `688daff90` |
+| Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — `approved` 2026-09-02 |
 
 Matriks ini memuat **jalur gagal**, bukan hanya jalur berhasil. Pengujian yang hanya membuktikan
 jalur berhasil tidak membuktikan apa pun tentang keamanan modul.
@@ -17,13 +19,17 @@ Acuan `AC-nn` berasal dari `00-interview-decisions.md`.
 
 ## 1. Pengujian yang Sudah Ada dan Wajib Tetap Lulus
 
-Tiga puluh satu pengujian pada `9124900` sudah membuktikan sebagian invariant. Pekerjaan ini
+Tiga puluh pengujian pada `c87d9c0` sudah membuktikan sebagian invariant. Pekerjaan ini
 **tidak boleh** memecahkannya; yang boleh berubah hanyalah satuan datanya.
 
 | Berkas | Jumlah | Yang dibuktikan |
 |---|---:|---|
-| `tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratorySpecimenLifecycleTests.cs` | 19 | Siklus hidup sampel, kelayakan tagih, ambil ulang, pembatalan, konkurensi |
-| `tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratoryAuthorityTests.cs` | 12 | Batas kewenangan finansial, pemisahan permission, bentuk barcode, kesesuaian enum |
+| `Tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratorySpecimenLifecycleTests.cs` | 18 | Siklus hidup sampel, kelayakan tagih, ambil ulang, pembatalan, konkurensi |
+| `Tests/QuilvianSystemBackend.BillingTests/Laboratory/LaboratoryAuthorityTests.cs` | 12 | Batas kewenangan finansial, pemisahan permission, bentuk barcode, kesesuaian enum |
+
+> **Angka dikoreksi 2026-09-02.** Revision sebelumnya menulis 31 dan 19. Hitungan sebenarnya
+> pada `HEAD` adalah **18** atribut `[Fact]` dan nol `[Theory]` pada berkas siklus hidup — berkas
+> itu memuat 19 method publik, satu di antaranya method bantu, bukan pengujian. Totalnya 30.
 
 ### Pengujian lama yang **wajib disesuaikan** akibat `LAB-DEC-024`
 
@@ -32,6 +38,26 @@ Tiga puluh satu pengujian pada `9124900` sudah membuktikan sebagian invariant. P
 | `#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu` | Tiga komponen kini menjadi tiga wadah berisi satu pemeriksaan, atau satu wadah berisi beberapa | Jumlah rupiah yang diserahkan tetap Rp350.000 |
 | `#PenetapanLayak_MembentukTepatSatuFaktaDanSatuBarisTagihan` | Satu wadah kini dapat menerbitkan lebih dari satu fakta | Jumlah fakta sama dengan jumlah pemeriksaan yang ditopang |
 | `#PengambilanUlang_MempertahankanSampelDitolakDanTautanSebabnya` | Ambil ulang kini memindahkan seluruh pemeriksaan | Wadah lama tetap terlihat dan tertaut |
+
+---
+
+## 1b. Alur Pemesanan Lintas Unit
+
+Ditambahkan 2026-09-02 setelah `roadmap/traceability.md` menemukan `AC-11` tidak punya baris uji
+mana pun, padahal `LAB-DEC-009` sudah menetapkannya dan `BE-LAB-01` menambah kolom pada
+`LabOrder` sehingga jalur pembuatan pesanan ikut tersentuh.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| AC-11 | Membuat pesanan lab dari kunjungan Rawat Jalan | Integration | Pesanan terbentuk; `EncounterId` menunjuk kunjungan ber-`EncounterType` `Outpatient` |
+| AC-11 | Membuat pesanan lab dari kunjungan Rawat Inap | Integration | Alur kerjanya **sama persis**; tidak ada cabang khusus per jenis kunjungan |
+| AC-11 | Membuat pesanan lab dari kunjungan IGD | Integration | Alur kerjanya sama persis; `EncounterType` `Emergency` |
+| AC-11 | Ketiganya setelah kolom `Discipline` ditambahkan `BE-LAB-01` | Integration | Ketiga alur tetap lulus; kolom baru terisi dan tidak memaksa cabang baru |
+
+**Kenapa ini diuji, padahal kemampuannya sudah ada.** `CAP-08` menyatakan kunjungan dari ketiga
+unit sudah tersedia di tingkat data tanpa perubahan apa pun. Yang belum pernah dibuktikan adalah
+bahwa **alur kerjanya benar-benar sama** untuk ketiganya, dan bahwa penambahan kolom disiplin
+tidak diam-diam melahirkan cabang khusus per jenis kunjungan.
 
 ---
 
@@ -177,6 +203,7 @@ Billing menerima dua konteks tagihan.
 |---|---|---|---|
 | AC-41 | Membuka tiga daftar pantau dengan data campuran | Integration | Masing-masing hanya menampilkan pesanan berdisiplin sesuai jalurnya |
 | AC-42 | Menelusuri seluruh endpoint dan tabel Laboratorium | Unit | Tidak ditemukan satu pun yang melayani Bank Darah |
+| AC-19 | Menelusuri seluruh tabel dan endpoint Laboratorium — **ditambahkan 2026-09-02** | Unit | Tidak ditemukan satu pun yang menyimpan stok, pembelian, maupun pemakaian reagen (`LAB-DEC-014`) |
 | — | Menyaring daftar pantau menurut penjamin, status, dan penanda cito | Integration | Hasil penyaringan sesuai; penyaring sama pada ketiga jalur |
 | — | **Gagal** — pengguna tanpa kewenangan membuka daftar pantau | Integration | `403` |
 

@@ -12,7 +12,7 @@
 | Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3) |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Rujukan bukti | `00-interview-decisions.md` rev 14; `01-existing-capability-map.md` rev 1; `02-requirement-completeness-assessment.md` rev 2 |
 | Baseline rujukan | **Tidak dipakai.** `indonesia-hospital-domain-reference` tidak dipanggil pada sesi ini |
@@ -104,11 +104,11 @@ katalog serta tarif. `BC-LAB` tidak menulis satu baris pun ke tabel milik keduan
 
 | ID | Nama bisnis | Klasifikasi | Pemilik | Ownership | Bukti |
 |---|---|---|---|---|---|
-| `LAB-DC-030` | Permintaan Pembuatan Kunjungan | `EXTERNAL_CONTRACT` | `BC-REG` melaksanakan, `BC-LAB` meminta | `Existing` — memakai kemampuan yang sudah ada | `EncounterRegistrationSource.WalkIn`, `TrxPatientEncounter.IsWalkIn`, `PatientEncounterController@9124900` |
-| `LAB-DC-031` | Sumber Rujukan — instansi dan dokter perujuk | `REFERENCE_DATA` | `BC-MD` Data Induk | `New` di `BC-MD`, dirujuk `BC-LAB` (`LAB-DEC-035`) | Belum ada di `9124900`; kunjungan hanya punya `IsReferral` dan `ReferralNumber` |
-| `LAB-DC-032` | Katalog Pemeriksaan Laboratorium | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstProcedure.IsLaboratory@9124900` |
-| `LAB-DC-033` | Harga Berlaku | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstTariff@9124900` beserta `EffectiveStartDate` dan `EffectiveEndDate` |
-| `LAB-DC-034` | Cakupan Penjamin | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstInsuranceTariff@9124900` |
+| `LAB-DC-030` | Permintaan Pembuatan Kunjungan | `EXTERNAL_CONTRACT` | `BC-REG` melaksanakan, `BC-LAB` meminta | `Existing` — memakai kemampuan yang sudah ada | `EncounterRegistrationSource.WalkIn`, `TrxPatientEncounter.IsWalkIn`, `PatientEncounterController@c87d9c0` |
+| `LAB-DC-031` | Sumber Rujukan — instansi dan dokter perujuk | `REFERENCE_DATA` | `BC-MD` Data Induk | `New` di `BC-MD`, dirujuk `BC-LAB` (`LAB-DEC-035`) | Belum ada di `c87d9c0`; kunjungan hanya punya `IsReferral` dan `ReferralNumber` |
+| `LAB-DC-032` | Katalog Pemeriksaan Laboratorium | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstProcedure.IsLaboratory@c87d9c0` |
+| `LAB-DC-033` | Harga Berlaku | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstTariff@c87d9c0` beserta `EffectiveStartDate` dan `EffectiveEndDate` |
+| `LAB-DC-034` | Cakupan Penjamin | `ADAPTER/VIEW` | `BC-MD` pemilik, `BC-LAB` menyajikan | `Adapter/View` | `MstInsuranceTariff@c87d9c0` |
 | `LAB-DC-035` | Daftar Pantau per Disiplin | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` | Diturunkan dari `LabOrder.Discipline` |
 
 **Temuan pokok bagian ini.** Dari enam konsep yang ditambahkan, **lima tidak memerlukan satu
@@ -263,7 +263,7 @@ biaya, bukan tagihan resmi.
 | Pemilik keputusan | Yoga Aji Pratama + pemilik `registration-management` |
 | Diarahkan ke | `grill-me` |
 
-**Bukti keadaan saat ini.** `TrxPatientEncounter@9124900` hanya menyimpan **penanda dan nomor**
+**Bukti keadaan saat ini.** `TrxPatientEncounter@c87d9c0` hanya menyimpan **penanda dan nomor**
 rujukan:
 
 | Kolom yang ada | Kolom yang **tidak** ada |
@@ -306,7 +306,7 @@ pernah bisa dibuat.
 | Dampak | Kini **tertutup** `LAB-DEC-036`; `INV-22` dapat ditegakkan |
 | Pemilik keputusan | Yoga Aji Pratama + pemilik `master-data` |
 
-**Bukti keadaan saat ini.** `MstProcedure@9124900` punya penanda `IsLaboratory`, `IsRadiology`,
+**Bukti keadaan saat ini.** `MstProcedure@c87d9c0` punya penanda `IsLaboratory`, `IsRadiology`,
 `IsSurgery`, `IsTherapy` — tetapi **tidak ada pembeda antara Patologi Klinik, Patologi Anatomi,
 dan Mikrobiologi**. Ada `ProcedureGroupName` dan `ProcedureCategoryName` berupa teks bebas,
 yang tidak dapat diandalkan sebagai penanda.
@@ -392,7 +392,7 @@ dipertahankan dan tidak disatukan.
 **Aturan yang tidak boleh dilanggar.** `BC-LAB` **tidak boleh** membuat salinan pasien, dokter,
 kunjungan, jenis pemeriksaan, atau tarif sebagai sumber kebenaran tandingan. Yang boleh disimpan
 hanyalah **rujukan** dan **salinan sesaat** untuk keperluan penelusuran harga saat kejadian —
-pola yang sudah dipakai dan terbukti pada `TrxLabSpecimen.TariffCodeSnapshot@9124900`.
+pola yang sudah dipakai dan terbukti pada `TrxLabSpecimen.TariffCodeSnapshot@c87d9c0`.
 
 ---
 
@@ -400,20 +400,20 @@ pola yang sudah dipakai dan terbukti pada `TrxLabSpecimen.TariffCodeSnapshot@912
 
 | ID | Nama bisnis | Klasifikasi | Pemilik | Ownership | Identitas | Bukti |
 |---|---|---|---|---|---|---|
-| `LAB-DC-001` | Pesanan Laboratorium | `AGGREGATE_ROOT` | `BC-LAB` | `Extend` | Identitas sendiri, terikat pada satu kunjungan | `LabOrder.cs@9124900` |
-| `LAB-DC-002` | Pemeriksaan Terpesan | `ENTITY` | `BC-LAB` | `New` — dipisahkan oleh `LAB-DEC-024` | Identitas sendiri di dalam pesanan; ditopang tepat satu wadah | `LAB-DEC-024`; keadaan lama pada `TrxLabSpecimen.ProcedureId@9124900` |
-| `LAB-DC-003` | Wadah Fisik | `ENTITY` | `BC-LAB` | `Extend` — dipersempit oleh `LAB-DEC-024` | Satu barcode per wadah nyata, bukan per pemeriksaan | `LAB-DEC-024`; keadaan lama pada `TrxLabSpecimen.SpecimenBarcode@9124900` |
+| `LAB-DC-001` | Pesanan Laboratorium | `AGGREGATE_ROOT` | `BC-LAB` | `Extend` | Identitas sendiri, terikat pada satu kunjungan | `LabOrder.cs@c87d9c0` |
+| `LAB-DC-002` | Pemeriksaan Terpesan | `ENTITY` | `BC-LAB` | `New` — dipisahkan oleh `LAB-DEC-024` | Identitas sendiri di dalam pesanan; ditopang tepat satu wadah | `LAB-DEC-024`; keadaan lama pada `TrxLabSpecimen.ProcedureId@c87d9c0` |
+| `LAB-DC-003` | Wadah Fisik | `ENTITY` | `BC-LAB` | `Extend` — dipersempit oleh `LAB-DEC-024` | Satu barcode per wadah nyata, bukan per pemeriksaan | `LAB-DEC-024`; keadaan lama pada `TrxLabSpecimen.SpecimenBarcode@c87d9c0` |
 | `LAB-DC-004` | Tingkat Kesegeraan | `VALUE_OBJECT` | `BC-LAB` | `New` | Melekat pada pesanan, tidak berdiri sendiri | `LAB-DEC-013` |
-| `LAB-DC-005` | Alasan Penolakan Sampel | `REFERENCE_DATA` | `BC-LAB` | `Extend` | Kode alasan yang unik | `MstLabRejectionReason.cs@9124900` |
+| `LAB-DC-005` | Alasan Penolakan Sampel | `REFERENCE_DATA` | `BC-LAB` | `Extend` | Kode alasan yang unik | `MstLabRejectionReason.cs@c87d9c0` |
 | `LAB-DC-006` | Batas Nilai Pemeriksaan | `ENTITY` | `BC-LAB` | `New` | Kombinasi jenis pemeriksaan, jenis kelamin, dan kelompok umur | `LAB-DEC-006`, `LAB-DEC-018`, `LAB-DEC-021` |
-| `LAB-DC-007` | Riwayat Perpindahan Laboratorium | `ENTITY` | `BC-LAB` | `Existing` | Identitas sendiri, tidak pernah diubah | `TrxLabTransitionHistory.cs@9124900` |
-| `LAB-DC-008` | Fakta Milestone Klinis | `DOMAIN_EVENT` | `BC-LAB` menerbitkan, `BC-BIL` mengonsumsi | `Existing` | Identitas fakta beserta kunci idempotensi | `ClinicalMilestoneFactProducer.cs@9124900` |
+| `LAB-DC-007` | Riwayat Perpindahan Laboratorium | `ENTITY` | `BC-LAB` | `Existing` | Identitas sendiri, tidak pernah diubah | `TrxLabTransitionHistory.cs@c87d9c0` |
+| `LAB-DC-008` | Fakta Milestone Klinis | `DOMAIN_EVENT` | `BC-LAB` menerbitkan, `BC-BIL` mengonsumsi | `Existing` | Identitas fakta beserta kunci idempotensi | `ClinicalMilestoneFactProducer.cs@c87d9c0` |
 | `LAB-DC-011` | Daftar Kerja Laboratorium | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` | Tidak punya identitas; diturunkan dari pesanan dan sampel | `LAB-DEC-013` |
 | `LAB-DC-012` | Pengajuan Perubahan Batas Kritis | `ENTITY` | `BC-LAB` | `New` | Identitas sendiri | `LAB-DEC-023` |
 | `LAB-DC-013` | Riwayat Perubahan Batas Nilai | `ENTITY` | `BC-LAB` | `New` | Identitas sendiri, tidak pernah diubah | `LAB-DEC-023` |
-| `LAB-DC-020` | Kunjungan Pasien | `ENTITY` | `BC-REG` | `Existing` — dirujuk saja | Milik `BC-REG` | `TrxPatientEncounter.cs@9124900` |
-| `LAB-DC-021` | Jenis Pemeriksaan | `REFERENCE_DATA` | `BC-MD` | `Existing` — dirujuk saja | Milik `BC-MD` | `MstProcedure.IsLaboratory@9124900` |
-| `LAB-DC-022` | Tarif Pemeriksaan | `REFERENCE_DATA` | `BC-MD` | `Existing` — dirujuk dan disalin sesaat | Milik `BC-MD` | `ResolveTariffAsync@9124900` |
+| `LAB-DC-020` | Kunjungan Pasien | `ENTITY` | `BC-REG` | `Existing` — dirujuk saja | Milik `BC-REG` | `TrxPatientEncounter.cs@c87d9c0` |
+| `LAB-DC-021` | Jenis Pemeriksaan | `REFERENCE_DATA` | `BC-MD` | `Existing` — dirujuk saja | Milik `BC-MD` | `MstProcedure.IsLaboratory@c87d9c0` |
+| `LAB-DC-022` | Tarif Pemeriksaan | `REFERENCE_DATA` | `BC-MD` | `Existing` — dirujuk dan disalin sesaat | Milik `BC-MD` | `ResolveTariffAsync@c87d9c0` |
 
 ### Yang sengaja **tidak** dijadikan konsep tersendiri
 
@@ -440,15 +440,15 @@ pola yang sudah dipakai dan terbukti pada `TrxLabSpecimen.TariffCodeSnapshot@912
 
 | ID | Invariant | Bukti |
 |---|---|---|
-| `INV-01` | Sebuah pesanan wajib terikat pada tepat satu kunjungan pasien yang sudah ada | `LabOrder.EncounterId@9124900` |
-| `INV-02` | Sampel tidak dapat dinyatakan layak tanpa melewati penerimaan lebih dulu | Diuji `#PenetapanLayakTanpaMelaluiPenerimaan_Ditolak@9124900` |
-| `INV-03` | Pesanan yang sudah dibatalkan tidak dapat menerima sampel baru | Diuji `#PesananYangSudahDibatalkan_TidakDapatMenerimaSampelBaru@9124900` |
-| `INV-04` | Jenis pemeriksaan bukan laboratorium tidak dapat dipakai sebagai komponen | Diuji `#ProcedureBukanLaboratorium_TidakDapatDipakaiSebagaiKomponen@9124900` |
-| `INV-05` | Dua petugas yang menyatakan layak sampel yang sama secara bersamaan, hanya satu yang berhasil | Diuji `#DuaPetugasMenetapkanLayakBersamaan_SalahSatuDitolak@9124900` |
-| `INV-06` | Penetapan layak yang diulang tidak menggandakan kelayakan tagih | Diuji `#PenetapanLayakDiulang_TidakMenggandakanTagihan@9124900` |
-| `INV-07` | Barcode sampel unik dan tidak memuat identitas pasien | Diuji `#BarcodeSampel_UnikDanTidakMemuatIdentitasPasien@9124900` |
-| `INV-08` | Sampel yang ditolak atau diambil ulang tetap terlihat dan tertaut ke sampel penggantinya | `LAB-INH-005`; diuji `#PengambilanUlang_MempertahankanSampelDitolakDanTautanSebabnya@9124900` |
-| `INV-09` | Tidak ada kolom maupun tindakan finansial di dalam aggregate ini | `LAB-INH-012`; diuji `#ModelLaboratorium_TidakMemilikiPropertiFinansialApaPun@9124900` |
+| `INV-01` | Sebuah pesanan wajib terikat pada tepat satu kunjungan pasien yang sudah ada | `LabOrder.EncounterId@c87d9c0` |
+| `INV-02` | Sampel tidak dapat dinyatakan layak tanpa melewati penerimaan lebih dulu | Diuji `#PenetapanLayakTanpaMelaluiPenerimaan_Ditolak@c87d9c0` |
+| `INV-03` | Pesanan yang sudah dibatalkan tidak dapat menerima sampel baru | Diuji `#PesananYangSudahDibatalkan_TidakDapatMenerimaSampelBaru@c87d9c0` |
+| `INV-04` | Jenis pemeriksaan bukan laboratorium tidak dapat dipakai sebagai komponen | Diuji `#ProcedureBukanLaboratorium_TidakDapatDipakaiSebagaiKomponen@c87d9c0` |
+| `INV-05` | Dua petugas yang menyatakan layak sampel yang sama secara bersamaan, hanya satu yang berhasil | Diuji `#DuaPetugasMenetapkanLayakBersamaan_SalahSatuDitolak@c87d9c0` |
+| `INV-06` | Penetapan layak yang diulang tidak menggandakan kelayakan tagih | Diuji `#PenetapanLayakDiulang_TidakMenggandakanTagihan@c87d9c0` |
+| `INV-07` | Barcode sampel unik dan tidak memuat identitas pasien | Diuji `#BarcodeSampel_UnikDanTidakMemuatIdentitasPasien@c87d9c0` |
+| `INV-08` | Sampel yang ditolak atau diambil ulang tetap terlihat dan tertaut ke sampel penggantinya | `LAB-INH-005`; diuji `#PengambilanUlang_MempertahankanSampelDitolakDanTautanSebabnya@c87d9c0` |
+| `INV-09` | Tidak ada kolom maupun tindakan finansial di dalam aggregate ini | `LAB-INH-012`; diuji `#ModelLaboratorium_TidakMemilikiPropertiFinansialApaPun@c87d9c0` |
 
 **Tindakan bisnis yang dikenali aggregate ini:**
 
@@ -496,9 +496,9 @@ pola yang sudah dipakai dan terbukti pada `TrxLabSpecimen.TariffCodeSnapshot@912
 
 | ID | Invariant | Bukti |
 |---|---|---|
-| `INV-16` | Kode alasan unik | `MstLabRejectionReason.ReasonCode@9124900` |
-| `INV-17` | Alasan yang menuntut catatan tidak dapat dipakai tanpa catatan | Diuji `#AlasanPenolakanOther_WajibDisertaiCatatan@9124900` |
-| `INV-18` | Alasan yang tidak dikenal ditolak | Diuji `#AlasanPenolakanTidakDikenal_Ditolak@9124900` |
+| `INV-16` | Kode alasan unik | `MstLabRejectionReason.ReasonCode@c87d9c0` |
+| `INV-17` | Alasan yang menuntut catatan tidak dapat dipakai tanpa catatan | Diuji `#AlasanPenolakanOther_WajibDisertaiCatatan@c87d9c0` |
+| `INV-18` | Alasan yang tidak dikenal ditolak | Diuji `#AlasanPenolakanTidakDikenal_Ditolak@c87d9c0` |
 | `INV-19` | Penanda kesalahan internal dan penanda wajib catatan tidak dapat diubah dari dalam Laboratorium | `LAB-DEC-019` |
 
 ---
@@ -589,7 +589,7 @@ Wewenang dinyatakan sebagai **kemampuan**, bukan jabatan. Ini menegakkan `LAB-IN
 |---|---|---|
 | Memesan pemeriksaan | Membuat pesanan, menandai cito | Menyentuh sampel |
 | Merencanakan sampel | Menambah rencana sampel pada pesanan | Menyatakan layak |
-| Mengambil sampel | Mencatat pengambilan | Menyatakan layak — dijaga pengujian `#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@9124900` |
+| Mengambil sampel | Mencatat pengambilan | Menyatakan layak — dijaga pengujian `#PermissionPengambilanDanPenetapanLayak_TidakBolehSama@c87d9c0` |
 | Menerima sampel | Mencatat sampel tiba | Menyatakan layak |
 | Menetapkan kelayakan | Menyatakan layak, menolak, meminta ambil ulang | Mengubah batas nilai |
 | Menahan pekerjaan | Menahan dan melanjutkan | Membatalkan |
@@ -624,7 +624,7 @@ dan tidak pernah dihapus**.
 | Waktu kejadian | Waktu sebenarnya tindakan terjadi |
 | Korelasi | Penanda yang menghubungkan satu rangkaian tindakan |
 
-Bukti bahwa isian ini sudah tersedia: `TrxLabTransitionHistory.cs@9124900` memuat `Scope`,
+Bukti bahwa isian ini sudah tersedia: `TrxLabTransitionHistory.cs@c87d9c0` memuat `Scope`,
 `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`,
 dan `CorrelationId`.
 
@@ -646,8 +646,8 @@ buktinya di kode.
 | Sumber kebenaran | `BC-LAB` untuk keadaan operasional; `BC-BIL` untuk seluruh akibat uang |
 | Arah | Satu arah, `BC-LAB` ke `BC-BIL` |
 | Pemicu | Sampel berpindah ke `Accepted`, dan pembatalan atas sampel yang pernah `Accepted` |
-| Idempotensi | **Wajib.** Penetapan layak yang diulang tidak boleh menggandakan kelayakan tagih. Sudah terbukti pada `#PenetapanLayakDiulang_TidakMenggandakanTagihan@9124900` |
-| Perilaku saat gagal | Fakta memiliki status penyaluran tersendiri: `Pending`, `Dispatched`, `Rejected`, `OutcomeUnknown`, `SuppressedNoPriorCharge` — `ClinicalMilestoneFactEnums.cs@9124900` |
+| Idempotensi | **Wajib.** Penetapan layak yang diulang tidak boleh menggandakan kelayakan tagih. Sudah terbukti pada `#PenetapanLayakDiulang_TidakMenggandakanTagihan@c87d9c0` |
+| Perilaku saat gagal | Fakta memiliki status penyaluran tersendiri: `Pending`, `Dispatched`, `Rejected`, `OutcomeUnknown`, `SuppressedNoPriorCharge` — `ClinicalMilestoneFactEnums.cs@c87d9c0` |
 | Rekonsiliasi | Status `OutcomeUnknown` menyatakan hasil belum diketahui, dan **bukan** berarti berhasil maupun gagal. Fakta bertanda itu wajib direkonsiliasi |
 
 **Batas yang tidak boleh dilanggar.** Isi fakta memuat kejadian, identitas sumber, dan salinan
@@ -686,7 +686,7 @@ laboratorium. Tidak ada kontrak pihak ketiga yang dirancang maupun diasumsikan.
 > kurang. Yang diserahkan ke Billing adalah dua kejadian kelayakan tagih senilai Rp350.000,
 > bukan Rp450.000. Laboratorium **tidak** menghitung, tidak menjumlahkan untuk ditagihkan, dan
 > tidak memutuskan apa pun soal uangnya — ia hanya menyerahkan dua kejadian beserta salinan
-> tarifnya. Diuji pada `#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@9124900`.
+> tarifnya. Diuji pada `#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@c87d9c0`.
 
 ---
 
@@ -725,8 +725,8 @@ konsekuensinya, agar penilaian berikutnya tidak mengulang analisis yang sama.
 
 **Bukti keadaan saat ini.** Satu baris sampel membawa **tepat satu** jenis pemeriksaan, punya
 **barcode sendiri**, punya keputusan layak atau tolak **sendiri**, dan menghasilkan **satu baris
-tagihan sendiri**. Terbukti pada `TrxLabSpecimen.ProcedureId@9124900` dan pada pengujian
-`#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@9124900`, yang membuat tiga sampel
+tagihan sendiri**. Terbukti pada `TrxLabSpecimen.ProcedureId@c87d9c0` dan pada pengujian
+`#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@c87d9c0`, yang membuat tiga sampel
 terpisah untuk tiga pemeriksaan lalu menyatakan dua layak dan satu ditolak.
 
 **Kenapa ini menjadi masalah.** Dalam pengujian itu, ketiga pemeriksaan memang memakai wadah
@@ -832,7 +832,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 | Decision ID yang mengikat | `LAB-DEC-013`, `LAB-DEC-009` (`S1a`); `LAB-INH-002`, `LAB-INH-005`, `LAB-INH-008`, `LAB-DEC-024` (`S2`); `LAB-DEC-006`, `LAB-DEC-018`, `LAB-DEC-021`, `LAB-DEC-023` (`S3`); `LAB-DEC-013` (`S7`); `LAB-INH-009` sampai `LAB-INH-012`, `LAB-DEC-024` (`S10`); `LAB-DEC-019` (`S11`) |
 | Blocker yang belum selesai | `LAB-SIGN-001`, `LAB-AMD-001`, `LAB-COORD-001`, `LAB-COORD-002` — tidak satu pun menyentuh keenam slice ini |
 | Peringatan yang wajib dibawa | `LAB-OPEN-012` — jumlah data laboratorium yang sudah terisi belum diverifikasi. `LAB-DEC-024` mengubah struktur data yang sudah berjalan |
-| Source SHA | BE `9124900`; FE `688daff90` |
+| Source SHA | BE `c87d9c0`; FE `688daff90` |
 | Baseline rujukan | Tidak dipakai |
 
 ### Ke `grill-me`
@@ -847,7 +847,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 | Field | Nilai |
 |---|---|
 | Alasan | `LAB-DEC-024` mengubah disposisi `CAP-02` pada capability map: siklus hidup sampel tidak lagi `Ready to reuse` untuk arsitektur target, melainkan `Extend` berstruktur |
-| Kapan | Sebelum `plan-module-delivery`, atau bila backend bergerak dari `9124900` |
+| Kapan | Sebelum `plan-module-delivery`, atau bila backend bergerak dari `c87d9c0` |
 
 ---
 

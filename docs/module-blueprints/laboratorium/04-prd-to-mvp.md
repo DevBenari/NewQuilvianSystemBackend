@@ -9,9 +9,9 @@
 | Status | `draft` |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
-| Masukan | Decisions rev 17; capability map rev 1; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2; seluruh kontrak `LAB-*-v1` |
+| Masukan | Decisions rev 20; capability map rev 2; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2; seluruh kontrak `LAB-*-v1` |
 
 > **Dokumen ini menurunkan, tidak menciptakan.** Setiap entity, status, kewenangan, dan endpoint
 > yang disebut di sini sudah tercatat lebih dulu pada `02-backend-architecture.md`, `erd/`, atau
@@ -48,7 +48,7 @@ klinis yang belum turun.
 | Petugas laboratorium tidak punya layar apa pun | `01-existing-capability-map.md#CAP-21` | Alur yang sudah dibangun tidak dapat dipakai; pekerjaan lab tetap manual |
 | Batas normal dan batas kritis tidak punya tempat | `#CAP-07` | Hasil tidak dapat dinilai sistem; nilai berbahaya tidak terdeteksi |
 | Wadah dan pemeriksaan menyatu | `03-domain-architecture.md#DEC-LAB-008` | Risiko salah label, dan penolakan sebagian yang tidak masuk akal |
-| Pesanan mendesak tidak dapat didahulukan | Tidak ada kolom kesegeraan pada `LabOrder@9124900` | Pemeriksaan IGD mengantre di belakang rawat jalan rutin |
+| Pesanan mendesak tidak dapat didahulukan | Tidak ada kolom kesegeraan pada `LabOrder@c87d9c0` | Pemeriksaan IGD mengantre di belakang rawat jalan rutin |
 | Daftar alasan penolakan tidak dapat dikelola | `#CAP-05` | Petugas memilih "lainnya" sehingga data penolakan kehilangan makna |
 
 ---

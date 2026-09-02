@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `19` |
+| Revision | `21` |
 | Status | `draft` |
 | Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` selesai |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` (sebelumnya `9124900`; impact scan dijalankan 2026-09-01) |
 | Frontend SHA | `688daff90` (diperbarui 2026-09-01; revision 1-7 tercatat pada `c79bb6ee4`) |
 | Tanggal sesi | 2026-09-01 |
-| Capability map | `01-existing-capability-map.md` revision 1, audit pada BE `9124900` + FE `688daff90` |
+| Capability map | `01-existing-capability-map.md` revision 1, audit pada BE `c87d9c0` + FE `688daff90` |
 
 > **Catatan penting soal cara membaca dokumen ini.**
 > Dokumen ini adalah catatan wawancara, bukan desain dan bukan izin menulis kode.
@@ -125,7 +125,7 @@ dirilis — beserta bukti siapa melakukan apa dan kapan.
 
 ## Fakta dari Source Code (bukti, bukan keputusan)
 
-Seluruh fakta di bawah dibaca langsung dari backend pada SHA `9124900`.
+Seluruh fakta di bawah dibaca langsung dari backend pada SHA `c87d9c0`.
 
 ### F1 — Modul Laboratorium backend sudah ada sebagian
 
@@ -521,7 +521,7 @@ Laboratorium.
 
 **Latar belakang conflict `CONF-01`.** Capability map menemukan pertentangan: keputusan warisan
 `LAB-INH-001` menyebut pesanan dimulai dari status `Draft`, tetapi kode tidak pernah membuat
-status itu. Bukti: `Services/LabOrderService.cs:136@9124900` selalu menetapkan `Requested` saat
+status itu. Bukti: `Services/LabOrderService.cs:136@c87d9c0` selalu menetapkan `Requested` saat
 pesanan dibuat, dan tidak ada satu pun kode yang menetapkan `Draft`. Akibatnya `LAB-INH-006` —
 yang memberi dokter ruang menyunting "sampai `Requested`" — menjadi kosong, karena pesanan
 sudah `Requested` sejak detik pertama.
@@ -562,7 +562,7 @@ menjadi "sampai sampel pertama diambil". Dicatat sebagai `LAB-AMD-001`.
 
 **Latar belakang.** Capability map `CAP-18` membuktikan platform belum punya sarana
 pemberitahuan apa pun: tidak ada tabel penyimpan pemberitahuan, tidak ada surel, tidak ada
-pesan singkat. Yang ada hanya `Hubs/QueueHub.cs@9124900` yang khusus melayani antrean.
+pesan singkat. Yang ada hanya `Hubs/QueueHub.cs@c87d9c0` yang khusus melayani antrean.
 
 **Aturan:**
 
@@ -590,9 +590,9 @@ kesepakatan dengan pemilik platform sebelum masuk roadmap Laboratorium. Dicatat 
 ### BR-13 — Hasil lab terdaftar sebagai dokumen klinis di rekam medis (`LAB-DEC-017`)
 
 **Latar belakang.** Modul `rekam-medis` tidak menyimpan isi dokumen klinis. Ia mencatat
-**keutuhan** dokumen milik modul lain lewat `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs@9124900`,
+**keutuhan** dokumen milik modul lain lewat `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs@c87d9c0`,
 yang menunjuk dokumen memakai pasangan `DocumentKind` dan `DocumentId`. Daftar jenis dokumen
-pada `ClinicalDocumentKind@9124900` berisi 13 nilai — `ProgressNote`, `Consultation`,
+pada `ClinicalDocumentKind@c87d9c0` berisi 13 nilai — `ProgressNote`, `Consultation`,
 `Assessment`, `Diagnosis`, `Procedure`, `VitalSign`, `Allergy`, `MedicalHistory`,
 `FamilyHistory`, `ClinicalDocument`, `NoteAttachment`, `MedicalCertificate`, dan `Consent` —
 dan **tidak ada** nilai untuk hasil laboratorium.
@@ -615,7 +615,7 @@ dan **tidak ada** nilai untuk hasil laboratorium.
 > terlihat sebagai bagian berkasnya, tanpa angka 9,4 pernah disalin ke mana pun.
 
 **Titik yang harus dicocokkan dan belum diputuskan.** Rekam medis mengunci dokumen ketika
-kunjungan pasien ditutup, lihat `ClinicalDocumentLockTrigger.EncounterClosed@9124900`.
+kunjungan pasien ditutup, lihat `ClinicalDocumentLockTrigger.EncounterClosed@c87d9c0`.
 Sementara `LAB-DEC-007` mengizinkan koreksi hasil setelah dirilis. Kedua aturan ini bertemu
 ketika hasil perlu dikoreksi **setelah** kunjungan pasien ditutup. Perilaku yang benar untuk
 keadaan itu belum diputuskan dan dicatat sebagai `LAB-OPEN-011`.
@@ -626,7 +626,7 @@ Penambahan nilai baru memerlukan kesepakatan dengan pemiliknya. Dicatat sebagai 
 ### BR-14 — Batas nilai menjadi tabel tersendiri milik Laboratorium (`LAB-DEC-018`)
 
 **Latar belakang.** Katalog pemeriksaan laboratorium menumpang
-`Areas/HealthServices/MasterData/Models/MstProcedure.cs@9124900` lewat penanda `IsLaboratory`.
+`Areas/HealthServices/MasterData/Models/MstProcedure.cs@c87d9c0` lewat penanda `IsLaboratory`.
 Tabel itu dipakai bersama seluruh tindakan rumah sakit, termasuk bedah, terapi, dan radiologi.
 
 **Aturan:**
@@ -661,12 +661,12 @@ Tabel itu dipakai bersama seluruh tindakan rumah sakit, termasuk bedah, terapi, 
 
 ### BR-15 — Pengelolaan alasan penolakan sampel dengan dua tingkat kewenangan (`LAB-DEC-019`)
 
-**Latar belakang.** Tabel `Areas/HealthServices/LaboratoryManagement/Models/MstLabRejectionReason.cs@9124900`
+**Latar belakang.** Tabel `Areas/HealthServices/LaboratoryManagement/Models/MstLabRejectionReason.cs@c87d9c0`
 sudah ada dan dipakai, tetapi hanya punya endpoint baca
-(`Controllers/LabSpecimenController.cs#GetRejectionReasons@9124900`). Tidak ada layar
+(`Controllers/LabSpecimenController.cs#GetRejectionReasons@c87d9c0`). Tidak ada layar
 pengelolaan dan tidak ditemukan pengisian data awal.
 
-Yang membuat tabel ini tidak sesederhana daftar biasa: kolom `IsInternalHospitalError@9124900`
+Yang membuat tabel ini tidak sesederhana daftar biasa: kolom `IsInternalHospitalError@c87d9c0`
 menentukan apakah pengambilan ulang ditanggung rumah sakit atau boleh dibebankan kepada pasien,
 sesuai `LAB-INH-011`.
 
@@ -700,17 +700,17 @@ sama sekali. Kebutuhan data awal ini dicatat sebagai bagian pekerjaan Rilis 1.
 
 **Latar belakang pertemuan dua aturan.** `LAB-DEC-017` mendaftarkan hasil lab ke rekam medis.
 Rekam medis mengunci dokumen ketika kunjungan pasien ditutup, lihat
-`ClinicalDocumentLockTrigger.EncounterClosed@9124900`. Sementara `LAB-DEC-007` mengizinkan
+`ClinicalDocumentLockTrigger.EncounterClosed@c87d9c0`. Sementara `LAB-DEC-007` mengizinkan
 koreksi hasil kapan pun. Ketiganya bertemu ketika hasil ketahuan salah setelah kunjungan
 ditutup.
 
 **Kemampuan yang sudah ada dan dipakai ulang.** Modul rekam medis sudah punya mekanisme
 koreksi untuk dokumen terkunci:
-`Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalNoteAddendum.cs@9124900`,
+`Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalNoteAddendum.cs@c87d9c0`,
 memuat `CorrectionReason`, `AuthorUserId`, `SignedAt`, `Sequence`, dan menempel pada
 `IntegrityId`. Mekanisme ini berlaku untuk **semua** jenis dokumen, bukan hanya catatan
 perkembangan — dibuktikan oleh
-`Controllers/ClinicalNoteAddendumController.cs@9124900` yang menerima `ClinicalDocumentKind`
+`Controllers/ClinicalNoteAddendumController.cs@c87d9c0` yang menerima `ClinicalDocumentKind`
 sebagai parameter.
 
 **Aturan:**
@@ -883,7 +883,7 @@ tetap berlaku untuk seluruh kolom kecuali dua kolom keselamatan di atas.
 **Latar belakang gap `DEC-LAB-008`.** Arsitektur domain menemukan bahwa model yang berjalan
 menyatukan dua hal yang berbeda. Satu baris sampel membawa tepat satu jenis pemeriksaan, satu
 barcode, satu keputusan layak atau tolak, dan satu baris tagihan — bukti pada
-`TrxLabSpecimen.ProcedureId@9124900`.
+`TrxLabSpecimen.ProcedureId@c87d9c0`.
 
 Selama tiap pemeriksaan memang memakai wadah berbeda, model itu tampak benar. Masalahnya muncul
 ketika dua pemeriksaan berbagi satu wadah yang sama, misalnya fungsi hati dan fungsi ginjal yang
@@ -1051,14 +1051,14 @@ Bagaimana tepatnya Laboratorium membuat kunjungan tanpa mengambil alih kepemilik
 **Menutup `LAB-OPEN-015`.** Melengkapi BR-24, tidak menggantikannya.
 
 **Bukti yang menentukan.** Modul Registrasi **sudah memiliki** seluruh yang dibutuhkan pada
-`9124900`:
+`c87d9c0`:
 
 | Yang sudah ada | Lokasi |
 |---|---|
 | Nilai `WalkIn` pada sumber pendaftaran | `EncounterRegistrationSource.WalkIn = 5` |
 | Penanda pasien datang langsung | `TrxPatientEncounter.IsWalkIn` |
 | Penanda dan nomor rujukan | `TrxPatientEncounter.IsReferral`, `ReferralNumber`, `IsReferralRequired`, `IsReferralVerified` |
-| Pembuatan kunjungan datang langsung | `PatientEncounterController@9124900` |
+| Pembuatan kunjungan datang langsung | `PatientEncounterController@c87d9c0` |
 
 **Aturan:**
 
@@ -1114,7 +1114,7 @@ pemilik `registration-management`. Dicatat sebagai `LAB-COORD-003`.
 | `MstTariff`, `MstInsuranceTariff` | Global | `MasterData/Models/` — **tidak disentuh** |
 | `MstAgeCategory` | Global | `MasterData/Models/` — **tidak disentuh** |
 
-**Bukti bahwa aturan ini memang pola yang berlaku.** Pada `9124900` terdapat **20 data induk
+**Bukti bahwa aturan ini memang pola yang berlaku.** Pada `c87d9c0` terdapat **20 data induk
 khusus modul** yang sudah berada di folder modulnya masing-masing:
 
 | Modul | Contoh |
@@ -1133,7 +1133,7 @@ lintas modul.
 berada di `Areas/HealthServices/MasterData/Models/`, dengan contoh `MstEmergencyTriageLevel`.
 Dua hal keliru pada pernyataan itu:
 
-1. `MstEmergencyTriageLevel` **tidak ditemukan** di source pada `9124900`.
+1. `MstEmergencyTriageLevel` **tidak ditemukan** di source pada `c87d9c0`.
 2. Pola nyata yang berlaku adalah pemisahan menurut cakupan, bukan penyeragaman ke satu folder.
 
 Karena itu penempatan `MstLabRejectionReason` di folder Laboratorium **bukan utang teknis**.
@@ -1153,7 +1153,7 @@ Catatan utang teknis pada `02-backend-architecture.md` revision 1 dicabut.
 
 **Menutup `DEC-LAB-009`.** Membuka slice `S13b` pendaftaran pasien rujukan luar.
 
-**Latar belakang.** `TrxPatientEncounter@9124900` hanya menyimpan **penanda dan nomor**
+**Latar belakang.** `TrxPatientEncounter@c87d9c0` hanya menyimpan **penanda dan nomor**
 rujukan — `IsReferral`, `ReferralNumber`, `IsReferralRequired`, `IsReferralVerified`. Tidak ada
 nama dokter perujuk, nama instansi, alamat, maupun telepon. Tidak ada pula data induk instansi
 perujuk; `MstHospitalSite` adalah lokasi milik rumah sakit ini sendiri, bukan institusi luar.
@@ -1172,7 +1172,7 @@ cakupan pemakaian. Rujukan **bukan** hal khusus laboratorium:
 
 | Bukti | Isi |
 |---|---|
-| Kunjungan sudah punya penanda rujukan sejak awal | `TrxPatientEncounter.IsReferral@9124900` — dipakai seluruh jenis kunjungan |
+| Kunjungan sudah punya penanda rujukan sejak awal | `TrxPatientEncounter.IsReferral@c87d9c0` — dipakai seluruh jenis kunjungan |
 | Rawat Jalan dan IGD juga menerima pasien rujukan | Penanda itu tidak dibatasi pada kunjungan laboratorium |
 
 Karena itu instansi dan dokter perujuk berada di `Areas/HealthServices/MasterData/Models/`,
@@ -1204,7 +1204,7 @@ Karena dua di antaranya milik modul lain, diperlukan kesepakatan. Dicatat sebaga
 
 **Menutup `DEC-LAB-010`.** Mengamandemen AC-25.
 
-**Latar belakang.** `MstProcedure@9124900` sudah memiliki penanda jenis tindakan —
+**Latar belakang.** `MstProcedure@c87d9c0` sudah memiliki penanda jenis tindakan —
 `IsLaboratory`, `IsRadiology`, `IsSurgery`, `IsTherapy` — tetapi **tidak ada pembeda** antara
 Patologi Klinik, Patologi Anatomi, dan Mikrobiologi. Yang tersedia hanya `ProcedureGroupName`
 dan `ProcedureCategoryName` berupa teks bebas, yang tidak dapat diandalkan.
@@ -1270,7 +1270,7 @@ yang sudah ada. Dicatat sebagai `LAB-COORD-005`.
 
 **Menutup `LAB-OPEN-016`.** Mempertajam BR-25.
 
-**Bukti yang menentukan.** `MstTariff@9124900` adalah tabel tarif **bersama seluruh rumah
+**Bukti yang menentukan.** `MstTariff@c87d9c0` adalah tabel tarif **bersama seluruh rumah
 sakit**, bukan tabel khusus satu modul:
 
 | Yang sudah ditampung `MstTariff` | Keterangan |
@@ -1281,7 +1281,7 @@ sakit**, bukan tabel khusus satu modul:
 | `EffectiveStartDate`, `EffectiveEndDate` | Masa berlaku tarif |
 | `IsRoomCharge`, `IsAdministrationFee`, `IsRegistrationFee`, `IsConsultationFee` | Tabel yang sama juga melayani biaya kamar, administrasi, pendaftaran, dan konsultasi |
 
-Laboratorium sudah membacanya lewat `LabSpecimenService#ResolveTariffAsync@9124900`, yang
+Laboratorium sudah membacanya lewat `LabSpecimenService#ResolveTariffAsync@c87d9c0`, yang
 memilih tarif berlaku menurut `ProcedureId` dan masa berlakunya.
 
 **Aturan:**
@@ -1434,7 +1434,7 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 
 | Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
 |---|---|---|---|---|---|---|
-| `LAB-FACT-001` | Fact | Backend Laboratorium sudah punya pesanan, sampel, alasan penolakan, dan riwayat transisi | — | `fact` | — | F1, F2, F3 pada SHA `9124900` |
+| `LAB-FACT-001` | Fact | Backend Laboratorium sudah punya pesanan, sampel, alasan penolakan, dan riwayat transisi | — | `fact` | — | F1, F2, F3 pada SHA `c87d9c0` |
 | `LAB-FACT-002` | Fact | Hasil pemeriksaan, nilai kritis, nilai rujukan, panel, worklist, integrasi alat, dan TAT belum ada di backend | — | `fact` | — | F4 |
 | `LAB-FACT-003` | Fact | Frontend belum punya modul Laboratorium sama sekali | — | `fact` | — | F5 pada SHA `c79bb6ee4` |
 | `LAB-FACT-004` | Fact | Katalog pemeriksaan lab masih menumpang `MstProcedure.IsLaboratory` tanpa atribut khas lab | — | `fact` | — | F6 |
@@ -1447,7 +1447,7 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-005` | Decision | **Hasil Rilis 1 diketik manual oleh analis.** Sambungan otomatis ke alat laboratorium ditunda, dan struktur data Rilis 1 tidak menyiapkan tempat untuk hasil dari alat | Pemilik proses Laboratorium | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-03 |
 | `LAB-RISK-001` | Assumption | Karena `LAB-DEC-005` tidak menyiapkan tempat data asal hasil, penyambungan alat di kemudian hari akan memerlukan perubahan struktur data hasil, dan riwayat hasil lama tidak dapat membedakan hasil ketikan dari hasil kiriman alat | Pemilik proses Laboratorium | `draft` | Diberitahukan pada sesi ini, pengguna tetap memilih pengetikan manual murni | Konsekuensi langsung `LAB-DEC-005` |
 | `LAB-OPEN-001` | Open Question | Siapa pemilik modul Laboratorium yang berwenang menyetujui keputusan klinis dan operasional? | Manajemen rumah sakit | `closed` | Ditutup 2026-09-01: **Yoga Aji Pratama** ditetapkan sebagai pemilik modul | Pernyataan pengguna pada sesi 2026-09-01 |
-| `LAB-FACT-006` | Fact | Platform belum punya sarana notifikasi umum maupun pemberitahuan tersimpan. Yang ada hanya SignalR `QueueHub` khusus antrean | — | `fact` | — | F7 pada SHA `9124900` |
+| `LAB-FACT-006` | Fact | Platform belum punya sarana notifikasi umum maupun pemberitahuan tersimpan. Yang ada hanya SignalR `QueueHub` khusus antrean | — | `fact` | — | F7 pada SHA `c87d9c0` |
 | `LAB-FACT-007` | Fact | **Kedua dokumen tata kelola backend ditemukan dan masih berlaku.** Sumber canonical lintas vendor: `QuilvianEngineeringSkills/agents/rules/backend/engineering/`. Edisi Claude: `QuilvianEngineeringSkills/Claude/.claude/rules/backend/engineering/`. Kedua salinan identik byte-per-byte (md5 `ad549762…` untuk kontrak, `6d11c0de…` untuk registry), tercommit pada `59bd3e2` di `DevBenari/QuilvianEngineeringSkills` | — | `fact` | — | Menutup `LAB-OPEN-002` |
 | `LAB-FACT-008` | Fact | **`AGENTS.md` backend bertentangan dengan dirinya sendiri.** Baris 11 dan 20 masih menunjuk `docs/engineering/…`, sedangkan baris 40 menunjuk `rules/backend/engineering/…` dan menyatakan repository ini “tidak lagi memiliki folder `agents/rules/`”. Folder `agents/rules/` tetap ada di working tree berisi 7 berkas — persis peninggalan tercabut yang `AGENTS.md` perintahkan untuk dilaporkan | Pemilik repository backend | `fact` | — | `AGENTS.md:11`, `AGENTS.md:20`, `AGENTS.md:40`, `AGENTS.md:53` |
 | `LAB-FACT-009` | Fact | **Rules root yang benar-benar terpasang tidak memuat kedua dokumen itu.** `AGENTS.md` menetapkan rules root Claude Code di `${CLAUDE_PLUGIN_ROOT}/.claude/rules/`. Plugin terpasang `quilvian-engineering-skills@quilvian` versi `0.1.0` hanya punya `rules/backend/` tanpa subfolder `engineering/`, dan tanpa `GLOBAL_RULES.md`. Marketplace terpasang menunjuk `MHamzah1/QuilvianEngineeringSkillsClaude` pada `f0136df` — repository yang **berbeda** dari sumber canonical `DevBenari/QuilvianEngineeringSkills` | Pemilik repository backend | `fact` | — | `~/.claude/plugins/installed_plugins.json`, `~/.claude/plugins/known_marketplaces.json`, `git ls-tree` pada klon marketplace |
@@ -1457,28 +1457,28 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-007` | Decision | **Koreksi hasil setelah rilis hanya oleh petugas berwenang validasi/rilis, dan dokter pemesan otomatis diberi tahu.** Versi lama tetap terlihat bertanda "sudah diperbaiki" | Pemilik proses Laboratorium + Clinical Governance | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01. **Menunggu tanda tangan klinis terpisah** sesuai `LAB-DEC-011` | Lihat BR-05. Menutup `LAB-OPEN-005` |
 | `LAB-DEC-008` | Decision | **Hasil boleh dirilis sebagian per pemeriksaan.** Status hasil melekat pada pemeriksaan, bukan pesanan. Lembar hasil wajib memberi peringatan "hasil belum lengkap" | Pemilik proses Laboratorium | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-06 |
 | `LAB-OPEN-005` | Open Question | Siapa yang berwenang mengoreksi hasil yang sudah dirilis, dan apakah dokter pemesan wajib diberi tahu? | Pemilik proses Laboratorium + Clinical Governance | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-007` | `LAB-INH-003` mengunci alur statusnya, tetapi tidak kewenangan dan pemberitahuannya |
-| `LAB-CONFLICT-002` | Conflict | `LAB-INH-001` mengunci alur dimulai dari `Draft`, tetapi `Services/LabOrderService.cs:136@9124900` selalu membuat pesanan berstatus `Requested` dan tidak ada kode yang menetapkan `Draft`. `LAB-INH-006` menjadi kosong | Yoga Aji Pratama | `resolved` | Diselesaikan 2026-09-01 oleh `LAB-DEC-015` | `01-existing-capability-map.md#CONF-01` |
+| `LAB-CONFLICT-002` | Conflict | `LAB-INH-001` mengunci alur dimulai dari `Draft`, tetapi `Services/LabOrderService.cs:136@c87d9c0` selalu membuat pesanan berstatus `Requested` dan tidak ada kode yang menetapkan `Draft`. `LAB-INH-006` menjadi kosong | Yoga Aji Pratama | `resolved` | Diselesaikan 2026-09-01 oleh `LAB-DEC-015` | `01-existing-capability-map.md#CONF-01` |
 | `LAB-DEC-015` | Decision | **Status `Draft` dihapus.** Pesanan tetap dibuat langsung `Requested`, tetapi dokter pemesan boleh menyunting pesanannya selama belum ada sampel berstatus `Collected`. Setelah itu pesanan terkunci dan dokter hanya boleh mengajukan pembatalan | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-11. Menutup `LAB-CONFLICT-002` |
 | `LAB-DEC-016` | Decision | **Pemberitahuan tersimpan dibangun sebagai kemampuan platform bersama**, bukan milik Laboratorium. Laboratorium menjadi pemakai pertama. Dokter punya satu kotak masuk untuk seluruh modul | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-12. Menutup `Q-LAB-02` dan `01-existing-capability-map.md#UNK-02` |
 | `LAB-COORD-001` | Open Question | Kesepakatan dengan pemilik platform mengenai bentuk data, lokasi kode, dan urutan pengerjaan kemampuan pemberitahuan bersama | Yoga Aji Pratama + pemilik platform | `closed` | `andryzainhome` dan `sukmagp`, 2026-09-01 lewat `LAB-REQ-001` | Konsekuensi `LAB-DEC-016`; kemampuan ini di luar kepemilikan modul Laboratorium |
-| `DEC-LAB-008` | Open Question | Apakah satu wadah fisik dapat melayani beberapa pemeriksaan? Model sekarang menyatukan wadah dan pemeriksaan menjadi satu konsep, sehingga dua pemeriksaan dari satu tabung serum memaksa dua barcode, dan penolakan tabung yang keruh dapat dilakukan sebagian — sesuatu yang tidak mungkin secara fisik | Yoga Aji Pratama + kepala instalasi laboratorium | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-024` | Ditemukan `03-domain-architecture.md#DEC-LAB-008`. Bukti: `TrxLabSpecimen.ProcedureId@9124900` dan pengujian `#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@9124900` |
+| `DEC-LAB-008` | Open Question | Apakah satu wadah fisik dapat melayani beberapa pemeriksaan? Model sekarang menyatukan wadah dan pemeriksaan menjadi satu konsep, sehingga dua pemeriksaan dari satu tabung serum memaksa dua barcode, dan penolakan tabung yang keruh dapat dilakukan sebagian — sesuatu yang tidak mungkin secara fisik | Yoga Aji Pratama + kepala instalasi laboratorium | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-024` | Ditemukan `03-domain-architecture.md#DEC-LAB-008`. Bukti: `TrxLabSpecimen.ProcedureId@c87d9c0` dan pengujian `#DuaKomponenLayakSatuDitolak_MenagihTigaRatusLimaPuluhRibu@c87d9c0` |
 | `LAB-DEC-017` | Decision | **Hasil lab didaftarkan ke rekam medis sebagai jenis dokumen klinis baru.** Isi hasil tetap di tabel Laboratorium, tidak digandakan. Rekam medis mencatat penulis, penandatanganan, dan penguncian | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-13. Menutup `Q-LAB-03` dan `01-existing-capability-map.md#UNK-01` |
 | `LAB-COORD-002` | Open Question | Kesepakatan dengan pemilik modul `rekam-medis` untuk menambah nilai baru pada `ClinicalDocumentKind` | Yoga Aji Pratama + pemilik `rekam-medis` | `closed` | `andryzainhome` dan `sukmagp`, 2026-09-01 lewat `LAB-REQ-001` | Konsekuensi `LAB-DEC-017`; enum itu milik modul lain |
 | `LAB-DEC-025` | Decision | **Cakupan diperluas menjadi tiga disiplin**: Patologi Klinik, Patologi Anatomi, dan Mikrobiologi. Bank Darah tetap di luar scope. Menggantikan `LAB-DEC-002` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-21. Bukti: `Analisis_Konsolidasi_Modul_Laboratorium.md` bagian 3.1 dan 13.1; menutup `REC-CONF-001` |
 | `LAB-DEC-026` | Decision | **Cito dan Duplo melekat pada pemeriksaan terpesan, bukan pesanan.** Satu pesanan boleh memuat pemeriksaan cito dan biasa sekaligus | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-22. Bukti: `LAB-RULE-006`; menutup `REC-CONF-002` |
 | `LAB-DEC-027` | Decision | **Hasil punya empat bentuk**: angka bersatuan, pilihan terbatas, mikrobiologi berstruktur, dan narasi Patologi Anatomi. Menggantikan `LAB-DEC-021` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-23. Bukti: `LAB-CAP-016`, `LAB-CAP-017`; menutup `REC-CONF-003` |
 | `LAB-DEC-028` | Decision | **Laboratorium memiliki jalur pendaftaran pasien datang langsung dan rujukan luar.** Identitas pasien dan kunjungan tetap milik modul lain | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-24. Bukti: `LAB-CAP-002`; menutup `REC-CONF-004` |
-| `LAB-DEC-032` | Decision | **Layar pendaftaran milik Laboratorium, pembuatan kunjungan tetap milik Registrasi.** Laboratorium memanggil Registrasi lalu menyimpan penunjuk kunjungan yang dikembalikan. `INV-01` tetap utuh | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-28. Bukti: `EncounterRegistrationSource.WalkIn`, `TrxPatientEncounter.IsWalkIn`, `IsReferral@9124900`. Menutup `LAB-OPEN-015` |
+| `LAB-DEC-032` | Decision | **Layar pendaftaran milik Laboratorium, pembuatan kunjungan tetap milik Registrasi.** Laboratorium memanggil Registrasi lalu menyimpan penunjuk kunjungan yang dikembalikan. `INV-01` tetap utuh | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-28. Bukti: `EncounterRegistrationSource.WalkIn`, `TrxPatientEncounter.IsWalkIn`, `IsReferral@c87d9c0`. Menutup `LAB-OPEN-015` |
 | `LAB-DEC-036` | Decision | **Satu kolom penanda disiplin ditambahkan pada `MstProcedure`**, hanya bermakna bila `IsLaboratory` benar. Satu-satunya tambahan Laboratorium pada tabel itu; atribut operasional tetap dilarang. Mengamandemen AC-25 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-32. Menutup `DEC-LAB-010` |
 | `LAB-COORD-005` | Open Question | Izin pemilik `master-data` untuk menambah kolom disiplin pada `MstProcedure`, dan pengisian nilainya untuk pemeriksaan lab yang sudah ada | Yoga Aji Pratama + pemilik `master-data` | `closed` | `andryzainhome` dan `sukmagp`, 2026-09-01 lewat `LAB-REQ-001` | Konsekuensi `LAB-DEC-036` |
 | `DEC-LAB-010` | Open Question | Bagaimana disiplin melekat pada jenis pemeriksaan? | Yoga Aji Pratama + pemilik `master-data` | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-036` | `03-domain-architecture.md#DEC-LAB-010` |
 | `LAB-DEC-035` | Decision | **Instansi dan dokter perujuk menjadi data induk global milik Master Data.** Kunjungan menunjuk ke sana; nama tidak disimpan sebagai teks bebas. Laboratorium hanya memilih dari daftar | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-31. Menutup `DEC-LAB-009`, membuka `S13b` |
 | `LAB-COORD-004` | Open Question | Kesepakatan dengan pemilik `master-data` dan `registration-management`: dua data induk baru, kolom penunjuk pada kunjungan, dan pengisian daftar instansi perujuk | Yoga Aji Pratama + pemilik `master-data` + pemilik `registration-management` | `closed` | `andryzainhome` dan `sukmagp`, 2026-09-01 lewat `LAB-REQ-001` | Konsekuensi `LAB-DEC-035` |
 | `DEC-LAB-009` | Open Question | Di mana identitas dokter dan instansi perujuk disimpan? | Yoga Aji Pratama + pemilik `registration-management` | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-035` | `03-domain-architecture.md#DEC-LAB-009` |
-| `LAB-DEC-034` | Decision | **Penempatan data induk mengikuti cakupan pemakaiannya — backend saja.** Khusus Laboratorium diletakkan di folder Laboratorium; global diletakkan di folder Master Data. **Frontend tidak mengikutinya**; menu data induk frontend tetap di `health-services/master-data/` sesuai konvensi yang sudah ada | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-30. Bukti: 20 data induk khusus modul sudah berada di folder modulnya pada `9124900` |
-| `LAB-DEC-033` | Decision | **Tarif tetap milik Master Data.** Menu `Tarif Laboratorium` menjadi tampilan tersaring yang bersifat baca saja. Laboratorium tidak membuat tabel tarif sendiri | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-29. Bukti: `MstTariff@9124900` adalah tabel bersama; `ResolveTariffAsync@9124900`. Menutup `LAB-OPEN-016` |
-| `LAB-FACT-007` | Fact | **Dokumen tata kelola canonical ditemukan.** `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` ada pada commit `c9692d0` "Repair QBE canonical governance paths". Checkout lokal berada di cabang `yoga` pada `9124900`, **7 commit tertinggal** dari `origin/yoga`. Ketujuh commit itu **tidak menyentuh Laboratorium** | — | `fact` | — | `git log HEAD..c9692d0`; `git diff --name-only HEAD..c9692d0 \| grep -i lab` kosong |
-| `LAB-OPEN-002` | Open Question | Di mana `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`? | Pemilik repository backend | `closed` | Ditutup 2026-09-01 oleh `LAB-FACT-007` — dokumennya ada, checkout lokal yang tertinggal | Folder `docs/engineering/` tidak ada pada `9124900`, tetapi ada pada `c9692d0` |
+| `LAB-DEC-034` | Decision | **Penempatan data induk mengikuti cakupan pemakaiannya — backend saja.** Khusus Laboratorium diletakkan di folder Laboratorium; global diletakkan di folder Master Data. **Frontend tidak mengikutinya**; menu data induk frontend tetap di `health-services/master-data/` sesuai konvensi yang sudah ada | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-30. Bukti: 20 data induk khusus modul sudah berada di folder modulnya pada `c87d9c0` |
+| `LAB-DEC-033` | Decision | **Tarif tetap milik Master Data.** Menu `Tarif Laboratorium` menjadi tampilan tersaring yang bersifat baca saja. Laboratorium tidak membuat tabel tarif sendiri | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-29. Bukti: `MstTariff@c87d9c0` adalah tabel bersama; `ResolveTariffAsync@c87d9c0`. Menutup `LAB-OPEN-016` |
+| `LAB-FACT-007` | Fact | **Dokumen tata kelola canonical ditemukan.** `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` ada pada commit `c9692d0` "Repair QBE canonical governance paths". Checkout lokal berada di cabang `yoga` pada `c87d9c0`, **7 commit tertinggal** dari `origin/yoga`. Ketujuh commit itu **tidak menyentuh Laboratorium** | — | `fact` | — | `git log HEAD..c9692d0`; `git diff --name-only HEAD..c9692d0 \| grep -i lab` kosong |
+| `LAB-OPEN-002` | Open Question | Di mana `BACKEND_ENGINEERING_CONTRACT.md` dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`? | Pemilik repository backend | `closed` | Ditutup 2026-09-01 oleh `LAB-FACT-007` — dokumennya ada, checkout lokal yang tertinggal | Folder `docs/engineering/` tidak ada pada `c87d9c0`, tetapi ada pada `c9692d0` |
 | `LAB-OPEN-018` | Open Question | Prefix mana yang berlaku untuk data induk milik Laboratorium: `Mst` mengikuti baris Master/Reference, atau `Lab` mengikuti aturan `<PrefixPemilik><Konsep>`? Menyentuh penamaan `MstLabValueBound` dan `MstLabValueOption` | Pemilik registry prefix + Yoga Aji Pratama | `open` | — | `QBE-NAM-002` mewajibkan prefix registry; `QBE-NAM-004` melarang menyimpulkannya sendiri |
 | `LAB-OPEN-019` | Open Question | Lifecycle `LaboratoryManagement` pada registry masih **`PLANNED`**, yang menurut registry **tidak memberi wewenang implementasi, migration, maupun deployment**. Padahal `LabOrder` dan siklus hidup wadah sudah berjalan di produksi. Perlu dinaikkan ke `ACTIVE` atau dijelaskan dasar pekerjaan yang sudah berjalan | Pemilik registry prefix | `open` | — | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md@c9692d0` baris `LaboratoryManagement / Laboratory \| Lab \| PLANNED` |
 | `LAB-COORD-003` | Open Question | Kesepakatan kontrak pemanggilan antarmodul dengan pemilik `registration-management`: bentuk permintaan, bentuk jawaban, dan perilaku saat gagal | Yoga Aji Pratama + pemilik `registration-management` | `closed` | `andryzainhome` dan `sukmagp`, 2026-09-01 lewat `LAB-REQ-001` | Konsekuensi `LAB-DEC-032` |
@@ -1503,7 +1503,7 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-023` | Decision | **Batas normal bebas diubah kepala instalasi; batas kritis memerlukan persetujuan klinis.** Seluruh perubahan batas nilai disimpan sebagai riwayat lengkap. Mempersempit `LAB-DEC-018`, tidak membatalkannya | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-19. Menutup `DEC-LAB-003` dari `02-requirement-completeness-assessment.md` |
 | `LAB-DEC-022` | Decision | **Kewenangan validasi dan rilis tetap terpisah dan diberikan per orang, bukan per jabatan.** Setiap shift wajib punya minimal dua pemegang kewenangan validasi; sistem memperingatkan kepala instalasi bila hanya ada satu | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-18. Menutup `DEC-LAB-001` dari `02-requirement-completeness-assessment.md` |
 | `LAB-DEC-021` | Decision | **Hasil punya dua bentuk: angka dan pilihan terbatas.** Pemeriksaan berhasil pilihan menyimpan daftar pilihan sah beserta penanda mana yang di luar rujukan dan mana yang kritis. Analis memilih, tidak mengetik bebas. `LAB-DEC-004` berlaku untuk kedua bentuk | Yoga Aji Pratama | `superseded` oleh `LAB-DEC-027` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-17. Menutup `DEC-LAB-002` dari `02-requirement-completeness-assessment.md` |
-| `LAB-DEC-020` | Decision | **Koreksi hasil setelah kunjungan ditutup memakai mekanisme addendum rekam medis yang sudah ada.** Dokumen asli tetap terkunci dan tidak diubah; hasil perbaikan menempel sebagai addendum bertanda tangan dengan alasan koreksi | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-16. Menutup `LAB-OPEN-011`. Dasar bukti: `MrcClinicalNoteAddendum.cs@9124900` |
+| `LAB-DEC-020` | Decision | **Koreksi hasil setelah kunjungan ditutup memakai mekanisme addendum rekam medis yang sudah ada.** Dokumen asli tetap terkunci dan tidak diubah; hasil perbaikan menempel sebagai addendum bertanda tangan dengan alasan koreksi | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-16. Menutup `LAB-OPEN-011`. Dasar bukti: `MrcClinicalNoteAddendum.cs@c87d9c0` |
 | `LAB-DEC-019` | Decision | **Alasan penolakan sampel dikelola kepala instalasi lewat layar pengelolaan, kecuali penanda kesalahan internal dan penanda wajib catatan** yang hanya dapat disetel admin sistem. Data awal wajib disiapkan pada Rilis 1 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-15. Menutup `Q-LAB-04` |
 | `LAB-DEC-018` | Decision | **Batas nilai menjadi tabel tersendiri milik Laboratorium** yang menunjuk ke `MstProcedure`. Satu pemeriksaan boleh punya beberapa baris batas menurut jenis kelamin dan kelompok umur. `MstProcedure` tidak diubah | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-14. Menutup `Q-LAB-05` |
 | `LAB-OPEN-011` | Open Question | Apa yang terjadi bila hasil perlu dikoreksi setelah kunjungan pasien ditutup dan dokumennya sudah terkunci oleh `ClinicalDocumentLockTrigger.EncounterClosed`? | Yoga Aji Pratama + pemilik `rekam-medis` + Clinical Governance | `closed` | Ditutup 2026-09-01 oleh `LAB-DEC-020` | Pertemuan antara `LAB-DEC-007` dan aturan penguncian rekam medis |
@@ -1696,7 +1696,6 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
-| 19 | 2026-09-01 | **`LAB-OPEN-002` ditutup lewat temuan faktual.** Kedua dokumen tata kelola backend ditemukan di `QuilvianEngineeringSkills/agents/rules/backend/engineering/` dan dinyatakan **masih berlaku**; path `docs/engineering/` pada `AGENTS.md` usang. `LAB-FACT-007` sampai `LAB-FACT-010` ditulis. Penutupan ini membuka dua penghambat implementasi baru: `LAB-OPEN-018` (rules root terpasang belum memuat kedua dokumen) dan `LAB-OPEN-019` (lifecycle registry Laboratorium masih `PLANNED`) | `draft` |
 | 1 | 2026-09-01 | Scope pass dibuka. Fakta source code dicatat, keputusan warisan dari `RJ-BIL-GATE-DEC-003` dikutip, batas scope diajukan untuk dikonfirmasi | `draft` |
 | 2 | 2026-09-01 | Batas scope dikunci lewat `LAB-DEC-001` (rilis 1 sampai hasil dirilis) dan `LAB-DEC-002` (Patologi Klinik saja). `LAB-SCOPE-001` dan `LAB-OPEN-003` ditutup | `draft` |
 | 3 | 2026-09-01 | Invariant hasil dikunci: `LAB-DEC-003` prinsip empat mata, `LAB-DEC-004` nilai kritis, `LAB-DEC-005` hasil diketik manual. Risiko `LAB-RISK-001` dicatat | `draft` |
@@ -1705,7 +1704,9 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 | 6 | 2026-09-01 | Yoga Aji Pratama ditetapkan sebagai pemilik modul, `LAB-OPEN-001` ditutup. `LAB-DEC-001` sampai `LAB-DEC-010` naik status menjadi `approved`. Fakta F7 tentang ketiadaan sarana notifikasi ditambahkan. `LAB-OPEN-009` dibuka | `draft` |
 | 7 | 2026-09-01 | `LAB-DEC-011` wewenang klinis terpisah, `LAB-DEC-012` pemberitahuan tersimpan, `LAB-DEC-013` aturan cito, dan `LAB-DEC-014` reagen di luar scope ditambahkan. BR-08 sampai BR-10 dan AC-14 sampai AC-19 ditulis. Scope pass ditutup | `draft` |
 | 8 | 2026-09-01 | **Closure pass dibuka** setelah `01-existing-capability-map.md` revision 1 terbit. Frontend SHA diperbarui dari `c79bb6ee4` menjadi `688daff90` | `draft` |
-| 19 | 2026-09-01 | `LAB-OPEN-002` ditutup: dokumen tata kelola ternyata ada pada `c9692d0`, checkout lokal 7 commit tertinggal. Pembacaan dokumen itu membongkar pelanggaran `QBE-NAM-001` pada rancangan sendiri — tiga entity baru berawalan `Trx*` diganti menjadi `LabExamination`, `LabValueBoundChangeRequest`, `LabValueBoundHistory`. Dua temuan baru dibuka: `LAB-OPEN-018` prefix data induk, `LAB-OPEN-019` lifecycle `PLANNED` | `draft` |
+| 20 | 2026-09-01 | Checkout ditarik ke `c87d9c0`. Impact scan menemukan empat perubahan yang menyentuh blueprint: `ClinicalBillingIntegration` pindah ke `ClinicalManagement`, `TrxClinicalMilestoneFact` menjadi `CliClinicalMilestoneFact`, configuration Laboratorium pindah ke lokasi standar, dan berkas uji pindah ke `Tests/`. Seluruh rujukan diperbarui. `docs/engineering/` kini ada di working copy | `draft` |
+| 19 | 2026-09-01 | **`LAB-OPEN-002` ditutup lewat temuan faktual**, ditulis sebagai `LAB-FACT-007` sampai `LAB-FACT-010`. Pembacaan kedua dokumen tata kelola membongkar pelanggaran `QBE-NAM-001` pada rancangan sendiri — tiga entity baru berawalan `Trx*` diganti menjadi `LabExamination`, `LabValueBoundChangeRequest`, dan `LabValueBoundHistory`. Penutupan ini membuka dua penghambat implementasi baru: `LAB-OPEN-018` rules root terpasang belum memuat kedua dokumen, dan `LAB-OPEN-019` lifecycle registry Laboratorium masih `PLANNED` | `draft` |
+| 21 | 2026-09-02 | **Pembukuan dirapikan.** Baris revision 19 yang tercatat dua kali digabungkan menjadi satu; kedua salinannya sempat bertentangan soal lokasi canonical dokumen tata kelola dan soal arti `LAB-OPEN-018`. Yang berlaku: lokasi canonical adalah rules root terpasang menurut `AGENTS.md` baris 13, dan `LAB-OPEN-018` berarti rules root belum lengkap. Pertanyaan prefix data induk dipisahkan menjadi `LAB-OPEN-021`. Dua penghambat baru dicatat: `LAB-OPEN-020` checker QBE gagal `TOOL ERROR`, dan koreksi jumlah pengujian dari 31 menjadi 30 | `draft` |
 | 18 | 2026-09-01 | Lima koordinasi lintas modul `LAB-COORD-001` sampai `LAB-COORD-005` ditutup, disetujui `andryzainhome` dan `sukmagp` lewat `LAB-REQ-001`. `LAB-OPEN-012`, `LAB-OPEN-002`, dan `LAB-SIGN-001` tetap terbuka karena memerlukan jawaban faktual atau wewenang klinis | `draft` |
 | 17 | 2026-09-01 | `LAB-DEC-034` dipersempit menjadi **backend saja** atas arahan pemilik modul. Frontend tetap memakai konvensi yang sudah ada: seluruh menu data induk di `health-services/master-data/`. AC-49 dan `LAB-FE-014` disesuaikan | `draft` |
 | 16 | 2026-09-01 | `DEC-LAB-009` ditutup `LAB-DEC-035` (sumber rujukan jadi data induk global) dan `DEC-LAB-010` ditutup `LAB-DEC-036` (kolom disiplin pada `MstProcedure`). BR-31 dan BR-32 ditulis; AC-25 diamandemen; AC-49 sampai AC-51 ditambahkan. `LAB-COORD-004` dan `LAB-COORD-005` dibuka | `draft` |

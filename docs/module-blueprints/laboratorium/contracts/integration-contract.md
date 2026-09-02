@@ -3,14 +3,15 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-INT-v1` |
-| Revision | `2` |
-| Status | `draft` |
+| Revision | `3` |
+| Status | `approved` — dikunci 2026-09-02 |
+| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | belum |
-| Input revision | Decisions rev 17; `LAB-DA-001` rev 4 |
-| Input hash | `3b25b87d970204cf` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
+| Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
+| Input hash | `sha256:75d285252aa5bce7fcaf5d90242da0d30fbd58a92a16aca3377683243be45f61` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `9124900` |
+| Backend SHA | `c87d9c0` |
 
 ---
 
@@ -39,7 +40,7 @@
 | Produsen | `BC-LAB` Operasional Laboratorium |
 | Konsumen | `BC-BIL` Billing dan Kasir |
 | Mekanisme | Pemanggilan langsung `ClinicalMilestoneFactProducer` di dalam transaksi yang sama |
-| Berkas bukti | `Areas/HealthServices/ClinicalBillingIntegration/Services/ClinicalMilestoneFactProducer.cs@9124900` |
+| Berkas bukti | `Areas/HealthServices/ClinicalManagement/Services/ClinicalMilestoneFactProducer.cs@c87d9c0` |
 | Sumber kebenaran | `BC-LAB` untuk keadaan operasional; `BC-BIL` untuk seluruh akibat uang |
 | Arah | Satu arah |
 | Sinkron atau asinkron | **Sinkron**, di dalam transaksi yang sama dengan perpindahan status |
@@ -79,7 +80,7 @@
 
 **Yang dilarang keras ada di dalam fakta:** keputusan tagihan, status pembayaran, potongan,
 pajak, pembatalan tagihan, refund, dan pembalikan. Dilarang `LAB-INH-010` dan `LAB-INH-012`,
-dan sudah dijaga pengujian `LaboratoryAuthorityTests.cs@9124900`.
+dan sudah dijaga pengujian `LaboratoryAuthorityTests.cs@c87d9c0`.
 
 ### Idempotensi
 
@@ -87,12 +88,12 @@ dan sudah dijaga pengujian `LaboratoryAuthorityTests.cs@9124900`.
 |---|---|
 | Kunci idempotensi | Kombinasi identitas pemeriksaan dan jenis fakta |
 | Menyatakan layak berulang | Dikembalikan hasil yang sama; **tidak** menerbitkan fakta kedua |
-| Bukti yang sudah ada | Diuji `#PenetapanLayakDiulang_TidakMenggandakanTagihan@9124900` |
+| Bukti yang sudah ada | Diuji `#PenetapanLayakDiulang_TidakMenggandakanTagihan@c87d9c0` |
 
 ### Perilaku saat gagal
 
 Status penyaluran fakta memakai nilai yang sudah ada pada
-`ClinicalMilestoneFactEnums.cs@9124900`:
+`ClinicalMilestoneFactEnums.cs@c87d9c0`:
 
 | Status | Arti | Tindakan yang diperlukan |
 |---|---|---|
@@ -252,8 +253,8 @@ Berlaku untuk seluruh jenis kunjungan — Rawat Jalan, IGD, dan Rawat Inap — s
 | Aspek | Isi |
 |---|---|
 | Sifat | Pemeriksaan kewenangan per permintaan |
-| Mekanisme | `AccessPermissionFilter` memanggil `AccessPermissionService.HasAccessAsync@9124900` |
-| Pendaftaran kewenangan | Otomatis lewat `AccessMenuSeeder@9124900` saat aplikasi mulai, berdasarkan atribut pada controller |
+| Mekanisme | `AccessPermissionFilter` memanggil `AccessPermissionService.HasAccessAsync@c87d9c0` |
+| Pendaftaran kewenangan | Otomatis lewat `AccessMenuSeeder@c87d9c0` saat aplikasi mulai, berdasarkan atribut pada controller |
 | Kegagalan | Kewenangan tidak ada berarti `403`. Kewenangan yang belum terdaftar juga berarti `403`, bukan diizinkan |
 
 **Konsekuensi yang harus diketahui implementer.** Controller baru **wajib** membawa
