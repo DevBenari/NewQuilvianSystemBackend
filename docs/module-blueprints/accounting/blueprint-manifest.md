@@ -5,12 +5,12 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 6
+revision: 7
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-02T17:30:00+07:00
-last_verified_at: 2026-09-02T17:30:00+07:00
+updated_at: 2026-09-02T19:00:00+07:00
+last_verified_at: 2026-09-02T19:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,7 +29,7 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: f40177a
+verification_backend_source_sha: 0f86e84
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
@@ -43,8 +43,10 @@ verification_baseline_note: >
   Accounting berubah di dalamnya; Program.cs bergerak +9/-2 seluruhnya milik Radiology dan Medical
   Record, nol baris Accounting dan nol pemanggilan seeder. f40177a sendiri menyentuh tepat 3
   berkas — migration, designer, snapshot. Seluruh bukti terhadap aa837d7 tetap berlaku, dan
-  17/17 hash artefak canonical cocok saat diverifikasi ulang. Frontend: 31a82c8 adalah leluhur
-  5336c44 (fast-forward murni), tidak relevan untuk task backend.
+  17/17 hash artefak canonical cocok saat diverifikasi ulang.
+  0f86e84 adalah commit BE-ACC-006 oleh owner, tepat 7 berkas: seeder, test-nya, laporan task, dan
+  4 register. Nol sentuhan Migrations/, ModelSnapshot, Program.cs, entity, configuration, dan modul
+  lain. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak relevan untuk backend.
 canonical_integration_baseline: f90bcbe9a0b18d4f4425a4678a5a39a44356677b
 integration_baseline_note: >
   TERSELESAIKAN 2 September 2026. rizkiG dulu tertinggal 5 migration dan 8 tabel dari f90bcbe,
@@ -56,9 +58,9 @@ integration_baseline_note: >
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
-decision_revision: 1.3
+decision_revision: 1.4
 input_revisions:
-  interview_decisions: 4
+  interview_decisions: 5
   capability_map: 2
   requirement_gate: null
   hospital_domain_architecture: null
@@ -67,7 +69,7 @@ contract_versions:
   state: ACC-STATE-0.1
   validation: ACC-VALIDATION-0.2
   integration: ACC-INTEGRATION-0.2
-  permission: ACC-PERMISSION-0.1
+  permission: ACC-PERMISSION-0.2
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
   cross_module: ACC-XMOD-0.1   # consumer-side Accounting disetujui; alignment Finance/Billing belum
@@ -83,7 +85,7 @@ cross_module:
   depends_on_finance_contract: null
   open_cross_module_decisions: [ACC-XM-001]
 artifact_hashes:
-  00-interview-decisions.md: 3dbdd53cbaa8acc8c427c946cc8b6d19251887e6e29e2493fc20d78c07bd7895
+  00-interview-decisions.md: 4e9ddc0965ba24fd45255109439b30f364743e61f7bb114a90c5ad71215fa5c4
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
   03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
@@ -93,14 +95,14 @@ artifact_hashes:
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
   contracts/validation-matrix.md: 1efedc7e1ea53274544f6f7a1d5b92af35e756af1f9dad20f828ff6361e6b09b
   contracts/integration-contract.md: 1c773b03b30a272459de9db436bded581d0593e1897a89e847fdbc023679e094
-  contracts/permission-audit-matrix.md: 91a40a7fa0535024e6c300eb567cb54c33a0e9886bc188a7ed2e0041a7cfa195
+  contracts/permission-audit-matrix.md: cbe47b598c7705e34968773689394b64c2df7c2a698c0f7070f69013d0169885
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
-  testing/acceptance-test-matrix.md: 88658490456f7d74a2ce0834b7b6bf94389e2a7273e67b953e79a7dd8bf27364
+  testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: 84a2f51ca69f898dab55de213db8ed32bba22e659f89a0744ef597d28b16f097
+  roadmap/backend-roadmap.md: bff55978d5fbb9f9eea980c815c43b83af0ebc7593cbc87c2cc4cbcbe1271179
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
-active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED
+active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
 entity_prefix:
   prefix: Acc
   status: REGISTERED
@@ -203,6 +205,80 @@ mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
 
+### 2 September 2026 — `ACC-DEC-041`, revisi 6 → 7
+
+Dinaikkan atas **keputusan owner Rizki**, 2 September 2026. Berbeda dari `ACC-DEC-039`/`040` yang
+sengaja **tidak** menaikkan revisi, keputusan ini **mengubah target**, sehingga revisinya naik.
+
+#### Kenapa revisi naik
+
+Satu kontrak berubah versi: **`ACC-PERMISSION-0.1` → `ACC-PERMISSION-0.2`**. Aturan kedua pada
+bagian 5 — *"pengguna hanya boleh menyentuh badan hukum yang menjadi haknya"* — ditandai
+`DEFERRED` dan diberi pengganti sementara. Menurut aturan revisi di berkas ini, perubahan versi
+kontrak adalah perubahan material.
+
+#### Isi keputusan
+
+**MVP berjalan pada satu badan hukum.** Yang ditunda **hanya penyaringan per pengguna**; yang
+tetap berlaku adalah **pemisahan data**. Keduanya sering tertukar, jadi ditegaskan:
+
+| Hal | Keadaan |
+|---|---|
+| Kode akun unik per badan hukum | **Tetap** — unique index sudah berdiri di database |
+| Satu jurnal tidak mencampur dua badan hukum | **Tetap** — `BE-ACC-010` acceptance (7) |
+| `LegalEntityId` pada tiga tabel | **Tetap ada.** Kolom tidak dibuang, `ACC-DEC-037` tidak dibatalkan |
+| Penolakan `403` atas badan hukum bukan hak pengguna | **`DEFERRED`** — mekanismenya tidak ada di platform |
+| **Penjaga jumlah badan hukum** | **BARU, wajib** — `BE-ACC-007` acceptance (5b) |
+
+#### Kenapa menunda, bukan membuang kolomnya
+
+Owner sempat mempertimbangkan membuang `LegalEntityId` sepenuhnya. Tiga hal membuat penundaan
+lebih baik daripada pembuangan, dan ketiganya diperiksa lebih dahulu:
+
+1. **Konsepnya tidak dapat dihindari.** `MstCostCenter.LegalEntityId` berstatus `[Required]`,
+   sedangkan Accounting wajib merujuk cost center untuk akun beban (`ACC-DEC-019`). Membuang kolom
+   dari tabel `Acc*` hanya membuat konsepnya implisit dan tidak terlacak.
+2. **Titik murahnya sudah lewat.** Laporan `BE-ACC-005` memperingatkan perubahan semacam ini
+   *"murah sekarang dan mahal setelah migration terbit"*. Migration sudah diterapkan pada
+   `f40177a`, sehingga pembuangan menuntut migration baru (3 `DropForeignKey`, 3 `DropIndex`,
+   3 `DropColumn`, 3 `CreateIndex`) dan Migration Coordination Gate dijalankan ulang.
+3. **Hasil praktisnya sama.** Tujuan owner — tidak ada yang perlu membangun otorisasi badan hukum,
+   dan modul tidak berhenti — tercapai penuh tanpa satu pun migration.
+
+#### Apa yang sebenarnya membuka blokir
+
+Bukan kelonggaran, melainkan pembacaan ulang artefak yang sudah ada sejak awal:
+
+- `04-prd-to-mvp.md` baris 106 sudah menetapkan MVP selesai ketika **satu badan hukum** berjalan
+  dari saldo awal sampai neraca saldo.
+- `UAT-15` menguji **pemisahan data** — penguji yang sama membuka kedua badan hukum dan saldonya
+  tidak tercampur. Ia tidak pernah menguji bahwa pengguna ditolak.
+- Dari lima acceptance `BE-ACC-007`, hanya butir (5) yang menyentuh otorisasi. Empat lainnya tidak.
+
+Jadi `ACC-DEP-008` selama ini memblokir **satu baris acceptance di tiap task**, bukan keseluruhan
+task — dan blokir itu berasal dari klaim multi-badan-hukum yang tidak pernah menjadi syarat MVP.
+
+#### Yang berubah
+
+| Artefak | Perubahan |
+|---|---|
+| `00-interview-decisions.md` | `ACC-DEC-041` ditambahkan; `input_revisions.interview_decisions` 4 → 5 |
+| `contracts/permission-audit-matrix.md` | `ACC-PERMISSION-0.1` → `0.2`; aturan kedua bagian 5 `DEFERRED` |
+| `roadmap/backend-roadmap.md` | `BE-ACC-007` acceptance (5) `DEFERRED`, (5b) baru; status `BE-ACC-007`..`014` menjadi `ROADMAP_READY` |
+| `testing/acceptance-test-matrix.md` | `UAT-15` `DEFERRED`, tidak dihapus |
+| `05-prerequisite-readiness.md` | `ACC-DEP-008` menjadi `OPEN` tetapi `NON-BLOCKING` |
+| `MODULE-STATUS.md` | `ACC-PH-005` menjadi `READY` |
+
+**Yang TIDAK berubah:** ERD, kamus data, `02-backend-architecture.md`, lima kontrak lain, dan
+`ACC-DEC-001`..`040`. Nol berkas kode berubah, nol migration, snapshot tetap 545 tabel.
+
+#### Batas yang mengikat keputusan ini
+
+`ACC-DEP-008` **tidak ditutup**. Ia wajib selesai **sebelum badan hukum kedua didaftarkan**, dan
+sampai saat itu penjaga pada `BE-ACC-007` yang menahan pintunya. Bila penjaga itu tidak dibangun,
+`ACC-DEC-041` kehilangan dasarnya.
+
+
 ### 2 September 2026 — `BE-ACC-006` selesai dan `ACC-DEP-009` CLOSED, revisi tetap 6
 
 `revision` **tetap 6**. Tidak ada arsitektur target, contract version, ERD, kamus data, maupun
@@ -211,7 +287,7 @@ dan dua wewenang yang memang sudah dijadwalkan turun di gerbang `BE-ACC-006`.
 
 | Yang berubah | Dari | Menjadi |
 |---|---|---|
-| `verification_backend_source_sha` | `2b152aa` | `f40177a` |
+| `verification_backend_source_sha` | `2b152aa` | `f40177a`, lalu `0f86e84` setelah owner meng-commit `BE-ACC-006` |
 | `current_phase` | `ACC-PH-003` | `ACC-PH-005` |
 | `migration_authorized` | `false` | `true` — dipakai sekali, oleh owner, untuk `BE-ACC-006` |
 | `database_execution_authorized` | `false` | `true` — **terbatas** pada `dotnet ef database update` `BE-ACC-006` |

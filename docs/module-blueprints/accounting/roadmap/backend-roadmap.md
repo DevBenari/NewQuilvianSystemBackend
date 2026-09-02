@@ -4,7 +4,7 @@
 
 ```yaml
 blueprint_id: ACC-BP-001
-blueprint_revision: 6   # naik dari 5 pada 2 Sep 2026 — discovery ACC-DEP-008, bukan perubahan scope
+blueprint_revision: 7   # naik dari 6 pada 2 Sep 2026 — ACC-DEC-041 menunda penyaringan badan hukum, ACC-PERMISSION naik 0.1 -> 0.2
 blueprint_status: approved
 roadmap_revision: 2
 roadmap_status: APPROVED
@@ -12,8 +12,8 @@ approved_by: [Rizki]
 approved_at: 2026-09-01
 source_backend: aa837d784ff51cb2b889cf975ada3a204018f1f5
 source_frontend: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-decision_revision: 1.1
-contracts: [ACC-API-0.1, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.1, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
+decision_revision: 1.4
+contracts: [ACC-API-0.1, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.2, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
 shared_engineering_rules: [QBE-MIG-001, QBE-MIG-002]   # PROPOSED — lihat ../06-shared-migration-coordination-rule.md
 ```
 
@@ -79,14 +79,28 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
-| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-0` selesai **dan** `ACC-DEP-008` terselesaikan |
-| `MVP-2` Buku besar | `BE-ACC-012` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-1` selesai |
-| `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-2` selesai |
+| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | **`ROADMAP_READY`** — `BE-ACC-007` dapat dimulai | `MVP-0` selesai ✅ |
+| `MVP-2` Buku besar | `BE-ACC-012` | Berantai `MVP-1` | `MVP-1` selesai |
+| `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | Berantai `MVP-2` | `MVP-2` selesai |
 
-**`ACC-DEP-008` menahan seluruh `BE-ACC-007` sampai `BE-ACC-014`** — yaitu setiap task yang
-membuat endpoint. Ia **tidak** menahan `BE-ACC-003` sampai `BE-ACC-005`, karena mendefinisikan
-kolom `LegalEntityId` berbeda dari menegakkannya. Pemiliknya Security/Platform, bukan Accounting,
-dan Accounting **tidak** membuat solusi tandingannya.
+**`ACC-DEP-008` TIDAK LAGI MEMBLOKIR — `ACC-DEC-041`, 2 September 2026.** MVP diturunkan menjadi
+**satu badan hukum**, sehingga pertanyaan "pengguna ini berhak atas badan hukum yang mana" tidak
+punya isi untuk dijawab. Acceptance `403` pada `BE-ACC-007`..`014` ditandai `DEFERRED`.
+
+Dasarnya bukan kelonggaran, melainkan pembacaan ulang artefak yang sudah ada: `../04-prd-to-mvp.md`
+baris 106 memang sudah menetapkan MVP selesai ketika **satu badan hukum** berjalan penuh, dan
+`UAT-15` menguji **pemisahan data**, bukan penolakan pengguna.
+
+**Yang tetap wajib, dan jangan dilonggarkan ikut-ikutan:**
+
+| Tetap berlaku | Tempatnya |
+|---|---|
+| Kode akun unik per badan hukum | Unique index `(LegalEntityId, AccountCode)` — sudah berdiri |
+| Satu jurnal tidak mencampur dua badan hukum | `BE-ACC-010` acceptance (7) |
+| **Penjaga jumlah badan hukum** — lebih dari satu badan hukum aktif ⇒ tolak keras | **`BE-ACC-007` acceptance (5b)**, baru |
+
+Penjaga itu syarat `ACC-DEC-041`, bukan tambahan opsional. Tanpanya, mendaftarkan badan hukum
+kedua akan memberi setiap pengguna akses ke dua buku besar sekaligus tanpa ada yang menyadari.
 
 **Diperbarui 2 September 2026.** `BE-ACC-001` sampai **`BE-ACC-006`** selesai. **`MVP-0` tuntas.**
 
@@ -118,10 +132,10 @@ mengambil awalannya dari master ini — **bukan** blocker `BE-ACC-007`.
 `ACC-DEC-040` pada 2 September 2026, dan keduanya menguatkan bacaan yang sudah diimplementasikan.
 Nol berkas kode berubah. Rinciannya di `blueprint-manifest.md` bagian *Riwayat verifikasi*.
 
-Hasil `BE-ACC-002` menambah satu dependency yang perlu diketahui sebelum menjadwalkan `MVP-1`:
-**`ACC-DEP-008`**, mekanisme hak akses badan hukum tidak ada. Ia menahan `BE-ACC-007` ke atas,
-tetapi **tidak** menahan `BE-ACC-003` sampai `BE-ACC-005`. Menyimpan kolom `LegalEntityId`
-berbeda dari menegakkannya; penjelasannya di `evidence/02-legal-entity-authority.md` bagian 9.
+Hasil `BE-ACC-002` menemukan **`ACC-DEP-008`** — mekanisme hak akses badan hukum tidak ada di
+platform. Sejak `ACC-DEC-041` ia **tidak lagi menahan task mana pun**; statusnya berubah menjadi
+**prasyarat multi-badan-hukum**, dan tetap wajib diselesaikan sebelum badan hukum kedua
+didaftarkan. Buktinya di `evidence/02-legal-entity-authority.md` bagian 9.
 
 ---
 
@@ -303,7 +317,7 @@ dan menyisakan snapshot yang tetap salah.
 | Reuse | `ApiResponse<T>`, `PagedResult<T>`, `LoggerService`, atribut hak akses |
 | Cakupan | `ChartOfAccountController` (8 endpoint), `AccChartOfAccountService`, `ChartOfAccountDtos`, satu baris `AddScoped`. `/options` hanya mengembalikan akun yang menerima transaksi dan aktif, dan menyertakan `RequiresCostCenter` yang **diturunkan** dari jenis akun |
 | Dependency | `BE-ACC-006`, `BE-ACC-002` |
-| Acceptance | (1) Kode akun kembar pada badan hukum sama ditolak `409`. (2) Akun beranak tidak dapat `IsPostable = true`. (3) Akun bersaldo bukan nol gagal dinonaktifkan, pesannya menyebut jumlah saldo. (4) Kode akun bertransaksi gagal diubah. (5) Permintaan atas badan hukum yang bukan hak pengguna ditolak `403` |
+| Acceptance | (1) Kode akun kembar pada badan hukum sama ditolak `409`. (2) Akun beranak tidak dapat `IsPostable = true`. (3) Akun bersaldo bukan nol gagal dinonaktifkan, pesannya menyebut jumlah saldo. (4) Kode akun bertransaksi gagal diubah. (5) ~~Permintaan atas badan hukum yang bukan hak pengguna ditolak `403`~~ **`DEFERRED` oleh `ACC-DEC-041`**. **(5b) PENGGANTINYA, wajib:** bila `MstLegalEntity` aktif berjumlah lebih dari satu, endpoint menolak dan menyebutkan bahwa penyaringan badan hukum per pengguna belum tersedia |
 | Verifikasi | Test integrasi `FR-ACC-001` sampai `005`; `UAT-01`, `UAT-17` |
 | Risiko/pemilik | Owner Backend. Aturan (3) menuntut perhitungan saldo — pastikan menyaring `JournalStatus == Posted` |
 | DoD | Seluruh acceptance terbukti test, `[AccessPermission]` sesuai matriks, laporan task tersedia |
@@ -323,7 +337,7 @@ dan menyisakan snapshot yang tetap salah.
 | Verifikasi | Test integrasi `FR-ACC-006`, `FR-ACC-007` |
 | Risiko/pemilik | Rendah. Owner Backend |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 ### `BE-ACC-009` — API periode akuntansi
 
@@ -339,7 +353,7 @@ dan menyisakan snapshot yang tetap salah.
 | Verifikasi | Test integrasi `FR-ACC-010` sampai `015`; `UAT-08`, `UAT-09` |
 | Risiko/pemilik | Owner Backend. Butir (3) paling mudah salah — mengembalikan ke `Open` akan melanggar `ACC-DEC-028` |
 | DoD | Acceptance terbukti test, alasan tercatat di jejak audit, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 ### `BE-ACC-010` — Jurnal draft: simpan, ubah, hapus, dan penomoran
 
@@ -355,7 +369,7 @@ dan menyisakan snapshot yang tetap salah.
 | Verifikasi | Unit test penurunan kewajiban Cost Center; **test integrasi konkurensi nyata** yang menjalankan sejumlah permintaan create paralel terhadap database sungguhan lalu membuktikan tidak ada nomor kembar — inilah penutup `GAP-ACC-004`; test integrasi `FR-ACC-020`, `022` sampai `026`; `UAT-02`, `UAT-04`, `UAT-05` |
 | Risiko/pemilik | Owner Backend. Butir (3) dan (4) paling sering salah dirancang. Lihat blok mekanisme di bawah |
 | DoD | Acceptance terbukti test, **`GAP-ACC-004` tertutup**, laporan task tersedia. `BE-ACC-010` **tidak boleh** dinyatakan `DONE` selama `GAP-ACC-004` masih terbuka |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 #### Mekanisme penomoran — apa yang terkunci dan apa yang tidak
 
@@ -397,7 +411,7 @@ lewat keputusan arsitektur tersendiri.
 | Verifikasi | Test integrasi `FR-ACC-021`, `030` sampai `034`; `UAT-01`, `UAT-03`, `UAT-06`, `UAT-07`, `UAT-13` |
 | Risiko/pemilik | **Tertinggi pada modul ini.** Owner Backend. Butir (1) dan (4) adalah invariant akuntansi; kegagalan di sini merusak seluruh laporan |
 | DoD | Acceptance terbukti test, riwayat persetujuan terisi, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 ---
 
@@ -417,7 +431,7 @@ lewat keputusan arsitektur tersendiri.
 | Verifikasi | Test integrasi `FR-ACC-050` sampai `053`; test determinisme urutan pada `AccountingDate` kembar; **verifikasi performa/readiness** untuk Buku Besar, Saldo per Akun, dan Neraca Saldo; `UAT-14`, `UAT-15` |
 | Risiko/pemilik | Owner Backend. Butir (2) paling mudah terlewat dan akibatnya laporan salah tanpa terlihat |
 | DoD | Acceptance terbukti test, hasil verifikasi performa tercatat, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 #### Urutan yang deterministic, memakai field yang benar-benar ada
 
@@ -464,7 +478,7 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Verifikasi | Test integrasi `FR-ACC-040` sampai `043`; `UAT-10`, `UAT-11`, `UAT-12` |
 | Risiko/pemilik | Owner Backend. Butir (3) adalah inti `ACC-DEC-006` |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 ### `BE-ACC-014` — Saldo awal
 
@@ -480,7 +494,7 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Verifikasi | Test integrasi `FR-ACC-060`, `FR-ACC-061`; `UAT-16` |
 | Risiko/pemilik | Owner Backend. Persetujuan pimpinan keuangan berlangsung **di luar sistem** sebelum Manajer menekan Sahkan — jangan membangun alur persetujuan kedua di dalam sistem tanpa keputusan owner |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai · **dan `ACC-DEP-008`** — endpoint tidak dapat menegakkan penyaringan `LegalEntityId` sebelum Security/Platform menetapkan modelnya |
+| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
 
 ---
 

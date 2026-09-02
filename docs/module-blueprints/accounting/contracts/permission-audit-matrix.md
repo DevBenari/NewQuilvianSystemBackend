@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-PERMISSION-0.1` |
+| `contract_version` | `ACC-PERMISSION-0.2` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner), owner keamanan platform |
 | `approved_by` / `approved_at` | Belum ada |
 | `input_revision` | `00-interview-decisions.md@3`, `02-backend-architecture.md@3` |
-| Traceability | `ACC-DEC-015`, `ACC-DEC-016`, `ACC-DEC-026`, `ACC-DEC-027`, `ACC-DEC-031`, `ACC-DEC-032`, `ACC-DEC-033` |
+| Traceability | `ACC-DEC-015`, `ACC-DEC-016`, `ACC-DEC-026`, `ACC-DEC-027`, `ACC-DEC-031`, `ACC-DEC-032`, `ACC-DEC-033`, **`ACC-DEC-041`** |
 | Dampak kompatibilitas | Menambah nilai `Resource` baru; tidak mengubah mekanisme hak akses yang ada |
 
 Nilai `[AccessPermission(...)]` di bawah ditulis **apa adanya** agar implementer menyalin, bukan
@@ -134,10 +134,31 @@ di dalam service.
 | Aturan | Keputusan asal | Tempat penegakan |
 |---|---|---|
 | Penyetuju tidak boleh sama dengan pembuat jurnal | `ACC-DEC-016` | `AccJournalService`, membandingkan pengguna yang sedang masuk dengan `CreateBy` jurnal |
-| Pengguna hanya boleh menyentuh badan hukum yang menjadi haknya | `ACC-DEC-037` | Penyaringan `LegalEntityId` pada setiap query dan setiap perubahan |
+| ~~Pengguna hanya boleh menyentuh badan hukum yang menjadi haknya~~ **`DEFERRED`** | `ACC-DEC-037`, ditunda oleh **`ACC-DEC-041`** | **Belum ditegakkan.** Digantikan sementara oleh penjaga jumlah badan hukum — lihat blok di bawah |
 | Saldo awal disahkan Manager dengan persetujuan pimpinan keuangan | `ACC-DEC-033` | Jenis jurnal `SA` menuntut persetujuan, dan `Journal : Post` hanya dimiliki Manager |
 
-Aturan kedua perlu ditegaskan: **penyaringan badan hukum bukan urusan tampilan.** Backend wajib
-menolak permintaan atas badan hukum yang bukan hak pengguna, bukan sekadar menyembunyikannya di
-layar. Bagaimana hak atas badan hukum diberikan kepada pengguna mengikuti mekanisme yang sudah
-berlaku di repository, dan **wajib diperiksa saat implementasi** — bukan diasumsikan.
+### Aturan kedua ditunda `ACC-DEC-041` — dan apa penggantinya
+
+Versi `0.1` menyatakan: *"penyaringan badan hukum bukan urusan tampilan; backend wajib menolak
+permintaan atas badan hukum yang bukan hak pengguna."* Kalimat itu **masih benar sebagai target**,
+tetapi **tidak dapat dipenuhi** — `BE-ACC-002` membuktikan mekanismenya tidak ada di platform, dan
+`ACC-DEP-008` tidak akan dikerjakan dalam waktu dekat.
+
+Diverifikasi 2 September 2026: **17** controller menerima `LegalEntityId` dari `[FromQuery]`,
+**0** klaim badan hukum di JWT, **0** `HasQueryFilter` di seluruh repository. `LegalEntityId`
+selalu datang dari pengirim permintaan, tidak pernah dari identitas.
+
+Karena itu `ACC-DEC-041` menurunkan MVP menjadi **satu badan hukum**, dan aturan ini ditunda
+sampai `ACC-DEP-008` selesai. **Penggantinya wajib ada, bukan opsional:**
+
+> **Penjaga jumlah badan hukum.** Bila `MstLegalEntity` yang `IsActive` dan tidak terhapus
+> berjumlah **lebih dari satu**, endpoint Accounting menolak permintaan dan menyebutkan bahwa
+> penyaringan badan hukum per pengguna belum tersedia.
+
+Penjaga ini **bukan** sistem hak akses tandingan — ia tidak menentukan siapa berhak atas apa,
+hanya menolak berjalan pada keadaan yang belum dapat dijaga. Ditempatkan di `BE-ACC-007` sebagai
+acceptance tersendiri.
+
+**Yang TIDAK ditunda:** pemisahan data tetap berlaku penuh. Kode akun tetap unik per badan hukum,
+dan satu jurnal tetap tidak boleh mencampur dua badan hukum (`BE-ACC-010`). `ACC-DEC-037` tidak
+dibatalkan.

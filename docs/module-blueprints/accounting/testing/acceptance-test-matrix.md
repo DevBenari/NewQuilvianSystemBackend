@@ -207,7 +207,14 @@ disetujui tetapi belum disahkan.
 disahkan **tidak** ikut terhitung. Bila salah satu dari kedua jurnal itu kemudian disahkan,
 neraca saldo berubah dan tetap seimbang.
 
-### `UAT-15` — Pembukuan dua badan hukum tidak tercampur *(berhasil)*
+### `UAT-15` — Pembukuan dua badan hukum tidak tercampur *(berhasil)* — **`DEFERRED`**
+
+> **Ditunda oleh `ACC-DEC-041`, 2 September 2026.** MVP berjalan pada **satu** badan hukum,
+> sehingga skenario ini tidak dapat dijalankan pada rilis pertama. Ia **tidak dihapus**: seluruh
+> penegakan yang diujinya — kode akun unik per badan hukum, dan jurnal yang menolak akun milik
+> badan hukum lain — **tetap dibangun** dan tetap diuji lewat test integrasi `BE-ACC-010`.
+> `UAT-15` kembali berlaku begitu badan hukum kedua didaftarkan, dan pada saat itu `ACC-DEP-008`
+> sudah wajib selesai lebih dahulu.
 
 **Kondisi awal:** PT Sehat Sentosa dan PT Sehat Mandiri sama-sama punya akun berkode
 `1-1001 Kas Besar`. Masing-masing punya jurnal sendiri.

@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `ACC-BP-001` |
 | Module name | `Accounting` |
-| Revision | `6` — dinaikkan 2 September 2026 atas persetujuan owner, karena `ACC-DEP-008` ditemukan |
+| Revision | `7` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-041`; `ACC-PERMISSION` naik `0.1` → `0.2` |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
 | Last verified at | `2 September 2026` — `BE-ACC-006` selesai; migration diterapkan owner, `CONTAMINATION GUARD` `CLEAN`, `ACC-DEP-009` **CLOSED** |
@@ -28,18 +28,24 @@ Status `IN_PROGRESS` berarti ada pekerjaan aktif yang sudah diberi wewenang. Rin
 `BE-ACC-001` sampai `BE-ACC-006`. **`MVP-0` tuntas**: tujuh entity berdiri di database lewat satu
 migration bersih, dan data master awal punya mekanisme pengisiannya.
 
-Dua hal masih terbuka, **keduanya di luar wewenang owner modul**:
+**`BE-ACC-007` kini dapat dimulai.** `ACC-DEC-041` (2 September 2026) menurunkan MVP menjadi
+**satu badan hukum**, sehingga `ACC-DEP-008` tidak lagi memblokir task mana pun. Ia tetap `OPEN`
+tetapi `NON-BLOCKING`, dan berubah menjadi prasyarat sebelum badan hukum **kedua** didaftarkan.
 
-| Dependency | Menahan | Pemilik |
-|---|---|---|
-| `ACC-DEP-008` | `BE-ACC-007` ke atas — endpoint | Security / Platform |
-| `ACC-DEP-007` | Merge ke integration | Lead / pemilik registry |
+| Dependency | Menahan | Pemilik | Keadaan |
+|---|---|---|---|
+| `ACC-DEP-008` | **Nol task** | Security / Platform | `OPEN`, `NON-BLOCKING`. Wajib selesai sebelum badan hukum kedua |
+| `ACC-DEP-007` | Merge ke integration, bukan penulisan kode | Lead / pemilik registry | `OPEN` |
 
-Ditambah satu catatan yang berada **di dalam** wewenang owner modul: seeder empat jenis jurnal
-sudah ada dan terbukti test, tetapi belum punya call site, sehingga `AccJournalType` di database
-masih kosong. Ini keputusan owner — `02-backend-architecture.md` bagian 6 melarang pemanggilan
-seeder di `Program.cs`, dan dua seeder master lain di repository ini juga belum punya call site.
-Pengisiannya menunggu `BE-ACC-008`, dan ia **blocker fungsional `BE-ACC-010`**, bukan `BE-ACC-007`.
+Dua catatan yang berada **di dalam** wewenang owner modul:
+
+1. **Seeder jenis jurnal belum punya call site**, sehingga `AccJournalType` di database masih
+   kosong. Keputusan owner, sejalan dengan `02-backend-architecture.md` bagian 6 yang melarang
+   pemanggilan seeder di `Program.cs`. Pengisiannya menunggu `BE-ACC-008`; ini **blocker
+   fungsional `BE-ACC-010`**, bukan `BE-ACC-007`.
+2. **Penjaga jumlah badan hukum wajib dibangun di `BE-ACC-007`** (acceptance 5b). Ini syarat
+   `ACC-DEC-041`, bukan tambahan opsional: tanpanya, mendaftarkan badan hukum kedua memberi setiap
+   pengguna akses ke dua buku besar sekaligus tanpa ada yang menyadari.
 
 **FINAL OWNER APPROVAL diberikan Rizki, 1 September 2026**, atas `ACC-BP-001` revisi 5 beserta enam kontrak dan kedua roadmap. Rinciannya beserta batas wewenangnya di [blueprint-manifest.md](blueprint-manifest.md) bagian *Status approval*.
 
@@ -55,7 +61,7 @@ Pengisiannya menunggu `BE-ACC-008`, dan ia **blocker fungsional `BE-ACC-010`**, 
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
-| `ACC-PH-005` | Implementasi backend dan frontend MVP | `BLOCKED` oleh `ACC-DEP-008` — endpoint tidak dapat menegakkan penyaringan badan hukum. Task frontend juga menunggu `ACC-FE-001` |
+| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`READY`** — `ACC-DEC-041` melepas `ACC-DEP-008` sebagai penghalang; `BE-ACC-007` dapat dimulai atas instruksi owner. Task frontend masih menunggu `ACC-FE-001` |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
 ## Delivery state
@@ -101,7 +107,7 @@ DDL contohnya tidak lagi bertentangan dengan diagram ERD-nya sendiri.
 | ~~`ACC-DEP-009`~~ | ~~Baseline `rizkiG` tertinggal 5 migration dan 8 tabel~~ | — | — | **CLOSED 2 September 2026.** Owner menyegarkan `rizkiG`; `f90bcbe` terbukti leluhur `HEAD`. Bukti: `evidence/04-migration-coordination-gate.md` bagian 10 |
 | `ACC-DEP-005` | Aturan koordinasi migration bersama (`QBE-MIG-001`/`002`) belum canonical | Lead | **Tidak lagi mengikat task.** `BE-ACC-006` sudah lewat memakai teks usulannya | Seluruh task. Tetap terbuka sebagai pekerjaan governance lead, bukan penghalang Accounting |
 | `ACC-XM-001` | Siapa penerbit kejadian keuangan resmi — `CROSS_MODULE_DECISION_REQUIRED` | Owner Billing + Owner Finance/Yasmin + Rizki | `ACC-PH-006` Phase 2 | **Tidak memblokir MVP.** Bentuk batasnya sudah ditulis di `ACC-XMOD-0.1` |
-| `ACC-DEP-008` | **Legal Entity Authorization Model Availability** — mekanismenya tidak ada. Dibuktikan `BE-ACC-002` pada 2 September 2026, bukan lagi dugaan. Status `OPEN` | **Security / Platform** | `BE-ACC-007` sampai `BE-ACC-014` | Seluruh `MVP-0` (`BE-ACC-001`..`006`) sudah selesai dan tidak terpengaruh. Bukti di `evidence/02-legal-entity-authority.md`; kartu dependency di `05-prerequisite-readiness.md`. **Ini satu-satunya penghalang `BE-ACC-007`** |
+| `ACC-DEP-008` | **Legal Entity Authorization Model Availability** — mekanismenya tidak ada. Status `OPEN` tetapi **`NON-BLOCKING`** sejak `ACC-DEC-041` | **Security / Platform** | **Nol task.** Prasyarat sebelum badan hukum **kedua** didaftarkan | **Seluruh task.** MVP satu badan hukum; pemisahan data tetap ditegakkan, dan penjaga jumlah badan hukum (`BE-ACC-007` 5b) menahan pintunya |
 | `ACC-FE-001`, `ACC-FE-003` | Letak menu dan bentuk layar rincian jurnal | Product owner | Task frontend | Seluruh task backend tidak terpengaruh |
 | `ACC-XM-001` | Siapa menerbitkan kejadian keuangan resmi | Owner Billing, owner Finance, Rizki | `ACC-PH-006` Phase 2 | **Tidak memblokir MVP** — rilis pertama tanpa jurnal otomatis |
 

@@ -640,8 +640,42 @@ memakai pembedaan §35 apa adanya, keputusan itu perlu dinyatakan tersendiri.
 
 | `ACC-DEC-039` | Decision | **Nama entity riwayat persetujuan jurnal adalah `AccJournalApproval`, bukan `AccJournalApprovalHistory`.** Artefak canonical — `erd/02-journal.md`, `erd/00-context-erd.md`, `erd/data-dictionary.md` bagian 6 beserta DDL-nya, dan `roadmap/backend-roadmap.md` — seluruhnya memakai `AccJournalApproval`. **Nama pada instruksi task bukan sumber kebenaran yang lebih tinggi daripada artefak canonical.** Entity tidak diubah menjadi `...History` | Rizki | `approved` | Rizki, 2 September 2026 | Pertentangan ditemukan saat `BE-ACC-005`, dilaporkan pada bagian 15.A laporan task dan tidak diputuskan sepihak. Implementasi `BE-ACC-005` sudah memakai nama canonical, jadi keputusan ini **tidak menuntut perubahan kode** |
 | `ACC-DEC-040` | Decision | **Tanggal bisnis memakai `date`; waktu peristiwa memakai `timestamp with time zone`.** `AccountingDate` dan `DocumentDate` pada `AccJournal`, serta `StartDate` dan `EndDate` pada `AccAccountingPeriod`, bertipe `date`. `SubmittedAt`, `ApprovedAt`, `PostedAt`, `ActionAt`, `ClosedAt`, `ReopenedAt`, dan seluruh kolom waktu audit `IdentityModel` bertipe `timestamp with time zone`. Alasannya: **tanggal akuntansi menentukan periode pembukuan, bukan waktu kejadian** — menyimpan jam padanya membuka celah beda hari akibat zona waktu | Rizki | `approved` | Rizki, 2 September 2026 | Menyelesaikan pertentangan antara diagram ERD (`date`) dan DDL contoh pada `erd/data-dictionary.md` (`timestamp`). DDL contoh diperbaiki mengikuti keputusan ini. Implementasi `BE-ACC-004` dan `BE-ACC-005` sudah sesuai, jadi keputusan ini **tidak menuntut perubahan kode** |
+| `ACC-DEC-041` | Decision | **MVP berjalan pada SATU badan hukum; penyaringan badan hukum per pengguna DITUNDA.** `LegalEntityId` tetap disimpan pada `AccChartOfAccount`, `AccAccountingPeriod`, dan `AccJournal`, dan tetap menegakkan **pemisahan data** (`ACC-DEC-037` tidak dibatalkan): kode akun tetap unik per badan hukum, satu jurnal tetap tidak boleh mencampur dua badan hukum. Yang ditunda hanya **penyaringan per pengguna** — pertanyaan "pengguna ini berhak atas badan hukum yang mana". Akibatnya `ACC-DEP-008` turun dari **blocker MVP** menjadi **prasyarat multi-badan-hukum**, dan acceptance `403` pada `BE-ACC-007`..`014` ditandai `DEFERRED`. Sebagai gantinya wajib ada **penjaga jumlah badan hukum**: bila badan hukum aktif lebih dari satu sementara penegakan belum ada, sistem menolak keras dan menyebutkan sebabnya | Rizki | `approved` | Rizki, 2 September 2026 | Keputusan owner, 2 September 2026. Dasar: `04-prd-to-mvp.md` baris 106 memang sudah menetapkan MVP selesai ketika **satu badan hukum** berjalan penuh; `UAT-15` menguji pemisahan data, bukan penolakan pengguna; dan mekanisme otorisasi badan hukum tidak ada di platform serta tidak ada yang akan membangunnya. Diverifikasi 2 September 2026: 17 controller menerima `LegalEntityId` dari `[FromQuery]`, **0** klaim badan hukum di JWT, **0** `HasQueryFilter` di seluruh repo |
 
 Keputusan `ACC-DEC-001` sampai `ACC-DEC-008` **tidak dibuka kembali** sesuai PRD §36 aturan 3.
+
+### `ACC-DEC-041` — kenapa ditunda, bukan dibatalkan
+
+Perbedaan ini menentukan dan mudah tertukar. Ada **dua** hal yang selama ini menyatu di bawah satu
+nama:
+
+| Hal | Yang dijamin | Keadaan sesudah `ACC-DEC-041` |
+|---|---|---|
+| **Pemisahan data** (`ACC-DEC-037`, `UAT-15`) | Pembukuan PT A dan PT B tidak tercampur | **Tetap berlaku penuh.** Unique index `(LegalEntityId, AccountCode)`, `(LegalEntityId, PeriodCode)`, `(LegalEntityId, JournalNumber)` sudah berdiri di database, dan validasi "seluruh baris menunjuk akun badan hukum yang sama" tetap wajib pada `BE-ACC-010` |
+| **Otorisasi pengguna** (`ACC-DEP-008`) | Pengguna PT A tidak dapat membuka buku PT B | **Ditunda.** Mekanismenya tidak ada di platform |
+
+`ACC-DEC-037` **tidak dibatalkan**, dan `LegalEntityId` **tidak dibuang**. Membuangnya akan
+menuntut migration baru di atas schema yang sudah diterapkan, membatalkan keputusan yang sudah
+`approved`, dan tetap tidak menghilangkan konsepnya — `MstCostCenter.LegalEntityId` berstatus
+`[Required]`, sedangkan Accounting wajib merujuk cost center untuk akun beban (`ACC-DEC-019`).
+Konsepnya hanya akan menjadi implisit dan tidak terlacak, yang lebih buruk daripada eksplisit.
+
+#### Penjaga yang menjadi syarat keputusan ini
+
+Tanpa penjaga, keputusan ini menyimpan cacat yang muncul diam-diam: begitu badan hukum kedua
+didaftarkan, **setiap pengguna langsung memperoleh akses ke dua buku besar sekaligus**, tanpa ada
+yang menyadarinya — dan jurnal yang sudah `Posted` tidak dapat dihapus (`ACC-DEC-015`).
+
+Karena itu `BE-ACC-007` wajib memuat pemeriksaan berikut, dan ia **validasi biasa, bukan mekanisme
+otorisasi tandingan**:
+
+> Bila jumlah `MstLegalEntity` yang `IsActive` dan tidak terhapus **lebih dari satu**, endpoint
+> Accounting menolak permintaan dengan pesan yang menyebutkan bahwa penyaringan badan hukum per
+> pengguna belum tersedia dan `ACC-DEP-008` wajib diselesaikan lebih dahulu.
+
+Menolak keras dipilih, bukan memperingatkan di log, karena pembukuan tidak punya jalan mundur yang
+murah: mencampur dua buku besar baru ketahuan saat tutup buku, dan koreksinya lewat jurnal
+pembalik satu per satu.
 
 ### Dua keputusan penyelesai pertentangan — 2 September 2026
 
