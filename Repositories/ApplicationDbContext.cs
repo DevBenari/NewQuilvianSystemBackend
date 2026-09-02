@@ -621,6 +621,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
         public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         public DbSet<TrxPatientIntegratedProgressNote> TrxPatientIntegratedProgressNotes { get; set; }
+        public DbSet<TrxStockRequest> TrxStockRequests { get; set; }
+        public DbSet<TrxStockRequestItem> TrxStockRequestItems { get; set; }
+        public DbSet<TrxStockRequestHistory> TrxStockRequestHistories { get; set; }
+
         public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
         public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
         public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
