@@ -64812,6 +64812,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("Discipline")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("EncounterId")
                         .HasColumnType("uuid");
 
@@ -64847,6 +64850,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Discipline");
 
                     b.HasIndex("EncounterId");
 

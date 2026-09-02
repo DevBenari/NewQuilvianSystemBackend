@@ -3,6 +3,31 @@ using System.ComponentModel.DataAnnotations;
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
 {
     /// <summary>
+    /// Disiplin laboratorium yang menaungi sebuah pesanan, sesuai <c>LAB-DEC-025</c>.
+    ///
+    /// Ketiganya berjalan sejajar dengan daftar pasien dan alur hasilnya masing-masing:
+    /// Patologi Klinik, Patologi Anatomi, dan Mikrobiologi. Bank Darah sengaja tidak ada di
+    /// sini karena tetap berada di luar scope modul.
+    ///
+    /// Nilai ini melekat pada pesanan sejak dibuat dan tidak berpindah sesudahnya
+    /// (<c>INV-21</c>); penegakannya ada pada <c>LabOrderConfiguration</c>.
+    /// </summary>
+    public enum LabDiscipline
+    {
+        /// <summary>Patologi Klinik — darah, urin, feses, kimia klinik, hematologi, imunologi.</summary>
+        [Display(Name = "Clinical Pathology")]
+        ClinicalPathology = 1,
+
+        /// <summary>Patologi Anatomi — makroskopik, mikroskopik, dan kesimpulan.</summary>
+        [Display(Name = "Anatomical Pathology")]
+        AnatomicalPathology = 2,
+
+        /// <summary>Mikrobiologi — organisme, sensitivitas antibiotik, laporan R/I/S.</summary>
+        [Display(Name = "Microbiology")]
+        Microbiology = 3
+    }
+
+    /// <summary>
     /// Siklus hidup pesanan laboratorium sesuai <c>RJ-BIL-GATE-DEC-003</c>.
     ///
     /// Seluruh nilai berasal dari requirement yang sudah dikunci pemilik; tidak ada status yang

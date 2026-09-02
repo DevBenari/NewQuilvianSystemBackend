@@ -10,6 +10,7 @@ using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
@@ -93,6 +94,65 @@ public sealed class BillingInvoiceService
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
         return response;
+    }
+
+    public static List<OtherChargeTypeOptionResponse> GetOtherChargeTypeOptions() =>
+        BillingOtherChargeTypes.Labels
+            .Select(x => new OtherChargeTypeOptionResponse { Value = x.Key, Label = x.Value })
+            .ToList();
+
+    // Menambah biaya lain-lain tanpa client perlu tahu Id kategori billing. Kategorinya ditetapkan
+    // di sini - "Biaya Lain-Lain" - sehingga seluruh entri manual kasir konsisten mendarat di satu
+    // kategori, dan yang dipilih kasir cukup jenis biayanya.
+    public async Task<InvoiceDetailResponse> AddOtherChargeAsync(
+        AddOtherChargeRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var chargeType = (request.ChargeType ?? string.Empty).Trim().ToUpperInvariant();
+        if (!BillingOtherChargeTypes.Labels.TryGetValue(chargeType, out var chargeTypeLabel))
+            throw new BillingInvoiceValidationException(
+                "Jenis biaya lain-lain tidak dikenal.");
+
+        var category = await _dbContext.Set<MstBillingItemCategory>().AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive)
+            .FirstOrDefaultAsync(
+                x => x.BillingItemCategoryCode == BillingOtherChargeTypes.CategoryCode
+                    || x.BillingItemCategoryName == BillingOtherChargeTypes.CategoryName,
+                cancellationToken)
+            ?? throw new BillingInvoiceValidationException(
+                $"Kategori billing \"{BillingOtherChargeTypes.CategoryName}\" belum ada di master data. " +
+                $"Buat kategori dengan kode {BillingOtherChargeTypes.CategoryCode} lebih dulu.");
+
+        // Jenis biaya ikut ditulis di deskripsi: kategori billing-nya sama untuk semua entri, jadi
+        // tanpa ini jenisnya hilang dari tagihan dan audit.
+        var description = $"{chargeTypeLabel} - {request.Description.Trim()}";
+        if (description.Length > 250) description = description[..250];
+
+        return await UpsertChargeAsync(
+            new UpsertChargeRequest
+            {
+                EncounterId = request.EncounterId,
+                SourceDomain = "ADHOC",
+                SourceDetailId = Guid.NewGuid().ToString("N"),
+                SourceVersion = 1,
+                SourceStatus = "ADDED",
+                OccurredAt = DateTimeOffset.UtcNow,
+                CategoryId = category.Id,
+                DescriptionSnapshot = description,
+                Quantity = request.Quantity,
+                UnitPrice = request.UnitPrice,
+                DoctorShare = 0,
+                ContractVersion = "BIL-INTEGRATION-0.4",
+                CorrelationId = request.CorrelationId,
+                CausationId = request.CausationId
+            },
+            idempotencyKey,
+            actorUserId,
+            cancellationToken);
     }
 
     // Kunjungan yang masih bisa ditagih. Draft dikecualikan karena pendaftarannya belum rampung,

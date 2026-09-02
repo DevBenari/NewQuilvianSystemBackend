@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Controllers;
@@ -172,15 +172,16 @@ public sealed class InpatientModuleControllerContractTests
     }
 
     /// <remarks>
-    /// Sebelas endpoint, yaitu seluruh baris bagian Inpatient Discharge pada api contract
-    /// <c>0.4.0</c>.
+    /// Dua belas endpoint: sebelas baris bagian Inpatient Discharge pada api contract
+    /// <c>0.4.0</c>, ditambah <c>GET .../financial-clearance</c> yang dibuka
+    /// <c>BE-RWI-034</c>.
     /// </remarks>
     [Fact]
-    public void DischargeMenyediakanSebelasEndpointSesuaiApiContract()
+    public void DischargeMenyediakanDuaBelasEndpointSesuaiApiContract()
     {
         var endpoints = EndpointsOf(typeof(InpatientDischargeController));
 
-        Assert.Equal(11, endpoints.Count);
+        Assert.Equal(12, endpoints.Count);
 
         var templates = endpoints
             .SelectMany(x => x.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
@@ -200,19 +201,24 @@ public sealed class InpatientModuleControllerContractTests
         var kepergian = endpoints.Single(x => x.Name == "RecordDeparture");
         Assert.Equal("RecordDeparture", PermissionActionOf(kepergian));
 
+        // BE-RWI-034: ketiga pasangan di bawah dahulu memakai nama resource yang tidak pernah
+        // didaftarkan AccessMenuSeeder, sehingga selalu 403 untuk siapa pun kecuali SuperAdmin.
+        // Seeder mendaftarkan ControllerName dari [AccessController] milik controller tempat
+        // aksinya berada — yaitu InpatientDischarge, bukan nama resource karangan.
         var keuangan = endpoints.Single(x => x.Name == "MarkFinancialClearance");
-        Assert.Equal("InpatientFinancialClearance", PermissionResourceOf(keuangan));
-        Assert.Equal("Update", PermissionActionOf(keuangan));
+        Assert.Equal("InpatientDischarge", PermissionResourceOf(keuangan));
+        Assert.Equal("MarkFinancialClearance", PermissionActionOf(keuangan));
 
-        // Penutupan memakai butir milik episode, bukan milik discharge — permission matrix
-        // bagian 2.3. Yang menutup episode adalah petugas admisi, dan haknya melekat pada
-        // episode itu sendiri.
+        var bacaKeuangan = endpoints.Single(x => x.Name == "GetFinancialClearance");
+        Assert.Equal("InpatientDischarge", PermissionResourceOf(bacaKeuangan));
+        Assert.Equal("ReadFinancialClearance", PermissionActionOf(bacaKeuangan));
+
         var tutup = endpoints.Single(x => x.Name == "CloseEpisode");
-        Assert.Equal("InpatientEpisode", PermissionResourceOf(tutup));
+        Assert.Equal("InpatientDischarge", PermissionResourceOf(tutup));
         Assert.Equal("Close", PermissionActionOf(tutup));
 
         var tutupMenembus = endpoints.Single(x => x.Name == "CloseEpisodeWithOverride");
-        Assert.Equal("InpatientEpisode", PermissionResourceOf(tutupMenembus));
+        Assert.Equal("InpatientDischarge", PermissionResourceOf(tutupMenembus));
         Assert.Equal("CloseOverride", PermissionActionOf(tutupMenembus));
     }
 
