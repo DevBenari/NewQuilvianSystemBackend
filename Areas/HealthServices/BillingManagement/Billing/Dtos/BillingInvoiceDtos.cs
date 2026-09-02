@@ -12,6 +12,62 @@ public sealed class BillingInvoiceQuery
     [Range(1, 100)] public int PageSize { get; set; } = 25;
 }
 
+// Biaya lain-lain yang diinput kasir dari Menu Pembayaran.
+//
+// Kategori billing-nya TIDAK dikirim client: backend yang memilih kategori "Biaya Lain-Lain"
+// supaya semua entri manual kasir mendarat di kategori yang sama, apa pun jenisnya. Yang dipilih
+// kasir hanyalah jenisnya (barang habis pakai, pemeriksaan rujukan, dan seterusnya), dan jenis itu
+// ikut ditulis ke deskripsi item supaya terbaca di tagihan maupun audit.
+public static class BillingOtherChargeTypes
+{
+    public const string ConsumableGoods = "BARANG_HABIS_PAKAI";
+    public const string ReferralExamination = "PEMERIKSAAN_RUJUKAN";
+    public const string CompanionMeal = "MAKANAN_PENDAMPING";
+    public const string ExtraBed = "EKSTRA_BED";
+
+    // Kategori billing tujuan dicari berdasarkan kode ini lebih dulu, lalu namanya.
+    public const string CategoryCode = "BIAYA_LAIN_LAIN";
+    public const string CategoryName = "Biaya Lain-Lain";
+
+    public static readonly IReadOnlyDictionary<string, string> Labels =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ConsumableGoods] = "Barang Habis Pakai",
+            [ReferralExamination] = "Pemeriksaan Rujukan",
+            [CompanionMeal] = "Makanan Pendamping",
+            [ExtraBed] = "Ekstra Bed"
+        };
+}
+
+public sealed class OtherChargeTypeOptionResponse
+{
+    public string Value { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+public sealed class AddOtherChargeRequest
+{
+    public Guid EncounterId { get; set; }
+    [Required, MaxLength(30)] public string ChargeType { get; set; } = string.Empty;
+    [Required, MaxLength(200)] public string Description { get; set; } = string.Empty;
+    [Range(
+        typeof(decimal),
+        "0.0001",
+        "99999999999999.9999",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Quantity { get; set; }
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal UnitPrice { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
 public sealed class UpsertChargeRequest
 {
     public Guid EncounterId { get; set; }
