@@ -3,12 +3,13 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `2` |
-| Decision revision | `2` |
+| Revision | `3` |
+| Decision revision | `3` |
 | Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02) dan Closure pass (2026-09-02) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
-| Backend SHA | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
+| Backend SHA | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86` cabang `sukmagp` |
+| Backend SHA saat bukti diaudit | `9522caacf29371b1fddd1584e9a71ad94fe48d19`. Perbedaan terhadap SHA di atas hanya berisi dokumen blueprint Bank Darah, nol berkas source aplikasi, sehingga `02-existing-capability-map.md` **tidak basi secara isi** |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 
 Seluruh keputusan berstatus `draft`. Dijawab dalam sesi wawancara tidak sama dengan disetujui oleh
@@ -117,6 +118,11 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | — | Kantong yang ordernya berakhir tidak pernah menjadi stok bebas. | `DEC-BD-007`, `DEC-BD-019` |
 | — | Kekurangan pengiriman tidak melahirkan permintaan baru untuk kebutuhan yang sama. | `DEC-BD-008` |
 | — | Kewenangan unit memesan darah adalah sifat konfigurasi, bukan daftar tetap di kode. Bawaan menolak dulu. | `DEC-BD-012` |
+| `INV-BD-017` | Jumlah sisa permintaan ke PMI tidak pernah bernilai negatif. Kantong yang melebihi jumlah diminta tetap dicatat diterima, tidak menjadi milik order, dan langsung masuk `PENDING_REVIEW`. | `DEC-BD-025` |
+| `INV-BD-018` | Seorang pasien memiliki paling banyak satu hasil golongan darah yang sah. Bila hasil tervalidasi terbaru berbeda dari hasil sah sebelumnya, pasien itu tidak punya hasil sah sama sekali sampai perbedaannya diselesaikan peran validator. | `DEC-BD-026` |
+| `INV-BD-019` | Bukti kecocokan yang sudah lewat masa berlakunya tidak membuka gerbang pemberian. Selama nilai masa berlaku belum dikonfigurasi, gerbang pemberian tertutup. | `DEC-BD-027` |
+| `INV-BD-020` | Bukti kecocokan terikat pada pasangan kantong dan pasien tertentu. Pengalihan kantong ke pasien lain menggugurkannya, dan bukti lama tidak pernah dipakai ulang untuk pasien tujuan. | `DEC-BD-028` |
+| `INV-BD-021` | Pemberian tidak pernah dihapus atau dibalik. Satu-satunya jalur koreksi adalah catatan koreksi tambahan yang mempertahankan pemberian asal. | `DEC-BD-030` |
 
 ---
 
@@ -131,6 +137,7 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | `REQUESTED` / `PARTIALLY_FULFILLED` | Terima sisa kantong | `FULFILLED` | Petugas Bank Darah | Jumlah diterima sama dengan jumlah diminta |
 | `REQUESTED` / `PARTIALLY_FULFILLED` | Batalkan | `CANCELLED` | Pihak berwenang | Alasan tercatat dari daftar alasan terkendali |
 | `REQUESTED` / `PARTIALLY_FULFILLED` | Kunjungan pasien berakhir | `CLOSED_ENCOUNTER` | Sistem, otomatis | Sesuai `DEC-BD-014` dan `DEC-BD-020` |
+| `REQUESTED` / `PARTIALLY_FULFILLED` | Terima kantong melebihi jumlah diminta | `FULFILLED`, sisa berhenti di 0 | Petugas Bank Darah | Kantong berlebih tetap dicatat, tetap membawa rujukan permintaan asal, lalu masuk `PENDING_REVIEW` (`DEC-BD-025`) |
 
 **Contoh berangka.** Bank Darah meminta 3 kantong PRC untuk Tn. S. Hari pertama datang 2 kantong,
 permintaan menjadi `PARTIALLY_FULFILLED` dengan sisa 1. Hari kedua datang 1 kantong, permintaan
@@ -160,9 +167,12 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 | Dialokasikan | Diberikan ke pasien | Diberikan | Bukti kecocokan tercatat (`DEC-BD-013`) |
 | Dialokasikan | Diberikan lewat jalur darurat | Diberikan, ditandai tanpa bukti kecocokan | Otorisasi peran berwenang, alasan wajib (`DEC-BD-017`) |
 | Tersedia / Dialokasikan | Order berakhir | `PENDING_REVIEW` | Tidak dapat dipakai siapa pun sampai diselesaikan |
-| `PENDING_REVIEW` | Dialihkan ke pasien lain | `REALLOCATED` | Kelayakan dinyatakan petugas berwenang, alasan wajib |
+| `PENDING_REVIEW` | Dialihkan ke pasien lain | `REALLOCATED` | Kelayakan dinyatakan petugas berwenang, alasan wajib. Bukti kecocokan terhadap pasien asal gugur otomatis; pasien tujuan wajib punya bukti sendiri (`DEC-BD-028`) |
 | `PENDING_REVIEW` | Dikembalikan ke PMI | `RETURNED_TO_PROVIDER` | Bila proses bisnis PMI mendukung |
 | `PENDING_REVIEW` | Dinyatakan tidak layak | `NOT_USABLE` | Kelayakan dinyatakan petugas berwenang, alasan wajib |
+| Dialokasikan | Batalkan alokasi | Tersedia, atau `PENDING_REVIEW` bila order asal sudah berakhir | Kantong belum diberikan; alasan dari daftar terkendali; bukti kecocokan yang terlanjur tercatat gugur (`DEC-BD-029`) |
+| Dialokasikan, bukti lengkap | Masa berlaku bukti terlampaui | Dialokasikan, bukti tidak lagi berlaku | Terjadi karena waktu berjalan. Gerbang pemberian tertutup kembali; bukti lama tetap tersimpan (`DEC-BD-027`) |
+| Diberikan | Catat koreksi pencatatan | Tetap `Diberikan`, dengan catatan koreksi melekat padanya | Peran berwenang (`DEF-BD-004`); pemberian asal tidak dihapus; alasan wajib; angka pemenuhan order dihitung ulang (`DEC-BD-030`) |
 
 ### 5.4 Pemeriksaan golongan darah Bank Darah
 
@@ -171,6 +181,8 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 | — | Ambil sampel | Sampel tercatat | Rujukan pasien, waktu, petugas pengambil, identifier sampel |
 | Sampel tercatat | Catat hasil ABO dan Rhesus | Hasil tercatat | Pemeriksa dan waktu pemeriksaan tersimpan |
 | Hasil tercatat | Validasi hasil | Hasil tervalidasi | Peran validator ditetapkan `DEF-BD-004` |
+| Hasil tervalidasi | Muncul hasil tervalidasi baru yang **berbeda** ABO atau Rhesus-nya | Perbedaan tertahan — pasien tidak punya hasil sah | Terjadi otomatis. Ditutup hanya oleh peran validator (`DEC-BD-026`) |
+| Perbedaan tertahan | Selesaikan perbedaan | Satu hasil sah kembali berlaku | Peran validator (`DEF-BD-004`). Alasan, pelaku, dan waktu tersimpan; kedua hasil tetap terbaca |
 
 Nama status di atas adalah nama bisnis. Nama teknis dan nilai enum yang sebenarnya ditetapkan pada
 fase perancangan, mengikuti kebiasaan penamaan status yang sudah dipakai repository.
@@ -217,6 +229,12 @@ fase perancangan, mengikuti kebiasaan penamaan status yang sudah dipakai reposit
 | Kebutuhan klinis bertambah | Permintaan baru boleh dibuat bila kebutuhan, komponen, atau jumlahnya berubah. |
 | Darah dibutuhkan segera sebelum uji kecocokan selesai | Jalur darurat oleh peran berwenang, alasan wajib, ditandai permanen, bukti kecocokan menyusul. |
 | Kantong tidak jadi dipakai | Tidak pernah menjadi stok bebas. Diselesaikan lewat tiga pilihan akhir pada `DEC-BD-019`. |
+| PMI mengirim **lebih** dari yang diminta | Seluruh kantong tetap dicatat diterima. Permintaan menjadi `FULFILLED` dengan sisa 0, bukan angka negatif. Kantong berlebih masuk `PENDING_REVIEW` dengan alasan "kiriman melebihi permintaan". |
+| Hasil golongan darah baru berbeda dari hasil sah sebelumnya | Ditahan. Pasien tidak punya golongan darah sah sampai peran validator menyelesaikan perbedaannya. Kedua hasil tetap tersimpan. |
+| Pemberian tertunda sampai bukti kecocokan kedaluwarsa | Gerbang pemberian tertutup kembali. Bukti lama tetap tersimpan sebagai riwayat; pemberian menuntut bukti baru. |
+| Kantong dialihkan ke pasien lain | Bukti kecocokan terhadap pasien asal gugur otomatis. Pasien tujuan wajib punya bukti kecocokan sendiri, walaupun golongan darahnya kebetulan sama. |
+| Petugas salah memilih kantong saat alokasi | Alokasi boleh dibatalkan petugas Bank Darah sendiri selama kantong belum diberikan, dengan alasan dari daftar terkendali. |
+| Pencatatan pemberian ternyata keliru | Dikoreksi lewat catatan koreksi tersendiri. Pemberian asal tidak pernah dihapus maupun dibalik. |
 
 ---
 
@@ -233,6 +251,8 @@ sudah disetujui; lalu kebiasaan project; baru kemudian kebebasan pengembang.
 | `FE-BD-004` | Daftar pemberian darurat yang bukti kecocokannya tertunggak | Pemilik proses BDRS | `draft` | Wajib ada | `DEC-BD-023` |
 | `FE-BD-005` | Tampilan jalur darurat | Pemilik proses klinis | `draft` | Harus jelas terlihat sebagai jalur tidak normal, bukan tombol setara alur biasa | `DEC-BD-017` |
 | `FE-BD-006` | Menu, route, susunan tab, modal, warna, tata letak | — | `DEV_DISCRETION` | Mengikuti kebiasaan frontend V2 dan komponen dasar yang sudah ada | PRD §8, `BD-CAP-021` |
+| `FE-BD-007` | Penanda hasil golongan darah yang sedang **bertentangan** | Pemilik proses klinis | `draft` | Wajib terlihat dan wajib menahan pemakaian. Bukan kebebasan pengembang | `DEC-BD-026`, `INV-BD-018` |
+| `FE-BD-008` | Penanda bukti kecocokan yang sudah lewat masa berlaku | Pemilik proses klinis | `draft` | Wajib terlihat sebelum petugas menekan pemberian. Bentuk tampilannya bebas | `DEC-BD-027`, `INV-BD-019` |
 
 ---
 
@@ -383,6 +403,153 @@ tertunggak ditetapkan sebagai daftar kerja wajib pada `DEC-BD-023`.
 | `CONF-BD-004` | Tidak ada status bernama "ditutup", dan rawat inap punya jalur penutupan tersendiri | Diselesaikan `DEC-BD-014` dengan dua penyesuai berbeda per jenis kunjungan |
 | `CONF-BD-005` | `MstPatient.BloodType` mudah dikira hasil pemeriksaan yang sah | Diselesaikan `DEC-BD-015`; sumber sah adalah hasil pemeriksaan milik Bank Darah |
 
+### 8.7 Architecture gap closure pass
+
+Enam gap arsitektur yang dibuka `03-domain-architecture.md` ditutup pada sesi ini. Tidak ada satu pun
+keputusan sebelumnya yang dibuka ulang.
+
+| Decision ID | Menutup | Type | Keputusan | Status |
+| --- | --- | --- | --- | --- |
+| `DEC-BD-025` | `ARCH-BD-GAP-01` | `Decision` | Kelebihan kiriman PMI tetap dicatat diterima; sisa permintaan berhenti di 0; kantong berlebih masuk `PENDING_REVIEW` | `draft` |
+| `DEC-BD-026` | `ARCH-BD-GAP-02` | `Decision` | Hasil golongan darah tervalidasi terbaru yang berlaku; bila berbeda dari hasil sah sebelumnya, ditahan sampai peran validator menyelesaikannya | `draft` |
+| `DEC-BD-027` | `ARCH-BD-GAP-03` | `Decision` | Bukti kecocokan punya masa berlaku dalam satuan jam, ditetapkan lewat konfigurasi, bukan dikunci di kode | `draft` |
+| `DEC-BD-028` | `ARCH-BD-GAP-04` | `Decision` | Pengalihan kantong ke pasien lain menggugurkan bukti kecocokan terhadap pasien asal secara otomatis | `draft` |
+| `DEC-BD-029` | `ARCH-BD-GAP-05` | `Decision` | Alokasi keliru boleh dibatalkan petugas Bank Darah sendiri selama kantong belum diberikan, dengan alasan terkendali | `draft` |
+| `DEC-BD-030` | `ARCH-BD-GAP-06` | `Decision` | Pemberian tidak pernah dihapus atau dibalik; koreksi hanya lewat catatan koreksi yang mempertahankan pemberian asal | `draft` |
+
+Owner keputusan: `DEC-BD-025`, `DEC-BD-029` pemilik proses BDRS · `DEC-BD-026`, `DEC-BD-027`,
+`DEC-BD-028` pemilik proses klinis · `DEC-BD-030` pemilik proses klinis bersama BDRS.
+Seluruhnya berstatus `draft`. Dijawab dalam sesi wawancara tidak sama dengan disetujui pejabat
+berwenang, dan `approved_by` beserta `approved_at` masih kosong.
+
+### 8.8 Rincian keputusan architecture gap closure pass
+
+**`DEC-BD-025` — Kelebihan kiriman dari PMI.**
+Penerimaan fisik tidak pernah ditolak sistem. Bila PMI mengantar lebih banyak dari jumlah yang
+diminta, seluruh kantong tetap dicatat diterima dan tetap membawa rujukan ke permintaan asalnya.
+Jumlah sisa permintaan dijaga tidak pernah menjadi angka negatif: begitu jumlah diminta terpenuhi,
+permintaan menjadi `FULFILLED` dan sisa berhenti di 0. Kantong yang melebihi jumlah diminta **tidak**
+menjadi milik order pasien itu. Kantong tersebut langsung masuk `PENDING_REVIEW` dengan alasan
+"kiriman melebihi permintaan", lalu diselesaikan lewat tiga pilihan akhir `DEC-BD-019`.
+*Alasan pemilihan.* Bentuk ini memakai ulang mekanisme yang sudah disepakati, menjaga angka "jumlah
+diminta" tetap jujur sebagai alat menilai kepatuhan PMI, dan tidak pernah membiarkan darah yang
+secara fisik sudah ada di kulkas menjadi tidak tercatat. Bentuknya persis sama dengan perlakuan
+kantong yang tetap datang setelah `CLOSED_ENCOUNTER` pada `DEC-BD-020`.
+*Batas keputusan.* Keputusan ini **tidak** membuka stok bebas. `DEC-BD-003` tetap berlaku penuh:
+kantong berlebih tetap terikat pada permintaan asal sampai diselesaikan, dan tidak boleh dialokasikan
+langsung ke order mana pun — termasuk order pasien yang sama.
+*Yang perlu ditambahkan.* Satu kode alasan baru pada daftar alasan terkendali `DEC-BD-024`, yaitu
+"kiriman melebihi permintaan".
+*Contoh berangka.* Bank Darah meminta 2 kantong PRC untuk Tn. S. PMI mengantar 3. Kantong ke-1 dan
+ke-2 masuk sebagai penerimaan biasa, dan permintaan menjadi `FULFILLED` dengan sisa 0 — bukan
+minus 1. Kantong ke-3 tetap dicatat diterima, tetap menunjuk permintaan asal, lalu langsung masuk
+`PENDING_REVIEW`. Nasibnya ditetapkan terpisah: dialihkan ke pasien lain, dikembalikan ke PMI, atau
+dinyatakan tidak layak.
+
+**`DEC-BD-026` — Hasil golongan darah mana yang berlaku.**
+Yang berlaku adalah hasil tervalidasi **terbaru**. Tetapi bila nilai ABO atau Rhesus pada hasil
+tervalidasi terbaru **berbeda** dari hasil sah sebelumnya, sistem menahan: untuk sementara pasien itu
+**tidak punya hasil golongan darah yang sah sama sekali**, dan seluruh gerbang yang menuntut golongan
+darah sah ikut tertutup, sampai perbedaannya diselesaikan peran validator (`DEF-BD-004`). Kedua hasil
+tetap tersimpan utuh; tidak ada yang dihapus maupun ditimpa.
+*Alasan pemilihan.* Golongan darah seseorang tidak berubah. Hasil yang berbeda hampir selalu berarti
+sampel tertukar atau salah catat — persis kejadian paling berbahaya bila lewat begitu saja.
+Perilaku menahan ini juga menjaga `INV-BD-013`: sistem tidak memutuskan apa pun secara klinis, ia
+berhenti dan memanggil manusia.
+*Batas keputusan.* Sistem tidak menilai mana hasil yang benar dan tidak menyarankan pilihan. Ia hanya
+menyatakan bahwa ada perbedaan, menahan pemakaiannya, lalu menyimpan siapa yang menyelesaikan
+perbedaan itu beserta alasan dan waktunya. Keputusan ini mempertegas `INV-BD-015`, bukan
+menggantikannya.
+*Contoh.* Ny. R punya hasil tervalidasi O Positif dari kunjungan Januari. Pada kunjungan Mei, hasil
+tervalidasi baru menyatakan A Positif. Sejak saat itu Ny. R tidak punya golongan darah sah. Alokasi
+dan pemberian yang menuntut golongan darah sah tertahan sampai validator menyelesaikan perbedaan
+tersebut. Riwayat kedua hasil tetap terbaca setelahnya.
+
+**`DEC-BD-027` — Masa berlaku bukti kecocokan.**
+Bukti kecocokan punya masa berlaku dalam satuan jam. Nilainya adalah **konfigurasi**, bukan angka
+yang dikunci di dalam kode — pola yang sama dengan `DEC-BD-012`. Setelah masa berlakunya lewat,
+gerbang pemberian tertutup kembali: bukti lama tetap tersimpan penuh sebagai riwayat, tetapi tidak
+lagi membuka pemberian, dan pemberian menuntut bukti baru.
+Sistem tidak menebak nilai itu dan tidak memakai bawaan "tanpa batas". Selama nilainya belum
+ditetapkan pemilik proses klinis, gerbang pemberian bersifat **fail-closed**: pemberian ditahan, dan
+sistem menyatakan bahwa konfigurasi masa berlaku belum ditetapkan.
+Nilai jamnya sendiri **tidak diputuskan** pada sesi ini dan dicatat sebagai `OQ-BD-012`.
+*Batas keputusan.* Keputusan ini mengatur kapan bukti berhenti berlaku, bukan bagaimana bukti
+dihasilkan. `DEC-BD-013` tetap berlaku penuh — Quilvian mencatat titik pemeriksaan, tidak pernah
+menghitung kompatibilitas.
+*Contoh.* Kantong diuji kecocokan Senin pukul 16.00. Bila masa berlaku dikonfigurasi 48 jam,
+pemberian pada Rabu pukul 10.00 masih diizinkan, sedangkan pemberian pada Kamis pukul 09.00 ditolak
+dan menuntut bukti baru. Bukti Senin tetap terbaca pada riwayat kantong, hanya tidak lagi membuka
+gerbang.
+
+**`DEC-BD-028` — Bukti kecocokan gugur saat kantong dialihkan.**
+Bukti kecocokan selalu bermakna "kantong ini cocok untuk pasien ini", bukan "kantong ini baik".
+Karena itu, begitu kantong `PENDING_REVIEW` dialihkan ke pasien lain (`REALLOCATED`), seluruh bukti
+kecocokan terhadap pasien asal **gugur otomatis**. Bukti lama tetap terbaca sebagai riwayat milik
+pasien asal dan tidak dihapus. Gerbang pemberian untuk pasien tujuan tertutup sampai ada bukti
+kecocokan baru terhadap pasien tujuan itu sendiri.
+Pernyataan kelayakan oleh petugas berwenang tetap berjalan seperti yang sudah ditetapkan
+`DEC-BD-019`, dan rantai riwayat pasien asal → alasan pelepasan → pasien tujuan tetap tidak
+boleh putus.
+*Batas keputusan.* Sistem tidak pernah menyimpulkan bahwa bukti lama "masih cocok" karena golongan
+darah kedua pasien kebetulan sama. Penyimpulan semacam itu dilarang `INV-BD-011` dan `INV-BD-013`.
+*Contoh.* Kantong PRC sudah diuji kecocokan untuk Tn. S. Tn. S kemudian pulang, dan kantong masuk
+`PENDING_REVIEW`. Kantong dialihkan ke Ny. R. Bukti terhadap Tn. S langsung tidak berlaku. Pemberian
+ke Ny. R ditolak sampai ada bukti kecocokan baru terhadap Ny. R — walaupun golongan darah keduanya
+sama.
+
+**`DEC-BD-029` — Pembatalan alokasi sebelum pemberian.**
+Alokasi yang keliru boleh dibatalkan **petugas Bank Darah sendiri** selama kantongnya belum
+diberikan, dengan alasan dari daftar alasan terkendali `DEC-BD-024`. Setelah dibatalkan:
+
+- bila order asalnya masih aktif, kantong kembali menjadi tersedia;
+- bila order asalnya sudah berakhir, kantong masuk `PENDING_REVIEW` sesuai `DEC-BD-007`;
+- bukti kecocokan yang terlanjur tercatat gugur mengikuti `DEC-BD-028`, karena pasien tujuannya
+  berubah.
+
+Alokasi yang kantongnya **sudah** diberikan tidak dapat dibatalkan. Jalurnya adalah koreksi pada
+`DEC-BD-030`.
+*Alasan pemilihan.* Memilih kantong yang keliru adalah kekeliruan administratif biasa, bukan tindakan
+klinis. Mengunci kantong sampai ada peran lebih tinggi menghambat pelayanan tanpa menambah
+keselamatan sedikit pun.
+*Batas keputusan.* Pembatalan tidak menghapus apa pun. Riwayat alokasi → pembatalan → alokasi
+baru tersimpan utuh dan memang harus terbaca.
+*Contoh.* Petugas mengalokasikan kantong `PMI-00871` ke order Tn. S, lalu menyadari kantong itu
+seharusnya untuk Ny. R. Ia membatalkan alokasi dengan alasan "salah pilih kantong". Kantong kembali
+tersedia dan dapat dialokasikan ke order Ny. R. Riwayat kantong menampilkan ketiga kejadian itu
+berurutan, lengkap dengan pelaku dan waktunya.
+
+**`DEC-BD-030` — Koreksi pencatatan pemberian.**
+Pemberian **tidak pernah** dihapus dan **tidak pernah** dibalik. Kekeliruan pencatatan dikoreksi
+lewat **catatan koreksi** tersendiri yang menunjuk pemberian asal dan menyimpan: apa yang keliru, apa
+yang benar, alasan dari daftar terkendali, pelaku, dan waktu. Pemberian asal tetap terbaca selamanya.
+Angka pemenuhan order dihitung ulang dengan menghormati catatan koreksi itu, tetap sesuai aturan
+bahwa angka pemenuhan dihitung dari transaksi nyata dan bukan diketik. Wewenangnya ada pada peran
+berwenang yang ditetapkan `DEF-BD-004`.
+*Batas keputusan — penting.* Catatan koreksi **bukan** jalur untuk memindahkan darah yang sudah
+diberikan ke pasien lain. Ia mencatat bahwa pencatatannya keliru; ia tidak menyatakan bahwa darahnya
+tidak jadi masuk ke tubuh pasien. Pengalihan kantong hanya sah lewat jalur `REALLOCATED` pada kantong
+yang belum diberikan.
+*Alasan pemilihan.* Darah yang sudah masuk ke tubuh pasien adalah fakta klinis yang tidak boleh
+hilang dari rekam jejak, apa pun kekeliruan pencatatannya. Pola "hanya bisa ditambah, tidak pernah
+ditimpa" ini juga sudah dipakai repository lewat riwayat perpindahan status (`BD-CAP-009`).
+*Yang belum ditetapkan.* Nasib kantong yang tercatat keliru sebagai diberikan — secara fisik
+kantong itu mungkin masih ada — tidak ditetapkan otomatis oleh sistem dan dicatat sebagai
+`OQ-BD-014`.
+*Contoh.* Petugas mencatat pemberian dengan nomor kantong `PMI-00871`, padahal yang benar-benar
+diberikan adalah `PMI-00817`. Ia membuat catatan koreksi yang menunjuk pemberian asal, menyebut nomor
+kantong yang keliru dan yang benar, memilih alasan "salah nomor kantong", lalu menyimpannya.
+Pemberian asal tetap terbaca; angka pemenuhan order Tn. S dihitung ulang; dan kantong `PMI-00871`
+tidak diam-diam kembali menjadi tersedia.
+
+### 8.9 Pertanyaan baru yang lahir dari pass ini
+
+| ID | Isi | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan, dan apakah nilainya sama untuk semua komponen darah. Bentuk aturannya sudah dikunci `DEC-BD-027`; yang belum ada hanya angkanya | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
+| `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan. `DEC-BD-026` menuntut ada tempat menyelesaikannya, sedangkan `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja | Pemilik proses BDRS | `DESIGN` satu layar saja. Usulan yang tidak memperluas scope: penyelesaian dilakukan di dalam layar pemeriksaan golongan darah, bukan sebagai daftar kerja keempat |
+| `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi. Secara fisik kantong itu mungkin masih ada | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi. **Tidak** memblokir `DESIGN` catatan koreksinya |
+
 ---
 
 ## 9. Acceptance Criteria
@@ -419,6 +586,26 @@ tertunggak ditetapkan sebagai daftar kerja wajib pada `DEC-BD-023`.
 | `AC-BD-028` | Golongan darah pasien diambil dari `MstPatient.BloodType` untuk keperluan klinis Bank Darah | Ditolak — bukan sumber klinis |
 | `AC-BD-029` | Alasan penetapan kantong tidak layak diisi sebagai teks bebas tanpa memilih dari daftar | Ditolak |
 | `AC-BD-030` | Hasil pemeriksaan golongan darah dicatat tanpa pemeriksa atau waktu pemeriksaan | Ditolak |
+| `AC-BD-031` | Permintaan PMI 2 kantong PRC, yang datang 3 kantong | Permintaan `FULFILLED` dengan sisa 0 — bukan minus 1. Ketiga kantong tercatat diterima dan membawa rujukan permintaan asal |
+| `AC-BD-032` | Kantong ke-3 pada `AC-BD-031` | Masuk `PENDING_REVIEW` dengan alasan "kiriman melebihi permintaan", dan muncul pada daftar kerja pemantauan |
+| `AC-BD-033` | Kantong berlebih itu dicoba dialokasikan langsung ke order pasien yang sama | Ditolak — wajib lewat penyelesaian `DEC-BD-019` lebih dulu |
+| `AC-BD-034` | Pasien punya hasil tervalidasi O Positif, lalu muncul hasil tervalidasi baru A Positif | Pasien tidak punya hasil sah; gerbang yang menuntut golongan darah sah tertahan; kedua hasil tetap tersimpan |
+| `AC-BD-035` | Hasil tervalidasi baru bernilai sama dengan hasil sah sebelumnya | Hasil terbaru berlaku tanpa penahanan apa pun |
+| `AC-BD-036` | Perbedaan hasil pada `AC-BD-034` diselesaikan peran validator | Tepat satu hasil sah kembali berlaku; pelaku, alasan, dan waktu tersimpan; riwayat kedua hasil tetap terbaca |
+| `AC-BD-037` | Perbedaan hasil dicoba diselesaikan oleh peran yang bukan validator | Ditolak |
+| `AC-BD-038` | Bukti kecocokan tercatat, masa berlakunya sudah terlampaui, petugas menekan pemberian | Ditolak; bukti lama tetap tersimpan sebagai riwayat dan pemberian menuntut bukti baru |
+| `AC-BD-039` | Bukti kecocokan tercatat dan masih di dalam masa berlaku | Pemberian berhasil |
+| `AC-BD-040` | Nilai masa berlaku bukti kecocokan belum dikonfigurasi | Pemberian ditahan, dan sistem menyatakan konfigurasi masa berlaku belum ditetapkan — tidak memakai nilai bawaan tebakan |
+| `AC-BD-041` | Kantong dengan bukti kecocokan terhadap pasien A dialihkan ke pasien B, lalu pemberian ke B dicoba | Ditolak; bukti terhadap A tidak lagi membuka gerbang, tetapi tetap terbaca sebagai riwayat pasien A |
+| `AC-BD-042` | Setelah pengalihan itu, bukti kecocokan baru terhadap pasien B tercatat | Pemberian ke B berhasil |
+| `AC-BD-043` | Petugas Bank Darah membatalkan alokasi dengan alasan terkendali, kantong belum diberikan, order asal masih aktif | Berhasil; kantong kembali tersedia; riwayat alokasi dan pembatalan tersimpan |
+| `AC-BD-044` | Alokasi dibatalkan sementara order asalnya sudah berakhir | Kantong masuk `PENDING_REVIEW`, bukan menjadi tersedia |
+| `AC-BD-045` | Pembatalan alokasi tanpa memilih alasan dari daftar terkendali | Ditolak |
+| `AC-BD-046` | Alokasi yang kantongnya sudah diberikan dicoba dibatalkan | Ditolak — jalurnya adalah catatan koreksi `DEC-BD-030` |
+| `AC-BD-047` | Catatan koreksi pemberian dibuat peran berwenang dengan alasan terisi | Berhasil; pemberian asal tetap terbaca; angka pemenuhan order dihitung ulang |
+| `AC-BD-048` | Pencatatan pemberian dicoba dihapus atau dianulir | Ditolak — satu-satunya jalur adalah catatan koreksi |
+| `AC-BD-049` | Catatan koreksi dipakai untuk memindahkan pemberian ke pasien lain | Ditolak — koreksi mencatat kekeliruan pencatatan, bukan memindahkan darah antarpasien |
+| `AC-BD-050` | Catatan koreksi dibuat oleh peran yang tidak berwenang | Ditolak |
 
 Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 
@@ -435,21 +622,51 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
 | `BD-DEP-008` | Bank Darah belum terdaftar di registry kepemilikan modul dan prefix | Pemilik registry engineering | `IMPLEMENTATION` backend |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan |
+| `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan, dan apakah nilainya sama untuk semua komponen darah. Bersinggungan dengan `DEF-BD-003` | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian |
+| `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan, mengingat `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja | Pemilik proses BDRS | `DESIGN` satu layar saja |
+| `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi |
 
 ### Pertanyaan yang sudah tertutup
 
 Scope pass: `OQ-BD-002` sampai `OQ-BD-008`.
 Closure pass: `DEC-BD-013`, `DEC-BD-014`, `DEC-BD-015`, `DEC-BD-017` sampai `DEC-BD-024`, serta
 `DEF-BD-001` dan `DEF-BD-002`.
+Architecture gap closure pass: `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-06`, ditutup berturut-turut
+oleh `DEC-BD-025` sampai `DEC-BD-030`.
 
 ---
 
 ## 11. Langkah Berikutnya
 
-Sepuluh dari dua belas blocker yang masuk closure pass sudah tertutup. Yang tersisa —
-`DEC-BD-016`, `DEF-BD-003`, `DEF-BD-004`, `OQ-BD-011` — tidak menghalangi perancangan arsitektur
-target untuk alur inti, hanya menahan bagian yang bergantung padanya.
+Enam gap arsitektur `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-06` sudah tertutup oleh `DEC-BD-025` sampai
+`DEC-BD-030`. Dengan itu, dua slice yang semula berhenti karena alasan keselamatan — jalur
+pemberian dan jalur pengalihan pada `BD-AGG-03`, serta aturan hasil mana yang berlaku pada
+`BD-AGG-04` — sudah punya aturan bisnisnya, termasuk jalur pembatalan alokasi dan jalur koreksi
+pemberian.
 
-Langkah berikutnya adalah menilai ulang kesiapan pada `02-requirement-completeness-assessment.md`,
-lalu mengirim slice yang siap ke `hospital-domain-architect` atau langsung ke
-`design-business-module`.
+**Yang masih terbuka dan pemiliknya.**
+
+| ID | Memblokir | Apakah menahan perancangan? |
+| --- | --- | --- |
+| `DEC-BD-016` | Penyerahan fakta biaya ke Billing | Ya, hanya bagian penyerahan biayanya |
+| `OQ-BD-011` | Mekanik label golongan darah | Ya, hanya slice label |
+| `DEF-BD-003` | Aturan bukti kecocokan per komponen | Tidak. `IMPLEMENTATION` saja |
+| `DEF-BD-004` | Peran jalur darurat, validator, dan pembuat catatan koreksi | Tidak. `IMPLEMENTATION` saja |
+| `OQ-BD-010` | Kesediaan PMI menerima pengembalian | Tidak |
+| `OQ-BD-012` | Nilai jam masa berlaku bukti kecocokan | Tidak. `IMPLEMENTATION` saja |
+| `OQ-BD-013` | Tempat penyelesaian perbedaan hasil golongan darah | Ya, terbatas pada satu layar |
+| `OQ-BD-014` | Keadaan kantong setelah koreksi pemberian | Tidak. `IMPLEMENTATION` saja |
+| `BD-DEP-008` | Pendaftaran registry kepemilikan modul dan prefix | Tidak. `IMPLEMENTATION` backend |
+| `BD-DEP-009` | Tiga berkas bukti kebutuhan yang hilang | Tidak |
+
+**Yang sudah dikerjakan sesudah pass ini.** Pass ulang `hospital-domain-architect` dijalankan pada
+hari yang sama dan menghasilkan `03-domain-architecture.md` revisi 2, yang menyerap `DEC-BD-025`
+sampai `DEC-BD-030` ke dalam `BD-AGG-02`, `BD-AGG-03`, dan `BD-AGG-04`. Statusnya tetap
+`DOMAIN_ARCHITECTURE_PARTIAL`, tetapi yang berhenti tinggal satu perpindahan pada `BD-AGG-04` dan satu
+kumpulan atribut pada `BD-DOM-13`.
+
+Pass arsitektur itu memunculkan tiga gap baru yang **belum** masuk decision log ini dan perlu satu
+closure pass `grill-me` lanjutan: `ARCH-BD-GAP-07` arti "menyelesaikan perbedaan" hasil golongan
+darah · `ARCH-BD-GAP-08` tempat penyimpanan nilai masa berlaku bukti kecocokan, yang bersinggungan
+dengan `OQ-BD-012` dan `DEC-BD-024` · `ARCH-BD-GAP-09` perlakuan fakta biaya ketika koreksi
+menghapuskan satu-satunya pemberian di bawah sebuah tindakan.

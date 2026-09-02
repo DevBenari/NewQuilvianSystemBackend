@@ -5,23 +5,23 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 4
+revision: 6
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-02T02:10:00+07:00
+updated_at: 2026-09-02T04:25:00+07:00
 last_verified_at: null
-backend_source_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
+backend_source_sha: 9dc7637adbafb321ad8078d5c52ebe5e4398fe86
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
-input_revision_hash: grill-me-closure-pass-2026-09-02
-decision_revision: 2
+input_revision_hash: grill-me-architecture-gap-closure-pass-2026-09-02
+decision_revision: 3
 capability_map_revision: 2
 prerequisite_readiness_revision: 3
 completeness_assessment_revision: 2
-domain_architecture_revision: 1
+domain_architecture_revision: 2
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_PARTIAL
 contract_versions: []
 active_dependency_ids:
@@ -57,8 +57,8 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. |
-| `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me closure pass tanggal 2 September 2026, yang melanjutkan scope pass di hari yang sama. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik dari `9522caa` ke `9dc7637` pada 2 September 2026; tinjauan dampak sudah dijalankan dan hasilnya nihil karena perbedaannya hanya dokumen blueprint. |
+| `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap closure pass tanggal 2 September 2026, yang melanjutkan scope pass dan closure pass di hari yang sama. |
 | `contract_versions` | Masih kosong karena belum ada kontrak API, ERD, atau integrasi yang dibekukan. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
 
@@ -67,8 +67,10 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 Audit kemampuan existing sudah dijalankan pada 2 September 2026 dan hasilnya ada di
 `02-existing-capability-map.md`. Peringatan "scope dikunci tanpa audit" **sudah dicabut**.
 
-Peta kemampuan itu terikat pada backend `9522caa` dan frontend `afbb8ab`. Bila salah satu SHA
-berubah, tandai peta `STALE` lalu jalankan pemindaian dampak terbatas sebelum dipakai lagi.
+Peta kemampuan itu terikat pada backend `9522caa` dan frontend `afbb8ab`. Backend sudah bergerak ke
+`9dc7637`, dan pemindaian dampak terbatas sudah dijalankan pada 2 September 2026: seluruh
+perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. Peta **tidak** ditandai
+`STALE`. Bila SHA berubah lagi, ulangi pemindaian yang sama sebelum peta dipakai.
 
 Blueprint tidak memberi wewenang implementasi. Menulis dokumen di sini tidak sama dengan izin
 mengubah controller, service, entity, migration, database, atau melakukan deployment.
