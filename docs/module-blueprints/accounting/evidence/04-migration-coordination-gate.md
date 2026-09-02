@@ -14,7 +14,19 @@
 
 ## Putusan gate
 
-> ## ❌ GATE TIDAK LULUS
+> ## ✅ TERSELESAIKAN 2 September 2026 — lihat bagian 10
+>
+> Putusan `❌ TIDAK LULUS` di bawah ini **tetap benar untuk baseline tempat ia dijalankan**,
+> yaitu `2b152aa`. Ia **tidak** dihapus dan **tidak** disunting: ia mencatat keadaan yang memang
+> nyata pada saat itu.
+>
+> Yang berubah adalah baselinenya. Owner modul menjalankan langkah 2 pada bagian 7 — menyegarkan
+> `rizkiG` dari `origin/QuilvianIntegrationBackend@f90bcbe` — lalu membuat dan menerapkan
+> migration pada `f40177a`. **`ACC-DEP-009` CLOSED.** Bukti, inventaris operasi migration, dan
+> batas jujur atas apa yang diverifikasi *sesudah* alih-alih *sebelum* ada di
+> **[bagian 10](#10-putusan-ulang-2-september-2026--baseline-f40177a)**.
+
+> ## ❌ GATE TIDAK LULUS — putusan asli atas baseline `2b152aa`
 >
 > **`BE-ACC-006` belum boleh dijalankan.** Gate gagal pada pertanyaan 6.
 >
@@ -343,3 +355,77 @@ akan lahir lagi setiap kali ada pendaftaran prefix baru.
 
 Seluruh isi berkas ini diperoleh dari pembacaan repository dan pembandingan git, tanpa satu pun
 perintah yang mengubah keadaan.
+
+---
+
+## 10. Putusan ulang, 2 September 2026 — baseline `f40177a`
+
+| Field | Isi |
+|---|---|
+| Baseline sumber migration | **`f40177a`** pada branch `rizkiG`, working tree bersih |
+| Baseline gate sebelumnya | `2b152aa` — putusan `❌ TIDAK LULUS` di bagian *Putusan gate* |
+| Canonical integration baseline | `origin/QuilvianIntegrationBackend@f90bcbe` |
+| Migration yang dihasilkan | `20260902081432_AddAccountingFoundation` |
+| Sifat pemeriksaan ini | **Read-only.** Nol migration dibuat, nol `dotnet ef` dijalankan, database tidak disentuh |
+| Tanggal | 2 September 2026 |
+
+### Batas kejujuran atas bagian ini
+
+Bagian ini **bukan** klaim bahwa gate dijalankan ulang sebelum migration dibuat. Urutan yang
+benar-benar terjadi: owner menjalankan langkah 2 pada bagian 7, lalu langsung membuat dan
+menerapkan migration. Langkah 5 — "jalankan ulang gate ini" — dilewati.
+
+Yang dicatat di sini adalah **verifikasi sesudahnya**, dan ia memeriksa hal yang sama persis
+dengan yang akan diperiksa gate: apakah baseline sumbernya sudah memuat integration, dan apakah
+hasilnya merusak snapshot modul lain. Keduanya terjawab dari bukti git, bukan dari pernyataan.
+
+### Pertanyaan 6 — penyebab kegagalan asli
+
+| Pemeriksaan | Perintah | Hasil |
+|---|---|---|
+| `f90bcbe` leluhur `HEAD` | `git merge-base --is-ancestor f90bcbe HEAD` | **Ya** |
+| Jumlah commit `2b152aa..f40177a` | `git rev-list --count` | 71 |
+| Berkas Accounting berubah di rentang itu | `git diff --stat` atas `Areas/`, `Repositories/Configurations/`, `Tests/` | **Nol** |
+
+**Pertanyaan 6 terjawab: `rizkiG` tidak lagi tertinggal.** Ketertinggalan lima migration dan
+delapan tabel yang menggagalkan gate pada `2b152aa` sudah hilang. **`ACC-DEP-009` CLOSED.**
+
+### Snapshot — pemeriksaan yang paling perlu dilihat
+
+Kekhawatiran yang tercatat di bagian 3 adalah migration dari snapshot basi akan **menghapus**
+tabel modul lain, pola kerusakan `ACC-DEP-001`. Itu tidak terjadi.
+
+| Pemeriksaan | Nilai |
+|---|---:|
+| Perubahan snapshot pada `f40177a` (`git show --numstat`) | **751 insertion, 0 deletion** |
+| Jumlah `b.ToTable(` pada snapshot | **545** |
+| Blok `Acc*` | **7** |
+
+**Nol deletion.** Snapshot murni bertambah; tidak ada satu blok entity modul lain pun yang hilang.
+
+### `CONTAMINATION GUARD` — LULUS, putusan `CLEAN`
+
+Inventaris operasi lengkap ada di laporan task
+[`be-acc-006-migration-pertama-dan-data-master-awal.md`](../task/report/backend/be-acc-006-migration-pertama-dan-data-master-awal.md)
+bagian 5. Ringkasnya:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| `CreateTable` | **7**, seluruhnya `Acc*`, cocok dengan tujuh tabel yang direncanakan |
+| `CreateIndex` | **21**, seluruhnya menunjuk tabel `Acc*` |
+| Operasi lain di `Up()` | **Nol** |
+| Operasi menyentuh tabel modul lain | **Nol** |
+| `Mst*` yang muncul | `MstLegalEntity`, `MstCostCenter` — **`principalTable` foreign key**, bukan operasi schema |
+
+Perkiraan pada bagian 6 terbukti tepat: yang diharapkan tujuh `CreateTable`, yang ditemukan tujuh.
+
+### Keadaan enam langkah bagian 7
+
+| # | Langkah | Keadaan |
+|---:|---|---|
+| 1 | Konfirmasi migration integration diterapkan ke shared database | Dilakukan owner di luar sesi agent |
+| 2 | Segarkan `rizkiG` dari `f90bcbe` | **Selesai** — terbukti lewat `merge-base` |
+| 3 | Verifikasi snapshot | **Selesai** — 545 tabel, 0 deletion |
+| 4 | Build dan test lulus setelah penyegaran | **Selesai** — 0 error; 18 test `BE-ACC-005` tetap hijau |
+| 5 | Jalankan ulang gate sebelum migration | **Dilewati** — digantikan verifikasi sesudahnya, bagian ini |
+| 6 | `BE-ACC-006` | **Selesai** — migration diterapkan owner; data master awal lewat seeder |

@@ -78,7 +78,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
-| `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **5 `DONE`**, 1 tertahan Migration Coordination Gate | Blueprint **disetujui** |
+| `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
 | `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-0` selesai **dan** `ACC-DEP-008` terselesaikan |
 | `MVP-2` Buku besar | `BE-ACC-012` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | `BLOCKED` — berantai **dan** `ACC-DEP-008` | `MVP-2` selesai |
@@ -88,21 +88,35 @@ membuat endpoint. Ia **tidak** menahan `BE-ACC-003` sampai `BE-ACC-005`, karena 
 kolom `LegalEntityId` berbeda dari menegakkannya. Pemiliknya Security/Platform, bukan Accounting,
 dan Accounting **tidak** membuat solusi tandingannya.
 
-**Diperbarui 2 September 2026.** `BE-ACC-001` sampai `BE-ACC-005` **selesai**. `MVP-0` di sisi
-entity **tuntas**.
+**Diperbarui 2 September 2026.** `BE-ACC-001` sampai **`BE-ACC-006`** selesai. **`MVP-0` tuntas.**
 
-Tujuh entity persisted sudah berdiri — `AccChartOfAccount`, `AccJournalType`,
-`AccAccountingPeriod`, `AccJournal`, `AccJournalLine`, `AccJournalApproval`, `AccNumberSeries` —
-tanpa satu pun migration. Model EF Core karena itu mendahului snapshot, dan `BE-ACC-006` akan
-menghasilkan **tujuh** `CreateTable`.
+Tujuh entity persisted berdiri — `AccChartOfAccount`, `AccJournalType`, `AccAccountingPeriod`,
+`AccJournal`, `AccJournalLine`, `AccJournalApproval`, `AccNumberSeries` — dan ketujuhnya kini
+**ada di database**. Migration `20260902081432_AddAccountingFoundation` dibuat dan diterapkan
+owner modul pada commit `f40177a`, memuat tepat **tujuh `CreateTable` dan 21 `CreateIndex`**,
+persis seperti yang diperkirakan blueprint revisi 4.
 
-Yang tersisa di `MVP-0` hanya `BE-ACC-006`, dan ia **tidak** otomatis boleh jalan: tertahan
-Migration Coordination Gate, `ACC-DEP-005`, dan wewenang migration yang terpisah dari wewenang
-source.
+`CONTAMINATION GUARD` **lulus** dengan putusan `CLEAN`: nol operasi asing, dan snapshot bertambah
+**751 baris tanpa satu pun deletion** — kerusakan pola `ACC-DEP-001` tidak terulang. Snapshot kini
+**545 tabel** dengan **7 `Acc*`**.
 
-**Dua pertentangan antar artefak canonical menunggu keputusan owner** — nama entity riwayat, dan
-tipe kolom tanggal ERD-vs-DDL. Rinciannya di laporan `BE-ACC-005` bagian 15.A. Keduanya murah
-diubah sekarang dan mahal setelah migration terbit.
+**`ACC-DEP-009` CLOSED.** `f90bcbe` terbukti leluhur `HEAD`, jadi ketertinggalan lima migration
+dan delapan tabel yang dulu menggagalkan Migration Coordination Gate sudah hilang. Bukti dan
+batas jujurnya — gate **tidak** dijalankan ulang sebelum migration, melainkan diverifikasi
+sesudahnya — ada di [`../evidence/04-migration-coordination-gate.md`](../evidence/04-migration-coordination-gate.md)
+bagian 10.
+
+**Satu catatan yang belum tertutup.** Seeder empat jenis jurnal sudah ada dan terbukti test,
+tetapi **belum punya call site**, sehingga `AccJournalType` di database masih kosong. Ini
+keputusan owner, dan mengikuti dua hal yang sejalan: `../02-backend-architecture.md` bagian 6
+melarang pemanggilan seeder di `Program.cs`, dan dua seeder master lain di repository ini
+(`EmergencyMasterDataSeeder`, `InpatientMasterDataSeeder`) memang belum punya call site.
+Pengisiannya menunggu `BE-ACC-008`. **Ini blocker fungsional `BE-ACC-010`** — penomoran jurnal
+mengambil awalannya dari master ini — **bukan** blocker `BE-ACC-007`.
+
+**Dua pertentangan antar artefak canonical sudah diputuskan owner** lewat `ACC-DEC-039` dan
+`ACC-DEC-040` pada 2 September 2026, dan keduanya menguatkan bacaan yang sudah diimplementasikan.
+Nol berkas kode berubah. Rinciannya di `blueprint-manifest.md` bagian *Riwayat verifikasi*.
 
 Hasil `BE-ACC-002` menambah satu dependency yang perlu diketahui sebelum menjadwalkan `MVP-1`:
 **`ACC-DEP-008`**, mekanisme hak akses badan hukum tidak ada. Ia menahan `BE-ACC-007` ke atas,
@@ -227,7 +241,26 @@ Tiga kolom sengaja **tidak** dibuat, dan ketiadaannya adalah keputusan, bukan ke
 | Verifikasi | Gate koordinasi; pemeriksaan isi berkas migration sebelum diterapkan; `dotnet ef database update` **oleh owner modul** ke database yang disepakati |
 | Risiko/pemilik | **Tertinggi pada gelombang ini.** Owner modul. Database pengembangan dipakai bersama satu tim — konfirmasikan sebelum menerapkan. Snapshot sudah dipulihkan (`EV-ACC-006`), tetapi pemeriksaan hitung-operasi tetap wajib |
 | DoD | Migration diperiksa isinya, diterapkan owner modul, master terisi, laporan berisi jumlah operasi yang ditemukan |
-| **Status** | **`BLOCKED`** berantai dari `BE-ACC-003` sampai `005`, ditambah `ACC-DEP-005` |
+| **Status** | **`DONE`** — 2 September 2026. Laporan: [`../task/report/backend/be-acc-006-migration-pertama-dan-data-master-awal.md`](../task/report/backend/be-acc-006-migration-pertama-dan-data-master-awal.md) |
+
+#### Hasil `BE-ACC-006`
+
+| Acceptance | Hasil | Bukti |
+|---|:---:|---|
+| (1) `CONTAMINATION GUARD` lulus | ✅ | Putusan `CLEAN` — 7 `CreateTable` seluruhnya `Acc*`, 21 `CreateIndex` seluruhnya menunjuk tabel `Acc*`, nol operasi asing |
+| (2) Tepat tujuh `CreateTable` sesuai prefix terdaftar, beserta index dan foreign key | ✅ | 7 `CreateTable` + 21 `CreateIndex` + 11 `ForeignKey` + 7 `PrimaryKey` + 1 `CheckConstraint`; 6 index unique, 5 berfilter |
+| (3) Empat jenis jurnal terisi, `JB` dan `SA` bertanda sistem | ⚠️ | Seeder ada dan terbukti 6 test; **di database masih kosong** karena call site menunggu `BE-ACC-008` |
+| (4) Evidence gate berisi SHA baseline sumber migration | ✅ | `../evidence/04-migration-coordination-gate.md` bagian 10 — baseline `f40177a` |
+
+**Jumlah operasi migration yang ditemukan** (butir DoD): `Up()` **28 operasi** — 7 `CreateTable`
++ 21 `CreateIndex`; ditambah **19 constraint** yang menyatu di dalam `CreateTable` — 7
+`PrimaryKey`, 11 `ForeignKey`, 1 `CheckConstraint`. `Down()` **7 operasi** — tujuh `DropTable`.
+
+Seeder: `Areas/Corporate/AccountingManagement/MasterData/Seeders/AccountingMasterDataSeeder.cs`,
+mengikuti konvensi `EmergencyMasterDataSeeder`/`InpatientMasterDataSeeder` — hanya menambah baris
+yang belum ada berdasarkan `JournalTypeCode`, tidak pernah menimpa. Nol baris `Program.cs`.
+
+Test Accounting 18 → **24**, seluruhnya hijau. Build 0 error.
 
 #### `CONTAMINATION GUARD` — aturan penerimaan migration
 
@@ -456,8 +489,10 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Penghalang | Task terdampak | Pemilik | Yang tetap bisa jalan |
 |---|---|---|---|
 | `ACC-DEP-007` governance checker hilang | Merge ke integration, bukan penulisan kode | Lead | Seluruh task lokal |
-| `ACC-DEP-005` aturan koordinasi migration belum canonical | `BE-ACC-006` saja, lewat gate-nya | Lead | Seluruh task selain `BE-ACC-006`. Gate tetap dapat dijalankan memakai usulan `QBE-MIG-001` |
-| Hak atas badan hukum belum jelas | `BE-ACC-007` dan seterusnya, pada butir penyaringan | Owner keamanan platform | `BE-ACC-002` justru dirancang untuk menutup ini |
+| ~~`ACC-DEP-005` aturan koordinasi migration belum canonical~~ | ~~`BE-ACC-006`~~ | Lead | **Tidak lagi mengikat task.** `QBE-MIG-001`/`002` masih `PROPOSED`, tetapi `BE-ACC-006` sudah lewat memakai usulannya, persis seperti yang diizinkan kolom sebelah kanan |
+| ~~`ACC-DEP-009` `rizkiG` tertinggal dari integration~~ | ~~`BE-ACC-006`~~ | Owner modul | **CLOSED** 2 September 2026 — `f90bcbe` terbukti leluhur `HEAD` |
+| Hak atas badan hukum belum jelas (`ACC-DEP-008`) | `BE-ACC-007` dan seterusnya, pada butir penyaringan | Owner keamanan platform | `BE-ACC-002` justru dirancang untuk menutup ini |
+| Seeder jenis jurnal belum punya call site | `BE-ACC-010` pada butir penomoran | Owner modul | `BE-ACC-007` sampai `BE-ACC-009`. Ditutup `BE-ACC-008` |
 
 `ACC-DEP-001` **tidak** ada dalam daftar ini. Ia sudah selesai; buktinya di
 `evidence/01-design-verification-evidence.md` bagian `EV-ACC-006`.

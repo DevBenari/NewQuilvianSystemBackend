@@ -7,10 +7,10 @@ module_slug: accounting
 module_prefix: ACC
 revision: 6
 status: approved
-current_phase: ACC-PH-003
+current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-02T12:00:00+07:00
-last_verified_at: 2026-09-02T12:00:00+07:00
+updated_at: 2026-09-02T17:30:00+07:00
+last_verified_at: 2026-09-02T17:30:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,23 +29,30 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: 2b152aaf2a28550c14b13549b315d2b743e4c039
+verification_backend_source_sha: f40177a
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
-  Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 sepanjang 2 September 2026, dan tiap
-  pergeseran diverifikasi impact scan lebih dahulu. ca6b7e0 menambah 28 berkas dokumentasi
-  blueprint saja. e1ee173 adalah commit BE-ACC-001..003 oleh owner. a4df550 adalah commit
-  BE-ACC-004 oleh owner, tepat 8 berkas. 2b152aa adalah commit BE-ACC-005 oleh owner, 16 berkas.
-  Keempatnya nol sentuhan pada Migrations/, ModelSnapshot, Program.cs, tooling/, agents/,
-  .github/, dan modul lain, sehingga seluruh bukti terhadap aa837d7 tetap berlaku. Frontend:
-  31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak relevan untuk task backend.
+  Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
+  2 September 2026, dan tiap pergeseran diverifikasi impact scan lebih dahulu. ca6b7e0 menambah
+  28 berkas dokumentasi blueprint saja. e1ee173 adalah commit BE-ACC-001..003 oleh owner.
+  a4df550 adalah commit BE-ACC-004, tepat 8 berkas. 2b152aa adalah commit BE-ACC-005, 16 berkas.
+  Kelimanya nol sentuhan pada Migrations/, ModelSnapshot, Program.cs, tooling/, agents/,
+  .github/, dan modul lain.
+  PERGESERAN TERAKHIR BERBEDA SIFATNYA. 2b152aa -> f40177a adalah 71 commit, sebagian besar merge
+  canonical integration yang memang menjadi syarat penutupan ACC-DEP-009. Impact scan: NOL berkas
+  Accounting berubah di dalamnya; Program.cs bergerak +9/-2 seluruhnya milik Radiology dan Medical
+  Record, nol baris Accounting dan nol pemanggilan seeder. f40177a sendiri menyentuh tepat 3
+  berkas — migration, designer, snapshot. Seluruh bukti terhadap aa837d7 tetap berlaku, dan
+  17/17 hash artefak canonical cocok saat diverifikasi ulang. Frontend: 31a82c8 adalah leluhur
+  5336c44 (fast-forward murni), tidak relevan untuk task backend.
 canonical_integration_baseline: f90bcbe9a0b18d4f4425a4678a5a39a44356677b
 integration_baseline_note: >
-  PERHATIAN. rizkiG@2b152aa tertinggal 5 migration dan 8 tabel dari canonical integration
-  baseline f90bcbe. Snapshot lokal 530 tabel, snapshot integration 538. Ini TIDAK memengaruhi
-  kode Accounting yang sudah ada, tetapi MENAHAN BE-ACC-006: migration yang dibuat dari snapshot
-  basi akan menghapus 8 tabel modul lain, pola kerusakan yang sama dengan ACC-DEP-001. Dilacak
-  sebagai ACC-DEP-009. Bukti: evidence/04-migration-coordination-gate.md.
+  TERSELESAIKAN 2 September 2026. rizkiG dulu tertinggal 5 migration dan 8 tabel dari f90bcbe,
+  dan itu MENAHAN BE-ACC-006. Owner menyegarkan branch lebih dulu, sehingga f90bcbe kini terbukti
+  leluhur HEAD dan ACC-DEP-009 CLOSED. Migration BE-ACC-006 dibuat dari baseline yang sudah
+  lengkap: snapshot bertambah 751 baris TANPA satu pun deletion, jadi pola kerusakan ACC-DEP-001
+  tidak terulang. Snapshot kini 545 tabel dengan 7 Acc*.
+  Bukti: evidence/04-migration-coordination-gate.md bagian 10.
 verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
@@ -90,10 +97,10 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 88658490456f7d74a2ce0834b7b6bf94389e2a7273e67b953e79a7dd8bf27364
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: 4f4dd68b2c231438274bc019340dccc53ada2b50b1dedc8ca83ef585fd5f67f2
+  roadmap/backend-roadmap.md: 84a2f51ca69f898dab55de213db8ed32bba22e659f89a0744ef597d28b16f097
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
-active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008, ACC-DEP-009]   # 001, 002, 006 CLOSED
+active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED
 entity_prefix:
   prefix: Acc
   status: REGISTERED
@@ -103,8 +110,8 @@ entity_prefix:
   activation_decision: ACC-DEC-038
   registry_path: QuilvianEngineeringSkills/agents/rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md
   entity_creation_authorized: true    # source model persisted saja
-  migration_authorized: false         # gerbang terpisah: ACC-DEP-005 + Migration Coordination Gate
-  database_execution_authorized: false
+  migration_authorized: true          # turun & dipakai 2 Sep 2026 — migration BE-ACC-006 diterapkan owner pada f40177a
+  database_execution_authorized: true # terbatas pada `dotnet ef database update` BE-ACC-006 oleh owner; TIDAK berlaku untuk task lain
   deployment_authorized: false
 active_roadmap_revision: 2
 roadmap_status: DRAFT_FORWARD_TEST
@@ -195,6 +202,47 @@ target, atau menandai task selesai **tidak** menaikkan `revision`. Setiap pembar
 mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
+
+### 2 September 2026 — `BE-ACC-006` selesai dan `ACC-DEP-009` CLOSED, revisi tetap 6
+
+`revision` **tetap 6**. Tidak ada arsitektur target, contract version, ERD, kamus data, maupun
+keputusan `APPROVED` yang berubah. Yang berubah hanya status task, satu dependency yang tertutup,
+dan dua wewenang yang memang sudah dijadwalkan turun di gerbang `BE-ACC-006`.
+
+| Yang berubah | Dari | Menjadi |
+|---|---|---|
+| `verification_backend_source_sha` | `2b152aa` | `f40177a` |
+| `current_phase` | `ACC-PH-003` | `ACC-PH-005` |
+| `migration_authorized` | `false` | `true` — dipakai sekali, oleh owner, untuk `BE-ACC-006` |
+| `database_execution_authorized` | `false` | `true` — **terbatas** pada `dotnet ef database update` `BE-ACC-006` |
+| `active_dependency_ids` | memuat `ACC-DEP-009` | `ACC-DEP-009` **CLOSED** |
+| `roadmap/backend-roadmap.md` hash | `4f4dd68…` | `84a2f51…` |
+
+**Kedua wewenang itu tidak berlaku umum.** Ia turun untuk satu migration `BE-ACC-006` yang isinya
+sudah diperiksa dan lulus `CONTAMINATION GUARD`, dan **tidak** memberi wewenang `dotnet ef
+migrations add` berikutnya, perubahan shared database di luar itu, deployment, maupun production
+activation. Setiap task sesudah ini kembali memerlukan wewenangnya sendiri.
+
+#### Kenapa `ACC-DEP-009` tertutup
+
+Bukti git, bukan pernyataan: `git merge-base --is-ancestor f90bcbe HEAD` bernilai benar, sehingga
+ketertinggalan lima migration dan delapan tabel yang dulu menggagalkan Migration Coordination Gate
+sudah hilang. Migration yang dihasilkan bersih — 7 `CreateTable` dan 21 `CreateIndex`, seluruhnya
+`Acc*`, nol operasi asing — dan snapshot bertambah **751 baris tanpa satu pun deletion**, sehingga
+pola kerusakan `ACC-DEP-001` tidak terulang.
+
+**Satu batas dicatat apa adanya:** gate **tidak** dijalankan ulang sebelum migration dibuat.
+Langkah 5 pada `evidence/04-migration-coordination-gate.md` bagian 7 dilewati, dan yang ada
+sekarang adalah verifikasi sesudahnya. Ia memeriksa hal yang sama persis, tetapi urutannya bukan
+yang diatur aturan, dan itu dicatat di bagian 10 berkas tersebut.
+
+#### Satu butir DoD yang belum tertutup penuh
+
+Seeder empat jenis jurnal sudah ada dan terbukti enam test, tetapi **belum punya call site**,
+sehingga `AccJournalType` di database masih kosong. Ini keputusan owner pada hari yang sama, dan
+sejalan dengan `02-backend-architecture.md` bagian 6 yang melarang pemanggilan seeder di
+`Program.cs`. Pengisiannya menunggu `BE-ACC-008`.
+
 
 ### 2 September 2026 — `ACC-DEC-039` dan `ACC-DEC-040`, revisi tetap 6
 
