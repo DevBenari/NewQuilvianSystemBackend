@@ -5,13 +5,13 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 14
+revision: 15
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-03T15:00:00+07:00
+updated_at: 2026-09-03T17:00:00+07:00
 last_verified_at: null
-backend_source_sha: ab39b63edd912e7a825e186be75537fc319a36ce
+backend_source_sha: a9bc9fd8f2b9f0d7955953949adb78217939e842
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -84,9 +84,8 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 1
-roadmap_status: STALE
-roadmap_stale_reason: roadmap revisi 1 mendahului Storage Location; EPIC BD-11 dan gelombang MVP-1b belum tercermin
+active_roadmap_revision: 2
+roadmap_status: FORWARD-TEST
 supersedes: null
 ```
 
@@ -103,10 +102,10 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63`; setiap tinjauan dampak sudah dijalankan dengan `git diff --name-only` dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd`; setiap tinjauan dampak sudah dijalankan dengan `git diff --name-only` dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
-| `roadmap_status` | Berubah dari `FORWARD-TEST` menjadi `STALE`. Roadmap revisi 1 disusun sebelum Storage Location masuk, sehingga belum memuat `EPIC BD-11` maupun gelombang `MVP-1b`. Perlu `plan-module-delivery` ulang. |
+| `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
 | `decision_revision` | Naik ke `8` pada Role & authority closure pass 3 September 2026. `DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-041`. **Tidak ada lagi keputusan bisnis yang memblokir**; pemblokir tersisa hanya `BD-DEP-008` yang bersifat administratif. |
 | `contract_versions` | Set kontrak desain **`v4`** berstatus `draft`, hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
 | `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
@@ -223,5 +222,17 @@ keputusan dikehendaki bersifat keterangan saja, pengetatan ini dicabut.
 Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama peran konkret pemegang
 `BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
 
-Pemblokir yang tersisa untuk `plan-module-delivery` tinggal **satu**: `BD-DEP-008`. `roadmap/` tetap
-`STALE`. Approval manusia belum diklaim.
+Pemblokir yang tersisa tinggal **satu**: `BD-DEP-008`. Approval manusia belum diklaim.
+
+**Delivery roadmap revisi 2 — 3 September 2026.** `plan-module-delivery` menyusun ulang
+`roadmap/00-delivery-plan.md` di atas set kontrak `v4`, register keputusan revisi 9, dan arsitektur
+domain revisi 6. Statusnya `FORWARD-TEST / DRAFT`; seluruh task gated `G1` karena kontrak masih `draft`.
+
+Tiga perubahan yang membuat revisi 1 diganti, bukan ditambal: Storage Location naik dari coverage gap
+menjadi P0 dan **mendahului** alokasi; gerbang pemberian diperluas `DEC-BD-038`; dan gerbang `G3`
+revisi 1 **dihapus** karena `DEF-BD-004` sudah tertutup penuh.
+
+Satu temuan yang mengubah urutan kerja: `MstBloodStorageLocation`, `MstBloodComponent`, dan
+`MstBloodBankReason` seluruhnya memakai prefix `Mst` yang sudah sah, sehingga **tidak terblokir
+`BD-DEP-008`**. Gelombang `MVP-0` — seluruh master ditambah seeder hak akses — karena itu dapat
+berjalan segera setelah approval, sementara registry masih diurus.

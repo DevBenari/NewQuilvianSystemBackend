@@ -3,153 +3,239 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Roadmap revision | `1` |
-| **Roadmap status** | **`FORWARD-TEST / DRAFT`** — desain `v1` belum di-approve owner; seluruh task gated |
-| Contract version yang dipakai | `v1` (`draft`) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/` |
-| Backend SHA | `db08c14dbfb9d6b704e8d0bdfb4fd05e2b52a8cb` cabang `sukmagp` |
+| Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE` |
+| **Roadmap status** | **`FORWARD-TEST / DRAFT`** — set kontrak `v4` masih `draft`; seluruh task gated `G1` |
+| Contract version yang dipakai | **`v4`** (`draft`) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
+| Backend SHA | `a9bc9fd8f2b9f0d7955953949adb78217939e842` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
-| Input hash | `design-business-module-2026-09-02` · decision revisi 4 · domain arch revisi 3 |
+| Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **9** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
 
 Roadmap ini **tidak** memberi wewenang implementasi. Ia memetakan pekerjaan dan menandai apa yang
-`BLOCKED`. `BLOCKED` bukan cara melewati approval. Preflight QBE dan kesesuaian engineering diselesaikan
-**pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical, bukan di sini.
+`BLOCKED`. `BLOCKED` bukan cara melewati approval dan bukan tanda roadmap gagal. Preflight QBE dan
+kesesuaian engineering diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen
+engineering canonical, bukan di sini.
 
 ---
 
-## A. Gerbang global — tidak ada task yang boleh mulai sebelum ini tuntas
+## A. Kenapa roadmap revisi 1 diganti, bukan ditambal
+
+Revisi 1 disusun di atas kontrak `v1`. Sejak itu empat rangkaian keputusan turun dan set kontrak naik
+tiga kali. Tiga hal membuat revisi 1 tidak dapat sekadar ditambal:
+
+| Perubahan | Akibat pada rencana |
+| --- | --- |
+| Storage Location masuk MVP (`DEC-BD-035`..`037`) | Revisi 1 menaruhnya di **Future scope** sebagai coverage gap. Kini ia P0, dan **mendahului** alokasi karena kantong tak dapat dialokasikan sebelum tersimpan |
+| Gerbang pemberian diperluas (`DEC-BD-038`) | Task pemberian bertambah syarat yang dinilai ulang saat pemberian, bukan diwarisi dari alokasi |
+| `DEF-BD-004` tertutup penuh (`DEC-BD-039`..`044`) | **Gerbang `G3` pada revisi 1 dihapus.** Ia dulu menahan seeding peran; peran kini sudah dipetakan |
+
+Revisi 1 juga menyatakan Storage Location "tidak boleh dibuatkan task karena entity tidak lahir dari
+nama task". Penilaian itu **benar pada saat itu** dan tidak dicabut — yang berubah adalah buktinya:
+Storage Location kini punya keputusan, konsep domain (`BD-DOM-24`, `BD-DOM-25`), dan kontrak.
+
+---
+
+## B. Gerbang global
 
 | Gate | Isi | Pemilik | Memblokir |
 | --- | --- | --- | --- |
-| `G1` Approval desain | Owner menyetujui blueprint `v1` (`draft`) | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE |
-| `G2` `BD-DEP-008` | Pendaftaran prefix `Bbk` di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Pemilik registry engineering | Seluruh task yang **membuat entity operasional `Bbk*`** dan migration-nya |
-| `G3` `DEF-BD-004` | Penetapan peran jalur darurat, validator golongan darah, pencatat koreksi | Pemilik proses BDRS & klinis | **Seeding peran→hak akses** untuk `EmergencyIssue`, `Validate`, `Correct` (bukan kode endpoint-nya) |
+| `G1` Approval desain | Owner menyetujui blueprint & set kontrak `v4` (`draft`) | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE |
+| `G2` `BD-DEP-008` | Pendaftaran prefix `Bbk` di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Pemilik registry engineering | Seluruh task yang membuat **entity operasional `Bbk*`** dan migration-nya |
 
-Catatan `G2`: master `Mst*` memakai prefix `Mst` yang sudah sah, **tidak** terikat `G2`. Hanya entity
-operasional `Bbk*` yang terblokir `G2`.
+**`G3` revisi 1 dihapus.** Ia menahan seeding peran sampai `DEF-BD-004` turun. `DEC-BD-039` sampai
+`DEC-BD-044` sudah memetakan keenam wewenangnya, sehingga tidak ada lagi task yang menunggunya.
 
-Catatan `G3`: endpoint & logika `emergency-issue`, `validate`, `correction` boleh **dibangun** setelah
-`G2` (mereka `Bbk*`), tetapi **tidak dapat dipanggil peran mana pun** sampai seeding peran turun dari
-`G3`. Karena itu `G3` membuat *task seeding* terpisah `BLOCKED`, bukan menahan seluruh task.
+**Catatan `G2` yang mengubah urutan kerja.** Prefix `Mst` **sudah sah** dan tidak terikat pengajuan
+`BD-DEP-008` (`02-backend-architecture.md` §B). Karena `MstBloodStorageLocation`, `MstBloodComponent`,
+dan `MstBloodBankReason` seluruhnya master `Mst*`, ketiganya **tidak terblokir `G2`** — hanya `G1`.
+Ini berarti seluruh fondasi master, termasuk Storage Location, dapat berjalan sementara registry masih
+diurus. Pada revisi 1 keuntungan ini tidak terlihat karena Storage Location belum ada.
 
 Karena kontrak masih `draft`, **kerja paralel BE/FE belum diizinkan**: task FE bergantung pada kontrak
-BE yang sudah di-approve & terkunci hash. Selama `G1` terbuka, FE menunggu.
+BE yang sudah di-approve dan terkunci hash. Selama `G1` terbuka, FE menunggu.
 
 ---
 
-## B. ⚠️ Coverage gap — di luar blueprint `v1`
+## C. Pemisahan yang diminta
 
-| Item diminta | Keadaan | Tindakan |
-| --- | --- | --- |
-| **Storage Location** | **Tidak ada** di `03-domain-architecture.md`, `02-backend-architecture.md`, maupun `data/data-dictionary.md`. Bukan konsep yang pernah diputuskan | **Tidak dibuat task implementasi.** Entity tidak boleh lahir dari nama task. Bila memang dibutuhkan (mis. lokasi simpan kantong/lemari pendingin), rutekan ke `/grill-me` lalu `/design-business-module` lebih dulu. Ditempatkan di Future scope |
-| Penyaluran biaya Billing | `OPEN DECISION` `DEC-BD-016` | Future scope; tak masuk gelombang mana pun |
-| Label cetak golongan darah | `OQ-BD-011` | Future scope |
+### C.1 Task yang **tidak** terblokir registry — hanya menunggu `G1`
+
+| Task | Sebabnya bebas `G2` |
+| --- | --- |
+| `BE-BD-001` Master komponen darah & alasan terkendali | Prefix `Mst`, pemilik Master Data |
+| `BE-BD-002` Titipan flag kewenangan unit pada `MstServiceUnit` | Kolom pada tabel milik Master Data yang sudah ada |
+| `BE-BD-014` **Master lokasi penyimpanan darah** | Prefix `Mst`, pemilik Master Data (`DEC-BD-035`) |
+| `BE-BD-016` Seeder resource & action hak akses | Mendaftarkan butir hak akses, bukan membuat entity |
+
+### C.2 Task yang **terblokir registry** — siap dimulai setelah `G2`
+
+Seluruhnya membuat entity operasional `Bbk*` (`QBE-MOD-002`, `QBE-MOD-003`):
+
+`BE-BD-003` Blood Order · `BE-BD-004` PMI Request + Receipt + kelahiran kantong · `BE-BD-015`
+Penempatan kantong · `BE-BD-005` Pemeriksaan golongan darah · `BE-BD-006` Alokasi ·
+`BE-BD-007` Bukti kecocokan + pemberian · `BE-BD-008` Jalur darurat · `BE-BD-009` Penyelesaian
+`PendingReview` · `BE-BD-010` Koreksi dua tahap · `BE-BD-011` Penyelesaian konflik ·
+`BE-BD-012` Tindakan Bank Darah.
+
+### C.3 Future scope — tidak masuk gelombang mana pun
+
+Lihat bagian G.
 
 ---
 
-## C. P0 — MVP prioritas ("tanggal 4")
+## D. P0 — irisan vertikal terkecil yang menjalankan satu kasus darah nyata
 
-Cakupan P0 = irisan vertikal tertipis untuk menjalankan satu kasus darah nyata: **Blood Order → PMI
-Request → Blood Receipt → (Blood Group) → Allocation → Issue Patient**, plus **Cancellation**.
-(*Storage Location* dikeluarkan — lihat §B.)
+Alurnya: **Order → Permintaan PMI → Penerimaan → Penyimpanan → Alokasi → Bukti kecocokan → Pemberian**,
+ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
-### C.1 Backend
+### D.1 Backend — fondasi master (bebas `G2`)
 
-| Task ID | Outcome | Req/Decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
+| Task ID | Outcome | Req/Decision | Kontrak `v4` | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-BD-001` | Master komponen darah & alasan terkendali dapat dikelola | `DEC-BD-024`, `DEC-BD-032`, `BD-DOM-13/14` | `api-contract` v1 (Blood Component, Blood Bank Reason) | `BD-CAP-011/012/013` | `MstBloodComponent`, `MstBloodBankReason` + config + service + controller + migration + seed | `G1` | `AC-BD-055` | Master terisi (§J), CRUD berjalan | Rendah / Master Data | Endpoint master jalan, seed minimum PRC/TC/FFP + alasan per kategori |
-| `BE-BD-002` | Unit pelayanan dapat dikonfigurasi berwenang memesan darah | `DEC-BD-012`, `BD-DOM-18` | `integration-contract` v1 | `BD-CAP-005` | Extend `MstServiceUnit` +`IsAvailableForBloodOrder` (default false) + migration | `G1`, pemilik Master Data | `AC-BD-013/015/016` | Unit tak dikonfigurasi ditolak; unit dikonfigurasi lolos | Rendah / Master Data | Kolom + migration tanpa downtime, bawaan menolak |
-| `BE-BD-003` | Order darah dibuat (elektronik+manual), ganda tertahan, batal, pemenuhan dihitung | `DEC-BD-004/005/006`, `BD-AGG-01`, `BD-XINV-01` | `api-contract` (Blood Order), `state-transition`, `validation` v1 | `BD-CAP-002/007/009/010` | `BbkBloodOrder`+`Line`, service (deteksi ganda, fulfillment `BD-DOM-17`), controller, `BbkEncounterStatusReader` (expiry), migration | `G1`, **`G2`** | `AC-BD-001/002/003/004/010/011/017` | Order ganda ditahan; kedaluwarsa dari sinyal kunjungan | Sedang / BDRS | Semua AC lolos; riwayat append-only |
-| `BE-BD-004` | Permintaan PMI dibuat & penerimaan (termasuk kelebihan) dicatat; kantong lahir | `DEC-BD-002/003/008/020/025`, `BD-AGG-02`, `BD-XINV-02/03` | `api-contract` (Provider Request), `state-transition`, `validation` v1 | `BD-CAP-007/008/010` | `BbkProviderRequest`+`Receipt`+`BbkBloodUnit` (lahir), service (sisa≥0 token `Version`, overdelivery→`IsExcess`+`PendingReview`, close-encounter), controller, migration | `G1`, **`G2`**, `BE-BD-003` | `AC-BD-005/006/009/022/023/031/032/033` | Kelebihan tak buat sisa negatif; susulan tetap dicatat | Sedang / BDRS | Semua AC lolos; stok bertambah hanya lewat penerimaan |
-| `BE-BD-005` | Golongan darah pasien diperiksa & divalidasi (sumber sah gerbang klinis) | `DEC-BD-015/018/026`, `BD-AGG-04`, `BD-XINV-04` | `api-contract` (Blood Group Exam), `state-transition`, `validation` v1 | `BD-CAP-016` | `BbkBloodGroupExam`+`Sample`, service (sample→result→validate, deteksi konflik→`IsConflictHeld`), controller, `BD-DOM-21` valid view, migration | `G1`, **`G2`** · seeding `Validate`→peran **`G3`** | `AC-BD-030/034/035` | Hasil tak tervalidasi tak dipakai; konflik menahan gerbang | Tinggi / klinis | Validasi & valid-view jalan; **penyelesaian konflik = P1** |
-| `BE-BD-006` | Kantong dialokasikan (satu aktif) & alokasi keliru dibatalkan | `DEC-BD-003/007/029`, `BD-AGG-03`, `ARCH-BD-POS-03` | `api-contract` (Blood Unit allocate/cancel), `state-transition`, `validation`, `concurrency` v1 | `BD-CAP-010` | `BbkBloodUnitAllocation`, service (filtered-unique aktif + token `Version`, cancel→available/PendingReview), controller | `G1`, **`G2`**, `BE-BD-004` | `AC-BD-043/044/045/046` + konkurensi `VAL-BD-018c` | Dua petugas rebut kantong → satu `409` | Tinggi / BDRS | Satu alokasi aktif terjamin; pembatalan tak menghapus |
-| `BE-BD-007` | Bukti kecocokan dicatat & kantong diberikan lewat gerbang | `DEC-BD-013/027/028`, `BD-AGG-03`, `ARCH-BD-POS-01/02`, `INV-BD-019/020` | `api-contract` (evidence/issue), `state-transition`, `validation` v1 | `BD-CAP-008` | `BbkCompatibilityEvidence`, service (gerbang: bukti pasien tujuan + belum lewat masa berlaku + golongan darah sah), issue, migration | `G1`, **`G2`**, `BE-BD-005`, `BE-BD-006` | `AC-BD-018/019/038/039/040/041/042` | Pemberian ditolak tanpa bukti berlaku; gugur saat pengalihan | Tinggi / klinis & BDRS | Gerbang fail-closed; pemberian terminal |
-| `BE-BD-008` | Pemberian jalur darurat oleh peran berwenang | `DEC-BD-017`, `BD-DOM-08` | `api-contract` (emergency-issue), `validation` v1 | — | `BbkEmergencyAuthorization`, service (penanda permanen, alasan wajib), controller | `G1`, **`G2`**, **`G3`** (seeding peran) | `AC-BD-020/021` | Peran tak berwenang ditolak; muncul di daftar tunggakan | Tinggi / klinis | **`BLOCKED` seeding peran sampai `G3`**; endpoint boleh dibangun, tak dapat dipanggil |
+| `BE-BD-001` | Katalog komponen darah & daftar alasan terkendali dapat dikelola | `DEC-BD-024`, `DEC-BD-032`, `DEC-BD-044`, `BD-DOM-13/14` | api-contract (Blood Component, Blood Bank Reason) | `BD-CAP-011/012/013` | `MstBloodComponent`, `MstBloodBankReason` (+kategori `OrderCancellationClinical`/`Operational`, `CorrectionRejection`) + config + service + controller + migration + seed | `G1` | `AC-BD-055/056` | CRUD berjalan; seed minimum terisi | Rendah / Master Data | Endpoint master jalan; seluruh kategori alasan terseed |
+| `BE-BD-002` | Unit pelayanan dapat dikonfigurasi berwenang memesan darah | `DEC-BD-012`, `BD-DOM-18` | integration-contract | `BD-CAP-005` | Extend `MstServiceUnit` +`IsAvailableForBloodOrder` (bawaan `false`) + migration | `G1`, pemilik Master Data | `AC-BD-013/015/016` | Unit tak dikonfigurasi ditolak | Rendah / Master Data | Migration tanpa downtime; bawaan menolak |
+| `BE-BD-014` | **Lokasi penyimpanan darah dapat dikelola, termasuk dinonaktifkan** | `DEC-BD-035`, `DEC-BD-037`, `BD-DOM-24` | api-contract (Blood Storage Location), validation | `BD-CAP-011/012/013` | `MstBloodStorageLocation` + config + service + controller + `GET /options` (hanya aktif) + `PATCH /status` + migration + seed | `G1` | `AC-BD-062/065/067`, `VAL-BD-067/068` | Lokasi nonaktif hilang dari pilihan; penonaktifan **tidak** memindahkan kantong | Sedang / BDRS | **Minimal satu lokasi aktif terseed — prasyarat go-live**; `MstDrugStorageLocation` tidak disentuh |
 
-### C.2 Frontend (menunggu kontrak BE di-approve — `G1`)
+> `BE-BD-014` **mendahului** seluruh task kantong. Master lokasi yang kosong menghentikan modul total:
+> tanpa satu pun lokasi aktif, tidak ada kantong yang dapat melewati `Stored`, sehingga tidak ada yang
+> dapat dialokasikan maupun diberikan (`INV-BD-025`). Ini *fail-closed* yang disengaja.
+
+### D.2 Backend — alur inti (terblokir `G2`)
+
+| Task ID | Outcome | Req/Decision | Kontrak `v4` | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-BD-003` | Order darah dibuat (elektronik+manual), ganda tertahan, dibatalkan dua peran, pemenuhan dihitung | `DEC-BD-004/005/006/044`, `BD-AGG-01`, `BD-XINV-01`, `INV-BD-035` | api-contract (Blood Order), state-transition, validation | `BD-CAP-002/007/009/010` | `BbkBloodOrder`+`Line`, service (deteksi ganda, `BD-DOM-17`), `BloodOrder : Cancel` terpisah dari `Update`, `BbkEncounterStatusReader`, migration | `G1`, **`G2`**, `BE-BD-001/002` | `AC-BD-001/002/003/004/010/011/017/095/096/097` | Order ganda tertahan; pembatalan wajib beralasan berkategori sesuai peran | Sedang / BDRS | Semua AC lolos; tidak ada pembatalan tanpa jejak |
+| `BE-BD-004` | Permintaan PMI dibuat; penerimaan (termasuk kelebihan) dicatat; kantong lahir `Received` | `DEC-BD-002/003/008/020/025/036`, `BD-AGG-02`, `BD-XINV-02/03` | api-contract (Provider Request), state-transition, validation | `BD-CAP-007/008/010` | `BbkProviderRequest`+`Receipt`+`BbkBloodUnit` (lahir **`Received`**, `CurrentPlacementId` null), sisa≥0 token `Version`, kelebihan→`IsExcess`, migration | `G1`, **`G2`**, `BE-BD-003` | `AC-BD-005/006/009/022/023/031/032/033/059` | Kelebihan tak buat sisa negatif; kantong lahir belum dapat dialokasikan | Sedang / BDRS | Stok bertambah hanya lewat penerimaan; status awal `Received` |
+| `BE-BD-015` | **Kantong disimpan pada lokasi, dipindahkan, dan riwayatnya tak pernah ditimpa** | `DEC-BD-036/037`, `BD-DOM-25`, `INV-BD-025/026/027/028`, `ARCH-BD-POS-04/05/06` | api-contract (storage-location, placements), state-transition, validation | `BD-CAP-009/010` | `BbkBloodUnitPlacement` + filtered-unique `IsCurrent` + `BbkBloodUnit.CurrentPlacementId` (satu transaksi) + `POST`/`PUT /{id}/storage-location` + `GET /{id}/placements` + migration | `G1`, **`G2`**, `BE-BD-004`, `BE-BD-014` | `AC-BD-060/061/063/066/067/068/069/070` | Kantong `Received` ditolak dialokasikan; perpindahan tak ubah status; penonaktifan lokasi **tak** memindahkan kantong | Sedang / BDRS | Riwayat append-only; nol background job; nol batch update |
+| `BE-BD-005` | Golongan darah pasien diperiksa & divalidasi | `DEC-BD-015/018/026/039`, `BD-AGG-04`, `BD-XINV-04` | api-contract (Blood Group Exam), state-transition, validation | `BD-CAP-016` | `BbkBloodGroupExam`+`Sample`, sample→result→**validate rutin**, deteksi konflik→`IsConflictHeld`, `BD-DOM-21`, migration | `G1`, **`G2`** | `AC-BD-030/034/035/077/078` | Hasil tak tervalidasi tak dipakai klinis; konflik menahan gerbang | Tinggi / klinis | Butir `Validate` terpisah dari `ResolveConflict`; penyelesaian konflik = P1 |
+| `BE-BD-006` | Kantong dialokasikan (satu aktif) & alokasi keliru dibatalkan | `DEC-BD-003/007/029/036/037`, `BD-AGG-03`, `ARCH-BD-POS-03/06` | api-contract (allocate/cancel-allocation), state-transition, validation, concurrency | `BD-CAP-010` | `BbkBloodUnitAllocation`, `EvaluateAllocationGate` (sudah `Stored` **dan** lokasi terakhir aktif), filtered-unique aktif + token `Version`, pembatalan→`Available`/`PendingReview` | `G1`, **`G2`**, `BE-BD-015` | `AC-BD-043/044/045/046/060/068/071` + konkurensi `VAL-BD-018c` | Dua petugas rebut kantong → satu `409`; kantong di lokasi nonaktif ditolak | Tinggi / BDRS | Satu alokasi aktif terjamin; keaktifan lokasi **tidak** disalin ke kantong |
+| `BE-BD-007` | Bukti kecocokan dicatat beserta hasilnya; kantong diberikan lewat gerbang tiga syarat | `DEC-BD-013/027/028/038/042`, `BD-AGG-03`, `ARCH-BD-POS-01/02/07`, `INV-BD-019/020/029` | api-contract (compatibility-evidence, issue), state-transition, validation | `BD-CAP-008` | `BbkCompatibilityEvidence` (+`EvidenceResult`, `ValidatedByUserId`), `EvaluateIssuanceGate` (gerbang alokasi + bukti berlaku **dan hasilnya cocok**, dinilai ulang), migration | `G1`, **`G2`**, `BE-BD-005`, `BE-BD-006` | `AC-BD-018/019/038/039/040/041/042/072/073/089/090/091` | Pemberian ditolak tanpa bukti berlaku, dari lokasi nonaktif, atau bila hasilnya tidak cocok | **Tinggi / klinis & BDRS** | Gerbang *fail-closed* dan dinilai ulang; pemberian terminal |
+| `BE-BD-008` | Pemberian jalur darurat oleh Dokter BDRS atau DPJP, tercatat penuh | `DEC-BD-017/038/040`, `BD-DOM-08`, `INV-BD-030/032` | api-contract (emergency-issue), validation | — | `BbkEmergencyAuthorization` (+`AuthorizerRole`, `EmergencyConditionNote`, `BypassScope`), penanda permanen, alasan wajib | `G1`, **`G2`**, `BE-BD-007` | `AC-BD-020/021/074/075/081/082/083/084/085` | Peran tak berwenang ditolak; keterangan gerbang & kondisi wajib; muncul di daftar tunggakan | **Tinggi / klinis** | Penanda menyebut gerbang yang dilewati; enum menutup keadaan tak sah |
+
+### D.3 Frontend P0 — menunggu kontrak BE di-approve (`G1`)
 
 | Task ID | Outcome | Layar | Kontrak | Reuse | Dependency | Acceptance | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-BD-001` | Setup master dapat dikelola petugas | `FE-BD-08/09` | `api-contract` v1 | `BD-CAP-021` | `G1`, `BE-BD-001` | Master CRUD di layar | Rendah / BDRS | `DEV_DISCRETION` rupa; sumber data terkunci |
-| `FE-BD-002` | Petugas mengelola order darah + pemenuhan | `FE-BD-01/02` | `api-contract` v1 | `BD-CAP-021` | `G1`, `BE-BD-003` | Golongan darah diminta vs hasil beda jelas (`FE-BD-001`); order ganda tahan+alasan (`FE-BD-003`) | Sedang / BDRS | Empat keadaan layar digambar; menu terdaftar |
-| `FE-BD-003` | Petugas mengelola permintaan PMI & penerimaan | `FE-BD-03` | `api-contract` v1 | `BD-CAP-021` | `G1`, `BE-BD-004` | Penerimaan (termasuk kelebihan) tercatat di layar | Sedang / BDRS | — |
-| `FE-BD-004` | Petugas mengelola kantong: alokasi, pembatalan, daftar `PendingReview` | `FE-BD-04/05` (parsial) | `api-contract` v1 | `BD-CAP-021` | `G1`, `BE-BD-006` | Daftar `PendingReview` wajib ada (`FE-BD-002`) | Sedang / BDRS | Worklist #2 tersedia |
-| `FE-BD-005` | Petugas mencatat golongan darah, bukti, memberikan; jalur darurat jelas | `FE-BD-05/06` (parsial) | `api-contract` v1 | `BD-CAP-021` | `G1`, `BE-BD-005/007/008` | Penanda konflik & bukti lewat masa berlaku wajib (`FE-BD-007/008`); jalur darurat tampak sebagai jalur tak normal (`FE-BD-005`) | Tinggi / klinis | Bagian darurat **BLOCKED** sampai `G3` |
+| `FE-BD-001` | Setup master dapat dikelola petugas | `FE-BD-08/09` | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-001` | Master CRUD di layar | Rendah / BDRS | Rupa `DEV_DISCRETION`; sumber data terkunci |
+| `FE-BD-011` | **Lokasi penyimpanan darah dikelola; akibat penonaktifan terbaca** | `FE-BD-10` | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-014` | `FE-BD-014` keadaan kosong menyatakan modul berhenti; `FE-BD-015` konfirmasi menyebut jumlah kantong tertahan | Sedang / BDRS | Tombol hapus **tidak ada**; hanya nonaktif |
+| `FE-BD-002` | Petugas mengelola order darah + pemenuhan + pembatalan | `FE-BD-01/02` | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-003` | Order ganda tertahan + alasan (`FE-BD-003`); kategori alasan pembatalan sesuai peran | Sedang / BDRS | Empat keadaan layar digambar |
+| `FE-BD-003` | Petugas mengelola permintaan PMI & penerimaan | `FE-BD-03` | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-004` | Penerimaan termasuk kelebihan tercatat | Sedang / BDRS | — |
+| `FE-BD-012` | **Penyimpanan & perpindahan lokasi kantong; saringan kantong tertahan** | `FE-BD-04/05` (parsial) | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-015` | `FE-BD-010` saringan `Received` & lokasi nonaktif wajib; `FE-BD-011` kolom lokasi + penanda | Sedang / BDRS | Bukan daftar kerja keempat — saringan pada daftar yang ada |
+| `FE-BD-004` | Petugas mengalokasikan kantong & membatalkan alokasi | `FE-BD-05` (parsial) | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-006` | Daftar `PendingReview` wajib ada (`FE-BD-002`) | Sedang / BDRS | Worklist #2 tersedia |
+| `FE-BD-005` | Petugas mencatat golongan darah, bukti + hasilnya, memberikan; jalur darurat jelas | `FE-BD-05/06` (parsial) | api-contract `v4` | `BD-CAP-021` | `G1`, `BE-BD-005/007/008` | `FE-BD-021` hasil tidak cocok menutup tombol Berikan dengan pesan yang benar; `FE-BD-018` peran penerbit dipilih sendiri; `FE-BD-013` gerbang tidak bebas dipilih | **Tinggi / klinis** | Jalur darurat tampak sebagai jalur tak normal (`FE-BD-005`) |
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | — | — | `menu-items.jsx` | `G1` | Butir menu mengarah ke layar berhak akses | Rendah / BDRS | Registrasi menu jadi acceptance salah satu task |
 
 ---
 
-## D. P1 — setelah P0 core & approval
+## E. P1 — setelah P0 inti
 
-### D.1 Backend
+### E.1 Backend
 
-| Task ID | Outcome | Req/Decision | Kontrak | Cakupan | Dependency | Acceptance | Risiko/pemilik |
+| Task ID | Outcome | Req/Decision | Kontrak `v4` | Cakupan | Dependency | Acceptance | Risiko/pemilik |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-BD-009` | Kantong `PendingReview` diselesaikan (alih/kembali/tidak layak) | `DEC-BD-019/028`, `BD-AGG-03` | `api-contract`, `state-transition` v1 | reallocate (bukti gugur), return, not-usable | `G1`, `G2`, `BE-BD-006/007` | `AC-BD-007/008/024/025/029` | Sedang / BDRS |
-| `BE-BD-010` | Koreksi pencatatan pemberian (append-only) | `DEC-BD-030/034`, `BD-DOM-23`, `INV-BD-021/024` | `api-contract`, `validation` v1 | `BbkIssuanceCorrection`, hitung ulang pemenuhan | `G1`, `G2`, `G3` (seeding `Correct`) | `AC-BD-047/048/049/050` | Tinggi / klinis |
-| `BE-BD-011` | Konflik golongan darah diselesaikan lewat pemeriksaan ulang | `DEC-BD-026/031`, `BD-DOM-22`, `INV-BD-022` | `api-contract`, `validation` v1 | `BbkBloodGroupConflictResolution` (wajib `ResolvingExamId`) | `G1`, `G2`, `G3` (seeding `Validate`) | `AC-BD-036/037/051/053/054` | Tinggi / klinis |
-| `BE-BD-012` | Tindakan Bank Darah dicatat (tanpa charge) | `DEC-BD-021`, `BD-AGG-05` | `api-contract` v1 | `BbkBloodBankProcedure` (snapshot tarif), **tanpa** penyaluran Billing | `G1`, `G2` | `AC-BD-026` (bagian pencatatan) | Sedang / BDRS |
+| `BE-BD-009` | Kantong `PendingReview` diselesaikan lewat **tiga wewenang terpisah** | `DEC-BD-019/028/043`, `INV-BD-034` | api-contract, state-transition, validation | `reallocate` (bukti gugur, gerbang lokasi), `return-to-provider`, `mark-not-usable` — tiga butir hak akses berbeda | `G1`, `G2`, `BE-BD-006/007` | `AC-BD-007/008/024/025/029/092/093/094` | Sedang / BDRS |
+| `BE-BD-010` | Koreksi pencatatan pemberian **dua tahap** | `DEC-BD-030/034/041`, `BD-DOM-23`, `INV-BD-021/024/033` | api-contract, validation | `BbkIssuanceCorrection` + lifecycle `Requested`→`Approved`/`Rejected`, peminta ≠ pemutus, pemenuhan hanya hitung `Approved` | `G1`, `G2`, `BE-BD-007` | `AC-BD-047/048/049/050/086/087/088` | **Tinggi / klinis** |
+| `BE-BD-011` | Konflik golongan darah diselesaikan validator klinis lewat pemeriksaan ulang | `DEC-BD-026/031/039`, `BD-DOM-22`, `INV-BD-022/031` | api-contract, validation | `BbkBloodGroupConflictResolution` (wajib `ResolvingExamId`), butir `ResolveConflict` terpisah | `G1`, `G2`, `BE-BD-005` | `AC-BD-036/037/051/053/054/079/080` | **Tinggi / klinis** |
+| `BE-BD-012` | Tindakan Bank Darah dicatat (tanpa charge) | `DEC-BD-021/034`, `BD-AGG-05` | api-contract | `BbkBloodBankProcedure` (snapshot tarif), **tanpa** penyaluran Billing | `G1`, `G2`, `BE-BD-003` | `AC-BD-026/058` | Sedang / BDRS |
+| `BE-BD-016` | Seluruh resource & action hak akses Bank Darah terdaftar | `DEC-BD-039`..`044` | permission-audit-matrix | Seeder resource + action; `BloodUnit : Resolve` lama **MUST NOT** didaftarkan | `G1` (bebas `G2`) | `AC-BD-078/090/093` | Sedang / keamanan platform |
 
-### D.2 Frontend
+### E.2 Frontend
 
 | Task ID | Outcome | Layar | Dependency |
 | --- | --- | --- | --- |
-| `FE-BD-007` | Penyelesaian kantong `PendingReview` di layar | `FE-BD-05` | `G1`, `BE-BD-009` |
-| `FE-BD-008` | Koreksi pemberian + daftar tunggakan bukti darurat (#3) | `FE-BD-05`, `FE-BD-04` | `G1`, `BE-BD-010` |
+| `FE-BD-007` | Penyelesaian `PendingReview` — tiga tombol, tiga penjaga (`FE-BD-020`) | `FE-BD-05` | `G1`, `BE-BD-009` |
+| `FE-BD-008` | Koreksi **dua langkah** + daftar tunggakan bukti darurat (#3) | `FE-BD-05`, `FE-BD-04` | `G1`, `BE-BD-010` |
 | `FE-BD-009` | Penyelesaian konflik di dalam layar pemeriksaan (bukan daftar keempat) | `FE-BD-06` | `G1`, `BE-BD-011` |
 | `FE-BD-010` | Daftar & pencatatan tindakan Bank Darah | `FE-BD-07` | `G1`, `BE-BD-012` |
 
 ---
 
-## E. Future scope — di luar rilis pertama
+## F. Urutan gelombang
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2`** |
+| `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2` + `MVP-0` |
+| `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** |
+| `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `MVP-1` |
+| `MVP-3` | `BE-BD-006`, `BE-BD-007`, `BE-BD-008` — alokasi, bukti+pemberian, jalur darurat | `MVP-1b` **dan** `MVP-2` |
+| `MVP-4` | `BE-BD-009`..`BE-BD-012` — penyelesaian, koreksi, konflik, tindakan | `MVP-3` |
+| `POST-MVP` | Lihat bagian G | Di luar rilis pertama |
+
+Frontend mengikuti gelombang backend yang kontraknya sudah di-approve; tidak ada FE yang mendahului
+task BE pasangannya.
+
+---
+
+## G. Future scope — di luar rilis pertama
 
 | Item | Alasan | Prasyarat sebelum dapat direncanakan |
 | --- | --- | --- |
-| `BE-BD-013` Penyaluran biaya ke Billing | `OPEN DECISION` `DEC-BD-016` — kontrak `BillingSourceContract` belum disetujui | Persetujuan pemilik BillingManagement, lalu `/design-business-module` untuk membekukan kontrak charge |
-| **Storage Location kantong darah** | **Tidak ada di blueprint `v1`** (coverage gap §B) | `/grill-me` (aturan bisnis lokasi simpan) → `/design-business-module` |
-| Label cetak golongan darah | `OQ-BD-011` | `/grill-me` mekanik label → design |
-| Integrasi API PMI | `DEC-BD-002` MVP manual | Kebutuhan + kontrak PMI |
-| Integrasi HCLAB | `DEC-BD-022`, tak ada kontrak | Bukti integrasi dari luar repo |
+| `BE-BD-013` Penyaluran biaya ke Billing | `OPEN DECISION` `DEC-BD-016` — kontrak sumber biaya belum disetujui pemilik Billing | Persetujuan pemilik BillingManagement, lalu `/design-business-module` |
+| Label cetak golongan darah | `OQ-BD-011` — mekanik label belum ditetapkan | `/grill-me` mekanik label → design |
+| Lampiran berkas pada bukti pendukung koreksi | `OQ-BD-016` — dirancang sebagai teks; lampiran adalah kemampuan penyimpanan berkas tersendiri | Keputusan pemilik BDRS + scope penyimpanan berkas |
+| Generalisasi `MstStorageLocation` lintas domain | `DEC-BD-035` menundanya POST-MVP | Kebutuhan lintas domain nyata + penetapan pemilik master gabungan |
+| Pemantauan suhu / kapasitas / IoT lokasi penyimpanan | Dikeluarkan `DEC-BD-035` dari MVP | Kebutuhan + kontrak perangkat |
+| Integrasi API PMI | `DEC-BD-002` — MVP manual | Kebutuhan + kontrak PMI |
+| Integrasi HCLAB | `DEC-BD-022` — tak ada kontrak/protokol | Bukti integrasi dari luar repository |
 | Mesin crossmatch / manajemen donor | `INV-BD-013`, BRD §9 | Di luar batas modul |
 
 ---
 
-## F. Traceability requirement → task
+## H. Traceability requirement → task
 
-| Requirement/Decision | Desain | Contract v1 | Task BE | Task FE | Bukti | Status |
+| Requirement/Decision | Desain | Kontrak `v4` | Task BE | Task FE | Bukti | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `DEC-BD-004/005/006` | `BD-AGG-01` | api/state/validation | `BE-BD-003` | `FE-BD-002` | `AC-BD-001..004,010,011,017`, `UAT-01` | `BLOCKED` `G1,G2` |
-| `DEC-BD-002/003/008/020/025` | `BD-AGG-02` | api/state/validation | `BE-BD-004` | `FE-BD-003` | `AC-BD-005,006,009,022,023,031..033`, `UAT-04` | `BLOCKED` `G1,G2` |
-| `DEC-BD-015/018/026` | `BD-AGG-04`, `BD-DOM-21` | api/state/validation | `BE-BD-005` | `FE-BD-005` | `AC-BD-030,034,035` | `BLOCKED` `G1,G2`; validate `G3` |
-| `DEC-BD-003/007/029` | `BD-AGG-03`, `BD-DOM-06` | api/state/validation/concurrency | `BE-BD-006` | `FE-BD-004` | `AC-BD-043..046`, `UAT-02` | `BLOCKED` `G1,G2` |
-| `DEC-BD-013/017/027/028` | `BD-AGG-03`, `BD-DOM-07/08` | api/state/validation | `BE-BD-007`, `BE-BD-008` | `FE-BD-005` | `AC-BD-018..021,038..042`, `UAT-03` | `BLOCKED` `G1,G2`; darurat `G3` |
-| `DEC-BD-019/028` | `BD-AGG-03` | api/state | `BE-BD-009` | `FE-BD-007` | `AC-BD-007,008,024,025,029` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-030/034` | `BD-DOM-23` | api/validation | `BE-BD-010` | `FE-BD-008` | `AC-BD-047..050`, `UAT-06` | `BLOCKED` `G1,G2`; correct `G3` (P1) |
-| `DEC-BD-026/031` | `BD-DOM-22` | api/validation | `BE-BD-011` | `FE-BD-009` | `AC-BD-036,037,051,053,054`, `UAT-05` | `BLOCKED` `G1,G2`; validate `G3` (P1) |
-| `DEC-BD-021` | `BD-AGG-05` | api | `BE-BD-012` | `FE-BD-010` | `AC-BD-026` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055` | `BLOCKED` `G1` (`BE-BD-001` tak kena `G2`) |
-| `DEC-BD-016` | `BD-DOM-19` | — (belum ada) | `BE-BD-013` | — | `AC-BD-026/027` (tertunda) | Future / `OPEN DECISION` |
-| **Storage Location** | **—** | **—** | **—** | **—** | **—** | **Coverage gap — belum didesain** |
+| `DEC-BD-004/005/006` | `BD-AGG-01` | api/state/validation | `BE-BD-003` | `FE-BD-002` | `AC-BD-001..004,010,011,017` · `UAT-01` | `BLOCKED` `G1,G2` |
+| `DEC-BD-044` | `BD-AGG-01`, `BD-DOM-14` | api/state/validation | `BE-BD-003`, `BE-BD-001` | `FE-BD-002` | `AC-BD-095..097` · `UAT-21` | `BLOCKED` `G1,G2` |
+| `DEC-BD-002/003/008/020/025` | `BD-AGG-02` | api/state/validation | `BE-BD-004` | `FE-BD-003` | `AC-BD-005,006,009,022,023,031..033` · `UAT-04` | `BLOCKED` `G1,G2` |
+| `DEC-BD-035` | `BD-DOM-24` | api/validation | `BE-BD-014` | `FE-BD-011` | `AC-BD-062,064,065,067` | `BLOCKED` `G1` saja |
+| `DEC-BD-036` | `BD-DOM-25`, `BD-AGG-03` | api/state/validation | `BE-BD-015` | `FE-BD-012` | `AC-BD-059..063,066` · `UAT-11/12` | `BLOCKED` `G1,G2` |
+| `DEC-BD-037` | `BD-DOM-24`, `BD-AGG-03` | api/state/validation | `BE-BD-014`, `BE-BD-015`, `BE-BD-006` | `FE-BD-011`, `FE-BD-012` | `AC-BD-067..071` · `UAT-13` | `BLOCKED` `G1,G2` |
+| `DEC-BD-015/018/026` | `BD-AGG-04`, `BD-DOM-21` | api/state/validation | `BE-BD-005` | `FE-BD-005` | `AC-BD-030,034,035` | `BLOCKED` `G1,G2` |
+| `DEC-BD-039` | `BD-AGG-04` | api/permission | `BE-BD-005`, `BE-BD-011`, `BE-BD-016` | `FE-BD-005`, `FE-BD-009` | `AC-BD-077..080` · `UAT-16` | `BLOCKED` `G1,G2` |
+| `DEC-BD-003/007/029` | `BD-AGG-03`, `BD-DOM-06` | api/state/validation/concurrency | `BE-BD-006` | `FE-BD-004` | `AC-BD-043..046` · `UAT-02` | `BLOCKED` `G1,G2` |
+| `DEC-BD-013/027/028` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-018,019,038..042` · `UAT-03` | `BLOCKED` `G1,G2` |
+| `DEC-BD-038` | `BD-AGG-03`, `ARCH-BD-POS-07` | api/state/validation | `BE-BD-007`, `BE-BD-008` | `FE-BD-005` | `AC-BD-072..076` · `UAT-14/15` | `BLOCKED` `G1,G2` |
+| `DEC-BD-042` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-089..091` · `UAT-19` | `BLOCKED` `G1,G2` |
+| `DEC-BD-017/040` | `BD-DOM-08` | api/validation | `BE-BD-008` | `FE-BD-005` | `AC-BD-020,021,081..085` · `UAT-17` | `BLOCKED` `G1,G2` |
+| `DEC-BD-019/028/043` | `BD-AGG-03` | api/state/permission | `BE-BD-009`, `BE-BD-016` | `FE-BD-007` | `AC-BD-007,008,024,025,029,092..094` · `UAT-20` | `BLOCKED` `G1,G2` (P1) |
+| `DEC-BD-030/034/041` | `BD-DOM-23` | api/validation | `BE-BD-010` | `FE-BD-008` | `AC-BD-047..050,086..088` · `UAT-06/18` | `BLOCKED` `G1,G2` (P1) |
+| `DEC-BD-026/031` | `BD-DOM-22` | api/validation | `BE-BD-011` | `FE-BD-009` | `AC-BD-036,037,051,053,054` · `UAT-05` | `BLOCKED` `G1,G2` (P1) |
+| `DEC-BD-021` | `BD-AGG-05` | api | `BE-BD-012` | `FE-BD-010` | `AC-BD-026,058` | `BLOCKED` `G1,G2` (P1) |
+| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055,056` | `BLOCKED` `G1` saja |
+| `DEC-BD-016` | `BD-DOM-19` | — belum ada | `BE-BD-013` | — | `AC-BD-027` (tertunda) | Future / `OPEN DECISION` |
 
-### Coverage gap yang tercatat
+### H.1 Coverage gap yang tercatat
 
-1. **Storage Location** — diminta pada P0, tetapi tak ada requirement/desain/kontrak. Tidak dibuatkan
-   task; wajib lewat `/grill-me` + `/design-business-module` dulu.
-2. **Penyaluran biaya Billing** — `AC-BD-026/027` belum dapat diuji sampai `DEC-BD-016` turun.
-3. **Nilai jam masa berlaku bukti** (`OQ-BD-012`) — tidak menahan task; nilai dari konfigurasi master
-   saat eksekusi.
+| Gap | Keadaan | Akibat pada rencana |
+| --- | --- | --- |
+| Penyaluran biaya Billing | `DEC-BD-016` `OPEN DECISION` | `AC-BD-027` belum dapat diuji; tidak masuk gelombang mana pun |
+| Nilai jam masa berlaku bukti per komponen | `OQ-BD-012` | **Tidak** menahan task; nilainya dari konfigurasi master saat eksekusi. Selama kosong, gerbang menolak |
+| Nama peran pemegang `BloodUnit : ResolveNotUsable` | `OQ-BD-017` | **Tidak** menahan `BE-BD-009`; menahan **satu baris seeder** pada `BE-BD-016` |
+| Penegasan gerbang hasil bukti kecocokan | `OQ-BD-018` | **Tidak** menahan `BE-BD-007`; rancangan sudah *fail-closed*. Bila pemilik menyatakan hasil bersifat keterangan saja, `VAL-BD-079` dicabut |
+| Keadaan kantong setelah koreksi | `OQ-BD-014` | Menahan detail implementasi `BE-BD-010`, bukan bentuknya |
+| Rumah slice resmi `BR-BD-020` | Penilaian kelengkapan requirement masih revisi 2 | Tidak menahan task; `BR-BD-020` diperlakukan sebagai perluasan `BD-SLICE-03/04/10` |
+
+**Storage Location tidak lagi menjadi coverage gap.** Pada revisi 1 ia tercatat sebagai gap karena
+belum ada requirement, desain, maupun kontrak. Ketiganya kini ada, dan ia menjadi `BE-BD-014` +
+`BE-BD-015`.
 
 ---
 
-## G. Langkah berikutnya
+## I. Langkah berikutnya
 
-1. **`G1`** owner menyetujui desain `v1` → membuka seluruh task.
-2. **`G2`** daftarkan prefix `Bbk` (registry engineering) → membuka task entity operasional.
-3. **`G3`** tetapkan peran `DEF-BD-004` → membuka seeding peran jalur darurat/validator/koreksi.
-4. Mulai P0 gelombang: `BE-BD-001/002` (fondasi) → `BE-BD-003/004` → `BE-BD-005/006` → `BE-BD-007/008`,
-   lalu FE mengikuti kontrak yang di-approve.
-5. Setiap handoff ke `/build-module-backend` menyelesaikan preflight QBE & kesesuaian engineering pada
-   waktu eksekusi dari `AGENTS.md` backend target.
+1. **`G1`** — owner menyetujui blueprint dan set kontrak `v4`. Ini membuka **seluruh** task.
+2. **`G2`** — daftarkan prefix `Bbk` di registry kepemilikan modul (`BD-DEP-008`). Bila pemilik registry
+   menetapkan prefix lain, seluruh nama `Bbk*` berganti sebagai satu paket sebelum model pertama dibuat.
+3. Jalankan `MVP-0` (`BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016`) — **dapat berjalan segera
+   setelah `G1`, tanpa menunggu `G2`**, karena seluruhnya master `Mst*` dan seeder.
+4. Setelah `G2`: `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4`, dengan FE mengikuti kontrak yang
+   sudah di-approve.
+5. Dua pertanyaan terbuka yang layak ditutup sejalan, tanpa menahan siapa pun: `OQ-BD-017` nama peran
+   `ResolveNotUsable`, dan `OQ-BD-018` penegasan gerbang hasil bukti kecocokan.
+6. Setiap handoff ke `/build-module-backend` menyelesaikan preflight QBE dan kesesuaian engineering
+   **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical.
 
-Roadmap `FORWARD-TEST/DRAFT`. Tidak ada task yang boleh dijalankan sampai `G1` (dan `G2`/`G3` sesuai
-task) tuntas. Approval manusia belum diklaim.
+Roadmap `FORWARD-TEST / DRAFT`. Tidak ada task yang boleh dijalankan sampai `G1` — dan `G2` untuk task
+entity operasional — tuntas. Approval manusia belum diklaim.
