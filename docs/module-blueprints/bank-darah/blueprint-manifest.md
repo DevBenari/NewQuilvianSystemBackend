@@ -5,18 +5,18 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 7
+revision: 8
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-02T06:00:00+07:00
+updated_at: 2026-09-02T07:30:00+07:00
 last_verified_at: null
 backend_source_sha: db08c14dbfb9d6b704e8d0bdfb4fd05e2b52a8cb
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
-input_revision_hash: grill-me-architecture-gap-final-closure-pass-2026-09-02
+input_revision_hash: design-business-module-2026-09-02
 decision_revision: 4
 capability_map_revision: 2
 prerequisite_readiness_revision: 3
@@ -33,7 +33,29 @@ closed_gap_ids:
   - ARCH-BD-GAP-07
   - ARCH-BD-GAP-08
   - ARCH-BD-GAP-09
-contract_versions: []
+contract_versions:
+  - version: v1
+    status: draft
+    last_changed_in: v1
+    covers:
+      - 02-backend-architecture.md
+      - 03-frontend-architecture.md
+      - 04-prd-to-mvp.md
+      - data/data-dictionary.md
+      - contracts/api-contract.md
+      - contracts/state-transition-matrix.md
+      - contracts/validation-matrix.md
+      - contracts/integration-contract.md
+      - contracts/permission-audit-matrix.md
+      - flowcharts/
+      - testing/acceptance-test-matrix.md
+owners:
+  product_domain: pemilik proses BDRS
+  api: pemilik arsitektur backend
+  security: pemilik keamanan platform
+  frontend: pemilik proses BDRS
+approved_by: null
+approved_at: null
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
@@ -70,7 +92,8 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` pada 2 September 2026; setiap tinjauan dampak sudah dijalankan dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01` sampai `ARCH-BD-GAP-09` seluruhnya tertutup oleh `DEC-BD-025` sampai `DEC-BD-034`. |
-| `contract_versions` | Masih kosong karena belum ada kontrak API, ERD, atau integrasi yang dibekukan. |
+| `contract_versions` | Set kontrak desain `v1` berstatus `draft`, dibekukan pada design-business-module 2 September 2026 — mencakup arsitektur backend/frontend, kamus data, lima kontrak, flowchart, PRD→MVP, dan matriks uji. |
+| `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
 
 ## Peringatan yang melekat
@@ -85,3 +108,10 @@ ditandai `STALE`. Bila SHA berubah lagi, ulangi pemindaian yang sama sebelum pet
 
 Blueprint tidak memberi wewenang implementasi. Menulis dokumen di sini tidak sama dengan izin
 mengubah controller, service, entity, migration, database, atau melakukan deployment.
+
+**Design pass 2 September 2026.** `design-business-module` menghasilkan set kontrak `v1` (`draft`) pada
+`02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`,
+`flowcharts/`, dan `testing/`. Seluruhnya memakai **prefix placeholder `Bbk`** yang belum disahkan
+(`BD-DEP-008`), sehingga pembuatan entity operasional tetap `BLOCKED`. `04-prd-to-mvp.md` masih memuat
+pertanyaan memblokir (`BD-DEP-008`, `DEF-BD-004`) sehingga **belum boleh** diteruskan ke
+`plan-module-delivery` sampai keduanya tuntas. Approval manusia belum diklaim.

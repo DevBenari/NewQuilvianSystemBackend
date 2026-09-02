@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `7` |
+| Revision | `8` |
 | Module status | `PARTIAL` |
 | Current phase | `BD-PH-005` |
 | Last verified at | `belum pernah diverifikasi` |
@@ -37,7 +37,7 @@ pada `BD-AGG-04` dan satu kumpulan atribut pada `BD-DOM-13` — sudah tertutup o
 | `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan berbukti pada `02-existing-capability-map.md`. Tidak ada lagi baris berstatus `Conflict`. |
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | Penilaian per slice pada `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Dijalankan sampai revisi 3 dan menghasilkan `DOMAIN_ARCHITECTURE_READY` pada `03-domain-architecture.md`. Lima aggregate, dua puluh tiga konsep domain, sembilan bounded context. Seluruh sembilan gap arsitektur sudah tertutup. |
-| `BD-PH-005` | Penyusunan blueprint target | `READY` | Boleh berjalan untuk seluruh scope yang dinyatakan `READY` pada handoff `03-domain-architecture.md` revisi 3. |
+| `BD-PH-005` | Penyusunan blueprint target | `IN_PROGRESS` | Desain `v1` (`draft`) sudah dihasilkan `design-business-module`: `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, lima `contracts/`, `flowcharts/`, `testing/`. Belum `DONE` — approval owner belum ada. |
 | `BD-PH-006` | Perencanaan delivery | `NOT_STARTED` | Menunggu `BD-PH-005`. |
 | `BD-PH-007` | Implementasi backend | `BLOCKED` | Terhalang `BD-DEP-008`, prefix modul belum terdaftar di registry. |
 | `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Menunggu kontrak API dibekukan. |
@@ -123,19 +123,19 @@ sampai `BD-CAP-024` tetap sahih. Frontend `afbb8ab` tidak berubah.
 
 ## Task berikutnya yang disarankan
 
-Architecture gap final closure pass (`grill-me`) dan pass ulang `hospital-domain-architect` revisi 3
-sudah dijalankan pada 2 September 2026. Seluruh gap arsitektur tertutup dan status arsitektur
-`DOMAIN_ARCHITECTURE_READY`. Langkah berikutnya:
+`design-business-module` sudah dijalankan pada 2 September 2026 dan menghasilkan set kontrak desain
+`v1` (`draft`). Langkah berikutnya:
 
-1. **`design-business-module`** untuk seluruh scope yang dinyatakan `READY` pada handoff
-   `03-domain-architecture.md` revisi 3 — membekukan arsitektur BE/FE, kamus data, kontrak API,
-   state-transition, dan PRD ke MVP.
-2. **`grill-me`** hanya bila hendak membuka dua slice yang masih di luar scope: penyerahan biaya ke
-   Billing (`DEC-BD-016`, pemilik BillingManagement) dan mekanik label golongan darah (`OQ-BD-011`,
-   pemilik proses klinis). Keduanya tidak menahan slice yang sudah siap.
+1. **Tutup dua pemblokir sebelum perencanaan delivery.** `04-prd-to-mvp.md` memuat pertanyaan
+   memblokir: pendaftaran prefix `Bbk` di registry (`BD-DEP-008`, pemilik registry engineering) dan
+   penetapan peran jalur darurat/validator/pencatat koreksi (`DEF-BD-004`, pemilik BDRS & klinis).
+   Selama keduanya terbuka, blueprint **belum boleh** diteruskan ke `plan-module-delivery`.
+2. **`plan-module-delivery`** — setelah pemblokir di atas tuntas dan owner menyetujui desain, untuk
+   memecah blueprint menjadi task backend/frontend vertical slice.
+3. **`grill-me`** hanya bila hendak membuka dua slice di luar scope: penyerahan biaya ke Billing
+   (`DEC-BD-016`) dan mekanik label golongan darah (`OQ-BD-011`).
 
-`trace-existing-capabilities` **tidak** perlu diulang. Peta kemampuan masih sahih dan kesepuluh
-keputusan closure tidak memunculkan kebutuhan bukti implementasi baru.
+`trace-existing-capabilities` **tidak** perlu diulang. Peta kemampuan masih sahih.
 
 ## Kemajuan delivery
 
