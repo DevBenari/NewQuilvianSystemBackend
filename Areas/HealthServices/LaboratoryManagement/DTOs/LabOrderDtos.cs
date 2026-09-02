@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
@@ -9,6 +10,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         [Required]
         public Guid ProcedureId { get; set; }
+
+        /// <summary>
+        /// Disiplin yang menaungi pesanan — Patologi Klinik, Patologi Anatomi, atau
+        /// Mikrobiologi (<c>LAB-DEC-025</c>).
+        ///
+        /// Sengaja tidak wajib. `LAB-API-v1` r3 mengunci `POST /lab-orders` tetap berlaku apa
+        /// adanya, sehingga pemanggil lama yang belum mengirim ruas ini tidak boleh mendadak
+        /// ditolak. Mewajibkannya adalah perubahan kontrak tersendiri.
+        /// </summary>
+        public LabDiscipline? Discipline { get; set; }
     }
 
     public class LabOrderListResponse
@@ -44,6 +55,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
     public class LabOrderDetailResponse : LabOrderListResponse
     {
+        /// <summary>
+        /// Disiplin pesanan (<c>LAB-API-v1</c> r3, <c>LAB-DEC-025</c>). Kosong hanya untuk
+        /// pesanan yang dibuat sebelum kolom disiplin ada.
+        /// </summary>
+        public string? Discipline { get; set; }
+
         public DateTime? RequestedAt { get; set; }
 
         public DateTime? CompletedAt { get; set; }
