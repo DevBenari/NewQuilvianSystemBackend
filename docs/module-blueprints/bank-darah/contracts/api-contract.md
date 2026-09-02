@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -34,9 +34,15 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-orders`
 | `POST` | `/` | Buat order elektronik dari unit pelayanan | `BloodOrder : Create` | `CreateBloodOrderRequest` | `ApiResponse<BloodOrderDetailDto>` | Rencana · `422 VAL-BD-001/013` |
 | `POST` | `/manual` | Buat order manual oleh Bank Darah | `BloodOrder : Create` | `CreateManualBloodOrderRequest` | `ApiResponse<BloodOrderDetailDto>` | Rencana · `400 VAL-BD-010` |
 | `POST` | `/confirm-duplicate` | Lanjutkan order ganda dengan alasan tertulis (`ASM-BD-001`) | `BloodOrder : Create` | `ConfirmDuplicateOrderRequest` | `ApiResponse<BloodOrderDetailDto>` | Rencana |
-| `POST` | `/{id}/cancel` | Batalkan order dengan alasan terkendali | `BloodOrder : Update` | `CancelWithReasonRequest` | `ApiResponse<BloodOrderDetailDto>` | Rencana · `422 VAL-BD-016` |
+| `POST` | `/{id}/cancel` | Batalkan order dengan alasan terkendali — oleh **dokter peminta** atau **petugas BDRS** (`DEC-BD-044`) | **`BloodOrder : Cancel`** | `CancelWithReasonRequest` | `ApiResponse<BloodOrderDetailDto>` | Rencana · `422 VAL-BD-016/083` |
 
 Kedaluwarsa order (`Expired`) tidak punya endpoint — dipicu sistem dari sinyal kunjungan (`DEC-BD-014`).
+
+**`BloodOrder : Cancel` dipisah dari `BloodOrder : Update` (`DEC-BD-044`).** Pemisahan ini membuat
+wewenang membatalkan dapat diberikan kepada dokter peminta **tanpa** ikut memberikan wewenang menyunting
+order secara umum. Keduanya memakai **satu** butir yang sama — dokter maupun petugas BDRS — dan yang
+membedakan sebabnya pada rekam adalah **kategori alasan** yang wajib diisi: pembatalan klinis atau
+pembatalan operasional. Tidak ada pembatalan order tanpa audit (`INV-BD-035`).
 
 ---
 
@@ -98,16 +104,43 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `PUT` | `/{id}/storage-location` | **Pindahkan kantong ke lokasi lain** — status **tidak** berubah (`INV-BD-026`) | `BloodUnit : Store` | `MoveStorageLocationRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-060/062` |
 | `POST` | `/{id}/allocate` | Alokasikan kantong ke satu baris kebutuhan | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `409 VAL-BD-018c` · `422 VAL-BD-033/063/064` |
 | `POST` | `/{id}/cancel-allocation` | Batalkan alokasi keliru sebelum pemberian (`DEC-BD-029`) | `BloodUnit : Allocate` | `CancelWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-023` |
-| `POST` | `/{id}/compatibility-evidence` | Catat bukti kecocokan terhadap pasien tujuan | `BloodUnit : Compatibility` | `RecordEvidenceRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
-| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/065` |
-| `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat, melewati gerbang bukti dan/atau lokasi nonaktif (`DEC-BD-017`, `DEC-BD-038`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021` · `422 VAL-BD-066` |
-| `POST` | `/{id}/correction` | Catat koreksi pencatatan pemberian (`DEC-BD-030`) | `BloodUnit : Correct` | `IssuanceCorrectionRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-024` · `422 VAL-BD-025/049` |
-| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | `BloodUnit : Resolve` | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-016/064` |
-| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | `BloodUnit : Resolve` | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
-| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | `BloodUnit : Resolve` | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana |
+| `POST` | `/{id}/compatibility-evidence` | Catat bukti kecocokan terhadap pasien tujuan, **beserta hasil keputusannya** (`DEC-BD-042`) | `BloodUnit : Compatibility` | `RecordEvidenceRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-078` · `422 VAL-BD-079` |
+| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/065/079` |
+| `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat, melewati gerbang bukti dan/atau lokasi nonaktif (`DEC-BD-017`, `DEC-BD-038`). Penerbit **Dokter BDRS atau DPJP** (`DEC-BD-040`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021/072` · `422 VAL-BD-066/070/071` |
+| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian; koreksi belum berlaku (`DEC-BD-041`) | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-024` · `422 VAL-BD-025/049/076` |
+| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
+| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
+| `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | Rencana |
+| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-080` · `422 VAL-BD-016/064` |
+| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-081` |
+| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-082` |
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` (`VAL-BD-049`).
+
+**Tiga endpoint penyelesaian, tiga butir hak akses berbeda (`DEC-BD-043`).** Ketiganya berangkat dari
+`PendingReview` tetapi arah risikonya berlawanan: pengalihan **memasukkan** darah ke tubuh pasien baru,
+sedangkan pengembalian dan penetapan tidak layak **mengeluarkan** darah dari peredaran. Satu butir
+`Resolve` untuk ketiganya berarti siapa pun yang boleh membuang kantong rusak otomatis boleh
+mengalihkan darah ke pasien lain — dan itu justru tindakan paling berisiko di antara ketiganya.
+Endpoint-nya sendiri **tidak berubah**; yang berubah hanya penjaganya.
+
+**Bukti kecocokan kini menyimpan hasil keputusan.** `RecordEvidenceRequest` bertambah satu isian wajib:
+hasilnya cocok atau tidak cocok. Bukti bertanda tidak cocok **tetap tersimpan** dan **tidak** membuka
+gerbang pemberian — karena itu `POST /{id}/issue` bertambah kemungkinan penolakan `VAL-BD-079`.
+
+**Koreksi memakai tiga endpoint, bukan satu, dan itu bukan pemecahan kosmetik.** `DEC-BD-041`
+menjadikan koreksi proses dua tahap dengan dua pelaku berbeda dan dua butir hak akses berbeda.
+Menyatukannya menjadi satu endpoint bersaklar akan membuat satu butir hak akses menjaga dua tindakan
+yang justru sengaja dipisah, sehingga pemisahan wewenangnya hilang di lapisan API.
+
+`correctionId` muncul pada path karena satu kantong dapat punya lebih dari satu koreksi sepanjang
+riwayatnya — sebagian disetujui, sebagian ditolak. Keputusan selalu menunjuk satu permintaan tertentu.
+
+**Respons koreksi mengembalikan `IssuanceCorrectionDto`, bukan `BloodUnitDetailDto`.** Berbeda dengan
+`v2`, mengajukan koreksi **tidak mengubah keadaan kantong** — kantong tetap `Issued` dan angka
+pemenuhan tidak bergerak sampai persetujuan turun. Mengembalikan detail kantong akan menyiratkan
+sesuatu telah berubah pada kantong, padahal belum.
 
 **Dua endpoint penyimpanan memakai method berbeda dengan sengaja.** `POST /{id}/storage-location`
 adalah penetapan **pertama** dan satu-satunya yang memindahkan status (`Received`→`Stored`→`Available`);
@@ -137,8 +170,17 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-group-exams`
 | `GET` | `/patient/{patientId}/valid` | Golongan darah sah pasien / penanda konflik (`BD-DOM-21`) | `BloodGroupExam : Read` | — | `ApiResponse<ValidBloodGroupDto>` | Rencana |
 | `POST` | `/` | Catat pengambilan sampel | `BloodGroupExam : Create` | `RecordSampleRequest` | `ApiResponse<BloodGroupExamDetailDto>` | Rencana |
 | `POST` | `/{id}/result` | Catat hasil ABO & Rhesus | `BloodGroupExam : Update` | `RecordResultRequest` | `ApiResponse<BloodGroupExamDetailDto>` | Rencana · `400 VAL-BD-030` |
-| `POST` | `/{id}/validate` | Validasi hasil (deteksi konflik `BD-XINV-04`) | `BloodGroupExam : Validate` | — | `ApiResponse<BloodGroupExamDetailDto>` | Rencana · `403 VAL-BD-037` |
-| `POST` | `/conflict-resolution` | Selesaikan konflik dengan menunjuk pemeriksaan ulang tervalidasi (`DEC-BD-031`) | `BloodGroupExam : Validate` | `ResolveConflictRequest` | `ApiResponse<ValidBloodGroupDto>` | Rencana · `422 VAL-BD-051/054` |
+| `POST` | `/{id}/validate` | Validasi hasil **rutin** (deteksi konflik `BD-XINV-04`) | `BloodGroupExam : Validate` | — | `ApiResponse<BloodGroupExamDetailDto>` | Rencana · `403 VAL-BD-037` |
+| `POST` | `/conflict-resolution` | Selesaikan konflik dengan menunjuk pemeriksaan ulang tervalidasi (`DEC-BD-031`) | **`BloodGroupExam : ResolveConflict`** | `ResolveConflictRequest` | `ApiResponse<ValidBloodGroupDto>` | Rencana · `403 VAL-BD-069` · `422 VAL-BD-051/054` |
+
+**Dua butir hak akses, bukan satu (`DEC-BD-039`).** `Validate` menjaga validasi hasil rutin dan boleh
+dipegang petugas BDRS yang ditunjuk; `ResolveConflict` menjaga penyelesaian konflik dan hanya dipegang
+validator klinis. Pemisahan ini ada di lapisan hak akses, bukan hanya di dokumen: satu butir yang
+menjaga keduanya membuat siapa pun yang boleh memvalidasi hasil rutin otomatis boleh menutup konflik.
+
+Gerbang wewenang **tidak** menggantikan prasyarat. `DEC-BD-031` tetap berlaku penuh — penyelesaian
+konflik wajib menunjuk pemeriksaan ulang tervalidasi (`VAL-BD-051`), dan validator klinis sekalipun
+tidak dapat menutup konflik tanpa itu.
 
 Penyelesaian konflik dilakukan di layar pemeriksaan, **bukan** daftar kerja keempat (`DEC-BD-033`).
 

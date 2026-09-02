@@ -5,19 +5,19 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 10
+revision: 14
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-02T16:30:00+07:00
+updated_at: 2026-09-03T15:00:00+07:00
 last_verified_at: null
-backend_source_sha: 792acb9331a65187d052fffd4a292d3bce2fd828
+backend_source_sha: ab39b63edd912e7a825e186be75537fc319a36ce
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
-input_revision_hash: design-business-module-storage-location-2026-09-02
-decision_revision: 7
+input_revision_hash: design-business-module-role-residue-2026-09-03
+decision_revision: 9
 capability_map_revision: 2
 prerequisite_readiness_revision: 3
 completeness_assessment_revision: 2
@@ -35,13 +35,20 @@ closed_gap_ids:
   - ARCH-BD-GAP-09
   - ARCH-BD-GAP-10
   - OQ-BD-015
+  - DEF-BD-004
 contract_versions:
   - version: v1
     status: superseded
     superseded_by: v2
   - version: v2
+    status: superseded
+    superseded_by: v3
+  - version: v3
+    status: superseded
+    superseded_by: v4
+  - version: v4
     status: draft
-    last_changed_in: v2
+    last_changed_in: v4
     covers:
       - 02-backend-architecture.md
       - 03-frontend-architecture.md
@@ -96,11 +103,12 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` pada 2 September 2026; setiap tinjauan dampak sudah dijalankan dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Bila SHA ini berubah, bukti yang bergantung padanya ditandai `STALE` dan perlu tinjauan dampak terbatas. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63`; setiap tinjauan dampak sudah dijalankan dengan `git diff --name-only` dan hasilnya nihil karena seluruh perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Berubah dari `FORWARD-TEST` menjadi `STALE`. Roadmap revisi 1 disusun sebelum Storage Location masuk, sehingga belum memuat `EPIC BD-11` maupun gelombang `MVP-1b`. Perlu `plan-module-delivery` ulang. |
-| `contract_versions` | Set kontrak desain **`v2`** berstatus `draft`, hasil design-business-module update pass 2 September 2026 yang menyerap Storage Location dan gerbang pemberian. `v1` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v2`. |
+| `decision_revision` | Naik ke `8` pada Role & authority closure pass 3 September 2026. `DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-041`. **Tidak ada lagi keputusan bisnis yang memblokir**; pemblokir tersisa hanya `BD-DEP-008` yang bersifat administratif. |
+| `contract_versions` | Set kontrak desain **`v4`** berstatus `draft`, hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
 | `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
 
@@ -148,3 +156,72 @@ Dua catatan yang mengikat pembaca berikutnya:
 `roadmap/00-delivery-plan.md` **ditandai `STALE`**: ia disusun sebelum Storage Location masuk. Kedua
 pemblokir lama (`BD-DEP-008`, `DEF-BD-004`) **tidak berubah** oleh pass ini; keduanya tetap menahan
 penerusan ke `plan-module-delivery`. Approval manusia belum diklaim.
+
+**Role & authority closure pass 3 September 2026 — register keputusan revisi 8.** `DEC-BD-039` sampai
+`DEC-BD-041` menutup `DEF-BD-004`, pemblokir bisnis terakhir. Sejak pass ini **tidak ada satu pun
+keputusan bisnis yang masih memblokir** `DESIGN` maupun `IMPLEMENTATION` pada scope yang dinilai;
+pemblokir yang tersisa hanya `BD-DEP-008`, pendaftaran prefix entity di registry — administratif, bukan
+keputusan bisnis.
+
+Yang ditetapkan: validasi hasil golongan darah dipecah menjadi dua wewenang (rutin oleh petugas BDRS
+berwenang validasi, konflik oleh validator klinis yang ditunjuk); otorisasi darurat dapat diterbitkan
+Dokter BDRS **atau** DPJP pasien dengan kelengkapan rekam yang wajib; dan koreksi pencatatan pemberian
+menjadi proses **dua tahap** — petugas BDRS mengajukan, Dokter BDRS menyetujui.
+
+**Design update pass 3 September 2026 — set kontrak `v3`.** Menyerap `DEC-BD-039`, `DEC-BD-040`, dan
+`DEC-BD-041` dari register keputusan revisi 8. Peringatan sinkronisasi yang dicatat pada revisi 11
+**sudah dijawab**: seluruh artefak kini menggambarkan koreksi sebagai proses dua tahap.
+
+Yang bertambah pada desain: dua butir hak akses (`BloodGroupExam : ResolveConflict`,
+`BloodUnit : ApproveCorrection`), dua enum (`BbkEmergencyAuthorizerRole`, `BbkCorrectionStatus`), dua
+kolom wajib pada `BbkEmergencyAuthorization` (peran penerbit dan kondisi kedaruratan), lifecycle beserta
+enam kolom pada `BbkIssuanceCorrection`, tiga endpoint koreksi menggantikan satu, dan lima kewajiban
+layar baru (`FE-BD-016` sampai `FE-BD-019`).
+
+Yang **tidak** bertambah: nol entity baru, nol migration baru, nol tabel baru. Perubahan `v3` menyentuh
+dua tabel yang belum pernah dibuat, sehingga seluruhnya larut ke migration yang sudah direncanakan.
+
+Temuan pass itu — `DEF-BD-004` baru tertutup tiga dari enam wewenang — **sudah ditindaklanjuti**; lihat
+catatan berikutnya.
+
+**Role residue closure pass 3 September 2026 — register keputusan revisi 9.** `DEC-BD-042`,
+`DEC-BD-043`, dan `DEC-BD-044` menutup sisa `DEF-BD-004`. Dengan itu **keenam wewenangnya sudah
+dipetakan**, dan tidak ada satu pun keputusan bisnis yang masih memblokir pada scope yang dinilai.
+
+Yang ditetapkan: bukti kecocokan dinyatakan petugas BDRS berwenang validasi, dengan pelaksana
+pemeriksaan **boleh** berbeda dari validator (diizinkan, tidak diwajibkan); penyelesaian `PendingReview`
+dipecah menjadi **tiga butir hak akses terpisah** menurut arah risikonya, bukan satu `Resolve` global;
+dan pembatalan order darah dapat dilakukan dokter peminta maupun petugas BDRS, keduanya wajib beralasan
+terkendali dan berjejak.
+
+Peringatan sinkronisasi pada revisi 13 **sudah dijawab** oleh set kontrak `v4`; lihat catatan berikut.
+
+**Design update pass 3 September 2026 — set kontrak `v4`.** Menyerap `DEC-BD-042`, `DEC-BD-043`, dan
+`DEC-BD-044` dari register keputusan revisi 9. Dengan ini seluruh rangkaian keputusan Bank Darah —
+`DEC-BD-001` sampai `DEC-BD-044` — sudah turun ke kontrak.
+
+Yang bertambah pada desain: satu kolom dan satu penggantian nama pada `BbkCompatibilityEvidence`
+(`EvidenceResult`, `CheckedByUserId` → `ValidatedByUserId`), enum `BbkCompatibilityResult`, empat butir
+hak akses (`ResolveReallocate`, `ResolveReturn`, `ResolveNotUsable`, `BloodOrder : Cancel`), dua
+kategori alasan pembatalan pada `MstBloodBankReason`, enam kode validasi (`VAL-BD-078`..`083`), dan dua
+kewajiban layar (`FE-BD-020`, `FE-BD-021`).
+
+Yang **dihapus**, dan ini perlu diperhatikan seeder: butir `BloodUnit : Resolve` **tidak lagi dipakai**.
+Membiarkannya hidup berdampingan dengan ketiga penggantinya akan menjadi jalan pintas yang membatalkan
+pemisahan `DEC-BD-043`.
+
+Yang **tidak** bertambah: nol entity baru, nol tabel baru, nol migration baru, nol endpoint baru.
+`DEC-BD-043` seluruhnya berupa pergantian penjaga pada endpoint yang sudah ada.
+
+⚠️ **Satu pengetatan gerbang yang belum ditegaskan pemilik proses.** `DEC-BD-042` menuntut hasil
+keputusan bukti kecocokan tersimpan. Menyimpannya tanpa memeriksanya di gerbang akan menciptakan lubang
+*fail-open* — bukti bertanda "tidak cocok" membuka gerbang hanya karena ia ada. Rancangan `v4` karena
+itu menuntut hasil **cocok** pada predikat gerbang pemberian (`VAL-BD-079`). Ini penurunan dari
+`DEC-BD-042`, bukan aturan baru, tetapi pemilik proses belum menegaskannya — `OQ-BD-018`. Bila hasil
+keputusan dikehendaki bersifat keterangan saja, pengetatan ini dicabut.
+
+Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama peran konkret pemegang
+`BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
+
+Pemblokir yang tersisa untuk `plan-module-delivery` tinggal **satu**: `BD-DEP-008`. `roadmap/` tetap
+`STALE`. Approval manusia belum diklaim.

@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `00-interview-decisions.md` revisi 4 (INV/AC) · `03-domain-architecture.md` revisi 3 |
@@ -99,6 +99,74 @@ berikan — membingungkan, dan menyembunyikan bahwa gerbang pemberian memang din
 **Yang sengaja tidak divalidasi:** perpindahan lokasi **tidak** menuntut alasan terkendali. Bukti yang
 disetujui hanya menuntut lokasi asal, lokasi tujuan, pelaku, dan waktu (`INV-BD-026`). Menambah
 kewajiban alasan berarti mengarang aturan yang tidak diminta.
+
+---
+
+## 4c. Wewenang, jalur darurat, dan koreksi dua tahap — baru pada `v3`
+
+Diturunkan dari `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` dan `INV-BD-031` sampai `INV-BD-033`.
+
+| Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | HTTP |
+| --- | --- | --- | --- | --- |
+| `VAL-BD-069` | Penyelesaian konflik golongan darah | Pelaku bukan validator klinis yang ditunjuk | "Hanya validator klinis yang ditunjuk yang boleh menyelesaikan perbedaan hasil golongan darah." | `403` |
+| `VAL-BD-070` | Pemberian jalur darurat | Keterangan kondisi kedaruratan tidak diisi | "Sebutkan keadaan yang membuat pemberian ini harus dilakukan sekarang." | `422` |
+| `VAL-BD-071` | Pemberian jalur darurat | Peran penerbit otorisasi tidak dinyatakan | "Sebutkan Anda menerbitkan otorisasi ini sebagai Dokter Bank Darah atau sebagai dokter penanggung jawab pasien." | `422` |
+| `VAL-BD-072` | Pemberian jalur darurat | Pelaku bukan Dokter BDRS maupun DPJP pasien | "Hanya Dokter Bank Darah atau dokter penanggung jawab pasien yang boleh menerbitkan otorisasi darurat." | `403` |
+| `VAL-BD-073` | Keputusan koreksi | Pemutus adalah orang yang sama dengan peminta | "Koreksi tidak dapat disetujui oleh orang yang mengajukannya. Mintakan keputusan kepada Dokter Bank Darah lain." | `422` |
+| `VAL-BD-074` | Keputusan koreksi | Pelaku tidak berwenang memutuskan koreksi | "Hanya Dokter Bank Darah yang boleh menyetujui atau menolak koreksi pencatatan." | `403` |
+| `VAL-BD-075` | Keputusan koreksi | Koreksi sudah pernah disetujui atau ditolak | "Koreksi ini sudah diputuskan sebelumnya dan tidak dapat diputuskan ulang. Ajukan koreksi baru bila masih ada yang perlu diperbaiki." | `422` |
+| `VAL-BD-076` | Pengajuan koreksi | Bukti pendukung tidak diisi | "Jelaskan bukti pendukung yang mendasari koreksi ini." | `422` |
+| `VAL-BD-077` | Penolakan koreksi | Alasan penolakan tidak diisi | "Sebutkan alasan koreksi ini ditolak, supaya pengaju mengetahui yang perlu diperbaiki." | `422` |
+
+**Kenapa `VAL-BD-073` bernilai `422`, bukan `403`.** Menyetujui koreksi sendiri bukan soal pelakunya
+tidak berwenang — ia justru **berwenang**, dan mungkin sah memegang kedua butir hak akses sekaligus.
+Yang dilanggar adalah aturan bisnisnya: gerbang dua tahap kehilangan seluruh gunanya bila satu orang
+menempati kedua sisi. Karena itu penjaganya ada di lapisan aturan bisnis, bukan di mesin hak akses —
+`403` akan menyesatkan pembaca log seolah hak aksesnya kurang.
+
+**Kenapa `VAL-BD-070` dan `VAL-BD-071` terpisah dari `VAL-BD-066`.** Ketiganya sama-sama tentang
+kelengkapan otorisasi darurat, tetapi menahan hal yang berbeda: `VAL-BD-066` gerbang mana yang dilewati,
+`VAL-BD-070` keadaan klinis yang mendasarinya, `VAL-BD-071` dengan wewenang apa penerbit bertindak.
+Menggabungkannya menjadi satu pesan "isian tidak lengkap" membuat petugas menebak bagian mana yang
+kurang, pada saat yang paling tidak tepat untuk menebak.
+
+**Yang sengaja tidak divalidasi:** sistem **tidak** memeriksa apakah penerbit otorisasi darurat benar
+DPJP dari pasien yang bersangkutan. Bukti yang disetujui tidak menuntutnya, dan Bank Darah bukan pemilik
+data penugasan DPJP. Yang dijaga adalah kelengkapan rekam; kebenaran penugasannya terbaca saat ditinjau.
+
+---
+
+## 4d. Wewenang bukti kecocokan, penyelesaian, dan pembatalan order — baru pada `v4`
+
+Diturunkan dari `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044` dan `INV-BD-034`, `INV-BD-035`.
+
+| Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | HTTP |
+| --- | --- | --- | --- | --- |
+| `VAL-BD-078` | Catat bukti kecocokan | Pelaku tidak memegang kewenangan validasi | "Hanya petugas Bank Darah dengan kewenangan validasi yang boleh menyatakan hasil pemeriksaan kecocokan." | `403` |
+| `VAL-BD-079` | Pemberian jalur normal | Bukti kecocokan yang berlaku menyatakan **tidak cocok** | "Hasil pemeriksaan kecocokan menyatakan kantong ini tidak cocok untuk pasien tersebut. Kantong tidak dapat diberikan." | `422` |
+| `VAL-BD-080` | Pengalihan kantong ke pasien lain | Pelaku tidak memegang kewenangan klinis BDRS | "Hanya pemegang kewenangan klinis Bank Darah yang boleh mengalihkan kantong ke pasien lain." | `403` |
+| `VAL-BD-081` | Pengembalian kantong ke PMI | Pelaku tidak memegang kewenangan operasional BDRS | "Hanya pemegang kewenangan operasional Bank Darah yang boleh mengembalikan kantong ke PMI." | `403` |
+| `VAL-BD-082` | Penetapan kantong tidak layak | Pelaku tidak memegang kewenangan penetapan kelayakan | "Hanya pemegang kewenangan penetapan kelayakan yang boleh menyatakan kantong tidak layak." | `403` |
+| `VAL-BD-083` | Pembatalan order darah | Kategori alasan tidak sesuai peran pelaku — alasan klinis dipakai petugas BDRS, atau sebaliknya | "Pilih alasan pembatalan yang sesuai: pembatalan klinis oleh dokter peminta, atau pembatalan operasional oleh petugas Bank Darah." | `422` |
+
+**Kenapa `VAL-BD-079` bernilai `422`, bukan `403`.** Pelakunya berwenang memberikan darah; yang
+menahan adalah **isi buktinya**, bukan haknya. Ini aturan bisnis, bukan hak akses.
+
+**Kenapa `VAL-BD-079` ada sama sekali.** Sebelum `v4`, bukti hanya dicatat ketika hasilnya cocok,
+sehingga keberadaan bukti sudah cukup menjadi gerbang. Sejak `DEC-BD-042` menuntut hasil keputusan
+tersimpan, bukti bertanda **tidak cocok** juga ada di sistem — dan gerbang yang hanya memeriksa
+keberadaan akan meloloskannya. Pengetatan ini penurunan dari `DEC-BD-042`, menunggu penegasan pemilik
+proses (`OQ-BD-018`); sampai itu turun, rancangan memilih arah *fail-closed*.
+
+**Kenapa `VAL-BD-080` sampai `VAL-BD-082` tiga kode terpisah.** Ketiganya menahan hal yang sama —
+kewenangan kurang — tetapi pada tiga tindakan yang wewenangnya memang berbeda (`INV-BD-034`). Satu kode
+untuk ketiganya akan membuat pesan menyebut "kewenangan penyelesaian" yang tidak ada, dan petugas tidak
+tahu kewenangan mana yang sebenarnya kurang.
+
+**Yang sengaja tidak divalidasi:** sistem **tidak** memeriksa apakah pembatal order benar-benar dokter
+peminta yang tercatat pada order itu. `DEC-BD-044` menyebut dua peran, bukan mengikat pembatalan pada
+individu tertentu. Yang dijaga adalah kesesuaian **kategori alasan** dengan peran pelaku
+(`VAL-BD-083`), dan kelengkapan jejaknya (`INV-BD-035`).
 
 ---
 

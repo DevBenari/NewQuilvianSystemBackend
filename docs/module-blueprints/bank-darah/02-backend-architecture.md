@@ -5,16 +5,16 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Blueprint revision | `9` |
-| Contract version | `v2` — status `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint revision | `13` |
+| Contract version | `v4` — status `draft` |
+| `last_changed_in` | `v4` |
 | Modul | Bank Darah (`bank-darah`) · Area `HealthServices` · Module `BloodBankManagement` (baru) |
 | Tanggal | `2026-09-02` |
-| Backend SHA | `792acb9331a65187d052fffd4a292d3bce2fd828` cabang `sukmagp` |
+| Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
-| Sumber requirement | `00-interview-decisions.md` revisi 7 · `02-existing-capability-map.md` revisi 2 · `02-requirement-completeness-assessment.md` revisi 2 |
+| Sumber requirement | `00-interview-decisions.md` revisi 9 · `02-existing-capability-map.md` revisi 2 · `02-requirement-completeness-assessment.md` revisi 2 |
 | Sumber arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` |
-| Pass ini | `v2` — penyerapan Storage Location (`DEC-BD-035`, `DEC-BD-036`, `DEC-BD-037`) dan gerbang pemberian (`DEC-BD-038`) |
+| Pass ini | `v4` — penyerapan role residue closure (`DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`) |
 | Owner | Product/domain: pemilik proses BDRS · API: pemilik arsitektur backend · Security: pemilik keamanan platform · Frontend authority: pemilik proses BDRS |
 | `approved_by` / `approved_at` | Kosong — desain ini `draft`, approval tetap tindakan manusia |
 
@@ -38,6 +38,28 @@ penempatan kantong).
 | `DEC-BD-036` | `BbkBloodUnitStatus` bertambah dua nilai di depan (`Received`, `Stored`); lahir entity `BbkBloodUnitPlacement`; gerbang alokasi bertambah syarat |
 | `DEC-BD-037` | Penonaktifan lokasi menutup gerbang alokasi tanpa menyentuh satu baris kantong pun; tidak ada perpindahan otomatis |
 | `DEC-BD-038` | Gerbang pemberian memuat gerbang alokasi; otorisasi darurat wajib menyebut gerbang mana yang dilewati |
+
+**Yang berubah pada pass `v3`.** Tiga keputusan penutup `DEF-BD-004`:
+
+| Keputusan | Akibat pada rancangan backend |
+| --- | --- |
+| `DEC-BD-039` | Butir hak akses `BloodGroupExam : Validate` **dipecah** menjadi `Validate` (rutin) dan `ResolveConflict` (konflik). Tidak ada entity baru |
+| `DEC-BD-040` | `BbkEmergencyAuthorization` bertambah dua kolom wajib: peran penerbit dan keterangan kondisi kedaruratan. Lahir enum `BbkEmergencyAuthorizerRole` |
+| `DEC-BD-041` | **Perubahan bentuk, bukan sekadar peran.** `BbkIssuanceCorrection` memperoleh lifecycle (`Requested` → `Approved`/`Rejected`), kolom peminta dan pemutus terpisah, serta kolom bukti pendukung. Lahir enum `BbkCorrectionStatus`. Angka pemenuhan order **hanya** menghormati koreksi yang sudah disetujui (`INV-BD-033`) |
+
+`DEC-BD-041` adalah satu-satunya keputusan pada rangkaian ini yang mengubah bentuk data. Dua lainnya
+mengisi peran dan menambah kolom rekam.
+
+**Yang berubah pada pass `v4`.** Tiga keputusan penutup sisa `DEF-BD-004`:
+
+| Keputusan | Akibat pada rancangan backend |
+| --- | --- |
+| `DEC-BD-042` | `BbkCompatibilityEvidence` bertambah kolom **hasil keputusan**; lahir enum `BbkCompatibilityResult`. Wewenangnya memakai ulang butir `BloodUnit : Compatibility` yang sudah ada — **tanpa** mewajibkan pelaksana berbeda dari validator |
+| `DEC-BD-043` | Butir `BloodUnit : Resolve` **dipecah tiga**: `ResolveReallocate`, `ResolveReturn`, `ResolveNotUsable`. Tidak ada entity, kolom, maupun endpoint baru — hanya penjaga yang berbeda per endpoint yang sudah ada |
+| `DEC-BD-044` | Butir `BloodOrder : Cancel` **dipisah** dari `BloodOrder : Update`. `MstBloodBankReason` bertambah dua kategori alasan yang membedakan pembatalan klinis dari operasional |
+
+Dua dari tiga keputusan ini **tidak menambah satu pun entity**. Yang bertambah hanya satu kolom, satu
+enum, dan empat butir hak akses.
 
 Yang **tidak** dirancang, sesuai perintah dan sesuai batas scope arsitektur: implementasi charge
 Billing (`DEC-BD-016` menggantung), mekanik cetak label golongan darah (`OQ-BD-011`), integrasi API
@@ -79,8 +101,8 @@ batas transaksinya diambil apa adanya dari `03-domain-architecture.md` §E.
 | --- | --- | --- | --- | --- |
 | `BD-AGG-01` Order Darah | `BbkBloodOrder` | Order menunjuk pasien & kunjungan sah; tiap baris punya komponen dari katalog & jumlah > 0; angka pemenuhan dihitung dari transaksi | Order + seluruh barisnya dalam satu transaksi | Order gagal dibuat → tidak ada baris tersimpan |
 | `BD-AGG-02` Permintaan PMI | `BbkProviderRequest` | Selalu atas nama satu pasien; sisa = diminta − diterima, batas bawah 0, **tidak pernah negatif** (`INV-BD-017`); tak boleh digandakan untuk kebutuhan sama; penerimaan fisik tak pernah ditolak karena kelebihan | Permintaan + catatan penerimaan | Penerimaan gagal → stok tidak bertambah |
-| `BD-AGG-03` Kantong Operasional | `BbkBloodUnit` | **Satu kantong ≤ satu alokasi aktif**; kantong tak pernah jadi stok bebas; **tak dapat dialokasikan sebelum melewati `Stored`** (`INV-BD-025`) **maupun selama penempatan terakhirnya menunjuk lokasi nonaktif** (`INV-BD-028`); **riwayat penempatan hanya bertambah, maks. satu penempatan berlaku** (`INV-BD-026`); **pemberian jalur normal menuntut gerbang alokasi + bukti kecocokan berlaku, dinilai ulang saat pemberian** (`INV-BD-029`); otorisasi darurat wajib menyebut gerbang yang dilewati (`INV-BD-030`); **pemberian tak pernah dihapus/dibalik** (`INV-BD-021`) | Kantong + penempatan + alokasi + bukti + otorisasi darurat + koreksi | Alokasi bentrok → transaksi kedua ditolak lewat token konkurensi |
-| `BD-AGG-04` Pemeriksaan Golongan Darah | `BbkBloodGroupExam` | Hasil belum tervalidasi tak dipakai klinis; hasil tervalidasi tak pernah ditimpa; konflik hanya ditutup lewat pemeriksaan ulang tervalidasi, tak pernah hitung mayoritas (`INV-BD-022`) | Pemeriksaan + sampelnya | Validasi gagal → status tetap `ResultRecorded` |
+| `BD-AGG-03` Kantong Operasional | `BbkBloodUnit` | **Satu kantong ≤ satu alokasi aktif**; kantong tak pernah jadi stok bebas; **tak dapat dialokasikan sebelum melewati `Stored`** (`INV-BD-025`) **maupun selama penempatan terakhirnya menunjuk lokasi nonaktif** (`INV-BD-028`); **riwayat penempatan hanya bertambah, maks. satu penempatan berlaku** (`INV-BD-026`); **pemberian jalur normal menuntut gerbang alokasi + bukti kecocokan berlaku yang hasilnya cocok, dinilai ulang saat pemberian** (`INV-BD-029`, `DEC-BD-042`); otorisasi darurat wajib menyebut gerbang yang dilewati (`INV-BD-030`); **pemberian tak pernah dihapus/dibalik** (`INV-BD-021`) · **koreksi berlaku hanya setelah disetujui, dan peminta ≠ penyetuju** (`INV-BD-033`) | Kantong + penempatan + alokasi + bukti + otorisasi darurat + koreksi | Alokasi bentrok → transaksi kedua ditolak lewat token konkurensi |
+| `BD-AGG-04` Pemeriksaan Golongan Darah | `BbkBloodGroupExam` | Hasil belum tervalidasi tak dipakai klinis; hasil tervalidasi tak pernah ditimpa; konflik hanya ditutup lewat pemeriksaan ulang tervalidasi, tak pernah hitung mayoritas (`INV-BD-022`) · **validasi rutin dan penyelesaian konflik adalah dua wewenang terpisah** (`INV-BD-031`) | Pemeriksaan + sampelnya | Validasi gagal → status tetap `ResultRecorded` |
 | `BD-AGG-05` Tindakan Bank Darah | `BbkBloodBankProcedure` | Menunjuk satu order sah; tarif tak pernah dihitung sendiri; satu tindakan ≤ satu fakta biaya; **koreksi tak membalik biaya otomatis** (`INV-BD-024`) | Tindakan + konteksnya | — |
 
 Empat invariant **lintas aggregate** (`BD-XINV-01`..`04`) tidak dijaga satu batas transaksi;
@@ -224,7 +246,8 @@ classDiagram
         +Guid Id
         +Guid BloodUnitId
         +Guid PatientId
-        +Guid CheckedByUserId
+        +BbkCompatibilityResult EvidenceResult
+        +Guid ValidatedByUserId
         +DateTime CheckedAt
         +bool IsSuperseded
     }
@@ -234,6 +257,8 @@ classDiagram
         +Guid PatientId
         +Guid AuthorizedByUserId
         +string ReasonCode
+        +string EmergencyConditionNote
+        +BbkEmergencyAuthorizerRole AuthorizerRole
         +BbkEmergencyBypassScope BypassScope
     }
     class BbkIssuanceCorrection {
@@ -242,7 +267,10 @@ classDiagram
         +string WhatWasWrong
         +string WhatIsCorrect
         +string ReasonCode
-        +Guid CorrectedByUserId
+        +string SupportingEvidenceNote
+        +BbkCorrectionStatus CorrectionStatus
+        +Guid RequestedByUserId
+        +Guid~nullable~ DecidedByUserId
     }
     BbkBloodUnit "1" --> "0..*" BbkBloodUnitPlacement : penempatan (max 1 berlaku)
     BbkBloodUnitPlacement "0..*" --> "1" MstBloodStorageLocation : ditaruh di
@@ -421,9 +449,9 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | `BbkBloodUnitReceipt` (`BD-DOM-04`) | `Baru` | `.../Models/BbkBloodUnitReceipt.cs` | Mencatat kedatangan fisik. Stok bertambah **hanya** lewat konsep ini; tak pernah ditolak karena kelebihan; melahirkan `BbkBloodUnit` |
 | `BbkBloodUnitAllocation` (`BD-DOM-06`) | `Baru` | `.../Models/BbkBloodUnitAllocation.cs` | Mengikat kantong ke satu baris kebutuhan. **Maks. satu `Active` per kantong**; pembatalan tak menghapus, hanya `Cancelled` + alasan/pelaku/waktu (`DEC-BD-029`) |
 | `BbkBloodUnitPlacement` (`BD-DOM-25`) | `Baru` | `.../Models/BbkBloodUnitPlacement.cs` | Riwayat penempatan kantong: di kulkas mana, sejak kapan, oleh siapa. **Append-only** (`INV-BD-026`); penempatan pertama membawa kantong `Received`→`Stored`, penempatan berikutnya adalah perpindahan yang **tidak** mengubah status. Maks. satu `IsCurrent=true` per kantong. `StorageLocationId` wajib menunjuk lokasi **aktif** saat penempatan dibuat (`INV-BD-027`) |
-| `BbkCompatibilityEvidence` (`BD-DOM-07`) | `Baru` | `.../Models/BbkCompatibilityEvidence.cs` | Bukti kecocokan **terikat pasangan kantong+pasien**. Masa berlaku dihitung dari `CheckedAt` + `CompatibilityEvidenceValidityHours` komponen (`DEC-BD-027`). Pengalihan → `IsSuperseded` (`DEC-BD-028`) |
-| `BbkEmergencyAuthorization` (`BD-DOM-08`) | `Baru` | `.../Models/BbkEmergencyAuthorization.cs` | Menggantikan **gerbang pemberian** pada keadaan darurat — bukti kecocokan, lokasi nonaktif, atau keduanya. Hanya peran berwenang; alasan wajib; penanda permanen (`DEC-BD-017`). Kolom `BypassScope` **wajib** menyatakan gerbang mana yang dilewati (`INV-BD-030`, `DEC-BD-038`) |
-| `BbkIssuanceCorrection` (`BD-DOM-23`) | `Baru` | `.../Models/BbkIssuanceCorrection.cs` | Menyatakan **pencatatan** pemberian keliru. Append-only; tak pernah menghapus/membalik/memindah ke pasien lain (`DEC-BD-030`, `INV-BD-021`) |
+| `BbkCompatibilityEvidence` (`BD-DOM-07`) | `Baru` | `.../Models/BbkCompatibilityEvidence.cs` | Bukti kecocokan **terikat pasangan kantong+pasien**. Masa berlaku dihitung dari `CheckedAt` + `CompatibilityEvidenceValidityHours` komponen (`DEC-BD-027`). Pengalihan → `IsSuperseded` (`DEC-BD-028`). **Sejak `v4`** menyimpan **hasil keputusan** (`EvidenceResult`) dan validator yang menyatakannya (`DEC-BD-042`); bukti yang hasilnya **tidak cocok** tetap tersimpan dan **tidak** membuka gerbang pemberian |
+| `BbkEmergencyAuthorization` (`BD-DOM-08`) | `Baru` | `.../Models/BbkEmergencyAuthorization.cs` | Menggantikan **gerbang pemberian** pada keadaan darurat — bukti kecocokan, lokasi nonaktif, atau keduanya. Alasan wajib; penanda permanen (`DEC-BD-017`). `BypassScope` **wajib** menyatakan gerbang mana yang dilewati (`INV-BD-030`). **Sejak `v3`** penerbitnya Dokter BDRS **atau** DPJP pasien, dan dua kolom baru wajib terisi: `AuthorizerRole` (peran yang dipakai) dan `EmergencyConditionNote` (keadaan klinis saat itu) — `DEC-BD-040`, `INV-BD-032` |
+| `BbkIssuanceCorrection` (`BD-DOM-23`) | `Baru` | `.../Models/BbkIssuanceCorrection.cs` | Menyatakan **pencatatan** pemberian keliru. Append-only; tak pernah menghapus/membalik/memindah ke pasien lain (`DEC-BD-030`, `INV-BD-021`). **Sejak `v3` punya lifecycle dua tahap** (`DEC-BD-041`): dibuat `Requested` oleh petugas BDRS, lalu `Approved`/`Rejected` oleh Dokter BDRS. **Belum berlaku selama `Requested`** — angka pemenuhan order tidak bergerak (`INV-BD-033`). Peminta dan pemutus wajib orang berbeda |
 | `BbkBloodGroupSample` (`BD-DOM-10`) | `Baru` | `.../Models/BbkBloodGroupSample.cs` | Sampel Bank Darah, bukan sampel Laboratorium; tak menimbulkan tagihan Lab (`DEC-BD-018`) |
 | `BbkBloodGroupConflictResolution` (`BD-DOM-22`) | `Baru` | `.../Models/BbkBloodGroupConflictResolution.cs` | Menutup keadaan konflik. Append-only; **wajib** menunjuk `ResolvingExamId` (pemeriksaan ulang tervalidasi) + validator/alasan/waktu (`DEC-BD-031`) |
 | `BbkTransitionHistory` (`BD-DOM-15`) | `Baru` | `.../Models/BbkTransitionHistory.cs` | Riwayat pergerakan append-only; menyalin `ReasonNote` sebagai teks saat kejadian |
@@ -444,7 +472,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | `BbkBloodOrderService` | `Baru` | `.../BloodBankManagement/Services/BbkBloodOrderService.cs` | CRUD order, deteksi ganda `BD-XINV-01`, hitung pemenuhan `BD-DOM-17`, alokasi number-series order | Ya |
 | `BbkProviderRequestService` | `Baru` | `.../Services/BbkProviderRequestService.cs` | Buat permintaan (`BD-XINV-02`), catat penerimaan (termasuk kelebihan `BD-XINV-03`), tutup administratif | Ya |
 | `BbkBloodUnitService` | `Baru` | `.../Services/BbkBloodUnitService.cs` | **Penetapan lokasi (`Received`→`Stored`) & perpindahan lokasi**, alokasi & pembatalan, catat bukti kecocokan, pemberian (+darurat), koreksi, penyelesaian `PendingReview`. Memegang **dua gerbang**: `EvaluateAllocationGate` dan `EvaluateIssuanceGate` — lihat catatan di bawah | Ya |
-| `BbkBloodGroupExamService` | `Baru` | `.../Services/BbkBloodGroupExamService.cs` | Sampel, catat hasil, validasi, deteksi konflik `BD-XINV-04`, penyelesaian konflik | Ya |
+| `BbkBloodGroupExamService` | `Baru` | `.../Services/BbkBloodGroupExamService.cs` | Sampel, catat hasil, **validasi rutin**, deteksi konflik `BD-XINV-04`, **penyelesaian konflik**. Dua tindakan terakhir dijaga butir hak akses yang **berbeda** (`DEC-BD-039`) | Ya |
 | `BbkBloodBankProcedureService` | `Baru` | `.../Services/BbkBloodBankProcedureService.cs` | Catat & selesaikan tindakan. **Tidak** memanggil producer Billing (tertahan `DEC-BD-016`) | Ya |
 | `BbkEncounterStatusReader` (`BD-DOM-16`) | `Baru` | `.../Services/BbkEncounterStatusReader.cs` | Adapter baca status kunjungan/episode; **tak pernah menulis** ke modul hulu (`DEC-BD-014`) | Tidak |
 | `MstBloodComponentService` | `Baru` | `Areas/HealthServices/MasterData/Services/MstBloodComponentService.cs` | CRUD katalog komponen | Ya |
@@ -453,6 +481,22 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 
 Alokasi nomor bisnis (`OrderNumber`, `RequestNumber`, `ProcedureNumber`) memakai provider
 number-series atomik yang sudah ada; **MUST NOT** memakai Count+1 / Max+1 (`QBE-CODE-002/003`).
+
+**Perubahan `v4` pada `BbkBloodUnitService`.** Predikat `EvaluateIssuanceGate` bertambah satu syarat:
+bukti kecocokan yang dipakai wajib berhasil **cocok**. Sebelum `v4`, keberadaan bukti sudah cukup —
+karena bukti hanya dicatat ketika hasilnya memang cocok. Sejak hasil keputusan disimpan eksplisit
+(`DEC-BD-042`), keberadaan saja tidak lagi cukup: bukti yang menyatakan **tidak cocok** juga tersimpan,
+dan meloloskannya berarti memberikan darah yang sudah dinyatakan tidak cocok oleh manusia.
+
+Ketiga jalur penyelesaian `PendingReview` tetap satu service, tetapi **tiga butir hak akses berbeda**
+menjaganya (`DEC-BD-043`). Pemisahan itu ada pada atribut controller, bukan pada pemecahan service —
+ketiganya berbagi batas transaksi dan invariant yang sama.
+
+**Perubahan `v3` pada `BbkBloodUnitService`.** Jalur koreksi pecah menjadi dua tindakan yang berbeda
+wewenangnya: `RequestIssuanceCorrection` (petugas BDRS) dan `DecideIssuanceCorrection`
+(Dokter BDRS, menyetujui atau menolak). Perhitungan ringkasan pemenuhan (`BD-DOM-17`) **wajib**
+menyaring hanya koreksi berstatus `Approved`; menyertakan koreksi `Requested` akan membuat angka
+pemenuhan bergerak sebelum keputusan turun, dan itu persis yang dilarang `INV-BD-033`.
 
 **Dua gerbang pada `BbkBloodUnitService`, dan kenapa keduanya satu fungsi masing-masing.**
 `ARCH-BD-POS-06` dan `ARCH-BD-POS-07` menuntut tiap gerbang dinyatakan sebagai **satu** pertanyaan,
@@ -499,6 +543,9 @@ Seluruh controller: Controller → Module Service → `ApplicationDbContext` (`Q
 | `BbkOrderSource` | `Electronic`, `Manual` | `.../Enums/BbkOrderSource.cs` |
 | `BbkProcedureStatus` | `Recorded`, `Completed` | `.../Enums/BbkProcedureStatus.cs` |
 | `BbkEmergencyBypassScope` | `CompatibilityEvidence`, `InactiveStorageLocation`, `Both` | `.../Enums/BbkEmergencyBypassScope.cs` |
+| `BbkEmergencyAuthorizerRole` | `BloodBankDoctor`, `AttendingPhysician` | `.../Enums/BbkEmergencyAuthorizerRole.cs` |
+| `BbkCorrectionStatus` | `Requested`, `Approved`, `Rejected` | `.../Enums/BbkCorrectionStatus.cs` |
+| `BbkCompatibilityResult` | `Compatible`, `Incompatible` | `.../Enums/BbkCompatibilityResult.cs` |
 | `BloodType` (dipakai ulang) | `Sudah ada` — `Enums/BloodType.cs` (`BD-CAP-016`) | tidak dibuat ulang |
 
 Keadaan "konflik golongan darah" **bukan** enum tersendiri; ia flag `IsConflictHeld` pada
@@ -512,6 +559,38 @@ turunan yang dihitung dari `MstBloodStorageLocation.IsActive` saat gerbang diper
 (`ARCH-BD-POS-06`), mengikuti pola yang sama dengan lewatnya masa berlaku bukti. Menjadikannya status
 akan menuntut penyuntingan massal setiap kali satu kulkas dinonaktifkan, dan itu justru yang dilarang
 `DEC-BD-037`.
+
+**Kenapa `BbkCompatibilityResult` hanya dua nilai, dan kenapa `Incompatible` tetap disimpan.**
+`DEC-BD-042` menuntut hasil keputusan tersimpan, dan sebuah "hasil" yang hanya punya satu nilai bukan
+hasil — ia sekadar penanda keberadaan. Dua nilai adalah bentuk terkecil yang benar-benar menyimpan
+keputusan manusia. Bukti yang hasilnya `Incompatible` **tetap disimpan**, tidak dibuang: fakta bahwa
+kantong itu pernah diuji terhadap pasien itu dan dinyatakan tidak cocok adalah bagian riwayat yang
+paling berguna, dan membuangnya membuka jalan bagi orang berikutnya mengulang uji yang sama.
+
+⚠️ **Satu penurunan yang perlu dibaca teliti, karena ia mengetatkan gerbang.** Menyimpan hasil
+keputusan tanpa memeriksanya di gerbang akan menciptakan lubang *fail-open*: bukti bertanda "tidak
+cocok" akan membuka gerbang hanya karena ia ada. Karena itu predikat gerbang pemberian pada `v4`
+menuntut hasil **cocok**, bukan sekadar keberadaan bukti. Ini penurunan dari `DEC-BD-042`, **bukan**
+aturan baru yang dikarang — tetapi pemilik proses belum menegaskannya, dan pertanyaannya terbuka
+sebagai `OQ-BD-018`. Bila pemilik menghendaki hasil keputusan bersifat keterangan saja, pengetatan ini
+dicabut. Sampai itu dinyatakan, rancangan memilih arah *fail-closed*, konsisten dengan seluruh
+keputusan keselamatan modul ini.
+
+**Kenapa `BbkEmergencyAuthorizerRole` disimpan, padahal pelakunya sudah tercatat.** `AuthorizedByUserId`
+menjawab *siapa*, bukan *dengan wewenang apa*. `DEC-BD-040` membuka dua jalur wewenang yang berbeda —
+Dokter BDRS dan DPJP pasien — dan seorang dokter bisa saja memenuhi keduanya pada kasus yang berbeda.
+Tanpa kolom ini, peninjau tidak dapat membedakan jalur mana yang dipakai, dan seluruh gunanya membuka
+dua jalur menjadi tidak terlacak (`INV-BD-032`).
+
+**Kenapa `BbkCorrectionStatus` punya `Rejected`, bukan hanya `Requested` dan `Approved`.** Permintaan
+koreksi yang ditolak **tetap tersimpan dan tetap terbaca**. Menghapusnya, atau membiarkannya
+menggantung selamanya di `Requested`, sama-sama menghilangkan fakta bahwa seseorang pernah menyatakan
+catatan itu keliru dan pemutus tidak sependapat. Itu justru bagian riwayat yang paling berguna saat
+ditinjau kemudian.
+
+**Kenapa satu pasang kolom pemutus, bukan dua pasang.** Yang dipakai `DecidedByUserId` dan `DecidedAt`,
+bukan `ApprovedBy`/`ApprovedAt` ditambah `RejectedBy`/`RejectedAt`. Dua pasang memungkinkan keadaan tak
+sah — baris yang punya penyetuju sekaligus penolak. Satu pasang membuat keadaan itu tidak dapat ditulis.
 
 **Kenapa `BbkEmergencyBypassScope` berupa enum, bukan dua kolom bool.** Dua bool memungkinkan keadaan
 tak sah `(false, false)` — otorisasi darurat yang tidak melewati gerbang apa pun. Enum tiga nilai
@@ -532,7 +611,7 @@ Areas/HealthServices/
 │   │                                       #   BbkIssuanceCorrection, BbkBloodGroupExam,
 │   │                                       #   BbkBloodGroupSample, BbkBloodGroupConflictResolution,
 │   │                                       #   BbkBloodBankProcedure, BbkTransitionHistory  (semua Baru)
-│   ├── Enums/                              # delapan enum Bbk* (Baru)
+│   ├── Enums/                              # sebelas enum Bbk* (Baru)
 │   ├── DTOs/                               # DTO Create/Update/Status/Response/PagedQuery per resource (Baru)
 │   ├── Services/                           # lima service transaksi + BbkEncounterStatusReader (Baru)
 │   └── Controllers/                        # lima controller operasional (Baru)
@@ -579,6 +658,28 @@ migration tidak dapat direncanakan:
 | `BbkBloodUnit` | `Diperbarui` terhadap `v1` | **+1 kolom** `CurrentPlacementId` `uuid NULL` (FK ke `BbkBloodUnitPlacement`). Nilai bawaan status berpindah dari `Available` menjadi **`Received`** |
 | `BbkEmergencyAuthorization` | `Diperbarui` terhadap `v1` | **+1 kolom** `BypassScope` `int NOT NULL` (enum `BbkEmergencyBypassScope`) |
 
+Perubahan `v3` terhadap kontrak `v2` — seluruhnya pada dua tabel, dan seluruhnya masih `CREATE TABLE`
+karena belum satu pun tabel `Bbk*` pernah dibuat di database mana pun:
+
+| Tabel | Status pada `v3` | Kolom yang berubah |
+| --- | --- | --- |
+| `BbkEmergencyAuthorization` | `Diperbarui` terhadap `v2` | **+2 kolom**: `AuthorizerRole` `int NOT NULL` (enum `BbkEmergencyAuthorizerRole`), `EmergencyConditionNote` `varchar(500) NOT NULL` |
+| `BbkIssuanceCorrection` | `Diperbarui` terhadap `v2` | **+4 kolom**: `CorrectionStatus` `int NOT NULL` (bawaan `Requested`), `SupportingEvidenceNote` `varchar(1000) NOT NULL`, `DecidedByUserId` `uuid NULL`, `DecidedAt` `timestamp NULL`, `DecisionNote` `varchar(500) NULL`. **2 kolom berganti nama**: `CorrectedByUserId` → `RequestedByUserId`, `CorrectedAt` → `RequestedAt` |
+
+Perubahan `v4` terhadap kontrak `v3` — satu tabel operasional dan satu master:
+
+| Tabel | Status pada `v4` | Kolom yang berubah |
+| --- | --- | --- |
+| `BbkCompatibilityEvidence` | `Diperbarui` terhadap `v3` | **+1 kolom** `EvidenceResult` `int NOT NULL` (enum `BbkCompatibilityResult`). **1 kolom berganti nama**: `CheckedByUserId` → `ValidatedByUserId`, karena `DEC-BD-042` menetapkan yang tersimpan adalah **validator** yang menyatakan, dan pelaksana pemeriksaan boleh orang lain |
+| `MstBloodBankReason` | `Diperbarui` terhadap `v3` | **Tidak ada kolom baru.** Yang bertambah adalah **nilai** pada `ReasonCategory`: `OrderCancellationClinical` dan `OrderCancellationOperational` menggantikan `OrderCancellation` tunggal (`DEC-BD-044`) |
+
+Keduanya masih `CREATE TABLE`/data awal, bukan `ALTER TABLE`, karena tabelnya belum pernah dibuat.
+
+Penggantian nama pada `BbkIssuanceCorrection` bukan kosmetik. Pada `v2` kolom itu berarti "siapa yang
+mengoreksi", satu tindakan tunggal. Sejak `DEC-BD-041` ada dua pelaku pada dua saat yang berbeda, dan
+nama lama menjadi menyesatkan: ia akan terbaca seolah menunjuk orang yang memutuskan, padahal isinya
+orang yang mengajukan.
+
 Ketiga tabel `Bbk*` di atas belum pernah dibuat di database mana pun — perubahannya terhadap **kontrak
 `v1`**, bukan terhadap skema yang sudah berjalan. Karena itu tidak ada `ALTER TABLE` yang timbul
 darinya; seluruhnya masuk ke `CREATE TABLE` pada migration pertama modul.
@@ -598,6 +699,12 @@ Urutan (satu migration modul, dapat dipecah bila perlu):
    `MstServiceUnit`. Data lama otomatis `false` — sesuai `DEC-BD-012` "bawaan menolak". Tanpa downtime.
 3. **`AddBloodBankOperational`** — 15 tabel `Bbk*` (termasuk **`BbkBloodUnitPlacement`**) beserta FK
    `Restrict` dan index. Tanpa downtime (tabel baru, tidak menyentuh trafik existing).
+
+**Catatan `v3`.** Perubahan pass ini menyentuh dua tabel yang **belum pernah dibuat**, sehingga tidak
+menambah satu pun migration baru maupun satu pun `ALTER TABLE`. Seluruhnya larut ke dalam langkah 3.
+Bila migration langkah 3 sudah terlanjur dijalankan di lingkungan mana pun sebelum `v3` disetujui,
+barulah perubahan ini menjadi `ALTER TABLE` tersendiri — dan pada saat itu kolom `EmergencyConditionNote`
+serta `SupportingEvidenceNote` yang `NOT NULL` menuntut nilai bawaan sementara untuk baris lama.
 
 **Urutan ketiganya mengikat.** `MstBloodStorageLocation` wajib ada **sebelum** langkah 3, karena
 `BbkBloodUnitPlacement.StorageLocationId` menunjuk ke sana. Menukar urutannya membuat migration gagal
@@ -634,7 +741,7 @@ Modul dengan master kosong tidak dapat dipakai. Isi minimum:
 | Master | Isi minimum | Sumber nilai |
 | --- | --- | --- |
 | `MstBloodComponent` | Minimal PRC, TC, FFP (kode + nama); `CompatibilityEvidenceValidityHours` boleh kosong dulu | Katalog komponen darah MMC (`DEC-BD-024`). Angka jam menyusul dari kebijakan klinis (`OQ-BD-012`) |
-| `MstBloodBankReason` | Alasan terkendali per kategori: pembatalan order, jalur darurat, penyelesaian `PendingReview`, pengembalian, tidak layak, **kiriman melebihi permintaan** (`DEC-BD-025`), **pembatalan alokasi** (`DEC-BD-029`), **koreksi pemberian** (`DEC-BD-030`) | Daftar alasan yang disepakati BDRS (`DEC-BD-024`, `INV-BD-016`) |
+| `MstBloodBankReason` | Alasan terkendali per kategori: **pembatalan order klinis** dan **pembatalan order operasional** sebagai dua kategori terpisah (`DEC-BD-044`), jalur darurat, penyelesaian `PendingReview`, pengembalian, tidak layak, **kiriman melebihi permintaan** (`DEC-BD-025`), **pembatalan alokasi** (`DEC-BD-029`), **koreksi pemberian** (`DEC-BD-030`), **penolakan koreksi** (`DEC-BD-041`) | Daftar alasan yang disepakati BDRS (`DEC-BD-024`, `INV-BD-016`) |
 | `MstBloodStorageLocation` | **Minimal satu lokasi aktif.** Contoh yang disebut pemilik proses: "Kulkas Besar" dan "Kulkas Kecil" | Daftar kulkas darah BDRS yang benar-benar ada (`DEC-BD-035`). **Prasyarat go-live** — lihat bagian I |
 | `MstServiceUnit` (flag) | Set `IsAvailableForBloodOrder = true` hanya untuk Rawat Inap, IGD, Rawat Jalan (`DEC-BD-012`) | Konfigurasi unit pemesan MVP; sisanya tetap `false` |
 
@@ -654,6 +761,8 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | **Satu penempatan berlaku per kantong** (`INV-BD-026`) | Penambahan `BbkBloodUnitPlacement` + pemadaman `IsCurrent` lama + pemindahan `BbkBloodUnit.CurrentPlacementId` dalam **satu** transaksi, dikawal token `Version` kantong. Unique filtered index pada `(BloodUnitId)` untuk baris `IsCurrent = true` | `DEC-BD-036` |
 | **Gerbang alokasi & pemberian tidak memakai salinan** (`INV-BD-028`, `INV-BD-029`) | Keaktifan lokasi dibaca dari master **saat gerbang dinilai**, tidak pernah disalin ke kantong. Tidak ada background job dan tidak ada batch update saat lokasi dinonaktifkan | `DEC-BD-037`, `ARCH-BD-POS-06` |
 | **Lomba antara menonaktifkan lokasi dan mengalokasikan kantong** | Perlombaan ini **tidak berbahaya**: yang kalah hanyalah satu alokasi yang terlanjur lolos beberapa milidetik sebelum penanda berubah. Kantongnya tetap tidak dapat **diberikan**, karena gerbang pemberian dinilai ulang (`INV-BD-029`) — inilah nilai praktis dari gerbang pemberian yang memuat gerbang alokasi | `DEC-BD-038`, `ARCH-BD-POS-07` |
+| **Koreksi diputuskan dua kali** | Keputusan menyaring `CorrectionStatus = Requested`; token `Version` kantong mengawal. Koreksi yang sudah `Approved`/`Rejected` tidak dapat diputuskan lagi | `DEC-BD-041` |
+| **Peminta menyetujui permintaannya sendiri** | Dijaga aturan bisnis di service, **bukan** hak akses — seseorang dapat sah memegang kedua butir hak akses sekaligus, dan justru itu kasus yang perlu ditahan. Perbandingannya `RequestedByUserId ≠ DecidedByUserId` | `DEC-BD-041` |
 | Pengiriman fakta biaya idempotent | **Tidak dirancang** — `DEC-BD-016` menggantung | `BD-CAP-015` |
 
 ---
@@ -678,6 +787,12 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | Job penutup gerbang saat lokasi dinonaktifkan | Tidak diperlukan sama sekali; gerbang dinilai saat diperiksa. Menambah job justru menciptakan jendela waktu ketika sebagian kantong sudah tertutup dan sebagian belum |
 | Daftar kerja operasional keempat untuk kantong `Received` / di lokasi nonaktif | `DEC-BD-023` menetapkan tiga daftar kerja, dan `AC-BD-057` menegaskan polanya. Keduanya cukup dilayani **penyaring** pada daftar kantong yang sudah ada |
 | Pemantauan suhu, kapasitas, IoT | Dikeluarkan `DEC-BD-035` dari MVP. Catatan lokasi adalah bukti **penempatan**, bukan bukti rantai dingin terjaga |
+| Entity "Permintaan Koreksi" terpisah dari "Koreksi" | Permintaan dan koreksi yang disetujui adalah **satu benda pada dua keadaan**, bukan dua benda. Memisahkannya membuat entity per status — dilarang — dan memaksa penyalinan isi saat disetujui |
+| Butir hak akses terpisah untuk pembatalan order klinis dan operasional | Cukup **satu** butir `BloodOrder : Cancel`; yang membedakan kedua sebab adalah **kategori alasan** yang wajib diisi, bukan penjaga yang berbeda. `DEC-BD-044` menetapkan dua peran boleh membatalkan, bukan dua jalur pembatalan yang berbeda bentuknya |
+| Kewajiban pelaksana pemeriksaan berbeda dari validator bukti kecocokan | `DEC-BD-042` menyatakan keduanya **dapat** berbeda — izin, bukan kewajiban. Menjadikannya kewajiban berarti mengetatkan melebihi keputusan pemilik proses, dan itu ditolak sekeras mengarang kelonggaran |
+| Peran/role baru di tabel role platform | `DEC-BD-039` sampai `DEC-BD-041` menetapkan **pemetaan jabatan ke butir hak akses**, bukan menuntut role baru. Role tetap dikelola Administrator/Setting seperti modul lain |
+| Kolom `IsSelfApproved` atau sejenisnya | Persetujuan sendiri **ditolak**, bukan ditandai. Menyediakan kolom untuk mencatatnya berarti mengakui keadaan yang seharusnya tidak pernah tersimpan |
+| Lampiran berkas pada bukti pendukung koreksi | Bukti yang disetujui menyebut "bukti pendukung" tanpa menyatakan bentuknya. Dirancang sebagai **teks**; lampiran berkas adalah kemampuan penyimpanan berkas tersendiri yang belum diputuskan — lihat `OQ-BD-016` |
 | Model keamanan baru | Pola `[AccessController]/[AccessAction]/[AccessPermission]` sudah ada (`BD-CAP-013`) |
 | Mekanisme konfigurasi unit baru | Cukup extend `MstServiceUnit` dengan satu flag (`BD-CAP-005`) |
 | Perhitungan tarif / charge sendiri | Billing pemilik tarif; hanya kirim fakta — dan itu pun tertahan `DEC-BD-016` (`BD-CAP-015`) |
@@ -701,6 +816,12 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | `DEC-BD-036` | `BD-DOM-25`, `BD-AGG-03` | `BbkBloodUnitPlacement`; enum `Received`/`Stored`; `BbkBloodUnit.CurrentPlacementId` |
 | `DEC-BD-037` | `BD-DOM-24`, `BD-AGG-03` | `MstBloodStorageLocation.IsActive` + `EvaluateAllocationGate`; tanpa job dan tanpa perpindahan otomatis |
 | `DEC-BD-038` | `BD-AGG-03`, `BD-DOM-08` | `EvaluateIssuanceGate`; `BbkEmergencyAuthorization.BypassScope` + enum `BbkEmergencyBypassScope` |
+| `DEC-BD-039` | `BD-AGG-04` | Pemecahan butir hak akses `BloodGroupExam : Validate` dan `: ResolveConflict`; tanpa entity baru |
+| `DEC-BD-040` | `BD-DOM-08` | `BbkEmergencyAuthorization.AuthorizerRole` + `EmergencyConditionNote`; enum `BbkEmergencyAuthorizerRole` |
+| `DEC-BD-041` | `BD-DOM-23`, `BD-DOM-17` | Lifecycle `BbkIssuanceCorrection` + enum `BbkCorrectionStatus`; kolom peminta/pemutus terpisah; penyaringan `Approved` pada ringkasan pemenuhan |
+| `DEC-BD-042` | `BD-DOM-07` | `BbkCompatibilityEvidence.EvidenceResult` + enum `BbkCompatibilityResult`; `CheckedByUserId` → `ValidatedByUserId`; pengetatan predikat gerbang pemberian |
+| `DEC-BD-043` | `BD-AGG-03` | Tiga butir hak akses menggantikan `BloodUnit : Resolve`; tanpa entity, kolom, maupun endpoint baru |
+| `DEC-BD-044` | `BD-AGG-01`, `BD-DOM-14` | Butir `BloodOrder : Cancel` dipisah dari `Update`; dua kategori alasan pembatalan pada `MstBloodBankReason` |
 | `DEC-BD-012` | `BD-DOM-18` | `MstServiceUnit.IsAvailableForBloodOrder` |
 | `DEC-BD-014` | `BD-DOM-16` | `BbkEncounterStatusReader` |
 | `DEC-BD-009/013` | `BD-DOM-15` | `BbkTransitionHistory` (append-only) |
@@ -712,9 +833,26 @@ Detail di `contracts/permission-audit-matrix.md`.
 **Dampak billing:** berdampak charge tetapi penyalurannya tertahan `DEC-BD-016` — lihat
 `contracts/integration-contract.md`.
 
-**Acceptance test pembukti:** `AC-BD-001`..`AC-BD-076` di `testing/acceptance-test-matrix.md`.
+**Acceptance test pembukti:** `AC-BD-001`..`AC-BD-088` di `testing/acceptance-test-matrix.md`.
 Khusus pass `v2`: `AC-BD-059`..`AC-BD-064` (penyimpanan dan perpindahan), `AC-BD-065`..`AC-BD-071`
 (lokasi nonaktif dan gerbang alokasi), `AC-BD-072`..`AC-BD-076` (gerbang pemberian dan jalur darurat).
+Khusus pass `v3`: `AC-BD-077`..`AC-BD-080` (pemisahan wewenang validasi), `AC-BD-081`..`AC-BD-085`
+(otorisasi darurat dua peran), `AC-BD-086`..`AC-BD-088` (koreksi dua tahap).
+Khusus pass `v4`: `AC-BD-089`..`AC-BD-091` (bukti kecocokan dan validatornya), `AC-BD-092`..`AC-BD-094`
+(tiga butir penyelesaian `PendingReview`), `AC-BD-095`..`AC-BD-097` (pembatalan order dua peran).
+
+**Pertanyaan terbuka yang menyertai pass `v4`.** `OQ-BD-017` — peran konkret pemegang penetapan
+`NOT_USABLE`; butir hak aksesnya sudah terpisah dan alurnya pasti, yang tertahan hanya satu baris
+seeder. `OQ-BD-018` — apakah hasil keputusan bukti kecocokan bersifat menggerbang atau sekadar
+keterangan; rancangan memilih *fail-closed* sampai dinyatakan, lihat bagian F.6. Keduanya **tidak**
+menahan rancangan.
+
+**Satu pertanyaan terbuka yang lahir dari pass `v3`.** `OQ-BD-016` — apakah "bukti pendukung" pada
+permintaan koreksi berupa keterangan tertulis saja, atau menuntut lampiran berkas. Dokumen ini
+merancangnya sebagai **teks**, karena bukti yang disetujui tidak menyebut lampiran dan menambahkan
+penyimpanan berkas adalah kemampuan tersendiri dengan scope, keamanan, dan masa simpan sendiri.
+Pertanyaan ini **tidak memblokir**: bila kelak lampiran dikehendaki, ia menempel pada satu kolom yang
+sudah dikenali tanpa menggeser lifecycle maupun wewenang mana pun. Pemiliknya pemilik proses BDRS.
 
 **Dampak keselamatan klinis pass `v2`.** Dua gerbang baru seluruhnya *fail-closed*, dan keduanya
 menahan **tindakan administratif**, bukan menilai kelayakan darah — batas `INV-BD-013` utuh. Satu batas

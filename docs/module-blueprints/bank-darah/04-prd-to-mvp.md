@@ -6,10 +6,10 @@
 | --- | --- |
 | Produk | Quilvian Hospital Information System |
 | Modul | Bank Darah (`bank-darah`) · kode PRD `BD` |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — status **`draft`** |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — status **`draft`** |
 | Repository target | `NewQuilvianSystemBackend` (backend) · `V2QuilvianSystemFrontendDev` (frontend) |
-| Commit SHA baseline | backend `792acb9` · frontend `afbb8ab` |
-| Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 7 |
+| Commit SHA baseline | backend `ab39b63` · frontend `afbb8ab` |
+| Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 9 |
 | Ringkasan cakupan | MVP mencatat pemenuhan darah pasien dari order sampai kantong diberikan/diselesaikan, **tanpa** charge Billing, label cetak, dan integrasi luar |
 | `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
 
@@ -64,7 +64,9 @@ dengan PMI/HCLAB.
 | --- | --- |
 | Dokter / unit pelayanan | Membuat order darah, bertanggung jawab atas indikasi klinis |
 | Petugas Bank Darah / BDRS | Memproses order, meminta ke PMI, menerima, memeriksa golongan darah, mengalokasikan, memberikan |
-| Peran berwenang (`DEF-BD-004`) | Jalur darurat, validasi & penyelesaian konflik golongan darah, koreksi pemberian |
+| Petugas BDRS berwenang validasi | Validasi hasil golongan darah rutin |
+| Dokter BDRS / penanggung jawab klinis | Penyelesaian konflik golongan darah, jalur darurat, menyetujui/menolak koreksi pemberian |
+| DPJP pasien | Jalur darurat untuk pasiennya |
 | Admin master Bank Darah | Mengisi katalog komponen & daftar alasan |
 
 ## 7. Pemilihan kemampuan MVP (`MUST HAVE`)
@@ -122,8 +124,8 @@ Jalur tidak normal lengkap: `flowcharts/`.
 | `EPIC BD-03` Kantong: alokasi | Alokasi & pembatalan alokasi | `MISSING / NEW` |
 | `EPIC BD-04` Bukti & pemberian | Bukti kecocokan, gerbang masa berlaku, pemberian, jalur darurat | `MISSING / NEW` |
 | `EPIC BD-05` Penyelesaian kantong | Alih/kembali/tidak layak dari `PendingReview` | `MISSING / NEW` |
-| `EPIC BD-06` Koreksi pemberian | Catatan koreksi append-only | `MISSING / NEW` |
-| `EPIC BD-07` Golongan darah | Sampel, hasil, validasi, konflik, penyelesaian lewat pemeriksaan ulang | `MISSING / NEW` |
+| `EPIC BD-06` Koreksi pemberian | Pengajuan koreksi oleh petugas, **persetujuan/penolakan oleh Dokter BDRS**, append-only | `MISSING / NEW` |
+| `EPIC BD-07` Golongan darah | Sampel, hasil, **validasi rutin**, konflik, **penyelesaian oleh validator klinis** lewat pemeriksaan ulang | `MISSING / NEW` |
 | `EPIC BD-08` Tindakan Bank Darah | Pencatatan tindakan (tanpa charge) | `MISSING / NEW` |
 | `EPIC BD-09` Setup & kewenangan | Katalog komponen, daftar alasan, **master lokasi penyimpanan darah** (`NEW`); flag unit `IsAvailableForBloodOrder` (`EXTEND`) | `MISSING / NEW` + `EXTEND` |
 | **`EPIC BD-11` Penyimpanan kantong** | Penetapan lokasi pertama (`Received`→`Stored`→`Available`), perpindahan lokasi, riwayat penempatan append-only, gerbang alokasi | `MISSING / NEW` |
@@ -179,7 +181,45 @@ FR bernomor yang dapat diuji (contoh kunci; lengkap dipetakan ke `AC-BD-*`):
 > bukti — sehingga pembaca rekam berikutnya tahu darahnya cocok dan yang dipertaruhkan penyimpanannya.
 > (`AC-BD-074/075`)
 
-Seluruh FR lain diturunkan dari `AC-BD-001`..`076` (`testing/acceptance-test-matrix.md`) dan
+> **`FR-BD-070` — Validasi rutin dan penyelesaian konflik dijaga wewenang berbeda.** **Contoh:**
+> petugas BDRS berwenang validasi memvalidasi hasil A Positif Ny. R — berhasil, dan justru validasi itu
+> yang memunculkan konflik dengan hasil O Positif sebelumnya. Petugas yang sama lalu mencoba menutup
+> konflik — ditolak. Yang menutup adalah Dokter BDRS. (`AC-BD-077/078/079`)
+
+> **`FR-BD-071` — Otorisasi darurat menyimpan dengan wewenang apa penerbit bertindak.** Sistem menolak
+> otorisasi darurat yang tidak menyebutkan peran penerbit maupun kondisi kedaruratannya. **Contoh:**
+> pukul 02.00 Dokter BDRS tidak di tempat; DPJP menerbitkan otorisasi sebagai DPJP, dan rekam menyimpan
+> peran itu — sehingga saat ditinjau, jalur wewenang yang dipakai terbaca apa adanya.
+> (`AC-BD-081/084/085`)
+
+> **`FR-BD-072` — Koreksi belum berlaku sebelum disetujui.** Angka pemenuhan order tidak bergerak
+> selama koreksi menunggu keputusan. **Contoh:** petugas mengajukan koreksi nomor kantong pada pemberian
+> Tn. S. Sampai Dokter BDRS menyetujui, ringkasan pemenuhan Tn. S tetap seperti semula. Setelah
+> disetujui, barulah dihitung ulang. Bila ditolak, angkanya tidak pernah berubah dan permintaannya tetap
+> terbaca. (`AC-BD-086/087`)
+
+> **`FR-BD-074` — Bukti kecocokan menyimpan hasil, dan hasil tidak cocok tidak membuka gerbang.**
+> **Contoh:** uji cocok kantong `PMI-00871` terhadap Tn. S dinyatakan **tidak cocok** oleh petugas BDRS
+> berwenang validasi. Buktinya tersimpan dan tetap terbaca, tetapi tombol Berikan tertutup, dan
+> alasannya terbaca sebagai soal hasil pemeriksaan — bukan sebagai bukti yang belum tercatat.
+> (`AC-BD-089`, `VAL-BD-079`)
+
+> **`FR-BD-075` — Tiga jalur penyelesaian dijaga tiga wewenang berbeda.** **Contoh:** petugas dengan
+> kewenangan operasional mengembalikan kantong ke PMI — berhasil. Petugas yang sama mencoba mengalihkan
+> kantong ke Ny. R — ditolak, karena pengalihan memasukkan darah ke tubuh pasien baru dan menuntut
+> kewenangan klinis BDRS. (`AC-BD-092/093/094`)
+
+> **`FR-BD-076` — Tidak ada pembatalan order tanpa audit.** Dokter peminta membatalkan dengan alasan
+> berkategori klinis; petugas BDRS membatalkan duplikat dengan alasan berkategori operasional. Keduanya
+> menyimpan alasan, pelaku, waktu, dan jejaknya; keduanya ditolak bila alasannya kosong.
+> (`AC-BD-095/096/097`)
+
+> **`FR-BD-073` — Koreksi tidak dapat disetujui oleh pengajunya sendiri.** Berlaku walaupun orang itu
+> memegang kedua butir hak akses. **Contoh:** Dokter BDRS menemukan sendiri kekeliruan pencatatan dan
+> mengajukannya. Ia tidak dapat menyetujui permintaannya sendiri; rekan sejawatnya yang memutuskan.
+> (`AC-BD-088`)
+
+Seluruh FR lain diturunkan dari `AC-BD-001`..`088` (`testing/acceptance-test-matrix.md`) dan
 `contracts/validation-matrix.md`.
 
 ## 11. Model status yang diusulkan
@@ -213,7 +253,9 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `POST` | `/{id}/allocate` | Alokasikan kantong | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-03` | Rencana |
 | `POST` | `/{id}/issue` | Berikan kantong | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-04` | Rencana |
-| `POST` | `/{id}/correction` | Koreksi pencatatan pemberian | `BloodUnit : Correct` | `IssuanceCorrectionRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-06` | Rencana |
+| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
+| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
+| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
 
 Daftar lengkap tujuh grup ada di `contracts/api-contract.md`; PRD ini tidak melebihinya.
 
@@ -222,7 +264,8 @@ Daftar lengkap tujuh grup ada di `contracts/api-contract.md`; PRD ini tidak mele
 String permission persis mengikuti `contracts/permission-audit-matrix.md`. Ringkas: unit pelayanan
 `BloodOrder : Create/Read`; petugas Bank Darah alur normal; peran `DEF-BD-004` untuk
 `BloodUnit : EmergencyIssue/Correct` dan `BloodGroupExam : Validate`; admin master untuk
-`BloodComponent`/`BloodBankReason : *`. Peran final `UNRESOLVED` `DEF-BD-004`.
+`BloodComponent`/`BloodBankReason : *`. **Seluruh peran sudah ditetapkan** `DEC-BD-039` sampai `DEC-BD-044`; `DEF-BD-004` tertutup penuh.
+Satu nama peran menyusul lewat `OQ-BD-017`, dan itu hanya mengisi baris seeder.
 
 ## 15. Batas integrasi dan billing
 
@@ -304,6 +347,36 @@ Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemet
 > gerbang yang dilewati. Hasil: darah diberikan; penanda permanen menyebut **lokasi nonaktif**, bukan
 > bukti kecocokan. Pencatatan tanpa keterangan gerbang ditolak. (`EPIC BD-04/11`)
 
+> **`UAT-16` — Konflik golongan darah ditutup validator klinis (berhasil + gagal).** Petugas BDRS
+> berwenang validasi memvalidasi hasil baru yang berbeda; konflik muncul. Petugas yang sama mencoba
+> menutup konflik — **ditolak**. Dokter BDRS menutupnya dengan menunjuk pemeriksaan ulang tervalidasi —
+> berhasil. (`EPIC BD-07`)
+
+> **`UAT-17` — Otorisasi darurat oleh DPJP (berhasil, tercatat).** Dokter BDRS tidak di tempat; DPJP
+> menerbitkan otorisasi darurat dengan alasan, kondisi kedaruratan, dan peran yang dipakainya. Hasil:
+> darah diberikan; rekam menyimpan peran DPJP. Pencatatan tanpa kondisi kedaruratan atau tanpa peran
+> **ditolak**. (`EPIC BD-04`)
+
+> **`UAT-18` — Koreksi dua tahap (berhasil + gagal).** Petugas mengajukan koreksi dengan bukti
+> pendukung. Hasil: koreksi menunggu persetujuan, **angka pemenuhan belum berubah**. Petugas yang sama
+> mencoba menyetujui — **ditolak**. Dokter BDRS menyetujui — pemenuhan dihitung ulang, pemberian asal
+> tetap utuh. Pada kasus lain Dokter BDRS menolak dengan alasan — rekam tidak berubah dan permintaan
+> tetap terbaca. (`EPIC BD-06`)
+
+> **`UAT-19` — Bukti kecocokan tidak cocok (gagal terkendali).** Petugas BDRS berwenang validasi
+> menyatakan hasil uji cocok **tidak cocok**. Hasil: bukti tersimpan dan terbaca pada riwayat; tombol
+> Berikan tertutup; pesan menyebut hasil pemeriksaan, bukan bukti yang belum ada. Kantong tetap dapat
+> diselesaikan lewat jalur `PendingReview`. (`EPIC BD-04/05`)
+
+> **`UAT-20` — Penyelesaian bertingkat (berhasil + gagal).** Petugas berkewenangan operasional
+> mengembalikan satu kantong ke PMI — berhasil. Petugas yang sama mencoba mengalihkan kantong lain ke
+> pasien baru — **ditolak**. Pemegang kewenangan klinis BDRS melakukannya — berhasil, dan bukti
+> kecocokan terhadap pasien asal gugur seketika. (`EPIC BD-05`)
+
+> **`UAT-21` — Pembatalan order oleh dua peran (berhasil + gagal).** Dokter membatalkan ordernya dengan
+> alasan klinis; petugas BDRS membatalkan order duplikat dengan alasan operasional. Keduanya berhasil
+> dan berjejak. Pembatalan tanpa alasan **ditolak**. (`EPIC BD-01`)
+
 ## 19. Definition of Done
 
 | Butir | Bukti | Ya/Belum |
@@ -341,7 +414,8 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 | Pertanyaan terbuka | Penjawab | Dampak bila belum dijawab | Memblokir |
 | --- | --- | --- | :---: |
 | Pendaftaran prefix `Bbk` di registry | Pemilik registry engineering | Pembuatan entity operasional `BLOCKED` — seluruh gelombang implementasi | **Ya** |
-| Peran jalur darurat, validator, pencatat koreksi (`DEF-BD-004`) | Pemilik proses BDRS & klinis | Endpoint berwenang tak dapat dipetakan ke peran | **Ya** untuk `EPIC BD-04/06/07` bagian peran |
+| ~~Peran jalur darurat, validator, pencatat koreksi (`DEF-BD-004`)~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` | Tidak lagi |
+| **Sisa `DEF-BD-004`:** peran penyata bukti kecocokan selesai, peran penyelesai kantong `PendingReview`, peran pembatal order | Pemilik proses BDRS & klinis | Ketiga alurnya sudah dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya pemetaan peran saat seeder disusun | Tidak menahan `DESIGN`; menahan `IMPLEMENTATION` seeder hak akses |
 | Nilai jam masa berlaku bukti per komponen (`OQ-BD-012`) | Pemilik proses klinis | Gerbang fail-closed sampai diisi | Tidak (desain jalan; nilai dari konfigurasi) |
 | Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`) | Pemilik BillingManagement | Penyaluran biaya tak dapat dirancang | Hanya epic Billing (`OPEN DECISION`) |
 | Keadaan kantong setelah koreksi (`OQ-BD-014`) | Pemilik proses BDRS | Detail implementasi jalur koreksi | Tidak |
@@ -352,7 +426,17 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 sempat terbuka sudah ditutup `DEC-BD-037` dan `DEC-BD-038`. Yang ditambahkan hanya satu baris
 prasyarat operasional di atas: master lokasi wajib terisi sebelum go-live.
 
-**Status dokumen `draft`.** Ada pertanyaan memblokir yang belum terjawab (`BD-DEP-008`, `DEF-BD-004`);
-karena itu dokumen ini **belum boleh** diteruskan ke `/plan-module-delivery` sampai keduanya tuntas.
-Keadaan ini **tidak berubah** pada `v2` — kedua pemblokir itu sudah ada sejak `v1` dan tidak berkaitan
-dengan Storage Location. Approval manusia belum diklaim.
+**Status dokumen `draft`.** Pemblokir berkurang dari dua menjadi **satu**: `DEF-BD-004` ditutup
+`DEC-BD-039` sampai `DEC-BD-041` pada `v3`, sehingga yang tersisa hanya **`BD-DEP-008`** — pendaftaran
+prefix entity di registry kepemilikan modul. Itu administratif, pemiliknya registry engineering, dan
+bukan keputusan bisnis.
+
+Selama `BD-DEP-008` belum beres, dokumen ini **belum boleh** diteruskan ke `/plan-module-delivery`:
+seluruh entity operasional `Bbk*` berstatus `BLOCKED` (`QBE-MOD-002`), sehingga gelombang `MVP-0`
+sampai `MVP-4` tidak dapat dimulai.
+
+Sisa `DEF-BD-004` — tiga peran yang belum dipetakan — **tidak** ditandai memblokir. Ketiga alurnya sudah
+dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya isi seeder hak akses, dan itu
+dapat diselesaikan sejalan dengan `BD-DEP-008` lewat satu closure pass yang pendek.
+
+Approval manusia belum diklaim.

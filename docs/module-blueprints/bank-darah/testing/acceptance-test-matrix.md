@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| Sumber | `00-interview-decisions.md` revisi 7 (`AC-BD-001`..`076`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (aturan service), `Integ`
 (service + DB), `Concurrency` (perebutan data), `E2E/UAT` (jalur pengguna). Data samaran.
@@ -130,6 +130,66 @@ Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancan
 
 ---
 
+## 8. Wewenang, jalur darurat, dan koreksi dua tahap — baru pada `v3`
+
+Menutup `AC-BD-077` sampai `AC-BD-088`.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-077` | Petugas BDRS berwenang validasi memvalidasi hasil golongan darah rutin | Integ | Berhasil; tidak menunggu Dokter BDRS |
+| `AC-BD-078` | Petugas BDRS berwenang validasi mencoba menutup konflik | Integ | **Ditolak** `VAL-BD-069` — dua butir hak akses berbeda (`DEC-BD-039`) |
+| `AC-BD-079` | Validator klinis menutup konflik dengan menunjuk pemeriksaan ulang tervalidasi | Integ | Berhasil; satu hasil sah kembali; seluruh hasil tetap terbaca |
+| `AC-BD-080` | Validator klinis mencoba menutup konflik **tanpa** pemeriksaan ulang tervalidasi | Integ | **Ditolak** `VAL-BD-051` — wewenang tidak menggantikan prasyarat (`DEC-BD-031`) |
+| `AC-BD-081` | DPJP menerbitkan otorisasi darurat saat Dokter BDRS tidak di tempat | Integ | Berhasil; rekam menyimpan peran `AttendingPhysician` |
+| `AC-BD-082` | Dokter BDRS menerbitkan otorisasi darurat | Integ | Berhasil; rekam menyimpan peran `BloodBankDoctor` |
+| `AC-BD-083` | Petugas Bank Darah tanpa wewenang darurat mencoba menerbitkan otorisasi | Integ | **Ditolak** `VAL-BD-072` |
+| `AC-BD-084` | Otorisasi darurat dicatat tanpa keterangan kondisi kedaruratan | Unit | **Ditolak** `VAL-BD-070` |
+| `AC-BD-085` | Otorisasi darurat dicatat tanpa menyebut peran penerbit | Unit | **Ditolak** `VAL-BD-071` |
+| `AC-BD-086` | Petugas BDRS mengajukan koreksi pencatatan | Integ | Koreksi tersimpan `Requested`; **angka pemenuhan order tidak bergerak** (`INV-BD-033`) |
+| `AC-BD-087` | Dokter BDRS menyetujui koreksi yang menunggu | Integ | Koreksi `Approved`; pemenuhan dihitung ulang sejak persetujuan; pemberian asal tetap utuh |
+| `AC-BD-088` | Pengaju koreksi mencoba menyetujui permintaannya sendiri | **Integ** | **Ditolak** `VAL-BD-073`, walaupun ia memegang kedua butir hak akses |
+
+Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancangan:
+
+| Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- |
+| Dokter BDRS **menolak** koreksi | Integ | Koreksi `Rejected` dan **tetap tersimpan**; angka pemenuhan tidak pernah bergerak; alasan penolakan wajib (`VAL-BD-077`) |
+| Koreksi yang sudah disetujui dicoba diputuskan lagi | Integ | **Ditolak** `VAL-BD-075`; keputusan bersifat sekali |
+| Dua Dokter BDRS memutuskan koreksi yang sama hampir bersamaan | **Concurrency** | Tepat satu keputusan tersimpan; yang kedua ditolak `VAL-BD-075` |
+| Ringkasan pemenuhan order dihitung saat ada koreksi `Requested` dan `Approved` bercampur | **Unit** | Hanya yang `Approved` ikut diperhitungkan (`INV-BD-033`) |
+| Pengajuan koreksi tanpa bukti pendukung | Unit | **Ditolak** `VAL-BD-076` |
+| Seorang dokter memegang `Correct` dan `ApproveCorrection` sekaligus, mengajukan lalu meminta rekan memutuskan | Integ | Berhasil — yang ditahan adalah **orang yang sama**, bukan kepemilikan kedua butir hak akses |
+
+---
+
+## 9. Bukti kecocokan, penyelesaian bertingkat, dan pembatalan order — baru pada `v4`
+
+Menutup `AC-BD-089` sampai `AC-BD-097`.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-089` | Petugas BDRS berwenang validasi menyatakan bukti kecocokan selesai | Integ | Berhasil; rekam menyimpan validator, waktu, kantong, pasien, dan hasil keputusan |
+| `AC-BD-090` | Petugas BDRS tanpa kewenangan validasi mencoba menyatakan bukti kecocokan | Integ | **Ditolak** `VAL-BD-078` |
+| `AC-BD-091` | Pelaksana pemeriksaan yang juga memegang kewenangan validasi menyatakan buktinya sendiri | Integ | **Diizinkan** — `DEC-BD-042` mengizinkan pelaksana berbeda dari validator, tidak mewajibkannya |
+| `AC-BD-092` | Pemegang kewenangan operasional mengembalikan kantong `PendingReview` ke PMI | Integ | Berhasil; alasan, pelaku, waktu tersimpan |
+| `AC-BD-093` | Pemegang kewenangan operasional yang sama mencoba mengalihkan kantong ke pasien lain | **Integ** | **Ditolak** `VAL-BD-080` — tiga butir hak akses terpisah (`INV-BD-034`) |
+| `AC-BD-094` | Pemegang kewenangan klinis BDRS mengalihkan kantong ke pasien lain | Integ | Berhasil; bukti kecocokan terhadap pasien asal gugur seketika (`DEC-BD-028`) |
+| `AC-BD-095` | Dokter peminta membatalkan ordernya dengan alasan berkategori klinis | Integ | Berhasil; alasan, pelaku, waktu, dan riwayat tersimpan (`INV-BD-035`) |
+| `AC-BD-096` | Petugas BDRS membatalkan order ganda dengan alasan berkategori operasional | Integ | Berhasil; kategori alasan membedakannya dari pembatalan klinis |
+| `AC-BD-097` | Pembatalan order dicoba tanpa alasan terkendali | Unit | **Ditolak** `VAL-BD-016` — tidak ada pembatalan order tanpa audit |
+
+Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancangan:
+
+| Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- |
+| Bukti kecocokan bertanda **tidak cocok**, lalu kantong dicoba diberikan | **Integ** | **Ditolak** `VAL-BD-079`. Skenario inti `v4` — membuktikan gerbang memeriksa **hasil**, bukan keberadaan bukti |
+| Bukti bertanda tidak cocok tetap terbaca pada riwayat kantong | Integ | Tersimpan utuh; tidak dibuang, sehingga uji yang sama tidak diulang orang berikutnya |
+| Petugas mencoba menetapkan kantong tidak layak tanpa kewenangan penetapan kelayakan | Integ | **Ditolak** `VAL-BD-082` |
+| Pembatalan order memakai kategori alasan yang tidak sesuai peran pelaku | Integ | **Ditolak** `VAL-BD-083` |
+| Seeder hak akses mendaftarkan `BloodUnit : Resolve` lama | **Unit** | Tidak ada; butir itu dihapus pada `v4`, dan keberadaannya membatalkan pemisahan `DEC-BD-043` |
+
+---
+
 ## Definition of Done (ringkas — lengkap di `04-prd-to-mvp.md`)
 
 | Butir | Bukti |
@@ -138,6 +198,12 @@ Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancan
 | Satu kantong tak mungkin diberikan ke dua pasien | `AC-BD-018c` konkurensi |
 | Darah tak dapat diberikan tanpa bukti berlaku / golongan darah konflik tertahan | `AC-BD-018/038/041/034` |
 | Pemberian tak dapat dihapus | `AC-BD-048` |
+| Validasi rutin dan penyelesaian konflik dijaga dua butir hak akses berbeda | `AC-BD-077/078` |
+| Otorisasi darurat menyimpan peran penerbit dan kondisi kedaruratan | `AC-BD-081/082/084/085` |
+| Koreksi tak berlaku sebelum disetujui, dan tak dapat disetujui sendiri | `AC-BD-086/087/088` |
+| Bukti kecocokan menyimpan hasil, dan hasil tidak cocok tak membuka gerbang | `AC-BD-089` + skenario `VAL-BD-079` |
+| Tiga jalur penyelesaian dijaga tiga butir hak akses berbeda | `AC-BD-092/093/094` |
+| Tidak ada pembatalan order tanpa alasan terkendali dan jejak | `AC-BD-095/096/097` |
 | Kantong tak dapat dialokasikan sebelum disimpan | `AC-BD-060/061` |
 | Kantong di lokasi nonaktif tak dapat dialokasikan maupun diberikan lewat jalur normal | `AC-BD-068/072`; jalur darurat `AC-BD-074/075` |
 | Riwayat penempatan tak pernah ditimpa, dan sistem tak pernah memindahkan kantong sendiri | `AC-BD-063/069` |

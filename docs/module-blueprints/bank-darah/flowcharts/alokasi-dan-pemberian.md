@@ -32,8 +32,14 @@ flowchart TD
         O --> P[Muncul di daftar tunggakan bukti]
     end
     L --> Q{Pencatatan pemberian keliru?}
-    Q -- Ya --> R[Buat catatan koreksi, pemberian asal tetap ada]
-    R --> L
+    Q -- Ya --> R[Petugas ajukan koreksi, pemberian asal tetap ada]
+    R --> R1[(Koreksi menunggu persetujuan)]
+    R1 --> R2{Dokter Bank Darah memutuskan}
+    R2 -- Pengaju sama dengan pemutus --> R3[/Ditolak, harus diputuskan orang lain/]
+    R2 -- Setuju --> R4[(Koreksi berlaku, angka pemenuhan dihitung ulang)]
+    R2 -- Tolak --> R5[(Koreksi ditolak, tetap tersimpan, rekam tidak berubah)]
+    R4 --> L
+    R5 --> L
 ```
 
 ## Tabel langkah
@@ -46,10 +52,15 @@ flowchart TD
 | Periksa gerbang pemberian | Sistem | Tiga syarat sekaligus: sudah disimpan, lokasi terakhir masih aktif **saat itu**, bukti untuk pasien tujuan belum lewat masa berlaku | Lolos | Tertahan bukti → catat bukti baru. Tertahan lokasi → pindahkan kantong ke lokasi aktif |
 | Berikan kantong | Petugas | Gerbang lolos | Kantong `Issued` | — |
 | Jalur darurat | Peran berwenang | Alasan wajib + keterangan gerbang yang dilewati (bukti, lokasi nonaktif, atau keduanya) | Kantong `Issued` ditandai melewati gerbang | Ditolak bila bukan peran berwenang, alasan kosong, atau keterangan gerbang tidak diisi |
-| Catat koreksi | Peran berwenang | Pemberian yang ada, alasan | Koreksi melekat, pemenuhan dihitung ulang | Ditolak bila dipakai memindah pemberian ke pasien lain |
+| Ajukan koreksi | Petugas BDRS | Pemberian yang ada, alasan terkendali, bukti pendukung | Koreksi tersimpan **menunggu persetujuan**; pemenuhan belum berubah | Ditolak bila dipakai memindah pemberian ke pasien lain, atau bukti pendukung kosong |
+| Putuskan koreksi | Dokter BDRS | Koreksi yang menunggu | Disetujui → koreksi berlaku dan pemenuhan dihitung ulang. Ditolak → rekam tidak berubah, permintaan tetap terbaca | Ditolak bila pemutus adalah pengaju yang sama, atau koreksi sudah pernah diputuskan |
 
 Pemberian tidak pernah dihapus atau dibalik. Pengalihan kantong hanya sah lewat jalur `Reallocated`
 pada kantong yang **belum** diberikan — lihat `penyelesaian-kantong.md`.
+
+Koreksi pencatatan **tidak berlaku saat diajukan**. Angka pemenuhan order baru bergerak setelah Dokter
+Bank Darah menyetujui, dan permintaan yang ditolak tetap tersimpan supaya terbaca bahwa seseorang pernah
+menyatakan catatan itu keliru.
 
 Gerbang lokasi dinilai **dua kali**: saat alokasi dan sekali lagi saat pemberian. Sebuah kantong karena
 itu dapat lolos dialokasikan lalu tertahan saat hendak diberikan, bila lokasinya dinonaktifkan di

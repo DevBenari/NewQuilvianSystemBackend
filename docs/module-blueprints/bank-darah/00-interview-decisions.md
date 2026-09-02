@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `8` |
-| Decision revision | `8` |
+| Revision | `9` |
+| Decision revision | `9` |
 | Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
-| Backend SHA | `792acb9331a65187d052fffd4a292d3bce2fd828` cabang `sukmagp` |
+| Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
 | Backend SHA pada revisi 5 | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86`. Perbedaan sampai `792acb9` **hanya** dokumen blueprint Bank Darah, nol berkas source aplikasi — sudah diperiksa dengan `git diff --name-only` |
 | Backend SHA saat bukti diaudit | `9522caacf29371b1fddd1584e9a71ad94fe48d19`. Perbedaan terhadap SHA di atas hanya berisi dokumen blueprint Bank Darah, nol berkas source aplikasi, sehingga `02-existing-capability-map.md` **tidak basi secara isi** |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
@@ -99,7 +99,7 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | **Dokter / unit pelayanan asal** | Menentukan kebutuhan klinis darah, membuat permintaan, bertanggung jawab atas alasan medisnya. |
 | **Petugas Bank Darah / BDRS** | Memproses permintaan, verifikasi administratif, meminta darah ke PMI, menerima darah, mengambil sampel, memeriksa golongan darah, mengalokasikan, dan memberikan. |
 | **Dokter BDRS / penanggung jawab klinis** | Penanggung jawab tindakan Bank Darah. Sejak `DEF-BD-004` ditutup, ia memegang tiga wewenang: **menyelesaikan konflik hasil golongan darah**, **menerbitkan otorisasi darurat** (bersama DPJP), dan **menyetujui koreksi pencatatan pemberian**. **Bukan** penahan alur normal — validasi hasil rutin tidak melewatinya. |
-| **Petugas BDRS berwenang validasi** | Petugas Bank Darah yang ditunjuk memvalidasi hasil pemeriksaan golongan darah **rutin**. Bukan peran baru di luar BDRS; ia petugas BDRS dengan butir hak akses tambahan. Tidak berwenang menutup konflik. |
+| **Petugas BDRS berwenang validasi** | Petugas Bank Darah yang ditunjuk memvalidasi hasil pemeriksaan golongan darah **rutin** dan menyatakan **bukti pemeriksaan kecocokan selesai** (`DEC-BD-042`). Bukan peran baru di luar BDRS; ia petugas BDRS dengan butir hak akses tambahan. Tidak berwenang menutup konflik golongan darah. |
 | **DPJP pasien** | Dokter penanggung jawab pasien. Menanggung risiko klinis transfusi, dan sejak `DEF-BD-004` berwenang menerbitkan otorisasi darurat untuk pasiennya. |
 | **PMI** | Penyedia darah dari luar rumah sakit. |
 
@@ -135,6 +135,8 @@ transfusi, penanganan kedaluwarsa, dan pemusnahan.
 | `INV-BD-027` | Setiap penempatan baru wajib menunjuk lokasi penyimpanan yang sedang aktif. Berlaku untuk penempatan pertama kantong yang baru diterima maupun untuk lokasi tujuan pada perpindahan. Lokasi yang nonaktif tidak pernah dapat menjadi tujuan penyimpanan. | `DEC-BD-037` |
 | `INV-BD-028` | Kantong tidak dapat dialokasikan selama penempatan terakhirnya menunjuk lokasi penyimpanan yang nonaktif. Penonaktifan lokasi tidak memindahkan kantong dan tidak mengubah statusnya; ia menutup gerbang alokasi sampai petugas BDRS memindahkan kantong ke lokasi aktif. | `DEC-BD-037` |
 | `INV-BD-029` | Pemberian lewat jalur normal wajib memenuhi tiga syarat sekaligus, dinilai ulang pada saat pemberian dicoba: lokasi penyimpanan terakhir kantong sedang aktif, kantong sudah melewati `STORED`, dan bukti kecocokan berlaku untuk pasien tujuan serta belum lewat masa berlakunya. Hasil pemeriksaan pada saat alokasi tidak pernah diwariskan sebagai izin memberikan. | `DEC-BD-038` |
+| `INV-BD-034` | Penyelesaian kantong `PendingReview` memakai **tiga butir hak akses terpisah** sesuai tindakannya — pengalihan, pengembalian, dan penetapan tidak layak. Tidak ada satu butir `Resolve` yang menjaga ketiganya sekaligus. | `DEC-BD-043` |
+| `INV-BD-035` | Setiap pembatalan order darah menyimpan alasan terkendali, pelaku, waktu, dan jejak riwayatnya. **Tidak ada pembatalan order tanpa audit**, dari peran mana pun. | `DEC-BD-044` |
 | `INV-BD-031` | Validasi hasil golongan darah rutin dan penyelesaian konflik hasil adalah **dua wewenang terpisah**. Petugas BDRS berwenang validasi dapat memvalidasi hasil rutin; hanya validator klinis yang ditunjuk (Dokter BDRS / penanggung jawab klinis) dapat menutup konflik. | `DEC-BD-039` |
 | `INV-BD-032` | Otorisasi darurat wajib menyimpan alasan terkendali, keterangan kondisi kedaruratannya, pelaku **beserta peran yang dipakainya**, waktu, pasien, dan kantong. Otorisasi darurat tidak pernah diterbitkan sistem dan tidak pernah menjadi keputusan otomatis. | `DEC-BD-040` |
 | `INV-BD-033` | Koreksi pencatatan pemberian berlaku **hanya setelah disetujui**. Koreksi yang masih menunggu persetujuan tidak mengubah angka pemenuhan order dan tidak mengubah apa pun pada rekam. Riwayat menyimpan peminta, penyetuju, waktu keduanya, dan alasannya. | `DEC-BD-041` |
@@ -171,7 +173,8 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 | --- | --- | --- | --- |
 | Aktif | Sebagian kantong diberikan | Terpenuhi sebagian | Dihitung dari transaksi nyata, bukan angka yang diketik |
 | Aktif | Seluruh kantong diberikan | Terpenuhi penuh | — |
-| Aktif | Dibatalkan pihak berwenang | Dibatalkan | Alasan dari daftar alasan terkendali |
+| Aktif | Dibatalkan dokter peminta | Dibatalkan | Kebutuhan klinis berubah; alasan dari daftar terkendali (`DEC-BD-044`) |
+| Aktif | Dibatalkan petugas BDRS | Dibatalkan | Pembatalan operasional, mis. order ganda; alasan dari daftar terkendali (`DEC-BD-044`, `INV-BD-035`) |
 | Aktif | Kunjungan asal berakhir | Kedaluwarsa | Sesuai `DEC-BD-014` |
 
 ### 5.3 Kantong darah
@@ -189,9 +192,9 @@ ke permintaan asal, lalu langsung masuk `PENDING_REVIEW`.
 | Dialokasikan, lokasi penyimpanannya nonaktif | Dicoba diberikan lewat jalur normal | **Ditolak**; tetap Dialokasikan | Gerbang tertutup walaupun bukti kecocokan masih berlaku. Petugas memindahkan kantong ke lokasi aktif lebih dulu (`INV-BD-029`, `DEC-BD-038`) |
 | Dialokasikan | Diberikan lewat jalur darurat | Diberikan, ditandai melewati gerbang | Otorisasi peran berwenang, alasan wajib (`DEC-BD-017`). Penanda wajib menyebutkan gerbang mana yang dilewati: bukti kecocokan, lokasi nonaktif, atau keduanya (`INV-BD-030`) |
 | Tersedia / Dialokasikan | Order berakhir | `PENDING_REVIEW` | Tidak dapat dipakai siapa pun sampai diselesaikan |
-| `PENDING_REVIEW` | Dialihkan ke pasien lain | `REALLOCATED` | Kelayakan dinyatakan petugas berwenang, alasan wajib. Bukti kecocokan terhadap pasien asal gugur otomatis; pasien tujuan wajib punya bukti sendiri (`DEC-BD-028`) |
-| `PENDING_REVIEW` | Dikembalikan ke PMI | `RETURNED_TO_PROVIDER` | Bila proses bisnis PMI mendukung |
-| `PENDING_REVIEW` | Dinyatakan tidak layak | `NOT_USABLE` | Kelayakan dinyatakan petugas berwenang, alasan wajib |
+| `PENDING_REVIEW` | Dialihkan ke pasien lain | `REALLOCATED` | **Kewenangan klinis BDRS** (`DEC-BD-043`); alasan wajib. Bukti kecocokan terhadap pasien asal gugur otomatis; pasien tujuan wajib punya bukti sendiri (`DEC-BD-028`) |
+| `PENDING_REVIEW` | Dikembalikan ke PMI | `RETURNED_TO_PROVIDER` | **Kewenangan operasional BDRS** (`DEC-BD-043`); bila proses bisnis PMI mendukung |
+| `PENDING_REVIEW` | Dinyatakan tidak layak | `NOT_USABLE` | Mengikuti kewenangan penetapan kelayakan sesuai proses BDRS (`DEC-BD-043`); alasan wajib. **Pemegang perannya belum dinamai** — lihat `OQ-BD-017` |
 | Dialokasikan | Batalkan alokasi | Tersedia, atau `PENDING_REVIEW` bila order asal sudah berakhir | Kantong belum diberikan; alasan dari daftar terkendali; bukti kecocokan yang terlanjur tercatat gugur (`DEC-BD-029`) |
 | Dialokasikan, bukti lengkap | Masa berlaku bukti terlampaui | Dialokasikan, bukti tidak lagi berlaku | Terjadi karena waktu berjalan. Gerbang pemberian tertutup kembali; bukti lama tetap tersimpan (`DEC-BD-027`) |
 | Diberikan | **Ajukan** koreksi pencatatan | Tetap `Diberikan`; koreksi berstatus menunggu persetujuan | **Petugas BDRS** (`DEC-BD-041`); alasan, data yang dikoreksi, dan bukti pendukung wajib. **Belum berlaku** — angka pemenuhan order belum bergerak (`INV-BD-033`) |
@@ -421,7 +424,7 @@ tertunggak ditetapkan sebagai daftar kerja wajib pada `DEC-BD-023`.
 | ID | Isi | Memblokir |
 | --- | --- | --- |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama. Keputusan klinis lanjutan, baru dapat diambil setelah katalog komponen darah tersedia | `IMPLEMENTATION` aturan per komponen |
-| `DEF-BD-004` | ~~Peran mana yang berhak memakai jalur darurat, dan peran mana yang berhak memvalidasi hasil golongan darah~~ | **Ditutup** Role \& authority closure pass oleh `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` |
+| `DEF-BD-004` | ~~Peran mana yang berhak memakai jalur darurat, dan peran mana yang berhak memvalidasi hasil golongan darah~~ | **Ditutup** Role & authority closure pass oleh `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` |
 
 `DEF-BD-001` ditutup oleh `DEC-BD-019`. `DEF-BD-002` ditutup oleh `DEC-BD-020`. `DEF-BD-004` ditutup oleh `DEC-BD-039` sampai `DEC-BD-041`; yang tersisa pada tabel ini hanya `DEF-BD-003`.
 
@@ -986,6 +989,87 @@ pendukung. Dokter BDRS memeriksa lalu menyetujui. Sejak persetujuan itu, angka p
 dihitung ulang. Sebelum persetujuan, tidak ada satu pun angka yang berubah. Catatan pemberian aslinya
 tetap terbaca utuh sepanjang proses.
 
+### 8.20 Role residue closure pass
+
+Menutup **sisa** `DEF-BD-004`. Role & authority closure pass menjawab tiga dari enam wewenang yang
+dibawa `DEF-BD-004`; pass ini menjawab tiga sisanya, sehingga `DEF-BD-004` tertutup seluruhnya.
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-042` | Sisa `DEF-BD-004` — bukti kecocokan | `Decision` | Bukti pemeriksaan kecocokan dinyatakan selesai oleh **petugas BDRS berwenang validasi**. Pelaksana pemeriksaan **boleh** berbeda dari validator | Pemilik proses klinis bersama BDRS | `draft` | kosong |
+| `DEC-BD-043` | Sisa `DEF-BD-004` — penyelesaian `PendingReview` | `Decision` | Penyelesaian dipecah menjadi **tiga butir hak akses terpisah**, bukan satu `Resolve` global | Pemilik proses BDRS | `draft` | kosong |
+| `DEC-BD-044` | Sisa `DEF-BD-004` — pembatalan order | `Decision` | Order darah dapat dibatalkan **dokter peminta** (kebutuhan klinis berubah) atau **petugas BDRS** (pembatalan operasional beralasan terkendali). Tidak ada pembatalan tanpa audit | Pemilik proses klinis bersama BDRS | `draft` | kosong |
+
+Turunannya: `INV-BD-034`, `INV-BD-035`, dan `AC-BD-089` sampai `AC-BD-097`.
+
+### 8.21 Rincian keputusan role residue closure pass
+
+**`DEC-BD-042` — bukti kecocokan dinyatakan petugas BDRS berwenang validasi.**
+
+Wewenangnya memakai ulang tingkat yang sama dengan validasi hasil golongan darah rutin
+(`DEC-BD-039`), bukan menciptakan tingkat keempat. Alasannya, menyatakan uji cocok selesai adalah
+tindakan teknis bertingkat sama: membaca hasil pemeriksaan lalu menyatakannya sah.
+
+*Pelaksana boleh berbeda dari validator, dan itu **bukan** kewajiban.* Keputusan menyatakan pelaksana
+pemeriksaan **dapat** berbeda dengan validator — pemisahan itu **diizinkan**, tidak diwajibkan. Ini
+berbeda dari koreksi pencatatan (`DEC-BD-041`) yang **mewajibkan** peminta dan penyetuju orang berbeda.
+Perbedaan itu disengaja dan tidak boleh diseragamkan: pada koreksi, seluruh manfaat tahap kedua adalah
+mata kedua; pada bukti kecocokan, yang dijaga adalah kewenangan menyatakan, bukan jumlah orangnya.
+
+*Yang wajib tersimpan:* validator, waktu, kantong, pasien, dan **hasil keputusan**.
+
+*Batas `INV-BD-013` tetap utuh.* Quilvian tidak menghitung kompatibilitas. Yang disimpan adalah
+**pernyataan manusia**, termasuk hasil keputusannya — bukan hasil perhitungan sistem.
+
+*Contoh.* Analis BDRS mengerjakan uji cocok kantong `PMI-00871` terhadap Tn. S. Petugas BDRS berwenang
+validasi membaca hasilnya dan menyatakannya selesai. Rekam menyimpan siapa validatornya, kapan, kantong
+dan pasien mana, serta hasil keputusannya. Bila analis itu sendiri memegang butir kewenangan validasi,
+ia boleh menyatakannya sendiri — keputusan ini tidak melarangnya.
+
+**`DEC-BD-043` — penyelesaian `PendingReview` memakai tiga butir hak akses.**
+
+| Tindakan | Wewenang | Sifat tindakannya |
+| --- | --- | --- |
+| Alihkan ke pasien lain (`REALLOCATED`) | **Kewenangan klinis BDRS** | **Memasukkan** darah ke tubuh pasien baru. Ia alokasi dengan nama lain, dan `DEC-BD-028` menggugurkan bukti kecocokan lama karenanya |
+| Kembalikan ke PMI (`RETURNED_TO_PROVIDER`) | **Kewenangan operasional BDRS** | **Mengeluarkan** darah dari peredaran. Arah yang aman dengan sendirinya |
+| Nyatakan tidak layak (`NOT_USABLE`) | Mengikuti kewenangan penetapan kelayakan sesuai proses BDRS | **Mengeluarkan** darah dari peredaran |
+
+*Kenapa tidak satu butir `Resolve`.* Ketiganya berangkat dari keadaan yang sama tetapi arah risikonya
+berlawanan. Satu butir untuk ketiganya berarti siapa pun yang boleh membuang kantong rusak otomatis
+boleh mengalihkan darah ke pasien lain — dan itu justru tindakan paling berisiko di antara ketiganya.
+
+*Batas `DEC-BD-019` tetap berlaku:* kelayakan tetap dinyatakan manusia, dan sistem tidak pernah
+menilainya sendiri (`INV-BD-013`).
+
+*Contoh.* Kantong `PMI-00902` masuk `PendingReview` karena order Tn. S berakhir. Petugas BDRS melihat
+kantongnya sudah tidak layak dan menetapkannya `NOT_USABLE`. Pada kasus lain kantongnya masih baik dan
+hendak dipakai Ny. R — penetapan itu menuntut kewenangan klinis BDRS, dan bukti kecocokan terhadap
+Tn. S gugur seketika.
+
+**`DEC-BD-044` — pembatalan order darah oleh dua peran.**
+
+| Peran | Sebab pembatalan |
+| --- | --- |
+| Dokter peminta | Kebutuhan klinis berubah atau dicabut |
+| Petugas BDRS | Pembatalan operasional berdasarkan alasan terkendali — misalnya order ganda atau salah input |
+
+*Kenapa dua, bukan satu.* `DEC-BD-005` secara sadar mengizinkan order ganda dibuat dengan alasan
+tertulis, sehingga duplikat memang akan ada dan seseorang harus membersihkannya. Bila hanya dokter yang
+boleh membatalkan, BDRS tidak dapat merapikan duplikat yang mereka sendiri buat lewat jalur manual.
+Sebaliknya, bila hanya BDRS yang boleh, pihak non-klinis mencabut permintaan klinis tanpa dokternya
+tahu.
+
+*Yang wajib tersimpan pada setiap pembatalan* (`INV-BD-035`): alasan terkendali, pelaku, waktu, dan
+jejak riwayatnya. **Tidak ada pembatalan tanpa audit**, dari peran mana pun.
+
+*Yang tidak berubah.* Kedaluwarsa order karena kunjungan berakhir tetap dipicu sistem, bukan endpoint
+pembatalan (`DEC-BD-014`), dan order yang sudah kedaluwarsa tetap tidak dapat dihidupkan kembali
+(`ASM-BD-002`).
+
+*Contoh.* Dokter membatalkan order PRC Tn. S karena rencana operasinya ditunda — alasan "kebutuhan
+klinis berubah". Pada kasus lain petugas BDRS membatalkan order kedua yang ternyata duplikat dari order
+pertama — alasan "order ganda". Keduanya menyimpan pelaku dan waktu; tidak satu pun menghapus apa pun.
+
 ---
 
 ## 9. Acceptance Criteria
@@ -1080,6 +1164,15 @@ tetap terbaca utuh sepanjang proses.
 | `AC-BD-086` | Petugas BDRS mengajukan koreksi pencatatan pemberian | Koreksi tersimpan berstatus menunggu persetujuan; **angka pemenuhan order belum bergerak** (`INV-BD-033`) |
 | `AC-BD-087` | Dokter BDRS menyetujui koreksi yang menunggu | Koreksi berlaku; angka pemenuhan dihitung ulang sejak persetujuan; pemberian asal tetap utuh |
 | `AC-BD-088` | Petugas yang mengajukan koreksi mencoba menyetujui permintaannya sendiri | Ditolak — peminta dan penyetuju wajib orang yang berbeda (`DEC-BD-041`) |
+| `AC-BD-089` | Petugas BDRS berwenang validasi menyatakan bukti kecocokan selesai | Berhasil; rekam menyimpan validator, waktu, kantong, pasien, dan hasil keputusan (`DEC-BD-042`) |
+| `AC-BD-090` | Petugas BDRS tanpa kewenangan validasi mencoba menyatakan bukti kecocokan selesai | Ditolak — butir kewenangan validasi wajib dimiliki |
+| `AC-BD-091` | Pelaksana pemeriksaan yang **juga** memegang kewenangan validasi menyatakan buktinya sendiri | **Diizinkan** — `DEC-BD-042` mengizinkan pelaksana berbeda dari validator, tetapi tidak mewajibkannya |
+| `AC-BD-092` | Petugas dengan kewenangan operasional mengembalikan kantong `PendingReview` ke PMI | Berhasil; alasan, pelaku, dan waktu tersimpan |
+| `AC-BD-093` | Petugas yang sama mencoba mengalihkan kantong `PendingReview` ke pasien lain | Ditolak — pengalihan menuntut kewenangan klinis BDRS, butir hak akses yang berbeda (`INV-BD-034`) |
+| `AC-BD-094` | Pemegang kewenangan klinis BDRS mengalihkan kantong ke pasien lain | Berhasil; bukti kecocokan terhadap pasien asal gugur seketika (`DEC-BD-028`) |
+| `AC-BD-095` | Dokter peminta membatalkan ordernya karena kebutuhan klinis berubah | Berhasil; alasan terkendali, pelaku, waktu, dan riwayat tersimpan (`INV-BD-035`) |
+| `AC-BD-096` | Petugas BDRS membatalkan order ganda dengan alasan operasional | Berhasil; alasan terkendali membedakannya dari pembatalan klinis |
+| `AC-BD-097` | Pembatalan order dicoba tanpa alasan terkendali | Ditolak — tidak ada pembatalan order tanpa audit (`INV-BD-035`) |
 
 `AC-BD-071` adalah turunan langsung dari model alokasi yang sudah disepakati, bukan aturan baru:
 pengalihan kantong ke pasien lain menghasilkan ikatan alokasi yang sama bentuknya dengan alokasi
@@ -1102,6 +1195,9 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan |
 | `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan per komponen. Struktur penyimpanannya ditutup `DEC-BD-032` (per komponen di katalog); yang tersisa hanya angka jamnya dari kebijakan klinis MMC | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
 | `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi |
+| `OQ-BD-016` | Apakah "bukti pendukung" pada permintaan koreksi berupa keterangan tertulis saja, atau menuntut lampiran berkas. Dirancang sebagai teks; lampiran adalah kemampuan penyimpanan berkas tersendiri | Pemilik proses BDRS | Tidak memblokir. Menempel pada satu kolom yang sudah dikenali |
+| `OQ-BD-017` | Peran konkret pemegang penetapan `NOT_USABLE`. `DEC-BD-043` menyatakannya "mengikuti kewenangan penetapan kelayakan sesuai proses BDRS" — sebuah penunjuk ke proses yang ada, bukan nama peran yang dapat dipetakan ke seeder | Pemilik proses BDRS | `IMPLEMENTATION` baris seeder hak akses. **Tidak** memblokir `DESIGN`: butir hak aksesnya sudah terpisah dan alurnya sudah pasti |
+| `OQ-BD-018` | Apakah "hasil keputusan" pada bukti kecocokan dapat bernilai **tidak cocok**. Bila ya, gerbang pemberian wajib memeriksa hasilnya, bukan sekadar keberadaan buktinya | Pemilik proses klinis | **Menahan pengetatan gerbang.** Perilaku saat ini — bukti yang ada berarti membuka gerbang — tetap berlaku sampai dijawab |
 
 ### Pertanyaan yang sudah tertutup
 
@@ -1116,18 +1212,33 @@ Architecture gap final closure pass: `ARCH-BD-GAP-07`, `ARCH-BD-GAP-08`, `ARCH-B
 Storage Location closure pass: coverage gap Storage Location, ditutup `DEC-BD-035` dan `DEC-BD-036`.
 Storage Location decision closure pass: `ARCH-BD-GAP-10`, ditutup `DEC-BD-037`.
 Gerbang pemberian closure pass: `OQ-BD-015`, ditutup `DEC-BD-038`.
-Role & authority closure pass: `DEF-BD-004`, ditutup `DEC-BD-039`, `DEC-BD-040`, dan `DEC-BD-041`.
+Role & authority closure pass: `DEF-BD-004` bagian validator, jalur darurat, dan koreksi — ditutup
+`DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041`.
+Role residue closure pass: **sisa** `DEF-BD-004` — bukti kecocokan, penyelesaian `PendingReview`, dan
+pembatalan order — ditutup `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`. Dengan ini `DEF-BD-004` tertutup
+seluruhnya, keenam wewenangnya.
 
 ---
 
 ## 11. Langkah Berikutnya
 
-**Role & authority closure pass (terbaru).** `DEC-BD-039`, `DEC-BD-040`, dan `DEC-BD-041` menutup
-`DEF-BD-004`. Dengan itu **tidak ada satu pun keputusan bisnis yang masih memblokir** — baik `DESIGN`
-maupun `IMPLEMENTATION` — pada scope yang sudah dinilai.
+**Role residue closure pass (terbaru).** `DEC-BD-042`, `DEC-BD-043`, dan `DEC-BD-044` menutup **sisa**
+`DEF-BD-004`. Dengan ini keenam wewenang yang dibawa `DEF-BD-004` sudah dipetakan, dan **tidak ada satu
+pun keputusan bisnis yang masih memblokir** pada scope yang dinilai.
 
 Pemblokir yang tersisa tinggal **satu, dan sifatnya administratif**: `BD-DEP-008`, pendaftaran prefix
 entity di registry kepemilikan modul. Itu bukan keputusan bisnis dan bukan pekerjaan skill ini.
+
+**Dua hal dari pass ini yang perlu diserap `design-business-module` — sudah diserap set kontrak `v4`
+pada 3 September 2026:**
+
+| Yang berubah | Bagaimana kontrak menyerapnya |
+| --- | --- |
+| Butir `BloodUnit : Resolve` **dipecah tiga** (`DEC-BD-043`) | `ResolveReallocate`, `ResolveReturn`, `ResolveNotUsable` menggantikannya pada `api-contract.md` dan `permission-audit-matrix.md`. Butir `Resolve` lama **dihapus**, bukan disisakan sebagai payung |
+| Bukti kecocokan menyimpan **hasil keputusan** (`DEC-BD-042`) | `BbkCompatibilityEvidence` memperoleh kolom `EvidenceResult` dan enum `BbkCompatibilityResult`. Gerbang pemberian menuntut hasil **cocok** (`VAL-BD-079`) — pengetatan yang menunggu penegasan lewat `OQ-BD-018` |
+
+Pemetaan peran pada `permission-audit-matrix.md` §2 kini terisi penuh; tidak ada baris `UNRESOLVED`
+tersisa.
 
 **Satu keputusan mengubah bentuk desain, bukan hanya mengisi peran.** `DEC-BD-041` menjadikan koreksi
 pencatatan pemberian sebagai proses **dua tahap** dengan keadaan menunggu persetujuan. Sebelumnya
@@ -1184,7 +1295,9 @@ pemberian.
 | `DEC-BD-016` | Penyerahan fakta biaya ke Billing | Ya, hanya bagian penyerahan biayanya |
 | `OQ-BD-011` | Mekanik label golongan darah | Ya, hanya slice label |
 | `DEF-BD-003` | Aturan bukti kecocokan per komponen | Tidak. `IMPLEMENTATION` saja |
-| `DEF-BD-004` | Peran jalur darurat, validator, dan pembuat catatan koreksi | **Ditutup** `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` |
+| `DEF-BD-004` | Enam wewenang: jalur darurat, validator, pencatat koreksi, bukti kecocokan, penyelesaian `PendingReview`, pembatalan order | **Ditutup seluruhnya** — `DEC-BD-039` sampai `DEC-BD-044` |
+| `OQ-BD-017` | Peran konkret pemegang penetapan `NOT_USABLE` | Tidak menahan rancangan. `IMPLEMENTATION` seeder |
+| `OQ-BD-018` | Apakah bukti kecocokan dapat bernilai "tidak cocok" | Menahan pengetatan gerbang pemberian, bukan bentuknya |
 | `OQ-BD-010` | Kesediaan PMI menerima pengembalian | Tidak |
 | `OQ-BD-012` | Nilai jam masa berlaku bukti kecocokan per komponen (struktur ditutup `DEC-BD-032`) | Tidak. `IMPLEMENTATION` saja |
 | `OQ-BD-013` | Tempat penyelesaian perbedaan hasil golongan darah | **Ditutup** `DEC-BD-033` — di layar pemeriksaan golongan darah |

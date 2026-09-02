@@ -2,7 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis (pembeda golongan darah) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `contracts/api-contract.md` · `contracts/permission-audit-matrix.md` · `00-interview-decisions.md` §7 (`FE-BD-001`..`009`) |
@@ -158,17 +159,45 @@ dipakai, bukan menemukannya saat tombol Alokasikan ditolak.
 | **Tombol Pindahkan lokasi** | Pilih lokasi tujuan dari daftar **aktif** saja + keterangan opsional | `PUT /{id}/storage-location` | `BloodUnit : Store` | Muncul setelah kantong punya lokasi. **Tetap muncul walaupun lokasi asalnya nonaktif** — inilah jalan keluarnya (`DEC-BD-037`) |
 | **Riwayat penempatan** | Lokasi, sejak kapan, oleh siapa — berurutan | `GET /{id}/placements` | `BloodUnit : Read` | Kosong → "Kantong belum pernah disimpan." |
 | Tombol Alokasikan / Batalkan alokasi | Pilih baris order / alasan | `POST /{id}/allocate` · `/cancel-allocation` | `BloodUnit : Allocate` | Sudah dialokasikan → ditolak dengan pesan terbaca. **Belum disimpan** → `VAL-BD-063`. **Lokasi nonaktif** → `VAL-BD-064` |
-| Tombol Catat bukti kecocokan | Terhadap pasien tujuan | `POST /{id}/compatibility-evidence` | `BloodUnit : Compatibility` | — |
+| Tombol Catat bukti kecocokan | Terhadap pasien tujuan, **beserta hasil keputusan cocok / tidak cocok** | `POST /{id}/compatibility-evidence` | `BloodUnit : Compatibility` | Hasil wajib dipilih; bukti bertanda tidak cocok tersimpan tetapi **tidak** membuka tombol Berikan (`FE-BD-021`) |
 | Tombol Berikan | Gerbang **tiga syarat**: sudah disimpan · lokasi terakhir aktif · bukti berlaku untuk pasien tujuan & belum lewat masa berlaku | `POST /{id}/issue` | `BloodUnit : Issue` | Penanda **bukti lewat masa berlaku** wajib terlihat sebelum tombol ditekan (`FE-BD-008`). **Lokasi nonaktif** → `VAL-BD-065`, dan alasannya wajib terbaca sebagai soal lokasi, bukan soal bukti (`FE-BD-012`) |
-| Tombol Jalur darurat | Otorisasi + alasan + **pilihan gerbang yang dilewati** | `POST /{id}/emergency-issue` | `BloodUnit : EmergencyIssue` | **Wajib tampak jelas sebagai jalur tidak normal**, bukan tombol setara (`FE-BD-005`). Pilihan gerbang wajib diisi (`VAL-BD-066`) dan **wajib mencerminkan keadaan kantong saat itu**, bukan pilihan bebas (`FE-BD-013`) |
-| Tombol Koreksi pencatatan | Apa keliru/benar + alasan | `POST /{id}/correction` | `BloodUnit : Correct` | Tersembunyi bila tak berhak |
-| Tombol Penyelesaian (`PendingReview`) | Alihkan / kembalikan / tidak layak | `POST /{id}/reallocate` · `/return-to-provider` · `/mark-not-usable` | `BloodUnit : Resolve` | Alasan wajib |
+| Tombol Jalur darurat | Otorisasi + alasan + **pilihan gerbang yang dilewati** + **peran penerbit** + **keterangan kondisi kedaruratan** | `POST /{id}/emergency-issue` | `BloodUnit : EmergencyIssue` | **Wajib tampak jelas sebagai jalur tidak normal**, bukan tombol setara (`FE-BD-005`). Pilihan gerbang wajib diisi (`VAL-BD-066`) dan **wajib mencerminkan keadaan kantong saat itu** (`FE-BD-013`). Peran penerbit dan kondisi kedaruratan wajib diisi (`VAL-BD-070`, `VAL-BD-071`) |
+| **Tombol Ajukan koreksi pencatatan** | Apa keliru/benar + alasan terkendali + **bukti pendukung** | `POST /{id}/corrections` | `BloodUnit : Correct` | Tersembunyi bila tak berhak. Setelah terkirim, koreksi tampil sebagai **menunggu persetujuan** dan angka pemenuhan **belum** berubah (`FE-BD-016`) |
+| **Daftar koreksi + tombol Setujui/Tolak** | Koreksi pada kantong ini beserta keadaannya | `GET /{id}/corrections` · `POST /{id}/corrections/{correctionId}/approve` · `/reject` | `BloodUnit : Read` untuk daftar · `BloodUnit : ApproveCorrection` untuk keputusan | Tombol keputusan **tersembunyi pada koreksi yang diajukan pengguna itu sendiri** (`FE-BD-017`). Penolakan menuntut alasan |
+| Tombol Penyelesaian (`PendingReview`) | Alihkan / kembalikan / tidak layak — **tiga tombol dengan tiga penjaga berbeda** | `POST /{id}/reallocate` · `/return-to-provider` · `/mark-not-usable` | `BloodUnit : ResolveReallocate` · `: ResolveReturn` · `: ResolveNotUsable` | Alasan wajib. **Ketiganya tampil terpisah** (`FE-BD-020`) |
 | Riwayat kantong | **Penempatan**, alokasi, bukti, pemberian, koreksi, penyelesaian | `GET /blood-units/{id}` | `BloodUnit : Read` | Kosong → "Belum ada pergerakan." |
 
 **`FE-BD-012` (mengikat).** Ketika pemberian ditolak karena lokasi nonaktif, pesan yang tampil wajib
 menyebut **lokasi**, bukan bukti kecocokan. Petugas yang membaca "bukti tidak berlaku" padahal buktinya
 baik-baik saja akan mencatat bukti baru berulang kali dan tetap gagal. Ini sebabnya `VAL-BD-064` dan
 `VAL-BD-065` dipisah dari `VAL-BD-018`..`020`.
+
+**`FE-BD-020` (mengikat).** Ketiga tombol penyelesaian `PendingReview` dijaga **tiga butir hak akses
+berbeda** dan **wajib tampil terpisah** menurut hak akses pengguna. Petugas yang hanya berwenang
+mengembalikan kantong ke PMI melihat tombol itu saja, **tidak** melihat tombol pengalihan. Menampilkan
+ketiganya lalu menolak di server akan membatalkan pemisahan yang justru dituju `DEC-BD-043`, dan
+membuat petugas mengira sistemnya rusak.
+
+**`FE-BD-021` (mengikat).** Ketika bukti kecocokan yang berlaku menyatakan **tidak cocok**, tombol
+Berikan **wajib tertutup** dan alasannya wajib terbaca sebagai soal **hasil pemeriksaan**, bukan soal
+bukti yang belum ada. Petugas yang membaca "bukti belum tercatat" padahal buktinya ada dan menyatakan
+tidak cocok akan mencatat bukti baru berulang kali — dan pada percobaan keberapa pun, yang benar adalah
+kantong itu memang tidak boleh diberikan kepada pasien tersebut.
+
+**`FE-BD-016` (mengikat).** Koreksi yang masih menunggu persetujuan **wajib** terlihat sebagai
+menunggu, dan angka pemenuhan order **MUST NOT** berubah selama itu (`INV-BD-033`). Menampilkan angka
+yang sudah dikoreksi sebelum keputusan turun adalah kebohongan terhadap pembaca berikutnya: ia akan
+membaca jumlah darah yang sudah diberikan berdasarkan koreksi yang bisa saja ditolak.
+
+**`FE-BD-017` (mengikat).** Tombol Setujui dan Tolak **wajib tersembunyi** pada koreksi yang diajukan
+pengguna yang sedang membuka layar. Ini bukan sekadar mencegah galat `VAL-BD-073`: seseorang dapat sah
+memegang kedua butir hak akses sekaligus, sehingga tombolnya akan muncul bila hanya hak akses yang
+diperiksa. Yang menentukan tampil-tidaknya adalah **perbandingan pelaku**, bukan hak akses.
+
+**`FE-BD-018` (mengikat).** Pilihan peran penerbit pada jalur darurat — Dokter BDRS atau DPJP pasien —
+**wajib diisi sendiri oleh penerbit** dan tidak boleh disimpulkan layar dari role akun. Seorang dokter
+dapat memenuhi kedua peran pada kasus yang berbeda, dan yang direkam `INV-BD-032` adalah **dengan
+wewenang apa ia bertindak saat itu**, bukan jabatan apa yang melekat pada akunnya.
 
 **`FE-BD-013` (mengikat).** Pilihan "gerbang yang dilewati" pada jalur darurat **MUST NOT** menjadi
 pilihan bebas. Layar sudah tahu keadaan kantong — apakah buktinya kurang, apakah lokasinya nonaktif,
@@ -187,8 +216,13 @@ dipindahkan satu per satu oleh tangan. Petugas memindahkan per kantong.
 | --- | --- | --- | --- | --- |
 | Kepala + status golongan darah sah pasien | Hasil sah / **penanda konflik** | `GET /blood-group-exams/patient/{patientId}/valid` | `BloodGroupExam : Read` | Konflik → penanda wajib terlihat & menahan pemakaian (`FE-BD-007`) |
 | Catat sampel / hasil | Identifier sampel, ABO, Rhesus | `POST /` · `POST /{id}/result` | `BloodGroupExam : Create/Update` | Pemeriksa/waktu wajib |
-| Tombol Validasi | Validasi hasil | `POST /{id}/validate` | `BloodGroupExam : Validate` | Tersembunyi bila bukan validator |
-| **Penyelesaian konflik** | Histori hasil, hasil ulang, tindakan validator | `POST /conflict-resolution` (menunjuk pemeriksaan ulang) | `BloodGroupExam : Validate` | **Di layar ini, bukan daftar kerja keempat** (`FE-BD-009`, `DEC-BD-033`) |
+| Tombol Validasi | Validasi hasil **rutin** | `POST /{id}/validate` | `BloodGroupExam : Validate` | Tersembunyi bila tak berhak |
+| **Penyelesaian konflik** | Histori hasil, hasil ulang, tindakan validator klinis | `POST /conflict-resolution` (menunjuk pemeriksaan ulang) | **`BloodGroupExam : ResolveConflict`** | **Di layar ini, bukan daftar kerja keempat** (`FE-BD-009`, `DEC-BD-033`). Butir hak akses **berbeda** dari tombol Validasi (`DEC-BD-039`) |
+
+**`FE-BD-019` (mengikat).** Tombol Validasi dan tindakan Penyelesaian konflik dijaga **dua butir hak
+akses yang berbeda**, sehingga keduanya dapat tampil terpisah: seorang petugas BDRS berwenang validasi
+melihat tombol Validasi tetapi **tidak** melihat tindakan penyelesaian konflik. Menyatukan keduanya di
+balik satu pemeriksaan hak akses akan membatalkan pemisahan yang justru dituju `DEC-BD-039`.
 
 ### `FE-BD-08` / `FE-BD-09` Setup master
 
@@ -233,7 +267,12 @@ Diturunkan dari `contracts/permission-audit-matrix.md` (bukan dikarang ulang). T
 | --- | --- |
 | Unit pelayanan / dokter peminta | Buat order, lihat status |
 | Petugas Bank Darah | Order, permintaan, penerimaan, **tetapkan lokasi penyimpanan**, **pindahkan lokasi**, alokasi, batal alokasi, bukti, pemberian, tindakan, sampel & hasil golongan darah |
-| Peran berwenang (`DEF-BD-004`) | Jalur darurat, validasi & penyelesaian konflik golongan darah, koreksi pemberian |
+| Petugas BDRS berwenang validasi | Validasi hasil golongan darah **rutin** |
+| Dokter BDRS / penanggung jawab klinis | Penyelesaian konflik golongan darah, jalur darurat, **menyetujui atau menolak** koreksi pemberian |
+| Pemegang kewenangan klinis BDRS | Mengalihkan kantong `PendingReview` ke pasien lain |
+| Pemegang kewenangan operasional BDRS | Mengembalikan kantong ke PMI |
+| Dokter peminta | Membatalkan ordernya sendiri dengan alasan klinis |
+| DPJP pasien | Jalur darurat untuk pasiennya |
 | Admin master Bank Darah | Katalog komponen, daftar alasan, **lokasi penyimpanan darah (termasuk menonaktifkan)** |
 
 ---

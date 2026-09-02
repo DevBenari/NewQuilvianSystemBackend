@@ -2,11 +2,11 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS (lifecycle operasional) · pemilik proses klinis (golongan darah) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
-| Sumber | `03-domain-architecture.md` revisi 6 §G · `00-interview-decisions.md` revisi 7 §5 |
+| Sumber | `03-domain-architecture.md` revisi 6 §G · `00-interview-decisions.md` revisi 9 §5 |
 | Nama status | **Nama teknis enum** (bagian F backend). Node status pada `flowcharts/` **MUST** memakai nama yang sama persis |
 
 Aturan umum: setiap perpindahan meninggalkan baris `BbkTransitionHistory` (pelaku, waktu, from, to,
@@ -22,7 +22,8 @@ kode alasan + salinan teksnya bila ada). Pesan penolakan lengkap ada di `contrac
 | — | Buat order | `Active` | Unit pelayanan berwenang (elektronik) atau petugas Bank Darah (manual) | Pasien & kunjungan sah; unit `IsAvailableForBloodOrder=true`; deteksi ganda `BD-XINV-01` lolos atau dilanjutkan dengan alasan | `VAL-BD-013` unit tak berwenang · `VAL-BD-001` order ganda |
 | `Active` | Sebagian kantong diberikan | `PartiallyFulfilled` | Petugas Bank Darah | Ada pemberian sah; jumlah dihitung dari transaksi | — |
 | `Active` / `PartiallyFulfilled` | Seluruh kantong diberikan | `FullyFulfilled` | Petugas Bank Darah | Σ pemberian = Σ diminta | — |
-| `Active` / `PartiallyFulfilled` | Batalkan | `Cancelled` | Pihak berwenang | Alasan dari daftar terkendali | `VAL-BD-016` alasan wajib |
+| `Active` / `PartiallyFulfilled` | Batalkan — kebutuhan klinis berubah | `Cancelled` | **Dokter peminta** (`DEC-BD-044`) | Alasan berkategori **pembatalan klinis** | `VAL-BD-016` alasan wajib · `VAL-BD-083` kategori tak sesuai peran |
+| `Active` / `PartiallyFulfilled` | Batalkan — kekeliruan operasional | `Cancelled` | **Petugas BDRS** (`DEC-BD-044`) | Alasan berkategori **pembatalan operasional**, mis. order ganda | `VAL-BD-016` · `VAL-BD-083` |
 | `Active` / `PartiallyFulfilled` | Kunjungan berakhir | `Expired` | Sistem | `BbkEncounterStatusReader` menyatakan kunjungan berakhir (`DEC-BD-014`) | — |
 
 **Status terminal:** `FullyFulfilled`, `Cancelled`, `Expired`. Order `Expired` **tidak** dapat
@@ -59,15 +60,17 @@ kembali aktif.
 | `Stored` / `Available` / `Allocated` / `PendingReview` / `Reallocated` | **Pindahkan lokasi penyimpanan** | **status tidak berubah** | Petugas Bank Darah | Lokasi tujuan **sedang aktif** (`INV-BD-027`); kantong sudah pernah ditempatkan; kantong belum di status terminal. Berlaku juga ketika lokasi asalnya sudah dinonaktifkan | `VAL-BD-060` lokasi nonaktif · `VAL-BD-062` belum pernah ditempatkan |
 | `Stored` / `Available` / `Allocated` | **Lokasi penyimpanannya dinonaktifkan** | **status tidak berubah** | Pengelola Setup Bank Darah | Kantong **tidak** dipindahkan sistem dan **tidak** masuk `PendingReview`. Gerbang alokasi & pemberian tertutup sampai kantong dipindahkan (`DEC-BD-037`) | Peringatan `VAL-BD-068` |
 | `Available` | Alokasikan | `Allocated` | Petugas Bank Darah | Order aktif; **tak ada alokasi aktif lain** pada kantong ini; **sudah melewati `Stored`** (`INV-BD-025`); **lokasi penempatan terakhir sedang aktif** (`INV-BD-028`, `ARCH-BD-POS-06`) | `VAL-BD-018` alokasi ganda · `VAL-BD-063` belum disimpan · `VAL-BD-064` lokasi nonaktif |
-| `Allocated` | Catat bukti kecocokan | tetap `Allocated` (bukti lengkap) | Petugas berwenang | Bukti terhadap pasien tujuan | — |
+| `Allocated` | Catat bukti kecocokan | tetap `Allocated`; bukti tersimpan beserta **hasil keputusannya** | **Petugas BDRS berwenang validasi** (`DEC-BD-042`) | Bukti terhadap pasien tujuan; hasil cocok atau tidak cocok wajib dinyatakan. Pelaksana pemeriksaan **boleh** orang lain | `VAL-BD-078` bukan pemegang kewenangan validasi |
 | `Allocated` (bukti berlaku) | Berikan | `Issued` | Petugas Bank Darah | **Tiga syarat sekaligus, dinilai ulang saat pemberian** (`INV-BD-029`, `ARCH-BD-POS-07`): sudah melewati `Stored` · lokasi penempatan terakhir **sedang aktif** · bukti kecocokan berlaku untuk pasien tujuan & belum lewat masa berlaku | `VAL-BD-018`..`020` gerbang bukti · `VAL-BD-065` lokasi nonaktif |
-| `Allocated` | Berikan lewat jalur darurat | `Issued` (ditandai melewati gerbang) | **Peran berwenang** `DEF-BD-004` | Alasan wajib; penanda permanen; **wajib menyebut gerbang yang dilewati** — bukti, lokasi nonaktif, atau keduanya (`INV-BD-030`) | `VAL-BD-021` peran/alasan · `VAL-BD-066` keterangan gerbang |
+| `Allocated` | Berikan lewat jalur darurat | `Issued` (ditandai melewati gerbang) | **Dokter BDRS atau DPJP pasien** (`DEC-BD-040`) | Alasan wajib; penanda permanen; **wajib menyebut gerbang yang dilewati** (`INV-BD-030`), **peran yang dipakai penerbit**, dan **keterangan kondisi kedaruratan** (`INV-BD-032`) | `VAL-BD-021` alasan · `VAL-BD-066` gerbang · `VAL-BD-070` kondisi kosong · `VAL-BD-071` peran kosong · `VAL-BD-072` bukan penerbit berwenang |
 | `Allocated` | Batalkan alokasi | `Available`, atau `PendingReview` bila order asal berakhir | Petugas Bank Darah | Kantong belum diberikan; alasan terkendali; keaktifan order dibaca `BbkEncounterStatusReader`. **Kembali ke `Available`, tidak pernah ke `Stored` maupun `Received`** — tonggak penempatan hanya dilewati sekali | `VAL-BD-023` sudah diberikan · `VAL-BD-016` alasan |
 | `Available` / `Allocated` | Order berakhir | `PendingReview` | Sistem | Order `Cancelled`/`Expired` | — |
-| `PendingReview` | Alihkan ke pasien lain | `Reallocated` | Petugas berwenang | Kelayakan dinyatakan manusia; alasan wajib; **bukti lama gugur** (`DEC-BD-028`); **lokasi penempatan terakhir sedang aktif** — pengalihan adalah alokasi dengan nama lain (`INV-BD-028`) | `VAL-BD-016` · `VAL-BD-064` lokasi nonaktif |
-| `PendingReview` | Kembalikan ke PMI | `ReturnedToProvider` | Petugas berwenang | Proses PMI mendukung (`OQ-BD-010`) | `VAL-BD-016` |
-| `PendingReview` | Nyatakan tidak layak | `NotUsable` | Petugas berwenang | Alasan wajib | `VAL-BD-016` |
-| `Issued` | Catat koreksi pencatatan | tetap `Issued` (koreksi melekat) | Peran berwenang `DEF-BD-004` | Menunjuk pemberian yang ada; alasan terkendali | `VAL-BD-024` peran · `VAL-BD-025` |
+| `PendingReview` | Alihkan ke pasien lain | `Reallocated` | **Kewenangan klinis BDRS** (`DEC-BD-043`) | Kelayakan dinyatakan manusia; alasan wajib; **bukti lama gugur** (`DEC-BD-028`); **lokasi penempatan terakhir sedang aktif** — pengalihan adalah alokasi dengan nama lain (`INV-BD-028`) | `VAL-BD-080` kewenangan · `VAL-BD-016` · `VAL-BD-064` lokasi nonaktif |
+| `PendingReview` | Kembalikan ke PMI | `ReturnedToProvider` | **Kewenangan operasional BDRS** (`DEC-BD-043`) | Proses PMI mendukung (`OQ-BD-010`) | `VAL-BD-081` kewenangan · `VAL-BD-016` |
+| `PendingReview` | Nyatakan tidak layak | `NotUsable` | Mengikuti kewenangan penetapan kelayakan sesuai proses BDRS (`DEC-BD-043`); pemegang perannya belum dinamai — `OQ-BD-017` | Alasan wajib | `VAL-BD-082` kewenangan · `VAL-BD-016` |
+| `Issued` | **Ajukan** koreksi pencatatan | tetap `Issued`; koreksi `Requested`, **belum berlaku** | Petugas BDRS (`DEC-BD-041`) | Menunjuk pemberian yang ada; alasan terkendali; bukti pendukung wajib. Angka pemenuhan **tidak** bergerak (`INV-BD-033`) | `VAL-BD-024` peran · `VAL-BD-025` · `VAL-BD-076` bukti kosong |
+| `Issued`, koreksi `Requested` | **Setujui** koreksi | tetap `Issued`; koreksi `Approved` dan melekat | Dokter BDRS (`DEC-BD-041`) | Pemutus **bukan** peminta; koreksi belum pernah diputuskan. Angka pemenuhan dihitung ulang sejak persetujuan | `VAL-BD-073` menyetujui sendiri · `VAL-BD-074` bukan pemutus · `VAL-BD-075` sudah diputuskan |
+| `Issued`, koreksi `Requested` | **Tolak** koreksi | tetap `Issued`; koreksi `Rejected` dan tetap terbaca | Dokter BDRS (`DEC-BD-041`) | Pemutus bukan peminta; alasan penolakan wajib. Rekam **tidak berubah sama sekali** | `VAL-BD-073` · `VAL-BD-074` · `VAL-BD-075` · `VAL-BD-077` alasan kosong |
 
 **Terminal tak dapat dibatalkan:** `Issued`, `ReturnedToProvider`, `NotUsable`. Koreksi **tidak**
 memindahkan kantong keluar dari `Issued`, tidak mengembalikan ke `Available`, tidak membatalkan apa pun.
@@ -93,6 +96,14 @@ satu kulkas dinonaktifkan atau setiap kali waktu berjalan.
 | Lokasi dinonaktifkan → kantong otomatis pindah lokasi | Ditolak `DEC-BD-037`; perpindahan fisik kewenangan petugas BDRS |
 | Perpindahan lokasi → mengubah status kantong | Perpindahan tidak pernah menjadi perpindahan status (`DEC-BD-036`) |
 | Perpindahan lokasi → mengubah/menghapus penempatan lama | Riwayat penempatan hanya bertambah (`INV-BD-026`) |
+| Koreksi `Requested` → langsung mengubah angka pemenuhan | Koreksi berlaku hanya setelah disetujui (`INV-BD-033`) |
+| Koreksi `Approved`/`Rejected` → diputuskan ulang | Keputusan bersifat sekali; koreksi baru diajukan sebagai permintaan tersendiri (`VAL-BD-075`) |
+| Koreksi ditolak → dihapus dari riwayat | Permintaan yang ditolak tetap tersimpan dan tetap terbaca (`DEC-BD-041`) |
+| Peminta koreksi → menyetujui permintaannya sendiri | Seluruh manfaat tahap kedua adalah mata kedua (`VAL-BD-073`) |
+| Petugas BDRS berwenang validasi → menutup konflik golongan darah | Dua wewenang terpisah sejak `DEC-BD-039` (`VAL-BD-069`) |
+| Bukti kecocokan bertanda tidak cocok → membuka gerbang pemberian | Gerbang memeriksa hasilnya, bukan keberadaannya (`VAL-BD-079`) |
+| Pemegang kewenangan mengembalikan kantong → mengalihkan kantong ke pasien lain | Tiga butir hak akses terpisah sejak `DEC-BD-043` (`INV-BD-034`) |
+| Pembatalan order → tanpa kategori alasan yang sesuai peran | Tidak ada pembatalan order tanpa audit (`INV-BD-035`, `VAL-BD-083`) |
 | `Issued` lewat jalur normal dari lokasi nonaktif | Ditolak `DEC-BD-038` (`VAL-BD-065`); satu-satunya jalan adalah jalur darurat |
 
 ---
@@ -103,9 +114,9 @@ satu kulkas dinonaktifkan atau setiap kali waktu berjalan.
 | --- | --- | --- | --- | --- | --- |
 | — | Catat pengambilan sampel | `SampleTaken` | Petugas pengambil | Pasien sah | — |
 | `SampleTaken` | Catat hasil ABO & Rhesus | `ResultRecorded` | Pemeriksa | Pemeriksa & waktu tersimpan | `VAL-BD-030` |
-| `ResultRecorded` | Validasi | `Validated`, `IsValidResult=true` | **Peran validator** `DEF-BD-004` | Bila berbeda dari hasil sah sebelumnya → hasil lama & baru `IsConflictHeld=true`, pasien tak punya hasil sah (`BD-XINV-04`) | `VAL-BD-037` bukan validator |
+| `ResultRecorded` | Validasi rutin | `Validated`, `IsValidResult=true` | **Petugas BDRS berwenang validasi** (`DEC-BD-039`) | Bila berbeda dari hasil sah sebelumnya → hasil lama & baru `IsConflictHeld=true`, pasien tak punya hasil sah (`BD-XINV-04`) | `VAL-BD-037` bukan validator |
 | `Validated` (konflik) | Catat pemeriksaan ulang | konflik masih tertahan | Petugas Bank Darah | Sampel & hasil baru tervalidasi | `VAL-BD-051` selesai tanpa pemeriksaan ulang |
-| konflik tertahan | Selesaikan konflik | satu `IsValidResult=true` kembali | **Peran validator** `DEF-BD-004` | **Wajib** menunjuk pemeriksaan ulang tervalidasi (`ResolvingExamId`); tak pernah hitung mayoritas (`DEC-BD-031`, `INV-BD-022`) | `VAL-BD-051` · `VAL-BD-037` |
+| konflik tertahan | Selesaikan konflik | satu `IsValidResult=true` kembali | **Validator klinis yang ditunjuk** — Dokter BDRS / penanggung jawab klinis (`DEC-BD-039`) | **Wajib** menunjuk pemeriksaan ulang tervalidasi (`ResolvingExamId`); tak pernah hitung mayoritas (`DEC-BD-031`, `INV-BD-022`) | `VAL-BD-069` bukan validator klinis · `VAL-BD-051` tanpa pemeriksaan ulang |
 
 **Catatan:** hasil `Validated` **tak pernah** ditimpa. Hasil ketiga yang berbeda dari keduanya tetap
 boleh menjadi sah bila validator menyatakannya (`AC-BD-053`).

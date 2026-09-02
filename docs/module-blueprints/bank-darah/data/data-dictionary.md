@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Sumber | `02-backend-architecture.md` (model) · `contracts/` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`, `CreateBy`,
@@ -23,7 +23,7 @@ prefix final berbeda, seluruh nama tabel, kolom FK bernama `Bbk*`, dan Configura
 | --- | --- | --- | --- |
 | `BbkBloodOrder`, `BbkBloodOrderLine` | Baru | Bank Darah | — |
 | `BbkProviderRequest`, `BbkBloodUnitReceipt` | Baru | Bank Darah | — |
-| `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | `BbkBloodUnit` +`CurrentPlacementId`; `BbkEmergencyAuthorization` +`BypassScope` pada `v2` |
+| `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | `v2`: `BbkBloodUnit` +`CurrentPlacementId`, `BbkEmergencyAuthorization` +`BypassScope`. **`v3`**: `BbkEmergencyAuthorization` +`AuthorizerRole`/`EmergencyConditionNote`; `BbkIssuanceCorrection` memperoleh lifecycle dua tahap |
 | `BbkBloodUnitPlacement` | **Baru pada `v2`** | Bank Darah | Riwayat penempatan kantong, append-only (`BD-DOM-25`, `DEC-BD-036`) |
 | `BbkBloodGroupExam`, `BbkBloodGroupSample`, `BbkBloodGroupConflictResolution` | Baru | Bank Darah | — |
 | `BbkBloodBankProcedure` | Baru | Bank Darah | Tanpa penyaluran charge (`DEC-BD-016`) |
@@ -130,12 +130,23 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `Id` | `Guid` | Ya | `NewGuid()` | PK | — | — |
 | `BloodUnitId` | `Guid` | Ya | — | Index | FK `BbkBloodUnit` | Kantong |
 | `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | **Terikat pasangan kantong+pasien** |
-| `CheckedByUserId` | `Guid` | Ya | — | — | — | Petugas yang menyatakan selesai |
+| `ValidatedByUserId` | `Guid` | Ya | — | Index | — | **Ganti nama dari `CheckedByUserId` pada `v4`.** Petugas BDRS berwenang validasi yang **menyatakan** hasilnya. Pelaksana pemeriksaan boleh orang lain, dan identitasnya **tidak** disimpan di sini — yang direkam adalah yang menyatakan (`DEC-BD-042`) |
+| `EvidenceResult` | `int` (`BbkCompatibilityResult`) | Ya | — | Index | — | **Kolom baru `v4`.** `Compatible` atau `Incompatible`. Bukti bernilai `Incompatible` **tetap tersimpan** dan **tidak** membuka gerbang pemberian |
 | `CheckedAt` | `DateTime` | Ya | — | Index | — | Dasar hitung masa berlaku |
 | `IsSuperseded` | `bool` | Ya | `false` | — | — | Gugur saat pengalihan (`DEC-BD-028`) |
 | `SupersededReason` | `string(200)?` | Tidak | — | — | — | Mis. "kantong dialihkan" |
 
 > Masa berlaku **tidak** disimpan; dihitung `CheckedAt + MstBloodComponent.CompatibilityEvidenceValidityHours` saat gerbang (`ARCH-BD-POS-01`).
+
+> **Gerbang pemberian memeriksa `EvidenceResult`, bukan sekadar keberadaan baris.** Sejak `v4` bukti
+> yang menyatakan tidak cocok juga tersimpan; meloloskannya berarti memberikan darah yang sudah
+> dinyatakan tidak cocok oleh manusia. Pengetatan ini penurunan dari `DEC-BD-042` dan menunggu
+> penegasan pemilik proses — `OQ-BD-018`.
+
+> **Kenapa nama kolom pelakunya berganti.** `CheckedByUserId` terbaca sebagai "yang memeriksa".
+> `DEC-BD-042` menetapkan pelaksana pemeriksaan **boleh** berbeda dari validator, dan yang disimpan
+> adalah **validator** — orang yang menyatakan hasilnya sah. Nama lama akan menyesatkan pembaca yang
+> menyangka kolom ini berisi analis pelaksananya.
 
 ### `BbkEmergencyAuthorization`
 
@@ -149,6 +160,8 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `ReasonCode` | `string(30)` | Ya | — | FK `MstBloodBankReason.ReasonCode` | Alasan wajib |
 | `ReasonNote` | `string(500)?` | Tidak | — | — | Salinan teks |
 | `BypassScope` | `int` (`BbkEmergencyBypassScope`) | Ya | — | — | **Kolom baru `v2`.** Gerbang yang dilewati: `CompatibilityEvidence`, `InactiveStorageLocation`, atau `Both` (`INV-BD-030`, `DEC-BD-038`) |
+| `AuthorizerRole` | `int` (`BbkEmergencyAuthorizerRole`) | Ya | — | Index | **Kolom baru `v3`.** Peran yang dipakai penerbit: `BloodBankDoctor` atau `AttendingPhysician`. Menjawab *dengan wewenang apa*, bukan *siapa* (`DEC-BD-040`, `INV-BD-032`) |
+| `EmergencyConditionNote` | `string(500)` | Ya | — | — | **Kolom baru `v3`.** Keterangan keadaan klinis saat itu. **Wajib**, tidak boleh kosong. Berbeda dari `ReasonCode` yang terkendali — ini uraian keadaan, bukan kategori |
 
 > Enum tiga nilai dipilih supaya keadaan "darurat yang tidak melewati gerbang apa pun" **tidak dapat
 > ditulis sama sekali**. Dua kolom bool akan memungkinkan `(false, false)` yang tak bermakna.
@@ -187,8 +200,24 @@ baru.
 | `WhatWasWrong` | `string(500)` | Ya | — | — | Apa yang keliru dicatat |
 | `WhatIsCorrect` | `string(500)` | Ya | — | — | Apa yang benar |
 | `ReasonCode` | `string(30)` | Ya | — | FK `MstBloodBankReason.ReasonCode` | Alasan terkendali |
-| `CorrectedByUserId` | `Guid` | Ya | — | — | Peran berwenang (`DEF-BD-004`) |
-| `CorrectedAt` | `DateTime` | Ya | — | — | — |
+| `SupportingEvidenceNote` | `string(1000)` | Ya | — | — | **Kolom baru `v3`.** Bukti pendukung berupa **keterangan tertulis** (`DEC-BD-041`). Lampiran berkas belum diputuskan — `OQ-BD-016` |
+| `CorrectionStatus` | `int` (`BbkCorrectionStatus`) | Ya | `Requested` | Index | **Kolom baru `v3`.** `Requested` → `Approved` / `Rejected`. **Selama `Requested`, koreksi belum berlaku** (`INV-BD-033`) |
+| `RequestedByUserId` | `Guid` | Ya | — | Index | **Ganti nama dari `CorrectedByUserId` pada `v3`.** Petugas BDRS yang mengajukan |
+| `RequestedAt` | `DateTime` | Ya | — | — | **Ganti nama dari `CorrectedAt` pada `v3`.** Waktu pengajuan |
+| `DecidedByUserId` | `Guid?` | Tidak | `null` | — | **Kolom baru `v3`.** Dokter BDRS yang memutuskan. **Wajib berbeda dari `RequestedByUserId`** (`DEC-BD-041`). Kosong selama `Requested` |
+| `DecidedAt` | `DateTime?` | Tidak | `null` | — | **Kolom baru `v3`.** Waktu keputusan. Kosong selama `Requested` |
+| `DecisionNote` | `string(500)?` | Tidak | `null` | — | **Kolom baru `v3`.** Keterangan pemutus. **Wajib diisi bila `Rejected`** — penolakan tanpa alasan tidak dapat ditinjau |
+
+> **Satu pasang kolom pemutus, bukan dua.** `DecidedBy`/`DecidedAt` dipakai untuk menyetujui maupun
+> menolak. Dua pasang terpisah (`ApprovedBy` + `RejectedBy`) memungkinkan baris yang punya penyetuju
+> sekaligus penolak — keadaan yang tak bermakna dan tak mungkin terjadi di dunia nyata.
+
+> **Koreksi yang ditolak tetap tersimpan** dengan `CorrectionStatus = Rejected`. Ia tidak dihapus dan
+> tidak dibiarkan menggantung di `Requested`; fakta bahwa seseorang pernah menyatakan catatan itu keliru
+> dan pemutus tidak sependapat justru bagian riwayat yang berguna saat ditinjau kemudian.
+
+> **Angka pemenuhan order menyaring `CorrectionStatus = Approved`.** Menyertakan yang `Requested` akan
+> membuat angka bergerak sebelum keputusan turun (`INV-BD-033`).
 
 ### `BbkBloodGroupExam`
 
@@ -299,7 +328,14 @@ pada tabel status, yang sengaja tidak dipakai (`DEC-BD-035`).
 | `Id` | `Guid` | Ya | `NewGuid()` | PK | — |
 | `ReasonCode` | `string(30)` | Ya | — | Unique | Kode alasan |
 | `ReasonText` | `string(200)` | Ya | — | — | Teks yang ditampilkan |
-| `ReasonCategory` | `string(40)` | Ya | — | Index | `OrderCancellation`/`Emergency`/`PendingReviewResolution`/`Return`/`NotUsable`/`OverDelivery`/`AllocationCancellation`/`IssuanceCorrection` |
+| `ReasonCategory` | `string(40)` | Ya | — | Index | **Diperbarui `v4`.** `OrderCancellationClinical`/`OrderCancellationOperational` (menggantikan `OrderCancellation` tunggal — `DEC-BD-044`) / `Emergency` / `PendingReviewResolution` / `Return` / `NotUsable` / `OverDelivery` / `AllocationCancellation` / `IssuanceCorrection` / `CorrectionRejection` |
+
+> **Kenapa pembatalan order punya dua kategori, bukan satu.** `DEC-BD-044` mengizinkan dua peran
+> membatalkan order dengan sebab yang berbeda: dokter mencabut kebutuhan klinis, petugas BDRS
+> merapikan kekeliruan operasional. Keduanya memakai **satu** butir hak akses `BloodOrder : Cancel`;
+> yang membedakannya pada rekam adalah kategori alasannya. Tanpa pemisahan kategori, peninjau tidak
+> dapat membedakan order yang dicabut karena pasiennya tidak jadi ditransfusi dari order yang dihapus
+> karena salah input.
 | `IsActive` | `bool` | Ya | `true` | — | Nonaktif tak mengubah makna riwayat lama (teks disalin) |
 
 ---
@@ -437,8 +473,19 @@ CREATE UNIQUE INDEX "IX_MstBloodStorageLocation_StorageLocationCode"
     ON public."MstBloodStorageLocation" ("StorageLocationCode");
 CREATE INDEX "IX_MstBloodStorageLocation_IsActive" ON public."MstBloodStorageLocation" ("IsActive");
 
--- v2. Kolom BypassScope pada BbkEmergencyAuthorization (tabel belum pernah dibuat; masuk CREATE):
---   "BypassScope" integer NOT NULL  -- 0 CompatibilityEvidence, 1 InactiveStorageLocation, 2 Both
+-- v2/v3. Kolom tambahan pada BbkEmergencyAuthorization (tabel belum pernah dibuat; masuk CREATE):
+--   "BypassScope"            integer      NOT NULL  -- 0 CompatibilityEvidence, 1 InactiveStorageLocation, 2 Both
+--   "AuthorizerRole"         integer      NOT NULL  -- v3; 0 BloodBankDoctor, 1 AttendingPhysician
+--   "EmergencyConditionNote" varchar(500) NOT NULL  -- v3; keadaan klinis, wajib
+--
+-- v3. Kolom pada BbkIssuanceCorrection (tabel belum pernah dibuat; masuk CREATE):
+--   "SupportingEvidenceNote" varchar(1000) NOT NULL -- bukti pendukung berupa teks
+--   "CorrectionStatus"       integer       NOT NULL -- 0 Requested, 1 Approved, 2 Rejected
+--   "RequestedByUserId"      uuid          NOT NULL -- ganti nama dari CorrectedByUserId
+--   "RequestedAt"            timestamp     NOT NULL -- ganti nama dari CorrectedAt
+--   "DecidedByUserId"        uuid                   -- NULL selama Requested; wajib != RequestedByUserId
+--   "DecidedAt"              timestamp
+--   "DecisionNote"           varchar(500)           -- wajib diisi bila Rejected
 
 -- Tabel Diperbarui: penambahan satu kolom, aman tanpa downtime
 ALTER TABLE public."MstServiceUnit"

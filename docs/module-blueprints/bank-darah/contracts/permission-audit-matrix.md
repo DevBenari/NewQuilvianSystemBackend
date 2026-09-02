@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
-| `last_changed_in` | `v2` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| `last_changed_in` | `v4` |
 | Owner | Pemilik keamanan platform · pemilik proses BDRS (peran) |
 | `approved_by` / `approved_at` | Kosong — `draft` |
 | Sumber | `contracts/api-contract.md` (pemetaan endpoint) · `data/data-dictionary.md` (kolom sensitif) · `BD-CAP-013` |
@@ -33,7 +33,42 @@ Bank Darah **memakai** model keamanan yang sudah ada; tidak ada model baru (`BD-
 Resource baru yang perlu didaftarkan seeder: `BloodOrder`, `BloodProviderRequest`, `BloodUnit`,
 `BloodGroupExam`, `BloodBankProcedure`, `BloodComponent`, `BloodBankReason`, **`BloodStorageLocation`**.
 Action yang dipakai: `Read`, `Create`, `Update`, `Delete`, `Process`, `Allocate`, `Compatibility`,
-`Issue`, `EmergencyIssue`, `Correct`, `Resolve`, `Validate`, **`Store`**.
+`Issue`, `EmergencyIssue`, `Correct`, `Validate`, **`Store`**, **`ResolveConflict`**,
+**`ApproveCorrection`**, **`ResolveReallocate`**, **`ResolveReturn`**, **`ResolveNotUsable`**,
+**`Cancel`**.
+
+Action `Resolve` **tidak lagi dipakai** sejak `v4`; ia digantikan tiga butir penyelesaian yang
+terpisah (`DEC-BD-043`). Seeder **MUST NOT** mendaftarkannya, supaya tidak ada jalan pintas yang
+membatalkan pemisahan itu.
+
+Dua butir baru pada `v3`, keduanya turunan penutupan `DEF-BD-004`:
+
+| Butir | Menjaga | Sebabnya terpisah |
+| --- | --- | --- |
+| `BloodGroupExam : ResolveConflict` | Penyelesaian konflik hasil golongan darah | Dipisah dari `Validate` oleh `DEC-BD-039`. Satu butir untuk keduanya membuat siapa pun yang boleh memvalidasi hasil rutin otomatis boleh menutup konflik |
+| `BloodUnit : ApproveCorrection` | Menyetujui atau menolak koreksi pencatatan | Dipisah dari `Correct` oleh `DEC-BD-041`. `Correct` kini hanya berarti **mengajukan** |
+
+Otorisasi darurat **tidak** mendapat butir baru: `BloodUnit : EmergencyIssue` yang sudah ada tetap
+dipakai, dan yang bertambah hanya isi rekamnya (`DEC-BD-040`).
+
+Empat butir lagi pada `v4`, seluruhnya turunan penutupan sisa `DEF-BD-004`:
+
+| Butir | Menggantikan | Menjaga |
+| --- | --- | --- |
+| `BloodUnit : ResolveReallocate` | `BloodUnit : Resolve` | Pengalihan kantong `PendingReview` ke pasien lain |
+| `BloodUnit : ResolveReturn` | `BloodUnit : Resolve` | Pengembalian kantong ke PMI |
+| `BloodUnit : ResolveNotUsable` | `BloodUnit : Resolve` | Penetapan kantong tidak layak |
+| `BloodOrder : Cancel` | dipisah dari `BloodOrder : Update` | Pembatalan order darah |
+
+**Butir `BloodUnit : Resolve` dihapus, bukan disisakan sebagai payung.** Membiarkannya hidup
+berdampingan dengan ketiga penggantinya akan menciptakan jalan pintas: siapa pun yang memegang `Resolve`
+lama tetap dapat mengalihkan kantong, sehingga pemisahan yang justru dituju `DEC-BD-043` batal dengan
+sendirinya.
+
+**`BloodOrder : Cancel` dipisah dari `Update` supaya dapat diberikan sendirian.** Dokter peminta perlu
+membatalkan ordernya tanpa ikut memperoleh wewenang menyunting order secara umum. Satu butir dipakai
+kedua peran; yang membedakan sebabnya adalah **kategori alasan**, bukan penjaga yang berbeda
+(`DEC-BD-044`).
 
 Action **`Store`** baru pada `v2`. Ia menjaga dua endpoint penyimpanan pada `BloodUnit`
 (`POST`/`PUT /{id}/storage-location`) dan sengaja **tidak** disatukan dengan `Allocate`: menaruh kantong
@@ -44,21 +79,52 @@ sakit yang ingin memisahkan kedua tanggung jawab itu dapat melakukannya tanpa me
 
 ## 2. Peta peran rumah sakit → butir hak akses
 
-Peran final menunggu `DEF-BD-004`; peta di bawah adalah **usulan** berbasis tanggung jawab aktor
-(`00-interview-decisions.md` §3), belum disetujui.
+`DEF-BD-004` sudah ditutup oleh `DEC-BD-039`, `DEC-BD-040`, dan `DEC-BD-041` untuk **tiga** wewenang:
+validator golongan darah, jalur darurat, dan koreksi pencatatan. Baris-baris itu kini menurunkan
+keputusan yang sudah diambil pemilik proses, bukan usulan. Ketiganya masih berstatus `draft` pada
+register, seperti seluruh keputusan Bank Darah lainnya.
+
+**`DEF-BD-004` kini tertutup seluruhnya.** `03-domain-architecture.md` §H membawa **enam** wewenang
+sebagai satu keputusan terkumpul; role & authority closure pass menjawab tiga, dan role residue closure
+pass menjawab tiga sisanya (`DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`). Tidak ada baris peran yang masih
+`UNRESOLVED`.
+
+Satu hal yang **belum bernama**, dan itu bukan baris `UNRESOLVED` melainkan isian seeder: pemegang
+`BloodUnit : ResolveNotUsable`. `DEC-BD-043` menyebutnya "mengikuti kewenangan penetapan kelayakan
+sesuai proses BDRS" — penunjuk ke proses yang ada, bukan nama yang dapat dipetakan. Dicatat sebagai
+`OQ-BD-017`; butir hak aksesnya sudah terpisah dan alurnya pasti, sehingga yang tertahan hanya satu
+baris seeder.
+
+Satu hal yang perlu dibaca apa adanya: Quilvian **hanya menerapkan hak akses dan mencatat audit**. Ia
+tidak menilai kompetensi klinis siapa pun. Penempatan orang pada peran adalah tanggung jawab rumah
+sakit lewat pengelolaan role platform.
 
 | Peran | Resource : Action yang diusulkan | Catatan |
 | --- | --- | --- |
 | Unit pelayanan / dokter peminta | `BloodOrder : Create`, `Read` | Hanya unit `IsAvailableForBloodOrder=true` (dijaga aturan bisnis, bukan hak akses) |
 | Petugas Bank Darah / BDRS | `BloodOrder : *`, `BloodProviderRequest : *`, `BloodUnit : Read/**Store**/Allocate/Compatibility/Issue`, `BloodGroupExam : Create/Update/Read`, `BloodBankProcedure : *` | Pelaksana alur normal. `Store` mencakup penetapan lokasi pertama **dan** perpindahan lokasi (`DEC-BD-036`, `DEC-BD-037`) |
-| Peran berwenang jalur darurat | `BloodUnit : EmergencyIssue` | **`UNRESOLVED` `DEF-BD-004`** — kandidat Dokter BDRS |
-| Peran validator golongan darah | `BloodGroupExam : Validate` | **`UNRESOLVED` `DEF-BD-004`** |
-| Peran pencatat koreksi pemberian | `BloodUnit : Correct` | **`UNRESOLVED` `DEF-BD-004`** |
-| Peran penyelesai kantong `PendingReview` | `BloodUnit : Resolve` | Perannya `UNRESOLVED`; bentuknya `DEC-BD-019` |
+| **Dokter BDRS / penanggung jawab klinis** | `BloodGroupExam : ResolveConflict`, `BloodUnit : EmergencyIssue`, `BloodUnit : ApproveCorrection` | **Ditetapkan `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041`.** Tiga wewenang paling berat di modul ini |
+| **DPJP pasien** | `BloodUnit : EmergencyIssue` | **Ditetapkan `DEC-BD-040`.** Rekam menyimpan peran yang dipakai, sehingga jalur wewenangnya terbaca saat audit |
+| **Petugas BDRS berwenang validasi** | `BloodGroupExam : Validate` | **Ditetapkan `DEC-BD-039`.** Validasi hasil rutin saja; tidak mencakup penyelesaian konflik |
+| **Petugas BDRS pengaju koreksi** | `BloodUnit : Correct` | **Ditetapkan `DEC-BD-041`.** Hanya mengajukan; keputusannya milik Dokter BDRS |
+| **Petugas BDRS berwenang validasi** (butir kedua) | `BloodUnit : Compatibility` | **Ditetapkan `DEC-BD-042`.** Tingkat kewenangan yang sama dengan validasi golongan darah rutin. Pelaksana pemeriksaan **boleh** orang lain — izin, bukan kewajiban |
+| **Pemegang kewenangan klinis BDRS** | `BloodUnit : ResolveReallocate` | **Ditetapkan `DEC-BD-043`.** Pengalihan memasukkan darah ke tubuh pasien baru |
+| **Pemegang kewenangan operasional BDRS** | `BloodUnit : ResolveReturn` | **Ditetapkan `DEC-BD-043`.** Mengeluarkan darah dari peredaran — arah yang aman dengan sendirinya |
+| Pemegang kewenangan penetapan kelayakan | `BloodUnit : ResolveNotUsable` | Bentuk dan pemisahan butirnya **sudah pasti** (`DEC-BD-043`); **nama peran konkretnya belum ditetapkan** — `OQ-BD-017`. Menahan satu baris seeder, bukan rancangan |
+| **Dokter peminta** | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan klinis |
+| **Petugas BDRS** (butir pembatalan) | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan operasional |
 | Admin master data Bank Darah | `BloodComponent : *`, `BloodBankReason : *`, **`BloodStorageLocation : *`** | Setup MVP — kini **tiga** master setelah amandemen `DEC-BD-024` oleh `DEC-BD-035` |
 
 Pembatalan alokasi (`BloodUnit : Allocate` pada `cancel-allocation`) **tidak** menunggu `DEF-BD-004`:
 `DEC-BD-029` menyatakannya kekeliruan administratif biasa, cukup petugas Bank Darah.
+
+**Pemisahan wewenang yang dijaga aturan bisnis, bukan hak akses.** Satu aturan pada `v3` sengaja
+**tidak** ditaruh di mesin hak akses: peminta koreksi tidak boleh menyetujui permintaannya sendiri.
+Alasannya, seseorang dapat sah memegang `BloodUnit : Correct` **dan** `BloodUnit : ApproveCorrection`
+sekaligus — misalnya Dokter BDRS yang menemukan kekeliruan itu sendiri. Mesin hak akses akan
+meloloskannya, dan memang seharusnya begitu; yang menahan adalah perbandingan pelaku di lapisan aturan
+bisnis (`VAL-BD-073`). Ini contoh langsung dari kategori "kewenangan yang tidak dapat dijaga mesin hak
+akses" pada bagian berikutnya.
 
 Ketiga butir penyimpanan pada `v2` juga **tidak** menunggu `DEF-BD-004`. `DEC-BD-036` menyebut
 pelakunya "petugas" tanpa syarat tambahan, dan `DEC-BD-009` sudah menetapkan penerimaan, alokasi, serta
@@ -100,9 +166,10 @@ Mengikuti pola `BD-CAP-009` (`BbkTransitionHistory`, append-only) dan kolom audi
 | Perpindahan status order/permintaan/kantong | Status sebelum & sesudah, pelaku, waktu, korelasi pemicu |
 | Pembatalan (order/permintaan/alokasi) & penyelesaian kantong | Kode alasan **beserta salinan teksnya saat kejadian** |
 | Pemberian darah | Pelaku, waktu, kantong, pasien, order, rujukan bukti kecocokan |
-| Pemberian jalur darurat | Semua di atas + penanda permanen + **keterangan gerbang mana yang dilewati** (bukti kecocokan, lokasi nonaktif, atau keduanya — `INV-BD-030`) + alasan |
+| Pemberian jalur darurat | Semua di atas + penanda permanen + **keterangan gerbang mana yang dilewati** (`INV-BD-030`) + alasan terkendali + **keterangan kondisi kedaruratan** + **peran yang dipakai penerbit** (`INV-BD-032`) |
 | Pengalihan kantong | Pasien asal → alasan pelepasan → pasien tujuan (rantai tak putus) + bukti mana yang gugur |
-| Koreksi pemberian | Pemberian asal, apa yang keliru, apa yang benar, alasan, pelaku, waktu — asal tak berubah |
+| Pengajuan koreksi pemberian | Pemberian asal, apa yang keliru, apa yang benar, alasan terkendali, bukti pendukung, **peminta**, waktu pengajuan — asal tak berubah |
+| Keputusan atas koreksi | **Pemutus** (wajib berbeda dari peminta), waktu keputusan, hasil keputusan, dan alasan bila ditolak. Permintaan yang ditolak **tetap tersimpan** (`DEC-BD-041`) |
 | Deteksi & penyelesaian konflik golongan darah | Hasil-hasil bertentangan, sejak kapan tertahan, validator, pemeriksaan ulang yang memutus, alasan, waktu |
 | **Penetapan lokasi penyimpanan pertama** | Lokasi yang dipilih, pelaku, waktu, dan perpindahan kantong dari `Received` ke `Stored` |
 | **Perpindahan lokasi penyimpanan** | Lokasi asal, lokasi tujuan, pelaku, waktu. **Pelakunya selalu manusia**, tidak pernah sistem (`DEC-BD-037`). Status kantong dan catatan penerimaan awalnya tidak berubah (`INV-BD-026`) |
