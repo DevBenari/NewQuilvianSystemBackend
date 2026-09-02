@@ -5,12 +5,12 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 5
+revision: 6
 status: approved
 current_phase: ACC-PH-003
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-01T18:00:00+07:00
-last_verified_at: 2026-09-01T18:00:00+07:00
+updated_at: 2026-09-02T12:00:00+07:00
+last_verified_at: 2026-09-02T12:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -18,8 +18,25 @@ owners:
   api: Backend/API Owner
   security: Security Owner
   frontend_authority: Product Owner (ACC-FE-001, ACC-FE-003 masih terbuka)
+# Dua baseline sengaja dipisah. Yang `approved_*` adalah baseline yang menjadi dasar approval
+# owner dan TIDAK boleh diganti diam-diam. Yang `verification_*` adalah baseline tempat
+# verifikasi terakhir dijalankan. Lihat bagian "Dua baseline source" di bawah.
+#
+# `backend_source_sha`/`frontend_source_sha` dipertahankan karena handoff-contract skill
+# mewajibkan keduanya. Nilainya SELALU sama dengan `approved_*`, tidak pernah dengan
+# `verification_*` — supaya konsumen lama tidak diam-diam membaca baseline yang berbeda.
 backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
+approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
+approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
+verification_backend_source_sha: ca6b7e0ef3af4454cae11709739b1f36657352e2
+verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
+verification_baseline_note: >
+  Perbedaan hanya dokumentasi/governance; source aplikasi identik. Backend: selisih
+  aa837d7..ca6b7e0 = 28 berkas, seluruhnya docs/module-blueprints/accounting/, nol berkas
+  source aplikasi. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), dan tidak
+  relevan untuk task backend. Diverifikasi 2 September 2026.
+verified_at: 2026-09-02
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
 decision_revision: 1.2
@@ -53,7 +70,7 @@ artifact_hashes:
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
   03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
-  04-prd-to-mvp.md: 7c3a798e7e29c1582648fb91feb8f2058503771c4f1b5cbba993d07231e1ee5f
+  04-prd-to-mvp.md: 1da14a42f09030625641f9769ebd1839773125c4e8b94e36016e363e311ca081
   06-shared-migration-coordination-rule.md: e1111572749627931b81da86c779c472197ab821790a6e5568900068b608d428
   contracts/api-contract.md: 0937282e651348eed9155564b1a5b13557e38a94a50eb049ce7745e0306243ae
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
@@ -63,10 +80,10 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 88658490456f7d74a2ce0834b7b6bf94389e2a7273e67b953e79a7dd8bf27364
   erd/data-dictionary.md: a5380edf9daf1b225d9751b30a4e153ed80a54e6d1c00888f48d916ae94c3986
-  roadmap/backend-roadmap.md: 44a6a532175e37307d8a9ad0d7f2207613505b9c2232f855705ecbfe8598974c
+  roadmap/backend-roadmap.md: 6a58cedc17eeaf6c0811ca2d03409e54db0b72996a5ac40d69ef7007d532aaf9
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
-  roadmap/requirement-traceability.md: f56ddc1db7521cabac5e916bce6d17ebee2ec7b8e7c02334a5faeefd26d9bb59
-active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007]   # 001, 002, 006 CLOSED
+  roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
+active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006 CLOSED
 entity_prefix:
   prefix: Acc
   status: REGISTERED
@@ -169,6 +186,65 @@ mengubah `updated_at`; verifikasi mengubah `last_verified_at`.
 
 ## Riwayat verifikasi
 
+### 2 September 2026 — `BE-ACC-002` selesai dan `ACC-DEP-008` ditemukan, revisi 5 → 6
+
+Dinaikkan atas **persetujuan owner Rizki**, 2 September 2026, setelah menerima hasil `BE-ACC-002`.
+
+#### Kenapa revisi naik
+
+Satu dependency arsitektur keamanan baru ditemukan: **`ACC-DEP-008` — Legal Entity Authorization
+Model Availability**. Ini setara `ACC-DEP-005` yang dulu menaikkan revisi 3 ke 4.
+
+Empat hal perlu ditegaskan supaya kenaikan ini tidak salah dibaca:
+
+| Pernyataan | Keterangan |
+|---|---|
+| **Bukan perubahan scope Accounting** | Tidak ada requirement, epic, entity, endpoint, atau layar yang ditambah, dikurangi, atau digeser. Jumlah task tetap 14 backend dan 11 frontend |
+| **Ini discovery dependency platform** | `BE-ACC-002` memeriksa mekanisme yang diandaikan `ACC-PERMISSION-0.1` bagian 5, dan menemukan mekanismenya tidak ada. Temuan berlaku sistem-luas, bukan khusus Accounting |
+| **`BE-ACC-003` sampai `BE-ACC-005` tetap dapat berjalan** | Ketiganya hanya **mendefinisikan** kolom `LegalEntityId` pada entity. Menyimpan kolom berbeda dari menegakkannya |
+| **`BE-ACC-007` sampai `BE-ACC-014` menunggu keputusan Security/Platform** | Di titik endpoint pertama, pertanyaan "pengguna ini boleh melihat badan hukum yang mana" tidak lagi dapat dihindari |
+
+Arsitektur target, ERD, kamus data, keenam kontrak, dan seluruh keputusan `ACC-DEC-001..038`
+**tidak berubah**. Yang berubah hanya register dependency dan status task.
+
+#### Batas approval revisi 6
+
+`approved_by` dan `approved_at` **tetap menunjuk peristiwa 1 September 2026 atas revisi 5**. Yang
+disetujui owner pada 2 September 2026 adalah **pencatatan `ACC-DEP-008` dan kenaikan revisi
+itu sendiri** — bukan approval ulang atas seluruh blueprint, dan bukan wewenang baru apa pun.
+
+Wewenang yang berlaku tetap sama persis: source model persisted saja. `dotnet ef migrations add`,
+`dotnet ef database update`, perubahan shared database, deployment, production activation, commit,
+dan push semuanya **tetap** wewenang terpisah.
+
+#### Dua baseline source
+
+Baseline approved **tidak diganti**. Sesuai instruksi owner, keduanya kini dipisah eksplisit:
+
+| Field | Nilai | Arti |
+|---|---|---|
+| `approved_backend_source_sha` | `aa837d7` | Baseline yang menjadi dasar approval. **Tidak boleh diganti diam-diam** |
+| `verification_backend_source_sha` | `ca6b7e0` | Tempat verifikasi 2 September 2026 dijalankan |
+| `approved_frontend_source_sha` | `31a82c8` | Baseline approval frontend |
+| `verification_frontend_source_sha` | `5336c44` | Keadaan frontend saat verifikasi |
+
+**Perbedaannya hanya dokumentasi/governance; source aplikasi identik.** Selisih
+`aa837d7..ca6b7e0` adalah 28 berkas, seluruhnya di `docs/module-blueprints/accounting/`, dan nol
+berkas source aplikasi. Untuk frontend, `31a82c8` terbukti leluhur `5336c44` — fast-forward
+murni, dan tidak relevan untuk task backend.
+
+Karena itu tidak ada impact scan yang perlu dijalankan, dan seluruh bukti yang tercatat terhadap
+`aa837d7` tetap berlaku apa adanya. 17 dari 17 hash artefak canonical cocok saat diverifikasi.
+
+#### Dua koreksi yang ikut tercatat
+
+1. **`ACC-DEP-007` akarnya berbeda dari yang tercatat.** Bukan `4db8909` yang menghapus
+   governance, melainkan merge `3d14cac` yang membatalkan perbaikan `c9692d0` (PR #63) yang sudah
+   masuk. Klasifikasinya **tetap `PLATFORM / ENGINEERING GOVERNANCE`**, tetap milik lead, dan
+   **tidak** masuk ke implementasi Accounting.
+2. **Catatan "`ACC-DEP-002` masih menutup"** di `MODULE-STATUS.md` memeriksa salinan registry yang
+   keliru. Sudah ditandai sebagai riwayat.
+
 ### 1 September 2026 — FINAL OWNER APPROVAL dan aktivasi lifecycle, revisi tetap 5
 
 Revisi **tidak** dinaikkan. Yang disetujui owner adalah revisi `5`, dan menaikkannya justru akan
@@ -219,7 +295,13 @@ berubah. Ini perubahan status dan bukti belaka, persis kasus yang dikecualikan a
 **FINAL OWNER APPROVAL diberikan 1 September 2026** oleh Rizki, Product/Domain Owner sekaligus
 Implementation Owner Accounting, atas `ACC-BP-001` **revisi 5**.
 
-Yang disetujui:
+> **Catatan revisi 6, 2 September 2026.** Blueprint kini berada pada revisi `6`. Yang disetujui
+> owner pada 2 September 2026 adalah **pencatatan `ACC-DEP-008` dan kenaikan revisinya**, bukan
+> approval ulang atas seluruh isi blueprint. Karena itu tabel di bawah **tidak diubah**: ia
+> mencatat apa yang benar-benar disetujui pada peristiwa 1 September 2026. Revisi 6 tidak
+> menambah wewenang apa pun dan tidak mengubah satu pun kontrak di dalamnya.
+
+Yang disetujui pada 1 September 2026:
 
 | Artefak | Versi |
 |---|---|

@@ -12,6 +12,8 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -513,6 +515,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxWorkflowStatusHistory> TrxWorkflowStatusHistories { get; set; }
         public DbSet<TrxWorkflowApproverAssignment> TrxWorkflowApproverAssignments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+        public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
+        public DbSet<AccJournalType> AccJournalTypes { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
 
         #endregion CORPORATE
 

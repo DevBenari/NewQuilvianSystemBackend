@@ -644,17 +644,26 @@ terdaftar, dan satu pelanggaran menggagalkan penggabungan kode.
 
 | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
 |---|---|---|:---:|
-| Prefix penamaan entity Accounting belum terdaftar di registry kepemilikan modul (`ACC-DEP-002`) | Lead | Entity pertama tidak boleh dibuat. Satu pelanggaran menggagalkan penggabungan kode | **Ya** |
+| ~~Prefix penamaan entity Accounting belum terdaftar (`ACC-DEP-002`)~~ | — | **SELESAI** 1 September 2026. `Acc` terdaftar, lifecycle `ACTIVE` lewat `ACC-DEC-038` | Tidak lagi |
 | ~~Snapshot model EF bersama~~ (`ACC-DEP-001`) | — | **SELESAI** 30 Agustus 2026, diverifikasi 1 September 2026. Snapshot `aa837d7` identik dengan integration | Tidak lagi |
 | Letak menu Accounting di navigasi (`ACC-FE-001`) | Product owner | Task frontend pertama tidak dapat dimulai | Ya, untuk frontend saja |
 | Bentuk layar rincian jurnal: halaman, panel samping, atau modal (`ACC-FE-003`) | Product owner | Task layar rincian tidak dapat dimulai | Ya, untuk satu layar saja |
-| Bagaimana hak atas badan hukum diberikan kepada pengguna | Owner keamanan platform | Penyaringan `LegalEntityId` tidak dapat ditegakkan dengan benar | **Ya** |
+| Bagaimana hak atas badan hukum diberikan kepada pengguna (`ACC-DEP-008`) | Owner keamanan platform | **TERJAWAB sebagai audit** 2 September 2026 lewat `BE-ACC-002`: mekanismenya **tidak ada**. Pertanyaannya berubah dari "bagaimana caranya" menjadi "siapa yang membuatnya". Penyaringan `LegalEntityId` tetap tidak dapat ditegakkan sampai owner keamanan platform memutuskan. Bukti: `evidence/02-legal-entity-authority.md` | **Ya**, untuk `BE-ACC-007` ke atas |
 | Makna kolom `AccountingCode` pada `MstCostCenter` setelah Accounting menjadi pemilik COA | Owner Human Resource | Tidak berdampak pada MVP, karena Accounting tidak membacanya | Tidak |
 | Siapa menerbitkan kejadian keuangan resmi (`ACC-XM-001`) | Owner Billing, owner Finance, Rizki | Phase 2 tidak dapat dirancang | Tidak untuk MVP |
 
-**Dokumen ini masih berstatus `draft` dan memuat pertanyaan memblokir yang belum terjawab.**
-Karena itu ia **belum boleh** diteruskan ke `/plan-module-delivery`. Dua pertanyaan bertanda
-memblokir wajib dijawab lebih dahulu, dan keduanya berada di luar wewenang owner modul.
+**Diperbarui 2 September 2026.** Dokumen ini sudah `APPROVED` bersama blueprint revisi 5 pada
+1 September 2026, dan roadmap sudah tersusun — catatan `draft` di bawah ini sudah terlampaui.
+
+Keadaan kedua pertanyaan memblokir sekarang:
+
+| Pertanyaan | Keadaan |
+|---|---|
+| Prefix `Acc` (`ACC-DEP-002`) | **Tertutup.** Terdaftar dan `ACTIVE` sejak 1 September 2026 |
+| Hak atas badan hukum (`ACC-DEP-008`) | **Terjawab sebagai audit, belum terselesaikan.** `BE-ACC-002` membuktikan mekanismenya tidak ada. Dicatat resmi sebagai `ACC-DEP-008` *Legal Entity Authorization Model Availability*, status `OPEN`, milik Security/Platform |
+
+Keduanya tetap berada di luar wewenang owner modul. Yang berubah: `ACC-DEP-008` kini punya bukti
+yang dapat ditindaklanjuti, bukan lagi sekadar pertanyaan terbuka.
 
 ---
 

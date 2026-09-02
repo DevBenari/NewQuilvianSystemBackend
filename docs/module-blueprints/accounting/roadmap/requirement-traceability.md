@@ -93,7 +93,7 @@ akan membuat Definition of Done terlihat lebih hijau daripada kenyataannya.
 | ~~`GAP-ACC-002`~~ | ~~`EPIC ACC-08` tanpa UAT gagal~~ | — | **DITUTUP** 1 September 2026 lewat `UAT-19` |
 | `GAP-ACC-003` | `ACC-DEC-032` pembatasan pencatatan pembacaan belum punya test otomatis | Pelanggaran hanya ketahuan lewat pemeriksaan manual keluaran logger | Tetapkan cara mengujinya saat `BE-ACC-012` dikerjakan, atau terima sebagai pemeriksaan manual dan catat |
 | `GAP-ACC-004` | `NFR-002` penyimpanan bersamaan sulit diuji otomatis | `UAT-05` mengandalkan dua petugas menekan Simpan hampir bersamaan | **Ditautkan ke `BE-ACC-010`.** Ditutup lewat test integrasi konkurensi nyata yang menjalankan permintaan create paralel. `BE-ACC-010` **tidak boleh** `DONE` sebelum gap ini tertutup |
-| `GAP-ACC-005` | Cara pemberian hak atas `LegalEntityId` belum diketahui | Seluruh acceptance "badan hukum bukan hak pengguna ditolak `403`" belum dapat dirumuskan tepat | `BE-ACC-002` dirancang khusus untuk menutup gap ini |
+| `GAP-ACC-005` | ~~Cara pemberian hak atas `LegalEntityId` belum diketahui~~ → **caranya memang tidak ada** | Acceptance "badan hukum bukan hak pengguna ditolak `403`" **tidak dapat dirumuskan sama sekali** sampai mekanismenya dibuat | **Audit ditutup** 2 September 2026 oleh `BE-ACC-002`. Gap-nya sendiri **tetap terbuka** dan naik menjadi dependency `ACC-DEP-008`, milik owner keamanan platform |
 
 Dua gap yang semula memblokir approval — `GAP-ACC-001` dan `GAP-ACC-002` — sudah **ditutup**
 pada 1 September 2026 dengan menambahkan `UAT-18` dan `UAT-19`.
@@ -105,7 +105,7 @@ task tertentu sehingga tidak dapat menguap begitu saja.
 |---|---|---|
 | `GAP-ACC-003` | `BE-ACC-012` | Ditetapkan cara mengujinya, **atau** diterima sebagai pemeriksaan manual yang dicatat |
 | `GAP-ACC-004` | `BE-ACC-010` | **Mengikat DoD.** `BE-ACC-010` tidak boleh `DONE` selama gap terbuka |
-| `GAP-ACC-005` | `BE-ACC-002` | `BE-ACC-002` memang dirancang untuk menutupnya |
+| `GAP-ACC-005` | ~~`BE-ACC-002`~~ → **`ACC-DEP-008`** | **Audit selesai, gap tidak tertutup.** `BE-ACC-002` menjawab pertanyaannya; jawabannya "mekanismenya tidak ada". Penutupan sesungguhnya menunggu Security/Platform menetapkan *Legal Entity Authorization Model*, dan menahan `BE-ACC-007` sampai `BE-ACC-014` |
 
 ---
 
