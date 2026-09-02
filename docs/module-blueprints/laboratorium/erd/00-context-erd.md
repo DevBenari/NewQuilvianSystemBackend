@@ -67,7 +67,7 @@ erDiagram
         int Urgency "cito, per pemeriksaan"
         boolean IsDuplo
     }
-    MstLabValueBound {
+    LabValueBound {
         uuid Id PK
         uuid ProcedureId FK "milik Master Data"
         int ResultForm "angka atau pilihan"
@@ -84,7 +84,7 @@ erDiagram
     MstReferralDoctor ||--o{ TrxPatientEncounter : "1:N — Baru, milik Master Data"
     MstProcedure ||--o{ LabOrder : "1:N — Sudah ada, milik Master Data"
     MstProcedure ||--o{ LabExamination : "1:N — Baru, milik Master Data"
-    MstProcedure ||--o{ MstLabValueBound : "1:N — Baru, milik Master Data"
+    MstProcedure ||--o{ LabValueBound : "1:N — Baru, milik Master Data"
     LabOrder ||--o{ TrxLabSpecimen : "1:N — Diperbarui"
     LabOrder ||--o{ LabExamination : "1:N — Baru"
     TrxLabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
@@ -135,8 +135,8 @@ Laboratorium **tidak mengerjakannya** dan **tidak menulis** ke sana.
 | `TrxLabSpecimen` | Diperbarui | Laboratorium | Berubah makna menjadi wadah fisik; enam kolom pindah keluar |
 | `LabExamination` | **Baru** | Laboratorium | Satuan yang ditagihkan dan kelak punya hasil. Membawa penanda cito dan duplo |
 | `TrxLabTransitionHistory` | Diperbarui | Laboratorium | Tambah `LabExaminationId` |
-| `MstLabValueBound` | **Baru** | Laboratorium | Batas nilai per pemeriksaan, jenis kelamin, dan kelompok umur |
-| `MstLabValueOption` | **Baru** | Laboratorium | Pilihan sah untuk hasil berbentuk pilihan |
+| `LabValueBound` | **Baru** | Laboratorium | Batas nilai per pemeriksaan, jenis kelamin, dan kelompok umur |
+| `LabValueOption` | **Baru** | Laboratorium | Pilihan sah untuk hasil berbentuk pilihan |
 | `LabValueBoundChangeRequest` | **Baru** | Laboratorium | Pengajuan perubahan batas kritis |
 | `LabValueBoundHistory` | **Baru** | Laboratorium | Riwayat perubahan batas nilai |
 | `MstLabRejectionReason` | Sudah ada | Laboratorium | Tidak berubah |

@@ -114,7 +114,7 @@ erDiagram
 
 ```mermaid
 erDiagram
-    MstLabValueBound {
+    LabValueBound {
         uuid Id PK
         uuid ProcedureId FK "milik Master Data"
         int ResultForm "enum int, 1 angka 2 pilihan"
@@ -128,7 +128,7 @@ erDiagram
         int CitoTurnaroundMinutes "batas waktu cito"
         boolean IsActive
     }
-    MstLabValueOption {
+    LabValueOption {
         uuid Id PK
         uuid ValueBoundId FK
         varchar OptionCode UK "20, unik bersama ValueBoundId"
@@ -163,9 +163,9 @@ erDiagram
         timestamp OccurredAt
     }
 
-    MstLabValueBound ||--o{ MstLabValueOption : "1:N — Baru"
-    MstLabValueBound ||--o{ LabValueBoundChangeRequest : "1:N — Baru"
-    MstLabValueBound ||--o{ LabValueBoundHistory : "1:N — Baru"
+    LabValueBound ||--o{ LabValueOption : "1:N — Baru"
+    LabValueBound ||--o{ LabValueBoundChangeRequest : "1:N — Baru"
+    LabValueBound ||--o{ LabValueBoundHistory : "1:N — Baru"
 ```
 
 ### Aturan kunci pada kelompok ini
@@ -175,7 +175,7 @@ erDiagram
 | Satu pemeriksaan boleh punya beberapa baris batas | Unik pada `ProcedureId` + `GenderScope` + `AgeCategoryId` |
 | Satu baris punya tepat satu bentuk hasil | `ResultForm` menentukan kolom mana yang wajib terisi |
 | Bentuk angka wajib bersatuan | `Unit` wajib bila `ResultForm` bernilai angka |
-| Bentuk pilihan wajib punya daftar pilihan | Sekurang-kurangnya satu `MstLabValueOption` |
+| Bentuk pilihan wajib punya daftar pilihan | Sekurang-kurangnya satu `LabValueOption` |
 | Batas kritis tidak dapat diubah langsung | Perubahan ditulis ke `LabValueBoundChangeRequest` lebih dulu |
 | Seluruh perubahan berriwayat | Satu baris `LabValueBoundHistory` per kolom yang berubah |
 

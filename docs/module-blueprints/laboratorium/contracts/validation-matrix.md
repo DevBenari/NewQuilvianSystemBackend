@@ -5,7 +5,7 @@
 | Contract version | `LAB-VAL-v1` |
 | Revision | `3` |
 | Status | `approved` — dikunci 2026-09-02 |
-| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
+| Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
 | Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |

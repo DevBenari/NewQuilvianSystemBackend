@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `1` |
+| Roadmap revision | `5` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
 | Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `19` |
+| Manifest | `blueprint-manifest.md` revision `23` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — seluruhnya `approved`, dikunci 2026-09-02 |
@@ -25,15 +25,32 @@
 ## 1. Gerbang yang Berlaku untuk Seluruh Task
 
 Empat penghambat berikut **tidak** menghalangi penerbitan roadmap ini, tetapi menghalangi
-**eksekusi**-nya. Selama belum dicabut, setiap task di bawah tidak boleh dikerjakan, walaupun
-rencananya sudah lengkap.
+**eksekusi**-nya. **Tiga sudah ditutup pada 2026-09-02; satu tersisa.** Selama yang tersisa itu
+belum dicabut, setiap task di bawah tidak boleh dikerjakan, walaupun rencananya sudah lengkap.
 
 | ID | Isi | Siapa yang mencabut | Yang tertahan |
 |---|---|---|---|
-| `LAB-OPEN-018` | Rules root runtime hanya memuat 13 dari 29 berkas; `GLOBAL_RULES.md` dan `rules/backend/engineering/` hilang | Pemasang suite Skill di mesin masing-masing | **Seluruh** task backend. `AGENTS.md` memaksa berhenti dengan `BLOCKED — canonical governance unavailable` |
-| `LAB-OPEN-019` | Lifecycle registry `LaboratoryManagement / Laboratory` masih `PLANNED` | Pemilik registry prefix | **Seluruh** task yang membuat atau mengubah entity `Lab*`, menurut `QBE-MOD-002` |
-| `LAB-OPEN-020` | `Invoke-QbeConformanceCheck.ps1` gagal `TOOL ERROR` karena menunjuk `agents/rules/engineering/` yang sudah dicabut | **Andry Zain** (`andryzain01@gmail.com`), pemilik repository backend | Pemeriksaan konformansi QBE, termasuk gerbang CI. Bukan penahan task, tetapi membuat pemeriksaannya tidak berjalan |
-| `LAB-OPEN-021` | Prefix dua tabel batas nilai: `Mst` atau `Lab` | Pemilik registry prefix | `BE-LAB-02`, dan penamaan resource pada `BE-LAB-04` |
+| `LAB-OPEN-018` | Rules root runtime tidak memuat `GLOBAL_RULES.md` maupun `rules/backend/engineering/` — lihat catatan di bawah | **Muhammad Hamzah**, pemilik repo marketplace | **Seluruh** task backend. `AGENTS.md` memaksa berhenti dengan `BLOCKED — canonical governance unavailable` |
+| ~~`LAB-OPEN-019`~~ | ~~Lifecycle registry masih `PLANNED`~~ | ✅ **Ditutup 2026-09-02** oleh Muhammad Hamzah | Baris registry kini `ACTIVE`. Entity `Lab*` dan migration tidak lagi tertahan `QBE-MOD-002` |
+| ~~`LAB-OPEN-020`~~ | ~~Checker QBE gagal `TOOL ERROR`~~ | ✅ **Ditutup 2026-09-02** atas persetujuan Andry Zain | Empat rujukan `agents/rules/engineering/` diganti `docs/engineering/`. Checker dijalankan ulang: `Final result: PASS`, exit 0 |
+| ~~`LAB-OPEN-021`~~ | ~~Prefix dua tabel batas nilai~~ | ✅ **Ditutup 2026-09-02** oleh Muhammad Hamzah | Ditetapkan `Lab`. Kedua tabel bernama `LabValueBound` dan `LabValueOption` |
+
+**Tinggal satu gerbang yang tersisa, dan ia menahan segalanya.** Ketiga penghambat lain sudah
+dicabut, tetapi `LAB-OPEN-018` berdiri sendiri: selama rules root runtime belum lengkap,
+`AGENTS.md` menghentikan setiap task backend sebelum baris kode pertama ditulis. Menutupnya
+adalah satu tindakan pengarahan marketplace — pilihan **B** sudah disetujui, tinggal dieksekusi
+pemilik repo marketplace.
+
+> **`LAB-OPEN-018` tidak dapat ditutup dengan `/plugin update` — diperiksa 2026-09-02.**
+> Marketplace `quilvian` yang terpasang menunjuk repository
+> `MHamzah1/QuilvianEngineeringSkillsClaude`, **bukan** sumber canonical
+> `DevBenari/QuilvianEngineeringSkills`. Repo marketplace itu hanya punya dua commit, satu
+> branch, dan penelusuran seluruh riwayatnya menunjukkan `rules/backend/engineering/` maupun
+> `GLOBAL_RULES.md` **tidak pernah ada di sana**. Memperbarui plugin hanya menarik isi yang sama.
+>
+> Penutupannya memerlukan salah satu dari dua hal, dan keduanya wewenang Muhammad Hamzah:
+> menerbitkan kedua dokumen tata kelola beserta `GLOBAL_RULES.md` ke repo marketplace itu, atau
+> mengarahkan marketplace ke sumber canonical `DevBenari/QuilvianEngineeringSkills`.
 
 **Yang tetap bisa berjalan sekarang tanpa menunggu satu pun di atas:** penyusunan DTO dan bentuk
 request/response di atas kertas, penulisan skenario pengujian dari matriks acceptance, dan
@@ -53,7 +70,7 @@ sudah diketahui saat perencanaan.
 | Gelombang | Task backend | Slice | Kenapa urutannya begini |
 |---|---|---|---|
 | `MVP-0` | `BE-LAB-01` .. `BE-LAB-07`, `BE-EXT-01` | `S3`, `S11`, `S14` | Murni penambahan dan penyajian. Tidak menyentuh satu baris pun perilaku yang sudah berjalan |
-| `MVP-1` | `BE-LAB-08` .. `BE-LAB-10`, `BE-EXT-02`, `BE-EXT-03` | `S13a`, `S13b`, `S1a` | Pendaftaran adalah hulu alur; penanda cito melekat pada pemeriksaan yang dibuat di situ |
+| `MVP-1` | `BE-LAB-08` .. `BE-LAB-10`, `BE-LAB-16`, `BE-EXT-02`, `BE-EXT-03` | `S13a`, `S13b`, `S1a` | Pendaftaran adalah hulu alur; penanda cito melekat pada pemeriksaan yang dibuat di situ |
 | `MVP-2` | `BE-LAB-11` .. `BE-LAB-13` | `S2`, `S10` | Satu perubahan struktural yang tidak dapat dipecah; fakta tagih mengikuti satuan barunya |
 | `MVP-3` | `BE-LAB-14`, `BE-LAB-15` | `S7`, `S15` | Membutuhkan penanda cito dari `MVP-1` dan satuan pekerjaan dari `MVP-2` |
 
@@ -91,10 +108,10 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Kontrak** | `LAB-API-v1` r3 grup Lab Value Bound; `LAB-VAL-v1` r3 `VAL-21` .. `VAL-24` |
 | **Reuse** | `CAP-07` `Missing`. Menunjuk `MstProcedure` dan `MstAgeCategory` yang sudah ada |
 | **Cakupan** | Dua entity beserta configuration, DbSet, dan migration. **`MstProcedure` tidak bertambah satu kolom pun** (`FR-03.6`) |
-| **Dependency** | `LAB-OPEN-021` **wajib dijawab lebih dulu** |
+| **Dependency** | — (`LAB-OPEN-021` sudah dijawab 2026-09-02: prefix `Lab`) |
 | **Acceptance criteria** | `AC-24`, `AC-25`, `AC-28`, `AC-49` |
 | **Verifikasi** | Uji integrasi: tiga baris batas Hemoglobin — pria dewasa, wanita dewasa, anak — tersimpan berdampingan; baris keempat berkombinasi sama ditolak `409` dengan pesan `VAL-21`. Uji unit `AC-25`: telusuri skema `MstProcedure` setelah seluruh migration, pastikan nol kolom baru |
-| **Risiko/pemilik** | **`BLOCKED`** oleh `LAB-OPEN-021`. Nama tabelnya belum ditetapkan: `MstLabValueBound`/`MstLabValueOption` atau `LabValueBound`/`LabValueOption`. Menebak sendiri melanggar `QBE-NAM-004`. Pemilik pencabutan: pemilik registry prefix |
+| **Risiko/pemilik** | Sedang. Nama tabelnya **sudah ditetapkan** `LabValueBound` dan `LabValueOption` lewat `LAB-OPEN-021` pada 2026-09-02; memakai `Mst` sekarang justru melanggar keputusan itu dan akan dilaporkan checker sebagai pelanggaran `QBE-MOD-002`. Pemilik: Laboratorium |
 | **DoD** | Nama tabel sesuai jawaban registry, dua entity ada beserta configuration di `Repositories/Configurations/HealthServices/LaboratoryManagement/`, migration jalan dua arah, `AC-25` terbukti, checker QBE lolos |
 
 ### `BE-LAB-03` — Riwayat dan pengajuan perubahan batas kritis
@@ -154,7 +171,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Requirement/decision** | `FR-06.1` .. `FR-06.3`, `LAB-DEC-019` |
 | **Kontrak** | `LAB-API-v1` r3 grup Lab Rejection Reason; `LAB-PERM-v1` r3 `LabRejectionReason : SystemFlag` |
 | **Reuse** | `CAP-05` `Reuse with adapter`. `MstLabRejectionReason` sudah ada tetapi hanya punya jalur baca dan tidak punya seeder |
-| **Cakupan** | Lima endpoint pengelolaan, satu seeder data awal, dan pemisahan tegas antara kolom yang boleh diubah kepala instalasi dan kolom yang terkunci. `GET /lab-specimens/rejection-reasons` yang sudah ada **tetap dipertahankan** sebagai jalur baca saat menolak sampel |
+| **Cakupan** | Lima endpoint: `GET /`, `POST /`, `PUT /{id}`, `PUT /{id}/activation`, `PUT /{id}/system-flags`. Ditambah satu seeder data awal, dan pemisahan tegas antara kolom yang boleh diubah kepala instalasi dan kolom yang terkunci. `GET /lab-specimens/rejection-reasons` yang sudah ada **tetap dipertahankan** sebagai jalur baca saat menolak sampel |
 | **Dependency** | — |
 | **Acceptance criteria** | `AC-26` seluruh jalur |
 | **Verifikasi** | Uji integrasi: kepala instalasi menambah alasan "Sampel tidak diberi label" dan langsung dapat memakainya. Jalur gagal: **kepala instalasi mengubah penanda kesalahan internal ditolak `403` `VAL-37`**; kode ganda ditolak `409` `VAL-36`; menonaktifkan alasan aktif terakhir ditolak `422` `VAL-38` |
@@ -255,6 +272,25 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Risiko/pemilik** | Sedang. Namanya **wajib** `LabExamination`, bukan `TrxLabExamination` — `QBE-NAM-001` melarang `Trx*` untuk kode baru, dan rancangan revision 1 sempat keliru di sini sebelum dikoreksi. Pemilik: Laboratorium |
 | **DoD** | Entity ada dengan nama benar, configuration berada di folder submodul, migration jalan dua arah, checker QBE lolos |
 
+### `BE-LAB-16` — Endpoint pemeriksaan terpesan
+
+> **Kenapa nomornya melompat.** Task ini ditemukan 2026-09-02 lewat audit cakupan endpoint,
+> setelah `BE-LAB-01` sampai `BE-LAB-15` sudah bernomor. Nomor task adalah identitas tetap, bukan
+> urutan kerja — jadi ia diberi nomor berikutnya dan diletakkan pada gelombang yang benar.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas dapat melihat pemeriksaan apa saja yang ada pada satu pesanan dan pada satu wadah, menambah pemeriksaan terpesan, dan membatalkan satu pemeriksaan tanpa menyentuh yang lain |
+| **Requirement/decision** | `FR-02.1`, `FR-02.2`, `LAB-DEC-024`, `LAB-DEC-026` |
+| **Kontrak** | `LAB-API-v1` r3 grup Lab Examination, base `api/v1/health-services/laboratory-management/lab-examinations` |
+| **Reuse** | `CAP-02` `Extend`; `CAP-13` kewenangan per aksi; `CAP-17` `Version` untuk konkurensi |
+| **Cakupan** | Empat endpoint: `GET /by-order/{labOrderId}`, `GET /by-specimen/{specimenId}`, `POST /by-order/{labOrderId}`, `POST /{id}/cancel`. Hak akses `LabExamination : Read` dan `: Create` dan `: Update` |
+| **Dependency** | `BE-LAB-09` |
+| **Acceptance criteria** | `AC-35`, `AC-36` |
+| **Verifikasi** | Uji integrasi: merencanakan satu wadah berisi dua pemeriksaan menghasilkan dua baris yang dapat dibaca lewat `GET /by-specimen/{specimenId}`. Jalur gagal: merencanakan wadah tanpa satu pun pemeriksaan ditolak `422` `VAL-05`; memasukkan jenis pemeriksaan yang sama dua kali pada satu wadah ditolak `422` `VAL-07` |
+| **Risiko/pemilik** | Sedang. `POST /{id}/cancel` membatalkan **satu** pemeriksaan dan **tidak** boleh disalahartikan sebagai penolakan wadah — penolakan wadah menggugurkan seluruh isinya dan ditangani `BE-LAB-12`. Mencampur keduanya melanggar `VAL-13`. Pemilik: Laboratorium |
+| **DoD** | Empat endpoint tersedia dan terdokumentasi Swagger, `VAL-05` dan `VAL-07` terbukti, pembatalan satu pemeriksaan tidak mengubah status pemeriksaan lain pada wadah yang sama |
+
 ### `BE-LAB-10` — Penanda cito dan duplo per pemeriksaan
 
 | Butir | Isi |
@@ -301,7 +337,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Dependency** | `BE-LAB-11` |
 | **Acceptance criteria** | `AC-35`, `AC-36`, `AC-37`, `AC-38` |
 | **Verifikasi** | Uji integrasi: menolak wadah dua pemeriksaan menjadikan **kedua** pemeriksaan `Voided` dan tidak menerbitkan fakta apa pun; ambil ulang membentuk wadah baru yang menampung seluruh pemeriksaan wadah lama. Jalur gagal: **menolak satu pemeriksaan saja pada wadah berisi dua ditolak `422` `VAL-13`**; merencanakan wadah tanpa pemeriksaan ditolak `422` `VAL-05`; jenis pemeriksaan sama dua kali pada satu wadah ditolak `422` `VAL-07`; menyatakan layak wadah yang belum pernah diterima ditolak `409` `VAL-08`; ambil ulang tanpa mengisi sebab ditolak `422` `VAL-14` |
-| **Risiko/pemilik** | **Tinggi.** Perubahan ini `breaking` — bentuk permintaan dan jawaban ketiga endpoint berubah, sehingga pemakai lama wajib diidentifikasi lebih dulu. Pemilik: Laboratorium |
+| **Risiko/pemilik** | **Tinggi**, karena dua hal. **(a)** Perubahan ini `breaking` — bentuk permintaan dan jawaban ketiga endpoint berubah, sehingga pemakai lama wajib diidentifikasi lebih dulu. **(b)** `VAL-09` mensyaratkan penolakan bila petugas yang menyatakan wadah layak adalah orang yang sama dengan yang mengambil sampelnya. Itu aturan **empat mata pada tingkat wadah**, dan `CAP-16` sudah membuktikan sistem permission tidak dapat menegakkannya — `AccessPermissionService.HasAccessAsync` tidak pernah membandingkan pelaku sebelumnya. Aturan ini wajib ditulis di dalam service. Pemilik: Laboratorium |
 | **DoD** | Tiga endpoint berperilaku baru, `VAL-05`, `VAL-07`, `VAL-08`, `VAL-13`, dan `VAL-14` terbukti, sembilan endpoint lain tidak berubah perilakunya, dampak breaking tercatat pada `contracts/api-contract.md` bagian 3 |
 
 ### `BE-LAB-13` — Fakta kelayakan tagih per pemeriksaan
@@ -346,7 +382,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Requirement/decision** | `FR-10.1` .. `FR-10.3`, `LAB-DEC-025` |
 | **Kontrak** | `LAB-API-v1` r3 grup Lab Monitoring, ditambah `GET /lab-orders/by-discipline/{discipline}` |
 | **Reuse** | `CAP-01`, `CAP-08`. Seluruhnya diturunkan dari `LabOrder.Discipline` |
-| **Cakupan** | Tiga endpoint dengan penyaring yang sama: pasien, nomor rekam medis, nomor pesanan, periode, jenis kunjungan, unit atau ruangan, penjamin, status pesanan, status wadah, dan penanda cito |
+| **Cakupan** | Tiga endpoint monitoring — `GET /clinical-pathology`, `GET /anatomic-pathology`, `GET /microbiology` — ditambah `GET /lab-orders/by-discipline/{discipline}`. Seluruhnya memakai penyaring yang sama: pasien, nomor rekam medis, nomor pesanan, periode, jenis kunjungan, unit atau ruangan, penjamin, status pesanan, status wadah, dan penanda cito |
 | **Dependency** | `BE-LAB-01`, `BE-LAB-14` |
 | **Acceptance criteria** | `AC-41`, `AC-42`, `AC-19` |
 | **Verifikasi** | Uji integrasi: ketiga daftar dibuka dengan data campuran, masing-masing hanya menampilkan pesanan berdisiplin sesuai jalurnya. **Uji unit `AC-42`: telusuri seluruh endpoint dan tabel Laboratorium, pastikan tidak ada satu pun yang melayani Bank Darah** |
@@ -360,9 +396,9 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
 |---|---|---|---|---|
 | `BE-LAB-01` | `MVP-0` | `S15` | Siap direncanakan | Gerbang global saja |
-| `BE-LAB-02` | `MVP-0` | `S3` | **`BLOCKED`** | `LAB-OPEN-021` |
+| `BE-LAB-02` | `MVP-0` | `S3` | Siap direncanakan | Gerbang global saja |
 | `BE-LAB-03` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02` |
-| `BE-LAB-04` | `MVP-0` | `S3` | Sebagian **`BLOCKED`** | Nama resource menunggu `LAB-OPEN-021` |
+| `BE-LAB-04` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02`, `BE-LAB-03` |
 | `BE-LAB-05` | `MVP-0` | `S3` | Siap direncanakan | Peran penyetuju belum ditetapkan |
 | `BE-LAB-06` | `MVP-0` | `S11` | Siap direncanakan | Gerbang global saja |
 | `BE-LAB-07` | `MVP-0` | `S14` | Siap direncanakan | `BE-EXT-01` |
@@ -371,6 +407,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | `BE-EXT-03` | `MVP-1` | `S13a`, `S13b` | Menunggu `registration-management` | Dependency eksternal |
 | `BE-LAB-08` | `MVP-1` | `S13a`, `S13b` | Siap direncanakan | `BE-EXT-02`, `BE-EXT-03` |
 | `BE-LAB-09` | `MVP-1` | `S2` | Siap direncanakan | Gerbang global saja |
+| `BE-LAB-16` | `MVP-1` | `S2` | Siap direncanakan | `BE-LAB-09` |
 | `BE-LAB-10` | `MVP-1` | `S1a` | Siap direncanakan | `BE-LAB-09` |
 | `BE-LAB-11` | `MVP-2` | `S2` | **`BLOCKED`** | `LAB-OPEN-012` |
 | `BE-LAB-12` | `MVP-2` | `S2` | Siap direncanakan | `BE-LAB-11` |
@@ -383,8 +420,120 @@ untuk semuanya. Tidak satu pun `BLOCKED` itu dapat dicabut oleh modul Laboratori
 
 ---
 
-## 8. Riwayat Revisi
+## 8. Cakupan
+
+Lima dimensi diperiksa terpisah. Cakupan `FR` dan `AC` yang penuh **tidak** menjamin keempat
+dimensi lain ikut penuh — pelajaran dari lubang endpoint yang ditemukan revision 2.
+
+### 8.1 Endpoint
+
+Ditambahkan revision 2 setelah audit menemukan satu grup endpoint tanpa pemilik task. Tabel ini
+memastikan **setiap** endpoint To-Be pada `contracts/api-contract.md` punya task yang
+mengerjakannya.
+
+| Grup endpoint | Jumlah | Task pemilik |
+|---|---:|---|
+| Lab Order — `GET /by-discipline/{discipline}` | 1 | `BE-LAB-15` |
+| Lab Examination — `GET /by-order`, `GET /by-specimen`, `POST /by-order`, `POST /{id}/cancel` | 4 | `BE-LAB-16` |
+| Lab Examination — `PUT /{id}/urgency`, `PUT /{id}/duplo` | 2 | `BE-LAB-10` |
+| Lab Specimen — `POST /by-order`, `POST /{id}/accept`, `POST /{id}/reject` | 3 | `BE-LAB-12` |
+| Lab Value Bound | 6 | `BE-LAB-04` |
+| Lab Critical Bound Approval | 5 | `BE-LAB-05` |
+| Lab Worklist | 2 | `BE-LAB-14` |
+| Lab Rejection Reason | 5 | `BE-LAB-06` |
+| Lab Patient Registration | 3 | `BE-LAB-08` |
+| Lab Catalog | 3 | `BE-LAB-07` |
+| Lab Monitoring | 3 | `BE-LAB-15` |
+| **Total** | **37** | **Seluruhnya terpetakan** |
+
+**Lubang yang ditemukan audit ini.** Empat endpoint grup Lab Examination — membaca pemeriksaan
+pada satu pesanan, membaca pemeriksaan pada satu wadah, menambah pemeriksaan, dan membatalkan
+satu pemeriksaan — semula tidak dimiliki task mana pun. `BE-LAB-09` hanya mencakup entity-nya,
+`BE-LAB-10` hanya penanda cito dan duplo. `BE-LAB-16` menutup lubang itu.
+
+**Kenapa lubangnya sempat lolos.** Cakupan `FR` dan `AC` sudah lengkap 45 dari 45 dan 30 dari
+30, sehingga terlihat aman. Endpoint adalah dimensi ketiga yang tidak ikut terperiksa oleh
+kedua hitungan itu — sebuah `FR` dapat dianggap tercakup walaupun sebagian endpoint yang
+melayaninya belum ada pemiliknya.
+
+### 8.2 Aturan validasi
+
+Kelima puluh aturan pada `contracts/validation-matrix.md` terbagi rapi per bagian, dan setiap
+bagian jatuh utuh ke satu task. **Tidak ada aturan yang tanpa pemilik.**
+
+| Bagian matriks validasi | Aturan | Task pemilik |
+|---|---|---|
+| 1. Pesanan dan Kesegeraan | `VAL-01` .. `VAL-04` | `BE-LAB-01` untuk `VAL-01`; `BE-LAB-10` untuk `VAL-02` .. `VAL-04` |
+| 2. Wadah Fisik | `VAL-05` .. `VAL-16` | `BE-LAB-12` |
+| 3. Pemeriksaan Terpesan | `VAL-17` .. `VAL-20` | `BE-LAB-16` |
+| 4. Batas Nilai | `VAL-21` .. `VAL-30` | `BE-LAB-04`, dengan `BE-LAB-02` untuk yang menyangkut struktur |
+| 5. Pengajuan Perubahan Batas Kritis | `VAL-31` .. `VAL-35` | `BE-LAB-05` |
+| 6. Alasan Penolakan Sampel | `VAL-36` .. `VAL-38` | `BE-LAB-06` |
+| 6b. Pendaftaran Pasien | `VAL-40` .. `VAL-45` | `BE-LAB-08` |
+| 6c. Katalog, Harga, Cakupan | `VAL-46` .. `VAL-50` | `BE-LAB-07` |
+| 7. Daftar Kerja | `VAL-39` | `BE-LAB-14` |
+
+**Satu aturan keselamatan yang sempat tidak tersebut di mana pun.** `VAL-09` — *menyatakan
+wadah layak sementara petugasnya orang yang sama dengan yang mengambil sampel* — adalah aturan
+empat mata pada tingkat wadah. Ia semula tidak dikutip satu task pun, padahal `CAP-16` sudah
+membuktikan sistem permission yang ada **tidak dapat** menegakkan aturan per orang atas satu
+baris data. Sekarang ia dibebankan tegas ke `BE-LAB-12` dan disebut pada catatan risikonya.
+
+### 8.3 Entity
+
+| Entity | Task pemilik | Sifat |
+|---|---|---|
+| `LabOrder` | `BE-LAB-01` | Diperbarui — tambah kolom `Discipline` |
+| `TrxLabSpecimen` | `BE-LAB-11`, `BE-LAB-12` | Diperbarui — enam kolom pindah ke pemeriksaan |
+| `LabExamination` | `BE-LAB-09` | Baru |
+| `LabValueBound`, `LabValueOption` | `BE-LAB-02` | Baru — penamaan ditetapkan `Lab` pada 2026-09-02 |
+| `LabValueBoundChangeRequest`, `LabValueBoundHistory` | `BE-LAB-03` | Baru |
+| `MstLabRejectionReason` | `BE-LAB-06` | Sudah ada — hanya bertambah jalur pengelolaan |
+| `TrxLabTransitionHistory` | — | Sudah ada, dipakai apa adanya (`CAP-04`). Tidak ada pekerjaan struktur |
+
+Sembilan entity, seluruhnya berpemilik.
+
+### 8.4 Kewenangan
+
+Dua puluh sembilan pasangan `resource : action` pada `contracts/permission-audit-matrix.md`
+seluruhnya berpemilik. Yang **baru** dan karena itu perlu `[AccessPermission]` dipasang agar
+`AccessMenuSeeder` mendaftarkannya sendiri (`CAP-14`):
+
+| Resource | Action | Task |
+|---|---|---|
+| `LabExamination` | `Read`, `Create`, `Update` | `BE-LAB-16`, `BE-LAB-10` |
+| `LabValueBound` | `Read`, `Create`, `Update` | `BE-LAB-04` |
+| `LabCriticalBound` | `Read`, `Approve` | `BE-LAB-05` |
+| `LabRejectionReason` | `Read`, `Create`, `Update`, `SystemFlag` | `BE-LAB-06` |
+| `LabPatientRegistration` | `Read`, `Create` | `BE-LAB-08` |
+| `LabCatalog` | `Read` | `BE-LAB-07` |
+| `LabWorklist` | `Read` | `BE-LAB-14` |
+| `LabMonitoring` | `Read` | `BE-LAB-15` |
+
+Sisanya — `LabOrder :` dan `LabSpecimen :` — sudah terdaftar pada `c87d9c0` dan dipakai apa
+adanya.
+
+### 8.5 Integrasi
+
+| ID | Arah | Keadaan | Task |
+|---|---|---|---|
+| `INT-01` | Laboratorium → Billing | Sudah ada, **satuannya berubah** | `BE-LAB-13` |
+| `INT-02` | Laboratorium → Registrasi, pembacaan langsung | Sudah ada, tidak berubah | — |
+| `INT-03` | Laboratorium → Data Induk, baca dan salin sesaat | Sudah ada, tidak berubah | — |
+| `INT-04` | Laboratorium → Platform, pemeriksaan kewenangan | Sudah ada, tidak berubah | — |
+| `INT-05` | Laboratorium → Registrasi, minta buat kunjungan | **Baru** | `BE-EXT-03`, `BE-LAB-08` |
+| `INT-06` | Laboratorium → Data Induk, katalog dan harga | **Baru** | `BE-LAB-07` |
+
+`INT-02` sampai `INT-04` sengaja tanpa task: ketiganya integrasi yang **sudah berjalan** dan
+tidak disentuh Rilis 1. Dicatat di sini supaya ketiadaannya terbaca sebagai keputusan, bukan
+kelalaian.
+
+---
+
+## 9. Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-02 | Roadmap backend pertama. 15 task Laboratorium dan 3 task dependency eksternal disusun untuk empat gelombang. Diterbitkan setelah kelima kontrak dikunci dan penanda `STALE` pada capability map dicabut | `DRAFT` |
+| 3 | 2026-09-02 | Audit diperluas ke empat dimensi lain: aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik, tetapi kutipannya jauh dari lengkap — 30 dari 50 aturan validasi tidak pernah disebut task mana pun. Yang paling berarti: `VAL-09`, aturan empat mata pada tingkat wadah, sempat tidak tersebut sama sekali dan kini dibebankan tegas ke `BE-LAB-12`. Bagian 8 diperluas menjadi lima sub-cakupan | `DRAFT` |
+| 2 | 2026-09-02 | Audit cakupan endpoint dijalankan. Empat endpoint grup Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan. Daftar endpoint pada `BE-LAB-06` dan `BE-LAB-15` ditulis eksplisit agar lubang sejenis tidak tersembunyi lagi. Bagian 8 Cakupan Endpoint ditambahkan | `DRAFT` |

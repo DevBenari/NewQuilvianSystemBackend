@@ -47,7 +47,7 @@
 
 | Bounded context | Peran modul ini | Aggregate root | Transaction boundary |
 |---|---|---|---|
-| `BC-LAB` Operasional Laboratorium | **Pemilik** | `LabOrder`, `MstLabValueBound`, `MstLabRejectionReason` | Satu transaksi per perintah bisnis atas satu aggregate |
+| `BC-LAB` Operasional Laboratorium | **Pemilik** | `LabOrder`, `LabValueBound`, `MstLabRejectionReason` | Satu transaksi per perintah bisnis atas satu aggregate |
 | `BC-REG` Registrasi | Pemakai | — | Dibaca saja |
 | `BC-MD` Data Induk | Pemakai | — | Dibaca saja, disalin sesaat |
 | `BC-BIL` Billing | Penerima fakta | — | Fakta terbit di dalam transaksi yang sama dengan perpindahan status |
@@ -161,7 +161,7 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class MstLabValueBound {
+    class LabValueBound {
         +Guid Id
         +Guid ProcedureId
         +LabResultForm ResultForm
@@ -174,7 +174,7 @@ classDiagram
         +Guid~?~ AgeCategoryId
         +int~?~ CitoTurnaroundMinutes
     }
-    class MstLabValueOption {
+    class LabValueOption {
         +Guid Id
         +Guid ValueBoundId
         +string OptionCode
@@ -198,9 +198,9 @@ classDiagram
         +string~?~ NewValue
         +Guid ActorUserId
     }
-    MstLabValueBound "1" --> "0..*" MstLabValueOption : pilihan sah
-    MstLabValueBound "1" --> "0..*" LabValueBoundChangeRequest : pengajuan
-    MstLabValueBound "1" --> "0..*" LabValueBoundHistory : riwayat
+    LabValueBound "1" --> "0..*" LabValueOption : pilihan sah
+    LabValueBound "1" --> "0..*" LabValueBoundChangeRequest : pengajuan
+    LabValueBound "1" --> "0..*" LabValueBoundHistory : riwayat
 ```
 
 ### 3.3 Alasan penolakan
@@ -274,30 +274,30 @@ classDiagram
 | Catatan desain | Salinan tarif disimpan di sini, bukan di wadah. Satu wadah boleh menopang beberapa baris ini. Kolom hasil **tidak** ditambahkan pada rilis ini karena slice hasil masih terblokir |
 | Ekuivalen model lama | Bagian dari `TrxLabSpecimen` sebelum pemisahan |
 
-### 4.4 `MstLabValueBound`
+### 4.4 `LabValueBound`
 
 | Aspek | Penjelasan |
 |---|---|
 | **Status** | `Baru` |
-| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/MstLabValueBound.cs` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabValueBound.cs` |
 | Kategori | Data induk khusus Laboratorium |
 | Tanggung jawab utama | Menyimpan batas nilai satu jenis pemeriksaan untuk satu kelompok pasien: satuan, batas normal, batas kritis, dan batas waktu cito |
 | Field penting | `ProcedureId`, `ResultForm`, `Unit`, `NormalLow`, `NormalHigh`, `CriticalLow`, `CriticalHigh`, `GenderScope`, `AgeCategoryId`, `CitoTurnaroundMinutes`, `IsActive` |
-| Navigation property dan relasi | Menunjuk `MstProcedure` dan `MstAgeCategory`; memiliki banyak `MstLabValueOption`, `LabValueBoundChangeRequest`, dan `LabValueBoundHistory` |
+| Navigation property dan relasi | Menunjuk `MstProcedure` dan `MstAgeCategory`; memiliki banyak `LabValueOption`, `LabValueBoundChangeRequest`, dan `LabValueBoundHistory` |
 | Pemakaian dalam alur bisnis | Dipakai saat menilai hasil dan saat menghitung keterlambatan cito |
 | Catatan desain | Satu jenis pemeriksaan boleh punya beberapa baris. Kombinasi `ProcedureId` + `GenderScope` + `AgeCategoryId` wajib unik. Batas kritis **tidak boleh** diubah langsung — perubahannya lewat pengajuan |
 | Ekuivalen model lama | — |
 
-### 4.5 `MstLabValueOption`
+### 4.5 `LabValueOption`
 
 | Aspek | Penjelasan |
 |---|---|
 | **Status** | `Baru` |
-| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/MstLabValueOption.cs` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabValueOption.cs` |
 | Kategori | Data induk khusus Laboratorium |
 | Tanggung jawab utama | Menyimpan satu pilihan sah untuk pemeriksaan berbentuk pilihan, misalnya `+3` pada protein urin, beserta penanda apakah pilihan itu di luar rujukan atau kritis |
 | Field penting | `ValueBoundId`, `OptionCode`, `OptionName`, `IsOutOfReference`, `IsCritical`, `SortOrder` |
-| Navigation property dan relasi | Milik `MstLabValueBound` |
+| Navigation property dan relasi | Milik `LabValueBound` |
 | Pemakaian dalam alur bisnis | Menjadi daftar pilihan yang boleh diisi analis, dan dasar penilaian kritis |
 | Catatan desain | Hanya diisi bila `ResultForm` bernilai pilihan. Penanda `IsCritical` mengikuti aturan persetujuan yang sama dengan batas kritis angka |
 | Ekuivalen model lama | — |
@@ -311,9 +311,9 @@ classDiagram
 | Kategori | Transaksi Laboratorium |
 | Tanggung jawab utama | Menampung usulan perubahan batas kritis sampai pihak klinis memutuskan. Selama berstatus diajukan, batas yang berlaku **tidak** berubah |
 | Field penting | `ValueBoundId`, `RequestStatus`, `ProposedCriticalLow`, `ProposedCriticalHigh`, `ProposedCriticalOptionCodes`, `RequestReason`, `RequestedByUserId`, `DecidedByUserId`, `DecisionNote` |
-| Navigation property dan relasi | Milik `MstLabValueBound` |
+| Navigation property dan relasi | Milik `LabValueBound` |
 | Pemakaian dalam alur bisnis | Dibuat kepala instalasi, diputuskan pihak klinis |
-| Catatan desain | Jangan menerapkan perubahan langsung ke `MstLabValueBound` sebelum berstatus disetujui |
+| Catatan desain | Jangan menerapkan perubahan langsung ke `LabValueBound` sebelum berstatus disetujui |
 | Ekuivalen model lama | — |
 
 ### 4.7 `LabValueBoundHistory`
@@ -325,7 +325,7 @@ classDiagram
 | Kategori | Transaksi Laboratorium |
 | Tanggung jawab utama | Menyimpan setiap perubahan batas nilai secara permanen: kolom apa, dari berapa ke berapa, oleh siapa, disetujui siapa, kapan, dan alasannya |
 | Field penting | `ValueBoundId`, `ChangedField`, `OldValue`, `NewValue`, `ActorUserId`, `ApprovedByUserId`, `ChangeReason`, `OccurredAt` |
-| Navigation property dan relasi | Milik `MstLabValueBound` |
+| Navigation property dan relasi | Milik `LabValueBound` |
 | Pemakaian dalam alur bisnis | Terisi otomatis setiap kali batas berubah, baik batas normal maupun batas kritis |
 | Catatan desain | Tidak pernah diubah dan tidak pernah dihapus |
 | Ekuivalen model lama | — |
@@ -446,8 +446,8 @@ Areas/HealthServices/LaboratoryManagement/
 │   ├── LabValueBoundChangeRequest.cs         # Baru
 │   ├── LabValueBoundHistory.cs               # Baru
 │   ├── MstLabRejectionReason.cs                 # Sudah ada — BENAR di sini, khusus Laboratorium
-│   ├── MstLabValueBound.cs                      # Baru — khusus Laboratorium (LAB-DEC-034)
-│   └── MstLabValueOption.cs                     # Baru — khusus Laboratorium (LAB-DEC-034)
+│   ├── LabValueBound.cs                      # Baru — khusus Laboratorium (LAB-DEC-034)
+│   └── LabValueOption.cs                     # Baru — khusus Laboratorium (LAB-DEC-034)
 ├── Services/
 │   ├── LabOrderService.cs                       # Diperbarui
 │   ├── LabSpecimenService.cs                    # Diperbarui
@@ -471,8 +471,8 @@ Repositories/Configurations/HealthServices/
     ├── LabExaminationConfiguration.cs        # Baru
     ├── LabValueBoundChangeRequestConfiguration.cs  # Baru
     ├── LabValueBoundHistoryConfiguration.cs  # Baru
-    ├── MstLabValueBoundConfiguration.cs         # Baru
-    └── MstLabValueOptionConfiguration.cs        # Baru
+    ├── LabValueBoundConfiguration.cs         # Baru
+    └── LabValueOptionConfiguration.cs        # Baru
 
 Migrations/
 └── <timestamp>_SplitLabSpecimenIntoExamination.cs   # Baru
@@ -510,14 +510,14 @@ kampanye tersendiri yang harus dinyatakan eksplisit.
 
 #### Prefix data induk milik Laboratorium — belum pasti
 
-`MstLabValueBound` dan `MstLabValueOption` adalah **kode baru**, sehingga `QBE-NAM-002` berlaku:
+`LabValueBound` dan `LabValueOption` adalah **kode baru**, sehingga `QBE-NAM-002` berlaku:
 wajib memakai prefix registry milik pemiliknya.
 
 Persoalannya, registry punya dua baris yang sama-sama masuk akal:
 
 | Baris registry | Prefix | Bila dipakai |
 |---|---|---|
-| `Administrator / HealthServices` — Master / Reference | `Mst` | `MstLabValueBound`, mengikuti `MstLabRejectionReason` yang sudah ada |
+| `Administrator / HealthServices` — Master / Reference | `Mst` | `LabValueBound`, mengikuti `MstLabRejectionReason` yang sudah ada |
 | `HealthServices` — LaboratoryManagement / Laboratory | `Lab` | `LabValueBound`, mengikuti aturan `<PrefixPemilik><Konsep>` karena pemiliknya Laboratorium |
 
 `QBE-NAM-004` melarang menyimpulkan prefix sendiri. Karena itu blueprint ini **tidak memutuskan**
@@ -541,7 +541,7 @@ registry **belum berwenang** menjalankan implementasi dan migration. Dicatat seb
 
 | Cakupan | Letaknya | Contoh pada modul ini |
 |---|---|---|
-| **Khusus Laboratorium** | `Areas/HealthServices/LaboratoryManagement/Models/` | `MstLabRejectionReason`, `MstLabValueBound`, `MstLabValueOption` |
+| **Khusus Laboratorium** | `Areas/HealthServices/LaboratoryManagement/Models/` | `MstLabRejectionReason`, `LabValueBound`, `LabValueOption` |
 | **Global, dipakai lintas modul** | `Areas/HealthServices/MasterData/Models/` | `MstProcedure`, `MstTariff`, `MstInsuranceTariff`, `MstAgeCategory` — **tidak disentuh** |
 
 Aturan ini mengikuti pola nyata pada `c87d9c0`: **20 data induk khusus modul** sudah berada di
@@ -589,8 +589,8 @@ Berkas **baru** pada blueprint ini mengikuti pola standar, bukan meniru penyimpa
 | `TrxLabSpecimen` | `Diperbarui` | **Hapus** `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot` | **Perubahan besar.** Data lama wajib dipindahkan lebih dulu |
 | `LabExamination` | `Baru` | Seluruh kolom | Tabel baru |
 | `TrxLabTransitionHistory` | `Diperbarui` | **Tambah** `LabExaminationId` | Tambah kolom, aman |
-| `MstLabValueBound` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
-| `MstLabValueOption` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
+| `LabValueBound` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
+| `LabValueOption` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
 | `LabValueBoundChangeRequest` | `Baru` | Seluruh kolom | Tabel baru |
 | `LabValueBoundHistory` | `Baru` | Seluruh kolom | Tabel baru |
 | `MstLabRejectionReason` | `Sudah ada` | Tidak ada | Tidak ada |
@@ -638,10 +638,10 @@ Modul dengan tabel master kosong tidak dapat dipakai sama sekali.
 | Master | Isi minimum | Sumber nilai |
 |---|---|---|
 | `MstLabRejectionReason` | Sekurang-kurangnya: sampel menggumpal, volume kurang, wadah salah, sampel keruh atau lisis, label tidak terbaca, sampel bocor, dan satu alasan lain-lain yang menuntut catatan. Penanda kesalahan internal ditetapkan bersama Billing | SOP laboratorium rumah sakit |
-| `MstLabValueBound` | Satu baris untuk setiap jenis pemeriksaan berpenanda `IsLaboratory` yang benar-benar dilayani, dipecah menurut jenis kelamin dan kelompok umur bila memang berbeda | Kepustakaan laboratorium rumah sakit, disahkan pihak klinis |
-| `MstLabValueOption` | Daftar pilihan sah untuk setiap pemeriksaan berbentuk pilihan, misalnya negatif, `+1`, `+2`, `+3`, `+4` untuk protein urin | Kepustakaan laboratorium rumah sakit, disahkan pihak klinis |
+| `LabValueBound` | Satu baris untuk setiap jenis pemeriksaan berpenanda `IsLaboratory` yang benar-benar dilayani, dipecah menurut jenis kelamin dan kelompok umur bila memang berbeda | Kepustakaan laboratorium rumah sakit, disahkan pihak klinis |
+| `LabValueOption` | Daftar pilihan sah untuk setiap pemeriksaan berbentuk pilihan, misalnya negatif, `+1`, `+2`, `+3`, `+4` untuk protein urin | Kepustakaan laboratorium rumah sakit, disahkan pihak klinis |
 
-**Peringatan.** Batas kritis pada `MstLabValueBound` dan penanda kritis pada `MstLabValueOption`
+**Peringatan.** Batas kritis pada `LabValueBound` dan penanda kritis pada `LabValueOption`
 adalah angka keselamatan pasien. Pengisian awalnya **wajib** disahkan pihak klinis, bukan
 diisi tim teknis. Warna, batas waktu, dan ambang **tidak boleh** ditulis tetap di dalam
 controller maupun frontend.
@@ -667,10 +667,10 @@ controller maupun frontend.
 
 | Requirement / Decision | Diwujudkan oleh | Dibuktikan oleh |
 |---|---|---|
-| `LAB-DEC-013` + `LAB-DEC-026` cito dan duplo | `LabExamination.Urgency`, `LabExamination.IsDuplo`, `MstLabValueBound.CitoTurnaroundMinutes`, `LabWorklistService` | AC-10, AC-17, AC-18, AC-39, AC-40 |
+| `LAB-DEC-013` + `LAB-DEC-026` cito dan duplo | `LabExamination.Urgency`, `LabExamination.IsDuplo`, `LabValueBound.CitoTurnaroundMinutes`, `LabWorklistService` | AC-10, AC-17, AC-18, AC-39, AC-40 |
 | `LAB-DEC-024` pemisahan wadah dan pemeriksaan | `TrxLabSpecimen` diperbarui, `LabExamination` baru | AC-35 sampai AC-38 |
-| `LAB-DEC-006`, `LAB-DEC-018` batas nilai | `MstLabValueBound` | AC-24, AC-25 |
-| `LAB-DEC-021` dua bentuk hasil | `MstLabValueBound.ResultForm`, `MstLabValueOption` | AC-28, AC-29, AC-30 |
+| `LAB-DEC-006`, `LAB-DEC-018` batas nilai | `LabValueBound` | AC-24, AC-25 |
+| `LAB-DEC-021` dua bentuk hasil | `LabValueBound.ResultForm`, `LabValueOption` | AC-28, AC-29, AC-30 |
 | `LAB-DEC-023` perlindungan batas kritis | `LabValueBoundChangeRequest`, `LabValueBoundHistory` | AC-33, AC-34 |
 | `LAB-DEC-019` alasan penolakan | `LabRejectionReasonService` dengan dua tingkat kewenangan | AC-26 |
 | `LAB-INH-009` sampai `LAB-INH-012` | Fakta terbit per pemeriksaan; tanpa kolom finansial | AC-12, AC-13, AC-37 |

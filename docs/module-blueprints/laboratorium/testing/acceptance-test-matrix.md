@@ -105,7 +105,7 @@ tidak diam-diam melahirkan cabang khusus per jenis kunjungan.
 | AC-28 | **Gagal** — membuat batas berbentuk angka disertai daftar pilihan | Integration | `422`, pesan `VAL-24` |
 | — | **Gagal** — batas kritis bawah 4,0 pada Kalium bernormal 3,5–5,1 | Integration | `422`, pesan `VAL-26` |
 | AC-33 | Kepala instalasi mengubah batas normal Hemoglobin | Integration | Perubahan langsung berlaku; satu baris riwayat terbentuk tanpa penyetuju |
-| AC-33 | Kepala instalasi mengajukan perubahan batas kritis Kalium dari 6,0 menjadi 8,0 | Integration | Pengajuan `Submitted`; **batas pada `MstLabValueBound` tidak berubah** |
+| AC-33 | Kepala instalasi mengajukan perubahan batas kritis Kalium dari 6,0 menjadi 8,0 | Integration | Pengajuan `Submitted`; **batas pada `LabValueBound` tidak berubah** |
 | AC-33 | **Gagal** — mencoba mengubah batas kritis lewat endpoint ubah biasa | Integration | `422`, pesan `VAL-28`; batas tidak berubah |
 | AC-33 | Pihak klinis menyetujui pengajuan | Integration | Batas kritis berubah menjadi 8,0; riwayat terbentuk dengan penyetuju terisi |
 | AC-33 | **Gagal** — pengaju menyetujui pengajuannya sendiri | Integration | `403`, pesan `VAL-33`; batas tidak berubah |
@@ -213,7 +213,7 @@ Billing menerima dua konteks tagihan.
 
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
 |---|---|---|---|
-| AC-49 | Menelusuri struktur folder backend setelah implementasi | Review | `MstLabValueBound`, `MstLabValueOption`, `MstLabRejectionReason` berada di `LaboratoryManagement/Models/`; tidak ada data induk global yang disalin ke sana |
+| AC-49 | Menelusuri struktur folder backend setelah implementasi | Review | `LabValueBound`, `LabValueOption`, `MstLabRejectionReason` berada di `LaboratoryManagement/Models/`; tidak ada data induk global yang disalin ke sana |
 | AC-49 | Menelusuri struktur folder frontend | Review | Seluruh menu data induk berada di `health-services/master-data/`; folder `laboratory-management` hanya berisi layar operasional |
 
 ---

@@ -5,7 +5,7 @@
 | `request_id` | `LAB-REQ-001` |
 | `tanggal` | 2026-09-01, diperbarui 2026-09-02 |
 | `pengaju` | Yoga Aji Pratama — Product/Domain Owner Laboratorium |
-| `rujukan` | `blueprint-manifest.md` revision `19`; `04-prd-to-mvp.md` bagian 15 |
+| `rujukan` | `blueprint-manifest.md` revision `22`; `04-prd-to-mvp.md` bagian 15 |
 | `status` | `dijawab sebagian` — 6 selesai, 5 terbuka. Lihat bagian 0 dan 5 |
 | `disetujui oleh` | `andryzainhome` (`andryzain01@gmail.com`) dan `sukmagp` — Sukma Giri Pratama (`sukmagiri11@gmail.com`), selaku pemilik repository |
 | `tanggal persetujuan` | 2026-09-01 |
@@ -54,7 +54,7 @@ modul Laboratorium.
 
 `LAB-OPEN-012` tetap terbuka. `LAB-OPEN-002` ditutup, tetapi pembacaan dokumennya menurunkan
 dua penghambat baru — `LAB-OPEN-018` dan `LAB-OPEN-019` — yang keduanya memerlukan tindakan
-pemilik registry prefix. Lihat 3.3 dan 3.4. Pemeriksaan lanjutan 2026-09-02 menurunkan satu
+Muhammad Hamzah selaku pemilik registry prefix. Lihat 3.3 dan 3.4. Pemeriksaan lanjutan 2026-09-02 menurunkan satu
 penghambat lagi, `LAB-OPEN-020`, yang merupakan wewenang Andry Zain selaku pemilik repository
 backend. Lihat 3.5.
 
@@ -239,7 +239,7 @@ Dua hal lain muncul dan **belum terjawab** — lihat bagian 3.3 dan 3.4.
 
 ---
 
-### 3.3 Pemilik registry prefix — lifecycle Laboratorium masih `PLANNED`
+### 3.3 Muhammad Hamzah — lifecycle Laboratorium masih `PLANNED`
 
 | Butir | Isi |
 |---|---|
@@ -277,7 +277,7 @@ Selama belum dijawab, blueprint ini **tidak boleh** diteruskan ke implementasi.
 
 ---
 
-### 3.4 Pemilik registry prefix — prefix data induk Laboratorium
+### 3.4 Muhammad Hamzah — prefix data induk Laboratorium
 
 | Butir | Isi |
 |---|---|
@@ -296,7 +296,7 @@ masuk akal:
 
 | Baris registry | Prefix | Bila dipakai | Sejalan dengan |
 |---|---|---|---|
-| Master / Reference | `Mst` | `MstLabValueBound`, `MstLabValueOption` | `MstLabRejectionReason` yang sudah ada |
+| Master / Reference | `Mst` | `LabValueBound`, `LabValueOption` | `MstLabRejectionReason` yang sudah ada |
 | LaboratoryManagement / Laboratory | `Lab` | `LabValueBound`, `LabValueOption` | Aturan `<PrefixPemilik><Konsep>`, karena pemiliknya Laboratorium |
 
 Blueprint **tidak memutuskan sendiri**. Sampai dijawab, penamaan kedua tabel berstatus belum
@@ -307,8 +307,10 @@ final.
 Agar pertanyaan ini cukup dijawab **ya atau tidak**, berikut usulan beserta buktinya. Blueprint
 tetap tidak memutuskan; pemilik registry yang menetapkan.
 
-> **Usulan: pakai `Lab`.** Jadi `LabValueBound` dan `LabValueOption`, bukan `MstLabValueBound`
-> dan `MstLabValueOption`.
+> **✅ DIJAWAB 2026-09-02 — memakai `Lab`.** Kedua tabel bernama `LabValueBound` dan
+> `LabValueOption`; prefix `Mst` tidak dipakai. Disetujui Muhammad Hamzah lewat `LAB-REQ-002`,
+> dan tercatat pada *Catatan perubahan lifecycle* registry. Seluruh artefak blueprint sudah
+> disesuaikan. Usulan aslinya beserta buktinya tetap ditulis di bawah.
 
 Alasannya bukan selera, melainkan perilaku checker yang sudah berjalan.
 `tooling/qbe/Invoke-QbeConformanceCheck.ps1` menentukan pemilik sebuah entity **dari letak
@@ -321,8 +323,8 @@ foldernya**, lalu mewajibkan prefixnya cocok:
 | Baris `Master / Reference` ikut dipertimbangkan? | **Tidak.** Aliasnya `master` dan `reference`, tidak cocok dengan segmen path mana pun |
 | Uji prefix | Entity wajib diawali `Lab` |
 
-Artinya `MstLabValueBound` yang diletakkan di folder Laboratorium akan dilaporkan checker
-sebagai pelanggaran `QBE-MOD-002`, dengan alasan *"Entity 'MstLabValueBound' does not use
+Artinya `LabValueBound` yang diletakkan di folder Laboratorium akan dilaporkan checker
+sebagai pelanggaran `QBE-MOD-002`, dengan alasan *"Entity 'LabValueBound' does not use
 approved registry prefix 'Lab'"*. Prefix `Mst` hanya sah bila tabelnya benar-benar pindah ke
 folder Master Data dan kepemilikannya diserahkan ke Master Data — yang bertentangan dengan
 pernyataan blueprint sendiri bahwa kedua tabel ini milik Laboratorium.
@@ -338,7 +340,7 @@ sekaligus** untuk aggregate yang sama:
 
 | Artefak | Penamaan yang dipakai |
 |---|---|
-| `erd/`, `data-dictionary.md`, `02-backend-architecture.md` §4.4–4.5 | `MstLabValueBound`, `MstLabValueOption` |
+| `erd/`, `data-dictionary.md`, `02-backend-architecture.md` §4.4–4.5 | `LabValueBound`, `LabValueOption` |
 | `contracts/api-contract.md`, `contracts/permission-audit-matrix.md` | `LabValueBound` — sebagai nama resource hak akses dan DTO |
 | Dua entity anak pada aggregate yang sama | `LabValueBoundChangeRequest`, `LabValueBoundHistory` |
 
@@ -379,9 +381,32 @@ subfolder `engineering/`:
 | `backend/backend-project-profile.md`, `master-data-endpoint-standard.md`, `transaction-endpoint-standard.md`, `role-access-rules.md` | Standar endpoint dan hak akses tidak terbaca saat implementasi |
 | 10 dari 11 rules frontend — termasuk `base-component-catalog.md`, `design-tokens.md`, `master-data-feature-standard.md`, `page-composition-patterns.md` | `build-module-frontend` ikut kehilangan pijakan |
 
-Suite terpasang tercatat `0.1.0` pada `6301c62` (2026-08-24); repository skill kini sudah di
-`636377c`. **Ini wewenang pemasang di mesin masing-masing, bukan pihak ketiga** — cukup
-perbarui plugin dari marketplace `quilvian`.
+#### Koreksi penting — 2026-09-02: `/plugin update` **tidak** menutup butir ini
+
+Versi terdahulu bagian ini menyatakan penutupannya cukup dengan memperbarui plugin di mesin
+masing-masing. **Itu keliru.** Penelusuran 2026-09-02 menemukan sebabnya:
+
+| Yang diperiksa | Temuan |
+|---|---|
+| Sumber marketplace `quilvian` | `MHamzah1/QuilvianEngineeringSkillsClaude` — **bukan** sumber canonical `DevBenari/QuilvianEngineeringSkills` |
+| Isi repo marketplace itu | Hanya **2 commit**, satu branch `main`, 14 berkas rules |
+| Riwayat lengkapnya | `rules/backend/engineering/` dan `GLOBAL_RULES.md` **tidak pernah ada di commit mana pun** |
+
+Artinya memperbarui plugin hanya menarik isi yang sama. Butir ini **bukan** urusan pemasang di
+mesin masing-masing, melainkan wewenang **Muhammad Hamzah** selaku pemilik repo marketplace.
+
+**Dua jalan penutupan, keduanya wewenang beliau:**
+
+| Pilihan | Isinya |
+|---|---|
+| A | Terbitkan `BACKEND_ENGINEERING_CONTRACT.md`, `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, dan `GLOBAL_RULES.md` ke `MHamzah1/QuilvianEngineeringSkillsClaude`, lalu pengguna menjalankan `/plugin update` |
+| B | Arahkan marketplace `quilvian` ke sumber canonical `DevBenari/QuilvianEngineeringSkills`, yang sudah memuat 29 berkas lengkap |
+
+Pilihan B sekaligus menutup 10 dari 11 rules frontend yang juga hilang, dan menghapus
+kemungkinan kedua sumber menyimpang di kemudian hari.
+
+Suite terpasang tercatat `0.1.0` pada `6301c62` (2026-08-24); repo marketplace sendiri sudah di
+`f0136df`. Selisih itu pun tidak membawa berkas yang dicari.
 
 **Dua butir "rapikan juga" pada versi terdahulu sudah tidak berlaku — dicoret 2026-09-02:**
 
@@ -508,8 +533,8 @@ kemampuan baru yang perlu dibangun di modul `rekam-medis`.
 | 6 | Dokter PJ laboratorium / Komite Medis | Tanda tangan tiga keputusan keselamatan | Seluruh slice hasil | ⏳ Di luar wewenang pemilik repo |
 | 7 | Pemilik platform | Kesepakatan pemberitahuan sebagai kemampuan platform | Nilai kritis | ✅ **Disetujui** |
 | 8 | Pemilik `rekam-medis` | Satu jenis dokumen klinis baru | Hasil ke rekam medis | ✅ **Disetujui** |
-| **9** | **Pemilik registry prefix** | **Lifecycle Laboratorium dari `PLANNED` ke `ACTIVE`** | **Seluruh implementasi MVP** | 🟡 **Diajukan 2026-09-02** |
-| **10** | **Pemilik registry prefix** | **Prefix data induk Laboratorium — usulan `Lab`, tinggal disetujui atau ditolak** | Penamaan dua tabel + konsistensi kontrak | 🟡 **Diajukan 2026-09-02** |
+| **9** | **Muhammad Hamzah** — pemilik registry prefix | **Lifecycle Laboratorium dari `PLANNED` ke `ACTIVE`** | **Seluruh implementasi MVP** | 🟡 **Diajukan 2026-09-02** |
+| **10** | **Muhammad Hamzah** — pemilik registry prefix | **Prefix data induk Laboratorium — usulan `Lab`, tinggal disetujui atau ditolak** | Penamaan dua tabel + konsistensi kontrak | 🟡 **Diajukan 2026-09-02** |
 | **11** | **Andry Zain** — pemilik repository backend | **Perbaiki path tata kelola di `Invoke-QbeConformanceCheck.ps1`** | Gerbang QBE di CI | 🟡 **Diajukan 2026-09-02** |
 
 **Nomor 9 adalah penghalang terberat yang tersisa** — tetapi terhadap **implementasi**, bukan
@@ -563,3 +588,6 @@ Agar tidak disalahpahami, berikut yang **bukan** bagian permintaan ini:
 | 2026-09-02 | Butir 9 dan 10 diteruskan ke pemilik registry prefix | `diajukan` |
 | 2026-09-02 | Butir 11 ditujukan kepada **Andry Zain** (`andryzainhome`, `andryzain01@gmail.com`) selaku pemilik repository backend, atas penetapan pemilik modul Laboratorium | `diajukan` |
 | 2026-09-02 | Roadmap backend dan frontend diterbitkan di `roadmap/` beserta traceability-nya. `input_hashes` manifest dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dan diverifikasi | `berjalan` |
+| 2026-09-02 | Butir 9, 10, dan `LAB-OPEN-018` ditetapkan menjadi wewenang **Muhammad Hamzah** — selaku pemilik registry prefix sekaligus pemilik repo marketplace `MHamzah1/QuilvianEngineeringSkillsClaude` | `diajukan` |
+| 2026-09-02 | Ditemukan bahwa `/plugin update` **tidak** dapat menutup `LAB-OPEN-018`: repo marketplace tidak pernah memuat dokumen tata kelola di commit mana pun. Saran sebelumnya dikoreksi; dua jalan penutupan diajukan pada 3.4 | `dikoreksi` |
+| 2026-09-02 | Dua ringkasan terarah diturunkan: `LAB-REQ-002` untuk Muhammad Hamzah (3 butir) dan `LAB-REQ-003` untuk pemilik `master-data` dan `registration-management` (3 pekerjaan yang izinnya sudah ada) | `diajukan` |

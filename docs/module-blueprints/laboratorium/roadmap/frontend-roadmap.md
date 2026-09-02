@@ -8,7 +8,7 @@
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
 | Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `19` |
+| Manifest | `blueprint-manifest.md` revision `23` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3 `approved`, dikunci 2026-09-02 |

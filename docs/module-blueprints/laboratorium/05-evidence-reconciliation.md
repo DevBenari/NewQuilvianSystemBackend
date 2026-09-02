@@ -159,7 +159,7 @@ cito berdampak pada tarif.
 | Aspek | Isi |
 |---|---|
 | Keputusan yang bertentangan | `LAB-DEC-021` — hasil punya **dua** bentuk: angka dan pilihan terbatas |
-| Dampak | **`BLOCKING`** untuk `MstLabValueBound` dan slice hasil |
+| Dampak | **`BLOCKING`** untuk `LabValueBound` dan slice hasil |
 
 **Apa yang ditunjukkan bukti.** Sekurang-kurangnya **empat** bentuk hasil dipakai:
 
@@ -170,7 +170,7 @@ cito berdampak pada tarif.
 | **Mikrobiologi berstruktur** | `Bagian Kedua` CAP-011, RULE-006 | Organisme per bakteri, antibiotik, `ug`, rentang R-S, zona per mm, hasil `R`/`I`/`S`. Setiap Bacteria Result adalah **task terpisah** yang dapat ditambah dan dikurangi |
 | **Narasi Patologi Anatomi** | `Laboratorium 1.md` CAP-009, RULE-002, RULE-003 | Makroskopik, Mikroskopik, Kesimpulan — ketiganya wajib — ditambah **gambar** berukuran maksimum 2 MB |
 
-Tabel batas nilai pada `MstLabValueBound` hanya memuat rentang angka dan daftar pilihan. Bentuk
+Tabel batas nilai pada `LabValueBound` hanya memuat rentang angka dan daftar pilihan. Bentuk
 ketiga dan keempat **tidak punya tempat**, dan keduanya tidak dapat dinilai kritis dengan
 mekanisme batas mana pun.
 

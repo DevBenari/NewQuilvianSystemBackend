@@ -5,7 +5,7 @@
 | Contract version | `LAB-STATE-v1` |
 | Revision | `2` |
 | Status | `approved` — dikunci 2026-09-02 |
-| Batas penguncian | Terkunci **kecuali** penamaan `MstLabValueBound` dan `MstLabValueOption`, yang menunggu `LAB-OPEN-021` |
+| Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
 | Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
@@ -133,7 +133,7 @@ langsung oleh petugas kecuali saat dibatalkan.
 
 Status terminal: `Approved`, `Rejected`, `Withdrawn`.
 
-**Yang terjadi saat disetujui:** batas kritis pada `MstLabValueBound` diperbarui, dan satu baris
+**Yang terjadi saat disetujui:** batas kritis pada `LabValueBound` diperbarui, dan satu baris
 `LabValueBoundHistory` dibuat dengan `ApprovedByUserId` terisi. Sebelum disetujui, batas yang
 berlaku **tidak berubah sama sekali**.
 

@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `3` |
+| Roadmap revision | `7` |
 | Status | `DRAFT` |
 | Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `19` |
+| Manifest | `blueprint-manifest.md` revision `23` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — `approved` 2026-09-02 |
@@ -35,8 +35,8 @@ bagian 4, bukan disembunyikan.
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-02.1` | `LAB-DEC-024` | `02-backend-architecture.md` §4.3 | `LAB-API-v1` r3 | `BE-LAB-09` | `FE-LAB-07` | `AC-35` | Direncanakan |
-| `FR-02.2` | `LAB-DEC-024` | `contracts/state-transition-matrix.md` | `LAB-STATE-v1` r2 | `BE-LAB-12` | `FE-LAB-07` | `AC-36`, `AC-37` | Direncanakan |
+| `FR-02.1` | `LAB-DEC-024` | `02-backend-architecture.md` §4.3 | `LAB-API-v1` r3 | `BE-LAB-09`, `BE-LAB-16` | `FE-LAB-07` | `AC-35` | Direncanakan |
+| `FR-02.2` | `LAB-DEC-024` | `contracts/state-transition-matrix.md` | `LAB-STATE-v1` r2 | `BE-LAB-12`, `BE-LAB-16` | `FE-LAB-07` | `AC-36`, `AC-37` | Direncanakan |
 | `FR-02.3` | `LAB-DEC-024` | `VAL-13` | `LAB-VAL-v1` r3 | `BE-LAB-12` | `FE-LAB-07` | `AC-36` | Direncanakan |
 | `FR-02.4` | `LAB-DEC-024` | `erd/data-dictionary.md` | — | `BE-LAB-11` | — | `AC-35` | **`BLOCKED`** `LAB-OPEN-012` |
 | `FR-02.5` | `LAB-DEC-024` | `VAL-14` | `LAB-VAL-v1` r3 | `BE-LAB-12` | `FE-LAB-07` | `AC-38` | Direncanakan |
@@ -127,7 +127,12 @@ bagian 4, bukan disembunyikan.
 | Acceptance criteria pada `testing/acceptance-test-matrix.md` | 30 | **30** | Naik dari 28 setelah `AC-11` dan `AC-19` ditambahkan 2026-09-02. Seluruhnya dirujuk minimal satu task |
 | Epic dalam scope | 10 | **10** | `EPIC-LAB-01` .. `EPIC-LAB-10` |
 | Slice dalam scope | 10 | **10** | `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Task backend | 18 | — | 15 milik Laboratorium, 3 dependency eksternal |
+| Endpoint To-Be pada `contracts/api-contract.md` | 37 | **37** | Diaudit 2026-09-02; empat endpoint Lab Examination semula tanpa pemilik, ditutup `BE-LAB-16` |
+| Aturan validasi `VAL-*` | 50 | **50** | Seluruhnya berpemilik per bagian matriks. `VAL-09` — empat mata pada tingkat wadah — semula tidak dikutip task mana pun; kini tegas di `BE-LAB-12` |
+| Entity pada `02-backend-architecture.md` §4 | 9 | **9** | Delapan berpemilik task; `TrxLabTransitionHistory` dipakai apa adanya tanpa pekerjaan struktur |
+| Pasangan kewenangan `resource : action` | 29 | **29** | 16 baru dan berpemilik task; 13 sisanya sudah terdaftar pada `c87d9c0` |
+| Kontrak integrasi `INT-*` | 6 | **6** | `INT-01`, `INT-05`, `INT-06` berpemilik task; `INT-02` sampai `INT-04` sudah berjalan dan tidak disentuh Rilis 1 |
+| Task backend | 19 | — | 16 milik Laboratorium, 3 dependency eksternal |
 | Task frontend | 9 | — | Seluruhnya milik Laboratorium |
 
 ---
@@ -201,10 +206,10 @@ sakit menetapkannya. Bukan penahan pembangunan; penahan pernyataan siap pakai.
 
 | ID | Yang tertahan | Pencabut |
 |---|---|---|
-| `LAB-OPEN-018` | Eksekusi seluruh task backend dan pijakan aturan frontend | Pemasang suite Skill |
-| `LAB-OPEN-019` | Seluruh task yang membuat atau mengubah entity `Lab*` | Pemilik registry prefix |
-| `LAB-OPEN-020` | Berjalannya pemeriksaan konformansi QBE, termasuk gerbang CI | **Andry Zain** (`andryzain01@gmail.com`) |
-| `LAB-OPEN-021` | `BE-LAB-02`, `FR-03.1`, `FR-03.2`, `FR-03.6`, `FR-01.4` | Pemilik registry prefix |
+| `LAB-OPEN-018` | Eksekusi seluruh task backend dan pijakan aturan frontend | **Muhammad Hamzah** — repo marketplace tidak pernah memuat dokumennya; `/plugin update` tidak menolong |
+| ~~`LAB-OPEN-019`~~ | ~~Entity `Lab*` dan migration~~ | ✅ Ditutup 2026-09-02 — registry kini `ACTIVE` |
+| ~~`LAB-OPEN-020`~~ | ~~Pemeriksaan konformansi QBE~~ | ✅ Ditutup 2026-09-02 — checker `PASS`, exit 0 |
+| ~~`LAB-OPEN-021`~~ | ~~Penamaan dua tabel batas nilai~~ | ✅ Ditutup 2026-09-02 — ditetapkan `Lab` |
 | `LAB-OPEN-012` | `BE-LAB-11`, `FR-02.4`, `FR-02.6` | Pemilik repository backend atau DBA |
 | `LAB-SIGN-001` | Slice `S4`, `S4b`, `S4c`, `S5`, `S6` — **di luar scope roadmap ini** | Dokter PJ laboratorium atau Komite Medis |
 | `LAB-AMD-001` | Slice `S1b` — **di luar scope roadmap ini** | Pemilik blueprint `rawat-jalan` |
@@ -218,3 +223,5 @@ sakit menetapkannya. Bukan penahan pembangunan; penahan pernyataan siap pakai.
 | 1 | 2026-09-02 | Traceability pertama. 45 FR, 28 AC, 10 epic, dan 10 slice dipetakan ke 18 task backend dan 9 task frontend. Dua coverage gap dalam scope ditemukan dan dicatat | `DRAFT` |
 | 2 | 2026-09-02 | Kedua coverage gap ditutup: `AC-11` alur pemesanan lintas unit dan `AC-19` batas reagen ditambahkan ke matriks uji. Cakupan acceptance criteria naik menjadi 30 dari 30. Utang pembukuan riwayat revisi decisions ikut ditutup | `DRAFT` |
 | 3 | 2026-09-02 | `input_hashes` dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dari pharmacy dan billing-kasir dan diverifikasi. `LAB-OPEN-020` ditetapkan menjadi wewenang Andry Zain. Seluruh utang pembukuan tertutup | `DRAFT` |
+| 4 | 2026-09-02 | Audit cakupan endpoint ditambahkan sebagai dimensi ketiga di samping FR dan AC. Empat endpoint Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan pada roadmap backend. Total task backend menjadi 19 | `DRAFT` |
+| 5 | 2026-09-02 | Audit cakupan diperluas ke aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik. Temuan terpenting: `VAL-09`, aturan empat mata pada tingkat wadah, semula tidak dikutip task mana pun — kini dibebankan ke `BE-LAB-12`. Tujuh dimensi cakupan kini terperiksa | `DRAFT` |

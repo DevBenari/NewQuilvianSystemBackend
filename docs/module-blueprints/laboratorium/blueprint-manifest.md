@@ -5,7 +5,7 @@ blueprint_id: LAB-BP-001
 module_name: Laboratorium
 module_slug: laboratorium
 module_prefix: LAB
-revision: 19
+revision: 23
 status: approved-with-pending-reconciliation
 bentuk: SINGLE
 created_at: 2026-09-01T00:00:00+07:00
@@ -72,9 +72,9 @@ contract_versions:            # seluruhnya dikunci 2026-09-02 oleh Yoga Aji Prat
   - LAB-INT-v1: approved      # revision 3
   - LAB-PERM-v1: approved     # revision 3
 contract_lock_scope: |
-  Penguncian mencakup seluruh isi kontrak KECUALI penamaan MstLabValueBound dan
-  MstLabValueOption, yang masih menunggu LAB-OPEN-021. Task roadmap yang membuat kedua tabel
-  itu tetap BLOCKED; task lain boleh berjalan paralel BE/FE.
+  TERKUNCI PENUH sejak 2026-09-02. LAB-OPEN-021 dijawab Muhammad Hamzah: entity baru milik
+  Laboratorium memakai prefix Lab, sehingga kedua tabel batas nilai bernama LabValueBound dan
+  LabValueOption. Tidak ada lagi bagian kontrak yang dikecualikan dari penguncian.
   Input hash sudah dihitung ulang 2026-09-02 sebagai sha256 penuh; lihat input_hashes dan input_hashes_method.
 
 evidence_baseline:
@@ -87,10 +87,12 @@ evidence_baseline:
 active_blockers:
   - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6
   - LAB-AMD-001     # amandemen rawat-jalan — memblokir S1b
-  - LAB-OPEN-018    # rules root terpasang tertinggal jauh: 13 dari 29 berkas, GLOBAL_RULES.md dan backend/engineering/ hilang — memblokir IMPLEMENTATION
-  - LAB-OPEN-019    # lifecycle registry LaboratoryManagement masih PLANNED — QBE-MOD-002 menahan entity Lab*. Memblokir IMPLEMENTATION, bukan PLANNING
-  - LAB-OPEN-020    # Invoke-QbeConformanceCheck.ps1 menunjuk agents/rules/engineering/ yang sudah dicabut — TOOL ERROR, gerbang QBE di CI mati. Pemilik: Andry Zain <andryzain01@gmail.com>
-  - LAB-OPEN-021    # prefix data induk Lab* vs Mst* — dipisahkan dari LAB-OPEN-018 yang ID-nya sempat dipakai ganda
+  - LAB-OPEN-018    # rules root runtime tidak memuat GLOBAL_RULES.md maupun backend/engineering/. Pilihan B disetujui Muhammad Hamzah 2026-09-02 tetapi BELUM dieksekusi: marketplace masih menunjuk MHamzah1/QuilvianEngineeringSkillsClaude yang tidak pernah memuat kedua dokumen. Memblokir SELURUH implementasi backend
+
+closed_blockers:                # ditutup 2026-09-02, disimpan sebagai jejak
+  - LAB-OPEN-019    # lifecycle registry PLANNED -> ACTIVE, disetujui Muhammad Hamzah lewat LAB-REQ-002; diterapkan pada registry canonical dan salinan docs/engineering/
+  - LAB-OPEN-020    # Invoke-QbeConformanceCheck.ps1 diperbaiki atas persetujuan Andry Zain: empat rujukan agents/rules/engineering/ diganti docs/engineering/. Checker kini PASS, exit 0
+  - LAB-OPEN-021    # prefix data induk ditetapkan Lab; LabValueBound dan LabValueOption. MstLabRejectionReason tetap legacy
   - LAB-OPEN-012    # jumlah data lab existing belum diverifikasi — prasyarat migration
   - LAB-OPEN-013    # dampak cito dan duplo pada tarif
   - LAB-OPEN-014    # nilai kritis untuk mikrobiologi dan patologi anatomi
@@ -121,7 +123,7 @@ inherited_decisions:
 
 | Berkas | Ditulis oleh | Status |
 |---|---|---|
-| `blueprint-manifest.md` | `design-business-module` | rev 19 |
+| `blueprint-manifest.md` | `design-business-module` | rev 23 |
 | `00-interview-decisions.md` | `grill-me` | rev 21 — **36 keputusan `approved`**; 5 koordinasi lintas modul ditutup |
 | `01-existing-capability-map.md` | `trace-existing-capabilities` | rev 2 — impact scan 2026-09-02, `STALE` dicabut, tidak ada status kemampuan yang berubah |
 | `02-requirement-completeness-assessment.md` | `requirement-completeness-gate` | rev 5 — `PARTIALLY_READY`, 10 dari 21 bagian siap |
@@ -139,15 +141,17 @@ inherited_decisions:
 | `contracts/integration-contract.md` | `design-business-module` | rev 3 — `approved`, dikunci 2026-09-02; `INT-05` dan `INT-06` |
 | `contracts/permission-audit-matrix.md` | `design-business-module` | rev 3 — `approved`, dikunci 2026-09-02; 9 kewenangan baru |
 | `testing/acceptance-test-matrix.md` | `design-business-module` | rev 3 — dua coverage gap ditutup: AC-11 alur lintas unit dan AC-19 batas reagen |
-| `roadmap/backend-roadmap.md` | `plan-module-delivery` | rev 1 — `DRAFT`, 15 task Laboratorium + 3 task eksternal, 4 gelombang |
+| `roadmap/backend-roadmap.md` | `plan-module-delivery` | rev 3 — `DRAFT`, 16 task Laboratorium + 3 task eksternal; lima dimensi cakupan diaudit |
 | `roadmap/frontend-roadmap.md` | `plan-module-delivery` | rev 1 — `DRAFT`, 9 task, dipasangkan ke gelombang backendnya |
-| `roadmap/traceability.md` | `plan-module-delivery` | rev 1 — `DRAFT`, 45 FR dan 28 AC terpetakan; 2 coverage gap dicatat |
+| `roadmap/traceability.md` | `plan-module-delivery` | rev 5 — `DRAFT`, tujuh dimensi cakupan terpetakan penuh |
 
 ### Artefak operasional — di luar daftar hash
 
 | Berkas | Sifat | Status |
 |---|---|---|
 | `approval-requests/2026-09-01-permintaan-koordinasi-lintas-modul.md` | Operasional, bukan artefak desain | **`dijawab sebagian`** — 6 selesai, 5 terbuka. Butir 9, 10, dan 11 diajukan 2026-09-02 |
+| `approval-requests/2026-09-02-permintaan-muhammad-hamzah.md` | Operasional | `LAB-REQ-002` — 3 butir terarah: rules root, lifecycle registry, prefix data induk |
+| `approval-requests/2026-09-02-permintaan-master-data-dan-registrasi.md` | Operasional | `LAB-REQ-003` — `BE-EXT-01` sampai `BE-EXT-03`, izinnya sudah ada sejak 2026-09-01 |
 
 ## Catatan status
 

@@ -127,9 +127,9 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/TrxLabTransition
 
 ---
 
-## 5. `MstLabValueBound` — `Baru`
+## 5. `LabValueBound` — `Baru`
 
-Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/MstLabValueBound.cs`
+Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabValueBound.cs`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
@@ -149,14 +149,14 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/MstLabValueBound
 
 ---
 
-## 6. `MstLabValueOption` — `Baru`
+## 6. `LabValueOption` — `Baru`
 
-Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/MstLabValueOption.cs`
+Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabValueOption.cs`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `ValueBoundId` | `Guid` | Ya | — | Unique bersama `OptionCode` | FK ke `MstLabValueBound` | `Cascade` | Tidak | Batas nilai induk |
+| `ValueBoundId` | `Guid` | Ya | — | Unique bersama `OptionCode` | FK ke `LabValueBound` | `Cascade` | Tidak | Batas nilai induk |
 | `OptionCode` | `string(20)` | Ya | — | Unique bersama | — | — | Tidak | Kode pilihan, misalnya `P3` |
 | `OptionName` | `string(100)` | Ya | — | — | — | — | Tidak | Nama pilihan, misalnya `+3` |
 | `IsOutOfReference` | `bool` | Ya | `false` | — | — | — | Tidak | Pilihan ini di luar nilai rujukan |
@@ -175,7 +175,7 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabValueBoundCha
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `ValueBoundId` | `Guid` | Ya | — | Index | FK ke `MstLabValueBound` | `Restrict` | Tidak | Batas nilai yang diusulkan berubah |
+| `ValueBoundId` | `Guid` | Ya | — | Index | FK ke `LabValueBound` | `Restrict` | Tidak | Batas nilai yang diusulkan berubah |
 | `RequestStatus` | `LabBoundChangeStatus` | Ya | `Submitted` | Index | — | — | Tidak | Diajukan, berlaku, ditolak, atau ditarik |
 | `ProposedCriticalLow` | `decimal(18,4)?` | Tidak | — | — | — | — | Tidak | Usulan batas kritis bawah |
 | `ProposedCriticalHigh` | `decimal(18,4)?` | Tidak | — | — | — | — | Tidak | Usulan batas kritis atas |
@@ -196,7 +196,7 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabValueBoundHis
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `ValueBoundId` | `Guid` | Ya | — | Index bersama `OccurredAt` | FK ke `MstLabValueBound` | `Restrict` | Tidak | Batas nilai yang berubah |
+| `ValueBoundId` | `Guid` | Ya | — | Index bersama `OccurredAt` | FK ke `LabValueBound` | `Restrict` | Tidak | Batas nilai yang berubah |
 | `ChangedField` | `string(100)` | Ya | — | — | — | — | Tidak | Nama kolom yang berubah |
 | `OldValue` | `string(200)?` | Tidak | — | — | — | — | Tidak | Nilai lama |
 | `NewValue` | `string(200)?` | Tidak | — | — | — | — | Tidak | Nilai baru |
@@ -399,11 +399,11 @@ CREATE UNIQUE INDEX "IX_LabExamination_SpecimenId_ProcedureId"
     WHERE "IsDelete" = false;
 ```
 
-### 11.2 `MstLabValueBound` — Baru
+### 11.2 `LabValueBound` — Baru
 
 ```sql
 -- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
-CREATE TABLE public."MstLabValueBound" (
+CREATE TABLE public."LabValueBound" (
     "Id"                      uuid           NOT NULL,
     "ProcedureId"             uuid           NOT NULL,
     "ResultForm"              integer        NOT NULL,  -- enum, HasConversion<int>
@@ -419,23 +419,23 @@ CREATE TABLE public."MstLabValueBound" (
     "SortOrder"               integer        NOT NULL DEFAULT 0,
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
-    CONSTRAINT "PK_MstLabValueBound" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_MstLabValueBound_MstProcedure_ProcedureId"
+    CONSTRAINT "PK_LabValueBound" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_LabValueBound_MstProcedure_ProcedureId"
         FOREIGN KEY ("ProcedureId") REFERENCES public."MstProcedure" ("Id") ON DELETE RESTRICT,
-    CONSTRAINT "FK_MstLabValueBound_MstAgeCategory_AgeCategoryId"
+    CONSTRAINT "FK_LabValueBound_MstAgeCategory_AgeCategoryId"
         FOREIGN KEY ("AgeCategoryId") REFERENCES public."MstAgeCategory" ("Id") ON DELETE RESTRICT
 );
 
-CREATE UNIQUE INDEX "IX_MstLabValueBound_Procedure_Gender_AgeCategory"
-    ON public."MstLabValueBound" ("ProcedureId", "GenderScope", "AgeCategoryId")
+CREATE UNIQUE INDEX "IX_LabValueBound_Procedure_Gender_AgeCategory"
+    ON public."LabValueBound" ("ProcedureId", "GenderScope", "AgeCategoryId")
     WHERE "IsDelete" = false;
 ```
 
-### 11.3 `MstLabValueOption` — Baru
+### 11.3 `LabValueOption` — Baru
 
 ```sql
 -- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
-CREATE TABLE public."MstLabValueOption" (
+CREATE TABLE public."LabValueOption" (
     "Id"                 uuid          NOT NULL,
     "ValueBoundId"       uuid          NOT NULL,
     "OptionCode"         varchar(20)   NOT NULL,
@@ -445,13 +445,13 @@ CREATE TABLE public."MstLabValueOption" (
     "SortOrder"          integer       NOT NULL DEFAULT 0,
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
-    CONSTRAINT "PK_MstLabValueOption" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_MstLabValueOption_MstLabValueBound_ValueBoundId"
-        FOREIGN KEY ("ValueBoundId") REFERENCES public."MstLabValueBound" ("Id") ON DELETE CASCADE
+    CONSTRAINT "PK_LabValueOption" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_LabValueOption_LabValueBound_ValueBoundId"
+        FOREIGN KEY ("ValueBoundId") REFERENCES public."LabValueBound" ("Id") ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX "IX_MstLabValueOption_ValueBoundId_OptionCode"
-    ON public."MstLabValueOption" ("ValueBoundId", "OptionCode")
+CREATE UNIQUE INDEX "IX_LabValueOption_ValueBoundId_OptionCode"
+    ON public."LabValueOption" ("ValueBoundId", "OptionCode")
     WHERE "IsDelete" = false;
 ```
 
@@ -475,8 +475,8 @@ CREATE TABLE public."LabValueBoundChangeRequest" (
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
     CONSTRAINT "PK_LabValueBoundChangeRequest" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_LabValueBoundChangeRequest_MstLabValueBound_ValueBoundId"
-        FOREIGN KEY ("ValueBoundId") REFERENCES public."MstLabValueBound" ("Id") ON DELETE RESTRICT
+    CONSTRAINT "FK_LabValueBoundChangeRequest_LabValueBound_ValueBoundId"
+        FOREIGN KEY ("ValueBoundId") REFERENCES public."LabValueBound" ("Id") ON DELETE RESTRICT
 );
 
 CREATE INDEX "IX_LabValueBoundChangeRequest_ValueBoundId" ON public."LabValueBoundChangeRequest" ("ValueBoundId");
@@ -500,8 +500,8 @@ CREATE TABLE public."LabValueBoundHistory" (
     -- kolom audit IdentityModel tidak ditulis ulang di sini
 
     CONSTRAINT "PK_LabValueBoundHistory" PRIMARY KEY ("Id"),
-    CONSTRAINT "FK_LabValueBoundHistory_MstLabValueBound_ValueBoundId"
-        FOREIGN KEY ("ValueBoundId") REFERENCES public."MstLabValueBound" ("Id") ON DELETE RESTRICT
+    CONSTRAINT "FK_LabValueBoundHistory_LabValueBound_ValueBoundId"
+        FOREIGN KEY ("ValueBoundId") REFERENCES public."LabValueBound" ("Id") ON DELETE RESTRICT
 );
 
 CREATE INDEX "IX_LabValueBoundHistory_ValueBoundId_OccurredAt"
