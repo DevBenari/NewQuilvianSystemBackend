@@ -6,9 +6,9 @@
 | Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
 | **Roadmap status** | **`APPROVED`** — disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun pada 3 September 2026 |
 | Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | `6488511` cabang `sukmagp` |
+| Backend SHA | `ec2bcac` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
-| Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **10** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
+| Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **11** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
 Roadmap ini **tidak** memberi wewenang implementasi, bahkan setelah disetujui. Approval `G1` membuka
@@ -171,7 +171,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 | `BE-BD-010` | Koreksi pencatatan pemberian **dua tahap** | `DEC-BD-030/034/041`, `BD-DOM-23`, `INV-BD-021/024/033` | api-contract, validation | `BbkIssuanceCorrection` + lifecycle `Requested`→`Approved`/`Rejected`, peminta ≠ pemutus, pemenuhan hanya hitung `Approved` | `G1`, `G2b`, `BE-BD-007` | `AC-BD-047/048/049/050/086/087/088` | **Tinggi / klinis** |
 | `BE-BD-011` | Konflik golongan darah diselesaikan validator klinis lewat pemeriksaan ulang | `DEC-BD-026/031/039`, `BD-DOM-22`, `INV-BD-022/031` | api-contract, validation | `BbkBloodGroupConflictResolution` (wajib `ResolvingExamId`), butir `ResolveConflict` terpisah | `G1`, `G2b`, `BE-BD-005` | `AC-BD-036/037/051/053/054/079/080` | **Tinggi / klinis** |
 | `BE-BD-012` | Tindakan Bank Darah dicatat (tanpa charge) | `DEC-BD-021/034`, `BD-AGG-05` | api-contract | `BbkBloodBankProcedure` (snapshot tarif), **tanpa** penyaluran Billing | `G1`, `G2b`, `BE-BD-003` | `AC-BD-026/058` | Sedang / BDRS |
-| `BE-BD-016` | Seluruh resource & action hak akses Bank Darah terdaftar | `DEC-BD-039`..`044` | permission-audit-matrix | Seeder resource + action; `BloodUnit : Resolve` lama **MUST NOT** didaftarkan | `G1` (bebas `G2b`) | `AC-BD-078/090/093` | Sedang / keamanan platform |
+| `BE-BD-016` **`SELESAI SEBAGIAN`** — [laporan](../task/report/backend/BE-BD-016.md) | Seluruh resource & action hak akses Bank Darah terdaftar | `DEC-BD-039`..`044` | permission-audit-matrix | Seeder resource + action; `BloodUnit : Resolve` lama **MUST NOT** didaftarkan | `G1` (bebas `G2b`) | `AC-BD-078/090/093` | Sedang / keamanan platform. **8 dari 39 butir terdaftar** 3 September 2026; 12 test kontrak lulus. **Temuan arsitektural:** tidak ada seeder permission untuk ditulis — `AccessMenuSeeder` mendaftarkan butir lewat refleksi atas controller yang benar-benar ada, sehingga 31 butir sisanya lahir bersama task pembuat controller-nya. Deskripsi task ini perlu diubah pemilik roadmap; lihat laporan §8.1 |
 
 ### E.2 Frontend
 
@@ -188,7 +188,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
 | Gelombang | Isi | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001` bagian `MstBloodComponent`, `BE-BD-002`, dan `BE-BD-014` selesai 3 September 2026; tersisa `BE-BD-016` dan `MstBloodBankReason` |
+| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001` bagian `MstBloodComponent`, `BE-BD-002`, dan `BE-BD-014` selesai 3 September 2026. `BE-BD-016` **selesai sebagian** — 8 dari 39 butir hak akses terdaftar, sisanya terikat task pembuat controller. Tersisa `MstBloodBankReason` |
 | `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2b` + `MVP-0` |
 | `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** |
 | `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `MVP-1` |

@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `10` |
-| Decision revision | `10` |
+| Revision | `11` |
+| Decision revision | `11` |
 | Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
 | Backend SHA pada revisi 5 | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86`. Perbedaan sampai `792acb9` **hanya** dokumen blueprint Bank Darah, nol berkas source aplikasi — sudah diperiksa dengan `git diff --name-only` |
@@ -437,6 +437,7 @@ tertunggak ditetapkan sebagai daftar kerja wajib pada `DEC-BD-023`.
 | `CONF-BD-003` | Frasa "PMI/MMC" seolah keduanya pemasok | Seluruh frasa dibaca sebagai PMI; MMC adalah organisasi pengguna |
 | `CONF-BD-004` | Tidak ada status bernama "ditutup", dan rawat inap punya jalur penutupan tersendiri | Diselesaikan `DEC-BD-014` dengan dua penyesuai berbeda per jenis kunjungan |
 | `CONF-BD-005` | `MstPatient.BloodType` mudah dikira hasil pemeriksaan yang sah | Diselesaikan `DEC-BD-015`; sumber sah adalah hasil pemeriksaan milik Bank Darah |
+| `CONF-BD-006` | Baris peran Petugas BDRS umum pada `permission-audit-matrix.md` memuat `BloodUnit : Compatibility`, bertentangan dengan `DEC-BD-042`, `VAL-BD-078`, dan `AC-BD-090` yang membatasinya pada petugas berwenang validasi | Diselesaikan `DEC-BD-047`; butir dicabut dari baris peran umum. Ditemukan `BE-BD-016` saat menyandingkan matriks hak akses dengan matriks validasi |
 
 ### 8.7 Architecture gap closure pass
 
@@ -1198,6 +1199,92 @@ dari revisi 9 ke revisi 10.
 Satu-satunya pekerjaan hilir yang tersisa: `BE-BD-016` kini dapat menuliskan baris seeder
 `BloodUnit : ResolveNotUsable` tanpa menunggu siapa pun.
 
+### 8.25 Permission conflict closure pass
+
+Pass ini menutup satu konflik yang ditemukan pelaksanaan `BE-BD-016` ketika matriks hak akses
+disandingkan dengan matriks validasi dan matriks acceptance.
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | `2026-09-03` |
+| Sifat pass | **Amendment pass** — blueprint sudah `approved` (set kontrak `v4`, `Sukmagp` / `2026-09-03`) |
+| Backend SHA saat pass | `ec2bcac` cabang `sukmagp` |
+| Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
+| Asal temuan | `task/report/backend/BE-BD-016.md` §8.2 |
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-047` | `CONF-BD-006` | `Decision` | Butir `BloodUnit : Compatibility` **hanya** diberikan kepada petugas BDRS berwenang validasi. Butir itu **dicabut** dari baris peran Petugas BDRS umum pada `permission-audit-matrix.md` | Pemilik proses klinis bersama BDRS | `draft` | kosong |
+
+Turunannya: **nol invariant baru, nol acceptance criteria baru, nol kode validasi baru.**
+
+### 8.26 Rincian keputusan permission conflict closure pass
+
+**`DEC-BD-047` — butir bukti kecocokan hanya milik petugas berwenang validasi.**
+
+*Kenapa ini bukan pilihan lima puluh-lima puluh.* Tiga sumber sudah sepakat sejak `v4`, dan hanya
+satu baris yang menyimpang:
+
+| Sumber | Isinya |
+| --- | --- |
+| `DEC-BD-042` | Bukti kecocokan dinyatakan selesai oleh **petugas BDRS berwenang validasi** |
+| `VAL-BD-078` | Menolak **403** ketika pelaku tidak memegang kewenangan validasi |
+| `AC-BD-090` | "Petugas BDRS **tanpa kewenangan validasi** mencoba menyatakan bukti kecocokan → **Ditolak** `VAL-BD-078`" |
+| `permission-audit-matrix.md` baris peran umum | Petugas BDRS umum memperoleh `BloodUnit : Read/Store/Allocate/**Compatibility**/Issue` |
+
+Baris terakhir karena itu dibaca sebagai **kekeliruan penyuntingan**, bukan keputusan tandingan.
+Pemilik proses menegaskannya pada 3 September 2026.
+
+*Kenapa dibiarkan akan berbahaya, dan bukan sekadar tidak rapi.* Hak akses diperiksa **lebih dulu**
+daripada aturan bisnis. Bila butir itu diberikan kepada seluruh petugas BDRS lewat baris peran umum,
+`VAL-BD-078` tidak akan pernah menyala — bukan karena aturannya dicabut, melainkan karena setiap
+pelaku sudah lolos pemeriksaan hak akses sebelum aturan itu sempat memeriksa. Pembatasan yang dibuat
+`DEC-BD-042` batal di tingkat seeder, tanpa satu pun dokumen menyatakannya dicabut.
+
+Akibat akhirnya menyentuh keselamatan pasien: darah dapat dinyatakan cocok untuk seorang pasien oleh
+petugas yang tidak ditunjuk memvalidasi.
+
+*Yang TIDAK berubah, dan itu penting.* `DEC-BD-042` tetap berlaku apa adanya, termasuk kelonggarannya:
+pelaksana pemeriksaan **boleh** berbeda dari validator, tetapi tidak diwajibkan. Petugas berwenang
+validasi yang mengerjakan ujinya sendiri tetap boleh menyatakannya sendiri (`AC-BD-091`). Yang dicabut
+hanyalah pemberian butir kepada peran yang memang tidak ditunjuk memvalidasi.
+
+*Batas `INV-BD-013` tetap utuh.* Quilvian tidak menghitung kompatibilitas; yang disimpan tetap
+pernyataan manusia beserta hasil keputusannya.
+
+**Contoh.** Analis BDRS mengerjakan uji cocok kantong `PMI-00871` terhadap Tn. S, lalu membuka layar
+kantong dan menekan Catat Bukti Kecocokan. Bila ia **tidak** memegang butir kewenangan validasi,
+permintaannya ditolak dengan keterangan bahwa hanya petugas Bank Darah dengan kewenangan validasi yang
+boleh menyatakan hasil pemeriksaan kecocokan. Hasil ujinya tetap dapat disampaikan kepada petugas
+berwenang validasi untuk dinyatakan — yang berpindah adalah siapa yang menekan tombolnya, bukan siapa
+yang mengerjakan ujinya.
+
+**Contoh kedua.** Petugas berwenang validasi yang kebetulan juga mengerjakan ujinya sendiri menekan
+tombol yang sama. **Berhasil** — `DEC-BD-042` mengizinkan pelaksana berbeda dari validator, tidak
+mewajibkannya, dan `AC-BD-091` menjaga izin itu tetap ada.
+
+### 8.27 Yang perlu diserap set kontrak
+
+Satu berkas, satu baris.
+
+| Artefak | Yang perlu diubah |
+| --- | --- |
+| `contracts/permission-audit-matrix.md` | Baris peran **Petugas Bank Darah / BDRS**: cabut `Compatibility` dari daftar `BloodUnit : Read/Store/Allocate/Compatibility/Issue` sehingga menjadi `BloodUnit : Read/Store/Allocate/Issue`. Baris peran **Petugas BDRS berwenang validasi (butir kedua)** tidak berubah |
+
+Berkas lain **tidak** perlu berubah, dan itu sudah diperiksa satu per satu:
+
+| Artefak | Perlu berubah? | Alasan |
+| --- | --- | --- |
+| `contracts/api-contract.md` | **Tidak** | Endpoint `POST /{id}/compatibility-evidence` tetap dijaga butir `BloodUnit : Compatibility` yang sama. Yang berubah siapa pemegang butirnya, bukan butir yang menjaga endpoint |
+| `contracts/validation-matrix.md` | **Tidak** | `VAL-BD-078` sudah berbunyi benar sejak `v4` |
+| `testing/acceptance-test-matrix.md` | **Tidak** | `AC-BD-089`, `AC-BD-090`, `AC-BD-091` sudah menggambarkan perilaku yang diputuskan |
+| `02-backend-architecture.md`, `data/`, `flowcharts/` | **Tidak** | Nol entity, kolom, enum, dan lifecycle tersentuh |
+| Source aplikasi | **Tidak** | `BE-BD-007` belum dibangun, sehingga tidak ada implementasi yang perlu diperbaiki. Butir ini juga belum pernah terdaftar — `BE-BD-016` mencatat cakupan pendaftaran baru 8 dari 39 |
+
+**Set kontrak karena itu tetap `v4` dan tetap `approved`.** Perubahannya adalah pembetulan satu baris
+pemetaan peran yang bertentangan dengan tiga sumber lain di dalam set yang sama — bukan perubahan
+aturan, endpoint, atau kewenangan yang sebelumnya disepakati.
+
 ## 9. Acceptance Criteria
 
 | ID | Kondisi | Hasil yang diharapkan |
@@ -1344,10 +1431,21 @@ OQ residue closure pass: `OQ-BD-017` ditutup `DEC-BD-045` (kewenangan operasiona
 ditutup `DEC-BD-046` (bukti `Incompatible` menahan pemberian, `VAL-BD-079` ditegaskan).
 `BD-DEP-016` juga sudah tertutup di luar sesi wawancara — Lifecycle registri naik ke `ACTIVE` lewat
 commit `8075784` pada 3 September 2026.
+Permission conflict closure pass: `CONF-BD-006` ditutup `DEC-BD-047` — butir `BloodUnit : Compatibility`
+dicabut dari baris peran Petugas BDRS umum dan hanya diberikan kepada petugas berwenang validasi.
 
 ---
 
 ## 11. Langkah Berikutnya
+
+**Permission conflict closure pass (terbaru, 3 September 2026).** `DEC-BD-047` menutup `CONF-BD-006`,
+konflik yang ditemukan pelaksanaan `BE-BD-016`. Butir `BloodUnit : Compatibility` hanya diberikan
+kepada petugas BDRS berwenang validasi.
+
+Satu berkas kontrak perlu menyerapnya — `contracts/permission-audit-matrix.md`, satu baris — dan itu
+milik `design-business-module`, bukan skill wawancara. Set kontrak tetap `v4` `approved`; rinciannya
+di bagian 8.27.
+
 
 **OQ residue closure pass (terbaru, 3 September 2026).** `DEC-BD-045` dan `DEC-BD-046` menutup dua
 pertanyaan terbuka terakhir yang menempel pada set kontrak `v4`. Sesudah pass ini **tidak ada satu pun

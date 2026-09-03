@@ -5,17 +5,17 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `22` |
-| Module status | `READY` |
+| Revision | `23` |
+| Module status | `IN_PROGRESS` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `belum pernah diverifikasi` |
-| Backend source SHA | `6488511` cabang `sukmagp` |
+| Backend source SHA | `ec2bcac` cabang `sukmagp` |
 | Frontend source SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
-| Decision revision | `10` — `DEC-BD-001` sampai `DEC-BD-046` |
+| Decision revision | `11` — `DEC-BD-001` sampai `DEC-BD-047` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-03` — blueprint consistency pass (`SortOrder` dicabut) |
+| Terakhir diperbarui | `2026-09-03` — sinkronisasi implementasi `MVP-0` |
 
 Modul naik dari `PARTIAL` ke **`READY`**. Seluruh fase perancangan sudah menghasilkan artefaknya,
 **tidak ada satu pun keputusan bisnis yang masih memblokir**, dan sejak 3 September 2026 tidak ada satu
@@ -108,7 +108,7 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `DONE` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). **Bukti penerimaan:** set kontrak `v4` disetujui `Sukmagp` pada `2026-09-03` (`G1`), tercatat di manifest revisi 20 dan di kepala setiap artefak kontrak. |
 | `BD-PH-006` | Perencanaan delivery | `DONE` | Roadmap **revisi 2** menggantikan revisi 1 yang `STALE`, dan statusnya naik dari `FORWARD-TEST / DRAFT` menjadi **`APPROVED`** ketika `G1` turun. Ketiga gerbangnya tertutup: `G1` approval, `G2a` penamaan (`ed7fba8`), `G2b` aktivasi (`8075784`); `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. |
-| `BD-PH-007` | Implementasi backend | `READY` | Ketiga gerbang tertutup dan seluruh dependency teknis selesai. Gelombang `MVP-0` (`BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016`) boleh dijadwalkan lebih dulu, lalu `MVP-1` dan seterusnya. Belum ada task yang dijalankan. |
+| `BD-PH-007` | Implementasi backend | **`IN_PROGRESS`** | Gelombang `MVP-0` sedang berjalan. `BE-BD-002` dan `BE-BD-014` **selesai**; `BE-BD-001` dan `BE-BD-016` **selesai sebagian**. Keempatnya meninggalkan laporan tracked di `task/report/backend/`. `MVP-1` belum dimulai karena `MstBloodBankReason` masih tertinggal. |
 | `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Kontrak API **sudah** `approved` dan terkunci pada `v4`, sehingga gerbangnya tidak lagi menahan. Yang menahan tinggal urutan biasa: tidak ada task FE yang mendahului task BE pasangannya, dan belum ada satu pun task BE yang dijalankan. |
 | `BD-PH-009` | Verifikasi kesiapan | `NOT_STARTED` | Belum ada implementasi untuk diverifikasi. |
 
@@ -124,13 +124,26 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 
 | Backend | Frontend | Integrasi | Verifikasi |
 | --- | --- | --- | --- |
-| `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| **`IN_PROGRESS`** | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
-Belum ada `task/report/**` pada folder modul — tidak ada satu pun task implementasi yang pernah
-dijalankan. Sejak roadmap revisi 2 disetujui, pembagi yang sah **sudah ada**: 15 task backend
-(`BE-BD-001`..`012`, `014`, `015`, `016`; `BE-BD-013` berada di future scope) dan 12 task frontend
-(`FE-BD-001`..`012`). Kemajuan delivery karena itu **0 dari 27 task**, dan angka itu dihitung dari
-keberadaan `task/report/**`, bukan diperkirakan.
+Pembaginya 15 task backend (`BE-BD-001`..`012`, `014`, `015`, `016`; `BE-BD-013` berada di future
+scope) dan 12 task frontend (`FE-BD-001`..`012`) — **27 task**. Angka di bawah dihitung dari
+keberadaan laporan `task/report/**`, bukan diperkirakan.
+
+| Task | Status | Yang menahan penyelesaiannya |
+| --- | --- | --- |
+| `BE-BD-002` | ✅ **`SELESAI`** | — |
+| `BE-BD-014` | ✅ **`SELESAI`** | — |
+| `BE-BD-001` | `SELESAI SEBAGIAN` | `MstBloodBankReason` beserta sembilan kategori alasannya belum dikerjakan |
+| `BE-BD-016` | `SELESAI SEBAGIAN` | 8 dari 39 butir hak akses terdaftar; sisanya lahir bersama controller pemakainya |
+| 23 task lainnya | `NOT_STARTED` | 11 task backend dan 12 task frontend |
+
+**Kemajuan delivery: 2 selesai penuh dan 2 selesai sebagian, dari 27 task.**
+
+Tiga migration sudah dibuat dan **belum satu pun dijalankan** — `AddMstBloodComponent`,
+`AddServiceUnitBloodOrderFlag`, dan `AddMstBloodStorageLocation`. Selama ketiganya belum dijalankan,
+keempat task di atas belum dapat dipakai di lingkungan mana pun. Eksekusi database adalah wewenang
+terpisah.
 
 ---
 
@@ -185,6 +198,7 @@ membaca kontrak, bukan register keputusan — tetapi dicatat supaya tidak dikira
 | `BD-DEP-016` — modul belum diaktifkan (`PLANNED`) | Kenaikan Lifecycle ke `ACTIVE`, commit `8075784` 3 September 2026 |
 | `OQ-BD-017` — nama peran pemegang `BloodUnit : ResolveNotUsable` | `DEC-BD-045` — kewenangan operasional BDRS, peran yang sama dengan `ResolveReturn`; ketiga butir tetap terpisah |
 | `OQ-BD-018` — apakah hasil bukti kecocokan menggerbang | `DEC-BD-046` — hasil `Incompatible` menahan pemberian jalur normal; `VAL-BD-079` ditegaskan |
+| `CONF-BD-006` — baris peran BDRS umum memuat `BloodUnit : Compatibility`, bertentangan dengan `DEC-BD-042`, `VAL-BD-078`, dan `AC-BD-090` | `DEC-BD-047` — butir dicabut dari baris peran umum. Ditemukan `BE-BD-016`, diserap `permission-audit-matrix.md` pada hari yang sama |
 | `G1` — approval blueprint dan set kontrak `v4` | Approval owner `Sukmagp` bertanggal `2026-09-03`, dicatat pada manifest revisi 20 dan seluruh artefak set kontrak |
 | Pencatatan `G1` yang bertentangan antara registry dan blueprint | Keterangan owner 3 September 2026; changelog registry terbukti benar, pencatatan blueprint yang tertinggal dan kini sudah selaras |
 
@@ -206,7 +220,7 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 
 | Artefak | Keadaan |
 | --- | --- |
-| `00-interview-decisions.md` | Revisi **10** — `DEC-BD-001`..`046`, `INV-BD-011`..`035`, `AC-BD-001`..`097` |
+| `00-interview-decisions.md` | Revisi **11** — `DEC-BD-001`..`047`, `INV-BD-011`..`035`, `AC-BD-001`..`097` |
 | `02-existing-capability-map.md` | Revisi 3 — 24 kemampuan, impact scan `4205d18` `CURRENT` |
 | `02-requirement-completeness-assessment.md` | Revisi 2 — `BR-BD-020` belum punya rumah slice |
 | `01-prerequisite-readiness.md` | Revisi 3 — `BD-DEP-001`..`015` |
@@ -219,7 +233,7 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 | `flowcharts/` (7 berkas) | Termasuk `penyimpanan-kantong.md` yang baru pada `v2` |
 | `testing/acceptance-test-matrix.md` | Kontrak `v4` (`approved`) — `AC-BD-001`..`097` |
 | `roadmap/00-delivery-plan.md` | Revisi 2 — **`APPROVED`** |
-| `task/report/**` | **Belum ada** — tidak ada implementasi yang pernah dijalankan |
+| `task/report/**` | **Empat laporan** — `BE-BD-001.md`, `BE-BD-002.md`, `BE-BD-014.md`, `BE-BD-016.md` |
 
 ---
 
@@ -227,17 +241,20 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
-| 1 | `build-module-backend` untuk `BE-BD-001` (katalog komponen darah & daftar alasan terkendali) — task pertama gelombang `MVP-0` | Skill | **Butuh wewenang tulis backend eksplisit per task.** Approval `G1` membuka penjadwalan, bukan izin menulis source |
-| 2 | Lanjutkan `MVP-0`: `BE-BD-002`, `BE-BD-014`, `BE-BD-016` | Skill | Sama seperti di atas, satu task satu wewenang |
-| 3 | Setelah `MVP-0`: `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4` | Skill | Urutan gelombang ada di `roadmap/00-delivery-plan.md` §F |
+| 1 | Selesaikan sisa `BE-BD-001` — `MstBloodBankReason` beserta sembilan kategori alasannya | Skill | **Menahan `MVP-1`**: `BE-BD-003` menuntut kategori pembatalan order dari master ini |
+| 2 | Jalankan ketiga migration `MVP-0` | Pemilik database | **Wewenang terpisah.** Tanpa ini keempat task yang sudah selesai belum dapat dipakai di lingkungan mana pun |
+| 3 | Setelah `MVP-0` tuntas: `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4` | Skill | Urutan gelombang ada di `roadmap/00-delivery-plan.md` §F |
 | 4 | ~~`grill-me` untuk `OQ-BD-017` dan `OQ-BD-018`~~ | Skill | ✅ **Selesai** 3 September 2026 — ditutup `DEC-BD-045` dan `DEC-BD-046`. Baris seeder `BloodUnit : ResolveNotUsable` pada `BE-BD-016` kini sudah ada isinya |
-| 5 | `verify-module-readiness` setelah satu gelombang selesai | Skill | Bukan sekarang — belum ada implementasi untuk diverifikasi |
+| 5 | `verify-module-readiness` setelah `MVP-0` tuntas | Skill | Sudah ada bukti untuk dinilai. Verifikasi 3 September 2026 mengembalikan `NOT_READY` dan **sudah usang** — ia dijalankan sebelum keempat task di atas ada |
 
 **Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap wewenang
 terpisah.** Approval `G1` tidak menyentuh keempatnya.
 
-**`trace-existing-capabilities` sudah dijalankan** 3 September 2026 sebagai impact scan terbatas dan
-**tidak perlu diulang** sampai backend SHA bergerak lagi.
+**`trace-existing-capabilities` sudah dijalankan** 3 September 2026 sebagai impact scan terbatas, dan
+diulang pada pergerakan `6488511` → `ec2bcac`: dari 24 berkas bukti hanya `MstServiceUnit.cs` dan
+snapshot model yang tersentuh, keduanya **menguatkan** peta. Nol baris berpindah status. Satu catatan
+untuk skill itu bila kelak dijalankan: `BD-CAP-005` kini **sudah terpenuhi** `BE-BD-002`, bukan lagi
+rencana `Extend`.
 
 `grill-me` untuk keputusan bisnis **tidak** lagi diperlukan pada scope yang dinilai — tidak ada
 keputusan bisnis yang masih memblokir.

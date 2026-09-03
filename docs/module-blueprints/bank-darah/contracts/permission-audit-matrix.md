@@ -113,18 +113,34 @@ sakit lewat pengelolaan role platform.
 | Peran | Resource : Action yang diusulkan | Catatan |
 | --- | --- | --- |
 | Unit pelayanan / dokter peminta | `BloodOrder : Create`, `Read` | Hanya unit `IsAvailableForBloodOrder=true` (dijaga aturan bisnis, bukan hak akses) |
-| Petugas Bank Darah / BDRS | `BloodOrder : *`, `BloodProviderRequest : *`, `BloodUnit : Read/**Store**/Allocate/Compatibility/Issue`, `BloodGroupExam : Create/Update/Read`, `BloodBankProcedure : *` | Pelaksana alur normal. `Store` mencakup penetapan lokasi pertama **dan** perpindahan lokasi (`DEC-BD-036`, `DEC-BD-037`) |
+| Petugas Bank Darah / BDRS | `BloodOrder : *`, `BloodProviderRequest : *`, `BloodUnit : Read/**Store**/Allocate/Issue`, `BloodGroupExam : Create/Update/Read`, `BloodBankProcedure : *` | Pelaksana alur normal. `Store` mencakup penetapan lokasi pertama **dan** perpindahan lokasi (`DEC-BD-036`, `DEC-BD-037`). **`Compatibility` dicabut dari baris ini** oleh `DEC-BD-047` — lihat peringatan di bawah |
 | **Dokter BDRS / penanggung jawab klinis** | `BloodGroupExam : ResolveConflict`, `BloodUnit : EmergencyIssue`, `BloodUnit : ApproveCorrection` | **Ditetapkan `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041`.** Tiga wewenang paling berat di modul ini |
 | **DPJP pasien** | `BloodUnit : EmergencyIssue` | **Ditetapkan `DEC-BD-040`.** Rekam menyimpan peran yang dipakai, sehingga jalur wewenangnya terbaca saat audit |
 | **Petugas BDRS berwenang validasi** | `BloodGroupExam : Validate` | **Ditetapkan `DEC-BD-039`.** Validasi hasil rutin saja; tidak mencakup penyelesaian konflik |
 | **Petugas BDRS pengaju koreksi** | `BloodUnit : Correct` | **Ditetapkan `DEC-BD-041`.** Hanya mengajukan; keputusannya milik Dokter BDRS |
-| **Petugas BDRS berwenang validasi** (butir kedua) | `BloodUnit : Compatibility` | **Ditetapkan `DEC-BD-042`.** Tingkat kewenangan yang sama dengan validasi golongan darah rutin. Pelaksana pemeriksaan **boleh** orang lain — izin, bukan kewajiban |
+| **Petugas BDRS berwenang validasi** (butir kedua) | `BloodUnit : Compatibility` | **Ditetapkan `DEC-BD-042`, dipertegas `DEC-BD-047` sebagai satu-satunya pemegang.** Tingkat kewenangan yang sama dengan validasi golongan darah rutin. Pelaksana pemeriksaan **boleh** orang lain — izin, bukan kewajiban |
 | **Pemegang kewenangan klinis BDRS** | `BloodUnit : ResolveReallocate` | **Ditetapkan `DEC-BD-043`.** Pengalihan memasukkan darah ke tubuh pasien baru |
 | **Pemegang kewenangan operasional BDRS** | `BloodUnit : ResolveReturn` | **Ditetapkan `DEC-BD-043`.** Mengeluarkan darah dari peredaran — arah yang aman dengan sendirinya |
 | **Pemegang kewenangan operasional BDRS** (butir kedua) | `BloodUnit : ResolveNotUsable` | **Ditetapkan `DEC-BD-043` (bentuk) dan `DEC-BD-045` (peran).** Peran yang sama dengan `ResolveReturn`, tetapi **butir seeder yang terpisah** — lihat peringatan di atas. Mengeluarkan darah dari peredaran |
 | **Dokter peminta** | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan klinis |
 | **Petugas BDRS** (butir pembatalan) | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan operasional |
 | Admin master data Bank Darah | `BloodComponent : *`, `BloodBankReason : *`, **`BloodStorageLocation : *`** | Setup MVP — kini **tiga** master setelah amandemen `DEC-BD-024` oleh `DEC-BD-035` |
+
+⚠️ **`BloodUnit : Compatibility` hanya milik petugas berwenang validasi, dan tidak boleh dikembalikan
+ke baris peran umum.** Butir ini sempat tercantum pada baris Petugas Bank Darah / BDRS, bertentangan
+dengan `DEC-BD-042`, `VAL-BD-078`, dan `AC-BD-090` yang ketiganya membatasinya pada petugas berwenang
+validasi. Pertentangan itu ditemukan `BE-BD-016` dan ditutup `DEC-BD-047` pada 3 September 2026.
+
+Kenapa ini perlu ditulis tebal, bukan sekadar dibetulkan diam-diam: **hak akses diperiksa lebih dulu
+daripada aturan bisnis.** Bila butir ini kembali diberikan kepada seluruh petugas BDRS, `VAL-BD-078`
+tidak akan pernah menyala — bukan karena aturannya dicabut, melainkan karena setiap pelaku sudah lolos
+pemeriksaan hak akses sebelum aturan itu sempat memeriksa. Pembatasan `DEC-BD-042` batal di tingkat
+seeder tanpa satu pun dokumen menyatakannya dicabut, dan akibatnya menyentuh keselamatan pasien: darah
+dapat dinyatakan cocok oleh petugas yang tidak ditunjuk memvalidasi.
+
+Yang **tidak** ikut berubah: kelonggaran `DEC-BD-042` tetap utuh. Pelaksana pemeriksaan boleh berbeda
+dari validator, tetapi tidak diwajibkan — petugas berwenang validasi yang mengerjakan ujinya sendiri
+tetap boleh menyatakannya sendiri (`AC-BD-091`).
 
 Pembatalan alokasi (`BloodUnit : Allocate` pada `cancel-allocation`) **tidak** menunggu `DEF-BD-004`:
 `DEC-BD-029` menyatakannya kekeliruan administratif biasa, cukup petugas Bank Darah.

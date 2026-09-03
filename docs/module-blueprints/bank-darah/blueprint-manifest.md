@@ -5,19 +5,19 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 22
-status: READY
+revision: 23
+status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-04T02:10:00+07:00
+updated_at: 2026-09-04T04:30:00+07:00
 last_verified_at: null
-backend_source_sha: 6488511
+backend_source_sha: ec2bcac
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 10
+decision_revision: 11
 capability_map_revision: 3
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
@@ -109,10 +109,10 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `blueprint_id` | Nomor identitas blueprint. Ditetapkan sekali dan tidak pernah diganti. |
 | `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend: awalan itu **`Bbk`**, terpisah, dan sejak 3 September 2026 **sudah terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dengan Lifecycle **`ACTIVE`** (commit `8075784`). |
 | `revision` | Naik hanya bila arsitektur target, kontrak, dependency, atau keputusan yang sudah disetujui berubah secara berarti. Tidak naik hanya karena status berubah. |
-| `status` | Naik dari `PARTIAL` ke **`READY`** pada 3 September 2026. Tidak ada satu pun fase yang `BLOCKED`: keputusan bisnis, dependency teknis, dan approval desain seluruhnya tertutup, sehingga fase yang direncanakan berikutnya (`BD-PH-007` implementasi backend) boleh dimulai. |
+| `status` | Naik `PARTIAL` → `READY` → **`IN_PROGRESS`** pada 3 September 2026. Nilai terakhir berarti ada pekerjaan aktif yang sudah diberi wewenang dan berbukti: empat task `MVP-0` sudah dijalankan dan meninggalkan laporan tracked. |
 | `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat sebelas commit dokumen ke **`6488511`**; `git diff --name-only 4205d18 HEAD` di luar `docs/` mengembalikan **nol berkas**, jadi bukti kemampuan tetap `CURRENT`. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `6488511` naik ke **`ec2bcac`** lewat tiga commit implementasi `MVP-0`. **Berbeda dengan seluruh pergerakan sebelumnya**, ketiganya membawa source aplikasi nyata — 28 berkas, seluruhnya milik Bank Darah sendiri. Impact scan terbatas dijalankan 3 September 2026: dari 24 berkas bukti peta kemampuan, hanya dua tersentuh dan keduanya **menguatkan** peta. Rinciannya di catatan penutup. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
@@ -438,3 +438,40 @@ cakupannya; baru setelah itu satu migration aditif menambahkan kolomnya.
 `MstMedicalRecordAccessPurpose` — kode baru yang belum lama masuk — **memiliki** `SortOrder` yang
 dipersistensi. Preseden rumah karena itu tidak seragam. Menyelaraskannya berada di luar scope modul
 Bank Darah dan merupakan keputusan pemilik kontrak engineering, bukan keputusan blueprint ini.
+
+**Sinkronisasi implementasi `MVP-0` — 3 September 2026, revisi 23.** Empat task backend dijalankan
+berturut-turut, masing-masing meninggalkan laporan tracked di `task/report/backend/`.
+
+| Task | Status | Bukti |
+| --- | --- | --- |
+| `BE-BD-001` | `SELESAI SEBAGIAN` | `MstBloodComponent` selesai — 9 endpoint, migration, seeder, 26 test. `MstBloodBankReason` **belum dikerjakan** |
+| `BE-BD-002` | **`SELESAI`** | Kolom `IsAvailableForBloodOrder` pada `MstServiceUnit`, bawaan menolak di tiga lapisan, 8 test |
+| `BE-BD-014` | **`SELESAI`** | `MstBloodStorageLocation` — 9 endpoint, migration, seeder dua lokasi aktif, 25 test |
+| `BE-BD-016` | `SELESAI SEBAGIAN` | 8 dari 39 butir hak akses terdaftar, 12 test kontrak. Sisanya terikat task pembuat controller |
+
+**Kemajuan delivery: 2 selesai penuh, 2 selesai sebagian, dari 27 task.** Angka itu dihitung dari
+keberadaan laporan `task/report/**`, bukan diperkirakan.
+
+**Impact scan terbatas atas pergerakan source.** `6488511` → `ec2bcac` membawa 28 berkas source
+aplikasi — seluruhnya milik Bank Darah sendiri, hasil ketiga task di atas. Dari 24 berkas bukti yang
+dikutip `02-existing-capability-map.md`, hanya **dua** tersentuh:
+
+| Berkas | Kemampuan | Putusan |
+| --- | --- | --- |
+| `MstServiceUnit.cs` | `BD-CAP-005` berstatus `Extend` | **Menguatkan peta, bukan membatalkannya.** Peta menulis "sudah memakai pola tanda kemampuan per unit: `IsAvailableForRegistration`, `IsAvailableForKiosk`". `BE-BD-002` menambahkan `IsAvailableForBloodOrder` mengikuti pola itu persis — yaitu `Extend` yang diramalkan peta |
+| `ApplicationDbContextModelSnapshot.cs` | — | Berkas hasil bangkitan `dotnet ef`, bukan bukti kemampuan |
+
+**Nol baris kemampuan berpindah status.** Peta tetap `CURRENT` dan tidak ditandai `STALE`.
+
+Satu catatan untuk `trace-existing-capabilities` bila kelak dijalankan: `BD-CAP-005` sekarang
+**sudah terpenuhi**, bukan lagi rencana. Memindahkan statusnya adalah wewenang skill itu, bukan skill
+ini, dan tidak mendesak karena kesimpulan blueprint tidak berubah karenanya.
+
+**Register keputusan naik ke revisi 11.** `DEC-BD-047` menutup `CONF-BD-006` — butir
+`BloodUnit : Compatibility` dicabut dari baris peran Petugas BDRS umum dan hanya dipegang petugas
+berwenang validasi. Konflik itu ditemukan pelaksanaan `BE-BD-016`, dan penyerapannya ke
+`contracts/permission-audit-matrix.md` sudah dikerjakan `design-business-module` pada hari yang sama.
+Set kontrak tetap `v4` `approved`.
+
+Revisi blueprint naik ke 23 karena dua hal material sekaligus: baseline keputusan bergerak, dan status
+modul berpindah dari rencana menjadi pekerjaan berjalan yang berbukti.
