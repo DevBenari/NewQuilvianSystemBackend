@@ -95,6 +95,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
 
         public decimal AdminFeeAmount { get; set; }
         public decimal AdminFeePercent { get; set; }
+
+        // Dipakai layar pemilihan metode pembayaran kasir: Description jadi keterangan singkat di
+        // bawah nama metode, SortOrder menjaga urutan tetap sama setelah daftar dikelompokkan
+        // ulang per kategori di sisi client.
+        public string? Description { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class PaymentMethodFilterMetadataResponse

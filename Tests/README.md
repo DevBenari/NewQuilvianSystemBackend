@@ -15,7 +15,7 @@
 Dari folder `NewQuilvianSystemBackend`:
 
 ```bash
-dotnet test tests/QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj
+dotnet test Tests/QuilvianSystemBackend.UnitTests.Sqlite/QuilvianSystemBackend.UnitTests.Sqlite.csproj
 ```
 
 Menjalankan seluruh uji beserta project utamanya sekaligus:
@@ -27,7 +27,7 @@ dotnet test QuilvianSystemBackend.sln
 Menjalankan satu uji saja, misalnya saat sedang menelusuri kegagalan:
 
 ```bash
-dotnet test tests/QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj \
+dotnet test Tests/QuilvianSystemBackend.UnitTests.Sqlite/QuilvianSystemBackend.UnitTests.Sqlite.csproj \
   --filter "FullyQualifiedName~IndexUnik_MenolakKodeYangKembar"
 ```
 
@@ -116,16 +116,16 @@ Langkah itu diletakkan setelah langkah `Build` yang sudah ada.
 ## Susunan berkas
 
 ```text
-tests/
+Tests/
 ├── README.md                                  # dokumen ini
-└── QuilvianSystemBackend.Tests/
-    ├── QuilvianSystemBackend.Tests.csproj
+└── QuilvianSystemBackend.UnitTests.Sqlite/
+    ├── QuilvianSystemBackend.UnitTests.Sqlite.csproj
     └── Infrastructure/
         ├── TestDatabase.cs                    # penyedia basis data uji
         └── TestDatabaseTests.cs               # bukti fondasi ini bekerja
 ```
 
 Project test **tidak** ikut terkompilasi ke dalam aplikasi. Pengecualiannya tertulis di
-`QuilvianSystemBackend.csproj` pada `ItemGroup` bertanda `tests\**`. Pengecualian itu wajib ada
+`QuilvianSystemBackend.csproj` pada `DefaultItemExcludes` bertanda `Tests\**`. Pengecualian itu wajib ada
 karena project utama memakai SDK Web yang secara otomatis mengikutsertakan seluruh berkas `.cs`
 di bawah folder root.

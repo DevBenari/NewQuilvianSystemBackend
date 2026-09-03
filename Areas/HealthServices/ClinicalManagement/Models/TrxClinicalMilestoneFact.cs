@@ -1,7 +1,7 @@
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models
+namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 {
     /// <summary>
     /// Catatan satu revisi fakta klinis yang diserahkan ke Billing.
