@@ -153,10 +153,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 JournalTypeCode = kode,
                 JournalTypeName = nama,
                 NumberPrefix = awalan,
-                RequiresApproval = request.RequiresApproval,
 
-                // Tanda sistem tidak pernah datang dari permintaan pengguna — lihat keterangan
-                // pada CreateJournalTypeRequest.
+                // ACC-DEC-010: jurnal manual SELALU melewati persetujuan, tanpa pengecualian
+                // jenis. Kolom ini karena itu tidak pernah datang dari permintaan pengguna —
+                // sama seperti IsSystemType. Menerimanya dari pengguna berarti menjanjikan
+                // sesuatu yang tidak pernah ditegakkan alur jurnal (ACC-TD-019).
+                RequiresApproval = true,
                 IsSystemType = false,
 
                 IsActive = true,
@@ -220,7 +222,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             jenis.JournalTypeCode = kode;
             jenis.JournalTypeName = nama;
             jenis.NumberPrefix = awalan;
-            jenis.RequiresApproval = request.RequiresApproval;
+
+            // RequiresApproval sengaja TIDAK disentuh di sini — ACC-DEC-010 menetapkannya selalu
+            // berlaku, dan ia sudah dicabut dari UpdateJournalTypeRequest (ACC-TD-019).
             jenis.IsActive = request.IsActive;
             jenis.UpdateDateTime = DateTime.UtcNow;
             jenis.UpdateBy = actorUserId;

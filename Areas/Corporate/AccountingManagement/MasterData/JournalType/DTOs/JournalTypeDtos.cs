@@ -87,13 +87,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         [Required]
         [MaxLength(10)]
         public string NumberPrefix { get; set; } = string.Empty;
-
-        public bool RequiresApproval { get; set; } = true;
     }
 
     /// <summary>
-    /// <c>IsSystemType</c> juga tidak dapat diubah lewat sini — ia bukan sesuatu yang dapat
-    /// dicabut atau diberikan pengguna.
+    /// <c>IsSystemType</c> dan <c>RequiresApproval</c> tidak dapat diubah lewat sini — keduanya
+    /// bukan sesuatu yang dapat dicabut atau diberikan pengguna. Lihat keterangan pada
+    /// <see cref="CreateJournalTypeRequest"/>.
     /// </summary>
     public class UpdateJournalTypeRequest
     {
@@ -108,8 +107,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         [Required]
         [MaxLength(10)]
         public string NumberPrefix { get; set; } = string.Empty;
-
-        public bool RequiresApproval { get; set; } = true;
 
         public bool IsActive { get; set; } = true;
     }

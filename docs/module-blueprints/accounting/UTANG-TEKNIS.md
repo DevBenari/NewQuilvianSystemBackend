@@ -28,14 +28,15 @@ belas artefak.
 | `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-010` | Dua badan hukum kosong di master | Owner modul lain | Rendah | `OPEN` |
-| `ACC-TD-011` | `POST /seed` belum pernah dipanggil | **Rizki** | Sedang | `OPEN` |
+| ~~`ACC-TD-011`~~ | ~~`POST /seed` belum pernah dipanggil~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-012` | Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering | Owner modul | Rendah | `OPEN` |
-| `ACC-TD-013` | `POST /seed` belum masuk `ACC-API` | Owner modul | Rendah | `OPEN` |
-| `ACC-TD-014` | Pemeriksaan periode lebih awal daripada kontrak | Owner modul | Rendah | `OPEN` |
+| ~~`ACC-TD-013`~~ | ~~`POST /seed` belum masuk `ACC-API`~~ | — | — | **`CLOSED`** 3 Sep 2026 |
+| ~~`ACC-TD-014`~~ | ~~Pemeriksaan periode lebih awal daripada kontrak~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-015` | Dua salinan registry berselisih **dua arah** | Lead / pemilik registry | Sedang | `OPEN` |
 | `ACC-TD-016` | Berkas test `BE-ACC-010` dihapus — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-017` | Kebijakan owner: tanpa test otomatis, verifikasi manual | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
+| ~~`ACC-TD-019`~~ | ~~`RequiresApproval` disimpan tetapi tidak pernah ditegakkan~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 
 ---
 
@@ -220,7 +221,17 @@ organisasi, bukan Accounting.
 
 ---
 
-## `ACC-TD-011` — `POST /seed` belum pernah dipanggil
+## ~~`ACC-TD-011`~~ — `POST /seed` belum pernah dipanggil — **`CLOSED`**
+
+> **Ditutup 3 September 2026.** Endpoint dipanggil sekali terhadap `QuilvianNewDevRizki` lewat
+> API oleh pengguna `superadmin`. Hasil: **`inserted: 4, skipped: 0`** — `JB`, `JP`, `JU`, `SA`,
+> keempatnya `RequiresApproval = true`; `JB` dan `SA` bertanda sistem.
+>
+> **Idempotensinya terbukti pada database sungguhan**, bukan hanya di test: panggilan kedua
+> menjawab `inserted: 0, skipped: 4` tanpa menyisipkan satu baris pun.
+>
+> Nol DDL, nol migration. Yang berubah hanya 4 baris `AccJournalType` yang memang dikehendaki.
+
 
 **Ditemukan:** `BE-ACC-008`, 2 September 2026.
 
@@ -261,7 +272,11 @@ karena itu memakai service, konsisten dengan `BE-ACC-007`.
 
 ---
 
-## `ACC-TD-013` — `POST /seed` belum masuk `ACC-API`
+## ~~`ACC-TD-013`~~ — `POST /seed` belum masuk `ACC-API` — **`CLOSED`**
+
+> **Ditutup 3 September 2026.** Owner meratifikasi. `POST /journal-types/seed` kini tercantum di
+> `contracts/api-contract.md` grup Journal Type, dan `ACC-API` naik `0.2` → `0.3`.
+
 
 **Ditemukan:** `BE-ACC-008`, 2 September 2026.
 
@@ -282,7 +297,12 @@ versinya menjadi keputusan owner dan bukan efek samping implementasi.
 
 ---
 
-## `ACC-TD-014` — Pemeriksaan status periode lebih awal daripada yang didaftar kontrak
+## ~~`ACC-TD-014`~~ — Pemeriksaan status periode lebih awal daripada kontrak — **`CLOSED`**
+
+> **Ditutup 3 September 2026.** Owner meratifikasi, dan aturannya kini terdaftar di
+> `ACC-VALIDATION` bagian 3. Kontrak naik `0.2` → `0.3`. Pemeriksaan di bagian 4 tetap wajib dan
+> tidak berkurang.
+
 
 **Ditemukan:** `BE-ACC-010`, 3 September 2026, atas instruksi owner memakai ulang
 `AccAccountingPeriodService.AlasanPenolakanJenisJurnalAsync`.
@@ -404,3 +424,38 @@ saat ini **0 baris**, sehingga syarat itu tidak dapat dipenuhi.
 | Kandidat yang menunggu bukti | `AccJournalLine (AccountId, JournalId)` untuk buku besar per akun; `AccJournal (LegalEntityId, JournalStatus, AccountingDate)` untuk penyaringan `Posted` per periode |
 | Kapan menggigit | Saat volume jurnal tumbuh. `/movements` menghitung dua agregat tambahan per permintaan — saldo sebelum rentang dan saldo baris yang dilewati — sehingga ia yang pertama melambat |
 | Cara menutup | Sesudah ada data nyata, jalankan `EXPLAIN ANALYZE` atas ketiga query, catat hasilnya, lalu putuskan index-nya berdasarkan rencana eksekusi itu |
+
+
+---
+
+## ~~`ACC-TD-019`~~ — `RequiresApproval` disimpan tetapi tidak pernah ditegakkan — **`CLOSED`**
+
+> **Ditutup 3 September 2026** atas keputusan owner: **kolom dikunci selalu `true`**.
+>
+> `RequiresApproval` dicabut dari `CreateJournalTypeRequest` dan `UpdateJournalTypeRequest`,
+> persis seperti perlakuan `IsSystemType` yang sudah ada. `CreateAsync` memaksanya `true`;
+> `UpdateAsync` tidak menyentuhnya sama sekali. Ia **tetap ada** pada response DTO, sehingga
+> frontend masih dapat menampilkannya sebagai informasi.
+>
+> **Nol aturan bisnis berubah.** `ACC-DEC-010` sudah menetapkan jurnal manual selalu melewati
+> persetujuan tanpa pengecualian jenis — perubahan ini hanya menghentikan API menjanjikan
+> sesuatu yang tidak pernah ditegakkan.
+>
+> **Belum dikompilasi** saat ditutup: owner melarang `dotnet build` karena backend sedang
+> berjalan dan mengunci `bin/`. Sebagai gantinya dilakukan pemeriksaan statik — nol rujukan
+> tersisa ke `request.RequiresApproval` di Accounting, dan nol pemakai `Update`/`CreateJournalTypeRequest`
+> yang menyetel kolom itu. Verifikasi kompilasi menyusul.
+
+
+**Ditemukan:** `BE-ACC-014`, 3 September 2026, saat memverifikasi jenis jurnal `SA`.
+
+`AccJournalType.RequiresApproval` **disimpan, ditampilkan, dan dapat diubah admin** lewat
+`PUT /journal-types/{id}` — tetapi diperiksa di seluruh modul, ia **tidak pernah dibaca untuk
+menentukan alur**. Setiap jurnal, apa pun jenisnya, wajib melewati `submit` → `approve` → `post`.
+
+| Hal | Keterangan |
+|---|---|
+| Apakah cacat? | **Bukan, untuk saat ini.** `ACC-DEC-010` menetapkan jurnal manual selalu melewati persetujuan tanpa pengecualian jenis, jadi alur seragam justru **memenuhi** keputusan itu |
+| Masalahnya | Admin dapat menyetel `RequiresApproval = false` dan sistem tetap menuntut persetujuan. Layar mengatakan satu hal, backend melakukan hal lain |
+| Kenapa tidak ditambal | Dua-duanya butuh keputusan owner: menghormati kolom itu **melanggar** `ACC-DEC-010`; mengunci kolom itu agar selalu `true` mengubah kontrak `BE-ACC-008` |
+| Pilihan menutup | (a) Kolom dikunci `true` dan dihapus dari `UpdateJournalTypeDto`; (b) `ACC-DEC-010` dilonggarkan sehingga kolom itu benar-benar berlaku; (c) dibiarkan dan didokumentasikan bahwa kolom itu belum berlaku |

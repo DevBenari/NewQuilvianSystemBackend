@@ -79,7 +79,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
-| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007`..`010` **`DONE`**; `BE-ACC-011` `ROADMAP_READY` | `MVP-0` selesai ✅ |
+| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007`..`010` **`DONE`**; `BE-ACC-011` **`IMPLEMENTED`** | `MVP-0` selesai ✅ |
 | `MVP-2` Buku besar | `BE-ACC-012` | Berantai `MVP-1` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | Berantai `MVP-2` | `MVP-2` selesai |
 
@@ -439,7 +439,7 @@ lewat keputusan arsitektur tersendiri.
 | Verifikasi | Test integrasi `FR-ACC-021`, `030` sampai `034`; `UAT-01`, `UAT-03`, `UAT-06`, `UAT-07`, `UAT-13` |
 | Risiko/pemilik | **Tertinggi pada modul ini.** Owner Backend. Butir (1) dan (4) adalah invariant akuntansi; kegagalan di sini merusak seluruh laporan |
 | DoD | Acceptance terbukti test, riwayat persetujuan terisi, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`IMPLEMENTED`** — 3 September 2026, menunggu verifikasi manual owner (`ACC-TD-017`). Laporan: [`../task/report/backend/be-acc-011-jurnal-pengajuan-persetujuan-pengesahan.md`](../task/report/backend/be-acc-011-jurnal-pengajuan-persetujuan-pengesahan.md) |
 
 ---
 
@@ -459,7 +459,7 @@ lewat keputusan arsitektur tersendiri.
 | Verifikasi | Test integrasi `FR-ACC-050` sampai `053`; test determinisme urutan pada `AccountingDate` kembar; **verifikasi performa/readiness** untuk Buku Besar, Saldo per Akun, dan Neraca Saldo; `UAT-14`, `UAT-15` |
 | Risiko/pemilik | Owner Backend. Butir (2) paling mudah terlewat dan akibatnya laporan salah tanpa terlihat |
 | DoD | Acceptance terbukti test, hasil verifikasi performa tercatat, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`IMPLEMENTED`** — 3 September 2026, menunggu verifikasi manual owner. Verifikasi performa tertunda sampai ada data menyerupai produksi (`ACC-TD-018`). Laporan: [`../task/report/backend/be-acc-012-buku-besar-dan-neraca-saldo.md`](../task/report/backend/be-acc-012-buku-besar-dan-neraca-saldo.md) |
 
 #### Urutan yang deterministic, memakai field yang benar-benar ada
 
@@ -506,7 +506,7 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Verifikasi | Test integrasi `FR-ACC-040` sampai `043`; `UAT-10`, `UAT-11`, `UAT-12` |
 | Risiko/pemilik | Owner Backend. Butir (3) adalah inti `ACC-DEC-006` |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`IMPLEMENTED`** — 3 September 2026, menunggu verifikasi manual owner. Laporan: [`../task/report/backend/be-acc-013-pembalikan-dan-jurnal-penyesuaian.md`](../task/report/backend/be-acc-013-pembalikan-dan-jurnal-penyesuaian.md) |
 
 ### `BE-ACC-014` — Saldo awal
 
@@ -522,7 +522,7 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Verifikasi | Test integrasi `FR-ACC-060`, `FR-ACC-061`; `UAT-16` |
 | Risiko/pemilik | Owner Backend. Persetujuan pimpinan keuangan berlangsung **di luar sistem** sebelum Manajer menekan Sahkan — jangan membangun alur persetujuan kedua di dalam sistem tanpa keputusan owner |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`IMPLEMENTED`** — 3 September 2026, **nol baris kode berubah**; task ini verifikasi atas jalur yang sudah ada. Laporan: [`../task/report/backend/be-acc-014-saldo-awal.md`](../task/report/backend/be-acc-014-saldo-awal.md) |
 
 ---
 

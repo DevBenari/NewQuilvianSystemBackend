@@ -459,8 +459,7 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             {
                 JournalTypeCode = kode,
                 JournalTypeName = nama,
-                NumberPrefix = awalan,
-                RequiresApproval = true
+                NumberPrefix = awalan
             };
     }
 }

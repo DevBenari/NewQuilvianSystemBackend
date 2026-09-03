@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-VALIDATION-0.2` |
+| `contract_version` | `ACC-VALIDATION-0.3` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner Accounting) |
 | `approved_by` / `approved_at` | Belum ada |
@@ -63,6 +63,17 @@ di sini, sesuai `ACC-DEC-025`.
 | Akun harus badan hukum sama | Akun milik badan hukum berbeda dari jurnalnya | "Baris ke-{n}: akun {kode} bukan milik badan hukum jurnal ini." | `409` |
 | Cost Center wajib pada akun beban | Akun berjenis beban tetapi `CostCenterId` kosong | "Baris ke-{n}: akun beban {kode} wajib menyebutkan unit biaya." | `400` |
 | Cost Center harus aktif dan sesuai | Cost Center tidak aktif, atau milik badan hukum berbeda | "Baris ke-{n}: unit biaya tidak aktif atau bukan milik badan hukum jurnal ini." | `409` |
+| **Periode menerima jenis jurnal ini** | Status periode menolak jenis jurnal itu | "Periode {nama periode} sudah {status}. {keterangan jenis jurnal yang masih diterima}." | `422` |
+
+**Baris terakhir diratifikasi owner 3 September 2026** (`ACC-TD-014`), menaikkan
+`ACC-VALIDATION` dari `0.2` ke `0.3`. Sebelumnya aturan itu hanya terdaftar di bagian 4 — saat
+pengajuan dan pengesahan — sehingga draft `JU` ke periode yang sudah tutup sementara tetap
+tersimpan dan baru ditolak saat diajukan. Memeriksanya sejak penyimpanan menolak lebih awal
+dengan pesan yang sama, dan tidak menghilangkan data apa pun.
+
+Pemeriksaan di bagian 4 **tetap wajib dan tidak berkurang**: periode dapat berubah status sesudah
+draft tersimpan, dan hanya pemeriksaan kedualah yang mencegah jurnal masuk ke periode yang sudah
+terkunci.
 
 **Contoh pesan bernomor baris.** Petugas mengisi baris ketiga dengan akun `5-1001 Beban Obat`
 tetapi lupa mengisi unit biaya. Pesan yang muncul: "Baris ke-3: akun beban 5-1001 wajib

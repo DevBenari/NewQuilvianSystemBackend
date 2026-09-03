@@ -26,7 +26,7 @@ pembuatan, ia bagian dari isi permintaan.
 ## Corporate / Accounting / Master Data / Chart of Account
 
 Base URL: `api/v1/corporate/accounting/master-data/chart-of-accounts`
-Contract version: `ACC-API-0.2` — status `draft`
+Contract version: `ACC-API-0.3` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -83,7 +83,7 @@ terjaga sejak di layar, bukan hanya saat penyimpanan.
 ## Corporate / Accounting / Master Data / Journal Type
 
 Base URL: `api/v1/corporate/accounting/master-data/journal-types`
-Contract version: `ACC-API-0.2` — status `draft`
+Contract version: `ACC-API-0.3` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -91,12 +91,18 @@ Contract version: `ACC-API-0.2` — status `draft`
 | `GET` | `/options` | Daftar ringkas jenis jurnal aktif untuk isian pilihan | `JournalType : Read` | — | `ApiResponse<List<JournalTypeOptionDto>>` |
 | `POST` | `/` | Menambah jenis jurnal | `JournalType : Create` | `CreateJournalTypeDto` | `ApiResponse<JournalTypeDto>` |
 | `PUT` | `/{id}` | Mengubah jenis jurnal | `JournalType : Update` | `UpdateJournalTypeDto` | `ApiResponse<JournalTypeDto>` |
+| `POST` | `/seed` | Mengisi empat jenis jurnal bawaan sistem — `JU`, `JP`, `JB`, `SA`. Aman diulang: pemanggilan kedua menyisipkan nol baris | `JournalType : Create` | — | `ApiResponse<AccountingMasterDataSeedResult>` |
 
 Arti kode status bagi pengguna:
 
 - `400` — isian tidak lengkap, misalnya awalan nomor kosong.
 - `409` — kode jenis jurnal sudah dipakai, atau jenis jurnal sistem hendak diubah kode maupun
   awalan nomornya.
+
+`POST /seed` diratifikasi owner 3 September 2026 (`ACC-TD-013`). Ia dibangun `BE-ACC-008` sebagai
+call site seeder `BE-ACC-006`, dan sengaja tidak diletakkan di `Program.cs` — `02-backend-architecture.md`
+bagian 6 melarangnya — maupun disembunyikan di jalur `GET`, yang akan mengaburkan siapa mengisi
+master dan kapan.
 
 Jenis jurnal `JB` dan `SA` bertanda sistem. Keduanya tidak dapat dihapus, dan kode maupun awalan
 nomornya tidak dapat diubah, karena dipakai langsung oleh proses pembalikan dan saldo awal.
@@ -106,7 +112,7 @@ nomornya tidak dapat diubah, karena dipakai langsung oleh proses pembalikan dan 
 ## Corporate / Accounting / Journal Management / Journal
 
 Base URL: `api/v1/corporate/accounting/journals`
-Contract version: `ACC-API-0.2` — status `draft`
+Contract version: `ACC-API-0.3` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -149,7 +155,7 @@ pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 ## Corporate / Accounting / Accounting Period
 
 Base URL: `api/v1/corporate/accounting/periods`
-Contract version: `ACC-API-0.2` — status `draft`
+Contract version: `ACC-API-0.3` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
@@ -179,7 +185,7 @@ penyesuaian dan pembalikan yang boleh masuk.
 ## Corporate / Accounting / General Ledger
 
 Base URL: `api/v1/corporate/accounting/general-ledger`
-Contract version: `ACC-API-0.2` — status `draft`
+Contract version: `ACC-API-0.3` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
