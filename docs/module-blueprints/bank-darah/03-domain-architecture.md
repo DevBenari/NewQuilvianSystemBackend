@@ -1358,6 +1358,13 @@ decision_approval_status: DEC-BD-035 sampai DEC-BD-038 masih draft, approved_by 
 superseded_statements: revisi 5 menyatakan gerbang lokasi nonaktif tidak berlaku pada pemberian; dicabut oleh DEC-BD-038 pada revisi 6
 decision_register_revision: 7
 decision_register_catatan: DEC-BD-037, DEC-BD-038, INV-BD-027..030, dan AC-BD-065..076 sudah tercatat resmi pada 00-interview-decisions.md revisi 7 dengan nomor yang sama
+sifat_blok_ini: SNAPSHOT MASUKAN saat domain architecture revisi 6 disusun (2 September 2026) — bukan keadaan sekarang. decision_revision 7 dan decision_register_revision 7 adalah revisi register yang DIPAKAI pass itu, dan keduanya benar apa adanya; jangan dinaikkan mengikuti register terkini karena dokumen ini tidak menyerap keputusan yang turun sesudahnya
+keadaan_terkini_per_3_september_2026:
+  register_keputusan: revisi 9 — DEC-BD-001..044. DEC-BD-039..044 turun lewat set kontrak v3 dan v4, BUKAN lewat dokumen ini; domain architecture tetap revisi 6 dan tidak ikut naik
+  set_kontrak: v4 approved (Sukmagp / 2026-09-03)
+  dependency: BD-DEP-016 sudah RESOLVED sejak commit 8075784, sehingga penyebutannya pada dependency_ids di atas adalah rekaman saat pass itu, bukan pemblokir yang masih hidup
+  blueprint_revision_terkini: 20
+  catatan: bila domain architecture kelak perlu menyerap DEC-BD-039..044, itu pekerjaan hospital-domain-architect yang menaikkan dokumen ini ke revisi 7 — bukan penyuntingan metadata
 amended_decision_ids: [DEC-BD-024]
 capability_audit_coverage_gap: BD-CAP-006 tidak menyebut MstDrugStorageLocation; tidak mengubah kesimpulan karena DEC-BD-035 menolak memakai ulang master itu
 backend_source_sha: 792acb9331a65187d052fffd4a292d3bce2fd828

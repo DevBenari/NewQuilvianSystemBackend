@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Blueprint revision | `3` |
+| Blueprint revision | `20` |
 | Capability map revision | `3` |
-| Status | `DRAFT` |
+| Status | `source-audited` — audit source sudah dijalankan dan hasilnya berlaku; dokumen ini **tidak** menyatakan modul siap implementasi maupun siap produksi |
 | Sumber keputusan | `00-interview-decisions.md` revisi 2, `SCOPE-BD-001` sampai `DEC-BD-024` |
 | Backend SHA audit penuh | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
 | Backend SHA impact scan terakhir | `4205d18a6d656555eedd781f14e8a18fb5ea20d1` cabang `sukmagp` — 3 September 2026 |

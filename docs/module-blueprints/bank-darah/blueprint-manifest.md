@@ -9,9 +9,9 @@ revision: 20
 status: READY
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-03T19:30:00+07:00
+updated_at: 2026-09-03T21:15:00+07:00
 last_verified_at: null
-backend_source_sha: ae451b9
+backend_source_sha: c12cc57
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -110,7 +110,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | Naik dari `PARTIAL` ke **`READY`** pada 3 September 2026. Tidak ada satu pun fase yang `BLOCKED`: keputusan bisnis, dependency teknis, dan approval desain seluruhnya tertutup, sehingga fase yang direncanakan berikutnya (`BD-PH-007` implementasi backend) boleh dimulai. |
 | `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat commit dokumen ke **`ae451b9`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat delapan commit dokumen ke **`c12cc57`**; `git diff --name-only 4205d18 HEAD` di luar `docs/` mengembalikan **nol berkas**, jadi bukti kemampuan tetap `CURRENT`. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |

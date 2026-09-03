@@ -4,8 +4,8 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Revision | `3` |
-| Status | `DRAFT` |
-| Diperbarui | `2026-09-02` — setelah closure pass wawancara selesai |
+| Status | `CURRENT` — register dependency yang sedang berlaku dan dikutip roadmap revisi 2 |
+| Diperbarui | `2026-09-03` — setelah `BD-DEP-008` dan `BD-DEP-016` ditutup serta approval `G1` tercatat |
 | Sumber bukti | `02-existing-capability-map.md` revisi 2 dan `00-interview-decisions.md` revisi 2 |
 | Backend SHA | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
