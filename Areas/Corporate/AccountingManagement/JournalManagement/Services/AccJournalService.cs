@@ -636,6 +636,267 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             return await MuatDanPetakanAsync(jurnal.Id, "Jurnal berhasil disahkan.", actorUserId, izin, ct);
         }
 
+        // ------------------------------------------------------------------
+        // Pembalikan dan penyesuaian — BE-ACC-013
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Membuat jurnal koreksi atas jurnal yang sudah disahkan. Jurnal asal <b>tidak pernah
+        /// disentuh</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Inti <c>ACC-DEC-006</c>: riwayat yang sudah disahkan permanen. Koreksi berarti
+        /// <b>menambah</b> jurnal baru, bukan mengubah yang lama. Method ini karena itu tidak
+        /// memiliki satu pun baris yang menulis ke jurnal asal selain <c>ReversalOfJournalId</c>
+        /// pada jurnal <b>baru</b> yang menunjuk kepadanya.
+        /// </para>
+        /// <para>
+        /// Dua cara koreksi, keduanya sah dan pilihannya bergantung pada jenis kesalahannya:
+        /// <c>FullReversal</c> menghasilkan jurnal <c>JB</c> berisi kebalikan seluruh baris —
+        /// debit menjadi kredit dan sebaliknya. <c>Adjustment</c> menghasilkan jurnal <c>JP</c>
+        /// berisi baris selisih yang dikirim pengguna.
+        /// </para>
+        /// <para>
+        /// Jurnal koreksi lahir berstatus <c>PendingApproval</c>, bukan langsung <c>Posted</c>.
+        /// Koreksi adalah tindakan yang paling perlu diperiksa orang kedua, bukan yang paling
+        /// boleh melewatinya.
+        /// </para>
+        /// </remarks>
+        public async Task<AccountingServiceResult<JournalDetailResponse>> ReverseAsync(
+            Guid id,
+            ReverseJournalRequest request,
+            Guid actorUserId,
+            JournalActorPermissions? izin = null,
+            CancellationToken ct = default)
+        {
+            var penjaga = await AccountingLegalEntityGuard.PeriksaAsync<JournalDetailResponse>(_db, ct);
+            if (penjaga is not null) return penjaga;
+
+            var asal = await MuatLengkapAsync(id, lacak: false, ct);
+            if (asal is null) return TidakDitemukan<JournalDetailResponse>();
+
+            if (asal.JournalStatus != JournalStatus.Posted)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Hanya jurnal yang sudah disahkan yang dapat dibalik.");
+            }
+
+            // Satu jurnal hanya boleh dibalik sekali. Nomor jurnal pembaliknya disebutkan supaya
+            // petugas dapat langsung membukanya, bukan mencarinya sendiri.
+            var pembalikSebelumnya = await _db.Set<AccJournal>()
+                .AsNoTracking()
+                .Where(x => x.ReversalOfJournalId == asal.Id && !x.IsDelete)
+                .Select(x => x.JournalNumber)
+                .FirstOrDefaultAsync(ct);
+
+            if (pembalikSebelumnya is not null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Jurnal ini sudah pernah dibalik dengan jurnal {pembalikSebelumnya}.");
+            }
+
+            if (request.CorrectionType is null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pilih cara koreksi: pembalikan penuh atau jurnal penyesuaian.");
+            }
+
+            var alasan = request.Reason?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(alasan) || alasan.Length > 500)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status400BadRequest, "Alasan pembalikan wajib diisi.");
+            }
+
+            var koreksi = request.CorrectionType.Value;
+            var tanggal = (request.AccountingDate ?? asal.AccountingDate).Date;
+
+            // Jenis jurnal koreksi diambil dari master menurut kodenya — JB untuk pembalikan
+            // penuh, JP untuk penyesuaian (`ACC-DEC-029`, `ACC-DEC-017`). Kodenya tidak
+            // dituliskan sebagai Guid di kode, dan pencariannya memakai ulang
+            // AccJournalTypeService.CariMenurutKodeAsync.
+            var kodeJenis = koreksi == JournalCorrectionType.FullReversal ? "JB" : "JP";
+
+            var jenis = await AccJournalTypeService.CariMenurutKodeAsync(_db, kodeJenis, ct);
+
+            if (jenis is null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Jenis jurnal {kodeJenis} belum ada pada master jenis jurnal. Jalankan "
+                    + "pengisian data master jenis jurnal lebih dahulu.");
+            }
+
+            var periode = await _db.Set<AccAccountingPeriod>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => !x.IsDelete
+                                          && x.LegalEntityId == asal.LegalEntityId
+                                          && x.StartDate <= tanggal
+                                          && x.EndDate >= tanggal, ct);
+
+            if (periode is null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Belum ada periode akuntansi untuk {NamaBulan[tanggal.Month - 1]} "
+                    + $"{tanggal.Year.ToString(CultureInfo.InvariantCulture)}. "
+                    + "Minta administrator membangkitkan periode tahun buku ini.");
+            }
+
+            var alasanPeriode = await AccAccountingPeriodService.AlasanPenolakanJenisJurnalAsync(
+                _db, periode.Id, jenis.JournalTypeCode, ct);
+
+            if (alasanPeriode is not null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Periode {NamaPeriode(periode)} tidak menerima jurnal pembalik. {alasanPeriode}");
+            }
+
+            // Baris jurnal koreksi.
+            List<AccJournalLine> baris;
+
+            if (koreksi == JournalCorrectionType.FullReversal)
+            {
+                // Kebalikan seluruh baris jurnal asal. Nomor baris, akun, dan unit biayanya
+                // dipertahankan supaya pembalikan dapat dibandingkan baris demi baris dengan
+                // jurnal asalnya.
+                baris = asal.Lines
+                    .Where(x => !x.IsDelete)
+                    .OrderBy(x => x.LineNumber)
+                    .Select(x => new AccJournalLine
+                    {
+                        Id = Guid.NewGuid(),
+                        LineNumber = x.LineNumber,
+                        AccountId = x.AccountId,
+                        CostCenterId = x.CostCenterId,
+                        Description = x.Description,
+                        DebitAmount = x.CreditAmount,
+                        CreditAmount = x.DebitAmount
+                    })
+                    .ToList();
+
+                if (baris.Count == 0)
+                {
+                    return AccountingServiceResult<JournalDetailResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Jurnal asal tidak memiliki baris sehingga tidak dapat dibalik.");
+                }
+            }
+            else
+            {
+                if (request.AdjustmentLines is null || request.AdjustmentLines.Count == 0)
+                {
+                    return AccountingServiceResult<JournalDetailResponse>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Jurnal penyesuaian harus memiliki baris selisih.");
+                }
+
+                var disusun = await SusunBarisAsync<JournalDetailResponse>(
+                    asal.LegalEntityId, request.AdjustmentLines, ct);
+
+                if (disusun.Gagal is not null) return disusun.Gagal;
+
+                // Penyesuaian wajib seimbang sejak dibuat — berbeda dari jurnal manual biasa yang
+                // boleh disimpan timpang (`ACC-DEC-025`). Koreksi yang timpang berarti
+                // penyusunnya belum tahu apa yang hendak dikoreksi.
+                var debit = disusun.Baris.Sum(x => x.DebitAmount);
+                var kredit = disusun.Baris.Sum(x => x.CreditAmount);
+
+                if (debit != kredit)
+                {
+                    return AccountingServiceResult<JournalDetailResponse>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        $"Baris penyesuaian belum seimbang. Selisih Rp {Math.Abs(debit - kredit):N0}.");
+                }
+
+                baris = disusun.Baris;
+            }
+
+            var sekarang = DateTime.UtcNow;
+
+            var transaksiSendiri = _db.Database.CurrentTransaction is null;
+            var transaksi = transaksiSendiri
+                ? await _db.Database.BeginTransactionAsync(ct)
+                : null;
+
+            try
+            {
+                var nomor = await AlokasikanNomorJurnalAsync(
+                    _db, jenis.NumberPrefix, asal.LegalEntityId, tanggal, actorUserId, ct);
+
+                var keterangan = koreksi == JournalCorrectionType.FullReversal
+                    ? $"Pembalikan jurnal {asal.JournalNumber}. {alasan}"
+                    : $"Penyesuaian jurnal {asal.JournalNumber}. {alasan}";
+
+                var koreksiJurnal = new AccJournal
+                {
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = asal.LegalEntityId,
+                    JournalNumber = nomor,
+                    JournalTypeId = jenis.Id,
+                    AccountingPeriodId = periode.Id,
+                    DocumentNumber = asal.DocumentNumber,
+                    DocumentDate = asal.DocumentDate,
+                    AccountingDate = tanggal,
+                    Description = keterangan.Length > 500 ? keterangan[..500] : keterangan,
+
+                    // Acceptance (5) — lahir menunggu persetujuan, bukan langsung disahkan.
+                    JournalStatus = JournalStatus.PendingApproval,
+                    SubmittedBy = actorUserId,
+                    SubmittedAt = sekarang,
+
+                    ReversalOfJournalId = asal.Id,
+                    CorrectionType = koreksi,
+                    TotalDebit = baris.Sum(x => x.DebitAmount),
+                    TotalCredit = baris.Sum(x => x.CreditAmount),
+                    CreateDateTime = sekarang,
+                    CreateBy = actorUserId
+                };
+
+                foreach (var b in baris)
+                {
+                    b.JournalId = koreksiJurnal.Id;
+                    b.CreateDateTime = sekarang;
+                    b.CreateBy = actorUserId;
+                    koreksiJurnal.Lines.Add(b);
+                }
+
+                _db.Set<AccJournal>().Add(koreksiJurnal);
+
+                // Riwayat ditulis pada jurnal ASAL — di situlah pertanyaan audit "kapan jurnal ini
+                // dibalik dan oleh siapa" akan dicari — sekaligus pada jurnal koreksi sebagai
+                // pengajuannya.
+                CatatRiwayat(asal, JournalApprovalAction.Reversed, actorUserId, alasan, sekarang);
+                CatatRiwayat(koreksiJurnal, JournalApprovalAction.Submitted, actorUserId, alasan, sekarang);
+
+                await _db.SaveChangesAsync(ct);
+
+                if (transaksi is not null) await transaksi.CommitAsync(ct);
+
+                return await MuatDanPetakanAsync(
+                    koreksiJurnal.Id,
+                    koreksi == JournalCorrectionType.FullReversal
+                        ? $"Jurnal pembalik {nomor} berhasil dibuat dan menunggu persetujuan."
+                        : $"Jurnal penyesuaian {nomor} berhasil dibuat dan menunggu persetujuan.",
+                    actorUserId, izin, ct);
+            }
+            catch
+            {
+                if (transaksi is not null) await transaksi.RollbackAsync(ct);
+                throw;
+            }
+            finally
+            {
+                if (transaksi is not null) await transaksi.DisposeAsync();
+            }
+        }
+
         /// <summary>
         /// Kesembilan syarat pengajuan `ACC-STATE-0.1` bagian 1.3, dinilai dari keadaan
         /// <b>tersimpan</b>, bukan dari isian permintaan.
@@ -1163,6 +1424,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
         private static AccountingServiceResult<T> TidakDitemukan<T>()
             => AccountingServiceResult<T>.Fail(StatusCodes.Status404NotFound, "Jurnal tidak ditemukan.");
+
+        private static string NamaPeriode(AccAccountingPeriod periode)
+            => $"{NamaBulan[periode.PeriodMonth - 1]} "
+             + periode.FiscalYear.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>
         /// Menolak penyuntingan menurut status, dengan pesan yang tepat per status.

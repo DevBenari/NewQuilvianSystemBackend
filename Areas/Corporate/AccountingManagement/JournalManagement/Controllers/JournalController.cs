@@ -178,6 +178,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
         }
 
         // ------------------------------------------------------------------
+        // Pembalikan dan penyesuaian — BE-ACC-013
+        // ------------------------------------------------------------------
+
+        [HttpPost("{id:guid}/reverse")]
+        [AccessAction("Reverse", "Reverse Journal", Description = "Membuat jurnal pembalik atau penyesuaian", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("Journal", "Reverse")]
+        public async Task<IActionResult> Reverse(Guid id, [FromBody] ReverseJournalRequest request, CancellationToken ct)
+        {
+            var actor = GetCurrentUserId();
+            if (actor == Guid.Empty) return IdentitasTidakValid();
+
+            var hasil = await _service.ReverseAsync(id, request, actor, await AmbilIzinAsync(), ct);
+
+            await CatatAsync("Journal.Reverse", hasil, id);
+
+            return ToActionResult(hasil);
+        }
+
+        // ------------------------------------------------------------------
         // Pembantu
         // ------------------------------------------------------------------
 

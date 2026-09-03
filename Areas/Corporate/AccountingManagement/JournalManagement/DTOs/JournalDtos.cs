@@ -233,6 +233,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
     }
 
     /// <summary>
+    /// Pembalikan atau penyesuaian jurnal yang sudah disahkan. Cakupan `BE-ACC-013`.
+    /// </summary>
+    public class ReverseJournalRequest
+    {
+        /// <summary>
+        /// Wajib dipilih. <c>FullReversal</c> membalik seluruh baris; <c>Adjustment</c> mencatat
+        /// selisihnya saja.
+        /// </summary>
+        [Required]
+        public JournalCorrectionType? CorrectionType { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Tanggal akuntansi jurnal koreksi. Kosong berarti mengikuti tanggal jurnal asal.
+        /// </summary>
+        public DateTime? AccountingDate { get; set; }
+
+        /// <summary>
+        /// Wajib diisi dan harus seimbang bila <see cref="CorrectionType"/> adalah
+        /// <c>Adjustment</c>. Diabaikan pada pembalikan penuh, karena barisnya diturunkan dari
+        /// jurnal asal.
+        /// </summary>
+        public List<CreateJournalLineRequest> AdjustmentLines { get; set; } = new();
+    }
+
+    /// <summary>
     /// Hak akses pengguna yang sedang masuk atas sebuah jurnal, dinilai lapisan infrastruktur
     /// lalu diserahkan ke service.
     /// </summary>
