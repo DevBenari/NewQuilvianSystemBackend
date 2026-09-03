@@ -377,6 +377,11 @@ try
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<BloodStorageLocationService>();
 
+    // Daftar alasan terkendali Bank Darah. Alasan pada pembatalan, pengalihan, penetapan tidak
+    // layak, dan jalur darurat tidak boleh berupa teks bebas (INV-BD-016); service ini yang
+    // memberi BDRS cara menyusun daftarnya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<BloodBankReasonService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(

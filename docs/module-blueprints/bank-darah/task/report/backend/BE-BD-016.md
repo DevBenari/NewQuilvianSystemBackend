@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `ec2bcac` cabang `sukmagp` |
 | Tanggal | `2026-09-03` |
-| Status | **`SELESAI SEBAGIAN`** — 8 dari 39 butir terdaftar. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
+| Status | **`SELESAI SEBAGIAN`** — **12 dari 39** butir terdaftar per 3 September 2026, naik dari 8 setelah `MstBloodBankReason` selesai. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
 
 ---
 
@@ -98,7 +98,7 @@ ditulis di kode.
 | --- | --- |
 | Kontrak API | `NOT APPLICABLE` — nol endpoint dibuat atau disentuh |
 | Database | `NOT APPLICABLE` — nol entity, nol migration. `SysControllerAccess` dan `SysActionAccess` diisi `AccessMenuSeeder` saat startup, bukan oleh migration |
-| Keamanan/Auth | **Nol butir hak akses baru dibuat task ini.** Delapan butir yang sudah ada — dari `BE-BD-001` dan `BE-BD-014` — kini dijaga pengujian kontrak. Larangan butir gabungan `BloodUnit : Resolve` ditegakkan otomatis terhadap **seluruh** source |
+| Keamanan/Auth | **Nol butir hak akses baru dibuat task ini.** Butir yang sudah ada — dari `BE-BD-001` dan `BE-BD-014` — kini dijaga pengujian kontrak; jumlahnya 8 saat task ini ditulis, menjadi **12** setelah `MstBloodBankReason` selesai pada hari yang sama. Larangan butir gabungan `BloodUnit : Resolve` ditegakkan otomatis terhadap **seluruh** source |
 
 ---
 
@@ -106,12 +106,13 @@ ditulis di kode.
 
 `NOT APPLICABLE` — task ini tidak membuat maupun menyentuh endpoint.
 
-Delapan butir hak akses yang **sudah** terdaftar dan kini dijaga pengujian:
+Butir hak akses yang **sudah** terdaftar dan kini dijaga pengujian:
 
 | Resource | Action | Dari task |
 | --- | --- | --- |
 | `BloodComponent` | `Read`, `Create`, `Update`, `Delete` | `BE-BD-001` |
 | `BloodStorageLocation` | `Read`, `Create`, `Update`, `Delete` | `BE-BD-014` |
+| `BloodBankReason` | `Read`, `Create`, `Update`, `Delete` | `BE-BD-001` pass kedua — ditambahkan setelah task ini ditulis |
 
 ---
 
@@ -154,7 +155,7 @@ sumber yang sama yang dipakai `AccessMenuSeeder`, sehingga hasilnya setara tanpa
 | `AC-BD-078` — pemisahan wewenang validasi golongan darah | **Terpenuhi pada tingkat kontrak** | `KontrakMemisahkanValidasiRutinDariPenyelesaianKonflik`. Penegakan runtime menunggu `BE-BD-005` dan `BE-BD-011` |
 | `AC-BD-093` — pemegang kewenangan operasional ditolak saat mengalihkan kantong | **Belum terpenuhi — bukan milik task ini** | Menuntut `BloodUnitController` yang belum ada. Menjadi acceptance `BE-BD-009` |
 | `AC-BD-090` — petugas tanpa kewenangan validasi ditolak menyatakan bukti kecocokan | **Belum terpenuhi — bukan milik task ini** | Menuntut endpoint bukti kecocokan. Menjadi acceptance `BE-BD-007` |
-| DoD — seluruh resource & action hak akses Bank Darah terdaftar | **Belum terpenuhi** | **8 dari 39**. Sisanya tidak dapat didaftarkan sekarang; lihat bagian 8.1 |
+| DoD — seluruh resource & action hak akses Bank Darah terdaftar | **Belum terpenuhi** | **12 dari 39**. Sisanya tidak dapat didaftarkan sekarang; lihat bagian 8.1 |
 
 ### Kenapa task ini tidak boleh ditandai selesai
 
@@ -224,19 +225,19 @@ lagi:
 untuk controller yang ada, penjaga pemisahan butir `DEC-BD-043`/`DEC-BD-044` yang menyapu **seluruh**
 source, dan pengunci angka cakupan yang membuat gap terbaca sebagai angka.
 
-**Cakupan pendaftaran butir kontrak `v4`: 8 dari 39.**
+**Cakupan pendaftaran butir kontrak `v4`: 12 dari 39.** Angka ini dikunci pengujian, sehingga naik hanya ketika sebuah task benar-benar melahirkan controller-nya.
 
 | Resource | Butir | Terdaftar | Task yang mendaftarkan |
 | --- | ---: | :---: | --- |
 | `BloodComponent` | 4 | ✅ 4 | `BE-BD-001` |
 | `BloodStorageLocation` | 4 | ✅ 4 | `BE-BD-014` |
-| `BloodBankReason` | 4 | ❌ 0 | sisa `BE-BD-001` |
+| `BloodBankReason` | 4 | ✅ 4 | `BE-BD-001` |
 | `BloodOrder` | 4 | ❌ 0 | `BE-BD-003` |
 | `BloodProviderRequest` | 4 | ❌ 0 | `BE-BD-004` |
 | `BloodUnit` | 11 | ❌ 0 | `BE-BD-004`, `006`, `007`, `008`, `009`, `010`, `015` |
 | `BloodGroupExam` | 5 | ❌ 0 | `BE-BD-005`, `BE-BD-011` |
 | `BloodBankProcedure` | 3 | ❌ 0 | `BE-BD-012` |
-| **Total** | **39** | **8** | |
+| **Total** | **39** | **12** | |
 
 **Untuk pemilik roadmap:** deskripsi `BE-BD-016` sebaiknya diubah dari "seeder resource + action"
 menjadi penjagaan kontrak hak akses yang cakupannya tumbuh mengikuti task pembuat controller. Itu

@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/MasterData/**`, `Repositories/**`, `Migrations/**`, `QuilvianSystemBackend.Tests/**`, `Program.cs` |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `6488511` cabang `sukmagp` |
-| Tanggal | `2026-09-03` |
-| Status | **`SELESAI SEBAGIAN`** — hanya `MstBloodComponent`. `MstBloodBankReason` belum dikerjakan; lihat bagian 6 |
+| Commit backend saat dikerjakan | `6488511` (`MstBloodComponent`) · `e892bd7` (`MstBloodBankReason`) cabang `sukmagp` |
+| Tanggal | `2026-09-03` — dua pass: `MstBloodComponent`, lalu `MstBloodBankReason` |
+| Status | **`SELESAI`** — kedua master sudah dibuat. Lihat bagian 9 untuk pass kedua |
 
 ---
 
@@ -251,7 +251,7 @@ ber-hak-akses, dan eksekusi database adalah wewenang terpisah yang tidak diminta
 | DoD — CRUD berjalan | **Terpenuhi** untuk `MstBloodComponent` | Sembilan endpoint + 26 pengujian |
 | DoD — endpoint master jalan | **Terpenuhi** untuk `MstBloodComponent` | Bagian 4 |
 | DoD — seed minimum terisi | **Terpenuhi sebagian** | `BloodComponentSeeder` mengisi PRC, TC, FFP. Seeder untuk `MstBloodBankReason` belum ada |
-| DoD — seluruh kategori alasan terseed | **Belum terpenuhi** | `MstBloodBankReason` tidak masuk scope yang diberikan |
+| DoD — seluruh kategori alasan terseed | **Terpenuhi** | `BloodBankReasonSeeder` mengisi satu alasan untuk **setiap** dari sepuluh kategori; `Seeder_MengisiSatuAlasanUntukSetiapKategori` membuktikan `CategoryWithoutActiveReasonCount` menjadi nol |
 
 ### Butir yang belum terpenuhi, disebut apa adanya
 
@@ -341,3 +341,166 @@ Scope task ini dipersempit pemberi tugas menjadi `MstBloodComponent` saja. Karen
 | `QBE-ENUM-001` | Task ini tidak menambah enum |
 | `QBE-NAM-003`, `QBE-DB-001`, `QBE-DB-002` | Khusus `LEGACY MIGRATION`; task ini `NEW CODE` |
 | `QBE-CFG-002` | Khusus `TOUCHED LEGACY`; task ini tidak menyentuh configuration legacy |
+
+---
+
+## 9. Pass kedua — `MstBloodBankReason`
+
+Bagian 1 sampai 8 di atas mencatat pass pertama, yaitu `MstBloodComponent`, dan tetap berlaku apa
+adanya. Bagian ini mencatat pass kedua yang menuntaskan task.
+
+### 9.1 Masalah yang diperbaiki
+
+`INV-BD-016` melarang alasan pada pembatalan, pengalihan, penetapan tidak layak, dan jalur darurat
+berupa teks bebas semata. Tanpa daftar terkendali, satu-satunya cara memenuhi aturan itu adalah
+menanam daftar alasan di dalam kode — dan setiap perubahan rumusan alasan berubah menjadi tiket
+pengembangan.
+
+Ada akibat kedua yang lebih halus. `DEC-BD-044` mengizinkan dua peran membatalkan order darah
+dengan sebab yang berbeda, dan keduanya memakai **satu** butir hak akses `BloodOrder : Cancel`.
+Yang membedakannya pada rekam **hanya kategori alasannya**. Tanpa master ini, peninjau tidak dapat
+membedakan order yang dicabut karena pasiennya tidak jadi ditransfusi dari order yang dihapus karena
+salah input.
+
+### 9.2 Proses bisnis
+
+**Pelaku.** Admin master data Bank Darah, lewat butir hak akses `BloodBankReason : *`.
+
+**Langkah pada jalur normal:**
+
+1. Admin membuka layar daftar alasan. Kartu statistik menampilkan berapa kategori yang **belum**
+   punya satu pun alasan aktif — keadaan yang membuat tindakannya buntu.
+2. Admin menambah alasan lewat `POST /`, memilih kategori dari daftar tertutup.
+3. Layar tindakan kelak memanggil `GET /options?category=` sehingga hanya alasan yang sesuai
+   konteks yang ditawarkan.
+4. Alasan yang rumusannya diganti dinonaktifkan lewat `PATCH /{id}/status`.
+
+**Contoh.** Dokter membatalkan order darah Ny. R karena operasinya ditunda, memilih alasan
+berkategori pembatalan klinis. Di hari yang sama petugas BDRS menghapus satu order ganda yang ia
+buat sendiri lewat jalur manual, memilih alasan berkategori pembatalan operasional. Keduanya
+tercatat sebagai pembatalan, tetapi peninjau dapat membedakannya tanpa membaca kalimat satu per satu.
+
+**Jalur tidak normal:**
+
+| Keadaan | Yang terjadi |
+| --- | --- |
+| Kode alasan sudah dipakai | `409` |
+| Kategori di luar daftar tertutup | `400` — pesannya menyebutkan kesepuluh kategori yang sah |
+| Kategori ditulis beda huruf besar-kecil | **Diterima**, lalu dinormalkan ke bentuk bakunya |
+| `GET /options?category=` dengan kategori tak dikenal | `200` dengan daftar **kosong**, bukan seluruh isi tabel |
+
+### 9.3 Berkas yang berubah pada pass kedua
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/MasterData/Models/MstBloodBankReason.cs` | **Baru.** Entity beserta kelas konstanta `BloodBankReasonCategories` berisi kesepuluh kategori sah |
+| `Repositories/Configurations/HealthServices/MasterData/MstBloodBankReasonConfiguration.cs` | **Baru.** Index unik `ReasonCode`, index gabungan `ReasonCategory` + `IsActive` |
+| `Areas/HealthServices/MasterData/DTOs/BloodBankReasonDtos.cs` | **Baru.** Termasuk pilihan kategori berlabel dan ringkasan kategori kosong |
+| `Areas/HealthServices/MasterData/Services/BloodBankReasonService.cs` | **Baru.** Pemilik seluruh CRUD dan penjaga daftar tertutup kategori |
+| `Areas/HealthServices/MasterData/Controllers/BloodBankReasonController.cs` | **Baru.** Sembilan endpoint |
+| `Areas/HealthServices/MasterData/Seeders/BloodBankReasonSeeder.cs` | **Baru.** Satu alasan untuk setiap kategori |
+| `Repositories/ApplicationDbContext.cs` · `Program.cs` | `DbSet` dan registrasi service |
+| `Migrations/20260903093414_AddMstBloodBankReason.cs` beserta `.Designer.cs` | **Baru** |
+| `QuilvianSystemBackend.Tests/.../BloodBankReasonServiceTests.cs` | **Baru.** 30 pengujian |
+| `QuilvianSystemBackend.Tests/.../BloodBankRoleAccessContractTests.cs` | `BloodBankReasonController` ditambahkan ke daftar yang diuji; cakupan butir hak akses naik **8 → 12** dari 39 |
+
+### 9.4 Dokumentasi endpoint
+
+#### Health Services / Master Data / Blood Bank Reason
+
+Base URL: `api/v1/health-services/master-data/blood-bank-reasons`
+
+| Method | Path | Kegunaan | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Konfigurasi penyaring, **pilihan kategori berlabel**, dan isian form | `BloodBankReason : Read` |
+| `GET` | `/summary` | Ringkasan jumlah, termasuk daftar kategori yang belum punya alasan aktif | `BloodBankReason : Read` |
+| `GET` | `/` | Daftar alasan dengan pencarian, penyaringan kategori, pengurutan, dan halaman | `BloodBankReason : Read` |
+| `GET` | `/options` | Pilihan alasan aktif untuk sebuah kategori (`?category=`) | `BloodBankReason : Read` |
+| `GET` | `/{id}` | Detail satu alasan | `BloodBankReason : Read` |
+| `POST` | `/` | Menambah alasan | `BloodBankReason : Create` |
+| `PUT` | `/{id}` | Mengubah kode, teks, kategori, dan status | `BloodBankReason : Update` |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan alasan | `BloodBankReason : Update` |
+| `DELETE` | `/{id}` | Menandai alasan terhapus tanpa menghapus fisik | `BloodBankReason : Delete` |
+
+**Tiga delta endpoint terhadap kontrak `v4`**, sama pola dengan kedua master sebelumnya:
+`GET /filters/metadata`, `GET /summary`, dan `PATCH /{id}/status` adalah baseline wajib standar
+master data yang tidak tertulis pada kontrak. Khusus master ini, `GET /summary` membawa daftar
+kategori yang belum terisi — keadaan yang membuat tindakannya buntu.
+
+Catatan kontrak: `DELETE /{id}` pada kontrak `v4` diberi keterangan "Nonaktifkan alasan". Kedua
+maksud itu kini dilayani terpisah — `PATCH /{id}/status` untuk menonaktifkan, `DELETE /{id}` untuk
+menandai terhapus — sesuai baseline master data.
+
+**Satu delta penamaan**, sama seperti kedua master sebelumnya: berkasnya `BloodBankReasonController`
+dan `BloodBankReasonService`, bukan berprefix `Mst`, mengikuti 31 dari 31 controller master data.
+Nama entity, configuration, DbSet, dan tabel tetap `MstBloodBankReason`.
+
+### 9.5 Verifikasi pass kedua
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | Berhasil — `0 Error(s)`, `186 Warning(s)` | `PASS` | Jumlah warning identik dengan sebelum pass ini |
+| `dotnet ef migrations add AddMstBloodBankReason` | Migration terbentuk | `PASS` | `Migrations/20260903093414_AddMstBloodBankReason.cs` |
+| Migration diadu dengan kamus data | Cocok penuh | `PASS` | `ReasonCode` varchar(30) unique, `ReasonText` varchar(200), `ReasonCategory` varchar(40) ber-index, `IsActive` boolean default true |
+| 30 pengujian `BloodBankReasonServiceTests` | `Failed: 0, Passed: 30` | `PASS` | Dijalankan bersama seluruh pengujian Bank Darah; total **101 lulus** |
+| Cakupan butir hak akses naik | 8 → **12** dari 39 | `PASS` | `CakupanPendaftaranButirKontrak_DuaBelasDariTigaPuluhSembilan` |
+| `dotnet test QuilvianSystemBackend.Tests` | **Tidak dapat dijalankan** | `EXISTING / ENVIRONMENT ISSUE` | Kerusakan pre-existing `PatientEncounterTestWorld.cs`. **Masih belum diperbaiki pemiliknya** |
+
+**Rincian 30 pengujian:**
+
+| Kelompok | Jumlah | Yang dibuktikan |
+| --- | ---: | --- |
+| Pengelolaan dasar | 3 | Normalisasi kode, kode kembar ditolak, isian kosong ditolak |
+| Daftar tertutup kategori | 6 | Kategori di luar daftar ditolak (4 varian), penormalan huruf besar-kecil, daftar berisi sepuluh nilai unik |
+| Pemisahan `DEC-BD-044` | 2 | Dua kategori pembatalan terpisah dan **kategori gabungan lama ditolak**; setiap kategori punya label yang dibaca petugas |
+| Kotak pilihan | 3 | Menyaring per kategori; kategori tak dikenal memulangkan **kosong**; nonaktif dan terhapus tidak ditawarkan |
+| Ringkasan & daftar | 3 | Kategori belum terisi terhitung; penonaktifan mengembalikannya terhitung kosong; halaman dihitung backend |
+| Penonaktifan & penghapusan | 3 | Tidak menyentuh kolom lain; penandaan bukan penghapusan fisik; kategori salah pilih dapat dibetulkan |
+| Seeder | 8 | Satu alasan per kategori, awalan `SEED-`, kategori seluruhnya sah, dapat diulang, tidak menimpa, menolak produksi |
+| Metadata | 2 | Penyaring yang diumumkan didukung daftar; pilihan kategori lengkap |
+
+Uji manual: `NOT FEASIBLE` — menuntut database yang sudah dimigrasikan; eksekusi database wewenang
+terpisah.
+
+### 9.6 Gap yang ditemukan dan sengaja tidak diimplementasikan
+
+**⚠️ Daftar tertutup kategori dijaga service, bukan oleh database.**
+
+Kamus data menetapkan `ReasonCategory` bertipe `string(40)`, bukan enum. Konsekuensinya database
+**tidak** menolak kategori karangan — yang menolaknya adalah `BloodBankReasonCategories.Normalize`
+di service.
+
+Praktisnya cukup: satu-satunya jalan masuk data adalah endpoint yang memanggil service itu. Tetapi
+jalur di luar aplikasi — perbaikan data manual lewat SQL, atau impor massal — dapat menyisipkan
+kategori yang tidak dikenal, dan alasannya akan **hilang dari kotak pilihan tanpa ada yang
+menyadarinya**, karena penyaring kategori tidak akan pernah cocok.
+
+Tidak ditambahkan sendiri karena `CHECK` constraint di luar kamus data adalah perubahan kontrak
+database. **Untuk pemilik:** bila penjagaan tingkat database dikehendaki, tambahkan `CHECK`
+constraint pada kamus data lalu satu migration aditif menegakkannya.
+
+**Teks alasan bawaan adalah titik awal, bukan daftar resmi BDRS.** Rumusan alasan adalah kesepakatan
+proses (`DEC-BD-024`) dan tiap rumah sakit menuliskannya berbeda. Karena itu seeder menolak berjalan
+di produksi, dan kodenya diberi awalan `SEED-` supaya baris bawaan mudah dibedakan dan dinonaktifkan
+setelah daftar asli BDRS masuk.
+
+**`VAL-BD-083` belum dapat ditegakkan.** Kode itu menolak pembatalan order yang kategori alasannya
+tidak sesuai peran pelaku. Penegakannya ada di jalur pembatalan order, dan `BbkBloodOrder` belum ada
+— menjadi acceptance `BE-BD-003`. Yang task ini jamin adalah prasyaratnya: kedua kategori pembatalan
+sudah ada, terpisah, dan terjaga pengujian.
+
+### 9.7 Status akhir task
+
+`BE-BD-001` kini **`SELESAI`**. Kedua master yang dituntut judul task sudah ada:
+
+| Master | Endpoint | Migration | Seeder | Test |
+| --- | ---: | --- | --- | ---: |
+| `MstBloodComponent` | 9 | `AddMstBloodComponent` | PRC/TC/FFP | 26 |
+| `MstBloodBankReason` | 9 | `AddMstBloodBankReason` | 10 kategori | 30 |
+
+**Empat migration `MVP-0` kini menunggu dijalankan**, dan tidak satu pun sudah dijalankan:
+`AddMstBloodComponent`, `AddServiceUnitBloodOrderFlag`, `AddMstBloodStorageLocation`, dan
+`AddMstBloodBankReason`.
+
+Dengan selesainya task ini, **`MVP-1` tidak lagi tertahan master** — `BE-BD-003` sudah punya kategori
+pembatalan order yang dibutuhkannya.

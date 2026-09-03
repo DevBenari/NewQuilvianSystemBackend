@@ -45,7 +45,8 @@ public sealed class BloodBankRoleAccessContractTests
     private static readonly Type[] ModuleControllers =
     {
         typeof(BloodComponentController),
-        typeof(BloodStorageLocationController)
+        typeof(BloodStorageLocationController),
+        typeof(BloodBankReasonController)
     };
 
     /// <summary>
@@ -65,10 +66,10 @@ public sealed class BloodBankRoleAccessContractTests
         ("BloodStorageLocation", "Update", "BE-BD-014"),
         ("BloodStorageLocation", "Delete", "BE-BD-014"),
 
-        ("BloodBankReason", "Read", "BE-BD-001 sisa"),
-        ("BloodBankReason", "Create", "BE-BD-001 sisa"),
-        ("BloodBankReason", "Update", "BE-BD-001 sisa"),
-        ("BloodBankReason", "Delete", "BE-BD-001 sisa"),
+        ("BloodBankReason", "Read", "BE-BD-001"),
+        ("BloodBankReason", "Create", "BE-BD-001"),
+        ("BloodBankReason", "Update", "BE-BD-001"),
+        ("BloodBankReason", "Delete", "BE-BD-001"),
 
         ("BloodOrder", "Read", "BE-BD-003"),
         ("BloodOrder", "Create", "BE-BD-003"),
@@ -426,14 +427,14 @@ public sealed class BloodBankRoleAccessContractTests
     /// bergeser diam-diam.
     /// </summary>
     [Fact]
-    public void CakupanPendaftaranButirKontrak_DelapanDariTigaPuluhSembilan()
+    public void CakupanPendaftaranButirKontrak_DuaBelasDariTigaPuluhSembilan()
     {
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var sudah = KontrakV4.Count(x => terdaftar.Contains((x.Resource, x.Action)));
 
         Assert.Equal(39, KontrakV4.Length);
-        Assert.Equal(8, sudah);
+        Assert.Equal(12, sudah);
     }
 
     // =====================================================================

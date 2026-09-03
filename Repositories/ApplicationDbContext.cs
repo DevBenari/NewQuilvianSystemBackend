@@ -731,6 +731,7 @@ namespace QuilvianSystemBackend.Repositories
         #region BLOOD BANK MANAGEMENT
         public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
         public DbSet<MstBloodStorageLocation> MstBloodStorageLocations { get; set; }
+        public DbSet<MstBloodBankReason> MstBloodBankReasons { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE
