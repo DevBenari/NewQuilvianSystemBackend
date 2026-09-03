@@ -9,8 +9,8 @@ revision: 9
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-03T01:00:00+07:00
-last_verified_at: 2026-09-03T01:00:00+07:00
+updated_at: 2026-09-03T16:30:00+07:00
+last_verified_at: 2026-09-03T16:30:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,7 +29,7 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: d9a9111
+verification_backend_source_sha: 5918828
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
@@ -44,6 +44,11 @@ verification_baseline_note: >
   Record, nol baris Accounting dan nol pemanggilan seeder. f40177a sendiri menyentuh tepat 3
   berkas — migration, designer, snapshot. Seluruh bukti terhadap aa837d7 tetap berlaku, dan
   17/17 hash artefak canonical cocok saat diverifikasi ulang.
+  5918828 adalah commit BE-ACC-008 dan BE-ACC-009 oleh owner, tepat 15 berkas: 6 source, 2 berkas
+  test, dan 7 dokumen blueprint. Nol sentuhan Migrations/, ModelSnapshot, entity, configuration, dan
+  modul lain; Program.cs hanya bertambah 4 baris registrasi service Accounting. BE-ACC-010 berjalan
+  di atas SHA ini dengan working tree bersih, dan 17/17 hash artefak canonical cocok saat
+  diverifikasi ulang 3 September 2026 sebelum implementasi dimulai.
   0f86e84 adalah commit BE-ACC-006 oleh owner, tepat 7 berkas: seeder, test-nya, laporan task, dan
   4 register. Nol sentuhan Migrations/, ModelSnapshot, Program.cs, entity, configuration, dan modul
   lain. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak relevan untuk backend.
@@ -55,7 +60,7 @@ integration_baseline_note: >
   lengkap: snapshot bertambah 751 baris TANPA satu pun deletion, jadi pola kerusakan ACC-DEP-001
   tidak terulang. Snapshot kini 545 tabel dengan 7 Acc*.
   Bukti: evidence/04-migration-coordination-gate.md bagian 10.
-verified_at: 2026-09-02
+verified_at: 2026-09-03
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: ACC-PRD-001@0.1 + 00-interview-decisions@3
 decision_revision: 1.6
@@ -99,7 +104,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: 9ca17344614c86e3a7239f8e99080ea4213aa59227557dc7107becb098492dc6
+  roadmap/backend-roadmap.md: 874e7d41a1afb2613684f7ddf00aa51a625892e27e94458ec1e8a9fd9bd18c84
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041

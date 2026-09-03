@@ -79,7 +79,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
-| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007`..`009` **`DONE`**; `BE-ACC-010` dan `011` `ROADMAP_READY` | `MVP-0` selesai ✅ |
+| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007`..`010` **`DONE`**; `BE-ACC-011` `ROADMAP_READY` | `MVP-0` selesai ✅ |
 | `MVP-2` Buku besar | `BE-ACC-012` | Berantai `MVP-1` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | Berantai `MVP-2` | `MVP-2` selesai |
 
@@ -397,7 +397,7 @@ selama akun belum dipakai jurnal disahkan. `ACC-API` naik `0.1` → `0.2`.
 | Verifikasi | Unit test penurunan kewajiban Cost Center; **test integrasi konkurensi nyata** yang menjalankan sejumlah permintaan create paralel terhadap database sungguhan lalu membuktikan tidak ada nomor kembar — inilah penutup `GAP-ACC-004`; test integrasi `FR-ACC-020`, `022` sampai `026`; `UAT-02`, `UAT-04`, `UAT-05` |
 | Risiko/pemilik | Owner Backend. Butir (3) dan (4) paling sering salah dirancang. Lihat blok mekanisme di bawah |
 | DoD | Acceptance terbukti test, **`GAP-ACC-004` tertutup**, laporan task tersedia. `BE-ACC-010` **tidak boleh** dinyatakan `DONE` selama `GAP-ACC-004` masih terbuka |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`DONE`** — 3 September 2026. Kedelapan acceptance terbukti **22 test terhadap PostgreSQL sungguhan**; `GAP-ACC-004` **TERTUTUP** lewat 20 create paralel yang menghasilkan 20 nomor unik, 0 kembar. Laporan: [`../task/report/backend/be-acc-010-jurnal-draft-dan-penomoran.md`](../task/report/backend/be-acc-010-jurnal-draft-dan-penomoran.md). Berkas test-nya dihapus sesudah hijau atas instruksi owner — `ACC-TD-016` |
 
 #### Mekanisme penomoran — apa yang terkunci dan apa yang tidak
 
@@ -544,7 +544,7 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Gap | Task pengikat | Ketentuan |
 |---|---|---|
 | `GAP-ACC-003` | `BE-ACC-012` | Ditutup dengan menetapkan cara menguji pembatasan pencatatan `ACC-DEC-032`, atau dengan menerimanya sebagai pemeriksaan manual **yang dicatat**. Keputusannya diambil saat task dikerjakan, bukan didiamkan |
-| `GAP-ACC-004` | `BE-ACC-010` | **Wajib tertutup** sebelum `BE-ACC-010` dinyatakan `DONE`, lewat test integrasi konkurensi nyata |
+| ~~`GAP-ACC-004`~~ | `BE-ACC-010` | **`TERTUTUP`** 3 September 2026. Test konkurensi nyata: 20 permintaan create paralel pada 20 koneksi PostgreSQL terpisah menghasilkan 20 `JournalNumber` unik, 0 kembar, `AccNumberSeries.CurrentValue` berhenti tepat di 20 |
 | `GAP-ACC-005` | `BE-ACC-002` | `BE-ACC-002` memang dirancang untuk menutupnya |
 
 ## Yang sengaja tidak ada di roadmap ini

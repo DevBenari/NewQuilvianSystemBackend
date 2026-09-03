@@ -7,6 +7,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
@@ -420,6 +421,7 @@ try
     builder.Services.AddScoped<AccChartOfAccountService>();
     builder.Services.AddScoped<AccJournalTypeService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccJournalService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();

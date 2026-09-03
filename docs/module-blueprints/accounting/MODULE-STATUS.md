@@ -7,9 +7,9 @@
 | Revision | `9` — dinaikkan 2 September 2026 atas keputusan owner `ACC-DEC-043`; `ACC-PERMISSION` naik `0.2` → `0.3`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
-| Last verified at | `2 September 2026` — `BE-ACC-009` selesai; 98 test Accounting hijau |
+| Last verified at | `3 September 2026` — `BE-ACC-010` selesai; `GAP-ACC-004` TERTUTUP. 120 test Accounting hijau saat pembuktian, 98 tersisa sesudah berkas test `BE-ACC-010` dihapus atas instruksi owner (`ACC-TD-016`) |
 | Backend source SHA — **approved** | `aa837d784ff51cb2b889cf975ada3a204018f1f5` (branch `rizkiG`) — baseline dasar approval, **tidak diganti** |
-| Backend source SHA — **verification** | `d9a9111` — tempat verifikasi terakhir dijalankan |
+| Backend source SHA — **verification** | `5918828` — tempat verifikasi terakhir dijalankan |
 | Canonical integration baseline | `f90bcbe9a0b18d4f4425a4678a5a39a44356677b` — **sudah termuat**, terbukti leluhur `HEAD` |
 | Frontend source SHA — **approved** | `31a82c8052a3c59445ae49e6f1ccce2bf717d6c0` (branch `QuilvianIntegrationFrontend`) |
 | Frontend source SHA — **verification** | `5336c4457c8ad77abe5c9d2c134760f34a334f55` — `31a82c8` adalah leluhurnya, fast-forward murni |
@@ -24,9 +24,9 @@ satu-satunya perubahan Accounting adalah commit migration `f40177a` sendiri.
 **751 baris tanpa satu pun deletion** — kerusakan pola `ACC-DEP-001` tidak terulang.
 
 Status `IN_PROGRESS` berarti ada pekerjaan aktif yang sudah diberi wewenang. Rinciannya:
-43 keputusan bisnis tertutup, blueprint target lengkap, dan **sembilan task backend selesai** —
-`BE-ACC-001` sampai `BE-ACC-009`. **`MVP-0` tuntas**, dan `MVP-1` berjalan: dua endpoint master
-data sudah berdiri.
+43 keputusan bisnis tertutup, blueprint target lengkap, dan **sepuluh task backend selesai** —
+`BE-ACC-001` sampai `BE-ACC-010`. **`MVP-0` tuntas**, dan `MVP-1` berjalan: tiga endpoint master
+data berdiri, ditambah jalur CRUD jurnal beserta penomorannya.
 
 `ACC-DEC-041` (2 September 2026) menurunkan MVP menjadi **satu badan hukum**, sehingga
 `ACC-DEP-008` tidak lagi memblokir task mana pun. Ia tetap `OPEN` tetapi `NON-BLOCKING`, dan
@@ -41,8 +41,11 @@ berubah menjadi prasyarat sebelum badan hukum **kedua** didaftarkan. Mekanismeny
 Dua catatan yang berada **di dalam** wewenang owner modul:
 
 1. **`POST /journal-types/seed` belum pernah dipanggil**, sehingga `AccJournalType` di database
-   masih kosong (`ACC-TD-011`). Call site-nya sudah ada sejak `BE-ACC-008`; yang tersisa hanya
-   memanggilnya sekali. Tetap **blocker fungsional `BE-ACC-010`** sampai itu dilakukan.
+   masih kosong (`ACC-TD-011`) — diperiksa ulang 3 September 2026. Call site-nya sudah ada sejak
+   `BE-ACC-008`; yang tersisa hanya memanggilnya sekali. `BE-ACC-010` sendiri **sudah `DONE` dan
+   terbukti**, karena test membuat jenis jurnalnya sendiri. Yang tertahan adalah **pemakaian
+   sungguhan**: selama master kosong, nol jurnal dapat dibuat lewat API karena tidak ada awalan
+   nomor yang dapat diambil.
 2. **Penjaga badan hukum sudah dibangun dan terbukti** (`BE-ACC-007` acceptance 5b,
    `ACC-DEC-043`). Ia menolak keras bila badan hukum bertanda `IsDefault` bukan tepat satu.
    Keadaan sekarang: tiga badan hukum aktif, satu bertanda utama — penjaga lolos.
@@ -61,14 +64,14 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
-| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — `BE-ACC-007` dan `BE-ACC-008` `DONE`. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
+| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — `BE-ACC-007` sampai `BE-ACC-010` `DONE`. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — **9/14 `DONE`** | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `IN_PROGRESS` — **10/14 `DONE`** | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
 | Task | Status | Bukti |
 |---|---|---|
@@ -81,10 +84,12 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `BE-ACC-007` API daftar akun | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-007-api-daftar-akun.md`. 8 endpoint, kelima acceptance terbukti **20 test** |
 | `BE-ACC-008` API jenis jurnal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-008-api-jenis-jurnal.md`. 4 endpoint + `POST /seed`, ketiga acceptance terbukti **18 test**. `ACC-TD-004` ditutup |
 | `BE-ACC-009` API periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-009-api-periode-akuntansi.md`. 5 endpoint, kelima acceptance terbukti **36 test**, nol delta kontrak |
+| `BE-ACC-010` jurnal draft dan penomoran | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-010-jurnal-draft-dan-penomoran.md`. 5 endpoint, **kedelapan acceptance terbukti 22 test di PostgreSQL sungguhan**, `GAP-ACC-004` **TERTUTUP**, nol delta kontrak. Berkas test-nya dihapus sesudah hijau atas instruksi owner — `ACC-TD-016` |
 
 `BE-ACC-001`..`003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`; `BE-ACC-005` pada
 `2b152aa`; migration `BE-ACC-006` pada `f40177a` dan seeder-nya pada `0f86e84`; `ACC-DEC-041` pada
-`d9a5a6e`; `BE-ACC-007` pada `5c81ae4`; `ACC-DEC-043` pada `d9a9111`. **`BE-ACC-008` dan `BE-ACC-009` belum di-commit.**
+`d9a5a6e`; `BE-ACC-007` pada `5c81ae4`; `ACC-DEC-043` pada `d9a9111`; `BE-ACC-008` dan
+`BE-ACC-009` pada `5918828`. **`BE-ACC-010` belum di-commit.**
 
 **`MVP-0` tuntas.** Tujuh entity persisted — `AccChartOfAccount`, `AccJournalType`,
 `AccAccountingPeriod`, `AccJournal`, `AccJournalLine`, `AccJournalApproval`, `AccNumberSeries` —
@@ -147,32 +152,40 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
-Diperbarui 2 September 2026. Dua yang pertama **bukan pekerjaan coding** — keduanya mengeskalasi
-temuan kepada pemiliknya masing-masing:
+Diperbarui 3 September 2026, sesudah `BE-ACC-010`.
 
-1. **Teruskan `evidence/03-acc-dep-007-governance-propagation.md` ke lead.** Gerbang CI QBE mati
-   pada setiap PR ke integration. Perbaikannya lima baris dan sudah pernah ditinjau lewat PR #63.
-2. **Teruskan `evidence/02-legal-entity-authority.md` ke owner keamanan platform.** Mekanisme hak
-   akses badan hukum tidak ada, dan dampaknya melampaui Accounting — 40 model menyimpan
-   `LegalEntityId`, sebagian besar milik Human Resource.
-3. **Putuskan `ACC-FE-001`** letak menu Accounting. Murah, tetapi menahan seluruh rantai task
-   frontend. Dua preseden segar ada di `src/utils/menu-sidebar/menu-items.jsx` — seksi
-   "Rekam Medis" dan "Operasi".
+**Satu langkah operasional milik owner mendahului semuanya:**
 
-Task backend berikutnya yang sah dikerjakan adalah **`BE-ACC-003`**, entity daftar akun dan jenis
-jurnal. Ia `EXECUTION_READY` dan **tidak** tertahan `ACC-DEP-008`, karena menyimpan kolom
-`LegalEntityId` berbeda dari menegakkannya. Tetap menunggu instruksi eksplisit owner — approval
-roadmap bukan perintah jalan.
+1. **Panggil `POST /api/v1/corporate/accounting/master-data/journal-types/seed` satu kali.**
+   `AccJournalType` masih **0 baris** di `QuilvianNewDevRizki` — diperiksa ulang 3 September
+   2026. Selama kosong, **nol jurnal dapat dibuat lewat API**, karena tidak ada jenis jurnal yang
+   dapat dipilih dan karenanya tidak ada awalan nomor. Acceptance `BE-ACC-010` tetap terbukti
+   karena test membuat jenis jurnalnya sendiri, tetapi pemakaian sungguhan masih tertahan
+   (`ACC-TD-011`). Aman diulang.
 
-Roadmap sudah tersusun; **tidak perlu** menjalankan `/plan-module-delivery` lagi. Pertimbangkan
-`/trace-existing-capabilities` bila capability map yang masih parsial ingin dilengkapi.
+Dua eskalasi yang tetap terbuka dan **bukan pekerjaan coding**:
+
+2. **Teruskan `evidence/03-acc-dep-007-governance-propagation.md` ke lead**, kini dengan temuan
+   baru `ACC-TD-015`: kedua salinan registry berselisih **dua arah**, bukan sekadar backend
+   tertinggal. Menyalin satu arah akan menghapus pekerjaan orang lain.
+3. **Teruskan `evidence/02-legal-entity-authority.md` ke owner keamanan platform** (`ACC-DEP-008`).
+4. **Putuskan `ACC-FE-001`** letak menu Accounting — masih menahan seluruh sebelas task frontend
+   (`ACC-TD-009`).
+
+Task backend berikutnya yang sah dikerjakan adalah **`BE-ACC-011`** — pengajuan, persetujuan,
+penolakan, dan pengesahan jurnal. Dependency-nya (`BE-ACC-010`) sudah `DONE`. Roadmap
+menandainya **risiko tertinggi pada modul ini**: acceptance (1) dan (4) adalah invariant
+akuntansi. Mulai hanya atas instruksi eksplisit owner — approval roadmap bukan perintah jalan.
+
+Pertimbangkan lebih dulu menutup `ACC-TD-016` (menulis ulang test `BE-ACC-010`), karena
+`BE-ACC-011` akan menyentuh `AccJournalService` yang sama tanpa jaring regresi apa pun di
+bawahnya.
 
 ## Optional deterministic delivery progress
 
-**2 dari 25 task selesai (8%).** Roadmap memuat 25 task — 14 backend dan 11 frontend. Blueprint
-dan roadmap sudah `APPROVED` sejak 1 September 2026, sehingga denominatornya kini bermakna.
+**10 dari 25 task selesai (40%).** Roadmap memuat 25 task — 14 backend dan 11 frontend.
 
-Rinciannya: backend 2 dari 14 (`BE-ACC-001`, `BE-ACC-002`), frontend 0 dari 11.
+Rinciannya: backend **10 dari 14** (`BE-ACC-001` sampai `BE-ACC-010`), frontend 0 dari 11.
 
 ## Status contract
 

@@ -31,6 +31,10 @@ belas artefak.
 | `ACC-TD-011` | `POST /seed` belum pernah dipanggil | **Rizki** | Sedang | `OPEN` |
 | `ACC-TD-012` | Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-013` | `POST /seed` belum masuk `ACC-API` | Owner modul | Rendah | `OPEN` |
+| `ACC-TD-014` | Pemeriksaan periode lebih awal daripada kontrak | Owner modul | Rendah | `OPEN` |
+| `ACC-TD-015` | Dua salinan registry berselisih **dua arah** | Lead / pemilik registry | Sedang | `OPEN` |
+| `ACC-TD-016` | Berkas test `BE-ACC-010` dihapus — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
+| `ACC-TD-017` | Kebijakan owner: tanpa test otomatis, verifikasi manual | **Rizki** | **Tinggi** | `OPEN` |
 
 ---
 
@@ -273,3 +277,110 @@ versinya menjadi keputusan owner dan bukan efek samping implementasi.
 | Risikonya | Pembaca `ACC-API-0.2` tidak akan tahu endpoint itu ada. Frontend yang menyusun klien dari kontrak akan melewatkannya |
 | Cara menutup | Owner meratifikasi, `ACC-API` naik `0.2` → `0.3`, dan barisnya ditambahkan ke `contracts/api-contract.md` grup Journal Type |
 | Rinciannya | Laporan `be-acc-008-api-jenis-jurnal.md` bagian 7 |
+
+
+---
+
+## `ACC-TD-014` — Pemeriksaan status periode lebih awal daripada yang didaftar kontrak
+
+**Ditemukan:** `BE-ACC-010`, 3 September 2026, atas instruksi owner memakai ulang
+`AccAccountingPeriodService.AlasanPenolakanJenisJurnalAsync`.
+
+Pemakaian ulangnya dikerjakan. Yang perlu diratifikasi adalah **kapan** aturannya menggigit.
+
+Aturan "periode menerima jenis jurnal ini" terdaftar di `ACC-VALIDATION-0.2` **bagian 4** —
+*saat diajukan dan saat disahkan*. Bagian 3, yang mengatur penyimpanan draft, hanya menuntut
+**periodenya ada**. `BE-ACC-010` memeriksanya sejak penyimpanan.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat nyata | Menyusun draft `JU` ke periode `SoftClosed` ditolak `422` sejak disimpan, padahal menurut bagian 3 ia mestinya tersimpan dan baru ditolak saat pengajuan |
+| Merugikan? | Tidak menghilangkan data. Penolakannya lebih awal, pesannya sama, dan draft yang ditolak itu memang tidak akan pernah dapat disahkan |
+| Kenapa dicatat, bukan diputuskan | Ini perubahan perilaku yang akan ditemui frontend. Presedennya `ACC-TD-013` |
+| Cara menutup | Owner meratifikasi, barisnya ditambahkan ke `ACC-VALIDATION` bagian 3, versinya naik `0.2` → `0.3` |
+| **Tidak mengurangi `BE-ACC-011`** | Pemeriksaan ulang saat `submit` dan `post` tetap wajib — periode dapat berubah status sesudah draft tersimpan |
+
+---
+
+## `ACC-TD-015` — Dua salinan registry berselisih dua arah
+
+**Ditemukan:** `BE-ACC-010`, 3 September 2026, saat Backend Governance Preflight.
+
+Ini **menajamkan `ACC-TD-003`**, yang selama ini mencatat salinan backend "tertinggal tepat satu
+pendaftaran, 48 baris berbanding 52". Pemeriksaan langsung menunjukkan gambarannya berbeda.
+
+`BACKEND_ENGINEERING_CONTRACT.md` kedua salinan **identik**. Registry-nya tidak:
+
+| Baris | `NewQuilvianSystemBackend/docs/engineering/` | Suite skill `QuilvianEngineeringSkills` |
+|---|---|---|
+| `AccountingManagement / Acc` | **tidak ada** | `ACTIVE` |
+| `LaboratoryManagement / Lab` | **`ACTIVE`** | `PLANNED` |
+| Changelog `Lab` 2026-09-02 | **ada** | tidak ada |
+| Jumlah baris | 97 | 100 |
+
+| Hal | Keterangan |
+|---|---|
+| **Yang berubah dari pemahaman lama** | **Tidak ada salinan yang merupakan superset.** Masing-masing memuat yang tidak dimiliki yang lain |
+| Kenapa itu penting | Menyalin satu arah akan menghapus pekerjaan orang lain. Menimpakan salinan suite ke backend akan mencabut `Lab` `ACTIVE` milik Muhammad Hamzah beserta changelog-nya |
+| **Jangan** | Menambahkan baris `Acc` ke salinan backend sendiri. Itu meloloskan gerbang QBE untuk PR sendiri, dan bukan wewenang owner modul |
+| Menghalangi `BE-ACC-010`? | **Tidak.** Task ini nol entity persisted, sehingga `QBE-MOD-002` tidak berlaku |
+| Cara menutup | Pemilik registry menggabungkan **kedua arah**, bukan menyalin satu arah |
+
+Catatan tambahan: akar `rules/` terpasang untuk Claude Code
+(`${CLAUDE_PLUGIN_ROOT}/.claude/rules/`) memuat `backend/API_RULES.md`, `DATABASE_RULES.md`,
+`TASK_RULES.md`, dan seterusnya, tetapi **tidak memuat `backend/engineering/`** — sehingga kedua
+dokumen di atas tidak ada di sana sama sekali. Keduanya terpaksa dibaca dari `docs/engineering/`
+repository backend, yaitu salinan yang justru kedaluwarsa. Ini bagian dari butir yang sama.
+
+---
+
+## `ACC-TD-016` — Berkas test `BE-ACC-010` dihapus, nol jaring regresi
+
+**Sumber:** instruksi owner pada `BE-ACC-010`, 3 September 2026: test dibuat, seluruh acceptance
+dibuktikan hijau, dicatat selengkapnya di laporan task, lalu **berkasnya dihapus**.
+
+Berkas yang dihapus: `Tests/QuilvianSystemBackend.Tests/AccountingManagement/JournalServiceTests.cs`
+— 914 baris, 22 test. **Nol berkas test task sebelumnya ikut terhapus**; kelima berkas test
+Accounting lain tetap utuh dan suite tersisa 274 test hijau.
+
+| Yang hilang | Akibat |
+|---|---|
+| **Deteksi regresi penomoran konkuren** | Paling berat. Bila advisory lock dilepas atau alokasi dipindah ke luar transaction, **tidak ada** yang menangkapnya. Yang tersisa hanya unique index, dan ia menolak dengan `500` di produksi, bukan saat build |
+| **Deteksi regresi `UpdateAsync`** | `BE-ACC-010` menemukan cacat EF nyata di sana — baris pengganti ter-`UPDATE` alih-alih ter-`INSERT`. Jenis cacat yang kambuh saat kode disentuh lagi |
+| **Kunci bentuk nomor** | `{prefix}/{yyyy}/{MM}/{00001}` tidak lagi terkunci |
+| **Kunci 13 aturan validasi** | Pesan bernomor baris dan pemetaan `400`/`409`/`422` tidak lagi terjaga |
+| **Bukti satu transaksi** | Kembali menjadi pernyataan, bukan bukti berjalan |
+
+**Yang membuatnya berat:** `BE-ACC-011` akan menyentuh `AccJournalService` yang sama untuk daur
+hidup persetujuan, tanpa jaring pengaman apa pun atas jalur CRUD dan penomoran di bawahnya.
+
+| Hal | Keterangan |
+|---|---|
+| Cara menutup | Menulis ulang berkas itu dari bagian 4 dan 6 laporan `be-acc-010-jurnal-draft-dan-penomoran.md`. Keduanya sengaja ditulis cukup rinci untuk dapat dijalankan ulang orang lain |
+| Prasyaratnya | Test `BE-ACC-010` menuntut PostgreSQL sungguhan; SQLite tidak punya `pg_advisory_xact_lock` dan check constraint-nya mustahil dipenuhi (`ACC-TD-001`) |
+| Pemilik | **Rizki** — penghapusannya keputusan owner, jadi pemulihannya juga |
+
+
+---
+
+## `ACC-TD-017` — Tanpa test otomatis, verifikasi manual
+
+**Sumber:** keputusan owner 3 September 2026, sesudah dijelaskan bahwa berkas test tidak pernah
+ikut ke production (dibuktikan `dotnet publish -c Release`: 169 berkas, nol berkas test/xunit).
+Owner tetap memilih pengujian manual.
+
+Berlaku untuk `BE-ACC-011`, `BE-ACC-012`, `BE-ACC-013`, dan `BE-ACC-014`.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat langsung | DoD roadwmap keempat task menuntut *"acceptance terbukti test"*. Karena itu keempatnya ditandai **`IMPLEMENTED — menunggu verifikasi manual owner`**, bukan `DONE` |
+| Bukti yang ada | `dotnet build` 0 error, dan telaah kode terhadap acceptance |
+| Bukti yang tidak ada | Eksekusi. Nol acceptance terbukti berjalan |
+| Penggantinya | Tiap laporan task memuat **skrip uji manual per acceptance** — langkah, request, dan hasil yang diharapkan |
+| Risiko terbesar | Invariant akuntansi `BE-ACC-011` butir (1) dan (4). Bila keliru, seluruh laporan keuangan salah tanpa terlihat |
+| Cara menutup | Owner menjalankan skrip uji manual tiap laporan, lalu menaikkan status ke `DONE`. Atau mencabut kebijakan ini dan menulis test |
+
+**Menyatu dengan `ACC-TD-016`:** keduanya berakar pada keputusan yang sama, sehingga modul
+Accounting kini berjalan **tanpa jaring regresi sama sekali** atas seluruh jalur jurnal.
+Perubahan berikutnya pada `AccJournalService` tidak akan tertangkap apa pun sebelum sampai ke
+pengguna.
