@@ -113,6 +113,9 @@ public sealed class BillingCalculationService
 
             var invoiceQuery = _dbContext.BilInvoices
                 .Include(x => x.Items).ThenInclude(x => x.Category)
+                // Tariff/Tariff.Drug: dibutuhkan BuildCoverageComponents untuk menurunkan
+                // ProcedureId/DrugId/DrugCategoryId rujukan rule asuransi per item.
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy);
             var invoice = await (persist ? invoiceQuery : invoiceQuery.AsNoTracking())
                 .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
@@ -812,10 +815,20 @@ public sealed class BillingCalculationService
         foreach (var item in activeItems)
         {
             var itemCalculation = resultByItem[item.Id];
-            var sourceReference = Guid.TryParse(item.SourceDetailId, out var parsed) ? parsed : (Guid?)null;
             var itemType = CoverageItemType(item);
+            // Rujukan per dimensi rule asuransi - item.TariffId (BE-BKC-018) untuk rule spesifik
+            // per tarif, item.CategoryId untuk rule per kategori tarif, dan Procedure/Drug/
+            // DrugCategory diturunkan dari tarif yang dipilih (butuh Tariff/Tariff.Drug ikut
+            // di-include di query invoice - lihat CalculateAsync).
+            var tariffId = item.TariffId;
+            var procedureId = item.Tariff?.ProcedureId;
+            var drugId = item.Tariff?.DrugId;
+            var drugCategoryId = item.Tariff?.Drug?.DrugCategoryId;
+            var tariffCategoryId = (Guid?)item.CategoryId;
+
             components.Add(new BillingCoverageComponent(
-                item.Id, "ITEM", itemType, sourceReference, item.Quantity,
+                item.Id, "ITEM", itemType, tariffId, procedureId, drugId, drugCategoryId, tariffCategoryId,
+                item.Quantity,
                 itemCalculation.GrossAmount - itemCalculation.ItemDiscount,
                 itemCalculation.Coverable));
 
@@ -823,7 +836,8 @@ public sealed class BillingCalculationService
             {
                 var taxCoverable = TaxComponentCoverable(tax.AllocationRule, itemCalculation.Coverable);
                 components.Add(new BillingCoverageComponent(
-                    tax.TaxRuleId, "TAX", itemType, sourceReference, item.Quantity,
+                    tax.TaxRuleId, "TAX", itemType, tariffId, procedureId, drugId, drugCategoryId, tariffCategoryId,
+                    item.Quantity,
                     itemCalculation.TaxAmount, taxCoverable));
             }
         }
@@ -834,7 +848,7 @@ public sealed class BillingCalculationService
                 administrationFee.PolicyId ?? Guid.Empty,
                 "ADMINISTRATION_FEE",
                 "ServiceCategory",
-                null,
+                null, null, null, null, null,
                 1,
                 administrationFee.AppliedAmount,
                 administrationFee.Coverable));
@@ -848,7 +862,7 @@ public sealed class BillingCalculationService
                     administrationFee.PolicyId ?? Guid.Empty,
                     "TAX",
                     "ServiceCategory",
-                    null,
+                    null, null, null, null, null,
                     1,
                     taxResult.AdministrationFeeTax,
                     TaxComponentCoverable(taxResult.AllocationRule, administrationFee.Coverable)));
@@ -863,7 +877,7 @@ public sealed class BillingCalculationService
                 roomCharge.PolicyId ?? Guid.Empty,
                 "ROOM_CHARGE",
                 "ServiceCategory",
-                null,
+                null, null, null, null, null,
                 1,
                 roomCharge.AppliedAmount,
                 true));
@@ -874,7 +888,7 @@ public sealed class BillingCalculationService
                     roomCharge.PolicyId ?? Guid.Empty,
                     "TAX",
                     "ServiceCategory",
-                    null,
+                    null, null, null, null, null,
                     1,
                     taxResult.RoomChargeTax,
                     TaxComponentCoverable(taxResult.AllocationRule, true)));

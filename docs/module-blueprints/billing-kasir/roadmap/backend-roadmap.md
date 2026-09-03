@@ -303,6 +303,11 @@ Empat task baru (`BE-BKC-018`–`021`) mengoperasikan `BKC-DEC-059`–`062`. Det
 | Risiko/pemilik | FK `Restrict` perlu dipastikan tidak memblokir siklus hidup `MstTariff` yang sudah dipakai. Owner Backend/API |
 | DoD | Migration source + configuration + test lulus; build lulus; DB tidak dijalankan |
 
+**Status 3 September 2026**: source, configuration, migration (belum dijalankan), dan test
+(policy baru + contract test) selesai; build `dotnet build` lulus (`0 Error`). Lihat
+`task/report/backend/BE-BKC-018.md` untuk rincian dan dua kegagalan test pra-eksisting yang
+ditemukan (tidak terkait task ini, dikonfirmasi lewat `git stash` baseline).
+
 ## `BE-BKC-019` — Endpoint entri charge dari katalog tarif
 
 | Field | Isi |
@@ -317,6 +322,13 @@ Empat task baru (`BE-BKC-018`–`021`) mengoperasikan `BKC-DEC-059`–`062`. Det
 | Verifikasi | Integration test tarif aktif vs nonaktif/kedaluwarsa; idempotency replay test |
 | Risiko/pemilik | Tarif dengan scoping ganda perlu konsisten dengan disambiguasi FE (`BKC-DEC-061`). Owner Billing/API |
 | DoD | Endpoint + tests + Swagger sesuai `contracts/api-contract.md`; build lulus; DB tidak disentuh |
+
+**Status 3 September 2026**: source (DTO, method, endpoint) dan 4 test (2 acceptance + 1
+idempotency + tercakup dalam test aktif/nonaktif/kedaluwarsa) selesai. Build dikonfirmasi lulus
+untuk revisi sebelum tiga penyesuaian terakhir (perbaikan determinisme `SourceDetailId`, perbaikan
+tabrakan `SortOrder`, penambahan 4 test) — revisi final **belum diverifikasi ulang**, pengguna
+mengambil alih menjalankan build/test secara manual. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-019.md` § 5 dan § 7.
 
 ## `BE-BKC-020` — Endpoint preview coverage per tarif
 
@@ -333,6 +345,12 @@ Empat task baru (`BE-BKC-018`–`021`) mengoperasikan `BKC-DEC-059`–`062`. Det
 | Risiko/pemilik | Response **MUST NOT** membocorkan field internal rule (`RuleCode`, `ApprovalInstruction`). Hasil bersifat advisory — didokumentasikan eksplisit BUKAN angka final (lihat `BE-BKC-021`). Owner Backend/Security |
 | DoD | Endpoint read-only tanpa transaksi; tests lulus; build lulus |
 
+**Status 3 September 2026**: source (DTO, constructor injection, method, endpoint) dan 2 test
+domain (rule butuh-approval tetap Covered; encounter/tarif tidak valid) selesai ditulis. Build dan
+test **sengaja belum dijalankan** oleh sesi ini atas instruksi eksplisit pengguna — pengguna
+memverifikasi sendiri secara manual. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-020.md` § 5 dan § 7.
+
 ## `BE-BKC-021` — Penyempitan gating approval pada mesin kalkulasi coverage
 
 | Field | Isi |
@@ -347,3 +365,12 @@ Empat task baru (`BE-BKC-018`–`021`) mengoperasikan `BKC-DEC-059`–`062`. Det
 | Verifikasi | Full regression run atas test coverage existing + test baru kasus `Covered`+`IsNeedApproval`; review manual bahwa `CoverageStatus=NeedApproval` dan limit bulanan TIDAK ikut berubah |
 | Risiko/pemilik | **Risiko tertinggi di slice ini** — mengubah kalkulasi finansial semua invoice produksi, bukan hanya data uji. Owner Billing/Finance/AR. **Wajib dibaca sebelum eksekusi**: `BKC-DEC-062` disetujui Product/Domain Owner TANPA konfirmasi terpisah dari Payer/Insurance + Finance/AR (owner asli `BKC-DEC-042` yang diamendemen) — disarankan menginformasikan mereka sebelum task ini di-deploy ke produksi, meski blueprint tidak mewajibkannya sebagai blocker |
 | DoD | Regression evidence eksplisit (bukan cuma "test baru lulus"); before/after behavior terdokumentasi di laporan task; build lulus |
+
+**Status 3 September 2026**: Pengguna dikonfirmasi eksplisit atas catatan risiko di atas sebelum
+implementasi dimulai (memilih lanjut implementasi source+test, deploy tetap terpisah). Source
+(2 kondisi gating dihapus) dan 4 test baru (regresi + gate yang dipertahankan) selesai ditulis;
+analisis regresi statis terhadap 4 file test yang memakai adapter ini menemukan nol test existing
+yang terdampak (rincian di laporan). Build/test **sengaja belum dijalankan** sesuai instruksi
+pengguna yang berlaku sepanjang sesi ini — evidence regresi nyata (`dotnet test`) dan notifikasi
+Finance/AR/Payer sebelum deploy tetap prasyarat wajib. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-021.md` § 5 dan § 7.

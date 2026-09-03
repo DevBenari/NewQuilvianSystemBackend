@@ -43,7 +43,13 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // sudah terjadi. Tanpa penanda ini, statusnya ADDED selalu masuk NormalVoidFromStatuses
             // sehingga IsOrderComplete permanen false - dan invoice yang seluruh itemnya ADHOC
             // tidak pernah bisa difinalisasi, baik otomatis maupun manual.
-            ["ADHOC"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"], completeOnEntry: true)
+            ["ADHOC"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"], completeOnEntry: true),
+
+            // BKC-DEC-059: entri dari katalog tarif. Siklus hidupnya identik dengan ADHOC - harga
+            // dan deskripsinya ditetapkan server saat item dicatat, bukan menunggu pemenuhan order
+            // dari modul klinis - tetapi dipisahkan sebagai SourceDomain sendiri supaya item yang
+            // berasal dari MstTariff dapat dibedakan dari entri bebas kasir pada audit dan laporan.
+            ["ADHOC_CATALOG"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"], completeOnEntry: true)
         };
 
     public BillingChargeSourceSnapshot ValidateAndNormalize(UpsertChargeRequest request)

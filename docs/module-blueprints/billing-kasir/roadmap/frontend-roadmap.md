@@ -205,6 +205,73 @@ Tiga task baru (`FE-BKC-014`–`016`) mengoperasikan `BKC-DEC-059`–`062`. Deta
 | Risiko/pemilik | Kasir salah pilih baris tarif berscoping mirip. Owner Frontend/Billing |
 | DoD | Field harga tidak punya `onChange`; tests/lint/build lulus; tidak ada field harga di request payload (structural, `BIL-VAL-026`) |
 
+**Status 3 September 2026**: Source selesai (dropdown tarif, harga read-only, thunk
+`addCatalogCharge`). `BKC-BLK-FE-001` diverifikasi ulang: resolved. Verifikasi manual langsung
+(login sungguhan, data dev nyata) menemukan bug backend pra-eksisting yang memblokir dropdown tarif
+selalu kosong (filter scope strict-equality pada `TariffController`) — sudah diperbaiki lewat task
+terpisah `BE-BKC-FIX-001` (source saja, backend belum di-build ulang/restart). Verifikasi
+ujung-ke-ujung penuh (pilih tarif → submit → invoice tersimpan) tertunda sampai itu terjadi. Belum
+ditandai selesai; lihat `task/report/frontend/FE-BKC-014.md` § 6 dan § 8, serta
+`task/report/backend/BE-BKC-FIX-001.md`.
+
+**Status 3 September 2026 (lanjutan)**: laporan bug pengguna terpisah (screenshot) — dropdown
+Tarif Layanan tetap kosong sampai diketik pencarian walau kategori sudah dipilih. Diperbaiki lewat
+task ad-hoc `FE-BKC-FIX-002`: field `tariffId` di-override `requireSearch: false` (resource
+`tariffs` bersama di registry TIDAK diubah). Terverifikasi hidup — dropdown kini menampilkan hasil
+langsung begitu dibuka (tanpa mengetik), search dan scroll/paginasi tetap berfungsi. Ditemukan pula
+temuan sampingan pra-eksisting: `FilterSelect` selalu merender satu baris opsi pseudo di posisi
+pertama berisi teks placeholder — lihat `task/report/frontend/FE-BKC-FIX-002.md` § 8.
+
+**Status 3 September 2026 (lanjutan 2)**: temuan sampingan di atas diperbaiki lewat task ad-hoc
+`FE-BKC-FIX-003`, MELALUI `base-component-decision-gate` (base component bersama `BaseSelectField`,
+dipakai ~481 field `type: "select"` di 111 berkas) — pengguna memilih opsi rekomendasi:
+baris "clear ke kosong" hanya tampil untuk field opsional yang sudah punya nilai terpilih, tidak
+pernah untuk field wajib. Terverifikasi hidup pada field opsional (`categoryId`) dan field wajib
+(`tariffId`); lihat `task/report/frontend/FE-BKC-FIX-003.md`.
+
+**Status 3 September 2026 (lanjutan 3)**: permintaan UX tambahan pengguna diselesaikan lewat task
+ad-hoc `FE-BKC-FIX-004` — field Tarif Layanan/Qty kini `disabled` (REUSE `field.disabled`, tanpa
+gate) selama Kategori Tarif belum dipilih. Dua permintaan lain (dropdown tarif refresh saat
+kategori diganti; form dikosongkan setelah submit sukses) ternyata SUDAH terpenuhi oleh source
+`FE-BKC-014` — diverifikasi hidup lewat alur penuh (kunjungan → kategori → tarif → qty → submit
+sukses → reset), bukan diimplementasikan ulang. Lihat `task/report/frontend/FE-BKC-FIX-004.md`.
+
+**Status 3 September 2026 (lanjutan 4)**: laporan bug pengguna terpisah (screenshot) — kata kunci
+pencarian dan hasil dropdown Tarif Layanan lama masih terbawa setelah Kategori Tarif diganti.
+Diperbaiki lewat task ad-hoc `FE-BKC-FIX-005`, MELALUI `base-component-decision-gate` (properti
+opsional baru `field.remountKey` pada `BaseEditorForm`, base component bersama dipakai di seluruh
+form editor aplikasi, opt-in murni) — pengguna memilih opsi rekomendasi: remount total field
+`tariffId` setiap Kategori Tarif berganti. Terverifikasi hidup dengan dua kategori berbeda yang
+sama-sama punya data (bukan hanya kategori kosong): kotak pencarian dan hasil lama terbukti benar-
+benar bersih. Lihat `task/report/frontend/FE-BKC-FIX-005.md`.
+
+**Status 3 September 2026 (lanjutan 5)**: laporan bug pengguna langsung (dua screenshot) — badge
+status coverage per baris item di Menu Pembayaran (`FE-BKC-016`) selalu "Penjamin" untuk invoice
+pasien asuransi, bahkan saat item tidak coverable dan Subtotal Asuransi invoice-nya Rp 0 (root
+cause: badge dibaca dari cara bayar KUNJUNGAN, bukan hasil kalkulasi coverage sesungguhnya).
+Diperbaiki lewat task ad-hoc `FE-BKC-FIX-006` — badge kini memakai field
+`breakdown.items[].coverable` (SUDAH ADA di kontrak API `calculation-preview`, baru dikonsumsi
+sekarang) dikombinasikan dengan status coverage aktual invoice, lewat keputusan eksplisit
+`AskUserQuestion`. Terverifikasi hidup untuk kasus yang dilaporkan; jalur "Penjamin" sungguhan
+TIDAK bisa diverifikasi hidup (tidak ada invoice dengan coverage aktual di database dev saat ini)
+— lihat `task/report/frontend/FE-BKC-FIX-006.md` § 6 dan § 8.
+
+**Status 3 September 2026 (lanjutan 6)**: pengguna melaporkan invoice Allianz mereka seharusnya
+punya item tercover, tapi semua tetap "Tunai" — investigasi menemukan dua root cause BACKEND
+(bukan frontend) yang membuat coverage asuransi tidak pernah benar-benar diterapkan ke item
+manapun di sistem ini: (1) data `MstTariffCategory.IsCoveredByInsuranceDefault` ter-backfill
+`false` untuk semua kategori (migration 2 September yang keliru), (2) pencocokan rule asuransi
+tidak pernah bisa match (rujukan item diambil dari idempotency key, bukan domain reference).
+Diperbaiki lewat task ad-hoc `BE-BKC-FIX-002` (source + migration data disiapkan, EKSEKUSI
+migration ke database tetap wewenang pengguna). Lihat `task/report/backend/BE-BKC-FIX-002.md`
+dan `task/report/frontend/FE-BKC-FIX-006.md` (update lanjutan).
+
+**Status 3 September 2026 (lanjutan 7)**: permintaan UX langsung pengguna diselesaikan lewat task
+ad-hoc `FE-BKC-FIX-007` — tombol "Batal" tidak lagi `router.push` ke daftar invoice, sekarang
+murni mereset form di tempat (`setForm(buildEmptyForm())`, pola sama dengan reset pasca-submit
+sukses). REUSE murni, tanpa gate. Terverifikasi hidup — URL tidak berubah, seluruh field kembali
+ke placeholder. Lihat `task/report/frontend/FE-BKC-FIX-007.md`.
+
 ## `FE-BKC-015` — Badge coverage dan disclaimer pada form testing (pasien asuransi)
 
 | Field | Isi |
@@ -220,6 +287,13 @@ Tiga task baru (`FE-BKC-014`–`016`) mengoperasikan `BKC-DEC-059`–`062`. Deta
 | Risiko/pemilik | Kasir salah mengira badge = angka final — dimitigasi disclaimer wajib. Owner Frontend/Billing |
 | DoD | Disclaimer tampil setiap kali badge tampil; tests/lint/build lulus |
 
+**Status 3 September 2026**: Source selesai — termasuk perluasan `FilterSelect` (prop opsional
+`renderOption`, disetujui eksplisit pengguna lewat gate keputusan) untuk merender badge per opsi.
+Disclaimer kondisional dan regresi kunjungan tunai/asuransi **terverifikasi hidup**. Badge visual
+itu sendiri **belum bisa diverifikasi** — terhalang `BE-BKC-FIX-001` yang sama dengan `FE-BKC-014`
+(belum di-build/restart). Tanpa file test (instruksi eksplisit pengguna). Belum ditandai selesai;
+lihat `task/report/frontend/FE-BKC-015.md` § 6 dan § 8.
+
 ## `FE-BKC-016` — Subtotal Mandiri dan Subtotal Asuransi terpisah di Menu Pembayaran
 
 | Field | Isi |
@@ -234,6 +308,14 @@ Tiga task baru (`FE-BKC-014`–`016`) mengoperasikan `BKC-DEC-059`–`062`. Deta
 | Verifikasi | Component test tampilan dua subtotal dengan beberapa kombinasi nilai (termasuk salah satu nol); lint/build |
 | Risiko/pemilik | Perubahan visual pada layar yang sudah dipakai kasir produksi — pastikan `unresolvedCoverageAmount` tidak ikut hilang. Owner Frontend/Billing |
 | DoD | Tests/lint/build lulus; tidak ada perubahan formula, murni tampilan |
+
+**Status 3 September 2026**: Source selesai — dua baris "Subtotal Mandiri"/"Subtotal Asuransi"
+menggantikan "Subtotal Tagihan"+"Ditanggung Penjamin", identitas aljabar dijaga (tidak ada
+perubahan formula). Lint bersih. **Verifikasi visual terhalang** — ditemukan Menu Pembayaran untuk
+invoice apa pun saat ini HTTP 500 di backend yang berjalan (`column TariffId does not exist` —
+migration `BE-BKC-018` belum dijalankan ke database, temuan baru, di luar scope task ini, berdampak
+lebih luas dari `BE-BKC-FIX-001`). Tanpa file test (instruksi eksplisit pengguna). Belum ditandai
+selesai; lihat `task/report/frontend/FE-BKC-016.md` § 6 dan § 8.
 
 ### Paralelisme slice ini
 

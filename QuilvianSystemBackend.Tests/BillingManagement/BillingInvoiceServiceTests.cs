@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -71,6 +73,235 @@ public sealed class BillingInvoiceServiceTests
         Assert.Equal("RM-0001", detail.Patient!.MedicalRecordNumber);
         Assert.Equal("Andrea Wijaya", detail.Patient.FullName);
         Assert.Equal(encounter.EncounterNumber, detail.Patient.EncounterNumber);
+    }
+
+    [Fact]
+    public async Task ActiveEncounterOptionsExposeServiceUnitClinicAndPatientClassForTariffFiltering()
+    {
+        // BKC-DEC-061: FE memakai tiga field ini untuk memfilter katalog tarif per konteks
+        // kunjungan (unit layanan/klinik/kelas pasien). Consumer lama yang belum membaca field
+        // ini tetap aman karena penambahannya aditif pada response yang sudah ada.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, _) = await SeedAsync(db);
+        var encounter = await db.TrxPatientEncounters.SingleAsync(x => x.Id == encounterId);
+        var clinicId = Guid.NewGuid();
+        var patientClassId = Guid.NewGuid();
+        encounter.ClinicId = clinicId;
+        encounter.PatientClassId = patientClassId;
+        db.MstPatients.Add(new MstPatient
+        {
+            Id = encounter.PatientId,
+            PatientCode = "PAT-0002",
+            MedicalRecordNumber = "RM-0002",
+            FullName = "Budi Santoso",
+            Gender = Gender.Male
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var options = await service.GetActiveEncounterOptionsAsync(null, 10, CancellationToken.None);
+
+        var option = Assert.Single(options, x => x.Id == encounterId);
+        Assert.Equal(encounter.ServiceUnitId, option.ServiceUnitId);
+        Assert.Equal(clinicId, option.ClinicId);
+        Assert.Equal(patientClassId, option.PatientClassId);
+    }
+
+    [Fact]
+    public async Task CatalogChargeUsesServerSidePriceCategoryAndTariffIdFromActiveTariff()
+    {
+        // BIL-AT-025: kasir pilih tarif di dropdown, submit tanpa field harga sama sekali - harga,
+        // kategori, dan deskripsi seluruhnya berasal dari MstTariff, bukan dari client.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var tariffId = Guid.NewGuid();
+        db.MstTariffs.Add(Tariff(tariffId, categoryId, "Konsultasi Spesialis", 150_000m));
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var result = await service.AddCatalogChargeAsync(
+            CatalogChargeRequest(encounterId, tariffId), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal("ADHOC_CATALOG", item.SourceDomain);
+        Assert.Equal("Konsultasi Spesialis", item.DescriptionSnapshot);
+        Assert.Equal(150_000m, item.UnitPrice);
+        Assert.Equal(tariffId, (await db.BilInvoiceItems.SingleAsync(x => x.Id == item.Id)).TariffId);
+    }
+
+    [Fact]
+    public async Task CatalogChargeRejectsInactiveTariff()
+    {
+        // BIL-AT-026 (paruh nonaktif): TariffId valid tapi IsActive=false.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var tariffId = Guid.NewGuid();
+        var tariff = Tariff(tariffId, categoryId, "Tarif Nonaktif", 100_000m);
+        tariff.IsActive = false;
+        db.MstTariffs.Add(tariff);
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<BillingInvoiceValidationException>(() =>
+            service.AddCatalogChargeAsync(
+                CatalogChargeRequest(encounterId, tariffId), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None));
+        Assert.Empty(db.BilInvoiceItems);
+    }
+
+    [Fact]
+    public async Task CatalogChargeRejectsExpiredTariff()
+    {
+        // BIL-AT-026 (paruh kedaluwarsa): TariffId valid, aktif, tapi EffectiveEndDate sudah lewat.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var tariffId = Guid.NewGuid();
+        var tariff = Tariff(tariffId, categoryId, "Tarif Kedaluwarsa", 100_000m);
+        tariff.EffectiveEndDate = DateTime.UtcNow.AddDays(-1);
+        db.MstTariffs.Add(tariff);
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<BillingInvoiceValidationException>(() =>
+            service.AddCatalogChargeAsync(
+                CatalogChargeRequest(encounterId, tariffId), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None));
+        Assert.Empty(db.BilInvoiceItems);
+    }
+
+    [Fact]
+    public async Task CatalogChargeIdempotencyReplayIsNoOpForSameKeyButNewKeyAddsAnotherItem()
+    {
+        // SourceDetailId pada AddCatalogChargeAsync diturunkan dari idempotencyKey (bukan Guid acak
+        // per panggilan) supaya retry client dengan Idempotency-Key yang sama benar-benar no-op,
+        // bukan salah dianggap konflik oleh UpsertChargeAsync.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var tariffId = Guid.NewGuid();
+        db.MstTariffs.Add(Tariff(tariffId, categoryId, "Tindakan Ranap", 200_000m));
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+        var request = CatalogChargeRequest(encounterId, tariffId);
+        var key = Guid.NewGuid();
+
+        var first = await service.AddCatalogChargeAsync(request, key, Guid.NewGuid(), CancellationToken.None);
+        var replay = await service.AddCatalogChargeAsync(request, key, Guid.NewGuid(), CancellationToken.None);
+        var second = await service.AddCatalogChargeAsync(request, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.False(first.IsReplay);
+        Assert.True(replay.IsReplay);
+        Assert.Single(replay.Items);
+        Assert.Equal(2, second.Items.Count);
+    }
+
+    [Fact]
+    public async Task CatalogChargeCoveragePreviewIsCoveredEvenWhenRuleNeedsApproval()
+    {
+        // BIL-AT-027: rule dengan IsNeedApproval=true tetap dihitung Covered penuh pada preview -
+        // approval hanya informasi, BUKAN status NotCovered/gagal (BKC-DEC-060/062).
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        var encounterId = Guid.NewGuid();
+        var providerId = Guid.NewGuid();
+        var patientInsuranceId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var tariffId = Guid.NewGuid();
+
+        db.TrxPatientEncounters.Add(new TrxPatientEncounter
+        {
+            Id = encounterId,
+            EncounterNumber = "ENC-COVERAGE-1",
+            PatientId = patientId,
+            ServiceUnitId = Guid.NewGuid(),
+            EncounterType = EncounterType.Inpatient,
+            EncounterStatus = EncounterStatus.Registered,
+            PaymentType = EncounterPaymentType.Insurance,
+            IsActive = true
+        });
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = encounterId,
+            PatientId = patientId,
+            PaymentSourceNumber = "PS-1",
+            PaymentType = EncounterPaymentType.Insurance,
+            PatientInsuranceId = patientInsuranceId,
+            InsuranceProviderId = providerId,
+            IsActive = true,
+            IsEligible = true
+        });
+        db.MstInsuranceProviders.Add(new MstInsuranceProvider
+        {
+            Id = providerId,
+            InsuranceProviderCode = "INS-1",
+            InsuranceProviderName = "Asuransi Uji",
+            IsActive = true
+        });
+        db.MstPatientInsurances.Add(new MstPatientInsurance
+        {
+            Id = patientInsuranceId,
+            PatientId = patientId,
+            InsuranceProviderId = providerId,
+            PolicyNumber = "POL-1",
+            IsActive = true,
+            IsEligible = true
+        });
+        db.MstTariffCategories.Add(new MstTariffCategory
+        {
+            Id = categoryId,
+            TariffCategoryCode = "CONSULT",
+            TariffCategoryName = "Konsultasi",
+            IsActive = true
+        });
+        db.MstTariffs.Add(new MstTariff
+        {
+            Id = tariffId,
+            TariffCode = "TRF-COVER-1",
+            TariffName = "Konsultasi Spesialis",
+            TariffCategoryId = categoryId,
+            NormalPrice = 200_000m,
+            IsActive = true
+        });
+        db.MstInsuranceTariffs.Add(new MstInsuranceTariff
+        {
+            InsuranceProviderId = providerId,
+            TariffId = tariffId,
+            InsuranceTariffCode = "INS-TRF-1",
+            InsuranceTariffName = "Konsultasi Spesialis (Kontrak)",
+            ContractPrice = 180_000m,
+            IsUsingContractPrice = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "RULE-1",
+            RuleName = "Butuh approval",
+            ItemType = "Tariff",
+            TariffId = tariffId,
+            CoverageStatus = "Covered",
+            CoveragePercent = 100,
+            IsNeedApproval = true,
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var result = await service.GetCatalogChargeCoveragePreviewAsync(
+            encounterId, tariffId, 1, CancellationToken.None);
+
+        Assert.NotEqual("NotCovered", result.CoverageStatus);
+        Assert.True(result.CoveredAmount > 0);
+        Assert.True(result.IsNeedApproval);
+        Assert.True(result.IsAdvisory);
+    }
+
+    [Fact]
+    public async Task CatalogChargeCoveragePreviewRejectsUnknownEncounter()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(db);
+
+        await Assert.ThrowsAsync<BillingInvoiceValidationException>(() =>
+            service.GetCatalogChargeCoveragePreviewAsync(
+                Guid.NewGuid(), Guid.NewGuid(), 1, CancellationToken.None));
     }
 
     [Fact]
@@ -394,6 +625,25 @@ public sealed class BillingInvoiceServiceTests
         return (encounterId, categoryId);
     }
 
+    private static MstTariff Tariff(Guid id, Guid categoryId, string name, decimal normalPrice) => new()
+    {
+        Id = id,
+        TariffCode = "TRF-" + id.ToString("N")[..8].ToUpperInvariant(),
+        TariffName = name,
+        TariffCategoryId = categoryId,
+        NormalPrice = normalPrice,
+        IsActive = true
+    };
+
+    private static AddCatalogChargeRequest CatalogChargeRequest(Guid encounterId, Guid tariffId) => new()
+    {
+        EncounterId = encounterId,
+        TariffId = tariffId,
+        Quantity = 1,
+        CorrelationId = Guid.NewGuid(),
+        CausationId = Guid.NewGuid()
+    };
+
     private static TrxPatientEncounter Encounter(Guid id, string number) => new()
     {
         Id = id,
@@ -443,7 +693,8 @@ public sealed class BillingInvoiceServiceTests
         var number = new BillingNumberSeriesService(db, Options.Create(new BillingInvoiceNumberOptions()));
         var calculation = CreateCalculationService(db, logger);
         return new BillingInvoiceService(
-            db, new ContractBillingChargeSourceAdapter(), number, calculation, logger);
+            db, new ContractBillingChargeSourceAdapter(), number, calculation, logger,
+            new InsuranceCoverageService(db, new EncounterInsuranceService(db)));
     }
 
     private static BillingCalculationService CreateCalculationService(

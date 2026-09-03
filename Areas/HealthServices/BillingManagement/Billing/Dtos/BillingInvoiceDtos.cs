@@ -69,6 +69,44 @@ public sealed class AddOtherChargeRequest
     public Guid CausationId { get; set; }
 }
 
+// BKC-DEC-059: berbeda dari AddOtherChargeRequest - harga dan nama TIDAK dikirim client, keduanya
+// diambil server dari MstTariff (NormalPrice, TariffName) supaya tidak bisa dimanipulasi. Client
+// hanya memilih TariffId (sudah difilter FE lewat konteks unit layanan/klinik/kelas pasien pada
+// ActiveEncounterOptionResponse) dan kuantitasnya.
+public sealed class AddCatalogChargeRequest
+{
+    public Guid EncounterId { get; set; }
+    public Guid TariffId { get; set; }
+    [Range(
+        typeof(decimal),
+        "0.0001",
+        "99999999999999.9999",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Quantity { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+// BKC-DEC-060: hasil advisory dari InsuranceCoverageService.ResolveTariffAsync (Clinical
+// Management) - dipetakan secara sengaja SEBAGIAN, bukan seluruh InsuranceCoverageResult. Field
+// internal seperti ApprovalInstruction/InsuranceCoverageRuleId/BillingInstruction TIDAK
+// diteruskan ke sini karena bersifat operasional untuk approver, bukan konsumsi kasir pada layar
+// entri. IsAdvisory selalu true - angka final tetap dari RegistrationBillingCoverageAdapter saat
+// kalkulasi invoice sungguhan (BE-BKC-021), preview ini bisa berbeda (§ 16.2.A).
+public sealed class CatalogChargeCoveragePreviewResponse
+{
+    public string CoverageStatus { get; set; } = string.Empty;
+    public decimal CoveragePercent { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalPrice { get; set; }
+    public decimal CoveredAmount { get; set; }
+    public decimal PatientPayAmount { get; set; }
+    public bool IsNeedApproval { get; set; }
+    public string? CoverageNote { get; set; }
+    public bool IsAdvisory { get; set; } = true;
+}
+
 public sealed class UpsertChargeRequest
 {
     public Guid EncounterId { get; set; }
@@ -78,6 +116,12 @@ public sealed class UpsertChargeRequest
     [Required, MaxLength(30)] public string SourceStatus { get; set; } = string.Empty;
     public DateTimeOffset OccurredAt { get; set; }
     public Guid CategoryId { get; set; }
+
+    // BIL-AT-025: nullable karena hanya diisi saat SourceDomain="ADHOC_CATALOG" (lihat
+    // BillingInvoiceService.AddCatalogChargeAsync). Domain producer lain (PROCEDURE, LABORATORY,
+    // ADHOC, dst) tidak punya tarif induk sehingga tetap null - pemanggil lama tidak berubah.
+    public Guid? TariffId { get; set; }
+
     [Required, MaxLength(250)] public string DescriptionSnapshot { get; set; } = string.Empty;
     [Range(
         typeof(decimal),
@@ -216,6 +260,12 @@ public sealed class ActiveEncounterOptionResponse
     public string PaymentType { get; set; } = string.Empty;
     public string PaymentTypeLabel { get; set; } = string.Empty;
     public string? GuarantorName { get; set; }
+
+    // BKC-DEC-061: konteks yang dipakai memfilter katalog tarif pada layar entri. Ditambahkan
+    // secara aditif - consumer lama yang tidak membacanya tidak terpengaruh.
+    public Guid ServiceUnitId { get; set; }
+    public Guid? ClinicId { get; set; }
+    public Guid? PatientClassId { get; set; }
 }
 
 // Rekap tagihan satu kunjungan, dikelompokkan per kategori biaya.

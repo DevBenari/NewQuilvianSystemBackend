@@ -249,6 +249,146 @@ public sealed class BillingCalculationServiceTests
         Assert.Single(result.Breakdown.Coverage.AppliedRuleIds);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task RegistrationCoverageAdapterCoversItemEvenWhenRuleNeedsApprovalOrGuaranteeLetter(
+        bool needApproval, bool needGuaranteeLetter)
+    {
+        // BKC-DEC-062 (amendment BKC-DEC-042): rule Covered yang butuh approval dan/atau surat
+        // jaminan TIDAK LAGI digeser ke unresolved - approval/SJP adalah proses administratif
+        // terpisah, bukan penolakan coverage. Sebelum perbaikan ini, ketiga kombinasi flag di atas
+        // akan menghasilkan PrimaryAmount=0 dan seluruh gross jatuh ke UnresolvedAmount.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-APPROVAL",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-APPROVAL",
+            RuleName = "Coverage butuh approval/SJP",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 80,
+            IsNeedApproval = needApproval,
+            IsNeedGuaranteeLetter = needGuaranteeLetter,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Coverage butuh approval tetap dihitung"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(80_000m, result.PrimaryAmount);
+        Assert.Equal(20_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    [Fact]
+    public async Task RegistrationCoverageAdapterStillGatesRuleWithNeedApprovalCoverageStatus()
+    {
+        // Gate yang DIPERTAHANKAN (BE-BKC-021 mempersempit scope, bukan melepas seluruh gating):
+        // CoverageStatus="NeedApproval" berarti statusnya sendiri belum diputuskan - beda dari
+        // rule.IsNeedApproval pada test di atas yang statusnya sudah pasti Covered.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-STATUS",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NEED-APPROVAL-STATUS",
+            RuleName = "Status coverage belum diputuskan",
+            ItemType = "Procedure",
+            CoverageStatus = "NeedApproval",
+            CoveragePercent = 80,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Status coverage belum diputuskan"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.PrimaryAmount);
+        Assert.Equal(100_000m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    [Fact]
+    public async Task RegistrationCoverageAdapterStillGatesRuleWithMonthlyLimit()
+    {
+        // Gate yang DIPERTAHANKAN: limit bulanan butuh pemeriksaan pemakaian kumulatif yang belum
+        // tersedia di adapter ini, jadi tetap digeser ke unresolved walau CoverageStatus=Covered.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-MONTHLY",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-MONTHLY-LIMIT",
+            RuleName = "Limit bulanan",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 80,
+            MaxAmountPerMonth = 50_000m,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Limit bulanan tetap menggeser ke unresolved"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.PrimaryAmount);
+        Assert.Equal(100_000m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
     [Fact]
     public async Task StaleRowVersionAndClosedInvoiceAreRejected()
     {

@@ -17,11 +17,21 @@ public sealed record BillingCoverageContext(
     decimal EligibleAmount,
     IReadOnlyList<BillingCoverageComponent> Components);
 
+// TariffId/ProcedureId/DrugId/DrugCategoryId/TariffCategoryId: field terpisah per dimensi rujukan
+// rule asuransi (MstInsuranceCoverageRule) - BUKAN satu SourceReferenceId gabungan seperti
+// sebelumnya, karena satu item bisa dicocokkan rule di granularitas manapun (tarif spesifik,
+// prosedur, kategori obat, atau kategori tarif) sekaligus, dan satu Guid tidak bisa mewakili
+// keempatnya. Null untuk komponen yang bukan berasal dari item (ADMINISTRATION_FEE/ROOM_CHARGE/
+// TAX non-item) - komponen itu memang tidak punya rujukan tarif/prosedur/obat.
 public sealed record BillingCoverageComponent(
     Guid ComponentId,
     string ComponentType,
     string CoverageItemType,
-    Guid? SourceReferenceId,
+    Guid? TariffId,
+    Guid? ProcedureId,
+    Guid? DrugId,
+    Guid? DrugCategoryId,
+    Guid? TariffCategoryId,
     decimal Quantity,
     decimal Amount,
     bool Coverable);
@@ -89,8 +99,16 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             }
 
             appliedRuleIds.Add(rule.Id);
-            if (rule.IsNeedApproval || rule.IsNeedGuaranteeLetter
-                || string.Equals(rule.CoverageStatus, "NeedApproval", StringComparison.OrdinalIgnoreCase)
+            // BKC-DEC-062 (amendment BKC-DEC-042): IsNeedApproval/IsNeedGuaranteeLetter TIDAK LAGI
+            // menggeser komponen ke unresolved. Sebelumnya, item dengan rule Covered tapi butuh
+            // approval/surat jaminan ikut jatuh ke unresolved - padahal approval itu proses
+            // administratif terpisah, bukan penolakan coverage. Subtotal Asuransi jadi salah kecil
+            // di Menu Pembayaran untuk kasus yang sangat umum (banyak rule asuransi mewajibkan
+            // approval/SJP tapi tetap Covered). Scope dipersempit, BUKAN pelepasan gating penuh:
+            // CoverageStatus=="NeedApproval" (rule yang secara eksplisit BELUM diputuskan statusnya)
+            // dan limit bulanan (butuh pemeriksaan pemakaian kumulatif yang belum tersedia di sini)
+            // tetap menggeser ke unresolved seperti sebelumnya.
+            if (string.Equals(rule.CoverageStatus, "NeedApproval", StringComparison.OrdinalIgnoreCase)
                 || rule.MaxAmountPerMonth.HasValue || rule.MaxQuantityPerMonth.HasValue)
             {
                 unresolved += component.Amount;
@@ -134,11 +152,17 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
         var hasSpecificReference = rule.TariffId.HasValue || rule.DrugId.HasValue || rule.DrugCategoryId.HasValue
             || rule.ProcedureId.HasValue || rule.TariffCategoryId.HasValue;
         if (!hasSpecificReference) return true;
-        if (!component.SourceReferenceId.HasValue) return false;
 
-        var reference = component.SourceReferenceId.Value;
-        return rule.TariffId == reference || rule.DrugId == reference || rule.DrugCategoryId == reference
-            || rule.ProcedureId == reference || rule.TariffCategoryId == reference;
+        // Setiap dimensi rule dibandingkan terhadap field component yang sepadan (bukan satu
+        // reference gabungan ke lima field rule sekaligus) - satu item bisa match di granularitas
+        // manapun yang diisi rule.
+        if (rule.TariffId.HasValue && rule.TariffId == component.TariffId) return true;
+        if (rule.ProcedureId.HasValue && rule.ProcedureId == component.ProcedureId) return true;
+        if (rule.DrugId.HasValue && rule.DrugId == component.DrugId) return true;
+        if (rule.DrugCategoryId.HasValue && rule.DrugCategoryId == component.DrugCategoryId) return true;
+        if (rule.TariffCategoryId.HasValue && rule.TariffCategoryId == component.TariffCategoryId) return true;
+
+        return false;
     }
 
     private static decimal CalculateCoveredAmount(BillingCoverageComponent component, MstInsuranceCoverageRule rule)

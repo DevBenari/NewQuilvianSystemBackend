@@ -17,6 +17,12 @@ public sealed class BilInvoiceItem : IdentityModel
     [Required, MaxLength(30)] public string SourceStatus { get; set; } = string.Empty;
     public DateTimeOffset SourceOccurredAt { get; set; }
     public Guid CategoryId { get; set; }
+
+    // BKC-DEC-059: referensi ke tarif resmi ketika item lahir dari katalog tarif. Nullable karena
+    // item lama dan entri ad-hoc bebas (SourceDomain "ADHOC") tidak punya tarif induk - kolom ini
+    // hanya terisi untuk item yang dientri lewat katalog.
+    public Guid? TariffId { get; set; }
+
     [Required, MaxLength(250)] public string DescriptionSnapshot { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
@@ -29,6 +35,7 @@ public sealed class BilInvoiceItem : IdentityModel
     [Required, MaxLength(64)] public string SourcePayloadHash { get; set; } = string.Empty;
     public BilInvoice Invoice { get; set; } = null!;
     public MstTariffCategory Category { get; set; } = null!;
+    public MstTariff? Tariff { get; set; }
 }
 
 public static class BillingInvoiceItemStatuses

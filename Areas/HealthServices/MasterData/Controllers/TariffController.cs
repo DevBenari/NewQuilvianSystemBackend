@@ -632,14 +632,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (tariffCategoryId.HasValue && tariffCategoryId.Value != Guid.Empty)
                 query = query.Where(x => x.TariffCategoryId == tariffCategoryId.Value);
 
+            // Null pada field scope tarif berarti "berlaku untuk semua" (tarif global), bukan
+            // "tidak berlaku di mana pun" - pola yang sama dengan InsuranceCoverageService
+            // (FindDrugTariffAsync/FindProcedureTariffAsync). Sebelum diperbaiki, filter di sini
+            // pakai strict equality sehingga tarif berscope null tersaring habis begitu client
+            // (mis. picker katalog tarif FE-BKC-014) mengirim serviceUnitId/clinicId/patientClassId
+            // milik encounter - ditemukan lewat live testing: hampir seluruh data tarif dev
+            // berscope null, dan query dengan serviceUnitId encounter sungguhan konsisten
+            // mengembalikan nol hasil padahal tanpa filter itu ada ratusan ribu baris.
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+                query = query.Where(x => !x.ServiceUnitId.HasValue || x.ServiceUnitId == serviceUnitId.Value);
 
             if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
+                query = query.Where(x => !x.ClinicId.HasValue || x.ClinicId == clinicId.Value);
 
             if (patientClassId.HasValue && patientClassId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientClassId == patientClassId.Value);
+                query = query.Where(x => !x.PatientClassId.HasValue || x.PatientClassId == patientClassId.Value);
 
             if (procedureId.HasValue && procedureId.Value != Guid.Empty)
                 query = query.Where(x => x.ProcedureId == procedureId.Value);

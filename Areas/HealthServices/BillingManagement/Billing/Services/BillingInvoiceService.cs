@@ -10,6 +10,7 @@ using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -23,18 +24,53 @@ public sealed class BillingInvoiceService
     private readonly BillingCalculationService _calculationService;
     private readonly LoggerService _loggerService;
 
+    private readonly InsuranceCoverageService _insuranceCoverageService;
+
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
         IBillingChargeSourceAdapter sourceAdapter,
         BillingNumberSeriesService numberSeries,
         BillingCalculationService calculationService,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        InsuranceCoverageService insuranceCoverageService)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
         _numberSeries = numberSeries;
         _calculationService = calculationService;
         _loggerService = loggerService;
+        _insuranceCoverageService = insuranceCoverageService;
+    }
+
+    // BKC-DEC-060: preview read-only, tanpa efek samping - dipakai layar entri sebelum item
+    // benar-benar ditambahkan. Menyeluruhnya dipakai InsuranceCoverageService.ResolveTariffAsync
+    // yang sudah ada (Clinical Management, satu-satunya tempat kalkulasi coverage) - logika
+    // matching rule/tarif asuransi TIDAK ditulis ulang di sini. Hasil boleh berbeda dari
+    // kalkulasi final invoice sungguhan (RegistrationBillingCoverageAdapter, BE-BKC-021) karena
+    // preview ini tidak memperhitungkan diskon/coverage waterfall di tingkat invoice.
+    public async Task<CatalogChargeCoveragePreviewResponse> GetCatalogChargeCoveragePreviewAsync(
+        Guid encounterId,
+        Guid tariffId,
+        decimal quantity,
+        CancellationToken cancellationToken)
+    {
+        var result = await _insuranceCoverageService.ResolveTariffAsync(
+            encounterId, tariffId, quantity, cancellationToken: cancellationToken);
+        if (!result.IsValid)
+            throw new BillingInvoiceValidationException(
+                result.ErrorMessage ?? "Tarif atau kunjungan tidak valid untuk preview coverage.");
+
+        return new CatalogChargeCoveragePreviewResponse
+        {
+            CoverageStatus = result.CoverageStatus,
+            CoveragePercent = result.CoveragePercent,
+            UnitPrice = result.UnitPrice,
+            TotalPrice = result.TotalPrice,
+            CoveredAmount = result.CoveredAmount,
+            PatientPayAmount = result.PatientPayAmount,
+            IsNeedApproval = result.IsNeedApproval,
+            CoverageNote = result.CoverageNote
+        };
     }
 
     public async Task<PagedResult<InvoiceSummaryResponse>> GetPagedAsync(BillingInvoiceQuery request, CancellationToken cancellationToken)
@@ -239,6 +275,57 @@ public sealed class BillingInvoiceService
         };
     }
 
+    // BKC-DEC-059: entri charge dari katalog tarif. Harga (NormalPrice), kategori
+    // (TariffCategoryId), dan deskripsi (TariffName) seluruhnya diambil dari MstTariff milik
+    // server - client cuma mengirim TariffId dan kuantitas, tidak bisa mendikte harga seperti pada
+    // AddOtherChargeAsync (yang memang untuk biaya bebas kasir). SourceDomain "ADHOC_CATALOG"
+    // (lihat BillingChargeSourceAdapter) supaya asal-usulnya bisa dibedakan dari entri bebas ADHOC
+    // pada audit dan laporan, walau siklus hidupnya identik (completeOnEntry).
+    public async Task<InvoiceDetailResponse> AddCatalogChargeAsync(
+        AddCatalogChargeRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var now = DateTime.UtcNow;
+        var tariff = await _dbContext.MstTariffs.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.TariffId && !x.IsDelete && !x.IsCancel && x.IsActive
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= now)
+                && (x.EffectiveEndDate == null || now < x.EffectiveEndDate), cancellationToken)
+            ?? throw new BillingInvoiceValidationException(
+                "Tarif tidak ditemukan, tidak aktif, atau sudah kedaluwarsa.");
+
+        return await UpsertChargeAsync(
+            new UpsertChargeRequest
+            {
+                EncounterId = request.EncounterId,
+                SourceDomain = "ADHOC_CATALOG",
+                // SourceDetailId diturunkan dari idempotencyKey (bukan Guid acak baru per panggilan)
+                // supaya retry dengan Idempotency-Key yang sama benar-benar ter-replay lewat
+                // BilChargeReceipt (UpsertChargeAsync mencocokkan SourceDetailId dengan receipt
+                // tersimpan) - acak baru tiap panggilan akan selalu mismatch dan retry genuine akan
+                // salah dianggap konflik.
+                SourceDetailId = idempotencyKey.ToString("N"),
+                SourceVersion = 1,
+                SourceStatus = "ADDED",
+                OccurredAt = DateTimeOffset.UtcNow,
+                CategoryId = tariff.TariffCategoryId,
+                TariffId = tariff.Id,
+                DescriptionSnapshot = tariff.TariffName,
+                Quantity = request.Quantity,
+                UnitPrice = tariff.NormalPrice,
+                DoctorShare = 0,
+                ContractVersion = ContractBillingChargeSourceAdapter.ContractVersion,
+                CorrelationId = request.CorrelationId,
+                CausationId = request.CausationId
+            },
+            idempotencyKey,
+            actorUserId,
+            cancellationToken);
+    }
+
     public static List<OtherChargeTypeOptionResponse> GetOtherChargeTypeOptions() =>
         BillingOtherChargeTypes.Labels
             .Select(x => new OtherChargeTypeOptionResponse { Value = x.Key, Label = x.Value })
@@ -359,6 +446,9 @@ public sealed class BillingInvoiceService
                 x.encounter.EncounterStatus,
                 x.encounter.EncounterDate,
                 x.encounter.PaymentType,
+                x.encounter.ServiceUnitId,
+                x.encounter.ClinicId,
+                x.encounter.PatientClassId,
                 PatientName = x.patient.FullName,
                 x.patient.MedicalRecordNumber
             })
@@ -402,7 +492,10 @@ public sealed class BillingInvoiceService
             PaymentTypeLabel = MapPaymentTypeLabel(x.PaymentType),
             GuarantorName = guarantorNames.TryGetValue(x.Id, out var guarantorName)
                 ? guarantorName
-                : null
+                : null,
+            ServiceUnitId = x.ServiceUnitId,
+            ClinicId = x.ClinicId,
+            PatientClassId = x.PatientClassId
         }).ToList();
     }
 
@@ -801,6 +894,7 @@ public sealed class BillingInvoiceService
         item.SourceStatus = source.SourceStatus;
         item.SourceOccurredAt = request.OccurredAt;
         item.CategoryId = request.CategoryId;
+        item.TariffId = request.TariffId;
         item.DescriptionSnapshot = request.DescriptionSnapshot.Trim();
         item.Quantity = request.Quantity;
         item.UnitPrice = request.UnitPrice;
