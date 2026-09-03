@@ -144,8 +144,10 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 
 > **Gerbang pemberian memeriksa `EvidenceResult`, bukan sekadar keberadaan baris.** Sejak `v4` bukti
 > yang menyatakan tidak cocok juga tersimpan; meloloskannya berarti memberikan darah yang sudah
-> dinyatakan tidak cocok oleh manusia. Pengetatan ini penurunan dari `DEC-BD-042` dan menunggu
-> penegasan pemilik proses — `OQ-BD-018`.
+> dinyatakan tidak cocok oleh manusia. Pengetatan ini penurunan dari `DEC-BD-042` dan **sudah ditegaskan
+> pemilik proses** lewat `DEC-BD-046` pada 3 September 2026. Baris bernilai `Incompatible` menahan
+> pemberian jalur normal (`VAL-BD-079`), dan barisnya **tidak dibuang** — ia tetap terbaca pada riwayat
+> kantong supaya petugas berikutnya tidak mengulang pemeriksaan yang hasilnya sudah ada.
 
 > **Kenapa nama kolom pelakunya berganti.** `CheckedByUserId` terbaca sebagai "yang memeriksa".
 > `DEC-BD-042` menetapkan pelaksana pemeriksaan **boleh** berbeda dari validator, dan yang disimpan

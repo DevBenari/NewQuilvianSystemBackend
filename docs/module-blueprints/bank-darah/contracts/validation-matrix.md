@@ -155,8 +155,10 @@ menahan adalah **isi buktinya**, bukan haknya. Ini aturan bisnis, bukan hak akse
 **Kenapa `VAL-BD-079` ada sama sekali.** Sebelum `v4`, bukti hanya dicatat ketika hasilnya cocok,
 sehingga keberadaan bukti sudah cukup menjadi gerbang. Sejak `DEC-BD-042` menuntut hasil keputusan
 tersimpan, bukti bertanda **tidak cocok** juga ada di sistem — dan gerbang yang hanya memeriksa
-keberadaan akan meloloskannya. Pengetatan ini penurunan dari `DEC-BD-042`, menunggu penegasan pemilik
-proses (`OQ-BD-018`); sampai itu turun, rancangan memilih arah *fail-closed*.
+keberadaan akan meloloskannya. Pengetatan ini penurunan dari `DEC-BD-042`, dan pemilik proses
+**menegaskannya lewat `DEC-BD-046`** pada 3 September 2026. Arah *fail-closed* karena itu bukan lagi
+pilihan sementara yang menunggu jawaban, melainkan aturan yang sudah diputuskan: gerbang pemberian
+jalur normal memeriksa **isi** bukti, bukan keberadaannya.
 
 **Kenapa `VAL-BD-080` sampai `VAL-BD-082` tiga kode terpisah.** Ketiganya menahan hal yang sama —
 kewenangan kurang — tetapi pada tiga tindakan yang wewenangnya memang berbeda (`INV-BD-034`). Satu kode

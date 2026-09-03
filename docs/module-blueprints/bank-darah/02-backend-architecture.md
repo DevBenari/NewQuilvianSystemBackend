@@ -572,14 +572,13 @@ keputusan manusia. Bukti yang hasilnya `Incompatible` **tetap disimpan**, tidak 
 kantong itu pernah diuji terhadap pasien itu dan dinyatakan tidak cocok adalah bagian riwayat yang
 paling berguna, dan membuangnya membuka jalan bagi orang berikutnya mengulang uji yang sama.
 
-⚠️ **Satu penurunan yang perlu dibaca teliti, karena ia mengetatkan gerbang.** Menyimpan hasil
-keputusan tanpa memeriksanya di gerbang akan menciptakan lubang *fail-open*: bukti bertanda "tidak
-cocok" akan membuka gerbang hanya karena ia ada. Karena itu predikat gerbang pemberian pada `v4`
-menuntut hasil **cocok**, bukan sekadar keberadaan bukti. Ini penurunan dari `DEC-BD-042`, **bukan**
-aturan baru yang dikarang — tetapi pemilik proses belum menegaskannya, dan pertanyaannya terbuka
-sebagai `OQ-BD-018`. Bila pemilik menghendaki hasil keputusan bersifat keterangan saja, pengetatan ini
-dicabut. Sampai itu dinyatakan, rancangan memilih arah *fail-closed*, konsisten dengan seluruh
-keputusan keselamatan modul ini.
+**Satu penurunan yang perlu dibaca teliti, karena ia mengetatkan gerbang — dan kini sudah ditegaskan
+pemiliknya.** Menyimpan hasil keputusan tanpa memeriksanya di gerbang akan menciptakan lubang
+*fail-open*: bukti bertanda "tidak cocok" akan membuka gerbang hanya karena ia ada. Karena itu predikat
+gerbang pemberian pada `v4` menuntut hasil **cocok**, bukan sekadar keberadaan bukti. Ini penurunan dari
+`DEC-BD-042`, **bukan** aturan baru yang dikarang — dan pemilik proses **menegaskannya lewat
+`DEC-BD-046`** pada 3 September 2026. Arah *fail-closed* di sini karena itu sudah menjadi keputusan,
+bukan pilihan sementara, dan konsisten dengan seluruh keputusan keselamatan modul ini.
 
 **Kenapa `BbkEmergencyAuthorizerRole` disimpan, padahal pelakunya sudah tercatat.** `AuthorizedByUserId`
 menjawab *siapa*, bukan *dengan wewenang apa*. `DEC-BD-040` membuka dua jalur wewenang yang berbeda —
@@ -852,11 +851,15 @@ Khusus pass `v3`: `AC-BD-077`..`AC-BD-080` (pemisahan wewenang validasi), `AC-BD
 Khusus pass `v4`: `AC-BD-089`..`AC-BD-091` (bukti kecocokan dan validatornya), `AC-BD-092`..`AC-BD-094`
 (tiga butir penyelesaian `PendingReview`), `AC-BD-095`..`AC-BD-097` (pembatalan order dua peran).
 
-**Pertanyaan terbuka yang menyertai pass `v4`.** `OQ-BD-017` — peran konkret pemegang penetapan
-`NOT_USABLE`; butir hak aksesnya sudah terpisah dan alurnya pasti, yang tertahan hanya satu baris
-seeder. `OQ-BD-018` — apakah hasil keputusan bukti kecocokan bersifat menggerbang atau sekadar
-keterangan; rancangan memilih *fail-closed* sampai dinyatakan, lihat bagian F.6. Keduanya **tidak**
-menahan rancangan.
+**Pertanyaan terbuka yang menyertai pass `v4` — keduanya sudah tertutup 3 September 2026.**
+`OQ-BD-017` ditutup `DEC-BD-045`: penetapan `NOT_USABLE` dipegang **kewenangan operasional BDRS**, peran
+yang sama dengan pengembalian ke PMI, dengan butir hak akses yang **tetap terpisah** (`INV-BD-034`).
+`OQ-BD-018` ditutup `DEC-BD-046`: hasil bukti kecocokan memang **menggerbang** — bukti bernilai
+`Incompatible` menahan pemberian jalur normal lewat `VAL-BD-079`; lihat bagian F.6.
+
+Keduanya **menegaskan** rancangan `v4` apa adanya. Nol entity, nol kolom, nol enum, nol endpoint, nol
+butir hak akses, nol kode validasi, dan nol migration berubah karenanya — yang berubah hanya kalimat
+penunjuk pada dokumen ini dan lima berkas lain, sehingga set kontrak tetap `v4` dan tetap `approved`.
 
 **Satu pertanyaan terbuka yang lahir dari pass `v3`.** `OQ-BD-016` — apakah "bukti pendukung" pada
 permintaan koreksi berupa keterangan tertulis saja, atau menuntut lampiran berkas. Dokumen ini

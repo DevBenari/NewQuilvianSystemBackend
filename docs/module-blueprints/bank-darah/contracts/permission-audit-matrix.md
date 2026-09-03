@@ -90,11 +90,21 @@ sebagai satu keputusan terkumpul; role & authority closure pass menjawab tiga, d
 pass menjawab tiga sisanya (`DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`). Tidak ada baris peran yang masih
 `UNRESOLVED`.
 
-Satu hal yang **belum bernama**, dan itu bukan baris `UNRESOLVED` melainkan isian seeder: pemegang
-`BloodUnit : ResolveNotUsable`. `DEC-BD-043` menyebutnya "mengikuti kewenangan penetapan kelayakan
-sesuai proses BDRS" — penunjuk ke proses yang ada, bukan nama yang dapat dipetakan. Dicatat sebagai
-`OQ-BD-017`; butir hak aksesnya sudah terpisah dan alurnya pasti, sehingga yang tertahan hanya satu
-baris seeder.
+Satu hal yang sempat belum bernama — pemegang `BloodUnit : ResolveNotUsable` — **kini sudah
+ditetapkan**. `DEC-BD-043` menyebutnya "mengikuti kewenangan penetapan kelayakan sesuai proses BDRS",
+sebuah penunjuk yang belum dapat dipetakan ke seeder. `DEC-BD-045` mengisinya pada 3 September 2026:
+butir itu dipegang **kewenangan operasional BDRS**, peran yang sama dengan pemegang
+`BloodUnit : ResolveReturn`. Dasarnya diambil dari `DEC-BD-043` sendiri — tabel sifat tindakannya sudah
+menandai pengembalian ke PMI dan penetapan tidak layak dengan kalimat yang sama, "mengeluarkan darah
+dari peredaran".
+
+⚠️ **Peran yang sama tidak berarti butir yang sama, dan seeder wajib membacanya begitu.**
+`INV-BD-034` tetap menuntut tiga butir terpisah. Peran operasional BDRS menerima `ResolveReturn` **dan**
+`ResolveNotUsable` sebagai **dua baris seeder**, bukan satu butir gabungan. Dua alasannya: jaminan
+`AC-BD-093` — pemegang kewenangan operasional tetap ditolak saat mencoba mengalihkan kantong ke pasien
+lain — hanya bekerja bila butirnya terpisah; dan pencabutan kewenangan pembuangan tanpa ikut mencabut
+kewenangan pengembalian ke PMI hanya mungkin bila keduanya berdiri sendiri. Menggabungkannya akan
+membatalkan pemisahan `DEC-BD-043` lewat pintu belakang.
 
 Satu hal yang perlu dibaca apa adanya: Quilvian **hanya menerapkan hak akses dan mencatat audit**. Ia
 tidak menilai kompetensi klinis siapa pun. Penempatan orang pada peran adalah tanggung jawab rumah
@@ -111,7 +121,7 @@ sakit lewat pengelolaan role platform.
 | **Petugas BDRS berwenang validasi** (butir kedua) | `BloodUnit : Compatibility` | **Ditetapkan `DEC-BD-042`.** Tingkat kewenangan yang sama dengan validasi golongan darah rutin. Pelaksana pemeriksaan **boleh** orang lain — izin, bukan kewajiban |
 | **Pemegang kewenangan klinis BDRS** | `BloodUnit : ResolveReallocate` | **Ditetapkan `DEC-BD-043`.** Pengalihan memasukkan darah ke tubuh pasien baru |
 | **Pemegang kewenangan operasional BDRS** | `BloodUnit : ResolveReturn` | **Ditetapkan `DEC-BD-043`.** Mengeluarkan darah dari peredaran — arah yang aman dengan sendirinya |
-| Pemegang kewenangan penetapan kelayakan | `BloodUnit : ResolveNotUsable` | Bentuk dan pemisahan butirnya **sudah pasti** (`DEC-BD-043`); **nama peran konkretnya belum ditetapkan** — `OQ-BD-017`. Menahan satu baris seeder, bukan rancangan |
+| **Pemegang kewenangan operasional BDRS** (butir kedua) | `BloodUnit : ResolveNotUsable` | **Ditetapkan `DEC-BD-043` (bentuk) dan `DEC-BD-045` (peran).** Peran yang sama dengan `ResolveReturn`, tetapi **butir seeder yang terpisah** — lihat peringatan di atas. Mengeluarkan darah dari peredaran |
 | **Dokter peminta** | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan klinis |
 | **Petugas BDRS** (butir pembatalan) | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan operasional |
 | Admin master data Bank Darah | `BloodComponent : *`, `BloodBankReason : *`, **`BloodStorageLocation : *`** | Setup MVP — kini **tiga** master setelah amandemen `DEC-BD-024` oleh `DEC-BD-035` |

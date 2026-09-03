@@ -265,7 +265,9 @@ String permission persis mengikuti `contracts/permission-audit-matrix.md`. Ringk
 `BloodOrder : Create/Read`; petugas Bank Darah alur normal; peran `DEF-BD-004` untuk
 `BloodUnit : EmergencyIssue/Correct` dan `BloodGroupExam : Validate`; admin master untuk
 `BloodComponent`/`BloodBankReason : *`. **Seluruh peran sudah ditetapkan** `DEC-BD-039` sampai `DEC-BD-044`; `DEF-BD-004` tertutup penuh.
-Satu nama peran menyusul lewat `OQ-BD-017`, dan itu hanya mengisi baris seeder.
+Satu nama peran yang sempat menyusul — pemegang `BloodUnit : ResolveNotUsable` — **sudah ditetapkan**
+`DEC-BD-045`: kewenangan operasional BDRS, peran yang sama dengan `BloodUnit : ResolveReturn`, dengan
+dua baris seeder terpisah karena butirnya memang tidak boleh digabung (`INV-BD-034`).
 
 ## 15. Batas integrasi dan billing
 
@@ -416,7 +418,7 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 | --- | --- | --- | :---: |
 | Pendaftaran prefix `Bbk` di registry | Pemilik registry engineering | Pembuatan entity operasional `BLOCKED` — seluruh gelombang implementasi | **Ya** |
 | ~~Peran jalur darurat, validator, pencatat koreksi (`DEF-BD-004`)~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` | Tidak lagi |
-| **Sisa `DEF-BD-004`:** peran penyata bukti kecocokan selesai, peran penyelesai kantong `PendingReview`, peran pembatal order | Pemilik proses BDRS & klinis | Ketiga alurnya sudah dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya pemetaan peran saat seeder disusun | Tidak menahan `DESIGN`; menahan `IMPLEMENTATION` seeder hak akses |
+| ~~**Sisa `DEF-BD-004`:** peran penyata bukti kecocokan selesai, peran penyelesai kantong `PendingReview`, peran pembatal order~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`, dan pemetaan peran terakhirnya oleh `DEC-BD-045` | Tidak lagi — baris seeder `BE-BD-016` sudah ada isinya |
 | Nilai jam masa berlaku bukti per komponen (`OQ-BD-012`) | Pemilik proses klinis | Gerbang fail-closed sampai diisi | Tidak (desain jalan; nilai dari konfigurasi) |
 | Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`) | Pemilik BillingManagement | Penyaluran biaya tak dapat dirancang | Hanya epic Billing (`OPEN DECISION`) |
 | Keadaan kantong setelah koreksi (`OQ-BD-014`) | Pemilik proses BDRS | Detail implementasi jalur koreksi | Tidak |
@@ -436,9 +438,10 @@ Karena `BD-DEP-016` beres, entity operasional `Bbk*` sudah berwenang dibuat; kar
 gelombang `MVP-0` sampai `MVP-4` boleh dijadwalkan. Urutannya tetap seperti bagian 19: `MVP-0` lebih
 dulu, `MVP-1b` mendahului `MVP-3`, dan FE tidak mendahului task BE pasangannya.
 
-Sisa `DEF-BD-004` sudah tidak ada; keenam wewenangnya dipetakan. Yang tertinggal hanya satu isian seeder
-(`OQ-BD-017`, nama peran pemegang `BloodUnit : ResolveNotUsable`), dan itu menahan satu baris pada
-`BE-BD-016`, bukan alurnya.
+Sisa `DEF-BD-004` sudah tidak ada; keenam wewenangnya dipetakan. Isian seeder terakhir — nama peran
+pemegang `BloodUnit : ResolveNotUsable` — **juga sudah terisi** lewat `DEC-BD-045`, sehingga `BE-BD-016`
+tidak lagi menunggu siapa pun. Bersama `DEC-BD-046` yang menegaskan gerbang hasil bukti kecocokan,
+**tidak ada satu pun pertanyaan terbuka yang menempel pada set kontrak `v4`**.
 
 **Approval manusia sudah tercatat: `Sukmagp` / `2026-09-03`.** Ia membuka penjadwalan task, bukan izin
 menulis source — wewenang tulis backend, migration, eksekusi database di luar dev pemilik, dan
