@@ -11,6 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int RegistrationAvailableServiceUnit { get; set; }
         public int KioskAvailableServiceUnit { get; set; }
         public int AppointmentAvailableServiceUnit { get; set; }
+        public int BloodOrderAvailableServiceUnit { get; set; }
         public int QueueRequiredServiceUnit { get; set; }
         public int DoctorRequiredServiceUnit { get; set; }
         public int ScreeningRequiredServiceUnit { get; set; }
@@ -29,6 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForRegistration { get; set; }
         public bool IsAvailableForKiosk { get; set; }
         public bool IsAvailableForAppointment { get; set; }
+        public bool IsAvailableForBloodOrder { get; set; }
         public bool IsQueueRequired { get; set; }
         public bool IsDoctorRequired { get; set; }
         public bool IsScreeningRequired { get; set; }
@@ -60,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForRegistration { get; set; }
         public bool IsAvailableForKiosk { get; set; }
         public bool IsAvailableForAppointment { get; set; }
+        public bool IsAvailableForBloodOrder { get; set; }
         public bool IsQueueRequired { get; set; }
         public bool IsDoctorRequired { get; set; }
         public bool IsScreeningRequired { get; set; }
@@ -111,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsAvailableForRegistration { get; set; }
         public bool? IsAvailableForKiosk { get; set; }
         public bool? IsAvailableForAppointment { get; set; }
+        public bool? IsAvailableForBloodOrder { get; set; }
         public bool? IsQueueRequired { get; set; }
         public bool? IsDoctorRequired { get; set; }
         public bool? IsScreeningRequired { get; set; }
@@ -180,6 +184,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForRegistration { get; set; } = true;
         public bool IsAvailableForKiosk { get; set; } = false;
         public bool IsAvailableForAppointment { get; set; } = false;
+
+        /// <summary>
+        /// Kewenangan unit memesan darah ke Bank Darah. Bawaannya menolak (<c>DEC-BD-012</c>);
+        /// unit yang tidak dinyalakan penandanya tidak dapat membuat order darah.
+        /// </summary>
+        public bool IsAvailableForBloodOrder { get; set; } = false;
         public bool IsQueueRequired { get; set; } = true;
         public bool IsDoctorRequired { get; set; } = false;
         public bool IsScreeningRequired { get; set; } = false;
