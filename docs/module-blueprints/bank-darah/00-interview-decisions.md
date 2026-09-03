@@ -1191,7 +1191,7 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen |
 | `OQ-BD-010` | Apakah PMI menerima pengembalian kantong yang sudah keluar. Fakta di luar sistem | Pemilik proses BDRS | Tidak memblokir rancangan |
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
-| `BD-DEP-008` | Bank Darah belum terdaftar di registry kepemilikan modul dan prefix | Pemilik registry engineering | `IMPLEMENTATION` backend |
+| `BD-DEP-016` | Keputusan aktivasi modul Bank Darah pada registry: Lifecycle `PLANNED` → `ACTIVE`. Menggantikan `BD-DEP-008` yang sudah tertutup 3 September 2026 | Pemilik registry engineering | `IMPLEMENTATION` backend — entity operasional `Bbk*` dan migration-nya |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan |
 | `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan per komponen. Struktur penyimpanannya ditutup `DEC-BD-032` (per komponen di katalog); yang tersisa hanya angka jamnya dari kebijakan klinis MMC | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
 | `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi |
@@ -1226,8 +1226,10 @@ seluruhnya, keenam wewenangnya.
 `DEF-BD-004`. Dengan ini keenam wewenang yang dibawa `DEF-BD-004` sudah dipetakan, dan **tidak ada satu
 pun keputusan bisnis yang masih memblokir** pada scope yang dinilai.
 
-Pemblokir yang tersisa tinggal **satu, dan sifatnya administratif**: `BD-DEP-008`, pendaftaran prefix
-entity di registry kepemilikan modul. Itu bukan keputusan bisnis dan bukan pekerjaan skill ini.
+Pemblokir yang tersisa **bukan keputusan bisnis** dan bukan pekerjaan skill ini. Sejak rekonsiliasi
+3 September 2026 ia terbagi dua: `BD-DEP-008` pendaftaran prefix **sudah tertutup** — prefix `Bbk`
+terdaftar persis seperti yang diajukan — dan yang menggantikannya adalah `BD-DEP-016`, keputusan
+aktivasi modul dari Lifecycle `PLANNED` ke `ACTIVE`. Keduanya milik pemilik registry engineering.
 
 **Dua hal dari pass ini yang perlu diserap `design-business-module` — sudah diserap set kontrak `v4`
 pada 3 September 2026:**
@@ -1304,7 +1306,8 @@ pemberian.
 | `OQ-BD-014` | Keadaan kantong setelah koreksi pemberian | Tidak. `IMPLEMENTATION` saja |
 | `OQ-BD-015` | Perluasan gerbang lokasi nonaktif ke jalur pemberian | **Ditutup** `DEC-BD-038` — ditahan pada jalur normal, jalur darurat `DEC-BD-017` tetap terbuka |
 | `ARCH-BD-GAP-10` | Nasib kantong di lokasi penyimpanan yang dinonaktifkan | **Ditutup** `DEC-BD-037` |
-| `BD-DEP-008` | Pendaftaran registry kepemilikan modul dan prefix | Tidak. `IMPLEMENTATION` backend |
+| `BD-DEP-008` | Pendaftaran registry kepemilikan modul dan prefix | **Ditutup** 3 September 2026 — prefix `Bbk` terdaftar |
+| `BD-DEP-016` | Keputusan aktivasi modul, Lifecycle `PLANNED` → `ACTIVE` | Tidak menahan rancangan. `IMPLEMENTATION` backend |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang hilang | Tidak |
 
 **Yang sudah dikerjakan sesudah pass ini.** Pass ulang `hospital-domain-architect` dijalankan pada

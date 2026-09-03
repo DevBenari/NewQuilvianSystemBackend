@@ -67,28 +67,31 @@ PMI, integrasi HCLAB, mesin crossmatch, dan manajemen donor.
 
 ---
 
-## B. ⚠️ Prasyarat prefix registry — `BD-DEP-008`
+## B. Prefix registry — `BD-DEP-008` **tertutup**, aktivasi modul masih terbuka
 
 Aturan struktur backend melarang memilih prefix entity sendiri (`QBE-NAM-004`); satu-satunya sumbernya
-adalah `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Bank Darah **belum terdaftar**
-di sana (`BD-DEP-008`).
+adalah registry kepemilikan modul. **Bank Darah kini terdaftar di sana**, commit `ed7fba8`
+3 September 2026:
 
-Karena itu seluruh nama entity operasional pada dokumen ini memakai **prefix placeholder `Bbk`**
-(*Blood Bank*) yang **belum disahkan**. Baris registry yang diajukan:
+| Area | Module/pemilik | Category | Prefix | Lifecycle |
+| --- | --- | --- | --- | --- |
+| `HealthServices` | `BloodBankManagement / Blood Bank` | `BUSINESS DOMAIN / MODULE` | **`Bbk`** | **`PLANNED`** |
 
-| Area | Module/pemilik | Category | Prefix (diusulkan) | Kepanjangan | Lifecycle |
-| --- | --- | --- | --- | --- | --- |
-| `HealthServices` | `BloodBankManagement` | Operational | `Bbk` | *Blood Bank* | Operational transaction |
+Prefix yang disahkan **persis `Bbk`**, sama dengan yang diajukan blueprint sejak `v1`. Karena itu:
 
-**Konsekuensi yang mengikat implementasi:**
+- Seluruh nama `Bbk*` pada dokumen ini **berlaku apa adanya**; tidak lagi placeholder.
+- Skenario "prefix berbeda → seluruh nama berganti sebagai satu paket" yang tercatat sejak `v1`
+  **tidak terjadi**.
+- `QBE-NAM-004` terpenuhi: prefix berasal dari registry, bukan disimpulkan dari nama folder.
+- Blueprint ini tetap **MUST NOT** memakai `Trx*` sebagai jalan pintas (`QBE-NAM-001`).
 
-- Pembuatan entity operasional berstatus `BLOCKED` (`QBE-MOD-002`, `QBE-MOD-003`) sampai baris di atas
-  disetujui pemilik registry engineering.
-- Bila pemilik registry menetapkan prefix lain, seluruh nama `Bbk*` pada blueprint ini ikut berganti
-  sebagai satu paket (class, file, Configuration, DbSet, tabel) sebelum model pertama dibuat.
-- Blueprint ini **MUST NOT** memakai `Trx*` sebagai jalan pintas (`QBE-NAM-001`).
+⚠️ **Lifecycle `PLANNED` bukan izin implementasi.** Kepala registry menyatakan bahwa persetujuannya
+"hanya memberi wewenang penamaan dan kepemilikan" dan **tidak** memberi wewenang implementasi,
+migration, pekerjaan database, deployment, maupun aktivasi modul berstatus `PLANNED`. Pembuatan entity
+operasional `Bbk*` karena itu tetap menunggu **keputusan aktivasi modul** (`BD-DEP-016`,
+gerbang `G2b` pada roadmap), bukan lagi menunggu pendaftaran prefix.
 
-Prefix master tetap `Mst` (masih berlaku, tidak deprecated) dan tidak terikat pada pengajuan ini.
+Prefix master tetap `Mst`, berstatus `ACTIVE` di registry, dan tidak pernah terikat pengajuan ini.
 
 ---
 
@@ -375,7 +378,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 
 | Aspek | Penjelasan |
 | --- | --- |
-| Status | `Baru` (BLOCKED sampai `BD-DEP-008`) |
+| Status | `Baru` (menunggu aktivasi modul — `BD-DEP-016`) |
 | Lokasi file | `Areas/HealthServices/BloodBankManagement/Models/BbkBloodOrder.cs` |
 | Kategori | Transaksi |
 | Tanggung jawab | Menyimpan satu permintaan kebutuhan darah untuk seorang pasien, dari unit pelayanan (elektronik) atau diinput Bank Darah (manual). Angka pemenuhan tidak disimpan sebagai kolom; dihitung dari pemberian nyata |
@@ -728,9 +731,10 @@ Ini konsekuensi *fail-closed* yang disengaja, bukan cacat rancangan, tetapi ia m
 **Langkah mundur:** karena seluruhnya objek baru dan satu kolom bawaan, rollback = `DROP` tabel baru
 dan `DROP COLUMN` flag. Tidak ada data existing yang hilang.
 
-**Prasyarat mutlak:** migration operasional **BLOCKED** sampai prefix `Bbk` disahkan (`BD-DEP-008`).
-Migration master (langkah 1) dan kolom flag (langkah 2) memakai prefix `Mst` dan pemilik Master Data,
-tidak terikat pengajuan prefix operasional — tetapi urutan pemakaian modul menuntut ketiganya lengkap.
+**Prasyarat mutlak:** migration operasional menunggu **keputusan aktivasi modul** (`BD-DEP-016`,
+gerbang `G2b`), bukan lagi pendaftaran prefix — `BD-DEP-008` sudah tertutup dan prefix `Bbk` sah.
+Migration master (langkah 1) dan kolom flag (langkah 2) memakai prefix `Mst` yang berstatus `ACTIVE`
+dan tidak terikat aktivasi modul operasional — tetapi urutan pemakaian modul menuntut ketiganya lengkap.
 
 ---
 

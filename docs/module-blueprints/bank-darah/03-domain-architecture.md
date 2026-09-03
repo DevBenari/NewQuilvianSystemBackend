@@ -1351,7 +1351,8 @@ blood_unit_gates:
   alokasi: sudah STORED DAN penempatan terakhir menunjuk lokasi aktif (ARCH-BD-POS-06)
   pemberian: gerbang alokasi DITAMBAH bukti kecocokan berlaku untuk pasien tujuan dan belum lewat masa berlaku; dinilai ulang saat pemberian dicoba (ARCH-BD-POS-07)
   jalur_darurat: DEC-BD-017 melewati gerbang pemberian; wajib menyebutkan gerbang mana yang dilewati (INV-BD-030)
-dependency_ids: [BD-DEP-001, BD-DEP-002, BD-DEP-003, BD-DEP-004, BD-DEP-005, BD-DEP-006, BD-DEP-007, BD-DEP-008, BD-DEP-010, BD-DEP-011, BD-DEP-012, BD-DEP-013, BD-DEP-014]
+dependency_ids: [BD-DEP-001, BD-DEP-002, BD-DEP-003, BD-DEP-004, BD-DEP-005, BD-DEP-006, BD-DEP-007, BD-DEP-010, BD-DEP-011, BD-DEP-012, BD-DEP-013, BD-DEP-014, BD-DEP-016]
+resolved_dependency_ids: [BD-DEP-008]
 decision_revision: 7
 decision_approval_status: DEC-BD-035 sampai DEC-BD-038 masih draft, approved_by kosong — sama seperti DEC-BD-001..034
 superseded_statements: revisi 5 menyatakan gerbang lokasi nonaktif tidak berlaku pada pemberian; dicabut oleh DEC-BD-038 pada revisi 6

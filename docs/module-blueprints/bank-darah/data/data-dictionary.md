@@ -12,8 +12,10 @@ dan `IsDelete`. Kolom-kolom itu **tidak** diulang pada tabel di bawah maupun pad
 
 Penghapusan bersifat penandaan melalui `IsDelete`, **bukan** penghapusan baris (`BD-CAP-011`).
 
-⚠️ **Nama tabel `Bbk*` memakai prefix placeholder** yang belum disahkan registry (`BD-DEP-008`). Bila
-prefix final berbeda, seluruh nama tabel, kolom FK bernama `Bbk*`, dan Configuration ikut berganti.
+**Nama tabel `Bbk*` memakai prefix yang sudah disahkan registry** — `BD-DEP-008` tertutup
+3 September 2026, dan prefix yang disahkan persis `Bbk`. Nama tabel pada dokumen ini **final**; tidak
+ada penggantian nama yang tertunda. Pembuatan tabelnya sendiri masih menunggu keputusan aktivasi modul
+(`BD-DEP-016`), yang tidak mengubah satu pun nama di sini.
 
 ---
 
@@ -357,7 +359,8 @@ kerabatnya (pola). Sumber lengkap: `Areas/HealthServices/MasterData/Models/MstSe
 
 > ⚠️ Basis data dibentuk **EF Core Migrations**, bukan SQL manual. DDL berikut adalah **dokumentasi
 > bentuk tabel**, bukan skrip untuk dijalankan. Menjalankannya akan berbenturan dengan migration.
-> Kolom audit `IdentityModel` tidak ditulis ulang di sini. Nama `Bbk*` masih placeholder (`BD-DEP-008`).
+> Kolom audit `IdentityModel` tidak ditulis ulang di sini. Nama `Bbk*` sudah final — prefix disahkan
+> registry pada `BD-DEP-008` yang kini tertutup.
 
 ```sql
 -- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.

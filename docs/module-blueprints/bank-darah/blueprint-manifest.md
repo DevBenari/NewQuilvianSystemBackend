@@ -5,7 +5,7 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 17
+revision: 18
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
@@ -89,6 +89,7 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
+  - BD-DEP-016
 active_roadmap_revision: 2
 roadmap_status: FORWARD-TEST
 supersedes: null
@@ -128,6 +129,13 @@ ditandai `STALE`. Bila SHA berubah lagi, ulangi pemindaian yang sama sebelum pet
 
 Blueprint tidak memberi wewenang implementasi. Menulis dokumen di sini tidak sama dengan izin
 mengubah controller, service, entity, migration, database, atau melakukan deployment.
+
+### Catatan pass bertanggal
+
+> Blok di bawah adalah **rekaman historis per pass**, bukan keadaan sekarang. Setiap entri benar pada
+> tanggalnya. Keadaan terkini ada pada field YAML di atas dan pada catatan rekonsiliasi paling bawah.
+> Khususnya: rujukan `BD-DEP-008` sebagai pemblokir dan `Bbk` sebagai placeholder mencerminkan keadaan
+> sebelum 3 September 2026; keduanya **sudah tidak berlaku**.
 
 **Design pass 2 September 2026.** `design-business-module` menghasilkan set kontrak `v1` (`draft`) pada
 `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`,
@@ -228,7 +236,13 @@ Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama
 `BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
 
 Pemblokir yang tersisa tinggal **dua, keduanya tindakan manusia**: `G1` approval kontrak `v4`, dan
-`G2b` keputusan aktivasi modul. Approval manusia belum diklaim.
+`G2b` keputusan aktivasi modul (`BD-DEP-016`). Approval manusia belum diklaim.
+
+**Rekonsiliasi 3 September 2026.** Seluruh artefak Bank Darah disapu dan diselaraskan atas penutupan
+`BD-DEP-008`: sembilan berkas yang masih menyatakan "prefix belum terdaftar" atau "BD-DEP-008 blocker
+terbuka" sudah diperbarui, dan pemisahan `G2a` (tertutup) / `G2b` (terbuka) kini konsisten di manifest,
+status modul, catatan prasyarat, arsitektur backend, kamus data, PRD, roadmap, dan register keputusan.
+`BD-DEP-016` diterbitkan sebagai penerus pemblokir, dan Lifecycle registri **tidak** diubah.
 
 ⚠️ **Pemeriksaan status 3 September 2026 — bukti kemampuan menjadi `STALE`.** Backend bergerak ke
 `4205d18` lewat merge `QuilvianIntegrationBackend`. Berbeda dengan seluruh pergerakan SHA sebelumnya

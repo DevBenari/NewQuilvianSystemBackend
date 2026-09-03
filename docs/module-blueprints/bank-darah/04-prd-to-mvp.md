@@ -237,7 +237,7 @@ Seluruh FR lain diturunkan dari `AC-BD-001`..`088` (`testing/acceptance-test-mat
 - **Dipakai ulang:** pasien/kunjungan/dokter/unit, pola order & riwayat & konkurensi, hak akses,
   `ApiResponse`/`PagedResult`, komponen frontend dasar, enum `BloodType`.
 - **Diperluas:** `MstServiceUnit` (+1 kolom kewenangan).
-- **Baru:** 14 entity operasional `Bbk*` (prefix placeholder, `BD-DEP-008`) + 2 master `Mst*`.
+- **Baru:** 14 entity operasional `Bbk*` (prefix **sudah disahkan registry**, `BD-DEP-008` tertutup) + 2 master `Mst*`.
 - Detail: `02-backend-architecture.md`, `data/data-dictionary.md`.
 
 ## 13. Sasaran kemampuan API
@@ -389,13 +389,14 @@ Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemet
 | Pemberian tak dapat dihapus; koreksi append-only | `UAT-06`, `AC-BD-047/048/049` | Belum |
 | Tiga daftar kerja tersedia | `AC-BD-008` + `FE-BD-01/04` | Belum |
 | Seluruh master MVP terisi | `02-backend-architecture.md` §J | Belum |
-| Prefix `Bbk` terdaftar registry | `BD-DEP-008` | Belum |
+| Prefix `Bbk` terdaftar registry | `BD-DEP-008` | **Sudah** — 3 September 2026, Lifecycle `PLANNED` |
+| Modul diaktifkan (`PLANNED` → `ACTIVE`) | `BD-DEP-016` | Belum |
 
 ## 20. Urutan pengiriman dan pertanyaan terbuka
 
 | Gelombang | Isi (epic) | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | Fondasi: `EPIC BD-09` (**tiga** master termasuk lokasi penyimpanan + flag unit), migration, prefix registry | Blueprint disetujui + `BD-DEP-008` beres |
+| `MVP-0` | Fondasi: `EPIC BD-09` (**tiga** master termasuk lokasi penyimpanan + flag unit), migration master, seeder hak akses | Blueprint disetujui. **Tidak menunggu `BD-DEP-016`** — seluruhnya master `Mst*` berstatus `ACTIVE` |
 | `MVP-1` | `EPIC BD-01`, `EPIC BD-02` (order → permintaan → penerimaan) | `MVP-0` selesai |
 | `MVP-1b` | **`EPIC BD-11`** (penyimpanan kantong: penetapan lokasi, perpindahan, riwayat penempatan) | `MVP-1` selesai. **Wajib mendahului `MVP-3`** — tanpa penyimpanan, tidak ada kantong yang dapat dialokasikan |
 | `MVP-2` | `EPIC BD-07` (golongan darah + konflik), `EPIC BD-10` (daftar kerja) | `MVP-1` selesai |
@@ -427,16 +428,16 @@ sempat terbuka sudah ditutup `DEC-BD-037` dan `DEC-BD-038`. Yang ditambahkan han
 prasyarat operasional di atas: master lokasi wajib terisi sebelum go-live.
 
 **Status dokumen `draft`.** Pemblokir berkurang dari dua menjadi **satu**: `DEF-BD-004` ditutup
-`DEC-BD-039` sampai `DEC-BD-041` pada `v3`, sehingga yang tersisa hanya **`BD-DEP-008`** — pendaftaran
-prefix entity di registry kepemilikan modul. Itu administratif, pemiliknya registry engineering, dan
-bukan keputusan bisnis.
+`DEC-BD-039` sampai `DEC-BD-041` pada `v3`. `BD-DEP-008` pendaftaran prefix **juga sudah tertutup**
+pada 3 September 2026. Yang tersisa **`BD-DEP-016`** — keputusan aktivasi modul dari Lifecycle
+`PLANNED` ke `ACTIVE`. Itu administratif, pemiliknya registry engineering, dan bukan keputusan bisnis.
 
-Selama `BD-DEP-008` belum beres, dokumen ini **belum boleh** diteruskan ke `/plan-module-delivery`:
-seluruh entity operasional `Bbk*` berstatus `BLOCKED` (`QBE-MOD-002`), sehingga gelombang `MVP-0`
-sampai `MVP-4` tidak dapat dimulai.
+Selama `BD-DEP-016` belum beres, entity operasional `Bbk*` belum berwenang dibuat, sehingga gelombang
+`MVP-1` sampai `MVP-4` tidak dapat dimulai. **`MVP-0` tidak terkena** — seluruhnya master `Mst*` yang
+prefiksnya berstatus `ACTIVE` di registry. Penamaan `Bbk*` sendiri sudah tidak menahan apa pun.
 
 Sisa `DEF-BD-004` — tiga peran yang belum dipetakan — **tidak** ditandai memblokir. Ketiga alurnya sudah
 dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya isi seeder hak akses, dan itu
-dapat diselesaikan sejalan dengan `BD-DEP-008` lewat satu closure pass yang pendek.
+dapat diselesaikan sejalan dengan `BD-DEP-016` lewat satu closure pass yang pendek.
 
 Approval manusia belum diklaim.
