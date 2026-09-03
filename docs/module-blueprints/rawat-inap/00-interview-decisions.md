@@ -3,17 +3,17 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `7` |
+| Revision | `10` |
 | Status | `draft` |
-| Interview mode | Pembahasan ulang arsitektur frontend tuntas 2026-08-27, 5 keputusan. Sebelumnya `Amendment pass` tuntas 2026-08-24, 4 butir, atas tiga usulan lintas modul dari blueprint IGD. Sebelumnya `Amendment pass` tuntas 2026-08-21, 8 butir. Sebelumnya `Closure pass` 17 pertanyaan tuntas 2026-08-21, dan `Scope pass` 30 pertanyaan tuntas 2026-08-20 |
+| Interview mode | **`Amendment Pass` koreksi dokumen klinis tuntas 2026-09-02, satu pertanyaan.** `RWI-DEC-086` mengunci kapan catatan dokter menjadi final dan bagaimana mengoreksinya; `RWI-DEC-087` mewajibkan tiga jenis dokumen didaftarkan ke mesin keutuhan; `RWI-DEC-088` mengunci kewenangan koreksi atas nama dokter yang berhalangan. Sebelumnya **`Amendment Pass CAP-025` tuntas 2026-09-02, dua pertanyaan.** `RWI-DEC-084` menetapkan Physician Visit sebagai event klinis eksplisit; `RWI-DEC-085` menetapkan setiap visite nyata sebagai satu event dan satu hitungan klinis/operasional. `DEC-INP-008` tertutup. Sebelumnya pembahasan ulang arsitektur frontend tuntas 2026-08-27, Amendment Pass lintas modul tuntas 2026-08-24, Amendment Pass 8 butir tuntas 2026-08-21, Closure Pass 17 pertanyaan tuntas 2026-08-21, dan Scope Pass 30 pertanyaan tuntas 2026-08-20 |
 | Product/domain owner | **Muhammad Hamzah**, ditunjuk 2026-08-21 lewat `RWI-DEC-061`. Jabatan formal belum diisi |
 | Clinical governance owner | **Sebagian terisi.** Keputusan isolasi dan jenis kelamin diambil pemilik pada `RWI-DEC-064`. Belum dinyatakan apakah penunjukan itu mencakup seluruh peran clinical governance |
 | Security/privacy owner | `OPEN` — menjadi syarat sebelum produksi |
-| Backend SHA | `45dcfa1` (branch `MHamzah`) |
-| Frontend SHA | `dec4fdeff` |
-| Capability map | **Sudah ada per 2026-08-21.** [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.0`, backend SHA `5afb54b`, frontend SHA `dec4fdeff`. Pemeriksaan duplikasi selesai; tidak ditemukan rencana tabel baru yang menduplikasi tabel existing |
-| Primary evidence | `docs/Modul-RS/PRD-Modul-Rawat-Inap.md`, status `TARGET PROPOSAL`, baseline commit `5103e68` |
-| Tanggal pass | 2026-08-20 |
+| Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) — snapshot focused Dokter Rawat Inap |
+| Frontend SHA | `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) — snapshot focused Dokter Rawat Inap |
+| Capability map | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.3`. Bagian 15 current untuk slice dokter pada SHA di atas; bagian lain tetap historis/stale |
+| Primary evidence | `PRD-RWI-FINAL-001` v1.0.0, `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`, diterima sebagai baseline lewat `RWI-DEC-080` |
+| Tanggal pass | 2026-09-02 |
 
 > **Peringatan sebelum membaca.** Dokumen ini adalah catatan keputusan wawancara, bukan desain
 > dan bukan persetujuan. Semua baris berstatus `draft` masih bisa berubah. Tidak ada satu pun
@@ -27,21 +27,21 @@ Dokumen ini panjang. Bagian ini ada supaya pembaca tahu posisinya tanpa membaca 
 
 | Hal | Jumlah | Keterangan |
 |---|---:|---|
-| Aturan bisnis tertulis | 37 | `RWI-RULE-001` sampai `RWI-RULE-037`, seluruhnya disertai contoh berangka |
+| Aturan bisnis tertulis | 38 | `RWI-RULE-001` sampai `RWI-RULE-038`, seluruhnya disertai contoh berangka |
 | — di antaranya **belum final** | 3 | `RWI-RULE-021`, `RWI-RULE-025`, dan `RWI-RULE-037`. `RWI-RULE-012` sudah final sejak `RWI-DEC-064`, walaupun sebagiannya belum dapat dijalankan |
-| Keputusan tercatat | 77 | 68 berstatus `approved`, 7 berstatus `draft`, 1 berstatus `closed`, 1 berstatus `superseded` penuh yaitu `RWI-DEC-018`. Satu keputusan `approved` juga bertanda `superseded` sebagian, yaitu `RWI-DEC-011` |
-| Fakta yang terbukti dari repository dan PRD | 12 | `RWI-FACT-001` sampai `RWI-FACT-012`. Dua terakhir berasal dari capability map, bukan dari PRD |
-| Acceptance criteria yang sudah dapat diuji | 149 | `RWI-AC-001` sampai `RWI-AC-149` |
+| Keputusan tercatat | 82 | `RWI-DEC-086` s.d. `RWI-DEC-088` disetujui pada Amendment Pass koreksi dokumen. `RWI-DEC-018`, `RWI-DEC-025`, dan `RWI-DEC-031` kini `superseded` penuh |
+| Fakta yang terbukti dari repository dan PRD | 14 | `RWI-FACT-001` sampai `RWI-FACT-014`. Dua terakhir dibaca langsung dari source pada Amendment Pass koreksi dokumen |
+| Acceptance criteria tercatat | 167 | `RWI-AC-001` sampai `RWI-AC-167`. Empat butir historis `RWI-AC-032`, `033`, `047`, dan `048` tidak current setelah `RWI-DEC-084`–`085` |
 | Keputusan yang didelegasikan ke pelaksana | 5 | `RWI-FE-001` s.d. `RWI-FE-005`, seluruhnya `DEV_DISCRETION` dengan batas mengikat yang tertulis |
-| Konflik | **8 dari 8 tertutup** | Tujuh berasal dari PRD, satu ditemukan antar keputusan di dokumen ini sendiri |
+| Konflik | **Sembilan dari sembilan tertutup** | `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085` tanpa mencampur hitungan klinis dengan agregasi Billing |
 | Lubang cakupan | 9 dari 11 tertutup | Dua sisanya sudah dijawab tetapi menunggu pemilik klinis |
-| Pertanyaan wawancara tersisa | **0** | Scope Pass 30 pertanyaan tuntas 2026-08-20. Closure Pass 17 pertanyaan tuntas 2026-08-21. Amendment Pass 8 butir tuntas 2026-08-21. Yang tersisa bukan pertanyaan, melainkan tindakan organisasi dan penunjukan pemilik |
+| Pertanyaan wawancara tersisa | **0 untuk sub-modul dokter** | `RWI-OQ-050` ditutup `RWI-DEC-088`. Pertanyaan terbuka modul lain tidak dibahas pada pass ini |
 | Pertanyaan penutup capability map | **17 dari 17 tertutup** | `RWI-TRQ-001` sampai `RWI-TRQ-017`, ditutup pada Closure Pass 2026-08-21 |
 | Konflik frontend–backend dari audit source | **3 dari 3 ditangani** | `RWI-CON-TRC-001` ditutup `RWI-DEC-049`. `RWI-CON-TRC-002` hanya soal penamaan dan tidak perlu diperbaiki. `RWI-CON-TRC-003` ditutup `RWI-DEC-041` |
-| Butir terbuka yang tersisa | 7 | **Satu tindakan organisasi:** `RWI-OQ-034` persetujuan pemilik `EmergencyInstallationManagement`. **Tiga sudah dijawab tetapi menunggu pemilik klinis atau hukum:** `RWI-OQ-035`, `RWI-OQ-038`, `RWI-OQ-039`. **Dua keputusan implementasi nonblocking:** `RWI-OQ-045` hak akses konfirmasi masuk dan `RWI-OQ-046` jalur admisi backend tanpa `EncounterId`. Tidak satu pun memblokir desain; `RWI-OQ-034` hanya menahan `INP-S09`, sedangkan `RWI-OQ-045` dan `RWI-OQ-046` tidak menahan roadmap frontend revision `3`. **Satu pertentangan sumber kebenaran, baru 2026-09-02:** `RWI-OQ-047` kepemilikan Financial Clearance |
+| Butir terbuka yang tersisa | 7 | `RWI-OQ-049` dan `RWI-OQ-050` sama-sama tertutup. Tujuh butir modul lain tetap ada dan tidak dibahas pada pass ini |
 | Gerbang sebelum produksi | 3 gerbang tata kelola + 5 baris aturan klinis/privasi + 4 gerbang implementasi | Lihat bagian Gate Sebelum Produksi |
 
-**Tujuh butir yang masih terbuka, dan tidak satu pun memblokir desain frontend revision `0.4`:**
+**Tujuh butir yang masih terbuka; tidak satu pun berasal dari `CAP-025`:**
 
 | Butir | Isinya | Memblokir |
 |---|---|---|
@@ -250,6 +250,8 @@ digali dalam wawancara ini.
 | `RWI-FACT-001` | Registry sudah memuat entri `HealthServices / InPatientManagement / Inpatient`, prefix `Inp`, lifecycle `PLANNED`. Artinya hak penamaan sudah ada, tetapi izin implementasi belum | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 20 |
 | `RWI-FACT-002` | Persetujuan registry hanya memberi hak penamaan dan kepemilikan. Registry secara eksplisit **tidak** memberi izin implementasi, migration, pekerjaan database, deployment, atau aktivasi modul berstatus `PLANNED` | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` paragraf 3 |
 | `RWI-FACT-003` | Entity operasional baru wajib bernama `<PrefixPemilik><KonsepBisnis>`, contohnya `RegPatientEncounter` dan `EmgVisit`. Untuk modul ini berarti berawalan `Inp` | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, penjelasan setelah tabel |
+| `RWI-FACT-013` | Mesin koreksi dokumen klinis **hanya menerima dokumen yang sudah terkunci**. Dokumen berstatus konsep ditolak dengan pesan "Catatan ini belum terkunci. Perbaiki langsung pada catatannya", dan dokumen yang sudah dibatalkan ditolak. Status dokumen sengaja tidak berubah setelah dikoreksi. Kewenangan koreksi bertingkat: penulis asli, lalu penulis pengganti bila akun penulis nonaktif, lalu penulis pengganti bila ada penetapan berhalangan yang berlaku | `BE@93b3227 Areas/HealthServices/MedicalRecordManagement/Services/ClinicalNoteAddendumService.cs` baris 60–130 |
+| `RWI-FACT-014` | **Hanya catatan terpadu yang terdaftar** pada mesin keutuhan dokumen. Catatan dokter, kajian medis, dan tindakan tidak mendaftarkan diri, padahal jenis dokumennya sudah tersedia pada daftar jenis. Tanpa pendaftaran itu, koreksi ditolak dengan pesan "Catatan tidak ditemukan pada daftar keutuhan". Pada saat yang sama, penyuntingan SOAP setelah catatan selesai **sudah dilarang**. Gabungan keduanya membuat catatan dokter yang sudah selesai tidak dapat disunting maupun dikoreksi | `BE@93b3227` pencarian `RegisterIntegrityAsync` pada `Areas/HealthServices/ClinicalManagement/Controllers/` hanya menemukan `PatientIntegratedProgressNoteController`; `DoctorConsultationController.cs` baris 528 |
 | `RWI-FACT-004` | Backend aktif berada pada branch `MHamzah` commit `45dcfa1`, sedangkan PRD ditulis di atas baseline `5103e68`. Baseline PRD sudah tidak sama dengan kondisi sekarang | `git rev-parse` pada kedua repository |
 | `RWI-FACT-010` | Kata "visite" hanya muncul satu kali di seluruh PRD, yaitu baris 149 pada tabel kemampuan, sebagai baris "Visit dokter" dengan kode CAP-025 berprioritas MUST. Tidak ada Functional Requirement, EPIC, definisi, maupun baris kewenangan yang menyebutnya. Entity `DoctorConsultation` disebut terpisah pada baris 685 dengan disposisi `EXTEND`, tanpa dikaitkan ke CAP-025 | `docs/Modul-RS/PRD-Modul-Rawat-Inap.md` baris 149 dan 685 |
 | `RWI-FACT-009` | FR-RI-010 menyebut `gender compatibility jika digunakan` dan `isolation` hanya sebagai pilihan **penyaring pencarian** bed. FR-RI-011, satu-satunya aturan yang menentukan bed boleh dipilih atau tidak, hanya menyebut `IsActive = true` dan status ketersediaan; jenis kelamin dan isolasi tidak disebut sama sekali. Dibaca harfiah, PRD mengizinkan pasien laki-laki dan perempuan sekamar | `docs/Modul-RS/PRD-Modul-Rawat-Inap.md` baris 284-300 |
@@ -1133,7 +1135,56 @@ nama siapa yang muncul di riwayat.
 
 ### `RWI-RULE-017` — Visite dokter
 
-Dasar keputusan: `RWI-DEC-025`. Menutup `RWI-OQ-019` dan `RWI-GAP-007`.
+Dasar keputusan current: `RWI-DEC-084` dan `RWI-DEC-085`, mengikuti `PRD-RWI-FINAL-001` CAP-025
+dan keputusan final nomor 12. `RWI-DEC-025` dan `RWI-DEC-031` telah `superseded`.
+
+#### Ketentuan current — event klinis eksplisit
+
+**Physician Visit adalah event klinis tersendiri.** Event ini menyatakan bahwa dokter benar-benar
+melakukan visite kepada pasien. Visite tidak dibuat otomatis hanya karena dokter menulis SOAP atau
+CPPT.
+
+| Butir | Ketentuan current |
+|---|---|
+| Apa yang menandai satu visite | Event Physician Visit yang dicatat secara eksplisit untuk episode pasien |
+| Siapa yang mencatat | Dokter yang memiliki kewenangan atas pasien. Pencatatan administratif atas nama dokter tidak tersedia sampai ada kebijakan eksplisit yang menyetujuinya |
+| Data minimum | Waktu visite, dokter, peran/konteks dokter, episode, pelaku pencatatan, dan jejak audit |
+| Hubungan dengan dokumen klinis | SOAP, CPPT, atau tindakan boleh ditautkan, tetapi tautan bersifat opsional dan bukan syarat lahirnya visite |
+| SOAP/CPPT tanpa event visite | Tidak otomatis menambah visite |
+| Pengiriman ganda | Permintaan dengan `request id/idempotency key` yang sama tidak boleh membuat event kedua |
+| Jumlah visite dokter yang sama pada satu tanggal | Setiap visite nyata yang dicatat sebagai event berbeda dihitung satu; dua event berarti dua visite klinis/operasional |
+| Agregasi Billing/penjamin | Terpisah dari riwayat klinis. Billing boleh menerapkan satu tagihan per dokter per tanggal hanya setelah owner Billing menyetujui; agregasi itu tidak boleh menghapus atau mengubah event klinis |
+
+Contoh current:
+
+> Pukul **07:40** dr. Andi melakukan visite dan mencatat event Physician Visit. SOAP baru dibuat
+> pukul **07:52** dan ditautkan ke event tersebut. Riwayat tetap menunjukkan satu visite pada
+> pukul 07:40. Bila pengiriman event terulang karena tombol Simpan ditekan dua kali dengan
+> `idempotency key` yang sama, sistem tetap menyimpan satu event, bukan dua.
+>
+> Pukul **16:10** dr. Andi menulis SOAP tambahan tanpa mencatat event Physician Visit. SOAP itu
+> tetap tersimpan sebagai catatan perkembangan, tetapi tidak otomatis menambah jumlah visite.
+
+#### Cara menghitung current
+
+Setiap event merepresentasikan satu kunjungan nyata. Sistem tidak menggabungkan event hanya karena
+dokter, pasien, dan tanggalnya sama.
+
+| Keadaan | Hitungan klinis/operasional | Penjelasan |
+|---|---:|---|
+| dr. Andi visite pukul 07:40, lalu kembali pukul 16:10 karena kondisi pasien memburuk | 2 | Dua kunjungan nyata, dua event, dan dua baris riwayat |
+| dr. Andi visite sekali, tetapi tombol Simpan terkirim dua kali dengan `idempotency key` sama | 1 | Pengiriman kedua adalah retry, bukan kunjungan baru |
+| dr. Andi dan dr. Sinta masing-masing visite satu kali pada tanggal yang sama | 2 | Setiap dokter melakukan satu kunjungan nyata |
+
+Contoh pemisahan Billing:
+
+> Riwayat klinis menyimpan dua event dr. Andi pada 12 Agustus, pukul 07:40 dan 16:10. Bila kontrak
+> penjamin kelak hanya membayar satu visite per dokter per tanggal, Billing boleh menghasilkan satu
+> tagihan harian. Kedua event klinis tetap utuh dan tetap terbaca oleh dokter serta auditor.
+
+#### Ketentuan historis — `superseded` oleh `RWI-DEC-084`
+
+Bagian di bawah dipertahankan untuk audit keputusan lama. Ia tidak lagi menjadi perilaku current.
 
 **Tidak ada formulir visite tersendiri.** Visite tercatat sebagai akibat dari catatan
 perkembangan yang ditulis dokter, bukan sebagai isian terpisah.
@@ -1163,6 +1214,10 @@ Contoh nyata:
 #### Cara menghitung jumlah visite
 
 Dasar: `RWI-DEC-031`. Menutup `RWI-OQ-030`.
+
+> **Status amendment:** aturan hitungan berikut telah `superseded` oleh `RWI-DEC-085`. Ia
+> dipertahankan hanya sebagai histori. Aturan Billing, bila kelak diperlukan, tetap berada di luar
+> keputusan pencatatan klinis dan tidak boleh mengubah riwayat event.
 
 Aturannya: **satu visite per dokter per tanggal.**
 
@@ -2006,6 +2061,95 @@ Dasar keputusan: `RWI-DEC-059`. Menjawab `RWI-OQ-039` dan melengkapi `RWI-RULE-0
 **Nomor yang dicadangkan.** Nilai `4` dan `5` pada daftar cara pulang dicadangkan untuk kedua
 kasus ini dan **belum dipakai**, supaya penambahan kelak tidak mengubah angka yang sudah tersimpan.
 
+
+### `RWI-RULE-038` — Kapan catatan dokter menjadi final, dan bagaimana mengoreksinya
+
+Dasar keputusan: `RWI-DEC-086` dan `RWI-DEC-087`. Menutup celah yang ditemukan pada Amendment Pass
+2026-09-02 dan tercatat sebagai `RWI-FACT-013` serta `RWI-FACT-014`.
+
+#### Masalah yang diperbaiki aturan ini
+
+Hari ini catatan dokter yang sudah diselesaikan **tidak dapat disunting dan tidak dapat
+dikoreksi**. Penyuntingannya ditolak karena catatan sudah selesai, sedangkan koreksi lewat
+addendum ditolak karena catatan itu tidak pernah terdaftar pada mesin keutuhan dokumen. Akibatnya
+salah ketik menjadi permanen di rekam medis, dan satu-satunya jalan yang tersisa bagi dokter adalah
+menulis catatan baru yang membantah catatan lama.
+
+#### Ketentuan
+
+| Butir | Ketentuan |
+|---|---|
+| Kapan catatan menjadi final | Saat dokter menekan **Selesai**. Penekanan itu diperlakukan sebagai tanda tangan penulis |
+| Apa yang terjadi bersamaan dengan itu | Catatan didaftarkan ke mesin keutuhan dokumen dalam transaksi yang sama, berstatus tertanda tangan |
+| Setelah final | Isi catatan **tidak dapat disunting** dengan cara apa pun |
+| Cara membetulkan | **Addendum beralasan** — koreksi bernomor urut yang menyimpan penulis, alasan, isi koreksi, dan waktu tanda tangan. Isi asli tidak pernah berubah |
+| Sebelum final | Catatan masih berstatus konsep dan **boleh disunting langsung**. Addendum justru ditolak pada tahap ini |
+| Dokumen mana yang berlaku | Catatan dokter berisi SOAP, kajian medis, tindakan dokter, dan catatan terpadu |
+| Bila episode sudah ditutup | Catatan baru ditolak; **addendum tetap diterima**. Menutup episode tidak menutup kemampuan membetulkan |
+
+#### Contoh nyata
+
+> **Kasus salah ketik cepat.** dr. Andi menulis catatan perkembangan Tn. Budi pukul **11.00**, lalu
+> menekan Selesai. Pukul **11.02** ia sadar menulis "tekanan darah 120/80" padahal seharusnya
+> "130/80". Ia **tidak** dapat membetulkannya langsung. Yang ia lakukan adalah menambah addendum
+> berisi angka yang benar beserta alasan "salah ketik tekanan darah". Riwayat menampilkan catatan
+> asli **dan** koreksinya, keduanya bertanda tangan dan bertanggal.
+>
+> **Kasus belum selesai.** dr. Andi mulai menulis pukul 10.40 tetapi dipanggil ke ruang lain. Pukul
+> 13.00 ia kembali dan melanjutkan catatan yang sama, membetulkan kalimat yang tadi salah ketik,
+> lalu menekan Selesai. Karena catatan itu belum pernah final, seluruh perbaikannya **tidak**
+> meninggalkan addendum. Yang tersimpan hanya satu catatan utuh.
+>
+> **Kasus episode sudah pulang.** Tn. Budi pulang 5 September dan episodenya ditutup. Pada 8
+> September ketahuan bahwa catatan tanggal 3 September salah menyebut sisi luka. dr. Andi tetap
+> dapat menambah addendum beralasan. Episode **tetap** tertutup, tempat tidur tidak berubah, dan
+> lama dirawat tidak bergeser.
+
+#### Kenapa penekanan Selesai diperlakukan sebagai tanda tangan
+
+Karena yang menekan tombol itu adalah penulisnya sendiri, pada catatannya sendiri, setelah isinya
+lengkap. Memisahkan "selesai" dari "tanda tangan" akan melahirkan keadaan antara — catatan yang
+sudah dinyatakan selesai tetapi masih dapat berubah diam-diam — dan justru keadaan itulah yang
+paling sulit dipertanggungjawabkan saat diaudit.
+
+Pilihan ini juga menjaga satu makna kata "final" di seluruh blueprint: apa yang disebut selesai
+pada mesin status, disebut terkunci pada mesin keutuhan, dan disebut hanya-bisa-diaddendum pada
+aturan koreksi, adalah keadaan yang sama persis.
+
+#### Koreksi atas nama dokter yang berhalangan
+
+Dasar keputusan: `RWI-DEC-088`.
+
+| Keadaan | Siapa yang boleh mengoreksi | Perlu penetapan? |
+|---|---|---|
+| Dokter penulisnya ada dan aktif | **Hanya penulis asli** | Tidak |
+| Akun penulis sudah nonaktif | **DPJP yang aktif pada episode itu** | **Tidak** — sistem menyimpulkannya sendiri |
+| Penulis berhalangan sementara, misalnya cuti atau sakit | **DPJP yang aktif pada episode itu** | **Ya** — penetapan kepala unit rawat inap |
+
+| Butir | Ketentuan |
+|---|---|
+| Siapa yang menerbitkan penetapan | Kepala unit rawat inap |
+| Isi penetapan | Dokter yang berhalangan, alasan, waktu mulai, dan **waktu berakhir yang wajib diisi** |
+| Penetapan tanpa batas waktu | **Dilarang.** Penetapan permanen sama saja dengan membuka pintu belakang tetap |
+| Yang tampil pada rekam medis | **Penulis asli tetap tercantum sebagai penulis catatan.** Koreksinya tercantum atas nama dokter pengganti, disertai penanda bahwa ia bertindak sebagai pengganti |
+| Yang tidak berubah | Isi catatan asli. Koreksi selalu menjadi baris tambahan, tidak pernah menimpa |
+
+Contoh nyata:
+
+> dr. Andi menulis catatan Tn. Budi pada 3 September lalu cuti sepuluh hari. Pada 5 September
+> ketahuan catatan itu menyebut sisi luka yang keliru. Kepala unit rawat inap menerbitkan penetapan
+> berhalangan atas nama dr. Andi, berlaku 5 sampai 13 September, dengan alasan "penulis sedang
+> cuti". dr. Sinta yang menjadi DPJP Tn. Budi selama dr. Andi cuti menambahkan koreksi.
+>
+> Rekam medis Tn. Budi kemudian menampilkan: catatan 3 September **atas nama dr. Andi**, dan koreksi
+> 5 September **atas nama dr. Sinta sebagai pengganti**, beserta alasannya. Tidak ada satu kalimat
+> pun milik dr. Andi yang berubah.
+
+**Kenapa diikatkan pada DPJP episode, bukan pada jabatan.** Seluruh blueprint ini sudah memakai
+prinsip yang sama: kewenangan klinis melekat pada tanggung jawab atas pasien tertentu, bukan pada
+jabatan umum — `RWI-RULE-030` dan `INV-DOK-13`. Dokter yang sedang memegang tanggung jawab Tn. Budi
+adalah orang yang paling berhak menyatakan catatan tentang Tn. Budi keliru.
+
 ---
 
 ## Frontend Decision Authority
@@ -2050,13 +2194,13 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-022` | Decision | DPJP dapat menginisiasi dan/atau menyetujui transfer pasien yang berada dalam tanggung jawab klinisnya, berdasarkan indikasi medis dan kesiapan unit tujuan. Untuk pasien di bawah DPJP lain, transfer harus melalui koordinasi dengan DPJP terkait atau pengalihan tanggung jawab DPJP yang terdokumentasi | Product/domain owner sementara | `approved` untuk pembagian kewenangan; **dua istilah masih terbuka** | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 18; menutup `RWI-OQ-025`; memunculkan `RWI-CON-008` dan `RWI-OQ-029`; dirinci pada `RWI-RULE-016` |
 | `RWI-DEC-023` | Decision | "Kesiapan unit tujuan" adalah pertimbangan profesional DPJP, **bukan** pemeriksaan sistem. Alur perpindahan tetap satu langkah untuk semua peran sesuai `RWI-DEC-012`, yang karena itu tetap berlaku utuh. Yang wajib dijaga sistem hanya dua: dokter yang meminta harus DPJP episode tersebut, dan alasan medis wajib diisi | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 19; menutup `RWI-CON-008`; ditulis pada `RWI-RULE-016` |
 | `RWI-DEC-024` | Decision | Koordinasi antar DPJP **tidak direkam** sistem. Sistem hanya mengenal dua jalan sah: DPJP episode itu sendiri yang memindahkan, atau tanggung jawab DPJP dialihkan lebih dulu secara tercatat. Dokter lain selalu ditolak, tanpa kolom keterangan yang bisa dipakai melewatinya | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 20; menutup `RWI-OQ-029`; ditulis pada `RWI-RULE-016` |
-| `RWI-DEC-025` | Decision | Visite tercatat dari catatan perkembangan yang ditulis dokter pada hari itu, bukan dari formulir tersendiri. Dokter sendiri yang mencatat, dan kunjungan tanpa catatan tidak terhitung sebagai visite | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 21; menutup `RWI-OQ-019` dan `RWI-GAP-007`; dasar `RWI-FACT-010`; dirinci pada `RWI-RULE-017` |
+| `RWI-DEC-025` | Decision | ~~Visite tercatat dari catatan perkembangan yang ditulis dokter pada hari itu, bukan dari formulir tersendiri. Dokter sendiri yang mencatat, dan kunjungan tanpa catatan tidak terhitung sebagai visite~~ | Product/domain owner sementara | **`superseded`** | Digantikan `RWI-DEC-084`, 2026-09-02 | Wawancara pertanyaan 21, 2026-08-20; definisi ini bertentangan dengan baseline `PRD-RWI-FINAL-001` yang diterima kemudian lewat `RWI-DEC-080` |
 | `RWI-DEC-026` | Decision | Clearance administrasi berbentuk daftar periksa yang butirnya diatur admin lewat master data. Sifatnya menahan: penutupan ditolak selama ada butir wajib yang belum ditandai petugas admisi. MVP dikirim dengan tiga butir bawaan | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 22; menutup `OQ-RI-007`; dirinci pada `RWI-RULE-018` |
 | `RWI-DEC-027` | Decision | Lama dirawat dihitung dari selisih tanggal, bukan selisih jam, dengan hasil paling sedikit 1 hari. Untuk pasien yang masih dirawat, angkanya naik setiap pergantian tanggal | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 23; menutup `RWI-OQ-020` dan `RWI-GAP-008`; dirinci pada `RWI-RULE-019` |
 | `RWI-DEC-028` | Decision | Hanya Supervisor yang boleh membuka kembali episode `Closed`, dan semata untuk membetulkan catatan. Reopen tidak mengembalikan tempat tidur, tidak memunculkan pasien di census, dan tidak menambah lama dirawat. Pasien yang benar-benar kembali dirawat selalu mendapat episode baru | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 24; menutup `OQ-RI-012`; dirinci pada `RWI-RULE-020` |
 | `RWI-DEC-029` | Decision | Pengkajian awal keperawatan ditargetkan 24 jam sejak pasien menempati tempat tidur, dan verifikasi CPPT oleh DPJP ditargetkan 24 jam sejak catatan ditulis. Keduanya **tidak menahan apa pun**; keterlambatan hanya muncul pada daftar pantau kepatuhan. Kedua angka dapat diubah admin | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Aturan klinis dan akreditasi yang dikecualikan `RWI-DEC-006` | Wawancara pertanyaan 25; menjawab `RWI-OQ-018` dan `RWI-GAP-006`; dirinci pada `RWI-RULE-021` |
 | `RWI-DEC-030` | Decision | Episode `Draft` yang tidak disentuh selama 1 hari terbaca `Cancelled` dengan alasan sistem, dihitung saat data dibaca tanpa program penjadwal. Kunjungan yang terlanjur dibuat ikut ditandai batal. Batas 1 hari dapat diubah admin | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 26; menutup `RWI-OQ-028`; dirinci pada `RWI-RULE-022` |
-| `RWI-DEC-031` | Decision | Visite dihitung satu per dokter per tanggal. Dua catatan dari dokter yang sama pada tanggal yang sama tetap satu visite dengan waktu catatan pertama; dua dokter berbeda menghasilkan dua visite | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 27; menutup `RWI-OQ-030`; ditulis pada `RWI-RULE-017` |
+| `RWI-DEC-031` | Decision | ~~Visite dihitung satu per dokter per tanggal. Dua catatan dari dokter yang sama pada tanggal yang sama tetap satu visite dengan waktu catatan pertama; dua dokter berbeda menghasilkan dua visite~~ | Product/domain owner sementara | **`superseded`** | Digantikan `RWI-DEC-085`, 2026-09-02 | Basis “waktu catatan pertama” tidak lagi cocok setelah Physician Visit menjadi event eksplisit |
 | `RWI-DEC-032` | Decision | Tiap daftar pantau punya satu peran penanggung jawab: penutupan tertunda ke petugas admisi dengan ambang 4 jam, kepatuhan pengkajian dan CPPT ke kepala ruangan dengan ambang 24 jam, dan penutupan tanpa kelayakan keuangan ke supervisor tanpa ambang per baris. Ketiga ambang diatur admin, dan ketiga daftar tidak menahan tindakan apa pun | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 28; menutup `RWI-OQ-027` dan `RWI-OQ-031`; dirinci pada `RWI-RULE-023` |
 | `RWI-DEC-033` | Decision | Obat pulang adalah jenis resep pada CAP-023, dikirim ke Farmasi dengan konteks encounter yang sama dan status penyerahannya dibaca balik. Penyerahannya menjadi satu butir pada daftar periksa administrasi `RWI-RULE-018`, bukan gerbang tersendiri, dan butir itu dapat dinonaktifkan admin | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 29; menutup `RWI-OQ-021` dan `RWI-GAP-009`; dirinci pada `RWI-RULE-024` |
 | `RWI-DEC-034` | Fact | `OQ-RI-011` tentang rencana asuhan keperawatan SDKI sudah terjawab sejak `RWI-DEC-004`. CAP-013 berada pada daftar Di luar scope dengan keterangan ditunda setelah MVP, sehingga tidak perlu ditanyakan ulang | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Turunan `RWI-DEC-004`; dicatat pada 2026-08-20 |
@@ -2113,6 +2257,12 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-082` | Decision | `blueprint_shape` modul ini adalah **`COMPOSITE`** dengan tiga sub-modul: `episode-rawat-inap`, `keperawatan`, dan `dokter-rawat-inap`. `shape_decided_by` adalah `USER_CONFIRMED`. Hasil uji pemecahan: episode **5/5** syarat, keperawatan **3/5**, dokter **3/5**; rumpun "integrasi penunjang" hanya **1/5** sehingga **bukan** sub-modul dan kontraknya dibagikan ke rumpun yang memakainya. Akibat yang disadari dan diterima: status modul **diturunkan** menjadi `partial` sesuai `bentuk-blueprint.md` bagian 7, karena satu sub-modul `approved` sementara dua lainnya `draft` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | `bentuk-blueprint.md` bagian 4.1 dan 7; `PRD-RWI-FINAL-001` bagian 30.2 dan 31 |
 | `RWI-DEC-083` | Decision | Pemetaan seluruh 28 kemampuan ke sub-modul pemilik, tanpa satu pun kemampuan yatim. **`episode-rawat-inap`** (16 kemampuan): `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`. **`keperawatan`** (5): `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`. **`dokter-rawat-inap`** (7): `CAP-015`, `CAP-020` s.d. `CAP-025`. `CAP-026` resume pulang tetap milik episode walaupun ditulis DPJP, karena `AC-CAP026-02` mengikat koreksinya pada invariant episode — tidak membuka tempat tidur dan tidak mengubah lama dirawat — dan tabel `InpDischargeSummary` sudah dimiliki Rawat Inap serta sudah dinilai `FULL` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | `PRD-RWI-FINAL-001` bagian 10 dan 23.1, `AC-CAP026-02`; `bentuk-blueprint.md` bagian 5 |
 | `RWI-OQ-047` | Open question | Sumber kebenaran *Financial Clearance* bertentangan antar dokumen. `PRD-RWI-FINAL-001` bagian 23.1 menuliskannya milik **Billing Management**, sedangkan revision `4` memiliki `InpFinancialClearance` milik Rawat Inap dengan status "Ya, **sementara** — sampai `BillingManagement` punya kemampuan transaksi" pada `RWI-RULE-028` aturan 7. Perlu dinyatakan apakah kepemilikan sementara itu dicabut sekarang atau dipertahankan sampai Billing siap | Product/Domain bersama pemilik `BillingManagement` | `open` | — | Ditemukan 2026-09-02 saat Amendment Pass; `PRD-RWI-FINAL-001` bagian 23.1 vs `RWI-RULE-028` aturan 7 |
+| `RWI-DEC-084` | Decision | `CAP-025 Physician Visit` mengikuti `PRD-RWI-FINAL-001`: visite adalah event klinis eksplisit yang dapat dicatat tanpa menunggu SOAP/CPPT. Event boleh memiliki tautan opsional ke SOAP, CPPT, atau tindakan; SOAP/CPPT tanpa event tidak menambah visite. Duplicate submission dengan `request id/idempotency key` yang sama tidak boleh membuat event kedua. Keputusan ini menggantikan `RWI-DEC-025`, tetapi belum menetapkan agregasi beberapa event dokter yang sama pada satu tanggal | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | Jawaban pemilik: “ikuti aturan yang ada di PRD final”; `PRD-RWI-FINAL-001` CAP-025 dan keputusan final nomor 12; `DEC-INP-008` terjawab sebagian |
+| `RWI-OQ-049` | Open Question | Bila dokter yang sama benar-benar melakukan dan mencatat dua Physician Visit pada tanggal yang sama, apakah riwayat klinis dan laporan operasional menghitung dua event aktual atau menggabungkannya menjadi satu visite harian? | Muhammad Hamzah sebagai Product/Domain owner | **`closed`** | Ditutup Muhammad Hamzah, 2026-09-02 | Dijawab `RWI-DEC-085`; dua visite nyata dihitung dua. Agregasi tarif/klaim Billing tetap keputusan terpisah |
+| `RWI-DEC-085` | Decision | Setiap Physician Visit aktual yang dicatat sebagai event berbeda dihitung satu pada riwayat klinis dan laporan operasional. Dua visite oleh dokter yang sama kepada pasien yang sama pada tanggal yang sama tetap dua event dan dua hitungan. Retry dengan `request id/idempotency key` yang sama tetap satu event. Billing atau penjamin boleh mengagregasikan event menjadi satu tagihan harian hanya melalui aturan milik Billing yang disetujui terpisah; agregasi tidak boleh menghapus, menggabungkan, atau mengubah event klinis | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | Pemilik menyetujui rekomendasi pada pertanyaan kedua Amendment Pass `CAP-025`; menutup `RWI-OQ-049` dan `DEC-INP-008`; menggantikan `RWI-DEC-031` |
+| `RWI-DEC-086` | Decision | **Catatan dokter rawat inap menjadi final saat dokter menekan Selesai, dan penekanan itu diperlakukan sebagai tanda tangan penulis.** Sejak saat itu isinya tidak dapat disunting dengan cara apa pun, dan satu-satunya jalan membetulkan adalah addendum beralasan yang menyimpan penulis, alasan, isi koreksi, dan waktu. Berlaku untuk catatan dokter berisi SOAP, kajian medis, tindakan dokter, dan catatan terpadu. Sebelum final, catatan tetap boleh disunting langsung dan addendum justru ditolak. Episode yang sudah ditutup menolak catatan baru tetapi tetap menerima addendum | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | Amendment Pass koreksi dokumen, pertanyaan 1 pilihan A. Dirinci pada `RWI-RULE-038`; dasar temuan `RWI-FACT-013` dan `RWI-FACT-014` |
+| `RWI-DEC-087` | Decision | Sebagai konsekuensi langsung `RWI-DEC-086`, **`ClinicalManagement` wajib mendaftarkan tiga jenis dokumen ke mesin keutuhan dokumen pada saat finalisasi** — catatan dokter, kajian medis, dan tindakan — memakai jenis dokumen yang **sudah tersedia**, tanpa menambah nilai jenis baru. Pendaftaran dilakukan dalam transaksi yang sama dengan finalisasi, supaya tidak ada catatan final yang tidak dapat dikoreksi. Catatan terpadu sudah terdaftar dan tidak berubah. Pekerjaan ini **tidak** membuat mesin koreksi tandingan | Muhammad Hamzah selaku pemilik `ClinicalManagement`, `RWI-DEC-062` | `approved` untuk arah; penjadwalan menyusul | Muhammad Hamzah, 2026-09-02 | Amendment Pass koreksi dokumen. Menutup celah `RWI-FACT-014`; mengubah status pertanyaan memblokir pada `dokter-rawat-inap/blueprint-manifest.md` bagian 6 butir 9 |
+| `RWI-DEC-088` | Decision | **Koreksi catatan klinis atas nama dokter yang berhalangan hanya boleh dilakukan DPJP yang aktif pada episode pasien itu**, dan penetapan berhalangannya diterbitkan **kepala unit rawat inap** dengan alasan serta masa berlaku yang wajib diisi. Penetapan tanpa batas waktu dilarang. Keadaan "akun penulis sudah nonaktif" tetap berjalan otomatis tanpa penetapan. Penulis asli tetap tercantum sebagai penulis catatan; koreksinya tercantum atas nama dokter pengganti beserta penandanya | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-09-02 | Amendment Pass koreksi dokumen, pertanyaan 2 pilihan A. Dirinci pada `RWI-RULE-038`. Menutup `RWI-OQ-050`. **Konsekuensi teknis yang wajib dibaca:** penetapan berhalangan pada mesin yang ada bersifat **milik penulis**, bukan milik penggantinya — ia menyatakan "dokter ini sedang berhalangan" tanpa menyebut siapa yang boleh menggantikan. Karena itu pembatasan "hanya DPJP aktif" **tidak dapat dijamin** oleh mesin hak akses maupun mesin penetapan yang ada; ia wajib dijaga sebagai penjaga kewenangan per pasien, sejalan `INV-DOK-13`. Penempatannya diputuskan `design-business-module`, bukan di sini |
 
 ---
 
@@ -2180,8 +2330,8 @@ sengaja tidak dimasukkan.
 | `RWI-AC-029` | Dokter yang bukan DPJP episode tersebut ditolak ketika mencoba memindahkan pasien itu | `RWI-RULE-016` |
 | `RWI-AC-030` | Tidak tersedia kolom keterangan apa pun yang memungkinkan dokter bukan DPJP melewati penolakan perpindahan | `RWI-RULE-016` |
 | `RWI-AC-031` | Setelah tanggung jawab DPJP dialihkan secara tercatat, DPJP yang baru dapat memindahkan pasien itu, dan DPJP lama tidak lagi bisa | `RWI-RULE-016` |
-| `RWI-AC-032` | Menulis satu catatan perkembangan dokter langsung menghasilkan satu visite tercatat untuk dokter dan tanggal itu, tanpa dokter mengisi formulir kedua | `RWI-RULE-017` |
-| `RWI-AC-033` | Kunjungan dokter yang tidak meninggalkan catatan tidak muncul di mana pun sebagai visite | `RWI-RULE-017` |
+| `RWI-AC-032` | ~~Menulis satu catatan perkembangan dokter langsung menghasilkan satu visite tercatat untuk dokter dan tanggal itu, tanpa dokter mengisi formulir kedua~~ — **`superseded` oleh `RWI-DEC-084`** | Riwayat `RWI-RULE-017` |
+| `RWI-AC-033` | ~~Kunjungan dokter yang tidak meninggalkan catatan tidak muncul di mana pun sebagai visite~~ — **`superseded` oleh `RWI-DEC-084`** | Riwayat `RWI-RULE-017` |
 | `RWI-AC-034` | Perawat tidak dapat mencatatkan visite atas nama dokter | `RWI-RULE-017` |
 | `RWI-AC-035` | Penutupan episode ditolak selama ada butir wajib daftar periksa administrasi yang belum ditandai, dan pesan penolakannya menyebut butir mana | `RWI-RULE-018` |
 | `RWI-AC-036` | Admin dapat menambah dan menonaktifkan butir daftar periksa lewat master data, dan butir baru langsung berlaku tanpa program diubah | `RWI-RULE-018` |
@@ -2195,8 +2345,8 @@ sengaja tidak dimasukkan.
 | `RWI-AC-044` | Episode `Draft` yang tidak disentuh lebih dari 1 hari terbaca `Cancelled` pada pembacaan berikutnya, tanpa ada proses latar belakang yang dijalankan | `RWI-RULE-022` |
 | `RWI-AC-045` | Kunjungan rawat inap yang dibuat untuk `Draft` yang gugur ikut ditandai batal dan tidak muncul pada laporan kunjungan | `RWI-RULE-022` |
 | `RWI-AC-046` | Batas 1 hari dapat diubah admin dan nilai barunya langsung dipakai pada pembacaan berikutnya | `RWI-RULE-022` |
-| `RWI-AC-047` | Dua catatan perkembangan dari dokter yang sama pada tanggal yang sama menghasilkan satu visite, dengan waktu mengikuti catatan pertama | `RWI-RULE-017` |
-| `RWI-AC-048` | Catatan dari dua dokter berbeda pada tanggal yang sama menghasilkan dua visite | `RWI-RULE-017` |
+| `RWI-AC-047` | ~~Dua catatan perkembangan dari dokter yang sama pada tanggal yang sama menghasilkan satu visite, dengan waktu mengikuti catatan pertama~~ — **`superseded` oleh `RWI-DEC-084`–`085`** | Riwayat `RWI-RULE-017` |
+| `RWI-AC-048` | ~~Catatan dari dua dokter berbeda pada tanggal yang sama menghasilkan dua visite~~ — **`superseded` oleh `RWI-DEC-084`–`085`**; visite tidak lagi diturunkan dari catatan | Riwayat `RWI-RULE-017` |
 | `RWI-AC-049` | Episode yang berstatus `DischargePending` lebih dari 4 jam muncul sebagai terlambat pada daftar penutupan tertunda, beserta lama keterlambatannya | `RWI-RULE-023` |
 | `RWI-AC-050` | Ketiga ambang daftar pantau dapat diubah admin tanpa mengubah program | `RWI-RULE-023` |
 | `RWI-AC-051` | Tidak ada daftar pantau yang menghalangi tindakan apa pun; ketiganya hanya memantau | `RWI-RULE-023` |
@@ -2298,6 +2448,24 @@ sengaja tidak dimasukkan.
 | `RWI-AC-147` | Untuk jalur datang langsung dan poliklinik, `StartDateTime` tetap waktu penempatan dibuat dan tidak menunggu apa pun | `RWI-RULE-029` |
 | `RWI-AC-148` | Kunjungan rawat inap hasil serah terima menyimpan Id kunjungan IGD pada `OriginEncounterId`, sehingga riwayat pasien terbaca sebagai satu rangkaian | `RWI-RULE-029` |
 | `RWI-AC-149` | Kunjungan yang tidak berasal dari kunjungan lain menyimpan `OriginEncounterId` kosong, dan seluruh kunjungan lama tetap terbaca tanpa diubah | `RWI-RULE-029` |
+| `RWI-AC-150` | Physician Visit yang dicatat pukul 07:40 muncul pada riwayat visite dengan waktu 07:40 walaupun SOAP baru dibuat pukul 07:52 atau belum dibuat | `RWI-DEC-084`, `RWI-RULE-017` current |
+| `RWI-AC-151` | SOAP atau CPPT yang disimpan tanpa event Physician Visit tidak otomatis menambah riwayat maupun jumlah visite | `RWI-DEC-084`, `RWI-RULE-017` current |
+| `RWI-AC-152` | Dua pengiriman Physician Visit dengan `request id/idempotency key` yang sama menghasilkan satu event dengan identitas yang sama, bukan dua event | `RWI-DEC-084`, `RWI-RULE-017` current |
+| `RWI-AC-153` | Riwayat Physician Visit dapat menunjukkan episode, dokter, peran/konteks dokter, waktu visite, pelaku pencatatan, serta tautan SOAP/CPPT/tindakan bila tersedia | `RWI-DEC-084`, `RWI-RULE-017` current |
+| `RWI-AC-154` | Dua event Physician Visit aktual oleh dokter yang sama untuk pasien yang sama pada pukul 07:40 dan 16:10 muncul sebagai dua baris riwayat dan menghasilkan hitungan klinis/operasional dua | `RWI-DEC-085`, `RWI-RULE-017` current |
+| `RWI-AC-155` | Satu event yang dikirim ulang dengan `idempotency key` sama tidak dianggap sebagai visite kedua, sedangkan event baru dengan kunjungan dan identitas permintaan berbeda dianggap visite berikutnya | `RWI-DEC-084`, `RWI-DEC-085` |
+| `RWI-AC-156` | Bila Billing mengagregasikan dua event klinis menjadi satu tagihan harian, riwayat klinis tetap menampilkan kedua event lengkap tanpa perubahan waktu, dokter, atau audit | `RWI-DEC-085` |
+| `RWI-AC-157` | Dokter menekan Selesai pada catatan perkembangan; sejak saat itu percobaan menyunting isinya ditolak, dan catatan itu sudah terdaftar pada mesin keutuhan dokumen | `RWI-DEC-086`, `RWI-DEC-087` |
+| `RWI-AC-158` | Dokter menambah addendum beralasan pada catatan yang sudah final; isi asli tetap terbaca sama persis, dan koreksinya tampil sebagai baris tersendiri bernomor urut beserta alasan dan waktunya | `RWI-DEC-086` |
+| `RWI-AC-159` | Percobaan menambah addendum pada catatan yang **belum** final ditolak, dan pesannya mengarahkan dokter membetulkan langsung pada catatannya | `RWI-DEC-086`, `RWI-FACT-013` |
+| `RWI-AC-160` | Catatan yang belum final disunting berkali-kali lalu diselesaikan; hasilnya **satu** catatan utuh tanpa satu pun addendum | `RWI-DEC-086` |
+| `RWI-AC-161` | Pada episode yang sudah ditutup, catatan baru ditolak sedangkan addendum pada catatan lama tetap diterima; status episode tetap tertutup, tempat tidur tidak berubah, dan lama dirawat tidak bergeser | `RWI-DEC-086`, `RWI-RULE-020` |
+| `RWI-AC-162` | Kajian medis dan tindakan yang sudah diselesaikan juga terdaftar pada mesin keutuhan dokumen, sehingga keduanya dapat dikoreksi lewat addendum dengan cara yang sama seperti catatan dokter | `RWI-DEC-087` |
+| `RWI-AC-163` | Setelah kepala unit menerbitkan penetapan berhalangan atas nama seorang dokter, DPJP yang aktif pada episode itu dapat menambah koreksi pada catatan dokter tersebut | `RWI-DEC-088` |
+| `RWI-AC-164` | Koreksi atas nama dokter lain tetap menampilkan **penulis asli** sebagai penulis catatan, dan menampilkan dokter pengganti beserta penandanya hanya pada baris koreksinya | `RWI-DEC-088` |
+| `RWI-AC-165` | Penetapan berhalangan yang dikirim **tanpa waktu berakhir** ditolak | `RWI-DEC-088` |
+| `RWI-AC-166` | Bila akun dokter penulis sudah nonaktif, DPJP yang aktif dapat langsung menambah koreksi **tanpa** penetapan apa pun | `RWI-DEC-088`, `RWI-FACT-013` |
+| `RWI-AC-167` | Dokter yang **bukan** DPJP aktif episode itu ditolak saat mencoba mengoreksi atas nama penulis lain, walaupun ia memiliki butir hak akses pengganti dan penetapannya berlaku | `RWI-DEC-088`, `INV-DOK-13` |
 
 ---
 
@@ -2330,7 +2498,7 @@ sengaja tidak dimasukkan.
 | `RWI-OQ-016` | Apakah pasien titipan termasuk MVP | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-019` — di luar MVP |
 | `RWI-OQ-017` | Apakah pemisahan jenis kelamin dan isolasi adalah aturan keras | `DESIGN` | `DIJAWAB` oleh `RWI-DEC-018`, menunggu pemilik klinis dan privasi |
 | `RWI-OQ-018` | Batas waktu pengkajian awal dan aturan verifikasi CPPT oleh DPJP | `IMPLEMENTATION` | `DIJAWAB` oleh `RWI-DEC-029`, menunggu pemilik klinis |
-| `RWI-OQ-019` | Apa yang dihitung sebagai satu visite dokter | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-025` |
+| `RWI-OQ-019` | Apa yang dihitung sebagai satu visite dokter | `DESIGN` untuk `CAP-025` | `TERTUTUP` oleh `RWI-DEC-084` dan `RWI-DEC-085`: setiap event visite aktual adalah satu visite; SOAP/CPPT tidak membuat visite otomatis |
 | `RWI-OQ-020` | Bagaimana lama dirawat dihitung | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-027` |
 | `RWI-OQ-021` | Bagaimana obat pulang diperlakukan | `LATER SLICE` | `TERTUTUP` oleh `RWI-DEC-033` |
 | `RWI-OQ-022` | Siapa yang boleh membatalkan admisi dan apa akibatnya pada tempat tidur | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-010` |
@@ -2341,7 +2509,7 @@ sengaja tidak dimasukkan.
 | `RWI-OQ-027` | Bentuk daftar pantau episode yang sudah boleh pulang tetapi belum ditutup: isinya apa, siapa yang memantau, dan berapa lama dianggap terlalu lama menggantung | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-032` |
 | `RWI-OQ-028` | Bagaimana episode `Draft` yang ditinggalkan berhari-hari dibersihkan, dan siapa yang membersihkannya | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-030` |
 | `RWI-OQ-029` | Apakah "koordinasi dengan DPJP terkait" harus meninggalkan jejak di sistem, atau cukup diselesaikan antar dokter di luar sistem | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-024` |
-| `RWI-OQ-030` | Bila dokter menulis dua catatan perkembangan dalam satu hari, apakah dihitung satu visite atau dua | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-031` |
+| `RWI-OQ-030` | Bila dokter menulis dua catatan perkembangan dalam satu hari, apakah dihitung satu visite atau dua | `IMPLEMENTATION` | `SUPERSEDED` sebagai pertanyaan: catatan tidak menentukan visite. Pertanyaan pengganti `RWI-OQ-049` ditutup `RWI-DEC-085` |
 | `RWI-OQ-031` | Bentuk daftar pantau kepatuhan pengkajian awal dan verifikasi CPPT: isinya apa dan siapa yang menindaklanjuti | `IMPLEMENTATION` | `TERTUTUP` oleh `RWI-DEC-032` |
 | `RWI-OQ-032` | Siapa pemilik modul `ClinicalManagement` dan `PharmacyManagement`, dan apakah mereka menyetujui pelonggaran yang dituntut `RWI-RULE-026` | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
 | `RWI-OQ-036` | Siapa nama orang atau unit yang bertanggung jawab mengisi data master tempat tidur, kamar, unit layanan, dan kelas pasien sebelum modul dipakai, dan kapan batas waktunya | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Aturannya sudah dikunci `RWI-DEC-048`, tetapi nama penanggung jawabnya tidak dapat dikarang agent |
@@ -2356,14 +2524,17 @@ sengaja tidak dimasukkan.
 | `RWI-OQ-042` | Apakah satu pasien boleh punya dua episode rawat inap aktif sekaligus | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-054` — dilarang untuk status `Admitted` dan `DischargePending`; `Draft` hanya diberi peringatan. Dirinci pada `RWI-RULE-035` |
 | `RWI-OQ-044` | Di mana kebutuhan isolasi dicatat dan siapa menetapkannya; bagaimana membedakan kamar yang boleh ditempati campur | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-065` dan `RWI-DEC-066` — kebutuhan isolasi menjadi atribut episode; seluruh kamar dianggap tidak boleh campur tanpa kolom baru |
 | `RWI-OQ-043` | Apakah resume pulang perlu menyimpan riwayat versi | `LATER SLICE` | `TERTUTUP` oleh `RWI-DEC-057` — ya, tetapi hanya versi yang sudah ditandatangani |
+| `RWI-OQ-049` | Bila dokter yang sama mencatat dua event Physician Visit aktual pada tanggal yang sama, apakah riwayat klinis/operasional menghitung dua event atau menggabungkannya menjadi satu visite harian | `DESIGN` untuk `CAP-025` | `TERTUTUP` oleh `RWI-DEC-085`: dua event aktual dihitung dua; agregasi Billing terpisah |
+| `RWI-OQ-050` | Siapa yang boleh menambah koreksi atas nama dokter yang berhalangan, dan apa yang dianggap berhalangan | `LATER SLICE` | **`TERTUTUP`** oleh `RWI-DEC-088`: DPJP aktif episode itu, dengan penetapan kepala unit rawat inap yang wajib berbatas waktu. Catatan mesin: Mesinnya **sudah ada** dan mengenali tiga tingkat kewenangan: penulis asli, penulis pengganti saat akun penulis nonaktif, dan penulis pengganti saat ada penetapan berhalangan yang berlaku — `RWI-FACT-013`. Yang belum ada adalah pemetaan peran rumah sakitnya dan siapa yang berwenang menerbitkan penetapan berhalangan. Tidak memblokir desain maupun rilis: bawaan yang berlaku sekarang adalah hanya penulis asli |
 
 ### Blocker desain saat ini
 
-**Diperbarui 2026-08-21 setelah Closure Pass.** Tidak ada lagi blocker yang menghalangi
-penyusunan desain. Yang tersisa adalah blocker implementasi dan blocker sign-off.
+**Diperbarui 2026-09-02 setelah Amendment Pass `CAP-025` tuntas.** Tidak ada lagi blocker
+keputusan bisnis untuk ketujuh capability Dokter Rawat Inap. `CAP-025` siap diteruskan ke
+arsitektur domain bersama `CAP-015` dan `CAP-020`–`CAP-024`. Gap source tetap pekerjaan teknis,
+bukan alasan mengarang keputusan baru.
 
-**Tidak ada blocker desain.** Seluruh 17 pertanyaan penutup capability map sudah tertutup, dan
-keempat butir yang tadinya memblokir desain sudah diputuskan:
+Empat blocker lama berikut tetap tertutup:
 
 | Butir yang tadinya memblokir desain | Ditutup oleh |
 |---|---|
@@ -2371,6 +2542,7 @@ keempat butir yang tadinya memblokir desain sudah diputuskan:
 | Sumber kebenaran penghunian tempat tidur | `RWI-DEC-039`, `RWI-RULE-027` |
 | Gerbang keuangan tanpa Billing operasional | `RWI-DEC-040`, `RWI-RULE-028` |
 | Nasib kunjungan IGD saat pasien naik ke bangsal | `RWI-DEC-041`, `RWI-RULE-029` |
+| Definisi dan hitungan Physician Visit | `RWI-DEC-084` dan `RWI-DEC-085`; `DEC-INP-008` `CLOSED` |
 
 **Blocker implementasi — desain boleh disusun, source code belum boleh ditulis:**
 
@@ -2456,6 +2628,8 @@ Hal berikut **sudah bukan** blocker:
 
 | Tanggal | Pass | Ringkasan |
 |---|---|---|
+| 2026-09-02 | Amendment Pass koreksi dokumen klinis — dua pertanyaan | Pemeriksaan source sebelum bertanya menemukan bahwa pertanyaan memblokir yang tercatat pada manifest sub-modul dokter **salah arah**: mesin koreksi dokumen bukan hanya menerima dokumen terkunci, melainkan **hanya** menerima yang terkunci (`RWI-FACT-013`). Pemeriksaan yang sama menemukan celah yang lebih serius (`RWI-FACT-014`): hanya catatan terpadu yang terdaftar pada mesin keutuhan, sedangkan penyuntingan SOAP setelah selesai sudah dilarang — sehingga catatan dokter yang sudah diselesaikan hari ini **tidak dapat disunting maupun dikoreksi**. Pemilik memilih opsi A: penekanan Selesai diperlakukan sebagai tanda tangan penulis. `RWI-DEC-086` mengunci makna final beserta jalur koreksinya, `RWI-DEC-087` mewajibkan pendaftaran tiga jenis dokumen ke mesin keutuhan tanpa menambah jenis baru. Aturan barunya `RWI-RULE-038`; enam acceptance criteria `RWI-AC-157` s.d. `RWI-AC-162` ditambahkan. Pertanyaan memblokir pada manifest dokter **tertutup**. Pertanyaan kedua menutup `RWI-OQ-050`: `RWI-DEC-088` menetapkan koreksi atas nama dokter yang berhalangan hanya boleh oleh DPJP aktif episode itu, dengan penetapan kepala unit yang wajib berbatas waktu — disertai catatan bahwa mesin penetapan yang ada bersifat milik penulis, sehingga pembatasan itu wajib dijaga penjaga kewenangan per pasien. Lima acceptance `RWI-AC-163` s.d. `RWI-AC-167` ditambahkan. **Nol pertanyaan wawancara tersisa untuk sub-modul dokter** |
+| 2026-09-02 | Amendment Pass `CAP-025` — tuntas, dua pertanyaan | Pemilik memilih aturan PRD final lalu menyetujui rekomendasi hitungan event. `RWI-DEC-084` menetapkan Physician Visit sebagai event klinis eksplisit yang tidak diturunkan dari SOAP/CPPT, memiliki tautan dokumen opsional, dan mencegah duplicate submission secara idempotent. `RWI-DEC-085` menetapkan setiap visite nyata sebagai satu event dan satu hitungan klinis/operasional; agregasi tarif Billing dipisahkan dan tidak boleh mengubah riwayat klinis. `RWI-DEC-025` dan `RWI-DEC-031` menjadi `superseded`; tujuh acceptance criteria current `RWI-AC-150` s.d. `RWI-AC-156` ditambahkan. `RWI-OQ-049` dan `DEC-INP-008` ditutup; `CAP-025` tidak lagi memiliki blocker keputusan bisnis |
 | 2026-09-02 | Amendment Pass, baseline PRD 100% dan bentuk blueprint | Empat pertanyaan diajukan dan dijawab pemilik. `PRD-RWI-FINAL-001` v1.0.0 **menggantikan batas scope revision `4`**, sehingga dokumentasi klinis keperawatan dan dokter masuk scope dan modul menjadi 28 kemampuan `CAP-001` s.d. `CAP-028`. Kepemilikan tabel klinis ditegaskan pada `ClinicalManagement`. `blueprint_shape` ditetapkan **`COMPOSITE`** dengan tiga sub-modul `episode-rawat-inap`, `keperawatan`, dan `dokter-rawat-inap` — hasil uji pemecahan 5/5, 3/5, dan 3/5. Seluruh 28 kemampuan dipetakan ke sub-modul pemilik tanpa satu pun kemampuan yatim; `CAP-026` resume pulang tetap milik episode karena `AC-CAP026-02` mengikatnya pada invariant episode. Dua temuan: `RWI-OQ-047` pertentangan sumber kebenaran Financial Clearance, dan tiga dokumen turunan yang masih menyatakan `DEC-INP-001` terbuka padahal `RWI-DEC-062` sudah menutupnya sejak 2026-08-21 |
 | 2026-08-27 | Pembahasan ulang arsitektur frontend, revision `0.4` | Lima pertanyaan diajukan dan dijawab pemilik setelah 18 task frontend selesai tetapi `FLOW-RI-MVP-001` ternyata tidak dapat dijalankan. Audit menemukan tiga cacat pada `03-frontend-architecture.md` revision `0.3`: daftar layar tidak pernah diadu dengan alur bisnis, keterjangkauan diserahkan penuh ke pelaksana, dan aksi disebut pada matriks peran tanpa layar pemilik — akibatnya **sembilan operasi HTTP** yang sudah jadi tidak pernah dipanggil dan layar sesi koreksi tidak dapat dicapai siapa pun. `RWI-DEC-075` mengubah admisi menjadi alur berlangkah dua jalur; `RWI-DEC-076` menetapkan tulisan bertahap dan memisahkan penempatan dari admisi; `RWI-DEC-077` memilih cetak persetujuan tanpa menyimpan sehingga `DEC-INP-003` tidak tersentuh; `RWI-DEC-078` menaikkan keterjangkauan menjadi wewenang blueprint lewat `IA-INP-01` s.d. `IA-INP-05`; `RWI-DEC-079` mengganti total layar admisi lama. Empat layar baru `FE-INP-16` s.d. `FE-INP-19`. Dua butir terbuka baru `RWI-OQ-045` dan `RWI-OQ-046`. **Nol perubahan backend, nol tabel baru, nol endpoint baru** — cacat penjamin tertutup karena alur baru memakai `POST /patient-encounters` milik Registrasi. Roadmap frontend naik ke revision `3` dengan 16 task baru; `backend-roadmap.md` tidak berubah |
 | 2026-08-24 | Blueprint revision `4` dan sinkronisasi roadmap | Empat keputusan Amendment Pass diserap ke seluruh berkas blueprint lewat `/qv-design`: Kelayakan Penempatan tumbuh menjadi sembilan aturan, dua integrasi arah baca baru `INT-INP-06` dan `INT-INP-07`, asal `InpBedPlacement.StartDateTime` berubah untuk jalur serah terima, dan sepuluh acceptance criteria masuk matriks test. Seluruh kontrak naik ke `0.4.0`. Ditemukan bahwa **tidak satu pun task MVP tertahan**, karena aturan barunya hanya menyala pada `INP-S09`. Revision `4` disetujui Muhammad Hamzah lewat `RWI-DEC-074`, lalu ketiga roadmap disinkronkan ke `roadmap_revision` `2` |
