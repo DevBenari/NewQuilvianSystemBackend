@@ -11,10 +11,10 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `judul` | Keperawatan Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`draft`** — **dirancang 2026-09-02**, diamandemen 2026-09-02 menyerap `RWI-DEC-089` dan `RWI-DEC-091`. Belum disetujui manusia; approval tetap tindakan pemilik |
+| `status` | **`approved`** — dirancang 2026-09-02, diamandemen menyerap `RWI-DEC-089` dan `RWI-DEC-091`, lalu **disetujui Muhammad Hamzah 2026-09-03** lewat `RWI-DEC-092` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
-| `approved_by` | — belum ada yang disetujui |
-| `approved_at` | — |
+| `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
+| `approved_at` | `2026-09-03` |
 | `rumpun kemampuan` | Pengkajian, asuhan, dan tindakan keperawatan, ditambah gizi dan pemakaian alat |
 | `kemampuan` | **5** — `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`, sesuai `RWI-DEC-083`. Empat aktif; **`CAP-016` berstatus `DEFERRED`** sejak `RWI-DEC-089` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
@@ -112,14 +112,16 @@ penyimpangan struktur**: ia ditulis kedua skill build, bukan oleh skill desain m
 
 ## 4. Contract version
 
+Seluruhnya **`approved`** sejak 2026-09-03 lewat `RWI-DEC-092`, atas nama Muhammad Hamzah.
+
 | Kontrak | Version | `last_changed_in` | Status |
 |---|---|---|---|
-| API | `0.3.0` | `0.3.0` | `draft` — **21 baris endpoint**, nol tersedia; `0.3.0` mengganti dua endpoint amandemen dengan empat endpoint addendum. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
-| State transition | `0.3.0` | `0.3.0` | `draft` — tiga mesin status, nol beririsan dengan status episode. **Isinya tidak bergerak** pada `0.2.0`; lihat butir konsistensi `04-prd-to-mvp.md` bagian 20.1 |
-| Validation | `0.3.0` | `0.1.0` | `draft` — 18 aturan. **Isinya tidak bergerak** pada `0.2.0` |
-| Integration | `0.3.0` | `0.3.0` | `draft` — **enam** integrasi sejak `INT-KEP-06`; `INT-KEP-01` menahan seluruh sub-modul. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
-| Permission dan audit | `0.3.0` | `0.1.0` | `draft` — dua Resource baru. **Isinya tidak bergerak** pada `0.2.0` |
-| Acceptance test | `0.3.0` | `0.3.0` | `draft` — **22 baris skenario**, termasuk tujuh skenario koreksi baru pada bagian 8. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
+| API | `0.3.0` | `0.3.0` | `approved` — **21 baris endpoint**, nol tersedia; `0.3.0` mengganti dua endpoint amandemen dengan empat endpoint addendum. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
+| State transition | `0.3.0` | `0.3.0` | `approved` — tiga mesin status, nol beririsan dengan status episode. **Isinya tidak bergerak** pada `0.2.0`; lihat butir konsistensi `04-prd-to-mvp.md` bagian 20.1 |
+| Validation | `0.3.0` | `0.1.0` | `approved` — 18 aturan. **Isinya tidak bergerak** pada `0.2.0` |
+| Integration | `0.3.0` | `0.3.0` | `approved` — **enam** integrasi sejak `INT-KEP-06`; `INT-KEP-01` menahan seluruh sub-modul. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
+| Permission dan audit | `0.3.0` | `0.1.0` | `approved` — dua Resource baru. **Isinya tidak bergerak** pada `0.2.0` |
+| Acceptance test | `0.3.0` | `0.3.0` | `approved` — **22 baris skenario**, termasuk tujuh skenario koreksi baru pada bagian 8. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
 
 Angka ini bergerak **sendiri**, terpisah dari `contract_versions` milik `episode-rawat-inap` yang
 sudah berada di `0.4.0`. Itulah gunanya bentuk `COMPOSITE`: satu sub-modul boleh maju tanpa menunggu
