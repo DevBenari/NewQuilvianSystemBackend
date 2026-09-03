@@ -5,13 +5,13 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 16
+revision: 17
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
 updated_at: 2026-09-03T17:00:00+07:00
 last_verified_at: null
-backend_source_sha: 4205d18a6d656555eedd781f14e8a18fb5ea20d1
+backend_source_sha: ed7fba82efb850e11bfa3b8968d5f75d01280205
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -72,6 +72,8 @@ owners:
   frontend: pemilik proses BDRS
 approved_by: null
 approved_at: null
+resolved_dependency_ids:
+  - BD-DEP-008
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
@@ -80,7 +82,6 @@ active_dependency_ids:
   - BD-DEP-005
   - BD-DEP-006
   - BD-DEP-007
-  - BD-DEP-008
   - BD-DEP-009
   - BD-DEP-010
   - BD-DEP-011
@@ -101,7 +102,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | Field | Arti dalam bahasa sehari-hari |
 | --- | --- |
 | `blueprint_id` | Nomor identitas blueprint. Ditetapkan sekali dan tidak pernah diganti. |
-| `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend — awalan itu terpisah dan belum terdaftar. Lihat `BD-DEP-008`. |
+| `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend: awalan itu **`Bbk`**, terpisah, dan sejak 3 September 2026 **sudah terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dengan Lifecycle `PLANNED`. |
 | `revision` | Naik hanya bila arsitektur target, kontrak, dependency, atau keputusan yang sudah disetujui berubah secara berarti. Tidak naik hanya karena status berubah. |
 | `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
 | `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
@@ -110,7 +111,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
-| `decision_revision` | Naik ke `8` pada Role & authority closure pass 3 September 2026. `DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-041`. **Tidak ada lagi keputusan bisnis yang memblokir**; pemblokir tersisa hanya `BD-DEP-008` yang bersifat administratif. |
+| `decision_revision` | Naik ke `8` pada Role & authority closure pass 3 September 2026. `DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-041`. **Tidak ada lagi keputusan bisnis yang memblokir.** Pemblokir tersisa dua dan keduanya tindakan manusia: `G1` approval kontrak `v4`, dan `G2b` keputusan aktivasi modul dari `PLANNED` ke `ACTIVE`. |
 | `contract_versions` | Set kontrak desain **`v4`** berstatus `draft`, hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
 | `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
@@ -226,7 +227,8 @@ keputusan dikehendaki bersifat keterangan saja, pengetatan ini dicabut.
 Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama peran konkret pemegang
 `BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
 
-Pemblokir yang tersisa tinggal **satu**: `BD-DEP-008`. Approval manusia belum diklaim.
+Pemblokir yang tersisa tinggal **dua, keduanya tindakan manusia**: `G1` approval kontrak `v4`, dan
+`G2b` keputusan aktivasi modul. Approval manusia belum diklaim.
 
 ⚠️ **Pemeriksaan status 3 September 2026 — bukti kemampuan menjadi `STALE`.** Backend bergerak ke
 `4205d18` lewat merge `QuilvianIntegrationBackend`. Berbeda dengan seluruh pergerakan SHA sebelumnya
@@ -239,6 +241,22 @@ menuntut tinjauan lebih dulu: `BD-CAP-014` — `LabOrderController` dipakai seba
 Swagger, dan bentuk respons yang dicontoh seluruh `api-contract.md`; dan `BD-CAP-003` — pembaca status
 kunjungan menempel pada bentuk episode dan kepulangan. Dampak pada area lain rendah, dan
 **`MstServiceUnit` tidak tersentuh**, sehingga titipan kolom `BE-BD-002` tetap aman.
+
+**`BD-DEP-008` ditutup 3 September 2026** lewat commit `ed7fba8`. Registry memuat baris
+`HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | PLANNED`.
+Prefix yang disahkan **persis `Bbk`**, sama dengan yang diajukan blueprint sejak `v1`, sehingga seluruh
+nama `Bbk*` pada kontrak `v4` tetap berlaku dan tidak ada penggantian nama sebagai satu paket.
+
+⚠️ **Lifecycle `PLANNED` bukan izin implementasi, dan itu menggantikan sebagian gerbang lama.** Registry
+menyatakan sendiri bahwa persetujuannya "hanya memberi wewenang penamaan dan kepemilikan" dan **tidak**
+memberi wewenang implementasi, migration, pekerjaan database, deployment, maupun aktivasi modul
+berstatus `PLANNED` — dengan `InsuranceManagement`/`Ins`/`PLANNED` sebagai contoh yang disebut langsung.
+
+Gerbang `G2` pada roadmap revisi 2 karena itu pecah menjadi dua: **`G2a` penamaan — tertutup**, dan
+**`G2b` aktivasi modul (`PLANNED` → `ACTIVE`) — masih terbuka**. Pemeriksaan
+`tooling/qbe/Invoke-QbeConformanceCheck.ps1` menunjukkan checker membaca registry untuk kepemilikan
+prefix tetapi **tidak** tampak menegakkan Lifecycle; artinya yang menahan adalah teks governance-nya,
+bukan mesinnya. *Checker lolos* tidak sama dengan *diberi wewenang*.
 
 **Impact scan terbatas sudah dijalankan pada 3 September 2026 dan penanda `STALE` dicabut.**
 Rinciannya ada di `02-existing-capability-map.md` §Impact scan terbatas. Ringkasnya: dari 24 berkas

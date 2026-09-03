@@ -5,11 +5,11 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `16` |
+| Revision | `17` |
 | Module status | `PARTIAL` |
 | Current phase | `BD-PH-006` |
 | Last verified at | `belum pernah diverifikasi` |
-| Backend source SHA | `4205d18a6d656555eedd781f14e8a18fb5ea20d1` cabang `sukmagp` |
+| Backend source SHA | `ed7fba82efb850e11bfa3b8968d5f75d01280205` cabang `sukmagp` |
 | Frontend source SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Decision revision | `9` — `DEC-BD-001` sampai `DEC-BD-044` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
@@ -18,8 +18,15 @@
 | Terakhir diperbarui | `2026-09-03` |
 
 Modul tetap `PARTIAL`. Seluruh fase perancangan sudah menghasilkan artefaknya, dan **tidak ada satu pun
-keputusan bisnis yang masih memblokir**. Yang menahan implementasi tinggal dua hal: approval owner atas
-set kontrak `v4`, dan pendaftaran prefix entity di registry (`BD-DEP-008`).
+keputusan bisnis yang masih memblokir**.
+
+**`BD-DEP-008` sudah ditutup** pada 3 September 2026 lewat commit `ed7fba8`: prefix `Bbk` terdaftar di
+`docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, **persis seperti yang diajukan blueprint**.
+Risiko "prefix berbeda → seluruh nama `Bbk*` berganti sebagai satu paket" yang tercatat sejak `v1`
+**tidak terjadi**; seluruh nama pada kontrak `v4` tetap berlaku apa adanya.
+
+Yang menahan implementasi kini dua hal, dan **keduanya tindakan manusia**: approval owner atas set
+kontrak `v4` (`G1`), dan keputusan aktivasi modul dari `PLANNED` ke `ACTIVE` (`G2b`).
 
 ---
 
@@ -87,8 +94,8 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. **Catatan:** `BR-BD-020` (Storage Location) belum punya rumah slice resmi; sementara diperlakukan sebagai perluasan `BD-SLICE-03/04/10`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `IN_PROGRESS` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). Seluruhnya `draft`. Belum `DONE` — approval owner belum ada. |
-| `BD-PH-006` | Perencanaan delivery | `IN_PROGRESS` | Roadmap **revisi 2** (`FORWARD-TEST / DRAFT`) menggantikan revisi 1 yang `STALE`. Dua gerbang: `G1` approval, `G2` `BD-DEP-008`. `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. |
-| `BD-PH-007` | Implementasi backend | `BLOCKED` | Terhalang `G1` (approval) dan `G2` (`BD-DEP-008`). |
+| `BD-PH-006` | Perencanaan delivery | `IN_PROGRESS` | Roadmap **revisi 2** (`FORWARD-TEST / DRAFT`) menggantikan revisi 1 yang `STALE`. Gerbangnya kini `G1` approval dan **`G2b` aktivasi modul**; `G2` lama (`BD-DEP-008`) sudah tertutup, dan `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. Roadmap **belum** menyerap pemecahan `G2` → `G2a`/`G2b`. |
+| `BD-PH-007` | Implementasi backend | `BLOCKED` | Terhalang `G1` (approval) dan `G2b` (aktivasi modul). Penamaan sudah tidak menahan. |
 | `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Menunggu kontrak API di-approve dan terkunci hash. |
 | `BD-PH-009` | Verifikasi kesiapan | `NOT_STARTED` | Belum ada implementasi untuk diverifikasi. |
 
@@ -117,7 +124,7 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 | Blocker ID | Ringkasan | Pemilik | Terdampak | Kelanjutan yang tetap aman |
 | --- | --- | --- | --- | --- |
 | **`G1` approval** | Owner belum menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE | Seluruh pekerjaan perancangan sudah selesai; tidak ada yang menunggu selain approval |
-| **`BD-DEP-008`** | Prefix entity Bank Darah belum terdaftar di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Entity operasional `BLOCKED` (`QBE-MOD-002`, `QBE-MOD-003`) | Pemilik registry engineering | `BD-PH-007`; seluruh task entity `Bbk*` | **`MVP-0` tetap jalan** — `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` memakai prefix `Mst` yang sudah sah |
+| **`G2b` aktivasi modul** | Baris registry Bank Darah berstatus **`PLANNED`**, bukan `ACTIVE`. Registry menyatakan sendiri bahwa persetujuannya "hanya memberi wewenang penamaan dan kepemilikan" dan **tidak** memberi wewenang implementasi, migration, pekerjaan database, deployment, maupun aktivasi modul `PLANNED` | Pemilik registry engineering | `BD-PH-007`; seluruh task entity `Bbk*` dan migration-nya | **`MVP-0` tetap jalan** — `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` memakai prefix `Mst` yang berstatus `ACTIVE` di registry |
 | `DEC-BD-016` | Persetujuan pemilik Billing atas konteks sumber biaya Bank Darah | Pemilik BillingManagement | Penyerahan biaya ke Billing | Pencatatan tindakan tetap dirancang penuh tanpa penyaluran biaya |
 | `OQ-BD-011` | Mekanik label golongan darah | Pemilik proses klinis | Slice label | Pemeriksaan dan validasi golongan darah tetap dirancang penuh |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen | Titik pemeriksaan kecocokan tetap dirancang |
@@ -153,6 +160,7 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 | `OQ-BD-015` gerbang pemberian dari lokasi nonaktif | `DEC-BD-038` |
 | `DEF-BD-004` — validator, jalur darurat, koreksi | `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` |
 | `DEF-BD-004` — bukti kecocokan, penyelesaian, pembatalan order | `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044` |
+| `BD-DEP-008` — prefix entity belum terdaftar di registry | Pendaftaran `Bbk` pada `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, commit `ed7fba8` 3 September 2026 |
 
 ---
 
@@ -194,8 +202,8 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
 | 1 | **`G1` approval** — owner menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Tindakan manusia**, bukan skill |
-| 2 | **`BD-DEP-008`** — daftarkan prefix entity di registry kepemilikan modul | Pemilik registry engineering | **Tindakan manusia**, bukan skill |
-| 3 | `build-module-backend` per task `MVP-0` | Skill | Hanya setelah `G1`; `MVP-0` tidak menunggu `BD-DEP-008` |
+| 2 | **`G2b`** — keputusan aktivasi modul `PLANNED` → `ACTIVE` di registry | Pemilik registry engineering | **Tindakan manusia**, bukan skill |
+| 3 | `build-module-backend` per task `MVP-0` | Skill | Hanya setelah `G1`; `MVP-0` **tidak** menunggu `G2b` |
 | 4 | `grill-me` bila hendak menutup `OQ-BD-017` dan `OQ-BD-018` sekalian | Skill | Tidak menahan siapa pun |
 
 **`trace-existing-capabilities` sudah dijalankan** 3 September 2026 sebagai impact scan terbatas dan
