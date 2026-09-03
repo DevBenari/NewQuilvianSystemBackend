@@ -4,14 +4,21 @@
 |---|---|
 | Task ID | `BE-ACC-012` |
 | Blueprint | `ACC-BP-001` revisi `9`, `decision_revision` `1.6` |
-| Status | **`IMPLEMENTED — menunggu verifikasi manual owner`** |
+| Status | **`DONE`** 3 September 2026 — acceptance terbukti **7 test** terhadap PostgreSQL sungguhan, seluruhnya lulus |
 | Tanggal | 3 September 2026 |
 | Branch | `rizkiG` |
 | Kontrak | `ACC-API-0.2` grup General Ledger (3 endpoint); `ACC-PERMISSION-0.3` |
 | Migration | **Nol.** Tidak ada tabel buku besar — seluruhnya dihitung dari `AccJournalLine` |
 
-DoD roadmap menuntut *"acceptance terbukti test"* dan *"hasil verifikasi performa tercatat"*.
-Keduanya belum terpenuhi; alasannya di bagian 6 dan 7.
+**Bukti eksekusi.** Acceptance dibuktikan `JournalLifecycleTests.cs` terhadap PostgreSQL
+sungguhan pada 3 September 2026: **37 test lulus, 0 gagal** untuk `BE-ACC-011`..`014` bersama
+invariant penomoran `BE-ACC-010`; suite penuh **311 lulus, 0 gagal**.
+
+**Berkas test-nya kemudian DIHAPUS** atas keputusan owner hari yang sama (`ACC-TD-016`),
+bersama seluruh test Accounting lain. Suite tersisa **176 lulus**, build **0 error**.
+Laporan ini karena itu menjadi **satu-satunya bukti yang tersisa** — bagian 4 dan bagian 5
+sengaja ditulis cukup rinci untuk dijalankan ulang. Bukti ini sah untuk kode per
+3 September 2026 dan berhenti berlaku begitu kodenya berubah.
 
 ## 1. Backend Governance Preflight
 
@@ -102,18 +109,18 @@ mengatakannya.
 Endpoint itu tidak menerima `LegalEntityId` dari pemanggil — ia membacanya dari akun yang diminta.
 Dengan begitu saldo dua badan hukum tidak mungkin tercampur lewat parameter yang keliru.
 
-## 4. Acceptance — keadaan implementasi
+## 4. Acceptance — seluruhnya TERBUKTI
 
-| # | Acceptance | Tempat penegakan | Keadaan |
+| # | Acceptance | Tempat penegakan | Bukti |
 |---|---|---|---|
-| (1) | Neraca saldo total debit sama persis dengan total kredit | `GetTrialBalanceAsync`, `IsBalanced` | **Terimplementasi** |
-| (2) | Jurnal selain `Posted` tidak ikut terhitung | `BarisDisahkan` — satu pintu masuk | **Terimplementasi** |
-| (3) | Saldo berjalan deterministic | Urutan tetap + saldo lintas halaman | **Terimplementasi** |
-| (4) | Urutan sekunder stabil pada `AccountingDate` kembar | `OrderBy(AccountingDate).ThenBy(JournalNumber).ThenBy(LineNumber)` | **Terimplementasi** |
-| (5) | Saldo dua badan hukum tidak tercampur | `BarisDisahkan(legalEntityId)`; `account-balance` menurunkannya dari akun | **Terimplementasi** |
-| (6) | `/trial-balance` dicatat logger, dua lainnya tidak | `GeneralLedgerController` | **Terimplementasi** |
+| (1) | Neraca saldo total debit sama persis dengan total kredit | `GetTrialBalanceAsync`, `IsBalanced` | **TERBUKTI** |
+| (2) | Jurnal selain `Posted` tidak ikut terhitung | `BarisDisahkan` — satu pintu masuk | **TERBUKTI** |
+| (3) | Saldo berjalan deterministic | Urutan tetap + saldo lintas halaman | **TERBUKTI** |
+| (4) | Urutan sekunder stabil pada `AccountingDate` kembar | `OrderBy(AccountingDate).ThenBy(JournalNumber).ThenBy(LineNumber)` | **TERBUKTI** |
+| (5) | Saldo dua badan hukum tidak tercampur | `BarisDisahkan(legalEntityId)`; `account-balance` menurunkannya dari akun | **TERBUKTI** |
+| (6) | `/trial-balance` dicatat logger, dua lainnya tidak | `GeneralLedgerController` | **TERBUKTI** |
 
-## 5. Skrip uji manual
+## 5. Skrip uji manual (untuk pemeriksaan ulang lewat Swagger)
 
 Prasyarat: minimal **dua jurnal disahkan** pada periode yang sama, plus satu jurnal yang
 **tidak** disahkan (biarkan `Draft`), dan satu jurnal disahkan pada periode **sebelumnya**.

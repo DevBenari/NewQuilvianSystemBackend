@@ -104,7 +104,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: b593f589ee32bc0f3a631a748f22a376e85807bf8f39bd4d1066c506027fd73c
+  roadmap/backend-roadmap.md: cad5f84ea2fc0def429c4ea504340f1d6523ed5e4eee47b6617636e1a084515f
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041

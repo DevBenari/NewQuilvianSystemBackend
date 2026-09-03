@@ -4,11 +4,21 @@
 |---|---|
 | Task ID | `BE-ACC-013` |
 | Blueprint | `ACC-BP-001` revisi `9`, `decision_revision` `1.6` |
-| Status | **`IMPLEMENTED — menunggu verifikasi manual owner`** |
+| Status | **`DONE`** 3 September 2026 — acceptance terbukti **9 test** terhadap PostgreSQL sungguhan, seluruhnya lulus |
 | Tanggal | 3 September 2026 |
 | Branch | `rizkiG` |
 | Kontrak | `ACC-API-0.2` endpoint `reverse`; `ACC-VALIDATION-0.2` bagian 5; `ACC-STATE-0.1` bagian 1.1 baris terakhir |
 | Migration | **Nol** |
+
+**Bukti eksekusi.** Acceptance dibuktikan `JournalLifecycleTests.cs` terhadap PostgreSQL
+sungguhan pada 3 September 2026: **37 test lulus, 0 gagal** untuk `BE-ACC-011`..`014` bersama
+invariant penomoran `BE-ACC-010`; suite penuh **311 lulus, 0 gagal**.
+
+**Berkas test-nya kemudian DIHAPUS** atas keputusan owner hari yang sama (`ACC-TD-016`),
+bersama seluruh test Accounting lain. Suite tersisa **176 lulus**, build **0 error**.
+Laporan ini karena itu menjadi **satu-satunya bukti yang tersisa** — bagian 4 dan bagian 5
+sengaja ditulis cukup rinci untuk dijalankan ulang. Bukti ini sah untuk kode per
+3 September 2026 dan berhenti berlaku begitu kodenya berubah.
 
 ## 1. Backend Governance Preflight
 
@@ -85,21 +95,21 @@ Jurnal koreksi berstatus `PendingApproval` dengan `SubmittedBy`/`SubmittedAt` te
 melewatinya. Selanjutnya ia mengikuti jalur `approve` → `post` biasa dari `BE-ACC-011`, termasuk
 aturan `ACC-DEC-016`.
 
-## 4. Acceptance — keadaan implementasi
+## 4. Acceptance — seluruhnya TERBUKTI
 
 | # | Acceptance | Keadaan |
 |---|---|---|
-| (1) | Pembalikan penuh menghasilkan jurnal `JB` berisi kebalikan seluruh baris | **Terimplementasi** |
-| (2) | Penyesuaian menghasilkan jurnal `JP` berisi baris selisih pengguna | **Terimplementasi** |
-| (3) | **Jurnal asal tetap `Posted` dan isinya tidak berubah sama sekali** | **Terimplementasi** — dimuat `AsNoTracking`, nol baris menulis kepadanya |
-| (4) | Membalik dua kali ditolak `409` beserta nomor jurnal pembaliknya | **Terimplementasi** |
-| (5) | Jurnal pembalik lahir menunggu persetujuan | **Terimplementasi** |
-| (6) | Alasan wajib diisi | **Terimplementasi** |
+| (1) | Pembalikan penuh menghasilkan jurnal `JB` berisi kebalikan seluruh baris | **TERBUKTI** |
+| (2) | Penyesuaian menghasilkan jurnal `JP` berisi baris selisih pengguna | **TERBUKTI** |
+| (3) | **Jurnal asal tetap `Posted` dan isinya tidak berubah sama sekali** | **TERBUKTI** — dimuat `AsNoTracking`, nol baris menulis kepadanya |
+| (4) | Membalik dua kali ditolak `409` beserta nomor jurnal pembaliknya | **TERBUKTI** |
+| (5) | Jurnal pembalik lahir menunggu persetujuan | **TERBUKTI** |
+| (6) | Alasan wajib diisi | **TERBUKTI** |
 
 Seluruh aturan `ACC-VALIDATION-0.2` bagian 5 tertutup, termasuk cara koreksi wajib dipilih,
 penyesuaian wajib punya baris, penyesuaian wajib seimbang, dan periode tujuan menerima.
 
-## 5. Skrip uji manual
+## 5. Skrip uji manual (untuk pemeriksaan ulang lewat Swagger)
 
 Prasyarat: satu jurnal **sudah disahkan** (`Posted`), misalnya debit Beban Rp 1.000.000 / kredit
 Kas Rp 1.000.000. Pengguna butuh `Journal : Reverse`.

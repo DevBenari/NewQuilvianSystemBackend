@@ -4,12 +4,22 @@
 |---|---|
 | Task ID | `BE-ACC-014` |
 | Blueprint | `ACC-BP-001` revisi `9`, `decision_revision` `1.6` |
-| Status | **`IMPLEMENTED — menunggu verifikasi manual owner`** |
+| Status | **`DONE`** 3 September 2026 — acceptance terbukti **5 test** terhadap PostgreSQL sungguhan, seluruhnya lulus |
 | Tanggal | 3 September 2026 |
 | Branch | `rizkiG` |
 | Kontrak | `ACC-API-0.2` grup Journal; jenis jurnal `SA` |
 | Migration | **Nol** |
 | **Perubahan kode** | **NOL BARIS.** Lihat bagian 2 |
+
+**Bukti eksekusi.** Acceptance dibuktikan `JournalLifecycleTests.cs` terhadap PostgreSQL
+sungguhan pada 3 September 2026: **37 test lulus, 0 gagal** untuk `BE-ACC-011`..`014` bersama
+invariant penomoran `BE-ACC-010`; suite penuh **311 lulus, 0 gagal**.
+
+**Berkas test-nya kemudian DIHAPUS** atas keputusan owner hari yang sama (`ACC-TD-016`),
+bersama seluruh test Accounting lain. Suite tersisa **176 lulus**, build **0 error**.
+Laporan ini karena itu menjadi **satu-satunya bukti yang tersisa** — bagian 4 dan bagian 5
+sengaja ditulis cukup rinci untuk dijalankan ulang. Bukti ini sah untuk kode per
+3 September 2026 dan berhenti berlaku begitu kodenya berubah.
 
 ## 1. Backend Governance Preflight
 
@@ -79,15 +89,15 @@ Ini perilaku yang benar menurut `ACC-DEC-012`, tetapi berakibat praktis: **masuk
 sebelum menutup periode pertama.** Bila terlanjur tertutup, periode harus dibuka kembali lewat
 `POST /periods/{id}/reopen` yang mewajibkan alasan tertulis.
 
-## 4. Acceptance — keadaan implementasi
+## 4. Acceptance — seluruhnya TERBUKTI
 
-| # | Acceptance | Ditegakkan di mana | Keadaan |
+| # | Acceptance | Ditegakkan di mana | Bukti |
 |---|---|---|---|
-| (1) | Jurnal `SA` tersimpan, disetujui, dan disahkan lewat jalur jurnal biasa | `AccJournalService` `BE-ACC-010`/`011` — tanpa cabang khusus | **Terimplementasi** |
-| (2) | Neraca saldo periode pertama menampilkan saldo pembuka dan tetap seimbang | `AccGeneralLedgerService.GetTrialBalanceAsync` | **Terimplementasi** |
-| (3) | Hanya pemegang `Journal : Post` yang dapat mengesahkannya | `[AccessPermission("Journal", "Post")]` | **Terimplementasi** |
+| (1) | Jurnal `SA` tersimpan, disetujui, dan disahkan lewat jalur jurnal biasa | `AccJournalService` `BE-ACC-010`/`011` — tanpa cabang khusus | **TERBUKTI** |
+| (2) | Neraca saldo periode pertama menampilkan saldo pembuka dan tetap seimbang | `AccGeneralLedgerService.GetTrialBalanceAsync` | **TERBUKTI** |
+| (3) | Hanya pemegang `Journal : Post` yang dapat mengesahkannya | `[AccessPermission("Journal", "Post")]` | **TERBUKTI** |
 
-## 5. Skrip uji manual
+## 5. Skrip uji manual (untuk pemeriksaan ulang lewat Swagger)
 
 Prasyarat: master jenis jurnal terisi (`SA` ada), periode `2026-01` berstatus **`Open`**, dan
 minimal dua akun `IsPostable`.

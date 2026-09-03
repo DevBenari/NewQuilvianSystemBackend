@@ -7,7 +7,7 @@
 | Revision | `10` — dinaikkan 3 September 2026. Owner meratifikasi `ACC-TD-013` dan `ACC-TD-014`, sehingga `ACC-API` dan `ACC-VALIDATION` sama-sama naik `0.2` → `0.3`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
-| Last verified at | `3 September 2026` — `BE-ACC-011`..`014` terimplementasi. **Nol test otomatis** atas keempatnya (`ACC-TD-017`); bukti yang ada hanya `dotnet build` 0 error |
+| Last verified at | `3 September 2026` — **seluruh 14 task backend `DONE`**, terbukti 37 test terhadap PostgreSQL sungguhan. **Seluruh test Accounting kemudian dihapus atas keputusan owner** (`ACC-TD-016`); suite tersisa **176 lulus, 0 gagal**, build 0 error |
 | Backend source SHA — **approved** | `aa837d784ff51cb2b889cf975ada3a204018f1f5` (branch `rizkiG`) — baseline dasar approval, **tidak diganti** |
 | Backend source SHA — **verification** | `f879944` — tempat verifikasi terakhir dijalankan |
 | Canonical integration baseline | `f90bcbe9a0b18d4f4425a4678a5a39a44356677b` — **sudah termuat**, terbukti leluhur `HEAD` |
@@ -62,14 +62,14 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
-| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — **seluruh 14 task backend ditulis**; `BE-ACC-011`..`014` menunggu verifikasi manual. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
+| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — **seluruh 14 task backend `DONE` dan terbukti test**. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| **14/14 ditulis** — 10 `DONE`, 4 `IMPLEMENTED` | `NOT_STARTED` | `NOT_STARTED` | `PENDING` — verifikasi manual owner |
+| **`DONE` — 14/14** | `NOT_STARTED` | `NOT_STARTED` | `PENDING` — audit kesiapan end-to-end |
 
 | Task | Status | Bukti |
 |---|---|---|
@@ -83,10 +83,10 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `BE-ACC-008` API jenis jurnal | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-008-api-jenis-jurnal.md`. 4 endpoint + `POST /seed`, ketiga acceptance terbukti **18 test**. `ACC-TD-004` ditutup |
 | `BE-ACC-009` API periode akuntansi | **`DONE`** 2 September 2026 | `task/report/backend/be-acc-009-api-periode-akuntansi.md`. 5 endpoint, kelima acceptance terbukti **36 test**, nol delta kontrak |
 | `BE-ACC-010` jurnal draft dan penomoran | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-010-jurnal-draft-dan-penomoran.md`. 5 endpoint, **kedelapan acceptance terbukti 22 test di PostgreSQL sungguhan**, `GAP-ACC-004` **TERTUTUP**, nol delta kontrak. Berkas test-nya dihapus sesudah hijau atas instruksi owner — `ACC-TD-016` |
-| `BE-ACC-011` pengajuan, persetujuan, penolakan, pengesahan | **`IMPLEMENTED`** 3 September 2026 | `task/report/backend/be-acc-011-jurnal-pengajuan-persetujuan-pengesahan.md`. 4 endpoint aksi, sembilan syarat diperiksa dua kali, nol delta kontrak. **Menunggu verifikasi manual** |
-| `BE-ACC-012` buku besar dan neraca saldo | **`IMPLEMENTED`** 3 September 2026 | `task/report/backend/be-acc-012-buku-besar-dan-neraca-saldo.md`. 3 endpoint baca, nol tabel buku besar. Verifikasi performa tertunda (`ACC-TD-018`) |
-| `BE-ACC-013` pembalikan dan penyesuaian | **`IMPLEMENTED`** 3 September 2026 | `task/report/backend/be-acc-013-pembalikan-dan-jurnal-penyesuaian.md`. Endpoint `reverse`; seluruh 10 endpoint grup Journal kini berdiri |
-| `BE-ACC-014` saldo awal | **`IMPLEMENTED`** 3 September 2026 | `task/report/backend/be-acc-014-saldo-awal.md`. **Nol baris kode berubah** — verifikasi atas jalur yang sudah ada |
+| `BE-ACC-011` pengajuan, persetujuan, penolakan, pengesahan | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-011-jurnal-pengajuan-persetujuan-pengesahan.md`. 4 endpoint aksi, sembilan syarat diperiksa dua kali, nol delta kontrak. **Menunggu verifikasi manual** |
+| `BE-ACC-012` buku besar dan neraca saldo | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-012-buku-besar-dan-neraca-saldo.md`. 3 endpoint baca, nol tabel buku besar. Verifikasi performa tertunda (`ACC-TD-018`) |
+| `BE-ACC-013` pembalikan dan penyesuaian | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-013-pembalikan-dan-jurnal-penyesuaian.md`. Endpoint `reverse`; seluruh 10 endpoint grup Journal kini berdiri |
+| `BE-ACC-014` saldo awal | **`DONE`** 3 September 2026 | `task/report/backend/be-acc-014-saldo-awal.md`. **Nol baris kode berubah** — verifikasi atas jalur yang sudah ada |
 
 `BE-ACC-001`..`003` di-commit pada `e1ee173`; `BE-ACC-004` pada `a4df550`; `BE-ACC-005` pada
 `2b152aa`; migration `BE-ACC-006` pada `f40177a` dan seeder-nya pada `0f86e84`; `ACC-DEC-041` pada
@@ -164,19 +164,19 @@ bukan lagi pekerjaan menulis kode.
 2. **Susun daftar akun awal.** Tidak ada seeder untuk ini dan memang tidak boleh ada —
    daftar akun adalah kebijakan akuntansi rumah sakit (`02-backend-architecture.md` bagian 9.3).
 3. **Bangkitkan periode** tahun buku berjalan lewat `POST /periods/generate`.
-4. **Jalankan skrip uji manual** pada laporan `BE-ACC-011`..`014`, lalu naikkan statusnya dari
-   `IMPLEMENTED` ke `DONE`. Selama belum, keempatnya **tidak punya bukti eksekusi apa pun**
-   (`ACC-TD-017`).
+4. ~~Jalankan skrip uji manual~~ — **selesai 3 September 2026**. Keempat task `DONE`, terbukti
+   **33 test** terhadap PostgreSQL sungguhan (`ACC-TD-017` `CLOSED`). Skrip uji manual pada tiap
+   laporan tetap berguna untuk pemeriksaan ulang lewat Swagger.
 5. **Putuskan `ACC-FE-001` dan `ACC-FE-003`** — dua keputusan UI yang menahan sebelas task
    frontend (`ACC-TD-009`). Ini yang paling murah dibuka dan paling besar dampaknya.
 6. **Teruskan `ACC-TD-015` ke lead** — registry berselisih dua arah, menahan merge ke integration.
 
 ## Optional deterministic delivery progress
 
-**14 dari 25 task ditulis (56%).** Backend **14 dari 14**, frontend 0 dari 11.
+**14 dari 25 task selesai (56%).** Backend **14 dari 14 `DONE`**, frontend 0 dari 11.
 
-Dari 14 backend: **10 `DONE`** (`BE-ACC-001`..`010`) dan **4 `IMPLEMENTED`**
-(`BE-ACC-011`..`014`) yang menunggu verifikasi manual owner.
+Seluruh backend Accounting MVP kini terbukti test. Yang tersisa sepenuhnya pekerjaan frontend,
+yang masih tertahan dua keputusan UI (`ACC-TD-009`).
 
 ## Status contract
 

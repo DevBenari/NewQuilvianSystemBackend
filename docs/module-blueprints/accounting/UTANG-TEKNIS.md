@@ -25,7 +25,7 @@ belas artefak.
 | `ACC-TD-005` | `UAT-15` tidak dapat dijalankan | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-006` | Aturan koordinasi migration belum canonical | Lead | Rendah | `OPEN` |
 | `ACC-TD-007` | Satu test Billing merah sejak merge integration | Owner Billing | Rendah | `OPEN` |
-| `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` |
+| `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` — polanya sudah diperbaiki Accounting, lihat `ACC-TD-016` |
 | `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-010` | Dua badan hukum kosong di master | Owner modul lain | Rendah | `OPEN` |
 | ~~`ACC-TD-011`~~ | ~~`POST /seed` belum pernah dipanggil~~ | — | — | **`CLOSED`** 3 Sep 2026 |
@@ -33,8 +33,8 @@ belas artefak.
 | ~~`ACC-TD-013`~~ | ~~`POST /seed` belum masuk `ACC-API`~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | ~~`ACC-TD-014`~~ | ~~Pemeriksaan periode lebih awal daripada kontrak~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-015` | Dua salinan registry berselisih **dua arah** | Lead / pemilik registry | Sedang | `OPEN` |
-| `ACC-TD-016` | Berkas test `BE-ACC-010` dihapus — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
-| `ACC-TD-017` | Kebijakan owner: tanpa test otomatis, verifikasi manual | **Rizki** | **Tinggi** | `OPEN` |
+| `ACC-TD-016` | **Seluruh test Accounting dihapus** — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
+| ~~`ACC-TD-017`~~ | ~~Tanpa test otomatis, verifikasi manual~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
 | ~~`ACC-TD-019`~~ | ~~`RequiresApproval` disimpan tetapi tidak pernah ditegakkan~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 
@@ -355,7 +355,142 @@ repository backend, yaitu salinan yang justru kedaluwarsa. Ini bagian dari butir
 
 ---
 
-## `ACC-TD-016` — Berkas test `BE-ACC-010` dihapus, nol jaring regresi
+## `ACC-TD-016` — Seluruh test Accounting dihapus, nol jaring regresi
+
+**DIBUKA KEMBALI 3 September 2026.** Butir ini sempat ditutup pagi harinya lewat gerbang env var,
+lalu owner memutuskan **menghapus seluruh test Accounting** dengan alasan *"kita sudah menguji dan
+lulus semuanya"*. Keputusan itu diambil dengan angka lengkap di tangan, dan dicatat di sini apa
+adanya supaya orang berikutnya tahu ini **keputusan sadar, bukan kelalaian**.
+
+### Yang dihapus
+
+| Berkas | Baris | Keadaan sebelumnya |
+|---|---|---|
+| `AccountingManagement/AccountingFoundationTests.cs` | 605 | terlacak sejak `e1ee173` |
+| `AccountingManagement/ChartOfAccountServiceTests.cs` | 709 | terlacak sejak `5c81ae4` |
+| `AccountingManagement/AccountingPeriodServiceTests.cs` | 502 | terlacak sejak `5918828` |
+| `AccountingManagement/JournalTypeServiceTests.cs` | 465 | terlacak sejak `5918828` |
+| `AccountingManagement/AccountingMasterDataSeederTests.cs` | 217 | terlacak sejak `0f86e84` |
+| `AccountingManagement/JournalLifecycleTests.cs` | 1.145 | belum terlacak |
+| `Infrastructure/AccountingFactAttribute.cs` | 33 | belum terlacak |
+| `Infrastructure/AccountingTestDatabase.cs` | 99 | belum terlacak |
+
+**135 test hilang.** Suite turun dari **311** menjadi **176**, `dotnet build` tetap **0 error**.
+
+### Yang tidak lagi terjaga
+
+Seluruhnya invariant akuntansi. Cirinya sama: **bila rusak, aplikasi tidak error** — ia terus
+berjalan dan menghasilkan angka yang keliru.
+
+| Yang dulu dijaga | Gejala kalau rusak sekarang |
+|---|---|
+| 20 create paralel → 20 nomor unik (`GAP-ACC-004`) | Dua jurnal bernomor sama. Ketahuan saat audit, bukan saat deploy |
+| `ACC-DEC-016` — menyetujui jurnal sendiri ditolak `403` | Kontrol orang kedua hilang diam-diam |
+| `Posted` tidak dapat diubah, `IsDelete` tetap `false` | Riwayat keuangan berubah tanpa jejak |
+| Hanya jurnal `Posted` masuk neraca saldo | Laporan salah tetapi angkanya tetap masuk akal |
+| Pembalikan tidak menyentuh jurnal asal | Koreksi merusak yang dikoreksi |
+| Sembilan syarat pengajuan, diperiksa dua kali | Jurnal timpang atau ke periode terkunci lolos |
+
+### Yang tetap ada sebagai bukti
+
+Bukti acceptance **tidak hilang** — ia pindah ke laporan task, yang sengaja ditulis cukup rinci
+untuk dijalankan ulang:
+
+- `be-acc-010-jurnal-draft-dan-penomoran.md` bagian 4 dan 6
+- `be-acc-011`..`014`, masing-masing bagian 4 (acceptance) dan bagian 5 (skrip uji manual Swagger)
+
+Bukti itu sah untuk kode per **3 September 2026** dan berhenti berlaku begitu kodenya berubah.
+
+### Catatan pengukuran yang menyertai keputusan
+
+Diukur sebelum penghapusan, terhadap merge `rizkiG` → `origin/QuilvianIntegrationBackend`
+(merge base `1fbda31`; integration memuat **nol** berkas Accounting):
+
+| Bagian | Baris | Porsi merge |
+|---|---|---|
+| `Migrations/` designer + snapshot | 101.230 | **81,7%** |
+| `docs/module-blueprints/accounting` | 13.369 | 10,8% |
+| `Areas/…/AccountingManagement` | 6.131 | 4,9% |
+| `Tests/…/AccountingManagement` | 2.498 | **2,0%** |
+
+Penghapusan ini karena itu menurunkan merge dari **123.895** menjadi **121.397** baris.
+Berkas test juga tidak pernah ikut ke production — dibuktikan `dotnet publish -c Release`:
+169 berkas, nol berkas test.
+
+| Cara menutup | Tulis ulang dari laporan task di atas, sebaiknya sebelum `AccJournalService` disentuh lagi |
+|---|---|
+| **Risiko terbesar** | `BE-ACC-011`..`014` menyentuh invariant akuntansi, dan `AccJournalService` kini dapat diubah siapa pun tanpa satu pun gerbang menangkapnya |
+
+### Catatan asli, dipertahankan sebagai riwayat
+
+> **Ditutup 3 September 2026.** Owner bertanya bagaimana menghilangkan risikonya, dan jawabannya
+> ternyata tidak menuntut pertukaran apa pun.
+>
+> **Premis yang diluruskan.** Berkas test tidak menyebabkan konflik merge: ia berada di
+> `Tests/QuilvianSystemBackend.Tests/AccountingManagement/`, folder yang hanya Accounting sentuh.
+> Dua insiden di riwayat repo — `9ee2885` dan `52c0121` — bukan konflik berkas test, melainkan
+> **project test ikut terhapus** saat orang menyelesaikan konflik. Melacak satu berkas di folder
+> sendiri tidak menambah risiko itu.
+>
+> **Yang dikerjakan.** Test kembali dilacak git, dan diberi gerbang yang membuatnya aman bagi
+> siapa pun:
+>
+> | Berkas | Isi |
+> |---|---|
+> | `Tests/.../Infrastructure/AccountingTestDatabase.cs` | Menyelesaikan target dari `QUILVIAN_ACCOUNTING_TEST_DB`; menolak nama yang memuat `prod`, `production`, `staging`, `shared` |
+> | `Tests/.../Infrastructure/AccountingFactAttribute.cs` | `[AccountingFact]` dan `[AccountingTheory]` yang **melewati** dirinya bila target belum ditunjuk |
+> | `Tests/.../AccountingManagement/JournalLifecycleTests.cs` | 37 test, dilacak git |
+>
+> **Lebih baik daripada preseden Billing.** `BillingTestDatabaseFixture` **melempar exception**
+> bila variable-nya kosong, dan akibatnya 52 test Billing merah di mesin siapa pun yang belum
+> menyetelnya (`ACC-TD-008`). Merah yang tidak berarti rusak melatih orang mengabaikan warna
+> merah. Accounting memakai **skip**: jujur bahwa test tidak dijalankan, tanpa berpura-pura ada
+> yang rusak.
+>
+> **Terbukti tiga arah:**
+>
+> | Keadaan | Hasil |
+> |---|---|
+> | Tanpa env var — CI dan pengembang lain | **3 lulus, 28 dilewati, 0 gagal, 32 ms**, nol sentuhan database |
+> | `QUILVIAN_ACCOUNTING_TEST_DB` diarahkan ke `QuilvianProduction` | **28 dilewati**, nol perintah dikirim — penjaga menahan |
+> | Diarahkan ke database pengembang | **37 lulus, 0 gagal**; suite penuh **311 lulus, 0 gagal** |
+>
+> **Invariant penomoran `BE-ACC-010` ikut dipulihkan** — bagian yang paling mahal bila rusak
+> diam-diam: 20 create paralel pada 20 koneksi terpisah menghasilkan 20 nomor unik; nomor kembar
+> ditolak unique index; alokasi di luar transaction gagal keras; bentuk nomor terkunci.
+>
+> Data uji bersih seluruhnya sesudah tiap jalan: periode 2099 **0**, `AccNumberSeries` **0**.
+
+### Catatan asli, dipertahankan sebagai riwayat
+
+**Diperbarui 3 September 2026.** Butir ini berubah bentuk, dan menjadi **satu-satunya** utang
+yang tersisa dari seluruh urusan pengujian Accounting.
+
+Keadaan sekarang:
+
+| Berkas | Keadaan |
+|---|---|
+| `JournalLifecycleTests.cs` — `BE-ACC-011`..`014`, 33 test | **Ada di mesin owner, tetapi masuk `.gitignore`** |
+| Test `BE-ACC-010` — 22 test | **Dihapus** dan tidak ditulis ulang |
+
+Alasan owner: agar merge ke `QuilvianIntegrationBackend` tidak bertambah berat. Kekhawatiran itu
+berdasar — riwayat repo memuat `9ee2885 restore QuilvianSystemBackend.Tests project removed after
+merge` dan `52c0121 Restore missing medical record test project`, jadi project test di sini memang
+pernah menjadi korban merge.
+
+| Akibat | Keterangan |
+|---|---|
+| **CI tidak menjalankannya** | Gerbang otomatis tidak akan pernah menangkap regresi Accounting |
+| **Pengembang lain tidak memilikinya** | Siapa pun yang menyentuh `AccJournalService` bekerja tanpa jaring |
+| **Hilang bila mesin owner hilang** | Tidak ada salinan di mana pun |
+| Penomoran konkuren `BE-ACC-010` | Tetap **nol** jaring — test-nya sudah dihapus, tidak ditulis ulang |
+
+| Hal | Keterangan |
+|---|---|
+| Cara menutup | Lacak berkasnya di git, atau pindahkan ke project test terpisah yang disepakati lead sehingga tidak ikut merge modul |
+| Bila dibiarkan | Bukti acceptance keempat task tetap sah untuk **3 September 2026**, tetapi berhenti berlaku begitu kodenya berubah |
+
+### Catatan asli, dipertahankan sebagai riwayat
 
 **Sumber:** instruksi owner pada `BE-ACC-010`, 3 September 2026: test dibuat, seluruh acceptance
 dibuktikan hijau, dicatat selengkapnya di laporan task, lalu **berkasnya dihapus**.
@@ -384,7 +519,19 @@ hidup persetujuan, tanpa jaring pengaman apa pun atas jalur CRUD dan penomoran d
 
 ---
 
-## `ACC-TD-017` — Tanpa test otomatis, verifikasi manual
+## ~~`ACC-TD-017`~~ — Tanpa test otomatis, verifikasi manual — **`CLOSED`**
+
+> **Ditutup 3 September 2026.** Owner mencabut kebijakannya dan meminta test ditulis, dengan
+> syarat berkasnya tidak ikut ke merge. Test dibuat, dijalankan terhadap **PostgreSQL
+> sungguhan**, dan **33 lulus / 0 gagal** untuk `BE-ACC-011`..`014`; suite penuh **307 lulus /
+> 0 gagal**. Keempat task naik dari `IMPLEMENTED` ke **`DONE`**.
+>
+> Yang tersisa bukan lagi soal bukti eksekusi, melainkan soal **berkasnya tidak dilacak git** —
+> itu kini menjadi bagian `ACC-TD-016`.
+>
+> Data uji dibersihkan seluruhnya: periode 2099 **0**, akun `ZL*` **0**, `AccNumberSeries` **0**.
+
+### Teks asli, dipertahankan sebagai riwayat
 
 **Sumber:** keputusan owner 3 September 2026, sesudah dijelaskan bahwa berkas test tidak pernah
 ikut ke production (dibuktikan `dotnet publish -c Release`: 169 berkas, nol berkas test/xunit).

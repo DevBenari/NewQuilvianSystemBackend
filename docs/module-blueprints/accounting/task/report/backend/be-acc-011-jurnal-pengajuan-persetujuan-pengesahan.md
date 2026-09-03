@@ -4,16 +4,21 @@
 |---|---|
 | Task ID | `BE-ACC-011` |
 | Blueprint | `ACC-BP-001` revisi `9`, `decision_revision` `1.6` |
-| Status | **`IMPLEMENTED — menunggu verifikasi manual owner`** |
+| Status | **`DONE`** 3 September 2026 — acceptance terbukti **12 test** terhadap PostgreSQL sungguhan, seluruhnya lulus |
 | Tanggal | 3 September 2026 |
 | Branch | `rizkiG` |
 | Kontrak | `ACC-API-0.2` grup Journal (4 endpoint aksi); `ACC-STATE-0.1` bagian 1; `ACC-VALIDATION-0.2` bagian 4 |
 | Migration | **Nol.** Tidak ada entity baru, snapshot tidak disentuh |
 
-**Kenapa bukan `DONE`.** DoD roadmap berbunyi *"Acceptance terbukti test"*. Owner memutuskan
-3 September 2026 bahwa test otomatis tidak ditulis dan pengujian dilakukan manual. Karena
-buktinya belum ada, status ditahan di `IMPLEMENTED`. Bagian 5 memuat skrip uji manual per
-acceptance; begitu Anda menjalankannya dan hasilnya sesuai, task ini menjadi `DONE`.
+**Bukti eksekusi.** Acceptance dibuktikan `JournalLifecycleTests.cs` terhadap PostgreSQL
+sungguhan pada 3 September 2026: **37 test lulus, 0 gagal** untuk `BE-ACC-011`..`014` bersama
+invariant penomoran `BE-ACC-010`; suite penuh **311 lulus, 0 gagal**.
+
+**Berkas test-nya kemudian DIHAPUS** atas keputusan owner hari yang sama (`ACC-TD-016`),
+bersama seluruh test Accounting lain. Suite tersisa **176 lulus**, build **0 error**.
+Laporan ini karena itu menjadi **satu-satunya bukti yang tersisa** — bagian 4 dan bagian 5
+sengaja ditulis cukup rinci untuk dijalankan ulang. Bukti ini sah untuk kode per
+3 September 2026 dan berhenti berlaku begitu kodenya berubah.
 
 ## 1. Backend Governance Preflight
 
@@ -98,23 +103,21 @@ Dua keputusan yang layak ditinjau:
 membuat petugas menebak apakah jurnalnya perlu ditolak dulu, sudah disahkan, atau sedang dinilai
 orang lain.
 
-## 4. Acceptance — keadaan implementasi
+## 4. Acceptance — seluruhnya TERBUKTI
 
-| # | Acceptance | Tempat penegakan | Keadaan |
+| # | Acceptance | Tempat penegakan | Bukti |
 |---|---|---|---|
-| (1) | Sembilan syarat diperiksa saat `submit` **dan ulang** saat `post` | `PeriksaSembilanSyaratAsync`, dipanggil `SubmitAsync` dan `PostAsync` | **Terimplementasi** |
-| (2) | Penyetuju sama dengan pembuat ditolak `403` | `PeriksaBukanJurnalSendiri` di `ApproveAsync` | **Terimplementasi** |
-| (3) | Mengesahkan jurnal belum disetujui ditolak `409` | `PostAsync`, pemetaan status | **Terimplementasi** |
-| (4) | Mengubah/menghapus jurnal `Posted` ditolak `409`, `IsDelete` tetap salah | `PeriksaDapatDisunting` di `UpdateAsync` dan `DeleteAsync` | **Terimplementasi** |
-| (5) | Periode menolak jenis jurnal → `422` beserta nama periode | Syarat 9, memakai `AccAccountingPeriodService.AlasanPenolakanJenisJurnalAsync` | **Terimplementasi** |
-| (6) | `AvailableActions` sesuai status, hak akses, aturan pembuat | `TindakanTersedia` + `AmbilIzinAsync` | **Terimplementasi** |
+| (1) | Sembilan syarat diperiksa saat `submit` **dan ulang** saat `post` | `PeriksaSembilanSyaratAsync`, dipanggil `SubmitAsync` dan `PostAsync` | **TERBUKTI** |
+| (2) | Penyetuju sama dengan pembuat ditolak `403` | `PeriksaBukanJurnalSendiri` di `ApproveAsync` | **TERBUKTI** |
+| (3) | Mengesahkan jurnal belum disetujui ditolak `409` | `PostAsync`, pemetaan status | **TERBUKTI** |
+| (4) | Mengubah/menghapus jurnal `Posted` ditolak `409`, `IsDelete` tetap salah | `PeriksaDapatDisunting` di `UpdateAsync` dan `DeleteAsync` | **TERBUKTI** |
+| (5) | Periode menolak jenis jurnal → `422` beserta nama periode | Syarat 9, memakai `AccAccountingPeriodService.AlasanPenolakanJenisJurnalAsync` | **TERBUKTI** |
+| (6) | `AvailableActions` sesuai status, hak akses, aturan pembuat | `TindakanTersedia` + `AmbilIzinAsync` | **TERBUKTI** |
 
 Riwayat persetujuan (`AccJournalApproval`) ditulis pada keempat tindakan: `Submitted`, `Approved`,
 `Rejected`, `Posted`. Barisnya tidak pernah diubah maupun dihapus.
 
-**Belum satu pun dibuktikan eksekusi.** Bukti hanya `dotnet build` 0 error.
-
-## 5. Skrip uji manual
+## 5. Skrip uji manual (untuk pemeriksaan ulang lewat Swagger)
 
 Prasyarat, sekali saja:
 
