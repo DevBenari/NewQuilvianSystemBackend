@@ -174,7 +174,23 @@ public sealed class BillingCalculationService
             if (eligibleAmount < 0)
                 throw new BillingCalculationValidationException("Nilai akhir invoice tidak boleh negatif.");
 
-            var components = BuildCoverageComponents(activeItems, itemResult, taxResult, administrationFee, roomCharge);
+            // Biaya administrasi bukan BilInvoiceItem, jadi tidak punya CategoryId snapshot sendiri
+            // seperti item biasa. TariffCategoryId komponennya diturunkan dari kategori tarif yang
+            // ditandai IsAdministrationFee, supaya rule ServiceCategory dapat menyasar Administration
+            // secara spesifik tanpa ikut menutupi item generik lain yang juga jatuh ke ItemType
+            // "ServiceCategory" (lihat CoverageItemType).
+            Guid? administrationFeeCategoryId = null;
+            if (administrationFee.AppliedAmount > 0)
+            {
+                administrationFeeCategoryId = await _dbContext.Set<MstTariffCategory>()
+                    .AsNoTracking()
+                    .Where(x => x.IsAdministrationFee && x.IsActive && !x.IsDelete)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var components = BuildCoverageComponents(
+                activeItems, itemResult, taxResult, administrationFee, roomCharge, administrationFeeCategoryId);
             var coverage = await _coverageAdapter.ResolveAsync(
                 new BillingCoverageContext(invoice.Id, invoice.EncounterId, calculatedAt, eligibleAmount, components),
                 cancellationToken);
@@ -805,7 +821,8 @@ public sealed class BillingCalculationService
         ItemTaxResult itemResult,
         InvoiceTaxResult taxResult,
         AdministrationFeeCalculationResponse administrationFee,
-        RoomChargeCalculationResponse roomCharge)
+        RoomChargeCalculationResponse roomCharge,
+        Guid? administrationFeeCategoryId)
     {
         var taxByItem = taxResult.Taxes.Where(x => x.InvoiceItemId != Guid.Empty)
             .ToDictionary(x => x.InvoiceItemId);
@@ -848,7 +865,7 @@ public sealed class BillingCalculationService
                 administrationFee.PolicyId ?? Guid.Empty,
                 "ADMINISTRATION_FEE",
                 "ServiceCategory",
-                null, null, null, null, null,
+                null, null, null, null, administrationFeeCategoryId,
                 1,
                 administrationFee.AppliedAmount,
                 administrationFee.Coverable));
@@ -862,7 +879,7 @@ public sealed class BillingCalculationService
                     administrationFee.PolicyId ?? Guid.Empty,
                     "TAX",
                     "ServiceCategory",
-                    null, null, null, null, null,
+                    null, null, null, null, administrationFeeCategoryId,
                     1,
                     taxResult.AdministrationFeeTax,
                     TaxComponentCoverable(taxResult.AllocationRule, administrationFee.Coverable)));

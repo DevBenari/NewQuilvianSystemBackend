@@ -1107,9 +1107,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private async Task<string> GenerateRuleCodeAsync()
         {
+            // Baris soft-deleted TETAP dihitung: unique index pada RuleCode (lihat
+            // MstInsuranceCoverageRuleConfiguration) tidak difilter IsDelete, jadi nomornya masih
+            // menempati constraint di database walau barisnya sudah dihapus secara logis.
+            // Mengecualikannya di sini membuat generator memakai ulang nomor yang sama setiap kali
+            // dan insert-nya selalu gagal dengan duplicate key 23505 pada IX_MstInsuranceCoverageRule_RuleCode.
             var existingCodes = await _dbContext.Set<MstInsuranceCoverageRule>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.RuleCode.StartsWith(RuleCodePrefix))
+                .Where(x => x.RuleCode.StartsWith(RuleCodePrefix))
                 .Select(x => x.RuleCode)
                 .ToListAsync();
 

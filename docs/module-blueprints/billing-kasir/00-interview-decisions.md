@@ -705,3 +705,83 @@ memblokir/tidak):
 - Wewenang tulis backend (task mode, branch) untuk mulai implementasi endpoint/service baru —
   belum ditanyakan; ini prasyarat prosedural sebelum `build-module-backend` dijalankan, bukan
   bagian dari interview kebutuhan bisnis.
+
+### Amendment lanjutan 3 September 2026 — Dokumen Kasir: modal menjadi halaman terpisah
+
+Pengguna meminta tombol "Dokumen Kasir" pada Menu Pembayaran tidak lagi membuka modal
+(`dokumen-kasir-modal.jsx`), melainkan menavigasi ke halaman tersendiri dengan isi identik
+(tab Kwitansi, Struk Pasien, enam tab placeholder — lihat `BKC-DEC-052` dst.), ditambah tombol
+Cetak dan tombol Kembali ke Menu Pembayaran. Ini murni perubahan wadah presentasi (modal →
+page); tidak ada perubahan data, endpoint, atau aturan bisnis Kwitansi/Struk Pasien yang sudah
+terkunci di `BKC-DEC-052`–`058`.
+
+**Batas scope**: hanya mengubah wadah tampilan (`dokumen-kasir-modal.jsx` → route halaman baru)
+dan titik pemicu (`openDokumenKasir`/`openKwitansiForTender` di `menu-pembayaran-view.jsx`,
+`use-dokumen-kasir.js`). **Di luar scope**: isi/aturan bisnis Kwitansi dan Struk Pasien itu
+sendiri (tetap seperti `BKC-DEC-052`–`058`), keenam tab placeholder (tetap placeholder milik
+modul lain, `BKC-DEC-052`), dan module lain di luar `billing-kasir`.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-063` | Decision | Mekanisme cetak dan share pada halaman Dokumen Kasir baru TETAP memakai `html2pdf.js` (bukan `window.print()`), dan tombol WhatsApp/Email pada tab Kwitansi TETAP dipertahankan persis seperti modal sekarang. Alasan: `BKC-DEC-056` (WA/Email butuh file PDF ter-unduh sebagai lampiran manual) masih berlaku sepenuhnya pada wadah halaman; mengganti ke `window.print()` akan menghilangkan kemampuan share yang sudah dipakai kasir tanpa ada permintaan eksplisit untuk itu. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini, opsi "Pertahankan mekanisme existing (html2pdf.js)" dari 3 opsi bertanda rekomendasi |
+| `BKC-DEC-064` | Decision | Halaman Dokumen Kasir baru adalah SATU route yang dipakai oleh kedua titik pemicu (tombol umum "Dokumen Kasir" di Ringkasan Pembayaran, dan tombol "Cetak Kwitansi" per baris tender di panel Split Tender). Tab aktif dan tender terpilih dikirim lewat query string (mis. `?tab=KWITANSI&tenderId=...` atau `?tab=STRUK_PASIEN`), bukan dua route terpisah. Kasir tetap bisa berpindah tab secara manual di halaman itu seperti pada modal sekarang. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini, opsi "Satu halaman, state lewat query string" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: kedua keputusan kritis (mekanisme print/share, struktur routing) sudah
+dijawab eksplisit dan disetujui langsung oleh pengguna dalam percakapan sesi ini — tidak ada
+pengambil keputusan terpisah yang perlu dikonfirmasi lagi karena scope-nya presentational murni
+di dalam modul yang sama, bukan amendemen aturan bisnis modul lain. Item DEV_DISCRETION yang
+tidak perlu ditanyakan lebih lanjut: path URL literal halaman baru (mengikuti konvensi
+`[slug]/pembayaran` yang sudah ada), dan penghapusan `dokumen-kasir-modal.jsx` sebagai dead code
+setelah kedua titik pemicu dipindah (konsisten dengan aturan repo: tidak menyisakan kode yang
+sudah pasti tidak terpakai).
+
+### Amendment lanjutan 3 September 2026 — Dokumen Kasir: dokumen baru "Invoice Asuransi"
+
+Pengguna meminta satu jenis dokumen baru pada Dokumen Kasir: "Invoice Asuransi", berisi identitas
+pasien, informasi perusahaan asuransi, dan rincian item yang dicover asuransi — bisa dicetak dan
+diunduh.
+
+**Temuan batas scope sebelum bertanya**: `Dokumen Kasir` sudah dikunci berisi enam tab
+(`SPT`, `Claim Letter`, `LML`, `LMA`, `Resep Obat`, `Kwitansi` — lihat amendment 27 Agustus 2026 di
+atas). `Claim Letter` adalah tab yang paling dekat maknanya dengan "invoice asuransi", TAPI sudah
+eksplisit dicatat milik modul lain (klinis/farmasi/asuransi), dan modul `InsuranceManagement/Ins`
+pada `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` masih berstatus `PLANNED` (belum ada wewenang
+implementasi). Temuan ini dikonfirmasikan ke pengguna sebelum pertanyaan lain diajukan.
+
+**Batas scope**: dokumen baru ini dibangun sebagai kepemilikan `billing-kasir` sendiri — tab
+ketiga sejajar Kwitansi/Struk Pasien di halaman Dokumen Kasir, BUKAN mengisi slot tab
+`Claim Letter` yang dicadangkan. **Di luar scope — untuk modul lain**: konten resmi `Claim Letter`
+untuk pengajuan klaim formal ke asuransi (tetap placeholder milik `InsuranceManagement`, butuh
+aktivasi modul + `/grill-me` tersendiri bila kelak diperlukan).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-065` | Decision | "Invoice Asuransi" dibangun sebagai dokumen milik `billing-kasir` sendiri (tab baru di halaman Dokumen Kasir, pola presentasi sama dengan Kwitansi — render HTML lalu `html2pdf.js` untuk cetak/unduh), bukan mengisi tab `Claim Letter` yang sudah dicadangkan untuk modul `InsuranceManagement` (`PLANNED`, belum ada wewenang implementasi). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini, opsi "Dokumen baru milik billing-kasir sendiri" dari 2 opsi + Other bertanda rekomendasi |
+| `BKC-DEC-066` | Decision | Dokumen ini ditujukan untuk tiga pihak sekaligus — pasien, internal rumah sakit, dan pihak asuransi — bukan sekadar rekap informal internal. Konsekuensinya: kontennya harus cukup meyakinkan/lengkap untuk dipakai pihak asuransi (lihat `BKC-DEC-069` soal rincian rupiah per item), bukan hanya badge status. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini: "Sebenarnya untuk semua, pasien, rs, dan pihak asuransi" |
+| `BKC-DEC-067` | Decision | Sumber data "informasi perusahaan" pada dokumen ini adalah `MstInsuranceProvider` (perusahaan asuransi, mis. Allianz Indonesia) — BUKAN `MstCompanyGuarantor` (penjamin perusahaan tempat kerja pasien). Dua entity ini berbeda; dukungan untuk Company Guarantor tidak termasuk dalam slice ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini, opsi "Perusahaan asuransi / Insurance Provider" dari 2 opsi + Other bertanda rekomendasi |
+| `BKC-DEC-068` | Decision | Dokumen ini HANYA menampilkan item yang benar-benar tercover asuransi (status "Penjamin") — item yang dibayar tunai/mandiri TIDAK ditampilkan sama sekali. Ini mengoreksi jawaban awal pengguna ("semua item + status per baris seperti Menu Pembayaran") yang diralat eksplisit menjadi "semua item yg dicover oleh asuransi saja" pada giliran berikutnya dalam sesi yang sama. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, dengan ralat) | `approved` | Jawaban awal lalu ralat eksplisit: "Maksud saya semua item yg dicover oleh asuransi saja" |
+| `BKC-DEC-069` | Decision | Setiap baris item pada dokumen ini WAJIB menampilkan kolom rupiah yang dicover asuransi per item (bukan hanya badge status). Backend SAAT INI belum mengekspos pecahan rupiah per item — `RegistrationBillingCoverageAdapter.ResolveAsync` (`BillingCoverageAdapter.cs`) sudah menghitung `covered` per komponen secara internal di dalam loop (`CalculateCoveredAmount`), tapi hanya total (`primary`) yang dikembalikan ke `BillingCoverageDecision`; pecahan per komponennya dibuang. Kontrak API/DTO baru untuk mengekspos pecahan ini BELUM dirancang — ini bukan pekerjaan frontend murni, perlu slice backend terlebih dahulu dengan kontrak yang dikunci sebelum frontend membangun tampilannya. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit sesi ini, opsi "Wajib ada kolom rupiah dicover per baris item" dari 2 opsi + Other |
+
+**Status pass ini**: lima keputusan kritis di atas sudah dijawab eksplisit dan disetujui langsung
+oleh pengguna. **Blocker desain yang masih terbuka** (memblokir `IMPLEMENTATION`, tidak memblokir
+`DESIGN` lanjutan):
+
+- Bentuk kontrak API/DTO persis untuk pecahan rupiah per item (`BKC-DEC-069`) — field baru pada
+  `CalculationItemResponse`/breakdown mana, apakah dipersist di `BreakdownSnapshot` atau dihitung
+  ulang saat diminta, dan bagaimana penanganannya untuk komponen non-item (biaya administrasi,
+  room charge) yang juga bisa dicover tapi bukan `BilInvoiceItem`. Ini keputusan arsitektur
+  backend, bukan requirement bisnis — cocok dilanjutkan lewat `/design-business-module` atau
+  langsung `/plan-module-delivery` bila pemilik backend sudah cukup yakin dengan pendekatan
+  "expose per-component breakdown yang sudah dihitung, jangan hitung ulang logika baru".
+- Nomor dokumen: belum diputuskan apakah "Invoice Asuransi" perlu nomor tersendiri yang
+  dialokasikan backend (pola sama dengan Kwitansi, `BKC-DEC-054`) atau cukup memakai
+  `InvoiceNumber` yang sudah ada. Ditandai `DEV_DISCRETION` sementara dengan rekomendasi memakai
+  `InvoiceNumber` (risiko rendah, konsisten dengan sifat dokumen ini yang bukan `Claim Letter`
+  formal) — bisa diubah bila pemilik produk keberatan.
+- Layout/field detail persis (letterhead, blok tanda tangan, format tabel) belum digali — mengikuti
+  pola visual Kwitansi yang sudah ada (letterhead RS, blok identitas, tabel rincian, total) sebagai
+  `DEV_DISCRETION` kecuali pengguna menentukan lain.
+
+**Di luar scope — untuk modul lain**: konten resmi tab `Claim Letter` (milik `InsuranceManagement`,
+`PLANNED`); dukungan Company Guarantor pada dokumen ini (bisa jadi amendment terpisah bila
+dibutuhkan kelak).

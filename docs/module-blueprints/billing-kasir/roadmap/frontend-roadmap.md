@@ -321,3 +321,30 @@ selesai; lihat `task/report/frontend/FE-BKC-016.md` § 6 dan § 8.
 
 `FE-BKC-014` dan `FE-BKC-016` boleh paralel (tidak saling bergantung). `FE-BKC-015` menunggu `FE-BKC-014` (menambah badge ke dropdown yang sama) dan `BE-BKC-020`.
 
+## `FE-BKC-017` — Dokumen Kasir: modal menjadi halaman terpisah
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tombol "Dokumen Kasir" (umum maupun per-tender "Cetak Kwitansi") tidak lagi membuka modal — kasir dinavigasikan ke halaman tersendiri dengan isi identik (Kwitansi per tender, Struk Pasien, 6 tab placeholder), tombol Cetak (unduh PDF) dan tombol Kembali ke Menu Pembayaran |
+| Trace | `BKC-DEC-063`–`064` (amendment `00-interview-decisions.md` 3 September 2026); `03-frontend-architecture.md` amendment 3 September 2026 |
+| Kontrak | Tidak ada kontrak API baru — murni perubahan wadah presentasi frontend. Data yang ditampilkan sama persis dengan modal existing (`BKC-DEC-052`–`058`, tidak diamendemen) |
+| Reuse | `KwitansiDocument`, `StrukPasienDocument`, `useDokumenKasir` (PDF/share, `html2pdf.js`) dipakai ulang apa adanya; `useBillingInvoiceDetail`+`useBillingSettlement` dipakai ulang untuk data loading halaman baru (bukan `useMenuPembayaran` penuh); pola halaman referensi terdekat: `InpatientConsentPrintView` (Hero + area dokumen + action bar Kembali/Cetak) |
+| Scope | Route baru `[slug]/pembayaran/dokumen-kasir` (query string `?tab=&tenderId=`), route builder `BILLING_INVOICE_ROUTES.dokumenKasir`, ganti dua titik pemicu di `menu-pembayaran-view.jsx` dari `onClick` buka-modal menjadi navigasi, hapus `dokumen-kasir-modal.jsx` (tidak ada konsumen lain — dikonfirmasi lewat pencarian referensi source), loading/error state halaman baru (invoice belum dimuat, tender tidak ditemukan) |
+| Dependency | Tidak ada dependency backend baru. Bergantung pada `menu-pembayaran-view.jsx`/`use-dokumen-kasir.js` existing (`FE-BKC-011`) sebagai baseline perilaku yang dipertahankan |
+| Acceptance | Lihat acceptance 29–31 pada `03-frontend-architecture.md` amendment 3 September 2026 |
+| Verifikasi | Lint/build; grep anti-regresi memastikan tidak ada reference mati ke `dokumen-kasir-modal.jsx`; verifikasi manual ter-autentikasi (buka dari kedua titik pemicu, cetak PDF, tombol Kembali) — direkomendasikan, belum tentu bisa dijalankan builder tanpa kredensial |
+| Risiko/pemilik | Kehilangan `activeTender` di tengah navigasi bila `tenderId` tidak valid/tender tidak ditemukan pada `settlement.tenders` hasil load ulang — halaman baru **MUST** menampilkan pesan yang jelas (bukan crash/blank), bukan diam-diam fallback ke tab lain. Owner Frontend/Billing |
+| DoD | Lint/build lulus bersih; `dokumen-kasir-modal.jsx` terhapus; kedua titik pemicu menavigasi ke route baru; `git status --short` dilaporkan |
+
+**Status 3 September 2026**: Source selesai — route baru `[slug]/pembayaran/dokumen-kasir`, hook
+`use-dokumen-kasir-page.js`, view `dokumen-kasir-view.jsx`, route builder `dokumenKasir` di
+`billing-invoice-constants.js`; kedua titik pemicu di `menu-pembayaran-view.jsx` diganti navigasi;
+`dokumen-kasir-modal.jsx` dan composition `useDokumenKasir` di `use-menu-pembayaran.js` dihapus.
+Lint (`eslint . --quiet`) **PASS** 0 error pada file berubah/baru. `test:unit` **PASS** 434/434,
+tanpa regresi (tidak ada test baru — task presentational murni, konsisten pola `FE-BKC-011`/`016`).
+`npm run build` **BLOCKED/INCONCLUSIVE** — `.next/standalone` terkunci oleh instance app yang
+sedang berjalan di lingkungan builder; pengguna memilih tidak menghentikan proses itu. Verifikasi
+manual ter-autentikasi (buka dari kedua titik pemicu, cetak PDF, tombol Kembali) **belum
+dijalankan** — tidak ada kredensial di lingkungan builder. Lihat
+`task/report/frontend/FE-BKC-017.md`.
+

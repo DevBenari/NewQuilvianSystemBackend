@@ -130,3 +130,49 @@ Bentuk visual badge (warna/ikon/posisi), strategi debounce pencarian tarif, dan 
 ### Acceptance tambahan
 
 `BIL-AT-025`–`028` (lihat `testing/acceptance-test-matrix.md`).
+
+## Amendment 3 September 2026 — Dokumen Kasir: modal menjadi halaman terpisah
+
+> Status **approved** (persetujuan eksplisit pengguna dalam percakapan, 3 September 2026). Trace: `BKC-DEC-063`–`064`. Layar terdampak: `menu-pembayaran-view.jsx` (kedua titik pemicu), `dokumen-kasir-modal.jsx` (dihapus, digantikan halaman baru), `use-dokumen-kasir.js` (dipertahankan, dipakai ulang oleh halaman baru).
+
+Perubahan murni wadah presentasi. Isi dokumen (Kwitansi per tender, Struk Pasien, enam tab
+placeholder), mekanisme PDF (`html2pdf.js`), dan fitur share WhatsApp/Email TIDAK berubah —
+tetap seperti `BKC-DEC-052`–`058`.
+
+### Route baru
+
+| Concern | Keputusan |
+| --- | --- |
+| Path | `/health-services/billing-management/billing/invoices/[slug]/pembayaran/dokumen-kasir` — child segment di bawah `pembayaran` yang sudah ada, mengikuti pola `[slug]` yang sama (token invoice di-decode di server component, diteruskan ke client view) |
+| State tab/tender aktif | Query string `?tab=KWITANSI&tenderId=...` atau `?tab=STRUK_PASIEN` (`BKC-DEC-064`) — dibaca lewat `useSearchParams` (`next/navigation`), kasir tetap bisa berpindah tab manual di halaman (mengganti query string, bukan reload penuh) |
+| Route builder | Tambah `dokumenKasir: (token, { tab, tenderId } = {}) => ...` di `billing-invoice-constants.js` (`BILLING_INVOICE_ROUTES`), pola sama dengan `pembayaran(token)` yang sudah ada |
+| Data loading halaman baru | Halaman ini adalah route terpisah (bukan client state yang di-share dari `menu-pembayaran-view.jsx`) — wajib memuat ulang `invoice` (`useBillingInvoiceDetail`) dan `settlement.tenders` (`useBillingSettlement`) sendiri berdasar `invoiceRouteToken` dari `[slug]` dan `tenderId` dari query string, BUKAN memakai `useMenuPembayaran` penuh (hook itu memuat discount policy/tariff category/other-charge types yang tidak relevan untuk halaman baca/cetak ini — pemborosan request) |
+| Tombol Kembali | Navigasi ke `BILLING_INVOICE_ROUTES.pembayaran(invoiceRouteToken)` (bukan `router.back()`) — pola `Link`/`BaseButton as={Link}` sama seperti `InpatientConsentPrintView` |
+| Tombol Cetak | Tetap `html2pdf.js` (unduh PDF) sesuai `BKC-DEC-063`, BUKAN `window.print()` — beda dari pola `InpatientConsentPrintView`/`print-resep-component.jsx` karena kebutuhan Blob untuk lampiran WhatsApp/Email tetap berlaku |
+
+### Perubahan titik pemicu di `menu-pembayaran-view.jsx`
+
+| Sebelum | Sesudah |
+| --- | --- |
+| Tombol umum "Dokumen Kasir" memanggil `dokumenKasir.openDokumenKasir()` (buka modal, tab Struk Pasien) | Tombol yang sama menjadi navigasi (`Link`/`router.push`) ke `BILLING_INVOICE_ROUTES.dokumenKasir(token, { tab: "STRUK_PASIEN" })` |
+| `BillingSettlementPanel` prop `onPrintKwitansi={dokumenKasir.openKwitansiForTender}` (buka modal, tab Kwitansi, `activeTender` dari state React) | `onPrintKwitansi` menavigasi ke `BILLING_INVOICE_ROUTES.dokumenKasir(token, { tab: "KWITANSI", tenderId: tender.id })` — identitas tender dibawa lewat query string, bukan state React (state hilang saat pindah route) |
+| `<DokumenKasirModal .../>` dirender di akhir `menu-pembayaran-view.jsx` | Dihapus. `dokumen-kasir-modal.jsx` dihapus total (tidak ada konsumen lain — dikonfirmasi lewat pencarian referensi di seluruh source frontend) |
+| `useDokumenKasir` dipakai via `useMenuPembayaran` untuk state modal (`open`, `activeTab`, `activeTender`, dst.) | `useDokumenKasir` TETAP ADA dan tetap dipakai `use-menu-pembayaran.js`/`menu-pembayaran-view.jsx`, tapi hanya untuk bagian yang masih relevan di halaman itu sendiri (tidak ada lagi — kedua trigger sekarang murni navigasi). Halaman baru memakai instance `useDokumenKasir` miliknya sendiri (`kwitansiPrintRef`, `strukPrintRef`, `downloadKwitansi`, `downloadStruk`, `shareViaWhatsApp`, `shareViaEmail`, `pdfBusy`), diberi `invoice` hasil load halaman baru |
+
+### Reuse komponen (tidak berubah kontraknya)
+
+`KwitansiDocument` dan `StrukPasienDocument` (keduanya `forwardRef`, `kwitansi-document.jsx`/`struk-pasien-document.jsx`) dipakai apa adanya oleh halaman baru, prop shape identik dengan yang dikonsumsi modal sekarang (`kwitansiDocumentProps`/`strukDocumentProps` dibentuk ulang di hook/view halaman baru dari `invoice`+`activeTender`, sama seperti dibentuk `menu-pembayaran-view.jsx` hari ini).
+
+### DEV_DISCRETION tambahan
+
+Layout halaman (Hero, susunan tab, kartu dokumen, action bar) mengikuti pola `InpatientConsentPrintView` (referensi terdekat: page + Hero + area dokumen + action bar Kembali/Cetak) sejauh tidak bertentangan dengan struktur tab existing modal. Nama file/hook baru, penempatan hook composition (langsung di view vs hook terpisah `use-dokumen-kasir-page.js`) adalah `DEV_DISCRETION`. Yang **MUST NOT** berubah: isi/urutan tab, data yang ditampilkan tiap dokumen, dan mekanisme PDF/share (`BKC-DEC-063`).
+
+### Acceptance tambahan
+
+29. Membuka halaman Dokumen Kasir langsung via URL dengan `tenderId` valid menampilkan tab
+    Kwitansi untuk tender itu tanpa perlu berpindah tab manual; tanpa `tenderId`/`tab`, halaman
+    default ke tab Struk Pasien (setara `openDokumenKasir()` lama).
+30. Setelah `dokumen-kasir-modal.jsx` dihapus, build dan lint tidak menyisakan reference mati ke
+    file itu di manapun.
+31. Tombol Kembali pada halaman Dokumen Kasir selalu kembali ke Menu Pembayaran invoice yang
+    sama (bukan daftar invoice), termasuk saat halaman dibuka langsung dari URL (deep link).
