@@ -5,13 +5,13 @@ VisualStudioVersion = 18.9.12112.369
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuilvianSystemBackend", "QuilvianSystemBackend.csproj", "{BA23FC3C-882B-4549-A42D-48BCC4FBE9B5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuilvianSystemBackend.Tests", "QuilvianSystemBackend.Tests\QuilvianSystemBackend.Tests.csproj", "{2F4C3E18-3FD8-4A3A-A8A5-D3F7C11672D5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuilvianSystemBackend.UnitTests.InMemory", "Tests\QuilvianSystemBackend.UnitTests.InMemory\QuilvianSystemBackend.UnitTests.InMemory.csproj", "{2F4C3E18-3FD8-4A3A-A8A5-D3F7C11672D5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuilvianSystemBackend.BillingTests", "Tests\QuilvianSystemBackend.BillingTests\QuilvianSystemBackend.BillingTests.csproj", "{8606C5C3-E45F-468B-BA01-12E30F7AB9C4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuilvianSystemBackend.IntegrationTests.Postgres", "Tests\QuilvianSystemBackend.IntegrationTests.Postgres\QuilvianSystemBackend.IntegrationTests.Postgres.csproj", "{8606C5C3-E45F-468B-BA01-12E30F7AB9C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuilvianSystemBackend.Tests", "Tests\QuilvianSystemBackend.Tests\QuilvianSystemBackend.Tests.csproj", "{159CE09E-721C-4137-93E7-F360AE2C6D1F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QuilvianSystemBackend.UnitTests.Sqlite", "Tests\QuilvianSystemBackend.UnitTests.Sqlite\QuilvianSystemBackend.UnitTests.Sqlite.csproj", "{159CE09E-721C-4137-93E7-F360AE2C6D1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -78,6 +78,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{8606C5C3-E45F-468B-BA01-12E30F7AB9C4} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{159CE09E-721C-4137-93E7-F360AE2C6D1F} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{2F4C3E18-3FD8-4A3A-A8A5-D3F7C11672D5} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {34F560CC-EE93-4B65-BE94-EAC24D6F3908}

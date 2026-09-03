@@ -3,9 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | `1.0` |
-| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`) |
+| Assessment revision | `1.1` |
+| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); **dikoreksi 2 September 2026** |
 | Assessment status | `CURRENT` |
+| Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka **diperbaiki** — bagian 4.10 dua baris dependency, bagian 5.2 butir 1, dan blok `DEC-INP-001` pada bagian 6. `RWI-DEC-062` menutupnya 2026-08-21; keterangan lama bertabrakan dengan `RWI-DEC-080`. **Tidak ada penilaian kesiapan yang dinilai ulang** — hanya keterangan yang basi yang dibetulkan |
 | **Overall readiness** | **`PARTIALLY_READY`** |
 | Ready destination | `hospital-domain-architect`, hanya untuk slice yang ditandai siap pada bagian 7 |
 | Business evidence | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `2`, SHA-256 `e210cd40ee9a0207a0e2df7e00ac055e9029ae42aface5dedb74e4e9ae2c7b6a` |
@@ -269,8 +270,8 @@ tidak dapat menegakkannya sehingga penjaganya ditulis di dalam service.
 | Modul tetangga | Yang dibutuhkan | Status persetujuan |
 | --- | --- | --- |
 | `RegistrationManagement` | Kunjungan sebagai jangkar episode | Belum diminta secara eksplisit |
-| `ClinicalManagement` | Pelonggaran keharusan antrean dan konsultasi | **Belum ada** — `DEC-INP-001` |
-| `PharmacyManagement` | Pelonggaran resep dan penanda obat pulang | **Belum ada** — `DEC-INP-001` |
+| `ClinicalManagement` | Pelonggaran keharusan antrean dan konsultasi | **SUDAH ADA** — diberikan Muhammad Hamzah 2026-08-21 lewat `RWI-DEC-062`, yang menutup `RWI-OQ-032` sekaligus `DEC-INP-001`. Baris ini semula berbunyi "Belum ada"; **dikoreksi 2026-09-02** |
+| `PharmacyManagement` | Pelonggaran resep dan penanda obat pulang | **SUDAH ADA** — sumber, pemberi, dan tanggalnya sama dengan baris di atas. **Dikoreksi 2026-09-02** |
 | `MasterData` | Pembatasan endpoint ketersediaan tempat tidur | **Belum ada** — tidak memblokir, lihat bagian 5 |
 | `EmergencyInstallationManagement` | Serah terima disposisi `RANAP` | **Belum ada** — `DEC-INP-002` |
 | `BillingManagement` | Status kelayakan keuangan | Tidak dibutuhkan pada MVP, diganti penandaan manual `RWI-RULE-028` |
@@ -442,7 +443,7 @@ menyebut pengiriman resume medis. Keduanya belum pernah dibahas. Ini bagian dari
 
 | No | Butir | Status | Dampak | Slice terdampak | Decision ID |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | Persetujuan pemilik `ClinicalManagement` dan `PharmacyManagement` atas pelonggaran antrean dan konsultasi | `MISSING` | `BLOCKING` | `INP-S05`, `INP-S06` | `DEC-INP-001` |
+| 1 | ~~Persetujuan pemilik `ClinicalManagement` dan `PharmacyManagement` atas pelonggaran antrean dan konsultasi~~ | ~~`MISSING`~~ → **`CONFIRMED`** | ~~`BLOCKING`~~ → **tidak memblokir** | `INP-S05`, `INP-S06` | `DEC-INP-001` **TERTUTUP** 2026-08-21 lewat `RWI-DEC-062`; dicatat di sini 2026-09-02 |
 | 2 | Persetujuan pemilik `EmergencyInstallationManagement` atas serah terima disposisi `RANAP` | `MISSING` | `BLOCKING` | `INP-S09` | `DEC-INP-002` |
 | 3 | Persetujuan pemilik privasi dan hukum atas persetujuan umum yang tidak menahan admisi | `PROPOSED` | `BLOCKING` | `INP-S10` | `DEC-INP-003` |
 | 4 | Isolasi dan pemisahan jenis kelamin sebagai penyaring, bukan penolak penempatan | `CONFLICT` | `BLOCKING` | `INP-S11` | `DEC-INP-004` |
@@ -491,6 +492,18 @@ Tujuh Decision ID berikut adalah ambiguitas pemblokir yang bergantung pemilik. G
 **tidak menjawabnya**. Penutupannya diarahkan ke `/grill-me`.
 
 ### `DEC-INP-001`
+
+> **TERTUTUP 2026-08-21 lewat `RWI-DEC-062`. Koreksi dokumen ini dicatat 2026-09-02.**
+>
+> Pemilik `ClinicalManagement` dan `PharmacyManagement` adalah Muhammad Hamzah — pemilik yang sama
+> dengan `RWI-DEC-061` — dan persetujuannya **sudah diberikan**. `RWI-OQ-032` ikut tertutup pada
+> tanggal yang sama. Tabel di bawah dipertahankan apa adanya sebagai jejak pertanyaan aslinya;
+> yang berlaku hari ini adalah blok ini, bukan bunyi pertanyaan di bawahnya.
+>
+> Akibat hilir yang perlu diketahui pembaca: sejak `RWI-DEC-080` (2026-09-02) dokumentasi klinis
+> rawat inap **masuk scope modul**, dan `RWI-DEC-083` memetakannya ke sub-modul `keperawatan/`
+> serta `dokter-rawat-inap/`. Yang menahannya sekarang bersifat teknis — *shared inpatient
+> clinical context resolver* pada `PRD-RWI-FINAL-001` bagian 30.3 — **bukan** keputusan bisnis.
 
 | Field | Isi |
 | --- | --- |
