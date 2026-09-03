@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -132,6 +133,8 @@ internal sealed class PatientEncounterTestWorld
         var controller = new PatientEncounterController(
             dbContext,
             loggerService,
+            new QueueRealtimeService(dbContext, new FakeQueueHubContext(), loggerService),
+            new ClinicalDocumentIntegrityService(dbContext));
             queueRealtimeService,
             integrityService);
 
