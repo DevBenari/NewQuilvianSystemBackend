@@ -5,11 +5,11 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 20
+revision: 21
 status: READY
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-03T21:15:00+07:00
+updated_at: 2026-09-03T22:40:00+07:00
 last_verified_at: null
 backend_source_sha: c12cc57
 backend_branch: sukmagp
@@ -17,7 +17,7 @@ frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 9
+decision_revision: 10
 capability_map_revision: 3
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
@@ -39,6 +39,8 @@ closed_gap_ids:
   - ARCH-BD-GAP-09
   - ARCH-BD-GAP-10
   - OQ-BD-015
+  - OQ-BD-017
+  - OQ-BD-018
   - DEF-BD-004
 contract_versions:
   - version: v1
@@ -114,7 +116,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
-| `decision_revision` | Naik ke `9` sampai Role residue closure pass 3 September 2026. `DEF-BD-004` ditutup seluruhnya oleh `DEC-BD-039`..`DEC-BD-044`. **Tidak ada lagi keputusan bisnis yang memblokir**, dan sejak commit `8075784` **tidak ada lagi dependency teknis yang memblokir**. Penyelarasan pencatatan `G1` diselesaikan pada revisi 20. |
+| `decision_revision` | Naik ke `10` sampai OQ residue closure pass 3 September 2026. `DEF-BD-004` ditutup seluruhnya oleh `DEC-BD-039`..`DEC-BD-044`. **Tidak ada lagi keputusan bisnis yang memblokir**, dan sejak commit `8075784` **tidak ada lagi dependency teknis yang memblokir**. Penyelarasan pencatatan `G1` diselesaikan pada revisi 20. |
 | `contract_versions` | Set kontrak desain **`v4`** berstatus **`approved`** sejak 3 September 2026 (`Sukmagp`), hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
 | `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kini terisi **`Sukmagp` / `2026-09-03`**: desain sudah `approved`. Nama itu berasal dari keterangan owner, bukan disimpulkan dari repository. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
@@ -229,15 +231,14 @@ pemisahan `DEC-BD-043`.
 Yang **tidak** bertambah: nol entity baru, nol tabel baru, nol migration baru, nol endpoint baru.
 `DEC-BD-043` seluruhnya berupa pergantian penjaga pada endpoint yang sudah ada.
 
-⚠️ **Satu pengetatan gerbang yang belum ditegaskan pemilik proses.** `DEC-BD-042` menuntut hasil
-keputusan bukti kecocokan tersimpan. Menyimpannya tanpa memeriksanya di gerbang akan menciptakan lubang
-*fail-open* — bukti bertanda "tidak cocok" membuka gerbang hanya karena ia ada. Rancangan `v4` karena
-itu menuntut hasil **cocok** pada predikat gerbang pemberian (`VAL-BD-079`). Ini penurunan dari
-`DEC-BD-042`, bukan aturan baru, tetapi pemilik proses belum menegaskannya — `OQ-BD-018`. Bila hasil
-keputusan dikehendaki bersifat keterangan saja, pengetatan ini dicabut.
+**Satu pengetatan gerbang yang sempat menunggu penegasan, dan kini sudah ditegaskan.** `DEC-BD-042`
+menuntut hasil keputusan bukti kecocokan tersimpan. Menyimpannya tanpa memeriksanya di gerbang akan
+menciptakan lubang *fail-open* — bukti bertanda "tidak cocok" membuka gerbang hanya karena ia ada.
+Rancangan `v4` karena itu menuntut hasil **cocok** pada predikat gerbang pemberian (`VAL-BD-079`).
+Pemilik proses **menegaskannya pada 3 September 2026** lewat `DEC-BD-046`; lihat catatan penutup.
 
-Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama peran konkret pemegang
-`BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
+Dua pertanyaan terbuka yang sempat menyertai `v4` — `OQ-BD-017` dan `OQ-BD-018` — **keduanya sudah
+ditutup** pada 3 September 2026 oleh `DEC-BD-045` dan `DEC-BD-046`.
 
 **Aktivasi modul 3 September 2026 — `G2b` tertutup.** Commit `8075784` menaikkan Lifecycle registri
 Bank Darah dari `PLANNED` ke **`ACTIVE`**. Changelog registry menyatakan aktivasi itu "membuka wewenang
@@ -347,3 +348,36 @@ builder membaca kontrak, bukan register keputusan — tetapi dicatat supaya tida
 **Approval tidak memberi wewenang eksekusi.** Ia membuka penjadwalan task lewat `build-module-backend`.
 Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap wewenang terpisah
 yang harus diminta per tindakan.
+
+**OQ residue closure pass — 3 September 2026, revisi 21.** `grill-me` menutup dua pertanyaan terbuka
+terakhir yang menempel pada set kontrak `v4`, dan register keputusan naik ke revisi 10.
+
+| Decision | Menutup | Isi |
+| --- | --- | --- |
+| `DEC-BD-045` | `OQ-BD-017` | `BloodUnit : ResolveNotUsable` dipegang **kewenangan operasional BDRS** — peran yang sama dengan `ResolveReturn`. Ketiga butir hak akses **tetap terpisah**; yang sama perannya, bukan butirnya |
+| `DEC-BD-046` | `OQ-BD-018` | Bukti kecocokan bertanda `Incompatible` **menahan** pemberian jalur normal. Gerbang memeriksa **isi** bukti, bukan keberadaannya. `VAL-BD-079` ditegaskan berlaku |
+
+**Set kontrak tetap `v4` dan tetap `approved`.** Kedua keputusan menegaskan rancangan yang sudah ada,
+bukan mengubahnya: nol entity, nol kolom, nol enum, nol endpoint, nol butir hak akses, nol kode
+validasi, dan nol acceptance criteria baru. Keduanya bahkan sudah punya skenario ujinya di
+`testing/acceptance-test-matrix.md` sejak `v4`. Pemeriksaan berkas per berkas ada di
+`00-interview-decisions.md` §8.24.
+
+Revisi blueprint naik ke 21 karena baseline keputusan bergerak — dua keputusan baru menutup dua
+pertanyaan yang manifest ini sendiri lacak — bukan karena arsitektur atau kontrak berubah.
+
+⚠️ **Enam berkas set kontrak masih memuat kalimat placeholder yang menyebut kedua pertanyaan itu sebagai
+terbuka.** Isinya tidak salah secara aturan, tetapi kalimatnya sudah usang:
+
+| Berkas | Baris | Bunyi yang sudah usang |
+| --- | --- | --- |
+| `contracts/permission-audit-matrix.md` | 96, 114 | "nama peran konkretnya belum ditetapkan — `OQ-BD-017`" |
+| `contracts/state-transition-matrix.md` | 70 | "pemegang perannya belum dinamai — `OQ-BD-017`" |
+| `contracts/validation-matrix.md` | 159 | "menunggu penegasan pemilik proses (`OQ-BD-018`)" |
+| `data/data-dictionary.md` | 148 | "menunggu penegasan pemilik proses — `OQ-BD-018`" |
+| `02-backend-architecture.md` | 580, 855–857 | Keduanya masih terdaftar sebagai pertanyaan terbuka pass `v4` |
+| `04-prd-to-mvp.md` | 268, 440 | "satu nama peran menyusul lewat `OQ-BD-017`" |
+
+Keenamnya **milik `design-business-module`**, bukan skill ini, dan penyerapannya adalah pass pendek yang
+hanya mengganti kalimat penunjuk — tanpa mengubah satu pun aturan. Sampai pass itu dijalankan, sumber
+kebenaran untuk kedua pertanyaan adalah `00-interview-decisions.md` revisi 10.

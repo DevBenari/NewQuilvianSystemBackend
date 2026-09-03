@@ -8,7 +8,7 @@
 | Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
 | Backend SHA | `c12cc57` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
-| Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **9** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
+| Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **10** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
 Roadmap ini **tidak** memberi wewenang implementasi, bahkan setelah disetujui. Approval `G1` membuka
@@ -246,8 +246,8 @@ task BE pasangannya.
 | --- | --- | --- |
 | Penyaluran biaya Billing | `DEC-BD-016` `OPEN DECISION` | `AC-BD-027` belum dapat diuji; tidak masuk gelombang mana pun |
 | Nilai jam masa berlaku bukti per komponen | `OQ-BD-012` | **Tidak** menahan task; nilainya dari konfigurasi master saat eksekusi. Selama kosong, gerbang menolak |
-| Nama peran pemegang `BloodUnit : ResolveNotUsable` | `OQ-BD-017` | **Tidak** menahan `BE-BD-009`; menahan **satu baris seeder** pada `BE-BD-016` |
-| Penegasan gerbang hasil bukti kecocokan | `OQ-BD-018` | **Tidak** menahan `BE-BD-007`; rancangan sudah *fail-closed*. Bila pemilik menyatakan hasil bersifat keterangan saja, `VAL-BD-079` dicabut |
+| ~~Nama peran pemegang `BloodUnit : ResolveNotUsable`~~ | `OQ-BD-017` | ✅ **TERTUTUP** `DEC-BD-045` — kewenangan operasional BDRS. Baris seeder `BE-BD-016` sudah ada isinya; butirnya tetap terpisah dari `ResolveReturn` |
+| ~~Penegasan gerbang hasil bukti kecocokan~~ | `OQ-BD-018` | ✅ **TERTUTUP** `DEC-BD-046` — hasil `Incompatible` menahan pemberian jalur normal. `VAL-BD-079` tetap berlaku apa adanya; rancangan *fail-closed* `v4` ditegaskan, bukan diubah |
 | Keadaan kantong setelah koreksi | `OQ-BD-014` | Menahan detail implementasi `BE-BD-010`, bukan bentuknya |
 | Rumah slice resmi `BR-BD-020` | Penilaian kelengkapan requirement masih revisi 2 | Tidak menahan task; `BR-BD-020` diperlakukan sebagai perluasan `BD-SLICE-03/04/10` |
 
@@ -268,9 +268,9 @@ Ketiga gerbang global — `G1` approval, `G2a` penamaan, `G2b` aktivasi — **se
    mendahului** `MVP-3` karena kantong tidak dapat dialokasikan sebelum tersimpan.
 3. FE mengikuti gelombang BE: tidak ada task FE yang mendahului task BE pasangannya, walaupun
    kontraknya sudah `approved` dan terkunci pada `v4`.
-4. Dua pertanyaan terbuka yang layak ditutup sejalan, tanpa menahan siapa pun: `OQ-BD-017` nama peran
-   `ResolveNotUsable` — paling murah ditutup **sebelum** `BE-BD-016` karena ia menahan satu baris
-   seeder — dan `OQ-BD-018` penegasan gerbang hasil bukti kecocokan.
+4. ~~Dua pertanyaan terbuka `OQ-BD-017` dan `OQ-BD-018`.~~ ✅ **Sudah ditutup** 3 September 2026 oleh
+   `DEC-BD-045` dan `DEC-BD-046`, sebelum `BE-BD-016` dijalankan sebagaimana disarankan. Register
+   keputusan kini revisi 10; set kontrak tetap `v4` `approved` tanpa perubahan.
 5. Setiap handoff ke `/build-module-backend` menyelesaikan preflight QBE dan kesesuaian engineering
    **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical.
 6. Setelah satu gelombang selesai, jalankan `/verify-module-readiness` atas bukti `task/report/**`
