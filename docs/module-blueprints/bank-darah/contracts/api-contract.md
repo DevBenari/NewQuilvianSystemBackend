@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 **Seluruh endpoint di bawah berstatus `Rencana (belum tersedia)`** — belum ada di kode. Route & grup

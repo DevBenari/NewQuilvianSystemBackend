@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Sumber | `02-backend-architecture.md` (model) · `contracts/` |
 

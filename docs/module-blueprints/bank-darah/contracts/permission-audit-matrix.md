@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik keamanan platform · pemilik proses BDRS (peran) |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `contracts/api-contract.md` (pemetaan endpoint) · `data/data-dictionary.md` (kolom sensitif) · `BD-CAP-013` |
 
 Dokumen ini **tidak** mendaftar ulang endpoint. Pemetaan endpoint→hak akses hanya hidup di kolom

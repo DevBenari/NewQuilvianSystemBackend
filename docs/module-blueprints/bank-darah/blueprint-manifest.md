@@ -5,13 +5,13 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 18
+revision: 19
 status: PARTIAL
 current_phase: BD-PH-005
 created_at: 2026-09-02T00:40:53+07:00
 updated_at: 2026-09-03T17:00:00+07:00
 last_verified_at: null
-backend_source_sha: ed7fba82efb850e11bfa3b8968d5f75d01280205
+backend_source_sha: 8075784
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -74,6 +74,7 @@ approved_by: null
 approved_at: null
 resolved_dependency_ids:
   - BD-DEP-008
+  - BD-DEP-016
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
@@ -89,7 +90,6 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-  - BD-DEP-016
 active_roadmap_revision: 2
 roadmap_status: FORWARD-TEST
 supersedes: null
@@ -112,7 +112,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
-| `decision_revision` | Naik ke `8` pada Role & authority closure pass 3 September 2026. `DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-041`. **Tidak ada lagi keputusan bisnis yang memblokir.** Pemblokir tersisa dua dan keduanya tindakan manusia: `G1` approval kontrak `v4`, dan `G2b` keputusan aktivasi modul dari `PLANNED` ke `ACTIVE`. |
+| `decision_revision` | Naik ke `9` sampai Role residue closure pass 3 September 2026. `DEF-BD-004` ditutup seluruhnya oleh `DEC-BD-039`..`DEC-BD-044`. **Tidak ada lagi keputusan bisnis yang memblokir**, dan sejak commit `8075784` **tidak ada lagi dependency teknis yang memblokir**. Yang tersisa hanya penyelarasan pencatatan `G1`. |
 | `contract_versions` | Set kontrak desain **`v4`** berstatus `draft`, hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
 | `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
@@ -235,8 +235,29 @@ keputusan dikehendaki bersifat keterangan saja, pengetatan ini dicabut.
 Dua pertanyaan terbuka, keduanya **tidak memblokir rancangan**: `OQ-BD-017` nama peran konkret pemegang
 `BloodUnit : ResolveNotUsable` (menahan satu baris seeder), dan `OQ-BD-018` di atas.
 
-Pemblokir yang tersisa tinggal **dua, keduanya tindakan manusia**: `G1` approval kontrak `v4`, dan
-`G2b` keputusan aktivasi modul (`BD-DEP-016`). Approval manusia belum diklaim.
+**Aktivasi modul 3 September 2026 — `G2b` tertutup.** Commit `8075784` menaikkan Lifecycle registri
+Bank Darah dari `PLANNED` ke **`ACTIVE`**. Changelog registry menyatakan aktivasi itu "membuka wewenang
+implementasi entity operasional `Bbk*` sesuai `QBE-MOD-002`", dengan catatan bahwa eksekusi database di
+luar dev pemilik dan deployment tetap wewenang terpisah.
+
+Dengan itu **seluruh dependency teknis Bank Darah tertutup**: `BD-DEP-008` penamaan dan `BD-DEP-016`
+aktivasi. Tidak ada lagi gerbang registry yang menahan.
+
+⚠️ **Pencatatan `G1` bertentangan dan belum dapat diselesaikan tanpa keterangan owner.** Changelog
+registry menyebut aktivasi didasarkan pada "persetujuan owner Bank Darah dan **approval blueprint
+`BD-BP-001` contract `v4`**". Namun di dalam blueprint sendiri:
+
+| Tempat | Isi sekarang |
+| --- | --- |
+| `blueprint-manifest.md` | `approved_by: null`, `approved_at: null` |
+| `contract_versions` | `v4` berstatus `draft` |
+| Delapan artefak kontrak | Baris approval-nya masih berbunyi "Kosong — `draft`" |
+
+Salah satu dari dua hal benar: approval memang sudah turun tetapi belum dicatat di blueprint, atau
+changelog registry mendahului approval yang sebenarnya belum ada. **Skill ini tidak mengisi
+`approved_by`/`approved_at` sendiri** — nama penyetuju dan tanggalnya hanya diketahui owner, dan
+mengarangnya berarti memalsukan rekam keputusan manusia. Pertanyaannya dikembalikan kepada pemilik
+proses BDRS bersama pemilik arsitektur backend.
 
 **Rekonsiliasi 3 September 2026.** Seluruh artefak Bank Darah disapu dan diselaraskan atas penutupan
 `BD-DEP-008`: sembilan berkas yang masih menyatakan "prefix belum terdaftar" atau "BD-DEP-008 blocker

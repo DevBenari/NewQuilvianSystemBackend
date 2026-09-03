@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `00-interview-decisions.md` revisi 4 (INV/AC) · `03-domain-architecture.md` revisi 3 |
 
 Pesan ditulis dalam Bahasa Indonesia yang dipahami pengguna, **bukan** istilah teknis. Kolom "Kode

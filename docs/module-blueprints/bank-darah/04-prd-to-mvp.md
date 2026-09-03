@@ -11,7 +11,7 @@
 | Commit SHA baseline | backend `ab39b63` · frontend `afbb8ab` |
 | Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 9 |
 | Ringkasan cakupan | MVP mencatat pemenuhan darah pasien dari order sampai kantong diberikan/diselesaikan, **tanpa** charge Billing, label cetak, dan integrasi luar |
-| `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
 ## 2. Ringkasan eksekutif
 
@@ -389,8 +389,8 @@ Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemet
 | Pemberian tak dapat dihapus; koreksi append-only | `UAT-06`, `AC-BD-047/048/049` | Belum |
 | Tiga daftar kerja tersedia | `AC-BD-008` + `FE-BD-01/04` | Belum |
 | Seluruh master MVP terisi | `02-backend-architecture.md` §J | Belum |
-| Prefix `Bbk` terdaftar registry | `BD-DEP-008` | **Sudah** — 3 September 2026, Lifecycle `PLANNED` |
-| Modul diaktifkan (`PLANNED` → `ACTIVE`) | `BD-DEP-016` | Belum |
+| Prefix `Bbk` terdaftar registry | `BD-DEP-008` | **Sudah** — 3 September 2026 |
+| Modul diaktifkan (`PLANNED` → `ACTIVE`) | `BD-DEP-016` | **Sudah** — 3 September 2026, commit `8075784` |
 
 ## 20. Urutan pengiriman dan pertanyaan terbuka
 
@@ -428,16 +428,16 @@ sempat terbuka sudah ditutup `DEC-BD-037` dan `DEC-BD-038`. Yang ditambahkan han
 prasyarat operasional di atas: master lokasi wajib terisi sebelum go-live.
 
 **Status dokumen `draft`.** Pemblokir berkurang dari dua menjadi **satu**: `DEF-BD-004` ditutup
-`DEC-BD-039` sampai `DEC-BD-041` pada `v3`. `BD-DEP-008` pendaftaran prefix **juga sudah tertutup**
-pada 3 September 2026. Yang tersisa **`BD-DEP-016`** — keputusan aktivasi modul dari Lifecycle
-`PLANNED` ke `ACTIVE`. Itu administratif, pemiliknya registry engineering, dan bukan keputusan bisnis.
+`DEC-BD-039` sampai `DEC-BD-041` pada `v3`. `BD-DEP-008` pendaftaran prefix dan `BD-DEP-016` aktivasi
+modul **keduanya sudah tertutup** pada 3 September 2026. **Tidak ada lagi pemblokir dependency.**
+Yang tersisa hanya penyelarasan pencatatan approval desain (`G1`).
 
-Selama `BD-DEP-016` belum beres, entity operasional `Bbk*` belum berwenang dibuat, sehingga gelombang
-`MVP-1` sampai `MVP-4` tidak dapat dimulai. **`MVP-0` tidak terkena** — seluruhnya master `Mst*` yang
-prefiksnya berstatus `ACTIVE` di registry. Penamaan `Bbk*` sendiri sudah tidak menahan apa pun.
+`BD-DEP-016` sudah beres, sehingga entity operasional `Bbk*` kini berwenang dibuat dan gelombang
+`MVP-1` sampai `MVP-4` tidak lagi tertahan dependency. Yang masih menahan seluruh gelombang hanyalah
+pencatatan approval desain (`G1`) yang belum selaras antara changelog registry dan blueprint.
 
 Sisa `DEF-BD-004` — tiga peran yang belum dipetakan — **tidak** ditandai memblokir. Ketiga alurnya sudah
 dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya isi seeder hak akses, dan itu
-dapat diselesaikan sejalan dengan `BD-DEP-016` lewat satu closure pass yang pendek.
+dapat diselesaikan lewat satu closure pass yang pendek.
 
 Approval manusia belum diklaim.

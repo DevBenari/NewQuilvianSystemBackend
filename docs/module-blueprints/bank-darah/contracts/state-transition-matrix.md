@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS (lifecycle operasional) · pemilik proses klinis (golongan darah) |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `03-domain-architecture.md` revisi 6 §G · `00-interview-decisions.md` revisi 9 §5 |
 | Nama status | **Nama teknis enum** (bagian F backend). Node status pada `flowcharts/` **MUST** memakai nama yang sama persis |
 

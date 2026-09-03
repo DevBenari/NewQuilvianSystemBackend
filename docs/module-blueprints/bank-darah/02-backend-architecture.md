@@ -6,7 +6,7 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Blueprint revision | `13` |
-| Contract version | `v4` — status `draft` |
+| Contract version | `v4` — status **`approved`** |
 | `last_changed_in` | `v4` |
 | Modul | Bank Darah (`bank-darah`) · Area `HealthServices` · Module `BloodBankManagement` (baru) |
 | Tanggal | `2026-09-02` |
@@ -16,7 +16,7 @@
 | Sumber arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` |
 | Pass ini | `v4` — penyerapan role residue closure (`DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`) |
 | Owner | Product/domain: pemilik proses BDRS · API: pemilik arsitektur backend · Security: pemilik keamanan platform · Frontend authority: pemilik proses BDRS |
-| `approved_by` / `approved_at` | Kosong — desain ini `draft`, approval tetap tindakan manusia |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
 ### Jejak requirement-ke-domain yang dipatuhi
 
@@ -75,7 +75,7 @@ adalah registry kepemilikan modul. **Bank Darah kini terdaftar di sana**, commit
 
 | Area | Module/pemilik | Category | Prefix | Lifecycle |
 | --- | --- | --- | --- | --- |
-| `HealthServices` | `BloodBankManagement / Blood Bank` | `BUSINESS DOMAIN / MODULE` | **`Bbk`** | **`PLANNED`** |
+| `HealthServices` | `BloodBankManagement / Blood Bank` | `BUSINESS DOMAIN / MODULE` | **`Bbk`** | **`ACTIVE`** |
 
 Prefix yang disahkan **persis `Bbk`**, sama dengan yang diajukan blueprint sejak `v1`. Karena itu:
 
@@ -85,11 +85,13 @@ Prefix yang disahkan **persis `Bbk`**, sama dengan yang diajukan blueprint sejak
 - `QBE-NAM-004` terpenuhi: prefix berasal dari registry, bukan disimpulkan dari nama folder.
 - Blueprint ini tetap **MUST NOT** memakai `Trx*` sebagai jalan pintas (`QBE-NAM-001`).
 
-⚠️ **Lifecycle `PLANNED` bukan izin implementasi.** Kepala registry menyatakan bahwa persetujuannya
-"hanya memberi wewenang penamaan dan kepemilikan" dan **tidak** memberi wewenang implementasi,
-migration, pekerjaan database, deployment, maupun aktivasi modul berstatus `PLANNED`. Pembuatan entity
-operasional `Bbk*` karena itu tetap menunggu **keputusan aktivasi modul** (`BD-DEP-016`,
-gerbang `G2b` pada roadmap), bukan lagi menunggu pendaftaran prefix.
+**Lifecycle dinaikkan ke `ACTIVE`** pada 3 September 2026 lewat commit `8075784`. Changelog registry
+menyatakan aktivasi itu "membuka wewenang implementasi entity operasional `Bbk*` sesuai `QBE-MOD-002`".
+Dengan itu `BD-DEP-016` tertutup dan **tidak ada lagi gerbang registry yang menahan** pembuatan entity
+operasional maupun migration modul.
+
+Dua batas tetap berlaku dan disebut changelog registry sendiri: **eksekusi database di luar dev
+pemilik** dan **deployment** adalah wewenang terpisah, bukan bagian dari aktivasi ini.
 
 Prefix master tetap `Mst`, berstatus `ACTIVE` di registry, dan tidak pernah terikat pengajuan ini.
 

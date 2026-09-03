@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis (pembeda golongan darah) |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `contracts/api-contract.md` · `contracts/permission-audit-matrix.md` · `00-interview-decisions.md` §7 (`FE-BD-001`..`009`) |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 

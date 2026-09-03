@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v2` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v2` — **`approved`** (isinya tidak bergerak sejak `v2`; ikut disetujui sebagai bagian set `v4`) |
 | `last_changed_in` | `v2` |
 | Owner | Pemilik arsitektur backend · pemilik BillingManagement (batas biaya) |
-| `approved_by` / `approved_at` | Kosong — `draft` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `03-domain-architecture.md` revisi 6 §J · `02-existing-capability-map.md` revisi 2 |
 
 Dokumen ini menetapkan batas baca/tulis Bank Darah terhadap modul lain. Bank Darah **hanya membaca**

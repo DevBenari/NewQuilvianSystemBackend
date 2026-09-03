@@ -6,7 +6,7 @@
 | Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
 | **Roadmap status** | **`FORWARD-TEST / DRAFT`** — set kontrak `v4` masih `draft`; seluruh task gated `G1` |
 | Contract version yang dipakai | **`v4`** (`draft`) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | `ed7fba82efb850e11bfa3b8968d5f75d01280205` cabang `sukmagp` |
+| Backend SHA | `8075784` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **9** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
@@ -41,7 +41,7 @@ Storage Location kini punya keputusan, konsep domain (`BD-DOM-24`, `BD-DOM-25`),
 | --- | --- | --- | --- |
 | `G1` Approval desain | Owner menyetujui blueprint & set kontrak `v4` (`draft`) | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE |
 | ~~`G2a` `BD-DEP-008`~~ | Pendaftaran prefix `Bbk` di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `ed7fba8`. Prefix yang disahkan **persis `Bbk`** |
-| **`G2b`** `BD-DEP-016` | Keputusan aktivasi modul: Lifecycle registri `PLANNED` → `ACTIVE` | Pemilik registry engineering | Seluruh task yang membuat **entity operasional `Bbk*`** dan migration-nya |
+| ~~`G2b` `BD-DEP-016`~~ | Keputusan aktivasi modul: Lifecycle registri `PLANNED` → `ACTIVE` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `8075784`. Membuka wewenang entity operasional `Bbk*` dan migration modul |
 
 **`G3` revisi 1 dihapus.** Ia menahan seeding peran sampai `DEF-BD-004` turun. `DEC-BD-039` sampai
 `DEC-BD-044` sudah memetakan keenam wewenangnya, sehingga tidak ada lagi task yang menunggunya.
