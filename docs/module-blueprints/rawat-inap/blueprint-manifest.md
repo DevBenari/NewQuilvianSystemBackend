@@ -11,7 +11,7 @@ sub-modul itu sendiri.
 | `revision` | `5` |
 | `blueprint_shape` | **`COMPOSITE`** — ditetapkan `RWI-DEC-082` 2026-09-02 |
 | `shape_decided_by` | **`USER_CONFIRMED`** — Muhammad Hamzah; agent menyarankan, pemilik memutuskan |
-| `status` | **`partial`** — **diturunkan, bukan ditulis tangan.** Dua sub-modul `approved` (`episode-rawat-inap`, `dokter-rawat-inap`), satu `draft` (`keperawatan`). Lihat bagian 1 |
+| `status` | **`approved`** — **diturunkan, bukan ditulis tangan.** Sejak `RWI-DEC-092` pada 2026-09-03, **ketiga sub-modul `approved`**. Lihat bagian 1.1 |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
 | `design_snapshot_at` | `2026-09-02` untuk revision `5`; `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
@@ -22,7 +22,7 @@ sub-modul itu sendiri.
 | `last_focused_requirement_gate` | `2026-09-02`, revision `1.3`; seluruh tujuh capability Dokter Rawat Inap `READY_FOR_DOMAIN_DESIGN`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085`. Overall modul tetap `PARTIALLY_READY` karena slice lain tidak dinilai ulang |
 | `baseline_requirement` | **`PRD-RWI-FINAL-001` v1.0.0** — `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`. **Menggantikan batas scope revision `4`** lewat `RWI-DEC-080`. Scope modul menjadi **28 kemampuan** `CAP-001` s.d. `CAP-028` |
 | `owners` | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; jabatan formal belum diisi. Clinical governance: **sebagian terisi** — keputusan isolasi dan jenis kelamin diambil pemilik yang sama lewat `RWI-DEC-064`, cakupan peran selebihnya belum dinyatakan. Security/Privacy: `OPEN`. API dan Frontend authority: sesuai decision log |
-| `approved_by` | **Per sub-modul.** Tidak ada approval tingkat modul selama status modul `partial` |
+| `approved_by` | **Per sub-modul.** `episode-rawat-inap` 2026-08-24, `dokter-rawat-inap` 2026-09-03, `keperawatan` 2026-09-03 — seluruhnya Muhammad Hamzah |
 | `approved_at` | — lihat registry bagian 1 |
 | `requirement_readiness` | `PARTIALLY_READY` |
 | `domain_architecture_revision` | `0.2` — amendment Dokter Rawat Inap, 2026-09-02 |
@@ -116,16 +116,18 @@ submodules:
     prefix: BE-RWI / FE-RWI
     kemampuan: 5
     uji_pemecahan: 3/5
-    status: draft
-    approved_by: null
-    approved_at: null
+    status: approved
+    approved_by: Muhammad Hamzah
+    approved_at: 2026-09-03
     contract_versions: 0.3.0
     designed_at: 2026-09-02
     amended_at: 2026-09-02
     catatan: dirancang lalu diamandemen menyerap RWI-DEC-089; CAP-016 kini DEFERRED dan RWI-OQ-048
       tertutup. Roadmap DRAFT/FORWARD_TEST sudah ditulis 2026-09-02: 11 task backend dan 6 task
       frontend, seluruhnya BLOCKED menunggu approval blueprint sub-modul ini.
-      Satu butir konsistensi baru menunggu /qv-grill sebelum EPIC KEP-01 s.d. KEP-04 dibangun
+      Butir konsistensi mesin koreksi ditutup RWI-DEC-091. Disetujui RWI-DEC-092 pada 2026-09-03;
+      roadmap kini DRAFT_STALE dan wajib ditulis ulang /qv-plan menjadi revision 2 berstatus APPROVED
+      sebelum satu pun task dikirim ke builder
   - slug: dokter-rawat-inap
     prefix: BE-RWI / FE-RWI
     kemampuan: 7
@@ -141,7 +143,7 @@ submodules:
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
 |---|---|:---:|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | `approved` | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
-| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` — dirancang 2026-09-02, **diamandemen 2026-09-02** menyerap `RWI-DEC-089`. `CAP-016` `DEFERRED`; gerbang `/qv-plan` **terbuka** | [manifest](./keperawatan/blueprint-manifest.md) |
+| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | **`approved`** — Muhammad Hamzah, 2026-09-03, lewat `RWI-DEC-092`. `CAP-016` `DEFERRED`; roadmap wajib ditulis ulang `/qv-plan` revision `2` | [manifest](./keperawatan/blueprint-manifest.md) |
 | [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | **`approved`** — disetujui Muhammad Hamzah 2026-09-03; revision `0.3`, kontrak `0.3.0`; siap `plan-module-delivery` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
@@ -155,7 +157,7 @@ tangan. Aturannya:
 | **Campur** | **`partial`** |
 | Belum ada yang jalan | `draft` |
 
-Hari ini: satu `approved` + dua `draft` = **`partial`**. Menuliskannya tangan akan membuat modul
+Hari ini: **tiga `approved` + nol `draft`** = **`approved`**. Menuliskannya tangan akan membuat modul
 dapat terlihat `approved` sementara dua sub-modulnya belum dirancang sama sekali.
 
 ### 1.2 Dua sub-modul baru `draft`, bukan `BLOCKED`
@@ -177,7 +179,7 @@ pada manifest sub-modulnya.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`00-interview-decisions.md`](./00-interview-decisions.md) | `13` | `draft / Amendment Pass approval Keperawatan` | `42350601814d8f8462296e1bac39676bca023acd33d563e164f5869e3253fc9a` |
+| [`00-interview-decisions.md`](./00-interview-decisions.md) | `14` | `draft / Amendment Pass approval Keperawatan` | `2684bfe93ac4338e12a2229fbef0d7378a93a3f175d91f8adf2dab70f210f030` |
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) | `1.3` | `source-audited / focused-impact-scan` | `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
 | [`02-module-map.md`](./02-module-map.md) | `1` | `draft` — bagian dokter **diamendemen 2026-09-02**: gelombang migration M0, nama `CliPhysicianVisit`, Radiologi masuk MVP, dan satu butir menu ter-commit yang wajib dicabut | `29c761eed6a3fdc3a4d76c2803fde6e956a19784c4b3a14fc27d30e81e5a5d08` |
 | [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.4` | `CURRENT / focused keperawatan INP-S16` | `03bdcb31d8bb51478e2b9cf8a78392bd0c0b2e0ca5a60de79e566e5b9c5f2f9c` |

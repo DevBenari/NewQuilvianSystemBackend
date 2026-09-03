@@ -128,6 +128,61 @@ roadmap ini.
 
 **Nol gelombang memuat epic `OPEN DECISION`**, karena sub-modul ini memang tidak punya satu pun.
 
+### Urutan dependency
+
+Grafik di bawah adalah **tampilan lain dari kolom `Dependency` pada bagian 4**, bukan sumber
+kebenaran baru. Bila keduanya berbeda, kolom `Dependency` pada tabel task yang berlaku.
+
+```text
+BE-RWI-037 (perbaikan jalur tanpa antrean)
+   └── BE-RWI-039 (service konteks klinis)
+          ├── BE-RWI-040 (kolom konteks pada empat tabel klinis)
+          │      └── BE-RWI-041 (tabel visite)
+          └── BE-RWI-042 (konteks pada resep dan pesanan penunjang)
+                 └── BE-RWI-043 (pelonggaran satu catatan dan satu resep)
+                        └── BE-RWI-044 (pintu masuk dokter)                 + BE-RWI-040
+                               ├── BE-RWI-045 (kajian medis awal)
+                               ├── BE-RWI-046 (catatan harian)
+                               │      ├── BE-RWI-047 (koreksi catatan lama) + BE-RWI-038
+                               │      └── BE-RWI-053 (verifikasi DPJP)      + BE-RWI-040
+                               ├── BE-RWI-048 (visite sebagai kejadian)     + BE-RWI-041
+                               │      ├── BE-RWI-049 (pembatalan visite)
+                               │      └── BE-RWI-051 (tindakan dokter)      + BE-RWI-040
+                               ├── BE-RWI-050 (resep berulang dan obat pulang)
+                               └── BE-RWI-052 (lab dan radiologi)
+
+BE-RWI-038 (pendaftaran dokumen ke mesin keutuhan) ─────> BE-RWI-047
+```
+
+Tanda `+` berarti **dependency tambahan** yang tidak terlihat dari garis induknya. Contoh:
+`BE-RWI-048` digambar di bawah `BE-RWI-044`, tetapi juga menunggu `BE-RWI-041` karena tabel
+visitenya lahir di sana.
+
+**Dua akar yang tidak saling menunggu.** `BE-RWI-037` dan `BE-RWI-038` sama-sama tidak punya
+dependency dan **boleh dikerjakan orang berbeda sejak hari pertama**. Keduanya baru bertemu di
+`BE-RWI-047`. Tabel gelombang menempatkan keduanya berurutan (`DOK-MVP-0` lalu `DOK-MVP-0b`), tetapi
+urutan itu urusan penomoran gelombang, bukan dependency teknis.
+
+**Yang boleh paralel.**
+
+| Setelah selesai | Yang lepas bersamaan | Kenapa tidak saling menunggu |
+| --- | --- | --- |
+| `BE-RWI-039` | `BE-RWI-040`, `BE-RWI-042` | Menyentuh tabel yang berbeda; keduanya hanya butuh service konteks |
+| `BE-RWI-044` | `BE-RWI-045`, `BE-RWI-046`, `BE-RWI-048`, `BE-RWI-050`, `BE-RWI-052` | Lima kemampuan berbeda di atas satu pintu masuk yang sama. `BE-RWI-048` menunggu `BE-RWI-041` lebih dulu |
+| `BE-RWI-046` | `BE-RWI-047`, `BE-RWI-053` | Koreksi dan verifikasi tidak saling menyentuh. `BE-RWI-047` menunggu `BE-RWI-038` |
+| `BE-RWI-048` | `BE-RWI-049`, `BE-RWI-051` | Pembatalan visite dan tindakan dokter berdiri sendiri |
+
+**Tiga task yang menahan paling banyak.** `BE-RWI-039` menahan empat belas task sesudahnya;
+`BE-RWI-040` menahan empat jalur berbeda (`041`, `044`, `051`, `053`); `BE-RWI-044` menahan sembilan
+task. Keterlambatan pada ketiganya berbiaya jauh lebih besar daripada keterlambatan di mana pun.
+
+**Paralel tidak berarti bebas jadwal.** Seluruh task di atas berjalan di dalam modul milik orang
+lain — peringatan pertama bagian 0. Urutan dependency menyatakan **apa yang secara teknis boleh
+dimulai**, sedangkan **kapan** dikerjakan tetap wewenang pemilik `ClinicalManagement`,
+`PharmacyManagement`, `LaboratoryManagement`, dan `RadiologyManagement`. `BE-RWI-039` dan
+`BE-RWI-040` juga dipakai bersama sub-modul `keperawatan` lewat `INT-DOK-09`: siapa pun yang mendarat
+lebih dulu membuatnya, dan yang kedua menerima baris dependency, bukan salinan task.
+
 ---
 
 ## 4. Task
