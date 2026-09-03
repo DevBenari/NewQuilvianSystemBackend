@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -62,13 +63,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly DoctorConsultationLifecycleService _doctorConsultationLifecycleService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
 
+        // RJ-DOC-BE-001. Jalur antrean memakai implementasi finalisasi yang sama dengan endpoint
+        // konsultasi canonical. Dependency-nya service, bukan controller.
+        private readonly ConsultationFinalizationService _consultationFinalizationService;
+
         public DoctorQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueVoiceService queueVoiceService,
             QueueRealtimeService queueRealtimeService,
             DoctorConsultationLifecycleService doctorConsultationLifecycleService,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            ConsultationFinalizationService consultationFinalizationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -76,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _queueRealtimeService = queueRealtimeService;
             _doctorConsultationLifecycleService = doctorConsultationLifecycleService;
             _integrityService = integrityService;
+            _consultationFinalizationService = consultationFinalizationService;
         }
 
         [HttpGet("filters/metadata")]
@@ -440,7 +447,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("{id:guid}/finish-consultation")]
         [AccessAction("Update", "Finish Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> FinishConsultation(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
+        /// <summary>
+        /// Jalur kompatibilitas penyelesaian konsultasi dari antrean.
+        ///
+        /// <c>RJ-DOC-BE-001</c>. Route ini <b>tidak lagi</b> memiliki logika finalisasi klinis
+        /// sendiri. Sebelumnya ia menutup antrean dan kunjungan tanpa pernah menyentuh
+        /// <c>TrxDoctorConsultation</c>, sehingga konsultasi tertinggal di <c>InProgress</c>,
+        /// resep tidak pernah difinalkan, dan tidak satu pun fakta klinis diserahkan.
+        ///
+        /// Sekarang ia mendelegasikan finalisasi ke <see cref="ConsultationFinalizationService"/>
+        /// — implementasi domain yang sama dengan
+        /// <c>PATCH /doctor-consultations/{id}/complete</c> — lalu menambahkan efek operasional
+        /// yang memang milik antrean. Kontrak: <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.10.
+        /// </summary>
+        public async Task<IActionResult> FinishConsultation(
+            Guid id,
+            [FromBody] DoctorQueueActionRequest? request = null,
+            CancellationToken cancellationToken = default)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
@@ -448,37 +471,93 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (queue.QueueStatus != QueueStatus.InConsultation)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Konsultasi dokter belum dimulai."));
 
+            // Identitas konsultasi diresolusi server dari antrean. Client tidak pernah mengirim
+            // consultationId ke route ini, sehingga tidak ada ID relasi yang perlu dipercaya.
+            var consultation = await _doctorConsultationLifecycleService
+                .ResolveFinalizableForQueueAsync(queue.Id, queue.EncounterId, cancellationToken);
+
+            if (consultation == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Konsultasi dokter yang dapat diselesaikan untuk antrean ini tidak ditemukan."));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            queue.QueueStatus = QueueStatus.Completed;
-            queue.ConsultationCompletedAt = now;
-            queue.CompletedAt = now;
-            queue.CompletedByUserId = actorUserId;
+            // Catatan antrean adalah efek milik antrean, bukan milik konsultasi. Ia ditulis pada
+            // entity yang sudah dilacak, lalu ikut commit transaksi finalisasi di bawah — atau
+            // ikut batal bila finalisasi ditolak.
             queue.Notes = MergeNotes(queue.Notes, request?.Notes);
-            queue.UpdateDateTime = now;
-            queue.UpdateBy = actorUserId;
 
             if (queue.Encounter != null)
             {
-                queue.Encounter.EncounterStatus = EncounterStatus.Completed;
-                queue.Encounter.CompletedAt = now;
-                queue.Encounter.UpdateDateTime = now;
-                queue.Encounter.UpdateBy = actorUserId;
-
                 // RM-DEC-003 lapis kedua — catatan klinis yang belum ditandatangani terkunci
-                // otomatis saat kunjungan selesai. Ini jalur penyelesaian kunjungan yang paling
-                // sering dipakai, sehingga pemicunya tidak boleh hanya dipasang pada endpoint
-                // perubahan status umum.
+                // otomatis saat konsultasi dokter diselesaikan. Ini jalur penyelesaian yang
+                // paling sering dipakai, sehingga pemicunya tidak boleh hanya dipasang pada
+                // endpoint perubahan status umum.
                 //
-                // Penguncian ikut SaveChanges di bawah, sehingga bila gagal, penyelesaian
-                // konsultasi ikut dibatalkan.
+                // Service ini tidak menyimpan sendiri; penguncian ikut transaksi finalisasi,
+                // sehingga bila finalisasi gagal, penguncian ikut dibatalkan.
                 await _integrityService.LockOpenDocumentsForEncounterAsync(
-                    queue.Encounter.Id, actorUserId, now, now);
+                    queue.Encounter.Id, actorUserId, now, now, cancellationToken: cancellationToken);
             }
 
-            await _dbContext.SaveChangesAsync();
+            // Status konsultasi, CompletedAt, CompletedByUserId, finalisasi resep, penyerahan
+            // fakta klinis, status antrean, dan EncounterStatus = ConsultationCompleted
+            // seluruhnya milik service canonical. Jangan menduplikasinya di sini.
+            var result = await _consultationFinalizationService.FinalizeAsync(
+                consultation.Id,
+                new FinalizeDoctorConsultationRequest
+                {
+                    // Warning tidak pernah di-acknowledge otomatis dari jalur antrean.
+                    // Kontrak RJ-DOC-COMPLETION-001@1.0.0 bagian 1.5: konfirmasi warning adalah
+                    // tindakan sadar dokter, dan route ini belum memiliki permukaan untuk itu.
+                    AcknowledgedWarningKeys = new List<string>(),
+                    FinalizationNote = NormalizeNullableText(request?.Notes)
+                },
+                actorUserId,
+                cancellationToken);
+
+            if (result.IsConflict)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    result.ErrorMessage ?? "Data konsultasi telah berubah."));
+            }
+
+            if (!result.IsSuccess)
+            {
+                if (result.Validation != null)
+                {
+                    return BadRequest(ApiResponse<ConsultationFinalizationValidationResponse>.Ok(
+                        result.Validation,
+                        result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."));
+            }
+
             await _queueRealtimeService.NotifyQueueConsultationFinishedAsync(queue, actorUserId, "Konsultasi dokter selesai.");
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorQueue.FinishConsultation",
+                "Menyelesaikan konsultasi dokter melalui jalur antrean.",
+                new
+                {
+                    QueueId = queue.Id,
+                    ConsultationId = consultation.Id,
+                    queue.EncounterId,
+                    UserId = actorUserId,
+                    result.Data!.CompletedAt,
+                    result.Data.FinalizedPrescriptionCount,
+                    result.Data.FinalizedProcedureCount,
+                    BillingHandoffIssueCount = result.Data.BillingHandoffIssues.Count
+                });
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Konsultasi dokter selesai."), "Konsultasi dokter selesai."));
         }

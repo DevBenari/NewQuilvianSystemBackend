@@ -29,6 +29,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         [Required]
         public Guid ProcedureId { get; set; }
 
+        /// <summary>
+        /// Disiplin yang menaungi pesanan ini — Patologi Klinik, Patologi Anatomi, atau
+        /// Mikrobiologi (<c>LAB-DEC-025</c>).
+        ///
+        /// Nilainya ditetapkan sekali pada saat pesanan dibuat dan tidak dapat berpindah
+        /// sesudahnya (<c>INV-21</c>). Larangan itu ditegakkan pada
+        /// <c>LabOrderConfiguration</c> lewat <c>PropertySaveBehavior.Throw</c>, bukan hanya
+        /// lewat ketiadaan endpoint yang mengubahnya.
+        ///
+        /// Boleh kosong semata-mata karena pesanan yang sudah terlanjur ada sebelum kolom ini
+        /// dibuat memang tidak pernah punya disiplin. Pesanan baru selalu diminta membawanya.
+        /// </summary>
+        public LabDiscipline? Discipline { get; set; }
+
         public LabOrderStatus OrderStatus { get; set; } = LabOrderStatus.Requested;
 
         /// <summary>

@@ -1,128 +1,135 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
 
-		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
-		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-		<DockerfileContext>.</DockerfileContext>
-		<PlatformTarget>x64</PlatformTarget>
-		<DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
-	</PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+    <PlatformTarget>x64</PlatformTarget>
+    <!--
+      Seluruh project test berada di Tests\ dan bukan bagian dari project web ini.
+      Karena SDK Web mengikutsertakan seluruh berkas di bawah root secara otomatis, folder
+      Tests\ wajib dikecualikan agar tidak ikut terkompilasi ke dalam aplikasi. Satu baris
+      DefaultItemExcludes berlaku untuk Compile, Content, EmbeddedResource, dan None sekaligus.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tests\**;QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
 
-	<PropertyGroup>
-		<ExcludeEfMigrationMetadata
-		  Condition="'$(ExcludeEfMigrationMetadata)' == ''">false</ExcludeEfMigrationMetadata>
-	</PropertyGroup>
+    <!--
+      Berkas dokumentasi XML dihasilkan supaya keterangan pada controller dan DTO ikut tampil
+      di halaman Swagger. Diaktifkan pada BE-18 modul Rekam Medis, karena beberapa perubahan
+      perilaku wajib terbaca pemakai API dan tidak terlihat dari bentuk permintaan maupun
+      responsnya.
 
-	<ItemGroup Condition="'$(ExcludeEfMigrationMetadata)' == 'true'">
-		<Compile Remove="Migrations/**/*.Designer.cs" />
-		<Compile Remove="Migrations/ApplicationDbContextModelSnapshot.cs" />
-	</ItemGroup>
+      1591 disenyapkan dengan sadar: peringatan itu menuntut komentar XML pada SETIAP anggota
+      publik di seluruh aplikasi. Menyalakannya akan menghasilkan ribuan peringatan yang
+      menenggelamkan peringatan sungguhan, tanpa membuat dokumentasinya lebih baik.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<Compile Remove="QuilvianSystemBackend.Tests\**" />
-		<Compile Remove="Tests\**" />
-		<Content Remove="Tests\**" />
-		<Compile Remove="Areas\HealthServices\DeviceManagement\**" />
-		<Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-		<Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-		<Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-		<Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-		<Compile Remove="Areas\SelfServices\Models\**" />
-		<Compile Remove="Areas\SelfServices\Views\**" />
-		<Compile Remove="QuilvianSystemBackend.Tests\**" />
-		<Content Remove="QuilvianSystemBackend.Tests\**" />
-		<Content Remove="Areas\HealthServices\DeviceManagement\**" />
-		<Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-		<Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-		<Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-		<Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-		<Content Remove="Areas\SelfServices\Models\**" />
-		<Content Remove="Areas\SelfServices\Views\**" />
-		<Content Remove="QuilvianSystemBackend.Tests\**" />
-		<EmbeddedResource Remove="QuilvianSystemBackend.Tests\**" />
-		<EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
-		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-		<EmbeddedResource Remove="Areas\SelfServices\Models\**" />
-		<EmbeddedResource Remove="Areas\SelfServices\Views\**" />
-		<None Remove="QuilvianSystemBackend.Tests\**" />
-		<None Remove="Areas\HealthServices\DeviceManagement\**" />
-		<None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-		<None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-		<None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-		<None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-		<None Remove="Areas\SelfServices\Models\**" />
-		<None Remove="Areas\SelfServices\Views\**" />
-		<None Remove="QuilvianSystemBackend.Tests\**" />
-	</ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <Compile Remove="Areas\SelfServices\Models\**" />
+    <Compile Remove="Areas\SelfServices\Views\**" />
+    <Content Remove="Areas\HealthServices\DeviceManagement\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <Content Remove="Areas\SelfServices\Models\**" />
+    <Content Remove="Areas\SelfServices\Views\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <EmbeddedResource Remove="Areas\SelfServices\Models\**" />
+    <EmbeddedResource Remove="Areas\SelfServices\Views\**" />
+    <None Remove="Areas\HealthServices\DeviceManagement\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <None Remove="Areas\SelfServices\Models\**" />
+    <None Remove="Areas\SelfServices\Views\**" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
-		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
+  <ItemGroup>
+  <Compile Remove="QuilvianSystemBackend.Tests\**" />
+  <Content Remove="QuilvianSystemBackend.Tests\**" />
+  <EmbeddedResource Remove="QuilvianSystemBackend.Tests\**" />
+  <None Remove="QuilvianSystemBackend.Tests\**" />
+</ItemGroup>
 
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
-		<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
 
-		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
-		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
 
-		<PackageReference Include="QRCoder" Version="1.8.0" />
-		<PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
-		<PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
-		<PackageReference Include="Serilog.Settings.Configuration" Version="3.4.0" />
-		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-	</ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
 
-	<ItemGroup>
-		<Content Update="version.json">
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="3.4.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
 
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		</Content>
-	</ItemGroup>
+  <ItemGroup>
+    <Content Update="version.json">
 
-	<ItemGroup>
-		<Folder Include=".github\workflows\" />
-		<Folder Include="Areas\Administrator\Dashboard\" />
-		<Folder Include="Areas\Administrator\DocumentManagement\" />
-		<Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\AttendanceAndSchedule\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\LeaveAndOvertime\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\Workflow\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
-		<Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
-		<Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
-		<Folder Include="Areas\Corporate\InventoryManagement\" />
-		<Folder Include="Areas\Corporate\AssetManagement\" />
-		<Folder Include="Areas\Corporate\FinancialManagement\" />
-		<Folder Include="Areas\Corporate\AccountingManagement\" />
-		<Folder Include="Areas\Corporate\PayrollManagement\" />
-		<Folder Include="Areas\Corporate\TaxManagement\" />
-		<Folder Include="Areas\Corporate\ProcurementManagement\" />
-		<Folder Include="Areas\HealthServices\InpatientManagement\" />
-		<Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
-		<Folder Include="Areas\HealthServices\LaboratoryManagement\" />
-		<Folder Include="Areas\HealthServices\InsuranceManagement\" />
-		<Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
-		<Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
-		<Folder Include="Areas\HealthServices\RadiologyManagement\" />
-		<Folder Include="Areas\HealthServices\OutpatientManagement\" />
-		<Folder Include="Logs\" />
-		<Folder Include="SeedData\ICD10\" />
-	</ItemGroup>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include=".github\workflows\" />
+    <Folder Include="Areas\Administrator\Dashboard\" />
+    <Folder Include="Areas\Administrator\DocumentManagement\" />
+    <Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\AttendanceAndSchedule\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\LeaveAndOvertime\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\Workflow\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
+    <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
+    <Folder Include="Areas\Corporate\InventoryManagement\" />
+    <Folder Include="Areas\Corporate\AssetManagement\" />
+    <Folder Include="Areas\Corporate\FinancialManagement\" />
+    <Folder Include="Areas\Corporate\AccountingManagement\" />
+    <Folder Include="Areas\Corporate\PayrollManagement\" />
+    <Folder Include="Areas\Corporate\TaxManagement\" />
+    <Folder Include="Areas\Corporate\ProcurementManagement\" />
+    <Folder Include="Areas\HealthServices\InpatientManagement\" />
+    <Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
+    <Folder Include="Areas\HealthServices\LaboratoryManagement\" />
+    <Folder Include="Areas\HealthServices\InsuranceManagement\" />
+    <Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
+    <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
+    <Folder Include="Areas\HealthServices\RadiologyManagement\" />
+    <Folder Include="Areas\HealthServices\OutpatientManagement\" />
+    <Folder Include="Logs\" />
+    <Folder Include="SeedData\ICD10\" />
+  </ItemGroup>
 
 </Project>

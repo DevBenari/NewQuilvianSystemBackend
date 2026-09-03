@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Configurations
