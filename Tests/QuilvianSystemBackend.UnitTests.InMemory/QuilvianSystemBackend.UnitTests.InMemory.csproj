@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <AssemblyName>QuilvianSystemBackend.UnitTests.InMemory</AssemblyName>
+    <RootNamespace>QuilvianSystemBackend.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QuilvianSystemBackend.csproj" />
+    <ProjectReference Include="..\..\QuilvianSystemBackend.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -9,7 +9,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
     <PlatformTarget>x64</PlatformTarget>
-    <DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
+    <!--
+      Seluruh project test berada di Tests\ dan bukan bagian dari project web ini.
+      Karena SDK Web mengikutsertakan seluruh berkas di bawah root secara otomatis, folder
+      Tests\ wajib dikecualikan agar tidak ikut terkompilasi ke dalam aplikasi. Satu baris
+      DefaultItemExcludes berlaku untuk Compile, Content, EmbeddedResource, dan None sekaligus.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
 
     <!--
       Berkas dokumentasi XML dihasilkan supaya keterangan pada controller dan DTO ikut tampil
@@ -25,22 +31,7 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
-  <!--
-    Project test berada di tests\ dan bukan bagian dari project web ini.
-    Karena SDK Web mengikutsertakan seluruh berkas .cs di bawah root secara otomatis,
-    folder tests\ wajib dikecualikan agar tidak ikut terkompilasi ke dalam aplikasi.
-  -->
   <ItemGroup>
-    <Compile Remove="tests\**" />
-    <Content Remove="tests\**" />
-    <EmbeddedResource Remove="tests\**" />
-    <None Remove="tests\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="QuilvianSystemBackend.Tests\**" />
-    <Compile Remove="Tests\**" />
-    <Content Remove="Tests\**" />
     <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -48,8 +39,6 @@
     <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Compile Remove="Areas\SelfServices\Models\**" />
     <Compile Remove="Areas\SelfServices\Views\**" />
-    <Compile Remove="QuilvianSystemBackend.Tests\**" />
-    <Content Remove="QuilvianSystemBackend.Tests\**" />
     <Content Remove="Areas\HealthServices\DeviceManagement\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -57,8 +46,6 @@
     <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Content Remove="Areas\SelfServices\Models\**" />
     <Content Remove="Areas\SelfServices\Views\**" />
-    <Content Remove="QuilvianSystemBackend.Tests\**" />
-    <EmbeddedResource Remove="QuilvianSystemBackend.Tests\**" />
     <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -66,7 +53,6 @@
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <EmbeddedResource Remove="Areas\SelfServices\Models\**" />
     <EmbeddedResource Remove="Areas\SelfServices\Views\**" />
-    <None Remove="QuilvianSystemBackend.Tests\**" />
     <None Remove="Areas\HealthServices\DeviceManagement\**" />
     <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -74,7 +60,6 @@
     <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <None Remove="Areas\SelfServices\Models\**" />
     <None Remove="Areas\SelfServices\Views\**" />
-    <None Remove="QuilvianSystemBackend.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

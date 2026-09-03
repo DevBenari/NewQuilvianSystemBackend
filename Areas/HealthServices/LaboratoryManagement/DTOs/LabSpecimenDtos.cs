@@ -174,21 +174,4 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public DateTime OccurredAt { get; set; }
     }
-
-    public class LabRejectionReasonResponse
-    {
-        public Guid Id { get; set; }
-
-        public string ReasonCode { get; set; } = string.Empty;
-
-        public string ReasonName { get; set; } = string.Empty;
-
-        public string? Description { get; set; }
-
-        public bool IsInternalHospitalError { get; set; }
-
-        public bool RequiresNote { get; set; }
-
-        public int SortOrder { get; set; }
-    }
 }

@@ -15,6 +15,20 @@ Examples:
 ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict -JsonOutputPath tooling/qbe/qbe-result.json
 ```
 
+## Evaluation scope exclusions
+
+Two classes of file are removed from evaluation before the detectors run.
+
+**Generated build output.** Any path containing a `bin/` or `obj/` segment is dropped from every scope (`WorkingTree`, `GitRange`, `-Path`). Build output is never a source of record and is not evaluated.
+
+**Test projects.** Files under a detected test project are excluded from the persisted-entity detectors QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002. Those three rules are scoped by the [Backend Engineering Contract](../../docs/engineering/BACKEND_ENGINEERING_CONTRACT.md) to persisted domain entities and operational modules; a test class is neither. Without this exclusion a test that merely names `IdentityModel` — for example one asserting QBE-ENT-001 itself — was reported as a new persisted entity that fails all three rules.
+
+Test projects are detected from `*.csproj` content, never from file or folder names, so a business file cannot escape review by being named like a test. A project is test scope when its `csproj` declares `<IsTestProject>true</IsTestProject>` or references `Microsoft.NET.Test.Sdk`, `xunit`, `NUnit`, or `MSTest`. Every `.cs` file under that project directory is test scope. A `csproj` sitting at the repository root is ignored for this purpose so that a misplaced project cannot exclude the whole repository. Detection runs once per invocation and is cached.
+
+The exclusion is deliberately narrow. Test-scope files are still evaluated by QBE-NAM-001, QBE-CODE-002, QBE-CODE-003, and QBE-SVC-001, and still count toward `Files evaluated`. It is a scope correction, not a relaxation: no rule changes meaning, and the canonical contract is unchanged.
+
+Both exclusions are reported rather than silent. The terminal report prints `Generated files excluded (bin/obj)` and `Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002`, and the JSON names every excluded test-scope file, so a reviewer can always see what was skipped.
+
 ## Exit behavior
 
 The terminal report always states checker mode, scope, counts, and a final result.
@@ -27,7 +41,7 @@ Strict mode enforces only the current delta-aware scope; it does not scan untouc
 
 ## Structured output and exceptions
 
-`-JsonOutputPath` is optional. It preserves terminal output and writes deterministic JSON containing schema/checker version, mode, scope and Git range, counts, suppressed-violation count, blocking RuleIds, result, and visible findings. Finding fields include repository-relative file, line, evidence/reason, recommended action, `suppressed`, and `exceptionId`.
+`-JsonOutputPath` is optional. It preserves terminal output and writes deterministic JSON containing schema/checker version, mode, scope and Git range, counts, suppressed-violation count, blocking RuleIds, result, and visible findings. Finding fields include repository-relative file, line, evidence/reason, recommended action, `suppressed`, and `exceptionId`. Scope exclusions are also recorded: `generatedFilesExcluded` counts dropped `bin/`/`obj/` sources, while `testScopeExcludedFileCount` and `testScopeExcludedFiles` report how many files were held out of the persisted-entity rules and exactly which ones.
 
 The repository-owned authority is [QBE_EXCEPTIONS.json](../../docs/engineering/QBE_EXCEPTIONS.json). Each record requires `ExceptionId`, `RuleId`, a specific repository-relative file `Scope`, `Reason`, `Status` (`ACTIVE`, `EXPIRED`, or `REVOKED`), approval (`ApprovedBy` or `ApprovalReference`), and either `ExpiresAt` or `NoExpiryRationale`. Wildcards, whole-repository scope, absolute paths, traversal, empty RuleIds, and unknown QBE RuleIds are rejected. Malformed/invalid registries are tooling errors (`2`).
 
