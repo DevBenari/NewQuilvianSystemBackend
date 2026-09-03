@@ -10,7 +10,8 @@
 | Blueprint ID | `RWI-BP-001` |
 | `contract_version` | `0.3.0` |
 | Revision artefak | `0.3` |
-| Status | `draft` — **belum disetujui manusia** |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Commit SHA baseline | Backend `93b3227c431401d8f586dec4e1fb25fbf41766e3`; frontend `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | Baseline requirement | `PRD-RWI-FINAL-001` v1.0.0 bagian 18, 19, 23.1, 30.3 |

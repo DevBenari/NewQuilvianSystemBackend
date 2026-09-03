@@ -4,7 +4,8 @@
 | --- | --- |
 | Sub-modul | `dokter-rawat-inap` |
 | Revision | `0.2` — **berkas baru** |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Isi | Seluruh percabangan **beserta jalur pengecualiannya** |
 | Kemampuan | `CAP-025` |
 | Dasar keputusan | `RWI-DEC-084` dan `RWI-DEC-085`; `RWI-AC-150` s.d. `RWI-AC-156` |

@@ -6,9 +6,9 @@
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
 | Contract version | `0.3.0` |
 | `last_changed_in` | `0.3.0` |
-| Status | `draft` — belum disetujui manusia |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
-| `approved_by` / `approved_at` | — belum |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Compatibility impact | `0.3.0`: empat aturan baru `VAL-DOK-32` s.d. `VAL-DOK-35` untuk koreksi dokumen. Sebelumnya `0.2.0` menambah `VAL-DOK-26` s.d. `VAL-DOK-31`. Nol aturan dicabut |

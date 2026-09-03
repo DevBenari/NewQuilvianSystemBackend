@@ -5,7 +5,8 @@
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
 | Revision | `0.2` |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Tanggal | 2 September 2026 |
 | Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.2` bagian 4 |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |

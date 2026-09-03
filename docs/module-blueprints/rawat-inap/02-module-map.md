@@ -162,7 +162,7 @@ seluruhnya berkolom "Tidak" pada **Dibuat ulang** — dan itu bukan kelalaian, m
 |---|---|---|---|
 | Kelayakan keuangan (*financial clearance*) | **Belum diputuskan** — `PRD-RWI-FINAL-001` bagian 23.1 menaruhnya pada **Billing Management**; `RWI-RULE-028` aturan 7 memilikinya **sementara** lewat `InpFinancialClearance` milik Rawat Inap | `episode-rawat-inap` | **Belum diputuskan** — hari ini `Ya, sementara`; dicabut atau dipertahankan bergantung jawaban `RWI-OQ-047` |
 
-| Catatan pemakaian alat pada pasien | **Belum diputuskan** — `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu pun** menyebut Equipment Usage. `RWI-DEC-081` juga tidak. Calonnya: modul persediaan, `ClinicalManagement`, atau `InPatientManagement` | `keperawatan` | **`OPEN DECISION`** — ditemukan 2026-09-02 saat merancang `keperawatan`; usulan `RWI-OQ-048` |
+| Catatan pemakaian alat pada pasien | **Sengaja ditunda** — `RWI-DEC-089`. `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu pun** menyebut Equipment Usage; `RWI-DEC-081` juga tidak. Dari tiga calon, yang pertama **belum berwujud** (`RWI-FACT-015`) | `keperawatan` | **Tidak dibuat siapa pun** — `CAP-016` berstatus `DEFERRED` sejak 2026-09-02. `RWI-OQ-048` **tertutup**, dibuka ulang saat modul persediaan/aset ada |
 
 **Kedua baris sengaja ditulis apa adanya.** `blueprint-output-contract.md` bagian 3.0 menyatakan
 kolom `Pemilik` yang berisi "belum diputuskan" adalah keadaan yang **sah**; yang tidak sah adalah
@@ -313,7 +313,7 @@ bentuk `COMPOSITE` setiap `requirement-traceability.md` hanya memeriksa jatah su
 | Pengkajian awal dan pengkajian ulang keperawatan | `CAP-012` | Nursing Assessment | **Dirancang** 2026-09-02, `draft`. `MUST HAVE`, `EPIC KEP-01` dan `KEP-02` |
 | Diagnosis, rencana asuhan, evaluasi keperawatan | `CAP-013` | Nursing Care | **Dirancang**, `draft`. `MUST HAVE`, `EPIC KEP-03`. Katalog SDKI tetap `OPEN DECISION` karena pemakaiannya belum dinyatakan |
 | Catatan dan tindakan keperawatan | `CAP-014` | Nursing Interventions | **Dirancang**, `draft`. `MUST HAVE`, `EPIC KEP-04` |
-| Pencatatan pemakaian alat | `CAP-016` | Equipment Usage | **`OPEN DECISION`** — kepemilikan tabelnya belum diputuskan; `EPIC KEP-06` **MUST NOT** masuk gelombang pengiriman. Lihat bagian 2.4 |
+| Pencatatan pemakaian alat | `CAP-016` | Equipment Usage | **`DEFERRED`** — `RWI-DEC-089` mengeluarkannya dari scope rilis pertama secara tertulis. Punya sub-modul pemilik (`keperawatan`), sehingga **bukan kemampuan yatim**; `EPIC KEP-06` tetap **MUST NOT** masuk gelombang pengiriman. Lihat bagian 2.4 |
 | Asuhan gizi | `CAP-027` | Nutrition Care | **Dirancang sebagian**, `draft`. `DEFERRED` ke `POST-MVP`: skrining gizi berjalan penuh, rujukan menunggu modul Gizi berdiri |
 
 ### 4.3 `dokter-rawat-inap` — 7 kemampuan
@@ -363,7 +363,7 @@ memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseli
 | Butir | Menahan | Pemilik jawaban |
 |---|---|---|
 | `RWI-OQ-047` sumber kebenaran kelayakan keuangan | **Satu baris** pada bagian 2.4 | Product/Domain bersama pemilik `BillingManagement` |
-| **`RWI-OQ-048`** kepemilikan catatan pemakaian alat — **baru 2026-09-02** | **Satu baris** pada bagian 2.4, dan `EPIC KEP-06` pada `keperawatan/04-prd-to-mvp.md` | Product/Domain bersama pemilik persediaan |
+| ~~**`RWI-OQ-048`** kepemilikan catatan pemakaian alat~~ | **TERTUTUP 2026-09-02** oleh `RWI-DEC-089` — dijawab dengan menunda kemampuannya, bukan dengan memilih pemilik. Dibuka ulang saat modul persediaan/aset ada | Product/Domain bersama pemilik persediaan |
 | ~~Butir menu `keperawatan`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; keenam layarnya menjadi layar anak | — |
 | ~~Butir menu `dokter-rawat-inap`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; kedelapan layarnya menjadi layar anak | — |
 | **Pencabutan butir menu Dokter → Rawat Inap yang sudah ter-commit** — baru 2026-09-02 | Butir itu mengarah ke layar berbasis antrean rawat jalan; lihat bagian 3.3 | Frontend authority, sebagai bagian gelombang `DOK-MVP-FE` |

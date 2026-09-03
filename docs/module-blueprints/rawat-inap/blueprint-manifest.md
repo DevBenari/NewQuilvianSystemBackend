@@ -11,7 +11,7 @@ sub-modul itu sendiri.
 | `revision` | `5` |
 | `blueprint_shape` | **`COMPOSITE`** — ditetapkan `RWI-DEC-082` 2026-09-02 |
 | `shape_decided_by` | **`USER_CONFIRMED`** — Muhammad Hamzah; agent menyarankan, pemilik memutuskan |
-| `status` | **`partial`** — **diturunkan, bukan ditulis tangan.** Satu sub-modul `approved`, dua `draft`. Lihat bagian 1 |
+| `status` | **`partial`** — **diturunkan, bukan ditulis tangan.** Dua sub-modul `approved` (`episode-rawat-inap`, `dokter-rawat-inap`), satu `draft` (`keperawatan`). Lihat bagian 1 |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
 | `design_snapshot_at` | `2026-09-02` untuk revision `5`; `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
@@ -119,26 +119,30 @@ submodules:
     status: draft
     approved_by: null
     approved_at: null
-    contract_versions: 0.1.0
+    contract_versions: 0.3.0
     designed_at: 2026-09-02
-    catatan: dirancang, menunggu approval; satu kemampuan CAP-016 OPEN DECISION (RWI-OQ-048)
+    amended_at: 2026-09-02
+    catatan: dirancang lalu diamandemen menyerap RWI-DEC-089; CAP-016 kini DEFERRED dan RWI-OQ-048
+      tertutup. Roadmap DRAFT/FORWARD_TEST sudah ditulis 2026-09-02: 11 task backend dan 6 task
+      frontend, seluruhnya BLOCKED menunggu approval blueprint sub-modul ini.
+      Satu butir konsistensi baru menunggu /qv-grill sebelum EPIC KEP-01 s.d. KEP-04 dibangun
   - slug: dokter-rawat-inap
     prefix: BE-RWI / FE-RWI
     kemampuan: 7
     uji_pemecahan: 3/5
-    status: draft
-    approved_by: null
-    approved_at: null
-    contract_versions: 0.1.0
+    status: approved
+    approved_by: Muhammad Hamzah
+    approved_at: 2026-09-03
+    contract_versions: 0.3.0
     designed_at: 2026-09-02
-    catatan: draft; artefak desain CURRENT pada revision 0.3 / kontrak 0.3.0; domain architecture READY; amendment desain SELESAI 2026-09-02 dalam dua putaran; nol pertanyaan memblokir; menunggu approval pemilik
+    catatan: disetujui 2026-09-03 untuk 13 artefak revision 0.3 / kontrak 0.3.0; domain architecture READY; nol pertanyaan memblokir; approval desain BUKAN izin implementasi, migration, maupun deployment
 ```
 
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
 |---|---|:---:|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | `approved` | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
-| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` — **dirancang 2026-09-02** | [manifest](./keperawatan/blueprint-manifest.md) |
-| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | `draft` — artefak desain **`CURRENT`** pada revision `0.3`, kontrak `0.3.0`; domain architecture `DOMAIN_ARCHITECTURE_READY`; **nol pertanyaan memblokir**; menunggu approval | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
+| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | `draft` — dirancang 2026-09-02, **diamandemen 2026-09-02** menyerap `RWI-DEC-089`. `CAP-016` `DEFERRED`; gerbang `/qv-plan` **terbuka** | [manifest](./keperawatan/blueprint-manifest.md) |
+| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | **`approved`** — disetujui Muhammad Hamzah 2026-09-03; revision `0.3`, kontrak `0.3.0`; siap `plan-module-delivery` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
 
@@ -173,14 +177,16 @@ pada manifest sub-modulnya.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`00-interview-decisions.md`](./00-interview-decisions.md) | `10` | `draft / Amendment Pass koreksi dokumen klinis tuntas, dua pertanyaan` | `de786bebc169636c0d7bd254d429a0209809890d78a7f1dcd8220d303fcbecc0` |
+| [`00-interview-decisions.md`](./00-interview-decisions.md) | `13` | `draft / Amendment Pass approval Keperawatan` | `42350601814d8f8462296e1bac39676bca023acd33d563e164f5869e3253fc9a` |
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) | `1.3` | `source-audited / focused-impact-scan` | `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
-| [`02-module-map.md`](./02-module-map.md) | `1` | `draft` — bagian dokter **diamendemen 2026-09-02**: gelombang migration M0, nama `CliPhysicianVisit`, Radiologi masuk MVP, dan satu butir menu ter-commit yang wajib dicabut | `d94b701d43ea200fd584643523bd821d6035eb0170ba14bc7743cdad5bb7fabb` |
-| [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.3` | `CURRENT / focused doctor READY_FOR_DOMAIN_DESIGN` | `883ed59b48bc10cb2ee9b2e09900c470a63bad9d06a339613aa871d308a70ade` |
+| [`02-module-map.md`](./02-module-map.md) | `1` | `draft` — bagian dokter **diamendemen 2026-09-02**: gelombang migration M0, nama `CliPhysicianVisit`, Radiologi masuk MVP, dan satu butir menu ter-commit yang wajib dicabut | `29c761eed6a3fdc3a4d76c2803fde6e956a19784c4b3a14fc27d30e81e5a5d08` |
+| [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.4` | `CURRENT / focused keperawatan INP-S16` | `03bdcb31d8bb51478e2b9cf8a78392bd0c0b2e0ca5a60de79e566e5b9c5f2f9c` |
 | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) | `0.2` | `draft / amendment Dokter Rawat Inap` | `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 
 `evidence/02-requirement-completeness-gate.md` naik dari `1.0` ke `1.1` karena tiga keterangan basi
 `DEC-INP-001` diperbaiki. Isinya selebihnya tidak disentuh.
+
+**Amandemen 2026-09-02 sore — penyerapan `RWI-DEC-089`.** `00-interview-decisions.md` naik ke revision `11` (Amendment Pass pemakaian alat), dan `02-module-map.md` berubah pada bagian 2.4, 4, serta 6 karena `CAP-016` berpindah dari `OPEN DECISION` menjadi `DEFERRED`. Delapan artefak `keperawatan/` ikut berubah dan `contract_versions` sub-modul itu naik ke `0.2.0`; tiga kontrak yang isinya tidak bergerak tetap `last_changed_in: 0.1.0`. Perubahan ini **tidak** menaikkan `revision` blueprint tingkat modul, karena tidak ada arsitektur target, kontrak lintas modul, atau kepemilikan data yang berubah — yang berubah adalah disposisi satu kemampuan yang sudah punya sub-modul pemilik.
 
 Hash `02-module-map.md` dinormalkan pada validasi lifecycle 2026-09-02 dari nilai metadata lama
 `62be6c…` ke SHA-256 isi committed `6be5e5…`. Pada hari yang sama berkasnya **benar-benar berubah**
@@ -329,7 +335,7 @@ terbaru dicatat terpisah agar snapshot desain dan bukti audit tidak tercampur.
 |---|---|---|
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) bagian 15 | `CURRENT` untuk `CAP-015`, `CAP-020`–`CAP-025`, `INT-DOK-01`, `INT-DOK-02`, frontend, authorization, dan test | Menjadi input kanonis amendment |
 | `02-module-map.md` bagian Dokter Rawat Inap | **`CURRENT`** sejak 2026-09-02 | Pernyataan Radiologi, nama entity visite, dan urutan migration sudah diperbaiki |
-| Seluruh artefak `dokter-rawat-inap/` | **`CURRENT`** pada revision `0.3` | Boleh ditinjau dan disetujui. **Belum** boleh dipakai `plan-module-delivery` sampai approval turun |
+| Seluruh artefak `dokter-rawat-inap/` | **`approved`** pada revision `0.3` | Boleh dipakai `plan-module-delivery`. Perubahan sesudah ini membuat revision baru dan memicu impact scan kedua repository |
 | Status sub-modul / modul | Tetap `draft` / `partial` | Staleness artefak tidak mengubah aturan derivasi status komposit |
 
 ---
@@ -358,8 +364,11 @@ terbaru dicatat terpisah agar snapshot desain dan bukti audit tidak tercampur.
 | Salah satu SHA berubah | `/qv-trace` impact scan | Seluruhnya |
 | Batas domain dokumentasi klinis ingin ditetapkan lebih dulu | `/qv-domain` (opsional) | `keperawatan`, `dokter-rawat-inap` |
 
-**Hasil skill desain masih `draft`; approval manusia belum tergantikan.** Sub-modul
-`dokter-rawat-inap` **MUST NOT** diteruskan ke `plan-module-delivery`, dan kini tinggal **satu**
-alasannya: approval pemilik belum ada. Pertanyaan memblokir yang sempat tercatat sudah tertutup
-2026-09-02 lewat `RWI-DEC-086` s.d. `RWI-DEC-088`. `keperawatan` tetap dinilai dari manifestnya
-sendiri dan tidak ikut diturunkan oleh impact scan terfokus ini.
+**Sub-modul `dokter-rawat-inap` sudah `approved` sejak 2026-09-03** dan boleh diteruskan ke
+`plan-module-delivery`. `keperawatan` tetap `draft` dan dinilai dari manifestnya sendiri; status
+modul karena itu tetap `partial`, diturunkan dari baris sub-modul dan bukan ditulis tangan.
+
+**Approval itu menyetujui desain, bukan memberi izin menulis source.** Wewenang implementasi,
+migration, dan deployment tetap terpisah, sebagaimana registry kepemilikan prefix juga hanya memberi
+hak penamaan. Gerbang produksi pada `dokter-rawat-inap/blueprint-manifest.md` bagian 6 tetap
+berlaku apa adanya.

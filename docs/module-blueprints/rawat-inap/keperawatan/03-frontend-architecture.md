@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Revision | `0.1` |
+| Revision | `0.2` |
 | Status | `draft` |
 | Tanggal | 2 September 2026 |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` (branch `HamzahV2`) |
@@ -21,7 +21,7 @@ Nama layar di bawah adalah **nama fungsional**, bukan nama menu.
 | ID | Layar | Tujuan | Pemakai utama | Keadaan |
 | --- | --- | --- | --- | --- |
 | `FE-KEP-01` | **Ruang Kerja Keperawatan** | Satu tempat bagi perawat melihat dan mengerjakan seluruh dokumentasi satu pasien | Perawat, kepala ruangan | **baru** |
-| `FE-KEP-02` | **Pengkajian Keperawatan** | Mengisi, menyelesaikan, dan mengamandemen pengkajian awal maupun ulang | Perawat, kepala ruangan | **baru** |
+| `FE-KEP-02` | **Pengkajian Keperawatan** | Mengisi, menyelesaikan, dan **mengoreksi lewat addendum** pengkajian awal maupun ulang | Perawat, kepala ruangan | **baru** |
 | `FE-KEP-03` | **Lini Masa Pengkajian** | Membaca perkembangan nyeri, risiko jatuh, dan gizi dari waktu ke waktu | Perawat, DPJP, kepala ruangan | **baru** |
 | `FE-KEP-04` | **Rencana Asuhan Keperawatan** | Menetapkan masalah, tujuan, rencana, dan evaluasi | Perawat, kepala ruangan | **baru** |
 | `FE-KEP-05` | **Catatan Tindakan Keperawatan** | Mencatat tindakan yang sudah dilakukan | Perawat | **baru** |
@@ -147,7 +147,7 @@ Mengikat pada kolom kanan, bebas pada kolom kiri.
 | --- | --- | --- | --- | --- | --- |
 | Lini masa | Setiap pengkajian terurut waktu | `GET /patient-assessments/episodes/{id}/timeline` | `PatientAssessment : Read` | "Belum ada pengkajian untuk pasien ini" **+ tombol membuat** | "Lini masa tidak dapat dimuat" + coba lagi |
 | Kolom perkembangan | Nyeri, risiko jatuh, gizi dari waktu ke waktu | Sama | Sama | — | — |
-| Penanda amandemen | Baris yang pernah diamandemen beserta alasannya | Sama | Sama | — | — |
+| Penanda koreksi | Baris yang pernah dikoreksi beserta **nomor urut addendum** dan alasannya. Isi asli tetap tampil apa adanya di atasnya | Sama | Sama | — | — |
 
 > Layar ini yang membuat `AC-CAP012-02` terlihat pengguna: nilai lama **tidak** ditimpa, dan
 > perkembangannya terbaca.
@@ -196,11 +196,11 @@ bagian 2, **tidak dikarang ulang di sini**.
 | Membaca ruang kerja | ✔ | ✔ | ✔ | ✔ | — |
 | Membuat pengkajian | ✔ | ✔ | — | — | — |
 | Menyelesaikan pengkajian | ✔ | ✔ | — | — | — |
-| Mengamandemen pengkajian final | — | ✔ | — | — | — |
+| **Menambah koreksi** pada pengkajian final | — | ✔ | — | — | — |
 | Menyusun rencana asuhan | ✔ | ✔ | — | — | — |
 | Mencatat tindakan | ✔ | ✔ | — | — | — |
 | Menyunting catatan orang lain yang belum final | — | — | — | — | — |
-| Mengamandemen catatan final | penulisnya | ✔ | — | — | — |
+| **Menambah koreksi** pada catatan final | penulisnya | ✔ | — | — | — |
 | Membaca daftar pantau | ✔ | ✔ | ✔ | — | — |
 
 > **Kolom DPJP hanya berisi baca.** Bukan kelalaian: `AC-CAP014-03` melarang pengguna yang bukan

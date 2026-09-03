@@ -5,7 +5,8 @@
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
 | Revision | `0.3` — amendment atas `0.2`, menyerap `RWI-DEC-086` s.d. `RWI-DEC-088` |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Tanggal | 2 September 2026 |
 | Frontend SHA | `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) — **naik dari `dec4fdeff`** |
 | Masukan | [`02-backend-architecture.md`](./02-backend-architecture.md) `0.2`; [`contracts/api-contract.md`](./contracts/api-contract.md) `0.2.0`; [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) `0.2.0` |

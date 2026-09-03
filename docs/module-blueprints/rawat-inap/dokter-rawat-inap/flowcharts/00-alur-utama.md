@@ -4,7 +4,8 @@
 | --- | --- |
 | Sub-modul | `dokter-rawat-inap` |
 | Revision | `0.2` |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Isi | **Jalur normal saja.** Jalur pengecualian ada pada berkas per proses |
 | Sumber | `PRD-RWI-FINAL-001` bagian 18 dan 19; arsitektur domain `0.2` bagian U |
 | Berkas per proses | [`01-catatan-harian-dan-cppt.md`](./01-catatan-harian-dan-cppt.md), [`02-visite-dokter.md`](./02-visite-dokter.md) |

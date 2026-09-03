@@ -11,16 +11,16 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `judul` | Dokter Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`draft`** — belum disetujui manusia; status sub-modul tidak berubah oleh impact scan |
+| `status` | **`approved`** — disetujui Muhammad Hamzah pada 2026-09-03 |
 | `artifact_readiness` | **`CURRENT`** — sembilan artefak diamendemen ke revision `0.3` / kontrak `0.3.0` pada 2026-09-02 menyerap `RWI-DEC-086` s.d. `RWI-DEC-088`; empat berkas lain sengaja tetap `0.2` karena isinya tidak bergerak. Terikat `BE@93b3227` dan `FE@863f24b` |
-| `delivery_readiness` | **`PARTIAL`** — amendment desain selesai dan **nol pertanyaan memblokir tersisa**. Yang tertinggal hanya approval manusia; planning boleh berjalan begitu approval turun |
+| `delivery_readiness` | **`READY_FOR_PLANNING`** — desain disetujui 2026-09-03, kontrak `0.3.0` terkunci, nol pertanyaan memblokir. Build tetap menunggu task yang disetujui dan gerbang produksi pada bagian 6 |
 | `last_focused_impact_scan` | `2026-09-02`; [`../01-existing-capability-map.md`](../01-existing-capability-map.md) bagian 15 |
 | `impact_scan_source_sha` | Backend `93b3227c431401d8f586dec4e1fb25fbf41766e3`; frontend `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | `last_focused_requirement_gate` | Revision `1.3`, 2026-09-02; seluruh tujuh capability `READY_FOR_DOMAIN_DESIGN`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085` |
 | `domain_architecture` | Revision `0.2`, 2026-09-02, **`DOMAIN_ARCHITECTURE_READY`** untuk ketujuh capability. [`../evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) Bagian Kedua, bagian O s.d. AB |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
-| `approved_by` | — belum ada yang disetujui |
-| `approved_at` | — |
+| `approved_by` | **Muhammad Hamzah** — Product/Domain owner, `RWI-DEC-061` |
+| `approved_at` | **2026-09-03** |
 | `rumpun kemampuan` | Dokumentasi dokter — kajian medis, SOAP, CPPT, tindakan, visite, resep, dan penunjang |
 | `kemampuan` | **7** — `CAP-015`, `CAP-020` s.d. `CAP-025`, sesuai `RWI-DEC-083` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
@@ -103,19 +103,19 @@ modul.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.3` | `draft` | `5f8abd017537bbd70a686355e1658d290ad659c9ff1a5678adc50d3deaaf5cce` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.3` | `draft` | `d71573a191629027fa5a7ee4ac73fabc6568973f07e676dcffdb54684d793c90` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.3` | `draft` | `b361ce6c7175fb4f8bbb49340c1814424cf07df71f30629a740e4ee540ed36dc` |
-| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.2` | `draft` | `d0638fd918123d1b84c75afbd8658abb1df080a5bbb8a7e6cfd18df4e212d831` |
-| [`flowcharts/01-catatan-harian-dan-cppt.md`](./flowcharts/01-catatan-harian-dan-cppt.md) | `0.2` | `draft` | `cf523ca2079c4750b66cf248e5feac2bddbe802e37ea216d562d03555424b105` |
-| [`flowcharts/02-visite-dokter.md`](./flowcharts/02-visite-dokter.md) | `0.2` | `draft` — **berkas baru** | `0aac5416e7e137975679432145d34e9cf2b0bdb32111307d4d6576814f693502` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.2` | `draft` | `f1a21de72b5ceb40dec2750c83732d9e77f2d91cf02d2efa4fd803ebdea8b302` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.3.0` | `draft` | `7239e375dd2d5f1d63b0336f696c9c3fd21dbfbd96a642b77927bca066d7e7cb` |
-| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | `draft` | `97664b2829c46e9d1006fa265a5b09b22c8254054637c2d3b50c2a94d35e4e68` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.3.0` | `draft` | `1d3405eaeb1b7095dccdc369dfaf9ea4a1e12d1e5d15ab4810d4a48133349541` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.3.0` | `draft` | `6dadaed67ada54cfdf2bf5fdff66b1065da297c9bd6a2a105cbb84d18b730939` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.3.0` | `draft` | `5980b6b72a7bf6f16e077e8b1bae68ed1a12b8cabea2ef9c22fd1ec995855d9d` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.3.0` | `draft` | `b3f31aaa1c39708e9dcbfcf701ed47e0827fab07f9b5084ff2e263cc6d011d59` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.3` | **`approved`** | `70b8d7e424e2e95518640ed82168c979badd6e83c6ec25bbcc96b7ab921079c3` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.3` | **`approved`** | `3e8c04ed74e117d629c678d71f6a63d6e87c69f9fc32fad30d9bbb7b11c4a5a8` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.3` | **`approved`** | `a0d5cc0c998fea5d7c23c587eeec1718e456320c6191eb5ffb752e0f3d79f9cb` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.2` | **`approved`** | `102fc55af88f66b6b35b80aeae8cd7a5394fd404dc5847b44872b8f278fde96d` |
+| [`flowcharts/01-catatan-harian-dan-cppt.md`](./flowcharts/01-catatan-harian-dan-cppt.md) | `0.2` | **`approved`** | `5c5f75897d8d51d68b7b96ab78970ff92395927022360dff3c5ef89a7887dfef` |
+| [`flowcharts/02-visite-dokter.md`](./flowcharts/02-visite-dokter.md) | `0.2` | **`approved`** — **berkas baru** | `e28006d80ed19139349c64ed9852e7e0d3695a3e4b2ed4dd02a377711235a32c` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.2` | **`approved`** | `dff9655378cb9a15a8513154e219df7fec1a84da7c441101194b3373a722086b` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.3.0` | **`approved`** | `bbfa035a6607710f1b2bf30f50b7d8899adcc4b214b28734bc04dba19124bbc3` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | **`approved`** | `024c330d0ccf5acf4a94ec5c87e7cde6c92626f8b8fdcd0a86dc086aa8a14802` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.3.0` | **`approved`** | `cf8033eb2634ef63441d2c157546794dc6c0e716f913928d9ff349ef625ccb57` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.3.0` | **`approved`** | `b53f73fc6fc40cd6ed8a265564b9c4f37572aa60396dfc43415fe9042e6e2c5b` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.3.0` | **`approved`** | `7790bbc230e3a39bdfda93a0862cd81004bb035e0614077a48710cc9f99db5b2` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.3.0` | **`approved`** | `8c4d0d00d50fa92c690ae2dd23c08ce8a5ea813307a3f2c7f98fb8481ff8c169` |
 
 **Empat berkas sengaja tetap pada revision `0.2`** — ketiga flowchart dan kamus data — karena
 `RWI-DEC-086` s.d. `RWI-DEC-088` tidak menggerakkan isinya: alurnya sudah menyebut koreksi lewat
@@ -127,8 +127,14 @@ Berkas per proses pada `flowcharts/` bertambah dari satu menjadi dua. `01-catata
 tersendiri `02-visite-dokter.md` karena `RWI-DEC-084` menjadikannya kejadian yang berdiri sendiri
 dengan pemicu, pelaku, jalur koreksi, dan cara menghitung sendiri.
 
-`roadmap/` dan `task/report/` belum ada, dan **itu bukan penyimpangan struktur**: keduanya ditulis
-`/qv-plan` dan kedua skill build, bukan oleh skill desain.
+`roadmap/` **sudah ada** sejak 2026-09-03, berisi tiga berkas yang ditulis `plan-module-delivery`:
+[`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) revision `1`,
+[`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) revision `1`, dan
+[`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) revision `1`.
+Ketiganya **bukan** bagian himpunan artefak desain, sehingga tidak masuk tabel hash di atas.
+
+`task/report/` belum ada, dan **itu bukan penyimpangan struktur**: ia ditulis kedua skill build saat
+task benar-benar dikerjakan.
 
 ### 3.1 Yang diserap amendment `0.2`
 
@@ -268,9 +274,9 @@ justru karena desain berhenti membuat jalur koreksi sendiri lalu memakai mesin y
 | Domain amendment tujuh capability | **`DONE`** | Arsitektur domain revision `0.2`, Bagian Kedua bagian O s.d. AB; hasil `DOMAIN_ARCHITECTURE_READY` untuk `CAP-015` dan `CAP-020`–`CAP-025` |
 | Keputusan `CAP-025` | **`DONE`** | `RWI-DEC-084` dan `RWI-DEC-085`; `DEC-INP-008 CLOSED` |
 | Amendment blueprint penuh | **`DONE`** | Revision `0.2` menyerap arsitektur domain; revision `0.3` menyerap `RWI-DEC-086` s.d. `RWI-DEC-088`. Sembilan artefak pada `0.3`, empat sengaja tetap `0.2` |
-| Approval manusia | **`READY`** | Artefak sudah `CURRENT`. Pemilik dapat meninjau dan menyetujui; approval tetap tindakan manusia |
-| Delivery planning | `BLOCKED` | Menunggu **satu** hal: approval pemilik. Pertanyaan memblokir sudah nol |
-| Build / release | `BLOCKED` | Belum ada roadmap/task yang disetujui; source capability dan bukti otomatis belum lengkap |
+| Approval manusia | **`DONE`** | Disetujui Muhammad Hamzah pada 2026-09-03 untuk seluruh 13 artefak revision `0.3` / kontrak `0.3.0` |
+| Delivery planning | **`DONE`** | Roadmap backend, frontend, dan traceability revision `1` ditulis 2026-09-03. **17 task backend** `BE-RWI-037` s.d. `BE-RWI-053`; **9 task frontend** `FE-RWI-042` s.d. `FE-RWI-050` |
+| Build / release | `BLOCKED` | Roadmap sudah ada, tetapi **belum ada satu pun task yang disetujui untuk dikerjakan**. Approval task adalah wewenang terpisah dari approval blueprint. Gerbang produksi pada bagian 6 juga masih terbuka |
 
 | Kondisi | Skill |
 |---|---|
@@ -280,10 +286,12 @@ justru karena desain berhenti membuat jalur koreksi sendiri lalu memakai mesin y
 | Pemilik klinis sudah ditunjuk dan `RWI-RULE-021` ingin ditutup | `/qv-grill` Amendment Pass |
 | Amendment selesai, kontrak current, dan owner menyetujui | `plan-module-delivery` untuk sub-modul ini |
 
-Sub-modul ini **MUST NOT** diteruskan ke `plan-module-delivery` dalam keadaan sekarang, dan kini
-tinggal **satu** alasannya: approval pemilik belum ada. Artefaknya `CURRENT`, kontraknya `0.3.0`,
-dan pertanyaan memblokirnya nol. Handoff yang sah sekarang adalah **peninjauan dan approval
-manusia**.
+Sub-modul ini **boleh** diteruskan ke `plan-module-delivery` sejak 2026-09-03. Artefaknya
+`CURRENT`, kontraknya `0.3.0` terkunci, pertanyaan memblokirnya nol, dan approval pemiliknya sudah
+tercatat.
+
+**Approval ini menyetujui desain, bukan izin menulis source.** Wewenang implementasi, migration,
+dan deployment tetap terpisah, dan gerbang produksi pada bagian 6 tetap berlaku apa adanya.
 Revision blueprint dan versi kontrak baru ditentukan setelah perubahan target material benar-benar
 diserap; pembaruan status ini sendiri tidak menaikkan keduanya.
 
@@ -293,19 +301,19 @@ diserap; pembaruan status ini sendiri tidak menaikkan keduanya.
 
 | Field | Nilai |
 |---|---|
-| `next_owner_ready_slice` | **Peninjauan dan approval pemilik** atas 13 artefak desain revision `0.2`; setelah disetujui dan butir 9 dijawab, `plan-module-delivery` |
+| `next_owner_ready_slice` | **Approval task pertama**, lalu `build-module-backend` untuk `BE-RWI-037`. Roadmap sudah tersedia sejak 2026-09-03 |
 | `next_owner_blocked_slice` | — tidak ada blocker keputusan bisnis pada scope Dokter Rawat Inap |
 | `blueprint_id` / `revision` | `RWI-BP-001` / `5` |
-| `current_phase` | Requirement gate `DONE`; domain amendment `DONE`; amendment blueprint penuh `DONE` pada revision `0.3`; **approval manusia `READY`, nol pertanyaan memblokir** |
+| `current_phase` | Requirement gate `DONE`; domain amendment `DONE`; amendment blueprint `DONE` revision `0.3`; approval manusia `DONE` 2026-09-03; **delivery planning `DONE`**; build `BLOCKED` menunggu approval task |
 | `ready_capability_scope` | `CAP-015`, `CAP-020`, `CAP-021`, `CAP-022`, `CAP-023`, `CAP-024`, `CAP-025` |
 | `blocked_capability_scope` | — |
 | `requirement_readiness` | **`READY_FOR_DOMAIN_DESIGN`** untuk seluruh scope Dokter Rawat Inap |
 | `decision_readiness` | Terkunci: `RWI-DEC-038`, `062`, `070`, `080`–`085`; `DEC-INP-001 CLOSED`; `DEC-INP-008 CLOSED` |
 | `contract_readiness` | Seluruh kontrak naik ke **`0.3.0`** berstatus `draft` dan `CURRENT` terhadap `BE@93b3227` serta `FE@863f24b`; belum boleh dipakai planning sebelum disetujui |
 | `dependency_readiness` | `PARTIAL`; rincian dan status kanonis ada pada bagian 5.1 |
-| `approval_status` | `draft`, `approved_by: null`, `approved_at: null` |
-| `input_hash_decisions` | `00-interview-decisions.md` **revision `10`**: `de786bebc169636c0d7bd254d429a0209809890d78a7f1dcd8220d303fcbecc0` — inilah revisi yang diserap artefak desain `0.3`. Artefak `0.2` sebelumnya berdiri di atas revision `8` |
-| `decisions_revision_terbaru` | Revision `10`: `de786bebc169636c0d7bd254d429a0209809890d78a7f1dcd8220d303fcbecc0`. **Sudah diserap** artefak revision `0.3` — rinciannya pada bagian 3.3 |
+| `approval_status` | **`approved`**, `approved_by: Muhammad Hamzah`, `approved_at: 2026-09-03` |
+| `input_hash_decisions` | `00-interview-decisions.md` **revision `10`**: `de786bebc169636c0d7bd254d429a0209809890d78a7f1dcd8220d303fcbecc0` — inilah revisi yang diserap dan disetujui bersama artefak desain `0.3` |
+| `decisions_revision_terbaru` | Revision `11`: `f34b7aef1352d4c5a817ffeaf988c6eed514d668d3d92051b78806bfc09e635c`. Revision `10` **sudah diserap** artefak `0.3` dan ikut disetujui. Revision `11` menambah `RWI-DEC-089` beserta `RWI-AC-168` s.d. `RWI-AC-171` tentang `CAP-016` pemakaian alat milik `keperawatan` — **diperiksa, nol dampak** pada ketujuh capability dokter |
 | `input_hash_capability_map` | `01-existing-capability-map.md` revision `1.3`: `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
 | `input_hash_requirement_gate` | `evidence/02-requirement-completeness-gate.md` revision `1.3`: `883ed59b48bc10cb2ee9b2e09900c470a63bad9d06a339613aa871d308a70ade` |
 | `input_hash_domain_architecture` | `evidence/03-hospital-domain-architecture.md` revision `0.2`: `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |

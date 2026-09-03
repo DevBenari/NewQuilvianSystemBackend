@@ -11,12 +11,12 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `judul` | Keperawatan Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`draft`** — **dirancang 2026-09-02**, belum disetujui manusia. Approval tetap tindakan pemilik |
+| `status` | **`draft`** — **dirancang 2026-09-02**, diamandemen 2026-09-02 menyerap `RWI-DEC-089` dan `RWI-DEC-091`. Belum disetujui manusia; approval tetap tindakan pemilik |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | — belum ada yang disetujui |
 | `approved_at` | — |
 | `rumpun kemampuan` | Pengkajian, asuhan, dan tindakan keperawatan, ditambah gizi dan pemakaian alat |
-| `kemampuan` | **5** — `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`, sesuai `RWI-DEC-083` |
+| `kemampuan` | **5** — `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`, sesuai `RWI-DEC-083`. Empat aktif; **`CAP-016` berstatus `DEFERRED`** sejak `RWI-DEC-089` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
 | `peran pemilik` | Perawat pelaksana dan kepala ruangan |
 
@@ -87,24 +87,26 @@ sebelumnya mengisi kesebelas berkas ini sudah digantikan isinya.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.1` | `draft` | `8b941b477fce913682724697c506892194b686ede164910ae4cd87330f0d9e15` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.1` | `draft` | `ddfb6f05de1d478f34e5c6da52e71ddf9bcfe103c9ae09aba909200b985e9de9` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.1` | `draft` | `c5d3b3742273a85a44d1e66f7240973f30496e0a725395897691cc9deb70f801` |
-| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.1` | `draft` | `c72d4ee47fd6678826b507c6a2cb53451186d2129ead1056fd86f1355c1cc0dc` |
-| [`flowcharts/01-pengkajian-awal.md`](./flowcharts/01-pengkajian-awal.md) | `0.1` | `draft` | `60a956a3560d204541d8d819503c7f9934faabe72cee81b1393df72490b8ca9c` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.1` | `draft` | `5cde3e03e93c812d69fbc754889552eefc02a89b742499281534c6c1e2783d83` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.1.0` | `draft` | `a3fcb3cc6f25009180b54f65477cd1c9803aafc161b8bde32a4f450799d77cdd` |
-| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.1.0` | `draft` | `31b743eaf2b84d24ca6a03235ad9656fa967ca9a3fff36f031b25b03ddceb978` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.3` | `draft` | `251ffd7df8e6a3f641a796f9e44088331694cb0bc054d80edbecb81cb5914baf` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.2` | `draft` | `1c42b19621ef2ebf937233f18f765b4a6f58819d255acecd1943a502e2e736d9` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.3` | `draft` | `a1c5d9c84e9743a48629f07b07aa3a3f59712c4f2296ca70acffd4aa7d5971a0` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.2` | `draft` | `0fc48f722da869eeb633a3ce0c8e163fa8adab4802c87f532a508dad1e4959ce` |
+| [`flowcharts/01-pengkajian-awal.md`](./flowcharts/01-pengkajian-awal.md) | `0.2` | `draft` | `01705b6c2e40b803884706e8eab0fe3abea715582a2b4836f5964bd9a1346b55` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.3` | `draft` | `857d2b3a52e0f33278d14598551820c6f03e6348e3a5e241f851c5360da8ffec` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.3.0` | `draft` | `67fc8e97ca6a29a5789972dc31f75fa803db9626a96799a8dea3bf47f7baba9d` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | `draft` | `9dbc84303410c716b55bb69ad52734b8569d5ec09dc5eab0418975005106b00e` |
 | [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.1.0` | `draft` | `bf811dddc5e968b596f6ff5c3d9ee3fbe9a4ac02afeb85e5b847f8bd6338cd7a` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.1.0` | `draft` | `3a4166292e3e16842ab1a1fa4a604c53f5e8b109d5494f28e369e1d68747d50c` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.3.0` | `draft` | `f84ad786a26f7c611c84f3b73cf602c5d1288f7e1ef1850488415171055e399e` |
 | [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.1.0` | `draft` | `574fcb10c092b75e70e0ee14d812cbff9ade91c53fbdc4e626fbe209b4d11cd5` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.1.0` | `draft` | `7e402a8c2bba43d2a496f94160aec576b7b9c6f3bca87f6730d60b6ef6db71bf` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.3.0` | `draft` | `ffe947c9aa89e6e4d695e12c04d1e360ae1fe8864e9cd48d7bd1d0a457319c7a` |
 
 `flowcharts/01-pengkajian-awal.md` adalah berkas per proses; jumlahnya mengikuti proses, bukan
 berkas pasti.
 
-`roadmap/` dan `task/report/` belum ada, dan **itu bukan penyimpangan struktur**: keduanya ditulis
-`/qv-plan` dan kedua skill build, bukan oleh skill desain.
+`roadmap/` **sudah ada sejak 2026-09-02**, ditulis `/qv-plan` dengan status `DRAFT` / `FORWARD_TEST`:
+11 task backend `BE-RWI-054` s.d. `BE-RWI-064` dan 6 task frontend `FE-RWI-051` s.d. `FE-RWI-056`,
+seluruhnya `BLOCKED` pada gerbang approval sub-modul ini. `task/report/` belum ada, dan **itu bukan
+penyimpangan struktur**: ia ditulis kedua skill build, bukan oleh skill desain maupun perencanaan.
 
 ---
 
@@ -112,12 +114,12 @@ berkas pasti.
 
 | Kontrak | Version | `last_changed_in` | Status |
 |---|---|---|---|
-| API | `0.1.0` | `0.1.0` | `draft` — 13 endpoint rencana, nol tersedia |
-| State transition | `0.1.0` | `0.1.0` | `draft` — tiga mesin status, nol beririsan dengan status episode |
-| Validation | `0.1.0` | `0.1.0` | `draft` — 18 aturan |
-| Integration | `0.1.0` | `0.1.0` | `draft` — lima integrasi; `INT-KEP-01` menahan seluruh sub-modul |
-| Permission dan audit | `0.1.0` | `0.1.0` | `draft` — dua Resource baru |
-| Acceptance test | `0.1.0` | `0.1.0` | `draft` — 24 skenario, 11 di antaranya jalur gagal |
+| API | `0.3.0` | `0.3.0` | `draft` — **21 baris endpoint**, nol tersedia; `0.3.0` mengganti dua endpoint amandemen dengan empat endpoint addendum. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
+| State transition | `0.3.0` | `0.3.0` | `draft` — tiga mesin status, nol beririsan dengan status episode. **Isinya tidak bergerak** pada `0.2.0`; lihat butir konsistensi `04-prd-to-mvp.md` bagian 20.1 |
+| Validation | `0.3.0` | `0.1.0` | `draft` — 18 aturan. **Isinya tidak bergerak** pada `0.2.0` |
+| Integration | `0.3.0` | `0.3.0` | `draft` — **enam** integrasi sejak `INT-KEP-06`; `INT-KEP-01` menahan seluruh sub-modul. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
+| Permission dan audit | `0.3.0` | `0.1.0` | `draft` — dua Resource baru. **Isinya tidak bergerak** pada `0.2.0` |
+| Acceptance test | `0.3.0` | `0.3.0` | `draft` — **22 baris skenario**, termasuk tujuh skenario koreksi baru pada bagian 8. `0.2.0`: baris `CAP-016` menjadi `DEFERRED` |
 
 Angka ini bergerak **sendiri**, terpisah dari `contract_versions` milik `episode-rawat-inap` yang
 sudah berada di `0.4.0`. Itulah gunanya bentuk `COMPOSITE`: satu sub-modul boleh maju tanpa menunggu
@@ -132,6 +134,7 @@ yang lain.
 | `episode-rawat-inap` | Episode sebagai **konteks** setiap dokumen: siapa pasiennya, di mana dirawat, siapa penanggung jawabnya, dan apakah episodenya masih hidup | **Tersedia** — `approved` 2026-08-24. Sub-modul ini **membaca**, tidak menulis |
 | `ClinicalManagement` | Tabel dan mesin dokumentasi klinis | **Disetujui** `RWI-DEC-062`; **belum dikerjakan** — butuh *shared inpatient clinical context resolver* |
 | `Corporate HR Workforce` | Identitas penulis dokumen | Tersedia |
+| **`MedicalRecordManagement`** | **Mesin keutuhan dan addendum dokumen klinis** — jalur koreksi pengkajian dan catatan tindakan sejak `RWI-DEC-091` | **Tersedia dan sudah dipakai**, tetapi **belum menegakkan** jenis `Assessment` dan `Procedure`. `RWI-OQ-051` meminta perluasan itu; nol nilai enum baru |
 
 Arah ketergantungannya satu arah: sub-modul ini butuh `episode-rawat-inap`, tetapi
 `episode-rawat-inap` **tidak** butuh sub-modul ini. Karena itu tidak ada satu pun task
@@ -146,7 +149,9 @@ Arah ketergantungannya satu arah: sub-modul ini butuh `episode-rawat-inap`, teta
 | 1 | Bentuk *shared inpatient clinical context resolver* — bagaimana dokumen klinis menemukan konteks rawat inap tanpa antrean dan tanpa konsultasi | Pemilik `ClinicalManagement`, yaitu Muhammad Hamzah lewat `RWI-DEC-062` | **Ya** — ini penghalang **teknis**, bukan keputusan bisnis |
 | 2 | Batas waktu klinis `RWI-RULE-021` | Pemilik klinis, **belum ditunjuk** | Ya, untuk aturan waktunya saja |
 | 3 | ~~Butir menu sub-modul ini~~ | **Ditetapkan 2026-09-02** — nol butir menu tingkat dua; keenam layar menjadi layar anak `FE-INP-04` dan `FE-INP-09`. Lihat `03-frontend-architecture.md` bagian 2 | **Tertutup** |
-| 4 | **Siapa pemilik tabel catatan pemakaian alat** (`CAP-016`). PRD 23.1 tidak memuat barisnya. Usulan `RWI-OQ-048` | Product/Domain bersama pemilik persediaan | **Ya — untuk `CAP-016` saja.** Tiga kemampuan `MUST HAVE` tidak tertahan |
+| 4 | ~~**Siapa pemilik tabel catatan pemakaian alat** (`CAP-016`)~~ | **Ditutup 2026-09-02** oleh `RWI-DEC-089`: `EPIC KEP-06` dikeluarkan dari scope rilis pertama secara tertulis, dan kepemilikan tabelnya sengaja ditunda sampai modul persediaan/aset ada | **Tertutup** |
+| 5 | ~~Apakah dokumen keperawatan memakai mesin keutuhan dokumen~~ | **Ditutup 2026-09-02** oleh `RWI-DEC-091`: koreksi dibedakan dari perkembangan. Pengkajian dan catatan tindakan memakai addendum; rencana asuhan tetap berversi | **Tertutup** |
+| 6 | **Perluasan penegakan keutuhan bagi jenis `Assessment` dan `Procedure`** `RWI-OQ-051`. Mesinnya sudah ada dan nomornya sudah tersedia, tetapi hari ini hanya `ProgressNote` yang ditegakkan `RM-DEC-019` | Pemilik `MedicalRecordManagement`, **belum dinyatakan** | **Tidak menahan desain.** Menahan **implementasi** `BE-RWI-057` dan `BE-RWI-062` |
 
 Butir 1 dan 2 **tidak** menahan `episode-rawat-inap`.
 
@@ -157,10 +162,16 @@ Butir 1 dan 2 **tidak** menahan `episode-rawat-inap`.
 | Kondisi | Skill |
 |---|---|
 | ~~Desain sub-modul ini~~ | **Selesai 2026-09-02.** Hasilnya `draft` |
-| `RWI-OQ-048` dijawab, **atau** `EPIC KEP-06` dikeluarkan dari scope secara tertulis | `/qv-plan` untuk sub-modul ini |
-| `RWI-OQ-048` ingin ditutup | `/qv-grill` Amendment Pass |
+| ~~`RWI-OQ-048` dijawab, atau `EPIC KEP-06` dikeluarkan dari scope secara tertulis~~ | **Terpenuhi 2026-09-02** lewat `RWI-DEC-089`. `/qv-plan` untuk sub-modul ini **sudah boleh** dijalankan bagi `CAP-012`, `CAP-013`, `CAP-014`, dan `CAP-027` |
+| ~~Butir konsistensi mesin koreksi~~ | **Ditutup 2026-09-02** oleh `RWI-DEC-091`; desainnya sudah diserap revision `0.3` |
+| `RWI-OQ-051` ingin ditutup sebelum pembangunan | `/qv-grill`, lalu konfirmasi pemilik `MedicalRecordManagement` |
 | Batas domain dokumentasi klinis ingin ditetapkan lebih dulu | `/qv-domain` (opsional) untuk slice ini |
 | Requirement kemampuannya ingin dinilai ulang terhadap `PRD-RWI-FINAL-001` | `/qv-gate` |
 | Pemilik klinis sudah ditunjuk dan `RWI-RULE-021` ingin ditutup | `/qv-grill` Amendment Pass |
 
-Sub-modul ini **MUST NOT** diteruskan ke `/qv-plan` sebelum `RWI-OQ-048` dijawab atau `EPIC KEP-06` dikeluarkan dari scope secara tertulis — `04-prd-to-mvp.md` bagian 20.
+**Gerbang `/qv-plan` sudah terbuka sejak 2026-09-02.** `RWI-DEC-089` mengeluarkan `EPIC KEP-06` dari scope rilis pertama secara tertulis, yaitu tepat syarat yang dituntut kalimat ini sebelumnya — `04-prd-to-mvp.md` bagian 20.
+
+Dua hal tetap wajib dibaca sebelum task pertama dibangun, dan keduanya **bukan** penghalang perencanaan:
+
+1. `INT-KEP-01` *shared inpatient clinical context resolver* masih menahan **pemakaian** kelima kemampuan untuk pasien sungguhan. Ia penghalang teknis milik `ClinicalManagement`, bukan keputusan bisnis.
+2. Butir konsistensi mesin koreksi pada `04-prd-to-mvp.md` bagian 20.1 wajib dijawab **sebelum** `EPIC KEP-01` s.d. `EPIC KEP-04` dibangun, karena jawabannya menentukan bentuk mesin amandemen keempatnya.

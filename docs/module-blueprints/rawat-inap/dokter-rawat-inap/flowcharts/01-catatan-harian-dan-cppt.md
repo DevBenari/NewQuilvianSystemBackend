@@ -4,7 +4,8 @@
 | --- | --- |
 | Sub-modul | `dokter-rawat-inap` |
 | Revision | `0.2` |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Isi | Seluruh percabangan **beserta jalur pengecualiannya** |
 | Kemampuan | `CAP-020`, `CAP-021` |
 | Catatan | Proses visite dipindahkan ke berkas tersendiri, [`02-visite-dokter.md`](./02-visite-dokter.md), karena `RWI-DEC-084` menjadikannya kejadian yang berdiri sendiri |

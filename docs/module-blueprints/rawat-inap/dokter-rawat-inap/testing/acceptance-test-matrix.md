@@ -6,11 +6,12 @@
 | Sub-modul | `dokter-rawat-inap` |
 | Contract version | `0.3.0` |
 | `last_changed_in` | `0.3.0` |
-| Status | `draft` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
 | `input_revision` | `02-backend-architecture.md` `0.2`; seluruh kontrak `0.2.0`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| Tanggal | 2 September 2026 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
+| Tanggal | 2 September 2026; disetujui 3 September 2026 |
 
 Dari **54** skenario di bawah, **22** adalah jalur gagal.
 

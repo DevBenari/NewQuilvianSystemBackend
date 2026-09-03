@@ -3,15 +3,16 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | `1.3` |
-| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); **focused reassessment 2 September 2026** |
+| Assessment revision | `1.4` |
+| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); **focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026** |
 | Assessment status | `CURRENT` |
 | Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka diperbaiki; kesiapan belum dinilai ulang pada revision itu |
 | Focused reassessment `1.2` | Menilai ulang `INP-S05` bagian dokter, `INP-S06`, serta `CAP-015` berdasarkan decision log revision `7`, PRD final, dan capability map revision `1.3`. Hasil kanonisnya ada pada bagian 11 |
 | Decision closure `1.3` | Menyerap hasil Amendment Pass `CAP-025` pada decision log revision `8`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085`; hasil kanonis terbaru untuk Dokter Rawat Inap ada pada bagian 12 |
+| Focused reassessment `1.4` | Menilai **lima kemampuan Keperawatan** yang tidak pernah punya slice sendiri: `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, dan `CAP-027`. Slice baru `INP-S16`. Hasilnya pada bagian 13 |
 | **Overall readiness** | **`PARTIALLY_READY`** |
-| Ready destination | `hospital-domain-architect`; ketujuh capability Dokter Rawat Inap siap sesuai bagian 12 |
-| Business evidence | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `8`, SHA-256 `065b5cd5d96576560d9e2ee3a4c97be6f2925cee7cda16dc6d99f8dfa441117f` |
+| Ready destination | `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13 |
+| Business evidence | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `11`, SHA-256 `f34b7aef1352d4c5a817ffeaf988c6eed514d668d3d92051b78806bfc09e635c`. Revision `8` SHA-256 `065b5cd5…` dipakai pada penilaian `1.0` s.d. `1.3` |
 | Capability evidence | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.3`, SHA-256 `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
 | Primary business source | `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`, `PRD-RWI-FINAL-001` v1.0.0, SHA-256 `fb5e75d7a1ffffdaddf084a90ec417b00b893b2be23aac0a98ddef5d7bbddc55` |
 | Baseline rujukan | `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
@@ -61,6 +62,7 @@ boleh menghentikan slice lain yang sebenarnya sudah siap.
 | `INP-S13` | Riwayat status, audit, dan daftar pantau kepatuhan | NFR-003 | `RWI-RULE-023`, `RWI-RULE-031` |
 | `INP-S14` | Pengaturan yang dapat diubah admin | Pendukung | `RWI-RULE-034` |
 | `INP-S15` | Interoperabilitas SATUSEHAT dan pelaporan | **Belum ada di daftar kemampuan** | **Belum ada aturannya** |
+| **`INP-S16`** | **Keperawatan rawat inap** — ditambahkan revision `1.4` | CAP-012, CAP-013, CAP-014, CAP-016, CAP-027 | `RWI-RULE-021`, `RWI-RULE-026`, `RWI-RULE-033` |
 
 `INP-S15` **tidak** berasal dari dokumen keputusan. Slice ini muncul dari pembandingan dengan
 baseline rumah sakit Indonesia, dan penjelasannya ada di bagian 4.11.
@@ -618,6 +620,7 @@ ulang. Konflik baru focused scope dicatat sebagai `DEC-INP-008` pada bagian 11.8
 | `INP-S13` Riwayat status, audit, daftar pantau | `READY_FOR_DOMAIN_DESIGN` | — | Dua dari tiga daftar pantau siap; daftar pantau kepatuhan pengkajian dan CPPT menunggu `INP-S05` |
 | `INP-S14` Pengaturan admin | `READY_FOR_DOMAIN_DESIGN` | — | — |
 | `INP-S15` Interoperabilitas dan pelaporan | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-005` | Slice ini belum pernah masuk daftar kemampuan mana pun |
+| **`INP-S16` Keperawatan rawat inap** | **`PARTIALLY_READY`** | — | **Dinilai revision `1.4`, lihat bagian 13.** `CAP-012`, `CAP-013`, dan `CAP-014` siap; `CAP-027` siap hanya pada bagian skrining/rujukan; `CAP-016` `DEFERRED` oleh `RWI-DEC-089`. Nol blocker keputusan bisnis |
 
 ### 7.1 Dependency antar slice
 
@@ -958,3 +961,160 @@ Hasil turunan:
 | `decision_ids` | `RWI-DEC-084`, `RWI-DEC-085`; `DEC-INP-008 CLOSED` |
 | `required_boundary` | Dokumentasi dan visite tetap milik `ClinicalManagement`; jangan membuat tabel/engine `Inp*` tandingan. Billing hanya menerima dampak/agregasi melalui kontrak terpisah |
 | `expected_output` | Amendment arsitektur domain ketujuh capability dokter, termasuk ownership event Physician Visit, relasi episode, lifecycle koreksi, authorization, audit, idempotency, integrasi Billing, dan traceability |
+
+---
+
+## 13. Focused reassessment Keperawatan — revision `1.4`
+
+### 13.1 Kenapa penilaian ini dijalankan
+
+Taksonomi slice `INP-S01` s.d. `INP-S15` pada bagian 4 disusun ketika scope modul masih **18 kemampuan**.
+Setelah `RWI-DEC-080` mengangkat `PRD-RWI-FINAL-001` menjadi baseline dan scope menjadi **28 kemampuan**,
+lalu `RWI-DEC-082` memecah modul menjadi tiga sub-modul, lima kemampuan Keperawatan tidak pernah mendapat
+slice sendiri. Akibatnya terbaca dari dokumen ini sendiri:
+
+| Kemampuan | Berapa kali disebut dokumen ini sebelum revision `1.4` | Akibatnya |
+|---|:---:|---|
+| `CAP-012` Nursing Assessment | 1 | Masuk daftar `INP-S05`, tetapi **tidak pernah dinyatakan siap** — bagian 7 hanya menyebut `CAP-015`, `020`, `021`, `022`, dan `024` |
+| `CAP-013` Nursing Care | **0** | Tidak ada slice mana pun yang mencakupnya |
+| `CAP-014` Nursing Interventions | 1 | Sama seperti `CAP-012` |
+| `CAP-016` Equipment Usage | 2 | Hanya muncul sebagai catatan, bukan sebagai penilaian |
+| `CAP-027` Nutrition Care | **0** | Tidak ada slice mana pun yang mencakupnya |
+
+Bagian 12.3 dokumen ini sudah mencatatnya apa adanya: *"bagian keperawatan pada slice yang sama tidak
+dinilai ulang"*. Penilaian `1.4` menutup lubang itu, dan **tidak** menilai ulang slice modul lain.
+
+### 13.2 Scope penilaian
+
+| Field | Nilai |
+|---|---|
+| Slice baru | **`INP-S16`** — Keperawatan rawat inap |
+| Sub-modul | [`keperawatan/`](../keperawatan/), `RWI-BP-001` revision `5` |
+| Kemampuan | `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027` — sesuai `RWI-DEC-083` |
+| Aturan bisnis terkait | `RWI-RULE-021`, `RWI-RULE-026`, `RWI-RULE-033` |
+| Yang **tidak** dinilai | Seluruh slice `INP-S01` s.d. `INP-S15`. Hasilnya tetap sebagaimana revision `1.3` |
+
+### 13.3 Bukti yang dipakai
+
+| Bukti | Revision | Wewenang |
+|---|---|---|
+| `PRD-RWI-FINAL-001` bagian 16, 17, 20, 22, 26, 27, 29 | v1.0.0 | Requirement rumah sakit terkini — wewenang tertinggi untuk "apa yang seharusnya dibangun" |
+| [`00-interview-decisions.md`](../00-interview-decisions.md) | `11` | Keputusan pemilik yang dikonfirmasi |
+| [`01-existing-capability-map.md`](../01-existing-capability-map.md) | `1.3` | Bukti implementasi — **bagian 1–14 stale** terhadap SHA terbaru; dipakai hanya untuk pertanyaan "apa yang ada sekarang" |
+| [`../keperawatan/`](../keperawatan/) sebelas artefak desain | `0.2` / `0.2.0` | Bukan bukti requirement; dipakai untuk memeriksa apakah requirement sudah cukup untuk dirancang |
+
+> **Batas yang dijaga.** Keberadaan desain `keperawatan` **bukan** bukti bahwa requirement-nya lengkap.
+> Penilaian ini menilai buktinya, bukan dokumen turunannya.
+
+### 13.4 Hasil penilaian 18 dimensi
+
+| ID | Dimensi | Status bukti | Hasil focused assessment | Dampak gap |
+|---:|---|---|---|---|
+| 01 | Tujuan | `CONFIRMED` | Catatan klinis perawat yang awal dan berkelanjutan sepanjang episode, beserta rencana asuhan, tindakan nyata, dan skrining gizi | — |
+| 02 | Aktor | `CONFIRMED` | RBAC PRD bagian 26: Perawat `C/U/F`, Kepala Ruangan `R/O*`, Supervisor `O*`, Dokter dan DPJP `R` | — |
+| 03 | Pemicu/prasyarat | `CONFIRMED` | Episode `Admitted` ditambah penugasan/kewenangan perawat — PRD 16.3 | Resolver `INT-KEP-01` masih `Missing`, tetapi itu **gap teknis** |
+| 04 | Alur utama | `CONFIRMED` | PRD 16.3 menulis alurnya utuh: `Admitted` → penugasan → pengkajian awal → identifikasi risiko → asuhan/tindakan → pengkajian ulang harian → evaluasi → perencanaan pulang | — |
+| 05 | Alternatif/exception | `CONFIRMED` | Pengkajian ulang tidak menimpa pengkajian awal (16.2 aturan 3); nilai nyeri lama tidak ditimpa (aturan 6); pasien salah dibatalkan Kepala Ruangan dengan alasan (PRD 29); kegagalan Billing tidak menghapus catatan klinis (`CAP-014` aturan 5) | — |
+| 06 | Data minimum | `CONFIRMED` | PRD 16.2 aturan 4 dan 5 merinci isi General Assessment dan Fall Risk; `CAP-014` aturan 2 merinci tindakan: aksi, waktu, pelaku, hasil, konteks episode | — |
+| 07 | Aturan/validation | `CONFIRMED` | Tiga belas aturan `CAP-012`, enam aturan `CAP-013`, lima aturan `CAP-014` | Katalog SDKI bersyarat — lihat 13.6 |
+| 08 | Status/lifecycle | `CONFIRMED` | PRD 16.2 aturan 10 menyebut `NotStarted`, `Draft`, `Completed`, `Amended`, dan **melarang** status itu diturunkan dari status episode | — |
+| 09 | Peran/authorization | `CONFIRMED` | RBAC bagian 26 ditambah `CAP-014` aturan AC-03: bukan penulis dan bukan supervisor tidak dapat menyunting diam-diam catatan final | — |
+| 10 | Dependency antarmodul | `CONFIRMED` | Tabel milik `ClinicalManagement` (`RWI-DEC-081`, PRD 23.1); asuhan gizi milik modul Gizi; tagihan milik Billing | Modul Gizi **belum berwujud** — lihat 13.6 |
+| 11 | Integrasi | `CONFIRMED` untuk bentuk minimum | Pemicu tagihan idempotent (`CAP-014` aturan 5); rujukan gizi tanpa menduplikasi konteks pasien (`CAP-027` AC-01) | — |
+| 12 | Hasil akhir | `CONFIRMED` | AC-CAP012-03: pengkajian `Completed` tampil pada census/workspace **tanpa** menambah status episode baru | — |
+| 13 | Pembatalan/koreksi | `CONFIRMED` | PRD 16.2 aturan 12 dan 13: dilarang hard-delete dan timpa diam-diam; amandemen wajib menyimpan pelaku, waktu, alasan, dan perubahan. PRD 27.3 aturan 7 menyatakan koreksi dokumen klinis **mengikuti aturan amandemen/versi masing-masing jenis dokumen** | Konsistensi dengan mesin keutuhan dokumen `NON_BLOCKING_STANDARD` — lihat 13.6 |
+| 14 | Audit/histori | `CONFIRMED` | PRD 27.1 mewajibkan jejak finalisasi/verifikasi/amandemen dokumen klinis; 27.2 merinci isinya termasuk alasan dan nilai sebelum/sesudah | — |
+| 15 | Notifikasi | `MISSING` | Requirement hanya menuntut **daftar pantau kepatuhan**, bukan pemberitahuan dorong | `NON_BLOCKING_STANDARD` |
+| 16 | Billing/charge | `CONFIRMED` | `CAP-014` aturan 5 dan AC-02: tindakan billable mengirim pemicu beridentitas idempotency; kegagalan Billing **tidak** menghapus catatan klinis | — |
+| 17 | Keselamatan klinis | `CONFIRMED` untuk desain | Pemisahan pengkajian awal dan ulang, riwayat nyeri longitudinal, larangan hard-delete, dan kewenangan penyuntingan menutup risiko utama | Nilai batas waktu klinis `CONFIGURABLE_DEFAULT` — lihat 13.6 |
+| 18 | Pelaporan/traceability | `CONFIRMED` | Daftar pantau kepatuhan pengkajian, `DueAt`/`CompletedAt`/overdue berdasarkan konfigurasi aktif (16.2 aturan 11) | — |
+
+### 13.5 Butir `CONFIRMED` yang menopang kesiapan
+
+| No | Butir | Bukti |
+|---:|---|---|
+| 1 | Pengkajian terikat Patient + Encounter + Inpatient Episode, dan **tidak boleh** menuntut `QueueId` rawat jalan maupun kunjungan IGD aktif | PRD 16.2 aturan 1 dan 2; `AC-CAP012-01` |
+| 2 | Pengkajian awal dan pengkajian ulang adalah record **terpisah** | PRD 16.2 aturan 3; `AC-CAP012-02` |
+| 3 | Status pengkajian diturunkan dari record nyata, bukan dari status episode | PRD 16.2 aturan 10; `AC-CAP012-03` |
+| 4 | Rencana asuhan diturunkan dari temuan pengkajian, punya masalah/tujuan/rencana/evaluasi dan lifecycle sendiri, serta menutup butir tanpa menghapus riwayat | PRD `CAP-013` aturan 1, 2, 6; `AC-CAP013-01` s.d. `03` |
+| 5 | Tindakan mencatat apa yang **benar-benar dilakukan**, boleh ad-hoc tanpa rencana lebih dulu | PRD `CAP-014` aturan 1 dan 3 |
+| 6 | Skrining gizi menghasilkan pemicu rujukan **tanpa** menjadikan perawat pemilik asuhan gizi profesional | PRD 16.2 aturan 7; `CAP-027` aturan 1 dan 3 |
+| 7 | Kewenangan per peran lengkap, termasuk larangan penyuntingan diam-diam oleh selain penulis/supervisor | PRD bagian 26; `AC-CAP014-03` |
+
+### 13.6 Butir `PROPOSED`, `MISSING`, dan `CONFLICT`
+
+| ID | Butir | Status | Dampak | Alasannya |
+|---|---|---|---|---|
+| K-01 | Nilai batas waktu klinis pengkajian (`RWI-RULE-021`) | `MISSING` | **`CONFIGURABLE_DEFAULT`** | PRD 16.2 aturan 11 **secara eksplisit** mewajibkan SLA klinis dapat dikonfigurasi Clinical Governance dan **melarang PRD men-hard-code angka yang belum disetujui**. Mekanismenya wajib ada; angkanya memang konfigurasi. Karena itu butir ini **tidak memblokir desain** |
+| K-02 | Katalog terminologi SDKI/SLKI/SIKI | `PROPOSED` | **`CONFIGURABLE_DEFAULT`** | PRD `CAP-013` aturan 3 bersyarat: *"Jika terminology SDKI/SLKI/SIKI digunakan rumah sakit"*. Pemakaiannya belum dinyatakan, dan struktur rencana asuhan tetap dapat dirancang tanpa katalognya |
+| K-03 | Konsistensi mesin koreksi dokumen keperawatan terhadap mesin keutuhan dokumen `ClinicalManagement` | `PROPOSED` | **`NON_BLOCKING_STANDARD`** | `RWI-DEC-086`/`087` bercakupan **catatan dokter**; dokumen keperawatan tidak disebut. **PRD 27.3 aturan 7 menyelesaikannya**: koreksi dokumen klinis mengikuti aturan amandemen/versi **masing-masing jenis dokumen**. Model amandemen sendiri karenanya **sah**. Yang tersisa adalah pilihan keseragaman, bukan pertentangan |
+| K-04 | Cakupan `CAP-013` terhadap scope MVP | **`CONFLICT`** | **`NON_BLOCKING_STANDARD`** | `RWI-DEC-034` (`approved`, 2026-08-20) menyatakan `CAP-013` berada di **luar scope** dan ditunda setelah MVP, turunan `RWI-DEC-004`. `RWI-DEC-080` (2026-09-02) **menggantikan batas scope itu**, dan `RWI-DEC-083` menugaskan `CAP-013` ke `keperawatan`. Keputusan yang lebih baru dan lebih spesifik menang, tetapi `RWI-DEC-004` dan `RWI-DEC-034` **belum ditandai `superseded`** — lihat 13.8 |
+| K-05 | Asuhan gizi ujung ke ujung (`CAP-027` bagian modul Gizi) | `MISSING` | **`BLOCKING` hanya untuk bagian itu** | PRD 23.1 menaruh Nutrition Assessment/Care pada modul Gizi, dan modul itu **belum berwujud** di `Areas/`. Bagian milik Keperawatan — skrining dan rujukan — tidak ikut terblokir |
+| K-06 | Pemberitahuan dorong | `MISSING` | `NON_BLOCKING_STANDARD` | Requirement hanya menuntut daftar pantau kepatuhan |
+
+### 13.7 Gap teknis, bukan keputusan bisnis
+
+Dua butir berikut **bukan** bahan gerbang ini dan tidak boleh dipakai untuk menahan kesiapan requirement:
+
+| Butir | Sifatnya | Pemilik |
+|---|---|---|
+| `INT-KEP-01` *shared inpatient clinical context resolver* — `TrxPatientAssessment` masih menuntut `QueueId` | **Teknis.** Requirement-nya justru sudah tegas: PRD 16.2 aturan 2 melarang `QueueId` diwajibkan | `ClinicalManagement` |
+| Modul Gizi berstatus `PLANNED` | **Ketersediaan modul**, bukan keputusan bisnis yang belum diambil | Roadmap Quilvian |
+
+### 13.8 Decision Log
+
+Tidak ada Decision ID **baru** yang memblokir. Satu butir kebersihan decision log perlu ditutup pemilik:
+
+Decision ID: `DEC-INP-009`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Apakah `RWI-DEC-004` dan `RWI-DEC-034` dinyatakan `superseded` oleh `RWI-DEC-080` dan `RWI-DEC-083`, sehingga `CAP-013` resmi berada **di dalam** scope? |
+| Kemampuan terdampak | `CAP-013` Nursing Care |
+| Bukti saat ini | `RWI-DEC-034` `approved` menyatakan di luar scope; `RWI-DEC-083` `approved` dan lebih baru menugaskannya ke `keperawatan`; `keperawatan/04-prd-to-mvp.md` menulisnya `MUST HAVE` `EPIC KEP-03` |
+| Usulan baseline | Keduanya ditandai `superseded` dengan rujukan ke `RWI-DEC-080` dan `RWI-DEC-083`, sesuai disiplin yang sudah dipakai pada `RWI-DEC-018`, `025`, dan `031` |
+| Dampak | Hasil bisnis: apakah `EPIC KEP-03` dibangun. Tidak mengubah model domain, lifecycle, maupun authorization |
+| Pemilik | Muhammad Hamzah, Product/Domain |
+| Status | **`CLOSED` 2026-09-02** oleh `RWI-DEC-090`: `RWI-DEC-004` dan `RWI-DEC-034` dinyatakan `superseded`, `CAP-013` resmi di dalam scope. Ekornya, `OQ-RI-011` terbuka kembali sebagai butir non-blocking |
+| Dampak implementasi | Nihil bila ditutup sesuai usulan. Bila pemilik justru menegaskan `CAP-013` tetap di luar scope, `EPIC KEP-03` dicabut dari `keperawatan/04-prd-to-mvp.md` |
+
+### 13.9 Kesiapan per capability
+
+| Capability | Slice | Kesiapan | Blocker bisnis | Catatan |
+|---|---|---|---|---|
+| `CAP-012` Nursing Assessment | `INP-S16` | **`READY_FOR_DOMAIN_DESIGN`** | — | Tiga belas aturan, lima acceptance criteria, status lifecycle, dan kewenangan lengkap. SLA `CONFIGURABLE_DEFAULT` |
+| `CAP-013` Nursing Care | `INP-S16` | **`READY_FOR_DOMAIN_DESIGN`** | — | Enam aturan dan tiga acceptance criteria cukup. Katalog SDKI bersyarat dan tidak menahan struktur. `DEC-INP-009` bersifat kebersihan catatan |
+| `CAP-014` Nursing Interventions | `INP-S16` | **`READY_FOR_DOMAIN_DESIGN`** | — | Konteks, pelaku, waktu, idempotency, dan pemisahan kegagalan Billing tegas |
+| `CAP-016` Equipment Usage | `INP-S16` | **`DEFERRED`** — tidak dinilai | — | Dikeluarkan dari scope rilis pertama secara tertulis oleh `RWI-DEC-089`. Dinilai ulang saat `RWI-OQ-048` dibuka kembali |
+| `CAP-027` Nutrition Care | `INP-S16` | **`PARTIALLY_READY`** | — | **Skrining dan rujukan siap** — itulah bagian milik Keperawatan. **Asuhan gizi ujung ke ujung berhenti** karena modul Gizi belum berwujud, dan itu ketersediaan modul, bukan keputusan bisnis |
+
+Hasil turunan: slice **`INP-S16` `PARTIALLY_READY`**; sub-modul `keperawatan` **siap dirancang dan siap
+direncanakan untuk empat kemampuan aktifnya**. Overall Rawat Inap tetap **`PARTIALLY_READY`** karena slice
+modul lain berada di luar penilaian ini.
+
+### 13.10 Apa yang boleh berjalan dan apa yang harus berhenti
+
+**Boleh berjalan:**
+
+- perencanaan delivery `keperawatan` untuk `CAP-012`, `CAP-013`, `CAP-014`, dan bagian skrining/rujukan `CAP-027`;
+- desain lanjutan bila diperlukan, dengan atau tanpa `hospital-domain-architect` — sub-modul ini sudah mencatat `DOMAIN_ARCHITECTURE_NOT_RUN` beserta alasannya.
+
+**Harus berhenti:**
+
+- pekerjaan asuhan gizi ujung ke ujung, sampai modul Gizi berdiri;
+- pekerjaan `CAP-016`, sampai `RWI-OQ-048` dibuka kembali;
+- **pemakaian** kelima kemampuan untuk pasien sungguhan, sampai `INT-KEP-01` dikerjakan. Ini menahan rilis, **bukan** menahan desain maupun perencanaan.
+
+### 13.11 Handoff
+
+| Field | Nilai |
+|---|---|
+| `capability_scope` | `CAP-012`, `CAP-013`, `CAP-014`, `CAP-027` bagian skrining/rujukan |
+| `requirement_readiness` | `INP-S16` `PARTIALLY_READY`; empat kemampuan aktif `READY_FOR_DOMAIN_DESIGN` |
+| `requirement_evidence_status` | `CONFIRMED` untuk 16 dari 18 dimensi; `MISSING` pada notifikasi dan nilai SLA; satu `CONFLICT` kebersihan catatan |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas konteks dan kepemilikan data sudah ditetapkan `RWI-DEC-081` dan PRD 23.1, sehingga tidak ada batas domain yang perlu diturunkan ulang |
+| `decision_ids` | `DEC-INP-009` `OPEN` non-blocking; `RWI-OQ-048` `CLOSED` oleh `RWI-DEC-089` |
+| `dependency_ids` | `INT-KEP-01` teknis; modul Gizi `PLANNED` |
+| `next_owner` | `plan-module-delivery` untuk sub-modul `keperawatan` |
+| `required_boundary` | Dokumentasi keperawatan tetap milik `ClinicalManagement` (`RWI-DEC-081`). Sub-modul ini **MUST NOT** membuat tabel tandingan, termasuk tabel pemakaian alat |
+| `expected_output` | Roadmap backend dan frontend `keperawatan` beserta traceability requirement, tanpa satu pun task untuk `EPIC KEP-06` |

@@ -6,9 +6,9 @@
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
 | Contract version | `0.3.0` |
 | `last_changed_in` | `0.3.0` |
-| Status | `draft` — belum disetujui manusia |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement`, `MedicalRecordManagement` |
-| `approved_by` / `approved_at` | — belum |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Compatibility impact | `0.3.0`: perpindahan ke `Completed` kini **sekaligus** mendaftarkan dokumen ke mesin keutuhan dan menguncinya sebagai tertanda tangan. Nol nilai status baru. Sebelumnya `0.2.0` mencabut status `Amended` dan melahirkan mesin event visite |
