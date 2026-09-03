@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis (pembeda golongan darah) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |

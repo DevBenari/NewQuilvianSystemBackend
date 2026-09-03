@@ -67,7 +67,7 @@ PMI, integrasi HCLAB, mesin crossmatch, dan manajemen donor.
 
 ---
 
-## B. Prefix registry — `BD-DEP-008` **tertutup**, aktivasi modul masih terbuka
+## B. Prefix registry — `BD-DEP-008` dan `BD-DEP-016` **keduanya tertutup**
 
 Aturan struktur backend melarang memilih prefix entity sendiri (`QBE-NAM-004`); satu-satunya sumbernya
 adalah registry kepemilikan modul. **Bank Darah kini terdaftar di sana**, commit `ed7fba8`
@@ -380,7 +380,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 
 | Aspek | Penjelasan |
 | --- | --- |
-| Status | `Baru` (menunggu aktivasi modul — `BD-DEP-016`) |
+| Status | `Baru` — aktivasi modul (`BD-DEP-016`) sudah turun 3 September 2026; pembuatannya berwenang dijadwalkan lewat `BE-BD-003` |
 | Lokasi file | `Areas/HealthServices/BloodBankManagement/Models/BbkBloodOrder.cs` |
 | Kategori | Transaksi |
 | Tanggung jawab | Menyimpan satu permintaan kebutuhan darah untuk seorang pasien, dari unit pelayanan (elektronik) atau diinput Bank Darah (manual). Angka pemenuhan tidak disimpan sebagai kolom; dihitung dari pemberian nyata |
@@ -733,10 +733,15 @@ Ini konsekuensi *fail-closed* yang disengaja, bukan cacat rancangan, tetapi ia m
 **Langkah mundur:** karena seluruhnya objek baru dan satu kolom bawaan, rollback = `DROP` tabel baru
 dan `DROP COLUMN` flag. Tidak ada data existing yang hilang.
 
-**Prasyarat mutlak:** migration operasional menunggu **keputusan aktivasi modul** (`BD-DEP-016`,
-gerbang `G2b`), bukan lagi pendaftaran prefix — `BD-DEP-008` sudah tertutup dan prefix `Bbk` sah.
-Migration master (langkah 1) dan kolom flag (langkah 2) memakai prefix `Mst` yang berstatus `ACTIVE`
-dan tidak terikat aktivasi modul operasional — tetapi urutan pemakaian modul menuntut ketiganya lengkap.
+**Prasyarat yang dulu mutlak, kini tertutup:** migration operasional sempat menunggu keputusan aktivasi
+modul (`BD-DEP-016`, gerbang `G2b`). Keputusan itu turun 3 September 2026 lewat commit `8075784`, dan
+`BD-DEP-008` pendaftaran prefix tertutup lebih dulu lewat `ed7fba8`. Migration master (langkah 1) dan
+kolom flag (langkah 2) memakai prefix `Mst` yang sejak awal berstatus `ACTIVE`; urutan pemakaian modul
+tetap menuntut ketiganya lengkap.
+
+**Yang masih berlaku dan tidak dibuka oleh apa pun di atas:** menulis migration dan menjalankannya adalah
+dua wewenang berbeda. Approval `G1` dan aktivasi `G2b` membuka **penjadwalan** task; eksekusi database di
+luar dev pemilik dan deployment tetap wewenang terpisah yang diminta per tindakan.
 
 ---
 

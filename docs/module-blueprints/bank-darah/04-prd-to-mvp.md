@@ -6,7 +6,7 @@
 | --- | --- |
 | Produk | Quilvian Hospital Information System |
 | Modul | Bank Darah (`bank-darah`) · kode PRD `BD` |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — status **`draft`** |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — status **`approved`** |
 | Repository target | `NewQuilvianSystemBackend` (backend) · `V2QuilvianSystemFrontendDev` (frontend) |
 | Commit SHA baseline | backend `ab39b63` · frontend `afbb8ab` |
 | Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 9 |
@@ -427,17 +427,19 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 sempat terbuka sudah ditutup `DEC-BD-037` dan `DEC-BD-038`. Yang ditambahkan hanya satu baris
 prasyarat operasional di atas: master lokasi wajib terisi sebelum go-live.
 
-**Status dokumen `draft`.** Pemblokir berkurang dari dua menjadi **satu**: `DEF-BD-004` ditutup
-`DEC-BD-039` sampai `DEC-BD-041` pada `v3`. `BD-DEP-008` pendaftaran prefix dan `BD-DEP-016` aktivasi
-modul **keduanya sudah tertutup** pada 3 September 2026. **Tidak ada lagi pemblokir dependency.**
-Yang tersisa hanya penyelarasan pencatatan approval desain (`G1`).
+**Status dokumen `approved`.** Ketiga pemblokir yang pernah tercatat kini tertutup seluruhnya:
+`DEF-BD-004` ditutup `DEC-BD-039` sampai `DEC-BD-044`, `BD-DEP-008` pendaftaran prefix dan `BD-DEP-016`
+aktivasi modul keduanya tertutup 3 September 2026, dan **`G1` approval desain turun pada tanggal yang
+sama** atas nama `Sukmagp`.
 
-`BD-DEP-016` sudah beres, sehingga entity operasional `Bbk*` kini berwenang dibuat dan gelombang
-`MVP-1` sampai `MVP-4` tidak lagi tertahan dependency. Yang masih menahan seluruh gelombang hanyalah
-pencatatan approval desain (`G1`) yang belum selaras antara changelog registry dan blueprint.
+Karena `BD-DEP-016` beres, entity operasional `Bbk*` sudah berwenang dibuat; karena `G1` beres, seluruh
+gelombang `MVP-0` sampai `MVP-4` boleh dijadwalkan. Urutannya tetap seperti bagian 19: `MVP-0` lebih
+dulu, `MVP-1b` mendahului `MVP-3`, dan FE tidak mendahului task BE pasangannya.
 
-Sisa `DEF-BD-004` — tiga peran yang belum dipetakan — **tidak** ditandai memblokir. Ketiga alurnya sudah
-dirancang penuh dan butir hak aksesnya sudah bernama; yang tertahan hanya isi seeder hak akses, dan itu
-dapat diselesaikan lewat satu closure pass yang pendek.
+Sisa `DEF-BD-004` sudah tidak ada; keenam wewenangnya dipetakan. Yang tertinggal hanya satu isian seeder
+(`OQ-BD-017`, nama peran pemegang `BloodUnit : ResolveNotUsable`), dan itu menahan satu baris pada
+`BE-BD-016`, bukan alurnya.
 
-Approval manusia belum diklaim.
+**Approval manusia sudah tercatat: `Sukmagp` / `2026-09-03`.** Ia membuka penjadwalan task, bukan izin
+menulis source — wewenang tulis backend, migration, eksekusi database di luar dev pemilik, dan
+deployment tetap diminta terpisah per tindakan.

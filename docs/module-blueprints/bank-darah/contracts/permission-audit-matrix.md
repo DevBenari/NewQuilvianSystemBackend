@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — `draft` |
+| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
 | Owner | Pemilik keamanan platform · pemilik proses BDRS (peran) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
@@ -82,7 +82,8 @@ sakit yang ingin memisahkan kedua tanggung jawab itu dapat melakukannya tanpa me
 `DEF-BD-004` sudah ditutup oleh `DEC-BD-039`, `DEC-BD-040`, dan `DEC-BD-041` untuk **tiga** wewenang:
 validator golongan darah, jalur darurat, dan koreksi pencatatan. Baris-baris itu kini menurunkan
 keputusan yang sudah diambil pemilik proses, bukan usulan. Ketiganya masih berstatus `draft` pada
-register, seperti seluruh keputusan Bank Darah lainnya.
+register keputusan, seperti seluruh keputusan Bank Darah lainnya — approval `G1` 3 September 2026
+menutup **blueprint dan set kontrak `v4`**, dan tidak menaikkan status register keputusan.
 
 **`DEF-BD-004` kini tertutup seluruhnya.** `03-domain-architecture.md` §H membawa **enam** wewenang
 sebagai satu keputusan terkumpul; role & authority closure pass menjawab tiga, dan role residue closure

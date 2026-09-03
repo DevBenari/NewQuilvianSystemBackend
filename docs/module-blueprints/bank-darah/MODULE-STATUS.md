@@ -5,20 +5,21 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `18` |
-| Module status | `PARTIAL` |
-| Current phase | `BD-PH-006` |
+| Revision | `20` |
+| Module status | `READY` |
+| Current phase | `BD-PH-007` |
 | Last verified at | `belum pernah diverifikasi` |
-| Backend source SHA | `8075784` cabang `sukmagp` |
+| Backend source SHA | `ae451b9` cabang `sukmagp` |
 | Frontend source SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Decision revision | `9` — `DEC-BD-001` sampai `DEC-BD-044` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
-| Contract version | `v4` (`draft`) |
-| Roadmap | revisi `2` — `FORWARD-TEST / DRAFT` |
-| Terakhir diperbarui | `2026-09-03` |
+| Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
+| Roadmap | revisi `2` — **`APPROVED`** |
+| Terakhir diperbarui | `2026-09-03` — sinkronisasi approval `G1` |
 
-Modul tetap `PARTIAL`. Seluruh fase perancangan sudah menghasilkan artefaknya, dan **tidak ada satu pun
-keputusan bisnis yang masih memblokir**.
+Modul naik dari `PARTIAL` ke **`READY`**. Seluruh fase perancangan sudah menghasilkan artefaknya,
+**tidak ada satu pun keputusan bisnis yang masih memblokir**, dan sejak 3 September 2026 tidak ada satu
+pun fase yang `BLOCKED`.
 
 **`BD-DEP-008` sudah ditutup** pada 3 September 2026 lewat commit `ed7fba8`: prefix `Bbk` terdaftar di
 `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, **persis seperti yang diajukan blueprint**.
@@ -29,8 +30,16 @@ Risiko "prefix berbeda → seluruh nama `Bbk*` berganti sebagai satu paket" yang
 dari `PLANNED` ke **`ACTIVE`**, yang menurut changelog registry "membuka wewenang implementasi entity
 operasional `Bbk*` sesuai `QBE-MOD-002`".
 
-Dengan itu **seluruh dependency teknis Bank Darah tertutup**. Yang tersisa tinggal `G1` — approval
-desain — dan status pencatatannya sedang bermasalah; lihat peringatan di bawah.
+**`G1` approval desain juga sudah tertutup** pada 3 September 2026. Owner menyatakan approval turun atas
+nama **`Sukmagp`** bertanggal **`2026-09-03`**, dan keterangan itu sudah dicatat pada
+`blueprint-manifest.md` revisi 20 beserta seluruh artefak set kontrak `v4`. Pertentangan pencatatan yang
+sempat dicatat — changelog registry menyebut approval sudah ada sementara blueprint masih `draft` —
+**selesai**: changelog registry ternyata benar, dan yang tertinggal memang pencatatan di sisi blueprint.
+
+Dengan itu **ketiga gerbang global tertutup**: `G1` approval, `G2a` penamaan, dan `G2b` aktivasi modul.
+Tidak ada lagi yang menahan penjadwalan task. Yang tetap berlaku adalah batas wewenang biasa: approval
+membuka penjadwalan task lewat `build-module-backend`, sementara migration, eksekusi database di luar dev
+pemilik, deployment, dan publikasi Git tetap wewenang terpisah yang diminta per tindakan.
 
 ---
 
@@ -97,17 +106,17 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan pada `02-existing-capability-map.md` revisi **3**. Audit penuh di `9522caa`; **impact scan terbatas di `4205d18` sudah dijalankan** 3 September 2026 dan penanda `STALE` dicabut. Nol baris berpindah status. |
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. **Catatan:** `BR-BD-020` (Storage Location) belum punya rumah slice resmi; sementara diperlakukan sebagai perluasan `BD-SLICE-03/04/10`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
-| `BD-PH-005` | Penyusunan blueprint target | `IN_PROGRESS` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). Seluruhnya `draft`. Belum `DONE` — approval owner belum ada. |
-| `BD-PH-006` | Perencanaan delivery | `IN_PROGRESS` | Roadmap **revisi 2** (`FORWARD-TEST / DRAFT`) menggantikan revisi 1 yang `STALE`. Gerbangnya kini `G1` approval dan **`G2b` aktivasi modul**; `G2` lama (`BD-DEP-008`) sudah tertutup, dan `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. Roadmap **belum** menyerap pemecahan `G2` → `G2a`/`G2b`. |
-| `BD-PH-007` | Implementasi backend | `BLOCKED` | Seluruh dependency teknis tertutup — penamaan (`BD-DEP-008`) dan aktivasi modul (`BD-DEP-016`) keduanya selesai. Yang menahan tinggal **pencatatan `G1`** yang bertentangan antara registry dan manifest. |
-| `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Menunggu kontrak API di-approve dan terkunci hash. |
+| `BD-PH-005` | Penyusunan blueprint target | `DONE` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). **Bukti penerimaan:** set kontrak `v4` disetujui `Sukmagp` pada `2026-09-03` (`G1`), tercatat di manifest revisi 20 dan di kepala setiap artefak kontrak. |
+| `BD-PH-006` | Perencanaan delivery | `DONE` | Roadmap **revisi 2** menggantikan revisi 1 yang `STALE`, dan statusnya naik dari `FORWARD-TEST / DRAFT` menjadi **`APPROVED`** ketika `G1` turun. Ketiga gerbangnya tertutup: `G1` approval, `G2a` penamaan (`ed7fba8`), `G2b` aktivasi (`8075784`); `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. |
+| `BD-PH-007` | Implementasi backend | `READY` | Ketiga gerbang tertutup dan seluruh dependency teknis selesai. Gelombang `MVP-0` (`BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016`) boleh dijadwalkan lebih dulu, lalu `MVP-1` dan seterusnya. Belum ada task yang dijalankan. |
+| `BD-PH-008` | Implementasi frontend | `NOT_STARTED` | Kontrak API **sudah** `approved` dan terkunci pada `v4`, sehingga gerbangnya tidak lagi menahan. Yang menahan tinggal urutan biasa: tidak ada task FE yang mendahului task BE pasangannya, dan belum ada satu pun task BE yang dijalankan. |
 | `BD-PH-009` | Verifikasi kesiapan | `NOT_STARTED` | Belum ada implementasi untuk diverifikasi. |
 
 ### Ringkasan fase
 
-| Fase selesai | Fase berjalan | Fase terblokir |
+| Fase selesai | Fase siap dimulai | Fase terblokir |
 | --- | --- | --- |
-| `BD-PH-001`, `BD-PH-002`, `BD-PH-003`, `BD-PH-004` | `BD-PH-005`, `BD-PH-006` | `BD-PH-007` |
+| `BD-PH-001` sampai `BD-PH-006` | `BD-PH-007` | **Nihil** |
 
 ---
 
@@ -118,8 +127,10 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
 
 Belum ada `task/report/**` pada folder modul — tidak ada satu pun task implementasi yang pernah
-dijalankan. Kemajuan delivery **belum dapat dihitung**: roadmap revisi 2 belum di-approve, sehingga
-belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
+dijalankan. Sejak roadmap revisi 2 disetujui, pembagi yang sah **sudah ada**: 15 task backend
+(`BE-BD-001`..`012`, `014`, `015`, `016`; `BE-BD-013` berada di future scope) dan 12 task frontend
+(`FE-BD-001`..`012`). Kemajuan delivery karena itu **0 dari 27 task**, dan angka itu dihitung dari
+keberadaan `task/report/**`, bukan diperkirakan.
 
 ---
 
@@ -127,8 +138,6 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 
 | Blocker ID | Ringkasan | Pemilik | Terdampak | Kelanjutan yang tetap aman |
 | --- | --- | --- | --- | --- |
-| **`G1` approval** | Owner belum menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE | Seluruh pekerjaan perancangan sudah selesai; tidak ada yang menunggu selain approval |
-| ⚠️ **Pencatatan `G1` bertentangan** | Changelog registry commit `8075784` menyatakan aktivasi didasarkan pada "persetujuan owner Bank Darah dan **approval blueprint `BD-BP-001` contract `v4`**". Namun `blueprint-manifest.md` masih `approved_by: null`, `approved_at: null`, kontrak `v4` berstatus `draft`, dan **delapan artefak kontrak** masih menulis "Kosong — `draft`" | Pemilik proses BDRS + arsitektur backend | Seluruh task BE & FE — task builder menuntut approval yang tercatat | **Tidak diisi sendiri.** Nama penyetuju dan tanggalnya hanya diketahui owner; mengarangnya berarti memalsukan rekam keputusan manusia |
 | `DEC-BD-016` | Persetujuan pemilik Billing atas konteks sumber biaya Bank Darah | Pemilik BillingManagement | Penyerahan biaya ke Billing | Pencatatan tindakan tetap dirancang penuh tanpa penyaluran biaya |
 | `OQ-BD-011` | Mekanik label golongan darah | Pemilik proses klinis | Slice label | Pemeriksaan dan validasi golongan darah tetap dirancang penuh |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen | Titik pemeriksaan kecocokan tetap dirancang |
@@ -140,8 +149,18 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 | `OQ-BD-018` | Apakah hasil bukti kecocokan menggerbang atau sekadar keterangan | Pemilik proses klinis | Penegasan `VAL-BD-079` | Rancangan sudah *fail-closed*; menunggu konfirmasi |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan | Perancangan tetap jalan |
 
+**Tidak ada satu pun baris di atas yang memblokir gerbang atau fase.** Seluruhnya menyangkut scope di
+luar rilis pertama (penyaluran biaya Billing), detail implementasi yang nilainya datang dari konfigurasi
+master, atau satu baris seeder. Daftar ini dipertahankan supaya tidak hilang, bukan sebagai penahan.
+
 **`DEF-BD-004` sudah tertutup seluruhnya** — keenam wewenangnya dipetakan `DEC-BD-039` sampai
 `DEC-BD-044`. Ia tidak lagi menjadi blocker, dan gerbang `G3` pada roadmap revisi 1 dihapus.
+
+⚠️ **Satu catatan pencatatan yang bukan blocker.** Approval `G1` menutup **blueprint dan set kontrak
+`v4`**, sesuai bunyi gerbangnya di roadmap §B. Ia **tidak** otomatis menaikkan status register keputusan:
+`DEC-BD-001` sampai `DEC-BD-044` pada `00-interview-decisions.md` tetap `draft` dengan `approved_by`
+kosong. Menaikkannya menuntut pernyataan owner tersendiri. Ini **tidak menahan task mana pun** — builder
+membaca kontrak, bukan register keputusan — tetapi dicatat supaya tidak dikira sudah ikut naik.
 
 ---
 
@@ -166,6 +185,8 @@ belum ada pembagi yang sah. Persentase tidak boleh diperkirakan.
 | `DEF-BD-004` — bukti kecocokan, penyelesaian, pembatalan order | `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044` |
 | `BD-DEP-008` — prefix entity belum terdaftar di registry | Pendaftaran `Bbk` pada `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, commit `ed7fba8` 3 September 2026 |
 | `BD-DEP-016` — modul belum diaktifkan (`PLANNED`) | Kenaikan Lifecycle ke `ACTIVE`, commit `8075784` 3 September 2026 |
+| `G1` — approval blueprint dan set kontrak `v4` | Approval owner `Sukmagp` bertanggal `2026-09-03`, dicatat pada manifest revisi 20 dan seluruh artefak set kontrak |
+| Pencatatan `G1` yang bertentangan antara registry dan blueprint | Keterangan owner 3 September 2026; changelog registry terbukti benar, pencatatan blueprint yang tertinggal dan kini sudah selaras |
 
 ---
 
@@ -190,14 +211,14 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 | `02-requirement-completeness-assessment.md` | Revisi 2 — `BR-BD-020` belum punya rumah slice |
 | `01-prerequisite-readiness.md` | Revisi 3 — `BD-DEP-001`..`015` |
 | `03-domain-architecture.md` | Revisi 6 — `DOMAIN_ARCHITECTURE_READY`, nol gap terbuka |
-| `02-backend-architecture.md` | Kontrak `v4` — 15 tabel `Bbk*`, 3 master `Mst*`, 11 enum |
-| `03-frontend-architecture.md` | Kontrak `v4` — 10 layar, peta menu, 21 kewajiban layar |
-| `04-prd-to-mvp.md` | Kontrak `v4` — 12 epic, `UAT-01`..`21`, gelombang `MVP-0`..`MVP-4` |
-| `data/data-dictionary.md` | Kontrak `v4` |
-| `contracts/` (5 berkas) | `v4`, kecuali `integration-contract.md` yang `last_changed_in: v2` karena isinya tidak bergerak |
+| `02-backend-architecture.md` | Kontrak `v4` (`approved`) — 15 tabel `Bbk*`, 3 master `Mst*`, 11 enum |
+| `03-frontend-architecture.md` | Kontrak `v4` (`approved`) — 10 layar, peta menu, 21 kewajiban layar |
+| `04-prd-to-mvp.md` | Kontrak `v4` (`approved`) — 12 epic, `UAT-01`..`21`, gelombang `MVP-0`..`MVP-4` |
+| `data/data-dictionary.md` | Kontrak `v4` (`approved`) |
+| `contracts/` (5 berkas) | `v4` (`approved`), kecuali `integration-contract.md` yang `last_changed_in: v2` karena isinya tidak bergerak — ia tetap ikut disetujui sebagai bagian set `v4` |
 | `flowcharts/` (7 berkas) | Termasuk `penyimpanan-kantong.md` yang baru pada `v2` |
-| `testing/acceptance-test-matrix.md` | Kontrak `v4` — `AC-BD-001`..`097` |
-| `roadmap/00-delivery-plan.md` | Revisi 2 — `FORWARD-TEST / DRAFT` |
+| `testing/acceptance-test-matrix.md` | Kontrak `v4` (`approved`) — `AC-BD-001`..`097` |
+| `roadmap/00-delivery-plan.md` | Revisi 2 — **`APPROVED`** |
 | `task/report/**` | **Belum ada** — tidak ada implementasi yang pernah dijalankan |
 
 ---
@@ -206,10 +227,14 @@ Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
-| 1 | **`G1` approval** — owner menyetujui blueprint dan set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | **Tindakan manusia**, bukan skill |
-| 2 | **Selaraskan pencatatan `G1`** — isi `approved_by`/`approved_at` pada manifest dan delapan artefak kontrak, atau nyatakan bahwa approval belum turun sehingga changelog registry perlu dikoreksi | Pemilik proses BDRS + arsitektur backend | **Tindakan manusia.** Datanya tidak dapat disimpulkan dari repository |
-| 3 | `build-module-backend` per task `MVP-0`, lalu `MVP-1` dan seterusnya | Skill | Setelah pencatatan `G1` selesai. Dependency teknis **sudah tidak menahan** |
-| 4 | `grill-me` bila hendak menutup `OQ-BD-017` dan `OQ-BD-018` sekalian | Skill | Tidak menahan siapa pun |
+| 1 | `build-module-backend` untuk `BE-BD-001` (katalog komponen darah & daftar alasan terkendali) — task pertama gelombang `MVP-0` | Skill | **Butuh wewenang tulis backend eksplisit per task.** Approval `G1` membuka penjadwalan, bukan izin menulis source |
+| 2 | Lanjutkan `MVP-0`: `BE-BD-002`, `BE-BD-014`, `BE-BD-016` | Skill | Sama seperti di atas, satu task satu wewenang |
+| 3 | Setelah `MVP-0`: `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4` | Skill | Urutan gelombang ada di `roadmap/00-delivery-plan.md` §F |
+| 4 | `grill-me` bila hendak menutup `OQ-BD-017` dan `OQ-BD-018` sekalian | Skill | Tidak menahan siapa pun. `OQ-BD-017` menahan **satu baris seeder** pada `BE-BD-016`, jadi paling murah ditutup sebelum task itu dijalankan |
+| 5 | `verify-module-readiness` setelah satu gelombang selesai | Skill | Bukan sekarang — belum ada implementasi untuk diverifikasi |
+
+**Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap wewenang
+terpisah.** Approval `G1` tidak menyentuh keempatnya.
 
 **`trace-existing-capabilities` sudah dijalankan** 3 September 2026 sebagai impact scan terbatas dan
 **tidak perlu diulang** sampai backend SHA bergerak lagi.

@@ -4,6 +4,7 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
 | `last_changed_in` | `v4` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 | Sumber | `02-backend-architecture.md` (model) · `contracts/` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`, `CreateBy`,
@@ -14,8 +15,9 @@ Penghapusan bersifat penandaan melalui `IsDelete`, **bukan** penghapusan baris (
 
 **Nama tabel `Bbk*` memakai prefix yang sudah disahkan registry** — `BD-DEP-008` tertutup
 3 September 2026, dan prefix yang disahkan persis `Bbk`. Nama tabel pada dokumen ini **final**; tidak
-ada penggantian nama yang tertunda. Pembuatan tabelnya sendiri masih menunggu keputusan aktivasi modul
-(`BD-DEP-016`), yang tidak mengubah satu pun nama di sini.
+ada penggantian nama yang tertunda. Keputusan aktivasi modul (`BD-DEP-016`) juga **sudah turun** pada
+3 September 2026 lewat commit `8075784`, sehingga pembuatan tabelnya sudah berwenang dijadwalkan.
+Eksekusi migration-nya sendiri tetap wewenang terpisah yang diminta per tindakan.
 
 ---
 

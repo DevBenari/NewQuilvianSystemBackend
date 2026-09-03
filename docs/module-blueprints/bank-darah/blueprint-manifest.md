@@ -5,13 +5,13 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 19
-status: PARTIAL
-current_phase: BD-PH-005
+revision: 20
+status: READY
+current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-03T17:00:00+07:00
+updated_at: 2026-09-03T19:30:00+07:00
 last_verified_at: null
-backend_source_sha: 8075784
+backend_source_sha: ae451b9
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -51,7 +51,9 @@ contract_versions:
     status: superseded
     superseded_by: v4
   - version: v4
-    status: draft
+    status: approved
+    approved_by: Sukmagp
+    approved_at: 2026-09-03
     last_changed_in: v4
     covers:
       - 02-backend-architecture.md
@@ -70,8 +72,8 @@ owners:
   api: pemilik arsitektur backend
   security: pemilik keamanan platform
   frontend: pemilik proses BDRS
-approved_by: null
-approved_at: null
+approved_by: Sukmagp
+approved_at: 2026-09-03
 resolved_dependency_ids:
   - BD-DEP-008
   - BD-DEP-016
@@ -91,7 +93,7 @@ active_dependency_ids:
   - BD-DEP-014
   - BD-DEP-015
 active_roadmap_revision: 2
-roadmap_status: FORWARD-TEST
+roadmap_status: APPROVED
 supersedes: null
 ```
 
@@ -103,18 +105,18 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | Field | Arti dalam bahasa sehari-hari |
 | --- | --- |
 | `blueprint_id` | Nomor identitas blueprint. Ditetapkan sekali dan tidak pernah diganti. |
-| `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend: awalan itu **`Bbk`**, terpisah, dan sejak 3 September 2026 **sudah terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dengan Lifecycle `PLANNED`. |
+| `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend: awalan itu **`Bbk`**, terpisah, dan sejak 3 September 2026 **sudah terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dengan Lifecycle **`ACTIVE`** (commit `8075784`). |
 | `revision` | Naik hanya bila arsitektur target, kontrak, dependency, atau keputusan yang sudah disetujui berubah secara berarti. Tidak naik hanya karena status berubah. |
-| `status` | `PARTIAL` berarti sebagian slice sudah siap dirancang sementara slice lain terblokir keputusan bisnis. |
-| `current_phase` | Fase yang sedang berjalan, yaitu `BD-PH-005` Penyusunan Blueprint Target. |
+| `status` | Naik dari `PARTIAL` ke **`READY`** pada 3 September 2026. Tidak ada satu pun fase yang `BLOCKED`: keputusan bisnis, dependency teknis, dan approval desain seluruhnya tertutup, sehingga fase yang direncanakan berikutnya (`BD-PH-007` implementasi backend) boleh dimulai. |
+| `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat commit dokumen ke **`ae451b9`**. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
-| `roadmap_status` | Kembali `FORWARD-TEST` pada roadmap **revisi 2** (3 September 2026), yang disusun ulang di atas set kontrak `v4`. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
-| `decision_revision` | Naik ke `9` sampai Role residue closure pass 3 September 2026. `DEF-BD-004` ditutup seluruhnya oleh `DEC-BD-039`..`DEC-BD-044`. **Tidak ada lagi keputusan bisnis yang memblokir**, dan sejak commit `8075784` **tidak ada lagi dependency teknis yang memblokir**. Yang tersisa hanya penyelarasan pencatatan `G1`. |
-| `contract_versions` | Set kontrak desain **`v4`** berstatus `draft`, hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
-| `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kosong: desain masih `draft`. |
+| `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
+| `decision_revision` | Naik ke `9` sampai Role residue closure pass 3 September 2026. `DEF-BD-004` ditutup seluruhnya oleh `DEC-BD-039`..`DEC-BD-044`. **Tidak ada lagi keputusan bisnis yang memblokir**, dan sejak commit `8075784` **tidak ada lagi dependency teknis yang memblokir**. Penyelarasan pencatatan `G1` diselesaikan pada revisi 20. |
+| `contract_versions` | Set kontrak desain **`v4`** berstatus **`approved`** sejak 3 September 2026 (`Sukmagp`), hasil design-business-module update pass 3 September 2026 yang menyerap role residue closure. `v1` sampai `v3` ditandai `superseded`. Set kontrak berlaku sebagai **satu himpunan**; seluruh berkas yang dicakup ikut naik ke `v4`, kecuali `contracts/integration-contract.md` yang `last_changed_in`-nya tetap `v2` karena isinya memang tidak bergerak. |
+| `owners` | Pemilik per sumbu (product/domain, API, security, frontend). `approved_by`/`approved_at` kini terisi **`Sukmagp` / `2026-09-03`**: desain sudah `approved`. Nama itu berasal dari keterangan owner, bukan disimpulkan dari repository. |
 | `supersedes` | Kosong karena blueprint ini tidak menggantikan blueprint lain. |
 
 ## Peringatan yang melekat
@@ -134,8 +136,10 @@ mengubah controller, service, entity, migration, database, atau melakukan deploy
 
 > Blok di bawah adalah **rekaman historis per pass**, bukan keadaan sekarang. Setiap entri benar pada
 > tanggalnya. Keadaan terkini ada pada field YAML di atas dan pada catatan rekonsiliasi paling bawah.
-> Khususnya: rujukan `BD-DEP-008` sebagai pemblokir dan `Bbk` sebagai placeholder mencerminkan keadaan
-> sebelum 3 September 2026; keduanya **sudah tidak berlaku**.
+> Khususnya, tiga hal di blok historis **sudah tidak berlaku**: rujukan `BD-DEP-008` sebagai pemblokir,
+> `Bbk` sebagai placeholder, dan setiap kalimat "Approval manusia belum diklaim" beserta penyebutan set
+> kontrak `v4` sebagai `draft`. Ketiganya benar pada tanggalnya masing-masing, dan seluruhnya ditutup
+> pada 3 September 2026.
 
 **Design pass 2 September 2026.** `design-business-module` menghasilkan set kontrak `v1` (`draft`) pada
 `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`,
@@ -243,21 +247,14 @@ luar dev pemilik dan deployment tetap wewenang terpisah.
 Dengan itu **seluruh dependency teknis Bank Darah tertutup**: `BD-DEP-008` penamaan dan `BD-DEP-016`
 aktivasi. Tidak ada lagi gerbang registry yang menahan.
 
-⚠️ **Pencatatan `G1` bertentangan dan belum dapat diselesaikan tanpa keterangan owner.** Changelog
-registry menyebut aktivasi didasarkan pada "persetujuan owner Bank Darah dan **approval blueprint
-`BD-BP-001` contract `v4`**". Namun di dalam blueprint sendiri:
+**Pencatatan `G1` sempat bertentangan, dan pertentangan itu sudah selesai.** Changelog registry menyebut
+aktivasi didasarkan pada "persetujuan owner Bank Darah dan **approval blueprint `BD-BP-001` contract
+`v4`**", sementara blueprint sendiri masih menulis `approved_by: null` dan set kontrak `draft`. Skill
+sengaja **tidak** mengisinya sendiri waktu itu: nama penyetuju dan tanggalnya hanya diketahui owner, dan
+mengarangnya berarti memalsukan rekam keputusan manusia.
 
-| Tempat | Isi sekarang |
-| --- | --- |
-| `blueprint-manifest.md` | `approved_by: null`, `approved_at: null` |
-| `contract_versions` | `v4` berstatus `draft` |
-| Delapan artefak kontrak | Baris approval-nya masih berbunyi "Kosong — `draft`" |
-
-Salah satu dari dua hal benar: approval memang sudah turun tetapi belum dicatat di blueprint, atau
-changelog registry mendahului approval yang sebenarnya belum ada. **Skill ini tidak mengisi
-`approved_by`/`approved_at` sendiri** — nama penyetuju dan tanggalnya hanya diketahui owner, dan
-mengarangnya berarti memalsukan rekam keputusan manusia. Pertanyaannya dikembalikan kepada pemilik
-proses BDRS bersama pemilik arsitektur backend.
+Owner menyampaikan keterangannya pada 3 September 2026, dan itulah yang dicatat pada revisi 20. Lihat
+catatan penutup di bagian paling bawah dokumen ini.
 
 **Rekonsiliasi 3 September 2026.** Seluruh artefak Bank Darah disapu dan diselaraskan atas penutupan
 `BD-DEP-008`: sembilan berkas yang masih menyatakan "prefix belum terdaftar" atau "BD-DEP-008 blocker
@@ -288,7 +285,8 @@ memberi wewenang implementasi, migration, pekerjaan database, deployment, maupun
 berstatus `PLANNED` — dengan `InsuranceManagement`/`Ins`/`PLANNED` sebagai contoh yang disebut langsung.
 
 Gerbang `G2` pada roadmap revisi 2 karena itu pecah menjadi dua: **`G2a` penamaan — tertutup**, dan
-**`G2b` aktivasi modul (`PLANNED` → `ACTIVE`) — masih terbuka**. Pemeriksaan
+**`G2b` aktivasi modul (`PLANNED` → `ACTIVE`) — waktu itu masih terbuka; ditutup commit `8075784` di
+hari yang sama**. Pemeriksaan
 `tooling/qbe/Invoke-QbeConformanceCheck.ps1` menunjukkan checker membaca registry untuk kepemilikan
 prefix tetapi **tidak** tampak menegakkan Lifecycle; artinya yang menahan adalah teks governance-nya,
 bukan mesinnya. *Checker lolos* tidak sama dengan *diberi wewenang*.
@@ -319,3 +317,33 @@ Satu temuan yang mengubah urutan kerja: `MstBloodStorageLocation`, `MstBloodComp
 `MstBloodBankReason` seluruhnya memakai prefix `Mst` yang sudah sah, sehingga **tidak terblokir
 `BD-DEP-008`**. Gelombang `MVP-0` — seluruh master ditambah seeder hak akses — karena itu dapat
 berjalan segera setelah approval, sementara registry masih diurus.
+
+**Sinkronisasi approval `G1` — 3 September 2026, revisi 20.** Owner menyatakan approval turun atas nama
+**`Sukmagp`** bertanggal **`2026-09-03`**. Keterangan itu menutup pertentangan pencatatan yang dicatat
+sebelumnya: changelog registry ternyata benar, dan yang tertinggal memang pencatatan di sisi blueprint.
+
+Yang berubah pada pass ini seluruhnya berupa **penyelarasan pencatatan**, bukan perubahan rancangan:
+
+| Perubahan | Dari | Menjadi |
+| --- | --- | --- |
+| `approved_by` / `approved_at` | `null` / `null` | `Sukmagp` / `2026-09-03` |
+| Set kontrak `v4` | `draft` | **`approved`** |
+| `status` modul | `PARTIAL` | **`READY`** |
+| `current_phase` | `BD-PH-005` | **`BD-PH-007`** |
+| `roadmap_status` | `FORWARD-TEST` | **`APPROVED`** |
+| `BD-PH-005`, `BD-PH-006` | `IN_PROGRESS` | **`DONE`** |
+| `BD-PH-007` | `BLOCKED` | **`READY`** |
+
+**Nol perubahan arsitektur, kontrak, dependency, atau keputusan.** Revisi naik ke 20 karena status
+approval set kontrak adalah bagian dari keputusan yang disetujui, bukan sekadar penanda status.
+
+⚠️ **Satu batas approval yang perlu dibaca apa adanya.** `G1` sebagaimana didefinisikan roadmap §B
+berbunyi "Owner menyetujui blueprint & set kontrak `v4`". Approval ini karena itu menutup **blueprint dan
+set kontrak**, dan **tidak** otomatis mengubah status register keputusan: `DEC-BD-001` sampai `DEC-BD-044`
+pada `00-interview-decisions.md` tetap berstatus `draft` dengan `approved_by` kosong, persis seperti
+sebelumnya. Menaikkannya menuntut pernyataan owner tersendiri. Itu **tidak** menahan task mana pun —
+builder membaca kontrak, bukan register keputusan — tetapi dicatat supaya tidak dikira sudah ikut naik.
+
+**Approval tidak memberi wewenang eksekusi.** Ia membuka penjadwalan task lewat `build-module-backend`.
+Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap wewenang terpisah
+yang harus diminta per tindakan.

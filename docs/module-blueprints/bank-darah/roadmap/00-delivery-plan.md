@@ -4,15 +4,17 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
-| **Roadmap status** | **`FORWARD-TEST / DRAFT`** — set kontrak `v4` masih `draft`; seluruh task gated `G1` |
-| Contract version yang dipakai | **`v4`** (`draft`) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | `8075784` cabang `sukmagp` |
+| **Roadmap status** | **`APPROVED`** — disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun pada 3 September 2026 |
+| Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
+| Backend SHA | `ae451b9` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **9** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
-| `approved_by` / `approved_at` | Kosong — approval adalah tindakan manusia |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
-Roadmap ini **tidak** memberi wewenang implementasi. Ia memetakan pekerjaan dan menandai apa yang
-`BLOCKED`. `BLOCKED` bukan cara melewati approval dan bukan tanda roadmap gagal. Preflight QBE dan
+Roadmap ini **tidak** memberi wewenang implementasi, bahkan setelah disetujui. Approval `G1` membuka
+**penjadwalan** task; wewenang menulis source diberikan terpisah, satu task satu wewenang, lewat
+`build-module-backend`. Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git
+tetap wewenang tersendiri yang diminta per tindakan. Preflight QBE dan
 kesesuaian engineering diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen
 engineering canonical, bukan di sini.
 
@@ -39,7 +41,7 @@ Storage Location kini punya keputusan, konsep domain (`BD-DOM-24`, `BD-DOM-25`),
 
 | Gate | Isi | Pemilik | Memblokir |
 | --- | --- | --- | --- |
-| `G1` Approval desain | Owner menyetujui blueprint & set kontrak `v4` (`draft`) | Pemilik proses BDRS + arsitektur backend | **Seluruh** task BE & FE |
+| ~~`G1` Approval desain~~ | Owner menyetujui blueprint & set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | ✅ **TERTUTUP** 3 September 2026 oleh `Sukmagp`. Set kontrak `v4` naik dari `draft` ke `approved`; tercatat pada `blueprint-manifest.md` revisi 20 |
 | ~~`G2a` `BD-DEP-008`~~ | Pendaftaran prefix `Bbk` di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `ed7fba8`. Prefix yang disahkan **persis `Bbk`** |
 | ~~`G2b` `BD-DEP-016`~~ | Keputusan aktivasi modul: Lifecycle registri `PLANNED` → `ACTIVE` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `8075784`. Membuka wewenang entity operasional `Bbk*` dan migration modul |
 
@@ -50,42 +52,58 @@ Storage Location kini punya keputusan, konsep domain (`BD-DOM-24`, `BD-DOM-25`),
 Bank Darah, sehingga **penamaan tidak lagi menahan**: seluruh nama `Bbk*` pada kontrak `v4` berlaku apa
 adanya, dan skenario penggantian nama sebagai satu paket tidak terjadi.
 
-Yang menggantikannya adalah `G2b`. Kepala registry menyatakan sendiri bahwa persetujuannya "hanya
-memberi wewenang penamaan dan kepemilikan" dan **tidak** memberi wewenang implementasi, migration,
-pekerjaan database, deployment, maupun aktivasi modul berstatus `PLANNED` — dengan
-`InsuranceManagement`/`Ins`/`PLANNED` sebagai contoh yang disebut langsung. Baris Bank Darah berstatus
-`PLANNED`, sehingga entity operasional tetap menunggu keputusan aktivasi.
+Yang menggantikannya waktu itu adalah `G2b`. Kepala registry menyatakan sendiri bahwa persetujuan
+pendaftaran "hanya memberi wewenang penamaan dan kepemilikan" dan **tidak** memberi wewenang
+implementasi, migration, pekerjaan database, deployment, maupun aktivasi modul berstatus `PLANNED` —
+dengan `InsuranceManagement`/`Ins`/`PLANNED` sebagai contoh yang disebut langsung. Baris Bank Darah
+memang sempat berstatus `PLANNED`, sehingga entity operasional menunggu keputusan aktivasi.
 
+**Keputusan itu sudah turun.** Commit `8075784` menaikkan Lifecycle Bank Darah ke **`ACTIVE`** pada
+3 September 2026, dan sejak itu baris registry berbunyi
+`HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | ACTIVE`. Uraian
+`PLANNED` di paragraf sebelumnya adalah rekaman keadaan sebelum aktivasi, bukan keadaan sekarang.
+
+Satu catatan dari pemeriksaan waktu itu tetap layak dibaca siapa pun yang bekerja di modul ini.
 Pemeriksaan `tooling/qbe/Invoke-QbeConformanceCheck.ps1` menunjukkan checker membaca registry untuk
 kepemilikan prefix tetapi **tidak** tampak menegakkan Lifecycle. Artinya mesin tidak akan menghentikan
-siapa pun; yang menahan adalah teks governance-nya. *Checker lolos* tidak sama dengan *diberi wewenang*.
+siapa pun; yang menahan adalah teks governance-nya. *Checker lolos* tidak sama dengan *diberi wewenang*
+— dan itu berlaku sama untuk batas yang masih hidup, yaitu eksekusi database di luar dev pemilik dan
+deployment.
 
-**Catatan `G2b` yang mengubah urutan kerja.** Prefix `Mst` berstatus **`ACTIVE`** di registry —
-terverifikasi langsung, bukan inferensi. Karena `MstBloodStorageLocation`, `MstBloodComponent`, dan
-`MstBloodBankReason` seluruhnya master `Mst*`, ketiganya **tidak terblokir `G2b`** — hanya `G1`.
-Ini berarti seluruh fondasi master, termasuk Storage Location, dapat berjalan sementara keputusan
-aktivasi modul masih diurus. Pada revisi 1 keuntungan ini tidak terlihat karena Storage Location belum
-ada.
+**Catatan `G2b` yang mengubah urutan kerja, dan tetap berlaku setelah gerbangnya tertutup.** Prefix
+`Mst` berstatus **`ACTIVE`** di registry — terverifikasi langsung, bukan inferensi. Karena
+`MstBloodStorageLocation`, `MstBloodComponent`, dan `MstBloodBankReason` seluruhnya master `Mst*`,
+ketiganya tidak pernah terblokir `G2b`. Itulah sebabnya gelombang `MVP-0` tetap dijadwalkan lebih dulu:
+bukan lagi karena menyiasati gerbang, melainkan karena fondasi master memang harus ada sebelum alur
+operasional berdiri di atasnya. Pada revisi 1 keuntungan ini tidak terlihat karena Storage Location
+belum ada.
 
-Karena kontrak masih `draft`, **kerja paralel BE/FE belum diizinkan**: task FE bergantung pada kontrak
-BE yang sudah di-approve dan terkunci hash. Selama `G1` terbuka, FE menunggu.
+**Ketiga gerbang global kini tertutup.** Tidak ada task yang tertahan gerbang, dan kolom `Dependency`
+pada tabel task di bawah tetap menyebut `G1`/`G2b` sebagai **rekaman prasyarat yang sudah terpenuhi**,
+bukan penahan yang masih hidup.
+
+Kontrak sudah `approved` dan terkunci pada `v4`, sehingga penghalang gerbang bagi frontend hilang. Yang
+tetap berlaku hanyalah urutan biasa: **tidak ada task FE yang mendahului task BE pasangannya**, karena FE
+menempel pada endpoint yang harus lebih dulu ada.
 
 ---
 
 ## C. Pemisahan yang diminta
 
-### C.1 Task yang **tidak** terblokir registry — hanya menunggu `G1`
+### C.1 Task yang **tidak pernah** terblokir registry
 
-| Task | Sebabnya bebas `G2b` |
+| Task | Sebabnya bebas `G2b` sejak awal |
 | --- | --- |
 | `BE-BD-001` Master komponen darah & alasan terkendali | Prefix `Mst`, pemilik Master Data |
 | `BE-BD-002` Titipan flag kewenangan unit pada `MstServiceUnit` | Kolom pada tabel milik Master Data yang sudah ada |
 | `BE-BD-014` **Master lokasi penyimpanan darah** | Prefix `Mst`, pemilik Master Data (`DEC-BD-035`) |
 | `BE-BD-016` Seeder resource & action hak akses | Mendaftarkan butir hak akses, bukan membuat entity |
 
-### C.2 Task yang **terblokir aktivasi modul** — siap dimulai setelah `G2b`
+### C.2 Task yang dulu terblokir aktivasi modul — **kini terbuka**
 
-Seluruhnya membuat entity operasional `Bbk*` (`QBE-MOD-002`, `QBE-MOD-003`):
+Seluruhnya membuat entity operasional `Bbk*` (`QBE-MOD-002`, `QBE-MOD-003`). Sejak `G2b` tertutup
+(commit `8075784`) pembuatannya sudah berwenang; pemisahan ini dipertahankan sebagai rekaman urutan, dan
+karena `MVP-0` tetap dijalankan lebih dulu:
 
 `BE-BD-003` Blood Order · `BE-BD-004` PMI Request + Receipt + kelahiran kantong · `BE-BD-015`
 Penempatan kantong · `BE-BD-005` Pemeriksaan golongan darah · `BE-BD-006` Alokasi ·
@@ -104,7 +122,7 @@ Lihat bagian G.
 Alurnya: **Order → Permintaan PMI → Penerimaan → Penyimpanan → Alokasi → Bukti kecocokan → Pemberian**,
 ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
-### D.1 Backend — fondasi master (bebas `G2b`)
+### D.1 Backend — fondasi master (sejak awal bebas `G2b`)
 
 | Task ID | Outcome | Req/Decision | Kontrak `v4` | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -116,7 +134,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 > tanpa satu pun lokasi aktif, tidak ada kantong yang dapat melewati `Stored`, sehingga tidak ada yang
 > dapat dialokasikan maupun diberikan (`INV-BD-025`). Ini *fail-closed* yang disengaja.
 
-### D.2 Backend — alur inti (terblokir `G2b`)
+### D.2 Backend — alur inti (dulu terblokir `G2b`, kini terbuka)
 
 | Task ID | Outcome | Req/Decision | Kontrak `v4` | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -128,7 +146,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 | `BE-BD-007` | Bukti kecocokan dicatat beserta hasilnya; kantong diberikan lewat gerbang tiga syarat | `DEC-BD-013/027/028/038/042`, `BD-AGG-03`, `ARCH-BD-POS-01/02/07`, `INV-BD-019/020/029` | api-contract (compatibility-evidence, issue), state-transition, validation | `BD-CAP-008` | `BbkCompatibilityEvidence` (+`EvidenceResult`, `ValidatedByUserId`), `EvaluateIssuanceGate` (gerbang alokasi + bukti berlaku **dan hasilnya cocok**, dinilai ulang), migration | `G1`, **`G2b`**, `BE-BD-005`, `BE-BD-006` | `AC-BD-018/019/038/039/040/041/042/072/073/089/090/091` | Pemberian ditolak tanpa bukti berlaku, dari lokasi nonaktif, atau bila hasilnya tidak cocok | **Tinggi / klinis & BDRS** | Gerbang *fail-closed* dan dinilai ulang; pemberian terminal |
 | `BE-BD-008` | Pemberian jalur darurat oleh Dokter BDRS atau DPJP, tercatat penuh | `DEC-BD-017/038/040`, `BD-DOM-08`, `INV-BD-030/032` | api-contract (emergency-issue), validation | — | `BbkEmergencyAuthorization` (+`AuthorizerRole`, `EmergencyConditionNote`, `BypassScope`), penanda permanen, alasan wajib | `G1`, **`G2b`**, `BE-BD-007` | `AC-BD-020/021/074/075/081/082/083/084/085` | Peran tak berwenang ditolak; keterangan gerbang & kondisi wajib; muncul di daftar tunggakan | **Tinggi / klinis** | Penanda menyebut gerbang yang dilewati; enum menutup keadaan tak sah |
 
-### D.3 Frontend P0 — menunggu kontrak BE di-approve (`G1`)
+### D.3 Frontend P0 — kontrak BE sudah di-approve (`G1` tertutup); menunggu task BE pasangannya
 
 | Task ID | Outcome | Layar | Kontrak | Reuse | Dependency | Acceptance | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -202,24 +220,24 @@ task BE pasangannya.
 
 | Requirement/Decision | Desain | Kontrak `v4` | Task BE | Task FE | Bukti | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `DEC-BD-004/005/006` | `BD-AGG-01` | api/state/validation | `BE-BD-003` | `FE-BD-002` | `AC-BD-001..004,010,011,017` · `UAT-01` | `BLOCKED` `G1,G2` |
-| `DEC-BD-044` | `BD-AGG-01`, `BD-DOM-14` | api/state/validation | `BE-BD-003`, `BE-BD-001` | `FE-BD-002` | `AC-BD-095..097` · `UAT-21` | `BLOCKED` `G1,G2` |
-| `DEC-BD-002/003/008/020/025` | `BD-AGG-02` | api/state/validation | `BE-BD-004` | `FE-BD-003` | `AC-BD-005,006,009,022,023,031..033` · `UAT-04` | `BLOCKED` `G1,G2` |
-| `DEC-BD-035` | `BD-DOM-24` | api/validation | `BE-BD-014` | `FE-BD-011` | `AC-BD-062,064,065,067` | `BLOCKED` `G1` saja |
-| `DEC-BD-036` | `BD-DOM-25`, `BD-AGG-03` | api/state/validation | `BE-BD-015` | `FE-BD-012` | `AC-BD-059..063,066` · `UAT-11/12` | `BLOCKED` `G1,G2` |
-| `DEC-BD-037` | `BD-DOM-24`, `BD-AGG-03` | api/state/validation | `BE-BD-014`, `BE-BD-015`, `BE-BD-006` | `FE-BD-011`, `FE-BD-012` | `AC-BD-067..071` · `UAT-13` | `BLOCKED` `G1,G2` |
-| `DEC-BD-015/018/026` | `BD-AGG-04`, `BD-DOM-21` | api/state/validation | `BE-BD-005` | `FE-BD-005` | `AC-BD-030,034,035` | `BLOCKED` `G1,G2` |
-| `DEC-BD-039` | `BD-AGG-04` | api/permission | `BE-BD-005`, `BE-BD-011`, `BE-BD-016` | `FE-BD-005`, `FE-BD-009` | `AC-BD-077..080` · `UAT-16` | `BLOCKED` `G1,G2` |
-| `DEC-BD-003/007/029` | `BD-AGG-03`, `BD-DOM-06` | api/state/validation/concurrency | `BE-BD-006` | `FE-BD-004` | `AC-BD-043..046` · `UAT-02` | `BLOCKED` `G1,G2` |
-| `DEC-BD-013/027/028` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-018,019,038..042` · `UAT-03` | `BLOCKED` `G1,G2` |
-| `DEC-BD-038` | `BD-AGG-03`, `ARCH-BD-POS-07` | api/state/validation | `BE-BD-007`, `BE-BD-008` | `FE-BD-005` | `AC-BD-072..076` · `UAT-14/15` | `BLOCKED` `G1,G2` |
-| `DEC-BD-042` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-089..091` · `UAT-19` | `BLOCKED` `G1,G2` |
-| `DEC-BD-017/040` | `BD-DOM-08` | api/validation | `BE-BD-008` | `FE-BD-005` | `AC-BD-020,021,081..085` · `UAT-17` | `BLOCKED` `G1,G2` |
-| `DEC-BD-019/028/043` | `BD-AGG-03` | api/state/permission | `BE-BD-009`, `BE-BD-016` | `FE-BD-007` | `AC-BD-007,008,024,025,029,092..094` · `UAT-20` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-030/034/041` | `BD-DOM-23` | api/validation | `BE-BD-010` | `FE-BD-008` | `AC-BD-047..050,086..088` · `UAT-06/18` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-026/031` | `BD-DOM-22` | api/validation | `BE-BD-011` | `FE-BD-009` | `AC-BD-036,037,051,053,054` · `UAT-05` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-021` | `BD-AGG-05` | api | `BE-BD-012` | `FE-BD-010` | `AC-BD-026,058` | `BLOCKED` `G1,G2` (P1) |
-| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055,056` | `BLOCKED` `G1` saja |
+| `DEC-BD-004/005/006` | `BD-AGG-01` | api/state/validation | `BE-BD-003` | `FE-BD-002` | `AC-BD-001..004,010,011,017` · `UAT-01` | `READY` — gerbang tertutup |
+| `DEC-BD-044` | `BD-AGG-01`, `BD-DOM-14` | api/state/validation | `BE-BD-003`, `BE-BD-001` | `FE-BD-002` | `AC-BD-095..097` · `UAT-21` | `READY` — gerbang tertutup |
+| `DEC-BD-002/003/008/020/025` | `BD-AGG-02` | api/state/validation | `BE-BD-004` | `FE-BD-003` | `AC-BD-005,006,009,022,023,031..033` · `UAT-04` | `READY` — gerbang tertutup |
+| `DEC-BD-035` | `BD-DOM-24` | api/validation | `BE-BD-014` | `FE-BD-011` | `AC-BD-062,064,065,067` | `READY` — gerbang tertutup |
+| `DEC-BD-036` | `BD-DOM-25`, `BD-AGG-03` | api/state/validation | `BE-BD-015` | `FE-BD-012` | `AC-BD-059..063,066` · `UAT-11/12` | `READY` — gerbang tertutup |
+| `DEC-BD-037` | `BD-DOM-24`, `BD-AGG-03` | api/state/validation | `BE-BD-014`, `BE-BD-015`, `BE-BD-006` | `FE-BD-011`, `FE-BD-012` | `AC-BD-067..071` · `UAT-13` | `READY` — gerbang tertutup |
+| `DEC-BD-015/018/026` | `BD-AGG-04`, `BD-DOM-21` | api/state/validation | `BE-BD-005` | `FE-BD-005` | `AC-BD-030,034,035` | `READY` — gerbang tertutup |
+| `DEC-BD-039` | `BD-AGG-04` | api/permission | `BE-BD-005`, `BE-BD-011`, `BE-BD-016` | `FE-BD-005`, `FE-BD-009` | `AC-BD-077..080` · `UAT-16` | `READY` — gerbang tertutup |
+| `DEC-BD-003/007/029` | `BD-AGG-03`, `BD-DOM-06` | api/state/validation/concurrency | `BE-BD-006` | `FE-BD-004` | `AC-BD-043..046` · `UAT-02` | `READY` — gerbang tertutup |
+| `DEC-BD-013/027/028` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-018,019,038..042` · `UAT-03` | `READY` — gerbang tertutup |
+| `DEC-BD-038` | `BD-AGG-03`, `ARCH-BD-POS-07` | api/state/validation | `BE-BD-007`, `BE-BD-008` | `FE-BD-005` | `AC-BD-072..076` · `UAT-14/15` | `READY` — gerbang tertutup |
+| `DEC-BD-042` | `BD-DOM-07` | api/state/validation | `BE-BD-007` | `FE-BD-005` | `AC-BD-089..091` · `UAT-19` | `READY` — gerbang tertutup |
+| `DEC-BD-017/040` | `BD-DOM-08` | api/validation | `BE-BD-008` | `FE-BD-005` | `AC-BD-020,021,081..085` · `UAT-17` | `READY` — gerbang tertutup |
+| `DEC-BD-019/028/043` | `BD-AGG-03` | api/state/permission | `BE-BD-009`, `BE-BD-016` | `FE-BD-007` | `AC-BD-007,008,024,025,029,092..094` · `UAT-20` | `READY` — gerbang tertutup (P1) |
+| `DEC-BD-030/034/041` | `BD-DOM-23` | api/validation | `BE-BD-010` | `FE-BD-008` | `AC-BD-047..050,086..088` · `UAT-06/18` | `READY` — gerbang tertutup (P1) |
+| `DEC-BD-026/031` | `BD-DOM-22` | api/validation | `BE-BD-011` | `FE-BD-009` | `AC-BD-036,037,051,053,054` · `UAT-05` | `READY` — gerbang tertutup (P1) |
+| `DEC-BD-021` | `BD-AGG-05` | api | `BE-BD-012` | `FE-BD-010` | `AC-BD-026,058` | `READY` — gerbang tertutup (P1) |
+| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055,056` | `READY` — gerbang tertutup |
 | `DEC-BD-016` | `BD-DOM-19` | — belum ada | `BE-BD-013` | — | `AC-BD-027` (tertunda) | Future / `OPEN DECISION` |
 
 ### H.1 Coverage gap yang tercatat
@@ -241,18 +259,23 @@ belum ada requirement, desain, maupun kontrak. Ketiganya kini ada, dan ia menjad
 
 ## I. Langkah berikutnya
 
-1. **`G1`** — owner menyetujui blueprint dan set kontrak `v4`. Ini membuka **seluruh** task.
-2. **`G2b`** — ajukan keputusan aktivasi modul agar Lifecycle registri naik dari `PLANNED` ke `ACTIVE`
-   (`BD-DEP-016`). `G2a` pendaftaran prefix **sudah tertutup**, dan prefix yang disahkan persis `Bbk`,
-   sehingga tidak ada penggantian nama yang tertunda.
-3. Jalankan `MVP-0` (`BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016`) — **dapat berjalan segera
-   setelah `G1`, tanpa menunggu `G2b`**, karena seluruhnya master `Mst*` dan seeder.
-4. Setelah `G2b`: `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4`, dengan FE mengikuti kontrak yang
-   sudah di-approve.
-5. Dua pertanyaan terbuka yang layak ditutup sejalan, tanpa menahan siapa pun: `OQ-BD-017` nama peran
-   `ResolveNotUsable`, dan `OQ-BD-018` penegasan gerbang hasil bukti kecocokan.
-6. Setiap handoff ke `/build-module-backend` menyelesaikan preflight QBE dan kesesuaian engineering
-   **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical.
+Ketiga gerbang global — `G1` approval, `G2a` penamaan, `G2b` aktivasi — **seluruhnya tertutup pada
+3 September 2026**. Urutan di bawah karena itu bukan lagi daftar tunggu, melainkan urutan kerja.
 
-Roadmap `FORWARD-TEST / DRAFT`. Tidak ada task yang boleh dijalankan sampai `G1` — dan `G2b` untuk task
-entity operasional — tuntas. Approval manusia belum diklaim.
+1. Jalankan `MVP-0` lewat `/build-module-backend`, satu task satu wewenang tulis:
+   `BE-BD-001` → `BE-BD-002` → `BE-BD-014` → `BE-BD-016`. Seluruhnya master `Mst*` dan seeder.
+2. Lanjutkan `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4` sesuai bagian F. `MVP-1b` **wajib
+   mendahului** `MVP-3` karena kantong tidak dapat dialokasikan sebelum tersimpan.
+3. FE mengikuti gelombang BE: tidak ada task FE yang mendahului task BE pasangannya, walaupun
+   kontraknya sudah `approved` dan terkunci pada `v4`.
+4. Dua pertanyaan terbuka yang layak ditutup sejalan, tanpa menahan siapa pun: `OQ-BD-017` nama peran
+   `ResolveNotUsable` — paling murah ditutup **sebelum** `BE-BD-016` karena ia menahan satu baris
+   seeder — dan `OQ-BD-018` penegasan gerbang hasil bukti kecocokan.
+5. Setiap handoff ke `/build-module-backend` menyelesaikan preflight QBE dan kesesuaian engineering
+   **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical.
+6. Setelah satu gelombang selesai, jalankan `/verify-module-readiness` atas bukti `task/report/**`
+   sebelum gelombang berikutnya dinyatakan aman.
+
+Roadmap `APPROVED`, disetujui `Sukmagp` pada `2026-09-03`. **Approval ini membuka penjadwalan task, bukan
+izin menulis source.** Wewenang tulis backend, migration, eksekusi database di luar dev pemilik,
+deployment, dan publikasi Git tetap diminta terpisah untuk setiap tindakan.
