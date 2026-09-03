@@ -367,6 +367,11 @@ try
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
 
+    // Katalog komponen darah Bank Darah. Dipakai layar master, dan kelak dibaca deteksi order
+    // ganda serta gerbang pemberian. Service memegang seluruh pembacaan dan perubahannya
+    // supaya controller tidak menyentuh ApplicationDbContext langsung (QBE-SVC-001).
+    builder.Services.AddScoped<BloodComponentService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(

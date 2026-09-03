@@ -728,6 +728,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
 
+        #region BLOOD BANK MANAGEMENT
+        public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
+        #endregion BLOOD BANK MANAGEMENT
+
         #endregion HEALTH SERVICE
 
         protected override void OnModelCreating(ModelBuilder builder)

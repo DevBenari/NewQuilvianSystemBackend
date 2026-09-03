@@ -126,7 +126,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
 | Task ID | Outcome | Req/Decision | Kontrak `v4` | Reuse | Cakupan | Dependency | Acceptance | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-BD-001` | Katalog komponen darah & daftar alasan terkendali dapat dikelola | `DEC-BD-024`, `DEC-BD-032`, `DEC-BD-044`, `BD-DOM-13/14` | api-contract (Blood Component, Blood Bank Reason) | `BD-CAP-011/012/013` | `MstBloodComponent`, `MstBloodBankReason` (+kategori `OrderCancellationClinical`/`Operational`, `CorrectionRejection`) + config + service + controller + migration + seed | `G1` | `AC-BD-055/056` | CRUD berjalan; seed minimum terisi | Rendah / Master Data | Endpoint master jalan; seluruh kategori alasan terseed |
+| `BE-BD-001` **`SELESAI SEBAGIAN`** — [laporan](../task/report/backend/BE-BD-001.md) | Katalog komponen darah & daftar alasan terkendali dapat dikelola | `DEC-BD-024`, `DEC-BD-032`, `DEC-BD-044`, `BD-DOM-13/14` | api-contract (Blood Component, Blood Bank Reason) | `BD-CAP-011/012/013` | `MstBloodComponent`, `MstBloodBankReason` (+kategori `OrderCancellationClinical`/`Operational`, `CorrectionRejection`) + config + service + controller + migration + seed | `G1` | `AC-BD-055/056` | CRUD berjalan; seed minimum terisi | Rendah / Master Data | **`MstBloodComponent` selesai** 3 September 2026: 9 endpoint, migration dibuat (belum dijalankan), seeder PRC/TC/FFP, 26 test lulus. **`MstBloodBankReason` belum dikerjakan**, sehingga acceptance "seluruh kategori alasan terseed" belum terpenuhi dan task belum boleh ditandai selesai |
 | `BE-BD-002` | Unit pelayanan dapat dikonfigurasi berwenang memesan darah | `DEC-BD-012`, `BD-DOM-18` | integration-contract | `BD-CAP-005` | Extend `MstServiceUnit` +`IsAvailableForBloodOrder` (bawaan `false`) + migration | `G1`, pemilik Master Data | `AC-BD-013/015/016` | Unit tak dikonfigurasi ditolak | Rendah / Master Data | Migration tanpa downtime; bawaan menolak |
 | `BE-BD-014` | **Lokasi penyimpanan darah dapat dikelola, termasuk dinonaktifkan** | `DEC-BD-035`, `DEC-BD-037`, `BD-DOM-24` | api-contract (Blood Storage Location), validation | `BD-CAP-011/012/013` | `MstBloodStorageLocation` + config + service + controller + `GET /options` (hanya aktif) + `PATCH /status` + migration + seed | `G1` | `AC-BD-062/065/067`, `VAL-BD-067/068` | Lokasi nonaktif hilang dari pilihan; penonaktifan **tidak** memindahkan kantong | Sedang / BDRS | **Minimal satu lokasi aktif terseed — prasyarat go-live**; `MstDrugStorageLocation` tidak disentuh |
 
@@ -188,7 +188,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
 | Gelombang | Isi | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`** |
+| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001` bagian `MstBloodComponent` selesai 3 September 2026; sisanya belum dimulai |
 | `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2b` + `MVP-0` |
 | `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** |
 | `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `MVP-1` |
@@ -237,7 +237,7 @@ task BE pasangannya.
 | `DEC-BD-030/034/041` | `BD-DOM-23` | api/validation | `BE-BD-010` | `FE-BD-008` | `AC-BD-047..050,086..088` · `UAT-06/18` | `READY` — gerbang tertutup (P1) |
 | `DEC-BD-026/031` | `BD-DOM-22` | api/validation | `BE-BD-011` | `FE-BD-009` | `AC-BD-036,037,051,053,054` · `UAT-05` | `READY` — gerbang tertutup (P1) |
 | `DEC-BD-021` | `BD-AGG-05` | api | `BE-BD-012` | `FE-BD-010` | `AC-BD-026,058` | `READY` — gerbang tertutup (P1) |
-| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055,056` | `READY` — gerbang tertutup |
+| `DEC-BD-024/032/012` | `BD-DOM-13/14/18` | api/integration | `BE-BD-001`, `BE-BD-002` | `FE-BD-001` | `AC-BD-013,015,016,055,056` | **`SEBAGIAN`** — `AC-BD-055` dan `AC-BD-056` **terbukti** lewat `MstBloodComponent` ([laporan](../task/report/backend/BE-BD-001.md)); `AC-BD-013/015/016` menunggu `BE-BD-002`, dan kategori alasan menunggu `MstBloodBankReason` |
 | `DEC-BD-016` | `BD-DOM-19` | — belum ada | `BE-BD-013` | — | `AC-BD-027` (tertunda) | Future / `OPEN DECISION` |
 
 ### H.1 Coverage gap yang tercatat
