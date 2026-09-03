@@ -35,6 +35,7 @@ belas artefak.
 | `ACC-TD-015` | Dua salinan registry berselisih **dua arah** | Lead / pemilik registry | Sedang | `OPEN` |
 | `ACC-TD-016` | Berkas test `BE-ACC-010` dihapus — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-017` | Kebijakan owner: tanpa test otomatis, verifikasi manual | **Rizki** | **Tinggi** | `OPEN` |
+| `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
 
 ---
 
@@ -384,3 +385,22 @@ Berlaku untuk `BE-ACC-011`, `BE-ACC-012`, `BE-ACC-013`, dan `BE-ACC-014`.
 Accounting kini berjalan **tanpa jaring regresi sama sekali** atas seluruh jalur jurnal.
 Perubahan berikutnya pada `AccJournalService` tidak akan tertangkap apa pun sebelum sampai ke
 pengguna.
+
+
+---
+
+## `ACC-TD-018` — Verifikasi performa dan keputusan index buku besar tertunda
+
+**Ditemukan:** `BE-ACC-012`, 3 September 2026.
+
+DoD `BE-ACC-012` menuntut *"hasil verifikasi performa tercatat"*, dan roadmap mensyaratkan
+pengukuran dilakukan **pada data yang menyerupai produksi**. `AccJournal` dan `AccJournalLine`
+saat ini **0 baris**, sehingga syarat itu tidak dapat dipenuhi.
+
+| Hal | Keterangan |
+|---|---|
+| Kenapa tidak diukur saja | Pada tabel kosong PostgreSQL memilih sequential scan apa pun index-nya. Angkanya akan terlihat bagus dan tidak mengatakan apa-apa |
+| Kenapa index tidak ditambahkan saja | Roadmap melarangnya secara eksplisit: index ditetapkan **sesudah** query final diukur. Index spekulatif memperlambat tulis tanpa bukti baca menjadi lebih cepat |
+| Kandidat yang menunggu bukti | `AccJournalLine (AccountId, JournalId)` untuk buku besar per akun; `AccJournal (LegalEntityId, JournalStatus, AccountingDate)` untuk penyaringan `Posted` per periode |
+| Kapan menggigit | Saat volume jurnal tumbuh. `/movements` menghitung dua agregat tambahan per permintaan — saldo sebelum rentang dan saldo baris yang dilewati — sehingga ia yang pertama melambat |
+| Cara menutup | Sesudah ada data nyata, jalankan `EXPLAIN ANALYZE` atas ketiga query, catat hasilnya, lalu putuskan index-nya berdasarkan rencana eksekusi itu |
