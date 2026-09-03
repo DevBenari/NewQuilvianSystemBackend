@@ -3,15 +3,15 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Capability-map revision | `1.2` — revisi `1.0` ditambah temuan `RWI-TF-026` s.d. `RWI-TF-028` tentang penguncian "satu konsultasi per kunjungan" dan "satu resep aktif per konsultasi", lalu revisi `1.2` menandai ke-17 pertanyaan penutup pada bagian 12.2 sudah tertutup oleh Closure Pass 21 Agustus 2026 |
-| Status | `source-audited`. Dokumen ini **belum** menyatakan modul siap dibangun dan **belum** menyatakan siap produksi |
-| Tanggal audit | 21 Agustus 2026 (`Asia/Jakarta`) |
+| Capability-map revision | `1.3` — revision `1.2` ditambah **impact scan terfokus Dokter Rawat Inap** pada bagian 15. Bagian 1–14 tetap menjadi baseline historis; hanya temuan slice `CAP-015`, `CAP-020` s.d. `CAP-025`, `INT-DOK-01`, dan `INT-DOK-02` yang diperbarui |
+| Status | `source-audited / focused-impact-scan`. **Bagian 15 current untuk slice Dokter Rawat Inap; bagian lain stale terhadap SHA terbaru.** Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
+| Tanggal audit | Baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
 | Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `1`, status `draft`, SHA-256 `19a64b418f4004cf5ae1376db1961fcf4e56a3ce9ed8d506c662a0da42ae6692` |
 | Daftar periksa audit | `RWI-TRC-001` sampai `RWI-TRC-009` pada dokumen keputusan |
 | Decision ID yang dirujuk | `RWI-DEC-001`, `RWI-DEC-002`, `RWI-DEC-003`, `RWI-DEC-007` s.d. `RWI-DEC-035` |
-| Backend snapshot | `NewQuilvianSystemBackend` commit `5afb54bd75281648010e50ef14f43ca1f80d8efd` (branch `MHamzah`, 20 Agustus 2026) |
-| Frontend snapshot | `QuilvianSystemFrontendDev` commit `dec4fdeff07c3c96ad9f07f41f184c54cf771371` (branch `HamzahV2`, 20 Agustus 2026) |
-| Contract version | Belum ada kontrak modul Rawat Inap. Yang berlaku saat ini hanya kontrak as-is milik modul tetangga yang dicatat pada bagian 6 dan 7 |
+| Backend snapshot | Baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
+| Frontend snapshot | Baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`). Working tree memiliki perubahan lain pada admisi yang tidak masuk batas audit |
+| Contract version | Target sub-modul `dokter-rawat-inap`: API, integration, state, validation, permission, dan acceptance test `0.1.0`, seluruhnya `draft`. Kontrak as-is aktual dicatat pada bagian 15 |
 | Cara audit | Pembacaan statis: model/entity, konfigurasi Entity Framework, migration, `DbSet`, route controller, atribut hak akses, registrasi *dependency injection* (DI), seeder, service/state frontend, menu, dan inventaris test |
 | Batas tulis | Hanya dokumen ini. Tidak ada satu baris source aplikasi yang diubah, tidak ada build, tidak ada migration, tidak ada eksekusi database |
 
@@ -1297,3 +1297,152 @@ terbitnya dokumen ini, catatan itu sudah dapat diperbarui.** Hasil pemeriksaan d
 
 Tidak ditemukan satu pun rencana tabel baru pada dokumen keputusan yang benar-benar menduplikasi
 tabel yang sudah ada.
+
+---
+
+## 15. Impact scan terfokus — Dokter Rawat Inap — 2 September 2026
+
+### 15.1 Identitas, input, dan batas audit
+
+Bagian ini **menggantikan temuan lama hanya untuk** `CAP-015`, `CAP-020` s.d. `CAP-025`,
+`INT-DOK-01`, `INT-DOK-02`, serta consumer frontend Dokter Rawat Inap. Baris lain pada bagian 1–14
+belum dipindai ulang terhadap SHA terbaru dan tetap dianggap historis/stale.
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `RWI-BP-001`, revision `5`, bentuk `COMPOSITE` |
+| Sub-modul | `dokter-rawat-inap`, status `draft`, belum di-approve |
+| Keputusan yang mengikat | `RWI-DEC-038`, `RWI-DEC-062`, `RWI-DEC-070`, `RWI-DEC-080` s.d. `RWI-DEC-083`; decision log revision `7`, SHA-256 `e9f2c957dfc68d609c426d7c91018f01223b4d163c85498be525804387724d9c` |
+| Manifest sub-modul | SHA-256 `0c9cc8a0d87c156fd302695466c0d805887968501c96c946c40a0beec332d003` |
+| Kontrak target | API dan integration `0.1.0`, keduanya `draft`; SHA-256 API `6096aa168580c8c2f9e3f6b39ad17b4e885c78f1dd602b9695a725284574974e`; integration `a9d9d8ab8e2395c950f01aa3d82e9e178c925e88779c89afa1e3c9f217bc3553` |
+| Acceptance target | `0.1.0`, `draft`, SHA-256 `bb60db8796a905568b3e14713c60d6fde3c1b3ff04278881e5581e8d2d5c18e4` |
+| Backend | `BE@93b3227` = `93b3227c431401d8f586dec4e1fb25fbf41766e3`, branch `MHamzah`, working tree bersih saat snapshot dikunci |
+| Frontend | `FE@863f24b` = `863f24b0d1617069310c04e5770b47fd1b518b5b`, branch `HamzahV2`; perubahan working tree pada empat berkas admisi tidak diaudit dan tidak diubah |
+| Batas klaster | Episode/DPJP, konsultasi/SOAP, kajian medis, CPPT, resep, tindakan, visite, lab/radiologi, permission, consumer frontend, dan test terkait |
+| Cara audit | Pembacaan statis model, `DbSet`, migration, controller, service, DI, permission, route/menu/service/hook/component frontend, inventaris test, dan test terarah |
+| Batas tulis | Hanya dokumen capability map ini. Source backend dan frontend tidak diubah; database dan migration tidak dijalankan |
+
+### 15.2 Ringkasan perubahan sejak baseline
+
+1. Fondasi episode rawat inap, penugasan DPJP berperiode, census, discharge, dan permission Rawat
+   Inap kini benar-benar ada. Ini membatalkan temuan baseline yang menyatakan episode/DPJP belum ada.
+2. Modul Radiologi kini memiliki order, study, migration, permission, DI, lifecycle, dan penyaring
+   `EncounterId`. Pernyataan blueprint dokter bahwa “modul radiologi belum ada” sudah stale.
+3. Jalur klinis dokter belum menjadi rawat inap. Konsultasi dan pengkajian tanpa antrean hanya
+   mengenali `EmgVisit`; satu konsultasi per encounter dan satu resep aktif per konsultasi masih
+   dipaksakan.
+4. Route dan menu frontend Dokter Rawat Inap kini ter-commit, tetapi consumer-nya memakai hook,
+   service, status, aksi panggil, dan `queueId` milik antrean dokter rawat jalan. Ia tidak membaca
+   episode, census, atau penugasan DPJP.
+5. Tidak ditemukan `TrxPhysicianVisit`, endpoint visite, resource/action visite, test klinis rawat
+   inap, test radiologi, atau test frontend Dokter Rawat Inap.
+
+### 15.3 Capability evidence map
+
+Setiap baris memakai tepat satu status dari kontrak audit. Status ini menilai **kemampuan target
+Dokter Rawat Inap**, bukan sekadar keberadaan nama file.
+
+| ID | Need | Owner | Evidence repo/path#symbol@SHA | Status | Gap/adapter | Risk |
+|---|---|---|---|---|---|---|
+| `DOK-TRC-CTX-01` | Episode aktif, encounter, pasien, lokasi, dan DPJP sebagai konteks klinis | `InPatientManagement` | `BE@93b3227 Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs#InpEpisode`; `.../Models/InpDoctorAssignment.cs#InpDoctorAssignment`; `.../Controllers/InpatientCensusController.cs#Get`; `.../Services/InpCensusQueryService.cs#BuildFilteredQuery`; `Migrations/20260824095353_CreateInpatientTransactionTables.cs#Up`; `Program.cs#InpEpisodeService`; test `InpEpisodeOpenAdmissionTests` dan `InpDoctorAndNurseAssignmentTests` | `Ready to reuse` | Census sudah dapat disaring `DoctorId`; detail episode dan riwayat DPJP tersedia. Consumer klinis tetap harus memakai kontrak ini | Rendah pada fondasi; tinggi bila dilewati consumer |
+| `DOK-TRC-INT-01` | Shared inpatient clinical context resolver untuk konsultasi dan pengkajian tanpa antrean | `ClinicalManagement` | `BE@93b3227 Areas/HealthServices/ClinicalManagement/Controllers/DoctorConsultationController.cs#ValidateRequestAsync`; `.../PatientAssessmentController.cs#ValidateRequestAsync`; pencarian `InpEpisode`/`EpisodeId` pada kedua controller tidak menemukan cabang rawat inap | `Missing` | Tambahkan resolusi episode aktif, kecocokan patient/encounter, dan kewenangan DPJP tanpa membuat antrean semu | Sangat tinggi; menahan `CAP-020`, `CAP-022`, lalu resep dan tindakan |
+| `DOK-TRC-DEF-01` | Jalur konsultasi tanpa antrean tidak boleh meledak saat `queue == null` | `ClinicalManagement` | `BE@93b3227 .../DoctorConsultationController.cs#Create` mengambil queue nullable pada sekitar baris 258–265 tetapi selalu menulis `queue.QueueStatus` dan waktu konsultasi pada baris 361–385 | `Repair` | Lindungi seluruh mutasi queue pada cabang tanpa antrean dan tambah test regresi IGD serta rawat inap | Sangat tinggi; inferensi statis menunjukkan `NullReferenceException` pada jalur no-queue yang dinyatakan valid |
+| `DOK-TRC-INT-02` | Banyak konsultasi sepanjang episode dan banyak resep aktif sesuai `RWI-RULE-026` | `ClinicalManagement` + `PharmacyManagement` | `BE@93b3227 .../DoctorConsultationController.cs#ValidateRequestAsync` menolak konsultasi kedua per `EncounterId` sekitar baris 844–850 dan 916–923; `.../PharmacyManagement/Controllers/PrescriptionController.cs#ValidateCreateRequestAsync` menolak resep aktif kedua pada baris 555–563 | `Extend` | Scope pelonggaran hanya `Inpatient` dan `Emergency`; alur Outpatient/MCU harus tetap sama | Sangat tinggi; menahan dokumentasi dan order berulang selama rawat inap |
+| `DOK-TRC-CAP015` | Order dan pembacaan hasil laboratorium/radiologi per episode | `LaboratoryManagement` + `RadiologyManagement` | `BE@93b3227 .../LaboratoryManagement/Models/LabOrder.cs#LabOrder`; `.../LabOrderController.cs#GetList` tanpa filter encounter; `.../RadiologyManagement/Models/RadOrder.cs#RadOrder`; `.../Models/RadStudy.cs#RadStudy`; `.../Controllers/RadOrderController.cs#GetList`; `Migrations/20260828093000_AddRadiologyManagement.cs#Up`; `Program.cs#RadOrderService` | `Extend` | Keduanya punya jangkar `EncounterId`, tetapi belum punya pembuktian kepemilikan episode A/B; daftar lab tidak dapat difilter encounter; hasil final terverifikasi untuk dibaca workspace belum ditemukan. Radiologi perlu diserap ulang ke kontrak target | Tinggi; risiko data lintas episode dan blueprint menganggap Radiologi tidak ada |
+| `DOK-TRC-CAP020` | SOAP dokter rawat inap dengan waktu klinis dan amendment | `ClinicalManagement` + `MedicalRecordManagement` | `BE@93b3227 .../DoctorConsultationController.cs#SaveSoap`; `...#Create`; `.../MedicalRecordManagement/Controllers/ClinicalNoteAddendumController.cs#Create`; `.../ClinicalDocumentIntegrityController.cs#Sign` | `Repair` | SOAP dan infrastruktur integritas/addendum dapat dipakai, tetapi create rawat inap ditolak dan cabang no-queue cacat; episode tertutup dan otoritas DPJP belum dijaga | Sangat tinggi |
+| `DOK-TRC-CAP021` | CPPT lintas profesi, waktu klinis, verifikasi DPJP, overdue, dan amendment | `ClinicalManagement` + `MedicalRecordManagement` | `BE@93b3227 .../Models/TrxPatientIntegratedProgressNote.cs#TrxPatientIntegratedProgressNote` memiliki encounter, profession, provider, dan SOAP summary; `.../PatientIntegratedProgressNoteController.cs#RegisterIntegrityAsync`; tidak ada `VerifiedBy`, status verifikasi, atau endpoint verifikasi pada model/controller | `Extend` | Reuse CPPT dan integrity/addendum; tambahkan konteks episode, penjaga DPJP, lifecycle verifikasi, waktu verifikasi, dan query overdue | Tinggi; catatan bisa lahir tanpa pembuktian episode dan tidak dapat memenuhi verifikasi DPJP |
+| `DOK-TRC-CAP022` | Kajian medis awal | `ClinicalManagement` | `BE@93b3227 .../PatientAssessmentController.cs#Create`, `#GetActiveByEncounter`, `#ValidateRequestAsync`; model/DTO assessment sudah menyimpan isi kajian, tetapi cabang tanpa antrean hanya memeriksa `EmgVisit` | `Reuse with adapter` | Blueprint memilih reuse `TrxPatientAssessment`; perlukan resolver episode, discriminator/aturan kajian medis, SLA, dan otoritas. Keputusan struktur tetap sebaiknya ditutup sebelum approval | Tinggi |
+| `DOK-TRC-CAP023` | Resep rutin/harian dan obat pulang, lebih dari satu selama episode | `PharmacyManagement` | `BE@93b3227 .../Models/TrxPrescription.cs#TrxPrescription` memiliki encounter, consultation, status pembayaran/pemenuhan; `.../PrescriptionController.cs#Create`, `#GetList`; tidak ditemukan `PrescriptionOrderType`/`Discharge`; gate resep aktif kedua masih ada | `Extend` | Tambah jenis resep, pelonggaran scoped, idempotency, konteks episode, dan consumer status pemenuhan read-only | Sangat tinggi; resep kedua dan obat pulang belum dapat direpresentasikan |
+| `DOK-TRC-CAP024` | Tindakan dokter planned/performed dengan handoff billing yang aman | `ClinicalManagement` | `BE@93b3227 .../Models/TrxPatientProcedure.cs#TrxPatientProcedure` memiliki encounter, consultation, `IsExecuted`, `ExecutedAt`, `PerformedAt`; `.../PatientProcedureController.cs#Execute` menyimpan klinis lalu mengirim `ClinicalMilestoneFact` | `Extend` | Fondasi kuat, tetapi masih wajib consultation, belum terikat episode/visite, belum ada idempotency target, otoritas DPJP, atau test rawat inap | Tinggi |
+| `DOK-TRC-CAP025` | Pencatatan visite sebagai event mandiri | `ClinicalManagement` | Pencarian `TrxPhysicianVisit` dan `PhysicianVisit` pada `Areas`, `Migrations`, `Repositories`, serta test di `BE@93b3227` menghasilkan `NO_MATCH` | `Missing` | Buat kemampuan milik ClinicalManagement sesuai kontrak target; jangan menurunkan visite dari SOAP/CPPT | Tinggi; satu dari enam kemampuan MUST belum memiliki persistence, API, permission, consumer, atau test |
+| `DOK-TRC-FE-BASE` | Komponen shell klinis reusable | Frontend shared UI | `FE@863f24b src/components/ui/doctor-clinical-base/#index`; commit asal `415f4ad`; komponen page header, summary, patient card, context, tab, table, panel, badge, dan empty state tersedia | `Reuse with adapter` | Dapat dipakai setelah sumber data diganti ke episode/census dan state klinis target; tidak ditemukan test komponen | Sedang |
+| `DOK-TRC-FE-01` | Workspace Dokter Rawat Inap menampilkan pasien episode aktif milik DPJP | Frontend Inpatient + Clinical consumer | `FE@863f24b src/.../doctor-inpatient/doctor-inpatient-view.jsx#DoctorInpatientView` mengimpor `useDoctorQueue`, `useDoctorQueueBoard`, `useDoctorConsultationWorkspace`, tab rawat jalan, serta aksi panggil/skip/no-show; `.../use-doctor-queue.js#buildInitialFilters` meminta antrean tanggal hari ini; `menu-items.jsx#healthServicesDoctorQueueInpatient` membuat menu tingkat dua | `Conflict` | Ganti sumber daftar dengan census/episode `DoctorId`, hilangkan semantik antrean, dan patuhi keputusan blueprint bahwa layar dokter menjadi anak konteks episode—bukan antrean rawat jalan yang diberi label rawat inap | Sangat tinggi; secara inferensi dapat menampilkan pasien rawat jalan sebagai “pasien rawat inap” dan mengirim aksi antrean yang salah |
+| `DOK-TRC-AUTH-01` | Permission resource/action dan penjaga DPJP per episode | Platform + pemilik capability | `BE@93b3227` controller existing memakai `[Authorize]` dan `[AccessPermission]`; `InpEpisodeService.IsActiveDoctorAsync` tersedia; tidak ditemukan resource/action `PhysicianVisit` atau penggunaan episode/DPJP pada controller klinis dokter | `Extend` | Reuse permission engine dan penjaga DPJP; sambungkan pada setiap command/query klinis serta tambahkan resource/action visite | Sangat tinggi; permission endpoint generik belum membuktikan dokter berwenang atas pasien tertentu |
+| `DOK-TRC-VER-01` | Bukti otomatis jalur dokter rawat inap | Backend + Frontend | `BE@93b3227`: test episode/DPJP, DI, dan lab ada; tidak ditemukan test konsultasi/assessment/CPPT/procedure/prescription/radiology rawat inap. `FE@863f24b`: tidak ditemukan test `doctor-inpatient` atau `doctor-clinical-base` | `Missing` | Tambahkan integration, authorization, regression Outpatient/IGD, concurrency/idempotency PostgreSQL, dan frontend state tests sesuai acceptance matrix | Sangat tinggi; UI dan kontrak klinis belum mempunyai jaring pengaman |
+
+### 15.4 Kontrak dan perjalanan as-is yang benar-benar ditelusuri
+
+| Perjalanan | Jejak as-is | Hasil |
+|---|---|---|
+| Membuka daftar pasien DPJP | Backend menyediakan `GET /api/v1/health-services/inpatient-management/census?doctorId=...`; frontend dokter justru memanggil `GET /v1/health-services/registration-management/doctor-queues` dengan tanggal hari ini | `Conflict` — sumber data yang benar ada tetapi tidak dipakai |
+| Membuka/melanjutkan SOAP | Frontend memilih baris `queueId`, lalu workspace konsultasi mencari konsultasi aktif berdasarkan antrean; backend konsultasi rawat inap belum ada | `Repair` — tidak boleh dipakai untuk episode sebelum resolver dan null-queue defect selesai |
+| Menulis CPPT | CPPT dapat dibuat dengan `EncounterId` dan punya integrity/addendum; belum ada verifikasi DPJP serta penjaga episode | `Extend` |
+| Membuat resep kedua/obat pulang | Resep pertama memakai konsultasi; resep aktif kedua ditolak dan jenis obat pulang tidak ada | `Extend` |
+| Mencatat tindakan | Tindakan planned/executed dan handoff billing tersedia, tetapi wajib consultation dan tidak membuktikan episode/DPJP | `Extend` |
+| Memesan lab/radiologi | Order menempel pada encounter; radiologi dapat difilter encounter, lab list tidak. Pembacaan hasil final terverifikasi belum ditemukan | `Extend` |
+| Mencatat visite | Tidak ada entity, migration, endpoint, permission, consumer, atau test | `Missing` |
+
+### 15.5 Fakta, inferensi, dan rekomendasi
+
+#### Fakta
+
+- `InpEpisode`, DPJP berperiode, census dengan filter `DoctorId`, migration, DI, permission, dan test
+  fondasinya tersedia.
+- Validasi konsultasi/pengkajian tanpa antrean hanya mengakui encounter yang memiliki `EmgVisit`.
+- Konsultasi kedua per encounter dan resep aktif kedua per konsultasi masih ditolak.
+- Radiologi kini ada di source; seluruh pernyataan target yang mengatakan sebaliknya sudah stale.
+- Frontend Dokter Rawat Inap ter-commit dan reachable dari menu, tetapi memakai kontrak antrean
+  rawat jalan serta tidak membaca `InpEpisode`/census.
+
+#### Inferensi audit
+
+- Mutasi `queue` tanpa pemeriksaan null pada jalur no-queue sangat mungkin menghasilkan HTTP 500.
+  Ini inferensi dari kontrol alur statis; runtime API tidak dijalankan.
+- Workspace frontend saat ini berisiko memberi label “Rawat Inap” pada data antrean rawat jalan
+  dan mengeksekusi call/skip/no-show terhadap antrean tersebut. Ini inferensi dari import, filter,
+  dan route service; browser tidak dijalankan.
+- `EncounterId` saja belum cukup membuktikan dokumen/order milik episode yang sedang dibuka bila
+  kontrak target secara eksplisit menguji episode A versus episode B.
+
+#### Rekomendasi berurutan
+
+1. **Jangan sign-off atau rilis workspace frontend saat ini.** Ubah entry point menjadi census/
+   episode berfilter dokter aktif sebelum menghubungkan tab klinis.
+2. Kerjakan `INT-DOK-01` bersama `INT-KEP-01`, sekaligus repair null-queue pada konsultasi dan
+   regression test IGD.
+3. Kerjakan `INT-DOK-02` dengan pembatas eksplisit `Inpatient`/`Emergency`; pertahankan perilaku
+   Outpatient/MCU lewat regression test.
+4. Setelah resolver stabil, lanjutkan extension CPPT, resep, tindakan, lab/radiologi, lalu buat
+   `PhysicianVisit`. Jangan membuat tabel dokumentasi `Inp*` tandingan.
+5. Jalankan amendment desain untuk menyerap keberadaan Radiologi dan membetulkan kontrak,
+   frontend architecture, PRD-to-MVP, serta acceptance matrix yang masih mengatakan modulnya tidak ada.
+
+### 15.6 Bukti verifikasi dan keterbatasan
+
+- Perintah terarah terhadap binary Debug yang sudah terbangun:
+  `dotnet test ... --no-build --no-restore --filter ...` menghasilkan **26 passed, 0 failed,
+  0 skipped** dalam 20 detik. Cakupannya: `InpDoctorAndNurseAssignmentTests`,
+  `InpEpisodeOpenAdmissionTests`, `InpatientServiceRegistrationTests`, dan
+  `LabOrderDisciplineTests`.
+- Percobaan build-test pertama dihentikan tanpa hasil karena beberapa proses .NET lain sedang
+  berjalan bersamaan. Karena run sukses memakai `--no-build`, audit ini **tidak mengklaim build
+  bersih dari source pada snapshot ini**.
+- Database, migration, API runtime, browser, dan environment role assignment tidak dijalankan.
+- Tidak diketahui apakah migration terbaru sudah diterapkan pada environment target, apakah role
+  non-SuperAdmin sudah menerima permission, dan apakah data master/episode nyata tersedia. Ketiganya
+  tetap `Unknown` sampai verifikasi environment dilakukan.
+- Tidak ada source aplikasi yang diubah oleh audit ini.
+
+### 15.7 Pertanyaan penutup dan handoff
+
+| ID | Pertanyaan/keputusan yang masih perlu ditutup | Sifat |
+|---|---|---|
+| `RWI-DOK-TRQ-001` | Apakah pilihan reuse `TrxPatientAssessment` untuk kajian medis disetujui sebelum blueprint naik dari `draft`? | Keputusan struktur; tidak menghalangi fakta audit, tetapi dapat mengubah desain dan roadmap |
+| `RWI-DOK-TRQ-002` | Siapa pemilik Clinical Governance untuk menetapkan nilai SLA kajian medis dan verifikasi CPPT? | Keputusan organisasi/klinis; mekanisme dapat dibangun dengan policy kosong |
+| `RWI-DOK-TRQ-003` | Apakah commit frontend `b15d211bb` akan dirework langsung atau dikarantina dari rilis sampai kontrak episode tersedia? | Keputusan delivery; rekomendasi audit adalah jangan dirilis dalam bentuk sekarang |
+
+Handoff berikutnya adalah kembali ke `manage-module-blueprint` untuk menandai artefak dokter yang
+terdampak sebagai stale dan menjadwalkan amendment. Setelah target dan kontrak diperbarui serta
+disetujui, barulah `plan-module-delivery` boleh memecah pekerjaan. Audit ini sendiri **tidak** memberi
+wewenang implementasi.
+
+### 15.8 Staleness impact scan ini
+
+Bagian 15 terikat pada `BE@93b3227` dan `FE@863f24b`. Perubahan setelah salah satu SHA tersebut
+membuat bagian ini stale. Impact scan berikutnya minimal wajib memeriksa:
+
+- `DoctorConsultationController`, `PatientAssessmentController`, CPPT, procedure, prescription,
+  LabOrder, Radiology, `InpEpisode`/census, dan seluruh test terkait di backend;
+- route/menu Dokter Rawat Inap, `useDoctorQueue`, `useDoctorConsultationWorkspace`, service klinis,
+  komponen `doctor-clinical-base`, serta test terkait di frontend;
+- perubahan kontrak `dokter-rawat-inap` atau keputusan `RWI-DEC-038`, `062`, `070`, `080`–`083`.

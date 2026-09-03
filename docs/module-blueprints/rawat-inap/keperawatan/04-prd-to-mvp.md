@@ -175,17 +175,25 @@ Setiap functional requirement dapat diuji dan punya disposisi.
 | `FR-KEP-025` | Daftar kosong berbunyi "sudah tepat waktu", bukan "tidak ada data" | **MISSING / NEW** |
 | `FR-KEP-026` | Keterlambatan pengkajian **tidak menahan** tindakan apa pun | **MISSING / NEW** |
 
-### `EPIC KEP-06` — Pemakaian alat — **`OPEN DECISION`**
+### `EPIC KEP-06` — Pemakaian alat — **`DEFERRED`**
 
 | No | Functional requirement | Disposisi |
 | --- | --- | --- |
-| `FR-KEP-027` | Pemakaian alat pada pasien tercatat beserta waktu mulai, selesai, dan penanggung jawabnya | **OPEN DECISION** |
-| `FR-KEP-028` | Pemakaian alat yang masih berjalan ikut terbawa saat pasien pindah kamar | **OPEN DECISION** |
+| `FR-KEP-027` | Pemakaian alat pada pasien tercatat beserta waktu mulai, selesai, dan penanggung jawabnya | **DEFERRED** |
+| `FR-KEP-028` | Pemakaian alat yang masih berjalan ikut terbawa saat pasien pindah kamar | **DEFERRED** |
 
-> **`EPIC KEP-06` MUST NOT masuk gelombang pengiriman mana pun.** Kepemilikan tabelnya belum
-> diputuskan: `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu
-> pun** menyebut Equipment Usage. Memulai pekerjaannya sekarang berarti membangun di atas
-> kepemilikan yang dikarang, lalu membongkarnya ketika keputusannya turun.
+> **`EPIC KEP-06` dikeluarkan dari scope rilis pertama secara tertulis lewat `RWI-DEC-089`, dan tetap
+> MUST NOT masuk gelombang pengiriman mana pun.** Kepemilikan tabelnya **sengaja tidak diputuskan**:
+> `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu pun** menyebut
+> Equipment Usage, sedangkan `RWI-FACT-015` membuktikan modul persediaan/aset yang diandaikan PRD
+> **belum berwujud** dan tidak ada master alat medis sama sekali. Memulai pekerjaannya sekarang berarti
+> membangun di atas kepemilikan yang dikarang, lalu membongkarnya ketika keputusannya turun.
+>
+> **Penggantinya selama MVP berjalan:** pemakaian alat dicatat di luar sistem sebagaimana hari ini, dan
+> penagihannya tetap manual. Konsekuensi ini disadari dan diterima pemilik saat `RWI-DEC-089` diambil.
+>
+> **Pemicu masuk kembali:** begitu modul persediaan/aset masuk roadmap Quilvian, `RWI-OQ-048` dibuka
+> ulang untuk menetapkan pemiliknya, dan barulah task pemakaian alat boleh dibuat — `RWI-AC-171`.
 
 ---
 
@@ -195,10 +203,14 @@ Diturunkan dari [`contracts/state-transition-matrix.md`](./contracts/state-trans
 
 | Mesin | Nilai |
 | --- | --- |
-| Pengkajian | `Draft`, `InProgress`, `Completed`, `Cancelled`, `Amended` |
+| Pengkajian | `Draft`, `InProgress`, `Completed`, `Cancelled` |
 | Butir rencana asuhan | `Active`, `Resolved`, `Discontinued` |
-| Catatan tindakan | `Recorded`, `Finalized`, `Amended` |
+| Catatan tindakan | `Recorded`, `Finalized` |
 | Pengiriman tagihan | `NotApplicable`, `Pending`, `Dispatched`, `Failed` |
+
+> **Sejak `RWI-DEC-091`, status `Amended` dicabut dari dua mesin pertama.** Koreksi tidak lagi
+> memindahkan status dokumen; ia menambah **addendum bernomor urut** pada mesin keutuhan milik
+> `MedicalRecordManagement`, dan dokumen tetap pada status finalnya.
 
 **Nol status episode baru** — `RWI-DEC-009` dan `AC-CAP012-03`.
 
@@ -234,7 +246,7 @@ bagian 2. Resource baru: `NursingCarePlan`, `NursingIntervention`.
 | --- | --- |
 | Billing | Menerima pemicu tagihan tindakan beserta kunci idempotency. Kegagalannya **tidak** menghilangkan catatan klinis |
 | Gizi | Hanya skrining dan saran rujukan. Asuhan gizi milik modul Gizi |
-| Persediaan | **Tidak ada integrasi pada MVP** — `CAP-016` `OPEN DECISION` |
+| Persediaan | **Tidak ada integrasi pada MVP** — `CAP-016` `DEFERRED` lewat `RWI-DEC-089`; modulnya sendiri belum berwujud (`RWI-FACT-015`) |
 
 ---
 
@@ -278,7 +290,7 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu jalur berhasil dan satu ja
 | ID | Jalur | Skenario | Hasil yang diharapkan |
 | --- | --- | --- | --- |
 | `UAT-KEP-04` | **Berhasil** | Ns. Sari mengisi pengkajian ulang esok harinya | Dua baris; nilai nyeri kemarin tetap utuh dan keduanya tampil di lini masa |
-| `UAT-KEP-05` | **Berhasil** | Kepala ruangan mengamandemen pengkajian yang salah isi | Status `Amended`; versi lama tetap terbaca beserta alasannya |
+| `UAT-KEP-05` | **Berhasil** | Kepala ruangan menambah koreksi pada pengkajian yang salah isi | Status **tetap** `Completed`; isi asli tetap terbaca apa adanya, dan koreksinya muncul sebagai addendum bernomor beserta alasan, penulis, dan waktunya |
 | `UAT-KEP-06` | **Gagal** | Ns. Sari membuat pengkajian awal kedua | Ditolak dan diarahkan ke pengkajian ulang |
 | `UAT-KEP-07` | **Gagal** | Menyelesaikan pengkajian dengan risiko jatuh belum terisi | Ditolak; bagian yang kosong disebut satu per satu |
 
@@ -340,7 +352,7 @@ Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
 | **`KEP-MVP-3`** | `EPIC KEP-04` — tindakan, idempotency, pemisahan kegagalan tagihan | `KEP-MVP-1` |
 | **`KEP-MVP-4`** | `EPIC KEP-05` — daftar pantau kepatuhan | `KEP-MVP-1` |
 | **`POST-MVP`** | `CAP-027` asuhan gizi; katalog SDKI; nilai batas waktu klinis | Modul Gizi berdiri; keputusan SDKI; pemilik klinis |
-| **Tidak masuk gelombang mana pun** | **`EPIC KEP-06` pemakaian alat** | `OPEN DECISION` — kepemilikan tabelnya belum diputuskan |
+| **Tidak masuk gelombang mana pun** | **`EPIC KEP-06` pemakaian alat** | `DEFERRED` lewat `RWI-DEC-089` — dikeluarkan dari scope rilis pertama secara tertulis. Masuk kembali setelah modul persediaan/aset ada |
 
 ---
 
@@ -348,14 +360,55 @@ Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
 
 | No | Pertanyaan | Pemilik | Memblokir? |
 | ---: | --- | --- | :---: |
-| 1 | **Siapa pemilik tabel catatan pemakaian alat?** Persediaan, `ClinicalManagement`, atau `InPatientManagement`. PRD 23.1 tidak memuat barisnya. Usulan ID `RWI-OQ-048` | Product/Domain bersama pemilik persediaan | **Ya** — untuk `CAP-016` saja |
+| 1 | ~~**Siapa pemilik tabel catatan pemakaian alat?**~~ **TERTUTUP 2026-09-02** oleh `RWI-DEC-089`: pertanyaannya dijawab dengan **menunda kemampuannya**, bukan dengan memilih pemilik. `EPIC KEP-06` dikeluarkan dari scope rilis pertama secara tertulis; `RWI-OQ-048` dibuka ulang saat modul persediaan/aset ada | Product/Domain bersama pemilik persediaan | **Tidak lagi** — `CAP-016` kini `DEFERRED` |
 | 2 | Apakah rumah sakit memakai terminologi SDKI/SLKI/SIKI? Menentukan perlu-tidaknya katalog terminologi berversi | Clinical governance | Tidak — struktur rencana asuhan tetap dapat dibangun |
 | 3 | Berapa batas waktu pengkajian awal dan pengkajian ulang? `RWI-RULE-021` | Pemilik klinis, **belum ditunjuk** | Tidak — mekanismenya dibangun, angkanya menyusul |
 | 4 | Apakah catatan keperawatan tampil pada catatan terpadu bagi seluruh profesi? PRD `CAP-014` aturan 4 menyebut "sesuai kebijakan" tanpa menyebut kebijakannya | Clinical governance | Tidak — catatan tetap tersimpan dan terbaca dari ruang kerja |
 
-> **Hanya pertanyaan 1 yang memblokir, dan hanya untuk `CAP-016`.** Ketiga kemampuan `MUST HAVE`
-> tidak tertahan olehnya.
+> **Tidak ada lagi pertanyaan yang memblokir.** Pertanyaan 1 ditutup `RWI-DEC-089` pada 2026-09-02 dengan
+> mengeluarkan `EPIC KEP-06` dari scope rilis pertama secara tertulis — tepat jalan keluar yang disyaratkan
+> paragraf ini sebelumnya. Pertanyaan 2, 3, dan 4 tidak memblokir dan tidak pernah memblokir.
 >
-> Dokumen ini boleh berstatus `draft` dengan pertanyaan memblokir terbuka, tetapi **MUST NOT**
-> diteruskan ke `/qv-plan` sebelum pertanyaan 1 dijawab **atau** `EPIC KEP-06` dikeluarkan dari
-> scope secara tertulis.
+> **Gerbang yang tersisa bukan pertanyaan wawancara, melainkan dua hal lain:** penghalang teknis
+> `INT-KEP-01` milik `ClinicalManagement`, dan satu butir konsistensi baru yang ditemukan 2026-09-02 pada
+> bagian 20.1. Keduanya dicatat supaya tidak terlewat, dan keduanya di luar wewenang dokumen ini.
+
+### 20.1 Butir konsistensi — **ditutup 2026-09-02** oleh `RWI-DEC-091`
+
+`RWI-DEC-086` dan `RWI-DEC-087` terbit **setelah** desain sub-modul ini ditulis, dan keduanya mengubah cara
+dokumen klinis rawat inap dinyatakan final serta dikoreksi. Butir ini sempat terbuka, dan **sudah ditutup**
+pemilik pada 2026-09-02 lewat `RWI-DEC-091`.
+
+**Jawabannya: koreksi dibedakan dari perkembangan.**
+
+| Dokumen | Cara membetulkannya | Alasannya |
+| --- | --- | --- |
+| Pengkajian keperawatan | **Addendum** pada mesin keutuhan `MedicalRecordManagement`, jenis `Assessment` | Pembetulan kesalahan. Sama seperti dokumen dokter |
+| Catatan tindakan keperawatan | **Addendum**, jenis `Procedure` | Pembetulan kesalahan |
+| Butir rencana asuhan | **Tetap berversi**, tidak beraddendum | Perubahannya **bukan** pembetulan melainkan perkembangan klinis — PRD `CAP-013` aturan 5. `AC-CAP013-02` menuntut versi lama tetap menyimpan penulis dan waktu aslinya |
+
+Akibatnya pada dokumen ini: status `Amended` **dicabut** dari mesin pengkajian dan mesin catatan tindakan,
+dan dua kolom amandemen tidak jadi diminta. Rinciannya ada di
+[`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) `0.3.0` dan
+[`contracts/integration-contract.md`](./contracts/integration-contract.md) `INT-KEP-06`.
+
+**Satu syarat teknis menyusul, dan ia memblokir pembangunan.** `RWI-FACT-016` menemukan mesin keutuhan
+hari ini **hanya menegakkan** jenis `ProgressNote` sesuai `RM-DEC-019`, sedangkan pendaftaran jenis lain
+tetap diterima tanpa dikunci. Bila dibangun apa adanya, pengkajian akan terlihat terdaftar tetapi tidak
+pernah terkunci. `RWI-OQ-051` meminta `Assessment` dan `Procedure` ikut ditegakkan — nol nilai enum
+baru, tetapi perubahannya milik `MedicalRecordManagement`.
+
+Tabel di bawah dipertahankan sebagai jejak pertanyaan aslinya.
+
+| Hal | Keadaannya |
+| --- | --- |
+| Yang ditetapkan `RWI-DEC-086` | Catatan menjadi final saat penulisnya menekan **Selesai**; sejak itu isinya tidak dapat disunting, dan satu-satunya jalan membetulkan adalah **addendum beralasan** |
+| Yang ditetapkan `RWI-DEC-087` | `ClinicalManagement` mendaftarkan dokumen ke **mesin keutuhan dokumen** saat finalisasi, dan pekerjaan itu **tidak boleh** membuat mesin koreksi tandingan |
+| Cakupan tertulis keduanya | **Catatan dokter** — SOAP, kajian medis, tindakan dokter, dan catatan terpadu. Dokumen keperawatan **tidak disebut** |
+| Kenapa tetap menyentuh sub-modul ini | `INT-KEP-03` mengalirkan catatan keperawatan ke **catatan terpadu**, dan catatan terpadu justru **disebut** `RWI-DEC-086` |
+| Yang dirancang sub-modul ini | Mesin amandemennya sendiri: `Completed` — `Amended`, dan `Recorded` — `Finalized` — `Amended`, dengan "versi lama tersalin" serta "setiap amandemen menambah satu versi" — `contracts/state-transition-matrix.md` bagian 1 dan 3 |
+| **Pertanyaannya** | ~~Apakah dokumen keperawatan memakai mesin keutuhan dokumen seperti dokumen dokter, atau tetap memakai mesin versi milik sub-modul ini?~~ **Terjawab `RWI-DEC-091`.** Catatan: mesinnya ternyata milik **`MedicalRecordManagement`**, bukan `ClinicalManagement` — `RWI-FACT-016` |
+| Kenapa tidak dijawab di sini | Ini keputusan **kepemilikan mesin koreksi**, sejenis `RWI-DEC-081`. Menjawabnya sendiri berarti blueprint memutuskan hal yang sudah dinyatakan milik pemilik modul |
+| Memblokir? | **Sudah tidak.** Ditutup `RWI-DEC-091` sebelum satu task pun dibangun — tepat seperti yang diharapkan baris ini. Yang tersisa adalah syarat teknis `RWI-OQ-051` |
+| Pemilik jawaban | Muhammad Hamzah, selaku Product/Domain sekaligus pemilik `ClinicalManagement` |
+| Langkah yang benar | ~~`/qv-grill` Amendment Pass~~ **Sudah dijalankan 2026-09-02.** Hasilnya `RWI-DEC-091` |
