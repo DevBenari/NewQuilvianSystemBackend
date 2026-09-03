@@ -4,12 +4,14 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.1.0` |
-| `last_changed_in` | `0.1.0` |
+| Contract version | `0.3.0` |
+| `last_changed_in` | `0.3.0` |
+| Compatibility impact | `0.3.0`: dua endpoint `amend` berubah menjadi **penambahan addendum** sesuai `RWI-DEC-091`. Status dokumen **tidak lagi berpindah** ke `Amended`; nilai status itu dicabut. Endpoint rencana asuhan tidak berubah |
 | Status | `draft` — belum disetujui manusia |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
-| `input_revision` | `02-backend-architecture.md` `0.1`; `PRD-RWI-FINAL-001` v1.0.0 |
+| `input_revision` | `02-backend-architecture.md` `0.3`; `PRD-RWI-FINAL-001` v1.0.0; decision log `13` |
+| Keputusan yang mengikat | `RWI-DEC-091`, `RWI-DEC-086`, `RWI-DEC-087`, `RWI-FACT-016` |
 | Tanggal | 2 September 2026 |
 
 ---
@@ -37,7 +39,8 @@ Judul grup: `[Tags("Health Services / Clinical Management / Patient Assessment")
 | `POST` | `/` | Membuat pengkajian. **Perubahan yang diminta:** menerima `InpEpisodeId` dan tidak menuntut `QueueId` bila episodenya `Admitted` | `PatientAssessment : Create` | `CreatePatientAssessmentRequest` **+ `InpEpisodeId`, `AssessmentType`** | `ApiResponse<PatientAssessmentResponse>` | **Tersedia**, perilaku **Rencana** |
 | `GET` | `/` | Daftar pengkajian. **Perubahan:** saring menurut `inpEpisodeId` dan `assessmentType` | `PatientAssessment : Read` | Query `inpEpisodeId`, `assessmentType`, `status` | `ApiResponse<PagedResult<PatientAssessmentListItem>>` | **Tersedia**, penyaring **Rencana** |
 | `GET` | `/{id}` | Satu pengkajian utuh | `PatientAssessment : Read` | — | `ApiResponse<PatientAssessmentResponse>` | **Tersedia** |
-| `PATCH` | `/{id}/amend` | Mengamandemen pengkajian yang sudah `Completed`; versi sebelumnya tersalin | `PatientAssessment : Amend` | `AmendPatientAssessmentRequest` (`Reason` wajib) | `ApiResponse<PatientAssessmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/addendums` | **Menambah koreksi** pada pengkajian yang sudah `Completed`. Isi asli tidak berubah; koreksi tersimpan sebagai addendum bernomor urut pada mesin keutuhan dokumen. Status pengkajian **tetap** `Completed` | `PatientAssessment : Amend` | `CreateAssessmentAddendumRequest` (`Reason` wajib, `Content` wajib) | `ApiResponse<ClinicalDocumentAddendumResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/addendums` | Daftar koreksi satu pengkajian, terurut nomor | `PatientAssessment : Read` | — | `ApiResponse<List<ClinicalDocumentAddendumResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/episodes/{episodeId}/timeline` | Lini masa pengkajian satu episode; menjawab `AC-CAP012-02` | `PatientAssessment : Read` | — | `ApiResponse<AssessmentTimelineResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/episodes/{episodeId}/due-status` | Keadaan tenggat dan keterlambatan menurut kebijakan aktif | `PatientAssessment : Read` | — | `ApiResponse<AssessmentDueStatusResponse>` | **Rencana (belum tersedia)** |
 
@@ -80,7 +83,8 @@ Judul grup: `[Tags("Health Services / Clinical Management / Nursing Intervention
 | `POST` | `/` | Mencatat tindakan yang **sudah dilakukan**. Menerima `Idempotency-Key` | `NursingIntervention : Create` | `CreateNursingInterventionRequest` | `ApiResponse<NursingInterventionResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/episodes/{episodeId}` | Daftar tindakan satu episode, terurut waktu tindakan | `NursingIntervention : Read` | Query `from`, `to`, `performedBy` | `ApiResponse<PagedResult<NursingInterventionListItem>>` | **Rencana (belum tersedia)** |
 | `PATCH` | `/{id}/finalize` | Menyatakan catatan final sehingga tidak dapat disunting diam-diam | `NursingIntervention : Update` | — | `ApiResponse<NursingInterventionResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/amend` | Mengubah catatan yang sudah final; wajib beralasan dan tercatat | `NursingIntervention : Amend` | `AmendInterventionRequest` (`Reason` wajib) | `ApiResponse<NursingInterventionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/addendums` | **Menambah koreksi** pada catatan tindakan yang sudah `Finalized`. Isi asli tidak berubah; status catatan **tetap** `Finalized` | `NursingIntervention : Amend` | `CreateInterventionAddendumRequest` (`Reason` wajib, `Content` wajib) | `ApiResponse<ClinicalDocumentAddendumResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/addendums` | Daftar koreksi satu catatan tindakan, terurut nomor | `NursingIntervention : Read` | — | `ApiResponse<List<ClinicalDocumentAddendumResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id}/billing-dispatch` | Keadaan pengiriman tagihan; menjawab `AC-CAP014-02` | `NursingIntervention : Read` | — | `ApiResponse<BillingDispatchResponse>` | **Rencana (belum tersedia)** |
 
 ### Catatan idempotency
@@ -122,6 +126,6 @@ Base URL: `api/v1/health-services/clinical-management/patient-integrated-progres
 
 | Yang tidak ada | Alasan |
 | --- | --- |
-| Endpoint pemakaian alat (`CAP-016`) | Kepemilikan tabelnya **belum diputuskan** — `02-backend-architecture.md` bagian 2.3. Menulis endpoint tanpa tahu pemilik tabelnya berarti mengarang kepemilikan |
+| Endpoint pemakaian alat (`CAP-016`) | **Kemampuannya `DEFERRED`** lewat `RWI-DEC-089` — dikeluarkan dari scope rilis pertama secara tertulis, dan kepemilikan tabelnya sengaja tidak diputuskan. Endpoint-nya ditulis setelah `RWI-OQ-048` dibuka ulang, yaitu ketika modul persediaan/aset ada |
 | Endpoint asuhan gizi (`CAP-027`) | Dimiliki modul Gizi yang berstatus `PLANNED`. Yang dimiliki sub-modul ini hanya **pemicu rujukan** dari hasil skrining gizi pada pengkajian, dan itu lahir dari `POST /patient-assessments` |
 | Endpoint penghapusan pengkajian | `CAP-012` aturan 12 melarang hard-delete dan penimpaan diam-diam pada pengkajian final |
