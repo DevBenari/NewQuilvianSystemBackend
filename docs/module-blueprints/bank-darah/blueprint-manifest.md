@@ -5,11 +5,11 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 21
+revision: 22
 status: READY
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-04T00:20:00+07:00
+updated_at: 2026-09-04T02:10:00+07:00
 last_verified_at: null
 backend_source_sha: 6488511
 backend_branch: sukmagp
@@ -401,3 +401,40 @@ blueprint Bank Darah. Peta kemampuan tetap `CURRENT`; tidak ada impact scan penu
 **Keadaan sesudah pass ini.** Tidak ada satu pun pertanyaan terbuka yang menempel pada set kontrak
 `v4`, tidak ada gerbang yang menahan, dan tidak ada fase yang `BLOCKED`. Yang tersisa seluruhnya
 pekerjaan implementasi, dimulai dari gelombang `MVP-0`.
+
+**Blueprint consistency pass — 3 September 2026, revisi 22.** Pelaksanaan `BE-BD-014` menemukan
+pertentangan antara kamus data dan kontrak engineering canonical, dan pass ini menyelesaikannya di
+sisi blueprint.
+
+**Yang dipertentangkan.** `data/data-dictionary.md` menetapkan kolom `SortOrder` (`int`, wajib,
+bawaan `0`, "urutan tampil pilihan") pada `MstBloodStorageLocation`, sementara
+`BACKEND_ENGINEERING_CONTRACT.md` menyatakan `SortOrder` presentasi yang dipersistensi secara
+generik **dilarang untuk kode baru**. `QBE_EXCEPTIONS.json` tidak memuat satu pun pengecualian.
+
+**Yang diputuskan.** Requirement `SortOrder` **dicabut** dari blueprint. Urutan pilihan diturunkan
+dari field semantik yang sudah ada — `StorageLocationCode` lalu `StorageLocationName`. Untuk kulkas
+darah, urutan menurut kode justru lebih wajar dibaca petugas daripada angka yang diketik admin.
+
+| Artefak | Yang berubah |
+| --- | --- |
+| `data/data-dictionary.md` | Baris kolom `SortOrder` dan barisnya pada DDL dihapus; catatan pencabutan bertanggal ditambahkan |
+| `contracts/api-contract.md` | Keterangan `PUT /{id}` menjadi "Ubah kode, nama, keterangan" |
+| `02-backend-architecture.md` | Class diagram, baris dokumentasi entity §F, dan tabel status model §H diselaraskan; alasan pencabutan dicatat pada §L "Yang sengaja tidak dibuat" |
+| `03-frontend-architecture.md` | Skema layar `FE-BD-10` tidak lagi menuntut kolom dan isian "urutan" |
+
+**Set kontrak tetap `v4` dan tetap `approved`.** Pencabutan ini menghapus satu kolom presentasi yang
+belum pernah diimplementasikan dan belum punya satu pun konsumen: `BE-BD-014` memang tidak
+membuatnya, dan `FE-BD-011` belum dibangun. Nol perubahan aturan bisnis, nol perubahan keputusan,
+nol perubahan invariant, nol migration.
+
+Revisi blueprint naik ke 22 karena kamus data adalah bagian kontrak yang disetujui, dan mencabut
+sebuah kolom darinya adalah perubahan material — bukan sekadar penyelarasan kalimat.
+
+⚠️ **Bila kelak urutan manual benar-benar dibutuhkan, jalurnya bukan menambah kolom diam-diam.**
+Urutannya mengikat: daftarkan pengecualian pada `QBE_EXCEPTIONS.json` beserta QBE ID, alasan, dan
+cakupannya; baru setelah itu satu migration aditif menambahkan kolomnya.
+
+**Satu catatan preseden yang belum terselesaikan, dan sengaja tidak diselesaikan di sini.**
+`MstMedicalRecordAccessPurpose` — kode baru yang belum lama masuk — **memiliki** `SortOrder` yang
+dipersistensi. Preseden rumah karena itu tidak seragam. Menyelaraskannya berada di luar scope modul
+Bank Darah dan merupakan keputusan pemilik kontrak engineering, bukan keputusan blueprint ini.

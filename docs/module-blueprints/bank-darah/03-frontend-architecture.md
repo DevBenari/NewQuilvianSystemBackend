@@ -238,8 +238,8 @@ diberitahukan di sini.
 
 | Wilayah | Isi | Sumber data | Hak akses | Bila kosong/gagal |
 | --- | --- | --- | --- | --- |
-| Tabel | Kode, nama, urutan, keterangan, penanda aktif/nonaktif | `GET /blood-storage-locations` | `BloodStorageLocation : Read` | Kosong → **peringatan tegas**, lihat `FE-BD-014` |
-| Tambah / Ubah | Kode, nama, urutan, keterangan | `POST /` · `PUT /{id}` | `BloodStorageLocation : Create/Update` | Kode ganda → `VAL-BD-067` |
+| Tabel | Kode, nama, keterangan, penanda aktif/nonaktif | `GET /blood-storage-locations` | `BloodStorageLocation : Read` | Kosong → **peringatan tegas**, lihat `FE-BD-014` |
+| Tambah / Ubah | Kode, nama, keterangan | `POST /` · `PUT /{id}` | `BloodStorageLocation : Create/Update` | Kode ganda → `VAL-BD-067` · Nama ganda → `VAL-BD-067` |
 | Saklar Aktif / Nonaktif | Mengubah `IsActive` | `PATCH /{id}/status` | `BloodStorageLocation : Update` | Berhasil, **disertai peringatan jumlah kantong tertahan** (`VAL-BD-068`) |
 
 **`FE-BD-014` (mengikat).** Bila master ini kosong, layar wajib menyatakan akibatnya secara terang:

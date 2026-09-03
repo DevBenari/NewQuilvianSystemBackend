@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Module name | `Bank Darah` |
 | Module slug | `bank-darah` |
-| Revision | `21` |
+| Revision | `22` |
 | Module status | `READY` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `belum pernah diverifikasi` |
@@ -15,7 +15,7 @@
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-03` — penyegaran SHA setelah contract reconciliation pass |
+| Terakhir diperbarui | `2026-09-03` — blueprint consistency pass (`SortOrder` dicabut) |
 
 Modul naik dari `PARTIAL` ke **`READY`**. Seluruh fase perancangan sudah menghasilkan artefaknya,
 **tidak ada satu pun keputusan bisnis yang masih memblokir**, dan sejak 3 September 2026 tidak ada satu

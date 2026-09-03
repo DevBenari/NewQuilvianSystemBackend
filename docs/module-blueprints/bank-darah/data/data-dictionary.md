@@ -317,12 +317,19 @@ pada tabel status, yang sengaja tidak dipakai (`DEC-BD-035`).
 | `StorageLocationCode` | `string(30)` | Ya | — | Unique | Kode lokasi, mis. `KLK-BSR` |
 | `StorageLocationName` | `string(150)` | Ya | — | — | Nama yang dikenali petugas, mis. `Kulkas Besar` |
 | `IsActive` | `bool` | Ya | `true` | Index | **Penanda yang menutup dua gerbang** saat bernilai `false` (`INV-BD-027`, `INV-BD-028`). Dibaca saat gerbang dinilai, **tidak pernah disalin** ke kantong |
-| `SortOrder` | `int` | Ya | `0` | — | Urutan tampil pilihan |
 | `Description` | `string(250)?` | Tidak | `null` | — | Keterangan bebas |
 
 > **Yang sengaja tidak ada di sini:** rentang suhu, kelembapan, kapasitas, rak/shelf/bin, hierarki
 > induk-anak, dan seluruh penanda farmasi. Semuanya di luar scope MVP (`DEC-BD-035`), dan ketiadaannya
 > disengaja — bukan kolom yang lupa dirancang.
+
+> **`SortOrder` dicabut pada 3 September 2026.** Kolom itu semula dirancang untuk mengatur urutan
+> tampil pilihan. Kontrak engineering canonical melarang `SortOrder` presentasi yang dipersistensi
+> secara generik untuk kode baru, dan `QBE_EXCEPTIONS.json` tidak memuat pengecualian apa pun.
+> Urutan pilihan karena itu diturunkan dari field semantik yang sudah ada — `StorageLocationCode`
+> lalu `StorageLocationName` — yang untuk kulkas darah justru lebih wajar dibaca petugas daripada
+> angka yang diketik admin. Bukti implementasinya ada di
+> `task/report/backend/BE-BD-014.md` §8.1.
 
 > **Lokasi nonaktif tidak pernah dihapus.** Penempatan lama menunjuk ke sini lewat `Restrict`, dan
 > riwayat kantong wajib tetap terbaca. Penonaktifan hanya mengubah `IsActive`.
@@ -472,7 +479,6 @@ CREATE TABLE public."MstBloodStorageLocation" (
     "StorageLocationCode" varchar(30)  NOT NULL,
     "StorageLocationName" varchar(150) NOT NULL,
     "IsActive"            boolean      NOT NULL,
-    "SortOrder"           integer      NOT NULL,
     "Description"         varchar(250),
     CONSTRAINT "PK_MstBloodStorageLocation" PRIMARY KEY ("Id")
 );

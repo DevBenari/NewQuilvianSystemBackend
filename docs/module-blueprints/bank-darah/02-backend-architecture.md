@@ -237,7 +237,7 @@ classDiagram
         +string StorageLocationCode
         +string StorageLocationName
         +bool IsActive
-        +int SortOrder
+        +string Description
     }
     class BbkBloodUnitAllocation {
         +Guid Id
@@ -467,7 +467,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | --- | --- | --- | --- |
 | `MstBloodComponent` (`BD-DOM-13`) | `Baru` | `Areas/HealthServices/MasterData/Models/MstBloodComponent.cs` | Katalog komponen (PRC, TC, FFP, dst). Kolom `CompatibilityEvidenceValidityHours` (nullable, konfigurasi per komponen — `DEC-BD-032`). **Master, bukan menu Setup baru** |
 | `MstBloodBankReason` (`BD-DOM-14`) | `Baru` | `Areas/HealthServices/MasterData/Models/MstBloodBankReason.cs` | Daftar alasan terkendali dengan `ReasonCategory`. Alasan tak boleh teks bebas (`INV-BD-016`); perubahan berjejak |
-| `MstBloodStorageLocation` (`BD-DOM-24`) | `Baru` | `Areas/HealthServices/MasterData/Models/MstBloodStorageLocation.cs` | Master lokasi penyimpanan darah milik BDRS (Kulkas Besar, Kulkas Kecil, dst). Kolom inti: `StorageLocationCode`, `StorageLocationName`, `IsActive`, `SortOrder`, `Description`. **Tidak** memuat suhu, kapasitas, rak/shelf/bin, maupun penanda farmasi apa pun — di luar scope MVP (`DEC-BD-035`). Nonaktif **tidak pernah dihapus**, karena penempatan lama wajib tetap terbaca |
+| `MstBloodStorageLocation` (`BD-DOM-24`) | `Baru` | `Areas/HealthServices/MasterData/Models/MstBloodStorageLocation.cs` | Master lokasi penyimpanan darah milik BDRS (Kulkas Besar, Kulkas Kecil, dst). Kolom inti: `StorageLocationCode`, `StorageLocationName`, `IsActive`, `Description`. `SortOrder` **dicabut** 3 September 2026 — lihat §L. **Tidak** memuat suhu, kapasitas, rak/shelf/bin, maupun penanda farmasi apa pun — di luar scope MVP (`DEC-BD-035`). Nonaktif **tidak pernah dihapus**, karena penempatan lama wajib tetap terbaca |
 | `MstServiceUnit` (`BD-DOM-18`) | `Diperbarui` | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` | **Milik Master Data**, bukan Bank Darah. Ditambah **satu kolom** `IsAvailableForBloodOrder` (bool, default `false`) bergaya `IsAvailableFor*` yang sudah ada (`BD-CAP-005`) |
 
 ### F.4 Service (tanpa interface, `AddScoped`, di-inject ke controller)
@@ -657,7 +657,7 @@ migration tidak dapat direncanakan:
 
 | Tabel | Status pada `v2` | Kolom yang berubah |
 | --- | --- | --- |
-| `MstBloodStorageLocation` | `Baru` | Seluruh kolom: `StorageLocationCode`, `StorageLocationName`, `IsActive`, `SortOrder`, `Description` |
+| `MstBloodStorageLocation` | `Baru` | Seluruh kolom: `StorageLocationCode`, `StorageLocationName`, `IsActive`, `Description` |
 | `BbkBloodUnitPlacement` | `Baru` | Seluruh kolom: `BloodUnitId`, `StorageLocationId`, `PreviousPlacementId`, `PlacedAt`, `PlacedByUserId`, `IsCurrent`, `Note` |
 | `BbkBloodUnit` | `Diperbarui` terhadap `v1` | **+1 kolom** `CurrentPlacementId` `uuid NULL` (FK ke `BbkBloodUnitPlacement`). Nilai bawaan status berpindah dari `Available` menjadi **`Received`** |
 | `BbkEmergencyAuthorization` | `Diperbarui` terhadap `v1` | **+1 kolom** `BypassScope` `int NOT NULL` (enum `BbkEmergencyBypassScope`) |
@@ -797,6 +797,7 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | Job penutup gerbang saat lokasi dinonaktifkan | Tidak diperlukan sama sekali; gerbang dinilai saat diperiksa. Menambah job justru menciptakan jendela waktu ketika sebagian kantong sudah tertutup dan sebagian belum |
 | Daftar kerja operasional keempat untuk kantong `Received` / di lokasi nonaktif | `DEC-BD-023` menetapkan tiga daftar kerja, dan `AC-BD-057` menegaskan polanya. Keduanya cukup dilayani **penyaring** pada daftar kantong yang sudah ada |
 | Pemantauan suhu, kapasitas, IoT | Dikeluarkan `DEC-BD-035` dari MVP. Catatan lokasi adalah bukti **penempatan**, bukan bukti rantai dingin terjaga |
+| Kolom `SortOrder` pada `MstBloodStorageLocation` | **Dicabut 3 September 2026**, semula dirancang untuk mengatur urutan tampil pilihan. Kontrak engineering canonical melarang `SortOrder` presentasi yang dipersistensi secara generik untuk kode baru, dan `QBE_EXCEPTIONS.json` tidak memuat satu pun pengecualian. Urutan pilihan diturunkan dari field semantik yang sudah ada — `StorageLocationCode` lalu `StorageLocationName` — yang untuk kulkas darah justru lebih wajar dibaca petugas daripada angka yang diketik admin. Bila kelak urutan manual benar-benar dibutuhkan, jalurnya adalah pengecualian QBE terdaftar lebih dulu, baru satu migration aditif. Bukti implementasinya di `task/report/backend/BE-BD-014.md` §8.1 |
 | Entity "Permintaan Koreksi" terpisah dari "Koreksi" | Permintaan dan koreksi yang disetujui adalah **satu benda pada dua keadaan**, bukan dua benda. Memisahkannya membuat entity per status — dilarang — dan memaksa penyalinan isi saat disetujui |
 | Butir hak akses terpisah untuk pembatalan order klinis dan operasional | Cukup **satu** butir `BloodOrder : Cancel`; yang membedakan kedua sebab adalah **kategori alasan** yang wajib diisi, bukan penjaga yang berbeda. `DEC-BD-044` menetapkan dua peran boleh membatalkan, bukan dua jalur pembatalan yang berbeda bentuknya |
 | Kewajiban pelaksana pemeriksaan berbeda dari validator bukti kecocokan | `DEC-BD-042` menyatakan keduanya **dapat** berbeda — izin, bukan kewajiban. Menjadikannya kewajiban berarti mengetatkan melebihi keputusan pemilik proses, dan itu ditolak sekeras mengarang kelonggaran |

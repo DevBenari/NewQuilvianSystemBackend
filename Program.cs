@@ -372,6 +372,11 @@ try
     // supaya controller tidak menyentuh ApplicationDbContext langsung (QBE-SVC-001).
     builder.Services.AddScoped<BloodComponentService>();
 
+    // Master lokasi penyimpanan darah. Selama tabelnya tidak punya satu pun lokasi aktif,
+    // seluruh alur Bank Darah berhenti (INV-BD-025) - service ini yang memberi BDRS cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<BloodStorageLocationService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(

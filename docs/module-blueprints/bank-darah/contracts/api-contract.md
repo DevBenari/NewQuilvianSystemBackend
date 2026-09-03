@@ -59,7 +59,7 @@ Master lokasi penyimpanan darah milik BDRS (`DEC-BD-035`). **Bukan** cold storag
 | `GET` | `/options` | Pilihan lokasi untuk dropdown; **hanya yang `IsActive = true`** | `BloodStorageLocation : Read` | — | `ApiResponse<List<OptionDto>>` | Rencana |
 | `GET` | `/{id}` | Detail satu lokasi | `BloodStorageLocation : Read` | — | `ApiResponse<BloodStorageLocationDto>` | Rencana |
 | `POST` | `/` | Tambah lokasi penyimpanan darah | `BloodStorageLocation : Create` | `CreateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
-| `PUT` | `/{id}` | Ubah kode, nama, urutan, keterangan | `BloodStorageLocation : Update` | `UpdateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
+| `PUT` | `/{id}` | Ubah kode, nama, keterangan | `BloodStorageLocation : Update` | `UpdateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
 | `PATCH` | `/{id}/status` | **Aktifkan atau nonaktifkan lokasi** (`DEC-BD-037`) | `BloodStorageLocation : Update` | `SetActiveStatusRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `200 VAL-BD-068` |
 
 `GET /options` sengaja menyaring hanya lokasi aktif, sehingga frontend tidak perlu menyaring sendiri dan
