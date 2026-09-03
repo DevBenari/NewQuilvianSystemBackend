@@ -49,3 +49,22 @@ Security/privacy: setiap command transisi diperiksa permission backend dan actor
 ## Amendment 2 September 2026
 
 Tidak ada status baru pada `BilInvoice`/`BilInvoiceItem`. `POST catalog-charges` (`BKC-DEC-059`–`062`, approved) memicu transisi "Tidak ada → `OPEN`"/"`OPEN` → `OPEN`" yang SAMA seperti `POST from-source` existing pada tabel Invoice di atas — hanya sumber datanya (katalog vs free-form) yang berbeda, bukan lifecycle status invoice-nya.
+
+## Amendment 3 September 2026 — Dokumen Invoice Asuransi
+
+`contract_version: BIL-STATE-0.5` · status **draft** · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+
+**Tidak ada status baru, dan tidak ada transisi baru.** `GET {id}/insurance-invoice-document` adalah endpoint baca murni: ia tidak mengubah `BilInvoice.Status`, tidak membuat `BilCalculationVersion` baru, dan tidak menyentuh `BilInvoiceItem.Status`. Mencetak dokumen tidak pernah menjadi peristiwa yang mengubah keadaan tagihan.
+
+Yang perlu dicatat justru **ketergantungan** dokumen pada status yang sudah ada, karena sumber angkanya berbeda per status:
+
+| Status invoice | Sumber angka dokumen | Alasan |
+| --- | --- | --- |
+| `OPEN` | Kalkulasi pratinjau segar (`PreviewCalculationAsync`) | Tagihan berjalan masih berubah; angka yang ditampilkan harus sama dengan yang dilihat kasir di Menu Pembayaran |
+| `FINAL` | Versi kalkulasi tersimpan (`BilCalculationVersion` dengan `VersionNo == CurrentCalculationVersion`) | `PreviewCalculationAsync` menolak invoice non-`OPEN` ("Hanya invoice OPEN yang dapat dihitung ulang."), dan angka final memang harus dari versi yang terkunci |
+| `CLOSED` | Sama seperti `FINAL` | Sama |
+| `SETTLED_BY_WRITE_OFF` | Sama seperti `FINAL` | Sama. Tanggungan penjamin yang sudah lahir tidak dihapus oleh write-off porsi pasien |
+
+**Transisi yang tidak sah dan tetap tidak sah:** mencetak dokumen **MUST NOT** memindahkan invoice `OPEN` ke `FINAL`, **MUST NOT** menandai klaim sebagai diajukan, dan **MUST NOT** membuat AR penjamin. Ketiga hal itu tetap milik jalur finalisasi (`BKC-DEC-024`) dan tidak boleh dipicu dari lembar cetak.
+
+Trace `BKC-DEC-065`–`069`. Tests `BIL-AT-029`–`035`.

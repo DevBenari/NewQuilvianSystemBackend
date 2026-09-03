@@ -176,3 +176,127 @@ Layout halaman (Hero, susunan tab, kartu dokumen, action bar) mengikuti pola `In
     file itu di manapun.
 31. Tombol Kembali pada halaman Dokumen Kasir selalu kembali ke Menu Pembayaran invoice yang
     sama (bukan daftar invoice), termasuk saat halaman dibuka langsung dari URL (deep link).
+
+## Amendment 3 September 2026 (kedua) — Dokumen Kasir: tab baru "Invoice Asuransi"
+
+> Status **draft**. Trace: `BKC-DEC-065`–`069` (approved Product/Domain Owner 3 September 2026) dan `BKC-DES-001`–`BKC-DES-009` (`02-backend-architecture.md`, draft). Frontend SHA diaudit `00210f9a5fb2f4f69e57b8c90c57c63c788da792`. Layar terdampak: halaman Dokumen Kasir yang baru dibuat pada amendment sebelumnya (`FE-BKC-017`).
+>
+> Amendment ini **bergantung penuh** pada slice backend. Tanpa endpoint `GET {id}/insurance-invoice-document`, tab ini tidak punya sumber data — `BKC-DEC-069` sudah menyatakan ini bukan pekerjaan frontend murni.
+
+### Kebutuhan fungsional layar
+
+Tab ketiga bernama **"Invoice Asuransi"** pada halaman Dokumen Kasir (`/health-services/billing-management/billing/invoices/[slug]/pembayaran/dokumen-kasir`), sejajar Kwitansi dan Struk Pasien, **sebelum** enam tab placeholder. Tab `Claim Letter` tidak disentuh dan tetap placeholder milik `InsuranceManagement` (`BKC-DEC-065`).
+
+| No | Kebutuhan | Aturan |
+| --- | --- | --- |
+| 1 | Kasir dapat membuka tab "Invoice Asuransi" dan melihat lembar dokumen siap cetak | Isi lembar seluruhnya berasal dari satu panggilan `GET {id}/insurance-invoice-document`. Layar **MUST NOT** menghitung, menyaring, atau menjumlahkan rupiah sendiri |
+| 2 | Lembar memuat tiga blok berurutan: kepala surat rumah sakit, blok identitas pasien + blok perusahaan asuransi, lalu tabel rincian dan total | Susunan mengikuti pola `KwitansiDocument`/`StrukPasienDocument` yang sudah ada (`BKC-DEC-065`: "pola presentasi sama dengan Kwitansi") |
+| 3 | Setiap baris tabel menampilkan kolom rupiah yang ditanggung asuransi | Wajib, `BKC-DEC-069`. Bukan hanya badge status |
+| 4 | Hanya baris yang benar-benar ditanggung asuransi yang tampil | `BKC-DEC-068`. Penyaringan sudah dilakukan backend; layar menampilkan `items` apa adanya dan **MUST NOT** menambah filter sendiri |
+| 5 | Kasir dapat mencetak/mengunduh lembar sebagai PDF | `html2pdf.js`, sama seperti Kwitansi dan Struk Pasien (`BKC-DEC-063` masih berlaku) |
+| 6 | Bila dokumen tidak dapat diterbitkan, layar menjelaskan sebabnya dengan bahasa yang dipahami kasir dan mematikan tombol cetak | Sebab diambil dari `warnings[]` yang dikirim backend — layar **MUST NOT** mengarang pesannya sendiri |
+| 7 | Tab ini hanya memanggil endpoint saat tab-nya aktif | Kasir yang hanya mencetak Kwitansi tidak boleh menanggung satu permintaan tambahan; endpoint dokumen memicu kalkulasi pratinjau di server |
+
+### Aksi per peran
+
+| Aksi | Kasir | Petugas Billing | Dokter | Keterangan |
+| --- | :---: | :---: | :---: | --- |
+| Membuka tab "Invoice Asuransi" | Ya | Ya | Tidak relevan | Gerbang `[AccessPermission("BillingInvoice", "Read")]` yang sama dengan seluruh halaman Dokumen Kasir |
+| Menekan "Cetak Invoice Asuransi" | Ya | Ya | — | Tombol hanya muncul saat tab aktif **dan** `isPrintable === true` |
+| Mengubah isi dokumen dari layar | **Tidak** | **Tidak** | — | Dokumen murni baca; koreksi angka jalurnya lewat item invoice/Pengecualian Finansial, bukan lewat lembar cetak |
+| Membagi via WhatsApp/Email | **Tidak pada rilis ini** | **Tidak** | — | Lihat § Yang sengaja tidak dibuat |
+
+### Data, status, dan error contract
+
+| Concern | Keputusan |
+| --- | --- |
+| Endpoint | `GET api/v1/health-services/billing-management/billing/invoices/{id}/insurance-invoice-document` |
+| Thunk baru | `getInsuranceInvoiceDocument` pada `src/lib/state/slice/health-services/billing-management/billing-invoice-slice.jsx`, pola identik `previewBillingInvoiceCalculation` yang sudah ada |
+| Slot state baru | `insuranceInvoiceDocument`, `insuranceInvoiceDocumentLoading`, `insuranceInvoiceDocumentError` beserta selector `selectInsuranceInvoiceDocument`/`…Loading`/`…Error` |
+| Kapan dipanggil | Di dalam `use-dokumen-kasir-page.js`, hanya ketika `activeTab === "INVOICE_ASURANSI"` dan `invoice` sudah termuat. Dipanggil ulang bila `invoiceRouteToken` berubah, **tidak** dipanggil ulang setiap perpindahan tab bila datanya sudah ada |
+| Sumber angka | **Hanya** dari response endpoint di atas. **MUST NOT** memakai `currentCalculation.breakdown` milik Menu Pembayaran, dan **MUST NOT** menjumlahkan `items[].grossAmount` seperti `StrukPasienDocument` — dokumen ini berbicara soal porsi penjamin, bukan total tagihan |
+| Status kosong | `items` kosong → tampilkan `warnings[0]` sebagai `InformationAlert variant="info"` (bukan `danger`: ini keadaan wajar, bukan galat), sembunyikan lembar dokumen, dan jangan render tombol cetak |
+| Status tidak dapat dicetak | `isPrintable === false` → lembar boleh tetap tampil bila `items` ada isinya, tetapi tombol cetak tidak dirender dan seluruh `warnings` ditampilkan. Kasus nyata: invoice `FINAL` lama yang totalnya sah tetapi rinciannya tidak tersedia |
+| Peringatan bersama isi | `warnings` yang tidak kosong **MUST** tetap ditampilkan meski `items` ada isinya — misalnya "Data perusahaan asuransi tidak ditemukan pada master". Peringatan yang disembunyikan karena tabelnya sudah terisi adalah peringatan yang gagal bekerja |
+| Galat sungguhan | `404`/`422`/`500` ditangani `handleActionError` yang sudah ada pada `useBillingInvoiceDetail` (toast merah), pola sama seperti seluruh aksi di modul ini |
+| Penanda kesegaran | Lembar mencantumkan `calculationVersionNo` dan `calculatedAt` dalam format tanggal Indonesia di bagian bawah, agar lembar yang tercetak dapat ditelusuri ke versi kalkulasi mana |
+| Penanda tagihan berjalan | Bila `invoiceStatus === "OPEN"`, lembar mencantumkan keterangan "Tagihan masih berjalan — angka dapat berubah sampai tagihan difinalkan." Ini bukan hiasan: `BKC-DEC-066` menghendaki dokumen dipakai pihak asuransi, dan lembar dari tagihan berjalan yang tidak menyebut statusnya bisa ditagihkan sebagai angka final |
+
+### Komponen dan hook
+
+| Berkas | Status | Peran |
+| --- | --- | --- |
+| `src/components/view/health-services/billing-management/billing-invoices/menu-pembayaran/invoice-asuransi-document.jsx` | **Baru** | Komponen `forwardRef` berisi lembar dokumen. Pola identik `kwitansi-document.jsx`/`struk-pasien-document.jsx`: inline style, lebar kertas tetap, tanpa dependency baru |
+| `src/components/view/health-services/billing-management/billing-invoices/menu-pembayaran/dokumen-kasir-view.jsx` | Diperbarui | Tambah satu `Nav.Item` bertab `INVOICE_ASURANSI`, satu blok render bersyarat, dan satu tombol Hero "Cetak Invoice Asuransi" |
+| `src/lib/hooks/health-services/billing-management/billing-invoices/use-dokumen-kasir-page.js` | Diperbarui | Memanggil thunk baru secara lazy, membentuk `invoiceAsuransiDocumentProps`, meneruskan `invoiceAsuransiPrintRef` dan `downloadInvoiceAsuransi` |
+| `src/lib/hooks/health-services/billing-management/billing-invoices/use-dokumen-kasir.js` | Diperbarui | Tambah `invoiceAsuransiPrintRef` dan `downloadInvoiceAsuransi`; `buildPdf` diberi parameter opsional ukuran kertas (lihat di bawah) |
+| `src/lib/state/slice/health-services/billing-management/billing-invoice-slice.jsx` | Diperbarui | Tambah satu thunk, tiga slot state, tiga selector, dan penanganan `clearBillingInvoiceDetail` agar dokumen ikut dibersihkan saat pindah invoice |
+| `src/lib/hooks/health-services/billing-management/billing-invoices/billing-invoice-constants.js` | Diperbarui | Tambah konstanta nilai tab (`DOKUMEN_KASIR_TABS`) agar nilai `"INVOICE_ASURANSI"` tidak ditulis sebagai teks lepas di tiga berkas |
+
+**Ukuran kertas.** `buildPdf` di `use-dokumen-kasir.js` hari ini mengunci `jsPDF: { format: "a5" }`. Kwitansi dan Struk Pasien memang muat di A5, tetapi tabel Invoice Asuransi punya kolom tambahan (Ditanggung Asuransi, Porsi Pasien) dan akan terpotong. Perubahan: `buildPdf(element, filenamePrefix, { format = "a5" } = {})`, dan pemanggil dokumen ini mengirim `{ format: "a4" }`. Bawaan tetap `"a5"`, sehingga Kwitansi dan Struk Pasien **tidak berubah sama sekali** — ini penambahan opsi, bukan perubahan perilaku existing. Lebar lembar pada komponen mengikuti: `210mm` (A4) alih-alih `148mm` (A5).
+
+**Nilai tab dan navigasi.** Mekanisme query string dari `BKC-DEC-064` sudah cukup: `?tab=INVOICE_ASURANSI` bekerja tanpa route baru. Yang perlu diperbaiki: inisialisasi tab pada `use-dokumen-kasir-page.js` hari ini hanya mengenali dua jalur — `KWITANSI` bila ada `tenderId`, selain itu `openDokumenKasir()` yang selalu memaksa `STRUK_PASIEN`. Akibatnya tautan `?tab=INVOICE_ASURANSI` akan mendarat di tab yang salah. Perbaikan: inisialisasi menghormati nilai `tab` apa pun yang dikenali (`KWITANSI`, `STRUK_PASIEN`, `INVOICE_ASURANSI`, dan enam nilai placeholder), dan hanya jatuh ke `STRUK_PASIEN` bila `tab` kosong atau tidak dikenali. Ini juga memperbaiki tautan `?tab=SPT` dan sejenisnya yang hari ini diam-diam diabaikan.
+
+**Kepala surat rumah sakit.** Nama rumah sakit hari ini ditulis sebagai teks tetap di dalam `kwitansi-document.jsx` dan `struk-pasien-document.jsx`. Komponen baru **MUST** memakai teks yang sama persis agar ketiga dokumen tidak menampilkan identitas yang berbeda. Ini penyimpangan yang sudah ada (identitas rumah sakit seharusnya berasal dari satu sumber, bukan disalin per komponen) dan **MUST NOT** diperbaiki menyelip di task ini — perapiannya task tersendiri, dan bila dikerjakan harus mengubah ketiga komponen sekaligus.
+
+### Perubahan tampilan Menu Pembayaran (opsional, ditempatkan setelah dokumen)
+
+Setelah `CalculationItemResponse` punya `coveredAmount` per baris, penanda "Penjamin"/"Mandiri" per baris item di Menu Pembayaran dapat berpijak pada rupiah sungguhan alih-alih gabungan `coverable` dan total invoice (jalan pintas yang dicatat pada `FE-BKC-FIX-006`). Ini **bukan** bagian scope amendment ini dan **MUST NOT** dikerjakan bersamaan — dicatat di sini agar tidak hilang, dan diusulkan sebagai `POST-MVP` pada `04-prd-to-mvp.md`. Alasan dipisah: menyentuh layar yang paling sering dipakai kasir demi perbaikan kosmetik, sementara tab baru belum terbukti berjalan.
+
+### Penanganan state, cache, dan pengiriman ganda
+
+| Concern | Keputusan |
+| --- | --- |
+| Pemuatan awal | Satu permintaan saat tab pertama kali aktif. Selama `insuranceInvoiceDocumentLoading`, tampilkan `InformationAlert variant="info"` "Menyusun Invoice Asuransi..." dan jangan render lembar setengah jadi |
+| Invalidasi | Dokumen dibersihkan saat `clearBillingInvoiceDetail` (pindah invoice) dan saat halaman dilepas. **Tidak** ada cache lintas invoice |
+| Data basi | Kembali ke tab ini setelah kasir menambah biaya di tab lain **tidak** memuat ulang otomatis. Kesegaran dinyatakan lewat `calculatedAt` yang tercetak di lembar, bukan lewat pemuatan ulang diam-diam yang membuat lembar berubah saat kasir sedang membacanya |
+| Pengiriman ganda | Tombol cetak memakai `pdfBusy` yang sudah ada (`loading`/`loadingLabel` pada `BaseButton`), pola sama seperti Kwitansi dan Struk Pasien |
+| Kegagalan PDF | Ditangani `handleActionError` dengan pesan "Gagal membuat PDF Invoice Asuransi.", pola sama seperti `downloadKwitansi`/`downloadStruk` |
+
+### Accessibility dan privacy
+
+- Status tidak boleh disampaikan hanya lewat warna: setiap peringatan memakai teks lengkap, bukan hanya badge berwarna (melanjutkan `BIL-AT-024`).
+- Tabel rincian memakai `<thead>`/`<th>` sungguhan, bukan `<div>` bergaya tabel, agar terbaca pembaca layar.
+- Nomor polis dan nomor anggota tampil di lembar karena pihak asuransi membutuhkannya untuk mengenali klaim, tetapi **MUST NOT** masuk `console.log`, telemetri, maupun `localStorage`. Nomor kartu asuransi tidak dikirim backend sama sekali (lihat `02-backend-architecture.md` § Yang sengaja tidak dibuat), jadi tidak ada di layar.
+- Nama berkas PDF memakai nomor invoice, bukan nama pasien — mengikuti pola `Kwitansi-{invoiceNumber}.pdf` yang sudah ada, sehingga nama pasien tidak ikut tersebar lewat nama berkas di folder unduhan.
+
+### DEV_DISCRETION
+
+Didelegasikan ke pengembang:
+
+- lebar kolom, jarak antar blok, ukuran huruf, dan garis pembatas pada lembar dokumen, sejauh mengikuti kesan visual `KwitansiDocument`;
+- urutan field di dalam blok identitas pasien dan blok perusahaan asuransi;
+- teks label kolom tabel (misalnya "Ditanggung Asuransi" versus "Porsi Asuransi");
+- ada atau tidaknya blok tanda tangan di kaki lembar, serta labelnya;
+- nama berkas hook/komponen dan penempatan komposisi hook;
+- apakah "terbilang" total tanggungan ikut dicetak (`terbilangRupiah` sudah tersedia dan dipakai Kwitansi).
+
+**MUST NOT** didelegasikan:
+
+- daftar baris yang tampil — ditentukan backend sesuai `BKC-DEC-068`, layar tidak menyaring;
+- keberadaan kolom rupiah per baris (`BKC-DEC-069`);
+- sumber blok perusahaan adalah `MstInsuranceProvider`, bukan penjamin perusahaan tempat kerja (`BKC-DEC-067`);
+- keharusan menampilkan `warnings` dan mematikan tombol cetak saat `isPrintable === false`;
+- keharusan mencantumkan status tagihan berjalan pada lembar invoice `OPEN`;
+- isi dan urutan tab yang sudah ada, termasuk `Claim Letter` yang tetap placeholder.
+
+### Yang sengaja tidak dibuat (frontend)
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tombol WhatsApp/Email untuk Invoice Asuransi | `BKC-DEC-056` mengatur share untuk Kwitansi kepada pasien. Mengirim lembar berisi nomor polis ke kanal pesan pribadi adalah keputusan privasi tersendiri yang belum pernah diminta maupun diputuskan |
+| Pratinjau cetak dalam dialog terpisah | Lembar sudah tampil apa adanya di halaman (pola `stagePaper` yang sudah ada) — dialog tambahan hanya menambah satu langkah tanpa informasi baru |
+| Penyaringan/pengurutan baris dari layar | `BKC-DEC-068` menetapkan isinya; layar yang bisa menyaring membuat dua lembar berbeda untuk tagihan yang sama |
+| Perbaikan penanda per baris di Menu Pembayaran | Dipisah sebagai `POST-MVP`, lihat § di atas |
+| Memperbaiki kepala surat rumah sakit yang tersalin di tiga komponen | Task perapian tersendiri; mengubahnya di sini menyentuh Kwitansi dan Struk Pasien yang sudah terverifikasi |
+
+### Acceptance tambahan
+
+32. Membuka halaman Dokumen Kasir dengan `?tab=INVOICE_ASURANSI` mendarat langsung di tab Invoice Asuransi, bukan di tab Struk Pasien.
+33. Untuk kunjungan pasien asuransi dengan sedikitnya satu item tercover, lembar menampilkan nama perusahaan asuransi, nomor polis, dan tabel berisi kolom rupiah yang ditanggung per baris; jumlah kolom itu sama dengan total tanggungan yang tercetak di kaki tabel.
+34. Item yang tidak ditanggung asuransi **tidak** muncul di lembar, meskipun muncul di Struk Pasien pada invoice yang sama.
+35. Untuk kunjungan tunai, tab menampilkan keterangan biru bahwa dokumen tidak dapat diterbitkan, tanpa lembar dan tanpa tombol cetak — bukan pesan galat merah.
+36. Untuk invoice yang difinalkan sebelum pembaruan sistem, tab menampilkan total tanggungan beserta keterangan bahwa rincian per item tidak tersedia, dan tombol cetak tidak muncul.
+37. Menekan "Cetak Invoice Asuransi" menghasilkan PDF A4 yang seluruh kolom tabelnya terbaca utuh, tanpa kolom terpotong di sisi kanan.
+38. Cetak Kwitansi dan Cetak Struk Pasien tetap menghasilkan PDF A5 seperti sebelumnya (tidak ada regresi dari perubahan `buildPdf`).
+39. Tab Invoice Asuransi tidak memicu permintaan `insurance-invoice-document` selama kasir belum membuka tab itu.

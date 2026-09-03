@@ -90,3 +90,54 @@ CREATE INDEX "IX_BilInvoiceItem_TariffId" ON public."BilInvoiceItem" ("TariffId"
 ```
 
 `MstTariff` sudah ada (`Areas/HealthServices/MasterData/Models/MstTariff.cs`) — hanya kolom kunci yang relevan bagi modul ini: `Id` PK, `TariffCategoryId` FK ke `MstTariffCategory`, `NormalPrice` (dasar harga server-side), `IsActive`/`EffectiveStartDate`/`EffectiveEndDate` (dasar validasi `BIL-VAL-025`). Kolom lengkap lihat file model.
+
+## Amendment 3 September 2026 — Dokumen Invoice Asuransi
+
+**Tidak ada kolom baru dan tidak ada tabel baru** (`BKC-DES-003`). Tidak ada pula tabel yang berubah status menjadi `Diperbarui`, sehingga tidak ada bagian DDL tambahan pada amendment ini.
+
+Yang berubah hanyalah **isi** satu kolom yang sudah ada:
+
+| Tabel | Kolom | Tipe | Status kolom | Apa yang berubah |
+| --- | --- | --- | --- | --- |
+| `BilCalculationVersion` | `BreakdownSnapshot` | `text` (JSON) | `Sudah ada`, bentuk tidak berubah | Objek JSON di dalamnya bertambah properti: `items[].coveredNetAmount`, `items[].coveredTaxAmount`, `items[].coveredAmount`, `items[].unresolvedAmount`, `items[].patientAmount`, `administrationFee.coveredNetAmount`/`coveredTaxAmount`/`coveredAmount`, `roomCharge.coveredNetAmount`/`coveredTaxAmount`/`coveredAmount`, dan `coverage.isPerItemAllocationAvailable`. Nilai `contractVersion` di dalamnya berubah dari `BIL-CALCULATION-0.4` menjadi `BIL-CALCULATION-0.5` |
+
+Karena kolom ini bertipe teks JSON dan bukan kolom bertipe kuat, penambahan properti **tidak** memerlukan migration, **tidak** mengubah panjang maksimum, dan **tidak** memerlukan index baru. Baris yang sudah tersimpan tetap sah apa adanya; properti yang belum ada akan terbaca sebagai nilai bawaan (`0` untuk angka, `false` untuk boolean) — dan `coverage.isPerItemAllocationAvailable = false` itulah penanda resmi bahwa rincian per baris memang tidak tersedia untuk baris tersebut, bukan bahwa tanggungannya nol.
+
+**Contoh.** Sebuah `BilCalculationVersion` yang tersimpan 1 September 2026 memuat `{"contractVersion":"BIL-CALCULATION-0.4","items":[{"invoiceItemId":"…","grossAmount":100000,"coverable":true}], …}`. Dibaca setelah pembaruan, `items[0].coveredAmount` bernilai `0` dan `coverage.isPerItemAllocationAvailable` bernilai `false`. Angka `0` itu **MUST NOT** ditampilkan sebagai "asuransi menanggung Rp 0"; yang benar adalah "rincian per item tidak tersedia untuk tagihan ini" (`BIL-VAL-033`), sementara total tanggungannya tetap sah karena tersimpan sebagai kolom relasional `BilCalculationVersion.PrimaryAmount`.
+
+### Kolom milik modul lain yang dibaca dokumen ini
+
+Tabel-tabel berikut berstatus `Sudah ada` dan **tidak** berubah; hanya kolom kunci yang relevan bagi dokumen Invoice Asuransi yang dicatat di sini. Kolom lengkapnya lihat berkas model masing-masing.
+
+`TrxPatientEncounterGuarantor` — `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounterGuarantor.cs`
+
+| Kolom | Tipe | Relasi | Sensitif | Keterangan |
+| --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | PK | Tidak | — |
+| `EncounterId` | `Guid` | FK ke `TrxPatientEncounter` | **Ya** | Penghubung ke kunjungan yang ditagihkan |
+| `PaymentType` | `int` (enum) | — | Tidak | Menentukan `payerKind` dokumen: `Cash`, `Insurance`, atau `CompanyGuarantor` |
+| `IsActive` | `bool` | — | Tidak | Hanya baris aktif yang dibaca |
+| `InsuranceProviderId` | `Guid?` | FK ke `MstInsuranceProvider` | Tidak | Wajib terisi untuk `Insurance`; menjadi rujukan blok perusahaan |
+| `PolicyNumberSnapshot` | `string(100)` | — | **Ya** | Nomor polis pada saat registrasi |
+| `MemberNumberSnapshot` | `string(100)` | — | **Ya** | Nomor anggota pada saat registrasi |
+| `PlanNameSnapshot` | `string(150)` | — | Tidak | Nama paket manfaat |
+| `ClassNameSnapshot` | `string(150)` | — | Tidak | Kelas manfaat |
+| `BenefitPlanCodeSnapshot` | `string(100)` | — | Tidak | Kode paket; juga dipakai pencocokan aturan coverage |
+| `EffectiveStartDateSnapshot`, `EffectiveEndDateSnapshot` | `DateTime?` | — | Tidak | Masa berlaku kartu pada saat registrasi |
+| `IsEligible`, `IsPolicyActive` | `bool` | — | Tidak | Kelayakan pada saat registrasi |
+| `CardNumberSnapshot` | `string(100)` | — | **Ya** | **MUST NOT dibaca amendment ini** — lihat `02-backend-architecture.md` § Yang sengaja tidak dibuat |
+
+`MstInsuranceProvider` — `Areas/Administrator/MasterData/Models/MstInsuranceProvider.cs`
+
+| Kolom | Tipe | Relasi | Sensitif | Keterangan |
+| --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | PK | Tidak | — |
+| `InsuranceProviderCode` | `string(50)` | Unik secara bisnis | Tidak | Kode perusahaan |
+| `InsuranceProviderName` | `string(200)` | — | Tidak | Nama yang dicetak sebagai tujuan dokumen |
+| `InsuranceGroupName` | `string(100)?` | — | Tidak | Nama grup, bila ada |
+| `ProviderType` | `string(50)` | — | Tidak | `PrivateInsurance`, `TPA`, `GovernmentInsurance`, `CorporateInsurance`, `Other` |
+| `ClaimMethod` | `string(50)` | — | Tidak | `Cashless`, `Reimbursement`, `GuaranteeLetter`, `Mixed` |
+| `ContractNumber` | `string(100)?` | — | Tidak | Nomor kontrak kerja sama, dicetak pada dokumen |
+| `OfficeAddress` | `string(500)?` | — | Tidak | Alamat tujuan, dicetak pada dokumen |
+| `IsActive` | `bool` | — | Tidak | Hanya perusahaan aktif yang dibaca |
+| `PicName`, `PicPhoneNumber`, `PicWhatsAppNumber`, `PicEmail`, `BillingInstruction`, `ClaimInstruction` | berbagai | — | Tidak | **MUST NOT dibaca amendment ini** — data operasional internal, bukan bagian lembar tagihan |

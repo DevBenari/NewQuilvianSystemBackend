@@ -288,3 +288,399 @@ Tidak ada kewajiban rekam medis baru — form ini tidak menyentuh data klinis. D
 | Apakah `MaxAmountPerMonth`/`MaxQuantityPerMonth` juga dilepas gating-nya | Product/Domain Owner | Tidak menghentikan MVP (desain sudah memilih tetap gating) — hanya relevan bila cakupan diperluas nanti | Tidak |
 | Nilai `MstTaxRule.AllocationRule` aktif saat ini | Finance/Tax Owner | Kebenaran "pajak hanya ke Subtotal Mandiri" tidak terverifikasi data — tampilan tetap jalan, isinya mungkin belum sesuai harapan sampai diverifikasi | Tidak (eksplisit ditunda atas permintaan Product/Domain Owner) |
 | Kelengkapan data master `MstInsuranceTariff`/`MstInsuranceCoverageRule` untuk skenario UAT yang bermakna | Insurance/Finance Owner | `UAT-03`/`UAT-04` tidak dapat dijalankan dengan data nyata sampai master data terisi | Ya, untuk verifikasi UAT `EPIC BKC-02` saja — tidak memblokir coding |
+
+---
+
+# Amendment 3 September 2026 — PRD → MVP: Dokumen "Invoice Asuransi"
+
+## A1. Identitas dokumen amendment
+
+| Field | Nilai |
+| --- | --- |
+| Cakupan | Dokumen "Invoice Asuransi" pada halaman Dokumen Kasir, beserta fondasi kalkulasi yang dibutuhkannya |
+| Revision | `0.6` |
+| Status | **draft** — belum di-approve manusia |
+| Keputusan bisnis dasar | `BKC-DEC-065`, `066`, `067`, `068`, `069` — approved Product/Domain Owner 3 September 2026 |
+| Keputusan arsitektur | `BKC-DES-001`–`BKC-DES-009` (`02-backend-architecture.md`, draft) |
+| Turunan dari | `02-backend-architecture.md` § Amendment 3 September 2026, `03-frontend-architecture.md` § Amendment 3 September 2026 (kedua), `contracts/*` § Amendment 3 September 2026, `erd/data-dictionary.md` § Amendment 3 September 2026 |
+| Backend/frontend SHA diaudit | `a42b651d7518060dcc5e7df46cb495ef822b57f5` / `00210f9a5fb2f4f69e57b8c90c57c63c788da792` |
+
+Seluruh entity, status, permission, dan endpoint yang disebut di bawah **sudah** tercatat pada dokumen arsitektur dan kontrak di atas. Bagian ini menurunkan, tidak menciptakan.
+
+## A2. Ringkasan eksekutif
+
+Rumah sakit sudah bisa mencetak Kwitansi (bukti pembayaran satu tender) dan Struk Pasien (rincian tagihan pasien). Yang belum ada adalah lembar yang bisa diserahkan ke perusahaan asuransi: satu halaman yang menyebutkan pasiennya siapa, perusahaan asuransinya siapa, layanan apa saja yang ditanggung, dan berapa rupiah yang ditanggung untuk setiap layanan itu.
+
+Menyediakannya ternyata bukan pekerjaan tampilan. Mesin kalkulasi tagihan hari ini sudah menghitung berapa yang ditanggung penjamin untuk setiap potongan biaya, tetapi angka itu **dibuang** dan hanya totalnya yang disimpan. Karena itu amendment ini punya dua bagian: membuka pecahan rupiah per baris di backend, lalu memakainya untuk lembar dokumen.
+
+## A3. Masalah produk
+
+1. Pihak asuransi tidak punya lembar resmi dari sistem yang merinci tanggungannya per layanan. Yang tersedia hari ini adalah Struk Pasien, yang justru berisi seluruh item termasuk yang dibayar sendiri pasien — bukan yang mereka butuhkan.
+2. Kasir tidak bisa menjawab pertanyaan "layanan ini ditanggung berapa?" dari layar mana pun. Menu Pembayaran hanya menampilkan satu angka Subtotal Asuransi untuk seluruh tagihan.
+3. Penanda "Penjamin"/"Mandiri" per baris di Menu Pembayaran hari ini adalah **tebakan**: ia menggabungkan penanda `coverable` (apakah kategorinya boleh diklaim) dengan pemeriksaan apakah invoice itu dapat coverage sama sekali. Pada tagihan campuran, penanda ini bisa menandai baris yang sebenarnya tidak ditanggung sebagai "Penjamin". Ini tercatat sebagai jalan pintas pada `FE-BKC-FIX-006`.
+4. Tab `Claim Letter` yang paling dekat maknanya sudah dicadangkan untuk modul `InsuranceManagement` yang belum diotorisasi dibangun, sehingga tidak bisa dipakai (`BKC-DEC-065`).
+
+## A4. Visi produk
+
+Satu lembar yang dapat dibaca dan dipercaya tiga pihak sekaligus — pasien, rumah sakit, dan perusahaan asuransi (`BKC-DEC-066`) — yang angkanya berasal dari mesin kalkulasi yang sama dengan yang menagih pasien, bukan dari perhitungan kedua yang bisa berbeda.
+
+## A5. Batas MVP amendment ini
+
+**Titik mulai:**
+
+1. Sudah ada invoice untuk kunjungan pasien asuransi (mekanisme pembuatan invoice tidak berubah).
+2. Kunjungan itu punya baris penjamin aktif bertipe `Insurance` dengan `InsuranceProviderId` terisi (data registrasi, di luar scope).
+3. Ada sedikitnya satu `MstInsuranceCoverageRule` yang cocok, sehingga ada yang benar-benar ditanggung (data master, di luar scope).
+
+**Titik akhir:**
+
+1. Mesin kalkulasi mengembalikan `coveredAmount` per baris item, per biaya administrasi, dan per biaya kamar, yang jumlahnya sama persis dengan total tanggungan penjamin.
+2. `GET {id}/insurance-invoice-document` mengembalikan lembar berisi identitas pasien, blok perusahaan asuransi, baris-baris yang ditanggung beserta rupiahnya, dan totalnya.
+3. Tab "Invoice Asuransi" pada halaman Dokumen Kasir menampilkan lembar itu dan dapat mencetaknya sebagai PDF A4.
+4. Keadaan yang tidak dapat menghasilkan dokumen (kunjungan tunai, penjamin perusahaan, tidak ada item tercover, snapshot lama) dijelaskan dengan bahasa yang dipahami kasir dan tombol cetaknya dimatikan.
+
+**Di luar titik akhir ini** — bukan "ditunda", memang tidak diminta: pengiriman klaim elektronik ke perusahaan asuransi; isi resmi tab `Claim Letter`; tombol WhatsApp/Email untuk lembar ini; jejak audit siapa mencetak dokumen; dan perubahan formula coverage apa pun.
+
+## A6. Pelaku sasaran
+
+| Pelaku | Tanggung jawab dalam MVP ini |
+| --- | --- |
+| Kasir | Membuka tab Invoice Asuransi, memeriksa isinya, mencetak/mengunduh, dan menyerahkan lembarnya |
+| Petugas Billing/Klaim | Memakai lembar sebagai lampiran pengajuan ke perusahaan asuransi |
+| Pasien | Menerima lembar sebagai penjelasan bagian mana yang ditanggung asuransi dan bagian mana yang dibayar sendiri |
+| Product/Domain Owner | Menyetujui `BKC-DES-001`–`009`, khususnya `BKC-DES-007` (nomor dokumen memakai nomor invoice) |
+| Insurance/Finance Owner | Mengisi `MstInsuranceProvider` (nama, nomor kontrak, alamat) dan `MstInsuranceCoverageRule` agar dokumen punya isi |
+| Security Owner | Menilai keputusan memakai ulang `BillingInvoice : Read` alih-alih permission tersendiri |
+| Backend/Frontend Billing | Implementasi sesuai dokumen arsitektur amendment 3 September 2026 |
+
+## A7. Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Pecahan rupiah tanggungan penjamin per baris biaya, diekspos dari perhitungan yang sudah ada | `CAP-05` (mesin coverage, § 16.1 `01-existing-capability-map.md`) — status asal `Ready to reuse`, kini diperluas keluarannya | **Wajib.** Tanpa ini `BKC-DEC-069` tidak dapat dipenuhi dan dokumen hanya bisa menampilkan badge status |
+| Penanda ketersediaan rincian per baris untuk versi kalkulasi lama | Turunan `BKC-DES-004` | **Wajib.** Tanpa ini invoice lama menampilkan Rp 0 yang salah dan tidak terlihat salah |
+| Endpoint penyusun lembar dokumen, termasuk penyaringan baris yang ditanggung | Baru | **Wajib.** `BKC-DEC-068` menetapkan penyaringan, dan penyaringan finansial tidak boleh di browser |
+| Blok perusahaan asuransi dari `MstInsuranceProvider` | `MstInsuranceProvider` sudah ada dan sudah dirujuk `TrxPatientEncounterGuarantor` | **Wajib.** Ini inti `BKC-DEC-067` |
+| Tab "Invoice Asuransi" beserta lembar dan cetak PDF | Halaman Dokumen Kasir sudah ada (`FE-BKC-017`); pola dokumen cetak sudah ada (`KwitansiDocument`) | **Wajib.** Ini bagian yang dilihat pengguna |
+| Ukuran kertas PDF dapat dipilih pemanggil | `use-dokumen-kasir.js` `buildPdf` sudah ada, hari ini mengunci A5 | **Wajib.** Tabel dokumen ini tidak muat di A5 dan akan terpotong |
+
+## A8. Kemampuan yang ditunda
+
+| Kemampuan | ID/asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Rincian per baris untuk invoice yang sudah `FINAL`/`CLOSED` sebelum pembaruan | `BKC-DES-003`, § Rencana migration butir 2 | Menulis ulang `BreakdownSnapshot` yang sudah terkunci akan merusak bukti kalkulasi yang kolom itu ada untuk melindunginya | Dokumen tetap menampilkan **total** tanggungan penjamin (tersimpan sebagai kolom relasional `BilCalculationVersion.PrimaryAmount`) beserta keterangan bahwa rincian per item tidak tersedia. Petugas klaim tetap bisa menagih totalnya, sama seperti sebelum amendment ini ada |
+| Penanda "Penjamin"/"Mandiri" per baris di Menu Pembayaran memakai rupiah sungguhan | `FE-BKC-FIX-006`, `03-frontend-architecture.md` § Perubahan tampilan Menu Pembayaran | Menyentuh layar yang paling sering dipakai kasir demi perbaikan kosmetik, sementara tab baru belum terbukti berjalan | Penanda hari ini tetap berjalan apa adanya (gabungan `coverable` dan total invoice) — tidak ada regresi, hanya belum diperbaiki. Kasir yang butuh angka pasti per baris dapat membuka tab Invoice Asuransi |
+| Jejak audit siapa mencetak dokumen dan kapan | `02-backend-architecture.md` § Yang sengaja tidak dibuat | `GET` tidak dicatat custom logger sesuai konvensi project; jejak cetak butuh keputusan Security/Compliance dan tabel penyimpannya sendiri | Tidak ada pengganti — keterbatasan ini dinyatakan terbuka, bukan ditutupi. Lembar tercetak mencantumkan `calculationVersionNo` dan `calculatedAt` sehingga setidaknya dapat ditelusuri ke versi kalkulasi mana |
+| Dukungan penjamin perusahaan tempat kerja (`MstCompanyGuarantor`) | `BKC-DEC-067` | Pemilik produk memilih perusahaan asuransi secara eksplisit; penjamin perusahaan punya bentuk dokumen dan alur tagih yang berbeda | Endpoint tetap menjawab `200` dengan penjelasan bahwa penjamin kunjungan itu bukan perusahaan asuransi. Penagihan ke perusahaan tempat kerja tetap memakai cara yang berjalan hari ini di luar sistem |
+| Permission tersendiri untuk mencetak dokumen asuransi | `02-backend-architecture.md` § Security | Menambah resource permission baru berarti seluruh role harus di-remap sebelum fitur bisa dipakai siapa pun | Memakai `BillingInvoice : Read` yang sudah ada. Konsekuensinya dinyatakan terbuka pada `contracts/permission-audit-matrix.md` agar Security dapat menilai, bukan disembunyikan |
+
+## A9. Alur bisnis target
+
+**`FLOW-BKC-MVP-002` — Kasir menerbitkan Invoice Asuransi**
+
+**Tujuan.** Menghasilkan satu lembar yang dapat diserahkan ke perusahaan asuransi dan dipahami pasien, berisi layanan yang ditanggung beserta rupiahnya.
+
+**Pelaku.** Kasir menerbitkan dan mencetak. Petugas Billing/Klaim memakai lembarnya. Tidak ada persetujuan yang diperlukan — dokumen ini bacaan, bukan transaksi.
+
+**Pemicu.** Kasir membuka Menu Pembayaran satu invoice, menekan "Dokumen Kasir", lalu memilih tab "Invoice Asuransi".
+
+**Prasyarat.** Invoice sudah ada; kunjungan berpenjamin asuransi dengan perusahaan yang terdaftar di master; ada aturan coverage yang cocok sehingga ada yang benar-benar ditanggung.
+
+**Langkah utama.**
+
+1. Kasir membuka halaman Dokumen Kasir untuk satu invoice.
+2. Kasir memilih tab "Invoice Asuransi".
+3. Sistem meminta lembar dokumen ke `GET {id}/insurance-invoice-document`.
+4. Untuk tagihan yang masih berjalan (`OPEN`), sistem menghitung ulang tagihan lebih dulu agar angkanya sama dengan yang dilihat kasir di Menu Pembayaran. Untuk tagihan yang sudah difinalkan, sistem membaca versi kalkulasi yang terkunci.
+5. Sistem menentukan jenis penjamin kunjungan. Bila bukan asuransi, sistem berhenti di sini dan mengirim penjelasannya.
+6. Sistem mengambil nama, nomor kontrak, dan alamat perusahaan asuransi dari master, serta nomor polis dan nomor anggota dari snapshot registrasi.
+7. Sistem menyusun baris dokumen: hanya potongan biaya yang rupiah tanggungannya lebih dari nol.
+8. Sistem menjumlahkan seluruh baris dan memastikan jumlahnya sama dengan total tanggungan penjamin. Bila tidak sama, permintaan dihentikan dengan pesan galat — lembar yang tidak menjumlah tidak boleh terbit.
+9. Layar menampilkan lembar siap cetak beserta peringatan bila ada.
+10. Kasir menekan "Cetak Invoice Asuransi". Berkas PDF A4 terunduh, dan kasir mencetak atau melampirkannya secara manual.
+
+**Aturan bisnis yang berlaku.**
+
+- Hanya potongan biaya dengan tanggungan lebih dari nol yang tampil (`BKC-DEC-068`).
+- Setiap baris **wajib** menampilkan rupiah yang ditanggung, bukan hanya penanda status (`BKC-DEC-069`).
+- "Perusahaan" pada dokumen adalah perusahaan asuransi, bukan perusahaan tempat pasien bekerja (`BKC-DEC-067`).
+- Nomor dokumen adalah nomor invoice; tidak ada seri nomor tersendiri (`BKC-DES-007`).
+- Nomor polis dan nomor anggota diambil dari keadaan saat registrasi, bukan dari kartu pasien yang berlaku sekarang (`BKC-DES-009`).
+
+**Perubahan status.** Tidak ada. Mencetak dokumen tidak mengubah status invoice, tidak menandai klaim sebagai diajukan, dan tidak menciptakan piutang penjamin. Ketiganya tetap milik jalur finalisasi (`BKC-DEC-024`).
+
+**Jalur tidak normal.**
+
+| Keadaan | Yang dilihat kasir |
+| --- | --- |
+| Kunjungan dibayar tunai | Keterangan biru: kunjungan ini dibayar mandiri, tidak ada Invoice Asuransi yang dapat diterbitkan. Tanpa lembar, tanpa tombol cetak |
+| Penjamin adalah perusahaan tempat kerja | Keterangan biru: penjamin kunjungan ini bukan perusahaan asuransi, dokumen belum mendukung penjamin perusahaan |
+| Data penjamin kunjungan belum tercatat | Keterangan biru beserta arahan melengkapi data penjamin di Registrasi |
+| Tidak ada satu pun item yang ditanggung | Keterangan biru: tidak ada item yang ditanggung asuransi pada tagihan ini |
+| Tagihan difinalkan sebelum pembaruan sistem | Total tanggungan tetap tampil, beserta keterangan bahwa rincian per item tidak tersedia. Tombol cetak dimatikan |
+| Perusahaan asuransi tidak ada di master | Blok asuransi berisi tanda hubung beserta arahan menghubungi admin master data |
+| Tagihan tidak dapat dihitung (misalnya dua aturan pajak aktif) | Pesan galat merah berisi sebab sesungguhnya dari mesin kalkulasi — **bukan** lembar kosong |
+
+**Hasil akhir.** Satu berkas PDF berada di komputer kasir. Tidak ada data yang berubah di sistem. Perusahaan asuransi menerima lembar yang angkanya dapat ditelusuri ke versi kalkulasi tertentu; pasien menerima penjelasan bagian mana yang ditanggung.
+
+## A10. Epic dan functional requirement
+
+### `EPIC BKC-04` — Pecahan rupiah tanggungan penjamin per baris biaya
+
+Tujuan: angka "berapa yang ditanggung asuransi untuk layanan ini" tersedia untuk setiap potongan biaya, berasal dari perhitungan yang sudah ada, dan selalu menjumlah ke total tanggungan.
+
+> **`FR-BKC-009` — Mesin coverage mencatat hasil per komponen**
+>
+> Sistem mengembalikan, untuk setiap potongan biaya yang dinilai penjamin, berapa rupiah ditanggung dan berapa rupiah yang statusnya belum jelas. Formula perhitungannya **tidak** berubah — yang berubah hanya hasil per komponen ikut disimpan alih-alih dibuang.
+>
+> **Contoh:** Item "Fisioterapi" Rp 300.000 dengan aturan `Covered` 80% menghasilkan tanggungan Rp 240.000 dan sisa Rp 60.000. Sebelum amendment, hanya Rp 240.000 yang ikut ke total invoice dan tidak ada cara mengetahui bahwa Rp 240.000 itu milik fisioterapi. Sesudah amendment, angka Rp 240.000 tercatat beralamat baris fisioterapi.
+>
+> Disposisi: `EXTEND` — `RegistrationBillingCoverageAdapter.ResolveAsync` sudah menghitungnya (`CAP-05`, `Ready to reuse`); keluarannya diperluas.
+
+> **`FR-BKC-010` — Alamat alokasi tidak boleh tertukar antar baris**
+>
+> Sistem mengalamati setiap alokasi memakai kunci teks yang unik per potongan biaya (`ITEM:{invoiceItemId}`, `TAX:ITEM:{invoiceItemId}`, `ADMINISTRATION_FEE`, `TAX:ADMINISTRATION_FEE`, `ROOM_CHARGE`, `TAX:ROOM_CHARGE`), bukan memakai `ComponentId`.
+>
+> **Contoh:** Satu invoice punya dua item dan aturan pajak aktif. Kedua baris pajaknya membawa `ComponentId` yang sama, yaitu `TaxRuleId` dari satu-satunya aturan pajak aktif — sistem hanya mengizinkan satu aturan pajak aktif pada satu waktu. Bila alokasi dialamati dengan `ComponentId`, porsi pajak kedua item akan bertumpuk jadi satu dan salah satu item kehilangan porsi pajaknya.
+>
+> Disposisi: `MISSING / NEW` — kunci ini belum ada di kode mana pun.
+
+> **`FR-BKC-011` — Rincian per baris wajib menjumlah ke total**
+>
+> Sistem menghentikan perhitungan bila jumlah tanggungan seluruh baris tidak sama dengan total tanggungan penjamin, dengan pesan yang menyuruh pengguna menghubungi tim teknis.
+>
+> **Contoh:** Tiga baris tercover Rp 100.000, Rp 240.000, dan Rp 15.000 berjumlah Rp 355.000. Bila total tanggungan yang dihitung mesin coverage ternyata Rp 350.000, perhitungan gagal — bukan diteruskan dengan selisih Rp 5.000 yang nanti muncul sebagai lembar tagihan yang tidak menjumlah di meja petugas klaim asuransi.
+>
+> Disposisi: `MISSING / NEW` (`BIL-VAL-028`).
+
+> **`FR-BKC-012` — Versi kalkulasi lama menyatakan keterbatasannya sendiri**
+>
+> Sistem menyertakan penanda `isPerItemAllocationAvailable` pada hasil kalkulasi. Penanda ini bernilai `false` untuk versi kalkulasi yang tersimpan sebelum pembaruan ini, dan setiap pembaca **wajib** memeriksanya sebelum memercayai angka per baris.
+>
+> **Contoh:** Versi kalkulasi yang tersimpan 1 September 2026 tidak punya angka per baris. Dibaca setelah pembaruan, seluruh rincian per barisnya terbaca Rp 0. Penanda `false` inilah yang membedakan "asuransi menanggung Rp 0" dari "kami tidak punya rinciannya" — dua hal yang akibatnya jauh berbeda bagi petugas klaim.
+>
+> Disposisi: `MISSING / NEW` (`BKC-DES-004`).
+
+> **`FR-BKC-013` — Biaya administrasi dan biaya kamar ikut punya rupiah tanggungan sendiri**
+>
+> Sistem menyediakan angka tanggungan untuk biaya administrasi dan biaya kamar, yang keduanya bukan item invoice tetapi bisa ditanggung penjamin.
+>
+> **Contoh:** Biaya administrasi Rp 15.000 dengan penanda `Coverable=true` dan aturan `Covered` 100% ditanggung penuh. Bila angka ini tidak tersedia, lembar dokumen hanya menjumlah Rp 340.000 dari tiga item, sementara total tanggungan Rp 355.000 — selisih Rp 15.000 yang tidak dapat dijelaskan kepada pihak asuransi.
+>
+> Disposisi: `EXTEND` — `AdministrationFeeCalculationResponse` dan `RoomChargeCalculationResponse` sudah ada; ditambah tiga field masing-masing (`BKC-DES-005`).
+
+### `EPIC BKC-05` — Dokumen "Invoice Asuransi" pada Dokumen Kasir
+
+Tujuan: kasir dapat menerbitkan, membaca, dan mencetak satu lembar yang layak diserahkan ke perusahaan asuransi.
+
+> **`FR-BKC-014` — Endpoint penyusun lembar dokumen**
+>
+> Sistem menyediakan satu permintaan baca yang mengembalikan seluruh isi lembar: identitas pasien, blok perusahaan asuransi, baris-baris yang ditanggung beserta rupiahnya, total, penanda dapat-dicetak, dan daftar peringatan.
+>
+> **Contoh:** Satu permintaan `GET .../{id}/insurance-invoice-document` cukup untuk merender lembar utuh. Layar tidak perlu memanggil endpoint master data, endpoint kalkulasi, dan endpoint detail invoice lalu menjahitnya sendiri — penjahitan di browser berarti tiga permintaan yang bisa gagal terpisah dan lembar setengah jadi yang tetap tercetak.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **`FR-BKC-015` — Hanya baris yang ditanggung asuransi yang tampil**
+>
+> Sistem hanya menyertakan potongan biaya yang rupiah tanggungannya lebih dari nol. Penyaringan dikerjakan server, dan layar **tidak** menyaring apa pun.
+>
+> **Contoh:** Tagihan berisi Konsultasi Rp 100.000 (ditanggung penuh), Fisioterapi Rp 300.000 (ditanggung Rp 240.000), dan Vitamin C Rp 25.000 (tidak ada aturan cocok). Lembar memuat dua baris pertama saja. Vitamin C tetap ada di Struk Pasien karena pasien memang harus membayarnya, tetapi tidak ada urusannya dengan perusahaan asuransi.
+>
+> Disposisi: `MISSING / NEW` (`BKC-DEC-068`).
+
+> **`FR-BKC-016` — Blok perusahaan berasal dari perusahaan asuransi**
+>
+> Sistem mengambil nama, nama grup, jenis, metode klaim, nomor kontrak, dan alamat dari master perusahaan asuransi yang dirujuk penjamin kunjungan. Nomor polis, nomor anggota, nama paket, dan kelas diambil dari snapshot registrasi kunjungan itu.
+>
+> **Contoh:** Kunjungan berpenjamin perusahaan asuransi samaran "Asuransi Sejahtera Nusantara" menampilkan nama itu beserta nomor kontrak kerja samanya. Bila pasien mengganti polis dua bulan setelah kunjungan, cetakan kedua tetap menampilkan nomor polis yang berlaku saat kunjungan — bukan yang berlaku hari ini.
+>
+> Disposisi: `MISSING / NEW` pada Billing; `EXISTING / REUSE` untuk sumber datanya (`MstInsuranceProvider`, `TrxPatientEncounterGuarantor`) — `BKC-DEC-067`, `BKC-DES-009`.
+
+> **`FR-BKC-017` — Keadaan yang tidak dapat menghasilkan dokumen dijelaskan, bukan digagalkan**
+>
+> Sistem menjawab kunjungan tunai, kunjungan penjamin perusahaan, kunjungan tanpa data penjamin, tagihan tanpa item tercover, dan versi kalkulasi lama sebagai permintaan **berhasil** dengan penanda tidak-dapat-dicetak beserta penjelasannya. Layar menampilkannya sebagai keterangan biru, bukan pesan galat merah.
+>
+> **Contoh:** Kasir membuka tab Invoice Asuransi untuk kunjungan pasien tunai. Yang muncul adalah keterangan biru "Kunjungan ini dibayar mandiri, sehingga tidak ada Invoice Asuransi yang dapat diterbitkan." Kasir mengerti dan pindah tab. Bila ini dijawab sebagai galat merah, kasir akan mengira sistem sedang rusak dan melaporkannya sebagai bug.
+>
+> Disposisi: `MISSING / NEW` (`BKC-DES-008`, `BIL-VAL-029`–`034`).
+
+> **`FR-BKC-018` — Tab dan lembar cetak pada halaman Dokumen Kasir**
+>
+> Sistem menyediakan tab ketiga bernama "Invoice Asuransi", sejajar Kwitansi dan Struk Pasien dan sebelum enam tab placeholder, yang menampilkan lembar siap cetak dan tombol cetak/unduh PDF.
+>
+> **Contoh:** Kasir menekan "Dokumen Kasir" dari Menu Pembayaran, memilih tab ketiga, membaca lembarnya, lalu menekan "Cetak Invoice Asuransi". Berkas `Invoice-Asuransi-BIL20260903000001.pdf` terunduh. Tab `Claim Letter` di sebelahnya tetap placeholder dan tidak tersentuh.
+>
+> Disposisi: `EXTEND` — halaman Dokumen Kasir dan pola komponen dokumen cetak sudah ada (`FE-BKC-017`, `KwitansiDocument`); ditambah satu tab dan satu komponen.
+
+> **`FR-BKC-019` — Ukuran kertas PDF dapat dipilih pemanggil**
+>
+> Pembuat PDF menerima ukuran kertas sebagai pilihan, dengan bawaan tetap A5. Lembar Invoice Asuransi memakai A4.
+>
+> **Contoh:** Tabel Invoice Asuransi punya tujuh kolom, termasuk "Ditanggung Asuransi" dan "Porsi Pasien". Pada A5 (148 mm) kolom paling kanan terpotong dan angka rupiahnya tidak terbaca — persis kolom yang paling penting bagi pihak asuransi. Kwitansi dan Struk Pasien tetap A5 dan tidak berubah sama sekali.
+>
+> Disposisi: `EXTEND` — `buildPdf` sudah ada; ditambah satu parameter opsional.
+
+> **`FR-BKC-020` — Lembar menyatakan kesegaran dan status tagihannya**
+>
+> Lembar mencantumkan nomor versi kalkulasi dan waktu perhitungannya. Bila tagihan masih berjalan, lembar menyatakannya secara tertulis.
+>
+> **Contoh:** Lembar dari tagihan `OPEN` memuat keterangan "Tagihan masih berjalan — angka dapat berubah sampai tagihan difinalkan." Tanpa keterangan ini, lembar dari tagihan yang belum selesai bisa ditagihkan oleh petugas klaim sebagai angka final, lalu berselisih dengan tagihan sesungguhnya beberapa hari kemudian.
+>
+> Disposisi: `MISSING / NEW`.
+
+## A11. Model status yang diusulkan
+
+Tidak ada status baru dan tidak ada transisi baru pada `BilInvoice`, `BilInvoiceItem`, maupun `BilCalculationVersion`. Yang ada hanyalah ketergantungan sumber angka pada status invoice yang sudah ada — lihat `contracts/state-transition-matrix.md` § Amendment 3 September 2026.
+
+## A12. Sasaran arsitektur
+
+| Yang dipakai ulang | Yang diperluas | Yang baru |
+| --- | --- | --- |
+| `MstInsuranceProvider`, `TrxPatientEncounterGuarantor`, `MstPatient`, `TrxPatientEncounter` (hanya dibaca) | `BillingCoverageComponent` (+`ComponentKey`), `BillingCoverageDecision` (+`Allocations`), `RegistrationBillingCoverageAdapter.ResolveAsync`, `BuildCoverageComponents`, `ApplyCoverageWaterfall` | `BillingCoverageComponentAllocation`, `BillingInsuranceInvoiceDocumentService`, `BillingInsuranceInvoiceDtos.cs` (5 DTO + 2 kelas konstanta), `GET {id}/insurance-invoice-document` |
+| `BilCalculationVersion.BreakdownSnapshot` (kolom sama, isi lebih kaya) | `CalculationItemResponse` (+5 field), `AdministrationFeeCalculationResponse`/`RoomChargeCalculationResponse` (+3 field), `CoverageCalculationResponse` (+1 field), `BillingCalculationContract.Version` | — |
+| Halaman Dokumen Kasir, `KwitansiDocument`/`StrukPasienDocument` sebagai pola, `useBillingInvoiceDetail`, `terbilangRupiah` | `dokumen-kasir-view.jsx`, `use-dokumen-kasir-page.js`, `use-dokumen-kasir.js` (`buildPdf`), `billing-invoice-slice.jsx`, `billing-invoice-constants.js` | `invoice-asuransi-document.jsx`, thunk `getInsuranceInvoiceDocument` |
+
+**Tanpa tabel baru, tanpa kolom baru, tanpa migration** (`BKC-DES-003`). Detail lengkap: `02-backend-architecture.md` dan `03-frontend-architecture.md` § Amendment 3 September 2026.
+
+## A13. Sasaran kemampuan API
+
+### Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/insurance-invoice-document` | Menyusun lembar Invoice Asuransi satu invoice | `BillingInvoice : Read` | — | `ApiResponse<InsuranceInvoiceDocumentResponse>` | `EPIC BKC-05` | **Rencana (belum tersedia)** |
+
+Perubahan aditif pada response yang sudah ada (`GET /{id}`, `GET /{id}/calculation-preview`, `POST /{id}/recalculate`) tercatat pada `contracts/api-contract.md` § Amendment 3 September 2026. Kode status beserta artinya bagi pengguna juga di sana.
+
+## A14. Matriks kewenangan
+
+| Aksi | Kasir | Petugas Billing | Product/Domain Owner | Security Owner |
+| --- | :---: | :---: | :---: | :---: |
+| `GET {id}/insurance-invoice-document` | Ya, `[AccessPermission("BillingInvoice", "Read")]` | Ya | Lihat | Menilai keputusan pemakaian ulang permission |
+| Mencetak/mengunduh lembar | Ya | Ya | Lihat | — |
+| Mengubah isi lembar dari layar | Tidak | Tidak | Tidak | — |
+
+Tidak ada peran baru dan tidak ada resource permission baru. Konsekuensi pemakaian ulang `BillingInvoice : Read` dinyatakan terbuka pada `contracts/permission-audit-matrix.md` § Amendment 3 September 2026.
+
+## A15. Batas integrasi dan billing
+
+Modul ini **MUST NOT** menyalin data perusahaan asuransi ke tabel `Bil*`, **MUST NOT** membaca `MstPatientInsurance` sebagai sumber nomor polis (`BKC-DES-009`), **MUST NOT** menghitung ulang coverage di luar `RegistrationBillingCoverageAdapter`, dan **MUST NOT** membuat kontrak pengiriman klaim ke perusahaan asuransi — yang terakhir tetap milik `InsuranceManagement` dan tetap bergantung `INS-DEC-005` yang belum diputuskan. Dua bacaan lintas konteks yang ditambahkan tercatat sebagai `BIL-INT-011` dan `BIL-INT-012` (`contracts/integration-contract.md`).
+
+Dampak billing: **tidak ada**. Amendment ini tidak mengubah satu pun nominal yang ditagihkan, tidak menciptakan piutang, dan tidak mengubah kapan piutang penjamin lahir (`BKC-DEC-024` tetap berlaku).
+
+## A16. Guardrail regulasi
+
+Tidak ada kewajiban rekam medis baru — dokumen tidak memuat diagnosis, keluhan, maupun catatan klinis. Deskripsi layanan pada lembar adalah nama tarif administratif (misalnya "Fisioterapi"), tetap ditandai sensitif karena rangkaiannya dapat menyiratkan kondisi pasien. Nomor polis dan nomor anggota tampil karena pihak asuransi membutuhkannya untuk mengenali klaim; nomor kartu asuransi secara sengaja **tidak** disertakan. Seluruh field sensitif **MUST NOT** masuk payload log mana pun — `GET` tidak memakai custom logger.
+
+## A17. Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-005` | `GET {id}/insurance-invoice-document` **MUST** read-only: tanpa transaksi, tanpa `Idempotency-Key`, aman dipanggil berulang tanpa efek samping |
+| `NFR-006` | Perubahan pada `RegistrationBillingCoverageAdapter.ResolveAsync` **MUST** menghasilkan nominal `primaryAmount`/`unresolvedAmount` yang sama persis dengan sebelumnya untuk seluruh test coverage yang sudah ada. Satu saja nilai yang berubah berarti formula ikut tersentuh |
+| `NFR-007` | Snapshot yang lahir pada `BIL-CALCULATION-0.5` **MUST** tetap dapat dibaca kode versi sebelumnya tanpa galat, sehingga rollback tidak memerlukan langkah mundur basis data |
+| `NFR-008` | Lembar dokumen **MUST** dapat dicetak utuh pada kertas A4 tanpa kolom terpotong; Kwitansi dan Struk Pasien **MUST** tetap A5 |
+| `NFR-009` | Tab Invoice Asuransi **MUST NOT** memanggil endpoint dokumen selama tab-nya belum dibuka — endpoint ini memicu kalkulasi pratinjau di server |
+| `NFR-010` | Kegagalan menghitung tagihan **MUST** dilaporkan sebagai galat, **MUST NOT** disamarkan menjadi lembar kosong |
+
+## A18. Skenario UAT
+
+> **`UAT-05` — Lembar menampilkan rupiah tanggungan per baris dan menjumlah** *(jalur berhasil, `EPIC BKC-04`, `EPIC BKC-05`)*
+>
+> **Kondisi awal:** Pasien asuransi dengan perusahaan samaran "Asuransi Sejahtera Nusantara". Tagihan berisi Konsultasi Dokter Umum Rp 100.000 (aturan `Covered` 100%), Fisioterapi Rp 300.000 (aturan `Covered` 80%), Vitamin C Rp 25.000 (tanpa aturan cocok), biaya administrasi Rp 15.000 (`Coverable=true`, aturan `Covered` 100%).
+>
+> **Langkah:** Kasir membuka Menu Pembayaran, menekan "Dokumen Kasir", memilih tab "Invoice Asuransi".
+>
+> **Hasil yang diharapkan:** Lembar memuat tiga baris — Konsultasi Rp 100.000, Fisioterapi Rp 240.000, Biaya Administrasi Rp 15.000 — dengan total tanggungan Rp 355.000. Angka Rp 355.000 itu sama persis dengan Subtotal Asuransi yang tampil di Menu Pembayaran. Vitamin C tidak muncul.
+
+> **`UAT-06` — Item yang tidak ditanggung tidak ikut tercetak** *(jalur berhasil, `EPIC BKC-05`)*
+>
+> **Kondisi awal:** Sama seperti `UAT-05`.
+>
+> **Langkah:** Kasir membandingkan tab "Struk Pasien" dan tab "Invoice Asuransi" untuk invoice yang sama.
+>
+> **Hasil yang diharapkan:** Struk Pasien memuat empat baris termasuk Vitamin C. Invoice Asuransi memuat tiga baris tanpa Vitamin C. Keduanya berasal dari invoice yang sama dan tidak ada yang salah — keduanya menjawab pertanyaan yang berbeda.
+
+> **`UAT-07` — Kunjungan tunai dijelaskan, bukan digagalkan** *(jalur gagal, `EPIC BKC-05`)*
+>
+> **Kondisi awal:** Kunjungan pasien tunai yang sudah punya invoice berisi beberapa item.
+>
+> **Langkah:** Kasir membuka tab "Invoice Asuransi".
+>
+> **Hasil yang diharapkan:** Muncul keterangan **biru** "Kunjungan ini dibayar mandiri, sehingga tidak ada Invoice Asuransi yang dapat diterbitkan." Tidak ada lembar dokumen dan tidak ada tombol cetak. **Bukan** pesan galat merah, dan bukan lembar berisi tabel kosong.
+
+> **`UAT-08` — Tagihan lama jujur soal keterbatasannya** *(jalur gagal, `EPIC BKC-04`)*
+>
+> **Kondisi awal:** Invoice pasien asuransi yang sudah `FINAL` sebelum pembaruan sistem, dengan total tanggungan penjamin Rp 500.000 tersimpan.
+>
+> **Langkah:** Kasir membuka tab "Invoice Asuransi".
+>
+> **Hasil yang diharapkan:** Total tanggungan Rp 500.000 tetap tampil, disertai keterangan "Rincian per item tidak tersedia untuk tagihan yang difinalkan sebelum pembaruan sistem ini. Total tanggungan penjamin tetap sah." Tombol cetak tidak muncul. **MUST NOT** menampilkan tabel berisi baris-baris Rp 0 yang terlihat seperti asuransi tidak menanggung apa pun.
+
+> **`UAT-09` — Rincian yang tidak menjumlah tidak pernah terbit** *(jalur gagal, `EPIC BKC-04`)*
+>
+> **Kondisi awal:** Keadaan buatan di lingkungan uji: alokasi per baris sengaja dibuat berjumlah Rp 350.000 sementara total tanggungan Rp 355.000.
+>
+> **Langkah:** Sistem menghitung tagihan.
+>
+> **Hasil yang diharapkan:** Perhitungan **gagal** dengan pesan "Rincian tanggungan penjamin per baris tidak menjumlah ke total tanggungan; hubungi tim teknis." Tidak ada versi kalkulasi tersimpan dan tidak ada lembar yang terbit dengan selisih Rp 5.000.
+
+> **`UAT-10` — Dokumen tidak membocorkan isi kesepakatan asuransi** *(jalur gagal, `EPIC BKC-05`)*
+>
+> **Kondisi awal:** Aturan coverage yang dipakai punya `RuleCode`, `ApprovalInstruction`, dan `BillingInstruction` terisi. Kartu asuransi pasien punya nomor kartu terisi.
+>
+> **Langkah:** Petugas memeriksa isi response endpoint dokumen dan lembar tercetak.
+>
+> **Hasil yang diharapkan:** Tidak ada kode aturan, instruksi approval, instruksi billing, nomor kartu, maupun kontak PIC perusahaan asuransi di response maupun di lembar. Yang tampil hanya nama, nama grup, jenis, metode klaim, nomor kontrak, dan alamat perusahaan.
+
+> **`UAT-11` — Cetak A4 utuh, Kwitansi tetap A5** *(jalur berhasil, `EPIC BKC-05`)*
+>
+> **Kondisi awal:** Invoice seperti `UAT-05`.
+>
+> **Langkah:** Kasir menekan "Cetak Invoice Asuransi", lalu berpindah ke tab Kwitansi dan menekan "Cetak Kwitansi Pasien".
+>
+> **Hasil yang diharapkan:** Berkas pertama berukuran A4 dengan seluruh kolom tabel terbaca utuh, termasuk kolom paling kanan. Berkas kedua berukuran A5 dengan tampilan yang sama persis seperti sebelum amendment ini.
+
+## A19. Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+| --- | --- | --- |
+| Setiap potongan biaya punya rupiah tanggungan penjamin, dan jumlahnya sama dengan total tanggungan | Ya / Belum | `UAT-05`, `BIL-AT-029` |
+| Alokasi tidak tertukar antar baris pajak | Ya / Belum | `BIL-AT-030` |
+| Rincian yang tidak menjumlah menghentikan perhitungan | Ya / Belum | `UAT-09`, `BIL-AT-029` |
+| Versi kalkulasi lama menyatakan keterbatasannya, bukan menampilkan Rp 0 | Ya / Belum | `UAT-08`, `BIL-AT-034` |
+| Lembar hanya memuat baris yang ditanggung asuransi | Ya / Belum | `UAT-06`, `BIL-AT-031` |
+| Blok perusahaan berasal dari perusahaan asuransi, dan polis dari snapshot registrasi | Ya / Belum | `BIL-AT-032` |
+| Kunjungan bukan-asuransi dijelaskan sebagai keadaan wajar | Ya / Belum | `UAT-07`, `BIL-AT-033` |
+| Dokumen tidak membocorkan isi kesepakatan asuransi maupun nomor kartu | Ya / Belum | `UAT-10`, `BIL-AT-035` |
+| Cetak A4 utuh; Kwitansi dan Struk Pasien tetap A5 tanpa regresi | Ya / Belum | `UAT-11`, § Regresi pada `testing/acceptance-test-matrix.md` |
+| Seluruh nominal pada test coverage yang sudah ada tidak berubah | Ya / Belum | § Regresi pada `testing/acceptance-test-matrix.md` (`NFR-006`) |
+| Seluruh dokumen kontrak menyebut endpoint, field, dan kode validasi yang sama | Ya / Belum | Amendment 3 September 2026 pada `02`, `03`, `erd/`, `contracts/`, `testing/` |
+| Approval eksplisit `BKC-DEC-065`–`069` dari Product/Domain Owner | **Ya** | 3 September 2026, `00-interview-decisions.md` |
+| Approval `BKC-DES-001`–`009` (keputusan arsitektur amendment ini) | **Belum** | Blueprint masih `draft`; approval tetap tindakan manusia |
+| Penilaian Security atas pemakaian ulang `BillingInvoice : Read` | **Belum** | Lihat § A20 pertanyaan terbuka |
+
+## A20. Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-4` | Fondasi kalkulasi: `ComponentKey`, `BillingCoverageComponentAllocation`, `Allocations` pada `BillingCoverageDecision`, pembagian alokasi di `ApplyCoverageWaterfall`, `BIL-VAL-028`, field baru pada empat DTO, versi kontrak `0.4` → `0.5` (`EPIC BKC-04`) | Approval `BKC-DES-001`–`006` beserta wewenang tulis backend. Tidak bergantung `MVP-0`–`MVP-3` |
+| `MVP-5` | Endpoint dokumen: `BillingInsuranceInvoiceDocumentService`, `BillingInsuranceInvoiceDtos.cs`, `GET {id}/insurance-invoice-document`, registrasi DI (`EPIC BKC-05` backend) | `MVP-4` **selesai dan terverifikasi**. Dideploy sebelum `MVP-4` akan selalu melaporkan rincian tidak tersedia untuk semua invoice |
+| `MVP-6` | Frontend: tab, `invoice-asuransi-document.jsx`, thunk dan state, `buildPdf` berparameter ukuran kertas, perbaikan inisialisasi tab dari query string (`EPIC BKC-05` frontend) | `MVP-5` selesai. Kontrak response terkunci lebih dulu — `BKC-DEC-069` sudah menyatakan ini bukan pekerjaan frontend murni |
+| `POST-MVP` | Penanda per baris di Menu Pembayaran memakai rupiah sungguhan; jejak audit cetak dokumen; dukungan penjamin perusahaan; permission tersendiri untuk cetak dokumen asuransi; perapian kepala surat rumah sakit yang tersalin di tiga komponen; perapian nama folder `Dtos/` | Di luar cakupan rilis ini; masing-masing butuh keputusan pemiliknya sendiri |
+
+Epic berstatus `OPEN DECISION`: **tidak ada**. Seluruh functional requirement `FR-BKC-009`–`FR-BKC-020` berdisposisi `EXISTING / REUSE`, `EXTEND`, atau `MISSING / NEW`.
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | --- | :---: |
+| Approval `BKC-DES-001`–`009`, khususnya `BKC-DES-007` (nomor dokumen memakai `InvoiceNumber`, tanpa seri nomor tersendiri) | Product/Domain Owner | Bila kelak diminta nomor tersendiri, seri nomor baru harus ditambahkan dan lembar yang sudah tercetak akan memakai penomoran berbeda dari yang berikutnya | **Ya** — blueprint tidak boleh diteruskan ke `/plan-module-delivery` sebelum dijawab |
+| Apakah pemakaian ulang `BillingInvoice : Read` untuk mencetak dokumen berisi nomor polis dapat diterima, atau perlu permission tersendiri | Security Owner | Bila kelak dipisah, role harus di-remap dan pengguna yang tadinya bisa mencetak akan kehilangan akses tanpa perubahan permintaan bisnis | **Ya** untuk `MVP-5`; `MVP-4` tidak terpengaruh karena tidak menambah endpoint |
+| Apakah tidak adanya jejak audit "siapa mencetak dokumen ini" dapat diterima | Security/Compliance Owner | Bila terjadi sengketa klaim, tidak ada cara mengetahui lembar mana yang pernah keluar dan oleh siapa | Tidak — dicatat sebagai keterbatasan yang diketahui, tidak menghentikan MVP |
+| Apakah lembar dari tagihan yang masih `OPEN` boleh diserahkan ke perusahaan asuransi | Billing/Finance/AR Owner | Angkanya masih bisa berubah; lembar sudah mencantumkan keterangan tagihan berjalan, tetapi tidak ada pencegahan teknis | Tidak — `BKC-DEC-066` menghendaki dokumen dapat dipakai tiga pihak, termasuk sebelum finalisasi |
+| Kelengkapan `MstInsuranceProvider` (nomor kontrak, alamat) dan `MstInsuranceCoverageRule` untuk skenario UAT yang bermakna | Insurance/Finance Owner | `UAT-05`, `UAT-06`, dan `UAT-10` tidak dapat dijalankan dengan data nyata sampai master terisi | Ya, untuk verifikasi UAT saja — tidak memblokir coding |
+| Wewenang tulis backend dan frontend (task mode, branch) | Pengguna | Prasyarat prosedural sebelum `/build-module-backend` dan `/build-module-frontend` dijalankan | Ya, untuk implementasi — bukan untuk desain |
+
+**Status dokumen ini: `draft`.** Terdapat pertanyaan terbuka bertanda memblokir, sehingga amendment ini **MUST NOT** diteruskan ke `/plan-module-delivery` sebelum `BKC-DES-001`–`009` disetujui dan Security menilai pemakaian ulang permission.
