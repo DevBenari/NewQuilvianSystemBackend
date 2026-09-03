@@ -9,9 +9,9 @@ revision: 21
 status: READY
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-03T22:40:00+07:00
+updated_at: 2026-09-04T00:20:00+07:00
 last_verified_at: null
-backend_source_sha: c12cc57
+backend_source_sha: 6488511
 backend_branch: sukmagp
 frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
 frontend_branch: sukmagpV2
@@ -112,7 +112,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `status` | Naik dari `PARTIAL` ke **`READY`** pada 3 September 2026. Tidak ada satu pun fase yang `BLOCKED`: keputusan bisnis, dependency teknis, dan approval desain seluruhnya tertutup, sehingga fase yang direncanakan berikutnya (`BD-PH-007` implementasi backend) boleh dimulai. |
 | `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
 | `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat delapan commit dokumen ke **`c12cc57`**; `git diff --name-only 4205d18 HEAD` di luar `docs/` mengembalikan **nol berkas**, jadi bukti kemampuan tetap `CURRENT`. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `4205d18` naik lagi lewat sebelas commit dokumen ke **`6488511`**; `git diff --name-only 4205d18 HEAD` di luar `docs/` mengembalikan **nol berkas**, jadi bukti kemampuan tetap `CURRENT`. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
@@ -366,18 +366,38 @@ validasi, dan nol acceptance criteria baru. Keduanya bahkan sudah punya skenario
 Revisi blueprint naik ke 21 karena baseline keputusan bergerak — dua keputusan baru menutup dua
 pertanyaan yang manifest ini sendiri lacak — bukan karena arsitektur atau kontrak berubah.
 
-⚠️ **Enam berkas set kontrak masih memuat kalimat placeholder yang menyebut kedua pertanyaan itu sebagai
-terbuka.** Isinya tidak salah secara aturan, tetapi kalimatnya sudah usang:
+Enam berkas set kontrak sempat memuat kalimat penunjuk yang menyebut kedua pertanyaan sebagai terbuka.
+Keenamnya **sudah diserap** pada hari yang sama; lihat catatan penutup di bawah.
 
-| Berkas | Baris | Bunyi yang sudah usang |
+**Contract reconciliation pass — 3 September 2026, revisi tetap 21.** `design-business-module`
+menyerap `DEC-BD-045` dan `DEC-BD-046` ke dalam enam berkas yang masih memuat kalimat penunjuk usang:
+`contracts/permission-audit-matrix.md`, `contracts/state-transition-matrix.md`,
+`contracts/validation-matrix.md`, `data/data-dictionary.md`, `02-backend-architecture.md`, dan
+`04-prd-to-mvp.md`.
+
+**Revisi blueprint sengaja tidak naik.** Pass ini tidak mengubah satu pun aturan, arsitektur, kontrak,
+dependency, atau keputusan — ia hanya mengganti kalimat yang menyebut dua pertanyaan sebagai terbuka
+menjadi kalimat yang menyebut jawabannya. Angka yang diperiksa sebelum dan sesudah pass **identik**:
+
+| Yang diperiksa | Sebelum | Sesudah |
 | --- | --- | --- |
-| `contracts/permission-audit-matrix.md` | 96, 114 | "nama peran konkretnya belum ditetapkan — `OQ-BD-017`" |
-| `contracts/state-transition-matrix.md` | 70 | "pemegang perannya belum dinamai — `OQ-BD-017`" |
-| `contracts/validation-matrix.md` | 159 | "menunggu penegasan pemilik proses (`OQ-BD-018`)" |
-| `data/data-dictionary.md` | 148 | "menunggu penegasan pemilik proses — `OQ-BD-018`" |
-| `02-backend-architecture.md` | 580, 855–857 | Keduanya masih terdaftar sebagai pertanyaan terbuka pass `v4` |
-| `04-prd-to-mvp.md` | 268, 440 | "satu nama peran menyusul lewat `OQ-BD-017`" |
+| Contract version keenam berkas | `v4` `approved` | `v4` `approved` |
+| `last_changed_in` | `v4` (`integration-contract.md` tetap `v2`) | tidak bergerak |
+| Entity `Bbk*` pada kamus data | 27 | 27 |
+| Endpoint pada `api-contract.md` | 58 | 58 |
+| Kode `VAL-BD-*` | 53 | 53 |
+| `AC-BD-*` pada matriks acceptance | 92 | 92 |
 
-Keenamnya **milik `design-business-module`**, bukan skill ini, dan penyerapannya adalah pass pendek yang
-hanya mengganti kalimat penunjuk — tanpa mengubah satu pun aturan. Sampai pass itu dijalankan, sumber
-kebenaran untuk kedua pertanyaan adalah `00-interview-decisions.md` revisi 10.
+Satu tambahan yang perlu dibaca pelaksana `BE-BD-016`: `permission-audit-matrix.md` kini memuat
+peringatan tegas bahwa **peran yang sama tidak berarti butir hak akses yang sama**. Peran operasional
+BDRS menerima `BloodUnit : ResolveReturn` dan `BloodUnit : ResolveNotUsable` sebagai **dua baris
+seeder**, bukan satu butir gabungan — karena jaminan `AC-BD-093` hanya bekerja bila butirnya terpisah.
+
+**Penyegaran `backend_source_sha` — `c12cc57` → `6488511`.** Dua commit dokumen menyusul
+(`7f2ce82` sinkronisasi OQ residue, `6488511` rekonsiliasi kontrak). Impact scan dijalankan:
+`git diff --name-only c12cc57 HEAD` di luar `docs/` mengembalikan **nol berkas**, seluruhnya 13 dokumen
+blueprint Bank Darah. Peta kemampuan tetap `CURRENT`; tidak ada impact scan penuh yang dibutuhkan.
+
+**Keadaan sesudah pass ini.** Tidak ada satu pun pertanyaan terbuka yang menempel pada set kontrak
+`v4`, tidak ada gerbang yang menahan, dan tidak ada fase yang `BLOCKED`. Yang tersisa seluruhnya
+pekerjaan implementasi, dimulai dari gelombang `MVP-0`.

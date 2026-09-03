@@ -6,7 +6,7 @@
 | Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
 | **Roadmap status** | **`APPROVED`** — disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun pada 3 September 2026 |
 | Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | `c12cc57` cabang `sukmagp` |
+| Backend SHA | `6488511` cabang `sukmagp` |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **10** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |

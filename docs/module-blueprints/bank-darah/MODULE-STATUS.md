@@ -9,13 +9,13 @@
 | Module status | `READY` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `belum pernah diverifikasi` |
-| Backend source SHA | `c12cc57` cabang `sukmagp` |
+| Backend source SHA | `6488511` cabang `sukmagp` |
 | Frontend source SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 | Decision revision | `10` — `DEC-BD-001` sampai `DEC-BD-046` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-03` — sinkronisasi OQ residue closure pass |
+| Terakhir diperbarui | `2026-09-03` — penyegaran SHA setelah contract reconciliation pass |
 
 Modul naik dari `PARTIAL` ke **`READY`**. Seluruh fase perancangan sudah menghasilkan artefaknya,
 **tidak ada satu pun keputusan bisnis yang masih memblokir**, dan sejak 3 September 2026 tidak ada satu
@@ -194,9 +194,9 @@ membaca kontrak, bukan register keputusan — tetapi dicatat supaya tidak dikira
 
 | Artefak | SHA tercatat | SHA saat ini | Tinjauan dampak yang diperlukan |
 | --- | --- | --- | --- |
-| `02-existing-capability-map.md` | audit penuh `9522caa` · impact scan `4205d18` | `c12cc57` | **Sudah disegarkan, dan tetap sahih.** Seluruh commit `4205d18`..`c12cc57` docs-only (terverifikasi `git diff --name-only`, nol berkas di luar `docs/`), sehingga tidak ada impact scan baru yang dibutuhkan. Impact scan 3 September 2026: dari 24 berkas bukti, hanya `LabOrder.cs` tersentuh dan perubahannya aditif. Nol baris berpindah status |
-| `BUSINESS REQUIREMENTS DOCUMENT (BRD).md` | `8b298bb` | `c12cc57` | Terbatas pada konfigurasi Laboratorium. Dampaknya menyempit sejak `DEC-BD-018` memisahkan sampel Bank Darah dari sampel Laboratorium |
-| `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `c12cc57` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium sudah digantikan `DEC-BD-018` |
+| `02-existing-capability-map.md` | audit penuh `9522caa` · impact scan `4205d18` | `6488511` | **Sudah disegarkan, dan tetap sahih.** Seluruh commit `4205d18`..`c12cc57` docs-only (terverifikasi `git diff --name-only`, nol berkas di luar `docs/`), sehingga tidak ada impact scan baru yang dibutuhkan. Impact scan 3 September 2026: dari 24 berkas bukti, hanya `LabOrder.cs` tersentuh dan perubahannya aditif. Nol baris berpindah status |
+| `BUSINESS REQUIREMENTS DOCUMENT (BRD).md` | `8b298bb` | `6488511` | Terbatas pada konfigurasi Laboratorium. Dampaknya menyempit sejak `DEC-BD-018` memisahkan sampel Bank Darah dari sampel Laboratorium |
+| `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `6488511` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium sudah digantikan `DEC-BD-018` |
 
 Frontend `afbb8ab` **tidak berubah**; seluruh bukti frontend tetap sahih.
 
