@@ -4,7 +4,7 @@
 
 ```yaml
 blueprint_id: ACC-BP-001
-blueprint_revision: 8   # naik dari 7 pada 2 Sep 2026 — ACC-DEC-042, ACC-API naik 0.1 -> 0.2
+blueprint_revision: 9   # naik dari 8 pada 2 Sep 2026 — ACC-DEC-043, ACC-PERMISSION naik 0.2 -> 0.3
 blueprint_status: approved
 roadmap_revision: 2
 roadmap_status: APPROVED
@@ -12,8 +12,8 @@ approved_by: [Rizki]
 approved_at: 2026-09-01
 source_backend: aa837d784ff51cb2b889cf975ada3a204018f1f5
 source_frontend: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-decision_revision: 1.5
-contracts: [ACC-API-0.2, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.2, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
+decision_revision: 1.6
+contracts: [ACC-API-0.2, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-INTEGRATION-0.2, ACC-PERMISSION-0.3, ACC-TEST-0.1, ACC-MVP-0.1, ACC-XMOD-0.1]
 shared_engineering_rules: [QBE-MIG-001, QBE-MIG-002]   # PROPOSED — lihat ../06-shared-migration-coordination-rule.md
 ```
 
@@ -79,7 +79,7 @@ Karena itu `ACC-DEP-007` **tidak** membuat task menjadi `BLOCKED` untuk eksekusi
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-0` Fondasi | `BE-ACC-001` sampai `BE-ACC-006` | **6 `DONE`** — gelombang tuntas | Blueprint **disetujui** |
-| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007` **`DONE`**, sisanya `ROADMAP_READY` | `MVP-0` selesai ✅ |
+| `MVP-1` Jurnal manual | `BE-ACC-007` sampai `BE-ACC-011` | `BE-ACC-007`..`009` **`DONE`**; `BE-ACC-010` dan `011` `ROADMAP_READY` | `MVP-0` selesai ✅ |
 | `MVP-2` Buku besar | `BE-ACC-012` | Berantai `MVP-1` | `MVP-1` selesai |
 | `MVP-3` Koreksi dan saldo awal | `BE-ACC-013`, `BE-ACC-014` | Berantai `MVP-2` | `MVP-2` selesai |
 
@@ -120,13 +120,13 @@ batas jujurnya — gate **tidak** dijalankan ulang sebelum migration, melainkan 
 sesudahnya — ada di [`../evidence/04-migration-coordination-gate.md`](../evidence/04-migration-coordination-gate.md)
 bagian 10.
 
-**Satu catatan yang belum tertutup.** Seeder empat jenis jurnal sudah ada dan terbukti test,
-tetapi **belum punya call site**, sehingga `AccJournalType` di database masih kosong. Ini
-keputusan owner, dan mengikuti dua hal yang sejalan: `../02-backend-architecture.md` bagian 6
-melarang pemanggilan seeder di `Program.cs`, dan dua seeder master lain di repository ini
-(`EmergencyMasterDataSeeder`, `InpatientMasterDataSeeder`) memang belum punya call site.
-Pengisiannya menunggu `BE-ACC-008`. **Ini blocker fungsional `BE-ACC-010`** — penomoran jurnal
-mengambil awalannya dari master ini — **bukan** blocker `BE-ACC-007`.
+**Seeder jenis jurnal kini punya call site** — `POST /journal-types/seed`, dibuat `BE-ACC-008`
+pada 2 September 2026. `ACC-TD-004` **ditutup**. Bukan lewat `Program.cs` (dilarang
+`../02-backend-architecture.md` bagian 6) dan bukan diam-diam dari jalur `GET`.
+
+**Yang tersisa satu langkah operasional:** endpoint itu belum pernah dipanggil, jadi
+`AccJournalType` di database masih kosong. Dicatat sebagai `ACC-TD-011`, dan **tetap blocker
+fungsional `BE-ACC-010`** sampai dipanggil sekali.
 
 **Dua pertentangan antar artefak canonical sudah diputuskan owner** lewat `ACC-DEC-039` dan
 `ACC-DEC-040` pada 2 September 2026, dan keduanya menguatkan bacaan yang sudah diimplementasikan.
@@ -358,14 +358,14 @@ selama akun belum dipakai jurnal disahkan. `ACC-API` naik `0.1` → `0.2`.
 | Outcome | Administrator dapat mengatur jenis jurnal dan awalan nomornya tanpa menyentuh kode |
 | Trace | `ACC-DEC-010`; `FR-ACC-006`, `FR-ACC-007`; `EPIC ACC-02` |
 | Kontrak | `ACC-API-0.1` grup Journal Type |
-| Reuse | `ApplicationDbContext` langsung — CRUD sederhana, tanpa service, sesuai konvensi |
+| Reuse | `AccountingServiceResult`, `AccountingLegalEntityGuard`, `AccountingMasterDataSeeder`. **Dikoreksi 2 Sep 2026 (`ACC-TD-012`)** — catatan lama "`ApplicationDbContext` langsung, tanpa service" bertentangan dengan `BACKEND_ENGINEERING_CONTRACT` bagian *Boundary API/service*, dan baris 72 berkas ini menyerahkan kesesuaian engineering kepada dokumen canonical. Alurnya `Controller → Module Service → DbContext` |
 | Cakupan | `JournalTypeController` (4 endpoint), `JournalTypeDtos` |
 | Dependency | `BE-ACC-006` |
 | Acceptance | (1) Kode jenis kembar ditolak `409`. (2) Jenis bertanda sistem gagal diubah kode maupun awalan nomornya. (3) Awalan nomor kosong ditolak `400` |
 | Verifikasi | Test integrasi `FR-ACC-006`, `FR-ACC-007` |
 | Risiko/pemilik | Rendah. Owner Backend |
 | DoD | Acceptance terbukti test, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`DONE`** — 2 September 2026. Ketiga acceptance terbukti **18 test**. **`ACC-TD-004` ditutup** — seeder `BE-ACC-006` kini punya call site lewat `POST /seed`. Laporan: [`../task/report/backend/be-acc-008-api-jenis-jurnal.md`](../task/report/backend/be-acc-008-api-jenis-jurnal.md) |
 
 ### `BE-ACC-009` — API periode akuntansi
 
@@ -381,7 +381,7 @@ selama akun belum dipakai jurnal disahkan. `ACC-API` naik `0.1` → `0.2`.
 | Verifikasi | Test integrasi `FR-ACC-010` sampai `015`; `UAT-08`, `UAT-09` |
 | Risiko/pemilik | Owner Backend. Butir (3) paling mudah salah — mengembalikan ke `Open` akan melanggar `ACC-DEC-028` |
 | DoD | Acceptance terbukti test, alasan tercatat di jejak audit, laporan task tersedia |
-| **Status** | **`ROADMAP_READY`** — `ACC-DEP-008` **tidak lagi memblokir** sejak `ACC-DEC-041` (MVP satu badan hukum). Mulai hanya atas instruksi eksplisit owner |
+| **Status** | **`DONE`** — 2 September 2026. Kelima acceptance terbukti **36 test**, termasuk butir (3) yang diuji dua arah dan tahun kabisat sampai kasus 2100 dan 2000. Laporan: [`../task/report/backend/be-acc-009-api-periode-akuntansi.md`](../task/report/backend/be-acc-009-api-periode-akuntansi.md) |
 
 ### `BE-ACC-010` — Jurnal draft: simpan, ubah, hapus, dan penomoran
 

@@ -9,8 +9,8 @@ revision: 9
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-02T23:30:00+07:00
-last_verified_at: 2026-09-02T23:30:00+07:00
+updated_at: 2026-09-03T01:00:00+07:00
+last_verified_at: 2026-09-03T01:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,7 +29,7 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: d9a5a6e
+verification_backend_source_sha: d9a9111
 verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
 verification_baseline_note: >
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
@@ -99,7 +99,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: 83bfec02b799ca21265c7c11f0dd1b7fc9638b8078ad78b4d0289e46942a1749
+  roadmap/backend-roadmap.md: 9ca17344614c86e3a7239f8e99080ea4213aa59227557dc7107becb098492dc6
   roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041

@@ -21,13 +21,16 @@ belas artefak.
 | `ACC-TD-001` | Check constraint mustahil dipenuhi di SQLite | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-002` | Penyaringan badan hukum per pengguna tidak ada | Security/Platform | **Tinggi** | `OPEN` |
 | `ACC-TD-003` | Gerbang QBE akan menolak saat merge | Lead | Sedang | `OPEN` |
-| `ACC-TD-004` | Seeder jenis jurnal belum punya call site | Owner modul | Sedang | `OPEN` |
+| ~~`ACC-TD-004`~~ | ~~Seeder jenis jurnal belum punya call site~~ | — | — | **`CLOSED`** 2 Sep 2026 |
 | `ACC-TD-005` | `UAT-15` tidak dapat dijalankan | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-006` | Aturan koordinasi migration belum canonical | Lead | Rendah | `OPEN` |
 | `ACC-TD-007` | Satu test Billing merah sejak merge integration | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
 | `ACC-TD-010` | Dua badan hukum kosong di master | Owner modul lain | Rendah | `OPEN` |
+| `ACC-TD-011` | `POST /seed` belum pernah dipanggil | **Rizki** | Sedang | `OPEN` |
+| `ACC-TD-012` | Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering | Owner modul | Rendah | `OPEN` |
+| `ACC-TD-013` | `POST /seed` belum masuk `ACC-API` | Owner modul | Rendah | `OPEN` |
 
 ---
 
@@ -95,7 +98,14 @@ Registry di `NewQuilvianSystemBackend:docs/engineering/MODULE_OWNERSHIP_PREFIX_R
 
 ---
 
-## `ACC-TD-004` — Seeder jenis jurnal belum punya call site
+## ~~`ACC-TD-004`~~ — Seeder jenis jurnal belum punya call site — **`CLOSED`**
+
+> **Ditutup 2 September 2026 oleh `BE-ACC-008`.** Call site-nya kini
+> `AccJournalTypeService.SeedAsync`, dipanggil endpoint `POST /journal-types/seed`. Bukan lewat
+> `Program.cs` (dilarang bagian 6) dan bukan diam-diam dari jalur `GET` (menyembunyikan siapa yang
+> mengisi dan kapan). Idempotensinya dibuktikan `JournalTypeServiceTests.Seed_DijalankanDuaKali_TidakMenghasilkanDataGanda`.
+>
+> **Menyisakan `ACC-TD-011`:** endpoint itu belum pernah dipanggil, jadi tabelnya masih kosong.
 
 **Sumber:** `BE-ACC-006`, keputusan owner 2 September 2026.
 
@@ -201,3 +211,65 @@ organisasi, bukan Accounting.
 | Menghalangi Accounting? | **Tidak** sejak `ACC-DEC-043` — penjaga memakai `IsDefault`, bukan jumlah |
 | Risikonya | Pengguna dapat mengirim `LegalEntityId` milik keduanya pada permintaan Accounting. Akun dan jurnal akan tersimpan di bawah badan hukum yang tidak pernah dipakai, dan tidak muncul pada laporan MMC. Tidak ada yang menolaknya sampai `ACC-TD-002` ditutup |
 | Cara menutup | Pastikan frontend selalu mengirim badan hukum utama — `AccountingLegalEntityGuard.AmbilBadanHukumUtamaAsync` menyediakannya. Atau pemilik master data menonaktifkan kedua baris kosong itu |
+
+
+---
+
+## `ACC-TD-011` — `POST /seed` belum pernah dipanggil
+
+**Ditemukan:** `BE-ACC-008`, 2 September 2026.
+
+`ACC-TD-004` menutup soal *call site*, tetapi tabelnya masih kosong sampai endpoint itu
+benar-benar dipanggil satu kali terhadap database.
+
+| Hal | Keterangan |
+|---|---|
+| Diverifikasi | `AccJournalType` **0 baris** pada `QuilvianNewDevRizki` per 2 September 2026 |
+| Cara menutup | Panggil `POST /api/v1/corporate/accounting/master-data/journal-types/seed` sekali, dengan pengguna berhak `JournalType : Create` |
+| Aman diulang | Ya — pemanggilan kedua menyisipkan nol baris |
+| Akibat bila dibiarkan | `BE-ACC-010` gagal menemukan awalan nomor jurnal, sehingga penomoran jurnal tidak berjalan |
+| Pemilik | **Rizki** — ini langkah operasional, bukan pekerjaan kode |
+
+---
+
+## `ACC-TD-012` — Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering
+
+**Ditemukan:** `BE-ACC-008`, 2 September 2026, atas permintaan owner untuk memeriksanya lebih
+dahulu.
+
+`roadmap/backend-roadmap.md` baris 361 menulis *Reuse:* "`ApplicationDbContext` langsung — CRUD
+sederhana, tanpa service, sesuai konvensi", sedangkan
+`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` bagian *Boundary API/service* menetapkan alur
+baru adalah **Controller → Module Service → DbContext**.
+
+**Sudah terselesaikan untuk implementasi**, oleh roadmap itu sendiri: baris 72 menyatakan
+kesesuaian engineering diselesaikan dari dokumen canonical, **bukan dari roadmap**. `BE-ACC-008`
+karena itu memakai service, konsisten dengan `BE-ACC-007`.
+
+| Hal | Keterangan |
+|---|---|
+| Menghalangi? | **Tidak.** Implementasi sudah berjalan dan terbukti test |
+| Yang tersisa | Teks roadmap baris 361 masih menyesatkan pembaca berikutnya |
+| Cara menutup | Perbaiki kolom *Reuse* itu agar tidak bertentangan. Perbaikan teks, bukan perubahan target — nol dampak kode |
+| Kenapa dicatat | Pembaca yang hanya membaca baris 361 akan menyimpulkan gaya yang salah, dan modul berikutnya bisa jadi tidak konsisten |
+
+
+---
+
+## `ACC-TD-013` — `POST /seed` belum masuk `ACC-API`
+
+**Ditemukan:** `BE-ACC-008`, 2 September 2026.
+
+`ACC-API-0.2` grup Journal Type mencantumkan **empat** endpoint. Implementasi menambah kelima,
+`POST /journal-types/seed`, atas permintaan eksplisit owner agar seeder `BE-ACC-006` punya call
+site pada task ini.
+
+**Dilaporkan, tidak diputuskan sepihak.** Kontrak sengaja **belum** diubah, supaya kenaikan
+versinya menjadi keputusan owner dan bukan efek samping implementasi.
+
+| Hal | Keterangan |
+|---|---|
+| Menghalangi? | **Tidak.** Endpoint berjalan dan terbukti test |
+| Risikonya | Pembaca `ACC-API-0.2` tidak akan tahu endpoint itu ada. Frontend yang menyusun klien dari kontrak akan melewatkannya |
+| Cara menutup | Owner meratifikasi, `ACC-API` naik `0.2` → `0.3`, dan barisnya ditambahkan ke `contracts/api-contract.md` grup Journal Type |
+| Rinciannya | Laporan `be-acc-008-api-jenis-jurnal.md` bagian 7 |
