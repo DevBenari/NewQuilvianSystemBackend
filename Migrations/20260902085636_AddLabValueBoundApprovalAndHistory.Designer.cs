@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260902085636_AddLabValueBoundApprovalAndHistory")]
+    partial class AddLabValueBoundApprovalAndHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64926,6 +64929,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("ResultForm")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Unit")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -64944,8 +64950,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_LabValueBound_Procedure_Gender_AgeCategory")
                         .HasFilter("\"IsDelete\" = false");
-
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ProcedureId", "GenderScope", "AgeCategoryId"), false);
 
                     b.ToTable("LabValueBound", "public");
                 });

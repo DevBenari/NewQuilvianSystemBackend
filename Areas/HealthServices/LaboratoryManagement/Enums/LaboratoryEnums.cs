@@ -125,4 +125,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         [Display(Name = "Lab Specimen")]
         LabSpecimen = 2
     }
+
+    /// <summary>
+    /// Bentuk hasil sebuah pemeriksaan laboratorium sesuai <c>LAB-DEC-021</c> (BR-17).
+    ///
+    /// Tepat satu dari dua, ditetapkan sejak batas nilainya dibuat:
+    /// <see cref="Numeric"/> memakai batas normal dan batas kritis berupa angka beserta
+    /// satuannya; <see cref="Choice"/> memakai daftar pilihan yang sah pada
+    /// <c>LabValueOption</c> dan tidak menerima pengetikan bebas (AC-28).
+    /// </summary>
+    public enum LabResultForm
+    {
+        /// <summary>Hasil angka — misalnya Kalium 3,5–5,1 mmol/L.</summary>
+        [Display(Name = "Numeric")]
+        Numeric = 1,
+
+        /// <summary>Hasil pilihan terbatas — misalnya Protein urin: Negatif, +1, +2, +3, +4.</summary>
+        [Display(Name = "Choice")]
+        Choice = 2
+    }
+
+    /// <summary>
+    /// Pembatas jenis kelamin sebuah baris batas nilai sesuai <c>LAB-DEC-018</c> (BR-14).
+    ///
+    /// Satu jenis pemeriksaan boleh punya beberapa baris batas yang dibedakan menurut jenis
+    /// kelamin dan kelompok umur — Hemoglobin pria dewasa, wanita dewasa, dan anak berdiri
+    /// sebagai tiga baris terpisah (AC-24).
+    /// </summary>
+    public enum LabGenderScope
+    {
+        /// <summary>Berlaku untuk semua jenis kelamin.</summary>
+        [Display(Name = "All")]
+        All = 1,
+
+        /// <summary>Berlaku untuk pasien laki-laki saja.</summary>
+        [Display(Name = "Male")]
+        Male = 2,
+
+        /// <summary>Berlaku untuk pasien perempuan saja.</summary>
+        [Display(Name = "Female")]
+        Female = 3
+    }
+
+    /// <summary>
+    /// Daur hidup pengajuan perubahan batas kritis sesuai <c>LAB-DEC-023</c> (BR-19) dan
+    /// <c>LAB-STATE-v1</c> r2 bagian 4.
+    ///
+    /// Batas normal boleh diubah kepala instalasi dan langsung berlaku. Batas kritis tidak:
+    /// ia menentukan pada angka berapa seorang pasien dianggap terancam, dan itu penilaian
+    /// klinis. Karena itu perubahannya berhenti sebagai pengajuan sampai pihak berwenang
+    /// memutuskan, dan selama itu batas yang berlaku <b>tidak berubah sama sekali</b>.
+    ///
+    /// <see cref="Approved"/>, <see cref="Rejected"/>, dan <see cref="Withdrawn"/> adalah
+    /// status terminal; memutuskan ulang pengajuan yang sudah terminal ditolak <c>409</c>.
+    /// Penegakan transisi beserta larangan menyetujui pengajuan sendiri adalah pekerjaan
+    /// service pada <c>BE-LAB-05</c>.
+    /// </summary>
+    public enum LabBoundChangeStatus
+    {
+        /// <summary>Diajukan kepala instalasi dan menunggu keputusan pihak klinis.</summary>
+        [Display(Name = "Submitted")]
+        Submitted = 1,
+
+        /// <summary>Disetujui; batas kritis yang baru mulai berlaku.</summary>
+        [Display(Name = "Approved")]
+        Approved = 2,
+
+        /// <summary>Ditolak pihak klinis; batas lama tetap berlaku.</summary>
+        [Display(Name = "Rejected")]
+        Rejected = 3,
+
+        /// <summary>Ditarik oleh pengajunya sendiri sebelum diputuskan.</summary>
+        [Display(Name = "Withdrawn")]
+        Withdrawn = 4
+    }
 }
