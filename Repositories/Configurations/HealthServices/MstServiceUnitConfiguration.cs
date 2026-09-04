@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -42,6 +42,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasDefaultValue(false);
 
             entity.Property(x => x.IsAvailableForAppointment)
+                .HasDefaultValue(false);
+
+            // Bawaan menolak (DEC-BD-012). Nilai bawaan di sisi database membuat baris lama
+            // yang sudah ada ikut bernilai false saat migration dijalankan, tanpa perlu satu
+            // pun pengisian data susulan.
+            entity.Property(x => x.IsAvailableForBloodOrder)
                 .HasDefaultValue(false);
 
             entity.Property(x => x.IsQueueRequired)

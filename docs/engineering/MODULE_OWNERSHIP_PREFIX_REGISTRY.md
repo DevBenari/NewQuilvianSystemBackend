@@ -26,6 +26,8 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Corporate/HumanResource | WorkflowManagement / Workflow | SHARED PLATFORM CAPABILITY | Wfl | ACTIVE / LEGACY |
 | HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
 | HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | ACTIVE |
+| HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | ACTIVE |
+| HealthServices | BloodBankManagement / Blood Bank Existing Master Legacy | BUSINESS DOMAIN / MODULE | Mst | LEGACY |
 
 ## Kepanjangan prefix
 
@@ -49,6 +51,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Wfl | Workflow |
 | Opr | Operating Room |
 | Mrc | Medical Record |
+| Bbk | Blood Bank |
 
 `DoctorAndScheduleManagement` berkategori MASTER / REFERENCE menurut bukti saat ini dan tidak memiliki prefix operasional tersendiri. Untuk entity operasional baru pakai `<PrefixPemilikDisetujui><KonsepBisnis>` tanpa pengulangan nama pemilik, misalnya `RegPatientEncounter`, `EmgVisit`, `WflInstance`, `LabOrder`.
 
@@ -96,3 +99,5 @@ Folder Area/Module/Submodule baru — atau folder yang sudah ada namun belum ter
 | 2026-08-31 | MedicalRecordManagement / `Mrc` | `PLANNED` → `ACTIVE` | Yoga Aji Pratama, blueprint `RM-BP-001` keputusan `RM-DEC-029`. Membuka normalisasi LEGACY MIGRATION empat entity `Trx*` rekam medis menjadi `Mrc*` beserta tabel fisiknya (QBE-NAM-003), diterapkan lewat migration `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix`. Wewenang ini mencakup source dan pembuatan migration; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
 | 2026-09-03 | LaboratoryManagement / `Lab` | Normalisasi `LEGACY MIGRATION` dua entity `Trx*` | Yoga Aji Pratama, pemilik modul, sesi 2026-09-03. Membuka normalisasi `TrxLabSpecimen` → `LabSpecimen` dan `TrxLabTransitionHistory` → `LabTransitionHistory` beserta tabel fisiknya (QBE-NAM-003), diterapkan lewat migration `20260903094528_RenameLaboratoryTrxTablesToLabPrefix`. Seluruh entity Laboratorium kini berprefix `Lab`, kecuali `MstLabRejectionReason` yang tetap `Mst` sesuai catatan 2026-09-02. Wewenang ini mencakup source, pembuatan migration, dan eksekusi ke dev pemilik; deployment tetap merupakan wewenang terpisah. |
 | 2026-09-02 | LaboratoryManagement / `Lab` | `PLANNED` → `ACTIVE` | Muhammad Hamzah, blueprint `LAB-BP-001` lewat permintaan `LAB-REQ-002`. Mencabut penghalang QBE-MOD-002 atas entity operasional `Lab*` dan atas migration modul Laboratorium. Sekaligus menetapkan prefix data induk milik Laboratorium: entity baru memakai `Lab`, sehingga dua tabel batas nilai bernama `LabValueBound` dan `LabValueOption`; `MstLabRejectionReason` yang sudah ada diperlakukan legacy dan tidak dinamai ulang. Wewenang ini mencakup source dan pembuatan migration; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
+| 2026-09-03 | BloodBankManagement / `Bbk` | Baris baru — pendaftaran prefix `Bbk` = *Blood Bank* | Blueprint `BD-BP-001` keputusan modul Bank Darah. Memberi wewenang penamaan dan kepemilikan entity operasional `Bbk*`; tidak memberi wewenang implementasi, migration, database, maupun deployment. Lifecycle tetap `PLANNED` sampai ada keputusan aktivasi modul. |
+| 2026-09-03 | BloodBankManagement / `Bbk` | `PLANNED` → `ACTIVE` | Persetujuan owner Bank Darah dan approval blueprint BD-BP-001 contract v4. Membuka wewenang implementasi entity operasional `Bbk*` sesuai QBE-MOD-002. |

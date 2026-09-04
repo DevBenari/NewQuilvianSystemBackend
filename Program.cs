@@ -372,6 +372,21 @@ try
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
 
+    // Katalog komponen darah Bank Darah. Dipakai layar master, dan kelak dibaca deteksi order
+    // ganda serta gerbang pemberian. Service memegang seluruh pembacaan dan perubahannya
+    // supaya controller tidak menyentuh ApplicationDbContext langsung (QBE-SVC-001).
+    builder.Services.AddScoped<BloodComponentService>();
+
+    // Master lokasi penyimpanan darah. Selama tabelnya tidak punya satu pun lokasi aktif,
+    // seluruh alur Bank Darah berhenti (INV-BD-025) - service ini yang memberi BDRS cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<BloodStorageLocationService>();
+
+    // Daftar alasan terkendali Bank Darah. Alasan pada pembatalan, pengalihan, penetapan tidak
+    // layak, dan jalur darurat tidak boleh berupa teks bebas (INV-BD-016); service ini yang
+    // memberi BDRS cara menyusun daftarnya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<BloodBankReasonService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(

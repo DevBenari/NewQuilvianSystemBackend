@@ -79,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "isAvailableForRegistration", Label = "Tersedia registrasi" },
                     new() { Value = "isAvailableForKiosk", Label = "Tersedia kiosk" },
                     new() { Value = "isAvailableForAppointment", Label = "Tersedia appointment" },
+                    new() { Value = "isAvailableForBloodOrder", Label = "Berwenang memesan darah" },
                     new() { Value = "isQueueRequired", Label = "Butuh antrian" },
                     new() { Value = "isDoctorRequired", Label = "Butuh dokter" },
                     new() { Value = "isScreeningRequired", Label = "Butuh screening" },
@@ -128,6 +129,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RegistrationAvailableServiceUnit = await query.CountAsync(x => x.IsAvailableForRegistration),
                 KioskAvailableServiceUnit = await query.CountAsync(x => x.IsAvailableForKiosk),
                 AppointmentAvailableServiceUnit = await query.CountAsync(x => x.IsAvailableForAppointment),
+                BloodOrderAvailableServiceUnit = await query.CountAsync(x => x.IsAvailableForBloodOrder),
                 QueueRequiredServiceUnit = await query.CountAsync(x => x.IsQueueRequired),
                 DoctorRequiredServiceUnit = await query.CountAsync(x => x.IsDoctorRequired),
                 ScreeningRequiredServiceUnit = await query.CountAsync(x => x.IsScreeningRequired)
@@ -159,6 +161,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isAvailableForRegistration,
             [FromQuery] bool? isAvailableForKiosk,
             [FromQuery] bool? isAvailableForAppointment,
+            [FromQuery] bool? isAvailableForBloodOrder,
             [FromQuery] bool? isQueueRequired,
             [FromQuery] bool? isDoctorRequired,
             [FromQuery] bool? isScreeningRequired,
@@ -192,6 +195,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isAvailableForRegistration,
                 isAvailableForKiosk,
                 isAvailableForAppointment,
+                isAvailableForBloodOrder,
                 isQueueRequired,
                 isDoctorRequired,
                 isScreeningRequired
@@ -245,6 +249,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isAvailableForRegistration = null,
             [FromQuery] bool? isAvailableForKiosk = null,
             [FromQuery] bool? isAvailableForAppointment = null,
+            [FromQuery] bool? isAvailableForBloodOrder = null,
             [FromQuery] bool? isQueueRequired = null,
             [FromQuery] bool? isDoctorRequired = null,
             [FromQuery] bool? isScreeningRequired = null,
@@ -266,6 +271,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isAvailableForRegistration,
                 isAvailableForKiosk,
                 isAvailableForAppointment,
+                isAvailableForBloodOrder,
                 isQueueRequired,
                 isDoctorRequired,
                 isScreeningRequired
@@ -294,6 +300,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsAvailableForRegistration = x.IsAvailableForRegistration,
                     IsAvailableForKiosk = x.IsAvailableForKiosk,
                     IsAvailableForAppointment = x.IsAvailableForAppointment,
+                    IsAvailableForBloodOrder = x.IsAvailableForBloodOrder,
                     IsQueueRequired = x.IsQueueRequired,
                     IsDoctorRequired = x.IsDoctorRequired,
                     IsScreeningRequired = x.IsScreeningRequired,
@@ -399,6 +406,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsAvailableForRegistration = request.IsAvailableForRegistration,
                 IsAvailableForKiosk = request.IsAvailableForKiosk,
                 IsAvailableForAppointment = request.IsAvailableForAppointment,
+                IsAvailableForBloodOrder = request.IsAvailableForBloodOrder,
                 IsQueueRequired = request.IsQueueRequired,
                 IsDoctorRequired = request.IsDoctorRequired,
                 IsScreeningRequired = request.IsScreeningRequired,
@@ -494,6 +502,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsAvailableForRegistration = request.IsAvailableForRegistration;
             entity.IsAvailableForKiosk = request.IsAvailableForKiosk;
             entity.IsAvailableForAppointment = request.IsAvailableForAppointment;
+            entity.IsAvailableForBloodOrder = request.IsAvailableForBloodOrder;
             entity.IsQueueRequired = request.IsQueueRequired;
             entity.IsDoctorRequired = request.IsDoctorRequired;
             entity.IsScreeningRequired = request.IsScreeningRequired;
@@ -725,6 +734,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             bool? isAvailableForRegistration,
             bool? isAvailableForKiosk,
             bool? isAvailableForAppointment,
+            bool? isAvailableForBloodOrder,
             bool? isQueueRequired,
             bool? isDoctorRequired,
             bool? isScreeningRequired)
@@ -773,6 +783,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (isAvailableForAppointment.HasValue)
             {
                 query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
+            }
+
+            if (isAvailableForBloodOrder.HasValue)
+            {
+                query = query.Where(x => x.IsAvailableForBloodOrder == isAvailableForBloodOrder.Value);
             }
 
             if (isQueueRequired.HasValue)
@@ -845,6 +860,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "isavailableforappointment" => isDescending
                     ? query.OrderByDescending(x => x.IsAvailableForAppointment).ThenBy(x => x.ServiceUnitName)
                     : query.OrderBy(x => x.IsAvailableForAppointment).ThenBy(x => x.ServiceUnitName),
+
+                "isavailableforbloodorder" => isDescending
+                    ? query.OrderByDescending(x => x.IsAvailableForBloodOrder).ThenBy(x => x.ServiceUnitName)
+                    : query.OrderBy(x => x.IsAvailableForBloodOrder).ThenBy(x => x.ServiceUnitName),
 
                 "isqueuerequired" => isDescending
                     ? query.OrderByDescending(x => x.IsQueueRequired).ThenBy(x => x.ServiceUnitName)
@@ -1022,6 +1041,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsAvailableForRegistration = entity.IsAvailableForRegistration,
                 IsAvailableForKiosk = entity.IsAvailableForKiosk,
                 IsAvailableForAppointment = entity.IsAvailableForAppointment,
+                IsAvailableForBloodOrder = entity.IsAvailableForBloodOrder,
                 IsQueueRequired = entity.IsQueueRequired,
                 IsDoctorRequired = entity.IsDoctorRequired,
                 IsScreeningRequired = entity.IsScreeningRequired,
@@ -1050,6 +1070,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsAvailableForRegistration = entity.IsAvailableForRegistration,
                 IsAvailableForKiosk = entity.IsAvailableForKiosk,
                 IsAvailableForAppointment = entity.IsAvailableForAppointment,
+                IsAvailableForBloodOrder = entity.IsAvailableForBloodOrder,
                 IsQueueRequired = entity.IsQueueRequired,
                 IsDoctorRequired = entity.IsDoctorRequired,
                 IsScreeningRequired = entity.IsScreeningRequired,
@@ -1222,6 +1243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isAvailableForRegistration", Type = "bool", Description = "Filter tersedia untuk registrasi.", Example = "true" },
                 new() { Name = "isAvailableForKiosk", Type = "bool", Description = "Filter tersedia untuk kiosk.", Example = "true" },
                 new() { Name = "isAvailableForAppointment", Type = "bool", Description = "Filter tersedia untuk appointment.", Example = "true" },
+                new() { Name = "isAvailableForBloodOrder", Type = "bool", Description = "Filter unit yang berwenang memesan darah ke Bank Darah.", Example = "true" },
                 new() { Name = "isQueueRequired", Type = "bool", Description = "Filter membutuhkan antrian.", Example = "true" },
                 new() { Name = "isDoctorRequired", Type = "bool", Description = "Filter membutuhkan dokter.", Example = "true" },
                 new() { Name = "isScreeningRequired", Type = "bool", Description = "Filter membutuhkan screening.", Example = "true" },
@@ -1255,11 +1277,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isAvailableForRegistration", Label = "Tersedia Untuk Registrasi", Section = "Rule", InputType = "switch", SortOrder = 7 },
                 new() { Name = "isAvailableForKiosk", Label = "Tampil di Kiosk", Section = "Rule", InputType = "switch", SortOrder = 8 },
                 new() { Name = "isAvailableForAppointment", Label = "Tersedia Untuk Appointment", Section = "Rule", InputType = "switch", SortOrder = 9 },
-                new() { Name = "isQueueRequired", Label = "Butuh Antrian", Section = "Rule", InputType = "switch", SortOrder = 10 },
-                new() { Name = "isDoctorRequired", Label = "Butuh Dokter", Section = "Rule", InputType = "switch", SortOrder = 11 },
-                new() { Name = "isScreeningRequired", Label = "Butuh Screening", Section = "Rule", InputType = "switch", SortOrder = 12 },
-                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 13 },
-                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 14 }
+                new() { Name = "isAvailableForBloodOrder", Label = "Berwenang Memesan Darah", Section = "Rule", InputType = "switch", Description = "Bawaannya mati. Unit yang penandanya mati tidak dapat membuat order darah ke Bank Darah.", Example = "false", SortOrder = 10 },
+                new() { Name = "isQueueRequired", Label = "Butuh Antrian", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isDoctorRequired", Label = "Butuh Dokter", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isScreeningRequired", Label = "Butuh Screening", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 14 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 15 }
             };
 
             if (isUpdate)
