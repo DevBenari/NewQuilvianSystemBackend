@@ -186,8 +186,34 @@ menerima dua konteks tagihan.
 
 Tidak diperlukan. Sifatnya sinkron, dan gagal berarti batal seluruhnya.
 
-**Yang belum disepakati:** bentuk teknis permintaan dan jawaban. Dicatat sebagai
-`LAB-COORD-003` dan `LAB-COORD-004`.
+### Bentuk teknis — ditetapkan 2026-09-04 (`BE-EXT-03`)
+
+Tempat penyimpanan penunjuknya **sudah ada**: `TrxPatientEncounter.ReferralInstitutionId` dan
+`TrxPatientEncounter.ReferralDoctorId`, keduanya boleh kosong dan bertaut `Restrict` ke
+`MstReferralInstitution` serta `MstReferralDoctor`.
+
+| Ruas permintaan | Dipetakan ke |
+|---|---|
+| `patientId` atau identitas pasien baru | `TrxPatientEncounter.PatientId` |
+| `serviceUnitId` | `ServiceUnitId` |
+| `isWalkIn` | `IsWalkIn` dan `RegistrationSource = WalkIn` |
+| `isReferral`, `referralNumber` | `IsReferral`, `ReferralNumber` |
+| `referralInstitutionId` | `ReferralInstitutionId` |
+| `referralDoctorId` | `ReferralDoctorId` |
+| `paymentType` beserta penunjuk penjaminnya | Penjamin kunjungan |
+| `idempotencyKey` | Tidak disimpan pada kunjungan; dipakai Registrasi mengenali pengiriman ulang |
+
+| Ruas jawaban | Dipakai Laboratorium untuk |
+|---|---|
+| `encounterId` | Diisikan ke `LabOrder.EncounterId` |
+| `encounterNumber` | Ditampilkan kepada petugas |
+| `patientId` | Menampilkan identitas pada layar berikutnya |
+
+**Yang masih menunggu pemilik `registration-management`:** endpoint pelaksananya beserta
+penyimpanan kunci idempotensi. Kolom penunjuk dan pemetaan di atas sudah tersedia dan sudah
+diterapkan ke basis data; yang belum ada adalah jalur pemanggilannya. Bukti idempotensi
+— menekan simpan dua kali tidak menghasilkan dua kunjungan — baru dapat dihasilkan
+setelah endpoint itu ada, dan menjadi cakupan `BE-LAB-08`.
 
 ---
 

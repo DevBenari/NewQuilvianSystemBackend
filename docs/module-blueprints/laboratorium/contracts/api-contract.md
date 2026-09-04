@@ -215,9 +215,9 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/examinations` | Daftar pemeriksaan laboratorium yang dapat dipesan, disaring per disiplin | `LabCatalog : Read` | `LabCatalogQuery` | `ApiResponse<PagedResult<LabCatalogItemResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/examinations/{procedureId}/price` | Harga berlaku dan status cakupan penjamin untuk satu pemeriksaan | `LabCatalog : Read` | `LabPriceQuery` | `ApiResponse<LabPriceResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/tariffs` | Tampilan tersaring daftar tarif pemeriksaan laboratorium — **baca saja** | `LabCatalog : Read` | `LabTariffQuery` | `ApiResponse<PagedResult<LabTariffViewResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/examinations` | Daftar pemeriksaan laboratorium yang dapat dipesan, disaring per disiplin | `LabCatalog : Read` | `LabCatalogQuery` | `ApiResponse<PagedResult<LabCatalogItemResponse>>` | **Tersedia** — `BE-LAB-07` |
+| `GET` | `/examinations/{procedureId}/price` | Harga berlaku dan status cakupan penjamin untuk satu pemeriksaan | `LabCatalog : Read` | `LabPriceQuery` | `ApiResponse<LabPriceResponse>` | **Tersedia** — `BE-LAB-07` |
+| `GET` | `/tariffs` | Tampilan tersaring daftar tarif pemeriksaan laboratorium — **baca saja** | `LabCatalog : Read` | `LabTariffQuery` | `ApiResponse<PagedResult<LabTariffViewResponse>>` | **Tersedia** — `BE-LAB-07` |
 
 `LabCatalogItemResponse` memuat nama pemeriksaan, disiplin, harga satuan berlaku, dan penanda
 tercakup penjamin. `LabPriceResponse` memuat harga rumah sakit, harga kontrak penjamin bila ada,

@@ -139,6 +139,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (procedure == null)
                 throw new LabExaminationValidationException("Tindakan yang dipilih bukan pemeriksaan laboratorium.");
 
+            // INV-22 / VAL-46. Pemeriksaan yang disiplinnya tidak sesuai disiplin pesanan
+            // ditolak: pesanan Mikrobiologi tidak boleh memuat Hemoglobin, karena yang
+            // mengerjakannya orang lain dan daftar kerjanya pun terpisah.
+            //
+            // Ditegakkan hanya ketika KEDUANYA diketahui. Pesanan peninggalan sebelum kolom
+            // disiplin ada, dan katalog yang belum digolongkan, keduanya bernilai kosong —
+            // menolaknya akan mematikan pemesanan pada rumah sakit yang penggolongannya belum
+            // diisi, padahal yang belum lengkap adalah data induknya, bukan permintaannya.
+            if (order.Discipline != null &&
+                procedure.LabDiscipline != null &&
+                order.Discipline != procedure.LabDiscipline)
+            {
+                throw new LabExaminationValidationException(
+                    $"Pemeriksaan ini bukan bagian dari {order.Discipline}. " +
+                    "Buat pesanan terpisah untuk disiplin yang sesuai.");
+            }
+
             // Keunikan wadah dan jenis pemeriksaan (BR-20). Diperiksa di sini supaya pemanggil
             // menerima pesan yang berarti, sementara index unik database tetap menjadi penjaga
             // terakhir bila dua permintaan datang bersamaan.

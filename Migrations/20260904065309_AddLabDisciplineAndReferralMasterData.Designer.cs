@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260904065309_AddLabDisciplineAndReferralMasterData")]
+    partial class AddLabDisciplineAndReferralMasterData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76280,12 +76283,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
 
-                    b.Property<Guid?>("ReferralDoctorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReferralInstitutionId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ReferralNumber")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
@@ -76349,12 +76346,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PatientId");
 
                     b.HasIndex("PaymentMethodId");
-
-                    b.HasIndex("ReferralDoctorId")
-                        .HasFilter("\"ReferralDoctorId\" IS NOT NULL");
-
-                    b.HasIndex("ReferralInstitutionId")
-                        .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
 
                     b.HasIndex("RegisteredByUserId");
 
@@ -98179,16 +98170,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PaymentMethodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstReferralDoctor", "ReferralDoctor")
-                        .WithMany()
-                        .HasForeignKey("ReferralDoctorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstReferralInstitution", "ReferralInstitution")
-                        .WithMany()
-                        .HasForeignKey("ReferralInstitutionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RegisteredByUser")
                         .WithMany()
                         .HasForeignKey("RegisteredByUserId")
@@ -98227,10 +98208,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PatientClass");
 
                     b.Navigation("PaymentMethod");
-
-                    b.Navigation("ReferralDoctor");
-
-                    b.Navigation("ReferralInstitution");
 
                     b.Navigation("RegisteredByUser");
 
