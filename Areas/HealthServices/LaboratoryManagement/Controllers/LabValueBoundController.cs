@@ -38,9 +38,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labValueBoundService = labValueBoundService;
         }
 
-        /// <summary>
-        /// Daftar batas nilai, dapat disaring per jenis pemeriksaan.
-        /// </summary>
+        // Keterangan bentuk layar batas nilai: pilihan bentuk hasil, jenis kelamin, urutan,
+        // ukuran halaman, dan penanda bahwa batas kritis hanya berubah lewat pengajuan.
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabValueBoundFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Value Bound", Description = "Melihat daftar pilihan penyaring batas nilai", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabValueBound", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = _labValueBoundService.GetFilterMetadata();
+
+            return Ok(ApiResponse<LabValueBoundFilterMetadataResponse>.Ok(
+                result,
+                "Metadata penyaring batas nilai laboratorium berhasil diambil."));
+        }
+
+        // Rekap batas nilai. Tanpa rentang waktu — ini data induk, bukan catatan kejadian.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabValueBoundSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Value Bound", Description = "Melihat rekap batas nilai laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabValueBound", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labValueBoundService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabValueBoundSummaryResponse>.Ok(
+                result,
+                "Rekap batas nilai laboratorium berhasil diambil."));
+        }
+
+        // Daftar batas nilai, dapat disaring per jenis pemeriksaan.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabValueBoundListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Value Bound", Description = "Melihat daftar batas nilai laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -56,9 +83,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Daftar batas nilai laboratorium berhasil diambil."));
         }
 
-        /// <summary>
-        /// Detail satu batas nilai beserta daftar pilihannya.
-        /// </summary>
+        // Detail satu batas nilai beserta daftar pilihannya.
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabValueBoundDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -80,9 +105,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Detail batas nilai laboratorium berhasil diambil."));
         }
 
-        /// <summary>
-        /// Membuat batas nilai baru untuk satu kelompok pasien.
-        /// </summary>
+        // Membuat batas nilai baru untuk satu kelompok pasien.
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<LabValueBoundDetailResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -122,13 +145,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Mengubah satuan, batas normal, batas waktu cito, dan daftar pilihan.
-        ///
-        /// Batas kritis <b>tidak</b> dapat diubah lewat sini. Permintaan yang memuat perubahan
-        /// batas kritis — termasuk penanda pilihan yang dianggap kritis — ditolak
-        /// <c>422</c> (<c>VAL-28</c>).
-        /// </summary>
+        // Mengubah satuan, batas normal, batas waktu cito, dan daftar pilihan.
+        //
+        // Batas kritis TIDAK dapat diubah lewat sini. Permintaan yang memuat perubahan batas
+        // kritis — termasuk penanda pilihan yang dianggap kritis — ditolak 422 (VAL-28).
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabValueBoundDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -144,10 +164,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labValueBoundService.UpdateAsync(id, request, cancellationToken),
                 "Batas nilai laboratorium berhasil diubah.");
 
-        /// <summary>
-        /// Menonaktifkan batas nilai. Batas aktif terakhir milik sebuah pemeriksaan tidak dapat
-        /// dinonaktifkan (<c>VAL-30</c>).
-        /// </summary>
+        // Menonaktifkan batas nilai. Batas aktif terakhir milik sebuah pemeriksaan tidak dapat
+        // dinonaktifkan (VAL-30).
         [HttpPut("{id:guid}/deactivate")]
         [ProducesResponseType(typeof(ApiResponse<LabValueBoundDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -159,9 +177,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labValueBoundService.DeactivateAsync(id, cancellationToken),
                 "Batas nilai laboratorium berhasil dinonaktifkan.");
 
-        /// <summary>
-        /// Riwayat perubahan sebuah batas nilai, terbaru lebih dulu.
-        /// </summary>
+        // Riwayat perubahan sebuah batas nilai, terbaru lebih dulu.
         [HttpGet("{id:guid}/history")]
         [ProducesResponseType(typeof(ApiResponse<List<LabValueBoundHistoryResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

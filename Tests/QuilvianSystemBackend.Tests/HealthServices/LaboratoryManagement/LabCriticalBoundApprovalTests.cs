@@ -580,7 +580,9 @@ public class LabCriticalBoundApprovalTests
             .Where(x => x.GetCustomAttributes<AccessPermissionAttribute>().Any())
             .ToList();
 
-        Assert.Equal(5, endpoints.Count);
+        // Lima endpoint pengajuan dari LAB-API-v1 r3, ditambah filters/metadata dan summary
+        // dari amandemen r4 (BE-LAB-17).
+        Assert.Equal(7, endpoints.Count);
 
         // Menyetujui dan menolak sama-sama memakai LabCriticalBound : Approve; mengajukan dan
         // menarik memakai LabValueBound : Update. Pemisahan itulah yang membuat dua peran

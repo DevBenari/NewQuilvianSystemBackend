@@ -3,8 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `3` |
-| Status | `approved` — dikunci 2026-09-02 |
+| Revision | `5` |
+| Status | `approved` — `r3` dikunci 2026-09-02; **amandemen `r4` dan `r5` disetujui pemilik modul 2026-09-03** |
+| Isi amandemen `r4` | Sepuluh endpoint baca ditambahkan: `GET /filters/metadata` dan `GET /summary` pada kelima grup Laboratorium yang sudah punya controller. Seluruhnya **aditif** — tidak satu pun endpoint, ruas, atau nilai enum `r3` yang berubah, berganti nama, atau hilang. Dikerjakan `BE-LAB-17` |
+| Isi amandemen `r5` | `GET /lab-orders` memperoleh penyaring, pengurutan, dan pagination di sisi server lewat `LabOrderPagedQuery`. **Ini satu-satunya perubahan breaking**: bentuk responsnya berubah dari `ApiResponse<List<LabOrderListResponse>>` menjadi `ApiResponse<PagedResult<LabOrderListResponse>>`. Dampak konsumen dinilai — lihat catatan di bawah. Dikerjakan `BE-LAB-18` |
+
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
@@ -18,6 +21,19 @@ Seluruh endpoint memerlukan login (`[Authorize]`). Pembungkus respons memakai
 
 Endpoint yang belum ada di kode ditandai **`Rencana (belum tersedia)`**.
 
+> **Penilaian dampak amandemen `r5`.** Satu-satunya konsumen `GET /lab-orders` yang ditemukan
+> adalah modul IGD pada
+> `src/lib/state/slice/health-services/emergency-installation-management/emergency-assessment-slice.jsx`.
+> Pembungkusnya memakai `unwrapItems`, yang sudah menangani **kedua** bentuk — larik langsung
+> maupun objek ber-`items` — sehingga perubahan bentuk ini **tidak memutusnya**.
+>
+> Yang berubah bagi IGD adalah perilaku, bukan bentuk: sebelumnya ia menerima seluruh isi
+> tabel lalu menyaringnya sendiri di browser; kini ia menerima halaman pertama saja. Selama
+> ia belum mengirim `?encounterId=`, pesanan pasien yang berada di luar halaman pertama tidak
+> akan tampil. **Perbaikannya satu baris di sisi IGD** dan justru menutup keterbatasan yang
+> sudah mereka catat sendiri sebagai `IGD-DEC-105`. Laboratorium tidak mengubah source
+> frontend; temuan ini dilaporkan sebagaimana diwajibkan `AGENTS.md`.
+
 ---
 
 ## 1. Kontrak As-Is — yang benar-benar ada pada `c87d9c0`
@@ -28,7 +44,7 @@ Base URL: `api/v1/health-services/laboratory-management/lab-orders`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/` | Daftar pesanan lab | `LabOrder : Read` | — | `ApiResponse<List<LabOrderListResponse>>` | Tersedia |
+| `GET` | `/` | Daftar pesanan lab — **tanpa satu pun parameter**, mengembalikan seluruh isi tabel | `LabOrder : Read` | — | `ApiResponse<List<LabOrderListResponse>>` | Tersedia pada `c87d9c0`; **digantikan `r5`** |
 | `GET` | `/{id}` | Detail satu pesanan | `LabOrder : Read` | — | `ApiResponse<LabOrderDetailResponse>` | Tersedia |
 | `POST` | `/` | Membuat pesanan lab | `LabOrder : Create` | `CreateLabOrderRequest` | `ApiResponse<LabOrderDetailResponse>` | Tersedia |
 | `PUT` | `/{id}/start-process` | Menandai pesanan mulai dikerjakan | `LabOrder : Process` | — | `ApiResponse<LabOrderDetailResponse>` | Tersedia |
@@ -70,6 +86,9 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Tersedia** — `r5`, `BE-LAB-18`. **Breaking**: bentuk respons berubah dari `List<T>` menjadi `PagedResult<T>` |
+| `GET` | `/filters/metadata` | Pilihan penyaring, urutan, dan ukuran halaman untuk layar daftar pesanan | `LabOrder : Read` | — | `ApiResponse<LabOrderFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `GET` | `/summary` | Rekap pesanan pada satu rentang waktu, per status dan per disiplin | `LabOrder : Read` | `startDate`, `endDate` | `ApiResponse<LabOrderSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/by-discipline/{discipline}` | Daftar pesanan per disiplin: Patologi Klinik, Patologi Anatomi, atau Mikrobiologi | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Rencana (belum tersedia)** |
 
 Delapan endpoint pesanan yang sudah ada tetap berlaku apa adanya. `LabOrderDetailResponse`
@@ -86,10 +105,10 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/by-order/{labOrderId}` | Daftar pemeriksaan terpesan pada satu pesanan | `LabExamination : Read` | — | `ApiResponse<List<LabExaminationResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/by-specimen/{specimenId}` | Daftar pemeriksaan yang ditopang satu wadah | `LabExamination : Read` | — | `ApiResponse<List<LabExaminationResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/by-order/{labOrderId}` | Menambah pemeriksaan terpesan dan menautkannya ke wadah | `LabExamination : Create` | `AddLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/cancel` | Membatalkan satu pemeriksaan terpesan | `LabExamination : Update` | `CancelLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-order/{labOrderId}` | Daftar pemeriksaan terpesan pada satu pesanan | `LabExamination : Read` | — | `ApiResponse<List<LabExaminationResponse>>` | **Tersedia** — `BE-LAB-16` |
+| `GET` | `/by-specimen/{specimenId}` | Daftar pemeriksaan yang ditopang satu wadah | `LabExamination : Read` | — | `ApiResponse<List<LabExaminationResponse>>` | **Tersedia** — `BE-LAB-16` |
+| `POST` | `/by-order/{labOrderId}` | Menambah pemeriksaan terpesan dan menautkannya ke wadah | `LabExamination : Create` | `AddLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-16` |
+| `POST` | `/{id}/cancel` | Membatalkan satu pemeriksaan terpesan | `LabExamination : Update` | `CancelLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-16` |
 | `PUT` | `/{id}/urgency` | Menandai **satu pemeriksaan** sebagai cito atau mengembalikannya menjadi biasa | `LabExamination : Update` | `SetLabExaminationUrgencyRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
 | `PUT` | `/{id}/duplo` | Menandai satu pemeriksaan dikerjakan ganda | `LabExamination : Update` | `SetLabExaminationDuploRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
 
@@ -103,9 +122,11 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `POST` | `/by-order/{labOrderId}` | Merencanakan **satu wadah** beserta pemeriksaan yang ditopangnya | `LabSpecimen : Plan` | `PlanLabSpecimenRequest` **(berubah)** | `ApiResponse<LabSpecimenResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/accept` | Menyatakan wadah layak; menerbitkan kelayakan tagih untuk seluruh pemeriksaan yang ditopangnya | `LabSpecimen : Accept` | `AcceptLabSpecimenRequest` | `ApiResponse<LabBillingHandoffResponse>` **(berubah)** | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/reject` | Menolak wadah; menggugurkan seluruh pemeriksaan yang ditopangnya | `LabSpecimen : Accept` | `RejectLabSpecimenRequest` | `ApiResponse<LabSpecimenResponse>` **(berubah)** | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Pilihan status wadah, sebab ambil ulang, urutan, dan ukuran halaman | `LabSpecimen : Read` | — | `ApiResponse<LabSpecimenFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `GET` | `/summary` | Rekap wadah pada satu rentang waktu, per status dan per sebab ambil ulang | `LabSpecimen : Read` | `startDate`, `endDate` | `ApiResponse<LabSpecimenSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `POST` | `/by-order/{labOrderId}` | Merencanakan **satu wadah** beserta pemeriksaan yang ditopangnya | `LabSpecimen : Plan` | `PlanLabSpecimenRequest` **(berubah)** | `ApiResponse<LabSpecimenResponse>` | **Tersedia** — `BE-LAB-12` |
+| `POST` | `/{id}/accept` | Menyatakan wadah layak; seluruh pemeriksaan yang ditopangnya menjadi layak tagih | `LabSpecimen : Accept` | `AcceptLabSpecimenRequest` | `ApiResponse<LabBillingHandoffResponse>` **(berubah)** | **Tersedia** — `BE-LAB-12`; penerbitan fakta per pemeriksaan menunggu `BE-LAB-13` |
+| `POST` | `/{id}/reject` | Menolak wadah; menggugurkan seluruh pemeriksaan yang ditopangnya | `LabSpecimen : Accept` | `RejectLabSpecimenRequest` | `ApiResponse<LabSpecimenResponse>` **(berubah)** | **Tersedia** — `BE-LAB-12` |
 
 Sembilan endpoint sampel lainnya tetap berlaku apa adanya.
 
@@ -116,6 +137,8 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan bentuk hasil, jenis kelamin, urutan, ukuran halaman, dan penanda bahwa batas kritis hanya berubah lewat pengajuan | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `GET` | `/summary` | Rekap batas nilai: aktif, nonaktif, per bentuk hasil, dan yang menunggu persetujuan batas kritis | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/` | Daftar batas nilai, dapat disaring per jenis pemeriksaan | `LabValueBound : Read` | `LabValueBoundPagedQuery` | `ApiResponse<PagedResult<LabValueBoundListResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id}` | Detail satu batas nilai beserta pilihannya | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/` | Membuat batas nilai baru | `LabValueBound : Create` | `CreateLabValueBoundRequest` | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
@@ -130,6 +153,8 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan status pengajuan, urutan, ukuran halaman, dan dua penanda keselamatan: larangan menyetujui pengajuan sendiri serta batas satu pengajuan belum diputuskan | `LabCriticalBound : Read` | — | `ApiResponse<LabCriticalBoundApprovalFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `GET` | `/summary` | Rekap pengajuan untuk **satu** batas nilai, per status | `LabCriticalBound : Read` | — | `ApiResponse<LabCriticalBoundApprovalSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/` | Daftar pengajuan perubahan batas kritis | `LabCriticalBound : Read` | — | `ApiResponse<List<LabBoundChangeRequestResponse>>` | **Rencana (belum tersedia)** |
 | `POST` | `/` | Mengajukan perubahan batas kritis | `LabValueBound : Update` | `SubmitCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/{requestId}/approve` | Menyetujui pengajuan; batas baru mulai berlaku | `LabCriticalBound : Approve` | `DecideCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
@@ -153,6 +178,8 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan urutan, ukuran halaman, dan daftar ruas yang terkunci bagi kepala instalasi | `LabRejectionReason : Read` | — | `ApiResponse<LabRejectionReasonFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
+| `GET` | `/summary` | Rekap alasan penolakan: aktif, nonaktif, berpenanda kesalahan internal, dan wajib catatan | `LabRejectionReason : Read` | — | `ApiResponse<LabRejectionReasonSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/` | Daftar alasan penolakan untuk pengelolaan | `LabRejectionReason : Read` | `LabRejectionReasonPagedQuery` | `ApiResponse<PagedResult<LabRejectionReasonResponse>>` | **Rencana (belum tersedia)** |
 | `POST` | `/` | Menambah alasan penolakan | `LabRejectionReason : Create` | `CreateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |
 | `PUT` | `/{id}` | Mengubah nama, keterangan, dan urutan | `LabRejectionReason : Update` | `UpdateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |

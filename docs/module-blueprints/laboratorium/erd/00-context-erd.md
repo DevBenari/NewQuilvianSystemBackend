@@ -52,7 +52,7 @@ erDiagram
         int OrderStatus
         int Discipline "1 Pat Klinik, 2 Pat Anatomi, 3 Mikrobiologi"
     }
-    TrxLabSpecimen {
+    LabSpecimen {
         uuid Id PK
         uuid LabOrderId FK
         varchar SpecimenBarcode UK
@@ -85,9 +85,9 @@ erDiagram
     MstProcedure ||--o{ LabOrder : "1:N — Sudah ada, milik Master Data"
     MstProcedure ||--o{ LabExamination : "1:N — Baru, milik Master Data"
     MstProcedure ||--o{ LabValueBound : "1:N — Baru, milik Master Data"
-    LabOrder ||--o{ TrxLabSpecimen : "1:N — Diperbarui"
+    LabOrder ||--o{ LabSpecimen : "1:N — Diperbarui"
     LabOrder ||--o{ LabExamination : "1:N — Baru"
-    TrxLabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
+    LabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
     LabExamination ||--o{ CliClinicalMilestoneFact : "1:N — Sudah ada, milik Billing Integration"
 ```
 
@@ -132,9 +132,9 @@ Laboratorium **tidak mengerjakannya** dan **tidak menulis** ke sana.
 | `MstReferralDoctor` | **Baru** | Health Services Master Data | Data induk global, tertaut ke instansinya. **Dikerjakan Master Data** |
 | `MstAgeCategory` | Sudah ada | Health Services Master Data | Direferensikan oleh batas nilai |
 | `LabOrder` | Diperbarui | Laboratorium | Tambah kolom `Discipline`. Kolom kesegeraan pindah ke `LabExamination` |
-| `TrxLabSpecimen` | Diperbarui | Laboratorium | Berubah makna menjadi wadah fisik; enam kolom pindah keluar |
+| `LabSpecimen` | Diperbarui | Laboratorium | Berubah makna menjadi wadah fisik; enam kolom pindah keluar |
 | `LabExamination` | **Baru** | Laboratorium | Satuan yang ditagihkan dan kelak punya hasil. Membawa penanda cito dan duplo |
-| `TrxLabTransitionHistory` | Diperbarui | Laboratorium | Tambah `LabExaminationId` |
+| `LabTransitionHistory` | Diperbarui | Laboratorium | Tambah `LabExaminationId` |
 | `LabValueBound` | **Baru** | Laboratorium | Batas nilai per pemeriksaan, jenis kelamin, dan kelompok umur |
 | `LabValueOption` | **Baru** | Laboratorium | Pilihan sah untuk hasil berbentuk pilihan |
 | `LabValueBoundChangeRequest` | **Baru** | Laboratorium | Pengajuan perubahan batas kritis |

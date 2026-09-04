@@ -12,7 +12,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     public class PlanLabSpecimenRequest
     {
         /// <summary>
-        /// Procedure komponen pemeriksaan. Bila kosong, dipakai procedure pesanan.
+        /// Jenis pemeriksaan yang akan dikerjakan dari wadah ini.
+        ///
+        /// <b>Inilah perubahan inti <c>LAB-DEC-024</c>.</b> Satu wadah menopang satu atau lebih
+        /// pemeriksaan — satu tabung darah ungu untuk hemoglobin, leukosit, dan trombosit
+        /// sekaligus. Sebelumnya satu wadah sama dengan satu pemeriksaan, sehingga pasien
+        /// menerima tiga barcode untuk satu kali tusukan jarum.
+        ///
+        /// Wajib memuat sekurang-kurangnya satu (<c>VAL-05</c>), dan tidak boleh memuat jenis
+        /// yang sama dua kali (<c>VAL-07</c>).
+        /// </summary>
+        public List<Guid> Examinations { get; set; } = new();
+
+        /// <summary>
+        /// Jalur ringkas satu pemeriksaan, dipertahankan untuk pemanggil lama.
+        ///
+        /// Dipakai hanya ketika <see cref="Examinations"/> kosong. Bila keduanya kosong,
+        /// procedure pesanan yang dipakai — dan bila pesanan pun tidak punya, permintaan ditolak
+        /// <c>VAL-05</c>.
         /// </summary>
         public Guid? ProcedureId { get; set; }
 
