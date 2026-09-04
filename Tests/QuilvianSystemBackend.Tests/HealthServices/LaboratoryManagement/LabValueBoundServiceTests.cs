@@ -562,7 +562,9 @@ public class LabValueBoundServiceTests
             .Where(x => x.GetCustomAttributes<AccessPermissionAttribute>().Any())
             .ToList();
 
-        Assert.Equal(6, endpoints.Count);
+        // Enam endpoint pengelolaan dari LAB-API-v1 r3, ditambah filters/metadata dan summary
+        // dari amandemen r4 (BE-LAB-17).
+        Assert.Equal(8, endpoints.Count);
         Assert.Empty(endpoints.Where(x => x.GetCustomAttributes<HttpDeleteAttribute>().Any()));
     }
 

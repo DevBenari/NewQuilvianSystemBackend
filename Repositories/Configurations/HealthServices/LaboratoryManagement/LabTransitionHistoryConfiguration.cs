@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.LaboratoryManagement
 {
-    public class TrxLabTransitionHistoryConfiguration : IEntityTypeConfiguration<TrxLabTransitionHistory>
+    public class LabTransitionHistoryConfiguration : IEntityTypeConfiguration<LabTransitionHistory>
     {
-        public void Configure(EntityTypeBuilder<TrxLabTransitionHistory> builder)
+        public void Configure(EntityTypeBuilder<LabTransitionHistory> builder)
         {
-            builder.ToTable("TrxLabTransitionHistory", "public");
+            builder.ToTable("LabTransitionHistory", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Scope).HasConversion<int>().IsRequired();

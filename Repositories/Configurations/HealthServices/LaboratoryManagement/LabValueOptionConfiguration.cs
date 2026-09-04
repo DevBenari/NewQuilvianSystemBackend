@@ -25,7 +25,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             // Relasi ke LabValueBound dideklarasikan dari sisi LabValueBoundConfiguration agar
             // hanya ada satu tempat yang mendefinisikannya, mengikuti pola yang sudah dipakai
-            // LabOrder dan TrxLabSpecimen pada modul ini.
+            // LabOrder dan LabSpecimen pada modul ini.
         }
     }
 }

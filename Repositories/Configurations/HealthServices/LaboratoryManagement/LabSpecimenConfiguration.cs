@@ -10,11 +10,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
     // IEntityTypeConfiguration yang ditemukannya, sehingga dua konfigurasi untuk entity yang
     // sama hanya akan menyulitkan penelusuran.
 
-    public class TrxLabSpecimenConfiguration : IEntityTypeConfiguration<TrxLabSpecimen>
+    public class LabSpecimenConfiguration : IEntityTypeConfiguration<LabSpecimen>
     {
-        public void Configure(EntityTypeBuilder<TrxLabSpecimen> builder)
+        public void Configure(EntityTypeBuilder<LabSpecimen> builder)
         {
-            builder.ToTable("TrxLabSpecimen", "public");
+            builder.ToTable("LabSpecimen", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.SpecimenBarcode).HasMaxLength(64).IsRequired();

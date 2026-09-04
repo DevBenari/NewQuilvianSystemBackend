@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     /// sehingga alasan penolakan yang pernah tercatat tetap dapat dibaca walaupun kemudian
     /// terjadi pengambilan ulang atau pembatalan.
     /// </summary>
-    public class TrxLabTransitionHistory : IdentityModel
+    public class LabTransitionHistory : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -53,6 +53,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public LabOrder? LabOrder { get; set; }
 
-        public TrxLabSpecimen? LabSpecimen { get; set; }
+        public LabSpecimen? LabSpecimen { get; set; }
     }
 }
