@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.DoesNotContain(spUrin.Id, idKomponenTertagih);
 
             // Nilai rujukan yang diserahkan ke Billing berjumlah Rp350.000, bukan Rp450.000.
-            var totalRujukan = await context.TrxLabSpecimens
+            var totalRujukan = await context.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && x.SpecimenStatus == LabSpecimenStatus.Accepted)
                 .SumAsync(x => x.UnitPriceSnapshot ?? 0m);
 
@@ -307,7 +307,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                 asli.Id,
                 new RequestLabRecollectionRequest { Cause = LabRecollectionCause.InternalHospitalError });
 
-            var sampelAsli = await context.TrxLabSpecimens.AsNoTracking()
+            var sampelAsli = await context.LabSpecimens.AsNoTracking()
                 .FirstAsync(x => x.Id == asli.Id);
 
             // Sampel yang ditolak tidak dihapus dan alasan penolakannya tidak ditimpa.
@@ -321,7 +321,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Equal(LabSpecimenStatus.Planned, pengganti.Specimen.SpecimenStatus);
 
             // Riwayat penolakan tetap terbaca setelah pengambilan ulang.
-            var riwayat = await context.TrxLabTransitionHistories.AsNoTracking()
+            var riwayat = await context.LabTransitionHistories.AsNoTracking()
                 .Where(x => x.LabSpecimenId == asli.Id)
                 .Select(x => x.Action)
                 .ToListAsync();
@@ -476,7 +476,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Single(hasil.BillingHandoffs);
             Assert.Equal(2, hasil.BillingHandoffs[0].MilestoneFactVersion);
 
-            var statusSampel = await context.TrxLabSpecimens.AsNoTracking()
+            var statusSampel = await context.LabSpecimens.AsNoTracking()
                 .Where(x => x.LabOrderId == order.Id)
                 .Select(x => x.SpecimenStatus)
                 .ToListAsync();
@@ -714,7 +714,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         /// Membawa satu sampel baru sampai berstatus Received, yaitu tepat satu langkah
         /// sebelum milestone kelayakan tagih.
         /// </summary>
-        private static async Task<TrxLabSpecimen> SampaiDiterimaAsync(
+        private static async Task<LabSpecimen> SampaiDiterimaAsync(
             LabSpecimenService service,
             Guid labOrderId,
             Guid? procedureId = null)

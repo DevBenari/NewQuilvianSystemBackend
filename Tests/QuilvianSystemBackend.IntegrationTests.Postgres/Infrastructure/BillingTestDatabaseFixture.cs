@@ -328,12 +328,12 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
             if (labOrderIds.Count > 0)
             {
-                var specimenIds = await context.TrxLabSpecimens
+                var specimenIds = await context.LabSpecimens
                     .Where(x => labOrderIds.Contains(x.LabOrderId))
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
 
-                await context.TrxLabTransitionHistories
+                await context.LabTransitionHistories
                     .Where(x =>
                         labOrderIds.Contains(x.LabOrderId) ||
                         (x.LabSpecimenId != null && specimenIds.Contains(x.LabSpecimenId.Value)))
@@ -341,13 +341,13 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
                 // Recollection membuat rantai specimen yang menunjuk specimen sebelumnya, sehingga
                 // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
-                while (await context.TrxLabSpecimens
+                while (await context.LabSpecimens
                     .AnyAsync(x => labOrderIds.Contains(x.LabOrderId), cancellationToken))
                 {
-                    var removed = await context.TrxLabSpecimens
+                    var removed = await context.LabSpecimens
                         .Where(x =>
                             labOrderIds.Contains(x.LabOrderId) &&
-                            !context.TrxLabSpecimens.Any(child => child.SupersededSpecimenId == x.Id))
+                            !context.LabSpecimens.Any(child => child.SupersededSpecimenId == x.Id))
                         .ExecuteDeleteAsync(cancellationToken);
 
                     if (removed == 0)

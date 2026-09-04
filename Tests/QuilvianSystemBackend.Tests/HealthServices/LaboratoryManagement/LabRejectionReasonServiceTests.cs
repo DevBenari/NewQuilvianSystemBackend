@@ -579,7 +579,9 @@ public class LabRejectionReasonServiceTests
             .Where(x => x.GetCustomAttributes<AccessPermissionAttribute>().Any())
             .ToList();
 
-        Assert.Equal(5, endpoints.Count);
+        // Lima endpoint pengelolaan dari LAB-API-v1 r3, ditambah filters/metadata dan summary
+        // dari amandemen r4 (BE-LAB-17).
+        Assert.Equal(7, endpoints.Count);
 
         // Hanya satu endpoint yang menuntut SystemFlag. Pemisahan inilah yang membuat kepala
         // instalasi tidak dapat memindahkan beban biaya pengambilan ulang sendirian.
