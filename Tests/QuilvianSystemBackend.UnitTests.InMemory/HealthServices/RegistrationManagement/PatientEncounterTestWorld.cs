@@ -133,8 +133,6 @@ internal sealed class PatientEncounterTestWorld
         var controller = new PatientEncounterController(
             dbContext,
             loggerService,
-            new QueueRealtimeService(dbContext, new FakeQueueHubContext(), loggerService),
-            new ClinicalDocumentIntegrityService(dbContext));
             queueRealtimeService,
             integrityService);
 

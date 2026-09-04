@@ -1,26 +1,46 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <AssemblyName>QuilvianSystemBackend.Tests</AssemblyName>
+    <RootNamespace>QuilvianSystemBackend.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.18" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!--
+      Uji laboratorium memakai dua penyedia basis data sekaligus. InMemory dipakai untuk
+      perilaku service, sedangkan model relasional dibangun lewat Npgsql tanpa koneksi
+      sungguhan supaya index dan constraint ikut terperiksa. Npgsql sendiri sudah mengalir
+      dari project utama lewat ProjectReference di bawah, jadi tidak perlu ditulis ulang.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="9.0.18" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\QuilvianSystemBackend.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!--
+    Uji ini memanggil controller secara langsung dan membaca IHttpContextAccessor, sehingga
+    membutuhkan tipe ASP.NET Core walaupun project ini bukan project web.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\..\QuilvianSystemBackend.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

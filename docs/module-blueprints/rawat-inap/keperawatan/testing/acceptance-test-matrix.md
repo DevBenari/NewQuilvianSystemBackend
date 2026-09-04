@@ -4,8 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` |
-| Contract version | `0.1.0` |
-| `last_changed_in` | `0.1.0` |
+| Contract version | `0.3.0` |
+| `last_changed_in` | `0.3.0` |
+| Compatibility impact | `0.3.0`: skenario amandemen diganti skenario **addendum** sesuai `RWI-DEC-091`, dan satu skenario baru menjaga rencana asuhan **tetap** berversi |
 | Status | `draft` |
 | Tanggal | 2 September 2026 |
 
@@ -36,7 +37,7 @@ adalah jalur gagal.
 | `VAL-KEP-11` | **Gagal:** membuat pengkajian awal kedua pada episode yang sama | Integration | `409`; pesan mengarahkan ke pengkajian ulang |
 | `VAL-KEP-08` | **Gagal:** menyelesaikan pengkajian dengan isian wajib kosong | Integration | `400`; pesan menyebut bagian yang kosong satu per satu |
 | `AC-CAP012-03` | Pengkajian `Completed` tampil pada census/ruang kerja **tanpa** menambah status episode | Integration | Status episode tetap salah satu dari lima nilai `RWI-DEC-009` |
-| `AC-CAP012-05` | Amandemen pengkajian final mempertahankan versi aslinya | Integration | Status `Amended`; versi lama terbaca utuh |
+| `AC-CAP012-05` | Koreksi pengkajian final mempertahankan isi aslinya | Integration | Status **tetap** `Completed`; isi asli terbaca utuh dan koreksinya muncul sebagai addendum bernomor — lihat bagian 8 |
 | `VAL-KEP-12` | **Gagal:** amandemen tanpa alasan | Integration | `400`; tidak ada versi baru terbentuk |
 
 ---
@@ -93,7 +94,7 @@ adalah jalur gagal.
 
 | Butir | Kenapa belum | Kapan dapat diuji |
 | --- | --- | --- |
-| Seluruh `CAP-016` pemakaian alat | Kepemilikan tabelnya **belum diputuskan** | Setelah `RWI-OQ-048` dijawab |
+| Seluruh `CAP-016` pemakaian alat | **`DEFERRED`** lewat `RWI-DEC-089` — dikeluarkan dari scope rilis pertama secara tertulis | Setelah modul persediaan/aset ada dan `RWI-OQ-048` dibuka ulang — `RWI-AC-171` |
 | `AC-CAP027-02` kewenangan ahli gizi | Modul Gizi `PLANNED` | Setelah modul Gizi berdiri |
 | Nilai batas waktu klinis | `RWI-RULE-021` menunggu pemilik klinis | Yang **dapat** diuji sekarang adalah mekanismenya, dan itu tercakup bagian 3 |
 | Katalog SDKI/SLKI/SIKI | `OPEN DECISION` pada `02-backend-architecture.md` bagian 4.2 | Setelah pemakaian SDKI dinyatakan |
@@ -110,3 +111,25 @@ Ia menutup coverage gap yang ditemukan saat resync roadmap `episode-rawat-inap`.
 | `RWI-DEC-081` | Tidak ada satu pun tabel berawalan `Inp` yang menyimpan pengkajian, asuhan, tindakan keperawatan, CPPT, SOAP, resep, atau tindakan dokter | Architecture test | Pemindaian `ApplicationDbContext` menemukan **nol** entity `Inp*` bernama demikian |
 
 > Tanpa test ini, larangan `RWI-DEC-081` hanya dijaga dokumen. Test ini membuatnya dijaga mesin.
+
+---
+
+## 8. Skenario koreksi dokumen — **baru pada `0.3.0`**
+
+Diturunkan dari `RWI-DEC-091` beserta acceptance criteria `RWI-AC-175` s.d. `RWI-AC-177` pada decision log.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-KEP-008`, `RWI-AC-175` | Ns. Sari menyelesaikan pengkajian awal, lalu menyadari skor nyerinya salah dan menambah koreksi beralasan | Integration | Isi pengkajian asli **tidak berubah sedikit pun**; koreksi muncul sebagai addendum bernomor 1 beserta alasan, penulis, dan waktu; status pengkajian **tetap** `Completed` |
+| `FR-KEP-008`, `RWI-AC-175` | Pengkajian yang sudah `Completed` terdaftar pada mesin keutuhan dengan jenis `Assessment` | Integration | Baris keutuhan ada, dan **tidak ada nilai enum baru** ditambahkan ke `ClinicalDocumentKind` |
+| `FR-KEP-009` | Percobaan menyunting langsung isi pengkajian yang sudah `Completed` | Integration — **jalur gagal** | Ditolak. Bila `RWI-OQ-051` belum dikerjakan, skenario ini **akan lolos padahal seharusnya gagal** — lihat catatan di bawah |
+| `FR-KEP-008` | Percobaan menambah addendum pada pengkajian yang masih `Draft` | Integration — **jalur gagal** | Ditolak, dengan arahan membetulkan langsung pada isinya — `RWI-FACT-013` |
+| `FR-KEP-022`, `RWI-AC-176` | Catatan tindakan yang sudah `Finalized` dikoreksi lewat addendum | Integration | Isi asli utuh; status tetap `Finalized`; jenis dokumen `Procedure` |
+| `FR-KEP-014`, `RWI-AC-177` | Butir rencana asuhan diperbarui karena keadaan pasien membaik | Integration | Menghasilkan **versi baru**, **bukan** addendum; versi sebelumnya tetap menyimpan **penulis dan waktu aslinya**, bukan penulis yang mengubah |
+| `RWI-DEC-091` | Satu episode memuat koreksi perawat dan koreksi dokter pada catatan terpadu yang sama | Integration | Keduanya tampil dalam **satu bentuk yang sama**, yaitu addendum bernomor — bukan satu versi dan satu addendum |
+
+> **Peringatan yang menentukan urutan pengujian.** Skenario `FR-KEP-009` di atas **tidak dapat membuktikan
+> apa pun** sebelum `RWI-OQ-051` dikerjakan. `EnsureMutableAsync` membiarkan lewat jenis dokumen yang belum
+> ditegakkan, sehingga penyuntingan dokumen final **akan berhasil** dan test akan lulus dengan alasan yang
+> salah. Selama `Assessment` dan `Procedure` belum masuk daftar jenis yang ditegakkan, skenario ini wajib
+> ditandai **belum dapat diuji**, bukan ditandai lulus.

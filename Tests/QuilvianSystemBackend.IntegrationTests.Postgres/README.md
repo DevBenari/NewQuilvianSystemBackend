@@ -1,4 +1,4 @@
-# QuilvianSystemBackend.BillingTests
+# QuilvianSystemBackend.IntegrationTests.Postgres
 
 Test otomatis untuk modul Billing Operational, Area `HealthServices`.
 
@@ -13,7 +13,7 @@ Test otomatis untuk modul Billing Operational, Area `HealthServices`.
 ## Cara menjalankan
 
 ```
-dotnet test Tests/QuilvianSystemBackend.BillingTests/QuilvianSystemBackend.BillingTests.csproj
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres/QuilvianSystemBackend.IntegrationTests.Postgres.csproj
 ```
 
 Test memerlukan database PostgreSQL yang dapat dijangkau. Tidak ada langkah persiapan manual:
@@ -34,7 +34,7 @@ Contoh mengarahkan test ke database sendiri:
 
 ```
 $env:QUILVIAN_BILLING_TEST_DB = "Host=localhost;Port=5432;Username=postgres;Password=rahasia;Database=QuilvianBillingTest;"
-dotnet test Tests/QuilvianSystemBackend.BillingTests/QuilvianSystemBackend.BillingTests.csproj
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres/QuilvianSystemBackend.IntegrationTests.Postgres.csproj
 ```
 
 ### Pengaman target database
@@ -86,7 +86,7 @@ tidak memerlukan lapisan transport untuk dibuktikan.
 ## Susunan folder
 
 ```text
-Tests/QuilvianSystemBackend.BillingTests/
+Tests/QuilvianSystemBackend.IntegrationTests.Postgres/
 ├── Infrastructure/
 │   ├── BillingTestDatabaseFixture.cs   # resolusi connection string, migration, seed, teardown
 │   └── EncounterSeed.cs                # identitas prasyarat satu test

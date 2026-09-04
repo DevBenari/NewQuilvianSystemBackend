@@ -653,6 +653,14 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
+        public DbSet<LabValueBound> LabValueBounds { get; set; }
+
+        public DbSet<LabValueOption> LabValueOptions { get; set; }
+
+        public DbSet<LabValueBoundChangeRequest> LabValueBoundChangeRequests { get; set; }
+
+        public DbSet<LabValueBoundHistory> LabValueBoundHistories { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Radiology Management

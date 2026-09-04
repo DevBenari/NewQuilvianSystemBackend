@@ -64862,6 +64862,322 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("LabOrder", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AgeCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CitoTurnaroundMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("CriticalHigh")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("CriticalLow")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GenderScope")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("NormalHigh")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("NormalLow")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ResultForm")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgeCategoryId");
+
+                    b.HasIndex("ProcedureId", "GenderScope", "AgeCategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabValueBound_Procedure_Gender_AgeCategory")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ProcedureId", "GenderScope", "AgeCategoryId"), false);
+
+                    b.ToTable("LabValueBound", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBoundChangeRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("ProposedCriticalHigh")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("ProposedCriticalLow")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("ProposedCriticalOptionCodes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RequestReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("RequestStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ValueBoundId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestStatus");
+
+                    b.HasIndex("ValueBoundId");
+
+                    b.ToTable("LabValueBoundChangeRequest", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBoundHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ChangedField")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ValueBoundId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ValueBoundId", "OccurredAt");
+
+                    b.ToTable("LabValueBoundHistory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCritical")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOutOfReference")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OptionCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("OptionName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ValueBoundId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ValueBoundId", "OptionCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabValueOption_ValueBoundId_OptionCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabValueOption", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.MstLabRejectionReason", b =>
                 {
                     b.Property<Guid>("Id")
@@ -95914,6 +96230,57 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Procedure");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstAgeCategory", "AgeCategory")
+                        .WithMany()
+                        .HasForeignKey("AgeCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AgeCategory");
+
+                    b.Navigation("Procedure");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBoundChangeRequest", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", "ValueBound")
+                        .WithMany()
+                        .HasForeignKey("ValueBoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ValueBound");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBoundHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", "ValueBound")
+                        .WithMany()
+                        .HasForeignKey("ValueBoundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ValueBound");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueOption", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", "ValueBound")
+                        .WithMany("Options")
+                        .HasForeignKey("ValueBoundId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ValueBound");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabSpecimen", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
@@ -99295,6 +99662,11 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
                 {
                     b.Navigation("Specimens");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", b =>
