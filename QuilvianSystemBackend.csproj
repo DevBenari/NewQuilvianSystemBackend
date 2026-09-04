@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 
@@ -9,26 +8,21 @@
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>.</DockerfileContext>
 		<PlatformTarget>x64</PlatformTarget>
+
 		<!--
-      Seluruh project test berada di Tests\ dan bukan bagian dari project web ini.
-      Karena SDK Web mengikutsertakan seluruh berkas di bawah root secara otomatis, folder
-      Tests\ wajib dikecualikan agar tidak ikut terkompilasi ke dalam aplikasi. Satu baris
-      DefaultItemExcludes berlaku untuk Compile, Content, EmbeddedResource, dan None sekaligus.
-    -->
+		  Folder test terpisah dari web project.
+		  Tidak boleh ikut compile ke aplikasi utama.
+		-->
 		<DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
 
-		<!--
-      Berkas dokumentasi XML dihasilkan supaya keterangan pada controller dan DTO ikut tampil
-      di halaman Swagger. Diaktifkan pada BE-18 modul Rekam Medis, karena beberapa perubahan
-      perilaku wajib terbaca pemakai API dan tidak terlihat dari bentuk permintaan maupun
-      responsnya.
 
-      1591 disenyapkan dengan sadar: peringatan itu menuntut komentar XML pada SETIAP anggota
-      publik di seluruh aplikasi. Menyalakannya akan menghasilkan ribuan peringatan yang
-      menenggelamkan peringatan sungguhan, tanpa membuat dokumentasinya lebih baik.
-    -->
+		<!--
+		  XML documentation hanya untuk Development.
+		  Release dimatikan untuk mempercepat build.
+		-->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
+
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -42,35 +36,78 @@
 
 	</PropertyGroup>
 
+	<!-- =========================================================
+	     BUILD PERFORMANCE OPTIMIZATION
+	     =========================================================
+	     
+	     Migration tetap ada di repository untuk:
+	     - dotnet ef migrations add
+	     - dotnet ef database update
+	     - database maintenance
+
+	     Tetapi tidak perlu ikut dikompilasi oleh aplikasi utama.
+
+	     Folder Migration sangat besar:
+	     - ratusan file migration
+	     - Designer.cs jutaan baris generated code
+	     - ModelSnapshot besar
+
+	     Exclude dari Compile mengurangi waktu build.
+	-->
 	<ItemGroup>
+
+		<!--
+    Migration Designer files adalah generated code besar.
+    Tidak diperlukan saat compile aplikasi.
+    Migration utama tetap dipertahankan agar EF Core tetap bekerja.
+    -->
+
+		<Compile Remove="Migrations\**\*.Designer.cs" />
+		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+
 		<Compile Remove="Areas\HealthServices\DeviceManagement\**" />
 		<Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
 		<Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
 		<Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
 		<Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
 		<Compile Remove="Areas\SelfServices\Models\**" />
 		<Compile Remove="Areas\SelfServices\Views\**" />
+
+
 		<Content Remove="Areas\HealthServices\DeviceManagement\**" />
 		<Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
 		<Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
 		<Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
 		<Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
 		<Content Remove="Areas\SelfServices\Models\**" />
 		<Content Remove="Areas\SelfServices\Views\**" />
+
+
 		<EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
 		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
 		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
 		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
 		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
 		<EmbeddedResource Remove="Areas\SelfServices\Models\**" />
 		<EmbeddedResource Remove="Areas\SelfServices\Views\**" />
+
+
 		<None Remove="Areas\HealthServices\DeviceManagement\**" />
 		<None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
 		<None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
 		<None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
 		<None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
 		<None Remove="Areas\SelfServices\Models\**" />
 		<None Remove="Areas\SelfServices\Views\**" />
+
 	</ItemGroup>
 
 	<ItemGroup>
