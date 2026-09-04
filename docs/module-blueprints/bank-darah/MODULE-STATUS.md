@@ -9,13 +9,13 @@
 | Module status | `IN_PROGRESS` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `2026-09-04` — hasil **`NOT_READY`** (modul); gelombang `MVP-0` **`READY_WITH_CONDITIONS`** |
-| Backend source SHA | `5f7acaf` cabang `sukmagp` |
+| Backend source SHA | `ba75a05` cabang `sukmagp` — bukti terverifikasi di `5f7acaf`; pergerakan ke `ba75a05` **docs-only** |
 | Frontend source SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` |
 | Decision revision | `11` — `DEC-BD-001` sampai `DEC-BD-047` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-04` — verifikasi kesiapan dan pemulihan build |
+| Terakhir diperbarui | `2026-09-04` — verifikasi kesiapan, pemulihan build, dan impact scan revisi 4 |
 
 ## Keadaan sekarang — 4 September 2026
 

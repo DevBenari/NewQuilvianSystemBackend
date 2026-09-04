@@ -9,13 +9,13 @@ revision: 24
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-04T11:20:00+07:00
+updated_at: 2026-09-04T12:05:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
   Modul NOT_READY karena cakupan, bukan kerusakan. Gelombang MVP-0 sendiri
   READY_WITH_CONDITIONS dengan satu syarat tersisa: keempat migration dijalankan.
-backend_source_sha: 5f7acaf
+backend_source_sha: ba75a05
 backend_branch: sukmagp
 frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
 frontend_branch: sukmagpV2
@@ -26,6 +26,11 @@ capability_map_revision: 4
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
 capability_map_impact_scan_sha: 5f7acaf
+capability_map_scan_still_valid_at: ba75a05
+capability_map_scan_validity_reason: >-
+  Pergerakan 5f7acaf -> ba75a05 docs-only murni (terverifikasi git diff --name-only:
+  nol berkas di luar docs/module-blueprints/bank-darah/), sehingga nol bukti kemampuan
+  dapat bergeser dan impact scan 5f7acaf tetap berlaku.
 capability_map_impact_scan_result: >-
   Dua baris berpindah status dan keduanya membaik: BD-CAP-005 Extend -> Ready to reuse,
   BD-CAP-018 Missing -> Ready to reuse. Nol baris memburuk. Dari 46 rujukan bukti, hanya
