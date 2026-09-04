@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260904030116_SplitLabSpecimenIntoExamination")]
+    partial class SplitLabSpecimenIntoExamination
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65138,9 +65141,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("LabExaminationId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("LabOrderId")
                         .HasColumnType("uuid");
 
@@ -65175,8 +65175,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EncounterId");
-
-                    b.HasIndex("LabExaminationId");
 
                     b.HasIndex("LabSpecimenId");
 
@@ -96179,11 +96177,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", "LabExamination")
-                        .WithMany()
-                        .HasForeignKey("LabExaminationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
                         .WithMany()
                         .HasForeignKey("LabOrderId")
@@ -96194,8 +96187,6 @@ namespace QuilvianSystemBackend.Migrations
                         .WithMany()
                         .HasForeignKey("LabSpecimenId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("LabExamination");
 
                     b.Navigation("LabOrder");
 

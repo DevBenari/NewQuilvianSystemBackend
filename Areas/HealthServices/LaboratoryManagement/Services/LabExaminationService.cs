@@ -196,6 +196,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             _dbContext.LabExaminations.Add(entity);
 
+            AppendHistory(
+                order,
+                entity,
+                "Examination.Add",
+                fromStatus: null,
+                toStatus: LabExaminationStatus.Ordered.ToString(),
+                actorUserId: actorUserId,
+                occurredAt: now);
+
             await SaveAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
@@ -231,9 +240,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             CancelLabExaminationRequest request,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.LabExaminations
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Pemeriksaan terpesan tidak ditemukan.");
+            var entity = await LoadExaminationAsync(id, cancellationToken);
+            var order = await LoadOrderAsync(entity.LabOrderId, cancellationToken);
 
             // VAL-19. Pemeriksaan yang sudah gugur bersama wadahnya tidak dapat dibatalkan lagi;
             // membiarkannya berarti menimpa sebab yang sebenarnya.
@@ -249,6 +257,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var statusSebelum = entity.ExaminationStatus;
+            var alasan = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
             entity.ExaminationStatus = LabExaminationStatus.Cancelled;
             entity.UpdateDateTime = now;
@@ -257,6 +266,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             entity.CancelDateTime = now;
             entity.CancelBy = actorUserId;
             entity.Version += 1;
+
+            AppendHistory(
+                order,
+                entity,
+                "Examination.Cancel",
+                statusSebelum.ToString(),
+                LabExaminationStatus.Cancelled.ToString(),
+                actorUserId,
+                now,
+                alasan);
 
             await SaveAsync(cancellationToken);
 
@@ -274,7 +293,177 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     entity.SpecimenId,
                     StatusSebelum = statusSebelum.ToString(),
                     SudahLayakTagih = statusSebelum == LabExaminationStatus.ChargeEligible,
-                    Alasan = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+                    Alasan = alasan,
+                    ActorUserId = actorUserId
+                });
+
+            return await ReadBackAsync(entity.Id, cancellationToken);
+        }
+
+        // =================================================================
+        // Kesegeraan dan duplo — LAB-DEC-026, BE-LAB-10
+        // =================================================================
+
+        /// <summary>
+        /// Menandai satu pemeriksaan sebagai cito, atau mengembalikannya menjadi biasa
+        /// (<c>AC-18</c>, <c>AC-39</c>).
+        ///
+        /// <b>Kesegeraan melekat pada pemeriksaan, bukan pada pesanan.</b> Satu pesanan dapat
+        /// memuat Kalium cito dan Kolesterol biasa sekaligus, dan hanya Kalium yang naik ke
+        /// urutan atas daftar kerja. Endpoint kesegeraan pada tingkat pesanan sengaja tidak ada
+        /// — <c>LAB-DEC-026</c> membatalkannya, dan <c>AC-40</c> menjaga pembatalan itu.
+        ///
+        /// Dua penjaga yang berlaku di sini:
+        /// <c>VAL-03</c> — hanya dokter pemesan yang boleh menandai, karena kesegeraan adalah
+        /// penilaian klinis atas pasiennya sendiri, bukan keputusan administratif;
+        /// <c>VAL-04</c> — pesanan yang sudah selesai atau dibatalkan tidak dapat diubah
+        /// kesegeraannya, sebab tidak ada lagi pekerjaan yang dapat didahulukan.
+        /// </summary>
+        public async Task<LabExaminationResponse> SetUrgencyAsync(
+            Guid id,
+            SetLabExaminationUrgencyRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await LoadExaminationAsync(id, cancellationToken);
+            var order = await LoadOrderAsync(entity.LabOrderId, cancellationToken);
+
+            // VAL-04 lebih dulu daripada VAL-03. Pesanan yang sudah selesai tidak dapat diubah
+            // oleh siapa pun, termasuk dokter pemesannya, sehingga menjawab 409 lebih tepat
+            // daripada menjawab 403 kepada orang yang sebenarnya berwenang.
+            if (order.OrderStatus is LabOrderStatus.Completed or LabOrderStatus.Cancelled)
+            {
+                throw new LabExaminationConflictException(
+                    "Pesanan ini sudah selesai atau dibatalkan, kesegeraannya tidak dapat diubah lagi.");
+            }
+
+            // VAL-03.
+            var actorUserId = GetCurrentUserId();
+
+            if (actorUserId == Guid.Empty || actorUserId != order.RequestedByUserId)
+            {
+                throw new LabExaminationForbiddenException(
+                    "Hanya dokter yang membuat pesanan ini yang boleh menandainya cito.");
+            }
+
+            EnsureExaminationMasihBerjalan(entity, "kesegeraannya");
+
+            var tujuan = request.IsCito
+                ? LabExaminationUrgency.Cito
+                : LabExaminationUrgency.Routine;
+
+            // Menyetel nilai yang sudah berlaku bukan sebuah penandaan, sehingga tidak
+            // menghasilkan baris riwayat baru. Riwayat harus mencatat perpindahan, bukan
+            // jumlah kali tombol ditekan.
+            if (entity.Urgency == tujuan)
+                return await ReadBackAsync(entity.Id, cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var asal = entity.Urgency;
+
+            entity.Urgency = tujuan;
+            entity.UrgencyMarkedAt = now;
+            entity.UrgencyMarkedByUserId = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+            entity.Version += 1;
+
+            AppendHistory(
+                order,
+                entity,
+                "Examination.SetUrgency",
+                asal.ToString(),
+                tujuan.ToString(),
+                actorUserId,
+                now);
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabExamination.SetUrgency",
+                "Mengubah kesegeraan satu pemeriksaan terpesan.",
+                new
+                {
+                    entity.Id,
+                    entity.LabOrderId,
+                    entity.SpecimenId,
+                    Dari = asal.ToString(),
+                    Ke = tujuan.ToString(),
+                    ActorUserId = actorUserId
+                });
+
+            return await ReadBackAsync(entity.Id, cancellationToken);
+        }
+
+        /// <summary>
+        /// Menandai satu pemeriksaan dikerjakan ganda, atau membatalkan penandaannya
+        /// (<c>AC-40</c>).
+        ///
+        /// Berbeda dari kesegeraan, duplo <b>bukan</b> penilaian klinis dokter pemesan
+        /// melainkan keputusan pelaksanaan laboratorium, sehingga <c>VAL-03</c> tidak berlaku
+        /// di sini. Yang menjaganya adalah permission <c>LabExamination : Update</c> beserta
+        /// satu syarat keadaan: wadah penopangnya belum ditolak, karena bahan yang tidak layak
+        /// tidak dapat dikerjakan sekali pun, apalagi dua kali.
+        ///
+        /// Penanda ini tidak menyentuh salinan tarif. Apakah duplo berdampak pada tarif masih
+        /// <c>LAB-OPEN-013</c>.
+        /// </summary>
+        public async Task<LabExaminationResponse> SetDuploAsync(
+            Guid id,
+            SetLabExaminationDuploRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await LoadExaminationAsync(id, cancellationToken);
+            var order = await LoadOrderAsync(entity.LabOrderId, cancellationToken);
+
+            EnsureExaminationMasihBerjalan(entity, "penanda duplonya");
+
+            var wadahDitolak = await _dbContext.LabSpecimens
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == entity.SpecimenId && x.SpecimenStatus == LabSpecimenStatus.Rejected,
+                    cancellationToken);
+
+            if (wadahDitolak)
+            {
+                throw new LabExaminationConflictException(
+                    "Wadah penopang pemeriksaan ini sudah ditolak, penanda duplo tidak dapat diubah lagi.");
+            }
+
+            if (entity.IsDuplo == request.IsDuplo)
+                return await ReadBackAsync(entity.Id, cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var asal = entity.IsDuplo;
+
+            entity.IsDuplo = request.IsDuplo;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+            entity.Version += 1;
+
+            AppendHistory(
+                order,
+                entity,
+                "Examination.SetDuplo",
+                NamaPenandaDuplo(asal),
+                NamaPenandaDuplo(request.IsDuplo),
+                actorUserId,
+                now);
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabExamination.SetDuplo",
+                "Mengubah penanda duplo satu pemeriksaan terpesan.",
+                new
+                {
+                    entity.Id,
+                    entity.LabOrderId,
+                    entity.SpecimenId,
+                    Dari = NamaPenandaDuplo(asal),
+                    Ke = NamaPenandaDuplo(request.IsDuplo),
                     ActorUserId = actorUserId
                 });
 
@@ -284,6 +473,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         // =================================================================
         // Pembantu
         // =================================================================
+
+        private static string NamaPenandaDuplo(bool isDuplo) => isDuplo ? "Duplo" : "Single";
+
+        /// <summary>
+        /// Pemeriksaan yang sudah gugur atau dibatalkan tidak menerima penandaan apa pun lagi.
+        /// Mengubahnya berarti menulis keputusan baru di atas pekerjaan yang sudah berhenti.
+        /// </summary>
+        private static void EnsureExaminationMasihBerjalan(LabExamination entity, string apaYangDiubah)
+        {
+            if (entity.ExaminationStatus == LabExaminationStatus.Voided)
+            {
+                throw new LabExaminationConflictException(
+                    $"Pemeriksaan ini sudah gugur karena wadahnya ditolak, {apaYangDiubah} tidak dapat diubah lagi.");
+            }
+
+            if (entity.ExaminationStatus == LabExaminationStatus.Cancelled)
+            {
+                throw new LabExaminationConflictException(
+                    $"Pemeriksaan ini sudah dibatalkan, {apaYangDiubah} tidak dapat diubah lagi.");
+            }
+        }
+
+        private async Task<LabExamination> LoadExaminationAsync(Guid id, CancellationToken cancellationToken) =>
+            await _dbContext.LabExaminations
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Pemeriksaan terpesan tidak ditemukan.");
+
+        private async Task<LabOrder> LoadOrderAsync(Guid labOrderId, CancellationToken cancellationToken) =>
+            await _dbContext.LabOrders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == labOrderId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Pesanan laboratorium tidak ditemukan.");
+
+        /// <summary>
+        /// Menulis satu baris riwayat berlingkup <c>LabExamination</c>.
+        ///
+        /// Barisnya menyebut pesanan dan pemeriksaannya sekaligus: pesanan supaya riwayat satu
+        /// kunjungan tetap dapat dibaca berurutan, pemeriksaan supaya jelas yang mana di antara
+        /// beberapa pemeriksaan pada wadah yang sama. Wadahnya tidak ikut disebut — yang
+        /// berpindah bukan wadah itu.
+        /// </summary>
+        private void AppendHistory(
+            LabOrder order,
+            LabExamination examination,
+            string action,
+            string? fromStatus,
+            string toStatus,
+            Guid actorUserId,
+            DateTime occurredAt,
+            string? reasonNote = null)
+        {
+            _dbContext.LabTransitionHistories.Add(new LabTransitionHistory
+            {
+                Id = Guid.NewGuid(),
+                LabOrderId = order.Id,
+                LabExaminationId = examination.Id,
+                EncounterId = order.EncounterId,
+                Scope = LabTransitionScope.LabExamination,
+                Action = action,
+                FromStatus = fromStatus,
+                ToStatus = toStatus,
+                ReasonNote = reasonNote,
+                ActorUserId = actorUserId,
+                OccurredAt = occurredAt,
+                CorrelationId = order.Id,
+                CreateDateTime = occurredAt,
+                CreateBy = actorUserId
+            });
+        }
 
         private async Task EnsureOrderExistsAsync(Guid labOrderId, CancellationToken cancellationToken)
         {
@@ -376,6 +634,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
     /// <summary>Pelanggaran aturan isi pemeriksaan terpesan. Dipetakan menjadi <c>422</c>.</summary>
     public sealed class LabExaminationValidationException(string message) : Exception(message);
+
+    /// <summary>Tindakan di luar kewenangan pelakunya. Dipetakan menjadi <c>403</c>.</summary>
+    public sealed class LabExaminationForbiddenException(string message) : Exception(message);
 
     /// <summary>Bentrokan dengan keadaan yang sudah berjalan. Dipetakan menjadi <c>409</c>.</summary>
     public sealed class LabExaminationConflictException(string message) : Exception(message);

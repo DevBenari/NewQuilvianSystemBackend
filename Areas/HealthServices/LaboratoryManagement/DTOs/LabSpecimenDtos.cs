@@ -107,8 +107,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public Guid LabOrderId { get; set; }
 
-        public Guid ProcedureId { get; set; }
-
         public string SpecimenBarcode { get; set; } = string.Empty;
 
         public int SpecimenSequence { get; set; }
@@ -116,12 +114,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? SpecimenDescription { get; set; }
 
         public string SpecimenStatus { get; set; } = string.Empty;
-
-        public string? ProcedureCode { get; set; }
-
-        public string? ProcedureName { get; set; }
-
-        public decimal? UnitPrice { get; set; }
 
         public DateTime? CollectedAt { get; set; }
 
@@ -165,6 +157,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? Code { get; set; }
 
         public string? Message { get; set; }
+
+        /// <summary>
+        /// Seluruh identitas fakta yang terbit dari satu keputusan.
+        ///
+        /// Sejak <c>FR-05.1</c>, satu wadah yang dinyatakan layak menerbitkan fakta sebanyak
+        /// pemeriksaan yang ditopangnya. <see cref="MilestoneFactId"/> tetap diisi identitas
+        /// fakta pertama supaya pemanggil lama tidak putus; ruas inilah yang membawa
+        /// seluruhnya.
+        /// </summary>
+        public List<Guid> MilestoneFactIds { get; set; } = new();
+
+        /// <summary>Jumlah fakta yang terbit — sama dengan jumlah pemeriksaan pada wadah itu.</summary>
+        public int MilestoneFactCount { get; set; }
     }
 
     public class LabTransitionHistoryResponse

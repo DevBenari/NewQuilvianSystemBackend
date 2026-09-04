@@ -15,6 +15,9 @@ migration di `Migrations/`. Jika migration berubah, skripnya wajib dibuat ulang.
 | `verify-operating-room-schema.sql` | — | Pemeriksaan skema setelah migration diterapkan; hanya membaca |
 | `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix.sql` | `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix` | Menormalkan empat tabel Rekam Medis dari `Trx*` ke prefix registry `Mrc*`, beserta primary key, 15 index, dan 6 foreign key-nya. **Seluruhnya `RENAME`** — tidak ada `DROP`, `DELETE`, maupun `TRUNCATE`, sehingga isi tabel tetap utuh |
 | `verify-medical-record-mrc-rename.sql` | — | Pemeriksaan setelah rename Rekam Medis diterapkan; hanya membaca |
+| `20260904030116_SplitLabSpecimenIntoExamination.sql` | `20260904030116_SplitLabSpecimenIntoExamination` | Melepas `ProcedureId` dan lima kolom salinan tarif dari `LabSpecimen` beserta index dan foreign key-nya, setelah keenamnya pindah ke `LabExamination`. **Diawali penjaga**: bila tabel `LabSpecimen` masih memuat baris, skrip berhenti dengan pesan `LAB-OPEN-012` dan tidak satu kolom pun dihapus |
+| `20260904035620_AddLabExaminationIdToLabTransitionHistory.sql` | `20260904035620_AddLabExaminationIdToLabTransitionHistory` | Menambah kolom `LabExaminationId` beserta index dan foreign key-nya pada `LabTransitionHistory`, supaya riwayat dapat menunjuk pemeriksaan yang berpindah dan bukan hanya wadahnya. Aditif; tidak ada kolom yang dihapus maupun diubah |
+| `rollback-20260904030116_SplitLabSpecimenIntoExamination.sql` | `20260904030116_SplitLabSpecimenIntoExamination` | Langkah mundurnya: keenam kolom, index, dan foreign key-nya dikembalikan. **Hanya aman pada tabel kosong** — `ProcedureId` dikembalikan sebagai kolom wajib berisi GUID nol, sehingga foreign key-nya gagal terbentuk bila sudah ada baris wadah |
 
 ## Cara menjalankan
 

@@ -153,18 +153,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => (int?)x.SpecimenSequence)
                 .MaxAsync(cancellationToken) ?? 0;
 
-            // Urutan daftar dipertahankan supaya pemeriksaan pertama yang dikirim pemanggil
-            // menjadi yang mengisi kolom peninggalan pada wadah — lihat CreateExaminationsAsync.
+            // Urutan daftar dipertahankan supaya daftar kerja petugas mengikuti urutan yang
+            // dikirim pemanggil — lihat CreateExaminationsAsync.
             var berurutan = procedureIds
                 .Select(id => procedures.First(p => p.Id == id))
                 .ToList();
 
-            var tariffPertama = await ResolveTariffAsync(berurutan[0].Id, now, cancellationToken);
-
             var specimen = await CreateSpecimenAsync(
                 order,
-                berurutan[0],
-                tariffPertama,
                 nextSequence + 1,
                 request.SpecimenDescription,
                 supersededSpecimenId: null,
@@ -241,10 +237,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         ///
         /// Pemeriksaan yang sudah dibatalkan tersendiri tidak ikut dipindahkan: pembatalannya
         /// keputusan klinis tersendiri yang tidak boleh tertimpa keputusan atas wadah.
+        ///
+        /// Setiap pemeriksaan yang benar-benar berpindah meninggalkan satu baris riwayat
+        /// berlingkup <c>LabExamination</c>, sebagaimana dituntut
+        /// <c>contracts/permission-audit-matrix.md</c> bagian 4. Yang sudah berada pada status
+        /// tujuan tidak menghasilkan baris apa pun — riwayat mencatat perpindahan, bukan
+        /// pemanggilan.
         /// </summary>
         private async Task<int> MoveExaminationsAsync(
+            LabOrder order,
             Guid specimenId,
             LabExaminationStatus toStatus,
+            string action,
+            string? reasonNote,
             DateTime? chargeEligibleAt,
             Guid actorUserId,
             DateTime now,
@@ -261,14 +266,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 if (examination.ExaminationStatus == toStatus) continue;
 
+                var statusSebelum = examination.ExaminationStatus;
+
                 examination.ExaminationStatus = toStatus;
                 examination.ChargeEligibleAt = chargeEligibleAt ?? examination.ChargeEligibleAt;
                 examination.UpdateDateTime = now;
                 examination.UpdateBy = actorUserId;
                 examination.Version++;
+
+                AppendExaminationHistory(
+                    order,
+                    examination,
+                    action,
+                    statusSebelum.ToString(),
+                    toStatus.ToString(),
+                    reasonNote,
+                    actorUserId,
+                    now);
             }
 
             return examinations.Count;
+        }
+
+        /// <summary>
+        /// Menulis satu baris riwayat berlingkup <c>LabExamination</c>.
+        ///
+        /// Barisnya menyebut pesanan dan pemeriksaannya, tetapi <b>tidak</b> menyebut wadahnya:
+        /// yang berpindah adalah pemeriksaan itu, dan perpindahan wadah yang memicunya sudah
+        /// punya barisnya sendiri.
+        /// </summary>
+        private void AppendExaminationHistory(
+            LabOrder order,
+            LabExamination examination,
+            string action,
+            string? fromStatus,
+            string toStatus,
+            string? reasonNote,
+            Guid actorUserId,
+            DateTime occurredAt)
+        {
+            _dbContext.LabTransitionHistories.Add(new LabTransitionHistory
+            {
+                Id = Guid.NewGuid(),
+                LabOrderId = order.Id,
+                LabExaminationId = examination.Id,
+                EncounterId = order.EncounterId,
+                Scope = LabTransitionScope.LabExamination,
+                Action = action,
+                FromStatus = fromStatus,
+                ToStatus = toStatus,
+                ReasonNote = reasonNote,
+                ActorUserId = actorUserId,
+                OccurredAt = occurredAt,
+                CorrelationId = order.Id,
+                CreateDateTime = occurredAt,
+                CreateBy = actorUserId
+            });
         }
 
         public Task<LabSpecimenActionResult> CollectAsync(
@@ -361,7 +414,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // AC-37: seluruh pemeriksaan yang ditopang wadah ini menjadi layak tagih sekaligus,
             // dengan waktu keputusan yang sama.
             await MoveExaminationsAsync(
-                specimen.Id, LabExaminationStatus.ChargeEligible, now, actorUserId, now, cancellationToken);
+                order,
+                specimen.Id,
+                LabExaminationStatus.ChargeEligible,
+                "Examination.ChargeEligible",
+                reasonNote: null,
+                chargeEligibleAt: now,
+                actorUserId,
+                now,
+                cancellationToken);
 
             AppendHistory(
                 order,
@@ -466,8 +527,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // karena semuanya berasal dari bahan yang sama. Bila bahannya tidak layak, tidak ada
             // satu pun di antaranya yang dapat dikerjakan.
             await MoveExaminationsAsync(
-                specimen.Id, LabExaminationStatus.Voided, chargeEligibleAt: null,
-                actorUserId, now, cancellationToken);
+                order,
+                specimen.Id,
+                LabExaminationStatus.Voided,
+                "Examination.Void",
+                reasonNote: note,
+                chargeEligibleAt: null,
+                actorUserId,
+                now,
+                cancellationToken);
 
             specimen.SpecimenStatus = LabSpecimenStatus.Rejected;
             specimen.DecidedAt = now;
@@ -559,13 +627,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Pengambilan ulang dengan sebab ini membutuhkan alasan tertulis.");
             }
 
-            var procedure = await _dbContext.Set<MstProcedure>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == specimen.ProcedureId && !x.IsDelete, cancellationToken);
-
-            if (procedure == null)
-                throw new ArgumentException("Procedure komponen pemeriksaan tidak ditemukan.");
-
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var fromStatus = specimen.SpecimenStatus;
@@ -596,12 +657,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => (int?)x.SpecimenSequence)
                 .MaxAsync(cancellationToken) ?? 0;
 
-            var tariff = await ResolveTariffAsync(specimen.ProcedureId, now, cancellationToken);
-
             var replacement = await CreateSpecimenAsync(
                 order,
-                procedure,
-                tariff,
                 nextSequence + 1,
                 specimen.SpecimenDescription,
                 supersededSpecimenId: specimen.Id,
@@ -610,6 +667,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 actorUserId,
                 now,
                 cancellationToken);
+
+            // AC-38. Wadah pengganti menampung SELURUH pemeriksaan wadah lama.
+            //
+            // Bahannya diambil ulang karena yang lama tidak layak — bukan karena permintaan
+            // dokternya berubah. Menyalin hanya satu pemeriksaan akan diam-diam membatalkan
+            // sisanya: pasien ditusuk ulang, tabungnya terkumpul, tetapi dua dari tiga
+            // pemeriksaan yang diminta tidak pernah dikerjakan dan tidak ada yang menyadarinya.
+            //
+            // Pemeriksaan yang sudah dibatalkan tersendiri tidak ikut disalin — pembatalannya
+            // keputusan klinis yang tetap berlaku pada bahan pengganti.
+            var pemeriksaanLama = await _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == specimen.Id &&
+                    !x.IsDelete &&
+                    x.ExaminationStatus != LabExaminationStatus.Cancelled)
+                .OrderBy(x => x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var disalin = 0;
+
+            if (pemeriksaanLama.Count > 0)
+            {
+                var procedureIdsLama = pemeriksaanLama.Select(x => x.ProcedureId).ToList();
+
+                var proceduresLama = await _dbContext.Set<MstProcedure>()
+                    .AsNoTracking()
+                    .Where(x => procedureIdsLama.Contains(x.Id) && !x.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                // Urutan wadah lama dipertahankan supaya daftar kerja petugas tidak berubah
+                // susunannya hanya karena bahannya diambil ulang.
+                var berurutan = pemeriksaanLama
+                    .Select(x => proceduresLama.FirstOrDefault(p => p.Id == x.ProcedureId))
+                    .Where(x => x != null)
+                    .Select(x => x!)
+                    .ToList();
+
+                if (berurutan.Count > 0)
+                {
+                    // Tarifnya diambil ulang pada waktu kejadian ini, bukan disalin dari baris
+                    // lama: bila tarif berubah di antara keduanya, yang berlaku adalah tarif
+                    // saat bahan penggantinya direncanakan.
+                    await CreateExaminationsAsync(
+                        order, replacement, berurutan, actorUserId, now, cancellationToken);
+
+                    disalin = berurutan.Count;
+                }
+            }
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -620,6 +726,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     RejectedSpecimenId = specimen.Id,
                     ReplacementSpecimenId = replacement.Id,
                     Cause = cause.ToString(),
+                    ExaminationCarriedOver = disalin,
                     ActorUserId = actorUserId
                 });
 
@@ -836,14 +943,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 {
                     Id = x.Id,
                     LabOrderId = x.LabOrderId,
-                    ProcedureId = x.ProcedureId,
                     SpecimenBarcode = x.SpecimenBarcode,
                     SpecimenSequence = x.SpecimenSequence,
                     SpecimenDescription = x.SpecimenDescription,
                     SpecimenStatus = x.SpecimenStatus.ToString(),
-                    ProcedureCode = x.ProcedureCodeSnapshot,
-                    ProcedureName = x.ProcedureNameSnapshot,
-                    UnitPrice = x.UnitPriceSnapshot,
                     CollectedAt = x.CollectedAt,
                     ReceivedAt = x.ReceivedAt,
                     DecidedAt = x.DecidedAt,
@@ -935,48 +1038,160 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return previouslyAccepted;
         }
 
-        internal async Task<ClinicalFactEmissionResult> EmitClinicalCancellationAsync(
+        /// <summary>
+        /// Membaca pemeriksaan yang ditopang sebuah wadah, sebagai satuan penerbitan fakta.
+        ///
+        /// Pemeriksaan yang dibatalkan tersendiri tidak ikut: pembatalannya keputusan klinis
+        /// yang berarti pemeriksaan itu memang tidak dikerjakan, sehingga tidak ada yang layak
+        /// ditagihkan darinya.
+        /// </summary>
+        private async Task<List<LabExamination>> LoadExaminationsForFactAsync(
+            Guid specimenId,
+            CancellationToken cancellationToken) =>
+            await _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == specimenId &&
+                    !x.IsDelete &&
+                    x.ExaminationStatus != LabExaminationStatus.Cancelled)
+                .OrderBy(x => x.CreateDateTime)
+                .ThenBy(x => x.ProcedureCodeSnapshot)
+                .ToListAsync(cancellationToken);
+
+        internal async Task<LabFactEmission> EmitClinicalCancellationAsync(
             LabSpecimen specimen,
             LabOrder order,
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
-            var request = BuildFactRequest(
-                specimen,
-                order,
-                specimen.CancelDateTime ?? DateTime.UtcNow,
-                includeTariffSnapshot: false);
+            var examinations = await LoadExaminationsForFactAsync(specimen.Id, cancellationToken);
+            var occurredAt = specimen.CancelDateTime ?? DateTime.UtcNow;
 
-            return await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(
-                request,
-                actorUserId,
-                cancellationToken);
-        }
+            // Wadah tanpa baris pemeriksaan berarti data peninggalan sebelum LAB-DEC-024.
+            // Faktanya tetap diterbitkan atas wadah supaya jejaknya tidak hilang.
+            if (examinations.Count == 0)
+            {
+                var tunggal = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(
+                    BuildFactRequest(specimen, order, occurredAt, includeTariffSnapshot: false),
+                    actorUserId,
+                    cancellationToken);
 
-        private async Task<ClinicalFactEmissionResult> EmitChargeEligibilityAsync(
-            LabSpecimen specimen,
-            LabOrder order,
-            Guid actorUserId,
-            CancellationToken cancellationToken)
-        {
-            var request = BuildFactRequest(
-                specimen,
-                order,
-                specimen.DecidedAt ?? DateTime.UtcNow,
-                includeTariffSnapshot: true);
+                return LabFactEmission.Dari(tunggal);
+            }
 
-            return await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
-                request,
-                actorUserId,
-                cancellationToken);
+            var hasil = new List<ClinicalFactEmissionResult>();
+
+            foreach (var examination in examinations)
+            {
+                hasil.Add(await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(
+                    BuildFactRequest(specimen, order, examination, occurredAt, includeTariffSnapshot: false),
+                    actorUserId,
+                    cancellationToken));
+            }
+
+            return LabFactEmission.Dari(hasil);
         }
 
         /// <summary>
-        /// Menyusun muatan fakta klinis.
+        /// Menerbitkan fakta kelayakan tagih — <b>satu untuk setiap pemeriksaan</b> yang
+        /// ditopang wadah ini (<c>FR-05.1</c>, <c>AC-37</c>).
         ///
-        /// Seluruh nilai berasal dari baris yang sudah tersimpan, bukan dari pembacaan ulang
-        /// master data, agar pengiriman ulang menghasilkan muatan yang sama persis. Pembagian
-        /// penjamin sengaja tidak disertakan karena kepemilikannya ada pada Billing.
+        /// Inilah satuan yang benar. Wadah adalah bahan; yang ditagihkan adalah pemeriksaan yang
+        /// dikerjakan darinya. Satu tabung darah ungu yang menopang hemoglobin, leukosit, dan
+        /// trombosit menerbitkan tiga fakta dengan salinan tarifnya masing-masing — bukan satu
+        /// fakta berharga satu tabung.
+        ///
+        /// Idempotensinya dijaga <c>SourceItemId</c> yang menunjuk identitas pemeriksaan:
+        /// menekan tombol layak dua kali menerbitkan fakta atas pemeriksaan yang sama, dan
+        /// producer mengenalinya sebagai pengiriman ulang.
+        /// </summary>
+        private async Task<LabFactEmission> EmitChargeEligibilityAsync(
+            LabSpecimen specimen,
+            LabOrder order,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            var examinations = await LoadExaminationsForFactAsync(specimen.Id, cancellationToken);
+            var occurredAt = specimen.DecidedAt ?? DateTime.UtcNow;
+
+            if (examinations.Count == 0)
+            {
+                var tunggal = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                    BuildFactRequest(specimen, order, occurredAt, includeTariffSnapshot: true),
+                    actorUserId,
+                    cancellationToken);
+
+                return LabFactEmission.Dari(tunggal);
+            }
+
+            var hasil = new List<ClinicalFactEmissionResult>();
+
+            foreach (var examination in examinations)
+            {
+                hasil.Add(await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                    BuildFactRequest(specimen, order, examination, occurredAt, includeTariffSnapshot: true),
+                    actorUserId,
+                    cancellationToken));
+            }
+
+            return LabFactEmission.Dari(hasil);
+        }
+
+        /// <summary>
+        /// Muatan fakta untuk <b>satu pemeriksaan</b>.
+        ///
+        /// Seluruh nilai berasal dari baris pemeriksaan yang sudah tersimpan, bukan dari
+        /// pembacaan ulang master data, agar pengiriman ulang menghasilkan muatan yang sama
+        /// persis.
+        /// </summary>
+        private static ClinicalMilestoneFactRequest BuildFactRequest(
+            LabSpecimen specimen,
+            LabOrder order,
+            LabExamination examination,
+            DateTime occurredAt,
+            bool includeTariffSnapshot)
+        {
+            return new ClinicalMilestoneFactRequest
+            {
+                SourceContext = BillingSourceContract.LaboratorySourceContext,
+                SourceAggregateId = order.Id,
+
+                // Inti FR-05.1: satuan fakta adalah pemeriksaan, bukan wadah.
+                SourceItemId = examination.Id,
+
+                EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                EncounterId = order.EncounterId,
+                OccurredAt = occurredAt,
+                Quantity = includeTariffSnapshot ? 1m : null,
+                Unit = includeTariffSnapshot ? ExaminationUnit : null,
+                TariffSnapshot = includeTariffSnapshot
+                    ? JsonSerializer.Serialize(new
+                    {
+                        source = "LaboratorySnapshot",
+                        procedureCode = examination.ProcedureCodeSnapshot,
+                        procedureName = examination.ProcedureNameSnapshot,
+                        tariffCode = examination.TariffCodeSnapshot,
+                        unitPrice = examination.UnitPriceSnapshot
+                    })
+                    : null,
+                RuleSnapshot = JsonSerializer.Serialize(new
+                {
+                    milestone = includeTariffSnapshot ? "SpecimenAccepted" : "SpecimenCancelled",
+                    specimenBarcode = specimen.SpecimenBarcode,
+                    examinationId = examination.Id,
+                    procedureCode = examination.ProcedureCodeSnapshot
+                })
+            };
+        }
+
+        /// <summary>
+        /// Muatan fakta untuk wadah <b>peninggalan</b> yang tidak menopang satu baris pemeriksaan
+        /// pun — data yang terbentuk sebelum <c>LAB-DEC-024</c>.
+        ///
+        /// Sejak <c>BE-LAB-11</c> wadah tidak lagi menyimpan salinan tarif, sehingga jalur ini
+        /// menerbitkan fakta <b>tanpa</b> <c>TariffSnapshot</c>. Ia sengaja tidak dihapus:
+        /// membiarkan wadah seperti itu tidak menerbitkan apa pun akan menghilangkan jejak
+        /// tagihan yang sah. Billing menerima faktanya dan menilai nilainya sendiri.
         /// </summary>
         private static ClinicalMilestoneFactRequest BuildFactRequest(
             LabSpecimen specimen,
@@ -994,19 +1209,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 OccurredAt = occurredAt,
                 Quantity = includeTariffSnapshot ? 1m : null,
                 Unit = includeTariffSnapshot ? ExaminationUnit : null,
-                TariffSnapshot = includeTariffSnapshot
-                    ? JsonSerializer.Serialize(new
-                    {
-                        source = "LaboratorySnapshot",
-                        procedureCode = specimen.ProcedureCodeSnapshot,
-                        procedureName = specimen.ProcedureNameSnapshot,
-                        tariffCode = specimen.TariffCodeSnapshot,
-                        unitPrice = specimen.UnitPriceSnapshot
-                    })
-                    : null,
+
+                // Tidak ada salinan tarif yang dapat disusun: keenam kolomnya sudah pindah ke
+                // LabExamination, dan wadah ini justru tidak memiliki satu pun baris pemeriksaan.
+                TariffSnapshot = null,
                 RuleSnapshot = JsonSerializer.Serialize(new
                 {
                     milestone = includeTariffSnapshot ? "SpecimenAccepted" : "SpecimenCancelled",
+                    tariffSource = "LegacySpecimenWithoutExamination",
                     specimenBarcode = specimen.SpecimenBarcode,
                     specimenSequence = specimen.SpecimenSequence,
                     supersededSpecimenId = specimen.SupersededSpecimenId,
@@ -1018,8 +1228,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private async Task<LabSpecimen> CreateSpecimenAsync(
             LabOrder order,
-            MstProcedure procedure,
-            MstTariff? tariff,
             int sequence,
             string? description,
             Guid? supersededSpecimenId,
@@ -1033,15 +1241,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 Id = Guid.NewGuid(),
                 LabOrderId = order.Id,
-                ProcedureId = procedure.Id,
                 SpecimenBarcode = GenerateSpecimenBarcode(),
                 SpecimenSequence = sequence,
                 SpecimenDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-                ProcedureCodeSnapshot = procedure.ProcedureCode,
-                ProcedureNameSnapshot = procedure.ProcedureName,
-                TariffId = tariff?.Id,
-                TariffCodeSnapshot = tariff?.TariffCode,
-                UnitPriceSnapshot = tariff?.NormalPrice,
                 SpecimenStatus = LabSpecimenStatus.Planned,
                 SupersededSpecimenId = supersededSpecimenId,
                 RecollectionCause = recollectionCause,
@@ -1301,7 +1503,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     /// </summary>
     public sealed record LabSpecimenActionResult(
         LabSpecimen Specimen,
-        ClinicalFactEmissionResult? Handoff);
+        LabFactEmission? Handoff);
+
+    /// <summary>
+    /// Hasil penerbitan fakta untuk satu keputusan atas wadah.
+    ///
+    /// Sejak <c>FR-05.1</c>, satu keputusan menerbitkan <b>sebanyak pemeriksaan</b> yang
+    /// ditopang wadah itu — bukan satu. Karena itu hasilnya dikumpulkan: <see cref="Perwakilan"/>
+    /// dipakai untuk menjawab pemanggil dengan bentuk yang sudah dikenalnya, sementara
+    /// <see cref="FactIds"/> membawa seluruh identitas fakta yang benar-benar terbit.
+    /// </summary>
+    public sealed class LabFactEmission
+    {
+        private LabFactEmission(ClinicalFactEmissionResult perwakilan, IReadOnlyList<Guid> factIds)
+        {
+            Perwakilan = perwakilan;
+            FactIds = factIds;
+        }
+
+        public ClinicalFactEmissionResult Perwakilan { get; }
+
+        public IReadOnlyList<Guid> FactIds { get; }
+
+        public int Count => FactIds.Count;
+
+        // Yang dikumpulkan adalah MilestoneFactId, bukan ClinicalMilestoneFactId.
+        //
+        // Keduanya berbeda dan perbedaannya menentukan: ClinicalMilestoneFactId adalah identitas
+        // BARIS, yang berganti setiap kali sebuah fakta memperoleh versi baru. MilestoneFactId
+        // adalah identitas FAKTA itu sendiri, yang bertahan lintas versi. Memakai yang pertama
+        // membuat pengiriman ulang tampak seperti fakta baru, dan idempotensi yang sesungguhnya
+        // berjalan justru terbaca sebagai pelanggaran.
+        public static LabFactEmission Dari(ClinicalFactEmissionResult hasil) =>
+            new(hasil, hasil.MilestoneFactId.HasValue
+                ? new[] { hasil.MilestoneFactId.Value }
+                : Array.Empty<Guid>());
+
+        public static LabFactEmission Dari(IReadOnlyList<ClinicalFactEmissionResult> hasil)
+        {
+            var ids = hasil
+                .Where(x => x.MilestoneFactId.HasValue)
+                .Select(x => x.MilestoneFactId!.Value)
+                .ToList();
+
+            return new LabFactEmission(hasil[0], ids);
+        }
+    }
 
     /// <summary>
     /// Ditandai terpisah agar controller dapat membalas <c>409 Conflict</c> dan bukan

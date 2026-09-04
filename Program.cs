@@ -289,6 +289,8 @@ try
     builder.Services.AddScoped<LabCriticalBoundApprovalService>();
     builder.Services.AddScoped<LabRejectionReasonService>();
     builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();

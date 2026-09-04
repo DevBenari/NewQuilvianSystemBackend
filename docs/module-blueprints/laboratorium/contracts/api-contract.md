@@ -89,7 +89,7 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 | `GET` | `/` | Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Tersedia** — `r5`, `BE-LAB-18`. **Breaking**: bentuk respons berubah dari `List<T>` menjadi `PagedResult<T>` |
 | `GET` | `/filters/metadata` | Pilihan penyaring, urutan, dan ukuran halaman untuk layar daftar pesanan | `LabOrder : Read` | — | `ApiResponse<LabOrderFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/summary` | Rekap pesanan pada satu rentang waktu, per status dan per disiplin | `LabOrder : Read` | `startDate`, `endDate` | `ApiResponse<LabOrderSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
-| `GET` | `/by-discipline/{discipline}` | Daftar pesanan per disiplin: Patologi Klinik, Patologi Anatomi, atau Mikrobiologi | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-discipline/{discipline}` | Daftar pesanan per disiplin: Patologi Klinik, Patologi Anatomi, atau Mikrobiologi | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Tersedia** — `BE-LAB-15` |
 
 Delapan endpoint pesanan yang sudah ada tetap berlaku apa adanya. `LabOrderDetailResponse`
 bertambah satu ruas: `discipline` (`LAB-DEC-025`).
@@ -109,8 +109,8 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 | `GET` | `/by-specimen/{specimenId}` | Daftar pemeriksaan yang ditopang satu wadah | `LabExamination : Read` | — | `ApiResponse<List<LabExaminationResponse>>` | **Tersedia** — `BE-LAB-16` |
 | `POST` | `/by-order/{labOrderId}` | Menambah pemeriksaan terpesan dan menautkannya ke wadah | `LabExamination : Create` | `AddLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-16` |
 | `POST` | `/{id}/cancel` | Membatalkan satu pemeriksaan terpesan | `LabExamination : Update` | `CancelLabExaminationRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-16` |
-| `PUT` | `/{id}/urgency` | Menandai **satu pemeriksaan** sebagai cito atau mengembalikannya menjadi biasa | `LabExamination : Update` | `SetLabExaminationUrgencyRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}/duplo` | Menandai satu pemeriksaan dikerjakan ganda | `LabExamination : Update` | `SetLabExaminationDuploRequest` | `ApiResponse<LabExaminationResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/urgency` | Menandai **satu pemeriksaan** sebagai cito atau mengembalikannya menjadi biasa | `LabExamination : Update` | `SetLabExaminationUrgencyRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-10` |
+| `PUT` | `/{id}/duplo` | Menandai satu pemeriksaan dikerjakan ganda | `LabExamination : Update` | `SetLabExaminationDuploRequest` | `ApiResponse<LabExaminationResponse>` | **Tersedia** — `BE-LAB-10` |
 
 `LabExaminationResponse` memuat `urgency`, `urgencyMarkedAt`, `urgencyMarkedByUserName`, dan
 `isDuplo` (`LAB-DEC-026`).
@@ -168,8 +168,8 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/pending` | Daftar kerja pekerjaan yang belum selesai, cito di urutan atas | `LabWorklist : Read` | `LabWorklistPagedQuery` | `ApiResponse<PagedResult<LabWorklistItemResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/cito-overdue` | Daftar pantau pesanan cito yang melewati batas waktu | `LabWorklist : Read` | `LabWorklistPagedQuery` | `ApiResponse<PagedResult<LabCitoOverdueResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/pending` | Daftar kerja pekerjaan yang belum selesai, cito di urutan atas | `LabWorklist : Read` | `LabWorklistPagedQuery` | `ApiResponse<PagedResult<LabWorklistItemResponse>>` | **Tersedia** — `BE-LAB-14` |
+| `GET` | `/cito-overdue` | Daftar pantau pesanan cito yang melewati batas waktu | `LabWorklist : Read` | `LabWorklistPagedQuery` | `ApiResponse<PagedResult<LabCitoOverdueResponse>>` | **Tersedia** — `BE-LAB-14` |
 
 ### Health Services / Laboratory Management / Lab Rejection Reason
 
@@ -233,9 +233,9 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/clinical-pathology` | Daftar pantau pesanan Patologi Klinik | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/anatomic-pathology` | Daftar pantau pesanan Patologi Anatomi | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/microbiology` | Daftar pantau pesanan Mikrobiologi | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/clinical-pathology` | Daftar pantau pesanan Patologi Klinik | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Tersedia** — `BE-LAB-15` |
+| `GET` | `/anatomic-pathology` | Daftar pantau pesanan Patologi Anatomi | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Tersedia** — `BE-LAB-15` |
+| `GET` | `/microbiology` | Daftar pantau pesanan Mikrobiologi | `LabMonitoring : Read` | `LabMonitoringQuery` | `ApiResponse<PagedResult<LabMonitoringItemResponse>>` | **Tersedia** — `BE-LAB-15` |
 
 Ketiganya memakai penyaring yang sama: pasien, nomor rekam medis, nomor pesanan, periode, jenis
 kunjungan, unit atau ruangan, penjamin, status pesanan, status wadah, dan penanda cito.
