@@ -27,7 +27,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
 | HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | ACTIVE |
 | HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | ACTIVE |
-| HealthServices | BloodBankManagement / Blood Bank (Existing Master Legacy) | MASTER / REFERENCE | Mst | LEGACY |
+| HealthServices | BloodBankManagement / Blood Bank Existing Master Legacy | BUSINESS DOMAIN / MODULE | Mst | LEGACY |
 
 ## Kepanjangan prefix
 
