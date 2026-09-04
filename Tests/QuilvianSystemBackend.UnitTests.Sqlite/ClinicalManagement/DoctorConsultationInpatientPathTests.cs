@@ -239,10 +239,16 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         }
 
         /// <summary>
-        /// `BE-RWI-037 AC 5` — kunjungan rawat jalan tanpa antrean tetap ditolak dengan kalimat
-        /// yang sama seperti sebelumnya. Perbaikan ini hanya menutup kegagalan sistem, bukan
-        /// membuka pintu baru.
+        /// `BE-RWI-037 AC 5` — kunjungan rawat jalan tanpa antrean tetap ditolak. Perbaikan itu
+        /// hanya menutup kegagalan sistem, bukan membuka pintu baru.
         /// </summary>
+        /// <remarks>
+        /// <b>Kalimatnya diperbarui `BE-RWI-044`, kodenya tidak.</b> Sebelum task itu bunyinya
+        /// "Konsultasi tanpa antrean hanya untuk pasien IGD"; sejak pintu rawat inap dibuka ada
+        /// dua jalur sah tanpa antrean, sehingga kalimat lama berhenti benar. Penggantinya bunyi
+        /// `VAL-DOK-04` apa adanya. Yang dijaga acceptance ini — penolakan `400` dan nol catatan
+        /// yang lahir — tidak berubah sedikit pun.
+        /// </remarks>
         [Fact]
         public async Task RawatJalanTanpaAntrean_TetapDitolak()
         {
@@ -255,7 +261,9 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 .CreateConsultation(Permintaan(k));
 
             Assert.Equal(400, ControllerTestHarness.KodeStatus(hasil));
-            Assert.Contains("hanya untuk pasien IGD", ControllerTestHarness.Pesan(hasil));
+            Assert.Equal(
+                "Konsultasi untuk pasien poliklinik tetap harus lewat antrean.",
+                ControllerTestHarness.Pesan(hasil));
             Assert.Equal(0, await context.Set<TrxDoctorConsultation>().CountAsync());
         }
 

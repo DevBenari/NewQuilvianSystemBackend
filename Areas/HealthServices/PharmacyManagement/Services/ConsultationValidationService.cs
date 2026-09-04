@@ -37,8 +37,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled)
                 issues.Add(Issue("CONSULTATION_CANCELLED", ConsultationValidationSeverity.Error, "Konsultasi dokter sudah dibatalkan.", "Consultation", "soap"));
 
-            ValidateSoap(consultation, issues);
-            ValidateDiagnosis(consultation, issues);
+            // BE-RWI-046 / VAL-DOK-12. Catatan harian rawat inap dinilai dengan aturan yang
+            // berbeda dari catatan poliklinik, dan itu disengaja. Menuntut keempat bagian SOAP
+            // beserta diagnosis utama pada setiap catatan harian membuat dokter menulis kalimat
+            // kosong demi lolos validasi - itu menurunkan mutu rekam medis, bukan menaikkannya.
+            // Diagnosis kerja pasien rawat inap hidup pada kajian medis, bukan diulang setiap
+            // hari pada catatan perkembangan.
+            //
+            // Rawat jalan, medical check-up, dan IGD tidak tersentuh: penyaringnya adalah
+            // keberadaan konteks perawatan pada catatan itu sendiri, kolom yang hanya terisi
+            // bagi catatan yang lahir di atas perawatan rawat inap - INV-DOK-01, RWI-AC-143.
+            if (consultation.InpEpisodeId.HasValue)
+            {
+                ValidateInpatientDailyNote(consultation, issues);
+            }
+            else
+            {
+                ValidateSoap(consultation, issues);
+                ValidateDiagnosis(consultation, issues);
+            }
             issues.AddRange(await _prescriptionValidationService.ValidateForConsultationAsync(
                 consultationId, consultation.EncounterId, cancellationToken));
             await ValidateProceduresAsync(consultationId, consultation.EncounterId, issues, cancellationToken);
@@ -56,6 +73,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 issues.Add(Issue("MISSING_ASSESSMENT", ConsultationValidationSeverity.Error, "Assessment wajib diisi.", "SOAP", "soap", "Assessment"));
             if (string.IsNullOrWhiteSpace(c.Plan))
                 issues.Add(Issue("MISSING_PLAN", ConsultationValidationSeverity.Error, "Plan wajib diisi.", "SOAP", "soap", "Plan"));
+        }
+
+        /// <summary>
+        /// Kelayakan finalisasi catatan harian rawat inap - <c>VAL-DOK-12</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-046</c>. Cukup satu bagian terisi. Yang ditolak hanya catatan yang benar-benar
+        /// kosong, dan kalimatnya diambil apa adanya dari validation matrix supaya pengguna
+        /// membaca sebab yang sama dengan yang tertulis pada kontrak.
+        /// </remarks>
+        private static void ValidateInpatientDailyNote(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)
+        {
+            var adaIsi =
+                !string.IsNullOrWhiteSpace(c.Subjective) ||
+                !string.IsNullOrWhiteSpace(c.Objective) ||
+                !string.IsNullOrWhiteSpace(c.Assessment) ||
+                !string.IsNullOrWhiteSpace(c.Plan);
+
+            if (!adaIsi)
+                issues.Add(Issue("EMPTY_INPATIENT_NOTE", ConsultationValidationSeverity.Error, "Catatan masih kosong.", "SOAP", "soap"));
         }
 
         private static void ValidateDiagnosis(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)

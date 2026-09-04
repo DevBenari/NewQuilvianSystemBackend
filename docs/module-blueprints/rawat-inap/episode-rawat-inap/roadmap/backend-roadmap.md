@@ -6,9 +6,10 @@
 module_id: rawat-inap
 module_name: InPatientManagement
 entity_prefix: Inp
-roadmap_revision: 3
+roadmap_revision: 4
 revision_3_scope: INPUT_RESYNC_ONLY
-status: APPROVED
+revision_4_scope: DEPOSIT_SLICE
+status: DRAFT
 approval_gate: BLUEPRINT_APPROVED
 blueprint_shape: COMPOSITE
 submodule: episode-rawat-inap
@@ -20,41 +21,42 @@ owners:
 approved_by:
   - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067; sinkronisasi revision 2 lewat RWI-DEC-074"
 approved_at: "2026-08-24"
+revision_4_approval: "BELUM. Approval revision 3 tidak meluas ke tujuh task baru pada revision 4. Roadmap ini berstatus DRAFT sampai pemilik menyetujuinya secara terpisah."
 input_revisions:
   blueprint-manifest.md (tingkat modul): 5
   blueprint-manifest.md (sub-modul): 5
-  00-interview-decisions.md: 7
+  00-interview-decisions.md: 16
   01-existing-capability-map.md: 1.2
   02-module-map.md: 1
   02-backend-architecture.md: 0.5
-  04-prd-to-mvp.md: 0.4.1
+  04-prd-to-mvp.md: 0.6.0
 input_hashes:
   blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
   blueprint-manifest.md (sub-modul): "6d3fedda94325aa43c70612159a3f4067e0be78605f4b0b17ef948614d5d5d83"
-  00-interview-decisions.md: "e9f2c957dfc68d609c426d7c91018f01223b4d163c85498be525804387724d9c"
+  00-interview-decisions.md: "7796257a6a79a27036019c23e7dae2ab044e53a46ac295700d98ef8aa63a768f"
   01-existing-capability-map.md: "567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6"
-  02-module-map.md: "62be6c334caa1651fc89db3b43d197235da3fa6be1d309da45e5b57f9536e54d"
+  02-module-map.md: "7e955dbb739d1f4c9bba4023cce8d98287d5c0a934f77b680fdeeef2b7827aa4"
   02-backend-architecture.md: "b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f"
-  04-prd-to-mvp.md: "f8c71b8479a0423ca68795427198a674e2dd9ad01939fa692a4c38a4d3457533"
+  04-prd-to-mvp.md: "af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700"
 artifact_hashes:
-  contracts/api-contract.md: "0357e52c2e35a0812d439758c74887c17b93c1bc24e1443b9a0ad6787061d14a"
+  contracts/api-contract.md: "09ce2ad7c3dfefc29bee0832fe4edadee1ae0db8b207917ecb9ac942b3802176"
   contracts/state-transition-matrix.md: "35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7"
-  contracts/validation-matrix.md: "995b355dae2073f84f286095d36fa74cb2ad912ff07e2f7525a1bbfa9b96c82b"
-  contracts/permission-audit-matrix.md: "c345c10b90344777484ff4444105504070d543b4ecc3587c2155be41aeb7bad9"
+  contracts/validation-matrix.md: "c4a281138e0d6ff90131103dc502bfc614ce88dd8ccb64110ddb6dbce12432c8"
+  contracts/permission-audit-matrix.md: "b10f149895e4b289d3e6f97f899935691129307a58c1fbf166b556ae08136382"
   contracts/integration-contract.md: "99ef4d4fb982987fa25b51dc49720344366a6bb42d31f8c7c6b153070a62aab0"
   contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
-  - "API 0.4.0"
+  - "API 0.6.0"
   - "Encounter company guarantor addendum 1.0.0"
   - "Bed board reservation metadata addendum 1.0.0"
   - "State transition 0.4.0"
-  - "Validation 0.4.0"
+  - "Validation 0.6.0"
   - "Integration 0.4.0"
-  - "Permission/Audit 0.4.0"
+  - "Permission/Audit 0.6.0"
   - "Acceptance test 0.4.0"
-  - "PRD ke MVP 0.4.0"
+  - "PRD ke MVP 0.6.0"
 source_commits:
   backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
@@ -63,7 +65,18 @@ current_contract_gap_scan:
   backend: "64d7419415e473968d752d873ca02e1ae1fcded8"
   frontend: "786bd247db47a3b7c97b8c08fb6ec633f57d0c72"
   result: "RWI-UI-GAP-002_CONFIRMED; ADMIN_ROUTE_AND_PERMISSION_CONFIRMED"
-task_count: 36
+task_count: 43
+cross_module_pending_owner:
+  - "BillingManagement — RWI-OQ-053. RWI-DEC-062 tidak mencakup modul ini, sehingga lima task backend deposit berstatus BLOCKED."
+replan_done_at: "2026-09-04"
+previous_stale_since: "2026-09-04"
+stale_reason: "RWI-DEC-093 s.d. RWI-DEC-096 menetapkan deposit rawat inap sebagai langkah admisi. 04-prd-to-mvp.md naik ke 0.6.0, api-contract/validation-matrix/permission-audit-matrix naik ke 0.6.0, 00-interview-decisions.md naik ke revision 15. input_hashes dan input_revisions di bawah adalah nilai LAMA dan sengaja tidak diperbarui, supaya drift-nya terbaca, bukan tertutup."
+replan_required: false
+planned_slices:
+  - "EPIC RI-35a — langkah Deposit pada admisi, kebijakan minimum deposit, EpisodeId pada BilDepositAccount, ringkasan deposit per episode, daftar pantau kekurangan. Gelombang MVP-1."
+  - "EPIC RI-35b — final settlement, refund, dan validasi FinancialClearance terhadap ringkasan Billing. Gelombang MVP-3."
+blocked_by:
+  - "RWI-OQ-052 — pemegang BillingDeposit : Create pada langkah admisi belum ditetapkan. Memblokir EPIC RI-35a saja."
 ```
 
 ---
@@ -133,6 +146,45 @@ diulang. Hash yang tercatat sekarang adalah hash sungguhan hari ini.
 | Task yang menyentuhnya | `BE-RWI-024` kelayakan keuangan, `BE-RWI-025` kelima syarat penutupan, `BE-RWI-034` endpoint baca — ketiganya **sudah selesai dan dilaporkan** |
 | Apakah menahan roadmap ini? | **Tidak.** Bila `RWI-OQ-047` kelak memilih Billing, yang berubah adalah **sumber bacaan** satu penanda; kelima syarat penutupan dan seluruh alur pemulangan tetap berlaku apa adanya |
 | Apakah boleh diabaikan? | **Tidak.** Ia dicatat di sini supaya task berikutnya yang menyentuh kelayakan keuangan tahu bahwa kepemilikannya sementara |
+
+---
+
+## 0-AA. Revision `4` — slice deposit, 2026-09-04
+
+### 0-AA.1 Kenapa revision ini ada
+
+`RWI-DEC-093` s.d. `RWI-DEC-096` menetapkan deposit rawat inap sebagai **langkah tersendiri di dalam
+alur admisi**, bukan pekerjaan kasir sesudah episode ada. Revision `3` tidak mengenal deposit sama
+sekali: baris `CAP-010` pada peta modul masih berbunyi `DEFERRED — menunggu Billing operasional`,
+dan traceability masih menuliskan "Billing belum punya kemampuan transaksi". Keduanya sudah
+diresync 2026-09-04 sebelum roadmap ini ditulis.
+
+### 0-AA.2 Pemeriksaan batas sub-modul dan batas modul
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Task membuat tabel milik sub-modul lain? | **Tidak.** Nol tabel baru di `episode-rawat-inap`; nol tabel di `keperawatan` maupun `dokter-rawat-inap` |
+| Task menyentuh kemampuan yang barisnya `BLOCKED` pada peta modul? | **Tidak.** `CAP-010` sudah punya sub-modul pemilik dan statusnya bukan `BLOCKED` |
+| Task menyentuh **modul lain**? | **Ya — `BillingManagement`.** Ledger deposit, kebijakan minimum, dan keempat endpointnya dimiliki modul itu |
+| Persetujuan lintas modulnya sudah ada? | **Belum.** `RWI-DEC-062` hanya mencakup `ClinicalManagement`, `PharmacyManagement`, dan `MasterData` HealthServices. Bagian `EmergencyInstallationManagement` bahkan dicabut `RWI-DEC-069` justru karena pemiliknya berbeda. `BillingManagement` tidak pernah termasuk |
+
+**Akibatnya lima task backend berstatus `BLOCKED`.** Yang memblokir adalah `RWI-OQ-053`, bukan
+mutu rencananya. Setiap task yang terblokir tetap ditulis lengkap supaya pemilik Billing dapat
+menilai persis apa yang diminta, bukan diminta menyetujui gagasan yang belum berbentuk.
+
+### 0-AA.3 Apa yang tetap berjalan hari ini
+
+| Yang berjalan | Kenapa boleh |
+| --- | --- |
+| `BE-RWI-041` ambang tindak lanjut deposit | Kolom pada `MstInpatientSetting`, sepenuhnya milik Rawat Inap. Tidak menyentuh Billing |
+| Penyusunan skema tampilan langkah Deposit | Pekerjaan desain, bukan task roadmap. Menutup `RWI-UI-GAP-008` yang menahan keempat task frontend |
+| Penyiapan pertanyaan untuk pemilik Billing | `RWI-OQ-053` sudah tertulis lengkap beserta tiga perubahan yang diminta |
+
+### 0-AA.4 Yang **tidak** dikerjakan revision ini
+
+Estimasi biaya otomatis, tagihan berjalan rinci, dan klaim tetap di luar roadmap ini. `CAP-019`
+tetap `DEFERRED`. Alasannya berubah — Billing sudah punya jalur invoice dan finalisasi — tetapi
+keputusannya tidak.
 
 ---
 
@@ -326,6 +378,8 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
 | **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033`, `BE-RWI-034` |
 | **S10 — Encounter membawa penjamin perusahaan** | Encounter admin dapat menyimpan payer perusahaan yang sah tanpa mengubah Tunai/Asuransi | `MVP-0`; `RWI-CAP-002` | ✅ `BE-RWI-035` |
+| **S11 — Deposit dapat diterima dan ditelusuri ke episodenya** | Kasir menerima uang muka, sistem tahu deposit itu milik episode mana, minimumnya dibaca dari kebijakan, dan kekurangannya terlihat | `MVP-1`; `EPIC RI-35a` | 🚫 `BE-RWI-037` s.d. `BE-RWI-040`, `BE-RWI-042`; ✅ siap `BE-RWI-041` |
+| **S12 — Uang selesai sebelum episode ditutup** | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta | `MVP-3`; `EPIC RI-35b` | 🚫 `BE-RWI-043` |
 
 ### Urutan dependency
 
@@ -365,6 +419,17 @@ BE-RWI-032 (test regresi modul tetangga)  ✅ SELESAI bersama BE-RWI-006
 BE-RWI-033 (bukti penerimaan)  ✅ SELESAI
 BE-RWI-034 (perbaikan hak akses + endpoint baca kelayakan keuangan)  ✅ SELESAI
 BE-RWI-035 (penjamin perusahaan pada encounter admin)  ✅ SELESAI ──> FE-RWI-025
+BE-RWI-036 (metadata pemesanan pada papan tempat tidur)  ✅ SELESAI
+
+--- slice deposit, revision 4 ---
+
+BE-RWI-041 (ambang tindak lanjut pada pengaturan)  SIAP — tidak terblokir
+BE-RWI-037 (EpisodeId pada akun deposit)  BLOCKED RWI-OQ-053
+   ├── BE-RWI-038 (kebijakan minimum + GET /deposit-policies)  BLOCKED
+   └── BE-RWI-039 (penerimaan deposit terikat episode + idempotensi)  BLOCKED
+          └── BE-RWI-040 (ringkasan deposit episode, dua angka kekurangan)  BLOCKED
+                 ├── BE-RWI-042 (daftar pantau kekurangan deposit)  menunggu 040 + 041
+                 └── BE-RWI-043 (settlement, refund, gerbang Cleared)  BLOCKED — MVP-3
 ```
 
 **Yang boleh paralel.** Setelah `BE-RWI-004` selesai, empat jalur berikut tidak saling bergantung
@@ -1043,6 +1108,135 @@ Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 | --- | --- | --- | --- | --- | --- |
 | `GET` | `/bed-board` | Papan ketersediaan beserta identitas pemegang dan metadata reservasi aktif | `InpatientBedOccupancy : Read` | Query `serviceUnitId` nullable | `ApiResponse<BedBoardResponse>`; field bed aditif sesuai `RWI-BED-BOARD-RESERVATION-001 1.0.0` |
+
+---
+
+### Task slice deposit — revision `4`
+
+Tujuh task di bawah lahir dari `RWI-DEC-093` s.d. `RWI-DEC-096`. **Lima berstatus `BLOCKED`** oleh
+`RWI-OQ-053`, satu **siap dikerjakan**, dan satu menunggu kakaknya selesai. Seluruhnya memakai
+kontrak `API 0.6.0`, `Validation 0.6.0`, dan `Permission/Audit 0.6.0` beserta hash pada metadata.
+
+**Kesesuaian engineering diselesaikan saat eksekusi.** Sebelum menulis source, pelaksana membaca
+`AGENTS.md` pada `NewQuilvianSystemBackend` beserta dokumen engineering canonical, lalu menjalankan
+QBE preflight. Roadmap ini tidak menggantikan keduanya.
+
+### 🚫 `BE-RWI-037` — Akun deposit tahu episode mana yang dibayari
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🚫 **BLOCKED** oleh `RWI-OQ-053`. Rencananya lengkap dan siap dinilai pemilik `BillingManagement`; yang belum ada adalah izin menyentuh modul itu |
+| **Outcome** | Uang muka yang dibayarkan keluarga dapat ditelusuri ke episode rawat inap yang dibiayainya, sehingga deposit episode September tidak pernah terbaca sebagai saldo episode Desember milik pasien yang sama |
+| **Trace** | `RWI-DEC-093`; `FR-RI-163`; `04-prd-to-mvp.md` bagian 10 `EPIC RI-35`; `api-contract.md` `0.6.0` bagian Deposit Rawat Inap |
+| **Reuse** | `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, `BillingPatientFundsController` — keempatnya **sudah ada** dan berjalan. Tidak ada tabel deposit baru yang dibuat |
+| **Scope** | Kolom `EpisodeId` bertipe `Guid?` pada `BilDepositAccount`, satu index, penerusan nilainya pada `TopUpDepositRequest` dan `BillingDepositService`, satu migration di area Billing. **Nol berkas** di `Areas/HealthServices/InPatientManagement/` |
+| **Dependency** | `RWI-OQ-053` dijawab pemilik `BillingManagement` |
+| **Acceptance criteria** | 1. Penerimaan yang berasal dari admisi rawat inap menyimpan `EpisodeId` dan dapat dibaca kembali. 2. Penerimaan di luar rawat inap tetap sah tanpa `EpisodeId`; kolomnya nullable. 3. Akun deposit yang sudah ada sebelum migration tidak rusak dan tetap terbaca. 4. Memindahkan saldo ke episode lain **tidak** dapat dilakukan dengan mengganti kolom; jalurnya tetap transaksi finansial eksplisit (`FR-RI-169`). 5. Migration maju dan mundur berhasil |
+| **Verification** | Uji migration maju-mundur pada Postgres Docker sekali pakai — tidak ada connection string bersama yang boleh dipakai; test regresi `BillingDepositService` yang sudah ada tetap hijau |
+| **Risk/blocker** | **Lintas modul.** Owner: pemilik `BillingManagement`, namanya belum tercatat pada sumber yang tersedia. Risiko kedua: mengubah tabel finansial yang sudah memuat data nyata; karena itu kolomnya nullable dan tidak ada backfill yang menebak |
+| **DoD** | Kolom, index, DTO, service, dan migration ada; uji maju-mundur lulus; test regresi Billing hijau; build lulus; laporan menyatakan migration belum diterapkan di luar lokal |
+
+---
+
+### 🚫 `BE-RWI-038` — Minimum deposit datang dari kebijakan, bukan dari angka di layar
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🚫 **BLOCKED** oleh `RWI-OQ-053` |
+| **Outcome** | Petugas admisi melihat minimum deposit yang benar untuk kombinasi penjamin dan kelas perawatan pasiennya, dan pasien yang penjaminnya menanggung penuh tidak dimintai uang muka sama sekali |
+| **Trace** | `RWI-DEC-094`; `FR-RI-164`, `FR-RI-175`; `api-contract.md` `0.6.0` `GET /patient-funds/deposit-policies` |
+| **Reuse** | Pola master `MstDiscountPolicy` dan `MstRoomChargePolicy` pada `BillingManagement/MasterData/` — bentuk kolom audit, soft delete, dan konfigurasi EF mengikuti preseden itu |
+| **Scope** | Satu master kebijakan deposit beserta konfigurasi EF, `DbSet`, dan migration; satu operasi baca `GET /deposit-policies?guarantorId=&patientClassId=`; DTO responsenya memuat `isRequired`, `minimumAmount`, dan `followUpIntervalDays` |
+| **Dependency** | `RWI-OQ-053`; `BE-RWI-037` untuk urutan migration |
+| **Acceptance criteria** | 1. Kombinasi penjamin dan kelas yang punya kebijakan mengembalikan minimum beserta ambang tindak lanjutnya. 2. Kombinasi tanpa kebijakan mengembalikan `isRequired = false` — **bukan** 404, supaya layar tidak menampilkan kesalahan pada keadaan yang wajar. 3. Nilai minimum tidak pernah dikirim frontend dan tidak pernah ditulis di kode layar. 4. Perubahan kebijakan berlaku pada pembacaan berikutnya tanpa aplikasi dinyalakan ulang |
+| **Verification** | Uji tiga kombinasi: mensyaratkan, tidak mensyaratkan, dan belum diatur; uji bahwa penambahan kebijakan baru langsung terbaca |
+| **Risk/blocker** | **Lintas modul.** Owner: pemilik `BillingManagement`. Risiko isi: siapa yang mengisi kebijakan awal dan berapa angkanya adalah keputusan keuangan, bukan keputusan pelaksana. Sampai terisi, langkah Deposit berjalan tanpa minimum — perilaku ini sengaja, lihat `04-prd-to-mvp.md` bagian 5.1 butir 4 |
+| **DoD** | Master, migration, endpoint, dan DTO ada; ketiga keadaan terbukti; build lulus; laporan menyatakan data kebijakan awal **belum** diisi dan siapa pemiliknya |
+
+---
+
+### 🚫 `BE-RWI-039` — Deposit yang dikirim dua kali tetap satu kwitansi
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🚫 **BLOCKED** oleh `RWI-OQ-053` |
+| **Outcome** | Uang muka yang diterima pada langkah admisi tersimpan tepat satu kali walaupun jaringan putus dan petugas menekan tombolnya lagi, dan setiap penerimaan berikutnya menjadi transaksi baru yang tidak menimpa yang lama |
+| **Trace** | `RWI-DEC-093`; `FR-RI-165`, `FR-RI-166`, `FR-RI-178`; `NFR-009`; `validation-matrix.md` `0.6.0` bagian 8A |
+| **Reuse** | `BilDepositMovement.IdempotencyKey` dan `PayloadHash` yang **sudah ada**; jalur replay pada `BillingDepositService` yang sudah menangani `EncounterId` |
+| **Scope** | `POST /patient-funds/deposits/{encounterId}/top-ups` menerima `episodeId` dan `idempotencyKey`; penolakan bila `episodeId` kosong pada penerimaan berasal-admisi; penolakan 409 bila episode bukan milik kunjungan itu |
+| **Dependency** | `BE-RWI-037` |
+| **Acceptance criteria** | 1. Dua permintaan dengan `idempotencyKey` sama menghasilkan satu transaksi, dan permintaan kedua mengembalikan transaksi pertama apa adanya. 2. Penerimaan kedua dengan kunci berbeda menjadi transaksi baru; nominal transaksi pertama tidak berubah. 3. `episodeId` yang menunjuk episode milik kunjungan lain ditolak 409 dengan pesan pada matriks validasi. 4. Penerimaan tanpa `episodeId` yang berasal dari admisi rawat inap ditolak 422. 5. Nomor kwitansi tetap unik |
+| **Verification** | Uji retry dengan kunci sama; uji dua penerimaan berurutan; uji episode milik kunjungan lain; pemeriksaan bahwa histori transaksi bertambah, bukan berubah |
+| **Risk/blocker** | **Lintas modul.** Owner: pemilik `BillingManagement`. `RWI-RISK-006` menempel di sini: antara uang diterima petugas dan transaksi terbentuk ada jeda yang tidak dijaga sistem |
+| **DoD** | Kelima kriteria lulus; test idempotensi ada dan hijau; build lulus |
+
+---
+
+### 🚫 `BE-RWI-040` — Ringkasan deposit menjawab dua kekurangan yang berbeda
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🚫 **BLOCKED** oleh `RWI-OQ-053` |
+| **Outcome** | Layar admisi, layar kasir, dan gerbang penutupan membaca posisi deposit dari satu jawaban server yang sama, sehingga tidak ada dua tempat yang menghitung sendiri lalu berbeda hasil |
+| **Trace** | `RWI-DEC-095`; `FR-RI-167`, `FR-RI-176`; `api-contract.md` `0.6.0` `GET /patient-funds/deposits/episodes/{episodeId}` |
+| **Reuse** | Perhitungan saldo pada `BillingDepositService` yang sudah ada; pola `ApiResponse` |
+| **Scope** | Satu operasi baca ringkasan per episode. Responsenya memuat minimum kebijakan, total diterima, total dialokasikan, total refund, saldo tersedia, **kekurangan terhadap minimum kebijakan**, **kekurangan terhadap tagihan final**, dan outstanding top-up |
+| **Dependency** | `BE-RWI-037`, `BE-RWI-039` |
+| **Acceptance criteria** | 1. Kedua angka kekurangan dikembalikan sebagai dua field berbeda dan tidak pernah disatukan. 2. Episode tanpa deposit mengembalikan ringkasan bernilai nol, bukan 404. 3. Nilainya konsisten dengan histori transaksi bila dihitung ulang secara manual. 4. Frontend tidak perlu menghitung apa pun untuk menampilkan peringatan kekurangan |
+| **Verification** | Uji episode tanpa deposit, dengan deposit kurang, dan dengan deposit lebih; bandingkan hasil terhadap perhitungan manual atas histori transaksi |
+| **Risk/blocker** | **Lintas modul.** Owner: pemilik `BillingManagement`. Risiko rancangan: menyatukan kedua angka kekurangan akan membuat episode yang uang mukanya kurang tampak seperti episode yang tagihannya kurang — dilarang oleh `RWI-DEC-095` |
+| **DoD** | Endpoint, DTO, dan test ketiga keadaan ada; build lulus |
+
+---
+
+### `BE-RWI-041` — Ambang tindak lanjut deposit dapat diubah admin
+
+| Field | Isi |
+| --- | --- |
+| **Status** | **SIAP DIKERJAKAN.** Satu-satunya task deposit yang tidak menunggu siapa pun. Seluruhnya milik Rawat Inap |
+| **Outcome** | Rumah sakit dapat mengubah sendiri berapa hari sekali kekurangan deposit ditagih ulang, tanpa menunggu pengembang mengubah kode |
+| **Trace** | `RWI-DEC-096`; `FR-RI-143`, `FR-RI-177`; `04-prd-to-mvp.md` `EPIC RI-31` |
+| **Reuse** | `MstInpatientSetting` beserta layar dan endpointnya yang sudah ada lewat `BE-RWI-005`; pola nilai bawaan pada `FR-RI-142` |
+| **Scope** | Satu kolom `DepositFollowUpIntervalDays` pada `MstInpatientSetting` bernilai bawaan `3`; migration; DTO baca dan ubah; validasi nilai minimal `1` |
+| **Dependency** | — |
+| **Acceptance criteria** | 1. Nilai bawaan `3` terbaca pada lingkungan yang barisan pengaturannya belum diisi, tanpa aplikasi gagal menyala. 2. Admin dapat mengubahnya lewat endpoint pengaturan yang sudah ada. 3. Nilai `0` atau negatif ditolak. 4. Perubahan berlaku pada pembacaan berikutnya. 5. Nol tabel dan nol kolom milik modul lain tersentuh |
+| **Verification** | Uji migration maju-mundur pada Postgres Docker sekali pakai; uji baca pada lingkungan tanpa baris pengaturan; uji tolak nilai `0` |
+| **Risk/blocker** | Rendah. Owner: Backend/API. Satu-satunya kehati-hatian: kolom ini tidak boleh dipakai menahan perawatan, hanya menjadwalkan pengingat |
+| **DoD** | Kolom, migration, validasi, dan test ada; kelima kriteria lulus; build lulus; laporan menyatakan migration belum diterapkan di luar lokal |
+
+---
+
+### `BE-RWI-042` — Daftar pantau kekurangan deposit
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Menunggu `BE-RWI-040` dan `BE-RWI-041`. **Tidak** terblokir persetujuan; endpointnya milik Rawat Inap |
+| **Outcome** | Petugas dapat melihat daftar pasien yang uang mukanya masih kurang beserta sejak berapa hari, sehingga penagihan pelunasan berkala punya tempat kerja, bukan hanya niat |
+| **Trace** | `RWI-DEC-096`; `FR-RI-177`; `api-contract.md` `0.6.0` `GET /monitoring/deposit-shortfall` |
+| **Reuse** | Empat daftar pantau yang sudah ada lewat `BE-RWI-029`, termasuk pola query, paging, dan penyaringnya |
+| **Scope** | Satu operasi baca pada `InpatientMonitoring`; angka kekurangan **dibaca** dari ringkasan `BE-RWI-040`, tidak dihitung ulang di Rawat Inap |
+| **Dependency** | `BE-RWI-040`, `BE-RWI-041` |
+| **Acceptance criteria** | 1. Episode aktif yang kekurangannya di atas nol muncul pada daftar. 2. Episode yang lama rawatnya belum melewati ambang **tidak** muncul. 3. Episode yang kekurangannya sudah tertutup hilang dari daftar tanpa transaksi lama berubah. 4. Angka kekurangan pada daftar sama persis dengan ringkasan Billing. 5. Bila ringkasan Billing tidak dapat dibaca, daftar menyatakan datanya tidak tersedia — **tidak** menampilkan nol yang menyesatkan |
+| **Verification** | Uji keempat keadaan episode; uji perilaku saat sumber Billing tidak dapat dibaca |
+| **Risk/blocker** | Owner: Backend/API. Kriteria 5 adalah pertahanan terhadap kesalahan yang paling mungkin terjadi: menganggap "tidak terbaca" sama dengan "tidak ada kekurangan" |
+| **DoD** | Endpoint, DTO, test kelima keadaan; build lulus |
+
+---
+
+### 🚫 `BE-RWI-043` — Settlement, refund, dan `Cleared` yang tidak lagi buta
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🚫 **BLOCKED** oleh `RWI-OQ-053`. Gelombang `MVP-3` |
+| **Outcome** | Saat pasien pulang, tagihan final dikurangi deposit yang ada; kekurangannya dibayar atau kelebihannya direfund; dan kasir tidak lagi bisa menyatakan lunas atas episode yang uangnya belum selesai |
+| **Trace** | `FR-RI-170`, `FR-RI-171`, `FR-RI-172`; `RWI-RISK-003` yang dicabut sebagai jalur normal sejak `0.5.0`; `validation-matrix.md` `0.6.0` bagian 8A baris `Cleared` |
+| **Reuse** | `BillingSettlementService`, `BillingRefundService`, `BillingFinalizationsController`, dan `MstRoomChargePolicy` — seluruhnya **sudah ada**. `InpDischargeService.MarkFinancialClearanceAsync` yang sudah berjalan lewat `BE-RWI-024` |
+| **Scope** | `POST /deposits/episodes/{episodeId}/settle` dan `POST /deposits/episodes/{episodeId}/refunds` di Billing; pada Rawat Inap, `MarkFinancialClearanceAsync` membaca ringkasan Billing sebelum menerima `Cleared` |
+| **Dependency** | `BE-RWI-040`; tagihan final tersedia dari `BillingFinalizationsController` |
+| **Acceptance criteria** | 1. Tagihan final lebih besar dari deposit menghasilkan kekurangan yang terbaca, dan `Cleared` ditolak 422 sebelum dibayar. 2. Deposit lebih besar dari tagihan final menghasilkan kelebihan, dan `Cleared` ditolak sebelum refund tercatat. 3. Refund tersimpan sebagai transaksi terpisah; tiga penerimaan sebelumnya tetap utuh. 4. Bila ringkasan Billing tidak dapat dibaca, status **tidak** boleh diasumsikan `Cleared`; jalur normal tetap `Pending` atau `Blocked`. 5. `CloseOverride` supervisor tetap menembus gerbang episode tanpa menghapus satu pun transaksi Billing, dan episodenya masuk laporan pengecualian |
+| **Verification** | Uji `UAT-37`, `UAT-38`, `UAT-39`, dan `UAT-40`; uji jalur gagal-aman saat Billing tidak terbaca; uji override |
+| **Risk/blocker** | **Lintas modul.** Owner: pemilik `BillingManagement` bersama Product/Domain. Risiko terbesar ada pada kriteria 4: menganggap sumber yang tidak terbaca sebagai lunas adalah cara paling mudah kehilangan uang |
+| **DoD** | Kedua endpoint dan validasi clearance ada; keempat UAT lulus; test gagal-aman ada; build lulus |
 
 ---
 

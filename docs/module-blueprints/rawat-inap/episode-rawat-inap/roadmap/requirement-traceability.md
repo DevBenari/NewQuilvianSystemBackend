@@ -4,8 +4,9 @@
 
 ```yaml
 module_id: rawat-inap
-roadmap_revision: 6
+roadmap_revision: 7
 revision_6_scope: INPUT_RESYNC_ONLY
+revision_7_scope: DEPOSIT_SLICE
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
 blueprint_shape: COMPOSITE
@@ -24,7 +25,7 @@ input_revisions:
   02-backend-architecture.md: 0.5
   03-frontend-architecture.md: 0.5
   05-skema-tampilan.md: "0.4 (draft)"
-  04-prd-to-mvp.md: 0.4.1
+  04-prd-to-mvp.md: 0.6.0
   testing/acceptance-test-matrix.md: 0.4.0
 input_hashes:
   blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
@@ -35,7 +36,7 @@ input_hashes:
   02-backend-architecture.md: "b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f"
   03-frontend-architecture.md: "7be9f2b30409c23841161daaccc29c167ebeb0238a4b82ac1522826e9ca3df42"
   05-skema-tampilan.md: "f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e"
-  04-prd-to-mvp.md: "f8c71b8479a0423ca68795427198a674e2dd9ad01939fa692a4c38a4d3457533"
+  04-prd-to-mvp.md: "af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700"
   contracts/api-contract.md: "0357e52c2e35a0812d439758c74887c17b93c1bc24e1443b9a0ad6787061d14a"
   contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
@@ -159,9 +160,9 @@ keenamnya punya sub-modul pemilik dan alasan bersebab. Yang perlu dibaca justru 
 | Rujukan dan daftar tunggu masuk | `CAP-001` | Ditunda setelah MVP | Tidak ada, dan memang tidak diklaim ada |
 | Cetak kartu, gelang, label | `CAP-007` | Ditunda setelah MVP | **Sebagian sudah ada.** `FE-RWI-028` mencetak persetujuan rawat inap tanpa menyimpannya (`RWI-DEC-077`), dan `FE-RWI-029` mencetak kartu pasien pada jalur pasien baru. Gelang dan label tetap belum ada — lihat 0-B.4 |
 | Dokumen persetujuan, serah terima, edukasi | `CAP-009` | `DEC-INP-003`, pemilik privasi belum ditunjuk | Cetak tanpa simpan lewat `FE-RWI-028`. **Penyimpanan** tetap tidak ada, dan layar dilarang menyatakan persetujuan tersimpan |
-| Deposit, estimasi biaya, cek manfaat | `CAP-010` | `BillingManagement` belum punya kemampuan transaksi | Tidak ada. Penggantinya: kelayakan keuangan ditandai manual kasir, `BE-RWI-024` |
+| ~~Deposit~~, estimasi biaya, cek manfaat | `CAP-010` | **Deposit tidak lagi ditunda sejak `RWI-DEC-093` s.d. `RWI-DEC-096` (2026-09-04)**; ia masuk MVP sebagai `EPIC RI-35`. Estimasi biaya dan cek manfaat tetap ditunda | `BillingManagement` **sudah** punya `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, `BillingSettlementService`, `BillingRefundService`, dan `BillingPatientFundsController`. Yang belum: `EpisodeId` pada akun deposit, kebijakan minimum deposit, dan langkah Deposit pada admisi. Kelayakan keuangan masih ditandai manual kasir lewat `BE-RWI-024` sampai `EPIC RI-35b` selesai |
 | Permintaan dan serah terima kamar operasi | `CAP-018` | `OperatingRoomManagement` berstatus `PLANNED` | Tidak ada |
-| Tagihan berjalan | `CAP-019` | `BillingManagement` belum punya kemampuan transaksi | Tidak ada. Riwayat kelas dan lama dirawat tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
+| Tagihan berjalan | `CAP-019` | Tetap ditunda. **Alasannya berubah 2026-09-04:** bukan lagi "Billing belum punya kemampuan transaksi" — jalur invoice, finalisasi, dan `MstRoomChargePolicy` sudah ada — melainkan karena tagihan berjalan rinci berada di luar batas MVP sub-modul ini | Riwayat kelas dan lama dirawat tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
 
 ### 0-B.3 Pemeriksaan kemampuan yatim
 
@@ -185,6 +186,19 @@ kemampuan dijadikan hulu.
 Kedua gap **tidak menahan** task mana pun yang sedang berjalan. Keduanya dicatat, bukan
 diselesaikan diam-diam di sini: yang pertama adalah wewenang pemilik produk, yang kedua wewenang
 kontrak.
+
+---
+
+### 0-B.5 Coverage gap slice deposit — 2026-09-04
+
+| Gap | Bentuknya | Menahan |
+| --- | --- | --- |
+| `RWI-AC-*` untuk `EPIC RI-35` belum ada | Dua belas baris FR pada bagian 2 punya task dan test, tetapi kolom AC kosong | Tidak menahan pelaksanaan; menahan klaim "traceability penuh" sampai `/qv-design` menomori acceptance criteria deposit |
+| Skema tampilan langkah Deposit belum ada | `05-skema-tampilan.md` `0.4` tidak memuat `FE-INP-20` | Keempat task frontend deposit — `RWI-UI-GAP-008` |
+| Persetujuan lintas modul `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu | Lima task backend deposit — `RWI-OQ-053` |
+| Pemegang `BillingDeposit : Create` pada langkah admisi belum ditetapkan | Peta peran pada `permission-audit-matrix.md` `0.6.0` menuliskannya terbuka | `EPIC RI-35a` — `RWI-OQ-052` |
+| Kebijakan minimum deposit belum ada isinya | Master baru pada `BE-RWI-038`; siapa yang mengisi dan berapa angkanya adalah keputusan keuangan | Tidak menahan pelaksanaan; langkah Deposit berjalan tanpa minimum sampai terisi |
+| `UAT-34` s.d. `UAT-44` belum masuk `testing/acceptance-test-matrix.md` | Matriks masih `0.4.0` | Klaim kesiapan sign-off `EPIC RI-35` |
 
 ---
 
@@ -525,6 +539,30 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `7`. Kolom **Test** me
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
 | `FR-RI-139` s.d. `FR-RI-141` | Sesi koreksi supervisor, tidak mengganggu tempat tidur | `BE-RWI-030` ✅, `FE-RWI-018` ✅ | — | Bagian 10; `UAT-14`, `UAT-15`, `UAT-16` — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026**. Layar sesi koreksi berdiri dan seluruh aksinya tidak dirender bagi peran selain supervisor, termasuk bagi DPJP aktif. Status episode dibaca ULANG dari server sesudah sesi dibuka dan terbaca tetap `Closed`; koreksi resume tertandatangani memperingatkan versi lama akan disimpan, dan versi lamanya terbaca sesudah tersimpan. **Sesi terbuka milik supervisor lain tidak dapat dibaca layar** karena kontrak `0.4.0` tidak menyediakan `GET .../correction-sessions` ([laporan](../task/report/frontend/FE-RWI-018.md)) |
+
+### `EPIC RI-35` — Deposit dan settlement finansial rawat inap
+
+Ditambahkan pada roadmap backend revision `4` dan frontend revision `7`, 2026-09-04. Kolom **Test**
+berisi rencana; **tidak satu pun** sudah dijalankan, karena tidak satu pun task sudah dikerjakan.
+
+| FR | Isinya | Task | AC | Test |
+| --- | --- | --- | --- | --- |
+| `FR-RI-163`, `FR-RI-169` | Deposit terikat tepat satu episode, dan saldo tidak berpindah diam-diam | `BE-RWI-037` 🚫 | — | `UAT-34`; **belum dijalankan** |
+| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | `BE-RWI-038` 🚫, `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-165`, `FR-RI-166` | Penerimaan append-only, kwitansi unik, idempotensi | `BE-RWI-039` 🚫 | — | `UAT-34`, `UAT-35`, `UAT-36`; **belum dijalankan** |
+| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | `BE-RWI-040` 🚫, `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-168` | Permintaan top-up tidak mengubah histori pembayaran | `BE-RWI-039` 🚫 | — | `UAT-35`; **belum dijalankan** |
+| `FR-RI-170`, `FR-RI-171` | Settlement mengalokasikan deposit; kelebihan menjadi refund eksplisit | `BE-RWI-043` 🚫 | — | `UAT-37`, `UAT-38`; **belum dijalankan** |
+| `FR-RI-172` | `Cleared` hanya setelah settlement selesai | `BE-RWI-043` 🚫 | — | `UAT-39`; **belum dijalankan** |
+| `FR-RI-173` | Pembatalan admisi tidak menghapus transaksi uang | `BE-RWI-043` 🚫 | — | `UAT-40`; **belum dijalankan** |
+| `FR-RI-174` | Deposit adalah langkah tersendiri pada alur admisi | `FE-RWI-042` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, `BE-RWI-040` 🚫 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-177`, `FR-RI-143` | Penagihan berkala beserta ambang hari yang dapat diubah admin | `BE-RWI-041`, `BE-RWI-042` | — | `UAT-44`; **belum dijalankan** |
+| `FR-RI-178` | Transaksi terbentuk hanya setelah `EpisodeId` ada | `FE-RWI-044` 🟡, `BE-RWI-039` 🚫 | — | `UAT-43`; **belum dijalankan** |
+
+**Acceptance criteria `RWI-AC-*` belum ada untuk epic ini.** Kolom AC sengaja dikosongkan, bukan
+diisi tebakan. Penomoran `RWI-AC-181` dan seterusnya diberikan saat keputusan deposit diserap ke
+`00-interview-decisions.md` bagian acceptance criteria — pekerjaan `/qv-design`, bukan `/qv-plan`.
 
 ### `EPIC RI-31` — Pengaturan admin
 

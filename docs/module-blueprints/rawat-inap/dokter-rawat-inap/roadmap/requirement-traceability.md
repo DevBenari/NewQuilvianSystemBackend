@@ -73,20 +73,20 @@ frontend.
 
 | FR | Bunyi singkat | Task | Acceptance criteria | Jenis test | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-001` | Catatan dibuat tanpa antrean pada perawatan berjalan | `BE-RWI-044` | `AC-CAP022-01`, `AC-CAP023-01` | Integration | Belum |
-| `FR-DOK-002` | Catatan kedua pada satu kunjungan rawat inap | `BE-RWI-043` | `RWI-RULE-026` aturan 4 | Integration | 🟡 Aturan aplikasi dan index database sudah dilonggarkan dan diuji; pembuktian lewat endpoint menunggu `BE-RWI-044` — [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
-| `FR-DOK-003` | Resep kedua sepanjang perawatan | `BE-RWI-043` | `RWI-RULE-026` aturan 5 | Integration | 🟡 Aturan aplikasi dan index database sudah dilonggarkan dan diuji; pembuktian lewat endpoint menunggu `BE-RWI-044` — [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
+| `FR-DOK-001` | Catatan dibuat tanpa antrean pada perawatan berjalan | `BE-RWI-044` | `AC-CAP022-01`, `AC-CAP023-01` | Integration | ✅ Catatan dan pengkajian tersimpan tanpa antrean dan tanpa kunjungan IGD, beserta penanda perawatannya — [BE-RWI-044](../task/report/backend/BE-RWI-044.md) |
+| `FR-DOK-002` | Catatan kedua pada satu kunjungan rawat inap | `BE-RWI-043`, `BE-RWI-044` | `RWI-RULE-026` aturan 4 | Integration | ✅ Terbukti lewat endpoint 4 September 2026: dua catatan berturut-turut pada satu perawatan keduanya dijawab `200` — [BE-RWI-043](../task/report/backend/BE-RWI-043.md), [BE-RWI-044](../task/report/backend/BE-RWI-044.md) |
+| `FR-DOK-003` | Resep kedua sepanjang perawatan | `BE-RWI-043`, `BE-RWI-050` | `RWI-RULE-026` aturan 5 | Integration | 🟡 Aturan aplikasi dan index database sudah dilonggarkan dan diuji; pembuktian lewat endpoint menunggu jalur pemesanan resep rawat inap pada `BE-RWI-050` — [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
 | `FR-DOK-004` | Perilaku rawat jalan dan MCU tidak berubah | `BE-RWI-043` | **`RWI-AC-143`** | **Regression** | ✅ Test regresi rawat jalan dan medical check-up hijau; kalimat penolakan dibandingkan **utuh** — [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
 | `FR-DOK-005` | Jalur IGD tidak rusak | `BE-RWI-037`, `BE-RWI-043` | `RWI-DEC-051` | ✅ Test regresi IGD hijau pada kedua task — [BE-RWI-037](../task/report/backend/BE-RWI-037.md), [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
-| `FR-DOK-006` | Kajian medis pada perawatan berjalan | `BE-RWI-045` | `AC-CAP022-01` | Integration | Belum |
-| `FR-DOK-007` | Kajian medis dan catatan harian berbeda record | `BE-RWI-045` | `AC-CAP022-02` | Integration | Belum |
-| `FR-DOK-008` | Catatan harian tidak menimpa kajian medis | `BE-RWI-045` | PRD `CAP-022` aturan 3 | Integration | Belum |
-| `FR-DOK-009` | Diagnosis tersimpan terstruktur | `BE-RWI-045` | PRD `CAP-022` aturan 5 | Integration | Belum |
+| `FR-DOK-006` | Kajian medis pada perawatan berjalan | `BE-RWI-045` | `AC-CAP022-01` | Integration | ✅ Kajian medis hanya lahir di atas perawatan berjalan; kunjungan tanpa perawatan ditolak `422` — [BE-RWI-045](../task/report/backend/BE-RWI-045.md) |
+| `FR-DOK-007` | Kajian medis dan catatan harian berbeda record | `BE-RWI-045` | `AC-CAP022-02` | Integration | ✅ Dua record pada dua tabel; menyelesaikan salah satunya tidak menggerakkan status yang lain — [BE-RWI-045](../task/report/backend/BE-RWI-045.md) |
+| `FR-DOK-008` | Catatan harian tidak menimpa kajian medis | `BE-RWI-045` | PRD `CAP-022` aturan 3 | Integration | ✅ Tiga catatan harian ditulis; isi, status, dan waktu kajian medis identik sebelum dan sesudahnya — [BE-RWI-045](../task/report/backend/BE-RWI-045.md) |
+| `FR-DOK-009` | Diagnosis tersimpan terstruktur | `BE-RWI-045` | PRD `CAP-022` aturan 5 | Integration | ⛔ **Terblokir.** `TrxPatientAssessment` tidak punya kolom diagnosis kerja, dan `TrxPatientDiagnosis` mewajibkan `ConsultationId` sehingga diagnosis tidak dapat digantung pada kajian. Kamus data bagian 3 menyatakan **nol** kolom baru pada tabel itu. Menunggu keputusan struktur — [BE-RWI-045](../task/report/backend/BE-RWI-045.md) bagian 6.1 |
 | `FR-DOK-010` | Koreksi kajian medis mempertahankan versi asli | `BE-RWI-038`, `BE-RWI-047` | `RWI-AC-158`, `RWI-AC-162` | Integration | Belum |
-| `FR-DOK-011` | Perawat tidak dapat membuat kajian medis | `BE-RWI-045` | `VAL-DOK-05` | Integration | Belum |
-| `FR-DOK-012` | Beberapa catatan sebagai lini masa | `BE-RWI-046` | `AC-CAP020-01` | Integration | Belum |
-| `FR-DOK-013` | Waktu pemeriksaan terpisah dari waktu penulisan | `BE-RWI-046` | PRD `CAP-020` aturan 2 | Integration | Belum |
-| `FR-DOK-014` | Catatan dibuat walaupun pengkajian perawat belum selesai | `BE-RWI-044` | `AC-CAP020-02` | Integration | Belum |
+| `FR-DOK-011` | Perawat tidak dapat membuat kajian medis | `BE-RWI-045` | `VAL-DOK-05` | Integration | ✅ Pengguna yang tidak terhubung ke data dokter ditolak `403`, dan tetap boleh membuat pengkajian keperawatan — [BE-RWI-045](../task/report/backend/BE-RWI-045.md) |
+| `FR-DOK-012` | Beberapa catatan sebagai lini masa | `BE-RWI-046` | `AC-CAP020-01` | Integration | ✅ `GET /doctor-consultations/episodes/{episodeId}/soap-timeline` mengembalikan catatan satu perawatan terurut waktu pemeriksaan — [BE-RWI-046](../task/report/backend/BE-RWI-046.md) |
+| `FR-DOK-013` | Waktu pemeriksaan terpisah dari waktu penulisan | `BE-RWI-046` | PRD `CAP-020` aturan 2 | Integration | ✅ Urutan penulisan sengaja dibalik dari urutan pemeriksaan; lini masa mengikuti waktu pemeriksaan. Batas `VAL-DOK-13` dan `VAL-DOK-14` diuji terpisah — [BE-RWI-046](../task/report/backend/BE-RWI-046.md) |
+| `FR-DOK-014` | Catatan dibuat walaupun pengkajian perawat belum selesai | `BE-RWI-044` | `AC-CAP020-02` | Integration | ✅ Pengkajian keperawatan berstatus `InProgress` tidak menahan pembuatan catatan — [BE-RWI-044](../task/report/backend/BE-RWI-044.md) |
 | `FR-DOK-015` | Perawatan tertutup menolak catatan baru, menerima koreksi | `BE-RWI-047` | `AC-CAP020-03`, `RWI-AC-161` | Integration | Belum |
 | `FR-DOK-016` | Koreksi tidak mengaktifkan kembali perawatan | `BE-RWI-047` | `RWI-AC-161` | Integration | Belum |
 | `FR-DOK-017` | Catatan lintas profesi tampil terpisah | `BE-RWI-053` | `AC-CAP021-01` | Integration | Belum |
@@ -110,7 +110,7 @@ frontend.
 | `FR-DOK-035` | Pesanan lab membawa konteks perawatan | `BE-RWI-042`, `BE-RWI-052` | `AC-CAP015-01` | Integration | 🟡 Kolom konteks dan penyaring kunjungan sudah ada dan diuji; pengisiannya dari jalur pemesanan menunggu `BE-RWI-052` — [BE-RWI-042](../task/report/backend/BE-RWI-042.md) |
 | `FR-DOK-036` | Hasil lab terbaca tanpa salinan | `BE-RWI-052` | `AC-CAP015-02` | Integration + **Architecture** | Belum |
 | `FR-DOK-037` | Jalur tanpa antrean tidak gagal | `BE-RWI-037` | `DOK-TRC-DEF-01` | Integration + **Regression** | ✅ Enam test hijau, termasuk uji hitungan baris antrean sebelum dan sesudah — [BE-RWI-037](../task/report/backend/BE-RWI-037.md) |
-| `FR-DOK-038` | Penanda perawatan tidak cocok ditolak | `BE-RWI-039`, `BE-RWI-044` | `VAL-DOK-26` | Integration | 🟡 Penolakan `400` sudah ada dan diuji pada service konteks; pemasangannya pada jalur pembuatan menunggu `BE-RWI-044` — [BE-RWI-039](../task/report/backend/BE-RWI-039.md) |
+| `FR-DOK-038` | Penanda perawatan tidak cocok ditolak | `BE-RWI-039`, `BE-RWI-044` | `VAL-DOK-26` | Integration | ✅ Terpasang pada jalur pembuatan catatan dan pengkajian, **pada kedua cabang** — berantre maupun tanpa antrean; ditolak `400` — [BE-RWI-039](../task/report/backend/BE-RWI-039.md), [BE-RWI-044](../task/report/backend/BE-RWI-044.md) |
 | `FR-DOK-039` | Dua visite pada tanggal sama dihitung dua | `BE-RWI-048` | `RWI-AC-154` | Integration | Belum |
 | `FR-DOK-040` | Kejadian batal tetap tersimpan, tidak dihitung | `BE-RWI-049` | `INV-DOK-08`, `VAL-DOK-28`, `VAL-DOK-29` | Integration | Belum |
 | `FR-DOK-041` | Agregasi tagihan tidak mengubah kejadian klinis | `BE-RWI-049` | `RWI-AC-156` | Integration | Belum |
@@ -153,7 +153,7 @@ Bagian ini sengaja ditulis supaya lubangnya terlihat, bukan supaya dokumen terli
 
 | Keadaan | Buktinya | Akibatnya |
 | --- | --- | --- |
-| ~~**Nol** test untuk konsultasi, pengkajian, catatan terpadu, tindakan, resep, dan radiologi rawat inap~~ **sebagian tertutup 3 September 2026** | `DOK-TRC-VER-01`; penutupan sebagian oleh `BE-RWI-037` s.d. `BE-RWI-043` | Jaring pengaman pertama sudah ada: **43 test baru** pada `Tests/QuilvianSystemBackend.UnitTests.Sqlite/ClinicalManagement/`, mencakup jalur tanpa antrean, service konteks klinis, bentuk kolom dan index, kejadian visite, penyaring pesanan laboratorium, dan **regresi poliklinik, medical check-up, serta IGD**. Yang masih kosong: pengkajian, catatan terpadu, tindakan, dan radiologi rawat inap. Setiap task berikutnya tetap **membawa test-nya sendiri** |
+| ~~**Nol** test untuk konsultasi, pengkajian, catatan terpadu, tindakan, resep, dan radiologi rawat inap~~ **sebagian tertutup, diperbarui 4 September 2026** | `DOK-TRC-VER-01`; penutupan sebagian oleh `BE-RWI-037` s.d. `BE-RWI-046` | Jaring pengamannya kini **86 test** pada `Tests/QuilvianSystemBackend.UnitTests.Sqlite/ClinicalManagement/` ditambah **19 test hak akses peran non-SuperAdmin** pada `Tests/QuilvianSystemBackend.UnitTests.InMemory/HealthServices/ClinicalManagement/`. Cakupannya: jalur tanpa antrean, service konteks klinis, bentuk kolom dan index, kejadian visite, penyaring pesanan laboratorium, **pintu masuk rawat inap**, **kajian medis**, **lini masa catatan harian**, dan **regresi poliklinik, medical check-up, serta IGD**. Yang masih kosong: catatan terpadu, tindakan, dan radiologi rawat inap. Setiap task berikutnya tetap **membawa test-nya sendiri** |
 | **Nol** test yang benar-benar berjalan di atas PostgreSQL untuk sub-modul ini | Percobaan 3 September 2026 berhenti pada `BLOCKED_BY_TEST_DB_CONFIGURATION` | Dua test PostgreSQL milik `BE-RWI-041` sudah ditulis dan terkompilasi tetapi belum pernah dijalankan, dan lima migration `DOK-MVP-1` belum pernah diuji maju-mundur. Penegakan unique index dan keberhasilan migration karena itu belum terbukti pada database yang sesungguhnya dipakai |
 | **Nol** test frontend untuk ruang kerja dokter dan komponen dasar klinis | `DOK-TRC-VER-01` | `FE-RWI-042` dan `FE-RWI-043` menjadi task pertama yang menulis test frontend sub-modul ini |
 
@@ -171,8 +171,8 @@ Bagian ini sengaja ditulis supaya lubangnya terlihat, bukan supaya dokumen terli
 
 | Batas | Kenapa tidak dapat dijaga | Di mana dijaganya | Test penjaganya |
 | --- | --- | --- | --- |
-| Dokter hanya menulis untuk pasien yang menjadi tanggung jawabnya | Mesin hak akses hanya mengenal peran terhadap endpoint | `BE-RWI-039`, `BE-RWI-044` | `VAL-DOK-06` |
-| Kajian medis hanya oleh dokter, pengkajian keperawatan hanya oleh perawat | Keduanya berbagi satu sumber daya hak akses | `BE-RWI-045` | `VAL-DOK-05` |
+| Dokter hanya menulis untuk pasien yang menjadi tanggung jawabnya | Mesin hak akses hanya mengenal peran terhadap endpoint | `BE-RWI-039`, `BE-RWI-044` | `VAL-DOK-06` — ⛔ **belum ditegakkan** per 4 September 2026. Service konteks sudah mampu memeriksanya, tetapi menyalakannya berarti menolak dokter konsulen dan dokter jaga yang bukan DPJP, dan kebijakan itu tidak disebut satu pun acceptance criteria `BE-RWI-044`. Menunggu keputusan pemilik |
+| Kajian medis hanya oleh dokter, pengkajian keperawatan hanya oleh perawat | Keduanya berbagi satu sumber daya hak akses | `BE-RWI-045` | `VAL-DOK-05` — ✅ **ditegakkan** 4 September 2026, diturunkan dari penautan pengguna ke data dokter dan bukan dari nama peran |
 | **Koreksi atas nama dokter lain hanya oleh DPJP aktif** | Penetapan berhalangan bersifat milik penulis, tidak menyebut penggantinya | `BE-RWI-047` | **`RWI-AC-167`** |
 | Hasil yang dibaca milik perawatan yang sedang dibuka | Mesin hak akses tidak mengenal perawatan | `BE-RWI-052` | `VAL-DOK-31` |
 
@@ -232,10 +232,10 @@ bila **seluruh** butir terjawab "ya".
 | ---: | --- | --- |
 | 1 | Jalur tanpa antrean tidak lagi gagal dan tidak menyentuh data antrean | `BE-RWI-037` |
 | 2 | Jalur IGD dan poliklinik terbukti tidak rusak | `BE-RWI-037`, `BE-RWI-043` |
-| 3 | Catatan rawat inap dapat dibuat tanpa antrean | `BE-RWI-044` |
+| 3 | Catatan rawat inap dapat dibuat tanpa antrean | `BE-RWI-044` ✅ |
 | 4 | Catatan dan resep kedua diterima rawat inap, tetap ditolak rawat jalan | `BE-RWI-043` |
-| 5 | Kajian medis dan catatan harian terbukti berbeda record | `BE-RWI-045` |
-| 6 | Waktu pemeriksaan terpisah dan lini masa terurut benar | `BE-RWI-046` |
+| 5 | Kajian medis dan catatan harian terbukti berbeda record | `BE-RWI-045` ✅ |
+| 6 | Waktu pemeriksaan terpisah dan lini masa terurut benar | `BE-RWI-046` ✅ |
 | 7 | Perawatan tertutup menolak catatan baru dan menerima koreksi | `BE-RWI-047` |
 | 8 | Verifikasi tidak mengubah penulis asli | `BE-RWI-053` |
 | 9 | Verifikasi hanya oleh DPJP aktif saat itu | `BE-RWI-053` |
@@ -252,7 +252,7 @@ bila **seluruh** butir terjawab "ya".
 | 20 | Nol tabel `Inp*` untuk dokumentasi dokter | `BE-RWI-041` |
 | 21 | Nol entity baru berawalan `Trx*` | `BE-RWI-041` |
 | 22 | Nol baris antrean dibuat untuk pasien rawat inap | `BE-RWI-039`, `FE-RWI-042` |
-| 23 | Butir hak akses baru berfungsi bagi peran non-SuperAdmin | `BE-RWI-044` |
+| 23 | Butir hak akses baru berfungsi bagi peran non-SuperAdmin | `BE-RWI-044` ✅ — nol butir baru diperlukan; keenam butir yang dipakai sudah ada dan terbukti dapat diberikan kepada peran non-SuperAdmin |
 | 24 | Ruang kerja membaca daftar pasien dirawat, tanpa aksi antrean | `FE-RWI-042`, `FE-RWI-043` |
 | 25 | Delapan layar terjangkau sesuai `IA-INP-01` dan `IA-INP-05` | `FE-RWI-042` s.d. `FE-RWI-050` |
 | 26 | Kolom sensitif tidak muncul di logger | Seluruh task backend |

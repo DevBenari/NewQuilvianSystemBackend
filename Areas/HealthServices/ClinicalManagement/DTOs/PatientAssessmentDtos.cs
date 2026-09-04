@@ -31,6 +31,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. <c>null</c> bagi pengkajian
+        /// poliklinik, IGD, dan medical check-up.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian. Pembeda antara pengkajian keperawatan dan <b>kajian medis</b>
+        /// milik DPJP - <c>BE-RWI-045</c>, <c>CAP-022</c>.
+        /// </summary>
+        public PatientAssessmentType AssessmentType { get; set; }
+
         public DateTime AssessmentDateTime { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
 
@@ -164,6 +176,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// hanya terbuka untuk encounter yang punya kunjungan IGD.
         /// </remarks>
         public Guid? QueueId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. <b>Boleh kosong</b>: backend
+        /// menurunkannya dari kunjungan bila tidak disebutkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>, <c>VAL-DOK-26</c>. Bila terisi tetapi tidak cocok dengan perawatan
+        /// milik <see cref="EncounterId"/>, permintaan ditolak <c>400</c>.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian yang hendak dibuat. Bawaannya <c>Initial</c>, sehingga seluruh
+        /// pengirim lama - poliklinik dan IGD - tidak perlu berubah sedikit pun.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-045</c>, <c>CAP-022</c>, <c>AC-CAP022-02</c>. Nilai <c>MedicalInitial</c>
+        /// dan <c>MedicalReassessment</c> adalah kajian medis: hanya boleh dibuat pengguna yang
+        /// benar-benar terhubung ke data dokter, dan hanya di atas perawatan rawat inap yang
+        /// berjalan - <c>VAL-DOK-01</c>, <c>VAL-DOK-05</c>.
+        /// </remarks>
+        public PatientAssessmentType AssessmentType { get; set; } = PatientAssessmentType.Initial;
 
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }
@@ -433,6 +467,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// pernah berantre (<c>BE-IGD-026</c>).
         /// </summary>
         public Guid? QueueId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public PatientAssessmentType AssessmentType { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime AssessmentDateTime { get; set; }
         public DateTime? CompletedAt { get; set; }
@@ -461,10 +497,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// pernah berantre (<c>BE-IGD-026</c>).
         /// </summary>
         public Guid? QueueId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public PatientAssessmentType AssessmentType { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime? CompletedAt { get; set; }
         public Guid? CompletedByUserId { get; set; }
         public bool IsAlreadyCompleted { get; set; }
+
+        /// <summary>
+        /// Benar bila kajian yang baru diselesaikan ikut terdaftar pada mesin keutuhan rekam
+        /// medis - <c>BE-RWI-045</c>, <c>RWI-AC-157</c>.
+        /// </summary>
+        public bool IsRegisteredToIntegrity { get; set; }
     }
 
     public class CancelPatientAssessmentRequest

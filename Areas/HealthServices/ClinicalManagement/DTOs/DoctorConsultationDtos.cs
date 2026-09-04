@@ -180,6 +180,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public Guid? AssessmentId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi catatan ini. <b>Boleh kosong</b>: pengirim yang
+        /// tidak mengetahuinya cukup mengirim kunjungannya saja, dan backend menurunkannya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>, <c>VAL-DOK-26</c>. Bila terisi tetapi <b>tidak cocok</b> dengan
+        /// perawatan milik <see cref="EncounterId"/>, permintaan ditolak <c>400</c>. Justru
+        /// keadaan itulah yang paling berbahaya: kedua nilainya masuk akal bila dilihat
+        /// sendiri-sendiri, sehingga catatan pasien A dapat mendarat pada perawatan pasien B.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Waktu pemeriksaan yang sebenarnya, bila berbeda dari waktu penulisan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-046</c>, <c>VAL-DOK-13</c>, <c>VAL-DOK-14</c>. Visite pukul 07.40 yang baru
+        /// sempat diketik pukul 11.00 dikirim dengan kolom ini berisi 07.40, dan lini masa
+        /// membacanya pada urutan 07.40. Boleh kosong — catatan rawat jalan tidak memilikinya,
+        /// dan catatan yang memang ditulis saat itu juga tidak perlu mengisinya.
+        /// </remarks>
+        public DateTime? ClinicalDateTime { get; set; }
+
         public bool IsVitalSignCopiedFromAssessment { get; set; } = true;
 
         public int? BloodPressureSystolic { get; set; }
@@ -459,5 +482,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         [MaxLength(250)]
         public string CancelReason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Satu catatan pada lini masa SOAP satu perawatan rawat inap.
+    /// </summary>
+    /// <remarks>
+    /// <c>BE-RWI-046</c>. Sengaja ringkas: lini masa dibaca untuk melihat <b>urutan</b> dan
+    /// <b>ringkasan</b> perkembangan pasien, bukan untuk membaca seluruh isi setiap catatan.
+    /// Isi lengkap tetap diambil lewat <c>GET /{id}</c>.
+    /// </remarks>
+    public class SoapTimelineItemResponse
+    {
+        public Guid Id { get; set; }
+
+        public string ConsultationNumber { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Waktu yang dipakai mengurutkan: waktu pemeriksaan bila ada, selain itu waktu
+        /// penulisan. Selalu terisi, sehingga pembaca tidak perlu memilih sendiri.
+        /// </summary>
+        public DateTime TimelineDateTime { get; set; }
+
+        /// <summary>Waktu pemeriksaan yang sebenarnya. Kosong bila tidak pernah diisi.</summary>
+        public DateTime? ClinicalDateTime { get; set; }
+
+        /// <summary>Waktu catatan ditulis.</summary>
+        public DateTime ConsultationDateTime { get; set; }
+
+        /// <summary>
+        /// Benar bila waktu pemeriksaan dan waktu penulisan memang berbeda hari atau jamnya,
+        /// sehingga layar dapat menyatakannya apa adanya alih-alih menyembunyikannya.
+        /// </summary>
+        public bool IsBackdated { get; set; }
+
+        public Guid DoctorId { get; set; }
+
+        public string DoctorName { get; set; } = string.Empty;
+
+        public DoctorConsultationStatus ConsultationStatus { get; set; }
+
+        public Guid? PhysicianVisitId { get; set; }
+
+        public string? Subjective { get; set; }
+
+        public string? Objective { get; set; }
+
+        public string? Assessment { get; set; }
+
+        public string? Plan { get; set; }
+    }
+
+    /// <summary>
+    /// Lini masa catatan dokter satu perawatan rawat inap, terurut waktu pemeriksaan.
+    /// </summary>
+    public class SoapTimelineResponse
+    {
+        public Guid InpEpisodeId { get; set; }
+
+        public Guid EncounterId { get; set; }
+
+        public Guid PatientId { get; set; }
+
+        /// <summary>Batas bawah penyaring waktu yang benar-benar dipakai, bila dikirim.</summary>
+        public DateTime? From { get; set; }
+
+        /// <summary>Batas atas penyaring waktu yang benar-benar dipakai, bila dikirim.</summary>
+        public DateTime? To { get; set; }
+
+        public int TotalCount { get; set; }
+
+        public List<SoapTimelineItemResponse> Items { get; set; } = new();
     }
 }

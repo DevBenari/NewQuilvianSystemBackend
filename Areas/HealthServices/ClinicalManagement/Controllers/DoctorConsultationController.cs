@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -40,6 +41,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
     public class DoctorConsultationController : ControllerBase
     {
         private const string LogCategory = "HealthServices.Clinical";
+
+        /// <summary>
+        /// Kalimat penolakan pembuatan catatan tanpa antrean bagi kunjungan yang memang bukan
+        /// rawat inap maupun IGD — <c>VAL-DOK-04</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>. Kalimat sebelumnya berbunyi "hanya untuk pasien IGD" dan itu
+        /// berhenti benar begitu pintu rawat inap dibuka: sejak task ini ada dua jalur sah tanpa
+        /// antrean. Kode penolakannya tetap <c>400</c> dan jalur poliklinik tetap tertutup persis
+        /// seperti sebelumnya; yang berubah hanya kalimat yang dibaca pengguna.
+        /// </remarks>
+        private const string PenolakanTanpaAntreanBukanRawatInap =
+            "Konsultasi untuk pasien poliklinik tetap harus lewat antrean.";
+
+        /// <summary>
+        /// Hasil penjagaan pembuatan catatan, beserta kode HTTP yang menyertainya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>. Sebelumnya seluruh penolakan pembuatan berujung <c>400</c>, dan itu
+        /// cukup selama satu-satunya sebab penolakan adalah isian yang salah. Konteks rawat inap
+        /// menambahkan sebab yang berbeda jenisnya — pasien belum masuk kamar, atau perawatannya
+        /// sudah ditutup — yang menurut <c>api-contract.md</c> bagian 1.2 dijawab <c>422</c>.
+        /// Menyamakannya dengan <c>400</c> membuat layar tidak dapat membedakan "isian Anda
+        /// salah" dari "pasien ini memang tidak sedang dirawat".
+        /// </remarks>
+        private readonly record struct CreateGuard(bool IsValid, int StatusCode, string? ErrorMessage)
+        {
+            public static CreateGuard Ok() => new(true, StatusCodes.Status200OK, null);
+
+            public static CreateGuard Fail(
+                string message,
+                int statusCode = StatusCodes.Status400BadRequest) => new(false, statusCode, message);
+        }
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -237,6 +271,113 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <summary>
+        /// Lini masa catatan dokter satu perawatan rawat inap, terurut <b>waktu pemeriksaan</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-046</c>, <c>FR-DOK-012</c> s.d. <c>FR-DOK-014</c>,
+        /// <c>api-contract.md</c> bagian 1. Yang dibaca perkembangan pasien adalah urutan
+        /// pemeriksaan yang sungguh terjadi, bukan urutan kapan dokter sempat mengetik. Karena
+        /// itu pengurutannya memakai waktu pemeriksaan, dan catatan yang tidak memilikinya
+        /// jatuh kembali ke waktu penulisannya sendiri sehingga tidak ada catatan yang hilang
+        /// dari lini masa.
+        /// </para>
+        /// <para>
+        /// <b>Catatan batal tetap ditampilkan.</b> Menghilangkannya membuat lini masa berbeda
+        /// dari rekam medis yang sebenarnya; keadaannya dibawa apa adanya pada
+        /// <c>consultationStatus</c> supaya layar dapat menandainya.
+        /// </para>
+        /// <para>
+        /// Penyaring <c>from</c> dan <c>to</c> dibandingkan terhadap waktu yang sama dengan yang
+        /// dipakai mengurutkan, bukan terhadap waktu penulisan - menyaring dengan satu waktu
+        /// lalu mengurutkan dengan waktu lain menghasilkan potongan yang tidak dapat dijelaskan.
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}/soap-timeline")]
+        [ProducesResponseType(typeof(ApiResponse<SoapTimelineResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Doctor Consultation", Description = "Melihat lini masa SOAP satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorConsultation", "Read")]
+        public async Task<IActionResult> GetSoapTimelineByEpisode(
+            Guid episodeId,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (episodeId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Perawatan rawat inap wajib disebut."
+                ));
+            }
+
+            var episode = await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => x.Id == episodeId && !x.IsDelete)
+                .Select(x => new { x.Id, x.EncounterId, x.PatientId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (episode == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Perawatan rawat inap tidak ditemukan."
+                ));
+            }
+
+            var batasBawah = NormalizeToUtc(from);
+            var batasAtas = NormalizeToUtc(to);
+
+            if (batasBawah.HasValue && batasAtas.HasValue && batasBawah.Value > batasAtas.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Batas awal penyaring waktu melewati batas akhirnya."
+                ));
+            }
+
+            var query = _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .Include(x => x.Doctor)
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete);
+
+            if (batasBawah.HasValue)
+            {
+                query = query.Where(x =>
+                    (x.ClinicalDateTime ?? x.ConsultationDateTime) >= batasBawah.Value);
+            }
+
+            if (batasAtas.HasValue)
+            {
+                query = query.Where(x =>
+                    (x.ClinicalDateTime ?? x.ConsultationDateTime) <= batasAtas.Value);
+            }
+
+            var rows = await query
+                .OrderBy(x => x.ClinicalDateTime ?? x.ConsultationDateTime)
+                .ThenBy(x => x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var result = new SoapTimelineResponse
+            {
+                InpEpisodeId = episode.Id,
+                EncounterId = episode.EncounterId,
+                PatientId = episode.PatientId,
+                From = batasBawah,
+                To = batasAtas,
+                TotalCount = rows.Count,
+                Items = rows.Select(ToTimelineItem).ToList()
+            };
+
+            return Ok(ApiResponse<SoapTimelineResponse>.Ok(
+                result,
+                "Lini masa catatan dokter berhasil diambil."
+            ));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DoctorConsultationCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -248,9 +389,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data konsultasi dokter tidak valid."
+                var pesan = validation.ErrorMessage ?? "Data konsultasi dokter tidak valid.";
+
+                // Penolakan 400 tetap dikembalikan lewat BadRequest, apa adanya seperti sebelum
+                // BE-RWI-044: bentuk hasilnya bagian dari kontrak yang sudah dipegang consumer
+                // dan uji existing. Hanya kode di luar 400 - yaitu 422 milik konteks perawatan -
+                // yang memerlukan jalur StatusCode.
+                if (validation.StatusCode == StatusCodes.Status400BadRequest)
+                    return BadRequest(ApiResponse<object>.Fail(validation.StatusCode, pesan));
+
+                return StatusCode(validation.StatusCode, ApiResponse<object>.Fail(
+                    validation.StatusCode,
+                    pesan
                 ));
             }
 
@@ -291,6 +441,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 // unique parsial di database masih menolak catatan kedua - permintaan lolos
                 // validasi lalu gagal saat disimpan. Keduanya wajib memakai penanda yang sama.
                 InpEpisodeId = inpEpisodeId,
+                // BE-RWI-046 / VAL-DOK-13, VAL-DOK-14. Waktu pemeriksaan yang sebenarnya,
+                // dipisahkan dari waktu penulisan. Dibiarkan kosong bila pengirim tidak
+                // menyebutkannya - memaksanya sama dengan waktu penulisan justru menghapus
+                // pembedaan yang menjadi alasan kolom ini ada.
+                ClinicalDateTime = NormalizeToUtc(request.ClinicalDateTime),
                 PatientId = queue?.PatientId ?? encounter.PatientId,
                 // Tanpa antrean, dokter pemeriksa datang dari permintaan — validasi sudah
                 // memastikan salah satunya terisi, sehingga Guid.Empty tidak pernah tersimpan.
@@ -814,7 +969,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return query;
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
+        private async Task<CreateGuard> ValidateCreateRequestAsync(
             CreateDoctorConsultationRequest request)
         {
             // RJ-DOC-BE-001 / RJ-DOC-DEC-005. `CompleteImmediately` menghasilkan konsultasi
@@ -833,10 +988,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.QueueId.HasValue &&
                 request.QueueId.Value != Guid.Empty)
             {
-                return (false,
+                return CreateGuard.Fail(
                     "Konsultasi Rawat Jalan tidak dapat langsung diselesaikan saat dibuat. " +
                     "Selesaikan konsultasi melalui aksi penyelesaian konsultasi.");
             }
+
+            // BE-RWI-044 / BE-RWI-046. Penanda perawatan dan waktu pemeriksaan diperiksa lebih
+            // dulu, sebelum kedua cabang berpisah. Pasien rawat inap memang tidak berantre,
+            // tetapi kunjungan yang berantre pun dapat menaungi perawatan rawat inap - dan
+            // penanda yang salah pada cabang mana pun tetap menempelkan catatan ke perawatan
+            // yang keliru dengan cara yang sama persis.
+            var konteks = await ValidateInpatientMarkersAsync(request);
+
+            if (!konteks.IsValid)
+                return konteks;
 
             if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
                 return await ValidateCreateWithoutQueueAsync(request);
@@ -849,19 +1014,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     !x.IsDelete);
 
             if (queue == null)
-                return (false, "Antrean tidak ditemukan atau tidak sesuai dengan encounter.");
+                return CreateGuard.Fail("Antrean tidak ditemukan atau tidak sesuai dengan encounter.");
 
             if (!queue.IsDoctorRequired)
-                return (false, "Antrean ini tidak membutuhkan pemeriksaan dokter.");
+                return CreateGuard.Fail("Antrean ini tidak membutuhkan pemeriksaan dokter.");
 
             if (!queue.DoctorId.HasValue || queue.DoctorId.Value == Guid.Empty)
-                return (false, "Dokter pada antrean belum ditentukan.");
+                return CreateGuard.Fail("Dokter pada antrean belum ditentukan.");
 
             if (queue.QueueStatus != QueueStatus.CalledByDoctor &&
                 queue.QueueStatus != QueueStatus.InConsultation &&
                 queue.QueueStatus != QueueStatus.WaitingForDoctor)
             {
-                return (false, "Status antrean tidak valid untuk konsultasi dokter.");
+                return CreateGuard.Fail("Status antrean tidak valid untuk konsultasi dokter.");
             }
 
             var singleNoteRule = await ValidateSingleConsultationRuleAsync(request.EncounterId);
@@ -879,10 +1044,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete);
 
                 if (!assessmentExists)
-                    return (false, "Assessment pasien tidak valid atau belum completed.");
+                    return CreateGuard.Fail("Assessment pasien tidak valid atau belum completed.");
             }
 
-            return (true, null);
+            return CreateGuard.Ok();
         }
 
         /// <summary>
@@ -901,7 +1066,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// <c>Guid.Empty</c> akan menyimpan konsultasi tanpa dokter yang bertanggung jawab.
         /// </para>
         /// </remarks>
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateWithoutQueueAsync(
+        private async Task<CreateGuard> ValidateCreateWithoutQueueAsync(
             CreateDoctorConsultationRequest request)
         {
             var encounter = await _dbContext.Set<TrxPatientEncounter>()
@@ -909,29 +1074,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             if (encounter == null)
-                return (false, "Encounter tidak ditemukan.");
+                return CreateGuard.Fail("Encounter tidak ditemukan.");
 
-            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
-                .AsNoTracking()
-                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+            var pintuMasuk = await ValidateWithoutQueueGateAsync(request);
 
-            if (!isEmergencyEncounter)
-            {
-                return (false, "Konsultasi tanpa antrean hanya untuk pasien IGD. " +
-                               "Untuk pasien poli, buat konsultasi dari baris antreannya.");
-            }
+            if (!pintuMasuk.IsValid)
+                return pintuMasuk;
 
             var doctorId = request.DoctorId ?? encounter.DoctorId;
 
             if (!doctorId.HasValue || doctorId.Value == Guid.Empty)
-                return (false, "Dokter pemeriksa wajib diisi untuk konsultasi tanpa antrean.");
+                return CreateGuard.Fail("Dokter pemeriksa wajib diisi untuk konsultasi tanpa antrean.");
 
             var doctorExists = await _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == doctorId.Value && !x.IsDelete);
 
             if (!doctorExists)
-                return (false, "Dokter pemeriksa tidak ditemukan.");
+                return CreateGuard.Fail("Dokter pemeriksa tidak ditemukan.");
 
             var singleNoteRule = await ValidateSingleConsultationRuleAsync(request.EncounterId);
 
@@ -949,10 +1109,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete);
 
                 if (!assessmentExists)
-                    return (false, "Assessment pasien tidak valid atau belum completed.");
+                    return CreateGuard.Fail("Assessment pasien tidak valid atau belum completed.");
             }
 
-            return (true, null);
+            return CreateGuard.Ok();
         }
 
         /// <summary>
@@ -976,14 +1136,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// kunjungan yang belum benar-benar menjadi perawatan.
         /// </para>
         /// </remarks>
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateSingleConsultationRuleAsync(
+        private async Task<CreateGuard> ValidateSingleConsultationRuleAsync(
             Guid encounterId)
         {
             var inpEpisodeId = await _inpatientClinicalContextService
                 .FindOpenEpisodeIdAsync(encounterId);
 
             if (inpEpisodeId.HasValue)
-                return (true, null);
+                return CreateGuard.Ok();
 
             var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
                 .AsNoTracking()
@@ -992,9 +1152,159 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     !x.IsDelete);
 
             if (consultationExists)
-                return (false, "Konsultasi dokter untuk encounter ini sudah ada.");
+                return CreateGuard.Fail("Konsultasi dokter untuk encounter ini sudah ada.");
 
-            return (true, null);
+            return CreateGuard.Ok();
+        }
+
+        /// <summary>
+        /// Pintu masuk pembuatan catatan <b>tanpa antrean</b>: siapa yang boleh melewatinya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-044</c>, <c>FR-DOK-001</c>, <c>FR-DOK-038</c>. Sebelum task ini hanya
+        /// kunjungan IGD yang boleh melewati antrean, dan itu menutup satu-satunya jalur pasien
+        /// rawat inap: pasien menginap memang tidak pernah berantre, dan membuatkan antrean semu
+        /// dilarang <c>RWI-RULE-026</c> aturan 2.
+        /// </para>
+        /// <para>
+        /// <b>Urutannya disengaja.</b> Kunjungan IGD diperiksa lebih dulu dan dilewatkan apa
+        /// adanya, sehingga perilaku IGD tidak bergeser satu langkah pun - termasuk pasien IGD
+        /// yang perawatan rawat inapnya baru berstatus <c>Draft</c>. Baru sesudahnya konteks
+        /// rawat inap dibentuk, dan sebab penolakannya diteruskan beserta kode aslinya:
+        /// <c>422</c> untuk pasien yang belum masuk kamar atau perawatannya sudah ditutup.
+        /// </para>
+        /// <para>
+        /// Kunjungan yang bukan IGD dan tidak punya perawatan rawat inap sama sekali tetap
+        /// ditolak <c>400</c> - <c>VAL-DOK-04</c>. Poliklinik dan medical check-up tidak
+        /// memperoleh jalur baru apa pun dari task ini.
+        /// </para>
+        /// </remarks>
+        private async Task<CreateGuard> ValidateWithoutQueueGateAsync(
+            CreateDoctorConsultationRequest request)
+        {
+            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+
+            if (isEmergencyEncounter)
+                return CreateGuard.Ok();
+
+            var context = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (context.IsResolved)
+                return CreateGuard.Ok();
+
+            if (context.Outcome == InpatientClinicalContextOutcome.NoInpatientEpisode)
+                return CreateGuard.Fail(PenolakanTanpaAntreanBukanRawatInap);
+
+            return CreateGuard.Fail(
+                context.ErrorMessage ?? "Konteks perawatan rawat inap tidak dapat dibentuk.",
+                context.StatusCode);
+        }
+
+        /// <summary>
+        /// Penjagaan penanda perawatan dan waktu pemeriksaan, berlaku pada <b>kedua</b> cabang
+        /// pembuatan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-044</c> <c>VAL-DOK-26</c>, dan <c>BE-RWI-046</c> <c>VAL-DOK-13</c> beserta
+        /// <c>VAL-DOK-14</c>. Keduanya diperiksa juga pada cabang berantre karena kunjungan yang
+        /// berantre pun dapat menaungi perawatan rawat inap; penanda yang salah di sana
+        /// menempelkan catatan ke perawatan yang keliru dengan cara yang sama persis.
+        /// </para>
+        /// <para>
+        /// <b>Keadaan perawatan sengaja tidak diperiksa di sini.</b> Perawatan yang masih
+        /// <c>Draft</c> atau sudah ditutup hanya menutup <b>pintu tanpa antrean</b>; kunjungan
+        /// yang membawa antrean tetap tunduk pada penjagaan antrean yang lama, apa adanya.
+        /// </para>
+        /// </remarks>
+        private async Task<CreateGuard> ValidateInpatientMarkersAsync(
+            CreateDoctorConsultationRequest request)
+        {
+            var context = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (context.Outcome == InpatientClinicalContextOutcome.EpisodeMismatch)
+                return CreateGuard.Fail(context.ErrorMessage!, context.StatusCode);
+
+            // Penanda perawatan dikirim untuk kunjungan yang tidak menaungi perawatan mana pun.
+            // Nilainya jelas tidak dapat cocok, dan kalimatnya dibuat sama dengan penolakan
+            // ketidakcocokan supaya pengguna membaca sebab yang sama untuk keadaan yang sama.
+            if (request.InpEpisodeId.HasValue &&
+                request.InpEpisodeId.Value != Guid.Empty &&
+                context.Outcome == InpatientClinicalContextOutcome.NoInpatientEpisode)
+            {
+                return CreateGuard.Fail("Perawatan rawat inap tidak sesuai dengan kunjungannya.");
+            }
+
+            return ValidateClinicalDateTime(request.ClinicalDateTime, context.Context?.AdmittedAt);
+        }
+
+        /// <summary>
+        /// Batas waktu pemeriksaan - <c>VAL-DOK-13</c> dan <c>VAL-DOK-14</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-046</c>. Waktu pemeriksaan <b>wajib</b> boleh diisi mundur; memaksanya sama
+        /// dengan waktu penulisan membuat lini masa perkembangan pasien menyesatkan. Yang dijaga
+        /// hanya dua ujungnya: ia tidak boleh berada di masa depan, dan tidak boleh mendahului
+        /// saat pasien benar-benar masuk kamar.
+        ///
+        /// <para>
+        /// Batas bawah hanya berlaku ketika saat masuk kamar memang diketahui. Perawatan yang
+        /// belum mencatatnya tidak menolak apa pun di sini - menolak berdasarkan nilai yang
+        /// tidak ada akan menutup penulisan tanpa sebab yang dapat dijelaskan kepada dokter.
+        /// </para>
+        /// </remarks>
+        private static CreateGuard ValidateClinicalDateTime(
+            DateTime? clinicalDateTime,
+            DateTime? admittedAtUtc)
+        {
+            var waktuPemeriksaan = NormalizeToUtc(clinicalDateTime);
+
+            if (!waktuPemeriksaan.HasValue)
+                return CreateGuard.Ok();
+
+            if (waktuPemeriksaan.Value > DateTime.UtcNow)
+                return CreateGuard.Fail("Waktu pemeriksaan tidak boleh melewati waktu sekarang.");
+
+            var masukKamar = NormalizeToUtc(admittedAtUtc);
+
+            if (masukKamar.HasValue && waktuPemeriksaan.Value < masukKamar.Value)
+            {
+                return CreateGuard.Fail(
+                    "Waktu pemeriksaan sebelum pasien masuk kamar. Periksa kembali.");
+            }
+
+            return CreateGuard.Ok();
+        }
+
+        /// <summary>
+        /// Menyeragamkan waktu kiriman menjadi UTC sebelum dibandingkan maupun disimpan.
+        /// </summary>
+        /// <remarks>
+        /// Kiriman tanpa penanda zona diperlakukan sebagai UTC, mengikuti kolom
+        /// <c>timestamp with time zone</c> yang dipakai tabel ini. Tanpa penyeragaman,
+        /// perbandingan terhadap <c>DateTime.UtcNow</c> membandingkan dua jam yang berbeda
+        /// acuannya dan penolakannya menjadi acak menurut zona waktu pengirim.
+        /// </remarks>
+        private static DateTime? NormalizeToUtc(DateTime? value)
+        {
+            if (!value.HasValue)
+                return null;
+
+            return value.Value.Kind switch
+            {
+                DateTimeKind.Utc => value.Value,
+                DateTimeKind.Local => value.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            };
         }
 
         private async Task<TrxPatientAssessment?> ResolveAssessmentAsync(Guid encounterId, Guid? assessmentId)
@@ -1164,6 +1474,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 "supportingordercount" => isDesc ? query.OrderByDescending(x => x.SupportingOrderCount) : query.OrderBy(x => x.SupportingOrderCount),
                 "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
                 _ => isDesc ? query.OrderByDescending(x => x.ConsultationDateTime) : query.OrderBy(x => x.ConsultationDateTime)
+            };
+        }
+
+        /// <summary>
+        /// Memetakan satu catatan menjadi butir lini masa - <c>BE-RWI-046</c>.
+        /// </summary>
+        private static SoapTimelineItemResponse ToTimelineItem(TrxDoctorConsultation x)
+        {
+            var waktuLiniMasa = x.ClinicalDateTime ?? x.ConsultationDateTime;
+
+            return new SoapTimelineItemResponse
+            {
+                Id = x.Id,
+                ConsultationNumber = x.ConsultationNumber,
+                TimelineDateTime = waktuLiniMasa,
+                ClinicalDateTime = x.ClinicalDateTime,
+                ConsultationDateTime = x.ConsultationDateTime,
+                IsBackdated = x.ClinicalDateTime.HasValue && x.ClinicalDateTime.Value < x.ConsultationDateTime,
+                DoctorId = x.DoctorId,
+                DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
+                ConsultationStatus = x.ConsultationStatus,
+                PhysicianVisitId = x.PhysicianVisitId,
+                Subjective = x.Subjective,
+                Objective = x.Objective,
+                Assessment = x.Assessment,
+                Plan = x.Plan
             };
         }
 

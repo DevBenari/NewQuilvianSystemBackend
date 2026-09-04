@@ -1,5 +1,10 @@
 # Rawat Inap — PRD ke MVP
 
+> **`SUPERSEDED` 2026-09-04.** Isi berkas ini sudah diport ke blueprint kanonik
+> [`docs/module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md`](../../module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md)
+> pada revisi `0.6.0`. Berkas ini disimpan sebagai jejak kerja dan **tidak boleh** disunting lagi;
+> seluruh perubahan berikutnya dilakukan pada blueprint kanonik.
+
 ## 1. Identitas dokumen
 
 | Field | Nilai |
@@ -8,7 +13,7 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.6.0` — naik 2026-09-04 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| Revision artefak | `0.6.0` — naik 2026-09-04 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. Riwayat `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) dipertahankan di bawah, bukan dihapus |
 | `contract_version` | `0.6.0` — **naik**; langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
 | Status | `draft` — **belum disetujui manusia** |
@@ -17,13 +22,6 @@
 | Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-04 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
-
-> **Catatan port 2026-09-04.** Revisi `0.5.0` dan `0.6.0` sempat disusun di luar pohon blueprint,
-> pada `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-deposit.md`, sehingga blueprint kanonik tertinggal di
-> `0.4.1` tanpa deposit sama sekali. Berkas ini sekarang **memuat keduanya** dan menjadi satu-satunya
-> sumber kebenaran; berkas di `docs/Modul-RS` ditandai `SUPERSEDED`. Pemeriksaan superset dijalankan
-> sebelum port: nol judul bagian, nol `FR-RI-*`, nol `UAT-*`, dan nol `EPIC RI-*` milik `0.4.1` yang
-> hilang.
 
 **Perubahan pada `contract_version` `0.6.0`.** Peninjauan layar operasional 2026-09-04 menemukan selisih yang nyata: multi-step admisi rawat inap **sudah** mempunyai langkah `Input Deposit Rawat Inap` di antara langkah tipe pembayaran dan langkah Dokter, sedangkan revisi `0.5.0` hanya mengenal deposit sebagai aktivitas Billing/Kasir **sesudah** episode `Draft` ada. Empat arahan operasional berikut menutup selisih itu.
 

@@ -56,6 +56,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public InpEpisodeStatus EpisodeStatus { get; init; }
 
         /// <summary>
+        /// Saat pasien benar-benar masuk kamar. Kosong selama perawatan masih <c>Draft</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-046</c>, <c>VAL-DOK-14</c>. Waktu pemeriksaan yang lebih awal daripada saat
+        /// ini menyatakan pemeriksaan yang terjadi sebelum pasien berada di kamar, dan itu
+        /// membuat lini masa perkembangan pasien menyesatkan.
+        /// </remarks>
+        public DateTime? AdmittedAt { get; init; }
+
+        /// <summary>
         /// Perawatan yang masih berjalan, yaitu <c>Admitted</c> atau <c>DischargePending</c>.
         /// Dokumen baru hanya boleh lahir di atas perawatan berjalan.
         /// </summary>
@@ -235,7 +245,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     x.EncounterId,
                     x.PatientId,
                     x.ServiceUnitId,
-                    x.EpisodeStatus
+                    x.EpisodeStatus,
+                    x.AdmittedAt
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -315,6 +326,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 PatientId = episode.PatientId,
                 ServiceUnitId = episode.ServiceUnitId,
                 EpisodeStatus = episode.EpisodeStatus,
+                AdmittedAt = episode.AdmittedAt,
                 IsEpisodeOpen = isOpen,
                 AttendingDoctorId = attendingDoctorId,
                 IsDoctorAuthorized = isDoctorAuthorized

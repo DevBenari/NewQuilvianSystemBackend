@@ -29,7 +29,8 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             Guid ServiceUnitId,
             Guid EpisodeId,
             Guid DoctorMasterId,
-            Guid DokterUserId);
+            Guid DokterUserId,
+            Guid WorkforceProfileId);
 
         /// <summary>
         /// Membuat satu dokter master beserta seluruh master pendukungnya.
@@ -90,6 +91,14 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             var pendaftar = RekamMedisTestData.BuatPengguna(context, "pendaftar");
             var dokterPengguna = RekamMedisTestData.BuatPengguna(context, "dokter");
             var dokterMaster = BuatDokterMaster(context);
+
+            // BE-RWI-045. Akun dokter ditautkan ke profil tenaga kerja miliknya, karena itulah
+            // satu-satunya cara backend mengetahui bahwa pengguna yang masuk memang seorang
+            // dokter - VAL-DOK-05 diturunkan dari data, bukan dari nama peran. Pengguna yang
+            // tidak ditautkan tetap tersedia lewat RekamMedisTestData.BuatPengguna, dan itulah
+            // yang dipakai uji penolakan.
+            dokterPengguna.WorkforceProfileId = dokterMaster.WorkforceProfileId;
+            context.SaveChanges();
 
             var serviceUnit = new MstServiceUnit
             {
@@ -167,7 +176,8 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 serviceUnit.Id,
                 episode.Id,
                 dokterMaster.Id,
-                dokterPengguna.Id);
+                dokterPengguna.Id,
+                dokterMaster.WorkforceProfileId);
         }
     }
 }

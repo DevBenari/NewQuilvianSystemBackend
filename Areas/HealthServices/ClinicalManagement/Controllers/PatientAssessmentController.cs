@@ -4,7 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -37,16 +42,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
     {
         private const string LogCategory = "HealthServices.Clinical";
 
+        /// <summary>
+        /// Kalimat penolakan pembuatan pengkajian tanpa antrean bagi kunjungan yang bukan rawat
+        /// inap maupun IGD.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>. Sejalan dengan <c>VAL-DOK-04</c> pada catatan dokter. Kalimat
+        /// sebelumnya berbunyi "hanya untuk pasien IGD" dan berhenti benar begitu pintu rawat
+        /// inap dibuka; kode penolakannya tetap <c>400</c> dan jalur poliklinik tetap tertutup.
+        /// </remarks>
+        private const string PenolakanTanpaAntreanBukanRawatInap =
+            "Pengkajian untuk pasien poliklinik tetap harus lewat antrean.";
+
+        /// <summary>Kalimat penolakan <c>VAL-DOK-05</c>, apa adanya dari validation matrix.</summary>
+        private const string PenolakanKajianMedisBukanDokter =
+            "Catatan ini hanya dapat ditulis dokter.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly InpatientClinicalContextService _inpatientClinicalContextService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public PatientAssessmentController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            InpatientClinicalContextService inpatientClinicalContextService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _inpatientClinicalContextService = inpatientClinicalContextService;
+            _integrityService = integrityService;
         }
+
+        /// <summary>
+        /// Hasil penjagaan pembuatan pengkajian, beserta kode HTTP yang menyertainya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>. Bentuknya sama dengan penjagaan pada catatan dokter, dan dengan
+        /// alasan yang sama: konteks rawat inap menambahkan sebab penolakan yang menurut
+        /// <c>api-contract.md</c> bagian 1.2 dijawab <c>422</c>, sedangkan kewenangan menulis
+        /// kajian medis dijawab <c>403</c>. Menyamakan seluruhnya dengan <c>400</c> membuat
+        /// layar tidak dapat membedakan isian yang salah dari kewenangan yang tidak ada.
+        /// </remarks>
+        private readonly record struct CreateGuard(bool IsValid, int StatusCode, string? ErrorMessage)
+        {
+            public static CreateGuard Ok() => new(true, StatusCodes.Status200OK, null);
+
+            public static CreateGuard Fail(
+                string message,
+                int statusCode = StatusCodes.Status400BadRequest) => new(false, statusCode, message);
+        }
+
+        /// <summary>
+        /// Apakah jenis ini kajian medis, yaitu dokumen milik dokter dan bukan pengkajian
+        /// keperawatan - <c>BE-RWI-045</c>.
+        /// </summary>
+        private static bool IsKajianMedis(PatientAssessmentType assessmentType) =>
+            assessmentType == PatientAssessmentType.MedicalInitial ||
+            assessmentType == PatientAssessmentType.MedicalReassessment;
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientAssessmentPagedResult>), StatusCodes.Status200OK)]
@@ -208,6 +262,90 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <summary>
+        /// Kajian satu perawatan rawat inap, dapat disaring jenisnya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-045</c>, <c>api-contract.md</c> bagian 2. Ruang kerja dokter membuka pasien
+        /// dari konteks perawatan, bukan dari kunjungan maupun antrean; tanpa endpoint ini
+        /// kajian medis satu perawatan hanya dapat ditemukan dengan menebak kunjungannya lebih
+        /// dulu.
+        /// </para>
+        /// <para>
+        /// Penyaring jenis membuat satu tabel yang dipakai dua profesi tetap terbaca terpisah:
+        /// layar dokter meminta kajian medis, layar perawat meminta pengkajian keperawatan, dan
+        /// keduanya tidak pernah saling menimpa di layar - <c>AC-CAP022-02</c>.
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePatientAssessmentPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat kajian satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            [FromQuery] PatientAssessmentType? assessmentType = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            if (episodeId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Perawatan rawat inap wajib disebut."
+                ));
+            }
+
+            var episodeExists = await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken);
+
+            if (!episodeExists)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Perawatan rawat inap tidak ditemukan."
+                ));
+            }
+
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x => x.InpEpisodeId == episodeId);
+
+            if (assessmentType.HasValue)
+                query = query.Where(x => x.AssessmentType == assessmentType.Value);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .OrderByDescending(x => x.AssessmentDateTime)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var result = new ResponsePatientAssessmentPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(ToResponse).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePatientAssessmentPagedResult>.Ok(
+                result,
+                "Kajian pada perawatan rawat inap berhasil diambil."
+            ));
+        }
+
         [HttpGet("active-by-queue/{queueId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientAssessmentDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -254,9 +392,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data assessment pasien tidak valid."
+                var pesan = validation.ErrorMessage ?? "Data assessment pasien tidak valid.";
+
+                // Penolakan 400 tetap lewat BadRequest, apa adanya seperti sebelum BE-RWI-044.
+                // Hanya 403 kewenangan kajian medis dan 422 konteks perawatan yang memerlukan
+                // jalur StatusCode.
+                if (validation.StatusCode == StatusCodes.Status400BadRequest)
+                    return BadRequest(ApiResponse<object>.Fail(validation.StatusCode, pesan));
+
+                return StatusCode(validation.StatusCode, ApiResponse<object>.Fail(
+                    validation.StatusCode,
+                    pesan
                 ));
             }
 
@@ -280,6 +426,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var calculated = CalculateAssessmentValues(request);
 
+            // BE-RWI-044. Konteks perawatan distempel saat dokumen lahir, sehingga pertanyaan
+            // "pengkajian ini milik perawatan yang mana" terjawab tanpa penelusuran berlapis -
+            // INV-DOK-01. Kosong bagi kunjungan yang memang bukan rawat inap.
+            var inpEpisodeId = await _inpatientClinicalContextService
+                .FindOpenEpisodeIdAsync(encounter.Id);
+
+            // BE-RWI-045. Kajian medis dituliskan atas nama dokter yang benar-benar terhubung
+            // ke pengguna yang masuk, bukan atas nama dokter yang kebetulan tertulis pada
+            // antrean atau kunjungan - VAL-DOK-05.
+            var kajianMedisDoctorId = IsKajianMedis(request.AssessmentType)
+                ? await ResolveCurrentDoctorIdAsync()
+                : null;
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             var entity = new TrxPatientAssessment
@@ -291,7 +450,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 PatientId = queue?.PatientId ?? encounter.PatientId,
                 ServiceUnitId = queue?.ServiceUnitId ?? encounter.ServiceUnitId,
                 ClinicId = queue?.ClinicId ?? encounter.ClinicId,
-                DoctorId = queue?.DoctorId ?? encounter.DoctorId,
+                DoctorId = kajianMedisDoctorId ?? queue?.DoctorId ?? encounter.DoctorId,
+                InpEpisodeId = inpEpisodeId,
+                AssessmentType = request.AssessmentType,
                 AssessmentDateTime = now,
                 AssessmentStatus = request.CompleteImmediately
                     ? PatientAssessmentStatus.Completed
@@ -393,6 +554,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 AssessmentNumber = entity.AssessmentNumber,
                 EncounterId = entity.EncounterId,
                 QueueId = entity.QueueId,
+                InpEpisodeId = entity.InpEpisodeId,
+                AssessmentType = entity.AssessmentType,
                 AssessmentStatus = entity.AssessmentStatus,
                 AssessmentDateTime = entity.AssessmentDateTime,
                 CompletedAt = entity.CompletedAt,
@@ -556,6 +719,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     AssessmentNumber = entity.AssessmentNumber,
                     EncounterId = entity.EncounterId,
                     QueueId = entity.QueueId,
+                    InpEpisodeId = entity.InpEpisodeId,
+                    AssessmentType = entity.AssessmentType,
                     AssessmentStatus = entity.AssessmentStatus,
                     CompletedAt = entity.CompletedAt,
                     CompletedByUserId = entity.CompletedByUserId,
@@ -566,6 +731,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     completedResponse,
                     "Assessment pasien sudah completed."
                 ));
+            }
+
+            var isKajianMedis = IsKajianMedis(entity.AssessmentType);
+
+            // BE-RWI-045 / VAL-DOK-10. Kajian medis yang belum lengkap tidak boleh difinalkan,
+            // dan pesannya menyebut bagian mana yang masih kosong - bukan sekadar menolak.
+            // Pengkajian keperawatan tidak tersentuh aturan ini; perilakunya tidak berubah.
+            if (isKajianMedis)
+            {
+                var bagianKosong = BagianKajianMedisYangKosong(entity);
+
+                if (bagianKosong.Count > 0)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Kajian medis belum dapat diselesaikan. Bagian berikut masih kosong: " +
+                        $"{string.Join(", ", bagianKosong)}."
+                    ));
+                }
             }
 
             var now = DateTime.UtcNow;
@@ -582,6 +766,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Finalisasi perjalanan pasien dilakukan oleh endpoint:
             // POST /nurse-station-queues/{id}/finish-screening
 
+            // BE-RWI-045 / api-contract.md bagian 2, RWI-AC-157. Menyelesaikan kajian medis
+            // sekaligus mendaftarkannya pada mesin keutuhan rekam medis, dalam SaveChanges yang
+            // sama - supaya tidak pernah ada kajian selesai yang tidak punya baris keutuhan.
+            //
+            // Sengaja hanya untuk kajian medis. Pendaftaran pengkajian keperawatan adalah
+            // pekerjaan sub-modul keperawatan; menyalakannya dari sini akan mengubah perilaku
+            // jalur poliklinik dan IGD yang tidak diminta task ini.
+            var isRegisteredToIntegrity = false;
+
+            if (isKajianMedis && entity.EncounterId != Guid.Empty)
+            {
+                var authorUserId = entity.AssessmentByUserId ?? entity.CreateBy;
+
+                await _integrityService.RegisterAsync(
+                    ClinicalDocumentKind.Assessment,
+                    entity.Id,
+                    entity.PatientId,
+                    entity.EncounterId,
+                    authorUserId,
+                    isAuthorKnown: authorUserId != Guid.Empty);
+
+                isRegisteredToIntegrity = true;
+            }
+
             await _dbContext.SaveChangesAsync();
 
             var response = new PatientAssessmentCompleteResponse
@@ -590,10 +798,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 AssessmentNumber = entity.AssessmentNumber,
                 EncounterId = entity.EncounterId,
                 QueueId = entity.QueueId,
+                InpEpisodeId = entity.InpEpisodeId,
+                AssessmentType = entity.AssessmentType,
                 AssessmentStatus = entity.AssessmentStatus,
                 CompletedAt = entity.CompletedAt,
                 CompletedByUserId = entity.CompletedByUserId,
-                IsAlreadyCompleted = false
+                IsAlreadyCompleted = false,
+                IsRegisteredToIntegrity = isRegisteredToIntegrity
             };
 
             return Ok(ApiResponse<PatientAssessmentCompleteResponse>.Ok(
@@ -641,9 +852,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
+        private async Task<CreateGuard> ValidateCreateRequestAsync(
             CreatePatientAssessmentRequest request)
         {
+            // BE-RWI-044 / VAL-DOK-26 dan BE-RWI-045 / VAL-DOK-01, VAL-DOK-05. Penanda perawatan
+            // dan kewenangan menulis kajian medis diperiksa pada kedua cabang: kunjungan yang
+            // berantre pun dapat menaungi perawatan rawat inap, dan penanda yang salah di sana
+            // menempelkan dokumen ke perawatan yang keliru dengan cara yang sama persis.
+            var konteks = await ValidateInpatientMarkersAsync(request);
+
+            if (!konteks.IsValid)
+                return konteks;
+
+            var kajianMedis = await ValidateMedicalAssessmentRuleAsync(request);
+
+            if (!kajianMedis.IsValid)
+                return kajianMedis;
+
             if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
                 return await ValidateCreateWithoutQueueAsync(request);
 
@@ -655,10 +880,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     !x.IsDelete);
 
             if (queue == null)
-                return (false, "Antrean tidak ditemukan atau tidak sesuai dengan encounter.");
+                return CreateGuard.Fail("Antrean tidak ditemukan atau tidak sesuai dengan encounter.");
 
             if (!queue.IsScreeningRequired)
-                return (false, "Antrean ini tidak membutuhkan screening.");
+                return CreateGuard.Fail("Antrean ini tidak membutuhkan screening.");
 
             var isNurseScreeningStatus =
                 queue.QueueStatus == QueueStatus.CalledByNurse ||
@@ -672,37 +897,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (!isNurseScreeningStatus && !isDoctorScreeningStatus)
             {
-                return (false, "Status antrean tidak valid untuk assessment.");
+                return CreateGuard.Fail("Status antrean tidak valid untuk assessment.");
             }
 
             if (isDoctorScreeningStatus && !request.CompleteImmediately)
             {
+                // BE-RWI-045. Penjagaan draf disaring jenis: kajian medis dan pengkajian
+                // keperawatan hidup pada satu tabel tetapi punya mesin status sendiri-sendiri,
+                // sehingga draf milik profesi lain tidak boleh menutup pembuatan milik profesi
+                // ini - AC-CAP022-02. Bagi jalur rawat jalan tidak ada yang berubah: seluruh
+                // baris lama maupun kirimannya bernilai Initial.
                 var doctorDraftExists = await _dbContext.Set<TrxPatientAssessment>()
                     .AnyAsync(x =>
                         x.QueueId == request.QueueId &&
+                        x.AssessmentType == request.AssessmentType &&
                         !x.IsDelete &&
                         x.IsActive &&
                         (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
                          x.AssessmentStatus == PatientAssessmentStatus.InProgress));
 
                 if (doctorDraftExists)
-                    return (false, "Draft assessment dokter untuk antrean ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
+                    return CreateGuard.Fail("Draft assessment dokter untuk antrean ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
             }
             else if (!isDoctorScreeningStatus)
             {
                 var editableAssessmentExists = await _dbContext.Set<TrxPatientAssessment>()
                     .AnyAsync(x =>
                         x.EncounterId == request.EncounterId &&
+                        x.AssessmentType == request.AssessmentType &&
                         !x.IsDelete &&
                         x.IsActive &&
                         (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
                          x.AssessmentStatus == PatientAssessmentStatus.InProgress));
 
                 if (editableAssessmentExists)
-                    return (false, "Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
+                    return CreateGuard.Fail("Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
             }
 
-            return (true, null);
+            return CreateGuard.Ok();
         }
 
         /// <summary>
@@ -726,7 +958,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// terdaftar hari ini.
         /// </para>
         /// </remarks>
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateWithoutQueueAsync(
+        private async Task<CreateGuard> ValidateCreateWithoutQueueAsync(
             CreatePatientAssessmentRequest request)
         {
             var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
@@ -734,31 +966,287 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             if (!encounterExists)
-                return (false, "Encounter tidak ditemukan.");
+                return CreateGuard.Fail("Encounter tidak ditemukan.");
 
-            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
-                .AsNoTracking()
-                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+            var pintuMasuk = await ValidateWithoutQueueGateAsync(request);
 
-            if (!isEmergencyEncounter)
-            {
-                return (false, "Pengkajian tanpa antrean hanya untuk pasien IGD. " +
-                               "Untuk pasien poli, buat pengkajian dari baris antreannya.");
-            }
+            if (!pintuMasuk.IsValid)
+                return pintuMasuk;
 
             var editableAssessmentExists = await _dbContext.Set<TrxPatientAssessment>()
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.EncounterId == request.EncounterId &&
+                    x.AssessmentType == request.AssessmentType &&
                     !x.IsDelete &&
                     x.IsActive &&
                     (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
                      x.AssessmentStatus == PatientAssessmentStatus.InProgress));
 
             if (editableAssessmentExists)
-                return (false, "Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
+                return CreateGuard.Fail("Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
 
-            return (true, null);
+            return CreateGuard.Ok();
+        }
+
+        /// <summary>
+        /// Pintu masuk pembuatan pengkajian <b>tanpa antrean</b>: siapa yang boleh melewatinya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-044</c>. Bentuknya sengaja sama persis dengan penjagaan pada catatan
+        /// dokter. Kunjungan IGD diperiksa lebih dulu dan dilewatkan apa adanya, sehingga
+        /// perilaku IGD - <c>BE-IGD-027</c>, <c>IGD-DEC-068</c>, <c>IGD-DEC-109</c> - tidak
+        /// bergeser satu langkah pun. Baru sesudahnya konteks rawat inap dibentuk, dan sebab
+        /// penolakannya diteruskan beserta kode aslinya.
+        /// </para>
+        /// <para>
+        /// Kunjungan poliklinik dan medical check-up tetap tertutup: melepas kewajiban antrean
+        /// bagi keduanya berarti pengkajian rawat jalan dapat dibuat melewati screening, dan
+        /// penjagaan itulah yang justru menjadi alasan kolom antrean ada.
+        /// </para>
+        /// </remarks>
+        private async Task<CreateGuard> ValidateWithoutQueueGateAsync(
+            CreatePatientAssessmentRequest request)
+        {
+            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+
+            if (isEmergencyEncounter)
+                return CreateGuard.Ok();
+
+            var context = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (context.IsResolved)
+                return CreateGuard.Ok();
+
+            if (context.Outcome == InpatientClinicalContextOutcome.NoInpatientEpisode)
+                return CreateGuard.Fail(PenolakanTanpaAntreanBukanRawatInap);
+
+            return CreateGuard.Fail(
+                context.ErrorMessage ?? "Konteks perawatan rawat inap tidak dapat dibentuk.",
+                context.StatusCode);
+        }
+
+        /// <summary>
+        /// Penjagaan penanda perawatan - <c>VAL-DOK-26</c>, berlaku pada kedua cabang.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>. Keadaan perawatan sengaja tidak diperiksa di sini: perawatan yang
+        /// masih <c>Draft</c> atau sudah ditutup hanya menutup pintu tanpa antrean, sedangkan
+        /// kunjungan yang membawa antrean tetap tunduk pada penjagaan antrean yang lama.
+        /// </remarks>
+        private async Task<CreateGuard> ValidateInpatientMarkersAsync(
+            CreatePatientAssessmentRequest request)
+        {
+            if (!request.InpEpisodeId.HasValue || request.InpEpisodeId.Value == Guid.Empty)
+                return CreateGuard.Ok();
+
+            var context = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (context.Outcome == InpatientClinicalContextOutcome.EpisodeMismatch)
+                return CreateGuard.Fail(context.ErrorMessage!, context.StatusCode);
+
+            if (context.Outcome == InpatientClinicalContextOutcome.NoInpatientEpisode)
+                return CreateGuard.Fail("Perawatan rawat inap tidak sesuai dengan kunjungannya.");
+
+            return CreateGuard.Ok();
+        }
+
+        /// <summary>
+        /// Penjagaan khusus <b>kajian medis</b>: kewenangan menulis, konteks perawatan, dan
+        /// batas satu kajian medis awal yang berlaku per perawatan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-045</c>, <c>CAP-022</c>, <c>AC-CAP022-02</c>, <c>VAL-DOK-01</c>,
+        /// <c>VAL-DOK-05</c>. Tabel ini dipakai bersama pengkajian keperawatan, sehingga mesin
+        /// hak akses hanya melihat <b>satu</b> sumber daya untuk dua jenis dokumen -
+        /// <c>permission-audit-matrix.md</c> bagian 3. Pembedaannya karena itu wajib berada di
+        /// sini, di dalam aturan bisnis.
+        /// </para>
+        /// <para>
+        /// <b>Kewenangan diturunkan dari data, bukan dari nama peran.</b> Yang diperiksa adalah
+        /// apakah pengguna yang sedang masuk benar-benar terhubung ke satu baris dokter yang
+        /// aktif. Tidak ada pemeriksaan nama peran, nama jabatan, maupun <c>UserType</c>; siapa
+        /// yang boleh memanggil endpoint ini tetap ditentukan admin lewat layar Akses Role.
+        /// </para>
+        /// <para>
+        /// Batas satu kajian medis awal dihitung <b>per perawatan</b>, bukan per kunjungan, dan
+        /// menghitung kajian yang sudah selesai maupun yang masih dikerjakan. Kajian yang
+        /// dibatalkan tidak dihitung - pembatalan memang jalan keluar dari kajian yang salah.
+        /// </para>
+        /// </remarks>
+        private async Task<CreateGuard> ValidateMedicalAssessmentRuleAsync(
+            CreatePatientAssessmentRequest request)
+        {
+            if (!IsKajianMedis(request.AssessmentType))
+                return CreateGuard.Ok();
+
+            var doctorId = await ResolveCurrentDoctorIdAsync();
+
+            if (!doctorId.HasValue)
+                return CreateGuard.Fail(PenolakanKajianMedisBukanDokter, StatusCodes.Status403Forbidden);
+
+            var context = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (!context.IsResolved)
+            {
+                return CreateGuard.Fail(
+                    context.Outcome == InpatientClinicalContextOutcome.NoInpatientEpisode
+                        ? "Pasien ini tidak sedang dirawat inap."
+                        : context.ErrorMessage ?? "Konteks perawatan rawat inap tidak dapat dibentuk.",
+                    context.StatusCode);
+            }
+
+            if (request.AssessmentType != PatientAssessmentType.MedicalInitial)
+                return CreateGuard.Ok();
+
+            var sudahAda = await _dbContext.Set<TrxPatientAssessment>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.InpEpisodeId == context.Context!.EpisodeId &&
+                    x.AssessmentType == PatientAssessmentType.MedicalInitial &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    x.AssessmentStatus != PatientAssessmentStatus.Cancelled);
+
+            if (sudahAda)
+            {
+                return CreateGuard.Fail(
+                    "Perawatan ini sudah memiliki kajian medis awal. Lanjutkan kajian yang " +
+                    "sudah ada, atau buat kajian medis ulang.");
+            }
+
+            return CreateGuard.Ok();
+        }
+
+        /// <summary>
+        /// Menemukan baris dokter yang melekat pada pengguna yang sedang masuk.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-045</c>, <c>VAL-DOK-05</c>. Urutannya mengikuti pola yang sudah dipakai
+        /// <c>DoctorQueueController.ResolveAllowedDoctorIdAsync</c>: klaim identitas dokter
+        /// lebih dulu, lalu penautan lewat profil tenaga kerja, lalu surel. Tiga-tiganya
+        /// bersandar pada <b>data</b> - tidak satu pun membaca nama peran.
+        /// </para>
+        /// <para>
+        /// Mengembalikan kosong bila pengguna tidak terhubung ke dokter mana pun. Itulah yang
+        /// membuat perawat ditolak <c>403</c> saat mencoba menulis kajian medis, tanpa satu
+        /// baris pun kode yang menyebut kata "perawat".
+        /// </para>
+        /// </remarks>
+        private async Task<Guid?> ResolveCurrentDoctorIdAsync()
+        {
+            var doctorIdClaim = User.FindFirstValue("doctor_id") ?? User.FindFirstValue("DoctorId");
+
+            if (Guid.TryParse(doctorIdClaim, out var doctorIdFromClaim) &&
+                doctorIdFromClaim != Guid.Empty)
+            {
+                var adaDokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == doctorIdFromClaim && !x.IsDelete && x.IsActive);
+
+                if (adaDokter)
+                    return doctorIdFromClaim;
+            }
+
+            var workforceClaim = User.FindFirstValue("workforce_profile_id")
+                                 ?? User.FindFirstValue("WorkforceProfileId");
+
+            Guid? workforceProfileId = Guid.TryParse(workforceClaim, out var dariKlaim) && dariKlaim != Guid.Empty
+                ? dariKlaim
+                : null;
+
+            var currentUserId = GetCurrentUserId();
+
+            var pengguna = currentUserId == Guid.Empty
+                ? null
+                : await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(x => x.Id == currentUserId)
+                    .Select(x => new { x.WorkforceProfileId, x.Email })
+                    .FirstOrDefaultAsync();
+
+            workforceProfileId ??= pengguna?.WorkforceProfileId;
+
+            if (workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty)
+            {
+                var dokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.WorkforceProfileId == workforceProfileId.Value &&
+                        !x.IsDelete &&
+                        x.IsActive)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync();
+
+                if (dokter.HasValue)
+                    return dokter;
+            }
+
+            if (!string.IsNullOrWhiteSpace(pengguna?.Email))
+            {
+                var surel = pengguna.Email.ToLower();
+
+                var dokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Email != null &&
+                        x.Email.ToLower() == surel &&
+                        !x.IsDelete &&
+                        x.IsActive)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync();
+
+                if (dokter.HasValue)
+                    return dokter;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Bagian kajian medis yang masih kosong saat kajian hendak diselesaikan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-045</c>, <c>VAL-DOK-10</c>. Aturan yang disetujui menyebut tiga bagian -
+        /// keluhan utama, pemeriksaan, dan rencana - ditambah diagnosis pada <c>VAL-DOK-11</c>.
+        /// </para>
+        /// <para>
+        /// <b>Yang dapat diperiksa hari ini hanya keluhan utama dan riwayat penyakit
+        /// sekarang.</b> <c>TrxPatientAssessment</c> tidak memiliki kolom pemeriksaan fisik,
+        /// rencana terapi, maupun diagnosis kerja, dan
+        /// <c>data/data-dictionary.md</c> bagian 3 menyatakan sub-modul ini menambahkan
+        /// <b>nol</b> kolom pada tabel tersebut. Menambahkannya sendiri berarti mendefinisikan
+        /// ulang kontrak yang sudah disetujui, jadi kekurangannya dilaporkan - bukan ditambal
+        /// diam-diam. Kerangka daftarnya sudah berdiri di sini supaya bagian yang tersisa cukup
+        /// ditambahkan satu baris ketika pemilik memutuskan tempat penyimpanannya.
+        /// </para>
+        /// </remarks>
+        private static List<string> BagianKajianMedisYangKosong(TrxPatientAssessment entity)
+        {
+            var kosong = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(entity.ChiefComplaint))
+                kosong.Add("keluhan utama");
+
+            if (string.IsNullOrWhiteSpace(entity.CurrentIllnessHistory))
+                kosong.Add("riwayat penyakit sekarang");
+
+            return kosong;
         }
 
         private async Task<string> GenerateAssessmentNumberAsync(DateTime now)
@@ -1102,6 +1590,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
                 DoctorName = x.Queue != null && x.Queue.Doctor != null ? x.Queue.Doctor.FullName : null,
+                InpEpisodeId = x.InpEpisodeId,
+                AssessmentType = x.AssessmentType,
                 AssessmentDateTime = x.AssessmentDateTime,
                 AssessmentStatus = x.AssessmentStatus,
                 AssessmentByUserId = x.AssessmentByUserId,
@@ -1176,6 +1666,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
                 DoctorName = x.Queue != null && x.Queue.Doctor != null ? x.Queue.Doctor.FullName : null,
+                InpEpisodeId = x.InpEpisodeId,
+                AssessmentType = x.AssessmentType,
                 AssessmentDateTime = x.AssessmentDateTime,
                 AssessmentStatus = x.AssessmentStatus,
                 AssessmentByUserId = x.AssessmentByUserId,
