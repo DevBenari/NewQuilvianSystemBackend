@@ -220,3 +220,58 @@ Pemeriksaan menyeluruh ke luar modul Accounting **belum dijalankan** — sebagia
 menaruh `FilterSelect` di panel penyaring, bukan di dalam sel tabel, sehingga tidak berisiko sama.
 Satu kandidat yang bentuknya mirip, `prescription-compound-editor.jsx`, belum diperiksa dan berada
 di luar cakupan task ini.
+
+---
+
+## 11. Verifikasi owner di peramban — 4 September 2026
+
+**Jurnal pertama modul ini berhasil disusun dan diajukan lewat layar.** Bukti pada database
+sungguhan `QuilvianNewDevRizki`:
+
+| Bukti | Nilai |
+|---|---|
+| Nomor jurnal | `JB/2026/09/00001` — penomoran `BE-ACC-010` terbukti pada data nyata |
+| Keterangan | `testing` |
+| Debit / Kredit | `1000000.00` / `1000000.00`, seimbang |
+| `AccJournalLine` | **2 baris** |
+| `AccJournalApproval` | **1 baris** — jejak audit terbentuk |
+| Status | `Menunggu Persetujuan` |
+| Diajukan | 2026-09-04 08:36:51 |
+| Disetujui / Disahkan | **`None` / `None`** |
+
+Acceptance (1) **TERBUKTI**: owner melihat tombol Ajukan mati saat selisih belum nol, lalu hidup
+saat selisih `Rp 0`. Acceptance (4) **TERBUKTI**: tujuh kolom muat tanpa gulir mendatar.
+
+Acceptance (3) dan (5) **belum teruji** — COA belum memuat akun beban, sehingga kewajiban unit
+biaya tidak pernah terpicu; dan draft belum pernah ditutup lalu dibuka ulang.
+
+**Setujui dan sahkan belum terjadi, dan itu BUKAN cacat**: layar aksinya adalah `FE-ACC-007`, yang
+belum dibangun. Tidak ada tombol Setujui/Sahkan di layar mana pun saat ini.
+
+### Empat cacat ditemukan owner, seluruhnya sudah diperbaiki
+
+| # | Gejala | Sebab | Commit |
+|---|---|---|---|
+| 1 | Dropdown unit biaya terpotong tepi kartu | `overflow-x: auto` menjadikan pembungkus wadah gulir dua arah | `bf4fd0ed6` |
+| 2 | Label berbunyi `lines.1.accountId` | `label: ""` jatuh balik ke nama field (`base-form-control.jsx:70`) | `bf4fd0ed6` |
+| 3 | **Total debit/kredit beku di `Rp 0`** | `watch("lines")` mengembalikan referensi array yang sama; `useMemo` tidak pernah menghitung ulang. Diganti `useWatch` | `a57074f3d` |
+| 4 | Tombol simpan tertutup footer aplikasi | Layar tidak memakai token `--app-footer-safe-space` | `a57074f3d` |
+
+Cacat 3 yang paling berat: ia membuat tombol Ajukan **tidak akan pernah hidup** berapa pun angka
+yang diketik, dan kewajiban unit biaya ikut beku. Tidak dilaporkan owner — ditemukan dari gambar
+layar yang dikirimnya.
+
+Ditambah dua penyempurnaan menyusul:
+
+| Perubahan | Sebab | Commit |
+|---|---|---|
+| Isian nominal berformat `Rp 10.000` | Permintaan owner. Memakai `applyFieldNormalizer(..., currencyIdr)`, helper yang sudah ada — nilai tersimpan tetap `"10000"` supaya total tidak rusak | `63f660b0b` |
+| Simpan yang ditolak validasi kini bersuara | `handleSubmit` dipanggil tanpa `onInvalid`, dan fokus otomatis RHF tidak bekerja karena `BaseTextField` tidak meneruskan `field.ref`. Owner melaporkannya sebagai "tombol simpan tidak ada aksi" | `418aebb05` |
+
+### Catatan domain untuk owner
+
+Jurnal pertama ini memakai jenis **Jurnal Pembalik** (`JB`), bukan Jurnal Umum. Backend
+menerimanya — jadi kekhawatiran bahwa pembalik akan ditolak tanpa jurnal asal **tidak terbukti**.
+Secara akuntansi ini janggal: jenis pembalik dimaksudkan untuk mengoreksi jurnal yang sudah
+disahkan, bukan untuk pencatatan pertama. Bukan cacat kode, tetapi layak diputuskan owner apakah
+backend perlu menolak `JB` yang tidak menunjuk jurnal asal.

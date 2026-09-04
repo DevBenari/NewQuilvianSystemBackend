@@ -36,7 +36,7 @@ lagi:
 | # | Sebab | Kalimat singkatnya |
 |---|---|---|
 | 1 | **Buktinya tidak dapat diperiksa ulang siapa pun** | Bukti acceptance `BE-ACC-010`..`014` bersandar pada satu berkas test yang **tidak pernah masuk git** dan kini tidak ada di mana pun |
-| 2 | **Modul belum pernah dijalankan sekali pun sebagai proses bisnis** | **SEPARUH TERSELESAIKAN 4 September 2026.** Owner mengisi COA lewat layar (`1002 Kas Besar`, `4001 Pendapatan Rawat Jalan`) dan membangkitkan periode 2026 (**12 baris**), keduanya lewat `FE-ACC-002` dan `FE-ACC-004` — bukan lewat Swagger. `AccJournal` masih **0 baris**: percobaan jurnal pertama terhambat tiga cacat form yang kini sudah diperbaiki (`a57074f3d`). `UAT-01` belum pernah dijalankan utuh |
+| 2 | ~~**Modul belum pernah dijalankan sekali pun sebagai proses bisnis**~~ | **SEBAGIAN BESAR TERSELESAIKAN 4 September 2026.** Owner mengisi COA dan membangkitkan periode 2026 (12 baris) lewat layar, lalu **menyusun dan mengajukan jurnal pertama modul ini lewat layar juga**: `JB/2026/09/00001`, Rp 1.000.000 seimbang, 2 baris, 1 baris riwayat persetujuan, status **Menunggu Persetujuan**. Penomoran `BE-ACC-010` terbukti pada data sungguhan. **Sisa yang belum terbukti: setujui dan sahkan** — bukan cacat, melainkan karena layar aksinya (`FE-ACC-007`) belum dibangun. `UAT-01` karena itu baru tuntas separuh |
 | 3 | **Pintu merge masih tertutup** | Gerbang QBE akan menolak `QBE-MOD-002` atas tujuh entity `Acc*` — sudah tercatat `ACC-TD-003`/`ACC-TD-015`, pemiliknya lead |
 
 Frontend `NOT_STARTED` **tidak** dihitung sebagai penyebab. Sesuai keterangan owner, itu keputusan

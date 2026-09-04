@@ -30,7 +30,7 @@ frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 verification_backend_source_sha: 822d48a
-verification_frontend_source_sha: a57074f3d
+verification_frontend_source_sha: 418aebb05
 verification_baseline_note: >
   BASELINE FRONTEND DIGESER 4 September 2026: 1a86d9322 -> a57074f3d. Impact scan dijalankan
   lebih dahulu. Dua commit: bf4fd0ed6 milik owner, 53 berkas 6.754 baris, SELURUHNYA pekerjaan
@@ -122,7 +122,7 @@ artifact_hashes:
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
   roadmap/backend-roadmap.md: cad5f84ea2fc0def429c4ea504340f1d6523ed5e4eee47b6617636e1a084515f
-  roadmap/frontend-roadmap.md: f29e99de8d78a841bf20ffd41a1d13a275f9b179c1188c17c52d2ccf64d98158
+  roadmap/frontend-roadmap.md: eda19cbdd8e9f4481114abceca7678dba6b07d4bad4dfcf89bfbf05159c0df24
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
 entity_prefix:
