@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -217,7 +217,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah isian admisi rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientEpisode", "Update")]
         public async Task<IActionResult> UpdateAdmission(
             Guid id,
@@ -264,7 +264,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Cancel Inpatient Episode", Description = "Membatalkan admisi rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientEpisode", "Update")]
         public async Task<IActionResult> CancelAdmission(
             Guid id,
@@ -319,7 +319,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Set Inpatient Isolation Requirement", Description = "Menetapkan kebutuhan isolasi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("SetIsolation", "Set Inpatient Isolation Requirement", Description = "Menetapkan kebutuhan isolasi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("InpatientEpisode", "SetIsolation")]
         public async Task<IActionResult> SetIsolationRequirement(
             Guid id,
@@ -365,7 +365,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Handover Inpatient Doctor", Description = "Mengalihkan DPJP episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientEpisode", "Update")]
         public async Task<IActionResult> HandoverDoctor(
             Guid id,
@@ -430,7 +430,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Assign Inpatient Nurse", Description = "Menugaskan perawat penanggung jawab episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientEpisode", "Update")]
         public async Task<IActionResult> AssignNurse(
             Guid id,
@@ -531,7 +531,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Open Inpatient Correction Session", Description = "Membuka sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Reopen", "Manage Inpatient Correction Session", Description = "Membuka dan menutup sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("InpatientEpisode", "Reopen")]
         public async Task<IActionResult> OpenCorrectionSession(
             Guid id,
@@ -577,7 +577,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Close Inpatient Correction Session", Description = "Menutup sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Reopen", "Manage Inpatient Correction Session", Description = "Membuka dan menutup sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("InpatientEpisode", "Reopen")]
         public async Task<IActionResult> CloseCorrectionSession(
             Guid id,

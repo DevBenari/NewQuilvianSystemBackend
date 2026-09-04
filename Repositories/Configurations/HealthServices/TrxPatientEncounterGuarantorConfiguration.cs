@@ -48,6 +48,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.InsuranceProviderId)
                 .IsRequired(false);
 
+            entity.Property(x => x.PatientCompanyGuarantorId)
+                .IsRequired(false);
+
+            entity.Property(x => x.CompanyGuarantorId)
+                .IsRequired(false);
+
             // =========================
             // REGISTRATION SNAPSHOT
             // =========================
@@ -72,6 +78,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.BenefitPlanCodeSnapshot)
                 .HasMaxLength(100);
+
+            entity.Property(x => x.CompanyGuarantorCodeSnapshot)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.EmployeeNumberSnapshot)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.EmployeeNameSnapshot)
+                .HasMaxLength(200);
 
             entity.Property(x => x.EffectiveStartDateSnapshot)
                 .HasColumnType("timestamp with time zone")
@@ -145,6 +160,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.InsuranceProviderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.PatientCompanyGuarantor)
+                .WithMany()
+                .HasForeignKey(x => x.PatientCompanyGuarantorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CompanyGuarantor)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyGuarantorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // =========================
             // INDEXES
             // =========================
@@ -163,6 +188,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.PatientInsuranceId);
 
             entity.HasIndex(x => x.InsuranceProviderId);
+
+            entity.HasIndex(x => x.PatientCompanyGuarantorId);
+
+            entity.HasIndex(x => x.CompanyGuarantorId);
 
             entity.HasIndex(x => new
             {

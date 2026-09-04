@@ -286,7 +286,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                     BankAccountNumber = x.BankAccountNumber,
                     BankAccountName = x.BankAccountName,
                     AdminFeeAmount = x.AdminFeeAmount,
-                    AdminFeePercent = x.AdminFeePercent
+                    AdminFeePercent = x.AdminFeePercent,
+                    Description = x.Description,
+                    SortOrder = x.SortOrder
                 })
                 .ToListAsync();
 
