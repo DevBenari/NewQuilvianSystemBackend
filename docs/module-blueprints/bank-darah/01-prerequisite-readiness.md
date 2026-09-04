@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `3` |
-| Status | `CURRENT` — register dependency yang sedang berlaku dan dikutip roadmap revisi 2 |
-| Diperbarui | `2026-09-03` — setelah `BD-DEP-008` dan `BD-DEP-016` ditutup serta approval `G1` tercatat |
+| Revision | `4` |
+| Status | `CURRENT` — register dependency yang sedang berlaku dan dikutip roadmap revisi 2. Seluruh bukti terverifikasi lewat impact scan 4 September 2026 |
+| Diperbarui | `2026-09-04` — `BD-DEP-004` dan `BD-DEP-005` ditutup implementasi `MVP-0` |
 | Sumber bukti | `02-existing-capability-map.md` revisi 2 dan `00-interview-decisions.md` revisi 2 |
-| Backend SHA | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
-| Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
+| Backend SHA | bukti dikumpulkan pada `9522caacf29371b1fddd1584e9a71ad94fe48d19`; **source terkini `5f7acaf`** cabang `sukmagp` |
+| Frontend SHA | bukti dikumpulkan pada `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; **source terkini `101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` |
 
 Dokumen ini mencatat apa saja yang harus sudah tersedia sebelum Bank Darah bisa dikerjakan, dan
 sejauh mana masing-masing sudah siap.
@@ -18,6 +18,18 @@ Nilai `capability_status` hanya boleh memakai salah satu dari taksonomi baku ber
 
 Nilai `dependency_type` hanya boleh memakai `MODULE_FOUNDATION`, `PHASE`, `INTEGRATION`, atau
 `EXTERNAL`.
+
+> **Perubahan pada revisi 4 — 4 September 2026.** Dua dependency ditutup oleh implementasi gelombang
+> `MVP-0`, bukan oleh keputusan baru. `BD-DEP-005` katalog komponen darah naik dari `MISSING` menjadi
+> **`RESOLVED`** lewat `BE-BD-001`, dan `BD-DEP-004` kewenangan unit memesan darah naik dari `EXTEND`
+> menjadi **`RESOLVED`** lewat `BE-BD-002`. Keduanya terbukti: build hijau dan 101 pengujian Bank Darah
+> lulus pada `5f7acaf`.
+>
+> ✅ **Penanda `STALE` sudah dicabut.** Impact scan terbatas dijalankan `trace-existing-capabilities`
+> pada 4 September 2026 atas rentang `4205d18..5f7acaf` (backend) dan `afbb8ab..101ec5d3` (frontend).
+> Bukti `BD-DEP-014` (komponen dasar tampilan frontend) **terverifikasi tetap sahih**: kesepuluh
+> komponen yang dikutip tidak berubah. Seluruh dependency lain juga diperiksa per berkas dan tidak
+> ada yang buktinya bergeser.
 
 > **Perubahan pada revisi 3.** Dua `CONFLICT` yang muncul pada revisi 2 sudah ditutup keputusan
 > pemilik: `BD-DEP-002` oleh `DEC-BD-014`, dan `BD-DEP-007` oleh `DEC-BD-015`. Tidak ada lagi
@@ -38,8 +50,8 @@ Nilai `dependency_type` hanya boleh memakai `MODULE_FOUNDATION`, `PHASE`, `INTEG
 | `BD-DEP-001` | Data pasien | `MODULE_FOUNDATION` | PatientManagement | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs#MstPatient` — lihat `BD-CAP-001` | `READY TO REUSE` | `BD-PH-005` | Tidak memblokir | — | `9522caa` | Simpan `PatientId` sebagai rujukan |
 | `BD-DEP-002` | Kunjungan pasien beserta sinyal penutupannya | `MODULE_FOUNDATION` | RegistrationManagement dan InPatientManagement | `TrxPatientEncounter.cs`, `EncounterStatus.cs`, `InpEpisode.cs` — lihat `BD-CAP-002` dan `BD-CAP-003` | `REUSE WITH ADAPTER` | `BD-PH-005` | Tidak memblokir. `DEC-BD-014` menetapkan dua penyesuai: status akhir kunjungan untuk rawat jalan dan IGD, waktu pasien meninggalkan rumah sakit untuk rawat inap | — | `9522caa` | Bank Darah hanya membaca kedua sumber; dilarang mengubah status kunjungan atau episode |
 | `BD-DEP-003` | Data dokter | `MODULE_FOUNDATION` | HR — Master Data Workforce | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs#MstDoctor` — lihat `BD-CAP-004` | `READY TO REUSE` | `BD-PH-005` | Tidak memblokir | — | `9522caa` | Simpan `DoctorId` sebagai rujukan |
-| `BD-DEP-004` | Kewenangan unit pelayanan memesan darah | `MODULE_FOUNDATION` | HealthServices — Master Data | `MstServiceUnit.cs#MstServiceUnit` sudah memakai pola tanda kemampuan per unit — lihat `BD-CAP-005` | `EXTEND` | `BD-PH-005` | Tidak memblokir perancangan. Perlu satu tanda kemampuan baru bergaya sama agar `DEC-BD-012` terpenuhi tanpa mengunci daftar unit di kode | — | `9522caa` | Ajukan penambahan tanda kemampuan kepada pemilik Master Data |
-| `BD-DEP-005` | Katalog komponen darah — PRC, TC, FFP | `MODULE_FOUNDATION` | belum ada pemilik | Tidak ditemukan katalog komponen darah pada `Areas/HealthServices/MasterData/Models/` — lihat `BD-CAP-018` | `MISSING` | `BD-PH-005` | `DEC-BD-005` memakai komponen darah sebagai penanda order ganda, sehingga komponen tidak boleh berupa ketikan bebas | Alur order dan permintaan tetap dapat dirancang | `9522caa` | Tetapkan katalog ini sebagai data induk baru milik Bank Darah pada fase perancangan |
+| `BD-DEP-004` | Kewenangan unit pelayanan memesan darah | `MODULE_FOUNDATION` | HealthServices — Master Data | `MstServiceUnit.cs#MstServiceUnit` kini **sudah memuat** `IsAvailableForBloodOrder` — lihat `BD-CAP-005` | **`RESOLVED`** — semula `EXTEND`, ditutup 4 September 2026 | — | **Tidak lagi memblokir.** `DEC-BD-012` terpenuhi: kewenangan memesan darah berasal dari kolom konfigurasi, nol daftar unit ditanam di kode | — | `5f7acaf` | **Selesai** lewat `BE-BD-002`. Kolom dititipkan pada tabel milik Master Data, nol butir hak akses baru, 8 pengujian lulus |
+| `BD-DEP-005` | Katalog komponen darah — PRC, TC, FFP | `MODULE_FOUNDATION` | belum ada pemilik | `MstBloodComponent.cs` kini ada pada `Areas/HealthServices/MasterData/Models/`, beserta `MstBloodBankReason.cs` — lihat `BD-CAP-018` | **`RESOLVED`** — semula `MISSING`, ditutup 4 September 2026 | — | **Tidak lagi memblokir.** `DEC-BD-005` terpenuhi: komponen darah berasal dari katalog terkendali, bukan ketikan bebas, sehingga deteksi order ganda punya penanda yang sah | — | `5f7acaf` | **Selesai** lewat `BE-BD-001`. Dua master, 18 endpoint, dua migration, seeder PRC/TC/FFP dan sepuluh kategori alasan, 56 pengujian lulus |
 | `BD-DEP-006` | Penyerahan fakta biaya ke Billing | `INTEGRATION` | BillingManagement | `BillingSourceContract.cs` memuat daftar sumber tertutup tanpa Bank Darah; `ClinicalMilestoneFactProducer.cs#EmitChargeEligibilityAsync` — lihat `BD-CAP-015` | `EXTEND` | `BD-PH-005` | BR-BD-004 tidak dapat mengirim biaya ke Billing sebelum konteks sumber Bank Darah ditambahkan | Seluruh alur order dan kantong tetap dapat dirancang | `9522caa` | Minta persetujuan pemilik Billing untuk menambah konteks sumber dan jenis efek biaya Bank Darah |
 | `BD-DEP-007` | Sumber sah golongan darah dan Rhesus | `MODULE_FOUNDATION` | Bank Darah sendiri, sesuai `DEC-BD-015` | `MstPatient.BloodType` adalah data induk administratif, bukan hasil pemeriksaan tervalidasi. Tidak ditemukan entity hasil pemeriksaan golongan darah di `LaboratoryManagement` — lihat `BD-CAP-017` | `MISSING` | `BD-PH-005` | Tidak memblokir rancangan. `DEC-BD-015` menetapkan sumber sah berupa hasil pemeriksaan tersendiri milik Bank Darah, dan `DEC-BD-018` menetapkan sampelnya juga milik Bank Darah. Kemampuannya dibangun baru | Seluruh alur inti tetap dapat dirancang | `9522caa` | Siapa yang berhak memvalidasi hasil masih `DEF-BD-004`; mekanik label masih `OQ-BD-011` |
 | `BD-DEP-008` | Entri registry kepemilikan modul dan prefix untuk Bank Darah | `EXTERNAL` | Pemilik registry engineering | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` kini memuat baris Bank Darah: Area `HealthServices`, Module `BloodBankManagement / Blood Bank`, Category `BUSINESS DOMAIN / MODULE`, Prefix `Bbk`, Lifecycle **`ACTIVE`** sejak commit `8075784` | **`READY TO REUSE`** — semula `MISSING`, ditutup 3 September 2026 | — | **Tidak lagi memblokir penamaan.** `QBE-NAM-004` terpenuhi: prefix `Bbk` berasal dari registry, bukan disimpulkan dari nama folder. Prefix yang disahkan **persis** seperti yang diajukan blueprint sejak `v1` | — | `ed7fba8` | **Selesai.** Wewenang implementasi menyusul lewat `BD-DEP-016`, bukan dari entri ini |
@@ -57,10 +69,11 @@ Nilai `dependency_type` hanya boleh memakai `MODULE_FOUNDATION`, `PHASE`, `INTEG
 | Status | Jumlah | Dependency |
 | --- | --- | --- |
 | `READY TO REUSE` | 6 | `BD-DEP-001`, `003`, `010`, `011`, `012`, `014` |
+| **`RESOLVED`** | **3** | **`BD-DEP-004`, `005`** ditutup implementasi `MVP-0` 4 September 2026; **`BD-DEP-008`** ditutup pendaftaran prefix 3 September 2026 |
 | `REUSE WITH ADAPTER` | 2 | `BD-DEP-002`, `013` |
-| `EXTEND` | 2 | `BD-DEP-004`, `006` |
+| `EXTEND` | 1 | `BD-DEP-006` |
 | `CONFLICT` | 0 | keduanya ditutup pada closure pass 2026-09-02 |
-| `MISSING` | 4 | `BD-DEP-005`, `007`, `008`, `009` |
+| `MISSING` | 2 | `BD-DEP-007`, `009` |
 | `UNKNOWN` | 1 | `BD-DEP-015` |
 | `REPAIR` | 0 | — |
 

@@ -5,25 +5,38 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 23
+revision: 24
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-04T04:30:00+07:00
-last_verified_at: null
-backend_source_sha: ec2bcac
+updated_at: 2026-09-04T11:20:00+07:00
+last_verified_at: 2026-09-04
+last_readiness_result: NOT_READY
+last_readiness_scope_note: >-
+  Modul NOT_READY karena cakupan, bukan kerusakan. Gelombang MVP-0 sendiri
+  READY_WITH_CONDITIONS dengan satu syarat tersisa: keempat migration dijalankan.
+backend_source_sha: 5f7acaf
 backend_branch: sukmagp
-frontend_source_sha: afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254
+frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
 decision_revision: 11
-capability_map_revision: 3
+capability_map_revision: 4
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
-capability_map_impact_scan_sha: 4205d18a6d656555eedd781f14e8a18fb5ea20d1
-capability_map_impact_scan_result: nol baris berpindah status; blueprint tidak perlu diubah
-prerequisite_readiness_revision: 3
+capability_map_impact_scan_sha: 5f7acaf
+capability_map_impact_scan_result: >-
+  Dua baris berpindah status dan keduanya membaik: BD-CAP-005 Extend -> Ready to reuse,
+  BD-CAP-018 Missing -> Ready to reuse. Nol baris memburuk. Dari 46 rujukan bukti, hanya
+  MstServiceUnit.cs tersentuh dan perubahannya aditif murni; nol berkas bukti frontend berubah.
+capability_map_frontend_impact_scan_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+capability_map_full_audit_recommended_before: MVP-2
+capability_map_full_audit_reason: >-
+  MstBloodStorageLocation dan MstBloodBankReason sudah berdiri tetapi belum punya baris
+  BD-CAP-*, karena keduanya masuk scope setelah audit penuh ditulis. Menambah baris baru
+  adalah pekerjaan audit penuh, bukan impact scan terbatas.
+prerequisite_readiness_revision: 4
 completeness_assessment_revision: 2
 domain_architecture_revision: 6
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_READY
@@ -77,14 +90,14 @@ owners:
 approved_by: Sukmagp
 approved_at: 2026-09-03
 resolved_dependency_ids:
+  - BD-DEP-004
+  - BD-DEP-005
   - BD-DEP-008
   - BD-DEP-016
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
   - BD-DEP-003
-  - BD-DEP-004
-  - BD-DEP-005
   - BD-DEP-006
   - BD-DEP-007
   - BD-DEP-009
@@ -111,8 +124,8 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `revision` | Naik hanya bila arsitektur target, kontrak, dependency, atau keputusan yang sudah disetujui berubah secara berarti. Tidak naik hanya karena status berubah. |
 | `status` | Naik `PARTIAL` → `READY` → **`IN_PROGRESS`** pada 3 September 2026. Nilai terakhir berarti ada pekerjaan aktif yang sudah diberi wewenang dan berbukti: empat task `MVP-0` sudah dijalankan dan meninggalkan laporan tracked. |
 | `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
-| `last_verified_at` | Masih kosong karena belum ada verifikasi kesiapan yang dijalankan. |
-| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `6488511` naik ke **`ec2bcac`** lewat tiga commit implementasi `MVP-0`. **Berbeda dengan seluruh pergerakan sebelumnya**, ketiganya membawa source aplikasi nyata — 28 berkas, seluruhnya milik Bank Darah sendiri. Impact scan terbatas dijalankan 3 September 2026: dari 24 berkas bukti peta kemampuan, hanya dua tersentuh dan keduanya **menguatkan** peta. Rinciannya di catatan penutup. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. |
+| `last_verified_at` | Terisi **`2026-09-04`**. Verifikasi kesiapan dijalankan dua kali pada hari itu: pass pertama di `f940ae3` memulangkan `NOT_READY` dengan dua blocker kritis, pass kedua di `5f7acaf` memulangkan `NOT_READY` **karena cakupan, bukan kerusakan** — kedua blocker kritis sudah tertutup. Rinciannya di catatan penutup. |
+| `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `6488511` naik ke **`ec2bcac`** lewat tiga commit implementasi `MVP-0`. **Berbeda dengan seluruh pergerakan sebelumnya**, ketiganya membawa source aplikasi nyata — 28 berkas, seluruhnya milik Bank Darah sendiri. Impact scan terbatas dijalankan 3 September 2026: dari 24 berkas bukti peta kemampuan, hanya dua tersentuh dan keduanya **menguatkan** peta. Rinciannya di catatan penutup. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. **Pada 4 September 2026 SHA bergerak dua kali lagi:** `ec2bcac` → `f940ae3` (merge yang membawa penataan ulang project test dan **merusak build**) → **`5f7acaf`** (perbaikan penataan test; build pulih). Peta kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 4 September 2026 dan penandanya dicabut** — dua baris berpindah status dan **keduanya membaik**. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas — 4 September 2026. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
 | `closed_gap_ids` | Daftar gap arsitektur dan pertanyaan terbuka yang sudah ditutup keputusan pemilik. `ARCH-BD-GAP-01`..`09` ditutup `DEC-BD-025`..`034`; `ARCH-BD-GAP-10` ditutup `DEC-BD-037`; `OQ-BD-015` ditutup `DEC-BD-038`. **Tidak ada gap arsitektur yang masih terbuka.** |
 | `roadmap_status` | Naik dari `FORWARD-TEST` ke **`APPROVED`** pada 3 September 2026. Roadmap **revisi 2** disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun. Revisi 1 ditandai `STALE` dan digantikan, bukan ditambal. |
@@ -126,10 +139,24 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 Audit kemampuan existing sudah dijalankan pada 2 September 2026 dan hasilnya ada di
 `02-existing-capability-map.md`. Peringatan "scope dikunci tanpa audit" **sudah dicabut**.
 
-Peta kemampuan itu terikat pada backend `9522caa` dan frontend `afbb8ab`. Backend sudah bergerak ke
-`db08c14` (lewat `9dc7637`), dan pemindaian dampak terbatas sudah dijalankan pada 2 September 2026:
-seluruh perbedaannya hanya dokumen blueprint Bank Darah, nol berkas source aplikasi. Peta **tidak**
-ditandai `STALE`. Bila SHA berubah lagi, ulangi pemindaian yang sama sebelum peta dipakai.
+Peta kemampuan itu terikat pada backend `9522caa` dan frontend `afbb8ab`, dengan impact scan terbatas
+terakhir di `4205d18`.
+
+Pada 4 September 2026 peta sempat ditandai `STALE` lagi: backend bergerak dua kali dalam sehari
+(`ec2bcac` → `f940ae3` → **`5f7acaf`**) dan frontend sekali (`afbb8ab` → **`101ec5d3`**), dan
+pergerakan backend membawa **source aplikasi nyata**. **Impact scan terbatas sudah dijalankan pada
+hari yang sama dan penandanya dicabut.** Peta kini revisi **4** dan berstatus `CURRENT`.
+
+Hasilnya: dari 46 rujukan bukti, hanya `MstServiceUnit.cs` yang tersentuh dan perubahannya **aditif
+murni**; nol berkas bukti frontend berubah. Dua baris berpindah status dan **keduanya membaik** —
+`BD-CAP-005` `Extend` → `Ready to reuse`, dan `BD-CAP-018` `Missing` → `Ready to reuse`. Nol baris
+memburuk.
+
+⚠️ **Satu catatan yang tetap berlaku.** `MstBloodStorageLocation` dan `MstBloodBankReason` sudah
+berdiri tetapi **belum punya baris `BD-CAP-*`**, karena keduanya masuk scope setelah audit penuh
+ditulis. Peta karena itu tidak lagi menggambarkan **seluruh** kemampuan Bank Darah yang sudah ada.
+Menambah baris baru adalah pekerjaan audit penuh, bukan impact scan, dan sebaiknya dikerjakan sebelum
+gelombang `MVP-2` disusun.
 
 Blueprint tidak memberi wewenang implementasi. Menulis dokumen di sini tidak sama dengan izin
 mengubah controller, service, entity, migration, database, atau melakukan deployment.
@@ -475,3 +502,69 @@ Set kontrak tetap `v4` `approved`.
 
 Revisi blueprint naik ke 23 karena dua hal material sekaligus: baseline keputusan bergerak, dan status
 modul berpindah dari rencana menjadi pekerjaan berjalan yang berbukti.
+
+---
+
+**Verifikasi kesiapan dan pemulihan build — 4 September 2026, revisi 24.** Dua hal terjadi berurutan
+pada hari yang sama, dan keduanya material.
+
+**Pertama, build sempat rusak dan sudah pulih.** Penataan ulang project test
+(`4339e91` + merge `f103fff`) memindahkan seluruh project test ke folder `Tests/`, lalu
+`QuilvianSystemBackend.csproj` mengecualikannya lewat satu baris `DefaultItemExcludes` berisi
+`Tests\**`. Kelima berkas test Bank Darah **tertinggal** di folder lama `QuilvianSystemBackend.Tests\`
+— nama yang **tidak cocok** dengan pola itu, karena pola MSBuild berjangkar di awal jalur. Akibatnya
+SDK Web menyapu kelima berkas itu ke dalam project aplikasi, yang tidak punya paket xUnit.
+
+| Keadaan | Hasil `dotnet build` |
+| --- | --- |
+| `f940ae3` | **`Build FAILED` — 217 Error(s)**, seluruhnya `CS0246` Xunit pada kelima berkas |
+| `5f7acaf` | **`Build succeeded` — 0 Error(s)**, 210 Warning(s) |
+
+Commit `5f7acaf` — *"fix(test): organize bank darah tests by module"* — memindahkan kelimanya ke
+`Tests/QuilvianSystemBackend.Tests/HealthServices/BankDarah/MasterData/` dengan namespace disesuaikan.
+Git mencatatnya sebagai rename **`R099`**: isinya 99% utuh, **bukan** dihapus dan ditulis ulang.
+
+**Kedua, bukti pengujian akhirnya terbukti, bukan sekadar diklaim.** Sebelum ini keempat laporan task
+menyandarkan penerimaannya pada 101 pengujian yang **tidak pernah** dijalankan lewat project resmi —
+laporan-laporan itu sendiri mencatatnya jujur sebagai dijalankan lewat project verifikasi sementara,
+karena `PatientEncounterTestWorld.cs` lebih dulu merusak project test. Berkas itu kini sudah pindah
+dengan selamat ke `Tests/QuilvianSystemBackend.UnitTests.InMemory/`.
+
+| Yang dijalankan di `5f7acaf` | Hasil |
+| --- | --- |
+| `dotnet test --filter FullyQualifiedName~BankDarah` | **`Failed: 0, Passed: 101`** |
+| `dotnet test QuilvianSystemBackend.Tests.csproj` | **`Failed: 0, Passed: 212`** |
+
+Angka **101 persis sama** dengan jumlah yang diklaim keempat laporan (26 + 8 + 25 + 30 + 12). Klaim
+yang sebelumnya tidak dapat diperiksa kini terverifikasi.
+
+**Dua dependency berpindah status — inilah yang menaikkan revisi.**
+
+| Dependency | Semula | Kini | Ditutup oleh |
+| --- | --- | --- | --- |
+| `BD-DEP-005` katalog komponen darah | `MISSING` | **terpenuhi** | `BE-BD-001` — `MstBloodComponent` beserta `MstBloodBankReason` |
+| `BD-DEP-004` kewenangan unit memesan darah | `EXTEND` | **terpenuhi** | `BE-BD-002` — kolom `IsAvailableForBloodOrder` |
+
+**Koreksi status task.** `BE-BD-001` naik dari `SELESAI SEBAGIAN` menjadi **`SELESAI`**: sisa
+`MstBloodBankReason` beserta sepuluh kategori alasannya sudah dikerjakan pada commit `7d00647`.
+Kemajuan delivery karena itu menjadi **3 selesai penuh dan 1 selesai sebagian, dari 27 task** —
+sebelumnya tercatat 2 dan 2.
+
+**Putusan kesiapan dibedakan menurut cakupan**, karena menyamakan keduanya menyesatkan ke dua arah:
+
+| Cakupan | Putusan | Syarat tersisa |
+| --- | --- | --- |
+| Modul Bank Darah | **`NOT_READY`** | Gelombang `MVP-1`..`MVP-4` beserta 12 task frontend. Nol dari 15 entity `Bbk*` operasional ada |
+| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** | **Satu syarat:** keempat migration dijalankan. Pemilik: pemilik database. Selama belum, ketiga master tidak dapat dipakai di lingkungan mana pun — risikonya terkurung, bukan menyebar |
+
+`BD-PH-009` Verifikasi kesiapan karena itu berpindah dari `NOT_STARTED` ke **`IN_PROGRESS`**: fase itu
+sudah dijalankan dan memulangkan putusan, tetapi belum dapat ditutup `DONE`.
+
+**Satu risiko yang dicatat supaya tidak terulang.** Kerusakan di atas tidak berasal dari Bank Darah,
+tetapi Bank Darah yang menjadi korbannya, dan gejalanya menyesatkan — error muncul di project
+**aplikasi**, bukan di project test. Modul lain yang menaruh test di luar `Tests/` akan tersapu dengan
+cara yang sama. Menindaklanjutinya adalah wewenang pemilik kontrak engineering backend, bukan
+keputusan blueprint ini.
+
+Revisi naik ke 24 karena dua dependency berpindah status secara material. Set kontrak **tetap `v4`
+`approved`** dan tidak tersentuh: tidak ada arsitektur target, kontrak, maupun keputusan yang berubah.

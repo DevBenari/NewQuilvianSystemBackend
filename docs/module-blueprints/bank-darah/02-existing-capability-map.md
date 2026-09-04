@@ -3,14 +3,14 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Blueprint revision | `20` |
-| Capability map revision | `3` |
+| Blueprint revision | `24` |
+| Capability map revision | `4` |
 | Status | `source-audited` — audit source sudah dijalankan dan hasilnya berlaku; dokumen ini **tidak** menyatakan modul siap implementasi maupun siap produksi |
 | Sumber keputusan | `00-interview-decisions.md` revisi 2, `SCOPE-BD-001` sampai `DEC-BD-024` |
 | Backend SHA audit penuh | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
-| Backend SHA impact scan terakhir | `4205d18a6d656555eedd781f14e8a18fb5ea20d1` cabang `sukmagp` — 3 September 2026 |
-| Status kesegaran | **`CURRENT`** — penanda `STALE` dicabut oleh impact scan di bawah |
-| Frontend SHA yang diaudit | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
+| Backend SHA impact scan terakhir | `5f7acaf` cabang `sukmagp` — **4 September 2026** |
+| Status kesegaran | **`CURRENT`** — penanda `STALE` dicabut oleh impact scan 4 September 2026 di bawah |
+| Frontend SHA yang diaudit | audit penuh `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; impact scan terakhir **`101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` — 4 September 2026 |
 | Tanggal audit | `2026-09-02` |
 | Mode | Read-only. Tidak ada satu pun berkas source aplikasi yang diubah. |
 
@@ -21,6 +21,76 @@ Setiap baris memakai tepat satu status dari taksonomi baku: `Ready to reuse`, `R
 Rujukan bukti per baris tetap menyebut `@9522caa`, yaitu SHA saat audit penuh dijalankan. Itu
 disengaja: audit penuh memang dilakukan di sana, dan impact scan **tidak** menggantikannya. Bagian
 berikut mencatat apa yang diperiksa ulang pada `4205d18` beserta hasilnya.
+
+---
+
+## Impact scan terbatas — 4 September 2026
+
+**Pemicu.** Backend bergerak dua kali dalam sehari: `ec2bcac` → `f940ae3` (merge yang membawa
+penataan ulang project test dan sempat **merusak build**) → **`5f7acaf`** (perbaikan penataan test).
+Frontend bergerak sekali, `afbb8ab` → **`101ec5d3`**. Peta ditandai `STALE` pada manifest revisi 24,
+dan bagian ini mencabutnya.
+
+**Batas scan.** Rentang penuh `4205d18..5f7acaf` dipakai, yaitu dari SHA impact scan yang tercatat di
+kepala dokumen ini — bukan dari `ec2bcac` — supaya batasnya konservatif dan tidak mengandaikan scan
+antara sudah menutupi apa pun. Untuk frontend, rentangnya `afbb8ab..101ec5d3`.
+
+### Cara batas scan dipertanggungjawabkan
+
+Membatasi scan hanya sah bila baris lain memang tidak tersentuh. Itu **diperiksa per berkas**, bukan
+disimpulkan dari nama area.
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Commit backend dalam rentang | 37 |
+| Berkas source backend berubah (di luar `docs/`) | 188 |
+| Berkas bukti yang dikutip peta | 46 rujukan |
+| **Irisan backend** | **1 berkas bukti — `MstServiceUnit.cs`**, ditambah `ApplicationDbContextModelSnapshot.cs` yang merupakan berkas hasil bangkitan `dotnet ef`, bukan bukti kemampuan |
+| Commit frontend dalam rentang | 65 |
+| **Irisan frontend** | **0.** Kesepuluh komponen dasar yang dikutip `BD-CAP-021` seluruhnya **tidak berubah** |
+
+Angka 188 terdengar besar, tetapi sebarannya menjelaskan kenapa irisannya kecil: **120 berkas** di
+antaranya adalah project test yang dipindahkan oleh penataan ulang, dan **18 berkas** adalah pekerjaan
+Bank Darah sendiri di `Areas/HealthServices/MasterData/`.
+
+### Dua baris berpindah status — keduanya membaik
+
+| Kemampuan | Semula | Kini | Sebabnya |
+| --- | --- | --- | --- |
+| `BD-CAP-005` kewenangan unit memesan darah | `Extend` | **`Ready to reuse`** | `BE-BD-002` menambahkan `IsAvailableForBloodOrder` pada `MstServiceUnit`. Perubahannya **aditif murni**: satu properti `bool` baru dengan bawaan `false`, nol field lama tersentuh |
+| `BD-CAP-018` katalog komponen darah | `Missing` | **`Ready to reuse`** | `BE-BD-001` membangun `MstBloodComponent` beserta `MstBloodBankReason` |
+
+### Baris yang diperiksa dan tetap sahih
+
+| Kemampuan | Bukti yang diperiksa | Putusan |
+| --- | --- | --- |
+| `BD-CAP-001`, `002`, `003`, `004` | `MstPatient.cs`, `TrxPatientEncounter.cs`, `EncounterStatus.cs`, `InpEpisode.cs`, `MstDoctor.cs` | **Tetap sahih.** Kelimanya **tidak berubah** dalam rentang ini |
+| `BD-CAP-007`, `008`, `009`, `010`, `014` | `LabOrder.cs`, `LabOrderController.cs`, `TrxLabSpecimen.cs`, `TrxLabTransitionHistory.cs`, `LabSpecimenService.cs` | **Tetap sahih.** Seluruhnya **tidak berubah**. Laboratorium memang banyak bergerak (16 berkas), tetapi seluruhnya kemampuan baru — `LabValueBound*`, `LabRejectionReason*`, `LabCriticalBoundApproval*` — dan nol di antaranya dikutip peta |
+| `BD-CAP-012`, `013` | `ApiResponse.cs`, `PagedResult.cs`, `AccessControllerAttribute.cs` | **Tetap sahih.** Tidak berubah |
+| `BD-CAP-015` penyerahan biaya | `BillingSourceContract.cs` | **Tetap `Extend`.** Tidak berubah, dan pencarian kata `blood` di dalamnya mengembalikan **nol**. Bank Darah masih belum ada di daftar sumber, sehingga `DEC-BD-016` tetap dibutuhkan |
+| `BD-CAP-016` | `Enums/BloodType.cs` | **Tetap sahih.** Tidak berubah |
+| `BD-CAP-017` sumber sah golongan darah | `Areas/HealthServices/LaboratoryManagement/` | **Tetap `Missing`.** Pencarian `bloodgroup`/`golongan darah` di seluruh Laboratorium mengembalikan nol hasil |
+| `BD-CAP-021` komponen dasar frontend | 10 berkas `base-features/` | **Tetap sahih.** Kesepuluhnya tidak berubah. Enam berkas `base-features/` lain memang berubah, tetapi **bukan** yang dikutip peta: `base-editor-view.jsx` berbeda dari `base-editor-form.jsx`, dan `resource-filter-select.jsx` berbeda dari `filter-select.jsx` |
+| `BD-CAP-020` halaman Bank Darah | repository frontend | **Tetap `Missing`.** Nol layar, nol route, nol slice Redux, nol pemanggilan ke-27 endpoint yang sudah jadi |
+| `BD-CAP-024` HCLAB | — | **Tetap `Unknown`.** Menuntut bukti dari luar repository |
+
+### Satu temuan yang menguatkan batas modul
+
+Batas `BD-CTX-09` kini berbukti **dua arah** dan masih berlaku. Enum `LabDiscipline` di
+`LaboratoryManagement/Enums/LaboratoryEnums.cs` menyatakan dengan kata-katanya sendiri bahwa Bank
+Darah *"sengaja tidak ada di sini karena tetap berada di luar scope modul"*. Ini menguatkan
+`DEC-BD-015` dan `DEC-BD-018`.
+
+### Dua kemampuan baru yang belum punya baris
+
+`BE-BD-014` membangun `MstBloodStorageLocation` dan `BE-BD-001` membangun `MstBloodBankReason`.
+Keduanya **tidak punya baris `BD-CAP-*`** karena masuk scope setelah audit penuh ditulis — lokasi
+penyimpanan lewat `DEC-BD-035` pada kontrak `v2`, daftar alasan lewat `DEC-BD-024`/`DEC-BD-044`.
+
+Menambahkan baris baru adalah pekerjaan **audit penuh**, bukan impact scan terbatas seperti ini, jadi
+sengaja tidak dilakukan di sini. Dicatat supaya tidak hilang: peta ini kini **tidak lagi menggambarkan
+seluruh** kemampuan Bank Darah yang sudah berdiri, dan sebaiknya diaudit penuh sebelum gelombang
+`MVP-2` disusun.
 
 ---
 
@@ -149,7 +219,7 @@ dan kemampuan yang tidak disentuh Bank Darah.
 | `BD-CAP-002` | Kunjungan pasien sebagai konteks order | RegistrationManagement | `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs#TrxPatientEncounter@9522caa` — memuat `PatientId`, `ServiceUnitId`, `ClinicId`, `RoomId`, `DoctorId`, `PatientClassId`, `EncounterType`, `EncounterStatus`, `EncounterNumber` | `Ready to reuse` | Seluruh rujukan yang dibutuhkan `DEC-BD-003` dan `DEC-BD-004` sudah tersedia pada satu entity | Rendah |
 | `BD-CAP-003` | Sinyal "kunjungan sudah ditutup" untuk menentukan order kedaluwarsa | RegistrationManagement dan InPatientManagement | `Areas/HealthServices/RegistrationManagement/Enums/EncounterStatus.cs@9522caa` — nilai akhirnya `Completed`, `Cancelled`, `NoShow`; tidak ada nilai `Closed`. `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs#InpEpisode@9522caa` — punya `EpisodeStatus`, `DischargeDecidedAt`, `PhysicallyLeftAt`, `ClosedAt`, `DischargeType` tersendiri | `Reuse with adapter` — semula `Conflict`, ditutup `DEC-BD-014` | Dipakai lewat dua penyesuai berbeda: status kunjungan untuk rawat jalan dan IGD, waktu pasien meninggalkan rumah sakit untuk rawat inap. Bank Darah hanya membaca, tidak mengubah | Sedang |
 | `BD-CAP-004` | Data dokter peminta dan dokter perujuk | HR — Master Data Workforce | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs#MstDoctor@9522caa`, dirujuk `TrxPatientEncounter.DoctorId` | `Ready to reuse` | Cukup menyimpan `DoctorId` | Rendah |
-| `BD-CAP-005` | Kewenangan unit pelayanan memesan darah, tanpa dikunci di kode | HealthServices — Master Data | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs#MstServiceUnit@9522caa` — sudah memakai pola tanda kemampuan per unit: `IsAvailableForRegistration`, `IsAvailableForKiosk`, `IsAvailableForAppointment`, `IsQueueRequired`, `IsDoctorRequired`, `IsScreeningRequired` | **`Extend`** | Tambahkan satu tanda kemampuan baru bergaya sama, misalnya penanda "unit ini boleh memesan darah". `DEC-BD-012` terpenuhi tanpa membuat mekanisme konfigurasi baru | Rendah |
+| `BD-CAP-005` | Kewenangan unit pelayanan memesan darah, tanpa dikunci di kode | HealthServices — Master Data | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs#MstServiceUnit@5f7acaf` — kolom **`IsAvailableForBloodOrder`** kini **sudah ada**, bawaan `false`, mengikuti pola tanda kemampuan per unit yang sudah berjalan (`IsAvailableForRegistration`, `IsAvailableForKiosk`, `IsAvailableForAppointment`, `IsQueueRequired`, `IsDoctorRequired`, `IsScreeningRequired`) | **`Ready to reuse`** — semula `Extend`, berpindah 4 September 2026 | Nol adapter. Perluasan yang diramalkan peta **sudah dikerjakan** `BE-BD-002`: satu `AddColumn` aditif dengan `defaultValue: false`, nol index dibuat maupun diubah, nol butir hak akses baru. Pengelolaannya tetap milik Master Data lewat `ServiceUnitController`, bukan lewat endpoint Bank Darah | Rendah. `DEC-BD-012` terpenuhi: kewenangan memesan darah berasal dari konfigurasi, nol daftar unit ditanam di kode. Migration **belum dijalankan** |
 | `BD-CAP-006` | Klinik, ruangan, dan kelas pasien | HealthServices — Master Data | `MstClinic.cs`, `MstRoom.cs`, `MstPatientClass.cs`, `MstServiceUnit.cs@9522caa` | `Ready to reuse` | Cukup menyimpan rujukannya | Rendah |
 | `BD-CAP-007` | Pola pesanan klinis yang terikat kunjungan | LaboratoryManagement | `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs#LabOrder@9522caa` — `EncounterId`, `ProcedureId`, status pesanan, `StatusBeforeHold`, `RequestedAt`, `RequestedByUserId`, `CompletedAt`, `Version` | `Reuse with adapter` | Dipakai sebagai **pola**, bukan sebagai entity bersama. Bank Darah membuat entity sendiri dengan bentuk yang sama | Rendah |
 | `BD-CAP-008` | Pola baris rincian di bawah satu pesanan, lengkap dengan salinan tarif | LaboratoryManagement | `Areas/HealthServices/LaboratoryManagement/Models/TrxLabSpecimen.cs#TrxLabSpecimen@9522caa` — `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `SupersededSpecimenId` | `Reuse with adapter` | Pola salinan tarif dipakai ulang agar pengiriman ke Billing tetap dapat diulang tanpa berubah. Perbedaannya, nomor kantong darah datang dari PMI dan bukan dibuat server — lihat `ASM-BD-003` | Sedang |
@@ -162,7 +232,7 @@ dan kemampuan yang tidak disentuh Bank Darah.
 | `BD-CAP-015` | Penyerahan fakta biaya ke Billing secara idempotent | BillingManagement dan ClinicalManagement | `Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs@9522caa` — daftar sumber tertutup berisi `InternalTest`, `Prescription`, `Procedure`, `Laboratory`, `Radiology`; `Areas/HealthServices/ClinicalManagement/Services/ClinicalMilestoneFactProducer.cs#EmitChargeEligibilityAsync@9522caa`; contoh pemakaian pada `LabSpecimenService.cs@9522caa` | **`Extend`** | Bank Darah belum ada di daftar sumber yang diizinkan. Perlu penambahan satu konteks sumber dan satu jenis efek biaya. Sampai itu ada, BR-BD-004 tidak dapat mengirim biaya ke Billing | Sedang |
 | `BD-CAP-016` | Nilai golongan darah dan Rhesus | Platform backend | `Enums/BloodType.cs#BloodType@9522caa` — `APositive` sampai `ONegative`, ditambah `Unknown` dan `NotDisclosed`; dipakai `MstPatient.BloodType@9522caa` | `Ready to reuse` untuk golongan darah **yang diminta** | ABO dan Rhesus digabung dalam satu nilai. Cukup untuk `DEC-BD-011` | Rendah |
 | `BD-CAP-017` | Sumber sah golongan darah pasien | belum ditetapkan | `MstPatient.BloodType@9522caa` adalah data induk pasien, **bukan** hasil pemeriksaan laboratorium yang tervalidasi. Tidak ditemukan entity hasil pemeriksaan golongan darah di `LaboratoryManagement` | `Missing` — semula `Conflict`, ditutup `DEC-BD-015` | Sumber sah ditetapkan sebagai hasil pemeriksaan tersendiri milik Bank Darah, dan `MstPatient.BloodType` dikunci sebagai data administratif saja. Kemampuannya sendiri belum ada dan dibangun baru | Sedang |
-| `BD-CAP-018` | Katalog komponen darah — PRC, TC, FFP, dan lainnya | belum ada | Tidak ditemukan katalog komponen darah di `Areas/HealthServices/MasterData/Models/@9522caa`. `MstProcedure` adalah katalog tindakan, bukan komponen darah | `Missing` | `DEC-BD-005` memakai komponen darah sebagai salah satu penanda order ganda, sehingga komponen tidak boleh berupa ketikan bebas. Katalog ini menjadi kebutuhan baru | Sedang |
+| `BD-CAP-018` | Katalog komponen darah — PRC, TC, FFP, dan lainnya | Bank Darah | `Areas/HealthServices/MasterData/Models/MstBloodComponent.cs#MstBloodComponent@5f7acaf` — katalog **kini ada**, dengan `ComponentCode` unik dan `CompatibilityEvidenceValidityHours` bertipe `int?` | **`Ready to reuse`** — semula `Missing`, berpindah 4 September 2026 | Nol gap. Dibangun `BE-BD-001`: 9 endpoint, migration, seeder PRC/TC/FFP, 26 pengujian lulus. `INV-BD-023` terverifikasi di kode — masa berlaku bukti kecocokan adalah kolom konfigurasi, bukan angka yang ditanam | Rendah. `DEC-BD-005` terpenuhi: komponen berasal dari katalog terkendali, sehingga deteksi order ganda punya penanda yang sah. Migration **belum dijalankan** |
 | `BD-CAP-019` | Seluruh kapabilitas inti Bank Darah — order darah, permintaan ke PMI, penerimaan kantong, kantong operasional, alokasi, pemberian | belum ada | Tidak ada folder Blood Bank di `Areas/HealthServices/@9522caa`. Pencarian kata kunci `blood`, `bank darah`, `transfusi`, `BDRS` pada seluruh `Areas/`, `Models/`, dan `Repositories/` tidak menemukan satu pun entity, controller, atau service Bank Darah | `Missing` | Seluruh BR-BD-001 sampai BR-BD-019 dibangun baru | — |
 | `BD-CAP-020` | Halaman Bank Darah pada frontend | belum ada | Tidak ada route Bank Darah di `V2QuilvianSystemFrontendDev/src/app/health-services/@afbb8ab`. Folder `app/administrator/master-data/bank` adalah data induk bank keuangan, bukan Bank Darah. Kemunculan kata "golongan darah" lain hanyalah field pada data induk pasien, pegawai, dan dokter | `Missing` | Seluruh layar Bank Darah dibangun baru | — |
 | `BD-CAP-021` | Komponen dasar frontend yang dapat dipakai ulang | Frontend V2 | `V2QuilvianSystemFrontendDev/src/components/features/base-features/@afbb8ab` — `hero.jsx`, `data-table.jsx`, `data-filter.jsx`, `filter-select.jsx`, `filter-date-picker.jsx`, `base-button.jsx`, `confirm-modal.jsx`, `access-denied-gate.jsx`, `base-detail-view.jsx`, `base-editor-form.jsx` | `Ready to reuse` | Seluruh komponen yang disebut PRD §8 memang tersedia. Dilarang membuat komponen dasar tandingan | Rendah |
