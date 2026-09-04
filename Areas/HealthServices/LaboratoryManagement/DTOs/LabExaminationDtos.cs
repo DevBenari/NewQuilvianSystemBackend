@@ -85,6 +85,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public Guid ProcedureId { get; set; }
     }
 
+    /// <summary>
+    /// Menandai satu pemeriksaan sebagai cito, atau mengembalikannya menjadi biasa
+    /// (<c>LAB-DEC-026</c>).
+    ///
+    /// Ruasnya sengaja <c>bool</c> dan bukan nama enum: kesegeraan hanya punya dua keadaan, dan
+    /// endpoint yang sama dipakai untuk kedua arah. Waktu dan pelaku penandaan tidak diterima
+    /// dari pemanggil — keduanya diisi backend, karena itulah yang membuat jejaknya dapat
+    /// dipercaya.
+    /// </summary>
+    public class SetLabExaminationUrgencyRequest
+    {
+        /// <summary>Benar berarti cito, salah berarti kembali biasa.</summary>
+        public bool IsCito { get; set; }
+    }
+
+    /// <summary>
+    /// Menandai satu pemeriksaan dikerjakan ganda, atau membatalkan penandaannya
+    /// (<c>LAB-DEC-026</c>).
+    ///
+    /// Penanda ini <b>tidak</b> mengubah salinan tarif pada baris pemeriksaan. Apakah duplo
+    /// berdampak pada tarif masih <c>LAB-OPEN-013</c> dan belum diputuskan siapa pun.
+    /// </summary>
+    public class SetLabExaminationDuploRequest
+    {
+        public bool IsDuplo { get; set; }
+    }
+
     /// <summary>Membatalkan satu pemeriksaan terpesan tanpa menyentuh pemeriksaan lain.</summary>
     public class CancelLabExaminationRequest
     {

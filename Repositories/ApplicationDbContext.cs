@@ -571,6 +571,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
+
+        // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
+        // Jalan, dan IGD sama-sama menerima pasien rujukan.
+        public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
+
+        public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
