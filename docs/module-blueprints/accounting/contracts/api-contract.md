@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-API-0.2` |
+| `contract_version` | `ACC-API-0.4` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner), owner API backend |
 | `approved_by` / `approved_at` | Belum ada |
@@ -10,9 +10,10 @@
 | Traceability | `ACC-DEC-009` sampai `ACC-DEC-037` |
 | Dampak kompatibilitas | Seluruhnya endpoint baru. Tidak ada endpoint existing yang berubah maupun rusak |
 
-**Seluruh endpoint pada dokumen ini berstatus `Rencana (belum tersedia)`.** Tidak satu pun sudah
-ada di `aa837d7`. Label itu tidak diulang pada setiap baris agar tabel tetap terbaca; ia berlaku
-untuk semua.
+**Seluruh 31 endpoint pada dokumen ini sudah BERDIRI** pada `822d48a`, terbukti audit kesiapan
+4 September 2026: path, method, dan hak akses cocok 31/31. Kalimat sebelumnya menyatakan semuanya
+masih `Rencana (belum tersedia)` — benar pada `aa837d7`, dan sudah tidak benar sejak `BE-ACC-007`
+sampai `BE-ACC-014` selesai. Diperbaiki bersama ratifikasi `ACC-GAP-004`.
 
 Amplop respons memakai `ApiResponse<T>` dan daftar berhalaman memakai `PagedResult<T>`, mengikuti
 `Responses/ApiResponse.cs` dan `Responses/PagedResult.cs` yang sudah ada.
@@ -210,46 +211,131 @@ sesuai `ACC-DEC-032`. Rinciannya di [permission-audit-matrix.md](permission-audi
 
 ## Daftar DTO
 
-| Nama class | Jenis | Field utama |
+**Diratifikasi 4 September 2026 terhadap source `822d48a`** — `ACC-GAP-004`. Sebelum ini, daftar
+di bawah memakai akhiran `Dto` dan sejumlah field tidak cocok dengan kode; frontend yang menyusun
+klien dari kontrak ini akan salah. Nama dan field berikut kini **disalin dari source**, bukan
+sebaliknya: source adalah bukti otoritatif atas perilaku runtime. Nol baris source diubah.
+
+Konvensi penamaan yang berlaku: masukan bernama `...Request`, keluaran bernama `...Response`,
+parameter daftar bernama `...Query`.
+
+### Master Data — Chart of Account
+
+| Nama class | Jenis | Field |
 |---|---|---|
-| `ChartOfAccountPagedQuery` | PagedQuery | `LegalEntityId`, `Search`, `AccountType`, `IsActive`, `PageNumber`, `PageSize` |
-| `ChartOfAccountListDto` | Response | `Id`, `AccountCode`, `AccountName`, `AccountType`, `AccountLevel`, `IsPostable`, `IsActive` |
-| `ChartOfAccountDetailDto` | Response | Seluruh field daftar ditambah `ParentAccountId`, `ParentAccountName`, `NormalBalance`, `Description`, `RequiresCostCenter` |
-| `ChartOfAccountTreeDto` | Response | `Id`, `AccountCode`, `AccountName`, `IsPostable`, `Children` |
-| `ChartOfAccountOptionDto` | Option | `Id`, `AccountCode`, `AccountName`, `AccountType`, `RequiresCostCenter` |
-| `CreateChartOfAccountDto` | Create | `LegalEntityId`, `AccountCode`, `AccountName`, `ParentAccountId`, `AccountType`, `NormalBalance`, `IsPostable`, `EffectiveStartDate`, `Description` |
-| `UpdateChartOfAccountDto` | Update | `AccountName`, `ParentAccountId`, `AccountCode`, `NormalBalance`, `IsPostable`, `Description` |
-| `DeactivateChartOfAccountDto` | Status | `Reason` |
-| `JournalTypeDto` | Response | `Id`, `JournalTypeCode`, `JournalTypeName`, `NumberPrefix`, `RequiresApproval`, `IsSystemType`, `IsActive` |
-| `JournalTypeOptionDto` | Option | `Id`, `JournalTypeCode`, `JournalTypeName` |
-| `CreateJournalTypeDto` / `UpdateJournalTypeDto` | Create/Update | `JournalTypeCode`, `JournalTypeName`, `NumberPrefix`, `RequiresApproval` |
-| `JournalPagedQuery` | PagedQuery | `LegalEntityId`, `DateFrom`, `DateTo`, `JournalTypeId`, `JournalStatus`, `Search`, `PageNumber`, `PageSize` |
-| `JournalListDto` | Response | `Id`, `JournalNumber`, `AccountingDate`, `JournalTypeName`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit` |
-| `JournalDetailDto` | Response | Seluruh field daftar ditambah `Lines`, `Approvals`, `PeriodCode`, `ReversalOfJournalNumber`, `CorrectionType`, `AvailableActions` |
-| `JournalLineDto` | Response | `LineNumber`, `AccountId`, `AccountCode`, `AccountName`, `CostCenterId`, `CostCenterName`, `Description`, `DebitAmount`, `CreditAmount` |
-| `JournalApprovalDto` | Response | `ApprovalAction`, `ActionByName`, `ActionAt`, `Reason` |
-| `CreateJournalDto` | Create | `LegalEntityId`, `JournalTypeId`, `DocumentNumber`, `DocumentDate`, `AccountingDate`, `Description`, `Lines` |
-| `CreateJournalLineDto` | Create | `LineNumber`, `AccountId`, `CostCenterId`, `Description`, `DebitAmount`, `CreditAmount` |
-| `UpdateJournalDto` | Update | Sama dengan `CreateJournalDto` tanpa `LegalEntityId` |
-| `RejectJournalDto` | Status | `Reason` |
-| `ReverseJournalDto` | Status | `CorrectionType`, `Reason`, `AccountingDate`, `AdjustmentLines` |
-| `AccountingPeriodPagedQuery` | PagedQuery | `LegalEntityId`, `FiscalYear`, `PeriodStatus`, `PageNumber`, `PageSize` |
-| `AccountingPeriodDto` | Response | `Id`, `PeriodCode`, `FiscalYear`, `PeriodMonth`, `StartDate`, `EndDate`, `PeriodStatus`, `ClosedAt`, `ReopenedAt`, `LastReasonNote` |
-| `GenerateAccountingPeriodDto` | Create | `LegalEntityId`, `FiscalYear` |
-| `ClosePeriodDto` | Status | `CloseType`, `Reason` |
-| `ReopenPeriodDto` | Status | `Reason` |
-| `LedgerMovementQuery` | PagedQuery | `LegalEntityId`, `AccountId`, `DateFrom`, `DateTo`, `PageNumber`, `PageSize` |
-| `LedgerMovementDto` | Response | `AccountingDate`, `JournalNumber`, `Description`, `DebitAmount`, `CreditAmount`, `RunningBalance` |
+| `ChartOfAccountPagedQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId?`, `AccountType?`, `IsActive?`, `IsPostable?`, `Search?`, `SortBy?`, `SortDirection?` |
+| `ChartOfAccountListResponse` | Response | `Id`, `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `AccountLevel`, `ParentAccountId?`, `ParentAccountCode?`, `IsPostable`, `IsActive` |
+| `ChartOfAccountDetailResponse` | Response | **Mewarisi `ChartOfAccountListResponse`**, ditambah `ParentAccountName?`, `Description?`, `EffectiveStartDate?`, `HasChildAccounts`, `HasPostedJournalLines`, `RequiresCostCenter`, `CreateDateTime` |
+| `ChartOfAccountTreeResponse` | Response | `Id`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `AccountLevel`, `IsPostable`, `IsActive`, `Children` |
+| `ChartOfAccountOptionResponse` | Option | `Id`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `RequiresCostCenter` |
+| `CreateChartOfAccountRequest` | Create | `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `Description?`, `EffectiveStartDate?` |
+| `UpdateChartOfAccountRequest` | Update | `AccountCode`, `AccountName`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `Description?`, `EffectiveStartDate?` |
+| `DeactivateChartOfAccountRequest` | Status | `Reason?` |
+
+> `UpdateChartOfAccountRequest` **tidak memuat `NormalBalance`.** Saldo normal tidak dapat diubah
+> sesudah akun dibuat. Daftar sebelumnya mencantumkannya — itu keliru.
+
+### Master Data — Journal Type
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `JournalTypePagedQuery` | Query | `PageNumber`, `PageSize`, `IsActive?`, `IsSystemType?`, `Search?`, `SortBy?`, `SortDirection?` |
+| `JournalTypeResponse` | Response | `Id`, `JournalTypeCode`, `JournalTypeName`, `NumberPrefix`, `RequiresApproval`, `IsSystemType`, `IsActive`, `HasJournals`, `CreateDateTime` |
+| `JournalTypeOptionResponse` | Option | `Id`, `JournalTypeCode`, `JournalTypeName`, `NumberPrefix`, `RequiresApproval` |
+| `CreateJournalTypeRequest` | Create | `JournalTypeCode`, `JournalTypeName`, `NumberPrefix` |
+| `UpdateJournalTypeRequest` | Update | `JournalTypeCode`, `JournalTypeName`, `NumberPrefix`, `IsActive` |
+| `JournalTypeSeedResponse` | Response | `Inserted`, `Skipped`, `SkippedReason?`, `Items` |
+
+> `RequiresApproval` **tidak dapat dikirim** pada Create maupun Update — dikunci `true` oleh
+> `ACC-TD-019`. Ia hanya muncul sebagai keluaran. Begitu pula `IsSystemType`, yang hanya lahir
+> dari data master awal.
+
+### Journal Management
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `JournalPagedQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId?`, `DateFrom?`, `DateTo?`, `JournalTypeId?`, `JournalStatus?`, `Search?`, `SortBy?`, `SortDirection?` |
+| `JournalListResponse` | Response | `Id`, `JournalNumber`, `AccountingDate`, `JournalTypeId`, `JournalTypeName`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit` |
+| `JournalDetailResponse` | Response | `Id`, `LegalEntityId`, `JournalNumber`, `JournalTypeId`, `JournalTypeCode`, `JournalTypeName`, `AccountingPeriodId`, `PeriodCode`, `DocumentNumber?`, `DocumentDate?`, `AccountingDate`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit`, `IsBalanced`, `SubmittedBy?`, `SubmittedAt?`, `ApprovedBy?`, `ApprovedAt?`, `PostedBy?`, `PostedAt?`, `RejectionReason?`, `ReversalOfJournalId?`, `ReversalOfJournalNumber?`, `CorrectionType?`, `CreateDateTime`, `CreateBy`, `Lines`, `Approvals`, `AvailableActions` |
+| `JournalLineResponse` | Response | `Id`, `LineNumber`, `AccountId`, `AccountCode`, `AccountName`, `CostCenterId?`, `CostCenterName?`, `Description?`, `DebitAmount`, `CreditAmount` |
+| `JournalApprovalResponse` | Response | `ApprovalAction`, `ActionBy`, `ActionAt`, `Reason?` |
+| `CreateJournalRequest` | Create | `LegalEntityId`, `JournalTypeId`, `DocumentNumber?`, `DocumentDate?`, `AccountingDate`, `Description`, `Lines` |
+| `UpdateJournalRequest` | Update | Sama dengan `CreateJournalRequest` **tanpa** `LegalEntityId` |
+| `CreateJournalLineRequest` | Create | `LineNumber`, `AccountId`, `CostCenterId?`, `Description?`, `DebitAmount`, `CreditAmount` |
+| `RejectJournalRequest` | Status | `Reason` |
+| `ReverseJournalRequest` | Status | `CorrectionType?`, `Reason`, `AccountingDate?`, `AdjustmentLines` |
+
+> **`JournalApprovalResponse.ActionBy` adalah `Guid`, bukan nama.** Daftar sebelumnya menyebut
+> `ActionByName`, dan **field itu tidak ada di source mana pun** — dicari di seluruh
+> `Areas/Corporate/AccountingManagement/`, nol kemunculan. Layar rincian jurnal (`FE-ACC-007`)
+> karena itu **tidak dapat menampilkan nama penyetuju** dari endpoint ini saja. Dicatat sebagai
+> `ACC-GAP-011`.
+
+### Accounting Period
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `AccountingPeriodPagedQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId?`, `FiscalYear?`, `PeriodStatus?`, `SortDirection?` |
+| `AccountingPeriodResponse` | Response | `Id`, `LegalEntityId`, `PeriodCode`, `FiscalYear`, `PeriodMonth`, `StartDate`, `EndDate`, `PeriodStatus`, `PeriodName`, `ClosedBy?`, `ClosedAt?`, `ReopenedBy?`, `ReopenedAt?`, `LastReasonNote?`, `AcceptedJournalTypeCodes` |
+| `GenerateAccountingPeriodRequest` | Create | `LegalEntityId`, `FiscalYear` |
+| `ClosePeriodRequest` | Status | `Permanent`, `Reason?` |
+| `ReopenPeriodRequest` | Status | `Reason` |
+
+> `ClosePeriodRequest` memakai **`Permanent` bertipe `bool`**, bukan `CloseType`. Daftar
+> sebelumnya keliru.
+>
+> `AccountingPeriodResponse` **tidak memuat `AvailableActions`** — inilah `ACC-GAP-010` yang
+> menahan acceptance (4) `FE-ACC-004`. Belum diputuskan owner, dan **tidak** diubah di sini.
+
+### General Ledger
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `LedgerMovementQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId`, `AccountId`, `DateFrom?`, `DateTo?` |
+| `LedgerMovementResponse` | Response | `AccountingDate`, `JournalNumber`, `LineNumber`, `Description`, `DebitAmount`, `CreditAmount`, `RunningBalance` |
 | `TrialBalanceQuery` | Query | `LegalEntityId`, `PeriodCode` |
-| `TrialBalanceDto` | Response | `PeriodCode`, `Rows`, `TotalDebit`, `TotalCredit`, `IsBalanced` |
-| `TrialBalanceRowDto` | Response | `AccountCode`, `AccountName`, `OpeningBalance`, `TotalDebit`, `TotalCredit`, `ClosingBalance` |
-| `AccountBalanceDto` | Response | `AccountCode`, `AccountName`, `PeriodCode`, `OpeningBalance`, `TotalDebit`, `TotalCredit`, `ClosingBalance` |
+| `TrialBalanceResponse` | Response | `PeriodCode`, `PeriodName`, `Rows`, `TotalDebit`, `TotalCredit`, `IsBalanced` |
+| `TrialBalanceRowResponse` | Response | `AccountId`, `AccountCode`, `AccountName`, `OpeningBalance`, `TotalDebit`, `TotalCredit`, `ClosingBalance` |
+| `AccountBalanceResponse` | Response | `AccountId`, `AccountCode`, `AccountName`, `PeriodCode`, `PeriodName`, `OpeningBalance`, `TotalDebit`, `TotalCredit`, `ClosingBalance` |
+
+### Catatan yang tetap berlaku
 
 `RequiresCostCenter` pada DTO akun **diturunkan** dari `AccountType == Expense`, bukan dibaca
 dari kolom tabel. Ia disertakan agar frontend tahu kapan harus mewajibkan pengisian Cost Center
 tanpa perlu menghafal aturannya sendiri.
 
-`AvailableActions` pada `JournalDetailDto` berisi daftar tindakan yang boleh dilakukan pengguna
-saat itu, dihitung backend dari status jurnal, hak akses, dan aturan `ACC-DEC-016`. Frontend
-menampilkan tombol berdasarkan daftar ini — bukan menghitung sendiri. Backend tetap memeriksa
-ulang saat tindakannya benar-benar dijalankan.
+`AvailableActions` pada `JournalDetailResponse` berisi daftar tindakan yang boleh dilakukan
+pengguna saat itu, dihitung backend dari status jurnal, hak akses, dan aturan `ACC-DEC-016`.
+Frontend menampilkan tombol berdasarkan daftar ini — bukan menghitung sendiri. Backend tetap
+memeriksa ulang saat tindakannya benar-benar dijalankan.
+
+### Ringkasan selisih yang diperbaiki ratifikasi ini
+
+| # | Selisih | Kelompok |
+|---:|---|---|
+| 1 | Seluruh nama berakhiran `Dto` → `Request`/`Response`/`Query` | Semua |
+| 2 | `RequiresApproval` dicabut dari Create/Update | Journal Type |
+| 3 | `UpdateJournalTypeRequest.IsActive` ditambahkan | Journal Type |
+| 4 | `HasJournals`, `CreateDateTime` ditambahkan | Journal Type |
+| 5 | `JournalTypeOptionResponse` + `NumberPrefix`, `RequiresApproval` | Journal Type |
+| 6 | `JournalTypeSeedResponse` sebelumnya tidak terdaftar sama sekali | Journal Type |
+| 7 | `ChartOfAccountListResponse` + `LegalEntityId`, `NormalBalance`, `ParentAccountId`, `ParentAccountCode` | COA |
+| 8 | `ChartOfAccountDetailResponse` mewarisi List + `EffectiveStartDate`, `HasChildAccounts`, `HasPostedJournalLines`, `CreateDateTime` | COA |
+| 9 | `ChartOfAccountTreeResponse` + `AccountType`, `NormalBalance`, `AccountLevel`, `IsActive` | COA |
+| 10 | `ChartOfAccountOptionResponse` + `NormalBalance` | COA |
+| 11 | `AccountLevel` ditambahkan pada Create dan Update | COA |
+| 12 | `NormalBalance` **dihapus** dari Update — tidak dapat diubah | COA |
+| 13 | `EffectiveStartDate` ditambahkan pada Update | COA |
+| 14 | `JournalPagedQuery` + `SortBy`, `SortDirection` | Journal |
+| 15 | `JournalListResponse` + `JournalTypeId` | Journal |
+| 16 | `JournalDetailResponse` dijabarkan penuh — 15 field sebelumnya tidak tercantum | Journal |
+| 17 | `JournalLineResponse` + `Id` | Journal |
+| 18 | `ActionByName` **tidak ada**; yang ada `ActionBy` bertipe `Guid` — `ACC-GAP-011` | Journal |
+| 19 | `AccountingPeriodPagedQuery` + `SortDirection` | Period |
+| 20 | `AccountingPeriodResponse` + `LegalEntityId`, `PeriodName`, `ClosedBy`, `ReopenedBy`, `AcceptedJournalTypeCodes` | Period |
+| 21 | `ClosePeriodRequest` memakai `Permanent: bool`, bukan `CloseType` | Period |
+| 22 | `LedgerMovementResponse` + `LineNumber` | GL |
+| 23 | `TrialBalanceResponse` + `PeriodName`; `TrialBalanceRowResponse` + `AccountId` | GL |
+| 24 | `AccountBalanceResponse` + `AccountId`, `PeriodName` | GL |
+
+`ACC-GAP-004` mencatat lima selisih. Pemeriksaan penuh terhadap source menemukan **24**.

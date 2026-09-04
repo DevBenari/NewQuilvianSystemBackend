@@ -26,7 +26,7 @@ belas artefak.
 | `ACC-TD-006` | Aturan koordinasi migration belum canonical | Lead | Rendah | `OPEN` |
 | `ACC-TD-007` | Satu test Billing merah sejak merge integration | Owner Billing | Rendah | `OPEN` |
 | `ACC-TD-008` | 52 test Billing tidak dapat berjalan | Owner Billing | Rendah | `OPEN` — polanya sudah diperbaiki Accounting, lihat `ACC-TD-016` |
-| `ACC-TD-009` | Dua keputusan UI menahan seluruh frontend | **Rizki** | **Tinggi** | `OPEN` |
+| ~~`ACC-TD-009`~~ | ~~Dua keputusan UI menahan seluruh frontend~~ | — | — | **`CLOSED`** 4 Sep 2026 |
 | `ACC-TD-010` | Dua badan hukum kosong di master | Owner modul lain | Rendah | `OPEN` |
 | ~~`ACC-TD-011`~~ | ~~`POST /seed` belum pernah dipanggil~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-012` | Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering | Owner modul | Rendah | `OPEN` |
@@ -176,7 +176,21 @@ ke database yang ditunjuk.
 
 ---
 
-## `ACC-TD-009` — Dua keputusan UI menahan seluruh frontend
+## ~~`ACC-TD-009`~~ — Dua keputusan UI menahan seluruh frontend — **`CLOSED`**
+
+> **Ditutup 4 September 2026.** Owner memutuskan keduanya sekaligus, dan rantai sebelas task
+> frontend terbuka.
+>
+> | Keputusan | Pilihan | Yang menentukan |
+> |---|---|---|
+> | `ACC-FE-001` | **`src/app/corporate/accounting/`** (pilihan B) | Keputusan owner: susunan frontend mengikuti susunan backend `Areas/Corporate/AccountingManagement/`. Folder `corporate/` dibuat baru. Segmen itu dipakai konsisten di rute, view, konstanta, hook, dan style |
+> | `ACC-FE-003` | **Halaman tersendiri**, `base-detail-view.jsx` | Diukur di `@1a86d933`: `base-detail-view.jsx` dipakai **79 berkas**, `base-detail-side-panel.jsx` hanya **1** |
+>
+> Penghalang kedua pada `FE-ACC-001` — *"belum adanya endpoint"* — juga sudah hilang: seluruh 14
+> task backend `DONE` dan 31 endpoint berdiri. `FE-ACC-001` karena itu naik dari `BLOCKED`
+> menjadi **`READY`**.
+
+### Teks asli, dipertahankan sebagai riwayat
 
 **Pemilik: Rizki.** Ini satu-satunya butir berat yang **berada di dalam wewenang owner sendiri**,
 dan ia menahan sebelas task frontend sekaligus.

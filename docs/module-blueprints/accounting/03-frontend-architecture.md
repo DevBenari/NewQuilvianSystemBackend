@@ -104,7 +104,7 @@ masih dapat disahkan." Bukan "Request failed with status code 422".
 
 | # | Layar | Kebutuhan fungsional | Rilis pertama? |
 |---:|---|---|:---:|
-| 1 | Daftar Akun | Daftar berhalaman dengan penyaring badan hukum, jenis akun, dan status. Ada tampilan susunan induk-anak | Ya |
+| 1 | COA | Daftar berhalaman dengan penyaring badan hukum, jenis akun, dan status. Ada tampilan susunan induk-anak | Ya |
 | 2 | Form Akun | Tambah dan ubah akun, termasuk memilih induk | Ya |
 | 3 | Daftar Jurnal | Daftar berhalaman dengan penyaring badan hukum, rentang tanggal, jenis, status, dan nomor | Ya |
 | 4 | Form Jurnal | Kepala jurnal ditambah tabel baris yang dapat ditambah dan dihapus, dengan total berjalan | Ya |
@@ -116,6 +116,12 @@ masih dapat disahkan." Bukan "Request failed with status code 422".
 | 10 | Pemetaan Posting | Pengaturan kejadian menjadi akun | Tidak — Phase 2 |
 | 11 | Kotak Masuk Kejadian | Kejadian masuk, gagal, dan pengulangan | Tidak — Phase 2 |
 | 12 | Laba Rugi dan Neraca | Laporan keuangan | Tidak — Phase 2 per `ACC-DEC-030` |
+
+> **Nama layar 1 diubah menjadi `COA` pada 4 September 2026, keputusan owner.** Nama sebelumnya
+> *Daftar Akun* tertukar dengan akun pengguna. Perubahan ini **hanya label tampilan** — nol
+> perubahan rute, entity, endpoint, atau permission; `AccChartOfAccount` dan
+> `ChartOfAccount : Read` tetap seperti semula. Istilah **daftar akun** dalam prosa dokumen ini
+> dan pada seluruh kontrak tetap dipakai sebagai nama konsep akuntansinya, bukan nama layar.
 
 ### Pemilih badan hukum ada di semua layar
 
@@ -203,9 +209,9 @@ jawaban backend. Backend bisa saja menolak karena periode tertutup di detik tera
 
 | Decision ID | Area | Owner | Status | Allowed range | Evidence |
 |---|---|---|---|---|---|
-| `ACC-FE-001` | Letak menu Accounting di navigasi | Product owner | **`open`** | Lihat tiga pilihan di bawah | `src/app/@fc49cc7` |
+| `ACC-FE-001` | Letak menu Accounting di navigasi | Product owner | **`closed`** — 4 Sep 2026 | **Pilihan B: `src/app/corporate/accounting/`** | Keputusan owner Rizki, 4 September 2026. Sempat ditetapkan pilihan A pada hari yang sama lalu **diubah owner menjadi B** sebelum implementasi selesai |
 | `ACC-FE-002` | Layar mana yang masuk rilis pertama | Rizki | `closed` | Delapan layar, sesuai `ACC-DEC-009` dan `ACC-DEC-030` | Decision log, 1 September 2026 |
-| `ACC-FE-003` | Rincian jurnal sebagai halaman tersendiri atau panel samping | Product owner | **`open`** | Halaman tersendiri, panel samping, atau modal | `base-detail-side-panel.jsx@fc49cc7` |
+| `ACC-FE-003` | Rincian jurnal sebagai halaman tersendiri atau panel samping | Product owner | **`closed`** — 4 Sep 2026 | **Halaman tersendiri**, memakai `base-detail-view.jsx` | Keputusan owner Rizki, 4 September 2026; `base-detail-view.jsx` dipakai **79 berkas**, `base-detail-side-panel.jsx` hanya **1**, diukur di `@1a86d933` |
 | `ACC-FE-004` | Susunan dan urutan kolom pada tabel daftar | Developer | `DEV_DISCRETION` | Bebas, selama memakai `DataTable` | `data-table.jsx@fc49cc7` |
 | `ACC-FE-005` | Penempatan berkas CSS Module | Developer | `DEV_DISCRETION` | Di bawah `src/style/`, mengikuti struktur yang sudah ada | `CLAUDE.md@fc49cc7` aturan 4 |
 | `ACC-FE-006` | Pemilihan ikon | Developer | `DEV_DISCRETION` | Dari `react-icons`, terutama `react-icons/fa6` | `CLAUDE.md@fc49cc7` |
@@ -234,8 +240,35 @@ Struktur komponen mengikuti pola yang sudah berlaku: berkas rute di `src/app/**`
 isi halaman berada di `src/components/view/**` dengan susunan folder yang mencerminkan
 `src/app/**`.
 
-Kedua butir `open` di atas **tidak memblokir** penyusunan blueprint, karena menyangkut penyajian
-dan bukan aturan bisnis. Keduanya wajib diputuskan sebelum task frontend pertama dikerjakan.
+### Keputusan 4 September 2026 — keduanya `closed`
+
+Owner Rizki memutuskan keduanya sekaligus, dan `ACC-TD-009` ditutup.
+
+| Keputusan | Pilihan | Alasan yang menentukan |
+|---|---|---|
+| `ACC-FE-001` | **B — `src/app/corporate/accounting/`** | **Keputusan owner.** Susunan frontend dibuat mengikuti susunan backend `Areas/Corporate/AccountingManagement/`, sehingga satu domain mudah ditelusuri lintas repository. Folder `corporate/` dibuat baru karena belum ada |
+| `ACC-FE-003` | **Halaman tersendiri** | Diukur di `@1a86d933`: `base-detail-view.jsx` dipakai **79 berkas**, `base-detail-side-panel.jsx` hanya **1**. Rincian jurnal memuat tabel baris, riwayat persetujuan, dan tombol aksi sekaligus — panel samping akan memotongnya bila barisnya banyak. Halaman tersendiri juga dapat di-bookmark dan dibagikan tautannya |
+
+Jalur yang mengikat seluruh task frontend berikutnya:
+
+| Lapisan | Jalur |
+|---|---|
+| Rute (berkas tipis) | **`src/app/corporate/accounting/`** |
+| Isi halaman | **`src/components/view/corporate/accounting/`** |
+| Konstanta | **`src/lib/constants/corporate/accounting/`** |
+| Hook | **`src/lib/hooks/corporate/accounting/`** |
+| CSS Module | **`src/style/corporate/accounting/`** |
+| URL yang dilihat pengguna | **`/corporate/accounting`** |
+
+Layar rincian jurnal (`FE-ACC-007`) memakai **`base-detail-view.jsx`**, bukan panel samping.
+
+**Segmen `corporate/` dipakai konsisten di kelima lapisan**, bukan hanya di rute. Menaruh rute di
+`corporate/accounting` tetapi isinya di `view/accounting` akan memutus cermin antara `src/app/` dan
+`src/components/view/` yang selama ini dipegang repository.
+
+**Konsekuensi yang diterima owner:** `hr` tetap berada di tingkat atas walaupun ia juga domain
+Corporate, sehingga untuk sementara ada dua pola berdampingan. Pembaca berikutnya perlu tahu bahwa
+`corporate/` adalah pola yang dituju, dan `hr` adalah peninggalan sebelum pola itu ditetapkan.
 
 ---
 

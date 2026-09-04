@@ -9,7 +9,7 @@ revision: 9
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-03T21:00:00+07:00
+updated_at: 2026-09-04T00:00:00+07:00
 last_verified_at: 2026-09-03T21:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
@@ -29,9 +29,26 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: f879944
-verification_frontend_source_sha: 5336c4457c8ad77abe5c9d2c134760f34a334f55
+verification_backend_source_sha: 822d48a
+verification_frontend_source_sha: a57074f3d
 verification_baseline_note: >
+  BASELINE FRONTEND DIGESER 4 September 2026: 1a86d9322 -> a57074f3d. Impact scan dijalankan
+  lebih dahulu. Dua commit: bf4fd0ed6 milik owner, 53 berkas 6.754 baris, SELURUHNYA pekerjaan
+  Accounting FE-ACC-001..006 beserta store.jsx dan menu-items.jsx -- nol berkas asing, nol modul
+  lain tersentuh. a57074f3d memperbaiki dua cacat temuan owner pada form jurnal, tepat 2 berkas.
+  IMPACT SCAN 4 September 2026, dijalankan /qv-lanjut sebelum FE-ACC-002..004 karena kedua
+  baseline verification meleset dari yang tercatat. Backend f879944 -> 822d48a: 27 commit,
+  dan di dalam Areas/Corporate/AccountingManagement/ hanya DUA berkas berubah, keduanya milik
+  JournalType (ACC-TD-019, RequiresApproval dikunci true dan dicabut dari request DTO).
+  ChartOfAccount 0 berkas, AccountingPeriod 0 berkas -- FE-ACC-002 dan FE-ACC-004 nol dampak.
+  FE-ACC-003 TERDAMPAK: form jenis jurnal tidak boleh memuat isian RequiresApproval, dan ini
+  berbeda dari daftar DTO ACC-API-0.3 yang masih mencantumkannya (ACC-GAP-004 pada
+  testing/readiness-report.md). Source yang diikuti, delta dicatat.
+  Frontend 5336c44 -> 1a86d933: 17 commit. Sebelas anchor reuse FE-ACC-002..004 diperiksa satu
+  per satu; SEPULUH identik, satu berubah dan perubahannya ADITIF -- resource-filter-select.jsx
+  bertambah prop selectedOption, +7/-0, nol breaking change. Build, lint, dan 434 unit test
+  hijau pada 1a86d933. Kedua baseline karena itu digeser ke SHA di atas.
+
   Backend bergerak aa837d7 -> ca6b7e0 -> e1ee173 -> a4df550 -> 2b152aa -> f40177a sepanjang
   2 September 2026, dan tiap pergeseran diverifikasi impact scan lebih dahulu. ca6b7e0 menambah
   28 berkas dokumentasi blueprint saja. e1ee173 adalah commit BE-ACC-001..003 oleh owner.
@@ -70,7 +87,7 @@ input_revisions:
   requirement_gate: null
   hospital_domain_architecture: null
 contract_versions:
-  api: ACC-API-0.3
+  api: ACC-API-0.4
   state: ACC-STATE-0.1
   validation: ACC-VALIDATION-0.3
   integration: ACC-INTEGRATION-0.2
@@ -93,10 +110,10 @@ artifact_hashes:
   00-interview-decisions.md: aaeb385f6194d707294777ab5c90ce178e216fc3c28097fd8198d51676759038
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
   02-backend-architecture.md: 4a77b937cf2953ace1a7060f704f729674e26eb4545fc7f0fced1e7bcfa057a9
-  03-frontend-architecture.md: a68b56a043aaf5bfc99356d5477ff059c21cac35c330dfa8656f1a90e995c07f
+  03-frontend-architecture.md: a8e3f7c002359683c6c24a5d6cdc170c916fe4017cf01b7bb7cf05b79375c544
   04-prd-to-mvp.md: 1da14a42f09030625641f9769ebd1839773125c4e8b94e36016e363e311ca081
   06-shared-migration-coordination-rule.md: e1111572749627931b81da86c779c472197ab821790a6e5568900068b608d428
-  contracts/api-contract.md: 9f05df37d03ab6d0e613117e2a94acbc7487a2a84406ebb5ca69b7434cd5a3ae
+  contracts/api-contract.md: b4a20208526e5cac65983d4a8bddb40a2c2a553a134824f8437d363422f1b7b0
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
   contracts/validation-matrix.md: 11df3f472f2d71e5a57e34db606d1c3a78105ebfce008ddb0a3a509ac09b4643
   contracts/integration-contract.md: 1c773b03b30a272459de9db436bded581d0593e1897a89e847fdbc023679e094
@@ -105,7 +122,7 @@ artifact_hashes:
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
   roadmap/backend-roadmap.md: cad5f84ea2fc0def429c4ea504340f1d6523ed5e4eee47b6617636e1a084515f
-  roadmap/frontend-roadmap.md: 1cb8b8d30eb8bfdf46927a6e0a448e7dfc80281cf538aa8bb354ab49d8f3096f
+  roadmap/frontend-roadmap.md: f29e99de8d78a841bf20ffd41a1d13a275f9b179c1188c17c52d2ccf64d98158
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
 entity_prefix:

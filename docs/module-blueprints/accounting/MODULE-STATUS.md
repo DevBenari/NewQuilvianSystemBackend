@@ -62,14 +62,14 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `ACC-PH-002` | Penyusunan blueprint target: arsitektur, ERD, enam kontrak, PRD ke MVP | `DONE` — 1 September 2026, 15 artefak canonical |
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
-| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — **seluruh 14 task backend `DONE` dan terbukti test**. Task frontend menunggu `ACC-FE-001` (`ACC-TD-009`) |
+| `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — **seluruh 14 task backend `DONE`**. Task frontend **tidak lagi tertahan**: `ACC-FE-001` dan `ACC-FE-003` `closed` 4 September 2026, `ACC-TD-009` `CLOSED`. `FE-ACC-001` kini `READY` |
 | `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| **`DONE` — 14/14** | `NOT_STARTED` | `NOT_STARTED` | `PENDING` — audit kesiapan end-to-end |
+| **`DONE` — 14/14** | **`IN_PROGRESS` — 6/11** | `NOT_STARTED` | `NOT_READY` — [testing/readiness-report.md](testing/readiness-report.md), 4 September 2026 |
 
 | Task | Status | Bukti |
 |---|---|---|
@@ -121,7 +121,7 @@ DDL contohnya tidak lagi bertentangan dengan diagram ERD-nya sendiri.
 | `ACC-DEP-005` | Aturan koordinasi migration bersama (`QBE-MIG-001`/`002`) belum canonical | Lead | **Tidak lagi mengikat task.** `BE-ACC-006` sudah lewat memakai teks usulannya | Seluruh task. Tetap terbuka sebagai pekerjaan governance lead, bukan penghalang Accounting |
 | `ACC-XM-001` | Siapa penerbit kejadian keuangan resmi — `CROSS_MODULE_DECISION_REQUIRED` | Owner Billing + Owner Finance/Yasmin + Rizki | `ACC-PH-006` Phase 2 | **Tidak memblokir MVP.** Bentuk batasnya sudah ditulis di `ACC-XMOD-0.1` |
 | `ACC-DEP-008` | **Legal Entity Authorization Model Availability** — mekanismenya tidak ada. Status `OPEN` tetapi **`NON-BLOCKING`** sejak `ACC-DEC-041` | **Security / Platform** | **Nol task.** Prasyarat sebelum badan hukum **kedua** didaftarkan | **Seluruh task.** MVP satu badan hukum; pemisahan data tetap ditegakkan, dan penjaga jumlah badan hukum (`BE-ACC-007` 5b) menahan pintunya |
-| `ACC-FE-001`, `ACC-FE-003` | Letak menu dan bentuk layar rincian jurnal | Product owner | Task frontend | Seluruh task backend tidak terpengaruh |
+| ~~`ACC-FE-001`, `ACC-FE-003`~~ | ~~Letak menu dan bentuk layar rincian jurnal~~ | — | — | **CLOSED 4 September 2026.** `src/app/accounting/`, dan rincian jurnal sebagai halaman tersendiri. `ACC-TD-009` ikut ditutup |
 | `ACC-XM-001` | Siapa menerbitkan kejadian keuangan resmi | Owner Billing, owner Finance, Rizki | `ACC-PH-006` Phase 2 | **Tidak memblokir MVP** — rilis pertama tanpa jurnal otomatis |
 
 **Catatan lama yang sudah tidak berlaku, dipertahankan sebagai riwayat.** Paragraf di posisi ini
@@ -157,26 +157,35 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
-Diperbarui 3 September 2026. **Backend Accounting sudah ditulis seluruhnya.** Yang tersisa
-bukan lagi pekerjaan menulis kode.
+Diperbarui **4 September 2026**, sesudah `FE-ACC-001` sampai `FE-ACC-004`.
 
-1. ~~Panggil `POST /journal-types/seed`~~ — **selesai 3 September 2026** (`ACC-TD-011` `CLOSED`).
-2. **Susun daftar akun awal.** Tidak ada seeder untuk ini dan memang tidak boleh ada —
-   daftar akun adalah kebijakan akuntansi rumah sakit (`02-backend-architecture.md` bagian 9.3).
-3. **Bangkitkan periode** tahun buku berjalan lewat `POST /periods/generate`.
-4. ~~Jalankan skrip uji manual~~ — **selesai 3 September 2026**. Keempat task `DONE`, terbukti
-   **33 test** terhadap PostgreSQL sungguhan (`ACC-TD-017` `CLOSED`). Skrip uji manual pada tiap
-   laporan tetap berguna untuk pemeriksaan ulang lewat Swagger.
-5. **Putuskan `ACC-FE-001` dan `ACC-FE-003`** — dua keputusan UI yang menahan sebelas task
-   frontend (`ACC-TD-009`). Ini yang paling murah dibuka dan paling besar dampaknya.
-6. **Teruskan `ACC-TD-015` ke lead** — registry berselisih dua arah, menahan merge ke integration.
+**Backend selesai seluruhnya. Frontend 4 dari 11.** Empat layar sudah berdiri di
+`/corporate/accounting`: beranda modul, daftar akun, jenis jurnal, dan periode akuntansi.
+
+| # | Langkah | Pemilik | Kenapa ini |
+|---:|---|---|---|
+| 1 | **Verifikasi manual `FE-ACC-001`..`004` di peramban** | Rizki | Keempatnya berstatus `IMPLEMENTED`, bukan `DONE`. Skrip uji per task ada di `task/report/frontend/`. Sekitar 30 menit untuk keempatnya |
+| 2 | **Susun daftar akun awal dan bangkitkan periode — lewat layar** | Rizki | Ini menutup `BLK-ACC-02` pada [testing/readiness-report.md](testing/readiness-report.md). Sejak `FE-ACC-002` dan `FE-ACC-004` berdiri, keduanya **tidak perlu lagi lewat Swagger** |
+| 3 | **`FE-ACC-005`** daftar jurnal | Rizki | Task frontend berikutnya menurut roadmap. Dependency `BE-ACC-010` sudah `DONE` |
+| 4 | **Ratifikasi `ACC-GAP-004`** | Rizki | Daftar DTO `ACC-API-0.3` sudah tidak cocok dengan source. Frontend berikutnya yang menyusun klien dari kontrak akan tersesat |
+| 5 | **Putuskan `ACC-GAP-010`** | Rizki | `FE-ACC-004` acceptance (4) tidak dapat dipenuhi tanpa `AvailableActions` pada `AccountingPeriodResponse`. Rinciannya di laporan `fe-acc-004` bagian 3 |
+| 6 | **Teruskan `ACC-TD-015` ke lead** | Lead | Registry berselisih dua arah, menahan merge ke integration |
+
+**Sembilan butir `ACC-GAP-001`..`009`** pada [testing/readiness-report.md](testing/readiness-report.md)
+bagian 3 belum dipindahkan ke [UTANG-TEKNIS.md](UTANG-TEKNIS.md). Selama belum, register itu
+belum menjadi satu-satunya tempat yang menjawab *"apa saja yang belum beres di Accounting"*.
 
 ## Optional deterministic delivery progress
 
-**14 dari 25 task selesai (56%).** Backend **14 dari 14 `DONE`**, frontend 0 dari 11.
+**20 dari 25 task selesai (80%).** Backend **14 dari 14 `DONE`**; frontend **6 dari 11 `IMPLEMENTED`** — `FE-ACC-001` sampai `FE-ACC-006`, menunggu verifikasi manual owner.
 
-Seluruh backend Accounting MVP kini terbukti test. Yang tersisa sepenuhnya pekerjaan frontend,
-yang masih tertahan dua keputusan UI (`ACC-TD-009`).
+`FE-ACC-005` dan `FE-ACC-006` dikerjakan 4 September 2026 di atas **`ACC-API-0.4`**, sesudah
+`ACC-GAP-004` diratifikasi. Ratifikasi itu menemukan **24 selisih** antara kontrak dan source,
+bukan lima seperti yang tercatat. `ACC-GAP-002` ikut tertutup; `ACC-GAP-011` baru terdaftar.
+
+Rantai frontend tidak lagi tertahan keputusan UI (`ACC-TD-009` `CLOSED` 4 September 2026).
+Rutenya `src/app/corporate/accounting/` (`ACC-FE-001` pilihan B), dan segmen `corporate/` dipakai
+konsisten di lima lapisan: rute, view, konstanta, hook, dan style.
 
 ## Status contract
 

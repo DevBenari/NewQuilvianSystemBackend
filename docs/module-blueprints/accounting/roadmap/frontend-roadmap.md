@@ -19,7 +19,7 @@ contracts: [ACC-API-0.1, ACC-STATE-0.1, ACC-VALIDATION-0.2, ACC-PERMISSION-0.1, 
 ## Baca ini lebih dahulu
 
 **FINAL OWNER APPROVAL sudah diberikan** Rizki, 1 September 2026, atas `ACC-BP-001` revisi 5.
-Roadmap ini `APPROVED`. `ACC-FE-001` letak menu **masih terbuka** dan tetap menahan rantai frontend.
+Roadmap ini `APPROVED`. **`ACC-FE-001` dan `ACC-FE-003` sudah `closed` sejak 4 September 2026**, sehingga rantai frontend tidak lagi tertahan keputusan UI. Rutenya `src/app/corporate/accounting/`, isinya `src/components/view/corporate/accounting/`, dan URL yang dilihat pengguna `/corporate/accounting`.
 
 Selain itu, seluruh task frontend menunggu endpoint-nya benar-benar ada. Kontrak API sudah
 tertulis, tetapi berstatus `draft` dan **belum satu pun terpasang di kode**. Pekerjaan paralel
@@ -55,7 +55,7 @@ endpoint-nya sudah berdiri.
 | Gelombang | Task | Status | Syarat mulai |
 |---|---|---|---|
 | `MVP-1` Kerangka dan master | `FE-ACC-001` sampai `FE-ACC-004` | `BLOCKED` | `BE-ACC-007` sampai `009` selesai |
-| `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | `BLOCKED` | `BE-ACC-010`, `BE-ACC-011` selesai |
+| `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | `IN_PROGRESS` — 005 dan 006 `IMPLEMENTED` | `BE-ACC-010`, `BE-ACC-011` selesai |
 | `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | `BLOCKED` | `BE-ACC-012` selesai |
 | `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | `BLOCKED` | `BE-ACC-013`, `BE-ACC-014` selesai |
 
@@ -63,8 +63,8 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 
 | Keputusan | Menahan | Pemilik |
 |---|---|---|
-| `ACC-FE-001` letak menu Accounting | `FE-ACC-001`, lalu berantai ke seluruhnya | Product owner |
-| `ACC-FE-003` bentuk layar rincian jurnal | `FE-ACC-007` saja | Product owner |
+| ~~`ACC-FE-001` letak menu Accounting~~ | — | **`closed` 4 Sep 2026** — pilihan B, `src/app/corporate/accounting/` |
+| ~~`ACC-FE-003` bentuk layar rincian jurnal~~ | — | **`closed` 4 Sep 2026** — halaman tersendiri, `base-detail-view.jsx` |
 
 ---
 
@@ -84,7 +84,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; `npm run test:unit`; pemeriksaan manual di peramban |
 | Risiko/pemilik | Product owner untuk letak menu; developer untuk sisanya. **Menyembunyikan badan hukum yang bukan hak pengguna bukan pengamanan** — backend tetap menolak |
 | DoD | Rute berjalan, lint bersih, laporan task tersedia |
-| **Status** | **`BLOCKED` oleh `ACC-FE-001`** dan oleh belum adanya endpoint |
+| **Status** | **`IMPLEMENTED`** — 4 September 2026, menunggu verifikasi manual owner di peramban. Rute `/corporate/accounting` berdiri, menu terdaftar di kelompok *Perusahaan*, pemilih badan hukum memakai ulang resource select `legalEntities`. Validasi: `lint:errors` PASS, `build` PASS, 434 unit test PASS. Acceptance (4) terbukti; (1) terbukti sebagian; (2) dan (3) menuntut sesi login. Laporan: [`../task/report/frontend/fe-acc-001-kerangka-modul-rute-dan-pemilih-badan-hukum.md`](../task/report/frontend/fe-acc-001-kerangka-modul-rute-dan-pemilih-badan-hukum.md) |
 
 ### `FE-ACC-002` — Daftar dan form daftar akun
 
@@ -100,7 +100,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; `npm run test:unit`; skenario `UAT-01`, `UAT-17` di peramban |
 | Risiko/pemilik | Developer. Memakai factory adalah keharusan, bukan pilihan |
 | DoD | Layar berfungsi, pesan galat terbaca pengguna, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai |
+| **Status** | **`IMPLEMENTED`** — 4 September 2026, menunggu verifikasi manual owner. Slice dari factory + 2 thunk tersendiri (deactivate berbadan permintaan, `/tree`), 5 rute, tampilan tabel dan pohon. Acceptance (4) terbukti; (1)–(3) terbukti di source, belum dilihat berjalan. `lint:errors` PASS, `build` PASS, 434 unit test PASS. Laporan: [`../task/report/frontend/fe-acc-002-daftar-dan-form-daftar-akun.md`](../task/report/frontend/fe-acc-002-daftar-dan-form-daftar-akun.md) |
 
 ### `FE-ACC-003` — Master jenis jurnal
 
@@ -116,7 +116,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; pemeriksaan manual |
 | Risiko/pemilik | Rendah. Developer |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai |
+| **Status** | **`IMPLEMENTED`** — 4 September 2026, menunggu verifikasi manual owner. Slice dari factory, 4 rute, isian kode dan awalan dinonaktifkan pada jenis sistem. **Delta `ACC-GAP-004` ditangani**: form mengikuti source yang sudah mencabut `RequiresApproval`, bukan kontrak. Acceptance (2) terbukti; (1) terbukti di source. `lint:errors` PASS, `build` PASS, 434 unit test PASS. Laporan: [`../task/report/frontend/fe-acc-003-master-jenis-jurnal.md`](../task/report/frontend/fe-acc-003-master-jenis-jurnal.md) |
 
 ### `FE-ACC-004` — Periode akuntansi
 
@@ -132,7 +132,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; skenario `UAT-08`, `UAT-09` di peramban |
 | Risiko/pemilik | Developer. Butir (3) menguji bahwa frontend tidak menyimpulkan status sendiri |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai |
+| **Status** | **`IMPLEMENTED` dengan satu acceptance TIDAK DAPAT DIPENUHI** — 4 September 2026. Slice ditulis manual sesuai roadmap, 3 aksi domain, tiga status berpenanda Bahasa Indonesia, muat ulang dari backend sesudah tiap aksi. Acceptance (1)–(3) terbukti di source. **Acceptance (4) tidak dapat dipenuhi**: repository frontend tidak punya mekanisme hak akses sisi klien dan backend tidak menyediakan `AvailableActions` pada periode — diusulkan `ACC-GAP-010`. `lint:errors` PASS, `build` PASS, 434 unit test PASS. Laporan: [`../task/report/frontend/fe-acc-004-periode-akuntansi.md`](../task/report/frontend/fe-acc-004-periode-akuntansi.md) |
 
 ---
 
@@ -152,7 +152,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; pemeriksaan manual |
 | Risiko/pemilik | Developer |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai |
+| **Status** | **`IMPLEMENTED`** — 4 September 2026, menunggu verifikasi manual owner. Rute `/corporate/accounting/journals` berdiri, menu **Jurnal** terdaftar. Slice memakai `createMasterDataResourceSlice` + 5 thunk alur kerja — delta terhadap kalimat "ditulis manual" dicatat di laporan bagian 3. Dikerjakan di atas **`ACC-API-0.4`**. Validasi: lint PASS, 434 test PASS, build PASS. Acceptance (2), (3), (4) terbukti; (1) terbukti sebagian. Laporan: [`../task/report/frontend/fe-acc-005-daftar-jurnal.md`](../task/report/frontend/fe-acc-005-daftar-jurnal.md) |
 
 ### `FE-ACC-006` — Form jurnal dengan baris dinamis
 
@@ -168,7 +168,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; `npm run test:unit`; skenario `UAT-02`, `UAT-04` di peramban |
 | Risiko/pemilik | **Tertinggi pada frontend.** Developer. Ini satu-satunya layar yang tidak mengikuti pola form biasa |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED`** berantai |
+| **Status** | **`IMPLEMENTED`** — 4 September 2026, menunggu verifikasi manual owner. `react-hook-form` + `useFieldArray`, `SummaryGrid`, resource select `costCenters`. Uang dibandingkan sebagai bilangan bulat sen. Kewajiban unit biaya dibaca dari `RequiresCostCenter` pada respons `/options`. Validasi: lint PASS, 434 test PASS, build PASS. Acceptance (2) terbukti; (1), (3), (5) terbukti di kode; (4) terbukti sebagian. **`UAT-02`/`UAT-04` belum dapat dijalankan siapa pun — `BLK-ACC-02`.** Laporan: [`../task/report/frontend/fe-acc-006-form-jurnal-baris-dinamis.md`](../task/report/frontend/fe-acc-006-form-jurnal-baris-dinamis.md) |
 
 ### `FE-ACC-007` — Rincian jurnal dan tombol aksi
 
@@ -184,7 +184,7 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 | Verifikasi | `npm run lint`; skenario `UAT-01`, `UAT-03`, `UAT-06`, `UAT-13` di peramban |
 | Risiko/pemilik | Product owner untuk bentuk layar; developer untuk sisanya. Butir (1) penting: menghitung kewenangan di frontend berarti menyalin aturan bisnis ke tempat yang salah |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED` oleh `ACC-FE-003`** dan berantai |
+| **Status** | **`BLOCKED` berantai** oleh `FE-ACC-005`. `ACC-FE-003` sendiri sudah `closed` — halaman tersendiri, `base-detail-view.jsx` |
 
 ---
 
@@ -266,12 +266,13 @@ Dua keputusan produk menahan sebagian task, dan keduanya murah untuk diputuskan:
 |---|---|---|---|
 | Blueprint dan kontrak masih `draft` | Seluruhnya | Rizki | Approval blueprint |
 | Endpoint belum ada | Seluruhnya | Owner Backend | Selesaikan `BE-ACC-007` dan seterusnya |
-| `ACC-FE-001` letak menu | `FE-ACC-001`, lalu berantai | Product owner | Pilih satu dari tiga usulan pada `03-frontend-architecture.md` bagian 7 |
-| `ACC-FE-003` bentuk layar rincian | `FE-ACC-007` saja | Product owner | Pilih halaman tersendiri, panel samping, atau modal |
+| ~~`ACC-FE-001` letak menu~~ | — | — | **DITUTUP 4 Sep 2026.** Pilihan B, `src/app/corporate/accounting/` |
+| ~~`ACC-FE-003` bentuk layar rincian~~ | — | — | **DITUTUP 4 Sep 2026.** Halaman tersendiri, `base-detail-view.jsx` |
+| ~~Endpoint belum ada~~ | — | — | **DITUTUP.** Seluruh 14 task backend `DONE`; 31 endpoint berdiri |
 
-Kedua keputusan produk itu **murah dan cepat**, tetapi `ACC-FE-001` menahan seluruh rantai
-frontend karena menentukan jalur rute dan susunan folder komponen. Sebaiknya diputuskan lebih
-dahulu, bahkan sebelum backend selesai.
+**Kedua keputusan produk itu sudah diambil 4 September 2026**, dan seluruh endpoint backend sudah
+berdiri. `FE-ACC-001` karena itu tidak lagi `BLOCKED` melainkan **`READY`**, dan task frontend
+berikutnya hanya bergantung pada rantai `FE-ACC-###` di antara mereka sendiri.
 
 ## Ruang `DEV_DISCRETION`
 
