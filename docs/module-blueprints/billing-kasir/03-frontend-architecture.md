@@ -300,3 +300,133 @@ Didelegasikan ke pengembang:
 37. Menekan "Cetak Invoice Asuransi" menghasilkan PDF A4 yang seluruh kolom tabelnya terbaca utuh, tanpa kolom terpotong di sisi kanan.
 38. Cetak Kwitansi dan Cetak Struk Pasien tetap menghasilkan PDF A5 seperti sebelumnya (tidak ada regresi dari perubahan `buildPdf`).
 39. Tab Invoice Asuransi tidak memicu permintaan `insurance-invoice-document` selama kasir belum membuka tab itu.
+
+---
+
+## Amendment 4 September 2026 — Menu Pembayaran: menghapus "Penjamin Belum Terverifikasi" dan menampilkan anomali data
+
+> Status **draft**. Masukan: `BKC-DEC-070`–`075` (approved 4 September 2026) dan keputusan arsitektur `BKC-DES-010`–`014`, `BKC-DES-017`–`019` pada `02-backend-architecture.md`. Amendment ini **tidak** mengunci warna, jarak, ikon, maupun pilihan component library — seluruhnya tetap mengikuti design system yang berlaku.
+
+### Batas amendment ini
+
+Yang berubah hanya satu layar: **Menu Pembayaran** (`menu-pembayaran-view.jsx`). Yang **tidak** berubah: halaman Dokumen Kasir beserta ketiga tabnya, form Buat Invoice Manual (Testing), panel Tambah Biaya Lain-lain, dan seluruh layar master data.
+
+### Peta butir menu — tidak ada butir baru
+
+Amendment ini **tidak** menambah satu pun butir menu. Seluruh perubahan terjadi di dalam layar yang sudah terjangkau lewat butir menu yang ada.
+
+| Butir menu | Tingkat | Induk | Route | Layar yang dituju | Butir hak akses |
+| --- | --- | --- | --- | --- | --- |
+| Invoice Billing | 3 | Billing Management | `/health-services/billing-management/billing-invoices` | Daftar invoice | `BillingInvoice : Read` |
+| — (layar anak) | — | Invoice Billing | `/health-services/billing-management/billing-invoices/[slug]/pembayaran` | **Menu Pembayaran** — layar yang diubah amendment ini | `BillingInvoice : Read` |
+
+Menu Pembayaran tetap **layar anak**: jalan masuknya adalah tombol pada baris daftar invoice, bukan butir menu tersendiri. Ini tidak berubah dari baseline.
+
+### Kebutuhan fungsional layar
+
+| No | Kebutuhan | Dasar |
+| --- | --- | --- |
+| 1 | Baris "Penjamin Belum Terverifikasi" **dihapus seluruhnya** dari blok Ringkasan Pembayaran | `BKC-DEC-075` |
+| 2 | Badge status per baris item berhenti memakai status `belum_terverifikasi`; tersisa dua status normal — "Penjamin" dan "Tunai" — ditambah satu status khusus "Anomali Data" | `BKC-DEC-071`, `BKC-DEC-073` |
+| 3 | Ketika tagihan mengandung anomali data, layar menampilkan **peringatan di atas Ringkasan Pembayaran**, bukan baris subtotal | `BKC-DEC-073`, `BKC-DES-011` |
+| 4 | Peringatan itu menyebut nominal yang terdampak dan tindakan yang harus dilakukan, dalam kalimat yang dapat dibaca kasir | `BKC-DEC-073` |
+| 5 | Baris baru "Selisih Tidak Ditagihkan (kontrak penjamin)" muncul **hanya bila** nilainya lebih besar dari nol | `BKC-DES-013` |
+| 6 | `ExcessAmount` tidak lagi ditampilkan di mana pun | `BKC-DES-014` |
+| 7 | Subtotal Mandiri, Subtotal Asuransi, Pajak Mandiri, dan Pajak Asuransi tetap dijumlah **eksak** dari hasil per komponen, seperti yang sudah berjalan sejak `FE-BKC-FIX-008` | `BKC-DEC-070` |
+
+### Skema fitur layar — blok Ringkasan Pembayaran
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  [A]  Peringatan anomali data          (hanya bila ada)      │
+│       ⚠ Penjamin kunjungan ini belum dinyatakan layak.       │
+│         Rp 440.000 untuk sementara dibebankan ke pasien.     │
+│         Periksa data penjamin di Registrasi sebelum menagih. │
+├─────────────────────────────────────────────────────────────┤
+│  [B]  Ringkasan Pembayaran                                   │
+│       Subtotal Mandiri .................... Rp   440.000     │
+│       Subtotal Asuransi ................... Rp         0     │
+│       Pajak Mandiri ....................... Rp         0     │
+│       Pajak Asuransi ...................... Rp         0     │
+│       Selisih Tidak Ditagihkan ............ Rp         0  ←  │
+│         (baris ini hilang bila nilainya nol)                 │
+│       ─────────────────────────────────────────────────      │
+│       Total Tagihan ....................... Rp   440.000     │
+├─────────────────────────────────────────────────────────────┤
+│  [C]  Daftar item beserta badge status per baris             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong dan gagal |
+| --- | --- | --- | --- | --- |
+| `[A]` | Peringatan anomali data | `breakdown.coverage.hasDataAnomaly`, `dataAnomalyAmount`, `anomalyMessages` dari `GET .../calculation-preview` | `BillingInvoice : Read` | Bila `hasDataAnomaly` bernilai `false`, wilayah ini **tidak dirender sama sekali** — bukan dirender kosong |
+| `[B]` | Ringkasan Pembayaran | Dijumlah eksak dari `breakdown.items[].itemPrimaryAmount`/`taxPrimaryAmount` dan `breakdown.administrationFee`/`roomCharge.primaryAmount` | `BillingInvoice : Read` | Kalkulasi gagal → seluruh blok diganti `InformationAlert` merah berisi pesan dari backend apa adanya, bukan angka Rp 0 |
+| `[B]` baris "Selisih Tidak Ditagihkan" | Nominal residual yang tidak boleh ditagihkan ke pasien | `breakdown.coverage.unresolvedAmount` | `BillingInvoice : Read` | Bernilai nol → baris tidak dirender |
+| `[C]` | Badge status per baris | `breakdown.items[].itemPrimaryAmount`, `itemDataAnomalyAmount`, `taxPrimaryAmount`, `taxDataAnomalyAmount` | `BillingInvoice : Read` | Item tidak ditemukan di `breakdown.items` → badge "Tunai" (lebih aman daripada menebak "Penjamin") |
+
+### Aturan penentuan badge per baris
+
+Diturunkan langsung dari `contracts/permission-audit-matrix.md` dan dari `BKC-DES-010`; bukan dikarang di layar.
+
+| Urutan periksa | Kondisi | Badge | Catatan |
+| ---: | --- | --- | --- |
+| 1 | `itemDataAnomalyAmount + taxDataAnomalyAmount > 0` | **Anomali Data** | Diperiksa lebih dulu karena ia menjelaskan kenapa baris lain terlihat "Tunai" |
+| 2 | `itemPrimaryAmount + taxPrimaryAmount > 0` | **Penjamin** | Ada rupiah yang benar-benar ditanggung penjamin untuk baris ini |
+| 3 | selain itu | **Tunai** | Termasuk baris tanpa aturan yang cocok dan baris `NotCovered` — keduanya memang tanggungan pasien (`BKC-DEC-072`) |
+
+Status `belum_terverifikasi` pada `BILLING_ITEM_COVERAGE_BADGE_CONFIG` **diganti namanya** menjadi `anomali_data` dengan label "Anomali Data". Ini bukan penambahan status baru: setelah `BKC-DEC-071`, satu-satunya sebab tersisa untuk baris yang bukan Penjamin dan bukan Tunai adalah anomali data.
+
+> **Contoh berangka.** Invoice rawat jalan pasien asuransi berisi tiga item. "Konsultasi Dokter Umum" Rp 100.000 dengan aturan `Covered` 100% → badge **Penjamin**, Subtotal Asuransi Rp 100.000. "Fisioterapi" Rp 300.000 dengan aturan `Covered` 80% → badge **Penjamin**, Rp 240.000 ke Subtotal Asuransi dan Rp 60.000 ke Subtotal Mandiri. "Vitamin C tablet" Rp 25.000 tanpa aturan yang cocok → badge **Tunai**, Rp 25.000 ke Subtotal Mandiri. Ringkasan: Subtotal Mandiri Rp 85.000, Subtotal Asuransi Rp 340.000, Total Rp 425.000. Baris "Penjamin Belum Terverifikasi" tidak ada, dan baris "Selisih Tidak Ditagihkan" juga tidak muncul karena `IsAllowExcessPaymentByPatient` bernilai bawaan `true`.
+
+### Aksi per peran
+
+Tidak ada aksi baru. Peringatan anomali data bersifat **informatif** — ia tidak menonaktifkan tombol pembayaran, tidak menonaktifkan finalisasi, dan tidak menambah tombol apa pun (`BKC-OQ-086` mengangkat pertanyaan apakah finalisasi seharusnya diblokir; sampai dijawab, jawabannya tidak).
+
+| Peran | Yang dapat dilakukan saat anomali data muncul |
+| --- | --- |
+| Kasir | Melihat peringatan, tetap dapat menerima pembayaran, dan diharapkan menghubungi Pendaftaran |
+| Supervisor Billing | Sama seperti kasir |
+| Petugas Pendaftaran | Membetulkan data penjamin di modul Registrasi (di luar layar ini) |
+
+### Penanganan keadaan
+
+| Keadaan | Yang dilihat kasir |
+| --- | --- |
+| Memuat | Kerangka blok ringkasan, bukan layar kosong — tidak berubah dari sekarang |
+| Kosong (invoice belum punya item) | Seluruh subtotal Rp 0, tanpa peringatan anomali, tanpa baris "Selisih Tidak Ditagihkan" |
+| Gagal memuat kalkulasi | `InformationAlert` merah berisi pesan backend; blok ringkasan tidak dirender dengan angka nol |
+| Anomali data | `InformationAlert` **kuning** (`variant="warning"`) di wilayah `[A]`, ditambah badge "Anomali Data" pada baris yang terdampak |
+| Data basi | Tidak berubah — kalkulasi diminta ulang setiap layar dibuka |
+| Pengiriman ganda | Tidak berubah — tombol pembayaran dinonaktifkan selama permintaan berjalan |
+| Tanpa hak akses | `AccessDeniedGate` seperti sekarang |
+
+### Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Baris "Penjamin Belum Terverifikasi" dihapus | **Terkunci** oleh `BKC-DEC-075` |
+| Anomali data tampil sebagai peringatan, bukan baris subtotal | **Terkunci** oleh `BKC-DES-011` |
+| Urutan baris di dalam Ringkasan Pembayaran | `DEV_DISCRETION` |
+| Pilihan varian `InformationAlert` (kuning versus biru) untuk peringatan anomali | `DEV_DISCRETION` dengan rekomendasi `warning` — biru terbaca sebagai informasi biasa, merah terbaca sebagai kegagalan sistem, sedangkan ini adalah masalah data yang perlu ditindaklanjuti orang |
+| Kalimat persis pada peringatan | **Terkunci sebagian**: kalimatnya datang dari backend (`anomalyMessages`), layar hanya merangkainya. Layar **MUST NOT** mengarang kalimatnya sendiri |
+| Token warna badge "Anomali Data" | `DEV_DISCRETION`, dengan rekomendasi memakai ulang `region-status-pending` yang sudah dipakai `belum_terverifikasi` — tidak ada nilai visual literal baru |
+
+### Yang sengaja tidak dibuat (frontend)
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tombol "Perbaiki Data Penjamin" yang menautkan ke modul Registrasi | Navigasi lintas modul dari layar kasir belum pernah diminta dan menuntut keputusan pemilik kedua modul |
+| Menonaktifkan tombol pembayaran saat anomali data | Menahan pasien di kasir karena kesalahan data pendaftaran; `BKC-DEC-073` tidak memintanya |
+| Menampilkan kode anomali mentah (`PAYER_NOT_ELIGIBLE`) di layar | Kode adalah kunci program. Yang dibaca kasir adalah `anomalyMessages` |
+| Menghitung ulang status coverage di browser | Dua tempat memutuskan angka yang sama; yang tercetak di dokumen itulah yang akan dianggap salah |
+
+### Acceptance tambahan
+
+40. Untuk invoice pasien asuransi yang seluruh datanya normal, baris "Penjamin Belum Terverifikasi" **tidak ada** di Ringkasan Pembayaran, dan Subtotal Mandiri + Subtotal Asuransi + Pajak Mandiri + Pajak Asuransi menjumlah persis ke Total Tagihan.
+41. Untuk invoice yang penjaminnya belum `IsEligible`, muncul peringatan kuning di atas Ringkasan Pembayaran yang menyebut nominal terdampak, dan seluruh nominal itu tampil di Subtotal Mandiri — bukan di baris tersendiri.
+42. Pada invoice yang sama, tombol pembayaran tetap aktif dan pembayaran tetap dapat diselesaikan.
+43. Item yang tidak punya aturan coverage yang cocok menampilkan badge "Tunai", bukan "Menunggu Verifikasi", dan nominalnya masuk Subtotal Mandiri.
+44. Item dengan aturan `Covered` yang menandai `IsNeedApproval` atau mengisi `MaxAmountPerMonth` menampilkan badge "Penjamin" dan nominalnya masuk Subtotal Asuransi — bukan lagi tertahan.
+45. Baris "Selisih Tidak Ditagihkan (kontrak penjamin)" muncul hanya pada invoice yang punya aturan dengan `IsAllowExcessPaymentByPatient = false` dan residual lebih besar dari nol.
+46. Untuk invoice rawat inap yang berisi obat/alkes, kolom Pajak Mandiri dan Pajak Asuransi keduanya Rp 0, dan tidak ada baris pajak di rincian item.
+47. Untuk invoice rawat jalan dan IGD yang berisi obat/alkes, pajak tetap muncul dan terbagi mengikuti status coverage item obatnya.

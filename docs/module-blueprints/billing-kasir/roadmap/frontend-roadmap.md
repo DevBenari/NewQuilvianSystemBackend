@@ -266,6 +266,78 @@ Diperbaiki lewat task ad-hoc `BE-BKC-FIX-002` (source + migration data disiapkan
 migration ke database tetap wewenang pengguna). Lihat `task/report/backend/BE-BKC-FIX-002.md`
 dan `task/report/frontend/FE-BKC-FIX-006.md` (update lanjutan).
 
+**Status 4 September 2026**: pengujian langsung pengguna atas invoice Allianz nyata (setelah
+`BE-BKC-FIX-002` di-rebuild) menemukan DUA masalah baru: (1) badge status per item kembali salah
+(semua "Penjamin") karena `coverable` (kategori) jadi `true` di mana-mana setelah `BE-BKC-FIX-002`,
+menghapus daya beda yang tadinya disediakan `FE-BKC-FIX-006`; (2) Subtotal Mandiri/Asuransi
+(FE-BKC-016) diam-diam menggelembungkan Mandiri sebesar jumlah yang masih "Penjamin Belum
+Terverifikasi". Root cause sama: waterfall coverage cuma mengembalikan total gabungan, bukan per
+komponen. Diperbaiki lewat task ad-hoc `BE-BKC-FIX-003` (backend, melacak hasil per komponen) +
+`FE-BKC-FIX-008` (frontend, badge 3-status dan split eksak) - disetujui pengguna lewat
+`AskUserQuestion`. **Belum diverifikasi hidup** - menunggu backend di-rebuild ulang dan frontend
+dev server restart. Lihat `task/report/backend/BE-BKC-FIX-003.md` dan
+`task/report/frontend/FE-BKC-FIX-008.md`.
+
+**Status 4 September 2026 (lanjutan)**: pengujian lebih lanjut pada invoice yang sama memunculkan
+dua keputusan bisnis baru (backend murni, tidak ada perubahan frontend) — disetujui lewat
+`AskUserQuestion` — dan diselesaikan lewat `BE-BKC-FIX-004`: (1) item tanpa rule asuransi SAMA
+SEKALI otomatis Mandiri (bukan lagi "Menunggu Verifikasi"); (2) PPN Obat/Alkes memperhitungkan
+rawat jalan vs rawat inap, bukan cuma kategori. Belum diverifikasi hidup. Lihat
+`task/report/backend/BE-BKC-FIX-004.md`.
+
+**Status 4 September 2026 (lanjutan 2)**: pengguna menambahkan dua rule Allianz baru menyasar
+kategori Drug/Pharmacy (`ItemType="ServiceCategory"` + `TariffCategoryId`) — item Drug tetap
+"Tunai" di Menu Pembayaran walau dropdown preview tarif sudah benar menunjukkan "Tercover" untuk
+rule yang sama. Root cause BACKEND murni: `RegistrationBillingCoverageAdapter.Matches()` memakai
+gerbang tunggal `rule.ItemType == component.CoverageItemType`, yang memaksa item kategori
+Pharmacy/Drug/Consumable-Alkes SELALU bertag `"Drug"` sebelum dimensi `TariffCategoryId` sempat
+diperiksa — beda dengan engine preview (`InsuranceCoverageService.FindCoverageRuleAsync`) yang
+memakai OR-chain per-dimensi tanpa gerbang tunggal. Diperbaiki lewat task ad-hoc `BE-BKC-FIX-005`
+— `Matches()` diselaraskan ke pola OR-chain `InsuranceCoverageService` persis. Belum diverifikasi
+hidup — menunggu backend di-rebuild. Lihat `task/report/backend/BE-BKC-FIX-005.md`.
+
+**Status 4 September 2026 (lanjutan 3)**: setelah `BE-BKC-FIX-005` di-rebuild dan diverifikasi hidup
+(item Drug sekarang benar "Penjamin"), pengguna mengubah rule Radiology jadi CoveragePercent=75/
+CoPaymentPercent=25 dan bertanya kenapa Subtotal Mandiri masih ada padahal badge "Penjamin" —
+diverifikasi lewat query backend langsung: perhitungan SUDAH benar (co-payment rule memang membuat
+sebagian item tetap jadi tanggungan pasien meski berbadge "Penjamin"). Pengguna lalu meminta fitur
+baru: info nominal co-payment ditampilkan di tabel item, untuk semua item coverage asuransi yang
+tidak 100%. Diselesaikan lewat `FE-BKC-FIX-009` — baris "Co-payment pasien: Rp{nominal}" muncul di
+bawah badge "Penjamin" untuk item yang residual pasiennya >0, murni REUSE `styles.sectionHint`.
+Source selesai, lint bersih, **belum diverifikasi hidup** (dev server Turbopack belum reload -
+staleness, bukan bug). Temuan sampingan (dilaporkan, belum diperbaiki): `CalculateCoveredAmount()`
+menumpuk `CoveragePercent` dan `CoPaymentPercent` sebagai DUA pengurang independen (75% dikurangi
+25% lagi dari eligible = hasil akhir cuma 50%, bukan 75%) - menunggu keputusan pengguna apakah ini
+memang dimaksudkan atau perlu diperbaiki jadi pasangan komplementer. Lihat
+`task/report/frontend/FE-BKC-FIX-009.md`.
+
+**Status 4 September 2026 (lanjutan 4)**: pengguna mengonfirmasi temuan sampingan `FE-BKC-FIX-009`
+§ 5 — `CoveragePercent` dan `CoPaymentPercent` seharusnya SALING MELENGKAPI (jumlah 100), bukan dua
+pengurang independen; `CoveragePercent` jadi satu-satunya input, `CoPaymentPercent` dihitung
+otomatis. Diselesaikan (BACKEND murni) lewat `BE-BKC-FIX-006` — `CalculateCoveredAmount()` (billing)
+dan `ResolveTariffInternalAsync` (preview tarif, KEDUA engine diselaraskan sama seperti pelajaran
+`BE-BKC-FIX-005`) tidak lagi mengurangi `CoPaymentPercent` secara terpisah; `InsuranceCoverageRuleController`
+kini menurunkan `CoPaymentPercent` server-side dari `CoveragePercent` (`100 - CoveragePercent`),
+mengabaikan nilai yang dikirim client. Data lama tidak perlu migrasi - cukup buka+simpan ulang rule
+lewat form. **Belum diverifikasi hidup** — menunggu rebuild. Lihat `task/report/backend/BE-BKC-FIX-006.md`.
+Dependency frontend diselesaikan lewat `FE-BKC-FIX-010` — field "Persentase Co-Payment" pada form
+master data Insurance Coverage Rule (create/update) kini read-only, nilainya otomatis mengikuti
+`100 - Persentase Coverage` secara live (REUSE override `getFieldDisabled`/`getDisabledReason`
+yang sudah disediakan `BaseGroupedEditorForm` lewat `formProps`), dan rule LAMA yang datanya sudah
+tidak konsisten langsung menampilkan nilai turunan yang benar begitu form dibuka. Source selesai,
+lint bersih, **belum diverifikasi hidup** (dev server Turbopack belum reload). Lihat
+`task/report/frontend/FE-BKC-FIX-010.md`.
+
+**Status 4 September 2026 (lanjutan 5)**: permintaan pengguna langsung, independen dari investigasi
+coverage/PPN — kolom "Satuan" pada tabel item Menu Pembayaran selalu "-" untuk semua item karena
+`InvoiceItemResponse` (`GET .../invoices/{id}`, sumber tabel item, BEDA dari `breakdown.items[]`
+calculation-preview) tidak punya field Unit sama sekali. Diselesaikan (BACKEND murni, tidak ada
+perubahan frontend - field sudah dibaca `item?.unit`) lewat `BE-BKC-FIX-007` — untuk item kategori
+Drug/Pharmacy/Consumable-Alkes (`Category.IsPharmacy`), `Unit` kini diisi `MeasurementName` lewat
+rantai `Tariff.Drug.DispenseUnitMeasurement` (navigation property sudah ada, tanpa migration).
+Kategori lain/item tanpa TariffId tetap null → frontend fallback "-" seperti sebelumnya. **Belum
+diverifikasi hidup** — menunggu rebuild backend. Lihat `task/report/backend/BE-BKC-FIX-007.md`.
+
 **Status 3 September 2026 (lanjutan 7)**: permintaan UX langsung pengguna diselesaikan lewat task
 ad-hoc `FE-BKC-FIX-007` — tombol "Batal" tidak lagi `router.push` ke daftar invoice, sekarang
 murni mereset form di tempat (`setForm(buildEmptyForm())`, pola sama dengan reset pasca-submit

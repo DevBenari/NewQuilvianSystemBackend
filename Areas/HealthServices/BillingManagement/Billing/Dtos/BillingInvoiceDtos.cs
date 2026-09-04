@@ -216,6 +216,13 @@ public sealed class InvoiceItemResponse
     public string CategoryName { get; set; } = string.Empty;
 
     public string DescriptionSnapshot { get; set; } = string.Empty;
+
+    // Enhancement (di luar roadmap, permintaan langsung pengguna): hanya terisi untuk item
+    // berkategori Drug/Pharmacy/Consumable-Alkes (Category.IsPharmacy) - MeasurementName dari
+    // MstDrug.DispenseUnitMeasurementId lewat Tariff.Drug.DispenseUnitMeasurement. Null untuk
+    // kategori lain atau item tanpa TariffId (SourceDomain "ADHOC"/domain lama).
+    public string? Unit { get; set; }
+
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DoctorShare { get; set; }
@@ -379,6 +386,13 @@ public sealed class AdministrationFeeCalculationResponse
     public int ReplacementPriority { get; set; }
     public bool Coverable { get; set; }
     public bool ReplacesEarlierFee { get; set; }
+
+    // Bug fix (di luar roadmap, laporan pengguna): hasil ATURAN sesungguhnya dari waterfall
+    // coverage untuk komponen ini (bukan cuma Coverable di atas - itu hanya kelayakan tingkat
+    // kategori) - dipakai split Subtotal/Pajak Mandiri-Asuransi eksak. Porsi Patient komponen ini
+    // = AppliedAmount - PrimaryAmount - UnresolvedAmount.
+    public decimal PrimaryAmount { get; set; }
+    public decimal UnresolvedAmount { get; set; }
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini
@@ -394,6 +408,11 @@ public sealed class RoomChargeCalculationResponse
     public decimal AppliedAmount { get; set; }
     public bool LeaveRuleEnforced { get; set; }
     public IReadOnlyList<RoomChargeSegmentResponse> Segments { get; set; } = [];
+
+    // Bug fix (di luar roadmap, laporan pengguna): sama seperti AdministrationFeeCalculationResponse
+    // - hasil waterfall coverage sesungguhnya, bukan cuma kelayakan tingkat kategori.
+    public decimal PrimaryAmount { get; set; }
+    public decimal UnresolvedAmount { get; set; }
 }
 
 public sealed class RoomChargeSegmentResponse
@@ -426,6 +445,24 @@ public sealed class CalculationItemResponse
     public decimal TaxAmount { get; set; }
     public decimal NetAmount { get; set; }
     public bool Coverable { get; set; }
+
+    // Bug fix (di luar roadmap, permintaan pengguna): PPN di Indonesia hanya dikenakan atas
+    // penyerahan barang (obat-obatan dan alat kesehatan/alkes) - jasa pelayanan kesehatan
+    // dikecualikan (Pasal 4A UU PPN). IsPharmacy dipakai ApplyInvoiceTax untuk membatasi basis
+    // pajak hanya ke item kategori Pharmacy/Drug/Consumable-Alkes.
+    public bool IsPharmacy { get; set; }
+
+    // Bug fix (di luar roadmap, laporan pengguna): hasil waterfall coverage SESUNGGUHNYA untuk
+    // item ini, dipisah komponen ITEM (basis GrossAmount-ItemDiscount, pra-pajak) dan komponen
+    // TAX-nya sendiri (basis TaxAmount) - keduanya dicocokkan rule SECARA TERPISAH di backend,
+    // jadi bisa berakhir di bucket berbeda (mis. item-nya coverable tapi pajaknya sendiri tidak,
+    // tergantung TaxComponentCoverable/AllocationRule). Porsi Patient masing-masing = basisnya -
+    // Primary - Unresolved. Dipakai badge status per baris DAN split Subtotal/Pajak
+    // Mandiri-Asuransi di Menu Pembayaran, menggantikan pendekatan proporsional/heuristik lama.
+    public decimal ItemPrimaryAmount { get; set; }
+    public decimal ItemUnresolvedAmount { get; set; }
+    public decimal TaxPrimaryAmount { get; set; }
+    public decimal TaxUnresolvedAmount { get; set; }
 }
 
 public sealed class TaxCalculationResponse

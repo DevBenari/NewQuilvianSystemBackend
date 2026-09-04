@@ -63,3 +63,80 @@ Setiap slice harus menyertakan test command dan hasil, request/response tersanit
 ### Bukti keluar tambahan
 
 Selain bukti keluar yang sudah berlaku, slice ini **MUST** menyertakan: satu contoh response `insurance-invoice-document` yang sudah disanitasi (nama dan nomor diganti data samaran) untuk masing-masing dari empat keadaan `payerKind`, hasil pemeriksaan teks yang membuktikan tidak ada field terlarang pada payload (`BIL-AT-035`), dan satu berkas PDF hasil cetak yang memperlihatkan seluruh kolom tabel terbaca utuh pada kertas A4. Approval blueprint bukan bukti test.
+
+---
+
+## Amendment 4 September 2026 — Pembagian tanggungan, anomali data, dan gerbang PPN
+
+`last_changed_in: BIL-TEST-0.6` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+
+| ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-036` | `BKC-DEC-071` | Item dengan aturan `Covered` 100% yang menandai `IsNeedApproval = true` | Domain/Integration | Seluruh nominal masuk `primaryAmount`; `unresolvedAmount` nol; badge baris "Penjamin" |
+| `BIL-AT-037` | `BKC-DEC-071` | Item dengan aturan `Covered` 80% yang mengisi `MaxAmountPerMonth = 500000` | Domain/Integration | 80% masuk `primaryAmount`, 20% ke pasien; `unresolvedAmount` nol. **Jalur gagal yang harus TIDAK terjadi**: nominal tertahan seluruhnya seperti perilaku lama |
+| `BIL-AT-038` | `BKC-DEC-072` | Item yang tidak punya satu pun aturan yang cocok | Domain/Integration | Seluruh nominal menjadi porsi pasien; `unresolvedAmount` nol; `dataAnomalyAmount` nol; badge "Tunai" |
+| `BIL-AT-039` | `BKC-DEC-072` | Item dengan aturan eksplisit `CoverageStatus = "NotCovered"` dan `IsAllowExcessPaymentByPatient = true` | Domain | Seluruh nominal menjadi porsi pasien; badge "Tunai" |
+| `BIL-AT-040` (**dikoreksi 4 Sep 2026**) | `BKC-DEC-074`, ~~`BKC-DES-013`~~ **`BKC-DEC-080`**, `BKC-DES-021` | Item dengan aturan `Covered` 70% dan `IsAllowExcessPaymentByPatient = false` | Domain | 70% ke `primaryAmount`; 30% ke **`nonBillableResidualAmount`** — **bukan** ke `unresolvedAmount`, yang wajib nol pada skenario ini; porsi pasien nol. Layar kasir tetap menampilkan baris "Selisih Tidak Ditagihkan" berisi 30% itu, karena baris tersebut menjumlah kedua field |
+| `BIL-AT-041` | `BKC-DEC-073`, `BKC-DES-011` | Kunjungan asuransi dengan `IsEligible = false`, biaya coverable Rp 440.000 | Integration | Perhitungan **berhasil** (`200`); `dataAnomalyAmount = 440000`; `anomalyCodes = ["PAYER_NOT_ELIGIBLE"]`; seluruh nominal jatuh ke porsi pasien; `primaryAmount` nol |
+| `BIL-AT-042` | `BKC-DEC-073` | Kunjungan asuransi dengan `IsPolicyActive = false` | Integration | Kode `POLICY_INACTIVE`; perilaku nominal sama dengan `BIL-AT-041` |
+| `BIL-AT-043` | `BKC-DES-012`, `BIL-VAL-036` | Jalur `REJECTED` dipaksa terjadi tanpa `dataAnomalyAmount` terisi (uji negatif, disimulasikan) | Unit/Domain | `422` beserta pesan "Coverage yang ditolak tidak boleh otomatis dipindahkan ke pasien tanpa policy kontrak." Versi kalkulasi baru **tidak** dibuat |
+| `BIL-AT-044` | `BKC-DEC-078` | Invoice rawat inap (`ServiceType = "RANAP"`) berisi obat Rp 1.000.000 dan kamar Rp 2.000.000, tarif PPN aktif 11% | Integration | `taxes` kosong; `taxAmount` setiap item nol; total Rp 3.000.000 — **bukan** Rp 3.110.000 |
+| `BIL-AT-045` | `BKC-DEC-078` | Invoice rawat jalan (`ServiceType = "RAJAL"`) berisi obat Rp 1.000.000 yang sama | Integration | PPN Rp 110.000 dikenakan; total Rp 1.110.000 |
+| `BIL-AT-046` | `BKC-DEC-079` | Invoice IGD (`ServiceType = "IGD"`) berisi obat yang sama | Integration | PPN Rp 110.000 dikenakan — sama seperti rawat jalan, **bukan** dibebaskan |
+| `BIL-AT-047` | `BKC-DEC-077` | Invoice rawat jalan pasien asuransi, obat ditanggung 100%, `MstTaxRule.AllocationRule = "PROPORTIONAL"` | Integration | `taxPrimaryAmount` item obat itu sama dengan seluruh nilai PPN-nya; Pajak Asuransi Rp 110.000, Pajak Mandiri Rp 0 |
+| `BIL-AT-048` | `BKC-DEC-077` | Invoice rawat jalan pasien asuransi, obat **tidak** ditanggung (`NotCovered`), `AllocationRule = "PROPORTIONAL"` | Integration | `taxPrimaryAmount` nol; seluruh PPN menjadi porsi pasien. **Jalur gagal yang harus TIDAK terjadi**: PPN ikut ke asuransi (perilaku `GUARANTOR`) |
+| `BIL-AT-049` | `BKC-DES-016` | Invoice yang membentuk komponen pajak biaya administrasi **dan** komponen pajak biaya kamar sekaligus, keduanya tanpa `PolicyId` | Unit | Perhitungan tidak melempar `ArgumentException` kunci ganda. Uji ini **MUST** dijalankan dengan basis pajak diperluas secara paksa, karena pada konfigurasi berjalan keduanya tidak pernah terbentuk |
+| `BIL-AT-050` | `BKC-DES-017` | Membaca versi kalkulasi yang ditulis sebelum pembaruan (snapshot tanpa field baru) | Unit | Deserialisasi berhasil; `isPerItemAllocationAvailable` bernilai `false`; seluruh field baru bernilai nol tanpa galat |
+| `BIL-AT-051` | `BKC-DES-019` | Invoice dengan `ServiceType = "MCU"` berisi obat | Integration | PPN **dikenakan** (daftar bebas pajak hanya memuat `"RANAP"`). Hasil uji ini **MUST** dilampirkan pada `BKC-OQ-083` sebagai bahan keputusan pemilik produk |
+| `BIL-AT-052` | `BIL-VAL-028` | Invoice dengan tiga item tercover dan biaya administrasi tercover | Integration | Jumlah `itemPrimaryAmount + taxPrimaryAmount` seluruh baris ditambah `primaryAmount` biaya administrasi sama persis dengan `coverage.primaryAmount` |
+| `BIL-AT-053` | `BKC-DEC-075` | Membuka Menu Pembayaran untuk invoice asuransi yang seluruh datanya normal | E2E | Baris "Penjamin Belum Terverifikasi" **tidak ada** di markup. Subtotal Mandiri + Subtotal Asuransi + Pajak Mandiri + Pajak Asuransi menjumlah persis ke Total Tagihan |
+| `BIL-AT-054` | `BKC-DEC-073` | Membuka Menu Pembayaran untuk invoice beranomali | E2E | Peringatan kuning tampil di atas Ringkasan Pembayaran; tombol pembayaran **tetap aktif**; pembayaran dapat diselesaikan sampai tuntas |
+
+### Regresi yang wajib diperiksa
+
+| Yang diperiksa | Kenapa berisiko |
+| --- | --- |
+| Total tagihan pasien tunai tidak berubah sama sekali | Jalur `SelfPay()` tidak disentuh amendment ini, tetapi ketiga titik pembentukan `BillingCoverageDecision` berubah bersamaan — kesalahan urutan argumen pada `record` posisional akan terlihat justru di jalur yang paling sering dipakai |
+| Kwitansi dan Struk Pasien tetap mencetak angka yang sama untuk invoice `FINAL` yang sudah ada | Snapshot terkunci tidak boleh ikut berubah. Bila angkanya bergeser, berarti ada yang menghitung ulang invoice yang seharusnya tidak dihitung ulang |
+| Invoice rawat inap yang sudah `FINAL` tetap memuat PPN lamanya | Pembebasan PPN berlaku ke depan, bukan surut |
+| Badge per baris pada invoice pasien tunai tetap "Tunai" untuk semua baris | Jalur `SelfPay()` mengembalikan daftar outcome kosong; layar **MUST** menafsirkan kekosongan itu sebagai "seluruhnya pasien", bukan sebagai "data belum termuat" |
+| Cap `MaxAmountPerVisit` dan `MaxQuantityPerVisit` masih berlaku | `BKC-DEC-071` mencabut limit **bulanan** saja. Mencabut limit per kunjungan sekalian adalah kesalahan yang mudah terjadi karena keduanya bertetangga di kode |
+| Galat "lebih dari satu tax rule aktif" masih muncul pada invoice rawat inap | Gerbang PPN ditempatkan di `ApplyInvoiceTax`, bukan di `LoadInvoiceTaxRuleAsync`, justru supaya salah konfigurasi tetap terdeteksi pada kunjungan yang pajaknya dibebaskan |
+
+### Bukti keluar tambahan
+
+Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijalankan — dua task ad-hoc yang mendahului amendment ini (`BE-BKC-FIX-003`, `FE-BKC-FIX-008`) berstatus `AUTOMATED TEST: BLOCKED` dan **belum pernah dibangun sekalipun**, sehingga slice ini tidak boleh dinyatakan selesai tanpa build yang lulus; (2) satu tangkapan layar Menu Pembayaran untuk invoice beranomali yang sudah disanitasi; (3) perbandingan angka sebelum dan sesudah untuk satu invoice rawat inap berisi obat, memperlihatkan PPN yang hilang beserta nominalnya; (4) hasil pemeriksaan nilai `MstTaxRule.AllocationRule` yang aktif di lingkungan uji. Approval blueprint bukan bukti test.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
+
+`last_changed_in: BIL-TEST-0.7` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+
+| ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-055` | `BKC-DEC-080`, `BKC-DES-021`, `BKC-DES-022` | Tindakan Rp 100.000 dengan aturan `Covered` 70% dan `IsAllowExcessPaymentByPatient = false` | Domain/Integration | `primaryAmount = 70000`; `nonBillableResidualAmount = 30000`; `unresolvedAmount = 0`; `patientAmount = 0`; Total Tagihan tetap Rp 100.000. **Jalur gagal yang harus TIDAK terjadi**: Rp 30.000 masuk `unresolvedAmount` (perilaku revisi `0.7`) atau masuk porsi pasien |
+| `BIL-AT-056` | `BKC-DEC-070`, `BKC-DES-022` | Tindakan Rp 100.000 dengan aturan `Covered` 70% dan `IsAllowExcessPaymentByPatient = true` | Domain | `primaryAmount = 70000`; `patientAmount = 30000`; `nonBillableResidualAmount = 0`. Uji pasangan untuk `BIL-AT-055`: membuktikan cabang `true` **tidak** ikut berpindah |
+| `BIL-AT-057` | `BKC-DES-023` | Membuka `GET .../calculation-preview` sepuluh kali berturut-turut pada tagihan yang memuat residual non-billable | Integration | Jumlah baris `BilWriteOffCase` untuk invoice itu **tetap nol**. Ini uji negatif inti `BKC-DES-023`: mesin kalkulasi tidak boleh melahirkan kasus write-off, sebanyak apa pun layar dibuka |
+| `BIL-AT-058` | `BKC-DEC-080`, `BKC-DES-024`, `BIL-VAL-040` | Tagihan dengan `nonBillableResidualAmount = 30000` dan outstanding pasien Rp 85.000. Diajukan write-off `NON_BILLABLE_RESIDUAL` sebesar Rp 45.000 | Integration | `422` "Nominal write-off melebihi selisih yang tidak dapat ditagihkan pada tagihan ini." Plafonnya Rp 30.000, **bukan** Rp 85.000. **Jalur gagal yang harus TIDAK terjadi**: pengajuan lolos karena diuji terhadap outstanding pasien |
+| `BIL-AT-059` | `BKC-DEC-036`, `BKC-DES-024` | Tagihan yang sama; write-off `NON_BILLABLE_RESIDUAL` Rp 30.000 diajukan pengaju A dan disetujui penyetuju B | Integration | Kasus menjadi `POSTED`; **outstanding pasien tetap Rp 85.000**; status invoice **tidak berpindah**; sisa residual menjadi Rp 0. **Jalur gagal yang harus TIDAK terjadi**: outstanding turun menjadi Rp 55.000, atau invoice menjadi `SETTLED_BY_WRITE_OFF` |
+| `BIL-AT-060` | `BIL-VAL-017`, `BIL-VAL-041`, `BIL-VAL-042` | Tiga uji negatif berurutan pada tagihan yang sama: (a) pengaju menyetujui pengajuannya sendiri; (b) pengajuan `NON_BILLABLE_RESIDUAL` dengan `IsFullSettlement = true`; (c) pengajuan dengan `category = "WRITE_OFF_LAIN"` | Integration | (a) `422` "Pengaju write-off tidak boleh menyetujui pengajuannya sendiri."; (b) `422` `BIL-VAL-041`; (c) `422` `BIL-VAL-042` — **bukan** diterima diam-diam sebagai `PATIENT_AR` |
+| `BIL-AT-061` | `BKC-DEC-036`, `BKC-DES-024` | Reversal atas kasus `NON_BILLABLE_RESIDUAL` yang sudah `POSTED` pada `BIL-AT-059` | Integration | `BilAdjustment` `Debit` terbentuk menunjuk kasus aslinya; **outstanding pasien tetap Rp 85.000** (tidak naik); invoice **tidak** dipaksa ke `OPEN`; sisa residual kembali menjadi Rp 30.000 dan dapat diajukan ulang. Histori kasus **tidak** dihapus |
+
+### Regresi yang wajib diperiksa
+
+| Yang diperiksa | Kenapa berisiko |
+| --- | --- |
+| Write-off piutang pasien yang sudah berjalan berperilaku persis seperti sebelumnya | Kolom `Category` berbawaan `PATIENT_AR`, tetapi penyaringan baru pada `CalculateOutstandingAsync` menyentuh perhitungan uang yang dipakai seluruh alur pembayaran. Satu kesalahan penyaringan membuat write-off lama berhenti mengurangi outstanding |
+| Full write-off piutang pasien masih memindahkan invoice ke `SETTLED_BY_WRITE_OFF` | Penjaga status kini bercabang kategori. Mudah sekali cabangnya ditulis terbalik, dan salahnya baru terlihat pada tagihan yang benar-benar dilunasi lewat write-off |
+| Reversal write-off piutang pasien masih mengembalikan invoice ke `OPEN` | Pengecualian adjustment reversal kini bersyarat kategori. Bila syaratnya terlalu luas, reversal write-off pasien berhenti membuka kembali AR |
+| Angka yang dilihat kasir pada baris "Selisih Tidak Ditagihkan" tidak berubah sama sekali | Nominalnya berpindah field, dan layar menjumlah kedua field. Bila layar lupa menjumlah salah satunya, kasir melihat selisih menghilang tanpa ada yang mengubah tagihan |
+| Total Tagihan, Subtotal Mandiri, dan Subtotal Asuransi tidak bergeser satu rupiah pun | Amendment ini **tidak** dimaksudkan mengubah nilai apa pun. Setiap pergeseran nominal pada regresi ini berarti suku yang seharusnya hanya berpindah nama ternyata ikut berubah besarnya |
+| Jalur `SelfPay()` dan jalur anomali data tetap mengembalikan `nonBillableResidualAmount = 0` | `BillingCoverageDecision` adalah `record` posisional dan bertambah satu argumen. Kesalahan urutan argumen paling mudah terjadi di sini dan paling terlambat ketahuan |
+| Jalur `NotCovered` + `IsAllowExcessPaymentByPatient = false` **masih** mengisi `unresolvedAmount` | Jalur (2) sengaja tidak disentuh (`BKC-OQ-093`). Ikut memindahkannya berarti mengarang keputusan bisnis yang tidak pernah diambil pemiliknya |
+
+### Bukti keluar tambahan
+
+Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijalankan dan lulus; (2) bukti migration dibuat **dan direview**, disertai pemeriksaan bahwa kedua kolom baru bernilai bawaan pada seluruh baris lama; (3) perbandingan angka sebelum dan sesudah untuk satu tagihan yang memuat residual non-billable, memperlihatkan Total Tagihan dan outstanding pasien **tidak berubah**; (4) hasil pemeriksaan berapa banyak baris `MstInsuranceCoverageRule` aktif yang bernilai `IsAllowExcessPaymentByPatient = false` di lingkungan uji — angka itu adalah perkiraan beban kerja write-off Finance dan menjadi bahan penilaian kelayakan pemicu manual (`BKC-DES-023`); (5) satu contoh kasus write-off residual yang telah melewati pengajuan, persetujuan oleh orang kedua, dan reversal, dengan seluruh jejak auditnya sudah disanitasi. Approval blueprint bukan bukti test.
+
+Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`.

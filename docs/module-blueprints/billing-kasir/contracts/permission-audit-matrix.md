@@ -56,3 +56,50 @@ Atribut lengkap yang **MUST** disalin implementer apa adanya:
 **Kolom sensitif yang dilewati endpoint ini** dan karena itu **MUST NOT** masuk payload log mana pun, termasuk log galat: `FullName`, `MedicalRecordNumber`, `PolicyNumberSnapshot`, `MemberNumberSnapshot`, `DescriptionSnapshot`. Field yang secara sengaja **tidak** dibaca sama sekali sehingga tidak mungkin bocor: `CardNumberSnapshot`, `MstInsuranceProvider.PicName`/`PicPhoneNumber`/`PicWhatsAppNumber`/`PicEmail`, `MstInsuranceCoverageRule.RuleCode`/`RuleName`/`ApprovalInstruction`/`BillingInstruction`.
 
 Trace `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`. Tests `BIL-AT-033`, `BIL-AT-035`.
+
+---
+
+## Amendment 4 September 2026 — Anomali data penjamin dan gerbang PPN
+
+`last_changed_in: BIL-PERMISSION-0.6` · status **draft** · owner Security dan process owner · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+
+### Hak akses — tidak ada butir baru
+
+Amendment ini **tidak** menambah Resource, Action, maupun endpoint. Seluruh field baru terbawa oleh dua endpoint yang sudah terdaftar di layar Akses Role, dan pemetaannya sudah hidup di kolom `Hak akses` pada `api-contract.md`. Turunannya dihitung, tidak ditulis ulang di sini:
+
+- string atributnya `[AccessPermission("BillingInvoice", "Read")]` untuk `calculation-preview`, dan `[AccessPermission("BillingInvoice", "Update")]` untuk `recalculate`;
+- pencatatan logger mengikuti konvensi project — `GET` tidak dicatat, selain `GET` dicatat.
+
+**Tidak ada pengecualian** terhadap kedua turunan itu pada amendment ini.
+
+### Peta peran ke kemampuan baru
+
+| Peran rumah sakit | Yang dapat dilihat/dilakukan | Pasangan Resource dan Action |
+| --- | --- | --- |
+| Kasir | Melihat peringatan anomali data dan nominal terdampak; tetap dapat menerima pembayaran | `BillingInvoice : Read` |
+| Supervisor Billing | Sama seperti kasir, ditambah memicu hitung ulang | `BillingInvoice : Read`, `BillingInvoice : Update` |
+| Petugas Pendaftaran | **Tidak** mendapat kemampuan baru di modul ini. Pembetulan data penjamin terjadi di modul Registrasi dengan hak aksesnya sendiri | — |
+| Admin Master Data | **Tidak** mendapat kemampuan baru. Koreksi `MstTaxRule.AllocationRule` memakai hak akses Tax Rule yang sudah ada | `TaxRule : Update` |
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Yang **tidak** dijaganya | Risiko |
+| --- | --- | --- | --- |
+| "Jangan menagih pasien untuk tagihan yang datanya anomali" | Peringatan di layar saja | Mesin hak akses tidak mencegah kasir menerima pembayaran atas tagihan beranomali, dan `BKC-DEC-073` tidak memintanya dicegah | Pasien membayar penuh untuk biaya yang seharusnya ditanggung asuransi, karena kolom `IsEligible` lupa dicentang. Koreksinya lewat refund. Lihat `BKC-OQ-086` |
+| "Aturan pajak yang aktif harus `PROPORTIONAL`" | Tidak ada penjaga | Kode membaca `AllocationRule` apa adanya dari master (`BKC-DES-020`). Admin yang berwenang dapat menyetelnya ke `PATIENT` atau `GUARANTOR` tanpa peringatan apa pun | Seluruh PPN obat/alkes rawat jalan salah dialokasikan, dan salahnya tidak terlihat karena angkanya tetap menjumlah. Lihat `BKC-OQ-088` |
+| "Care setting tagihan harus benar" | Tidak ada penjaga di Billing | `BilInvoice.ServiceType` adalah snapshot; Billing tidak dapat menilai apakah Registrasi mendaftarkan kunjungan dengan jenis yang benar | Tagihan rawat inap yang salah didaftarkan sebagai rawat jalan akan dikenai PPN yang seharusnya dibebaskan |
+
+### Audit
+
+| Kejadian | Lapisan | Jejak yang wajib tertinggal |
+| --- | --- | --- |
+| Perhitungan ulang yang dipersist dengan anomali data terdeteksi | `BilCalculationVersion.BreakdownSnapshot` | Kode anomali ikut tersimpan di dalam JSON snapshot, sehingga versi kalkulasi itu selamanya dapat menjelaskan kenapa nominalnya jatuh ke pasien |
+| Perhitungan ulang yang dipersist | Custom logger (`POST recalculate`) | `InvoiceId`, versi sebelum/sesudah, alasan, aktor. **Ditambah** daftar `anomalyCodes` bila ada |
+| Pratinjau perhitungan (`GET calculation-preview`) | Tidak dicatat | Konvensi project. Akibatnya: tidak ada jejak siapa **melihat** peringatan anomali, hanya jejak siapa **menyimpan** kalkulasi yang mengandungnya |
+| Perubahan `MstTaxRule.AllocationRule` | Custom logger master data yang sudah ada | Nilai sebelum/sesudah, aktor. Ini satu-satunya jejak yang akan menjelaskan pergeseran alokasi PPN di kemudian hari |
+
+### Kolom sensitif dan masa simpan
+
+Payload log **MUST NOT** memuat `FullName`, `MedicalRecordNumber`, `PolicyNumberSnapshot`, `MemberNumberSnapshot`, maupun `DescriptionSnapshot`. Yang **boleh** masuk log adalah `InvoiceId` dan kode anomali (`PAYER_NOT_ELIGIBLE` dan sekerabatnya) — keduanya tidak mengidentifikasi pasien maupun mengungkap isi polis. Kalimat `anomalyMessages` juga **MUST NOT** masuk log, walaupun isinya tidak memuat data pasien, karena ia dibentuk untuk layar dan dapat berubah tanpa pemberitahuan.
+
+Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.

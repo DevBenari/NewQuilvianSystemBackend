@@ -33,3 +33,31 @@ Kedua bacaan di atas adalah panggilan langsung `ApplicationDbContext` dalam pros
 **Yang tidak ditambahkan:** tidak ada kontrak baru Billing → pihak asuransi. Dokumen ini dicetak dan diserahkan secara manual (`BKC-DEC-065`: pola presentasi sama dengan Kwitansi, PDF di browser). Pengiriman klaim elektronik ke perusahaan asuransi tetap milik `InsuranceManagement` (`PLANNED`) dan tetap `INS-DEC-005` yang belum diputuskan.
 
 Trace `BKC-DEC-065`–`069`, `BKC-DES-009`. Tests `BIL-AT-031`, `BIL-AT-034`.
+
+---
+
+## Amendment 4 September 2026 — Bacaan care setting dan status penjamin
+
+`last_changed_in: BIL-INTEGRATION-0.6` · status **draft** · owner Registration + Billing + Finance/Tax · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+
+### Yang berubah pada kontrak integrasi yang sudah ada
+
+| ID | Producer → Consumer | Yang berubah | Dampak |
+| --- | --- | --- | --- |
+| `BIL-INT-001` | Registration → Billing | **Tidak berubah bentuknya**, tetapi konsekuensi datanya menguat. `IsEligible`, `IsPolicyActive`, dan `InsuranceProviderId` pada `TrxPatientEncounterGuarantor` kini menentukan apakah tagihan menampilkan peringatan anomali data ke kasir. Sebelumnya kesalahan pada ketiganya berakhir sebagai angka yang tidak dapat dijelaskan; kini ia berakhir sebagai kalimat yang menyebut Registrasi | Registrasi **MUST** diberi tahu bahwa ketiga kolom itu sekarang terlihat dampaknya di layar kasir |
+| `BIL-INT-001` | Registration → Billing | `EncounterType` menjadi **penentu basis pajak**, lewat snapshot `BilInvoice.ServiceType` yang dibuat saat invoice dibuka. Koreksi `EncounterType` **setelah** invoice dibuka **tidak** mengubah basis pajak tagihan itu | Bila sebuah kunjungan salah didaftarkan sebagai rawat jalan padahal rawat inap, tagihannya akan tetap dikenai PPN sampai invoicenya dibatalkan dan dibuat ulang. Ini konsekuensi yang disengaja dari `BKC-DES-018` |
+| `BIL-INT-005` | Pricing/Coverage → Billing | Hasil penilaian penjamin kini membawa **rincian per komponen** dan **daftar anomali**, bukan hanya total | Konsumen internal (`BillingCalculationService`) sudah menyesuaikan; tidak ada konsumen luar |
+| `BIL-INT-010` | `InsuranceCoverageService` (Clinical) → Billing | **Tidak berubah.** Layanan advisory itu masih membaca `IsNeedApproval`, `IsNeedGuaranteeLetter`, `MaxAmountPerMonth`, dan `MaxQuantityPerMonth` untuk badge di layar entri | **Selisih yang MUST diketahui**: setelah `BKC-DEC-071`, badge advisory di layar entri dapat menunjukkan "butuh approval" sementara perhitungan tagihan sudah menanggungnya penuh. Keduanya menjawab pertanyaan berbeda, tetapi bagi pengguna keduanya terlihat bertentangan. Lihat `BKC-OQ-087` |
+
+### Bacaan baru yang tidak menambah kontrak
+
+| Yang dibaca | Dari | Cara | Alasan tidak menjadi kontrak baru |
+| --- | --- | --- | --- |
+| `BilInvoice.ServiceType` | Tabel milik modul ini sendiri | Properti pada entity yang sudah dimuat | Bukan lintas modul |
+| `MstTaxRule.AllocationRule` | Billing Master Data | `LoadInvoiceTaxRuleAsync`, sudah ada | Sudah dibaca sebelum amendment ini; yang berubah hanya **nilainya** |
+
+### Yang tidak ditambahkan
+
+Tidak ada pesan, outbox, dead-letter, maupun rekonsiliasi baru. Seluruh bacaan di atas adalah panggilan `ApplicationDbContext` dalam satu proses yang sama, dan tidak ada penulisan yang dapat gagal separuh jalan. Tidak ada kontrak baru Billing → pihak asuransi maupun Billing → kantor pajak; pelaporan PPN tetap berjalan lewat proses keuangan yang sudah ada di luar modul ini.
+
+Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.

@@ -444,7 +444,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus),
                 CoveragePercent = request.CoveragePercent,
                 MaxCoverageAmount = request.MaxCoverageAmount,
-                CoPaymentPercent = request.CoPaymentPercent,
+                // Keputusan pengguna (di luar roadmap): CoveragePercent dan CoPaymentPercent
+                // saling melengkapi (selalu berjumlah 100) - CoveragePercent satu-satunya input
+                // yang dipercaya dari client, CoPaymentPercent SELALU diturunkan server-side di
+                // sini, mengabaikan apa pun yang dikirim client untuk field ini (authoritative,
+                // supaya panggilan API langsung tidak bisa menyimpan pasangan yang tidak
+                // konsisten walau frontend sudah dibuat read-only untuk field ini).
+                CoPaymentPercent = Math.Clamp(100m - Math.Clamp(request.CoveragePercent, 0m, 100m), 0m, 100m),
                 CoPaymentAmount = request.CoPaymentAmount,
                 IsNeedApproval = request.IsNeedApproval,
                 IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
@@ -540,7 +546,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus);
             entity.CoveragePercent = request.CoveragePercent;
             entity.MaxCoverageAmount = request.MaxCoverageAmount;
-            entity.CoPaymentPercent = request.CoPaymentPercent;
+            // Lihat komentar pada CreateInsuranceCoverageRule - CoPaymentPercent selalu
+            // diturunkan server-side dari CoveragePercent, tidak dipercaya dari client.
+            entity.CoPaymentPercent = Math.Clamp(100m - Math.Clamp(request.CoveragePercent, 0m, 100m), 0m, 100m);
             entity.CoPaymentAmount = request.CoPaymentAmount;
             entity.IsNeedApproval = request.IsNeedApproval;
             entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
@@ -971,8 +979,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (request.MaxCoverageAmount.HasValue && request.MaxCoverageAmount.Value < 0)
                 return (false, "Max coverage amount tidak boleh kurang dari 0.");
 
-            if (request.CoPaymentPercent.HasValue && (request.CoPaymentPercent.Value < 0 || request.CoPaymentPercent.Value > 100))
-                return (false, "Co payment percent harus berada di antara 0 sampai 100.");
+            // CoPaymentPercent tidak lagi divalidasi dari client - selalu diturunkan server-side
+            // dari CoveragePercent (lihat CreateInsuranceCoverageRule/UpdateInsuranceCoverageRule),
+            // jadi apa pun yang dikirim client untuk field ini diabaikan dan selalu valid by
+            // construction setelah derivasi.
 
             if (request.CoPaymentAmount.HasValue && request.CoPaymentAmount.Value < 0)
                 return (false, "Co payment amount tidak boleh kurang dari 0.");

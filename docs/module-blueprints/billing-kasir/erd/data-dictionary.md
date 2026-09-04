@@ -141,3 +141,15 @@ Tabel-tabel berikut berstatus `Sudah ada` dan **tidak** berubah; hanya kolom kun
 | `OfficeAddress` | `string(500)?` | — | Tidak | Alamat tujuan, dicetak pada dokumen |
 | `IsActive` | `bool` | — | Tidak | Hanya perusahaan aktif yang dibaca |
 | `PicName`, `PicPhoneNumber`, `PicWhatsAppNumber`, `PicEmail`, `BillingInstruction`, `ClaimInstruction` | berbagai | — | Tidak | **MUST NOT dibaca amendment ini** — data operasional internal, bukan bagian lembar tagihan |
+
+---
+
+## Amendment 4 September 2026 — pindah ke `data/data-dictionary.md`
+
+Amendment 4 September 2026 (`BKC-DEC-070`–`079`, `BKC-DES-010`–`020`) **tidak menambah tabel, kolom, maupun migration**. Perubahan kontrak datanya seluruhnya berada di dalam JSON `BilCalculationVersion.BreakdownSnapshot` dan pada kolom-kolom yang berhenti atau mulai dibaca — dan itu dicatat di lokasi kamus data yang berlaku menurut struktur keluaran blueprint saat ini:
+
+> **[`../data/data-dictionary.md`](../data/data-dictionary.md)**
+
+Berkas ini (`erd/data-dictionary.md`) tetap memegang kamus data **baseline** — seluruh kolom tabel `Bil*`, empat master policy, skema DDL, dan kolom milik modul lain yang dibaca dokumen Invoice Asuransi. Isinya **tidak** disalin ke lokasi baru, supaya tidak ada dua sumber kebenaran yang dapat saling menyimpang.
+
+Penyatuan keduanya ke satu lokasi adalah perubahan struktur yang menyentuh rujukan pada belasan berkas lain. Ia **MUST** dikerjakan sebagai revisi tersendiri oleh `/manage-module-blueprint`, bukan sebagai efek samping pass desain — lihat `BKC-OQ-089` pada [`../04-prd-to-mvp.md`](../04-prd-to-mvp.md).

@@ -785,3 +785,274 @@ oleh pengguna. **Blocker desain yang masih terbuka** (memblokir `IMPLEMENTATION`
 **Di luar scope — untuk modul lain**: konten resmi tab `Claim Letter` (milik `InsuranceManagement`,
 `PLANNED`); dukungan Company Guarantor pada dokumen ini (bisa jadi amendment terpisah bila
 dibutuhkan kelak).
+
+### Amendment lanjutan 4 September 2026 — Penghapusan bucket "Penjamin Belum Terverifikasi"
+
+Pengguna meminta label "Penjamin Belum Terverifikasi" (`unresolvedCoverageAmount`) pada Menu
+Pembayaran dihapus, dengan alasan awal: penjamin/asuransi pasien sudah diverifikasi dan
+mengikat sejak pendaftaran, dan dokter/perawat sudah tahu status coverage saat memilih
+tindakan, sehingga bucket "menunggu verifikasi" dianggap tidak relevan lagi — "jika item adalah
+item yg dicover asuransi maka, langsung masuk ke sub total asuransi."
+
+**Temuan sebelum bertanya**: `RegistrationBillingCoverageAdapter.ResolveAsync`
+(`BillingCoverageAdapter.cs`) menggeser amount ke `unresolved` lewat LIMA jalur berbeda, bukan
+satu: (1) tidak ada rule yang match, (2) rule eksplisit `CoverageStatus=NotCovered`, (3) rule
+`CoverageStatus=NeedApproval` atau ada `MaxAmountPerMonth`/`MaxQuantityPerMonth`, (4)
+`payment source` tidak `IsEligible`/`IsPolicyActive`/`InsuranceProviderId` kosong, (5) residual
+dari `CalculateCoveredAmount` (`CoveragePercent<100`, `CoPayment`, `MaxCoverageAmount`) saat
+`!IsAllowExcessPaymentByPatient`. Temuan ini dikonfirmasikan lewat serangkaian pertanyaan
+klarifikasi sebelum keputusan final diambil, karena kelima jalur itu punya semantik bisnis
+yang berbeda dan sebagian bertentangan dengan keputusan yang **sudah approved**
+(`BKC-DEC-062`, formula Subtotal Mandiri/Asuransi).
+
+**Konflik yang ditemukan dan diluruskan selama sesi**: jawaban awal pengguna sempat meminta
+jalur (1) "tidak ada rule match" dan jalur (2) "NotCovered" ikut dipaksa masuk Subtotal
+Asuransi — ini membalik separuh formula `BKC-DEC-062` yang sudah disetujui Product/Domain
+Owner 2 September 2026 ("Tidak Tercover" = NotCovered ATAU tidak ada rule cocok → Subtotal
+Mandiri). Setelah konflik ini ditunjukkan eksplisit, pengguna mengoreksi jawabannya: kedua
+jalur itu TETAP mengikuti `BKC-DEC-062` apa adanya (Subtotal Mandiri), tidak berubah. Pesan
+lanjutan pengguna pada giliran berikutnya ("perhitungan sub total asuransi mengikuti aturan
+coverage dan copayment di atas", disertai tangkapan layar form master data Insurance Coverage
+Rule bagian "Coverage dan Co-Payment": Persentase Coverage, Maksimal Coverage, Persentase
+Co-Payment, Nominal Co-Payment) menegaskan ulang bahwa jalur (5) — residual dari field-field
+itu — juga TETAP ke pasien, tidak berubah dari `CalculateCoveredAmount` yang sudah ada.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-070` | Decision | Subtotal Asuransi tetap dihitung PERSIS mengikuti field Coverage dan Co-Payment pada `MstInsuranceCoverageRule` yang match (`CoveragePercent`, `MaxCoverageAmount`, `CoPaymentPercent`, `CoPaymentAmount`, lewat `CalculateCoveredAmount` yang sudah ada) — TIDAK berubah dari perilaku saat ini. Residual dari pembagian ini (co-payment, cap `MaxCoverageAmount`) tetap menjadi Subtotal Mandiri/tanggungan pasien, konsisten `BKC-DEC-062`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "perhitungan sub total asuransi mengikuti aturan coverage dan copayment di atas" + tangkapan layar form Coverage dan Co-Payment |
+| `BKC-DEC-071` | Decision | Gating `CoverageStatus=NeedApproval`/`IsNeedGuaranteeLetter` DAN `MaxAmountPerMonth`/`MaxQuantityPerMonth` dihapus TOTAL dari `ResolveAsync`. Rule `Covered` yang match SELALU langsung dihitung sesuai `BKC-DEC-070` dan masuk Subtotal Asuransi, tidak lagi ditunda ke `unresolved` menunggu approval atau pemeriksaan limit bulanan. Ini MENGGANTIKAN bagian `BKC-DEC-062` yang sebelumnya secara eksplisit mempersempit pelepasan gating HANYA ke flag approval dan tetap mempertahankan `MaxAmountPerMonth`/`MaxQuantityPerMonth` sebagai gate — pemeriksaan limit bulanan itu sekarang dihapus juga. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Jawaban eksplisit: "tidak lagi digeser ke bucket terpisah — semua ikut masuk subtotal asuransi juga", dikonfirmasi ulang setelah pertanyaan klarifikasi |
+| `BKC-DEC-072` | Decision | Jalur (1) "tidak ada rule match" dan jalur (2) rule eksplisit `NotCovered` TETAP TIDAK masuk Subtotal Asuransi — tetap Subtotal Mandiri, TIDAK BERUBAH dari `BKC-DEC-062`. Alasan: tidak ada rule berarti item belum dipetakan di master data (bukan bukti dicover), dan `NotCovered` adalah keputusan eksplisit bahwa asuransi tidak menanggung; memaksa keduanya ke Subtotal Asuransi berisiko klaim ditolak insurer dan piutang tak tertagih. Jawaban awal pengguna yang sempat meminta sebaliknya untuk kedua jalur ini DIRALAT eksplisit setelah konflik dengan `BKC-DEC-062` ditunjukkan. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, dengan ralat) | `approved` | Jawaban awal lalu diralat setelah konflik dgn `BKC-DEC-062` ditunjukkan eksplisit; jawaban final: "NotCovered TETAP tidak masuk subtotal asuransi" dan "Tetap Subtotal Mandiri, konsisten BKC-DEC-062" |
+| `BKC-DEC-073` | Decision | Jalur (4) — precondition `payment source` tidak `IsEligible`/tidak `IsPolicyActive`/`InsuranceProviderId` kosong — dan kasus encounter data tidak ditemukan (`encounter is null`) TETAP DICEK di code, TIDAK dihapus. Keduanya direklasifikasi sebagai kategori "anomali data" terpisah dari Subtotal Mandiri/Asuransi normal (bentuk teknis persis — field/flag/log — adalah keputusan desain, bukan keputusan bisnis pass ini). Alasan: kondisi ini bukan "item tidak dicover", melainkan tanda ada yang salah di data pendaftaran/registrasi; menghapus pengecekannya berarti data provider tidak eligible akan diam-diam diklaim ke asuransi sebagai valid. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tetap dicek, tapi jadi kategori 'anomali data' terpisah" |
+| `BKC-DEC-074` | Decision | Field `IsAllowExcessPaymentByPatient` pada `MstInsuranceCoverageRule` TETAP dipakai runtime (bukan dead field) — tetap relevan sebagai penentu residual `NotCovered`/co-payment (`BKC-DEC-070`, `BKC-DEC-072`) menjadi tanggungan pasien atau tidak, karena kedua jalur itu tetap berlaku seperti sebelumnya. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tetap dipertahankan dan tetap dipakai runtime" |
+| `BKC-DEC-075` | Decision | Tampilan "Penjamin Belum Terverifikasi" pada Menu Pembayaran (FE, `menu-pembayaran-view.jsx`) dan field `UnresolvedAmount`/`ExcessAmount` pada `BillingCoverageDecision` DIHAPUS dari tampilan/kalkulasi normal — nilai `unresolved` yang tersisa setelah `BKC-DEC-070`–`072` diterapkan seharusnya mendekati nol untuk alur normal (hanya `BKC-DEC-073`, anomali data, yang masih bisa mengisinya). Field/response itu TIDAK dihapus total dari kontrak backend; disisakan sebagai sinyal anomali data (`BKC-DEC-073`), bukan ditampilkan sebagai baris subtotal pembayaran normal ke user. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Dihapus dari tampilan normal, tapi tetap ada fallback untuk error data" |
+
+**Status pass ini**: keenam keputusan di atas (`BKC-DEC-070`–`075`) sudah dijawab eksplisit,
+termasuk satu konflik dengan keputusan approved (`BKC-DEC-062`, jalur no-rule-match) yang
+ditunjukkan ke pengguna dan diluruskan lewat ralat eksplisit sebelum dikunci — bukan diam-diam
+diselaraskan oleh agent. **Dampak bersih terhadap kode saat ini** ternyata jauh lebih sempit
+dari permintaan awal ("hilangkan itu" untuk seluruh bucket): yang benar-benar berubah hanya
+jalur (3) — gating `NeedApproval`/limit bulanan dihapus total — dan reklasifikasi jalur (4)
+jadi kategori anomali data terpisah. Jalur (1), (2), (5) tidak berubah dari perilaku approved
+saat ini.
+
+**Blocker desain yang masih terbuka** (memblokir `IMPLEMENTATION`, tidak memblokir `DESIGN`
+lanjutan):
+
+- Bentuk teknis persis "kategori anomali data" (`BKC-DEC-073`) — apakah tetap field
+  `UnresolvedAmount`/`ExcessAmount` yang sama dengan makna dipersempit, field baru terpisah
+  (mis. `DataAnomalyAmount`), atau exception/log tanpa mengubah bentuk angka pada response —
+  belum dirancang. Ini keputusan arsitektur backend, cocok dilanjutkan lewat
+  `/design-business-module`.
+- Apakah label "Penjamin Belum Terverifikasi" di FE dihapus total dari markup, atau diganti
+  label lain untuk kasus anomali data (`BKC-DEC-073`) bila baris itu ternyata > 0 — belum
+  digali; `DEV_DISCRETION` sementara dengan rekomendasi dihapus total dari tampilan normal dan
+  anomali data dilaporkan lewat jalur lain (log/alert), bukan baris subtotal pembayaran yang
+  dilihat kasir/pasien.
+- `BKC-DEC-071` menggantikan sebagian `BKC-DEC-062` (pelepasan gating limit bulanan). Karena
+  `BKC-DEC-062` disetujui dengan CAVEAT wewenang (owner asli `BKC-DEC-042` adalah
+  Payer/Insurance + Finance/AR, approval yang diberikan dari Product/Domain Owner tanpa
+  konfirmasi terpisah — lihat baris `BKC-DEC-062`), caveat yang sama berlaku untuk
+  `BKC-DEC-071`: dicatat apa adanya sebagai provenance, bukan disembunyikan; bila pemilik asli
+  keberatan di kemudian hari, perlu ditinjau ulang.
+- `blueprint-manifest.md` (revision `0.6`) belum diperbarui untuk mencantumkan
+  `BKC-DEC-070`–`075`; pembaruannya milik `/manage-module-blueprint` atau
+  `/design-business-module`, bukan pass ini.
+
+**Di luar scope — untuk modul lain**: mekanisme verifikasi penjamin saat pendaftaran pasien
+(modul Registrasi/Pendaftaran) — pass ini hanya mengubah cara `billing-kasir` MENAMPILKAN dan
+MENGKALKULASI hasil dari status penjamin yang sudah ada, bukan proses verifikasi itu sendiri.
+
+### Amendment lanjutan 4 September 2026 — Penutupan `CAP-07` (alokasi PPN obat/alkes)
+
+`CAP-07` ("Nilai `AllocationRule` pada `MstTaxRule` yang aktif saat ini masih belum
+diverifikasi") sebelumnya ditunda eksplisit atas permintaan Product/Domain Owner 2 September
+2026. Pengguna membuka kembali topik ini di sesi yang sama dengan `BKC-DEC-070`–`075` (basis
+Subtotal Asuransi), sehingga ditutup sekarang selagi konteksnya sama.
+
+Pengguna menyatakan: "Pajak PPN itu akan dikenakan untuk obat/alkes tidak peduli di ranap,
+rajal, igd dll. dan tidak memperdulikan pasien tunai dan pasien asuransi. selain obat dan alkes
+maka ga akan dikenai pajak PPN, sesuai UU di indonesia." Pernyataan ini menjawab KAPAN PPN
+berlaku (basis pajak = kategori item, bukan unit atau tipe pasien) — sudah konsisten dengan
+implementasi berjalan (`ApplyInvoiceTax`, basis dibatasi ke `item.IsPharmacy=true`, lihat
+komentar kode `BillingCalculationService.cs:740-747` yang mengutip Pasal 4A UU PPN). Ini BUKAN
+jawaban untuk pertanyaan `CAP-07` yang sebenarnya (kemana rupiah PPN itu ikut dialokasikan
+setelah dihitung) — dua hal berbeda, diklarifikasi terpisah ke pengguna sebelum dikunci.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-076` | Decision | Basis PPN TETAP hanya item `IsPharmacy=true` (obat/alat kesehatan), berlaku sama di seluruh unit (ranap/rajal/IGD/dll.) dan tidak bergantung tipe pasien (tunai/asuransi) — mengonfirmasi implementasi berjalan, tidak ada perubahan kode untuk poin ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Pajak PPN itu akan dikenakan untuk obat/alkes tidak peduli di ranap, rajal, igd dll. dan tidak memperdulikan pasien tunai dan pasien asuransi... sesuai UU di indonesia" |
+| `BKC-DEC-077` | Decision | Menutup `CAP-07`, DIREVISI setelah koreksi teknis (lihat evidence): (1) pasien tunai — PPN obat/alkes dibebankan ke pasien; (2) pasien asuransi, obat/alkes DICOVER — PPN-nya ikut ditanggung asuransi; (3) pasien asuransi, obat/alkes TIDAK dicover (rule `NotCovered`/tidak ada rule match, `BKC-DEC-072`) — PPN-nya tetap dibebankan ke pasien, BUKAN ke asuransi. Ini setara `MstTaxRule.AllocationRule = PROPORTIONAL` pada rule PPN yang aktif, BUKAN `GUARANTOR` — jawaban pertama pengguna sempat disederhanakan agent jadi "ikut ke asuransi" secara blanket dan dipetakan ke `GUARANTOR`, tapi `GUARANTOR` berarti PPN SELALU ke asuransi walau item tidak dicover/pasien tunai, yang salah untuk kasus (1) dan (3). Kesalahan pemetaan ini ditemukan dan dikoreksi sebelum dikunci. Mekanisme `TaxComponentCoverable()` dengan default case `PROPORTIONAL` (`BillingCalculationService.cs:1029-1037`) sudah mendukung persis perilaku ini di kode — komponen `TAX` memakai granularitas identik dengan item obat/alkes-nya (`tariffId`/`drugId` sama, `BillingCalculationService.cs:883`) sehingga otomatis kena rule coverage dan `CoveragePercent` yang sama. Ini murni keputusan NILAI MASTER DATA (rule PPN aktif harus di-set/diverifikasi `AllocationRule=PROPORTIONAL`), bukan perubahan kode. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, dengan revisi) | `approved` | Revisi eksplisit: "1. Apabila pasien tunai... akan dikenakan ke pasien. 2. Apabila pasien pakai asuransi, pajak ppn dari obat/alkes yg dicover asuransi maka akan ditanggung asuransi. Namun, jika pasien asuransi mendapatkan obat/alkes yg tidak dicover, maka pajak ppnnya ditanggung oleh pasien itu sendiri" |
+
+**Status**: `CAP-07` DITUTUP oleh `BKC-DEC-076`–`077` (nilai final `PROPORTIONAL`, BUKAN
+`GUARANTOR` — koreksi dicatat apa adanya sebagai bagian dari provenance keputusan, bukan
+disembunyikan). **Blocker verifikasi yang masih terbuka** (bukan keputusan bisnis, cocok untuk
+`/trace-existing-capabilities` atau pengecekan data langsung sebelum implementasi selesai):
+memastikan baris `MstTaxRule` yang aktif sekarang di database benar-benar bernilai
+`AllocationRule=PROPORTIONAL` — bila ternyata `Patient` atau `Guarantor`, perlu dikoreksi lewat
+mekanisme master data (bukan hardcode di kode), karena `LoadInvoiceTaxRuleAsync` mengambil rule
+aktif apa adanya dari tabel.
+
+### Amendment lanjutan 4 September 2026 — Revisi `BKC-DEC-076`: faktor rawat jalan vs rawat inap
+
+Pengguna merevisi `BKC-DEC-076` pada giliran berikutnya di sesi yang sama, disertai tabel:
+"Jadi faktor penentunya cuma satu: rawat jalan vs rawat inap." Ini BUKAN penyempurnaan kecil —
+bertentangan langsung dengan klaim eksplisit `BKC-DEC-076` bahwa PPN "berlaku sama di seluruh
+unit (ranap/rajal/IGD/dll.)". Sebelum dikunci, ditanyakan satu titik yang belum tercakup tabel
+pengguna: posisi IGD (sebelumnya eksplisit disebut `BKC-DEC-076`, sedangkan tabel revisi cuma
+memuat dua baris rajal/ranap).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-078` | Decision | **MEREVISI dan MENGGANTIKAN bagian `BKC-DEC-076`** yang menyatakan unit tidak berpengaruh. Faktor penentu kena/bebas PPN obat-alkes BUKAN semata `item.IsPharmacy=true`, melainkan DITAMBAH care setting encounter: **Rawat Jalan (termasuk IGD)** → kena PPN, berlaku baik item dicover asuransi maupun dibayar mandiri/excess. **Rawat Inap** → PPN DIBEBASKAN sepenuhnya, berlaku baik item dicover asuransi maupun dibayar mandiri — tipe pembayaran sama sekali tidak relevan untuk rawat inap karena tidak ada PPN yang dikenakan. `BKC-DEC-077` (alokasi `PROPORTIONAL` berdasar payer) TETAP berlaku tapi jadi HANYA relevan untuk transaksi rawat jalan/IGD yang memang kena PPN — untuk rawat inap tidak ada nominal PPN sama sekali untuk dialokasikan. **Dampak teknis (bukan lagi murni master data seperti catatan `BKC-DEC-077` sebelumnya)**: basis pajak di `ApplyInvoiceTax`/`BillingCalculationService.cs` saat ini HANYA mengecek `item.IsPharmacy`, tidak pernah melihat encounter/`PatientClass`/care setting sama sekali — kondisi rawat jalan vs rawat inap ini adalah GERBANG BARU yang belum ada di kode dan perlu dirancang (bukan sekadar nilai `AllocationRule` yang sudah didukung). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Tabel eksplisit: "rawat jalan, dicover asuransi → Ya, tetap kena PPN; rawat jalan, dibayar mandiri (excess) → Ya, tetap kena PPN; rawat inap, dicover asuransi → Dibebaskan; rawat inap, dibayar mandiri → Dibebaskan" |
+| `BKC-DEC-079` | Decision | IGD diperlakukan SAMA seperti rawat jalan untuk tujuan gerbang PPN ini (kena PPN) — bukan seperti rawat inap. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "IGD diperlakukan seperti rawat jalan (kena PPN)" dari 2 opsi bertanda rekomendasi |
+
+**Status**: `BKC-DEC-076` berstatus `superseded` untuk bagian klaim "berlaku sama di seluruh
+unit" — DIGANTIKAN oleh `BKC-DEC-078`–`079`. Bagian `BKC-DEC-076` yang TIDAK direvisi (basis
+tetap `item.IsPharmacy=true`, bukan seluruh kategori item) TETAP berlaku. `BKC-DEC-077` (alokasi
+`PROPORTIONAL` per payer) TETAP berlaku tanpa perubahan, hanya ruang lakunya menyempit ke
+transaksi yang memang kena PPN (rawat jalan/IGD).
+
+**PERINGATAN OPERASIONAL**: sebuah subagent desain (`/design-business-module`, dijalankan
+sesaat sebelum revisi ini) sedang/sudah merancang berdasarkan `BKC-DEC-076` versi LAMA yang
+menyatakan unit tidak berpengaruh. Rancangan itu perlu ditinjau ulang/dikoreksi terhadap
+`BKC-DEC-078`–`079` sebelum dianggap final — jangan diteruskan ke `/plan-module-delivery` tanpa
+peninjauan ulang ini.
+
+**Sumber definisi "Rawat Jalan" vs "Rawat Inap" untuk gerbang ini**: belum digali eksplisit —
+apakah berdasar `PatientClass`/`ServiceUnitId` pada `TrxPatientEncounter`, atau field lain.
+Ini blocker desain untuk `/design-business-module`, bukan keputusan bisnis pass ini.
+
+**Update**: `/design-business-module` sudah dijalankan setelah revisi ini (dikabari eksplisit
+lewat pesan lintas-agent sebelum agent tsb selesai) dan menutup pertanyaan sumber definisi di
+atas — gerbang dirancang membaca `BilInvoice.ServiceType` (field billing-owned yang sudah ada,
+sudah dipakai konsisten untuk room charge), dengan RANAP sebagai satu-satunya nilai yang
+dibebaskan; unit yang belum jelas statusnya default kena pajak. Lihat `02-backend-architecture.md`
+revisi `0.7` dan `flowcharts/ppn-obat-alkes.md`. **PERINGATAN OPERASIONAL di atas SUDAH SELESAI
+ditangani** — dicatat di sini agar terbaca statusnya, bukan dibiarkan menggantung.
+
+## Amendment lanjutan 4 September 2026 — Penutupan lima open question hasil `/design-business-module`
+
+`/design-business-module` (revisi blueprint `0.7`, draft) menghasilkan lima open question yang
+memblokir `/plan-module-delivery`: `BKC-OQ-082`–`085` dan `BKC-OQ-090`. Pass ini menutup
+seluruhnya lewat wawancara singkat ke Product/Domain Owner.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-080` | Decision | Menutup `BKC-OQ-084` (konflik nyata antara `BKC-DEC-070` dan `BKC-DEC-074`, ditemukan dan dilaporkan apa adanya oleh subagent desain, bukan diam-diam ditebak). Untuk rule yang match dengan residual (`CoveragePercent<100%`/`CoPayment`/`MaxCoverageAmount`) DAN `IsAllowExcessPaymentByPatient=false` pada rule tsb — residualnya BUKAN dibebankan ke pasien, melainkan menjadi kategori tidak-bisa-ditagih yang diproses lewat mekanisme Pengecualian Finansial/write-off yang sudah ada (`BKC-DEC-036`, `SETTLED_BY_WRITE_OFF`/pengurangan outstanding). `BKC-DEC-070` (residual ke pasien) TETAP berlaku sebagai DEFAULT hanya ketika `IsAllowExcessPaymentByPatient=true`; `BKC-DEC-074` (field tetap dipakai runtime) sekarang punya efek nyata yang konsisten alih-alih dekoratif. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Jadi write-off/Pengecualian Finansial, BUKAN ke pasien" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-081` | Decision | Menutup `BKC-OQ-090`. Kode belum ter-commit `BE-BKC-FIX-003`/`FE-BKC-FIX-008` (`BillingCoverageComponentOutcome`, sudah memuat perbaikan bug tabrakan `ComponentId` pada komponen TAX) DIJADIKAN BASIS implementasi — bukan dibuang. Sebelum di-commit lewat alur task normal, WAJIB ditinjau ulang kesesuaiannya terhadap seluruh keputusan sesi ini yang belum ada saat kode itu ditulis, khususnya gerbang PPN rawat jalan/rawat inap (`BKC-DEC-078`–`079`) dan kategori write-off (`BKC-DEC-080`). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Jadikan basis implementasi" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-082` | Decision | **KOREKSI SCOPE** (lihat catatan di bawah tabel) — TIDAK sepenuhnya menutup `BKC-OQ-085` seperti sempat diklaim saat pertanyaan diajukan ke pengguna. `BKC-OQ-085` di `blueprint-manifest.md` aslinya berbunyi "Hitungan dampak penurunan total tagihan rawat inap yang masih OPEN" — pertanyaan ANALISIS DAMPAK FINANSIAL (berapa rupiah pendapatan/PPN yang berkurang akibat pembebasan rawat inap), bukan pertanyaan MITIGASI RISIKO SALAH KATEGORI. Agent salah memparafrasekan pertanyaannya sebelum ditanyakan. Yang benar-benar diputuskan di sini HANYA mitigasi risiko salah kategori: ditambahkan validasi/warning eksplisit ketika `ServiceType` invoice RANAP diubah SETELAH item obat/alkes sudah ditambahkan ke invoice tsb. Bentuk teknis persis (blocking validation vs warning yang bisa diabaikan) adalah keputusan desain lanjutan. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tambahkan validasi/warning eksplisit" dipilih dari 2 opsi (bukan opsi rekomendasi "tidak perlu tambahan") |
+| `BKC-DEC-083` | Decision | Menutup `BKC-OQ-083`. MCU, Telemedicine, dan OTC diperlakukan SAMA seperti rawat jalan untuk gerbang PPN (`BKC-DEC-078`) — kena PPN, konsisten dengan aturan "hanya RANAP yang dibebaskan, selebihnya default kena pajak." Tidak ada pengecualian khusus untuk ketiga kanal ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ketiganya rawat jalan - kena PPN" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-084` | Decision | Menutup `BKC-OQ-082` SEBAGIAN — lihat CAVEAT WEWENANG di bawah tabel. `BKC-DES-010`–`020` (kategori anomali data, kontrak breakdown per-item, gerbang PPN rawat jalan/rawat inap) DISETUJUI Product/Domain Owner berdasarkan ringkasan hasil desain yang disampaikan dalam percakapan — status naik dari `draft` menjadi `approved`. Dasarnya: seluruh keputusan bisnis di balik `BKC-DES-010`–`020` (`BKC-DEC-070`–`083`) sudah dikunci eksplisit oleh Product/Domain Owner sepanjang sesi ini sebelum desain dijalankan; `BKC-DES-010`–`020` murni menerjemahkannya jadi bentuk teknis tanpa keputusan bisnis baru yang belum pernah dilihat owner. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Setujui sekarang berdasarkan ringkasan yang sudah disampaikan" dari 2 opsi bertanda rekomendasi |
+
+**CAVEAT WEWENANG untuk `BKC-DEC-084`**: `blueprint-manifest.md` mencatat `BKC-OQ-082` sebagai
+"Approval `BKC-DES-010`..`020` oleh Product/Domain Owner **DAN Finance/AR**, khususnya
+`BKC-DES-011`" — bukan Product/Domain Owner saja. `BKC-DES-011` secara spesifik menolak
+membuat "bucket uang ketiga" untuk nominal anomali dan membuat `PatientAmount` menyerap
+`DataAnomalyAmount` sepenuhnya (`BIL-VAL-036`) — artinya PASIEN yang menanggung kegagalan data
+milik sistem/registrasi, bukan rumah sakit yang menulis-off-kannya. Ini keputusan kebijakan
+finansial yang wilayahnya Finance/AR, sama seperti pola caveat `BKC-DEC-062`/`BKC-DEC-071`
+sebelumnya. Approval yang diberikan sesi ini tetap dari Product/Domain Owner TANPA konfirmasi
+terpisah dari Finance/AR — dicatat apa adanya sebagai provenance, bukan disembunyikan; bila
+Finance/AR keberatan di kemudian hari, `BKC-DES-011` (dan turunannya) perlu ditinjau ulang.
+
+**Status pass ini**: `BKC-OQ-082`, `083`, `084`, `090` DITUTUP PENUH oleh `BKC-DEC-080`,
+`081`, `083`, `084` (dengan caveat wewenang Finance/AR di atas untuk `BKC-DEC-084`).
+`BKC-OQ-085` **BELUM tertutup** — `BKC-DEC-082` hanya menjawab mitigasi risiko salah kategori
+(pertanyaan baru yang berguna), sedangkan pertanyaan analisis dampak finansial ASLI pada
+`BKC-OQ-085` masih terbuka, butuh Finance untuk menghitung proyeksi penurunan pendapatan/PPN
+akibat pembebasan rawat inap — bukan sesuatu yang bisa dijawab lewat wawancara keputusan
+bisnis biasa.
+
+**Tindak lanjut administratif** (bukan keputusan bisnis, dicatat sebagai pengingat): status
+`design_decision_status` pada `blueprint-manifest.md` dan baris status `BKC-DES-010`–`020` pada
+`02-backend-architecture.md` masih bertuliskan `draft` per revisi `0.7` — perlu disinkronkan
+jadi `approved` untuk mencerminkan `BKC-DEC-084`, beserta catatan caveat Finance/AR di atas.
+Ini update metadata murni, bukan desain ulang.
+
+## Amendment lanjutan 4 September 2026 — Penutupan caveat Finance/AR dan approval `BKC-DES-001`–`009`
+
+Pengguna secara eksplisit meminta caveat wewenang Finance/AR (`BKC-DEC-084`) dan approval
+`BKC-DES-001`–`009` (peninggalan revisi `0.6`, blocking question sejak amendment 3 September
+2026) ditangani sekarang, sebelum lanjut ke revisi desain berikutnya.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-085` | Decision | Menutup CAVEAT WEWENANG pada `BKC-DEC-084`. Pengguna mengonfirmasi eksplisit memegang wewenang Finance/AR SEKALIGUS Product/Domain Owner untuk modul `billing-kasir`. `BKC-DES-011` (nominal `DataAnomalyAmount` jatuh penuh ke pasien, TIDAK ditulis-off rumah sakit) dan seluruh `BKC-DES-010`–`020` kini disetujui PENUH dari kedua sisi wewenang — caveat DITUTUP, bukan sekadar dicatat sebagai risiko terbuka. | Product/Domain Owner + Finance/AR (persetujuan eksplisit dalam percakapan, wewenang ganda dikonfirmasi langsung) | `approved` | "Ya, saya berwenang - setujui sekarang" dari 2 opsi |
+| `BKC-DEC-086` | Decision | Menaikkan `BKC-DES-007` dari `DEV_DISCRETION` sementara menjadi keputusan terkonfirmasi: dokumen Invoice Asuransi memakai `InvoiceNumber` yang sudah ada, TIDAK membuat seri nomor dokumen baru (`BilNumberSeries`) khusus untuk dokumen ini. Alasan: dokumen ini bukan `Claim Letter` formal untuk pengajuan klaim resmi ke asuransi (tetap milik `InsuranceManagement`, `PLANNED`); `InvoiceNumber` sudah unik dan sudah tercetak konsisten di Kwitansi maupun Struk Pasien. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, pakai InvoiceNumber yang sudah ada" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-087` | Decision | Menyetujui BLANKET sisa `BKC-DES-001`, `003`–`006`, `008`–`009` (format `ComponentKey` teks beralamat komponen, flag boolean `IsPerItemAllocationAvailable`, porsi pajak dilipat ke baris induk lewat kolom `CoveredTaxAmount`, respons `200`+`PayerKind`+`IsPrintable=false` untuk kunjungan tunai/penjamin perusahaan alih-alih `422`, data polis dari kolom snapshot `TrxPatientEncounterGuarantor` bukan `MstPatientInsurance` terkini). Seluruhnya keputusan teknis yang menurunkan langsung dari `BKC-DEC-065`–`069` yang sudah disetujui 3 September 2026, tanpa keputusan bisnis baru di dalamnya. (`BKC-DES-002` TIDAK termasuk — sudah digugurkan dan digantikan `BKC-DES-015` sebelum pass ini.) | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Setujui blanket berdasarkan ringkasan" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: caveat Finance/AR pada `BKC-DEC-084` DITUTUP oleh `BKC-DEC-085`. Seluruh
+`BKC-DES-001`, `003`–`009` (blocking question sejak revisi `0.6`) DITUTUP oleh `BKC-DEC-086`–`087`.
+`BKC-DES-002` tidak relevan lagi (superseded). Dengan ini, **seluruh `BKC-DES-001`–`020` berstatus
+`approved`**, tidak ada satupun yang tersisa `draft`.
+
+**Yang TETAP terbuka setelah pass ini** (tidak disentuh, di luar permintaan eksplisit pengguna
+kali ini): pertanyaan analisis dampak finansial asli `BKC-OQ-085` (proyeksi penurunan
+pendapatan/PPN rawat inap — butuh Finance, bukan wawancara keputusan bisnis), ratifikasi bentuk
+blueprint `BKC-OQ-091` (ditandai tidak memblokir), dan gap desain `BKC-DEC-080` (write-off
+untuk residual non-billable) yang belum tertulis implementasinya di `02-backend-architecture.md`
+revisi `0.7`.
+
+## Amendment lanjutan 4 September 2026 — Approval `BKC-DES-021`–`025` (revisi `0.8`, addendum `BKC-DEC-080`)
+
+`/design-business-module` dijalankan sebagai addendum bedah (bukan pass baru) untuk menutup gap
+desain `BKC-DEC-080` yang tersisa dari amendment sebelumnya — hasilnya blueprint revisi `0.8`
+(draft) dengan lima keputusan desain baru `BKC-DES-021`–`025`, seluruhnya berdasar `BKC-DEC-080`
+yang sudah `approved`. Ringkasan (detail lengkap di `02-backend-architecture.md` §
+"Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off"):
+`BKC-DES-021` (field baru `NonBillableResidualAmount`, terpisah dari `DataAnomalyAmount` dan
+`UnresolvedAmount`), `BKC-DES-022` (ditangkap di jalur residual `ResolveAsync`, tidak ada nilai
+tagihan yang bergeser), `BKC-DES-023` (pemicu write-off MANUAL oleh Finance, bukan otomatis —
+sistem hanya mendeteksi dan pre-fill), `BKC-DES-024` (kolom baru `Category` pada
+`BilWriteOffCase`, satu migration dua kolom satu index), `BKC-DES-025` (plafon dibaca dari
+kolom `BilCalculationVersion`, bukan JSON snapshot).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-088` | Decision | Menyetujui `BKC-DES-021`–`025` secara utuh, termasuk dua keputusan teknis dengan bobot kebijakan nyata yang secara eksplisit ditonjolkan sebelum approval: (a) `BKC-DES-023` — trigger write-off MANUAL oleh petugas Finance (bukan otomatis oleh sistem saat kalkulasi), dengan alasan `CreateWriteOffAsync` menuntut `RequestedBy`/`Reason`/`Idempotency-Key` dan residual belum final sampai invoice final; (b) `BKC-DES-024` — kolom `Category` (`PATIENT_AR`/`NON_BILLABLE_RESIDUAL`) pada `BilWriteOffCase`, yang berarti SATU MIGRATION (dua kolom, satu index, `NOT NULL` berdefault, tanpa downtime) — persetujuan ini BUKAN persetujuan untuk membuat/menjalankan migration itu sendiri; pembuatan dan eksekusi migration tetap memerlukan otorisasi eksplisit terpisah per `AGENTS.md`/`CLAUDE.md` repo ini saat masuk tahap implementasi. | Product/Domain Owner + Finance/AR (persetujuan eksplisit dalam percakapan, wewenang ganda sudah dikonfirmasi `BKC-DEC-085`) | `approved` | "saya approve" |
+
+**Status pass ini**: `BKC-DES-021`–`025` DISETUJUI PENUH. Dengan ini seluruh `BKC-DES-001`–`025`
+(kecuali `BKC-DES-002` yang superseded) berstatus `approved`. Blocking question revisi `0.8`
+baris "Approval `BKC-DES-021`–`025`..." pada `blueprint-manifest.md` DITUTUP.
+
+**Yang TETAP terbuka, tidak disentuh pass ini** (dua di antaranya sengaja ditandai
+non-blocking oleh desain, bukan diabaikan): `BKC-OQ-093` (jalur `NotCovered` +
+`IsAllowExcessPaymentByPatient=false` belum ikut dirutekan ke write-off — rekomendasi desain:
+sebaiknya ikut, tapi di luar cakupan `BKC-DEC-080` yang literal hanya bicara residual
+perhitungan), `BKC-OQ-094` (apakah finalisasi invoice diblokir selama residual belum
+ditulis-off; perlakuan `NON_BILLABLE_RESIDUAL` pada AR/AP handoff), `BKC-OQ-085` asli (analisis
+dampak finansial, butuh Finance), `BKC-OQ-091` (ratifikasi bentuk blueprint, non-blocking), dan
+review Security atas `BillingInvoice:Read` (peninggalan revisi `0.6`).
+
+## Amendment lanjutan 4 September 2026 — Penutupan `BKC-OQ-093` dan `BKC-OQ-094`
+
+Pengguna meminta seluruh open question yang tersisa diselesaikan sebelum lanjut ke
+`/plan-module-delivery`. Dua di antaranya (`BKC-OQ-093`, `BKC-OQ-094a`/`094b`) adalah keputusan
+bisnis yang bisa ditutup lewat wawancara singkat; tiga sisanya (`BKC-OQ-085` asli, review
+Security, kelengkapan master data UAT) BUKAN keputusan bisnis — butuh analisis Finance,
+penilaian tim Security, dan pengecekan data langsung, dijelaskan terpisah di luar tabel ini.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-089` | Decision | Menutup `BKC-OQ-093`. Rule eksplisit `CoverageStatus=NotCovered` dengan `IsAllowExcessPaymentByPatient=false` pada rule tsb — nominalnya IKUT DIRUTEKAN ke mekanisme write-off yang sama dengan residual (`BKC-DEC-080`), BUKAN tetap di jalur lama. Alasan: kedua kasus sama-sama "insurer tidak membayar DAN melarang menagih pasien" — tidak ada dasar membedakan perlakuannya hanya karena sumber angkanya (NotCovered vs residual persentase). Ini memperluas cakupan literal `BKC-DEC-080` yang semula hanya menyebut residual perhitungan. | Product/Domain Owner + Finance/AR (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, ikut dirutekan ke write-off" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-090` | Decision | Menutup `BKC-OQ-094a`. Finalisasi invoice TIDAK diblokir oleh adanya nominal non-billable residual yang belum ditulis-off — sistem menampilkan warning eksplisit ke kasir/Finance, tapi proses finalisasi tetap boleh jalan. Konsisten dengan pola warning yang sudah dipakai untuk kasus anomali data lain (`BKC-DES-010`). | Product/Domain Owner + Finance/AR (persetujuan eksplisit dalam percakapan) | `approved` | "Boleh, dengan warning" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-091` | Decision | Menutup `BKC-OQ-094b`. Nominal non-billable residual (menunggu write-off) berada SEPENUHNYA DI LUAR alur AR/AP — tidak menjadi syarat "porsi pasien lunas" sebelum AP Dokter atau klaim asuransi dianggap ready (`BKC-DEC-037`). Konsisten dengan `BKC-DES-024`: nominal ini sejak awal tidak pernah masuk `PatientAmount`, sehingga secara struktural memang tidak pernah membebani status readiness tsb. | Product/Domain Owner + Finance/AR (persetujuan eksplisit dalam percakapan) | `approved` | "Di luar alur AR/AP sepenuhnya" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: `BKC-OQ-093` dan `BKC-OQ-094` (a dan b) DITUTUP PENUH oleh `BKC-DEC-089`–`091`.
+
+**Yang TIDAK ditutup pass ini, dan TIDAK BISA ditutup lewat wawancara keputusan bisnis** —
+masing-masing butuh tindakan konkret di luar percakapan:
+
+1. **`BKC-OQ-085` asli** (dampak finansial): perlu Finance menghitung proyeksi penurunan
+   pendapatan/PPN akibat pembebasan rawat inap dari data invoice riil (volume obat/alkes
+   rawat inap historis × tarif PPN) — bukan sesuatu yang bisa dijawab dari percakapan tanpa
+   akses data laporan keuangan aktual.
+2. **Review Security** atas pemakaian ulang `BillingInvoice:Read` untuk dokumen berisi nomor
+   polis (Invoice Asuransi) — perlu penilaian tim Security yang berwenang, bukan keputusan
+   Product/Domain Owner/Finance.
+3. **Kelengkapan `MstInsuranceProvider`/`MstInsuranceCoverageRule` untuk UAT** — perlu
+   pengecekan langsung ke data master yang sudah tersimpan di database, bukan keputusan
+   kebijakan.
+
+`BKC-OQ-091` (ratifikasi bentuk blueprint `SINGLE`) tetap ditandai non-blocking, sengaja tidak
+disentuh karena di luar permintaan eksplisit pengguna sepanjang sesi ini.

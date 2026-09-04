@@ -142,6 +142,7 @@ public sealed class BillingInvoiceService
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
             .Include(x => x.Items).ThenInclude(x => x.Category)
+            .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
@@ -595,6 +596,7 @@ public sealed class BillingInvoiceService
 
             // Category ikut dimuat karena MapDetail memakai namanya untuk pengelompokan tagihan.
             var invoice = await _dbContext.BilInvoices.Include(x => x.Items).ThenInclude(x => x.Category)
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
             var createdInvoice = invoice is null;
@@ -714,6 +716,7 @@ public sealed class BillingInvoiceService
 
             var invoice = await _dbContext.BilInvoices
                 .Include(x => x.Items).ThenInclude(x => x.Category)
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .Include(x => x.CalculationVersions)
                 .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
@@ -831,6 +834,7 @@ public sealed class BillingInvoiceService
         if (invoiceId == Guid.Empty) throw new BillingInvoiceConflictException("Receipt idempotency tidak memiliki item Billing yang valid.");
         return await _dbContext.BilInvoices.AsNoTracking()
             .Include(x => x.Items).ThenInclude(x => x.Category)
+            .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
@@ -1018,6 +1022,12 @@ public sealed class BillingInvoiceService
                 CategoryCode = x.Category != null ? x.Category.TariffCategoryCode : string.Empty,
                 CategoryName = x.Category != null ? x.Category.TariffCategoryName : string.Empty,
                 DescriptionSnapshot = x.DescriptionSnapshot,
+                // Enhancement (di luar roadmap, permintaan langsung pengguna): satuan dispensing
+                // obat/alkes untuk kolom "Satuan" Menu Pembayaran - hanya kategori Pharmacy/Drug/
+                // Consumable-Alkes yang punya konsep satuan dispensing, kategori lain tetap null.
+                Unit = x.Category != null && x.Category.IsPharmacy
+                    ? x.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
+                    : null,
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
                 DoctorShare = x.DoctorShare,
