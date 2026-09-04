@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -100,6 +101,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<PagedResult<LabOrderListResponse>>.Ok(
                 result,
                 "Daftar order laboratorium berhasil diambil."));
+        }
+
+        // Daftar pesanan satu disiplin. Disiplin datang dari jalur, bukan dari penyaring,
+        // sehingga jalur Mikrobiologi tidak pernah dapat mengembalikan pesanan Patologi Klinik.
+        //
+        // Nilai disiplin yang tidak dikenal ditolak 400, bukan dikembalikan menjadi daftar
+        // kosong — daftar kosong akan terbaca sebagai "belum ada pekerjaan", padahal yang
+        // terjadi adalah salah ketik.
+        [HttpGet("by-discipline/{discipline}")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrderListResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat daftar order laboratorium per disiplin", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetByDiscipline(
+            string discipline,
+            [FromQuery] LabOrderPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryParseDiscipline(discipline, out var nilai))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Disiplin laboratorium tidak dikenal. Pilihannya: clinical-pathology, anatomical-pathology, atau microbiology."));
+            }
+
+            if (query.StartDate.HasValue && query.EndDate.HasValue &&
+                query.StartDate.Value > query.EndDate.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
+
+            query.Discipline = nilai;
+
+            var result = await _labOrderService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabOrderListResponse>>.Ok(
+                result,
+                "Daftar order laboratorium per disiplin berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Menerima nama enum maupun bentuk bertanda hubung yang dipakai jalur monitoring,
+        /// supaya kedua grup dapat dipanggil dengan istilah yang sama.
+        /// </summary>
+        private static bool TryParseDiscipline(string? nilai, out LabDiscipline discipline)
+        {
+            discipline = default;
+
+            if (string.IsNullOrWhiteSpace(nilai))
+                return false;
+
+            var bersih = nilai.Trim().Replace("-", string.Empty).Replace("_", string.Empty);
+
+            return Enum.TryParse(bersih, ignoreCase: true, out discipline) &&
+                   Enum.IsDefined(typeof(LabDiscipline), discipline);
         }
 
         [HttpGet("{id:guid}")]

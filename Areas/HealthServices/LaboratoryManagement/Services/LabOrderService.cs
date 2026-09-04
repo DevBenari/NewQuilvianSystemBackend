@@ -519,8 +519,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 MilestoneFactId = emission.MilestoneFactId,
                 MilestoneFactVersion = emission.MilestoneFactVersion,
                 Code = emission.Code,
-                Message = emission.Message
+                Message = emission.Message,
+                MilestoneFactIds = emission.MilestoneFactId.HasValue
+                    ? new List<Guid> { emission.MilestoneFactId.Value }
+                    : new List<Guid>()
             };
+
+        /// <summary>
+        /// Bentuk jawaban untuk keputusan yang menerbitkan fakta <b>per pemeriksaan</b>
+        /// (<c>FR-05.1</c>).
+        ///
+        /// <c>MilestoneFactId</c> tetap diisi identitas fakta pertama supaya pemanggil lama
+        /// tidak putus, sementara <c>MilestoneFactIds</c> membawa seluruhnya. Satu wadah berisi
+        /// tiga pemeriksaan menerbitkan tiga fakta, dan satu ruas tidak dapat mewakili
+        /// ketiganya.
+        /// </summary>
+        public static LabBillingHandoffResponse MapHandoff(LabFactEmission emission)
+        {
+            var response = MapHandoff(emission.Perwakilan);
+
+            response.MilestoneFactIds = emission.FactIds.ToList();
+            response.MilestoneFactCount = emission.Count;
+
+            return response;
+        }
 
         private async Task<LabOrderDetailResponse> MoveOrderStatusAsync(
             Guid id,

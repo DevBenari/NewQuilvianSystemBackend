@@ -19,10 +19,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             builder.Property(x => x.SpecimenBarcode).HasMaxLength(64).IsRequired();
             builder.Property(x => x.SpecimenDescription).HasMaxLength(200);
-            builder.Property(x => x.ProcedureCodeSnapshot).HasMaxLength(50);
-            builder.Property(x => x.ProcedureNameSnapshot).HasMaxLength(200);
-            builder.Property(x => x.TariffCodeSnapshot).HasMaxLength(50);
-            builder.Property(x => x.UnitPriceSnapshot).HasPrecision(18, 2);
             builder.Property(x => x.SpecimenStatus).HasConversion<int>().IsRequired();
             builder.Property(x => x.StatusBeforeHold).HasConversion<int>();
             builder.Property(x => x.RejectionReasonCode).HasMaxLength(50);
@@ -41,10 +37,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             // Relasi ke LabOrder dideklarasikan dari sisi LabOrderConfiguration agar hanya ada
             // satu tempat yang mendefinisikannya.
 
-            builder.HasOne(x => x.Procedure)
-                .WithMany()
-                .HasForeignKey(x => x.ProcedureId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Relasi ke MstProcedure dihapus BE-LAB-11 bersama keenam kolom salinan tarif.
+            // Jenis pemeriksaan melekat pada LabExamination, dan relasinya dideklarasikan di
+            // LabExaminationConfiguration.
 
             builder.HasOne(x => x.RejectionReason)
                 .WithMany()

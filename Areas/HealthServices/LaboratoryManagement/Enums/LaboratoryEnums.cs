@@ -182,7 +182,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         LabOrder = 1,
 
         [Display(Name = "Lab Specimen")]
-        LabSpecimen = 2
+        LabSpecimen = 2,
+
+        /// <summary>
+        /// Yang berpindah adalah satu pemeriksaan terpesan, bukan wadah yang menopangnya.
+        ///
+        /// Dibutuhkan sejak <c>LAB-DEC-026</c> memindahkan penanda cito dan duplo ke tingkat
+        /// pemeriksaan: satu pesanan dapat memuat Kalium cito dan Kolesterol biasa sekaligus,
+        /// sehingga riwayatnya pun harus dapat menunjuk pemeriksaan yang mana.
+        /// </summary>
+        [Display(Name = "Lab Examination")]
+        LabExamination = 3
     }
 
     /// <summary>

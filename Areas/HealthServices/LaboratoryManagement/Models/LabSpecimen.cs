@@ -1,21 +1,23 @@
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 {
     /// <summary>
-    /// Satu sampel laboratorium, sekaligus satu komponen pemeriksaan yang dapat ditagih.
+    /// Satu <b>wadah fisik</b> laboratorium — tabung, pot, atau slide.
     ///
-    /// Keputusan author <c>RJ-BIL-OQ-008</c> menetapkan kelayakan tagih dinilai per
-    /// specimen/komponen pemeriksaan, bukan seluruh pesanan sekaligus. Karena itu tarif
-    /// komponen melekat pada sampel melalui <see cref="ProcedureId"/>: satu pesanan berisi tiga
-    /// pemeriksaan senilai Rp200.000, Rp150.000, dan Rp100.000 dapat menagih Rp350.000 ketika
-    /// dua sampel dinyatakan layak dan satu ditolak.
+    /// Sejak <c>LAB-DEC-024</c> wadah bukan lagi satuan yang ditagih. Satu tabung darah ungu
+    /// menopang hemoglobin, leukosit, dan trombosit sekaligus, sehingga jenis pemeriksaan dan
+    /// salinan tarifnya melekat pada <see cref="LabExamination"/>, bukan di sini. Wadah hanya
+    /// membawa barcode, status bahan, dan jejak waktu penanganannya.
     ///
-    /// Sampel yang ditolak tidak pernah dihapus. Pengambilan ulang membuat baris baru yang
-    /// menunjuk sampel sebelumnya melalui <see cref="SupersededSpecimenId"/>.
+    /// Keenam kolom salinan tarif yang dahulu ada di sini — <c>ProcedureId</c> beserta salinan
+    /// kode, nama, tarif, dan harga — dihapus <c>BE-LAB-11</c>. Yang membacanya kini membaca
+    /// baris pemeriksaan yang ditopang wadah ini lewat <see cref="Examinations"/>.
+    ///
+    /// Wadah yang ditolak tidak pernah dihapus. Pengambilan ulang membuat baris baru yang
+    /// menunjuk wadah sebelumnya melalui <see cref="SupersededSpecimenId"/>.
     /// </summary>
     public class LabSpecimen : IdentityModel
     {
@@ -23,12 +25,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         [Required]
         public Guid LabOrderId { get; set; }
-
-        /// <summary>
-        /// Procedure komponen pemeriksaan yang diwakili sampel ini, sekaligus dasar tarifnya.
-        /// </summary>
-        [Required]
-        public Guid ProcedureId { get; set; }
 
         /// <summary>
         /// Barcode operasional yang tidak bermakna, berbentuk <c>LSP-</c> diikuti 32 karakter
@@ -47,28 +43,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         /// <summary>Keterangan operasional bebas, misalnya "Darah vena" atau "Urin pagi".</summary>
         public string? SpecimenDescription { get; set; }
-
-        /// <summary>
-        /// Salinan identitas dan tarif komponen pemeriksaan pada saat sampel direncanakan.
-        ///
-        /// Disalin, bukan dibaca ulang saat penetapan layak, karena fakta yang dikirim ke
-        /// Billing harus menghasilkan muatan yang sama persis bila dikirim ulang. Membaca tarif
-        /// master pada setiap pengiriman akan mengubah sidik jari permintaan begitu master
-        /// tarif berubah, dan pengiriman ulang berhenti bersifat idempotent.
-        /// </summary>
-        public string? ProcedureCodeSnapshot { get; set; }
-
-        public string? ProcedureNameSnapshot { get; set; }
-
-        public Guid? TariffId { get; set; }
-
-        public string? TariffCodeSnapshot { get; set; }
-
-        /// <summary>
-        /// Tarif normal komponen pemeriksaan sebagai rujukan. Bukan nilai finansial otoritatif
-        /// dan tidak memuat pembagian penjamin — pembagian itu milik Billing.
-        /// </summary>
-        public decimal? UnitPriceSnapshot { get; set; }
 
         public LabSpecimenStatus SpecimenStatus { get; set; } = LabSpecimenStatus.Planned;
 
@@ -112,8 +86,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         public int Version { get; set; }
 
         public LabOrder? LabOrder { get; set; }
-
-        public MstProcedure? Procedure { get; set; }
 
         public MstLabRejectionReason? RejectionReason { get; set; }
 
