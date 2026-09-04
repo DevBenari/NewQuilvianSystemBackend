@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `6` |
+| Roadmap revision | `13` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -11,7 +11,7 @@
 | Manifest | `blueprint-manifest.md` revision `24` |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
-| Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — seluruhnya `approved`, dikunci 2026-09-02 |
+| Contract version | `LAB-API-v1` r5 (amandemen r4 aditif dan r5 breaking atas r3, 2026-09-03), `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — seluruhnya `approved`, dikunci 2026-09-02 |
 | Masukan | Decisions rev `21`; capability map rev `2`; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4 |
 | Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` (decisions), dihitung 2026-09-02 |
 | Slice in scope | `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
@@ -113,6 +113,20 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-02` — Tabel batas nilai dan pilihan hasil
 
+> **Status: `SELESAI` — 2026-09-02.** Seluruh butir DoD terpenuhi. Source, test, pembuatan
+> migration, dan eksekusi migration ke `QuilvianNewDevYoga` selesai dan terverifikasi; jalur
+> `Down` ikut dibuktikan, dan index unik `VAL-21` diuji langsung menolak baris duplikat. Laporan
+> lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-02.md`](../task/report/backend/BE-LAB-02.md).
+>
+> **Kedua temuan yang semula terbuka sudah ditutup 2026-09-02** atas persetujuan pemilik, lewat
+> migration `20260902091736_AmendLabValueBoundUniquenessAndSortOrder`. Celah `NULL` pada index
+> unik `VAL-21` ditutup di database dengan `NULLS NOT DISTINCT` — dua baris batas "semua umur"
+> untuk kombinasi yang sama kini ditolak, dan itu diuji ulang terhadap `QuilvianNewDevYoga`.
+> `LabValueBound.SortOrder` dibuang karena melanggar QBE-ENT-003; `LabValueOption.SortOrder`
+> dipertahankan karena di sana urutan menyatakan tingkatan skala ordinal hasil, bukan tampilan.
+> Rinciannya pada laporan bagian 10.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Satu jenis pemeriksaan dapat memiliki beberapa baris batas nilai menurut jenis kelamin dan kelompok umur, dalam dua bentuk hasil: angka dan pilihan terbatas |
@@ -127,6 +141,19 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **DoD** | Nama tabel sesuai jawaban registry, dua entity ada beserta configuration di `Repositories/Configurations/HealthServices/LaboratoryManagement/`, migration jalan dua arah, `AC-25` terbukti, checker QBE lolos |
 
 ### `BE-LAB-03` — Riwayat dan pengajuan perubahan batas kritis
+
+> **Status: `SELESAI` — 2026-09-02.** Seluruh butir DoD terpenuhi. Source, test, pembuatan
+> migration, dan eksekusi migration ke `QuilvianNewDevYoga` selesai dan terverifikasi; jalur
+> `Down` ikut dibuktikan. Terhadap database sungguhan juga dibuktikan bahwa pengajuan berstatus
+> `Submitted` **tidak menggerakkan** batas kritis yang berlaku, dan bahwa batas nilai yang masih
+> punya pengajuan tidak dapat dihapus. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-03.md`](../task/report/backend/BE-LAB-03.md).
+>
+> Dua tambahan di luar daftar kolom `erd/data-dictionary.md` dicatat pada laporan bagian 3.3,
+> keduanya penambahan dan bukan pengurangan: kolom `Version` pada `LabValueBoundChangeRequest`
+> mengikuti baris **Reuse** task ini yang menunjuk `CAP-17`, dan delapan kolom fakta
+> `LabValueBoundHistory` dipasangi tolak-ubah supaya "riwayat permanen" ditegakkan lapisan
+> penyimpanan, bukan hanya oleh ketiadaan endpoint yang mengubahnya.
 
 | Butir | Isi |
 |---|---|
@@ -143,6 +170,22 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-04` — Endpoint pengelolaan batas nilai
 
+> **Status: `SELESAI` — 2026-09-02.** Seluruh butir DoD terpenuhi. Enam endpoint tersedia dengan
+> route, verb, dan `[AccessPermission]` yang cocok satu per satu dengan `LAB-API-v1` r3, dan
+> keempat jalur gagal yang diwajibkan — `VAL-22`, `VAL-23`, `VAL-24`, `VAL-28` — seluruhnya
+> terbukti. Task ini **tidak menyentuh schema**, sehingga tidak ada migration dan tidak ada
+> perintah database yang dijalankan. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-04.md`](../task/report/backend/BE-LAB-04.md).
+>
+> Validasi yang diimplementasikan **sepuluh**, bukan empat: `VAL-21` sampai `VAL-30`, karena
+> `contracts/validation-matrix.md` menempelkan seluruhnya pada tindakan membuat, mengubah, dan
+> menonaktifkan batas nilai — persis keenam endpoint ini.
+>
+> **Yang perlu diketahui sebelum dipakai:** `VAL-28` kini menolak setiap perubahan batas kritis,
+> sementara jalur penggantinya baru ada di `BE-LAB-05`. Sampai task itu selesai, batas kritis
+> hanya dapat diubah lewat perintah database langsung. Ini disengaja — lebih baik tertutup rapat
+> daripada terbuka diam-diam.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Kepala instalasi dapat membuat, mengubah, menonaktifkan, dan menelusuri riwayat batas nilai lewat enam endpoint |
@@ -157,6 +200,21 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **DoD** | Enam endpoint tersedia dan terdokumentasi Swagger, `[AccessPermission]` terpasang sehingga permissionnya terdaftar sendiri, seluruh jalur gagal di atas terbukti |
 
 ### `BE-LAB-05` — Endpoint pengajuan dan persetujuan batas kritis
+
+> **Status: `SELESAI` — 2026-09-03.** Seluruh butir DoD terpenuhi. Lima endpoint tersedia,
+> `VAL-31` sampai `VAL-35` ditegakkan di service, dan larangan menyetujui pengajuan sendiri ada
+> sebagai kode — bukan konfigurasi permission, sesuai temuan `CAP-16`. Task ini tidak menyentuh
+> schema, sehingga tidak ada migration. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-05.md`](../task/report/backend/BE-LAB-05.md).
+>
+> Enam perbaikan lahir dari audit adversarial atas implementasinya, dicatat pada laporan bagian
+> 5.1. Yang terpenting: token konkurensi `Version` semula tidak pernah dinaikkan, sehingga
+> penjaga `CAP-17` terlihat terpasang padahal tidak pernah menyala sama sekali.
+>
+> **Peran penyetuju tetap terbuka.** Siapa pemegang `LabCriticalBound : Approve` belum
+> ditetapkan manajemen rumah sakit. Selama itu belum terjadi, tidak ada akun yang dapat
+> menyetujui, sehingga batas kritis tetap tidak dapat diubah lewat aplikasi. Ini keputusan
+> organisasi, bukan cacat teknik.
 
 | Butir | Isi |
 |---|---|
@@ -176,6 +234,24 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 > tetapi tidak dapat dinyatakan siap pakai sebelum peran itu ditetapkan manajemen rumah sakit.
 
 ### `BE-LAB-06` — Pengelolaan alasan penolakan sampel
+
+> **Status: `SELESAI` — 2026-09-03.** Seluruh butir DoD terpenuhi. Lima endpoint tersedia dengan
+> route, verb, dan `[AccessPermission]` yang cocok satu per satu dengan `LAB-API-v1` r3;
+> `VAL-36`, `VAL-37`, dan `VAL-38` masing-masing punya ujinya; dan seeder data awal terdaftar
+> pada `Program.cs`. Task ini **tidak menyentuh schema**, sehingga tidak ada migration dan tidak
+> ada perintah database yang dijalankan. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-06.md`](../task/report/backend/BE-LAB-06.md).
+>
+> Seeder sengaja **hanya menambah kode yang belum ada** dan tidak pernah menimpa baris yang
+> sudah tersimpan. Nama, urutan, status aktif, dan kedua penanda terkunci adalah keputusan
+> pengguna; menimpanya setiap kali server menyala berarti membatalkan keputusan itu diam-diam.
+>
+> **Peran penyetel penanda biaya tetap terbuka.** Siapa pemegang
+> `LabRejectionReason : SystemFlag` belum ditetapkan manajemen rumah sakit. Selama itu belum
+> terjadi, setiap alasan baru yang ditambahkan kepala instalasi akan selalu bernilai "bukan
+> kesalahan internal" — artinya pengambilan ulang untuk alasan itu **dapat ditagihkan kepada
+> pasien**. Ini keadaan yang perlu diketahui Billing, bukan cacat teknik, dan bentuknya sejenis
+> dengan peran penyetuju yang masih terbuka pada `BE-LAB-05`.
 
 | Butir | Isi |
 |---|---|
@@ -219,6 +295,106 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Verifikasi** | Kolom ada, terisi untuk seluruh pemeriksaan berpenanda `IsLaboratory`, dan `BE-LAB-07` dapat menyaring dengannya |
 | **Risiko/pemilik** | Dependency eksternal. Persetujuannya sudah ada; pelaksanaannya belum dijadwalkan. Pemilik: pemilik `master-data` |
 | **DoD** | Kolom ada, nilainya terisi, dan penyaringan katalog per disiplin terbukti bekerja |
+
+---
+
+### `BE-LAB-19` — `LEGACY MIGRATION`: normalisasi dua tabel `Trx*` Laboratorium
+
+> **Status: `SELESAI` — 2026-09-03.** `TrxLabSpecimen` menjadi `LabSpecimen` dan
+> `TrxLabTransitionHistory` menjadi `LabTransitionHistory` — class, berkas, configuration,
+> DbSet, seluruh rujukan, **dan tabel fisiknya** dinormalkan bersama, sebagaimana dituntut
+> `QBE-NAM-003`. Migration `20260903094528_RenameLaboratoryTrxTablesToLabPrefix` terbukti jalan
+> dua arah terhadap `QuilvianNewDevYoga`. Laporan lengkap:
+> [`task/report/backend/BE-LAB-19.md`](../task/report/backend/BE-LAB-19.md).
+>
+> **Tidak ada DROP+CREATE.** EF sendiri menghasilkan DROP+CREATE untuk perubahan ini dan
+> memperingatkan *"may result in the loss of data"*; badan migrationnya diganti dengan skrip
+> `ALTER ... RENAME` berbasis katalog Postgres, mengikuti preseden
+> `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix` dan menghormati `QBE-DB-002`.
+>
+> **`MstLabRejectionReason` tidak ikut.** Ia master, dan catatan registry 2026-09-02
+> menetapkannya diperlakukan legacy dan tidak dinamai ulang. `TrxPatientEncounter` juga tidak:
+> ia milik modul Registration.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Seluruh entity operasional Laboratorium berprefix `Lab`, sehingga nama class, berkas, configuration, DbSet, dan tabel menjadi satu paket yang konsisten |
+| **Requirement/decision** | Instruksi pemilik modul 2026-09-03; `QBE-NAM-001`, `QBE-NAM-003`, `QBE-DB-001`, `QBE-DB-002` |
+| **Kontrak** | Tidak ada kontrak API yang berubah — kedua entity tidak pernah diekspos sebagai DTO |
+| **Reuse** | Skrip rename berbasis katalog dari migration Rekam Medis, dipakai ulang apa adanya |
+| **Cakupan** | Dua model, dua configuration, dua DbSet, 18 berkas source dan uji, dan satu migration yang menamai ulang 2 tabel, 2 PK, 8 FK, dan 9 index. **Nol perubahan kolom** |
+| **Dependency** | `BE-LAB-16` — **`SELESAI`** |
+| **Acceptance criteria** | Tidak ada `AC` blueprint yang menuntutnya |
+| **Verifikasi** | Audit katalog sebelum rename; build solution; seluruh uji; checker QBE; migration `Up` lalu `Down` lalu `Up` terhadap dev pemilik |
+| **Risiko/pemilik** | **Rendah, dan itu bukan kebetulan.** `LAB-OPEN-012` dijawab lebih dulu: `SELECT COUNT(*) FROM public."TrxLabSpecimen"` pada `QuilvianNewDevYoga` menghasilkan **0**, sehingga tidak ada data yang berpindah. Skripnya tetap memakai `RENAME` dan bukan DROP+CREATE, supaya lingkungan lain yang datanya tidak nol tetap aman. Pemilik: Laboratorium |
+| **DoD** | Nol `Trx*` tersisa pada modul Laboratorium, tabel fisik ikut dinamai ulang, migration jalan dua arah, checker QBE lolos, registry mencatat wewenangnya |
+
+---
+
+### `BE-LAB-17` — Metadata penyaring dan rekap untuk kelima grup
+
+> **Status: `SELESAI` — 2026-09-03.** Sepuluh endpoint baca tersedia: `GET /filters/metadata`
+> dan `GET /summary` pada Lab Order, Lab Specimen, Lab Value Bound, Lab Critical Bound Approval,
+> dan Lab Rejection Reason. Task ini **tidak menyentuh schema**, sehingga tanpa migration.
+> Laporan lengkap: [`task/report/backend/BE-LAB-17.md`](../task/report/backend/BE-LAB-17.md).
+>
+> **Asal-usulnya bukan dari perencanaan ini.** Task ditambahkan atas instruksi langsung pemilik
+> modul pada 2026-09-03, dan membawa amandemen `LAB-API-v1` dari `r3` menjadi `r4`.
+> Amandemennya **aditif sepenuhnya** — tidak satu pun endpoint, ruas, atau nilai enum `r3` yang
+> berubah, berganti nama, atau hilang.
+>
+> **Satu temuan dicatat.** `GET /lab-orders` dan daftar wadah belum menerima parameter query
+> apa pun. Metadata keduanya menyatakan itu terbuka lewat `SupportsServerSideFiltering` bernilai
+> salah dan daftar parameter kosong, bukan mengarang penyaring yang tidak ada penegakannya.
+> Menambahkan penyaringan sungguhan pada kedua daftar itu adalah pekerjaan tersendiri yang
+> belum berpemilik task.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Setiap layar Laboratorium dapat merender penyaring, label enum, dan kartu ringkasan tanpa menanamkan daftar nilai di dalam frontend |
+| **Requirement/decision** | Instruksi pemilik modul 2026-09-03; `rules/backend/master-data-endpoint-standard.md` bagian 1 dan 2.2 |
+| **Kontrak** | `LAB-API-v1` `r4` — amandemen aditif atas `r3` |
+| **Reuse** | Pola `filters/metadata` dan `summary` milik modul Rekam Medis dipakai ulang, tidak disalin mentah: bentuk `EnumOption`, `SortOption`, dan `QueryParameterInfo` diadaptasi menjadi milik Laboratorium |
+| **Cakupan** | Sepuluh endpoint baca, lima belas DTO baru, satu factory metadata, dan sepuluh method service. **Nol** perubahan schema |
+| **Dependency** | `BE-LAB-01` .. `BE-LAB-06` — seluruhnya `SELESAI` |
+| **Acceptance criteria** | Tidak ada `AC` blueprint yang menuntutnya; task lahir dari instruksi pemilik modul |
+| **Verifikasi** | Uji: kesepuluh endpoint punya route, verb, dan hak akses yang benar; metadata memuat seluruh nilai enum; metadata menyatakan kemampuan penyaringan apa adanya; setiap rekap menghitung angka yang benar dan mengabaikan baris terhapus |
+| **Risiko/pemilik** | Rendah. Seluruhnya baca saja dan aditif. Risiko terbesarnya adalah metadata yang menjanjikan penyaring yang tidak diproses — ditutup oleh dua uji yang membandingkan isi metadata dengan parameter endpoint yang sesungguhnya. Pemilik: Laboratorium |
+| **DoD** | Sepuluh endpoint tersedia, kontrak dinaikkan ke `r4`, seluruh uji lulus, checker QBE lolos |
+
+---
+
+### `BE-LAB-18` — Penyaring, pengurutan, dan pagination pada daftar pesanan
+
+> **Status: `SELESAI` — 2026-09-03.** `GET /lab-orders` kini menerima `encounterId`,
+> `orderStatus`, `discipline`, `startDate`, `endDate`, `search`, `sortBy`, `sortDirection`,
+> `pageNumber`, dan `pageSize`. Task ini **tidak menyentuh schema**, sehingga tanpa migration.
+> Laporan lengkap: [`task/report/backend/BE-LAB-18.md`](../task/report/backend/BE-LAB-18.md).
+>
+> **Ini satu-satunya perubahan breaking pada modul Laboratorium sejauh ini.** Bentuk respons
+> berubah dari `ApiResponse<List<LabOrderListResponse>>` menjadi
+> `ApiResponse<PagedResult<LabOrderListResponse>>`, dan kontrak naik ke `r5`. Satu-satunya
+> konsumen yang ditemukan — modul IGD — **tidak putus** karena pembungkusnya sudah menangani
+> kedua bentuk, tetapi perilakunya berubah: ia perlu mengirim `?encounterId=` agar tidak
+> kehilangan pesanan yang berada di luar halaman pertama.
+>
+> **Menutup `IGD-DEC-105`.** Modul IGD sebelumnya menarik seluruh pesanan rumah sakit lalu
+> menyaringnya di dalam browser, sehingga pesanan pasien lain ikut terkirim ke sana. Komentar
+> pada `emergency-assessment-slice.jsx` sudah menyebut perbaikannya milik Laboratorium; inilah
+> perbaikan itu.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Layar yang hanya butuh pesanan satu pasien tidak lagi menerima pesanan pasien lain, dan daftar pesanan tidak lagi menarik seluruh tabel |
+| **Requirement/decision** | Instruksi pemilik modul 2026-09-03; `IGD-DEC-105` sebagai temuan yang ditutup |
+| **Kontrak** | `LAB-API-v1` `r5` — **breaking** pada `GET /lab-orders` |
+| **Reuse** | Bentuk `PagedResult<T>` dan pola paging yang sudah dipakai `LabValueBound` serta `LabRejectionReason` |
+| **Cakupan** | `LabOrderPagedQuery`, penyaringan/pengurutan/pagination pada `LabOrderService.GetListAsync`, dan penyesuaian metadata Lab Order agar tetap jujur. **Nol** perubahan schema |
+| **Dependency** | `BE-LAB-17` — **`SELESAI`** |
+| **Acceptance criteria** | Tidak ada `AC` blueprint yang menuntutnya |
+| **Verifikasi** | Uji: penyaringan per kunjungan, per status, dan per disiplin; bentuk paging; batas ukuran halaman; pengurutan bawaan dan menaik; kolom urutan tak dikenal kembali ke bawaan; baris terhapus tidak tampil; metadata mengaku menyaring dan seluruh parameternya nyata |
+| **Risiko/pemilik** | **Sedang** — satu-satunya perubahan breaking modul ini. Diturunkan oleh penilaian dampak konsumen yang membuktikan IGD tidak putus. Pemilik: Laboratorium |
+| **DoD** | Sepuluh parameter diterima dan diproses, kontrak naik ke `r5`, dampak konsumen dinilai dan dilaporkan, seluruh uji lulus, checker QBE lolos |
 
 ---
 
@@ -271,6 +447,24 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-09` — Entity pemeriksaan terpesan
 
+> **Status: `SELESAI` — 2026-09-03.** Seluruh butir DoD terpenuhi. Entity bernama
+> `LabExamination` — bukan `TrxLabExamination` — beserta configuration di folder submodul,
+> DbSet, dan migration `20260903071535_AddLabExamination`. Migration **terbukti jalan dua
+> arah** terhadap `QuilvianNewDevYoga`: `Up`, lalu `Down`, lalu `Up` kembali. Checker QBE
+> `PASS` tanpa satu pun violation. Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-09.md`](../task/report/backend/BE-LAB-09.md).
+>
+> **Yang perlu diketahui sebelum `BE-LAB-16` dikerjakan.** Keenam kolom yang menurut kamus data
+> harus pindah dari `TrxLabSpecimen` **belum dipindahkan** — pemindahannya milik `BE-LAB-11`
+> yang masih `BLOCKED` oleh `LAB-OPEN-012`. Selama itu, `ProcedureId` dan salinan tarif ada di
+> dua tempat sekaligus. Risikonya belum aktif karena belum ada kode yang menulis ke
+> `LabExamination`, tetapi ia menjadi aktif begitu `BE-LAB-16` dibangun mendahului `BE-LAB-11`.
+>
+> **Satu selisih dokumen ditemukan.** `erd/data-dictionary.md` bagian 4 menyatakan
+> `TrxLabTransitionHistory` bertambah kolom `LabExaminationId`, sementara bagian 8.3 roadmap ini
+> menyatakan tabel itu dipakai apa adanya tanpa pekerjaan struktur. Task mengikuti roadmap;
+> penyelarasan kedua dokumen menjadi utang pemilik blueprint.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Pemeriksaan terpesan menjadi satuan tersendiri, terpisah dari wadah fisik yang menopangnya |
@@ -286,6 +480,21 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-16` — Endpoint pemeriksaan terpesan
 
+> **Status: `SELESAI` — 2026-09-03.** Empat endpoint tersedia dengan route, verb, dan
+> `[AccessPermission]` yang cocok satu per satu dengan `LAB-API-v1` r3. Task ini **tidak
+> menyentuh schema**, sehingga tanpa migration. Laporan lengkap:
+> [`task/report/backend/BE-LAB-16.md`](../task/report/backend/BE-LAB-16.md).
+>
+> **Kartu ini pernah keliru, dan sudah diselaraskan 2026-09-03.** Butir Verifikasi dan DoD-nya
+> semula menyebut `VAL-05` dan `VAL-07`, padahal bagian 8.2 dokumen ini menempatkan `VAL-05` ..
+> `VAL-16` pada `BE-LAB-12` dan `VAL-17` .. `VAL-20` pada `BE-LAB-16`. Keduanya kini berbunyi
+> `VAL-17` sampai `VAL-20`, sesuai bagian 8.2. Alasannya: `VAL-05` — *wadah tanpa satu pun
+> pemeriksaan* — melekat pada endpoint perencanaan wadah yang **tidak dimiliki** task ini,
+> sehingga tidak pernah dapat ditegakkan dari sini. Inti `VAL-07` — larangan jenis pemeriksaan
+> yang sama dua kali pada satu wadah — tetap ditegakkan, karena jalur tambah pemeriksaan memang
+> dapat melanggarnya; ia disebut apa adanya pada Verifikasi tanpa mengklaim nomor aturan milik
+> `BE-LAB-12`.
+
 > **Kenapa nomornya melompat.** Task ini ditemukan 2026-09-02 lewat audit cakupan endpoint,
 > setelah `BE-LAB-01` sampai `BE-LAB-15` sudah bernomor. Nomor task adalah identitas tetap, bukan
 > urutan kerja — jadi ia diberi nomor berikutnya dan diletakkan pada gelombang yang benar.
@@ -299,9 +508,9 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Cakupan** | Empat endpoint: `GET /by-order/{labOrderId}`, `GET /by-specimen/{specimenId}`, `POST /by-order/{labOrderId}`, `POST /{id}/cancel`. Hak akses `LabExamination : Read` dan `: Create` dan `: Update` |
 | **Dependency** | `BE-LAB-09` |
 | **Acceptance criteria** | `AC-35`, `AC-36` |
-| **Verifikasi** | Uji integrasi: merencanakan satu wadah berisi dua pemeriksaan menghasilkan dua baris yang dapat dibaca lewat `GET /by-specimen/{specimenId}`. Jalur gagal: merencanakan wadah tanpa satu pun pemeriksaan ditolak `422` `VAL-05`; memasukkan jenis pemeriksaan yang sama dua kali pada satu wadah ditolak `422` `VAL-07` |
+| **Verifikasi** | Uji integrasi: menambah dua pemeriksaan pada satu wadah menghasilkan dua baris yang dapat dibaca lewat `GET /by-specimen/{specimenId}` dengan satu barcode yang sama. Jalur gagal: jenis pemeriksaan bukan laboratorium ditolak `422` `VAL-17`; wadah yang sudah dinyatakan layak atau ditolak menolak pemeriksaan baru `409` `VAL-18`; membatalkan pemeriksaan yang sudah gugur bersama wadahnya ditolak `409` `VAL-19`; tarif yang belum diatur ditolak `422` `VAL-20`. Ditambah larangan jenis pemeriksaan yang sama dua kali pada satu wadah, ditolak `409` |
 | **Risiko/pemilik** | Sedang. `POST /{id}/cancel` membatalkan **satu** pemeriksaan dan **tidak** boleh disalahartikan sebagai penolakan wadah — penolakan wadah menggugurkan seluruh isinya dan ditangani `BE-LAB-12`. Mencampur keduanya melanggar `VAL-13`. Pemilik: Laboratorium |
-| **DoD** | Empat endpoint tersedia dan terdokumentasi Swagger, `VAL-05` dan `VAL-07` terbukti, pembatalan satu pemeriksaan tidak mengubah status pemeriksaan lain pada wadah yang sama |
+| **DoD** | Empat endpoint tersedia dan terdokumentasi Swagger, `VAL-17` sampai `VAL-20` terbukti, pembatalan satu pemeriksaan tidak mengubah status pemeriksaan lain pada wadah yang sama |
 
 ### `BE-LAB-10` — Penanda cito dan duplo per pemeriksaan
 
@@ -324,6 +533,20 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ### `BE-LAB-11` — Migration pemisahan wadah dan pemeriksaan
 
+> **Penahannya dicabut 2026-09-03, dan risikonya ikut runtuh.** `LAB-OPEN-012` menanyakan satu
+> angka: berapa baris wadah yang sudah terisi. Pemilik modul menjalankan
+> `SELECT COUNT(*) FROM public."TrxLabSpecimen"` pada `QuilvianNewDevYoga` dan hasilnya **0**.
+> Dugaan blueprint terbukti — tidak ada data yang perlu dipindahkan, sehingga seluruh kerumitan
+> pemindahan gugur dan yang tersisa hanya migration penghapusan kolom biasa.
+>
+> **Yang belum tertutup.** `QuilvianNewDevYoga` adalah basis data **pengembangan** pemilik
+> modul, bukan produksi. Bila produksi adalah instance lain, angkanya perlu diambil di sana
+> sebelum migration ini dijalankan ke lingkungan tersebut. Wewenang menjalankan migration di
+> luar dev pemilik tetap terpisah.
+>
+> **Namanya sudah berubah.** Sejak `BE-LAB-19`, tabelnya bernama `LabSpecimen`. Kolom yang akan
+> dihapus tetap keenam kolom yang sama.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Salinan tarif dan penunjuk pemeriksaan berpindah dari wadah ke baris pemeriksaan, tanpa memutus tautan tagihan yang sudah ada |
@@ -338,6 +561,28 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **DoD** | Jumlah baris produksi diketahui, rencana pemindahan disusun sesuai angka itu, migration jalan dua arah, tidak ada tautan tagihan yang putus |
 
 ### `BE-LAB-12` — Endpoint wadah: rencana, layak, tolak
+
+> **Status: `SELESAI` — 2026-09-03.** Ketiga endpoint berperilaku baru, dan `VAL-05` sampai
+> `VAL-15` masing-masing punya ujinya. Task ini **tidak menyentuh schema**, sehingga tanpa
+> migration. Laporan lengkap:
+> [`task/report/backend/BE-LAB-12.md`](../task/report/backend/BE-LAB-12.md).
+>
+> **Urutan dibalik terhadap yang tertulis.** Kartu ini menyebut dependency `BE-LAB-11`, tetapi
+> keenam kolom yang hendak dihapus `BE-LAB-11` masih dipakai `LabSpecimenService` di delapan
+> tempat — termasuk muatan fakta tagihan. Menghapusnya lebih dulu akan mematahkan build
+> sekaligus jalur tagihan. Karena itu `BE-LAB-12` dikerjakan lebih dulu supaya kode berhenti
+> memakai kolom itu, dan `BE-LAB-11` menyusul menghapus kolom yang sudah mati. Setiap langkah
+> tetap dapat dibangun dan diuji sendiri.
+>
+> **`VAL-09` ditulis sebagai kode.** Aturan empat mata pada tingkat wadah ditegakkan di dalam
+> service, bukan lewat konfigurasi permission — `CAP-16` sudah membuktikan
+> `AccessPermissionService.HasAccessAsync` tidak pernah membandingkan pelaku sebelumnya.
+>
+> **Kode status berubah.** Sebelumnya seluruh pelanggaran menjadi `400`. Kini mengikuti matriks:
+> `422` untuk pelanggaran isi, `409` untuk bentrokan keadaan, `403` untuk `VAL-09`.
+>
+> **Yang belum: penerbitan fakta per pemeriksaan.** Penetapan layak masih menerbitkan satu fakta
+> per wadah. Memecahnya menjadi satu fakta per pemeriksaan adalah cakupan `BE-LAB-13`.
 
 | Butir | Isi |
 |---|---|
@@ -408,21 +653,24 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
 |---|---|---|---|---|
 | `BE-LAB-01` | `MVP-0` | `S15` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-01.md) | Tidak ada |
-| `BE-LAB-02` | `MVP-0` | `S3` | Siap direncanakan | Gerbang global saja |
-| `BE-LAB-03` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02` |
-| `BE-LAB-04` | `MVP-0` | `S3` | Siap direncanakan | `BE-LAB-02`, `BE-LAB-03` |
-| `BE-LAB-05` | `MVP-0` | `S3` | Siap direncanakan | Peran penyetuju belum ditetapkan |
-| `BE-LAB-06` | `MVP-0` | `S11` | Siap direncanakan | Gerbang global saja |
+| `BE-LAB-02` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-02.md) | Tidak ada |
+| `BE-LAB-03` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-03.md) | Tidak ada |
+| `BE-LAB-04` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-04.md) | Tidak ada |
+| `BE-LAB-05` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-05.md) | Dibangun; belum dapat dipakai sampai peran penyetuju ditetapkan manajemen |
+| `BE-LAB-06` | `MVP-0` | `S11` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-06.md) | Dibangun; penanda biaya belum dapat disetel sampai pemegang `LabRejectionReason : SystemFlag` ditetapkan manajemen |
 | `BE-LAB-07` | `MVP-0` | `S14` | Siap direncanakan | `BE-EXT-01` |
+| `BE-LAB-17` | `MVP-0` | `S3`, `S11` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-17.md) | Tidak ada |
+| `BE-LAB-18` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-18.md) | Tidak ada |
+| `BE-LAB-19` | `MVP-0` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-19.md) | Tidak ada |
 | `BE-EXT-01` | `MVP-0` | `S14` | Menunggu `master-data` | Dependency eksternal |
 | `BE-EXT-02` | `MVP-1` | `S13b` | Menunggu `master-data` | Dependency eksternal |
 | `BE-EXT-03` | `MVP-1` | `S13a`, `S13b` | Menunggu `registration-management` | Dependency eksternal |
 | `BE-LAB-08` | `MVP-1` | `S13a`, `S13b` | Siap direncanakan | `BE-EXT-02`, `BE-EXT-03` |
-| `BE-LAB-09` | `MVP-1` | `S2` | Siap direncanakan | Gerbang global saja |
-| `BE-LAB-16` | `MVP-1` | `S2` | Siap direncanakan | `BE-LAB-09` |
-| `BE-LAB-10` | `MVP-1` | `S1a` | Siap direncanakan | `BE-LAB-09` |
-| `BE-LAB-11` | `MVP-2` | `S2` | **`BLOCKED`** | `LAB-OPEN-012` |
-| `BE-LAB-12` | `MVP-2` | `S2` | Siap direncanakan | `BE-LAB-11` |
+| `BE-LAB-09` | `MVP-1` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-09.md) | Tidak ada |
+| `BE-LAB-16` | `MVP-1` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-16.md) | Tidak ada |
+| `BE-LAB-10` | `MVP-1` | `S1a` | Siap direncanakan | Penahan `BE-LAB-09` sudah dicabut 2026-09-03 |
+| `BE-LAB-11` | `MVP-2` | `S2` | Siap direncanakan | Penahan dicabut; kode sudah berhenti memakai keenam kolomnya sejak `BE-LAB-12` |
+| `BE-LAB-12` | `MVP-2` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-12.md) | Tidak ada |
 | `BE-LAB-13` | `MVP-2` | `S10` | Siap direncanakan | `BE-LAB-11`, `BE-LAB-12` |
 | `BE-LAB-14` | `MVP-3` | `S7` | Siap direncanakan | `BE-LAB-10`, `BE-LAB-12` |
 | `BE-LAB-15` | `MVP-3` | `S15` | Siap direncanakan | `BE-LAB-14` — penahan `BE-LAB-01` sudah dicabut 2026-09-02 |
@@ -549,3 +797,10 @@ kelalaian.
 | 1 | 2026-09-02 | Roadmap backend pertama. 15 task Laboratorium dan 3 task dependency eksternal disusun untuk empat gelombang. Diterbitkan setelah kelima kontrak dikunci dan penanda `STALE` pada capability map dicabut | `DRAFT` |
 | 3 | 2026-09-02 | Audit diperluas ke empat dimensi lain: aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik, tetapi kutipannya jauh dari lengkap — 30 dari 50 aturan validasi tidak pernah disebut task mana pun. Yang paling berarti: `VAL-09`, aturan empat mata pada tingkat wadah, sempat tidak tersebut sama sekali dan kini dibebankan tegas ke `BE-LAB-12`. Bagian 8 diperluas menjadi lima sub-cakupan | `DRAFT` |
 | 2 | 2026-09-02 | Audit cakupan endpoint dijalankan. Empat endpoint grup Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan. Daftar endpoint pada `BE-LAB-06` dan `BE-LAB-15` ditulis eksplisit agar lubang sejenis tidak tersembunyi lagi. Bagian 8 Cakupan Endpoint ditambahkan | `DRAFT` |
+| 13 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-12` berpindah menjadi **`SELESAI`**: ketiga endpoint wadah berperilaku baru, `VAL-05` sampai `VAL-15` masing-masing punya ujinya, dan `VAL-09` — aturan empat mata — ditulis sebagai kode di dalam service sesuai temuan `CAP-16`. `AC-36` terbukti: menolak wadah menggugurkan seluruh pemeriksaan yang ditopangnya. Kode status disesuaikan matriks: `422`, `409`, dan `403` menggantikan `400` yang seragam. **Urutan terhadap `BE-LAB-11` dibalik** karena keenam kolomnya masih dipakai service di delapan tempat; `BE-LAB-12` lebih dulu supaya kode berhenti memakainya, `BE-LAB-11` menyusul menghapus kolom mati. Penerbitan fakta per pemeriksaan tetap milik `BE-LAB-13` | `DRAFT` |
+| 12 | 2026-09-03 | **`LEGACY MIGRATION` atas instruksi pemilik modul, ditulis `build-module-backend`.** `BE-LAB-19` ditambahkan dan langsung **`SELESAI`**: `TrxLabSpecimen` menjadi `LabSpecimen` dan `TrxLabTransitionHistory` menjadi `LabTransitionHistory`, lengkap dengan tabel fisiknya. Nol `Trx*` tersisa pada modul Laboratorium. **`LAB-OPEN-012` dijawab lebih dulu** — jumlah baris `TrxLabSpecimen` pada `QuilvianNewDevYoga` adalah **0** — sehingga tidak ada data yang berpindah; kartu `BE-LAB-11` diperbarui mengikutinya. Kartu `BE-LAB-16` juga diselaraskan: Verifikasi dan DoD-nya kini berbunyi `VAL-17` .. `VAL-20` sesuai bagian 8.2. Total task backend menjadi 22 | `DRAFT` |
+| 11 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-16` berpindah dari `Siap direncanakan` menjadi **`SELESAI`**: empat endpoint pemeriksaan terpesan tersedia, dan `VAL-17` sampai `VAL-20` masing-masing punya ujinya. Tanpa migration. Satu selisih penulisan dicatat: kartu `BE-LAB-16` menyebut `VAL-05` dan `VAL-07` pada Verifikasi dan DoD-nya, padahal bagian 8.2 menempatkan keduanya pada `BE-LAB-12`; yang dikerjakan adalah `VAL-17` .. `VAL-20` sesuai bagian 8.2, dengan larangan jenis pemeriksaan ganda per wadah tetap ditegakkan. Penyelarasan kartu itu menjadi utang pemilik blueprint | `DRAFT` |
+| 10 | 2026-09-03 | **Task baru atas instruksi pemilik modul, ditulis `build-module-backend`.** `BE-LAB-18` ditambahkan dan langsung **`SELESAI`**: `GET /lab-orders` memperoleh penyaring, pengurutan, dan pagination di sisi server. `LAB-API-v1` naik ke `r5`, dan ini **satu-satunya perubahan breaking** pada modul Laboratorium sejauh ini — bentuk respons berubah dari `List<T>` menjadi `PagedResult<T>`. Dampak konsumen dinilai: satu-satunya konsumen yang ditemukan, modul IGD, tidak putus karena pembungkusnya sudah menangani kedua bentuk, tetapi perlu mengirim `?encounterId=` agar tidak kehilangan pesanan di luar halaman pertama. Perubahan ini sekaligus menutup `IGD-DEC-105`. Dua deskripsi endpoint Swagger terakhir pada `LabSpecimenController` juga dihapus, sehingga seluruh grup Laboratorium kini bersih. Total task backend menjadi 21 | `DRAFT` |
+| 9 | 2026-09-03 | **Task baru atas instruksi pemilik modul, ditulis `build-module-backend`.** `BE-LAB-17` ditambahkan dan langsung **`SELESAI`**: sepuluh endpoint `filters/metadata` dan `summary` pada kelima grup Laboratorium, menyamakan bentuknya dengan modul Rekam Medis. `LAB-API-v1` dinaikkan dari `r3` ke `r4`; amandemennya aditif sepenuhnya. Total task backend menjadi 20. Satu temuan dicatat: `GET /lab-orders` dan daftar wadah belum menerima parameter query apa pun, dan metadata keduanya menyatakan itu apa adanya alih-alih mengarang penyaring — menambahkan penyaringan sungguhan belum berpemilik task. Di luar task, empat deskripsi endpoint Swagger dihapus atas permintaan pemilik modul: tiga pada `LabOrderController` dan satu pada `MedicalRecordAccessLogController` | `DRAFT` |
+| 8 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-09` berpindah dari `Siap direncanakan` menjadi **`SELESAI`**, sekaligus mencabut penahan `BE-LAB-16` dan `BE-LAB-10`. Entity `LabExamination` ada dengan nama yang benar, dan migration `20260903071535_AddLabExamination` terbukti jalan dua arah terhadap `QuilvianNewDevYoga`. Dua hal dicatat terbuka: keenam kolom yang harus pindah dari `TrxLabSpecimen` **belum dipindahkan** karena `BE-LAB-11` masih `BLOCKED`, sehingga salinan tarif untuk sementara ada di dua tempat; dan `erd/data-dictionary.md` bagian 4 bertentangan dengan bagian 8.3 roadmap ini soal `TrxLabTransitionHistory`. Di luar task, atas permintaan pemilik modul, komentar XML pada method action ketiga controller Laboratorium dihapus agar tidak lagi tampil sebagai deskripsi endpoint di Swagger | `DRAFT` |
+| 7 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-06` berpindah dari `Siap direncanakan` menjadi **`SELESAI`**: lima endpoint grup Lab Rejection Reason tersedia, seeder data awal terdaftar, dan `VAL-36` sampai `VAL-38` terbukti lewat 34 uji. Task ini tidak menyentuh schema sehingga tanpa migration. Satu risiko organisasi dibuka: pemegang `LabRejectionReason : SystemFlag` belum ditetapkan, sehingga penanda biaya belum dapat disetel lewat aplikasi. Tujuh selisih terhadap `master-data-endpoint-standard.md` dan `LAB-API-v1` r3 dicatat terbuka pada laporan bagian 3.4 — yang terpenting: grup ini sengaja lima endpoint, bukan sembilan, karena kontraknya mengunci demikian dan `FE-LAB-03` tidak mengonsumsi sisanya | `DRAFT` |
