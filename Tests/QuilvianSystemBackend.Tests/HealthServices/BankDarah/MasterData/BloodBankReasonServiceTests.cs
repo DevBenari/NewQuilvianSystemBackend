@@ -7,7 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Repositories;
 using Xunit;
 
-namespace QuilvianSystemBackend.Tests.HealthServices.MasterData;
+namespace QuilvianSystemBackend.Tests.HealthServices.BankDarah.MasterData;
 
 /// <summary>
 /// Bukti untuk sisa <c>BE-BD-001</c> — daftar alasan terkendali Bank Darah

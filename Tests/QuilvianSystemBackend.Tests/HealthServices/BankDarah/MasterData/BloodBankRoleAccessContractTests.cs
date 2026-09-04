@@ -5,7 +5,7 @@ using QuilvianSystemBackend.Constants;
 using System.Reflection;
 using Xunit;
 
-namespace QuilvianSystemBackend.Tests.HealthServices.MasterData;
+namespace QuilvianSystemBackend.Tests.HealthServices.BankDarah.Access;
 
 /// <summary>
 /// <c>BE-BD-016</c> — membuktikan bahwa setiap pasangan hak akses Bank Darah yang diperiksa
