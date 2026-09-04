@@ -343,6 +343,6 @@ public sealed class BillingAllocationServiceTests
             BillingCoverageContext context,
             CancellationToken cancellationToken) =>
             Task.FromResult(new BillingCoverageDecision(
-                "SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, []));
+                "SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], []));
     }
 }

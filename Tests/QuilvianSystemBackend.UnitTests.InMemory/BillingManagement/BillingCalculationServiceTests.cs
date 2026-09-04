@@ -51,7 +51,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
         var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 60_000m, 25_000m, 0, []));
+            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 60_000m, 25_000m, 0, [], []));
         var service = CreateService(db, adapter);
 
         var result = await service.RecalculateAsync(
@@ -70,7 +70,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
         var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 80_000m, 30_000m, 0, []));
+            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 80_000m, 30_000m, 0, [], []));
         var service = CreateService(db, adapter);
 
         var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
@@ -86,7 +86,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
         var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "REJECTED", "NOT_CONFIGURED", 0, 0, 100_000m, []));
+            "INSURER-CONTRACT-TEST", "REJECTED", "NOT_CONFIGURED", 0, 0, 100_000m, [], []));
         var service = CreateService(db, adapter);
 
         var result = await service.RecalculateAsync(
@@ -139,7 +139,7 @@ public sealed class BillingCalculationServiceTests
         // eligible 120.000. Decision penjamin mencoba menanggung SELURUH 120.000, termasuk admin
         // fee - hanya sah bila policy admin fee Coverable=true.
         var decision = new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "NOT_CONFIGURED", 120_000m, 0, 0, []);
+            "INSURER-CONTRACT-TEST", "APPROVED", "NOT_CONFIGURED", 120_000m, 0, 0, [], []);
 
         await using (var coverableDb = IsolatedBillingDbContextFactory.Create())
         {
@@ -733,6 +733,6 @@ public sealed class BillingCalculationServiceTests
     {
         public static readonly SelfPayCoverageAdapter Instance = new();
         public Task<BillingCoverageDecision> ResolveAsync(BillingCoverageContext context, CancellationToken cancellationToken) =>
-            Task.FromResult(new BillingCoverageDecision("SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, []));
+            Task.FromResult(new BillingCoverageDecision("SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], []));
     }
 }
