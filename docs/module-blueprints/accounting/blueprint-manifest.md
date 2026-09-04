@@ -87,7 +87,7 @@ input_revisions:
   requirement_gate: null
   hospital_domain_architecture: null
 contract_versions:
-  api: ACC-API-0.4
+  api: ACC-API-0.5
   state: ACC-STATE-0.1
   validation: ACC-VALIDATION-0.3
   integration: ACC-INTEGRATION-0.2
@@ -113,7 +113,7 @@ artifact_hashes:
   03-frontend-architecture.md: a8e3f7c002359683c6c24a5d6cdc170c916fe4017cf01b7bb7cf05b79375c544
   04-prd-to-mvp.md: 1da14a42f09030625641f9769ebd1839773125c4e8b94e36016e363e311ca081
   06-shared-migration-coordination-rule.md: e1111572749627931b81da86c779c472197ab821790a6e5568900068b608d428
-  contracts/api-contract.md: b4a20208526e5cac65983d4a8bddb40a2c2a553a134824f8437d363422f1b7b0
+  contracts/api-contract.md: 60bce4cddc7c5fad05d70f9606c68747d1453579b83e36677723598f2dd7555d
   contracts/state-transition-matrix.md: 34ef47ca2fb0b8dce9c8e5336b267e16f9878635d75ab7bd033affe0fca687b5
   contracts/validation-matrix.md: 11df3f472f2d71e5a57e34db606d1c3a78105ebfce008ddb0a3a509ac09b4643
   contracts/integration-contract.md: 1c773b03b30a272459de9db436bded581d0593e1897a89e847fdbc023679e094
@@ -121,7 +121,7 @@ artifact_hashes:
   contracts/cross-module-contract.md: a17b2449c9d21471af8473e97e254b5f6f3e8dfda73793d22abf79b71cceef9f
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
-  roadmap/backend-roadmap.md: cad5f84ea2fc0def429c4ea504340f1d6523ed5e4eee47b6617636e1a084515f
+  roadmap/backend-roadmap.md: df36e68cdeeb62119a2b2bf89ed7884a1654005ec670c16d233e3c2cd8f690db
   roadmap/frontend-roadmap.md: eda19cbdd8e9f4481114abceca7678dba6b07d4bad4dfcf89bfbf05159c0df24
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041

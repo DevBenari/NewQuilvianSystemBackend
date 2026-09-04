@@ -556,3 +556,19 @@ Menambah index spekulatif memperlambat tulis tanpa bukti bahwa baca menjadi lebi
 | Task tutup buku berdaftar periksa | Ditunda; penutupan periode tetap tersedia lewat `BE-ACC-009` |
 | Task Laba Rugi dan Neraca | `ACC-DEC-030` membatasi laporan MVP pada Neraca Saldo dan Buku Besar |
 | Task pembuatan tabel buku besar | Buku besar dihitung, bukan disimpan |
+
+### `BE-ACC-015` — Nama aktor pada respons Journal
+
+| Field | Isi |
+|---|---|
+| Outcome | Layar rincian jurnal dapat menampilkan **siapa** yang mengajukan, menyetujui, dan mengesahkan — bukan hanya `Guid` |
+| Trace | `ACC-GAP-011`; prasyarat tampilan `FE-ACC-007` |
+| Kontrak | `ACC-API-0.4` → **`0.5`** |
+| Reuse | Pola batch-resolve `NurseStationClusterController.cs:555` dan `:558`; penamaan `...ByName` dari `LeaveAdjustmentDtos.cs:134-160` |
+| Cakupan | `JournalApprovalResponse` + `ActionByName`; `JournalDetailResponse` + `SubmittedByName`, `ApprovedByName`, `PostedByName`; satu kueri batch ke `Users` di `AccJournalService` |
+| Dependency | `BE-ACC-011` selesai |
+| Acceptance | (1) Nama muncul untuk aktor yang ada. (2) `null` bila aktornya belum ada, bukan string kosong. (3) **Satu kueri** untuk seluruh aktor satu jurnal, bukan N+1. (4) Nol field persisted baru — `QBE-ENT-003`. (5) Nol migration |
+| Verifikasi | `dotnet build`; pembuktian terhadap data sungguhan |
+| Risiko/pemilik | Rendah. Developer |
+| DoD | Build bersih, laporan task tersedia |
+| **Status** | **`DONE`** — 4 September 2026. Build **0 error**. Terbukti pada data nyata: `JB/2026/09/00001` mengembalikan `SubmittedByName='SuperAdmin'` dan riwayat *"Diajukan oleh SuperAdmin"*; `ApprovedByName`/`PostedByName` `null` karena memang belum disetujui. **Nol migration, nol perubahan skema**, tepat 2 berkas source. Laporan: [`../task/report/backend/be-acc-015-nama-aktor-pada-respons-journal.md`](../task/report/backend/be-acc-015-nama-aktor-pada-respons-journal.md) |

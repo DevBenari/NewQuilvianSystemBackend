@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-API-0.4` |
+| `contract_version` | `ACC-API-0.5` |
 | Status | `draft` — approval adalah tindakan manusia |
 | Owner | Rizki (Product/Domain Owner), owner API backend |
 | `approved_by` / `approved_at` | Belum ada |
@@ -256,20 +256,23 @@ parameter daftar bernama `...Query`.
 |---|---|---|
 | `JournalPagedQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId?`, `DateFrom?`, `DateTo?`, `JournalTypeId?`, `JournalStatus?`, `Search?`, `SortBy?`, `SortDirection?` |
 | `JournalListResponse` | Response | `Id`, `JournalNumber`, `AccountingDate`, `JournalTypeId`, `JournalTypeName`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit` |
-| `JournalDetailResponse` | Response | `Id`, `LegalEntityId`, `JournalNumber`, `JournalTypeId`, `JournalTypeCode`, `JournalTypeName`, `AccountingPeriodId`, `PeriodCode`, `DocumentNumber?`, `DocumentDate?`, `AccountingDate`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit`, `IsBalanced`, `SubmittedBy?`, `SubmittedAt?`, `ApprovedBy?`, `ApprovedAt?`, `PostedBy?`, `PostedAt?`, `RejectionReason?`, `ReversalOfJournalId?`, `ReversalOfJournalNumber?`, `CorrectionType?`, `CreateDateTime`, `CreateBy`, `Lines`, `Approvals`, `AvailableActions` |
+| `JournalDetailResponse` | Response | `Id`, `LegalEntityId`, `JournalNumber`, `JournalTypeId`, `JournalTypeCode`, `JournalTypeName`, `AccountingPeriodId`, `PeriodCode`, `DocumentNumber?`, `DocumentDate?`, `AccountingDate`, `Description`, `JournalStatus`, `TotalDebit`, `TotalCredit`, `IsBalanced`, `SubmittedBy?`, **`SubmittedByName?`**, `SubmittedAt?`, `ApprovedBy?`, **`ApprovedByName?`**, `ApprovedAt?`, `PostedBy?`, **`PostedByName?`**, `PostedAt?`, `RejectionReason?`, `ReversalOfJournalId?`, `ReversalOfJournalNumber?`, `CorrectionType?`, `CreateDateTime`, `CreateBy`, `Lines`, `Approvals`, `AvailableActions` |
 | `JournalLineResponse` | Response | `Id`, `LineNumber`, `AccountId`, `AccountCode`, `AccountName`, `CostCenterId?`, `CostCenterName?`, `Description?`, `DebitAmount`, `CreditAmount` |
-| `JournalApprovalResponse` | Response | `ApprovalAction`, `ActionBy`, `ActionAt`, `Reason?` |
+| `JournalApprovalResponse` | Response | `ApprovalAction`, `ActionBy`, **`ActionByName?`**, `ActionAt`, `Reason?` |
 | `CreateJournalRequest` | Create | `LegalEntityId`, `JournalTypeId`, `DocumentNumber?`, `DocumentDate?`, `AccountingDate`, `Description`, `Lines` |
 | `UpdateJournalRequest` | Update | Sama dengan `CreateJournalRequest` **tanpa** `LegalEntityId` |
 | `CreateJournalLineRequest` | Create | `LineNumber`, `AccountId`, `CostCenterId?`, `Description?`, `DebitAmount`, `CreditAmount` |
 | `RejectJournalRequest` | Status | `Reason` |
 | `ReverseJournalRequest` | Status | `CorrectionType?`, `Reason`, `AccountingDate?`, `AdjustmentLines` |
 
-> **`JournalApprovalResponse.ActionBy` adalah `Guid`, bukan nama.** Daftar sebelumnya menyebut
-> `ActionByName`, dan **field itu tidak ada di source mana pun** — dicari di seluruh
-> `Areas/Corporate/AccountingManagement/`, nol kemunculan. Layar rincian jurnal (`FE-ACC-007`)
-> karena itu **tidak dapat menampilkan nama penyetuju** dari endpoint ini saja. Dicatat sebagai
-> `ACC-GAP-011`.
+> **`ActionByName` dan ketiga `…ByName` ditambahkan `ACC-API-0.5`** (`BE-ACC-015`, menutup
+> `ACC-GAP-011`). Sebelumnya hanya `Guid` yang tersedia, sehingga layar rincian tidak dapat
+> menjawab *"siapa menyetujui"* — padahal itu alasan riwayat persetujuan ada.
+>
+> Keempatnya **tidak dipersistensi**: nama diambil dari `AspNetUsers` saat baca, dalam satu
+> kueri batch per jurnal. Menyimpannya pada baris riwayat melanggar `QBE-ENT-003` dan akan basi
+> begitu pengguna berganti nama. Nilainya `null` bila aktornya belum ada — misalnya
+> `ApprovedByName` pada jurnal yang belum disetujui.
 
 ### Accounting Period
 

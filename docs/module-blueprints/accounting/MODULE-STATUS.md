@@ -69,7 +69,7 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| **`DONE` — 14/14** | **`IN_PROGRESS` — 6/11** | `NOT_STARTED` | `NOT_READY` — [testing/readiness-report.md](testing/readiness-report.md), 4 September 2026 |
+| **`DONE` — 15/15** | **`IN_PROGRESS` — 6/11** | `NOT_STARTED` | `NOT_READY` — [testing/readiness-report.md](testing/readiness-report.md), 4 September 2026 |
 
 | Task | Status | Bukti |
 |---|---|---|

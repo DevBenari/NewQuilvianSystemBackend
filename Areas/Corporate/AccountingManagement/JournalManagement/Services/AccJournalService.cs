@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
@@ -1489,6 +1489,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             return q.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
         }
 
+        /// <summary>
+        /// Menerjemahkan Guid aktor menjadi nama yang dapat dibaca manusia, dalam SATU kueri.
+        /// </summary>
+        /// <remarks>
+        /// Meniru pola yang sudah dipakai <c>NurseStationClusterController</c>: kumpulkan idnya,
+        /// satu kueri batch, lalu petakan. Pemilihan nama sengaja dikerjakan di memori — jumlah
+        /// aktor per jurnal paling banyak empat, dan <c>string.IsNullOrWhiteSpace</c> tidak
+        /// dijamin dapat diterjemahkan provider. Nama kosong karena itu ikut tersaring, bukan
+        /// hanya nama yang null.
+        /// </remarks>
+        private async Task<IReadOnlyDictionary<Guid, string?>> AmbilNamaAktorAsync(
+            IEnumerable<Guid?> idAktor,
+            CancellationToken ct)
+        {
+            var unik = idAktor
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+
+            if (unik.Count == 0)
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            var pengguna = await _db.Users
+                .AsNoTracking()
+                .Where(x => unik.Contains(x.Id))
+                .Select(x => new { x.Id, x.DisplayName, x.UserName, x.Email, x.UserCode })
+                .ToListAsync(ct);
+
+            return pengguna.ToDictionary(
+                x => x.Id,
+                x => PilihNamaPertama(x.DisplayName, x.UserName, x.Email, x.UserCode));
+        }
+
+        private static string? PilihNamaPertama(params string?[] kandidat) =>
+            kandidat.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+        private static string? NamaAktor(
+            IReadOnlyDictionary<Guid, string?> namaAktor,
+            Guid? idAktor) =>
+            idAktor is null || idAktor.Value == Guid.Empty
+                ? null
+                : namaAktor.TryGetValue(idAktor.Value, out var nama) ? nama : null;
+
         private async Task<JournalDetailResponse> PetakanRincianAsync(
             AccJournal jurnal,
             Guid actorUserId,
@@ -1514,6 +1560,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 })
                 .ToListAsync(ct);
 
+            // ACC-GAP-011 — riwayat persetujuan menjawab pertanyaan audit "siapa menyetujui apa
+            // dan kapan". Tanpa nama, ia hanya menjawab dua dari tiga. Nama diambil SEKALI untuk
+            // seluruh aktor pada jurnal ini, bukan per baris, supaya tidak menjadi N+1.
+            var namaAktor = await AmbilNamaAktorAsync(
+                riwayat.Select(x => (Guid?)x.ActionBy)
+                    .Append(jurnal.SubmittedBy)
+                    .Append(jurnal.ApprovedBy)
+                    .Append(jurnal.PostedBy),
+                ct);
+
+            foreach (var baris in riwayat)
+            {
+                baris.ActionByName = NamaAktor(namaAktor, baris.ActionBy);
+            }
+
             return new JournalDetailResponse
             {
                 Id = jurnal.Id,
@@ -1533,10 +1594,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 TotalCredit = jurnal.TotalCredit,
                 IsBalanced = jurnal.TotalDebit == jurnal.TotalCredit && jurnal.Lines.Count > 0,
                 SubmittedBy = jurnal.SubmittedBy,
+                SubmittedByName = NamaAktor(namaAktor, jurnal.SubmittedBy),
                 SubmittedAt = jurnal.SubmittedAt,
                 ApprovedBy = jurnal.ApprovedBy,
+                ApprovedByName = NamaAktor(namaAktor, jurnal.ApprovedBy),
                 ApprovedAt = jurnal.ApprovedAt,
                 PostedBy = jurnal.PostedBy,
+                PostedByName = NamaAktor(namaAktor, jurnal.PostedBy),
                 PostedAt = jurnal.PostedAt,
                 RejectionReason = jurnal.RejectionReason,
                 ReversalOfJournalId = jurnal.ReversalOfJournalId,

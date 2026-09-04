@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.DTOs
@@ -89,13 +89,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
         public Guid? SubmittedBy { get; set; }
 
+        /// <summary>Nama aktor, diisi saat baca. Tidak dipersistensi (QBE-ENT-003).</summary>
+        public string? SubmittedByName { get; set; }
+
         public DateTime? SubmittedAt { get; set; }
 
         public Guid? ApprovedBy { get; set; }
 
+        /// <summary>Nama aktor, diisi saat baca. Tidak dipersistensi (QBE-ENT-003).</summary>
+        public string? ApprovedByName { get; set; }
+
         public DateTime? ApprovedAt { get; set; }
 
         public Guid? PostedBy { get; set; }
+
+        /// <summary>Nama aktor, diisi saat baca. Tidak dipersistensi (QBE-ENT-003).</summary>
+        public string? PostedByName { get; set; }
 
         public DateTime? PostedAt { get; set; }
 
@@ -159,6 +168,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
         public JournalApprovalAction ApprovalAction { get; set; }
 
         public Guid ActionBy { get; set; }
+
+        /// <summary>
+        /// Nama aktor, diisi saat baca dari <c>AspNetUsers</c>. Tidak dipersistensi:
+        /// menyimpan nama pada baris riwayat melanggar QBE-ENT-003 dan akan basi begitu
+        /// pengguna berganti nama.
+        /// </summary>
+        public string? ActionByName { get; set; }
 
         public DateTime ActionAt { get; set; }
 
