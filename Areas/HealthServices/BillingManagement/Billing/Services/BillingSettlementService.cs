@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -22,6 +22,8 @@ public sealed class BillingSettlementService
     private readonly IBillingPaymentProviderAdapter _providerAdapter;
     private readonly BillingAllocationService _allocationService;
     private readonly CashierShiftService _cashierShiftService;
+    private readonly BillingNumberSeriesService _numberSeries;
+    private readonly BillingFinalizationService _finalizationService;
     private readonly LoggerService _loggerService;
 
     public BillingSettlementService(
@@ -29,12 +31,16 @@ public sealed class BillingSettlementService
         IBillingPaymentProviderAdapter providerAdapter,
         BillingAllocationService allocationService,
         CashierShiftService cashierShiftService,
+        BillingNumberSeriesService numberSeries,
+        BillingFinalizationService finalizationService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _providerAdapter = providerAdapter;
         _allocationService = allocationService;
         _cashierShiftService = cashierShiftService;
+        _numberSeries = numberSeries;
+        _finalizationService = finalizationService;
         _loggerService = loggerService;
     }
 
@@ -50,6 +56,26 @@ public sealed class BillingSettlementService
             .SingleOrDefaultAsync(x => x.Id == settlementId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Settlement tidak ditemukan.");
         return MapSettlement(settlement, false);
+    }
+
+    // Riwayat settlement milik satu invoice, terbaru lebih dulu. Sebelum ini, layar kasir hanya
+    // bisa menemukan settlement lewat draft di localStorage browser yang membuatnya - begitu
+    // draft dibersihkan (settlement selesai) atau kasir membuka dari perangkat lain, pembayaran
+    // yang sudah terjadi tidak terlihat sama sekali dan layar kembali menawarkan bayar dari awal.
+    public async Task<List<SettlementResponse>> GetByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        if (invoiceId == Guid.Empty)
+            throw new BillingSettlementValidationException("InvoiceId wajib diisi.");
+
+        var settlements = await _dbContext.BilSettlements.AsNoTracking()
+            .Include(x => x.Tenders)
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .ToListAsync(cancellationToken);
+
+        return settlements.Select(x => MapSettlement(x, false)).ToList();
     }
 
     public async Task<SettlementResponse> CreateAsync(
@@ -108,6 +134,7 @@ public sealed class BillingSettlementService
                 InvoiceId = request.InvoiceId,
                 DepositAccountId = request.DepositAccountId,
                 Purpose = request.Purpose,
+                Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
                 RequestedAmount = request.RequestedAmount,
                 SuccessfulAmount = 0,
                 AllocatedAmount = 0,
@@ -223,12 +250,22 @@ public sealed class BillingSettlementService
                         "Total metode pembayaran melebihi saldo yang harus dibayar.");
 
                 var now = DateTimeOffset.UtcNow;
+                // BKC-DEC-057: satu nomor Kwitansi dialokasikan setiap kali tender BARU dibuat
+                // (bukan pada replay idempotent di atas) - satu nomor per pembayaran, bukan per
+                // invoice. Alokasi terjadi di dalam transaction Serializable yang sama dengan
+                // penyimpanan tender, jadi keduanya sukses/gagal bersama.
+                var kwitansiNumber = await _numberSeries.AllocateKwitansiNumberAsync(
+                    actorUserId, now, cancellationToken);
                 tender = new BilTender
                 {
                     SettlementId = settlement.Id,
                     Settlement = settlement,
                     PaymentMethodId = request.PaymentMethodId,
                     Amount = request.Amount,
+                    CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
+                        ? null
+                        : request.CashierReferenceNote.Trim(),
+                    KwitansiNumber = kwitansiNumber,
                     Status = BillingTenderStatuses.Created,
                     IdempotencyKey = idempotencyKey,
                     PayloadHash = payloadHash,
@@ -290,6 +327,7 @@ public sealed class BillingSettlementService
                 actorUserId,
                 cancellationToken);
             response.IsReplay = isReplay;
+            await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         var providerRequest = new BillingPaymentProviderRequest(
@@ -307,6 +345,7 @@ public sealed class BillingSettlementService
             var response = await ReconcileTenderAsync(
                 tender.Id, providerResult, actorUserId, cancellationToken);
             response.IsReplay = isReplay;
+            await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         catch (OperationCanceledException)
@@ -511,6 +550,66 @@ public sealed class BillingSettlementService
         finally
         {
             if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // Tagihan yang sudah lunas langsung difinalisasi tanpa menunggu tindakan kasir.
+    //
+    // Dijalankan SETELAH seluruh blok transaksi tender selesai dan objek transaksinya dilepas,
+    // bukan di dalamnya: finalisasi membuka transaksi serializable dan kunci ledger sendiri tanpa
+    // memeriksa transaksi yang masih aktif, sehingga menumpuknya mengundang error dan deadlock.
+    //
+    // Bersifat best-effort dan sengaja tidak melempar. Uang pasien sudah diterima dan tercatat;
+    // membatalkan seluruh permintaan hanya karena invoice belum siap difinalisasi (mis. masih
+    // ada order yang belum selesai) akan membuang pembayaran yang sah. Kegagalan dicatat di log
+    // dan invoice tetap bisa difinalisasi manual dari panel finalisasi.
+    private async Task TryAutoFinalizeInvoiceAsync(
+        Guid settlementId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var settlement = await _dbContext.BilSettlements.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == settlementId && !x.IsDelete, cancellationToken);
+        if (settlement is null) return;
+        if (settlement.Purpose != BillingSettlementPurposes.InvoicePayment) return;
+        if (!settlement.InvoiceId.HasValue) return;
+
+        var invoiceId = settlement.InvoiceId.Value;
+
+        try
+        {
+            var invoice = await _dbContext.BilInvoices.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+            if (invoice is null || invoice.Status != BillingInvoiceStatuses.Open) return;
+
+            var readiness = await _finalizationService.PreviewAsync(invoiceId, cancellationToken);
+            if (!readiness.IsReadyForNormalFinalization || readiness.Outstanding > 0) return;
+
+            var correlationId = Guid.NewGuid();
+            await _finalizationService.FinalizeAsync(
+                invoiceId,
+                new FinalizeInvoiceRequest
+                {
+                    ExpectedRowVersion = invoice.RowVersion,
+                    Reason = "Finalisasi otomatis: tanggung jawab pasien lunas.",
+                    CorrelationId = correlationId,
+                    CausationId = settlement.CorrelationId
+                },
+                Guid.NewGuid(),
+                actorUserId,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            await _loggerService.WarningAsync(
+                LogCategory,
+                "BillingInvoice.AutoFinalizeSkipped",
+                "Invoice lunas tetapi finalisasi otomatis tidak dapat diselesaikan; finalisasi manual masih tersedia.",
+                new { InvoiceId = invoiceId, SettlementId = settlement.Id, Error = exception.Message });
         }
     }
 
@@ -907,6 +1006,7 @@ public sealed class BillingSettlementService
             request.DepositAccountId?.ToString("N") ?? string.Empty,
             request.Purpose,
             request.RequestedAmount.ToString(CultureInfo.InvariantCulture),
+            request.Note ?? string.Empty,
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Hash(canonical);
@@ -920,6 +1020,7 @@ public sealed class BillingSettlementService
             settlementId.ToString("N"),
             request.PaymentMethodId.ToString("N"),
             request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.CashierReferenceNote ?? string.Empty,
             request.ExpectedRowVersion.ToString("N"),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -956,6 +1057,7 @@ public sealed class BillingSettlementService
             InvoiceId = settlement.InvoiceId,
             DepositAccountId = settlement.DepositAccountId,
             Purpose = settlement.Purpose,
+            Note = settlement.Note,
             Status = settlement.Status,
             RequestedAmount = settlement.RequestedAmount,
             SuccessfulAmount = settlement.SuccessfulAmount,
@@ -984,6 +1086,8 @@ public sealed class BillingSettlementService
         PaymentMethodId = tender.PaymentMethodId,
         Amount = tender.Amount,
         Status = tender.Status,
+        CashierReferenceNote = tender.CashierReferenceNote,
+        KwitansiNumber = tender.KwitansiNumber,
         ProviderReferenceMasked = MaskProviderReference(tender.ProviderReference),
         ProviderStatusCode = tender.ProviderStatusCode,
         AttemptedAt = tender.AttemptedAt,

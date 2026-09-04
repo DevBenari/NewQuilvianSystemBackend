@@ -44,6 +44,61 @@ public sealed class RoomChargePolicyService
         };
     }
 
+    public async Task<RoomChargePolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<RoomChargePolicyOptionResponse>> GetOptionsAsync(
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstRoomChargePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive) query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.Name)
+            .Select(x => new RoomChargePolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                MinimumMinutes = x.MinimumMinutes,
+                PeriodMinutes = x.PeriodMinutes,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<RoomChargePolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstRoomChargePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new RoomChargePolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken)
+        };
+    }
+
+    public RoomChargePolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new RoomChargePolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        RemainderRoundings = RoomChargePolicyValues.RemainderRoundings.OrderBy(x => x).ToList(),
+        TariffMoments = RoomChargePolicyValues.TariffMoments.OrderBy(x => x).ToList(),
+        LeaveRules = RoomChargePolicyValues.LeaveRules.OrderBy(x => x).ToList()
+    };
+
     public async Task<RoomChargePolicyResponse> CreateAsync(CreateRoomChargePolicyRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
         var values = await ValidateAsync(request, null, cancellationToken);
@@ -84,6 +139,51 @@ public sealed class RoomChargePolicyService
         await _dbContext.SaveChangesAsync(cancellationToken);
         await AuditAsync("RoomChargePolicy.Deactivate", entity, actorUserId, request.Reason.Trim());
         return Map(entity);
+    }
+
+    // Mengaktifkan kembali policy yang sebelumnya dinonaktifkan tanpa perlu membuat versi baru.
+    // Tidak mensyaratkan alasan (berbeda dari DeactivateAsync).
+    public async Task<RoomChargePolicyResponse> ActivateAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive) return Map(entity);
+
+        var overlaps = await _dbContext.MstRoomChargePolicies.AnyAsync(x => !x.IsDelete && x.IsActive && x.Id != entity.Id
+            && x.EffectiveFrom < (entity.EffectiveTo ?? DateTimeOffset.MaxValue)
+            && (x.EffectiveTo == null || entity.EffectiveFrom < x.EffectiveTo), cancellationToken);
+        if (overlaps)
+            throw new RoomChargePolicyConflictException("Tidak dapat mengaktifkan; ada room charge policy lain yang masih aktif dan bertumpang tindih periodenya.");
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("RoomChargePolicy.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat RoomChargeCalculationResponse
+    // yang sudah menyimpan snapshot PolicyId/Code tetap dapat ditelusuri. Hanya policy nonaktif
+    // yang boleh dihapus.
+    public async Task<RoomChargePolicyDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new RoomChargePolicyValidationException("Policy yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("RoomChargePolicy.Delete", entity, actorUserId, null);
+
+        return new RoomChargePolicyDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
     }
 
     public static decimal CalculateChargeUnits(int occupiedMinutes, int minimumMinutes, int periodMinutes, string remainderRounding)

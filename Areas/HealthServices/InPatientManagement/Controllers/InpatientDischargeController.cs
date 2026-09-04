@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -88,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Decide Inpatient Discharge", Description = "Menyatakan pasien rawat inap boleh pulang", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Discharge", Description = "Memutuskan pasien boleh pulang, menyusun resume, dan menandai butir administrasi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientDischarge", "Update")]
         public async Task<IActionResult> DecideDischarge(
             Guid episodeId,
@@ -180,7 +180,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Upsert Inpatient Discharge Summary", Description = "Menyusun atau memperbarui resume pulang", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Discharge", Description = "Memutuskan pasien boleh pulang, menyusun resume, dan menandai butir administrasi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientDischarge", "Update")]
         public async Task<IActionResult> UpsertSummary(
             Guid episodeId,
@@ -227,7 +227,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Sign Inpatient Discharge Summary", Description = "Menandatangani resume pulang rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Sign", "Sign Inpatient Discharge Summary", Description = "Menandatangani resume pulang rawat inap", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("InpatientDischarge", "Sign")]
         public async Task<IActionResult> SignSummary(
             Guid episodeId,
@@ -307,7 +307,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Mark Inpatient Clearance Item", Description = "Menandai butir administrasi rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Inpatient Discharge", Description = "Memutuskan pasien boleh pulang, menyusun resume, dan menandai butir administrasi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InpatientDischarge", "Update")]
         public async Task<IActionResult> MarkClearanceItem(
             Guid episodeId,
@@ -362,8 +362,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Mark Inpatient Financial Clearance", Description = "Menandai kelayakan keuangan rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("InpatientFinancialClearance", "Update")]
+        [AccessAction("MarkFinancialClearance", "Mark Inpatient Financial Clearance", Description = "Menandai kelayakan keuangan rawat inap", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("InpatientDischarge", "MarkFinancialClearance")]
         public async Task<IActionResult> MarkFinancialClearance(
             Guid episodeId,
             [FromBody] MarkFinancialClearanceRequest request,
@@ -398,6 +398,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 cancellationToken);
 
             return Ok(ApiResponse<FinancialClearanceResponse>.Ok(clearance, result.Message));
+        }
+
+        /// <summary>Membaca penandaan kelayakan keuangan beserta seluruh riwayatnya.</summary>
+        /// <remarks>
+        /// Dibuka <c>BE-RWI-034</c>. Sebelum ini penandaan kelayakan keuangan hanya dapat
+        /// <b>ditulis</b> — nilainya baru terbaca kembali sebagai satu baris di dalam
+        /// <c>closure-readiness</c>, yang menuntut hak akses baca resume pulang. Kasir yang
+        /// hanya berwenang menandai karena itu tidak dapat memeriksa ulang penandaannya
+        /// sendiri.
+        ///
+        /// Hak aksesnya sengaja berupa butir tersendiri, bukan <c>Read</c>, supaya kasir dapat
+        /// diberi kemampuan ini <b>tanpa</b> ikut mendapat akses baca isi resume pulang.
+        /// </remarks>
+        [HttpGet("{episodeId:guid}/financial-clearance")]
+        [ProducesResponseType(typeof(ApiResponse<FinancialClearanceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("ReadFinancialClearance", "Read Inpatient Financial Clearance", Description = "Melihat penandaan kelayakan keuangan beserta riwayatnya", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("InpatientDischarge", "ReadFinancialClearance")]
+        public async Task<IActionResult> GetFinancialClearance(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var clearance = await _dischargeService.GetFinancialClearanceAsync(
+                episodeId,
+                cancellationToken);
+
+            if (clearance == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<FinancialClearanceResponse>.Ok(
+                clearance,
+                "Kelayakan keuangan berhasil diambil."));
         }
 
         // =====================================================================
@@ -440,8 +477,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Close Inpatient Episode", Description = "Menutup episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("InpatientEpisode", "Close")]
+        [AccessAction("Close", "Close Inpatient Episode", Description = "Menutup episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("InpatientDischarge", "Close")]
         public async Task<IActionResult> CloseEpisode(
             Guid episodeId,
             [FromBody] CloseEpisodeRequest? request,
@@ -490,8 +527,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Close Inpatient Episode With Override", Description = "Menutup episode menembus gerbang kelayakan keuangan", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("InpatientEpisode", "CloseOverride")]
+        [AccessAction("CloseOverride", "Close Inpatient Episode With Override", Description = "Menutup episode menembus gerbang kelayakan keuangan", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("InpatientDischarge", "CloseOverride")]
         public async Task<IActionResult> CloseEpisodeWithOverride(
             Guid episodeId,
             [FromBody] CloseEpisodeOverrideRequest request,
@@ -547,7 +584,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Record Inpatient Departure", Description = "Mencatat kepergian fisik pasien rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("RecordDeparture", "Record Inpatient Departure", Description = "Mencatat kepergian fisik pasien rawat inap", AccessType = AccessTypes.Update, SortOrder = 9)]
         [AccessPermission("InpatientDischarge", "RecordDeparture")]
         public async Task<IActionResult> RecordDeparture(
             Guid episodeId,

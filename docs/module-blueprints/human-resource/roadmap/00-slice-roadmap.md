@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `2` — revisi `1` PHASE 1; revisi `2` menyerap `HRD-DEC-019` dan memperbaiki hitungan slice serta definisi angka 68/67 |
+| Roadmap revision | `3` — revisi `1` PHASE 1; revisi `2` menyerap `HRD-DEC-019` dan memperbaiki hitungan slice serta definisi angka 68/67; **revisi `3` (`PHASE 2B.1`, 28 Agustus 2026) memperbarui classification `S-B4` (roster/shift-harian/darurat/siaga: `MISSING API` → target `EXTEND`, `HRD-DEC-026`), menambahkan catatan HR-on-behalf pada `S-B1` (`HRD-DEC-028`), Early Leave Permission pada `S-B2` (`HRD-DEC-029`), dan mesin SLA/eskalasi pada `S-A7` (`HRD-DEC-030`)** |
 | Status | `DRAFT` |
 | Backend SHA | `ecdc135` |
 | Frontend SHA | `2a1cea784` |
@@ -249,9 +249,9 @@ berjalan.
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | `WorkflowManagement` menyediakan 48 endpoint sebagai mesin persetujuan bersama. **Tidak ada satu pun antarmuka persetujuan** di frontend, dan tidak ada folder `src/app/manajer` |
-| **Target State** | Satu halaman berisi seluruh pengajuan yang menunggu persetujuan orang yang sedang login, lintas jenis transaksi: cuti, lembur, tukar shift, ubah jadwal, koreksi kehadiran, perubahan data, dan pengunduran diri |
-| **Backend Impact** | `EXTEND`. Perlu satu endpoint yang menjawab "apa yang menunggu persetujuan saya", lintas jenis transaksi, dengan bentuk ringkasan yang seragam. Aturan bisnis tetap milik masing-masing domain |
+| **Current State** | `WorkflowManagement` menyediakan 48 endpoint sebagai mesin persetujuan bersama, termasuk `ApprovalInboxController` yang sudah menyatukan query lintas domain. **Tidak ada satu pun antarmuka persetujuan** di frontend, dan tidak ada folder `src/app/manajer`. **SLA/eskalasi: `MISSING` sebagai mesin penegakan.** `DueAt`/`ReminderAfterHours`/`EscalationAfterHours`/`AutoApproveAfterHours`/`AutoRejectAfterHours` ada sebagai field konfigurasi pada `MstWorkflowStep`, tapi **tidak ada** `BackgroundService`/`IHostedService` yang membacanya dan bertindak — dibuktikan `flows/09-unified-approval.md` |
+| **Target State** | Satu halaman berisi seluruh pengajuan yang menunggu persetujuan orang yang sedang login, lintas jenis transaksi: cuti, lembur, tukar shift, ubah jadwal, koreksi kehadiran, perubahan data, dan pengunduran diri. **`HRD-DEC-030`, 28 Agustus 2026: reminder/escalation engine adalah target `EXTEND`** — `DueAt`/`ReminderAfterHours`/`EscalationAfterHours` harus benar-benar dieksekusi scheduled processing. `AutoApproveAfterHours`/`AutoRejectAfterHours` **default OFF**, hanya aktif bila `WorkflowDefinitionId` transaksi secara eksplisit mengizinkan — dilarang berlaku otomatis ke seluruh transaksi HR |
+| **Backend Impact** | `EXTEND`. Perlu satu endpoint yang menjawab "apa yang menunggu persetujuan saya", lintas jenis transaksi, dengan bentuk ringkasan yang seragam — **sudah ada** lewat `ApprovalInboxController`. **`EXTEND` tambahan**: mesin penegakan SLA/eskalasi/auto-approve/auto-reject, `HRD-DEC-030`. Aturan bisnis tetap milik masing-masing domain |
 | **Frontend Impact** | Halaman baru untuk atasan. Baris ringkasan seragam, detail tetap dibuka di halaman transaksi masing-masing |
 | **Database Impact** | Tidak ada tabel baru. Kemungkinan perlu index pada penugasan penyetuju dan status instance |
 | **Dependency** | `HRD-DEP-002` |
@@ -273,17 +273,17 @@ validasi, SLA, dan eskalasi tetap milik domain masing-masing.
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 71 endpoint pada 9 controller, mencakup rekaman mentah, pemrosesan, harian, pengecualian, periode dengan tutup dan buka kembali, koreksi, pemantauan koreksi dengan perbaikan massal, dan serah terima payroll. Frontend memanggil nol |
-| **Target State** | HR dan petugas payroll dapat memantau kehadiran harian, menangani pengecualian, memproses ulang, menutup periode, dan membuka kembali bila perlu |
-| **Backend Impact** | Diharapkan nihil. Domain ini yang paling matang di seluruh HR |
+| **Current State** | 71 endpoint pada 9 controller, mencakup rekaman mentah, pemrosesan, harian, pengecualian, periode dengan tutup dan buka kembali, koreksi, pemantauan koreksi dengan perbaikan massal, dan serah terima payroll. Frontend memanggil nol. **Koreksi kehadiran atas nama pegawai (HR-on-behalf): `MISSING` sepenuhnya** — `AttendanceCorrectionService.CreateAsync` mensyaratkan `daily.WorkforceProfileId == actorWorkforceProfileId`, tidak ada jalur lain, dibuktikan `flows/07-attendance-correction.md` |
+| **Target State** | HR dan petugas payroll dapat memantau kehadiran harian, menangani pengecualian, memproses ulang, menutup periode, dan membuka kembali bila perlu. **`HRD-DEC-028`, 28 Agustus 2026: HR Admin boleh membuat koreksi atas nama pegawai bila ESS tidak dapat diakses**, wajib menyimpan initiator, workforce diwakili, alasan, timestamp, bukti bila perlu, notifikasi pegawai, dan audit trail; persetujuan tetap lewat workflow koreksi yang berlaku |
+| **Backend Impact** | Diharapkan nihil untuk kapabilitas yang sudah matang. **`EXTEND`** untuk jalur koreksi on-behalf, `HRD-DEC-028` |
 | **Frontend Impact** | Beberapa kelompok halaman baru di `src/app/hr/attendance/**` |
 | **Database Impact** | Tidak ada |
 | **Dependency** | `HRD-DEP-006` untuk lampiran bukti koreksi |
-| **Blocking Decision** | Tidak ada |
-| **QBE Impact** | Frontend saja |
+| **Blocking Decision** | `HRD-DEC-028` sudah `approved` untuk koreksi on-behalf |
+| **QBE Impact** | Frontend saja untuk kapabilitas existing. `NEW CODE` untuk jalur on-behalf |
 | **Migration Risk** | Nihil |
-| **Acceptance Criteria** | 1. Periode dapat ditutup, dan penutupan menolak bila masih ada pengecualian yang belum selesai sesuai aturan backend. 2. Membuka kembali periode hanya dapat dilakukan peran tertentu dan tercatat. 3. Rekaman mentah tidak pernah berubah oleh hasil olahan. 4. Pemrosesan ulang satu hari tidak mengubah hari lain |
-| **Release Status** | `READY` |
+| **Acceptance Criteria** | 1. Periode dapat ditutup, dan penutupan menolak bila masih ada pengecualian yang belum selesai sesuai aturan backend. 2. Membuka kembali periode hanya dapat dilakukan peran tertentu dan tercatat. 3. Rekaman mentah tidak pernah berubah oleh hasil olahan. 4. Pemrosesan ulang satu hari tidak mengubah hari lain. 5. Koreksi on-behalf menyimpan initiator, workforce diwakili, alasan, timestamp, dan notifikasi ke pegawai |
+| **Release Status** | `READY` untuk kapabilitas existing. Koreksi on-behalf `READY` untuk dirancang sebagai `EXTEND` |
 
 ### `S-B2` — Administrasi cuti dan saldo
 
@@ -300,6 +300,13 @@ validasi, SLA, dan eskalasi tetap milik domain masing-masing.
 | **Migration Risk** | Nihil |
 | **Acceptance Criteria** | 1. Penyesuaian saldo selalu menyimpan alasan dan pelaku. 2. Saldo tidak pernah diubah tanpa jejak. 3. Perubahan hak cuti berlaku sesuai tanggal berlaku, bukan tanggal pencatatan |
 | **Release Status** | `READY` |
+
+**Catatan batas — Early Leave Permission bukan bagian slice ini.** `HRD-DEC-029`, 28 Agustus
+2026, menetapkan Early Leave Permission (izin administratif pulang cepat) sebagai konsep
+**terpisah** dari Hourly Leave (mode `IsHourly` pada `WfpLeaveRequest`, sudah tercakup `S-B2`).
+Early Leave Permission adalah bagian attendance/permission flow (`S-B1`), bukan Leave Management.
+Klasifikasi: **`NEW`/`EXTEND` sesuai hasil arsitektur nanti** — belum ada entity yang dibuat.
+Lihat `flows/08-early-leave-permission.md`.
 
 ### `S-B3` — Administrasi lembur
 
@@ -321,17 +328,17 @@ validasi, SLA, dan eskalasi tetap milik domain masing-masing.
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | 22 endpoint pada 3 controller, sementara model berjumlah 11. Rasio paling timpang setelah `LifecycleManagement`. `DefaultWorkScheduleSeeder` mengisi satu jadwal bawaan berkode `SCH-RSMMC-DEFAULT` saat aplikasi start |
-| **Target State** | Penyusunan jadwal per unit dan per periode, penugasan shift, deteksi bentrok, dan riwayat perubahan |
-| **Backend Impact** | `EXTEND`. Tiga controller belum cukup untuk 11 model. Cakupan `EXTEND` ditetapkan saat desain, bukan sekarang |
+| **Current State** | **`MISSING API` untuk operational roster core**, bukan sekadar "backend tipis". 22 endpoint pada 3 controller melayani hanya 3 dari 11 model (`WfpWorkScheduleAssignment`, `WfpScheduleChangeRequest`, `WfpShiftSwapRequest`). **Delapan model tanpa satu pun controller**: `TrxRosterPeriod`, `TrxRosterAssignment`, `TrxRosterPublication`, `TrxRosterApproval` (seluruh mesin roster), `TrxShiftAssignment` (penugasan shift harian), `TrxShiftReplacement` (penggantian shift), `TrxEmergencyStaffingRequest` (tenaga darurat), `TrxOnCallAssignment` (penugasan siaga aktual) — dibuktikan `PHASE 2B`, `flows/05-work-scheduling.md`. `DefaultWorkScheduleSeeder` mengisi satu jadwal bawaan berkode `SCH-RSMMC-DEFAULT` saat aplikasi start |
+| **Target State** | Penyusunan jadwal per unit dan per periode, penugasan shift, deteksi bentrok, dan riwayat perubahan. **`HRD-DEC-026`, 28 Agustus 2026: untuk rumah sakit 24/7, roster period, roster assignment/publication, daily shift assignment, shift replacement, emergency staffing, dan actual on-call assignment adalah bagian target HR V2 — bukan `DEFERRED`.** Kedelapan entity di atas sudah model+EF+migration; perancangan ulang bebas **tidak berlaku** di sini seperti `S-D1`–`S-D5` |
+| **Backend Impact** | **`EXTEND` terhadap schema existing**, `HRD-DEC-026`. Delapan model tanpa controller mendapat API baru di atas struktur yang sudah ada. **Larangan:** jangan membuat schema baru sebelum audit model existing, dan `HRD-Q-05` wajib terjawab lebih dulu bila perubahan destruktif ternyata diperlukan. Cakupan endpoint per entity ditetapkan saat desain |
 | **Frontend Impact** | Kelompok halaman baru di `src/app/hr/scheduling/**` |
 | **Database Impact** | Kemungkinan penambahan index. Tidak ada tabel baru |
 | **Dependency** | `HRD-DEP-002` |
-| **Blocking Decision** | `HRD-DEC-006` sudah memisahkan jadwal kerja dari jadwal praktik. `HRD-Q-09` sudah dijawab `HRD-DEC-013`: jam praktik di luar jadwal kerja menjadi pengecualian yang menunggu keputusan atasan |
-| **QBE Impact** | `NEW CODE` untuk endpoint tambahan. Entity baru tidak diharapkan; bila ternyata dibutuhkan, `QBE-MOD-002` berlaku dan entity wajib memakai prefix `Hrd` |
-| **Migration Risk** | Rendah |
-| **Acceptance Criteria** | 1. Bentrok jadwal terdeteksi sebelum disimpan. 2. Perubahan jadwal menyimpan alasan dan riwayat. 3. Jadwal pada periode kehadiran yang sudah tertutup tidak dapat diubah. 4. Jam praktik dokter di luar jadwal kerjanya muncul sebagai pengecualian, bukan lembur otomatis |
-| **Release Status** | `READY` |
+| **Blocking Decision** | `HRD-DEC-006` sudah memisahkan jadwal kerja dari jadwal praktik. `HRD-Q-09` sudah dijawab `HRD-DEC-013`: jam praktik di luar jadwal kerja menjadi pengecualian yang menunggu keputusan atasan. `HRD-DEC-027`, 28 Agustus 2026: penempatan jadwal current/future oleh HR pada periode editable **tidak** butuh approval tambahan (audit trail wajib); perubahan retroactive atau yang menyentuh periode locked **wajib** controlled correction/approval — jangan membuat approval untuk setiap edit kecil |
+| **QBE Impact** | `NEW CODE` untuk endpoint tambahan pada delapan model yang di-`EXTEND`. Entity baru tidak diharapkan di luar itu; bila ternyata dibutuhkan, `QBE-MOD-002` berlaku dan entity wajib memakai prefix `Hrd` |
+| **Migration Risk** | Rendah untuk penempatan individual. **Perlu audit dependency lebih dulu** untuk delapan model roster/shift-harian/darurat/siaga sebelum `EXTEND` dijalankan, sesuai `HRD-DEC-026` |
+| **Acceptance Criteria** | 1. Bentrok jadwal terdeteksi sebelum disimpan. 2. Perubahan jadwal menyimpan alasan dan riwayat. 3. Jadwal pada periode kehadiran yang sudah tertutup tidak dapat diubah. 4. Jam praktik dokter di luar jadwal kerjanya muncul sebagai pengecualian, bukan lembur otomatis. 5. Penempatan current/future tidak memerlukan approval; perubahan retroactive/periode locked wajib lewat controlled correction |
+| **Release Status** | `READY` untuk penempatan individual (`WfpWorkScheduleAssignment`, sudah `READY TO REUSE`). Roster/shift-harian/penggantian/tenaga-darurat/siaga tetap `READY` untuk dirancang sebagai `EXTEND`, tidak `DEFERRED`, per `HRD-DEC-026` |
 
 ### `S-B5` — Payroll sisi HR
 

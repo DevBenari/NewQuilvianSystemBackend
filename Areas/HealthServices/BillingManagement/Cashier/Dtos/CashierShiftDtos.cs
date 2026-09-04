@@ -3,6 +3,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Dtos;
 
+public sealed class CashierShiftQuery
+{
+    public Guid? CashierId { get; set; }
+    public Guid? RegisterId { get; set; }
+    public string? Status { get; set; }
+    public DateTimeOffset? OpenedFrom { get; set; }
+    public DateTimeOffset? OpenedTo { get; set; }
+    public string? Search { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
 public sealed class OpenShiftRequest
 {
     public Guid RegisterId { get; set; }

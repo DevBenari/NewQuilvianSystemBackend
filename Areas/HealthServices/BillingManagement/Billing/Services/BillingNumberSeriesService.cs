@@ -30,6 +30,14 @@ public sealed class BillingCashierShiftNumberOptions
     public int SequenceDigits { get; set; } = 6;
 }
 
+public sealed class BillingKwitansiNumberOptions
+{
+    public const string SectionName = "Billing:KwitansiNumber";
+    public string Prefix { get; set; } = "KWS";
+    public string ResetPolicy { get; set; } = BillingNumberResetPolicies.Daily;
+    public int SequenceDigits { get; set; } = 4;
+}
+
 public static class BillingNumberResetPolicies
 {
     public const string Never = "NEVER";
@@ -44,21 +52,25 @@ public sealed class BillingNumberSeriesService
     private const string InvoiceSequenceKey = "BILLING_INVOICE";
     private const string DepositAccountSequenceKey = "BILLING_DEPOSIT_ACCOUNT";
     private const string CashierShiftSequenceKey = "BILLING_CASHIER_SHIFT";
+    private const string KwitansiSequenceKey = "BILLING_KWITANSI";
     private readonly ApplicationDbContext _dbContext;
     private readonly BillingInvoiceNumberOptions _invoiceOptions;
     private readonly BillingDepositAccountNumberOptions _depositOptions;
     private readonly BillingCashierShiftNumberOptions _cashierShiftOptions;
+    private readonly BillingKwitansiNumberOptions _kwitansiOptions;
 
     public BillingNumberSeriesService(
         ApplicationDbContext dbContext,
         IOptions<BillingInvoiceNumberOptions> invoiceOptions,
         IOptions<BillingDepositAccountNumberOptions>? depositOptions = null,
-        IOptions<BillingCashierShiftNumberOptions>? cashierShiftOptions = null)
+        IOptions<BillingCashierShiftNumberOptions>? cashierShiftOptions = null,
+        IOptions<BillingKwitansiNumberOptions>? kwitansiOptions = null)
     {
         _dbContext = dbContext;
         _invoiceOptions = invoiceOptions.Value;
         _depositOptions = depositOptions?.Value ?? new BillingDepositAccountNumberOptions();
         _cashierShiftOptions = cashierShiftOptions?.Value ?? new BillingCashierShiftNumberOptions();
+        _kwitansiOptions = kwitansiOptions?.Value ?? new BillingKwitansiNumberOptions();
     }
 
     public Task<string> AllocateInvoiceNumberAsync(
@@ -87,6 +99,26 @@ public sealed class BillingNumberSeriesService
             _depositOptions.SequenceDigits,
             "akun deposit",
             message => new BillingDepositValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    // BKC-DEC-057: nomor Kwitansi memakai mekanisme sequence generik yang sama dengan Invoice
+    // Number/Cashier Shift Number (BilNumberSeries, reset harian) - bukan tabel sequence terpisah.
+    // Caller (BillingSettlementService.AddTenderAsync) memanggil ini SEKALI setiap tender baru
+    // dibuat - satu nomor Kwitansi per tender/pembayaran, bukan per invoice. Reprint tender yang
+    // sama tidak pernah memanggil ini lagi karena nomor sudah tersimpan di BilTender.KwitansiNumber.
+    public Task<string> AllocateKwitansiNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            KwitansiSequenceKey,
+            _kwitansiOptions.Prefix,
+            _kwitansiOptions.ResetPolicy,
+            _kwitansiOptions.SequenceDigits,
+            "kwitansi",
+            message => new BillingSettlementValidationException(message),
             actorUserId,
             instant,
             cancellationToken);

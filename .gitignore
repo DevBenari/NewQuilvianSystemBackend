@@ -369,6 +369,7 @@ appsettings.Local.json
 .env.*
 
 agency-local/
-# Ignore Claude Code
-.claude
-CLAUDE.md
+# Claude Code: only the tracked project enforcement config is versioned;
+# everything else under .claude/ (cache, local overrides, session state) stays ignored.
+.claude/*
+!.claude/settings.json

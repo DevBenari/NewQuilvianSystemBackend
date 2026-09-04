@@ -12,6 +12,16 @@
 
 ## 1. Batas desain
 
+> **Dokumen ini adalah arsitektur scope Billing.** Ia `DOWNSTREAM` terhadap scope
+> Doctor / Clinical dan **bukan** Definition of Done developer Dokter / Rawat Jalan. Arsitektur
+> dan roadmap scope Dokter ada pada
+> [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md).
+>
+> Batas masuknya tunggal: `TrxClinicalMilestoneFact` yang diterbitkan `ClinicalMilestoneFactProducer`.
+> Segala sesuatu **sebelum** batas itu — konsultasi dokter, anamnesis, vital, diagnosis, SOAP/CPPT,
+> pembuatan resep, pembuatan tindakan, order Lab/Radiologi, dan penyelesaian konsultasi — dimiliki
+> Clinical dan **tidak dirancang di sini**.
+
 Desain ini mencakup Billing Folio, Charge, Charge Component, milestone processing,
 idempotency, dan batas integrasi dengan Clinical, Pharmacy, Laboratory, Radiology, Payer,
 Cashier, Finance, dan Workflow. Allocation multi-payer, financial correction, payment,

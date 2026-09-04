@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -117,6 +117,88 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    [HttpGet("other-charge-types")]
+    [AccessAction("Read", "Read Other Charge Type", AccessType = AccessTypes.Read, SortOrder = 10)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<OtherChargeTypeOptionResponse>>), StatusCodes.Status200OK)]
+    public IActionResult GetOtherChargeTypes() =>
+        Ok(ApiResponse<List<OtherChargeTypeOptionResponse>>.Ok(
+            BillingInvoiceService.GetOtherChargeTypeOptions(),
+            "Jenis biaya lain-lain berhasil diambil."));
+
+    // Kasir tidak mengirim Id kategori billing: backend menetapkannya ke "Biaya Lain-Lain".
+    [HttpPost("other-charges")]
+    [AccessAction("Create", "Add Billing Other Charge", AccessType = AccessTypes.Create, SortOrder = 11)]
+    [AccessPermission("BillingInvoice", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceDetailResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddOtherCharge(
+        [FromBody] AddOtherChargeRequest request,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.AddOtherChargeAsync(
+                request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceDetailResponse>.Ok(
+                result, "Biaya lain-lain berhasil ditambahkan."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    [HttpGet("encounter-options")]
+    [AccessAction("Read", "Read Active Encounter Option", AccessType = AccessTypes.Read, SortOrder = 9)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<ActiveEncounterOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetActiveEncounterOptions(
+        [FromQuery] string? search,
+        [FromQuery] int limit,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetActiveEncounterOptionsAsync(
+            search, limit <= 0 ? 25 : limit, cancellationToken);
+        return Ok(ApiResponse<List<ActiveEncounterOptionResponse>>.Ok(
+            result, "Daftar kunjungan aktif berhasil diambil."));
+    }
+
+    // Kalkulasi tampilan: tidak menulis versi baru. Menu Pembayaran memanggilnya saat halaman
+    // dibuka supaya angka selalu segar tanpa melahirkan baris BilCalculationVersion tiap kunjungan.
+    [HttpGet("{id:guid}/calculation-preview")]
+    [AccessAction("Read", "Preview Billing Calculation", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CalculationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PreviewCalculation(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _calculationService.PreviewCalculationAsync(
+                id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<CalculationResponse>.Ok(
+                result, "Pratinjau kalkulasi invoice berhasil dihitung."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpPost("{id:guid}/items/{itemId:guid}/void")]
     [AccessAction("Update", "Void Eligible Billing Invoice Item", AccessType = AccessTypes.Update, SortOrder = 7)]
     [AccessPermission("BillingInvoice", "Update")]
@@ -174,6 +256,23 @@ public sealed class BillingInvoicesController : ControllerBase
         CancellationToken cancellationToken) =>
         ExecuteDiscountCommandAsync(() => _discountService.ApproveDoctorAsync(
             id, discountId, request, CurrentUserId(), cancellationToken), "Diskon jasa dokter berhasil disetujui.");
+
+    // Antrean approval milik dokter yang login - dipakai layar "Persetujuan Diskon Dokter" yang
+    // berdiri sendiri, supaya dokter tidak perlu masuk Menu Pembayaran milik kasir untuk
+    // menyetujui. Kepemilikan disaring di service dari DPJP encounter, bukan dari query client.
+    [HttpGet("doctor-discounts/pending")]
+    [AccessAction("Read", "Read Pending Doctor Discount Approval", AccessType = AccessTypes.Read, SortOrder = 7)]
+    [AccessPermission("BillingDoctorDiscount", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorDiscountApprovalResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingDoctorDiscounts(
+        [FromQuery] DoctorDiscountApprovalQuery request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _discountService.GetPendingDoctorApprovalsAsync(
+            request, CurrentUserId(), cancellationToken);
+        return Ok(ApiResponse<PagedResult<DoctorDiscountApprovalResponse>>.Ok(
+            result, "Antrean approval diskon jasa dokter berhasil diambil."));
+    }
 
     private async Task<IActionResult> ExecuteDiscountCommandAsync(
         Func<Task<DiscountResponse>> command,

@@ -29,8 +29,22 @@ controller/service terkait (bukan git-log commit message saja):
   hardening) belum diverifikasi eksplisit.
 - **Frontend**: `FE-BKC-001`/`002` (bagian "part 1", commit `fac1b49c8`) plus `FE-BKC-003`–`008` dan navigasi
   menu (source lokal, belum commit, lulus lint/build/`test:unit` — lihat laporan masing-masing di
-  `task/report/frontend/`). **Belum dibangun**: `FE-BKC-009` (finalisasi invoice — meski backend-nya,
-  `BillingFinalizationsController`, sudah ada) dan `FE-BKC-010` (security/privacy/concurrency hardening).
+  `task/report/frontend/`). **Tambahan 30 Agustus 2026**: `FE-BKC-009` (finalisasi invoice) ternyata
+  sudah source-complete dan **sudah ter-commit** (`2dcea2f8f`) sejak sebelumnya, tetapi belum pernah
+  dilaporkan — dokumentasi tertinggal dari source (pola sama seperti `ISSUE-FE-003`). Diverifikasi
+  ulang: lint/`test:unit`/build lulus, satu gap kecil (`isFinal` tidak mencakup status `CLOSED`)
+  ditemukan dan diperbaiki. Lihat `task/report/frontend/fe-bkc-009-preview-dan-finalisasi-invoice.md`.
+  **Tambahan 30 Agustus 2026**: `FE-BKC-010` (accessibility/privacy/regression) diaudit lewat
+  pembacaan source langsung (bukan task fitur, tidak menghasilkan source baru). `BIL-AT-024`
+  terpenuhi untuk seluruh 9 slice. Draf pertama laporan sempat salah mengklaim ada regresi
+  `FE-BKC-008` (case tracking hilang saat refresh) — **dikoreksi setelah pembacaan lebih lengkap**:
+  `ISSUE-FE-008` sudah closed (lihat baris "Tambahan 25 Agustus 2026" di bawah — endpoint `GET`
+  financial exceptions sudah ada sejak sebelumnya), frontend sudah memakai `getFinancialExceptionsByInvoice`
+  sebagai source of truth, bukan `localStorage`, tidak ada data yang hilang. Scan a11y otomatis dan
+  critical E2E journeys **masih belum bisa dipenuhi**: tidak ada tooling axe/setara di repo
+  (instalasi butuh otorisasi dependency terpisah) dan tidak ada satu pun spec E2E Billing (butuh
+  environment ter-autentikasi). Lihat
+  `task/report/frontend/fe-bkc-010-accessibility-privacy-dan-regression-lintas-workspace.md`.
 - **Belum diverifikasi sama sekali untuk seluruh slice**: klik-coba ter-autentikasi, migration Postgres
   dieksekusi ke database bersama, dan integrasi payment provider nyata (`BKC-BLK-PROV-001` masih berlaku —
   `DeferredBillingPaymentProviderAdapter` masih stub).
@@ -48,7 +62,7 @@ controller/service terkait (bukan git-log commit message saja):
 | Design approval | `DONE` | `BIL-APR-001` ditutup 20 Agustus 2026 |
 | Delivery planning | `DONE` | Roadmap revision `1`: 17 BE + 10 FE task |
 | Task approval | `SUPERSEDED_BY_EVIDENCE` | Source sudah jauh melampaui rencana task-by-task; lihat rekonsiliasi di atas |
-| Implementation/verification | `IN_PROGRESS` | Backend BE-BKC-001–016 dan Frontend FE-BKC-001–008 ada di source; BE-BKC-017 belum diverifikasi cakupannya; FE-BKC-009/010 belum dibangun; verifikasi manual ter-autentikasi dan migration Register masih tertunda |
+| Implementation/verification | `IN_PROGRESS` | Backend BE-BKC-001–016 dan Frontend FE-BKC-001–009 ada di source; FE-BKC-010 diaudit (BIL-AT-024 terpenuhi), tapi scan a11y otomatis dan critical E2E journeys masih blocked tooling/environment; BE-BKC-017 belum diverifikasi cakupannya; verifikasi manual ter-autentikasi dan migration Register masih tertunda |
 
 ## Delivery dependency
 
@@ -61,10 +75,15 @@ controller/service terkait (bukan git-log commit message saja):
 
 ## Next recommended task
 
-Implementasi source untuk hampir seluruh backend dan sebagian besar frontend sudah ada — fokus
-berikutnya BUKAN lagi "task pertama" melainkan: (1) verifikasi manual ter-autentikasi untuk seluruh
-slice yang sudah source-complete, (2) commit tujuh task frontend yang menumpuk, (3) migration
-`MstRegister` (butuh otorisasi eksplisit terpisah untuk generate dan `Update-Database`), (4)
-`FE-BKC-009` (finalisasi invoice — backend `BillingFinalizationsController` sudah tersedia) dan
-`FE-BKC-010` (security/privacy/concurrency), (5) audit cakupan `BE-BKC-017` yang belum diverifikasi.
+Implementasi source untuk hampir seluruh backend dan seluruh frontend `FE-BKC-001`–`009` sudah
+ada, dan `FE-BKC-010` sudah diaudit (`BIL-AT-024` terpenuhi) — fokus berikutnya BUKAN lagi "task
+pertama" melainkan: (1) **keputusan pemilik modul**: otorisasi instalasi tooling a11y otomatis
+(mis. `@axe-core/playwright`) sebagai task dependency terpisah, dan/atau sediakan environment
+ter-autentikasi supaya "critical E2E journeys" `FE-BKC-010` dan verifikasi manual `FE-BKC-003`–`009`
+bisa dijalankan sekaligus, (2) commit delapan task frontend yang menumpuk (`FE-BKC-003`–`009` +
+navigasi menu + perbaikan `isFinal`/`CLOSED` pada `FE-BKC-009`), (3) migration `MstRegister` (butuh
+otorisasi eksplisit terpisah untuk generate dan `Update-Database`), (4) audit cakupan `BE-BKC-017`
+yang belum diverifikasi, (5) unit test untuk slice/hook finalisasi (`FE-BKC-009`) yang belum ada
+sama sekali. (Catatan: dugaan "gap `FE-BKC-008`" pada draf audit `FE-BKC-010` sebelumnya sudah
+dikoreksi — `ISSUE-FE-008` sudah closed, tidak perlu task perbaikan terpisah.)
 Builder tidak boleh menjalankan migration ke database tanpa izin terpisah.

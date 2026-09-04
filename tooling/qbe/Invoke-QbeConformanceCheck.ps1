@@ -30,6 +30,7 @@ $requiredAuthority = @(
 )
 $implementedRules = @('QBE-ENT-001','QBE-NAM-001','QBE-CFG-001','QBE-CODE-002','QBE-CODE-003','QBE-MOD-002','QBE-SVC-001')
 $root = [IO.Path]::GetFullPath($RepositoryRoot)
+$script:testProjectPrefixes = $null
 foreach ($authority in $requiredAuthority) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $authority) -PathType Leaf)) { throw "Canonical governance missing: $authority" }
 }
@@ -40,6 +41,40 @@ function Get-RelativePath([string]$file) {
     $full = [IO.Path]::GetFullPath($file)
     if ($full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { return $full.Substring($root.Length).TrimStart('\','/') }
     return $file
+}
+function Test-IsGeneratedPath([string]$relative) {
+    return $relative.Replace('\', '/') -match '(^|/)(bin|obj)/'
+}
+function Get-TestProjectPrefixes {
+    if ($null -ne $script:testProjectPrefixes) { return $script:testProjectPrefixes }
+    $markerPattern = '<IsTestProject>\s*true\s*</IsTestProject>|Include\s*=\s*"(Microsoft\.NET\.Test\.Sdk|xunit|xunit\.[\w.]+|NUnit|NUnit\.[\w.]+|nunit3testadapter|MSTest|MSTest\.[\w.]+)"'
+    $prefixes = [System.Collections.Generic.List[string]]::new()
+    foreach ($project in @(Get-ChildItem -LiteralPath $root -Recurse -Filter '*.csproj' -File -ErrorAction SilentlyContinue)) {
+        $relative = (Get-RelativePath $project.FullName).Replace('\', '/')
+        if (Test-IsGeneratedPath $relative) { continue }
+        if ((Get-Content -Raw -LiteralPath $project.FullName) -notmatch $markerPattern) { continue }
+        $directory = ($relative -replace '/[^/]+$', '')
+        if ($directory -eq $relative -or [string]::IsNullOrWhiteSpace($directory)) { continue }
+        $prefixes.Add($directory.TrimEnd('/') + '/')
+    }
+    $script:testProjectPrefixes = @($prefixes | Select-Object -Unique)
+    return $script:testProjectPrefixes
+}
+function Test-IsTestScopeFile([string]$relative) {
+    $normalized = $relative.Replace('\', '/')
+    foreach ($prefix in @(Get-TestProjectPrefixes)) {
+        if ($normalized.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
+}
+function Select-EvaluableFiles([string[]]$candidates) {
+    $evaluable = [System.Collections.Generic.List[string]]::new()
+    foreach ($candidate in @($candidates)) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        if (Test-IsGeneratedPath $candidate) { [void]$script:generatedExcludedFiles.Add($candidate); continue }
+        $evaluable.Add($candidate)
+    }
+    return @($evaluable)
 }
 function Invoke-Git {
     param(
@@ -120,12 +155,15 @@ function Write-StructuredResult([string]$result, [object[]]$blockingRules) {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw "JSON output directory not found: $parent" }
     $json = [pscustomobject]@{
         schemaVersion = '1.0'
-        checkerVersion = 'G6-E2B'
+        checkerVersion = 'G6-E2C'
         mode = $Mode
         scope = $scope
         baseRef = if ($scope -eq 'GitRange') { $BaseRef } else { $null }
         headRef = if ($scope -eq 'GitRange') { $HeadRef } else { $null }
         filesEvaluated = $files.Count
+        generatedFilesExcluded = $script:generatedExcludedFiles.Count
+        testScopeExcludedFileCount = $script:testScopeExcludedFiles.Count
+        testScopeExcludedFiles = @($script:testScopeExcludedFiles)
         violationCount = @($findings | Where-Object Level -eq 'VIOLATION').Count
         reviewCount = @($findings | Where-Object Level -eq 'REVIEW').Count
         infoCount = @($findings | Where-Object Level -eq 'INFO').Count
@@ -248,11 +286,13 @@ $exceptions = @(Get-ValidatedExceptions)
 $exceptionNotices = [System.Collections.Generic.List[string]]::new()
 $files = @()
 $addedByFile = @{}
+$script:generatedExcludedFiles = [System.Collections.Generic.List[string]]::new()
+$script:testScopeExcludedFiles = [System.Collections.Generic.List[string]]::new()
 switch ($scope) {
     'WorkingTree' {
         $tracked = (Invoke-Git -Arguments @('diff', '--name-only', 'HEAD')).Output
         $untracked = (Invoke-Git -Arguments @('ls-files', '--others', '--exclude-standard')).Output
-        $files = @($tracked + $untracked | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique)
+        $files = @(Select-EvaluableFiles @($tracked + $untracked | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique))
         foreach ($file in $files) {
             $full = Join-Path $root $file
             if (Test-GitTracked $file) { $addedByFile[$file] = @(Get-AddedLines $file 'HEAD' 'WORKTREE') }
@@ -260,11 +300,11 @@ switch ($scope) {
         }
     }
     'GitRange' {
-        $files = @((Invoke-Git -Arguments @('diff', '--name-only', "$BaseRef..$HeadRef", '--', '*.cs')).Output)
+        $files = @(Select-EvaluableFiles @((Invoke-Git -Arguments @('diff', '--name-only', "$BaseRef..$HeadRef", '--', '*.cs')).Output))
         foreach ($file in $files) { $addedByFile[$file] = @(Get-AddedLines $file $BaseRef $HeadRef) }
     }
     'ExplicitFiles' {
-        $files = @($Path | ForEach-Object { Get-RelativePath $_ } | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique)
+        $files = @(Select-EvaluableFiles @($Path | ForEach-Object { Get-RelativePath $_ } | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique))
         foreach ($file in $files) {
             $full = Join-Path $root $file
             if (-not (Test-Path -LiteralPath $full)) { continue }
@@ -293,7 +333,9 @@ foreach ($file in $files) {
             Add-Finding 'QBE-SVC-001' 'REVIEW' $(if($isNew){'NEW CODE'}else{'TOUCHED LEGACY'}) $file $line.Number $line.Text 'New direct ApplicationDbContext controller use requires boundary review.' 'Use a Module Service for domain CRUD/orchestration.'
         }
     }
-    if ($isNew -and $file -notmatch 'Controller\.cs$' -and $content -match 'class\s+(\w+)') {
+    $isTestScopeFile = Test-IsTestScopeFile $file
+    if ($isTestScopeFile) { [void]$script:testScopeExcludedFiles.Add($file) }
+    if (-not $isTestScopeFile -and $isNew -and $file -notmatch 'Controller\.cs$' -and $content -match 'class\s+(\w+)') {
         $entity = $Matches[1]
         if (Test-PersistedEntity $content $entity) {
             if ($content -notmatch "class\s+$([regex]::Escape($entity))\s*:\s*IdentityModel") { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
@@ -322,6 +364,8 @@ Write-Output 'QBE Conformance Report'
 Write-Output "Checker mode: $Mode"
 Write-Output "Scope: $scope"
 Write-Output "Files evaluated: $($files.Count)"
+Write-Output "Generated files excluded (bin/obj): $($script:generatedExcludedFiles.Count)"
+Write-Output "Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002: $($script:testScopeExcludedFiles.Count)"
 foreach ($level in @('VIOLATION','REVIEW','INFO')) { Write-Output "${level}: $(@($findings | Where-Object Level -eq $level).Count)" }
 if ($findings.Count -eq 0) { Write-Output 'Findings: none' } else { foreach ($finding in $findings) { $suppression = if ($finding.Suppressed) { " | SUPPRESSED: $($finding.ExceptionId)" } else { '' }; Write-Output "[$($finding.Level)] $($finding.RuleId) | $($finding.File):$($finding.Line) | $($finding.Evidence) | Action: $($finding.RecommendedAction)$suppression" } }
 foreach ($notice in $exceptionNotices) { Write-Output "Exception notice: $notice" }

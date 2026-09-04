@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -19,20 +19,22 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
-using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -285,6 +287,12 @@ try
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
     builder.Services.AddScoped<LabSpecimenService>();
+    builder.Services.AddScoped<LabValueBoundService>();
+    builder.Services.AddScoped<LabCriticalBoundApprovalService>();
+    builder.Services.AddScoped<LabRejectionReasonService>();
+    builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<RadOrderService>();
+    builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
@@ -299,6 +307,16 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+
+    // Modul Rekam Medis — keutuhan dokumen klinis
+    builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
+    builder.Services.AddScoped<ClinicalNoteAddendumService>();
+    builder.Services.AddScoped<ClinicalNoteAuthorDelegationService>();
+    builder.Services.AddScoped<MedicalRecordBackfillService>();
+    builder.Services.AddScoped<MedicalRecordAccessAuditService>();
+    builder.Services.AddScoped<MedicalRecordAccessReviewService>();
+    builder.Services.AddScoped<MedicalRecordTimelineService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -362,6 +380,11 @@ try
     // controller tidak menyentuh ApplicationDbContext langsung.
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
+    // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
@@ -633,6 +656,34 @@ try
 
     builder.Services.AddSwaggerGen(options =>
     {
+        // Keterangan pada endpoint, parameter, dan DTO ikut ditampilkan di halaman Swagger.
+        //
+        // Diperlukan karena beberapa perubahan perilaku tidak terlihat dari bentuk permintaan
+        // maupun responsnya — misalnya kolom yang tetap diterima tetapi nilainya diabaikan.
+        // Tanpa ini, satu-satunya cara mengetahuinya adalah membaca source.
+        //
+        // includeControllerXmlComments SENGAJA DIBIARKAN MATI. Bila dinyalakan, Swashbuckle
+        // menambahkan satu tag tingkat dokumen untuk tiap controller, dinamai menurut nama
+        // KELAS controller. Project ini mengelompokkan endpoint memakai atribut [Tags(...)]
+        // yang isinya kalimat panjang, sehingga kedua nama itu tidak pernah bertemu: tag dari
+        // nama kelas tidak dipakai satu endpoint pun, lalu tampil di Swagger sebagai judul grup
+        // besar yang kosong isinya.
+        //
+        // Mematikannya tidak menghilangkan keterangan apa pun yang dibutuhkan. Keterangan pada
+        // endpoint, parameter, dan schema tetap terbaca — di situlah keterangan perubahan
+        // perilaku diletakkan.
+        //
+        // Diperiksa keberadaannya lebih dulu supaya aplikasi tetap berjalan bila berkas
+        // dokumentasinya tidak ikut terbawa pada suatu keluaran build.
+        var xmlDokumentasi = Path.Combine(
+            AppContext.BaseDirectory,
+            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+
+        if (File.Exists(xmlDokumentasi))
+        {
+            options.IncludeXmlComments(xmlDokumentasi, includeControllerXmlComments: false);
+        }
+
         options.SwaggerDoc("auth", new OpenApiInfo
         {
             Title = $"{appName} - Authentication",
@@ -1065,6 +1116,7 @@ try
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

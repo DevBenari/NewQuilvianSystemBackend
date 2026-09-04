@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int NoShowEncounter { get; set; }
         public int CashEncounter { get; set; }
         public int InsuranceEncounter { get; set; }
+
+        public int CompanyGuarantorEncounter { get; set; }
         public int ReferralEncounter { get; set; }
         public int FromKioskEncounter { get; set; }
     }
@@ -226,6 +228,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public DateTime? EffectiveEndDateSnapshot { get; set; }
 
+        public Guid? PatientCompanyGuarantorId { get; set; }
+
+        public Guid? CompanyGuarantorId { get; set; }
+
+        public string? CompanyGuarantorCodeSnapshot { get; set; }
+
+        public string? EmployeeNumberSnapshot { get; set; }
+
+        public string? EmployeeNameSnapshot { get; set; }
+
         public bool IsEligible { get; set; }
 
         public bool IsPolicyActive { get; set; }
@@ -430,6 +442,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// MstPatientInsurance aktif milik PatientId yang sama.
         /// </summary>
         public Guid? PatientInsuranceId { get; set; }
+
+        /// <summary>
+        /// Diisi hanya ketika PaymentType = Penjamin Perusahaan dan harus merupakan
+        /// MstPatientCompanyGuarantor aktif milik PatientId yang sama. Hanya route
+        /// /admin yang menerimanya; route kiosk tetap Tunai/Asuransi.
+        /// </summary>
+        public Guid? PatientCompanyGuarantorId { get; set; }
 
         public Guid? KioskScanSessionId { get; set; }
 

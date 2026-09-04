@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -45,16 +46,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly QueueVoiceService _queueVoiceService;
         private readonly QueueRealtimeService _queueRealtimeService;
 
+        private readonly ClinicalDocumentIntegrityService _integrityService;
+
         public NurseStationQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueVoiceService queueVoiceService,
-            QueueRealtimeService queueRealtimeService)
+            QueueRealtimeService queueRealtimeService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueVoiceService = queueVoiceService;
             _queueRealtimeService = queueRealtimeService;
+            _integrityService = integrityService;
         }
 
         [HttpGet("filters/metadata")]
@@ -328,6 +333,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     if (!queue.IsDoctorRequired)
                     {
                         queue.Encounter.CompletedAt = now;
+
+                        // RM-DEC-003 lapis kedua. Pada pasien yang tidak memerlukan dokter,
+                        // screening perawat adalah titik penyelesaian kunjungan, sehingga
+                        // penguncian catatan terjadi di sini.
+                        //
+                        // Penguncian ikut SaveChanges dan transaksi di bawah, sehingga bila
+                        // gagal, penyelesaian screening ikut dibatalkan.
+                        await _integrityService.LockOpenDocumentsForEncounterAsync(
+                            queue.Encounter.Id, actorUserId, now, now);
                     }
                 }
 

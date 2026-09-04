@@ -224,6 +224,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             CancellationToken cancellationToken = default)
         {
             await ExpireDueReservationsAsync(cancellationToken);
+            var activeReservationCutoff = DateTime.UtcNow;
 
             IQueryable<MstRoom> roomQuery = _dbContext.Set<MstRoom>()
                 .AsNoTracking()
@@ -280,6 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .Select(x => new
                 {
                     x.BedId,
+                    x.EpisodeId,
                     EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null,
                     PatientName = x.Episode != null && x.Episode.Patient != null
                         ? x.Episode.Patient.FullName
@@ -291,11 +293,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .AsNoTracking()
                 .Where(x =>
                     x.ReservationStatus == InpBedReservationStatus.Active &&
+                    x.ExpiresAt > activeReservationCutoff &&
                     !x.IsDelete &&
                     bedIds.Contains(x.BedId))
                 .Select(x => new
                 {
+                    x.Id,
                     x.BedId,
+                    x.EpisodeId,
+                    x.ExpiresAt,
                     EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null,
                     PatientName = x.Episode != null && x.Episode.Patient != null
                         ? x.Episode.Patient.FullName
@@ -343,8 +349,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                             IsReserved = placement == null && reservation != null,
                             IsIsolationBed = bed.IsIsolationBed,
                             IsForNewborn = bed.IsForNewborn,
+                            HoldingEpisodeId = placement?.EpisodeId ?? reservation?.EpisodeId,
                             HoldingEpisodeNumber = placement?.EpisodeNumber ?? reservation?.EpisodeNumber,
-                            PatientName = placement?.PatientName ?? reservation?.PatientName
+                            PatientName = placement?.PatientName ?? reservation?.PatientName,
+                            ReservationId = placement == null ? reservation?.Id : null,
+                            ReservationExpiresAt = placement == null ? reservation?.ExpiresAt : null
                         };
 
                         roomResponse.Beds.Add(bedResponse);

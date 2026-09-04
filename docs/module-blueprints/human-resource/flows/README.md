@@ -60,16 +60,20 @@ Mermaid.
 | 02 | [`02-attendance.md`](./02-attendance.md) | Ada |
 | 03 | [`03-leave.md`](./03-leave.md) | Ada |
 | 04 | [`04-overtime.md`](./04-overtime.md) | Ada |
-| 05 | `05-work-scheduling.md` | Belum ditulis — `PHASE 2B` |
-| 06 | `06-shift-change-swap.md` | Belum ditulis — `PHASE 2B` |
-| 07 | `07-attendance-correction.md` | Belum ditulis — `PHASE 2B` |
-| 08 | `08-early-leave-permission.md` | Belum ditulis — `PHASE 2B` |
-| 09 | `09-unified-approval.md` | Belum ditulis — `PHASE 2B` |
-| 10 | `10-payroll-processing-handoff.md` | Belum ditulis — `PHASE 2B`, sebagian `BLOCKED` |
-| 11 | `11-lifecycle-offboarding.md` | Belum ditulis — `PHASE 2B` |
-| 12 | `12-competency-training.md` | Belum ditulis — `PHASE 2B` |
-| 13 | `13-performance-management.md` | Belum ditulis — `PHASE 2B` |
-| 14 | `14-employee-relations-discipline.md` | Belum ditulis — `PHASE 2B` |
+| 05 | [`05-work-scheduling.md`](./05-work-scheduling.md) | Ada — ditulis `PHASE 2B` |
+| 06 | [`06-shift-change-swap.md`](./06-shift-change-swap.md) | Ada — ditulis `PHASE 2B` |
+| 07 | [`07-attendance-correction.md`](./07-attendance-correction.md) | Ada — ditulis `PHASE 2B` |
+| 08 | [`08-early-leave-permission.md`](./08-early-leave-permission.md) | Ada — ditulis `PHASE 2B` |
+| 09 | [`09-unified-approval.md`](./09-unified-approval.md) | Ada — ditulis `PHASE 2B` |
+| 10 | [`10-payroll-processing-handoff.md`](./10-payroll-processing-handoff.md) | Ada — ditulis `PHASE 2C`. Status **`PARTIAL`**: didesain sampai batas HR/Finance `HRD-DEC-009`; sesudahnya tetap `[BLOCKED]` oleh `HRD-Q-10`/`HRD-Q-11` |
+| 11 | [`11-lifecycle-offboarding.md`](./11-lifecycle-offboarding.md) | Ada — ditulis `PHASE 2C` |
+| 12 | [`12-competency-training.md`](./12-competency-training.md) | Ada — ditulis `PHASE 2C` |
+| 13 | [`13-performance-management.md`](./13-performance-management.md) | Ada — ditulis `PHASE 2C` |
+| 14 | [`14-employee-relations-discipline.md`](./14-employee-relations-discipline.md) | Ada — ditulis `PHASE 2C` |
+
+Cakupan `PHASE 2C` adalah flow 10–14 (dikoreksi `PHASE 2B.1`, lihat `00-interview-decisions.md`
+bagian 23.10). Seluruh lima flow selesai ditulis 28 Agustus 2026 — lihat bagian 25 pada
+`00-interview-decisions.md` untuk ringkasan temuan lengkap.
 
 ## 4. Yang sengaja tidak dibuat
 

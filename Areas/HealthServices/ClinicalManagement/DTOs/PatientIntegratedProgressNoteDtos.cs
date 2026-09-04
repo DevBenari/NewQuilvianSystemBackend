@@ -221,6 +221,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(100)]
         public string? ProfessionName { get; set; }
 
+        /// <summary>
+        /// DIABAIKAN pada permintaan ubah. Nilai yang dikirim di sini tidak mengubah apa pun.
+        ///
+        /// Penulis catatan ditetapkan sekali saat catatan dibuat dan tidak dapat dipindahkan
+        /// lewat permintaan ubah. Penentu penulis yang sah adalah kolom penulis pada daftar
+        /// keutuhan dokumen, bukan nilai yang dikirim klien.
+        ///
+        /// Permintaan yang tetap mengirim kolom ini TIDAK ditolak — supaya klien lama tidak
+        /// putus — tetapi nilainya tidak berpengaruh.
+        /// </summary>
         public Guid? ProviderUserId { get; set; }
 
         [MaxLength(150)]
@@ -253,7 +263,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? PrivateNote { get; set; }
 
         public bool IsGeneratedFromSource { get; set; } = false;
+
+        /// <summary>
+        /// DIABAIKAN pada permintaan ubah. Nilai yang dikirim di sini tidak mengubah apa pun.
+        ///
+        /// Penanda hanya-baca menentukan apakah sebuah catatan boleh disunting. Bila penanda itu
+        /// dapat dilepas lewat permintaan ubah, penandanya tidak melindungi apa pun.
+        ///
+        /// Permintaan yang tetap mengirim kolom ini TIDAK ditolak — supaya klien lama tidak
+        /// putus — tetapi nilainya tidak berpengaruh.
+        /// </summary>
         public bool IsReadOnlyGenerated { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
     }
 

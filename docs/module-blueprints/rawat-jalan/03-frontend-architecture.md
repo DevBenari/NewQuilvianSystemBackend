@@ -11,6 +11,19 @@
 Dokumen ini menentukan kontrak perilaku frontend. Ia tidak mengunci route, layout, warna,
 sidebar, tab, atau komponen visual yang belum diberi UI authority.
 
+> **Dokumen ini adalah arsitektur layar Billing.** Ia `DOWNSTREAM` dan **bukan** Definition of
+> Done developer Dokter / Rawat Jalan.
+>
+> Workspace dokter — antrean, konsultasi, anamnesis, vital, diagnosis, SOAP/CPPT, tab resep, tab
+> tindakan, surat keterangan, autosave, dan tombol `Selesai Konsultasi` — **tidak dirancang di
+> sini**. Kontrak perilakunya ada pada
+> [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md).
+>
+> Satu aturan yang berlaku untuk kedua scope dan tidak boleh dilanggar layar mana pun: **frontend
+> tidak pernah menjadi sumber kebenaran finansial**. Layar klinis membaca status finansial sebagai
+> `REFERENCE` saja, dan layar Billing membaca angka kanonik dari Billing — keduanya tidak
+> menetapkannya.
+
 ## 1. Kebutuhan fungsional
 
 | Kemampuan | Pengguna | Data yang dikonsumsi | Aksi utama |

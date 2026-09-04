@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -112,7 +112,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Create", "Create Inpatient Bed Reservation", Description = "Memesan tempat tidur rawat inap", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Inpatient Bed Occupancy", Description = "Memesan dan menempatkan pasien ke tempat tidur rawat inap", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("InpatientBedOccupancy", "Create")]
         public async Task<IActionResult> ReserveBed(
             [FromBody] ReserveBedRequest request,
@@ -202,7 +202,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Create", "Create Inpatient Bed Placement", Description = "Menempatkan pasien ke tempat tidur rawat inap", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Inpatient Bed Occupancy", Description = "Memesan dan menempatkan pasien ke tempat tidur rawat inap", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("InpatientBedOccupancy", "Create")]
         public async Task<IActionResult> PlacePatient(
             [FromBody] PlacePatientRequest request,
@@ -254,7 +254,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Transfer Inpatient Bed Placement", Description = "Memindahkan pasien ke tempat tidur lain", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Transfer", "Transfer Inpatient Bed Placement", Description = "Memindahkan pasien ke tempat tidur lain", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("InpatientBedOccupancy", "Transfer")]
         public async Task<IActionResult> TransferPatient(
             [FromBody] TransferPatientRequest request,

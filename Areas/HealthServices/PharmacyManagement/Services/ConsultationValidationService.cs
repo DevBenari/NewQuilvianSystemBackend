@@ -39,8 +39,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             ValidateSoap(consultation, issues);
             ValidateDiagnosis(consultation, issues);
-            issues.AddRange(await _prescriptionValidationService.ValidateForConsultationAsync(consultationId, cancellationToken));
-            await ValidateProceduresAsync(consultationId, issues, cancellationToken);
+            issues.AddRange(await _prescriptionValidationService.ValidateForConsultationAsync(
+                consultationId, consultation.EncounterId, cancellationToken));
+            await ValidateProceduresAsync(consultationId, consultation.EncounterId, issues, cancellationToken);
 
             return Build(consultationId, issues);
         }
@@ -63,7 +64,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 issues.Add(Issue("MISSING_PRIMARY_DIAGNOSIS", ConsultationValidationSeverity.Error, "Diagnosis utama wajib tersedia sebelum konsultasi diselesaikan.", "Diagnosis", "diagnosis"));
         }
 
-        private async Task ValidateProceduresAsync(Guid consultationId, List<ConsultationFinalizationIssueResponse> issues, CancellationToken cancellationToken)
+        /// <summary>
+        /// Memvalidasi tindakan yang menempel pada konsultasi.
+        ///
+        /// Dua pemeriksaan terakhir ditambahkan <c>RJ-DOC-BE-002</c> untuk memenuhi kontrak
+        /// <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.6 — *clinical order state tidak
+        /// authoritative*. Keduanya memakai state yang sudah ada; tidak ada status baru.
+        /// </summary>
+        private async Task ValidateProceduresAsync(
+            Guid consultationId,
+            Guid expectedEncounterId,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
         {
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
@@ -78,6 +90,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     issues.Add(Issue("MISSING_PROCEDURE_TARIFF", ConsultationValidationSeverity.Error, $"Tarif tindakan {item.ProcedureNameSnapshot} belum tersedia.", "Procedure", "procedure", "TariffId", "PatientProcedure", item.Id));
                 if (item.IsNeedApproval && !item.IsApproved)
                     issues.Add(Issue("UNAPPROVED_PROCEDURE", ConsultationValidationSeverity.Error, $"Tindakan {item.ProcedureNameSnapshot} membutuhkan approval.", "Procedure", "procedure", null, "PatientProcedure", item.Id));
+
+                // Baris tindakan yang berstatus dibatalkan tetapi tidak ditandai batal adalah
+                // keadaan yang tidak dapat dipastikan: ia lolos penyaring baris aktif, ikut
+                // terhitung sebagai tindakan konsultasi, dan akan dibawa ke hilir seolah sah.
+                if (item.ProcedureStatus == PatientProcedureStatus.Cancelled)
+                    issues.Add(Issue("INCONSISTENT_PROCEDURE_STATUS", ConsultationValidationSeverity.Error, $"Status tindakan {item.ProcedureNameSnapshot} dibatalkan tetapi barisnya masih aktif.", "Procedure", "procedure", "ProcedureStatus", "PatientProcedure", item.Id));
+
+                // Tindakan menyimpan kunjungan dan konsultasi secara terpisah, sehingga keduanya
+                // dapat berbeda. Bila berbeda, tindakan ini bukan milik kunjungan yang sedang
+                // diselesaikan dan tidak boleh ikut difinalisasi.
+                if (expectedEncounterId != Guid.Empty && item.EncounterId != expectedEncounterId)
+                    issues.Add(Issue("PROCEDURE_ENCOUNTER_MISMATCH", ConsultationValidationSeverity.Error, $"Tindakan {item.ProcedureNameSnapshot} tidak menempel pada kunjungan yang sama dengan konsultasinya.", "Procedure", "procedure", "EncounterId", "PatientProcedure", item.Id));
             }
         }
 

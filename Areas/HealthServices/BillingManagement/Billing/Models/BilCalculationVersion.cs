@@ -12,6 +12,7 @@ public sealed class BilCalculationVersion : IdentityModel
     public int VersionNo { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
     public decimal ItemDiscount { get; set; }
     public decimal TotalDiscount { get; set; }
     public decimal TaxAmount { get; set; }

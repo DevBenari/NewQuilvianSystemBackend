@@ -1,4 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
@@ -26,7 +27,18 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<CashierShiftService>();
         services.AddScoped<IBillingChargeSourceAdapter, ContractBillingChargeSourceAdapter>();
         services.AddScoped<IBillingCoverageAdapter, RegistrationBillingCoverageAdapter>();
-        services.AddScoped<IBillingPaymentProviderAdapter, DeferredBillingPaymentProviderAdapter>();
+        services.AddOptions<BillingPaymentProviderOptions>()
+            .BindConfiguration(BillingPaymentProviderOptions.SectionName);
+
+        // Selama belum ada integrasi mesin pembayaran/tender bank, tender non-tunai diterima
+        // langsung supaya kasir tidak menunggu konfirmasi yang tidak akan datang. Setel
+        // Billing:PaymentProvider:AutoAcceptWithoutProvider = false untuk kembali ke perilaku
+        // aman (tender non-tunai berstatus Pending) begitu provider tersambung.
+        services.AddScoped<IBillingPaymentProviderAdapter>(provider =>
+            provider.GetRequiredService<IOptions<BillingPaymentProviderOptions>>()
+                .Value.AutoAcceptWithoutProvider
+                ? new AutoAcceptBillingPaymentProviderAdapter()
+                : new DeferredBillingPaymentProviderAdapter());
         services.AddOptions<BillingInvoiceNumberOptions>()
             .BindConfiguration(BillingInvoiceNumberOptions.SectionName)
             .ValidateOnStart();

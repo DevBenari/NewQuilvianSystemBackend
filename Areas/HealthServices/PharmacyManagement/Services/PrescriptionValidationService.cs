@@ -16,8 +16,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             _dbContext = dbContext;
         }
 
+        /// <param name="expectedEncounterId">
+        /// Kunjungan milik konsultasi yang sedang divalidasi. Dipakai memeriksa keutuhan relasi
+        /// resep terhadap kunjungannya (<c>RJ-DOC-BE-002</c>).
+        /// </param>
         public async Task<List<ConsultationFinalizationIssueResponse>> ValidateForConsultationAsync(
             Guid consultationId,
+            Guid expectedEncounterId,
             CancellationToken cancellationToken = default)
         {
             var issues = new List<ConsultationFinalizationIssueResponse>();
@@ -38,12 +43,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             foreach (var prescription in prescriptions)
             {
+                ValidateEncounterRelation(prescription, expectedEncounterId, issues);
                 ValidateHeader(prescription, issues);
                 ValidateRegularItems(prescription, issues);
                 ValidateCompounds(prescription, issues);
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// Memastikan resep benar-benar menempel pada kunjungan yang sama dengan konsultasinya.
+        ///
+        /// <c>RJ-DOC-BE-002</c>, kontrak <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.6 —
+        /// *clinical order state tidak authoritative*. Resep menyimpan `EncounterId` dan
+        /// `ConsultationId` secara terpisah, sehingga keduanya dapat berbeda. Bila itu terjadi,
+        /// fakta klinis yang diterbitkan pada finalisasi memakai `EncounterId` milik resep dan
+        /// akan mendarat pada kunjungan yang salah. Lebih baik menolak finalisasi daripada
+        /// menerbitkan fakta ke kunjungan orang lain.
+        /// </summary>
+        private static void ValidateEncounterRelation(
+            TrxPrescription prescription,
+            Guid expectedEncounterId,
+            List<ConsultationFinalizationIssueResponse> issues)
+        {
+            if (expectedEncounterId == Guid.Empty || prescription.EncounterId == expectedEncounterId)
+                return;
+
+            issues.Add(Issue("PRESCRIPTION_ENCOUNTER_MISMATCH", ConsultationValidationSeverity.Error,
+                "Resep tidak menempel pada kunjungan yang sama dengan konsultasinya.",
+                "Prescription", "prescription", "EncounterId", "Prescription", prescription.Id));
         }
 
         private static void ValidateHeader(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)

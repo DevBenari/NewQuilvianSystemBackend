@@ -3,12 +3,13 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `5` — revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `10` — revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
 | Product/domain owner | **Pemilik teknis:** pengguna, ditetapkan `HRD-DEC-015`. **Pemilik kebijakan bisnis, Komite Medik, dan K3RS:** masih `OPEN`, lihat `HRD-Q-01` |
-| Backend SHA | `ecdc135` (branch `AndryZain`, repository `NewQuilvianSystemBackend`) |
+| Backend audited SHA | `ecdc135` (branch `AndryZain`, repository `NewQuilvianSystemBackend`) — **historical**, tempat seluruh fakta source pada dokumen ini pertama kali dibuktikan. Tidak diganti agar provenance audit lama tetap utuh |
+| Backend current verified baseline | `16b8b71` (`origin/QuilvianIntegrationBackend`) — **implementation authority terkini**, ditetapkan `HRD-DEC-021`. Impact scan bagian 17.1 membuktikan seluruh source HR identik byte-per-byte dengan `ecdc135`, sehingga fakta yang diaudit tetap berlaku penuh di baseline ini |
 | Frontend SHA | `2a1cea784` (branch `AgentCodexFrontend`, repository `QuilvianSystemFrontendDev`) |
 | Tanggal pass | 2026-08-27 |
 | Capability map | **Sudah ada sejak 27 Agustus 2026.** [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.0`, status `source-audited`. Scope pada dokumen ini semula dikunci tanpa audit; audit itu kini tersedia dan mengoreksi beberapa pembacaan awal, lihat bagian 13 |
@@ -1170,3 +1171,672 @@ berlaku, berapa tingkat persetujuan yang wajar. **Tidak satu pun diisi.**
 Alasannya: nilai-nilai itu adalah kebijakan ketenagakerjaan rumah sakit, bukan pilihan teknis.
 Menuliskannya di blueprint akan membuat orang berikutnya mengiranya sudah disetujui, padahal
 tidak ada seorang pun yang pernah memutuskannya.
+
+---
+
+## 20. PHASE 2A.1 — Flow Evidence Hardening, 27 Agustus 2026
+
+Pengguna menyetujui arah `PHASE 2A` tetapi meminta satu pass pengerasan sebelum `PHASE 2B`:
+membedakan tegas antara **state vocabulary** (nilai enum/status terbukti ada) dan **transition
+edge** (bukti bahwa satu transisi tertentu benar-benar dijaga guard/controller/service/validator).
+Pass ini murni audit source **read-only** atas flow 01–04. **Tidak ada source code, database,
+migration, controller, entity, maupun frontend yang diubah** — seluruh perubahan pada pass ini
+adalah dokumentasi.
+
+### 20.1 Metode
+
+Empat sub-agent riset dijalankan paralel, masing-masing terbatas pada satu domain backend
+(`AttendanceManagement`, `LeaveManagement`, `OvertimeManagement`, dan `WorkforceCore` untuk
+kosakata `EmployeeProfileChange`), dengan instruksi eksplisit: kutip file dan baris, bedakan
+"nilai enum ada" dari "guard yang menegakkannya ada", dan laporkan `UNVERIFIED` bila tidak
+ditemukan alih-alih menebak.
+
+### 20.2 Triase `HRD-Q-18` s.d. `HRD-Q-33`
+
+| Kelompok | Pertanyaan | Alasan |
+| --- | --- | --- |
+| `SOURCE_RESOLVABLE` | `HRD-Q-21`, `HRD-Q-22` (bagian kosakata), `HRD-Q-24`, `HRD-Q-28` | Terjawab murni dari membaca source, tanpa keputusan manusia |
+| `PERMISSION_MAPPING` | `HRD-Q-20`, `HRD-Q-23`, `HRD-Q-32`, `HRD-Q-33` | Mekanismenya (guard status, gerbang permission) sudah terbukti ada; yang tersisa adalah **siapa** yang seharusnya diberi permission atau bagaimana peran dipetakan ke permission nyata — bukan lagi dapat dijawab source, tapi juga bukan murni nilai kebijakan |
+| `BUSINESS_DECISION` | `HRD-Q-18`, `HRD-Q-19`, `HRD-Q-25`, `HRD-Q-26`, `HRD-Q-27`, `HRD-Q-29` (nilai kebijakannya), `HRD-Q-30`, `HRD-Q-31` | Nilai kebijakan ketenagakerjaan atau keputusan proses yang tidak dapat diturunkan dari source apa pun |
+
+Seluruh `SOURCE_RESOLVABLE` sudah diselesaikan pada pass ini. Tidak ada keputusan manusia yang
+diminta untuk sesuatu yang sebenarnya dapat dibuktikan dari source.
+
+### 20.3 Pertanyaan yang tertutup lewat audit source
+
+| ID | Jawaban | Evidence |
+| --- | --- | --- |
+| `HRD-Q-21` | **Tidak.** `EmployeeProfileChange` **tidak** memakai `LeaveRequestValueConstants.Status`. Statusnya `string` polos pada `TrxEmployeeProfileChangeRequest.RequestStatus`, divalidasi array privat `EmployeeProfileChangeService.RequestStatuses = {Draft, Submitted, UnderVerification, NeedRevision, Approved, Rejected, Cancelled, Applied}` — tipe berbeda dari `LeaveManagement`, kebetulan berbagi sebagian nama nilai | `flows/01-employee-administration.md` bagian 9 |
+| `HRD-Q-22` (bagian kosakata) | **Tidak.** `ScheduleMismatch` satu-satunya titik pakainya adalah `AttendanceProcessingService.BuildExceptions`, guard `!schedule.IsResolved`, kode `SCHEDULE_UNRESOLVED` — artinya "jadwal tidak dapat diselesaikan", bukan "kehadiran di luar jendela jadwal yang sudah ada". Tidak ada kode yang mendeteksi kasus dokter di luar jadwal kerja hari ini | `flows/02-attendance.md` bagian 6.1 dan 7 |
+| `HRD-Q-24` | **Tidak sepenuhnya.** `TerminalRequestStatuses` menyatakan niat `Applied` final tapi tidak pernah dirujuk sebagai guard di tempat lain. Endpoint `synchronize` dapat menurunkan `Applied` kembali ke `Approved` dan memicu ulang apply. Ini celah implementasi, bukan pertanyaan kebijakan | `flows/02-attendance.md` bagian 9.4 |
+| `HRD-Q-28` | **Tidak.** `POST /{leaveRequestId}/reverse` tidak punya guard status; hanya memblokir bila `ExecutionStatus == Reversed`. `Completed` dapat kembali ke `Cancelled`/`Taken` | `flows/03-leave.md` bagian 9.1 |
+
+### 20.4 Pertanyaan baru dari temuan audit
+
+Tiga celah ditemukan yang sebelumnya tidak diduga — dokumen lama menganggap suatu invariant
+terbukti hanya karena nilai enum-nya ada, padahal guard-nya tidak pernah ditulis atau tidak
+efektif. Business requirement di baliknya **tidak dihapus**; hanya diturunkan menjadi pertanyaan
+implementasi baru:
+
+| ID | Isi | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-Q-34` | Celah `AttendanceCorrection.synchronize` dapat menurunkan `Applied` kembali ke `Approved` dan memicu ulang apply. Perlu ditutup lewat perbaikan kode, atau ada alasan bisnis yang membenarkannya? | Backend owner | Keputusan perbaikan implementasi |
+| `HRD-Q-35` | `LeaveExecution./reverse` dapat membalik cuti `Completed` tanpa guard status. Ini jalur resmi yang disengaja, atau celah yang perlu ditutup? | Backend owner + pemilik produk | Keputusan perbaikan implementasi |
+| `HRD-Q-36` | `RecallStatus.Acknowledged` terbukti tidak digerbangi kode — alur dapat lompat `WaitingApproval` → `Approved` tanpa melaluinya. Apakah ini seharusnya menjadi gate wajib? | Pemilik produk | Desain final pemanggilan kembali |
+
+### 20.5 Verifikasi lima rule high-impact
+
+| Domain | Rule | Hasil |
+| --- | --- | --- |
+| Attendance | Periode tidak dapat ditutup bila exception `Open` masih ada | **PROVEN.** `AttendancePeriodService.CloseAsync`/`BuildClosePreviewAsync` memblokir bila ada `HrdAttendanceException` `IsPayrollBlocking` berstatus `Open`/`UnderReview`, atau koreksi aktif |
+| Attendance | Transition guard close/reopen/cancel | **PROVEN**, guard eksplisit per edge (`IsEditableStatus`, syarat `Closed` khusus untuk reopen) — bukan penulisan status membabi buta |
+| Attendance | Koreksi `Applied` benar-benar terminal | **DISPROVEN.** `synchronize` dapat menurunkannya; lihat `HRD-Q-34` |
+| Leave | Service yang mengubah saldo pada `OnLeaveStart` | **PROVEN** — `LeaveExecutionProcessorService.ExecuteAsync` → `ApplyDeductionStageAsync(..., OnLeaveStart)` |
+| Leave | `OnCompletion` | **PROVEN** — method yang sama, dipanggil ulang dengan `BalanceStage.OnCompletion` |
+| Leave | `CancellationRestore` | **PROVEN, tapi tidak selalu penuh** — prorata harian kalender bila pembatalan terjadi setelah tanggal mulai |
+| Leave | Transition guard `Completed` | **DISPROVEN.** `/reverse` dapat membaliknya; lihat `HRD-Q-35` |
+| Leave | `RecallStatus.Acknowledged` prasyarat sebelum `Approved` | **DISPROVEN.** Tidak pernah diperiksa oleh mesin workflow; lihat `HRD-Q-36` |
+| Overtime | Guard `PostedToPayroll` | **PROVEN**, dengan catatan: memeriksa status Realisasi (`Verified` + verifikasi `Approved`), bukan status Permohonan secara langsung |
+| Overtime | Mekanisme koreksi setelah posted | **DISPROVEN (lebih baik dari dugaan).** Ada `POST realizations/{id}/rollback` dan `Reconcile` dengan `AllowRepair`, setara `repair`/`rollback` kehadiran — tidak selalu perlu membuka kembali periode penuh |
+| Overtime | Transition guard period reopen | **PROVEN** — hanya dari `Closed`/`Closing`, dijaga permission generik `AccessPermission("OvertimePeriod","Reopen")` |
+| Overtime | Overtime overlap benar-benar ditolak | **PROVEN** — `HasRequestOverlapAsync` menandai `REQUEST_OVERLAP` sebagai isu pemblokir; `SubmitAsync` menolak 409 |
+
+### 20.6 Otoritas aktor per jenis transaksi
+
+Larangan kalimat umum "atasan menyetujui seluruh pengajuan anak buah" dijaga — setiap baris di
+bawah adalah evidence per jenis transaksi, bukan generalisasi lintas transaksi.
+
+| Jenis transaksi | Evidence otoritas |
+| --- | --- |
+| Leave | **Matriks dapat dikonfigurasi**, bukan hardcode. `WorkflowService.ResolveApproversAsync` mendukung sumber `RequesterManager`, `ManagerLevel`, `SpecificUser`, `Position`, `OrganizationUnit`, `Role*`, `ApprovalMatrix`, `RequesterSelected` dari `MstWorkflowStep`/`MstApprovalMatrix`. Gate nyata: `assignment.AssignedApproverUserId == actorContext.UserId` |
+| Overtime | Peran `Supervisor`/`Manager`/`HrAdmin`/`Payroll` **terbukti tidak dipetakan** ke pemeriksaan identitas apa pun — hanya nilai default field. Penegakan nyata: `[AccessPermission]` generik per aksi, terputus dari kosakata peran. `HRD-Q-33` bergeser dari "bagaimana pemetaannya" menjadi "peta ini belum dibangun" |
+| Attendance correction | Mesin workflow generik. `ApprovalInboxController.Approve` → `WorkflowService.ApproveAsync`, gate `assignment.AssignedApproverUserId == actorContext.UserId` — approver ditentukan `TrxWorkflowApproverAssignment`, bukan role hardcode |
+| Salary assignment | **`[OPEN]`, tidak terbukti.** Tidak ada jalur persetujuan yang ditemukan untuk `WfpSalaryAssignment`. Dicatat `HRD-Q-19`, bukan diasumsikan tidak perlu persetujuan |
+
+### 20.7 Yang dipertahankan tanpa perubahan
+
+Sesuai batasan pengguna, tidak ada satu pun dari berikut yang disentuh: raw attendance sebagai
+fakta immutable (`HrdAttendanceRawLog` tidak pernah ditulis ulang oleh koreksi apa pun — tetap
+`[EXISTING]`, tidak terpengaruh temuan `Applied`/`synchronize`, karena celah itu memutasi
+`HrdAttendanceDaily`, bukan rekaman mentah), frontend tidak menghitung kelayakan kehadiran,
+backend sebagai otoritas saldo cuti, dokter di luar jadwal tidak otomatis menjadi lembur
+(`HRD-DEC-013`), lima tahap lembur tetap terpisah, `Wfp`/`Mst` tidak diratchet, `Trx` HR hanya
+diratchet saat materially touched, dan batas payroll `HRD-DEC-009`.
+
+### 20.8 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `flows/01-employee-administration.md` | Provenance cross-employee dipisah `[DECISION] HRD-DEC-012` vs `[EXISTING] MISSING/REPAIR`; state transition `EmployeeProfileChange` ditulis ulang dengan kosakata benar; `HRD-Q-21` ditutup |
+| `flows/02-attendance.md` | Guard close/reopen/cancel period diberi evidence per-edge; koreksi `Applied` dikoreksi jadi DISPROVEN + `HRD-Q-34`; `ScheduleMismatch` dikoreksi maknanya; `HRD-Q-22`/`Q-23`/`Q-24` diperbarui; AC-F02-05 dikonfirmasi PROVEN, AC-F02-09 baru ditambahkan |
+| `flows/03-leave.md` | `OnLeaveStart`/`OnCompletion`/`CancellationRestore` diberi evidence; `Completed` dikoreksi jadi DISPROVEN + `HRD-Q-35`; `Acknowledged` dikoreksi jadi bukan gate + `HRD-Q-36`; `AC-F03-04`/`AC-F03-06` direvisi; diagram diperbarui |
+| `flows/04-overtime.md` | `PostedToPayroll` guard diberi evidence dengan catatan; klaim "koreksi hanya lewat reopen" dikoreksi (ada rollback); period reopen guard dan overlap rejection dikonfirmasi PROVEN; peran workflow dikoreksi jadi terputus dari permission; `HRD-Q-32`/`Q-33` diperbarui |
+| `00-interview-decisions.md` | Revision naik ke `6`; bagian 20 ini ditambahkan |
+
+Tidak ada file source, migration, entity, controller, maupun frontend yang diubah pada pass ini.
+
+---
+
+## 21. PHASE 2A.2 — Owner Decision Closure, 27 Agustus 2026
+
+Pengguna menyetujui hasil `PHASE 2A.1` dan menutup empat pertanyaan yang lahir darinya lewat
+keputusan eksplisit. **Tidak ada source code yang diubah pada pass ini** — keempatnya adalah
+**target business behavior**, terpisah dari **current implementation** yang sudah dibuktikan
+`PHASE 2A.1`. Di mana keduanya berbeda, perbedaan itu dicatat tegas sebagai `IMPLEMENTATION
+DEFECT / REPAIR`, bukan dirapikan diam-diam.
+
+### 21.1 `HRD-DEC-022` — Attendance Correction: `Applied` terminal terhadap normal workflow synchronization
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-022` | Decision | **`AttendanceCorrection.RequestStatus = Applied` adalah terminal terhadap normal workflow synchronization.** `synchronize` **tidak boleh** menurunkan `Applied` kembali ke `Approved`, `PartiallyApproved`, atau status sebelumnya mana pun. Bila kesalahan ditemukan setelah `Applied`, jalur yang sah hanya: (a) permohonan koreksi baru, atau (b) aksi repair/koreksi eksplisit yang terotorisasi dan diaudit tersendiri. **Dilarang** menghidupkan kembali status permohonan lama | Pengguna | `approved` | Pengguna, 27 Agustus 2026 | `HRD-Q-34`; `flows/02-attendance.md` bagian 9.4 |
+
+**Menutup `HRD-Q-34`.**
+
+**Konsekuensi terhadap current implementation — ditandai `IMPLEMENTATION DEFECT / REPAIR`, bukan
+target business behavior:**
+
+| Current behavior | Status |
+| --- | --- |
+| `synchronize` dapat menurunkan `Applied` → `Approved` lalu memicu apply ulang (`HrdAttendanceDaily` termutasi ulang) | **`IMPLEMENTATION DEFECT`** — bertentangan dengan `HRD-DEC-022`, perlu `REPAIR` |
+| Tidak ada aksi "repair/koreksi eksplisit yang terotorisasi dan diaudit" khusus untuk `AttendanceCorrection` selain permohonan baru | **`MISSING`** terhadap target — `HRD-DEC-022` butir (b) belum punya implementasi. (Catatan: `repair`/`rollback` yang ada hari ini adalah milik `payroll-handoff`, domain berbeda, bukan milik `AttendanceCorrection` itu sendiri) |
+| Permohonan koreksi baru terhadap `AttendanceDailyId` yang sama setelah `Applied` | Sudah sesuai target — `[EXISTING]`, tidak perlu `REPAIR` |
+
+### 21.2 `HRD-DEC-023` — Leave Completed: business-final dengan controlled reversal yang terkendali
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-023` | Decision | **Cuti `Completed` adalah business-final state untuk operasi normal**, tetapi *controlled reversal* tetap kemampuan yang sah. `Reverse` wajib memiliki: permission khusus; alasan (`reason`) wajib; pelaku dan waktu (`actor`/`timestamp`); rekonsiliasi kehadiran; pembalikan/perhitungan ulang saldo; dan guard periode payroll locked/finalized. **Bila payroll sudah locked/finalized, histori `Completed` tidak boleh dimutasi langsung** — gunakan transaksi adjustment/revision terpisah, bukan menulis ulang eksekusi lama | Pengguna | `approved` | Pengguna, 27 Agustus 2026 | `HRD-Q-35`; `flows/03-leave.md` bagian 9.1 |
+
+**Menutup `HRD-Q-35`.**
+
+**Konsekuensi terhadap current implementation — ditandai `IMPLEMENTATION DEFECT / REPAIR`:**
+
+| Current behavior | Status |
+| --- | --- |
+| `POST /{leaveRequestId}/reverse` tanpa permission khusus yang terbukti, tanpa mewajibkan `reason`, dan tanpa guard periode payroll locked/finalized | **`IMPLEMENTATION DEFECT`** — perlu `REPAIR` agar mengikuti enam syarat `HRD-DEC-023` |
+| Rekonsiliasi kehadiran dan pembalikan saldo saat reverse | Sebagian `[EXISTING]` (`ReverseAsync`/`RestoreAsync` memang memutasi saldo dan status eksekusi) — belum diverifikasi apakah rekonsiliasi kehadiran ikut dijalankan otomatis atau perlu langkah manual terpisah |
+| Guard "payroll locked/finalized mencegah mutasi langsung, wajib pakai adjustment/revision" | **`MISSING`** — tidak ditemukan pada audit `PHASE 2A.1` |
+
+### 21.3 `HRD-DEC-024` — Recall Acknowledgement: notification-then-acknowledge, bukan gate persetujuan
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-024` | Decision | **`Acknowledged` bukan prerequisite untuk `Approved`.** Persetujuan pemanggilan kembali adalah keputusan organisasi, bukan keputusan pegawai. Target flow: `WaitingApproval` → `Approved` → notifikasi dikirim → `Acknowledged` → `Applied`. `Acknowledged` adalah bukti pegawai menerima pemberitahuan, bukan syarat sebelum organisasi memutuskan. Dalam kondisi operasional tertentu, **HR Manager dapat melakukan acknowledgement override** sebelum `Applied`, dengan `reason` wajib, `actor`/`timestamp` wajib, dan jejak audit wajib. **Pegawai tidak boleh memblokir keputusan recall selamanya hanya dengan tidak melakukan acknowledge** | Pengguna | `approved` | Pengguna, 27 Agustus 2026 | `HRD-Q-36`; `flows/03-leave.md` bagian 9.3 |
+
+**Menutup `HRD-Q-36`.**
+
+**Konsekuensi terhadap current implementation:**
+
+| Current behavior | Status |
+| --- | --- |
+| `LeaveRecallWorkflowLifecycleService.MapStatus` memetakan `WaitingApproval` → `Approved` langsung, tanpa pernah melalui `Acknowledged` | **Sudah sejalan dengan target** — `Acknowledged` memang tidak dimaksudkan menjadi gate. `[EXISTING]`, tidak perlu `REPAIR` pada urutan ini |
+| Notifikasi otomatis terkirim ke pegawai setelah `Approved`, sebelum `Applied` | **`[OPEN]`/`UNVERIFIED`** — belum diaudit apakah ada mekanisme notifikasi otomatis pada titik ini |
+| Mekanisme "HR Manager acknowledgement override" dengan `reason`/`actor`/`timestamp`/audit trail wajib | **`MISSING`** terhadap target — `AcknowledgeReturnToWorkAsync` yang ada hari ini adalah aksi pegawai sendiri, bukan override HR Manager dengan syarat wajib tersebut |
+
+### 21.4 `HRD-DEC-025` — Exception dokter di luar jadwal: `OutOfScheduleWork` terpisah dari `ScheduleMismatch`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-025` | Decision | **`ScheduleMismatch` tidak diperluas maknanya.** Tetap bermakna *schedule unresolved/conflict* seperti pada source hari ini (`SCHEDULE_UNRESOLVED`). Target desain memerlukan **exception type baru dan terpisah** untuk aktivitas kerja nyata di luar jadwal yang valid — contoh nama `OutOfScheduleWork` (nama final menyesuaikan konvensi enum existing, tetapi semantiknya wajib terpisah dari `ScheduleMismatch`). Alur target: `OutOfScheduleWork` → `pending classification` → manager/reviewer terotorisasi menentukan salah satu dari: lembur, koreksi jadwal, tercatat/non-compensable, atau klasifikasi resmi lain. **Tidak pernah otomatis menjadi lembur**, sejalan `HRD-DEC-013` | Pengguna | `approved` | Pengguna, 27 Agustus 2026 | Sisa `HRD-Q-22`; `flows/02-attendance.md` bagian 6.1 |
+
+**Menutup sisa `HRD-Q-22`** (bagian source-resolvable sudah ditutup `PHASE 2A.1`; bagian keputusan
+desain ditutup di sini).
+
+**Konsekuensi terhadap current implementation:**
+
+| Current behavior | Status |
+| --- | --- |
+| Nilai `AttendanceExceptionType.OutOfScheduleWork` (atau setara) | **`MISSING`** — belum ada di enum `AttendanceValueConstants.AttendanceExceptionType` |
+| Kode yang mendeteksi "aktivitas kerja nyata di luar jadwal yang valid" dan menandainya dengan tipe baru itu | **`MISSING`** — tidak ada jalur kode untuk skenario ini hari ini |
+| Alur "pending classification → manager/reviewer menentukan klasifikasi akhir" | **`[DECISION]`** `HRD-DEC-013` sudah menetapkan **siapa** yang memutuskan (atasan) dan **larangan** otomatisasi; `HRD-DEC-025` menetapkan **wadah teknisnya** (exception type terpisah). Implementasinya sendiri `MISSING` |
+
+### 21.5 Ringkasan penutupan
+
+| ID | Ditutup oleh | Status akhir |
+| --- | --- | --- |
+| `HRD-Q-22` (sisa) | `HRD-DEC-025` | `resolved` |
+| `HRD-Q-34` | `HRD-DEC-022` | `resolved` |
+| `HRD-Q-35` | `HRD-DEC-023` | `resolved` |
+| `HRD-Q-36` | `HRD-DEC-024` | `resolved` |
+
+Keempat keputusan ini **target business behavior**. Selisih antara target dan current
+implementation dicatat sebagai `IMPLEMENTATION DEFECT`, `REPAIR`, atau `MISSING` pada tabel
+masing-masing di atas — bukan diselesaikan lewat perubahan source pada pass ini, sesuai batasan
+pengguna. Perbaikan actual menjadi task implementasi terpisah di luar cakupan blueprint.
+
+Tidak ada file source, migration, entity, controller, maupun frontend yang diubah pada pass ini.
+
+---
+
+## 22. PHASE 2B — Flow 05–09, 27 Agustus 2026
+
+Lima flow baru ditulis: `05-work-scheduling.md`, `06-shift-change-swap.md`,
+`07-attendance-correction.md`, `08-early-leave-permission.md`, `09-unified-approval.md`. Empat
+sub-agent riset read-only dijalankan paralel, satu per domain backend. **Tidak ada source code
+yang diubah.**
+
+### 22.1 Temuan ringkas per flow
+
+| Flow | Temuan utama |
+| --- | --- |
+| 05 — Penjadwalan kerja | Dari 11 model `SchedulingManagement`, **hanya 3 punya controller**. Roster, shift harian, penggantian, tenaga darurat, dan siaga seluruhnya `MISSING` di backend — bukan sekadar frontend |
+| 06 — Ubah jadwal/tukar shift | Tukar shift terbukti **dua tahap terpisah** (persetujuan rekan lalu manajer) dengan `WorkflowDefinitionCode` berbeda dari ubah jadwal — larangan menyamakan keduanya terbukti benar |
+| 07 — Koreksi kehadiran | Dikonfirmasi ulang: HR Admin **tidak dapat** membuat koreksi atas nama pegawai lain (guard `daily.WorkforceProfileId == actorWorkforceProfileId`); tidak ada aksi repair resmi untuk koreksi `Applied`, sejalan `HRD-DEC-022` |
+| 08 — Izin pulang cepat | **Tidak ada kapabilitas berdiri sendiri.** Ditemukan mode `IsHourly` pada `WfpLeaveRequest` sebagai kandidat terdekat — tapi ditemukan pula kemungkinan kontradiksi terhadap flow 03 (`HRD-Q-44`) |
+| 09 — Kotak masuk terpadu | Pemisahan per domain terbukti sampai lapisan data (`MstWorkflowStep`/`MstApprovalMatrix` di-scope per `WorkflowDefinitionId`). `HRD-Q-12`/`HRD-Q-13` tertutup. SLA/eskalasi ada sebagai konfigurasi tapi **tidak ada mesin penegakan** |
+
+### 22.2 Open question baru (`HRD-Q-37` s.d. `HRD-Q-46`)
+
+| ID | Flow | Isi singkat |
+| --- | --- | --- |
+| `HRD-Q-37` | 05 | Roster/shift-harian/darurat/siaga: prioritas `DEFERRED` atau `EXTEND` segera? |
+| `HRD-Q-38` | 05 | Apakah penempatan jadwal kerja memerlukan persetujuan? |
+| `HRD-Q-39` | 06 | Apakah tukar shift `Applied` otomatis memutakhirkan `ScheduleSource` kehadiran? |
+| `HRD-Q-40` | 07 | Apakah HR Admin seharusnya dapat membuat koreksi atas nama pegawai? |
+| `HRD-Q-41` | 08 | Potongan saldo mode `IsHourly`: proporsional atau satuan hari penuh? |
+| `HRD-Q-42` | 08 | Perlu jalur izin pulang cepat tanpa potongan saldo, terpisah dari `IsHourly`? |
+| `HRD-Q-43` | 08 | Apakah `IsHourly` resmi ditetapkan sebagai fitur "izin pulang cepat", atau perlu fitur baru? |
+| `HRD-Q-44` | 08 (mengoreksi flow 03) | Rantai status granular pada `WfpLeaveRequest.cs` komentar vs `WaitingApproval` tunggal — mana yang berlaku nyata? |
+| `HRD-Q-45` | 09 | SLA/eskalasi ada sebagai konfigurasi tanpa mesin penegakan — prioritas dibangun atau tidak? |
+| `HRD-Q-46` | 09 | `TrxLeaveRequestApproval` tanpa `WorkflowInstanceId` — mekanisme paralel aktif atau kode mati? |
+
+### 22.3 Open question tertutup pada pass ini
+
+| ID | Jawaban | Evidence |
+| --- | --- | --- |
+| `HRD-Q-12` | Kotak masuk menampilkan **keduanya** — pending (`view=open`) dan riwayat (`view=completed`/`all`) | `flows/09-unified-approval.md` bagian 8 |
+| `HRD-Q-13` | Delegasi diaktifkan **oleh approver itu sendiri**; mekanismenya mutasi kolom `AssignedApproverUserId`, bukan percabangan kode approval | `flows/09-unified-approval.md` bagian 8 |
+
+### 22.4 Kontradiksi terhadap flow 00–04
+
+Satu kontradiksi ditemukan, **belum direkonsiliasi**: `WfpLeaveRequest.cs` baris 89–92 menunjukkan
+rantai status `WaitingSupervisorApproval → WaitingManagerApproval → WaitingHrVerification`,
+berbeda dari `WaitingApproval` tunggal yang didokumentasikan flow 03 (dan diverifikasi
+`PHASE 2A.1` terhadap `LeaveRequestValueConstants.Status`). Flow 03 **tidak diubah** temuan
+utamanya — hanya diberi catatan lanjutan yang merujuk `HRD-Q-44`, karena belum ada audit yang
+membandingkan langsung komentar model ini dengan konstanta yang benar-benar dirujuk mesin
+approval matrix.
+
+### 22.5 Implementation defect yang ditemukan, belum diperbaiki
+
+Tidak ada temuan defect baru sekelas `HRD-DEC-022`/`023`/`024` pada pass ini. Yang ditemukan
+adalah kesenjangan **cakupan** (backend `MISSING`, bukan cacat pada backend yang ada):
+
+| Kesenjangan | Domain | Status |
+| --- | --- | --- |
+| Roster, shift harian, penggantian shift, tenaga darurat, siaga — tanpa controller | Penjadwalan (flow 05) | `MISSING`, `HRD-Q-37` |
+| Aksi repair/koreksi eksplisit untuk `AttendanceCorrection` pasca-`Applied` | Koreksi kehadiran (flow 07) | `MISSING`, sudah tercatat `HRD-DEC-022` bagian 21.1 |
+| Mesin penegakan SLA/eskalasi/auto-approve/auto-reject | Kotak masuk (flow 09) | `MISSING`, `HRD-Q-45` |
+
+### 22.6 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `flows/05-work-scheduling.md` | Baru |
+| `flows/06-shift-change-swap.md` | Baru |
+| `flows/07-attendance-correction.md` | Baru |
+| `flows/08-early-leave-permission.md` | Baru |
+| `flows/09-unified-approval.md` | Baru |
+| `flows/03-leave.md` | Catatan lanjutan `HRD-Q-44` ditambahkan pada bagian 9.1, tanpa mengubah kesimpulan `PHASE 2A.1` |
+| `flows/README.md` | Status flow 05–09 diperbarui menjadi `Ada`; flow 11–14 diberi label `PHASE 2C` |
+| `00-interview-decisions.md` | Bagian 22 ini ditambahkan |
+
+Tidak ada file source, migration, entity, controller, maupun frontend yang diubah pada pass ini.
+
+---
+
+## 23. PHASE 2B.1 — Source Closure & Product Decision Pass, 28 Agustus 2026
+
+Lima sub-agent riset read-only dijalankan paralel untuk menutup pertanyaan source-resolvable
+yang tersisa dari `PHASE 2B`, dan pengguna mencatat lima keputusan produk baru. **Tidak ada
+source code, frontend, database, migration, maupun registry yang diubah.**
+
+### 23.1 Hasil `HRD-Q-39` — integrasi tukar shift ke kehadiran
+
+**Tertutup. Jawabannya YA, terbukti dari jalur tulis-lalu-baca yang nyata, bukan dari nama
+status.**
+
+`ShiftSwapService.ApplyAsync` (baris 661–752) **tidak** sekadar mengubah status. Ia memuat kedua
+baris `TrxShiftAssignment` (pemohon dan target), lalu saling menukar `ShiftDate`, `ShiftId`,
+`WorkScheduleId`, `ScheduledStartAt/EndAt`, `PlannedWorkMinutes` lewat `ShiftAssignmentPayload.
+ApplyTo` (baris 1083–1110), menandai kedua baris `AssignmentSource = "ShiftSwap"` dan
+`IsManualOverride = true`, baru kemudian men-set `WfpShiftSwapRequest.RequestStatus = Applied`
+dalam transaksi database yang sama. `TrxShiftAssignment` memang tidak punya controller (temuan
+`PHASE 2B`), tetapi **ditulis langsung lewat `ApplicationDbContext` di lapisan service** — bukan
+berarti tidak tertulis.
+
+`AttendanceScheduleResolverService.ResolveCoreAsync` (baris 182–226) membaca `TrxShiftAssignment`
+lebih dulu (baris 196–208), difilter hanya `WorkforceProfileId`/`ShiftDate`/`IsActive`/status
+aktif — **tanpa** pengecualian untuk baris bersumber `ShiftSwap`. Saat baris hasil swap
+ditemukan, `MapRosterResolution` (baris 286–328) mengembalikan `ScheduleSource.ManualOverride`
+justru karena `IsManualOverride` yang diset `ApplyAsync` — bukti langsung bahwa resolver
+memungut hasil swap. `AttendanceProcessingService` memanggil resolver ini pada baris 640.
+
+**Kesimpulan:** tukar shift yang `Applied` benar-benar mengubah apa yang dihitung Attendance
+Processing pada hari yang ditukar. Flow 06 diperbarui untuk mencerminkan ini sebagai `[EXISTING]`
+terbukti, bukan `[OPEN]`.
+
+### 23.2 Hasil `HRD-Q-41` — matematika saldo cuti per jam
+
+**Tertutup. Formula proporsional per menit, tersimpan sebagai pecahan hari.**
+
+`LeaveRequestCalculationService.CalculateDays` (baris 547–561): `planned = PlannedWorkMinutes`
+hasil resolusi jadwal hari itu, **fallback hardcode 480 menit** bila jadwal tidak terselesaikan
+(baris 555 — bukan dari master data mana pun). `CountedDays = Math.Round(RequestedMinutes /
+(decimal)planned, 4, AwayFromZero)` (baris 560). Nilai ini mengalir sebagai `RequestedDays`/
+`EstimatedBalanceDeduction` (baris 586–587), diteruskan `ApplyDeductionStageAsync` sebagai
+`desiredUsage` (baris 129 `LeaveExecutionBalanceService.cs`). **Unit yang tersimpan di buku
+besar (`TrxLeaveBalanceTransaction`, `WfpLeaveBalance`) adalah pecahan HARI, bukan menit/jam** —
+konversi menit→hari terjadi satu kali di titik kalkulasi, tidak pernah direpresentasikan ulang
+sebagai jam/menit di sisi saldo.
+
+**Catatan tambahan yang perlu diperhatikan:** fallback 480 menit adalah **konstanta hardcode**,
+bukan nilai kebijakan yang dapat dikonfigurasi per rumah sakit. Ini bukan pertanyaan kebijakan
+baru — dicatat sebagai catatan teknis pada flow 08, bukan `HRD-Q` baru, karena tidak memblokir
+alur, hanya perlu diketahui pemilik teknis.
+
+### 23.3 Hasil `HRD-Q-44` — rekonsiliasi rantai status cuti
+
+**Tertutup. Verdict (b) dengan kualifikasi: rantai granular nyata HANYA sebagai step-order di
+mesin workflow generik, TIDAK PERNAH sebagai status bernama.**
+
+Pencarian literal `WaitingSupervisorApproval`/`WaitingManagerApproval`/`WaitingHrVerification`
+di seluruh source: **nol hasil eksekutabel.** Satu-satunya kemunculan adalah komentar pada
+`WfpLeaveRequest.cs` baris 90–91 — dan komentar **identik** juga ditemukan pada
+`TrxExpenseClaim.cs` baris 95–96, entity yang sama sekali tidak berhubungan. Ini membuktikan
+komentar itu adalah **template yang disalin**, bukan catatan desain yang disengaja untuk cuti.
+
+`WfpLeaveRequest.LeaveRequestStatus` adalah `string` polos, dan setiap jalur tulis yang aktif
+memakai konstanta `LeaveRequestValueConstants.Status.*` — tidak ada satu pun yang menulis string
+bergaya "WaitingSupervisorApproval". `LeaveRequestWorkflowLifecycleService.MapStatus` (baris
+143–197) memetakan **seluruh** status workflow non-terminal ke **satu** nilai `WaitingApproval`
+(baris 197, cabang fallback).
+
+Namun, di lapisan mesin workflow generik, granularitas itu **nyata secara struktural**:
+`MstWorkflowStep.StepOrder`, `ApprovalMode = Sequential`, `ApproverSourceType` (`ManagerLevel`,
+`Position`, `SiteHr`, `CorporateHr`, dst.), dan `StepType.Verification` mendukung rantai
+bertingkat — dilacak lewat `WfpLeaveRequest.CurrentApprovalStep`/`TrxWorkflowInstance.
+CurrentStepOrder`. Tidak ditemukan seed data `MstWorkflowStep` untuk `LEAVE_REQUEST` di repo,
+jadi rantai tiga tingkat ini **mungkin** dikonfigurasi sebagai master data saat implementasi,
+tetapi **tidak dijamin ada** hari ini.
+
+**Konsekuensi untuk Flow 03 dan Flow 08:** klaim `WaitingApproval` tunggal pada flow 03 bagian
+9.1 **tetap benar dan final** di lapisan status domain `WfpLeaveRequest`. Catatan lanjutan yang
+ditambahkan `PHASE 2B` diperbarui — bukan lagi "belum direkonsiliasi", melainkan **tertutup**:
+komentar granular adalah artefak template, bukan implementasi. Detail step-order yang nyata di
+mesin workflow dicatat sebagai lapisan terpisah, tidak menggantikan tabel status domain.
+
+### 23.4 Hasil `HRD-Q-46` — klasifikasi `TrxLeaveRequestApproval`
+
+**Tertutup. Klasifikasi: `LEGACY_UNUSED`.**
+
+Seluruh rujukan hanya pada lapisan skema: `ApplicationDbContext.cs:333` (`DbSet` saja),
+`TrxLeaveRequestApprovalConfiguration.cs` (konfigurasi EF saja), migration
+`20260726161839_initializeBigModulHRD2.cs` baris 42036–42086 (`CreateTable` saja, **tanpa**
+`InsertData`/backfill), dan `WfpLeaveRequest.Approvals` (navigasi yang tidak pernah dipakai).
+**Tidak ada** controller, service, atau repository yang membaca atau menulis baris ke tabel ini.
+Alur persetujuan cuti yang aktif seluruhnya lewat `TrxWorkflowInstance`/`TrxApprovalAction`/
+`TrxWorkflowApproverAssignment` — mesin generik yang sudah dibuktikan `PHASE 2A.1`.
+
+**Kesimpulan:** tabel ini sisa dari mekanisme persetujuan khusus-cuti sebelum mesin workflow
+generik ada, dan tidak pernah dihapus. Tidak boleh dipakai sebagai dasar desain apa pun.
+
+### 23.5 Hasil audit `AC-F07-02` — perilaku unggah bukti kedua
+
+**Tertutup. Klasifikasi: DELETE-OLD-THEN-REPLACE (secara fungsional), tanpa file yatim.**
+
+`AttendanceCorrectionService.UploadEvidenceAsync`: tidak ada guard `if (EvidenceFilePath !=
+null)` — unggahan kedua diproses identik dengan yang pertama. Urutan nyata (baris 957–976):
+simpan berkas baru ke storage → timpa field DB (`EvidenceFilePath`/`FileName`/`ContentType`) →
+`SaveChangesAsync` → **baru kemudian** `_fileStorageService.DeletePhysicalFileAsync(oldPath, ...)`
+menghapus berkas fisik lama. `DeletePhysicalFileAsync` aman dipanggil dengan path kosong (kasus
+unggahan pertama). Setiap simpanan memakai nama GUID baru, sehingga tidak ada risiko tabrakan
+selama jeda sebelum penghapusan. **Tidak ada endpoint hapus yang wajib dipanggil lebih dulu** —
+`DeleteEvidenceAsync` ada tapi opsional, bukan prasyarat.
+
+### 23.6 Koreksi Flow 08 — `RequestedEarlyLeaveAt` vs `ActualCheckOutAt` vs `ApprovedAt`
+
+**Klaim lama pada flow 08 bagian 5 poin 2 DICABUT.** Klaim itu menyatakan "`StartTime` yang
+diajukan pegawai tersimpan pada saat pengajuan, terpisah dari waktu keputusan" sebagai bukti
+"waktu efektif pulang cepat adalah waktu yang diajukan". Audit `PHASE 2B.1` membuktikan klaim itu
+**tidak lengkap dan menyesatkan**:
+
+1. `WfpLeaveRequest.StartTime`/`EndTime` memang tersimpan saat pengajuan — **tetapi nilai ini
+   tidak pernah mengalir ke `TrxLeaveAttendanceIntegration`**, yang hanya membawa
+   `RequestedMinutes` (`LeaveExecutionProcessorService.cs` baris 703). `StartTime`/`EndTime`
+   "mati" di entity permohonan, tidak dipakai sisi kehadiran manapun. Pencarian
+   `LeaveRequest|WfpLeaveRequest|IsHourly|StartTime|EndTime` di seluruh
+   `AttendanceProcessingService.cs` menghasilkan **nol** kecocokan.
+2. **Cuti per jam (`IsHourly`) dan pengecualian `EarlyLeave` pada kehadiran adalah dua mekanisme
+   yang TERPUTUS.** `LeaveExecutionProcessorService.ApplyAttendanceAsync` baris 881:
+   `fullDay = RequestedLeaveDays >= 0.999m && !IsHourly` — **untuk cuti per jam, `fullDay` SELALU
+   `false`**. Blok waiver yang mereset `IsEarlyLeave`/`EarlyLeaveMinutes` dan menutup pengecualian
+   (baris 969–991) **hanya berjalan di cabang `fullDay`**. Menyetujui/menjalankan cuti per jam
+   **tidak** memengaruhi pengecualian `EarlyLeave` yang dihitung independen dari rekaman mentah.
+   (Cuti **penuh sehari** memang mewaiver `EarlyLeave` — tapi itu di luar skenario izin pulang
+   cepat.)
+3. **Tidak ada field bernama `RequestedEarlyLeaveAt`/`ActualCheckOutAt` untuk cuti.** Field
+   `ActualCheckOutAt` memang ada di source, tapi milik `HrdMissingAttendance` — domain koreksi
+   kehadiran hilang, sama sekali tidak berhubungan dengan cuti. Kerangka tiga waktu
+   (`RequestedEarlyLeaveAt`/`ActualCheckOutAt`/`ApprovedAt`) yang diminta pengguna pada bagian B
+   surat ini **murni konseptual/target**, belum tercermin pada satu pun nama field yang ada.
+
+Flow 08 ditulis ulang mengikuti temuan ini — lihat bagian 23.9.
+
+### 23.7 Keputusan produk baru — `HRD-DEC-026` s.d. `HRD-DEC-030`
+
+#### `HRD-DEC-026` — Roster dan operational scheduling: target `EXTEND`, menutup `HRD-Q-37`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-026` | Decision | **Untuk rumah sakit 24/7, kapabilitas berikut adalah bagian target HR V2, bukan `DEFERRED`:** roster period; roster assignment/publication; daily shift assignment; shift replacement; emergency staffing; actual on-call assignment. Current state = `MISSING API` (dikonfirmasi `PHASE 2B`: 8 dari 11 model `SchedulingManagement` tanpa controller). **Target implementation classification = `EXTEND` terhadap schema existing** (`TrxRosterPeriod`, `TrxRosterAssignment`, `TrxRosterPublication`, `TrxRosterApproval`, `TrxShiftAssignment`, `TrxShiftReplacement`, `TrxEmergencyStaffingRequest`, `TrxOnCallAssignment` sudah model+EF+migration). **Larangan:** jangan membuat schema baru sebelum audit model existing, dan `HRD-Q-05` wajib terjawab lebih dulu bila perubahan destruktif diperlukan | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-37`; `flows/05-work-scheduling.md` |
+
+**Menutup `HRD-Q-37`.**
+
+#### `HRD-DEC-027` — Work schedule assignment approval: rule-based, menutup `HRD-Q-38`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-027` | Decision | **Penempatan jadwal kerja current/future oleh HR berwenang pada periode yang masih editable TIDAK membutuhkan approval tambahan; audit trail tetap wajib.** Perubahan retroactive, atau perubahan yang menyentuh periode kehadiran/payroll yang sudah diproses/locked, **wajib** melalui controlled correction/approval — tidak boleh direct edit. **Larangan:** jangan membuat approval untuk setiap edit kecil, karena akan membebani pekerjaan HR administratif sehari-hari | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-38`; `flows/05-work-scheduling.md` bagian 8 |
+
+**Menutup `HRD-Q-38`.**
+
+**Konsekuensi terhadap current implementation:** `WfpWorkScheduleAssignmentController.Create`/
+`Update`/`PATCH status` hari ini adalah aksi langsung HR Admin tanpa pemeriksaan retroactive atau
+periode locked — sejalan dengan bagian pertama keputusan (penempatan current/future memang tidak
+perlu approval). **`MISSING`** terhadap bagian kedua: tidak ada guard yang mendeteksi perubahan
+retroactive atau periode locked dan mengarahkannya ke controlled correction.
+
+#### `HRD-DEC-028` — Attendance correction on-behalf oleh HR Admin, menutup `HRD-Q-40`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-028` | Decision | **HR Admin boleh membuat permohonan koreksi kehadiran atas nama pegawai, bila pegawai tidak dapat mengakses ESS.** Wajib menyimpan: initiator HR; workforce yang diwakili; alasan (`reason`); waktu (`timestamp`); bukti (`evidence`) bila policy membutuhkan; notifikasi kepada pegawai; dan jejak audit lengkap. **Rekaman mentah kehadiran tetap immutable** — ketentuan ini tidak mengubah invariant flow 02. Persetujuan setelah pengajuan tetap memakai workflow/policy transaksi koreksi yang berlaku — **tidak ada jalur approval baru** khusus untuk permohonan on-behalf | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-40`; `flows/07-attendance-correction.md` bagian 2 |
+
+**Menutup `HRD-Q-40`.**
+
+**Konsekuensi terhadap current implementation:** **`MISSING`** sepenuhnya. `AttendanceCorrectionService.CreateAsync` baris 268 mensyaratkan `daily.WorkforceProfileId == actorWorkforceProfileId` — tidak ada jalur on-behalf sama sekali hari ini. Ini target baru, bukan repair atas cacat lama.
+
+#### `HRD-DEC-029` — Early Leave Permission terpisah dari Hourly Leave, menutup `HRD-Q-42` dan `HRD-Q-43`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-029` | Decision | **`WfpLeaveRequest.IsHourly` TIDAK sama dengan fitur Izin Pulang Cepat.** Dua konsep ditetapkan: **Hourly Leave** = bagian Leave Management, memakai entitlement/saldo cuti sesuai policy (mekanisme yang sudah terverifikasi `HRD-Q-41`). **Early Leave Permission** = izin administratif meninggalkan pekerjaan sebelum jadwal selesai, menjadi bagian alur attendance/permission — **bukan** bagian Leave Management. Keduanya boleh memakai ulang infrastruktur workflow (mesin approval generik, flow 09) tetapi **bukan business transaction yang sama** — dilarang disatukan entity maupun state machine-nya. Early Leave Permission boleh memiliki policy `deductible`/`non-deductible`/dikonversi ke hourly leave, **tetapi nilai policy itu tidak boleh di-hardcode** sebelum pemilik produk menentukannya. **Invariant yang mengikat:** waktu approval tidak pernah menjadi actual checkout time; actual attendance tetap berasal dari raw attendance; waktu yang diminta/diizinkan (requested/authorized early-leave time) disimpan terpisah sebagai dasar penilaian exception | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-42`, `HRD-Q-43`; `flows/08-early-leave-permission.md` |
+
+**Menutup `HRD-Q-42` dan `HRD-Q-43`.**
+
+**Konsekuensi terhadap current implementation:** Early Leave Permission sebagai kapabilitas
+berdiri sendiri = **`MISSING`**. **Tidak ada entity yang dibuat pada pass ini**, sesuai batasan
+pengguna — ini keputusan arsitektur target, menunggu task desain/implementasi terpisah. Nilai
+policy (`deductible`/`non-deductible`/konversi) tetap `[OPEN]`, dicatat `HRD-Q-47`.
+
+#### `HRD-DEC-030` — SLA/Escalation: target `EXTEND`, default OFF untuk auto-approve/auto-reject, menutup `HRD-Q-45`
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `HRD-DEC-030` | Decision | **Reminder dan escalation engine adalah target `EXTEND`.** `DueAt`, `ReminderAfterHours`, dan `EscalationAfterHours` **harus benar-benar dieksekusi** oleh scheduled processing — bukan sekadar field konfigurasi tanpa penegakan seperti kondisi hari ini. `AutoApproveAfterHours` dan `AutoRejectAfterHours`: **default OFF**; hanya boleh aktif bila `WorkflowDefinitionId` transaksi secara eksplisit mengizinkannya (opt-in per definisi workflow); **dilarang** diberlakukan otomatis ke seluruh transaksi HR | Pengguna | `approved` | Pengguna, 28 Agustus 2026 | `HRD-Q-45`; `flows/09-unified-approval.md` bagian 7 |
+
+**Menutup `HRD-Q-45`.**
+
+**Konsekuensi terhadap current implementation:** **`MISSING`** sepenuhnya — `PHASE 2B` sudah
+membuktikan tidak ada `BackgroundService`/`IHostedService` yang membaca `DueAt` atau keempat
+field itu. Target `EXTEND` di sini berarti membangun mesin baru, bukan memperbaiki mesin yang ada.
+
+### 23.8 Koreksi Flow 05 — wording route "sudah diseragamkan"
+
+**Klaim lama DICABUT.** Flow 05 bagian 4 sebelumnya menulis "delapan route sudah diseragamkan
+kebab-case oleh `HRD-DEC-014`/`016`" — ini keliru, mencampur **keputusan target** dengan **bukti
+implementasi**. Audit ulang `WorkCalendarController.cs:18`, `WorkScheduleController.cs:18`,
+`ShiftPatternController.cs:18`, `ShiftGroupController.cs:18` membuktikan keempatnya **masih**
+memakai `[Route]` lama (`workcalendars`, `workschedules`, `shiftpatterns`, `shiftgroups`) **tanpa**
+route template kebab-case kedua. `HRD-DEC-016` tetap berlaku sebagai **canonical target = kebab-
+case + compatibility alias**, tetapi belum diimplementasikan pada baseline `16b8b71`. Flow 05
+sudah diperbarui dengan kutipan baris ini.
+
+### 23.9 Roadmap impact — classification before → after
+
+Hanya classification yang terdampak yang diperbarui; slice lain pada
+`roadmap/00-slice-roadmap.md` tidak disentuh.
+
+| Kapabilitas | Before | After | Evidence |
+| --- | --- | --- | --- |
+| `S-B4` Penjadwalan kerja — roster/shift-harian/darurat/siaga | Current State: "Rasio paling timpang... 22 endpoint pada 3 controller, model 11" (dibaca sebagai "backend tipis" tanpa rincian); Target State umum "penyusunan jadwal, penugasan shift, deteksi bentrok" | **Current = `MISSING API`** untuk 8 dari 11 model (roster period/assignment/publication/approval, shift harian, penggantian shift, tenaga darurat, siaga — nol controller, dibuktikan `PHASE 2B`). **Target = `EXTEND`** terhadap schema existing, ditetapkan `HRD-DEC-026`, bukan `DEFERRED`. Deskripsi "backend tipis" tidak lagi dipakai tanpa penjelasan operational roster core tanpa API | `HRD-DEC-026`; `flows/05-work-scheduling.md` |
+| Koreksi kehadiran atas nama pegawai (HR-on-behalf) | Tidak disebutkan sebagai kapabilitas terpisah pada `S-B1`/`S-A5` | **`EXTEND`** — ditetapkan `HRD-DEC-028`. Current implementation `MISSING` (guard `actorWorkforceProfileId` memblokir on-behalf sepenuhnya) | `HRD-DEC-028`; `flows/07-attendance-correction.md` |
+| Early Leave Permission | Tidak ada sebagai kapabilitas terpisah; sebelumnya berisiko dicampur dengan `S-A2` (layanan mandiri cuti, mode `IsHourly`) | **`NEW/EXTEND` sesuai hasil arsitektur nanti.** Ditetapkan sebagai konsep terpisah dari Hourly Leave oleh `HRD-DEC-029`. **Tidak ada entity dibuat pada pass ini** | `HRD-DEC-029`; `flows/08-early-leave-permission.md` |
+| SLA/escalation executor (`S-A7`) | `S-A7` Target State menyebut kotak masuk terpadu tanpa menyebut mesin SLA/eskalasi terpisah | **`EXTEND`** — mesin reminder/escalation harus dieksekusi scheduled processing, ditetapkan `HRD-DEC-030`. Current `MISSING` sepenuhnya (tidak ada `BackgroundService` ditemukan) | `HRD-DEC-030`; `flows/09-unified-approval.md` |
+
+### 23.10 Koreksi cakupan `PHASE 2C`
+
+**`PHASE 2C` bukan hanya flow 11–14.** Cakupan yang benar:
+
+| # | Berkas | Status target |
+| --- | --- | --- |
+| 10 | `10-payroll-processing-handoff.md` | **`PARTIAL`** — wajib tetap ditulis. Boleh mendesain HR calculation → reconciliation → execute → batas HR/Finance. **Sesudah batas itu tetap `[BLOCKED]`** oleh `HRD-Q-10` dan `HRD-Q-11`. **Dilarang** mengarang payload Finance atau perilaku penolakan batch |
+| 11 | `11-lifecycle-offboarding.md` | `READY` untuk ditulis |
+| 12 | `12-competency-training.md` | `READY` untuk ditulis |
+| 13 | `13-performance-management.md` | `READY` untuk ditulis |
+| 14 | `14-employee-relations-discipline.md` | `READY` untuk ditulis |
+
+`flows/README.md` diperbarui agar tidak lagi menyiratkan flow 10 sebagai "sebagian `BLOCKED`"
+tanpa kejelasan batasnya — diganti eksplisit `PARTIAL` dengan penjelasan batas HR/Finance.
+
+### 23.11 Open question baru
+
+| ID | Isi | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-Q-47` | **Baru.** Nilai policy Early Leave Permission — `deductible`, `non-deductible`, atau dikonversi ke hourly leave — belum ditentukan pemilik produk | Pemilik produk | Desain final policy Early Leave Permission, bukan keberadaan kapabilitasnya |
+
+### 23.12 Ringkasan penutupan
+
+| ID | Ditutup oleh | Status akhir |
+| --- | --- | --- |
+| `HRD-Q-37` | `HRD-DEC-026` | `resolved` |
+| `HRD-Q-38` | `HRD-DEC-027` | `resolved` |
+| `HRD-Q-39` | Audit source `PHASE 2B.1` | `resolved` — integrasi terbukti |
+| `HRD-Q-40` | `HRD-DEC-028` | `resolved` |
+| `HRD-Q-41` | Audit source `PHASE 2B.1` | `resolved` — formula proporsional terbukti |
+| `HRD-Q-42` | `HRD-DEC-029` | `resolved` |
+| `HRD-Q-43` | `HRD-DEC-029` | `resolved` |
+| `HRD-Q-44` | Audit source `PHASE 2B.1` | `resolved` — komentar adalah artefak template, bukan implementasi |
+| `HRD-Q-45` | `HRD-DEC-030` | `resolved` |
+| `HRD-Q-46` | Audit source `PHASE 2B.1` | `resolved` — `LEGACY_UNUSED` |
+| `AC-F07-02` | Audit source `PHASE 2B.1` | `resolved` — DELETE-OLD-THEN-REPLACE |
+
+### 23.13 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `flows/03-leave.md` | Catatan lanjutan `HRD-Q-44` diperbarui dari "belum direkonsiliasi" menjadi tertutup; rujukan `TrxLeaveRequestApproval = LEGACY_UNUSED` ditambahkan |
+| `flows/05-work-scheduling.md` | Wording route "sudah diseragamkan" dicabut dan dikoreksi dengan kutipan baris; `HRD-Q-37` ditutup `HRD-DEC-026` |
+| `flows/06-shift-change-swap.md` | `HRD-Q-39` ditutup — integrasi tukar shift ke `ScheduleSource` kehadiran dinyatakan terbukti dengan evidence lengkap |
+| `flows/07-attendance-correction.md` | `AC-F07-02` ditutup; `HRD-Q-40` ditutup `HRD-DEC-028` dengan tabel target vs current |
+| `flows/08-early-leave-permission.md` | Ditulis ulang signifikan: klaim `StartTime` dicabut, formula `HRD-Q-41` ditambahkan, temuan keterputusan `IsHourly`/`EarlyLeave` ditambahkan, `HRD-DEC-029` diterapkan |
+| `roadmap/00-slice-roadmap.md` | `S-B4` classification diperbarui; catatan HR-on-behalf, Early Leave Permission, dan SLA/escalation executor ditambahkan pada slice terkait |
+| `flows/README.md` | Flow 10 diberi status target `PARTIAL` eksplisit dengan batas HR/Finance |
+| `00-interview-decisions.md` | Revisi naik ke `9`; bagian 23 ini ditambahkan |
+
+Tidak ada file source, migration, entity, controller, database, maupun frontend yang diubah pada
+pass ini.
+
+---
+
+## 24. Catatan susulan sebelum PHASE 2C, 28 Agustus 2026
+
+Dua koreksi pengguna atas hasil `PHASE 2B.1`, dicatat sebelum `PHASE 2C` dimulai.
+
+### 24.1 `HRD-Q-48` — fallback 480 menit pada Hourly Leave bukan kebijakan yang disetujui
+
+Temuan `PHASE 2B.1` bahwa `LeaveRequestCalculationService.cs` baris 555 memakai fallback hardcode
+480 menit bila jadwal tidak dapat diselesaikan adalah **current implementation behavior**,
+**bukan** business policy yang pernah disetujui pemilik produk.
+
+| ID | Pertanyaan | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-Q-48` | **Baru.** Apakah fallback 480 menit masih boleh dipakai saat jadwal tidak berhasil diselesaikan, atau perhitungan Hourly Leave harus menjadi *calculation exception* sampai `PlannedWorkMinutes` yang valid tersedia? | Pemilik produk | Nilai kebijakan Hourly Leave, tidak memblokir keberadaan alurnya |
+
+**Larangan:** jangan menganggap 480 menit sebagai standar universal rumah sakit. Nilai itu
+konstanta kode, bukan kebijakan yang pernah diverifikasi ke pemilik produk manapun.
+
+### 24.2 Penegasan klasifikasi `TrxLeaveRequestApproval`
+
+Diterapkan pada `flows/03-leave.md` bagian 9.3 (lihat berkas untuk detail lengkap):
+
+| Aspek | Nilai |
+| --- | --- |
+| `CURRENT` | `LEGACY_UNUSED` |
+| `TARGET` | `retirement candidate` |
+| `DESTRUCTIVE ACTION` | `[BLOCKED]` oleh `HRD-Q-05` / bukti database — **dilarang** menghapus, men-`DROP`, atau menganggap tabelnya kosong |
+
+---
+
+## 25. PHASE 2C — Remaining Administrative Flows, 28 Agustus 2026
+
+Lima flow ditulis: `10-payroll-processing-handoff.md` (`PARTIAL`), `11-lifecycle-offboarding.md`,
+`12-competency-training.md`, `13-performance-management.md`,
+`14-employee-relations-discipline.md`. Lima sub-agent riset read-only dijalankan paralel, satu
+per domain. **Tidak ada architecture, ERD, contracts, frontend, backend code, migration, maupun
+database change** pada pass ini.
+
+### 25.1 Ringkasan flow 10–14
+
+| Flow | Rasio API/model | Temuan utama |
+| --- | --- | --- |
+| 10 — Payroll | 3 jalur handoff domain, `TrxPayrollRun` tanpa controller sama sekali | **`Payroll Executed` ≠ `Employee Paid`**, dibuktikan tegas. Kalkulasi dan approval run-level `MISSING`. Satu-satunya guard run-level nyata: penulisan ditolak bila status sudah terminal |
+| 11 — Lifecycle/Offboarding | 1 dari 21 model operasional (resign) | Pencabutan akun aplikasi **tidak otomatis** — dikonfirmasi peringatan eksplisit di source sendiri. Checklist offboarding dibuat sekali, tidak pernah diperbarui lagi |
+| 12 — Kompetensi/Pelatihan | 4 dari 13 model operasional | Hanya pencatatan pasca-kejadian + flag verifikasi bebas, bukan lifecycle enrollment→completion. Terputus bersih dari credentialing (aman, sesuai batas) |
+| 13 — Manajemen Kinerja | 2 dari 11 model operasional | `Finalize`/`Acknowledge` benar-benar tergerbangi (berbeda dari flow 03's `Acknowledged` yang tidak tergerbangi). `CycleStatus` tidak menjaga urutan. OPPE/FPPE dikonfirmasi ulang: nol kode |
+| 14 — Hubungan Karyawan/Disiplin | 1 dari 8 model operasional | **Swa-setuju** ditemukan — aktor dapat menyetujui tindakan disiplinnya sendiri. Data `HighlyRestricted` tanpa tingkatan izin khusus. Enum resmi `DisciplinaryActionStatus` adalah dead code |
+
+### 25.2 Transition edge yang terbukti (contoh kunci)
+
+Resign: `Draft→Submitted→UnderReview→Approved→HandoffCompleted`, seluruhnya guard nyata via
+generic workflow engine. Performance: `Finalize` (mensyaratkan semua detail berskor) dan
+`Acknowledge` (mensyaratkan `IsFinalized`) — keduanya tergerbangi kode. Payroll: penulisan
+snapshot ditolak bila `TrxPayrollRun.RunStatus` terminal. Disiplin: `UpdateStatus` hanya
+memeriksa keanggotaan himpunan, **bukan** urutan transisi — dicatat sebagai transisi lemah, bukan
+state machine penuh.
+
+### 25.3 Capability classification
+
+| Kelas | Contoh |
+| --- | --- |
+| `READY TO REUSE` | Resign (flow 11), review kinerja (flow 13), rekaman pelatihan/asesmen pasca-kejadian (flow 12), tindakan disiplin (flow 14, dengan catatan), tiga jalur handoff payroll sampai `execute` (flow 10) |
+| `EXTEND` | Checklist offboarding (flow 11), kalkulasi/approval run payroll (flow 10) |
+| `MISSING` | Onboarding/probation/termination (flow 11), lifecycle pelatihan formal 11 entity (flow 12), goal/KPI berkelanjutan (flow 13), kasus/investigasi/keluhan (flow 14), pencabutan akun otomatis (flow 11) |
+| `BLOCKED` | OPPE/FPPE (flow 13), kredensial klinis sebagai tujuan pelatihan (flow 12), pembayaran/GL/pajak (flow 10) |
+| `LEGACY_UNUSED` | `TrxLeaveRequestApproval` (rujukan silang dari `PHASE 2B.1`, tidak berubah) |
+
+### 25.4 Integration boundaries yang dikonfirmasi
+
+HR employment lifecycle terpisah tegas dari identity/account deactivation, asset return, Finance
+final settlement (flow 11 — ketiganya `MISSING` di sisi HR, bukan diasumsikan dimiliki HR).
+Kompetensi/pelatihan terpisah bersih dari credentialing (flow 12). Manajemen kinerja terpisah
+dari OPPE/FPPE (flow 13). Payroll berhenti di batas `HRD-DEC-009` (flow 10).
+
+### 25.5 Open question baru — `HRD-Q-49` s.d. `HRD-Q-53`
+
+| ID | Flow | Isi |
+| --- | --- | --- |
+| `HRD-Q-49` | 10 | Tidak ditemukan jalur yang membuat/memajukan `TrxPayrollRun.RunStatus` — bagaimana payroll run benar-benar dimulai? |
+| `HRD-Q-50` | 11 | Tanggal efektif terakhir bekerja tidak terhubung ke kehadiran/payroll — perlu integrasi otomatis atau cukup manual? |
+| `HRD-Q-51` | 14 | Tindakan disiplin dapat disetujui oleh pembuatnya sendiri — dapat diterima, atau perlu pemisahan peran? |
+| `HRD-Q-52` | 14 | Data kedisiplinan `HighlyRestricted` tanpa tingkatan izin khusus — perlu dibangun sebelum kapabilitas diperluas? |
+| `HRD-Q-53` | 12, 13 | Kompetensi/pelatihan dan kinerja memakai flag verifikasi bespoke, bukan mesin workflow generik seperti domain lain — disengaja atau perlu disatukan? |
+
+### 25.6 Implementation defect baru
+
+Tidak ada defect setingkat `HRD-DEC-022`/`023`/`024` (yaitu invariant yang secara eksplisit
+diklaim ada lalu terbukti dilanggar kode). Temuan pass ini seluruhnya kesenjangan **cakupan**
+(`MISSING`) yang jujur dari awal, kecuali satu: **swa-setuju pada tindakan disiplin** (flow 14)
+adalah pola berjalan yang berpotensi tidak diinginkan — dicatat `HRD-Q-51`, bukan diperbaiki
+diam-diam.
+
+### 25.7 Contradiction terhadap flow 00–09
+
+Tidak ditemukan kontradiksi baru terhadap flow 00–09 pada pass ini. `HRD-Q-44` (flow 03/08) tetap
+tertutup sejak `PHASE 2B.1`.
+
+### 25.8 Siap masuk architecture phase vs tetap `PARTIAL`/`BLOCKED`
+
+| Status | Flow / bagian |
+| --- | --- |
+| Siap dirancang penuh (`READY`) | Resign (11), review kinerja + master data (13), pencatatan pelatihan/kompetensi pasca-kejadian + master data (12), tindakan disiplin + master data (14) — **dengan catatan `HRD-Q-51`/`Q-52` sebelum diperluas** |
+| `EXTEND` — perlu keputusan cakupan sebelum desain final | Checklist offboarding (11), kalkulasi/approval payroll run (10), lifecycle pelatihan formal (12), goal/KPI berkelanjutan (13), kasus/investigasi (14) |
+| Tetap `PARTIAL` | Flow 10 — batas HR/Finance final, sesudahnya tidak dirancang |
+| Tetap `BLOCKED` | OPPE/FPPE (13), kredensial klinis (12, 05 kredensial terpisah), pembayaran/GL/pajak (10) |
+
+### 25.9 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `flows/10-payroll-processing-handoff.md` | Baru, status `PARTIAL` |
+| `flows/11-lifecycle-offboarding.md` | Baru |
+| `flows/12-competency-training.md` | Baru |
+| `flows/13-performance-management.md` | Baru |
+| `flows/14-employee-relations-discipline.md` | Baru |
+| `flows/README.md` | Status flow 10–14 diperbarui menjadi `Ada` |
+| `00-interview-decisions.md` | Revisi naik ke `10`; bagian 24 (catatan susulan) dan 25 (`PHASE 2C`) ditambahkan |
+
+Tidak ada file source, migration, entity, controller, database, maupun frontend yang diubah pada
+pass ini.

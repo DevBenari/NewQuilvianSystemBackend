@@ -11,6 +11,9 @@ using System.Security.Claims;
 using InpatientClearanceItemPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.InpatientClearanceItemResponse>;
+using InpatientClearanceItemOptionPagedResult =
+    QuilvianSystemBackend.Responses.PagedResult<
+        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.InpatientClearanceItemOptionResponse>;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
@@ -56,12 +59,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _loggerService = loggerService;
         }
 
+        /// <summary>Metadata filter, pengurutan, pagination, dan field editor.</summary>
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientClearanceItemFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Clearance Item", Description = "Melihat metadata filter butir administrasi Rawat Inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientClearanceItem", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = _clearanceItemService.GetFilterMetadata();
+
+            return Ok(ApiResponse<InpatientClearanceItemFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter butir administrasi Rawat Inap berhasil diambil."));
+        }
+
+        /// <summary>Ringkasan jumlah butir administrasi aktif, nonaktif, wajib, dan opsional.</summary>
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientClearanceItemSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Clearance Item", Description = "Melihat ringkasan butir administrasi Rawat Inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientClearanceItem", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _clearanceItemService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<InpatientClearanceItemSummaryResponse>.Ok(
+                result,
+                "Ringkasan butir administrasi Rawat Inap berhasil diambil."));
+        }
+
         /// <summary>Daftar butir administrasi, dengan pencarian, penyaringan, dan halaman.</summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<InpatientClearanceItemPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Inpatient Clearance Item", Description = "Melihat daftar butir administrasi Rawat Inap", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InpatientClearanceItem", "Read")]
         public async Task<IActionResult> GetAll(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isMandatory,
             [FromQuery] bool? isActive,
@@ -71,19 +105,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
         {
-            var result = await _clearanceItemService.GetPagedAsync(
-                search,
-                isMandatory,
-                isActive,
-                sortBy,
-                sortDirection,
-                pageNumber,
-                pageSize,
-                cancellationToken);
+            InpatientClearanceItemPagedResult result;
+
+            try
+            {
+                result = await _clearanceItemService.GetPagedAsync(
+                    startDate,
+                    endDate,
+                    customPeriod,
+                    search,
+                    isMandatory,
+                    isActive,
+                    sortBy,
+                    sortDirection,
+                    pageNumber,
+                    pageSize,
+                    cancellationToken);
+            }
+            catch (ArgumentException error)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    error.Message));
+            }
 
             return Ok(ApiResponse<InpatientClearanceItemPagedResult>.Ok(
                 result,
                 "Daftar butir administrasi Rawat Inap berhasil diambil."));
+        }
+
+        /// <summary>Daftar ringan butir administrasi untuk dropdown atau lookup.</summary>
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientClearanceItemOptionPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Clearance Item", Description = "Melihat pilihan butir administrasi Rawat Inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientClearanceItem", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? isMandatory = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _clearanceItemService.GetOptionsAsync(
+                onlyActive,
+                isMandatory,
+                search,
+                pageNumber,
+                pageSize,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientClearanceItemOptionPagedResult>.Ok(
+                result,
+                "Pilihan butir administrasi Rawat Inap berhasil diambil."));
         }
 
         /// <summary>Detail satu butir administrasi.</summary>

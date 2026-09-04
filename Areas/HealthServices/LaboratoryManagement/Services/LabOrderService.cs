@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -40,13 +41,132 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _loggerService = loggerService;
         }
 
-        public async Task<List<LabOrderListResponse>> GetListAsync(
+        /// <summary>
+        /// Keterangan bentuk layar daftar pesanan. Tidak menyentuh database sama sekali.
+        /// </summary>
+        public LabOrderFilterMetadataResponse GetFilterMetadata() =>
+            LabFilterMetadataFactory.LabOrder();
+
+        /// <summary>
+        /// Rekap pesanan pada satu rentang waktu, dihitung dari baris yang belum ditandai
+        /// terhapus. Rentangnya memakai waktu pesanan dibuat.
+        /// </summary>
+        public async Task<LabOrderSummaryResponse> GetSummaryAsync(
+            DateTime startDate,
+            DateTime endDate,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.LabOrders
+            var source = _dbContext.LabOrders
                 .AsNoTracking()
-                .Where(x => !x.IsDelete)
-                .OrderByDescending(x => x.CreateDateTime)
+                .Where(x => !x.IsDelete &&
+                            x.CreateDateTime >= startDate &&
+                            x.CreateDateTime <= endDate);
+
+            // Satu perjalanan ke database, bukan sebelas. Pencacahan per status dan per
+            // disiplin dikerjakan di sisi server lewat satu proyeksi agregat.
+            var rekap = await source
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Draft = g.Count(x => x.OrderStatus == LabOrderStatus.Draft),
+                    Diminta = g.Count(x => x.OrderStatus == LabOrderStatus.Requested),
+                    Diterima = g.Count(x => x.OrderStatus == LabOrderStatus.Accepted),
+                    SedangDikerjakan = g.Count(x => x.OrderStatus == LabOrderStatus.InProcess),
+                    Selesai = g.Count(x => x.OrderStatus == LabOrderStatus.Completed),
+                    Ditahan = g.Count(x => x.OrderStatus == LabOrderStatus.OnHold),
+                    PembatalanDiminta = g.Count(x => x.OrderStatus == LabOrderStatus.CancelRequested),
+                    Dibatalkan = g.Count(x => x.OrderStatus == LabOrderStatus.Cancelled),
+                    PatologiKlinik = g.Count(x => x.Discipline == LabDiscipline.ClinicalPathology),
+                    PatologiAnatomi = g.Count(x => x.Discipline == LabDiscipline.AnatomicalPathology),
+                    Mikrobiologi = g.Count(x => x.Discipline == LabDiscipline.Microbiology),
+                    TanpaDisiplin = g.Count(x => x.Discipline == null)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new LabOrderSummaryResponse
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalPesanan = rekap?.Total ?? 0,
+                Draft = rekap?.Draft ?? 0,
+                Diminta = rekap?.Diminta ?? 0,
+                Diterima = rekap?.Diterima ?? 0,
+                SedangDikerjakan = rekap?.SedangDikerjakan ?? 0,
+                Selesai = rekap?.Selesai ?? 0,
+                Ditahan = rekap?.Ditahan ?? 0,
+                PembatalanDiminta = rekap?.PembatalanDiminta ?? 0,
+                Dibatalkan = rekap?.Dibatalkan ?? 0,
+                PatologiKlinik = rekap?.PatologiKlinik ?? 0,
+                PatologiAnatomi = rekap?.PatologiAnatomi ?? 0,
+                Mikrobiologi = rekap?.Mikrobiologi ?? 0,
+                TanpaDisiplin = rekap?.TanpaDisiplin ?? 0
+            };
+        }
+
+        /// <summary>
+        /// Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server.
+        ///
+        /// Penyaring <c>EncounterId</c> adalah yang paling menentukan: tanpanya, pemanggil yang
+        /// hanya butuh pesanan satu pasien terpaksa menarik seluruh tabel lalu menyaringnya
+        /// sendiri — dan pesanan pasien lain ikut terkirim ke browsernya. Itu keadaan yang
+        /// sebelumnya benar-benar terjadi pada layar IGD (<c>IGD-DEC-105</c>).
+        /// </summary>
+        public async Task<PagedResult<LabOrderListResponse>> GetListAsync(
+            LabOrderPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var pageNumber = Math.Max(1, query.PageNumber);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            var source = _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (query.EncounterId.HasValue && query.EncounterId.Value != Guid.Empty)
+                source = source.Where(x => x.EncounterId == query.EncounterId.Value);
+
+            if (query.OrderStatus.HasValue)
+                source = source.Where(x => x.OrderStatus == query.OrderStatus.Value);
+
+            if (query.Discipline.HasValue)
+                source = source.Where(x => x.Discipline == query.Discipline.Value);
+
+            if (query.StartDate.HasValue)
+                source = source.Where(x => x.CreateDateTime >= query.StartDate.Value);
+
+            if (query.EndDate.HasValue)
+                source = source.Where(x => x.CreateDateTime <= query.EndDate.Value);
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+
+                source = source.Where(x =>
+                    x.Procedure != null &&
+                    (EF.Functions.ILike(x.Procedure.ProcedureCode, $"%{search}%") ||
+                     EF.Functions.ILike(x.Procedure.ProcedureName, $"%{search}%")));
+            }
+
+            var totalData = await source.CountAsync(cancellationToken);
+
+            // Nama kolom yang tidak dikenal dikembalikan ke bawaan, bukan ditolak. Layar lama
+            // yang mengirim kolom yang sudah tidak ada tetap memperoleh daftar yang masuk akal.
+            var menaik = string.Equals(query.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+            source = query.SortBy?.Trim().ToLowerInvariant() switch
+            {
+                "orderstatus" => menaik
+                    ? source.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime)
+                    : source.OrderByDescending(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime),
+                _ => menaik
+                    ? source.OrderBy(x => x.CreateDateTime)
+                    : source.OrderByDescending(x => x.CreateDateTime)
+            };
+
+            var items = await source
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new LabOrderListResponse
                 {
                     Id = x.Id,
@@ -62,6 +182,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     CreateDateTime = x.CreateDateTime
                 })
                 .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabOrderListResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
         }
 
         public async Task<LabOrderDetailResponse?> GetDetailAsync(
@@ -84,6 +213,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
                     IsCancel = x.IsCancel,
                     CreateDateTime = x.CreateDateTime,
+                    Discipline = x.Discipline != null ? x.Discipline.ToString() : null,
                     RequestedAt = x.RequestedAt,
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
@@ -103,6 +233,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             if (request.ProcedureId == Guid.Empty)
                 throw new ArgumentException("ProcedureId wajib diisi.");
+
+            // LAB-DEC-025: hanya tiga disiplin yang ada. Angka di luar ketiganya ditolak di
+            // sini, bukan disimpan diam-diam sebagai nilai enum yang tidak berarti apa pun.
+            if (request.Discipline.HasValue && !Enum.IsDefined(request.Discipline.Value))
+                throw new ArgumentException("Disiplin laboratorium tidak dikenal.");
 
             var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
                 .AsNoTracking()
@@ -133,6 +268,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 EncounterId = request.EncounterId,
                 ProcedureId = request.ProcedureId,
+                // Disiplin hanya boleh ditetapkan di sini. Setelah baris ini tersimpan, EF
+                // menolak setiap upaya mengubahnya (INV-21).
+                Discipline = request.Discipline,
                 OrderStatus = LabOrderStatus.Requested,
                 RequestedAt = now,
                 RequestedByUserId = actorUserId,
@@ -160,7 +298,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 LogCategory,
                 "LabOrder.Create",
                 "Membuat order laboratorium.",
-                new { entity.Id, entity.EncounterId, entity.ProcedureId, ActorUserId = actorUserId });
+                new
+                {
+                    entity.Id,
+                    entity.EncounterId,
+                    entity.ProcedureId,
+                    Discipline = entity.Discipline?.ToString(),
+                    ActorUserId = actorUserId
+                });
 
             return MapDetailResponse(entity, procedure);
         }
@@ -481,6 +626,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 AcceptedSpecimenCount = 0,
                 IsCancel = entity.IsCancel,
                 CreateDateTime = entity.CreateDateTime,
+                Discipline = entity.Discipline?.ToString(),
                 RequestedAt = entity.RequestedAt,
                 CompletedAt = entity.CompletedAt,
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),

@@ -149,6 +149,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return entity;
         }
 
+        /// <summary>
+        /// Mencari konsultasi dokter yang masih dapat difinalisasi untuk sebuah antrean.
+        ///
+        /// Dipakai jalur kompatibilitas <c>POST /doctor-queues/{id}/finish-consultation</c>
+        /// (<c>RJ-DOC-BE-001</c>) supaya jalur itu tidak lagi memiliki logika finalisasi klinis
+        /// sendiri. Identitas konsultasi diresolusi server dari antrean, bukan diterima dari
+        /// client, sesuai <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.2.
+        ///
+        /// Kecocokan encounter ikut diperiksa supaya konsultasi milik antrean lain tidak pernah
+        /// terambil. Mengembalikan <c>null</c> bila tidak ada kandidat yang sah; pemanggil yang
+        /// memutuskan bentuk responsnya.
+        /// </summary>
+        public async Task<TrxDoctorConsultation?> ResolveFinalizableForQueueAsync(
+            Guid queueId,
+            Guid encounterId,
+            CancellationToken cancellationToken = default)
+        {
+            if (queueId == Guid.Empty || encounterId == Guid.Empty)
+                return null;
+
+            return await _dbContext.Set<TrxDoctorConsultation>()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    x.EncounterId == encounterId &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    x.IsActive &&
+                    x.ConsultationStatus != DoctorConsultationStatus.Cancelled &&
+                    x.ConsultationStatus != DoctorConsultationStatus.Completed)
+                .OrderByDescending(x => x.ConsultationStatus == DoctorConsultationStatus.InProgress)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.ConsultationDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         private async Task<TrxPatientAssessment?> ResolveAssessmentAsync(
             Guid encounterId,
             CancellationToken cancellationToken)

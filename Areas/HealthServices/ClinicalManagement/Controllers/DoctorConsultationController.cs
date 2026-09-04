@@ -794,6 +794,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             CreateDoctorConsultationRequest request)
         {
+            // RJ-DOC-BE-001 / RJ-DOC-DEC-005. `CompleteImmediately` menghasilkan konsultasi
+            // `Completed` tanpa validasi authoritative dan tanpa penyerahan fakta klinis,
+            // sehingga ia tidak boleh menjadi jalur finalisasi alternatif untuk Rawat Jalan
+            // normal. Jalur canonical-nya adalah
+            // `PATCH /doctor-consultations/{id}/complete`.
+            //
+            // Pembedanya adalah keberadaan antrean: pasien poli membawa baris antrean, pasien
+            // IGD tidak (BE-IGD-028, FR-IGD-062). Pembatasan karena itu hanya berlaku pada
+            // pembuatan yang ber-antrean, supaya jalur IGD tidak ikut terputus.
+            //
+            // Tidak ada consumer Rawat Jalan yang terdampak: seluruh pembuatan konsultasi pada
+            // frontend mengirim `completeImmediately: false`.
+            if (request.CompleteImmediately &&
+                request.QueueId.HasValue &&
+                request.QueueId.Value != Guid.Empty)
+            {
+                return (false,
+                    "Konsultasi Rawat Jalan tidak dapat langsung diselesaikan saat dibuat. " +
+                    "Selesaikan konsultasi melalui aksi penyelesaian konsultasi.");
+            }
+
             if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
                 return await ValidateCreateWithoutQueueAsync(request);
 

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain status:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain log:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain diff:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain show:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain rev-parse:*)"
+    ],
+    "deny": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git branch:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git remote:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain add:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain commit:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain push:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain pull:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain fetch:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain checkout:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain switch:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain branch:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain reset:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain restore:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain stash:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain merge:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain rebase:*)",
+      "Bash(git -C NewQuilvianSystemBackendAndryZain remote:*)"
+    ]
+  }
+}

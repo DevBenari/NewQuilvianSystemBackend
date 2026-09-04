@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 using System.Globalization;
@@ -131,6 +132,49 @@ public sealed class CashierShiftService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    public async Task<PagedResult<CashierShiftResponse>> GetPagedAsync(
+        CashierShiftQuery request,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.BilCashierShifts.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (request.CashierId.HasValue)
+            query = query.Where(x => x.CashierId == request.CashierId.Value);
+        if (request.RegisterId.HasValue)
+            query = query.Where(x => x.RegisterId == request.RegisterId.Value);
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = request.Status.Trim().ToUpperInvariant();
+            query = query.Where(x => x.Status == status);
+        }
+        if (request.OpenedFrom.HasValue)
+            query = query.Where(x => x.OpenedAt >= request.OpenedFrom.Value);
+        if (request.OpenedTo.HasValue)
+            query = query.Where(x => x.OpenedAt <= request.OpenedTo.Value);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var keyword = request.Search.Trim().ToUpper();
+            query = query.Where(x => x.ShiftNumber.ToUpper().Contains(keyword));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(x => x.OpenedAt)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(x => MapShift(x, null))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<CashierShiftResponse>
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
+            Items = items
+        };
     }
 
     public async Task<CashierShiftResponse> GetCurrentAsync(

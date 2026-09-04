@@ -141,7 +141,20 @@ Ada **dua titik keputusan yang terpisah**, dan ini sering dikira satu.
 Tindakan verifikasi yang tersedia: `Approve`, `Reject`, `Recalculate`, `Reconcile`. `[EXISTING]`
 
 Peran yang dikenal alur ini: `Supervisor`, `Manager`, `HrAdmin`, `Payroll`, `System`.
-`[EXISTING]` — pemetaan peran itu ke role aplikasi yang sebenarnya belum diverifikasi `[OPEN]`
+`[EXISTING]` sebagai **nilai data** — muncul sebagai default field (`ApprovalLevel` pada
+`TrxOvertimeRequestApproval` berdefault `"Supervisor"`, `VerificationType` pada
+`TrxOvertimeVerification`), bukan sebagai pemeriksaan identitas.
+
+**Koreksi audit source, 27 Agustus 2026 — peran ini terbukti TIDAK dipetakan ke permission
+nyata.** Pencarian di seluruh modul menunjukkan string `Supervisor`/`Manager`/`HrAdmin`/`Payroll`
+tidak pernah dibandingkan dengan identitas atau peran pemanggil di
+`OvertimeVerificationService.cs` maupun controller workflow. Penegakan yang sebenarnya pada aksi
+persetujuan (`OvertimeWorkflowController`) dan verifikasi (`OvertimeVerificationController`)
+hanyalah `[AccessPermission("OvertimeVerification"/"OvertimeWorkflow","<Aksi>")]` generik — satu
+permission per aksi, tanpa jalur kode yang mengaitkannya ke kosakata peran workflow itu. **Daftar
+peran pada dokumentasi ini saat ini terputus dari sistem permission yang sebenarnya.** `[EXISTING]`
+— ini bukan lagi `SOURCE_RESOLVABLE`, melainkan `PERMISSION_MAPPING` murni: perlu keputusan
+produk + keamanan untuk benar-benar mengikat kosakata peran ini ke permission, lihat `HRD-Q-33`.
 
 **Larangan:** jangan menambahkan tahap persetujuan di luar dua titik ini. Source hanya
 membuktikan dua.
@@ -175,8 +188,21 @@ membuktikan dua.
 | `Realized` | Diserahkan ke payroll | `PostedToPayroll` | Sistem | `[EXISTING]` |
 | sebelum `Realized` | Batalkan | `Cancelled` | Pegawai atau atasan | `[EXISTING]` |
 
-**Transisi yang tidak sah:** `PostedToPayroll` adalah keadaan akhir. Koreksi setelahnya
-memerlukan pembukaan kembali periode. `[EXISTING]`
+**Guard `PostedToPayroll` — terbukti, dengan catatan.** `OvertimePayrollHandoffService.
+BuildContextAsync` memblokir posting (`PostAsync` menolak 409) kecuali
+`Realization.RealizationStatus == Verified` **dan** `TrxOvertimeVerification` aktif terbaru
+berstatus `Approved`. Guard memeriksa status **Realisasi**, bukan langsung status **Permohonan**
+`Realized` — keduanya enum berbeda yang biasanya sejalan, tapi tidak dicek ulang secara langsung
+pada field status permohonan itu sendiri. `[EXISTING]`
+
+**Koreksi — klaim "koreksi hanya lewat pembukaan periode" DISPROVEN, kemampuannya lebih baik dari
+dugaan.** `OvertimePayrollHandoffController` mengekspos `POST .../realizations/{id}/rollback`
+(`[AccessPermission("OvertimePayrollHandoff","Rollback")]`) yang menghapus-lunak
+`TrxPayrollOvertimeInput` dan mengembalikan `RealizationStatus` ke `Verified` serta
+`OvertimeRequestStatus` ke `Realized` — setara dengan `repair`/`rollback` yang sudah ada di
+kehadiran, dijaga pemeriksaan payroll-run-lock/finalized dan keterbukaan periode. Ada pula aksi
+`Reconcile` dengan `AllowRepair`. **`PostedToPayroll` tidak selalu memerlukan pembukaan kembali
+periode penuh untuk dikoreksi** — jalur rollback yang lebih sempit sudah tersedia. `[EXISTING]`
 
 ### 9.3 Realisasi — `RealizationStatus`
 
@@ -190,9 +216,19 @@ memerlukan pembukaan kembali periode. `[EXISTING]`
 
 ### 9.5 Periode — `PeriodStatus`
 
-`Open` → `Closing` → `Closed`. Dapat menjadi `Reopened` atau `Cancelled`. `[EXISTING]`
+`Open` → `Closing` → `Closed`. Dapat menjadi `Reopened` atau `Cancelled`. State vocabulary:
+`[EXISTING]`.
 
-Sama persis dengan periode kehadiran. `[EXISTING]`
+**Transition edge `reopen` — PROVEN, guard eksplisit.** `OvertimePeriodService.ReopenAsync`
+menolak (409) kecuali `entity.PeriodStatus` adalah `Closed` atau `Closing` — `Open`, `Reopened`,
+`Cancelled` tidak dapat dibuka kembali. `[EXISTING]`
+
+**Kewenangan reopen — terbukti sebagai permission generik, sama polanya dengan kehadiran.**
+`OvertimePeriodController` mensyaratkan `[AccessPermission("OvertimePeriod","Reopen")]` pada aksi
+`POST {id}/reopen`, tanpa pemeriksaan peran tambahan. Mekanismenya `[EXISTING]`; **siapa yang
+seharusnya diberi permission itu** tetap `[OPEN]` — `PERMISSION_MAPPING`, lihat `HRD-Q-32`.
+
+Struktur sama persis dengan periode kehadiran. `[EXISTING]`
 
 ### 9.6 Cuti pengganti — `CompensatoryStatus`
 
@@ -226,7 +262,7 @@ Buku besarnya mengenal `Credit`, `Debit`, `CompensatoryCredit`, `CompensatoryRev
 | Cuti pengganti | `.../overtime-management/compensatory-leaves` | `READY TO REUSE` |
 | Periode | `.../overtime-management/periods` | `READY TO REUSE` |
 | Penjadwal | `.../overtime-management/scheduler-jobs` | `READY TO REUSE` |
-| Serah terima payroll | `.../overtime-management/payroll-handoffs` | `READY TO REUSE` sampai batas `HRD-DEC-009` |
+| Serah terima payroll | `.../overtime-management/payroll-handoffs`, termasuk `POST /realizations/{id}/rollback` dan `Reconcile` dengan `AllowRepair` | `READY TO REUSE` sampai batas `HRD-DEC-009`. Punya jalur koreksi setara `repair`/`rollback` kehadiran — lebih lengkap dari dugaan awal `[EXISTING]` |
 | Layanan mandiri | `api/v1/self-services/human-resource/overtime` | `READY TO REUSE` |
 
 Total 78 endpoint pada 9 controller korporat, ditambah 1 controller layanan mandiri.
@@ -279,8 +315,8 @@ atasan, bukan sistem.
 | `HRD-Q-10`, `HRD-Q-11` | Bentuk serah terima payroll | Rantai berhenti pada penyerahan; sesudahnya tidak dirancang |
 | `HRD-Q-30` | **Baru.** Dalam keadaan apa verifikasi realisasi boleh dilewati? Nilai `Skipped` ada, aturannya belum | Memblokir desain final verifikasi |
 | `HRD-Q-31` | **Baru.** Berapa lama cuti pengganti berlaku sebelum kedaluwarsa, dan apakah dapat diperpanjang? | Memblokir desain final cuti pengganti |
-| `HRD-Q-32` | **Baru.** Siapa yang berwenang membuka kembali periode lembur yang sudah ditutup? | Memblokir desain final penutupan periode |
-| `HRD-Q-33` | **Baru.** Bagaimana peran `Supervisor`, `Manager`, `HrAdmin`, dan `Payroll` pada alur lembur dipetakan ke role aplikasi yang sebenarnya? | Memblokir matriks kewenangan |
+| `HRD-Q-32` | Mekanisme reopen terbukti `PERMISSION_MAPPING`: guard status sudah ada (`Closed`/`Closing` → `Reopened`) dan endpointnya dijaga `[AccessPermission("OvertimePeriod","Reopen")]` generik. **Siapa yang seharusnya diberi permission itu** tetap `[OPEN]` | Semula memblokir desain final penutupan periode; kini hanya memblokir keputusan pemegang permission |
+| `HRD-Q-33` | Audit source membuktikan peran `Supervisor`/`Manager`/`HrAdmin`/`Payroll` **tidak** dipetakan ke pemeriksaan identitas mana pun — hanya nilai default field, sementara penegakan nyata memakai `[AccessPermission]` generik per aksi yang terputus dari kosakata peran ini. Pertanyaannya bergeser dari "bagaimana pemetaannya" menjadi "peta ini perlu dibangun dari nol" | Memblokir matriks kewenangan — `PERMISSION_MAPPING`, bukan sekadar verifikasi source |
 
 ## 16. Acceptance Criteria
 
@@ -293,7 +329,7 @@ atasan, bukan sistem.
 | `AC-F04-05` | Aktivitas dokter di luar jadwal tidak menjadi lembur otomatis | Catat kehadiran dokter di luar jadwal; tidak ada permohonan lembur yang terbentuk sendiri |
 | `AC-F04-06` | Cuti pengganti yang kedaluwarsa tidak dapat dipakai | Lewati masa berlakunya; status menjadi `Expired` dan penggunaannya ditolak |
 | `AC-F04-07` | Realisasi tanpa kehadiran yang cocok tidak lolos | Catat realisasi pada tanggal tanpa kehadiran; status menjadi `AttendanceNotFound` dan tertahan |
-| `AC-F04-08` | Pengajuan ganda untuk rentang waktu yang sama ditolak | Ajukan dua lembur beririsan; yang kedua ditolak backend beserta alasannya |
+| `AC-F04-08` | Pengajuan ganda untuk rentang waktu yang sama ditolak — **terbukti**, `[EXISTING]` `OvertimeSelfServiceService.HasRequestOverlapAsync` menandai `REQUEST_OVERLAP` sebagai isu pemblokir; `SubmitAsync` menolak 409 bila ada isu pemblokir | Ajukan dua lembur beririsan; yang kedua ditolak backend beserta alasannya |
 
 ## 17. Diagram
 

@@ -99,8 +99,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // (TriageSystem, Level). SaveChanges gagal, dan karena pemanggilnya tidak
             // menangkap exception, aplikasi berhenti sebelum sempat melayani permintaan.
             var existingRows = await db.Set<EmgTriageLevel>()
-                .Select(x => new { x.Code, x.TriageSystem, x.Level })
+                .Select(x => new { x.Code, x.TriageSystem, x.Level, x.IsDelete })
                 .ToListAsync(ct);
+
+            // Penjaga kepemilikan yang sama dengan empat master IGD lainnya, dan alasannya
+            // di sini justru paling keras. Rumah sakit yang memakai skala triase warna —
+            // MERAH, KUNING, HIJAU, HITAM — punya kode yang seluruhnya asing bagi daftar
+            // seeder, sehingga pemeriksaan per Code menganggap L1..L5 belum ada. Yang
+            // slotnya bentrok memang dilewati pemeriksaan (TriageSystem, Level) di bawah,
+            // tetapi level yang slotnya kosong tetap disisipkan. Hasilnya satu tabel berisi
+            // dua skala triase sekaligus, dan perawat melihat level yang tidak ada di SOP
+            // mana pun berdampingan dengan level yang sah.
+            if (IsOwnedByAnotherSource(
+                    existingRows.Where(x => !x.IsDelete).Select(x => x.Code),
+                    definitions.Select(d => d.Code)))
+            {
+                result.TriageLevelSkippedReason =
+                    "Master level triase sudah diisi sumber lain; seeder tidak menambah apa pun " +
+                    "supaya tabel tidak memuat dua skala triase sekaligus.";
+                return;
+            }
 
             var existing = new HashSet<string>(
                 existingRows.Select(x => x.Code),
@@ -531,6 +549,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public int DispositionTypeInserted { get; set; }
         public int SettingInserted { get; set; }
         public int TriageLevelSkipped { get; set; }
+        public string? TriageLevelSkippedReason { get; set; }
         public string? TriageIndicatorSkippedReason { get; set; }
         public string? ArrivalModeSkippedReason { get; set; }
         public string? CaseTypeSkippedReason { get; set; }

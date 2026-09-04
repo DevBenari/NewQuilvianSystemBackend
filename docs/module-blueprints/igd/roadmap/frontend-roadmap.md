@@ -5,7 +5,7 @@
 ```yaml
 module_id: igd
 roadmap_revision: 3
-wave: "MVP-0..MVP-5 selesai; FE-IGD-020..021 menyusul BE-IGD-037..038"
+wave: "MVP-0..MVP-5 selesai; FE-IGD-022 menuntaskan layar asuhan keperawatan IGD"
 status: ACTIVE
 generated_at: "2026-08-24"
 revision_3_at: "2026-08-26"
@@ -313,3 +313,59 @@ pada `--test` — dukungan itu masuk pada Node 21 — sehingga perintahnya gagal
 Sampai `package.json` atau versi Node-nya diperbaiki, jalankan
 `node --import ./tests/helpers/register.mjs --test tests/unit` supaya angkanya benar-benar
 berarti. Per 27 Agt: **119 lulus, 0 gagal**.
+
+---
+
+## R3.5 Gelombang 28 Agustus 2026 — layar asuhan keperawatan IGD
+
+Laporan lengkapnya di
+`task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md`.
+
+| Task | Judul | Status |
+| --- | --- | --- |
+| `FE-IGD-022` | Pengkajian lanjutan, pemantauan observasi, dan penunjang medis | **Selesai — belum diverifikasi lewat layar** |
+
+### `FE-IGD-022`
+
+| Field | Isi |
+| --- | --- |
+| **Slice** | `IGD-S04` · `EPIC IGD-09` |
+| **Scope** | `emergency-assessment-slice.jsx`, `emergency-assessment-constant.jsx`, `emergency-assessment-initial-tab.jsx`, `emergency-assessment-observation-tab.jsx`, `emergency-assessment-detail-view.jsx`, `use-emergency-assessment-detail.jsx`, `emergency-assessment.module.css`, ditambah satu komponen baru `emergency-assessment-diagnostic-support-tab.jsx` |
+| **Perubahan** | Tiga bagian: (a) delapan kolom pengkajian yang dikirim payload tetapi tidak pernah punya isian; (b) pemantauan berkala `EmergencyObservationDetail` beserta aksi status periode; (c) tab Penunjang Medis tersambung ke `laboratory-management/lab-orders` |
+| **Kontrak** | **Nol perubahan.** Seluruh endpoint sudah ada sejak `BE-IGD-026`…`035` |
+| **Dependency** | `BE-IGD-026`, `BE-IGD-027`, `BE-IGD-036` — seluruhnya selesai |
+| **Kewenangan UI** | Nol modul CSS baru, nol komponen bersama diubah. Satu komponen tab baru mengikuti `EmergencyAssessmentFormCard`/`EmergencyAssessmentSection` yang sudah ada; satu aturan CSS `.recordItem[data-active]` |
+| **Validasi** | `npm run lint:errors` lulus; 119/119 unit test lulus; `npm run build` lulus |
+| **Owner** | Frontend |
+
+### Cacat yang diperbaiki: `OBSERVATION_STATUS_OPTIONS` salah memetakan enum
+
+Daftar status pembukaan periode observasi memetakan `3` sebagai **"Dibatalkan"**. Enum backend
+`EmergencyObservationStatus` menempatkan `3` sebagai **`Escalated`** dan `4` sebagai
+`Cancelled`.
+
+Akibatnya perawat yang memilih "Dibatalkan" justru membuat periode ber-status `Escalated` —
+dan `Escalated` memindahkan status kunjungan ke `InTreatment`. Kebalikan dari yang diniatkan,
+dan tanpa satu pun pesan galat.
+
+Diperbaiki dengan mempersempit daftar pembukaan menjadi `Aktif` saja. Ketiga status lain
+dicapai lewat aksi pada periode yang sudah ada, mengikuti `CanTransition`.
+
+**Pelajaran, sejalan dengan `FE-IGD-021`:** daftar pilihan berisi angka enum yang ditulis
+tangan tidak pernah melempar galat ketika angkanya meleset — ia mengirim perintah yang salah
+dengan sukses. Cocokkan setiap daftar semacam itu terhadap enum backend, bukan terhadap label
+yang terbaca masuk akal.
+
+### Empat celah backend yang dilaporkan, bukan ditambal
+
+1. `PATCH .../observation-status` **membuang** `notes` untuk `Completed` dan `Cancelled` —
+   cabang refleksi mencari properti `Notes` yang tidak dimiliki `EmgObservation`. Akibatnya
+   `CompletionSummary` tidak punya jalan tulis dari layar sama sekali.
+2. `GET /laboratory-management/lab-orders` **nol parameter** dan mengembalikan seluruh tabel;
+   penyaringan per pasien terpaksa di sisi klien.
+3. Sikap pesanan serah terima (`order-items`, lima route) **nol pemakai di frontend** —
+   padahal `BE-IGD-035` menahan penutupan kunjungan bila ada pesanan tanpa sikap. Kunjungan
+   dapat tertahan tanpa jalan keluar lewat antarmuka.
+4. `EmergencyResuscitationController` **nol pemakai di frontend**.
+
+Nomor 3 dan 4 adalah pekerjaan frontend berikutnya yang paling bernilai.

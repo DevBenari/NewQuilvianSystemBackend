@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -109,6 +109,27 @@ public sealed class BillingSettlementsController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(
                 StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingSettlementValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    [HttpGet("invoices/{invoiceId:guid}/settlements")]
+    [AccessAction("Read", "Read Billing Settlement By Invoice", AccessType = AccessTypes.Read, SortOrder = 4)]
+    [AccessPermission("BillingPayment", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<SettlementResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSettlementsByInvoice(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetByInvoiceAsync(invoiceId, cancellationToken);
+            return Ok(ApiResponse<List<SettlementResponse>>.Ok(
+                result, "Riwayat settlement invoice berhasil diambil."));
         }
         catch (BillingSettlementValidationException exception)
         {

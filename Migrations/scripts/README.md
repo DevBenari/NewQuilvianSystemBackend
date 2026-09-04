@@ -13,6 +13,8 @@ migration di `Migrations/`. Jika migration berubah, skripnya wajib dibuat ulang.
 | --- | --- | --- |
 | `20260821060256_AddOperatingRoomFoundation.sql` | `20260821060256_AddOperatingRoomFoundation` | Membuat 13 tabel modul Operasi beserta relasi dan index |
 | `verify-operating-room-schema.sql` | — | Pemeriksaan skema setelah migration diterapkan; hanya membaca |
+| `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix.sql` | `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix` | Menormalkan empat tabel Rekam Medis dari `Trx*` ke prefix registry `Mrc*`, beserta primary key, 15 index, dan 6 foreign key-nya. **Seluruhnya `RENAME`** — tidak ada `DROP`, `DELETE`, maupun `TRUNCATE`, sehingga isi tabel tetap utuh |
+| `verify-medical-record-mrc-rename.sql` | — | Pemeriksaan setelah rename Rekam Medis diterapkan; hanya membaca |
 
 ## Cara menjalankan
 

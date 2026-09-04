@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
@@ -63,17 +64,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly LoggerService _loggerService;
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
+        private readonly MedicalRecordAccessAuditService _accessAuditService;
 
         public PatientController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             IWebHostEnvironment environment,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            MedicalRecordAccessAuditService accessAuditService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _environment = environment;
             _configuration = configuration;
+            _accessAuditService = accessAuditService;
         }
 
         [HttpGet("filters/metadata")]
@@ -244,6 +248,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 .Select(x => MapResponse(x, actorNames))
                 .ToList();
 
+            await IsiPenandaKunjunganAktifAsync(items);
+
             var result = new ResponsePatientPagedResult
             {
                 PageNumber = pageNumber,
@@ -257,6 +263,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 result,
                 "Data patient berhasil diambil."
             ));
+        }
+
+        /// <summary>
+        /// Mengisi penanda kunjungan aktif untuk seluruh baris satu halaman, satu query.
+        /// </summary>
+        /// <remarks>
+        /// Aturannya tidak dihitung di sini. Ia milik
+        /// <see cref="MedicalRecordAccessAuditService"/>, yang juga memakainya saat menilai
+        /// kewenangan pembukaan rekam medis — sehingga penanda pada daftar ini selalu sepadan
+        /// dengan keputusan yang nanti diambil server.
+        ///
+        /// Penanda ini dipakai layar rekam medis untuk memberi tahu petugas lebih dulu bahwa
+        /// membuka berkas seseorang akan meminta pernyataan keperluan akses. Ia keterangan
+        /// mendahului, bukan kewenangan: server tetap menilai ulang setiap pembukaan.
+        ///
+        /// Sengaja tidak dipasang pada endpoint pilihan pasien, yang dipakai bersama kiosk.
+        /// </remarks>
+        private async Task IsiPenandaKunjunganAktifAsync(IReadOnlyCollection<PatientResponse> items)
+        {
+            if (items.Count == 0)
+                return;
+
+            var berjalan = await _accessAuditService.PasienDenganKunjunganAktifAsync(
+                items.Select(x => x.Id).ToList());
+
+            // `null` berarti penilaiannya gagal. Ketidaktahuan diteruskan apa adanya — kolomnya
+            // dibiarkan kosong, bukan diturunkan menjadi "tidak punya kunjungan aktif". Menyatakan
+            // pasien tidak sedang dirawat padahal ia dirawat adalah keterangan yang keliru, dan
+            // keliru di arah itu membuat petugas mengira akan dimintai keperluan padahal tidak,
+            // atau sebaliknya.
+            if (berjalan == null)
+                return;
+
+            foreach (var item in items)
+                item.HasActiveEncounter = berjalan.Contains(item.Id);
         }
 
 
