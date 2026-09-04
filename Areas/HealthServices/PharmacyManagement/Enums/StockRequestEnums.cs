@@ -17,13 +17,20 @@ public enum StockRequestStatus
     /// <summary>Sudah dikirim ke gudang; isinya tidak boleh diubah lagi.</summary>
     Submitted = 2,
 
-    /// <summary>Disetujui gudang, menunggu penyerahan barang.</summary>
+    /// <summary>
+    /// TIDAK DIPAKAI LAGI. Gudang tidak menyetujui permintaan; ia hanya melihat lalu
+    /// mencatat penyerahan. Nilainya dipertahankan semata-mata agar baris riwayat lama
+    /// yang terlanjur menyebutnya tetap dapat dibaca.
+    /// </summary>
     Approved = 3,
 
-    /// <summary>Barang sudah diserahkan seluruhnya.</summary>
+    /// <summary>Barang sudah diserahkan; permintaan ditutup.</summary>
     Completed = 4,
 
-    /// <summary>Ditolak gudang; alasan wajib tercatat.</summary>
+    /// <summary>
+    /// TIDAK DIPAKAI LAGI. Gudang tidak menolak permintaan. Sama seperti
+    /// <see cref="Approved"/>, nilainya dipertahankan hanya demi riwayat lama.
+    /// </summary>
     Rejected = 5,
 
     /// <summary>Dibatalkan peminta sebelum diserahkan.</summary>

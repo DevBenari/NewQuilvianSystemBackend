@@ -64,6 +64,36 @@ public class CancelStockRequestRequest
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
 
+// ------------------------------------------------------------------ sisi gudang
+
+public class FulfillStockRequestItemInput
+{
+    [Required] public Guid StockRequestItemId { get; set; }
+
+    /// <summary>
+    /// Jumlah yang benar-benar diserahkan. Nol sah dan berarti tidak ada yang diserahkan
+    /// untuk baris ini — berbeda dari tidak menyebut barisnya sama sekali, yang ditolak.
+    /// </summary>
+    [Range(0, 1000000)]
+    public decimal FulfilledQuantity { get; set; }
+}
+
+/// <summary>Penyerahan barang oleh gudang, per baris permintaan.</summary>
+public class FulfillStockRequestRequest
+{
+    /// <summary>
+    /// Harus memuat seluruh baris permintaan yang masih berlaku. Baris yang tidak disebut
+    /// ditolak, bukan dianggap nol: gudang harus menyatakan setiap baris secara sadar.
+    /// </summary>
+    [Required, MinLength(1)]
+    public List<FulfillStockRequestItemInput> Items { get; set; } = [];
+
+    [MaxLength(1000)] public string? Note { get; set; }
+
+    [Required] public int ExpectedVersion { get; set; }
+    [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
+}
+
 /// <summary>Saringan riwayat permintaan obat.</summary>
 public class StockRequestPagedQuery
 {
@@ -109,6 +139,17 @@ public class StockRequestSummaryResponse
     /// perlu menyalin aturannya dan tidak dapat menyimpang darinya.
     /// </summary>
     public bool IsEditable { get; set; }
+
+    /// <summary>
+    /// Perintah yang sah pada keadaan sekarang. Sama alasannya dengan <see cref="IsEditable"/>:
+    /// aturan transisi hanya ada di backend, layar cukup menuruti.
+    /// </summary>
+    /// <remarks>
+    /// Tidak ada bendera menyetujui maupun menolak. Gudang tidak memutuskan permintaan;
+    /// ia melihatnya, lalu mencatat berapa yang benar-benar diserahkan.
+    /// </remarks>
+    public bool CanFulfill { get; set; }
+    public bool CanCancel { get; set; }
 }
 
 public class StockRequestDetailResponse : StockRequestSummaryResponse

@@ -137,6 +137,50 @@ public class StockRequestController : ControllerBase
         catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
     }
 
+    /// <summary>
+    /// Mencatat penyerahan barang oleh gudang, baris per baris.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Ini satu-satunya perintah milik gudang. Gudang tidak menyetujui dan tidak menolak
+    /// permintaan; ia melihat apa yang diminta, lalu mencatat berapa yang benar-benar
+    /// diserahkan ketika depo mengambil. Hak aksesnya dipisah dari hak akses peminta,
+    /// supaya penyusun permintaan tidak dengan sendirinya boleh menutup permintaannya.
+    /// </para>
+    /// <para>
+    /// Perintah ini mengurangi saldo gudang asal dan menulis kartu stok. Batch yang paling
+    /// dekat kedaluwarsa diambil lebih dahulu. Bila stoknya tidak mencukupi, seluruh
+    /// penyerahan dibatalkan dan permintaan tetap berstatus Terkirim — tidak ada permintaan
+    /// yang tertutup padahal barangnya tidak pernah keluar.
+    /// </para>
+    /// <para>
+    /// Ke mana barang mendarat belum dicatat sistem. Itu bagian dari kapabilitas transfer,
+    /// yang menunggu penetapan lokasi mana saja yang memiliki saldo stok sendiri.
+    /// </para>
+    /// </remarks>
+    [HttpPost("{id:guid}/fulfill")]
+    [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Fulfill", "Fulfill Stock Request",
+        Description = "Mencatat penyerahan barang atas permintaan stok", AccessType = AccessTypes.Update, SortOrder = 9)]
+    [AccessPermission("StockRequest", "Fulfill")]
+    public async Task<IActionResult> Fulfill(Guid id, [FromBody] FulfillStockRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await _service.FulfillAsync(id, request, cancellationToken);
+            return Ok(ApiResponse<StockRequestDetailResponse>.Ok(data,
+                "Penyerahan barang berhasil dicatat."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+        }
+        catch (StockRequestForbiddenException ex) { return this.StockRequestForbidden(ex); }
+        catch (StockRequestConflictException ex) { return this.StockRequestConflict(ex); }
+        catch (StockRequestUnprocessableException ex) { return this.StockRequestUnprocessable(ex); }
+    }
+
     [HttpPost("{id:guid}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<StockRequestDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Cancel", "Cancel Stock Request",

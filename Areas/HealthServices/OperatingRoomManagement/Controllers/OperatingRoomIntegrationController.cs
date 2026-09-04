@@ -20,8 +20,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Con
     Description = "Rekonsiliasi penyerahan data operasi ke Inventory dan Billing",
     SortOrder = 7)]
 [Tags("Health Services / Operating Room Management / Integration")]
-public class OperatingRoomIntegrationController(OperatingRoomIntegrationService service) : ControllerBase
+public class OperatingRoomIntegrationController(OperatingRoomIntegrationService service,
+    OperatingRoomInventoryDispatchService inventoryDispatchService) : ControllerBase
 {
+    /// <summary>
+    /// Membukukan pemakaian material operasi yang masih tertunda ke kartu stok Farmasi.
+    /// </summary>
+    /// <remarks>
+    /// Aman dipanggil berulang: pesan yang sudah diterima tidak diproses lagi, sehingga stok
+    /// tidak berkurang dua kali. Pesan yang gagal tidak menghentikan pesan lain; sebabnya
+    /// tercatat per pesan dan dapat dilihat pada rekonsiliasi.
+    /// </remarks>
+    [HttpPost("inventory/dispatch")]
+    [ProducesResponseType(typeof(ApiResponse<OprInventoryDispatchResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [AccessAction("Dispatch", "Dispatch Operating Room Inventory",
+        Description = "Membukukan pemakaian material operasi ke kartu stok Farmasi",
+        AccessType = AccessTypes.Update, SortOrder = 3)]
+    [AccessPermission("OperatingRoomIntegration", "Dispatch")]
+    public async Task<IActionResult> DispatchInventory(Guid caseId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await inventoryDispatchService.DispatchCaseAsync(caseId, cancellationToken);
+            return Ok(ApiResponse<OprInventoryDispatchResponse>.Ok(result,
+                $"{result.AcceptedCount} pesan dibukukan, {result.FailedCount} gagal."));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse<object>.Fail(404, ex.Message)); }
+        catch (OperatingRoomForbiddenException ex) { return this.OperatingRoomForbidden(ex); }
+    }
+
     [HttpGet("reconciliation")]
     [ProducesResponseType(typeof(ApiResponse<OprReconciliationResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

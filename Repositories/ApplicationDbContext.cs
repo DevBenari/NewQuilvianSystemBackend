@@ -625,6 +625,23 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxStockRequestItem> TrxStockRequestItems { get; set; }
         public DbSet<TrxStockRequestHistory> TrxStockRequestHistories { get; set; }
 
+        public DbSet<MstDrugBatch> MstDrugBatches { get; set; }
+        public DbSet<TrxDrugStockBalance> TrxDrugStockBalances { get; set; }
+        public DbSet<TrxDrugStockMutation> TrxDrugStockMutations { get; set; }
+
+        public DbSet<TrxDrugReturn> TrxDrugReturns { get; set; }
+        public DbSet<TrxDrugReturnItem> TrxDrugReturnItems { get; set; }
+        public DbSet<TrxDrugReturnHistory> TrxDrugReturnHistories { get; set; }
+
+        public DbSet<TrxDrugUsage> TrxDrugUsages { get; set; }
+        public DbSet<TrxDrugUsageItem> TrxDrugUsageItems { get; set; }
+        public DbSet<TrxDrugUsageAllocation> TrxDrugUsageAllocations { get; set; }
+
+        public DbSet<TrxStockTransfer> TrxStockTransfers { get; set; }
+        public DbSet<TrxStockTransferItem> TrxStockTransferItems { get; set; }
+        public DbSet<TrxStockTransferAllocation> TrxStockTransferAllocations { get; set; }
+        public DbSet<TrxStockTransferHistory> TrxStockTransferHistories { get; set; }
+
         public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
         public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
         public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
@@ -720,6 +737,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprHandover> OprHandovers { get; set; }
         public DbSet<OprStatusHistory> OprStatusHistories { get; set; }
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
+        public DbSet<MstOperatingRoomStockSource> MstOperatingRoomStockSources { get; set; }
 
         #endregion
 

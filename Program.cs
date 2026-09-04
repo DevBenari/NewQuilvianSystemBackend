@@ -305,6 +305,12 @@ try
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
     builder.Services.AddScoped<StockRequestService>();
+    builder.Services.AddScoped<DrugStockService>();
+    builder.Services.AddScoped<DrugUnitConversionResolver>();
+    builder.Services.AddScoped<StockTransferService>();
+    builder.Services.AddScoped<DrugUsageService>();
+    builder.Services.AddScoped<DrugReturnService>();
+    builder.Services.AddScoped<PrescriptionLabelService>();
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
     builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
@@ -319,6 +325,8 @@ try
     builder.Services.AddScoped<OperatingRoomRecoveryService>();
     builder.Services.AddScoped<OperatingRoomIntegrationService>();
     builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomInventoryDispatchService>();
+    builder.Services.AddScoped<OperatingRoomStockSourceService>();
     builder.Services.AddScoped<OperatingRoomReportService>();
 
     // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal

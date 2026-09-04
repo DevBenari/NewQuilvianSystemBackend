@@ -393,4 +393,280 @@ public sealed class StockRequestServiceTests
         Assert.Equal(2, detail!.Histories.Count);
         Assert.Equal(StockRequestStatus.Submitted, detail.Histories[0].ToStatus);
     }
+
+    // ------------------------------------------------------------- sisi gudang
+
+    /// <summary>Mengantar permintaan sampai berstatus Submitted, siap diputuskan gudang.</summary>
+    private static async Task<StockRequestDetailResponse> SubmittedAsync(Fixture f,
+        params (Guid DrugId, decimal Qty)[] items)
+    {
+        var created = await f.Service.CreateAsync(CreateRequest(f, "k1", items));
+        return await f.Service.SubmitAsync(created.Id, new SubmitStockRequestRequest
+        {
+            ExpectedVersion = created.Version, IdempotencyKey = "s1"
+        });
+    }
+
+    /// <summary>
+    /// Permintaan yang siap diserahkan, yaitu yang sudah dikirim ke gudang.
+    /// </summary>
+    /// <remarks>
+    /// Tidak ada langkah persetujuan di antaranya. Gudang tidak memutuskan permintaan;
+    /// begitu permintaan dikirim, gudang sudah boleh mencatat penyerahannya.
+    /// </remarks>
+    private static Task<StockRequestDetailResponse> SiapDiserahkanAsync(Fixture f,
+        params (Guid DrugId, decimal Qty)[] items) => SubmittedAsync(f, items);
+
+    [Fact]
+    public async Task Serahkan_MencatatJumlahTiapBarisDanMenutupPermintaan()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10), (f.DrugBId, 4));
+
+        var result = await f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+        {
+            Items =
+            [
+                new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 10 },
+                new() { StockRequestItemId = approved.Items[1].Id, FulfilledQuantity = 4 }
+            ],
+            ExpectedVersion = approved.Version,
+            IdempotencyKey = "f1"
+        });
+
+        Assert.Equal(StockRequestStatus.Completed, result.Status);
+        Assert.Equal(10m, result.Items[0].FulfilledQuantity);
+        Assert.Equal(4m, result.Items[1].FulfilledQuantity);
+        Assert.False(result.CanCancel);
+    }
+
+    [Fact]
+    public async Task Serahkan_Sebagian_TetapMenutupTetapiSelisihnyaTerbaca()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+
+        var result = await f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+        {
+            Items = [new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 3 }],
+            ExpectedVersion = approved.Version,
+            IdempotencyKey = "f1"
+        });
+
+        Assert.Equal(StockRequestStatus.Completed, result.Status);
+        Assert.Equal(10m, result.Items[0].RequestedQuantity);
+        Assert.Equal(3m, result.Items[0].FulfilledQuantity);
+    }
+
+    [Fact]
+    public async Task Serahkan_NolSah_DanBerbedaDariBelumDiserahkan()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+
+        Assert.Null(approved.Items[0].FulfilledQuantity);
+
+        var result = await f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+        {
+            Items = [new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 0 }],
+            ExpectedVersion = approved.Version,
+            IdempotencyKey = "f1"
+        });
+
+        Assert.Equal(0m, result.Items[0].FulfilledQuantity);
+    }
+
+    [Fact]
+    public async Task Serahkan_LebihBanyakDariYangDiminta_Ditolak()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+
+        var exception = await Assert.ThrowsAsync<StockRequestUnprocessableException>(
+            () => f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+            {
+                Items = [new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 11 }],
+                ExpectedVersion = approved.Version,
+                IdempotencyKey = "f1"
+            }));
+
+        Assert.Equal("PHM006", exception.Code);
+    }
+
+    [Fact]
+    public async Task Serahkan_AdaBarisYangTidakDisebut_Ditolak()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10), (f.DrugBId, 4));
+
+        // Diam bukan berarti nol: baris yang terlewat harus dipersoalkan, bukan diterima.
+        var exception = await Assert.ThrowsAsync<StockRequestUnprocessableException>(
+            () => f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+            {
+                Items = [new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 10 }],
+                ExpectedVersion = approved.Version,
+                IdempotencyKey = "f1"
+            }));
+
+        Assert.Equal("PHM007", exception.Code);
+    }
+
+    [Fact]
+    public async Task Serahkan_BarisMilikPermintaanLain_Ditolak()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+
+        var exception = await Assert.ThrowsAsync<StockRequestUnprocessableException>(
+            () => f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+            {
+                Items = [new() { StockRequestItemId = Guid.NewGuid(), FulfilledQuantity = 1 }],
+                ExpectedVersion = approved.Version,
+                IdempotencyKey = "f1"
+            }));
+
+        Assert.Equal("PHM007", exception.Code);
+    }
+
+    [Fact]
+    public async Task Serahkan_PermintaanMasihDraft_Ditolak()
+    {
+        await using var f = await CreateAsync();
+
+        // Draft belum sampai ke gudang. Menyerahkan barang atas permintaan yang belum
+        // dikirim berarti gudang mengerjakan sesuatu yang belum diminta kepadanya.
+        var created = await f.Service.CreateAsync(CreateRequest(f, "k1", (f.DrugAId, 10)));
+
+        var exception = await Assert.ThrowsAsync<StockRequestConflictException>(
+            () => f.Service.FulfillAsync(created.Id, new FulfillStockRequestRequest
+            {
+                Items = [new() { StockRequestItemId = created.Items[0].Id, FulfilledQuantity = 1 }],
+                ExpectedVersion = created.Version,
+                IdempotencyKey = "f1"
+            }));
+
+        Assert.Equal("PHM004", exception.Code);
+    }
+
+    [Fact]
+    public async Task Batal_PermintaanTerkirimYangBelumDiserahkan_MasihBolehDibatalkan()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+
+        var result = await f.Service.CancelAsync(approved.Id, new CancelStockRequestRequest
+        {
+            Reason = "Kebutuhan sudah terpenuhi dari unit lain.",
+            ExpectedVersion = approved.Version,
+            IdempotencyKey = "c1"
+        });
+
+        Assert.Equal(StockRequestStatus.Cancelled, result.Status);
+    }
+
+    [Fact]
+    public async Task Batal_PermintaanYangSudahDiserahkan_Ditolak()
+    {
+        await using var f = await CreateAsync();
+        var approved = await SiapDiserahkanAsync(f, (f.DrugAId, 10));
+        var completed = await f.Service.FulfillAsync(approved.Id, new FulfillStockRequestRequest
+        {
+            Items = [new() { StockRequestItemId = approved.Items[0].Id, FulfilledQuantity = 10 }],
+            ExpectedVersion = approved.Version,
+            IdempotencyKey = "f1"
+        });
+
+        var exception = await Assert.ThrowsAsync<StockRequestConflictException>(
+            () => f.Service.CancelAsync(completed.Id, new CancelStockRequestRequest
+            {
+                Reason = "Terlambat.", ExpectedVersion = completed.Version, IdempotencyKey = "c1"
+            }));
+
+        Assert.Equal("PHM004", exception.Code);
+    }
+
+    // ------------------------------------------- penyerahan dan persediaan sungguhan
+
+    /// <summary>
+    /// Menyiapkan permintaan yang penyerahannya benar-benar menyentuh persediaan.
+    /// </summary>
+    /// <remarks>
+    /// Pengujian lain sengaja tidak memasang layanan persediaan supaya alur permintaan dapat
+    /// diperiksa tanpa menyiapkan stok. Di sini justru kaitannya yang diuji.
+    /// </remarks>
+    private static async Task<(StockRequestService Service, DrugStockService Stock, Guid LocationId)>
+        CreateWithStockAsync(Fixture f)
+    {
+        var accessor = new MutableHttpContextAccessor();
+        accessor.SetUser(Guid.NewGuid());
+        var logger = new LoggerService(NullLogger<LoggerService>.Instance, accessor);
+        var stock = new DrugStockService(f.Context, accessor, logger);
+
+        var location = await f.Context.Set<MstDrugStorageLocation>()
+            .FirstAsync(x => x.Id == f.StorageLocationId);
+        location.IsAllowDispensing = true;
+        await f.Context.SaveChangesAsync();
+
+        return (new StockRequestService(f.Context, accessor, logger, stock), stock, f.StorageLocationId);
+    }
+
+    [Fact]
+    public async Task Serahkan_SatuBarisGagalStok_TidakMeninggalkanPenguranganSebagian()
+    {
+        await using var f = await CreateAsync();
+        var (service, stock, locationId) = await CreateWithStockAsync(f);
+
+        // Obat A cukup, obat B sengaja tidak cukup.
+        await stock.RecordOpeningBalanceAsync(new RecordOpeningBalanceRequest
+        {
+            Batch = new DrugBatchInput
+            {
+                DrugId = f.DrugAId, BatchNumber = "BA-1",
+                ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(90)
+            },
+            StorageLocationId = locationId, Quantity = 100, IdempotencyKey = "ob-a"
+        });
+
+        await stock.RecordOpeningBalanceAsync(new RecordOpeningBalanceRequest
+        {
+            Batch = new DrugBatchInput
+            {
+                DrugId = f.DrugBId, BatchNumber = "BB-1",
+                ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(90)
+            },
+            StorageLocationId = locationId, Quantity = 1, IdempotencyKey = "ob-b"
+        });
+
+        var created = await service.CreateAsync(
+            CreateRequest(f, "k1", (f.DrugAId, 10), (f.DrugBId, 5)));
+
+        await service.SubmitAsync(created.Id, new SubmitStockRequestRequest
+        {
+            ExpectedVersion = created.Version, IdempotencyKey = "sub-1"
+        });
+
+        var submitted = (await service.GetDetailAsync(created.Id))!;
+
+        await Assert.ThrowsAsync<StockRequestUnprocessableException>(
+            () => service.FulfillAsync(submitted.Id, new FulfillStockRequestRequest
+            {
+                Items = [.. submitted.Items.Select(i => new FulfillStockRequestItemInput
+                {
+                    StockRequestItemId = i.Id, FulfilledQuantity = i.RequestedQuantity
+                })],
+                ExpectedVersion = submitted.Version,
+                IdempotencyKey = "ful-1"
+            }));
+
+        // Baris pertama sempat berhasil dikeluarkan. Bila pengurangannya tetap tersimpan,
+        // sepuluh tablet hilang dari gudang tanpa satu pun dokumen yang menutupinya —
+        // selisih yang tidak akan pernah dapat dijelaskan.
+        var saldo = await stock.GetBalancesAsync(new DrugStockBalanceQuery());
+        Assert.Equal(100m, saldo.Items.Single(x => x.DrugId == f.DrugAId).QuantityOnHand);
+        Assert.Equal(1m, saldo.Items.Single(x => x.DrugId == f.DrugBId).QuantityOnHand);
+
+        // Permintaannya pun harus tetap terbuka, bukan tertutup separuh jalan.
+        var sesudah = (await service.GetDetailAsync(submitted.Id))!;
+        Assert.Equal(StockRequestStatus.Submitted, sesudah.Status);
+    }
 }

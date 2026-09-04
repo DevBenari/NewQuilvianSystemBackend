@@ -27,17 +27,26 @@ public sealed class StockRequestService
     private const string UpdateAction = "UpdateStockRequest";
     private const string SubmitAction = "SubmitStockRequest";
     private const string CancelAction = "CancelStockRequest";
+    private const string FulfillAction = "FulfillStockRequest";
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
+    private readonly DrugStockService? _drugStockService;
 
+    /// <summary>
+    /// <paramref name="drugStockService"/> boleh kosong agar pengujian yang hanya memeriksa
+    /// alur permintaan tidak perlu menyiapkan seluruh persediaan. Bila kosong, penyerahan
+    /// hanya mencatat jumlah dan tidak menyentuh stok.
+    /// </summary>
     public StockRequestService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        DrugStockService? drugStockService = null)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _drugStockService = drugStockService;
     }
 
     // ============================================ 1. riwayat permintaan obat
@@ -89,6 +98,7 @@ public sealed class StockRequestService
         var pageSize = request.PageSize is < 1 or > 100 ? 10 : request.PageSize;
 
         var total = await query.CountAsync(cancellationToken);
+
         var items = await query
             .OrderByDescending(x => x.RequestedAt)
             .Skip((pageNumber - 1) * pageSize)
@@ -112,7 +122,10 @@ public sealed class StockRequestService
                 SubmittedAt = x.SubmittedAt,
                 ItemCount = x.ItemCount,
                 Version = x.Version,
-                IsEditable = x.Status == StockRequestStatus.Draft
+                IsEditable = x.Status == StockRequestStatus.Draft,
+                CanFulfill = x.Status == StockRequestStatus.Submitted,
+                CanCancel = x.Status == StockRequestStatus.Draft ||
+                            x.Status == StockRequestStatus.Submitted
             })
             .ToListAsync(cancellationToken);
 
@@ -340,9 +353,11 @@ public sealed class StockRequestService
         var entity = await LoadAsync(id, tracking: true, cancellationToken)
             ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
 
+        // Selama barangnya belum diserahkan, permintaan masih boleh dibatalkan peminta:
+        // kebutuhan unit dapat hilang setelah permintaan dikirim.
         if (entity.Status is not (StockRequestStatus.Draft or StockRequestStatus.Submitted))
             throw new StockRequestConflictException("PHM004",
-                "Permintaan hanya dapat dibatalkan sebelum diputuskan gudang.");
+                "Permintaan yang sudah diserahkan atau sudah ditutup tidak dapat dibatalkan.");
 
         EnsureVersion(entity.Version, request.ExpectedVersion);
 
@@ -360,6 +375,181 @@ public sealed class StockRequestService
 
         await SaveAsync(cancellationToken);
         return (await GetDetailAsync(id, cancellationToken))!;
+    }
+
+    // ============================================ perintah gudang
+
+    /// <summary>
+    /// Mencatat penyerahan barang oleh gudang, baris per baris.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Ini satu-satunya perintah yang dimiliki gudang. Gudang tidak menyetujui dan tidak
+    /// menolak permintaan; ia melihat apa yang diminta, lalu mencatat berapa yang benar-benar
+    /// diserahkan ketika depo mengambil. Karena itu penyerahan dilakukan langsung atas
+    /// permintaan yang berstatus Terkirim, tanpa keputusan apa pun sebelumnya.
+    /// </para>
+    /// <para>
+    /// Perintah ini <b>mengurangi saldo gudang asal</b> dan menulis kartu stok, mengambil
+    /// batch yang paling dekat kedaluwarsa lebih dahulu. Bila stoknya tidak mencukupi,
+    /// seluruh penyerahan dibatalkan dan permintaan tetap berstatus Terkirim — tidak ada
+    /// permintaan yang tertutup padahal barangnya tidak pernah keluar.
+    /// </para>
+    /// <para>
+    /// Penyerahan sebagian tetap menutup permintaan. Kekurangannya terbaca dari selisih
+    /// jumlah diminta dan jumlah diserahkan pada tiap baris; bila unit masih membutuhkan
+    /// sisanya, ia membuat permintaan baru — sama seperti permintaan yang perlu diubah
+    /// setelah dikirim.
+    /// </para>
+    /// </remarks>
+    public async Task<StockRequestDetailResponse> FulfillAsync(Guid id,
+        FulfillStockRequestRequest request, CancellationToken cancellationToken = default)
+    {
+        EnsureIdempotencyKey(request.IdempotencyKey);
+
+        if (request.Items.Count == 0)
+            throw new StockRequestUnprocessableException("PHM002",
+                "Penyerahan harus menyebut sekurang-kurangnya satu baris.");
+
+        var actorUserId = GetCurrentUserId();
+        var note = Normalize(request.Note);
+        var fingerprint = Hash($"fulfill:{id}|{note}|" + string.Join(',',
+            request.Items.OrderBy(x => x.StockRequestItemId)
+                .Select(x => $"{x.StockRequestItemId:N}:{x.FulfilledQuantity}")));
+
+        var prior = await FindIdempotentAsync(FulfillAction, request.IdempotencyKey, cancellationToken);
+        if (prior != null)
+        {
+            EnsureSameFingerprint(prior.Source, fingerprint);
+            return (await GetDetailAsync(id, cancellationToken))!;
+        }
+
+        var entity = await LoadAsync(id, tracking: true, cancellationToken)
+            ?? throw new KeyNotFoundException("Permintaan stok tidak ditemukan.");
+
+        if (entity.Status != StockRequestStatus.Submitted)
+            throw new StockRequestConflictException("PHM004",
+                "Hanya permintaan yang sudah dikirim ke gudang yang dapat diserahkan.");
+
+        EnsureVersion(entity.Version, request.ExpectedVersion);
+
+        var activeItems = entity.Items.Where(x => !x.IsDelete).ToList();
+        EnsureFulfillmentCoversEveryLine(activeItems, request.Items);
+
+        var byId = request.Items.ToDictionary(x => x.StockRequestItemId, x => x.FulfilledQuantity);
+        var now = DateTime.UtcNow;
+
+        foreach (var item in activeItems)
+        {
+            var quantity = byId[item.Id];
+
+            if (quantity < 0)
+                throw new StockRequestUnprocessableException("PHM006",
+                    "Jumlah yang diserahkan tidak boleh kurang dari nol.");
+
+            // Menyerahkan lebih dari yang diminta bukan pemenuhan permintaan ini. Bila
+            // gudang memang perlu mengeluarkan lebih, itu pengeluaran atas dasar lain.
+            if (quantity > item.RequestedQuantity)
+                throw new StockRequestUnprocessableException("PHM006",
+                    $"Jumlah diserahkan pada baris {item.LineNumber} melebihi jumlah yang diminta.");
+
+            item.FulfilledQuantity = quantity;
+            item.UpdateDateTime = now;
+            item.UpdateBy = actorUserId;
+        }
+
+        // Stok gudang benar-benar berkurang di sini, bukan sekadar dicatat angkanya.
+        //
+        // Pengurangan dijalankan sebelum permintaan ditutup, supaya kegagalan karena stok
+        // tidak mencukupi membatalkan seluruh penyerahan alih-alih meninggalkan permintaan
+        // yang berstatus Selesai padahal barangnya tidak pernah keluar.
+        //
+        // Yang berkurang hanya stok gudang asal. Ke mana barangnya mendarat adalah urusan
+        // kapabilitas transfer, yang masih menunggu penetapan unit mana saja yang berstatus
+        // depo dengan saldo sendiri.
+        if (_drugStockService != null)
+        {
+            foreach (var item in activeItems.Where(x => byId[x.Id] > 0))
+            {
+                try
+                {
+                    // Perencanaan dan pengeluaran dipisah supaya seluruh baris tersimpan
+                    // dalam satu simpanan di akhir. Memakai pengeluaran yang menyimpan
+                    // sendiri membuat baris pertama sudah terlanjur mengurangi stok ketika
+                    // baris kedua gagal — obat hilang dari gudang tanpa satu pun dokumen
+                    // yang menutupinya.
+                    var plan = await _drugStockService.PlanFefoAsync(item.DrugId,
+                        entity.StorageLocationId, byId[item.Id], cancellationToken);
+
+                    var sequence = 1;
+                    foreach (var (batchId, quantity) in plan)
+                    {
+                        await _drugStockService.IssueBatchAsync(batchId,
+                            entity.StorageLocationId, quantity, consumeReservation: false,
+                            DrugStockSourceDocumentTypes.StockRequest, entity.Id,
+                            $"Penyerahan permintaan {entity.RequestNumber} baris {item.LineNumber}.",
+                            $"srq-{item.Id:N}-{sequence++}", cancellationToken);
+                    }
+                }
+                // Kegagalan stok diterjemahkan ke bahasa permintaan supaya petugas gudang
+                // membaca sebab yang sebenarnya — obat mana yang kurang — bukan kegagalan
+                // umum yang tidak memberi tahu apa pun.
+                catch (DrugStockUnprocessableException ex)
+                {
+                    throw new StockRequestUnprocessableException(ex.Code,
+                        $"{item.DrugNameSnapshot}: {ex.Message}");
+                }
+                catch (DrugStockConflictException ex)
+                {
+                    throw new StockRequestConflictException(ex.Code,
+                        $"{item.DrugNameSnapshot}: {ex.Message}");
+                }
+            }
+        }
+
+        entity.Status = StockRequestStatus.Completed;
+        entity.DecidedAt = now;
+        entity.DecisionReason = note;
+        entity.Version++;
+        entity.UpdateDateTime = now;
+        entity.UpdateBy = actorUserId;
+
+        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Completed,
+            StockRequestStatus.Submitted, FulfillAction, note, request.IdempotencyKey,
+            fingerprint, actorUserId, now));
+
+        await SaveAsync(cancellationToken);
+        await _loggerService.AuditAsync(LogCategory, "StockRequest.Fulfill",
+            "Mencatat penyerahan barang atas permintaan stok.",
+            new { entity.Id, entity.RequestNumber, entity.ItemCount, ActorUserId = actorUserId });
+
+        return (await GetDetailAsync(id, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Penyerahan harus menyebut setiap baris permintaan, tidak boleh ada yang terlewat.
+    /// </summary>
+    /// <remarks>
+    /// Baris yang tidak disebut sengaja tidak dianggap nol. Diam bisa berarti "tidak
+    /// diserahkan" atau "lupa dicatat", dan keduanya berbeda akibatnya bagi unit peminta.
+    /// </remarks>
+    private static void EnsureFulfillmentCoversEveryLine(List<TrxStockRequestItem> activeItems,
+        List<FulfillStockRequestItemInput> inputs)
+    {
+        if (inputs.GroupBy(x => x.StockRequestItemId).Any(g => g.Count() > 1))
+            throw new StockRequestUnprocessableException("PHM007",
+                "Satu baris permintaan hanya boleh disebut satu kali pada penyerahan.");
+
+        var activeIds = activeItems.Select(x => x.Id).ToHashSet();
+        var inputIds = inputs.Select(x => x.StockRequestItemId).ToHashSet();
+
+        if (inputIds.Except(activeIds).Any())
+            throw new StockRequestUnprocessableException("PHM007",
+                "Ada baris penyerahan yang bukan bagian dari permintaan ini.");
+
+        if (activeIds.Except(inputIds).Any())
+            throw new StockRequestUnprocessableException("PHM007",
+                "Setiap baris permintaan harus disebut jumlah penyerahannya, walaupun nol.");
     }
 
     // ============================================================== penolong
@@ -586,6 +776,8 @@ public sealed class StockRequestService
         ItemCount = x.ItemCount,
         Version = x.Version,
         IsEditable = x.Status == StockRequestStatus.Draft,
+        CanFulfill = x.Status == StockRequestStatus.Submitted,
+        CanCancel = x.Status is StockRequestStatus.Draft or StockRequestStatus.Submitted,
         Items = [.. x.Items.Where(i => !i.IsDelete).OrderBy(i => i.LineNumber)
             .Select(i => new StockRequestItemResponse
             {

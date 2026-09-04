@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using Xunit;
 
 namespace QuilvianSystemBackend.Tests.HealthServices.OperatingRoomManagement;
@@ -207,15 +208,34 @@ public class OperatingRoomMaterialServiceTests
 
     private static OperatingRoomMaterialService Build(OperatingRoomTestContext ctx) =>
         new(ctx.Context, ctx.Accessor, ctx.Logger,
-            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules);
+            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules,
+            new DrugUnitConversionResolver(ctx.Context));
+
+    /// <summary>
+    /// Satuan bersama seluruh obat uji, sekaligus satuan yang dipakai <see cref="ValidUsage"/>.
+    /// </summary>
+    /// <remarks>
+    /// Dibuat tetap supaya obat yang dikenal Farmasi selalu memiliki satuan stok yang cocok
+    /// dengan satuan pemakaian; yang diuji berkas ini adalah ledger pemakaian, bukan konversi
+    /// satuannya.
+    /// </remarks>
+    private static readonly Guid UnitId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
     private static async Task<Guid> AddDrugAsync(OperatingRoomTestContext ctx, string name, bool active)
     {
         var id = Guid.NewGuid();
+        if (!await ctx.Context.Set<MstMeasurement>().AnyAsync(x => x.Id == UnitId))
+        {
+            ctx.Context.Set<MstMeasurement>().Add(new MstMeasurement
+            {
+                Id = UnitId, MeasurementCode = "PCS", MeasurementName = "Pieces",
+                MeasurementType = "Quantity", IsForDrug = true
+            });
+        }
         ctx.Context.Set<MstDrug>().Add(new MstDrug
         {
             Id = id, DrugCategoryId = Guid.NewGuid(), DrugCode = $"DRG-{id:N}"[..12], DrugName = name,
-            IsActive = active
+            IsActive = active, StockUnitMeasurementId = UnitId
         });
         await ctx.Context.SaveChangesAsync();
         ctx.Context.ChangeTracker.Clear();
@@ -228,6 +248,7 @@ public class OperatingRoomMaterialServiceTests
         ItemType = OprMaterialItemType.Consumable,
         Quantity = 2,
         UnitCode = "PCS",
+        UnitMeasurementId = UnitId,
         Outcome = OprMaterialOutcome.Used,
         IdempotencyKey = key
     };
