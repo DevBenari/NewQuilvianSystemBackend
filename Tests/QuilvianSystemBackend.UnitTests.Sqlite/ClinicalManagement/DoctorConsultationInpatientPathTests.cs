@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -52,7 +53,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 new ClinicalMilestoneFactProducer(
                     c,
                     new BillingFolioService(c),
-                    ControllerTestHarness.BuatLoggerService()));
+                    ControllerTestHarness.BuatLoggerService()),
+                // BE-RWI-038. Finalisasi kini sekaligus mendaftarkan catatan ke mesin keutuhan
+                // rekam medis, sehingga service itu ikut disuntikkan pada uji.
+                new ClinicalDocumentIntegrityService(c));
 
         private static DoctorConsultationController BuatController(
             ApplicationDbContext c, Guid actorUserId) =>

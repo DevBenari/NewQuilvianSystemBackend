@@ -310,6 +310,8 @@ try
     // INT-DOK-09. Tanpa pendaftaran ini controller yang memakainya gagal dibuat oleh dependency
     // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
     builder.Services.AddScoped<InpatientClinicalContextService>();
+    builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
+    builder.Services.AddScoped<CpptVerificationService>();
 
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.

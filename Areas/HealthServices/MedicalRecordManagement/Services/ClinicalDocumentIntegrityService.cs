@@ -36,6 +36,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     /// dalam transaksi yang sama dengan pembuatan dokumennya. Bila pendaftaran gagal,
     /// pembuatan dokumen harus ikut dibatalkan — dokumen tanpa baris keutuhan akan luput dari
     /// seluruh aturan penguncian.</item>
+    /// <item><see cref="RegisterSignedAsync"/> TIDAK menyimpan, dengan alasan yang sama.
+    /// Dipakai pada saat dokumen difinalkan.</item>
     /// <item><see cref="LockOpenDocumentsForEncounterAsync"/> TIDAK menyimpan. Pemanggil wajib
     /// menjalankannya di dalam transaksi penutupan kunjungan.</item>
     /// <item><see cref="SignAsync"/> menyimpan sendiri, karena hanya menyentuh satu baris
@@ -52,19 +54,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         }
 
         /// <summary>
-        /// Jenis dokumen yang tunduk aturan keutuhan pada rilis pertama.
+        /// Jenis dokumen yang tunduk aturan keutuhan pada rilis sekarang.
         ///
-        /// Sengaja dibatasi satu jenis sesuai `RM-DEC-019`. Karena status keutuhan disimpan di
-        /// tabel terpisah, penegakannya bergantung pada service ini benar-benar dipanggil —
-        /// dan cakupan yang sempit adalah cara paling kuat memastikan tidak ada yang terlewat.
+        /// Sengaja dibatasi. Karena status keutuhan disimpan di tabel terpisah, penegakannya
+        /// bergantung pada service ini benar-benar dipanggil — dan cakupan yang sempit adalah
+        /// cara paling kuat memastikan tidak ada yang terlewat.
         ///
-        /// Dua belas jenis lain sudah punya nomor pada <see cref="ClinicalDocumentKind"/>,
+        /// Rilis pertama hanya memuat catatan terpadu sesuai `RM-DEC-019`. `BE-RWI-038`
+        /// menambahkan tiga jenis yang finalisasinya kini mendaftarkan dokumen sebagai
+        /// tertanda tangan: catatan dokter, kajian medis, dan tindakan. Alasannya bukan
+        /// kelengkapan, melainkan `RWI-FACT-014`: sebelum ini hanya catatan terpadu yang
+        /// terdaftar, sehingga catatan dokter yang sudah diselesaikan tidak dapat disunting
+        /// **maupun** dikoreksi — satu-satunya jalan membetulkan salah ketik adalah menulis
+        /// catatan baru yang membantah catatan lama.
+        ///
+        /// Sembilan jenis lain sudah punya nomor pada <see cref="ClinicalDocumentKind"/>,
         /// tetapi belum ditegakkan. Keadaan itu WAJIB dinyatakan terbuka di layar (`RM-FE-009`),
         /// bukan didiamkan.
         /// </summary>
         private static readonly HashSet<ClinicalDocumentKind> JenisYangDitegakkan =
         [
-            ClinicalDocumentKind.ProgressNote
+            ClinicalDocumentKind.ProgressNote,
+            ClinicalDocumentKind.Consultation,
+            ClinicalDocumentKind.Assessment,
+            ClinicalDocumentKind.Procedure
         ];
 
         /// <summary>
@@ -118,6 +131,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AddAsync(keutuhan, cancellationToken);
+
+            return keutuhan;
+        }
+
+        /// <summary>
+        /// Mendaftarkan satu dokumen klinis ke daftar keutuhan sekaligus menandainya
+        /// tertanda tangan oleh penulisnya — `BE-RWI-038`, `RWI-AC-157`.
+        ///
+        /// Dipakai pada saat dokumen difinalkan. Pendaftaran dan penandatanganan dilakukan
+        /// sekaligus karena finalisasi memang sudah menyatakan "dokumen ini selesai dan
+        /// menjadi tanggung jawab penulisnya"; memisahkannya menjadi dua langkah membuka
+        /// jendela waktu di mana dokumen sudah final tetapi belum terkunci.
+        ///
+        /// TIDAK menyimpan. Pemanggil WAJIB menjalankannya di dalam transaksi atau
+        /// `SaveChanges` yang sama dengan finalisasi dokumennya. Bila pendaftaran gagal,
+        /// finalisasi harus ikut batal — dokumen final tanpa baris keutuhan adalah dokumen
+        /// yang tidak dapat dikoreksi selamanya, dan itu persis keadaan yang sedang ditutup.
+        ///
+        /// Aman dipanggil berulang: dokumen yang sudah terkunci dikembalikan apa adanya tanpa
+        /// tanda tangan kedua, dan dokumen yang masih draf dinaikkan menjadi tertanda tangan.
+        /// </summary>
+        /// <param name="documentKind">Jenis dokumen yang difinalkan.</param>
+        /// <param name="documentId">Id dokumen pada tabel asalnya.</param>
+        /// <param name="patientId">Pasien pemilik dokumen.</param>
+        /// <param name="encounterId">Kunjungan yang menaungi dokumen.</param>
+        /// <param name="authorUserId">
+        /// Penulis dokumen. Ia sekaligus menjadi penanda tangan — `RWI-AC-157`. Bila
+        /// penulisnya tidak dapat ditentukan, pendaftaran ditolak, karena dokumen bertanda
+        /// tangan tanpa penanda tangan bukan bukti apa pun.
+        /// </param>
+        /// <param name="deviceInfo">Perangkat pemanggil, diambil dari permintaan HTTP.</param>
+        /// <param name="ipAddress">Alamat jaringan pemanggil, diambil dari permintaan HTTP.</param>
+        /// <param name="nowUtc">Saat finalisasi; dipakai sebagai waktu tanda tangan.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<MrcClinicalDocumentIntegrity> RegisterSignedAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            Guid patientId,
+            Guid encounterId,
+            Guid authorUserId,
+            string? deviceInfo,
+            string? ipAddress,
+            DateTime nowUtc,
+            CancellationToken cancellationToken = default)
+        {
+            if (authorUserId == Guid.Empty)
+                throw new InvalidOperationException("Penulis dokumen klinis tidak dapat ditentukan.");
+
+            var keutuhan = await RegisterAsync(
+                documentKind, documentId, patientId, encounterId, authorUserId,
+                isAuthorKnown: true, cancellationToken);
+
+            // Dokumen yang sudah terkunci tidak ditandatangani ulang. Tanda tangan kedua akan
+            // menimpa waktu dan perangkat tanda tangan pertama, dan itu menghapus bukti.
+            if (keutuhan.IntegrityStatus != ClinicalDocumentIntegrityStatus.Draft)
+                return keutuhan;
+
+            keutuhan.IntegrityStatus = ClinicalDocumentIntegrityStatus.Signed;
+            keutuhan.SignedAt = nowUtc;
+            keutuhan.SignedByUserId = authorUserId;
+            keutuhan.SignatureDeviceInfo = Potong(deviceInfo, 250);
+            keutuhan.SignatureIpAddress = Potong(ipAddress, 64);
+            keutuhan.LockedAt = nowUtc;
+            keutuhan.LockTrigger = ClinicalDocumentLockTrigger.AuthorSigned;
+            keutuhan.UpdateDateTime = nowUtc;
+            keutuhan.UpdateBy = authorUserId;
 
             return keutuhan;
         }

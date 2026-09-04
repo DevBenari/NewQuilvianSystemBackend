@@ -318,8 +318,11 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             var ringkasan = Isi<MedicalRecordSummaryResponse>(
                 await controller.GetSummary(konteks.PatientId));
 
+            // BE-RWI-038 menaikkan jumlah jenis yang ditegakkan dari satu menjadi empat:
+            // catatan terpadu, catatan dokter, kajian medis, dan tindakan. Yang dibuktikan uji
+            // ini tetap sama — jenis di luar daftar itu ditandai jelas belum ditegakkan.
             Assert.Equal(13, ringkasan.DocumentCounts.Count);
-            Assert.Single(ringkasan.DocumentCounts, x => x.IsIntegrityEnforced);
+            Assert.Equal(4, ringkasan.DocumentCounts.Count(x => x.IsIntegrityEnforced));
             Assert.True(ringkasan.DocumentCounts
                 .Single(x => x.DocumentKind == ClinicalDocumentKind.ProgressNote)
                 .IsIntegrityEnforced);
@@ -332,7 +335,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 await controller.GetFilterMetadata());
 
             Assert.Equal(13, metadata.DocumentKinds.Count);
-            Assert.Single(metadata.DocumentKinds, x => x.IsIntegrityEnforced);
+            Assert.Equal(4, metadata.DocumentKinds.Count(x => x.IsIntegrityEnforced));
         }
 
         // =====================================================================

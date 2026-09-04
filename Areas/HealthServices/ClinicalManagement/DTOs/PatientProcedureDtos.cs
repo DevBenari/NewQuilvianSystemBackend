@@ -240,6 +240,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         public Guid ProcedureId { get; set; }
 
+        /// <summary>
+        /// Pasien yang menerima tindakan. Boleh kosong; bila terisi tetapi tidak cocok dengan
+        /// pasien pada kunjungannya, permintaan ditolak <c>400</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-051</c> kriteria 1. Penjaga salah pasien. Layar dokter rawat inap membuka
+        /// satu pasien lalu mengirim tindakan; bila pasien pada layar dan pasien pada kunjungan
+        /// berbeda, yang terjadi adalah tindakan tercatat pada rekam medis orang lain.
+        /// </remarks>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi tindakan. Boleh kosong; bila terisi tetapi tidak
+        /// cocok dengan perawatan milik kunjungan, permintaan ditolak <c>400</c> —
+        /// <c>VAL-DOK-26</c>.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Kejadian visite yang menaungi tindakan. <b>Opsional</b> — <c>BE-RWI-051</c>
+        /// kriteria 5. Tindakan yang dikerjakan di luar kunjungan dokter tetap sah dicatat.
+        /// </summary>
+        public Guid? PhysicianVisitId { get; set; }
+
+        /// <summary>
+        /// Kunci permintaan. Opsional, tetapi sangat dianjurkan: tanpa kunci, percobaan ulang
+        /// karena jaringan terputus melahirkan tindakan kedua beserta tagihannya.
+        /// </summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+
         public PatientProcedureSource ProcedureSource { get; set; } = PatientProcedureSource.DoctorOrder;
 
         public DateTime? ProcedureDateTime { get; set; }

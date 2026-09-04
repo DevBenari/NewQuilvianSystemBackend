@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
@@ -37,17 +38,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         private readonly LoggerService _loggerService;
         private readonly ClinicalNoteAddendumService _addendumService;
         private readonly AccessPermissionService _accessPermissionService;
+        private readonly InpatientDocumentCorrectionAuthorityService _inpatientCorrectionAuthorityService;
+        private readonly CpptVerificationService _cpptVerificationService;
 
         public ClinicalNoteAddendumController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ClinicalNoteAddendumService addendumService,
-            AccessPermissionService accessPermissionService)
+            AccessPermissionService accessPermissionService,
+            InpatientDocumentCorrectionAuthorityService inpatientCorrectionAuthorityService,
+            CpptVerificationService cpptVerificationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _addendumService = addendumService;
             _accessPermissionService = accessPermissionService;
+            _inpatientCorrectionAuthorityService = inpatientCorrectionAuthorityService;
+            _cpptVerificationService = cpptVerificationService;
         }
 
         [HttpGet("filters/metadata")]
@@ -203,6 +210,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         {
             var actorUserId = GetCurrentUserId();
 
+            // BE-RWI-047, VAL-DOK-35, RWI-DEC-088. Penetapan berhalangan menyatakan "dokter ini
+            // berhalangan" TANPA menyebut siapa penggantinya. Tanpa penjaga tambahan, setiap
+            // pemegang butir CreateAsSubstitute dapat mengoreksi catatan dokter yang berhalangan
+            // untuk pasien mana pun, termasuk pasien yang bukan tanggung jawabnya.
+            //
+            // Aturannya milik Rawat Inap dan sumber kebenarannya penugasan dokter berperiode,
+            // sehingga keputusannya diambil service Rawat Inap; di sini hanya tempat memanggilnya.
+            // Dokumen yang tidak berada di bawah perawatan rawat inap dilewatkan apa adanya.
+            if (sebagaiPengganti)
+            {
+                var kewenanganRawatInap = await _inpatientCorrectionAuthorityService
+                    .EnsureMaySubstituteAsync(
+                        documentKind, documentId, User, actorUserId, DateTime.UtcNow);
+
+                if (!kewenanganRawatInap.IsAllowed)
+                {
+                    return StatusCode(kewenanganRawatInap.StatusCode, ApiResponse<object>.Fail(
+                        kewenanganRawatInap.StatusCode,
+                        kewenanganRawatInap.ErrorMessage ?? "Koreksi tidak dapat ditambahkan."
+                    ));
+                }
+            }
+
             // AuthorUserId, IsSubstituteAuthor, dan DelegationId SENGAJA tidak diterima dari
             // klien. Bila boleh dikirim, pembuat addendum dapat mengaku sebagai orang lain —
             // persis celah RM-CAP-012 yang sedang ditutup modul ini.
@@ -224,6 +254,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                     hasil.ErrorMessage ?? "Koreksi tidak dapat ditambahkan."
                 ));
             }
+
+            // BE-RWI-053 kriteria 6, state-transition-matrix.md bagian 3. Verifikasi DPJP
+            // menyatakan "saya sudah membaca isi ini". Begitu isinya bertambah lewat koreksi,
+            // pernyataan itu berhenti berlaku, sehingga catatan terpadu yang sudah terverifikasi
+            // kembali menunggu verifikasi.
+            //
+            // Aturannya milik Rawat Inap, sehingga keputusannya diambil service Rawat Inap; di
+            // sini hanya tempat memanggilnya. Catatan berstatus tidak-diwajibkan tidak ikut
+            // dinaikkan - rumah sakit yang tidak mewajibkan verifikasi tidak boleh tiba-tiba
+            // punya daftar pantau hanya karena ada koreksi.
+            await _cpptVerificationService.ResetVerificationOnCorrectionAsync(
+                documentKind, documentId, actorUserId, DateTime.UtcNow);
 
             await _loggerService.InfoAsync(
                 LogCategory,

@@ -19,6 +19,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid ModalityId { get; set; }
 
         public string? ClinicalIndication { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pesanan. Boleh kosong; bila terisi tetapi tidak
+        /// cocok dengan perawatan milik kunjungannya, permintaan ditolak <c>400</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-052</c>, <c>VAL-DOK-22</c>, <c>INV-DOK-12</c>. Inilah yang membuat pesanan
+        /// perawatan A tidak dapat diproses sebagai milik perawatan B. Tanpa penanda ini, satu
+        /// pasien yang dirawat dua kali dalam sebulan memiliki dua rangkaian pesanan yang
+        /// bercampur pada layar dokter.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
     }
 
     public class RadOrderTransitionRequest
@@ -116,6 +128,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid Id { get; set; }
 
         public Guid EncounterId { get; set; }
+
+        /// <summary>Perawatan rawat inap yang menaungi pesanan, bila ada.</summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Benar ketika hasil pemeriksaan sudah final dan sah dipakai sebagai dasar keputusan
+        /// klinis.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-052</c>, <c>VAL-DOK-30</c>. Hasil yang belum final <b>wajib</b> ditandai
+        /// dan tidak boleh disajikan sebagai hasil sah. Hasil basi di layar dokter adalah risiko
+        /// keselamatan, bukan masalah tampilan.
+        /// </remarks>
+        public bool IsResultFinal { get; set; }
+
+        /// <summary>Keterangan singkat ketersediaan hasil, siap ditampilkan apa adanya.</summary>
+        public string ResultAvailabilityNote { get; set; } = string.Empty;
 
         public Guid ProcedureId { get; set; }
 

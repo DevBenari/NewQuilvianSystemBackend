@@ -58,6 +58,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 HasPrescription = prescriptions.Count > 0
             };
         }
+
+        /// <summary>
+        /// Membaca ringkasan resep satu catatan dokter <b>tanpa menulis apa pun</b>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-050</c> kriteria 3. Dipakai jalur kiriman ulang. Memakai versi yang menulis
+        /// akan menggeser waktu ubah catatan dokter setiap kali jaringan dokter terputus, dan
+        /// percobaan ulang yang seharusnya tidak berdampak apa-apa justru meninggalkan jejak.
+        /// </remarks>
+        /// <param name="consultationId">Catatan dokter yang ringkasannya dibaca.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<PrescriptionSummaryResult> ReadConsultationSummaryAsync(
+            Guid consultationId,
+            CancellationToken cancellationToken = default)
+        {
+            var prescriptions = await _dbContext.Set<TrxPrescription>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ConsultationId == consultationId &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    x.PrescriptionStatus != PrescriptionStatus.Cancelled)
+                .OrderBy(x => x.PrescriptionDateTime)
+                .Select(x => new { x.PrescriptionNumber, x.TotalItemCount })
+                .ToListAsync(cancellationToken);
+
+            var prescriptionText = prescriptions.Count == 0
+                ? null
+                : string.Join("; ", prescriptions.Select(x =>
+                    x.TotalItemCount > 0
+                        ? $"{x.PrescriptionNumber} ({x.TotalItemCount} item)"
+                        : x.PrescriptionNumber));
+
+            return new PrescriptionSummaryResult
+            {
+                PrescriptionText = prescriptionText,
+                PrescriptionCount = prescriptions.Count,
+                HasPrescription = prescriptions.Count > 0
+            };
+        }
     }
 
     public class PrescriptionSummaryResult

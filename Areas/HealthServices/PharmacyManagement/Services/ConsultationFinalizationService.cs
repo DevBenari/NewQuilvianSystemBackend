@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.C
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
@@ -19,26 +21,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public ConsultationFinalizationService(
             ApplicationDbContext dbContext,
             ConsultationValidationService validationService,
             PrescriptionAggregateService prescriptionAggregateService,
             PrescriptionWorkflowService prescriptionWorkflowService,
-            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer)
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _validationService = validationService;
             _prescriptionAggregateService = prescriptionAggregateService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _integrityService = integrityService;
         }
 
+        /// <summary>
+        /// Memvalidasi lalu menyelesaikan satu konsultasi dokter beserta resep yang menyertainya.
+        /// </summary>
+        /// <param name="consultationId">Konsultasi yang diselesaikan.</param>
+        /// <param name="request">Isi akhir catatan beserta peringatan yang sudah dikonfirmasi.</param>
+        /// <param name="actorUserId">Pengguna yang menekan tombol selesai.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        /// <param name="signatureDeviceInfo">
+        /// Perangkat yang dipakai menandatangani, diambil pemanggil dari permintaan HTTP —
+        /// `BE-RWI-038`, `RM-DEC-021`. Tidak pernah dari kiriman klien: nilai yang dikirim
+        /// klien dapat dipalsukan dan kehilangan makna sebagai bukti.
+        /// </param>
+        /// <param name="signatureIpAddress">Alamat jaringan penanda tangan.</param>
         public async Task<ConsultationFinalizationOperationResult> FinalizeAsync(
             Guid consultationId,
             FinalizeDoctorConsultationRequest request,
             Guid actorUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string? signatureDeviceInfo = null,
+            string? signatureIpAddress = null)
         {
             // RJ-DOC-BE-001, kontrak RJ-DOC-COMPLETION-001@1.0.0 bagian 1.2. Actor selalu berasal
             // dari authentication context, tidak pernah dari payload. Bila klaimnya tidak dapat
@@ -140,6 +160,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             var finalizedProcedureCount = await _dbContext.Set<TrxPatientProcedure>()
                 .CountAsync(x => x.ConsultationId == consultationId && !x.IsDelete && !x.IsCancel && x.IsActive, cancellationToken);
+
+            // BE-RWI-038, RWI-AC-157. Catatan dokter yang selesai didaftarkan ke mesin keutuhan
+            // rekam medis sebagai dokumen tertanda tangan, dengan penulis catatan sebagai
+            // penanda tangannya.
+            //
+            // Pendaftaran ini berada DI DALAM transaksi finalisasi dengan sengaja. Bila ia
+            // dipisah dan gagal, akan lahir catatan yang sudah final tetapi tidak punya baris
+            // keutuhan — catatan yang tidak dapat disunting karena sudah selesai, sekaligus
+            // tidak dapat dikoreksi karena mesin koreksi tidak mengenalnya. Itu persis keadaan
+            // yang sedang ditutup task ini, jadi kegagalan pendaftaran WAJIB membatalkan
+            // finalisasi.
+            //
+            // Penanda tangan adalah PENULIS catatan, bukan aktor yang menekan tombol selesai.
+            // Keduanya biasanya orang yang sama, tetapi ketika berbeda, yang bertanggung jawab
+            // atas isi catatan tetap penulisnya.
+            var authorUserId = consultation.CreateBy != Guid.Empty ? consultation.CreateBy : actorUserId;
+
+            try
+            {
+                await _integrityService.RegisterSignedAsync(
+                    ClinicalDocumentKind.Consultation,
+                    consultation.Id,
+                    consultation.PatientId,
+                    consultation.EncounterId,
+                    authorUserId,
+                    signatureDeviceInfo,
+                    signatureIpAddress,
+                    now,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException pendaftaranGagal)
+            {
+                // Kegagalannya dijawab sebagai penolakan permintaan, bukan kegagalan sistem,
+                // supaya pengguna membaca sebabnya dan bukan layar galat kosong. Transaksi
+                // dibatalkan lebih dulu, sehingga konsultasi tetap berstatus belum selesai.
+                await transaction.RollbackAsync(cancellationToken);
+
+                return ConsultationFinalizationOperationResult.Fail(
+                    "Konsultasi tidak dapat diselesaikan karena pendaftaran catatan pada rekam " +
+                    $"medis gagal: {pendaftaranGagal.Message}");
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);

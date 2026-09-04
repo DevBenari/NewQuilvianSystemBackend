@@ -62,7 +62,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             if (keutuhan == null)
             {
-                return Tolak("Catatan tidak ditemukan pada daftar keutuhan.");
+                // BE-RWI-038, VAL-DOK-32. Untuk jenis dokumen yang tunduk aturan keutuhan,
+                // tidak adanya baris keutuhan berarti dokumennya memang BELUM difinalkan —
+                // pendaftarannya justru terjadi pada saat finalisasi. Arahan yang benar bagi
+                // pengguna karena itu bukan "dokumen tidak dikenal", melainkan "perbaiki
+                // langsung pada catatannya", karena catatan yang belum final memang masih
+                // dapat disunting biasa dan tidak memerlukan koreksi beralasan.
+                return Tolak(ClinicalDocumentIntegrityService.DitegakkanUntuk(documentKind)
+                    ? "Catatan ini belum final. Perbaiki langsung pada catatannya."
+                    : "Catatan tidak ditemukan pada daftar keutuhan.");
             }
 
             if (keutuhan.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft)
@@ -181,6 +189,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 // Dokumen yang belum terkunci atau sudah dibatalkan adalah kesalahan permintaan,
                 // bukan kekurangan wewenang. Bedanya penting bagi pengguna.
                 var kode = kewenangan.Explanation.Contains("belum terkunci")
+                           || kewenangan.Explanation.Contains("belum final")
                            || kewenangan.Explanation.Contains("dibatalkan")
                            || kewenangan.Explanation.Contains("tidak ditemukan")
                     ? StatusCodes.Status400BadRequest

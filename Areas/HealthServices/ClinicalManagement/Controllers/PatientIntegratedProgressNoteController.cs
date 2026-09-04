@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -42,15 +44,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly CpptVerificationService _verificationService;
 
         public PatientIntegratedProgressNoteController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            CpptVerificationService verificationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _integrityService = integrityService;
+            _verificationService = verificationService;
         }
 
         [HttpGet("filters/metadata")]
@@ -630,6 +635,178 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Ok(ApiResponse<PatientIntegratedProgressNoteUpdateResponse>.Ok(
                 response,
                 "CPPT berhasil diubah."
+            ));
+        }
+
+        /// <summary>
+        /// Lini masa catatan terpadu lintas profesi pada satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-053</c>, <c>api-contract.md</c> bagian 3. Terurut menurut waktu catatan,
+        /// bukan waktu penyimpanan, supaya perkembangan pasien terbaca seperti yang benar-benar
+        /// terjadi. Catatan yang dibatalkan tidak ikut ditampilkan.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePatientIntegratedProgressNotePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Integrated Progress Note", Description = "Melihat lini masa CPPT lintas profesi satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientIntegratedProgressNote", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            [FromQuery] string? professionType = null,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var query = _dbContext.Set<TrxPatientIntegratedProgressNote>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.Encounter)
+                .Include(x => x.Doctor)
+                .Include(x => x.ProviderUser)
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete && !x.IsCancel);
+
+            if (!string.IsNullOrWhiteSpace(professionType))
+            {
+                var jenis = NormalizeProfessionType(professionType);
+                query = query.Where(x => x.ProfessionType == jenis);
+            }
+
+            if (from.HasValue)
+                query = query.Where(x => x.NoteDateTime >= from.Value);
+
+            if (to.HasValue)
+                query = query.Where(x => x.NoteDateTime <= to.Value);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .OrderBy(x => x.NoteDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var hasil = new ResponsePatientIntegratedProgressNotePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(ToResponse).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePatientIntegratedProgressNotePagedResult>.Ok(
+                hasil, "Lini masa CPPT perawatan rawat inap berhasil diambil."));
+        }
+
+        /// <summary>
+        /// DPJP menyatakan sudah membaca satu catatan profesi lain.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-053</c>, <c>INV-DOK-11</c>, <c>AC-CAP021-03</c>. Verifikasi <b>tidak
+        /// pernah</b> mengubah penulis catatan. Yang tersimpan adalah dua nama pada dua kolom
+        /// berbeda: penulis tetap profesi yang menulisnya, verifikator adalah DPJP yang
+        /// menyatakan sudah membacanya.
+        /// </para>
+        /// <para>
+        /// <c>Verify</c> adalah Action baru pada Resource yang sudah ada, dan namanya <b>sama
+        /// persis</b> pada penanda aksi dan penanda hak akses. Perbedaan nama di antara keduanya
+        /// menghasilkan <c>403</c> permanen yang tidak dapat diperbaiki dari layar Akses Role —
+        /// pelajaran <c>BE-RWI-034</c>.
+        /// </para>
+        /// </remarks>
+        [HttpPatch("{id:guid}/verify")]
+        [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Patient Integrated Progress Note", Description = "DPJP memverifikasi catatan profesi lain pada lembar terpadu", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientIntegratedProgressNote", "Verify")]
+        public async Task<IActionResult> VerifyProgressNote(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var actorDoctorId = await ResolveCurrentDoctorIdAsync(cancellationToken);
+
+            var hasil = await _verificationService.VerifyAsync(
+                id, actorUserId, actorDoctorId, DateTime.UtcNow, cancellationToken);
+
+            if (!hasil.IsSuccess || hasil.Note == null)
+            {
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(
+                    hasil.StatusCode,
+                    hasil.ErrorMessage ?? "Catatan tidak dapat diverifikasi."
+                ));
+            }
+
+            // Isi catatan bersifat sensitif dan tidak ikut masuk payload logger.
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientIntegratedProgressNote.VerifyProgressNote",
+                "DPJP memverifikasi catatan terpadu.",
+                new
+                {
+                    EntityId = hasil.Note.Id,
+                    hasil.Note.InpEpisodeId,
+                    hasil.Note.VerifiedAt,
+                    hasil.Note.VerifiedByUserId,
+                    AuthorUserId = hasil.Note.ProviderUserId
+                });
+
+            var lengkap = await _dbContext.Set<TrxPatientIntegratedProgressNote>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.Encounter)
+                .Include(x => x.Doctor)
+                .Include(x => x.ProviderUser)
+                .FirstAsync(x => x.Id == hasil.Note.Id, cancellationToken);
+
+            return Ok(ApiResponse<PatientIntegratedProgressNoteResponse>.Ok(
+                ToResponse(lengkap),
+                "Catatan terpadu berhasil diverifikasi."
+            ));
+        }
+
+        /// <summary>
+        /// Keadaan verifikasi seluruh catatan terpadu pada satu perawatan, beserta daftar
+        /// pantaunya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-053</c>, <c>VAL-DOK-24</c>, <c>VAL-DOK-25</c>. Daftar pantau memantau, ia
+        /// <b>tidak menahan</b>. Catatan yang lewat batas muncul di sini dan tetap tidak
+        /// menghalangi penulisan catatan berikutnya.
+        /// </para>
+        /// <para>
+        /// Penanda <c>isVerificationPolicyEmpty</c> dikembalikan apa adanya supaya layar dapat
+        /// menyatakan "kebijakan verifikasi belum aktif", bukan menampilkan daftar kosong yang
+        /// tampak seperti semuanya sudah beres. Nilai batas waktunya sendiri
+        /// <c>RWI-RULE-021</c> belum disahkan, dan tidak satu angka pun ditanam di kode.
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}/verification-status")]
+        [ProducesResponseType(typeof(ApiResponse<CpptVerificationStatusSummary>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Integrated Progress Note", Description = "Melihat catatan yang menunggu dan yang lewat batas verifikasi DPJP", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientIntegratedProgressNote", "Read")]
+        public async Task<IActionResult> GetVerificationStatusByEpisode(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _verificationService.GetStatusByEpisodeAsync(
+                episodeId, DateTime.UtcNow, cancellationToken);
+
+            return Ok(ApiResponse<CpptVerificationStatusSummary>.Ok(
+                hasil,
+                hasil.IsVerificationPolicyEmpty
+                    ? "Keadaan verifikasi berhasil diambil. Kebijakan verifikasi belum aktif, " +
+                      "sehingga tidak satu pun catatan diwajibkan diverifikasi."
+                    : "Keadaan verifikasi berhasil diambil."
             ));
         }
 
@@ -1310,6 +1487,86 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsReadOnlyGenerated = x.IsReadOnlyGenerated,
                 IsActive = x.IsActive
             };
+        }
+
+        /// <summary>
+        /// Menemukan baris dokter yang melekat pada pengguna yang sedang masuk.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-053</c>, <c>VAL-DOK-07</c>. Urutannya sama persis dengan
+        /// <c>PatientAssessmentController.ResolveCurrentDoctorIdAsync</c>: klaim identitas
+        /// dokter lebih dulu, lalu penautan lewat profil tenaga kerja, lalu surel. Ketiganya
+        /// bersandar pada data; tidak satu pun membaca nama peran.
+        /// </remarks>
+        private async Task<Guid?> ResolveCurrentDoctorIdAsync(CancellationToken cancellationToken)
+        {
+            var doctorIdClaim = User.FindFirstValue("doctor_id") ?? User.FindFirstValue("DoctorId");
+
+            if (Guid.TryParse(doctorIdClaim, out var dariKlaimDokter) && dariKlaimDokter != Guid.Empty)
+            {
+                var adaDokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == dariKlaimDokter && !x.IsDelete && x.IsActive,
+                              cancellationToken);
+
+                if (adaDokter)
+                    return dariKlaimDokter;
+            }
+
+            var workforceClaim = User.FindFirstValue("workforce_profile_id")
+                                 ?? User.FindFirstValue("WorkforceProfileId");
+
+            Guid? workforceProfileId =
+                Guid.TryParse(workforceClaim, out var dariKlaimProfil) && dariKlaimProfil != Guid.Empty
+                    ? dariKlaimProfil
+                    : null;
+
+            var currentUserId = GetCurrentUserId();
+
+            var pengguna = currentUserId == Guid.Empty
+                ? null
+                : await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(x => x.Id == currentUserId)
+                    .Select(x => new { x.WorkforceProfileId, x.Email })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            workforceProfileId ??= pengguna?.WorkforceProfileId;
+
+            if (workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty)
+            {
+                var dokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.WorkforceProfileId == workforceProfileId.Value &&
+                        !x.IsDelete &&
+                        x.IsActive)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (dokter.HasValue)
+                    return dokter;
+            }
+
+            if (!string.IsNullOrWhiteSpace(pengguna?.Email))
+            {
+                var surel = pengguna.Email.ToLower();
+
+                var dokter = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Email != null &&
+                        x.Email.ToLower() == surel &&
+                        !x.IsDelete &&
+                        x.IsActive)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (dokter.HasValue)
+                    return dokter;
+            }
+
+            return null;
         }
 
         private static List<PatientIntegratedProgressNoteProfessionOptionResponse> BuildProfessionOptions()

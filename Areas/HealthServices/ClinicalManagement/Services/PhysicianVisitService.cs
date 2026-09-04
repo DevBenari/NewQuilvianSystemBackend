@@ -156,6 +156,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     "Pasien dan dokter wajib diisi.");
             }
 
+            // BE-RWI-048, VAL-DOK-16. Waktu kedatangan boleh mundur sejauh apa pun - dokter
+            // sering baru sempat mencatat berjam-jam kemudian - tetapi tidak boleh maju.
+            // Kunjungan yang belum terjadi bukan fakta, dan mencatatnya membuat hitungan visite
+            // hari ini memuat kunjungan besok.
+            if (command.VisitDateTime != default &&
+                command.VisitDateTime > DateTime.UtcNow.Add(ToleransiJamMaju))
+            {
+                return PhysicianVisitResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Waktu visite tidak boleh melewati waktu sekarang.");
+            }
+
             var existing = await _dbContext.CliPhysicianVisits
                 .FirstOrDefaultAsync(x => x.IdempotencyKey == key, cancellationToken);
 
@@ -287,6 +299,214 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     x.VisitStatus == PhysicianVisitStatus.Recorded,
                     cancellationToken);
         }
+
+        /// <summary>
+        /// Menautkan dokumen pada kejadian yang sudah tercatat.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Hanya tautan dokumen yang boleh berubah. Waktu, peran, dokter, dan pasien
+        /// <b>tidak dapat disunting</b> lewat jalur mana pun - <c>RWI-DEC-085</c>. Kejadian
+        /// menyatakan fakta kedatangan; mengubah waktunya berarti fakta yang berbeda, dan cara
+        /// yang benar adalah membatalkan lalu mencatat ulang.
+        /// </para>
+        /// <para>
+        /// Nilai kosong berarti "jangan ubah tautan ini", bukan "hapus tautannya". Dengan
+        /// begitu layar yang hanya menautkan catatan tidak ikut melepas tautan tindakan yang
+        /// sudah ada.
+        /// </para>
+        /// </remarks>
+        /// <param name="visitId">Kejadian yang ditautkan.</param>
+        /// <param name="consultationId">Catatan dokter yang ditautkan, bila ada.</param>
+        /// <param name="progressNoteId">Catatan terpadu yang ditautkan, bila ada.</param>
+        /// <param name="patientProcedureId">Tindakan yang ditautkan, bila ada.</param>
+        /// <param name="actorUserId">Pengguna yang menautkan.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<PhysicianVisitResult> UpdateLinksAsync(
+            Guid visitId,
+            Guid? consultationId,
+            Guid? progressNoteId,
+            Guid? patientProcedureId,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var visit = await _dbContext.CliPhysicianVisits
+                .FirstOrDefaultAsync(x => x.Id == visitId && !x.IsDelete, cancellationToken);
+
+            if (visit == null)
+            {
+                return PhysicianVisitResult.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kejadian visite tidak ditemukan.");
+            }
+
+            if (visit.VisitStatus == PhysicianVisitStatus.Cancelled)
+            {
+                return PhysicianVisitResult.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Kejadian visite ini sudah dibatalkan dan tidak dapat ditautkan lagi.");
+            }
+
+            var adaPerubahan = false;
+
+            if (consultationId.HasValue && consultationId.Value != Guid.Empty)
+            {
+                var milikKunjunganYangSama = await _dbContext.Set<TrxDoctorConsultation>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == consultationId.Value
+                                   && x.EncounterId == visit.EncounterId
+                                   && !x.IsDelete, cancellationToken);
+
+                if (!milikKunjunganYangSama)
+                {
+                    return PhysicianVisitResult.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Catatan dokter yang ditautkan bukan milik kunjungan yang sama.");
+                }
+
+                visit.ConsultationId = consultationId;
+                adaPerubahan = true;
+            }
+
+            if (progressNoteId.HasValue && progressNoteId.Value != Guid.Empty)
+            {
+                var milikKunjunganYangSama = await _dbContext
+                    .Set<TrxPatientIntegratedProgressNote>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == progressNoteId.Value
+                                   && x.EncounterId == visit.EncounterId
+                                   && !x.IsDelete, cancellationToken);
+
+                if (!milikKunjunganYangSama)
+                {
+                    return PhysicianVisitResult.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Catatan terpadu yang ditautkan bukan milik kunjungan yang sama.");
+                }
+
+                visit.ProgressNoteId = progressNoteId;
+                adaPerubahan = true;
+            }
+
+            if (patientProcedureId.HasValue && patientProcedureId.Value != Guid.Empty)
+            {
+                var milikKunjunganYangSama = await _dbContext.Set<TrxPatientProcedure>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == patientProcedureId.Value
+                                   && x.EncounterId == visit.EncounterId
+                                   && !x.IsDelete, cancellationToken);
+
+                if (!milikKunjunganYangSama)
+                {
+                    return PhysicianVisitResult.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Tindakan yang ditautkan bukan milik kunjungan yang sama.");
+                }
+
+                visit.PatientProcedureId = patientProcedureId;
+                adaPerubahan = true;
+            }
+
+            if (adaPerubahan)
+            {
+                visit.UpdateDateTime = DateTime.UtcNow;
+                visit.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            return PhysicianVisitResult.Ok(visit, isReplay: true);
+        }
+
+        /// <summary>
+        /// Membaca satu kejadian visite.
+        /// </summary>
+        /// <param name="visitId">Kejadian yang dibaca.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public Task<CliPhysicianVisit?> FindAsync(
+            Guid visitId,
+            CancellationToken cancellationToken = default)
+            => _dbContext.CliPhysicianVisits
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == visitId && !x.IsDelete, cancellationToken);
+
+        /// <summary>
+        /// Query dasar riwayat kejadian visite beserta penyaringnya.
+        /// </summary>
+        /// <remarks>
+        /// Dipakai bersama oleh daftar, riwayat per perawatan, dan ringkasan, supaya ketiganya
+        /// tidak pernah menjawab pertanyaan yang sama dengan angka yang berbeda.
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang disaring, bila ada.</param>
+        /// <param name="encounterId">Kunjungan yang disaring, bila ada.</param>
+        /// <param name="doctorId">Dokter yang disaring, bila ada.</param>
+        /// <param name="from">Batas awal waktu kedatangan, bila ada.</param>
+        /// <param name="to">Batas akhir waktu kedatangan, bila ada.</param>
+        /// <param name="includeCancelled">
+        /// Benar berarti kejadian yang dibatalkan ikut ditampilkan beserta alasannya -
+        /// bawaan riwayat, karena <c>INV-DOK-08</c> menuntut auditor tetap melihatnya.
+        /// </param>
+        public IQueryable<CliPhysicianVisit> Query(
+            Guid? episodeId = null,
+            Guid? encounterId = null,
+            Guid? doctorId = null,
+            DateTime? from = null,
+            DateTime? to = null,
+            bool includeCancelled = true)
+        {
+            var query = _dbContext.CliPhysicianVisits
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (episodeId.HasValue && episodeId.Value != Guid.Empty)
+                query = query.Where(x => x.InpEpisodeId == episodeId.Value);
+
+            if (encounterId.HasValue && encounterId.Value != Guid.Empty)
+                query = query.Where(x => x.EncounterId == encounterId.Value);
+
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
+                query = query.Where(x => x.DoctorId == doctorId.Value);
+
+            if (from.HasValue)
+                query = query.Where(x => x.VisitDateTime >= from.Value);
+
+            if (to.HasValue)
+                query = query.Where(x => x.VisitDateTime <= to.Value);
+
+            if (!includeCancelled)
+                query = query.Where(x => x.VisitStatus == PhysicianVisitStatus.Recorded);
+
+            return query;
+        }
+
+        /// <summary>
+        /// Menghitung kejadian yang dibatalkan pada satu perawatan.
+        /// </summary>
+        /// <param name="episodeId">Perawatan yang dihitung.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<int> CountCancelledByEpisodeAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.CliPhysicianVisits
+                .AsNoTracking()
+                .CountAsync(x =>
+                    x.InpEpisodeId == episodeId &&
+                    !x.IsDelete &&
+                    x.VisitStatus == PhysicianVisitStatus.Cancelled,
+                    cancellationToken);
+        }
+
+        /// <summary>
+        /// Toleransi jam maju yang diterima saat mencatat visite.
+        /// </summary>
+        /// <remarks>
+        /// Jam perangkat pencatat dan jam server tidak selalu sama persis. Tanpa toleransi
+        /// kecil, dokter yang mencatat visite "sekarang" dari perangkat yang jamnya lebih cepat
+        /// beberapa detik akan ditolak tanpa ia mengerti sebabnya. Toleransinya sengaja pendek
+        /// supaya tidak menjadi celah mencatat kunjungan yang belum terjadi.
+        /// </remarks>
+        private static readonly TimeSpan ToleransiJamMaju = TimeSpan.FromMinutes(2);
 
         private static string? NormalizeNullableText(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();

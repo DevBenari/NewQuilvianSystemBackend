@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -48,7 +49,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                     new ClinicalMilestoneFactProducer(
                         c,
                         new BillingFolioService(c),
-                        ControllerTestHarness.BuatLoggerService())),
+                        ControllerTestHarness.BuatLoggerService()),
+                    // BE-RWI-038. Finalisasi kini sekaligus mendaftarkan catatan ke mesin
+                    // keutuhan rekam medis.
+                    new ClinicalDocumentIntegrityService(c)),
                 new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 

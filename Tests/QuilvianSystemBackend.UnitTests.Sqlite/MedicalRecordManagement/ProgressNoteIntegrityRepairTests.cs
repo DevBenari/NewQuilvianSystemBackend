@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Tests.Infrastructure;
@@ -28,7 +29,10 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             => new PatientIntegratedProgressNoteController(
                     context,
                     ControllerTestHarness.BuatLoggerService(actorUserId),
-                    new ClinicalDocumentIntegrityService(context))
+                    new ClinicalDocumentIntegrityService(context),
+                    // BE-RWI-053. Controller CPPT kini juga memegang verifikasi DPJP.
+                    new CpptVerificationService(
+                        context, new InpatientClinicalContextService(context)))
                 .DenganPengguna(actorUserId);
 
         /// <summary>

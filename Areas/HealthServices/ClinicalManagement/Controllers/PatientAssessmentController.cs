@@ -773,19 +773,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Sengaja hanya untuk kajian medis. Pendaftaran pengkajian keperawatan adalah
             // pekerjaan sub-modul keperawatan; menyalakannya dari sini akan mengubah perilaku
             // jalur poliklinik dan IGD yang tidak diminta task ini.
+            //
+            // BE-RWI-038 menaikkannya dari sekadar terdaftar menjadi TERTANDA TANGAN, dengan
+            // penulis kajian sebagai penanda tangannya. Bedanya menentukan: dokumen berstatus
+            // draf ditolak mesin koreksi dengan arahan menyunting langsung, sedangkan dokumen
+            // tertanda tangan justru satu-satunya yang menerima koreksi. Kajian yang selesai
+            // tidak dapat disunting lagi, jadi ia wajib berada di keadaan yang menerima koreksi.
             var isRegisteredToIntegrity = false;
 
             if (isKajianMedis && entity.EncounterId != Guid.Empty)
             {
                 var authorUserId = entity.AssessmentByUserId ?? entity.CreateBy;
 
-                await _integrityService.RegisterAsync(
-                    ClinicalDocumentKind.Assessment,
-                    entity.Id,
-                    entity.PatientId,
-                    entity.EncounterId,
-                    authorUserId,
-                    isAuthorKnown: authorUserId != Guid.Empty);
+                if (authorUserId == Guid.Empty)
+                    authorUserId = actorUserId;
+
+                try
+                {
+                    await _integrityService.RegisterSignedAsync(
+                        ClinicalDocumentKind.Assessment,
+                        entity.Id,
+                        entity.PatientId,
+                        entity.EncounterId,
+                        authorUserId,
+                        deviceInfo: Request.Headers.UserAgent.ToString(),
+                        ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+                        nowUtc: now);
+                }
+                catch (InvalidOperationException pendaftaranGagal)
+                {
+                    // BE-RWI-038 kriteria 2. Pendaftaran dan penyelesaian berada pada
+                    // SaveChanges yang sama; keluar lebih awal berarti tidak satu pun
+                    // perubahan di atas ikut tersimpan, sehingga kajian tetap belum selesai.
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Kajian medis tidak dapat diselesaikan karena pendaftaran pada rekam " +
+                        $"medis gagal: {pendaftaranGagal.Message}"
+                    ));
+                }
 
                 isRegisteredToIntegrity = true;
             }

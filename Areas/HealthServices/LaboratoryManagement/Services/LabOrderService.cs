@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -65,23 +66,96 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 query = query.Where(x => x.EncounterId == encounterId.Value);
             }
 
-            return await query
-                .OrderByDescending(x => x.CreateDateTime)
-                .Select(x => new LabOrderListResponse
+            return await ProyeksikanDaftarAsync(
+                query.OrderByDescending(x => x.CreateDateTime), cancellationToken);
+        }
+
+        /// <summary>
+        /// Pesanan laboratorium beserta ketersediaan hasilnya untuk satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-052</c>, <c>INV-DOK-12</c>, <c>RUL-DOK-02</c>. Penyaringnya adalah penanda
+        /// perawatan, bukan pasien. Pasien yang dirawat dua kali dalam sebulan memiliki dua
+        /// rangkaian pesanan yang berbeda, dan menyaring per pasien akan menampilkan hasil
+        /// perawatan lama pada layar perawatan yang sedang berjalan.
+        /// </para>
+        /// <para>
+        /// <b>Nol tabel salinan.</b> Yang dibaca adalah baris pesanan milik Laboratorium apa
+        /// adanya. Rawat Inap tidak menyimpan satu baris hasil pun; menyalinnya berarti
+        /// menampilkan hasil yang sudah basi ketika Laboratorium merevisinya.
+        /// </para>
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang pesanannya dibaca.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<List<LabOrderListResponse>> GetByEpisodeAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.InpEpisodeId == episodeId);
+
+            return await ProyeksikanDaftarAsync(
+                query.OrderBy(x => x.CreateDateTime), cancellationToken);
+        }
+
+        /// <summary>
+        /// Memproyeksikan pesanan menjadi baris daftar beserta penanda ketersediaan hasilnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>VAL-DOK-30</c>. Hasil dinyatakan final hanya ketika pesanannya benar-benar selesai
+        /// dan tidak dibatalkan. Selain itu, barisnya ditandai belum final beserta kalimat yang
+        /// siap ditampilkan apa adanya - dokter harus melihat perbedaannya tanpa perlu
+        /// menerjemahkan nama status.
+        /// </remarks>
+        private static async Task<List<LabOrderListResponse>> ProyeksikanDaftarAsync(
+            IOrderedQueryable<LabOrder> query,
+            CancellationToken cancellationToken)
+        {
+            var baris = await query
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    EncounterId = x.EncounterId,
-                    ProcedureId = x.ProcedureId,
+                    x.Id,
+                    x.EncounterId,
+                    x.InpEpisodeId,
+                    x.ProcedureId,
                     ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
                     ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
-                    OrderStatus = x.OrderStatus.ToString(),
+                    x.OrderStatus,
                     SpecimenCount = x.Specimens.Count(s => !s.IsDelete),
                     AcceptedSpecimenCount = x.Specimens.Count(s =>
                         !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
-                    IsCancel = x.IsCancel,
-                    CreateDateTime = x.CreateDateTime
+                    x.IsCancel,
+                    x.CreateDateTime
                 })
                 .ToListAsync(cancellationToken);
+
+            return baris.Select(x =>
+            {
+                var final = x.OrderStatus == LabOrderStatus.Completed && !x.IsCancel;
+
+                return new LabOrderListResponse
+                {
+                    Id = x.Id,
+                    EncounterId = x.EncounterId,
+                    InpEpisodeId = x.InpEpisodeId,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    OrderStatus = x.OrderStatus.ToString(),
+                    SpecimenCount = x.SpecimenCount,
+                    AcceptedSpecimenCount = x.AcceptedSpecimenCount,
+                    IsCancel = x.IsCancel,
+                    IsResultFinal = final,
+                    ResultAvailabilityNote = x.IsCancel
+                        ? "Pesanan dibatalkan; tidak ada hasil."
+                        : final
+                            ? "Hasil sudah final."
+                            : "Hasil belum final. Jangan dipakai sebagai dasar keputusan klinis.",
+                    CreateDateTime = x.CreateDateTime
+                };
+            }).ToList();
         }
 
         public async Task<LabOrderDetailResponse?> GetDetailAsync(
@@ -137,6 +211,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (!encounterExists)
                 throw new KeyNotFoundException("Encounter tidak ditemukan.");
 
+            // BE-RWI-052 kriteria 1, VAL-DOK-22. Penanda perawatan boleh kosong - pesanan
+            // poliklinik dan IGD memang tidak punya perawatan rawat inap. Yang dijaga adalah
+            // KECOCOKANNYA ketika penandanya dikirim: pesanan perawatan A tidak boleh diproses
+            // sebagai milik perawatan B.
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var episodeCocok = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.InpEpisodeId.Value
+                                   && x.EncounterId == request.EncounterId
+                                   && !x.IsDelete,
+                              cancellationToken);
+
+                if (!episodeCocok)
+                    throw new ArgumentException("Pesanan ini tidak cocok dengan perawatan pasien.");
+            }
+
             var procedure = await _dbContext.Set<MstProcedure>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
@@ -158,6 +249,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var entity = new LabOrder
             {
                 EncounterId = request.EncounterId,
+                // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir, sehingga
+                // pembacaan per perawatan menjadi pemeriksaan satu kolom.
+                InpEpisodeId = request.InpEpisodeId,
                 ProcedureId = request.ProcedureId,
                 // Disiplin hanya boleh ditetapkan di sini. Setelah baris ini tersimpan, EF
                 // menolak setiap upaya mengubahnya (INV-21).

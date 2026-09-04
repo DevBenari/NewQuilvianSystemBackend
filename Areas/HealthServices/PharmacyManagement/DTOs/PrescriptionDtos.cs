@@ -29,7 +29,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string? PatientClassNameSnapshot { get; set; }
         public PrescriptionStatus PrescriptionStatus { get; set; }
         public PrescriptionPaymentStatus PaymentStatus { get; set; }
+
+        /// <summary>
+        /// Keadaan pemenuhan resep, milik <c>PharmacyManagement</c>. <b>Hanya dibaca</b> dari
+        /// sub-modul Rawat Inap - <c>RUL-DOK-01</c>.
+        /// </summary>
         public PrescriptionFulfillmentStatus FulfillmentStatus { get; set; }
+
+        /// <summary>Jenis resep: rutin, harian, atau obat pulang - <c>BE-RWI-050</c>.</summary>
+        public PrescriptionOrderType PrescriptionOrderType { get; set; }
+
+        /// <summary>Perawatan rawat inap yang menaungi resep, bila ada.</summary>
+        public Guid? InpEpisodeId { get; set; }
+
         public DateTime PrescriptionDateTime { get; set; }
         public int RegularItemCount { get; set; }
         public int CompoundCount { get; set; }
@@ -148,6 +160,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         [Required]
         public Guid ConsultationId { get; set; }
         public DateTime? PrescriptionDateTime { get; set; }
+
+        /// <summary>
+        /// Jenis resep menurut peruntukannya - <c>BE-RWI-050</c>, <c>RWI-DEC-046</c>.
+        /// </summary>
+        /// <remarks>
+        /// Obat pulang menjadi jenis yang <b>eksplisit</b>, bukan disimpulkan dari waktu
+        /// penulisan maupun dari status perawatan. Petugas farmasi harus dapat menyaringnya di
+        /// layar mereka sendiri, dan menebaknya dari waktu akan salah pada pasien yang
+        /// pemulangannya tertunda.
+        /// </remarks>
+        public PrescriptionOrderType PrescriptionOrderType { get; set; } = PrescriptionOrderType.Routine;
+
+        /// <summary>
+        /// Kunci permintaan. Opsional, tetapi sangat dianjurkan: tanpa kunci, percobaan ulang
+        /// karena jaringan terputus melahirkan resep kedua beserta obatnya.
+        /// </summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+
         [MaxLength(1000)]
         public string? ClinicalNote { get; set; }
         [MaxLength(1000)]
@@ -169,6 +200,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string PrescriptionNumber { get; set; } = string.Empty;
         public Guid EncounterId { get; set; }
         public Guid ConsultationId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public PrescriptionOrderType PrescriptionOrderType { get; set; }
         public PrescriptionStatus PrescriptionStatus { get; set; }
         public PrescriptionPaymentStatus PaymentStatus { get; set; }
         public PrescriptionFulfillmentStatus FulfillmentStatus { get; set; }

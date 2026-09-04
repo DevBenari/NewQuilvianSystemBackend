@@ -294,9 +294,13 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
         /// <summary>
         /// Jenis dokumen yang belum tunduk aturan keutuhan dibiarkan lewat.
         ///
-        /// Ini yang membuat cakupan rilis pertama dapat dibatasi ke satu jenis dokumen tanpa
-        /// memblokir alur yang berjalan. Keadaannya dinyatakan terbuka di layar, bukan
-        /// disembunyikan.
+        /// Ini yang membuat cakupan rilis dapat dibatasi tanpa memblokir alur yang berjalan.
+        /// Keadaannya dinyatakan terbuka di layar, bukan disembunyikan.
+        ///
+        /// BE-RWI-038 menambahkan catatan dokter, kajian medis, dan tindakan ke daftar yang
+        /// ditegakkan, sehingga contoh jenis yang belum ditegakkan pada uji ini berpindah ke
+        /// tanda vital. Yang dibuktikan uji ini tetap sama: jenis di luar daftar dibiarkan
+        /// lewat.
         /// </summary>
         [Fact]
         public async Task JenisDokumenYangBelumDitegakkan_DibiarkanLewat()
@@ -307,12 +311,30 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.True(ClinicalDocumentIntegrityService.DitegakkanUntuk(
                 ClinicalDocumentKind.ProgressNote));
             Assert.False(ClinicalDocumentIntegrityService.DitegakkanUntuk(
-                ClinicalDocumentKind.Consultation));
+                ClinicalDocumentKind.VitalSign));
 
             var hasil = await Service(context).EnsureMutableAsync(
-                ClinicalDocumentKind.Consultation, Guid.NewGuid());
+                ClinicalDocumentKind.VitalSign, Guid.NewGuid());
 
             Assert.True(hasil.IsAllowed);
+        }
+
+        /// <summary>
+        /// BE-RWI-038. Tiga jenis dokumen yang finalisasinya kini mendaftarkan diri ke mesin
+        /// keutuhan benar-benar masuk daftar yang ditegakkan.
+        ///
+        /// Tanpa ini, pendaftaran tetap terjadi tetapi aturan penguncian tidak berlaku, dan
+        /// dokumen final tetap dapat disunting diam-diam.
+        /// </summary>
+        [Fact]
+        public void TigaJenisDokumenRawatInap_MasukDaftarYangDitegakkan()
+        {
+            Assert.True(ClinicalDocumentIntegrityService.DitegakkanUntuk(
+                ClinicalDocumentKind.Consultation));
+            Assert.True(ClinicalDocumentIntegrityService.DitegakkanUntuk(
+                ClinicalDocumentKind.Assessment));
+            Assert.True(ClinicalDocumentIntegrityService.DitegakkanUntuk(
+                ClinicalDocumentKind.Procedure));
         }
 
         // =====================================================================

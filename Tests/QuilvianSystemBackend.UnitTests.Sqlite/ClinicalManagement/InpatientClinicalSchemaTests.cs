@@ -265,7 +265,12 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var aktor = RekamMedisTestData.BuatPengguna(context, "perekam");
 
             var service = new PhysicianVisitService(context, new PhysicianVisitNumberService());
-            var hariIni = DateTime.UtcNow.Date.AddHours(7);
+
+            // BE-RWI-048 menyalakan VAL-DOK-16: waktu visite tidak boleh melewati waktu
+            // sekarang. Kedua waktu uji karena itu diletakkan pada satu hari yang sudah lewat
+            // - yang dibuktikan uji ini tetap sama, yaitu dua visite pada TANGGAL YANG SAMA
+            // menghasilkan dua baris.
+            var hariIni = DateTime.UtcNow.Date.AddDays(-1).AddHours(7);
 
             var pagi = await service.RecordAsync(new RecordPhysicianVisitCommand
             {

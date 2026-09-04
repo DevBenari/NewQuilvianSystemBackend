@@ -781,7 +781,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 id,
                 request,
                 actorUserId,
-                cancellationToken
+                cancellationToken,
+                // BE-RWI-038, RM-DEC-021. Perangkat dan alamat jaringan penanda tangan diambil
+                // dari permintaan HTTP, bukan dari kiriman klien. Nilai yang dikirim klien dapat
+                // dipalsukan, dan bukti tanda tangan yang dapat dipalsukan bukan bukti.
+                signatureDeviceInfo: Request.Headers.UserAgent.ToString(),
+                signatureIpAddress: HttpContext.Connection.RemoteIpAddress?.ToString()
             );
 
             if (result.IsConflict)

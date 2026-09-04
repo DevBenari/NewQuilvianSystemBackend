@@ -273,6 +273,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             [FromBody] CreatePrescriptionRequest request,
             CancellationToken cancellationToken = default)
         {
+            // BE-RWI-050 kriteria 3. Kiriman ulang dengan kunci yang sama mengembalikan resep
+            // yang sudah ada, bukan resep kedua. Diperiksa PALING AWAL supaya percobaan ulang
+            // tidak menyentuh konteks pembayaran maupun penomoran resep sama sekali.
+            var kunciPermintaan = NormalizeNullableText(request.IdempotencyKey);
+
+            if (kunciPermintaan != null)
+            {
+                var sudahAda = await _dbContext.Set<TrxPrescription>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.IdempotencyKey == kunciPermintaan && !x.IsDelete,
+                                         cancellationToken);
+
+                if (sudahAda != null)
+                {
+                    var ringkasanUlang = await _prescriptionSummaryService.ReadConsultationSummaryAsync(
+                        sudahAda.ConsultationId, cancellationToken);
+
+                    return Ok(ApiResponse<PrescriptionCreateResponse>.Ok(
+                        ToCreateResponse(sudahAda, ringkasanUlang),
+                        "Resep sudah tercatat sebelumnya dengan kunci permintaan yang sama."));
+                }
+            }
+
             var validation = await ValidateCreateRequestAsync(request, cancellationToken);
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data resep tidak valid."));
@@ -304,6 +327,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 // bukan ditanyakan ulang: resep memang lahir dari satu catatan, dan mewarisinya
                 // membuat resep tidak pernah menunjuk perawatan yang berbeda dari catatannya.
                 InpEpisodeId = consultation.InpEpisodeId,
+                // BE-RWI-050. Jenis resep dan kunci permintaan distempel saat resep lahir.
+                PrescriptionOrderType = request.PrescriptionOrderType,
+                IdempotencyKey = kunciPermintaan,
                 PatientId = consultation.PatientId,
                 DoctorId = consultation.DoctorId,
                 ServiceUnitId = consultation.ServiceUnitId,
@@ -345,6 +371,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
             await _loggerService.InfoAsync(LogCategory, "Prescription.CreatePrescription", "Membuat header resep dokter.", response);
             return Ok(ApiResponse<PrescriptionCreateResponse>.Ok(response, "Header resep berhasil dibuat."));
+        }
+
+        /// <summary>
+        /// Seluruh resep satu perawatan rawat inap beserta keadaan pemenuhannya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-050</c> kriteria 1, 2, dan 4; <c>api-contract.md</c> bagian 6. Pasien yang
+        /// dirawat lima hari menerima resep setiap hari, dan seluruhnya terbaca di sini terurut
+        /// waktu penulisan.
+        /// </para>
+        /// <para>
+        /// <b>Keadaan pemenuhan hanya dibaca.</b> Tidak ada satu pun endpoint pada controller
+        /// ini yang mengubahnya - <c>RUL-DOK-01</c>. Menandai obat sudah diserahkan adalah
+        /// kewenangan petugas Farmasi lewat permukaannya sendiri.
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePrescriptionPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Prescription", Description = "Melihat resep satu perawatan rawat inap beserta status pemenuhannya", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Prescription", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            [FromQuery] PrescriptionOrderType? orderType = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete);
+
+            if (orderType.HasValue)
+                query = query.Where(x => x.PrescriptionOrderType == orderType.Value);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .OrderBy(x => x.PrescriptionDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var hasil = new ResponsePrescriptionPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(ToResponse).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePrescriptionPagedResult>.Ok(
+                hasil, "Resep perawatan rawat inap berhasil diambil."));
         }
 
         [HttpPut("{id:guid}")]
@@ -611,6 +695,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionStatus = x.PrescriptionStatus,
                 PaymentStatus = x.PaymentStatus,
                 FulfillmentStatus = x.FulfillmentStatus,
+                // BE-RWI-050. Jenis resep dan penanda perawatan ikut dibaca, supaya layar
+                // farmasi dapat menyaring obat pulang dan layar dokter dapat membaca seluruh
+                // resep satu perawatan.
+                PrescriptionOrderType = x.PrescriptionOrderType,
+                InpEpisodeId = x.InpEpisodeId,
                 PrescriptionDateTime = x.PrescriptionDateTime,
                 RegularItemCount = x.RegularItemCount,
                 CompoundCount = x.CompoundCount,
@@ -680,6 +769,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionNumber = x.PrescriptionNumber,
                 EncounterId = x.EncounterId,
                 ConsultationId = x.ConsultationId,
+                InpEpisodeId = x.InpEpisodeId,
+                PrescriptionOrderType = x.PrescriptionOrderType,
                 PrescriptionStatus = x.PrescriptionStatus,
                 PaymentStatus = x.PaymentStatus,
                 FulfillmentStatus = x.FulfillmentStatus,

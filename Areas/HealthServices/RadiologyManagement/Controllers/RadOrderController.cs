@@ -65,6 +65,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 result, "Detail order radiologi berhasil diambil."));
         }
 
+        /// <summary>
+        /// Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-052</c>, <c>api-contract.md</c> bagian 8. Hasil yang belum final ditandai
+        /// dan <b>tidak</b> disajikan sebagai hasil sah — <c>VAL-DOK-30</c>. Tidak ada satu pun
+        /// baris hasil yang disalin ke Rawat Inap — <c>RUL-DOK-02</c>.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan dan hasil radiologi satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _radOrderService.GetByEpisodeAsync(episodeId, cancellationToken);
+
+            return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
+                result,
+                "Pesanan radiologi perawatan rawat inap berhasil diambil."));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

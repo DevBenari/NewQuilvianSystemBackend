@@ -57,7 +57,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                     new ClinicalMilestoneFactProducer(
                         c,
                         new BillingFolioService(c),
-                        ControllerTestHarness.BuatLoggerService())),
+                        ControllerTestHarness.BuatLoggerService()),
+                    // BE-RWI-038. Finalisasi kini sekaligus mendaftarkan catatan ke mesin
+                    // keutuhan rekam medis.
+                    new ClinicalDocumentIntegrityService(c)),
                 new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 

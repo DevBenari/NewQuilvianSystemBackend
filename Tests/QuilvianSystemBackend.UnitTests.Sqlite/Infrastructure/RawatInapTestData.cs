@@ -138,6 +138,22 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             context.Set<TrxPatientEncounter>().Add(kunjungan);
             context.SaveChanges();
 
+            // Sumber pembayaran wajib ada pada setiap kunjungan - "Satu encounter wajib
+            // mempunyai tepat satu sumber pembayaran". Tanpa baris ini, seluruh jalur yang
+            // menghitung tarif - resep dan tindakan - ditolak dengan "Sumber pembayaran
+            // encounter tidak ditemukan", dan penolakan itu menyamarkan hal yang sedang diuji.
+            var sumberPembayaran = new TrxPatientEncounterGuarantor
+            {
+                PaymentSourceNumber = $"BYR-{pembeda}",
+                EncounterId = kunjungan.Id,
+                PatientId = pasien.Id,
+                PaymentType = EncounterPaymentType.Cash,
+                PaymentSourceNameSnapshot = "Tunai",
+                IsActive = true
+            };
+            context.Set<TrxPatientEncounterGuarantor>().Add(sumberPembayaran);
+            context.SaveChanges();
+
             var episode = new InpEpisode
             {
                 EpisodeNumber = $"RI-{pembeda}",
