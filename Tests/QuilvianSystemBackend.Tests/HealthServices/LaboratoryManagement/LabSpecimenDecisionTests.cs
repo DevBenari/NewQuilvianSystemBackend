@@ -392,8 +392,170 @@ public class LabSpecimenDecisionTests
             galat.Message);
     }
 
+    /// <summary>
+    /// <c>AC-38</c>. Bahannya diambil ulang karena yang lama tidak layak — bukan karena
+    /// permintaan dokternya berubah. Menyalin hanya satu pemeriksaan akan diam-diam membatalkan
+    /// sisanya.
+    /// </summary>
+    [Fact]
+    public async Task AC38_WadahPengganti_MenampungSeluruhPemeriksaanWadahLama()
+    {
+        await using var context = CreateContext();
+        var dunia = await SeedAsync(context);
+        var wadahLama = await SiapkanWadahDitolakAsync(context, dunia);
+
+        var hasil = await CreateService(context, Penilai).RequestRecollectionAsync(
+            wadahLama,
+            new RequestLabRecollectionRequest { Cause = LabRecollectionCause.InternalHospitalError });
+
+        context.ChangeTracker.Clear();
+
+        var pengganti = hasil.Specimen.Id;
+
+        Assert.NotEqual(wadahLama, pengganti);
+
+        var pemeriksaanPengganti = await context.LabExaminations.AsNoTracking()
+            .Where(x => x.SpecimenId == pengganti).ToListAsync();
+
+        // Kedua pemeriksaan ikut pindah ke bahan pengganti, bukan satu saja.
+        Assert.Equal(2, pemeriksaanPengganti.Count);
+        Assert.All(pemeriksaanPengganti, x => Assert.Equal(LabExaminationStatus.Ordered, x.ExaminationStatus));
+        Assert.Equal(
+            new[] { dunia.Hemoglobin, dunia.Leukosit }.OrderBy(x => x),
+            pemeriksaanPengganti.Select(x => x.ProcedureId).OrderBy(x => x));
+
+        // Pemeriksaan wadah lama tetap gugur — keduanya tidak dihidupkan kembali.
+        var pemeriksaanLama = await context.LabExaminations.AsNoTracking()
+            .Where(x => x.SpecimenId == wadahLama).ToListAsync();
+
+        Assert.Equal(2, pemeriksaanLama.Count);
+        Assert.All(pemeriksaanLama, x => Assert.Equal(LabExaminationStatus.Voided, x.ExaminationStatus));
+
+        // Wadah pengganti membawa barcode sendiri dan menunjuk asal-usulnya.
+        var penggantiTersimpan = await context.LabSpecimens.AsNoTracking()
+            .SingleAsync(x => x.Id == pengganti);
+
+        Assert.Equal(wadahLama, penggantiTersimpan.SupersededSpecimenId);
+    }
+
+    [Fact]
+    public async Task AC38_PemeriksaanYangSudahDibatalkanSendiri_TidakIkutPindahKeWadahPengganti()
+    {
+        await using var context = CreateContext();
+        var dunia = await SeedAsync(context);
+        var wadahLama = await SiapkanWadahDiterimaAsync(context, dunia, CreateService(context, Penilai));
+
+        // Satu pemeriksaan dibatalkan tersendiri sebelum wadahnya ditolak.
+        var dibatalkan = await context.LabExaminations
+            .Where(x => x.SpecimenId == wadahLama).OrderBy(x => x.ProcedureCodeSnapshot).FirstAsync();
+        dibatalkan.ExaminationStatus = LabExaminationStatus.Cancelled;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        await CreateService(context, Penilai).RejectAsync(
+            wadahLama, new RejectLabSpecimenRequest { ReasonCode = "CLOTTED" });
+        context.ChangeTracker.Clear();
+
+        var hasil = await CreateService(context, Penilai).RequestRecollectionAsync(
+            wadahLama,
+            new RequestLabRecollectionRequest { Cause = LabRecollectionCause.InternalHospitalError });
+
+        context.ChangeTracker.Clear();
+
+        var pemeriksaanPengganti = await context.LabExaminations.AsNoTracking()
+            .Where(x => x.SpecimenId == hasil.Specimen.Id).ToListAsync();
+
+        // Hanya satu yang pindah — pembatalan klinis tetap berlaku pada bahan pengganti.
+        Assert.Single(pemeriksaanPengganti);
+        Assert.NotEqual(dibatalkan.ProcedureId, pemeriksaanPengganti[0].ProcedureId);
+    }
+
     // =====================================================================
-    // 5. Pemetaan kode status pada controller
+    // 5. FR-05.1 — fakta kelayakan tagih per pemeriksaan
+    // =====================================================================
+
+    /// <summary>
+    /// Inti <c>FR-05.1</c> dan <c>AC-37</c>: wadah adalah bahan, yang ditagihkan adalah
+    /// pemeriksaan yang dikerjakan darinya. Satu tabung yang menopang dua pemeriksaan
+    /// menerbitkan <b>dua</b> fakta dengan salinan tarif masing-masing — bukan satu fakta
+    /// berharga satu tabung.
+    /// </summary>
+    [Fact]
+    public async Task FR0501_WadahDuaPemeriksaan_MenerbitkanDuaFaktaDenganTarifMasingMasing()
+    {
+        await using var context = CreateContext();
+        var dunia = await SeedAsync(context);
+        var wadah = await SiapkanWadahDiterimaAsync(context, dunia, CreateService(context, Penilai));
+
+        var hasil = await CreateService(context, Penilai).AcceptAsync(
+            wadah, new AcceptLabSpecimenRequest());
+
+        Assert.NotNull(hasil.Handoff);
+
+        // Dua fakta, bukan satu.
+        Assert.Equal(2, hasil.Handoff!.Count);
+        Assert.Equal(2, hasil.Handoff.FactIds.Distinct().Count());
+
+        context.ChangeTracker.Clear();
+
+        // Masing-masing menunjuk identitas pemeriksaan, dan setiap pemeriksaan menjadi layak
+        // tagih pada waktu keputusan yang sama.
+        var pemeriksaan = await context.LabExaminations.AsNoTracking()
+            .Where(x => x.SpecimenId == wadah).ToListAsync();
+
+        Assert.Equal(2, pemeriksaan.Count);
+        Assert.All(pemeriksaan, x => Assert.Equal(LabExaminationStatus.ChargeEligible, x.ExaminationStatus));
+        Assert.All(pemeriksaan, x => Assert.NotNull(x.ChargeEligibleAt));
+        Assert.Single(pemeriksaan.Select(x => x.ChargeEligibleAt).Distinct());
+
+        // Salinan tarifnya berbeda — 35.000 dan 30.000, bukan satu angka untuk seluruh tabung.
+        Assert.Equal(
+            new decimal?[] { 30_000m, 35_000m },
+            pemeriksaan.Select(x => x.UnitPriceSnapshot).OrderBy(x => x).ToArray());
+    }
+
+    /// <summary>
+    /// Idempotensi. Menekan tombol layak dua kali menghasilkan <b>dua</b> fakta, bukan empat —
+    /// karena identitas faktanya menunjuk pemeriksaan yang sama.
+    /// </summary>
+    [Fact]
+    public async Task FR0501_MenekanLayakDuaKali_TetapMenghasilkanDuaFakta()
+    {
+        await using var context = CreateContext();
+        var dunia = await SeedAsync(context);
+        var wadah = await SiapkanWadahDiterimaAsync(context, dunia, CreateService(context, Penilai));
+
+        var pertama = await CreateService(context, Penilai).AcceptAsync(
+            wadah, new AcceptLabSpecimenRequest());
+        context.ChangeTracker.Clear();
+
+        var kedua = await CreateService(context, Penilai).AcceptAsync(
+            wadah, new AcceptLabSpecimenRequest());
+
+        Assert.Equal(2, pertama.Handoff!.Count);
+        Assert.Equal(2, kedua.Handoff!.Count);
+
+        // Identitas faktanya sama persis — pengiriman ulang, bukan fakta baru.
+        Assert.Equal(
+            pertama.Handoff.FactIds.OrderBy(x => x),
+            kedua.Handoff.FactIds.OrderBy(x => x));
+    }
+
+    [Fact]
+    public async Task WadahDitolak_TidakMenerbitkanFaktaApaPun()
+    {
+        await using var context = CreateContext();
+        var dunia = await SeedAsync(context);
+        var wadah = await SiapkanWadahDiterimaAsync(context, dunia, CreateService(context, Penilai));
+
+        var hasil = await CreateService(context, Penilai).RejectAsync(
+            wadah, new RejectLabSpecimenRequest { ReasonCode = "CLOTTED" });
+
+        Assert.Null(hasil.Handoff);
+    }
+
+    // =====================================================================
+    // 6. Pemetaan kode status pada controller
     // =====================================================================
 
     /// <summary>
