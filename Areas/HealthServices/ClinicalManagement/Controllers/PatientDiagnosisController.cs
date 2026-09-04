@@ -566,8 +566,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/set-primary")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Set Primary Patient Diagnosis", Description = "Menandai diagnosis utama pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientDiagnosis", "Update")]
+        [AccessAction("SetPrimary", "Set Primary Patient Diagnosis", Description = "Menandai diagnosis utama pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PatientDiagnosis", "SetPrimary")]
         public async Task<IActionResult> SetPrimary(Guid id, [FromBody] SetPrimaryPatientDiagnosisRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientDiagnosis>()
@@ -632,8 +632,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/resolve")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Resolve Patient Diagnosis", Description = "Menandai diagnosis pasien sudah resolved", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientDiagnosis", "Update")]
+        [AccessAction("Resolve", "Resolve Patient Diagnosis", Description = "Menandai diagnosis pasien sudah resolved", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientDiagnosis", "Resolve")]
         public async Task<IActionResult> ResolveDiagnosis(Guid id, [FromBody] ResolvePatientDiagnosisRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientDiagnosis>()
@@ -677,8 +677,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Diagnosis", Description = "Membatalkan diagnosis pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("PatientDiagnosis", "Update")]
+        [AccessAction("Cancel", "Cancel Patient Diagnosis", Description = "Membatalkan diagnosis pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientDiagnosis", "Cancel")]
         public async Task<IActionResult> CancelDiagnosis(Guid id, [FromBody] CancelPatientDiagnosisRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientDiagnosis>()

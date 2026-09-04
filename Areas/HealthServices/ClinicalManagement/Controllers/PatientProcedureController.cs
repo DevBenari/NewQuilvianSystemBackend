@@ -343,8 +343,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Create", "Select Patient Procedure", Description = "Memilih tindakan dokter rawat jalan", AccessType = AccessTypes.Create, SortOrder = 2)]
-        [AccessPermission("PatientProcedure", "Create")]
+        [AccessAction("Select", "Select Patient Procedure", Description = "Memilih tindakan dokter rawat jalan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientProcedure", "Select")]
         public async Task<IActionResult> SelectProcedure([FromBody] SelectPatientProcedureRequest request)
         {
             var validation = await ValidateDoctorSelectionRequestAsync(request);
@@ -610,8 +610,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Update Patient Procedure", Description = "Mengubah tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("PatientProcedure", "Update")]
+        [AccessAction("Edit", "Update Patient Procedure", Description = "Mengubah tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientProcedure", "Edit")]
         public async Task<IActionResult> UpdateProcedure(Guid id, [FromBody] UpdatePatientProcedureRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
@@ -841,8 +841,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/approve")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Approve Patient Procedure", Description = "Approve tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientProcedure", "Update")]
+        [AccessAction("Approve", "Approve Patient Procedure", Description = "Approve tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PatientProcedure", "Approve")]
         public async Task<IActionResult> ApproveProcedure(Guid id, [FromBody] ApprovePatientProcedureRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
@@ -910,8 +910,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Execute Patient Procedure", Description = "Eksekusi tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientProcedure", "Update")]
+        [AccessAction("Execute", "Execute Patient Procedure", Description = "Eksekusi tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientProcedure", "Execute")]
         public async Task<IActionResult> ExecuteProcedure(Guid id, [FromBody] ExecutePatientProcedureRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
@@ -992,8 +992,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Remove Draft Patient Procedure", Description = "Menghapus pilihan tindakan dari draft konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("PatientProcedure", "Update")]
+        [AccessAction("RemoveDraft", "Remove Draft Patient Procedure", Description = "Menghapus pilihan tindakan dari draft konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientProcedure", "RemoveDraft")]
         public async Task<IActionResult> RemoveDraftProcedure(Guid id)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
@@ -1051,8 +1051,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Procedure", Description = "Membatalkan tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("PatientProcedure", "Update")]
+        [AccessAction("Cancel", "Cancel Patient Procedure", Description = "Membatalkan tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientProcedure", "Cancel")]
         public async Task<IActionResult> CancelProcedure(Guid id, [FromBody] CancelPatientProcedureRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()

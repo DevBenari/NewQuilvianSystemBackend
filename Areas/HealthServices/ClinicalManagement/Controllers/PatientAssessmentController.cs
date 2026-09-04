@@ -533,8 +533,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCompleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Complete Patient Assessment", Description = "Menyelesaikan dokumen assessment pasien tanpa mengubah status antrean", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientAssessment", "Update")]
+        [AccessAction("Complete", "Complete Patient Assessment", Description = "Menyelesaikan dokumen assessment pasien tanpa mengubah status antrean", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PatientAssessment", "Complete")]
         public async Task<IActionResult> CompleteAssessment(Guid id, [FromBody] CompletePatientAssessmentRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientAssessment>()
@@ -605,8 +605,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Assessment", Description = "Membatalkan assessment pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientAssessment", "Update")]
+        [AccessAction("Cancel", "Cancel Patient Assessment", Description = "Membatalkan assessment pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientAssessment", "Cancel")]
         public async Task<IActionResult> CancelAssessment(Guid id, [FromBody] CancelPatientAssessmentRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientAssessment>()

@@ -591,8 +591,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<ConsultationFinalizationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<ConsultationFinalizationValidationResponse>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Complete Doctor Consultation", Description = "Memvalidasi dan menyelesaikan seluruh proses konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("DoctorConsultation", "Update")]
+        [AccessAction("Complete", "Complete Doctor Consultation", Description = "Memvalidasi dan menyelesaikan seluruh proses konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorConsultation", "Complete")]
         public async Task<IActionResult> CompleteConsultation(
             Guid id,
             [FromBody] FinalizeDoctorConsultationRequest request,
@@ -646,8 +646,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Doctor Consultation", Description = "Membatalkan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("DoctorConsultation", "Update")]
+        [AccessAction("Cancel", "Cancel Doctor Consultation", Description = "Membatalkan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("DoctorConsultation", "Cancel")]
         public async Task<IActionResult> CancelConsultation(Guid id, [FromBody] CancelDoctorConsultationRequest request)
         {
             var entity = await _dbContext.Set<TrxDoctorConsultation>()

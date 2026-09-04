@@ -255,8 +255,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/call")]
-        [AccessAction("Update", "Call Doctor Queue", Description = "Memanggil pasien ke dokter", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Call", "Call Doctor Queue", Description = "Memanggil pasien ke dokter", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("DoctorQueue", "Call")]
         public async Task<IActionResult> Call(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -362,8 +362,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/start-consultation")]
-        [AccessAction("Update", "Start Doctor Consultation", Description = "Memulai konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("StartConsultation", "Start Doctor Consultation", Description = "Memulai konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DoctorQueue", "StartConsultation")]
         public async Task<IActionResult> StartConsultation(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -438,8 +438,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/finish-consultation")]
-        [AccessAction("Update", "Finish Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("FinishConsultation", "Finish Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorQueue", "FinishConsultation")]
         public async Task<IActionResult> FinishConsultation(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -484,8 +484,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/skip")]
-        [AccessAction("Update", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Skip", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("DoctorQueue", "Skip")]
         public async Task<IActionResult> Skip(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -540,8 +540,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/no-show")]
-        [AccessAction("Update", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("NoShow", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("DoctorQueue", "NoShow")]
         public async Task<IActionResult> NoShow(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -608,8 +608,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/requeue")]
-        [AccessAction("Update", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 7)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Requeue", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("DoctorQueue", "Requeue")]
         public async Task<IActionResult> Requeue(Guid id, [FromBody] DoctorQueueActionRequest request)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);

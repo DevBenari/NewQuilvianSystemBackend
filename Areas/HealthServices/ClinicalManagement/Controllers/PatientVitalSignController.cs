@@ -665,8 +665,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/verify")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Verify Patient Vital Sign", Description = "Verifikasi tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("Verify", "Verify Patient Vital Sign", Description = "Verifikasi tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PatientVitalSign", "Verify")]
         public async Task<IActionResult> VerifyVitalSign(Guid id, [FromBody] VerifyPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
@@ -714,8 +714,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/notify-doctor")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Notify Doctor Patient Vital Sign", Description = "Menandai dokter sudah diberi notifikasi tanda vital", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("NotifyDoctor", "Notify Doctor Patient Vital Sign", Description = "Menandai dokter sudah diberi notifikasi tanda vital", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientVitalSign", "NotifyDoctor")]
         public async Task<IActionResult> NotifyDoctor(Guid id, [FromBody] NotifyDoctorPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
@@ -750,8 +750,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Vital Sign", Description = "Membatalkan catatan tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("Cancel", "Cancel Patient Vital Sign", Description = "Membatalkan catatan tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientVitalSign", "Cancel")]
         public async Task<IActionResult> CancelVitalSign(Guid id, [FromBody] CancelPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
