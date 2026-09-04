@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
@@ -393,6 +394,33 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.AssessmentByUserId);
             entity.HasIndex(x => x.CompletedByUserId);
             entity.HasIndex(x => x.CancelledByUserId);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan dan jenis pengkajian
+            // =========================================================================
+            // Kedua kolom ini dipakai bersama sub-modul keperawatan lewat INT-DOK-09. Dibuat
+            // sekali di sini karena saat task ini dikerjakan keduanya memang belum ada.
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            entity.Property(x => x.AssessmentType)
+                .HasConversion<int>()
+                .HasDefaultValue(PatientAssessmentType.Initial)
+                .IsRequired();
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.InpEpisodeId);
+
+            // Menemukan kajian satu perawatan menurut jenisnya tanpa memindai seluruh tabel.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.AssessmentType
+            });
         }
     }
 }

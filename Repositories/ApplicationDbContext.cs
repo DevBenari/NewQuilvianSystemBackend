@@ -571,6 +571,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
+        public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }

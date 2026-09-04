@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -51,7 +51,8 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new ConsultationValidationService(c, new PrescriptionValidationService(c)),
-                Finalisasi(c))
+                Finalisasi(c),
+                new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 
         /// <summary>

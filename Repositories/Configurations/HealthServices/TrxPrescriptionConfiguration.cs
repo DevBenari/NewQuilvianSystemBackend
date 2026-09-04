@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
@@ -102,7 +103,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasOne(x => x.CancelledByUser).WithMany().HasForeignKey(x => x.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.PrescriptionNumber).IsUnique();
-            entity.HasIndex(x => x.ConsultationId).IsUnique().HasFilter("\"IsDelete\" = false AND \"IsCancel\" = false");
+            // BE-RWI-043. Batas satu resep aktif per catatan dilepas hanya bagi resep yang
+            // menempel pada perawatan rawat inap; rawat jalan dan medical check-up tetap dijaga
+            // database seperti sebelumnya - INT-DOK-02, INV-DOK-05.
+            entity.HasIndex(x => x.ConsultationId).IsUnique().HasFilter("\"IsDelete\" = false AND \"IsCancel\" = false AND \"InpEpisodeId\" IS NULL");
             entity.HasIndex(x => x.EncounterId);
             entity.HasIndex(x => x.PatientId);
             entity.HasIndex(x => x.DoctorId);
@@ -126,6 +130,35 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(property)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
+
+            // =========================================================================
+            // BE-RWI-042 - konteks perawatan, jenis resep, dan kunci permintaan
+            // =========================================================================
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            // Bawaan Routine: baris resep lama terbaca sebagai resep biasa dan tidak disentuh.
+            entity.Property(x => x.PrescriptionOrderType)
+                .HasConversion<int>()
+                .HasDefaultValue(PrescriptionOrderType.Routine)
+                .IsRequired();
+
+            entity.Property(x => x.IdempotencyKey)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.InpEpisodeId);
+
+            entity.HasIndex(x => x.PrescriptionOrderType);
+
+            entity.HasIndex(x => x.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("\"IdempotencyKey\" IS NOT NULL AND \"IsDelete\" = false");
         }
     }
 }

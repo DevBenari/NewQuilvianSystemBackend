@@ -51,6 +51,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public Guid? DoctorId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. Boleh kosong — <c>INV-DOK-01</c>.
+        /// </summary>
+        /// <remarks>
+        /// Kolom ini diminta bersama oleh sub-modul <c>keperawatan</c> (<c>INT-KEP-01</c>) dan
+        /// <c>dokter-rawat-inap</c> (<c>INT-DOK-01</c>). Dibuat sekali oleh yang mendarat lebih
+        /// dulu, lalu dipakai apa adanya oleh yang kedua — <c>INT-DOK-09</c>.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian: pengkajian keperawatan atau kajian medis.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>. Bawaannya <c>Initial</c>, sehingga seluruh baris lama milik
+        /// poliklinik dan IGD terbaca sebagai pengkajian awal dan tidak perlu disentuh.
+        /// Pembedaan antara kajian medis dan pengkajian keperawatan dijaga aturan bisnis lewat
+        /// kolom ini; mesin hak akses hanya melihat satu sumber daya.
+        /// </remarks>
+        public PatientAssessmentType AssessmentType { get; set; } = PatientAssessmentType.Initial;
+
         public DateTime AssessmentDateTime { get; set; } = DateTime.UtcNow;
 
         public PatientAssessmentStatus AssessmentStatus { get; set; } = PatientAssessmentStatus.Draft;

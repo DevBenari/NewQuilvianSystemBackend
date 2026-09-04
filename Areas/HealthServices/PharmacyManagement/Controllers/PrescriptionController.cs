@@ -300,6 +300,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionNumber = await _prescriptionNumberService.GenerateAsync(now, cancellationToken),
                 EncounterId = consultation.EncounterId,
                 ConsultationId = consultation.Id,
+                // BE-RWI-042 dan BE-RWI-043. Konteks perawatan diwarisi dari catatan dokternya,
+                // bukan ditanyakan ulang: resep memang lahir dari satu catatan, dan mewarisinya
+                // membuat resep tidak pernah menunjuk perawatan yang berbeda dari catatannya.
+                InpEpisodeId = consultation.InpEpisodeId,
                 PatientId = consultation.PatientId,
                 DoctorId = consultation.DoctorId,
                 ServiceUnitId = consultation.ServiceUnitId,
@@ -556,6 +560,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             if (consultation == null) return (false, "Konsultasi dokter tidak ditemukan atau tidak sesuai encounter.");
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed) return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan resep.");
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled) return (false, "Konsultasi yang sudah cancelled tidak dapat ditambahkan resep.");
+
+            // BE-RWI-043 / INT-DOK-02. Batas satu resep aktif per catatan tidak berlaku bagi
+            // catatan yang menempel pada perawatan rawat inap: pasien yang dirawat berhari-hari
+            // menerima resep sebanyak yang dibutuhkan - RWI-DEC-070, RWI-RULE-026 aturan 5.
+            //
+            // Penyaringnya adalah konteks perawatan pada catatan dokternya, bukan nama peran
+            // maupun tipe kunjungan yang ditebak. Resep rawat jalan dan medical check-up tetap
+            // ditolak dengan kalimat yang sama persis - INV-DOK-05, RWI-AC-143.
+            if (consultation.InpEpisodeId.HasValue)
+                return (true, null);
 
             var exists = await _dbContext.Set<TrxPrescription>().AsNoTracking().AnyAsync(x =>
                 x.ConsultationId == request.ConsultationId && !x.IsDelete && !x.IsCancel && x.PrescriptionStatus != PrescriptionStatus.Cancelled,

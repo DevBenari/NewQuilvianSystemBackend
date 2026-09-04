@@ -45,17 +45,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly LoggerService _loggerService;
         private readonly ConsultationValidationService _consultationValidationService;
         private readonly ConsultationFinalizationService _consultationFinalizationService;
+        private readonly InpatientClinicalContextService _inpatientClinicalContextService;
 
         public DoctorConsultationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ConsultationValidationService consultationValidationService,
-            ConsultationFinalizationService consultationFinalizationService)
+            ConsultationFinalizationService consultationFinalizationService,
+            InpatientClinicalContextService inpatientClinicalContextService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _consultationValidationService = consultationValidationService;
             _consultationFinalizationService = consultationFinalizationService;
+            _inpatientClinicalContextService = inpatientClinicalContextService;
         }
 
         [HttpGet("filters/metadata")]
@@ -269,6 +272,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var assessment = await ResolveAssessmentAsync(request.EncounterId, request.AssessmentId);
 
+            var inpEpisodeId = await _inpatientClinicalContextService
+                .FindOpenEpisodeIdAsync(encounter.Id);
+
             var vitalSign = BuildVitalSignSnapshot(request, assessment);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
@@ -280,6 +286,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 EncounterId = encounter.Id,
                 QueueId = queue?.Id,
                 AssessmentId = assessment?.Id,
+                // BE-RWI-043. Konteks perawatan distempel saat catatan lahir. Tanpa ini
+                // pelonggaran jumlah catatan hanya berlaku di lapisan aplikasi, sedangkan index
+                // unique parsial di database masih menolak catatan kedua - permintaan lolos
+                // validasi lalu gagal saat disimpan. Keduanya wajib memakai penanda yang sama.
+                InpEpisodeId = inpEpisodeId,
                 PatientId = queue?.PatientId ?? encounter.PatientId,
                 // Tanpa antrean, dokter pemeriksa datang dari permintaan — validasi sudah
                 // memastikan salah satunya terisi, sehingga Guid.Empty tidak pernah tersimpan.
@@ -358,31 +369,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             _dbContext.Set<TrxDoctorConsultation>().Add(entity);
 
-            queue.QueueStatus = request.CompleteImmediately
-                ? QueueStatus.Completed
-                : QueueStatus.InConsultation;
-
-            queue.ConsultationStartedAt ??= now;
-
-            if (request.CompleteImmediately)
+            // BE-RWI-037 / DOK-TRC-DEF-01. Cabang tanpa antrean mengambil `queue` yang memang
+            // boleh kosong — pasien rawat inap dan pasien IGD tidak berantre. Seluruh mutasi
+            // baris antrean di bawah ini karena itu wajib dijaga; tanpa penjagaan ini setiap
+            // permintaan tanpa antrean berujung kegagalan sistem, dan jalur tanpa antrean
+            // adalah satu-satunya jalur pasien rawat inap.
+            //
+            // Nol baris antrean boleh lahir hanya karena catatan dokter dibuat: jumlah baris
+            // antrean sebelum dan sesudah permintaan wajib identik pada cabang ini.
+            if (queue != null)
             {
-                queue.ConsultationCompletedAt = now;
-                queue.CompletedAt = now;
-                queue.CompletedByUserId = actorUserId;
+                queue.QueueStatus = request.CompleteImmediately
+                    ? QueueStatus.Completed
+                    : QueueStatus.InConsultation;
+
+                queue.ConsultationStartedAt ??= now;
+
+                if (request.CompleteImmediately)
+                {
+                    queue.ConsultationCompletedAt = now;
+                    queue.CompletedAt = now;
+                    queue.CompletedByUserId = actorUserId;
+                }
+
+                queue.UpdateDateTime = now;
+                queue.UpdateBy = actorUserId;
             }
 
-            queue.UpdateDateTime = now;
-            queue.UpdateBy = actorUserId;
+            // Perpindahan keadaan kunjungan berlaku pada kedua cabang. Ia bukan mutasi baris
+            // antrean, sehingga menjalankannya tanpa antrean tidak menambah maupun mengubah
+            // satu baris antrean pun. Sebelumnya perpindahan ini menempel pada `queue.Encounter`
+            // dan karena itu ikut hilang bersama antreannya.
+            encounter.EncounterStatus = request.CompleteImmediately
+                ? EncounterStatus.ConsultationCompleted
+                : EncounterStatus.InConsultation;
 
-            if (queue.Encounter != null)
-            {
-                queue.Encounter.EncounterStatus = request.CompleteImmediately
-                    ? EncounterStatus.ConsultationCompleted
-                    : EncounterStatus.InConsultation;
-
-                queue.Encounter.UpdateDateTime = now;
-                queue.Encounter.UpdateBy = actorUserId;
-            }
+            encounter.UpdateDateTime = now;
+            encounter.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -841,13 +864,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return (false, "Status antrean tidak valid untuk konsultasi dokter.");
             }
 
-            var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
-                .AnyAsync(x =>
-                    x.EncounterId == request.EncounterId &&
-                    !x.IsDelete);
+            var singleNoteRule = await ValidateSingleConsultationRuleAsync(request.EncounterId);
 
-            if (consultationExists)
-                return (false, "Konsultasi dokter untuk encounter ini sudah ada.");
+            if (!singleNoteRule.IsValid)
+                return singleNoteRule;
 
             if (request.AssessmentId.HasValue && request.AssessmentId.Value != Guid.Empty)
             {
@@ -913,14 +933,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!doctorExists)
                 return (false, "Dokter pemeriksa tidak ditemukan.");
 
-            var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.EncounterId == request.EncounterId &&
-                    !x.IsDelete);
+            var singleNoteRule = await ValidateSingleConsultationRuleAsync(request.EncounterId);
 
-            if (consultationExists)
-                return (false, "Konsultasi dokter untuk encounter ini sudah ada.");
+            if (!singleNoteRule.IsValid)
+                return singleNoteRule;
 
             if (request.AssessmentId.HasValue && request.AssessmentId.Value != Guid.Empty)
             {
@@ -935,6 +951,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 if (!assessmentExists)
                     return (false, "Assessment pasien tidak valid atau belum completed.");
             }
+
+            return (true, null);
+        }
+
+        /// <summary>
+        /// Batas <b>satu catatan dokter per kunjungan</b>, disaring tipe kunjungan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-043</c>, <c>INT-DOK-02</c>, <c>RWI-DEC-038</c> diperluas <c>RWI-DEC-070</c>.
+        /// Pasien yang dirawat sepuluh hari membutuhkan catatan setiap hari; batas satu catatan
+        /// untuk seluruh masa perawatan membuat dokumentasi rawat inap mustahil.
+        /// </para>
+        /// <para>
+        /// <b>Yang tidak berubah.</b> Rawat jalan dan medical check-up tetap dibatasi seperti
+        /// sebelumnya, dengan kode dan kalimat penolakan yang <b>sama persis</b> —
+        /// <c>INV-DOK-05</c>, dibuktikan <c>RWI-AC-143</c>. Kalimatnya sengaja tidak disentuh.
+        /// </para>
+        /// <para>
+        /// <b>Penyaringnya adalah perawatan yang berjalan, bukan nama tipe kunjungan saja.</b>
+        /// Kunjungan bertipe rawat inap yang perawatannya belum dimulai atau sudah ditutup tetap
+        /// tunduk pada batas lama, sehingga tidak ada celah untuk menulis catatan berulang pada
+        /// kunjungan yang belum benar-benar menjadi perawatan.
+        /// </para>
+        /// </remarks>
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateSingleConsultationRuleAsync(
+            Guid encounterId)
+        {
+            var inpEpisodeId = await _inpatientClinicalContextService
+                .FindOpenEpisodeIdAsync(encounterId);
+
+            if (inpEpisodeId.HasValue)
+                return (true, null);
+
+            var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.EncounterId == encounterId &&
+                    !x.IsDelete);
+
+            if (consultationExists)
+                return (false, "Konsultasi dokter untuk encounter ini sudah ada.");
 
             return (true, null);
         }

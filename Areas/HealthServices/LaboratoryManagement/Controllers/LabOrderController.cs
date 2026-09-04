@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
@@ -34,9 +34,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<List<LabOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Order", Description = "Melihat daftar order laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabOrder", "Read")]
-        public async Task<IActionResult> GetList(CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetList(
+            [FromQuery] Guid? encounterId,
+            CancellationToken cancellationToken = default)
         {
-            var result = await _labOrderService.GetListAsync(cancellationToken);
+            // BE-RWI-042 - penyaring kunjungan, bentuknya sama persis dengan RadOrderController
+            // supaya kedua daftar pesanan penunjang dipanggil dengan cara yang sama.
+            var result = await _labOrderService.GetListAsync(encounterId, cancellationToken);
 
             return Ok(ApiResponse<List<LabOrderListResponse>>.Ok(
                 result,

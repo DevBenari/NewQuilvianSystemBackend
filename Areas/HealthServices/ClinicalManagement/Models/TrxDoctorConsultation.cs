@@ -33,6 +33,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public Guid? AssessmentId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi catatan ini. <b>Boleh kosong</b>: catatan
+        /// poliklinik, IGD, dan medical check-up tidak punya perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>, <c>INV-DOK-01</c>. Episode sebenarnya dapat diturunkan dari
+        /// <see cref="EncounterId"/> karena satu episode menempel pada tepat satu kunjungan,
+        /// tetapi kolom ini tetap disimpan supaya pertanyaan "perawatan A atau perawatan B"
+        /// terjawab tanpa join berlapis pada setiap pembacaan lini masa, dan supaya penjagaan
+        /// <c>INV-DOK-01</c> menjadi pemeriksaan satu kolom.
+        ///
+        /// <para>
+        /// <b>Keduanya wajib sepakat.</b> Bila kolom ini terisi tetapi tidak cocok dengan
+        /// perawatan milik <see cref="EncounterId"/>, permintaan ditolak — <c>VAL-DOK-26</c>.
+        /// </para>
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Waktu pemeriksaan yang sebenarnya, berbeda dari waktu penulisan pada
+        /// <see cref="ConsultationDateTime"/>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>. Visite pukul 07.40 yang baru sempat diketik pukul 11.00 harus
+        /// terbaca pada urutan pukul 07.40; memaksa keduanya sama membuat lini masa perkembangan
+        /// pasien menyesatkan. Boleh kosong: catatan lama dan catatan rawat jalan tidak
+        /// memilikinya.
+        /// </remarks>
+        public DateTime? ClinicalDateTime { get; set; }
+
+        /// <summary>
+        /// Tautan <b>opsional</b> ke kejadian visite dokter pada <c>CliPhysicianVisit</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>, <c>INV-DOK-07</c>. Satu kejadian visite tidak wajib punya catatan,
+        /// dan satu catatan tidak wajib punya kejadian visite. Karena itu kolomnya nullable dan
+        /// perilaku hapusnya <c>SetNull</c>: kejadian visite yang dibatalkan tidak boleh
+        /// menyeret catatan SOAP-nya.
+        ///
+        /// <para>
+        /// Namanya sengaja bukan <c>VisitId</c> supaya tidak tertukar dengan kunjungan IGD.
+        /// </para>
+        /// </remarks>
+        public Guid? PhysicianVisitId { get; set; }
+
         [Required]
         public Guid PatientId { get; set; }
 

@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
@@ -501,6 +502,44 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.PerformedByUserId);
 
             entity.HasIndex(x => x.CancelledByUserId);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan, tautan visite, dan kunci permintaan
+            // =========================================================================
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            entity.Property(x => x.PhysicianVisitId)
+                .IsRequired(false);
+
+            entity.Property(x => x.IdempotencyKey)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.PerformedAt
+            });
+
+            // BE-RWI-041 - tautan opsional ke kejadian visite, dipasang bersama tabelnya.
+            entity.HasOne<CliPhysicianVisit>()
+                .WithMany()
+                .HasForeignKey(x => x.PhysicianVisitId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.PhysicianVisitId);
+
+            // Dijaga database, bukan hanya service: dua permintaan yang tiba bersamaan tidak
+            // dapat dicegah oleh pemeriksaan di dalam aplikasi saja - AC-CAP024-02.
+            entity.HasIndex(x => x.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("\"IdempotencyKey\" IS NOT NULL AND \"IsDelete\" = false");
         }
     }
 }

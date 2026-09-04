@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
@@ -40,12 +40,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _loggerService = loggerService;
         }
 
+        /// <summary>
+        /// Daftar pesanan laboratorium, dapat disaring kunjungan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-042</c>. Modul Radiologi sudah memiliki penyaring ini sejak awal;
+        /// Laboratorium tidak, sehingga layar yang hanya membutuhkan pesanan satu kunjungan
+        /// terpaksa mengambil seluruh pesanan rumah sakit lalu menyaringnya di sisi klien.
+        /// Penyaringnya opsional, sehingga pemanggil lama yang tidak mengirim apa-apa tetap
+        /// menerima daftar yang sama persis seperti sebelumnya.
+        /// </remarks>
+        /// <param name="encounterId">Kunjungan yang dipakai menyaring. Kosong berarti seluruh pesanan.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
         public async Task<List<LabOrderListResponse>> GetListAsync(
+            Guid? encounterId = null,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.LabOrders
+            var query = _dbContext.LabOrders
                 .AsNoTracking()
-                .Where(x => !x.IsDelete)
+                .Where(x => !x.IsDelete);
+
+            if (encounterId.HasValue && encounterId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.EncounterId == encounterId.Value);
+            }
+
+            return await query
                 .OrderByDescending(x => x.CreateDateTime)
                 .Select(x => new LabOrderListResponse
                 {

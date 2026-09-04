@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903092936_AddInpatientClinicalContextColumns")]
+    partial class AddInpatientClinicalContextColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57465,145 +57468,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("CliClinicalMilestoneFact", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliPhysicianVisit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CancelledByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ConsultationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("CorrectsVisitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DoctorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EncounterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("InpEpisodeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PatientProcedureId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PhysicianVisitNumber")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid?>("ProgressNoteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("RecordedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("VisitDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("VisitRole")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<int>("VisitStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CancelledByUserId");
-
-                    b.HasIndex("ConsultationId");
-
-                    b.HasIndex("CorrectsVisitId");
-
-                    b.HasIndex("EncounterId");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
-
-                    b.HasIndex("PatientId");
-
-                    b.HasIndex("PatientProcedureId");
-
-                    b.HasIndex("PhysicianVisitNumber")
-                        .IsUnique();
-
-                    b.HasIndex("ProgressNoteId");
-
-                    b.HasIndex("RecordedByUserId");
-
-                    b.HasIndex("VisitStatus");
-
-                    b.HasIndex("DoctorId", "VisitDateTime");
-
-                    b.HasIndex("InpEpisodeId", "VisitDateTime");
-
-                    b.ToTable("CliPhysicianVisit", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxClinicalNoteAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58279,7 +58143,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId")
                         .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL");
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("PatientId");
 
@@ -65026,9 +64890,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("EncounterId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("InpEpisodeId")
-                        .HasColumnType("uuid");
-
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -65069,8 +64930,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("OrderStatus");
 
                     b.HasIndex("ProcedureId");
-
-                    b.HasIndex("InpEpisodeId", "CreateDateTime");
 
                     b.ToTable("LabOrder", "public");
                 });
@@ -73260,13 +73119,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
 
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("InpEpisodeId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid?>("InsuranceProviderId")
                         .HasColumnType("uuid");
 
@@ -73366,11 +73218,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("PrescriptionOrderType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.Property<int>("PrescriptionStatus")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -73422,19 +73269,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ConsultationId")
                         .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"IsCancel\" = false AND \"InpEpisodeId\" IS NULL");
+                        .HasFilter("\"IsDelete\" = false AND \"IsCancel\" = false");
 
                     b.HasIndex("DispensedByUserId");
 
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("EncounterId");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasFilter("\"IdempotencyKey\" IS NOT NULL AND \"IsDelete\" = false");
-
-                    b.HasIndex("InpEpisodeId");
 
                     b.HasIndex("InsuranceProviderId");
 
@@ -73452,8 +73293,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PrescriptionNumber")
                         .IsUnique();
-
-                    b.HasIndex("PrescriptionOrderType");
 
                     b.HasIndex("ServiceUnitId");
 
@@ -75516,9 +75355,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("EncounterId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("InpEpisodeId")
-                        .HasColumnType("uuid");
-
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -75563,8 +75399,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("OrderStatus");
 
                     b.HasIndex("ProcedureId");
-
-                    b.HasIndex("InpEpisodeId", "CreateDateTime");
 
                     b.HasIndex("ModalityId", "OrderStatus");
 
@@ -94308,83 +94142,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliPhysicianVisit", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
-                        .WithMany()
-                        .HasForeignKey("CancelledByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
-                        .WithMany()
-                        .HasForeignKey("ConsultationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliPhysicianVisit", "CorrectsVisit")
-                        .WithMany()
-                        .HasForeignKey("CorrectsVisitId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
-                        .WithMany()
-                        .HasForeignKey("EncounterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", "InpEpisode")
-                        .WithMany()
-                        .HasForeignKey("InpEpisodeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientProcedure", "PatientProcedure")
-                        .WithMany()
-                        .HasForeignKey("PatientProcedureId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientIntegratedProgressNote", "ProgressNote")
-                        .WithMany()
-                        .HasForeignKey("ProgressNoteId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RecordedByUser")
-                        .WithMany()
-                        .HasForeignKey("RecordedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CancelledByUser");
-
-                    b.Navigation("Consultation");
-
-                    b.Navigation("CorrectsVisit");
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Encounter");
-
-                    b.Navigation("InpEpisode");
-
-                    b.Navigation("Patient");
-
-                    b.Navigation("PatientProcedure");
-
-                    b.Navigation("ProgressNote");
-
-                    b.Navigation("RecordedByUser");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxClinicalNoteAttachment", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ArchivedByUser")
@@ -94559,11 +94316,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliPhysicianVisit", null)
-                        .WithMany()
-                        .HasForeignKey("PhysicianVisitId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", "Queue")
                         .WithMany()
@@ -95522,11 +95274,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PerformedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliPhysicianVisit", null)
-                        .WithMany()
-                        .HasForeignKey("PhysicianVisitId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
                         .WithMany()
                         .HasForeignKey("ProcedureId")
@@ -96370,11 +96117,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
-                        .WithMany()
-                        .HasForeignKey("InpEpisodeId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
                         .WithMany()
@@ -97576,11 +97318,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
-                        .WithMany()
-                        .HasForeignKey("InpEpisodeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstInsuranceProvider", "InsuranceProvider")
                         .WithMany()
                         .HasForeignKey("InsuranceProviderId")
@@ -98096,11 +97833,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
-                        .WithMany()
-                        .HasForeignKey("InpEpisodeId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.MstRadModality", "Modality")
                         .WithMany()

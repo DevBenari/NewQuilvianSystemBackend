@@ -1,6 +1,7 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
@@ -65,6 +66,23 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .WithMany()
                 .HasForeignKey(x => x.ProcedureId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================================================================
+            // BE-RWI-042 - konteks perawatan rawat inap
+            // =========================================================================
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.CreateDateTime
+            });
         }
     }
 }

@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
@@ -282,9 +283,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.ConsultationNumber)
                 .IsUnique();
 
+            // BE-RWI-043. Batas satu catatan dokter per kunjungan tetap dijaga database untuk
+            // rawat jalan, medical check-up, dan IGD; ia hanya dilepas bagi catatan yang menempel
+            // pada perawatan rawat inap - INT-DOK-02, RWI-DEC-070.
+            //
+            // Penyaringnya memakai InpEpisodeId, kolom yang sama dengan yang dipakai penjagaan
+            // di lapisan aplikasi. Bila keduanya memakai penanda yang berbeda, permintaan dapat
+            // lolos validasi lalu gagal saat disimpan - kegagalan yang justru sedang ditutup
+            // BE-RWI-037.
             entity.HasIndex(x => x.EncounterId)
                 .IsUnique()
-                .HasFilter("\"IsDelete\" = false");
+                .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL");
 
             entity.HasIndex(x => x.QueueId)
                 .IsUnique()
@@ -382,6 +391,44 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.CompletedByUserId);
 
             entity.HasIndex(x => x.CancelledByUserId);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan rawat inap
+            // =========================================================================
+            // Ketiga kolom ini nullable dengan sengaja: catatan poliklinik, IGD, dan medical
+            // check-up tidak memiliki perawatan rawat inap, dan baris lama tidak boleh disentuh.
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            entity.Property(x => x.ClinicalDateTime)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.PhysicianVisitId)
+                .IsRequired(false);
+
+            // Restrict: perawatan yang masih memiliki catatan tidak boleh terhapus diam-diam.
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Lini masa SOAP satu perawatan, terurut waktu klinis - bukan waktu penulisan.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.ClinicalDateTime
+            });
+
+            // BE-RWI-041 - tautan opsional ke kejadian visite, dipasang bersama tabelnya.
+            // SetNull, bukan Restrict: kejadian visite yang dibatalkan tidak boleh menyeret
+            // catatan SOAP-nya - INV-DOK-07.
+            entity.HasOne<CliPhysicianVisit>()
+                .WithMany()
+                .HasForeignKey(x => x.PhysicianVisitId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.PhysicianVisitId);
         }
     }
 }

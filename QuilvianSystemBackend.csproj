@@ -14,8 +14,14 @@
       Karena SDK Web mengikutsertakan seluruh berkas di bawah root secara otomatis, folder
       Tests\ wajib dikecualikan agar tidak ikut terkompilasi ke dalam aplikasi. Satu baris
       DefaultItemExcludes berlaku untuk Compile, Content, EmbeddedResource, dan None sekaligus.
+
+      QuilvianSystemBackend.Tests\ ikut dikecualikan atas alasan yang sama. Folder itu berisi
+      source uji xUnit tanpa project file sendiri dan tidak terdaftar pada solution, sehingga
+      SDK Web menariknya ke dalam aplikasi dan build gagal dengan 246 galat CS0246 pada Fact,
+      Theory, dan InlineData. Berkasnya sengaja TIDAK dihapus; hanya dikeluarkan dari kompilasi
+      aplikasi supaya pemiliknya dapat memindahkannya ke Tests\ sebagai project tersendiri.
     -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tests\**;QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
 
     <!--
       Berkas dokumentasi XML dihasilkan supaya keterangan pada controller dan DTO ikut tampil

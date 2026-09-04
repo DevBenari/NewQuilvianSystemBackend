@@ -38,6 +38,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public Guid? ClinicId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi resep ini. Boleh kosong: resep poliklinik, IGD,
+        /// dan medical check-up tidak memilikinya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-042</c>, <c>INV-DOK-01</c>. Kolom ini yang membuat pesanan perawatan A
+        /// tidak dapat diproses sebagai milik perawatan B.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis resep: biasa, harian, atau obat pulang.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-042</c>, <c>RWI-RULE-024</c>. Bawaannya <c>Routine</c>, sehingga baris
+        /// resep lama terbaca sebagai resep biasa dan tidak disentuh.
+        /// </remarks>
+        public PrescriptionOrderType PrescriptionOrderType { get; set; } = PrescriptionOrderType.Routine;
+
+        /// <summary>
+        /// Kunci permintaan. Pengiriman berulang dengan kunci yang sama tidak melahirkan resep
+        /// ganda. Dijaga unique parsial di database, bukan hanya oleh service.
+        /// </summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+
         public Guid? PaymentSourceId { get; set; }
 
         public Guid? PatientInsuranceId { get; set; }

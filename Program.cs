@@ -305,6 +305,17 @@ try
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
 
+    // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
+    // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
+    // INT-DOK-09. Tanpa pendaftaran ini controller yang memakainya gagal dibuat oleh dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<InpatientClinicalContextService>();
+
+    // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
+    // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
+    builder.Services.AddScoped<PhysicianVisitNumberService>();
+    builder.Services.AddScoped<PhysicianVisitService>();
+
     // Modul Rekam Medis — keutuhan dokumen klinis
     builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
     builder.Services.AddScoped<ClinicalNoteAddendumService>();

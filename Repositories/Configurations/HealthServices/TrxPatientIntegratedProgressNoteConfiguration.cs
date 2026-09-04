@@ -1,5 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -268,6 +271,55 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .WithMany()
                 .HasForeignKey(x => x.CancelledByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan dan verifikasi DPJP
+            // =========================================================================
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            // Satu-satunya kolom baru yang wajib pada task ini. Bawaannya NotRequired supaya
+            // baris lama, dan catatan pada rumah sakit yang tidak mewajibkan verifikasi, tidak
+            // pernah terhitung menunggu.
+            entity.Property(x => x.VerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(CpptVerificationStatus.NotRequired)
+                .IsRequired();
+
+            entity.Property(x => x.VerifiedAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.VerifiedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.VerificationDueAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Verifikator disimpan terpisah dari penulis asli pada ProviderUserId - INV-DOK-11.
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.VerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.NoteDateTime
+            });
+
+            entity.HasIndex(x => x.VerificationStatus);
+
+            // Index parsial hanya pada baris yang menunggu verifikasi: daftar pantau hanya
+            // membaca baris itu, dan meng-index seluruh baris memboroskan tanpa dipakai.
+            entity.HasIndex(x => x.VerificationDueAt)
+                .HasFilter("\"VerificationStatus\" = 1 AND \"IsDelete\" = false");
         }
     }
 }

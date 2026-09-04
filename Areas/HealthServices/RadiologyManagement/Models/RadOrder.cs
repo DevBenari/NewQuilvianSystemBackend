@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -24,6 +24,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
         /// <summary>Pemeriksaan yang dipesan dokter.</summary>
         [Required]
         public Guid ProcedureId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pesanan ini. Boleh kosong.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-042</c>, <c>INV-DOK-01</c>. Daftar pesanan radiologi sudah dapat disaring
+        /// kunjungan sejak awal dan tidak diubah task ini.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
 
         /// <summary>Modalitas yang diminta. Menentukan aturan keselamatan mana yang berlaku.</summary>
         [Required]
