@@ -39,9 +39,9 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`
 
 ---
 
-## 2. `TrxLabSpecimen` — `Diperbarui`
+## 2. `LabSpecimen` — `Diperbarui`
 
-Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/TrxLabSpecimen.cs`
+Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabSpecimen.cs`
 
 Setelah `LAB-DEC-024`, tabel ini mewakili **wadah fisik**, bukan pemeriksaan.
 
@@ -63,7 +63,7 @@ Setelah `LAB-DEC-024`, tabel ini mewakili **wadah fisik**, bukan pemeriksaan.
 | `RejectionReasonId` | `Guid?` | Tidak | — | Index | FK ke `MstLabRejectionReason` | `Restrict` | Tidak | Alasan penolakan terkendali |
 | `RejectionReasonCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | Salinan kode alasan saat kejadian |
 | `RejectionNote` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | Catatan penolakan; dapat memuat keterangan kondisi pasien |
-| `SupersededSpecimenId` | `Guid?` | Tidak | — | Index | FK ke `TrxLabSpecimen` | `Restrict` | Tidak | Wadah yang digantikan saat ambil ulang |
+| `SupersededSpecimenId` | `Guid?` | Tidak | — | Index | FK ke `LabSpecimen` | `Restrict` | Tidak | Wadah yang digantikan saat ambil ulang |
 | `RecollectionCause` | `LabRecollectionCause?` | Tidak | — | — | — | — | Tidak | Sebab ambil ulang; menentukan siapa menanggung biaya |
 | `RecollectionReason` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | Alasan ambil ulang |
 | `RecollectionAuthorizedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Pemberi otorisasi ambil ulang |
@@ -84,7 +84,7 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabExamination.c
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama. Pada pemindahan data lama, **memakai kembali** identitas sampel lama agar tautan tagihan tidak putus |
 | `LabOrderId` | `Guid` | Ya | — | Index | FK ke `LabOrder` | `Restrict` | Tidak | Pesanan induk |
-| `SpecimenId` | `Guid` | Ya | — | Index | FK ke `TrxLabSpecimen` | `Restrict` | Tidak | Wadah yang menopang pemeriksaan ini |
+| `SpecimenId` | `Guid` | Ya | — | Index | FK ke `LabSpecimen` | `Restrict` | Tidak | Wadah yang menopang pemeriksaan ini |
 | `ProcedureId` | `Guid` | Ya | — | Index | FK ke `MstProcedure` | `Restrict` | Tidak | Jenis pemeriksaan. Wajib berpenanda `IsLaboratory` |
 | `ProcedureCodeSnapshot` | `string(50)?` | Tidak | — | — | — | — | Tidak | Salinan kode saat kejadian |
 | `ProcedureNameSnapshot` | `string(200)?` | Tidak | — | — | — | — | Tidak | Salinan nama saat kejadian |
@@ -104,15 +104,15 @@ menopang jenis pemeriksaan yang sama dua kali.
 
 ---
 
-## 4. `TrxLabTransitionHistory` — `Diperbarui`
+## 4. `LabTransitionHistory` — `Diperbarui`
 
-Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/TrxLabTransitionHistory.cs`
+Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabTransitionHistory.cs`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `LabOrderId` | `Guid` | Ya | — | Index bersama `OccurredAt` | FK ke `LabOrder` | `Restrict` | Tidak | Pesanan yang bersangkutan |
-| `LabSpecimenId` | `Guid?` | Tidak | — | Index | FK ke `TrxLabSpecimen` | `Restrict` | Tidak | Terisi bila yang berpindah adalah wadah |
+| `LabSpecimenId` | `Guid?` | Tidak | — | Index | FK ke `LabSpecimen` | `Restrict` | Tidak | Terisi bila yang berpindah adalah wadah |
 | **`LabExaminationId`** | `Guid?` | Tidak | — | Index | FK ke `LabExamination` | `Restrict` | Tidak | **Baru.** Terisi bila yang berpindah adalah pemeriksaan |
 | `EncounterId` | `Guid` | Ya | — | Index | FK ke `TrxPatientEncounter` | `Restrict` | Tidak | Kunjungan pasien |
 | `Scope` | `LabTransitionScope` | Ya | — | — | — | — | Tidak | Objek yang berpindah. Nilai baru: `LabExamination` |
@@ -341,8 +341,8 @@ Kolom bertanda **Ya** pada tabel di atas:
 
 | Tabel | Kolom |
 |---|---|
-| `TrxLabSpecimen` | `RejectionNote`, `RecollectionReason` |
-| `TrxLabTransitionHistory` | `ReasonNote` |
+| `LabSpecimen` | `RejectionNote`, `RecollectionReason` |
+| `LabTransitionHistory` | `ReasonNote` |
 
 Aturan yang berlaku bagi ketiganya:
 
@@ -384,8 +384,8 @@ CREATE TABLE public."LabExamination" (
     CONSTRAINT "PK_LabExamination" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_LabExamination_LabOrder_LabOrderId"
         FOREIGN KEY ("LabOrderId") REFERENCES public."LabOrder" ("Id") ON DELETE RESTRICT,
-    CONSTRAINT "FK_LabExamination_TrxLabSpecimen_SpecimenId"
-        FOREIGN KEY ("SpecimenId") REFERENCES public."TrxLabSpecimen" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_LabExamination_LabSpecimen_SpecimenId"
+        FOREIGN KEY ("SpecimenId") REFERENCES public."LabSpecimen" ("Id") ON DELETE RESTRICT,
     CONSTRAINT "FK_LabExamination_MstProcedure_ProcedureId"
         FOREIGN KEY ("ProcedureId") REFERENCES public."MstProcedure" ("Id") ON DELETE RESTRICT
 );
@@ -518,31 +518,31 @@ ALTER TABLE public."LabOrder" ADD COLUMN "Discipline" integer NOT NULL DEFAULT 1
 CREATE INDEX "IX_LabOrder_Discipline" ON public."LabOrder" ("Discipline");
 ```
 
-### 11.7 `TrxLabSpecimen` — Diperbarui
+### 11.7 `LabSpecimen` — Diperbarui
 
 ```sql
 -- Perubahan struktur. Bukan skrip untuk dijalankan.
 -- Kolom di bawah dihapus SETELAH datanya dipindahkan ke LabExamination.
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "ProcedureId";
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "ProcedureCodeSnapshot";
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "ProcedureNameSnapshot";
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "TariffId";
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "TariffCodeSnapshot";
-ALTER TABLE public."TrxLabSpecimen" DROP COLUMN "UnitPriceSnapshot";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "ProcedureId";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "ProcedureCodeSnapshot";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "ProcedureNameSnapshot";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "TariffId";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "TariffCodeSnapshot";
+ALTER TABLE public."LabSpecimen" DROP COLUMN "UnitPriceSnapshot";
 ```
 
-### 11.8 `TrxLabTransitionHistory` — Diperbarui
+### 11.8 `LabTransitionHistory` — Diperbarui
 
 ```sql
 -- Hanya kolom yang ditambahkan. Bukan skrip untuk dijalankan.
-ALTER TABLE public."TrxLabTransitionHistory" ADD COLUMN "LabExaminationId" uuid;
+ALTER TABLE public."LabTransitionHistory" ADD COLUMN "LabExaminationId" uuid;
 
-ALTER TABLE public."TrxLabTransitionHistory"
-    ADD CONSTRAINT "FK_TrxLabTransitionHistory_LabExamination_LabExaminationId"
+ALTER TABLE public."LabTransitionHistory"
+    ADD CONSTRAINT "FK_LabTransitionHistory_LabExamination_LabExaminationId"
     FOREIGN KEY ("LabExaminationId") REFERENCES public."LabExamination" ("Id") ON DELETE RESTRICT;
 
-CREATE INDEX "IX_TrxLabTransitionHistory_LabExaminationId"
-    ON public."TrxLabTransitionHistory" ("LabExaminationId");
+CREATE INDEX "IX_LabTransitionHistory_LabExaminationId"
+    ON public."LabTransitionHistory" ("LabExaminationId");
 ```
 
 ### 11.9 Tabel `Sudah ada` yang tidak berubah

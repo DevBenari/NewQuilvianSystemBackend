@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     /// Sampel yang ditolak tidak pernah dihapus. Pengambilan ulang membuat baris baru yang
     /// menunjuk sampel sebelumnya melalui <see cref="SupersededSpecimenId"/>.
     /// </summary>
-    public class TrxLabSpecimen : IdentityModel
+    public class LabSpecimen : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -117,6 +117,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public MstLabRejectionReason? RejectionReason { get; set; }
 
-        public TrxLabSpecimen? SupersededSpecimen { get; set; }
+        public LabSpecimen? SupersededSpecimen { get; set; }
+
+        /// <summary>
+        /// Pemeriksaan yang ditopang wadah ini. Satu wadah menopang satu atau lebih pemeriksaan
+        /// (<c>LAB-DEC-024</c>, <c>AC-35</c>) — satu tabung darah ungu dapat menopang
+        /// hemoglobin, leukosit, dan trombosit sekaligus dengan satu barcode.
+        /// </summary>
+        public ICollection<LabExamination> Examinations { get; set; } = new List<LabExamination>();
     }
 }

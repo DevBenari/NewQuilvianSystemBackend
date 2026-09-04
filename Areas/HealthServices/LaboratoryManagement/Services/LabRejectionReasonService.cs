@@ -50,6 +50,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         // Baca
         // =================================================================
 
+        /// <summary>
+        /// Keterangan bentuk layar pengelolaan alasan penolakan. Tidak menyentuh database.
+        /// </summary>
+        public LabRejectionReasonFilterMetadataResponse GetFilterMetadata() =>
+            LabFilterMetadataFactory.LabRejectionReason();
+
+        /// <summary>
+        /// Rekap alasan penolakan, dihitung dari baris yang belum ditandai terhapus.
+        ///
+        /// Tanpa rentang waktu; ini data induk, bukan catatan kejadian. Angka
+        /// <c>KesalahanInternalRumahSakit</c> menyatakan berapa banyak sebab penolakan yang
+        /// biayanya ditanggung rumah sakit dan bukan pasien.
+        /// </summary>
+        public async Task<LabRejectionReasonSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var rekap = await _dbContext.MstLabRejectionReasons
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Aktif = g.Count(x => x.IsActive),
+                    Nonaktif = g.Count(x => !x.IsActive),
+                    KesalahanInternal = g.Count(x => x.IsInternalHospitalError),
+                    WajibCatatan = g.Count(x => x.RequiresNote)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new LabRejectionReasonSummaryResponse
+            {
+                TotalAlasan = rekap?.Total ?? 0,
+                Aktif = rekap?.Aktif ?? 0,
+                Nonaktif = rekap?.Nonaktif ?? 0,
+                KesalahanInternalRumahSakit = rekap?.KesalahanInternal ?? 0,
+                WajibDisertaiCatatan = rekap?.WajibCatatan ?? 0
+            };
+        }
+
         public async Task<PagedResult<LabRejectionReasonResponse>> GetListAsync(
             LabRejectionReasonPagedQuery query,
             CancellationToken cancellationToken = default)

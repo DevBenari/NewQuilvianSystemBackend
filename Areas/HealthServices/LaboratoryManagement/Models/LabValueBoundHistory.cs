@@ -11,7 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     /// bila memang perlu persetujuan, <b>kapan</b>, dan dengan <b>alasan</b> apa.
     ///
     /// Baris pada tabel ini hanya ditambahkan — tidak pernah diubah dan tidak pernah dihapus
-    /// oleh alur operasional, mengikuti pola <c>TrxLabTransitionHistory</c> yang sudah berjalan
+    /// oleh alur operasional, mengikuti pola <c>LabTransitionHistory</c> yang sudah berjalan
     /// di modul ini. Bedanya, di sini ketiadaan endpoint yang mengubah tidak dianggap cukup:
     /// kolom faktanya dipasangi tolak-ubah pada <c>LabValueBoundHistoryConfiguration</c>,
     /// sehingga siapa pun yang kelak menulis jalur ubah baru akan ditolak lapisan penyimpanan,
