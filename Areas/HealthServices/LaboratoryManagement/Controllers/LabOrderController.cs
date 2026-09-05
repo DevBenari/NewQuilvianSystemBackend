@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -30,19 +31,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labOrderService = labOrderService;
         }
 
+        // Keterangan bentuk layar daftar pesanan: pilihan status, disiplin, urutan, dan ukuran
+        // halaman. Menyatakan terbuka bahwa daftar pesanan belum menyaring di sisi server.
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat daftar pilihan penyaring pesanan laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = _labOrderService.GetFilterMetadata();
+
+            return Ok(ApiResponse<LabOrderFilterMetadataResponse>.Ok(
+                result,
+                "Metadata penyaring pesanan laboratorium berhasil diambil."));
+        }
+
+        // Rekap pesanan pada satu rentang waktu. Bila rentangnya tidak dikirim, dipakai 30 hari
+        // terakhir.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat rekap pesanan laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            var akhir = endDate ?? DateTime.UtcNow;
+            var awal = startDate ?? akhir.AddDays(-30);
+
+            if (awal > akhir)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
+
+            var result = await _labOrderService.GetSummaryAsync(awal, akhir, cancellationToken);
+
+            return Ok(ApiResponse<LabOrderSummaryResponse>.Ok(
+                result,
+                "Rekap pesanan laboratorium berhasil diambil."));
+        }
+
+        // Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server.
+        //
+        // Penyaring encounterId membuat pemanggil yang hanya butuh pesanan satu pasien tidak
+        // perlu lagi menarik seluruh tabel lalu menyaringnya sendiri di browser (IGD-DEC-105).
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<List<LabOrderListResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrderListResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Lab Order", Description = "Melihat daftar order laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabOrder", "Read")]
         public async Task<IActionResult> GetList(
-            [FromQuery] Guid? encounterId,
+            [FromQuery] LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
         {
-            // BE-RWI-042 - penyaring kunjungan, bentuknya sama persis dengan RadOrderController
-            // supaya kedua daftar pesanan penunjang dipanggil dengan cara yang sama.
-            var result = await _labOrderService.GetListAsync(encounterId, cancellationToken);
+            if (query.StartDate.HasValue && query.EndDate.HasValue &&
+                query.StartDate.Value > query.EndDate.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
 
-            return Ok(ApiResponse<List<LabOrderListResponse>>.Ok(
+            var result = await _labOrderService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabOrderListResponse>>.Ok(
                 result,
                 "Daftar order laboratorium berhasil diambil."));
         }
@@ -69,6 +125,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<List<LabOrderListResponse>>.Ok(
                 result,
                 "Pesanan laboratorium perawatan rawat inap berhasil diambil."));
+        }
+
+        // Daftar pesanan satu disiplin. Disiplin datang dari jalur, bukan dari penyaring,
+        // sehingga jalur Mikrobiologi tidak pernah dapat mengembalikan pesanan Patologi Klinik.
+        //
+        // Nilai disiplin yang tidak dikenal ditolak 400, bukan dikembalikan menjadi daftar
+        // kosong — daftar kosong akan terbaca sebagai "belum ada pekerjaan", padahal yang
+        // terjadi adalah salah ketik.
+        [HttpGet("by-discipline/{discipline}")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrderListResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat daftar order laboratorium per disiplin", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetByDiscipline(
+            string discipline,
+            [FromQuery] LabOrderPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryParseDiscipline(discipline, out var nilai))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Disiplin laboratorium tidak dikenal. Pilihannya: clinical-pathology, anatomical-pathology, atau microbiology."));
+            }
+
+            if (query.StartDate.HasValue && query.EndDate.HasValue &&
+                query.StartDate.Value > query.EndDate.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
+
+            query.Discipline = nilai;
+
+            var result = await _labOrderService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabOrderListResponse>>.Ok(
+                result,
+                "Daftar order laboratorium per disiplin berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Menerima nama enum maupun bentuk bertanda hubung yang dipakai jalur monitoring,
+        /// supaya kedua grup dapat dipanggil dengan istilah yang sama.
+        /// </summary>
+        private static bool TryParseDiscipline(string? nilai, out LabDiscipline discipline)
+        {
+            discipline = default;
+
+            if (string.IsNullOrWhiteSpace(nilai))
+                return false;
+
+            var bersih = nilai.Trim().Replace("-", string.Empty).Replace("_", string.Empty);
+
+            return Enum.TryParse(bersih, ignoreCase: true, out discipline) &&
+                   Enum.IsDefined(typeof(LabDiscipline), discipline);
         }
 
         [HttpGet("{id:guid}")]
@@ -127,9 +240,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Menandai pesanan mulai dikerjakan laboratorium.
-        /// </summary>
+        // Menandai pesanan mulai dikerjakan laboratorium.
         [HttpPut("{id:guid}/start-process")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -142,10 +253,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labOrderService.StartProcessAsync(id, cancellationToken),
                 "Order laboratorium mulai dikerjakan.");
 
-        /// <summary>
-        /// Menandai pekerjaan laboratorium selesai. Tidak menerbitkan fakta tagihan; kelayakan
-        /// tagih sudah terbentuk pada saat sampel dinyatakan layak.
-        /// </summary>
+        // Menandai pekerjaan laboratorium selesai. Tidak menerbitkan fakta tagihan; kelayakan
+        // tagih sudah terbentuk pada saat sampel dinyatakan layak.
         [HttpPut("{id:guid}/complete")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -188,13 +297,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labOrderService.ResumeAsync(id, request, cancellationToken),
                 "Order laboratorium dilanjutkan.");
 
-        /// <summary>
-        /// Membatalkan order laboratorium beserta sampel yang masih berjalan.
-        ///
-        /// Pembatalan ini bersifat klinis. Untuk sampel yang sebelumnya sudah dinyatakan layak,
-        /// diterbitkan fakta pembatalan sebagai revisi baru sehingga tagihan lama tetap utuh
-        /// dan Billing yang menentukan koreksinya. Laboratorium tidak menghapus tagihan.
-        /// </summary>
+        // Membatalkan order laboratorium beserta sampel yang masih berjalan.
+        //
+        // Pembatalan ini bersifat klinis. Untuk sampel yang sebelumnya sudah dinyatakan layak,
+        // diterbitkan fakta pembatalan sebagai revisi baru sehingga tagihan lama tetap utuh
+        // dan Billing yang menentukan koreksinya. Laboratorium tidak menghapus tagihan.
         [HttpPut("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderCancellationResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

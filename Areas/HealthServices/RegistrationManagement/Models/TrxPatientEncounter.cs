@@ -119,6 +119,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public bool IsReferralVerified { get; set; } = false;
 
+        /// <summary>
+        /// Instansi yang merujuk pasien ini (<c>LAB-DEC-035</c>, <c>BE-EXT-03</c>).
+        ///
+        /// <b>Penunjuk, bukan teks bebas.</b> Sebelum ini asal rujukan hanya hidup sebagai
+        /// nomor surat dan penanda <see cref="IsReferral"/>, sehingga satu klinik yang sama
+        /// dapat tercatat dengan lima ejaan berbeda dan laporan asal rujukan tidak pernah dapat
+        /// dipercaya.
+        ///
+        /// Boleh kosong: kunjungan yang bukan rujukan memang tidak punya perujuk, dan kunjungan
+        /// lama tidak pernah menyimpannya.
+        /// </summary>
+        public Guid? ReferralInstitutionId { get; set; }
+
+        /// <summary>
+        /// Dokter yang merujuk pasien ini — dokter <b>di luar</b> rumah sakit ini, bukan dokter
+        /// pada data induk internal (<c>LAB-DEC-035</c>).
+        /// </summary>
+        public Guid? ReferralDoctorId { get; set; }
+
         // =========================
         // REGISTRATION FLAGS
         // =========================
@@ -179,6 +198,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public MstClinic? Clinic { get; set; }
 
         public MstRoom? Room { get; set; }
+
+        public MstReferralInstitution? ReferralInstitution { get; set; }
+
+        public MstReferralDoctor? ReferralDoctor { get; set; }
 
         public MstDoctor? Doctor { get; set; }
 

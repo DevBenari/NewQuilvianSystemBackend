@@ -45,9 +45,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labRejectionReasonService = labRejectionReasonService;
         }
 
-        /// <summary>
-        /// Daftar alasan penolakan untuk layar pengelolaan, termasuk yang sudah dinonaktifkan.
-        /// </summary>
+        // Keterangan bentuk layar pengelolaan: pilihan urutan, ukuran halaman, dan daftar ruas
+        // yang terkunci bagi kepala instalasi sehingga layar dapat menampilkannya bergembok
+        // sejak awal.
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Rejection Reason", Description = "Melihat daftar pilihan penyaring alasan penolakan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabRejectionReason", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = _labRejectionReasonService.GetFilterMetadata();
+
+            return Ok(ApiResponse<LabRejectionReasonFilterMetadataResponse>.Ok(
+                result,
+                "Metadata penyaring alasan penolakan sampel berhasil diambil."));
+        }
+
+        // Rekap alasan penolakan. Tanpa rentang waktu — ini data induk, bukan catatan kejadian.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Rejection Reason", Description = "Melihat rekap alasan penolakan sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabRejectionReason", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labRejectionReasonService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabRejectionReasonSummaryResponse>.Ok(
+                result,
+                "Rekap alasan penolakan sampel berhasil diambil."));
+        }
+
+        // Daftar alasan penolakan untuk layar pengelolaan, termasuk yang sudah dinonaktifkan.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabRejectionReasonResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Rejection Reason", Description = "Melihat daftar alasan penolakan sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -63,13 +91,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Daftar alasan penolakan sampel berhasil diambil."));
         }
 
-        /// <summary>
-        /// Menambah alasan penolakan baru.
-        ///
-        /// Kedua penanda terkunci tidak dapat diisi dari sini; alasan baru selalu lahir dengan
-        /// nilai bawaan (<c>AC-26</c>). Kode alasan yang sudah dipakai ditolak <c>409</c>
-        /// (<c>VAL-36</c>).
-        /// </summary>
+        // Menambah alasan penolakan baru.
+        //
+        // Kedua penanda terkunci tidak dapat diisi dari sini; alasan baru selalu lahir dengan
+        // nilai bawaan (AC-26). Kode alasan yang sudah dipakai ditolak 409 (VAL-36).
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -83,12 +108,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labRejectionReasonService.CreateAsync(request, cancellationToken),
                 "Alasan penolakan sampel berhasil ditambahkan.");
 
-        /// <summary>
-        /// Mengubah nama, keterangan, dan urutan tampil.
-        ///
-        /// Penanda kesalahan internal dan penanda wajib catatan <b>tidak</b> dapat diubah lewat
-        /// sini. Permintaan yang memuat salah satunya ditolak <c>403</c> (<c>VAL-37</c>).
-        /// </summary>
+        // Mengubah nama, keterangan, dan urutan tampil.
+        //
+        // Penanda kesalahan internal dan penanda wajib catatan TIDAK dapat diubah lewat sini.
+        // Permintaan yang memuat salah satunya ditolak 403 (VAL-37).
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -104,10 +127,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labRejectionReasonService.UpdateAsync(id, request, cancellationToken),
                 "Alasan penolakan sampel berhasil diubah.");
 
-        /// <summary>
-        /// Mengaktifkan atau menonaktifkan satu alasan penolakan. Alasan aktif terakhir tidak
-        /// dapat dinonaktifkan (<c>VAL-38</c>).
-        /// </summary>
+        // Mengaktifkan atau menonaktifkan satu alasan penolakan. Alasan aktif terakhir tidak
+        // dapat dinonaktifkan (VAL-38).
         [HttpPut("{id:guid}/activation")]
         [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -124,13 +145,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     ? "Alasan penolakan sampel berhasil diaktifkan."
                     : "Alasan penolakan sampel berhasil dinonaktifkan.");
 
-        /// <summary>
-        /// Menyetel penanda kesalahan internal dan penanda wajib catatan.
-        ///
-        /// Hanya pemegang <c>LabRejectionReason : SystemFlag</c> yang dapat memanggilnya.
-        /// Pemisahan hak akses inilah yang membuat kepala instalasi tidak dapat memindahkan
-        /// beban biaya pengambilan ulang sendirian.
-        /// </summary>
+        // Menyetel penanda kesalahan internal dan penanda wajib catatan.
+        //
+        // Hanya pemegang LabRejectionReason : SystemFlag yang dapat memanggilnya. Pemisahan hak
+        // akses inilah yang membuat kepala instalasi tidak dapat memindahkan beban biaya
+        // pengambilan ulang sendirian.
         [HttpPut("{id:guid}/system-flags")]
         [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]

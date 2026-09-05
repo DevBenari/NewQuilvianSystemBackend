@@ -536,7 +536,6 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
-        public DbSet<MstBillingItemCategory> MstBillingItemCategories { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
@@ -573,6 +572,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
         public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
+
+        // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
+        // Jalan, dan IGD sama-sama menerima pasien rujukan.
+        public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
+
+        public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
@@ -648,9 +653,11 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
-        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
+        public DbSet<LabSpecimen> LabSpecimens { get; set; }
 
-        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
+        public DbSet<LabExamination> LabExaminations { get; set; }
+
+        public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 

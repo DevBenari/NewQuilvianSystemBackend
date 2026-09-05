@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Dtos;
@@ -18,7 +18,15 @@ public sealed class CashierShiftQuery
 public sealed class OpenShiftRequest
 {
     public Guid RegisterId { get; set; }
-    [Range(typeof(decimal), "0", "9999999999999999.99")]
+    // Batas Range wajib di-parse invariant: tanpa ini RangeAttribute memakai culture aktif
+    // server, dan pada culture yang memakai koma sebagai pemisah desimal string "9999999999999999.99"
+    // gagal di-parse sehingga validasi melempar dan request berakhir 500.
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal OpeningCash { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
@@ -35,7 +43,15 @@ public sealed class HandoverShiftRequest
 
 public sealed class CloseShiftRequest
 {
-    [Range(typeof(decimal), "0", "9999999999999999.99")]
+    // Batas Range wajib di-parse invariant: tanpa ini RangeAttribute memakai culture aktif
+    // server, dan pada culture yang memakai koma sebagai pemisah desimal string "9999999999999999.99"
+    // gagal di-parse sehingga validasi melempar dan request berakhir 500.
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal PhysicalCash { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     public Guid CorrelationId { get; set; }

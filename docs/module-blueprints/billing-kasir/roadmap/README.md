@@ -1,6 +1,6 @@
 # Roadmap Delivery — Billing dan Kasir
 
-Blueprint `BIL-CASH-001 revision 0.4` telah disetujui pada 20 Agustus 2026. Roadmap revision `1` ini berstatus `DRAFT_FORWARD_TEST`: urutan dan task sudah dapat ditinjau, tetapi **belum memberi wewenang menulis source**. Setiap builder hanya boleh menjalankan satu task yang kemudian disetujui secara eksplisit.
+Blueprint `BIL-CASH-001 revision 0.4` telah disetujui pada 20 Agustus 2026; revision `0.5` (amendment `BKC-DEC-059`–`062`, form "Buat Invoice Manual (Testing)" berbasis katalog tarif + coverage per item) disetujui 2 September 2026. Roadmap revision `1` ini berstatus `DRAFT_FORWARD_TEST`: urutan dan task sudah dapat ditinjau, tetapi **belum memberi wewenang menulis source**. Setiap builder hanya boleh menjalankan satu task yang kemudian disetujui secara eksplisit.
 
 ## Fase
 
@@ -13,6 +13,7 @@ Blueprint `BIL-CASH-001 revision 0.4` telah disetujui pada 20 Agustus 2026. Road
 | `BKC-PH-005` | Shift dan exception finansial terkontrol | `BE-BKC-012`–`014` | `FE-BKC-007`,`008` | PH-004 | `PLANNED` |
 | `BKC-PH-006` | Finalisasi menghasilkan AR/AP idempotent | `BE-BKC-015`,`016` | `FE-BKC-009` | PH-003–005 | `PLANNED` |
 | `BKC-PH-007` | Bukti lintas-slice dan hardening lengkap | `BE-BKC-017` | `FE-BKC-010` | Semua slice | `PLANNED` |
+| `BKC-PH-008` | Entri manual katalog tarif + coverage per item (form "Buat Invoice Manual (Testing)") — `BKC-DEC-059`–`062` | `BE-BKC-018`–`021` | `FE-BKC-014`–`016` | Blueprint `0.5 approved` (2 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
 
 ## Aturan eksekusi
 

@@ -7,7 +7,7 @@
 | Tabel | Kolom selain audit | Kunci/aturan | Sensitif |
 | --- | --- | --- | :---: |
 | `BilInvoice` | `Id`, `EncounterId`, `InvoiceNumber`, `ServiceType`, `Status`, `CurrentCalculationVersion`, `InvoiceDate`, `ClosedAt`, `RowVersion` | UK EncounterId, UK InvoiceNumber | EncounterId Ya |
-| `BilInvoiceItem` | `Id`, `InvoiceId`, `SourceDomain`, `SourceDetailId`, `CategoryId`, `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare`, `Status`, `VoidReason` | FK invoice/category; UK active source tuple | Description/Source Ya |
+| `BilInvoiceItem` | `Id`, `InvoiceId`, `SourceDomain`, `SourceDetailId`, `CategoryId`, `TariffId?` (**baru 2 Sep 2026**), `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare`, `Status`, `VoidReason` | FK invoice/category/tariff(opsional); UK active source tuple | Description/Source Ya |
 | `BilCalculationVersion` | `Id`, `InvoiceId`, `VersionNo`, `GrossAmount`, `ItemDiscount`, `TotalDiscount`, `TaxAmount`, `PatientAmount`, `PrimaryAmount`, `ExcessAmount`, `RoundingAmount`, `IsLocked`, `CalculatedAt`, `Reason` | UK InvoiceId+VersionNo; immutable | Ya |
 | `BilDiscountApplication` | `Id`, `InvoiceId`, `InvoiceItemId?`, `DiscountPolicyId`, `DiscountType`, `RequestedAmount`, `Amount`, `ApprovalStatus`, `RequestedBy`, `ApprovedBy?`, `Reason` | doctor approver wajib untuk doctor share | Ya |
 | `BilDepositAccount` | `Id`, `EncounterId`, `AccountNumber`, `AvailableBalance`, `Status`, `RowVersion` | UK encounter/account | Ya |
@@ -70,3 +70,86 @@ CREATE UNIQUE INDEX UK_BilAdjustment_Correlation ON BilAdjustment(CorrelationId)
 ```
 
 Empat master policy membutuhkan check `EffectiveTo > EffectiveFrom`, serta validasi service untuk mencegah periode aktif overlap. Seluruh FK finansial menggunakan delete restrict; histori tidak cascade-delete.
+
+## Amendment 2 September 2026 — `BilInvoiceItem.TariffId`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `TariffId` | `Guid?` | Tidak | `null` | Index (non-unik) | FK ke `MstTariff.Id` | `Restrict` | Tidak | Diisi hanya untuk item hasil entri katalog (`SourceDomain="ADHOC_CATALOG"`); `null` untuk item lama/free-form |
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+ALTER TABLE public."BilInvoiceItem"
+    ADD COLUMN "TariffId" uuid NULL;
+
+ALTER TABLE public."BilInvoiceItem"
+    ADD CONSTRAINT "FK_BilInvoiceItem_MstTariff_TariffId"
+    FOREIGN KEY ("TariffId") REFERENCES public."MstTariff" ("Id") ON DELETE RESTRICT;
+
+CREATE INDEX "IX_BilInvoiceItem_TariffId" ON public."BilInvoiceItem" ("TariffId");
+```
+
+`MstTariff` sudah ada (`Areas/HealthServices/MasterData/Models/MstTariff.cs`) — hanya kolom kunci yang relevan bagi modul ini: `Id` PK, `TariffCategoryId` FK ke `MstTariffCategory`, `NormalPrice` (dasar harga server-side), `IsActive`/`EffectiveStartDate`/`EffectiveEndDate` (dasar validasi `BIL-VAL-025`). Kolom lengkap lihat file model.
+
+## Amendment 3 September 2026 — Dokumen Invoice Asuransi
+
+**Tidak ada kolom baru dan tidak ada tabel baru** (`BKC-DES-003`). Tidak ada pula tabel yang berubah status menjadi `Diperbarui`, sehingga tidak ada bagian DDL tambahan pada amendment ini.
+
+Yang berubah hanyalah **isi** satu kolom yang sudah ada:
+
+| Tabel | Kolom | Tipe | Status kolom | Apa yang berubah |
+| --- | --- | --- | --- | --- |
+| `BilCalculationVersion` | `BreakdownSnapshot` | `text` (JSON) | `Sudah ada`, bentuk tidak berubah | Objek JSON di dalamnya bertambah properti: `items[].coveredNetAmount`, `items[].coveredTaxAmount`, `items[].coveredAmount`, `items[].unresolvedAmount`, `items[].patientAmount`, `administrationFee.coveredNetAmount`/`coveredTaxAmount`/`coveredAmount`, `roomCharge.coveredNetAmount`/`coveredTaxAmount`/`coveredAmount`, dan `coverage.isPerItemAllocationAvailable`. Nilai `contractVersion` di dalamnya berubah dari `BIL-CALCULATION-0.4` menjadi `BIL-CALCULATION-0.5` |
+
+Karena kolom ini bertipe teks JSON dan bukan kolom bertipe kuat, penambahan properti **tidak** memerlukan migration, **tidak** mengubah panjang maksimum, dan **tidak** memerlukan index baru. Baris yang sudah tersimpan tetap sah apa adanya; properti yang belum ada akan terbaca sebagai nilai bawaan (`0` untuk angka, `false` untuk boolean) — dan `coverage.isPerItemAllocationAvailable = false` itulah penanda resmi bahwa rincian per baris memang tidak tersedia untuk baris tersebut, bukan bahwa tanggungannya nol.
+
+**Contoh.** Sebuah `BilCalculationVersion` yang tersimpan 1 September 2026 memuat `{"contractVersion":"BIL-CALCULATION-0.4","items":[{"invoiceItemId":"…","grossAmount":100000,"coverable":true}], …}`. Dibaca setelah pembaruan, `items[0].coveredAmount` bernilai `0` dan `coverage.isPerItemAllocationAvailable` bernilai `false`. Angka `0` itu **MUST NOT** ditampilkan sebagai "asuransi menanggung Rp 0"; yang benar adalah "rincian per item tidak tersedia untuk tagihan ini" (`BIL-VAL-033`), sementara total tanggungannya tetap sah karena tersimpan sebagai kolom relasional `BilCalculationVersion.PrimaryAmount`.
+
+### Kolom milik modul lain yang dibaca dokumen ini
+
+Tabel-tabel berikut berstatus `Sudah ada` dan **tidak** berubah; hanya kolom kunci yang relevan bagi dokumen Invoice Asuransi yang dicatat di sini. Kolom lengkapnya lihat berkas model masing-masing.
+
+`TrxPatientEncounterGuarantor` — `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounterGuarantor.cs`
+
+| Kolom | Tipe | Relasi | Sensitif | Keterangan |
+| --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | PK | Tidak | — |
+| `EncounterId` | `Guid` | FK ke `TrxPatientEncounter` | **Ya** | Penghubung ke kunjungan yang ditagihkan |
+| `PaymentType` | `int` (enum) | — | Tidak | Menentukan `payerKind` dokumen: `Cash`, `Insurance`, atau `CompanyGuarantor` |
+| `IsActive` | `bool` | — | Tidak | Hanya baris aktif yang dibaca |
+| `InsuranceProviderId` | `Guid?` | FK ke `MstInsuranceProvider` | Tidak | Wajib terisi untuk `Insurance`; menjadi rujukan blok perusahaan |
+| `PolicyNumberSnapshot` | `string(100)` | — | **Ya** | Nomor polis pada saat registrasi |
+| `MemberNumberSnapshot` | `string(100)` | — | **Ya** | Nomor anggota pada saat registrasi |
+| `PlanNameSnapshot` | `string(150)` | — | Tidak | Nama paket manfaat |
+| `ClassNameSnapshot` | `string(150)` | — | Tidak | Kelas manfaat |
+| `BenefitPlanCodeSnapshot` | `string(100)` | — | Tidak | Kode paket; juga dipakai pencocokan aturan coverage |
+| `EffectiveStartDateSnapshot`, `EffectiveEndDateSnapshot` | `DateTime?` | — | Tidak | Masa berlaku kartu pada saat registrasi |
+| `IsEligible`, `IsPolicyActive` | `bool` | — | Tidak | Kelayakan pada saat registrasi |
+| `CardNumberSnapshot` | `string(100)` | — | **Ya** | **MUST NOT dibaca amendment ini** — lihat `02-backend-architecture.md` § Yang sengaja tidak dibuat |
+
+`MstInsuranceProvider` — `Areas/Administrator/MasterData/Models/MstInsuranceProvider.cs`
+
+| Kolom | Tipe | Relasi | Sensitif | Keterangan |
+| --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | PK | Tidak | — |
+| `InsuranceProviderCode` | `string(50)` | Unik secara bisnis | Tidak | Kode perusahaan |
+| `InsuranceProviderName` | `string(200)` | — | Tidak | Nama yang dicetak sebagai tujuan dokumen |
+| `InsuranceGroupName` | `string(100)?` | — | Tidak | Nama grup, bila ada |
+| `ProviderType` | `string(50)` | — | Tidak | `PrivateInsurance`, `TPA`, `GovernmentInsurance`, `CorporateInsurance`, `Other` |
+| `ClaimMethod` | `string(50)` | — | Tidak | `Cashless`, `Reimbursement`, `GuaranteeLetter`, `Mixed` |
+| `ContractNumber` | `string(100)?` | — | Tidak | Nomor kontrak kerja sama, dicetak pada dokumen |
+| `OfficeAddress` | `string(500)?` | — | Tidak | Alamat tujuan, dicetak pada dokumen |
+| `IsActive` | `bool` | — | Tidak | Hanya perusahaan aktif yang dibaca |
+| `PicName`, `PicPhoneNumber`, `PicWhatsAppNumber`, `PicEmail`, `BillingInstruction`, `ClaimInstruction` | berbagai | — | Tidak | **MUST NOT dibaca amendment ini** — data operasional internal, bukan bagian lembar tagihan |
+
+---
+
+## Amendment 4 September 2026 — pindah ke `data/data-dictionary.md`
+
+Amendment 4 September 2026 (`BKC-DEC-070`–`079`, `BKC-DES-010`–`020`) **tidak menambah tabel, kolom, maupun migration**. Perubahan kontrak datanya seluruhnya berada di dalam JSON `BilCalculationVersion.BreakdownSnapshot` dan pada kolom-kolom yang berhenti atau mulai dibaca — dan itu dicatat di lokasi kamus data yang berlaku menurut struktur keluaran blueprint saat ini:
+
+> **[`../data/data-dictionary.md`](../data/data-dictionary.md)**
+
+Berkas ini (`erd/data-dictionary.md`) tetap memegang kamus data **baseline** — seluruh kolom tabel `Bil*`, empat master policy, skema DDL, dan kolom milik modul lain yang dibaca dokumen Invoice Asuransi. Isinya **tidak** disalin ke lokasi baru, supaya tidak ada dua sumber kebenaran yang dapat saling menyimpang.
+
+Penyatuan keduanya ke satu lokasi adalah perubahan struktur yang menyentuh rujukan pada belasan berkas lain. Ia **MUST** dikerjakan sebagai revisi tersendiri oleh `/manage-module-blueprint`, bukan sebagai efek samping pass desain — lihat `BKC-OQ-089` pada [`../04-prd-to-mvp.md`](../04-prd-to-mvp.md).

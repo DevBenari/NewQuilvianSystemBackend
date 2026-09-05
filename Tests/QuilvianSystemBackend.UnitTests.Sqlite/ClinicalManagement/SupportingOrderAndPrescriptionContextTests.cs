@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.S
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -71,6 +72,11 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         /// kunjungan terpaksa mengambil seluruh pesanan rumah sakit lalu menyaringnya sendiri.
         /// Uji ini juga membuktikan pemanggil lama yang tidak mengirim penyaring tetap menerima
         /// daftar penuh seperti sebelumnya.
+        ///
+        /// Sejak digabung dengan <c>BE-LAB-18</c>, penyaringnya tidak lagi berdiri sendiri
+        /// sebagai parameter lepas melainkan menjadi ruas <c>EncounterId</c> pada
+        /// <see cref="LabOrderPagedQuery"/>. Yang dijaga tetap sama: pesanan kunjungan lain
+        /// tidak boleh ikut terbaca.
         /// </remarks>
         [Fact]
         public async Task DaftarPesananLaboratorium_DapatDisaringKunjungan()
@@ -99,20 +105,22 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             var service = LayananPesananLab(context);
 
-            var seluruhnya = await service.GetListAsync();
-            var milikA = await service.GetListAsync(perawatanA.EncounterId);
-            var milikB = await service.GetListAsync(perawatanB.EncounterId);
+            var seluruhnya = await service.GetListAsync(new LabOrderPagedQuery());
+            var milikA = await service.GetListAsync(
+                new LabOrderPagedQuery { EncounterId = perawatanA.EncounterId });
+            var milikB = await service.GetListAsync(
+                new LabOrderPagedQuery { EncounterId = perawatanB.EncounterId });
 
-            Assert.Equal(2, seluruhnya.Count);
+            Assert.Equal(2, seluruhnya.TotalData);
 
-            Assert.Single(milikA);
-            Assert.Equal(perawatanA.EncounterId, milikA[0].EncounterId);
+            Assert.Single(milikA.Items);
+            Assert.Equal(perawatanA.EncounterId, milikA.Items[0].EncounterId);
 
-            Assert.Single(milikB);
-            Assert.Equal(perawatanB.EncounterId, milikB[0].EncounterId);
+            Assert.Single(milikB.Items);
+            Assert.Equal(perawatanB.EncounterId, milikB.Items[0].EncounterId);
 
             // Pesanan perawatan A tidak pernah terbaca dari perawatan B.
-            Assert.DoesNotContain(milikB, x => x.EncounterId == perawatanA.EncounterId);
+            Assert.DoesNotContain(milikB.Items, x => x.EncounterId == perawatanA.EncounterId);
         }
 
         /// <summary>

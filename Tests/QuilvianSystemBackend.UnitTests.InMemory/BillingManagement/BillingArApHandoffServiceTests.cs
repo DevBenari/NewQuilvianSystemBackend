@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -173,11 +174,11 @@ public sealed class BillingArApHandoffServiceTests
             EncounterDate = DateTime.UtcNow,
             IsActive = true
         };
-        var category = new MstBillingItemCategory
+        var category = new MstTariffCategory
         {
             Id = Guid.NewGuid(),
-            BillingItemCategoryCode = "PROC",
-            BillingItemCategoryName = "Procedure",
+            TariffCategoryCode = "PROC",
+            TariffCategoryName = "Procedure",
             IsAdministrationFee = false,
             IsCoveredByInsuranceDefault = true,
             IsActive = true
@@ -228,7 +229,7 @@ public sealed class BillingArApHandoffServiceTests
             CreateDateTime = DateTime.UtcNow.AddMinutes(-5)
         };
         db.TrxPatientEncounters.Add(encounter);
-        db.MstBillingItemCategories.Add(category);
+        db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         db.BilInvoiceItems.Add(item);
         db.BilCalculationVersions.Add(calculation);

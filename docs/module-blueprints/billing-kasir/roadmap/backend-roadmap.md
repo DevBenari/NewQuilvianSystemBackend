@@ -274,3 +274,103 @@ Seluruh task berstatus `READY_FOR_TASK_APPROVAL` bila dependency-nya terpenuhi. 
 ## Urutan dan paralelisme
 
 Setelah `001`, master `002`–`004` boleh paralel. `005` dapat berjalan paralel dengan master, tetapi `006` menunggu master. `009` dan `012` boleh paralel setelah fondasi invoice; `010` menggabungkannya untuk cash path. Exception `013`/`014` mengikuti settlement, lalu `015`/`016`. Setiap task tetap satu unit builder terpisah.
+
+## Amendment 2 September 2026 — Entri manual katalog tarif + coverage per item
+
+```yaml
+input_blueprint_revision: 0.5
+input_blueprint_status: approved
+approved_by: Product/Domain Owner (2 September 2026 13:53 WIB) — BKC-DEC-062 tanpa konfirmasi terpisah Payer/Insurance+Finance/AR, lihat 00-interview-decisions.md
+source_backend_at_design: 17b9c0e21e32b41a8dfd6dbde31462d52717646b
+source_frontend_at_design: 60febdcdbb39de6cebc2d825906bce949f3b5af3
+contracts: [BIL-API-0.4 (amendment 2 Sep 2026), BIL-VALIDATION-0.4 (amendment), BIL-INTEGRATION-0.4 (amendment), BIL-PERMISSION-0.4 (amendment)]
+```
+
+Empat task baru (`BE-BKC-018`–`021`) mengoperasikan `BKC-DEC-059`–`062`. Detail desain lengkap: [`02-backend-architecture.md`](../02-backend-architecture.md#amendment-2-september-2026--entri-manual-berbasis-katalog-tarif--coverage-per-item), [`04-prd-to-mvp.md`](../04-prd-to-mvp.md).
+
+## `BE-BKC-018` — Fondasi katalog tarif pada `BilInvoiceItem`
+
+| Field | Isi |
+| --- | --- |
+| Outcome | `BilInvoiceItem` dapat menyimpan referensi tarif resmi, dan picker encounter mengekspos konteks unit layanan/klinik/kelas pasien yang dibutuhkan untuk memfilter tarif |
+| Trace | `BKC-DEC-059`,`061`; `CAP-02`,`CAP-06` (`01-existing-capability-map.md` § 16); `FR-BKC-001`,`FR-BKC-004` (`04-prd-to-mvp.md`) |
+| Kontrak | ERD amendment `BilInvoiceItem.TariffId` (`erd/01-billing-account-charge.md`, `erd/data-dictionary.md`); tidak ada status baru (`contracts/state-transition-matrix.md`) |
+| Reuse | `MstTariff`/`MstTariffCategory` existing; pola `SourcePolicies["ADHOC"]` existing sebagai referensi entri baru |
+| Scope | Migration `TariffId` (`Guid?`, FK `Restrict`, index) pada `BilInvoiceItem` + configuration; tambah `SourcePolicies["ADHOC_CATALOG"]` pada `BillingChargeSourceAdapter`; extend `ActiveEncounterOptionResponse` (+`ServiceUnitId`,+`ClinicId`,+`PatientClassId`) dan `GetActiveEncounterOptionsAsync`. TIDAK termasuk endpoint charge/preview baru (lihat `BE-BKC-019`/`020`) |
+| Dependency | `BE-BKC-001`; tidak bergantung task lain pada slice ini |
+| Acceptance | Kolom `TariffId` nullable, FK `Restrict` tervalidasi; `"ADHOC_CATALOG"` diterima `BillingChargeSourceAdapter.ValidateAndNormalize`; `ActiveEncounterOptionResponse` mengembalikan 3 field baru tanpa breaking existing consumer |
+| Verifikasi | Migration dry-run/structural test; unit test policy baru; contract test `ActiveEncounterOptionResponse` |
+| Risiko/pemilik | FK `Restrict` perlu dipastikan tidak memblokir siklus hidup `MstTariff` yang sudah dipakai. Owner Backend/API |
+| DoD | Migration source + configuration + test lulus; build lulus; DB tidak dijalankan |
+
+**Status 3 September 2026**: source, configuration, migration (belum dijalankan), dan test
+(policy baru + contract test) selesai; build `dotnet build` lulus (`0 Error`). Lihat
+`task/report/backend/BE-BKC-018.md` untuk rincian dan dua kegagalan test pra-eksisting yang
+ditemukan (tidak terkait task ini, dikonfirmasi lewat `git stash` baseline).
+
+## `BE-BKC-019` — Endpoint entri charge dari katalog tarif
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir/penguji menambah item invoice dari `MstTariff` dengan harga sepenuhnya ditentukan server, tidak dapat dimanipulasi client |
+| Trace | `BKC-DEC-059`; `FR-BKC-002`,`FR-BKC-003`; `BIL-VAL-025`,`026` |
+| Kontrak | API amendment `POST catalog-charges` (`contracts/api-contract.md`); Permission `BillingInvoice:Create` (existing, reuse) |
+| Reuse | `BillingInvoiceService.UpsertChargeAsync` (idempotensi/locking/invoice-upsert existing, dipakai penuh); `AddOtherChargeAsync` sebagai referensi struktur method |
+| Scope | DTO `AddCatalogChargeRequest`; method `BillingInvoiceService.AddCatalogChargeAsync` (lookup `MstTariff` aktif+efektif, ambil `NormalPrice`+`TariffCategoryId`+`TariffName`, build `UpsertChargeRequest` dengan `SourceDomain="ADHOC_CATALOG"`); action `POST catalog-charges` pada `BillingInvoicesController` |
+| Dependency | `BE-BKC-018` |
+| Acceptance | `BIL-AT-025`,`026` (`testing/acceptance-test-matrix.md`) |
+| Verifikasi | Integration test tarif aktif vs nonaktif/kedaluwarsa; idempotency replay test |
+| Risiko/pemilik | Tarif dengan scoping ganda perlu konsisten dengan disambiguasi FE (`BKC-DEC-061`). Owner Billing/API |
+| DoD | Endpoint + tests + Swagger sesuai `contracts/api-contract.md`; build lulus; DB tidak disentuh |
+
+**Status 3 September 2026**: source (DTO, method, endpoint) dan 4 test (2 acceptance + 1
+idempotency + tercakup dalam test aktif/nonaktif/kedaluwarsa) selesai. Build dikonfirmasi lulus
+untuk revisi sebelum tiga penyesuaian terakhir (perbaikan determinisme `SourceDetailId`, perbaikan
+tabrakan `SortOrder`, penambahan 4 test) — revisi final **belum diverifikasi ulang**, pengguna
+mengambil alih menjalankan build/test secara manual. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-019.md` § 5 dan § 7.
+
+## `BE-BKC-020` — Endpoint preview coverage per tarif
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Sistem menjawab "apakah tarif ini tercover untuk pasien ini" sebelum item ditambahkan, tanpa efek samping |
+| Trace | `BKC-DEC-060`; `FR-BKC-005`; `CAP-04` |
+| Kontrak | API amendment `GET catalog-charges/coverage-preview`; Integration `BIL-INT-010` (in-process, `contracts/integration-contract.md`) |
+| Reuse | `InsuranceCoverageService.ResolveTariffAsync` (Clinical Management) dipanggil langsung via DI — TIDAK menulis ulang logika matching rule |
+| Scope | DTO `CatalogChargeCoveragePreviewResponse`; method `BillingInvoiceService.GetCatalogChargeCoveragePreviewAsync` (validasi encounter/tarif, panggil `ResolveTariffAsync`, map ke response); constructor injection `InsuranceCoverageService` pada `BillingInvoiceService`; action `GET catalog-charges/coverage-preview` |
+| Dependency | `BE-BKC-001`; **independen** dari `BE-BKC-018`/`019` — boleh paralel |
+| Acceptance | `BIL-AT-027`,`028`; `BIL-VAL-027` |
+| Verifikasi | Domain test rule `Covered`+`IsNeedApproval` tetap dihitung tercover; test encounter/tarif invalid |
+| Risiko/pemilik | Response **MUST NOT** membocorkan field internal rule (`RuleCode`, `ApprovalInstruction`). Hasil bersifat advisory — didokumentasikan eksplisit BUKAN angka final (lihat `BE-BKC-021`). Owner Backend/Security |
+| DoD | Endpoint read-only tanpa transaksi; tests lulus; build lulus |
+
+**Status 3 September 2026**: source (DTO, constructor injection, method, endpoint) dan 2 test
+domain (rule butuh-approval tetap Covered; encounter/tarif tidak valid) selesai ditulis. Build dan
+test **sengaja belum dijalankan** oleh sesi ini atas instruksi eksplisit pengguna — pengguna
+memverifikasi sendiri secara manual. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-020.md` § 5 dan § 7.
+
+## `BE-BKC-021` — Penyempitan gating approval pada mesin kalkulasi coverage
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Item dengan rule coverage berstatus `Covered` tidak lagi jatuh ke `unresolved` hanya karena butuh approval/surat jaminan — Subtotal Asuransi di Menu Pembayaran mencerminkan ini untuk **SEMUA invoice**, bukan cuma dari form testing |
+| Trace | `BKC-DEC-062` (approved dengan caveat wewenang — lihat `00-interview-decisions.md`); `FR-BKC-007` |
+| Kontrak | Tidak ada endpoint baru; perubahan logika internal `RegistrationBillingCoverageAdapter.ResolveAsync` |
+| Reuse | Method existing; hanya kondisi gating yang diubah |
+| Scope | Hapus `rule.IsNeedApproval \|\| rule.IsNeedGuaranteeLetter` dari kondisi yang menggeser komponen ke `unresolved`. **PERTAHANKAN** `CoverageStatus=="NeedApproval"` dan `MaxAmountPerMonth`/`MaxQuantityPerMonth` sebagai gate — scope dipersempit sesuai `02-backend-architecture.md`, BUKAN pelepasan gating penuh |
+| Dependency | `BE-BKC-001`; independen dari `BE-BKC-018`–`020` (boleh paralel), TAPI dampaknya **GLOBAL** ke semua invoice — regresi-sensitif |
+| Acceptance | `BIL-AT-027` (bagian kalkulasi resmi); regresi nol pada `BillingCalculationServiceTests.cs` dan 3 file test lain yang mereferensikan adapter/rule (`01-existing-capability-map.md` § 16.1 `CAP-05`) — `NFR-004` |
+| Verifikasi | Full regression run atas test coverage existing + test baru kasus `Covered`+`IsNeedApproval`; review manual bahwa `CoverageStatus=NeedApproval` dan limit bulanan TIDAK ikut berubah |
+| Risiko/pemilik | **Risiko tertinggi di slice ini** — mengubah kalkulasi finansial semua invoice produksi, bukan hanya data uji. Owner Billing/Finance/AR. **Wajib dibaca sebelum eksekusi**: `BKC-DEC-062` disetujui Product/Domain Owner TANPA konfirmasi terpisah dari Payer/Insurance + Finance/AR (owner asli `BKC-DEC-042` yang diamendemen) — disarankan menginformasikan mereka sebelum task ini di-deploy ke produksi, meski blueprint tidak mewajibkannya sebagai blocker |
+| DoD | Regression evidence eksplisit (bukan cuma "test baru lulus"); before/after behavior terdokumentasi di laporan task; build lulus |
+
+**Status 3 September 2026**: Pengguna dikonfirmasi eksplisit atas catatan risiko di atas sebelum
+implementasi dimulai (memilih lanjut implementasi source+test, deploy tetap terpisah). Source
+(2 kondisi gating dihapus) dan 4 test baru (regresi + gate yang dipertahankan) selesai ditulis;
+analisis regresi statis terhadap 4 file test yang memakai adapter ini menemukan nol test existing
+yang terdampak (rincian di laporan). Build/test **sengaja belum dijalankan** sesuai instruksi
+pengguna yang berlaku sepanjang sesi ini — evidence regresi nyata (`dotnet test`) dan notifikasi
+Finance/AR/Payer sebelum deploy tetap prasyarat wajib. Belum ditandai selesai; lihat
+`task/report/backend/BE-BKC-021.md` § 5 dan § 7.

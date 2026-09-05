@@ -140,7 +140,7 @@ data**. Menganggapnya bisa ditutup permission adalah kesalahan yang paling mahal
 ## 4. Kejadian yang Wajib Menghasilkan Jejak Audit
 
 Selain logger, perpindahan status berikut wajib menghasilkan satu baris permanen pada
-`TrxLabTransitionHistory`.
+`LabTransitionHistory`.
 
 | Kejadian | `Scope` | `Action` | Alasan wajib |
 |---|---|---|:---:|
@@ -161,6 +161,8 @@ Selain logger, perpindahan status berikut wajib menghasilkan satu baris permanen
 | Pemeriksaan menjadi layak tagih | `LabExamination` | `Examination.ChargeEligible` | Tidak |
 | Pemeriksaan gugur karena wadah ditolak | `LabExamination` | `Examination.Void` | Tidak |
 | Pemeriksaan dibatalkan | `LabExamination` | `Examination.Cancel` | **Ya** |
+| Pemeriksaan ditandai cito atau dikembalikan biasa | `LabExamination` | `Examination.SetUrgency` | Tidak |
+| Pemeriksaan ditandai dikerjakan ganda atau penandaannya dibatalkan | `LabExamination` | `Examination.SetDuplo` | Tidak |
 
 Setiap baris menyimpan status asal dan tujuan, pelaku, waktu, dan penghubung rangkaian tindakan.
 
@@ -178,9 +180,9 @@ Setiap baris menyimpan status asal dan tujuan, pelaku, waktu, dan penghubung ran
 
 | Kolom sensitif | Tabel | Aturan |
 |---|---|---|
-| `RejectionNote` | `TrxLabSpecimen` | Tidak masuk logger; tinjau penyamaran pada response bagi pengguna non-klinis |
-| `RecollectionReason` | `TrxLabSpecimen` | Sama seperti di atas |
-| `ReasonNote` | `TrxLabTransitionHistory` | Sama seperti di atas |
+| `RejectionNote` | `LabSpecimen` | Tidak masuk logger; tinjau penyamaran pada response bagi pengguna non-klinis |
+| `RecollectionReason` | `LabSpecimen` | Sama seperti di atas |
+| `ReasonNote` | `LabTransitionHistory` | Sama seperti di atas |
 
 Barcode wadah **tidak** memuat identitas pasien — sudah dijaga pengujian
 `#BarcodeSampel_UnikDanTidakMemuatIdentitasPasien@c87d9c0`. Aturan itu tetap berlaku setelah

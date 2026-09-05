@@ -78,6 +78,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public MstProcedure? Procedure { get; set; }
 
-        public ICollection<TrxLabSpecimen> Specimens { get; set; } = new List<TrxLabSpecimen>();
+        public ICollection<LabSpecimen> Specimens { get; set; } = new List<LabSpecimen>();
+
+        /// <summary>
+        /// Pemeriksaan yang dipesan. Sejak <c>LAB-DEC-024</c> inilah satuan yang ditagihkan,
+        /// terpisah dari wadah fisik yang menopangnya.
+        /// </summary>
+        public ICollection<LabExamination> Examinations { get; set; } = new List<LabExamination>();
     }
 }

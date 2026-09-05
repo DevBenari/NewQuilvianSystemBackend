@@ -12,7 +12,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     public class PlanLabSpecimenRequest
     {
         /// <summary>
-        /// Procedure komponen pemeriksaan. Bila kosong, dipakai procedure pesanan.
+        /// Jenis pemeriksaan yang akan dikerjakan dari wadah ini.
+        ///
+        /// <b>Inilah perubahan inti <c>LAB-DEC-024</c>.</b> Satu wadah menopang satu atau lebih
+        /// pemeriksaan — satu tabung darah ungu untuk hemoglobin, leukosit, dan trombosit
+        /// sekaligus. Sebelumnya satu wadah sama dengan satu pemeriksaan, sehingga pasien
+        /// menerima tiga barcode untuk satu kali tusukan jarum.
+        ///
+        /// Wajib memuat sekurang-kurangnya satu (<c>VAL-05</c>), dan tidak boleh memuat jenis
+        /// yang sama dua kali (<c>VAL-07</c>).
+        /// </summary>
+        public List<Guid> Examinations { get; set; } = new();
+
+        /// <summary>
+        /// Jalur ringkas satu pemeriksaan, dipertahankan untuk pemanggil lama.
+        ///
+        /// Dipakai hanya ketika <see cref="Examinations"/> kosong. Bila keduanya kosong,
+        /// procedure pesanan yang dipakai — dan bila pesanan pun tidak punya, permintaan ditolak
+        /// <c>VAL-05</c>.
         /// </summary>
         public Guid? ProcedureId { get; set; }
 
@@ -90,8 +107,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public Guid LabOrderId { get; set; }
 
-        public Guid ProcedureId { get; set; }
-
         public string SpecimenBarcode { get; set; } = string.Empty;
 
         public int SpecimenSequence { get; set; }
@@ -99,12 +114,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? SpecimenDescription { get; set; }
 
         public string SpecimenStatus { get; set; } = string.Empty;
-
-        public string? ProcedureCode { get; set; }
-
-        public string? ProcedureName { get; set; }
-
-        public decimal? UnitPrice { get; set; }
 
         public DateTime? CollectedAt { get; set; }
 
@@ -148,6 +157,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? Code { get; set; }
 
         public string? Message { get; set; }
+
+        /// <summary>
+        /// Seluruh identitas fakta yang terbit dari satu keputusan.
+        ///
+        /// Sejak <c>FR-05.1</c>, satu wadah yang dinyatakan layak menerbitkan fakta sebanyak
+        /// pemeriksaan yang ditopangnya. <see cref="MilestoneFactId"/> tetap diisi identitas
+        /// fakta pertama supaya pemanggil lama tidak putus; ruas inilah yang membawa
+        /// seluruhnya.
+        /// </summary>
+        public List<Guid> MilestoneFactIds { get; set; } = new();
+
+        /// <summary>Jumlah fakta yang terbit — sama dengan jumlah pemeriksaan pada wadah itu.</summary>
+        public int MilestoneFactCount { get; set; }
     }
 
     public class LabTransitionHistoryResponse
