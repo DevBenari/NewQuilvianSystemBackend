@@ -1056,3 +1056,18 @@ masing-masing butuh tindakan konkret di luar percakapan:
 
 `BKC-OQ-091` (ratifikasi bentuk blueprint `SINGLE`) tetap ditandai non-blocking, sengaja tidak
 disentuh karena di luar permintaan eksplisit pengguna sepanjang sesi ini.
+
+## Amendment 5 September 2026 — Penutupan review Security atas pemakaian ulang `BillingInvoice:Read`
+
+Menutup satu dari tiga item pada daftar "Yang TIDAK ditutup pass sebelumnya" di atas (butir 2):
+review Security atas pemakaian ulang `BillingInvoice:Read` untuk lembar Invoice Asuransi berisi
+nomor polis (`BKC-GATE-03`, menahan `BE-BKC-023` dan `FE-BKC-018`).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-092` | Decision | Menutup `BKC-GATE-03`. Hak akses `BillingInvoice:Read` yang sudah ada **dipakai ulang apa adanya** untuk membaca dan mencetak Lembar Invoice Asuransi (berisi nomor polis) — **tidak** dibuat permission tersendiri (mis. `BillingInvoice:ReadInsuranceDocument`). Siapa pun yang sudah berwenang membaca invoice biasa kini juga berwenang membaca/mencetak lembar ini; tidak ada perubahan kode otorisasi maupun remapping role yang diperlukan. Risiko yang tetap terbuka dan **bukan** bagian keputusan ini: task `BE-BKC-023`/`FE-BKC-018` tetap **MUST** memastikan nama berkas PDF memakai nomor tagihan (bukan nama pasien) dan tidak ada nomor polis pada log peramban/audit — mitigasi teknis, bukan syarat gate permission. | Security Owner (pengguna, wewenang dikonfirmasi eksplisit saat pertanyaan diajukan — opsi yang dipilih secara sadar mensyaratkan wewenang Security untuk modul ini) | `approved` | "Pakai ulang BillingInvoice:Read apa adanya (Recommended)" dari 2 opsi bertanda rekomendasi, 5 September 2026 |
+
+**Status pass ini**: `BKC-GATE-03` DITUTUP PENUH oleh `BKC-DEC-092`. Dua item tersisa pada daftar
+"Yang TIDAK ditutup" di atas (`BKC-OQ-085` asli, kelengkapan master data UAT) **tetap terbuka** —
+keduanya butuh analisis Finance/pengecekan data langsung, bukan keputusan kebijakan yang dapat
+ditutup lewat wawancara.

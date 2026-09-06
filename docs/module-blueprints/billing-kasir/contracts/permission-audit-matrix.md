@@ -34,7 +34,7 @@ Audit disimpan append-only dengan actor, role, time, reason, correlation, entity
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-PERMISSION-0.5` · status **draft** · owner Security dan process owner · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-PERMISSION-0.5` · status **approved** · owner Security dan process owner · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 | --- | --- | --- | --- | :---: |
@@ -61,7 +61,7 @@ Trace `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`. Tests `BIL-AT-033`, `BIL-AT-
 
 ## Amendment 4 September 2026 — Anomali data penjamin dan gerbang PPN
 
-`last_changed_in: BIL-PERMISSION-0.6` · status **draft** · owner Security dan process owner · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+`last_changed_in: BIL-PERMISSION-0.6` · status **approved** · owner Security dan process owner · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. **Catatan diperbarui 5 September 2026**: pemakaian ulang `BillingInvoice : Read` untuk lembar Invoice Asuransi (`BKC-GATE-03`) ~~tetap menunggu penilaian Security tersendiri~~ **DITUTUP** — `BKC-DEC-092` (Security Owner): dipakai ulang apa adanya, tidak ada permission baru.
 
 ### Hak akses — tidak ada butir baru
 

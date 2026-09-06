@@ -52,7 +52,7 @@ Tidak ada status baru pada `BilInvoice`/`BilInvoiceItem`. `POST catalog-charges`
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-STATE-0.5` · status **draft** · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-STATE-0.5` · status **approved** · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 **Tidak ada status baru, dan tidak ada transisi baru.** `GET {id}/insurance-invoice-document` adalah endpoint baca murni: ia tidak mengubah `BilInvoice.Status`, tidak membuat `BilCalculationVersion` baru, dan tidak menyentuh `BilInvoiceItem.Status`. Mencetak dokumen tidak pernah menjadi peristiwa yang mengubah keadaan tagihan.
 
@@ -73,7 +73,7 @@ Trace `BKC-DEC-065`–`069`. Tests `BIL-AT-029`–`035`.
 
 ## Amendment 4 September 2026 — Anomali data penjamin dan gerbang PPN
 
-`last_changed_in: BIL-STATE-0.6` · status **draft** · owner Billing/Finance/Cashier · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+`last_changed_in: BIL-STATE-0.6` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
 
 ### Status invoice — tidak ada status baru
 
@@ -110,7 +110,7 @@ Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-STATE-0.7` · status **draft** · owner Billing/Finance/Cashier · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`.
+`last_changed_in: BIL-STATE-0.7` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`.
 
 ### Tidak ada status baru — yang bertambah adalah kategori
 

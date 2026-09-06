@@ -1570,9 +1570,9 @@ Pemeriksaan sekali jalan yang **MUST** dilakukan sebelum rilis: berapa banyak ba
 
 ## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
 
-> Revisi blueprint `0.9`, status **draft**. Masukan keputusan bisnis: **`BKC-DEC-089`** — `approved` Product/Domain Owner + Finance/AR 4 September 2026, menutup `BKC-OQ-093`. Amendment ini **memperluas jangkauan** `BKC-DES-021`–`025`; ia tidak merancang ulang satu pun di antaranya.
+> Revisi blueprint `0.9`, status ~~**draft**~~ **approved** 5 September 2026. Masukan keputusan bisnis: **`BKC-DEC-089`** — `approved` Product/Domain Owner + Finance/AR 4 September 2026, menutup `BKC-OQ-093`. Amendment ini **memperluas jangkauan** `BKC-DES-021`–`025`; ia tidak merancang ulang satu pun di antaranya.
 >
-> Keputusan arsitektur baru pada amendment ini diberi ID `BKC-DES-026` dan `BKC-DES-027`. Keduanya keputusan **teknis** dalam wewenang desain. Statusnya **draft** — approval tetap tindakan manusia dan belum diberikan.
+> Keputusan arsitektur baru pada amendment ini diberi ID `BKC-DES-026` dan `BKC-DES-027`. Keduanya keputusan **teknis** dalam wewenang desain. Statusnya ~~**draft**~~ **approved** — `BKC-DES-026`–`027` disetujui Product/Domain Owner ("Saya approve untuk case diatas", wewenang ganda Finance/AR `BKC-DEC-085`), 5 September 2026, sesudah pertanyaan "kenapa `BE-BKC-030` masih `BLOCKED` oleh `BKC-GATE-06`" dijawab dengan tiga penyebabnya.
 
 ### Tujuan dan batas amendment ini
 
@@ -1716,7 +1716,7 @@ Seluruh baris tabel "Exception dan jalur tidak normal" revisi `0.8` berlaku apa 
 | Keputusan bisnis dasar | **`BKC-DEC-089`** — `approved` Product/Domain Owner + Finance/AR 4 September 2026 (`00-interview-decisions.md`, amendment "Penutupan `BKC-OQ-093` dan `BKC-OQ-094`") |
 | Keputusan bisnis pendukung | `BKC-DEC-080` (perutean residual ke write-off), `BKC-DEC-036` (mekanisme write-off), `BKC-DEC-072`, `BKC-DEC-074`, `BKC-DEC-085` (wewenang ganda Product/Domain Owner + Finance/AR), `BKC-DEC-088` (approval `BKC-DES-021`–`025`) |
 | Pertanyaan terbuka yang ditutup | `BKC-OQ-093` — keputusan bisnisnya ditutup `BKC-DEC-089`, dan **desainnya ditutup amendment ini** |
-| Keputusan arsitektur amendment ini | `BKC-DES-026`, `BKC-DES-027`, status **draft** |
+| Keputusan arsitektur amendment ini | `BKC-DES-026`, `BKC-DES-027`, status ~~draft~~ **approved** 5 September 2026 |
 | Keputusan arsitektur yang diperluas | `BKC-DES-022` — syarat titik tangkapnya diperlebar dari satu cabang menjadi dua. **Tidak** digugurkan dan **tidak** digantikan |
 | Keputusan arsitektur yang dipersempit lebih jauh | `BKC-DES-013` — makna `UnresolvedAmount` menyempit dari "satu jalur tersisa" menjadi "tidak ada jalur yang mengisinya". Field-nya tetap ada (`BKC-DES-027`) |
 | Keputusan arsitektur yang **tidak** disentuh | `BKC-DES-021`, `BKC-DES-023`, `BKC-DES-024`, `BKC-DES-025` — seluruhnya berlaku apa adanya, alasannya pada tabel "Empat keputusan revisi `0.8` yang **tidak** berubah" |
@@ -1725,4 +1725,4 @@ Seluruh baris tabel "Exception dan jalur tidak normal" revisi `0.8` berlaku apa 
 | Dampak skema | **Nol.** Tidak ada kolom, index, maupun migration tambahan |
 | Backend SHA diaudit | `ffeb45a83a6282982214668acc57e15ac0652f04` **beserta working tree yang belum di-commit** |
 | Frontend SHA diaudit | `00210f9a5fb2f4f69e57b8c90c57c63c788da792` **beserta working tree yang belum di-commit** |
-| Status | **draft** — approval `BKC-DES-026`–`027` tetap tindakan manusia dan belum diberikan |
+| Status | ~~draft~~ **approved** — `BKC-DES-026`–`027` disetujui Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`), 5 September 2026. Approval itu tidak relevan dengan otorisasi migration/database — amendment ini nol perubahan skema |

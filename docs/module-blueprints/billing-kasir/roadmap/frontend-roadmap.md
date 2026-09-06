@@ -420,3 +420,244 @@ manual ter-autentikasi (buka dari kedua titik pemicu, cetak PDF, tombol Kembali)
 dijalankan** — tidak ada kredensial di lingkungan builder. Lihat
 `task/report/frontend/FE-BKC-017.md`.
 
+---
+
+# Amendment 4 September 2026 — Gelombang `MVP-6`, `MVP-9`, dan `MVP-12`
+
+## Metadata gelombang ini
+
+```yaml
+roadmap_revision: 2
+roadmap_status: DRAFT_FORWARD_TEST
+approval_gate: BLUEPRINT_APPROVED — kontrak dikunci 4 September 2026 oleh Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`)
+approved_by: [Product/Domain Owner]
+approved_at: 2026-09-04
+blueprint_revision_dibaca: 0.8 (manifest, approved) + 0.9 (02-backend-architecture.md, masih draft — BKC-GATE-06 terpisah)
+blueprint_status: approved (revisi 0.8) — readiness DESIGN_APPROVED
+cakupan: MVP-6 (lembar Invoice Asuransi), MVP-9 (Menu Pembayaran), MVP-12 (Pengecualian Finansial)
+epic: [EPIC BKC-05, EPIC BKC-06, EPIC BKC-07, EPIC BKC-09]
+task_id_series: FE-BKC-018 s.d. FE-BKC-021 — dilanjutkan dari FE-BKC-017
+frontend_commit_sha_pada_manifest: 00210f9a5fb2f4f69e57b8c90c57c63c788da792
+frontend_commit_sha_terverifikasi: belum diperiksa — repository frontend tidak tersedia pada sesi ini (BKC-GAP-07). Kontrak dikunci TIDAK menghapus kebutuhan verifikasi ini
+catatan_baseline_backend: HEAD backend terbukti 52 commit dan 237 berkas source di depan baseline manifest; baseline frontend patut diduga bergerak serupa dan wajib diperiksa sebelum task frontend disetujui
+contracts: [BIL-API-0.7 (approved), BIL-PERMISSION-0.6 (approved)]
+input_revisions:
+  03-frontend-architecture.md: 0.7 (amendment 3 September kedua dan 4 September)
+  04-prd-to-mvp.md: 0.8
+```
+
+## 0. Dua peringatan yang menentukan gelombang ini
+
+> **Pertama: setiap task frontend di bawah menunggu backend yang belum boleh dikerjakan.** Ketiga
+> gelombang ini membaca angka, bukan menghitungnya. Dipasang lebih dulu, ketiganya akan menampilkan
+> Rp 0 pada kolom yang justru paling penting — dan Rp 0 yang salah jauh lebih berbahaya daripada
+> layar yang belum ada, karena petugas menyimpulkan "tidak ada yang perlu ditindaklanjuti".
+
+> **Kedua: keputusan rupa tetap milik pelaksana.** Warna, jarak, ikon, bentuk tab, lebar kolom, dan
+> pilihan pustaka komponen adalah `DEV_DISCRETION`. Yang mengikat hanya: dari mana angka diambil,
+> baris mana yang tampil, hak akses tiap tombol, dan makna keadaan kosong serta gagal.
+
+## 1. Aturan yang berlaku untuk seluruh task gelombang ini
+
+| Aturan | Isi |
+| --- | --- |
+| Sumber angka | Seluruh rupiah berasal dari tanggapan server. Layar **tidak boleh** menghitung, menyaring, atau menjumlahkan ulang rupiah sendiri |
+| Keadaan wajar versus galat | Keadaan seperti "pasien ini bayar tunai" adalah keadaan bisnis normal. Layar menampilkannya sebagai keterangan biru, **bukan** pesan galat merah |
+| Anomali data | Ditampilkan sebagai peringatan kuning di atas Ringkasan Pembayaran, **tidak pernah** sebagai baris subtotal, dan **tidak pernah** sebagai galat merah |
+| Tombol pembayaran | **Tetap aktif** walaupun ada peringatan anomali. Pasien tetap harus bisa membayar |
+| Privasi | Nomor polis dan nomor anggota boleh tampil di lembar cetak, tetapi **tidak boleh** masuk `console.log`, telemetri, maupun penyimpanan peramban |
+| Status tidak hanya warna | Setiap penanda memakai teks lengkap, bukan hanya lencana berwarna |
+
+## `FE-BKC-018` — Tab "Invoice Asuransi" pada halaman Dokumen Kasir
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat membuka satu tab, membaca lembar Invoice Asuransi yang siap diserahkan ke perusahaan asuransi, dan mengunduhnya sebagai PDF A4 |
+| Gelombang | `MVP-6` (`EPIC BKC-05`) |
+| Trace | `FR-BKC-018`, `FR-BKC-019`; `BKC-DEC-065`–`069`; `03-frontend-architecture.md` § Amendment 3 September 2026 (kedua) |
+| Kontrak | `BIL-API-0.5`/`0.6` — `GET /{id}/insurance-invoice-document`; hak akses `BillingInvoice : Read` (dipakai ulang) |
+| Reuse | Pola `KwitansiDocument`/`StrukPasienDocument` apa adanya; halaman Dokumen Kasir hasil `FE-BKC-017`; `html2pdf.js` yang sudah dipakai |
+| Scope | Satu komponen lembar baru; satu tab baru sejajar Kwitansi dan Struk Pasien, **sebelum** enam tab placeholder; satu pemanggilan data beserta tiga slot keadaan dan penyeleksinya; parameter ukuran kertas opsional pada pembuat PDF; perbaikan pemilihan tab dari alamat halaman |
+| Dependency | `BE-BKC-023` **selesai dan terverifikasi**; `BKC-GATE-03` |
+| Status | `BLOCKED` oleh `BE-BKC-023` dan `BKC-GATE-03` |
+
+**Kenapa ukuran kertasnya berubah menjadi A4.** Tabel Invoice Asuransi punya kolom tambahan
+"Ditanggung Asuransi" dan "Porsi Pasien". Pada kertas A5 selebar 148 mm, kolom paling kanan
+terpotong — persis kolom yang paling dibutuhkan pihak asuransi. Perubahannya berbentuk **pilihan
+tambahan** dengan bawaan tetap A5, sehingga Kwitansi dan Struk Pasien **tidak berubah sama sekali**.
+
+**Satu perbaikan yang ikut terbawa.** Pemilihan tab dari alamat halaman hari ini hanya mengenali
+dua jalur, sehingga tautan `?tab=INVOICE_ASURANSI` akan mendarat di tab yang salah. Perbaikannya
+membuat setiap nilai tab yang dikenali dihormati, dan hanya jatuh ke Struk Pasien bila nilainya
+kosong atau tidak dikenali. Ini juga memperbaiki tautan tab lain yang hari ini diam-diam diabaikan.
+
+Aksi per peran:
+
+| Aksi | Kasir | Petugas Billing | Keterangan |
+| --- | :---: | :---: | --- |
+| Membuka tab "Invoice Asuransi" | Ya | Ya | Gerbang hak akses sama dengan seluruh halaman Dokumen Kasir |
+| Menekan "Cetak Invoice Asuransi" | Ya | Ya | Tombol hanya muncul saat tab aktif **dan** lembar dinyatakan dapat dicetak |
+| Mengubah isi lembar dari layar | **Tidak** | **Tidak** | Lembar murni baca; koreksi angka lewat item tagihan atau Pengecualian Finansial |
+
+Acceptance criteria:
+
+1. Membuka halaman dengan `?tab=INVOICE_ASURANSI` mendarat langsung di tab Invoice Asuransi, bukan di Struk Pasien.
+2. Untuk pasien asuransi dengan sedikitnya satu baris tercover, lembar menampilkan nama perusahaan asuransi, nomor polis, dan tabel berisi kolom rupiah yang ditanggung per baris; jumlah kolom itu sama dengan total tanggungan di kaki tabel.
+3. Baris yang tidak ditanggung asuransi **tidak** muncul di lembar, meskipun muncul di Struk Pasien pada tagihan yang sama.
+4. Untuk kunjungan tunai, tab menampilkan keterangan biru bahwa lembar tidak dapat diterbitkan — tanpa lembar, tanpa tombol cetak, dan **bukan** pesan galat merah.
+5. Untuk tagihan yang difinalkan sebelum pembaruan sistem, tab menampilkan total tanggungan beserta keterangan bahwa rincian per baris tidak tersedia, dan tombol cetak tidak muncul.
+6. Menekan cetak menghasilkan PDF A4 yang seluruh kolom tabelnya terbaca utuh tanpa terpotong di sisi kanan.
+7. Cetak Kwitansi dan Struk Pasien **tetap** menghasilkan PDF A5 seperti sebelumnya.
+8. Tab ini **tidak** memicu permintaan data selama kasir belum membukanya.
+9. Peringatan yang tidak kosong tetap ditampilkan meskipun tabelnya sudah terisi — peringatan yang disembunyikan karena tabel sudah terisi adalah peringatan yang gagal bekerja.
+10. Lembar dari tagihan yang masih berjalan mencantumkan keterangan "Tagihan masih berjalan — angka dapat berubah sampai tagihan difinalkan."
+
+Bukti verifikasi: pemeriksaan gaya penulisan kode dan uji unit; satu berkas PDF A4 hasil cetak;
+verifikasi manual ter-autentikasi untuk kelima keadaan penjamin. **Build dijalankan pengguna secara
+manual**, bukan oleh pelaksana task.
+
+Risiko dan pemilik: lembar memuat nomor polis. Nama berkas PDF memakai nomor tagihan, **bukan** nama
+pasien, supaya nama pasien tidak ikut tersebar lewat nama berkas di folder unduhan. Owner Frontend +
+Security.
+
+Definition of Done: sepuluh acceptance terpenuhi; tidak ada regresi pada Kwitansi dan Struk Pasien;
+tidak ada nomor polis di log peramban; hasil build dilaporkan pengguna.
+
+## `FE-BKC-019` — Ringkasan Pembayaran yang benar-benar menjumlah
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir melihat ringkasan yang menjumlah persis ke Total Tagihan, tanpa baris menggantung yang tidak dapat ditagihkan kepada siapa pun |
+| Gelombang | `MVP-9` bagian pertama (`EPIC BKC-06`) |
+| Trace | `FR-BKC-025`, `FR-BKC-026`; `BKC-DEC-075`; `03-frontend-architecture.md` § Amendment 4 September 2026 |
+| Kontrak | `BIL-API-0.6`/`0.7` — field baru pada `breakdown.coverage` |
+| Reuse | Blok Ringkasan Pembayaran hasil `FE-BKC-016`; tidak ada layar baru |
+| Scope | Menghapus baris "Penjamin Belum Terverifikasi"; menampilkan baris "Selisih Tidak Ditagihkan (kontrak penjamin)" yang **menjumlahkan dua field** dan hanya muncul bila nilainya lebih dari nol; memastikan seluruh baris menjumlah ke Total Tagihan |
+| Dependency | `BE-BKC-024`, `BE-BKC-025`, dan `BE-BKC-028` **selesai dan terverifikasi hidup** |
+| Status | `BLOCKED` oleh ketiga task backend tersebut |
+
+**Contoh berangka.** Tagihan Rp 425.000 dengan Subtotal Mandiri Rp 85.000, Subtotal Asuransi
+Rp 340.000, pajak Rp 0, dan selisih Rp 0. Jumlahnya Rp 425.000, tanpa selisih satu rupiah pun.
+
+**Satu baris, dua sumber.** Baris "Selisih Tidak Ditagihkan" **wajib** menjumlahkan nominal
+menggantung dan nominal selisih tidak dapat ditagihkan menjadi satu angka. Kasir tidak
+berkepentingan membedakan sebabnya; pemisahannya baru berguna di layar Pengecualian Finansial.
+Karena kedua field selalu dijumlahkan di layar ini, angka yang dilihat kasir **tidak berubah sama
+sekali** oleh perpindahan field di backend. Bila layar lupa menjumlahkan salah satunya, kasir akan
+melihat selisih menghilang tanpa ada yang mengubah tagihan.
+
+Acceptance criteria:
+
+1. `BIL-AT-053` — baris "Penjamin Belum Terverifikasi" **tidak ada** di halaman.
+2. Subtotal Mandiri + Subtotal Asuransi + Pajak Mandiri + Pajak Asuransi + Selisih Tidak Ditagihkan menjumlah persis ke Total Tagihan.
+3. Baris "Selisih Tidak Ditagihkan" hanya muncul bila nilainya lebih besar dari nol.
+4. Baris tersebut menjumlahkan kedua field sumber, dan hasilnya sama dengan sebelum perpindahan field di backend.
+5. Kolom cadangan untuk penjamin kedua tidak lagi ditampilkan — nilainya permanen nol.
+
+Risiko dan pemilik: ini layar yang paling sering dipakai kasir. Kesalahan penjumlahan langsung
+terlihat sebagai uang yang hilang atau bertambah. Owner Frontend + Billing/Finance.
+
+Definition of Done: kelima acceptance terpenuhi; angka pada tagihan pasien tunai tidak berubah sama
+sekali; hasil build dilaporkan pengguna.
+
+## `FE-BKC-020` — Peringatan anomali data dan penanda per baris
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir melihat masalah data pendaftaran sebagai peringatan yang dapat ditindaklanjuti, dan tetap dapat menerima pembayaran sampai tuntas |
+| Gelombang | `MVP-9` bagian kedua (`EPIC BKC-07`) |
+| Trace | `FR-BKC-027`, `FR-BKC-029`; `BKC-DEC-073`; `BKC-DES-011` |
+| Kontrak | `BIL-API-0.6` — `hasDataAnomaly`, `anomalyCodes`, `anomalyMessages`, `dataAnomalyAmount` |
+| Reuse | Komponen peringatan yang sudah ada; penanda per baris hasil `FE-BKC-FIX-006`/`FIX-008` |
+| Scope | Peringatan kuning di atas Ringkasan Pembayaran berisi kalimat dari server; penanda baris bernilai "anomali data" untuk baris yang terdampak; nominal anomali **tidak** dijadikan baris subtotal |
+| Dependency | `BE-BKC-025` **selesai dan terverifikasi hidup** |
+| Status | `BLOCKED` oleh `BE-BKC-025` |
+
+**Contoh berangka.** Biaya yang memenuhi syarat Rp 440.000 dengan kelayakan penjamin belum
+dicentang. Perhitungan berhasil: Subtotal Mandiri Rp 440.000, Subtotal Asuransi Rp 0, Total Tagihan
+Rp 440.000. Kalimat "Rp 440.000" muncul di dalam peringatan kuning di atas ringkasan, sementara
+Ringkasan Pembayaran hanya memuat Subtotal Mandiri, Subtotal Asuransi, dan Total Tagihan. Kasir
+menerima Rp 440.000 tanpa hambatan.
+
+Acceptance criteria:
+
+1. `BIL-AT-054` — peringatan kuning tampil di atas Ringkasan Pembayaran; tombol pembayaran **tetap aktif**; pembayaran dapat diselesaikan sampai tuntas.
+2. Kalimat peringatan diambil apa adanya dari server; layar **tidak** mengarang kalimatnya sendiri.
+3. Nominal anomali **tidak pernah** muncul sebagai baris di dalam Ringkasan Pembayaran.
+4. Peringatan tidak disampaikan hanya lewat warna — teksnya lengkap dan terbaca pembaca layar.
+5. Penanda per baris pada tagihan pasien tunai **tetap** "Tunai" untuk semua baris. Daftar hasil yang kosong berarti "seluruhnya pasien", **bukan** "data belum termuat".
+
+Risiko dan pemilik: bila peringatan ini ditampilkan sebagai galat merah, kasir akan mengira sistem
+rusak dan berhenti menagih — padahal pasien justru sedang bisa membayar. Owner Frontend + Billing.
+
+Definition of Done: kelima acceptance terpenuhi; satu tangkapan layar tersanitasi dilampirkan;
+hasil build dilaporkan pengguna.
+
+## `FE-BKC-021` — Layar Pengecualian Finansial untuk selisih yang tidak dapat ditagihkan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Petugas keuangan melihat berapa selisih yang belum ditanggung pada satu tagihan, mengajukannya dengan nominal yang sudah terisi, dan atasannya menyetujui |
+| Gelombang | `MVP-12` (`EPIC BKC-09`) |
+| Trace | `FR-BKC-040`–`FR-BKC-044`; `BKC-DEC-080`, `BKC-DEC-036`; `BKC-DES-023`, `BKC-DES-024` |
+| Kontrak | `BIL-API-0.7` — `nonBillableResidualRemaining`, field `category` pada pengajuan dan tanggapan |
+| Reuse | Layar Pengecualian Finansial hasil `FE-BKC-008` beserta seluruh alur pengajuan, persetujuan, dan pembatalannya |
+| Scope | Menampilkan sisa selisih yang belum ditanggung; pilihan kategori pada formulir pengajuan; pengisian awal nominal; peringatan pada layar finalisasi bila masih ada selisih yang belum ditanggung |
+| Dependency | `BE-BKC-029` **selesai dan terverifikasi hidup** |
+| Status | `BLOCKED` oleh `BE-BKC-029` |
+
+**Proses bisnis yang dilayani layar ini.**
+
+1. **Tujuan** — selisih yang tidak dapat ditagihkan kepada siapa pun berakhir sebagai keputusan bernama pelaku.
+2. **Pelaku** — petugas keuangan mengajukan; atasannya menyetujui. Layar **tidak** mengajukan sendiri.
+3. **Pemicu** — petugas membuka layar Pengecualian Finansial pada tagihan yang memuat selisih.
+4. **Prasyarat** — sisa selisih pada tagihan itu lebih besar dari nol.
+5. **Langkah utama** — (a) petugas membaca "Selisih tidak dapat ditagihkan yang belum ditanggung: Rp 60.000"; (b) menekan tombol pengajuan; (c) nominalnya sudah terisi dan kategorinya sudah terpilih; (d) petugas menuliskan alasannya; (e) atasan membaca dan menyetujui.
+6. **Aturan bisnis** — nominal dibatasi sisa selisihnya sendiri, **bukan** sisa tagihan pasien.
+7. **Perubahan status** — kasus berpindah `SUBMITTED` → `POSTED`. Status **tagihan tidak berpindah**.
+8. **Jalur tidak normal** — pembatalan membuka kembali selisihnya untuk diajukan ulang, dan riwayat kedua catatan tetap terbaca.
+9. **Hasil akhir** — sisa selisih menjadi nol; sisa tagihan pasien **tetap seperti semula**.
+
+**Contoh berangka.** Tagihan dengan selisih Rp 60.000 dan sisa tagihan pasien Rp 25.000. Pengajuan
+Rp 60.000 **diterima** walaupun melebihi Rp 25.000. Pengajuan Rp 75.000 **ditolak** walaupun masih
+di bawah Total Tagihan Rp 425.000. Sesudah disetujui, sisa tagihan pasien **tetap Rp 25.000**, dan
+kwitansi pasien tidak menyebut angka Rp 60.000 sama sekali.
+
+Acceptance criteria:
+
+1. Sisa selisih dibaca dari server dan **tidak** dihitung ulang di layar dari daftar kasus. Perhitungan uang di sisi layar akan menyimpang dari server begitu ada satu kasus yang tidak ikut terkirim.
+2. Formulir pengajuan menyediakan pilihan kategori, dan nominalnya terisi awal dari sisa selisih.
+3. Pengajuan yang melebihi sisa selisih ditolak, beserta pesan yang menyebut **selisihnya** — bukan menyebut tagihan pasien.
+4. Pengaju tidak dapat menyetujui pengajuannya sendiri; pesannya menyebut pemeriksaan dua orang.
+5. Pengajuan kategori selisih yang ditandai sebagai pelunasan penuh ditolak.
+6. Sesudah pengajuan disetujui, sisa tagihan pasien pada layar **tidak berubah** dan status tagihan **tidak berpindah**.
+7. Layar finalisasi menampilkan peringatan bila masih ada selisih yang belum ditanggung, tetapi **tidak memblokir** finalisasi. Ini keadaan yang dipilih sengaja (`BKC-DEC-090`), bukan kelalaian.
+
+Risiko dan pemilik: bila layar menghitung sendiri sisa selisihnya, angkanya akan berbeda dari
+plafon yang dijaga server, dan petugas akan melihat pengajuannya ditolak tanpa alasan yang terlihat.
+Alasan pengajuan **tidak boleh** memuat nomor polis, nomor anggota, nama pasien, maupun diagnosis.
+Owner Frontend + Finance/AR + Security.
+
+Definition of Done: ketujuh acceptance terpenuhi; write-off piutang pasien yang sudah berjalan tidak
+berubah tampilannya; hasil build dilaporkan pengguna.
+
+## 2. Ringkasan status task gelombang ini
+
+| Task | Gelombang | Status | Yang menahan |
+| --- | --- | --- | --- |
+| `FE-BKC-018` | `MVP-6` | `BLOCKED` | `BE-BKC-023`, `BKC-GATE-03` |
+| `FE-BKC-019` | `MVP-9` | `BLOCKED` | `BE-BKC-024`, `BE-BKC-025`, `BE-BKC-028` |
+| `FE-BKC-020` | `MVP-9` | `BLOCKED` | `BE-BKC-025` |
+| `FE-BKC-021` | `MVP-12` | `BLOCKED` | `BE-BKC-029` |
+
+Keempatnya menunggu backend, bukan menunggu keputusan produk. Tidak ada satu pun pertanyaan bisnis
+yang masih terbuka untuk keempat layar ini — seluruh keputusan rupa yang belum diambil sudah
+dinyatakan `DEV_DISCRETION` dan memang menjadi wewenang pelaksana.
+
+## 3. Catatan pekerjaan frontend yang sudah berjalan di luar penomoran roadmap
+
+`FE-BKC-012`, `FE-BKC-013`, dan `FE-BKC-FIX-001` sudah dikerjakan dan dilaporkan, tetapi belum
+pernah masuk dokumen roadmap ini — laporannya ada di `task/report/frontend/`. Ketiganya tercatat
+pada `requirement-traceability.md`. Perapian penomorannya adalah pekerjaan pemeliharaan roadmap,
+bukan bagian gelombang ini.
+

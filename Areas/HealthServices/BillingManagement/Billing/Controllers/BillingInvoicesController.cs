@@ -20,15 +20,18 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingInvoiceService _service;
     private readonly BillingCalculationService _calculationService;
     private readonly BillingDiscountService _discountService;
+    private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
         BillingCalculationService calculationService,
-        BillingDiscountService discountService)
+        BillingDiscountService discountService,
+        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService)
     {
         _service = service;
         _calculationService = calculationService;
         _discountService = discountService;
+        _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
     }
 
     [HttpGet]
@@ -279,6 +282,36 @@ public sealed class BillingInvoicesController : ControllerBase
                 id, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<CalculationResponse>.Ok(
                 result, "Pratinjau kalkulasi invoice berhasil dihitung."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // BKC-DEC-065-069: lembar dokumen murni baca, disusun dari mesin kalkulasi yang sama dengan
+    // Menu Pembayaran. Kunjungan tunai/penjamin perusahaan/tanpa data penjamin bukan galat -
+    // seluruhnya 200 dengan isPrintable=false beserta warnings (BKC-DES-008), lihat service.
+    // SortOrder 15: rencana desain menyebut 9, tetapi nomor itu sudah dipakai
+    // GetActiveEncounterOptions sejak amendment 2 September 2026 - 14 adalah nomor tertinggi yang
+    // sudah dipakai controller ini (coverage-preview), sehingga endpoint ini melanjutkan ke 15.
+    [HttpGet("{id:guid}/insurance-invoice-document")]
+    [AccessAction("Read", "Read Insurance Invoice Document", AccessType = AccessTypes.Read, SortOrder = 15)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InsuranceInvoiceDocumentResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInsuranceInvoiceDocument(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _insuranceInvoiceDocumentService.GetDocumentAsync(
+                id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InsuranceInvoiceDocumentResponse>.Ok(
+                result, "Dokumen Invoice Asuransi berhasil disusun."));
         }
         catch (KeyNotFoundException exception)
         {

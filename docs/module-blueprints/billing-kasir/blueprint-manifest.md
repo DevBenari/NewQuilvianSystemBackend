@@ -5,8 +5,10 @@ blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
 revision: 0.8
-status: draft
-readiness: DESIGN_DRAFT_AWAITING_APPROVAL
+status: approved
+readiness: DESIGN_APPROVED — kontrak terkunci; wewenang tulis backend/frontend tetap terpisah (`BKC-GATE-09`/`BKC-OQ-092`)
+approved_by_revision_0_8: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) — mengunci seluruh dokumen kontrak, 4 September 2026
+approved_at_revision_0_8: 2026-09-04
 baseline_revision: 0.5
 baseline_status: approved
 blueprint_shape: SINGLE
@@ -85,18 +87,33 @@ design_decision_status: >
   manual) dan BKC-DES-024 (kolom Category pada BilWriteOffCase, satu migration; approval ini
   BUKAN otorisasi membuat/menjalankan migration itu, tetap perlu konfirmasi terpisah saat
   implementasi). Dengan ini SELURUH BKC-DES-001–025 approved (kecuali BKC-DES-002 superseded).
+  BKC-DES-026–027 (BARU pada revisi 0.9): approved 5 September 2026 oleh Product/Domain Owner
+  ("Saya approve untuk case diatas", wewenang ganda Finance/AR BKC-DEC-085) — menutup BKC-GATE-06
+  bersama penulisan kontrak BIL-API-0.8/BIL-TEST-0.8 dan BIL-AT-062–063 pada sesi yang sama.
+  Dengan ini SELURUH BKC-DES-001–027 approved (kecuali BKC-DES-002 superseded).
 superseded_design_decisions:
   BKC-DES-002: digantikan BKC-DES-015 — ComponentKey bertipe teks tidak jadi dipakai; bentuk (ComponentId, ComponentType) yang sudah terimplementasi BE-BKC-FIX-003 yang diadopsi
 narrowed_design_decisions:
-  BKC-DES-013: dipersempit (BUKAN digugurkan) oleh BKC-DES-021 — makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount
+  BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
-  api: BIL-API-0.7 (draft, 4 Sep 2026, revisi 0.8) atas BIL-API-0.6 draft dan baseline BIL-API-0.4 approved
-  state: BIL-STATE-0.7 (draft, 4 Sep 2026, revisi 0.8) atas BIL-STATE-0.6 draft dan baseline BIL-STATE-0.4 approved
-  validation: BIL-VALIDATION-0.7 (draft, 4 Sep 2026, revisi 0.8) atas BIL-VALIDATION-0.6 draft dan baseline BIL-VALIDATION-0.4 approved
-  integration: BIL-INTEGRATION-0.6 (draft, 4 Sep 2026) atas baseline BIL-INTEGRATION-0.4 approved — TIDAK bergerak pada revisi 0.8; isinya tidak berubah
-  permission: BIL-PERMISSION-0.6 (draft, 4 Sep 2026) atas baseline BIL-PERMISSION-0.4 approved — TIDAK bergerak pada revisi 0.8; tidak ada resource/action permission baru
-  testing: BIL-TEST-0.7 (draft, 4 Sep 2026, revisi 0.8) atas BIL-TEST-0.6 draft dan baseline BIL-TEST-0.4 approved
-  calculation: BIL-CALCULATION-0.7 (draft, 4 Sep 2026, revisi 0.8) atas BIL-CALCULATION-0.6 draft dan BIL-CALCULATION-0.4 yang berlaku di source
+  api: BIL-API-0.8 (approved 5 Sep 2026, revisi 0.9) atas BIL-API-0.7 approved dan baseline BIL-API-0.4 approved
+  state: BIL-STATE-0.7 (approved 4 Sep 2026, revisi 0.8) atas BIL-STATE-0.6 approved dan baseline BIL-STATE-0.4 approved — TIDAK bergerak pada revisi 0.9
+  validation: BIL-VALIDATION-0.7 (approved 4 Sep 2026, revisi 0.8) atas BIL-VALIDATION-0.6 approved dan baseline BIL-VALIDATION-0.4 approved
+  integration: BIL-INTEGRATION-0.6 (approved 4 Sep 2026) atas baseline BIL-INTEGRATION-0.4 approved — TIDAK bergerak pada revisi 0.8; isinya tidak berubah
+  permission: BIL-PERMISSION-0.6 (approved 4 Sep 2026) atas baseline BIL-PERMISSION-0.4 approved — TIDAK bergerak pada revisi 0.8; tidak ada resource/action permission baru. Catatan: pemakaian ulang `BillingInvoice : Read` untuk lembar Invoice Asuransi tetap menunggu penilaian Security tersendiri (`BKC-GATE-03`)
+  testing: BIL-TEST-0.8 (approved 5 Sep 2026, revisi 0.9) atas BIL-TEST-0.7 approved dan baseline BIL-TEST-0.4 approved
+  calculation: BIL-CALCULATION-0.8 (approved 5 Sep 2026, revisi 0.9) atas BIL-CALCULATION-0.7 approved dan BIL-CALCULATION-0.4 yang berlaku di source — isi formulanya TIDAK berubah, hanya cakupan jalur (2) bertambah
+contract_lock_note: >
+  Seluruh enam dokumen kontrak (api, state, validation, integration, permission, testing) dikunci
+  4 September 2026 oleh Product/Domain Owner ("saya kunci dokumen kontrak" / "kunci semua
+  dokumennya"), dengan wewenang ganda Finance/AR sesuai BKC-DEC-085. Cakupan kunci ini adalah
+  seluruh amendment sampai revisi 0.7/0.8 yang menaungi BKC-DES-001–025 (approved).
+  Revisi 0.9 (BKC-DES-026/027, perluasan perutean jalur NotCovered) DITUTUP TERPISAH 5 September
+  2026 oleh Product/Domain Owner ("Saya approve untuk case diatas", wewenang ganda Finance/AR
+  BKC-DEC-085) — BKC-GATE-06 kini tertutup penuh. api dan testing naik ke 0.8; state, validation,
+  integration, permission TIDAK bergerak (isinya tidak berubah, lihat 02-backend-architecture.md
+  § "Kontrak yang tidak bergerak" amendment revisi 0.9). Impact scan pendahulu ada di
+  01-existing-capability-map.md § 17.
 contract_version_note: >
   Angka 0.5 DILEWATI pada seluruh sumbu. Amendment 3 September 2026 merancangnya, tetapi
   implementasi yang benar-benar mendarat (BE-BKC-FIX-003) tidak menaikkan
@@ -156,6 +173,11 @@ artifact_hashes_note: >
   03-frontend-architecture.md, contracts/integration-contract.md,
   contracts/permission-audit-matrix.md, erd/data-dictionary.md, dan tiga flowchart selain
   pembagian-tanggungan-penjamin.md TIDAK disentuh dan hash-nya identik dengan revisi 0.7.
+  STALE sejak revisi 0.9 (5 Sep 2026): 02-backend-architecture.md, contracts/api-contract.md,
+  testing/acceptance-test-matrix.md, dan data/data-dictionary.md berubah isinya untuk amendment
+  revisi 0.9, tetapi keempat hash SHA256 di bawah TIDAK dihitung ulang di sini — perhitungan hash
+  didelegasikan ke pemeliharaan manifest tersendiri (/manage-module-blueprint, sama seperti catatan
+  MODULE-STATUS.md di bawah), bukan ditulis tangan berisiko salah oleh task ad-hoc ini.
 supersedes: null
 ```
 
@@ -164,12 +186,12 @@ supersedes: null
 | Kelompok | Lokasi | Status |
 | --- | --- | --- |
 | Keputusan dan capability | [`00-interview-decisions.md`](./00-interview-decisions.md), [`01-existing-capability-map.md`](./01-existing-capability-map.md) | Baseline `0.2 approved` + amendment `BKC-DEC-059`–`062` **approved** (2 Sep) + `BKC-DEC-063`–`069` **approved** (3 Sep) + `BKC-DEC-070`–`079` **approved** (4 Sep) |
-| Backend/frontend design | [`02-backend-architecture.md`](./02-backend-architecture.md), [`03-frontend-architecture.md`](./03-frontend-architecture.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment 3 Sep **approved** (`BKC-DES-001`–`009`) + amendment 4 Sep **approved** (`BKC-DES-010`–`020`) + **amendment lanjutan 4 Sep `draft`** (`BKC-DES-021`–`025`, revisi `0.8`). `03-frontend-architecture.md` **tidak disentuh** revisi `0.8` |
+| Backend/frontend design | [`02-backend-architecture.md`](./02-backend-architecture.md), [`03-frontend-architecture.md`](./03-frontend-architecture.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment 3 Sep **approved** (`BKC-DES-001`–`009`) + amendment 4 Sep **approved** (`BKC-DES-010`–`020`) + amendment lanjutan 4 Sep **approved** (`BKC-DES-021`–`025`, revisi `0.8`) + **amendment lanjutan 4 Sep `approved` 5 Sep 2026** (`BKC-DES-026`–`027`, revisi `0.9`). `03-frontend-architecture.md` **tidak disentuh** revisi `0.8`/`0.9` |
 | PRD → MVP slice | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | Slice `BKC-DEC-059`–`062` **approved** + slice `BKC-DEC-065`–`069` **draft** (`EPIC BKC-04`/`BKC-05`) + slice `BKC-DEC-070`–`079` **draft** (`EPIC BKC-06`/`BKC-07`/`BKC-08`) + **Bagian C `draft`** (`EPIC BKC-09`, `BKC-DEC-080`) |
 | Flowchart alur proses | [`flowcharts/`](./flowcharts/00-alur-utama.md) | **Baru pada revision `0.7`** — empat berkas, seluruhnya **draft**. [`pembagian-tanggungan-penjamin.md`](./flowcharts/pembagian-tanggungan-penjamin.md) **direvisi** pada `0.8` |
-| Kamus data | [`data/data-dictionary.md`](./data/data-dictionary.md) | **Baru pada revision `0.7`** — memuat delta 4 Sep dan indeks ke kamus baseline; **bertambah delta skema `0.8`** (dua kolom, satu index, satu migration). Kamus baseline tetap di [`erd/data-dictionary.md`](./erd/data-dictionary.md) |
-| ERD/data baseline | [`erd/`](./erd/00-context-erd.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + catatan 3 Sep **draft** + rujukan silang 4 Sep **draft**. **Tidak disentuh revisi `0.8`**; satu ketidaksesuaian pada [`erd/03-financial-exception-adjustment.md`](./erd/03-financial-exception-adjustment.md) (kolom `AdjustmentType` yang tidak ada di source) dilaporkan pada `data/data-dictionary.md`, perapiannya revisi tersendiri |
-| Kontrak dan acceptance | [`contracts/`](./contracts/api-contract.md), [`testing/`](./testing/acceptance-test-matrix.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment `0.5` **draft** (3 Sep) + amendment `0.6` **draft** (4 Sep) + **amendment `0.7` `draft`** (revisi `0.8`) pada `api`, `state`, `validation`, `testing`. `integration-contract.md` dan `permission-audit-matrix.md` **tidak bergerak** |
+| Kamus data | [`data/data-dictionary.md`](./data/data-dictionary.md) | **Baru pada revision `0.7`** — memuat delta 4 Sep dan indeks ke kamus baseline; delta skema `0.8` (dua kolom, satu index, satu migration) **approved** 4 Sep 2026 (koreksi status draft yang tertinggal, diperbaiki 5 Sep); **bertambah amendment `0.9` `approved`** (nol perubahan skema, murni keterangan peran kolom). Kamus baseline tetap di [`erd/data-dictionary.md`](./erd/data-dictionary.md) |
+| ERD/data baseline | [`erd/`](./erd/00-context-erd.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + catatan 3 Sep **draft** + rujukan silang 4 Sep **draft**. **Tidak disentuh revisi `0.8`/`0.9`**; satu ketidaksesuaian pada [`erd/03-financial-exception-adjustment.md`](./erd/03-financial-exception-adjustment.md) (kolom `AdjustmentType` yang tidak ada di source) dilaporkan pada `data/data-dictionary.md`, perapiannya revisi tersendiri |
+| Kontrak dan acceptance | [`contracts/`](./contracts/api-contract.md), [`testing/`](./testing/acceptance-test-matrix.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment `0.5` **draft** (3 Sep) + amendment `0.6` **draft** (4 Sep) + amendment `0.7` **approved** (revisi `0.8`) pada `api`, `state`, `validation`, `testing` + **amendment `0.8` `approved` 5 Sep 2026** (revisi `0.9`) pada `api`, `testing`. `state`, `validation`, `integration-contract.md`, dan `permission-audit-matrix.md` **tidak bergerak** pada revisi `0.9` |
 | Delivery roadmap | [`roadmap/`](./roadmap/README.md) | Revision `1` — slice `MVP-4`–`MVP-10` **belum** masuk roadmap; itu keluaran `/plan-module-delivery` |
 | Evidence/arsip | [`evidence/`](./evidence/02-requirement-completeness-gate.md) | Preserved |
 | Status | [`MODULE-STATUS.md`](./MODULE-STATUS.md) | Belum diperbarui untuk revision `0.7` — pemeliharaannya milik `/manage-module-blueprint` |

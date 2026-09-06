@@ -130,7 +130,7 @@ Security/privacy: response memakai data pasien minimum, field sensitif dimask, d
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-API-0.5` · status **draft** · owner API/Billing/Security · input keputusan `BKC-DEC-065`–`069` (approved) dan `BKC-DES-001`–`009` (draft) · kompatibilitas: **additive** — satu endpoint `GET` baru, dan field tambahan pada DTO kalkulasi yang sudah ada (tidak ada field yang dihapus atau berubah arti).
+`contract_version: BIL-API-0.5` · status **approved** · owner API/Billing/Security · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input keputusan `BKC-DEC-065`–`069` (approved) dan `BKC-DES-001`–`009` (approved via `BKC-DEC-086`/`087`) · kompatibilitas: **additive** — satu endpoint `GET` baru, dan field tambahan pada DTO kalkulasi yang sudah ada (tidak ada field yang dihapus atau berubah arti).
 
 ### Health Services / Billing Management / Billing / Invoices
 
@@ -188,7 +188,7 @@ Consumer lama yang tidak membaca field baru **tidak terpengaruh** — seluruh ta
 
 ## Amendment 4 September 2026 — Pecahan tanggungan per baris, anomali data, dan gerbang PPN
 
-`last_changed_in: BIL-API-0.6` · status **draft** · owner API/Billing/Security · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-069`–`079`, keputusan arsitektur `BKC-DES-010`–`020`. Dampak kompatibilitas: **additive** — tidak ada endpoint baru, tidak ada field yang dihapus, tidak ada nilai enum yang berubah arti. Satu field berubah **makna dokumentasinya** (`unresolvedCoverageAmount`) tanpa berubah nama maupun tipe.
+`last_changed_in: BIL-API-0.6` · status **approved** · owner API/Billing/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-069`–`079`, keputusan arsitektur `BKC-DES-010`–`020` (approved via `BKC-DEC-084`/`087`). Dampak kompatibilitas: **additive** — tidak ada endpoint baru, tidak ada field yang dihapus, tidak ada nilai enum yang berubah arti. Satu field berubah **makna dokumentasinya** (`unresolvedCoverageAmount`) tanpa berubah nama maupun tipe.
 
 ### Health Services / Billing Management / Billing / Invoices
 
@@ -258,7 +258,7 @@ Amendment 3 September 2026 merancang `coveredNetAmount`, `coveredTaxAmount`, `co
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-API-0.7` · status **draft** · owner Backend/API + Product/Billing/Finance · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Dampak kompatibilitas: **additive** — **tidak ada endpoint baru**, tidak ada field yang dihapus atau berganti nama, dan field request yang bertambah bersifat opsional berbawaan sehingga konsumen yang sudah ada tidak rusak.
+`last_changed_in: BIL-API-0.7` · status **approved** · owner Backend/API + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025` (approved via `BKC-DEC-088`). Dampak kompatibilitas: **additive** — **tidak ada endpoint baru**, tidak ada field yang dihapus atau berganti nama, dan field request yang bertambah bersifat opsional berbawaan sehingga konsumen yang sudah ada tidak rusak.
 
 ### `[Tags("Health Services / Billing Management / Billing / Financial Exceptions")]`
 
@@ -340,6 +340,43 @@ Perubahan ini **MUST** disosialisasikan ke konsumen sebelum deploy, dengan alasa
 | `422` | Melanggar batas yang dijaga (`BIL-VAL-040`–`043`), atau pengaju menyetujui pengajuannya sendiri (`BIL-VAL-017`) |
 
 Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`. Test mapping `BIL-AT-055`–`061`.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
+
+`last_changed_in: BIL-API-0.8` · status **approved** · owner Backend/API + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 5 September 2026. Input: **`BKC-DEC-089`** — `approved` Product/Domain Owner + Finance/AR 4 September 2026, menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026`–`027` (approved 5 September 2026). Dampak kompatibilitas: **additive** — tidak ada endpoint baru, tidak ada field baru, tidak ada field yang dihapus atau berganti nama. Satu-satunya dampak adalah field yang **maknanya** bergeser lagi tanpa berganti nama.
+
+**Tidak ada endpoint, field, request, maupun response baru pada amendment ini.** Seluruh field yang disebut revisi `0.8` (`Category`, `IsFullSettlement`, `NonBillableResidualAmount`, `HasNonBillableResidual`, `nonBillableResidualRemaining`, dst.) **tidak bertambah, tidak berkurang, dan tidak berubah bentuknya**.
+
+### Field yang maknanya berubah lagi tanpa berubah nama
+
+| Field | Makna pada revisi `0.8` | Makna pada revisi `0.9` | Dasar |
+| --- | --- | --- | --- |
+| `coverage.unresolvedAmount` | **Menyisakan satu jalur**: aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false` | **Menyisakan nol jalur** — tidak ada satu pun jalur pada `ResolveAsync` yang masih mengisinya, sehingga nilainya **selalu `0`** pada setiap versi kalkulasi baru. Field dan kolom `BilCalculationVersion.UnresolvedCoverageAmount` **tetap ada** (bukti perhitungan pada versi kalkulasi lama tidak boleh dihapus) | **`BKC-DEC-089`**, `BKC-DES-026`, `BKC-DES-027` |
+
+Perubahan ini **MUST** disosialisasikan ke konsumen sebelum deploy, dengan alasan yang sama seperti dua amendment sebelumnya: field yang berganti arti tanpa berganti nama adalah bentuk perubahan yang paling sulit ditemukan konsumen. Konsumen yang membaca versi kalkulasi **lama** (dibuat sebelum revisi `0.9` dideploy) tetap melihat `unresolvedAmount` bernilai bukan-nol pada baris `NotCovered` — angka itu **valid**, bukti perhitungan yang sudah terjadi, bukan bug.
+
+**Panduan tampilan tidak berubah.** Layar kasir **MUST** tetap menampilkan **satu** baris "Selisih Tidak Ditagihkan (kontrak penjamin)" berisi `unresolvedAmount + nonBillableResidualAmount` — sudah diputuskan revisi `0.8` dan tidak disentuh amendment ini. Karena kedua field selalu dijumlah di layar itu, angka yang dilihat kasir **tidak berubah sama sekali**.
+
+### Kode status
+
+Tidak berubah dari revisi `0.8`:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Pengajuan/persetujuan/reversal berhasil, atau perhitungan berhasil |
+| `201` | Kasus write-off berhasil diajukan |
+| `403` | Pengguna tidak berwenang mengajukan atau menyetujui write-off |
+| `409` | Data tagihan berubah pihak lain, atau kasus sudah pernah direversal |
+| `422` | Melanggar batas yang dijaga (`BIL-VAL-040`–`043`), atau pengaju menyetujui pengajuannya sendiri (`BIL-VAL-017`) |
+
+Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`. Test mapping `BIL-AT-062`–`063`.
+
+---
+
+> **Ketidaksesuaian dokumen yang ditemukan, dicatat apa adanya (di luar scope amendment ini).** Empat baris di bawah ini (kode `404`/`403` dan satu baris `Trace`/`Tests`) tampak tidak berada di bawah header manapun — tersisa di ujung berkas tanpa konteks amendment yang jelas. Ditemukan saat menulis amendment revisi `0.9` ini; tidak dirapikan di sini supaya perbaikannya tidak bercampur dengan perubahan berbasis `BKC-DEC-089`.
+
 | `404` | Tagihan atau kunjungan tidak ditemukan |
 | `403` | Pengguna tidak punya hak akses untuk tindakan ini |
 

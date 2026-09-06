@@ -38,7 +38,7 @@ Security/privacy: validasi tidak boleh mengulang nomor identitas, detail klinis,
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-VALIDATION-0.5` · status **draft** · owner Product/Billing/Finance/Security · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-VALIDATION-0.5` · status **approved** · owner Product/Billing/Finance/Security · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 | Kode | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna |
 | --- | --- | --- | --- | --- |
@@ -60,7 +60,7 @@ Validasi tetap wajib server-side; layar hanya membantu. Pesan pada `warnings` **
 
 ## Amendment 4 September 2026 — Anomali data penjamin dan gerbang PPN care setting
 
-`last_changed_in: BIL-VALIDATION-0.6` · status **draft** · owner Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079` (approved 4 September 2026), keputusan arsitektur `BKC-DES-010`–`020`. Dampak kompatibilitas: **additive** untuk aturan baru; **satu aturan existing diubah syaratnya** (`BIL-VAL-028`) dan **empat gerbang lama dicabut**.
+`last_changed_in: BIL-VALIDATION-0.6` · status **approved** · owner Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079` (approved 4 September 2026), keputusan arsitektur `BKC-DES-010`–`020`. Dampak kompatibilitas: **additive** untuk aturan baru; **satu aturan existing diubah syaratnya** (`BIL-VAL-028`) dan **empat gerbang lama dicabut**.
 
 ### Aturan yang dicabut
 
@@ -112,7 +112,7 @@ Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Test mapping: `BIL-AT-036`�
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-VALIDATION-0.7` · status **draft** · owner Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** (`approved` 4 September 2026) beserta `BKC-DEC-036` (`approved` 20 Agustus 2026); keputusan arsitektur `BKC-DES-021`–`025`. Dampak kompatibilitas: **additive** — tiga aturan baru, satu aturan lama dipertegas cakupannya, tidak ada aturan yang dicabut.
+`last_changed_in: BIL-VALIDATION-0.7` · status **approved** · owner Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** (`approved` 4 September 2026) beserta `BKC-DEC-036` (`approved` 20 Agustus 2026); keputusan arsitektur `BKC-DES-021`–`025`. Dampak kompatibilitas: **additive** — tiga aturan baru, satu aturan lama dipertegas cakupannya, tidak ada aturan yang dicabut.
 
 ### Apa yang sedang dijaga aturan-aturan ini
 

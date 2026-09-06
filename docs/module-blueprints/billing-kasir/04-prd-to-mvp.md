@@ -559,11 +559,11 @@ Perubahan aditif pada response yang sudah ada (`GET /{id}`, `GET /{id}/calculati
 
 | Aksi | Kasir | Petugas Billing | Product/Domain Owner | Security Owner |
 | --- | :---: | :---: | :---: | :---: |
-| `GET {id}/insurance-invoice-document` | Ya, `[AccessPermission("BillingInvoice", "Read")]` | Ya | Lihat | Menilai keputusan pemakaian ulang permission |
+| `GET {id}/insurance-invoice-document` | Ya, `[AccessPermission("BillingInvoice", "Read")]` | Ya | Lihat | ~~Menilai keputusan pemakaian ulang permission~~ **Disetujui `BKC-DEC-092`, 5 September 2026** |
 | Mencetak/mengunduh lembar | Ya | Ya | Lihat | — |
 | Mengubah isi lembar dari layar | Tidak | Tidak | Tidak | — |
 
-Tidak ada peran baru dan tidak ada resource permission baru. Konsekuensi pemakaian ulang `BillingInvoice : Read` dinyatakan terbuka pada `contracts/permission-audit-matrix.md` § Amendment 3 September 2026.
+Tidak ada peran baru dan tidak ada resource permission baru. Pemakaian ulang `BillingInvoice : Read` **disetujui** Security Owner (`BKC-DEC-092`, 5 September 2026, menutup `BKC-GATE-03`) — dicatat pada `contracts/permission-audit-matrix.md` § Amendment 3 September 2026.
 
 ## A15. Batas integrasi dan billing
 
@@ -661,7 +661,7 @@ Tidak ada kewajiban rekam medis baru — dokumen tidak memuat diagnosis, keluhan
 | Seluruh dokumen kontrak menyebut endpoint, field, dan kode validasi yang sama | Ya / Belum | Amendment 3 September 2026 pada `02`, `03`, `erd/`, `contracts/`, `testing/` |
 | Approval eksplisit `BKC-DEC-065`–`069` dari Product/Domain Owner | **Ya** | 3 September 2026, `00-interview-decisions.md` |
 | Approval `BKC-DES-001`–`009` (keputusan arsitektur amendment ini) | **Belum** | Blueprint masih `draft`; approval tetap tindakan manusia |
-| Penilaian Security atas pemakaian ulang `BillingInvoice : Read` | **Belum** | Lihat § A20 pertanyaan terbuka |
+| Penilaian Security atas pemakaian ulang `BillingInvoice : Read` | ~~**Belum**~~ **Ya** — `BKC-DEC-092`, 5 September 2026 | Lihat § A20 pertanyaan terbuka |
 
 ## A20. Urutan pengiriman dan pertanyaan terbuka
 
@@ -677,7 +677,7 @@ Epic berstatus `OPEN DECISION`: **tidak ada**. Seluruh functional requirement `F
 | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
 | --- | --- | --- | :---: |
 | Approval `BKC-DES-001`–`009`, khususnya `BKC-DES-007` (nomor dokumen memakai `InvoiceNumber`, tanpa seri nomor tersendiri) | Product/Domain Owner | Bila kelak diminta nomor tersendiri, seri nomor baru harus ditambahkan dan lembar yang sudah tercetak akan memakai penomoran berbeda dari yang berikutnya | **Ya** — blueprint tidak boleh diteruskan ke `/plan-module-delivery` sebelum dijawab |
-| Apakah pemakaian ulang `BillingInvoice : Read` untuk mencetak dokumen berisi nomor polis dapat diterima, atau perlu permission tersendiri | Security Owner | Bila kelak dipisah, role harus di-remap dan pengguna yang tadinya bisa mencetak akan kehilangan akses tanpa perubahan permintaan bisnis | **Ya** untuk `MVP-5`; `MVP-4` tidak terpengaruh karena tidak menambah endpoint |
+| ~~Apakah pemakaian ulang `BillingInvoice : Read` untuk mencetak dokumen berisi nomor polis dapat diterima, atau perlu permission tersendiri~~ **DIJAWAB 5 September 2026** (`BKC-DEC-092`): dipakai ulang apa adanya, tidak ada permission baru | Security Owner | Bila kelak dipisah, role harus di-remap dan pengguna yang tadinya bisa mencetak akan kehilangan akses tanpa perubahan permintaan bisnis | Tidak lagi — `BKC-GATE-03` ditutup |
 | Apakah tidak adanya jejak audit "siapa mencetak dokumen ini" dapat diterima | Security/Compliance Owner | Bila terjadi sengketa klaim, tidak ada cara mengetahui lembar mana yang pernah keluar dan oleh siapa | Tidak — dicatat sebagai keterbatasan yang diketahui, tidak menghentikan MVP |
 | Apakah lembar dari tagihan yang masih `OPEN` boleh diserahkan ke perusahaan asuransi | Billing/Finance/AR Owner | Angkanya masih bisa berubah; lembar sudah mencantumkan keterangan tagihan berjalan, tetapi tidak ada pencegahan teknis | Tidak — `BKC-DEC-066` menghendaki dokumen dapat dipakai tiga pihak, termasuk sebelum finalisasi |
 | Kelengkapan `MstInsuranceProvider` (nomor kontrak, alamat) dan `MstInsuranceCoverageRule` untuk skenario UAT yang bermakna | Insurance/Finance Owner | `UAT-05`, `UAT-06`, dan `UAT-10` tidak dapat dijalankan dengan data nyata sampai master terisi | Ya, untuk verifikasi UAT saja — tidak memblokir coding |

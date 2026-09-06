@@ -21,7 +21,7 @@ Setiap message menyertakan `ContractVersion`, `OccurredAt`, `CorrelationId`, `Ca
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-INTEGRATION-0.5` · status **draft** · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-INTEGRATION-0.5` · status **approved** · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 | ID | Producer → Consumer | Trigger/payload minimum | Idempotency | Failure/retry | Security/privacy |
 | --- | --- | --- | --- | --- | --- |
@@ -38,7 +38,7 @@ Trace `BKC-DEC-065`–`069`, `BKC-DES-009`. Tests `BIL-AT-031`, `BIL-AT-034`.
 
 ## Amendment 4 September 2026 — Bacaan care setting dan status penjamin
 
-`last_changed_in: BIL-INTEGRATION-0.6` · status **draft** · owner Registration + Billing + Finance/Tax · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+`last_changed_in: BIL-INTEGRATION-0.6` · status **approved** · owner Registration + Billing + Finance/Tax · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
 
 ### Yang berubah pada kontrak integrasi yang sudah ada
 

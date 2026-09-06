@@ -39,7 +39,7 @@ Setiap slice harus menyertakan test command dan hasil, request/response tersanit
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-TEST-0.5` · status **draft** · owner QA + Product/Billing/Finance/Security · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`. Test data wajib fiktif dan **MUST NOT** memakai data pasien produksi; nama perusahaan asuransi pada test memakai nama samaran.
+`contract_version: BIL-TEST-0.5` · status **approved** · owner QA + Product/Billing/Finance/Security · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved). Test data wajib fiktif dan **MUST NOT** memakai data pasien produksi; nama perusahaan asuransi pada test memakai nama samaran.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -68,7 +68,7 @@ Selain bukti keluar yang sudah berlaku, slice ini **MUST** menyertakan: satu con
 
 ## Amendment 4 September 2026 — Pembagian tanggungan, anomali data, dan gerbang PPN
 
-`last_changed_in: BIL-TEST-0.6` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+`last_changed_in: BIL-TEST-0.6` · status **approved** · owner QA + Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -111,7 +111,7 @@ Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijala
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-TEST-0.7` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+`last_changed_in: BIL-TEST-0.7` · status **approved** · owner QA + Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -133,10 +133,37 @@ Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijala
 | Angka yang dilihat kasir pada baris "Selisih Tidak Ditagihkan" tidak berubah sama sekali | Nominalnya berpindah field, dan layar menjumlah kedua field. Bila layar lupa menjumlah salah satunya, kasir melihat selisih menghilang tanpa ada yang mengubah tagihan |
 | Total Tagihan, Subtotal Mandiri, dan Subtotal Asuransi tidak bergeser satu rupiah pun | Amendment ini **tidak** dimaksudkan mengubah nilai apa pun. Setiap pergeseran nominal pada regresi ini berarti suku yang seharusnya hanya berpindah nama ternyata ikut berubah besarnya |
 | Jalur `SelfPay()` dan jalur anomali data tetap mengembalikan `nonBillableResidualAmount = 0` | `BillingCoverageDecision` adalah `record` posisional dan bertambah satu argumen. Kesalahan urutan argumen paling mudah terjadi di sini dan paling terlambat ketahuan |
-| Jalur `NotCovered` + `IsAllowExcessPaymentByPatient = false` **masih** mengisi `unresolvedAmount` | Jalur (2) sengaja tidak disentuh (`BKC-OQ-093`). Ikut memindahkannya berarti mengarang keputusan bisnis yang tidak pernah diambil pemiliknya |
+| ~~Jalur `NotCovered` + `IsAllowExcessPaymentByPatient = false` **masih** mengisi `unresolvedAmount`~~ **DIKOREKSI revisi `0.9`** | Baris ini berlaku untuk revisi `0.8` saja. `BKC-DEC-089` menutup `BKC-OQ-093` dan memindahkan jalur (2) ke `nonBillableResidual` — lihat `BIL-AT-062` pada amendment revisi `0.9` di bawah, yang menggantikan baris regresi ini |
 
 ### Bukti keluar tambahan
 
 Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijalankan dan lulus; (2) bukti migration dibuat **dan direview**, disertai pemeriksaan bahwa kedua kolom baru bernilai bawaan pada seluruh baris lama; (3) perbandingan angka sebelum dan sesudah untuk satu tagihan yang memuat residual non-billable, memperlihatkan Total Tagihan dan outstanding pasien **tidak berubah**; (4) hasil pemeriksaan berapa banyak baris `MstInsuranceCoverageRule` aktif yang bernilai `IsAllowExcessPaymentByPatient = false` di lingkungan uji — angka itu adalah perkiraan beban kerja write-off Finance dan menjadi bahan penilaian kelayakan pemicu manual (`BKC-DES-023`); (5) satu contoh kasus write-off residual yang telah melewati pengajuan, persetujuan oleh orang kedua, dan reversal, dengan seluruh jejak auditnya sudah disanitasi. Approval blueprint bukan bukti test.
 
 Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
+
+`last_changed_in: BIL-TEST-0.8` · status **approved** · owner QA + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 5 September 2026. Input: **`BKC-DEC-089`** menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026`–`027` (approved 5 September 2026). Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+
+| ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-062` | `BKC-DEC-089`, `BKC-DES-026` | Tindakan Akupunktur Rp 200.000 cocok aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false` | Domain/Integration | `primaryAmount = 0`; `patientAmount = 0`; `unresolvedAmount = 0`; `nonBillableResidualAmount = 200000`; Total Tagihan tetap Rp 200.000. **Jalur gagal yang harus TIDAK terjadi**: Rp 200.000 masuk `unresolvedAmount` (perilaku revisi `0.8`) atau masuk porsi pasien |
+| `BIL-AT-063` | `BKC-DES-026` | Satu tagihan yang memuat nominal dari **kedua** jalur sekaligus: Rp 200.000 dari aturan `NotCovered` (`IsAllowExcessPaymentByPatient = false`) **dan** Rp 30.000 sisa perhitungan Fisioterapi (aturan `Covered` 70%, `IsAllowExcessPaymentByPatient = false`) | Domain/Integration | Satu nominal gabungan `nonBillableResidualAmount = 230000`; satu plafon write-off (`CalculateNonBillableResidualRemainingAsync` mengembalikan Rp 230.000); cukup **satu** pengajuan write-off menutup keduanya. **Jalur gagal yang harus TIDAK terjadi**: dua nominal terpisah, dua plafon, atau Finance dipaksa mengajukan dua write-off untuk satu tagihan |
+
+### Pembanding regresi (menggantikan baris revisi `0.8` yang kini usang)
+
+| Yang diperiksa | Kenapa berisiko |
+| --- | --- |
+| Aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = true` (nilai bawaan) tetap menjadi porsi pasien | Amendment ini **hanya** menyentuh aturan yang penandanya di-set `false` secara sengaja. Cabang `true` pada jalur (2) **tidak disentuh** — regresi `BIL-AT-039`/`RegistrationCoverageAdapterNotCoveredRuleWithExcessAllowedBecomesPatientPortion` **MUST** tetap lulus tanpa perubahan |
+| Jalur (5) residual (`Covered` + `IsAllowExcessPaymentByPatient = false`, `BIL-AT-055`) tetap berperilaku sama | Amendment ini memperluas syarat tangkap ke jalur (2) **tambahan**, bukan menggantikan jalur (5). Kedua jalur **MUST** menulis ke akumulator `nonBillableResidual` yang sama, bukan dua akumulator terpisah |
+| `unresolvedAmount` pada versi kalkulasi **lama** (dibuat sebelum revisi `0.9`) tetap memuat angka lamanya | Backfill/versi lama **MUST NOT** ditulis ulang — bukti perhitungan yang sudah terjadi tetap valid apa adanya (`BKC-DES-027`) |
+| Total Tagihan, Subtotal Mandiri, dan Subtotal Asuransi tidak bergeser satu rupiah pun | Amendment ini **tidak** dimaksudkan mengubah nilai apa pun — hanya memindahkan nasib nominal yang sudah keluar dari porsi pasien sejak revisi `0.7`/`0.8` |
+| Write-off kategori `NON_BILLABLE_RESIDUAL` yang sudah diajukan/disetujui pada data jalur (5) (revisi `0.8`) tetap berperilaku sama | Satu akumulator yang sama berarti mekanisme write-off-nya (`BE-BKC-029`) **tidak perlu diubah satu baris pun** — regresi `BIL-AT-058`–`061` **MUST** tetap lulus tanpa perubahan |
+
+### Bukti keluar tambahan
+
+Slice ini **MUST** menyertakan: (1) hasil `dotnet build`/`dotnet test` yang benar-benar dijalankan dan lulus; (2) perbandingan angka sebelum dan sesudah untuk satu tagihan yang memuat nominal jalur (2), memperlihatkan Total Tagihan dan porsi pasien **tidak berubah**; (3) satu contoh tagihan yang memuat nominal dari kedua jalur (2 dan 5) sekaligus, memperlihatkan satu nominal gabungan dan satu pengajuan write-off yang menutup keduanya; (4) hasil pemeriksaan dua kelompok `MstInsuranceCoverageRule` aktif bernilai `IsAllowExcessPaymentByPatient = false` — berapa berstatus `NotCovered` dan berapa `Covered` dengan tanggungan sebagian, sebagai perkiraan beban kerja Finance gabungan. **Nol bukti migration** — amendment ini tidak menyentuh skema. Approval blueprint bukan bukti test.
+
+Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`.

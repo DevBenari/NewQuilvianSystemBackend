@@ -54,3 +54,88 @@ frontend_source: e555bf2ad6848a1d6cc097ab8c6c5f5259edb151
 | `BKC-BLK-DATA-001` | Nilai seed Finance/Inpatient belum dicantumkan | Master dapat dibuat tetapi tidak boleh diaktifkan | Finance/Inpatient | Serahkan nominal/rate/rules sebelum seed aktif |
 
 Tidak ada requirement bisnis approved yang kehilangan task. Gap di atas adalah dependency implementasi/operasional, bukan izin untuk mengarang policy. Roadmap dianggap siap dieksekusi hanya per task yang disetujui, dimulai dari `BE-BKC-001` atau task master independen setelah fondasi tersedia.
+
+---
+
+# Amendment 4 September 2026 — Traceability gelombang `MVP-4` sampai `MVP-12`
+
+## Metadata
+
+```yaml
+roadmap_revision: 2
+status: DRAFT_FORWARD_TEST
+blueprint_revision_dibaca: 0.8 (manifest) + 0.9 (02-backend-architecture.md)
+blueprint_status: draft — readiness DESIGN_DRAFT_AWAITING_APPROVAL
+baseline_revision: 0.5 (approved 2 September 2026)
+decision_revision: 0.2 (baseline) + BKC-DEC-059 s.d. BKC-DEC-091 (seluruhnya approved)
+design_decisions: BKC-DES-001 s.d. BKC-DES-025 approved; BKC-DES-026 dan BKC-DES-027 draft
+backend_source_pada_manifest: ffeb45a83a6282982214668acc57e15ac0652f04
+backend_source_terverifikasi: fd4a605 (branch Yasmina, 4 September 2026) — 52 commit dan 237 berkas source di depan baseline
+frontend_source_pada_manifest: 00210f9a5fb2f4f69e57b8c90c57c63c788da792
+frontend_source_terverifikasi: belum diperiksa — repository frontend tidak tersedia pada sesi ini
+```
+
+## 1. Pemetaan requirement ke delivery
+
+| Requirement/decision | Design/contract | Backend | Frontend | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| Rupiah tanggungan penjamin per baris biaya (`FR-BKC-009`–`013`, `BKC-DEC-069`) | `BKC-DES-001`–`006`, `015`–`017`; `BIL-API-0.6`, `BIL-VALIDATION-0.6` (`BIL-VAL-028`) | `BE-BKC-022` | — | `BIL-AT-029`, `030`, `049`, `050`, `052` | **Source selesai 4 September 2026, verifikasi menunggu pengguna.** `IsPerItemAllocationAvailable` + penjaga `BIL-VAL-028` ditambahkan; 3 test baru; 2 fixture basi diperbaiki (nilai assert tidak berubah). `BIL-AT-030`/`049` sudah terpenuhi sejak `BE-BKC-FIX-003`. `dotnet build`/`test` belum dijalankan — lihat `task/report/backend/BE-BKC-022.md` |
+| Lembar "Invoice Asuransi" (`FR-BKC-014`–`017`, `020`; `BKC-DEC-065`–`068`) | `BKC-DES-007`–`009`; `BIL-API-0.5`, `BIL-VALIDATION-0.5` (`BIL-VAL-029`–`034`) | `BE-BKC-023` | `FE-BKC-018` | `BIL-AT-031`–`035` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026.** `BKC-GATE-03` (penilaian Security) **ditutup** 5 September 2026 (`BKC-DEC-092`) — dipakai ulang apa adanya. Lihat `task/report/backend/BE-BKC-023.md` |
+| Tab dan cetak A4 pada Dokumen Kasir (`FR-BKC-018`, `019`) | `03-frontend-architecture.md` § Amendment 3 September (kedua) | — | `FE-BKC-018` | Acceptance 32–39 pada arsitektur frontend | `BLOCKED` — menunggu `BE-BKC-023` |
+| Pencabutan empat gerbang penahan tanggungan (`FR-BKC-021`–`024`, `026`; `BKC-DEC-071`, `072`, `074`) | `BIL-VALIDATION-0.6` § Aturan yang dicabut | `BE-BKC-024` | `FE-BKC-019` | `BIL-AT-036`–`039`, `052`, `053` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026.** Sisa dua gerbang (`NeedApproval`, limit bulanan) dicabut di `ResolveAsync`; `BIL-AT-037` (baru) dan `BIL-AT-039` (sebelumnya tanpa test) ditambahkan; batas per kunjungan diverifikasi regresi via test baru. Lihat `task/report/backend/BE-BKC-024.md` |
+| Anomali data penjamin (`FR-BKC-027`–`031`; `BKC-DEC-073`) | `BKC-DES-010`–`012`; `BIL-VAL-035`–`037` | `BE-BKC-025` | `FE-BKC-020` | `BIL-AT-041`–`043`, `054` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026.** `BillingCoverageAnomaly`, empat kode, `BIL-VAL-035`/`037` baru dan `036` diretarget. Lihat `task/report/backend/BE-BKC-025.md` |
+| Gerbang PPN rawat inap versus rawat jalan (`FR-BKC-032`–`036`; `BKC-DEC-078`, `079`) | `BKC-DES-018`, `019`; `BIL-VAL-038`, `039` | `BE-BKC-026` | — | `BIL-AT-044`–`046`, `051` | **`dotnet test` dikonfirmasi lulus oleh pengguna 5 September 2026.** Enam test baru menutupi seluruh acceptance; satu fixture test lama yang basi (`RecalculateCreatesImmutableVersionsWithTaxProvenance`) ditemukan tidak konsisten dengan gerbang `IsPharmacy` dan diperbaiki. `BKC-OQ-085` tetap terjawab (paparan nol — dikonfirmasi ulang via query: nol tagihan `RANAP` di database dev). Lihat `task/report/backend/BE-BKC-026.md` |
+| Cara pembagian PPN mengikuti nasib barangnya (`FR-BKC-037`; `BKC-DEC-077`) | `BKC-DES-020` — tindakan data, bukan kode | `BE-BKC-031` | — | `BIL-AT-047`, `048`; bukti keluar butir 4 | **`DONE` — diverifikasi 5 September 2026.** Audit data langsung (query read-only, otorisasi eksplisit pengguna): tarif PPN aktif (`PPN-001`) `AllocationRule=PROPORTIONAL`, hanya satu tarif aktif pada satu waktu. Tidak ada koreksi. `UAT-17` boleh dilanjutkan. Lihat `task/report/backend/BE-BKC-031.md` |
+| Ember tersendiri untuk selisih tidak dapat ditagihkan (`FR-BKC-038`, `039`; `BKC-DEC-080`) | `BKC-DES-021`, `022`; `BIL-VAL-043` | `BE-BKC-027`, `BE-BKC-028` | `FE-BKC-019` | `BIL-AT-055`–`057` | `BE-BKC-027`/`028`: **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026.** **`BKC-GATE-09` (eksekusi migration `20260904232421_AddWriteOffCategoryAndNonBillableResidual`) TETAP tertutup** — dibuktikan ulang via query langsung ke database dev 5 September 2026 (kolom `BilWriteOffCase.Category`/`BilCalculationVersion.NonBillableResidualAmount` belum ada secara fisik, migration tidak muncul di `__EFMigrationsHistory`). `BE-BKC-028` **akan gagal runtime** terhadap database manapun sampai migration ini dieksekusi. Bukti `task/report/backend/BE-BKC-027.md`, `BE-BKC-028.md`, `BE-BKC-032.md` |
+| Penanggungan selisih lewat write-off (`FR-BKC-040`–`044`; `BKC-DEC-036`, `080`) | `BKC-DES-023`–`025`; `BIL-VAL-040`–`042`, `BIL-VAL-018`/`023` dipertegas | `BE-BKC-029` | `FE-BKC-021` | `BIL-AT-058`–`061`; `UAT-21`–`26` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** (plafon+penjaga kategori pada `CreateWriteOffAsync`/`ApproveWriteOffAsync`; formula outstanding diperbaiki konsisten di 4 service). **Akan gagal runtime** sampai migration `BE-BKC-027` dieksekusi (`BKC-GATE-09` masih tertutup, dibuktikan ulang 5 September 2026); bukti `task/report/backend/BE-BKC-029.md` |
+| Perluasan perutean ke jalur `NotCovered` (`BKC-DEC-089`, menutup `BKC-OQ-093`) | `BKC-DES-026`, `027` — **approved** 5 September 2026 | `BE-BKC-030` | — | `BIL-AT-062`, `063` — ditulis pada `testing/acceptance-test-matrix.md`, `approved` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** (cabang `NotCovered` dipindahkan ke akumulator `nonBillableResidual` yang sama dengan jalur 5; `BIL-AT-062`–`063` tercakup test baru); bukti `task/report/backend/BE-BKC-030.md` |
+| Finalisasi diperingatkan, bukan diblokir (`BKC-DEC-090`, menutup `BKC-OQ-094a`) | Belum dirancang — bukan bagian revisi `0.8` maupun `0.9` | — | `FE-BKC-021` acceptance 7 | `UAT-27` | **Coverage gap desain** — lihat bagian 3 |
+| Selisih non-billable di luar alur AR/AP (`BKC-DEC-091`, menutup `BKC-OQ-094b`) | Belum dirancang — bukan bagian revisi `0.8` maupun `0.9` | — | — | — | **Coverage gap desain** — lihat bagian 3 |
+| Regresi dan bukti keluar lintas gelombang | Seluruh kontrak gelombang ini | `BE-BKC-032` | — | Seluruh `BIL-AT-029`–`061` | **Sebagian, diverifikasi 5 September 2026.** `dotnet build`/`test` seluruh backlog dikonfirmasi lulus pengguna; `BKC-GATE-03` tertutup. **`BKC-GATE-09` TETAP menahan** bukti keluar butir #2–4, #8 dan paparan nyata butir #7 (fitur write-off belum bisa diuji dengan data sungguhan). Butir #6 dan #7 (hitungan) sudah dikumpulkan lewat query read-only. Lihat `task/report/backend/BE-BKC-032.md` |
+
+## 2. Cakupan acceptance test
+
+| Test | Task utama | Jalur gagal yang tercakup |
+| --- | --- | --- |
+| `BIL-AT-029`, `030`, `049`, `050`, `052` | `BE-BKC-022` | Rincian tidak menjumlah; kunci alokasi tertukar antar baris pajak; salinan lama dibaca sebagai Rp 0 |
+| `BIL-AT-031`–`035` | `BE-BKC-023`; `FE-BKC-018` | Kunjungan bukan-asuransi dijawab galat; kebocoran isi kesepakatan dan nomor kartu |
+| `BIL-AT-036`–`039`, `053` | `BE-BKC-024`; `FE-BKC-019` | Nominal tertahan seperti perilaku lama; batas per kunjungan ikut tercabut |
+| `BIL-AT-041`–`043`, `054` | `BE-BKC-025`; `FE-BKC-020` | Tanggungan ditolak diam-diam menjadi tagihan pasien; pembayaran terhalang peringatan |
+| `BIL-AT-044`–`046`, `051` | `BE-BKC-026` | PPN rawat inap tetap dipungut; IGD ikut dibebaskan; jenis kunjungan tak dikenal menghentikan perhitungan |
+| `BIL-AT-047`, `048` | `BE-BKC-031` | PPN obat yang tidak ditanggung ikut dibebankan ke asuransi |
+| `BIL-AT-055`–`057` | `BE-BKC-028` | Selisih masuk nominal menggantung atau porsi pasien; mesin melahirkan kasus write-off sendiri |
+| `BIL-AT-058`–`061` | `BE-BKC-029`; `FE-BKC-021` | Plafon diuji terhadap tagihan pasien; pengaju menyetujui sendiri; kategori asing diterima diam-diam |
+| `BIL-AT-062`, `063` | `BE-BKC-030` | **Belum ditulis** — lihat coverage gap |
+| `UAT-21`–`27` | `BE-BKC-029`; `FE-BKC-021` | `UAT-27` sengaja memilih memperingatkan, bukan memblokir |
+
+## 3. Coverage gap dan blocker gelombang ini
+
+| ID | Gap | Dampak | Owner | Status/aksi |
+| --- | --- | --- | --- | --- |
+| ~~`BKC-GATE-01`~~ | ~~Tujuh dokumen kontrak masih `draft`~~ **DITUTUP 4 September 2026** | — | Pemilik blueprint + Product/Domain Owner | Product/Domain Owner (wewenang ganda Finance/AR) mengunci keenam dokumen kontrak. Delapan task backend dan seluruh task frontend kini bebas dari gerbang ini |
+| ~~`BKC-GATE-02`~~ | ~~Bukti desain dibaca terhadap `ffeb45a8`, `HEAD` 52 commit di depannya~~ **DITUTUP 4 September 2026** | — | `/qv-trace` | Dijalankan; hasil di `01-existing-capability-map.md` § 17. Cakupan `BE-BKC-022`, `024`, `026`, `032` sudah dinilai ulang |
+| `BKC-GATE-03` | Penilaian Security atas pemakaian ulang `BillingInvoice : Read` untuk lembar bernomor polis | Menahan `BE-BKC-023` dan `FE-BKC-018` | Security Owner | Nilai; bila kelak dipisah, peran harus dipetakan ulang |
+| ~~`BKC-GATE-04`~~ | ~~`BKC-OQ-085` — dampak penurunan tagihan rawat inap~~ **DITUTUP 4 September 2026** | — | Billing/Finance/AR | Pemilik konfirmasi: belum ada tagihan rawat inap, penurunan nol, kelebihan bayar nol |
+| `BKC-GATE-05` | `BKC-OQ-083` — PPN untuk `MCU`, `TELEMEDICINE`, dan `OTC`. **Diturunkan**: ketiganya belum dipakai | Tidak lagi menahan `BE-BKC-026`; hanya syarat sebelum salah satunya diaktifkan | Product/Domain Owner + Finance/Tax | Lampirkan hasil `BIL-AT-051` sebagai bahan keputusan saat aktivasi |
+| ~~`BKC-GATE-06`~~ | ~~`BKC-DES-026`–`027` `draft`; kontrak `BIL-API-0.8`/`BIL-TEST-0.8` belum ditulis; `BIL-AT-062`–`063` belum ada~~ **DITUTUP 5 September 2026** — ketiganya selesai | Sebelumnya menahan `BE-BKC-030` — tidak lagi | Product/Domain Owner + pemilik blueprint | — (tidak lagi menahan apa pun) |
+| ~~`BKC-GATE-07`~~ | ~~Enam berkas working tree belum di-commit dan belum pernah dibangun~~ **DITUTUP 4 September 2026** | — | Pemilik repository | Keempat berkas backend sudah ter-commit di `HEAD`, working tree bersih, dan solution terbukti dibangun tanpa galat. Penahan ketiga task itu kini `BKC-GATE-02` |
+| `BKC-GATE-08` | Kelengkapan `MstInsuranceProvider` dan `MstInsuranceCoverageRule` di lingkungan uji | `UAT-05`, `UAT-06`, `UAT-10` tidak dapat dijalankan dengan data bermakna | Insurance/Finance Owner | Tidak memblokir penulisan kode |
+| `BKC-GATE-09` | `BKC-OQ-092` — wewenang tulis backend/frontend, mode task, dan cabang kerja | Seluruh eksekusi, termasuk menjalankan migration `BE-BKC-027` | Pengguna | Prasyarat prosedural sebelum builder dijalankan |
+| `BKC-GAP-01` | `BKC-DEC-090` (finalisasi diperingatkan, bukan diblokir) sudah `approved` tetapi **desainnya belum ditulis** | `FE-BKC-021` acceptance 7 dan `UAT-27` belum punya rujukan desain | Pemilik blueprint | Pass desain tersendiri; tidak memblokir gelombang ini |
+| `BKC-GAP-02` | `BKC-DEC-091` (selisih non-billable di luar alur AR/AP) sudah `approved` tetapi **desainnya belum ditulis** | Perilaku penyerahan AR/AP untuk kategori baru memakai perilaku berjalan apa adanya | Pemilik blueprint + Finance/AR | Pass desain tersendiri |
+| `BKC-GAP-03` | Manifest berhenti di revisi `0.8`, sementara `02-backend-architecture.md` sudah memuat revisi `0.9` | Manifest menyebut penyelarasan `BKC-OQ-093` sebagai "gap kecil tersisa", padahal desainnya sudah ditulis | Pemilik blueprint | Perbarui manifest ke revisi `0.9` beserta hash artefaknya |
+| ~~`BKC-GAP-04`~~ | ~~`contracts/api-contract.md` dan `testing/acceptance-test-matrix.md` belum menyusul revisi `0.9`~~ **DITUTUP 5 September 2026** — keduanya ditulis dan `approved` | `BIL-API-0.8`, `BIL-TEST-0.8`, dan `BIL-AT-062`–`063` kini ada isinya | Pemilik blueprint | — (bagian `BKC-GATE-06`, sudah tertutup) |
+| `BKC-GAP-05` | `MODULE-STATUS.md` masih menulis revisi `0.4` dan belum mencatat gelombang `MVP-4`–`MVP-12` | Pembaca status modul memperoleh gambaran yang jauh tertinggal | `/manage-module-blueprint` | Perbarui setelah roadmap revisi `2` ini ditinjau |
+| `BKC-GAP-06` | Manifest mencatat `backend_commit_sha: ffeb45a8` sebagai baseline bukti, padahal `HEAD` sudah 52 commit di depannya | Seluruh `input_hashes` dan bagian "Bukti as-is" pada revisi `0.7`–`0.9` menggambarkan kode yang sudah berubah | Pemilik blueprint | Perbarui SHA dan hash sesudah `/qv-trace` dijalankan — bukan sebelumnya |
+| `BKC-GAP-07` | `frontend_commit_sha` belum dapat diverifikasi pada sesi ini | Seluruh task `FE-BKC-018`–`021` disusun atas bukti frontend yang belum dikonfirmasi ulang | Frontend authority | Periksa repository frontend dan catat SHA yang benar-benar berlaku |
+
+## 4. Pemeriksaan requirement yatim
+
+Seluruh functional requirement `FR-BKC-009` sampai `FR-BKC-044` memiliki sedikitnya satu task.
+Tidak ada requirement bisnis yang sudah `approved` dan kehilangan task.
+
+Dua keputusan bisnis yang sudah `approved` tetapi **belum memiliki desain** — `BKC-DEC-090` dan
+`BKC-DEC-091` — sengaja **tidak** dibuatkan task pada roadmap ini. Membuatkan task untuk keputusan
+yang desainnya belum ada berarti pelaksana yang akan merancangnya sambil menulis kode, dan itu
+persis cara keputusan bisnis terbentuk tanpa pemiliknya. Keduanya dicatat sebagai `BKC-GAP-01` dan
+`BKC-GAP-02`, dan menunggu pass desain tersendiri.

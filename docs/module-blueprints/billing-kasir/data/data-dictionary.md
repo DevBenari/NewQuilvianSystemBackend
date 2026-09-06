@@ -155,7 +155,7 @@ Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`054`.
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Status **draft**.
+Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Status ~~draft~~ **approved** — `BKC-DES-021`–`025` disetujui `BKC-DEC-088` (Product/Domain Owner + Finance/AR, "saya approve"), 4 September 2026. **Koreksi 5 September 2026**: baris status ini tertinggal `draft` pada penguncian kontrak sebelumnya ("saya kunci dokumen kontrak" / "kunci semua dokumennya") — enam dokumen kontrak lain sudah `approved` sejak saat itu; ditemukan dan diperbaiki di sini, bukan keputusan baru.
 
 Berbeda dari amendment sebelumnya, amendment ini **menyentuh skema**. Sebabnya satu: nominal yang boleh ditulis-off harus dapat dibaca penjaga validasi sebagai **kolom**, bukan diurai dari JSON, dan kasus write-off harus dapat dibedakan sebabnya agar tidak salah mengurangi tagihan pasien (`BKC-DES-024`, `BKC-DES-025`).
 
@@ -201,7 +201,7 @@ Status tabel: **`Diperbarui`** (pada revisi `0.7` masih `Sudah ada`).
 | Kolom | Tipe | Wajib | Bawaan | Kunci/index | Sensitif | Peran |
 | --- | --- | :---: | --- | --- | :---: | --- |
 | `NonBillableResidualAmount` (**baru**) | `decimal(18,2)` | Ya | `0` | — | **Ya** | **Kolom baru.** Total selisih perhitungan tanggungan yang menurut kontrak penjamin tidak boleh ditagihkan ke pasien, pada versi kalkulasi ini. Menjadi **plafon** write-off kategori `NON_BILLABLE_RESIDUAL` (`BKC-DES-025`) |
-| `UnresolvedCoverageAmount` | `decimal(18,2)` | Ya | `0` | — | **Ya** | **Tetap ada dan tetap diisi.** Maknanya menyempit: menyisakan jalur aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false` (`BKC-DES-021`). Kolomnya tidak diganti nama — penggantian nama merusak konsumen tanpa menambah kemampuan |
+| `UnresolvedCoverageAmount` | `decimal(18,2)` | Ya | `0` | — | **Ya** | **Tetap ada, tetap diisi pada versi lama.** Revisi `0.8`: menyempit menyisakan jalur `NotCovered` + `IsAllowExcessPaymentByPatient=false`. **Revisi `0.9`: menyempit lagi — menyisakan NOL jalur**, sehingga bernilai selalu `0` pada setiap versi kalkulasi baru (`BKC-DES-026`/`027`). Kolomnya tidak diganti nama dan tidak di-`DROP` — versi kalkulasi lama tetap memuat angka lamanya sebagai bukti perhitungan yang sudah terjadi |
 | `PatientAmount` | `decimal(18,2)` | Ya | — | — | **Ya** | **Nilainya tidak bergeser** oleh amendment ini. Nominal yang berpindah ember sudah dikeluarkan dari porsi pasien sejak revisi `0.7` |
 
 **Backfill:** versi kalkulasi lama tetap `0`, dan itu benar. Sebelum amendment ini nominalnya tercatat pada `UnresolvedCoverageAmount`; menulis ulang versi lama berarti mengubah bukti perhitungan yang kolom itu ada untuk melindunginya.
@@ -227,3 +227,13 @@ Status tabel: **`Sudah ada`**. Kategori sebuah adjustment reversal dibaca lewat 
 Kolom bertanda **Sensitif** di atas mengikuti aturan yang sama seperti seluruh berkas ini: **MUST NOT** masuk custom logger, **MUST NOT** muncul pada payload galat, dan **MUST NOT** dipakai sebagai contoh berisi data asli. Yang boleh masuk audit write-off adalah `InvoiceId`, `WriteOffCaseId`, `Category`, dan perubahan nominal outstanding.
 
 Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`. Tests `BIL-AT-055`–`061`.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
+
+Input: **`BKC-DEC-089`** menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026`–`027`. Status **approved**, 5 September 2026.
+
+**Nol perubahan skema.** Tidak ada tabel baru, tidak ada kolom baru, tidak ada index baru, dan tidak ada migration tambahan — migration `BE-BKC-027` yang sudah dibuat revisi `0.8` sudah cukup untuk kedua jalur. Yang berubah murni **keterangan peran** kolom `UnresolvedCoverageAmount` di atas (lihat baris yang diperbarui pada tabel `BilCalculationVersion`) — bukan bentuk, tipe, maupun nilai bawaannya.
+
+Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`. Tests `BIL-AT-062`–`063`.
