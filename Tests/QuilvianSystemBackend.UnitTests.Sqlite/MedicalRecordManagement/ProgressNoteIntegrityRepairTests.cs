@@ -32,7 +32,9 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                     new ClinicalDocumentIntegrityService(context),
                     // BE-RWI-053. Controller CPPT kini juga memegang verifikasi DPJP.
                     new CpptVerificationService(
-                        context, new InpatientClinicalContextService(context)))
+                        context, new InpatientClinicalContextService(context)),
+                    // BE-RWI-063. Controller CPPT kini menurunkan konteks perawatan rawat inap.
+                    new InpatientClinicalContextService(context))
                 .DenganPengguna(actorUserId);
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -45,17 +45,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly LoggerService _loggerService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly CpptVerificationService _verificationService;
+        private readonly InpatientClinicalContextService _inpatientClinicalContextService;
 
         public PatientIntegratedProgressNoteController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ClinicalDocumentIntegrityService integrityService,
-            CpptVerificationService verificationService)
+            CpptVerificationService verificationService,
+            InpatientClinicalContextService inpatientClinicalContextService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _integrityService = integrityService;
             _verificationService = verificationService;
+            _inpatientClinicalContextService = inpatientClinicalContextService;
         }
 
         [HttpGet("filters/metadata")]
@@ -292,7 +295,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.VitalSignId,
                 request.DoctorId,
                 request.ServiceUnitId,
-                request.ClinicId
+                request.ClinicId,
+                request.InpEpisodeId
             );
 
             if (!context.IsValid)
@@ -309,6 +313,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ProgressNoteNumber = await GenerateProgressNoteNumberAsync(now),
                 PatientId = request.PatientId,
                 EncounterId = context.EncounterId,
+
+                // BE-RWI-063 / INT-KEP-03. Konteks perawatan diturunkan backend dari kunjungan,
+                // bukan diterima apa adanya dari klien. Tanpa baris ini, catatan keperawatan -
+                // dan catatan dokter - tidak pernah sampai ke lini masa catatan terpadu satu
+                // perawatan.
+                InpEpisodeId = context.InpEpisodeId,
+
                 QueueId = context.QueueId,
                 ConsultationId = context.ConsultationId,
                 AssessmentId = context.AssessmentId,
@@ -1000,7 +1011,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return (true, null);
         }
 
+        /// <summary>
+        /// Menentukan konteks klinis satu catatan terpadu, termasuk perawatan rawat inap yang
+        /// menaunginya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-063</c>, <c>INT-KEP-03</c>. Sebelum ini <c>InpEpisodeId</c> tidak pernah
+        /// diisi siapa pun, sehingga lini masa catatan terpadu satu perawatan
+        /// (<c>GET /episodes/{episodeId}</c>) selalu kosong - catatan perawat maupun catatan
+        /// dokter sama-sama tidak pernah sampai ke sana. Penurunan konteks di bawah menutup gap
+        /// itu <b>tanpa satu pun tabel atau kolom baru</b>; kolomnya sudah ada sejak
+        /// <c>BE-RWI-040</c>.
+        /// </para>
+        /// <para>
+        /// <b>Berlaku untuk seluruh profesi, bukan hanya perawat.</b> Mencabangkan pengisian
+        /// menurut profesi akan melahirkan dua perilaku pada satu tabel yang sama, dan lembar
+        /// terpadu justru dibuat supaya seluruh profesi terbaca sebagai satu perkembangan pasien.
+        /// </para>
+        /// </remarks>
         private async Task<ClinicalContextResult> ResolveClinicalContextAsync(
+            Guid patientId,
+            Guid? encounterId,
+            Guid? queueId,
+            Guid? consultationId,
+            Guid? assessmentId,
+            Guid? vitalSignId,
+            Guid? doctorId,
+            Guid? serviceUnitId,
+            Guid? clinicId,
+            Guid? inpEpisodeId = null)
+        {
+            var hasil = await ResolveClinicalContextCoreAsync(
+                patientId, encounterId, queueId, consultationId,
+                assessmentId, vitalSignId, doctorId, serviceUnitId, clinicId);
+
+            if (!hasil.IsValid)
+                return hasil;
+
+            if (!hasil.EncounterId.HasValue || hasil.EncounterId.Value == Guid.Empty)
+            {
+                // Tanpa kunjungan, perawatan rawat inap tidak dapat ditentukan sama sekali.
+                // Penanda yang tetap dikirim klien karena itu ditolak, bukan didiamkan.
+                return inpEpisodeId.HasValue && inpEpisodeId.Value != Guid.Empty
+                    ? ClinicalContextResult.Fail(
+                        "Perawatan rawat inap hanya dapat ditentukan dari kunjungan pasien.")
+                    : hasil;
+            }
+
+            var episodeId = await _inpatientClinicalContextService
+                .FindOpenEpisodeIdAsync(hasil.EncounterId.Value);
+
+            if (inpEpisodeId.HasValue &&
+                inpEpisodeId.Value != Guid.Empty &&
+                episodeId != inpEpisodeId.Value)
+            {
+                return ClinicalContextResult.Fail(
+                    "Perawatan rawat inap tidak sesuai dengan kunjungannya.");
+            }
+
+            hasil.InpEpisodeId = episodeId;
+
+            return hasil;
+        }
+
+        /// <summary>
+        /// Penurunan konteks klinis yang sudah ada sebelum <c>BE-RWI-063</c>, tidak diubah
+        /// sedikit pun. Dipisahkan supaya penambahan konteks rawat inap tidak perlu menyentuh
+        /// satu pun cabang di dalamnya.
+        /// </summary>
+        private async Task<ClinicalContextResult> ResolveClinicalContextCoreAsync(
             Guid patientId,
             Guid? encounterId,
             Guid? queueId,
@@ -1321,6 +1401,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
                 EncounterId = x.EncounterId,
                 EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                InpEpisodeId = x.InpEpisodeId,
                 QueueId = x.QueueId,
                 QueueCode = x.Queue != null ? x.Queue.QueueCode : null,
                 ConsultationId = x.ConsultationId,
@@ -1366,6 +1447,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
                 EncounterId = x.EncounterId,
                 EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                InpEpisodeId = x.InpEpisodeId,
                 QueueId = x.QueueId,
                 QueueCode = x.Queue != null ? x.Queue.QueueCode : null,
                 ConsultationId = x.ConsultationId,
@@ -1455,6 +1537,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ProgressNoteNumber = x.ProgressNoteNumber,
                 PatientId = x.PatientId,
                 EncounterId = x.EncounterId,
+                InpEpisodeId = x.InpEpisodeId,
                 QueueId = x.QueueId,
                 ConsultationId = x.ConsultationId,
                 NoteDateTime = x.NoteDateTime,
@@ -1476,6 +1559,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ProgressNoteNumber = x.ProgressNoteNumber,
                 PatientId = x.PatientId,
                 EncounterId = x.EncounterId,
+                InpEpisodeId = x.InpEpisodeId,
                 QueueId = x.QueueId,
                 ConsultationId = x.ConsultationId,
                 NoteDateTime = x.NoteDateTime,
@@ -1731,6 +1815,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             public bool IsValid { get; set; }
             public string? ErrorMessage { get; set; }
             public Guid? EncounterId { get; set; }
+
+            /// <summary>
+            /// Perawatan rawat inap yang menaungi kunjungan - BE-RWI-063, INT-KEP-03.
+            /// Diturunkan backend dari kunjungannya, bukan diterima apa adanya dari klien.
+            /// </summary>
+            public Guid? InpEpisodeId { get; set; }
+
             public Guid? QueueId { get; set; }
             public Guid? ConsultationId { get; set; }
             public Guid? AssessmentId { get; set; }

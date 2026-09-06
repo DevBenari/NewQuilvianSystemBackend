@@ -42,7 +42,9 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new ClinicalDocumentIntegrityService(c),
-                new CpptVerificationService(c, new InpatientClinicalContextService(c)))
+                new CpptVerificationService(c, new InpatientClinicalContextService(c)),
+                // BE-RWI-063. Controller CPPT kini menurunkan konteks perawatan rawat inap.
+                new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 
         private static ClinicalNoteAddendumController BuatControllerKoreksi(

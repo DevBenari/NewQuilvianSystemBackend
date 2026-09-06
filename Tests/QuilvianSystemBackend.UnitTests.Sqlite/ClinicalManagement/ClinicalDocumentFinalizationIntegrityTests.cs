@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -89,7 +89,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 Keutuhan(c),
                 // BE-RWI-053. Controller CPPT kini juga memegang verifikasi DPJP, sehingga
                 // service verifikasinya ikut disuntikkan pada uji.
-                new CpptVerificationService(c, new InpatientClinicalContextService(c)))
+                new CpptVerificationService(c, new InpatientClinicalContextService(c)),
+                // BE-RWI-063. Controller CPPT kini menurunkan konteks perawatan rawat inap
+                // sendiri, supaya catatan lintas profesi sampai ke lini masa satu perawatan.
+                new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 
         private static ClinicalNoteAddendumService Koreksi(ApplicationDbContext c) =>

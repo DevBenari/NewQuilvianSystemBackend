@@ -31,7 +31,13 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         public static TheoryData<Type> ControllerYangDisentuh() =>
         [
             typeof(PatientAssessmentController),
-            typeof(ClinicalAssessmentPolicyController)
+            typeof(ClinicalAssessmentPolicyController),
+
+            // BE-RWI-059, BE-RWI-060, BE-RWI-061, dan BE-RWI-062. Dua controller baru ikut
+            // dijaga di sini sejak endpoint pertamanya lahir, bukan setelah 403 permanennya
+            // ditemukan pengguna.
+            typeof(NursingCarePlanController),
+            typeof(NursingInterventionController)
         ];
 
         /// <summary>
@@ -104,6 +110,11 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         [InlineData("Areas/HealthServices/MasterData/Services/ClinicalAssessmentPolicyService.cs")]
         [InlineData("Areas/HealthServices/MasterData/Controllers/ClinicalAssessmentPolicyController.cs")]
         [InlineData("Areas/HealthServices/ClinicalManagement/Services/NursingAssessmentMonitoringService.cs")]
+        [InlineData("Areas/HealthServices/ClinicalManagement/Services/NursingActorService.cs")]
+        [InlineData("Areas/HealthServices/ClinicalManagement/Services/NursingCarePlanService.cs")]
+        [InlineData("Areas/HealthServices/ClinicalManagement/Services/NursingInterventionService.cs")]
+        [InlineData("Areas/HealthServices/ClinicalManagement/Controllers/NursingCarePlanController.cs")]
+        [InlineData("Areas/HealthServices/ClinicalManagement/Controllers/NursingInterventionController.cs")]
         public void SourceBaru_TidakMemakaiHardcodeRole(string jalurRelatif)
         {
             var akar = CariAkarRepository();

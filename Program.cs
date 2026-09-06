@@ -321,6 +321,17 @@ try
     // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
     builder.Services.AddScoped<NursingAssessmentMonitoringService>();
 
+    // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan. NursingActorService menemukan pegawai
+    // di balik pengguna yang masuk, karena dokumentasi keperawatan menyimpan siapa perawatnya,
+    // bukan siapa akunnya. Tanpa pendaftaran ini controller-nya gagal dibuat dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<NursingActorService>();
+    builder.Services.AddScoped<NursingCarePlanService>();
+
+    // BE-RWI-061 / BE-RWI-062 / CAP-014. Pencatatan tindakan keperawatan, finalisasi, koreksi,
+    // dan mesin keadaan pengiriman tagihan yang terpisah dari keadaan klinisnya.
+    builder.Services.AddScoped<NursingInterventionService>();
+
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
     builder.Services.AddScoped<PhysicianVisitNumberService>();

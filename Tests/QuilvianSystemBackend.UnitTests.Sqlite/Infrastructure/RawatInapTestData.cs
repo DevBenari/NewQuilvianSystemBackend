@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -7,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Tests.Infrastructure
@@ -69,6 +71,83 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             context.Set<MstDoctor>().Add(dokter);
             context.SaveChanges();
             return dokter;
+        }
+
+        /// <summary>
+        /// Membuat satu pegawai perawat beserta seluruh master pendukungnya, dan menautkannya
+        /// ke satu akun pengguna.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-059</c> dan <c>BE-RWI-061</c>. Dokumentasi keperawatan menyimpan <b>siapa
+        /// perawatnya</b>, bukan siapa akunnya, sehingga uji harus benar-benar menyediakan baris
+        /// <c>MstEmployee</c> — bukan sekadar Guid karangan. Penautannya lewat profil tenaga
+        /// kerja, persis jalan yang dipakai <c>NursingActorService</c>.
+        /// </remarks>
+        /// <param name="context">Konteks basis data uji.</param>
+        /// <param name="pengguna">
+        /// Akun yang ditautkan ke pegawai ini. Kosong berarti akun baru dibuatkan.
+        /// </param>
+        public static (MstEmployee Pegawai, ApplicationUser Pengguna) BuatPerawat(
+            ApplicationDbContext context,
+            ApplicationUser? pengguna = null)
+        {
+            var pembeda = Guid.NewGuid().ToString("N")[..8];
+
+            var profil = new MstWorkforceProfile
+            {
+                ProfileCode = $"PRF-NRS-{pembeda}",
+                UserType = QuilvianSystemBackend.Enums.UserType.Employee,
+                DisplayName = $"Perawat Uji {pembeda}"
+            };
+            var departemen = new MstDepartment { DepartmentCode = $"DEP-{pembeda}", DepartmentName = "Keperawatan" };
+            var jenisTenaga = new MstWorkforceType { WorkforceTypeCode = $"WFT-N-{pembeda}", WorkforceTypeName = "Tenaga Keperawatan" };
+            var kategori = new MstEmployeeCategory { EmployeeCategoryCode = $"KAT-N-{pembeda}", EmployeeCategoryName = "Tetap" };
+            var jenisKepegawaian = new MstEmploymentType { EmploymentTypeCode = $"EMT-N-{pembeda}", EmploymentTypeName = "Purnawaktu" };
+            var statusKepegawaian = new MstEmploymentStatus { EmploymentStatusCode = $"EMS-N-{pembeda}", EmploymentStatusName = "Aktif" };
+
+            context.AddRange(profil, departemen, jenisTenaga, kategori, jenisKepegawaian, statusKepegawaian);
+            context.SaveChanges();
+
+            var posisi = new MstPosition
+            {
+                DepartmentId = departemen.Id,
+                PositionCode = $"POS-{pembeda}",
+                PositionName = "Perawat Pelaksana"
+            };
+            context.Set<MstPosition>().Add(posisi);
+            context.SaveChanges();
+
+            var pegawai = new MstEmployee
+            {
+                WorkforceProfileId = profil.Id,
+                EmployeeCode = $"PEG-{pembeda}",
+                EmployeeNumber = $"NIP-{pembeda}",
+                FullName = $"Ns. Uji {pembeda}",
+                BirthDate = new DateTime(1990, 1, 1),
+                IdentityType = "KTP",
+                IdentityNumber = $"327{pembeda}",
+                Email = $"perawat.{pembeda}@contoh.uji",
+                PrimaryDepartmentId = departemen.Id,
+                PrimaryPositionId = posisi.Id,
+                WorkforceTypeId = jenisTenaga.Id,
+                EmployeeCategoryId = kategori.Id,
+                EmploymentTypeId = jenisKepegawaian.Id,
+                EmploymentStatusId = statusKepegawaian.Id,
+                JoinDate = new DateTime(2020, 1, 1),
+                IsActive = true
+            };
+            context.Set<MstEmployee>().Add(pegawai);
+            context.SaveChanges();
+
+            var akun = pengguna ?? RekamMedisTestData.BuatPengguna(context, "perawat");
+
+            // Penautan akun ke pegawai lewat profil tenaga kerja. Inilah satu-satunya cara
+            // backend mengetahui pengguna yang masuk adalah perawat yang mana; tidak ada nama
+            // peran maupun UserType yang dibaca sebagai penentu.
+            akun.WorkforceProfileId = profil.Id;
+            context.SaveChanges();
+
+            return (pegawai, akun);
         }
 
         /// <summary>
