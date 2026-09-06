@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `9be5526d248d9813a4044f063e43066a2364dd7d` pada branch `MHamzah` |
 | Tanggal | 4 September 2026 |
-| Status | 🟡 **Sebagian.** Ketujuh acceptance criteria terbukti pada SQLite. Butir DoD "test concurrency PostgreSQL hijau" **belum terpenuhi**: uji-nya sudah ada sejak `BE-RWI-041` dan tetap terhalang `BLOCKED_BY_TEST_DB_CONFIGURATION` |
+| Status | 🟡 **Sebagian, ditinjau ulang 5 September 2026.** Ketujuh acceptance criteria tetap terbukti pada SQLite. Butir DoD "test concurrency PostgreSQL hijau" **tetap belum terpenuhi**; database uji tersendiri masih belum tersedia dan pemilik memutuskan melewatinya. Rinciannya pada bagian akhir |
 
 ## Backend Governance Preflight
 
@@ -228,3 +228,44 @@ Aturan repository melarang mengarahkan uji integrasi ke database dev bersama.
 | Interupsi | `NONE` |
 | Status Git | Bersih sebelum task; tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Menyediakan `QUILVIAN_BILLING_TEST_DB` yang menunjuk database uji tersendiri, lalu menjalankan `PhysicianVisitUniquenessTests` untuk menaikkan task ini menjadi ✅ |
+
+---
+
+## Peninjauan 5 September 2026 — tetap 🟡
+
+### Kenapa database pengembang perorangan **tidak** dipakai
+
+Pada 5 September 2026 pemilik membuka akses ke `QuilvianNewDevHamzah` — PostgreSQL 15.15 pada
+`160.22.250.77`, database pengembang perorangan. Uji migration `BE-RWI-040`, `041`, `042`, `043`,
+dan `045` **berhasil dijalankan** di sana.
+
+Uji ini tetap tidak dijalankan, dan sebabnya bukan kekurangan akses:
+
+| Penjagaan `BillingTestDatabaseFixture` | `QuilvianNewDevHamzah` |
+| --- | --- |
+| Nama tidak boleh mengandung `dev`, `shared`, `staging`, `uat`, `prod`, `live` | Mengandung **`Dev`** — ditolak |
+| Nama wajib mengandung `test` sebagai bukti afirmatif | Tidak mengandung — ditolak |
+
+**Penolakan itu benar.** Fixture menjalankan `Database.Migrate()` lalu **menulis dan menghapus
+baris**; `QuilvianNewDevHamzah` adalah lingkungan kerja pemiliknya yang berisi 175 encounter
+nyata, bukan database sekali pakai. Penjagaan tersebut dipasang setelah insiden `RJ-BIL-BE-002`,
+ketika migration tak sengaja diterapkan ke database tim, dan **sengaja tidak dilemahkan**.
+
+Role `Quilvian_2026@` tidak memiliki hak `CREATEDB` — diperiksa langsung pada `pg_roles`,
+`rolcreatedb = False` — sehingga database uji tersendiri tidak dapat dibuat dari sesi ini.
+
+**Keputusan pemilik 5 September 2026: dilewati.** Task ini tetap 🟡.
+
+Yang dibutuhkan untuk menutupnya: satu database bernama misalnya `QuilvianHamzahTest` pada server
+yang sama, dibuat oleh yang berwenang, lalu `QUILVIAN_BILLING_TEST_DB` diisi menunjuk ke sana.
+
+### Yang tidak berubah
+
+Ketujuh acceptance criteria tetap terbukti pada SQLite, sebagaimana laporan 4 September 2026.
+Tidak ada source yang disunting task ini pada sesi 5 September 2026.
+
+| Hal | Isi |
+| --- | --- |
+| Validasi ulang | `dotnet test` project uji SQLite `Failed: 0, Passed: 324` — naik dari 320 karena tiga uji baru milik `BE-RWI-043` dan `BE-RWI-045`, bukan milik task ini; project `Tests` `Failed: 0, Passed: 288` |
+| Migration | **Nol** |
+| Status Git | Tidak ada stage, commit, maupun push |

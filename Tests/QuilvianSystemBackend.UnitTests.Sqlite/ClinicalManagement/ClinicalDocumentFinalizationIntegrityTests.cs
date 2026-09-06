@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
@@ -57,7 +58,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new InpatientClinicalContextService(c),
-                Keutuhan(c))
+                Keutuhan(c),
+                new ClinicalAssessmentPolicyService(c),
+                new ClinicalNoteAddendumService(c, Keutuhan(c)),
+                new NursingAssessmentMonitoringService(c, new ClinicalAssessmentPolicyService(c)))
                 .DenganPengguna(actorUserId);
 
         private static PatientProcedureController BuatControllerTindakan(
@@ -275,7 +279,13 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                     InpEpisodeId = k.EpisodeId,
                     AssessmentType = PatientAssessmentType.MedicalInitial,
                     ChiefComplaint = "Demam empat hari",
-                    CurrentIllnessHistory = "Demam naik turun disertai menggigil"
+                    CurrentIllnessHistory = "Demam naik turun disertai menggigil",
+
+                    // Ketiga bagian ini menjadi wajib sejak BE-RWI-045 memberinya kolom;
+                    // uji ini menyelesaikan kajiannya, jadi isinya harus lengkap.
+                    PhysicalExamination = "Suhu 38,9 C, faring hiperemis, tidak ada ruam",
+                    WorkingDiagnosis = "Demam tifoid",
+                    TherapyPlan = "Seftriakson intravena, pantau suhu tiap enam jam"
                 });
 
             Assert.Equal(200, ControllerTestHarness.KodeStatus(buat));

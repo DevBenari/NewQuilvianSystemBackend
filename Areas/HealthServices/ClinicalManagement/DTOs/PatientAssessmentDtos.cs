@@ -43,6 +43,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// </summary>
         public PatientAssessmentType AssessmentType { get; set; }
 
+        /// <summary>
+        /// Batas waktu penyelesaian pengkajian ini. <c>null</c> berarti <b>belum dipantau</b>,
+        /// bukan terlambat - <c>BE-RWI-054</c>, <c>VAL-KEP-17</c>.
+        /// </summary>
+        public DateTime? DueAt { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu yang dipakai menghitung <see cref="DueAt"/>. <c>null</c> bila
+        /// tidak ada kebijakan yang berlaku saat pengkajian dibuat.
+        /// </summary>
+        public Guid? PolicyId { get; set; }
+
         public DateTime AssessmentDateTime { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
 
@@ -122,6 +134,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? CurrentIllnessHistory { get; set; }
 
         public string? MedicationHistory { get; set; }
+
+        // Isian medis kajian DPJP — BE-RWI-045. Kosong pada pengkajian keperawatan.
+        public string? PhysicalExamination { get; set; }
+
+        public string? WorkingDiagnosis { get; set; }
+
+        public string? TherapyPlan { get; set; }
 
         public string? OxygenSupportNote { get; set; }
 
@@ -207,6 +226,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? MedicationHistory { get; set; }
+
+        // Isian medis kajian DPJP — BE-RWI-045, VAL-DOK-10 dan VAL-DOK-11. Dibiarkan kosong
+        // oleh pengkajian keperawatan; wajib terisi sebelum kajian medis diselesaikan.
+        [MaxLength(2000)]
+        public string? PhysicalExamination { get; set; }
+
+        [MaxLength(500)]
+        public string? WorkingDiagnosis { get; set; }
+
+        [MaxLength(2000)]
+        public string? TherapyPlan { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 
@@ -338,6 +368,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? MedicationHistory { get; set; }
+
+        // Isian medis kajian DPJP — BE-RWI-045, VAL-DOK-10 dan VAL-DOK-11. Dibiarkan kosong
+        // oleh pengkajian keperawatan; wajib terisi sebelum kajian medis diselesaikan.
+        [MaxLength(2000)]
+        public string? PhysicalExamination { get; set; }
+
+        [MaxLength(500)]
+        public string? WorkingDiagnosis { get; set; }
+
+        [MaxLength(2000)]
+        public string? TherapyPlan { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 
@@ -472,6 +513,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime AssessmentDateTime { get; set; }
         public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// Batas waktu penyelesaian pengkajian yang baru dibuat - <c>BE-RWI-054</c>.
+        /// <c>null</c> berarti belum ada kebijakan batas waktu yang berlaku.
+        /// </summary>
+        public DateTime? DueAt { get; set; }
+
+        /// <summary>Kebijakan batas waktu yang dipakai. <c>null</c> bila masternya kosong.</summary>
+        public Guid? PolicyId { get; set; }
 
         public decimal? BMI { get; set; }
         public decimal? MeanArterialPressure { get; set; }

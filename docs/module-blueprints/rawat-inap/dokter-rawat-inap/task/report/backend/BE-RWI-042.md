@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `c8e83854af240186b5091da412fadde3810afcb1` pada branch `MHamzah` |
 | Tanggal | 3 September 2026 |
-| Status | 🟡 **Sebagian.** Lima dari enam acceptance criteria terbukti; kriteria 6 — migration maju dan mundur berhasil pada ketiga modul — **belum terbukti** karena tidak ada PostgreSQL yang tersedia |
+| Status | ✅ **Selesai, 5 September 2026.** Keenam acceptance criteria terbukti. Kriteria 6 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL 15.15 pada ketiga modul; rinciannya pada bagian 8 |
 
 ## Backend Governance Preflight
 
@@ -217,3 +217,72 @@ terpisah.
 | Interupsi | Satu interupsi eksekusi saat rangkaian tiga migration dibuat. Pemulihan dilakukan dengan memeriksa daftar migration yang benar-benar ada dan keadaan berkas model, lalu melanjutkan dari keadaan terverifikasi. Tidak ada migration ganda maupun penyuntingan ganda |
 | Status Git | Tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Menaikkan baris registry `Rad` menjadi `ACTIVE`, lalu menjalankan uji migration maju-mundur per modul terhadap PostgreSQL sekali pakai |
+
+---
+
+## 8. Pembaruan 5 September 2026 — kriteria 6 ditutup
+
+### Lingkungan uji yang dipakai
+
+| Hal | Nilai |
+| --- | --- |
+| Server | PostgreSQL **15.15** (Debian), `160.22.250.77:5432` |
+| Database | `QuilvianNewDevHamzah` — database pengembang **perorangan**, bukan bersama, bukan staging, bukan production |
+| Wewenang | Diberikan eksplisit oleh pemilik Product/Domain 5 September 2026, dua kali ditegaskan |
+| Keadaan awal | **115 dari 135** migration terpasang, 607 tabel, **175 encounter** dan **25 konsultasi** data nyata |
+| Alat | `dotnet ef database update` dengan `--connection`; verifikasi skema lewat katalog `pg_indexes` dan `information_schema` |
+
+Menguji di atas database berisi data nyata **lebih kuat** daripada di atas database kosong: arah
+mundur baru menunjukkan cacatnya ketika ada baris yang melanggar aturan lama.
+
+### 8.1 Ketiga migration per modul pemilik, kedua arah
+
+| Modul | Migration | Maju | Mundur | Maju lagi |
+| --- | --- | :---: | :---: | :---: |
+| `PharmacyManagement` | `20260903094734_AddPrescriptionInpatientContext` | `Done.` | `Done.` | `Done.` |
+| `LaboratoryManagement` | `20260903095022_AddLabOrderInpatientContext` | `Done.` | `Done.` | `Done.` |
+| `RadiologyManagement` | `20260903095444_AddRadOrderInpatientContext` | `Done.` | `Done.` | `Done.` |
+
+Arah mundur dikerjakan dua tahap agar kegagalan dapat ditelusuri ke migration yang tepat:
+lebih dulu sampai `20260903094734` — membatalkan Radiologi dan Laboratorium — lalu sampai
+`20260903071535_AddLabExamination`, yang membatalkan Farmasi berikut rename tabel Laboratorium.
+
+### 8.2 Lima kolom pada tiga tabel, dihitung dari katalog
+
+| Tabel | Kolom | Jumlah |
+| --- | --- | ---: |
+| `TrxPrescription` | `IdempotencyKey`, `InpEpisodeId`, `PrescriptionOrderType` | 3 |
+| `LabOrder` | `InpEpisodeId` | 1 |
+| `RadOrder` | `InpEpisodeId` | 1 |
+| **Total** | | **5** |
+
+Sesudah mundur: **0 dari 5**. Sesudah maju lagi: **5 dari 5**.
+
+### 8.3 Rename tabel Laboratorium ikut terbukti bolak-balik
+
+Arah mundur melewati `20260903094528_RenameLaboratoryTrxTablesToLabPrefix`. Sesudah mundur,
+katalog menunjukkan `TrxLabSpecimen` dan `TrxLabTransitionHistory`; sesudah maju lagi, keduanya
+kembali menjadi `LabSpecimen` dan `LabTransitionHistory`. Ini bukan lingkup task ini, tetapi ia
+berada di jalur rollback-nya, sehingga hasilnya dicatat.
+
+**Satu kekeliruan pembacaan yang perlu diluruskan.** Sesudah mundur, tabel `LabOrder` **tetap**
+bernama `LabOrder` dan sempat terlihat seperti rollback yang gagal. Ia bukan bagian dari rename
+itu: migration tersebut hanya menyentuh dua entity yang lahir lebih dulu dengan prefix `Trx`,
+sedangkan `LabOrder` memang sejak awal bernama demikian.
+
+### 8.4 Acceptance criteria dan Definition of Done sesudah pembaruan
+
+| Butir | Status | Bukti |
+| --- | --- | --- |
+| 6. Migration maju dan mundur berhasil pada ketiga modul | **Terpenuhi** | Tabel 8.1 dan 8.2 |
+
+### 8.5 Utang yang **masih terbuka**
+
+Baris registry `RadiologyManagement / Rad` masih berstatus `PLANNED`. Uji migration tidak
+mengubah keadaan itu, dan utang tersebut **tetap terbuka** — `QBE-MOD-002`. Yang ditutup
+pembaruan ini hanyalah kriteria 6.
+
+| Hal | Isi |
+| --- | --- |
+| Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Status Git | Tidak ada stage, commit, maupun push |

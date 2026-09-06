@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -70,7 +71,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new InpatientClinicalContextService(c),
-                new ClinicalDocumentIntegrityService(c))
+                new ClinicalDocumentIntegrityService(c),
+                new ClinicalAssessmentPolicyService(c),
+                new ClinicalNoteAddendumService(c, new ClinicalDocumentIntegrityService(c)),
+                new NursingAssessmentMonitoringService(c, new ClinicalAssessmentPolicyService(c)))
                 .DenganPengguna(actorUserId);
 
         private static CreateDoctorConsultationRequest PermintaanCatatan(

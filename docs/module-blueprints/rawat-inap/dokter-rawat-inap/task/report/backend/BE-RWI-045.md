@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `b0c1b956ae9ce221121e056b789024bdc836f1a7` pada branch `MHamzah` |
 | Tanggal | 4 September 2026 |
-| Status | 🟡 **Sebagian.** Lima dari enam acceptance criteria terbukti. Kriteria 4 **belum terpenuhi seluruhnya**: mekanismenya berjalan dan daftar bagian kosong benar-benar dikembalikan, tetapi **diagnosis, pemeriksaan fisik, dan rencana terapi tidak punya kolom** pada `TrxPatientAssessment` — dan kamus data yang disetujui menyatakan sub-modul ini menambahkan **nol** kolom pada tabel itu. Blocker dirinci pada bagian 6.1 |
+| Status | ✅ **Selesai, 5 September 2026.** Keenam acceptance criteria terbukti. Blocker struktur pada bagian 6.1 **dicabut** oleh keputusan Product/Domain: pilihan 1 diambil — `TrxPatientAssessment` memperoleh tiga kolom isian medis. Rinciannya pada bagian 8 |
 
 ## Backend Governance Preflight
 
@@ -285,3 +285,119 @@ kriteria 4 diselesaikan dengan menambah **satu baris per bagian** pada
 | Interupsi | `NONE` |
 | Status Git | Sama dengan yang dirinci [BE-RWI-044](BE-RWI-044.md) bagian 7; ketiga task dikerjakan pada sesi yang sama, dan perubahan pengguna yang berjalan bersamaan **tidak disentuh**. Nol operasi Git dijalankan |
 | Langkah berikutnya | Ajukan tiga pilihan pada bagian 6.1 kepada Product/Domain bersama `ClinicalManagement`. Setelah diputuskan, kriteria 4 diselesaikan dan status task dinaikkan menjadi ✅. `BE-RWI-047` menunggu `BE-RWI-038`; `BE-RWI-048` menunggu `BE-RWI-041` |
+
+---
+
+## 8. Pembaruan 5 September 2026 — blocker kriteria 4 dicabut
+
+### 8.1 Keputusan pemilik
+
+Tiga pilihan diajukan pada bagian 6.1. Product/Domain memilih **pilihan 1** pada 5 September 2026:
+
+> `TrxPatientAssessment` memperoleh kolom `PhysicalExamination`, `TherapyPlan`, dan
+> `WorkingDiagnosis`, dengan kamus data bagian 3 diperbarui.
+
+Ini juga menutup keputusan yang menggantung pada `02-backend-architecture.md` bagian 4.2 — jalan
+**A** diambil, berikut harga yang sudah dicatat di sana: mesin hak akses tetap hanya melihat satu
+sumber daya untuk dua jenis dokumen, sehingga pembedaan kajian medis dan pengkajian keperawatan
+bersandar sepenuhnya pada aturan bisnis.
+
+Dua pilihan lain ditolak, dan alasannya dicatat agar tidak diperdebatkan ulang:
+
+| Pilihan | Alasan ditolak |
+| --- | --- |
+| 2 — melonggarkan `TrxPatientDiagnosis.ConsultationId` | Menyentuh tabel yang sedang dipakai poliklinik, dan tetap tidak menyediakan tempat bagi pemeriksaan fisik maupun rencana terapi |
+| 3 — tabel kajian medis tersendiri | Menyalin puluhan kolom yang sudah ada pada `TrxPatientAssessment` |
+
+### 8.2 Yang diubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs` | Tiga properti baru, seluruhnya nullable |
+| `Repositories/Configurations/HealthServices/TrxPatientAssessmentConfiguration.cs` | Batas panjang ketiganya |
+| `Areas/HealthServices/ClinicalManagement/DTOs/PatientAssessmentDtos.cs` | Ketiganya pada permintaan buat, permintaan ubah, dan jawaban rinci |
+| `Areas/HealthServices/ClinicalManagement/Controllers/PatientAssessmentController.cs` | Pemetaan buat, pemetaan ubah, pemetaan jawaban, dan **lima** baris pemeriksaan pada `BagianKajianMedisYangKosong` |
+| `Migrations/20260905081108_AddMedicalAssessmentContentColumns.cs` | Migration baru |
+| `docs/.../data/data-dictionary.md` | Bagian 3 direvisi, revision `0.2` → `0.3` |
+
+Kolomnya:
+
+| Kolom | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `PhysicalExamination` | `varchar(2000)` | Tidak | Pemeriksaan fisik naratif |
+| `WorkingDiagnosis` | `varchar(500)` | Tidak | Diagnosis kerja |
+| `TherapyPlan` | `varchar(2000)` | Tidak | Rencana terapi |
+
+**Ketiganya nullable, dan itu disengaja.** Wajibnya ditegakkan aturan bisnis saat kajian medis
+diselesaikan, bukan oleh `NOT NULL`. Pengkajian keperawatan berbagi tabel yang sama dan memang
+tidak mengisinya; memasang `NOT NULL` akan mematahkan seluruh jalur keperawatan, poliklinik, dan
+IGD yang sudah berjalan.
+
+`WorkingDiagnosis` **bukan pengganti** `TrxPatientDiagnosis`. Diagnosis berkode ICD tetap di sana
+dan tetap menggantung pada catatan dokter; kolom ini menampung diagnosis kerja pada pemeriksaan
+pertama, ketika catatan yang menaunginya belum ada.
+
+### 8.3 Daftar bagian kosong kini lima, bukan dua
+
+| Urutan | Bagian | Kolom |
+| ---: | --- | --- |
+| 1 | keluhan utama | `ChiefComplaint` |
+| 2 | riwayat penyakit sekarang | `CurrentIllnessHistory` |
+| 3 | pemeriksaan fisik | `PhysicalExamination` |
+| 4 | diagnosis kerja | `WorkingDiagnosis` |
+| 5 | rencana terapi | `TherapyPlan` |
+
+Urutannya mengikuti urutan dokter mengisi kajian, dan yang dikembalikan adalah nama bagian dalam
+bahasa layar — bukan nama kolom, karena kalimatnya dibaca dokter.
+
+### 8.4 Uji
+
+Dua uji baru, dan satu uji lama diperluas:
+
+| Uji | Membuktikan |
+| --- | --- |
+| `KajianMedisTanpaDiagnosis_DitolakDanHanyaDiagnosisYangDisebut` | **Kriteria 4 apa adanya.** Setiap bagian lain diisi, hanya diagnosis dikosongkan → `400`. Daftarnya diperiksa **dua arah**: menyebut "diagnosis kerja", dan **tidak** menyebut keempat bagian yang sudah diisi |
+| `KajianMedisYangLengkap_DapatDiselesaikanDanIsianMedisnyaTersimpan` | Kendali positif — kajian lengkap benar-benar selesai, dan ketiga isian tersimpan apa adanya. Dibaca ulang lewat konteks basis data yang baru |
+| `KajianMedisYangBagiannyaKosong_DitolakBesertaDaftarBagiannya` | Diperluas: kelima bagian kini diperiksa, bukan dua |
+
+Uji kedua itu bukan hiasan. Tanpa kendali positif, aturan kelengkapan bisa saja menolak segalanya
+dan tetap terlihat hijau.
+
+### 8.5 Migration diuji maju dan mundur
+
+Terhadap PostgreSQL **15.15** pada `QuilvianNewDevHamzah`, dengan wewenang eksplisit pemilik:
+
+| Langkah | Hasil |
+| --- | --- |
+| Maju | `Done.` — **139** migration terpasang |
+| Bukti maju | `PhysicalExamination varchar(2000) YES`, `TherapyPlan varchar(2000) YES`, `WorkingDiagnosis varchar(500) YES` |
+| Mundur | `Done.` — **0 dari 3** kolom tersisa |
+| Maju lagi | `Done.` — **3 dari 3** kolom kembali |
+
+### 8.6 Satu regresi ditemukan dan diperbaiki
+
+Menyalakan `VAL-DOK-11` membuat satu uji yang sudah ada gagal:
+`ClinicalDocumentFinalizationIntegrityTests.PenyelesaianKajianMedis_MendaftarkanDokumenTertandaTangan`
+menjawab `400` padahal mengharapkan `200`. Sebabnya benar: uji itu menyelesaikan kajian medis
+yang ketiga bagian barunya kosong. Uji tersebut dilengkapi isinya — **bukan** aturannya yang
+dilonggarkan.
+
+### 8.7 Acceptance criteria dan Definition of Done sesudah pembaruan
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| 4. Menyelesaikan kajian tanpa diagnosis ditolak `400` beserta daftar bagian yang kosong | **Terpenuhi** | Bagian 8.4 |
+
+| Butir DoD | Status |
+| --- | --- |
+| Keenam acceptance criteria terbukti | **Terpenuhi** |
+
+### 8.8 Catatan penutup pembaruan
+
+| Hal | Isi |
+| --- | --- |
+| Migration | `20260905081108_AddMedicalAssessmentContentColumns` — **satu**, terpasang pada `QuilvianNewDevHamzah` saja |
+| Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324` — 17 di antaranya `MedicalAssessmentTests`; project `Tests` `Failed: 0, Passed: 288`; `dotnet build` `0 Error(s)` |
+| Risiko tersisa | Ketiga risiko pada bagian 7 laporan 4 September 2026 **tidak berubah**: `VAL-DOK-06` belum ditegakkan, penegakan keutuhan `Assessment` menunggu `BE-RWI-038`, dan kedua jenis dokumen masih berbagi satu butir hak akses |
+| Perubahan sampingan | `NONE` — perbaikan uji pada 8.6 adalah konsekuensi langsung, bukan pekerjaan di luar scope |
+| Status Git | Tidak ada stage, commit, maupun push |

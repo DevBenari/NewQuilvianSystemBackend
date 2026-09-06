@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `c8e83854af240186b5091da412fadde3810afcb1` pada branch `MHamzah` |
 | Tanggal | 3 September 2026 |
-| Status | 🟡 **Sebagian.** Lima dari enam acceptance criteria terbukti; kriteria 6 — migration maju dan mundur berhasil — **belum terbukti**, dan dua test PostgreSQL yang diminta **sudah ditulis tetapi belum dijalankan** karena tidak ada PostgreSQL yang tersedia |
+| Status | 🟡 **Sebagian, diperbarui 5 September 2026.** **Keenam acceptance criteria kini terbukti** — kriteria 6 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL 15.15. Yang **belum** terpenuhi tinggal satu butir Definition of Done: dua test `PhysicianVisitUniquenessTests` masih `NOT RUN` karena fixture-nya menuntut database uji tersendiri yang belum tersedia. Rinciannya pada bagian 8 |
 
 ## Backend Governance Preflight
 
@@ -237,3 +237,69 @@ penyedia seri nomor bersama hendak dijadikan wajib lintas modul.
 | Interupsi | `NONE` pada bagian task ini |
 | Status Git | Tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Menyalakan PostgreSQL sekali pakai, mengisi environment variable database uji, lalu menjalankan `PhysicianVisitUniquenessTests` beserta uji migration maju-mundur. Setelah keduanya hijau, status task dapat dinaikkan menjadi selesai |
+
+---
+
+## 8. Pembaruan 5 September 2026 — kriteria 6 ditutup, dua test masih `NOT RUN`
+
+### 8.1 Lingkungan uji
+
+| Hal | Nilai |
+| --- | --- |
+| Server | PostgreSQL **15.15** (Debian), `160.22.250.77:5432` |
+| Database | `QuilvianNewDevHamzah` — database pengembang **perorangan** |
+| Wewenang | Diberikan eksplisit oleh pemilik Product/Domain 5 September 2026 |
+| Keadaan awal | 115 dari 135 migration terpasang, 607 tabel, 175 encounter data nyata |
+
+### 8.2 Kriteria 6 — migration maju dan mundur
+
+| Langkah | Hasil |
+| --- | --- |
+| Maju | `Done.` — `20260903093510_AddCliPhysicianVisit` terpasang |
+| Bukti maju | Tabel **`CliPhysicianVisit`** berdiri: **29 kolom**, **14 index** |
+| Mundur | `Done.` — tabel hilang seluruhnya, `0` sisa pada katalog |
+| Maju lagi | `Done.` — tabel kembali utuh |
+
+Empat hal yang diminta acceptance criteria, dibaca langsung dari `pg_indexes`:
+
+| Yang diminta | Yang ada di PostgreSQL |
+| --- | --- |
+| Nama tabel `Cli*`, bukan `Trx*` | `CliPhysicianVisit` — terpenuhi |
+| Kunci permintaan unique **penuh** | `IX_CliPhysicianVisit_IdempotencyKey` — `CREATE UNIQUE INDEX … USING btree ("IdempotencyKey")`, **tanpa** klausa `WHERE` |
+| Kedua index waktu ada | `IX_CliPhysicianVisit_DoctorId_VisitDateTime` dan `IX_CliPhysicianVisit_InpEpisodeId_VisitDateTime` |
+| **Nol** unique atas pasangan perawatan-dokter-tanggal | Terbukti — hanya dua unique index yang ada, yaitu `IdempotencyKey` dan `PhysicianVisitNumber` |
+
+Butir terakhir itu yang paling menentukan: unique atas pasangan perawatan-dokter-tanggal akan
+menolak visite kedua yang sah pada hari yang sama, dan katalog membuktikan index seperti itu
+memang tidak dibuat.
+
+### 8.3 Yang **masih** belum terpenuhi
+
+| Butir DoD | Status | Sebab |
+| --- | --- | --- |
+| Dua test PostgreSQL hijau | ⛔ **`NOT RUN`** | `BLOCKED_BY_TEST_DB_CONFIGURATION` |
+
+`PhysicianVisitUniquenessTests` memakai `BillingTestDatabaseFixture`, yang **menjalankan
+`Database.Migrate()` lalu menulis dan menghapus baris**. Karena itu fixture menolak setiap
+database yang namanya mengandung `dev`, `shared`, `staging`, `uat`, `prod`, atau `live`, dan
+menuntut nama yang mengandung `test` sebagai bukti afirmatif — penjagaan yang dipasang setelah
+insiden `RJ-BIL-BE-002`.
+
+`QuilvianNewDevHamzah` ditolak oleh penjagaan itu, dan **penolakannya benar**: database itu
+adalah lingkungan kerja pemiliknya, bukan database sekali pakai yang boleh ditulisi dan dibuang.
+Role `Quilvian_2026@` tidak memiliki hak `CREATEDB`, sehingga database uji tersendiri tidak dapat
+dibuat dari sesi ini.
+
+**Keputusan pemilik 5 September 2026: dilewati.** Penjagaan fixture sengaja **tidak** dilemahkan.
+
+Yang dibutuhkan untuk menutupnya: satu database bernama misalnya `QuilvianHamzahTest` pada server
+yang sama, dibuat oleh yang berwenang, lalu `QUILVIAN_BILLING_TEST_DB` diisi menunjuk ke sana.
+Uji-nya sudah ditulis dan terkompilasi; tidak ada pekerjaan implementasi yang tersisa.
+
+### 8.4 Catatan penutup pembaruan
+
+| Hal | Isi |
+| --- | --- |
+| Migration | `20260903093510_AddCliPhysicianVisit` — terpasang pada `QuilvianNewDevHamzah` |
+| Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Status Git | Tidak ada stage, commit, maupun push |

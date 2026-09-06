@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
@@ -57,6 +58,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.MedicationHistory)
                 .HasMaxLength(1000);
+
+            // Isian medis kajian DPJP — BE-RWI-045. Ketiganya nullable agar baris pengkajian
+            // keperawatan yang sudah ada tidak perlu diisi apa pun.
+            entity.Property(x => x.PhysicalExamination)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.TherapyPlan)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.WorkingDiagnosis)
+                .HasMaxLength(500);
 
             entity.Property(x => x.BloodPressureSystolic)
                 .IsRequired(false);
@@ -421,6 +433,34 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 x.InpEpisodeId,
                 x.AssessmentType
             });
+
+            // =========================================================================
+            // BE-RWI-054 - tenggat pengkajian dan kebijakan yang dipakai menghitungnya
+            // =========================================================================
+            // Keduanya nullable, sehingga seluruh baris lama milik poliklinik, IGD, dan
+            // medical check-up tidak perlu disentuh sama sekali. Kolom yang kosong berarti
+            // "belum dipantau", bukan "terlambat" - VAL-KEP-17.
+            //
+            // PolicyId sengaja BELUM punya relasi di sini: tabel tujuannya,
+            // MstClinicalAssessmentPolicy, baru lahir pada BE-RWI-055. Relasinya dipasang di
+            // sana bersama tabelnya, supaya setiap migration tetap utuh berdiri sendiri.
+            entity.Property(x => x.DueAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.PolicyId)
+                .IsRequired(false);
+
+            // BE-RWI-055. Relasi ke master kebijakan dipasang sesudah tabelnya lahir.
+            // DeleteBehavior.Restrict: kebijakan yang sudah dipakai menilai pengkajian tidak
+            // boleh lenyap, karena pengkajiannya menyimpan penunjuk ini sebagai bukti menurut
+            // aturan mana ia dinilai.
+            entity.HasOne<MstClinicalAssessmentPolicy>()
+                .WithMany()
+                .HasForeignKey(x => x.PolicyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.PolicyId);
         }
     }
 }

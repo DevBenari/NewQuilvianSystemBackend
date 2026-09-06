@@ -9,8 +9,11 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controllers;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Tests.Infrastructure;
@@ -253,6 +256,94 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             Assert.Single(obatPulang);
             Assert.Equal(3, await context.Set<TrxPrescription>()
                 .CountAsync(x => x.InpEpisodeId == k.EpisodeId));
+        }
+
+        private static PrescriptionController BuatControllerResep(
+            ApplicationDbContext c, Guid actorUserId) =>
+            new PrescriptionController(
+                c,
+                new EncounterInsuranceService(c),
+                new PrescriptionNumberService(c),
+                new PrescriptionSummaryService(c),
+                new PrescriptionWorkflowService(c),
+                new ClinicalMilestoneFactProducer(
+                    c,
+                    new BillingFolioService(c),
+                    ControllerTestHarness.BuatLoggerService(actorUserId)),
+                ControllerTestHarness.BuatLoggerService(actorUserId))
+                .DenganPengguna(actorUserId);
+
+        /// <summary>
+        /// `BE-RWI-043 AC 2` — <b>lewat endpoint</b>. Resep kedua sepanjang satu perawatan rawat
+        /// inap diterima, sedangkan resep aktif kedua tanpa konteks perawatan tetap ditolak
+        /// `400` dengan kalimat yang sama persis seperti sebelum pelonggaran.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Uji inilah yang dulu tidak dapat ditulis.</b> Sampai <c>BE-RWI-050</c> selesai,
+        /// jalur pemesanan resep rawat inap belum menyala, sehingga kriteria 2 hanya terbukti
+        /// pada aturan aplikasi dan index basis data — bukan lewat permintaan yang benar-benar
+        /// masuk. Sekarang keduanya dibuktikan pada lapisan yang sama, oleh controller yang
+        /// sama, dalam satu uji.
+        /// </para>
+        /// <para>
+        /// Kalimat penolakannya dibandingkan <b>utuh</b>, bukan sepotong. Pelonggaran ini
+        /// menyentuh alur poliklinik yang sedang melayani pasien, dan perubahan satu huruf pun
+        /// pada kalimat itu harus menggagalkan uji.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public async Task ResepKedua_DiterimaLewatEndpointRawatInap_DitolakLewatEndpointRawatJalan()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+
+            var catatanRawatInap = BuatCatatan(context, k, k.DokterUserId, k.EpisodeId);
+            var catatanRawatJalan = BuatCatatan(context, k, k.DokterUserId, episodeId: null);
+
+            CreatePrescriptionRequest Permintaan(Guid consultationId) => new()
+            {
+                EncounterId = k.EncounterId,
+                ConsultationId = consultationId,
+                PrescriptionOrderType = PrescriptionOrderType.Daily
+            };
+
+            // Rawat inap: dua resep berturut-turut pada satu perawatan, keduanya diterima.
+            var pertama = await BuatControllerResep(context, k.DokterUserId)
+                .CreatePrescription(Permintaan(catatanRawatInap.Id));
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(pertama));
+
+            var kedua = await BuatControllerResep(context, k.DokterUserId)
+                .CreatePrescription(Permintaan(catatanRawatInap.Id));
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(kedua));
+
+            using var pembaca = database.CreateContext();
+
+            Assert.Equal(2, await pembaca.Set<TrxPrescription>()
+                .CountAsync(x => x.ConsultationId == catatanRawatInap.Id));
+
+            // Tanpa konteks perawatan: resep aktif kedua tetap ditolak, kalimatnya tak berubah.
+            var rawatJalanPertama = await BuatControllerResep(context, k.DokterUserId)
+                .CreatePrescription(Permintaan(catatanRawatJalan.Id));
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(rawatJalanPertama));
+
+            var rawatJalanKedua = await BuatControllerResep(context, k.DokterUserId)
+                .CreatePrescription(Permintaan(catatanRawatJalan.Id));
+
+            Assert.Equal(400, ControllerTestHarness.KodeStatus(rawatJalanKedua));
+            Assert.Equal(
+                "Konsultasi ini sudah memiliki resep aktif.",
+                ControllerTestHarness.Pesan(rawatJalanKedua));
+
+            using var pembacaKedua = database.CreateContext();
+
+            Assert.Equal(1, await pembacaKedua.Set<TrxPrescription>()
+                .CountAsync(x => x.ConsultationId == catatanRawatJalan.Id));
         }
 
         private static TrxDoctorConsultation BuatCatatan(

@@ -592,6 +592,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
         public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu penyelesaian pengkajian, berversi lewat periode berlaku —
+        /// <c>BE-RWI-055</c>. Selama kosong, tidak satu pun pengkajian dinyatakan terlambat.
+        /// </summary>
+        public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
+
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `c8e83854af240186b5091da412fadde3810afcb1` pada branch `MHamzah` |
 | Tanggal | 3 September 2026 |
-| Status | 🟡 **Sebagian.** Lima dari enam acceptance criteria terbukti; kriteria 4 — migration maju dan mundur berhasil — **belum dapat dibuktikan** karena tidak ada PostgreSQL yang tersedia di lingkungan kerja |
+| Status | ✅ **Selesai, 5 September 2026.** Keenam acceptance criteria terbukti. Kriteria 4 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL 15.15 sungguhan; rinciannya pada bagian 8 |
 
 ## Backend Governance Preflight
 
@@ -241,3 +241,67 @@ diuji terhadap data.
 | Interupsi | `NONE` pada bagian task ini |
 | Status Git | Tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Menyalakan PostgreSQL sekali pakai lalu menjalankan uji migration maju-mundur untuk menutup kriteria 4. Setelah itu status task dapat dinaikkan menjadi selesai |
+
+---
+
+## 8. Pembaruan 5 September 2026 — kriteria 4 ditutup
+
+Kriteria 4 menuntut **migration maju dan mundur berhasil**. Sampai 3 September 2026 butir itu
+belum terbukti: SQL kedua arah sudah dihasilkan tanpa galat, tetapi tidak pernah dijalankan.
+
+### Lingkungan uji yang dipakai
+
+| Hal | Nilai |
+| --- | --- |
+| Server | PostgreSQL **15.15** (Debian), `160.22.250.77:5432` |
+| Database | `QuilvianNewDevHamzah` — database pengembang **perorangan**, bukan bersama, bukan staging, bukan production |
+| Wewenang | Diberikan eksplisit oleh pemilik Product/Domain 5 September 2026, dua kali ditegaskan |
+| Keadaan awal | **115 dari 135** migration terpasang, 607 tabel, **175 encounter** dan **25 konsultasi** data nyata |
+| Alat | `dotnet ef database update` dengan `--connection`; verifikasi skema lewat katalog `pg_indexes` dan `information_schema` |
+
+Menguji di atas database berisi data nyata **lebih kuat** daripada di atas database kosong: arah
+mundur baru menunjukkan cacatnya ketika ada baris yang melanggar aturan lama.
+
+### 8.1 Yang dijalankan dan hasilnya
+
+| Langkah | Perintah | Hasil |
+| --- | --- | --- |
+| Maju | `database update 20260903100128_Relax…` | `Done.` — 115 → **133** migration terpasang |
+| Bukti maju | Katalog `information_schema.columns` | **13 kolom** hadir pada empat tabel |
+| Mundur | `database update 20260903071535_AddLabExamination` | `Done.` |
+| Bukti mundur | Katalog yang sama | **0 dari 13** kolom tersisa |
+| Maju lagi | `database update 20260903100128_Relax…` | `Done.` — **13 kolom** kembali |
+
+### 8.2 Tiga belas kolom, dihitung dari katalog basis data
+
+| Tabel | Kolom | Jumlah |
+| --- | --- | ---: |
+| `TrxDoctorConsultation` | `ClinicalDateTime`, `InpEpisodeId`, `PhysicianVisitId` | 3 |
+| `TrxPatientAssessment` | `AssessmentType`, `InpEpisodeId` | 2 |
+| `TrxPatientIntegratedProgressNote` | `InpEpisodeId`, `VerificationDueAt`, `VerificationStatus`, `VerifiedAt`, `VerifiedByUserId` | 5 |
+| `TrxPatientProcedure` | `IdempotencyKey`, `InpEpisodeId`, `PhysicianVisitId` | 3 |
+| **Total** | | **13** |
+
+Angkanya cocok persis dengan yang dijanjikan laporan 3 September 2026.
+
+### 8.3 Acceptance criteria sesudah pembaruan
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| 4. Migration maju dan mundur berhasil | **Terpenuhi** | Tabel 8.1 — tiga langkah, seluruhnya `Done.`, verifikasi katalog di antara setiap langkah |
+
+### 8.4 Definition of Done
+
+| Butir DoD | Status |
+| --- | --- |
+| Uji maju-mundur lulus | **Terpenuhi** — 5 September 2026, PostgreSQL 15.15 |
+
+### 8.5 Catatan penutup pembaruan
+
+| Hal | Isi |
+| --- | --- |
+| Migration | `20260903092936_AddInpatientClinicalContextColumns` — **terpasang** pada `QuilvianNewDevHamzah`; belum diterapkan ke database lain mana pun |
+| Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Risiko tersisa | Migration ini belum pernah dijalankan terhadap database bersama, staging, maupun production. Penerapan ke sana adalah wewenang tersendiri dan **tidak** dikerjakan di sini |
+| Perubahan sampingan | Sembilan migration modul lain yang memang sudah tertunda di antrean ikut terpasang, karena EF menerapkan migration secara berurutan dan tidak menyediakan cara melompatinya. Dicatat, bukan disembunyikan |
+| Status Git | Tidak ada stage, commit, maupun push |

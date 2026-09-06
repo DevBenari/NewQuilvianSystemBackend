@@ -317,6 +317,10 @@ try
     builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
     builder.Services.AddScoped<CpptVerificationService>();
 
+    // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
+    // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
+    builder.Services.AddScoped<NursingAssessmentMonitoringService>();
+
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
     builder.Services.AddScoped<PhysicianVisitNumberService>();
@@ -387,6 +391,11 @@ try
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
+    // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
+    // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
+    builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `9be5526d248d9813a4044f063e43066a2364dd7d` pada branch `MHamzah` |
 | Tanggal | 4 September 2026 |
-| Status | 🟡 **Sebagian.** Kelima acceptance criteria terbukti, termasuk uji kegagalan Billing. Nol migration. Verifikasi yang diminta roadmap menyebut **PostgreSQL** untuk percobaan ulang; yang dijalankan SQLite, karena tidak ada database uji yang tersedia — lihat bagian 5.1 |
+| Status | 🟡 **Sebagian, ditinjau ulang 5 September 2026.** Kelima acceptance criteria tetap terbukti pada SQLite. Butir Verification "integration test terhadap PostgreSQL untuk percobaan ulang" **tetap belum terpenuhi**; database uji tersendiri masih belum tersedia dan pemilik memutuskan melewatinya. Rinciannya pada bagian akhir |
 
 ## Backend Governance Preflight
 
@@ -216,3 +216,51 @@ pada [`BE-RWI-048`](BE-RWI-048.md).
 | Interupsi | `NONE` |
 | Status Git | Bersih sebelum task; tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Menyediakan `QUILVIAN_BILLING_TEST_DB` yang menunjuk database uji tersendiri, lalu menjalankan uji percobaan ulang terhadap PostgreSQL untuk menaikkan task ini menjadi ✅. Layar rawat inap dianjurkan selalu mengirim penanda pasien, penanda perawatan, dan kunci permintaan |
+
+---
+
+## Peninjauan 5 September 2026 — tetap 🟡
+
+### Kenapa database pengembang perorangan **tidak** dipakai
+
+Pada 5 September 2026 pemilik membuka akses ke `QuilvianNewDevHamzah` — PostgreSQL 15.15 pada
+`160.22.250.77`, database pengembang perorangan. Uji migration `BE-RWI-040`, `041`, `042`, `043`,
+dan `045` **berhasil dijalankan** di sana.
+
+Uji ini tetap tidak dijalankan, dan sebabnya bukan kekurangan akses:
+
+| Penjagaan `BillingTestDatabaseFixture` | `QuilvianNewDevHamzah` |
+| --- | --- |
+| Nama tidak boleh mengandung `dev`, `shared`, `staging`, `uat`, `prod`, `live` | Mengandung **`Dev`** — ditolak |
+| Nama wajib mengandung `test` sebagai bukti afirmatif | Tidak mengandung — ditolak |
+
+**Penolakan itu benar.** Fixture menjalankan `Database.Migrate()` lalu **menulis dan menghapus
+baris**; `QuilvianNewDevHamzah` adalah lingkungan kerja pemiliknya yang berisi 175 encounter
+nyata, bukan database sekali pakai. Penjagaan tersebut dipasang setelah insiden `RJ-BIL-BE-002`,
+ketika migration tak sengaja diterapkan ke database tim, dan **sengaja tidak dilemahkan**.
+
+Role `Quilvian_2026@` tidak memiliki hak `CREATEDB` — diperiksa langsung pada `pg_roles`,
+`rolcreatedb = False` — sehingga database uji tersendiri tidak dapat dibuat dari sesi ini.
+
+**Keputusan pemilik 5 September 2026: dilewati.** Task ini tetap 🟡.
+
+Yang dibutuhkan untuk menutupnya: satu database bernama misalnya `QuilvianHamzahTest` pada server
+yang sama, dibuat oleh yang berwenang, lalu `QUILVIAN_BILLING_TEST_DB` diisi menunjuk ke sana.
+
+### Satu bukti tidak langsung yang bertambah
+
+Uji percobaan ulang bersandar pada unique index parsial `IdempotencyKey` pada
+`TrxPatientProcedure`, yang dibuat `BE-RWI-040`. Pada 5 September 2026 migration itu
+**benar-benar dijalankan** terhadap PostgreSQL 15.15 dan diverifikasi lewat katalog: ketiga
+kolom `TrxPatientProcedure` — `IdempotencyKey`, `InpEpisodeId`, `PhysicianVisitId` — terbentuk,
+dan hilang kembali saat migration dibatalkan. Lihat [BE-RWI-040](BE-RWI-040.md) bagian 8.
+
+Itu membuktikan **index-nya terbentuk** di PostgreSQL. Ia **belum** membuktikan perilaku
+percobaan ulang di bawah perlombaan dua permintaan serentak, yang justru inti butir Verification
+ini. Perbedaannya dijaga tetap jelas, bukan dikaburkan agar terlihat selesai.
+
+| Hal | Isi |
+| --- | --- |
+| Validasi ulang | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Migration | **Nol** dari task ini |
+| Status Git | Tidak ada stage, commit, maupun push |

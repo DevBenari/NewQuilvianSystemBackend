@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `c8e83854af240186b5091da412fadde3810afcb1` pada branch `MHamzah` |
 | Tanggal | 3 September 2026 |
-| Status | 🟡 **Sebagian.** Empat dari enam acceptance criteria terbukti ujung ke ujung; kriteria 1 dan 2 terbukti pada **aturan dan lapisan penyimpanan**, tetapi belum dapat dibuktikan lewat endpoint sampai `BE-RWI-044` membuka jalur tanpa antrean bagi pasien rawat inap |
+| Status | ✅ **Selesai, 5 September 2026.** Keenam acceptance criteria terbukti ujung ke ujung. Kriteria 1 ditutup `BE-RWI-044`; kriteria 2 ditutup hari ini lewat endpoint setelah `BE-RWI-050` menyalakan jalur resep rawat inap. Uji maju-mundur PostgreSQL dijalankan dan **menemukan satu cacat pada arah mundur**, yang diperbaiki di sini. Rinciannya pada bagian 8 |
 
 ## Backend Governance Preflight
 
@@ -253,3 +253,115 @@ sebelum dan sesudah perubahan.
 | Interupsi | `NONE` pada bagian task ini |
 | Status Git | `git status --short` di akhir pekerjaan: **25 baris `M` dan 29 baris `??`**, seluruhnya berasal dari rangkaian `BE-RWI-037` s.d. `BE-RWI-043` beserta migration, test, dan dokumen laporannya. Termasuk di dalamnya `QuilvianSystemBackend.csproj` — perbaikan infrastruktur build di luar scope yang dicatat pada [laporan BE-RWI-037](BE-RWI-037.md) bagian 3.4. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada stage, commit, push, pull, merge, rebase, checkout, maupun deploy |
 | Langkah berikutnya | `BE-RWI-044` membuka jalur tanpa antrean bagi pasien rawat inap; setelah itu kriteria 1 dan 2 task ini dapat dibuktikan ujung ke ujung dan statusnya dinaikkan menjadi selesai |
+
+---
+
+## 8. Pembaruan 5 September 2026 — kriteria 2 ditutup dan satu cacat rollback diperbaiki
+
+### 8.1 Kriteria 2 kini terbukti lewat endpoint
+
+Laporan sebelumnya mencatat kriteria 2 sebagai **sebagian**: resep kedua terbukti pada aturan
+aplikasi dan index basis data, belum lewat permintaan yang benar-benar masuk. Penghalangnya
+adalah jalur pemesanan resep rawat inap yang belum menyala. `BE-RWI-050` menyalakannya, sehingga
+uji itu kini dapat ditulis.
+
+**Uji baru:** `SupportingOrderAndPrescriptionContextTests.ResepKedua_DiterimaLewatEndpointRawatInap_DitolakLewatEndpointRawatJalan`
+
+| Jalur | Permintaan | Jawaban |
+| --- | --- | --- |
+| Rawat inap, resep pertama | `POST` lewat `PrescriptionController.CreatePrescription` | `200` |
+| Rawat inap, resep kedua pada catatan yang sama | permintaan yang sama persis | **`200`** — tersimpan, hitungan basis data `2` |
+| Tanpa konteks perawatan, resep pertama | permintaan yang sama persis | `200` |
+| Tanpa konteks perawatan, resep aktif kedua | permintaan yang sama persis | **`400`** — "Konsultasi ini sudah memiliki resep aktif.", hitungan basis data tetap `1` |
+
+Keduanya dibuktikan pada lapisan yang sama, oleh controller yang sama, dalam satu uji. Kalimat
+penolakannya dibandingkan **utuh**, bukan sepotong, sehingga perubahan satu huruf pun akan
+menggagalkan uji.
+
+### 8.2 Uji maju-mundur, dan cacat yang ditemukannya
+
+Definition of Done menuntut uji maju-mundur terhadap PostgreSQL sebelum migration diterapkan.
+Dijalankan 5 September 2026 terhadap PostgreSQL **15.15** pada `QuilvianNewDevHamzah`, dengan
+wewenang eksplisit pemilik.
+
+**Arah maju lulus.** Kedua index tersempit sesuai maksudnya, dibaca langsung dari `pg_indexes`:
+
+```
+IX_TrxDoctorConsultation_EncounterId
+  … WHERE (("IsDelete" = false) AND ("InpEpisodeId" IS NULL))
+IX_TrxPrescription_ConsultationId
+  … WHERE (("IsDelete" = false) AND ("IsCancel" = false) AND ("InpEpisodeId" IS NULL))
+```
+
+**Arah mundur menyimpan cacat.** `Down()` membangun ulang index versi ketat — tanpa klausa
+`InpEpisodeId IS NULL`. Artinya begitu fitur yang dibuka task ini benar-benar dipakai, rollback
+tidak lagi mungkin. Dibuktikan berurutan:
+
+| Langkah | Hasil |
+| --- | --- |
+| Mundur, tanpa catatan rawat inap kembar | `Done.` — kedua index kembali **persis** ke bentuk semula |
+| Maju lagi | `Done.` |
+| Sisipkan **dua** catatan pada satu perawatan rawat inap | `2 rows affected` — inilah yang dibuka task ini |
+| Mundur lagi | **GAGAL** — `23505: could not create unique index "IX_TrxDoctorConsultation_EncounterId"`, disertai `Detail redacted as it may contain sensitive data` |
+| Hapus dua baris uji, mundur lagi | `Done.` — terbukti penyebabnya data, bukan SQL |
+
+Database tidak tertinggal setengah jalan: PostgreSQL memiliki DDL transaksional, sehingga
+migration yang gagal membatalkan dirinya sendiri. Diperiksa sesudahnya — masih `133` migration,
+index masih bentuk longgar.
+
+### 8.3 Perbaikannya
+
+`Down()` diberi penjagaan yang berhenti lebih awal dengan kalimat yang dapat ditindaklanjuti.
+Yang **tidak** dilakukan: menghapus, menggabungkan, atau membatalkan baris klinis mana pun demi
+memuluskan rollback. Menghapus catatan dokter agar sebuah index terbentuk adalah kehilangan rekam
+medis, dan keputusannya bukan milik migration.
+
+Sebelum — yang muncul di layar operator:
+
+```
+23505: could not create unique index "IX_TrxDoctorConsultation_EncounterId"
+DETAIL: Detail redacted as it may contain sensitive data.
+```
+
+Sesudah — diverifikasi dengan mengulang percobaan yang sama:
+
+```
+P0001: Rollback BE-RWI-043 dihentikan: 1 kunjungan memiliki lebih dari satu catatan dokter
+dan 0 konsultasi memiliki lebih dari satu resep aktif. Arah mundur membangun ulang unique index
+versi ketat, sehingga baris-baris itu akan ditolak. Tidak ada catatan klinis yang dihapus
+otomatis. Selesaikan lebih dulu bersama pemilik ClinicalManagement dan PharmacyManagement —
+batalkan, gabungkan, atau pindahkan baris yang berlebih — lalu jalankan rollback ini kembali.
+```
+
+Penjagaan itu **tidak** menghalangi rollback yang sah: sesudah baris uji dihapus, rollback
+dijalankan lagi dan menjawab `Done.`
+
+Berkas yang disunting: `Migrations/20260903100128_RelaxSingleConsultationAndPrescriptionForInpatient.cs`
+— hanya badan `Down()`. `Up()` **tidak disentuh sama sekali**, sehingga migration yang sudah
+terpasang tidak berubah artinya.
+
+### 8.4 Acceptance criteria sesudah pembaruan
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| 1. Catatan kedua pada satu kunjungan rawat inap diterima | **Terpenuhi** | `InpatientDoctorEntryPointTests.RawatInap_CatatanKeduaDiterimaLewatEndpoint` — [BE-RWI-044](BE-RWI-044.md) |
+| 2. Resep kedua sepanjang perawatan diterima | **Terpenuhi** | Bagian 8.1 |
+| 3-6 | Terpenuhi | Tidak berubah dari laporan 3 September 2026 |
+
+| Butir DoD | Status |
+| --- | --- |
+| Keenam acceptance criteria terbukti | **Terpenuhi** |
+| Uji maju-mundur PostgreSQL sebelum migration diterapkan | **Terpenuhi** — dan menemukan cacat 8.2 |
+
+### 8.5 Yang **tetap** belum dikerjakan
+
+Bagian `Emergency` pada `INT-DOK-02` **masih sengaja belum dikerjakan**, dengan alasan teknis
+yang tidak berubah: `TrxPrescription` tidak memiliki kolom yang membedakan resep IGD dari resep
+rawat jalan, sehingga penyaring index tidak dapat dibentuk untuk IGD. Diteruskan kepada pemilik
+`PharmacyManagement`.
+
+| Hal | Isi |
+| --- | --- |
+| Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Risiko tersisa | Rollback migration ini tetap mustahil selama ada perawatan rawat inap dengan lebih dari satu catatan. Yang berubah adalah kegagalannya kini **terbaca**, bukan bahwa ia menjadi mungkin |
+| Status Git | Tidak ada stage, commit, maupun push |

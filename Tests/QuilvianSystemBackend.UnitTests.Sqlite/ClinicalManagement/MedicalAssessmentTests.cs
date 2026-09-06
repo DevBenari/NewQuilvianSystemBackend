@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
@@ -43,7 +44,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new InpatientClinicalContextService(c),
-                new ClinicalDocumentIntegrityService(c))
+                new ClinicalDocumentIntegrityService(c),
+                new ClinicalAssessmentPolicyService(c),
+                new ClinicalNoteAddendumService(c, new ClinicalDocumentIntegrityService(c)),
+                new NursingAssessmentMonitoringService(c, new ClinicalAssessmentPolicyService(c)))
                 .DenganPengguna(actorUserId);
 
         private static DoctorConsultationController BuatControllerCatatan(
@@ -75,7 +79,14 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 InpEpisodeId = k.EpisodeId,
                 AssessmentType = jenis,
                 ChiefComplaint = "Sesak napas sejak dua hari",
-                CurrentIllnessHistory = "Sesak memberat saat berbaring, disertai batuk berdahak"
+                CurrentIllnessHistory = "Sesak memberat saat berbaring, disertai batuk berdahak",
+
+                // Ketiga bagian di bawah menjadi wajib sejak kolomnya ada — BE-RWI-045.
+                // Helper ini dipakai uji yang memang menyelesaikan kajiannya, jadi isinya
+                // sengaja lengkap; uji ketidaklengkapan membangun permintaannya sendiri.
+                PhysicalExamination = "Ronki basah halus di kedua basal paru, JVP tidak meningkat",
+                WorkingDiagnosis = "Gagal jantung kongestif eksaserbasi akut",
+                TherapyPlan = "Furosemid intravena, pembatasan cairan, evaluasi ulang 24 jam"
             };
 
         private static async Task<TrxPatientAssessment> BuatKajianMedisAsync(
@@ -312,16 +323,16 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         // =====================================================================
 
         /// <summary>
-        /// `BE-RWI-045 AC 4` — <b>sebagian</b>. Menyelesaikan kajian medis yang bagiannya masih
-        /// kosong ditolak `400`, dan pesannya menyebut bagian mana saja yang kosong.
+        /// `BE-RWI-045 AC 4`. Menyelesaikan kajian medis yang bagiannya masih kosong ditolak
+        /// `400`, dan pesannya menyebut <b>kelima</b> bagian yang kosong.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <c>VAL-DOK-10</c>. Bagian yang dapat diperiksa hari ini hanya keluhan utama dan
-        /// riwayat penyakit sekarang. Pemeriksaan fisik, rencana terapi, dan diagnosis kerja —
-        /// yang justru disebut <c>VAL-DOK-11</c> — <b>tidak punya kolom</b> pada
-        /// <c>TrxPatientAssessment</c>, dan kamus data menyatakan sub-modul ini menambahkan nol
-        /// kolom pada tabel itu. Kekurangannya dilaporkan sebagai blocker, bukan ditambal.
+        /// <c>VAL-DOK-10</c> dan <c>VAL-DOK-11</c>. Sejak 5 September 2026 pemeriksaan fisik,
+        /// diagnosis kerja, dan rencana terapi punya kolomnya sendiri pada
+        /// <c>TrxPatientAssessment</c>, sehingga keduanya kini benar-benar ditegakkan dan bukan
+        /// lagi kerangka. Uji ini membangun permintaannya sendiri — bukan lewat
+        /// <c>PermintaanKajianMedis</c> yang isinya sengaja lengkap.
         /// </para>
         /// </remarks>
         [Fact]
@@ -355,11 +366,110 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             Assert.StartsWith("Kajian medis belum dapat diselesaikan. Bagian berikut masih kosong:", pesan);
             Assert.Contains("keluhan utama", pesan);
             Assert.Contains("riwayat penyakit sekarang", pesan);
+            Assert.Contains("pemeriksaan fisik", pesan);
+            Assert.Contains("diagnosis kerja", pesan);
+            Assert.Contains("rencana terapi", pesan);
 
             using var pembaca = database.CreateContext();
             var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync(x => x.Id == kajian.Id);
 
             Assert.NotEqual(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+        }
+
+        /// <summary>
+        /// `BE-RWI-045 AC 4`, bunyinya apa adanya — <b>menyelesaikan kajian tanpa diagnosis
+        /// ditolak `400` beserta daftar bagian yang kosong</b>. Setiap bagian lain diisi, hanya
+        /// diagnosis kerja yang dikosongkan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>VAL-DOK-11</c>. Inilah uji yang sebelumnya tidak mungkin ditulis: sampai
+        /// 4 September 2026 <c>TrxPatientAssessment</c> tidak punya kolom diagnosis sama
+        /// sekali, sehingga "tanpa diagnosis" tidak dapat dibedakan dari "dengan diagnosis".
+        /// </para>
+        /// <para>
+        /// Daftarnya diperiksa dua arah. Menyebut diagnosis saja belum cukup — bila keempat
+        /// bagian lain ikut disebut padahal sudah diisi, daftar itu menyesatkan dokter yang
+        /// membacanya.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public async Task KajianMedisTanpaDiagnosis_DitolakDanHanyaDiagnosisYangDisebut()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+
+            var permintaan = PermintaanKajianMedis(k);
+            permintaan.WorkingDiagnosis = null;
+
+            var dibuat = await BuatControllerKajian(context, k.DokterUserId)
+                .CreateAssessment(permintaan);
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            var kajian = await context.Set<TrxPatientAssessment>()
+                .SingleAsync(x => x.AssessmentType == PatientAssessmentType.MedicalInitial);
+
+            var hasil = await BuatControllerKajian(context, k.DokterUserId)
+                .CompleteAssessment(kajian.Id, new CompletePatientAssessmentRequest());
+
+            Assert.Equal(400, ControllerTestHarness.KodeStatus(hasil));
+
+            var pesan = ControllerTestHarness.Pesan(hasil);
+
+            Assert.Contains("diagnosis kerja", pesan);
+
+            // Yang sudah diisi tidak boleh ikut disebut.
+            Assert.DoesNotContain("keluhan utama", pesan);
+            Assert.DoesNotContain("riwayat penyakit sekarang", pesan);
+            Assert.DoesNotContain("pemeriksaan fisik", pesan);
+            Assert.DoesNotContain("rencana terapi", pesan);
+
+            using var pembaca = database.CreateContext();
+            var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync(x => x.Id == kajian.Id);
+
+            Assert.NotEqual(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+        }
+
+        /// <summary>
+        /// Kendali positif bagi kriteria 4: kajian yang <b>kelima</b> bagiannya terisi benar-benar
+        /// dapat diselesaikan, dan ketiga isian medis baru tersimpan apa adanya.
+        /// </summary>
+        /// <remarks>
+        /// Tanpa uji ini, aturan kelengkapan bisa saja menolak segalanya dan tetap terlihat
+        /// hijau. Isinya dibaca ulang lewat konteks basis data yang baru, bukan dari memori
+        /// konteks yang menulisnya.
+        /// </remarks>
+        [Fact]
+        public async Task KajianMedisYangLengkap_DapatDiselesaikanDanIsianMedisnyaTersimpan()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+
+            var dibuat = await BuatControllerKajian(context, k.DokterUserId)
+                .CreateAssessment(PermintaanKajianMedis(k));
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            var kajian = await context.Set<TrxPatientAssessment>()
+                .SingleAsync(x => x.AssessmentType == PatientAssessmentType.MedicalInitial);
+
+            var hasil = await BuatControllerKajian(context, k.DokterUserId)
+                .CompleteAssessment(kajian.Id, new CompletePatientAssessmentRequest());
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(hasil));
+
+            using var pembaca = database.CreateContext();
+            var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync(x => x.Id == kajian.Id);
+
+            Assert.Equal(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+            Assert.Equal("Ronki basah halus di kedua basal paru, JVP tidak meningkat", sesudah.PhysicalExamination);
+            Assert.Equal("Gagal jantung kongestif eksaserbasi akut", sesudah.WorkingDiagnosis);
+            Assert.Equal("Furosemid intravena, pembatasan cairan, evaluasi ulang 24 jam", sesudah.TherapyPlan);
         }
 
         /// <summary>
