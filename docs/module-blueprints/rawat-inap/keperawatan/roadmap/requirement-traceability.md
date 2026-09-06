@@ -45,13 +45,13 @@ prasyarat yang dulu tercatat sebagai penghalang ternyata sudah mendarat di sourc
 
 | Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
 | --- | --- | --- | --- | --- | --- |
-| `CAP-012` Nursing Assessment | `EPIC KEP-01` | `FR-KEP-001` s.d. `FR-KEP-004` | `BE-RWI-054` | `FE-RWI-051` | Belum dikerjakan |
-| `CAP-012` Nursing Assessment | `EPIC KEP-02` | `FR-KEP-005` s.d. `FR-KEP-011` | `BE-RWI-055`, `BE-RWI-056`, `BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058` | `FE-RWI-052`, `FE-RWI-053` | Belum dikerjakan |
+| `CAP-012` Nursing Assessment | `EPIC KEP-01` | `FR-KEP-001` s.d. `FR-KEP-004` | `BE-RWI-054` ✅ | `FE-RWI-051` | Backend ✅ selesai 6 September 2026; frontend belum dikerjakan |
+| `CAP-012` Nursing Assessment | `EPIC KEP-02` | `FR-KEP-005` s.d. `FR-KEP-011` | `BE-RWI-055` ✅, `BE-RWI-056` 🟡, `BE-RWI-065` ✅, `BE-RWI-057` ✅, `BE-RWI-058` ✅ | `FE-RWI-052`, `FE-RWI-053` | Backend 🟡 — empat ✅, `BE-RWI-056` sebagian; frontend belum dikerjakan |
 | `CAP-013` Nursing Care | `EPIC KEP-03` | `FR-KEP-012` s.d. `FR-KEP-017` | `BE-RWI-059`, `BE-RWI-060` | `FE-RWI-054` | Belum dikerjakan |
 | `CAP-014` Nursing Interventions | `EPIC KEP-04` | `FR-KEP-018` s.d. `FR-KEP-023` | `BE-RWI-061`, `BE-RWI-062`, `BE-RWI-063` | `FE-RWI-055` | Belum dikerjakan |
-| `CAP-012` kepatuhan | `EPIC KEP-05` | `FR-KEP-024` s.d. `FR-KEP-026` | `BE-RWI-064` | `FE-RWI-056` | Belum dikerjakan |
+| `CAP-012` kepatuhan | `EPIC KEP-05` | `FR-KEP-024` s.d. `FR-KEP-026` | `BE-RWI-064` ✅ | `FE-RWI-056` | Backend ✅ selesai 6 September 2026; frontend belum dikerjakan |
 | `CAP-016` Equipment Usage | `EPIC KEP-06` | `FR-KEP-027`, `FR-KEP-028` | **Nol task, disengaja** | **Nol task, disengaja** | `DEFERRED` |
-| `CAP-027` Nutrition Care | — | Skrining ikut `EPIC KEP-01`/`KEP-02`; rujukan `INT-KEP-04` | Sebagian `BE-RWI-056` | Sebagian `FE-RWI-052` | Sebagian; sisanya menunggu modul Gizi |
+| `CAP-027` Nutrition Care | — | Skrining ikut `EPIC KEP-01`/`KEP-02`; rujukan `INT-KEP-04` | Sebagian `BE-RWI-056` 🟡 | Sebagian `FE-RWI-052` | Sebagian; skrining gizi kini **wajib terisi** sebelum pengkajian rawat inap diselesaikan; rujukan menunggu modul Gizi |
 
 **Nol kemampuan tanpa epic pemilik.** `CAP-016` punya epic dan punya sub-modul pemilik; ia
 `DEFERRED`, bukan yatim — perbedaan itu diuji `RWI-AC-169`.
@@ -62,17 +62,17 @@ prasyarat yang dulu tercatat sebagai penghalang ternyata sudah mendarat di sourc
 
 | Requirement | Keputusan / aturan | Kontrak `0.3.0` | Acceptance test | Task |
 | --- | --- | --- | --- | --- |
-| `FR-KEP-001` | `RWI-DEC-062`, `RWI-RULE-026`; PRD 16.2 aturan 2 | Integration `INT-KEP-01` | `AC-CAP012-01` | `BE-RWI-054` |
-| `FR-KEP-002` | PRD 16.2 aturan 1 | Validation `VAL-KEP-01` s.d. `VAL-KEP-03` | Jalur gagal episode tidak sah | `BE-RWI-054` |
-| `FR-KEP-003` | `RWI-DEC-051`, `RWI-DEC-070` | Validation `VAL-KEP-04` | Test regresi poliklinik, MCU, dan IGD | `BE-RWI-054` |
-| `FR-KEP-004` | `RWI-DEC-081`; PRD 16.2 aturan 1 | API grup Patient Assessment | Pengkajian terbaca per episode | `BE-RWI-054` |
-| `FR-KEP-005` | PRD 16.2 aturan 3 | State transition bagian 1 | `AC-CAP012-02` | `BE-RWI-056` |
-| `FR-KEP-006` | PRD 16.2 aturan 3 | Validation `VAL-KEP-11` | Jalur gagal pengkajian awal kedua | `BE-RWI-056`, `FE-RWI-052` |
-| `FR-KEP-007` | PRD 16.2 aturan 6 | API `GET /episodes/{episodeId}/timeline` | `AC-CAP012-02` | `BE-RWI-058`, `FE-RWI-053` |
-| `FR-KEP-008` | **`RWI-DEC-091`**; PRD 16.2 aturan 13, 27.3 aturan 7 | Integration `INT-KEP-06`; API `POST /{id}/addendums` | `AC-CAP012-05`, `RWI-AC-175` | **`BE-RWI-065`**, `BE-RWI-057`, `FE-RWI-052` |
-| `FR-KEP-009` | PRD 16.2 aturan 12 | State transition bagian 1.1 | Percobaan sunting dokumen final ditolak; percobaan hard-delete ditolak | **`BE-RWI-065`**, `BE-RWI-057` |
-| `FR-KEP-010` | `RWI-RULE-021`; PRD 16.2 aturan 11 | Validation `VAL-KEP-18` | `AC-CAP012-04` | `BE-RWI-054`, `BE-RWI-055`, `BE-RWI-058` |
-| `FR-KEP-011` | PRD 16.2 aturan 11 | Validation `VAL-KEP-17` | Skenario master kosong | `BE-RWI-055`, `FE-RWI-053` |
+| `FR-KEP-001` | `RWI-DEC-062`, `RWI-RULE-026`; PRD 16.2 aturan 2 | Integration `INT-KEP-01` | `AC-CAP012-01` — **terbukti** `RawatInapTanpaAntreanDanTanpaIgd_PengkajianTersimpan` | `BE-RWI-054` ✅ [laporan](../task/report/backend/BE-RWI-054.md) |
+| `FR-KEP-002` | PRD 16.2 aturan 1 | Validation `VAL-KEP-01` s.d. `VAL-KEP-03` | **Terbukti** — tiga uji `..._Ditolak422` | `BE-RWI-054` ✅ [laporan](../task/report/backend/BE-RWI-054.md) |
+| `FR-KEP-003` | `RWI-DEC-051`, `RWI-DEC-070` | Validation `VAL-KEP-04` | **Terbukti** — empat uji regresi poliklinik, MCU, IGD, dan jalur berantre; utang uji `RWI-DEC-051` tertutup | `BE-RWI-054` ✅ [laporan](../task/report/backend/BE-RWI-054.md) |
+| `FR-KEP-004` | `RWI-DEC-081`; PRD 16.2 aturan 1 | API grup Patient Assessment | **Terbukti** — pengkajian tersimpan beserta `InpEpisodeId` dan terbaca per perawatan | `BE-RWI-054` ✅ [laporan](../task/report/backend/BE-RWI-054.md) |
+| `FR-KEP-005` | PRD 16.2 aturan 3 | State transition bagian 1 | `AC-CAP012-02` — **terbukti** `PengkajianAwalDanUlang_DuaRecordDanNilaiPertamaUtuh` | `BE-RWI-056` 🟡 [laporan](../task/report/backend/BE-RWI-056.md) |
+| `FR-KEP-006` | PRD 16.2 aturan 3 | Validation `VAL-KEP-11` | **Terbukti** — `409` beserta kalimat `VAL-KEP-11` apa adanya | `BE-RWI-056` 🟡 [laporan](../task/report/backend/BE-RWI-056.md), `FE-RWI-052` |
+| `FR-KEP-007` | PRD 16.2 aturan 6 | API `GET /episodes/{episodeId}/timeline` | `AC-CAP012-02` — **terbukti** tiga pengukuran nyeri berurutan tampil seluruhnya | `BE-RWI-058` ✅ [laporan](../task/report/backend/BE-RWI-058.md), `FE-RWI-053` |
+| `FR-KEP-008` | **`RWI-DEC-091`**; PRD 16.2 aturan 13, 27.3 aturan 7 | Integration `INT-KEP-06`; API `POST /{id}/addendums` | `AC-CAP012-05`, `RWI-AC-175` — **terbukti** koreksi bernomor tersimpan, isi asli utuh, status tetap `Completed` | **`BE-RWI-065`** ✅ [laporan](../task/report/backend/BE-RWI-065.md), `BE-RWI-057` ✅ [laporan](../task/report/backend/BE-RWI-057.md), `FE-RWI-052` |
+| `FR-KEP-009` | PRD 16.2 aturan 12 | State transition bagian 1.1 | **Terbukti** — penyuntingan dokumen terkunci ditolak `400`; grup ini tidak punya satu pun endpoint `DELETE` | **`BE-RWI-065`** ✅ [laporan](../task/report/backend/BE-RWI-065.md), `BE-RWI-057` ✅ [laporan](../task/report/backend/BE-RWI-057.md) |
+| `FR-KEP-010` | `RWI-RULE-021`; PRD 16.2 aturan 11 | Validation `VAL-KEP-18` | `AC-CAP012-04` — **terbukti** mengubah kebijakan tidak mengubah penilaian pengkajian yang lalu | `BE-RWI-054` ✅, `BE-RWI-055` ✅, `BE-RWI-058` ✅ [laporan](../task/report/backend/BE-RWI-058.md) |
+| `FR-KEP-011` | PRD 16.2 aturan 11 | Validation `VAL-KEP-17` | **Terbukti** — master kosong menghasilkan `NotMonitored` dan kalimat "batas waktu belum ditetapkan", bukan "terlambat" | `BE-RWI-055` ✅ [laporan](../task/report/backend/BE-RWI-055.md), `FE-RWI-053` |
 | `FR-KEP-012` | PRD `CAP-013` aturan 1; `RWI-DEC-083`, `RWI-DEC-090` | API grup Nursing Care Plan | `AC-CAP013-01` | `BE-RWI-059` |
 | `FR-KEP-013` | PRD `CAP-013` aturan 2 | API grup Nursing Care Plan | `AC-CAP013-01` | `BE-RWI-059`, `FE-RWI-054` |
 | `FR-KEP-014` | PRD `CAP-013` aturan 5; **`RWI-DEC-091`** | API `GET /items/{itemId}/revisions` | `AC-CAP013-02`, **`RWI-AC-177`** | `BE-RWI-060`, `FE-RWI-054` |
@@ -85,9 +85,9 @@ prasyarat yang dulu tercatat sebagai penghalang ternyata sudah mendarat di sourc
 | `FR-KEP-021` | PRD `CAP-014` aturan 5 | Integration `INT-KEP-05` | `AC-CAP014-02` | `BE-RWI-062`, `FE-RWI-055` |
 | `FR-KEP-022` | PRD `CAP-014` AC-03; **`RWI-DEC-091`** | Integration `INT-KEP-06`; Permission `NursingIntervention : Amend`; State transition bagian 3 | `AC-CAP014-03`, **`RWI-AC-176`** | `BE-RWI-062`, `FE-RWI-055` |
 | `FR-KEP-023` | PRD `CAP-014` aturan 4; `RWI-RULE-026` | Integration `INT-KEP-03` | Migration kosong; nol tabel baru | `BE-RWI-063` |
-| `FR-KEP-024` | `RWI-RULE-023`, `RWI-DEC-032` | API daftar pantau kepatuhan | Daftar memuat episode terlambat | `BE-RWI-064`, `FE-RWI-056` |
-| `FR-KEP-025` | `RWI-DEC-032` | — | Daftar kosong berbunyi benar, dan berbeda dari kebijakan kosong | `FE-RWI-056` |
-| `FR-KEP-026` | PRD 16.2 aturan 11; `INV-KEP-03` | Validation `VAL-KEP-18` | Keterlambatan tidak menahan tindakan | `BE-RWI-064` |
+| `FR-KEP-024` | `RWI-RULE-023`, `RWI-DEC-032` | API daftar pantau kepatuhan | **Terbukti** — daftar memuat perawatan tanpa pengkajian awal dan yang terlambat | `BE-RWI-064` ✅ [laporan](../task/report/backend/BE-RWI-064.md), `FE-RWI-056` |
+| `FR-KEP-025` | `RWI-DEC-032` | — | **Terbukti di backend** — dua kalimat kosong dibedakan; layarnya menunggu `FE-RWI-056` | `BE-RWI-064` ✅ [laporan](../task/report/backend/BE-RWI-064.md), `FE-RWI-056` |
+| `FR-KEP-026` | PRD 16.2 aturan 11; `INV-KEP-03` | Validation `VAL-KEP-18` | **Terbukti sebagian** — daftar pantau murni membaca dan pencatatan berikutnya tetap diterima; bukti `INV-KEP-03` untuk tindakan keperawatan menunggu `BE-RWI-061` | `BE-RWI-064` ✅ [laporan](../task/report/backend/BE-RWI-064.md) |
 | `FR-KEP-027` | `RWI-DEC-089` | — | **Tidak diuji** | **Nol task** |
 | `FR-KEP-028` | `RWI-DEC-089` | — | **Tidak diuji** | **Nol task** |
 
@@ -162,8 +162,9 @@ functional requirement yang aktif.
 | Task backend | **12** — bertambah satu dari revision `1` |
 | Task frontend | 6 |
 | Task berstatus `BLOCKED` hari ini | **0 dari 18** — turun dari 17 dari 17 pada revision `1` |
-| Task berstatus selesai hari ini | 0 dari 18 |
+| Task berstatus selesai hari ini | **6 dari 18** — `BE-RWI-054`, `BE-RWI-055`, `BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058`, `BE-RWI-064`, seluruhnya 6 September 2026 |
+| Task berstatus sebagian hari ini | **1 dari 18** — `BE-RWI-056` 🟡 |
 | Tabel baru milik Rawat Inap | **0** |
-| Entity baru yang diminta kepada `ClinicalManagement` | 5 |
+| Entity baru yang diminta kepada `ClinicalManagement` | 5 — **1 sudah mendarat** (`MstClinicalAssessmentPolicy`, `BE-RWI-055`), 4 menunggu `BE-RWI-059` s.d. `BE-RWI-061` |
 | Butir menu baru | **0** |
-| Nilai enum baru pada `ClinicalDocumentKind` | **0** |
+| Nilai enum baru pada `ClinicalDocumentKind` | **0** — dibuktikan uji `NolNilaiEnumBaru_PadaJenisDokumenKlinis` |

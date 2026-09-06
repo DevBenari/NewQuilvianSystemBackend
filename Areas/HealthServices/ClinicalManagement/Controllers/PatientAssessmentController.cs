@@ -505,7 +505,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var jenisPelayanan = await _dbContext.Set<MstServiceUnit>()
                 .AsNoTracking()
                 .Where(x => x.Id == serviceUnitIdPengkajian)
-                .Select(x => (ServiceUnitType?)x.ServiceUnitType)
+                .Select(x => (QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums.ServiceUnitType?)x.ServiceUnitType)
                 .FirstOrDefaultAsync();
 
             var tenggat = await _assessmentPolicyService.CalculateDueAsync(

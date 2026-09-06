@@ -461,6 +461,24 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.PolicyId);
+
+            // =========================================================================
+            // BE-RWI-056 - index parsial pengkajian awal yang masih hidup
+            // =========================================================================
+            // SENGAJA NON-UNIQUE. Revision 1 roadmap sempat meminta unique index;
+            // 02-backend-architecture.md 0.3 bagian 4.1 mencabutnya, dan alasannya kejadian
+            // nyata: pengkajian awal yang salah dibatalkan lalu diulang. Unique index ikut
+            // menghitung baris yang dibatalkan, sehingga perawatan itu tidak akan pernah bisa
+            // punya pengkajian awal lagi.
+            //
+            // Aturan "satu pengkajian awal aktif per perawatan" karena itu dijaga di tingkat
+            // service; index ini hanya mempercepat pencariannya.
+            //
+            // Penyaringnya menyebut AssessmentType = 0, yaitu PatientAssessmentType.Initial.
+            entity.HasIndex(
+                    x => new { x.InpEpisodeId, x.AssessmentType },
+                    "IX_TrxPatientAssessment_Episode_Type_Active")
+                .HasFilter("\"AssessmentType\" = 0 AND \"IsDelete\" = false");
         }
     }
 }

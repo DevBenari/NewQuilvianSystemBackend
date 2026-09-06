@@ -161,10 +161,10 @@ kartu.
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
-Hari ini **tidak satu pun** task bertanda ⛔, dan **tidak satu pun** bertanda ✅. Kedua belas task
-berstatus **belum dikerjakan**. Itu keadaan yang benar dan perlu dibaca apa adanya: gerbang
-approval sudah dicabut, kedua penghalang yang menahan revision `1` sudah terjawab di source,
-tetapi belum ada satu pun task yang dieksekusi sebagai task `keperawatan`.
+**Diperbarui 6 September 2026.** Tujuh task sudah dieksekusi: `BE-RWI-054`, `BE-RWI-055`,
+`BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058`, dan `BE-RWI-064` bertanda ✅; `BE-RWI-056` bertanda 🟡
+karena satu acceptance criteria hanya terbukti sebagian. Lima task sisanya —
+`BE-RWI-059` s.d. `BE-RWI-063` — masih **belum dikerjakan**. Tidak satu pun task bertanda ⛔.
 
 Setiap task menyebut jejak requirement ke `FR-KEP-0xx` pada
 [`../04-prd-to-mvp.md`](../04-prd-to-mvp.md) bagian 10, dan jejak keputusan ke decision ID pada
@@ -260,25 +260,25 @@ September 2026 lewat `RWI-DEC-092`. Merapikan baris kepala keempat berkas itu ad
 
 | Gelombang | Task | Isinya | Prasyarat |
 | --- | --- | --- | --- |
-| **`KEP-MVP-0`** | `BE-RWI-054`, `BE-RWI-055` | Melengkapi bentuk kolom pengkajian dan master kebijakan | `episode-rawat-inap` `M1` selesai; `BE-RWI-039` dan `BE-RWI-040` sudah mendarat |
-| **`KEP-MVP-1`** | `BE-RWI-056`, `BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058` | `EPIC KEP-01` dan `EPIC KEP-02` | `KEP-MVP-0` |
+| **`KEP-MVP-0`** ✅ | `BE-RWI-054` ✅, `BE-RWI-055` ✅ | Melengkapi bentuk kolom pengkajian dan master kebijakan | `episode-rawat-inap` `M1` selesai; `BE-RWI-039` dan `BE-RWI-040` sudah mendarat |
+| **`KEP-MVP-1`** 🟡 | `BE-RWI-056` 🟡, `BE-RWI-065` ✅, `BE-RWI-057` ✅, `BE-RWI-058` ✅ | `EPIC KEP-01` dan `EPIC KEP-02` | `KEP-MVP-0` |
 | **`KEP-MVP-2`** | `BE-RWI-059`, `BE-RWI-060` | `EPIC KEP-03` rencana asuhan | `BE-RWI-056` |
 | **`KEP-MVP-3`** | `BE-RWI-061`, `BE-RWI-062`, `BE-RWI-063` | `EPIC KEP-04` tindakan dan catatan terpadu | `BE-RWI-056` |
-| **`KEP-MVP-4`** | `BE-RWI-064` | `EPIC KEP-05` daftar pantau kepatuhan | `BE-RWI-058` |
+| **`KEP-MVP-4`** ✅ | `BE-RWI-064` ✅ | `EPIC KEP-05` daftar pantau kepatuhan | `BE-RWI-058` |
 | **Tidak masuk gelombang** | — | `EPIC KEP-06` pemakaian alat | `DEFERRED` oleh `RWI-DEC-089` |
 
 ### Urutan dependency
 
 ```text
-BE-RWI-054 ─┬─> BE-RWI-056 ─┬─> BE-RWI-065 ─> BE-RWI-057
-            │               │
-BE-RWI-055 ─┴──────────────>├─> BE-RWI-058 ─> BE-RWI-064
-                            │
-                            ├─> BE-RWI-059 ─> BE-RWI-060
-                            │
-                            ├─> BE-RWI-061 ─> BE-RWI-062
-                            │
-                            └─> BE-RWI-063
+BE-RWI-054 ✅ ─┬─> BE-RWI-056 🟡 ─┬─> BE-RWI-065 ✅ ─> BE-RWI-057 ✅
+               │                  │
+BE-RWI-055 ✅ ─┴─────────────────>├─> BE-RWI-058 ✅ ─> BE-RWI-064 ✅
+                                  │
+                                  ├─> BE-RWI-059 ─> BE-RWI-060
+                                  │
+                                  ├─> BE-RWI-061 ─> BE-RWI-062
+                                  │
+                                  └─> BE-RWI-063
 ```
 
 `BE-RWI-059`, `BE-RWI-061`, dan `BE-RWI-063` dapat berjalan **paralel** setelah `BE-RWI-056`
@@ -292,11 +292,11 @@ lini masa yang bermakna.
 
 ## 4. Task
 
-### `BE-RWI-054` — Pengkajian rawat inap punya tempat menyimpan tenggat dan kebijakannya
+### ✅ `BE-RWI-054` — Pengkajian rawat inap punya tempat menyimpan tenggat dan kebijakannya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** — `INT-KEP-01` sudah mendarat lewat `BE-RWI-039`, lihat bagian 2.1 |
+| **Status** | ✅ **SELESAI 6 September 2026.** Keenam acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). Butir DoD "uji migration maju dan mundur terhadap PostgreSQL sungguhan" **belum terpenuhi** — wewenang eksekusi database tidak diberikan task ini, dan migration `20260905090533_AddAssessmentDueAtAndPolicyId` **belum diterapkan ke database mana pun**. Bukti: [laporan](../task/report/backend/BE-RWI-054.md) |
 | **Outcome** | Setiap pengkajian rawat inap dapat menjawab "kapan seharusnya selesai" dan "menurut kebijakan yang mana", sehingga keterlambatan dapat dinilai tanpa mengubah penilaian pengkajian yang lalu |
 | **Trace** | `FR-KEP-001` s.d. `FR-KEP-004`, `FR-KEP-010`; `RWI-DEC-062`, `RWI-DEC-081`, `RWI-RULE-026`; PRD 16.2 aturan 1, 2, 4, 11; `AC-CAP012-01`; `INT-KEP-01` |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` grup Patient Assessment; `contracts/integration-contract.md` `0.3.0` `INT-KEP-01`, `INT-KEP-02` |
@@ -311,11 +311,11 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-055` — Batas waktu pengkajian dibaca dari master, bukan ditanam di kode
+### ✅ `BE-RWI-055` — Batas waktu pengkajian dibaca dari master, bukan ditanam di kode
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** |
+| **Status** | ✅ **SELESAI 6 September 2026.** Keempat acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). Butir DoD "uji hak akses non-SuperAdmin lulus" **belum terpenuhi** — project uji memanggil controller langsung sehingga `AccessPermissionFilter` dilewati; penggantinya uji refleksi kontrak penamaan atribut, dan keterbatasannya dijelaskan pada laporan. Migration `20260906121936_AddClinicalAssessmentPolicyMaster` **belum diterapkan ke database mana pun**. Bukti: [laporan](../task/report/backend/BE-RWI-055.md) |
 | **Outcome** | Clinical governance dapat mengatur sendiri batas waktu pengkajian awal dan pengkajian ulang tanpa menyentuh kode. Selama masternya kosong, tidak ada satu pun pengkajian yang dinyatakan terlambat |
 | **Trace** | `FR-KEP-010`, `FR-KEP-011`; `RWI-RULE-021` (**belum final, dan memang tidak perlu final**); PRD 16.2 aturan 11; `AC-CAP012-04` |
 | **Kontrak** | `contracts/validation-matrix.md` `VAL-KEP-17`, `VAL-KEP-18`; `contracts/api-contract.md` `0.3.0` |
@@ -330,11 +330,11 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-056` — Pengkajian awal dan pengkajian ulang tidak lagi saling menimpa
+### 🟡 `BE-RWI-056` — Pengkajian awal dan pengkajian ulang tidak lagi saling menimpa
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** |
+| **Status** | 🟡 **SEBAGIAN, 6 September 2026.** Kriteria 1, 2, dan 3 terpetakan ke source dan terbukti; **kriteria 4 terbukti sebagian** — mekanisme penolakan isian wajib ada dan terbukti untuk skrining gizi, tetapi bagian **risiko jatuh** yang disebut `UAT-KEP-07` tidak dapat ditegakkan karena `CalculateFallRiskStatus` mengubah "belum diisi" menjadi `NoRisk`; membedakannya menuntut `HasFallRisk` menjadi nullable dan itu merusak kontrak permintaan bersama poliklinik dan IGD. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). Migration `20260906122534_AddInitialNursingAssessmentPartialIndex` **belum diterapkan ke database mana pun**. Bukti: [laporan](../task/report/backend/BE-RWI-056.md) |
 | **Outcome** | Pengkajian ulang harian tersimpan sebagai catatan tersendiri. Nilai pengkajian awal tetap utuh dan dapat dibaca kembali kapan pun |
 | **Trace** | `FR-KEP-005`, `FR-KEP-006`; PRD 16.2 aturan 3; `AC-CAP012-02`; `VAL-KEP-11` |
 | **Kontrak** | `contracts/state-transition-matrix.md` `0.3.0` bagian 1; `contracts/validation-matrix.md` `VAL-KEP-08`, `VAL-KEP-11` |
@@ -349,7 +349,7 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-065` — Pengkajian keperawatan yang selesai ikut terkunci seperti dokumen dokter
+### ✅ `BE-RWI-065` — Pengkajian keperawatan yang selesai ikut terkunci seperti dokumen dokter
 
 > **Task baru pada revision `2`.** Ia lahir dari `RWI-DEC-091` dan dari temuan bagian 2.2:
 > mesin keutuhan sudah menegakkan jenis `Assessment`, tetapi pengkajian **keperawatan** belum
@@ -357,7 +357,7 @@ lini masa yang bermakna.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** |
+| **Status** | ✅ **SELESAI 6 September 2026.** Keenam acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). **Nol perubahan bentuk data; migration task ini kosong.** Seluruh butir DoD terpenuhi. Bukti: [laporan](../task/report/backend/BE-RWI-065.md) |
 | **Outcome** | Pengkajian keperawatan yang sudah diselesaikan tidak dapat disunting diam-diam. Ia terkunci pada mesin yang sama dengan dokumen dokter, sehingga satu lembar rekam medis tidak memuat dua bentuk penguncian |
 | **Trace** | `FR-KEP-008`, `FR-KEP-009`; `RWI-DEC-091`, `RWI-DEC-086`, `RWI-DEC-087`, `RWI-FACT-016`; `RWI-AC-175`; `INT-KEP-06` |
 | **Kontrak** | `contracts/integration-contract.md` `0.3.0` `INT-KEP-06` bagian 7.1; `contracts/state-transition-matrix.md` `0.3.0` bagian 1 |
@@ -372,11 +372,11 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-057` — Pengkajian final dibetulkan lewat koreksi, bukan dengan menimpanya
+### ✅ `BE-RWI-057` — Pengkajian final dibetulkan lewat koreksi, bukan dengan menimpanya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** — substansi `RWI-OQ-051` sudah terpenuhi di source, lihat bagian 2.1 dan bagian 5 |
+| **Status** | ✅ **SELESAI 6 September 2026.** Ketujuh acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). **Nol tabel baru; migration task ini kosong.** Butir terbuka yang dilaporkan: jalur koreksi oleh kepala ruangan tetap memakai endpoint pengganti milik `MedicalRecordManagement`, karena aturannya dimiliki modul itu. Bukti: [laporan](../task/report/backend/BE-RWI-057.md) |
 | **Outcome** | Perawat yang salah mengisi dapat membetulkannya lewat koreksi beralasan. Isi asli tetap tersimpan sebagai bukti klinis, dan tidak ada jalan menghapusnya diam-diam |
 | **Trace** | `FR-KEP-008`, `FR-KEP-009`; `RWI-DEC-091`; PRD 16.2 aturan 12 dan 13, 27.3 aturan 7; `AC-CAP012-05`, `RWI-AC-175`; `VAL-KEP-12` |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` `POST /{id}/addendums` dan `GET /{id}/addendums`; `contracts/state-transition-matrix.md` `0.3.0` bagian 1; `contracts/permission-audit-matrix.md` hak akses `PatientAssessment : Amend` |
@@ -391,11 +391,11 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-058` — Perkembangan nyeri, risiko jatuh, dan gizi terbaca sebagai satu garis waktu
+### ✅ `BE-RWI-058` — Perkembangan nyeri, risiko jatuh, dan gizi terbaca sebagai satu garis waktu
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** |
+| **Status** | ✅ **SELESAI 6 September 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). **Nol tabel baru; migration task ini kosong.** Seluruh butir DoD terpenuhi. Bukti: [laporan](../task/report/backend/BE-RWI-058.md) |
 | **Outcome** | Perawat dan DPJP melihat apakah nyeri pasien membaik atau memburuk, bukan hanya nilai terakhirnya. Keadaan tenggat pengkajian terbaca dari kebijakan yang aktif |
 | **Trace** | `FR-KEP-007`, `FR-KEP-010`; PRD 16.2 aturan 6 dan 11; `AC-CAP012-02`, `AC-CAP012-04` |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` `GET /episodes/{episodeId}/timeline` dan `GET /episodes/{episodeId}/due-status` |
@@ -508,11 +508,11 @@ lini masa yang bermakna.
 
 ---
 
-### `BE-RWI-064` — Kepala ruangan melihat pengkajian mana yang belum dikerjakan
+### ✅ `BE-RWI-064` — Kepala ruangan melihat pengkajian mana yang belum dikerjakan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. **Tidak terblokir** |
+| **Status** | ✅ **SELESAI 6 September 2026.** Keempat acceptance criteria terpetakan ke source. `dotnet build QuilvianSystemBackend.sln` `Build succeeded` `0 Error(s)`; `dotnet test` project SQLite `Failed: 0, Passed: 394, Total: 394` (garis dasar sebelum slice ini 324). **Nol tabel baru; migration task ini kosong.** Dua hal dilaporkan sebagai delta: route `GET /patient-assessments/monitoring/initial-assessment-compliance` tidak tercantum pada `api-contract.md` `0.3.0`, dan bukti `INV-KEP-03` untuk pencatatan tindakan menunggu `BE-RWI-061`. Bukti: [laporan](../task/report/backend/BE-RWI-064.md) |
 | **Outcome** | Kepala ruangan menemukan episode yang pengkajian awalnya belum ada atau sudah lewat tenggat, tanpa membuka satu per satu |
 | **Trace** | `FR-KEP-024`, `FR-KEP-025`, `FR-KEP-026`; `RWI-RULE-023`, `RWI-DEC-032`; PRD 16.2 aturan 11; `INV-KEP-03`; `VAL-KEP-18` |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` endpoint daftar pantau kepatuhan |
@@ -530,30 +530,30 @@ lini masa yang bermakna.
 
 | Task | Judul singkat | Gelombang | Status | Laporan |
 | --- | --- | --- | :---: | --- |
-| `BE-RWI-054` | Kolom tenggat dan kebijakan pada pengkajian | `KEP-MVP-0` | tanpa tanda | — |
-| `BE-RWI-055` | Master batas waktu pengkajian | `KEP-MVP-0` | tanpa tanda | — |
-| `BE-RWI-056` | Pengkajian awal dan ulang terpisah | `KEP-MVP-1` | tanpa tanda | — |
-| `BE-RWI-065` | Pengkajian selesai ikut terkunci | `KEP-MVP-1` | tanpa tanda | — |
-| `BE-RWI-057` | Koreksi pengkajian lewat addendum | `KEP-MVP-1` | tanpa tanda | — |
-| `BE-RWI-058` | Lini masa dan keadaan tenggat | `KEP-MVP-1` | tanpa tanda | — |
+| `BE-RWI-054` | Kolom tenggat dan kebijakan pada pengkajian | `KEP-MVP-0` | ✅ | [BE-RWI-054](../task/report/backend/BE-RWI-054.md) |
+| `BE-RWI-055` | Master batas waktu pengkajian | `KEP-MVP-0` | ✅ | [BE-RWI-055](../task/report/backend/BE-RWI-055.md) |
+| `BE-RWI-056` | Pengkajian awal dan ulang terpisah | `KEP-MVP-1` | 🟡 3 dari 4 kriteria | [BE-RWI-056](../task/report/backend/BE-RWI-056.md) |
+| `BE-RWI-065` | Pengkajian selesai ikut terkunci | `KEP-MVP-1` | ✅ | [BE-RWI-065](../task/report/backend/BE-RWI-065.md) |
+| `BE-RWI-057` | Koreksi pengkajian lewat addendum | `KEP-MVP-1` | ✅ | [BE-RWI-057](../task/report/backend/BE-RWI-057.md) |
+| `BE-RWI-058` | Lini masa dan keadaan tenggat | `KEP-MVP-1` | ✅ | [BE-RWI-058](../task/report/backend/BE-RWI-058.md) |
 | `BE-RWI-059` | Rencana asuhan keperawatan | `KEP-MVP-2` | tanpa tanda | — |
 | `BE-RWI-060` | Riwayat versi butir asuhan | `KEP-MVP-2` | tanpa tanda | — |
 | `BE-RWI-061` | Tindakan keperawatan dan idempotency | `KEP-MVP-3` | tanpa tanda | — |
 | `BE-RWI-062` | Pemisahan kegagalan tagihan dan koreksi tindakan | `KEP-MVP-3` | tanpa tanda | — |
 | `BE-RWI-063` | Catatan keperawatan pada catatan terpadu | `KEP-MVP-3` | tanpa tanda | — |
-| `BE-RWI-064` | Daftar pantau kepatuhan pengkajian | `KEP-MVP-4` | tanpa tanda | — |
+| `BE-RWI-064` | Daftar pantau kepatuhan pengkajian | `KEP-MVP-4` | ✅ | [BE-RWI-064](../task/report/backend/BE-RWI-064.md) |
 
 | Gelombang | Task di dalamnya | Status |
 | --- | --- | --- |
-| `KEP-MVP-0` | `BE-RWI-054`, `BE-RWI-055` | Belum dimulai |
-| `KEP-MVP-1` | `BE-RWI-056`, `BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058` | Belum dimulai |
+| `KEP-MVP-0` | `BE-RWI-054`, `BE-RWI-055` | ✅ selesai 6 September 2026 — keduanya `✅` |
+| `KEP-MVP-1` | `BE-RWI-056`, `BE-RWI-065`, `BE-RWI-057`, `BE-RWI-058` | 🟡 tiga task ✅ selesai; `BE-RWI-056` 🟡 sebagian |
 | `KEP-MVP-2` | `BE-RWI-059`, `BE-RWI-060` | Belum dimulai |
 | `KEP-MVP-3` | `BE-RWI-061`, `BE-RWI-062`, `BE-RWI-063` | Belum dimulai |
-| `KEP-MVP-4` | `BE-RWI-064` | Belum dimulai |
+| `KEP-MVP-4` | `BE-RWI-064` | ✅ selesai 6 September 2026 |
 
 Laporan task ditulis ke `<blueprint-root>/task/report/backend/<TASK-ID>.md` sesuai
-`rules/rule-output/lokasi-laporan-task.md`. Folder itu **belum ada**, dan itu bukan penyimpangan
-struktur: ia dibuat skill build, bukan skill perencanaan.
+`rules/rule-output/lokasi-laporan-task.md`. Folder itu **sudah ada sejak 6 September 2026** dan
+memuat tujuh laporan.
 
 ---
 
@@ -580,6 +580,13 @@ Dijabarkan pada bagian 2.3. Ringkasnya: kontrak `0.3.0` meminta endpoint addendu
 sedangkan mesin generiknya sudah ada. **Tidak memblokir**; yang wajib adalah endpoint kontrak
 meneruskan ke mesin yang sudah ada, bukan menulis barisnya sendiri. Pemilik: Muhammad Hamzah
 selaku pemilik kontrak. Diselesaikan `/qv-design`.
+
+> **Bukti pelaksanaan, 6 September 2026.** `BE-RWI-057` ✅ dibangun mengikuti syarat itu: kedua
+> endpoint pada grup Patient Assessment **meneruskan** ke `ClinicalNoteAddendumService`, nol tabel
+> baru dibuat, dan migration task itu kosong — dibuktikan uji
+> `Koreksi_TidakMenulisPadaTabelClinicalManagement`. **Gerbangnya sendiri tetap terbuka**:
+> pertanyaan apakah pintu kedua itu memang diinginkan belum dijawab pemilik kontrak. Lihat
+> [laporan `BE-RWI-057`](../task/report/backend/BE-RWI-057.md).
 
 ### 5.3 Kepala dokumen empat berkas hulu
 
