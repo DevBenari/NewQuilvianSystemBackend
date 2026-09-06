@@ -826,7 +826,7 @@ Definition of Done: `BIL-AT-044`–`046` dan `051` lulus dan hasilnya terdokumen
 | Reuse | Pola migration additive yang sudah dipakai modul ini |
 | Scope | Kolom `BilWriteOffCase.Category` (`PATIENT_AR` atau `NON_BILLABLE_RESIDUAL`), kolom `BilCalculationVersion.NonBillableResidualAmount`, satu index. Keduanya `NOT NULL` berdefault. **Hanya membuat berkas migration** |
 | Dependency | `BE-BKC-025` selesai; **otorisasi terpisah** untuk menjalankan migration ke basis data |
-| Status | **Berkas migration selesai dibuat dan direview — menunggu `dotnet test` pengguna.** `20260904232421_AddWriteOffCategoryAndNonBillableResidual` (`.cs`/`.Designer.cs`) dihasilkan lewat `dotnet ef migrations add` dengan otorisasi khusus dan sekali pakai dari pengguna (build internal tool lulus). **Eksekusi migration ke basis data tetap `BLOCKED` oleh `BKC-GATE-09`** — pengguna menegaskan ulang secara eksplisit agar `dotnet ef database update` dilakukan manual olehnya. Detail lengkap: `task/report/backend/BE-BKC-027.md` |
+| Status | **`DONE` — diverifikasi 6 September 2026.** Migration `20260904232421_AddWriteOffCategoryAndNonBillableResidual` dibuat, direview, `dotnet build`/`test` lulus, dan **dieksekusi manual oleh pengguna** ke database dev. Eksekusi dibuktikan langsung lewat query read-only: migration tercatat di `__EFMigrationsHistory`, kolom `BilWriteOffCase.Category` (default `'PATIENT_AR'`) dan `BilCalculationVersion.NonBillableResidualAmount` (default `0`) ada secara fisik dengan `NOT NULL`. `BKC-GATE-09` **ditutup** untuk migration ini. Detail lengkap: `task/report/backend/BE-BKC-027.md`, `task/report/backend/BE-BKC-032.md` |
 
 **Status 5 September 2026 — source migration selesai, build (internal tool) lulus, `dotnet test`
 dan eksekusi database menunggu pengguna.** Model `BilWriteOffCase`/`BilCalculationVersion` dan
@@ -1121,7 +1121,7 @@ source aplikasi.
 | Reuse | Perangkat uji yang sudah ada sejak `BE-BKC-001` |
 | Scope | Menjalankan seluruh regresi yang diminta ketiga amendment; mengumpulkan bukti keluar; memperbarui matriks bukti |
 | Dependency | Seluruh task gelombang ini |
-| Status | **Sebagian selesai, diverifikasi 5 September 2026.** `dotnet build`/`dotnet test` atas seluruh backlog `BE-BKC-022`–`030` dikonfirmasi lulus oleh pengguna; `BKC-GATE-03` (Security) tertutup. **`BKC-GATE-09` (eksekusi migration `BE-BKC-027`) TETAP terbuka** — dibuktikan ulang lewat query langsung ke database dev (kolom baru belum ada secara fisik) — sehingga fitur write-off routing (`BE-BKC-028`–`030`) belum bisa diuji ujung-ke-ujung dengan data nyata. Bukti butir #6 dan #7 sudah dikumpulkan (query read-only); butir #2, #3, #4, #5, #8 butuh lingkungan ter-autentikasi yang di luar kapasitas agent. Lihat `task/report/backend/BE-BKC-032.md` |
+| Status | **`DONE` — ditutup 6 September 2026 atas keputusan eksplisit pengguna, dengan pengecualian tercatat.** `dotnet build`/`dotnet test` lulus (dikonfirmasi pengguna); `BKC-GATE-03` dan `BKC-GATE-09` keduanya tertutup, dibuktikan langsung via query database (migration `BE-BKC-027` tereksekusi, kolom baru ada secara fisik). Bukti butir #1, #6, #7 lengkap. **Butir #2, #3, #4, #5, #8 (bukti nyata jalur `RANAP`, asuransi, dan write-off) SENGAJA ditunda** — pengguna saat ini fokus pada `RAJAL`. Wajib dilengkapi sebelum modul dianggap siap produksi untuk pasien rawat inap atau kasus write-off. Lihat `task/report/backend/BE-BKC-032.md` § "ditutup DONE atas keputusan eksplisit pengguna" |
 
 Daftar regresi yang wajib lulus, dikumpulkan dari ketiga amendment:
 
@@ -1159,12 +1159,12 @@ ada data pasien asli pada contoh mana pun; matriks bukti diperbarui.
 | `BE-BKC-024` | `MVP-7` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | Tidak ada — lihat `task/report/backend/BE-BKC-024.md` |
 | `BE-BKC-025` | `MVP-7` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | Tidak ada lagi — sequencing `BE-BKC-024` terpenuhi |
 | `BE-BKC-026` | `MVP-8` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | — lihat `task/report/backend/BE-BKC-026.md` |
-| `BE-BKC-027` | `MVP-11` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | — lihat `task/report/backend/BE-BKC-027.md`; **eksekusi migration ke basis data TETAP `BKC-GATE-09`, TERBUKTI belum dijalankan** (diverifikasi ulang 5 September 2026: kolom `BilCalculationVersion.NonBillableResidualAmount`/`BilWriteOffCase.Category` belum ada secara fisik, migration tidak muncul di `__EFMigrationsHistory`) |
-| `BE-BKC-028` | `MVP-11` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | — lihat `task/report/backend/BE-BKC-028.md`; **akan gagal runtime** sampai migration `BE-BKC-027` benar-benar dieksekusi (`BKC-GATE-09` masih tertutup, dibuktikan §4 laporan `BE-BKC-032`) |
-| `BE-BKC-029` | `MVP-11` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026 — `MVP-11` selesai secara source dan test** | — lihat `task/report/backend/BE-BKC-029.md`; **akan gagal runtime** sampai migration `BE-BKC-027` benar-benar dieksekusi |
-| `BE-BKC-030` | revisi `0.9` | **`dotnet build`/`test` dikonfirmasi lulus oleh pengguna 5 September 2026** | — lihat `task/report/backend/BE-BKC-030.md`; `BKC-GATE-06` ditutup 5 September 2026 |
+| `BE-BKC-027` | `MVP-11` | **`DONE`.** `dotnet build`/`test` lulus; migration **dieksekusi dan diverifikasi** 6 September 2026 | — lihat `task/report/backend/BE-BKC-027.md`; `BKC-GATE-09` **DITUTUP** untuk migration ini — dibuktikan langsung: `20260904232421_AddWriteOffCategoryAndNonBillableResidual` tercatat di `__EFMigrationsHistory`, kolom `BilWriteOffCase.Category` (default `'PATIENT_AR'`, `NOT NULL`) dan `BilCalculationVersion.NonBillableResidualAmount` (default `0`, `NOT NULL`) ada secara fisik |
+| `BE-BKC-028` | `MVP-11` | **`DONE`.** `dotnet build`/`test` lulus; kolom penopangnya sudah ada secara fisik sejak migration `BE-BKC-027` dieksekusi | — lihat `task/report/backend/BE-BKC-028.md`; tidak lagi akan gagal runtime karena kolomnya sudah ada. **Belum ada bukti transaksi nyata** (database dev belum punya satu pun `BilCalculationVersion`/`BilWriteOffCase`) |
+| `BE-BKC-029` | `MVP-11` | **`DONE`.** `dotnet build`/`test` lulus — `MVP-11` selesai secara source, test, dan migration | — lihat `task/report/backend/BE-BKC-029.md`; kolom penopangnya sudah ada. **Belum ada bukti transaksi nyata**, sama seperti `BE-BKC-028` |
+| `BE-BKC-030` | revisi `0.9` | **`DONE`.** `dotnet build`/`test` lulus; kolom penopangnya sudah ada | — lihat `task/report/backend/BE-BKC-030.md`; `BKC-GATE-06` ditutup 5 September 2026 |
 | `BE-BKC-031` | `MVP-10` | **`DONE`** | — lihat `task/report/backend/BE-BKC-031.md` |
-| `BE-BKC-032` | penutup | **Sebagian — lihat `task/report/backend/BE-BKC-032.md`** | `dotnet build`/`test` sudah lulus (dikonfirmasi pengguna); **`BKC-GATE-09` (eksekusi migration) tetap menahan** bukti keluar #2, #3, #4, #7 (paparan nyata), #8; bukti manual UI (screenshot/PDF ter-autentikasi) di luar kapasitas agent |
+| `BE-BKC-032` | penutup | **`DONE`** (ditutup atas keputusan pengguna, cakupan `RAJAL`; lihat `task/report/backend/BE-BKC-032.md`) | Tidak ada — **catatan:** bukti keluar #2, #3, #4, #5, #8 (`RANAP`/asuransi/write-off) sengaja ditunda, wajib dilengkapi sebelum modul siap produksi untuk rawat inap/write-off |
 
 **Diperbarui 4 September 2026 — kontrak dikunci.** Product/Domain Owner (wewenang ganda
 Finance/AR) mengunci keenam dokumen kontrak, menutup `BKC-GATE-01`. **Empat task kini
@@ -1175,12 +1175,15 @@ dan `BE-BKC-030` (revisi `0.9`, `BKC-GATE-06`). **Kontrak dikunci bukan wewenang
 task tetap menunggu approval task tersendiri dan konfirmasi `TASK MODE: BACKEND` (`BKC-GATE-09`)
 sebelum satu baris source pun ditulis.
 
-**Snapshot di atas dari 4 September 2026 — sudah usang, dipertahankan sebagai catatan historis.**
-Sejak itu source `BE-BKC-022`–`030` (sepuluh task) sudah selesai secara source (menunggu
-`dotnet test` pengguna), dan `BKC-GATE-06`/`BKC-GATE-03` **keduanya ditutup** 5 September 2026 —
-lihat § gerbang di atas dan `task/report/backend/BE-BKC-022.md` s.d. `BE-BKC-030.md` untuk bukti
-masing-masing. **Tidak ada lagi task backend yang tertahan gerbang sungguhan** — hanya
-`BE-BKC-032` yang tersisa, menunggu seluruh task lain selesai (sequencing, bukan gerbang).
+**Snapshot di atas dari 4 September 2026 — sangat usang, dipertahankan sebagai catatan historis.**
+Sejak itu **seluruh sebelas task backend `BE-BKC-022`–`032` berstatus `DONE`** — `dotnet build`/
+`test` dikonfirmasi lulus pengguna, migration `BE-BKC-027` **dieksekusi dan diverifikasi langsung**
+ke database dev (6 September 2026), dan `BE-BKC-032` menutup regresi lintas gelombang (cakupan
+`RAJAL`; bukti nyata `RANAP`/asuransi/write-off sengaja ditunda, lihat § task masing-masing).
+`BKC-GATE-03`, `BKC-GATE-06`, dan `BKC-GATE-09` (untuk migration ini) **seluruhnya tertutup**.
+Lihat § gerbang di atas dan `task/report/backend/BE-BKC-022.md` s.d. `BE-BKC-032.md` untuk bukti
+masing-masing. **Tidak ada lagi task backend yang tersisa pada modul ini** kecuali bukti keluar
+`RANAP`/asuransi/write-off nyata yang ditunda `BE-BKC-032`.
 
 ## 4. Koreksi 4 September 2026 terhadap roadmap ini
 

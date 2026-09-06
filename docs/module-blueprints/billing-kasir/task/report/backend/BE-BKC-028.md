@@ -201,3 +201,15 @@ overflow hanya dapat diuji lewat adapter palsu yang sengaja cacat (pola `Misallo
 | `INTERRUPTIONS` | Tidak ada |
 | `GIT STATUS` | 5 berkas task ini berubah, belum di-stage. Working tree juga memuat perubahan tersendiri dari `BE-BKC-022`–`027` yang belum di-build/test resmi oleh pengguna — task ini melanjutkan DI ATAS perubahan itu, bukan menimpanya. Tidak ada stage, commit, push, maupun operasi Git lain yang dilakukan |
 | `NEXT RECOMMENDED STEP` | Jalankan `dotnet test` mencakup seluruh perubahan yang menumpuk (`BE-BKC-022` s.d. `028`). Migration `BE-BKC-027` **MUST** dijalankan ke basis data (otorisasi terpisah, `BKC-GATE-09`) sebelum kode task ini dapat berfungsi di lingkungan mana pun. Task backend berikutnya sesuai urutan: `BE-BKC-029` (`BLOCKED` oleh sequencing `BE-BKC-028`) |
+
+## Update 6 September 2026 — migration `BE-BKC-027` dieksekusi, peringatan di atas tidak lagi berlaku
+
+`dotnet build`/`dotnet test` dikonfirmasi lulus pengguna, dan migration
+`20260904232421_AddWriteOffCategoryAndNonBillableResidual` sudah dieksekusi ke database dev.
+Dibuktikan langsung lewat query read-only: kolom `BilCalculationVersion.NonBillableResidualAmount`
+kini ada secara fisik (`NOT NULL`, default `0`). **Kode task ini tidak lagi akan gagal runtime**
+karena ketiadaan kolom. Detail audit lengkap: `task/report/backend/BE-BKC-032.md`.
+
+Yang tersisa bukan lagi soal kode/migration, melainkan **data uji**: database dev saat ini belum
+punya satu pun baris `BilCalculationVersion` (nol transaksi tersimpan sama sekali), sehingga belum
+ada satu pun kasus non-billable residual nyata untuk didemonstrasikan sebagai bukti keluar `BIL-AT-055`–`057`.

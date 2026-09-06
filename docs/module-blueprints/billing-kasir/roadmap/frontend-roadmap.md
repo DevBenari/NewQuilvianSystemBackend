@@ -478,8 +478,8 @@ input_revisions:
 | Kontrak | `BIL-API-0.5`/`0.6` — `GET /{id}/insurance-invoice-document`; hak akses `BillingInvoice : Read` (dipakai ulang) |
 | Reuse | Pola `KwitansiDocument`/`StrukPasienDocument` apa adanya; halaman Dokumen Kasir hasil `FE-BKC-017`; `html2pdf.js` yang sudah dipakai |
 | Scope | Satu komponen lembar baru; satu tab baru sejajar Kwitansi dan Struk Pasien, **sebelum** enam tab placeholder; satu pemanggilan data beserta tiga slot keadaan dan penyeleksinya; parameter ukuran kertas opsional pada pembuat PDF; perbaikan pemilihan tab dari alamat halaman |
-| Dependency | `BE-BKC-023` **selesai dan terverifikasi**; `BKC-GATE-03` |
-| Status | `BLOCKED` oleh `BE-BKC-023` dan `BKC-GATE-03` |
+| Dependency | `BE-BKC-023` **selesai dan terverifikasi** (source selesai; `dotnet test` masih menunggu pengguna); `BKC-GATE-03` **ditutup** |
+| Status | ~~`BLOCKED` oleh `BE-BKC-023` dan `BKC-GATE-03`~~ **`lint:errors`/`test:unit`/`build` lulus 6 September 2026** — `BKC-GATE-03` ditutup lewat `BKC-DEC-092` (Security Owner); `BE-BKC-023` terverifikasi lulus pengguna. Menunggu verifikasi manual ter-autentikasi; lihat `task/report/frontend/FE-BKC-018.md` |
 
 **Kenapa ukuran kertasnya berubah menjadi A4.** Tabel Invoice Asuransi punya kolom tambahan
 "Ditanggung Asuransi" dan "Porsi Pasien". Pada kertas A5 selebar 148 mm, kolom paling kanan
@@ -533,8 +533,8 @@ tidak ada nomor polis di log peramban; hasil build dilaporkan pengguna.
 | Kontrak | `BIL-API-0.6`/`0.7` — field baru pada `breakdown.coverage` |
 | Reuse | Blok Ringkasan Pembayaran hasil `FE-BKC-016`; tidak ada layar baru |
 | Scope | Menghapus baris "Penjamin Belum Terverifikasi"; menampilkan baris "Selisih Tidak Ditagihkan (kontrak penjamin)" yang **menjumlahkan dua field** dan hanya muncul bila nilainya lebih dari nol; memastikan seluruh baris menjumlah ke Total Tagihan |
-| Dependency | `BE-BKC-024`, `BE-BKC-025`, dan `BE-BKC-028` **selesai dan terverifikasi hidup** |
-| Status | `BLOCKED` oleh ketiga task backend tersebut |
+| Dependency | `BE-BKC-024`, `BE-BKC-025`, dan `BE-BKC-028` — ketiganya `DONE`, `dotnet build`/`test` dikonfirmasi lulus pengguna |
+| Status | ~~`BLOCKED` oleh ketiga task backend tersebut~~ **`lint:errors`/`test:unit`/`build` lulus 6 September 2026** — menunggu verifikasi manual ter-autentikasi; lihat `task/report/frontend/FE-BKC-019.md` |
 
 **Contoh berangka.** Tagihan Rp 425.000 dengan Subtotal Mandiri Rp 85.000, Subtotal Asuransi
 Rp 340.000, pajak Rp 0, dan selisih Rp 0. Jumlahnya Rp 425.000, tanpa selisih satu rupiah pun.
@@ -571,7 +571,7 @@ sekali; hasil build dilaporkan pengguna.
 | Reuse | Komponen peringatan yang sudah ada; penanda per baris hasil `FE-BKC-FIX-006`/`FIX-008` |
 | Scope | Peringatan kuning di atas Ringkasan Pembayaran berisi kalimat dari server; penanda baris bernilai "anomali data" untuk baris yang terdampak; nominal anomali **tidak** dijadikan baris subtotal |
 | Dependency | `BE-BKC-025` **selesai dan terverifikasi hidup** |
-| Status | `BLOCKED` oleh `BE-BKC-025` |
+| Status | ~~`BLOCKED` oleh `BE-BKC-025`~~ **`lint:errors`/`test:unit`/`build` lulus 6 September 2026** — menunggu verifikasi manual ter-autentikasi; lihat `task/report/frontend/FE-BKC-020.md` |
 
 **Contoh berangka.** Biaya yang memenuhi syarat Rp 440.000 dengan kelayakan penjamin belum
 dicentang. Perhitungan berhasil: Subtotal Mandiri Rp 440.000, Subtotal Asuransi Rp 0, Total Tagihan
@@ -604,7 +604,7 @@ hasil build dilaporkan pengguna.
 | Reuse | Layar Pengecualian Finansial hasil `FE-BKC-008` beserta seluruh alur pengajuan, persetujuan, dan pembatalannya |
 | Scope | Menampilkan sisa selisih yang belum ditanggung; pilihan kategori pada formulir pengajuan; pengisian awal nominal; peringatan pada layar finalisasi bila masih ada selisih yang belum ditanggung |
 | Dependency | `BE-BKC-029` **selesai dan terverifikasi hidup** |
-| Status | `BLOCKED` oleh `BE-BKC-029` |
+| Status | ~~`BLOCKED` oleh `BE-BKC-029`~~ **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 untuk acceptance 1–6.** Acceptance 7 **TIDAK dikerjakan** — diblokir `BKC-GAP-01` (desain `BKC-DEC-090` belum ditulis). Menunggu verifikasi manual ter-autentikasi; lihat `task/report/frontend/FE-BKC-021.md` |
 
 **Proses bisnis yang dilayani layar ini.**
 
@@ -645,14 +645,16 @@ berubah tampilannya; hasil build dilaporkan pengguna.
 
 | Task | Gelombang | Status | Yang menahan |
 | --- | --- | --- | --- |
-| `FE-BKC-018` | `MVP-6` | `BLOCKED` | `BE-BKC-023`, `BKC-GATE-03` |
-| `FE-BKC-019` | `MVP-9` | `BLOCKED` | `BE-BKC-024`, `BE-BKC-025`, `BE-BKC-028` |
-| `FE-BKC-020` | `MVP-9` | `BLOCKED` | `BE-BKC-025` |
-| `FE-BKC-021` | `MVP-12` | `BLOCKED` | `BE-BKC-029` |
+| `FE-BKC-018` | `MVP-6` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 — menunggu verifikasi manual ter-autentikasi** | — `BKC-GATE-03` ditutup 5 September 2026 (`BKC-DEC-092`); lihat `task/report/frontend/FE-BKC-018.md` |
+| `FE-BKC-019` | `MVP-9` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 — menunggu verifikasi manual** | — dependency `DONE`; lihat `task/report/frontend/FE-BKC-019.md` |
+| `FE-BKC-020` | `MVP-9` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 — menunggu verifikasi manual** | — dependency `DONE`; lihat `task/report/frontend/FE-BKC-020.md` |
+| `FE-BKC-021` | `MVP-12` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 untuk acceptance 1–6 — menunggu verifikasi manual** | — dependency `DONE`; acceptance 7 diblokir `BKC-GAP-01` (desain `BKC-DEC-090` belum ditulis); lihat `task/report/frontend/FE-BKC-021.md` |
 
-Keempatnya menunggu backend, bukan menunggu keputusan produk. Tidak ada satu pun pertanyaan bisnis
-yang masih terbuka untuk keempat layar ini — seluruh keputusan rupa yang belum diambil sudah
-dinyatakan `DEV_DISCRETION` dan memang menjadi wewenang pelaksana.
+Keempatnya sudah lulus lint/test/build lokal dan tidak lagi menunggu backend. Satu pertanyaan
+bisnis masih terbuka: acceptance 7 pada `FE-BKC-021` menunggu desain `BKC-DEC-090` (`BKC-GAP-01`) —
+bukan `DEV_DISCRETION`, sengaja tidak dikerjakan tanpa desain yang disetujui. Seluruh keputusan rupa
+lain yang belum diambil pada keempat layar ini sudah dinyatakan `DEV_DISCRETION` dan memang menjadi
+wewenang pelaksana.
 
 ## 3. Catatan pekerjaan frontend yang sudah berjalan di luar penomoran roadmap
 

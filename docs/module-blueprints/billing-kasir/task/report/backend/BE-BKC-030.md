@@ -185,3 +185,11 @@ tanpa bergantung pada `TariffId`/`ProcedureId` yang tidak pernah diisi `SeedInvo
 | `INTERRUPTIONS` | Tidak ada |
 | `GIT STATUS` | 2 berkas source/test + 8 berkas blueprint/kontrak berubah untuk task ini, belum di-stage. Working tree juga memuat perubahan tersendiri dari `BE-BKC-022`–`029` yang belum di-build/test resmi oleh pengguna. Tidak ada stage, commit, push, maupun operasi Git lain yang dilakukan |
 | `NEXT RECOMMENDED STEP` | Jalankan `dotnet test` mencakup seluruh perubahan yang menumpuk (`BE-BKC-022` s.d. `030`). Migration `BE-BKC-027` **MUST** dijalankan ke basis data (otorisasi terpisah, `BKC-GATE-09`) sebelum kode `BE-BKC-027`–`030` dapat berfungsi di lingkungan mana pun. Seluruh task backend blueprint `MVP-11` + revisi `0.9` kini selesai secara source. Task backend berikutnya sesuai urutan: `BE-BKC-023` (`BLOCKED` `BKC-GATE-03`, Security), `BE-BKC-031` (verifikasi data PPN, `READY`, bukan task kode), atau `BE-BKC-032` (penutup, menunggu seluruh task lain) |
+
+## Update 6 September 2026 — migration `BE-BKC-027` dieksekusi, peringatan di atas tidak lagi berlaku
+
+`dotnet build`/`dotnet test` dikonfirmasi lulus pengguna; `BKC-GATE-03` (Security) ditutup 5
+September 2026; migration `BE-BKC-027` dieksekusi ke database dev dan dibuktikan langsung lewat
+query read-only (kolom baru ada secara fisik). **Kode task ini tidak lagi akan gagal runtime.**
+Tidak ada lagi gerbang governance yang menahan gelombang ini. Detail audit lengkap:
+`task/report/backend/BE-BKC-032.md`.

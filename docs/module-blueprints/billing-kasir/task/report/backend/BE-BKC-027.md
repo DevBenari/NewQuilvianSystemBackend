@@ -184,3 +184,23 @@ dan otorisasi terpisah untuk `dotnet ef database update` bila/ketika pengguna si
 | `INTERRUPTIONS` | Tidak ada |
 | `GIT STATUS` | 4 berkas source disunting manual + 3 berkas migration dihasilkan tool untuk task ini, belum di-stage. Working tree juga memuat perubahan tersendiri dari `BE-BKC-022`–`026` yang belum di-build/test resmi oleh pengguna. Tidak ada stage, commit, push, maupun operasi Git lain yang dilakukan |
 | `NEXT RECOMMENDED STEP` | Jalankan `dotnet test` secara manual mencakup seluruh perubahan yang menumpuk (`BE-BKC-022` s.d. `027`). Migration boleh dijalankan ke basis data development kapan pun pengguna siap (otorisasi terpisah, `BKC-GATE-09`). Task backend berikutnya sesuai urutan: `BE-BKC-028` (`BLOCKED` oleh sequencing `BE-BKC-027` + `MVP-7`) |
+
+## Update 6 September 2026 — migration dieksekusi, `BKC-GATE-09` ditutup untuk task ini
+
+Pengguna mengonfirmasi `dotnet build`/`dotnet test` atas seluruh backlog `BE-BKC-022`–`030` lulus,
+dan menjalankan `dotnet ef database update` secara manual ke database dev
+(`QuilvianNewDevYasmina`). Dibuktikan langsung lewat query read-only (otorisasi eksplisit pengguna,
+konsisten dengan audit `BE-BKC-031`):
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `20260904232421_AddWriteOffCategoryAndNonBillableResidual` tercatat di `__EFMigrationsHistory` | **Ya** |
+| Kolom fisik `BilWriteOffCase.Category` | **Ada** — `character varying`, `NOT NULL`, default `'PATIENT_AR'::character varying` |
+| Kolom fisik `BilCalculationVersion.NonBillableResidualAmount` | **Ada** — `numeric`, `NOT NULL`, default `0.0` |
+| Baris lama `BilWriteOffCase`/`BilCalculationVersion` di database dev | **Nol baris pada keduanya** — database dev belum punya transaksi write-off/kalkulasi apa pun, sehingga acceptance criteria #2/#3 (nilai bawaan pada baris lama) terpenuhi secara vakum (tidak ada baris lama untuk diperiksa), bukan diverifikasi atas data sungguhan |
+| Index yang dihasilkan | Additive-only — `IX_BilWriteOffCase_InvoiceId_Category_Status` baru; tidak ada index/kolom lama yang hilang |
+
+**`BKC-GATE-09` ditutup untuk migration ini.** Acceptance criteria #5 ("migration tidak dijalankan
+tanpa otorisasi tersendiri") tetap terpenuhi — otorisasi eksekusi diberikan eksplisit oleh pengguna
+sendiri sebelum menjalankannya. Definition of Done task ini sekarang **tercapai**. Detail audit
+lengkap lintas task `BE-BKC-027`–`030`: `task/report/backend/BE-BKC-032.md`.

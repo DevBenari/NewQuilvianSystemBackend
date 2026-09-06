@@ -151,3 +151,93 @@ murni bersifat prosedural/lingkungan, bukan kekurangan kode:
 | `INTERRUPTIONS` | `NONE` |
 | `GIT STATUS` | Nol berkas source berubah akibat task ini. Roadmap dan `requirement-traceability.md` diperbarui untuk seluruh task `BE-BKC-022`–`032` mencerminkan konfirmasi build/test pengguna dan temuan `BKC-GATE-09` — ini disengaja karena statusnya saling terkait langsung dengan closure `BE-BKC-032` |
 | `NEXT RECOMMENDED STEP` | (1) Minta otorisasi `BKC-GATE-09` dan jalankan `dotnet ef database update` untuk migration `BE-BKC-027` ke database dev. (2) Setelah migration jalan, buat satu tagihan `RANAP` uji berisi obat untuk memenuhi butir bukti #5 dengan data nyata. (3) Kumpulkan butir #2, #3, #4, #8 lewat sesi manual di lingkungan ter-autentikasi (screenshot/PDF/response API tersanitasi). (4) Setelah keempatnya lengkap, `BE-BKC-032` dapat ditandai `DONE` dan seluruh rilis `MVP-4`–`MVP-12` modul Billing dan Kasir siap ditutup |
+
+---
+
+## Update 6 September 2026 — `BKC-GATE-09` ditutup, dibuktikan langsung; task tetap `SEBAGIAN`
+
+Pengguna mengonfirmasi eksplisit bahwa migration `BE-BKC-027` sudah dieksekusi manual ke database
+dev dan `dotnet build`/`dotnet test` berhasil. Klaim ini **diverifikasi ulang langsung** (bukan
+diterima mentah) lewat query read-only kedua ke `QuilvianNewDevYasmina` — permintaan verifikasi
+pertama pada hari yang sama sempat menemukan migration **belum** ada (kemungkinan pengguna saat
+itu masih dalam proses, atau menyasar koneksi lain); permintaan kedua mengonfirmasi migration
+sudah benar-benar tereksekusi:
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `20260904232421_AddWriteOffCategoryAndNonBillableResidual` di `__EFMigrationsHistory` | **Ada** |
+| Kolom `BilWriteOffCase.Category` | **Ada** — `character varying`, `NOT NULL`, default `'PATIENT_AR'` |
+| Kolom `BilCalculationVersion.NonBillableResidualAmount` | **Ada** — `numeric`, `NOT NULL`, default `0.0` |
+| Index baru (`IX_BilWriteOffCase_InvoiceId_Category_Status`, dll.) | **Additive-only** — tidak ada index/kolom lama yang hilang, konsisten dengan acceptance criteria #1 `BE-BKC-027` |
+| Baris lama `BilWriteOffCase`/`BilCalculationVersion` untuk verifikasi nilai bawaan (AC #2/#3 `BE-BKC-027`) | **Nol baris pada keduanya** — database dev memang belum punya transaksi write-off/kalkulasi apa pun, jadi AC #2/#3 terpenuhi secara vakum (tidak ada baris lama untuk rusak), bukan diverifikasi atas data yang sudah ada sebelumnya |
+| Tagihan `RANAP` (prasyarat butir #5) | **Masih nol** — migration tidak menciptakan data transaksi, hanya struktur kolom |
+| Total data billing di database dev | 4 tagihan `RAJAL`, 0 `BilCalculationVersion`, 0 `BilWriteOffCase` — database ini pada dasarnya kosong untuk data transaksional |
+
+**Kesimpulan: `BKC-GATE-09` DITUTUP untuk migration `BE-BKC-027`.** Ini menghapus **satu-satunya**
+gerbang governance yang tersisa untuk gelombang ini (`BKC-GATE-03` sudah tertutup sebelumnya).
+Roadmap (`backend-roadmap.md`), `requirement-traceability.md`, dan laporan task `BE-BKC-027`,
+`028`, `029`, `030` diperbarui untuk mencerminkan ini.
+
+**Task ini TETAP tidak ditandai `DONE`.** Alasan sebelumnya (`BKC-GATE-09`) sudah tidak berlaku,
+tetapi lima butir bukti keluar (§3: #2, #3, #4, #5, #8) tetap tidak dapat dipenuhi — **bukan lagi
+karena gerbang governance, melainkan karena database dev tidak punya satu pun transaksi nyata**
+untuk dijadikan contoh (nol kalkulasi, nol tagihan rawat inap, nol write-off). Ini pergeseran
+sifat blocker yang penting: dari "menunggu otorisasi" menjadi "menunggu skenario uji nyata
+dijalankan" — sesuatu yang di luar kapasitas agent (butuh transaksi lewat API/UI ter-autentikasi
+sungguhan, bukan `INSERT` manual yang akan melewati seluruh validasi bisnis yang justru ingin
+dibuktikan).
+
+**Rekomendasi diperbarui:** butir #6 dan #7 (audit data) sudah tuntas. Untuk menutup `BE-BKC-032`
+sepenuhnya, seseorang perlu benar-benar membuat transaksi berikut lewat aplikasi (bukan lewat
+query database langsung) lalu mengambil buktinya:
+
+1. Satu tagihan `RANAP` berisi item obat, dihitung ulang — buktikan `BIL-AT-044` (PPN nol) dengan
+   data nyata.
+2. Satu tagihan asuransi dengan anomali data penjamin — screenshot Menu Pembayaran (butir #4).
+3. Satu tagihan asuransi lengkap dicetak sebagai lembar Invoice Asuransi (empat keadaan penjamin)
+   dan sebagai PDF A4 (butir #2, #3).
+4. Satu kasus write-off/non-billable residual diajukan dan disetujui, dengan jejak audit
+   tersanitasi (butir #8).
+
+Begitu keempatnya ada, `BE-BKC-032` dapat ditutup `DONE` sepenuhnya.
+
+---
+
+## Update 6 September 2026 (kedua) — ditutup `DONE` atas keputusan eksplisit pengguna, dengan pengecualian tercatat
+
+**Pengguna memutuskan eksplisit menutup task ini sekarang**, dengan alasan yang dinyatakan
+langsung: fokus operasional saat ini ada pada jalur **rawat jalan (RAJAL)**, bukan rawat inap
+(RANAP) atau write-off. Ini keputusan bisnis/prioritas pengguna, bukan penilaian teknis agent —
+dicatat apa adanya, sesuai instruksi task untuk tidak mengarang keputusan bisnis.
+
+**Status akhir: `DONE`, dengan pengecualian eksplisit berikut yang SENGAJA ditunda, bukan
+terlewat:**
+
+| Butir bukti keluar | Kenapa ditunda |
+| --- | --- |
+| #2 — contoh lembar Invoice Asuransi (empat keadaan penjamin) | Jalur asuransi/rawat inap belum jadi fokus operasional saat ini |
+| #3 — PDF cetak A4 | Sama seperti di atas — dokumen ini menyertakan data penjamin |
+| #4 — screenshot Menu Pembayaran untuk tagihan beranomali | Anomali data penjamin adalah kasus asuransi, bukan RAJAL murni |
+| #5 — `BIL-AT-044` dengan tagihan `RANAP` nyata | Eksplisit ditunda — pengguna belum menggarap jalur `RANAP` |
+| #8 — satu kasus penanggungan/write-off lengkap dengan jejak audit | Kasus write-off pada roadmap ini berasal dari sisi coverage asuransi, sejalan dengan #2/#4 |
+
+**Yang TETAP terpenuhi dan menjadi dasar closure ini:**
+
+- Butir #1 (`dotnet build`/`dotnet test` seluruh backlog) — dikonfirmasi lulus pengguna.
+- Butir #6 (audit `AllocationRule` PPN) dan #7 (hitungan aturan `NotCovered`/tanggungan sebagian)
+  — dikumpulkan lewat query read-only, lihat §3 dan §4 di atas.
+- `BKC-GATE-03` dan `BKC-GATE-09` — keduanya tertutup, dibuktikan langsung.
+- Seluruh regresi yang **dapat** diverifikasi tanpa transaksi rawat inap/asuransi nyata (batas per
+  kunjungan, tagihan tunai, galat tarif pajak ganda secara struktural) — tercakup unit test.
+
+**Implikasi bagi pembaca laporan ini di masa depan:** `BE-BKC-032` berstatus `DONE` untuk cakupan
+`RAJAL`/rawat jalan. **Bukti nyata untuk jalur `RANAP` (rawat inap) dan write-off/anomali penjamin
+belum ada** — sebelum modul ini dianggap siap produksi untuk pasien rawat inap atau kasus
+write-off, kelima butir pada tabel di atas wajib dipenuhi lebih dulu dengan transaksi nyata. Ini
+bukan regresi yang lolos tanpa sepengetahuan siapa pun — ditunda secara sadar dan tercatat di sini.
+
+| Field | Nilai (pembaruan) |
+| --- | --- |
+| `MANUAL TEST` | `DEFERRED` — ditunda sesuai keputusan pengguna, dicatat di atas, bukan `NOT FEASIBLE` |
+| `KNOWN ISSUES` (tambahan) | Bukti keluar `RANAP`/asuransi/write-off (#2, #3, #4, #5, #8) **belum ada** — wajib dilengkapi sebelum modul dianggap siap untuk pasien rawat inap atau kasus write-off |
+| `NEXT RECOMMENDED STEP` (pembaruan) | Saat fokus bergeser ke `RANAP`/asuransi/write-off, jalankan kembali kelima skenario pada tabel "Rekomendasi diperbarui" di atas untuk melengkapi bukti yang tertunda |

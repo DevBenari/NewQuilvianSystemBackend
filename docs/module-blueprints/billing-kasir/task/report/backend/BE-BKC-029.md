@@ -214,3 +214,15 @@ bernama kategori, bukan hanya nominal.
 | `INTERRUPTIONS` | Tidak ada |
 | `GIT STATUS` | 8 berkas task ini berubah, belum di-stage. Working tree juga memuat perubahan tersendiri dari `BE-BKC-022`–`028` yang belum di-build/test resmi oleh pengguna. Tidak ada stage, commit, push, maupun operasi Git lain yang dilakukan |
 | `NEXT RECOMMENDED STEP` | Jalankan `dotnet test` mencakup seluruh perubahan yang menumpuk (`BE-BKC-022` s.d. `029`). Migration `BE-BKC-027` **MUST** dijalankan ke basis data sebelum kode `BE-BKC-027`–`029` dapat berfungsi di lingkungan mana pun. `MVP-11` **selesai secara source** dengan task ini — task backend berikutnya sesuai urutan: `BE-BKC-031` (verifikasi data PPN, `READY` kapan saja, bukan task kode) atau `BE-BKC-030` (masih `BLOCKED` oleh `BKC-GATE-06` — tiga sebab, lihat roadmap) |
+
+## Update 6 September 2026 — migration `BE-BKC-027` dieksekusi, peringatan di atas tidak lagi berlaku
+
+`dotnet build`/`dotnet test` dikonfirmasi lulus pengguna, dan migration
+`20260904232421_AddWriteOffCategoryAndNonBillableResidual` sudah dieksekusi ke database dev,
+dibuktikan langsung lewat query read-only (kolom `BilWriteOffCase.Category` dan
+`BilCalculationVersion.NonBillableResidualAmount` kini ada secara fisik). **Kode task ini tidak
+lagi akan gagal runtime.** Detail audit lengkap: `task/report/backend/BE-BKC-032.md`.
+
+Yang tersisa murni data uji: database dev belum punya satu pun `BilWriteOffCase`, sehingga contoh
+kasus write-off lengkap (pengajuan→persetujuan) beserta jejak audit tersanitasi (bukti keluar
+`BIL-AT-058`–`061`) belum bisa didemonstrasikan dengan transaksi nyata.
