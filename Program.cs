@@ -292,11 +292,13 @@ try
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<LabCatalogService>();
+    builder.Services.AddScoped<LabPatientRegistrationService>();
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
+    builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
@@ -374,6 +376,11 @@ try
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // Daftar pilihan data induk perujuk — baca saja. Tanpa ini, layar pendaftaran rujukan luar
+    // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
+    // LAB-DEC-035.
+    builder.Services.AddScoped<ReferralMasterDataService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.

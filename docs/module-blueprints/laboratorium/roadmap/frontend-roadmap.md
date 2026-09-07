@@ -231,15 +231,58 @@ produk.
 
 ### `FE-LAB-05` — Layar pendaftaran pasien laboratorium
 
-> **Status: `BLOCKED` — 2026-09-04.** Dependency backendnya belum ada, dan buktinya diambil
-> dari source `2dfc4f2`: tidak ada `LabPatientRegistrationController`, tidak ada route
-> `lab-patient-registrations` di seluruh `Areas/`, tidak ada DTO `RegisterLabWalkInRequest`,
-> dan tidak ada laporan `BE-LAB-08.md`. Roadmap backend sendiri menandai `BE-LAB-08` sebagai
-> `Siap direncanakan`, tertahan endpoint pelaksana `INT-05` yang kepemilikannya ada pada
-> pemegang `registration-management`.
+> **Status: `SELESAI` — 2026-09-07.** Keempat butir DoD terpenuhi. Tiga layar berdiri —
+> pencarian pasien, pendaftaran datang langsung, dan pendaftaran rujukan luar — dan alurnya
+> menyambung ke pembuatan pesanan dengan kunjungan yang **sudah terisi**. Laporan lengkap:
+> [`task/report/frontend/FE-LAB-05.md`](../task/report/frontend/FE-LAB-05.md).
 >
-> Task ini **tidak dikerjakan** dan tidak boleh dikerjakan dengan menebak payload. Ia
-> menunggu `BE-LAB-08`.
+> **Satu penahan baru ditemukan dan ditutup pada sesi yang sama.** Formulir rujukan luar wajib
+> menawarkan pemilihan perujuk dari daftar, tetapi `MstReferralInstitution` dan
+> `MstReferralDoctor` **tidak punya satu pun endpoint** — `BE-EXT-02` memang tidak membuatnya.
+> Dua endpoint bacanya dibangun atas instruksi pemilik modul, sehingga butir Verifikasi
+> `BE-EXT-02` *"kedua data induk dapat dipilih dari daftar"* yang selama ini tidak pernah
+> terpenuhi kini terpenuhi.
+>
+> **Yang belum dijalankan: verifikasi manual.** Delapan skenario tercatat pada laporan bagian 5.
+> Penahannya dua dan keduanya di luar layar: data induk perujuk **masih kosong**, dan instance
+> backend belum dijalankan kembali. Selama daftar perujuknya kosong, formulir rujukan luar
+> tidak dapat dipakai walaupun layarnya sudah benar.
+>
+> **Tiga hal yang berlaku bagi siapa pun yang menyentuh layar ini kemudian.**
+>
+> 1. **Kunci idempotensi dibuat saat formulir dibuka**, bukan saat tombol ditekan. Memindahkan
+>    pembuatannya ke penekanan tombol mematikan seluruh perlindungan `VAL-45` tanpa satu pun
+>    uji ikut gagal.
+> 2. **`isReplay` berarti berhasil**, bukan gagal.
+> 3. **Tidak ada kotak isian nama perujuk**, dan ketiadaan itulah penegakan `AC-50`.
+
+<details>
+<summary>Catatan saat penahannya baru dicabut — 2026-09-07, sebelum task dikerjakan</summary>
+
+> **Status: `SIAP DIKERJAKAN` — 2026-09-07.** Penahannya dicabut. `BE-LAB-08` **selesai**:
+> `LabPatientRegistrationController` ada, route `lab-patient-registrations` terdaftar, ketiga
+> DTO permintaan dan jawabannya ada, dan laporannya
+> [`BE-LAB-08.md`](../task/report/backend/BE-LAB-08.md) tersedia. Payload tidak perlu ditebak —
+> bentuknya terkunci pada `LAB-API-v1` r3 dan sudah terdokumentasi Swagger.
+>
+> **Tiga hal yang wajib diketahui sebelum layarnya dibuat.**
+>
+> 1. **Kunci idempotensi dibuat layar, dan dibuat saat formulir dibuka — bukan saat tombol
+>    ditekan.** `idempotencyKey` wajib dikirim pada `POST /walk-in` maupun
+>    `POST /external-referral`; permintaan tanpa kunci ditolak `422`. Bila kuncinya dibuat pada
+>    saat penekanan tombol, penekanan kedua membawa kunci berbeda dan menghasilkan kunjungan
+>    kedua — persis yang hendak dicegah. Satu kunci berlaku untuk satu percobaan pendaftaran;
+>    buat kunci baru hanya ketika petugas memulai pendaftaran berikutnya.
+> 2. **Jawaban membawa `isReplay`.** Bernilai benar berarti pendaftarannya sudah tercatat
+>    sebelumnya dan kunjungan yang sama dikembalikan. Ini **keberhasilan**, bukan kesalahan —
+>    layar meneruskan petugas ke pembuatan pesanan seperti biasa.
+> 3. **Instansi dan dokter perujuk dikirim sebagai penunjuk.** Permintaannya memang tidak punya
+>    ruas nama sama sekali, sehingga layar wajib menyediakan pemilihan dari daftar. Dokter
+>    disaring menurut instansi yang dipilih; dokter yang tidak berpraktik pada instansi itu
+>    ditolak `422`.
+
+</details>
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Petugas laboratorium mendaftarkan pasien datang langsung maupun rujukan luar tanpa berpindah aplikasi |
@@ -361,23 +404,25 @@ diputuskan:
 | `FE-LAB-02` | `MVP-0` | `S3` | `BE-LAB-04`, `BE-LAB-05` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-03` | `MVP-0` | `S11` | `BE-LAB-06` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | **`SELESAI`** 2026-09-04 |
-| `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | **`BLOCKED`** — `BE-LAB-08` belum ada |
+| `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-05.md). Verifikasi manual menunggu data induk perujuk diisi |
 | `FE-LAB-06` | `MVP-1` | `S1a` | `BE-LAB-10` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | Siap direncanakan |
 | `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | Siap direncanakan |
 | `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | Siap direncanakan |
 
-**Tidak ada task frontend yang tertahan oleh keputusan yang belum diambil.** Pernyataan itu
-masih berlaku: satu-satunya task yang `BLOCKED` — `FE-LAB-05` — tertahan oleh **endpoint yang
-belum ada**, bukan oleh keputusan yang belum diputuskan.
+**Tidak ada satu pun task frontend yang terblokir per 2026-09-07.** `FE-LAB-05`, yang sejak
+2026-09-04 menjadi satu-satunya task `BLOCKED`, kini terbuka: penahannya adalah **endpoint yang
+belum ada**, dan endpoint itu sudah ada sejak `BE-LAB-08` selesai. Seluruh 22 task backend
+Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasangannya.
 
-**Keadaan per 2026-09-04.**
+**Keadaan per 2026-09-07.**
 
 | Keadaan | Task | Keterangan |
 |---|---|---|
-| Selesai | `FE-LAB-01`, `FE-LAB-02`, `FE-LAB-03`, `FE-LAB-04`, `FE-LAB-06` | Gelombang `MVP-0` selesai seluruhnya; `FE-LAB-06` dikerjakan lebih dulu setelah dependency `FE-LAB-05` diwaive pemilik modul |
-| Terblokir | `FE-LAB-05` | `BE-LAB-08` belum ada sama sekali pada source backend. Penahannya endpoint pelaksana `INT-05` milik pemegang `registration-management` |
+| Selesai | `FE-LAB-01` .. `FE-LAB-06` | Gelombang `MVP-0` selesai seluruhnya, dan gelombang `MVP-1` ikut selesai setelah `FE-LAB-05` dikerjakan 2026-09-07. `FE-LAB-06` sempat dikerjakan lebih dulu ketika dependency `FE-LAB-05` diwaive pemilik modul |
+| Terblokir | — | Tidak ada |
 | Siap dikerjakan | `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Endpoint pasangannya — `BE-LAB-12`, `BE-LAB-14`, `BE-LAB-15` — seluruhnya sudah selesai. Ketiganya berantai: `07` menopang `08`, dan `08` menopang `09` |
+| Menunggu data, bukan kode | `FE-LAB-05` | Layarnya selesai, tetapi formulir rujukan luar **belum dapat dipakai** sampai data induk instansi dan dokter perujuk diisi. Delapan skenario verifikasi manual menunggu itu |
 
 `LAB-OPEN-018` sudah tidak menahan sejak 2026-09-04; lihat catatannya pada bagian 1.
 
@@ -392,5 +437,7 @@ belum ada**, bukan oleh keputusan yang belum diputuskan.
 | 3 | 2026-09-04 | `FE-LAB-02` selesai dikerjakan dan divalidasi. Enam layar batas nilai berdiri beserta jalur pengajuan batas kritis yang terpisah. Tiga temuan dicatat: `AC-34` belum memuat pelaku karena respons riwayat backend tanpa nama, status sebelas endpoint pada dokumen kontrak masih tertulis `Rencana` padahal sudah ada, dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan | `DRAFT` |
 | 4 | 2026-09-04 | `FE-LAB-03` selesai dikerjakan dan divalidasi. Tiga layar alasan penolakan berdiri, dan `LAB-FE-012` ditegakkan empat lapis. Dua batas dicatat: grup endpoint ini tidak punya `GET /{id}` sehingga tidak ada halaman detail, dan frontend belum menerima daftar permission sehingga penyembunyian aksi penanda sistem hanya sedekat peran | `DRAFT` |
 | 5 | 2026-09-04 | `FE-LAB-04` selesai dikerjakan dan divalidasi. Menu tarif baca saja berdiri tanpa satu pun jalur ubah, dan komponen pemilih katalog berdiri siap dipakai ulang `FE-LAB-06`. Ketiga konstanta yang dilarang diduplikasi terbukti dipakai ulang, bukan disalin. **Gelombang `MVP-0` selesai seluruhnya** | `DRAFT` |
+| 8 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-05` **selesai**, dan dengan itu **gelombang `MVP-1` frontend selesai seluruhnya**. Tiga layar berdiri: pencarian pasien, pendaftaran datang langsung, dan pendaftaran rujukan luar. Alurnya menyambung ke pembuatan pesanan dengan kunjungan yang **sudah terisi** — `useLabOrderForm` milik `FE-LAB-06` disentuh secara aditif untuk itu, dan seluruh uji lamanya tetap lolos. `AC-50` ditegakkan **secara struktural**: formulirnya tidak punya satu pun kotak isian nama perujuk, dan uji memeriksa muatan yang dikirim juga tidak punya ruas namanya. Tiga belas uji unit baru menjaga aturan murni kunci idempotensi, `VAL-43`, `VAL-44`, dan bentuk muatan. **Satu penahan baru ditemukan dan ditutup pada sesi yang sama:** `MstReferralInstitution` dan `MstReferralDoctor` ternyata **tidak punya endpoint sama sekali** — `BE-EXT-02` memang tidak membuatnya — sehingga daftar perujuk tidak punya sumber; dua endpoint bacanya dibangun atas instruksi pemilik modul, dan butir Verifikasi `BE-EXT-02` *"kedua data induk dapat dipilih dari daftar"* yang selama ini tidak pernah terpenuhi kini terpenuhi. **Satu batas dicatat apa adanya:** verifikasi manual **belum dijalankan** — delapan skenarionya menunggu data induk perujuk diisi dan backend dijalankan kembali; selama daftarnya kosong, formulir rujukan luar tidak dapat dipakai walaupun layarnya sudah benar | `DRAFT` |
+| 7 | 2026-09-07 | **Penahan `FE-LAB-05` dicabut, ditulis `build-module-backend`.** `BE-LAB-08` selesai, sehingga `FE-LAB-05` berpindah dari **`BLOCKED`** menjadi **siap dikerjakan** — dan dengan itu **tidak ada lagi task frontend Laboratorium yang terblokir**. Ketiga endpoint yang dibutuhkannya tersedia dan terdokumentasi Swagger pada grup `Health Services / Laboratory Management / Lab Patient Registration`. Tiga hal ditambahkan pada kartu task sebagai syarat pelaksanaan, dan ketiganya wajib dibaca sebelum layarnya dibuat: `idempotencyKey` dibuat layar **saat formulir dibuka**, bukan saat tombol ditekan, dan wajib dikirim — tanpa itu penekanan Simpan dua kali menghasilkan dua kunjungan; jawaban membawa `isReplay` yang berarti **berhasil**, bukan gagal; serta instansi dan dokter perujuk dikirim sebagai penunjuk, karena permintaannya memang tidak punya ruas nama sama sekali | `DRAFT` |
 | 6 | 2026-09-04 | `FE-LAB-05` ditandai **`BLOCKED`** setelah diverifikasi terhadap source backend: `BE-LAB-08` belum ada sama sekali. Pemilik modul memutuskan mewaive dependency itu dan mendahulukan `FE-LAB-06`, yang kemudian **selesai** — penanda cito dan duplo melekat pada baris pemeriksaan, dan `AC-40` dijaga uji unit. Satu batas kontrak dibuka: respons pesanan tidak membawa `requestedByUserId`, sehingga `VAL-03` belum dapat ditegakkan penuh di layar | `DRAFT` |
 | 7 | 2026-09-04 | Dua paragraf naratif yang sudah basi disesuaikan dengan tabel status: catatan `LAB-OPEN-018` pada bagian 1 ditandai sudah ditutup, dan kalimat di bawah tabel bagian 8 diganti ringkasan keadaan yang benar-benar berlaku — lima task selesai, satu terblokir, tiga siap dikerjakan. Tidak ada status task yang berubah pada revisi ini | `DRAFT` |
