@@ -88,6 +88,42 @@ sebelum rilis apa pun**. Urutan di dalamnya mengikuti kesiapan endpoint backend.
 | 8 | `FE-RWI-046` | `BE-RWI-053` | Catatan terpadu dibaca dan diverifikasi DPJP |
 | 9 | `FE-RWI-050` | `BE-RWI-053` | Supervisor melihat verifikasi yang tertunggak |
 
+### Urutan dependency
+
+Grafik di bawah adalah **tampilan lain dari kolom `Dependency` pada bagian 3**, bukan sumber
+kebenaran baru. Bila keduanya berbeda, kolom `Dependency` pada tabel task yang berlaku.
+Status mengikuti baris `Status` pada masing-masing task di bagian yang sama.
+
+```text
+FE-RWI-042 (pintu masuk dari pasien yang dirawat)              ⬜ BELUM DIKERJAKAN
+   └── FE-RWI-043 (ruang kerja dan konteks pasien)             ⬜ BELUM DIKERJAKAN
+          + BE-RWI-044
+          ├── FE-RWI-044 (kajian medis awal)                  ⬜ BELUM DIKERJAKAN
+          │      + BE-RWI-045
+          ├── FE-RWI-045 (catatan perkembangan dan koreksi)   ⬜ BELUM DIKERJAKAN
+          │      + BE-RWI-046, BE-RWI-047
+          ├── FE-RWI-047 (pencatatan dan pembatalan visite)   ⬜ BELUM DIKERJAKAN
+          │      + BE-RWI-048, BE-RWI-049
+          ├── FE-RWI-048 (resep dan tindakan)                ⬜ BELUM DIKERJAKAN
+          │      + BE-RWI-050, BE-RWI-051
+          ├── FE-RWI-049 (laboratorium dan radiologi)         ⬜ BELUM DIKERJAKAN
+          │      + BE-RWI-052
+          └── FE-RWI-046 (catatan terpadu dan verifikasi DPJP) ⬜ BELUM DIKERJAKAN
+                 + BE-RWI-053
+                 └── FE-RWI-050 (daftar pantau verifikasi)   ⬜ BELUM DIKERJAKAN
+                        + BE-RWI-053
+```
+
+Garis induk menunjukkan **dependency frontend**. Tanda `+` pada baris tepat di bawah task
+menunjukkan **dependency backend tambahan**; seluruh prasyarat itu tetap berlaku. Contoh:
+`FE-RWI-045` bergantung pada `FE-RWI-043`, `BE-RWI-046`, dan `BE-RWI-047` sekaligus.
+Status dan bukti penyelesaian backend mengikuti [roadmap backend](backend-roadmap.md#4-task).
+
+**Cabang setelah `FE-RWI-043` tidak saling menunggu.** `FE-RWI-044`, `FE-RWI-045`,
+`FE-RWI-047`, `FE-RWI-048`, `FE-RWI-049`, dan `FE-RWI-046` dapat dikerjakan paralel setelah
+prasyarat masing-masing terpenuhi. Urutan pada tabel milestone tidak menambah dependency
+antar-cabang. `FE-RWI-050` tetap menunggu `FE-RWI-046` dan `BE-RWI-053`.
+
 ---
 
 ## 3. Task
