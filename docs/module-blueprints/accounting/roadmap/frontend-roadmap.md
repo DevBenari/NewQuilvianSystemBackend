@@ -56,8 +56,8 @@ endpoint-nya sudah berdiri.
 |---|---|---|---|
 | `MVP-1` Kerangka dan master | `FE-ACC-001` sampai `FE-ACC-004` | **`IMPLEMENTED`** — keempatnya selesai 4 Sep 2026 | `BE-ACC-007` sampai `009` selesai |
 | `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | **`IMPLEMENTED` — 005, 006, dan 007 selesai** | `BE-ACC-010`, `BE-ACC-011`, `BE-ACC-015` selesai |
-| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`IN_PROGRESS`** — `FE-ACC-008` `IMPLEMENTED`; `FE-ACC-009` `READY` | `BE-ACC-012` selesai |
-| `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`READY`** — keduanya dapat dimulai, dan dapat berjalan paralel | `BE-ACC-013`, `BE-ACC-014` selesai |
+| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`IMPLEMENTED`** — keduanya selesai | `BE-ACC-012` selesai |
+| `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`FE-ACC-011` `IMPLEMENTED`** 7 Sep 2026; **`FE-ACC-010` `READY`** — dapat dimulai kapan saja | `BE-ACC-013`, `BE-ACC-014` selesai |
 
 Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 September 2026**, dan nol keputusan produk tersisa:
 
@@ -220,7 +220,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; skenario `UAT-14`, `UAT-15` di peramban |
 | Risiko/pemilik | Developer. Butir (3) penting supaya pembaca tidak salah menafsirkan angka |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`READY`** — 7 September 2026, terbuka oleh selesainya `FE-ACC-008`. `BE-ACC-012` `DONE`, endpoint `/trial-balance` berdiri, dan `accounting-general-ledger-slice.jsx` sudah ada sehingga task ini tinggal menambah satu thunk beserta layarnya |
+| **Status** | **`IMPLEMENTED`** — 7 September 2026. Rute `/corporate/accounting/trial-balance` berdiri, menu **Neraca Saldo** terdaftar, thunk `getTrialBalance` menumpang slice `FE-ACC-008` — **nol slice baru**. **Ketiga acceptance terkunci 11 unit test baru.** Diverifikasi lewat HTTP: endpoint `/trial-balance` menjawab `401` sementara jalur ngawur menjawab `404`, sehingga jalurnya terbukti benar; rute frontend menjawab `200`. Isi layar menunggu verifikasi owner. `lint:errors` PASS, `build` PASS, **463 unit test PASS**, 0 warning. Laporan: [`../task/report/frontend/fe-acc-009-neraca-saldo.md`](../task/report/frontend/fe-acc-009-neraca-saldo.md) |
 
 ---
 
@@ -256,7 +256,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; skenario `UAT-16` di peramban |
 | Risiko/pemilik | Developer. Jangan membangun alur persetujuan kedua di dalam sistem — `ACC-DEC-033` menempatkannya di luar sistem |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`READY`** — 7 September 2026. Kedua dependency lunas: `FE-ACC-006` `IMPLEMENTED`, `BE-ACC-014` `DONE` (**nol baris kode berubah** — ia memverifikasi jalur jurnal yang sudah ada). Jenis jurnal `SA` sudah terisi seeder sejak 3 September 2026. Task paling ringan yang tersisa: **tidak ada layar baru**. Status `BLOCKED` sebelumnya sudah usang sejak 4 September 2026 |
+| **Status** | **`IMPLEMENTED`** — 7 September 2026, menunggu verifikasi owner di peramban (`UAT-16`). **Nol layar baru, nol slice baru, nol komponen base baru, nol perubahan backend**, `globals.css` tidak disentuh — 7 berkas Accounting disunting, 201 baris. Dua penambahan: `InformationAlert` bernada `warning` di dalam kartu kepala jurnal saat jenis `SA` dipilih, dan `StatusBadge` **Saldo Pembuka** pada kolom Jenis daftar jurnal. Jenis `SA` dikenali lewat **kode**, bukan nama, dan id-nya dirangkai dari `/journal-types/options` yang sudah diambil — `JournalListResponse` tidak membawa `JournalTypeCode`, dan menambahkannya akan menjadi perubahan backend. **Ketiga acceptance terkunci 8 unit test baru**, termasuk penjaga jebakan `ACC-DEC-033`: form dan hook tidak boleh menumbuhkan field penyetuju, status baru, atau cabang payload untuk `SA`. `lint:errors` PASS, `build` PASS 0 warning, **472 unit test PASS**. Diverifikasi lewat HTTP: `/journal-types/options` menjawab `401` sementara jalur ngawur `404`; rute daftar dan form menjawab `200`. Isi layar menunggu verifikasi owner. Laporan: [`../task/report/frontend/fe-acc-011-saldo-awal.md`](../task/report/frontend/fe-acc-011-saldo-awal.md) |
 
 ---
 
@@ -290,7 +290,7 @@ menelusuri balik task frontend mana yang ikut terbuka karenanya.
 | `FE-ACC-008` | `BLOCKED` berantai | **`READY`** | 4 Sep 2026 — `BE-ACC-012` `DONE` 3 Sep, `FE-ACC-001` `IMPLEMENTED` 4 Sep |
 | `FE-ACC-009` | `BLOCKED` berantai | `BLOCKED` — **hanya oleh `FE-ACC-008`** | — |
 | `FE-ACC-010` | `BLOCKED` berantai | **`READY`** | 7 Sep 2026 — dibuka oleh `FE-ACC-007` |
-| `FE-ACC-011` | `BLOCKED` berantai | **`READY`** | 4 Sep 2026 — `BE-ACC-014` `DONE` 3 Sep, `FE-ACC-006` `IMPLEMENTED` 4 Sep |
+| `FE-ACC-011` | `BLOCKED` berantai | **`IMPLEMENTED`** 7 Sep 2026 — terbuka 4 Sep 2026 oleh `BE-ACC-014` `DONE` 3 Sep dan `FE-ACC-006` `IMPLEMENTED` 4 Sep |
 
 Setiap dependency diperiksa ulang terhadap source `6d4fc26`, bukan terhadap catatan status:
 `GeneralLedgerController` memuat `GET /movements`, `/trial-balance`, dan
@@ -298,7 +298,8 @@ Setiap dependency diperiksa ulang terhadap source `6d4fc26`, bukan terhadap cata
 jenis jurnal `SA` sudah terisi seeder sejak 3 September 2026.
 
 **Akibatnya `FE-ACC-008`, `FE-ACC-010`, dan `FE-ACC-011` dapat dikerjakan paralel.** Frontend
-berdiri di **7 dari 11**.
+berdiri di ~~**7 dari 11**~~ — **10 dari 11 per 7 September 2026**, sesudah `FE-ACC-007`, `008`,
+`009`, dan `011` selesai. Yang tersisa hanya `FE-ACC-010`.
 
 Pelajarannya untuk register ini: status `BLOCKED` berantai perlu menyebut **task mana** yang
 menahannya, bukan kata "berantai" saja. Tanpa nama itu, tidak ada yang tahu kapan ia berhenti

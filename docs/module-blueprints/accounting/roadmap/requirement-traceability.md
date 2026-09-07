@@ -17,8 +17,14 @@ Berkas ini menghubungkan requirement, keputusan, desain, task, dan bukti dalam s
 sehingga pertanyaan "aturan ini diwujudkan di mana, dan dibuktikan apa" dapat dijawab tanpa
 membuka seluruh dokumen.
 
-Status `Planned` berarti sudah terpetakan tetapi belum dikerjakan. **Belum ada satu pun yang
-berstatus selesai**, karena belum ada implementasi.
+Status `Planned` berarti sudah terpetakan tetapi belum dikerjakan.
+
+> **Koreksi 7 September 2026.** Kalimat lama di sini berbunyi "belum ada satu pun yang berstatus
+> selesai, karena belum ada implementasi". Itu **sudah tidak benar**: seluruh 15 task backend
+> `DONE`, dan frontend berdiri di 10 dari 11. Kolom `Status` pada tabel di bawah **belum ikut
+> disegarkan seluruhnya** — baris yang masih tertulis `Planned` berarti belum ditelusuri ulang,
+> bukan berarti pekerjaannya belum ada. Penelusuran ulang seluruh baris adalah pekerjaan
+> tersendiri milik pemilik modul; baris `FE-ACC-011` sudah diperbarui beserta tautan buktinya.
 
 ---
 
@@ -49,8 +55,8 @@ berstatus selesai**, karena belum ada implementasi.
 | Pembalikan perlu persetujuan baru (`ACC-DEC-029`) | `ACC-STATE-0.1` bagian 1.1 | `BE-ACC-013` | `FE-ACC-010` | `FR-ACC-043` | Planned |
 | Buku besar dari jurnal disahkan saja | `02-backend-architecture.md` bagian 2 | `BE-ACC-012` | `FE-ACC-008` | `FR-ACC-051`, `052`; `UAT-14` | Planned |
 | Laporan MVP: Neraca Saldo dan Buku Besar (`ACC-DEC-030`) | `ACC-API-0.1` grup General Ledger | `BE-ACC-012` | `FE-ACC-008`, `FE-ACC-009` | `FR-ACC-050`, `053`; `UAT-14`, `UAT-15` | Planned |
-| Mulai dari saldo awal saja (`ACC-DEC-018`) | Saldo awal sebagai jurnal `SA` | `BE-ACC-014` | `FE-ACC-011` | `FR-ACC-060`; `UAT-16` | Planned |
-| Saldo awal disahkan Manajer (`ACC-DEC-033`) | `ACC-PERMISSION-0.1` bagian 5 | `BE-ACC-014` | `FE-ACC-011` | `FR-ACC-061` | Planned |
+| Mulai dari saldo awal saja (`ACC-DEC-018`) | Saldo awal sebagai jurnal `SA` | `BE-ACC-014` | `FE-ACC-011` | `FR-ACC-060`; `UAT-16`; laporan [`fe-acc-011-saldo-awal.md`](../task/report/frontend/fe-acc-011-saldo-awal.md) | **Terwujud di source** 7 Sep 2026 — jenis `SA` dapat dipilih dan memakai endpoint jurnal yang sama; `UAT-16` di peramban menunggu owner |
+| Saldo awal disahkan Manajer (`ACC-DEC-033`) | `ACC-PERMISSION-0.3` bagian 5 | `BE-ACC-014` | `FE-ACC-011` | `FR-ACC-061`; laporan [`fe-acc-011-saldo-awal.md`](../task/report/frontend/fe-acc-011-saldo-awal.md) | **Terwujud di source** 7 Sep 2026 — persetujuan pimpinan keuangan **tetap di luar sistem**; yang dibangun hanya keterangan pembantu, dan larangan alur persetujuan kedua dikunci uji `saldo awal tidak menumbuhkan alur persetujuan kedua di dalam sistem` |
 | Enam peran final (`ACC-DEC-031`) | `ACC-PERMISSION-0.1` bagian 1 dan 2 | `BE-ACC-007` sampai `014` | `FE-ACC-007` | Matriks kewenangan | Planned |
 | Pencatatan pembacaan dibatasi (`ACC-DEC-032`) | `ACC-PERMISSION-0.1` bagian 3 | `BE-ACC-012` | — | Pemeriksaan keluaran `LoggerService` | Planned |
 | Reuse `MstCostCenter` dan `MstLegalEntity` | Tabel kepemilikan data | `BE-ACC-003`, `BE-ACC-005` | `FE-ACC-001` | `EV-ACC-002`, `EV-ACC-003` | **Terbukti** lewat evidence |

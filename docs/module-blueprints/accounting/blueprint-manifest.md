@@ -10,7 +10,7 @@ status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
 updated_at: 2026-09-04T00:00:00+07:00
-last_verified_at: 2026-09-03T21:00:00+07:00
+last_verified_at: 2026-09-07T00:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
 owners:
@@ -29,8 +29,8 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: 822d48a
-verification_frontend_source_sha: 418aebb05
+verification_backend_source_sha: f989453
+verification_frontend_source_sha: bcccb67bc
 verification_baseline_note: >
   BASELINE FRONTEND DIGESER 4 September 2026: 1a86d9322 -> a57074f3d. Impact scan dijalankan
   lebih dahulu. Dua commit: bf4fd0ed6 milik owner, 53 berkas 6.754 baris, SELURUHNYA pekerjaan
@@ -69,6 +69,24 @@ verification_baseline_note: >
   0f86e84 adalah commit BE-ACC-006 oleh owner, tepat 7 berkas: seeder, test-nya, laporan task, dan
   4 register. Nol sentuhan Migrations/, ModelSnapshot, Program.cs, entity, configuration, dan modul
   lain. Frontend: 31a82c8 adalah leluhur 5336c44 (fast-forward murni), tidak relevan untuk backend.
+  BASELINE DIGESER 7 September 2026, sebelum FE-ACC-011. Backend 822d48a -> f989453, frontend
+  418aebb05 -> bcccb67bc. Impact scan dijalankan lebih dahulu pada keduanya.
+  BACKEND: 5 commit, dan di dalam Areas/Corporate/AccountingManagement/ hanya DUA berkas berubah,
+  keduanya milik JournalManagement -- JournalDtos.cs +18 dan AccJournalService.cs +107, yaitu
+  BE-ACC-015 nama aktor pada respons journal. Sisanya dokumen blueprint. NOL sentuhan Migrations/,
+  ModelSnapshot, Program.cs, tooling/, dan .github/. JournalListResponse diperiksa ulang pada
+  f989453: ia membawa JournalTypeId tetapi TIDAK membawa JournalTypeCode, dan itulah sebabnya
+  penanda saldo awal FE-ACC-011 dirangkai dari /journal-types/options, bukan dari baris daftar.
+  FRONTEND: 5 commit, 29 berkas, 3.388 baris -- SELURUHNYA pekerjaan Accounting FE-ACC-007, 008,
+  dan 009 beserta slice general ledger, store.jsx, dan menu-items.jsx. Nol berkas asing, nol modul
+  lain tersentuh. Keempat anchor reuse yang diwajibkan FE-ACC-011 diperiksa satu per satu pada
+  bcccb67bc: journal-form-view.jsx, use-journal-editor.jsx, journal-view.jsx, dan
+  journal-constants.jsx seluruhnya utuh; journal-view.jsx hanya bertambah 2 baris. status-badge.jsx
+  tidak tersentuh sama sekali. Kedua baseline karena itu digeser ke SHA di atas.
+  Validasi dijalankan SESUDAH implementasi, bukan sebelumnya: lint:errors PASS, build PASS 0
+  warning, dan 472 unit test PASS pada working tree di atas bcccb67bc -- 464 yang sudah ada
+  ditambah 8 uji baru FE-ACC-011.
+
 canonical_integration_baseline: f90bcbe9a0b18d4f4425a4678a5a39a44356677b
 integration_baseline_note: >
   TERSELESAIKAN 2 September 2026. rizkiG dulu tertinggal 5 migration dan 8 tabel dari f90bcbe,
@@ -122,7 +140,7 @@ artifact_hashes:
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
   roadmap/backend-roadmap.md: df36e68cdeeb62119a2b2bf89ed7884a1654005ec670c16d233e3c2cd8f690db
-  roadmap/frontend-roadmap.md: 2b0bf99f592d9b8938c0f208db9e031be47baa4e14b166c76ae2a264eed5dca8
+  roadmap/frontend-roadmap.md: a18144310c59609aacf20ab99432873d6895b3175bded664e95bec9326b1fa1d
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
 entity_prefix:
