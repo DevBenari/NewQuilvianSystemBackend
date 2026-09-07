@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.5` |
+| Revision | `0.6` — naik 2026-09-04 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
 | Status | `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Masukan | `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.4.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.4.0` |
-| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, dijawab pemilik 2026-08-27 |
+| Masukan | `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0` |
+| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, dijawab pemilik 2026-08-27; `RWI-DEC-093` s.d. `RWI-DEC-096`, dijawab pemilik 2026-09-04 |
 | Batas tulis | Hanya dokumen blueprint |
 
 > **Batas kewenangan dokumen ini.** Dokumen ini menetapkan **kontrak fungsional**: layar apa yang
@@ -312,12 +312,18 @@ Keduanya bermuara pada langkah yang sama sejak langkah Pembayaran.
 | 1 | Tipe Pasien | Pilihan jalur; jenis pasien (umum, ibu, bayi baru lahir, anak, pegawai, korporat). Bila **bayi baru lahir**, episode ibu dipilih di sini dan mengisi `MotherEpisodeId` | – | – |
 | 2 | Pendaftaran | Scan KTP bila tersedia, lalu formulir pasien baru, dokumen identitas, dan kontak darurat | tulis pasien | `POST /patients`, `POST /patient-identity-documents`, `POST /patient-emergency-contacts` |
 | 3 | Pembayaran | Cara bayar: tunai, asuransi, atau penjamin perusahaan. Bila asuransi atau perusahaan, kartunya dipilih atau didaftarkan. **Kelas perawatan dipilih di sini**, karena hak kelas mengikuti penjaminnya | tulis penjamin bila baru | `POST /patient-insurances` atau `POST /patient-company-guarantors` |
-| 4 | Dokter | **Unit layanan rawat inap tujuan**, **DPJP**, catatan admisi, dan **kebutuhan isolasi beserta keterangannya** | **titik tulis 1** | `POST /patient-encounters` → `POST /episodes` → `PATCH /episodes/{id}/isolation-requirement` bila isolasi menyala |
-| 5 | Pilih Bed | Hasil `available-beds` yang **sudah tersaring server**. Tempat tidur yang tersaring keluar boleh tampil sebagai baris nonaktif beserta alasannya | – | `GET /bed-occupancies/available-beds` |
-| 6 | Booking Bed | Memesan tempat tidur terpilih. Sisa waktu pemesanan wajib terbaca. Membatalkan pemesanan dan memilih ulang wajib mungkin | **titik tulis 2** | `POST /bed-occupancies/reservations`, `PATCH …/reservations/{id}/cancel` |
-| 7 | Konfirmasi | Ringkasan seluruh isian. Menyimpan perubahan isian admisi bila ada | **titik tulis 3** | `PUT /episodes/{id}` bila ada yang berubah |
-| 8 | Cetak Persetujuan Pasien Ranap | Formulir persetujuan umum berisi data pasien, penjamin, unit, kelas, DPJP, dan nomor episode | – | – |
-| 9 | Kartu Pasien | Cetak kartu pasien | – | dipakai ulang dari cetak kartu kiosk |
+| 4 | **Deposit** | Nominal deposit yang diterima, minimum menurut kebijakan penjamin/kelas, dan selisihnya bila kurang. Nominal di bawah minimum **hanya memberi peringatan**; tombol lanjut tidak terkunci. Langkah dilewati bila kebijakan tidak mensyaratkan deposit | – (isian ditahan) | `GET /billing-management/billing/patient-funds/deposit-policies` |
+| 5 | Dokter | **Unit layanan rawat inap tujuan**, **DPJP**, catatan admisi, dan **kebutuhan isolasi beserta keterangannya**. Setelah episode terbentuk, nominal langkah Deposit dikirim sebagai penerimaan ber-`idempotencyKey` | **titik tulis 1** | `POST /patient-encounters` → `POST /episodes` → `PATCH /episodes/{id}/isolation-requirement` bila isolasi menyala → `POST /patient-funds/deposits/{encounterId}/top-ups` bila ada nominal |
+| 6 | Pilih Bed | Hasil `available-beds` yang **sudah tersaring server**. Tempat tidur yang tersaring keluar boleh tampil sebagai baris nonaktif beserta alasannya | – | `GET /bed-occupancies/available-beds` |
+| 7 | Booking Bed | Memesan tempat tidur terpilih. Sisa waktu pemesanan wajib terbaca. Membatalkan pemesanan dan memilih ulang wajib mungkin | **titik tulis 2** | `POST /bed-occupancies/reservations`, `PATCH …/reservations/{id}/cancel` |
+| 8 | Konfirmasi | Ringkasan seluruh isian, **termasuk posisi deposit dan kekurangannya**. Menyimpan perubahan isian admisi bila ada | **titik tulis 3** | `PUT /episodes/{id}` bila ada yang berubah |
+| 9 | Cetak Persetujuan Pasien Ranap | Formulir persetujuan umum berisi data pasien, penjamin, unit, kelas, DPJP, dan nomor episode | – | – |
+| 10 | Kartu Pasien | Cetak kartu pasien | – | dipakai ulang dari cetak kartu kiosk |
+
+**Sepuluh langkah sejak `RWI-DEC-093`, sebelumnya sembilan.** Langkah `Deposit` **tidak** menjadi
+titik tulis keempat. Nominalnya ditahan di klien lalu dikirim menyusul titik tulis 1, sesuai
+`RWI-DEC-076` yang tidak berubah. Konsekuensi yang diterima sadar: uang sudah diterima petugas
+sebelum kwitansi terbit — `RWI-RISK-006`, dan kepemilikan risikonya menunggu `RWI-OQ-052`.
 
 ### 3A.3 Langkah jalur pasien lama
 
@@ -328,7 +334,7 @@ Sama persis sejak langkah Pembayaran. Yang berbeda hanya di depan dan di belakan
 | 1 | Pasien Lama | Pencarian dengan nomor rekam medis atau NIK, atau scan kartu pasien |
 | 2 | Informasi Pasien Lama | Peninjauan data pasien yang ditemukan sebelum dilanjutkan |
 | 3 | Tipe Pasien | Sama seperti langkah 1 jalur pasien baru |
-| 4–8 | Pembayaran, Dokter, Pilih Bed, Booking Bed, Konfirmasi, Cetak Persetujuan | Sama persis |
+| 4–9 | Pembayaran, **Deposit**, Dokter, Pilih Bed, Booking Bed, Konfirmasi, Cetak Persetujuan | Sama persis. Sembilan langkah sejak `RWI-DEC-093`, sebelumnya delapan |
 
 Langkah **Kartu Pasien tidak ada** pada jalur ini; pasien lama sudah memilikinya. Bila kartunya
 hilang, cetak ulang dilakukan lewat layar cetak kartu yang sudah ada, bukan dari alur admisi.
@@ -358,6 +364,8 @@ bukan tambahan.
 | --- | --- | --- |
 | Booking Bed | Pilih Bed | Bebas, selama pemesanan yang sudah terbentuk **dibatalkan lebih dulu**. Tidak boleh ada dua pemesanan aktif untuk satu episode |
 | Pilih Bed | Dokter | Unit layanan, kelas, dan catatan boleh berubah lewat `PUT /episodes/{id}`. **DPJP tidak** — pengalihan DPJP adalah `POST /episodes/{id}/doctor-assignments` dan bukan wewenang alur admisi. Bila DPJP salah, admisi dibatalkan lalu dibuka ulang |
+| Dokter | Deposit | **Tidak boleh** setelah titik tulis 1. Kunjungan, episode, dan penerimaan deposit sudah terbentuk. Bila nominal deposit salah, pembetulannya lewat transaksi Billing — top-up atau refund — bukan lewat mundur ke langkah sebelumnya |
+| Deposit | Pembayaran | Bebas selama titik tulis 1 belum lewat. Nominal yang sudah diketik ikut terbawa |
 | Dokter | Pembayaran | **Tidak boleh** setelah titik tulis 1. Kunjungan sudah terbentuk beserta penjaminnya. Bila penjamin salah, admisi dibatalkan lewat `FE-INP-17` lalu dibuka ulang. Layar wajib mengatakan ini **sebelum** langkah Dokter disimpan, bukan sesudah |
 | Pembayaran | Pendaftaran | Bebas selama titik tulis 1 belum lewat |
 

@@ -578,6 +578,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
+        public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
+
+        // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan beserta butir masalahnya. Tabelnya
+        // milik ClinicalManagement - RWI-DEC-081 menaruh seluruh tabel dokumentasi klinis rawat
+        // inap di sini, bukan di InPatientManagement.
+        public DbSet<CliNursingCarePlan> CliNursingCarePlans { get; set; }
+        public DbSet<CliNursingCarePlanItem> CliNursingCarePlanItems { get; set; }
+
+        // BE-RWI-060 / AC-CAP013-02. Riwayat versi butir asuhan. Mesin versi, bukan mesin
+        // addendum: perubahan rencana asuhan adalah perkembangan klinis, bukan pembetulan
+        // kesalahan - RWI-DEC-091.
+        public DbSet<CliNursingCarePlanItemRevision> CliNursingCarePlanItemRevisions { get; set; }
+
+        // BE-RWI-061 / CAP-014. Catatan tindakan keperawatan. TrxPatientProcedure sengaja tidak
+        // dipakai ulang: ia mewajibkan ConsultationId dan DoctorId, dan melonggarkannya akan
+        // melemahkan penjagaan bagi tindakan dokter yang membutuhkan keduanya untuk penagihan.
+        public DbSet<CliNursingIntervention> CliNursingInterventions { get; set; }
+
         public DbSet<MstProcedure> MstProcedures { get; set; }
 
         // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
@@ -599,6 +617,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
         public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu penyelesaian pengkajian, berversi lewat periode berlaku —
+        /// <c>BE-RWI-055</c>. Selama kosong, tidak satu pun pengkajian dinyatakan terlambat.
+        /// </summary>
+        public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
+
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
@@ -750,6 +775,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
+
+        #region BLOOD BANK MANAGEMENT
+        public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
+        public DbSet<MstBloodStorageLocation> MstBloodStorageLocations { get; set; }
+        public DbSet<MstBloodBankReason> MstBloodBankReasons { get; set; }
+        #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE
 
