@@ -15,6 +15,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingModuleService>();
         services.AddScoped<BillingInvoiceService>();
         services.AddScoped<BillingCalculationService>();
+        services.AddScoped<BillingInsuranceInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
         services.AddScoped<BillingAllocationService>();
@@ -47,6 +48,10 @@ public static class BillingManagementServiceCollectionExtensions
             .ValidateOnStart();
         services.AddOptions<BillingCashierShiftNumberOptions>()
             .BindConfiguration(BillingCashierShiftNumberOptions.SectionName)
+            .ValidateOnStart();
+        // BE-BKC-034 / PC-DES-008: nomor voucher Petty Cash (PTC-YYYYMMDD-NNNN).
+        services.AddOptions<PettyCashVoucherNumberOptions>()
+            .BindConfiguration(PettyCashVoucherNumberOptions.SectionName)
             .ValidateOnStart();
         services.AddScoped<AdministrationFeePolicyService>();
         services.AddScoped<DiscountPolicyService>();

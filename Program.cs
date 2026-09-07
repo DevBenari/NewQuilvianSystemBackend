@@ -558,6 +558,8 @@ try
 
     builder.Services.AddScoped<BillingInvoiceService>();
 
+    builder.Services.AddScoped<BillingInsuranceInvoiceDocumentService>();
+
     builder.Services.AddScoped<BillingDiscountService>();
 
     builder.Services.AddScoped<BillingDepositService>();
