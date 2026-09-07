@@ -56,7 +56,7 @@ endpoint-nya sudah berdiri.
 |---|---|---|---|
 | `MVP-1` Kerangka dan master | `FE-ACC-001` sampai `FE-ACC-004` | **`IMPLEMENTED`** — keempatnya selesai 4 Sep 2026 | `BE-ACC-007` sampai `009` selesai |
 | `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | **`IMPLEMENTED` — 005, 006, dan 007 selesai** | `BE-ACC-010`, `BE-ACC-011`, `BE-ACC-015` selesai |
-| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`READY`** — `FE-ACC-008` dapat dimulai; `FE-ACC-009` menunggu `FE-ACC-008` | `BE-ACC-012` selesai |
+| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`IN_PROGRESS`** — `FE-ACC-008` `IMPLEMENTED`; `FE-ACC-009` `READY` | `BE-ACC-012` selesai |
 | `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`READY`** — keduanya dapat dimulai, dan dapat berjalan paralel | `BE-ACC-013`, `BE-ACC-014` selesai |
 
 Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 September 2026**, dan nol keputusan produk tersisa:
@@ -204,7 +204,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; pemeriksaan manual |
 | Risiko/pemilik | Developer |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`READY`** — 7 September 2026. Kedua dependency lunas: `FE-ACC-001` `IMPLEMENTED`, `BE-ACC-012` `DONE`. Endpoint terverifikasi ada di source `6d4fc26`: `GET /movements`, `/trial-balance`, `/account-balance/{accountId}` pada `GeneralLedgerController`. **Belum dikerjakan.** Status `BLOCKED` sebelumnya sudah usang sejak 4 September 2026 — lihat catatan di bawah |
+| **Status** | **`IMPLEMENTED`** — 7 September 2026, menunggu verifikasi manual owner di peramban. Rute `/corporate/accounting/general-ledger` berdiri, menu **Buku Besar** terdaftar, slice ditulis manual (grup GL nol mutasi — factory akan menurunkan 10 thunk yang endpoint-nya tidak ada). **Acceptance (1) dan (3) terkunci 7 unit test baru**; (2) terbukti di source — pesan `400` backend diteruskan apa adanya, aturannya tidak disalin ke frontend. `lint:errors` PASS, `build` PASS, **452 unit test PASS**, 0 warning. **Belum dapat dilihat bekerja**: nol jurnal disahkan (`BLK-ACC-02`). Laporan: [`../task/report/frontend/fe-acc-008-buku-besar.md`](../task/report/frontend/fe-acc-008-buku-besar.md) |
 
 ### `FE-ACC-009` — Neraca saldo
 
@@ -220,7 +220,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; skenario `UAT-14`, `UAT-15` di peramban |
 | Risiko/pemilik | Developer. Butir (3) penting supaya pembaca tidak salah menafsirkan angka |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`BLOCKED`** — hanya oleh `FE-ACC-008`, bukan berantai panjang. `BE-ACC-012` `DONE` dan endpoint `/trial-balance` sudah berdiri; yang belum ada adalah slice buku besar yang dibangun `FE-ACC-008` |
+| **Status** | **`READY`** — 7 September 2026, terbuka oleh selesainya `FE-ACC-008`. `BE-ACC-012` `DONE`, endpoint `/trial-balance` berdiri, dan `accounting-general-ledger-slice.jsx` sudah ada sehingga task ini tinggal menambah satu thunk beserta layarnya |
 
 ---
 

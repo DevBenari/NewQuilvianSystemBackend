@@ -122,7 +122,7 @@ artifact_hashes:
   testing/acceptance-test-matrix.md: 78017727be1c7dd773987b96b4e3a8d5b9572013d350eb78aa598bfe673ca7c1
   erd/data-dictionary.md: 2315d2f525ae5870cc7c0a8a2af2b3051b16c71b6e89e3d25ad22145d00ad1f1
   roadmap/backend-roadmap.md: df36e68cdeeb62119a2b2bf89ed7884a1654005ec670c16d233e3c2cd8f690db
-  roadmap/frontend-roadmap.md: b0b6189d8d895f6fbc7acaccb368a6681eb15a4ae77f159dbd55db513dee7978
+  roadmap/frontend-roadmap.md: 2b0bf99f592d9b8938c0f208db9e031be47baa4e14b166c76ae2a264eed5dca8
   roadmap/requirement-traceability.md: b2826cfc29531ea69cab31a922faaad1aaf691cb4efe23e531aa99520211690f
 active_dependency_ids: [ACC-DEP-003, ACC-DEP-004, ACC-DEP-005, ACC-DEP-007, ACC-DEP-008]   # 001, 002, 006, 009 CLOSED; 008 OPEN tapi NON-BLOCKING sejak ACC-DEC-041
 entity_prefix:
