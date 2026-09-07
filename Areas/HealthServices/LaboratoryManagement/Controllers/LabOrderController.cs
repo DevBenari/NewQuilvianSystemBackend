@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
@@ -101,6 +101,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<PagedResult<LabOrderListResponse>>.Ok(
                 result,
                 "Daftar order laboratorium berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Pesanan laboratorium dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-052</c>, <c>api-contract.md</c> bagian 7. Hasil yang belum final ditandai
+        /// dan <b>tidak</b> disajikan sebagai hasil sah - <c>VAL-DOK-30</c>. Tidak ada satu pun
+        /// baris hasil yang disalin ke Rawat Inap; yang dibaca adalah baris milik Laboratorium
+        /// apa adanya - <c>RUL-DOK-02</c>.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabOrderListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan dan hasil laboratorium satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrderService.GetByEpisodeAsync(episodeId, cancellationToken);
+
+            return Ok(ApiResponse<List<LabOrderListResponse>>.Ok(
+                result,
+                "Pesanan laboratorium perawatan rawat inap berhasil diambil."));
         }
 
         // Daftar pesanan satu disiplin. Disiplin datang dari jalur, bukan dari penyaring,
