@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Model
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -282,11 +283,11 @@ public sealed class BillingDiscountServiceTests
             EncounterDate = DateTime.UtcNow,
             IsActive = true
         };
-        var category = new MstBillingItemCategory
+        var category = new MstTariffCategory
         {
             Id = Guid.NewGuid(),
-            BillingItemCategoryCode = administrationFeeCategory ? "ADMIN" : "PROC",
-            BillingItemCategoryName = administrationFeeCategory ? "Biaya administrasi" : "Procedure",
+            TariffCategoryCode = administrationFeeCategory ? "ADMIN" : "PROC",
+            TariffCategoryName = administrationFeeCategory ? "Biaya administrasi" : "Procedure",
             IsAdministrationFee = administrationFeeCategory,
             IsCoveredByInsuranceDefault = true,
             IsActive = true
@@ -321,7 +322,7 @@ public sealed class BillingDiscountServiceTests
         };
         invoice.Items.Add(item);
         db.TrxPatientEncounters.Add(encounter);
-        db.MstBillingItemCategories.Add(category);
+        db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         await db.SaveChangesAsync();
         return (invoice, item);

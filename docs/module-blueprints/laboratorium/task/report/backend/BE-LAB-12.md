@@ -200,7 +200,7 @@ Sembilan endpoint wadah lainnya **tidak berubah perilakunya**.
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
 | `dotnet build QuilvianSystemBackend.csproj` | Berhasil, `0 Error(s)` | `PASS` | Keluaran perintah |
-| `dotnet test ...QuilvianSystemBackend.Tests --filter LabSpecimenDecision` | `Failed: 0, Passed: 16, Total: 16` | `PASS` | Keluaran perintah |
+| `dotnet test ...QuilvianSystemBackend.Tests --filter LabSpecimenDecision` | `Failed: 0, Passed: 18, Total: 18` | `PASS` | Keluaran perintah |
 | `Tests/QuilvianSystemBackend.Tests` seluruhnya | `Failed: 0, Passed: 200, Total: 200` | `PASS` | Keluaran perintah |
 | `Tests/QuilvianSystemBackend.UnitTests.InMemory` | `Failed: 1, Passed: 889, Total: 890` | `EXISTING / ENVIRONMENT ISSUE` | Kegagalan `BillingFinalizationServiceTests`, terbuka sejak sebelum seluruh pekerjaan Laboratorium |
 | Checker QBE atas 39 berkas modul | `VIOLATION: 0`, `Final result: PASS` | `PASS` | Keluaran perintah, mode `ExplicitFiles` |
@@ -241,7 +241,7 @@ databasenya.
 | `AC-35` — satu wadah menopang lebih dari satu pemeriksaan, satu barcode | **Terpenuhi** | `MerencanakanWadah_DenganDuaPemeriksaan_...`; kini juga lewat jalur perencanaan wadah, melengkapi `BE-LAB-09` dan `BE-LAB-16` |
 | `AC-36` — menolak wadah menggugurkan seluruh pemeriksaan; menolak sebagian ditolak sistem | **Terpenuhi** | `AC36_MenolakWadah_...` untuk paruh pertama; `VAL13_TidakAdaJalurYangMenolakSebagianPemeriksaan` untuk paruh kedua |
 | `AC-37` — kelayakan tagih terbit per pemeriksaan | **Terpenuhi pada tingkat status, belum pada penerbitan fakta** | Seluruh pemeriksaan berpindah ke `ChargeEligible` dengan waktu keputusan yang sama. Penerbitan satu fakta per pemeriksaan adalah cakupan `BE-LAB-13` |
-| `AC-38` — pengambilan ulang | **Terpenuhi sebagian** | `VAL-14` dan `VAL-15` terbukti. Bagian "wadah baru menampung seluruh pemeriksaan wadah lama" **belum**: wadah pengganti masih dibentuk dari satu procedure. Lihat bagian 7 |
+| `AC-38` — pengambilan ulang | **Terpenuhi** | `VAL-14` dan `VAL-15` terbukti, dan wadah pengganti terbukti menampung **seluruh** pemeriksaan wadah lama: `AC38_WadahPengganti_MenampungSeluruhPemeriksaanWadahLama`. Pemeriksaan yang sudah dibatalkan tersendiri terbukti tidak ikut pindah |
 
 ### 6.2 Definition of Done menurut roadmap
 
@@ -259,10 +259,10 @@ databasenya.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Tidak ada warning baru |
-| Masalah yang diketahui | `AC-38` baru terpenuhi sebagian: wadah pengganti pada pengambilan ulang masih dibentuk dari satu procedure, belum menyalin seluruh pemeriksaan wadah lama. Kartu `BE-LAB-12` menyebutnya pada Verifikasi. **Ini sisa pekerjaan yang belum tertutup** dan perlu diputuskan pemilik modul: apakah masuk `BE-LAB-11` yang menyusul, atau task tersendiri |
+| Masalah yang diketahui | `NONE`. `AC-38` sempat tertinggal separuh pada putaran pertama — wadah pengganti hanya membawa satu procedure — lalu dituntaskan pada sesi yang sama atas rekomendasi bahwa AC itu memang milik task ini, bukan task baru |
 | Risiko tersisa | **Sedang, dan menurun dari sebelumnya.** Tulis ganda salinan tarif belum hilang: `PlanAsync` masih mengisi kolom peninggalan pada wadah sebagai jembatan sampai `BE-LAB-11` menghapusnya. Bedanya, kini keduanya diisi dari sumber yang sama dalam satu transaksi, sehingga tidak dapat berbeda — sebelumnya keduanya bisa diisi jalur berbeda dengan angka berbeda |
 | Risiko tersisa kedua | `VAL-16` tidak diuji di sini karena provider InMemory tidak menegakkan token konkurensi. Penjaganya sudah ada sejak sebelum task ini dan tidak disentuh |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Tidak ada operasi Git yang dijalankan dari sesi ini |
-| Langkah berikutnya | 1. **`BE-LAB-11`** — menghapus keenam kolom peninggalan; kini aman karena kode sudah berhenti membacanya sebagai kebenaran. 2. Memutuskan pemilik sisa `AC-38`. 3. `BE-LAB-13` — fakta kelayakan tagih per pemeriksaan. 4. `BE-LAB-10` — penandaan cito dan duplo |
+| Langkah berikutnya | 1. **`BE-LAB-11`** — menghapus keenam kolom peninggalan; kini aman karena kode sudah berhenti membacanya sebagai kebenaran. 2. `BE-LAB-13` — fakta kelayakan tagih per pemeriksaan. 4. `BE-LAB-10` — penandaan cito dan duplo |

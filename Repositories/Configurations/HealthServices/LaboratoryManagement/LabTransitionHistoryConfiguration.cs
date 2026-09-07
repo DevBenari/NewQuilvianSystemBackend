@@ -21,6 +21,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             builder.HasIndex(x => new { x.LabOrderId, x.OccurredAt });
             builder.HasIndex(x => x.LabSpecimenId);
+            builder.HasIndex(x => x.LabExaminationId);
             builder.HasIndex(x => x.EncounterId);
 
             builder.HasOne(x => x.LabOrder)
@@ -31,6 +32,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             builder.HasOne(x => x.LabSpecimen)
                 .WithMany()
                 .HasForeignKey(x => x.LabSpecimenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict, sama seperti kedua relasi lainnya: riwayat adalah jejak permanen, dan
+            // menghapus pemeriksaan tidak boleh menghapus bukti perpindahannya.
+            builder.HasOne(x => x.LabExamination)
+                .WithMany()
+                .HasForeignKey(x => x.LabExaminationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne<TrxPatientEncounter>()

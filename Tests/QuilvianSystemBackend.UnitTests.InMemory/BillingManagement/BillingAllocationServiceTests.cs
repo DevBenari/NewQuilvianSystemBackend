@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -247,10 +248,10 @@ public sealed class BillingAllocationServiceTests
             EncounterDate = DateTime.UtcNow,
             IsActive = true
         };
-        var category = new MstBillingItemCategory
+        var category = new MstTariffCategory
         {
-            BillingItemCategoryCode = $"CAT-{Guid.NewGuid():N}",
-            BillingItemCategoryName = "Kategori allocation test",
+            TariffCategoryCode = $"CAT-{Guid.NewGuid():N}",
+            TariffCategoryName = "Kategori allocation test",
             IsCoveredByInsuranceDefault = true,
             IsActive = true
         };
@@ -290,7 +291,7 @@ public sealed class BillingAllocationServiceTests
         };
 
         db.TrxPatientEncounters.Add(encounter);
-        db.MstBillingItemCategories.Add(category);
+        db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         db.BilCalculationVersions.Add(Calculation(invoice.Id, 1, patientAmount));
         db.BilDepositAccounts.Add(account);
@@ -342,6 +343,6 @@ public sealed class BillingAllocationServiceTests
             BillingCoverageContext context,
             CancellationToken cancellationToken) =>
             Task.FromResult(new BillingCoverageDecision(
-                "SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, []));
+                "SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], []));
     }
 }

@@ -95,9 +95,10 @@ public class LabExaminationEndpointTests
             .Where(x => x.GetCustomAttributes<AccessPermissionAttribute>().Any())
             .ToList();
 
-        // Empat endpoint milik BE-LAB-16. Dua sisanya pada grup ini — PUT /{id}/urgency dan
-        // PUT /{id}/duplo — adalah cakupan BE-LAB-10 dan sengaja belum ada di sini.
-        Assert.Equal(4, endpoints.Count);
+        // Empat endpoint milik BE-LAB-16, ditambah PUT /{id}/urgency dan PUT /{id}/duplo yang
+        // dibangun BE-LAB-10. Angka ini adalah kawat pemicu: menambah endpoint pada grup ini
+        // tanpa memperbaruinya akan membuat uji ini gagal, dan itu memang yang diinginkan.
+        Assert.Equal(6, endpoints.Count);
     }
 
     /// <summary>
@@ -584,8 +585,8 @@ public class LabExaminationEndpointTests
             OrderStatus = LabOrderStatus.Requested
         };
 
-        var wadah = Wadah(order.Id, hemoglobin.Id, "BC-0001", 1);
-        var wadahKedua = Wadah(order.Id, hemoglobin.Id, "BC-0002", 2);
+        var wadah = Wadah(order.Id, "BC-0001", 1);
+        var wadahKedua = Wadah(order.Id, "BC-0002", 2);
 
         context.LabOrders.AddRange(order, orderKedua);
         context.LabSpecimens.AddRange(wadah, wadahKedua);
@@ -619,12 +620,11 @@ public class LabExaminationEndpointTests
             NormalPrice = harga
         };
 
-    private static LabSpecimen Wadah(Guid labOrderId, Guid procedureId, string barcode, int urutan) =>
+    private static LabSpecimen Wadah(Guid labOrderId, string barcode, int urutan) =>
         new()
         {
             Id = Guid.NewGuid(),
             LabOrderId = labOrderId,
-            ProcedureId = procedureId,
             SpecimenBarcode = barcode,
             SpecimenSequence = urutan,
             SpecimenStatus = LabSpecimenStatus.Planned

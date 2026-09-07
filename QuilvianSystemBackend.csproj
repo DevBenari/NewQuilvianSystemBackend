@@ -62,8 +62,29 @@
     Migration utama tetap dipertahankan agar EF Core tetap bekerja.
     -->
 
-		<Compile Remove="Migrations\**\*.Designer.cs" />
-		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
+		<!--
+		  DUA BARIS DI BAWAH SENGAJA DINONAKTIFKAN 2026-09-04.
+
+		  <Compile Remove="Migrations\**\*.Designer.cs" />
+		  <Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
+
+		  Keduanya mempercepat build, tetapi harganya adalah EF Core yang berhenti
+		  mengenali migration-nya sendiri.
+
+		  Designer.cs memuat atribut [Migration("...")]. Tanpa dikompilasi, seluruh
+		  migration hasil scaffold - yaitu semua migration sejak 2026-09-01 - menjadi
+		  TIDAK TERLIHAT oleh EF: 'dotnet ef migrations list' hanya menampilkan 7 dari
+		  puluhan migration, yakni yang atributnya ditulis tangan di berkas utamanya.
+		  Akibatnya 'database update' tidak menerapkan apa pun dan tetap menjawab 'Done.'
+
+		  ApplicationDbContextModelSnapshot.cs adalah pembanding yang dipakai EF saat
+		  menyusun migration baru. Tanpa dikompilasi, EF menganggap belum ada schema
+		  sama sekali lalu menghasilkan migration berisi SELURUH database - satu kali
+		  terukur 70.815 baris - tanpa satu pun peringatan.
+
+		  Keduanya tidak terasa selama bin/ masih menyimpan hasil build lama yang
+		  memuat kedua berkas itu. Begitu ada full rebuild, kemampuan EF hilang diam-diam.
+		-->
 
 	</ItemGroup>
 

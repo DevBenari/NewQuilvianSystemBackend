@@ -26,10 +26,10 @@ bagian 4, bukan disembunyikan.
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-01.1` | `LAB-DEC-013`, `LAB-DEC-026` | `02-backend-architecture.md` §4.3 | `LAB-API-v1` r3 | `BE-LAB-10` | `FE-LAB-06` | `AC-18` | Direncanakan |
-| `FR-01.2` | `LAB-DEC-026` | `contracts/validation-matrix.md` `VAL-03` | `LAB-VAL-v1` r3 | `BE-LAB-10` | `FE-LAB-06` | `AC-18` jalur gagal | Direncanakan |
-| `FR-01.3` | `LAB-DEC-013` | `CAP-04`, `CAP-15` | `LAB-STATE-v1` r2 | `BE-LAB-10` | — | `AC-18` | Direncanakan |
-| `FR-01.4` | `LAB-DEC-013` | `02-backend-architecture.md` §4.4 | `LAB-API-v1` r3 | `BE-LAB-02` | `FE-LAB-02` | Kolom penyimpanannya ada — `LabValueBound.CitoTurnaroundMinutes`, [`task/report/backend/BE-LAB-02.md`](../task/report/backend/BE-LAB-02.md) bagian 3.2 dan 5.1. `AC-17` **belum terbukti**: daftar pantau keterlambatan cito adalah cakupan `BE-LAB-14` | **`SELESAI SEBAGIAN`** — penyimpanan selesai `BE-LAB-02`; `AC-17` menunggu `BE-LAB-14` |
+| `FR-01.1` | `LAB-DEC-013`, `LAB-DEC-026` | `02-backend-architecture.md` §4.3 | `LAB-API-v1` r3 | `BE-LAB-10` | `FE-LAB-06` | `AC-18` dan `AC-39` **terbukti** — [`BE-LAB-10.md`](../task/report/backend/BE-LAB-10.md); satu pesanan memuat Kalium cito dan Kolesterol biasa sekaligus | **`SELESAI`** |
+| `FR-01.2` | `LAB-DEC-026` | `contracts/validation-matrix.md` `VAL-03` | `LAB-VAL-v1` r3 | `BE-LAB-10` | `FE-LAB-06` | `AC-18` jalur gagal **terbukti** — `VAL-03` menjawab `403` tanpa mengubah satu ruas pun, `VAL-04` menjawab `409` | **`SELESAI`** |
+| `FR-01.3` | `LAB-DEC-013` | `CAP-04`, `CAP-15` | `LAB-STATE-v1` r2 | `BE-LAB-10` | — | `AC-18` **terbukti** — setiap penandaan menghasilkan satu baris `LabTransitionHistory` berlingkup `LabExamination` yang menunjuk pemeriksaannya | **`SELESAI`** |
+| `FR-01.4` | `LAB-DEC-013` | `02-backend-architecture.md` §4.4 | `LAB-API-v1` r3 | `BE-LAB-02` | `FE-LAB-02` | Kolom penyimpanannya ada — `LabValueBound.CitoTurnaroundMinutes`, [`task/report/backend/BE-LAB-02.md`](../task/report/backend/BE-LAB-02.md) bagian 3.2 dan 5.1. `AC-17` **terbukti 2026-09-04** lewat [`BE-LAB-14.md`](../task/report/backend/BE-LAB-14.md): batas waktu itu kini benar-benar dipakai menghitung keterlambatan | **`SELESAI`** |
 
 ### `EPIC-LAB-02` — Pemisahan wadah fisik dan pemeriksaan terpesan
 
@@ -38,9 +38,9 @@ bagian 4, bukan disembunyikan.
 | `FR-02.1` | `LAB-DEC-024` | `02-backend-architecture.md` §4.3 | `LAB-API-v1` r3 | `BE-LAB-09`, `BE-LAB-16` | `FE-LAB-07` | `AC-35` **terbukti ujung-ke-ujung** — struktur pada [`BE-LAB-09.md`](../task/report/backend/BE-LAB-09.md) bagian 6.1, dan endpointnya pada [`BE-LAB-16.md`](../task/report/backend/BE-LAB-16.md) bagian 6.1: dua pemeriksaan ditambahkan lewat `POST /by-order` lalu keduanya terbaca lewat `GET /by-specimen` dengan satu barcode yang sama. `VAL-17` .. `VAL-20` masing-masing punya ujinya | **`SELESAI`** |
 | `FR-02.2` | `LAB-DEC-024` | `contracts/state-transition-matrix.md` | `LAB-STATE-v1` r2 | `BE-LAB-12`, `BE-LAB-16` | `FE-LAB-07` | `AC-36` **terbukti** — [`BE-LAB-12.md`](../task/report/backend/BE-LAB-12.md) bagian 6.1; menolak wadah menggugurkan kedua pemeriksaan yang ditopangnya. `AC-37` terbukti pada tingkat status; penerbitan faktanya menunggu `BE-LAB-13` | **`SELESAI SEBAGIAN`** — status selesai `BE-LAB-12`; fakta per pemeriksaan menunggu `BE-LAB-13` |
 | `FR-02.3` | `LAB-DEC-024` | `VAL-13` | `LAB-VAL-v1` r3 | `BE-LAB-12` | `FE-LAB-07` | `AC-36` **terbukti** — `VAL-13` ditegakkan secara struktural: tidak ada satu pun jalur pengubah yang menolak sebagian pemeriksaan | **`SELESAI`** |
-| `FR-02.4` | `LAB-DEC-024` | `erd/data-dictionary.md` | — | `BE-LAB-11` | — | `AC-35` | Direncanakan — penahan `LAB-OPEN-012` dicabut 2026-09-03, jumlah baris `0` pada dev pemilik |
+| `FR-02.4` | `LAB-DEC-024` | `erd/data-dictionary.md` | — | `BE-LAB-11` | — | `AC-35` — keenam kolom lepas dari `LabSpecimen` dan utuh pada `LabExamination`, dibuktikan `LabSpecimenColumnSplitTests` 4/4; [`BE-LAB-11.md`](../task/report/backend/BE-LAB-11.md) | **`SELESAI`** |
 | `FR-02.5` | `LAB-DEC-024` | `VAL-14` | `LAB-VAL-v1` r3 | `BE-LAB-12` | `FE-LAB-07` | `VAL-14` dan `VAL-15` **terbukti** — [`BE-LAB-12.md`](../task/report/backend/BE-LAB-12.md) bagian 5 | **`SELESAI`** |
-| `FR-02.6` | `LAB-DEC-024` | `02-backend-architecture.md` §6 | — | `BE-LAB-11` | — | `AC-35`, `AC-38` | Direncanakan — penahan dicabut; kode sudah berhenti memakai keenam kolomnya sejak `BE-LAB-12` |
+| `FR-02.6` | `LAB-DEC-024` | `02-backend-architecture.md` §6 | — | `BE-LAB-11` | — | `AC-35`, `AC-38` — migration `SplitLabSpecimenIntoExamination` terbukti **dua arah** terhadap `QuilvianNewDevYoga`; [`BE-LAB-11.md`](../task/report/backend/BE-LAB-11.md) bagian 5.3 | **`SELESAI`** |
 
 ### `EPIC-LAB-03` — Batas nilai dan persetujuan klinis
 
@@ -57,19 +57,19 @@ bagian 4, bukan disembunyikan.
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-04.1` | `LAB-DEC-013` | `LAB-FE-006` | `LAB-API-v1` r3 | `BE-LAB-14` | `FE-LAB-08` | `AC-10`, `AC-39` | Direncanakan |
-| `FR-04.2` | `LAB-DEC-013` | — | `LAB-API-v1` r3 | `BE-LAB-14` | `FE-LAB-08` | `AC-17` | Direncanakan |
-| `FR-04.3` | `LAB-DEC-013` | `contracts/state-transition-matrix.md` | `LAB-STATE-v1` r2 | `BE-LAB-14` | `FE-LAB-08` | `AC-17` | Direncanakan |
-| `FR-04.4` | `LAB-DEC-013` | `02-backend-architecture.md` | — | `BE-LAB-14` | — | Tinjauan struktur | Direncanakan |
+| `FR-04.1` | `LAB-DEC-013` | `LAB-FE-006` | `LAB-API-v1` r3 | `BE-LAB-14` | `FE-LAB-08` | `AC-10` dan `AC-39` **terbukti** — [`BE-LAB-14.md`](../task/report/backend/BE-LAB-14.md); satu cito pukul 10.05 di atas empat belas pesanan biasa pukul 10.00 | **`SELESAI`** |
+| `FR-04.2` | `LAB-DEC-013` | — | `LAB-API-v1` r3 | `BE-LAB-14` | `FE-LAB-08` | `AC-17` **terbukti** pada kedua jalurnya, termasuk `VAL-39` | **`SELESAI`** |
+| `FR-04.3` | `LAB-DEC-013` | `contracts/state-transition-matrix.md` | `LAB-STATE-v1` r2 | `BE-LAB-14` | `FE-LAB-08` | `AC-17` **terbukti** — keterlambatan dihitung sejak wadah dinyatakan layak; wadah yang belum diputuskan tidak pernah terhitung terlambat | **`SELESAI`** |
+| `FR-04.4` | `LAB-DEC-013` | `02-backend-architecture.md` | — | `BE-LAB-14` | — | Tinjauan struktur **terbukti** — nol entity ber-nama `Worklist` dan nol jalur tulis pada grupnya | **`SELESAI`** |
 
 ### `EPIC-LAB-05` — Fakta kelayakan tagih per pemeriksaan
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-05.1` | `LAB-INH-013` | `CAP-11` | `LAB-INT-v1` r3 `INT-01` | `BE-LAB-13` | — | `AC-37` | Direncanakan |
-| `FR-05.2` | `LAB-INH-013` | `CAP-11` | `LAB-INT-v1` r3 | `BE-LAB-13` | — | `AC-37` | Direncanakan |
-| `FR-05.3` | `LAB-INH-013` | `CAP-11` `Ready to reuse` | `LAB-INT-v1` r3 | `BE-LAB-13` | — | `AC-12` | Direncanakan |
-| `FR-05.4` | `LAB-DEC-011` | `CAP-12` | — | `BE-LAB-13` | — | `AC-13` | Direncanakan |
+| `FR-05.1` | `LAB-INH-013` | `CAP-11` | `LAB-INT-v1` r3 `INT-01` | `BE-LAB-13` | — | `AC-37` **terbukti** — [`BE-LAB-13.md`](../task/report/backend/BE-LAB-13.md) bagian 5: wadah dua pemeriksaan menerbitkan dua fakta dengan tarif masing-masing | **`SELESAI`** |
+| `FR-05.2` | `LAB-INH-013` | `CAP-11` | `LAB-INT-v1` r3 | `BE-LAB-13` | — | `AC-37` — satuan `SourceItemId` berpindah ke `LabExamination.Id`; producer, enum, dan jalur dispatch tidak disentuh | **`SELESAI`** |
+| `FR-05.3` | `LAB-INH-013` | `CAP-11` `Ready to reuse` | `LAB-INT-v1` r3 | `BE-LAB-13` | — | `AC-12` **terbukti** — menekan layak dua kali tetap menghasilkan dua fakta dengan identitas yang sama persis | **`SELESAI`** |
+| `FR-05.4` | `LAB-DEC-011` | `CAP-12` | — | `BE-LAB-13` | — | `AC-13` **terbukti 2026-09-04** — `LaboratoryAuthorityTests` 18/18, nol properti dan nol method finansial pada Laboratorium | **`SELESAI`** |
 
 ### `EPIC-LAB-06` — Pengelolaan alasan penolakan
 
@@ -84,27 +84,27 @@ bagian 4, bukan disembunyikan.
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
 | `FR-08.1` | `LAB-DEC-032` | `CAP-09` | `LAB-API-v1` r3 | `BE-LAB-08` | `FE-LAB-05` | `AC-44` | Direncanakan |
-| `FR-08.2` | `LAB-DEC-032` | `LAB-INT-v1` r3 `INT-05` | `LAB-INT-v1` r3 | `BE-LAB-08`, `BE-EXT-03` | `FE-LAB-05` | `AC-45` | Menunggu eksternal |
-| `FR-08.3` | `LAB-DEC-035` | `erd/data-dictionary.md` §9b | — | `BE-EXT-02`, `BE-EXT-03` | `FE-LAB-05` | `AC-46`, `AC-50` | Menunggu eksternal |
-| `FR-08.4` | `LAB-DEC-032` | `INT-05` idempotensi | `LAB-INT-v1` r3 | `BE-EXT-03`, `BE-LAB-08` | — | `AC-44` | Menunggu eksternal |
+| `FR-08.2` | `LAB-DEC-032` | `LAB-INT-v1` r3 `INT-05` | `LAB-INT-v1` r3 | `BE-LAB-08`, `BE-EXT-03` | `FE-LAB-05` | `AC-45` — bentuk teknis `INT-05` sudah tertulis dan kolom penunjuknya sudah ada; [`BE-EXT-03.md`](../task/report/backend/BE-EXT-03.md) | **Menunggu `BE-LAB-08`** — bukan lagi menunggu eksternal |
+| `FR-08.3` | `LAB-DEC-035` | `erd/data-dictionary.md` §9b | — | `BE-EXT-02`, `BE-EXT-03` | `FE-LAB-05` | `AC-46`, `AC-50` — dua data induk perujuk dan dua penunjuknya pada kunjungan **sudah ada**; [`BE-EXT-02.md`](../task/report/backend/BE-EXT-02.md) | **Menunggu `BE-LAB-08`** — penyimpanannya siap, jalur pengisiannya belum |
+| `FR-08.4` | `LAB-DEC-032` | `INT-05` idempotensi | `LAB-INT-v1` r3 | `BE-EXT-03`, `BE-LAB-08` | — | `AC-44` — **belum terbukti**; idempotensi menuntut endpoint `INT-05` yang masih milik `registration-management` | **Menunggu endpoint `INT-05`** |
 | `FR-08.5` | `LAB-DEC-032` | `INT-05` perilaku tolak | `LAB-INT-v1` r3 | `BE-LAB-08` | `FE-LAB-05` | `AC-45` | Direncanakan |
 
 ### `EPIC-LAB-09` — Katalog, harga, dan cakupan penjamin
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-09.1` | `LAB-DEC-036` | `CAP-06` | `LAB-API-v1` r3 | `BE-LAB-07`, `BE-EXT-01` | `FE-LAB-04` | `AC-43` | Menunggu eksternal |
-| `FR-09.2` | `LAB-DEC-033` | `CAP-10` | `LAB-API-v1` r3 | `BE-LAB-07` | `FE-LAB-04` | `AC-43` | Direncanakan |
-| `FR-09.3` | `LAB-DEC-033` | `MstInsuranceTariff` | `LAB-INT-v1` r3 `INT-06` | `BE-LAB-07` | `FE-LAB-04` | `AC-43` | Direncanakan |
-| `FR-09.4` | `LAB-DEC-033` | `VAL-50` | `LAB-API-v1` r3 | `BE-LAB-07` | `FE-LAB-04` | `AC-47`, `AC-48` | Direncanakan |
-| `FR-09.5` | `LAB-DEC-036` | `INV-22`, `VAL-46` | `LAB-VAL-v1` r3 | `BE-LAB-07` | — | `AC-51` | Menunggu eksternal |
+| `FR-09.1` | `LAB-DEC-036` | `CAP-06` | `LAB-API-v1` r3 | `BE-LAB-07`, `BE-EXT-01` | `FE-LAB-04` | `AC-43` **terbukti** — tiga pemeriksaan menampilkan harga satuan dan total tanpa satu baris tagihan pun terbentuk; [`BE-LAB-07.md`](../task/report/backend/BE-LAB-07.md) | **`SELESAI`** |
+| `FR-09.2` | `LAB-DEC-033` | `CAP-10` | `LAB-API-v1` r3 | `BE-LAB-07` | `FE-LAB-04` | `AC-43` **terbukti** — harga berasal dari `MstTariff` dengan aturan berlaku yang sama persis dengan jalur pemesanan; [`BE-LAB-07.md`](../task/report/backend/BE-LAB-07.md) | **`SELESAI`** |
+| `FR-09.3` | `LAB-DEC-033` | `MstInsuranceTariff` | `LAB-INT-v1` r3 `INT-06` | `BE-LAB-07` | `FE-LAB-04` | `AC-43` **terbukti** — harga kontrak penjamin tampil bila ada, dan ketiadaannya ditandai tidak tercakup, bukan gratis; [`BE-LAB-07.md`](../task/report/backend/BE-LAB-07.md) | **`SELESAI`** |
+| `FR-09.4` | `LAB-DEC-033` | `VAL-50` | `LAB-API-v1` r3 | `BE-LAB-07` | `FE-LAB-04` | `AC-47` dan `AC-48` **terbukti** — nol entity tarif milik Laboratorium, dan nol jalur ubah pada grup katalog; [`BE-LAB-07.md`](../task/report/backend/BE-LAB-07.md) | **`SELESAI`** |
+| `FR-09.5` | `LAB-DEC-036` | `INV-22`, `VAL-46` | `LAB-VAL-v1` r3 | `BE-LAB-07` | — | `AC-51` **terbukti** — menambahkan Hemoglobin ke pesanan Mikrobiologi ditolak `422` `VAL-46`; [`BE-LAB-07.md`](../task/report/backend/BE-LAB-07.md). Penegakannya menuntut kedua disiplin diketahui, sehingga pengisian nilai disiplin katalog masih menentukan seberapa luas ia berlaku | **`SELESAI`** — cakupannya bergantung pada pengisian nilai disiplin |
 
 ### `EPIC-LAB-10` — Monitoring per disiplin
 
 | FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-10.1` | `LAB-DEC-025` | `03-domain-architecture.md` `S15` | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` | Direncanakan |
-| `FR-10.2` | `LAB-DEC-025` | — | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` | Direncanakan |
+| `FR-10.1` | `LAB-DEC-025` | `03-domain-architecture.md` `S15` | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` **terbukti** — [`BE-LAB-15.md`](../task/report/backend/BE-LAB-15.md); tiga daftar dengan data campuran, tidak satu baris pun menyeberang | **`SELESAI`** |
+| `FR-10.2` | `LAB-DEC-025` | — | `LAB-API-v1` r3 | `BE-LAB-15` | `FE-LAB-09` | `AC-41` **terbukti** — penyaring ditulis satu kali dan dipakai ketiga jalur; disiplin bukan ruas penyaring | **`SELESAI`** |
 | `FR-10.3` | `LAB-DEC-025` | `erd/data-dictionary.md` | `LAB-API-v1` r3 | `BE-LAB-01` | — | `AC-11` **terbukti**, `AC-41` terbukti sebagian — [`task/report/backend/BE-LAB-01.md`](../task/report/backend/BE-LAB-01.md) bagian 6; migration terbukti dua arah pada `QuilvianNewDevYoga`, bagian 5.1 | **`SELESAI`** |
 
 ### `EPIC-LAB-07` — Layar Laboratorium
@@ -157,8 +157,8 @@ dibangun ulang:
 | `CAP-13`, `CAP-14` kewenangan per aksi | `Ready to reuse` | `BE-LAB-04`, `BE-LAB-05`, `BE-LAB-06` |
 | `CAP-15` identitas pelaku | `Ready to reuse` | `BE-LAB-05`, `BE-LAB-10` |
 | `CAP-17` perlindungan konkurensi | `Ready to reuse` | `BE-LAB-03`, `BE-LAB-12` |
-| `CAP-22` pola tujuh lapis frontend | `Ready to reuse` | `FE-LAB-01` |
-| `CAP-23` `axiosInstance` dan Redux | `Ready to reuse` | `FE-LAB-01` |
+| `CAP-22` pola tujuh lapis frontend | `Ready to reuse` | `FE-LAB-01` — **terpakai** 2026-09-04. Tujuh lapis modul `laboratory-management` berdiri mengikuti pola yang sama, tanpa lapis kedelapan dan tanpa pola route baru. [`task/report/frontend/FE-LAB-01.md`](../task/report/frontend/FE-LAB-01.md) |
+| `CAP-23` `axiosInstance` dan Redux | `Ready to reuse` | `FE-LAB-01` — **terpakai** 2026-09-04. `InstanceAxios` yang sudah ada dipakai apa adanya tanpa instance baru, dan potongan Redux `labOrder` terdaftar pada `store.jsx` mengikuti pola slice Health Services yang berjalan. [`task/report/frontend/FE-LAB-01.md`](../task/report/frontend/FE-LAB-01.md) |
 
 **Satu kemampuan yang sengaja tidak dipakai ulang.** `CAP-16` — penegakan prinsip empat mata —
 berstatus `Missing`, dan sistem permission yang ada **tidak dapat** menggantikannya:
@@ -215,7 +215,7 @@ manajemen rumah sakit menetapkan pemegangnya.
 | ~~`LAB-OPEN-019`~~ | ~~Entity `Lab*` dan migration~~ | ✅ Ditutup 2026-09-02 — registry kini `ACTIVE` |
 | ~~`LAB-OPEN-020`~~ | ~~Pemeriksaan konformansi QBE~~ | ✅ Ditutup 2026-09-02 — checker `PASS`, exit 0 |
 | ~~`LAB-OPEN-021`~~ | ~~Penamaan dua tabel batas nilai~~ | ✅ Ditutup 2026-09-02 — ditetapkan `Lab` |
-| `LAB-OPEN-012` | `BE-LAB-11`, `FR-02.4`, `FR-02.6` | Pemilik repository backend atau DBA |
+| `LAB-OPEN-012` | `BE-LAB-11`, `FR-02.4`, `FR-02.6` | Pemilik repository backend atau DBA. **Terjawab `0` untuk dev pemilik, diverifikasi ulang oleh mesin 2026-09-04**; angka produksi tetap belum diketahui. Sejak `BE-LAB-11` prasyarat ini ditegakkan migration itu sendiri: bila tabelnya masih berisi, migration berhenti sebelum satu kolom pun dihapus |
 | `LAB-SIGN-001` | Slice `S4`, `S4b`, `S4c`, `S5`, `S6` — **di luar scope roadmap ini** | Dokter PJ laboratorium atau Komite Medis |
 | `LAB-AMD-001` | Slice `S1b` — **di luar scope roadmap ini** | Pemilik blueprint `rawat-jalan` |
 
@@ -230,6 +230,13 @@ manajemen rumah sakit menetapkan pemegangnya.
 | 3 | 2026-09-02 | `input_hashes` dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dari pharmacy dan billing-kasir dan diverifikasi. `LAB-OPEN-020` ditetapkan menjadi wewenang Andry Zain. Seluruh utang pembukuan tertutup | `DRAFT` |
 | 4 | 2026-09-02 | Audit cakupan endpoint ditambahkan sebagai dimensi ketiga di samping FR dan AC. Empat endpoint Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan pada roadmap backend. Total task backend menjadi 19 | `DRAFT` |
 | 5 | 2026-09-02 | Audit cakupan diperluas ke aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik. Temuan terpenting: `VAL-09`, aturan empat mata pada tingkat wadah, semula tidak dikutip task mana pun — kini dibebankan ke `BE-LAB-12`. Tujuh dimensi cakupan kini terperiksa | `DRAFT` |
+| 20 | 2026-09-04 | **Pembaruan bukti pelaksanaan frontend, ditulis `build-module-frontend`.** `FE-LAB-01` selesai: kerangka tujuh lapis modul `laboratory-management` berdiri di frontend beserta kontrak penanganan state yang dipakai seluruh layar berikutnya. `CAP-22` dan `CAP-23` berpindah dari sekadar `Ready to reuse` menjadi **benar-benar terpakai**, dengan buktinya. Task ini tidak memindahkan satu pun baris FR karena memang tidak menjawab requirement bisnis; ia menopang sembilan task frontend sesudahnya. Satu catatan lingkungan dibuka: script `npm run test:unit` memakai pola glob yang tidak dikembangkan test runner Node 20 yang terpasang, sehingga suite hanya berjalan lewat bentuk perintah `--test tests/unit/` | `DRAFT` |
+| 19 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** Kelima baris `FR-09.1` sampai `FR-09.5` berpindah menjadi **`SELESAI`** oleh `BE-LAB-07`. `AC-43` terbukti tanpa satu baris tagihan pun terbentuk, `AC-47` dan `AC-48` terbukti lewat ketiadaan — nol entity tarif dan nol jalur ubah — dan `AC-51` terbukti lewat `VAL-46`. Satu batas dicatat: penegakan `INV-22` menuntut disiplin pesanan **dan** disiplin katalog sama-sama diketahui, sehingga cakupannya masih bergantung pada pengisian nilai disiplin yang menunggu penggolongan dari pihak klinis | `DRAFT` |
+| 18 | 2026-09-04 | **Dependency eksternal dikerjakan, ditulis `build-module-backend`.** `BE-EXT-01`, `BE-EXT-02`, dan `BE-EXT-03` tidak lagi menahan siapa pun: kolom `MstProcedure.LabDiscipline`, dua data induk perujuk, dan dua penunjuk perujuk pada `TrxPatientEncounter` semuanya sudah ada dan sudah diterapkan ke dev pemilik. Lima baris `FR-08.2`, `FR-08.3`, `FR-08.4`, `FR-09.1`, dan `FR-09.5` berpindah dari `Menunggu eksternal` menjadi menunggu task Laboratorium sendiri — kecuali `FR-08.4`, yang idempotensinya masih menuntut endpoint `INT-05` milik `registration-management`. Bentuk teknis `INT-05` ditulis pada `contracts/integration-contract.md` bagian 2b | `DRAFT` |
+| 17 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-10.1` dan `FR-10.2` berpindah menjadi **`SELESAI`** oleh `BE-LAB-15`. `AC-42` terbukti bersama `AC-19`: penelusuran seluruh tipe, anggota, entity, dan route Laboratorium tidak menemukan satu pun yang melayani Bank Darah maupun stok, pembelian, dan pemakaian reagen | `DRAFT` |
+| 16 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** Keempat baris `FR-04.1` .. `FR-04.4` berpindah menjadi **`SELESAI`** oleh `BE-LAB-14`. `FR-01.4` ikut naik dari `SELESAI SEBAGIAN` menjadi **`SELESAI`**: kolom `CitoTurnaroundMinutes` yang disediakan `BE-LAB-02` kini benar-benar dipakai menghitung keterlambatan, sehingga `AC-17` yang selama ini menunggu akhirnya terbukti | `DRAFT` |
+| 15 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-01.1`, `FR-01.2`, dan `FR-01.3` berpindah menjadi **`SELESAI`** oleh `BE-LAB-10`: kesegeraan dan penanda duplo melekat pada pemeriksaan, `VAL-03` menjawab `403` dan `VAL-04` menjawab `409`, dan setiap penandaan meninggalkan satu baris riwayat berlingkup `LabExamination`. `AC-40` dijaga dua arah — penanda duplo hanya mengenai baris yang ditandai, dan ketiadaan endpoint kesegeraan pada grup `Lab Order` ikut diuji | `DRAFT` |
+| 14 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-02.4` dan `FR-02.6` berpindah menjadi **`SELESAI SEBAGIAN`** oleh `BE-LAB-11`: keenam kolom salinan tarif lepas dari `LabSpecimen` dan utuh pada `LabExamination`, dan migration `SplitLabSpecimenIntoExamination` berikut skrip maju dan mundurnya sudah ada. Migration dijalankan dua arah terhadap `QuilvianNewDevYoga` — maju, mundur, lalu maju lagi — sehingga keduanya menjadi **`SELESAI`**. `LAB-OPEN-012` tetap terbuka untuk produksi, tetapi prasyaratnya kini ditegakkan migration itu sendiri, dan penjaganya lolos dua kali pada dev pemilik sehingga jawaban `0` terverifikasi ulang oleh mesin. Empat baris `FR-05.1` .. `FR-05.4` yang masih tertulis `Direncanakan` diperbarui mengikuti `BE-LAB-13` yang sudah selesai, termasuk `AC-13` yang terbukti 2026-09-04 | `DRAFT` |
 | 13 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-02.2`, `FR-02.3`, dan `FR-02.5` diperbarui oleh `BE-LAB-12`: `AC-36` terbukti — menolak wadah menggugurkan seluruh pemeriksaan yang ditopangnya — dan `VAL-13` ditegakkan secara struktural. `VAL-05` sampai `VAL-15` masing-masing punya ujinya, termasuk `VAL-09` empat mata yang ditulis sebagai kode di dalam service. `FR-02.4` dan `FR-02.6` keluar dari `BLOCKED` setelah `LAB-OPEN-012` dijawab dengan angka `0`. `AC-37` baru terbukti pada tingkat status; penerbitan fakta per pemeriksaan tetap milik `BE-LAB-13` | `DRAFT` |
 | 12 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-02.1` naik dari `SELESAI SEBAGIAN` menjadi **`SELESAI`**: `BE-LAB-16` melengkapi entity dari `BE-LAB-09` dengan empat endpoint, sehingga `AC-35` kini terbukti ujung-ke-ujung — dua pemeriksaan ditambahkan lewat `POST /by-order` lalu terbaca lewat `GET /by-specimen` dengan satu barcode yang sama. `VAL-17` .. `VAL-20` masing-masing punya ujinya, dan batas terpenting task itu terbukti: membatalkan satu pemeriksaan tidak mengubah pemeriksaan lain maupun status wadahnya | `DRAFT` |
 | 11 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-02.1` berpindah dari `Direncanakan` menjadi **`SELESAI SEBAGIAN`**: entity `LabExamination` tuntas pada `BE-LAB-09` berikut pembuatan dan eksekusi migration dua arah, sementara endpoint beserta penolakannya menunggu `BE-LAB-16`. `AC-35` dan `AC-40` terbukti pada tingkat struktur. Satu risiko dicatat: keenam kolom yang harus pindah dari `TrxLabSpecimen` belum dipindahkan karena `BE-LAB-11` masih `BLOCKED` oleh `LAB-OPEN-012`, sehingga salinan tarif untuk sementara ada di dua tempat. Satu pertentangan dokumen dicatat: kamus data bagian 4 menuntut kolom baru pada `TrxLabTransitionHistory`, sedangkan roadmap bagian 8.3 menyatakan tabel itu tanpa pekerjaan struktur | `DRAFT` |
