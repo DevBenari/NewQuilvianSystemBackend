@@ -764,6 +764,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprHandover> OprHandovers { get; set; }
         public DbSet<OprStatusHistory> OprStatusHistories { get; set; }
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
+        public DbSet<PhmPrescriptionCopy> PhmPrescriptionCopies { get; set; }
+        public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
+
         public DbSet<MstOperatingRoomStockSource> MstOperatingRoomStockSources { get; set; }
 
         #endregion
