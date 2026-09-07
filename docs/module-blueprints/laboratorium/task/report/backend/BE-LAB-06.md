@@ -200,7 +200,7 @@ menonaktifkan yang terakhir.
 | `Areas/HealthServices/LaboratoryManagement/Seeders/LabRejectionReasonSeeder.cs` | **Baru.** Mengisi sepuluh alasan baseline bila kodenya belum ada. Tidak pernah menimpa baris yang sudah tersimpan dan tidak menghidupkan kembali baris yang sudah dihapus |
 | `Areas/HealthServices/LaboratoryManagement/DTOs/LabSpecimenDtos.cs` | `LabRejectionReasonResponse` **dipindahkan** ke `LabRejectionReasonDtos.cs`. Namespacenya sama persis, sehingga tidak ada satu pun `using` maupun pemanggil yang perlu diubah |
 | `Program.cs` | Registrasi `LabRejectionReasonService` sebagai scoped service, dan `LabRejectionReasonSeeder` pada daftar seeder startup setelah `AccessMenuSeeder` |
-| `QuilvianSystemBackend.Tests/HealthServices/LaboratoryManagement/LabRejectionReasonServiceTests.cs` | **Baru.** 34 uji: kelima baris `AC-26`, ketiga aturan validasi, bentuk kontrak kelima endpoint, keutuhan jalur baca lama, dan perilaku seeder |
+| `tests/QuilvianSystemBackend.UnitTests.InMemory/HealthServices/LaboratoryManagement/LabRejectionReasonServiceTests.cs` | **Baru.** 34 uji: kelima baris `AC-26`, ketiga aturan validasi, bentuk kontrak kelima endpoint, keutuhan jalur baca lama, dan perilaku seeder |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
@@ -276,8 +276,8 @@ disentuh. Bentuk muatannya hanya bertambah satu ruas `IsActive`.
 | --- | --- | --- | --- |
 | `dotnet build QuilvianSystemBackend.csproj` | Berhasil, `0 Error(s)`, `186 Warning(s)` | `PASS` | Keluaran perintah. Tidak ada satu pun warning yang berasal dari berkas baru task ini — diperiksa dengan menyaring keluaran build pada kata `LabRejectionReason`, hasilnya kosong |
 | `dotnet test --filter "FullyQualifiedName~LabRejectionReason"` | `Failed: 0, Passed: 34, Total: 34` | `PASS` | Keluaran perintah |
-| Seluruh suite `QuilvianSystemBackend.Tests` | `Failed: 1, Passed: 963, Total: 964` | `EXISTING / ENVIRONMENT ISSUE` | Satu-satunya kegagalan adalah `BillingManagement.BillingFinalizationServiceTests.NormalFinalizationRequiresFullySettledOutstandingAndSetsInvoiceDate`, milik modul Billing. Kegagalan yang sama sudah tercatat pada laporan [`BE-LAB-04`](BE-LAB-04.md) bagian 5 dan [`BE-LAB-05`](BE-LAB-05.md) bagian 5, jauh sebelum task ini |
-| Seluruh suite `QuilvianSystemBackend.BillingTests` | `Failed: 52, Passed: 34, Total: 86` | `EXISTING / ENVIRONMENT ISSUE` | Kelima puluh dua kegagalan memakai satu pesan yang sama: `BLOCKED_BY_TEST_DB_CONFIGURATION` karena environment variable `QUILVIAN_BILLING_TEST_DB` belum diisi. Penjaga itu sengaja dipasang setelah temuan `RJ-BIL-BE-002` supaya integration test tidak pernah lagi menerapkan migration ke database dev bersama. Menyediakan database test adalah wewenang terpisah yang tidak dimiliki task ini |
+| Seluruh suite `QuilvianSystemBackend.UnitTests.InMemory` | `Failed: 1, Passed: 963, Total: 964` | `EXISTING / ENVIRONMENT ISSUE` | Satu-satunya kegagalan adalah `BillingManagement.BillingFinalizationServiceTests.NormalFinalizationRequiresFullySettledOutstandingAndSetsInvoiceDate`, milik modul Billing. Kegagalan yang sama sudah tercatat pada laporan [`BE-LAB-04`](BE-LAB-04.md) bagian 5 dan [`BE-LAB-05`](BE-LAB-05.md) bagian 5, jauh sebelum task ini |
+| Seluruh suite `QuilvianSystemBackend.IntegrationTests.Postgres` | `Failed: 52, Passed: 34, Total: 86` | `EXISTING / ENVIRONMENT ISSUE` | Kelima puluh dua kegagalan memakai satu pesan yang sama: `BLOCKED_BY_TEST_DB_CONFIGURATION` karena environment variable `QUILVIAN_BILLING_TEST_DB` belum diisi. Penjaga itu sengaja dipasang setelah temuan `RJ-BIL-BE-002` supaya integration test tidak pernah lagi menerapkan migration ke database dev bersama. Menyediakan database test adalah wewenang terpisah yang tidak dimiliki task ini |
 | `tooling/qbe/Invoke-QbeConformanceCheck.ps1` | `Files evaluated: 34`, `VIOLATION: 0`, `REVIEW: 0`, `INFO: 0`, `Final result: PASS` | `PASS` | Keluaran perintah |
 | `AC-26` — kepala instalasi menambah "Sampel tidak diberi label" | Alasan tersimpan, langsung aktif, kedua penanda bernilai bawaan | `PASS` | `AC26_KepalaInstalasiMenambahAlasanBaru_LangsungTersimpanDanAktif` |
 | `AC-26` — penanda terkunci tidak dapat diisi dari permintaan pembuatan | `CreateLabRejectionReasonRequest` terbukti tidak punya kedua ruas itu | `PASS` | `AC26_PermintaanMembuatAlasan_TidakPunyaRuasPenandaTerkunciSamaSekali` |
@@ -307,7 +307,7 @@ database berjalan; wewenang eksekusi database tidak diberikan pada task ini.
 | --- | --- |
 | Penyaringan `Search` pada `GET /` | `EF.Functions.ILike` hanya ada pada provider PostgreSQL, sedangkan bukti ini berjalan di atas provider InMemory supaya tidak menuntut database mana pun. Jalur ini memakai pola yang sama persis dengan `LabValueBoundService.GetListAsync` yang sudah berjalan sejak `BE-LAB-04` |
 | Penjaga terakhir `VAL-36` di tingkat database | Index unik fisik tidak ditegakkan provider InMemory. Yang diuji di sini adalah pemeriksaan di service. Index `IX_MstLabRejectionReason_ReasonCode` beserta filter `IsDelete = false` sudah ada sejak migration 2026-08-24 dan tidak disentuh task ini |
-| `LaboratorySpecimenLifecycleTests.AlasanPenolakanOther_WajibDisertaiCatatan` | Termasuk 52 uji `QuilvianSystemBackend.BillingTests` yang terhalang `QUILVIAN_BILLING_TEST_DB`. Uji inilah yang seharusnya membuktikan `VAL-12` pada jalur baca lama secara runtime; sebagai gantinya keutuhan jalur itu dibuktikan lewat bukti bentuk kontrak |
+| `LaboratorySpecimenLifecycleTests.AlasanPenolakanOther_WajibDisertaiCatatan` | Termasuk 52 uji `QuilvianSystemBackend.IntegrationTests.Postgres` yang terhalang `QUILVIAN_BILLING_TEST_DB`. Uji inilah yang seharusnya membuktikan `VAL-12` pada jalur baca lama secara runtime; sebagai gantinya keutuhan jalur itu dibuktikan lewat bukti bentuk kontrak |
 | Perintah database apa pun | Task ini tidak menyentuh schema, sehingga tidak ada migration yang perlu dibuat maupun dijalankan |
 
 ---
@@ -333,7 +333,7 @@ database berjalan; wewenang eksekusi database tidak diberikan pada task ini.
 | `VAL-36` terbukti | **Terpenuhi** | Dua uji: kode ganda dan kode ganda beda huruf besar-kecil |
 | `VAL-37` terbukti | **Terpenuhi** | Tiga uji: penanda kesalahan internal, penanda wajib catatan, dan sifat menyeluruh penolakannya |
 | `VAL-38` terbukti | **Terpenuhi** | `VAL38_MenonaktifkanAlasanAktifTerakhir_Ditolak` |
-| Jalur baca lama tidak berubah perilakunya | **Terpenuhi pada tingkat kontrak, belum pada tingkat runtime** | Route, verb, hak akses, dan ketujuh ruas asli muatannya terbukti utuh lewat dua uji. Pembuktian runtimenya ada pada `QuilvianSystemBackend.BillingTests`, yang seluruhnya terhalang `QUILVIAN_BILLING_TEST_DB` — lihat bagian 5 |
+| Jalur baca lama tidak berubah perilakunya | **Terpenuhi pada tingkat kontrak, belum pada tingkat runtime** | Route, verb, hak akses, dan ketujuh ruas asli muatannya terbukti utuh lewat dua uji. Pembuktian runtimenya ada pada `QuilvianSystemBackend.IntegrationTests.Postgres`, yang seluruhnya terhalang `QUILVIAN_BILLING_TEST_DB` — lihat bagian 5 |
 | Cakupan tambahan roadmap — pemisahan tegas kolom yang boleh dan tidak boleh diubah kepala instalasi | **Terpenuhi** | Pemisahan ditegakkan dua lapis: hak akses `SystemFlag` pada endpoint penyetelan, dan `VAL-37` di dalam service |
 
 Butir yang belum terpenuhi sepenuhnya disebut apa adanya pada baris keenam tabel di atas.
@@ -345,7 +345,7 @@ Butir yang belum terpenuhi sepenuhnya disebut apa adanya pada baris keenam tabel
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Build menghasilkan 186 warning, seluruhnya warning dokumentasi XML (`CS1573`, `CS1574`, `CS1587`) yang sudah ada sebelum task ini. Tidak satu pun berasal dari berkas baru task ini |
-| Masalah yang diketahui | `QuilvianSystemBackend.BillingTests` tidak dapat dijalankan tanpa environment variable `QUILVIAN_BILLING_TEST_DB`. Satu uji di dalamnya, `AlasanPenolakanOther_WajibDisertaiCatatan`, adalah bukti runtime `VAL-12` bagi jalur baca lama. Ini pembatas lingkungan yang berlaku untuk seluruh repository, bukan akibat task ini |
+| Masalah yang diketahui | `QuilvianSystemBackend.IntegrationTests.Postgres` tidak dapat dijalankan tanpa environment variable `QUILVIAN_BILLING_TEST_DB`. Satu uji di dalamnya, `AlasanPenolakanOther_WajibDisertaiCatatan`, adalah bukti runtime `VAL-12` bagi jalur baca lama. Ini pembatas lingkungan yang berlaku untuk seluruh repository, bukan akibat task ini |
 | Risiko tersisa | **Rendah untuk jalur teknis, sedang untuk jalur organisasi.** Endpoint `PUT /{id}/system-flags` sudah berdiri, tetapi **siapa pemegang `LabRejectionReason : SystemFlag` belum ditetapkan manajemen rumah sakit**. Selama belum, tidak ada akun yang dapat menyetel penanda biaya lewat aplikasi, sehingga alasan yang ditambahkan kepala instalasi akan selalu bernilai "bukan kesalahan internal" — artinya pengambilan ulang untuk alasan-alasan baru itu **dapat ditagihkan kepada pasien** sampai administrator sistem menyetelnya. Ini keadaan yang perlu diketahui Billing, bukan cacat teknik. Bentuknya sejenis dengan risiko terbuka `LabCriticalBound : Approve` pada `BE-LAB-05` |
 | Risiko tersisa kedua | Grup ini belum punya `GET /filters/metadata`, `/summary`, `/options`, dan `GET /{id}` sebagaimana standar master data. Bila `FE-LAB-03` kelak membutuhkannya, penambahannya adalah amandemen kontrak yang harus lewat pemilik blueprint — lihat bagian 3.4 butir 1 |
 | Perubahan sampingan | `NONE` |
@@ -356,7 +356,7 @@ Butir yang belum terpenuhi sepenuhnya disebut apa adanya pada baris keenam tabel
 ### 7.1 Status Git
 
 Perintah `git status --short` pada akhir pekerjaan. Branch `yoga`, tidak ada operasi Git yang
-dijalankan — tidak ada `add`, `commit`, `push`, `merge`, maupun `rebase`.
+dijalankan dari sesi ini — tidak ada `add`, `commit`, `push`, `merge`, maupun `rebase`.
 
 **Berkas milik task ini:**
 
@@ -369,7 +369,7 @@ dijalankan — tidak ada `add`, `commit`, `push`, `merge`, maupun `rebase`.
 ?? Areas/HealthServices/LaboratoryManagement/DTOs/LabRejectionReasonDtos.cs
 ?? Areas/HealthServices/LaboratoryManagement/Seeders/LabRejectionReasonSeeder.cs
 ?? Areas/HealthServices/LaboratoryManagement/Services/LabRejectionReasonService.cs
-?? QuilvianSystemBackend.Tests/HealthServices/LaboratoryManagement/LabRejectionReasonServiceTests.cs
+?? tests/QuilvianSystemBackend.UnitTests.InMemory/HealthServices/LaboratoryManagement/LabRejectionReasonServiceTests.cs
 ?? docs/module-blueprints/laboratorium/task/report/backend/BE-LAB-06.md
 ```
 
@@ -379,6 +379,46 @@ dijalankan — tidak ada `add`, `commit`, `push`, `merge`, maupun `rebase`.
 keempat configurationnya, kedua controller dan service batas nilai, ketiga migration
 `20260902*`, keempat berkas uji batas nilai, serta laporan `BE-LAB-02` sampai `BE-LAB-05`.
 Tidak satu pun di antaranya diubah, dipulihkan, atau dibuang.
+
+### 7.2 Perubahan keadaan repository sesudah laporan ini ditulis
+
+Beberapa saat setelah bagian 7.1 dicatat, repository berubah dari luar sesi ini. `git log`
+mencatat tiga peristiwa berurutan: commit `c8fc5cb updates BE modul lab` yang meng-commit
+seluruh pekerjaan `BE-LAB-01` .. `BE-LAB-06`, lalu merge Pull Request #77
+`RepairStrukturProject`, lalu merge `QuilvianIntegrationBackend` ke `yoga` — HEAD menjadi
+`17a331b`.
+
+Pull Request #77 merombak susunan project test:
+
+| Sebelum | Sesudah |
+| --- | --- |
+| `QuilvianSystemBackend.Tests` di akar repository | `tests/QuilvianSystemBackend.UnitTests.InMemory` |
+| `tests/QuilvianSystemBackend.BillingTests` | `tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
+| — | `tests/QuilvianSystemBackend.UnitTests.Sqlite` (baru) |
+
+**Akibat yang perlu diketahui.** Perombakan itu menghapus `.csproj` project test lama, tetapi
+lima berkas uji Laboratorium tertinggal di jalur lamanya tanpa project mana pun yang
+mengompilasinya — termasuk `LabRejectionReasonServiceTests.cs` milik task ini. Selama keadaan
+itu berlangsung, seluruh bukti uji `BE-LAB-02`, `BE-LAB-04`, `BE-LAB-05`, dan `BE-LAB-06`
+**tidak dijalankan siapa pun**, dan project utama pun gagal dikompilasi karena keluaran build
+project lama ikut tersapu masuk ke dalamnya.
+
+Kelima berkas itu telah dipindahkan ke
+`tests/QuilvianSystemBackend.UnitTests.InMemory/HealthServices/LaboratoryManagement/`. Namespace
+tidak perlu diubah sama sekali, karena project baru mempertahankan
+`RootNamespace` `QuilvianSystemBackend.Tests`. Sisa keluaran build project lama dihapus.
+
+Bukti sesudah pemindahan:
+
+| Perintah | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.sln` | `0 Error(s)`, `23 Warning(s)` | `PASS` |
+| `dotnet test ...UnitTests.InMemory --filter "FullyQualifiedName~LaboratoryManagement"` | `Failed: 0, Passed: 120, Total: 120` | `PASS` |
+| `dotnet test ...UnitTests.InMemory` seluruhnya | `Failed: 1, Passed: 1000, Total: 1001` | `EXISTING / ENVIRONMENT ISSUE` — kegagalan Billing yang sama seperti bagian 5 |
+
+Seluruh jalur berkas uji pada laporan ini sudah disesuaikan ke susunan baru. Laporan
+`BE-LAB-02`, `BE-LAB-04`, dan `BE-LAB-05` **masih memuat jalur lama** dan menjadi utang
+pembukuan pemilik blueprint.
 
 Dua baris pada diff `Program.cs` — registrasi `LabValueBoundService` dan
 `LabCriticalBoundApprovalService` — tampak sebagai penambahan karena keduanya milik `BE-LAB-04`

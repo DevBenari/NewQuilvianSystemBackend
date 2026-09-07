@@ -3,11 +3,11 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
+| `contract_version` | `0.6.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | Belum ada |
-| `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `6` |
+| `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
 
@@ -72,6 +72,20 @@ seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 > | Baris `PATCH /{id}/availability` naik dari `Rencana perubahan perilaku` menjadi **`Diterapkan`** | `BE-RWI-006` |
 >
 > Tidak ada lagi baris berstatus `Rencana` pada dokumen ini.
+
+### Perubahan pada `contract_version` `0.5.0` dan `0.6.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Bagian baru **Deposit Rawat Inap** pada `BillingManagement`, berisi tujuh baris: tiga rute `patient-funds` yang sudah ada dan empat rute baru | `EPIC RI-35`, `FR-RI-163` s.d. `FR-RI-178` |
+| `POST /patient-funds/deposits/{encounterId}/top-ups` wajib menerima dan menyimpan `episodeId` | `FR-RI-163`, `RWI-DEC-093` |
+| Rute baru `GET /patient-funds/deposit-policies` sebagai sumber minimum deposit pada langkah admisi | `FR-RI-175`, `RWI-DEC-094` |
+| Rute baru `GET /patient-funds/deposits/episodes/{episodeId}`, `POST …/settle`, dan `POST …/refunds` | `FR-RI-167`, `FR-RI-170`, `FR-RI-171` |
+| Usulan base URL `billing-management/inpatient-deposits` **dicabut** sebelum sempat dipakai | `04-prd-to-mvp.md` `0.6.0` |
+| `GET /monitoring/deposit-shortfall` sebagai daftar pantau kekurangan deposit | `FR-RI-177`, `RWI-DEC-096` |
+
+Tidak ada endpoint yang dihapus. Seluruh perubahan aditif, kecuali penambahan `episodeId` pada
+`top-ups` yang bersifat **aditif pada request body** dan tidak mengubah pemanggilan lama.
 
 Base URL modul: `api/v1/health-services/inpatient-management/`
 
@@ -185,6 +199,31 @@ dikejar, bukan hanya bahwa tombol tutup masih mati.
 
 ---
 
+## Health Services / Billing Management / Deposit Rawat Inap
+
+Base URL: `api/v1/health-services/billing-management/billing/patient-funds`
+
+Bagian ini **milik `BillingManagement`**, bukan `InPatientManagement`. Ia dicantumkan di sini karena
+`EPIC RI-35` bergantung padanya dan karena `EpisodeId` adalah kontrak lintas modulnya. Tidak boleh
+ada controller deposit di area Rawat Inap.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/deposits/{encounterId}` | Membaca akun deposit satu kunjungan | `BillingDeposit : Read` | – | `ApiResponse<BillingDepositResponse>` | ✅ **Tersedia** — `BillingPatientFundsController.cs:67` |
+| `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up | `BillingDeposit : Create` | `TopUpDepositRequest` | `ApiResponse<BillingDepositResponse>` | ⚠️ **Tersedia, perlu `EXTEND`** — wajib menerima dan menyimpan `episodeId` |
+| `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | ⚠️ **Tersedia, perlu `EXTEND`** |
+| `GET` | `/deposit-policies` | Kebijakan deposit untuk kombinasi penjamin dan kelas perawatan | `BillingDeposit : Read` | `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | **Rencana `0.6.0`** |
+| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | **Rencana `0.6.0`** |
+| `POST` | `/deposits/episodes/{episodeId}/settle` | Alokasi deposit terhadap tagihan final beserta selisihnya | `BillingDeposit : Settle` | `SettleEpisodeDepositRequest` | `ApiResponse<EpisodeDepositSettlementResponse>` | **Rencana `0.6.0`** |
+| `POST` | `/deposits/episodes/{episodeId}/refunds` | Refund atau penyelesaian kelebihan deposit | `BillingDeposit : Refund` | `RefundEpisodeDepositRequest` | `ApiResponse<EpisodeDepositRefundResponse>` | **Rencana `0.6.0`** |
+
+**Ringkasan episode wajib memuat dua angka kekurangan yang berbeda.** Kekurangan terhadap **minimum
+kebijakan** dipakai langkah admisi dan daftar pantau; kekurangan terhadap **tagihan final** dipakai
+settlement dan gerbang `FinancialClearance`. Menyatukan keduanya membuat episode yang depositnya
+kurang tampak seperti episode yang tagihannya kurang.
+
+---
+
 ## Health Services / Inpatient Management / Inpatient Census
 
 Base URL: `api/v1/health-services/inpatient-management/census`
@@ -205,6 +244,7 @@ Base URL: `api/v1/health-services/inpatient-management/monitoring`
 | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/pending-closures` | Daftar pantau episode yang sudah boleh pulang tetapi belum ditutup melewati ambang waktu | `InpatientMonitoring : Read` | Query | `ApiResponse<PendingClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `GET` | `/closures-without-financial-clearance` | Daftar pantau episode yang ditutup menembus gerbang keuangan | `InpatientMonitoring : Read` | Query | `ApiResponse<OverrideClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/deposit-shortfall` | Daftar pantau episode aktif yang depositnya masih di bawah minimum kebijakan, muncul kembali tiap kelipatan ambang tindak lanjut | `InpatientMonitoring : Read` | Query | `ApiResponse<DepositShortfallPagedResult>` | **Rencana `0.6.0`** — angka kekurangan dibaca dari ringkasan episode Billing, bukan dihitung ulang |
 | `GET` | `/unassigned-nurse-episodes` | Daftar episode aktif yang belum punya perawat penanggung jawab | `InpatientMonitoring : Read` | Query | `ApiResponse<UnassignedNursePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `GET` | `/bed-drift` | Laporan selisih antara salinan status tempat tidur dan catatan penempatan | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |

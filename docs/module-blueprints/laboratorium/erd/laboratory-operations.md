@@ -28,7 +28,7 @@ erDiagram
         timestamp CompletedAt
         int Version "concurrency token"
     }
-    TrxLabSpecimen {
+    LabSpecimen {
         uuid Id PK
         uuid LabOrderId FK
         varchar SpecimenBarcode UK "64, unik"
@@ -64,7 +64,7 @@ erDiagram
         boolean IsDuplo
         int Version "concurrency token"
     }
-    TrxLabTransitionHistory {
+    LabTransitionHistory {
         uuid Id PK
         uuid LabOrderId FK
         uuid LabSpecimenId FK "boleh kosong"
@@ -91,19 +91,19 @@ erDiagram
         int SortOrder
     }
 
-    LabOrder ||--o{ TrxLabSpecimen : "1:N — Diperbarui"
+    LabOrder ||--o{ LabSpecimen : "1:N — Diperbarui"
     LabOrder ||--o{ LabExamination : "1:N — Baru"
-    TrxLabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
-    TrxLabSpecimen |o--o| TrxLabSpecimen : "0:1 — Sudah ada, ambil ulang"
-    MstLabRejectionReason ||--o{ TrxLabSpecimen : "1:N — Sudah ada"
-    LabOrder ||--o{ TrxLabTransitionHistory : "1:N — Diperbarui"
+    LabSpecimen ||--o{ LabExamination : "1:N — Baru, satu wadah menopang banyak pemeriksaan"
+    LabSpecimen |o--o| LabSpecimen : "0:1 — Sudah ada, ambil ulang"
+    MstLabRejectionReason ||--o{ LabSpecimen : "1:N — Sudah ada"
+    LabOrder ||--o{ LabTransitionHistory : "1:N — Diperbarui"
 ```
 
 ### Perubahan makna yang harus dibaca dengan teliti
 
 | Sebelum `LAB-DEC-024` | Sesudah |
 |---|---|
-| `TrxLabSpecimen` membawa `ProcedureId` dan salinan tarif | Keduanya pindah ke `LabExamination` |
+| `LabSpecimen` membawa `ProcedureId` dan salinan tarif | Keduanya pindah ke `LabExamination` |
 | Satu barcode = satu pemeriksaan | Satu barcode = satu wadah nyata, yang dapat menopang beberapa pemeriksaan |
 | Menolak satu baris = menolak satu pemeriksaan | Menolak satu wadah = menggugurkan seluruh pemeriksaan di atasnya |
 | Baris tagihan menunjuk identitas sampel | Baris tagihan menunjuk identitas pemeriksaan |

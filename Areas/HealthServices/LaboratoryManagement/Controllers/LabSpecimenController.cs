@@ -43,6 +43,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labSpecimenService = labSpecimenService;
         }
 
+        // Keterangan bentuk layar wadah: pilihan status, sebab ambil ulang, urutan, dan ukuran
+        // halaman.
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabSpecimenFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Specimen", Description = "Melihat daftar pilihan penyaring wadah sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = _labSpecimenService.GetFilterMetadata();
+
+            return Ok(ApiResponse<LabSpecimenFilterMetadataResponse>.Ok(
+                result,
+                "Metadata penyaring wadah sampel berhasil diambil."));
+        }
+
+        // Rekap wadah pada satu rentang waktu, termasuk pencacahan sebab pengambilan ulang.
+        // Bila rentangnya tidak dikirim, dipakai 30 hari terakhir.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabSpecimenSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Lab Specimen", Description = "Melihat rekap wadah sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            var akhir = endDate ?? DateTime.UtcNow;
+            var awal = startDate ?? akhir.AddDays(-30);
+
+            if (awal > akhir)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
+
+            var result = await _labSpecimenService.GetSummaryAsync(awal, akhir, cancellationToken);
+
+            return Ok(ApiResponse<LabSpecimenSummaryResponse>.Ok(
+                result,
+                "Rekap wadah sampel berhasil diambil."));
+        }
+
         [HttpGet("rejection-reasons")]
         [ProducesResponseType(typeof(ApiResponse<List<LabRejectionReasonResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Specimen", Description = "Melihat katalog alasan penolakan sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -86,6 +130,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<LabSpecimenResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Create", "Plan Lab Specimen", Description = "Merencanakan sampel dan komponen pemeriksaan", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("LabSpecimen", "Plan")]
         public Task<IActionResult> Plan(
@@ -127,15 +173,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labSpecimenService.ReceiveAsync(id, request, cancellationToken),
                 "Penerimaan sampel berhasil dicatat.");
 
-        /// <summary>
-        /// Menyatakan sampel layak periksa. Satu-satunya endpoint Laboratorium yang menerbitkan
-        /// fakta kelayakan tagih ke Billing.
-        /// </summary>
+        // Menyatakan sampel layak periksa. Satu-satunya endpoint Laboratorium yang menerbitkan
+        // fakta kelayakan tagih ke Billing.
         [HttpPost("{id:guid}/accept")]
         [ProducesResponseType(typeof(ApiResponse<LabSpecimenResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Accept Lab Specimen", Description = "Menyatakan sampel layak periksa", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> Accept(
@@ -151,6 +197,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Accept Lab Specimen", Description = "Menolak sampel dengan alasan terkendali", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> Reject(
@@ -166,6 +213,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Accept Lab Specimen", Description = "Meminta pengambilan ulang sampel", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> RequestRecollection(
@@ -207,10 +255,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labSpecimenService.ResumeAsync(id, request, cancellationToken),
                 "Sampel dilanjutkan.");
 
-        /// <summary>
-        /// Membatalkan sampel secara klinis. Pembatalan klinis bukan pembatalan finansial:
-        /// tagihan yang sudah terbentuk tidak dihapus, dan Billing yang menentukan koreksinya.
-        /// </summary>
+        // Membatalkan sampel secara klinis. Pembatalan klinis bukan pembatalan finansial:
+        // tagihan yang sudah terbentuk tidak dihapus, dan Billing yang menentukan koreksinya.
         [HttpPost("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<LabSpecimenResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -259,6 +305,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     StatusCodes.Status409Conflict,
                     exception.Message));
             }
+            catch (LabSpecimenForbiddenException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
+            }
+            catch (LabSpecimenConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    exception.Message));
+            }
+            catch (LabSpecimenValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    exception.Message));
+            }
             catch (ArgumentException exception)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -281,14 +345,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 Id = specimen.Id,
                 LabOrderId = specimen.LabOrderId,
-                ProcedureId = specimen.ProcedureId,
                 SpecimenBarcode = specimen.SpecimenBarcode,
                 SpecimenSequence = specimen.SpecimenSequence,
                 SpecimenDescription = specimen.SpecimenDescription,
                 SpecimenStatus = specimen.SpecimenStatus.ToString(),
-                ProcedureCode = specimen.ProcedureCodeSnapshot,
-                ProcedureName = specimen.ProcedureNameSnapshot,
-                UnitPrice = specimen.UnitPriceSnapshot,
                 CollectedAt = specimen.CollectedAt,
                 ReceivedAt = specimen.ReceivedAt,
                 DecidedAt = specimen.DecidedAt,

@@ -49,6 +49,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         // Baca
         // =================================================================
 
+        /// <summary>
+        /// Keterangan bentuk layar batas nilai. Tidak menyentuh database sama sekali.
+        /// </summary>
+        public LabValueBoundFilterMetadataResponse GetFilterMetadata() =>
+            LabFilterMetadataFactory.LabValueBound();
+
+        /// <summary>
+        /// Rekap batas nilai, dihitung dari baris yang belum ditandai terhapus.
+        ///
+        /// Tanpa rentang waktu. Batas nilai adalah data induk, bukan catatan kejadian — yang
+        /// ingin diketahui kepala instalasi adalah berapa banyak yang berlaku sekarang, bukan
+        /// berapa banyak yang dibuat bulan lalu.
+        /// </summary>
+        public async Task<LabValueBoundSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var rekap = await _dbContext.LabValueBounds
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Aktif = g.Count(x => x.IsActive),
+                    Nonaktif = g.Count(x => !x.IsActive),
+                    BentukAngka = g.Count(x => x.ResultForm == LabResultForm.Numeric),
+                    BentukPilihan = g.Count(x => x.ResultForm == LabResultForm.Choice),
+                    JumlahPemeriksaan = g.Select(x => x.ProcedureId).Distinct().Count()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var totalPilihan = await _dbContext.LabValueOptions
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete, cancellationToken);
+
+            // Batas nilai yang batas kritisnya sedang menunggu keputusan pihak klinis. Selama
+            // angka ini di atas nol, ada batas keselamatan yang perubahannya belum berlaku.
+            var menunggu = await _dbContext.LabValueBoundChangeRequests
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.RequestStatus == LabBoundChangeStatus.Submitted)
+                .Select(x => x.ValueBoundId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new LabValueBoundSummaryResponse
+            {
+                TotalBatasNilai = rekap?.Total ?? 0,
+                Aktif = rekap?.Aktif ?? 0,
+                Nonaktif = rekap?.Nonaktif ?? 0,
+                BentukAngka = rekap?.BentukAngka ?? 0,
+                BentukPilihan = rekap?.BentukPilihan ?? 0,
+                TotalPilihanHasil = totalPilihan,
+                MenungguPersetujuanBatasKritis = menunggu,
+                JumlahPemeriksaanBerbeda = rekap?.JumlahPemeriksaan ?? 0
+            };
+        }
+
         public async Task<PagedResult<LabValueBoundListResponse>> GetListAsync(
             LabValueBoundPagedQuery query,
             CancellationToken cancellationToken = default)

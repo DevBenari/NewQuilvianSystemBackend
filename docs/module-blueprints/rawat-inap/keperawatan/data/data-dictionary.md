@@ -41,7 +41,7 @@ dipakai sebagai contoh berisi data asli.
 | `TrxPatientIntegratedProgressNote` | `Sudah ada` | `ClinicalManagement` | `CAP-014` aturan 4 |
 | `InpEpisode` | `Sudah ada` | `InPatientManagement` | Konteks |
 | `InpNurseAssignment` | `Sudah ada` | `InPatientManagement` | Kewenangan |
-| *Pemakaian alat* | **`OPEN DECISION`** | **Belum diputuskan** | `CAP-016` |
+| *Pemakaian alat* | **`DEFERRED`** — `RWI-DEC-089` | **Sengaja ditunda**; masuk kembali setelah modul persediaan/aset ada | `CAP-016` |
 
 ---
 
@@ -65,7 +65,7 @@ sudah ada tidak diulang di sini; rujukannya
 | Kolom | Yang berubah |
 | --- | --- |
 | `QueueId` | Bentuknya **tidak berubah** — sudah `uuid?` sejak awal. Yang berubah adalah **kapan ia boleh kosong**: kini juga saat encounter punya episode rawat inap `Admitted`, bukan hanya saat pasien IGD |
-| `AssessmentStatus` | Bertambah satu nilai `Amended`. Nilai lama tidak bergeser artinya |
+| `AssessmentStatus` | **Nol perubahan** sejak revision `0.3`. Nilai `Amended` sempat direncanakan lalu dicabut `RWI-DEC-091`: koreksi disimpan mesin addendum `MedicalRecordManagement`, bukan sebagai status dokumen |
 
 ### 2.2 Kolom lama yang **sensitif** dan sudah ada
 
@@ -260,4 +260,4 @@ CREATE UNIQUE INDEX "UX_TrxNursingCarePlanItemRevision_Item_Version"
 | `InpNursingAssessment` atau `Inp*` apa pun untuk dokumentasi klinis | `RWI-DEC-081`, PRD 23.1 |
 | Salinan master alat | PRD 20 aturan 2 melarangnya |
 | Tabel asuhan gizi | PRD 23.1 menaruhnya pada modul Gizi |
-| Tabel pemakaian alat | **`OPEN DECISION`** — pemiliknya belum diputuskan |
+| Tabel pemakaian alat | **`DEFERRED`** — `RWI-DEC-089` mengeluarkannya dari scope rilis pertama; pemiliknya sengaja tidak diputuskan |

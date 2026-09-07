@@ -556,7 +556,6 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
-        public DbSet<MstBillingItemCategory> MstBillingItemCategories { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
@@ -591,7 +590,31 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
+        public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
+
+        // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan beserta butir masalahnya. Tabelnya
+        // milik ClinicalManagement - RWI-DEC-081 menaruh seluruh tabel dokumentasi klinis rawat
+        // inap di sini, bukan di InPatientManagement.
+        public DbSet<CliNursingCarePlan> CliNursingCarePlans { get; set; }
+        public DbSet<CliNursingCarePlanItem> CliNursingCarePlanItems { get; set; }
+
+        // BE-RWI-060 / AC-CAP013-02. Riwayat versi butir asuhan. Mesin versi, bukan mesin
+        // addendum: perubahan rencana asuhan adalah perkembangan klinis, bukan pembetulan
+        // kesalahan - RWI-DEC-091.
+        public DbSet<CliNursingCarePlanItemRevision> CliNursingCarePlanItemRevisions { get; set; }
+
+        // BE-RWI-061 / CAP-014. Catatan tindakan keperawatan. TrxPatientProcedure sengaja tidak
+        // dipakai ulang: ia mewajibkan ConsultationId dan DoctorId, dan melonggarkannya akan
+        // melemahkan penjagaan bagi tindakan dokter yang membutuhkan keduanya untuk penagihan.
+        public DbSet<CliNursingIntervention> CliNursingInterventions { get; set; }
+
         public DbSet<MstProcedure> MstProcedures { get; set; }
+
+        // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
+        // Jalan, dan IGD sama-sama menerima pasien rujukan.
+        public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
+
+        public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
@@ -606,6 +629,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
         public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu penyelesaian pengkajian, berversi lewat periode berlaku —
+        /// <c>BE-RWI-055</c>. Selama kosong, tidak satu pun pengkajian dinyatakan terlambat.
+        /// </summary>
+        public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
+
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
@@ -667,9 +697,11 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
-        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
+        public DbSet<LabSpecimen> LabSpecimens { get; set; }
 
-        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
+        public DbSet<LabExamination> LabExaminations { get; set; }
+
+        public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
@@ -755,6 +787,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
+
+        #region BLOOD BANK MANAGEMENT
+        public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
+        public DbSet<MstBloodStorageLocation> MstBloodStorageLocations { get; set; }
+        public DbSet<MstBloodBankReason> MstBloodBankReasons { get; set; }
+        #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE
 

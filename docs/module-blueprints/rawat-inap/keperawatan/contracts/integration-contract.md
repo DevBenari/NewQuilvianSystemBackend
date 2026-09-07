@@ -4,12 +4,14 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.1.0` |
-| `last_changed_in` | `0.1.0` |
+| Contract version | `0.3.0` |
+| `last_changed_in` | `0.3.0` |
+| Compatibility impact | `0.3.0`: satu integrasi baru **`INT-KEP-06`** — keutuhan dan koreksi dokumen keperawatan kepada `MedicalRecordManagement`, sesuai `RWI-DEC-091`. Lima integrasi lama tidak berubah |
 | Status | `draft` — belum disetujui manusia |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
-| `input_revision` | `02-backend-architecture.md` `0.1`; `PRD-RWI-FINAL-001` v1.0.0 |
+| `input_revision` | `02-backend-architecture.md` `0.3`; `PRD-RWI-FINAL-001` v1.0.0; decision log `13` |
+| Keputusan yang mengikat | `RWI-DEC-091`, `RWI-FACT-016`, `RM-DEC-019` (milik `MedicalRecordManagement`) |
 | Tanggal | 2 September 2026 |
 
 ---
@@ -96,4 +98,51 @@ tidak satu pun dari lima kemampuan dapat dipakai untuk pasien rawat inap.
 
 | Integrasi | Kenapa |
 | --- | --- |
-| Pemakaian alat ke persediaan dan Billing (`CAP-016`) | **Kepemilikan tabelnya belum diputuskan** — `02-backend-architecture.md` bagian 2.3. Menulis kontrak integrasi tanpa tahu siapa pemilik datanya berarti mengarang kepemilikan |
+| Pemakaian alat ke persediaan dan Billing (`CAP-016`) | **Kemampuannya `DEFERRED`** lewat `RWI-DEC-089`. Selain kepemilikan tabelnya yang sengaja ditunda, lawan integrasinya pun belum berwujud: `RWI-FACT-015` membuktikan tidak ada modul persediaan/aset di `Areas/`. Kontraknya ditulis setelah modul itu ada |
+
+---
+
+## 7. `INT-KEP-06` — Keutuhan dan koreksi dokumen keperawatan ★ **baru pada `0.3.0`**
+
+| Field | Isinya |
+| --- | --- |
+| Produsen dan pemilik | **`MedicalRecordManagement`** |
+| Konsumen | `ClinicalManagement` dan ruang kerja keperawatan |
+| Arah | Rawat Inap **memakai** mesin yang sudah ada, dan **meminta satu perluasan penegakan** |
+| Bentuk | Sinkron, di dalam transaksi yang sama dengan finalisasi dokumen |
+| Tujuan bisnis | Menandatangani, mengunci, dan **mengoreksi** pengkajian serta catatan tindakan keperawatan tanpa menimpa isi aslinya |
+| Keadaan modul tujuan | **Sudah ada dan sudah dipakai.** Catatan terpadu sudah mendaftar ke mesin ini, dan mesinnya sudah mengenal profesi perawat — `RWI-FACT-016` |
+
+### 7.1 Yang diminta
+
+| Hal | Isinya |
+| --- | --- |
+| Perubahan model | **Nol.** Tabel keutuhan, addendum, dan pendelegasian penulis dipakai apa adanya |
+| Nilai enum baru | **Nol.** `Assessment` dan `Procedure` sudah bernomor pada `ClinicalDocumentKind` |
+| Pendaftaran | Pengkajian didaftarkan sebagai `Assessment` saat berpindah ke `Completed`; catatan tindakan sebagai `Procedure` saat berpindah ke `Finalized` — keduanya **dalam transaksi yang sama** dengan finalisasinya |
+| Bila pendaftaran gagal | Finalisasi ikut batal. Tidak boleh ada dokumen final yang tidak dapat dikoreksi — celah itulah yang ditemukan `RWI-FACT-014` pada dokumen dokter |
+| **Perubahan perilaku yang diminta** | Menambahkan `Assessment` dan `Procedure` ke daftar jenis yang **ditegakkan**. Hari ini daftar itu hanya berisi `ProgressNote` sesuai `RM-DEC-019` |
+
+### 7.2 Kenapa perluasan penegakan itu wajib, bukan sekadar rapi
+
+Pembacaan source menemukan dua hal yang bila digabung menghasilkan jebakan diam:
+
+| Temuan | Akibatnya |
+| --- | --- |
+| `RegisterAsync` **tidak menyaring** jenis dokumen | Pendaftaran pengkajian dan tindakan **berhasil** hari ini juga |
+| `EnsureMutableAsync` **membiarkan lewat** jenis yang belum ditegakkan | Penguncian **tidak berlaku**. Dokumen final tetap dapat disunting |
+
+Gabungannya: bila dibangun apa adanya, pengkajian akan **terlihat terdaftar** pada mesin keutuhan sementara
+kuncinya tidak pernah menutup. Seluruh mesin status pada
+[`state-transition-matrix.md`](./state-transition-matrix.md) kehilangan penjaganya tanpa satu pun pesan
+error muncul. Kegagalan yang tidak berbunyi adalah kegagalan yang paling mahal di rekam medis.
+
+### 7.3 Keadaan
+
+| Field | Nilai |
+| --- | --- |
+| Butir terbuka | **`RWI-OQ-051`** |
+| Pemilik jawaban | Pemilik `MedicalRecordManagement`, **belum dinyatakan** |
+| Memblokir desain | **Tidak.** Bentuk kontraknya sudah dapat dikunci sekarang |
+| Memblokir implementasi | **Ya** — `BE-RWI-057` dan `BE-RWI-062` |
+| Bila ditolak | Kembali ke `/qv-grill`. **Jangan** membangun penjaga penguncian sendiri di `ClinicalManagement`; itu mesin koreksi tandingan yang dilarang `RWI-DEC-087` |

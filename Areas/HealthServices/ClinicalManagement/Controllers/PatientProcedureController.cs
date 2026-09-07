@@ -8,6 +8,9 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -44,6 +47,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly EncounterInsuranceService _encounterInsuranceService;
         private readonly InsuranceCoverageService _insuranceCoverageService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly InpatientClinicalContextService _inpatientClinicalContextService;
         private readonly LoggerService _loggerService;
 
         public PatientProcedureController(
@@ -51,12 +56,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             EncounterInsuranceService encounterInsuranceService,
             InsuranceCoverageService insuranceCoverageService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            ClinicalDocumentIntegrityService integrityService,
+            InpatientClinicalContextService inpatientClinicalContextService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
             _insuranceCoverageService = insuranceCoverageService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _integrityService = integrityService;
+            _inpatientClinicalContextService = inpatientClinicalContextService;
             _loggerService = loggerService;
         }
 
@@ -312,6 +321,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <summary>
+        /// Tindakan yang tercatat pada satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-051</c>, <c>api-contract.md</c> bagian 5. Terurut menurut waktu tindakan,
+        /// bukan waktu penyimpanan. Tindakan yang dibatalkan ikut ditampilkan supaya riwayat
+        /// klinisnya utuh.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePatientProcedurePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat tindakan satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientProcedure", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var query = _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete);
+
+            if (from.HasValue)
+                query = query.Where(x => x.ProcedureDateTime >= from.Value);
+
+            if (to.HasValue)
+                query = query.Where(x => x.ProcedureDateTime <= to.Value);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .OrderBy(x => x.ProcedureDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var hasil = new ResponsePatientProcedurePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(ToResponse).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePatientProcedurePagedResult>.Ok(
+                hasil, "Tindakan perawatan rawat inap berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -398,6 +460,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("PatientProcedure", "Create")]
         public async Task<IActionResult> CreateProcedure([FromBody] CreatePatientProcedureRequest request)
         {
+            // BE-RWI-051 kriteria 2. Kiriman ulang dengan kunci yang sama mengembalikan tindakan
+            // yang sudah ada, bukan tindakan kedua. Diperiksa PALING AWAL supaya percobaan ulang
+            // tidak menyentuh tarif, coverage, maupun fakta klinis sama sekali.
+            var kunciPermintaan = NormalizeNullableText(request.IdempotencyKey);
+
+            if (kunciPermintaan != null)
+            {
+                var sudahAda = await _dbContext.Set<TrxPatientProcedure>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.IdempotencyKey == kunciPermintaan && !x.IsDelete);
+
+                if (sudahAda != null)
+                {
+                    return Ok(ApiResponse<PatientProcedureCreateResponse>.Ok(
+                        ToCreateResponse(
+                            sudahAda,
+                            await ReadConsultationProcedureSummaryAsync(sudahAda.ConsultationId)),
+                        "Tindakan sudah tercatat sebelumnya dengan kunci permintaan yang sama."
+                    ));
+                }
+            }
+
             var validation = await ValidateCreateRequestAsync(request);
 
             if (!validation.IsValid)
@@ -510,6 +594,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 BenefitPlanNameSnapshot = insuranceContext.BenefitPlanName,
                 InsuranceTariffCodeSnapshot = insuranceTariffSnapshot?.InsuranceTariffCode,
                 InsuranceTariffNameSnapshot = insuranceTariffSnapshot?.InsuranceTariffName,
+
+                // BE-RWI-051. Konteks perawatan, tautan visite, dan kunci permintaan distempel
+                // saat tindakan lahir. Ketiganya nullable: tindakan poliklinik dan IGD tidak
+                // membawa satu pun dari ketiganya.
+                InpEpisodeId = request.InpEpisodeId,
+                PhysicianVisitId = request.PhysicianVisitId,
+                IdempotencyKey = kunciPermintaan,
 
                 ProcedureSource = request.ProcedureSource,
                 ProcedureStatus = request.ExecuteImmediately
@@ -939,6 +1030,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-051 kriteria 2. Tindakan yang sudah ditandai dikerjakan tidak dikerjakan
+            // ulang. Tanpa penjaga ini, permintaan yang diulang karena jaringan terputus
+            // menerbitkan fakta klinis kedua ke Billing - dan fakta kedua berujung pada pasien
+            // membayar dua kali untuk satu tindakan yang sama.
+            //
+            // Jawabannya 200, bukan 409: bagi dokter yang menekan tombol sekali lagi, hasilnya
+            // memang sudah tercapai. Menjawab 409 membuatnya mengira pencatatannya gagal.
+            if (entity.IsExecuted && entity.ProcedureStatus == PatientProcedureStatus.Completed)
+            {
+                return Ok(ApiResponse<object>.Ok(
+                    new { BillingHandoff = "AlreadyExecuted" },
+                    "Tindakan pasien sudah ditandai dikerjakan sebelumnya."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -956,6 +1062,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.FollowUpInstruction = NormalizeNullableText(request.FollowUpInstruction) ?? entity.FollowUpInstruction;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            // BE-RWI-038, RWI-AC-157. Menandai tindakan sudah dikerjakan sekaligus
+            // mendaftarkannya ke mesin keutuhan rekam medis sebagai dokumen tertanda tangan,
+            // pada SaveChanges yang sama.
+            //
+            // Kenapa satu SaveChanges: tindakan yang sudah Completed tidak dapat disunting
+            // lagi. Bila pendaftarannya gagal dan tetap dibiarkan, catatan tindakan itu tidak
+            // dapat disunting maupun dikoreksi selamanya. Karena itu kegagalan pendaftaran
+            // membatalkan penandaan, bukan didiamkan.
+            //
+            // Penanda tangan adalah PELAKSANA tindakan, karena dialah yang bertanggung jawab
+            // atas isi catatan pelaksanaan.
+            var authorUserId = entity.PerformedByUserId is { } pelaksana && pelaksana != Guid.Empty
+                ? pelaksana
+                : actorUserId;
+
+            try
+            {
+                await _integrityService.RegisterSignedAsync(
+                    ClinicalDocumentKind.Procedure,
+                    entity.Id,
+                    entity.PatientId,
+                    entity.EncounterId,
+                    authorUserId,
+                    deviceInfo: Request.Headers.UserAgent.ToString(),
+                    ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    nowUtc: now);
+            }
+            catch (InvalidOperationException pendaftaranGagal)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan tidak dapat ditandai dikerjakan karena pendaftaran pada rekam " +
+                    $"medis gagal: {pendaftaranGagal.Message}"
+                ));
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -1338,6 +1480,79 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (request.IsFreeOfCharge && string.IsNullOrWhiteSpace(request.FreeOfChargeReason))
                 return (false, "Alasan FOC wajib diisi.");
 
+            var konteksRawatInap = await ValidateInpatientMarkersAsync(request);
+
+            if (!konteksRawatInap.IsValid)
+                return konteksRawatInap;
+
+            return (true, null);
+        }
+
+        /// <summary>
+        /// Penjagaan penanda pasien, perawatan, dan kejadian visite pada pembuatan tindakan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-051</c> kriteria 1 dan 5, <c>VAL-DOK-26</c>. Ketiganya opsional: tindakan
+        /// poliklinik dan IGD tidak membawa satu pun dari ketiganya, dan menuntutnya akan
+        /// mematikan alur yang hari ini berjalan. Yang dijaga adalah <b>kecocokan</b> ketika
+        /// penandanya memang dikirim.
+        /// </para>
+        /// <para>
+        /// Keadaan perawatan sengaja tidak diperiksa di sini. Penjagaan perawatan yang sudah
+        /// ditutup melekat pada pintu masuk dokumen klinis, bukan pada tindakan yang lahir dari
+        /// catatan dokter yang sudah lolos pintu itu.
+        /// </para>
+        /// </remarks>
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateInpatientMarkersAsync(
+            CreatePatientProcedureRequest request)
+        {
+            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+                .AsNoTracking()
+                .Where(x => x.Id == request.EncounterId && !x.IsDelete)
+                .Select(x => new { x.Id, x.PatientId })
+                .FirstOrDefaultAsync();
+
+            if (encounter == null)
+                return (false, "Encounter tidak ditemukan.");
+
+            if (request.PatientId.HasValue &&
+                request.PatientId.Value != Guid.Empty &&
+                request.PatientId.Value != encounter.PatientId)
+            {
+                return (false,
+                    "Pasien pada tindakan tidak sesuai dengan pasien pada kunjungannya. " +
+                    "Periksa kembali pasien yang sedang Anda buka.");
+            }
+
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var konteks = await _inpatientClinicalContextService.ResolveAsync(
+                    request.EncounterId,
+                    expectedPatientId: request.PatientId,
+                    expectedEpisodeId: request.InpEpisodeId,
+                    forNewDocument: false);
+
+                if (!konteks.IsResolved)
+                {
+                    return (false,
+                        konteks.ErrorMessage ??
+                        "Perawatan rawat inap tidak sesuai dengan kunjungannya.");
+                }
+            }
+
+            if (request.PhysicianVisitId.HasValue && request.PhysicianVisitId.Value != Guid.Empty)
+            {
+                var visiteCocok = await _dbContext.Set<CliPhysicianVisit>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.PhysicianVisitId.Value
+                                   && x.EncounterId == request.EncounterId
+                                   && !x.IsDelete);
+
+                if (!visiteCocok)
+                    return (false, "Kejadian visite yang ditautkan bukan milik kunjungan yang sama.");
+            }
+
             return (true, null);
         }
 
@@ -1436,6 +1651,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 procedure.UpdateDateTime = now;
                 procedure.UpdateBy = actorUserId;
             }
+        }
+
+        /// <summary>
+        /// Membaca ringkasan tindakan satu catatan dokter <b>tanpa menulis apa pun</b>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-051</c> kriteria 2. Dipakai jalur kiriman ulang. Memakai versi yang menulis
+        /// akan menggeser waktu ubah catatan dokter setiap kali jaringan dokter terputus, dan
+        /// percobaan ulang yang seharusnya tidak berdampak apa-apa justru meninggalkan jejak.
+        /// </remarks>
+        private async Task<ProcedureSummaryResult> ReadConsultationProcedureSummaryAsync(
+            Guid consultationId)
+        {
+            var procedures = await _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ConsultationId == consultationId &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.ProcedureStatus != PatientProcedureStatus.Cancelled)
+                .OrderByDescending(x => x.IsPrimaryProcedure)
+                .ThenBy(x => x.ProcedureDateTime)
+                .Select(x => new { x.ProcedureCodeSnapshot, x.ProcedureNameSnapshot })
+                .ToListAsync();
+
+            var procedureText = procedures.Count == 0
+                ? null
+                : TruncateText(
+                    string.Join("; ", procedures.Select(x => $"{x.ProcedureCodeSnapshot} - {x.ProcedureNameSnapshot}")),
+                    2000
+                );
+
+            return new ProcedureSummaryResult
+            {
+                ProcedureText = procedureText,
+                ProcedureCount = procedures.Count,
+                HasProcedure = procedures.Count > 0
+            };
         }
 
         private async Task<ProcedureSummaryResult> UpdateConsultationProcedureSummaryAsync(

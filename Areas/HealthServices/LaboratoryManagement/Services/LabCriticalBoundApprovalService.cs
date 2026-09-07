@@ -59,6 +59,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         // Baca
         // =================================================================
 
+        /// <summary>
+        /// Keterangan bentuk layar pengajuan perubahan batas kritis. Tidak menyentuh database.
+        /// </summary>
+        public LabCriticalBoundApprovalFilterMetadataResponse GetFilterMetadata() =>
+            LabFilterMetadataFactory.LabCriticalBoundApproval();
+
+        /// <summary>
+        /// Rekap pengajuan untuk <b>satu</b> batas nilai. Route grup ini bersarang di bawah satu
+        /// batas nilai, sehingga rekap global tidak pernah dibentuk di sini.
+        ///
+        /// Batas nilainya diperiksa lebih dulu; batas yang tidak ada menghasilkan <c>404</c>,
+        /// bukan rekap kosong yang menyesatkan.
+        /// </summary>
+        public async Task<LabCriticalBoundApprovalSummaryResponse> GetSummaryAsync(
+            Guid valueBoundId,
+            CancellationToken cancellationToken = default)
+        {
+            await LoadBoundAsync(valueBoundId, tracking: false, cancellationToken);
+
+            var rekap = await _dbContext.LabValueBoundChangeRequests
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.ValueBoundId == valueBoundId)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Diajukan = g.Count(x => x.RequestStatus == LabBoundChangeStatus.Submitted),
+                    Disetujui = g.Count(x => x.RequestStatus == LabBoundChangeStatus.Approved),
+                    Ditolak = g.Count(x => x.RequestStatus == LabBoundChangeStatus.Rejected),
+                    Ditarik = g.Count(x => x.RequestStatus == LabBoundChangeStatus.Withdrawn)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new LabCriticalBoundApprovalSummaryResponse
+            {
+                ValueBoundId = valueBoundId,
+                TotalPengajuan = rekap?.Total ?? 0,
+                Diajukan = rekap?.Diajukan ?? 0,
+                Disetujui = rekap?.Disetujui ?? 0,
+                Ditolak = rekap?.Ditolak ?? 0,
+                Ditarik = rekap?.Ditarik ?? 0,
+                AdaPengajuanBelumDiputuskan = (rekap?.Diajukan ?? 0) > 0
+            };
+        }
+
         public async Task<List<LabBoundChangeRequestResponse>> GetListAsync(
             Guid valueBoundId,
             CancellationToken cancellationToken = default)

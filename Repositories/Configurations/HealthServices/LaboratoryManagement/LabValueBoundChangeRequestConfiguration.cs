@@ -26,7 +26,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             // Dua pemutus yang menyetujui pengajuan yang sama secara bersamaan tidak boleh
             // sama-sama berhasil; keduanya akan menulis batas kritis berbeda ke batas nilai
-            // yang sama. Pola yang sama sudah dipakai LabOrder dan TrxLabSpecimen (CAP-17).
+            // yang sama. Pola yang sama sudah dipakai LabOrder dan LabSpecimen (CAP-17).
             builder.Property(x => x.Version).IsConcurrencyToken();
 
             builder.HasIndex(x => x.ValueBoundId);

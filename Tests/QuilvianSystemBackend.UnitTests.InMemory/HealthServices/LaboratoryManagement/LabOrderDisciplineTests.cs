@@ -105,7 +105,7 @@ public class LabOrderDisciplineTests
         Assert.Equal(disiplin.ToString(), dibuat.Discipline);
         Assert.Equal(encounterId, dibuat.EncounterId);
 
-        var riwayat = await context.TrxLabTransitionHistories
+        var riwayat = await context.LabTransitionHistories
             .AsNoTracking()
             .Where(x => x.LabOrderId == dibuat.Id)
             .ToListAsync();

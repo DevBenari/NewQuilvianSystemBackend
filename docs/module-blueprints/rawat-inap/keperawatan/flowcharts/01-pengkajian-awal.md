@@ -49,7 +49,7 @@ flowchart TD
 | 3 | Mengisi pengkajian | Perawat | Keadaan pasien | Tersimpan bertahap | Isian tidak hilang; lanjutkan nanti |
 | 4 | Menyelesaikan | Perawat | Pengkajian lengkap | `Completed` | Sistem menyebut bagian yang kosong; lengkapi lalu ulangi |
 | 5 | Saran rujukan gizi | Sistem | Hasil skrining | Saran muncul | **Bukan penolakan.** Pengkajian tetap selesai |
-| 6 | Amandemen | Perawat atau kepala ruangan | Alasan perubahan | `Amended` beserta versi lama tersimpan | Alasan wajib diisi |
+| 6 | Koreksi | Perawat atau kepala ruangan | Alasan koreksi | Status **tetap** `Completed`; koreksi tersimpan sebagai catatan tambahan bernomor urut, dan isi aslinya tidak berubah | Alasan wajib diisi |
 
 ---
 

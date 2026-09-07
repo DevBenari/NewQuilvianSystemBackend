@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
@@ -13,6 +13,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public Guid? EncounterId { get; set; }
         public string? EncounterNumber { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi catatan ini - <c>BE-RWI-063</c>, <c>INT-KEP-03</c>.
+        /// Kosong untuk catatan poliklinik, medical check-up, dan IGD.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
 
         public Guid? QueueId { get; set; }
         public string? QueueCode { get; set; }
@@ -157,6 +163,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid PatientId { get; set; }
 
         public Guid? EncounterId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang dituju - <c>BE-RWI-063</c>, <c>INT-KEP-03</c>. Boleh kosong;
+        /// bila kosong, backend menurunkannya sendiri dari kunjungan. Bila diisi dan tidak cocok
+        /// dengan perawatan milik kunjungan itu, permintaan ditolak.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
         public Guid? QueueId { get; set; }
         public Guid? ConsultationId { get; set; }
         public Guid? AssessmentId { get; set; }
@@ -284,6 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string ProgressNoteNumber { get; set; } = string.Empty;
         public Guid PatientId { get; set; }
         public Guid? EncounterId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
         public Guid? QueueId { get; set; }
         public Guid? ConsultationId { get; set; }
         public DateTime NoteDateTime { get; set; }

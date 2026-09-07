@@ -95,6 +95,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
     }
 
     /// <summary>
+    /// Siklus hidup satu pemeriksaan terpesan sesuai <c>LAB-STATE-v1</c> r2 bagian 3
+    /// (<c>LAB-DEC-024</c>).
+    ///
+    /// Status ini <b>sebagian besar mengikuti wadah penopangnya</b> dan bukan sesuatu yang
+    /// dipindahkan petugas satu per satu. Wadah yang dinyatakan layak membuat seluruh
+    /// pemeriksaan di atasnya menjadi <see cref="ChargeEligible"/>; wadah yang ditolak membuat
+    /// seluruhnya <see cref="Voided"/>. Satu-satunya perpindahan yang dilakukan langsung oleh
+    /// petugas adalah pembatalan.
+    ///
+    /// <see cref="Voided"/> dan <see cref="Cancelled"/> adalah status terminal.
+    ///
+    /// Status hasil — <c>Pending</c>, <c>InProcess</c>, <c>Completed</c>, <c>Validated</c>,
+    /// <c>Released</c> — sengaja <b>tidak</b> ada di sini. Slice hasil masih tertahan
+    /// <c>LAB-SIGN-001</c>, dan menambahkan statusnya lebih dulu berarti menjanjikan perilaku
+    /// yang belum diputuskan pihak klinis.
+    /// </summary>
+    public enum LabExaminationStatus
+    {
+        /// <summary>Sudah dipesan dan menunggu wadah penopangnya diputuskan.</summary>
+        [Display(Name = "Ordered")]
+        Ordered = 1,
+
+        /// <summary>Wadah penopangnya dinyatakan layak, sehingga pemeriksaan ini sah ditagihkan.</summary>
+        [Display(Name = "Charge Eligible")]
+        ChargeEligible = 2,
+
+        /// <summary>Gugur bersama wadah penopangnya yang ditolak.</summary>
+        [Display(Name = "Voided")]
+        Voided = 3,
+
+        /// <summary>Dibatalkan petugas berwenang.</summary>
+        [Display(Name = "Cancelled")]
+        Cancelled = 4
+    }
+
+    /// <summary>
+    /// Tingkat kesegeraan satu pemeriksaan terpesan sesuai <c>LAB-DEC-026</c>.
+    ///
+    /// Kesegeraan melekat pada <b>pemeriksaan</b>, bukan pada pesanan. Satu pesanan boleh
+    /// memuat pemeriksaan cito dan pemeriksaan biasa sekaligus — dan itu memang keadaan yang
+    /// lazim: dokter meminta elektrolit segera sementara profil lipid pasien yang sama dapat
+    /// menunggu. Menyimpannya di tingkat pesanan akan memaksa seluruh isi pesanan ikut
+    /// diperlakukan cito, lalu menenggelamkan pemeriksaan yang benar-benar mendesak.
+    ///
+    /// Setiap penandaan menyimpan waktu dan pelakunya pada baris pemeriksaan
+    /// (<c>LAB-STATE-v1</c> r2 bagian 2).
+    /// </summary>
+    public enum LabExaminationUrgency
+    {
+        /// <summary>Biasa — mengikuti antrean normal laboratorium.</summary>
+        [Display(Name = "Routine")]
+        Routine = 1,
+
+        /// <summary>Cito — didahulukan, dan tunduk pada batas waktu penyelesaiannya.</summary>
+        [Display(Name = "Cito")]
+        Cito = 2
+    }
+
+    /// <summary>
     /// Sebab pengambilan ulang sampel.
     ///
     /// Nilai ini menentukan siapa yang menanggung akibatnya: kesalahan internal rumah sakit
@@ -123,7 +182,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         LabOrder = 1,
 
         [Display(Name = "Lab Specimen")]
-        LabSpecimen = 2
+        LabSpecimen = 2,
+
+        /// <summary>
+        /// Yang berpindah adalah satu pemeriksaan terpesan, bukan wadah yang menopangnya.
+        ///
+        /// Dibutuhkan sejak <c>LAB-DEC-026</c> memindahkan penanda cito dan duplo ke tingkat
+        /// pemeriksaan: satu pesanan dapat memuat Kalium cito dan Kolesterol biasa sekaligus,
+        /// sehingga riwayatnya pun harus dapat menunjuk pemeriksaan yang mana.
+        /// </summary>
+        [Display(Name = "Lab Examination")]
+        LabExamination = 3
     }
 
     /// <summary>

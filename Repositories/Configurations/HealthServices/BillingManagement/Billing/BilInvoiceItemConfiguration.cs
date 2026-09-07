@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 
@@ -38,5 +38,11 @@ public sealed class BilInvoiceItemConfiguration : IEntityTypeConfiguration<BilIn
             .HasFilter("\"Status\" <> 'VOIDED' AND \"IsDelete\" = false");
         entity.HasIndex(x => new { x.InvoiceId, x.Status });
         entity.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+
+        // Restrict, bukan Cascade: tarif yang sudah pernah ditagihkan tidak boleh ikut terhapus
+        // bersama master-nya, dan penghapusan MstTariff yang masih dirujuk item harus gagal
+        // terang-terangan supaya riwayat tagihan tidak kehilangan asal-usulnya.
+        entity.HasOne(x => x.Tariff).WithMany().HasForeignKey(x => x.TariffId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasIndex(x => x.TariffId);
     }
 }

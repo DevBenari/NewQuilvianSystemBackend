@@ -10,7 +10,8 @@ using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
@@ -23,18 +24,53 @@ public sealed class BillingInvoiceService
     private readonly BillingCalculationService _calculationService;
     private readonly LoggerService _loggerService;
 
+    private readonly InsuranceCoverageService _insuranceCoverageService;
+
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
         IBillingChargeSourceAdapter sourceAdapter,
         BillingNumberSeriesService numberSeries,
         BillingCalculationService calculationService,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        InsuranceCoverageService insuranceCoverageService)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
         _numberSeries = numberSeries;
         _calculationService = calculationService;
         _loggerService = loggerService;
+        _insuranceCoverageService = insuranceCoverageService;
+    }
+
+    // BKC-DEC-060: preview read-only, tanpa efek samping - dipakai layar entri sebelum item
+    // benar-benar ditambahkan. Menyeluruhnya dipakai InsuranceCoverageService.ResolveTariffAsync
+    // yang sudah ada (Clinical Management, satu-satunya tempat kalkulasi coverage) - logika
+    // matching rule/tarif asuransi TIDAK ditulis ulang di sini. Hasil boleh berbeda dari
+    // kalkulasi final invoice sungguhan (RegistrationBillingCoverageAdapter, BE-BKC-021) karena
+    // preview ini tidak memperhitungkan diskon/coverage waterfall di tingkat invoice.
+    public async Task<CatalogChargeCoveragePreviewResponse> GetCatalogChargeCoveragePreviewAsync(
+        Guid encounterId,
+        Guid tariffId,
+        decimal quantity,
+        CancellationToken cancellationToken)
+    {
+        var result = await _insuranceCoverageService.ResolveTariffAsync(
+            encounterId, tariffId, quantity, cancellationToken: cancellationToken);
+        if (!result.IsValid)
+            throw new BillingInvoiceValidationException(
+                result.ErrorMessage ?? "Tarif atau kunjungan tidak valid untuk preview coverage.");
+
+        return new CatalogChargeCoveragePreviewResponse
+        {
+            CoverageStatus = result.CoverageStatus,
+            CoveragePercent = result.CoveragePercent,
+            UnitPrice = result.UnitPrice,
+            TotalPrice = result.TotalPrice,
+            CoveredAmount = result.CoveredAmount,
+            PatientPayAmount = result.PatientPayAmount,
+            IsNeedApproval = result.IsNeedApproval,
+            CoverageNote = result.CoverageNote
+        };
     }
 
     public async Task<PagedResult<InvoiceSummaryResponse>> GetPagedAsync(BillingInvoiceQuery request, CancellationToken cancellationToken)
@@ -51,27 +87,46 @@ public sealed class BillingInvoiceService
             var serviceType = request.ServiceType.Trim().ToUpperInvariant();
             query = query.Where(x => x.ServiceType == serviceType);
         }
+        // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
+        // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
+        // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
+        var joined =
+            from invoice in query
+            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+                on invoice.EncounterId equals encounter.Id into encounterGroup
+            from encounter in encounterGroup.DefaultIfEmpty()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id into patientGroup
+            from patient in patientGroup.DefaultIfEmpty()
+            select new { invoice, patient };
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
-            query = query.Where(x => x.InvoiceNumber.ToUpper().Contains(search));
+            joined = joined.Where(x =>
+                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
+                (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
+                (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
         }
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query.OrderByDescending(x => x.CreateDateTime)
+
+        var total = await joined.CountAsync(cancellationToken);
+        var items = await joined.OrderByDescending(x => x.invoice.CreateDateTime)
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
             .Select(x => new InvoiceSummaryResponse
             {
-                Id = x.Id,
-                EncounterId = x.EncounterId,
-                InvoiceNumber = x.InvoiceNumber,
-                ServiceType = x.ServiceType,
-                Status = x.Status,
-                CurrentCalculationVersion = x.CurrentCalculationVersion,
-                RunningGrossAmount = x.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
+                Id = x.invoice.Id,
+                EncounterId = x.invoice.EncounterId,
+                InvoiceNumber = x.invoice.InvoiceNumber,
+                PatientName = x.patient != null ? x.patient.FullName : string.Empty,
+                MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
+                ServiceType = x.invoice.ServiceType,
+                Status = x.invoice.Status,
+                CurrentCalculationVersion = x.invoice.CurrentCalculationVersion,
+                RunningGrossAmount = x.invoice.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
                     .Sum(i => i.Quantity * i.UnitPrice),
-                ActiveItemCount = x.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
-                CreateDateTime = x.CreateDateTime,
-                RowVersion = x.RowVersion
+                ActiveItemCount = x.invoice.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
+                CreateDateTime = x.invoice.CreateDateTime,
+                RowVersion = x.invoice.RowVersion
             }).ToListAsync(cancellationToken);
         return new PagedResult<InvoiceSummaryResponse>
         {
@@ -86,7 +141,8 @@ public sealed class BillingInvoiceService
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
-            .Include(x => x.Items)
+            .Include(x => x.Items).ThenInclude(x => x.Category)
+            .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
@@ -94,6 +150,181 @@ public sealed class BillingInvoiceService
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
         return response;
+    }
+
+    public async Task<EncounterChargeSummaryResponse> GetChargeSummaryByEncounterAsync(
+        Guid encounterId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingInvoiceValidationException("EncounterId wajib diisi.");
+
+        var invoices = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .Select(x => new
+            {
+                x.Id,
+                x.InvoiceNumber,
+                x.ServiceType,
+                x.Status,
+                x.CurrentCalculationVersion
+            })
+            .ToListAsync(cancellationToken);
+
+        if (invoices.Count == 0)
+            throw new KeyNotFoundException("Belum ada invoice untuk kunjungan ini.");
+
+        var invoice = invoices[0];
+
+        // Sumber angkanya sama dengan yang dipakai Menu Pembayaran, sehingga rekap per kategori
+        // dan total di layar tidak mungkin berbeda.
+        var calculation = await _calculationService.PreviewCalculationAsync(
+            invoice.Id, actorUserId, cancellationToken);
+        var breakdown = calculation.Breakdown;
+
+        var grouped = breakdown.Items
+            .GroupBy(x => new { x.CategoryId, x.CategoryCode })
+            .Select(group => new ChargeCategorySummaryResponse
+            {
+                CategoryId = group.Key.CategoryId,
+                CategoryCode = group.Key.CategoryCode,
+                Kind = ChargeSummaryKinds.Item,
+                ItemCount = group.Count(),
+                GrossAmount = group.Sum(x => x.GrossAmount),
+                DiscountAmount = group.Sum(x => x.ItemDiscount),
+                TaxAmount = group.Sum(x => x.TaxAmount),
+                NetAmount = group.Sum(x => x.NetAmount)
+            })
+            .ToList();
+
+        // Nama kategori tidak dibawa CalculationItemResponse (hanya kode), sedangkan layar
+        // membutuhkannya - jadi diambil sekali untuk seluruh kategori yang muncul.
+        var categoryIds = grouped.Where(x => x.CategoryId.HasValue)
+            .Select(x => x.CategoryId!.Value).Distinct().ToList();
+        var categoryNames = categoryIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.Set<MstTariffCategory>().AsNoTracking()
+                .Where(x => categoryIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.TariffCategoryName, cancellationToken);
+
+        foreach (var row in grouped)
+        {
+            row.CategoryName = row.CategoryId.HasValue
+                && categoryNames.TryGetValue(row.CategoryId.Value, out var name)
+                    ? name
+                    : row.CategoryCode;
+        }
+
+        var categories = grouped
+            .OrderBy(x => x.CategoryName)
+            .ToList();
+
+        var administrationFee = breakdown.AdministrationFee.AppliedAmount;
+        if (administrationFee != 0)
+        {
+            categories.Add(new ChargeCategorySummaryResponse
+            {
+                CategoryCode = "ADMINISTRATION_FEE",
+                CategoryName = "Biaya Administrasi",
+                Kind = ChargeSummaryKinds.AdministrationFee,
+                ItemCount = 1,
+                GrossAmount = administrationFee,
+                NetAmount = administrationFee
+            });
+        }
+
+        var roomCharge = breakdown.RoomCharge.AppliedAmount;
+        if (roomCharge != 0)
+        {
+            categories.Add(new ChargeCategorySummaryResponse
+            {
+                CategoryCode = "ROOM_CHARGE",
+                CategoryName = "Biaya Kamar",
+                Kind = ChargeSummaryKinds.RoomCharge,
+                ItemCount = breakdown.RoomCharge.Segments.Count,
+                GrossAmount = roomCharge,
+                NetAmount = roomCharge
+            });
+        }
+
+        return new EncounterChargeSummaryResponse
+        {
+            EncounterId = encounterId,
+            InvoiceId = invoice.Id,
+            InvoiceNumber = invoice.InvoiceNumber,
+            ServiceType = invoice.ServiceType,
+            Status = invoice.Status,
+            CurrentCalculationVersion = invoice.CurrentCalculationVersion,
+            InvoiceCount = invoices.Count,
+            Categories = categories,
+            Totals = new ChargeSummaryTotalResponse
+            {
+                GrossAmount = calculation.GrossAmount,
+                AdministrationFeeAmount = calculation.AdministrationFeeAmount,
+                RoomChargeAmount = calculation.RoomChargeAmount,
+                ItemDiscount = calculation.ItemDiscount,
+                PromoDiscount = calculation.TotalDiscount - calculation.ItemDiscount,
+                TotalDiscount = calculation.TotalDiscount,
+                TaxAmount = calculation.TaxAmount,
+                PatientAmount = calculation.PatientAmount,
+                PrimaryAmount = calculation.PrimaryAmount,
+                ExcessAmount = calculation.ExcessAmount,
+                UnresolvedCoverageAmount = calculation.UnresolvedCoverageAmount
+            }
+        };
+    }
+
+    // BKC-DEC-059: entri charge dari katalog tarif. Harga (NormalPrice), kategori
+    // (TariffCategoryId), dan deskripsi (TariffName) seluruhnya diambil dari MstTariff milik
+    // server - client cuma mengirim TariffId dan kuantitas, tidak bisa mendikte harga seperti pada
+    // AddOtherChargeAsync (yang memang untuk biaya bebas kasir). SourceDomain "ADHOC_CATALOG"
+    // (lihat BillingChargeSourceAdapter) supaya asal-usulnya bisa dibedakan dari entri bebas ADHOC
+    // pada audit dan laporan, walau siklus hidupnya identik (completeOnEntry).
+    public async Task<InvoiceDetailResponse> AddCatalogChargeAsync(
+        AddCatalogChargeRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var now = DateTime.UtcNow;
+        var tariff = await _dbContext.MstTariffs.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.TariffId && !x.IsDelete && !x.IsCancel && x.IsActive
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= now)
+                && (x.EffectiveEndDate == null || now < x.EffectiveEndDate), cancellationToken)
+            ?? throw new BillingInvoiceValidationException(
+                "Tarif tidak ditemukan, tidak aktif, atau sudah kedaluwarsa.");
+
+        return await UpsertChargeAsync(
+            new UpsertChargeRequest
+            {
+                EncounterId = request.EncounterId,
+                SourceDomain = "ADHOC_CATALOG",
+                // SourceDetailId diturunkan dari idempotencyKey (bukan Guid acak baru per panggilan)
+                // supaya retry dengan Idempotency-Key yang sama benar-benar ter-replay lewat
+                // BilChargeReceipt (UpsertChargeAsync mencocokkan SourceDetailId dengan receipt
+                // tersimpan) - acak baru tiap panggilan akan selalu mismatch dan retry genuine akan
+                // salah dianggap konflik.
+                SourceDetailId = idempotencyKey.ToString("N"),
+                SourceVersion = 1,
+                SourceStatus = "ADDED",
+                OccurredAt = DateTimeOffset.UtcNow,
+                CategoryId = tariff.TariffCategoryId,
+                TariffId = tariff.Id,
+                DescriptionSnapshot = tariff.TariffName,
+                Quantity = request.Quantity,
+                UnitPrice = tariff.NormalPrice,
+                DoctorShare = 0,
+                ContractVersion = ContractBillingChargeSourceAdapter.ContractVersion,
+                CorrelationId = request.CorrelationId,
+                CausationId = request.CausationId
+            },
+            idempotencyKey,
+            actorUserId,
+            cancellationToken);
     }
 
     public static List<OtherChargeTypeOptionResponse> GetOtherChargeTypeOptions() =>
@@ -117,15 +348,15 @@ public sealed class BillingInvoiceService
             throw new BillingInvoiceValidationException(
                 "Jenis biaya lain-lain tidak dikenal.");
 
-        var category = await _dbContext.Set<MstBillingItemCategory>().AsNoTracking()
+        var category = await _dbContext.Set<MstTariffCategory>().AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive)
             .FirstOrDefaultAsync(
-                x => x.BillingItemCategoryCode == BillingOtherChargeTypes.CategoryCode
-                    || x.BillingItemCategoryName == BillingOtherChargeTypes.CategoryName,
+                x => x.TariffCategoryCode == BillingOtherChargeTypes.CategoryCode
+                    || x.TariffCategoryName == BillingOtherChargeTypes.CategoryName,
                 cancellationToken)
             ?? throw new BillingInvoiceValidationException(
-                $"Kategori billing \"{BillingOtherChargeTypes.CategoryName}\" belum ada di master data. " +
-                $"Buat kategori dengan kode {BillingOtherChargeTypes.CategoryCode} lebih dulu.");
+                $"Kategori tarif \"{BillingOtherChargeTypes.CategoryName}\" belum ada di master data. " +
+                $"Buat kategori tarif dengan kode {BillingOtherChargeTypes.CategoryCode} lebih dulu.");
 
         // Jenis biaya ikut ditulis di deskripsi: kategori billing-nya sama untuk semua entri, jadi
         // tanpa ini jenisnya hilang dari tagihan dan audit.
@@ -215,6 +446,10 @@ public sealed class BillingInvoiceService
                 x.encounter.EncounterType,
                 x.encounter.EncounterStatus,
                 x.encounter.EncounterDate,
+                x.encounter.PaymentType,
+                x.encounter.ServiceUnitId,
+                x.encounter.ClinicId,
+                x.encounter.PatientClassId,
                 PatientName = x.patient.FullName,
                 x.patient.MedicalRecordNumber
             })
@@ -229,6 +464,20 @@ public sealed class BillingInvoiceService
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
+        // Nama penjamin diambil dari snapshot pada encounter, bukan master penjamin: yang relevan
+        // bagi kasir adalah penjamin yang tercatat saat kunjungan itu didaftarkan.
+        var guarantorNames = encounterIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
+                .GroupBy(x => x.EncounterId)
+                .Select(group => new
+                {
+                    EncounterId = group.Key,
+                    Name = group.Select(x => x.PaymentSourceNameSnapshot).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.EncounterId, x => x.Name, cancellationToken);
+
         return rows.Select(x => new ActiveEncounterOptionResponse
         {
             Id = x.Id,
@@ -238,7 +487,16 @@ public sealed class BillingInvoiceService
             EncounterType = x.EncounterType.ToString(),
             EncounterStatus = x.EncounterStatus.ToString(),
             EncounterDate = x.EncounterDate,
-            HasInvoice = invoicedEncounterIds.Contains(x.Id)
+            HasInvoice = invoicedEncounterIds.Contains(x.Id),
+            ServiceType = MapServiceType(x.EncounterType),
+            PaymentType = x.PaymentType.ToString(),
+            PaymentTypeLabel = MapPaymentTypeLabel(x.PaymentType),
+            GuarantorName = guarantorNames.TryGetValue(x.Id, out var guarantorName)
+                ? guarantorName
+                : null,
+            ServiceUnitId = x.ServiceUnitId,
+            ClinicId = x.ClinicId,
+            PatientClassId = x.PatientClassId
         }).ToList();
     }
 
@@ -332,11 +590,13 @@ public sealed class BillingInvoiceService
             var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
-            var categoryExists = await _dbContext.MstBillingItemCategories.AsNoTracking()
+            var categoryExists = await _dbContext.MstTariffCategories.AsNoTracking()
                 .AnyAsync(x => x.Id == request.CategoryId && !x.IsDelete && !x.IsCancel && x.IsActive, cancellationToken);
-            if (!categoryExists) throw new BillingInvoiceValidationException("Kategori billing tidak ditemukan atau tidak aktif.");
+            if (!categoryExists) throw new BillingInvoiceValidationException("Kategori tarif tidak ditemukan atau tidak aktif.");
 
-            var invoice = await _dbContext.BilInvoices.Include(x => x.Items)
+            // Category ikut dimuat karena MapDetail memakai namanya untuk pengelompokan tagihan.
+            var invoice = await _dbContext.BilInvoices.Include(x => x.Items).ThenInclude(x => x.Category)
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
             var createdInvoice = invoice is null;
@@ -456,6 +716,7 @@ public sealed class BillingInvoiceService
 
             var invoice = await _dbContext.BilInvoices
                 .Include(x => x.Items).ThenInclude(x => x.Category)
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .Include(x => x.CalculationVersions)
                 .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
@@ -572,7 +833,8 @@ public sealed class BillingInvoiceService
             .Where(x => x.Id == itemId).Select(x => x.InvoiceId).SingleOrDefaultAsync(cancellationToken);
         if (invoiceId == Guid.Empty) throw new BillingInvoiceConflictException("Receipt idempotency tidak memiliki item Billing yang valid.");
         return await _dbContext.BilInvoices.AsNoTracking()
-            .Include(x => x.Items)
+            .Include(x => x.Items).ThenInclude(x => x.Category)
+            .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
             .Include(x => x.CalculationVersions)
             .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
@@ -636,6 +898,7 @@ public sealed class BillingInvoiceService
         item.SourceStatus = source.SourceStatus;
         item.SourceOccurredAt = request.OccurredAt;
         item.CategoryId = request.CategoryId;
+        item.TariffId = request.TariffId;
         item.DescriptionSnapshot = request.DescriptionSnapshot.Trim();
         item.Quantity = request.Quantity;
         item.UnitPrice = request.UnitPrice;
@@ -725,6 +988,14 @@ public sealed class BillingInvoiceService
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
+    private static string MapPaymentTypeLabel(EncounterPaymentType paymentType) => paymentType switch
+    {
+        EncounterPaymentType.Cash => "Tunai",
+        EncounterPaymentType.Insurance => "Asuransi",
+        EncounterPaymentType.CompanyGuarantor => "Penjamin Perusahaan",
+        _ => paymentType.ToString()
+    };
+
     private static string MapServiceType(EncounterType encounterType) => encounterType switch
     {
         EncounterType.Outpatient => "RAJAL",
@@ -748,7 +1019,15 @@ public sealed class BillingInvoiceService
                 SourceStatus = x.SourceStatus,
                 SourceOccurredAt = x.SourceOccurredAt,
                 CategoryId = x.CategoryId,
+                CategoryCode = x.Category != null ? x.Category.TariffCategoryCode : string.Empty,
+                CategoryName = x.Category != null ? x.Category.TariffCategoryName : string.Empty,
                 DescriptionSnapshot = x.DescriptionSnapshot,
+                // Enhancement (di luar roadmap, permintaan langsung pengguna): satuan dispensing
+                // obat/alkes untuk kolom "Satuan" Menu Pembayaran - hanya kategori Pharmacy/Drug/
+                // Consumable-Alkes yang punya konsep satuan dispensing, kategori lain tetap null.
+                Unit = x.Category != null && x.Category.IsPharmacy
+                    ? x.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
+                    : null,
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
                 DoctorShare = x.DoctorShare,

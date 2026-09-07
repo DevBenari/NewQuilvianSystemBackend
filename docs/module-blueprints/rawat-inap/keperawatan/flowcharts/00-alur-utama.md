@@ -81,4 +81,4 @@ hasil evaluasi, dan setiap pembaruan menyimpan versi sebelumnya.
 | --- | --- |
 | Pengkajian sebagai gerbang sebelum dokter boleh menulis | `INV-KEP-03` dan PRD 16.3 melarangnya tegas |
 | Pengkajian sebagai gerbang sebelum pasien boleh ditempatkan | Sama. Menahan penempatan karena dokumentasi belum lengkap berarti menahan pasien di lorong |
-| Pemakaian alat | Kepemilikan datanya belum diputuskan — `CAP-016` berstatus `OPEN DECISION` |
+| Pemakaian alat | Dikeluarkan dari scope rilis pertama lewat `RWI-DEC-089` — `CAP-016` berstatus `DEFERRED`. Selama MVP, pemakaian alat dicatat di luar sistem sebagaimana hari ini |

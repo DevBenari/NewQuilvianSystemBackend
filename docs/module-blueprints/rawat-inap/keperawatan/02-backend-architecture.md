@@ -4,12 +4,12 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082` |
-| Revision | `0.1` |
+| Revision | `0.3` |
 | Status | `draft` — belum disetujui manusia |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) |
 | Kemampuan | `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027` — `RWI-DEC-083` |
 | Masukan baseline | `PRD-RWI-FINAL-001` v1.0.0 bagian 16, 17, 20, 23.1, 30.3 |
-| Masukan keputusan | [`../00-interview-decisions.md`](../00-interview-decisions.md) revision `7` — `RWI-DEC-080` s.d. `RWI-DEC-083` |
+| Masukan keputusan | [`../00-interview-decisions.md`](../00-interview-decisions.md) revision `13` — `RWI-DEC-080` s.d. `RWI-DEC-083`, ditambah `RWI-DEC-089` (`CAP-016` `DEFERRED`) dan **`RWI-DEC-091`** (koreksi dibedakan dari perkembangan) |
 | Peta modul | [`../02-module-map.md`](../02-module-map.md) revision `1` |
 | Manifest sub-modul | [`blueprint-manifest.md`](./blueprint-manifest.md) |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` (branch `MHamzah`); audit as-is dijalankan 2026-09-02 |
@@ -109,23 +109,23 @@ pemiliknya sudah ditetapkan, yang dilakukan sub-modul ini adalah **meminta**, bu
 | Tindakan/catatan keperawatan | **Clinical Management** | **Tidak ada yang cocok.** `TrxPatientProcedure` mewajibkan `ConsultationId` dan `DoctorId`, sehingga tindakan perawat tidak dapat masuk ke sana | `CAP-014`, bagian 4.3 |
 | Riwayat amandemen pengkajian | **Clinical Management** | **Tidak ada.** `TrxPatientAssessment` tidak menyimpan versi | `CAP-012` aturan 13, bagian 4.1 |
 
-### 2.3 Satu kelompok data yang kepemilikannya **belum diputuskan**
+### 2.3 Satu kelompok data yang kepemilikannya **sengaja ditunda** — `RWI-DEC-089`
 
 | Kelompok data | Pemilik | Dipakai sub-modul ini | Dibuat ulang |
 | --- | --- | :---: | --- |
-| Catatan pemakaian alat pada pasien | **BELUM DIPUTUSKAN** | `CAP-016` | **`OPEN DECISION`** |
+| Catatan pemakaian alat pada pasien | **Sengaja ditunda** — `RWI-DEC-089` | `CAP-016`, berstatus `DEFERRED` | **Tidak.** Tidak oleh sub-modul ini, dan tidak oleh sub-modul mana pun |
 
-**Ditulis apa adanya, dan ini menahan `CAP-016`.**
+**Ditutup 2026-09-02 oleh `RWI-DEC-089`.** Pertanyaannya tidak dijawab dengan memilih salah satu pemilik, melainkan dengan **menunda kemampuannya secara tertulis** — dan itu jawaban yang sah. Baris ini tetap ditulis apa adanya supaya pembaca berikutnya tahu kemampuan ini pernah ada, sengaja ditunda, dan punya jalan kembali.
 
 | Hal | Keadaannya |
 | --- | --- |
-| Kenapa terbuka | `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu pun** menyebut Equipment Usage. `RWI-DEC-081` juga tidak menyebutnya — keputusan itu hanya mencakup pengkajian, CPPT, SOAP, kajian medis, resep, dan tindakan |
-| Calon pemiliknya | Tiga: modul persediaan/aset (karena alatnya miliknya), `ClinicalManagement` (karena pemakaiannya peristiwa klinis), atau `InPatientManagement` (karena terikat episode) |
-| Kenapa tidak dipilih di sini | Memilih pemilik tabel adalah keputusan pemilik modul, bukan keputusan blueprint. `PRD` bagian 20 aturan 2 hanya melarang **menduplikasi master alat**, dan itu tidak menjawab siapa pemilik catatan pemakaiannya |
-| Akibatnya | `CAP-016` berstatus `OPEN DECISION` dan **MUST NOT** masuk gelombang pengiriman mana pun — `04-prd-to-mvp.md` bagian 8 dan 19 |
+| Kenapa sempat terbuka | `PRD-RWI-FINAL-001` bagian 23.1 memuat 28 baris *source of truth* dan **tidak satu pun** menyebut Equipment Usage. `RWI-DEC-081` juga tidak menyebutnya — keputusan itu hanya mencakup pengkajian, CPPT, SOAP, kajian medis, resep, dan tindakan |
+| Calon pemiliknya | Tiga: modul persediaan/aset (karena alatnya miliknya), `ClinicalManagement` (karena pemakaiannya peristiwa klinis), atau `InPatientManagement` (karena terikat episode). **Calon pertama ternyata belum berwujud** — `RWI-FACT-015` membuktikan `Areas/` tidak memuat modul persediaan/aset mana pun, dan tidak ada master alat medis sama sekali |
+| Kenapa akhirnya ditunda, bukan dipilih | Memilih pemilik tabel adalah keputusan pemilik modul, bukan keputusan blueprint. Lebih dari itu, `RWI-FACT-015` menunjukkan memilih sekarang berarti menaruh tabel di atas modul yang belum lahir. `PRD` bagian 20 aturan 2 melarang **menduplikasi master alat**, dan hari ini larangan itu bahkan tidak punya objek untuk dilanggar |
+| Akibatnya | `CAP-016` berstatus `DEFERRED` - dikeluarkan dari scope rilis pertama secara tertulis lewat `RWI-DEC-089`, dan **MUST NOT** masuk gelombang pengiriman mana pun — `04-prd-to-mvp.md` bagian 8 dan 19. **Nol tabel, nol migration, nol endpoint** untuk kemampuan ini |
 | Yang **tidak** ditahannya | `CAP-012`, `CAP-013`, `CAP-014`, dan `CAP-027`. Keempatnya kepemilikannya sudah tegas |
 
-Dicatat sebagai pertanyaan terbuka untuk `/qv-grill`; usulan ID `RWI-OQ-048`.
+**Pemicu masuk kembali.** Begitu modul persediaan/aset masuk roadmap Quilvian, `RWI-OQ-048` dibuka ulang untuk menetapkan pemilik tabelnya, dan barulah task pemakaian alat boleh dibuat — `RWI-AC-171`. Sampai saat itu, sub-modul ini **MUST NOT** membuat tabel pemakaian alat sendiri; larangan itu setara `RWI-DEC-081`.
 
 ---
 
@@ -201,18 +201,24 @@ Kolom yang **diminta ditambahkan**, satu per satu:
 | `AssessmentType` | `enum` | Ya | `Initial` | PRD 16.2 aturan 3: initial dan reassessment **wajib** record terpisah. Tanpa kolom ini keduanya tidak dapat dibedakan | Tidak |
 | `DueAt` | `DateTime?` | Tidak | `null` | PRD 16.2 aturan 11: sistem wajib dapat memantau `DueAt`, `CompletedAt`, dan keadaan terlambat | Tidak |
 | `PolicyId` | `Guid?` | Tidak | `null` | Menunjuk konfigurasi SLA yang berlaku saat pengkajian dibuat, supaya perubahan kebijakan tidak mengubah penilaian keterlambatan yang lalu | Tidak |
-| `AmendedAt` | `DateTime?` | Tidak | `null` | PRD 16.2 aturan 13 | Tidak |
-| `AmendedByUserId` | `Guid?` | Tidak | `null` | Sama | Tidak |
+> **Dua kolom dicabut pada revision `0.3`.** `AmendedAt` dan `AmendedByUserId` sempat dirancang di sini
+> untuk memenuhi PRD 16.2 aturan 13. Keduanya **tidak jadi diminta**: sejak `RWI-DEC-091`, penulis, waktu,
+> alasan, dan nomor urut koreksi disimpan mesin addendum milik `MedicalRecordManagement`, yang sudah ada
+> dan sudah dipakai catatan terpadu. Menyimpannya dua kali membuat dua sumber jawaban atas pertanyaan
+> yang sama.
 
 Enum yang diminta:
 
 | Enum | Nilai | Bawaan |
 | --- | --- | --- |
 | `PatientAssessmentType` | `Initial`, `Reassessment`, `DailyReassessment`, `DischargePlanning` | `Initial` |
-| `PatientAssessmentStatus` — **diperluas** | `Draft`, `InProgress`, `Completed`, `Cancelled`, **`Amended`** | `Draft` |
+| `PatientAssessmentStatus` — **tidak jadi diperluas** | `Draft`, `InProgress`, `Completed`, `Cancelled` — **nol nilai baru** sejak revision `0.3` | `Draft` |
 
-> **`Amended` adalah nilai baru, bukan pengganti.** PRD 16.2 aturan 10 menyebut `NotStarted`,
-> `Draft`, `Completed`, `Amended`. `NotStarted` **sengaja tidak dibuat** — lihat bagian 8.
+> **Revision `0.3`: `Amended` tidak jadi ditambahkan.** PRD 16.2 aturan 10 menyebut `NotStarted`,
+> `Draft`, `Completed`, dan `Amended`. Dua di antaranya **sengaja tidak dibuat**. `NotStarted` karena
+> "belum dimulai" berarti tidak ada barisnya; `Amended` karena sejak `RWI-DEC-091` pertanyaan "apakah
+> dokumen ini pernah dikoreksi" dijawab **riwayat addendum**, bukan status dokumen. Menyimpan keduanya
+> membuat jawabannya bercabang — lihat bagian 8.
 
 Index dan constraint yang diminta:
 
@@ -318,7 +324,7 @@ Areas/HealthServices/ClinicalManagement/          ◄── PEMILIK, bukan sub-m
 │   ├── TrxNursingIntervention.cs                 Baru
 │   └── MstClinicalAssessmentPolicy.cs            Baru
 ├── Enums/
-│   ├── PatientAssessmentStatus.cs                Diperbarui — nilai `Amended`
+│   ├── PatientAssessmentStatus.cs                Sudah ada — nol perubahan (`0.3`)
 │   ├── PatientAssessmentType.cs                  Baru
 │   ├── NursingCarePlanItemStatus.cs              Baru
 │   └── NursingBillingDispatchStatus.cs           Baru
@@ -342,7 +348,7 @@ Areas/HealthServices/InPatientManagement/         ◄── NOL berkas baru dari
 
 | Tabel | Status | Kolom yang berubah | Dampak migration |
 | --- | --- | --- | --- |
-| `TrxPatientAssessment` | `Diperbarui` | `InpEpisodeId`, `AssessmentType`, `DueAt`, `PolicyId`, `AmendedAt`, `AmendedByUserId` — **enam**, seluruhnya nullable kecuali `AssessmentType` yang punya nilai bawaan | Dapat berjalan tanpa mematikan layanan. Baris lama terisi `AssessmentType = Initial` |
+| `TrxPatientAssessment` | `Diperbarui` | `InpEpisodeId`, `AssessmentType`, `DueAt`, `PolicyId` — **empat** sejak revision `0.3`, seluruhnya nullable kecuali `AssessmentType` yang punya nilai bawaan | Dapat berjalan tanpa mematikan layanan. Baris lama terisi `AssessmentType = Initial` |
 | `TrxNursingCarePlan` | `Baru` | — | Tabel baru, kosong |
 | `TrxNursingCarePlanItem` | `Baru` | — | Tabel baru, kosong |
 | `TrxNursingCarePlanItemRevision` | `Baru` | — | Tabel baru, kosong |
@@ -363,9 +369,9 @@ Areas/HealthServices/InPatientManagement/         ◄── NOL berkas baru dari
 
 | No | Langkah | Tanpa mematikan layanan | Keterangan |
 | ---: | --- | :---: | --- |
-| 1 | Tambah enum `PatientAssessmentType` dan nilai `Amended` pada `PatientAssessmentStatus` | Ya | Perubahan kode |
+| 1 | Tambah enum `PatientAssessmentType`. **Nilai `Amended` tidak jadi ditambahkan** — `RWI-DEC-091` mencabutnya | Ya | Perubahan kode |
 | 2 | Buat `MstClinicalAssessmentPolicy` | Ya | Tabel baru |
-| 3 | Tambah enam kolom pada `TrxPatientAssessment` | Ya | Seluruhnya nullable atau bernilai bawaan; baris lama tidak perlu disentuh |
+| 3 | Tambah **empat** kolom pada `TrxPatientAssessment` | Ya | Seluruhnya nullable atau bernilai bawaan; baris lama tidak perlu disentuh |
 | 4 | Buat empat tabel transaksi keperawatan | Ya | Tabel baru |
 | 5 | Buat index episode dan unique parsial `IdempotencyKey` | Ya | Tabel masih kosong |
 | 6 | Daftarkan `DbSet` dan service pada `ApplicationDbContext` serta `Program.cs` | Ya | Perubahan kode |
@@ -375,7 +381,7 @@ Areas/HealthServices/InPatientManagement/         ◄── NOL berkas baru dari
 
 **Tidak ada data lama yang perlu dipindahkan.** Belum ada satu pun pengkajian rawat inap di dalam
 sistem, karena jalurnya memang belum terbuka. Baris `TrxPatientAssessment` yang sudah ada milik
-poliklinik dan IGD; keenam kolom baru dibiarkan `null` dan `AssessmentType` terisi `Initial`.
+poliklinik dan IGD; keempat kolom baru dibiarkan `null` dan `AssessmentType` terisi `Initial`.
 
 Yang perlu diperiksa sebelum langkah 7: pastikan tidak ada encounter rawat jalan yang punya
 `InpEpisode` menggantung berstatus `Admitted`. Bila ada, cabang baru akan membuka pengkajian
@@ -416,6 +422,9 @@ perubahan perilaku dijalankan.
 | Status episode keenam untuk menandai pengkajian selesai | `RWI-DEC-009` mengunci lima nilai status episode, dan `AC-CAP012-03` secara tegas melarang menambah status episode baru |
 | Melonggarkan `ConsultationId` dan `DoctorId` pada `TrxPatientProcedure` | Melemahkan penjagaan bagi tindakan dokter yang membutuhkannya untuk penagihan. Lihat 4.3 |
 | Menyalin master alat ke dalam modul ini | PRD 20 aturan 2 melarangnya tegas |
+| **Kolom amandemen per tabel** (`AmendedAt`, `AmendedByUserId`, `AmendReason`) | Mesin addendum `MedicalRecordManagement` sudah menyimpan penulis, alasan, waktu, dan nomor urut koreksi. Menyalinnya ke tabel sendiri melahirkan dua sumber jawaban — `RWI-DEC-091` |
+| **Nilai status `Amended`** pada mesin pengkajian dan mesin catatan tindakan | Status kunci ditambah riwayat addendum sudah menjawab "apakah dokumen ini pernah dikoreksi". Status keenam membuat jawabannya bercabang — `RWI-DEC-091`, sejalan keputusan sub-modul `dokter-rawat-inap` |
+| **Penjaga penguncian sendiri di `ClinicalManagement`** | Itu mesin koreksi tandingan, dilarang `RWI-DEC-087`. Bila `RWI-OQ-051` ditolak, yang benar adalah kembali ke `/qv-grill` |
 | Tabel gizi milik Rawat Inap | PRD 23.1 menaruh Nutrition Assessment/Care pada modul Gizi. Sub-modul ini hanya menghasilkan pemicu rujukan dan membaca status |
 | Menjadikan pengkajian awal sebagai gerbang penempatan atau gerbang instruksi dokter | `INV-KEP-03`. PRD 16.3 menyatakannya tegas |
 
@@ -427,7 +436,7 @@ perubahan perilaku dijalankan.
 | --- | --- | --- |
 | 1.3 invariant | PRD 16.3, `AC-CAP012-03` | `RWI-DEC-009` |
 | 2 kepemilikan data | PRD 23.1 | `RWI-DEC-081`, `RWI-DEC-083` |
-| 2.3 `CAP-016` terbuka | PRD 20, 23.1 (tidak memuat barisnya) | **Belum ada** — usulan `RWI-OQ-048` |
+| 2.3 `CAP-016` ditunda | PRD 20, 23.1 (tidak memuat barisnya); `RWI-FACT-015` | `RWI-OQ-048` **tertutup** oleh `RWI-DEC-089` |
 | 3 resolver | PRD 30.3 | `RWI-DEC-062`, `RWI-DEC-070`, `RWI-DEC-080` |
 | 4.1 kolom pengkajian | PRD 16.2 aturan 1, 3, 10, 11, 13 | `RWI-DEC-081` |
 | 4.2 asuhan keperawatan | PRD 17 `CAP-013`, `AC-CAP013-01` s.d. `03` | `RWI-DEC-081` |

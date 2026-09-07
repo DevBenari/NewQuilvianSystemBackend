@@ -121,7 +121,7 @@ classDiagram
         +LabDiscipline Discipline
         +int Version
     }
-    class TrxLabSpecimen {
+    class LabSpecimen {
         +Guid Id
         +Guid LabOrderId
         +string SpecimenBarcode
@@ -142,7 +142,7 @@ classDiagram
         +bool IsDuplo
         +int Version
     }
-    class TrxLabTransitionHistory {
+    class LabTransitionHistory {
         +Guid Id
         +Guid LabOrderId
         +LabTransitionScope Scope
@@ -150,11 +150,11 @@ classDiagram
         +string ToStatus
         +Guid ActorUserId
     }
-    LabOrder "1" --> "0..*" TrxLabSpecimen : memuat wadah
+    LabOrder "1" --> "0..*" LabSpecimen : memuat wadah
     LabOrder "1" --> "1..*" LabExamination : memuat pemeriksaan
-    TrxLabSpecimen "1" --> "1..*" LabExamination : menopang
-    TrxLabSpecimen "0..1" --> "0..1" TrxLabSpecimen : menggantikan
-    LabOrder "1" --> "0..*" TrxLabTransitionHistory : mencatat
+    LabSpecimen "1" --> "1..*" LabExamination : menopang
+    LabSpecimen "0..1" --> "0..1" LabSpecimen : menggantikan
+    LabOrder "1" --> "0..*" LabTransitionHistory : mencatat
 ```
 
 ### 3.2 Batas nilai dan persetujuan klinis
@@ -216,12 +216,12 @@ classDiagram
         +bool IsActive
         +int SortOrder
     }
-    class TrxLabSpecimen {
+    class LabSpecimen {
         +Guid Id
         +Guid~?~ RejectionReasonId
         +string~?~ RejectionNote
     }
-    MstLabRejectionReason "1" --> "0..*" TrxLabSpecimen : dipakai saat menolak
+    MstLabRejectionReason "1" --> "0..*" LabSpecimen : dipakai saat menolak
 ```
 
 ---
@@ -239,17 +239,17 @@ classDiagram
 | Field penting | `EncounterId`, `ProcedureId`, `OrderStatus`, `StatusBeforeHold`, **`Discipline` (baru)**, `Version` |
 | Kolom yang ditambahkan | `Discipline` — Patologi Klinik, Patologi Anatomi, atau Mikrobiologi (`LAB-DEC-025`) |
 | Kolom yang **tidak jadi** ditambahkan | `Urgency`, `UrgencyMarkedAt`, `UrgencyMarkedByUserId` — dipindahkan ke `LabExamination` oleh `LAB-DEC-026` |
-| Navigation property dan relasi | Menunjuk `TrxPatientEncounter` dan `MstProcedure`; memiliki banyak `TrxLabSpecimen` dan banyak `LabExamination` |
+| Navigation property dan relasi | Menunjuk `TrxPatientEncounter` dan `MstProcedure`; memiliki banyak `LabSpecimen` dan banyak `LabExamination` |
 | Pemakaian dalam alur bisnis | Dibuat dokter saat memesan pemeriksaan. Ditandai cito pada saat yang sama bila perlu |
 | Catatan desain | `ProcedureId` dipertahankan sebagai pemeriksaan yang dipesan pertama dan **tidak** lagi menjadi satu-satunya sumber komponen. Jangan menambahkan kolom finansial apa pun |
 | Ekuivalen model lama | — |
 
-### 4.2 `TrxLabSpecimen`
+### 4.2 `LabSpecimen`
 
 | Aspek | Penjelasan |
 |---|---|
 | **Status** | `Diperbarui` — perubahan besar |
-| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/TrxLabSpecimen.cs` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabSpecimen.cs` |
 | Kategori | Transaksi Laboratorium |
 | Tanggung jawab utama | Mewakili **satu wadah nyata** berisi bahan dari pasien: satu tabung atau satu pot, satu barcode, satu peristiwa pengambilan, dan satu keputusan layak atau tolak |
 | Field penting | `LabOrderId`, `SpecimenBarcode`, `SpecimenSequence`, `SpecimenStatus`, `StatusBeforeHold`, jejak `Collected/Received/Decided`, `RejectionReasonId`, `SupersededSpecimenId`, `RecollectionCause`, `Version` |
@@ -269,10 +269,10 @@ classDiagram
 | Tanggung jawab utama | Mewakili **satu jenis pemeriksaan yang dipesan**. Inilah satuan yang ditagihkan, dan kelak satuan yang punya hasil |
 | Field penting | `LabOrderId`, `SpecimenId`, `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot`, `ExaminationStatus`, `ChargeEligibleAt`, **`Urgency`**, **`UrgencyMarkedAt`**, **`UrgencyMarkedByUserId`**, **`IsDuplo`**, `Version` |
 | Kolom kesegeraan | Cito dan Duplo melekat di sini, **bukan** pada pesanan (`LAB-DEC-026`). Satu pesanan boleh memuat pemeriksaan cito dan biasa sekaligus |
-| Navigation property dan relasi | Milik `LabOrder`; ditopang tepat satu `TrxLabSpecimen`; menunjuk `MstProcedure` |
+| Navigation property dan relasi | Milik `LabOrder`; ditopang tepat satu `LabSpecimen`; menunjuk `MstProcedure` |
 | Pemakaian dalam alur bisnis | Dibuat bersamaan dengan rencana wadah. Menjadi layak tagih ketika wadah penopangnya dinyatakan layak |
 | Catatan desain | Salinan tarif disimpan di sini, bukan di wadah. Satu wadah boleh menopang beberapa baris ini. Kolom hasil **tidak** ditambahkan pada rilis ini karena slice hasil masih terblokir |
-| Ekuivalen model lama | Bagian dari `TrxLabSpecimen` sebelum pemisahan |
+| Ekuivalen model lama | Bagian dari `LabSpecimen` sebelum pemisahan |
 
 ### 4.4 `LabValueBound`
 
@@ -339,17 +339,17 @@ classDiagram
 | Kategori | Data induk Laboratorium |
 | Tanggung jawab utama | Daftar alasan penolakan sampel yang terkendali |
 | Field penting | `ReasonCode`, `ReasonName`, `Description`, `IsInternalHospitalError`, `RequiresNote`, `IsActive`, `SortOrder` |
-| Navigation property dan relasi | Dipakai banyak `TrxLabSpecimen` |
+| Navigation property dan relasi | Dipakai banyak `LabSpecimen` |
 | Pemakaian dalam alur bisnis | Dipilih petugas saat menolak wadah |
 | Catatan desain | `IsInternalHospitalError` dan `RequiresNote` **tidak boleh** diubah lewat endpoint pengelolaan Laboratorium. Lokasi file menyimpang dari pola standar — lihat bagian 5 |
 | Ekuivalen model lama | — |
 
-### 4.9 `TrxLabTransitionHistory`
+### 4.9 `LabTransitionHistory`
 
 | Aspek | Penjelasan |
 |---|---|
 | **Status** | `Diperbarui` |
-| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/TrxLabTransitionHistory.cs` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabTransitionHistory.cs` |
 | Kategori | Transaksi Laboratorium |
 | Tanggung jawab utama | Menyimpan setiap perpindahan status yang penting, secara permanen |
 | Kolom yang ditambahkan | `LabExaminationId` — agar perpindahan status pemeriksaan ikut terlacak |
@@ -440,9 +440,9 @@ Areas/HealthServices/LaboratoryManagement/
 │   └── LaboratoryEnums.cs                       # Diperbarui
 ├── Models/
 │   ├── LabOrder.cs                              # Diperbarui
-│   ├── TrxLabSpecimen.cs                        # Diperbarui
+│   ├── LabSpecimen.cs                        # Diperbarui
 │   ├── LabExamination.cs                     # Baru
-│   ├── TrxLabTransitionHistory.cs               # Diperbarui
+│   ├── LabTransitionHistory.cs               # Diperbarui
 │   ├── LabValueBoundChangeRequest.cs         # Baru
 │   ├── LabValueBoundHistory.cs               # Baru
 │   ├── MstLabRejectionReason.cs                 # Sudah ada — BENAR di sini, khusus Laboratorium
@@ -503,8 +503,8 @@ prefix Laboratorium adalah **`Lab`**.
 **Kenapa `LabOrder` yang sudah ada justru benar.** Ia berbentuk `Lab` + `Order`, tanpa `Trx` —
 persis contoh yang dipakai kontrak itu sendiri.
 
-**Yang tetap memakai `Trx*` dan sengaja tidak diubah:** `TrxLabSpecimen` dan
-`TrxLabTransitionHistory`. Keduanya **legacy yang sudah berjalan**. Kontrak menyatakan
+**Yang tetap memakai `Trx*` dan sengaja tidak diubah:** `LabSpecimen` dan
+`LabTransitionHistory`. Keduanya **legacy yang sudah berjalan**. Kontrak menyatakan
 `UNTOUCHED LEGACY` **MUST NOT** memicu penulisan ulang massal, dan normalisasi legacy adalah
 kampanye tersendiri yang harus dinyatakan eksplisit.
 
@@ -586,9 +586,9 @@ Berkas **baru** pada blueprint ini mengikuti pola standar, bukan meniru penyimpa
 | Model | Status | Kolom yang berubah | Dampak migration |
 |---|---|---|---|
 | `LabOrder` | `Diperbarui` | **Tambah** `Discipline` | Tambah kolom, dapat dijalankan tanpa mematikan layanan |
-| `TrxLabSpecimen` | `Diperbarui` | **Hapus** `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot` | **Perubahan besar.** Data lama wajib dipindahkan lebih dulu |
+| `LabSpecimen` | `Diperbarui` | **Hapus** `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot` | **Perubahan besar.** Data lama wajib dipindahkan lebih dulu |
 | `LabExamination` | `Baru` | Seluruh kolom | Tabel baru |
-| `TrxLabTransitionHistory` | `Diperbarui` | **Tambah** `LabExaminationId` | Tambah kolom, aman |
+| `LabTransitionHistory` | `Diperbarui` | **Tambah** `LabExaminationId` | Tambah kolom, aman |
 | `LabValueBound` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
 | `LabValueOption` | `Baru` | Seluruh kolom | Tabel baru, di folder Laboratorium (`LAB-DEC-034`) |
 | `LabValueBoundChangeRequest` | `Baru` | Seluruh kolom | Tabel baru |
@@ -601,14 +601,14 @@ Berkas **baru** pada blueprint ini mengikuti pola standar, bukan meniru penyimpa
 ## 7. Rencana Migration
 
 > **Prasyarat mutlak.** `LAB-OPEN-012` wajib dijawab lebih dulu: berapa banyak baris
-> `TrxLabSpecimen` yang benar-benar ada di basis data produksi. Selama belum dijawab, langkah 3
+> `LabSpecimen` yang benar-benar ada di basis data produksi. Selama belum dijawab, langkah 3
 > **tidak boleh** dijalankan.
 
 | Urutan | Migration | Tanpa mematikan layanan | Pengisian data lama | Langkah mundur |
 |---:|---|:---:|---|---|
 | 1 | `AddLabOrderDiscipline` | Ya | `Discipline` diisi Patologi Klinik untuk seluruh baris lama | Hapus satu kolom |
 | 2 | `AddLabValueBound` | Ya | Tabel baru, kosong. Diisi lewat rencana data master awal | Hapus empat tabel baru |
-| 3 | `SplitLabSpecimenIntoExamination` | **Tidak** | Setiap baris `TrxLabSpecimen` lama menjadi **satu wadah + satu pemeriksaan**. Salinan tarif berpindah ke baris pemeriksaan. Barcode tetap pada wadah | Gabungkan kembali; hanya aman bila belum ada wadah yang menopang lebih dari satu pemeriksaan |
+| 3 | `SplitLabSpecimenIntoExamination` | **Tidak** | Setiap baris `LabSpecimen` lama menjadi **satu wadah + satu pemeriksaan**. Salinan tarif berpindah ke baris pemeriksaan. Barcode tetap pada wadah | Gabungkan kembali; hanya aman bila belum ada wadah yang menopang lebih dari satu pemeriksaan |
 
 ### Rincian langkah 3
 
@@ -616,7 +616,7 @@ Pemindahan data lama bersifat satu ke satu, sehingga tidak ada informasi yang hi
 
 | Data lama | Menjadi |
 |---|---|
-| Satu baris `TrxLabSpecimen` | Satu wadah `TrxLabSpecimen` (barcode, status, jejak waktu, alasan penolakan tetap) |
+| Satu baris `LabSpecimen` | Satu wadah `LabSpecimen` (barcode, status, jejak waktu, alasan penolakan tetap) |
 | `ProcedureId` dan salinan tarif pada baris itu | Satu baris `LabExamination` yang menunjuk wadah tersebut |
 | `BilChargeLines.SourceItemId` yang menunjuk sampel lama | **Tidak diubah.** Lihat catatan di bawah |
 
@@ -668,7 +668,7 @@ controller maupun frontend.
 | Requirement / Decision | Diwujudkan oleh | Dibuktikan oleh |
 |---|---|---|
 | `LAB-DEC-013` + `LAB-DEC-026` cito dan duplo | `LabExamination.Urgency`, `LabExamination.IsDuplo`, `LabValueBound.CitoTurnaroundMinutes`, `LabWorklistService` | AC-10, AC-17, AC-18, AC-39, AC-40 |
-| `LAB-DEC-024` pemisahan wadah dan pemeriksaan | `TrxLabSpecimen` diperbarui, `LabExamination` baru | AC-35 sampai AC-38 |
+| `LAB-DEC-024` pemisahan wadah dan pemeriksaan | `LabSpecimen` diperbarui, `LabExamination` baru | AC-35 sampai AC-38 |
 | `LAB-DEC-006`, `LAB-DEC-018` batas nilai | `LabValueBound` | AC-24, AC-25 |
 | `LAB-DEC-021` dua bentuk hasil | `LabValueBound.ResultForm`, `LabValueOption` | AC-28, AC-29, AC-30 |
 | `LAB-DEC-023` perlindungan batas kritis | `LabValueBoundChangeRequest`, `LabValueBoundHistory` | AC-33, AC-34 |

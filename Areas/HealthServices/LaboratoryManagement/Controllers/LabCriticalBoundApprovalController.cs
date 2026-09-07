@@ -37,9 +37,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _service = service;
         }
 
-        /// <summary>
-        /// Daftar pengajuan perubahan batas kritis untuk satu batas nilai, terbaru lebih dulu.
-        /// </summary>
+        // Keterangan bentuk layar pengajuan: pilihan status, urutan, ukuran halaman, dan dua
+        // penanda keselamatan — larangan menyetujui pengajuan sendiri, serta batas satu
+        // pengajuan belum diputuskan per batas nilai.
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabCriticalBoundApprovalFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Critical Bound Approval", Description = "Melihat daftar pilihan penyaring pengajuan batas kritis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabCriticalBound", "Read")]
+        public IActionResult GetFilterMetadata(Guid valueBoundId)
+        {
+            var result = _service.GetFilterMetadata();
+
+            return Ok(ApiResponse<LabCriticalBoundApprovalFilterMetadataResponse>.Ok(
+                result,
+                "Metadata penyaring pengajuan perubahan batas kritis berhasil diambil."));
+        }
+
+        // Rekap pengajuan untuk satu batas nilai. Batas nilai yang tidak ada menghasilkan 404.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabCriticalBoundApprovalSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Critical Bound Approval", Description = "Melihat rekap pengajuan perubahan batas kritis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabCriticalBound", "Read")]
+        public async Task<IActionResult> GetSummary(
+            Guid valueBoundId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _service.GetSummaryAsync(valueBoundId, cancellationToken);
+
+                return Ok(ApiResponse<LabCriticalBoundApprovalSummaryResponse>.Ok(
+                    result,
+                    "Rekap pengajuan perubahan batas kritis berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // Daftar pengajuan perubahan batas kritis untuk satu batas nilai, terbaru lebih dulu.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<List<LabBoundChangeRequestResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -63,10 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Mengajukan perubahan batas kritis. Batas yang berlaku tidak berubah sama sekali
-        /// sampai pengajuan ini disetujui.
-        /// </summary>
+        // Mengajukan perubahan batas kritis. Batas yang berlaku tidak berubah sama sekali
+        // sampai pengajuan ini disetujui.
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<LabBoundChangeRequestResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -83,12 +120,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _service.SubmitAsync(valueBoundId, request, cancellationToken),
                 "Pengajuan perubahan batas kritis berhasil dibuat.");
 
-        /// <summary>
-        /// Menyetujui pengajuan; batas kritis yang baru mulai berlaku dan satu baris riwayat
-        /// diterbitkan beserta penyetujunya.
-        ///
-        /// Ditolak <c>403</c> bila yang memutuskan adalah pengajunya sendiri (<c>VAL-33</c>).
-        /// </summary>
+        // Menyetujui pengajuan; batas kritis yang baru mulai berlaku dan satu baris riwayat
+        // diterbitkan beserta penyetujunya.
+        //
+        // Ditolak 403 bila yang memutuskan adalah pengajunya sendiri (VAL-33).
         [HttpPost("{requestId:guid}/approve")]
         [ProducesResponseType(typeof(ApiResponse<LabBoundChangeRequestResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -105,9 +140,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _service.ApproveAsync(valueBoundId, requestId, request, cancellationToken),
                 "Perubahan batas kritis disetujui dan mulai berlaku.");
 
-        /// <summary>
-        /// Menolak pengajuan. Batas kritis yang berlaku tidak berubah sama sekali.
-        /// </summary>
+        // Menolak pengajuan. Batas kritis yang berlaku tidak berubah sama sekali.
         [HttpPost("{requestId:guid}/reject")]
         [ProducesResponseType(typeof(ApiResponse<LabBoundChangeRequestResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -124,9 +157,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _service.RejectAsync(valueBoundId, requestId, request, cancellationToken),
                 "Pengajuan perubahan batas kritis ditolak.");
 
-        /// <summary>
-        /// Menarik pengajuan sendiri. Hanya pengaju yang boleh (<c>VAL-35</c>).
-        /// </summary>
+        // Menarik pengajuan sendiri. Hanya pengaju yang boleh (VAL-35).
         [HttpPost("{requestId:guid}/withdraw")]
         [ProducesResponseType(typeof(ApiResponse<LabBoundChangeRequestResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
