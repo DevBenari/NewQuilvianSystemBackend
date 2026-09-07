@@ -4,11 +4,11 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Revision | `4` |
-| Status | `CURRENT` — register dependency yang sedang berlaku dan dikutip roadmap revisi 2. Seluruh bukti terverifikasi lewat impact scan 4 September 2026 |
-| Diperbarui | `2026-09-04` — `BD-DEP-004` dan `BD-DEP-005` ditutup implementasi `MVP-0` |
-| Sumber bukti | `02-existing-capability-map.md` revisi 2 dan `00-interview-decisions.md` revisi 2 |
-| Backend SHA | bukti dikumpulkan pada `9522caacf29371b1fddd1584e9a71ad94fe48d19`; **source terkini `5f7acaf`** cabang `sukmagp` |
-| Frontend SHA | bukti dikumpulkan pada `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; **source terkini `101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` |
+| Status | `CURRENT` — register dependency yang sedang berlaku dan dikutip roadmap revisi 2. Seluruh bukti diperiksa ulang lewat impact scan 7 September 2026 dan **tetap sahih** |
+| Diperbarui | `2026-09-07` — penyegaran SHA dan rujukan bukti. **Nol dependency berubah status**; `BD-DEP-004` dan `BD-DEP-005` tetap `RESOLVED` sejak `MVP-0` |
+| Sumber bukti | `02-existing-capability-map.md` revisi **5** dan `00-interview-decisions.md` revisi **11** |
+| Backend SHA | bukti dikumpulkan pada `9522caacf29371b1fddd1584e9a71ad94fe48d19`; **source terkini `5360286`** cabang `sukmagp` |
+| Frontend SHA | bukti dikumpulkan pada `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; **source terkini `101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` — **tidak bergerak** sejak 4 September 2026 |
 
 Dokumen ini mencatat apa saja yang harus sudah tersedia sebelum Bank Darah bisa dikerjakan, dan
 sejauh mana masing-masing sudah siap.
@@ -18,6 +18,24 @@ Nilai `capability_status` hanya boleh memakai salah satu dari taksonomi baku ber
 
 Nilai `dependency_type` hanya boleh memakai `MODULE_FOUNDATION`, `PHASE`, `INTEGRATION`, atau
 `EXTERNAL`.
+
+> **Penyegaran bukti 7 September 2026 — revisi tidak dinaikkan.** Backend bergerak dari `ba75a05` ke
+> **`5360286`** lewat 38 commit yang membawa 121 berkas source aplikasi. Impact scan terbatas
+> dijalankan, dan hasilnya: **nol dependency berpindah status, nol dependency baru muncul, nol
+> dependency terhapus.** Karena tidak ada perubahan material, revisi tetap `4` sesuai aturan
+> pembaruan blueprint — yang naik hanya rujukan SHA dan sumber buktinya.
+>
+> Yang perlu dicatat dari scan itu, tanpa mengubah satu pun baris di bawah:
+>
+> - **`BD-DEP-014`** komponen dasar tampilan frontend **tetap sahih tanpa perlu diperiksa ulang**,
+>   karena SHA frontend tidak bergerak sama sekali.
+> - **`BD-DEP-006`** dan dependency lain yang meminjam pola Laboratorium tetap sahih, tetapi dua
+>   berkas rujukannya **berganti nama**: `TrxLabTransitionHistory.cs` menjadi
+>   `LabTransitionHistory.cs`, dan `TrxLabSpecimen.cs` dipecah menjadi `LabSpecimen.cs` beserta
+>   `LabExamination.cs`. Isi polanya tidak bergeser; hanya letaknya. Rinciannya di
+>   `02-existing-capability-map.md` §Impact scan terbatas — 7 September 2026.
+> - **Nol berkas source Bank Darah tersentuh.** Ketujuh berkas dan keempat migration hasil `MVP-0`
+>   utuh, dan dibuktikan build hijau (`0 Error(s)`) beserta 101 pengujian Bank Darah lulus.
 
 > **Perubahan pada revisi 4 — 4 September 2026.** Dua dependency ditutup oleh implementasi gelombang
 > `MVP-0`, bukan oleh keputusan baru. `BD-DEP-005` katalog komponen darah naik dari `MISSING` menjadi

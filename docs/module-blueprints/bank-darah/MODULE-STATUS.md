@@ -9,15 +9,85 @@
 | Module status | `IN_PROGRESS` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `2026-09-04` — hasil **`NOT_READY`** (modul); gelombang `MVP-0` **`READY_WITH_CONDITIONS`** |
-| Backend source SHA | `ba75a05` cabang `sukmagp` — bukti terverifikasi di `5f7acaf`; pergerakan ke `ba75a05` **docs-only** |
-| Frontend source SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` |
+| Backend source SHA | **`5360286`** cabang `sukmagp` — bukti diperiksa ulang langsung di SHA ini, 7 September 2026 |
+| Frontend source SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — **tidak bergerak** sejak 4 September 2026 |
 | Decision revision | `11` — `DEC-BD-001` sampai `DEC-BD-047` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-04` — verifikasi kesiapan, pemulihan build, dan impact scan revisi 4 |
+| Terakhir diperbarui | `2026-09-07` — penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
 
-## Keadaan sekarang — 4 September 2026
+## Keadaan sekarang — 7 September 2026
+
+Modul tetap berstatus **`IN_PROGRESS`**, dan **tidak ada satu pun status yang berubah** dibanding
+4 September 2026. Yang dikerjakan hari ini adalah penyegaran bukti, bukan perubahan rencana.
+
+**Pemicunya.** Backend bergerak dari `ba75a05` ke **`5360286`** lewat 38 commit yang membawa
+**121 berkas source aplikasi** — berbeda dari catatan sebelumnya yang menyebut pergerakan sesudah
+`5f7acaf` sebagai *docs-only*, yaitu hanya menyentuh dokumen. Karena itu impact scan terbatas
+dijalankan ulang.
+
+### Hasil impact scan 7 September 2026
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Baris kemampuan berpindah status | **0** |
+| Baris kemampuan memburuk | **0** |
+| Berkas source Bank Darah tersentuh | **0** dari 205 berkas yang berubah |
+| Rujukan bukti yang perlu diperbarui | **2** — `BD-CAP-008` dan `BD-CAP-009` |
+| Bukti frontend | **Tetap sahih** tanpa scan; SHA frontend tidak bergerak |
+
+**Bukti `MVP-0` selamat penuh.** Ketujuh berkas source dan keempat migration hasil gelombang `MVP-0`
+utuh di `5360286`. Dibuktikan langsung, bukan disimpulkan:
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `dotnet build QuilvianSystemBackend.sln` | **`0 Error(s)`**, 210 peringatan |
+| `dotnet test` penyaring Bank Darah | **`Failed: 0, Passed: 101`** |
+| `git status --porcelain` | Bersih |
+
+### Tiga hal yang berubah artinya, tanpa mengubah status
+
+**1. Dua rujukan bukti menunjuk berkas yang sudah berganti nama.** Modul Laboratorium mengganti nama
+dan memecah dua entity yang dipinjam peta kemampuan **sebagai pola**, bukan dipakai bersama:
+
+| Kemampuan | Rujukan lama | Rujukan baru |
+| --- | --- | --- |
+| `BD-CAP-009` | `TrxLabTransitionHistory.cs` | `LabTransitionHistory.cs` — ganti nama saja, kesembilan field utuh |
+| `BD-CAP-008` | `TrxLabSpecimen.cs` | `LabSpecimen.cs` + `LabExamination.cs` — dipecah dua tingkat |
+
+Keduanya **tetap `Reuse with adapter`**, dan rancangan Bank Darah tidak perlu diubah. Rujukannya sudah
+diperbarui di peta kemampuan revisi 5.
+
+**2. Eksekusi migration kini lintas modul.** Keempat migration Bank Darah bukan lagi migration
+terakhir, dan `20260903071535_AddLabExamination` milik Laboratorium **menyelip di tengahnya**. Karena
+Entity Framework menerapkan migration berurutan dan tidak boleh dilangkahi, menjalankan migration
+Bank Darah otomatis ikut menerapkan migration Laboratorium, Billing, dan Registration. **Syaratnya
+tidak bertambah, tetapi pemiliknya bertambah** — perlu disepakati dengan ketiga pemilik modul itu.
+
+**3. Batas modul kini dijaga pengujian otomatis.** Berkas `LabScopeBoundaryTests.cs` milik Laboratorium
+memuat tiga pengujian `AC-42` yang menegakkan bahwa tidak ada tipe, tabel, maupun endpoint Laboratorium
+yang melayani Bank Darah. Ketiganya lulus. Batas `BD-CTX-09` yang sebelumnya hanya berupa keterangan
+di kode kini **dijaga mesin**, dan itu menguatkan `DEC-BD-015` serta `DEC-BD-018`.
+
+### Satu regresi merge yang sempat memblokir modul ini — sudah tertutup
+
+Merge `b70b735` sempat membuat dua baris kepemilikan pada registry sama-sama mencocokkan folder
+`Areas/HealthServices/MasterData` dengan prefix `Mst`. Akibatnya pemeriksa kepemilikan memulangkan
+*"ambiguous"*, dan **seluruh** entity `Mst*` baru terblokir `QBE-MOD-002` — terlihat persis pada
+ketiga master Bank Darah. Commit `5360286`, yaitu HEAD saat ini, menghapus baris duplikatnya.
+Diperiksa ulang: baris `Bbk` **`ACTIVE`**, baris `Mst` **`ACTIVE`**, tanpa duplikat. **`G2a` dan `G2b`
+tetap tertutup**, dan build hijau membuktikannya di luar catatan changelog.
+
+> ⚠️ **Build hijau bukan bukti kesiapan modul.** Ia hanya mencabut kekhawatiran bahwa merge terakhir
+> merusak baseline. Putusan `NOT_READY` di bawah tetap berdiri karena **cakupan**, dan itu tidak
+> tersentuh sama sekali oleh hasil build ini.
+
+---
+
+## Catatan historis — 4 September 2026
+
+> Blok di bawah benar pada tanggalnya dan dipertahankan sebagai rekaman. Keadaan terkini ada di atas.
 
 Modul berstatus **`IN_PROGRESS`**. Gelombang `MVP-0` **tuntas secara kode dan sudah terbukti**: build
 hijau dan 101 pengujian Bank Darah lulus di `5f7acaf`. Yang menahan kesiapan sekarang bukan lagi
@@ -127,7 +197,7 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | Fase | Nama | Status | Keterangan |
 | --- | --- | --- | --- |
 | `BD-PH-001` | Discovery dan Requirement | `DONE` | Sepuluh pass wawancara: scope, closure, architecture gap closure, architecture gap final closure, Storage Location, Storage Location decision, gerbang pemberian, role & authority, role residue, OQ residue. `SCOPE-BD-001`, `DEC-BD-001`..`DEC-BD-044`, `INV-BD-011`..`INV-BD-035`, `AC-BD-001`..`AC-BD-097`. |
-| `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan pada `02-existing-capability-map.md` revisi **4**, status `CURRENT`. Audit penuh di `9522caa`; impact scan terbatas di `4205d18` (3 Sep) dan **`5f7acaf` (4 Sep)**. Dua baris membaik: `BD-CAP-005` dan `BD-CAP-018` menjadi `Ready to reuse`. **Catatan:** dua master baru belum punya baris `BD-CAP-*`; audit penuh disarankan sebelum `MVP-2`. |
+| `BD-PH-002` | Audit kemampuan existing | `DONE` | 24 baris kemampuan pada `02-existing-capability-map.md` revisi **5**, status `CURRENT`. Audit penuh di `9522caa`; impact scan terbatas di `4205d18` (3 Sep), `5f7acaf` (4 Sep), dan **`5360286` (7 Sep)**. Dua baris membaik pada 4 Sep: `BD-CAP-005` dan `BD-CAP-018` menjadi `Ready to reuse`; scan 7 Sep **nol baris berpindah**. **Catatan:** dua master baru belum punya baris `BD-CAP-*`, dan pola yang dipinjam `BD-CAP-008` kini terpecah dua tingkat; audit penuh disarankan sebelum `MVP-2`. |
 | `BD-PH-003` | Gerbang kelengkapan requirement | `DONE` | `02-requirement-completeness-assessment.md` revisi 2. Delapan slice `READY_FOR_DOMAIN_DESIGN`, dua `PARTIALLY_READY`. **Catatan:** `BR-BD-020` (Storage Location) belum punya rumah slice resmi; sementara diperlakukan sebagai perluasan `BD-SLICE-03/04/10`. |
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `DONE` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). **Bukti penerimaan:** set kontrak `v4` disetujui `Sukmagp` pada `2026-09-03` (`G1`), tercatat di manifest revisi 20 dan di kepala setiap artefak kontrak. |
@@ -169,6 +239,20 @@ keberadaan laporan `task/report/**`, bukan diperkirakan.
 keempatnya belum dijalankan, keempat task di atas belum dapat dipakai di lingkungan mana pun.
 Eksekusi database adalah wewenang terpisah, dan inilah **satu-satunya syarat** yang memisahkan
 gelombang `MVP-0` dari selesai penuh.
+
+⚠️ **Sejak 7 September 2026 syaratnya berubah sifat, bukan berubah isi.** Keempat migration itu
+**bukan lagi migration terakhir**, dan `20260903071535_AddLabExamination` milik Laboratorium
+**menyelip di antara** `AddServiceUnitBloodOrderFlag` dan `AddMstBloodStorageLocation`.
+
+**Contoh supaya jelas.** Bila petugas menjalankan `dotnet ef database update` sampai
+`AddMstBloodBankReason`, maka migration Laboratorium itu **ikut terpasang**, karena Entity Framework
+menerapkan migration berurutan dan tidak boleh melangkahi satu pun. Tidak ada cara memasang migration
+Bank Darah yang keempat tanpa melewati migration Laboratorium yang ketiga.
+
+Enam migration modul lain juga berdiri **sesudah** keempatnya — empat milik Laboratorium, satu Billing,
+satu Registration. Karena itu tindakan ini **perlu disepakati dengan pemilik Laboratorium, Billing, dan
+Registration** lebih dulu. Rinciannya beserta urutan lengkapnya ada di `02-existing-capability-map.md`
+§Dampak migration.
 
 **Bukti pengujian sudah terverifikasi.** Pada `5f7acaf`, `dotnet build` memulangkan `0 Error(s)` dan
 `dotnet test` memulangkan **`Failed: 0, Passed: 101`** untuk pengujian Bank Darah serta
@@ -240,9 +324,9 @@ membaca kontrak, bukan register keputusan — tetapi dicatat supaya tidak dikira
 
 | Artefak | SHA tercatat | SHA saat ini | Tinjauan dampak yang diperlukan |
 | --- | --- | --- | --- |
-| `02-existing-capability-map.md` | audit penuh `9522caa` · impact scan **`5f7acaf`** | `5f7acaf` | ✅ **Sudah disegarkan dan tetap sahih.** Impact scan 4 September 2026 atas rentang penuh `4205d18..5f7acaf`: dari 46 rujukan bukti hanya `MstServiceUnit.cs` tersentuh, dan perubahannya **aditif murni**. Nol berkas bukti frontend berubah. Dua baris membaik, nol memburuk |
-| `BUSINESS REQUIREMENTS DOCUMENT (BRD).md` | `8b298bb` | `5f7acaf` | Terbatas pada konfigurasi Laboratorium. Dampaknya menyempit sejak `DEC-BD-018` memisahkan sampel Bank Darah dari sampel Laboratorium |
-| `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `5f7acaf` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium sudah digantikan `DEC-BD-018` |
+| `02-existing-capability-map.md` | audit penuh `9522caa` · impact scan **`5360286`** | `5360286` | ✅ **Sudah disegarkan dan tetap sahih.** Impact scan 7 September 2026 atas rentang `ba75a05..5360286`: dari 37 nama berkas bukti unik, 6 tersentuh dan seluruhnya tetap menopang barisnya. **Nol baris berpindah status.** Dua rujukan bukti diperbarui karena Laboratorium mengganti nama entity |
+| `BUSINESS REQUIREMENTS DOCUMENT (BRD).md` | `8b298bb` | `5360286` | Terbatas pada konfigurasi Laboratorium. Dampaknya menyempit sejak `DEC-BD-018` memisahkan sampel Bank Darah dari sampel Laboratorium |
+| `PRODUCT REQUIREMENTS DOCUMENT (PRD).md` | `8b298bb` | `5360286` | Sama seperti di atas. PRD §3 yang menganjurkan memakai model sampel Laboratorium sudah digantikan `DEC-BD-018` |
 
 ✅ **Frontend `afbb8ab` → `101ec5d3` sudah ikut discan.** Kesepuluh komponen dasar yang dikutip
 `BD-CAP-021` / `BD-DEP-014` **tidak berubah**. Enam berkas `base-features/` lain memang berubah, tetapi
@@ -256,9 +340,9 @@ bukan yang dikutip peta — `base-editor-view.jsx` berbeda dari `base-editor-for
 | Artefak | Keadaan |
 | --- | --- |
 | `00-interview-decisions.md` | Revisi **11** — `DEC-BD-001`..`047`, `INV-BD-011`..`035`, `AC-BD-001`..`097` |
-| `02-existing-capability-map.md` | Revisi **4** — 24 kemampuan, `CURRENT`. Impact scan `5f7acaf` 4 September 2026 |
+| `02-existing-capability-map.md` | Revisi **5** — 24 kemampuan, `CURRENT`. Impact scan **`5360286`** 7 September 2026 |
 | `02-requirement-completeness-assessment.md` | Revisi 2 — `BR-BD-020` belum punya rumah slice |
-| `01-prerequisite-readiness.md` | Revisi 3 — `BD-DEP-001`..`015` |
+| `01-prerequisite-readiness.md` | Revisi **4** — `BD-DEP-001`..`015`. Disegarkan 7 September 2026; nol dependency berubah status |
 | `03-domain-architecture.md` | Revisi 6 — `DOMAIN_ARCHITECTURE_READY`, nol gap terbuka |
 | `02-backend-architecture.md` | Kontrak `v4` (`approved`) — 15 tabel `Bbk*`, 3 master `Mst*`, 11 enum |
 | `03-frontend-architecture.md` | Kontrak `v4` (`approved`) — 10 layar, peta menu, 21 kewajiban layar |
@@ -276,11 +360,11 @@ bukan yang dikutip peta — `base-editor-view.jsx` berbeda dari `base-editor-for
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
-| 1 | **Jalankan keempat migration `MVP-0`** di dev pemilik | Pemilik database | **Wewenang terpisah.** Satu-satunya syarat yang memisahkan `MVP-0` dari selesai penuh. Tanpa ini keempat task belum dapat dipakai di lingkungan mana pun |
-| 2 | ~~Impact scan terbatas~~ | Skill | ✅ **Selesai** 4 September 2026. Peta naik ke revisi 4, `CURRENT`. **Audit penuh** disarankan sebelum `MVP-2`: `MstBloodStorageLocation` dan `MstBloodBankReason` belum punya baris `BD-CAP-*` |
-| 3 | **Jadwalkan `MVP-1` mulai `BE-BD-003`** (order darah) | Skill | `build-module-backend`, satu task satu wewenang. **Kini aman** — baseline hijau, 212 pengujian lulus. Dependency `BE-BD-001` dan `BE-BD-002` keduanya sudah selesai |
+| 1 | **Sepakati lalu jalankan migration `MVP-0`** di dev pemilik | Pemilik database **bersama** pemilik Laboratorium, Billing, dan Registration | **Wewenang terpisah, dan sejak 7 September 2026 lintas modul.** Tetap satu-satunya syarat yang memisahkan `MVP-0` dari selesai penuh, tetapi tidak lagi dapat dikerjakan sendirian: migration modul lain menyelip di antara migration Bank Darah dan ikut terpasang |
+| 2 | ~~Impact scan terbatas~~ | Skill | ✅ **Selesai lagi** 7 September 2026 di `5360286`. Peta naik ke revisi **5**, `CURRENT`. **Audit penuh** disarankan sebelum `MVP-2` — dua alasan: `MstBloodStorageLocation` dan `MstBloodBankReason` belum punya baris `BD-CAP-*`, dan pola Laboratorium yang dipinjam `BD-CAP-008` kini terpecah dua tingkat |
+| 3 | **Jadwalkan `MVP-1` mulai `BE-BD-003`** (order darah) | Skill | `build-module-backend`, satu task satu wewenang. **Aman** — baseline diverifikasi ulang di `5360286`: build `0 Error(s)`, 101 pengujian Bank Darah lulus. Dependency `BE-BD-001` dan `BE-BD-002` keduanya sudah selesai. Catatan untuk builder: `BD-CAP-009` yang dipakai task ini kini merujuk `LabTransitionHistory.cs`, bukan `TrxLabTransitionHistory.cs` |
 | 4 | Setelah pasangan BE-nya ada: mulai task frontend dari `FE-BD-001` | Skill | `build-module-frontend`. Kontrak `v4` sudah terkunci dan `approved` |
-| 5 | Jalankan ulang `verify-module-readiness` setelah `MVP-1` tuntas | Skill | Verifikasi 4 September 2026 berlaku sampai gelombang berikutnya selesai |
+| 5 | Jalankan ulang `verify-module-readiness` setelah `MVP-1` tuntas | Skill | Verifikasi 4 September 2026 berlaku sampai gelombang berikutnya selesai. Penyegaran 7 September 2026 **bukan** verifikasi kesiapan baru |
 
 **Migration, eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap wewenang
 terpisah.** Approval `G1` tidak menyentuh keempatnya.

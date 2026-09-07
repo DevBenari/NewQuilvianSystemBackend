@@ -6,8 +6,8 @@
 | Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
 | **Roadmap status** | **`APPROVED`** — disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun pada 3 September 2026 |
 | Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | `ba75a05` cabang `sukmagp` — semula `ec2bcac`; disegarkan 4 September 2026. Bukti kemampuan terverifikasi di `5f7acaf`; pergerakan sesudahnya docs-only |
-| Frontend SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — semula `afbb8ab`; disegarkan 4 September 2026 |
+| Backend SHA | **`5360286`** cabang `sukmagp` — semula `ba75a05`; disegarkan 7 September 2026. Bukti kemampuan diperiksa ulang langsung di `5360286` lewat impact scan terbatas: nol baris berpindah status, nol berkas source Bank Darah tersentuh. Build hijau (`0 Error(s)`) dan 101 pengujian Bank Darah lulus di SHA ini |
+| Frontend SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — semula `afbb8ab`; disegarkan 4 September 2026 dan **tidak bergerak** sejak itu |
 | Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **11** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
@@ -188,7 +188,7 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 
 | Gelombang | Isi | Syarat mulai |
 | --- | --- | --- |
-| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001`, `BE-BD-002`, dan `BE-BD-014` **selesai** 3 September 2026. `BE-BD-016` **selesai sebagian** — 12 dari 39 butir hak akses terdaftar, sisanya terikat task pembuat controller. **`MVP-0` tuntas dari sisi source**; empat migration menunggu dijalankan |
+| `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001`, `BE-BD-002`, dan `BE-BD-014` **selesai** 3 September 2026. `BE-BD-016` **selesai sebagian** — 12 dari 39 butir hak akses terdaftar, sisanya terikat task pembuat controller. **`MVP-0` tuntas dari sisi source**; empat migration menunggu dijalankan. ⚠️ **Sejak 7 September 2026 eksekusinya lintas modul:** keempat migration Bank Darah bukan lagi yang terakhir, dan `20260903071535_AddLabExamination` milik Laboratorium menyelip di tengahnya. Karena Entity Framework menerapkan migration berurutan dan tidak boleh dilangkahi, menjalankan migration Bank Darah otomatis ikut menerapkan migration Laboratorium, Billing, dan Registration. Perlu disepakati dengan ketiga pemilik itu lebih dulu; rinciannya di `02-existing-capability-map.md` §Dampak migration |
 | `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2b` + `MVP-0` |
 | `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** |
 | `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `MVP-1` |

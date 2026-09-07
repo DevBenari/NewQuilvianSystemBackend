@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
 | Blueprint revision | `24` |
-| Capability map revision | `4` |
+| Capability map revision | `5` |
 | Status | `source-audited` — audit source sudah dijalankan dan hasilnya berlaku; dokumen ini **tidak** menyatakan modul siap implementasi maupun siap produksi |
 | Sumber keputusan | `00-interview-decisions.md` revisi 2, `SCOPE-BD-001` sampai `DEC-BD-024` |
 | Backend SHA audit penuh | `9522caacf29371b1fddd1584e9a71ad94fe48d19` cabang `sukmagp` |
-| Backend SHA impact scan terakhir | `5f7acaf` cabang `sukmagp` — **4 September 2026** |
-| Status kesegaran | **`CURRENT`** — penanda `STALE` dicabut oleh impact scan 4 September 2026 di bawah |
-| Frontend SHA yang diaudit | audit penuh `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; impact scan terakhir **`101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` — 4 September 2026 |
+| Backend SHA impact scan terakhir | `5360286` cabang `sukmagp` — **7 September 2026** |
+| Status kesegaran | **`CURRENT`** — penanda `STALE` dicabut oleh impact scan 7 September 2026 di bawah |
+| Frontend SHA yang diaudit | audit penuh `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; impact scan terakhir **`101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` — 7 September 2026, SHA **tidak bergerak** sejak 4 September 2026 |
 | Tanggal audit | `2026-09-02` |
 | Mode | Read-only. Tidak ada satu pun berkas source aplikasi yang diubah. |
 
@@ -21,6 +21,209 @@ Setiap baris memakai tepat satu status dari taksonomi baku: `Ready to reuse`, `R
 Rujukan bukti per baris tetap menyebut `@9522caa`, yaitu SHA saat audit penuh dijalankan. Itu
 disengaja: audit penuh memang dilakukan di sana, dan impact scan **tidak** menggantikannya. Bagian
 berikut mencatat apa yang diperiksa ulang pada `4205d18` beserta hasilnya.
+
+---
+
+## Impact scan terbatas — 7 September 2026
+
+**Pemicu.** Backend bergerak dari `ba75a05` ke **`5360286`** lewat 38 commit, di antaranya merge
+`QuilvianIntegrationBackend` ke `sukmagp`. Manifest sebelumnya mencatat pergerakan sesudah `5f7acaf`
+sebagai *docs-only*, yaitu hanya menyentuh dokumen. **Catatan itu tidak lagi berlaku:** rentang ini
+membawa 121 berkas source aplikasi. Frontend **tidak bergerak** — SHA-nya tetap `101ec5d3`, sehingga
+seluruh bukti frontend otomatis tetap sahih tanpa perlu diperiksa ulang.
+
+**Batas scan.** Rentang `ba75a05..5360286` untuk backend. Frontend tidak discan karena SHA-nya identik.
+
+### Cara batas scan dipertanggungjawabkan
+
+Membatasi scan hanya sah bila baris lain memang tidak tersentuh. Itu **diperiksa per berkas**: seluruh
+nama berkas yang dikutip peta ini diadu satu per satu dengan daftar berkas yang berubah.
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Commit backend dalam rentang | 38 |
+| Berkas berubah seluruhnya | 205 |
+| Berkas source backend berubah (di luar `docs/`) | 121 |
+| Nama berkas bukti unik yang dikutip peta | 37 |
+| **Irisan backend** | **6 berkas** — `LabOrder.cs`, `LabOrderController.cs`, `LabSpecimenService.cs`, `LaboratoryEnums.cs`, `TrxPatientEncounter.cs`, ditambah `ApplicationDbContextModelSnapshot.cs` yang merupakan berkas hasil bangkitan `dotnet ef`, bukan bukti kemampuan |
+| Berkas source Bank Darah yang berubah | **0** |
+| Irisan frontend | **0** — SHA frontend tidak bergerak |
+
+### Nol berkas Bank Darah tersentuh
+
+Ini yang paling penting bagi modul ini: dari 205 berkas yang berubah, **tidak satu pun** bernama
+`MstBlood*`, `BloodBank*`, atau `Bbk*`. Ketujuh berkas source dan keempat migration yang dihasilkan
+gelombang `MVP-0` utuh di `5360286` — tidak ada yang diubah, dipindah, maupun terhapus oleh merge.
+
+### Dua baris yang rujukan buktinya berpindah berkas
+
+Modul Laboratorium mengganti nama dan memecah dua entity yang dikutip peta ini sebagai **pola**.
+Perlu ditegaskan supaya tidak salah baca: Bank Darah **tidak memakai entity itu bersama-sama**, ia
+hanya mencontoh bentuknya. Karena itu penggantian nama di sana tidak mengubah rancangan Bank Darah,
+tetapi rujukan buktinya harus ditunjukkan ke berkas yang benar agar masih bisa ditelusuri.
+
+| Kemampuan | Rujukan lama | Rujukan baru | Putusan |
+| --- | --- | --- | --- |
+| `BD-CAP-009` riwayat perpindahan status | `TrxLabTransitionHistory.cs` | **`LabTransitionHistory.cs`** | **Tetap `Reuse with adapter`.** Penggantian nama saja. Kesembilan field yang dikutip — `Scope`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `CorrelationId` — seluruhnya masih ada |
+| `BD-CAP-008` baris rincian bersalinan tarif | `TrxLabSpecimen.cs` | **`LabSpecimen.cs` + `LabExamination.cs`** | **Tetap `Reuse with adapter`.** Bukan sekadar ganti nama: entity dipecah dua tingkat, dan keenam field yang dikutip kini terbagi |
+
+**Bagaimana `BD-CAP-008` terbagi.** Migration `20260904030116_SplitLabSpecimenIntoExamination` memisahkan
+satu entity lama menjadi dua. Sebelumnya satu baris spesimen memikul sekaligus data tabung sampel dan
+data pemeriksaan beserta salinan tarifnya. Sekarang keduanya dipisah:
+
+| Field yang dikutip peta | Sekarang ada di |
+| --- | --- |
+| `ProcedureId` | `LabExamination.cs` (juga masih ada di `LabSpecimen.cs`) |
+| `ProcedureCodeSnapshot` | `LabExamination.cs` |
+| `ProcedureNameSnapshot` | `LabExamination.cs` |
+| `TariffId` | `LabExamination.cs` |
+| `TariffCodeSnapshot` | `LabExamination.cs` |
+| `SupersededSpecimenId` | `LabSpecimen.cs` |
+
+Contoh supaya terbayang: satu tabung darah pasien (`LabSpecimen`) kini bisa dipakai untuk tiga jenis
+pemeriksaan sekaligus (`LabExamination`), dan tarif dicatat per pemeriksaan, bukan per tabung.
+
+**Apakah ini mengubah rancangan Bank Darah? Tidak.** Pola yang dipinjam `BD-CAP-008` adalah "simpan
+salinan tarif pada baris rincian supaya pengiriman biaya ke Billing dapat diulang tanpa berubah". Pola
+itu **tetap berlaku**, hanya saja Laboratorium kini menaruhnya satu tingkat lebih dalam. Bank Darah
+membuat entity sendiri (`BbkBloodOrder` + `BbkBloodOrderLine`) dan bentuk dua tingkatnya sudah sesuai
+kontrak `v4`, sehingga tidak ada yang perlu diubah. Yang dicatat di sini adalah **bahan pertimbangan**
+saat `BE-BD-004` dieksekusi: bila kelak satu kantong darah melayani lebih dari satu tindakan bertarif,
+pemisahan seperti Laboratorium menjadi rujukan yang sudah terbukti jalan.
+
+### Baris yang diperiksa dan tetap sahih
+
+| Kemampuan | Bukti yang diperiksa | Berubah? | Putusan |
+| --- | --- | --- | --- |
+| `BD-CAP-002` kunjungan pasien | `TrxPatientEncounter.cs` | **Ya, aditif** | **Tetap `Ready to reuse`.** Yang bertambah dua kolom penunjuk perujuk — `ReferralInstitutionId` dan `ReferralDoctorId`, keduanya boleh kosong — beserta dua properti navigasinya. Kesembilan field yang dikutip peta utuh, nol field lama tersentuh |
+| `BD-CAP-007` pola pesanan terikat kunjungan | `LabOrder.cs` | **Ya, aditif** | **Tetap `Reuse with adapter`.** Keenam field yang dikutip utuh |
+| `BD-CAP-010` token konkurensi | `LabOrder.cs#Version` | **Tidak** | **Tetap `Ready to reuse`.** `public int Version` tidak tersentuh |
+| `BD-CAP-014` pola route & grup Swagger | `LabOrderController.cs` | **Ya** | **Tetap `Ready to reuse`.** Keempat atribut yang dikutip identik: `[Route("api/v1/health-services/laboratory-management/lab-orders")]`, `[Tags("Health Services / Laboratory Management / Lab Order")]`, `[Authorize]`, `[ApiController]`, ditambah `[AccessController]`. Pola yang dicontoh `api-contract.md` `v4` tidak bergeser |
+| `BD-CAP-015` penyerahan biaya | `BillingSourceContract.cs`, `LabSpecimenService.cs` | Kontrak **tidak**, contoh pemakaian **ya** | **Tetap `Extend`.** `BillingSourceContract.cs` tidak berubah sama sekali — daftar sumber tertutup masih `InternalTest`, `Prescription`, `Procedure`, `Laboratory`, `Radiology`, dan Bank Darah tetap **belum ada** di dalamnya. `LabSpecimenService.cs` berubah tetapi tetap memanggil `BillingSourceContract.LaboratorySourceContext` lewat `EmitChargeEligibilityAsync`, sehingga contoh pemakaiannya tetap sahih. **`DEC-BD-016` tetap dibutuhkan** |
+| `BD-CAP-001`, `003`, `004`, `006`, `011`, `012`, `013`, `016` | `MstPatient.cs`, `EncounterStatus.cs`, `InpEpisode.cs`, `MstClinic.cs`, `MstRoom.cs`, `MstPatientClass.cs`, `MstServiceUnit.cs`, `IdentityModel.cs`, `ApiResponse.cs`, `PagedResult.cs`, `Attributes/Access*.cs`, `BloodType.cs` | **Tidak** | **Tetap sahih.** Nol berkas tersentuh |
+| `BD-CAP-005`, `018` | `MstServiceUnit.cs`, `MstBloodComponent.cs` | **Tidak** | **Tetap `Ready to reuse`.** Keduanya naik status pada 4 September 2026 dan tidak bergerak sejak itu |
+| `BD-CAP-017` sumber sah golongan darah | `LaboratoryManagement/` | — | **Tetap `Missing`.** Laboratorium tetap tidak memuat entity hasil pemeriksaan golongan darah |
+| `BD-CAP-019`, `020`, `023` | — | — | **Tetap `Missing`.** Belum ada implementasi |
+| `BD-CAP-021` komponen dasar frontend | 10 berkas `base-features/` | **Tidak** | **Tetap sahih.** SHA frontend tidak bergerak sama sekali |
+| `BD-CAP-022` pemisahan per fasilitas | `MstHospitalSite.cs` | **Tidak** | **Tetap sahih** |
+| `BD-CAP-024` HCLAB | — | — | **Tetap `Unknown`.** Menuntut bukti dari luar repository |
+
+**Nol baris memburuk statusnya. Nol baris berpindah status.**
+
+### Batas modul kini ditegakkan pengujian otomatis, bukan hanya komentar
+
+Pada impact scan 3 September 2026 dicatat bahwa batas `BD-CTX-09` berbukti dua arah karena enum
+`LabDiscipline` menyatakan Bank Darah di luar scope Laboratorium. Bukti dari sisi Laboratorium waktu itu
+masih berupa **keterangan tertulis di kode**. Sekarang bukti itu naik satu tingkat.
+
+Berkas `Tests/QuilvianSystemBackend.Tests/HealthServices/LaboratoryManagement/LabScopeBoundaryTests.cs`
+memuat tiga pengujian `AC-42` yang menegakkan batas itu secara otomatis:
+
+| Pengujian | Yang dijaga |
+| --- | --- |
+| `AC42_TidakSatuPunTipeAtauAnggotaLaboratorium_MelayaniBankDarah` | Tidak ada satu pun kelas atau anggota kelas Laboratorium yang memakai istilah Bank Darah |
+| `AC42_TidakSatuPunEntityTersimpan_MelayaniBankDarahMaupunReagen` | Tidak ada satu pun tabel Laboratorium yang menyimpan data Bank Darah |
+| `AC42_TidakSatuPunRouteLaboratorium_MelayaniBankDarahMaupunReagen` | Tidak ada satu pun endpoint Laboratorium yang melayani Bank Darah |
+
+Ketiganya **lulus** di `5360286`. Artinya bila kelak ada yang keliru menaruh kemampuan Bank Darah di
+dalam modul Laboratorium, pengujian Laboratorium sendiri yang akan gagal lebih dulu. Ini menguatkan
+`DEC-BD-015`, `DEC-BD-018`, dan batas `BD-CTX-09` — sekarang dijaga mesin, bukan hanya kesepakatan.
+
+### Dampak migration — berubah artinya bagi rencana eksekusi
+
+Ini perubahan paling praktis dari scan kali ini. Keempat migration Bank Darah **bukan lagi migration
+terakhir**, dan satu migration modul lain bahkan **menyelip di tengahnya**:
+
+| Urutan | Migration | Pemilik |
+| ---: | --- | --- |
+| 1 | `20260903044753_AddMstBloodComponent` | **Bank Darah** |
+| 2 | `20260903060228_AddServiceUnitBloodOrderFlag` | **Bank Darah** |
+| 3 | `20260903071535_AddLabExamination` | Laboratorium — **menyelip** |
+| 4 | `20260903083142_AddMstBloodStorageLocation` | **Bank Darah** |
+| 5 | `20260903093431_AddMstBloodBankReason` | **Bank Darah** |
+| 6 | `20260903094528_RenameLaboratoryTrxTablesToLabPrefix` | Laboratorium |
+| 7 | `20260903163000_FixTariffCategoryInsuranceCoverageDefault` | Billing |
+| 8 | `20260904030116_SplitLabSpecimenIntoExamination` | Laboratorium |
+| 9 | `20260904035620_AddLabExaminationIdToLabTransitionHistory` | Laboratorium |
+| 10 | `20260904065309_AddLabDisciplineAndReferralMasterData` | Laboratorium |
+| 11 | `20260904072427_AddReferralPointerToPatientEncounter` | Registration |
+
+**Akibatnya bagi pemilik database.** Entity Framework menerapkan migration **berurutan dan tidak boleh
+dilangkahi**. Karena itu perintah "jalankan keempat migration Bank Darah" **tidak lagi dapat dikerjakan
+sendirian**.
+
+**Contoh konkret.** Bila petugas menjalankan `dotnet ef database update` sampai
+`20260903093431_AddMstBloodBankReason`, maka migration nomor 3 milik Laboratorium (`AddLabExamination`)
+**ikut terpasang**, karena ia berdiri lebih dulu dalam antrean. Tidak ada cara menjalankan nomor 4 dan 5
+tanpa melewati nomor 3.
+
+**Yang berubah dan yang tidak.** Rencana migration pada `02-backend-architecture.md` §I **tidak perlu
+diubah** — seluruh langkahnya tetap sah dan tetap membuat objek baru yang tidak bersinggungan dengan
+migration modul lain. Yang berubah adalah **sifat tindakannya**: dari tindakan satu modul menjadi
+tindakan yang perlu **disepakati bersama pemilik Laboratorium, Billing, dan Registration** sebelum
+dijalankan. Ini dicatat sebagai catatan koordinasi, bukan sebagai cacat blueprint.
+
+| Pemeriksaan snapshot | Hasil |
+| --- | --- |
+| `MstBloodComponent`, `MstBloodStorageLocation`, `MstBloodBankReason` di `ApplicationDbContextModelSnapshot.cs` | **Sudah ada** — berubah dari keadaan 4 September 2026 yang masih nihil, karena ketiganya kini punya migration |
+| Entity operasional `Bbk*` di snapshot | **Nihil** — sesuai harapan, karena `MVP-1` belum dijalankan |
+
+### Satu regresi merge yang sempat memblokir modul ini, dan sudah tertutup
+
+Perlu dicatat karena sempat menyentuh Bank Darah secara langsung, walaupun sekarang sudah beres.
+
+**Apa yang terjadi.** Merge `b70b735` menyatukan dua baris kepemilikan pada
+`docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` yang sama-sama mencocokkan folder
+`Areas/HealthServices/MasterData` dengan prefix `Mst`. Masing-masing baris benar di cabang asalnya;
+ambiguitas baru lahir ketika keduanya bertemu. Akibatnya pemeriksa kepemilikan memulangkan
+*"Registry ownership is ambiguous"*, dan **seluruh** entity `Mst*` baru terblokir aturan `QBE-MOD-002`
+— terlihat persis pada `MstBloodBankReason`, `MstBloodComponent`, dan `MstBloodStorageLocation`.
+
+**Bagaimana ditutup.** Commit `5360286` — yaitu HEAD saat scan ini dijalankan — menghapus baris
+duplikatnya. Diperiksa ulang pada tabel kepemilikan: baris `HealthServices` / `BloodBankManagement` /
+`Bbk` berstatus **`ACTIVE`**, dan baris `Administrator / HealthServices` / `Master / Reference /
+MasterData` / `Mst` juga **`ACTIVE`**, tanpa duplikat. **`G2a` dan `G2b` tetap tertutup**, dan wewenang
+penamaan Bank Darah tidak berubah sedikit pun.
+
+### Bukti build dan pengujian di `5360286`
+
+| Pemeriksaan | Perintah | Hasil |
+| --- | --- | --- |
+| Build seluruh solution | `dotnet build QuilvianSystemBackend.sln` | **`0 Error(s)`**, 210 peringatan, 4 menit 57 detik |
+| Pengujian Bank Darah | `dotnet test --filter "FullyQualifiedName~BankDarah"` | **`Failed: 0, Passed: 101`** |
+| Kebersihan working tree | `git status --porcelain` | Bersih — bukti tepat mewakili `5360286` |
+
+Rincian 101 pengujian itu, dihitung per kelas uji:
+
+| Kelas uji | Jumlah kasus |
+| --- | --- |
+| `BloodBankReasonServiceTests` | 30 |
+| `BloodComponentServiceTests` | 26 |
+| `BloodStorageLocationServiceTests` | 25 |
+| `BloodBankRoleAccessContractTests` | 12 |
+| `ServiceUnitBloodOrderFlagTests` | 8 |
+| **Total** | **101** |
+
+Angka ini **sama persis** dengan yang tercatat sejak 4 September 2026, dan memang seharusnya begitu:
+kelima berkas pengujian Bank Darah tidak disentuh satu commit pun dalam rentang ini.
+
+> **Catatan cara menghitung.** Penyaring `~BankDarah` memulangkan 104, bukan 101. Selisih 3 itu berasal
+> dari `LabScopeBoundaryTests` milik Laboratorium, yang ikut terjaring karena isinya menyebut Bank
+> Darah. Ketiganya bukan pengujian Bank Darah dan tidak dihitung di tabel atas. Dicatat supaya
+> pembaca berikutnya tidak mengira ada tiga pengujian yang hilang.
+
+### Putusan impact scan
+
+**Blueprint Bank Darah tidak perlu diubah.** Nol baris kemampuan berpindah status, nol kontrak `v4`
+menjadi salah, nol keputusan perlu ditinjau ulang, dan nol gerbang terbuka kembali. Penanda `STALE`
+**dicabut**.
+
+Yang berubah hanya empat hal administratif:
+
+1. SHA impact scan tercatat `5360286`.
+2. Rujukan bukti `BD-CAP-008` dan `BD-CAP-009` ditunjukkan ke berkas Laboratorium yang sudah berganti nama.
+3. Catatan migration dinaikkan menjadi catatan koordinasi lintas modul.
+4. Batas `BD-CTX-09` dicatat kini ditegakkan pengujian otomatis.
 
 ---
 
@@ -222,8 +425,8 @@ dan kemampuan yang tidak disentuh Bank Darah.
 | `BD-CAP-005` | Kewenangan unit pelayanan memesan darah, tanpa dikunci di kode | HealthServices — Master Data | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs#MstServiceUnit@5f7acaf` — kolom **`IsAvailableForBloodOrder`** kini **sudah ada**, bawaan `false`, mengikuti pola tanda kemampuan per unit yang sudah berjalan (`IsAvailableForRegistration`, `IsAvailableForKiosk`, `IsAvailableForAppointment`, `IsQueueRequired`, `IsDoctorRequired`, `IsScreeningRequired`) | **`Ready to reuse`** — semula `Extend`, berpindah 4 September 2026 | Nol adapter. Perluasan yang diramalkan peta **sudah dikerjakan** `BE-BD-002`: satu `AddColumn` aditif dengan `defaultValue: false`, nol index dibuat maupun diubah, nol butir hak akses baru. Pengelolaannya tetap milik Master Data lewat `ServiceUnitController`, bukan lewat endpoint Bank Darah | Rendah. `DEC-BD-012` terpenuhi: kewenangan memesan darah berasal dari konfigurasi, nol daftar unit ditanam di kode. Migration **belum dijalankan** |
 | `BD-CAP-006` | Klinik, ruangan, dan kelas pasien | HealthServices — Master Data | `MstClinic.cs`, `MstRoom.cs`, `MstPatientClass.cs`, `MstServiceUnit.cs@9522caa` | `Ready to reuse` | Cukup menyimpan rujukannya | Rendah |
 | `BD-CAP-007` | Pola pesanan klinis yang terikat kunjungan | LaboratoryManagement | `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs#LabOrder@9522caa` — `EncounterId`, `ProcedureId`, status pesanan, `StatusBeforeHold`, `RequestedAt`, `RequestedByUserId`, `CompletedAt`, `Version` | `Reuse with adapter` | Dipakai sebagai **pola**, bukan sebagai entity bersama. Bank Darah membuat entity sendiri dengan bentuk yang sama | Rendah |
-| `BD-CAP-008` | Pola baris rincian di bawah satu pesanan, lengkap dengan salinan tarif | LaboratoryManagement | `Areas/HealthServices/LaboratoryManagement/Models/TrxLabSpecimen.cs#TrxLabSpecimen@9522caa` — `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot`, `SupersededSpecimenId` | `Reuse with adapter` | Pola salinan tarif dipakai ulang agar pengiriman ke Billing tetap dapat diulang tanpa berubah. Perbedaannya, nomor kantong darah datang dari PMI dan bukan dibuat server — lihat `ASM-BD-003` | Sedang |
-| `BD-CAP-009` | Riwayat perpindahan status yang hanya bisa ditambah | LaboratoryManagement | `Areas/HealthServices/LaboratoryManagement/Models/TrxLabTransitionHistory.cs#TrxLabTransitionHistory@9522caa` — `Scope`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `CorrelationId`; tidak ada jalur update di service | `Reuse with adapter` | Pola langsung untuk pencatatan pergerakan kantong darah yang diminta BG-BD-004 dan `DEC-BD-007` | Rendah |
+| `BD-CAP-008` | Pola baris rincian di bawah satu pesanan, lengkap dengan salinan tarif | LaboratoryManagement | Semula `Models/TrxLabSpecimen.cs#TrxLabSpecimen@9522caa`. **Sejak `5360286` entity itu dipecah dua:** `Models/LabSpecimen.cs#LabSpecimen@5360286` memegang `ProcedureId` dan `SupersededSpecimenId`; `Models/LabExamination.cs#LabExamination@5360286` memegang salinan tarifnya — `ProcedureId`, `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, `TariffId`, `TariffCodeSnapshot` | `Reuse with adapter` | Pola salinan tarif dipakai ulang agar pengiriman ke Billing tetap dapat diulang tanpa berubah. Perbedaannya, nomor kantong darah datang dari PMI dan bukan dibuat server — lihat `ASM-BD-003`. **Pemecahan dua tingkat di Laboratorium tidak menuntut perubahan Bank Darah**; lihat impact scan 7 September 2026 | Sedang |
+| `BD-CAP-009` | Riwayat perpindahan status yang hanya bisa ditambah | LaboratoryManagement | Semula `Models/TrxLabTransitionHistory.cs@9522caa`, **berganti nama menjadi** `Areas/HealthServices/LaboratoryManagement/Models/LabTransitionHistory.cs#LabTransitionHistory@5360286` — `Scope`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `CorrelationId` seluruhnya masih ada; tidak ada jalur update di service | `Reuse with adapter` | Pola langsung untuk pencatatan pergerakan kantong darah yang diminta BG-BD-004 dan `DEC-BD-007`. **Penggantian nama saja**, isi polanya tidak bergeser | Rendah |
 | `BD-CAP-010` | Pengaman agar satu kantong tidak terpakai dua kali | LaboratoryManagement | `LabOrder.cs#Version@9522caa` — token konkurensi bertipe `int` | `Ready to reuse` | Pola yang sama dipakai untuk alokasi kantong. Aturan unik alokasi aktif tetap harus dirancang tersendiri | Sedang |
 | `BD-CAP-011` | Jejak audit dasar dan penghapusan lunak | Platform backend | `Models/IdentityModel.cs#IdentityModel@9522caa` — `CreateBy`, `UpdateBy`, `DeleteBy`, `CancelBy`, `IsCancel`, `IsDelete` beserta waktunya | `Ready to reuse` | Memenuhi larangan hapus keras pada BR-BD-010 | Rendah |
 | `BD-CAP-012` | Bentuk response dan daftar bertingkat | Platform backend | `Responses/ApiResponse.cs`, `Responses/PagedResult.cs@9522caa` | `Ready to reuse` | Dipakai apa adanya | Rendah |
@@ -359,15 +562,21 @@ yang memvalidasinya, dan kapan label boleh dicetak.
 
 ## Pemicu peta menjadi usang
 
-Peta ini terikat pada backend `9522caa` dan frontend `afbb8ab`. Bila salah satu SHA berubah, tandai
-peta ini `STALE` lalu jalankan pemindaian dampak terbatas pada berkas berikut sebelum peta dipakai
-lagi:
+Peta ini terikat pada backend `9522caa` dan frontend `afbb8ab` untuk audit penuhnya, dan diperiksa ulang
+terakhir pada backend `5360286`. Bila salah satu SHA berubah, tandai peta ini `STALE` lalu jalankan
+pemindaian dampak terbatas pada berkas berikut sebelum peta dipakai lagi:
 
 `TrxPatientEncounter.cs` · `EncounterStatus.cs` · `InpEpisode.cs` · `MstServiceUnit.cs` ·
-`MstPatient.cs` · `Enums/BloodType.cs` · `LabOrder.cs` · `TrxLabSpecimen.cs` ·
-`TrxLabTransitionHistory.cs` · `BillingSourceContract.cs` · `ClinicalMilestoneFactProducer.cs` ·
-`Attributes/Access*.cs` · `Responses/ApiResponse.cs` · `Responses/PagedResult.cs` ·
-`src/components/features/base-features/`.
+`MstPatient.cs` · `Enums/BloodType.cs` · `LabOrder.cs` · `LabOrderController.cs` · `LabSpecimen.cs` ·
+`LabExamination.cs` · `LabTransitionHistory.cs` · `LabSpecimenService.cs` · `LaboratoryEnums.cs` ·
+`BillingSourceContract.cs` · `ClinicalMilestoneFactProducer.cs` · `Attributes/Access*.cs` ·
+`Responses/ApiResponse.cs` · `Responses/PagedResult.cs` · `MstBloodComponent.cs` ·
+`MstBloodStorageLocation.cs` · `MstBloodBankReason.cs` · `src/components/features/base-features/`.
+
+> **Tiga nama berkas berubah pada 7 September 2026.** `TrxLabSpecimen.cs` menjadi `LabSpecimen.cs` dan
+> sebagian isinya pindah ke `LabExamination.cs`; `TrxLabTransitionHistory.cs` menjadi
+> `LabTransitionHistory.cs`. Daftar di atas sudah memakai nama baru. Bila menemukan nama lama pada
+> dokumen Bank Darah yang belum diperbarui, nama itu **sudah tidak ada** di repository.
 
 ## Pertanyaan penutup
 
