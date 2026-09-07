@@ -8,13 +8,13 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.6.0` — naik 2026-09-04 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
-| `contract_version` | `0.6.0` — **naik**; langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
+| Revision artefak | `0.6.1` — naik 2026-09-04 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-04 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| `contract_version` | `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
-| Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Backend SHA baseline | `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Frontend SHA baseline | `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-04 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
 
@@ -24,6 +24,21 @@
 > sumber kebenaran; berkas di `docs/Modul-RS` ditandai `SUPERSEDED`. Pemeriksaan superset dijalankan
 > sebelum port: nol judul bagian, nol `FR-RI-*`, nol `UAT-*`, dan nol `EPIC RI-*` milik `0.4.1` yang
 > hilang.
+
+**Koreksi pada `contract_version` `0.6.1`.** Trace ulang terhadap source hasil merge menemukan
+tiga hal yang membuat `0.6.0` salah, bukan sekadar kurang lengkap.
+
+| Yang dikoreksi | Buktinya | Akibatnya |
+| --- | --- | --- |
+| **Kolom `EpisodeId` pada akun deposit dibatalkan** | `BilDepositAccountConfiguration.cs:27` mengunci `EncounterId` **unique**, dan `InpEpisodeConfiguration.cs:26` juga mengunci `EncounterId` **unique**. Episode dan akun deposit karena itu sudah 1:1 lewat kunjungan | `FR-RI-163` tetap berlaku; **mekanismenya** berubah dari kolom baru menjadi join. Nol migration pada tabel finansial yang sudah berisi data |
+| **Rute refund dibetulkan** | `BillingFinancialExceptionsController.cs:112` sudah menyediakan `POST /financial-exceptions/refunds` beserta `approve`, di bawah kontrak `BIL-API-0.4` yang **sudah disetujui** | Usulan `POST /deposits/episodes/{id}/refunds` pada `0.6.0` **dicabut**. Kontrak Rawat Inap yang mengalah, bukan kontrak Billing |
+| **Klaim charge kamar dicabut** | `BillingCalculationService.cs:455-470` menghitung charge kamar hidup-hidup dari `InpBedPlacement` sesuai `BKC-DEC-043` | Bagian 15.3 dibetulkan; asumsi "Billing belum bisa apa-apa" tidak boleh dipakai lagi |
+
+Satu temuan lagi tidak mengubah keputusan tetapi memperkecil pekerjaan: **idempotensi penerimaan
+deposit sudah berjalan**. `BillingPatientFundsController.cs:99` menerima header `Idempotency-Key`,
+`BilDepositMovementConfiguration.cs:31` menguncinya unique, dan `BillingDepositService.cs:76-80`
+mengembalikan transaksi pertama saat kunci diulang. `FR-RI-166` karena itu sudah terpenuhi source,
+tinggal dibuktikan lewat UAT.
 
 **Perubahan pada `contract_version` `0.6.0`.** Peninjauan layar operasional 2026-09-04 menemukan selisih yang nyata: multi-step admisi rawat inap **sudah** mempunyai langkah `Input Deposit Rawat Inap` di antara langkah tipe pembayaran dan langkah Dokter, sedangkan revisi `0.5.0` hanya mengenal deposit sebagai aktivitas Billing/Kasir **sesudah** episode `Draft` ada. Empat arahan operasional berikut menutup selisih itu.
 
@@ -712,12 +727,13 @@ perpindahan
 
 **Tujuan:** uang muka pasien dapat diterima, ditambah, ditelusuri, dan diselesaikan terhadap tagihan akhir tanpa membuat ledger finansial kedua di modul Rawat Inap.
 **Disposisi backend:** `CROSS-MODULE / EXTEND` — **diturunkan dari `MISSING + EXTEND` pada `0.6.0`**. Transaksi dan ledger dimiliki `BillingManagement`/Kasir dan **sebagian besar sudah berjalan**: `BilDepositAccount`, `BilDepositMovement` dengan `IdempotencyKey`, `BillingDepositService`, `BillingSettlementService`, `BillingRefundService`, dan `BillingPatientFundsController`. `InPatientManagement` tetap hanya memberikan konteks `EpisodeId`, menampilkan ringkasan, dan memakai hasil settlement sebagai closure gate.
-**Yang benar-benar `MISSING`:** pengikatan `EpisodeId` pada akun deposit, kebijakan minimum deposit per penjamin dan kelas, langkah Deposit pada admisi, ringkasan deposit per episode, dan daftar pantau kekurangan deposit.
+**Yang benar-benar `MISSING`, dipersempit `0.6.1`:** kebijakan minimum deposit per penjamin dan kelas, ringkasan deposit per episode, langkah Deposit pada admisi, dan daftar pantau kekurangan deposit. ~~Pengikatan `EpisodeId`~~ dicabut dari daftar ini karena sudah tercapai lewat join (`RWI-FACT-017`).
 **Dasar scope:** arahan produk 2026-09-03. ID keputusan formal `RWI-DEC-*` belum tersedia pada sumber dan wajib disinkronkan sebelum development lock.
 **Evidence legacy:** V1 memiliki `DepositRanap`, `DepositPersentase`, `NoKwitansi` unique, `IPerkiraanBillingRanapService`, dan `IDepositRanapNumberService`; evidence ini dipakai sebagai referensi capability, **bukan** sebagai keputusan untuk menyalin schema V1.
 
 > **`FR-RI-163` — Setiap transaksi deposit terikat pada tepat satu episode rawat inap**
-> Deposit tidak boleh hanya menempel pada pasien karena pasien yang sama dapat memiliki banyak episode sepanjang waktu. Billing boleh menyimpan `EncounterId` sebagai referensi tambahan, tetapi `EpisodeId` menjadi konteks rawat inap yang harus dapat ditelusuri.
+> Deposit tidak boleh hanya menempel pada pasien karena pasien yang sama dapat memiliki banyak episode sepanjang waktu.
+> **Mekanismenya, dikoreksi `0.6.1`:** penelusuran dicapai lewat **kunjungan**, bukan lewat kolom baru. `BilDepositAccount.EncounterId` unique dan `InpEpisode.EncounterId` unique, sehingga satu akun deposit menunjuk tepat satu episode tanpa keraguan. Menambahkan kolom `EpisodeId` justru menciptakan dua sumber kebenaran yang bisa berbeda isi.
 > **Contoh:** deposit Rp5.000.000 untuk episode September tidak boleh otomatis muncul sebagai saldo episode Desember milik pasien yang sama.
 
 > **`FR-RI-164` — Kebutuhan deposit mengikuti kebijakan finansial, bukan aturan hardcode semua pasien**
@@ -816,7 +832,7 @@ kolom pada tabel existing.
 
 **`0.5.0` tidak menambah ledger finansial ke `InPatientManagement`.** `EPIC RI-35` boleh menambah atau memperluas tabel transaksi pada `BillingManagement`, tetapi nama entity dan tabelnya **tidak ditetapkan oleh PRD Rawat Inap ini** karena kontrak arsitektur Billing V2 tidak disertakan. Satu-satunya invariant lintas modul yang dikunci di sini adalah setiap transaksi deposit harus dapat dirujuk kembali ke `EpisodeId`, dan Inpatient hanya menyimpan/membaca referensi atau snapshot clearance yang diperlukan untuk closure gate.
 
-**`0.6.0` menambah satu kolom dan satu master, keduanya milik Billing.** Akun deposit hari ini hanya mengenal `EncounterId` (`BilDepositAccount.cs:11`), sehingga `FR-RI-163` belum dapat dipenuhi tanpa menambahkan `EpisodeId` pada akun tersebut. Kebijakan minimum deposit per penjamin dan kelas perawatan juga membutuhkan tempat menyimpan, dan tempatnya ada pada `BillingManagement` atau master penjamin — **bukan** pada `InPatientManagement`. Kalimat "nol perubahan kolom pada tabel existing" di atas berlaku untuk tabel modul tetangga di luar Billing; kedua perubahan ini dimiliki dan dikerjakan pemilik Billing.
+**`0.6.1` menambah satu master saja, dan nol kolom.** Rencana `0.6.0` untuk menambahkan `EpisodeId` pada `BilDepositAccount` **dibatalkan** setelah trace membuktikan kedua sisi sudah unique pada `EncounterId`; penelusuran episode dicapai lewat join. Yang tersisa sebagai tambahan hanyalah **master kebijakan minimum deposit** per penjamin dan kelas perawatan, dan tempatnya pada `BillingManagement` atau master penjamin — **bukan** pada `InPatientManagement`. Dengan begitu kalimat "nol perubahan kolom pada tabel existing" kini berlaku untuk seluruh modul, Billing termasuk.
 
 **`0.3.0` tidak menambah satu tabel pun.** Kebutuhan isolasi masuk sebagai enam kolom pada
 `InpEpisode` beserta satu enum `InpIsolationSource`, dan aturan pencampuran kamar dijalankan dengan
@@ -881,9 +897,9 @@ Base URL: `api/v1/health-services/billing-management/billing/patient-funds` — 
 | `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up | `BillingDeposit : Create` | `TopUpDepositRequest` | `ApiResponse<BillingDepositResponse>` | `EPIC RI-35` | **Sudah ada, perlu `EXTEND`** — wajib menerima dan menyimpan `episodeId` |
 | `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | `EPIC RI-35` | **Sudah ada, perlu `EXTEND`** |
 | `GET` | `/deposit-policies` | Membaca kebijakan deposit untuk kombinasi penjamin dan kelas perawatan | `BillingDeposit : Read` | `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | `EPIC RI-35` | **Baru `0.6.0`** — sumber minimum pada langkah Deposit |
-| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode: diterima, dialokasikan, refund, saldo, kekurangan minimum, outstanding top-up | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | `EPIC RI-35` | **Baru `0.6.0`** |
-| `POST` | `/deposits/episodes/{episodeId}/settle` | Mengalokasikan deposit terhadap tagihan final dan menghitung selisih | `BillingDeposit : Settle` | `SettleEpisodeDepositRequest` | `ApiResponse<EpisodeDepositSettlementResponse>` | `EPIC RI-35` | **Baru `0.6.0`** |
-| `POST` | `/deposits/episodes/{episodeId}/refunds` | Mencatat refund/penyelesaian kelebihan deposit | `BillingDeposit : Refund` | `RefundEpisodeDepositRequest` | `ApiResponse<EpisodeDepositRefundResponse>` | `EPIC RI-35` | **Baru `0.6.0`** |
+| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode: minimum kebijakan, diterima, dialokasikan, refund, saldo, **dua** angka kekurangan, outstanding top-up | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | `EPIC RI-35` | **Baru `0.6.0`, tetap berlaku** |
+| `GET` | `/invoices/encounters/{encounterId}/charge-summary` | Rekap tagihan satu kunjungan; sumber angka tagihan final pada settlement | `BillingInvoice : Read` | – | `ApiResponse<EncounterChargeSummaryResponse>` | `EPIC RI-35` | ✅ **Sudah ada** — `BillingInvoicesController.cs:122` |
+| `POST` | `/financial-exceptions/refunds` beserta `/refunds/{id}/approve` | Mencatat dan menyetujui refund kelebihan deposit | `BillingRefund : Create` / `Approve` | Kontrak `BIL-API-0.4` | – | `EPIC RI-35` | ✅ **Sudah ada** — `BillingFinancialExceptionsController.cs:112,157`. Menggantikan usulan `/deposits/episodes/{id}/refunds` yang **dicabut `0.6.1`** |
 
 Daftar pantau kekurangan deposit `FR-RI-177` tidak menambah endpoint Billing. Ia dibaca lewat daftar pantau Rawat Inap yang sudah direncanakan `EPIC RI-29`, dengan satu penyaring baru dan angka kekurangan yang diambil dari ringkasan episode di atas.
 
@@ -944,7 +960,7 @@ String hak akses yang sudah ada mengikuti
 | Melihat kebijakan dan ringkasan deposit episode | Kasir, Billing, Petugas admisi, Supervisor | `[AccessPermission("BillingDeposit", "Read")]` |
 | Mengalokasikan deposit ke tagihan | Kasir, Billing | `[AccessPermission("BillingDeposit", "Allocate")]` |
 | Menjalankan final settlement deposit | Kasir, Billing | `[AccessPermission("BillingDeposit", "Settle")]` — **baru `0.6.0`** |
-| Mencatat refund deposit | Kasir, Billing sesuai kewenangan finansial | `[AccessPermission("BillingDeposit", "Refund")]` — **baru `0.6.0`** |
+| Mencatat dan menyetujui refund deposit | Kasir, Billing sesuai kewenangan finansial | `[AccessPermission("BillingRefund", "Create")]` dan `[AccessPermission("BillingRefund", "Approve")]` — **dikoreksi `0.6.1`**; usulan `BillingDeposit : Refund` dicabut karena resource `BillingRefund` sudah ada |
 | Mencatat pasien sudah meninggalkan ruangan | Petugas admisi, Perawat, Kepala ruangan, Supervisor | `[AccessPermission("InpatientDischarge", "RecordDeparture")]` |
 | Menutup episode | Petugas admisi, Supervisor | `[AccessPermission("InpatientEpisode", "Close")]` |
 | Menutup menembus gerbang keuangan | Supervisor | `[AccessPermission("InpatientEpisode", "CloseOverride")]` |
@@ -989,7 +1005,13 @@ Sejak `0.5.0`, penandaan `FinancialClearance` **tidak lagi boleh menjadi penanda
 
 ### 15.3 Charge kamar
 
-Tidak satu pun charge kamar tercatat selama MVP. Yang dijamin arsitektur adalah **datanya dapat
+**Dikoreksi `0.6.1`.** Kalimat berikut sudah **tidak berlaku** sejak `BKC-DEC-043`: Billing
+menghitung charge kamar langsung dari `InpBedPlacement` setiap kali invoice dihitung ulang, termasuk
+segmen yang masih berjalan, sehingga invoice terbuka menunjukkan estimasi hidup selama pasien masih
+dirawat (`BillingCalculationService.cs:455-470`). Yang tetap benar: **modul Rawat Inap tidak
+menghitung tarif apa pun sendiri**; ia hanya menyediakan garis waktu penghunian.
+
+~~Tidak satu pun charge kamar tercatat selama MVP.~~ Yang dijamin arsitektur adalah **datanya dapat
 direkonstruksi**: dari riwayat penempatan, kelas dan lamanya menempati setiap kamar terbaca lengkap.
 
 Keputusan apakah episode lama ikut ditagihkan mundur adalah keputusan keuangan yang belum ada
@@ -1011,12 +1033,17 @@ Deposit tidak memaksa `InPatientManagement` membangun billing engine. Namun MVP 
 5. mengalokasikan deposit ke final bill tanpa mengubah transaksi penerimaan lama;
 6. mencatat kekurangan pembayaran dan refund/kelebihan secara eksplisit;
 7. memberi hasil settlement yang dapat diverifikasi oleh `FinancialClearance`;
-8. menyimpan `EpisodeId` pada akun deposit, karena hari ini `BilDepositAccount` hanya mengenal `EncounterId`; dan
+8. ~~menyimpan `EpisodeId` pada akun deposit~~ — **dicabut `0.6.1`**; penelusuran episode dicapai lewat join pada `EncounterId` yang sudah unique di kedua sisi, tanpa kolom baru; dan
 9. menyediakan kebijakan minimum deposit per penjamin dan kelas perawatan yang dapat dibaca langkah admisi.
 
 Bila butir 4 belum tersedia karena charge kamar/full billing belum operasional, deposit tetap dapat **diterima dan ditambah**, tetapi `FR-RI-170` s.d. `FR-RI-172` belum lulus dan MVP end-to-end belum memenuhi Definition of Done. Ini adalah dependency delivery, bukan alasan memindahkan deposit kembali ke POST-MVP.
 
-Butir 8 dan 9 adalah prasyarat `EPIC RI-35a`. Tanpa keduanya, langkah Deposit pada admisi tidak dapat dibangun sesuai `FR-RI-175` dan `FR-RI-178`, dan nominal yang diterima petugas tidak akan pernah dapat ditelusuri ke episodenya.
+**Dikoreksi `0.6.1`.** Butir 1, 2, 3, 5, 6, dan sebagian 7 **sudah terpenuhi** oleh source hasil
+merge: penerimaan dan top-up berjalan lewat `POST /patient-funds/deposits/{encounterId}/top-ups`
+dengan idempotensi terkunci di database, alokasi lewat `/allocations`, refund lewat
+`/financial-exceptions/refunds`, dan tagihan final lewat `charge-summary`. Yang benar-benar
+tersisa tinggal **butir 9** — kebijakan minimum deposit — ditambah satu ringkasan per episode yang
+menggabungkan angka-angka itu menjadi satu jawaban. Keduanya prasyarat `EPIC RI-35a`.
 
 ---
 

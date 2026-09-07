@@ -36,7 +36,7 @@ input_revisions:
   02-module-map.md: 1
   03-frontend-architecture.md: 0.6
   05-skema-tampilan.md: "0.4 (draft)"
-  04-prd-to-mvp.md: 0.6.0
+  04-prd-to-mvp.md: 0.6.1
   01-existing-capability-map.md: 1.2
 input_hashes:
   blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
@@ -47,14 +47,16 @@ input_hashes:
   04-prd-to-mvp.md: "af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700"
   01-existing-capability-map.md: "567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6"
 contract_versions:
-  - "API 0.6.0"
+  - "API 0.6.1"
   - "Encounter company guarantor addendum 1.0.0"
   - "Bed board reservation metadata addendum 1.0.0"
-  - "Permission/Audit 0.6.0"
-  - "Validation 0.6.0"
+  - "Permission/Audit 0.6.1"
+  - "Validation 0.6.1"
 source_commits:
-  backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
-  frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
+  backend: "44099e4ddd921d51140d802cabf1cebbc5291d30"
+  frontend: "30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3"
+  backend_previous: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
+  frontend_previous: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
 current_impact_scan:
   scanned_at: "2026-08-28"
   evidence_backend: "b71a6a3d12190c4db60fe3433f10b6eb92131629"
@@ -825,7 +827,7 @@ penyusunan skemanya, dan itu pekerjaan desain.
 | **Outcome** | Petugas melihat berapa minimum yang berlaku untuk pasien di depannya, dan tahu persis berapa kurangnya bila keluarga membayar di bawah itu — tanpa perlu menghitung sendiri |
 | **Trace** | `RWI-DEC-094`, `RWI-DEC-095`; `FR-RI-175`, `FR-RI-176`; `validation-matrix.md` `0.6.0` bagian 8A dua baris peringatan |
 | **Skema tampilan** | `RWI-UI-GAP-008` |
-| **Reuse** | Komponen peringatan `InformationAlert` yang sudah dipakai langkah Pembayaran |
+| **Reuse** | Komponen peringatan `InformationAlert` yang sudah dipakai langkah Pembayaran. **Ditemukan 2026-09-04:** panel deposit kasir sudah ada di `billing-invoices/detail/billing-deposit-panel.jsx` beserta `use-billing-deposit.js` dan `billing-deposit-slice.jsx` — format rupiah, pembacaan saldo, dan penanganan galatnya dapat dipakai ulang, bukan ditulis ulang |
 | **Scope** | Pembacaan `GET /deposit-policies` memakai penjamin dan kelas dari langkah sebelumnya; tampilan minimum; peringatan selisih; pelewatan langkah bila kebijakan tidak mensyaratkan deposit |
 | **Dependency** | `FE-RWI-042`, `BE-RWI-038` |
 | **Wewenang UI** | Bentuk peringatan `DEV_DISCRETION` dengan batas: peringatan **tidak boleh** memakai bentuk yang sama dengan kesalahan yang menahan, karena ia tidak menahan apa pun |
@@ -840,13 +842,13 @@ penyusunan skemanya, dan itu pekerjaan desain.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 Menunggu `RWI-UI-GAP-008` dan `BE-RWI-039` |
+| **Status** | 🟡 Menunggu `RWI-UI-GAP-008` saja. Sisi backend sudah tersedia |
 | **Outcome** | Uang muka yang dicatat petugas benar-benar tersimpan sebagai penerimaan milik episode itu, dan admisi yang gagal tidak meninggalkan transaksi uang yang menggantung |
 | **Trace** | `RWI-DEC-093`; `FR-RI-178`; `RWI-DEC-076` titik tulis 1; `RWI-RISK-006` |
 | **Skema tampilan** | `RWI-UI-GAP-008` |
 | **Reuse** | Rangkaian titik tulis 1 pada `use-inpatient-admission-doctor` yang sudah menjalankan `POST /patient-encounters/admin` lalu `POST /episodes` secara berurutan |
-| **Scope** | Satu permintaan tambahan pada akhir rangkaian titik tulis 1, memakai `idempotencyKey` yang dibuat sekali per sesi admisi; penanganan gagal yang tidak mengulang penerimaan |
-| **Dependency** | `FE-RWI-042`, `BE-RWI-039` |
+| **Scope** | Satu permintaan tambahan pada akhir rangkaian titik tulis 1: `POST /patient-funds/deposits/{encounterId}/top-ups` dengan header `Idempotency-Key` yang dibuat **sekali per sesi admisi**; penanganan gagal yang tidak mengulang penerimaan. Backend-nya sudah siap apa adanya — lihat `RWI-FACT-018` |
+| **Dependency** | `FE-RWI-042`. **Tidak lagi menunggu backend** sejak `BE-RWI-039` dibatalkan: endpoint dan idempotensinya sudah ada |
 | **Wewenang UI** | Bentuk pesan gagal `DEV_DISCRETION` dengan batas: pesan **wajib** menyatakan apakah uang sudah tercatat atau belum, karena itulah yang perlu diketahui petugas di depan keluarga pasien |
 | **Acceptance criteria** | 1. Nominal terkirim hanya setelah `POST /episodes` berhasil. 2. `POST /episodes` yang ditolak 409 tidak mengirim penerimaan apa pun, dan nominal tetap terisi di layar. 3. Percobaan ulang memakai `idempotencyKey` yang sama sehingga tidak lahir kwitansi kedua. 4. Kegagalan pada penerimaan **tidak** membatalkan episode yang sudah terbentuk; layar menyatakan episodenya ada dan depositnya belum tercatat. 5. Nominal nol tidak mengirim permintaan apa pun |
 | **Verification** | E2E jalur berhasil; E2E jalur 409; E2E jalur penerimaan gagal; pemeriksaan bahwa hanya satu transaksi terbentuk pada percobaan ulang |

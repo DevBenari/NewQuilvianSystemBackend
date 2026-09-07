@@ -58,19 +58,24 @@ masing-masing hanya menahan task yang ditunjuk di sana.
 |---|---|---|---|
 | [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.5` | `draft` | `b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f` |
 | [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.6` | `draft` | `cedfdfc4189d20ffa31588f84876658df151b4078b9f3749f303a00cb88b771a` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.0` | `draft` | `af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.1` | `draft` | `333aca44564a4a878f2a76b1c6569d3bcbf158ce09e46496fcdb5deaf126ef5f` |
 | [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e` |
 | [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `73eaa7d0c6d0567a37380679b4c9c0fd150d75a8851e7b6fd4b1d5f4e28a41e4` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `7f21508a0f66470b9b6b1d625359636882b89481318b16da7472735e916449eb` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.6.0` | `draft` | `09ce2ad7c3dfefc29bee0832fe4edadee1ae0db8b207917ecb9ac942b3802176` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.6.1` | `draft` | `4c592644e6a1aca63827332900eeb4aa3299e759ad16169733793cd552e2028a` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.4.0` | `draft` | `35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.6.0` | `draft` | `c4a281138e0d6ff90131103dc502bfc614ce88dd8ccb64110ddb6dbce12432c8` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.6.1` | `draft` | `2f168cdd85b72c66dfa534e6560610e65e3582a973bbccf6f6d7b543b3dbb4ce` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` | `draft` | `99ef4d4fb982987fa25b51dc49720344366a6bb42d31f8c7c6b153070a62aab0` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.6.0` | `draft` | `b10f149895e4b289d3e6f97f899935691129307a58c1fbf166b556ae08136382` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.6.1` | `draft` | `a0ba4ad5f8f4d587dff5c8321fc2c33fe1be825c32cb2fed06099b1e9858d6e9` |
 | [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` | `draft` | `357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c` |
 
+> **Pemutakhiran kedua 2026-09-04 sore — `/qv-trace` setelah merge.** Empat artefak naik ke
+> `0.6.1`: kolom `EpisodeId` dibatalkan (`RWI-FACT-017`), rute refund dikembalikan ke `BIL-API-0.4`,
+> dan dua aturan validasi dicabut karena sudah dijaga unique index. Baseline SHA ikut bergeser ke
+> `44099e4` backend dan `30db3734` frontend.
+>
 > **Pemutakhiran 2026-09-04 — Amendment Pass deposit admisi.** Lima artefak di atas naik karena
 > `RWI-DEC-093` s.d. `RWI-DEC-096`. `04-prd-to-mvp.md` naik dua tingkat sekaligus, `0.4.1` → `0.6.0`,
 > karena revisi `0.5.0` sempat disusun di luar pohon blueprint pada `docs/Modul-RS/Rawat-Inap/` lalu
@@ -91,7 +96,7 @@ Ditulis `/qv-plan`, bukan skill desain. Ketiganya di-resync ke masukan revision 
 
 | Artefak | Revision | Status | Gerbang |
 |---|---|---|---|
-| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 43 task selesai. Revision `4` menambah tujuh task deposit dan **belum disetujui**; approval revision `3` tidak meluas ke sana. Lima di antaranya `BLOCKED` oleh `RWI-OQ-053` |
+| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 41 task selesai; dua task deposit dibatalkan 2026-09-04 karena kemampuannya terbukti sudah ada. Revision `4` menambah tujuh task deposit — dua di antaranya sudah dibatalkan — dan **belum disetujui**; approval revision `3` tidak meluas ke sana. **Dua** di antaranya `BLOCKED` oleh `RWI-OQ-053` |
 | [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `7` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 45** task selesai; 12 terbuka, empat di antaranya task deposit `FE-RWI-042` s.d. `FE-RWI-045` yang seluruhnya menunggu `RWI-UI-GAP-008` |
 | [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `7` | `DRAFT` | Mengikuti roadmap frontend. Bagian `EPIC RI-35` ditambahkan dengan kolom AC **sengaja kosong**; penomoran `RWI-AC-181` dan seterusnya milik `/qv-design` |
 
@@ -115,13 +120,13 @@ tidak ikut terseret.
 
 | Kontrak | Version | `last_changed_in` | Status | Berubah isinya pada migrasi bentuk? |
 |---|---|---|---|---|
-| API | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian Deposit Rawat Inap baru, `episodeId` wajib pada top-up, `GET /monitoring/deposit-shortfall` |
+| API | `0.4.0` | `0.6.1` | `draft` | **Ya** — bagian Deposit Rawat Inap baru, `episodeId` wajib pada top-up, `GET /monitoring/deposit-shortfall` |
 | State transition | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| Validation | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian 8A deposit, termasuk dua baris peringatan yang sengaja tanpa kode kesalahan |
+| Validation | `0.4.0` | `0.6.1` | `draft` | **Ya** — bagian 8A deposit, termasuk dua baris peringatan yang sengaja tanpa kode kesalahan |
 | Integration | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| Permission dan audit | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian 2.8 `BillingDeposit`, dua aksi baru `Settle` dan `Refund`; `InpatientDeposit` dicabut |
+| Permission dan audit | `0.4.0` | `0.6.1` | `draft` | **Ya** — bagian 2.8 `BillingDeposit`, dua aksi baru `Settle` dan `Refund`; `InpatientDeposit` dicabut |
 | Acceptance test | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| PRD ke MVP | `0.4.0` | `0.6.0` | `draft` | **Ya** — `EPIC RI-35` deposit dan settlement, `FR-RI-163` s.d. `FR-RI-178`, `UAT-34` s.d. `UAT-44`, `EPIC RI-35` dipecah dua gelombang |
+| PRD ke MVP | `0.4.0` | `0.6.1` | `draft` | **Ya** — `EPIC RI-35` deposit dan settlement, `FR-RI-163` s.d. `FR-RI-178`, `UAT-34` s.d. `UAT-44`, `EPIC RI-35` dipecah dua gelombang |
 
 **Tidak satu pun kontrak dinaikkan versinya oleh migrasi bentuk.** Menaikkannya akan membuat pembaca
 mengira ada endpoint atau aturan yang bergeser, padahal tidak ada.

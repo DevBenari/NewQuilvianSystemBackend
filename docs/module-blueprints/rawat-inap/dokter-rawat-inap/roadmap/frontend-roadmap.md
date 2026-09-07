@@ -149,7 +149,7 @@ memasukkan aturan DPJP, kebijakan verifikasi, status episode, API, atau billing 
 | `ClinicalSummaryBar` | Selective untuk ringkasan jumlah pasien/monitoring bila datanya tersedia; bukan metrik antrean | Folder yang sama, `index.js` export `ClinicalSummaryBar` |
 | `ClinicalStatusBadge` | Reuse; label/tone status dikirim adapter domain, tidak memakai makna waiting/called/skipped sebagai status rawat inap | Folder yang sama, `index.js` export `ClinicalStatusBadge` |
 | `ClinicalContextBar` | Adapter pada `InpatientEpisodeHeader` memetakan pasien sebagai identitas utama, info episode, DPJP, dan slot alert/authority | Folder yang sama, `ClinicalContextBar.jsx`, props `primaryValue`, `infoItems`, `children` |
-| `ClinicalTabNav` | Reuse enam tab horizontal, scroll saat perlu; extend generik relasi tab/panel dan keyboard bila belum tersedia | Folder yang sama, `ClinicalTabNav.jsx`, `tabs`, `activeTab`, `onTabChange`; source sudah punya `role=tablist/tab` |
+| `ClinicalTabNav` ✅ | Reuse enam tab horizontal, scroll saat perlu; extend generik relasi tab/panel dan keyboard bila belum tersedia | Folder yang sama, `ClinicalTabNav.jsx`, `tabs`, `activeTab`, `onTabChange`; source sudah punya `role=tablist/tab`. **Diperluas 7 September 2026**: `aria-controls`, roving `tabIndex`, navigasi `ArrowLeft`/`ArrowRight`/`Home`/`End`, dan pembangun id tab/panel; props lama tidak berubah — [FE-RWI-043](../task/report/frontend/FE-RWI-043.md) |
 | `ClinicalSectionPanel` | Reuse pembungkus wilayah klinis; bukan seluruh workspace dalam satu panel | Folder yang sama, `index.js` export `ClinicalSectionPanel` |
 | `ClinicalDataTable` | Reuse tabel order/tindakan; adapter menyediakan `columns`, `rows`, `rowKeyFn` berbasis id domain | Folder yang sama, `ClinicalDataTable.jsx`; empty bawaan hanya menguji `rows.length`, bukan status request |
 | `ClinicalEmptyState` | Reuse pesan empty melalui `title`, `description`, `children`; loading/error/retry diatur boundary tersendiri | Folder yang sama, `ClinicalEmptyState.jsx`; source bukan pengelola request/state async |
@@ -162,8 +162,8 @@ sekali; task konsumen menggunakannya tanpa membuat salinan.
 | New base component | Task pemilik | Consumer | Tanggung jawab generik |
 | --- | --- | --- | --- |
 | `ClinicalStateBoundary` ✅ | FE-RWI-042 | FE-RWI-043–050 | Rendering loading/empty/error/retry/read-only/denied berdasarkan props; tidak fetch API. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalStateBoundary.jsx` — [FE-RWI-042](../task/report/frontend/FE-RWI-042.md) |
-| `ClinicalSafetyAlert` | FE-RWI-043 | FE-RWI-044–049 | Pesan safety, error alergi, peringatan non-final/visite dekat; tidak menghitung risiko klinis |
-| `ClinicalActionGuard` | FE-RWI-043 | FE-RWI-044–049 | Hide/disable/penjelasan dari hasil authority domain; bukan mesin permission backend |
+| `ClinicalSafetyAlert` ✅ | FE-RWI-043 | FE-RWI-044–049 | Pesan safety, error alergi, peringatan non-final/visite dekat; tidak menghitung risiko klinis. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalSafetyAlert.jsx` — [FE-RWI-043](../task/report/frontend/FE-RWI-043.md) |
+| `ClinicalActionGuard` ✅ | FE-RWI-043 | FE-RWI-044–049 | Hide/disable/penjelasan dari hasil authority domain; bukan mesin permission backend. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalActionGuard.jsx`; mode disable memakai `<fieldset disabled>` sehingga kontrol tulis benar-benar mati — [FE-RWI-043](../task/report/frontend/FE-RWI-043.md) |
 | `ClinicalValidationSummary` | FE-RWI-044 | Form domain lain bila perlu | Daftar validasi dan tautan fokus ke field; aturan wajib tetap dari kontrak |
 | `ClinicalCompletionBar` | FE-RWI-044 | FE-RWI-045 | Peringatan penguncian, Simpan Draft/Selesaikan satu dokumen, pending; tidak memfinalkan domain lain |
 | `ClinicalTimeline`, `ClinicalTimelineItem` | FE-RWI-045 | FE-RWI-046, FE-RWI-047 | Daftar/select item, slot waktu, metadata, isi/detail, audit; urutan dari adapter domain |
@@ -267,7 +267,7 @@ sebelum rilis apa pun**. Urutan di dalamnya mengikuti kesiapan endpoint backend.
 | Urutan | Task | Bergantung pada backend | Yang dapat diverifikasi bisnis |
 | ---: | --- | --- | --- |
 | 1 | `FE-RWI-042` ✅ | — | Menu Dokter → Rawat Inap membuka daftar pasien episode; Census/detail tetap dapat dipakai |
-| 2 | `FE-RWI-043` | `BE-RWI-044` | Dokter membuka pasiennya sendiri, bukan antrean poliklinik |
+| 2 | `FE-RWI-043` ✅ | `BE-RWI-044` | Dokter membuka pasiennya sendiri, bukan antrean poliklinik |
 | 3 | `FE-RWI-044` | `BE-RWI-045` | Kajian medis awal dapat ditulis dan diselesaikan |
 | 4 | `FE-RWI-045` | `BE-RWI-046`, `BE-RWI-047` | Catatan harian ditulis, diurut waktu pemeriksaan, dan dikoreksi |
 | 5 | `FE-RWI-047` | `BE-RWI-048`, `BE-RWI-049` | Visite dicatat, dibatalkan, dan riwayatnya terbaca |
@@ -284,7 +284,7 @@ Status mengikuti baris `Status` pada masing-masing task di bagian yang sama.
 
 ```text
 FE-RWI-042 (menu Dokter → Rawat Inap; daftar pasien episode)   ✅ SELESAI 2026-09-07
-   └── FE-RWI-043 (ruang kerja dan konteks pasien)             ⬜ BELUM DIKERJAKAN
+   └── FE-RWI-043 (ruang kerja dan konteks pasien)             ✅ SELESAI 2026-09-07
           + BE-RWI-044
           ├── FE-RWI-044 (kajian medis awal)                  ⬜ BELUM DIKERJAKAN
           │      + BE-RWI-045
@@ -346,11 +346,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-043` — Ruang kerja dokter berdiri di atas konteks pasien yang pasti
+### `FE-RWI-043` ✅ — Ruang kerja dokter berdiri di atas konteks pasien yang pasti
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ `SELESAI` **7 September 2026.** Keenam acceptance criteria fungsional dan keenam acceptance visual terpetakan ke source yang ada. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 458/458 lulus, 0 gagal (16 test baru task ini); `npm run build` beserta `postbuild` berhasil; **22 skenario peramban lulus** di Edge — 13 skenario `FE-RWI-043` (konteks lengkap, navigasi tab klik dan papan ketik, alergi gagal versus kosong, konteks gagal menutup tulisan, kewenangan gagal/ditolak tidak dianggap berwenang, bukan DPJP, DPJP aktif, episode Closed, pergantian episode, lokasi gagal, tiga viewport) ditambah 9 skenario regresi `FE-RWI-042`. Satu cacat keselamatan ditemukan uji dan diperbaiki: penugasan DPJP yang dijawab `403` sempat terbaca sebagai berwenang. Gerbang §4.1 butir 1, 2, 3, 4, 5, 18, 19, 20 terbukti untuk lingkup task ini. Tidak ada butir DoD yang dikecualikan; isi dokumentasi keenam tab memang scope `FE-RWI-044` s.d. `FE-RWI-049`. Laporan: [`task/report/frontend/FE-RWI-043.md`](../task/report/frontend/FE-RWI-043.md) |
 | **Outcome** | Sebelum dokter dapat menulis apa pun, layar sudah memastikan pasien, lokasi, penanggung jawab, dan riwayat alerginya benar-benar tampil |
 | **Trace** | `FE-DOK-01`; `03-frontend-architecture.md` §3.1; `INV-DOK-01`, `INV-DOK-02` |
 | **Kontrak** | `0.3.0` |
@@ -660,7 +660,9 @@ Revision ini hanya memperjelas rencana kerja **FE-RWI-042 s.d. FE-RWI-050**. Sem
 source frontend/backend, database, commit, push, atau merge yang diberikan oleh revisi ini.
 
 > **Status sesudah revision.** Kalimat di atas menggambarkan keadaan saat revision 2 ditulis.
-> Per **7 September 2026**, `FE-RWI-042` berstatus ✅ `SELESAI` dengan bukti pada
-> [`task/report/frontend/FE-RWI-042.md`](../task/report/frontend/FE-RWI-042.md); delapan task
-> frontend sisanya tetap `BELUM DIKERJAKAN`. Perubahan source frontend-nya belum di-commit —
-> commit dan push dilakukan pemilik pekerjaan sendiri.
+> Per **7 September 2026**, `FE-RWI-042` dan `FE-RWI-043` berstatus ✅ `SELESAI` dengan bukti pada
+> [`task/report/frontend/FE-RWI-042.md`](../task/report/frontend/FE-RWI-042.md) dan
+> [`task/report/frontend/FE-RWI-043.md`](../task/report/frontend/FE-RWI-043.md); tujuh task
+> frontend sisanya tetap `BELUM DIKERJAKAN`. `FE-RWI-042` sudah di-commit pemilik pekerjaan
+> sebagai `30db3734a`; perubahan `FE-RWI-043` belum di-commit — commit dan push dilakukan
+> pemilik pekerjaan sendiri.
