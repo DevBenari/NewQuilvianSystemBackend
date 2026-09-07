@@ -52,19 +52,39 @@
 	     - Designer.cs jutaan baris generated code
 	     - ModelSnapshot besar
 
-	     Exclude dari Compile mengurangi waktu build.
+	     Exclude dari Compile mengurangi waktu build, tetapi lihat koreksi di bawah:
+	     pengecualian itu kini hanya berlaku bila dinyalakan secara sadar.
 	-->
-	<ItemGroup>
+	<!--
+    KOREKSI 4 September 2026.
 
-		<!--
-    Migration Designer files adalah generated code besar.
-    Tidak diperlukan saat compile aplikasi.
-    Migration utama tetap dipertahankan agar EF Core tetap bekerja.
-    -->
+    Pengecualian ini sebelumnya berlaku selalu, dengan alasan menghemat waktu build.
+    Alasannya benar — 126 berkas Designer dan snapshot berjumlah 6,7 juta baris — tetapi
+    akibatnya tidak seperti yang diperkirakan: EF Core TIDAK tetap bekerja.
 
+    Atribut [Migration("...")] yang dipakai EF untuk mengenali sebuah migration berada di
+    dalam berkas Designer, bukan di berkas migration utama. Ketika Designer tidak ikut
+    dikompilasi, EF hanya melihat migration yang atributnya ditulis tangan di berkas utama.
+    Yang terukur pada 4 September: `dotnet ef migrations list` hanya melihat 7 dari 131
+    migration, dan `dotnet ef migrations add` menghasilkan migration berisi 570 CreateTable
+    — seluruh skema dari nol, karena baseline-nya dianggap kosong. Migration seperti itu bila
+    terlanjur dijalankan akan membangun ulang database.
+
+    Karena itu bawaannya kini ikut dikompilasi. Penghematan build tetap tersedia lewat
+    properti di bawah, tetapi harus dinyalakan secara sadar:
+
+        dotnet build -p:SkipMigrationMetadata=true
+
+    JANGAN memakainya ketika menjalankan perkakas EF apa pun. Ia hanya aman untuk build
+    aplikasi yang tidak menyentuh migration.
+  -->
+	<PropertyGroup Condition="'$(SkipMigrationMetadata)' == ''">
+		<SkipMigrationMetadata>false</SkipMigrationMetadata>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(SkipMigrationMetadata)' == 'true'">
 		<Compile Remove="Migrations\**\*.Designer.cs" />
 		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
-
 	</ItemGroup>
 
 	<ItemGroup>
