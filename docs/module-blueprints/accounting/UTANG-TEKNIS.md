@@ -37,6 +37,8 @@ belas artefak.
 | ~~`ACC-TD-017`~~ | ~~Tanpa test otomatis, verifikasi manual~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
 | ~~`ACC-TD-019`~~ | ~~`RequiresApproval` disimpan tetapi tidak pernah ditegakkan~~ | — | — | **`CLOSED`** 3 Sep 2026 |
+| `ACC-TD-020` | `ReversalOfJournalId` tidak unique — pembalikan ganda ditahan advisory lock, bukan skema | Owner modul | Sedang | `OPEN` — **butuh migration** |
+| ~~`ACC-TD-021`~~ | ~~`actionLoading` mati pada thunk di luar factory — penjaga kiriman ganda tidak menjaga~~ | — | — | **`CLOSED`** 7 Sep 2026 |
 
 ---
 
@@ -620,3 +622,70 @@ menentukan alur**. Setiap jurnal, apa pun jenisnya, wajib melewati `submit` → 
 | Masalahnya | Admin dapat menyetel `RequiresApproval = false` dan sistem tetap menuntut persetujuan. Layar mengatakan satu hal, backend melakukan hal lain |
 | Kenapa tidak ditambal | Dua-duanya butuh keputusan owner: menghormati kolom itu **melanggar** `ACC-DEC-010`; mengunci kolom itu agar selalu `true` mengubah kontrak `BE-ACC-008` |
 | Pilihan menutup | (a) Kolom dikunci `true` dan dihapus dari `UpdateJournalTypeDto`; (b) `ACC-DEC-010` dilonggarkan sehingga kolom itu benar-benar berlaku; (c) dibiarkan dan didokumentasikan bahwa kolom itu belum berlaku |
+
+---
+
+## `ACC-TD-020` — `ReversalOfJournalId` tidak unique
+
+**Ditemukan:** audit risiko modul, 7 September 2026.
+
+Sebuah jurnal yang sudah disahkan hanya boleh dibalik **sekali**. Penjaganya berupa kueri
+"apakah sudah ada pembalik" di `AccJournalService.ReverseAsync`, dan sampai hari ini kueri itu
+berada **di luar transaction**, tidak mengunci apa pun, dan berjarak seratus baris lebih dari
+`BeginTransactionAsync`.
+
+Dua permintaan `POST /journals/{id}/reverse` yang datang berbarengan karena itu sama-sama dapat
+melihat *"belum pernah dibalik"*, lalu sama-sama menyisipkan jurnal pembalik. Keduanya memperoleh
+nomor jurnal yang berbeda — advisory lock penomoran hanya menjamin nomor tidak kembar, bukan
+menjamin pembalikan tidak ganda — sehingga tidak ada satu pun index yang menahannya:
+`ReversalOfJournalId` hanya ber-index **biasa**.
+
+| Hal | Keterangan |
+|---|---|
+| **Akibat bila terjadi** | Jurnal asal terbalik dua kali. Begitu kedua pembaliknya disahkan, buku besar menghitung pembalikan itu dua kali dan **saldo akun meleset sebesar nilai jurnalnya** |
+| Kemungkinan | **Rendah.** Pembalikan jarang, hanya Manager yang berhak, dan menuntut dua permintaan nyaris bersamaan atas jurnal yang sama |
+| Berat | **Sedang** — kemungkinan rendah, tetapi akibatnya salah angka pada laporan keuangan, bukan sekadar galat tampilan |
+| **Mitigasi yang sudah terpasang** | `pg_advisory_xact_lock` ber-scope id jurnal asal, diambil **di dalam** transaction, diikuti pemeriksaan ulang sebelum penyisipan. Permintaan kedua menunggu yang pertama selesai lalu ditolak `409`. Pola ini sama dengan alokator nomor di berkas yang sama, jadi bukan mekanisme baru |
+| **Kenapa masih `OPEN`** | Advisory lock menutup jalur aplikasi, **bukan** skema. Penulisan langsung ke database, jalur lain di masa depan, atau penyedia non-PostgreSQL tetap dapat menyisipkan pembalik kedua |
+| **Cara menutup** | Unique index parsial pada `AccJournal (ReversalOfJournalId)` untuk baris `ReversalOfJournalId IS NOT NULL AND IsDelete = false`. **Menuntut migration** |
+| Perlu diperiksa lebih dulu | Apakah data yang ada sudah memuat pembalik ganda. Bila ada, migration akan gagal dan datanya harus dibereskan lebih dahulu |
+
+---
+
+## ~~`ACC-TD-021`~~ — `actionLoading` mati pada thunk di luar factory — **`CLOSED`**
+
+**Ditemukan:** `FE-ACC-007`, 7 September 2026. **Ditutup hari yang sama.**
+
+`createMasterDataResourceSlice` menyusun `extraReducers` memakai `addCase` untuk thunk miliknya
+sendiri. Thunk yang dibuat `createAsyncThunk` di luar factory karena itu **tidak dikenali sama
+sekali**, dan `actionLoading` tidak pernah menyala saat thunk itu berjalan.
+
+Yang membuatnya berbahaya bukan penanda yang hilang, melainkan penjaga yang bersandar padanya:
+
+| Berkas | Penjaga | Keadaan sebelum perbaikan |
+|---|---|---|
+| `use-chart-of-account.jsx:249` | `if (!confirmState \|\| actionLoading) return;` | Mati — penonaktifan akun dapat terkirim dua kali |
+| `journal-detail-view.jsx` | `disabled={busy}` pada kelima tombol aksi | Akan mati bila `FE-ACC-007` bersandar pada selector apa adanya |
+
+Menekan tombol Ya dua kali dengan cepat mengirim dua permintaan dan menghasilkan dua baris log
+audit untuk satu tindakan. `activateChartOfAccount` tidak bermasalah karena ia thunk bawaan
+factory — **asimetri itulah** yang membuat cacat ini tidak terlihat selama dua task.
+
+**Perbaikan.** Reducer kedua slice dikomposisi: reducer factory dijalankan lebih dahulu, lalu
+hasilnya dilewatkan pada penangan thunk tersendiri.
+`master-data-resource-slice-factory.jsx` **tidak diubah** — ia dipakai enam slice lain, dan
+menambahkan kait perluasan padanya adalah keputusan pemilik abstraksi itu.
+
+Ditahan uji regresi `tests/unit/accounting-journal-detail.test.mjs`, yang memeriksa **kedua**
+slice sekaligus supaya cacat ini tidak kembali lewat slice ketiga.
+
+**Sebaran diperiksa, bukan diperkirakan.** Seluruh slice pemakai
+`createMasterDataResourceSlice` di repository disisir: **hanya dua** yang menggabungkannya dengan
+thunk buatan sendiri, dan keduanya milik Accounting — keduanya kini tertutup.
+`accounting-period-slice.jsx` bebas karena ditulis manual dengan `createSlice` dan sudah
+menyambungkan thunk-nya sendiri sejak awal. **Nol modul lain terdampak.**
+
+Yang tetap perlu diketahui pemilik factory: celah ini terbuka bagi siapa pun yang menambahkan
+thunk di luar factory pada slice yang memakainya, dan tidak ada apa pun yang memperingatkan.
+Kait perluasan resmi pada factory akan menutupnya di sumbernya — **keputusan pemilik abstraksi
+itu, bukan Accounting**.

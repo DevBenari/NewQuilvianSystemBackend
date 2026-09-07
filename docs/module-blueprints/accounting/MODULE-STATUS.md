@@ -157,27 +157,58 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
-Diperbarui **4 September 2026**, sesudah `FE-ACC-001` sampai `FE-ACC-004`.
+Diperbarui **4 September 2026**, sesudah `BE-ACC-015` dan jurnal pertama terbentuk.
 
-**Backend selesai seluruhnya. Frontend 4 dari 11.** Empat layar sudah berdiri di
-`/corporate/accounting`: beranda modul, daftar akun, jenis jurnal, dan periode akuntansi.
+**Backend 15 dari 15 `DONE`. Frontend 6 dari 11 `IMPLEMENTED`.** Enam layar berdiri di
+`/corporate/accounting`: beranda, COA, jenis jurnal, periode, daftar jurnal, dan form jurnal.
+
+**Tonggak 4 September 2026:** jurnal pertama modul ini disusun dan diajukan lewat layar —
+`JB/2026/09/00001`, Rp 1.000.000 seimbang, 2 baris, status **Menunggu Persetujuan**. COA terisi
+2 akun dan periode 2026 terisi 12 baris, seluruhnya lewat layar, bukan Swagger.
 
 | # | Langkah | Pemilik | Kenapa ini |
 |---:|---|---|---|
-| 1 | **Verifikasi manual `FE-ACC-001`..`004` di peramban** | Rizki | Keempatnya berstatus `IMPLEMENTED`, bukan `DONE`. Skrip uji per task ada di `task/report/frontend/`. Sekitar 30 menit untuk keempatnya |
-| 2 | **Susun daftar akun awal dan bangkitkan periode — lewat layar** | Rizki | Ini menutup `BLK-ACC-02` pada [testing/readiness-report.md](testing/readiness-report.md). Sejak `FE-ACC-002` dan `FE-ACC-004` berdiri, keduanya **tidak perlu lagi lewat Swagger** |
-| 3 | **`FE-ACC-005`** daftar jurnal | Rizki | Task frontend berikutnya menurut roadmap. Dependency `BE-ACC-010` sudah `DONE` |
-| 4 | **Ratifikasi `ACC-GAP-004`** | Rizki | Daftar DTO `ACC-API-0.3` sudah tidak cocok dengan source. Frontend berikutnya yang menyusun klien dari kontrak akan tersesat |
-| 5 | **Putuskan `ACC-GAP-010`** | Rizki | `FE-ACC-004` acceptance (4) tidak dapat dipenuhi tanpa `AvailableActions` pada `AccountingPeriodResponse`. Rinciannya di laporan `fe-acc-004` bagian 3 |
-| 6 | **Teruskan `ACC-TD-015` ke lead** | Lead | Registry berselisih dua arah, menahan merge ke integration |
+| 1 | **`FE-ACC-007`** rincian jurnal dan tombol aksi | Rizki | **Nilai tertinggi saat ini.** Gerbangnya baru saja terbuka: `ACC-GAP-011` `CLOSED` lewat `BE-ACC-015`. Ia satu-satunya yang menahan jurnal menggantung itu diselesaikan |
+| 2 | **Selesaikan `JB/2026/09/00001`** — setujui lalu sahkan | Rizki | Butuh layar dari langkah 1. Ini menuntaskan **`UAT-01`**, proses bisnis pertama yang berjalan ujung ke ujung, dan menutup `BLK-ACC-02` sepenuhnya |
+| 3 | **Uji `FE-ACC-002` acceptance (3)** | Rizki | Baru mungkin sesudah langkah 2: nonaktifkan akun `1002` yang sudah bersaldo, harus ditolak beserta jumlahnya |
+| 4 | **Putuskan `ACC-GAP-010`** | Rizki | `FE-ACC-004` acceptance (4) tidak dapat dipenuhi tanpa `AvailableActions` pada `AccountingPeriodResponse`. **Tidak** memblokir `FE-ACC-007` |
+| 5 | **`FE-ACC-008`** buku besar, **`FE-ACC-009`** neraca saldo | Rizki | Dependency `BE-ACC-012` sudah `DONE` |
+| 6 | **`ACC-GAP-001`** — traceability beku | Rizki | Masih **`Tinggi`**. `roadmap/requirement-traceability.md` masih menulis *"Task selesai: 0"* padahal 21 sudah `DONE`. Tidak memblokir kode, tetapi ia berkas yang seharusnya menjawab *"aturan ini diwujudkan di mana"* — layak beres sebelum sign-off |
+| 7 | **Teruskan `ACC-TD-015` ke lead** | Lead | Registry backend masih nol baris `Acc` (`ACC-DEP-007`). Menahan merge ke integration, bukan penulisan kode |
+
+**Yang sudah tidak lagi jadi langkah:** `ACC-GAP-004` **`CLOSED`** (ratifikasi `ACC-API` 0.3 → 0.4,
+24 selisih diperbaiki), `ACC-GAP-002` **`CLOSED`**, `ACC-GAP-011` **`CLOSED`** (`BE-ACC-015`,
+`ACC-API` 0.4 → 0.5), dan `FE-ACC-005`/`FE-ACC-006` sudah berdiri.
+
+**Belum pernah diverifikasi lewat HTTP:** bentuk respons `BE-ACC-015` — `ActionByName`,
+`SubmittedByName`, `ApprovedByName`, `PostedByName`. `FE-ACC-007` adalah konsumen pertamanya,
+jadi di situlah ia terbukti atau ketahuan salah.
 
 **Sembilan butir `ACC-GAP-001`..`009`** pada [testing/readiness-report.md](testing/readiness-report.md)
 bagian 3 belum dipindahkan ke [UTANG-TEKNIS.md](UTANG-TEKNIS.md). Selama belum, register itu
 belum menjadi satu-satunya tempat yang menjawab *"apa saja yang belum beres di Accounting"*.
 
+## Audit risiko 7 September 2026
+
+Dijalankan atas permintaan owner sesudah `FE-ACC-007`, mencakup frontend dan backend Accounting.
+
+| Temuan | Berat | Keadaan |
+|---|---|---|
+| **Pembalikan ganda** — penjaga "sudah pernah dibalik" berada di luar transaction dan tidak mengunci; `ReversalOfJournalId` tidak unique. Dua `reverse` berbarengan dapat membalik satu jurnal dua kali, dan buku besar menghitungnya dua kali | **Sedang** — kemungkinan rendah, akibatnya salah angka | **Dimitigasi** advisory lock + periksa ulang di dalam transaction. Penutupan skema menunggu migration — `ACC-TD-020` |
+| **`actionLoading` mati** pada thunk di luar factory, sehingga penjaga kiriman ganda pada penonaktifan akun tidak menjaga apa pun | Rendah | **`CLOSED`** — `ACC-TD-021`, ditahan uji regresi |
+
+**Yang diperiksa dan terbukti benar**, dicatat supaya tidak diaudit ulang: alokasi nomor jurnal
+(advisory lock, unique index `(LegalEntityId, JournalNumber)`, bukan `Max+1`); buku besar dan
+neraca saldo hanya menghitung jurnal `Posted` lewat satu helper bersama; riwayat persetujuan
+ditulis langsung ke `DbSet` sehingga tidak bergantung pada tracking; dan sebaran cacat
+`actionLoading` — **nol modul lain terdampak**.
+
+**Perlu dijalankan owner:** `dotnet build` untuk perubahan `AccJournalService.cs`. **Nol
+migration** dijalankan, dan `ACC-TD-020` mencatat migration yang masih dibutuhkan.
+
 ## Optional deterministic delivery progress
 
-**20 dari 25 task selesai (80%).** Backend **14 dari 14 `DONE`**; frontend **6 dari 11 `IMPLEMENTED`** — `FE-ACC-001` sampai `FE-ACC-006`, menunggu verifikasi manual owner.
+**21 dari 26 task selesai (81%).** Backend **15 dari 15 `DONE`**; frontend **6 dari 11 `IMPLEMENTED`** — `FE-ACC-001` sampai `FE-ACC-006`, menunggu verifikasi manual owner.
 
 `FE-ACC-005` dan `FE-ACC-006` dikerjakan 4 September 2026 di atas **`ACC-API-0.4`**, sesudah
 `ACC-GAP-004` diratifikasi. Ratifikasi itu menemukan **24 selisih** antara kontrak dan source,

@@ -827,6 +827,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
             try
             {
+                // ------------------------------------------------------------------
+                // Penjaga pembalikan ganda — diperiksa ULANG di dalam transaction.
+                //
+                // Pemeriksaan `pembalikSebelumnya` di atas berada di LUAR transaction dan tidak
+                // mengunci apa pun, sehingga dua permintaan `reverse` yang datang berbarengan
+                // sama-sama dapat melihat "belum pernah dibalik" lalu sama-sama menyisipkan
+                // jurnal pembalik. Akibatnya jurnal asal terbalik DUA KALI, dan begitu kedua
+                // pembaliknya disahkan, buku besar menghitung pembalikan itu dua kali —
+                // saldo akun meleset sebesar nilai jurnalnya.
+                //
+                // `ReversalOfJournalId` hanya ber-index biasa, bukan unique, jadi database tidak
+                // menahannya. Menjadikannya unique menuntut migration; advisory lock tidak, dan
+                // ia pola yang sudah dipakai serta terbukti pada alokator nomor di berkas ini.
+                //
+                // Lock ber-scope pada id jurnal asal, dipegang database, dan lepas sendiri saat
+                // transaction berakhir. Permintaan kedua menunggu yang pertama selesai, lalu
+                // melihat pembalik yang baru saja dibuat dan ditolak `409` — bukan diam-diam
+                // membuat pembalik kedua.
+                if (_db.Database.IsNpgsql())
+                {
+                    await _db.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"ACC_REVERSE_{asal.Id:N}"],
+                        ct);
+                }
+
+                var pembalikTerkini = await _db.Set<AccJournal>()
+                    .AsNoTracking()
+                    .Where(x => x.ReversalOfJournalId == asal.Id && !x.IsDelete)
+                    .Select(x => x.JournalNumber)
+                    .FirstOrDefaultAsync(ct);
+
+                if (pembalikTerkini is not null)
+                {
+                    if (transaksi is not null) await transaksi.RollbackAsync(ct);
+
+                    return AccountingServiceResult<JournalDetailResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        $"Jurnal ini sudah pernah dibalik dengan jurnal {pembalikTerkini}.");
+                }
+
                 var nomor = await AlokasikanNomorJurnalAsync(
                     _db, jenis.NumberPrefix, asal.LegalEntityId, tanggal, actorUserId, ct);
 
