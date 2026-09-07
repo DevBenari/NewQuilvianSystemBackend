@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `6` |
+| Roadmap revision | `7` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -33,10 +33,15 @@ ditumpuk pada satu gelombang `MVP-4` seperti rencana `04-prd-to-mvp.md` bagian 1
 **diuji ujung-ke-ujung** setelah endpoint backend pasangannya tersedia. Kolom Dependency pada
 setiap task menyebut pasangannya.
 
-**Gerbang `LAB-OPEN-018` juga menyentuh frontend.** Rules root runtime kehilangan 10 dari 11
-berkas aturan frontend — termasuk `base-component-catalog.md`, `design-tokens.md`,
-`master-data-feature-standard.md`, dan `page-composition-patterns.md`. Selama belum diperbarui,
-`build-module-frontend` kehilangan pijakan pola komponen dan token desain.
+**Gerbang `LAB-OPEN-018` sempat menyentuh frontend, dan sudah tidak menahan.** Saat roadmap
+ini disusun, rules root runtime kehilangan 10 dari 11 berkas aturan frontend — termasuk
+`base-component-catalog.md`, `design-tokens.md`, `master-data-feature-standard.md`, dan
+`page-composition-patterns.md` — sehingga `build-module-frontend` kehilangan pijakan pola
+komponen dan token desain.
+
+> **Ditutup 2026-09-04.** Seluruh berkas aturan frontend yang dibutuhkan sudah tersedia dan
+> terbaca di runtime saat `FE-LAB-01` dikerjakan. Bukti dan rinciannya ada pada
+> [`task/report/frontend/FE-LAB-01.md`](../task/report/frontend/FE-LAB-01.md) bagian 1.
 
 ---
 
@@ -362,9 +367,19 @@ diputuskan:
 | `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | Siap direncanakan |
 | `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | Siap direncanakan |
 
-**Tidak ada task frontend yang `BLOCKED` oleh keputusan yang belum diambil.** Seluruhnya
-tertahan hanya oleh ketersediaan endpoint pasangannya, dan oleh `LAB-OPEN-018` yang menyentuh
-kelengkapan aturan frontend di runtime.
+**Tidak ada task frontend yang tertahan oleh keputusan yang belum diambil.** Pernyataan itu
+masih berlaku: satu-satunya task yang `BLOCKED` — `FE-LAB-05` — tertahan oleh **endpoint yang
+belum ada**, bukan oleh keputusan yang belum diputuskan.
+
+**Keadaan per 2026-09-04.**
+
+| Keadaan | Task | Keterangan |
+|---|---|---|
+| Selesai | `FE-LAB-01`, `FE-LAB-02`, `FE-LAB-03`, `FE-LAB-04`, `FE-LAB-06` | Gelombang `MVP-0` selesai seluruhnya; `FE-LAB-06` dikerjakan lebih dulu setelah dependency `FE-LAB-05` diwaive pemilik modul |
+| Terblokir | `FE-LAB-05` | `BE-LAB-08` belum ada sama sekali pada source backend. Penahannya endpoint pelaksana `INT-05` milik pemegang `registration-management` |
+| Siap dikerjakan | `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Endpoint pasangannya — `BE-LAB-12`, `BE-LAB-14`, `BE-LAB-15` — seluruhnya sudah selesai. Ketiganya berantai: `07` menopang `08`, dan `08` menopang `09` |
+
+`LAB-OPEN-018` sudah tidak menahan sejak 2026-09-04; lihat catatannya pada bagian 1.
 
 ---
 
@@ -378,3 +393,4 @@ kelengkapan aturan frontend di runtime.
 | 4 | 2026-09-04 | `FE-LAB-03` selesai dikerjakan dan divalidasi. Tiga layar alasan penolakan berdiri, dan `LAB-FE-012` ditegakkan empat lapis. Dua batas dicatat: grup endpoint ini tidak punya `GET /{id}` sehingga tidak ada halaman detail, dan frontend belum menerima daftar permission sehingga penyembunyian aksi penanda sistem hanya sedekat peran | `DRAFT` |
 | 5 | 2026-09-04 | `FE-LAB-04` selesai dikerjakan dan divalidasi. Menu tarif baca saja berdiri tanpa satu pun jalur ubah, dan komponen pemilih katalog berdiri siap dipakai ulang `FE-LAB-06`. Ketiga konstanta yang dilarang diduplikasi terbukti dipakai ulang, bukan disalin. **Gelombang `MVP-0` selesai seluruhnya** | `DRAFT` |
 | 6 | 2026-09-04 | `FE-LAB-05` ditandai **`BLOCKED`** setelah diverifikasi terhadap source backend: `BE-LAB-08` belum ada sama sekali. Pemilik modul memutuskan mewaive dependency itu dan mendahulukan `FE-LAB-06`, yang kemudian **selesai** — penanda cito dan duplo melekat pada baris pemeriksaan, dan `AC-40` dijaga uji unit. Satu batas kontrak dibuka: respons pesanan tidak membawa `requestedByUserId`, sehingga `VAL-03` belum dapat ditegakkan penuh di layar | `DRAFT` |
+| 7 | 2026-09-04 | Dua paragraf naratif yang sudah basi disesuaikan dengan tabel status: catatan `LAB-OPEN-018` pada bagian 1 ditandai sudah ditutup, dan kalimat di bawah tabel bagian 8 diganti ringkasan keadaan yang benar-benar berlaku — lima task selesai, satu terblokir, tiga siap dikerjakan. Tidak ada status task yang berubah pada revisi ini | `DRAFT` |
