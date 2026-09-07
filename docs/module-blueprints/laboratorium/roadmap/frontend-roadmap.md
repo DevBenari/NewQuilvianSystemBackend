@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `2` |
+| Roadmap revision | `6` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -128,6 +128,24 @@ produk.
 
 ### `FE-LAB-02` — Layar batas nilai dan pengajuan batas kritis
 
+> **Status: `SELESAI` — 2026-09-04.** Enam layar berdiri di
+> `health-services/master-data/lab-value-bounds/`: daftar, buat, detail, ubah, riwayat, dan
+> pengajuan perubahan batas kritis. Invariant `LAB-FE-011` ditegakkan tiga lapis — ruas batas
+> kritis tidak dirender pada formulir ubah, payload menyalinnya dari data yang berlaku, dan
+> penanda kritis setiap pilihan ikut dikunci — dua di antaranya dijaga uji unit. `LAB-FE-013`
+> juga terbukti: isian angka dan isian pilihan tidak pernah tampil bersamaan. Laporan lengkap
+> beserta buktinya: [`task/report/frontend/FE-LAB-02.md`](../task/report/frontend/FE-LAB-02.md).
+>
+> **Satu butir belum terpenuhi penuh, dan penyebabnya di backend.** `AC-34` menuntut riwayat
+> memuat **pelaku**, sedangkan `LabValueBoundHistoryResponse` hanya membawa penunjuk pengguna
+> tanpa nama — dan penunjuk seperti itu tidak boleh tampil di layar. Riwayat karena itu
+> menampilkan kolom, nilai lama, nilai baru, waktu, alasan, dan penanda persetujuan, tetapi
+> belum pelakunya.
+>
+> **Dua catatan lain.** Status sebelas endpoint pada `contracts/api-contract.md` masih
+> tertulis `Rencana (belum tersedia)` padahal seluruhnya sudah ada sejak `BE-LAB-04` dan
+> `BE-LAB-05`; dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan,
+> sehingga jalur persetujuan belum dapat dijalankan siapa pun.
 | Butir | Isi |
 |---|---|
 | **Outcome** | Kepala instalasi mengelola batas nilai, dan perubahan batas kritis hanya dapat ditempuh lewat jalur pengajuan |
@@ -143,6 +161,20 @@ produk.
 
 ### `FE-LAB-03` — Layar alasan penolakan sampel
 
+> **Status: `SELESAI` — 2026-09-04.** Tiga layar berdiri di
+> `health-services/master-data/lab-rejection-reasons/`: daftar, tambah, dan ubah.
+> Invariant `LAB-FE-012` ditegakkan empat lapis — kedua penanda sistem tidak pernah menjadi
+> isian, tidak pernah ikut pada payload, tampil terkunci beserta nilainya dan keterangan
+> siapa yang dapat mengubahnya, dan selisih ruas terkunci yang diumumkan backend terbaca
+> sebagai peringatan. Empat dari sembilan uji unit menjaga aturan itu. Kelima baris `AC-26`
+> terpenuhi di sisi layar. Laporan lengkap beserta buktinya:
+> [`task/report/frontend/FE-LAB-03.md`](../task/report/frontend/FE-LAB-03.md).
+>
+> **Dua batas yang berasal dari luar task ini.** Grup endpoint ini tidak punya `GET /{id}`,
+> sehingga fitur ini tidak punya halaman detail dan formulir ubah memuat barisnya dari
+> daftar. Dan frontend tidak menerima daftar permission per pengguna, sehingga penyembunyian
+> aksi Setel Penanda Sistem hanya dapat sedekat **peran**, bukan sedekat
+> `LabRejectionReason : SystemFlag` yang sebenarnya.
 | Butir | Isi |
 |---|---|
 | **Outcome** | Kepala instalasi mengelola alasan penolakan, dan kolom yang tidak boleh ia ubah terlihat terkunci sejak awal |
@@ -158,6 +190,23 @@ produk.
 
 ### `FE-LAB-04` — Tampilan tarif laboratorium dan pemilih katalog
 
+> **Status: `SELESAI` — 2026-09-04.** Menu **Tarif Laboratorium** berdiri baca saja di
+> `laboratory-management/lab-tariffs/`: tanpa kolom aksi, tanpa tombol tambah, ubah, maupun
+> hapus, dan tanpa satu pun fungsi atau thunk tulis. Panel keterangannya menyebut terus
+> terang bahwa pengelolaan tarif ada di Master Data, beserta tautannya. Komponen
+> `LabCatalogPicker` berdiri di lapis komponen fitur beserta perhitungan harga satuan,
+> subtotal, total, dan penanda cakupan penjaminnya. Laporan lengkap beserta buktinya:
+> [`task/report/frontend/FE-LAB-04.md`](../task/report/frontend/FE-LAB-04.md).
+>
+> **Ketiga konstanta yang tidak boleh diduplikasi memang tidak diduplikasi.**
+> `insurance-tariff-constants.jsx` **diimpor ulang**; `tariff-category-constants.jsx` tidak
+> dibutuhkan layar ini; dan pilihan jenis pemeriksaan diambil dari registry select bersama,
+> bukan dari salinan `procedure-constants.jsx`. Pemformat mata uang memakai
+> `formatCurrencyIDR` yang sudah ada.
+>
+> **Satu hal yang sengaja belum terpasang.** Komponen pemilih katalog belum dipakai layar
+> mana pun, karena konsumennya adalah layar pemesanan pada `FE-LAB-06`. Perhitungannya
+> dibuktikan enam uji unit, bukan pemasangan yang dipaksakan.
 | Butir | Isi |
 |---|---|
 | **Outcome** | Petugas melihat daftar tarif pemeriksaan laboratorium tanpa satu pun tombol ubah, dan memilih pemeriksaan dari katalog yang tersaring per disiplin |
@@ -177,6 +226,15 @@ produk.
 
 ### `FE-LAB-05` — Layar pendaftaran pasien laboratorium
 
+> **Status: `BLOCKED` — 2026-09-04.** Dependency backendnya belum ada, dan buktinya diambil
+> dari source `2dfc4f2`: tidak ada `LabPatientRegistrationController`, tidak ada route
+> `lab-patient-registrations` di seluruh `Areas/`, tidak ada DTO `RegisterLabWalkInRequest`,
+> dan tidak ada laporan `BE-LAB-08.md`. Roadmap backend sendiri menandai `BE-LAB-08` sebagai
+> `Siap direncanakan`, tertahan endpoint pelaksana `INT-05` yang kepemilikannya ada pada
+> pemegang `registration-management`.
+>
+> Task ini **tidak dikerjakan** dan tidak boleh dikerjakan dengan menebak payload. Ia
+> menunggu `BE-LAB-08`.
 | Butir | Isi |
 |---|---|
 | **Outcome** | Petugas laboratorium mendaftarkan pasien datang langsung maupun rujukan luar tanpa berpindah aplikasi |
@@ -192,6 +250,21 @@ produk.
 
 ### `FE-LAB-06` — Layar pesanan laboratorium dan penanda cito
 
+> **Status: `SELESAI` — 2026-09-04.** Tiga layar berdiri di
+> `laboratory-management/lab-orders/`: daftar, buat, dan detail. Penanda cito dan duplo
+> melekat pada **baris pemeriksaan** — daftar pesanan tidak punya kolom kesegeraan, kartu
+> pesanan tidak punya kontrolnya, dan kedua perintahnya menerima `examinationId`. `AC-40`
+> dijaga uji unit. Laporan lengkap beserta buktinya:
+> [`task/report/frontend/FE-LAB-06.md`](../task/report/frontend/FE-LAB-06.md).
+>
+> **Dependency `FE-LAB-05` diwaive pemilik modul, 2026-09-04.** Dasarnya: endpoint
+> pasangannya sudah selesai, task ini tidak memakai ulang satu pun artefak `FE-LAB-05`, dan
+> `AC-11` menyatakan pesanan lab memang dapat dibuat dari kunjungan yang sudah ada.
+>
+> **Satu butir DoD terpenuhi sebagian.** Kontrol tanpa kewenangan disembunyikan atau
+> dinonaktifkan untuk tiga dari empat keadaan. Keadaan keempat — dokter lain yang bukan
+> pemesan — belum dapat dicegah layar karena `LabOrderDetailResponse` tidak membawa
+> `requestedByUserId`, padahal itulah yang dibandingkan backend saat menegakkan `VAL-03`.
 | Butir | Isi |
 |---|---|
 | **Outcome** | Dokter dan petugas melihat pesanan beserta pemeriksaannya, dan dokter pemesan dapat menandai pemeriksaannya sebagai cito |
@@ -280,11 +353,11 @@ diputuskan:
 | Task | Gelombang | Slice | Pasangan backend | Status rencana |
 |---|---|---|---|---|
 | `FE-LAB-01` | `MVP-0` | — | — | **`SELESAI`** 2026-09-04 |
-| `FE-LAB-02` | `MVP-0` | `S3` | `BE-LAB-04`, `BE-LAB-05` | Siap direncanakan |
-| `FE-LAB-03` | `MVP-0` | `S11` | `BE-LAB-06` | Siap direncanakan |
-| `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | Siap direncanakan |
-| `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | Siap direncanakan |
-| `FE-LAB-06` | `MVP-1` | `S1a` | `BE-LAB-10` | Siap direncanakan |
+| `FE-LAB-02` | `MVP-0` | `S3` | `BE-LAB-04`, `BE-LAB-05` | **`SELESAI`** 2026-09-04 |
+| `FE-LAB-03` | `MVP-0` | `S11` | `BE-LAB-06` | **`SELESAI`** 2026-09-04 |
+| `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | **`SELESAI`** 2026-09-04 |
+| `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | **`BLOCKED`** — `BE-LAB-08` belum ada |
+| `FE-LAB-06` | `MVP-1` | `S1a` | `BE-LAB-10` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | Siap direncanakan |
 | `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | Siap direncanakan |
 | `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | Siap direncanakan |
@@ -301,3 +374,7 @@ kelengkapan aturan frontend di runtime.
 |---:|---|---|---|
 | 1 | 2026-09-02 | Roadmap frontend pertama. 9 task disusun dan dipasangkan ke gelombang backendnya, bukan ditumpuk pada `MVP-4`, setelah kontrak dikunci mengizinkan kerja paralel | `DRAFT` |
 | 2 | 2026-09-04 | `FE-LAB-01` selesai dikerjakan dan divalidasi. Status task dan tautan laporannya dicatat; gerbang `LAB-OPEN-018` dinyatakan tidak lagi menahan pekerjaan frontend karena berkas aturannya sudah tersedia di runtime | `DRAFT` |
+| 3 | 2026-09-04 | `FE-LAB-02` selesai dikerjakan dan divalidasi. Enam layar batas nilai berdiri beserta jalur pengajuan batas kritis yang terpisah. Tiga temuan dicatat: `AC-34` belum memuat pelaku karena respons riwayat backend tanpa nama, status sebelas endpoint pada dokumen kontrak masih tertulis `Rencana` padahal sudah ada, dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan | `DRAFT` |
+| 4 | 2026-09-04 | `FE-LAB-03` selesai dikerjakan dan divalidasi. Tiga layar alasan penolakan berdiri, dan `LAB-FE-012` ditegakkan empat lapis. Dua batas dicatat: grup endpoint ini tidak punya `GET /{id}` sehingga tidak ada halaman detail, dan frontend belum menerima daftar permission sehingga penyembunyian aksi penanda sistem hanya sedekat peran | `DRAFT` |
+| 5 | 2026-09-04 | `FE-LAB-04` selesai dikerjakan dan divalidasi. Menu tarif baca saja berdiri tanpa satu pun jalur ubah, dan komponen pemilih katalog berdiri siap dipakai ulang `FE-LAB-06`. Ketiga konstanta yang dilarang diduplikasi terbukti dipakai ulang, bukan disalin. **Gelombang `MVP-0` selesai seluruhnya** | `DRAFT` |
+| 6 | 2026-09-04 | `FE-LAB-05` ditandai **`BLOCKED`** setelah diverifikasi terhadap source backend: `BE-LAB-08` belum ada sama sekali. Pemilik modul memutuskan mewaive dependency itu dan mendahulukan `FE-LAB-06`, yang kemudian **selesai** — penanda cito dan duplo melekat pada baris pemeriksaan, dan `AC-40` dijaga uji unit. Satu batas kontrak dibuka: respons pesanan tidak membawa `requestedByUserId`, sehingga `VAL-03` belum dapat ditegakkan penuh di layar | `DRAFT` |
