@@ -57,19 +57,27 @@ masing-masing hanya menahan task yang ditunjuk di sana.
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
 | [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.5` | `draft` | `b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.5` | `draft` | `7be9f2b30409c23841161daaccc29c167ebeb0238a4b82ac1522826e9ca3df42` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.4.1` | `draft` | `f8c71b8479a0423ca68795427198a674e2dd9ad01939fa692a4c38a4d3457533` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.6` | `draft` | `cedfdfc4189d20ffa31588f84876658df151b4078b9f3749f303a00cb88b771a` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.0` | `draft` | `af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700` |
 | [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e` |
 | [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `73eaa7d0c6d0567a37380679b4c9c0fd150d75a8851e7b6fd4b1d5f4e28a41e4` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `7f21508a0f66470b9b6b1d625359636882b89481318b16da7472735e916449eb` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` | `draft` | `0357e52c2e35a0812d439758c74887c17b93c1bc24e1443b9a0ad6787061d14a` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.6.0` | `draft` | `09ce2ad7c3dfefc29bee0832fe4edadee1ae0db8b207917ecb9ac942b3802176` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.4.0` | `draft` | `35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` | `draft` | `995b355dae2073f84f286095d36fa74cb2ad912ff07e2f7525a1bbfa9b96c82b` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.6.0` | `draft` | `c4a281138e0d6ff90131103dc502bfc614ce88dd8ccb64110ddb6dbce12432c8` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` | `draft` | `99ef4d4fb982987fa25b51dc49720344366a6bb42d31f8c7c6b153070a62aab0` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.4.0` | `draft` | `c345c10b90344777484ff4444105504070d543b4ecc3587c2155be41aeb7bad9` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.6.0` | `draft` | `b10f149895e4b289d3e6f97f899935691129307a58c1fbf166b556ae08136382` |
 | [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` | `draft` | `357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c` |
+
+> **Pemutakhiran 2026-09-04 — Amendment Pass deposit admisi.** Lima artefak di atas naik karena
+> `RWI-DEC-093` s.d. `RWI-DEC-096`. `04-prd-to-mvp.md` naik dua tingkat sekaligus, `0.4.1` → `0.6.0`,
+> karena revisi `0.5.0` sempat disusun di luar pohon blueprint pada `docs/Modul-RS/Rawat-Inap/` lalu
+> diport masuk; berkas asalnya ditandai `SUPERSEDED`. `state-transition-matrix.md`,
+> `integration-contract.md`, dan `acceptance-test-matrix.md` **tidak** ikut naik: deposit tidak
+> menambah status episode dan tidak mengubah integrasi yang sudah tercatat. Kedua roadmap ditandai
+> `replan_required: true` dan hash inputnya sengaja dibiarkan lama.
 
 Revision `0.5` pada kedua berkas arsitektur menandai **satu-satunya** perubahan isi saat migrasi:
 pemindahan tabel kepemilikan data dan peta butir menu ke tingkat modul. `04-prd-to-mvp.md` naik ke
@@ -79,15 +87,17 @@ berubah hanya pada rujukan path, sehingga revision-nya tidak bergerak.
 ### 2.1 Roadmap dan traceability
 
 Ditulis `/qv-plan`, bukan skill desain. Ketiganya di-resync ke masukan revision `5` pada
-2026-09-02.
+2026-09-02, lalu **ditulis ulang 2026-09-04** untuk memuat slice deposit `EPIC RI-35`.
 
 | Artefak | Revision | Status | Gerbang |
 |---|---|---|---|
-| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `3` | `APPROVED` | `BLUEPRINT_APPROVED` — 36 dari 36 task selesai |
-| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `6` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 41** task selesai; 7 terbuka ditambah `FE-RWI-019` yang dibuka ulang dan cakupannya digantikan `FE-RWI-035` |
-| [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `6` | `DRAFT` | Mengikuti roadmap frontend |
+| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 43 task selesai. Revision `4` menambah tujuh task deposit dan **belum disetujui**; approval revision `3` tidak meluas ke sana. Lima di antaranya `BLOCKED` oleh `RWI-OQ-053` |
+| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `7` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 45** task selesai; 12 terbuka, empat di antaranya task deposit `FE-RWI-042` s.d. `FE-RWI-045` yang seluruhnya menunggu `RWI-UI-GAP-008` |
+| [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `7` | `DRAFT` | Mengikuti roadmap frontend. Bagian `EPIC RI-35` ditambahkan dengan kolom AC **sengaja kosong**; penomoran `RWI-AC-181` dan seterusnya milik `/qv-design` |
 
 Revision `3` dan `6` berlingkup `INPUT_RESYNC_ONLY`: nol task ditambah, diubah, atau dihapus.
+Revision `4` backend dan `7` frontend berlingkup `DEPOSIT_SLICE`: sebelas task baru ditambahkan,
+nol task lama diubah atau dihapus.
 
 Dua kontrak tambahan di luar himpunan canonical, dipertahankan apa adanya:
 
@@ -105,13 +115,13 @@ tidak ikut terseret.
 
 | Kontrak | Version | `last_changed_in` | Status | Berubah isinya pada migrasi bentuk? |
 |---|---|---|---|---|
-| API | `0.4.0` | `0.4.0` | `draft` | **Tidak** — nol endpoint bergeser |
+| API | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian Deposit Rawat Inap baru, `episodeId` wajib pada top-up, `GET /monitoring/deposit-shortfall` |
 | State transition | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| Validation | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
+| Validation | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian 8A deposit, termasuk dua baris peringatan yang sengaja tanpa kode kesalahan |
 | Integration | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| Permission dan audit | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
+| Permission dan audit | `0.4.0` | `0.6.0` | `draft` | **Ya** — bagian 2.8 `BillingDeposit`, dua aksi baru `Settle` dan `Refund`; `InpatientDeposit` dicabut |
 | Acceptance test | `0.4.0` | `0.4.0` | `draft` | **Tidak** |
-| PRD ke MVP | `0.4.0` | `0.4.0` | `draft` | Isinya berubah hanya pada enam keterangan basi `DEC-INP-001`; artefaknya naik ke `0.4.1`, set kontraknya tidak |
+| PRD ke MVP | `0.4.0` | `0.6.0` | `draft` | **Ya** — `EPIC RI-35` deposit dan settlement, `FR-RI-163` s.d. `FR-RI-178`, `UAT-34` s.d. `UAT-44`, `EPIC RI-35` dipecah dua gelombang |
 
 **Tidak satu pun kontrak dinaikkan versinya oleh migrasi bentuk.** Menaikkannya akan membuat pembaca
 mengira ada endpoint atau aturan yang bergeser, padahal tidak ada.

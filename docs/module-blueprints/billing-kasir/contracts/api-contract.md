@@ -2,6 +2,12 @@
 
 `contract_version: BIL-API-0.4` · status **approved** · owner API/Billing/Security · approved 20 Agustus 2026 · input decision `0.2`/hash tercatat di manifest · kompatibilitas: additive API baru.
 
+**Amendment 2 September 2026 (approved Product/Domain Owner, `BKC-DEC-059`–`062`)**: dua endpoint baru ditambahkan pada grup Invoices di bawah (`POST catalog-charges`, `GET catalog-charges/coverage-preview`) untuk entri manual berbasis katalog tarif + coverage per item pada form "Buat Invoice Manual (Testing)". Keduanya **Rencana (belum tersedia)** — desain disetujui, belum ada di source (belum diimplementasikan). Detail desain: [`02-backend-architecture.md`](../02-backend-architecture.md#amendment-2-september-2026--entri-manual-berbasis-katalog-tarif--coverage-per-item).
+
+**Update 3 September 2026 (`BE-BKC-019`)**: `POST catalog-charges` sudah diimplementasikan di backend source (lihat status baris di bawah) — status "Diimplementasikan" berarti source ada dan sudah dibaca langsung dari controller/service terkait, BUKAN berarti sudah diverifikasi lewat klik-coba ter-autentikasi atau Swagger sudah disanitasi; keduanya masih tertunda. Lihat `task/report/backend/BE-BKC-019.md`.
+
+**Update 3 September 2026 (`BE-BKC-020`)**: `GET catalog-charges/coverage-preview` juga sudah diimplementasikan di backend source pada sesi yang sama — status yang sama ("Diimplementasikan", belum diverifikasi manual/build) berlaku. Lihat `task/report/backend/BE-BKC-020.md`.
+
 **Rekonsiliasi 25 Agustus 2026 (`ISSUE-FE-003`)**: seluruh endpoint transaksi di bawah **sudah diimplementasikan** di backend source sejak commit `1d61a5b` (part 1) dan `22bf9cf` (part 2) pada branch `Yasmina`/`AgentCodexBackend` — dokumen ini sebelumnya masih menandainya "Rencana (belum tersedia)" secara menyeluruh, padahal source sudah ada. Status "Diimplementasikan" pada tabel di bawah berarti **source backend ada dan sudah dibaca langsung dari controller/service terkait**, BUKAN berarti sudah diverifikasi lewat klik-coba ter-autentikasi atau migration sudah dieksekusi ke database bersama — keduanya masih tertunda untuk sebagian besar slice (lihat `MODULE-STATUS.md`). Endpoint `GET` tambahan pada Cashier Shifts (`{id}`) dan Financial Exceptions (`invoices/{invoiceId}`, `invoices/{invoiceId}/refundable-credits`, `refunds/{id}`, `adjustments/{id}`, `write-offs/{id}`), serta seluruh Master Data / Register, ditambahkan hari ini (`ISSUE-FE-006`, `ISSUE-FE-007`, `ISSUE-FE-008`) dan **belum tercantum** di tabel endpoint di bawah karena dokumen ini belum ditulis ulang penuh — lihat laporan task masing-masing untuk detail endpoint baru tersebut.
 
 ### Health Services / Billing Management / Billing / Invoices
@@ -17,6 +23,8 @@ Base URL: `api/v1/health-services/billing-management/billing/invoices`
 | `POST` | `/{id}/items/{itemId}/void` | Void item eligible | `BillingInvoice : Update` | `VoidInvoiceItemRequest` | `ApiResponse<InvoiceDetailResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/{id}/discounts` | Terapkan diskon | `BillingDiscount : Create` | `ApplyDiscountRequest` | `ApiResponse<DiscountResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/{id}/discounts/{discountId}/approve` | Approve diskon dokter | `BillingDoctorDiscount : Approve` | `ApproveDiscountRequest` | `ApiResponse<DiscountResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
+| `POST` | `/catalog-charges` | Tambah charge dari katalog `MstTariff` — harga diambil server-side, tidak dapat diinput manual (`BKC-DEC-059`) | `BillingInvoice : Create` | `AddCatalogChargeRequest` | `ApiResponse<InvoiceDetailResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
+| `GET` | `/catalog-charges/coverage-preview` | Preview coverage satu tarif untuk encounter (advisory, read-only) — query `encounterId`, `tariffId`, `quantity` (`BKC-DEC-060`) | `BillingInvoice : Read` | — | `ApiResponse<CatalogChargeCoveragePreviewResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 
 ### Health Services / Billing Management / Billing / Patient Funds
 
@@ -119,3 +127,408 @@ Existing master tetap memakai tags existing `Health Services / Billing Managemen
 `200/201` sukses; `400` input tidak valid; `403` hak tidak ada; `404` resource tidak ditemukan; `409` version/state/idempotency conflict; `422` aturan bisnis tidak terpenuhi; `502/504` provider belum memberi hasil definitif dan tender tetap `PENDING`. Semua command membawa `Idempotency-Key` dan version token bila aggregate mutable. Trace: `BKC-DEC-031`–`044`, validation `BIL-VAL-*`, tests `BIL-AT-001`–`024`.
 
 Security/privacy: response memakai data pasien minimum, field sensitif dimask, dan provider token/payload tidak pernah menjadi DTO atau custom log. Exception provider, concurrency, dan unauthorized harus mempertahankan correlation ID tanpa membocorkan payload.
+
+## Amendment 3 September 2026 — Dokumen Invoice Asuransi
+
+`contract_version: BIL-API-0.5` · status **approved** · owner API/Billing/Security · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input keputusan `BKC-DEC-065`–`069` (approved) dan `BKC-DES-001`–`009` (approved via `BKC-DEC-086`/`087`) · kompatibilitas: **additive** — satu endpoint `GET` baru, dan field tambahan pada DTO kalkulasi yang sudah ada (tidak ada field yang dihapus atau berubah arti).
+
+### Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/insurance-invoice-document` | Menyusun lembar "Invoice Asuransi" satu invoice: identitas pasien, informasi perusahaan asuransi, rincian item yang ditanggung asuransi beserta rupiahnya, dan totalnya (`BKC-DEC-065`–`069`) | `BillingInvoice : Read` | — | `ApiResponse<InsuranceInvoiceDocumentResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status dan artinya bagi pengguna:**
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Permintaan berhasil dibaca. **Tidak berarti dokumen dapat dicetak** — periksa `isPrintable` dan `warnings`. Kunjungan tunai, kunjungan penjamin perusahaan, dan tagihan tanpa item tercover semuanya menghasilkan `200` dengan penjelasan di `warnings` (`BKC-DES-008`) |
+| `401` | Sesi berakhir; masuk kembali |
+| `403` | Pengguna tidak punya hak akses untuk membaca invoice ini |
+| `404` | Invoice tidak ditemukan atau sudah dihapus |
+| `422` | Tagihan tidak dapat dihitung, misalnya ada dua aturan pajak aktif pada waktu yang sama. Pesan aslinya dari mesin kalkulasi diteruskan apa adanya — **tidak** disamarkan menjadi dokumen kosong |
+
+**Perubahan pada response yang sudah ada** (dikembalikan `GET /{id}/calculation-preview`, `POST /{id}/recalculate`, dan `GET /{id}` lewat `calculationVersions[]`):
+
+| DTO | Field baru | Arti |
+| --- | --- | --- |
+| `CalculationItemResponse` | `coveredNetAmount`, `coveredTaxAmount`, `coveredAmount`, `unresolvedAmount`, `patientAmount` | Pecahan rupiah per baris item: berapa ditanggung penjamin, berapa belum jelas, berapa jadi porsi pasien |
+| `AdministrationFeeCalculationResponse` | `coveredNetAmount`, `coveredTaxAmount`, `coveredAmount` | Porsi biaya administrasi yang ditanggung penjamin |
+| `RoomChargeCalculationResponse` | `coveredNetAmount`, `coveredTaxAmount`, `coveredAmount` | Porsi biaya kamar yang ditanggung penjamin |
+| `CoverageCalculationResponse` | `isPerItemAllocationAvailable` | `true` bila rincian per baris tersedia. Bernilai `false` untuk versi kalkulasi yang tersimpan sebelum `BIL-CALCULATION-0.5` — consumer **MUST** memeriksa penanda ini sebelum memercayai angka per baris (`BKC-DES-004`) |
+| `BillingCalculationContract.Version` | nilai berubah | `"BIL-CALCULATION-0.4"` → `"BIL-CALCULATION-0.5"`. Informasi investigasi saja; **MUST NOT** dipakai program sebagai penentu ketersediaan rincian |
+
+Consumer lama yang tidak membaca field baru **tidak terpengaruh** — seluruh tambahan bersifat aditif dengan bawaan `0`/`false`.
+
+**Bentuk `InsuranceInvoiceDocumentResponse`** (nilai contoh memakai data samaran):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `invoiceId` | `Guid` | Identitas invoice |
+| `documentNumber` | `string` | Sama dengan `invoiceNumber` (`BKC-DES-007`) — tidak ada seri nomor tersendiri |
+| `invoiceNumber`, `invoiceStatus`, `serviceType`, `invoiceDate` | `string`/`DateTimeOffset?` | Konteks tagihan |
+| `payerKind` | `string` | `INSURANCE`, `CASH`, `COMPANY_GUARANTOR`, atau `UNKNOWN` |
+| `isPrintable` | `bool` | `false` berarti layar **MUST** menyembunyikan tombol cetak dan menampilkan `warnings` |
+| `isFromLockedSnapshot` | `bool` | `true` bila angkanya dibaca dari versi kalkulasi tersimpan (invoice `FINAL`/`CLOSED`), `false` bila dihitung segar (invoice `OPEN`) |
+| `isPerItemBreakdownAvailable` | `bool` | `false` untuk snapshot lama; rincian per baris tidak dapat ditampilkan |
+| `calculationVersionNo`, `calculationContractVersion`, `calculatedAt` | `int`/`string`/`DateTimeOffset` | Penelusuran lembar tercetak ke versi kalkulasi |
+| `patient` | objek | `medicalRecordNumber`, `fullName`, `gender`, `ageText`, `encounterNumber`, `encounterDate`, `encounterType`, `serviceUnitName`, `roomName`, `patientClassName` |
+| `payer` | objek | `insuranceProviderName`, `insuranceGroupName`, `providerType`, `claimMethod`, `contractNumber`, `officeAddress`, `policyNumber`, `memberNumber`, `planName`, `className`, `benefitPlanCode`, `effectiveStartDate`, `effectiveEndDate`, `isEligible`, `isPolicyActive` |
+| `items` | daftar objek | `kind` (`ITEM`/`ADMINISTRATION_FEE`/`ROOM_CHARGE`), `invoiceItemId`, `description`, `categoryCode`, `categoryName`, `quantity`, `unitPrice`, `grossAmount`, `itemDiscount`, `netAmount`, `taxAmount`, `coveredNetAmount`, `coveredTaxAmount`, `coveredAmount`, `patientAmount`. **Hanya baris dengan `coveredAmount > 0`** (`BKC-DEC-068`) |
+| `totals` | objek | `eligibleAmount`, `coveredNetAmount`, `coveredTaxAmount`, `totalCoveredAmount`, `primaryAmount`, `excessAmount`, `unresolvedCoverageAmount`, `patientAmount` |
+| `warnings` | daftar teks | Pesan berbahasa Indonesia siap tampil. Kosong bila tidak ada yang perlu diberitahukan |
+
+**Contoh angka.** Tagihan berisi Konsultasi Dokter Umum Rp 100.000 (ditanggung 100%), Fisioterapi Rp 300.000 (ditanggung 80%), Vitamin C Rp 25.000 (tidak ada aturan cocok), dan biaya administrasi Rp 15.000 (ditanggung 100%). Response memuat **tiga** baris `items` — Vitamin C tidak ikut — dengan `totals.totalCoveredAmount = 355000`, sama persis dengan `totals.primaryAmount`. Porsi pasien Rp 85.000 tercantum pada `totals.patientAmount` sebagai keterangan, bukan sebagai baris tabel.
+
+**Yang secara sengaja TIDAK ada di response ini:** `ruleCode`, `ruleName`, `approvalInstruction`, `billingInstruction` (isi kesepakatan komersial RS–asuransi), `cardNumber` (nomor kartu asuransi), serta kontak PIC perusahaan asuransi. Lihat `02-backend-architecture.md` § Yang sengaja tidak dibuat.
+
+---
+
+## Amendment 4 September 2026 — Pecahan tanggungan per baris, anomali data, dan gerbang PPN
+
+`last_changed_in: BIL-API-0.6` · status **approved** · owner API/Billing/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-069`–`079`, keputusan arsitektur `BKC-DES-010`–`020` (approved via `BKC-DEC-084`/`087`). Dampak kompatibilitas: **additive** — tidak ada endpoint baru, tidak ada field yang dihapus, tidak ada nilai enum yang berubah arti. Satu field berubah **makna dokumentasinya** (`unresolvedCoverageAmount`) tanpa berubah nama maupun tipe.
+
+### Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing-invoices`
+
+**Tidak ada endpoint baru pada amendment ini.** Seluruh perubahan terbawa oleh dua endpoint yang sudah ada.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id:guid}/calculation-preview` | Menghitung ulang tagihan tanpa menyimpannya, untuk ditampilkan di Menu Pembayaran | `BillingInvoice : Read` | Path `id` | `ApiResponse<CalculationResponse>` | Diimplementasikan — **payload bertambah field** |
+| `POST` | `/{id:guid}/recalculate` | Menghitung ulang tagihan dan menyimpannya sebagai versi kalkulasi baru | `BillingInvoice : Update` | Path `id` + body `RecalculateInvoiceRequest` | `ApiResponse<CalculationResponse>` | Diimplementasikan — **payload bertambah field** |
+| `GET` | `/{id:guid}/insurance-invoice-document` | Menyusun lembar Invoice Asuransi untuk dicetak | `BillingInvoice : Read` | Path `id` | `ApiResponse<InsuranceInvoiceDocumentResponse>` | **Rencana (belum tersedia)** — dari amendment 3 September 2026 |
+
+### Field yang bertambah pada `breakdown.items[]`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `itemPrimaryAmount` | angka | Rupiah pokok item ini yang ditanggung penjamin, sebelum pajak | Sudah ada di working tree (`BE-BKC-FIX-003`), belum di-commit |
+| `itemUnresolvedAmount` | angka | Residual pokok yang menurut kontrak penjamin tidak boleh ditagihkan ke pasien | Sudah ada di working tree — **makna dipersempit** oleh `BKC-DES-013` |
+| `taxPrimaryAmount` | angka | Rupiah pajak item ini yang ditanggung penjamin | Sudah ada di working tree |
+| `taxUnresolvedAmount` | angka | Residual pajak yang tidak boleh ditagihkan ke pasien | Sudah ada di working tree — makna dipersempit |
+| `itemDataAnomalyAmount` | angka | Rupiah pokok item ini yang tidak dapat dinilai penjaminnya karena data pendaftaran bermasalah | **Rencana (belum tersedia)** |
+| `taxDataAnomalyAmount` | angka | Rupiah pajak item ini yang tidak dapat dinilai penjaminnya karena data pendaftaran bermasalah | **Rencana (belum tersedia)** |
+
+Porsi pasien per baris **tidak** dikirim sebagai field tersendiri; ia diturunkan konsumen: `porsi pasien = (grossAmount − itemDiscount + taxAmount) − itemPrimaryAmount − taxPrimaryAmount − itemUnresolvedAmount − taxUnresolvedAmount − itemDataAnomalyAmount − taxDataAnomalyAmount`. Identitas ini selalu benar menurut cara nilainya dibentuk (`BKC-DES-015`).
+
+### Field yang bertambah pada `breakdown.administrationFee` dan `breakdown.roomCharge`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `primaryAmount` | angka | Rupiah komponen ini yang ditanggung penjamin | Sudah ada di working tree |
+| `unresolvedAmount` | angka | Residual yang tidak boleh ditagihkan ke pasien | Sudah ada di working tree — makna dipersempit |
+| `dataAnomalyAmount` | angka | Rupiah yang tidak dapat dinilai penjaminnya karena data pendaftaran bermasalah | **Rencana (belum tersedia)** |
+
+### Field yang bertambah pada `breakdown.coverage`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `dataAnomalyAmount` | angka | Total rupiah yang tidak dapat dinilai penjaminnya karena data pendaftaran bermasalah | **Rencana (belum tersedia)** |
+| `hasDataAnomaly` | boolean | Menyatakan ada masalah data penjamin pada kunjungan ini. Disediakan terpisah dari `dataAnomalyAmount > 0` karena masalah data dapat terjadi pada tagihan yang nominalnya masih nol | **Rencana (belum tersedia)** |
+| `anomalyCodes` | daftar teks | Kode program, tidak diterjemahkan: `PAYER_NOT_ELIGIBLE`, `POLICY_INACTIVE`, `INSURANCE_PROVIDER_MISSING`, `ENCOUNTER_NOT_FOUND` | **Rencana (belum tersedia)** |
+| `anomalyMessages` | daftar teks | Kalimat berbahasa Indonesia siap tampil, sejajar indeksnya dengan `anomalyCodes` | **Rencana (belum tersedia)** |
+| `isPerItemAllocationAvailable` | boolean | Menyatakan rincian per baris pada payload ini boleh dipercaya. Bernilai `false` pada snapshot yang ditulis sebelum pembaruan ini | **Rencana (belum tersedia)** — `BKC-DES-017` |
+
+### Field yang maknanya berubah tanpa berubah nama
+
+| Field | Makna lama | Makna baru | Dasar |
+| --- | --- | --- | --- |
+| `coverage.unresolvedAmount` | Campuran dari lima keadaan: tidak ada aturan cocok, `NotCovered`, menunggu approval, penjamin tidak layak, dan residual yang tidak boleh ditagihkan | **Hanya satu keadaan**: residual yang menurut kontrak penjamin tidak boleh ditagihkan ke pasien (`IsAllowExcessPaymentByPatient = false`) | `BKC-DES-013` |
+| `coverage.excessAmount`, `coverage.excessStatus` | Cadangan untuk penjamin kedua | Dipertahankan sebagai field yang **permanen** bernilai `0` dan `"NOT_CONFIGURED"`, dan dihapus dari tampilan | `BKC-DES-014` |
+
+Perubahan makna ini **MUST** disosialisasikan ke konsumen sebelum deploy. Field yang berganti arti tanpa berganti nama adalah bentuk perubahan yang paling sulit ditemukan konsumen, karena kodenya tetap berjalan dan angkanya saja yang berbeda.
+
+### Field yang tidak jadi ditambahkan
+
+Amendment 3 September 2026 merancang `coveredNetAmount`, `coveredTaxAmount`, `coveredAmount`, dan `patientAmount` sebagai field per baris. Keempatnya **tidak jadi ditambahkan** (`BKC-DES-015`): seluruhnya dapat dihitung konsumen dari field di atas, dan menyimpan angka turunan berarti dua sumber untuk satu angka.
+
+### Kode status
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Perhitungan berhasil. **Termasuk** ketika ada anomali data penjamin — anomali bukan kegagalan permintaan |
+| `409` | Data tagihan berubah pihak lain, atau lebih dari satu aturan pajak aktif bersamaan |
+| `422` | Perhitungan melanggar batas yang dijaga (`BIL-VAL-035`–`037`) |
+
+---
+
+## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
+
+`last_changed_in: BIL-API-0.7` · status **approved** · owner Backend/API + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025` (approved via `BKC-DEC-088`). Dampak kompatibilitas: **additive** — **tidak ada endpoint baru**, tidak ada field yang dihapus atau berganti nama, dan field request yang bertambah bersifat opsional berbawaan sehingga konsumen yang sudah ada tidak rusak.
+
+### `[Tags("Health Services / Billing Management / Billing / Financial Exceptions")]`
+
+Base URL: `api/v1/health-services/billing-management/billing/financial-exceptions`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/write-offs` | Ajukan write-off — **bertambah** field `category` | `BillingWriteOff : Create` | `CreateWriteOffRequest` (+`category`) | `ApiResponse<WriteOffResponse>` (+`category`) | **Diimplementasikan; field `category` Rencana (belum tersedia)** |
+| `POST` | `/write-offs/{id}/approve` | Setujui dan posting write-off — penjaga bercabang kategori | `BillingWriteOff : Approve` | `WriteOffApprovalRequest` (tidak berubah) | `ApiResponse<WriteOffResponse>` (+`category`) | **Diimplementasikan; perilaku per kategori Rencana (belum tersedia)** |
+| `GET` | `/write-offs/{id}` | Ambil satu kasus write-off | `BillingWriteOff : Read` | — | `ApiResponse<WriteOffResponse>` (+`category`) | **Diimplementasikan; field `category` Rencana (belum tersedia)** |
+| `GET` | `/invoices/{invoiceId}` | Daftar pengecualian finansial satu tagihan — **bertambah** sisa residual | `BillingFinancialException : Read` | — | `ApiResponse<…>` (+`nonBillableResidualRemaining`) | **Diimplementasikan; field baru Rencana (belum tersedia)** |
+| `POST` | `/{type}/{id}/reverse` | Reversal write-off — perilaku bercabang kategori | `BillingFinancialException : Reverse` | `ReversalRequest` (tidak berubah) | `ApiResponse<AdjustmentResponse>` | **Diimplementasikan; perilaku per kategori Rencana (belum tersedia)** |
+
+**Tidak ada endpoint baru pada amendment ini.** Pengajuan write-off atas selisih yang tidak dapat ditagihkan memakai endpoint yang sama dengan write-off piutang pasien, dengan alur maker-checker yang sama. Endpoint kedua berarti dua alur persetujuan yang harus dijaga tetap identik selamanya.
+
+### Field yang bertambah pada `CreateWriteOffRequest`
+
+| Field | Tipe | Wajib | Bawaan | Batas | Arti | Status |
+| --- | --- | :---: | --- | --- | --- | --- |
+| `category` | teks | Tidak | `"PATIENT_AR"` | Maksimal 30 karakter; hanya `"PATIENT_AR"` atau `"NON_BILLABLE_RESIDUAL"` | Menyatakan uang apa yang sedang ditulis-off: piutang pasien, atau selisih yang menurut kontrak penjamin tidak dapat ditagihkan kepada siapa pun | **Rencana (belum tersedia)** — `BKC-DES-024` |
+
+Teks di luar dua nilai itu ditolak `422` (`BIL-VAL-042`), **bukan** diam-diam diperlakukan sebagai nilai bawaan. Field ini **MUST** ikut masuk perhitungan `PayloadHash` idempotency; tanpa itu, dua pengajuan bernominal sama dengan kategori berbeda akan dianggap pengulangan permintaan yang sama.
+
+### Field yang bertambah pada `WriteOffResponse`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `category` | teks | `"PATIENT_AR"` atau `"NON_BILLABLE_RESIDUAL"`; selalu terisi, termasuk pada kasus lama yang seluruhnya `"PATIENT_AR"` | **Rencana (belum tersedia)** |
+
+### Field yang bertambah pada `GET /invoices/{invoiceId}`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `nonBillableResidualRemaining` | angka | Sisa selisih yang tidak dapat ditagihkan pada tagihan ini yang **belum** ditutup write-off. Sudah memperhitungkan kasus yang direversal, dan sudah dijepit tidak negatif | **Rencana (belum tersedia)** — `BKC-DES-025` |
+
+Angka ini dihitung server dan **MUST NOT** dihitung ulang di layar dari daftar kasus. Perhitungan uang di sisi layar akan menyimpang dari server begitu ada satu kasus yang tidak ikut terkirim.
+
+### `[Tags("Health Services / Billing Management / Billing / Invoices")]`
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+
+Tidak ada endpoint baru. Field di bawah terbawa oleh `GET /{id}/calculation-preview` dan `GET /{id}/calculations/{versionNo}` yang sudah ada.
+
+#### Field yang bertambah pada `breakdown.coverage`
+
+| Field | Tipe | Arti | Status |
+| --- | --- | --- | --- |
+| `nonBillableResidualAmount` | angka | Total rupiah sisa perhitungan tanggungan yang menurut kontrak penjamin **tidak boleh ditagihkan ke pasien**, sehingga menjadi tanggungan rumah sakit lewat write-off | **Rencana (belum tersedia)** — `BKC-DES-021` |
+| `hasNonBillableResidual` | boolean | Menyatakan tagihan ini memuat selisih semacam itu pada versi kalkulasi terkini, terlepas dari sudah atau belum ditulis-off | **Rencana (belum tersedia)** |
+
+#### Field yang bertambah pada `breakdown.items[]`, `breakdown.administrationFee`, dan `breakdown.roomCharge`
+
+| Field | Tempat | Tipe | Arti | Status |
+| --- | --- | --- | --- | --- |
+| `itemNonBillableResidualAmount` | `items[]` | angka | Porsi selisih tidak dapat ditagihkan milik baris itu | **Rencana (belum tersedia)** |
+| `taxNonBillableResidualAmount` | `items[]` | angka | Porsi selisih tidak dapat ditagihkan milik pajak baris itu | **Rencana (belum tersedia)** |
+| `nonBillableResidualAmount` | `administrationFee`, `roomCharge` | angka | Porsi selisih tidak dapat ditagihkan milik komponen itu | **Rencana (belum tersedia)** |
+
+Rincian per baris ini yang memungkinkan alasan write-off menyebut item mana yang menyumbang selisih. Tanpa rincian, Finance hanya melihat satu angka gabungan dan tidak dapat menulis alasan yang berarti bagi auditor.
+
+### Field yang maknanya berubah tanpa berubah nama
+
+| Field | Makna pada revisi `0.7` | Makna pada revisi `0.8` | Dasar |
+| --- | --- | --- | --- |
+| `coverage.unresolvedAmount` | Residual yang menurut kontrak penjamin tidak boleh ditagihkan ke pasien — mencakup jalur aturan `NotCovered` **dan** jalur sisa perhitungan | **Menyisakan satu jalur**: aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false`. Sisa perhitungan pindah ke `nonBillableResidualAmount` | **`BKC-DEC-080`**, `BKC-DES-021` |
+
+Perubahan ini **MUST** disosialisasikan ke konsumen sebelum deploy, dengan alasan yang sama seperti amendment sebelumnya: field yang berganti arti tanpa berganti nama adalah bentuk perubahan yang paling sulit ditemukan konsumen.
+
+**Panduan tampilan yang menyertainya.** Layar kasir **MUST** tetap menampilkan **satu** baris "Selisih Tidak Ditagihkan (kontrak penjamin)" berisi `unresolvedAmount + nonBillableResidualAmount`. Kasir tidak berkepentingan membedakan sebabnya; pemisahannya berguna di layar Pengecualian Finansial. Karena kedua field selalu dijumlah di layar itu, angka yang dilihat kasir **tidak berubah sama sekali** oleh amendment ini.
+
+### Kode status
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Pengajuan/persetujuan/reversal berhasil, atau perhitungan berhasil |
+| `201` | Kasus write-off berhasil diajukan |
+| `403` | Pengguna tidak berwenang mengajukan atau menyetujui write-off |
+| `409` | Data tagihan berubah pihak lain, atau kasus sudah pernah direversal |
+| `422` | Melanggar batas yang dijaga (`BIL-VAL-040`–`043`), atau pengaju menyetujui pengajuannya sendiri (`BIL-VAL-017`) |
+
+Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`. Test mapping `BIL-AT-055`–`061`.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
+
+`last_changed_in: BIL-API-0.8` · status **approved** · owner Backend/API + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 5 September 2026. Input: **`BKC-DEC-089`** — `approved` Product/Domain Owner + Finance/AR 4 September 2026, menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026`–`027` (approved 5 September 2026). Dampak kompatibilitas: **additive** — tidak ada endpoint baru, tidak ada field baru, tidak ada field yang dihapus atau berganti nama. Satu-satunya dampak adalah field yang **maknanya** bergeser lagi tanpa berganti nama.
+
+**Tidak ada endpoint, field, request, maupun response baru pada amendment ini.** Seluruh field yang disebut revisi `0.8` (`Category`, `IsFullSettlement`, `NonBillableResidualAmount`, `HasNonBillableResidual`, `nonBillableResidualRemaining`, dst.) **tidak bertambah, tidak berkurang, dan tidak berubah bentuknya**.
+
+### Field yang maknanya berubah lagi tanpa berubah nama
+
+| Field | Makna pada revisi `0.8` | Makna pada revisi `0.9` | Dasar |
+| --- | --- | --- | --- |
+| `coverage.unresolvedAmount` | **Menyisakan satu jalur**: aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false` | **Menyisakan nol jalur** — tidak ada satu pun jalur pada `ResolveAsync` yang masih mengisinya, sehingga nilainya **selalu `0`** pada setiap versi kalkulasi baru. Field dan kolom `BilCalculationVersion.UnresolvedCoverageAmount` **tetap ada** (bukti perhitungan pada versi kalkulasi lama tidak boleh dihapus) | **`BKC-DEC-089`**, `BKC-DES-026`, `BKC-DES-027` |
+
+Perubahan ini **MUST** disosialisasikan ke konsumen sebelum deploy, dengan alasan yang sama seperti dua amendment sebelumnya: field yang berganti arti tanpa berganti nama adalah bentuk perubahan yang paling sulit ditemukan konsumen. Konsumen yang membaca versi kalkulasi **lama** (dibuat sebelum revisi `0.9` dideploy) tetap melihat `unresolvedAmount` bernilai bukan-nol pada baris `NotCovered` — angka itu **valid**, bukti perhitungan yang sudah terjadi, bukan bug.
+
+**Panduan tampilan tidak berubah.** Layar kasir **MUST** tetap menampilkan **satu** baris "Selisih Tidak Ditagihkan (kontrak penjamin)" berisi `unresolvedAmount + nonBillableResidualAmount` — sudah diputuskan revisi `0.8` dan tidak disentuh amendment ini. Karena kedua field selalu dijumlah di layar itu, angka yang dilihat kasir **tidak berubah sama sekali**.
+
+### Kode status
+
+Tidak berubah dari revisi `0.8`:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Pengajuan/persetujuan/reversal berhasil, atau perhitungan berhasil |
+| `201` | Kasus write-off berhasil diajukan |
+| `403` | Pengguna tidak berwenang mengajukan atau menyetujui write-off |
+| `409` | Data tagihan berubah pihak lain, atau kasus sudah pernah direversal |
+| `422` | Melanggar batas yang dijaga (`BIL-VAL-040`–`043`), atau pengaju menyetujui pengajuannya sendiri (`BIL-VAL-017`) |
+
+Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`. Test mapping `BIL-AT-062`–`063`.
+
+---
+
+> **Ketidaksesuaian dokumen yang ditemukan, dicatat apa adanya (di luar scope amendment ini).** Empat baris di bawah ini (kode `404`/`403` dan satu baris `Trace`/`Tests`) tampak tidak berada di bawah header manapun — tersisa di ujung berkas tanpa konteks amendment yang jelas. Ditemukan saat menulis amendment revisi `0.9` ini; tidak dirapikan di sini supaya perbaikannya tidak bercampur dengan perubahan berbasis `BKC-DEC-089`.
+
+| `404` | Tagihan atau kunjungan tidak ditemukan |
+| `403` | Pengguna tidak punya hak akses untuk tindakan ini |
+
+Trace `BKC-DEC-069`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+`last_changed_in: BIL-API-0.9` · status **draft** · owner API/Billing/Finance Operations/Security · `approved_by`: — · `approved_at`: — · input: **`PC-DEC-001`–`PC-DEC-013`** (`approved` Product/Domain Owner 7 September 2026); keputusan arsitektur `PC-DES-001`–`PC-DES-014` (**draft**); audit kemampuan `01-existing-capability-map.md` § 18. Dampak kompatibilitas: **sepenuhnya aditif dan terisolasi** — sebelas endpoint pada tiga grup `[Tags(...)]` yang benar-benar baru. **Tidak ada** endpoint, DTO, field, atau nilai enum existing yang berubah, berkurang, atau berganti arti. Konsumen yang sudah ada tidak terpengaruh sama sekali.
+
+Seluruh endpoint di bawah berstatus **Rencana (belum tersedia)** — tidak ada satu baris source pun yang sudah ada untuk kapabilitas ini (`CAP-29`, **Missing**).
+
+### `[Tags("Health Services / Billing Management / Petty Cash / Vouchers")]`
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/vouchers`
+
+Arketipenya **aggregate transaksi ber-lifecycle** menurut `rules/backend/transaction-endpoint-standard.md`: ada `filters/metadata`, `summary`, list, detail, create, dan satu endpoint `POST` per perpindahan status. **Tidak ada** `GET /options`, **tidak ada** `PATCH /{id}/status` generik, dan **tidak ada** `DELETE /{id}` — ketiganya milik master data, bukan transaksi.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Mengambil konfigurasi filter, pilihan periode, pilihan status, dan metadata form untuk layar monitoring | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Mengambil angka ringkasan: jumlah voucher per status dan total nominal yang menunggu persetujuan | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Menampilkan daftar voucher dengan pencarian, penyaringan periode dan status, serta halaman | `PettyCashVoucher : Read` | Query `search`, `status`, `categoryId`, `startDate`, `endDate`, `customPeriod`, `sortBy`, `sortDirection`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PettyCashVoucherResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Menampilkan detail satu voucher beserta riwayat perintahnya dan aksi yang sedang boleh dijalankan | `PettyCashVoucher : Read` | Path `id` | `ApiResponse<PettyCashVoucherDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat voucher baru. Nomor voucher dialokasikan server; frontend **tidak** mengirimnya (`PC-DES-008`) | `PettyCashVoucher : Create` | `CreatePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui voucher. Memeriksa sisa anggaran yang benar-benar bebas (`PC-DEC-008`, `PC-DES-005`) | `PettyCashVoucher : Approve` | `ApprovePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak voucher beserta alasannya. Terminal dan tidak dapat diubah lagi (`PC-DEC-003`) | `PettyCashVoucher : Reject` | `RejectPettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Pemohon membatalkan pengajuannya sendiri selagi belum diputuskan (`PC-DEC-007`) | `PettyCashVoucher : Cancel` | `CancelPettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/disburse` | Aksi "Uang Diberikan". Satu langkah; status langsung menjadi `Uang Diterima` dan saldo anggaran berkurang di sini (`PC-DEC-005`, `PC-DEC-009`) | `PettyCashVoucher : Disburse` | `DisbursePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/proofs` | Aksi "Input Nota". Menyimpan nomor nota/kwitansi dan menyelesaikan voucher | `PettyCashVoucher : AttachProof` | `AttachPettyCashProofRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+
+**Bentuk `CreatePettyCashVoucherRequest`** (nilai contoh memakai data samaran):
+
+| Field | Tipe | Wajib | Bawaan | Batas | Keterangan |
+| --- | --- | :---: | --- | --- | --- |
+| `recipientName` | teks | **Ya** | — | 1–150 karakter | "Nama Penerima". Teks bebas, **bukan** pilihan dari daftar pegawai (`PC-DEC-011`) |
+| `categoryId` | `Guid` | **Ya** | — | Harus kategori aktif | Dipilih dari dropdown "Pilih Kategori" |
+| `amount` | angka | **Ya** | — | Lebih besar dari `0`, maksimal 2 desimal | "Nominal Voucher" |
+| `purpose` | teks | **Ya** | — | 1–500 karakter | "Tujuan" |
+
+Field `voucherNumber` **tidak ada** pada request ini. Layar menampilkannya sebagai kolom abu-abu hanya-baca bertuliskan bahwa nomor dibuat otomatis oleh sistem.
+
+**Bentuk `PettyCashVoucherResponse`:**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | `Guid` | Identitas voucher |
+| `voucherNumber` | teks | Contoh `PTC-20260907-0001` |
+| `recipientName` | teks | Nama penerima |
+| `categoryId`, `categoryCode`, `categoryName` | `Guid`, teks, teks | Kategori beserta nama terbacanya. Layar menampilkan `categoryName`, bukan `categoryId` |
+| `amount` | angka | Nominal voucher |
+| `purpose` | teks | Tujuan pengeluaran |
+| `status` | teks | Kode persisted: `WAITING_APPROVAL`, `APPROVED`, `CASH_RECEIVED`, `COMPLETED`, `REJECTED` |
+| `statusLabel` | teks | Label Bahasa Indonesia yang dikunci `PC-DEC-013`, dibentuk **server**: `Menunggu Persetujuan`, `Disetujui`, `Uang Diterima`, `Selesai`, `Ditolak` |
+| `isCancelled` | boolean | `true` bila pemohon membatalkannya (`PC-DES-007`). Layar menampilkannya sebagai penanda "Dibatalkan" |
+| `submittedAt`, `decidedAt`, `disbursedAt`, `proofSubmittedAt`, `completedAt` | waktu | Jejak waktu setiap tahap; bernilai kosong bila tahapnya belum terjadi |
+| `requestedByName`, `decidedByName`, `disbursedByName` | teks | Nama pengguna yang terbaca manusia, **bukan** UUID mentah |
+| `rejectionReason` | teks | Terisi hanya pada status `Ditolak` |
+| `proofReferenceNumber` | teks | Nomor nota/kwitansi. Kosong berarti kolom "Bukti" pada layar menampilkan tombol Input Nota |
+| `availableActions` | daftar teks | Aksi yang **sedang** boleh dijalankan pengguna itu atas voucher ini, contoh `["APPROVE","REJECT"]`. Ini **bantuan tampilan**, bukan pengaman — setiap endpoint tetap memeriksa ulang di backend |
+| `rowVersion` | `Guid` | Dikirim kembali pada perintah berikutnya sebagai penjaga perubahan bersamaan |
+
+**Kode status dan artinya bagi pengguna:**
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Permintaan berhasil diproses |
+| `201` | Voucher berhasil dibuat |
+| `400` | Isian tidak lengkap atau formatnya salah |
+| `401` | Sesi berakhir; masuk kembali |
+| `403` | Pengguna tidak punya hak akses untuk tindakan ini |
+| `404` | Voucher tidak ditemukan atau sudah dihapus |
+| `409` | Voucher sudah diubah petugas lain, atau perintah yang sama sudah pernah dijalankan. Muat ulang sebelum melanjutkan |
+| `422` | Aturan bisnis tidak terpenuhi — anggaran tidak mencukupi, status tidak sah untuk aksi itu, atau alasan wajib belum diisi (`BIL-VAL-044`–`BIL-VAL-052`) |
+
+Seluruh `POST` menerima header `Idempotency-Key`. Permintaan berulang dengan kunci yang sama mengembalikan hasil permintaan pertama, sehingga tombol yang tertekan dua kali tidak menyerahkan uang dua kali.
+
+### `[Tags("Health Services / Billing Management / Petty Cash / Budget")]`
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/budget`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/current` | Mengambil saldo kas kecil yang berjalan beserta nominal yang sudah dikomitmenkan — sumber angka kartu "TOTAL PETTY CASH" | `PettyCashBudget : Read` | — | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/movements` | Menampilkan riwayat pergerakan anggaran: penambahan, penyesuaian, dan pencairan | `PettyCashBudget : Read` | Query `movementType`, `startDate`, `endDate`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PettyCashBudgetMovementResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/top-ups` | Finance menambah anggaran kas kecil beserta alasannya (`PC-DEC-002`) | `PettyCashBudget : TopUp` | `PettyCashBudgetTopUpRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/adjustments` | Finance mengoreksi saldo beserta alasannya, tanpa menghapus riwayat | `PettyCashBudget : Adjust` | `PettyCashBudgetAdjustmentRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+
+**Bentuk `PettyCashBudgetResponse`:**
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `poolCode`, `poolName` | teks | `HOSPITAL_MAIN` dan namanya. Satu kolam untuk seluruh rumah sakit pada rilis ini (`PC-DEC-010`) |
+| `currentBalance` | angka | **Saldo berjalan.** Inilah "TOTAL PETTY CASH" |
+| `reservedAmount` | angka | Nominal voucher yang **sudah disetujui tetapi belum dicairkan**. Dihitung server; layar **MUST NOT** menghitungnya sendiri dari daftar voucher (`PC-DES-005`) |
+| `availableAmount` | angka | `currentBalance − reservedAmount`. Inilah plafon yang dipakai penjaga persetujuan |
+| `totalTopUpAmount`, `totalDisbursedAmount` | angka | Akumulasi, untuk pelaporan |
+| `lastMovementAt` | waktu | Kapan saldo terakhir bergerak |
+| `rowVersion` | `Guid` | Penjaga perubahan bersamaan |
+
+> **Contoh berangka.** Saldo Rp 5.000.000 dengan satu voucher Rp 300.000 yang sudah disetujui tetapi belum diserahkan menghasilkan `currentBalance` Rp 5.000.000, `reservedAmount` Rp 300.000, dan `availableAmount` Rp 4.700.000. Kartu di layar menampilkan Rp 5.000.000 sebagai TOTAL PETTY CASH — karena uangnya memang masih ada di laci — sedangkan penjaga persetujuan memakai Rp 4.700.000.
+
+**Bentuk `PettyCashBudgetTopUpRequest`:**
+
+| Field | Tipe | Wajib | Batas | Keterangan |
+| --- | --- | :---: | --- | --- |
+| `amount` | angka | **Ya** | Lebih besar dari `0` | Nominal yang ditambahkan |
+| `reason` | teks | **Ya** | 1–500 karakter | Alasan penambahan; dibaca auditor |
+| `expectedRowVersion` | `Guid` | **Ya** | — | Nilai `rowVersion` yang dibaca layar sebelumnya |
+
+`PettyCashBudgetAdjustmentRequest` berbentuk sama, ditambah `direction` bernilai `INCREASE` atau `DECREASE`.
+
+**Kode status:** sama dengan grup Vouchers, ditambah `422` `BIL-VAL-054` ketika penyesuaian akan membuat saldo negatif.
+
+### `[Tags("Health Services / Billing Management / Master Data / Petty Cash Category")]`
+
+Base URL: `api/v1/health-services/billing-management/master-data/petty-cash-categories`
+
+Sembilan endpoint baseline master data, mengikuti `TaxRulesController` apa adanya.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Konfigurasi filter dan metadata form kategori | `PettyCashCategory : Read` | — | `ApiResponse<PettyCashCategoryFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Jumlah kategori total, aktif, dan nonaktif | `PettyCashCategory : Read` | — | `ApiResponse<PettyCashCategorySummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar kategori dengan pencarian, penyaringan, dan halaman | `PettyCashCategory : Read` | Query `search`, `isActive`, `sortBy`, `sortDirection`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PettyCashCategoryResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Isi dropdown "Pilih Kategori" pada modal Buat Voucher. Bawaan hanya kategori aktif | `PettyCashCategory : Read` | Query `onlyActive` (bawaan `true`), `search` | `ApiResponse<List<PettyCashCategoryOptionResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Detail satu kategori | `PettyCashCategory : Read` | Path `id` | `ApiResponse<PettyCashCategoryResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Finance menambah kategori baru | `PettyCashCategory : Create` | `CreatePettyCashCategoryRequest` | `ApiResponse<PettyCashCategoryResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id:guid}` | Finance mengubah seluruh field kategori | `PettyCashCategory : Update` | `UpdatePettyCashCategoryRequest` | `ApiResponse<PettyCashCategoryResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id:guid}/status` | Mengaktifkan atau menonaktifkan kategori tanpa mengirim seluruh isian | `PettyCashCategory : Update` | `UpdatePettyCashCategoryStatusRequest` | `ApiResponse<PettyCashCategoryResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id:guid}` | Menandai kategori terhapus. Ditolak bila masih dipakai voucher mana pun | `PettyCashCategory : Delete` | Path `id` | `ApiResponse<PettyCashCategoryDeleteResponse>` | **Rencana (belum tersedia)** |
+
+**Bentuk `CreatePettyCashCategoryRequest`:** `categoryCode` (teks, wajib, maksimal 30 karakter, unik), `categoryName` (teks, wajib, maksimal 100 karakter), `description` (teks, opsional, maksimal 300 karakter), `isActive` (boolean, bawaan `true`).
+
+**Kode status khusus grup ini:**
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `400` | Kategori tidak dapat dihapus karena masih dipakai voucher (`BIL-VAL-053`) |
+| `409` | Kode kategori sudah dipakai kategori lain |
+
+### Yang secara sengaja **tidak** ada pada kontrak ini
+
+| Yang tidak ada | Alasan |
+| --- | --- |
+| `PUT /vouchers/{id}` | Voucher yang salah dibatalkan lalu dibuat ulang. Tidak ada keputusan bisnis tentang apa yang boleh disunting dan sampai kapan |
+| Endpoint apa pun yang mengubah voucher `Ditolak` | `PC-DEC-003`, ditegakkan dengan meniadakan endpointnya (`PC-DES-013`) |
+| `GET /vouchers/options` | Voucher adalah transaksi, bukan isi dropdown |
+| `DELETE /vouchers/{id}` | Voucher mencatat uang yang benar-benar keluar |
+| Endpoint konfirmasi penerimaan oleh penerima uang | `PC-DEC-005` — aksinya satu langkah oleh kasir, tanpa konfirmasi penerima |
+| Endpoint daftar voucher lewat tenggat bukti nota | `PC-DEC-006` menunda mekanisme pemaksaan ke rilis berikutnya |
+| Field apa pun yang menghubungkan voucher ke shift kasir atau ke invoice pasien | `PC-DEC-001` |
+
+Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Test mapping `BIL-AT-064`–`BIL-AT-080`.

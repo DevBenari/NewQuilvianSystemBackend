@@ -1,5 +1,14 @@
 # Billing dan Kasir — Module Status
 
+> **Catatan 4 September 2026 — dokumen ini tertinggal jauh, pembaruan penuh milik
+> `/manage-module-blueprint`.** Sejak tabel di bawah ditulis (revision `0.4`), blueprint sudah naik
+> sampai revision `0.8` (approved 4 September 2026 — enam dokumen kontrak dikunci Product/Domain
+> Owner), roadmap naik ke revision `2` (sebelas task backend + empat task frontend baru), dan
+> `/qv-trace` menemukan sebagian besar pekerjaan gelombang baru itu **sudah selesai** lewat task
+> ad-hoc di luar roadmap. Ringkasan terkini ada di `blueprint-manifest.md`,
+> `01-existing-capability-map.md` § 17, dan `roadmap/README.md`. Tabel di bawah dipertahankan apa
+> adanya sebagai arsip sampai `/manage-module-blueprint` memperbaruinya.
+
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |

@@ -24,6 +24,7 @@ public sealed class BilCalculationVersionConfiguration : IEntityTypeConfiguratio
         entity.Property(x => x.PrimaryAmount).HasPrecision(18, 2);
         entity.Property(x => x.ExcessAmount).HasPrecision(18, 2);
         entity.Property(x => x.UnresolvedCoverageAmount).HasPrecision(18, 2);
+        entity.Property(x => x.NonBillableResidualAmount).HasPrecision(18, 2);
         entity.Property(x => x.RoundingAmount).HasPrecision(18, 2);
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.BreakdownSnapshot).HasColumnType("jsonb").IsRequired();

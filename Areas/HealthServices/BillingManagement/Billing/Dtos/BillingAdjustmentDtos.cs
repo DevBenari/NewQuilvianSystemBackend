@@ -55,4 +55,11 @@ public sealed class InvoiceFinancialExceptionsResponse
     public IReadOnlyList<AdjustmentResponse> Adjustments { get; set; } = [];
     public IReadOnlyList<WriteOffResponse> WriteOffs { get; set; } = [];
     public IReadOnlyList<RefundResponse> Refunds { get; set; } = [];
+
+    // BE-BKC-029/BKC-DES-025: sisa selisih tidak dapat ditagihkan yang BELUM ditulis-off, dibaca
+    // dari kolom BilCalculationVersion.NonBillableResidualAmount (BE-BKC-027/028) - bukan dihitung
+    // ulang di layar dari daftar WriteOffs di atas, supaya perhitungan uang tidak menyimpang dari
+    // server begitu ada case yang tidak ikut terkirim karena paging. Bernilai 0 bila invoice belum
+    // pernah dihitung sama sekali (bukan error - sekadar belum ada apa pun untuk dilaporkan).
+    public decimal NonBillableResidualRemaining { get; set; }
 }

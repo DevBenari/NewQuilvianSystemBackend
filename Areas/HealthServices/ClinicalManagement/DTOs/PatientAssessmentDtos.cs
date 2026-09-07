@@ -31,6 +31,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. <c>null</c> bagi pengkajian
+        /// poliklinik, IGD, dan medical check-up.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian. Pembeda antara pengkajian keperawatan dan <b>kajian medis</b>
+        /// milik DPJP - <c>BE-RWI-045</c>, <c>CAP-022</c>.
+        /// </summary>
+        public PatientAssessmentType AssessmentType { get; set; }
+
+        /// <summary>
+        /// Batas waktu penyelesaian pengkajian ini. <c>null</c> berarti <b>belum dipantau</b>,
+        /// bukan terlambat - <c>BE-RWI-054</c>, <c>VAL-KEP-17</c>.
+        /// </summary>
+        public DateTime? DueAt { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu yang dipakai menghitung <see cref="DueAt"/>. <c>null</c> bila
+        /// tidak ada kebijakan yang berlaku saat pengkajian dibuat.
+        /// </summary>
+        public Guid? PolicyId { get; set; }
+
         public DateTime AssessmentDateTime { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
 
@@ -111,6 +135,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public string? MedicationHistory { get; set; }
 
+        // Isian medis kajian DPJP — BE-RWI-045. Kosong pada pengkajian keperawatan.
+        public string? PhysicalExamination { get; set; }
+
+        public string? WorkingDiagnosis { get; set; }
+
+        public string? TherapyPlan { get; set; }
+
         public string? OxygenSupportNote { get; set; }
 
         public string? EwsMonitoringRecommendation { get; set; }
@@ -165,6 +196,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// </remarks>
         public Guid? QueueId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. <b>Boleh kosong</b>: backend
+        /// menurunkannya dari kunjungan bila tidak disebutkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-044</c>, <c>VAL-DOK-26</c>. Bila terisi tetapi tidak cocok dengan perawatan
+        /// milik <see cref="EncounterId"/>, permintaan ditolak <c>400</c>.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian yang hendak dibuat. Bawaannya <c>Initial</c>, sehingga seluruh
+        /// pengirim lama - poliklinik dan IGD - tidak perlu berubah sedikit pun.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-045</c>, <c>CAP-022</c>, <c>AC-CAP022-02</c>. Nilai <c>MedicalInitial</c>
+        /// dan <c>MedicalReassessment</c> adalah kajian medis: hanya boleh dibuat pengguna yang
+        /// benar-benar terhubung ke data dokter, dan hanya di atas perawatan rawat inap yang
+        /// berjalan - <c>VAL-DOK-01</c>, <c>VAL-DOK-05</c>.
+        /// </remarks>
+        public PatientAssessmentType AssessmentType { get; set; } = PatientAssessmentType.Initial;
+
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }
 
@@ -173,6 +226,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? MedicationHistory { get; set; }
+
+        // Isian medis kajian DPJP — BE-RWI-045, VAL-DOK-10 dan VAL-DOK-11. Dibiarkan kosong
+        // oleh pengkajian keperawatan; wajib terisi sebelum kajian medis diselesaikan.
+        [MaxLength(2000)]
+        public string? PhysicalExamination { get; set; }
+
+        [MaxLength(500)]
+        public string? WorkingDiagnosis { get; set; }
+
+        [MaxLength(2000)]
+        public string? TherapyPlan { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 
@@ -305,6 +369,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(1000)]
         public string? MedicationHistory { get; set; }
 
+        // Isian medis kajian DPJP — BE-RWI-045, VAL-DOK-10 dan VAL-DOK-11. Dibiarkan kosong
+        // oleh pengkajian keperawatan; wajib terisi sebelum kajian medis diselesaikan.
+        [MaxLength(2000)]
+        public string? PhysicalExamination { get; set; }
+
+        [MaxLength(500)]
+        public string? WorkingDiagnosis { get; set; }
+
+        [MaxLength(2000)]
+        public string? TherapyPlan { get; set; }
+
         public int? BloodPressureSystolic { get; set; }
 
         public int? BloodPressureDiastolic { get; set; }
@@ -433,9 +508,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// pernah berantre (<c>BE-IGD-026</c>).
         /// </summary>
         public Guid? QueueId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public PatientAssessmentType AssessmentType { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime AssessmentDateTime { get; set; }
         public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// Batas waktu penyelesaian pengkajian yang baru dibuat - <c>BE-RWI-054</c>.
+        /// <c>null</c> berarti belum ada kebijakan batas waktu yang berlaku.
+        /// </summary>
+        public DateTime? DueAt { get; set; }
+
+        /// <summary>Kebijakan batas waktu yang dipakai. <c>null</c> bila masternya kosong.</summary>
+        public Guid? PolicyId { get; set; }
 
         public decimal? BMI { get; set; }
         public decimal? MeanArterialPressure { get; set; }
@@ -461,10 +547,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// pernah berantre (<c>BE-IGD-026</c>).
         /// </summary>
         public Guid? QueueId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public PatientAssessmentType AssessmentType { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime? CompletedAt { get; set; }
         public Guid? CompletedByUserId { get; set; }
         public bool IsAlreadyCompleted { get; set; }
+
+        /// <summary>
+        /// Benar bila kajian yang baru diselesaikan ikut terdaftar pada mesin keutuhan rekam
+        /// medis - <c>BE-RWI-045</c>, <c>RWI-AC-157</c>.
+        /// </summary>
+        public bool IsRegisteredToIntegrity { get; set; }
     }
 
     public class CancelPatientAssessmentRequest
