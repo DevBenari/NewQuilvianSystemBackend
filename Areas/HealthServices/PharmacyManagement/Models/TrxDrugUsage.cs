@@ -37,6 +37,24 @@ public class TrxDrugUsage : IdentityModel
     /// <summary>Kunjungan pasien yang menjadi konteks pemakaian ini.</summary>
     [Required] public Guid EncounterId { get; set; }
 
+    /// <summary>
+    /// Resep yang diserahkan, bila pemakaian ini adalah penyerahan obat resep.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Kosong untuk pemakaian yang tidak berasal dari resep — obat yang dipakai di bangsal
+    /// atau di kamar operasi. Karena itulah kolom ini nullable, dan pengisiannya tidak
+    /// mengubah apa pun pada kedua alur tersebut.
+    /// </para>
+    /// <para>
+    /// Tabel ini sengaja dipakai ulang alih-alih membuat tabel penyerahan tersendiri. Obat
+    /// yang keluar dari stok untuk seorang pasien hanya boleh punya satu catatan yang
+    /// authoritative; dua tabel untuk peristiwa yang sama akan membuat pertanyaan "berapa
+    /// yang sudah diserahkan" punya dua jawaban yang bisa berbeda.
+    /// </para>
+    /// </remarks>
+    public Guid? PrescriptionId { get; set; }
+
     /// <summary>Lokasi penyimpanan yang stoknya berkurang.</summary>
     [Required] public Guid StorageLocationId { get; set; }
 
@@ -75,6 +93,17 @@ public class TrxDrugUsageItem : IdentityModel
     [Required] public Guid DrugUsageId { get; set; }
     [Required] public Guid DrugId { get; set; }
     [Required] public Guid MeasurementId { get; set; }
+
+    /// <summary>
+    /// Baris resep yang dipenuhi baris penyerahan ini.
+    /// </summary>
+    /// <remarks>
+    /// Di sinilah, bukan di header, tautan ke resep menjadi berguna: satu kali penyerahan
+    /// dapat memenuhi beberapa baris resep sekaligus, dan satu baris resep dapat diserahkan
+    /// bertahap dalam beberapa kali penyerahan. Jumlah sisa sebuah baris resep dihitung
+    /// dengan menjumlahkan seluruh baris penyerahan yang menunjuk ke sana.
+    /// </remarks>
+    public Guid? PrescriptionItemId { get; set; }
 
     [Required, MaxLength(50)] public string DrugCodeSnapshot { get; set; } = string.Empty;
     [Required, MaxLength(200)] public string DrugNameSnapshot { get; set; } = string.Empty;

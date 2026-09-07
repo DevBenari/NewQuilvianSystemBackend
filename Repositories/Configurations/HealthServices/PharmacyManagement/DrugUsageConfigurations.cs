@@ -25,6 +25,12 @@ public class TrxDrugUsageConfiguration : IEntityTypeConfiguration<TrxDrugUsage>
         builder.HasIndex(x => new { x.Status, x.UsedAt });
         builder.HasIndex(x => new { x.StorageLocationId, x.UsedAt });
 
+        // Copy resep dan layar penyerahan bertanya "penyerahan apa saja untuk resep ini".
+        // Difilter agar indeksnya hanya memuat penyerahan resep, bukan seluruh pemakaian
+        // bangsal yang kolomnya kosong.
+        builder.HasIndex(x => x.PrescriptionId)
+            .HasFilter("\"PrescriptionId\" IS NOT NULL");
+
         builder.HasOne(x => x.Encounter).WithMany()
             .HasForeignKey(x => x.EncounterId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.StorageLocation).WithMany()
@@ -53,6 +59,10 @@ public class TrxDrugUsageItemConfiguration : IEntityTypeConfiguration<TrxDrugUsa
         // permintaan dan transfer, yang menyiapkan barang sekali untuk satu kebutuhan.
         builder.HasIndex(x => x.DrugUsageId);
         builder.HasIndex(x => x.DrugId);
+
+        // Perhitungan jumlah sisa sebuah baris resep menyapu lewat indeks ini.
+        builder.HasIndex(x => x.PrescriptionItemId)
+            .HasFilter("\"PrescriptionItemId\" IS NOT NULL");
 
         builder.HasOne(x => x.DrugUsage).WithMany(x => x.Items)
             .HasForeignKey(x => x.DrugUsageId).OnDelete(DeleteBehavior.Cascade);

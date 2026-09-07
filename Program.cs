@@ -329,6 +329,7 @@ try
     builder.Services.AddScoped<DrugUsageService>();
     builder.Services.AddScoped<DrugReturnService>();
     builder.Services.AddScoped<PrescriptionLabelService>();
+    builder.Services.AddScoped<PrescriptionDispensingService>();
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
     builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
