@@ -237,3 +237,292 @@ Input: **`BKC-DEC-089`** menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026
 **Nol perubahan skema.** Tidak ada tabel baru, tidak ada kolom baru, tidak ada index baru, dan tidak ada migration tambahan — migration `BE-BKC-027` yang sudah dibuat revisi `0.8` sudah cukup untuk kedua jalur. Yang berubah murni **keterangan peran** kolom `UnresolvedCoverageAmount` di atas (lihat baris yang diperbarui pada tabel `BilCalculationVersion`) — bukan bentuk, tipe, maupun nilai bawaannya.
 
 Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`. Tests `BIL-AT-062`–`063`.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+Input: **`PC-DEC-001`–`PC-DEC-013`** (`approved` 7 September 2026); keputusan arsitektur `PC-DES-001`–`PC-DES-014` pada [`../02-backend-architecture.md`](../02-backend-architecture.md). Status **draft**.
+
+Berbeda dari seluruh amendment sebelumnya, amendment ini **membuat tabel baru**. Kelimanya lahir kosong dan tidak menyentuh satu pun tabel yang sudah ada.
+
+### Ringkasan perubahan skema
+
+| Kelompok | Jumlah |
+| --- | ---: |
+| Tabel baru | 5 |
+| Tabel yang berubah skemanya | 0 |
+| Kolom baru pada tabel yang sudah ada | 0 |
+| Kolom yang dihapus atau diganti nama | 0 |
+| Index baru | 10 |
+| Foreign key baru | 4 |
+| Migration yang dibutuhkan | 1 |
+| Baris yang perlu di-backfill | 0 |
+
+### Tabel yang tersentuh — status dan kepemilikan
+
+| Tabel | Status | Modul pemilik | Cara modul ini memakainya |
+| --- | --- | --- | --- |
+| `BilPettyCashVoucher` | **`Baru`** | Billing dan Kasir | Ditulis dan dibaca |
+| `BilPettyCashVoucherCommand` | **`Baru`** | Billing dan Kasir | Ditulis append-only |
+| `BilPettyCashBudget` | **`Baru`** | Billing dan Kasir | Ditulis dan dibaca; tepat satu baris pada MVP |
+| `BilPettyCashBudgetMovement` | **`Baru`** | Billing dan Kasir | Ditulis append-only |
+| `MstPettyCashCategory` | **`Baru`** | Billing Master Data | Dikelola Finance lewat CRUD; dibaca sebagai dropdown |
+| `BilNumberSeries` | `Sudah ada` | Billing dan Kasir | **Skemanya tidak berubah.** Bertambah baris data ber-`SequenceKey = 'BILLING_PETTY_CASH_VOUCHER'` |
+| `BilCashierShift` | `Sudah ada` | Cashier Operations | **Tidak dibaca dan tidak ditulis sama sekali** (`PC-DEC-001`) |
+| `AspNetUsers` (`ApplicationUser`) | `Sudah ada` | Administrator / Identity | Dirujuk lewat `Guid` tanpa foreign key, mengikuti pola `BilCashierShiftCommand.ActorUserId` |
+
+### `BilPettyCashVoucher` — `Areas/HealthServices/BillingManagement/PettyCash/Models/BilPettyCashVoucher.cs`
+
+Status: **`Baru`**, seluruh kolom didokumentasikan.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `VoucherNumber` | `string(40)` | Ya | — | **Unique** | — | — | Tidak | Nomor voucher, contoh `PTC-20260907-0001`. Dialokasikan `BillingNumberSeriesService`; **MUST NOT** diisi frontend |
+| `RecipientName` | `string(150)` | Ya | — | Index | — | — | **Ya** | Nama penerima uang. Teks bebas; **MUST NOT** diberi foreign key (`PC-DEC-011`) |
+| `CategoryId` | `Guid` | Ya | — | Index | FK ke `MstPettyCashCategory` | `Restrict` | Tidak | Kategori pengeluaran |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Nominal voucher. **MUST** lebih besar dari nol |
+| `Purpose` | `string(500)` | Ya | — | — | — | — | **Ya** | "Tujuan" — keperluan pengeluaran, kalimat bebas |
+| `Status` | `string(30)` | Ya | `'WAITING_APPROVAL'` | Index | — | — | Tidak | `WAITING_APPROVAL`, `APPROVED`, `CASH_RECEIVED`, `COMPLETED`, `REJECTED`. Label tampilannya dikunci `PC-DEC-013` |
+| `RequestedBy` | `Guid` | Ya | — | Index | `ApplicationUser` (tanpa FK) | — | Tidak | Kasir/petugas administrasi yang membuat voucher |
+| `SubmittedAt` | `DateTimeOffset` | Ya | — | Index | — | — | Tidak | "Tanggal Pengajuan" pada layar |
+| `DecidedBy` | `Guid?` | Tidak | `null` | — | `ApplicationUser` (tanpa FK) | — | Tidak | Kepala Kasir/Finance Operations yang menyetujui atau menolak |
+| `DecidedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | — | Tidak | Waktu keputusan |
+| `RejectionReason` | `string(500)?` | Tidak | `null` | — | — | — | **Ya** | **Wajib terisi** ketika `Status = REJECTED`; **MUST** kosong pada status lain |
+| `DisbursedBy` | `Guid?` | Tidak | `null` | — | `ApplicationUser` (tanpa FK) | — | Tidak | Kasir yang menekan "Uang Diberikan" |
+| `DisbursedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | — | Tidak | Waktu penyerahan uang. Inilah saat saldo berkurang (`PC-DEC-009`) |
+| `ProofReferenceNumber` | `string(60)?` | Tidak | `null` | — | — | — | Tidak | "No Nota / Kwitansi" yang diisi lewat modal Bukti Nota |
+| `ProofSubmittedBy` | `Guid?` | Tidak | `null` | — | `ApplicationUser` (tanpa FK) | — | Tidak | Petugas yang memasukkan nomor nota |
+| `ProofSubmittedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | — | Tidak | Waktu nota dimasukkan |
+| `CompletedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | — | Tidak | Sama dengan `ProofSubmittedAt` pada MVP; dipisah agar penambahan syarat penyelesaian kelak tidak menuntut kolom baru |
+| `IdempotencyKey` | `Guid?` | Tidak | `null` | Unique parsial | — | — | Tidak | Kunci permintaan pembuatan voucher |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Penjaga perubahan bersamaan, mengikuti `BilCashierShift.RowVersion` |
+
+**Index:**
+
+| Nama | Kolom | Unique | Filter | Kegunaan |
+| --- | --- | :---: | --- | --- |
+| `IX_BilPettyCashVoucher_VoucherNumber` | `VoucherNumber` | **Ya** | `IsDelete = false` | Menjamin nomor voucher tidak kembar |
+| `IX_BilPettyCashVoucher_Status_SubmittedAt` | `Status`, `SubmittedAt` | Tidak | — | Daftar voucher yang disaring status dan diurutkan tanggal — jalur baca utama layar monitoring |
+| `IX_BilPettyCashVoucher_CategoryId` | `CategoryId` | Tidak | — | Penyaringan per kategori dan penjaga penghapusan kategori |
+| `IX_BilPettyCashVoucher_RecipientName` | `RecipientName` | Tidak | — | Pencarian nama penerima pada kotak cari |
+| `IX_BilPettyCashVoucher_IdempotencyKey` | `IdempotencyKey` | **Ya** | `IdempotencyKey IS NOT NULL` | Pembuatan voucher yang dikirim dua kali tidak menghasilkan dua voucher |
+
+**Perilaku hapus:** soft-delete `IsDelete` warisan `IdentityModel`, tanpa cascade. **Pembatalan** memakai `IsCancel`/`CancelDateTime`/`CancelBy` dari warisan yang sama (`PC-DES-007`), bukan status keenam.
+
+### `BilPettyCashVoucherCommand` — `.../PettyCash/Models/BilPettyCashVoucherCommand.cs`
+
+Status: **`Baru`**, seluruh kolom didokumentasikan. Bentuknya meniru `BilCashierShiftCommand` yang sudah ada.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `VoucherId` | `Guid` | Ya | — | Index | FK ke `BilPettyCashVoucher` | `Restrict` | Tidak | Voucher yang dikenai perintah |
+| `CommandType` | `string(40)` | Ya | — | — | — | — | Tidak | `SUBMIT`, `APPROVE`, `REJECT`, `CANCEL`, `DISBURSE`, `ATTACH_PROOF`, `PROOF_CORRECTED` |
+| `ActorUserId` | `Guid` | Ya | — | Index | `ApplicationUser` (tanpa FK) | — | Tidak | Siapa yang menjalankan perintah |
+| `ActorRole` | `string(150)` | Ya | — | — | — | — | Tidak | Peran aktor saat perintah dijalankan, disimpan sebagai teks |
+| `EntityVersion` | `Guid` | Ya | — | — | — | — | Tidak | Nilai `RowVersion` voucher sebelum perintah |
+| `StatusBefore` | `string(30)?` | Tidak | `null` | — | — | — | Tidak | Kosong hanya untuk `SUBMIT` |
+| `StatusAfter` | `string(30)` | Ya | — | — | — | — | Tidak | Status sesudah perintah |
+| `Amount` | `decimal(18,2)?` | Tidak | `null` | — | — | — | Tidak | Nominal yang relevan bagi perintah itu |
+| `Reason` | `string(500)?` | Tidak | `null` | — | — | — | **Ya** | **Wajib** untuk `REJECT` dan `CANCEL` |
+| `IdempotencyKey` | `Guid?` | Tidak | `null` | Unique parsial | — | — | Tidak | Kunci permintaan |
+| `PayloadHash` | `string(64)` | Ya | — | — | — | — | Tidak | Sidik isi permintaan; permintaan berulang berisi berbeda ditolak |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | Penelusuran lintas permintaan |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | Perintah yang menyebabkannya |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | Waktu perintah, zona Asia/Jakarta saat ditampilkan |
+| `ResponseJson` | `string` | Ya | `"{}"` | — | — | — | **Ya** | Hasil yang dikembalikan; dipakai memutar ulang permintaan ber-`Idempotency-Key` sama |
+
+**Index:** `IX_BilPettyCashVoucherCommand_VoucherId_OccurredAt` (`VoucherId`, `OccurredAt`) untuk layar riwayat; `IX_BilPettyCashVoucherCommand_IdempotencyKey` unique parsial `WHERE IdempotencyKey IS NOT NULL`.
+
+**Perilaku hapus:** baris **MUST NOT** dihapus maupun ditandai hapus. Ini catatan audit permanen yang menjadi dasar `PC-DEC-003`.
+
+### `BilPettyCashBudget` — `.../PettyCash/Models/BilPettyCashBudget.cs`
+
+Status: **`Baru`**, seluruh kolom didokumentasikan.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PoolCode` | `string(30)` | Ya | — | **Unique** | — | — | Tidak | `HOSPITAL_MAIN` pada MVP. Disiapkan agar multi-kolam kelak cukup menambah baris (`PC-DES-014`) |
+| `PoolName` | `string(100)` | Ya | — | — | — | — | Tidak | Nama yang dibaca manusia, contoh "Kas Kecil Rumah Sakit" |
+| `CurrentBalance` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | **Saldo berjalan.** Inilah angka kartu "TOTAL PETTY CASH". **MUST NOT** negatif dan **MUST NOT** ditulis di luar `PettyCashBudgetService` |
+| `TotalTopUpAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Akumulasi seluruh penambahan anggaran, untuk pelaporan |
+| `TotalDisbursedAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Akumulasi seluruh pencairan, untuk pelaporan |
+| `Status` | `string(30)` | Ya | `'ACTIVE'` | Index | — | — | Tidak | `ACTIVE` atau `INACTIVE` |
+| `LastMovementAt` | `DateTimeOffset?` | Tidak | `null` | — | — | — | Tidak | Waktu pergerakan terakhir |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Penjaga perubahan bersamaan |
+
+**Index:** `IX_BilPettyCashBudget_PoolCode` unique dengan filter `IsDelete = false`; `IX_BilPettyCashBudget_ActiveSingleton` unique dengan filter `Status = 'ACTIVE' AND IsDelete = false` **pada ekspresi konstan** — inilah yang menegakkan "tepat satu kolam aktif" selama `PC-DEC-010` masih berlaku.
+
+**Catatan konsistensi:** `CurrentBalance` **MUST** selalu sama dengan `TotalTopUpAmount − TotalDisbursedAmount ± penyesuaian`, dan sama dengan `BalanceAfter` baris ledger terakhir. Ketiganya diperbarui pada transaction yang sama; selisih di antaranya berarti ada penulis saldo di luar `PettyCashBudgetService`.
+
+### `BilPettyCashBudgetMovement` — `.../PettyCash/Models/BilPettyCashBudgetMovement.cs`
+
+Status: **`Baru`**, seluruh kolom didokumentasikan.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `BudgetId` | `Guid` | Ya | — | Index | FK ke `BilPettyCashBudget` | `Restrict` | Tidak | Kolam yang bergerak |
+| `MovementType` | `string(30)` | Ya | — | Index | — | — | Tidak | `TOP_UP`, `DISBURSEMENT`, `ADJUSTMENT` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Selalu **positif**; arahnya ditentukan `MovementType`. `ADJUSTMENT` yang mengurangi ditulis sebagai `ADJUSTMENT` bernominal positif dengan `BalanceAfter < BalanceBefore` |
+| `BalanceBefore` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Saldo sebelum pergerakan |
+| `BalanceAfter` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Saldo sesudah pergerakan. **MUST NOT** negatif |
+| `VoucherId` | `Guid?` | Tidak | `null` | Unique parsial | FK ke `BilPettyCashVoucher` | `Restrict` | Tidak | Terisi **hanya** untuk `DISBURSEMENT` |
+| `Reason` | `string(500)?` | Tidak | `null` | — | — | — | **Ya** | **Wajib** untuk `TOP_UP` dan `ADJUSTMENT`; kosong untuk `DISBURSEMENT` karena tujuannya sudah ada di voucher |
+| `ActorUserId` | `Guid` | Ya | — | Index | `ApplicationUser` (tanpa FK) | — | Tidak | Siapa yang memicu pergerakan |
+| `IdempotencyKey` | `Guid?` | Tidak | `null` | Unique parsial | — | — | Tidak | Kunci permintaan penambahan/penyesuaian |
+| `CorrelationId` | `Guid` | Ya | — | — | — | — | Tidak | Penelusuran |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | Index | — | — | Tidak | Waktu pergerakan |
+
+**Index yang paling menentukan:**
+
+| Nama | Kolom | Unique | Filter | Yang dijaganya |
+| --- | --- | :---: | --- | --- |
+| `IX_BilPettyCashBudgetMovement_Voucher_Disbursement` | `VoucherId` | **Ya** | `MovementType = 'DISBURSEMENT' AND IsDelete = false` | **Satu voucher paling banyak satu pengurangan saldo.** Ini jaring pengaman terakhir terhadap klik ganda, dan bekerja walaupun kunci penasihat maupun `RowVersion` gagal |
+| `IX_BilPettyCashBudgetMovement_Budget_OccurredAt` | `BudgetId`, `OccurredAt` | Tidak | — | Layar riwayat pergerakan anggaran |
+| `IX_BilPettyCashBudgetMovement_IdempotencyKey` | `IdempotencyKey` | **Ya** | `IdempotencyKey IS NOT NULL` | Penambahan anggaran yang dikirim dua kali tidak menambah saldo dua kali |
+
+**Perilaku hapus:** baris **MUST NOT** dihapus. Koreksi memakai baris `ADJUSTMENT` baru — ledger tetap append-only.
+
+### `MstPettyCashCategory` — `Areas/HealthServices/BillingManagement/MasterData/Models/MstPettyCashCategory.cs`
+
+Status: **`Baru`**, seluruh kolom didokumentasikan. Bentuknya meniru `MstTaxRule`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `CategoryCode` | `string(30)` | Ya | — | **Unique** | — | — | Tidak | Contoh `TRANSPORT`, `ATK`. Diisi Finance, mengikuti `MstTaxRule.Code` yang juga diisi pengguna |
+| `CategoryName` | `string(100)` | Ya | — | Index | — | — | Tidak | Nama yang tampil pada badge Kategori, contoh "Transport" |
+| `Description` | `string(300)?` | Tidak | `null` | — | — | — | Tidak | Penjelasan singkat bagi Finance |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | Kategori nonaktif tidak lagi muncul di dropdown, tetapi voucher lama tetap menampilkannya |
+
+**Index:** `IX_MstPettyCashCategory_CategoryCode` unique dengan filter `IsDelete = false`.
+
+**Perilaku hapus:** soft-delete `IsDelete`. Penghapusan **ditolak** bila masih ada `BilPettyCashVoucher` yang menunjuk kategori itu (`BIL-VAL-053`), mengikuti pola penghapusan master data modul ini.
+
+### Skema dalam bentuk DDL
+
+> **Peringatan.** Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL di bawah adalah **dokumentasi bentuk tabel**, bukan skrip yang dijalankan. Menjalankannya akan berbenturan dengan migration. Kolom audit warisan `IdentityModel` tidak ditulis ulang di sini.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+
+CREATE TABLE public."MstPettyCashCategory" (
+    "Id"            uuid          NOT NULL,
+    "CategoryCode"  varchar(30)   NOT NULL,
+    "CategoryName"  varchar(100)  NOT NULL,
+    "Description"   varchar(300),
+    "IsActive"      boolean       NOT NULL DEFAULT true,
+    -- kolom audit IdentityModel tidak ditulis ulang di sini
+    CONSTRAINT "PK_MstPettyCashCategory" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_MstPettyCashCategory_CategoryCode"
+    ON public."MstPettyCashCategory" ("CategoryCode") WHERE "IsDelete" = false;
+
+CREATE TABLE public."BilPettyCashBudget" (
+    "Id"                    uuid           NOT NULL,
+    "PoolCode"              varchar(30)    NOT NULL,
+    "PoolName"              varchar(100)   NOT NULL,
+    "CurrentBalance"        numeric(18,2)  NOT NULL DEFAULT 0,
+    "TotalTopUpAmount"      numeric(18,2)  NOT NULL DEFAULT 0,
+    "TotalDisbursedAmount"  numeric(18,2)  NOT NULL DEFAULT 0,
+    "Status"                varchar(30)    NOT NULL DEFAULT 'ACTIVE',
+    "LastMovementAt"        timestamptz,
+    "RowVersion"            uuid           NOT NULL,
+    CONSTRAINT "PK_BilPettyCashBudget" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_BilPettyCashBudget_PoolCode"
+    ON public."BilPettyCashBudget" ("PoolCode") WHERE "IsDelete" = false;
+
+CREATE TABLE public."BilPettyCashVoucher" (
+    "Id"                    uuid           NOT NULL,
+    "VoucherNumber"         varchar(40)    NOT NULL,
+    "RecipientName"         varchar(150)   NOT NULL,          -- SENSITIF
+    "CategoryId"            uuid           NOT NULL,
+    "Amount"                numeric(18,2)  NOT NULL,
+    "Purpose"               varchar(500)   NOT NULL,          -- SENSITIF
+    "Status"                varchar(30)    NOT NULL DEFAULT 'WAITING_APPROVAL',
+    "RequestedBy"           uuid           NOT NULL,
+    "SubmittedAt"           timestamptz    NOT NULL,
+    "DecidedBy"             uuid,
+    "DecidedAt"             timestamptz,
+    "RejectionReason"       varchar(500),                     -- SENSITIF
+    "DisbursedBy"           uuid,
+    "DisbursedAt"           timestamptz,
+    "ProofReferenceNumber"  varchar(60),
+    "ProofSubmittedBy"      uuid,
+    "ProofSubmittedAt"      timestamptz,
+    "CompletedAt"           timestamptz,
+    "IdempotencyKey"        uuid,
+    "RowVersion"            uuid           NOT NULL,
+    CONSTRAINT "PK_BilPettyCashVoucher" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilPettyCashVoucher_MstPettyCashCategory_CategoryId"
+        FOREIGN KEY ("CategoryId")
+        REFERENCES public."MstPettyCashCategory" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_BilPettyCashVoucher_VoucherNumber"
+    ON public."BilPettyCashVoucher" ("VoucherNumber") WHERE "IsDelete" = false;
+CREATE INDEX "IX_BilPettyCashVoucher_Status_SubmittedAt"
+    ON public."BilPettyCashVoucher" ("Status", "SubmittedAt");
+
+CREATE TABLE public."BilPettyCashVoucherCommand" (
+    "Id"              uuid           NOT NULL,
+    "VoucherId"       uuid           NOT NULL,
+    "CommandType"     varchar(40)    NOT NULL,
+    "ActorUserId"     uuid           NOT NULL,
+    "ActorRole"       varchar(150)   NOT NULL,
+    "EntityVersion"   uuid           NOT NULL,
+    "StatusBefore"    varchar(30),
+    "StatusAfter"     varchar(30)    NOT NULL,
+    "Amount"          numeric(18,2),
+    "Reason"          varchar(500),                           -- SENSITIF
+    "IdempotencyKey"  uuid,
+    "PayloadHash"     varchar(64)    NOT NULL,
+    "CorrelationId"   uuid           NOT NULL,
+    "CausationId"     uuid           NOT NULL,
+    "OccurredAt"      timestamptz    NOT NULL,
+    "ResponseJson"    text           NOT NULL DEFAULT '{}',   -- SENSITIF
+    CONSTRAINT "PK_BilPettyCashVoucherCommand" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilPettyCashVoucherCommand_BilPettyCashVoucher_VoucherId"
+        FOREIGN KEY ("VoucherId")
+        REFERENCES public."BilPettyCashVoucher" ("Id") ON DELETE RESTRICT
+);
+
+CREATE TABLE public."BilPettyCashBudgetMovement" (
+    "Id"              uuid           NOT NULL,
+    "BudgetId"        uuid           NOT NULL,
+    "MovementType"    varchar(30)    NOT NULL,
+    "Amount"          numeric(18,2)  NOT NULL,
+    "BalanceBefore"   numeric(18,2)  NOT NULL,
+    "BalanceAfter"    numeric(18,2)  NOT NULL,
+    "VoucherId"       uuid,
+    "Reason"          varchar(500),                           -- SENSITIF
+    "ActorUserId"     uuid           NOT NULL,
+    "IdempotencyKey"  uuid,
+    "CorrelationId"   uuid           NOT NULL,
+    "OccurredAt"      timestamptz    NOT NULL,
+    CONSTRAINT "PK_BilPettyCashBudgetMovement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilPettyCashBudgetMovement_BilPettyCashBudget_BudgetId"
+        FOREIGN KEY ("BudgetId")
+        REFERENCES public."BilPettyCashBudget" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_BilPettyCashBudgetMovement_BilPettyCashVoucher_VoucherId"
+        FOREIGN KEY ("VoucherId")
+        REFERENCES public."BilPettyCashVoucher" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_BilPettyCashBudgetMovement_Voucher_Disbursement"
+    ON public."BilPettyCashBudgetMovement" ("VoucherId")
+    WHERE "MovementType" = 'DISBURSEMENT' AND "IsDelete" = false;
+```
+
+### Kolom sensitif — aturan yang berlaku untuk amendment ini
+
+Kolom bertanda **Sensitif** — `RecipientName`, `Purpose`, `RejectionReason`, `Reason`, dan `ResponseJson` — **MUST NOT** masuk custom logger, **MUST NOT** muncul pada payload galat, dan **MUST NOT** dipakai sebagai contoh berisi data asli. Yang **boleh** masuk log adalah `VoucherId`, `VoucherNumber`, `CategoryId`, `Amount`, `Status` sebelum dan sesudah, serta `ActorUserId`.
+
+Perlu dicatat bahwa amendment ini adalah satu-satunya bagian modul ini yang **tidak menyentuh data pasien sama sekali** — tidak ada `EncounterId`, tidak ada nomor rekam medis, tidak ada nomor polis, dan tidak ada diagnosis. Yang sensitif di sini adalah identitas penerima uang dan keperluan internal rumah sakit, bukan data medis.
+
+Seluruh contoh berangka pada dokumentasi ini memakai data samaran.
+
+Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`.

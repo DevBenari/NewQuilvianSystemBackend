@@ -1223,3 +1223,264 @@ sebagian besar gerbang gelombang ini **sudah selesai** lewat task ad-hoc di luar
 Rincian lengkap, contoh berangka, dan closure question turunannya (`BKC-CQ-01` sampai `09`) ada di
 `01-existing-capability-map.md` § 17.4 dan § 17.6. Dokumen ini hanya mencatat akibatnya terhadap
 task dan gerbang.
+
+---
+
+# Amendment 7 September 2026 — Verifikasi ulang `BE-BKC-023`; tidak ada task backend baru untuk Struk Pasien
+
+```yaml
+roadmap_revision: 3
+roadmap_status: DRAFT_FORWARD_TEST
+pemicu: Permintaan /plan-module-delivery untuk merencanakan (1) tab "Invoice Asuransi" pada Dokumen
+  Kasir dan (2) penyelarasan Struk Pasien terhadap referensi PDF staging
+  (staging.quilvian-mmchospital.com)
+backend_source_diperiksa_langsung: BillingInvoicesController.cs (grep baris 303), Program.cs
+  (DI registration — dilaporkan sudah diperbaiki pemilik task, tidak didiagnosis ulang di sini)
+```
+
+## 1. `BE-BKC-023` — verifikasi ulang, bukan task baru
+
+`backend-roadmap.md` § 3 sebelumnya mencatat `BE-BKC-023` **`DONE`** (`dotnet build`/`test`
+dikonfirmasi lulus pengguna 5 September 2026). Sesi ini memverifikasi klaim itu langsung terhadap
+source, bukan hanya membaca laporannya:
+
+| Klaim laporan `BE-BKC-023.md` | Hasil verifikasi langsung sesi ini |
+| --- | --- |
+| Endpoint `GET {id:guid}/insurance-invoice-document` ada pada `BillingInvoicesController` | **Terkonfirmasi** — `grep` menemukannya persis di baris 303 |
+| Service baru `BillingInsuranceInvoiceDocumentService` + registrasi DI | **Sebagian terkonfirmasi** — pemilik task melaporkan registrasi DI ini sempat **hilang** dari `Program.cs`, menyebabkan `InvalidOperationException` pada **seluruh** `BillingInvoicesController` (bukan hanya endpoint ini), dan sudah diperbaiki di luar sesi ini. Tidak didiagnosis ulang di sini sesuai instruksi eksplisit |
+
+**Kesimpulan.** Berbeda dari `FE-BKC-018` (lihat `frontend-roadmap.md`), source backend
+`BE-BKC-023` **benar-benar ada** dan cocok dengan yang diklaim laporannya. Regresi DI yang sempat
+terjadi bukan bukti laporan itu palsu — ia bukti bahwa `dotnet build` dan unit test yang memakai
+mock/stub tidak selalu menangkap kesalahan pendaftaran DI container (butuh test integrasi yang
+benar-benar mem-boot `WebApplicationFactory`, yang repository ini belum punya). Dicatat sebagai
+kekurangan cakupan validasi, bukan tindakan lanjutan pada roadmap ini.
+
+**Status `BE-BKC-023` tetap `DONE` secara source**, dengan catatan tambahan: task lanjutan manapun
+yang membaca ulang endpoint ini (termasuk `build-module-frontend` untuk `FE-BKC-018`) **wajib**
+menjalankan `dotnet build` sekali lagi sebelum mengandalkannya, karena regresi DI di atas
+membuktikan status "build/test lulus" pada tanggal lama tidak lagi otomatis berlaku terhadap
+`HEAD` saat ini.
+
+## 2. Struk Pasien — tidak ada task backend baru
+
+Cross-check acceptance criteria untuk penyelarasan Struk Pasien terhadap referensi PDF staging
+(lihat `frontend-roadmap.md` § Amendment 7 September 2026 dan `requirement-traceability.md` §
+Amendment 7 September 2026 untuk rincian keputusan) menemukan **nol** kebutuhan backend baru:
+
+- Field "Subtotal Mandiri"/"Subtotal Penjamin"/"Pajak"/"Harus Dibayar" **sudah** diekspos lewat
+  `GET /{id:guid}/calculation-preview` (`ApiResponse<CalculationResponse>`, `BIL-API-0.6`/`0.7`
+  approved) — endpoint yang sama dipakai Ringkasan Pembayaran pada Menu Pembayaran. Tidak perlu
+  endpoint baru; yang belum ada hanyalah **pemanggilan endpoint ini dari halaman Dokumen Kasir**
+  (murni frontend, lihat `FE-BKC-022`).
+- Field `Penjamin` (company guarantor) dan QR/tanda tangan **tidak** dirancang menjadi task karena
+  belum ada satu pun keputusan bisnis yang menetapkannya — lihat pembahasan lengkap di
+  `requirement-traceability.md`. Task backend tidak dibuat untuk elemen yang belum diputuskan;
+  merancang kontraknya sekarang berarti menebak keputusan bisnis Finance/Product Owner.
+
+**Jangan membuat task backend untuk Struk Pasien sebelum `/grill-me` menutup gap pada
+`requirement-traceability.md` § Amendment 7 September 2026.** Bila kelak disetujui bahwa "Penjamin"
+perlu field data baru (mis. nama penjamin perusahaan pada dokumen ini), itu baru menjadi task
+backend tersendiri — tidak ada bukti hari ini bahwa data itu sudah tersedia di kontrak yang ada.
+
+---
+
+# Amendment 7 September 2026 (kedua) — Rumpun baru: Petty Cash (Voucher Kas Kecil), gelombang `MVP-13`–`MVP-14`
+
+```yaml
+roadmap_revision: 4
+roadmap_status: DRAFT_FORWARD_TEST
+pemicu: /plan-module-delivery untuk rumpun Petty Cash, blueprint revision 1.0
+blueprint_revision_dibaca: 1.0 (blueprint-manifest.md, status approved; readiness DESIGN_APPROVED
+  untuk rumpun Petty Cash — kontrak terkunci)
+scope_pass_ini: HANYA rumpun Petty Cash. Rumpun-rumpun lain (revisi 0.6-0.9: Invoice Asuransi,
+  PPN/coverage subtotal, write-off routing, Struk Pasien) TIDAK disentuh, TIDAK dinilai ulang, dan
+  entri roadmap mereka pada bagian di atas TIDAK diubah — manifest mencatat bukti as-is rumpun
+  tersebut sebagai stale terhadap dd31bc9 dan menuntut impact scan trace-existing-capabilities
+  tersendiri sebelum re-planning, di luar cakupan pass ini
+input_keputusan_bisnis: PC-DEC-001–015 (00-interview-decisions.md, seluruhnya approved Product/Domain
+  Owner 7 September 2026 — dua amendment: "Kapabilitas baru: Petty Cash (Voucher Kas Kecil)" dan
+  "Penutupan PC-OQ-001 dan approval PC-DES-001–014")
+input_keputusan_arsitektur: PC-DES-001–014 (02-backend-architecture.md, disetujui penuh lewat
+  PC-DEC-015 — catatan "Status: draft" pada penutup bagian arsitektur backend/frontend adalah
+  keadaan SEBELUM PC-DEC-015 ditulis pada sesi yang sama; blueprint-manifest.md § status_derivation
+  dan § last_revision_note adalah rollup yang lebih baru dan MENANG: `status: approved`,
+  `readiness: DESIGN_APPROVED ... kontrak terkunci`
+kemampuan_asal: CAP-29 (Missing), CAP-30 (Ready to reuse), CAP-31 (Conflict pola, diselesaikan
+  MstPettyCashCategory baru), CAP-32 (Ready to reuse) — 01-existing-capability-map.md § 18
+backend_commit_sha: dd31bc91818566c0b53e1b68c0129f5a6cf01a2b (branch Yasmina)
+contracts: [BIL-API-0.9, BIL-STATE-0.8, BIL-VALIDATION-0.8, BIL-INTEGRATION-0.7, BIL-PERMISSION-0.7, BIL-TEST-0.9]
+task_id_series: BE-BKC-033 s.d. BE-BKC-038 — dilanjutkan dari BE-BKC-032
+prasyarat_non_blocking: PC-OQ-003 (baris registry kepemilikan modul untuk folder PettyCash/,
+  QBE-MOD-003) — TIDAK memblokir roadmap ini; dicatat sebagai dependency tingkat task pada
+  BE-BKC-033 (task yang menulis file model pertama), sesuai instruksi eksplisit
+  00-interview-decisions.md amendment "Penutupan PC-OQ-001 dan approval PC-DES-001–014"
+```
+
+## 0. Kenapa gelombang ini langsung `READY_FOR_TASK_APPROVAL`, bukan `BLOCKED`
+
+Berbeda dari gelombang `MVP-4`–`MVP-12` yang sempat melalui sembilan gerbang sebelum kontraknya
+terkunci, rumpun Petty Cash **tidak melahirkan satu pun pertanyaan terbuka bertanda memblokir**
+(`blueprint-manifest.md` § `blocking_questions_revision_1_0`: "TIDAK ADA"). Lima pertanyaan
+non-blocking (`PC-OQ-001` sampai `PC-OQ-005`) seluruhnya sudah diberi jawaban bawaan yang
+defensibel dan tercatat eksplisit sebagai **tidak memblokir** — termasuk `PC-OQ-001` yang sudah
+**ditutup** lewat `PC-DEC-014` (memilih `MstPettyCashCategory`). Satu-satunya prasyarat tersisa,
+`PC-OQ-003`, memblokir **penulisan file model pertama** saat `build-module-backend` dijalankan —
+bukan perencanaan ini, dan bukan roadmap secara keseluruhan. Rinciannya dicatat sebagai dependency
+tingkat task pada `BE-BKC-033` di bawah, bukan sebagai status `BLOCKED` pada gelombang ini.
+
+> **`PC-OQ-003` ditutup 7 September 2026** saat `BE-BKC-033` dikerjakan. Baris registry
+> `HealthServices | BillingManagement / Billing | Bil | ACTIVE` dinyatakan **mencakup** submodule
+> `PettyCash/`, dengan bukti: pemiliknya sudah terdaftar sehingga prosedur registry langkah 2
+> berlaku ("pakai prefix yang tercatat"), dan dua submodule sekerabat — `Cashier/` dan
+> `Operational/` — juga memuat model persisted berprefix `Bil` tanpa baris registry tersendiri.
+> Tidak ada prefix baru yang diciptakan. Karena itu `QBE-MOD-002` **tidak** memblokir penulisan
+> model. Kerapian tata kelola yang tersisa dan **bukan** blocker: menambahkan nama folder
+> `PettyCash` ke kolom Module/pemilik pada baris registry itu — berkas milik suite skill, di luar
+> wewenang tulis task backend. Bukti: [laporan `BE-BKC-033`](../task/report/backend/BE-BKC-033.md).
+
+Kontrak (`BIL-API-0.9` dst.) berlabel `draft` pada `blueprint-manifest.md` — tetapi label itu
+mengikuti pola yang sama seperti revisi `0.6`/`0.7` sebelumnya pada modul ini: **label dokumen**
+belum diperbarui, sedangkan **isinya** (§ "Amendment 7 September 2026 — Rumpun baru: Petty Cash"
+pada `02-backend-architecture.md` dan `contracts/*.md`) sudah lengkap, dan approval keputusan
+arsitekturnya (`PC-DES-001`–`014`) sudah diberikan penuh lewat `PC-DEC-015`. Manifest sendiri
+menyimpulkan `status: approved` dan `readiness: DESIGN_APPROVED ... kontrak terkunci` untuk seluruh
+revisi `1.0` termasuk Petty Cash. Enam task di bawah karena itu **`READY_FOR_TASK_APPROVAL`**,
+dengan urutan antar-task berupa **sequencing**, bukan gerbang governance — sama seperti pola yang
+sudah berlaku pada sepuluh dari sebelas task `BE-BKC-022`–`032`.
+
+**Yang tetap berlaku untuk setiap task di bawah, tanpa kecuali:** kontrak terkunci bukan wewenang
+tulis. Setiap task menunggu approval task tersendiri dan konfirmasi `TASK MODE: BACKEND` beserta
+cabang kerja sebelum satu baris source pun ditulis. Pembuatan dan eksekusi migration (`BE-BKC-033`)
+adalah wewenang terpisah dari approval task, sesuai `AGENTS.md` bagian Aturan Entity Framework dan
+Akses Data.
+
+## 1. Urutan gelombang
+
+| Gelombang | Task backend | Yang dapat diverifikasi bisnis sesudahnya | Syarat mulai |
+| --- | --- | --- | --- |
+| `MVP-13` (fondasi) | 🟡 `BE-BKC-033`, `BE-BKC-034`, `BE-BKC-035` | Kategori pengeluaran kas kecil dapat dikelola Finance; nomor voucher dapat dialokasikan | Tidak ada — `READY_FOR_TASK_APPROVAL`. `BE-BKC-034` boleh paralel dengan `BE-BKC-033`; `BE-BKC-035` menunggu `BE-BKC-033` (tabel `MstPettyCashCategory`). **Gelombang belum boleh naik:** `BE-BKC-033` masih 🟡 (build belum dijalankan, migration belum dibuat), `BE-BKC-034` dan `BE-BKC-035` belum dikerjakan |
+| `MVP-14` (alur pertama) | `BE-BKC-036`, `BE-BKC-037`, `BE-BKC-038` | Voucher berjalan penuh dari pengajuan sampai bukti nota, di atas anggaran yang saldonya benar dan tidak pernah negatif; kas shift kasir terbukti tidak bergerak | `MVP-13` **selesai dan terverifikasi** — tanpa kategori aktif, tidak satu pun voucher dapat dibuat |
+
+**Kenapa `BE-BKC-036` (anggaran) mendahului `BE-BKC-037` (voucher).** `PettyCashVoucherService.
+DisburseAsync` **memanggil** `PettyCashBudgetService.ApplyDisbursementAsync` di dalam transaction
+yang sama (`PC-DES-004`), dan `ApproveAsync` memakai `CalculateReservedAmountAsync` sebagai
+penjaga (`PC-DES-005`). Method budget itu harus sudah ada sebelum service voucher dapat
+memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
+
+**Arti tanda status pada dokumen ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
+| ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
+| tanpa tanda | Belum dikerjakan |
+
+## 🟡 `BE-BKC-033` — Fondasi skema Petty Cash: lima tabel, migration, dan data induk awal
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 7 September 2026, diperbarui setelah verifikasi ulang.** Sepuluh berkas source ditulis: 5 model (`BilPettyCashVoucher`, `BilPettyCashVoucherCommand`, `BilPettyCashBudget`, `BilPettyCashBudgetMovement`, `MstPettyCashCategory`), 5 EF configuration berisi 13 index bernama, 5 FK `Restrict`, 12 check constraint, dan seed `HasData` (1 kolam `HOSPITAL_MAIN` + 5 kategori), ditambah 5 `DbSet` pada `ApplicationDbContext`. Prasyarat `PC-OQ-003` **terpenuhi** — prefix `Bil`/`Mst` sudah `ACTIVE` dan `PettyCash/` mengikuti preseden `Cashier/` serta `Operational/`, sehingga **tidak** `BLOCKED BY QBE-MOD-002`. **Yang kini TERPENUHI:** `dotnet build` dijalankan ulang dan **LULUS** (`0 Error(s)`); berkas migration **ADA** dan strukturnya direview — `Migrations/20260907062238_AddTablePettyCashModule.cs` memuat kelima `CREATE TABLE` dengan urutan FK yang aman, 13 index bernama, dan `InsertData` seed lengkap. **Yang MASIH menahan `✅`:** baris seed di database **tidak dapat diverifikasi** dari sesi builder (tanpa akses DB — pemilik modul melaporkan `database update` berhasil, tetapi tidak ada bukti query); review Finance atas lima kategori **belum diminta**; tiga ambiguitas kontrak menunggu ratifikasi (`ResponseJson` `text` vs `jsonb`, daftar index kamus data yang tidak konsisten, bentuk `IX_BilPettyCashBudget_ActiveSingleton`). Bukti: [laporan](../task/report/backend/BE-BKC-033.md) § 5.2 |
+| Outcome | Lima tabel baru (`BilPettyCashVoucher`, `BilPettyCashVoucherCommand`, `BilPettyCashBudget`, `BilPettyCashBudgetMovement`, `MstPettyCashCategory`) tersedia di database beserta seed satu kolam anggaran dan lima kategori, menjadi fondasi skema bagi seluruh task Petty Cash berikutnya |
+| Gelombang | `MVP-13` |
+| Trace | `PC-DEC-001`,`002`,`010`,`012`; `PC-DES-001`,`003`,`004`,`010`,`014`; `CAP-29` (Missing) |
+| Kontrak | Skema pada `data/data-dictionary.md`; **tidak ada endpoint** pada task ini |
+| Reuse | Pola konfigurasi EF existing — `RowVersion Guid` (`BilCashierShift`/`BilWriteOffCase`), kolom audit warisan `IdentityModel`, pola unique index parsial |
+| Scope | 5 model class (`Areas/HealthServices/BillingManagement/PettyCash/Models/*.cs` dan `MasterData/Models/MstPettyCashCategory.cs`) + 5 EF configuration class (`Repositories/Configurations/HealthServices/BillingManagement/PettyCash/*.cs` dan `MasterData/MstPettyCashCategoryConfiguration.cs`); 5 `DbSet` + registrasi configuration pada `ApplicationDbContext`; satu migration aditif — urutan `CREATE TABLE` persis sesuai `02-backend-architecture.md` § "Rencana migration, backfill, dan rollback" (1: `MstPettyCashCategory`, 2: `BilPettyCashBudget`, 3: `BilPettyCashVoucher`, 4: `BilPettyCashVoucherCommand`+`BilPettyCashBudgetMovement`, 5: seed); seed 1 baris `BilPettyCashBudget` (`HOSPITAL_MAIN`, saldo `0`, `ACTIVE`) dan 5 baris `MstPettyCashCategory` (`TRANSPORT`, `OPERASIONAL`, `KONSUMSI`, `MAINTENANCE`, `ATK`) |
+| Dependency | **Prasyarat non-blocking `PC-OQ-003`** — sebelum berkas model pertama task ini ditulis, `build-module-backend` **MUST** memastikan baris registry `HealthServices / BillingManagement / Billing` (`rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`) dianggap mencakup submodule `PettyCash/`, sebagaimana ia sudah mencakup `Cashier/` dan `Operational/` (`QBE-MOD-003`). Prefix `Bil` sendiri **sudah** terdaftar `ACTIVE` — tidak ada prefix baru yang diajukan, hanya konfirmasi baris submodule. Ini **memblokir langkah pertama implementasi**, **bukan** approval task ini |
+| Acceptance | Kelima tabel dan seluruh index sesuai `data/data-dictionary.md`; migration **dibuat**, TIDAK dijalankan ke database tanpa otorisasi terpisah; seed data cocok dengan `02-backend-architecture.md` § "Rencana data master awal" |
+| Verifikasi | `dotnet build`; migration dry-run/structural review; query hitung baris seed pada database lokal bila diizinkan |
+| Risiko/pemilik | Urutan migration keliru (FK ke `MstPettyCashCategory` sebelum tabelnya ada) merusak deployment. Owner Backend/API. Eksekusi migration ke database tetap wewenang terpisah, tidak termasuk approval task ini |
+| DoD | Model + configuration + migration source lulus build; seed lima kategori direview Finance sebelum diaktifkan produksi; `git status --short` dilaporkan; DB tidak dijalankan |
+
+## `BE-BKC-034` — Perluasan penomoran voucher Petty Cash
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Voucher Petty Cash memperoleh nomor unik berformat `PTC-YYYYMMDD-NNNN`, aman di bawah pemakaian bersamaan, memakai ulang mekanisme yang sudah terbukti pada empat jenis nomor lain di modul ini |
+| Gelombang | `MVP-13` |
+| Trace | `FR-BKC-046`; `PC-DES-008`; `CAP-30` (Ready to reuse) |
+| Kontrak | Tidak ada endpoint publik baru — perluasan service internal |
+| Reuse | `BillingNumberSeriesService.AllocateNumberAsync` (helper privat, **TIDAK disentuh**) dan `pg_advisory_xact_lock` yang sudah diwarisi; pola tiga kelas `Options` yang sudah ada (`BillingInvoiceNumberOptions` dkk.) |
+| Scope | Kelas `PettyCashVoucherNumberOptions` (bawaan `Prefix = "PTC"`, `ResetPolicy = "DAILY"`, `SequenceDigits = 4`); satu parameter constructor **opsional** baru pada `BillingNumberSeriesService` berbawaan `new PettyCashVoucherNumberOptions()`; method `AllocatePettyCashVoucherNumberAsync`; `SequenceKey` baru `BILLING_PETTY_CASH_VOUCHER`; registrasi `AddOptions<PettyCashVoucherNumberOptions>().BindConfiguration(...).ValidateOnStart()` |
+| Dependency | Tidak ada gerbang. **Independen** dari `BE-BKC-033` — task ini hanya menyentuh `BilNumberSeries` yang sudah ada — boleh berjalan paralel |
+| Acceptance | `BIL-AT-065`, `BIL-AT-066` |
+| Verifikasi | Integration test alokasi nomor pertama pada tanggal Asia/Jakarta tertentu; concurrency test sepuluh permintaan paralel tanpa nomor kembar atau terlewat |
+| Risiko/pemilik | Parameter constructor baru yang tidak opsional akan merusak empat pemanggil existing (`BillingInvoiceService`, `BillingDepositService`, `BillingSettlementService`, `CashierShiftService`). Owner Backend/API |
+| DoD | Regresi empat jenis nomor existing tetap berformat sama (test existing lulus tanpa perubahan); test baru lulus; build lulus |
+
+## `BE-BKC-035` — Data induk Kategori Petty Cash
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Finance dapat menambah, mengubah, dan menonaktifkan kategori pengeluaran kas kecil sendiri lewat menu tersendiri, tanpa mengubah kode aplikasi |
+| Gelombang | `MVP-13` |
+| Trace | `FR-BKC-061`–`063`; `PC-DEC-012`; `PC-DES-002`; `CAP-31` (Conflict pola, diselesaikan `MstPettyCashCategory` baru — bukan reuse `MstExpenseCategory` milik HR) |
+| Kontrak | 9 endpoint `Master Data / Petty Cash Category` (`contracts/api-contract.md`); `BIL-VAL-053`, `BIL-VAL-056` |
+| Reuse | Pola `TaxRulesController`/`TaxRuleService` apa adanya — `filters/metadata`, `summary`, `GET /`, `GET /options`, `GET /{id}`, `POST /`, `PUT /{id}`, `PATCH /{id}/status`, `DELETE /{id}` |
+| Scope | `PettyCashCategoryService` (CRUD, metadata filter, ringkasan, opsi dropdown, aktivasi/nonaktivasi, penolakan hapus kategori terpakai); `PettyCashCategoriesController`; `PettyCashCategoryDtos`; permission Resource `PettyCashCategory` (`Read`/`Create`/`Update`/`Delete`) |
+| Dependency | `BE-BKC-033` 🟡 (tabel `MstPettyCashCategory` harus sudah ada — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat tabel ini**; sisa 🟡 pada `BE-BKC-033` menyangkut bukti seed dan review Finance, **bukan** ketiadaan tabel) |
+| Acceptance | `BIL-AT-076`; `UAT-39`, `UAT-40`, `UAT-41` |
+| Verifikasi | Integration test create, kode duplikat (`409`), hapus kategori terpakai (`400`, `BIL-VAL-053`), nonaktivasi |
+| Risiko/pemilik | `CategoryCode` diisi pengguna (bukan sistem), rawan duplikasi tanpa penjaga — sudah dijaga `BIL-VAL-056`. Owner Finance/Backend |
+| DoD | 9 endpoint + Swagger sesuai `contracts/api-contract.md`; tests lulus; permission wired; build lulus |
+
+## `BE-BKC-036` — Kolam anggaran dan saldo berjalan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Saldo kas kecil dapat ditambah dan dikoreksi Finance beserta alasannya, dapat dibaca kapan saja, dan setiap pergerakannya terjelaskan lewat satu baris riwayat |
+| Gelombang | `MVP-14` |
+| Trace | `FR-BKC-054`,`056`,`057`,`059`; `PC-DEC-002`,`008`–`010`; `PC-DES-004`–`006`,`011`,`014`; `CAP-29` |
+| Kontrak | `GET /petty-cash/budget/current`, `GET /petty-cash/budget/movements`, `POST /petty-cash/budget/top-ups`, `POST /petty-cash/budget/adjustments`; `BIL-VAL-054`, `BIL-VAL-055` |
+| Reuse | Pola saldo-berdampingan-ledger `BilDepositAccount`/`BilDepositMovement`; pola `pg_advisory_xact_lock` dari `BillingNumberSeriesService` |
+| Scope | `PettyCashBudgetService` — `GetCurrentAsync`, `TopUpAsync`, `AdjustAsync` (ketiganya membuka transaction sendiri), `CalculateReservedAmountAsync`, dan `ApplyDisbursementAsync` (**MUST NOT** membuka transaction sendiri — dipanggil dari dalam transaction `BE-BKC-037`, `PC-DES-004`); `PettyCashBudgetController` (4 endpoint); `PettyCashBudgetDtos`; permission Resource `PettyCashBudget` (`Read`/`TopUp`/`Adjust`); kunci penasihat `BIL_PETTY_CASH_BUDGET_HOSPITAL_MAIN` |
+| Dependency | `BE-BKC-033` 🟡 (tabel `BilPettyCashBudget`/`BilPettyCashBudgetMovement` — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat kedua tabel ini**; sisa 🟡 menyangkut bukti seed dan review Finance) |
+| Acceptance | `BIL-AT-080`; bagian anggaran pada `BIL-AT-067`; `UAT-34`, `UAT-37` |
+| Verifikasi | Integration test top-up; koreksi ditolak saat hasilnya negatif atau di bawah komitmen (`BIL-VAL-054`); concurrency test kunci baris kolam |
+| Risiko/pemilik | `ApplyDisbursementAsync` **MUST** dipanggil dari dalam transaction pemanggilnya — kontrak method ini didokumentasikan eksplisit di `02-backend-architecture.md` agar tidak disalahgunakan sebagai method yang membuka transaction sendiri. Owner Finance/Treasury |
+| DoD | 4 endpoint + Swagger + tests lulus; `ApplyDisbursementAsync` diuji lewat integration test yang memanggilnya dari harness transaction, bukan lewat endpoint langsung (endpoint disburse ada di `BE-BKC-037`) |
+
+## `BE-BKC-037` — Siklus hidup voucher kas kecil penuh
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Voucher dapat diajukan, disetujui atau ditolak, uangnya diserahkan, dan notanya dimasukkan atau dikoreksi — status tidak pernah mundur, dan kas fisik shift kasir sama sekali tidak tersentuh |
+| Gelombang | `MVP-14` |
+| Trace | `FR-BKC-045`,`047`–`053`; `PC-DEC-001`,`003`–`009`,`011`,`013`; `PC-DES-001`,`003`,`005`–`013`; `CAP-29`,`32` |
+| Kontrak | 10 endpoint `Petty Cash / Vouchers` (`filters/metadata`, `summary`, `GET /`, `GET /{id}`, `POST /`, `approve`, `reject`, `cancel`, `disburse`, `proofs`); `BIL-VAL-044`–`052`,`057`,`058`; `contracts/state-transition-matrix.md` § Petty Cash |
+| Reuse | `BillingNumberSeriesService.AllocatePettyCashVoucherNumberAsync` (`BE-BKC-034`); `PettyCashBudgetService.CalculateReservedAmountAsync`/`ApplyDisbursementAsync` (`BE-BKC-036`, dipanggil di dalam transaction yang sama); `PettyCashCategoryService` untuk validasi kategori aktif (`BE-BKC-035`); pola `BilCashierShiftCommand` untuk jejak perintah; penandaan `IsCancel` warisan `IdentityModel` |
+| Scope | `PettyCashVoucherService` — `CreateAsync`, `ApproveAsync`, `RejectAsync`, `CancelAsync`, `DisburseAsync`, `AttachProofAsync` (seluruhnya membuka transaction sesuai `PC-DES-004`/`006`/`011`); `PettyCashVouchersController` (10 endpoint); `PettyCashVoucherDtos`; penulisan `BilPettyCashVoucherCommand` pada setiap transisi; penanganan header `Idempotency-Key` |
+| Dependency | `BE-BKC-033` 🟡 (tabel — **belum ada di database**), `BE-BKC-034` (nomor voucher), `BE-BKC-035` (validasi kategori aktif), `BE-BKC-036` (penjaga saldo/komitmen dan `ApplyDisbursementAsync`) |
+| Acceptance | `BIL-AT-064`,`067`–`075`; `UAT-28`–`33`,`35`,`42` |
+| Verifikasi | E2E test siklus penuh (`BIL-AT-064`); concurrency test pencairan ganda (`BIL-AT-071`); security test pembatalan oleh bukan-pemohon (`BIL-AT-073`) |
+| Risiko/pemilik | Interaksi lintas dua service di dalam satu transaction (voucher memanggil budget) adalah titik paling rawan bug uang hilang atau dobel di seluruh rumpun ini. Owner Backend/Finance. **`PC-OQ-004`** (pengaju boleh menyetujui pengajuannya sendiri) dicatat sebagai risiko yang **sudah diketahui** pada `contracts/permission-audit-matrix.md` — desain **mengikuti keputusan `PC-DEC-004` apa adanya** dan task ini **TIDAK** menambahkan pemeriksaan dua orang yang tidak diminta |
+| DoD | 10 endpoint + Swagger sesuai `contracts/api-contract.md`; bukti `BIL-AT-064`,`067`–`075`; regresi kas shift kasir (`BIL-AT-077`) **belum** wajib di task ini — dijamin `BE-BKC-038` sebagai capstone |
+
+## `BE-BKC-038` — Hak akses, privasi, dan hardening lintas-slice Petty Cash
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Seluruh permission Petty Cash terpasang benar, data sensitif tidak bocor ke log aplikasi, dan terbukti langsung bahwa kas shift kasir tidak bergerak satu rupiah pun akibat aktivitas kas kecil |
+| Gelombang | `MVP-14` (penutup) |
+| Trace | Seluruh `PC-DEC-001`–`013`, `PC-DES-001`–`014`; `BIL-AT-064`–`080` penuh |
+| Kontrak | Seluruh kontrak Petty Cash — `BIL-API-0.9`, `BIL-STATE-0.8`, `BIL-VALIDATION-0.8`, `BIL-INTEGRATION-0.7`, `BIL-PERMISSION-0.7`, `BIL-TEST-0.9` |
+| Reuse | Test harness modul; preseden hardening capstone `BE-BKC-001`/`017`/`032` |
+| Scope | Wiring `[AccessController]`/`[AccessAction]`/`[AccessPermission]` pada ketiga controller baru (12 Action, argumen pertama dan kedua **sama persis**); scrub custom logger agar `RecipientName`/`Purpose`/`RejectionReason`/`ResponseJson` tidak pernah masuk log; evidence matrix acceptance penuh `BIL-AT-064`–`080`; regresi `BilCashierShift` (`BIL-AT-077`); regresi empat jenis nomor existing |
+| Dependency | `BE-BKC-033`–`037` seluruhnya selesai — saat ini `BE-BKC-033` masih 🟡 dan `034`–`037` belum dikerjakan |
+| Acceptance | `BIL-AT-064`–`080` seluruhnya `Covered`; `UAT-28`–`42` seluruhnya |
+| Verifikasi | `dotnet build`/`test` penuh; security test pemeriksaan daftar route (memastikan **tidak ada** `PUT`/`PATCH`/resubmit pada voucher); pencarian teks pada seluruh keluaran log |
+| Risiko/pemilik | `BIL-AT-077` adalah **uji regresi paling penting** seluruh rumpun ini — kegagalannya berarti kas kecil diam-diam menyentuh kas fisik shift kasir, persis yang `PC-DEC-001` larang. Owner QA/Backend/Security |
+| DoD | Evidence matrix `BIL-AT-064`–`080` diperbarui; zero critical gap; `PC-OQ-003`/`004`/`005` dicatat ulang sebagai catatan terbuka non-blocking pada laporan task, bukan diselesaikan sepihak oleh builder |
+
+## Paralelisme dan urutan ringkas
+
+`BE-BKC-034` boleh paralel dengan `BE-BKC-033` 🟡 — dan **sudah dikerjakan**. `BE-BKC-035` dan
+`BE-BKC-036` boleh paralel setelah `BE-BKC-033` selesai (keduanya menyentuh tabel yang berbeda).
+Penghalang teknisnya **sudah hilang**: build `BE-BKC-033` lulus dan migration-nya sudah dibuat,
+sehingga kelima tabel sudah terbentuk. Sisa 🟡 pada `BE-BKC-033` menyangkut bukti baris seed di
+database dan review Finance — keduanya **tidak menghalangi** penulisan source `BE-BKC-035`/`036`,
+tetapi harus tertutup sebelum gelombang `MVP-13` dinyatakan naik. `BE-BKC-037` menunggu `BE-BKC-034`,
+`035`, dan `036` — ia memanggil ketiganya. `BE-BKC-038` menunggu seluruh task di atas. Tidak ada
+task Petty Cash yang menyentuh satu pun berkas milik rumpun `billing-kasir` lainnya.

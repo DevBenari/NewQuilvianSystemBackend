@@ -1309,3 +1309,481 @@ Epic berstatus `OPEN DECISION`: **tidak ada**. Seluruh `FR-BKC-038`–`044` berd
 | `BKC-OQ-094` | (a) Apakah finalisasi tagihan diblokir selama selisih belum ditanggung, atau cukup diperingatkan; (b) bagaimana catatan penanggungan kategori baru ini diperlakukan pada penyerahan AR/AP dan pembukuan | Billing Owner (a) + Finance/AR (b) | (a) Desain ini memilih **memperingatkan, bukan memblokir**, mengikuti preseden `BKC-OQ-086`. Bila jawabannya memblokir, satu baris transisi status baru wajib ditambahkan. (b) Desain ini memakai perilaku penyerahan yang sudah berjalan apa adanya untuk kedua kategori; bila pembukuan menuntut pemisahan akun, penyesuaiannya ada di modul penyerahan, bukan di sini | **Tidak** — pilihan bawaannya aman dan dapat diubah kemudian tanpa membongkar kontrak |
 
 **Status Bagian C: `draft`.** Tidak ada pertanyaan terbuka bertanda memblokir yang lahir dari amendment ini, dan `BKC-OQ-084` yang semula memblokir sudah ditutup. Yang masih memblokir `/plan-module-delivery` untuk modul ini adalah sisa Bagian B — `BKC-OQ-083` dan `BKC-OQ-085` — beserta approval manusia atas `BKC-DES-021`–`025`.
+
+---
+
+# Bagian D — Amendment 7 September 2026: Petty Cash (Voucher Kas Kecil)
+
+## D1. Identitas dokumen
+
+| Aspek | Nilai |
+| --- | --- |
+| Produk | Quilvian Hospital Information System |
+| Modul | Billing dan Kasir (`billing-kasir`), rumpun **Petty Cash** |
+| Revisi blueprint | `1.0` |
+| Status | **draft** — approval tetap tindakan manusia |
+| Repository target | `NewQuilvianSystemBackend` (backend), `QuilvianSystemFrontendDev` (frontend) |
+| Commit SHA baseline | Backend `dd31bc91818566c0b53e1b68c0129f5a6cf01a2b`; frontend `12f9242ce62e4d80dbdb719f80bb0e7a2848474c` |
+| Keputusan bisnis dasar | **`PC-DEC-001`–`PC-DEC-013`**, seluruhnya `approved` Product/Domain Owner 7 September 2026 |
+| Keputusan arsitektur | `PC-DES-001`–`PC-DES-014` (**draft**) |
+| Kemampuan asal | `CAP-29`–`CAP-32` pada `01-existing-capability-map.md` § 18 |
+| Ringkasan cakupan | Satu voucher kas kecil dapat diajukan, diputuskan, diserahkan uangnya, dan dipertanggungjawabkan notanya, di atas satu kolam anggaran yang saldonya berjalan |
+
+## D2. Ringkasan eksekutif
+
+Rumah sakit mengeluarkan uang tunai kecil setiap hari untuk keperluan yang tidak bisa menunggu proses pembelian resmi: ongkos transport kurir mengantar sampel, konsumsi rapat mendadak, alat tulis yang habis, perbaikan kecil yang harus segera. Nilainya kecil satu per satu, tetapi jumlahnya sepanjang bulan tidak kecil.
+
+Hari ini pengeluaran itu tidak ada di sistem sama sekali. Yang ada hanya kertas, buku catatan, dan ingatan. Akibatnya tiga pertanyaan paling dasar tidak punya jawaban yang dapat diandalkan: **berapa sisa uang kas kecil sekarang**, **siapa yang menyetujui pengeluaran ini**, dan **mana bukti belanjanya**.
+
+Hasil bisnis yang dikejar rumpun ini: setiap rupiah kas kecil yang keluar punya nama pemohon, nama penyetuju, nama penerima, kategori, tujuan, dan — bila notanya diserahkan — nomor bukti belanjanya. Saldo kas kecil dapat dibaca kapan saja, dan setiap pergerakannya dapat dijelaskan baris per baris.
+
+## D3. Masalah produk
+
+**Kondisi sekarang, beserta buktinya.** Pencarian menyeluruh pada `Areas/HealthServices/BillingManagement/**` untuk istilah `voucher`, `uang muka`, `cash advance`, `kas kecil`, dan `petty` menghasilkan **nihil** (`CAP-29`). Pencarian yang sama pada seluruh monorepo hanya menemukan dokumen keputusan yang memicu pekerjaan ini. Kapabilitas ini benar-benar baru, bukan reimplementasi sesuatu yang tersembunyi di balik nama lain.
+
+| Yang sudah ada dan dapat dipakai ulang | Yang belum ada |
+| --- | --- |
+| Mekanisme penomoran dokumen yang aman di bawah pemakaian bersamaan, sudah terbukti dipakai empat jenis nomor (`CAP-30`) | Seluruh siklus hidup voucher kas kecil |
+| Pola data induk ber-CRUD lengkap, sudah dipakai enam data induk di modul ini | Data induk kategori pengeluaran kas kecil |
+| Pola pencatatan pelaku dan jejak perintah, sudah dipakai Shift Kasir (`CAP-32`) | Kolam anggaran kas kecil beserta saldo berjalannya |
+| Pola saldo berjalan berdampingan ledger, sudah dipakai deposit pasien | Layar monitoring, pengajuan, dan bukti nota |
+
+Konsekuensi yang paling terasa hari ini: ketika auditor bertanya siapa menyetujui pengeluaran Rp 300.000 tiga bulan lalu, jawabannya bergantung pada apakah kertasnya masih ada.
+
+## D4. Visi produk
+
+Rantai keterhubungan yang ingin dicapai, ditulis sebagai urutan:
+
+1. Finance mengisi kas kecil dengan sejumlah uang, beserta alasannya.
+2. Petugas mengajukan pengeluaran atas nama seseorang, untuk keperluan yang jelas, dengan kategori yang terdaftar.
+3. Kepala Kasir memutuskan — dan keputusannya diperiksa terhadap uang yang benar-benar tersedia, bukan terhadap harapan.
+4. Kasir menyerahkan uangnya, dan saat itu juga saldo berkurang tepat sebesar itu, tepat satu kali.
+5. Penerima menyerahkan notanya, dan nomor notanya menempel pada voucher yang sama.
+6. Kapan pun Finance bertanya "kenapa saldo berkurang Rp 300.000 pada tanggal itu", jawabannya adalah satu baris riwayat yang menunjuk satu voucher yang menyebut penerima, tujuan, dan penyetujunya.
+
+## D5. Batas MVP
+
+**Titik mulai:**
+
+1. Finance memasukkan saldo awal kas kecil ke dalam sistem.
+2. Kategori pengeluaran sudah terdaftar di data induk.
+
+**Titik akhir:**
+
+1. Satu voucher telah berjalan dari pengajuan sampai bukti nota tersimpan.
+2. Saldo kas kecil berkurang tepat sekali sebesar voucher itu, dan pengurangannya terbaca pada riwayat pergerakan.
+3. Voucher yang ditolak tersimpan permanen beserta alasannya, dan tidak dapat diubah oleh siapa pun.
+4. Kas shift kasir **tidak** bergerak sama sekali oleh seluruh aktivitas di atas.
+
+## D6. Pelaku sasaran
+
+| Pelaku | Tanggung jawabnya di dalam MVP |
+| --- | --- |
+| Kasir / petugas administrasi | Membuat voucher atas nama siapa saja, menyerahkan uang untuk voucher yang sudah disetujui, memasukkan bukti nota, dan membatalkan pengajuannya sendiri selagi belum diputuskan |
+| Kepala Kasir / Finance Operations | Menyetujui atau menolak voucher. Satu jenjang, tanpa eskalasi berdasar nominal |
+| Finance (pengelola anggaran) | Mengisi dan mengoreksi anggaran kas kecil, mengelola kategori, dan memantau bukti nota yang belum masuk — pemantauan itu **manual di luar sistem** selama MVP |
+| Penerima uang | **Bukan pengguna sistem.** Ia menerima uang dan menyerahkan nota; namanya dicatat sebagai teks |
+| Auditor | Membaca riwayat perintah dan riwayat pergerakan anggaran. Tidak melakukan tindakan apa pun |
+
+## D7. Pemilihan kemampuan MVP
+
+Setiap baris di bawah lolos dua pertanyaan: tanpa kemampuan ini, satu kasus nyata tidak dapat selesai dari awal sampai akhir, **dan** tidak ada jalan sementara yang aman dan dapat diaudit.
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Siklus hidup voucher lima status beserta seluruh transisinya | `CAP-29` | Wajib; inilah kapabilitasnya itu sendiri |
+| Penomoran voucher yang unik dan aman di bawah pemakaian bersamaan | `CAP-30` | Wajib; tanpa nomor yang dapat diandalkan, voucher tidak dapat dirujuk pada nota maupun pada percakapan sehari-hari |
+| Kolam anggaran beserta saldo berjalan dan riwayat pergerakannya | `CAP-29` | Wajib; `PC-DEC-002` menjadikan saldo berjalan sebagai inti kapabilitas, dan tanpa riwayat saldo tidak dapat dijelaskan |
+| Penjaga saldo pada persetujuan dan pada pencairan | `CAP-29` | Wajib; `PC-DEC-008` memintanya, dan tanpa itu saldo dapat menjadi negatif — artinya rumah sakit menjanjikan uang yang tidak ada |
+| Data induk kategori yang dikelola Finance | `CAP-31` | Wajib; `PC-DEC-012` memintanya eksplisit, dan tanpa kategori aktif tidak satu pun voucher dapat dibuat |
+| Bukti nota beserta koreksinya | `CAP-29` | Wajib; tanpa ini pengeluaran tidak pernah dapat dinyatakan selesai dipertanggungjawabkan |
+| Jejak perintah yang tahan lama | `CAP-32` | Wajib; `PC-DEC-003` menjadikan voucher ditolak sebagai catatan audit permanen, dan catatan yang hanya menyimpan status akhir tidak menjawab siapa dan kenapa |
+| Butir hak akses untuk ketiga Resource baru | `CAP-32` | Wajib; `PC-DEC-004` memisahkan wewenang persetujuan dari wewenang pengajuan, dan pemisahan itu hanya nyata bila butirnya ada di layar Akses Role |
+
+## D8. Kemampuan yang ditunda
+
+Keempat baris di bawah **ditunda, bukan ditolak**, dan keempatnya sudah ditandai demikian oleh pemiliknya sendiri pada `00-interview-decisions.md`.
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Pengingat dan eskalasi otomatis untuk bukti nota yang terlambat | `CAP-29` (`PC-DEC-006`) | Menuntut keputusan bisnis yang belum ada: berapa lama dianggap terlambat, siapa yang ditegur, dan apa akibatnya. Mengarang ketiganya berarti membuat kebijakan atas nama pemilik | Finance memantau manual dari daftar voucher yang disaring pada status `Uang Diterima`. Saringannya **sudah tersedia** di layar monitoring, sehingga pemantauannya tetap dapat dikerjakan — hanya tidak diingatkan sistem |
+| Anggaran terpisah per unit atau departemen | `CAP-29` (`PC-DEC-010`) | Menuntut keputusan tentang siapa memiliki kolam mana, siapa boleh memindahkan antar kolam, dan bagaimana persetujuan lintas unit bekerja | Satu kolam bersama untuk seluruh rumah sakit. Kolom pengenal kolam **sudah disiapkan** sejak awal (`PC-DES-014`), sehingga rilis berikutnya cukup menambah baris, bukan membongkar skema |
+| Pengajuan mandiri oleh pegawai | `CAP-29` (`PC-DEC-011`) | Menuntut penautan ke data pegawai, kebijakan siapa boleh mengajukan untuk dirinya, dan alur persetujuan yang berbeda | Kasir/petugas administrasi mengajukan atas nama siapa saja. Ini **tidak mengurangi** kemampuan apa pun yang selama ini ada, karena selama ini seluruhnya memang dikerjakan petugas dengan kertas |
+| Persetujuan berjenjang berdasar nominal | `CAP-29` (`PC-DEC-004`) | Menuntut keputusan tentang ambang nominal dan siapa penyetuju jenjang berikutnya | Satu jenjang: Kepala Kasir/Finance Operations. Untuk nominal besar, kendalinya administratif — Finance mengatur berapa banyak uang yang ada di kolam, sehingga plafon nyata adalah saldonya sendiri |
+
+## D9. Alur bisnis target
+
+Satu alur utama, bernomor, dari pemicu sampai hasil akhir. Gambarnya beserta seluruh jalur pengecualiannya ada di [`flowcharts/voucher-petty-cash.md`](./flowcharts/voucher-petty-cash.md) dan [`flowcharts/anggaran-petty-cash.md`](./flowcharts/anggaran-petty-cash.md); yang ditulis di sini adalah urutannya saja, dan **tidak** disalin dari sana.
+
+`FLOW-BKC-MVP-002` — Pengeluaran kas kecil dari pengajuan sampai bukti:
+
+1. Finance mengisi kas kecil beserta alasannya. Saldo bertambah, dan satu baris riwayat penambahan tercatat.
+2. Petugas membuka layar Petty Cash dan menekan Buat Voucher.
+3. Petugas mengisi nama penerima, kategori, nominal, dan tujuan. Nomor voucher dibuat sistem.
+4. Voucher berstatus `Menunggu Persetujuan`.
+5. Bila petugas berubah pikiran selagi belum diputuskan, ia membatalkan pengajuannya sendiri, dan alur berhenti di sini.
+6. Kepala Kasir memeriksa keperluan dan nominalnya.
+7. Bila ditolak, Kepala Kasir mengisi alasan, voucher berstatus `Ditolak`, dan alur berhenti permanen. Keperluan yang masih ada diajukan sebagai voucher baru.
+8. Bila disetujui, sistem memeriksa nominalnya terhadap sisa anggaran yang benar-benar bebas. Bila tidak cukup, persetujuan ditolak dan voucher tetap menunggu.
+9. Voucher berstatus `Disetujui`. Nominalnya dijanjikan, tetapi saldo **belum** berkurang.
+10. Kasir menekan Uang Diberikan. Sistem memeriksa ulang saldo saat itu juga.
+11. Voucher berstatus `Uang Diterima`, saldo berkurang tepat sebesar nominalnya, dan satu baris riwayat pengeluaran tercatat.
+12. Kasir menyerahkan uangnya kepada penerima.
+13. Penerima menyerahkan nota. Petugas memasukkan nomor notanya.
+14. Voucher berstatus `Selesai`. Saldo **tidak** berubah lagi.
+15. Bila nota tidak pernah diserahkan, voucher tetap `Uang Diterima` tanpa batas waktu, dan Finance menagihnya di luar sistem.
+
+## D10. Epic dan functional requirement
+
+### `EPIC BKC-10` — Siklus hidup voucher kas kecil
+
+**Tujuan.** Setiap pengeluaran kas kecil punya nomor, pemohon, penyetuju, penerima, tujuan, dan status yang jelas — dan status itu tidak pernah dapat dimundurkan.
+
+**Disposisi backend:** `MISSING / NEW`. Kemampuan asal `CAP-29` berstatus **Missing**, dikonfirmasi nihil pada seluruh `Areas/HealthServices/BillingManagement/**`.
+
+> **FR-BKC-045 — Voucher dibuat lengkap beserta nomornya**
+>
+> Petugas membuat voucher dengan mengisi nama penerima, kategori, nominal, dan tujuan. Nomor voucher dibuat sistem dan tidak dapat diketik petugas.
+>
+> **Contoh:** Petugas mengisi "Budi Santoso", kategori Transport, Rp 300.000, tujuan "Ongkos antar sampel ke laboratorium rujukan". Setelah disimpan, voucher bernomor `PTC-20260907-0001` berstatus `Menunggu Persetujuan`. Permintaan yang dikirim layar **tidak** memuat nomor voucher sama sekali.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-046 — Nomor voucher tidak pernah kembar**
+>
+> Nomor dialokasikan lewat mekanisme penomoran yang sudah dipakai modul ini, dan tetap unik ketika beberapa petugas menyimpan pada waktu hampir bersamaan.
+>
+> **Contoh:** Sepuluh voucher dibuat dari sepuluh permintaan yang tiba bersamaan. Hasilnya sepuluh nomor berbeda `PTC-20260907-0001` sampai `PTC-20260907-0010`, tanpa satu pun yang kembar dan tanpa satu pun nomor yang terlewat.
+>
+> Disposisi: `EXTEND` — mekanismenya sudah ada (`CAP-30`, `Ready to reuse`); yang ditambahkan adalah satu jenis nomor baru di atasnya.
+
+> **FR-BKC-047 — Satu jenjang persetujuan, dengan alasan wajib pada penolakan**
+>
+> Kepala Kasir menyetujui atau menolak. Penolakan wajib beralasan, dan tidak ada jenjang kedua berdasar nominal.
+>
+> **Contoh:** Voucher Rp 300.000 ditolak dengan alasan "Ongkos ini sudah ditanggung kontrak kurir bulanan". Voucher berstatus `Ditolak` beserta alasan itu, dan alasannya terbaca pada detail voucher. Percobaan menolak tanpa mengisi alasan ditolak sistem.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-048 — Voucher yang ditolak tidak dapat diubah siapa pun**
+>
+> Voucher berstatus `Ditolak` tidak dapat disunting, diajukan ulang, disetujui, maupun dibatalkan — oleh siapa pun, termasuk yang menolaknya.
+>
+> **Contoh:** Setelah voucher `PTC-20260907-0001` ditolak, empat percobaan berturut-turut — sunting, ajukan ulang, setujui, batalkan — seluruhnya gagal, dan baris voucher itu identik sebelum dan sesudah keempatnya. Pemohon yang keperluannya masih ada membuat voucher baru bernomor `PTC-20260907-0011`.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-049 — Pemohon dapat membatalkan pengajuannya sendiri selagi belum diputuskan**
+>
+> Pembatalan tersedia hanya bagi pemohon voucher itu, dan hanya selagi voucher masih menunggu keputusan.
+>
+> **Contoh:** Petugas A membuat voucher lalu sadar salah mengisi nominal. Selagi masih `Menunggu Persetujuan`, ia membatalkannya, dan voucher itu tidak lagi menunggu keputusan. Ketika petugas B mencoba membatalkan voucher milik A, permintaannya ditolak. Ketika A mencoba membatalkan voucher yang sudah disetujui, permintaannya juga ditolak.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-050 — Uang diserahkan dalam satu langkah**
+>
+> Kasir menekan Uang Diberikan, dan status langsung menjadi `Uang Diterima`. Tidak ada langkah konfirmasi terpisah dari penerima.
+>
+> **Contoh:** Kasir menekan tombol pada voucher yang sudah disetujui. Dalam satu permintaan, status menjadi `Uang Diterima` dan tidak ada permintaan lanjutan yang perlu dijalankan siapa pun.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-051 — Bukti nota menyelesaikan voucher, dan dapat dikoreksi**
+>
+> Memasukkan nomor nota memindahkan voucher ke `Selesai`. Nomor yang salah ketik dapat dikoreksi tanpa memindahkan status.
+>
+> **Contoh:** Petugas memasukkan nomor nota `NT-8891`, dan voucher menjadi `Selesai`. Keesokan harinya ia sadar nomornya `NT-8819`, lalu mengoreksinya. Voucher **tetap** `Selesai`, dan koreksi itu tercatat sebagai perubahan beralasan pada riwayat perintah.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-052 — Voucher tanpa bukti nota tetap menggantung, tanpa gangguan**
+>
+> Voucher `Uang Diterima` yang notanya tidak pernah masuk tetap pada status itu tanpa batas waktu, tanpa pemberitahuan otomatis, dan tanpa memblokir pekerjaan apa pun.
+>
+> **Contoh:** Voucher yang uangnya diserahkan pada 7 September masih berstatus `Uang Diterima` pada 7 Desember. Tidak ada perubahan status otomatis, tidak ada peringatan, dan voucher lain tetap dapat diajukan serta dicairkan seperti biasa.
+>
+> Disposisi: `MISSING / NEW`. **Ini keadaan yang dipilih sengaja** (`PC-DEC-006`), dan diuji justru agar penambahan eskalasi kelak terlihat sebagai perubahan perilaku yang disengaja.
+
+> **FR-BKC-053 — Setiap perpindahan status meninggalkan jejak yang tahan lama**
+>
+> Setiap perintah atas voucher mencatat siapa pelakunya, perannya, status sebelum dan sesudah, waktunya, dan alasannya bila perintah itu menuntut alasan.
+>
+> **Contoh:** Voucher yang berjalan penuh meninggalkan empat baris jejak: pengajuan oleh petugas, persetujuan oleh Kepala Kasir, penyerahan oleh kasir, dan pemasukan nota. Ketika ditanya siapa menyetujui pengeluaran itu tujuh bulan kemudian, jawabannya terbaca dari jejak tersebut — bukan dari log aplikasi yang sudah dirotasi.
+>
+> Disposisi: `EXTEND` — polanya sudah ada pada Shift Kasir (`CAP-32`); yang dibuat adalah penerapannya untuk voucher.
+
+### `EPIC BKC-11` — Anggaran kas kecil dan saldo berjalan
+
+**Tujuan.** Saldo kas kecil selalu dapat dibaca, selalu dapat dijelaskan, dan tidak pernah negatif.
+
+**Disposisi backend:** `MISSING / NEW`, dengan pola saldo-berdampingan-ledger yang dipakai ulang dari deposit pasien.
+
+> **FR-BKC-054 — Saldo adalah angka berjalan yang dapat dijelaskan**
+>
+> Saldo kas kecil adalah anggaran yang dimasukkan Finance dikurangi voucher yang sudah benar-benar diserahkan uangnya. Setiap pergerakannya punya satu baris riwayat yang menyebut saldo sebelum dan sesudah.
+>
+> **Contoh:** Finance mengisi Rp 5.000.000, lalu satu voucher Rp 300.000 diserahkan. Saldo menjadi Rp 4.700.000, dan riwayat memuat dua baris: penambahan Rp 5.000.000 (dari Rp 0 menjadi Rp 5.000.000) dan pengeluaran Rp 300.000 (dari Rp 5.000.000 menjadi Rp 4.700.000).
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-055 — Saldo berkurang tepat saat uang diserahkan, bukan sebelum dan bukan sesudah**
+>
+> Persetujuan tidak mengurangi saldo. Pemasukan bukti nota juga tidak. Hanya penyerahan uang yang mengurangi saldo.
+>
+> **Contoh:** Saldo Rp 5.000.000. Voucher Rp 300.000 disetujui — saldo **tetap** Rp 5.000.000. Uangnya diserahkan — saldo menjadi Rp 4.700.000. Notanya dimasukkan — saldo **tetap** Rp 4.700.000.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-056 — Persetujuan diperiksa terhadap uang yang benar-benar bebas**
+>
+> Persetujuan ditolak bila nominalnya melebihi saldo dikurangi nominal voucher lain yang sudah disetujui tetapi belum diserahkan uangnya.
+>
+> **Contoh:** Saldo Rp 5.000.000 dengan satu voucher Rp 300.000 yang sudah disetujui tetapi belum diserahkan. Voucher berikutnya senilai Rp 4.800.000 **ditolak**, karena sisa yang benar-benar bebas adalah Rp 4.700.000. Tanpa aturan ini keduanya lolos, keduanya diserahkan, dan uang di laci kurang Rp 100.000.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-057 — Saldo tidak pernah negatif, walaupun keadaan berubah setelah persetujuan**
+>
+> Penyerahan uang diperiksa ulang terhadap saldo pada saat itu juga, dan ditolak bila tidak mencukupi.
+>
+> **Contoh:** Voucher Rp 300.000 disetujui saat saldo Rp 5.000.000. Saldo kemudian turun menjadi Rp 200.000 karena koreksi. Ketika kasir menekan Uang Diberikan, permintaannya **ditolak**; voucher tetap `Disetujui` dan saldo tetap Rp 200.000.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-058 — Satu voucher paling banyak satu kali mengurangi saldo**
+>
+> Tombol yang tertekan dua kali, jaringan yang terputus lalu dicoba ulang, dan dua petugas yang membuka voucher yang sama tetap menghasilkan tepat satu pengurangan saldo.
+>
+> **Contoh:** Kasir menekan Uang Diberikan, jaringan lambat, lalu ia menekan lagi. Saldo berkurang **satu kali** Rp 300.000, dan riwayat memuat **satu** baris pengeluaran untuk voucher itu.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-059 — Koreksi saldo tidak boleh mengingkari janji yang sudah disetujui**
+>
+> Koreksi ditolak bila hasilnya negatif, atau bila hasilnya kurang dari nominal voucher yang sudah disetujui tetapi belum diserahkan.
+>
+> **Contoh:** Saldo Rp 5.000.000 dengan Rp 300.000 sudah dijanjikan. Koreksi yang akan menurunkan saldo menjadi Rp 200.000 **ditolak**, beserta pesan yang menyebut Rp 300.000 yang sudah dijanjikan. Koreksi menjadi Rp 400.000 diterima.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-060 — Kas kecil tidak menyentuh kas shift kasir**
+>
+> Seluruh aktivitas kas kecil tidak mengubah kas sistem, kas fisik, maupun selisih shift kasir mana pun.
+>
+> **Contoh:** Shift kasir dibuka, satu pembayaran pasien tunai Rp 500.000 diterima, satu voucher kas kecil Rp 300.000 diserahkan, lalu shift ditutup. Kas sistem shift menunjukkan Rp 500.000 — bukan Rp 200.000 — dan tidak ada selisih yang muncul.
+>
+> Disposisi: `MISSING / NEW` sebagai perilaku yang diuji; **`EXISTING / REUSE`** untuk kas shift itu sendiri, yang memang tidak disentuh sama sekali.
+
+### `EPIC BKC-12` — Data induk kategori pengeluaran
+
+**Tujuan.** Finance dapat menambah, mengubah, dan menonaktifkan kategori pengeluaran sendiri, tanpa mengubah kode aplikasi.
+
+**Disposisi backend:** `MISSING / NEW` untuk entitynya; `EXISTING / REUSE` untuk pola CRUD data induk yang sudah dipakai enam data induk lain di modul ini (`CAP-31`).
+
+> **FR-BKC-061 — Kategori dikelola Finance, bukan ditanam di kode**
+>
+> Finance menambah, mengubah, menonaktifkan, dan menghapus kategori lewat menu data induk tersendiri.
+>
+> **Contoh:** Finance menambahkan kategori berkode `LAUNDRY` bernama "Laundry". Kategori itu langsung muncul pada dropdown Buat Voucher tanpa perlu perubahan kode maupun pemasangan ulang aplikasi.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-062 — Kategori yang sudah dipakai tidak dapat dihapus, hanya dinonaktifkan**
+>
+> Penghapusan ditolak bila kategori masih dipakai voucher mana pun. Penonaktifan tetap tersedia.
+>
+> **Contoh:** Kategori Transport sudah dipakai empat puluh voucher. Percobaan menghapusnya ditolak beserta pesan yang menjelaskan sebabnya. Finance menonaktifkannya, dan sesudah itu keempat puluh voucher lama **tetap** menampilkan "Transport" sementara dropdown Buat Voucher tidak lagi menawarkannya.
+>
+> Disposisi: `MISSING / NEW`.
+
+> **FR-BKC-063 — Voucher tidak dapat dibuat tanpa kategori aktif**
+>
+> Kategori pada voucher wajib kategori yang masih aktif pada saat voucher dibuat.
+>
+> **Contoh:** Pada pemakaian pertama sebelum satu pun kategori dibuat, layar Buat Voucher menampilkan keterangan bahwa belum ada kategori aktif dan menonaktifkan tombol Simpan — bukan menampilkan dropdown kosong tanpa penjelasan.
+>
+> Disposisi: `MISSING / NEW`.
+
+**Tidak ada epic berstatus `OPEN DECISION` pada Bagian D.** Seluruh `FR-BKC-045`–`063` berdisposisi `EXISTING / REUSE`, `EXTEND`, atau `MISSING / NEW`.
+
+## D11. Model status yang diusulkan
+
+Lima status, dikunci `PC-DEC-013`, tanpa status keenam.
+
+| Label | Invariant utama |
+| --- | --- |
+| `Menunggu Persetujuan` | Belum ada uang yang bergerak dan belum ada janji. Hanya dari sini pembatalan oleh pemohon dimungkinkan |
+| `Disetujui` | Nominalnya **dijanjikan** — ikut mengurangi sisa yang bebas — tetapi saldo belum berkurang |
+| `Uang Diterima` | Saldo sudah berkurang tepat sekali sebesar nominal voucher. Status ini **tidak dapat dimundurkan** |
+| `Selesai` | Bukti sudah lengkap. Saldo tidak berubah lagi. Terminal |
+| `Ditolak` | Terminal **dan immutable**. Tidak ada satu pun jalur yang dapat mengubahnya |
+
+Pembatalan **bukan status keenam**; ia penandaan tersendiri di atas `Menunggu Persetujuan` (`PC-DES-007`). Rinciannya di [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md).
+
+## D12. Sasaran arsitektur
+
+| Apa | Yang dilakukan |
+| --- | --- |
+| **Dipakai ulang** | Mekanisme penomoran `BilNumberSeries` beserta layanannya, termasuk penguncian yang menjamin nomor tidak kembar (`CAP-30`); pola data induk ber-CRUD yang sudah dipakai enam data induk; pola jejak perintah dari Shift Kasir; pola saldo-berdampingan-ledger dari deposit pasien; identitas pengguna dari Administrator/Identity |
+| **Diperluas** | Layanan penomoran mendapat satu jenis nomor baru beserta pengaturannya; registrasi layanan modul mendapat tiga layanan baru; `ApplicationDbContext` mendapat lima `DbSet` |
+| **Baru** | Empat tabel transaksi, satu tabel data induk, tiga layanan, tiga controller, sebelas endpoint, tiga Resource hak akses |
+| **Sengaja tidak dibuat** | Sambungan ke kas shift kasir, sambungan ke tagihan pasien, sambungan ke data pegawai, dan pemakaian ulang data induk kategori milik Human Resource |
+
+## D13. Sasaran kemampuan API
+
+Seluruh endpoint berikut adalah bagian dari [`contracts/api-contract.md`](./contracts/api-contract.md) dan tidak melebihinya. Daftar lengkap beserta bentuk request dan response-nya ada di sana; yang ditulis di sini adalah pemetaannya ke epic.
+
+### Health Services / Billing Management / Petty Cash / Vouchers
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/vouchers`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Konfigurasi saringan layar monitoring | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherFilterMetadataResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Ringkasan jumlah voucher per status | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherSummaryResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar voucher dengan pencarian dan saringan | `PettyCashVoucher : Read` | Query | `ApiResponse<PagedResult<PettyCashVoucherResponse>>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Detail voucher beserta riwayat perintahnya | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherDetailResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat voucher | `PettyCashVoucher : Create` | `CreatePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui voucher | `PettyCashVoucher : Approve` | `ApprovePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10`, `BKC-11` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak voucher beserta alasannya | `PettyCashVoucher : Reject` | `RejectPettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Pemohon membatalkan pengajuannya | `PettyCashVoucher : Cancel` | `CancelPettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/disburse` | Menyerahkan uang; saldo berkurang di sini | `PettyCashVoucher : Disburse` | `DisbursePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10`, `BKC-11` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/proofs` | Memasukkan atau mengoreksi bukti nota | `PettyCashVoucher : AttachProof` | `AttachPettyCashProofRequest` | `ApiResponse<PettyCashVoucherResponse>` | `EPIC BKC-10` | **Rencana (belum tersedia)** |
+
+### Health Services / Billing Management / Petty Cash / Budget
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/budget`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/current` | Saldo berjalan beserta nominal yang sudah dijanjikan | `PettyCashBudget : Read` | — | `ApiResponse<PettyCashBudgetResponse>` | `EPIC BKC-11` | **Rencana (belum tersedia)** |
+| `GET` | `/movements` | Riwayat pergerakan anggaran | `PettyCashBudget : Read` | Query | `ApiResponse<PagedResult<PettyCashBudgetMovementResponse>>` | `EPIC BKC-11` | **Rencana (belum tersedia)** |
+| `POST` | `/top-ups` | Mengisi anggaran beserta alasannya | `PettyCashBudget : TopUp` | `PettyCashBudgetTopUpRequest` | `ApiResponse<PettyCashBudgetResponse>` | `EPIC BKC-11` | **Rencana (belum tersedia)** |
+| `POST` | `/adjustments` | Mengoreksi saldo beserta alasannya | `PettyCashBudget : Adjust` | `PettyCashBudgetAdjustmentRequest` | `ApiResponse<PettyCashBudgetResponse>` | `EPIC BKC-11` | **Rencana (belum tersedia)** |
+
+### Health Services / Billing Management / Master Data / Petty Cash Category
+
+Base URL: `api/v1/health-services/billing-management/master-data/petty-cash-categories`
+
+Sembilan endpoint baseline data induk, seluruhnya **Rencana (belum tersedia)**, seluruhnya milik `EPIC BKC-12`, dan seluruhnya berhak akses `PettyCashCategory : Read`/`Create`/`Update`/`Delete` sesuai jenis tindakannya. Daftar lengkapnya ada di [`contracts/api-contract.md`](./contracts/api-contract.md).
+
+## D14. Matriks kewenangan
+
+Memakai string permission yang persis sama dengan [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md).
+
+| Peran | Butir hak akses yang disarankan |
+| --- | --- |
+| Kasir / petugas administrasi | `PettyCashVoucher : Read`, `PettyCashVoucher : Create`, `PettyCashVoucher : Cancel`, `PettyCashVoucher : Disburse`, `PettyCashVoucher : AttachProof`, `PettyCashBudget : Read` |
+| Kepala Kasir / Finance Operations | seluruh yang di atas, ditambah `PettyCashVoucher : Approve` dan `PettyCashVoucher : Reject` |
+| Finance (pengelola anggaran) | `PettyCashVoucher : Read`, `PettyCashBudget : Read`, `PettyCashBudget : TopUp`, `PettyCashBudget : Adjust`, `PettyCashCategory : Read`, `PettyCashCategory : Create`, `PettyCashCategory : Update`, `PettyCashCategory : Delete` |
+| Penerima uang | **tidak ada** |
+
+Pemetaan di atas adalah **saran**, bukan penegakan. Admin yang menentukan Departemen dan Posisi mana mendapat butir mana, lewat layar Akses Role. Tidak ada nama peran yang boleh ditulis di dalam kode sebagai penentu kewenangan.
+
+> **Risiko kewenangan yang MUST dibaca pemilik sebelum approval.** `PC-DEC-004` menetapkan satu jenjang persetujuan tanpa menyebut pemeriksaan dua orang, berbeda dari write-off yang memang punya aturan "pengaju tidak boleh menyetujui pengajuannya sendiri". Akibatnya, seseorang yang memegang `PettyCashVoucher : Create` **dan** `PettyCashVoucher : Approve` sekaligus dapat mengajukan lalu menyetujui pengeluaran uang tunai sendirian. Mitigasi yang tersedia sekarang murni administratif — admin **SHOULD NOT** memberikan kedua butir itu kepada Posisi yang sama — dan mitigasi konfigurasi dapat dilanggar tanpa peringatan apa pun. Diangkat sebagai `PC-OQ-004`, **tidak memblokir**.
+
+## D15. Batas integrasi dan billing
+
+Yang **MUST NOT** dibuat sendiri oleh rumpun ini:
+
+| Batas | Alasan |
+| --- | --- |
+| Sambungan apa pun ke kas fisik Shift Kasir | `PC-DEC-001`. Pencairan voucher **MUST NOT** menambah kas sistem, mengurangi kas fisik, atau memunculkan selisih shift |
+| Baris biaya pada tagihan pasien | Kas kecil adalah uang rumah sakit, bukan biaya pasien. Tidak satu rupiah pun masuk perhitungan tagihan |
+| Salinan data pegawai | `PC-DEC-011`. Nama penerima adalah teks bebas |
+| Pemakaian ulang data induk kategori milik Human Resource | Bounded context berbeda dan kepemilikannya belum terdaftar |
+| Pos jurnal akuntansi otomatis | Tidak ada keputusan yang memintanya, dan modul Accounting terverifikasi kosong. Finance menjurnal manual dari riwayat pergerakan selama MVP |
+
+## D16. Guardrail regulasi
+
+Rumpun ini **tidak menyentuh data pasien sama sekali** — tidak ada nomor rekam medis, nomor polis, diagnosis, maupun identitas kunjungan. Kewajiban rekam medis dan privasi pasien karena itu tidak berlaku di sini, dan itu dinyatakan eksplisit agar tidak ada yang menyalin aturan privasi pasien ke tempat yang tidak memerlukannya.
+
+Yang tetap mengikat:
+
+| Kewajiban | Penerapannya |
+| --- | --- |
+| Bukti pengeluaran kas dapat ditelusuri | Setiap pengeluaran punya nomor voucher, pemohon, penyetuju, penerima, tujuan, dan riwayat perintah yang tidak pernah dihapus |
+| Catatan keuangan tidak dihapus | Riwayat perintah dan riwayat pergerakan anggaran **MUST NOT** dihapus maupun ditandai hapus dalam keadaan apa pun |
+| Data pribadi seperlunya | Nama penerima dan tujuan pengeluaran ditandai sensitif dan **MUST NOT** masuk log aplikasi |
+
+## D17. Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-010` | **Ketuntasan.** Penyerahan uang menulis status, riwayat perintah, riwayat pergerakan, dan saldo dalam **satu** transaksi. Kegagalan pada langkah mana pun membatalkan seluruhnya; tidak boleh ada saldo yang berkurang tanpa voucher, maupun voucher yang tercatat diserahkan tanpa saldo berkurang |
+| `NFR-011` | **Pemakaian bersamaan.** Saldo dijaga tiga lapis: pengantrean pada baris kolam, pemeriksaan versi, dan pembatasan di tingkat basis data. Petugas yang mengantre **tidak** ditolak dengan pesan "muat ulang" pada jam sibuk; permintaannya menunggu giliran |
+| `NFR-012` | **Pengiriman ganda.** Seluruh perintah menerima kunci permintaan. Permintaan berulang dengan kunci sama mengembalikan hasil yang sama, bukan memproses ulang |
+| `NFR-013` | **Jejak audit.** Setiap perpindahan status meninggalkan baris yang tahan lama di tabel bisnis, terpisah dari log aplikasi yang dirotasi |
+| `NFR-014` | **Koreksi.** Tidak ada penyuntingan diam-diam. Koreksi saldo memakai baris riwayat baru; koreksi nomor nota tercatat sebagai perubahan; voucher yang salah dibatalkan lalu dibuat ulang |
+| `NFR-015` | **Waktu.** Penomoran harian dan penyaringan periode memakai zona Asia/Jakarta, mengikuti perilaku penomoran yang sudah berjalan di modul ini |
+| `NFR-016` | **Ketersediaan tanpa data.** Pada pemasangan pertama, layar tetap dapat dibuka dan menjelaskan apa yang perlu diisi lebih dulu — bukan menampilkan galat atau angka nol yang menyesatkan |
+
+## D18. Skenario UAT
+
+Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu skenario gagal.
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-28` | `BKC-10` | Berhasil | Petugas membuat voucher untuk Budi Santoso, kategori Transport, Rp 300.000, tujuan ongkos antar sampel | Voucher tersimpan bernomor otomatis berstatus **Menunggu Persetujuan**. Petugas tidak pernah mengetik nomor voucher |
+| `UAT-29` | `BKC-10` | Berhasil | Kepala Kasir menyetujui, kasir menyerahkan uang, petugas memasukkan nomor nota | Status berjalan **Disetujui** → **Uang Diterima** → **Selesai**, dan detail voucher menampilkan siapa menyetujui, siapa menyerahkan, dan nomor notanya |
+| `UAT-30` | `BKC-10` | Berhasil | Petugas membatalkan pengajuannya sendiri selagi masih menunggu keputusan | Voucher tidak lagi menunggu keputusan dan ditandai dibatalkan pada daftar. Chip statusnya **tetap** "Menunggu Persetujuan" — tidak muncul status baru |
+| `UAT-31` | `BKC-10` | **Gagal** | Kepala Kasir menolak voucher tanpa mengisi alasan | Ditolak beserta pesan bahwa alasan wajib diisi. Voucher tetap menunggu keputusan |
+| `UAT-32` | `BKC-10` | **Gagal** | Petugas mencoba menyunting, mengajukan ulang, dan membatalkan voucher yang sudah ditolak | Ketiganya tidak tersedia di layar dan ditolak bila dipaksakan. Voucher yang ditolak identik sebelum dan sesudah percobaan |
+| `UAT-33` | `BKC-10` | **Gagal** | Petugas B mencoba membatalkan voucher yang diajukan petugas A | Ditolak beserta pesan bahwa hanya pemohon yang dapat membatalkannya |
+| `UAT-34` | `BKC-11` | Berhasil | Finance mengisi kas kecil Rp 5.000.000, lalu satu voucher Rp 300.000 diserahkan uangnya | Kartu TOTAL PETTY CASH menunjukkan Rp 4.700.000. Riwayat memuat dua baris yang menjelaskan angka itu, lengkap dengan saldo sebelum dan sesudah tiap barisnya |
+| `UAT-35` | `BKC-11` | Berhasil | Kasir menekan Uang Diberikan dua kali berturut-turut karena layar terasa lambat | Uang keluar **satu kali**, saldo berkurang **satu kali**, dan riwayat memuat **satu** baris pengeluaran |
+| `UAT-36` | `BKC-11` | **Gagal** | Saldo Rp 5.000.000 dengan satu voucher Rp 300.000 sudah disetujui. Kepala Kasir menyetujui voucher kedua Rp 4.800.000 | Ditolak beserta pesan yang menyebut sisa Rp 4.700.000. Voucher kedua tetap menunggu dan dapat disetujui setelah anggaran ditambah |
+| `UAT-37` | `BKC-11` | **Gagal** | Finance mengoreksi saldo menjadi Rp 200.000 sementara masih ada voucher Rp 300.000 yang sudah disetujui | Ditolak beserta pesan yang menyebut Rp 300.000 yang sudah dijanjikan. Saldo tidak bergerak |
+| `UAT-38` | `BKC-11` | Berhasil | Shift kasir dibuka, satu pembayaran pasien tunai diterima, satu voucher kas kecil diserahkan, lalu shift ditutup | Angka kas shift **identik** dengan hasil hari pembanding yang tidak mencairkan voucher sama sekali. Tidak ada selisih yang muncul |
+| `UAT-39` | `BKC-12` | Berhasil | Finance menambah kategori "Laundry", lalu petugas membuat voucher memakai kategori itu | Kategori langsung muncul pada dropdown tanpa pemasangan ulang aplikasi, dan voucher tersimpan dengan kategori tersebut |
+| `UAT-40` | `BKC-12` | **Gagal** | Finance mencoba menghapus kategori Transport yang sudah dipakai empat puluh voucher | Ditolak beserta pesan yang menjelaskan sebabnya. Finance menonaktifkannya, dan keempat puluh voucher lama tetap menampilkan "Transport" |
+| `UAT-41` | `BKC-12` | **Gagal** | Petugas membuka Buat Voucher pada pemasangan pertama, sebelum satu pun kategori dibuat | Layar menampilkan keterangan bahwa belum ada kategori aktif dan menonaktifkan tombol Simpan — bukan dropdown kosong tanpa penjelasan, dan bukan pesan galat merah |
+| `UAT-42` | `BKC-10` | Berhasil | Voucher yang uangnya sudah diserahkan dibiarkan tanpa nota selama tiga bulan | Voucher tetap berstatus **Uang Diterima**. Tidak ada peringatan, tidak ada perubahan status otomatis, dan voucher lain tetap dapat diajukan serta dicairkan. **Ini keadaan yang dipilih sengaja** |
+
+## D19. Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Satu voucher dapat berjalan dari pengajuan sampai bukti nota tersimpan | `UAT-28`, `UAT-29`, `BIL-AT-064` |
+| Nomor voucher tidak pernah kembar, termasuk saat sepuluh voucher dibuat bersamaan | `BIL-AT-065`, `BIL-AT-066` |
+| Saldo berkurang tepat sekali dan tepat pada saat uang diserahkan | `UAT-34`, `BIL-AT-067`, `BIL-AT-068` |
+| Persetujuan tidak dapat melebihi uang yang benar-benar bebas | `UAT-36`, `BIL-AT-069` |
+| Saldo tidak pernah negatif walaupun keadaan berubah setelah persetujuan | `UAT-37`, `BIL-AT-070`, `BIL-AT-080` |
+| Tombol yang tertekan dua kali tidak menyerahkan uang dua kali | `UAT-35`, `BIL-AT-071` |
+| Voucher yang ditolak tidak dapat diubah oleh jalur mana pun | `UAT-32`, `BIL-AT-072` |
+| Pembatalan hanya oleh pemohon dan hanya selagi belum diputuskan | `UAT-30`, `UAT-33`, `BIL-AT-073` |
+| Kas shift kasir tidak bergerak satu rupiah pun oleh aktivitas kas kecil | `UAT-38`, `BIL-AT-077` |
+| Kategori dikelola Finance, dan yang sudah dipakai tidak dapat dihapus | `UAT-39`, `UAT-40`, `BIL-AT-076` |
+| Seluruh tabel data induk MVP sudah terisi sehingga voucher pertama dapat dibuat | Rencana data master awal pada `02-backend-architecture.md`; bukti keluar butir 3 pada `testing/acceptance-test-matrix.md` |
+| Kedua belas butir hak akses baru muncul di layar Akses Role dan dapat dicentang admin | `BIL-AT-078`; bukti keluar butir 6 dan 7 pada `testing/acceptance-test-matrix.md` |
+| Log aplikasi tidak memuat nama penerima maupun tujuan pengeluaran | `BIL-AT-079` |
+| Ketiga butir menu baru terjangkau dari sidebar bagi yang berhak | Acceptance frontend nomor 48 pada `03-frontend-architecture.md` |
+| Migration dibuat, direview, dan terbukti tidak menyentuh satu pun tabel yang sudah ada | Bukti keluar butir 2 pada `testing/acceptance-test-matrix.md` |
+| Keempat jenis nomor yang sudah ada tetap berformat sama | Regresi pada `testing/acceptance-test-matrix.md` |
+| `dotnet build` benar-benar dijalankan dan lulus | Bukti keluar butir 1 pada `testing/acceptance-test-matrix.md` |
+
+## D20. Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-13` | **Fondasi.** Registrasi registry untuk submodule `PettyCash` (`PC-OQ-003`); lima tabel beserta index dan migration-nya; seed satu kolam anggaran dan lima kategori; data induk kategori ber-CRUD penuh (`EPIC BKC-12` backend); perluasan layanan penomoran (`FR-BKC-046`) | Approval `PC-DES-001`–`014` beserta wewenang tulis backend. Wewenang membuat dan menjalankan migration **terpisah** dan **belum termasuk** dalam approval itu |
+| `MVP-14` | **Alur pertama yang menghasilkan data nyata.** Siklus hidup voucher lima status beserta jejak perintahnya (`EPIC BKC-10` backend); kolam anggaran, saldo berjalan, kedua penjaga saldo, dan riwayat pergerakan (`EPIC BKC-11` backend); kedua belas butir hak akses | `MVP-13` **selesai dan terverifikasi hidup**. Tanpa kategori yang terisi, tidak satu pun voucher dapat dibuat, sehingga alurnya tidak dapat diuji sama sekali |
+| `MVP-15` | **Frontend.** Layar monitoring, Buat Voucher, Bukti Nota, detail voucher, Anggaran Kas Kecil, ketiga layar kategori, dan pendaftaran ketiga butir menu (`EPIC BKC-10`–`BKC-12` frontend) | `MVP-14` **selesai dan terverifikasi hidup**. Dideploy lebih dulu akan menampilkan daftar kosong dan saldo yang tidak dapat dimuat, sehingga petugas menyimpulkan fiturnya rusak |
+| `POST-MVP` | Pengingat dan eskalasi bukti nota terlambat (`PC-DEC-006`); anggaran multi-kolam per unit (`PC-DEC-010`); pengajuan mandiri oleh pegawai (`PC-DEC-011`); persetujuan berjenjang berdasar nominal (`PC-DEC-004`); pemeriksaan dua orang bila `PC-OQ-004` dijawab demikian | Di luar cakupan rilis pertama; masing-masing menuntut keputusan bisnisnya sendiri lebih dulu |
+
+Epic berstatus `OPEN DECISION`: **tidak ada**. Seluruh `FR-BKC-045`–`063` berdisposisi `EXISTING / REUSE`, `EXTEND`, atau `MISSING / NEW`, sehingga ketiga gelombang di atas seluruhnya sah.
+
+### Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | --- | --- | :---: |
+| `PC-OQ-001` | Nama entity data induk kategori: `MstPettyCashCategory` seperti yang dirancang, atau `BilPettyCashCategory` seperti yang tertulis dalam tanda kurung pada `01-existing-capability-map.md` § 18.8? | Pemilik arsitektur backend | Desain memilih `MstPettyCashCategory` karena registry menetapkan prefix `Mst` untuk data induk, dan enam dari enam data induk modul ini memakainya. Alasan lengkapnya pada `02-backend-architecture.md` § "Catatan `PC-DES-002`". Bila pemilik memutuskan sebaliknya, perubahannya adalah nama kelas, berkas, configuration, `DbSet`, dan tabel — **satu paket, sebelum berkas model pertama dibuat**, sehingga tidak menimbulkan penggantian nama tabel di kemudian hari | **Tidak** — pilihan bawaannya defensibel dan dapat diubah tanpa biaya selama belum ada berkas model |
+| `PC-OQ-002` | Apakah koreksi nomor nota pada voucher yang sudah `Selesai` boleh dilakukan petugas yang sama, atau perlu wewenang yang lebih tinggi? | Kepala Kasir / Finance Operations | Desain mengizinkan petugas yang sama, dan mencatat setiap koreksi sebagai perubahan beralasan pada riwayat perintah. Bila jawabannya menuntut wewenang lebih tinggi, perubahannya satu butir hak akses baru | **Tidak** — pilihan bawaannya aman karena setiap koreksi tercatat |
+| `PC-OQ-003` | Apakah baris registry `BillingManagement / Billing` yang sudah ada dianggap mencakup submodule `PettyCash/`, sebagaimana ia sudah mencakup `Cashier/` dan `Operational/` yang juga tidak tercatat sebagai baris tersendiri? | Pemilik arsitektur backend | Prefix-nya sendiri **sudah tidak dipertanyakan**: pemiliknya terdaftar dengan prefix `Bil` berstatus aktif, sehingga tidak ada prefix baru yang perlu diajukan. Yang ditanyakan hanya perlu tidaknya baris registry tersendiri untuk foldernya | **Memblokir berkas model pertama** (`QBE-MOD-003`), **tidak memblokir** desain ini maupun perencanaan task |
+| `PC-OQ-004` | Apakah pengaju voucher boleh menyetujui pengajuannya sendiri? | Product/Domain Owner + Kepala Kasir / Finance Operations | `PC-DEC-004` menetapkan satu jenjang tanpa menyebut pemeriksaan dua orang, berbeda dari write-off yang memang punya aturannya. Desain **mengikuti keputusan apa adanya** dan tidak menambahkan aturan yang tidak diminta; risikonya dicatat terbuka pada `contracts/permission-audit-matrix.md`. Mitigasi yang tersedia sekarang murni administratif dan dapat dilanggar tanpa peringatan. Bila jawabannya "tidak boleh", perubahannya satu aturan validasi baru — mekanismenya sudah ada, disalin dari `BIL-VAL-017` | **Tidak** — perilaku bawaannya sesuai keputusan yang sudah `approved`, dan penambahan aturan kelak bersifat memperketat, bukan membongkar |
+| `PC-OQ-005` | Berapa prefix dan kebijakan reset nomor voucher yang dikehendaki Finance? Desain memakai `PTC`, reset harian, empat digit | Product/Domain Owner + Finance | Melanjutkan `PC-CQ-02` yang sudah diangkat `01-existing-capability-map.md` § 18.10. Ini **keputusan konfigurasi**, bukan arsitektur: ketiganya dibaca dari pengaturan aplikasi, persis seperti keempat jenis nomor yang sudah ada, sehingga dapat diubah tanpa menyentuh kode | **Tidak** |
+
+**Status Bagian D: `draft`.** Tidak ada satu pun pertanyaan terbuka yang lahir dari amendment ini bertanda memblokir. Yang tersisa sebelum `/plan-module-delivery` untuk rumpun ini adalah **approval manusia atas `PC-DES-001`–`PC-DES-014`**.
+
+Perlu dicatat bahwa rumpun Petty Cash **tidak bergantung pada satu pun pertanyaan terbuka Bagian A, B, maupun C**. `BKC-OQ-083` dan `BKC-OQ-085` menyangkut PPN dan tanggungan penjamin pada tagihan pasien; keduanya tidak bersinggungan dengan kas kecil sama sekali. Karena itu ketiga gelombang `MVP-13`–`MVP-15` dapat direncanakan dan dikerjakan **secara mandiri**, tanpa menunggu sisa pertanyaan terbuka rumpun-rumpun sebelumnya terjawab.

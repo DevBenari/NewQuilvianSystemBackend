@@ -44,6 +44,21 @@ public sealed class BillingInvoicesController : ControllerBase
         return Ok(ApiResponse<PagedResult<InvoiceSummaryResponse>>.Ok(result, "Invoice Billing berhasil diambil."));
     }
 
+    // Ad-hoc, di luar roadmap, permintaan langsung pengguna: halaman "Riwayat Pembayaran" lintas
+    // invoice/pasien - beda dari Get() di atas (Running Invoice) yang tidak membawa info
+    // penjamin/pembayaran. Hak akses dipakai ulang (BillingInvoice:Read) - murni view baca lain
+    // atas data invoice yang sama, tidak ada kewenangan baru.
+    [HttpGet("payment-history")]
+    [AccessAction("Read", "Read Billing Payment History", AccessType = AccessTypes.Read, SortOrder = 16)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PaymentHistoryItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentHistory(
+        [FromQuery] PaymentHistoryQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPaymentHistoryAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<PaymentHistoryItemResponse>>.Ok(result, "Riwayat pembayaran berhasil diambil."));
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Billing Invoice Detail", AccessType = AccessTypes.Read, SortOrder = 2)]
     [AccessPermission("BillingInvoice", "Read")]

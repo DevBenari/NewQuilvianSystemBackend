@@ -757,3 +757,106 @@ Enam pertanyaan sudah dijawab pemilik pada 4 September 2026; dua sisanya masih t
 | `InsuranceCoverageService.cs` | CAP-27 dan sisa temuan 16.2.A |
 | SHA frontend | CAP-28 dan seluruh task `FE-BKC-018`–`021` |
 | Munculnya `NonBillableResidual`, `DataAnomaly`, atau `IsPerItemAllocationAvailable` di source | CAP-11, CAP-18, CAP-23 — berarti gelombang terkait sudah mendarat di luar roadmap |
+
+---
+
+## 18. Audit kapabilitas baru — Petty Cash (Voucher Kas Kecil), 7 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Amendment `00-interview-decisions.md` (`PC-DEC-001`–`013`, 7 September 2026) mengunci kapabilitas baru Petty Cash untuk `billing-kasir`. Sesuai `CLAUDE.md` (chain requirement/desain), langkah wajib berikutnya sebelum `/design-business-module` adalah `trace-existing-capabilities` |
+| Backend SHA diaudit | `dd31bc91818566c0b53e1b68c0129f5a6cf01a2b` (branch `Yasmina`). Working tree memiliki perubahan belum commit di luar scope Petty Cash (`Program.cs`, dokumen roadmap `billing-kasir`, laporan `FE-BKC-018.md`) — tidak menyentuh `BilNumberSeries`/`BillingManagement`, sehingga tidak mengubah kesimpulan audit ini |
+| Frontend SHA diaudit | `12f9242ce62e4d80dbdb719f80bb0e7a2848474c` (branch `QuilvianIntegrationFrontend`). Working tree memiliki perubahan belum commit pada `menu-pembayaran`/`dokumen-kasir` — di luar scope Petty Cash |
+| Batas scan (revisi setelah scope change pemilik modul) | Terbatas pada `billing-kasir` sendiri: (1) pencarian luas "Kas Kecil"/"Uang Muka Kerja"/"Cash Advance"/"Voucher Kas"/istilah sejenis pada kedua repository, termasuk khusus di dalam `Areas/HealthServices/BillingManagement` dan consumer frontend-nya, untuk memastikan tidak ada kapabilitas serupa dengan nama lain; (2) mekanisme `BilNumberSeries`/`BillingNumberSeriesService` sebagai kandidat reuse penomoran voucher; (3) pola "Tambah Biaya Lain-lain" (`BKC-DEC-047`) sebagai pembanding pola kategori/katalog, dalam lingkup `billing-kasir`; (4) apakah referensi actor/user `billing-kasir` sendiri sudah menyentuh employee master data di tempat lain, cukup untuk menutup pertanyaan "Nama Penerima" secara cepat. **Perbandingan lintas modul ke `Corporate/HumanResource/ExpenseManagement`, `BusinessTravelManagement`, dan reuse `MstExpenseCategory` DIHENTIKAN atas instruksi pemilik modul — dicatat satu baris di 18.3 tanpa pendalaman lebih lanjut.** BUKAN audit ulang section 1–17 |
+| Metode | Pembacaan statis source, migration, `ApplicationDbContext.cs`, `Program.cs`, dan frontend. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source** |
+| Status peta | Section 1–17 tetap berlaku di luar batas scan ini. Section ini murni menambah temuan untuk kapabilitas baru Petty Cash; tidak membatalkan section manapun |
+
+### 18.1 Ringkasan satu kalimat
+
+Tidak ditemukan kapabilitas Petty-Cash-like apa pun di dalam `billing-kasir` sendiri atau consumer frontend-nya dengan nama lain; mekanisme penomoran (`BilNumberSeries`/`BillingNumberSeriesService`) layak dipakai ulang langsung; pola "Tambah Biaya Lain-lain" (`BKC-DEC-047`) tidak layak ditiru untuk Kategori karena arahnya berlawanan (bebas-teks vs master data terkelola) — pola master data `billing-kasir` sendiri (`MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule`) adalah preseden yang tepat; dan "Nama Penerima" bebas teks konsisten dengan pola actor `billing-kasir` sendiri yang sudah memakai `ApplicationUser`/`ActorUserId`, bukan employee master. **Petty Cash boleh melanjutkan ke `/design-business-module` sebagai kapabilitas baru murni scoped `billing-kasir`, tanpa blocking `Conflict`.**
+
+> **Catatan lingkup (out of scope per instruksi pemilik modul).** Audit awal sempat menelusuri `Corporate/HumanResource/ExpenseManagement` (`TrxExpenseClaim`, `MstReimbursementPolicy`) dan `BusinessTravelManagement` (`TrxTravelAdvanceRequest`) sebagai clue lintas modul. Temuan singkat sebelum dihentikan: keduanya ADA di schema database tetapi TIDAK memiliki satu pun Controller/Service/DTO/konsumen frontend (`Unknown`, bukan `Conflict`) — `TrxExpenseClaim` polanya reimbursement (klaim-setelah-belanja), bukan advance; `TrxTravelAdvanceRequest` memang pola advance tetapi terikat wajib employee master formal dan parent perjalanan dinas. **Sesuai arahan pemilik modul, perbandingan ini dihentikan di sini dan TIDAK dijadikan syarat/blocker keputusan Petty Cash** — `PC-DEC-012` tetap berlaku apa adanya: Kategori Petty Cash adalah master data sendiri yang dikelola Finance, scoped ke `billing-kasir`, tidak dibagi dengan tabel manapun milik HR.
+
+### 18.2 Tabel bukti kemampuan (scoped `billing-kasir`)
+
+| ID | Kebutuhan (dari `PC-DEC-*`) | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| CAP-29 | Tidak ada kapabilitas Petty-Cash-like dengan nama lain di dalam `billing-kasir` sendiri | Billing/Kasir | Pencarian `voucher\|Voucher\|uang muka\|Advance\|kas kecil\|petty\|Petty` pada seluruh `Areas/HealthServices/BillingManagement/**` **nihil**@dd31bc9; pencarian `Kas Kecil`/`Uang Muka Kerja`/`Cash Advance`/`Voucher Kas` pada kedua repository hanya menunjuk ke `00-interview-decisions.md` sendiri | **Missing** (dikonfirmasi genuinely baru, bukan duplikasi tersembunyi) | Tidak ada — ini adalah hasil yang diharapkan, mengkonfirmasi kapabilitas benar-benar baru | Rendah |
+| CAP-30 | Mekanisme penomoran voucher Petty Cash — reuse `BilNumberSeries`/`BillingNumberSeriesService` | Billing/Kasir | `Areas/HealthServices/BillingManagement/Billing/Models/BilNumberSeries.cs@dd31bc9` (tabel sequence generik: `SequenceKey`, `ScopeKey`, `ResetPolicy`, `CurrentValue`); `Billing/Services/BillingNumberSeriesService.cs#AllocateKwitansiNumberAsync/AllocateInvoiceNumberAsync/AllocateCashierShiftNumberAsync@dd31bc9` — pola `Allocate<X>NumberAsync` sudah dipakai berulang 3x (Invoice `BIL`, Deposit `DEP`, Cashier Shift `CSH`, Kwitansi `KWS`) di atas SATU tabel dan SATU service yang sama, termasuk `pg_advisory_xact_lock` untuk keunikan under concurrency (baris 170-177) | **Ready to reuse** (Extend pada service, bukan tabel/mekanisme baru) | Tidak ada — tinggal tambah `PettyCashVoucherNumberOptions` + `AllocatePettyCashVoucherNumberAsync` + sequence key baru mengikuti pola identik | Rendah |
+| CAP-31 | Pola kategori/katalog "Tambah Biaya Lain-lain" (`BKC-DEC-047`) sebagai pembanding desain Kategori Petty Cash | Billing/Kasir | `BKC-DEC-047@00-interview-decisions.md:498` — kasir isi nama item/harga BEBAS tanpa katalog, dikompensasi murni `LoggerService.AuditAsync`, TANPA approval tambahan. Dibandingkan `PC-DEC-012` yang EKSPLISIT minta Kategori sebagai MASTER DATA terkelola Finance, disamakan sendiri dengan pola `MstTaxRule`/`MstInsuranceCoverageRule` | **Conflict pola, bukan Conflict keputusan** — kedua kebutuhan berlawanan arah by design, sudah diketahui dan disengaja oleh masing-masing `BKC-DEC-047` dan `PC-DEC-012` | Pola yang justru relevan ditiru: CRUD master data yang SUDAH ada di `billing-kasir` sendiri, `PaymentMethodController.cs`/`BillingItemCategoryController.cs` (lihat section 4/5.1) — Kategori Petty Cash sebaiknya entity master data baru sejenis, prefix `Bil`, BUKAN meniru pola bebas-teks `BKC-DEC-047` | Rendah — arah desain sudah jelas dari `PC-DEC-012` sendiri |
+| CAP-32 | Referensi actor/user `billing-kasir` sendiri — apakah sudah menyentuh employee master data di tempat lain (relevan untuk pertanyaan "Nama Penerima") | Billing/Kasir | `Areas/HealthServices/BillingManagement/Cashier/Models/BilCashierShiftCommand.cs#ActorUserId@dd31bc9` (`Guid ActorUserId`) — actor kasir/finance di `billing-kasir` SELALU direferensikan lewat `ApplicationUser`/`ActorUserId` (identity login), BUKAN `MstEmployee`/`WorkforceProfileId`; pencarian `MstEmployee\|WorkforceProfile\|EmployeeId` pada seluruh `Areas/HealthServices/BillingManagement/**` **nihil** | **Ready to reuse** (pola existing, bukan gap) | Tidak ada — `PC-DEC-011` (Nama Penerima bebas teks, bukan dari employee master) justru KONSISTEN dengan pola actor `billing-kasir` sendiri yang memang tidak pernah menyentuh employee master di tempat lain manapun dalam modul ini | Rendah |
+
+### 18.3 Catatan ringkas — clue lintas modul (dihentikan atas instruksi pemilik modul)
+
+Sebelum scope change, audit sempat memverifikasi `Corporate/HumanResource/ExpenseManagement` (`TrxExpenseClaim`/`TrxExpenseClaimItem`/`MstReimbursementPolicy`) dan `BusinessTravelManagement` (`TrxTravelAdvanceRequest`) sebagai clue potensi duplikasi. Ringkasan satu-baris per temuan, tanpa pendalaman lebih lanjut sesuai arahan:
+
+- `TrxExpenseClaim` mengimplementasikan pola **reimbursement** (klaim-setelah-belanja, `ClaimStatus: Draft→Submitted→…→PaymentProcessing→Paid`, bukti nota jadi syarat pengajuan) — pola terbalik dari Petty Cash (bayar-dulu, nota menyusul non-blocking).
+- `TrxTravelAdvanceRequest` memang pola **advance**, tetapi terikat wajib `WorkforceProfileId` (employee master formal) dan parent `BusinessTravelRequestId` (perjalanan dinas) — dua prasyarat yang tidak dimiliki/tidak diinginkan Petty Cash.
+- Kedua model beserta `MstExpenseCategory` HANYA ada sebagai schema database (migrasi lewat `initializeBigModulHRD2`) — nol Controller/Service/DTO/konsumen di seluruh backend dan frontend, sehingga tidak ada satu baris kode pun yang secara teknis bisa "direbut" atau berkonflik dengan implementasi Petty Cash.
+
+**Kesimpulan yang berlaku untuk keputusan Petty Cash:** tidak ada `Conflict` yang memblokir. `PC-DEC-012` (Kategori sebagai master data Finance milik `billing-kasir` sendiri, tidak dibagi ke tabel HR manapun) tetap berlaku apa adanya tanpa perlu direvisi. Rincian teknis lebih lanjut (pola bisnis, status ownership registry) TIDAK diperdalam lebih lanjut pada audit ini sesuai instruksi pemilik modul — bila kelak dibutuhkan, ini bisa diminta ulang sebagai audit terpisah yang eksplisit lintas modul (`HumanResource` + `billing-kasir`), bukan bagian dari audit `billing-kasir` ini.
+
+### 18.4 Verifikasi pencarian luas istilah Petty Cash dan false positive "Reimbursement"
+
+Pencarian case-insensitive untuk `Kas Kecil`, `Uang Muka Kerja`, `Cash Advance`, `Voucher Kas` pada SELURUH monorepo (backend + frontend) hanya menemukan kemunculan di `00-interview-decisions.md` sendiri (dokumen keputusan yang memicu audit ini) — nol kemunculan di source aplikasi manapun. Ini mengkonfirmasi pernyataan `PC-DEC-*`: kapabilitas ini benar-benar baru dari nol.
+
+Dua match "Reimbursement" yang sudah dicurigai sebagai false positive SEBELUM audit ini dimulai, diverifikasi ulang secara langsung:
+
+1. `QuilvianSystemFrontendDev/src/utils/dataPiutangKorporat.jsx` — field `spk: "Reimbursement"` adalah nilai kategori metode klaim piutang KORPORAT/ASURANSI (bersama `namaPerusahaan` seperti "PT Prudential (Asuransi - Reimbursement)"). Ini metode klaim PENJAMIN/asuransi pasien (bagaimana penjamin membayar rumah sakit: cashless vs reimbursement), sama sekali bukan reimbursement belanja PEGAWAI.
+2. `QuilvianSystemFrontendDev/src/lib/constants/administrator/master-data/insurance-provider/insurance-provider-editor-config.jsx` — opsi dropdown metode klaim penjamin: `Cashless`, `Reimbursement`, `GuaranteeLetter`, `Mixed`. Konteksnya sama: master data provider asuransi, bukan expense pegawai.
+
+**Kesimpulan: bacaan false-positive yang sudah diduga terkonfirmasi independen.** Tidak ada kapabilitas "reimbursement pegawai" yang tersembunyi di balik istilah ini pada frontend.
+
+### 18.5 Verifikasi folder `FinancialManagement` dan `AccountingManagement`
+
+`Areas/Corporate/FinancialManagement` dan `Areas/Corporate/AccountingManagement` dicek langsung isinya (bukan hanya nama folder pada `.csproj`) — KEDUANYA benar-benar kosong, nol file apapun di dalamnya. Entri `<Folder Include="Areas\Corporate\FinancialManagement\" />` dan `<Folder Include="Areas\Corporate\AccountingManagement\" />` pada `QuilvianSystemBackend.csproj` (baris 180-181) hanya berfungsi mempertahankan folder kosong di source control (perilaku standar SDK-style csproj), BUKAN indikasi ada capability finansial tersembunyi. Konsisten dengan dugaan awal sebelum audit ini dimulai.
+
+### 18.6 Verdict — "Nama Penerima" (`PC-DEC-011`), scoped ke pola `billing-kasir` sendiri
+
+Sesuai instruksi pemilik modul, pertanyaan ini ditutup cepat dan HANYA dilihat dari pola yang sudah dipakai `billing-kasir` sendiri (bukan dikejar ke employee master HR). Bukti pada CAP-32: setiap referensi actor di `billing-kasir` (mis. `BilCashierShiftCommand.ActorUserId`) memakai `Guid` yang menunjuk `ApplicationUser` (identity login kasir/finance yang sedang bekerja), dan pencarian `MstEmployee`/`WorkforceProfile`/`EmployeeId` pada seluruh `Areas/HealthServices/BillingManagement/**` nihil — modul ini memang tidak pernah menyentuh employee master di tempat lain manapun.
+
+**Kesimpulan: `PC-DEC-011` (Nama Penerima bebas teks) konsisten dengan pola `billing-kasir` sendiri, cukup untuk ditutup tanpa investigasi lebih lanjut ke HR.** Ini masuk akal secara bisnis juga: "Nama Penerima" adalah SIAPA voucher itu diperuntukkan (bisa pegawai, vendor, atau pihak lain), sedangkan `ActorUserId` yang sudah dipakai `billing-kasir` adalah SIAPA yang login dan menekan tombol (selalu kasir/petugas admin) — dua konsep berbeda yang keduanya sudah tercakup oleh pola existing tanpa perlu field employee-lookup baru.
+
+### 18.7 Verdict — reuse mekanisme penomoran (`BilNumberSeries`/`BillingNumberSeriesService`)
+
+**Rekomendasi kuat: REUSE, bukan bangun mekanisme baru.** `BilNumberSeries` (`Areas/HealthServices/BillingManagement/Billing/Models/BilNumberSeries.cs`) adalah tabel sequence GENERIK (`SequenceKey`, `ScopeKey`, `ResetPolicy`, `CurrentValue`, `LastAllocatedAt`) yang sudah dipakai berulang kali untuk empat jenis nomor berbeda di dalam `billing-kasir` sendiri — Invoice (`BIL`), Deposit Account (`DEP`), Cashier Shift (`CSH`), dan Kwitansi (`KWS`) — semuanya lewat SATU `BillingNumberSeriesService` yang sama (`Areas/HealthServices/BillingManagement/Billing/Services/BillingNumberSeriesService.cs`), masing-masing dengan `Options` class sendiri (`Prefix`, `ResetPolicy`, `SequenceDigits`) dan method `Allocate<X>NumberAsync` sendiri yang memanggil helper privat `AllocateNumberAsync` yang sama.
+
+Pola ini SUDAH TERBUKTI berulang menambah jenis nomor baru (bukti komentar eksplisit di baris 106-110: "nomor Kwitansi memakai mekanisme sequence generik yang sama dengan Invoice Number/Cashier Shift Number ... bukan tabel sequence terpisah"). Menambahkan nomor voucher Petty Cash tinggal mengikuti pola yang identik: `PettyCashVoucherNumberOptions` (mis. prefix `PTC`, `ResetPolicy` sesuai kebutuhan bisnis), `AllocatePettyCashVoucherNumberAsync` baru pada `BillingNumberSeriesService`, dan sequence key baru (mis. `BILLING_PETTY_CASH_VOUCHER`) — TANPA tabel baru, TANPA service baru, dan mewarisi gratis mekanisme `pg_advisory_xact_lock` yang sudah menjamin keunikan nomor di bawah concurrency (baris 170-177).
+
+**Status: `Ready to reuse` (Extend pada service, bukan tabel/mekanisme baru).**
+
+### 18.8 Perbandingan pola — "Tambah Biaya Lain-lain" (`BKC-DEC-047`) vs `Kategori` Petty Cash (`PC-DEC-012`)
+
+`BKC-DEC-047` mengizinkan kasir mengisi nama item/harga BEBAS tanpa katalog/master resmi, dikompensasi murni oleh audit log (`LoggerService.AuditAsync`) tanpa approval tambahan. Ini SECARA SENGAJA adalah pola BEBAS-TEKS, kebalikan dari yang diminta `PC-DEC-012` untuk Petty Cash: Kategori Petty Cash EKSPLISIT diputuskan sebagai MASTER DATA terkelola (tambah/ubah/nonaktifkan oleh Finance), eksplisit disamakan dengan pola `MstTaxRule`/`MstInsuranceCoverageRule` yang SUDAH ada di `billing-kasir` sendiri (CRUD authorized, effective-dated/aktif-nonaktif, dikelola lewat menu Master Data tersendiri).
+
+**Kesimpulan: pola "Tambah Biaya Lain-lain" TIDAK layak ditiru untuk Kategori Petty Cash** — kedua kebutuhan business justru berlawanan arah (satu sengaja bebas-teks dengan kompensasi audit log, satu sengaja terkelola sebagai master data). Pola yang justru relevan untuk ditiru adalah CRUD master data yang SUDAH ada di `billing-kasir` sendiri untuk `MstPaymentMethod`/`MstBillingItemCategory` (`PaymentMethodController.cs`, `BillingItemCategoryController.cs` — lihat section 4/5.1) atau `MstTaxRule`/`MstInsuranceCoverageRule` yang disebut eksplisit oleh `PC-DEC-012` sendiri sebagai preseden. Kategori Petty Cash sebaiknya menjadi entity master data BARU yang di-scope ke `billing-kasir` (prefix `Bil`, sudah terdaftar registry), berdiri sendiri tanpa dibagi ke tabel domain manapun di luar `billing-kasir`.
+
+### 18.9 Fact, inference, dan recommendation
+
+**Fact.**
+
+- Tidak ditemukan kapabilitas Petty-Cash-like dengan nama lain di dalam `billing-kasir` atau consumer frontend-nya — pencarian istilah sejenis (`voucher`, `uang muka`, `cash advance`, `kas kecil`) di `Areas/HealthServices/BillingManagement/**` dan di seluruh monorepo nihil di luar dokumen keputusan sendiri.
+- `BilNumberSeries`/`BillingNumberSeriesService` adalah mekanisme generik yang sudah terbukti dipakai ulang empat kali (Invoice, Deposit, Cashier Shift, Kwitansi) di dalam `billing-kasir` sendiri, lengkap dengan penguncian concurrency (`pg_advisory_xact_lock`).
+- `BKC-DEC-047` (Tambah Biaya Lain-lain, bebas-teks) berlawanan arah dengan `PC-DEC-012` (Kategori sebagai master data terkelola) — bukan preseden yang bisa ditiru langsung untuk Kategori, tetapi CRUD master data `billing-kasir` sendiri (`MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule`) adalah preseden yang tepat.
+- Referensi actor `billing-kasir` sendiri (`ActorUserId` pada `BilCashierShiftCommand`, dan pola serupa di seluruh modul) selalu memakai identity `ApplicationUser`, tidak pernah menyentuh employee master di tempat lain manapun dalam modul ini — cukup untuk menutup pertanyaan "Nama Penerima" tanpa mengejar ke HR.
+
+**Inference.**
+
+- Ketiadaan kapabilitas serupa dengan nama lain di dalam `billing-kasir` memperkuat pernyataan `00-interview-decisions.md` bahwa Petty Cash benar-benar baru untuk modul ini, bukan reimplementasi tersembunyi dari sesuatu yang sudah ada.
+- Pola numbering dan pola master data `billing-kasir` sudah cukup matang dan konsisten sehingga Petty Cash bisa mengikuti preseden internal modul ini sepenuhnya tanpa perlu mendesain mekanisme baru dari nol.
+
+**Recommendation.**
+
+1. **Petty Cash boleh melanjutkan ke `/design-business-module` sebagai kapabilitas baru murni scoped `billing-kasir`.** Tidak ditemukan `Conflict` yang memblokir dari dalam modul ini sendiri.
+2. **Kategori Petty Cash (`PC-DEC-012`) sebaiknya menjadi entity master data baru milik `billing-kasir` sendiri** (prefix `Bil`, mengikuti pola CRUD `MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule` yang sudah ada di modul yang sama).
+3. **Penomoran voucher Petty Cash sebaiknya extend `BillingNumberSeriesService`/`BilNumberSeries` yang sudah ada**, bukan membangun mekanisme sequence baru — pola ini sudah terbukti dipakai ulang empat kali sebelumnya di modul yang sama.
+4. **Nama Penerima tetap bebas teks (`PC-DEC-011`) tanpa perubahan** — konsisten dengan pola actor existing `billing-kasir` sendiri.
+
+> Catatan: pertanyaan lintas modul terkait `Corporate/HumanResource/ExpenseManagement`/`BusinessTravelManagement` (lihat 18.3) TIDAK dijadikan bagian recommendation di atas sesuai instruksi pemilik modul — dianggap tertutup untuk keperluan keputusan Petty Cash, terlepas dari status governance-nya sendiri di sisi HR.
+
+### 18.10 Closure question untuk `/grill-me` atau `/design-business-module`
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| `PC-CQ-01` | Kategori Petty Cash dibuat sebagai entity master data baru milik `billing-kasir` (prefix `Bil`) — disetujui sebagai keputusan desain, atau ada preferensi lain? | Product/Domain Owner + Billing Owner | Terbuka untuk `/design-business-module`; rekomendasi audit ini adalah entity baru (lihat 18.9.2) |
+| `PC-CQ-02` | Penomoran voucher Petty Cash memakai prefix apa pada `BilNumberSeries` (mis. `PTC`) dan `ResetPolicy` apa (Daily/Monthly/Never)? | Product/Domain Owner + Finance | Terbuka; keputusan konfigurasi, bukan blocker arsitektur (lihat pola serupa "format nomor invoice final" yang sudah dicatat sebagai non-blocking pada section Open Questions `00-interview-decisions.md`) |

@@ -430,3 +430,284 @@ Tidak ada aksi baru. Peringatan anomali data bersifat **informatif** — ia tida
 45. Baris "Selisih Tidak Ditagihkan (kontrak penjamin)" muncul hanya pada invoice yang punya aturan dengan `IsAllowExcessPaymentByPatient = false` dan residual lebih besar dari nol.
 46. Untuk invoice rawat inap yang berisi obat/alkes, kolom Pajak Mandiri dan Pajak Asuransi keduanya Rp 0, dan tidak ada baris pajak di rincian item.
 47. Untuk invoice rawat jalan dan IGD yang berisi obat/alkes, pajak tetap muncul dan terbagi mengikuti status coverage item obatnya.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+> Revisi `1.0`, status **draft**. Masukan: **`PC-DEC-001`–`PC-DEC-013`** (`approved` Product/Domain Owner 7 September 2026) dan keputusan arsitektur `PC-DES-001`–`PC-DES-014` pada [`02-backend-architecture.md`](./02-backend-architecture.md). Frontend SHA diaudit `12f9242ce62e4d80dbdb719f80bb0e7a2848474c`.
+>
+> Amendment ini **bergantung penuh** pada slice backend. Tidak ada satu pun endpoint Petty Cash yang sudah ada; seluruhnya berstatus **Rencana (belum tersedia)**.
+>
+> Amendment ini **tidak** mengunci warna, jarak, ikon, pilihan component library, maupun bentuk wadah presentasi. Yang dikunci adalah **keterjangkauan layar** dan **sumber datanya**.
+
+### Batas amendment ini
+
+Yang bertambah adalah tiga butir menu baru beserta layar-layarnya. Yang **tidak** berubah: Menu Pembayaran, halaman Dokumen Kasir beserta ketiga tabnya, form Buat Invoice Manual (Testing), layar Shift Kasir, dan seluruh layar master data yang sudah ada. Tidak satu pun berkas milik rumpun lain disentuh.
+
+### Rujukan tampilan yang dipakai, dan batasnya
+
+Pemilik menunjukkan tangkapan layar saat wawancara: daftar voucher berjudul "Petty Cash — Monitoring Voucher Petty Cash", kartu ringkasan "TOTAL PETTY CASH", modal "Buat Voucher", dan modal "Bukti Nota/Kasir".
+
+Tangkapan itu dipakai sebagai **bukti kebutuhan dan penamaan field**, bukan sebagai spesifikasi yang tidak dapat ditawar. Bila ia bertentangan dengan `PC-DEC-*`, keputusan yang menang. Dua pertentangan yang sudah diketahui:
+
+| Yang terlihat pada tangkapan layar | Yang berlaku | Dasar |
+| --- | --- | --- |
+| Nomor voucher berbentuk `PC-1786239462244`, tampak berbasis milidetik | Nomor berbentuk `PTC-YYYYMMDD-NNNN` yang dibuat sistem penomoran modul ini | `PC-DES-008`, `01-existing-capability-map.md` § 18.7 |
+| Kategori tampak sebagai daftar tetap | Kategori adalah data induk yang dikelola Finance lewat menunya sendiri | `PC-DEC-012` |
+
+### Kebutuhan layar
+
+| ID layar | Nama | Jenis | Jalan masuk |
+| --- | --- | --- | --- |
+| `FE-PC-01` | Monitoring Voucher Petty Cash | Daftar | **Butir menu** |
+| `FE-PC-02` | Buat Voucher | Isian pengajuan | **Layar anak** `FE-PC-01` — tombol "+ Buat Voucher" |
+| `FE-PC-03` | Bukti Nota/Kasir | Isian nomor nota | **Layar anak** `FE-PC-01` — tombol "Input Nota" pada baris |
+| `FE-PC-04` | Detail Voucher | Detail beserta riwayat perintah | **Layar anak** `FE-PC-01` — klik dua kali pada baris |
+| `FE-PC-05` | Anggaran Kas Kecil | Saldo, pengisian, koreksi, dan riwayat pergerakan | **Butir menu** |
+| `FE-PC-06` | Kategori Petty Cash — daftar | Daftar data induk | **Butir menu**, di dalam grup Master Data |
+| `FE-PC-07` | Kategori Petty Cash — detail | Detail data induk | **Layar anak** `FE-PC-06` |
+| `FE-PC-08` | Kategori Petty Cash — tambah/ubah | Form data induk | **Layar anak** `FE-PC-06` |
+
+### Peta butir menu
+
+Modul ini menambah **tiga** butir menu. Sisanya adalah layar anak yang dicapai dari layar induknya, dan itu dinyatakan eksplisit agar tidak ada layar yang hanya dapat dibuka lewat URL langsung.
+
+```text
+Billing Management                                  <- tingkat 0, sudah ada
+├── Running Invoice                                 -> sudah ada
+├── Buat Invoice Manual (Testing)                   -> sudah ada
+├── Persetujuan Diskon Dokter                       -> sudah ada
+├── Shift Kasir                                     -> sudah ada
+├── Petty Cash                                      -> .../petty-cash/vouchers          [BARU]
+├── Anggaran Kas Kecil                              -> .../petty-cash/budget            [BARU]
+└── Master Data                                     <- grup tingkat 1, sudah ada
+    ├── Administration Fee Policy                   -> sudah ada
+    ├── Discount Policy                             -> sudah ada
+    ├── Room Charge Policy                          -> sudah ada
+    ├── Tax Rule                                    -> sudah ada
+    ├── Register                                    -> sudah ada
+    └── Kategori Petty Cash                         -> .../master-data/petty-cash-category  [BARU]
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Petty Cash | 1 | Billing Management | `/health-services/billing-management/petty-cash/vouchers` | `FE-PC-01` | `PettyCashVoucher : Read` | **Baru** |
+| Anggaran Kas Kecil | 1 | Billing Management | `/health-services/billing-management/petty-cash/budget` | `FE-PC-05` | `PettyCashBudget : Read` | **Baru** |
+| Kategori Petty Cash | 2 | Master Data | `/health-services/billing-management/master-data/petty-cash-category` | `FE-PC-06` | `PettyCashCategory : Read` | **Baru** |
+
+**Berkas yang disunting saat implementasi:** `src/utils/menu-sidebar/menu-items.jsx`. Ketiga butir masuk sebagai anggota `subMenu` milik Billing Management, kecuali Kategori Petty Cash yang masuk `subItems` milik grup Master Data — mengikuti bentuk yang sudah dipakai lima butir master data yang ada.
+
+**Pendaftaran butir menu MUST menjadi acceptance criteria salah satu task layar**, bukan pekerjaan yang menganggur di antara dua task. Modul ini punya preseden pahitnya: lima halaman `billing-management` pernah selesai dan lulus build tetapi tidak terjangkau sampai `FE-BKC-MENU-001` dikerjakan sebagai task tersendiri.
+
+Layar `FE-PC-02`, `FE-PC-03`, `FE-PC-04`, `FE-PC-07`, dan `FE-PC-08` **sengaja tidak** mendapat butir menu. Kelimanya adalah layar anak, dan jalan masuknya sudah disebut pada tabel Kebutuhan layar di atas.
+
+### Skema fitur — `FE-PC-01` Monitoring Voucher Petty Cash
+
+```text
++- Petty Cash — Monitoring Voucher Petty Cash --------------- FE-PC-01 -+
+|  TOTAL PETTY CASH                                                     |
+|  Rp 4.700.000        Sudah dijanjikan Rp 300.000                      |
++-----------------------------------------------------------------------+
+| [cari no. voucher / nama / kategori]  [Periode v] [Tgl awal] [Tgl akhir]|
+| [Status v] [Kategori v] [Jumlah baris v]      [Atur ulang] [+ Buat Voucher] |
++-----------------------------------------------------------------------+
+| No | No. Voucher | Nama Penerima | Kategori | Nominal | Tujuan |       |
+|    |             |               |  chip    |  angka  |        |       |
+|    | Tgl Pengajuan | Bukti          | Status  | Aksi             |       |
+|    |               | [Input Nota]   |  chip   | [Uang Diberikan] |       |
+|    |               | atau no. nota  |         | atau kosong      |       |
++-----------------------------------------------------------------------+
+| memuat -> kerangka baris, bukan layar kosong                          |
+| kosong -> "Data voucher petty cash tidak ditemukan."   [Atur ulang]   |
+| gagal  -> "Data gagal dimuat."                         [Coba lagi]   |
++- Halaman 1 dari n ---------------------- [< Sebelumnya] [Berikutnya >]+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kartu ringkasan | Saldo kas kecil berjalan, ditambah keterangan nominal yang sudah dijanjikan | `GET /petty-cash/budget/current` → `currentBalance`, `reservedAmount` | `PettyCashBudget : Read` | Gagal → kartu diganti pesan singkat; **tabel tetap tampil**. Saldo yang gagal dimuat **MUST NOT** dirender sebagai Rp 0 |
+| Saringan | Pencarian, periode, tanggal awal/akhir, status, kategori, jumlah baris | `GET /petty-cash/vouchers/filters/metadata` untuk pilihannya; `GET /master-data/petty-cash-categories/options` untuk daftar kategori | `PettyCashVoucher : Read` | Metadata gagal → saringan memakai nilai bawaan; layar tetap dapat dipakai |
+| Tabel | No. Voucher, Nama Penerima, Kategori, Nominal Voucher, Tujuan, Tanggal Pengajuan, Bukti, Status, Aksi | `GET /petty-cash/vouchers` | `PettyCashVoucher : Read` | Kosong → "Data voucher petty cash tidak ditemukan." beserta "Coba gunakan filter lain atau tambahkan data baru." |
+| Kolom Status | Chip berisi `statusLabel` dari server, ditambah penanda "Dibatalkan" bila `isCancelled` bernilai `true` | `statusLabel`, `isCancelled` | `PettyCashVoucher : Read` | — |
+| Kolom Bukti | Tombol "Input Nota" bila `proofReferenceNumber` kosong; chip berisi nomor notanya bila sudah ada | `proofReferenceNumber` | `PettyCashVoucher : AttachProof` untuk tombolnya | Tombol yang tidak berhak **MUST** disembunyikan, bukan ditampilkan lalu ditolak `403` |
+| Kolom Aksi | Tombol yang tersedia untuk baris itu | **`availableActions`** dari server | `PettyCashVoucher : Approve`/`Reject`/`Cancel`/`Disburse` sesuai tombolnya | Baris tanpa aksi yang tersedia menampilkan kolom kosong, bukan tombol yang dinonaktifkan |
+| Tombol "+ Buat Voucher" | Membuka `FE-PC-02` | — | `PettyCashVoucher : Create` | Disembunyikan bila tidak berhak |
+
+**Aturan yang mengikat untuk kolom Aksi.** Tombol yang tampil **MUST** diturunkan dari `availableActions` yang dikirim server, **MUST NOT** disimpulkan layar dari nilai `status`. Alasannya: ketersediaan aksi bergantung pada status **dan** pada siapa penggunanya — tombol "Batalkan" hanya untuk pemohon voucher itu sendiri (`PC-DEC-007`), dan layar tidak boleh menebak aturan kepemilikan itu sendiri. `availableActions` tetap **bantuan tampilan**, bukan pengaman; backend tetap memeriksa ulang setiap permintaan.
+
+**Kolom yang MUST NOT ditampilkan:** identitas pengguna dalam bentuk UUID. Kolom pembuat, penyetuju, dan pencair menampilkan `requestedByName`, `decidedByName`, dan `disbursedByName`.
+
+### Skema fitur — `FE-PC-02` Buat Voucher
+
+```text
++- Buat Voucher --------------------------------------------- FE-PC-02 -+
+| Voucher Number    [ Dibuat otomatis oleh sistem ]        (hanya-baca)  |
+| Nama Penerima     [ ............................ ]                     |
+| Kategori          [ Pilih Kategori           v  ]                      |
+| Nominal Voucher   [ Rp ......................... ]                     |
+| Tujuan            [ ............................ ]                     |
+|                   [ ............................ ]                     |
++-----------------------------------------------------------------------+
+|                                        [ Batal ]  [ Simpan Voucher ]  |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Voucher Number | Kolom hanya-baca berisi keterangan bahwa nomor dibuat otomatis | Tidak ada — **MUST NOT** dikirim pada permintaan simpan | — | Selalu tampil sebagai keterangan, tidak pernah sebagai isian |
+| Nama Penerima | Isian teks bebas | Diketik pengguna | `PettyCashVoucher : Create` | Kosong → pesan validasi dari server ditampilkan apa adanya |
+| Kategori | Dropdown, hanya kategori aktif | `GET /master-data/petty-cash-categories/options` | `PettyCashCategory : Read` | Daftar kosong → "Belum ada kategori petty cash yang aktif. Hubungi Finance untuk menambahkannya." dan tombol Simpan dinonaktifkan |
+| Nominal Voucher | Isian mata uang | Diketik pengguna | `PettyCashVoucher : Create` | Nol atau negatif → pesan validasi |
+| Tujuan | Isian teks panjang | Diketik pengguna | `PettyCashVoucher : Create` | Kosong → pesan validasi |
+| Tombol Simpan | Mengirim pengajuan | `POST /petty-cash/vouchers` | `PettyCashVoucher : Create` | Selama pengiriman berjalan, tombol dinonaktifkan agar tidak terkirim dua kali |
+
+**Yang MUST NOT ada pada layar ini:** isian nomor voucher yang dapat diketik, isian tanggal pengajuan, dan pemilihan penerima dari daftar pegawai. Ketiganya bertentangan dengan `PC-DES-008`, perilaku server, dan `PC-DEC-011`.
+
+### Skema fitur — `FE-PC-03` Bukti Nota/Kasir
+
+```text
++- Bukti Nota/Kasir ----------------------------------------- FE-PC-03 -+
+| Voucher   PTC-20260907-0001 — Budi Santoso — Rp 300.000               |
+|                                                                       |
+| Masukkan No Nota / Kwitansi   [ ......................... ]           |
++-----------------------------------------------------------------------+
+|                                              [ Tutup ]  [ Simpan ]    |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor voucher, nama penerima, dan nominal, agar petugas yakin sedang mengisi voucher yang benar | Baris yang diklik pada `FE-PC-01` | `PettyCashVoucher : Read` | — |
+| Isian nomor nota | Satu isian teks | Diketik pengguna | `PettyCashVoucher : AttachProof` | Kosong → "Nomor nota atau kwitansi wajib diisi." |
+| Tombol Simpan | Menyimpan bukti dan menyelesaikan voucher | `POST /petty-cash/vouchers/{id}/proofs` | `PettyCashVoucher : AttachProof` | Gagal → pesan dari server ditampilkan apa adanya; modal **tidak** ditutup |
+
+Layar ini juga dipakai **mengoreksi** nomor nota pada voucher yang sudah `Selesai`. Ketika dibuka pada voucher semacam itu, isian sudah terisi nomor lama, dan menyimpannya **tidak** memindahkan status (`PC-DES-012`).
+
+### Skema fitur — `FE-PC-05` Anggaran Kas Kecil
+
+```text
++- Anggaran Kas Kecil --------------------------------------- FE-PC-05 -+
+|  SALDO SAAT INI        SUDAH DIJANJIKAN        SISA YANG BEBAS        |
+|  Rp 5.000.000          Rp 300.000              Rp 4.700.000           |
+|                          [ + Tambah Anggaran ]  [ Koreksi Saldo ]     |
++-----------------------------------------------------------------------+
+| Riwayat Pergerakan                                                    |
+| [Jenis v] [Tgl awal] [Tgl akhir]                     [Atur ulang]     |
++-----------------------------------------------------------------------+
+| No | Tanggal | Jenis | Nominal | Saldo Sebelum | Saldo Sesudah |       |
+|    |         | chip  |         |               |               | Alasan|
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Tiga kartu angka | Saldo, yang sudah dijanjikan, dan sisa yang benar-benar bebas | `GET /petty-cash/budget/current` | `PettyCashBudget : Read` | Gagal → ketiga kartu diganti satu pesan; **MUST NOT** dirender Rp 0 |
+| Tombol Tambah Anggaran | Membuka isian nominal dan alasan | `POST /petty-cash/budget/top-ups` | `PettyCashBudget : TopUp` | Disembunyikan bila tidak berhak |
+| Tombol Koreksi Saldo | Membuka isian nominal, arah, dan alasan | `POST /petty-cash/budget/adjustments` | `PettyCashBudget : Adjust` | Disembunyikan bila tidak berhak |
+| Tabel riwayat | Tanggal, jenis pergerakan, nominal, saldo sebelum dan sesudah, alasan, pelaku | `GET /petty-cash/budget/movements` | `PettyCashBudget : Read` | Kosong → "Belum ada pergerakan anggaran pada saringan ini." |
+
+**Ketiga angka pada kartu MUST diambil dari server apa adanya.** Layar **MUST NOT** menghitung "sisa yang bebas" sendiri dengan menjumlahkan voucher yang tampil di halaman pertama — hasilnya akan menyimpang dari server begitu ada satu voucher yang tidak ikut terkirim pada halaman itu (`PC-DES-005`).
+
+### Skema fitur — `FE-PC-06` sampai `FE-PC-08` Kategori Petty Cash
+
+Ketiga layar ini **berbagi bentuk** dengan layar master data modul ini yang sudah ada — Tax Rule, Discount Policy, Room Charge Policy — dan karena itu **tidak digambar ulang**. Bentuknya mengikuti `rules/frontend/master-data-feature-standard.md` apa adanya: daftar dengan kartu ringkasan dan saringan, detail dengan tombol Kembali/Perbarui/Hapus, serta satu form untuk tambah dan ubah.
+
+| Yang khusus pada fitur ini | Nilainya |
+| --- | --- |
+| Isian form | `categoryCode` (wajib, unik), `categoryName` (wajib), `description` (opsional), `isActive` (hanya saat ubah) |
+| Kolom daftar | No, Tanggal Dibuat, Kode, Nama Kategori, Dibuat Oleh, Status |
+| Pesan konfirmasi hapus | "Kategori yang sudah dipakai voucher tidak dapat dihapus." |
+| Kegagalan hapus | `400` dari server ditampilkan apa adanya: kategori masih dipakai voucher |
+| Isian kode | **Diketik Finance**, bukan dibuat sistem — mengikuti `MstTaxRule.Code` yang juga diisi pengguna |
+
+### Aksi per peran
+
+Diturunkan dari [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md), bukan dikarang ulang di sini.
+
+| Aksi | Kasir / petugas administrasi | Kepala Kasir / Finance Operations | Finance (pengelola anggaran) |
+| --- | :---: | :---: | :---: |
+| Melihat daftar voucher dan saldo | Ya | Ya | Ya |
+| Membuat voucher atas nama siapa saja | Ya | Ya | Tidak, kecuali diberi butirnya |
+| Membatalkan voucher | Ya, **hanya yang diajukannya sendiri** | Tidak, kecuali ia pemohonnya | Tidak |
+| Menyetujui atau menolak | **Tidak** | **Ya** | Tidak |
+| Menekan "Uang Diberikan" | Ya | Ya | Tidak |
+| Memasukkan atau mengoreksi bukti nota | Ya | Ya | Tidak |
+| Menambah atau mengoreksi anggaran | Tidak | Tidak | **Ya** |
+| Mengelola kategori | Tidak | Tidak | **Ya** |
+
+Pembagian di atas adalah **saran pemetaan**. Siapa yang benar-benar mendapat butir mana ditentukan admin lewat layar Akses Role. Layar menyembunyikan aksi yang tidak berhak, tetapi backend tetap sumber otorisasi, dan `403` dijelaskan sebagai hak tidak tersedia, bukan galat umum.
+
+### Data dan status yang dikonsumsi
+
+| Layar | Endpoint yang dibaca | Kapan dipanggil |
+| --- | --- | --- |
+| `FE-PC-01` | `GET /petty-cash/vouchers/filters/metadata`, `GET /petty-cash/vouchers/summary`, `GET /petty-cash/vouchers`, `GET /petty-cash/budget/current` | Metadata sekali saat layar dibuka; ketiganya yang lain setiap saringan berubah |
+| `FE-PC-02` | `GET /master-data/petty-cash-categories/options` | Saat form dibuka |
+| `FE-PC-04` | `GET /petty-cash/vouchers/{id}` | Saat detail dibuka |
+| `FE-PC-05` | `GET /petty-cash/budget/current`, `GET /petty-cash/budget/movements` | Saat layar dibuka dan setiap saringan riwayat berubah |
+| `FE-PC-06`–`08` | Sembilan endpoint kategori | Mengikuti pola master data yang sudah berjalan |
+
+**Cara menampilkan status.** Layar menampilkan `statusLabel` yang dikirim server apa adanya. Layar **MUST NOT** memetakan sendiri kode `WAITING_APPROVAL` menjadi kalimat Bahasa Indonesia — dua tempat yang memutuskan kalimat yang sama akan menyimpang, dan kalimatnya sudah dikunci `PC-DEC-013`.
+
+**Setelah setiap aksi berhasil**, layar memuat ulang daftar voucher **dan** kartu saldo bersamaan. Memuat ulang salah satunya saja membuat kasir melihat voucher yang sudah `Uang Diterima` di samping saldo yang belum berkurang.
+
+### Penanganan keadaan
+
+| Keadaan | Yang dilihat petugas |
+| --- | --- |
+| Memuat | Kerangka baris pada tabel dan kerangka angka pada kartu, bukan layar kosong |
+| Kosong | "Data voucher petty cash tidak ditemukan." beserta "Coba gunakan filter lain atau tambahkan data baru." |
+| Gagal memuat daftar | Pesan merah beserta tombol Coba lagi; kartu saldo tetap tampil bila ia berhasil dimuat |
+| Gagal memuat saldo | Kartu diganti pesan singkat; **tabel tetap dapat dipakai**. Angka saldo yang gagal dimuat **MUST NOT** ditampilkan sebagai Rp 0 |
+| Tanpa hak akses | `AccessDeniedGate` seperti layar lain di modul ini |
+| Data basi | Setiap aksi berhasil memicu pemuatan ulang daftar dan saldo. Tidak ada pemuatan ulang berkala di latar |
+| Pengiriman ganda | Tombol dinonaktifkan selama permintaan berjalan. Untuk "Uang Diberikan", layar **MUST** mengirim `Idempotency-Key` yang **sama** saat mencoba ulang permintaan yang gagal karena jaringan — kunci baru berarti percobaan itu dianggap penyerahan uang kedua |
+| Anggaran tidak cukup saat menyetujui | Pesan dari server ditampilkan apa adanya, termasuk angka sisa yang dapat dipakai. Layar **MUST NOT** menyingkatnya menjadi "Gagal" |
+| Kategori kosong | Form Buat Voucher menampilkan keterangan biru dan menonaktifkan tombol Simpan — ini keadaan wajar pada pemakaian pertama, bukan galat |
+
+### Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Ketiga butir menu beserta route-nya | **Terkunci** oleh amendment ini |
+| Kelima label status | **Terkunci** oleh `PC-DEC-013`. Layar menampilkan `statusLabel` dari server |
+| Nama field pada form: Nama Penerima, Kategori, Nominal Voucher, Tujuan | **Terkunci** — mengikuti rujukan tampilan pemilik |
+| Nomor voucher sebagai kolom hanya-baca | **Terkunci** oleh `PC-DES-008` |
+| Tombol aksi diturunkan dari `availableActions` | **Terkunci** |
+| Ketiga angka anggaran diambil dari server | **Terkunci** oleh `PC-DES-005` |
+| **Wadah presentasi** — modal, drawer, atau halaman terpisah untuk `FE-PC-02` dan `FE-PC-03` | `DEV_DISCRETION`. Rujukan tampilan memakai modal dan itu **direkomendasikan**, tetapi wadahnya adalah keputusan bentuk. Yang terkunci adalah isi dan sumber datanya |
+| Urutan kolom tabel, lebar kolom, dan penempatan kartu | `DEV_DISCRETION` |
+| Warna chip status dan chip kategori | `DEV_DISCRETION`, dengan syarat status **tidak** disampaikan lewat warna saja — chip **MUST** memuat teksnya |
+| Ikon, jarak, dan bentuk kontrol | `DEV_DISCRETION` |
+| Nama berkas hook, komponen, dan penempatan komposisinya | `DEV_DISCRETION` |
+| Apakah `FE-PC-04` menampilkan riwayat perintah sebagai tabel atau linimasa | `DEV_DISCRETION` |
+
+### Yang sengaja tidak dibuat (frontend)
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tombol sunting pada voucher, pada status apa pun | Tidak ada endpoint penyuntingan, dan tidak ada keputusan yang mengaturnya. Voucher yang salah dibatalkan lalu dibuat ulang |
+| Tombol "Ajukan Ulang" pada voucher yang ditolak | `PC-DEC-003` — voucher ditolak adalah catatan permanen |
+| Pemilihan penerima dari daftar pegawai | `PC-DEC-011` — teks bebas |
+| Penghitungan sisa anggaran di sisi layar | `PC-DES-005` — dua tempat yang menghitung uang yang sama akan menyimpang |
+| Pemetaan kode status menjadi kalimat di sisi layar | `PC-DEC-013` mengunci kalimatnya; server yang mengirimnya |
+| Penanda atau peringatan untuk voucher yang lama tidak bernota | `PC-DEC-006` menunda seluruh mekanisme pengingat ke rilis berikutnya. Menambahkan penandanya di layar berarti membangun setengah dari fitur yang sengaja ditunda |
+| Menampilkan kas kecil di layar Shift Kasir, atau sebaliknya | `PC-DEC-001` — dua kantong yang berbeda |
+| Ekspor daftar voucher ke berkas | Tidak diminta satu pun keputusan |
+
+### Acceptance tambahan
+
+48. Ketiga butir menu baru muncul di sidebar bagi pengguna yang memegang butir hak aksesnya, dan **tidak** muncul bagi yang tidak memegangnya.
+49. Kartu TOTAL PETTY CASH menampilkan angka yang sama persis dengan yang dikirim server, dan **tidak** dihitung ulang dari daftar voucher yang tampil.
+50. Kolom Aksi menampilkan tombol "Uang Diberikan" **hanya** pada baris yang `availableActions`-nya memuat aksi itu — bukan pada setiap baris berstatus `Disetujui` tanpa memeriksa kewenangan pengguna.
+51. Kolom Bukti menampilkan tombol "Input Nota" ketika nomor nota belum ada, dan chip berisi nomornya ketika sudah ada.
+52. Voucher yang dibatalkan pemohonnya tampil dengan penanda "Dibatalkan", dan chip statusnya **tetap** "Menunggu Persetujuan" — bukan status keenam.
+53. Form Buat Voucher menampilkan Voucher Number sebagai kolom hanya-baca berketerangan otomatis, dan permintaan simpan yang terkirim **tidak** memuat nomor voucher.
+54. Ketika belum ada satu pun kategori aktif, form Buat Voucher menampilkan keterangan biru dan tombol Simpan dinonaktifkan — bukan dropdown kosong tanpa penjelasan.
+55. Menekan "Uang Diberikan" dua kali berturut-turut menghasilkan satu penyerahan uang, dan saldo pada kartu berkurang satu kali.
+56. Setelah "Uang Diberikan" berhasil, daftar voucher **dan** kartu saldo dimuat ulang bersamaan.
+57. Persetujuan yang ditolak karena anggaran tidak cukup menampilkan pesan dari server beserta angka sisa yang dapat dipakai, bukan pesan galat umum.
+58. Menutup shift kasir setelah mencairkan voucher pada hari yang sama menghasilkan angka kas shift yang sama persis seperti bila voucher itu tidak pernah dicairkan.
+59. Tidak ada satu pun UUID yang tampil di layar maupun di URL pada seluruh layar Petty Cash.
+
