@@ -384,3 +384,280 @@ sudah menjaganya.
 Satu invariant lagi, yaitu "tepat satu dari debit atau kredit lebih besar dari nol", **dapat**
 ditegakkan lewat check constraint dan sebaiknya memang dipasang sebagai lapis kedua di samping
 pemeriksaan service.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Tabel Baru dan Diperbarui
+
+| Field | Nilai |
+|---|---|
+| Cakupan | `ACC-P2-S1` sampai `ACC-P2-S4` |
+| Status | `draft` — 8 September 2026 |
+| Backend SHA | `02c3219` |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+
+Sepuluh kolom warisan `IdentityModel` tetap tidak diulang, sama seperti bagian MVP di atas.
+
+## Catatan sensitif Phase 2 — bertambah satu hal penting
+
+MVP tidak menyimpan data pribadi sama sekali. Phase 2 adalah fase pertama yang menerima data
+**berasal** dari tagihan pasien, sehingga satu batas baru berlaku:
+
+> `ACC-DEC-056` melarang seluruh tabel Accounting menyimpan nama pasien, nomor rekam medis, dan
+> nomor kunjungan. Yang boleh disimpan hanya **modul asal** dan **nomor transaksi asal**.
+
+Karena itu kolom `SourceTransactionId` ditandai **Sensitif = Ya**: ia bukan data pribadi, tetapi
+ia adalah **penunjuk** ke kunjungan pasien. Ia tidak boleh masuk custom logger dan tidak boleh
+dipakai sebagai contoh berisi nomor asli.
+
+---
+
+## 9. `AccAccountingEvent` — status `Baru`
+
+Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun tidak.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `LegalEntityId` | `Guid` | Ya | — | Index bersama `EventStatus` | FK ke `MstLegalEntity` | `Restrict` | Tidak | Badan hukum yang bukunya disentuh |
+| `EventNumber` | `string(50)` | Ya | — | **Unique** | — | — | Tidak | Nomor kejadian dari penerbit, contoh `EVT-100`. Kunci anti-ganda **pertama** (`ACC-DEC-035`) |
+| `EventTypeId` | `Guid` | Ya | — | Unique bersama tiga kolom sumber | FK ke `AccEventType` | `Restrict` | Tidak | Jenis kejadian |
+| `SourceModule` | `string(50)` | Ya | — | Unique bersama tiga kolom lain | — | — | Tidak | Modul penerbit, contoh `Finance` |
+| `SourceTransactionId` | `string(100)` | Ya | — | Unique bersama tiga kolom lain | — | — | **Ya** | Nomor dokumen di modul asal. **Penunjuk ke kunjungan pasien** — lihat catatan sensitif |
+| `SourceVersion` | `string(20)` | Ya | `"1"` | Unique bersama tiga kolom lain | — | — | Tidak | Versi kejadian. Kunci anti-ganda **kedua** bersama tiga kolom di atas |
+| `EventOccurredAt` | `timestamptz` | Ya | — | — | — | — | Tidak | Waktu kejadian di modul asal (`ACC-DEC-040`) |
+| `AccountingDate` | `date` | Ya | — | Index | — | — | Tidak | Tanggal akuntansi yang menentukan periode |
+| `DocumentDate` | `date` | Ya | — | — | — | — | Tidak | Tanggal dokumen asli. **Berbeda dari `AccountingDate` bila kejadian datang terlambat** (`ACC-DEC-047`) |
+| `Amount` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Nilai kejadian. Wajib lebih besar dari nol |
+| `CurrencyCode` | `string(3)` | Ya | `"IDR"` | — | — | — | Tidak | Hanya `IDR` diterima (`ACC-DEC-020`) |
+| `EventStatus` | `int` | Ya | `1` | Index bersama `LegalEntityId` | — | — | Tidak | Enum `AccountingEventStatus`, `HasConversion<int>` |
+| `JournalId` | `Guid?` | Tidak | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal yang dihasilkan. **Kosong** untuk kejadian Tertahan, Gagal, dan Diabaikan |
+| `RawPayload` | `text` | Ya | — | — | — | — | **Ya** | Isi pesan asli apa adanya. Disimpan untuk menyelesaikan selisih angka di kemudian hari |
+| `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan otomatis. Berhenti di 3 (`ACC-DEC-049`) |
+| `IgnoreReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Alasan diabaikan. **Wajib** bila status `Diabaikan` |
+
+**Dua unique index, bukan satu.** `EventNumber` sendirian tidak cukup: bila penerbit keliru
+membuat nomor baru untuk kejadian yang sama, index pertama tidak menangkapnya. Gabungan
+`SourceModule` + `SourceTransactionId` + `EventTypeId` + `SourceVersion` adalah jaring keduanya.
+
+## 10. `AccAccountingEventAttempt` — status `Baru`
+
+Riwayat setiap percobaan pemrosesan sebuah kejadian.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `AccountingEventId` | `Guid` | Ya | — | Unique bersama `AttemptNumber` | FK ke `AccAccountingEvent` | `Cascade` | Tidak | Kejadian induknya |
+| `AttemptNumber` | `int` | Ya | — | Unique bersama `AccountingEventId` | — | — | Tidak | Nomor urut percobaan, 1 sampai 3 untuk otomatis; lebih dari 3 untuk coba ulang manual |
+| `AttemptedAt` | `timestamptz` | Ya | — | — | — | — | Tidak | Waktu percobaan |
+| `IsSuccess` | `bool` | Ya | `false` | — | — | — | Tidak | Berhasil atau tidak |
+| `FailureMessage` | `string(1000)?` | Tidak | — | — | — | — | Tidak | Pesan kegagalan teknis. **Bukan** pesan bagi pengguna |
+
+`Cascade` dipakai di sini — satu-satunya di Phase 2 — karena percobaan tidak punya arti tanpa
+kejadian induknya, persis seperti baris jurnal terhadap jurnalnya.
+
+## 11. `AccEventType` — status `Baru`
+
+Daftar jenis kejadian keuangan yang dikenal Accounting.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `EventTypeCode` | `string(50)` | Ya | — | **Unique** | — | — | Tidak | Kode jenis, contoh `PENGAKUAN-PIUTANG` |
+| `EventTypeName` | `string(200)` | Ya | — | Index | — | — | Tidak | Nama yang dibaca petugas |
+| `SourceModule` | `string(50)` | Ya | — | — | — | — | Tidak | Modul yang diharapkan menerbitkannya |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Tidak boleh dimatikan bila masih ada aturan posting aktif |
+
+**Isinya belum dapat ditetapkan** — `DEC-ACC-P2-002` masih `OPEN` dan menunggu owner Finance.
+Bentuk tabelnya tidak menunggu.
+
+## 12. `AccPostingRule` — status `Baru`
+
+Kepala aturan posting: jenis kejadian, badan hukum, dan perlakuannya. Akunnya ada di `AccPostingRuleLine` (`ACC-DEC-058`).
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `LegalEntityId` | `Guid` | Ya | — | Unique bersama `EventTypeId`, **berfilter `IsActive = true`** | FK ke `MstLegalEntity` | `Restrict` | Tidak | Aturan berbeda per badan hukum (`ACC-DEC-037`) |
+| `EventTypeId` | `Guid` | Ya | — | Unique bersama `LegalEntityId` | FK ke `AccEventType` | `Restrict` | Tidak | Jenis kejadian yang dipetakan |
+| `Treatment` | `int` | Ya | `2` | — | — | — | Tidak | Enum `AccountingEventTreatment`. Bawaan `BuatDraft` — **sengaja yang lebih aman** |
+| `IsActive` | `bool` | Ya | `true` | Bagian dari unique berfilter | — | — | Tidak | Aturan lama disimpan nonaktif, tidak dihapus |
+
+**Kenapa unique index-nya berfilter.** Satu jenis kejadian hanya boleh punya **satu aturan aktif**
+per badan hukum, tetapi aturan lama tetap disimpan sebagai riwayat. Tanpa filter `IsActive = true`,
+menyimpan riwayat menjadi mustahil.
+
+**Kenapa `Treatment` berbawaan `BuatDraft`.** Bila petugas lupa menetapkannya, akibat terburuknya
+adalah jurnal menumpuk menunggu pemeriksaan — bukan angka salah yang langsung masuk buku besar.
+
+**Kenapa akun debit dan kredit TIDAK ada di tabel ini** (`ACC-DEC-058`). Akun berpindah ke
+`AccPostingRuleLine`, karena satu aturan dapat menghasilkan lebih dari dua baris. Bentuk lama
+— sepasang `DebitAccountId` dan `CreditAccountId` — tidak dapat mengungkapkan pendapatan yang
+disertai jasa medis dokter maupun potongan penjualan.
+
+## 12b. `AccPostingRuleLine` — status `Baru`
+
+Satu baris aturan posting. Meniru bentuk `AccJournalLine` yang sudah terbukti.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PostingRuleId` | `Guid` | Ya | — | Unique bersama `LineNumber` | FK ke `AccPostingRule` | `Cascade` | Tidak | Aturan induknya |
+| `LineNumber` | `int` | Ya | — | Unique bersama `PostingRuleId` | — | — | Tidak | Nomor urut baris |
+| `ComponentCode` | `string(50)` | Ya | `"TOTAL"` | Index | — | — | Tidak | Komponen nilai yang dipakai baris ini. `TOTAL` berarti memakai nilai total kejadian |
+| `AccountId` | `Guid` | Ya | — | Index | FK ke `AccChartOfAccount` | `Restrict` | Tidak | Akun yang dicatat. Wajib menerima transaksi dan sebadan hukum |
+| `CostCenterId` | `Guid?` | Tidak | — | Index | FK ke `MstCostCenter` | `Restrict` | Tidak | **Wajib** bila akunnya berjenis `Expense` (`ACC-DEC-019`) |
+| `Side` | `int` | Ya | — | — | — | — | Tidak | Enum `PostingSide`: `Debit = 1`, `Kredit = 2` |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Keterangan yang disalin ke baris jurnal |
+
+### Contoh isi — pendapatan rawat jalan dengan jasa medis dokter
+
+Aturan untuk jenis kejadian `PENGAKUAN-PIUTANG`, badan hukum `LE-MMC-001`:
+
+| Baris | Komponen | Akun | Sisi |
+|---:|---|---|---|
+| 1 | `TOTAL` | `1-1201 Piutang Penjamin` | Debit |
+| 2 | `TOTAL` | `4-1001 Pendapatan Rawat Jalan` | Kredit |
+| 3 | `JASA_MEDIS` | `5-3001 Beban Jasa Medis` | Debit |
+| 4 | `JASA_MEDIS` | `2-1301 Utang Jasa Medis Dokter` | Kredit |
+
+Kejadian bernilai total Rp 10.000.000 dengan komponen `JASA_MEDIS` Rp 3.000.000 menghasilkan
+jurnal empat baris: debit Rp 13.000.000, kredit Rp 13.000.000, seimbang.
+
+### Contoh isi — pendapatan dengan potongan
+
+| Baris | Komponen | Akun | Sisi |
+|---:|---|---|---|
+| 1 | `NETTO` | `1-1201 Piutang Penjamin` | Debit |
+| 2 | `POTONGAN` | `4-9001 Potongan Penjualan` | Debit |
+| 3 | `TOTAL` | `4-1001 Pendapatan Rawat Jalan` | Kredit |
+
+Kejadian bernilai total Rp 10.000.000 dengan komponen `NETTO` Rp 9.000.000 dan `POTONGAN`
+Rp 1.000.000 menghasilkan debit Rp 10.000.000 lawan kredit Rp 10.000.000. **Inilah bentuk yang
+tidak dapat diungkapkan rancangan lama sama sekali**, karena memecahnya menjadi dua kejadian
+seimbang menuntut akun perantara yang dilarang `ACC-DEC-046`.
+
+### Aturan yang mengikat bentuk ini
+
+1. Minimal **dua** baris per aturan.
+2. Setelah nilai komponen dimasukkan, **total debit wajib sama dengan total kredit**. Aturan yang
+   tidak dapat seimbang untuk komponen mana pun ditolak saat disimpan.
+3. Setiap `ComponentCode` yang dipakai baris aturan wajib ada pada kejadian, kecuali `TOTAL` yang
+   selalu tersedia.
+4. Kejadian yang membawa komponen **tanpa** baris aturan yang memakainya diperlakukan
+   **Tertahan**, sama seperti kejadian tanpa pemetaan (`ACC-DEC-046`). Mengabaikan komponen yang
+   tidak dikenal berarti membuang angka diam-diam.
+
+## 12c. `AccAccountingEventComponent` — status `Baru`
+
+Rincian nilai yang dibawa sebuah kejadian, di samping nilai totalnya.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `AccountingEventId` | `Guid` | Ya | — | Unique bersama `ComponentCode` | FK ke `AccAccountingEvent` | `Cascade` | Tidak | Kejadian induknya |
+| `ComponentCode` | `string(50)` | Ya | — | Unique bersama `AccountingEventId` | — | — | Tidak | Kode komponen, contoh `JASA_MEDIS`, `POTONGAN`, `NETTO` |
+| `Amount` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Nilai komponen |
+
+**Kenapa disimpan sebagai tabel, padahal `RawPayload` sudah memuat pesan aslinya.** `RawPayload`
+berbentuk teks dan tidak dapat ditanya. Ketika enam bulan kemudian muncul pertanyaan "berapa total
+jasa medis yang dibukukan September lalu", pertanyaan itu hanya terjawab bila komponennya berupa
+kolom, bukan teks. Ini juga bahan bagi `DEC-ACC-P2-008`, deteksi aturan posting yang salah.
+
+## 13. `AccRecurringJournalTemplate` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `LegalEntityId` | `Guid` | Ya | — | Unique bersama `TemplateCode` | FK ke `MstLegalEntity` | `Restrict` | Tidak | Badan hukum pemilik |
+| `TemplateCode` | `string(50)` | Ya | — | Unique bersama `LegalEntityId` | — | — | Tidak | Kode template, contoh `SUSUT-ALKES` |
+| `TemplateName` | `string(200)` | Ya | — | Index | — | — | Tidak | Nama yang dibaca petugas |
+| `JournalTypeId` | `Guid` | Ya | — | — | FK ke `AccJournalType` | `Restrict` | Tidak | Jenis jurnal yang dihasilkan |
+| `Frequency` | `int` | Ya | `1` | — | — | — | Tidak | Enum `RecurringFrequency`. Rilis pertama hanya `Bulanan` |
+| `DayOfMonth` | `int` | Ya | `1` | — | — | — | Tidak | Tanggal terbit tiap bulan, 1 sampai 28. **Dibatasi 28** supaya Februari tidak pernah terlewat |
+| `StartDate` | `date` | Ya | — | — | — | — | Tidak | Mulai berlaku |
+| `EndDate` | `date?` | Tidak | — | — | — | — | Tidak | Berhenti berlaku. Kosong berarti tanpa batas |
+| `IsActive` | `bool` | Ya | `false` | Index | — | — | Tidak | **Bawaan tidak aktif** — template baru wajib diperiksa dulu sebelum diaktifkan |
+
+## 14. `AccRecurringJournalTemplateLine` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `TemplateId` | `Guid` | Ya | — | Unique bersama `LineNumber` | FK ke `AccRecurringJournalTemplate` | `Cascade` | Tidak | Template induknya |
+| `LineNumber` | `int` | Ya | — | Unique bersama `TemplateId` | — | — | Tidak | Nomor urut baris |
+| `AccountId` | `Guid` | Ya | — | Index | FK ke `AccChartOfAccount` | `Restrict` | Tidak | Akun yang dicatat |
+| `CostCenterId` | `Guid?` | Tidak | — | Index | FK ke `MstCostCenter` | `Restrict` | Tidak | **Wajib** bila akunnya berjenis `Expense` (`ACC-DEC-019`) |
+| `DebitAmount` | `numeric(18,2)` | Ya | `0` | — | — | — | **Ya** | Nilai debit |
+| `CreditAmount` | `numeric(18,2)` | Ya | `0` | — | — | — | **Ya** | Nilai kredit. **Tepat satu sisi terisi**, sama seperti `AccJournalLine` |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Keterangan baris |
+
+## 15. `AccRecurringJournalRun` — status `Baru`
+
+Bukti bahwa satu template sudah terbit untuk satu periode. **Tabel terpenting bagi jurnal berulang.**
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `TemplateId` | `Guid` | Ya | — | **Unique bersama `AccountingPeriodId`** | FK ke `AccRecurringJournalTemplate` | `Restrict` | Tidak | Template yang terbit |
+| `AccountingPeriodId` | `Guid` | Ya | — | **Unique bersama `TemplateId`** | FK ke `AccAccountingPeriod` | `Restrict` | Tidak | Periode tujuan |
+| `JournalId` | `Guid` | Ya | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal draft yang dihasilkan |
+| `GeneratedAt` | `timestamptz` | Ya | — | — | — | — | Tidak | Waktu penerbitan |
+
+Unique `(TemplateId, AccountingPeriodId)` adalah **satu-satunya** hal yang mencegah penyusutan
+September tercatat dua kali ketika penjadwal berjalan dua kali. Pemeriksaan di kode C# tidak
+cukup: dua proses bersamaan dapat sama-sama lolos di kode, tetapi tidak dapat sama-sama lolos
+dari database.
+
+## 16. `AccPeriodClosingApproval` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama `ActionSequence` | FK ke `AccAccountingPeriod` | `Cascade` | Tidak | Periode yang ditutup |
+| `ActionSequence` | `int` | Ya | — | Unique bersama `AccountingPeriodId` | — | — | Tidak | Nomor urut tindakan |
+| `Action` | `int` | Ya | — | — | — | — | Tidak | Enum `PeriodClosingAction`: Diajukan, Disetujui, Ditolak |
+| `ActionBy` | `Guid` | Ya | — | Index | FK ke pengguna | `Restrict` | Tidak | Pelaku tindakan |
+| `ActionAt` | `timestamptz` | Ya | — | — | — | — | Tidak | Waktu tindakan |
+| `ActionNote` | `string(500)?` | Tidak | — | — | — | — | Tidak | **Wajib** bila tindakannya Ditolak |
+
+Meniru bentuk `AccJournalApproval` yang sudah ada, dan alasannya sama: ini **data bisnis** yang
+ditampilkan ke pengguna, bukan log teknis.
+
+## 17. `AccAccountingConfiguration` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `LegalEntityId` | `Guid` | Ya | — | **Unique** | FK ke `MstLegalEntity` | `Restrict` | Tidak | Satu pengaturan per badan hukum |
+| `RetainedEarningsAccountId` | `Guid` | Ya | — | Index | FK ke `AccChartOfAccount` | `Restrict` | Tidak | Akun laba ditahan (`ACC-DEC-054`). Wajib berjenis `Equity` dan menerima transaksi |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
+
+**Kenapa tabel tersendiri, bukan kolom penanda pada `AccChartOfAccount`.** Akun laba ditahan tidak
+dapat diturunkan dari data lain — `AccountType == Equity` saja tidak cukup karena akun ekuitas bisa
+lebih dari satu. Menaruhnya sebagai penanda pada daftar akun akan menuntut penjagaan "hanya boleh
+satu yang bertanda per badan hukum", yang justru lebih rumit daripada satu baris pengaturan.
+
+## 18. `AccAccountingPeriod` — status `Diperbarui`
+
+Hanya kolom yang **berubah** yang ditulis. Kolom lainnya tetap seperti bagian MVP di atas.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `PeriodStatus` | `int` | Ya | `1` | Index | — | — | Tidak | **Diperbarui.** Enum bertambah `PendingClosingApproval = 4`, ditambahkan **di belakang**. Kolomnya tidak berubah tipe |
+| `ClosingSubmittedBy` | `Guid?` | Tidak | — | — | FK ke pengguna | `Restrict` | Tidak | **Baru.** Pengaju penutupan. Dipakai menegakkan "penyetuju bukan pengaju" |
+| `ClosingSubmittedAt` | `timestamptz?` | Tidak | — | — | — | — | Tidak | **Baru.** Waktu pengajuan |
+
+Kedua kolom baru **boleh kosong**, sehingga migration-nya dapat dijalankan tanpa mematikan
+layanan dan tanpa mengisi data lama.
+
+## 19. `AccJournalType` — status `Sudah ada`, hanya bertambah data
+
+**Nol kolom berubah.** Yang bertambah adalah **satu baris data**:
+
+| `JournalTypeCode` | `JournalTypeName` | `NumberPrefix` | `RequiresApproval` | `IsSystemType` |
+|---|---|---|:---:|:---:|
+| `JT` | Jurnal Tutup Tahun | `JT` | `true` | `true` |
+
+Ditambahkan lewat seeder yang sudah ada, bukan lewat migration data.

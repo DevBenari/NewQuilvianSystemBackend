@@ -286,3 +286,247 @@ Agar batasnya jelas:
 - Frontend **tidak** menyimpan data akuntansi di penyimpanan browser.
 - Frontend **tidak** memperkenalkan lapisan penerjemahan bahasa baru. Teks ditulis langsung dalam
   Bahasa Indonesia, sesuai kebiasaan yang berlaku.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| Cakupan | `ACC-P2-S1` sampai `ACC-P2-S4` |
+| Status | **`approved`** — Rizki, 8 September 2026 |
+| Frontend SHA | `e732424eb` (branch `RizkiV2`) |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+
+Seluruh aturan bagian 1 tetap berlaku penuh, terutama dua yang paling sering dilanggar:
+
+1. **Pakai ulang komponen dan gaya yang sudah ada.** Jangan membuat tandingan tabel, tombol,
+   modal, atau pemilih yang sudah dipakai sebelas layar MVP.
+2. **`globals.css` tidak disentuh.** Gaya khusus Phase 2 ditulis sebagai CSS Module milik
+   layarnya sendiri.
+
+## 9. Peta butir menu Phase 2
+
+Melanjutkan letak menu yang diputuskan `ACC-FE-001`. Enam butir bertambah, seluruhnya di dalam
+menu Accounting yang sudah ada.
+
+| # | Butir menu | Tingkat | Induk | Route | Layar yang dituju | Hak akses penjaga |
+|---:|---|:---:|---|---|---|---|
+| 1 | Kotak Masuk Kejadian | 2 | Accounting | `/accounting/accounting-events` | Kotak Masuk Kejadian | `AccountingEvent : Read` |
+| 2 | Aturan Posting | 3 | Accounting › Master Data | `/accounting/posting-rules` | Aturan Posting | `PostingRule : Read` |
+| 3 | Jenis Kejadian | 3 | Accounting › Master Data | `/accounting/event-types` | Jenis Kejadian | `EventType : Read` |
+| 4 | Jurnal Berulang | 2 | Accounting | `/accounting/recurring-journals` | Jurnal Berulang | `RecurringJournal : Read` |
+| 5 | Tutup Tahun | 2 | Accounting | `/accounting/year-end-closing` | Tutup Tahun | `YearEndClosing : Read` |
+| 6 | Pengaturan Akuntansi | 3 | Accounting › Master Data | `/accounting/configuration` | Pengaturan Akuntansi | `AccountingConfiguration : Update` |
+
+### Layar anak yang tidak muncul sebagai butir menu
+
+| Layar anak | Layar induk yang menjadi jalan masuknya |
+|---|---|
+| Rincian Kejadian | Kotak Masuk Kejadian, lewat klik satu baris |
+| Form Aturan Posting | Aturan Posting, lewat tombol Tambah dan Ubah |
+| Form Jenis Kejadian | Jenis Kejadian, lewat tombol Tambah dan Ubah |
+| Form Jurnal Berulang | Jurnal Berulang, lewat tombol Tambah dan Ubah |
+| Riwayat Penerbitan Template | Rincian Jurnal Berulang |
+| Daftar Periksa Penutupan | Periode Akuntansi (layar MVP), lewat tombol Tutup Periode |
+
+**Daftar Periksa Penutupan sengaja bukan butir menu tersendiri.** Ia hanya bermakna dalam konteks
+satu periode yang hendak ditutup; menaruhnya di menu akan menimbulkan pertanyaan "periode yang
+mana" sebelum petugas sempat memilih apa pun.
+
+### Penanda angka pada butir Kotak Masuk Kejadian
+
+`ACC-DEC-057` menetapkan pemberitahuan memakai penanda jumlah pada menu, tanpa Hub baru dan tanpa
+surel. Wujudnya: butir menu Kotak Masuk Kejadian membawa angka jumlah kejadian berstatus
+**Gagal**, diambil dari `GET /accounting-events/summary` saat menu dimuat dan saat layar Accounting
+dibuka.
+
+Kejadian **Tertahan** **tidak** ikut dihitung pada penanda itu, karena ia bukan gangguan yang
+menuntut tindakan segera — ia menunggu pekerjaan pemetaan yang wajar dijadwalkan.
+
+## 10. Layar Phase 2 yang dibutuhkan
+
+| # | Layar | Kebutuhan fungsional | Slice |
+|---:|---|---|---|
+| 13 | Kotak Masuk Kejadian | Daftar berhalaman dengan penyaring status, jenis, periode, dan badan hukum. Tab cepat: Semua, Tertahan, Gagal | `ACC-P2-S1` |
+| 14 | Rincian Kejadian | Isi pesan, riwayat percobaan, jurnal yang dihasilkan, tombol Coba Ulang dan Abaikan | `ACC-P2-S1` |
+| 15 | Aturan Posting | Daftar aturan per badan hukum beserta pasangan akun dan perlakuannya | `ACC-P2-S1` |
+| 16 | Form Aturan Posting | Pilih jenis kejadian, akun debit, akun kredit, dan perlakuan | `ACC-P2-S1` |
+| 17 | Jenis Kejadian | Master jenis kejadian; layar kecil | `ACC-P2-S1` |
+| 18 | Jurnal Berulang | Daftar template beserta status aktif dan jadwal terbitnya | `ACC-P2-S2` |
+| 19 | Form Jurnal Berulang | Kepala template ditambah tabel baris dengan total berjalan | `ACC-P2-S2` |
+| 20 | Daftar Periksa Penutupan | Dua penghalang dan lima peringatan, beserta tombol Ajukan | `ACC-P2-S3` |
+| 21 | Tutup Tahun | Pratinjau perhitungan dan tombol Susun Jurnal Penutup | `ACC-P2-S4` |
+| 22 | Pengaturan Akuntansi | Menetapkan akun laba ditahan per badan hukum; layar kecil | `ACC-P2-S4` |
+
+**Form Jurnal Berulang memakai ulang komponen Form Jurnal.** Keduanya sama-sama kepala ditambah
+tabel baris dengan total berjalan dan penjaga keseimbangan. Membuat komponen tandingan adalah
+pelanggaran aturan bagian 1, dan akan membuat dua tempat yang harus diperbaiki setiap kali aturan
+keseimbangan berubah.
+
+## 11. Skema fitur per layar
+
+### 11.1 Kotak Masuk Kejadian
+
+```
++--------------------------------------------------------------+
+| [Pemilih Badan Hukum v]                                      |
++--------------------------------------------------------------+
+| ( Semua ) ( Tertahan 3 ) ( Gagal 2 ) ( Terjurnal )           |
++--------------------------------------------------------------+
+| [Cari nomor kejadian] [Jenis v] [Periode v]      [Segarkan]  |
++--------------------------------------------------------------+
+| No Kejadian | Jenis | Tgl Akuntansi | Nilai | Status | Jurnal|
+| EVT-100     | ...   | 08/09/2026    | ...   | Terjur | JU/... |
+| EVT-101     | ...   | 08/09/2026    | ...   | Tertah | -      |
++--------------------------------------------------------------+
+|                                        < 1 2 3 >             |
++--------------------------------------------------------------+
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| Pemilih badan hukum | Daftar badan hukum | `GET /legal-entities/primary` | — | — | "Badan hukum utama belum ditetapkan" |
+| Tab cepat | Jumlah per status | `GET /accounting-events/summary` | `AccountingEvent : Read` | Angka 0 tidak ditampilkan | Tab tampil tanpa angka |
+| Tabel | Daftar kejadian berhalaman | `GET /accounting-events` | `AccountingEvent : Read` | "Belum ada kejadian keuangan yang diterima." | "Daftar kejadian gagal dimuat." + tombol Coba Lagi |
+
+Baris berstatus **Gagal** dan **Tertahan** diberi penanda warna berbeda memakai token warna yang
+sudah ada; **jangan** menambah warna baru ke `globals.css`.
+
+### 11.2 Rincian Kejadian
+
+```
++--------------------------------------------------------------+
+| EVT-100  [Tertahan]                  [Coba Ulang] [Abaikan]  |
++--------------------------------------------------------------+
+| Jenis: ...        Modul asal: Finance                        |
+| No transaksi asal: AR-2026-09-00871                          |
+| Tgl akuntansi: 08/09/2026   Tgl dokumen: 28/08/2026          |
+| Nilai: Rp 10.000.000                                         |
++--------------------------------------------------------------+
+| Jurnal yang dihasilkan:  (belum ada)                         |
++--------------------------------------------------------------+
+| Riwayat percobaan                                            |
+| # | Waktu | Hasil | Pesan                                    |
+| 1 | ...   | Gagal | Koneksi database terputus                |
++--------------------------------------------------------------+
+| Isi pesan asli                              [Lihat/Sembunyi] |
++--------------------------------------------------------------+
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| Kepala | Nomor, status, tombol aksi | `GET /accounting-events/{id}` | `AccountingEvent : Read` | — | "Kejadian tidak ditemukan." |
+| Tombol Coba Ulang | — | `POST /accounting-events/{id}/retry` | `AccountingEvent : Retry` | Mati bila status bukan Gagal | Pesan galat, status tidak berubah |
+| Tombol Abaikan | Modal berisi kolom alasan **wajib** | `PATCH /accounting-events/{id}/ignore` | `AccountingEvent : Ignore` | Mati bila status bukan Gagal | Pesan galat |
+| Jurnal yang dihasilkan | Tautan ke Rincian Jurnal | Dari respons yang sama | `Journal : Read` | "(belum ada)" — wajar untuk Tertahan dan Gagal | — |
+| Riwayat percobaan | Tabel percobaan | Dari respons yang sama | `AccountingEvent : Read` | "Belum pernah dicoba." | — |
+| Isi pesan asli | Teks mentah, tersembunyi secara bawaan | Dari respons yang sama | `AccountingEvent : Read` | — | — |
+
+**Tombol Abaikan wajib memunculkan modal konfirmasi yang menyebut bahwa tindakan ini tidak dapat
+dibatalkan**, karena memang tidak dapat. Kolom alasan tidak boleh kosong.
+
+### 11.3 Daftar Periksa Penutupan
+
+```
++--------------------------------------------------------------+
+| Tutup Periode 2026-09              [Ajukan Penutupan]        |
++--------------------------------------------------------------+
+| PENGHALANG (harus nol)                                       |
+|  x 3 jurnal belum disahkan                    [Lihat]        |
+|  x 2 kejadian keuangan gagal                  [Lihat]        |
++--------------------------------------------------------------+
+| PERINGATAN (boleh dilewati)                                  |
+|  ! 1 kejadian tertahan                        [Lihat]        |
+|  ! Penyusutan belum dijalankan                               |
++--------------------------------------------------------------+
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| Penghalang | Dua jenis penghalang beserta jumlahnya | `GET /accounting-periods/{id}/closing-checklist` | `Period : Read` | "Tidak ada penghalang." Tombol Ajukan menyala | "Daftar periksa gagal dimuat." |
+| Peringatan | Lima jenis peringatan | Dari respons yang sama | `Period : Read` | "Tidak ada peringatan." | — |
+| Tombol Ajukan | — | `POST /accounting-periods/{id}/submit-closing` | `Period : Close` | **Mati** selama masih ada penghalang | Pesan galat |
+| Tautan Lihat | Membuka daftar tersaring | Layar Jurnal atau Kotak Masuk Kejadian | Sesuai layar tujuan | — | — |
+
+**Tombol Ajukan mati, bukan disembunyikan**, selama masih ada penghalang. Menyembunyikannya membuat
+petugas bertanya-tanya di mana tombolnya; mematikannya beserta daftar penghalang di atasnya
+menjelaskan sendiri apa yang harus dikerjakan lebih dulu.
+
+Layar persetujuan bagi **pimpinan keuangan** memakai layar yang sama, dengan tombol berbeda:
+`[Setujui Penutupan]` dan `[Tolak]`, dijaga `Period : Approve`. Bila pembuka layar adalah orang
+yang mengajukan, kedua tombol itu **mati** beserta keterangan "Penutupan tidak dapat disetujui
+oleh yang mengajukan."
+
+### 11.4 Tutup Tahun
+
+```
++--------------------------------------------------------------+
+| [Badan Hukum v]  [Tahun Buku: 2026 v]          [Pratinjau]   |
++--------------------------------------------------------------+
+| Pendapatan                                                   |
+|   4-1001 Pendapatan Rawat Jalan          Rp   800.000.000    |
+|   4-1002 Pendapatan Rawat Inap           Rp   500.000.000    |
+| Beban                                                        |
+|   5-1001 Beban Obat                      Rp   300.000.000    |
+|   5-2001 Beban Gaji                      Rp   600.000.000    |
++--------------------------------------------------------------+
+| Laba tahun 2026                          Rp   400.000.000    |
+| Dipindahkan ke: 3-3001 Laba Ditahan                          |
++--------------------------------------------------------------+
+|                            [Susun Jurnal Penutup]            |
++--------------------------------------------------------------+
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| Pratinjau | Saldo per akun dan selisihnya | `GET /year-end-closing/preview` | `YearEndClosing : Read` | "Tidak ada saldo yang perlu ditutup." | "Masih ada periode yang belum ditutup." beserta daftarnya |
+| Baris tujuan | Akun laba ditahan | Dari respons yang sama | `YearEndClosing : Read` | "Akun laba ditahan belum ditetapkan" + tautan ke Pengaturan Akuntansi | — |
+| Tombol Susun | — | `POST /year-end-closing/generate` | `YearEndClosing : Generate` | Mati bila pratinjau kosong atau akun belum ditetapkan | Pesan galat |
+
+**Pratinjau tidak membuat apa pun.** Ini penting dinyatakan di layar, karena tutup tahun terasa
+menakutkan bagi petugas; menekan Pratinjau harus aman sepenuhnya.
+
+## 12. Aksi per peran Phase 2
+
+| Aksi | Viewer | Staff | Approver | Manager | Director | Auditor | Administrator |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Melihat kotak masuk kejadian | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Coba ulang kejadian gagal | | | | ✓ | | | ✓ |
+| Abaikan kejadian gagal | | | | ✓ | | | |
+| Kelola aturan posting dan jenis kejadian | | | | ✓ | | | ✓ |
+| Kelola template jurnal berulang | | ✓ buat | | ✓ | | | ✓ |
+| Ajukan penutupan periode | | | | ✓ | | | |
+| **Setujui atau tolak penutupan** | | | | | **✓** | | |
+| Susun jurnal penutup tahun | | | | ✓ | | | |
+
+Tombol yang tidak boleh ditekan peran tertentu **dimatikan, bukan disembunyikan**, mengikuti pola
+yang sudah dipakai sebelas layar MVP.
+
+## 13. Redux slice Phase 2
+
+Melanjutkan bagian 3. Enam slice bertambah, mengikuti pola penamaan yang sudah ada.
+
+| Slice | Isi | Kapan dikosongkan |
+|---|---|---|
+| `accounting-event-slice.jsx` | Daftar kejadian, rincian, ringkasan jumlah | Saat badan hukum berganti |
+| `accounting-posting-rule-slice.jsx` | Daftar dan rincian aturan posting | Saat badan hukum berganti |
+| `accounting-event-type-slice.jsx` | Master jenis kejadian | Saat keluar dari modul |
+| `accounting-recurring-journal-slice.jsx` | Template beserta riwayat penerbitannya | Saat badan hukum berganti |
+| `accounting-period-closing-slice.jsx` | Daftar periksa penutupan | Setiap kali layar dibuka — **tidak boleh dari cache** |
+| `accounting-year-end-slice.jsx` | Pratinjau tutup tahun | Setiap kali Pratinjau ditekan |
+
+**Dua slice terakhir sengaja tidak memakai cache.** Daftar periksa penutupan dan pratinjau tutup
+tahun adalah angka yang dihitung saat diminta; menampilkan angka lama membuat petugas mengambil
+keputusan penutupan berdasarkan keadaan yang sudah berubah.
+
+## 14. Yang tidak dikerjakan frontend pada Phase 2
+
+| Yang ditolak | Alasan |
+|---|---|
+| Layar penerbitan kejadian | Accounting adalah **penerima**, bukan penerbit. Yang menerbitkan adalah Finance |
+| Layar pencarian pasien dari kejadian | Dilarang `ACC-DEC-056`. Penelusuran dilakukan dengan membuka modul asalnya |
+| Pemberitahuan langsung lewat SignalR | Ditolak `ACC-DEC-057`. Memakai penanda jumlah pada menu |
+| Layar Laba Rugi dan Neraca | Tetap ditunda `ACC-DEC-030`; bukan bagian dari keempat slice Phase 2 |
+| Komponen tabel baris jurnal tandingan untuk template | Form Jurnal Berulang memakai ulang komponen Form Jurnal |

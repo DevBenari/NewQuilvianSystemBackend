@@ -3,9 +3,11 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `3` |
-| Status | `draft` — approval adalah tindakan manusia, belum diberikan |
-| Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) |
+| Revision | `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
+| Status | Bagian 1–13 (MVP): mengikuti approval `ACC-BP-001` revisi 5, 1 September 2026. Bagian 14–21 (Phase 2): **`approved`** — Rizki, 8 September 2026 |
+| Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) **dan** Phase 2 (`ACC-PH-006`, bagian 14–21) |
+| Bentuk blueprint | `SINGLE` — melanjutkan bentuk yang sudah melekat sejak approval, tidak dinilai ulang |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` — `ACC-DOMAIN-P2-0.1`, [evidence/09](evidence/09-phase2-hospital-domain-architecture.md) |
 | Backend SHA | `aa837d784ff51cb2b889cf975ada3a204018f1f5` (branch `rizkiG`) |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
 | Masukan | `00-interview-decisions.md@3`, `01-existing-capability-map.md@2` |
@@ -660,3 +662,438 @@ penandaan `IsDelete`. Untuk jurnal yang sudah disahkan, penandaan itu **tetap di
 | `ACC-XM-001` penerbit kejadian keuangan | Terbuka, lintas modul | Phase 2 saja |
 | `requirement-completeness-gate` dan `hospital-domain-architect` | Belum dijalankan | Phase 2 saja, sesuai penilaian gerbang di bagian 1 |
 | Daftar akun lengkap per badan hukum | Milik pemilik proses akuntansi | Pemakaian nyata, bukan pembangunan. Modul dapat dibangun dan diuji dengan kerangka lima kelompok |
+
+
+---
+
+# BAGIAN PHASE 2 (`ACC-PH-006`)
+
+> **APPROVED — Rizki, 8 September 2026.** Bentuk target Phase 2 disetujui owner modul, termasuk koreksi
+> `ACC-DEC-058` yang mengubah aturan posting menjadi daftar baris.
+>
+> **Approval bentuk bukan wewenang menulis kode.** Task implementasi tetap harus disetujui satu
+> per satu dari roadmap, dan migration menuntut wewenang tersendiri. Penulisan kode integrasi masih dilarang
+> [`contracts/integration-contract.md`](contracts/integration-contract.md) bagian 5 sampai
+> `ACC-XM-001` diratifikasi owner Billing dan owner Finance.
+
+| Field | Nilai |
+|---|---|
+| Masukan | `00-interview-decisions.md@4`, `evidence/08` gerbang kelengkapan, `evidence/09` arsitektur domain |
+| Decision masukan | `ACC-DEC-044` sampai `ACC-DEC-057` |
+| Backend SHA | `02c3219` (branch `rizkiG`) |
+| Slice | `ACC-P2-S1` kotak masuk kejadian, `ACC-P2-S2` jurnal berulang, `ACC-P2-S3` tutup bulan, `ACC-P2-S4` tutup tahun |
+| Yang masih terbuka | `DEC-ACC-P2-002`, `005`, `006`, `007`, `008` — seluruhnya soal isi, bukan bentuk |
+
+## 14. Tabel kepemilikan data Phase 2
+
+Melanjutkan tabel bagian 3. Hanya baris yang **baru muncul di Phase 2** yang ditulis di sini.
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Kejadian keuangan yang diterima | **Accounting** | Ya | Ya — kotak masuk milik penerima, bukan milik penerbit |
+| Riwayat percobaan pemrosesan kejadian | **Accounting** | Ya | Ya — bagian dari kejadian |
+| Aturan posting (jenis kejadian ke akun) | **Accounting** | Ya | Ya — kebijakan internal akuntansi |
+| Daftar jenis kejadian keuangan | **Accounting** | Ya | Ya — tetapi **isinya** disepakati bersama Finance (`DEC-ACC-P2-002`) |
+| Template jurnal berulang | **Accounting** | Ya | Ya |
+| Riwayat penerbitan jurnal berulang | **Accounting** | Ya | Ya |
+| Riwayat persetujuan penutupan periode | **Accounting** | Ya | Ya — data bisnis, bukan log teknis |
+| Pengaturan akuntansi per badan hukum | **Accounting** | Ya | Ya — memuat akun laba ditahan (`ACC-DEC-054`) |
+| **Piutang dan utang** | Finance | **Tidak** | **Tidak** — tetap dilarang `ACC-DEC-003` |
+| **Faktur dan pembayaran pasien** | Billing dan Kasir | **Tidak** | **Tidak** — tetap dilarang `ACC-DEC-004`, dan `ACC-DEC-044` menutup jalurnya |
+| **Identitas pasien** | Patient Management | **Tidak** | **Tidak** — dilarang `ACC-DEC-056`. Hanya nomor transaksi asal yang disimpan |
+| Pemberitahuan | Platform (`LoggerService`) | Ya | **Tidak** — memakai penanda jumlah menu, tanpa Hub baru (`ACC-DEC-057`) |
+| Penjadwal tugas berkala | Platform (`BackgroundService`) | Ya | **Tidak** — meniru `LeaveAccrualSchedulerHostedService` |
+
+## 15. Class diagram Phase 2
+
+Dipecah per slice agar satu diagram muat dibaca dalam satu layar.
+
+### 15.1 Kotak masuk kejadian dan aturan posting (`ACC-P2-S1`)
+
+```mermaid
+classDiagram
+    class AccAccountingEvent {
+        +Guid Id
+        +Guid LegalEntityId
+        +string EventNumber
+        +Guid EventTypeId
+        +string SourceModule
+        +string SourceTransactionId
+        +string SourceVersion
+        +DateTime EventOccurredAt
+        +DateTime AccountingDate
+        +DateTime DocumentDate
+        +decimal Amount
+        +string CurrencyCode
+        +AccountingEventStatus EventStatus
+        +Guid JournalId
+        +string RawPayload
+        +int AttemptCount
+        +string IgnoreReason
+    }
+    class AccAccountingEventAttempt {
+        +Guid Id
+        +Guid AccountingEventId
+        +int AttemptNumber
+        +DateTime AttemptedAt
+        +bool IsSuccess
+        +string FailureMessage
+    }
+    class AccPostingRule {
+        +Guid Id
+        +Guid LegalEntityId
+        +Guid EventTypeId
+        +AccountingEventTreatment Treatment
+        +bool IsActive
+    }
+    class AccPostingRuleLine {
+        +Guid Id
+        +Guid PostingRuleId
+        +int LineNumber
+        +string ComponentCode
+        +Guid AccountId
+        +Guid CostCenterId
+        +PostingSide Side
+    }
+    class AccAccountingEventComponent {
+        +Guid Id
+        +Guid AccountingEventId
+        +string ComponentCode
+        +decimal Amount
+    }
+    class AccEventType {
+        +Guid Id
+        +string EventTypeCode
+        +string EventTypeName
+        +string SourceModule
+        +bool IsActive
+    }
+    class AccJournal {
+        +Guid Id
+    }
+    class AccChartOfAccount {
+        +Guid Id
+    }
+    AccAccountingEvent "1" --> "0..*" AccAccountingEventAttempt : riwayat percobaan
+    AccAccountingEvent "1" --> "0..*" AccAccountingEventComponent : rincian nilai
+    AccAccountingEvent "0..1" --> "1" AccJournal : menghasilkan
+    AccAccountingEvent "*" --> "1" AccEventType : berjenis
+    AccPostingRule "*" --> "1" AccEventType : memetakan
+    AccPostingRule "1" --> "2..*" AccPostingRuleLine : baris aturan
+    AccPostingRuleLine "*" --> "1" AccChartOfAccount : akun
+```
+
+**`AccPostingRule` berbentuk induk dan baris, bukan sepasang akun** (`ACC-DEC-058`). Bentuk lama
+tidak dapat mengungkapkan pendapatan rumah sakit yang lazim disertai jasa medis dokter maupun
+potongan penjualan. Baris aturan menunjuk **komponen** nilai mana yang dipakainya, dan komponen
+itu dibawa kejadian lewat `AccAccountingEventComponent`. Contoh isinya ada di
+[`erd/data-dictionary.md`](erd/data-dictionary.md) bagian 12b.
+
+### 15.2 Jurnal berulang (`ACC-P2-S2`)
+
+```mermaid
+classDiagram
+    class AccRecurringJournalTemplate {
+        +Guid Id
+        +Guid LegalEntityId
+        +string TemplateCode
+        +string TemplateName
+        +Guid JournalTypeId
+        +RecurringFrequency Frequency
+        +int DayOfMonth
+        +DateTime StartDate
+        +DateTime EndDate
+        +bool IsActive
+    }
+    class AccRecurringJournalTemplateLine {
+        +Guid Id
+        +Guid TemplateId
+        +int LineNumber
+        +Guid AccountId
+        +Guid CostCenterId
+        +decimal DebitAmount
+        +decimal CreditAmount
+        +string Description
+    }
+    class AccRecurringJournalRun {
+        +Guid Id
+        +Guid TemplateId
+        +Guid AccountingPeriodId
+        +Guid JournalId
+        +DateTime GeneratedAt
+    }
+    class AccJournal {
+        +Guid Id
+    }
+    AccRecurringJournalTemplate "1" --> "2..*" AccRecurringJournalTemplateLine : baris template
+    AccRecurringJournalTemplate "1" --> "0..*" AccRecurringJournalRun : riwayat terbit
+    AccRecurringJournalRun "1" --> "1" AccJournal : menghasilkan draft
+```
+
+### 15.3 Tutup bulan dan tutup tahun (`ACC-P2-S3`, `ACC-P2-S4`)
+
+```mermaid
+classDiagram
+    class AccAccountingPeriod {
+        +Guid Id
+        +AccountingPeriodStatus PeriodStatus
+        +Guid ClosingSubmittedBy
+        +DateTime ClosingSubmittedAt
+    }
+    class AccPeriodClosingApproval {
+        +Guid Id
+        +Guid AccountingPeriodId
+        +int ActionSequence
+        +PeriodClosingAction Action
+        +Guid ActionBy
+        +DateTime ActionAt
+        +string ActionNote
+    }
+    class AccAccountingConfiguration {
+        +Guid Id
+        +Guid LegalEntityId
+        +Guid RetainedEarningsAccountId
+        +bool IsActive
+    }
+    class AccChartOfAccount {
+        +Guid Id
+    }
+    AccAccountingPeriod "1" --> "0..*" AccPeriodClosingApproval : riwayat penutupan
+    AccAccountingConfiguration "1" --> "1" AccChartOfAccount : akun laba ditahan
+```
+
+**Tutup tahun tidak muncul sebagai class.** Jurnal penutup tahun **adalah** `AccJournal`
+berjenis `JT`, persis seperti saldo awal yang memakai jenis `SA` pada MVP. Yang dibutuhkan hanya
+`AccAccountingConfiguration` untuk mengetahui akun laba ditahan mana yang dituju.
+
+## 16. Penjelasan setiap class Phase 2
+
+### Model
+
+| Class | Status | Lokasi file | Kegunaan |
+|---|---|---|---|
+| `AccAccountingEvent` | **Baru** | `Areas/Corporate/AccountingManagement/AccountingEvent/Models/AccAccountingEvent.cs` | Satu baris per kejadian keuangan yang pernah diterima, berhasil maupun tidak |
+| `AccAccountingEventAttempt` | **Baru** | `Areas/Corporate/AccountingManagement/AccountingEvent/Models/AccAccountingEventAttempt.cs` | Riwayat tiap percobaan pemrosesan beserta pesan kegagalannya |
+| `AccPostingRule` | **Baru** | `Areas/Corporate/AccountingManagement/MasterData/PostingRule/Models/AccPostingRule.cs` | Kepala aturan: jenis kejadian, badan hukum, dan perlakuannya |
+| `AccPostingRuleLine` | **Baru** | `Areas/Corporate/AccountingManagement/MasterData/PostingRule/Models/AccPostingRuleLine.cs` | Baris aturan: komponen, akun, dan sisi debit atau kredit (`ACC-DEC-058`) |
+| `AccAccountingEventComponent` | **Baru** | `Areas/Corporate/AccountingManagement/AccountingEvent/Models/AccAccountingEventComponent.cs` | Rincian nilai yang dibawa kejadian, di samping nilai totalnya |
+| `AccEventType` | **Baru** | `Areas/Corporate/AccountingManagement/MasterData/EventType/Models/AccEventType.cs` | Daftar jenis kejadian keuangan yang dikenal |
+| `AccRecurringJournalTemplate` | **Baru** | `Areas/Corporate/AccountingManagement/RecurringJournal/Models/AccRecurringJournalTemplate.cs` | Template jurnal yang terbit tiap periode |
+| `AccRecurringJournalTemplateLine` | **Baru** | `Areas/Corporate/AccountingManagement/RecurringJournal/Models/AccRecurringJournalTemplateLine.cs` | Baris template beserta nominalnya |
+| `AccRecurringJournalRun` | **Baru** | `Areas/Corporate/AccountingManagement/RecurringJournal/Models/AccRecurringJournalRun.cs` | Bukti bahwa satu template sudah terbit untuk satu periode |
+| `AccPeriodClosingApproval` | **Baru** | `Areas/Corporate/AccountingManagement/AccountingPeriod/Models/AccPeriodClosingApproval.cs` | Riwayat pengajuan, persetujuan, dan penolakan penutupan periode |
+| `AccAccountingConfiguration` | **Baru** | `Areas/Corporate/AccountingManagement/MasterData/Configuration/Models/AccAccountingConfiguration.cs` | Pengaturan per badan hukum; saat ini hanya akun laba ditahan |
+| `AccAccountingPeriod` | **Diperbarui** | `Areas/Corporate/AccountingManagement/AccountingPeriod/Models/AccAccountingPeriod.cs` | Bertambah `ClosingSubmittedBy` dan `ClosingSubmittedAt` |
+| `AccJournal` | **Sudah ada, tidak berubah** | `Areas/Corporate/AccountingManagement/JournalManagement/Models/AccJournal.cs` | Dipakai apa adanya oleh keempat slice |
+| `AccJournalType` | **Sudah ada, tidak berubah bentuknya** | `Areas/Corporate/AccountingManagement/MasterData/JournalType/Models/AccJournalType.cs` | Bertambah **satu baris data** `JT`, nol perubahan kolom |
+
+### Service
+
+| Service | Status | Fungsi utama | Dipanggil siapa | Membuka transaksi? |
+|---|---|---|---|---|
+| `AccAccountingEventService` | **Baru** | Menerima, memproses, menahan, dan mengabaikan kejadian | Controller dan penjadwal | **Ya** — satu transaksi mencakup kejadian, jurnal, dan percobaan |
+| `AccPostingRuleService` | **Baru** | CRUD aturan posting | Controller | Tidak |
+| `AccEventTypeService` | **Baru** | CRUD jenis kejadian | Controller | Tidak |
+| `AccRecurringJournalService` | **Baru** | CRUD template dan penerbitan jurnal berulang | Controller dan penjadwal | **Ya** — penerbitan satu periode |
+| `AccPeriodClosingService` | **Baru** | Menghitung penghalang, mengajukan, menyetujui, menolak penutupan | Controller | **Ya** — perubahan status periode |
+| `AccYearEndClosingService` | **Baru** | Menghitung saldo dan menyusun jurnal penutup tahun | Controller | **Ya** — penyusunan jurnal penutup |
+| `AccAccountingEventSchedulerHostedService` | **Baru** | Menjalankan percobaan ulang kejadian gagal | Runtime | Tidak langsung; memakai scope per siklus |
+| `AccRecurringJournalSchedulerHostedService` | **Baru** | Menerbitkan jurnal berulang yang jatuh tempo | Runtime | Tidak langsung; memakai scope per siklus |
+| `AccJournalService` | **Diperbarui** | Bertambah jalur pembuatan jurnal dari kejadian dan dari template | `AccAccountingEventService`, `AccRecurringJournalService` | Ya, sudah sejak MVP |
+| `AccountingLegalEntityGuard` | **Sudah ada** | Penjaga badan hukum utama | Seluruh service Phase 2 | Tidak |
+
+**Aturan yang diwarisi dari `BE-ACC-007` dan tetap berlaku:** logika yang dipakai lebih dari satu
+service dibuat `public static` menerima `ApplicationDbContext`, bukan didaftarkan sebagai DI baru.
+Contoh Phase 2: `AccPostingRuleService.CariAturanAktifAsync` dipanggil `AccAccountingEventService`
+tanpa registrasi tambahan di `Program.cs`.
+
+### Controller
+
+| Controller | Status | Lokasi file | Service yang dipakai |
+|---|---|---|---|
+| `AccountingEventController` | **Baru** | `AccountingEvent/Controllers/AccountingEventController.cs` | `AccAccountingEventService` |
+| `PostingRuleController` | **Baru** | `MasterData/PostingRule/Controllers/PostingRuleController.cs` | `AccPostingRuleService` |
+| `EventTypeController` | **Baru** | `MasterData/EventType/Controllers/EventTypeController.cs` | `AccEventTypeService` |
+| `RecurringJournalController` | **Baru** | `RecurringJournal/Controllers/RecurringJournalController.cs` | `AccRecurringJournalService` |
+| `AccountingConfigurationController` | **Baru** | `MasterData/Configuration/Controllers/AccountingConfigurationController.cs` | — |
+| `AccountingPeriodController` | **Diperbarui** | `AccountingPeriod/Controllers/AccountingPeriodController.cs` | Bertambah `AccPeriodClosingService` dan `AccYearEndClosingService` |
+
+Seluruh controller mengikuti pola MVP: `[Authorize]`, `[AccessController]`,
+`[AccessPermission("Resource","Action")]` per endpoint, dan pemetaan hasil lewat
+`AccountingServiceResult<T>.ToActionResult`. **Jangan** meniru `CostCenterController` yang memakai
+`ApplicationDbContext` langsung di controller.
+
+### Enum
+
+| Enum | Status | Nilai | Catatan |
+|---|---|---|---|
+| `AccountingEventStatus` | **Baru** | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5` | `Diabaikan` menunggu `DEC-ACC-P2-007` |
+| `AccountingEventTreatment` | **Baru** | `LangsungSahkan = 1`, `BuatDraft = 2` | Mewujudkan `ACC-DEC-045` |
+| `RecurringFrequency` | **Baru** | `Bulanan = 1` | Hanya satu nilai pada rilis pertama Phase 2; ruang untuk `Triwulanan` dan `Tahunan` disediakan tanpa dibangun |
+| `PeriodClosingAction` | **Baru** | `Diajukan = 1`, `Disetujui = 2`, `Ditolak = 3` | Meniru `JournalApprovalAction` yang sudah ada |
+| `PostingSide` | **Baru** | `Debit = 1`, `Kredit = 2` | Sisi baris aturan posting (`ACC-DEC-058`) |
+| `AccountingPeriodStatus` | **Diperbarui** | `Open = 1`, `SoftClosed = 2`, `Closed = 3`, **`PendingClosingApproval = 4`** | Nilai baru **ditambahkan di belakang**. Menyisipkannya di tengah akan mengubah arti angka yang sudah tersimpan di database |
+
+## 17. Arsitektur folder Phase 2
+
+```
+Areas/Corporate/AccountingManagement/
++-- AccountingEvent/                          [BARU]
+|   +-- Controllers/AccountingEventController.cs          [Baru]
+|   +-- DTOs/AccountingEventDtos.cs                       [Baru]
+|   +-- Enums/AccountingEventStatus.cs                    [Baru]
+|   +-- Enums/AccountingEventTreatment.cs                 [Baru]
+|   +-- Models/AccAccountingEvent.cs                      [Baru]
+|   +-- Models/AccAccountingEventAttempt.cs               [Baru]
+|   +-- Models/AccAccountingEventComponent.cs             [Baru]
+|   +-- Services/AccAccountingEventService.cs             [Baru]
+|   +-- Services/AccAccountingEventSchedulerHostedService.cs [Baru]
++-- RecurringJournal/                         [BARU]
+|   +-- Controllers/RecurringJournalController.cs         [Baru]
+|   +-- DTOs/RecurringJournalDtos.cs                      [Baru]
+|   +-- Enums/RecurringFrequency.cs                       [Baru]
+|   +-- Models/AccRecurringJournalTemplate.cs             [Baru]
+|   +-- Models/AccRecurringJournalTemplateLine.cs         [Baru]
+|   +-- Models/AccRecurringJournalRun.cs                  [Baru]
+|   +-- Services/AccRecurringJournalService.cs            [Baru]
+|   +-- Services/AccRecurringJournalSchedulerHostedService.cs [Baru]
++-- AccountingPeriod/                         [DIPERBARUI]
+|   +-- Controllers/AccountingPeriodController.cs         [Diperbarui]
+|   +-- DTOs/AccountingPeriodDtos.cs                      [Diperbarui]
+|   +-- Enums/AccountingPeriodStatus.cs                   [Diperbarui]
+|   +-- Enums/PeriodClosingAction.cs                      [Baru]
+|   +-- Models/AccAccountingPeriod.cs                     [Diperbarui]
+|   +-- Models/AccPeriodClosingApproval.cs                [Baru]
+|   +-- Services/AccAccountingPeriodService.cs            [Sudah ada]
+|   +-- Services/AccPeriodClosingService.cs               [Baru]
+|   +-- Services/AccYearEndClosingService.cs              [Baru]
++-- MasterData/                               [DIPERBARUI]
+|   +-- ChartOfAccount/                                   [Sudah ada, tidak disentuh]
+|   +-- JournalType/                                      [Sudah ada, hanya bertambah data]
+|   +-- EventType/                                        [BARU]
+|   +-- PostingRule/                                      [BARU]
+|   +-- Configuration/                                    [BARU]
++-- JournalManagement/                        [DIPERBARUI]
+|   +-- Services/AccJournalService.cs                     [Diperbarui]
++-- GeneralLedger/                            [Sudah ada, tidak disentuh]
++-- Services/                                 [Sudah ada, tidak disentuh]
+
+Repositories/Configurations/Accounting/                   [DIPERBARUI]
++-- AccAccountingEventConfiguration.cs                    [Baru]
++-- AccAccountingEventAttemptConfiguration.cs             [Baru]
++-- AccPostingRuleConfiguration.cs                        [Baru]
++-- AccEventTypeConfiguration.cs                          [Baru]
++-- AccRecurringJournalTemplateConfiguration.cs           [Baru]
++-- AccRecurringJournalTemplateLineConfiguration.cs       [Baru]
++-- AccRecurringJournalRunConfiguration.cs                [Baru]
++-- AccPeriodClosingApprovalConfiguration.cs              [Baru]
++-- AccAccountingConfigurationConfiguration.cs            [Baru]
+
+Tests/QuilvianSystemBackend.UnitTests.Sqlite/             [DIPERBARUI]
+Tests/QuilvianSystemBackend.IntegrationTests.Postgres/    [DIPERBARUI]
+```
+
+**Penyimpangan yang sengaja dicatat, bukan ditiru.** `GeneralLedger/` tidak punya folder `Models/`
+karena buku besar dihitung, bukan disimpan. Itu benar dan disengaja, tetapi berbeda dari pola
+folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
+
+## 18. Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Index dan unique constraint |
+|---|---|---|---|
+| `AccAccountingEvent` | **Baru** | — | Unique `(EventNumber)`; unique `(SourceModule, SourceTransactionId, EventTypeId, SourceVersion)`; index `(LegalEntityId, EventStatus)`; index `(AccountingDate)` |
+| `AccAccountingEventAttempt` | **Baru** | — | Unique `(AccountingEventId, AttemptNumber)` |
+| `AccPostingRule` | **Baru** | — | Unique `(LegalEntityId, EventTypeId)` **dengan filter `IsActive = true`** |
+| `AccPostingRuleLine` | **Baru** | — | Unique `(PostingRuleId, LineNumber)`; index `(ComponentCode)` |
+| `AccAccountingEventComponent` | **Baru** | — | Unique `(AccountingEventId, ComponentCode)` — satu komponen tidak boleh dikirim dua kali dalam satu kejadian |
+| `AccEventType` | **Baru** | — | Unique `(EventTypeCode)` |
+| `AccRecurringJournalTemplate` | **Baru** | — | Unique `(LegalEntityId, TemplateCode)` |
+| `AccRecurringJournalTemplateLine` | **Baru** | — | Unique `(TemplateId, LineNumber)` |
+| `AccRecurringJournalRun` | **Baru** | — | **Unique `(TemplateId, AccountingPeriodId)`** — inilah penjaga terbit ganda |
+| `AccPeriodClosingApproval` | **Baru** | — | Unique `(AccountingPeriodId, ActionSequence)` |
+| `AccAccountingConfiguration` | **Baru** | — | Unique `(LegalEntityId)` |
+| `AccAccountingPeriod` | **Diperbarui** | Bertambah **dua kolom**: `ClosingSubmittedBy` (`uuid`, boleh kosong) dan `ClosingSubmittedAt` (`timestamptz`, boleh kosong). Enum `PeriodStatus` bertambah nilai `4`; **kolomnya tidak berubah tipe** | Tidak ada index baru |
+
+**Dua unique index yang paling menentukan**, dan alasannya:
+
+1. `AccAccountingEvent` punya **dua** unique index, bukan satu. Ini mewujudkan `ACC-DEC-035` apa
+   adanya: nomor kejadian sebagai kunci utama, dan gabungan empat kolom sebagai jaring pengaman
+   bila penerbit keliru membuat nomor baru untuk kejadian yang sama.
+2. `AccRecurringJournalRun` unique `(TemplateId, AccountingPeriodId)` adalah **satu-satunya**
+   hal yang mencegah penyusutan bulan September tercatat dua kali ketika penjadwal tidak sengaja
+   berjalan dua kali. Menaruh penjagaan itu hanya di kode C# tidak cukup, karena dua proses
+   yang berjalan bersamaan dapat lolos keduanya.
+
+### Rencana migration
+
+| Urutan | Nama migration | Isi | Tanpa downtime? | Langkah mundur |
+|---:|---|---|:---:|---|
+| 1 | `AddAccountingPhase2MasterData` | `AccEventType`, `AccPostingRule`, **`AccPostingRuleLine`**, `AccAccountingConfiguration` | **Ya** — hanya tabel baru | `Down` menghapus keempat tabel; nol data lama tersentuh |
+| 2 | `AddAccountingEventInbox` | `AccAccountingEvent`, `AccAccountingEventAttempt`, **`AccAccountingEventComponent`** | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
+| 3 | `AddAccountingRecurringJournal` | Tiga tabel jurnal berulang | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
+| 4 | `AddAccountingPeriodClosingApproval` | `AccPeriodClosingApproval`, ditambah dua kolom pada `AccAccountingPeriod` | **Ya** — kedua kolom baru boleh kosong | `Down` menghapus tabel dan kedua kolom |
+
+**Pengisian data lama:** tidak ada. Keempat migration hanya menambah; nol baris existing perlu
+diubah. Periode yang sudah tertutup sebelum Phase 2 tetap `SoftClosed` atau `Closed` tanpa riwayat
+persetujuan, dan itu benar — mereka memang ditutup sebelum aturannya ada.
+
+**Peringatan yang mengikat.** Migration ini **belum boleh dibuat**. `06-shared-migration-coordination-rule.md`
+dan `evidence/04-migration-coordination-gate.md` tetap berlaku; pembuatan dan penerapannya
+menuntut wewenang terpisah dari owner.
+
+## 19. Rencana data master awal Phase 2
+
+Tanpa isi ini, Phase 2 berdiri tetapi tidak dapat dipakai sama sekali.
+
+| Tabel | Isi minimum agar dapat dipakai | Siapa yang mengisi | Keadaan |
+|---|---|---|---|
+| `AccEventType` | Minimal satu jenis kejadian yang benar-benar diterbitkan Finance | Rizki bersama Yasmin | **Belum dapat diisi** — `DEC-ACC-P2-002` masih `OPEN` |
+| `AccPostingRule` | Satu aturan aktif untuk setiap jenis kejadian, per badan hukum | Pemilik proses akuntansi | Menunggu `AccEventType` |
+| `AccAccountingConfiguration` | Satu baris per badan hukum, menunjuk akun laba ditahan | Pemilik proses akuntansi | **Dapat diisi sekarang** setelah akun laba ditahan dibuat di daftar akun |
+| `AccJournalType` | Satu baris tambahan `JT` Jurnal Tutup Tahun, `RequiresApproval = true` | Seeder | **Dapat dikerjakan sekarang** — memperluas seeder yang sudah ada |
+| `AccRecurringJournalTemplate` | Kosong pun modul tetap jalan | Pemilik proses akuntansi | Opsional |
+
+**Urutan yang benar** dan sering terbalik: akun laba ditahan dibuat di daftar akun **lebih dahulu**,
+baru `AccAccountingConfiguration` dapat menunjuknya. Mengisi pengaturan sebelum akunnya ada akan
+ditolak dengan `422`.
+
+## 20. Yang sengaja tidak dibuat pada Phase 2
+
+Mencegah orang berikutnya mengusulkan ulang hal yang sama.
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom `SourceDomain` dan `SourceTransactionId` pada `AccJournal` | Penelusuran ditaruh di sisi kejadian, bukan dengan mengubah `AccJournal`. Sudah diputuskan `04-prd-to-mvp.md` bagian 21, dan arsitektur domain menguatkannya: kejadian tertahan tidak punya jurnal, sehingga kolom di jurnal tidak akan pernah memuatnya |
+| Tabel buku besar untuk mempercepat tutup tahun | Buku besar tetap dihitung. Tutup tahun berjalan sekali setahun; mengoptimalkan jalur yang dipakai sekali setahun dengan menambah tabel yang harus dijaga selaras sepanjang tahun adalah pertukaran yang buruk |
+| Aggregate `AccFiscalYear` untuk tutup tahun | Tutup tahun adalah rangkaian tindakan atas periode dan jurnal yang sudah ada, bukan konsep dengan identitas dan lifecycle sendiri |
+| Tabel akun sementara (*suspense*) | Ditolak `ACC-DEC-046`. Kejadian tanpa pemetaan ditahan, tidak dijurnal ke akun tebakan |
+| Kolom identitas pasien pada `AccAccountingEvent` | Dilarang `ACC-DEC-056`. Penelusuran dilakukan lewat nomor transaksi asal ke modul asalnya |
+| SignalR Hub khusus Accounting | Ditolak `ACC-DEC-057`. Pemberitahuan memakai penanda jumlah pada menu |
+| Tabel antrean kejadian terpisah dari kotak masuk | Kotak masuk **adalah** antreannya. Tabel terpisah menciptakan dua sumber kebenaran tentang kejadian mana yang belum diproses |
+| Kolom `IsProcessed` pada `AccAccountingEvent` | Keadaan sudah dinyatakan `EventStatus`. Menambah penanda kedua membuka celah keduanya berselisih |
+| Percobaan ulang tanpa batas | Ditolak `ACC-DEC-049`. Kejadian rusak akan mengulang selamanya |
+| `DbContext` khusus Accounting | Tetap ditolak, sama seperti MVP. `AGENTS.md` menetapkan satu `ApplicationDbContext` |
+
+## 21. Strategi pengujian Phase 2
+
+Menggantikan bagian 12 untuk lingkup Phase 2, karena nama project test sudah berubah sejak
+restrukturisasi `BE-OPS-001A`.
+
+| Lapis | Yang diuji | Project |
+|---|---|---|
+| Unit | Pemilihan aturan posting, penentuan periode dari tanggal akuntansi, perhitungan penghalang penutupan, perhitungan saldo tutup tahun | `Tests/QuilvianSystemBackend.UnitTests.InMemory` |
+| Unit dengan database | Keseimbangan template, penolakan aturan posting berakun lintas badan hukum | `Tests/QuilvianSystemBackend.UnitTests.Sqlite` |
+| Integrasi | **Kejadian sama dikirim tiga kali hanya menghasilkan satu jurnal**, penerbitan template dua kali hanya menghasilkan satu jurnal, penyetuju penutupan bukan pengaju | `Tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
+
+**Tiga hal wajib diuji terhadap PostgreSQL sungguhan, bukan SQLite:**
+
+1. Kedua unique index anti-ganda pada `AccAccountingEvent`. SQLite tidak menegakkan unique index
+   berfilter dengan cara yang sama.
+2. Unique `(TemplateId, AccountingPeriodId)` di bawah dua proses bersamaan.
+3. Seluruh yang menyentuh `decimal`, karena EF menyimpannya sebagai TEXT di SQLite — jebakan
+   `ACC-TD-001` yang sudah memakan waktu sekali.
+
+**Peringatan yang mahal bila terlewat:** keempat project test **tidak ikut terbangun** pada
+konfigurasi `Debug|Any CPU`, yang merupakan bawaan `dotnet build`. Baris `Debug|Any CPU.Build.0`
+memang tidak ada di `QuilvianSystemBackend.sln`. Jangan membaca "build hijau" sebagai
+"test terbangun"; pakai `Debug|x64` atau `Release`.

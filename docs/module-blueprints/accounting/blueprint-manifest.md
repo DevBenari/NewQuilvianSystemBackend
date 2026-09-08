@@ -139,7 +139,7 @@ cross_module:
   consumer_owner: Yasmin
   consumer_blueprint_path: docs/module-blueprints/finance/
   depends_on_finance_contract: null
-  open_cross_module_decisions: [ACC-XM-001]
+  open_cross_module_decisions: [ACC-XM-001]   # diputuskan sisi Accounting 8 Sep 2026 (ACC-DEC-044); PENDING_RATIFICATION owner Billing + Yasmin
 artifact_hashes:
   00-interview-decisions.md: aaeb385f6194d707294777ab5c90ce178e216fc3c28097fd8198d51676759038
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
@@ -191,7 +191,7 @@ backend. Prefix entity wajib didaftarkan lebih dahulu oleh lead; lihat `ACC-DEP-
 | Decision log | 40 dari 40 tertutup | 28 dijawab owner, 9 ditunda ke Phase 2 lewat `ACC-DEC-036`, ditambah `ACC-DEC-038` (lifecycle) serta `ACC-DEC-039`/`040` (penyelesai pertentangan artefak) |
 | Capability map | Parsial | Pemeriksaan terarah, bukan audit penuh. `/trace-existing-capabilities` belum dijalankan |
 | Requirement completeness gate | **Belum dijalankan** | Tidak diwajibkan karena MVP diklasifikasikan sebagai kemampuan non-rumah-sakit |
-| Hospital domain architecture | **Belum dijalankan** | Alasan yang sama. **Wajib** dijalankan sebelum Phase 2 |
+| Hospital domain architecture | **Dijalankan 8 September 2026** | `ACC-DOMAIN-P2-0.1`, hasil `DOMAIN_ARCHITECTURE_READY` untuk keempat slice Phase 2. Bukti: [`evidence/09`](evidence/09-phase2-hospital-domain-architecture.md). Untuk MVP tetap tidak dijalankan, sesuai penilaian gerbang non-rumah-sakit |
 
 Dasar klasifikasi non-rumah-sakit ada di [02-backend-architecture.md](02-backend-architecture.md)
 bagian 1, beserta syarat yang mengikatnya.
@@ -656,3 +656,48 @@ Approval blueprint dan `ACC-DEC-038` memberi wewenang **source model persisted A
 Ia **tidak** memberi wewenang `dotnet ef migrations add`, `dotnet ef database update`, perubahan
 shared database, deployment, production activation, maupun bypass Migration Coordination Gate.
 Keempatnya tetap wewenang terpisah, dan `BE-ACC-006` tetap punya gerbangnya sendiri.
+
+---
+
+## Amendment Phase 2 — 8 September 2026
+
+| Field | Nilai |
+|---|---|
+| `revision` | `11` |
+| `status` | **`approved`** untuk seluruh artefak Phase 2 |
+| `approved_by` / `approved_at` | **Rizki / 8 September 2026** |
+| `blueprint_shape` | `SINGLE` — melanjutkan bentuk yang melekat sejak approval revisi 5, tidak dinilai ulang |
+| `shape_decided_by` | `USER` — tersirat pada FINAL OWNER APPROVAL 1 September 2026 |
+| `backend_commit_sha` | `02c3219` (branch `rizkiG`) |
+| `frontend_commit_sha` | `e732424eb` (branch `RizkiV2`) |
+| `decision_revision` | `1.9` — `ACC-DEC-044` sampai `ACC-DEC-058` |
+| `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` — keempat slice |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` — `ACC-DOMAIN-P2-0.2` |
+
+### `contract_versions` sesudah Phase 2
+
+| Kontrak | Sebelum | Sesudah | Yang berubah |
+|---|---|---|---|
+| `ACC-API` | `0.5` | **`0.7`** | 33 endpoint Phase 2, seluruhnya `Rencana (belum tersedia)`; `0.7` menambah daftar baris aturan posting dan rincian nilai kejadian (`ACC-DEC-058`) |
+| `ACC-STATE` | `0.1` | **`0.2`** | Lifecycle kejadian keuangan; periode bertambah `PendingClosingApproval` |
+| `ACC-VALIDATION` | `0.3` | **`0.5`** | Lima kelompok aturan Phase 2; `0.5` menambah aturan baris posting dan komponen nilai (`ACC-DEC-058`) |
+| `ACC-PERMISSION` | `0.3` | **`0.4`** | Peran ketujuh dan 21 baris hak akses Phase 2 |
+| `ACC-INTEGRATION` | `0.2` | **`0.3`** | Kontrak integrasi Phase 2 terisi sungguhan |
+| `ACC-XMOD` | `0.1` | `0.1` | Tidak bergerak — bentuk batas Finance sudah benar sejak awal |
+| `ACC-TEST` | `0.1` | `0.1` | Tidak bergerak — matriks acceptance Phase 2 belum disusun |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| ID | Isi | Menahan |
+|---|---|---|
+| `ACC-XM-001` | Ratifikasi lintas modul | Gelombang `POST-MVP` |
+| `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan | Pengisian data `P2-0` |
+| `DEC-ACC-P2-005`..`008` | Penyempurnaan isi template, koreksi tutup tahun, status Diabaikan, deteksi aturan salah | Tidak menahan gelombang mana pun |
+
+**Approval Phase 2 diberikan Rizki, 8 September 2026**, atas seluruh artefak bagian Phase 2
+beserta kelima kontraknya, termasuk koreksi `ACC-DEC-058`.
+
+**Batas approval ini.** Yang disetujui adalah **bentuk target**. Yang **tidak** termasuk:
+pembuatan dan penerapan migration, penyambungan sungguhan ke Finance (menunggu ratifikasi
+`ACC-XM-001`), dan pengisian daftar jenis kejadian (`DEC-ACC-P2-002` masih `OPEN`). Ketiganya
+menuntut wewenang atau keputusan tersendiri.

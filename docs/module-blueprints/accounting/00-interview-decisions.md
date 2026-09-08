@@ -3,9 +3,11 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `3` |
-| Status | `approved` untuk scope MVP |
-| Pass | `Scope pass` — **selesai** 1 September 2026 |
+| Revision | `4` — dinaikkan 8 September 2026 oleh Amendment pass Phase 2 |
+| Status | `approved` untuk scope MVP; `approved` untuk keputusan Phase 2 dengan satu ratifikasi lintas modul tertunda |
+| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 |
+| Backend SHA — Amendment pass | `02c3219` (branch `rizkiG`) |
+| Frontend SHA — Amendment pass | `e732424eb` (branch `RizkiV2`) |
 | Product/domain owner | Rizki |
 | Backend SHA | `aa837d784ff51cb2b889cf975ada3a204018f1f5` (branch `rizkiG`) |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
@@ -86,14 +88,16 @@ Peran di bawah masih **calon**, belum keputusan. Penetapan finalnya ada di `ACC-
 
 ## Open Questions dan Blocker
 
-**Seluruh 37 pertanyaan sudah tertutup pada 1 September 2026.** Dari jumlah itu, 29 berasal dari
+**Seluruh 37 pertanyaan sudah tertutup pada 1 September 2026**, dan **sembilan yang ditunda ikut
+tertutup pada 8 September 2026** lewat Amendment pass Phase 2. Dari jumlah itu, 29 berasal dari
 `ACC-PRD-001` §35 dan 7 ditemukan dari audit dokumen serta repository.
 
 | Hasil | Jumlah | Keterangan |
 |---|---:|---|
-| Dijawab owner, menjadi `ACC-DEC-*` | 28 | Ditandai ~~TERJAWAB~~ pada judul pertanyaannya |
-| Ditunda resmi ke Phase 2 | 9 | Ditandai `DEFERRED`, dasar hukumnya `ACC-DEC-036` |
+| Dijawab owner 1 September 2026, menjadi `ACC-DEC-*` | 28 | Ditandai ~~TERJAWAB~~ pada judul pertanyaannya |
+| ~~Ditunda ke Phase 2~~ **dijawab owner 8 September 2026** | 9 | Menjadi `ACC-DEC-045` sampai `ACC-DEC-053`. `ACC-DEC-036` berstatus `superseded` |
 | Masih menghalangi MVP | **0** | — |
+| Masih menghalangi Phase 2 | **0 keputusan bisnis**; tersisa **1 ratifikasi lintas modul** | `ACC-XM-001` diputuskan sisi Accounting lewat `ACC-DEC-044`, ratifikasi owner Billing dan owner Finance belum ada |
 
 Sembilan yang ditunda seluruhnya menyangkut integrasi otomatis, jurnal berulang, dan tutup buku,
 yang sudah berada di luar MVP menurut `ACC-DEC-009`. Menundanya **tidak** membuat MVP menggantung:
@@ -146,7 +150,7 @@ Siapa yang boleh mengajukan, menyetujui, mengesahkan, dan membalik journal?
 
 ### Kelompok B — Posting otomatis
 
-#### `ACC-OQ-004` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Perlakuan kejadian keuangan dari modul lain
+#### ~~`ACC-OQ-004`~~ TERJAWAB 8 September 2026 → `ACC-DEC-045` (pilihan D — berbeda menurut jenis kejadian) — Perlakuan kejadian keuangan dari modul lain
 **Pemblokir:** YA · **Owner:** Rizki
 
 - **A. Langsung disahkan otomatis** — paling cepat, tetapi kesalahan pemetaan langsung masuk
@@ -312,7 +316,7 @@ Rp 12.000.000 padahal seharusnya Rp 12.500.000; di sini cukup penyesuaian Rp 500
 
 ### Kelompok G — Journal berulang
 
-#### `ACC-OQ-017` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Journal berulang
+#### ~~`ACC-OQ-017`~~ TERJAWAB 8 September 2026 → `ACC-DEC-050` (pilihan A — draft otomatis, pengesahan manual) — Journal berulang
 **Pemblokir:** tidak · **Owner:** Rizki
 
 - **A. Membuat draft otomatis, pengesahan tetap manual (Direkomendasikan)** — aman, karena
@@ -323,7 +327,7 @@ Rp 12.000.000 padahal seharusnya Rp 12.500.000; di sini cukup penyesuaian Rp 500
 
 ### Kelompok H — Penutupan buku
 
-#### `ACC-OQ-018` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Apa yang menghalangi tutup bulan
+#### ~~`ACC-OQ-018`~~ TERJAWAB 8 September 2026 → `ACC-DEC-051` (pilihan A — dua penghalang, sisanya peringatan) — Apa yang menghalangi tutup bulan
 **Pemblokir:** tidak · **Owner:** Rizki
 
 Mana yang benar-benar **menghalangi** penutupan, dan mana yang hanya peringatan? Calon
@@ -338,14 +342,14 @@ dan akhir.
   berhari-hari karena hal kecil.
 - **C. Semua hanya peringatan** — penutupan lancar, tetapi angka laporan bisa tidak final.
 
-#### `ACC-OQ-019` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Penutupan perlu persetujuan?
+#### ~~`ACC-OQ-019`~~ TERJAWAB 8 September 2026 → `ACC-DEC-052` (pilihan A — perlu persetujuan tertulis) — Penutupan perlu persetujuan?
 **Pemblokir:** tidak · **Owner:** Rizki
 
 - **A. Perlu persetujuan tertulis di sistem (Direkomendasikan)** — ada bukti siapa menyatakan
   angka bulan itu final.
 - **B. Cukup tindakan Accounting Manager tanpa persetujuan terpisah** — lebih cepat.
 
-#### `ACC-OQ-020` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Tutup tahun dan laba ditahan
+#### ~~`ACC-OQ-020`~~ TERJAWAB 8 September 2026 → `ACC-DEC-053` (pilihan A — jurnal penutup otomatis, disahkan manual) — Tutup tahun dan laba ditahan
 **Pemblokir:** tidak · **Owner:** Rizki
 
 Pada akhir tahun, saldo akun pendapatan dan beban dinolkan, lalu selisihnya dipindahkan ke akun
@@ -380,7 +384,7 @@ sebelum masuk laba ditahan.
 
 ### Kelompok J — Integrasi
 
-#### `ACC-OQ-023` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Isi minimum pesan kejadian keuangan
+#### ~~`ACC-OQ-023`~~ TERJAWAB 8 September 2026 → `ACC-DEC-048` (pilihan A — sesuai calon PRD §22) — Isi minimum pesan kejadian keuangan
 **Pemblokir:** tidak, tetapi mengunci integrasi paralel · **Owner:** Rizki, owner Finance
 
 - **A. Sesuai calon di PRD §22 apa adanya (Direkomendasikan)** — sudah memuat nomor kejadian,
@@ -398,7 +402,7 @@ sebelum masuk laba ditahan.
 - **C. Keduanya dipakai bersama (Direkomendasikan)** — nomor kejadian sebagai kunci utama,
   gabungan sebagai jaring pengaman kedua. Konsekuensinya perlu dua indeks unik.
 
-#### `ACC-OQ-025` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Kejadian yang gagal diproses
+#### ~~`ACC-OQ-025`~~ TERJAWAB 8 September 2026 → `ACC-DEC-049` (pilihan A — coba ulang 3 kali lalu daftar gagal) — Kejadian yang gagal diproses
 **Pemblokir:** tidak · **Owner:** Rizki
 
 - **A. Coba ulang otomatis beberapa kali, lalu masuk daftar gagal untuk ditangani manusia
@@ -500,7 +504,7 @@ PRD §10 menyebut `Journal Number` sebagai field, tetapi tidak ada aturan pemben
   harus menunggu, dan pada jam sibuk ini terasa lambat.
 - **C. Nomor bebas diisi petugas** — paling luwes, paling rawan bentrok dan salah ketik.
 
-#### `ACC-OQ-033` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Kejadian sah tetapi pemetaan akunnya belum ada
+#### ~~`ACC-OQ-033`~~ TERJAWAB 8 September 2026 → `ACC-DEC-046` (pilihan A — tolak, masuk daftar gagal) — Kejadian sah tetapi pemetaan akunnya belum ada
 **Pemblokir:** YA · **Owner:** Rizki
 
 PRD §20 dan §23 menyebut akun sementara dan akun perantara, tetapi tidak ada yang memutuskan
@@ -518,7 +522,7 @@ Laboratorium Molekuler" yang belum dipetakan ke akun beban penyusutan mana pun. 
 kejadian itu sampai akuntansi menambah pemetaan. Opsi B mencatat Rp 4.000.000 ke akun sementara
 lalu memindahkannya nanti.
 
-#### `ACC-OQ-034` `DEFERRED` ke Phase 2 (`ACC-DEC-036`) — Kejadian datang terlambat, periodenya sudah ditutup
+#### ~~`ACC-OQ-034`~~ TERJAWAB 8 September 2026 → `ACC-DEC-047` (pilihan A — masuk periode terbuka berikutnya) — Kejadian datang terlambat, periodenya sudah ditutup
 **Pemblokir:** YA · **Owner:** Rizki
 
 Tidak ada pertanyaan di §35 yang menangani persinggungan antara posting otomatis dan penguncian
@@ -633,7 +637,7 @@ memakai pembedaan §35 apa adanya, keputusan itu perlu dinyatakan tersendiri.
 | `ACC-DEC-033` | Decision | **Saldo awal disahkan Accounting Manager dengan persetujuan pimpinan keuangan.** Wewenangnya di atas pengesahan jurnal biasa, karena saldo awal menentukan seluruh angka setelahnya | Rizki | `approved` | Rizki, 1 September 2026 | Jawaban `ACC-OQ-027` |
 | `ACC-DEC-034` | Decision | **Laporan pajak berada di luar kepemilikan Accounting.** Accounting hanya menyediakan data akuntansi; penyusunan dan pelaporan pajak dimiliki pihak lain | Rizki | `approved` | Rizki, 1 September 2026 | Jawaban `ACC-OQ-022`; sejalan PRD §7.8 |
 | `ACC-DEC-035` | Decision | **Pencegahan pencatatan ganda memakai dua kunci sekaligus:** nomor kejadian sebagai kunci utama, dan gabungan modul asal + nomor transaksi asal + jenis kejadian + versi sebagai jaring pengaman kedua. Diperlukan dua indeks unik | Rizki | `approved` | Rizki, 1 September 2026 | Jawaban `ACC-OQ-024` |
-| `ACC-DEC-036` | Decision | **Sembilan pertanyaan sisa ditandai `DEFERRED` ke Phase 2:** `ACC-OQ-004`, `017`, `018`, `019`, `020`, `023`, `025`, `033`, `034`. Semuanya menyangkut integrasi otomatis, jurnal berulang, dan tutup buku, yang sudah berada di luar MVP menurut `ACC-DEC-009`. Rilis pertama boleh berjalan tanpa jawaban atas kesembilan pertanyaan itu | Rizki | `approved` | Rizki, 1 September 2026 | Keputusan owner, 1 September 2026 |
+| `ACC-DEC-036` | Decision | ~~**Sembilan pertanyaan sisa ditandai `DEFERRED` ke Phase 2:**~~ **`superseded` 8 September 2026 oleh `ACC-DEC-045` sampai `ACC-DEC-053`.** Kesembilan pertanyaan sudah dijawab owner, sehingga penundaannya tidak lagi berlaku. Isi aslinya: `ACC-OQ-004`, `017`, `018`, `019`, `020`, `023`, `025`, `033`, `034`. Semuanya menyangkut integrasi otomatis, jurnal berulang, dan tutup buku, yang sudah berada di luar MVP menurut `ACC-DEC-009`. Rilis pertama boleh berjalan tanpa jawaban atas kesembilan pertanyaan itu | Rizki | `superseded` | Rizki, 1 September 2026; digantikan 8 September 2026 | Keputusan owner, 1 September 2026. Digantikan Amendment pass Phase 2 |
 | `ACC-DEC-037` | Decision | **Pembukuan dipisah per badan hukum (`MstLegalEntity`).** COA, jurnal, periode, dan neraca saldo semuanya bercabang per `LegalEntityId`. Kode akun unik per badan hukum, keseimbangan debit-kredit diukur per badan hukum, dan satu jurnal tidak boleh mencampur dua badan hukum | Rizki | `approved` | Rizki, 1 September 2026 | Jawaban `ACC-OQ-037`; bukti: `LegalEntityId` dipakai 83 berkas di `Areas/Corporate/@aa837d7`, dan `MstCostCenter` mensyaratkannya |
 | `ACC-DEC-038` | Decision | **Lifecycle registry `Acc` dinaikkan `PLANNED` → `ACTIVE`.** Baris canonical `| Corporate | AccountingManagement / Accounting | BUSINESS DOMAIN / MODULE | Acc | ACTIVE |`. Accounting memasuki tahap implementasi source model persisted. Wewenangnya **hanya** source model; `dotnet ef migrations add`, `dotnet ef database update`, perubahan shared database, deployment, production activation, dan bypass Migration Coordination Gate **tidak** termasuk. `BE-ACC-006` tetap punya gerbang tersendiri. Entri `Finance` / `Fin` tidak diubah | Rizki | `approved` | Rizki, 1 September 2026 | FINAL OWNER APPROVAL `ACC-BP-001` revisi 5, sesi 1 September 2026. Preseden: `Inp` (`RWI-DEC-068`, 24 Agustus 2026) dan `Mrc` (`RM-DEC-029`, 31 Agustus 2026), keduanya diaktifkan pemilik modulnya sendiri. Termaterialisasi di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta catatan perubahan lifecycle |
 
@@ -643,6 +647,46 @@ memakai pembedaan §35 apa adanya, keputusan itu perlu dinyatakan tersendiri.
 | `ACC-DEC-041` | Decision | **MVP berjalan pada SATU badan hukum; penyaringan badan hukum per pengguna DITUNDA.** `LegalEntityId` tetap disimpan pada `AccChartOfAccount`, `AccAccountingPeriod`, dan `AccJournal`, dan tetap menegakkan **pemisahan data** (`ACC-DEC-037` tidak dibatalkan): kode akun tetap unik per badan hukum, satu jurnal tetap tidak boleh mencampur dua badan hukum. Yang ditunda hanya **penyaringan per pengguna** — pertanyaan "pengguna ini berhak atas badan hukum yang mana". Akibatnya `ACC-DEP-008` turun dari **blocker MVP** menjadi **prasyarat multi-badan-hukum**, dan acceptance `403` pada `BE-ACC-007`..`014` ditandai `DEFERRED`. Sebagai gantinya wajib ada **penjaga jumlah badan hukum**: bila badan hukum aktif lebih dari satu sementara penegakan belum ada, sistem menolak keras dan menyebutkan sebabnya | Rizki | `approved` | Rizki, 2 September 2026 | Keputusan owner, 2 September 2026. Dasar: `04-prd-to-mvp.md` baris 106 memang sudah menetapkan MVP selesai ketika **satu badan hukum** berjalan penuh; `UAT-15` menguji pemisahan data, bukan penolakan pengguna; dan mekanisme otorisasi badan hukum tidak ada di platform serta tidak ada yang akan membangunnya. Diverifikasi 2 September 2026: 17 controller menerima `LegalEntityId` dari `[FromQuery]`, **0** klaim badan hukum di JWT, **0** `HasQueryFilter` di seluruh repo |
 | `ACC-DEC-042` | Decision | **Kode akun (`AccountCode`) dapat diubah selama akun belum dipakai baris jurnal yang disahkan.** Menyelesaikan pertentangan antara `ACC-API-0.1` — yang menulis `PUT` hanya mengubah "nama, induk, atau keterangan" — dengan `ACC-VALIDATION-0.2` bagian 1 dan acceptance `BE-ACC-007` (4), yang keduanya mengandaikan kode **dapat** diubah pada keadaan lain. Aturan validasi yang melarang sesuatu yang tidak pernah mungkin adalah aturan kosong. `ACC-API` naik `0.1` → `0.2`; deskripsi `PUT` diperbaiki; `UpdateChartOfAccountDto` memuat `AccountCode`. Jurnal `Draft` tidak mengunci kode | Rizki | `approved` | Rizki, 2 September 2026 | Pertentangan ditemukan saat `BE-ACC-007` dan dilaporkan pada laporan task bagian 6, tidak diputuskan sepihak. Implementasi sudah memakai bacaan ini, sehingga keputusan **tidak menuntut perubahan kode**. Dibuktikan `ChartOfAccountServiceTests.KodeAkunBertransaksi_GagalDiubah_Ditolak409` dan `JurnalDraft_TidakMenguncikanAkun` |
 | `ACC-DEC-043` | Decision | **Accounting berjalan di atas badan hukum bertanda `IsDefault`, dan penjaga menuntut TEPAT SATU default — bukan tepat satu badan hukum aktif.** Menyempurnakan mekanisme `ACC-DEC-041` setelah pemeriksaan database sungguhan pada 2 September 2026 menemukan **tiga** badan hukum aktif: `LE-MMC-001` PT Metropolitan Medical Centre (bertanda `IsDefault`, memiliki 5 unit organisasi, 5 cost center, 3 lokasi kerja), serta `LE-MDC-001` dan `LE-MHS-001` yang keduanya kosong. Menolak berdasarkan **jumlah aktif** akan mematikan Accounting tanpa alasan sebenarnya, karena bahaya yang dijaga bukan "ada lebih dari satu badan hukum di master" melainkan **ketidakjelasan buku besar mana yang disentuh** — dan `IsDefault` sudah menjawabnya. Nol default maupun lebih dari satu default tetap **ditolak keras** `409`. Nol data modul lain disentuh | Rizki | `approved` | Rizki, 2 September 2026 | Ditemukan saat owner meminta pembuatan badan hukum pertama; pemeriksaan read-only dijalankan lebih dahulu justru untuk mencegah penambahan yang akan memperburuk keadaan. `IsDefault` adalah kolom platform yang sudah ada, bukan konsep baru yang dikarang Accounting. Dibuktikan `ChartOfAccountServiceTests.TigaBadanHukumAktifDenganSatuUtama_AccountingTetapBerjalan`, `LebihDariSatuBadanHukumUtama_SeluruhEndpointMenolak`, dan `TanpaBadanHukumUtama_SeluruhEndpointMenolak` |
+
+
+### Keputusan Phase 2 — Amendment pass 8 September 2026
+
+Sebelas baris berikut ditambahkan pada Amendment pass Phase 2. Sepuluh yang pertama menjawab
+`ACC-XM-001` beserta sembilan pertanyaan yang dulu ditunda `ACC-DEC-036`; satu yang terakhir
+adalah turunan yang muncul dari jawaban tutup tahun.
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-044` | Decision | **Finance yang menerbitkan kejadian keuangan resmi atas tagihan pasien.** Alurnya: Billing menyerahkan akibat keuangan tagihan ke Finance sesuai `BIL-INT-007`, `008`, dan `009`; Finance mencatatnya sebagai Piutang/Utang, lalu **menerbitkan satu kejadian keuangan resmi bernomor unik**; Accounting membaca kejadian itu lalu membuat jurnalnya. Accounting **tidak** berlangganan langsung ke Billing. Menjawab `ACC-XM-001` | Rizki (sisi Accounting); ratifikasi menuntut owner Billing dan owner Finance | `approved` **sisi Accounting**, `PENDING_RATIFICATION` sisi lintas modul | Rizki, 8 September 2026 | Dipilih karena **nol perubahan** pada `BIL-INTEGRATION-0.4` yang sudah `approved` 20 Agustus 2026, sehingga tidak melanggar PRD §36 aturan 13. **Ratifikasi owner Billing dan owner Finance (Yasmin) BELUM ada** — lihat bagian `CROSS_MODULE_DECISION_REQUIRED` |
+| `ACC-DEC-045` | Decision | **Perlakuan kejadian keuangan masuk berbeda menurut jenis kejadiannya.** Jenis bervolume tinggi yang pemetaan akunnya sudah pasti — misalnya pengakuan piutang rawat jalan — langsung menjadi jurnal berstatus `Posted`. Jenis yang jarang dan bernilai besar — misalnya penghapusan piutang dan pelepasan aset tetap — menjadi jurnal `Draft` yang menunggu pemeriksaan manusia. Konsekuensinya perlu **satu master data baru: aturan perlakuan per jenis kejadian**. Menjawab `ACC-OQ-004` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan D pada `ACC-OQ-004` |
+| `ACC-DEC-046` | Decision | **Kejadian sah yang jenisnya belum dipetakan ke akun mana pun DITOLAK dan masuk daftar gagal.** Tidak ada jurnal yang dibuat, dan tidak ada akun sementara yang dipakai. Buku besar tidak boleh berisi tebakan. Konsekuensi yang mengikat: **daftar kejadian tertahan wajib muncul pada daftar periksa penutupan bulan**, karena angka laporan bisa kurang selama pemetaannya belum dilengkapi. Menjawab `ACC-OQ-033` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-033`. Terkait `ACC-DEC-051` yang menjadikan kejadian gagal sebagai penghalang tutup bulan |
+| `ACC-DEC-047` | Decision | **Kejadian yang datang setelah periodenya ditutup dicatat pada periode terbuka berikutnya, dengan tanggal dokumen asli tetap disimpan.** Tanggal akuntansi jurnal memakai periode terbuka; tanggal dokumen memakai tanggal kejadian sebenarnya. Periode yang sudah ditutup **tidak pernah dibuka kembali secara otomatis**. Menjawab `ACC-OQ-034` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-034`. Sejalan `ACC-DEC-040` yang sudah memisahkan `AccountingDate` dan `DocumentDate` pada `AccJournal`, sehingga **tidak menuntut kolom baru** |
+| `ACC-DEC-048` | Decision | **Isi minimum pesan kejadian keuangan mengikuti calon `ACC-PRD-001` §22 apa adanya**, yaitu sepuluh bidang: nomor kejadian, jenis kejadian, modul asal, nomor transaksi asal, waktu kejadian, tanggal akuntansi, nilai, mata uang, penanda urutan, dan kunci anti-ganda. Pengirim wajib mengisi kesepuluhnya; pesan dengan bidang wajib kosong ditolak. Menjawab `ACC-OQ-023` | Rizki, owner Finance | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-023`. Cocok dengan `ACC-DEC-035` yang menuntut dua kunci anti-ganda, dan dengan `ACC-DEC-020` yang mengunci mata uang rupiah |
+| `ACC-DEC-049` | Decision | **Kejadian yang gagal diproses dicoba ulang 3 kali dengan jeda yang makin panjang, lalu masuk daftar gagal.** Sesudah percobaan ketiga gagal, kejadian berhenti dicoba dan **Accounting Manager diberi tahu**. Daftar gagal menyediakan tombol coba ulang manual. Tidak ada percobaan ulang tanpa batas. Menjawab `ACC-OQ-025` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-025`, termasuk penetapan penerima pemberitahuan yang sebelumnya belum diputuskan |
+| `ACC-DEC-050` | Decision | **Jurnal berulang dibuat otomatis sebagai `Draft`; pengesahannya tetap manual.** Berlaku untuk penyusutan bulanan, sewa dibayar di muka, dan sejenisnya. Sistem tidak pernah mengesahkan jurnal berulang sendiri, sehingga kesalahan template ketahuan sebelum angkanya masuk buku besar. Menjawab `ACC-OQ-017` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-017` |
+| `ACC-DEC-051` | Decision | **Hanya dua hal yang menghalangi penutupan bulan: jurnal yang belum disahkan, dan kejadian keuangan yang gagal diproses.** Lima calon lainnya — jurnal belum seimbang, integrasi belum cocok, penyusutan belum dijalankan, saldo di akun sementara, dan selisih saldo awal dengan saldo akhir — muncul sebagai **peringatan** yang boleh dilewati. Menjawab `ACC-OQ-018` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-018`. Catatan: jurnal belum seimbang tidak perlu menjadi penghalang tersendiri karena `ACC-DEC-025` sudah melarangnya diajukan maupun disahkan |
+| `ACC-DEC-052` | Decision | **Penutupan periode memerlukan persetujuan tertulis di dalam sistem.** Accounting Manager mengajukan penutupan, pimpinan keuangan menyetujuinya, dan keduanya tercatat beserta waktunya. Konsekuensinya penutupan menjadi dua langkah, dan wajib ada penyetuju pengganti saat pimpinan keuangan tidak bertugas. Menjawab `ACC-OQ-019` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-019`. Sejalan `ACC-DEC-016` (penyetuju bukan pembuat) dan `ACC-DEC-026` (hanya Accounting Manager yang menutup periode) |
+| `ACC-DEC-053` | Decision | **Jurnal penutup tahun dihitung dan disusun sistem, pengesahannya manual.** Pada akhir tahun sistem menolkan saldo seluruh akun pendapatan dan beban, menghitung selisihnya, lalu menyusun jurnal penutup sebagai `Draft`. Accounting Manager yang mengesahkannya. Konsekuensinya perlu satu jenis jurnal baru khusus penutup tahun. Menjawab `ACC-OQ-020` | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Pilihan A pada `ACC-OQ-020` |
+| `ACC-DEC-054` | Decision | **Seluruh selisih pendapatan dikurangi beban masuk ke SATU akun laba ditahan, tanpa pembagian ke akun lain lebih dahulu.** Akun laba ditahan berada di kelompok `3` Ekuitas. **Kode akun pastinya ditentukan pemilik proses akuntansi saat mengisi daftar akun**, dan itu keputusan pengisian data, bukan keputusan rancangan. Bila kelak ada aturan pembagian laba dari pemegang saham, pembagiannya dibuat sebagai jurnal manual terpisah sesudah jurnal penutup disahkan | Rizki | `approved` | Rizki, 8 September 2026 | Keputusan owner, 8 September 2026. Turunan `ACC-DEC-053`, menutup pertanyaan tambahan yang tertulis pada `ACC-OQ-020` — akun laba ditahan mana yang dipakai dan apakah ada pembagian sebelumnya |
+
+
+### Keputusan turunan gerbang kelengkapan — 8 September 2026
+
+Tiga baris berikut menutup gap yang ditemukan `requirement-completeness-gate` pada hari yang
+sama. Buktinya ada di [evidence/08-phase2-requirement-completeness-gate.md](evidence/08-phase2-requirement-completeness-gate.md).
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-055` | Decision | **Peran Accounting bertambah menjadi TUJUH; peran ketujuh adalah `Accounting Director`.** Peran ini menyandang **satu** hak akses saja, yaitu `Period : Approve` — menyetujui penutupan periode. Hak `Period : Close` tetap milik Accounting Manager. Dengan begitu yang mengajukan penutupan bukan yang menyetujuinya, sejalan prinsip empat mata `ACC-DEC-016`. Peran ini juga menjadi padanan resmi istilah "pimpinan keuangan" pada `ACC-DEC-033` (pengesahan saldo awal) dan `ACC-DEC-052` (penutupan periode). `ACC-DEC-031` **diperluas**, bukan dibatalkan. Menutup `DEC-ACC-P2-001` | Rizki | `approved` | Rizki, 8 September 2026 | Gap ditemukan `requirement-completeness-gate` 8 September 2026: `ACC-DEC-052` memakai istilah "pimpinan keuangan" yang tidak ada padanannya di enam peran `ACC-DEC-031` maupun di `ACC-PERMISSION-0.3`, sehingga tombol Setujui Penutupan tidak punya pemilik yang dapat ditegakkan. `ACC-PERMISSION` naik `0.3` → `0.4` |
+| `ACC-DEC-056` | Decision | **Kotak masuk kejadian keuangan Phase 2 TIDAK menyimpan pengenal pasien.** Yang disimpan hanya **modul asal** dan **nomor transaksi asal**; nama pasien, nomor rekam medis, dan nomor kunjungan **dilarang** disimpan di seluruh tabel Accounting. Penelusuran ke pasien dilakukan dengan membuka modul asalnya memakai nomor transaksi tersebut. Akibatnya Accounting tetap **nol kolom data pribadi** persis seperti MVP, dan layar Kejadian Gagal menampilkan nomor transaksi, bukan nama pasien. Menutup `DEC-ACC-P2-004` | Rizki | `approved` | Rizki, 8 September 2026 | Gap ditemukan `requirement-completeness-gate` 8 September 2026: Phase 2 adalah fase pertama yang menerima data berasal dari tagihan pasien, tetapi batas penyimpanan pengenal pasien belum pernah dinyatakan tegas. Meneruskan `02-backend-architecture.md` bagian 11 dan `ACC-DEC-004` ke Phase 2 |
+| `ACC-DEC-057` | Decision | **Pemberitahuan kejadian gagal memakai penanda jumlah pada menu, ditambah catatan `LoggerService`.** Menu Kejadian Gagal membawa angka jumlah kejadian yang belum ditangani, dan setiap kegagalan dicatat lewat `LoggerService` yang sudah dipakai seluruh modul. **Tidak ada** pengiriman surel dan **tidak ada** SignalR Hub baru pada rilis pertama Phase 2. Menutup `DEC-ACC-P2-003` | Rizki | `approved` | Rizki, 8 September 2026 | Diperiksa langsung pada `02c3219`: nol layanan pemberitahuan umum di repository; satu-satunya Hub adalah `Hubs/QueueHub.cs` untuk antrian, dan nol berkas bernama `*Notif*`. Melengkapi `ACC-DEC-049` yang menetapkan penerimanya tetapi bukan salurannya |
+
+
+### Keputusan koreksi rancangan — 8 September 2026
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-058` | Decision | **Aturan posting berbentuk DAFTAR BARIS, bukan sepasang akun.** `AccPostingRule` menjadi induk yang membawahi `AccPostingRuleLine`, meniru pola `AccJournal` dan `AccJournalLine` yang sudah terbukti. Satu aturan karena itu dapat menghasilkan tiga baris atau lebih. Konsekuensi yang mengikat: **pesan kejadian keuangan dapat membawa rincian nilai** (*komponen*) di samping nilai totalnya, dan setiap baris aturan menunjuk komponen mana yang dipakainya. Tanpa rincian itu, aturan berbaris banyak tidak tahu angka mana untuk baris mana. Kejadian yang membawa komponen tanpa baris aturan yang cocok diperlakukan sama seperti kejadian tanpa pemetaan: **Tertahan** (`ACC-DEC-046`) | Rizki | `approved` | Rizki, 8 September 2026 | Ditemukan saat peninjauan rancangan terhadap alur akuntansi rumah sakit, 8 September 2026. Bentuk sepasang akun tidak dapat mengungkapkan tiga hal yang lazim di rumah sakit: **jasa medis dokter** (1 debit 2 kredit), **potongan penjualan** (2 debit 1 kredit), dan **HPP farmasi bersamaan dengan pendapatannya**. Potongan penjualan bahkan tidak dapat dipecah menjadi dua kejadian seimbang tanpa akun perantara, sementara akun perantara dilarang `ACC-DEC-046`. Menaikkan `ACC-API` `0.6` → `0.7`, `ACC-VALIDATION` `0.4` → `0.5` |
 
 Keputusan `ACC-DEC-001` sampai `ACC-DEC-008` **tidak dibuka kembali** sesuai PRD §36 aturan 3.
 
@@ -707,17 +751,67 @@ siapa yang menerbitkan kejadian itu, karena penerbitnya berada di modul lain.
 | Pihak yang harus setuju | Owner Billing, owner Finance, dan Rizki |
 | Bukti yang mengikat | `billing-kasir/contracts/integration-contract.md#BIL-INT-007..009@aa837d7`, status **approved** 20 Agustus 2026 |
 | Batasan | PRD §36 aturan 13 melarang mengubah kontrak Billing yang sudah disetujui. `ACC-DEC-011` **tidak** mengubah `BIL-INT-007` sampai `BIL-INT-009`; keduanya bisa berjalan berdampingan bila kejadian resmi diterbitkan sekali dan nomornya dipakai bersama |
-| Status | `TERBUKA` |
-| Memblokir | Kontrak integrasi Accounting, dan seluruh jalur jurnal otomatis |
+| Status | `DIPUTUSKAN SISI ACCOUNTING` — 8 September 2026, lewat `ACC-DEC-044`. **Ratifikasi lintas modul BELUM ada** |
+| Jawaban yang dipilih | **Finance yang menerbitkan.** Billing → Finance (Piutang/Utang) → kejadian keuangan resmi → Accounting |
+| Yang sudah setuju | Rizki, 8 September 2026, selaku owner modul Accounting |
+| Yang belum setuju | **Owner Billing** dan **owner Finance (Yasmin)** |
+| Memblokir | **Implementasi** jalur jurnal otomatis. **Tidak lagi** memblokir perancangan Phase 2 |
 | **Tidak** memblokir | Rilis pertama, karena `ACC-DEC-009` menempatkan integrasi otomatis di tahap berikutnya |
 
-Butir ini sengaja tidak diputuskan sepihak. Yang bisa dilakukan Accounting sekarang adalah
-menyiapkan bentuk kotak masuk kejadian yang netral terhadap siapa pun penerbitnya, sehingga
-keputusan `ACC-XM-001` nanti tidak memaksa perombakan.
+### Kenapa Finance yang dipilih
 
-**Kenapa ini aman ditunda.** Rilis pertama tidak memuat jurnal otomatis sama sekali. Seluruh
-jurnal pada rilis pertama dibuat manusia lewat layar Jurnal Manual. Jadi tidak ada satu pun
-jalur yang bisa menghasilkan pencatatan ganda sebelum `ACC-XM-001` diputuskan.
+Tiga pilihan ditimbang, dan yang menentukan adalah kontrak yang sudah terlanjur disetujui.
+
+| Pilihan | Akibatnya pada kontrak Billing | Akibatnya pada Accounting |
+|---|---|---|
+| Billing yang menerbitkan | **Menuntut perubahan `BIL-INTEGRATION-0.4`** yang sudah `approved` 20 Agustus 2026. PRD §36 aturan 13 melarangnya | Accounting tidak perlu menunggu Finance |
+| **Finance yang menerbitkan (dipilih)** | **Nol perubahan.** `BIL-INT-007`, `008`, dan `009` memang sudah mengarah ke Piutang/Utang, yaitu wilayah Finance | Implementasi menunggu modul Finance berdiri |
+| Penerbit netral milik Platform | Nol perubahan, tetapi menambah satu komponen baru | Menunggu komponen itu dibangun, dan belum ada pemiliknya |
+
+Pilihan kedua menang karena **tidak menyentuh satu baris pun kontrak yang sudah disetujui**.
+Ongkosnya — menunggu Finance — memang nyata, tetapi ongkos itu sudah harus dibayar apa pun
+pilihannya: `ACC-DEP-004` mencatat modul Finance belum ada, dan pemeriksaan 8 September 2026
+membenarkannya, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource`.
+
+### Alur bisnisnya, langkah demi langkah
+
+Contoh nyata memakai angka. Pasien bernama Budi menjalani rawat jalan, tagihannya
+Rp 10.000.000, dan penjaminnya BPJS.
+
+1. **Kasir menutup tagihan Budi.** Modul Billing mencatat tagihan Rp 10.000.000 atas nama Budi.
+2. **Billing menyerahkan akibat keuangannya ke Finance**, mengikuti `BIL-INT-007` yang sudah
+   disetujui. Finance mencatat Piutang Penjamin sebesar Rp 10.000.000.
+3. **Finance menerbitkan satu kejadian keuangan resmi**, misalnya bernomor `EVT-100`, berisi
+   sepuluh bidang yang dikunci `ACC-DEC-048`.
+4. **Accounting membaca `EVT-100`**, mencocokkan jenis kejadiannya dengan aturan perlakuan
+   (`ACC-DEC-045`). Karena pengakuan piutang tergolong bervolume tinggi dan pemetaannya pasti,
+   jurnalnya langsung disahkan: debit `1-1201 Piutang Penjamin` Rp 10.000.000, kredit
+   `4-1001 Pendapatan Rawat Jalan` Rp 10.000.000.
+5. **Bila `EVT-100` terkirim tiga kali** karena gangguan jaringan, penerimaan kedua dan ketiga
+   menemukan nomor itu sudah tercatat, lalu mengembalikan nomor jurnal yang sama tanpa membuat
+   jurnal baru (`ACC-DEC-035`). Buku besar tetap berisi satu catatan Rp 10.000.000.
+
+**Inilah yang dicegah.** Bila Accounting juga berlangganan langsung ke Billing, langkah 1 akan
+menghasilkan jurnal sendiri **dan** langkah 4 menghasilkan jurnal kedua. Buku besar tetap
+seimbang, tetapi pendapatan rumah sakit tercatat Rp 20.000.000 dari satu tagihan Rp 10.000.000.
+`ACC-DEC-044` menutup jalur itu dengan menyatakan Accounting **tidak** berlangganan ke Billing.
+
+### Batas wewenang keputusan ini
+
+Rizki berwenang penuh menetapkan **apa yang dilakukan Accounting**: dari mana ia membaca
+kejadian, dan apa yang tidak boleh ia lakukan. Rizki **tidak** berwenang menetapkan kewajiban
+baru bagi modul lain. Karena itu:
+
+| Bagian `ACC-DEC-044` | Wewenang | Berlaku sekarang? |
+|---|---|---|
+| Accounting **tidak** berlangganan langsung ke Billing | Rizki, owner Accounting | **Ya**, berlaku penuh |
+| Accounting membaca kejadian dari Finance | Rizki, owner Accounting | **Ya** untuk sisi pembacaan |
+| Finance **wajib menerbitkan** kejadian keuangan resmi | Owner Finance (Yasmin) | **Belum** — menunggu ratifikasi |
+| Bentuk pesan sepuluh bidang (`ACC-DEC-048`) | Rizki + owner Finance | **Belum** — menunggu ratifikasi |
+
+Yang harus dilakukan sebelum implementasi Phase 2 dimulai: bawa `ACC-DEC-044` dan `ACC-DEC-048`
+ke owner Billing dan Yasmin untuk diratifikasi. Sampai itu terjadi, perancangan boleh berjalan
+dan penulisan kode integrasi tetap **dilarang** oleh `contracts/integration-contract.md` bagian 5.
 
 ---
 
@@ -736,9 +830,30 @@ keputusan yang sudah disetujui.
 
 ## Langkah berikutnya
 
-1. Owner menjawab 36 pertanyaan di atas; setiap jawaban menjadi `ACC-DEC-009` dan seterusnya.
-2. Jalankan `/trace-existing-capabilities` untuk audit kemampuan yang penuh.
-3. Jalankan `/requirement-completeness-gate` untuk menilai kelengkapan requirement.
-4. Jalankan `/hospital-domain-architect`, lalu `/design-business-module` untuk arsitektur final.
-5. Selesaikan `ACC-DEP-001` sampai `ACC-DEP-003` bersama lead sebelum entity dan migration
-   pertama dibuat.
+### Sudah selesai — Scope pass, 1 September 2026
+
+1. ~~Owner menjawab 36 pertanyaan di atas~~ — **selesai**, menjadi `ACC-DEC-009` sampai `ACC-DEC-043`.
+2. ~~Jalankan `/trace-existing-capabilities`~~ — **selesai**, hasilnya `01-existing-capability-map.md`.
+3. ~~Selesaikan `ACC-DEP-001` sampai `ACC-DEP-003`~~ — `ACC-DEP-001` `RESOLVED`; `ACC-DEP-002`
+   dan `ACC-DEP-003` tercatat sebagai utang, tidak lagi memblokir MVP.
+
+### Sudah selesai — Amendment pass Phase 2, 8 September 2026
+
+4. ~~Tutup `ACC-XM-001`~~ — **selesai sisi Accounting** lewat `ACC-DEC-044`. Ratifikasi owner
+   Billing dan owner Finance masih tertunda.
+5. ~~Jawab sembilan pertanyaan `DEFERRED`~~ — **selesai**, menjadi `ACC-DEC-045` sampai
+   `ACC-DEC-053`, ditambah `ACC-DEC-054` sebagai turunan.
+
+### Belum — gerbang wajib sebelum Phase 2 dirancang
+
+6. Jalankan `/requirement-completeness-gate` untuk menilai kelengkapan requirement lintas modul.
+7. Jalankan `/hospital-domain-architect` untuk menetapkan bounded context, ownership, dan dampak
+   billing. Phase 2 menerima kejadian yang berasal dari tagihan pasien, sehingga kelonggaran
+   "kemampuan non-rumah-sakit" pada `02-backend-architecture.md` bagian 1 **tidak berlaku**.
+8. Baru sesudah keduanya lewat, jalankan `/design-business-module` untuk arsitektur Phase 2.
+
+### Belum — sebelum implementasi Phase 2
+
+9. Bawa `ACC-DEC-044` dan `ACC-DEC-048` ke owner Billing dan Yasmin untuk diratifikasi.
+10. Tunggu modul Finance berdiri (`ACC-DEP-004`, pemilik: Yasmin). Diperiksa 8 September 2026:
+    `Areas/Corporate/` masih hanya memuat `AccountingManagement` dan `HumanResource`.
