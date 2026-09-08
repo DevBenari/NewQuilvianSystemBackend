@@ -57,7 +57,7 @@ endpoint-nya sudah berdiri.
 | `MVP-1` Kerangka dan master | `FE-ACC-001` sampai `FE-ACC-004` | **`IMPLEMENTED`** — keempatnya selesai 4 Sep 2026 | `BE-ACC-007` sampai `009` selesai |
 | `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | **`IMPLEMENTED` — 005, 006, dan 007 selesai** | `BE-ACC-010`, `BE-ACC-011`, `BE-ACC-015` selesai |
 | `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`IMPLEMENTED`** — keduanya selesai | `BE-ACC-012` selesai |
-| `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`FE-ACC-011` `IMPLEMENTED`** 7 Sep 2026; **`FE-ACC-010` `READY`** — dapat dimulai kapan saja | `BE-ACC-013`, `BE-ACC-014` selesai |
+| `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`IMPLEMENTED`** — keduanya selesai 7 Sep 2026 | `BE-ACC-013`, `BE-ACC-014` selesai |
 
 Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 September 2026**, dan nol keputusan produk tersisa:
 
@@ -240,7 +240,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; skenario `UAT-10`, `UAT-11`, `UAT-12` di peramban |
 | Risiko/pemilik | Developer. Butir (1) menentukan apakah petugas memilih cara yang benar |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`READY`** — 7 September 2026, terbuka oleh selesainya `FE-ACC-007`. Kedua dependency lunas: `FE-ACC-007` `IMPLEMENTED`, `BE-ACC-013` `DONE`, endpoint `POST /journals/{id}/reverse` terverifikasi ada di source `6d4fc26`. **Ada butir yang menunggu task ini**: `FE-ACC-007` menampilkan tombol Balik yang selalu mengirim `CorrectionType: FullReversal` karena field itu `[Required]` sementara pemilihannya adalah cakupan task ini. Dialog di sini menggantikannya dengan pilihan yang sebenarnya |
+| **Status** | **`IMPLEMENTED`** — 7 September 2026, menunggu verifikasi owner di peramban (`UAT-10`, `UAT-11`, `UAT-12`). **Ganjalan `FE-ACC-007` dicabut**: `body: { correctionType: 1 }` yang memilihkan pembalikan penuh secara tetap sudah tidak ada, digantikan dialog koreksi yang menanyakan caranya lebih dahulu. **Nol halaman baru, nol slice baru, nol thunk baru, nol komponen base baru, nol perubahan backend** — 6 berkas disunting, 3 berkas baru (665 baris). Dialognya merangkai `ConfirmModal` (`children`, `size`, `confirmProps.disabled`), `BaseCheckboxCard` sebagai kartu pilihan, dan `JournalLineRow` milik `FE-ACC-006` yang diimpor apa adanya untuk baris selisih. Dialog sengaja TIDAK menumpang slot `deleteConfirm` `BaseDetailView` karena slot itu tidak meneruskan `children`/`size`/`confirmProps`; merangkai `ConfirmModal` langsung mencapai hasil sama dengan nol risiko regresi ke belasan modul lain. **Keempat acceptance terkunci 9 unit test baru**, termasuk penjaga jebakan: hook dan dialog tidak boleh mencabang atas status jurnal maupun pembuatnya. Uji lama yang mengunci ganjalan `FE-ACC-007` ikut diganti — alasannya di laporan bagian 3.5. `lint:errors` PASS, `build` PASS 0 warning, **481 unit test PASS**. Diverifikasi lewat HTTP: `POST /journals/{id}/reverse` menjawab `401` sementara jalur ngawur `404`. Isi layar menunggu verifikasi owner; dev server berhenti saat build dijalankan. Laporan: [`../task/report/frontend/fe-acc-010-pembalikan-dan-penyesuaian.md`](../task/report/frontend/fe-acc-010-pembalikan-dan-penyesuaian.md) |
 
 ### `FE-ACC-011` — Saldo awal di layar
 
@@ -289,7 +289,7 @@ menelusuri balik task frontend mana yang ikut terbuka karenanya.
 | `MVP-1` kerangka | `BLOCKED` | `IMPLEMENTED` | 4 Sep 2026 |
 | `FE-ACC-008` | `BLOCKED` berantai | **`READY`** | 4 Sep 2026 — `BE-ACC-012` `DONE` 3 Sep, `FE-ACC-001` `IMPLEMENTED` 4 Sep |
 | `FE-ACC-009` | `BLOCKED` berantai | `BLOCKED` — **hanya oleh `FE-ACC-008`** | — |
-| `FE-ACC-010` | `BLOCKED` berantai | **`READY`** | 7 Sep 2026 — dibuka oleh `FE-ACC-007` |
+| `FE-ACC-010` | `BLOCKED` berantai | **`IMPLEMENTED`** 7 Sep 2026 — dibuka oleh `FE-ACC-007`, dan selesai pada hari yang sama |
 | `FE-ACC-011` | `BLOCKED` berantai | **`IMPLEMENTED`** 7 Sep 2026 — terbuka 4 Sep 2026 oleh `BE-ACC-014` `DONE` 3 Sep dan `FE-ACC-006` `IMPLEMENTED` 4 Sep |
 
 Setiap dependency diperiksa ulang terhadap source `6d4fc26`, bukan terhadap catatan status:
@@ -298,8 +298,8 @@ Setiap dependency diperiksa ulang terhadap source `6d4fc26`, bukan terhadap cata
 jenis jurnal `SA` sudah terisi seeder sejak 3 September 2026.
 
 **Akibatnya `FE-ACC-008`, `FE-ACC-010`, dan `FE-ACC-011` dapat dikerjakan paralel.** Frontend
-berdiri di ~~**7 dari 11**~~ — **10 dari 11 per 7 September 2026**, sesudah `FE-ACC-007`, `008`,
-`009`, dan `011` selesai. Yang tersisa hanya `FE-ACC-010`.
+berdiri di ~~**7 dari 11**~~ — **11 dari 11 per 7 September 2026**, sesudah `FE-ACC-007`, `008`,
+`009`, `011`, dan `010` selesai berurutan. **Nol task frontend tersisa.**
 
 Pelajarannya untuk register ini: status `BLOCKED` berantai perlu menyebut **task mana** yang
 menahannya, bukan kata "berantai" saja. Tanpa nama itu, tidak ada yang tahu kapan ia berhenti

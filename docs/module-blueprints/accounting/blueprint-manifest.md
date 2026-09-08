@@ -29,8 +29,8 @@ backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
 approved_backend_source_sha: aa837d784ff51cb2b889cf975ada3a204018f1f5
 approved_frontend_source_sha: 31a82c8052a3c59445ae49e6f1ccce2bf717d6c0
-verification_backend_source_sha: f989453
-verification_frontend_source_sha: bcccb67bc
+verification_backend_source_sha: 0614be7
+verification_frontend_source_sha: 5174e0cf1
 verification_baseline_note: >
   BASELINE FRONTEND DIGESER 4 September 2026: 1a86d9322 -> a57074f3d. Impact scan dijalankan
   lebih dahulu. Dua commit: bf4fd0ed6 milik owner, 53 berkas 6.754 baris, SELURUHNYA pekerjaan
@@ -86,6 +86,22 @@ verification_baseline_note: >
   Validasi dijalankan SESUDAH implementasi, bukan sebelumnya: lint:errors PASS, build PASS 0
   warning, dan 472 unit test PASS pada working tree di atas bcccb67bc -- 464 yang sudah ada
   ditambah 8 uji baru FE-ACC-011.
+
+  BASELINE DIGESER LAGI 7 September 2026, sebelum FE-ACC-010. Backend f989453 -> 0614be7,
+  frontend bcccb67bc -> 5174e0cf1. Impact scan dijalankan lebih dahulu pada keduanya.
+  BACKEND: 98 commit, dan seluruhnya berasal dari satu merge integration (PR #99
+  QuilvianIntegrationBackend). Ini pergeseran yang paling perlu diperiksa, karena merge
+  integration pernah menghilangkan blok modul lain. Hasilnya: NOL berkas berubah di dalam
+  Areas/Corporate/AccountingManagement/, dan NOL berkas berubah di JournalManagement/ --
+  ReverseJournalRequest beserta AccJournalService.ReverseAsync identik dengan yang menjadi dasar
+  implementasi FE-ACC-010. 63 berkas Migrations/ dan ModelSnapshot memang berubah, seluruhnya
+  milik modul lain dan di luar cakupan task frontend; tidak satu pun disentuh dari sesi ini.
+  FRONTEND: dua commit owner. 22aabade3 memperbaiki neraca saldo dan memindahkan paragraf
+  penanda tindakan pada daftar jurnal ke ATAS tabel -- perbaikan footer position:fixed yang sama
+  yang ditahan uji regresi. 5174e0cf1 adalah commit FE-ACC-011 itu sendiri. Nol berkas asing,
+  nol modul lain tersentuh.
+  Validasi FE-ACC-010 dijalankan SESUDAH implementasi di atas 5174e0cf1: lint:errors PASS, build
+  PASS 0 warning, dan 481 unit test PASS -- 472 yang sudah ada ditambah 9 uji baru.
 
 canonical_integration_baseline: f90bcbe9a0b18d4f4425a4678a5a39a44356677b
 integration_baseline_note: >

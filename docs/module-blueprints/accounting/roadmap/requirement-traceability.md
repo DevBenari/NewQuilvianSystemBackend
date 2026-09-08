@@ -21,10 +21,11 @@ Status `Planned` berarti sudah terpetakan tetapi belum dikerjakan.
 
 > **Koreksi 7 September 2026.** Kalimat lama di sini berbunyi "belum ada satu pun yang berstatus
 > selesai, karena belum ada implementasi". Itu **sudah tidak benar**: seluruh 15 task backend
-> `DONE`, dan frontend berdiri di 10 dari 11. Kolom `Status` pada tabel di bawah **belum ikut
+> `DONE`, dan seluruh 11 task frontend `IMPLEMENTED`. Kolom `Status` pada tabel di bawah **belum ikut
 > disegarkan seluruhnya** — baris yang masih tertulis `Planned` berarti belum ditelusuri ulang,
 > bukan berarti pekerjaannya belum ada. Penelusuran ulang seluruh baris adalah pekerjaan
-> tersendiri milik pemilik modul; baris `FE-ACC-011` sudah diperbarui beserta tautan buktinya.
+> tersendiri milik pemilik modul; baris `FE-ACC-010` dan `FE-ACC-011` sudah diperbarui beserta
+> tautan buktinya.
 
 ---
 
@@ -51,8 +52,8 @@ Status `Planned` berarti sudah terpetakan tetapi belum dikerjakan.
 | Empat peran terpisah (`ACC-DEC-015`) | `ACC-PERMISSION-0.1` bagian 2 | `BE-ACC-011` | `FE-ACC-007` | `FR-ACC-030` | Planned |
 | Pembuat tidak boleh menyetujui sendiri (`ACC-DEC-016`) | `ACC-PERMISSION-0.1` bagian 5 | `BE-ACC-011` | `FE-ACC-007` | `FR-ACC-031`; `UAT-03` | Planned |
 | Riwayat yang disahkan permanen (`ACC-DEC-006`) | `ACC-STATE-0.1` bagian 1.2 | `BE-ACC-011` | `FE-ACC-007` | `FR-ACC-033`, `034`; `UAT-13` | Planned |
-| Koreksi dua cara sesuai kasus (`ACC-DEC-017`) | `ACC-VALIDATION-0.2` bagian 5 | `BE-ACC-013` | `FE-ACC-010` | `FR-ACC-040`, `042`; `UAT-10`, `UAT-11` | Planned |
-| Pembalikan perlu persetujuan baru (`ACC-DEC-029`) | `ACC-STATE-0.1` bagian 1.1 | `BE-ACC-013` | `FE-ACC-010` | `FR-ACC-043` | Planned |
+| Koreksi dua cara sesuai kasus (`ACC-DEC-017`) | `ACC-VALIDATION-0.3` bagian 5 | `BE-ACC-013` | `FE-ACC-010` | `FR-ACC-040`, `042`; `UAT-10`, `UAT-11`; laporan [`fe-acc-010-pembalikan-dan-penyesuaian.md`](../task/report/frontend/fe-acc-010-pembalikan-dan-penyesuaian.md) | **Terwujud di source** 7 Sep 2026 — kedua cara koreksi dipilih petugas lewat dialog beserta penjelasan kapan memakai yang mana; ganjalan `FE-ACC-007` yang selalu mengirim pembalikan penuh sudah dicabut. `UAT-10`/`UAT-11` di peramban menunggu owner |
+| Pembalikan perlu persetujuan baru (`ACC-DEC-029`) | `ACC-STATE-0.1` bagian 1.1 | `BE-ACC-013` | `FE-ACC-010` | `FR-ACC-043`; laporan [`fe-acc-010-pembalikan-dan-penyesuaian.md`](../task/report/frontend/fe-acc-010-pembalikan-dan-penyesuaian.md) | **Terwujud di source** 7 Sep 2026 — kartu hasil menyebut jurnal koreksi lahir berstatus Menunggu Persetujuan dan jurnal asal tetap Disahkan; keduanya dikunci uji |
 | Buku besar dari jurnal disahkan saja | `02-backend-architecture.md` bagian 2 | `BE-ACC-012` | `FE-ACC-008` | `FR-ACC-051`, `052`; `UAT-14` | Planned |
 | Laporan MVP: Neraca Saldo dan Buku Besar (`ACC-DEC-030`) | `ACC-API-0.1` grup General Ledger | `BE-ACC-012` | `FE-ACC-008`, `FE-ACC-009` | `FR-ACC-050`, `053`; `UAT-14`, `UAT-15` | Planned |
 | Mulai dari saldo awal saja (`ACC-DEC-018`) | Saldo awal sebagai jurnal `SA` | `BE-ACC-014` | `FE-ACC-011` | `FR-ACC-060`; `UAT-16`; laporan [`fe-acc-011-saldo-awal.md`](../task/report/frontend/fe-acc-011-saldo-awal.md) | **Terwujud di source** 7 Sep 2026 — jenis `SA` dapat dipilih dan memakai endpoint jurnal yang sama; `UAT-16` di peramban menunggu owner |
