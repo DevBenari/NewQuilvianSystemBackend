@@ -379,6 +379,30 @@ produk.
 
 ### `FE-LAB-08` — Layar daftar kerja dan pantau keterlambatan
 
+> **Status: `SELESAI` — 2026-09-07.** Ketiga butir DoD terpenuhi; lint, uji, dan build
+> seluruhnya lolos. Dua layar berdiri: `/lab-worklists` dan `/lab-worklists/cito-overdue`,
+> dijaga enam belas uji unit. Laporan lengkap:
+> [`task/report/frontend/FE-LAB-08.md`](../task/report/frontend/FE-LAB-08.md).
+>
+> **Satu ancaman langsung terhadap `LAB-FE-006` ditemukan saat membaca komponen dasarnya.**
+> `DataTable` mengurutkan ulang datanya sendiri secara bawaan — `sortLatestFirst` bernilai
+> `true` bila tidak dimatikan — sehingga pemeriksaan **biasa** yang diminta belakangan akan
+> melompati **cito** yang diminta lebih dulu. Invariantnya batal tanpa satu baris kode pun
+> terlihat salah, dan backend tetap benar sepanjang waktu.
+>
+> **Penegakannya berlapis dua, dan lapis keduanya yang sebenarnya menjaga.** Lapis pertama
+> mematikan pengurutan bawaan tabel; lapis kedua melewatkan seluruh baris ke `sortWorklistRows`
+> yang menegakkan kembali urutan cito **sesudah** pengurutan pilihan petugas. Lapis pertama saja
+> hanya menutup satu jalan yang kebetulan aktif secara bawaan.
+>
+> **Ujinya menelusuri seluruh pilihan pengurutan yang ditawarkan layar**, bukan satu contoh yang
+> dipilih tangan — menambah pilihan baru tanpa melewatkannya lewat `enforceCitoFirst` akan
+> membuat uji itu gagal.
+>
+> **Satu batas dinyatakan terbuka:** pengurutan berlaku pada halaman yang terbuka saja, karena
+> `LabWorklistPagedQuery` tidak punya ruas pengurutan. Keterangannya ditampilkan pada layar,
+> bukan disembunyikan.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Petugas melihat pekerjaan yang belum selesai dengan cito selalu di urutan atas, dan kepala instalasi melihat pesanan cito yang melewati batas waktunya |
@@ -393,6 +417,24 @@ produk.
 | **DoD** | Dua layar ada, cito selalu di atas dalam keadaan apa pun, kelebihan waktu tampil dalam satuan yang dipahami petugas |
 
 ### `FE-LAB-09` — Tiga layar monitoring per disiplin
+
+> **Status: `SELESAI` — 2026-09-07.** Ketiga butir DoD terpenuhi; lint, uji, dan build
+> seluruhnya lolos. Tiga route berdiri di bawah `/lab-monitoring`, dijaga empat belas uji unit.
+> Laporan lengkap: [`task/report/frontend/FE-LAB-09.md`](../task/report/frontend/FE-LAB-09.md).
+>
+> **"Penyaringnya identik" dibuat menjadi sifat struktural, bukan janji.** Ketiga disiplin
+> menunjuk **objek definisi penyaring yang sama**, bukan tiga salinan yang kebetulan seragam.
+> Tiga salinan pasti bercabang cepat atau lambat — satu penyaring ditambahkan di satu layar dan
+> terlupa di dua lainnya, tanpa satu pun uji gagal. Ujinya pun memeriksa **identitas objek**,
+> bukan kesamaan isi, sehingga percabangan pertama langsung tertangkap.
+>
+> **Disiplin yang tidak dikenal tidak pernah jatuh ke disiplin mana pun.** Memilihkan disiplin
+> bawaan akan menampilkan pesanan Patologi Klinik kepada petugas Mikrobiologi yang salah membuka
+> tautan — daftarnya tampak wajar dan tidak ada yang menandainya keliru. Layar berhenti dengan
+> pesan salah tautan, dan segmen jalurnya juga ditolak di service sebelum menjadi permintaan.
+>
+> **State disimpan per disiplin**, sehingga berpindah menu tidak mengosongkan penyaring yang
+> baru saja disusun petugas di menu sebelumnya.
 
 | Butir | Isi |
 |---|---|
@@ -435,8 +477,8 @@ diputuskan:
 | `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-05.md). Verifikasi manual menunggu data induk perujuk diisi |
 | `FE-LAB-06` | `MVP-1` | `S1a` | `BE-LAB-10` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-07.md). Verifikasi manual menunggu backend dijalankan |
-| `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | Siap direncanakan |
-| `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | Siap direncanakan |
+| `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-08.md). Verifikasi manual menunggu backend dijalankan |
+| `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-09.md). Verifikasi manual menunggu backend dijalankan |
 
 **Tidak ada satu pun task frontend yang terblokir per 2026-09-07.** `FE-LAB-05`, yang sejak
 2026-09-04 menjadi satu-satunya task `BLOCKED`, kini terbuka: penahannya adalah **endpoint yang
@@ -447,10 +489,9 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 
 | Keadaan | Task | Keterangan |
 |---|---|---|
-| Selesai | `FE-LAB-01` .. `FE-LAB-06` | Gelombang `MVP-0` selesai seluruhnya, dan gelombang `MVP-1` ikut selesai setelah `FE-LAB-05` dikerjakan 2026-09-07. `FE-LAB-06` sempat dikerjakan lebih dulu ketika dependency `FE-LAB-05` diwaive pemilik modul |
+| Selesai | `FE-LAB-01` .. `FE-LAB-09` — **seluruhnya** | **Sembilan dari sembilan task frontend selesai per 2026-09-07.** Gelombang `MVP-0`, `MVP-1`, `MVP-2`, dan `MVP-3` tuntas. `FE-LAB-06` sempat dikerjakan lebih dulu ketika dependency `FE-LAB-05` diwaive pemilik modul |
 | Terblokir | — | Tidak ada |
-| Siap dikerjakan | `FE-LAB-08`, `FE-LAB-09` | Endpoint pasangannya — `BE-LAB-14` dan `BE-LAB-15` — sudah selesai. Keduanya berantai: `08` menopang `09` |
-| Menunggu verifikasi manual | `FE-LAB-05`, `FE-LAB-07` | Keduanya selesai pada source, uji, lint, dan build. Yang tersisa bukan pekerjaan kode: `FE-LAB-05` menunggu data induk perujuk diisi, `FE-LAB-07` menunggu backend dijalankan beserta pesanan yang punya wadah pada beberapa status |
+| Menunggu verifikasi manual | `FE-LAB-05`, `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Keempatnya selesai pada source, uji, lint, dan build. Yang tersisa bukan pekerjaan kode: `FE-LAB-05` menunggu data induk perujuk diisi; tiga lainnya menunggu backend dijalankan beserta data yang memadai |
 | Menunggu data, bukan kode | `FE-LAB-05` | Layarnya selesai, tetapi formulir rujukan luar **belum dapat dipakai** sampai data induk instansi dan dokter perujuk diisi. Delapan skenario verifikasi manual menunggu itu |
 
 `LAB-OPEN-018` sudah tidak menahan sejak 2026-09-04; lihat catatannya pada bagian 1.
@@ -466,6 +507,8 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 | 3 | 2026-09-04 | `FE-LAB-02` selesai dikerjakan dan divalidasi. Enam layar batas nilai berdiri beserta jalur pengajuan batas kritis yang terpisah. Tiga temuan dicatat: `AC-34` belum memuat pelaku karena respons riwayat backend tanpa nama, status sebelas endpoint pada dokumen kontrak masih tertulis `Rencana` padahal sudah ada, dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan | `DRAFT` |
 | 4 | 2026-09-04 | `FE-LAB-03` selesai dikerjakan dan divalidasi. Tiga layar alasan penolakan berdiri, dan `LAB-FE-012` ditegakkan empat lapis. Dua batas dicatat: grup endpoint ini tidak punya `GET /{id}` sehingga tidak ada halaman detail, dan frontend belum menerima daftar permission sehingga penyembunyian aksi penanda sistem hanya sedekat peran | `DRAFT` |
 | 5 | 2026-09-04 | `FE-LAB-04` selesai dikerjakan dan divalidasi. Menu tarif baca saja berdiri tanpa satu pun jalur ubah, dan komponen pemilih katalog berdiri siap dipakai ulang `FE-LAB-06`. Ketiga konstanta yang dilarang diduplikasi terbukti dipakai ulang, bukan disalin. **Gelombang `MVP-0` selesai seluruhnya** | `DRAFT` |
+| 11 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-09` **selesai**, dan dengan itu **seluruh sembilan task frontend Laboratorium selesai** — gelombang `MVP-0` sampai `MVP-3` tuntas. Tiga route berdiri di bawah `/lab-monitoring`, dijaga empat belas uji unit. **Butir DoD "penyaringnya identik pada ketiganya" dibuat menjadi sifat struktural, bukan janji:** ketiga disiplin menunjuk **objek definisi penyaring yang sama**, bukan tiga salinan yang kebetulan seragam — tiga salinan pasti bercabang begitu satu penyaring ditambahkan di satu layar dan terlupa di dua lainnya, tanpa satu pun uji gagal. Ujinya memeriksa **identitas objek**, bukan kesamaan isi, sehingga percabangan pertama langsung tertangkap. Butir "tanpa duplikasi" dipenuhi dengan satu view, satu susunan kolom, satu hook, dan satu berkas gaya; ketiga halaman route masing-masing hanya sembilan baris. **Keputusan `LAB-DEC-025` dijaga dua arah:** definisi penyaringnya tidak punya ruas disiplin, dan parameter permintaannya tidak pernah membawa disiplin — keduanya dijaga uji, karena menambahkan ruas itu akan mengembalikan layar menjadi satu daftar berpenyaring yang justru ditolak keputusannya. Tautan yang menyebut disiplin tak dikenal **tidak dialihkan diam-diam** ke disiplin lain, karena menampilkan pesanan disiplin yang keliru tampak wajar dan tidak ada yang menandainya. State disimpan per disiplin supaya berpindah menu tidak mengosongkan penyaring yang baru disusun. Satu batas dicatat: verifikasi manual delapan skenario belum dijalankan | `DRAFT` |
+| 10 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-08` **selesai**: dua layar berdiri — daftar kerja `/lab-worklists` dan pantau keterlambatan `/lab-worklists/cito-overdue` — dijaga enam belas uji unit. Satuannya **pemeriksaan**, bukan pesanan, sehingga satu pesanan yang memuat Kalium cito dan Kolesterol biasa hanya menaikkan Kalium (`AC-39`). **Satu ancaman langsung terhadap `LAB-FE-006` ditemukan saat membaca komponen dasarnya, bukan saat menguji:** `DataTable` mengurutkan ulang datanya sendiri secara bawaan (`sortLatestFirst` bernilai `true` bila tidak dimatikan), sehingga pemeriksaan biasa yang diminta belakangan akan melompati cito yang diminta lebih dulu — invariantnya batal tanpa satu baris kode pun terlihat salah, dan backend tetap benar sepanjang waktu. Penegakannya dibuat berlapis dua: mematikan pengurutan bawaan tabel, **dan** melewatkan seluruh baris ke `sortWorklistRows` yang menegakkan kembali urutan cito sesudah pengurutan pilihan petugas. Ujinya menelusuri **seluruh** isi `LAB_WORKLIST_SORT_OPTIONS`, bukan satu contoh yang dipilih tangan, sehingga menambah pilihan baru tanpa melewatkannya lewat `enforceCitoFirst` akan membuat uji itu gagal. `VAL-39` dijaga uji tersendiri: baris yang jenis pemeriksaannya belum punya batas waktu tetap ditampilkan tetapi tidak dihitung terlambat. Satu cacat ditemukan **oleh uji**: `pageSize` bernilai negatif sempat menghasilkan satu baris per halaman, lalu implementasinya yang diperbaiki. Dua batas dinyatakan terbuka: pengurutan berlaku pada halaman yang terbuka saja karena kontraknya tidak punya ruas pengurutan, dan verifikasi manual delapan skenario belum dijalankan | `DRAFT` |
 | 9 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-07` **selesai untuk source dan uji**: layar wadah dan pemeriksaan berdiri sebagai route bersarang `/lab-orders/[slug]/specimens`, dengan perencanaan wadah, alur menyatakan layak, menolak, ambil ulang, menahan, dan melanjutkan. Sembilan belas uji unit menjaganya. **Kedua invariant keselamatan ditegakkan sebagai data, bukan sebagai susunan JSX** — `resolveSpecimenActions` yang memutuskan ada tidaknya aksi tolak, sehingga selama isi wadah belum termuat aksi itu **tidak dibuat sama sekali**; menaruh penjagaan di dalam JSX berarti ia dapat tergeser diam-diam oleh perapian tampilan berikutnya tanpa satu pun uji ikut gagal. `LAB-FE-009` berlapis tiga: pada data, pada kartu wadah sebagai daftar terbuka, dan sekali lagi di dalam dialog penolakan. `VAL-13` dijaga uji yang memeriksa katalog aksi tidak memuat satu pun aksi berlingkup pemeriksaan — `POST /lab-examinations/{id}/cancel` milik `BE-LAB-16` sengaja **tidak** dipakai di layar ini. **Dua hal di luar kendali task dicatat apa adanya:** `HEAD` frontend berpindah dari `72f050b50` ke `c71c02a07` di tengah pengerjaan karena merge pemilik repository — pekerjaan `FE-LAB-05` yang sudah tercommit tetap utuh — dan merge itu membawa **lima kelompok deklarasi kembar** pada `billing-management` yang membuat `npm run build` gagal — nol error menunjuk ke `laboratory-management`. Salah satunya lebih berat daripada gagal build: `addCase` kembar untuk action type yang sama membuat Redux Toolkit melempar saat *store* dibentuk, sehingga **seluruh aplikasi** tidak dapat dijalankan, bukan hanya layar Billing. Atas instruksi eksplisit pemilik repository, salinan keduanya dibuang — 70 baris dihapus, **nol** ditambahkan — dan `npm run lint:errors` serta `npm run build` kembali lolos. Yang tersisa hanya verifikasi manual delapan skenario, yang menunggu backend dijalankan | `DRAFT` |
 | 8 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-05` **selesai**, dan dengan itu **gelombang `MVP-1` frontend selesai seluruhnya**. Tiga layar berdiri: pencarian pasien, pendaftaran datang langsung, dan pendaftaran rujukan luar. Alurnya menyambung ke pembuatan pesanan dengan kunjungan yang **sudah terisi** — `useLabOrderForm` milik `FE-LAB-06` disentuh secara aditif untuk itu, dan seluruh uji lamanya tetap lolos. `AC-50` ditegakkan **secara struktural**: formulirnya tidak punya satu pun kotak isian nama perujuk, dan uji memeriksa muatan yang dikirim juga tidak punya ruas namanya. Tiga belas uji unit baru menjaga aturan murni kunci idempotensi, `VAL-43`, `VAL-44`, dan bentuk muatan. **Satu penahan baru ditemukan dan ditutup pada sesi yang sama:** `MstReferralInstitution` dan `MstReferralDoctor` ternyata **tidak punya endpoint sama sekali** — `BE-EXT-02` memang tidak membuatnya — sehingga daftar perujuk tidak punya sumber; dua endpoint bacanya dibangun atas instruksi pemilik modul, dan butir Verifikasi `BE-EXT-02` *"kedua data induk dapat dipilih dari daftar"* yang selama ini tidak pernah terpenuhi kini terpenuhi. **Satu batas dicatat apa adanya:** verifikasi manual **belum dijalankan** — delapan skenarionya menunggu data induk perujuk diisi dan backend dijalankan kembali; selama daftarnya kosong, formulir rujukan luar tidak dapat dipakai walaupun layarnya sudah benar | `DRAFT` |
 | 7 | 2026-09-07 | **Penahan `FE-LAB-05` dicabut, ditulis `build-module-backend`.** `BE-LAB-08` selesai, sehingga `FE-LAB-05` berpindah dari **`BLOCKED`** menjadi **siap dikerjakan** — dan dengan itu **tidak ada lagi task frontend Laboratorium yang terblokir**. Ketiga endpoint yang dibutuhkannya tersedia dan terdokumentasi Swagger pada grup `Health Services / Laboratory Management / Lab Patient Registration`. Tiga hal ditambahkan pada kartu task sebagai syarat pelaksanaan, dan ketiganya wajib dibaca sebelum layarnya dibuat: `idempotencyKey` dibuat layar **saat formulir dibuka**, bukan saat tombol ditekan, dan wajib dikirim — tanpa itu penekanan Simpan dua kali menghasilkan dua kunjungan; jawaban membawa `isReplay` yang berarti **berhasil**, bukan gagal; serta instansi dan dokter perujuk dikirim sebagai penunjuk, karena permintaannya memang tidak punya ruas nama sama sekali | `DRAFT` |
