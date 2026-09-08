@@ -122,3 +122,81 @@ Daftar akun tidak punya alur berstatus banyak. Yang ada hanya penanda aktif.
 | Nonaktif | Aktifkan kembali | `IsActive = true` | Accounting Administrator | — | — |
 | Aktif | Ubah kode | Kode baru | Accounting Administrator | Belum ada baris jurnal `Posted` yang memakainya (`ACC-DEC-023`) | `409` — "Kode akun tidak dapat diubah karena sudah dipakai pada jurnal yang disahkan." |
 | Aktif | Jadikan menerima transaksi | `IsPostable = true` | Accounting Administrator | Akun tidak punya anak (`ACC-DEC-022`) | `409` — "Akun induk tidak dapat menerima transaksi." |
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-STATE-0.2` |
+| `last_changed_in` | `ACC-STATE-0.2` — 8 September 2026 |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| Traceability | `ACC-DEC-045`, `046`, `047`, `049`, `052`, `055` |
+
+## 1. Kejadian keuangan (`AccountingEventStatus`)
+
+Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
+
+| Dari | Ke | Pemicu | Wewenang | Prasyarat |
+|---|---|---|---|---|
+| — | `Diterima` | Pesan masuk dari Finance | `AccountingEvent : Receive` | Kesepuluh bidang terisi, mata uang rupiah |
+| `Diterima` | `Terjurnal` | Aturan posting ketemu, pemrosesan berhasil | Sistem | Periode menerima pencatatan; jurnal berhasil dibuat |
+| `Diterima` | `Tertahan` | Aturan posting **tidak** ketemu | Sistem | — |
+| `Diterima` | `Gagal` | Tiga percobaan otomatis habis | Sistem | `AttemptCount = 3` |
+| `Tertahan` | `Terjurnal` | Akuntansi menambah aturan posting, lalu kejadian diproses ulang | Sistem atau `AccountingEvent : Retry` | Aturan posting untuk jenis itu kini ada dan aktif |
+| `Gagal` | `Terjurnal` | Coba ulang manual berhasil | `AccountingEvent : Retry` | — |
+| `Gagal` | `Diabaikan` | Akuntansi menyatakan kejadian tidak perlu dijurnal | `AccountingEvent : Ignore` | **Alasan tertulis wajib** |
+
+### Perpindahan yang DILARANG
+
+| Dari | Ke | Kenapa dilarang |
+|---|---|---|
+| `Terjurnal` | mana pun | Jurnal sudah terbentuk. Membatalkannya menuntut pembalikan jurnal, bukan pengubahan status kejadian |
+| `Tertahan` | `Diabaikan` | Kejadian tertahan itu **sah** dan menunggu pemetaan. Mengabaikannya berarti kehilangan angka yang seharusnya masuk buku besar. Yang boleh diabaikan hanya yang `Gagal` |
+| `Diabaikan` | mana pun | Status akhir. Bila keliru diabaikan, kejadian dikirim ulang oleh Finance dengan nomor baru |
+| `Diterima` | `Diabaikan` | Belum pernah dicoba, jadi belum ada dasar menyatakannya tidak perlu dijurnal |
+
+**Kenapa `Tertahan` tidak boleh langsung diabaikan** adalah aturan yang paling mudah salah
+dirancang. Contohnya: kejadian penyusutan Rp 4.000.000 tertahan karena akun belum dipetakan.
+Bila petugas boleh mengabaikannya untuk membersihkan layar, beban Rp 4.000.000 hilang dari
+laporan tanpa jejak apa pun bahwa ia pernah ada.
+
+## 2. Periode akuntansi (`AccountingPeriodStatus`) — diperluas
+
+Nilai `PendingClosingApproval = 4` **ditambahkan di belakang**, bukan disisipkan. Menyisipkan di
+tengah akan mengubah arti angka yang sudah tersimpan di database.
+
+| Dari | Ke | Pemicu | Wewenang | Prasyarat |
+|---|---|---|---|---|
+| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** `ACC-DEC-051` |
+| `PendingClosingApproval` | `SoftClosed` | Persetujuan penutupan | `Period : Approve` (**Director**) | Penyetuju **bukan** pengaju |
+| `PendingClosingApproval` | `Open` | Penolakan penutupan | `Period : Approve` | Alasan tertulis wajib |
+| `SoftClosed` | `Open` | Pembukaan kembali | `Period : Close` | Alasan tertulis wajib (`ACC-DEC-027`) |
+| `SoftClosed` | `Closed` | Penutupan permanen | `Period : Close` | Sudah `SoftClosed` |
+
+### Perpindahan yang DILARANG
+
+| Dari | Ke | Kenapa dilarang |
+|---|---|---|
+| `Open` | `SoftClosed` | Melompati persetujuan. Inilah yang diubah `ACC-DEC-052` — pada MVP perpindahan ini sah, pada Phase 2 tidak lagi |
+| `Closed` | mana pun | Tertutup permanen |
+| `PendingClosingApproval` | `Closed` | Penutupan permanen hanya dari `SoftClosed` |
+
+**Catatan kompatibilitas.** Periode yang sudah `SoftClosed` sebelum Phase 2 berdiri **tidak punya**
+riwayat persetujuan, dan itu benar — mereka ditutup ketika aturannya memang belum ada. Sistem tidak
+boleh menolak atau menandai mereka janggal.
+
+## 3. Jurnal berulang — tidak punya status sendiri
+
+Template hanya punya `IsActive`. Jurnal yang dihasilkannya adalah `AccJournal` biasa yang lahir
+berstatus `Draft`, lalu menempuh daur hidup jurnal yang sudah ada (`ACC-STATE-0.1` bagian 1).
+Tidak ada state machine kedua.
+
+## 4. Jurnal penutup tahun — tidak punya status sendiri
+
+Sama alasannya. Jurnal penutup lahir `Draft` berjenis `JT`, lalu diajukan, disetujui, dan
+disahkan lewat jalur yang sudah ada. Koreksinya memakai pembalikan jurnal (`ACC-DEC-029`), bukan
+mekanisme "buka kembali tahun buku" — usulan ini menunggu ratifikasi `DEC-ACC-P2-006`.

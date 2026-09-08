@@ -342,3 +342,233 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 | 24 | `AccountBalanceResponse` + `AccountId`, `PeriodName` | GL |
 
 `ACC-GAP-004` mencatat lima selisih. Pemeriksaan penuh terhadap source menemukan **24**.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-API-0.7` |
+| `last_changed_in` | `ACC-API-0.7` — 8 September 2026, `ACC-DEC-058` mengubah aturan posting menjadi daftar baris dan menambah rincian nilai pada pesan kejadian. Sebelumnya `0.6`, penambahan 33 endpoint Phase 2 |
+| Status | **`approved`** — Rizki, 8 September 2026 |
+| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| `input_revision` | `00-interview-decisions.md@4`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+| Dampak kompatibilitas | Seluruhnya endpoint **baru**, ditambah **empat endpoint baru** pada grup Accounting Period yang sudah ada. **Nol endpoint existing berubah bentuk maupun rusak** |
+
+**Seluruh endpoint di bawah berlabel `Rencana (belum tersedia)`.** Tidak satu pun sudah berdiri di
+`02c3219`. Jangan menyangkanya sudah bisa dipakai.
+
+Amplop respons tetap `ApiResponse<T>`, daftar berhalaman tetap `PagedResult<T>`, sama seperti MVP.
+
+## Corporate / Accounting / Accounting Event
+
+`[Tags("Corporate - Accounting - Accounting Event")]`
+Base URL: `api/v1/corporate/accounting/accounting-events` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar kejadian berhalaman, dapat disaring per status, jenis kejadian, periode, dan badan hukum | `AccountingEvent : Read` | `AccountingEventPagedQuery` | `ApiResponse<PagedResult<AccountingEventListDto>>` |
+| `GET` | `/{id}` | Rincian satu kejadian beserta seluruh riwayat percobaannya dan jurnal yang dihasilkan | `AccountingEvent : Read` | — | `ApiResponse<AccountingEventDetailDto>` |
+| `GET` | `/summary` | Jumlah kejadian per status, untuk penanda angka pada menu (`ACC-DEC-057`) | `AccountingEvent : Read` | `legalEntityId` pada query | `ApiResponse<AccountingEventSummaryDto>` |
+| `POST` | `/` | **Menerima satu kejadian keuangan dari Finance.** Inilah pintu masuk Phase 2 | `AccountingEvent : Receive` | `ReceiveAccountingEventRequest` | `ApiResponse<AccountingEventReceiptDto>` |
+| `POST` | `/{id}/retry` | Mencoba ulang kejadian berstatus Gagal secara manual | `AccountingEvent : Retry` | — | `ApiResponse<AccountingEventDetailDto>` |
+| `PATCH` | `/{id}/ignore` | Menandai kejadian Gagal sebagai Diabaikan; **alasan tertulis wajib** | `AccountingEvent : Ignore` | `IgnoreAccountingEventRequest` | `ApiResponse<AccountingEventDetailDto>` |
+
+Arti kode status bagi pengguna:
+
+- `200` — permintaan berhasil.
+- `201` — kejadian baru diterima dan dicatat.
+- `200` **pada `POST /` untuk kejadian yang sudah pernah diterima** — ini bukan kesalahan.
+  Sistem mengembalikan nomor jurnal yang sama tanpa membuat jurnal baru (`ACC-DEC-035`).
+- `400` — pesan tidak memuat kesepuluh bidang wajib (`ACC-DEC-048`), atau nilainya tidak masuk akal.
+- `403` — pengguna tidak berhak, atau badan hukum yang dituju bukan haknya.
+- `404` — kejadian tidak ditemukan.
+- `409` — mata uang bukan rupiah (`ACC-DEC-020`), atau kejadian hendak diabaikan padahal statusnya
+  bukan Gagal.
+- `422` — kejadian sah tetapi jenisnya belum punya aturan posting. Kejadian tercatat berstatus
+  **Tertahan**, dan **tidak ada jurnal yang dibuat** (`ACC-DEC-046`).
+
+### Kenapa `POST /` mengembalikan `200` untuk kiriman ulang, bukan `409`
+
+Ini sengaja, dan mudah salah dirancang. Finance yang mengirim ulang karena jaringan putus
+**bukan** sedang melakukan kesalahan — ia sedang memastikan pesannya sampai. Menjawab `409` akan
+membuat Finance menganggap pengirimannya gagal lalu mencoba lagi tanpa henti. Menjawab `200`
+beserta nomor jurnal yang sama membuat Finance tahu pesannya **sudah diterima dan sudah dibukukan**.
+
+**Contohnya.** `EVT-100` dikirim tiga kali. Kiriman pertama menjawab `201` dan nomor jurnal
+`JU/2026/09/00042`. Kiriman kedua dan ketiga menjawab `200` dengan nomor jurnal yang sama persis.
+Buku besar tetap berisi satu catatan.
+
+## Corporate / Accounting / Master Data / Event Type
+
+`[Tags("Corporate - Accounting - Master Data - Event Type")]`
+Base URL: `api/v1/corporate/accounting/event-types` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar jenis kejadian berhalaman | `EventType : Read` | `EventTypePagedQuery` | `ApiResponse<PagedResult<EventTypeListDto>>` |
+| `GET` | `/{id}` | Rincian satu jenis kejadian | `EventType : Read` | — | `ApiResponse<EventTypeDetailDto>` |
+| `GET` | `/options` | Daftar ringkas jenis kejadian aktif, untuk isian pilihan pada form aturan posting | `EventType : Read` | `search` pada query | `ApiResponse<List<EventTypeOptionDto>>` |
+| `POST` | `/` | Menambah jenis kejadian | `EventType : Create` | `CreateEventTypeRequest` | `ApiResponse<EventTypeDetailDto>` |
+| `PUT` | `/{id}` | Mengubah nama dan modul asal | `EventType : Update` | `UpdateEventTypeRequest` | `ApiResponse<EventTypeDetailDto>` |
+| `PATCH` | `/{id}/deactivate` | Menonaktifkan jenis kejadian | `EventType : Update` | — | `ApiResponse<EventTypeDetailDto>` |
+
+`409` muncul bila kode jenis kejadian sudah dipakai, atau bila jenis hendak dinonaktifkan padahal
+masih ada aturan posting aktif yang memakainya.
+
+## Corporate / Accounting / Master Data / Posting Rule
+
+`[Tags("Corporate - Accounting - Master Data - Posting Rule")]`
+Base URL: `api/v1/corporate/accounting/posting-rules` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar aturan posting berhalaman, disaring per badan hukum dan jenis kejadian | `PostingRule : Read` | `PostingRulePagedQuery` | `ApiResponse<PagedResult<PostingRuleListDto>>` |
+| `GET` | `/{id}` | Rincian satu aturan posting | `PostingRule : Read` | — | `ApiResponse<PostingRuleDetailDto>` |
+| `POST` | `/` | Menambah aturan posting | `PostingRule : Create` | `CreatePostingRuleRequest` | `ApiResponse<PostingRuleDetailDto>` |
+| `PUT` | `/{id}` | Mengubah akun debit, akun kredit, atau perlakuannya | `PostingRule : Update` | `UpdatePostingRuleRequest` | `ApiResponse<PostingRuleDetailDto>` |
+| `PATCH` | `/{id}/deactivate` | Menonaktifkan aturan posting | `PostingRule : Update` | — | `ApiResponse<PostingRuleDetailDto>` |
+
+`409` muncul bila jenis kejadian itu sudah punya aturan aktif pada badan hukum yang sama, atau
+bila ada baris berakun dari badan hukum yang berbeda, atau bila aturannya tidak akan pernah seimbang.
+`422` muncul bila akun yang ditunjuk bukan akun yang menerima transaksi (`ACC-DEC-022`).
+
+## Corporate / Accounting / Recurring Journal
+
+`[Tags("Corporate - Accounting - Recurring Journal")]`
+Base URL: `api/v1/corporate/accounting/recurring-journals` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar template berhalaman | `RecurringJournal : Read` | `RecurringJournalPagedQuery` | `ApiResponse<PagedResult<RecurringJournalListDto>>` |
+| `GET` | `/{id}` | Rincian template beserta barisnya | `RecurringJournal : Read` | — | `ApiResponse<RecurringJournalDetailDto>` |
+| `GET` | `/{id}/runs` | Riwayat penerbitan template per periode beserta jurnal yang dihasilkan | `RecurringJournal : Read` | — | `ApiResponse<List<RecurringJournalRunDto>>` |
+| `POST` | `/` | Menambah template beserta barisnya | `RecurringJournal : Create` | `CreateRecurringJournalRequest` | `ApiResponse<RecurringJournalDetailDto>` |
+| `PUT` | `/{id}` | Mengubah template beserta barisnya | `RecurringJournal : Update` | `UpdateRecurringJournalRequest` | `ApiResponse<RecurringJournalDetailDto>` |
+| `PATCH` | `/{id}/activate` | Mengaktifkan template | `RecurringJournal : Update` | — | `ApiResponse<RecurringJournalDetailDto>` |
+| `PATCH` | `/{id}/deactivate` | Menonaktifkan template | `RecurringJournal : Update` | — | `ApiResponse<RecurringJournalDetailDto>` |
+| `POST` | `/{id}/generate` | Menerbitkan jurnal draft untuk satu periode secara manual, di luar jadwal | `RecurringJournal : Generate` | `GenerateRecurringJournalRequest` | `ApiResponse<RecurringJournalRunDto>` |
+
+`400` muncul bila total debit dan kredit baris template tidak sama.
+`409` muncul bila template sudah pernah terbit untuk periode yang diminta — inilah penjaga terbit
+ganda. `422` muncul bila periode yang dituju tidak menerima pencatatan.
+
+## Corporate / Accounting / Accounting Period — empat endpoint baru
+
+`[Tags("Corporate - Accounting - Accounting Period")]`
+Base URL: `api/v1/corporate/accounting/accounting-periods` — grup **sudah ada**; keempat baris di
+bawah **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/{id}/closing-checklist` | Daftar penghalang dan peringatan penutupan, **dihitung saat diminta** | `Period : Read` | — | `ApiResponse<PeriodClosingChecklistDto>` |
+| `POST` | `/{id}/submit-closing` | Accounting Manager mengajukan penutupan periode | `Period : Close` | `SubmitPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+| `POST` | `/{id}/approve-closing` | **`Accounting Director`** menyetujui penutupan | `Period : Approve` | `ApprovePeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+| `POST` | `/{id}/reject-closing` | Penyetuju menolak pengajuan; alasan tertulis wajib | `Period : Approve` | `RejectPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+
+`409` pada `submit-closing` muncul bila masih ada penghalang `ACC-DEC-051`: jurnal belum disahkan,
+atau kejadian keuangan gagal.
+`403` pada `approve-closing` muncul bila penyetujunya adalah orang yang mengajukan — penerapan
+ulang prinsip empat mata `ACC-DEC-016`.
+
+## Corporate / Accounting / Year End Closing
+
+`[Tags("Corporate - Accounting - Year End Closing")]`
+Base URL: `api/v1/corporate/accounting/year-end-closing` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/preview` | Pratinjau perhitungan tutup tahun: saldo tiap akun pendapatan dan beban, serta selisih yang akan masuk laba ditahan. **Tidak membuat apa pun** | `YearEndClosing : Read` | `legalEntityId`, `fiscalYear` pada query | `ApiResponse<YearEndClosingPreviewDto>` |
+| `POST` | `/generate` | Menyusun jurnal penutup tahun berstatus `Draft` berjenis `JT` | `YearEndClosing : Generate` | `GenerateYearEndClosingRequest` | `ApiResponse<JournalDetailDto>` |
+
+`409` muncul bila masih ada periode tahun itu yang belum tertutup, atau bila jurnal penutup tahun
+itu sudah pernah disusun. `422` muncul bila akun laba ditahan belum ditetapkan pada pengaturan
+akuntansi.
+
+**Pengesahannya memakai endpoint yang sudah ada**, yaitu `POST /journals/{id}/post`. Tidak ada
+jalur pengesahan khusus tutup tahun, karena jurnal penutup adalah jurnal biasa.
+
+## Corporate / Accounting / Master Data / Accounting Configuration
+
+`[Tags("Corporate - Accounting - Master Data - Configuration")]`
+Base URL: `api/v1/corporate/accounting/configuration` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/{legalEntityId}` | Menampilkan pengaturan akuntansi satu badan hukum | `AccountingConfiguration : Read` | — | `ApiResponse<AccountingConfigurationDto>` |
+| `PUT` | `/{legalEntityId}` | Menetapkan akun laba ditahan | `AccountingConfiguration : Update` | `UpdateAccountingConfigurationRequest` | `ApiResponse<AccountingConfigurationDto>` |
+
+`422` muncul bila akun yang ditunjuk bukan akun berjenis Ekuitas, atau bukan akun yang menerima
+transaksi.
+
+## Daftar DTO Phase 2
+
+Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran bernama `Dto`.
+
+| Kelompok | DTO |
+|---|---|
+| Accounting Event | `AccountingEventPagedQuery`, `AccountingEventListDto`, `AccountingEventDetailDto`, `AccountingEventAttemptDto`, `AccountingEventSummaryDto`, `AccountingEventReceiptDto`, `ReceiveAccountingEventRequest`, `IgnoreAccountingEventRequest` |
+| Event Type | `EventTypePagedQuery`, `EventTypeListDto`, `EventTypeDetailDto`, `EventTypeOptionDto`, `CreateEventTypeRequest`, `UpdateEventTypeRequest` |
+| Posting Rule | `PostingRulePagedQuery`, `PostingRuleListDto`, `PostingRuleDetailDto`, **`PostingRuleLineDto`**, `CreatePostingRuleRequest`, `UpdatePostingRuleRequest` — keduanya memuat daftar baris |
+| Recurring Journal | `RecurringJournalPagedQuery`, `RecurringJournalListDto`, `RecurringJournalDetailDto`, `RecurringJournalLineDto`, `RecurringJournalRunDto`, `CreateRecurringJournalRequest`, `UpdateRecurringJournalRequest`, `GenerateRecurringJournalRequest` |
+| Period Closing | `PeriodClosingChecklistDto`, `PeriodClosingBlockerDto`, `PeriodClosingApprovalDto`, `SubmitPeriodClosingRequest`, `ApprovePeriodClosingRequest`, `RejectPeriodClosingRequest` |
+| Year End Closing | `YearEndClosingPreviewDto`, `YearEndClosingPreviewLineDto`, `GenerateYearEndClosingRequest` |
+| Configuration | `AccountingConfigurationDto`, `UpdateAccountingConfigurationRequest` |
+
+### Isi `ReceiveAccountingEventRequest` — sepuluh bidang wajib
+
+Mewujudkan `ACC-DEC-048`. Pesan yang kehilangan satu pun bidang ini ditolak `400`.
+
+| Bidang | Tipe | Wajib | Contoh |
+|---|---|:---:|---|
+| `EventNumber` | `string` | Ya | `EVT-100` |
+| `EventTypeCode` | `string` | Ya | `PENGAKUAN-PIUTANG` |
+| `SourceModule` | `string` | Ya | `Finance` |
+| `SourceTransactionId` | `string` | Ya | `AR-2026-09-00871` |
+| `SourceVersion` | `string` | Ya | `1` |
+| `EventOccurredAt` | `timestamptz` | Ya | `2026-09-08T10:15:00+07:00` |
+| `AccountingDate` | `date` | Ya | `2026-09-08` |
+| `Amount` | `decimal(18,2)` | Ya | `10000000.00` |
+| `CurrencyCode` | `string` | Ya | `IDR` — nilai lain ditolak `409` |
+| `LegalEntityId` | `Guid` | Ya | Badan hukum yang bukunya disentuh |
+
+**Tidak ada bidang pengenal pasien**, dan itu disengaja (`ACC-DEC-056`).
+
+### Bidang kesebelas yang bersifat opsional: `Components`
+
+Ditambahkan `ACC-DEC-058`. Bukan bagian dari sepuluh bidang wajib, sehingga pesan tanpa `Components`
+tetap sah — ia berarti seluruh nilai memakai komponen `TOTAL`.
+
+| Bidang | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `Components` | daftar | Tidak | Rincian nilai. Setiap butir berisi `ComponentCode` dan `Amount` |
+
+**Contoh pendapatan rawat jalan dengan jasa medis dokter:**
+
+```json
+{
+  "EventNumber": "EVT-100",
+  "EventTypeCode": "PENGAKUAN-PIUTANG",
+  "SourceModule": "Finance",
+  "SourceTransactionId": "AR-2026-09-00871",
+  "SourceVersion": "1",
+  "EventOccurredAt": "2026-09-08T10:15:00+07:00",
+  "AccountingDate": "2026-09-08",
+  "Amount": 10000000.00,
+  "CurrencyCode": "IDR",
+  "LegalEntityId": "...",
+  "Components": [
+    { "ComponentCode": "JASA_MEDIS", "Amount": 3000000.00 }
+  ]
+}
+```
+
+Aturan posting untuk jenis itu memuat empat baris — dua memakai `TOTAL`, dua memakai `JASA_MEDIS`
+— sehingga jurnalnya berisi empat baris: debit Rp 13.000.000 lawan kredit Rp 13.000.000.
+
+`422` muncul bila kejadian membawa komponen yang **tidak dipakai** satu pun baris aturan. Kejadian
+berstatus **Tertahan**, karena mengabaikan komponen yang tidak dikenal berarti membuang angka
+diam-diam.

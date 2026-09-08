@@ -162,3 +162,78 @@ acceptance tersendiri.
 **Yang TIDAK ditunda:** pemisahan data tetap berlaku penuh. Kode akun tetap unik per badan hukum,
 dan satu jurnal tetap tidak boleh mencampur dua badan hukum (`BE-ACC-010`). `ACC-DEC-037` tidak
 dibatalkan.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-PERMISSION-0.4` |
+| `last_changed_in` | `ACC-PERMISSION-0.4` — 8 September 2026 |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| Traceability | `ACC-DEC-055` peran ketujuh, `ACC-DEC-044` sampai `ACC-DEC-057` |
+
+## Peran ketujuh: `Accounting Director`
+
+`ACC-DEC-031` mengunci enam peran. `ACC-DEC-055` menambah **satu**, dan hanya satu:
+
+| Peran | Kegunaan | Biasanya siapa |
+|---|---|---|
+| `Accounting Director` | **Menyetujui penutupan periode.** Tidak punya hak lain | Pimpinan keuangan |
+
+Peran ini sengaja dibuat sesempit mungkin — satu hak akses saja — supaya tidak berkembang menjadi
+peran serba bisa kedua di samping Manager.
+
+## Matriks hak akses Phase 2
+
+| Tindakan | String permission | Viewer | Staff | Approver | Manager | Director | Auditor | Administrator |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Melihat kotak masuk kejadian | `AccountingEvent : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Menerima kejadian dari Finance | `AccountingEvent : Receive` | | | | | | | ✓ |
+| Coba ulang kejadian gagal | `AccountingEvent : Retry` | | | | ✓ | | | ✓ |
+| Menandai kejadian diabaikan | `AccountingEvent : Ignore` | | | | ✓ | | | |
+| Melihat jenis kejadian | `EventType : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Menambah jenis kejadian | `EventType : Create` | | | | ✓ | | | ✓ |
+| Mengubah jenis kejadian | `EventType : Update` | | | | ✓ | | | ✓ |
+| Melihat aturan posting | `PostingRule : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Menambah aturan posting | `PostingRule : Create` | | | | ✓ | | | ✓ |
+| Mengubah aturan posting | `PostingRule : Update` | | | | ✓ | | | ✓ |
+| Melihat template jurnal berulang | `RecurringJournal : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Menambah template | `RecurringJournal : Create` | | ✓ | | ✓ | | | ✓ |
+| Mengubah template | `RecurringJournal : Update` | | | | ✓ | | | ✓ |
+| Menerbitkan jurnal berulang manual | `RecurringJournal : Generate` | | | | ✓ | | | ✓ |
+| Melihat daftar penghalang penutupan | `Period : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Mengajukan penutupan periode | `Period : Close` | | | | ✓ | | | |
+| **Menyetujui atau menolak penutupan** | `Period : Approve` | | | | | **✓** | | |
+| Melihat pratinjau tutup tahun | `YearEndClosing : Read` | | | | ✓ | ✓ | ✓ | |
+| Menyusun jurnal penutup tahun | `YearEndClosing : Generate` | | | | ✓ | | | |
+| Melihat pengaturan akuntansi | `AccountingConfiguration : Read` | | | | ✓ | ✓ | ✓ | ✓ |
+| Mengubah pengaturan akuntansi | `AccountingConfiguration : Update` | | | | ✓ | | | ✓ |
+
+**Dua baris yang perlu diperhatikan:**
+
+1. `AccountingEvent : Receive` **hanya dimiliki Administrator**, karena pemanggilnya adalah modul
+   Finance lewat akun layanan, bukan manusia. Memberikannya kepada peran manusia membuka jalur
+   penyisipan jurnal yang tidak dimaksudkan.
+2. `Period : Approve` **hanya dimiliki `Accounting Director`** — tidak juga Administrator.
+   Menyetujui penutupan buku adalah pernyataan keuangan, bukan tindakan teknis.
+
+## Pencatatan jejak audit Phase 2
+
+| Tindakan | Dicatat `LoggerService`? | Isi catatan |
+|---|:---:|---|
+| Kejadian diterima | **Ya** | `EntityId`, controller, action, status. **Tanpa nilai uang** |
+| Kejadian gagal setelah 3 percobaan | **Ya** | `EntityId`, pesan kegagalan teknis |
+| Kejadian ditandai diabaikan | **Ya** | `EntityId`, pelaku, alasan |
+| Aturan posting dibuat atau diubah | **Ya** | `EntityId`, controller, action |
+| Template jurnal berulang diubah | **Ya** | `EntityId`, controller, action |
+| Penutupan periode diajukan, disetujui, ditolak | **Ya** | `EntityId`, pelaku, tindakan |
+| Jurnal penutup tahun disusun | **Ya** | `EntityId`, pelaku |
+| Membaca daftar kejadian | **Tidak** | Pembacaan sehari-hari tidak dicatat (`ACC-DEC-032`) |
+| Membaca pratinjau tutup tahun | **Ya** | Termasuk pembacaan laporan keuangan pada `ACC-DEC-032` |
+
+**Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
+`02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.

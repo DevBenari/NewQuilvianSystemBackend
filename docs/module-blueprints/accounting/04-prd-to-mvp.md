@@ -713,3 +713,211 @@ rancangan MVP dan tidak menuntut `AccJournal`, `AccJournalLine`, atau jalur buku
 
 Menambah tabel atau kolom Phase 2 ke MVP dengan alasan future proofing — termasuk
 `SourceDomain`, `SourceTransactionId`, `CurrencyCode`, dan tabel kotak masuk kejadian.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — PRD ke Rilis
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** — Rizki, 8 September 2026 |
+| Tanggal | 8 September 2026 |
+| Masukan | `02-backend-architecture.md@4`, `03-frontend-architecture.md` bagian 9–14, seluruh kontrak Phase 2, `evidence/08`, `evidence/09` |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+| Backend SHA | `02c3219` · Frontend SHA `e732424eb` |
+
+## 22. Batas Phase 2 — titik mulai dan titik akhir
+
+**Titik mulai:** MVP sudah berjalan. Daftar akun terisi, periode dibangkitkan, jurnal manual dapat
+dibuat sampai disahkan, dan buku besar serta neraca saldo menampilkan angka. Keadaan itu sudah
+tercapai per 7 September 2026.
+
+**Titik akhir Phase 2:** satu kejadian keuangan yang diterbitkan Finance masuk ke buku besar
+sebagai jurnal **tanpa disentuh manusia**, satu template jurnal berulang terbit sendiri dan
+disahkan petugas, satu periode ditutup lewat pengajuan dan persetujuan dua orang berbeda, dan satu
+tahun buku ditutup dengan labanya berpindah ke laba ditahan.
+
+Keempatnya harus terjadi pada **satu badan hukum**, sama seperti batas MVP (`ACC-DEC-041`).
+
+### Yang membuat Phase 2 berbeda dari MVP dalam satu kalimat
+
+MVP membuat sistem akuntansi yang **dapat dipakai manusia**; Phase 2 membuatnya **berjalan
+sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya menjadi senyap.
+
+## 23. Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal | Disposisi |
+|---|---|---|---|
+| `ACC-P2-CAP-001` | Menerima kejadian keuangan dari Finance tanpa pernah membukukannya dua kali | `ACC-DEC-044`, `ACC-DEC-035` | `MISSING / NEW` |
+| `ACC-P2-CAP-002` | Menerjemahkan jenis kejadian menjadi jurnal lewat aturan posting | `ACC-DEC-045` | `MISSING / NEW` |
+| `ACC-P2-CAP-003` | Menahan kejadian yang belum punya pemetaan akun tanpa menebak | `ACC-DEC-046` | `MISSING / NEW` |
+| `ACC-P2-CAP-004` | Menangani kejadian gagal dengan percobaan ulang terbatas | `ACC-DEC-049` | `MISSING / NEW` |
+| `ACC-P2-CAP-005` | Menerbitkan jurnal berulang sebagai draft setiap periode | `ACC-DEC-050` | `MISSING / NEW` |
+| `ACC-P2-CAP-006` | Menutup bulan lewat pengajuan dan persetujuan dua orang berbeda | `ACC-DEC-051`, `ACC-DEC-052`, `ACC-DEC-055` | `EXTEND` atas periode yang sudah ada |
+| `ACC-P2-CAP-007` | Menutup tahun dan memindahkan laba ke laba ditahan | `ACC-DEC-053`, `ACC-DEC-054` | `EXTEND` atas jurnal yang sudah ada |
+
+## 24. Kemampuan yang ditunda beserta penggantinya
+
+| Kemampuan | Alasan penundaan | Penggantinya selama Phase 2 berjalan |
+|---|---|---|
+| Laporan Laba Rugi dan Neraca | Tetap ditunda `ACC-DEC-030`; menuntut klasifikasi COA yang matang | Neraca Saldo dan Buku Besar yang sudah ada |
+| Pemberitahuan lewat surel | Ditolak `ACC-DEC-057`; infrastrukturnya belum ada | Penanda angka pada butir menu |
+| Jurnal berulang triwulanan dan tahunan | Enum `RecurringFrequency` menyediakan ruangnya, tetapi hanya `Bulanan` dibangun | Template bulanan, atau jurnal manual |
+| Pembagian laba sebelum laba ditahan | Ditolak `ACC-DEC-054`; belum ada aturan pembagian dari pemegang saham | Jurnal manual terpisah sesudah jurnal penutup disahkan |
+| Penyaringan badan hukum per pengguna | Diwarisi dari MVP, `ACC-TD-002` masih `OPEN` | Penjaga `IsDefault` (`ACC-DEC-043`) |
+
+## 25. Epic dan functional requirement
+
+### `ACC-P2-EPIC-01` — Kotak masuk kejadian keuangan
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-001` | Sistem menerima pesan kejadian berisi sepuluh bidang wajib dan menolak pesan yang kehilangan salah satunya | `MISSING / NEW` |
+| `FR-P2-002` | Kejadian dengan nomor yang sudah pernah diterima mengembalikan nomor jurnal yang sama tanpa membuat jurnal baru | `MISSING / NEW` |
+| `FR-P2-003` | Kejadian dengan gabungan modul asal, nomor transaksi, jenis, dan versi yang sudah pernah ada diperlakukan sama seperti `FR-P2-002` | `MISSING / NEW` |
+| `FR-P2-004` | Pesan bermata uang selain rupiah ditolak | `EXTEND` atas `ACC-DEC-020` |
+| `FR-P2-005` | Pesan yang memuat pengenal pasien ditolak | `MISSING / NEW` |
+| `FR-P2-006` | Isi pesan asli disimpan utuh dan dapat dilihat kembali | `MISSING / NEW` |
+
+### `ACC-P2-EPIC-02` — Aturan posting dan kejadian tertahan
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-007` | Satu jenis kejadian hanya boleh punya satu aturan posting aktif per badan hukum | `MISSING / NEW` |
+| `FR-P2-008` | Aturan posting menolak akun induk dan menolak akun dari badan hukum berbeda | `MISSING / NEW` |
+| `FR-P2-009` | Kejadian yang jenisnya belum punya aturan aktif berstatus Tertahan, dan **tidak** menghasilkan jurnal | `MISSING / NEW` |
+| `FR-P2-010` | Kejadian Tertahan diproses ulang dan menghasilkan jurnal begitu aturannya ditambahkan | `MISSING / NEW` |
+| `FR-P2-011` | Kejadian Tertahan **tidak** dapat ditandai Diabaikan | `MISSING / NEW` |
+| `FR-P2-012` | Aturan berperlakuan `LangsungSahkan` menghasilkan jurnal berstatus `Posted`; berperlakuan `BuatDraft` menghasilkan `Draft` | `MISSING / NEW` |
+
+### `ACC-P2-EPIC-03` — Kejadian gagal
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-013` | Kejadian yang gagal karena gangguan teknis dicoba ulang paling banyak 3 kali dengan jeda makin panjang | `MISSING / NEW` |
+| `FR-P2-014` | Sesudah percobaan ketiga gagal, kejadian berstatus Gagal dan berhenti dicoba otomatis | `MISSING / NEW` |
+| `FR-P2-015` | Jumlah kejadian Gagal tampil sebagai penanda angka pada butir menu | `MISSING / NEW` |
+| `FR-P2-016` | Kejadian Gagal dapat dicoba ulang manual oleh Accounting Manager | `MISSING / NEW` |
+| `FR-P2-017` | Kejadian Gagal dapat ditandai Diabaikan disertai alasan tertulis wajib, dan tindakan itu permanen | `MISSING / NEW` |
+
+### `ACC-P2-EPIC-04` — Jurnal berulang
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-018` | Template dengan baris tidak seimbang ditolak saat disimpan | `MISSING / NEW` |
+| `FR-P2-019` | Template aktif menerbitkan jurnal berstatus `Draft` pada tanggal yang ditetapkan | `MISSING / NEW` |
+| `FR-P2-020` | Satu template hanya menerbitkan satu jurnal per periode, ditegakkan **di database** | `MISSING / NEW` |
+| `FR-P2-021` | Template tidak menerbitkan apa pun ke periode yang tidak menerima pencatatan | `MISSING / NEW` |
+| `FR-P2-022` | Template baru berstatus tidak aktif sampai diaktifkan Accounting Manager | `MISSING / NEW` |
+
+### `ACC-P2-EPIC-05` — Tutup bulan
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-023` | Daftar periksa penutupan dihitung saat diminta, bukan diambil dari data tersimpan | `MISSING / NEW` |
+| `FR-P2-024` | Pengajuan penutupan ditolak selama masih ada jurnal belum disahkan atau kejadian Gagal | `MISSING / NEW` |
+| `FR-P2-025` | Kejadian Tertahan tampil sebagai peringatan dan **tidak** menahan pengajuan | `MISSING / NEW` |
+| `FR-P2-026` | Penutupan hanya dapat disetujui `Accounting Director` | `MISSING / NEW` |
+| `FR-P2-027` | Penutupan **tidak** dapat disetujui oleh orang yang mengajukannya | `MISSING / NEW` |
+| `FR-P2-028` | Penolakan penutupan wajib beralasan dan mengembalikan periode ke keadaan terbuka | `MISSING / NEW` |
+| `FR-P2-029` | Periode yang ditutup sebelum Phase 2 berdiri tetap sah walau tanpa riwayat persetujuan | `EXTEND` |
+
+### `ACC-P2-EPIC-06` — Tutup tahun
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-030` | Pratinjau tutup tahun menampilkan saldo tiap akun pendapatan dan beban beserta selisihnya, **tanpa membuat apa pun** | `MISSING / NEW` |
+| `FR-P2-031` | Penyusunan jurnal penutup ditolak selama masih ada periode tahun itu yang belum tertutup | `MISSING / NEW` |
+| `FR-P2-032` | Penyusunan ditolak bila akun laba ditahan belum ditetapkan | `MISSING / NEW` |
+| `FR-P2-033` | Jurnal penutup lahir berstatus `Draft` berjenis `JT`, dan disahkan lewat jalur pengesahan jurnal yang sudah ada | `EXTEND` |
+| `FR-P2-034` | Jurnal penutup yang sudah sah dapat dibalik lewat pembalikan jurnal yang sudah ada | `EXTEND` atas `ACC-DEC-029` |
+
+## 26. Skenario UAT
+
+Setiap epic `MUST HAVE` punya jalur berhasil **dan** jalur gagal.
+
+| ID | Skenario | Jalur | Hasil yang diharapkan |
+|---|---|---|---|
+| `UAT-P2-01` | Finance mengirim kejadian pengakuan piutang Rp 10.000.000 yang jenisnya sudah dipetakan | Berhasil | Jurnal terbentuk, debit Piutang, kredit Pendapatan, langsung `Posted` |
+| `UAT-P2-02` | Kejadian yang sama dikirim tiga kali | **Gagal terkendali** | Hanya satu jurnal ada. Kiriman kedua dan ketiga mengembalikan nomor jurnal yang sama |
+| `UAT-P2-03` | Finance mengirim pesan tanpa `AccountingDate` | Gagal | Ditolak `400`, nol kejadian tercatat |
+| `UAT-P2-04` | Finance mengirim pesan bermata uang `USD` | Gagal | Ditolak `409` |
+| `UAT-P2-05` | Kejadian berjenis yang belum dipetakan masuk | **Gagal terkendali** | Kejadian berstatus Tertahan, nol jurnal, muncul sebagai peringatan tutup bulan |
+| `UAT-P2-06` | Akuntansi menambah aturan posting untuk jenis itu, lalu memproses ulang | Berhasil | Jurnal terbentuk, kejadian menjadi Terjurnal |
+| `UAT-P2-07` | Petugas mencoba menandai kejadian Tertahan sebagai Diabaikan | Gagal | Ditolak; hanya kejadian Gagal yang boleh diabaikan |
+| `UAT-P2-08` | Database dimatikan sementara saat kejadian masuk | **Gagal terkendali** | Dicoba 3 kali, lalu berstatus Gagal, penanda menu bertambah |
+| `UAT-P2-09` | Accounting Manager menekan Coba Ulang setelah database pulih | Berhasil | Jurnal terbentuk |
+| `UAT-P2-10` | Accounting Manager menandai kejadian Gagal sebagai Diabaikan tanpa mengisi alasan | Gagal | Ditolak `400` |
+| `UAT-P2-11` | Template penyusutan bulanan aktif, tanggal terbit tiba | Berhasil | Jurnal `Draft` terbentuk satu buah |
+| `UAT-P2-12` | Penjadwal dijalankan dua kali pada hari yang sama | **Gagal terkendali** | Tetap satu jurnal. Penerbitan kedua ditolak database |
+| `UAT-P2-13` | Template disimpan dengan debit Rp 1.000.000 lawan kredit Rp 900.000 | Gagal | Ditolak `400` |
+| `UAT-P2-14` | Manager mengajukan penutupan saat masih ada 3 jurnal belum disahkan | Gagal | Tombol Ajukan mati, daftar penghalang menyebut angkanya |
+| `UAT-P2-15` | Manager mengajukan penutupan saat penghalang nol | Berhasil | Periode menjadi Menunggu Persetujuan |
+| `UAT-P2-16` | Manager yang sama mencoba menyetujui penutupan yang ia ajukan | Gagal | Ditolak `403` |
+| `UAT-P2-17` | Pimpinan keuangan menyetujui penutupan | Berhasil | Periode Tertutup Sementara, riwayat memuat dua nama berbeda |
+| `UAT-P2-18` | Pimpinan keuangan menolak tanpa alasan | Gagal | Ditolak `400` |
+| `UAT-P2-19` | Tutup tahun dijalankan saat periode November masih terbuka | Gagal | Ditolak `409`, menyebut periode mana |
+| `UAT-P2-20` | Tutup tahun dijalankan saat akun laba ditahan belum ditetapkan | Gagal | Ditolak `422` beserta tautan ke Pengaturan Akuntansi |
+| `UAT-P2-21` | Pratinjau tutup tahun ditekan | Berhasil | Angka tampil, **nol jurnal terbentuk** |
+| `UAT-P2-22` | Jurnal penutup disusun lalu disahkan | Berhasil | Akun pendapatan dan beban bersaldo nol; laba ada di laba ditahan |
+| `UAT-P2-23` | Ditemukan jurnal Desember terlewat sesudah jurnal penutup sah | **Gagal terkendali** | Jurnal penutup dibalik, Desember dibuka kembali beralasan, jurnal penutup disusun ulang |
+
+## 27. Definition of Done
+
+Setiap butir dapat dijawab "ya" atau "belum", beserta buktinya.
+
+| # | Butir | Bukti yang diterima |
+|---:|---|---|
+| 1 | Seluruh 34 functional requirement punya kode yang berjalan | Laporan task tracked per task |
+| 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
+| 3 | `UAT-P2-02` dan `UAT-P2-12` terbukti terhadap **PostgreSQL sungguhan** | Test integrasi di `Tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
+| 4 | Seluruh endpoint Phase 2 membawa `[AccessPermission]` | Hitungan endpoint lawan atribut, seperti audit 7 September |
+| 5 | Seluruh service Phase 2 memanggil `AccountingLegalEntityGuard` | Pemeriksaan source |
+| 6 | Nol kolom pengenal pasien di seluruh tabel Phase 2 | Pemeriksaan kamus data lawan migration |
+| 7 | Solusi kompilasi bersih pada konfigurasi yang **membangun project test** | `dotnet build -c Release` atau `Debug|x64`, bukan `Debug|Any CPU` |
+| 8 | `ACC-XM-001` sudah diratifikasi owner Billing dan owner Finance | Catatan persetujuan tertulis |
+| 9 | Daftar jenis kejadian sudah ditetapkan bersama Finance | `DEC-ACC-P2-002` tertutup |
+| 10 | Aturan posting terisi untuk setiap jenis kejadian yang akan diterima | Isi tabel `AccPostingRule` |
+| 11 | Akun laba ditahan sudah dibuat dan ditetapkan | Isi tabel `AccAccountingConfiguration` |
+| 12 | Migration Phase 2 sudah lewat Migration Coordination Gate | `evidence/04-migration-coordination-gate.md` diperbarui |
+
+**Butir 8 sampai 11 tidak dapat dipenuhi tim pengembang sendirian.** Keempatnya menuntut pihak
+lain — owner Billing, Yasmin, dan pemilik proses akuntansi. Menyatakan Phase 2 selesai tanpa
+keempatnya berarti menyatakan selesai sesuatu yang belum pernah dijalankan sungguhan.
+
+## 28. Urutan pengiriman
+
+Gelombang, bukan tanggal.
+
+| Gelombang | Isi | Prasyarat | Dapat dikerjakan sekarang? |
+|---|---|---|:---:|
+| `P2-0` | Master data: `AccEventType`, `AccPostingRule`, `AccAccountingConfiguration`, ditambah jenis jurnal `JT` | Migration disetujui | **Ya** |
+| `P2-1` | Kotak masuk kejadian beserta dua kunci anti-ganda, tanpa penerbit sungguhan — diuji dengan pesan tiruan | `P2-0` | **Ya** |
+| `P2-2` | Kejadian tertahan, kejadian gagal, percobaan ulang, pengabaian | `P2-1` | **Ya** |
+| `P2-3` | Jurnal berulang beserta penjadwalnya | `P2-0` | **Ya** — tidak bergantung pada Finance sama sekali |
+| `P2-4` | Tutup bulan: daftar periksa, pengajuan, persetujuan, peran ketujuh | MVP | **Ya** — tidak bergantung pada Finance sama sekali |
+| `P2-5` | Tutup tahun | `P2-4` | **Ya** |
+| `P2-6` | Frontend keempat slice | `P2-1` sampai `P2-5` | **Ya** |
+| `POST-MVP` | **Penyambungan sungguhan ke Finance** | `ACC-XM-001` diratifikasi, modul Finance berdiri | **Tidak** — menunggu pihak lain |
+
+**Temuan yang paling berguna dari urutan ini:** hanya gelombang terakhir yang benar-benar
+menunggu pihak lain. `P2-3`, `P2-4`, dan `P2-5` — jurnal berulang, tutup bulan, dan tutup tahun
+— **tidak menyentuh Finance sama sekali** dan dapat dikerjakan tuntas hari ini juga. Bila
+tujuannya menunjukkan kemajuan Phase 2 tanpa menunggu Yasmin, ketiga gelombang itulah jalurnya.
+
+## 29. Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Pemilik |
+|---|---|:---:|---|
+| `ACC-XM-001` | Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | **Ya**, untuk `POST-MVP` saja | Owner Billing, Yasmin |
+| `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan | **Ya**, untuk pengisian data `P2-0` | Rizki, Yasmin |
+| `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | Tidak — usulan: nominal tetap dulu | Rizki |
+| `DEC-ACC-P2-006` | Koreksi sesudah jurnal penutup tahun sah | Tidak — usulan: pakai pembalikan jurnal yang ada | Rizki |
+| `DEC-ACC-P2-007` | Status `Diabaikan` pada kejadian gagal | Tidak — tetapi tanpanya kejadian gagal menahan tutup bulan selamanya | Rizki |
+| `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode | Rizki |
+
+**Nol epic berstatus `OPEN DECISION`.** Keenam pertanyaan di atas menyangkut isi data dan
+penyempurnaan, bukan bentuk yang belum diputuskan, sehingga seluruh epic boleh masuk gelombang
+pengiriman. `POST-MVP` sendiri sengaja dipisahkan justru karena ia yang bergantung pada
+`ACC-XM-001`.

@@ -175,3 +175,81 @@ Kontraknya ada di [cross-module-contract.md](cross-module-contract.md) bagian 4.
 
 Posting multi-currency, kurs, selisih kurs terealisasi, selisih kurs belum terealisasi, dan
 revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-VALIDATION-0.5` |
+| `last_changed_in` | `ACC-VALIDATION-0.5` — 8 September 2026, aturan baris posting `ACC-DEC-058`. Sebelumnya `0.4` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+
+## 1. Menerima kejadian keuangan
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Sepuluh bidang wajib terisi | Terima | Salah satu bidang `ACC-DEC-048` kosong | `400` | "Pesan kejadian tidak lengkap. Bidang berikut wajib diisi: ..." |
+| Mata uang harus rupiah | Terima | `CurrencyCode` bukan `IDR` | `409` | "Sistem akuntansi hanya menerima rupiah." |
+| Nilai tidak boleh nol atau negatif | Terima | `Amount <= 0` | `400` | "Nilai kejadian harus lebih besar dari nol." |
+| Jenis kejadian harus dikenal | Terima | `EventTypeCode` tidak ada di daftar jenis | `422` | "Jenis kejadian belum terdaftar. Kejadian ditahan sampai jenisnya ditambahkan." |
+| Badan hukum harus ada dan aktif | Terima | `LegalEntityId` tidak ditemukan | `422` | "Badan hukum tidak ditemukan." |
+| **Nomor kejadian unik** | Terima | `EventNumber` sudah pernah diterima | `200` | Bukan penolakan. Mengembalikan nomor jurnal yang sama (`ACC-DEC-035`) |
+| **Kunci gabungan unik** | Terima | Modul asal + nomor transaksi + jenis + versi sudah pernah | `200` | Sama seperti di atas; jaring pengaman kedua |
+| Aturan posting harus ada | Proses | Jenis kejadian belum punya aturan aktif | `422` | "Jenis kejadian ini belum dipetakan ke akun mana pun. Kejadian ditahan." |
+| **Tidak boleh memuat pengenal pasien** | Terima | Pesan memuat nama, nomor rekam medis, atau nomor kunjungan | `400` | "Pesan kejadian tidak boleh memuat identitas pasien." |
+
+## 2. Aturan posting
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Satu jenis kejadian satu aturan aktif per badan hukum | Tambah, Ubah | Jenis itu sudah punya aturan aktif | `409` | "Jenis kejadian ini sudah punya aturan posting aktif." |
+| **Minimal dua baris** | Tambah, Ubah | Baris kurang dari dua | `400` | "Aturan posting minimal memiliki dua baris." |
+| **Aturan harus dapat seimbang** | Tambah, Ubah | Total sisi debit tidak dapat sama dengan sisi kredit untuk komponen mana pun | `400` | "Aturan posting ini tidak akan pernah menghasilkan jurnal yang seimbang." |
+| Akun tiap baris harus menerima transaksi | Tambah, Ubah | Salah satu baris menunjuk akun induk | `422` | "Akun induk tidak dapat menerima transaksi." |
+| Seluruh akun harus sebadan hukum | Tambah, Ubah | Ada baris berakun badan hukum berbeda | `409` | "Seluruh akun pada aturan posting harus berasal dari badan hukum yang sama." |
+| Baris akun beban wajib cost center | Tambah, Ubah | Baris berakun `Expense` tanpa `CostCenterId` | `400` | "Baris akun beban wajib mencantumkan cost center." (`ACC-DEC-019`) |
+| **Komponen kejadian harus terpakai** | Proses kejadian | Kejadian membawa komponen yang tidak dipakai baris aturan mana pun | `422` | "Kejadian membawa rincian nilai yang belum dipetakan. Kejadian ditahan." |
+| **Komponen baris aturan harus tersedia** | Proses kejadian | Baris aturan memakai komponen yang tidak dibawa kejadian | `422` | "Rincian nilai yang dibutuhkan aturan posting tidak ada pada kejadian." |
+| Aturan yang masih dipakai tidak boleh dihapus | Nonaktifkan | Masih ada kejadian tertahan yang menunggunya | `409` | "Masih ada kejadian yang menunggu aturan ini." |
+
+## 3. Jurnal berulang
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Baris template harus seimbang | Tambah, Ubah | Total debit tidak sama dengan total kredit | `400` | "Total debit dan kredit template harus sama." |
+| Minimal dua baris | Tambah, Ubah | Baris kurang dari dua | `400` | "Template jurnal minimal memiliki dua baris." |
+| Satu baris hanya satu sisi | Tambah, Ubah | Debit dan kredit terisi bersamaan pada satu baris | `400` | "Satu baris hanya boleh diisi debit saja atau kredit saja." |
+| Akun beban wajib cost center | Tambah, Ubah | Baris berakun `Expense` tanpa `CostCenterId` | `400` | "Baris akun beban wajib mencantumkan cost center." (`ACC-DEC-019`) |
+| **Satu template satu terbit per periode** | Terbitkan | Template sudah terbit untuk periode itu | `409` | "Template ini sudah diterbitkan untuk periode tersebut." |
+| Periode harus menerima pencatatan | Terbitkan | Periode `SoftClosed`, `Closed`, atau `PendingClosingApproval` | `422` | "Periode tujuan tidak menerima pencatatan baru." |
+| Template nonaktif tidak terbit | Terbitkan | `IsActive = false` | `409` | "Template sedang tidak aktif." |
+
+## 4. Penutupan periode
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu | `409` | "Masih ada N jurnal yang belum disahkan." |
+| Tidak boleh ada kejadian gagal | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
+| Periode harus berstatus `Open` | Ajukan | Status bukan `Open` | `409` | "Periode ini tidak dalam keadaan terbuka." |
+| **Penyetuju bukan pengaju** | Setujui | `ActionBy == ClosingSubmittedBy` | `403` | "Penutupan tidak dapat disetujui oleh orang yang mengajukannya." |
+| Penolakan wajib beralasan | Tolak | `ActionNote` kosong | `400` | "Alasan penolakan wajib diisi." |
+| Pembukaan kembali wajib beralasan | Buka kembali | Alasan kosong | `400` | "Alasan pembukaan kembali wajib diisi." (`ACC-DEC-027`) |
+
+**Kejadian tertahan bukan penghalang, hanya peringatan.** Ini penerapan `ACC-DEC-051` yang mudah
+salah baca: yang menghalangi adalah kejadian **`Gagal`**, bukan **`Tertahan`**. Keduanya tetap
+ditampilkan pada daftar periksa, tetapi hanya yang pertama menahan tombol Ajukan.
+
+## 5. Tutup tahun
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Seluruh periode tahun itu harus tertutup | Susun | Ada periode masih `Open` atau `PendingClosingApproval` | `409` | "Masih ada periode tahun ini yang belum ditutup." |
+| Akun laba ditahan harus sudah ditetapkan | Susun | Pengaturan akuntansi kosong | `422` | "Akun laba ditahan belum ditetapkan pada pengaturan akuntansi." |
+| Akun laba ditahan harus berjenis Ekuitas | Simpan pengaturan | Akun bukan `Equity` | `422` | "Akun laba ditahan harus akun berjenis Ekuitas." |
+| Jurnal penutup tahun tidak boleh ganda | Susun | Tahun itu sudah punya jurnal `JT` | `409` | "Jurnal penutup tahun ini sudah pernah disusun." |
+| Tidak menyusun bila tidak ada saldo | Susun | Seluruh akun pendapatan dan beban bersaldo nol | `422` | "Tidak ada saldo pendapatan maupun beban yang perlu ditutup." |

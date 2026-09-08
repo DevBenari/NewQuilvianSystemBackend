@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `ACC-BP-001` |
 | Module name | `Accounting` |
-| Revision | `10` — dinaikkan 3 September 2026. Owner meratifikasi `ACC-TD-013` dan `ACC-TD-014`, sehingga `ACC-API` dan `ACC-VALIDATION` sama-sama naik `0.2` → `0.3`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
+| Revision | `11` — dinaikkan 8 September 2026 oleh Amendment pass Phase 2: `ACC-DEC-044`..`057`, kedua gerbang skill lewat, dan blueprint Phase 2 tersusun sebagai `draft`. Sebelumnya `10` — dinaikkan 3 September 2026. Owner meratifikasi `ACC-TD-013` dan `ACC-TD-014`, sehingga `ACC-API` dan `ACC-VALIDATION` sama-sama naik `0.2` → `0.3`. Utang teknis terkumpul di [UTANG-TEKNIS.md](UTANG-TEKNIS.md) |
 | Module status | `IN_PROGRESS` |
 | Current phase | `ACC-PH-005` — `ACC-PH-004` tuntas 2 September 2026 |
 | Last verified at | `3 September 2026` — **seluruh 14 task backend `DONE`**, terbukti 37 test terhadap PostgreSQL sungguhan. **Seluruh test Accounting kemudian dihapus atas keputusan owner** (`ACC-TD-016`); suite tersisa **176 lulus, 0 gagal**, build 0 error |
@@ -63,7 +63,74 @@ Dua catatan yang berada **di dalam** wewenang owner modul:
 | `ACC-PH-003` | Roadmap delivery vertical slice | `DONE` — 1 September 2026. 14 task backend, 11 task frontend, traceability, dan evidence tersusun. Status `DRAFT_FORWARD_TEST` |
 | `ACC-PH-004` | Pembuatan entity dan migration | **`DONE`** — 2 September 2026. Tujuh entity (`BE-ACC-001`..`005`) ditambah migration `20260902081432_AddAccountingFoundation` yang diterapkan owner (`BE-ACC-006`). `CONTAMINATION GUARD` `CLEAN`, snapshot 545 tabel, 0 deletion |
 | `ACC-PH-005` | Implementasi backend dan frontend MVP | **`IN_PROGRESS`** — **seluruh 14 task backend `DONE`**. Task frontend **tidak lagi tertahan**: `ACC-FE-001` dan `ACC-FE-003` `closed` 4 September 2026, `ACC-TD-009` `CLOSED`. `FE-ACC-001` kini `READY` |
-| `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | `NOT_STARTED` — menunggu 9 pertanyaan `DEFERRED`, `ACC-XM-001`, dan dua gerbang skill |
+| `ACC-PH-006` | Phase 2: integrasi otomatis, jurnal berulang, tutup buku | **`DESIGNED`** — 8 September 2026. Kesembilan pertanyaan `DEFERRED` **terjawab**, `ACC-XM-001` **diputuskan sisi Accounting**, dan **kedua gerbang skill dilewati**. Blueprint Phase 2 **`approved`** Rizki, 8 September 2026 |
+
+## Phase 2 — keadaan per 8 September 2026
+
+Ketiga penahan yang dicatat 8 September pagi sudah tidak berlaku lagi.
+
+| Penahan | Keadaan sekarang | Bukti |
+|---|---|---|
+| Sembilan pertanyaan `DEFERRED` (`ACC-DEC-036`) | **Terjawab** → `ACC-DEC-045`..`053`. `ACC-DEC-036` `superseded` | `00-interview-decisions.md@4` |
+| `ACC-XM-001` penerbit kejadian keuangan | **Diputuskan sisi Accounting** → `ACC-DEC-044`, Finance yang menerbitkan. **Ratifikasi owner Billing dan Yasmin belum ada** | `00-interview-decisions.md` bagian `CROSS_MODULE_DECISION_REQUIRED` |
+| Dua gerbang skill wajib | **Keduanya lewat** — `READY_FOR_DOMAIN_DESIGN` dan `DOMAIN_ARCHITECTURE_READY` | [`evidence/08`](evidence/08-phase2-requirement-completeness-gate.md), [`evidence/09`](evidence/09-phase2-hospital-domain-architecture.md) |
+
+### Keputusan baru 8 September 2026
+
+`ACC-DEC-044` sampai `ACC-DEC-057` — **empat belas keputusan**. Yang paling berdampak:
+
+| ID | Isi ringkas |
+|---|---|
+| `ACC-DEC-044` | **Finance** yang menerbitkan kejadian keuangan; Accounting tidak berlangganan ke Billing |
+| `ACC-DEC-051` | Hanya **dua** hal yang menahan tutup bulan; lima sisanya peringatan |
+| `ACC-DEC-055` | **Peran ketujuh** `Accounting Director`, menyandang `Period : Approve` saja |
+| `ACC-DEC-056` | Kotak masuk kejadian **tidak menyimpan pengenal pasien** |
+
+### Artefak Phase 2 yang berdiri
+
+| Berkas | Isi |
+|---|---|
+| `02-backend-architecture.md` bagian 14–21 | Kepemilikan data, class diagram, folder, status model, rencana migration, data master awal, yang sengaja tidak dibuat, strategi pengujian |
+| `03-frontend-architecture.md` bagian 9–14 | Peta butir menu, sepuluh layar, skema fitur per layar, aksi per peran, Redux slice |
+| `04-prd-to-mvp.md` bagian 22–29 | 7 kemampuan `MUST HAVE`, 6 epic, 34 functional requirement, 23 skenario UAT, 12 butir Definition of Done, gelombang `P2-0`..`P2-6` |
+| `contracts/` | `ACC-API-0.6` (33 endpoint), `ACC-STATE-0.2`, `ACC-VALIDATION-0.4`, `ACC-PERMISSION-0.4`, `ACC-INTEGRATION-0.3` |
+| `flowcharts/` | **Folder baru** — alur utama ditambah lima alur bercabang beserta jalur gagalnya |
+| `erd/data-dictionary.md` bagian 9–19 | Sembilan tabel baru, satu diperbarui, satu bertambah data |
+
+### Yang menahan implementasi Phase 2
+
+| Penahan | Pemilik | Menahan apa |
+|---|---|---|
+| Ratifikasi `ACC-XM-001` | Owner Billing, Yasmin | **Hanya gelombang `POST-MVP`**. Bahan rapatnya sudah siap: [`evidence/10`](evidence/10-billing-arap-handoff-scan.md) membuktikan penerbit sudah ada di Billing dan konsumennya kosong |
+| `DEC-ACC-P2-002` daftar jenis kejadian | Rizki, Yasmin | Pengisian data `P2-0` |
+| Modul Finance belum ada (`ACC-DEP-004`) | Yasmin | `POST-MVP` |
+
+**Gelombang `P2-3`, `P2-4`, dan `P2-5` — jurnal berulang, tutup bulan, tutup tahun — tidak
+menyentuh Finance sama sekali dan dapat dikerjakan tanpa menunggu siapa pun.**
+
+### Roadmap Phase 2 gelombang mandiri — 8 September 2026
+
+Disusun `plan-module-delivery`, berstatus `APPROVED`. Lingkupnya **hanya** tiga gelombang yang
+nol ketergantungan pada Finance.
+
+| Berkas | Isi |
+|---|---|
+| [roadmap/backend-roadmap-phase2.md](roadmap/backend-roadmap-phase2.md) | **10 task backend**, satu di antaranya `GATED` (migration) |
+| [roadmap/frontend-roadmap-phase2.md](roadmap/frontend-roadmap-phase2.md) | **6 task frontend** |
+| [roadmap/requirement-traceability-phase2.md](roadmap/requirement-traceability-phase2.md) | 17 requirement, 13 UAT, 4 coverage gap |
+
+**Koreksi dependency yang ditemukan saat menyusun roadmap:** `04-prd-to-mvp.md` bagian 28 menulis
+`P2-3` bergantung pada `P2-0`. Diperiksa ulang — **tidak benar**. Template jurnal berulang memakai
+`AccJournalType` yang sudah terisi empat baris sejak `ACC-TD-011` ditutup. Yang benar-benar butuh
+sepotong `P2-0` hanyalah tutup tahun, dan hanya untuk `AccAccountingConfiguration` serta jenis
+jurnal `JT` — disebut `P2-0a` di roadmap.
+
+**Jalur tercepat sampai ada yang terlihat berjalan:** `BE-ACC-P2-001` → `004` → `005` → `006`.
+Empat task, dan tutup bulan berjalan penuh.
+
+**Satu hal yang wajib diverifikasi sebelum `BE-ACC-P2-006`:** apakah peran ketujuh
+`Accounting Director` dapat ditambahkan sebagai pengisian data, atau menuntut perubahan
+platform. Bila yang kedua, task itu `BLOCKED` dan pemiliknya Security/Platform.
 
 ## Delivery state
 
