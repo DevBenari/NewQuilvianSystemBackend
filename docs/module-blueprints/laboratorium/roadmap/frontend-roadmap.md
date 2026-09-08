@@ -332,6 +332,34 @@ produk.
 
 ### `FE-LAB-07` — Layar wadah dan pemeriksaan
 
+> **Status: `SELESAI` — 2026-09-07.** Keempat butir DoD terpenuhi; lint, uji, dan build
+> seluruhnya lolos. Layar berdiri sebagai route bersarang `/lab-orders/[slug]/specimens`, dan
+> sembilan belas uji unit menjaganya. Laporan lengkap:
+> [`task/report/frontend/FE-LAB-07.md`](../task/report/frontend/FE-LAB-07.md).
+>
+> **Kedua invariant keselamatan ditegakkan sebagai data, bukan sebagai susunan JSX.**
+> `resolveSpecimenActions` yang memutuskan ada tidaknya aksi tolak, dan ia diuji terpisah —
+> selama isi wadah belum termuat, aksi tolak **tidak dibuat sama sekali**. Menaruh penjagaan itu
+> di dalam JSX berarti ia dapat tergeser diam-diam oleh perapian tampilan berikutnya, tanpa satu
+> pun uji ikut gagal.
+>
+> **Satu batas sengaja tidak dilewati.** Backend punya `POST /lab-examinations/{id}/cancel`,
+> tetapi membatalkan **satu** pemeriksaan adalah keputusan klinis yang berbeda dari menolak
+> wadah. Mencampurnya melanggar `VAL-13`, sehingga layar ini tidak punya satu pun aksi
+> berlingkup pemeriksaan — dan ada uji yang menjaga ketiadaan itu.
+>
+> **Satu kerusakan di luar Laboratorium ditemukan dan diperbaiki pada sesi yang sama.** Merge
+> `c71c02a07` yang masuk di tengah pengerjaan membawa **lima kelompok deklarasi kembar** pada
+> `billing-management`, sehingga `npm run build` gagal — nol error menunjuk ke
+> `laboratory-management`. Salah satunya lebih berat daripada gagal build: `addCase` kembar
+> untuk action type yang sama membuat Redux Toolkit melempar saat *store* dibentuk, sehingga
+> **seluruh aplikasi** tidak dapat dijalankan, bukan hanya layar Billing. Atas instruksi
+> eksplisit pemilik repository, salinan keduanya dibuang — 70 baris dihapus, **nol**
+> ditambahkan. Rinciannya pada laporan bagian 5.1; pemilik modul Billing tetap perlu meninjaunya.
+>
+> **Yang belum: verifikasi manual.** Delapan skenario tercatat pada laporan bagian 5, menunggu
+> backend dijalankan beserta satu pesanan yang punya wadah pada beberapa status berbeda.
+
 | Butir | Isi |
 |---|---|
 | **Outcome** | Petugas melihat seluruh pemeriksaan yang ditopang satu wadah sebelum memutuskan menolak, dan diperingatkan bahwa penolakan menggugurkan semuanya |
@@ -406,7 +434,7 @@ diputuskan:
 | `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-05` | `MVP-1` | `S13a`, `S13b` | `BE-LAB-08` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-05.md). Verifikasi manual menunggu data induk perujuk diisi |
 | `FE-LAB-06` | `MVP-1` | `S1a` | `BE-LAB-10` | **`SELESAI`** 2026-09-04 |
-| `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | Siap direncanakan |
+| `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-07.md). Verifikasi manual menunggu backend dijalankan |
 | `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | Siap direncanakan |
 | `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | Siap direncanakan |
 
@@ -421,7 +449,8 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 |---|---|---|
 | Selesai | `FE-LAB-01` .. `FE-LAB-06` | Gelombang `MVP-0` selesai seluruhnya, dan gelombang `MVP-1` ikut selesai setelah `FE-LAB-05` dikerjakan 2026-09-07. `FE-LAB-06` sempat dikerjakan lebih dulu ketika dependency `FE-LAB-05` diwaive pemilik modul |
 | Terblokir | — | Tidak ada |
-| Siap dikerjakan | `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Endpoint pasangannya — `BE-LAB-12`, `BE-LAB-14`, `BE-LAB-15` — seluruhnya sudah selesai. Ketiganya berantai: `07` menopang `08`, dan `08` menopang `09` |
+| Siap dikerjakan | `FE-LAB-08`, `FE-LAB-09` | Endpoint pasangannya — `BE-LAB-14` dan `BE-LAB-15` — sudah selesai. Keduanya berantai: `08` menopang `09` |
+| Menunggu verifikasi manual | `FE-LAB-05`, `FE-LAB-07` | Keduanya selesai pada source, uji, lint, dan build. Yang tersisa bukan pekerjaan kode: `FE-LAB-05` menunggu data induk perujuk diisi, `FE-LAB-07` menunggu backend dijalankan beserta pesanan yang punya wadah pada beberapa status |
 | Menunggu data, bukan kode | `FE-LAB-05` | Layarnya selesai, tetapi formulir rujukan luar **belum dapat dipakai** sampai data induk instansi dan dokter perujuk diisi. Delapan skenario verifikasi manual menunggu itu |
 
 `LAB-OPEN-018` sudah tidak menahan sejak 2026-09-04; lihat catatannya pada bagian 1.
@@ -437,6 +466,7 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 | 3 | 2026-09-04 | `FE-LAB-02` selesai dikerjakan dan divalidasi. Enam layar batas nilai berdiri beserta jalur pengajuan batas kritis yang terpisah. Tiga temuan dicatat: `AC-34` belum memuat pelaku karena respons riwayat backend tanpa nama, status sebelas endpoint pada dokumen kontrak masih tertulis `Rencana` padahal sudah ada, dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan | `DRAFT` |
 | 4 | 2026-09-04 | `FE-LAB-03` selesai dikerjakan dan divalidasi. Tiga layar alasan penolakan berdiri, dan `LAB-FE-012` ditegakkan empat lapis. Dua batas dicatat: grup endpoint ini tidak punya `GET /{id}` sehingga tidak ada halaman detail, dan frontend belum menerima daftar permission sehingga penyembunyian aksi penanda sistem hanya sedekat peran | `DRAFT` |
 | 5 | 2026-09-04 | `FE-LAB-04` selesai dikerjakan dan divalidasi. Menu tarif baca saja berdiri tanpa satu pun jalur ubah, dan komponen pemilih katalog berdiri siap dipakai ulang `FE-LAB-06`. Ketiga konstanta yang dilarang diduplikasi terbukti dipakai ulang, bukan disalin. **Gelombang `MVP-0` selesai seluruhnya** | `DRAFT` |
+| 9 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-07` **selesai untuk source dan uji**: layar wadah dan pemeriksaan berdiri sebagai route bersarang `/lab-orders/[slug]/specimens`, dengan perencanaan wadah, alur menyatakan layak, menolak, ambil ulang, menahan, dan melanjutkan. Sembilan belas uji unit menjaganya. **Kedua invariant keselamatan ditegakkan sebagai data, bukan sebagai susunan JSX** — `resolveSpecimenActions` yang memutuskan ada tidaknya aksi tolak, sehingga selama isi wadah belum termuat aksi itu **tidak dibuat sama sekali**; menaruh penjagaan di dalam JSX berarti ia dapat tergeser diam-diam oleh perapian tampilan berikutnya tanpa satu pun uji ikut gagal. `LAB-FE-009` berlapis tiga: pada data, pada kartu wadah sebagai daftar terbuka, dan sekali lagi di dalam dialog penolakan. `VAL-13` dijaga uji yang memeriksa katalog aksi tidak memuat satu pun aksi berlingkup pemeriksaan — `POST /lab-examinations/{id}/cancel` milik `BE-LAB-16` sengaja **tidak** dipakai di layar ini. **Dua hal di luar kendali task dicatat apa adanya:** `HEAD` frontend berpindah dari `72f050b50` ke `c71c02a07` di tengah pengerjaan karena merge pemilik repository — pekerjaan `FE-LAB-05` yang sudah tercommit tetap utuh — dan merge itu membawa **lima kelompok deklarasi kembar** pada `billing-management` yang membuat `npm run build` gagal — nol error menunjuk ke `laboratory-management`. Salah satunya lebih berat daripada gagal build: `addCase` kembar untuk action type yang sama membuat Redux Toolkit melempar saat *store* dibentuk, sehingga **seluruh aplikasi** tidak dapat dijalankan, bukan hanya layar Billing. Atas instruksi eksplisit pemilik repository, salinan keduanya dibuang — 70 baris dihapus, **nol** ditambahkan — dan `npm run lint:errors` serta `npm run build` kembali lolos. Yang tersisa hanya verifikasi manual delapan skenario, yang menunggu backend dijalankan | `DRAFT` |
 | 8 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-frontend`.** `FE-LAB-05` **selesai**, dan dengan itu **gelombang `MVP-1` frontend selesai seluruhnya**. Tiga layar berdiri: pencarian pasien, pendaftaran datang langsung, dan pendaftaran rujukan luar. Alurnya menyambung ke pembuatan pesanan dengan kunjungan yang **sudah terisi** — `useLabOrderForm` milik `FE-LAB-06` disentuh secara aditif untuk itu, dan seluruh uji lamanya tetap lolos. `AC-50` ditegakkan **secara struktural**: formulirnya tidak punya satu pun kotak isian nama perujuk, dan uji memeriksa muatan yang dikirim juga tidak punya ruas namanya. Tiga belas uji unit baru menjaga aturan murni kunci idempotensi, `VAL-43`, `VAL-44`, dan bentuk muatan. **Satu penahan baru ditemukan dan ditutup pada sesi yang sama:** `MstReferralInstitution` dan `MstReferralDoctor` ternyata **tidak punya endpoint sama sekali** — `BE-EXT-02` memang tidak membuatnya — sehingga daftar perujuk tidak punya sumber; dua endpoint bacanya dibangun atas instruksi pemilik modul, dan butir Verifikasi `BE-EXT-02` *"kedua data induk dapat dipilih dari daftar"* yang selama ini tidak pernah terpenuhi kini terpenuhi. **Satu batas dicatat apa adanya:** verifikasi manual **belum dijalankan** — delapan skenarionya menunggu data induk perujuk diisi dan backend dijalankan kembali; selama daftarnya kosong, formulir rujukan luar tidak dapat dipakai walaupun layarnya sudah benar | `DRAFT` |
 | 7 | 2026-09-07 | **Penahan `FE-LAB-05` dicabut, ditulis `build-module-backend`.** `BE-LAB-08` selesai, sehingga `FE-LAB-05` berpindah dari **`BLOCKED`** menjadi **siap dikerjakan** — dan dengan itu **tidak ada lagi task frontend Laboratorium yang terblokir**. Ketiga endpoint yang dibutuhkannya tersedia dan terdokumentasi Swagger pada grup `Health Services / Laboratory Management / Lab Patient Registration`. Tiga hal ditambahkan pada kartu task sebagai syarat pelaksanaan, dan ketiganya wajib dibaca sebelum layarnya dibuat: `idempotencyKey` dibuat layar **saat formulir dibuka**, bukan saat tombol ditekan, dan wajib dikirim — tanpa itu penekanan Simpan dua kali menghasilkan dua kunjungan; jawaban membawa `isReplay` yang berarti **berhasil**, bukan gagal; serta instansi dan dokter perujuk dikirim sebagai penunjuk, karena permintaannya memang tidak punya ruas nama sama sekali | `DRAFT` |
 | 6 | 2026-09-04 | `FE-LAB-05` ditandai **`BLOCKED`** setelah diverifikasi terhadap source backend: `BE-LAB-08` belum ada sama sekali. Pemilik modul memutuskan mewaive dependency itu dan mendahulukan `FE-LAB-06`, yang kemudian **selesai** — penanda cito dan duplo melekat pada baris pemeriksaan, dan `AC-40` dijaga uji unit. Satu batas kontrak dibuka: respons pesanan tidak membawa `requestedByUserId`, sehingga `VAL-03` belum dapat ditegakkan penuh di layar | `DRAFT` |
