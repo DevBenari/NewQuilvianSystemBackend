@@ -34,10 +34,10 @@ public class OperatingRoomInventoryDispatchServiceTests
         Assert.Equal(1, result.AcceptedCount);
         Assert.Equal(0, result.FailedCount);
 
-        var balance = await ctx.Context.TrxDrugStockBalances.SingleAsync();
+        var balance = await ctx.Context.PhmDrugStockBalances.SingleAsync();
         Assert.Equal(88m, balance.QuantityOnHand);
 
-        var mutation = await ctx.Context.TrxDrugStockMutations.SingleAsync();
+        var mutation = await ctx.Context.PhmDrugStockMutations.SingleAsync();
         Assert.Equal(-12m, mutation.QuantityChange);
         Assert.Equal(100m, mutation.BalanceBefore);
         Assert.Equal(88m, mutation.BalanceAfter);
@@ -59,8 +59,8 @@ public class OperatingRoomInventoryDispatchServiceTests
         var second = await service.DispatchCaseAsync(ctx.CaseId);
 
         Assert.Equal(0, second.ProcessedCount);
-        Assert.Equal(45m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
-        Assert.Equal(1, await ctx.Context.TrxDrugStockMutations.CountAsync());
+        Assert.Equal(45m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(1, await ctx.Context.PhmDrugStockMutations.CountAsync());
     }
 
     [Fact]
@@ -74,8 +74,8 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         Assert.Equal(1, result.FailedCount);
         Assert.Equal("OPR-INV-004", result.Results[0].ErrorCode);
-        Assert.Equal(30m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
-        Assert.False(await ctx.Context.TrxDrugStockMutations.AnyAsync());
+        Assert.Equal(30m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.False(await ctx.Context.PhmDrugStockMutations.AnyAsync());
 
         var delivery = await ctx.Context.OprIntegrationDeliveries.SingleAsync();
         Assert.Equal(OprDeliveryStatus.Failed, delivery.Status);
@@ -92,8 +92,8 @@ public class OperatingRoomInventoryDispatchServiceTests
         var result = await Dispatch(ctx).DispatchCaseAsync(ctx.CaseId);
 
         Assert.Equal(1, result.FailedCount);
-        Assert.Equal(3m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
-        Assert.False(await ctx.Context.TrxDrugStockMutations.AnyAsync());
+        Assert.Equal(3m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.False(await ctx.Context.PhmDrugStockMutations.AnyAsync());
     }
 
     /// <summary>
@@ -111,8 +111,8 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         await Dispatch(ctx).DispatchCaseAsync(ctx.CaseId);
 
-        var soon = await ctx.Context.TrxDrugStockBalances.SingleAsync(x => x.DrugBatchId == soonId);
-        var later = await ctx.Context.TrxDrugStockBalances.SingleAsync(x => x.DrugBatchId == fixture.BatchId);
+        var soon = await ctx.Context.PhmDrugStockBalances.SingleAsync(x => x.DrugBatchId == soonId);
+        var later = await ctx.Context.PhmDrugStockBalances.SingleAsync(x => x.DrugBatchId == fixture.BatchId);
         Assert.Equal(0m, soon.QuantityOnHand);
         Assert.Equal(8m, later.QuantityOnHand);
     }
@@ -132,9 +132,9 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         await Dispatch(ctx).DispatchCaseAsync(ctx.CaseId);
 
-        Assert.Equal(9m, (await ctx.Context.TrxDrugStockBalances
+        Assert.Equal(9m, (await ctx.Context.PhmDrugStockBalances
             .SingleAsync(x => x.DrugBatchId == soonId)).QuantityOnHand);
-        Assert.Equal(8m, (await ctx.Context.TrxDrugStockBalances
+        Assert.Equal(8m, (await ctx.Context.PhmDrugStockBalances
             .SingleAsync(x => x.DrugBatchId == fixture.BatchId)).QuantityOnHand);
     }
 
@@ -156,14 +156,14 @@ public class OperatingRoomInventoryDispatchServiceTests
         Assert.StartsWith("DrugReturn/", result.Results[0].AcceptedReference);
 
         // Stok belum berubah: tidak di Available, dan tidak pula di Karantina.
-        var balance = await ctx.Context.TrxDrugStockBalances.SingleAsync();
+        var balance = await ctx.Context.PhmDrugStockBalances.SingleAsync();
         Assert.Equal(DrugStockStatus.Available, balance.Status);
         Assert.Equal(20m, balance.QuantityOnHand);
 
-        var retur = await ctx.Context.TrxDrugReturns.SingleAsync();
+        var retur = await ctx.Context.PhmDrugReturns.SingleAsync();
         Assert.Equal(DrugReturnStatus.Draft, retur.Status);
         Assert.Equal(fixture.LocationId, retur.StorageLocationId);
-        var item = await ctx.Context.TrxDrugReturnItems.SingleAsync();
+        var item = await ctx.Context.PhmDrugReturnItems.SingleAsync();
         Assert.Equal(3m, item.Quantity);
         Assert.Equal(fixture.BatchId, item.DrugBatchId);
     }
@@ -183,7 +183,7 @@ public class OperatingRoomInventoryDispatchServiceTests
         await service.DispatchCaseAsync(ctx.CaseId);
         await service.DispatchCaseAsync(ctx.CaseId);
 
-        Assert.Equal(1, await ctx.Context.TrxDrugReturns.CountAsync());
+        Assert.Equal(1, await ctx.Context.PhmDrugReturns.CountAsync());
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public class OperatingRoomInventoryDispatchServiceTests
         await service.DispatchCaseAsync(ctx.CaseId);
 
         // 100 - 10 - (14 - 10) = 86, bukan 100 - 10 - 14.
-        Assert.Equal(86m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(86m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
     }
 
     /// <summary>
@@ -229,10 +229,10 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         // Yang terpakai tetap 10 dikurangi; selisih 4 yang kembali menjadi dokumen retur,
         // bukan penambahan stok langsung.
-        var balance = await ctx.Context.TrxDrugStockBalances.SingleAsync();
+        var balance = await ctx.Context.PhmDrugStockBalances.SingleAsync();
         Assert.Equal(90m, balance.QuantityOnHand);
 
-        var item = await ctx.Context.TrxDrugReturnItems.SingleAsync();
+        var item = await ctx.Context.PhmDrugReturnItems.SingleAsync();
         Assert.Equal(4m, item.Quantity);
     }
 
@@ -254,7 +254,7 @@ public class OperatingRoomInventoryDispatchServiceTests
         Assert.Equal(3, result.ProcessedCount);
         Assert.Equal(2, result.AcceptedCount);
         Assert.Equal(1, result.FailedCount);
-        Assert.Equal(28m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(28m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
     }
 
     /// <summary>
@@ -273,7 +273,7 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         Assert.Equal(1, result.AcceptedCount);
         // 2 box = 20 vial, bukan 2.
-        Assert.Equal(80m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(80m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
     }
 
     /// <summary>
@@ -292,7 +292,7 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         Assert.Equal(1, result.FailedCount);
         Assert.Equal("PHM092", result.Results[0].ErrorCode);
-        Assert.Equal(100m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(100m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
     }
 
     /// <summary>
@@ -310,7 +310,7 @@ public class OperatingRoomInventoryDispatchServiceTests
 
         Assert.Equal(1, result.FailedCount);
         Assert.Equal("PHM090", result.Results[0].ErrorCode);
-        Assert.Equal(100m, (await ctx.Context.TrxDrugStockBalances.SingleAsync()).QuantityOnHand);
+        Assert.Equal(100m, (await ctx.Context.PhmDrugStockBalances.SingleAsync()).QuantityOnHand);
     }
 
     /// <summary>
@@ -500,7 +500,7 @@ public class OperatingRoomInventoryDispatchServiceTests
                 Id = batchId, DrugId = drugId, BatchNumber = batchNumber,
                 ExpiryDate = expiry ?? new DateOnly(2027, 6, 30)
             });
-            ctx.Context.TrxDrugStockBalances.Add(new TrxDrugStockBalance
+            ctx.Context.PhmDrugStockBalances.Add(new PhmDrugStockBalance
             {
                 DrugId = drugId, DrugBatchId = batchId, StorageLocationId = locationId,
                 Status = DrugStockStatus.Available, QuantityOnHand = onHand, QuantityReserved = 0m
@@ -526,7 +526,7 @@ public class OperatingRoomInventoryDispatchServiceTests
             {
                 Id = batchId, DrugId = DrugId, BatchNumber = batchNumber, ExpiryDate = expiry
             });
-            ctx.Context.TrxDrugStockBalances.Add(new TrxDrugStockBalance
+            ctx.Context.PhmDrugStockBalances.Add(new PhmDrugStockBalance
             {
                 DrugId = DrugId, DrugBatchId = batchId, StorageLocationId = LocationId,
                 Status = DrugStockStatus.Available, QuantityOnHand = onHand, QuantityReserved = 0m

@@ -57,7 +57,7 @@ public sealed class DrugReturnService
     public async Task<PagedResult<DrugReturnSummaryResponse>> GetPagedAsync(
         DrugReturnPagedQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxDrugReturns.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugReturns.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.EncounterId.HasValue)
@@ -161,7 +161,7 @@ public sealed class DrugReturnService
 
         var id = DeterministicId(request.IdempotencyKey);
 
-        var existing = await _dbContext.TrxDrugReturns.AsNoTracking()
+        var existing = await _dbContext.PhmDrugReturns.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
         if (existing != null) return (await GetDetailAsync(id, cancellationToken))!;
 
@@ -174,7 +174,7 @@ public sealed class DrugReturnService
         var now = DateTime.UtcNow;
         var fingerprint = BuildFingerprint(request.StorageLocationId, request.Reason, request.Items);
 
-        var entity = new TrxDrugReturn
+        var entity = new PhmDrugReturn
         {
             Id = id,
             ReturnNumber = $"RTN-{now:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
@@ -192,10 +192,10 @@ public sealed class DrugReturnService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxDrugReturns.Add(entity);
+        _dbContext.PhmDrugReturns.Add(entity);
         AddItems(entity.Id, request.Items, drugs, actorUserId, now);
 
-        _dbContext.TrxDrugReturnHistories.Add(NewHistory(entity.Id, DrugReturnStatus.Draft, null,
+        _dbContext.PhmDrugReturnHistories.Add(NewHistory(entity.Id, DrugReturnStatus.Draft, null,
             CreateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -351,7 +351,7 @@ public sealed class DrugReturnService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxDrugReturnHistories.Add(NewHistory(entity.Id, DrugReturnStatus.Verified,
+        _dbContext.PhmDrugReturnHistories.Add(NewHistory(entity.Id, DrugReturnStatus.Verified,
             DrugReturnStatus.Submitted, VerifyAction, note, request.IdempotencyKey,
             fingerprint, actorUserId, now));
 
@@ -367,7 +367,7 @@ public sealed class DrugReturnService
 
     private async Task<DrugReturnDetailResponse> TransitionAsync(Guid id, string idempotencyKey,
         int expectedVersion, string action, DrugReturnStatus? fromStatus,
-        DrugReturnStatus toStatus, string? reason, Action<TrxDrugReturn, DateTime> apply,
+        DrugReturnStatus toStatus, string? reason, Action<PhmDrugReturn, DateTime> apply,
         CancellationToken cancellationToken)
     {
         EnsureIdempotencyKey(idempotencyKey);
@@ -418,17 +418,17 @@ public sealed class DrugReturnService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxDrugReturnHistories.Add(NewHistory(entity.Id, toStatus, from, action,
+        _dbContext.PhmDrugReturnHistories.Add(NewHistory(entity.Id, toStatus, from, action,
             reason?.Trim(), idempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
-    private Task<TrxDrugReturn?> LoadAsync(Guid id, bool tracking,
+    private Task<PhmDrugReturn?> LoadAsync(Guid id, bool tracking,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.TrxDrugReturns
+        var query = _dbContext.PhmDrugReturns
             .Include(x => x.Encounter).ThenInclude(x => x!.Patient)
             .Include(x => x.StorageLocation)
             .Include(x => x.ReturnedByWorkforce)
@@ -448,7 +448,7 @@ public sealed class DrugReturnService
         foreach (var input in inputs)
         {
             var drug = info[input.DrugId];
-            _dbContext.TrxDrugReturnItems.Add(new TrxDrugReturnItem
+            _dbContext.PhmDrugReturnItems.Add(new PhmDrugReturnItem
             {
                 DrugReturnId = returnId,
                 DrugId = input.DrugId,
@@ -565,7 +565,7 @@ public sealed class DrugReturnService
                 "Satu batch hanya boleh disebut satu kali. Gabungkan jumlahnya menjadi satu baris.");
     }
 
-    private static void EnsureVerificationCoversEveryLine(List<TrxDrugReturnItem> activeItems,
+    private static void EnsureVerificationCoversEveryLine(List<PhmDrugReturnItem> activeItems,
         List<VerifyDrugReturnItemInput> inputs)
     {
         if (inputs.GroupBy(x => x.DrugReturnItemId).Any(g => g.Count() > 1))
@@ -604,13 +604,13 @@ public sealed class DrugReturnService
                 "Idempotency key dipakai dengan isi perintah yang berbeda.");
     }
 
-    private Task<TrxDrugReturnHistory?> FindIdempotentAsync(string action, string key,
+    private Task<PhmDrugReturnHistory?> FindIdempotentAsync(string action, string key,
         CancellationToken cancellationToken) =>
-        _dbContext.TrxDrugReturnHistories.AsNoTracking()
+        _dbContext.PhmDrugReturnHistories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Action == action && x.CorrelationId == key.Trim() &&
                                       !x.IsDelete, cancellationToken);
 
-    private static TrxDrugReturnHistory NewHistory(Guid returnId, DrugReturnStatus to,
+    private static PhmDrugReturnHistory NewHistory(Guid returnId, DrugReturnStatus to,
         DrugReturnStatus? from, string action, string? reason, string idempotencyKey,
         string fingerprint, Guid actorUserId, DateTime now) => new()
         {
@@ -663,7 +663,7 @@ public sealed class DrugReturnService
     private static Guid DeterministicId(string key) =>
         new(SHA256.HashData(Encoding.UTF8.GetBytes($"DrugReturn:{key.Trim()}"))[..16]);
 
-    private static DrugReturnDetailResponse MapDetail(TrxDrugReturn x) => new()
+    private static DrugReturnDetailResponse MapDetail(PhmDrugReturn x) => new()
     {
         Id = x.Id,
         ReturnNumber = x.ReturnNumber,

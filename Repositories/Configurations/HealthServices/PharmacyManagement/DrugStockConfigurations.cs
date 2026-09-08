@@ -35,22 +35,22 @@ public class MstDrugBatchConfiguration : IEntityTypeConfiguration<MstDrugBatch>
     }
 }
 
-public class TrxDrugStockBalanceConfiguration : IEntityTypeConfiguration<TrxDrugStockBalance>
+public class PhmDrugStockBalanceConfiguration : IEntityTypeConfiguration<PhmDrugStockBalance>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugStockBalance> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugStockBalance> builder)
     {
-        builder.ToTable("TrxDrugStockBalance", "public", table =>
+        builder.ToTable("PhmDrugStockBalance", "public", table =>
         {
             // Aturan "stok tidak boleh negatif" ditegakkan layanan, tetapi tetap dipasang di
             // basis data sebagai penjaga terakhir. Layanan dapat keliru atau dilewati skrip;
             // saldo minus yang terlanjur tersimpan jauh lebih mahal daripada satu transaksi
             // yang gagal.
-            table.HasCheckConstraint("CK_TrxDrugStockBalance_OnHandNotNegative",
+            table.HasCheckConstraint("CK_PhmDrugStockBalance_OnHandNotNegative",
                 "\"QuantityOnHand\" >= 0");
 
             // Menahan lebih banyak daripada yang ada di rak berarti dua proses menghitung
             // barang yang sama sebagai miliknya.
-            table.HasCheckConstraint("CK_TrxDrugStockBalance_ReservedWithinOnHand",
+            table.HasCheckConstraint("CK_PhmDrugStockBalance_ReservedWithinOnHand",
                 "\"QuantityReserved\" >= 0 AND \"QuantityReserved\" <= \"QuantityOnHand\"");
         });
 
@@ -81,11 +81,11 @@ public class TrxDrugStockBalanceConfiguration : IEntityTypeConfiguration<TrxDrug
     }
 }
 
-public class TrxDrugStockMutationConfiguration : IEntityTypeConfiguration<TrxDrugStockMutation>
+public class PhmDrugStockMutationConfiguration : IEntityTypeConfiguration<PhmDrugStockMutation>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugStockMutation> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugStockMutation> builder)
     {
-        builder.ToTable("TrxDrugStockMutation", "public");
+        builder.ToTable("PhmDrugStockMutation", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.QuantityChange).HasColumnType("numeric(18,3)");

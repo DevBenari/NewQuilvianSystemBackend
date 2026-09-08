@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.PharmacyManagement;
 
-public class TrxDrugReturnConfiguration : IEntityTypeConfiguration<TrxDrugReturn>
+public class PhmDrugReturnConfiguration : IEntityTypeConfiguration<PhmDrugReturn>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugReturn> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugReturn> builder)
     {
-        builder.ToTable("TrxDrugReturn", "public");
+        builder.ToTable("PhmDrugReturn", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.ReturnNumber).HasMaxLength(50).IsRequired();
@@ -39,11 +39,11 @@ public class TrxDrugReturnConfiguration : IEntityTypeConfiguration<TrxDrugReturn
     }
 }
 
-public class TrxDrugReturnItemConfiguration : IEntityTypeConfiguration<TrxDrugReturnItem>
+public class PhmDrugReturnItemConfiguration : IEntityTypeConfiguration<PhmDrugReturnItem>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugReturnItem> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugReturnItem> builder)
     {
-        builder.ToTable("TrxDrugReturnItem", "public");
+        builder.ToTable("PhmDrugReturnItem", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.DrugCodeSnapshot).HasMaxLength(50).IsRequired();
@@ -72,11 +72,11 @@ public class TrxDrugReturnItemConfiguration : IEntityTypeConfiguration<TrxDrugRe
     }
 }
 
-public class TrxDrugReturnHistoryConfiguration : IEntityTypeConfiguration<TrxDrugReturnHistory>
+public class PhmDrugReturnHistoryConfiguration : IEntityTypeConfiguration<PhmDrugReturnHistory>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugReturnHistory> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugReturnHistory> builder)
     {
-        builder.ToTable("TrxDrugReturnHistory", "public");
+        builder.ToTable("PhmDrugReturnHistory", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Action).HasMaxLength(50).IsRequired();

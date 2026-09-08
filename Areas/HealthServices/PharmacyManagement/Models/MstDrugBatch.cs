@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// <para>
 /// Batch adalah identitas barang, bukan lokasi maupun jumlahnya. Satu batch yang sama dapat
 /// tersebar di beberapa depo sekaligus; jumlahnya dicatat pada
-/// <see cref="TrxDrugStockBalance"/>, satu baris per lokasi dan status.
+/// <see cref="PhmDrugStockBalance"/>, satu baris per lokasi dan status.
 /// </para>
 /// <para>
 /// Batch dan kedaluwarsa menjadi bagian inti persediaan karena empat hal bergantung padanya:
@@ -69,5 +69,5 @@ public class MstDrugBatch : IdentityModel
 
     public MstDrug? Drug { get; set; }
     public MstSupplier? Supplier { get; set; }
-    public ICollection<TrxDrugStockBalance> Balances { get; set; } = [];
+    public ICollection<PhmDrugStockBalance> Balances { get; set; } = [];
 }

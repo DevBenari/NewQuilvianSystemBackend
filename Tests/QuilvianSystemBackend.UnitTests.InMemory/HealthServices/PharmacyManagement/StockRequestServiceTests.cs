@@ -184,7 +184,7 @@ public sealed class StockRequestServiceTests
         var second = await f.Service.CreateAsync(CreateRequest(f, "k1", (f.DrugAId, 10)));
 
         Assert.Equal(first.Id, second.Id);
-        Assert.Single(f.Context.TrxStockRequests);
+        Assert.Single(f.Context.PhmStockRequests);
     }
 
     [Fact]

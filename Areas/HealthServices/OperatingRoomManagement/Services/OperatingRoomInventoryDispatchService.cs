@@ -414,7 +414,7 @@ public sealed class OperatingRoomInventoryDispatchService
         // Tanpa nomor batch, barang yang kembali dibukukan ke batch yang paling dekat
         // kedaluwarsanya di depo itu — batch yang paling mungkin baru saja dikeluarkan.
         // Saldonya boleh nol: yang dicari adalah identitas batch, bukan ketersediaannya.
-        return await _dbContext.TrxDrugStockBalances.AsNoTracking()
+        return await _dbContext.PhmDrugStockBalances.AsNoTracking()
             .Where(x => x.DrugId == usage.ExternalItemId && x.StorageLocationId == locationId &&
                 !x.IsDelete)
             .Join(_dbContext.MstDrugBatches.AsNoTracking().Where(b => !b.IsDelete),
@@ -457,7 +457,7 @@ public sealed class OperatingRoomInventoryDispatchService
     {
         foreach (var entry in _dbContext.ChangeTracker.Entries().ToList())
         {
-            if (entry.Entity is not (TrxDrugStockBalance or TrxDrugStockMutation)) continue;
+            if (entry.Entity is not (PhmDrugStockBalance or PhmDrugStockMutation)) continue;
 
             if (entry.State == EntityState.Added)
             {

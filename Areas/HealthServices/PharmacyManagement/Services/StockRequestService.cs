@@ -54,7 +54,7 @@ public sealed class StockRequestService
     public async Task<PagedResult<StockRequestSummaryResponse>> GetPagedAsync(
         StockRequestPagedQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxStockRequests.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmStockRequests.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.Priority.HasValue) query = query.Where(x => x.Priority == request.Priority);
@@ -174,7 +174,7 @@ public sealed class StockRequestService
         var now = DateTime.UtcNow;
         var id = DeterministicId(request.IdempotencyKey);
 
-        var entity = new TrxStockRequest
+        var entity = new PhmStockRequest
         {
             Id = id,
             RequestNumber = $"REQ-{now:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
@@ -192,10 +192,10 @@ public sealed class StockRequestService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxStockRequests.Add(entity);
+        _dbContext.PhmStockRequests.Add(entity);
         AddItems(entity.Id, request.Items, drugs, actorUserId, now);
 
-        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Draft,
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Draft,
             null, CreateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -275,7 +275,7 @@ public sealed class StockRequestService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, entity.Status, entity.Status,
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, entity.Status, entity.Status,
             UpdateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -319,7 +319,7 @@ public sealed class StockRequestService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Submitted,
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Submitted,
             StockRequestStatus.Draft, SubmitAction, null, request.IdempotencyKey, fingerprint,
             actorUserId, now));
 
@@ -370,7 +370,7 @@ public sealed class StockRequestService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Cancelled,
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Cancelled,
             from, CancelAction, reason, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -514,7 +514,7 @@ public sealed class StockRequestService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Completed,
+        _dbContext.PhmStockRequestHistories.Add(NewHistory(entity.Id, StockRequestStatus.Completed,
             StockRequestStatus.Submitted, FulfillAction, note, request.IdempotencyKey,
             fingerprint, actorUserId, now));
 
@@ -533,7 +533,7 @@ public sealed class StockRequestService
     /// Baris yang tidak disebut sengaja tidak dianggap nol. Diam bisa berarti "tidak
     /// diserahkan" atau "lupa dicatat", dan keduanya berbeda akibatnya bagi unit peminta.
     /// </remarks>
-    private static void EnsureFulfillmentCoversEveryLine(List<TrxStockRequestItem> activeItems,
+    private static void EnsureFulfillmentCoversEveryLine(List<PhmStockRequestItem> activeItems,
         List<FulfillStockRequestItemInput> inputs)
     {
         if (inputs.GroupBy(x => x.StockRequestItemId).Any(g => g.Count() > 1))
@@ -554,10 +554,10 @@ public sealed class StockRequestService
 
     // ============================================================== penolong
 
-    private Task<TrxStockRequest?> LoadAsync(Guid id, bool tracking,
+    private Task<PhmStockRequest?> LoadAsync(Guid id, bool tracking,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.TrxStockRequests
+        var query = _dbContext.PhmStockRequests
             .Include(x => x.RequestingServiceUnit)
             .Include(x => x.StorageLocation)
             .Include(x => x.RequestedByWorkforce)
@@ -579,7 +579,7 @@ public sealed class StockRequestService
 
             // Ditambahkan lewat DbSet, bukan lewat navigasi induk yang sudah dilacak, agar
             // entity baru pasti berstatus Added walaupun kuncinya diisi dari aplikasi.
-            _dbContext.TrxStockRequestItems.Add(new TrxStockRequestItem
+            _dbContext.PhmStockRequestItems.Add(new PhmStockRequestItem
             {
                 StockRequestId = requestId,
                 DrugId = input.DrugId,
@@ -695,13 +695,13 @@ public sealed class StockRequestService
                 "Idempotency key dipakai dengan isi permintaan yang berbeda.");
     }
 
-    private Task<TrxStockRequestHistory?> FindIdempotentAsync(string action, string key,
+    private Task<PhmStockRequestHistory?> FindIdempotentAsync(string action, string key,
         CancellationToken cancellationToken) =>
-        _dbContext.TrxStockRequestHistories.AsNoTracking()
+        _dbContext.PhmStockRequestHistories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Action == action && x.CorrelationId == key.Trim() &&
                                       !x.IsDelete, cancellationToken);
 
-    private static TrxStockRequestHistory NewHistory(Guid requestId, StockRequestStatus to,
+    private static PhmStockRequestHistory NewHistory(Guid requestId, StockRequestStatus to,
         StockRequestStatus? from, string action, string? reason, string idempotencyKey,
         string fingerprint, Guid actorUserId, DateTime now) => new()
         {
@@ -755,7 +755,7 @@ public sealed class StockRequestService
     private static Guid DeterministicId(string key) =>
         new(SHA256.HashData(Encoding.UTF8.GetBytes($"StockRequest:{key.Trim()}"))[..16]);
 
-    private static StockRequestDetailResponse MapDetail(TrxStockRequest x) => new()
+    private static StockRequestDetailResponse MapDetail(PhmStockRequest x) => new()
     {
         Id = x.Id,
         RequestNumber = x.RequestNumber,

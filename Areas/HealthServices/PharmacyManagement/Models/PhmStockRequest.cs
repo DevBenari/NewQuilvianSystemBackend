@@ -22,8 +22,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// yang belum ada di sistem.
 /// </para>
 /// </remarks>
-[Table("TrxStockRequest", Schema = "public")]
-public class TrxStockRequest : IdentityModel
+[Table("PhmStockRequest", Schema = "public")]
+public class PhmStockRequest : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -62,8 +62,8 @@ public class TrxStockRequest : IdentityModel
     public MstServiceUnit? RequestingServiceUnit { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
     public MstWorkforceProfile? RequestedByWorkforce { get; set; }
-    public ICollection<TrxStockRequestItem> Items { get; set; } = [];
-    public ICollection<TrxStockRequestHistory> Histories { get; set; } = [];
+    public ICollection<PhmStockRequestItem> Items { get; set; } = [];
+    public ICollection<PhmStockRequestHistory> Histories { get; set; } = [];
 }
 
 /// <summary>
@@ -74,8 +74,8 @@ public class TrxStockRequest : IdentityModel
 /// master dapat berubah kemudian; riwayat permintaan harus tetap menunjukkan apa yang
 /// tertulis saat itu, bukan apa yang tertulis sekarang.
 /// </remarks>
-[Table("TrxStockRequestItem", Schema = "public")]
-public class TrxStockRequestItem : IdentityModel
+[Table("PhmStockRequestItem", Schema = "public")]
+public class PhmStockRequestItem : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -101,7 +101,7 @@ public class TrxStockRequestItem : IdentityModel
 
     public int LineNumber { get; set; }
 
-    public TrxStockRequest? StockRequest { get; set; }
+    public PhmStockRequest? StockRequest { get; set; }
     public MstDrug? Drug { get; set; }
     public MstMeasurement? Measurement { get; set; }
 }
@@ -114,8 +114,8 @@ public class TrxStockRequestItem : IdentityModel
 /// Permintaan berulang dengan kunci sama tetapi isi berbeda ditolak, sehingga tombol yang
 /// tertekan dua kali tidak menghasilkan dua permintaan.
 /// </remarks>
-[Table("TrxStockRequestHistory", Schema = "public")]
-public class TrxStockRequestHistory : IdentityModel
+[Table("PhmStockRequestHistory", Schema = "public")]
+public class PhmStockRequestHistory : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -133,5 +133,5 @@ public class TrxStockRequestHistory : IdentityModel
     [Required, MaxLength(100)] public string Source { get; set; } = string.Empty;
     [MaxLength(100)] public string? CorrelationId { get; set; }
 
-    public TrxStockRequest? StockRequest { get; set; }
+    public PhmStockRequest? StockRequest { get; set; }
 }

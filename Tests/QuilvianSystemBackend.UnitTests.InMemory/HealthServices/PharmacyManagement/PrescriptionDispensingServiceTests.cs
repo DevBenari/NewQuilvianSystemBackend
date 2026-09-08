@@ -184,17 +184,17 @@ public sealed class PrescriptionDispensingServiceTests
         };
 
     private static async Task<Guid> UsageIdAsync(Fixture f) =>
-        (await f.Context.TrxDrugUsages.AsNoTracking()
+        (await f.Context.PhmDrugUsages.AsNoTracking()
             .Where(x => x.Status == DrugUsageStatus.Draft)
             .OrderByDescending(x => x.CreateDateTime)
             .Select(x => x.Id)
             .FirstAsync());
 
     private static Task<decimal> OnHandAsync(Fixture f) =>
-        f.Context.TrxDrugStockBalances.AsNoTracking().SumAsync(x => x.QuantityOnHand);
+        f.Context.PhmDrugStockBalances.AsNoTracking().SumAsync(x => x.QuantityOnHand);
 
     private static Task<decimal> ReservedAsync(Fixture f) =>
-        f.Context.TrxDrugStockBalances.AsNoTracking().SumAsync(x => x.QuantityReserved);
+        f.Context.PhmDrugStockBalances.AsNoTracking().SumAsync(x => x.QuantityReserved);
 
     // ------------------------------------------------------------- penyerahan penuh
 
@@ -397,7 +397,7 @@ public sealed class PrescriptionDispensingServiceTests
         await f.Service.PrepareAsync(f.PrescriptionId, Siapkan(f, 10m, "p1"));
 
         Assert.Equal(10m, await ReservedAsync(f));
-        Assert.Equal(1, await f.Context.TrxDrugUsages.CountAsync());
+        Assert.Equal(1, await f.Context.PhmDrugUsages.CountAsync());
     }
 
     /// <summary>
@@ -422,7 +422,7 @@ public sealed class PrescriptionDispensingServiceTests
 
         // Hanya satu baris pengeluaran. Saldo pembuka juga menulis kartu stok, jadi yang
         // dihitung khusus yang keluar — bukan seluruh mutasi.
-        Assert.Equal(1, await f.Context.TrxDrugStockMutations
+        Assert.Equal(1, await f.Context.PhmDrugStockMutations
             .CountAsync(x => x.MutationType == DrugStockMutationType.StockOut));
     }
 
@@ -494,7 +494,7 @@ public sealed class PrescriptionDispensingServiceTests
         var hasil = await f.Service.DispenseAsync(f.PrescriptionId, usageId,
             new PrescriptionDispensingCommandRequest { ExpectedVersion = 0, IdempotencyKey = "d1" });
 
-        var cepat = await f.Context.TrxDrugStockBalances.AsNoTracking()
+        var cepat = await f.Context.PhmDrugStockBalances.AsNoTracking()
             .SingleAsync(x => x.DrugBatch!.BatchNumber == "B-CEPAT");
         Assert.Equal(0m, cepat.QuantityOnHand);
 

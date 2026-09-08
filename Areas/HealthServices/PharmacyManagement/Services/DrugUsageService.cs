@@ -55,7 +55,7 @@ public sealed class DrugUsageService
     public async Task<PagedResult<DrugUsageSummaryResponse>> GetPagedAsync(
         DrugUsagePagedQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxDrugUsages.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugUsages.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.EncounterId.HasValue)
@@ -156,7 +156,7 @@ public sealed class DrugUsageService
 
         var id = DeterministicId(request.IdempotencyKey);
 
-        var existing = await _dbContext.TrxDrugUsages.AsNoTracking()
+        var existing = await _dbContext.PhmDrugUsages.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
         if (existing != null) return (await GetDetailAsync(id, cancellationToken))!;
 
@@ -171,7 +171,7 @@ public sealed class DrugUsageService
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
 
-        var entity = new TrxDrugUsage
+        var entity = new PhmDrugUsage
         {
             Id = id,
             UsageNumber = $"USG-{now:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
@@ -187,7 +187,7 @@ public sealed class DrugUsageService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxDrugUsages.Add(entity);
+        _dbContext.PhmDrugUsages.Add(entity);
         AddItems(entity.Id, request.Items, drugs, actorUserId, now);
 
         await SaveAsync(cancellationToken);
@@ -304,7 +304,7 @@ public sealed class DrugUsageService
                         $"{item.DrugNameSnapshot}: {ex.Message}");
                 }
 
-                _dbContext.TrxDrugUsageAllocations.Add(new TrxDrugUsageAllocation
+                _dbContext.PhmDrugUsageAllocations.Add(new PhmDrugUsageAllocation
                 {
                     DrugUsageItemId = item.Id,
                     DrugBatchId = batchId,
@@ -377,10 +377,10 @@ public sealed class DrugUsageService
 
     // ================================================================= penolong
 
-    private Task<TrxDrugUsage?> LoadAsync(Guid id, bool tracking,
+    private Task<PhmDrugUsage?> LoadAsync(Guid id, bool tracking,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.TrxDrugUsages
+        var query = _dbContext.PhmDrugUsages
             .Include(x => x.Encounter).ThenInclude(x => x!.Patient)
             .Include(x => x.Encounter).ThenInclude(x => x!.ServiceUnit)
             .Include(x => x.StorageLocation)
@@ -399,7 +399,7 @@ public sealed class DrugUsageService
         foreach (var input in inputs)
         {
             var drug = drugs[input.DrugId];
-            _dbContext.TrxDrugUsageItems.Add(new TrxDrugUsageItem
+            _dbContext.PhmDrugUsageItems.Add(new PhmDrugUsageItem
             {
                 DrugUsageId = usageId,
                 DrugId = input.DrugId,
@@ -533,7 +533,7 @@ public sealed class DrugUsageService
     private static Guid DeterministicId(string key) =>
         new(SHA256.HashData(Encoding.UTF8.GetBytes($"DrugUsage:{key.Trim()}"))[..16]);
 
-    private static DrugUsageDetailResponse MapDetail(TrxDrugUsage x) => new()
+    private static DrugUsageDetailResponse MapDetail(PhmDrugUsage x) => new()
     {
         Id = x.Id,
         UsageNumber = x.UsageNumber,

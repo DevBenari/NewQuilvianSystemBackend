@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 /// </para>
 /// <para>
 /// <b>Tidak ada tabel penyerahan tersendiri.</b> Penyerahan dicatat sebagai
-/// <see cref="TrxDrugUsage"/> yang menunjuk resepnya. Obat yang keluar dari stok untuk seorang
+/// <see cref="PhmDrugUsage"/> yang menunjuk resepnya. Obat yang keluar dari stok untuk seorang
 /// pasien hanya boleh punya satu catatan yang authoritative; membuat tabel kedua akan membuat
 /// pertanyaan "berapa yang sudah diserahkan" punya dua jawaban yang bisa berbeda, dan selisihnya
 /// baru ketahuan saat stok opname.
@@ -143,7 +143,7 @@ public sealed class PrescriptionDispensingService
         EnsureIdempotencyKey(request.IdempotencyKey);
 
         var usageId = DeterministicId(request.IdempotencyKey);
-        var duplicate = await _dbContext.TrxDrugUsages.AsNoTracking()
+        var duplicate = await _dbContext.PhmDrugUsages.AsNoTracking()
             .AnyAsync(x => x.Id == usageId && !x.IsDelete, cancellationToken);
         if (duplicate) return (await GetSummaryAsync(prescriptionId, cancellationToken))!;
 
@@ -166,7 +166,7 @@ public sealed class PrescriptionDispensingService
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
 
-        var usage = new TrxDrugUsage
+        var usage = new PhmDrugUsage
         {
             Id = usageId,
             UsageNumber = $"DSP-{now:yyyyMMdd}-{usageId.ToString("N")[..6].ToUpperInvariant()}",
@@ -182,7 +182,7 @@ public sealed class PrescriptionDispensingService
             CreateDateTime = now,
             CreateBy = actorUserId
         };
-        _dbContext.TrxDrugUsages.Add(usage);
+        _dbContext.PhmDrugUsages.Add(usage);
 
         var lineNumber = 1;
         foreach (var input in request.Items)
@@ -213,7 +213,7 @@ public sealed class PrescriptionDispensingService
                     $"{prescriptionItem.DrugName}: baris resep ini belum memiliki satuan " +
                     "penyerahan, sehingga tidak dapat diserahkan.");
 
-            var usageItem = new TrxDrugUsageItem
+            var usageItem = new PhmDrugUsageItem
             {
                 DrugUsageId = usage.Id,
                 DrugId = prescriptionItem.DrugId,
@@ -228,7 +228,7 @@ public sealed class PrescriptionDispensingService
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
-            _dbContext.TrxDrugUsageItems.Add(usageItem);
+            _dbContext.PhmDrugUsageItems.Add(usageItem);
 
             await ReserveAsync(usageItem, prescriptionItem.DrugName, request.StorageLocationId,
                 input.Quantity, actorUserId, now, cancellationToken);
@@ -395,7 +395,7 @@ public sealed class PrescriptionDispensingService
     // ================================================================== internal
 
     /// <summary>Menahan stok satu baris memakai rencana FEFO, lalu mencatat alokasinya.</summary>
-    private async Task ReserveAsync(TrxDrugUsageItem usageItem, string drugName,
+    private async Task ReserveAsync(PhmDrugUsageItem usageItem, string drugName,
         Guid storageLocationId, decimal quantity, Guid actorUserId, DateTime now,
         CancellationToken cancellationToken)
     {
@@ -424,7 +424,7 @@ public sealed class PrescriptionDispensingService
                     $"{drugName}: {ex.Message}");
             }
 
-            _dbContext.TrxDrugUsageAllocations.Add(new TrxDrugUsageAllocation
+            _dbContext.PhmDrugUsageAllocations.Add(new PhmDrugUsageAllocation
             {
                 DrugUsageItemId = usageItem.Id,
                 DrugBatchId = batchId,
@@ -560,7 +560,7 @@ public sealed class PrescriptionDispensingService
 
     private async Task<List<UsageView>> LoadUsagesAsync(Guid prescriptionId,
         CancellationToken cancellationToken) =>
-        await _dbContext.TrxDrugUsages.AsNoTracking()
+        await _dbContext.PhmDrugUsages.AsNoTracking()
             .Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete)
             .Select(x => new UsageView
             {
@@ -593,10 +593,10 @@ public sealed class PrescriptionDispensingService
             })
             .ToListAsync(cancellationToken);
 
-    private async Task<TrxDrugUsage> LoadDraftableUsageAsync(Guid prescriptionId, Guid drugUsageId,
+    private async Task<PhmDrugUsage> LoadDraftableUsageAsync(Guid prescriptionId, Guid drugUsageId,
         CancellationToken cancellationToken)
     {
-        var usage = await _dbContext.TrxDrugUsages
+        var usage = await _dbContext.PhmDrugUsages
             .Include(x => x.Items).ThenInclude(x => x.Allocations)
             .FirstOrDefaultAsync(x => x.Id == drugUsageId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Penyiapan penyerahan tidak ditemukan.");

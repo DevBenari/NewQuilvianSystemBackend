@@ -75782,7 +75782,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("PhmPrescriptionCopyItem", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturn", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturn", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -75887,10 +75887,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StorageLocationId", "Status");
 
-                    b.ToTable("TrxDrugReturn", "public");
+                    b.ToTable("PhmDrugReturn", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturnHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturnHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -75967,10 +75967,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("DrugReturnId", "OccurredAt");
 
-                    b.ToTable("TrxDrugReturnHistory", "public");
+                    b.ToTable("PhmDrugReturnHistory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturnItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturnItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76060,10 +76060,10 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("TrxDrugReturnItem", "public");
+                    b.ToTable("PhmDrugReturnItem", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugStockBalance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockBalance", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76131,15 +76131,15 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("DrugId", "StorageLocationId", "Status");
 
-                    b.ToTable("TrxDrugStockBalance", "public", t =>
+                    b.ToTable("PhmDrugStockBalance", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_TrxDrugStockBalance_OnHandNotNegative", "\"QuantityOnHand\" >= 0");
+                            t.HasCheckConstraint("CK_PhmDrugStockBalance_OnHandNotNegative", "\"QuantityOnHand\" >= 0");
 
-                            t.HasCheckConstraint("CK_TrxDrugStockBalance_ReservedWithinOnHand", "\"QuantityReserved\" >= 0 AND \"QuantityReserved\" <= \"QuantityOnHand\"");
+                            t.HasCheckConstraint("CK_PhmDrugStockBalance_ReservedWithinOnHand", "\"QuantityReserved\" >= 0 AND \"QuantityReserved\" <= \"QuantityOnHand\"");
                         });
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugStockMutation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockMutation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76244,10 +76244,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("DrugId", "StorageLocationId", "OccurredAt");
 
-                    b.ToTable("TrxDrugStockMutation", "public");
+                    b.ToTable("PhmDrugStockMutation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsage", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76343,10 +76343,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StorageLocationId", "UsedAt");
 
-                    b.ToTable("TrxDrugUsage", "public");
+                    b.ToTable("PhmDrugUsage", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageAllocation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageAllocation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76400,10 +76400,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("DrugUsageItemId", "SequenceNumber");
 
-                    b.ToTable("TrxDrugUsageAllocation", "public");
+                    b.ToTable("PhmDrugUsageAllocation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -76486,7 +76486,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PrescriptionItemId")
                         .HasFilter("\"PrescriptionItemId\" IS NOT NULL");
 
-                    b.ToTable("TrxDrugUsageItem", "public");
+                    b.ToTable("PhmDrugUsageItem", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxPrescription", b =>
@@ -78486,7 +78486,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPrescriptionReviewItem", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequest", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78582,10 +78582,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("RequestingServiceUnitId", "Status", "RequestedAt");
 
-                    b.ToTable("TrxStockRequest", "public");
+                    b.ToTable("PhmStockRequest", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequestHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequestHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78662,10 +78662,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StockRequestId", "OccurredAt");
 
-                    b.ToTable("TrxStockRequestHistory", "public");
+                    b.ToTable("PhmStockRequestHistory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequestItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequestItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78747,10 +78747,10 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("TrxStockRequestItem", "public");
+                    b.ToTable("PhmStockRequestItem", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransfer", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransfer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78844,13 +78844,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("SourceStorageLocationId", "Status", "RequestedAt");
 
-                    b.ToTable("TrxStockTransfer", "public", t =>
+                    b.ToTable("PhmStockTransfer", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_TrxStockTransfer_SourceNotDestination", "\"SourceStorageLocationId\" <> \"DestinationStorageLocationId\"");
+                            t.HasCheckConstraint("CK_PhmStockTransfer_SourceNotDestination", "\"SourceStorageLocationId\" <> \"DestinationStorageLocationId\"");
                         });
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferAllocation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferAllocation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78907,10 +78907,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StockTransferItemId", "SequenceNumber");
 
-                    b.ToTable("TrxStockTransferAllocation", "public");
+                    b.ToTable("PhmStockTransferAllocation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -78987,10 +78987,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StockTransferId", "OccurredAt");
 
-                    b.ToTable("TrxStockTransferHistory", "public");
+                    b.ToTable("PhmStockTransferHistory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -79066,7 +79066,7 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("TrxStockTransferItem", "public");
+                    b.ToTable("PhmStockTransferItem", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.MstRadModality", b =>
@@ -101952,7 +101952,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PrescriptionItem");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturn", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturn", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
                         .WithMany()
@@ -101966,7 +101966,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsage", "SourceDrugUsage")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsage", "SourceDrugUsage")
                         .WithMany()
                         .HasForeignKey("SourceDrugUsageId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -101993,9 +101993,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("VerifiedByWorkforce");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturnHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturnHistory", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturn", "DrugReturn")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturn", "DrugReturn")
                         .WithMany()
                         .HasForeignKey("DrugReturnId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102004,7 +102004,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DrugReturn");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturnItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturnItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
                         .WithMany()
@@ -102018,7 +102018,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturn", "DrugReturn")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturn", "DrugReturn")
                         .WithMany("Items")
                         .HasForeignKey("DrugReturnId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102039,7 +102039,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Measurement");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugStockBalance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockBalance", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
                         .WithMany("Balances")
@@ -102066,9 +102066,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StorageLocation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugStockMutation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockMutation", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugStockMutation", "CorrectionOfMutation")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockMutation", "CorrectionOfMutation")
                         .WithMany()
                         .HasForeignKey("CorrectionOfMutationId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -102100,7 +102100,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StorageLocation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsage", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsage", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
                         .WithMany()
@@ -102127,7 +102127,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StorageLocation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageAllocation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageAllocation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
                         .WithMany()
@@ -102135,7 +102135,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageItem", "DrugUsageItem")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageItem", "DrugUsageItem")
                         .WithMany("Allocations")
                         .HasForeignKey("DrugUsageItemId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102146,7 +102146,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DrugUsageItem");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
                         .WithMany()
@@ -102154,7 +102154,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsage", "DrugUsage")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsage", "DrugUsage")
                         .WithMany("Items")
                         .HasForeignKey("DrugUsageId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102684,7 +102684,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PrescriptionReview");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequest", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequest", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "RequestedByWorkforce")
                         .WithMany()
@@ -102711,9 +102711,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StorageLocation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequestHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequestHistory", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequest", "StockRequest")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequest", "StockRequest")
                         .WithMany("Histories")
                         .HasForeignKey("StockRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -102722,7 +102722,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StockRequest");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequestItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequestItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
                         .WithMany()
@@ -102736,7 +102736,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequest", "StockRequest")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequest", "StockRequest")
                         .WithMany("Items")
                         .HasForeignKey("StockRequestId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -102749,7 +102749,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StockRequest");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransfer", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransfer", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", "DestinationStorageLocation")
                         .WithMany()
@@ -102768,7 +102768,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("SourceStorageLocation");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferAllocation", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferAllocation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
                         .WithMany()
@@ -102776,7 +102776,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferItem", "StockTransferItem")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferItem", "StockTransferItem")
                         .WithMany("Allocations")
                         .HasForeignKey("StockTransferItemId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102787,9 +102787,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StockTransferItem");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferHistory", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransfer", "StockTransfer")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransfer", "StockTransfer")
                         .WithMany("Histories")
                         .HasForeignKey("StockTransferId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -102798,7 +102798,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StockTransfer");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
                         .WithMany()
@@ -102806,7 +102806,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransfer", "StockTransfer")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransfer", "StockTransfer")
                         .WithMany("Items")
                         .HasForeignKey("StockTransferId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -104730,17 +104730,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugReturn", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturn", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsage", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsage", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxDrugUsageItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageItem", b =>
                 {
                     b.Navigation("Allocations");
                 });
@@ -104774,21 +104774,21 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockRequest", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockRequest", b =>
                 {
                     b.Navigation("Histories");
 
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransfer", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransfer", b =>
                 {
                     b.Navigation("Histories");
 
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.TrxStockTransferItem", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferItem", b =>
                 {
                     b.Navigation("Allocations");
                 });

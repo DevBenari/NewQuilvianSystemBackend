@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// <remarks>
 /// <para>
 /// <b>Ini bukan sumber kebenaran penyerahan.</b> Kebenaran penyerahan tetap pada
-/// <c>TrxDrugUsage</c> yang menunjuk resepnya. Yang disimpan di sini adalah <em>apa yang
+/// <c>PhmDrugUsage</c> yang menunjuk resepnya. Yang disimpan di sini adalah <em>apa yang
 /// tertulis pada lembar yang dibawa pasien</em> pada saat lembar itu dicetak.
 /// </para>
 /// <para>

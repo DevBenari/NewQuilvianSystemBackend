@@ -50,7 +50,7 @@ public sealed class DrugStockService
     public async Task<PagedResult<DrugStockBalanceResponse>> GetBalancesAsync(
         DrugStockBalanceQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxDrugStockBalances.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugStockBalances.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
         if (request.StorageLocationId.HasValue)
@@ -142,7 +142,7 @@ public sealed class DrugStockService
     public async Task<PagedResult<DrugStockSummaryResponse>> GetSummaryAsync(
         DrugStockSummaryQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxDrugStockBalances.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugStockBalances.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
         if (request.StorageLocationId.HasValue)
@@ -284,7 +284,7 @@ public sealed class DrugStockService
     public async Task<PagedResult<DrugStockMutationResponse>> GetMutationsAsync(
         DrugStockMutationQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxDrugStockMutations.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugStockMutations.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
         if (request.DrugBatchId.HasValue) query = query.Where(x => x.DrugBatchId == request.DrugBatchId);
@@ -652,7 +652,7 @@ public sealed class DrugStockService
     /// ditentukan sebelumnya, misalnya oleh reservasi transfer. Memilih ulang di sini akan
     /// mengeluarkan batch yang berbeda dari yang sudah ditahan dan dijanjikan.
     /// </remarks>
-    public async Task<TrxDrugStockMutation> IssueBatchAsync(Guid drugBatchId,
+    public async Task<PhmDrugStockMutation> IssueBatchAsync(Guid drugBatchId,
         Guid storageLocationId, decimal quantity, bool consumeReservation,
         string? sourceDocumentType, Guid? sourceDocumentId, string? reason,
         string correlationId, CancellationToken cancellationToken = default)
@@ -686,7 +686,7 @@ public sealed class DrugStockService
     /// batch baru. Dengan begitu nomor batch dan kedaluwarsanya tetap melekat pada barangnya
     /// ke mana pun ia berpindah, dan penarikan obat masih dapat menelusurinya.
     /// </remarks>
-    public async Task<TrxDrugStockMutation> ReceiveBatchAsync(Guid drugBatchId,
+    public async Task<PhmDrugStockMutation> ReceiveBatchAsync(Guid drugBatchId,
         Guid storageLocationId, decimal quantity, string? sourceDocumentType,
         Guid? sourceDocumentId, string? reason, string correlationId,
         CancellationToken cancellationToken = default,
@@ -799,7 +799,7 @@ public sealed class DrugStockService
         var existing = await FindMutationByKeyAsync(request.IdempotencyKey, cancellationToken);
         if (existing != null) return MapMutation(existing);
 
-        var original = await _dbContext.TrxDrugStockMutations.AsNoTracking()
+        var original = await _dbContext.PhmDrugStockMutations.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == request.MutationId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Baris kartu stok tidak ditemukan.");
 
@@ -807,7 +807,7 @@ public sealed class DrugStockService
             throw new DrugStockConflictException("PHM026",
                 "Baris koreksi tidak dapat dikoreksi lagi. Koreksi baris aslinya.");
 
-        var alreadyCorrected = await _dbContext.TrxDrugStockMutations.AsNoTracking()
+        var alreadyCorrected = await _dbContext.PhmDrugStockMutations.AsNoTracking()
             .AnyAsync(x => x.CorrectionOfMutationId == original.Id && !x.IsDelete, cancellationToken);
         if (alreadyCorrected)
             throw new DrugStockConflictException("PHM027",
@@ -845,7 +845,7 @@ public sealed class DrugStockService
     /// meninggalkan jejak. Saldo sebelum dan sesudah disimpan pada barisnya sendiri, sehingga
     /// kartu stok dapat dibaca tanpa menghitung ulang seluruh riwayat.
     /// </remarks>
-    private async Task<TrxDrugStockMutation> ApplyMutationAsync(TrxDrugStockBalance balance,
+    private async Task<PhmDrugStockMutation> ApplyMutationAsync(PhmDrugStockBalance balance,
         DrugStockMutationType type, decimal quantityChange, string? reason,
         string? sourceDocumentType, Guid? sourceDocumentId, Guid? correctionOf,
         string correlationId, CancellationToken cancellationToken)
@@ -866,7 +866,7 @@ public sealed class DrugStockService
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
 
-        var mutation = new TrxDrugStockMutation
+        var mutation = new PhmDrugStockMutation
         {
             DrugId = balance.DrugId,
             DrugBatchId = balance.DrugBatchId,
@@ -888,7 +888,7 @@ public sealed class DrugStockService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxDrugStockMutations.Add(mutation);
+        _dbContext.PhmDrugStockMutations.Add(mutation);
 
         balance.QuantityOnHand = after;
         balance.Version++;
@@ -906,14 +906,14 @@ public sealed class DrugStockService
     /// sementara yang lebih baru terpakai. Batch tanpa tanggal kedaluwarsa diletakkan paling
     /// belakang: tanpa tanggal, tidak ada dasar mendahulukannya.
     /// </remarks>
-    private static List<(TrxDrugStockBalance Balance, decimal Quantity)> PlanFefo(
-        List<TrxDrugStockBalance> candidates, decimal requested, bool useReserved = false)
+    private static List<(PhmDrugStockBalance Balance, decimal Quantity)> PlanFefo(
+        List<PhmDrugStockBalance> candidates, decimal requested, bool useReserved = false)
     {
         if (requested <= 0)
             throw new DrugStockUnprocessableException("PHM022",
                 "Jumlah harus lebih dari nol.");
 
-        var plan = new List<(TrxDrugStockBalance, decimal)>();
+        var plan = new List<(PhmDrugStockBalance, decimal)>();
         var remaining = requested;
 
         foreach (var balance in candidates)
@@ -938,12 +938,12 @@ public sealed class DrugStockService
         return plan;
     }
 
-    private Task<List<TrxDrugStockBalance>> LoadFefoCandidatesAsync(Guid drugId,
+    private Task<List<PhmDrugStockBalance>> LoadFefoCandidatesAsync(Guid drugId,
         Guid storageLocationId, CancellationToken cancellationToken, bool includeReserved = false)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        return _dbContext.TrxDrugStockBalances
+        return _dbContext.PhmDrugStockBalances
             .Include(x => x.DrugBatch)
             .Where(x => !x.IsDelete &&
                         x.DrugId == drugId &&
@@ -1024,15 +1024,15 @@ public sealed class DrugStockService
                 "Lokasi penyimpanan tidak ditemukan.");
     }
 
-    private Task<TrxDrugStockBalance?> LoadBalanceAsync(Guid drugBatchId, Guid storageLocationId,
+    private Task<PhmDrugStockBalance?> LoadBalanceAsync(Guid drugBatchId, Guid storageLocationId,
         DrugStockStatus status, CancellationToken cancellationToken) =>
-        _dbContext.TrxDrugStockBalances
+        _dbContext.PhmDrugStockBalances
             .Include(x => x.DrugBatch)
             .FirstOrDefaultAsync(x => x.DrugBatchId == drugBatchId &&
                                       x.StorageLocationId == storageLocationId &&
                                       x.Status == status && !x.IsDelete, cancellationToken);
 
-    private async Task<TrxDrugStockBalance> LoadOrCreateBalanceAsync(Guid drugId, Guid drugBatchId,
+    private async Task<PhmDrugStockBalance> LoadOrCreateBalanceAsync(Guid drugId, Guid drugBatchId,
         Guid storageLocationId, DrugStockStatus status, CancellationToken cancellationToken)
     {
         var existing = await LoadBalanceAsync(drugBatchId, storageLocationId, status,
@@ -1040,7 +1040,7 @@ public sealed class DrugStockService
         if (existing != null) return existing;
 
         var actorUserId = GetCurrentUserId();
-        var balance = new TrxDrugStockBalance
+        var balance = new PhmDrugStockBalance
         {
             DrugId = drugId,
             DrugBatchId = drugBatchId,
@@ -1053,7 +1053,7 @@ public sealed class DrugStockService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxDrugStockBalances.Add(balance);
+        _dbContext.PhmDrugStockBalances.Add(balance);
         return balance;
     }
 
@@ -1072,23 +1072,23 @@ public sealed class DrugStockService
             ?? throw new DrugStockUnprocessableException("PHM020", "Saldo tidak ditemukan.");
     }
 
-    private Task<TrxDrugStockMutation?> FindMutationByKeyAsync(string key,
+    private Task<PhmDrugStockMutation?> FindMutationByKeyAsync(string key,
         CancellationToken cancellationToken) =>
-        _dbContext.TrxDrugStockMutations.AsNoTracking()
+        _dbContext.PhmDrugStockMutations.AsNoTracking()
             .FirstOrDefaultAsync(x => x.CorrelationId == key.Trim() && !x.IsDelete,
                 cancellationToken);
 
-    private Task<List<TrxDrugStockMutation>> FindMutationsByKeyPrefixAsync(string key,
+    private Task<List<PhmDrugStockMutation>> FindMutationsByKeyPrefixAsync(string key,
         CancellationToken cancellationToken)
     {
         var prefix = $"{key.Trim()}:";
-        return _dbContext.TrxDrugStockMutations.AsNoTracking()
+        return _dbContext.PhmDrugStockMutations.AsNoTracking()
             .Where(x => x.CorrelationId != null && x.CorrelationId.StartsWith(prefix) && !x.IsDelete)
             .OrderBy(x => x.OccurredAt)
             .ToListAsync(cancellationToken);
     }
 
-    private void Touch(TrxDrugStockBalance balance)
+    private void Touch(PhmDrugStockBalance balance)
     {
         balance.UpdateDateTime = DateTime.UtcNow;
         balance.UpdateBy = GetCurrentUserId();
@@ -1132,7 +1132,7 @@ public sealed class DrugStockService
     private static int? DaysToExpiry(DateOnly? expiry, DateOnly today) =>
         expiry == null ? null : expiry.Value.DayNumber - today.DayNumber;
 
-    private static DrugStockMutationResponse MapMutation(TrxDrugStockMutation x) => new()
+    private static DrugStockMutationResponse MapMutation(PhmDrugStockMutation x) => new()
     {
         Id = x.Id,
         DrugId = x.DrugId,

@@ -4,16 +4,16 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.PharmacyManagement;
 
-public class TrxStockTransferConfiguration : IEntityTypeConfiguration<TrxStockTransfer>
+public class PhmStockTransferConfiguration : IEntityTypeConfiguration<PhmStockTransfer>
 {
-    public void Configure(EntityTypeBuilder<TrxStockTransfer> builder)
+    public void Configure(EntityTypeBuilder<PhmStockTransfer> builder)
     {
-        builder.ToTable("TrxStockTransfer", "public", table =>
+        builder.ToTable("PhmStockTransfer", "public", table =>
         {
             // Memindahkan barang ke lokasi yang sama dengan asalnya bukan perpindahan apa pun,
             // tetapi tetap akan menulis dua baris kartu stok yang saling meniadakan dan
             // mengaburkan pembacaan.
-            table.HasCheckConstraint("CK_TrxStockTransfer_SourceNotDestination",
+            table.HasCheckConstraint("CK_PhmStockTransfer_SourceNotDestination",
                 "\"SourceStorageLocationId\" <> \"DestinationStorageLocationId\"");
         });
 
@@ -36,11 +36,11 @@ public class TrxStockTransferConfiguration : IEntityTypeConfiguration<TrxStockTr
     }
 }
 
-public class TrxStockTransferItemConfiguration : IEntityTypeConfiguration<TrxStockTransferItem>
+public class PhmStockTransferItemConfiguration : IEntityTypeConfiguration<PhmStockTransferItem>
 {
-    public void Configure(EntityTypeBuilder<TrxStockTransferItem> builder)
+    public void Configure(EntityTypeBuilder<PhmStockTransferItem> builder)
     {
-        builder.ToTable("TrxStockTransferItem", "public");
+        builder.ToTable("PhmStockTransferItem", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.DrugCodeSnapshot).HasMaxLength(50).IsRequired();
@@ -63,12 +63,12 @@ public class TrxStockTransferItemConfiguration : IEntityTypeConfiguration<TrxSto
     }
 }
 
-public class TrxStockTransferAllocationConfiguration
-    : IEntityTypeConfiguration<TrxStockTransferAllocation>
+public class PhmStockTransferAllocationConfiguration
+    : IEntityTypeConfiguration<PhmStockTransferAllocation>
 {
-    public void Configure(EntityTypeBuilder<TrxStockTransferAllocation> builder)
+    public void Configure(EntityTypeBuilder<PhmStockTransferAllocation> builder)
     {
-        builder.ToTable("TrxStockTransferAllocation", "public");
+        builder.ToTable("PhmStockTransferAllocation", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Quantity).HasColumnType("numeric(18,3)");
@@ -83,12 +83,12 @@ public class TrxStockTransferAllocationConfiguration
     }
 }
 
-public class TrxStockTransferHistoryConfiguration
-    : IEntityTypeConfiguration<TrxStockTransferHistory>
+public class PhmStockTransferHistoryConfiguration
+    : IEntityTypeConfiguration<PhmStockTransferHistory>
 {
-    public void Configure(EntityTypeBuilder<TrxStockTransferHistory> builder)
+    public void Configure(EntityTypeBuilder<PhmStockTransferHistory> builder)
     {
-        builder.ToTable("TrxStockTransferHistory", "public");
+        builder.ToTable("PhmStockTransferHistory", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Action).HasMaxLength(50).IsRequired();

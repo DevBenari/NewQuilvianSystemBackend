@@ -656,26 +656,26 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
         public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         public DbSet<TrxPatientIntegratedProgressNote> TrxPatientIntegratedProgressNotes { get; set; }
-        public DbSet<TrxStockRequest> TrxStockRequests { get; set; }
-        public DbSet<TrxStockRequestItem> TrxStockRequestItems { get; set; }
-        public DbSet<TrxStockRequestHistory> TrxStockRequestHistories { get; set; }
+        public DbSet<PhmStockRequest> PhmStockRequests { get; set; }
+        public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
+        public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
 
         public DbSet<MstDrugBatch> MstDrugBatches { get; set; }
-        public DbSet<TrxDrugStockBalance> TrxDrugStockBalances { get; set; }
-        public DbSet<TrxDrugStockMutation> TrxDrugStockMutations { get; set; }
+        public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
+        public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
 
-        public DbSet<TrxDrugReturn> TrxDrugReturns { get; set; }
-        public DbSet<TrxDrugReturnItem> TrxDrugReturnItems { get; set; }
-        public DbSet<TrxDrugReturnHistory> TrxDrugReturnHistories { get; set; }
+        public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
+        public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
+        public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }
 
-        public DbSet<TrxDrugUsage> TrxDrugUsages { get; set; }
-        public DbSet<TrxDrugUsageItem> TrxDrugUsageItems { get; set; }
-        public DbSet<TrxDrugUsageAllocation> TrxDrugUsageAllocations { get; set; }
+        public DbSet<PhmDrugUsage> PhmDrugUsages { get; set; }
+        public DbSet<PhmDrugUsageItem> PhmDrugUsageItems { get; set; }
+        public DbSet<PhmDrugUsageAllocation> PhmDrugUsageAllocations { get; set; }
 
-        public DbSet<TrxStockTransfer> TrxStockTransfers { get; set; }
-        public DbSet<TrxStockTransferItem> TrxStockTransferItems { get; set; }
-        public DbSet<TrxStockTransferAllocation> TrxStockTransferAllocations { get; set; }
-        public DbSet<TrxStockTransferHistory> TrxStockTransferHistories { get; set; }
+        public DbSet<PhmStockTransfer> PhmStockTransfers { get; set; }
+        public DbSet<PhmStockTransferItem> PhmStockTransferItems { get; set; }
+        public DbSet<PhmStockTransferAllocation> PhmStockTransferAllocations { get; set; }
+        public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
 
         public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
         public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }

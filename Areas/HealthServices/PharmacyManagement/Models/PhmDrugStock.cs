@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// <remarks>
 /// <para>
 /// Inilah satu-satunya sumber kebenaran jumlah stok. Angkanya tidak pernah diubah langsung:
-/// setiap perubahan berjalan lewat <see cref="TrxDrugStockMutation"/>, sehingga saldo dan
+/// setiap perubahan berjalan lewat <see cref="PhmDrugStockMutation"/>, sehingga saldo dan
 /// riwayatnya selalu dapat dicocokkan.
 /// </para>
 /// <para>
@@ -21,8 +21,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// barangnya ke lokasi lain.
 /// </para>
 /// </remarks>
-[Table("TrxDrugStockBalance", Schema = "public")]
-public class TrxDrugStockBalance : IdentityModel
+[Table("PhmDrugStockBalance", Schema = "public")]
+public class PhmDrugStockBalance : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -85,8 +85,8 @@ public class TrxDrugStockBalance : IdentityModel
 /// selisih yang tidak wajar langsung terlihat pada barisnya sendiri.
 /// </para>
 /// </remarks>
-[Table("TrxDrugStockMutation", Schema = "public")]
-public class TrxDrugStockMutation : IdentityModel
+[Table("PhmDrugStockMutation", Schema = "public")]
+public class PhmDrugStockMutation : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -146,5 +146,5 @@ public class TrxDrugStockMutation : IdentityModel
     public MstDrug? Drug { get; set; }
     public MstDrugBatch? DrugBatch { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
-    public TrxDrugStockMutation? CorrectionOfMutation { get; set; }
+    public PhmDrugStockMutation? CorrectionOfMutation { get; set; }
 }

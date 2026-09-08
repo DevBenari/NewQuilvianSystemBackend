@@ -369,7 +369,7 @@ public sealed class PrescriptionCopyService
 
         if (items.Count == 0) return [];
 
-        var dispensed = await _dbContext.TrxDrugUsageItems.AsNoTracking()
+        var dispensed = await _dbContext.PhmDrugUsageItems.AsNoTracking()
             .Where(x => x.PrescriptionItemId != null && !x.IsDelete &&
                 x.DrugUsage!.PrescriptionId == prescriptionId && !x.DrugUsage.IsDelete &&
                 DispensedStatuses.Contains(x.DrugUsage.Status))

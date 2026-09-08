@@ -26,8 +26,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// beserta aturannya milik Billing.
 /// </para>
 /// </remarks>
-[Table("TrxDrugUsage", Schema = "public")]
-public class TrxDrugUsage : IdentityModel
+[Table("PhmDrugUsage", Schema = "public")]
+public class PhmDrugUsage : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -81,12 +81,12 @@ public class TrxDrugUsage : IdentityModel
     public TrxPatientEncounter? Encounter { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
     public MstWorkforceProfile? RecordedByWorkforce { get; set; }
-    public ICollection<TrxDrugUsageItem> Items { get; set; } = [];
+    public ICollection<PhmDrugUsageItem> Items { get; set; } = [];
 }
 
 /// <summary>Satu obat yang dipakai, beserta jumlah dan satuannya.</summary>
-[Table("TrxDrugUsageItem", Schema = "public")]
-public class TrxDrugUsageItem : IdentityModel
+[Table("PhmDrugUsageItem", Schema = "public")]
+public class PhmDrugUsageItem : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -116,10 +116,10 @@ public class TrxDrugUsageItem : IdentityModel
 
     public int LineNumber { get; set; }
 
-    public TrxDrugUsage? DrugUsage { get; set; }
+    public PhmDrugUsage? DrugUsage { get; set; }
     public MstDrug? Drug { get; set; }
     public MstMeasurement? Measurement { get; set; }
-    public ICollection<TrxDrugUsageAllocation> Allocations { get; set; } = [];
+    public ICollection<PhmDrugUsageAllocation> Allocations { get; set; } = [];
 }
 
 /// <summary>
@@ -130,8 +130,8 @@ public class TrxDrugUsageItem : IdentityModel
 /// dari peredaran, pertanyaannya bukan "berapa sisanya di gudang" melainkan "siapa saja yang
 /// sudah menerimanya" — dan hanya catatan ini yang dapat menjawabnya.
 /// </remarks>
-[Table("TrxDrugUsageAllocation", Schema = "public")]
-public class TrxDrugUsageAllocation : IdentityModel
+[Table("PhmDrugUsageAllocation", Schema = "public")]
+public class PhmDrugUsageAllocation : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -144,6 +144,6 @@ public class TrxDrugUsageAllocation : IdentityModel
     [Column(TypeName = "numeric(18,3)")]
     public decimal Quantity { get; set; }
 
-    public TrxDrugUsageItem? DrugUsageItem { get; set; }
+    public PhmDrugUsageItem? DrugUsageItem { get; set; }
     public MstDrugBatch? DrugBatch { get; set; }
 }

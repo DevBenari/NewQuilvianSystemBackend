@@ -204,7 +204,7 @@ public sealed class DrugUsageServiceTests
         var kedua = await f.Service.CreateAsync(Pemakaian(f, 10));
 
         Assert.Equal(pertama.Id, kedua.Id);
-        Assert.Single(f.Context.TrxDrugUsages);
+        Assert.Single(f.Context.PhmDrugUsages);
     }
 
     [Fact]

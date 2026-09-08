@@ -23,8 +23,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// pernah muncul di mana pun.
 /// </para>
 /// </remarks>
-[Table("TrxStockTransfer", Schema = "public")]
-public class TrxStockTransfer : IdentityModel
+[Table("PhmStockTransfer", Schema = "public")]
+public class PhmStockTransfer : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -56,13 +56,13 @@ public class TrxStockTransfer : IdentityModel
 
     public MstDrugStorageLocation? SourceStorageLocation { get; set; }
     public MstDrugStorageLocation? DestinationStorageLocation { get; set; }
-    public ICollection<TrxStockTransferItem> Items { get; set; } = [];
-    public ICollection<TrxStockTransferHistory> Histories { get; set; } = [];
+    public ICollection<PhmStockTransferItem> Items { get; set; } = [];
+    public ICollection<PhmStockTransferHistory> Histories { get; set; } = [];
 }
 
 /// <summary>Satu obat yang dipindahkan, beserta jumlah yang diminta dan yang benar-benar keluar.</summary>
-[Table("TrxStockTransferItem", Schema = "public")]
-public class TrxStockTransferItem : IdentityModel
+[Table("PhmStockTransferItem", Schema = "public")]
+public class PhmStockTransferItem : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -99,9 +99,9 @@ public class TrxStockTransferItem : IdentityModel
 
     public int LineNumber { get; set; }
 
-    public TrxStockTransfer? StockTransfer { get; set; }
+    public PhmStockTransfer? StockTransfer { get; set; }
     public MstDrug? Drug { get; set; }
-    public ICollection<TrxStockTransferAllocation> Allocations { get; set; } = [];
+    public ICollection<PhmStockTransferAllocation> Allocations { get; set; } = [];
 }
 
 /// <summary>
@@ -112,8 +112,8 @@ public class TrxStockTransferItem : IdentityModel
 /// tujuan tidak tahu batch apa yang harus diterimanya, dan penelusuran obat sampai ke
 /// pasien akan terputus di tengah perjalanan.
 /// </remarks>
-[Table("TrxStockTransferAllocation", Schema = "public")]
-public class TrxStockTransferAllocation : IdentityModel
+[Table("PhmStockTransferAllocation", Schema = "public")]
+public class PhmStockTransferAllocation : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -137,13 +137,13 @@ public class TrxStockTransferAllocation : IdentityModel
     /// <summary>Benar bila reservasi atas batch ini sudah dilepas, baik karena dikeluarkan maupun dibatalkan.</summary>
     public bool IsReleased { get; set; }
 
-    public TrxStockTransferItem? StockTransferItem { get; set; }
+    public PhmStockTransferItem? StockTransferItem { get; set; }
     public MstDrugBatch? DrugBatch { get; set; }
 }
 
 /// <summary>Jejak perpindahan status transfer, sekaligus penyimpan kunci idempotensi.</summary>
-[Table("TrxStockTransferHistory", Schema = "public")]
-public class TrxStockTransferHistory : IdentityModel
+[Table("PhmStockTransferHistory", Schema = "public")]
+public class PhmStockTransferHistory : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -161,5 +161,5 @@ public class TrxStockTransferHistory : IdentityModel
     [Required, MaxLength(100)] public string Source { get; set; } = string.Empty;
     [MaxLength(100)] public string? CorrelationId { get; set; }
 
-    public TrxStockTransfer? StockTransfer { get; set; }
+    public PhmStockTransfer? StockTransfer { get; set; }
 }

@@ -593,6 +593,6 @@ public sealed class StockTransferServiceTests
         var kedua = await f.Service.CreateAsync(Permintaan(f, 10));
 
         Assert.Equal(pertama.Id, kedua.Id);
-        Assert.Single(f.Context.TrxStockTransfers);
+        Assert.Single(f.Context.PhmStockTransfers);
     }
 }

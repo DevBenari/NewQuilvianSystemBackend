@@ -536,6 +536,6 @@ public sealed class DrugReturnServiceTests
         var kedua = await f.Service.CreateAsync(Retur(f, batchId, 10));
 
         Assert.Equal(pertama.Id, kedua.Id);
-        Assert.Single(f.Context.TrxDrugReturns);
+        Assert.Single(f.Context.PhmDrugReturns);
     }
 }

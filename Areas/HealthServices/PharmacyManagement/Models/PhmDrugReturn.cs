@@ -23,8 +23,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// kembali ke rak, atau harus ditahan lebih dahulu.
 /// </para>
 /// </remarks>
-[Table("TrxDrugReturn", Schema = "public")]
-public class TrxDrugReturn : IdentityModel
+[Table("PhmDrugReturn", Schema = "public")]
+public class PhmDrugReturn : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -85,13 +85,13 @@ public class TrxDrugReturn : IdentityModel
     public MstDrugStorageLocation? StorageLocation { get; set; }
     public MstWorkforceProfile? ReturnedByWorkforce { get; set; }
     public MstWorkforceProfile? VerifiedByWorkforce { get; set; }
-    public TrxDrugUsage? SourceDrugUsage { get; set; }
-    public ICollection<TrxDrugReturnItem> Items { get; set; } = [];
+    public PhmDrugUsage? SourceDrugUsage { get; set; }
+    public ICollection<PhmDrugReturnItem> Items { get; set; } = [];
 }
 
 /// <summary>Satu batch obat yang dikembalikan, beserta keadaan yang ditetapkan pemeriksa.</summary>
-[Table("TrxDrugReturnItem", Schema = "public")]
-public class TrxDrugReturnItem : IdentityModel
+[Table("PhmDrugReturnItem", Schema = "public")]
+public class PhmDrugReturnItem : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -136,15 +136,15 @@ public class TrxDrugReturnItem : IdentityModel
 
     public int LineNumber { get; set; }
 
-    public TrxDrugReturn? DrugReturn { get; set; }
+    public PhmDrugReturn? DrugReturn { get; set; }
     public MstDrug? Drug { get; set; }
     public MstDrugBatch? DrugBatch { get; set; }
     public MstMeasurement? Measurement { get; set; }
 }
 
 /// <summary>Jejak perpindahan status retur, sekaligus penyimpan kunci idempotensi.</summary>
-[Table("TrxDrugReturnHistory", Schema = "public")]
-public class TrxDrugReturnHistory : IdentityModel
+[Table("PhmDrugReturnHistory", Schema = "public")]
+public class PhmDrugReturnHistory : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -162,5 +162,5 @@ public class TrxDrugReturnHistory : IdentityModel
     [Required, MaxLength(100)] public string Source { get; set; } = string.Empty;
     [MaxLength(100)] public string? CorrelationId { get; set; }
 
-    public TrxDrugReturn? DrugReturn { get; set; }
+    public PhmDrugReturn? DrugReturn { get; set; }
 }

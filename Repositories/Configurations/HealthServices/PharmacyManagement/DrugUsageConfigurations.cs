@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.PharmacyManagement;
 
-public class TrxDrugUsageConfiguration : IEntityTypeConfiguration<TrxDrugUsage>
+public class PhmDrugUsageConfiguration : IEntityTypeConfiguration<PhmDrugUsage>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugUsage> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugUsage> builder)
     {
-        builder.ToTable("TrxDrugUsage", "public");
+        builder.ToTable("PhmDrugUsage", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.UsageNumber).HasMaxLength(50).IsRequired();
@@ -40,11 +40,11 @@ public class TrxDrugUsageConfiguration : IEntityTypeConfiguration<TrxDrugUsage>
     }
 }
 
-public class TrxDrugUsageItemConfiguration : IEntityTypeConfiguration<TrxDrugUsageItem>
+public class PhmDrugUsageItemConfiguration : IEntityTypeConfiguration<PhmDrugUsageItem>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugUsageItem> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugUsageItem> builder)
     {
-        builder.ToTable("TrxDrugUsageItem", "public");
+        builder.ToTable("PhmDrugUsageItem", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.DrugCodeSnapshot).HasMaxLength(50).IsRequired();
@@ -73,11 +73,11 @@ public class TrxDrugUsageItemConfiguration : IEntityTypeConfiguration<TrxDrugUsa
     }
 }
 
-public class TrxDrugUsageAllocationConfiguration : IEntityTypeConfiguration<TrxDrugUsageAllocation>
+public class PhmDrugUsageAllocationConfiguration : IEntityTypeConfiguration<PhmDrugUsageAllocation>
 {
-    public void Configure(EntityTypeBuilder<TrxDrugUsageAllocation> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugUsageAllocation> builder)
     {
-        builder.ToTable("TrxDrugUsageAllocation", "public");
+        builder.ToTable("PhmDrugUsageAllocation", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Quantity).HasColumnType("numeric(18,3)");

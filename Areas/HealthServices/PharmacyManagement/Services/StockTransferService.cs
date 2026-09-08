@@ -59,7 +59,7 @@ public sealed class StockTransferService
     public async Task<PagedResult<StockTransferSummaryResponse>> GetPagedAsync(
         StockTransferPagedQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.TrxStockTransfers.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmStockTransfers.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.SourceStorageLocationId.HasValue)
@@ -185,7 +185,7 @@ public sealed class StockTransferService
         var now = DateTime.UtcNow;
         var id = DeterministicId(request.IdempotencyKey);
 
-        var entity = new TrxStockTransfer
+        var entity = new PhmStockTransfer
         {
             Id = id,
             TransferNumber = $"TRF-{now:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
@@ -201,10 +201,10 @@ public sealed class StockTransferService
             CreateBy = actorUserId
         };
 
-        _dbContext.TrxStockTransfers.Add(entity);
+        _dbContext.PhmStockTransfers.Add(entity);
         AddItems(entity.Id, request.Items, drugs, actorUserId, now);
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id, StockTransferStatus.Draft,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id, StockTransferStatus.Draft,
             null, CreateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -269,7 +269,7 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id, entity.Status,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id, entity.Status,
             entity.Status, UpdateAction, null, request.IdempotencyKey, fingerprint,
             actorUserId, now));
 
@@ -340,7 +340,7 @@ public sealed class StockTransferService
                 await _drugStockService.ReserveBatchAsync(batchId, entity.SourceStorageLocationId,
                     quantity, cancellationToken);
 
-                _dbContext.TrxStockTransferAllocations.Add(new TrxStockTransferAllocation
+                _dbContext.PhmStockTransferAllocations.Add(new PhmStockTransferAllocation
                 {
                     StockTransferItemId = item.Id,
                     DrugBatchId = batchId,
@@ -358,7 +358,7 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id,
             StockTransferStatus.Approved, StockTransferStatus.Requested, ApproveAction, null,
             request.IdempotencyKey, fingerprint, actorUserId, now));
 
@@ -444,7 +444,7 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id,
             StockTransferStatus.InTransit, StockTransferStatus.Approved, IssueAction, null,
             request.IdempotencyKey, fingerprint, actorUserId, now));
 
@@ -545,7 +545,7 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id,
             StockTransferStatus.Completed, StockTransferStatus.InTransit, ReceiveAction, note,
             request.IdempotencyKey, fingerprint, actorUserId, now));
 
@@ -616,7 +616,7 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id,
             StockTransferStatus.Cancelled, from, CancelAction, reason, request.IdempotencyKey,
             fingerprint, actorUserId, now));
 
@@ -630,7 +630,7 @@ public sealed class StockTransferService
     private async Task<StockTransferDetailResponse> TransitionAsync(Guid id,
         string idempotencyKey, int expectedVersion, string action,
         StockTransferStatus fromStatus, StockTransferStatus toStatus, string? reason,
-        Action<TrxStockTransfer, DateTime> apply, CancellationToken cancellationToken)
+        Action<PhmStockTransfer, DateTime> apply, CancellationToken cancellationToken)
     {
         EnsureIdempotencyKey(idempotencyKey);
 
@@ -669,17 +669,17 @@ public sealed class StockTransferService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.TrxStockTransferHistories.Add(NewHistory(entity.Id, toStatus, fromStatus,
+        _dbContext.PhmStockTransferHistories.Add(NewHistory(entity.Id, toStatus, fromStatus,
             action, reason?.Trim(), idempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
-    private Task<TrxStockTransfer?> LoadAsync(Guid id, bool tracking,
+    private Task<PhmStockTransfer?> LoadAsync(Guid id, bool tracking,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.TrxStockTransfers
+        var query = _dbContext.PhmStockTransfers
             .Include(x => x.SourceStorageLocation)
             .Include(x => x.DestinationStorageLocation)
             .Include(x => x.Items).ThenInclude(x => x.Allocations).ThenInclude(x => x.DrugBatch)
@@ -697,7 +697,7 @@ public sealed class StockTransferService
         foreach (var input in inputs)
         {
             var drug = drugs[input.DrugId];
-            _dbContext.TrxStockTransferItems.Add(new TrxStockTransferItem
+            _dbContext.PhmStockTransferItems.Add(new PhmStockTransferItem
             {
                 StockTransferId = transferId,
                 DrugId = input.DrugId,
@@ -752,7 +752,7 @@ public sealed class StockTransferService
                 "Satu obat hanya boleh muncul satu kali. Gabungkan jumlahnya menjadi satu baris.");
     }
 
-    private static void EnsureReceiptCoversEveryLine(List<TrxStockTransferItem> activeItems,
+    private static void EnsureReceiptCoversEveryLine(List<PhmStockTransferItem> activeItems,
         List<ReceiveStockTransferItemInput> inputs)
     {
         if (inputs.GroupBy(x => x.StockTransferItemId).Any(g => g.Count() > 1))
@@ -791,13 +791,13 @@ public sealed class StockTransferService
                 "Idempotency key dipakai dengan isi perintah yang berbeda.");
     }
 
-    private Task<TrxStockTransferHistory?> FindIdempotentAsync(string action, string key,
+    private Task<PhmStockTransferHistory?> FindIdempotentAsync(string action, string key,
         CancellationToken cancellationToken) =>
-        _dbContext.TrxStockTransferHistories.AsNoTracking()
+        _dbContext.PhmStockTransferHistories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Action == action && x.CorrelationId == key.Trim() &&
                                       !x.IsDelete, cancellationToken);
 
-    private static TrxStockTransferHistory NewHistory(Guid transferId, StockTransferStatus to,
+    private static PhmStockTransferHistory NewHistory(Guid transferId, StockTransferStatus to,
         StockTransferStatus? from, string action, string? reason, string idempotencyKey,
         string fingerprint, Guid actorUserId, DateTime now) => new()
         {
@@ -850,7 +850,7 @@ public sealed class StockTransferService
     private static Guid DeterministicId(string key) =>
         new(SHA256.HashData(Encoding.UTF8.GetBytes($"StockTransfer:{key.Trim()}"))[..16]);
 
-    private static StockTransferDetailResponse MapDetail(TrxStockTransfer x) => new()
+    private static StockTransferDetailResponse MapDetail(PhmStockTransfer x) => new()
     {
         Id = x.Id,
         TransferNumber = x.TransferNumber,

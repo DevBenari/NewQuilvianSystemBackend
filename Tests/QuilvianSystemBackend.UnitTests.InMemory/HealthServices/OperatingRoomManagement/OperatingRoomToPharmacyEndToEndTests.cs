@@ -72,7 +72,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         Assert.Equal(1, posted.AcceptedCount);
         Assert.Equal(90m, await OnHandAsync(ctx, DrugStockStatus.Available));
 
-        var mutation = await ctx.Context.TrxDrugStockMutations.SingleAsync();
+        var mutation = await ctx.Context.PhmDrugStockMutations.SingleAsync();
         Assert.Equal(-10m, mutation.QuantityChange);
         Assert.Equal(world.LocationId, mutation.StorageLocationId);
 
@@ -96,7 +96,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         // Retur belum menambah stok apa pun: ia masih menunggu apoteker.
         Assert.Equal(90m, await OnHandAsync(ctx, DrugStockStatus.Available));
 
-        var retur = await ctx.Context.TrxDrugReturns.SingleAsync();
+        var retur = await ctx.Context.PhmDrugReturns.SingleAsync();
         Assert.Equal(DrugReturnStatus.Draft, retur.Status);
 
         // Returnya menunjuk catatan pemakaian yang dikembalikan — bukan yang dipakai —
@@ -115,7 +115,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         });
         Assert.Equal(DrugReturnStatus.Submitted, submitted.Status);
 
-        var item = await ctx.Context.TrxDrugReturnItems.SingleAsync();
+        var item = await ctx.Context.PhmDrugReturnItems.SingleAsync();
 
         // Apoteker menerima 3 dari 4: satu vial tidak layak kembali.
         var verified = await returns.VerifyAsync(retur.Id, new VerifyDrugReturnRequest
@@ -145,7 +145,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         Assert.Equal(0m, await OnHandAsync(ctx, DrugStockStatus.Quarantine));
 
         // Kartu stok memuat kedua sisinya, dan keduanya menyebut batch yang sama.
-        var mutations = await ctx.Context.TrxDrugStockMutations
+        var mutations = await ctx.Context.PhmDrugStockMutations
             .OrderBy(x => x.CreateDateTime).ToListAsync();
         Assert.Equal(2, mutations.Count);
         Assert.Equal(-10m, mutations[0].QuantityChange);
@@ -174,13 +174,13 @@ public class OperatingRoomToPharmacyEndToEndTests
             OprMaterialOutcome.Returned, "e2e-tolak-retur"));
         await dispatch.DispatchCaseAsync(ctx.CaseId);
 
-        var retur = await ctx.Context.TrxDrugReturns.SingleAsync();
+        var retur = await ctx.Context.PhmDrugReturns.SingleAsync();
         var submitted = await returns.SubmitAsync(retur.Id, new DrugReturnCommandRequest
         {
             ExpectedVersion = retur.Version,
             IdempotencyKey = "e2e-tolak-kirim"
         });
-        var item = await ctx.Context.TrxDrugReturnItems.SingleAsync();
+        var item = await ctx.Context.PhmDrugReturnItems.SingleAsync();
 
         await returns.VerifyAsync(retur.Id, new VerifyDrugReturnRequest
         {
@@ -201,7 +201,7 @@ public class OperatingRoomToPharmacyEndToEndTests
 
         Assert.Equal(42m, await OnHandAsync(ctx, DrugStockStatus.Available));
         Assert.Equal(0m, await OnHandAsync(ctx, DrugStockStatus.Quarantine));
-        Assert.Equal(1, await ctx.Context.TrxDrugStockMutations.CountAsync());
+        Assert.Equal(1, await ctx.Context.PhmDrugStockMutations.CountAsync());
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         Assert.Equal(1, await ctx.Context.OprMaterialUsages.CountAsync());
         Assert.Equal(1, await ctx.Context.OprIntegrationDeliveries
             .CountAsync(x => x.Destination == OperatingRoomIntegrationService.InventoryDestination));
-        Assert.Equal(1, await ctx.Context.TrxDrugStockMutations.CountAsync());
+        Assert.Equal(1, await ctx.Context.PhmDrugStockMutations.CountAsync());
         Assert.Equal(25m, await OnHandAsync(ctx, DrugStockStatus.Available));
     }
 
@@ -246,7 +246,7 @@ public class OperatingRoomToPharmacyEndToEndTests
     };
 
     private static Task<decimal> OnHandAsync(OperatingRoomTestContext ctx, DrugStockStatus status) =>
-        ctx.Context.TrxDrugStockBalances.AsNoTracking()
+        ctx.Context.PhmDrugStockBalances.AsNoTracking()
             .Where(x => x.Status == status)
             .SumAsync(x => x.QuantityOnHand);
 
@@ -311,7 +311,7 @@ public class OperatingRoomToPharmacyEndToEndTests
             ExpiryDate = new DateOnly(2027, 8, 31)
         });
 
-        ctx.Context.TrxDrugStockBalances.Add(new TrxDrugStockBalance
+        ctx.Context.PhmDrugStockBalances.Add(new PhmDrugStockBalance
         {
             DrugId = drugId, DrugBatchId = batchId, StorageLocationId = locationId,
             Status = DrugStockStatus.Available, QuantityOnHand = onHand, QuantityReserved = 0m

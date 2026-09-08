@@ -211,7 +211,7 @@ public sealed class PrescriptionCopyServiceTests
             IdempotencyKey = $"p-{key}"
         });
 
-        var usageId = await f.Context.TrxDrugUsages.AsNoTracking()
+        var usageId = await f.Context.PhmDrugUsages.AsNoTracking()
             .Where(x => x.Status == DrugUsageStatus.Draft)
             .OrderByDescending(x => x.CreateDateTime).Select(x => x.Id).FirstAsync();
 
@@ -304,7 +304,7 @@ public sealed class PrescriptionCopyServiceTests
         Assert.Equal(PrescriptionCopyMark.Nedet, baris.Mark);
 
         // Tiga penyerahan terpisah, bukan satu yang ditimpa berulang.
-        Assert.Equal(3, await f.Context.TrxDrugUsages
+        Assert.Equal(3, await f.Context.PhmDrugUsages
             .CountAsync(x => x.PrescriptionId == f.PrescriptionId));
     }
 
@@ -319,9 +319,9 @@ public sealed class PrescriptionCopyServiceTests
 
         // Baris pemakaian tambahan yang melampaui resep, ditulis langsung untuk meniru data
         // lama yang mungkin tidak melewati penjagaan service.
-        var usage = await f.Context.TrxDrugUsages.AsNoTracking()
+        var usage = await f.Context.PhmDrugUsages.AsNoTracking()
             .FirstAsync(x => x.PrescriptionId == f.PrescriptionId);
-        f.Context.TrxDrugUsageItems.Add(new TrxDrugUsageItem
+        f.Context.PhmDrugUsageItems.Add(new PhmDrugUsageItem
         {
             DrugUsageId = usage.Id, DrugId = f.DrugId, PrescriptionItemId = f.ItemId,
             MeasurementId = Guid.NewGuid(), DrugCodeSnapshot = "OBT-001",
@@ -355,10 +355,10 @@ public sealed class PrescriptionCopyServiceTests
         Assert.Equal(20m, Assert.Single(sebelum!.Items).QuantityDispensed);
 
         // Retur yang menunjuk penyerahan tadi.
-        f.Context.TrxDrugReturns.Add(new TrxDrugReturn
+        f.Context.PhmDrugReturns.Add(new PhmDrugReturn
         {
             Id = Guid.NewGuid(), ReturnNumber = "RTN-001",
-            EncounterId = (await f.Context.TrxDrugUsages.AsNoTracking()
+            EncounterId = (await f.Context.PhmDrugUsages.AsNoTracking()
                 .Where(x => x.Id == usageId).Select(x => x.EncounterId).FirstAsync()),
             StorageLocationId = f.DepoId,
             ReturnedByWorkforceId = f.WorkforceId,
@@ -396,7 +396,7 @@ public sealed class PrescriptionCopyServiceTests
             }],
             IdempotencyKey = "p-batal"
         });
-        var usageId = await f.Context.TrxDrugUsages.AsNoTracking()
+        var usageId = await f.Context.PhmDrugUsages.AsNoTracking()
             .Where(x => x.Status == DrugUsageStatus.Draft).Select(x => x.Id).FirstAsync();
 
         await f.Dispensing.CancelAsync(f.PrescriptionId, usageId,
@@ -516,17 +516,17 @@ public sealed class PrescriptionCopyServiceTests
         await IsiAsync(f, 100m);
         await SerahkanAsync(f, 15m, "a");
 
-        var stokSebelum = await f.Context.TrxDrugStockBalances.AsNoTracking()
+        var stokSebelum = await f.Context.PhmDrugStockBalances.AsNoTracking()
             .SumAsync(x => x.QuantityOnHand);
-        var mutasiSebelum = await f.Context.TrxDrugStockMutations.CountAsync();
-        var pemakaianSebelum = await f.Context.TrxDrugUsages.CountAsync();
+        var mutasiSebelum = await f.Context.PhmDrugStockMutations.CountAsync();
+        var pemakaianSebelum = await f.Context.PhmDrugUsages.CountAsync();
 
         var copy = await f.Service.IssueAsync(f.PrescriptionId, Terbitkan(f));
 
-        Assert.Equal(stokSebelum, await f.Context.TrxDrugStockBalances.AsNoTracking()
+        Assert.Equal(stokSebelum, await f.Context.PhmDrugStockBalances.AsNoTracking()
             .SumAsync(x => x.QuantityOnHand));
-        Assert.Equal(mutasiSebelum, await f.Context.TrxDrugStockMutations.CountAsync());
-        Assert.Equal(pemakaianSebelum, await f.Context.TrxDrugUsages.CountAsync());
+        Assert.Equal(mutasiSebelum, await f.Context.PhmDrugStockMutations.CountAsync());
+        Assert.Equal(pemakaianSebelum, await f.Context.PhmDrugUsages.CountAsync());
 
         Assert.StartsWith("CR-", copy.CopyNumber);
         Assert.Equal(PrescriptionCopyStatus.Issued, copy.Status);
