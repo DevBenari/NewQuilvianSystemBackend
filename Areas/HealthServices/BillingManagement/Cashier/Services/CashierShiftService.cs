@@ -213,6 +213,91 @@ public sealed class CashierShiftService
         return MapShift(shift, pending);
     }
 
+    // Sumber "Konfirmasi Terima Shift" mencari sendiri: sebelumnya kasir penerima harus diberi tahu
+    // Shift ID/Row Version secara manual oleh kasir yang menyerahkan, karena GetPagedAsync selalu
+    // memetakan pending=null (baris shift tidak pernah di-join ke handover pending-nya). Method ini
+    // membaca BilCashierShiftHandovers langsung (bukan BilCashierShifts) supaya hanya handover milik
+    // actorUserId sebagai IncomingCashierId yang muncul - orang lain tidak bisa menemukan handover
+    // yang bukan untuknya lewat pencarian ini.
+    public async Task<IReadOnlyList<CashierShiftPendingHandoverResponse>> GetPendingHandoversForMeAsync(
+        Guid actorUserId,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        if (actorUserId == Guid.Empty)
+            throw new CashierShiftForbiddenException("Identitas kasir tidak valid.");
+
+        var query =
+            from handover in _dbContext.BilCashierShiftHandovers.AsNoTracking()
+            join shift in _dbContext.BilCashierShifts.AsNoTracking() on handover.SourceShiftId equals shift.Id
+            join outgoing in _dbContext.Users.AsNoTracking() on handover.OutgoingCashierId equals outgoing.Id
+                into outgoingJoin
+            from outgoing in outgoingJoin.DefaultIfEmpty()
+            where handover.Status == CashierShiftHandoverStatuses.Pending
+                && handover.IncomingCashierId == actorUserId
+                && !handover.IsDelete
+                && !shift.IsDelete
+            select new { handover, shift, outgoing };
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.shift.ShiftNumber.ToUpper().Contains(keyword));
+        }
+
+        var rows = await query
+            .OrderByDescending(x => x.handover.InitiatedAt)
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(x => new CashierShiftPendingHandoverResponse
+        {
+            ShiftId = x.shift.Id,
+            ShiftNumber = x.shift.ShiftNumber,
+            ShiftRowVersion = x.shift.RowVersion,
+            OutgoingCashierId = x.handover.OutgoingCashierId,
+            OutgoingCashierName = x.outgoing?.DisplayName ?? x.outgoing?.UserCode ?? "-",
+            Reason = x.handover.Reason,
+            InitiatedAt = x.handover.InitiatedAt
+        }).ToList();
+    }
+
+    // Sumber "Ajukan Handover" mencari sendiri: sebelumnya ID Kasir Penerima harus diketik manual.
+    // Kandidat dibatasi ke user aktif yang BUKAN diri sendiri dan SAAT INI tidak punya shift aktif -
+    // dua syarat yang sama persis dijaga HandoverAsync (baris "Kasir penerima harus berbeda dari
+    // kasir yang menyerahkan" dan "Kasir penerima masih memiliki shift aktif"). Menyaringnya di sini
+    // murni supaya daftar pilihan tidak menyesatkan pengguna dengan opsi yang pasti ditolak server -
+    // validasi otoritatifnya tetap di HandoverAsync, bukan di sini.
+    public async Task<IReadOnlyList<CashierUserOptionResponse>> GetReceivingCashierOptionsAsync(
+        Guid actorUserId,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var activeShiftCashierIds = ActiveShifts().Select(x => x.CashierId);
+
+        var query = _dbContext.Users.AsNoTracking()
+            .Where(x => x.IsActive
+                && x.Id != actorUserId
+                && !activeShiftCashierIds.Contains(x.Id));
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x =>
+                x.DisplayName.ToUpper().Contains(keyword) || x.UserCode.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.DisplayName)
+            .Take(25)
+            .Select(x => new CashierUserOptionResponse
+            {
+                Id = x.Id,
+                DisplayName = x.DisplayName,
+                UserCode = x.UserCode
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<CashierShiftResponse> HandoverAsync(
         Guid shiftId,
         HandoverShiftRequest request,
