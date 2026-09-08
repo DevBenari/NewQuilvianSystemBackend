@@ -251,13 +251,15 @@ dari custom logger (lihat § 6). Modul Petty Cash **tidak menyentuh data pasien 
 
 | Perintah/pemeriksaan | Hasil | Klasifikasi | Bukti/catatan |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan sesi ini | `NOT RUN` | Sesuai instruksi baku pengguna: build/test backend dijalankan manual oleh pengguna, bukan otomatis oleh sesi |
-| `dotnet test --filter PettyCashVoucherServiceTests` | Tidak dijalankan sesi ini | `NOT RUN` | Sama seperti di atas — menunggu pengguna menjalankan dan melaporkan hasilnya |
-| Review diff/scope | Dilakukan | `PASS` | `git status --short` menunjukkan hanya berkas dalam lingkup Petty Cash Voucher (plus satu perbaikan kecil pada `PettyCashBudgetService.cs` milik `BE-BKC-036`) yang tersentuh |
+| `dotnet build` | **LULUS** — 0 Error, 187 warning (seluruhnya pre-existing, tidak ada yang berasal dari Petty Cash) | `PASS` | Dijalankan ulang sesi ini (8 September 2026) atas `QuilvianSystemBackend.csproj`. Build sebelumnya sempat gagal karena `PettyCashVoucherValidationException` terdeklarasi dobel (lihat § 13) — sudah diperbaiki |
+| `dotnet test --filter FullyQualifiedName~PettyCashVoucherServiceTests` | **LULUS — 17/17** | `PASS` | Dijalankan sesi ini setelah tiga perbaikan (lihat § 13): dua kegagalan DI test (`IConfiguration` tidak terdaftar) dan satu test yang secara matematis tidak dapat pernah tercapai skenarionya (`Disburse_BudgetReducedAfterApproval_ThrowsInsufficientBalance`, ditulis ulang menjadi `Disburse_BalanceReducedOutOfBand_ThrowsInsufficientBalance`) |
+| Review diff/scope | Dilakukan | `PASS` | `git status --short` menunjukkan hanya berkas dalam lingkup Petty Cash Voucher (plus satu perbaikan kecil pada `PettyCashBudgetService.cs` milik `BE-BKC-036`, dan perbaikan lintas-task pada § 13) yang tersentuh |
 | Review kesesuaian QBE | Dilakukan | `PASS` | `QBE-SVC-001`/`QBE-CODE-002`/`QBE-CODE-003` dipatuhi; tidak ada model persisted baru |
 | Pemeriksaan rahasia | Dilakukan | `PASS` | Tidak ada credential/token/connection string; field Sensitif dikecualikan dari audit log (§ 6) |
 
-16 unit test domain ditulis pada `PettyCashVoucherServiceTests.cs`:
+17 unit test domain (bukan 16 seperti disebut versi awal laporan — satu test tambahan adalah
+`AddBillingManagement_RegistersPettyCashVoucherService`, sebelumnya belum terhitung) ditulis pada
+`PettyCashVoucherServiceTests.cs`:
 
 - **Alur penuh** (`BIL-AT-064`): submit → approve → disburse → attach-proof, memverifikasi
   status, saldo anggaran (`CurrentBalance`/`ReservedAmount`), dan urutan empat baris
@@ -280,21 +282,20 @@ dari custom logger (lihat § 6). Modul Petty Cash **tidak menyentuh data pasien 
   benar.
 - **DI**: resolusi `PettyCashVoucherService` lewat `AddBillingManagement()`.
 
-**Belum ada satu pun yang benar-benar dieksekusi** — status di atas menunggu pengguna
-menjalankan `dotnet test` secara manual. Kunci `pg_advisory_xact_lock` dan concurrency pencairan
-ganda sungguhan (`BIL-AT-071`) hanya dapat dibuktikan pada provider PostgreSQL, di luar jangkauan
-unit test `InMemory`.
+**Seluruh 17 test dieksekusi sesi ini dan lulus** (8 September 2026). Kunci
+`pg_advisory_xact_lock` dan concurrency pencairan ganda sungguhan (`BIL-AT-071`) hanya dapat
+dibuktikan pada provider PostgreSQL, di luar jangkauan unit test `InMemory`.
 
 - MANUAL TEST: NOT APPLICABLE (task backend murni, tidak ada UI untuk diuji manual)
 
 ## 12. Peringatan dan risiko yang tersisa
 
-- Test dan build **belum diverifikasi berjalan** sesi ini. Task ini **belum boleh ditandai
-  selesai** sampai pengguna menjalankan `dotnet build`/`dotnet test` dan hasilnya dilaporkan
-  kembali.
+- `dotnet build` dan `dotnet test` (17/17) sudah diverifikasi lulus sesi ini (8 September 2026),
+  setelah tiga perbaikan yang didokumentasikan lengkap pada § 13. Task ini memenuhi Definition of
+  Done-nya sendiri dan ditandai `✅` pada roadmap.
 - **Perubahan pada `PettyCashBudgetService.cs`** (visibilitas `AcquireLockAsync` dan perbaikan
   pesan `BIL-VAL-057`) berarti `BE-BKC-036` juga perlu diverifikasi ulang build/test-nya bersamaan
-  dengan task ini, bukan dianggap sudah final dari laporan sebelumnya.
+  dengan task ini — **sudah dilakukan** sesi ini, keduanya lulus bersamaan (§ 11).
 - **`ExpectedRowVersion` untuk `Approve`/`Disburse` tidak dijaga eksplisit non-empty di level
   DTO** (`Guid` bukan `Guid?`) — kekosongan tetap tertangkap oleh `ValidateExpectedVersion` di
   level service (melempar `PettyCashVoucherBadRequestException` bila `Guid.Empty`), sehingga
@@ -309,20 +310,93 @@ unit test `InMemory`.
 - **`BIL-AT-077`** (regresi `BilCashierShift` tidak bergerak akibat voucher) **belum** diuji pada
   task ini — sesuai desain, regresi lintas-slice ini adalah tanggung jawab `BE-BKC-038` sebagai
   capstone hardening.
+- **TEMUAN DI LUAR SCOPE — 17 test pre-existing gagal di seluruh solusi, di luar rumpun Petty
+  Cash.** Setelah error compile blocking (§ 13 butir 2) diperbaiki, `dotnet test` atas **seluruh**
+  `QuilvianSystemBackend.UnitTests.InMemory` (1011 test) dijalankan sebagai pemeriksaan regresi
+  menyeluruh: 994 lulus, **17 gagal** — seluruhnya pada `BillingCalculationServiceTests` (15),
+  `BillingFinalizationServiceTests` (1), dan `BillingInvoiceServiceTests` (1); **tidak satu pun**
+  pada Petty Cash, Petty Cash Category, Petty Cash Budget, atau Billing Number Series. Karena
+  assembly test tidak pernah berhasil *compile* sebelum sesi ini (§ 13 butir 2), kegagalan ini
+  **tidak pernah terlihat** oleh siapa pun sebelumnya — bukan regresi yang disebabkan task ini.
+  **Tidak diperbaiki** — di luar WRITE TARGET task ini maupun task Petty Cash mana pun, dan
+  memperbaikinya menuntut investigasi logika bisnis Billing Calculation Engine/Finalization/
+  Invoice yang tidak diwenangkan di sini. Dilaporkan sebagai temuan agar pemilik modul Billing
+  inti dapat menindaklanjuti sebagai task tersendiri.
 
-## 13. Perubahan sampingan
+- INCIDENTAL CHANGES (implementasi, sesi sebelumnya): Satu baris pesan (`BIL-VAL-057`) dan satu
+  perubahan visibilitas method (`private` → `public`) pada `PettyCashBudgetService.cs`, milik
+  `BE-BKC-036`. **Bukan** perubahan di luar cakupan — keduanya diperlukan langsung oleh integrasi
+  `DisburseAsync`/`ApproveAsync` pada task ini, dan dicatat eksplisit di § 5 dan § 12, bukan
+  disembunyikan sebagai bagian task lain.
 
-- INCIDENTAL CHANGES: Satu baris pesan (`BIL-VAL-057`) dan satu perubahan visibilitas method
-  (`private` → `public`) pada `PettyCashBudgetService.cs`, milik `BE-BKC-036`. **Bukan** perubahan
-  di luar cakupan — keduanya diperlukan langsung oleh integrasi `DisburseAsync`/`ApproveAsync`
-  pada task ini, dan dicatat eksplisit di § 5 dan § 12, bukan disembunyikan sebagai bagian task
-  lain.
+- INCIDENTAL CHANGES (verifikasi, sesi ini — 8 September 2026): Empat perbaikan ditemukan saat
+  menjalankan `dotnet build`/`dotnet test` sungguhan untuk pertama kali atas rumpun Petty Cash.
+  Seluruhnya di luar rencana awal task, tetapi diperlukan agar bukti validasi § 11 dapat diperoleh
+  sama sekali:
+
+  1. **Deklarasi dobel `PettyCashVoucherValidationException`** — `PettyCashVoucherService.cs`
+     (baris ~688, di dalam WRITE TARGET task ini) ikut mendeklarasikan ulang class yang **sudah**
+     ada di file khususnya sendiri, `PettyCashVoucherValidationException.cs` (milik `BE-BKC-034`,
+     lihat header komentarnya). Ini bertentangan langsung dengan desain yang didokumentasikan pada
+     laporan ini sendiri (§ Berkas yang diperiksa: "BE-BKC-037 memakai ulang exception ini apa
+     adanya dan TIDAK mendeklarasikannya kembali") dan menyebabkan `CS0101` (duplicate definition)
+     saat pengguna build sebelum sesi ini — pengguna sempat menambal sendiri dengan mengomentari
+     deklarasi pada file kanonik agar build lewat, yang justru membalik arah desain (menyisakan
+     deklarasi yang salah tempat, mengomentari yang benar). **Diperbaiki** dengan mengembalikan
+     arah yang benar: deklarasi dobel di `PettyCashVoucherService.cs` dihapus, deklarasi pada
+     `PettyCashVoucherValidationException.cs` dikembalikan aktif. Perilaku runtime tidak berubah
+     (kedua deklarasi identik) — ini murni koreksi lokasi source agar sesuai desain yang sudah
+     disetujui.
+  2. **Error compile pre-existing di luar Petty Cash** — `BillingFinancialExceptionServiceTests.cs`
+     (`BE-BKC-029`, tidak tersentuh task mana pun dalam rumpun Petty Cash) memakai `await` di dalam
+     lambda non-`async` (`CS4034`), memblokir compile **seluruh** assembly test — termasuk test
+     `BE-BKC-034`/`035`/`036`/`037`, yang karenanya tidak pernah bisa dijalankan sebelum sesi ini.
+     **Diperbaiki** dengan menandai lambda itu `async` dan meng-`await` panggilannya — perbaikan
+     mekanis satu baris, tidak mengubah assersi atau logika test. Tidak dalam WRITE TARGET task
+     mana pun yang aktif; dilakukan karena tanpanya, **tidak ada** bukti test yang dapat diperoleh
+     untuk task apa pun.
+  3. **Dua DI test gagal karena `IConfiguration` tak terdaftar** —
+     `BillingNumberSeriesServiceTests.AddBillingManagement_RegistersPettyCashVoucherNumberOptions`
+     (`BE-BKC-034`) dan `PettyCashVoucherServiceTests.AddBillingManagement_RegistersPettyCashVoucherService`
+     (task ini) membangun `ServiceCollection` tanpa mendaftarkan `IConfiguration`, padahal
+     `AddOptions<PettyCashVoucherNumberOptions>().BindConfiguration(...)` (registrasi resmi pada
+     `BillingManagementServiceCollectionExtensions.cs`) membutuhkannya begitu `IOptions<T>.Value`
+     diakses eager di constructor `BillingNumberSeriesService`. **Diperbaiki** dengan menambahkan
+     `services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())` pada kedua test —
+     pola standar ASP.NET Core untuk test DI container tanpa host sungguhan, tidak menyentuh source
+     produksi.
+  4. **`Disburse_BudgetReducedAfterApproval_ThrowsInsufficientBalance` — skenario tidak pernah
+     dapat tercapai.** Test memanggil `AdjustAsync` sungguhan dengan angka yang seharusnya membuat
+     `AdjustAsync` **sendiri** menolak (saldo hasil turun di bawah `reservedAmount`, persis
+     `BIL-VAL-054`), sehingga exception yang diharapkan meletus di baris `AdjustAsync`, bukan di
+     `DisburseAsync` seperti diklaim nama test. Ini bukan bug produksi — sebaliknya, ini
+     **membuktikan** guard `AdjustAsync` bekerja benar (§ Implementasi menegaskan saldo tidak akan
+     pernah turun di bawah komitmen). Justru karena guard itu selalu benar, secara matematis
+     `DisburseAsync` **tidak akan pernah** gagal karena saldo persis sesudah `AdjustAsync` yang
+     berhasil, untuk satu voucher yang reserved-nya sama dengan amount-nya sendiri. **Diperbaiki**
+     dengan menulis ulang menjadi `Disburse_BalanceReducedOutOfBand_ThrowsInsufficientBalance`:
+     saldo diturunkan langsung lewat `DbContext` (mensimulasikan koreksi manual database di luar
+     `AdjustAsync`, skenario yang realistis), lalu `DisburseAsync` sungguhan (bukan mock) dibuktikan
+     menangkapnya sendiri sebagai lapis kedua yang independen. Assersi akhir (status tetap
+     `Approved`, exception yang sama) dipertahankan; hanya cara saldo diturunkan yang berubah.
+     Didokumentasikan panjang lebar sebagai komentar pada test itu sendiri.
+
+  Butir 1 dan 4 berada dalam WRITE TARGET task ini (`PettyCash/**`,
+  `Tests/QuilvianSystemBackend.UnitTests.InMemory/**`). Butir 2 dan 3 menyentuh berkas di luar
+  WRITE TARGET manapun yang aktif (`BillingFinancialExceptionServiceTests.cs` milik `BE-BKC-029`;
+  `BillingNumberSeriesServiceTests.cs` milik `BE-BKC-034`, keduanya sudah `Done`/tidak sedang
+  dikerjakan) — dilakukan karena keduanya adalah satu-satunya jalan memperoleh bukti validasi
+  `dotnet test` sama sekali untuk rumpun Petty Cash, seluruhnya mekanis (bukan perubahan aturan
+  bisnis), dan diverifikasi tidak meregresi test lain (`BillingFinancialExceptionServiceTests`:
+  18/18 lulus setelah perbaikan).
 
 ## 14. Interupsi
 
 - INTERRUPTIONS: NONE — task dikerjakan dalam satu sesi berkelanjutan tanpa interupsi.
 
 ## 15. Status Git
+
+Snapshot **sesi implementasi awal** (sebelum commit `df48d7c "Petty cash module"`):
 
 ```
  M Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs
@@ -335,21 +409,40 @@ unit test `InMemory`.
 ?? Tests/QuilvianSystemBackend.UnitTests.InMemory/BillingManagement/PettyCashVoucherServiceTests.cs
 ```
 
-(Baris lain pada `git status --short` sesi ini berasal dari task `BE-BKC-035`/`036` yang belum
-di-commit, bukan bagian task ini.) Belum di-stage maupun di-commit. Branch `Yasmina`.
+Seluruh berkas di atas sudah di-commit oleh pengguna sebagai `df48d7c`. Snapshot **sesi verifikasi
+ini** (8 September 2026), setelah perbaikan § 13:
+
+```
+ M Areas/HealthServices/BillingManagement/PettyCash/Services/PettyCashVoucherService.cs
+ M Tests/QuilvianSystemBackend.UnitTests.InMemory/BillingManagement/BillingFinancialExceptionServiceTests.cs
+ M Tests/QuilvianSystemBackend.UnitTests.InMemory/BillingManagement/BillingNumberSeriesServiceTests.cs
+ M Tests/QuilvianSystemBackend.UnitTests.InMemory/BillingManagement/PettyCashVoucherServiceTests.cs
+ M docs/module-blueprints/billing-kasir/task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md
+ M docs/module-blueprints/billing-kasir/task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md
+ M docs/module-blueprints/billing-kasir/task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md
+```
+
+(`PettyCashVoucherValidationException.cs`, yang sempat berubah akibat tambalan pengguna sebelum
+sesi ini — lihat § 13 butir 1 — kini kembali identik dengan versi commit `df48d7c`, sehingga tidak
+lagi muncul sebagai termodifikasi.) Belum di-stage maupun di-commit. Branch `Yasmina`.
 
 ## 16. Langkah berikutnya yang disarankan
 
-1. Pengguna menjalankan `dotnet build` dan `dotnet test` secara manual untuk `BE-BKC-035`,
-   `036`, dan `037` sekaligus (karena `037` mengubah satu berkas milik `036`), lalu melaporkan
-   hasil sebenarnya.
-2. Setelah build/test terbukti lulus, perbarui tabel status roadmap dan
-   `requirement-traceability.md`, menautkannya ke laporan ini.
+1. ~~Pengguna menjalankan `dotnet build` dan `dotnet test`~~ — **selesai sesi ini (8 September
+   2026)** untuk `BE-BKC-035`, `036`, dan `037` sekaligus: build LULUS, 12+19+17 = 48 test domain
+   LULUS. Lihat § 11 dan § 13 untuk tiga perbaikan yang diperlukan agar bukti ini dapat diperoleh.
+2. Roadmap (`backend-roadmap.md` kartu `BE-BKC-035`/`036`/`037`, dan
+   `requirement-traceability.md`) diperbarui menjadi `✅` pada sesi ini, ditautkan ke laporan
+   masing-masing.
 3. Lanjutkan ke `BE-BKC-038` — hardening lintas-slice: wiring permission penuh pada ketiga
    controller baru, scrub log, evidence matrix `BIL-AT-064`–`080` lengkap, dan regresi
    `BilCashierShift` (`BIL-AT-077`) yang **belum** disentuh task mana pun sampai saat ini.
+4. **Sampaikan ke pemilik modul Billing inti:** 17 test pre-existing gagal di
+   `BillingCalculationServiceTests`/`BillingFinalizationServiceTests`/`BillingInvoiceServiceTests`
+   (§ 12), baru terlihat sesi ini karena assembly test sebelumnya tidak pernah *compile*. Di luar
+   scope task Petty Cash mana pun — perlu task/owner tersendiri untuk diinvestigasi.
 
-- KNOWN ISSUES: `customPeriod` belum berperilaku (§ 12); tidak ada yang lain ditemukan pada
-  scope task ini.
+- KNOWN ISSUES: `customPeriod` belum berperilaku (§ 12); 17 test pre-existing gagal di luar rumpun
+  Petty Cash, ditemukan tapi sengaja tidak diperbaiki karena di luar scope (§ 12).
 - STALE EVIDENCE / BLOCKED PHASES: NOT APPLICABLE (bukan `MODULE BLUEPRINT MODE`)
 - BLUEPRINT STATUS/EVIDENCE: NOT APPLICABLE (bukan `MODULE BLUEPRINT MODE`)

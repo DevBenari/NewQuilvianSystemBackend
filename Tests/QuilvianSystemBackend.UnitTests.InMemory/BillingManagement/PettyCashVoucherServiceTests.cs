@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -334,22 +335,28 @@ public sealed class PettyCashVoucherServiceTests
             service.DisburseAsync(voucher.Id, new DisbursePettyCashVoucherRequest { ExpectedRowVersion = voucher.RowVersion }, Guid.NewGuid(), Actor, ActorRole, CancellationToken.None));
     }
 
-    // BIL-VAL-048: saldo dikoreksi turun setelah persetujuan, sebelum pencairan.
+    // BIL-VAL-048: saldo kas kecil berkurang DI LUAR jalur AdjustAsync (mis. koreksi manual
+    // langsung ke database) setelah persetujuan tetapi sebelum pencairan. Skenario ini sengaja
+    // TIDAK memakai AdjustAsync sungguhan: guard-nya sendiri (BIL-VAL-054, lihat
+    // PettyCashBudgetServiceTests.AdjustAsync_DecreaseBelowReservedAmount_ThrowsInsufficientBalance)
+    // menjamin saldo tidak pernah turun di bawah reservedAmount, sehingga voucher yang sudah
+    // disetujui - amount-nya selalu <= reservedAmount - tidak akan pernah gagal dicairkan akibat
+    // koreksi yang lolos AdjustAsync. Test ini membuktikan lapis kedua yang independen:
+    // ApplyDisbursementAsync (dipanggil sungguhan lewat DisburseAsync, bukan mock) menangkap
+    // sendiri saldo yang tidak mencukupi, terlepas dari jalur mana saldo itu berubah.
     [Fact]
-    public async Task Disburse_BudgetReducedAfterApproval_ThrowsInsufficientBalance()
+    public async Task Disburse_BalanceReducedOutOfBand_ThrowsInsufficientBalance()
     {
         await using var db = IsolatedBillingDbContextFactory.Create();
-        var (service, budget) = CreateServices(db);
+        var (service, _) = CreateServices(db);
         var budgetRow = await SeedBudgetAsync(db, 5_000_000m);
         var category = await SeedActiveCategoryAsync(db);
         var voucher = await service.CreateAsync(CreateRequest(category.Id, 300_000m), Guid.NewGuid(), Actor, ActorRole, CancellationToken.None);
         var approved = await service.ApproveAsync(voucher.Id, new ApprovePettyCashVoucherRequest { ExpectedRowVersion = voucher.RowVersion }, Guid.NewGuid(), Actor, ActorRole, CancellationToken.None);
 
-        await budget.AdjustAsync(
-            new PettyCashBudgetAdjustmentRequest
-            {
-                Amount = 4_900_000m, Reason = "Penghitungan ulang fisik", Direction = "DECREASE", ExpectedRowVersion = budgetRow.RowVersion
-            }, Guid.NewGuid(), Actor, CancellationToken.None);
+        budgetRow.CurrentBalance = 250_000m;
+        budgetRow.RowVersion = Guid.NewGuid();
+        await db.SaveChangesAsync(CancellationToken.None);
 
         await Assert.ThrowsAsync<PettyCashBudgetInsufficientBalanceException>(() =>
             service.DisburseAsync(voucher.Id, new DisbursePettyCashVoucherRequest { ExpectedRowVersion = approved.RowVersion }, Guid.NewGuid(), Actor, ActorRole, CancellationToken.None));
@@ -401,6 +408,7 @@ public sealed class PettyCashVoucherServiceTests
     public void AddBillingManagement_RegistersPettyCashVoucherService()
     {
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddScoped(_ => IsolatedBillingDbContextFactory.Create());
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<ILogger<LoggerService>>(NullLogger<LoggerService>.Instance);

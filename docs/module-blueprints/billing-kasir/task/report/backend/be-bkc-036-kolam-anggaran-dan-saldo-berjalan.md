@@ -249,8 +249,8 @@ Petty Cash (`02-backend-architecture.md` § Privasi).
 
 | Perintah/pemeriksaan | Hasil | Klasifikasi | Bukti/catatan |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan sesi ini | `NOT RUN` | Sesuai instruksi baku pengguna: build/test backend dijalankan manual oleh pengguna, bukan otomatis oleh sesi |
-| `dotnet test --filter PettyCashBudgetServiceTests` | Tidak dijalankan sesi ini | `NOT RUN` | Sama seperti di atas — menunggu pengguna menjalankan dan melaporkan hasilnya |
+| `dotnet build` | **LULUS** — 0 Error, 187 warning (seluruhnya pre-existing, tidak ada yang berasal dari Petty Cash) | `PASS` | Dijalankan ulang sesi ini (8 September 2026) atas `QuilvianSystemBackend.csproj` |
+| `dotnet test --filter FullyQualifiedName~PettyCashBudgetServiceTests` | **LULUS — 19/19** | `PASS` | Dijalankan sesi ini. Jumlah aktual `[Fact]`/`[Theory]` (termasuk dua kasus `TopUpAsync_NonPositiveAmount_ThrowsValidation`) adalah 19, bukan 17 seperti disebut laporan awal — koreksi angka, bukan test yang hilang. Test project sempat gagal *compile* karena error `CS4034` pre-existing pada `BillingFinancialExceptionServiceTests.cs` (`BE-BKC-029`, tidak terkait Petty Cash) yang memblokir seluruh assembly test — diperbaiki sebagai perubahan sampingan lintas-task, lihat § 13 dan detail lengkap pada laporan `BE-BKC-037` |
 | Review diff/scope | Dilakukan | `PASS` | `git status --short` menunjukkan hanya berkas dalam lingkup Petty Cash Budget (plus laporan/roadmap) yang tersentuh |
 | Review kesesuaian QBE | Dilakukan | `PASS` | `QBE-SVC-001` dipatuhi; tidak ada model persisted baru sehingga `QBE-MOD-002`/`003` tidak berlaku |
 | Pemeriksaan rahasia | Dilakukan | `PASS` | Tidak ada credential/token/connection string pada berkas yang berubah; `Reason` sensitif sengaja dikecualikan dari audit log (lihat § 6) |
@@ -264,22 +264,20 @@ dengan contoh berangka dari arsitektur, turun di bawah nol → `422`, arah tidak
 `COMPLETED`/dibatalkan dikecualikan), `ApplyDisbursementAsync` (berhasil mengurangi saldo dan
 menulis `DISBURSEMENT`, saldo tidak cukup → `422`, voucher yang sudah dicairkan → `409`),
 `GetMovementsAsync` (filter tipe pergerakan case-insensitive, urutan terbaru lebih dulu), dan
-resolusi dependency injection `PettyCashBudgetService` lewat `AddBillingManagement()`. **Belum
-ada satu pun yang benar-benar dieksekusi** — status di atas menunggu pengguna menjalankan
-`dotnet test` secara manual. Kunci `pg_advisory_xact_lock` sendiri hanya dapat dibuktikan pada
-provider PostgreSQL — di luar jangkauan unit test `InMemory`.
+resolusi dependency injection `PettyCashBudgetService` lewat `AddBillingManagement()`. **Seluruh
+19 test dieksekusi sesi ini dan lulus** (8 September 2026). Kunci `pg_advisory_xact_lock` sendiri
+hanya dapat dibuktikan pada provider PostgreSQL — di luar jangkauan unit test `InMemory`.
 
 - MANUAL TEST: NOT APPLICABLE (task backend murni, tidak ada UI untuk diuji manual)
 
 ## 12. Peringatan dan risiko yang tersisa
 
-- Test dan build **belum diverifikasi berjalan** sesi ini. Task ini **belum boleh ditandai
-  selesai** sampai pengguna menjalankan `dotnet build`/`dotnet test` dan hasilnya dilaporkan
-  kembali.
-- **`ApplyDisbursementAsync` belum punya pemanggil nyata.** Method ini benar secara desain dan
-  diuji lewat harness transaction buatan test (lihat § 11), tetapi kebenarannya di jalur produksi
-  baru benar-benar terbukti setelah `BE-BKC-037` memanggilnya dari dalam transaction `DisburseAsync`
-  miliknya sendiri sesuai `PC-DES-004`.
+- `dotnet build` dan `dotnet test` (19/19) sudah diverifikasi lulus sesi ini (8 September 2026).
+  Task ini memenuhi Definition of Done-nya sendiri dan ditandai `✅` pada roadmap.
+- **`ApplyDisbursementAsync` kini punya pemanggil nyata.** `BE-BKC-037`
+  (`PettyCashVoucherService.DisburseAsync`) memanggilnya di dalam transaction miliknya sendiri
+  sesuai `PC-DES-004`, dan kedua task itu sudah lulus verifikasi build/test bersamaan sesi ini
+  (8 September 2026) — bukti jalur produksi yang sebelumnya masih tertunda kini terpenuhi.
 - **Idempotensi top-up/adjustment tanpa payload hash** (lihat § 6) berarti dua permintaan dengan
   `Idempotency-Key` sama tetapi **isi berbeda** akan diam-diam mengembalikan hasil permintaan
   pertama, bukan ditolak sebagai konflik — beda dari `BillingDepositService`. Ini keterbatasan
@@ -291,7 +289,10 @@ provider PostgreSQL — di luar jangkauan unit test `InMemory`.
 
 ## 13. Perubahan sampingan
 
-- INCIDENTAL CHANGES: NONE — seluruh berkas yang berubah berada dalam lingkup task ini.
+- INCIDENTAL CHANGES: Tidak ada pada source/test milik task ini sendiri. Verifikasi sesi ini
+  (bukan implementasi) sempat memerlukan satu perbaikan compile pada berkas test **di luar**
+  scope task — lihat laporan `BE-BKC-037` § 13 untuk detailnya; tidak berdampak pada source
+  atau test Petty Cash Budget.
 
 ## 14. Interupsi
 
@@ -314,14 +315,13 @@ di-commit, bukan bagian task ini.) Belum di-stage maupun di-commit. Branch `Yasm
 
 ## 16. Langkah berikutnya yang disarankan
 
-1. Pengguna menjalankan `dotnet build` dan `dotnet test` secara manual untuk `BE-BKC-035` dan
-   `BE-BKC-036` sekaligus, lalu melaporkan hasil sebenarnya (jumlah lulus/gagal).
-2. Setelah build/test terbukti lulus, perbarui tabel status pada `roadmap/backend-roadmap.md`
-   dan `roadmap/requirement-traceability.md`, menautkannya ke laporan ini.
-3. Lanjutkan ke `BE-BKC-037` (siklus hidup voucher penuh) — task itu memanggil
-   `AllocatePettyCashVoucherNumberAsync` (`BE-BKC-034`), `PettyCashCategoryService` (`BE-BKC-035`
-   untuk validasi kategori aktif), dan `CalculateReservedAmountAsync`/`ApplyDisbursementAsync`
-   (`BE-BKC-036`, task ini) — ketiganya sudah tersedia.
+1. ~~Pengguna menjalankan `dotnet build` dan `dotnet test`~~ — **selesai sesi ini (8 September
+   2026)**: build LULUS, 19/19 test domain LULUS. Lihat § 11.
+2. Roadmap (`backend-roadmap.md` kartu `BE-BKC-036`, dan `requirement-traceability.md`) diperbarui
+   menjadi `✅` pada sesi ini, ditautkan ke laporan ini.
+3. `BE-BKC-037` (siklus hidup voucher penuh) sudah diimplementasikan dan diverifikasi bersamaan
+   sesi ini — memanggil `ApplyDisbursementAsync`/`CalculateReservedAmountAsync` milik task ini
+   sungguhan, bukan mock. Sisa pekerjaan rumpun: capstone hardening `BE-BKC-038`.
 
 - KNOWN ISSUES: Idempotensi top-up/adjustment tanpa payload hash (§ 12); tidak ada yang lain
   ditemukan pada scope task ini.

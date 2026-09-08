@@ -217,8 +217,8 @@ scrub log khusus untuk task ini.
 
 | Perintah/pemeriksaan | Hasil | Klasifikasi | Bukti/catatan |
 | --- | --- | --- | --- |
-| `dotnet build` | **LULUS** (dilaporkan pengguna) | `PASS` | Pengguna menjalankan build secara manual di luar sesi (8 September 2026) dan melaporkan hasilnya berhasil. Sesi ini tidak menjalankan build sendiri sesuai instruksi baku pengguna; jumlah warning/error rinci tidak dikutip karena tidak dibagikan |
-| `dotnet test --filter PettyCashCategoryServiceTests` | Tidak dijalankan/dilaporkan | `NOT RUN` | Konfirmasi pengguna menyebut "build", bukan `dotnet test` secara eksplisit — 13 unit test domain di `PettyCashCategoryServiceTests.cs` masih menunggu bukti eksekusi test yang sebenarnya |
+| `dotnet build` | **LULUS** — 0 Error, 187 warning (seluruhnya pre-existing, tidak ada yang berasal dari Petty Cash) | `PASS` | Dijalankan ulang sesi ini (8 September 2026) atas `QuilvianSystemBackend.csproj` untuk mengonfirmasi laporan pengguna sebelumnya |
+| `dotnet test --filter FullyQualifiedName~PettyCashCategoryServiceTests` | **LULUS — 12/12** | `PASS` | Dijalankan sesi ini. Jumlah aktual `[Fact]`/`[Theory]` pada `PettyCashCategoryServiceTests.cs` adalah 12, bukan 13 seperti disebut laporan awal — koreksi angka, bukan test yang hilang. Test project sempat gagal *compile* karena error `CS4034` pre-existing pada `BillingFinancialExceptionServiceTests.cs` (`BE-BKC-029`, tidak terkait Petty Cash) yang memblokir seluruh assembly test — diperbaiki sebagai perubahan sampingan lintas-task, lihat § 13 dan detail lengkap pada laporan `BE-BKC-037` |
 | Review diff/scope | Dilakukan | `PASS` | `git status --short` menunjukkan hanya lima berkas yang tersentuh, seluruhnya berada dalam lingkup Petty Cash Category; tidak ada berkas modul lain yang berubah |
 | Review kesesuaian QBE | Dilakukan | `PASS` | `QBE-SVC-001` dipatuhi (controller tidak menyentuh `ApplicationDbContext`); tidak ada model persisted baru sehingga `QBE-MOD-002`/`003` tidak berlaku |
 | Pemeriksaan rahasia | Dilakukan | `PASS` | Tidak ada credential/token/connection string pada berkas yang berubah |
@@ -229,16 +229,15 @@ mempertahankan kodenya sendiri, kategori tidak ditemukan (`404`), aktivasi/nonak
 `UpdateStatusAsync`, hapus kategori yang belum dipakai (berhasil), hapus kategori yang sudah
 dipakai voucher (ditolak, `PettyCashCategoryInUseException`), filter dan pencarian daftar
 berhalaman, opsi dropdown bawaan hanya aktif, ringkasan jumlah, dan resolusi dependency injection
-`PettyCashCategoryService` lewat `AddBillingManagement()`. **Belum ada satu pun yang benar-benar
-dieksekusi** — status di atas menunggu pengguna menjalankan `dotnet test` secara manual.
+`PettyCashCategoryService` lewat `AddBillingManagement()`. **Seluruh 12 test dieksekusi sesi ini
+dan lulus** (8 September 2026).
 
 - MANUAL TEST: NOT APPLICABLE (task backend murni, tidak ada UI untuk diuji manual)
 
 ## 12. Peringatan dan risiko yang tersisa
 
-- `dotnet build` sudah dikonfirmasi lulus oleh pengguna (8 September 2026). **`dotnet test`
-  belum dikonfirmasi** — Task ini **belum boleh ditandai selesai** sampai 13 unit test domain
-  pada `PettyCashCategoryServiceTests.cs` benar-benar dieksekusi dan hasilnya dilaporkan.
+- `dotnet build` dan `dotnet test` (12/12) sudah diverifikasi lulus sesi ini (8 September 2026).
+  Task ini memenuhi Definition of Done-nya sendiri dan ditandai `✅` pada roadmap.
 - `BE-BKC-033` (tabel `MstPettyCashCategory`) masih berstatus 🟡 pada roadmap — bukan karena
   tabelnya tidak ada (migration `20260907062238_AddTablePettyCashModule` sudah memuatnya),
   melainkan karena bukti baris seed di database dan review Finance atas lima kategori seed
@@ -249,8 +248,10 @@ dieksekusi** — status di atas menunggu pengguna menjalankan `dotnet test` seca
 
 ## 13. Perubahan sampingan
 
-- INCIDENTAL CHANGES: NONE — hanya lima berkas dalam lingkup task yang berubah, sesuai
-  `git status --short` di bawah.
+- INCIDENTAL CHANGES: Tidak ada pada source/test milik task ini sendiri. Verifikasi sesi ini
+  (bukan implementasi) sempat memerlukan satu perbaikan compile pada berkas test **di luar**
+  scope task — lihat laporan `BE-BKC-037` § 13 untuk detailnya; tidak berdampak pada source
+  atau test Petty Cash Category.
 
 ## 14. Interupsi
 
@@ -271,14 +272,13 @@ sebelum perubahan task ini.
 
 ## 16. Langkah berikutnya yang disarankan
 
-1. Pengguna menjalankan `dotnet build` dan `dotnet test` secara manual, lalu melaporkan hasil
-   sebenarnya (jumlah lulus/gagal) agar bisa dicatat di laporan ini dan roadmap.
-2. Setelah build/test terbukti lulus, perbarui tabel status pada `roadmap/backend-roadmap.md`
-   (kartu `BE-BKC-035` dan baris ringkasan gelombang `MVP-13`) serta baris terkait
-   `PC-DES-002`/`FR-BKC-061`–`063` pada `roadmap/requirement-traceability.md`, menautkannya ke
-   laporan ini.
-3. Lanjutkan ke `BE-BKC-036` (kolam anggaran dan saldo berjalan) atau selesaikan verifikasi
-   `BE-BKC-033`/`034` yang masih tertunda, sesuai prioritas pengguna.
+1. ~~Pengguna menjalankan `dotnet build` dan `dotnet test`~~ — **selesai sesi ini (8 September
+   2026)**: build LULUS, 12/12 test domain LULUS. Lihat § 11.
+2. Roadmap (`backend-roadmap.md` kartu `BE-BKC-035`, dan `requirement-traceability.md`
+   `PC-DES-002`/`FR-BKC-061`–`063`) diperbarui menjadi `✅` pada sesi ini, ditautkan ke laporan
+   ini.
+3. Sisa pekerjaan rumpun Petty Cash: bukti seed/review Finance `BE-BKC-033`, dan capstone
+   hardening `BE-BKC-038` setelah `034`–`037` seluruhnya `✅`.
 
 - KNOWN ISSUES: Tidak ada yang ditemukan pada scope task ini di luar butir Peringatan/risiko
   di atas.

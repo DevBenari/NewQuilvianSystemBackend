@@ -215,6 +215,11 @@ lebih lanjut. Tidak satu pun dari keempatnya boleh diputuskan sepihak oleh agent
 builder — ini keputusan konten dokumen finansial yang dibaca pasien dan (untuk sebagian elemen)
 pihak asuransi.
 
+**Status baris di atas sudah usang — lihat § 5 di akhir berkas ini.** `BKC-GAP-09`, `10`, `12`
+ditutup 7 September 2026 (`BKC-DEC-093`,`094`,`096`); `BKC-GAP-11` (QR) ditutup sebagai
+keputusan "ditunda" (`BKC-DEC-095`), bukan dibiarkan menggantung. Isi di atas dipertahankan
+sebagai riwayat, bukan status terkini.
+
 ---
 
 # Amendment 7 September 2026 (kedua) — Traceability rumpun baru: Petty Cash (Voucher Kas Kecil)
@@ -240,11 +245,11 @@ frontend_source: 12f9242ce62e4d80dbdb719f80bb0e7a2848474c
 
 | Requirement/decision | Design/contract | Backend | Frontend | Bukti | Status |
 | --- | --- | --- | --- | --- | --- |
-| Siklus hidup voucher lima status (`EPIC BKC-10`; `FR-BKC-045`,`047`–`053`; `PC-DEC-001`,`003`–`009`,`011`,`013`) | `PC-DES-001`,`003`,`005`–`013`; `BIL-API-0.9`, `BIL-VALIDATION-0.8`, `BIL-STATE-0.8` | 🟡 `BE-BKC-033`, `034`,`035`,`036`,`037` | `FE-BKC-023`,`024`,`025` | `BIL-AT-064`,`065`,`066`,`067`–`075`; `UAT-28`–`33`,`35`,`42` | 🟡 **SEBAGIAN — 7 September 2026, diperbarui setelah `BE-BKC-037`.** `BE-BKC-033`–`037` seluruhnya sudah punya source+test lengkap: fondasi skema (`033`), penomoran (`034`), kategori (`035`), anggaran (`036`), dan siklus hidup voucher penuh — sepuluh endpoint, `PettyCashVoucherService`, 16 unit test termasuk alur penuh submit→approve→disburse→attach-proof (`BIL-AT-064`) (`037`). **Belum terbukti:** `dotnet build`/`dotnet test` belum dijalankan sesi ini untuk `034`–`037`; migration `033` sudah dibuat tapi seed database belum diverifikasi. Bukti: [`BE-BKC-033`](../task/report/backend/BE-BKC-033.md), [`be-bkc-037-siklus-hidup-voucher-petty-cash`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md) |
+| Siklus hidup voucher lima status (`EPIC BKC-10`; `FR-BKC-045`,`047`–`053`; `PC-DEC-001`,`003`–`009`,`011`,`013`) | `PC-DES-001`,`003`,`005`–`013`; `BIL-API-0.9`, `BIL-VALIDATION-0.8`, `BIL-STATE-0.8` | 🟡 `BE-BKC-033`, `034`, ✅ `035`,`036`,`037` | `FE-BKC-023`,`024`,`025` | `BIL-AT-064`,`065`,`066`,`067`–`075`; `UAT-28`–`33`,`35`,`42` | 🟡 **SEBAGIAN — 8 September 2026, diperbarui setelah verifikasi build/test.** `BE-BKC-035`,`036`,`037` **terverifikasi ✅** (`dotnet build` LULUS, `dotnet test` 12+19+17 = 48/48 LULUS, 8 September 2026). `BE-BKC-034` juga lulus build/test (11/11) sesi yang sama tetapi tetap 🟡 tanpa laporan tracked tersendiri. `BE-BKC-033` tetap 🟡 menyangkut bukti seed database dan review Finance. Frontend: `FE-BKC-023` 🟡 SEBAGIAN (8 September 2026) — source selesai, lint/test:unit/build lulus, menunggu verifikasi manual ter-autentikasi. `FE-BKC-024` 🟡 SEBAGIAN (8 September 2026) — mengisi tombol "+ Buat Voucher"/"Input Nota" yang dikecualikan `FE-BKC-023`; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna (verifikasi manual oleh pengguna sendiri) — bukti hanya tinjauan kode statis. `FE-BKC-025` 🟡 SEBAGIAN (8 September 2026) — modal detail voucher (`GET /{id}`, klik dua kali pada baris) selesai ditulis; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis. Dengan ini `FE-PC-01`–`04` (`MVP-15`) lengkap secara source, seluruhnya menunggu verifikasi manual ter-autentikasi oleh pengguna. Bukti: [`BE-BKC-033`](../task/report/backend/BE-BKC-033.md), [`be-bkc-035`](../task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md), [`be-bkc-036`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md), [`FE-BKC-023`](../task/report/frontend/FE-BKC-023.md), [`FE-BKC-024`](../task/report/frontend/FE-BKC-024.md), [`FE-BKC-025`](../task/report/frontend/FE-BKC-025.md) |
 | Nomor voucher unik dan aman di bawah pemakaian bersamaan (`FR-BKC-046`; `PC-DES-008`; `CAP-30`) | `PC-DES-008` | `BE-BKC-034` | — | `BIL-AT-065`,`066` | **Direncanakan pass ini.** `EXTEND` atas mekanisme `BilNumberSeries` yang sudah `Ready to reuse` |
-| Kolam anggaran, saldo berjalan, dan kedua penjaga saldo (`EPIC BKC-11`; `FR-BKC-054`–`060`; `PC-DEC-002`,`008`–`010`) | `PC-DES-004`–`006`,`011`,`014`; `BIL-VAL-047`,`048`,`054`,`055`,`057` | 🟡 `BE-BKC-036`, `037` | `FE-BKC-023`,`026` | `BIL-AT-067`,`069`,`070`,`071`,`077`,`080`; `UAT-34`,`36`–`38` | 🟡 **SEBAGIAN — 7 September 2026, diperbarui setelah `BE-BKC-037`.** `BE-BKC-036` (`GET /current`, `GET /movements`, `POST /top-ups`, `POST /adjustments`, `CalculateReservedAmountAsync`, `ApplyDisbursementAsync`) dan `BE-BKC-037` (`ApproveAsync` memanggil penjaga `BIL-VAL-047`; `DisburseAsync` memanggil `ApplyDisbursementAsync` — `ApplyDisbursementAsync` kini **punya pemanggil nyata**) selesai ditulis dengan 17+16 unit test domain, termasuk `BIL-VAL-054` (koreksi turun), `BIL-VAL-048` (pencairan saldo tidak cukup setelah koreksi), dan `BIL-VAL-047` (contoh berangka persis kontrak). **Belum terbukti:** `dotnet build`/`dotnet test` belum dijalankan sesi ini. `FR-BKC-060` (kas kecil tidak menyentuh shift kasir) diuji lewat `BIL-AT-077` pada `BE-BKC-038`, bukan pada task ini. Bukti: [`be-bkc-036-kolam-anggaran-dan-saldo-berjalan`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037-siklus-hidup-voucher-petty-cash`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md) |
-| Data induk kategori pengeluaran (`EPIC BKC-12`; `FR-BKC-061`–`063`; `PC-DEC-012`; `CAP-31`) | `PC-DES-002` | 🟡 `BE-BKC-035` | `FE-BKC-027` | `BIL-AT-076`; `UAT-39`–`41` | 🟡 **SEBAGIAN — 7 September 2026.** Sembilan endpoint, `PettyCashCategoryService`, DTO, exception, dan permission wiring selesai ditulis; 13 unit test domain ditulis. **Belum terbukti:** `dotnet build`/`dotnet test` belum dijalankan sesi ini. Nama entity `MstPettyCashCategory` mengikuti penutupan `PC-OQ-001` (`PC-DEC-014`). Bukti: [`be-bkc-035-master-data-kategori-petty-cash`](../task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md) |
-| Hak akses, privasi, dan regresi kas shift kasir (seluruh `PC-DEC-001`–`013`; `PC-DES-001`–`014`) | Seluruh kontrak Petty Cash | `BE-BKC-038` | — | `BIL-AT-064`–`080` penuh | **Direncanakan pass ini** sebagai capstone hardening, mengikuti preseden `BE-BKC-001`/`017`/`032` |
+| Kolam anggaran, saldo berjalan, dan kedua penjaga saldo (`EPIC BKC-11`; `FR-BKC-054`–`060`; `PC-DEC-002`,`008`–`010`) | `PC-DES-004`–`006`,`011`,`014`; `BIL-VAL-047`,`048`,`054`,`055`,`057` | ✅ `BE-BKC-036`, `037` | `FE-BKC-023`,`026` | `BIL-AT-067`,`069`,`070`,`071`,`077`,`080`; `UAT-34`,`36`–`38` | ✅ **SELESAI — 8 September 2026.** `BE-BKC-036` (`GET /current`, `GET /movements`, `POST /top-ups`, `POST /adjustments`, `CalculateReservedAmountAsync`, `ApplyDisbursementAsync`) dan `BE-BKC-037` (`ApproveAsync` memanggil penjaga `BIL-VAL-047`; `DisburseAsync` memanggil `ApplyDisbursementAsync` — `ApplyDisbursementAsync` kini **punya pemanggil nyata**) selesai ditulis dan **terverifikasi**: `dotnet build` LULUS, `dotnet test` 19+17 = 36/36 LULUS, termasuk `BIL-VAL-054` (koreksi turun), `BIL-VAL-048` (pencairan saldo tidak cukup — diuji lewat koreksi saldo di luar `AdjustAsync`, lihat laporan `BE-BKC-037` § 13), dan `BIL-VAL-047` (contoh berangka persis kontrak). `FR-BKC-060` (kas kecil tidak menyentuh shift kasir) diuji lewat `BIL-AT-077` pada `BE-BKC-038` (✅, lihat baris berikutnya), bukan pada task ini. Frontend: `FE-BKC-026` 🟡 SEBAGIAN (8 September 2026) — layar Anggaran Kas Kecil (kartu saldo, Tambah Anggaran, Koreksi Saldo, riwayat pergerakan) selesai ditulis; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis. Bukti: [`be-bkc-036-kolam-anggaran-dan-saldo-berjalan`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037-siklus-hidup-voucher-petty-cash`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md), [`FE-BKC-026`](../task/report/frontend/FE-BKC-026.md) |
+| Data induk kategori pengeluaran (`EPIC BKC-12`; `FR-BKC-061`–`063`; `PC-DEC-012`; `CAP-31`) | `PC-DES-002` | ✅ `BE-BKC-035` | `FE-BKC-027` | `BIL-AT-076`; `UAT-39`–`41` | 🟡 **SEBAGIAN — 8 September 2026, diperbarui setelah `FE-BKC-027`.** Backend `BE-BKC-035` **tetap ✅ terverifikasi** (`dotnet build` LULUS, `dotnet test` 12/12 LULUS; nama entity `MstPettyCashCategory` mengikuti penutupan `PC-OQ-001`/`PC-DEC-014`). Frontend: `FE-BKC-027` 🟡 SEBAGIAN (8 September 2026) — bentuk penuh tujuh-berkas (list/detail/editor) selesai ditulis mengikuti `master-data-feature-standard.md`, `categoryCode` diketik Finance saat tambah dan terkunci saat ubah, sembilan thunk memetakan sembilan endpoint; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis, verifikasi manual belum dilakukan. Bukti: [`be-bkc-035-master-data-kategori-petty-cash`](../task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md), [`FE-BKC-027`](../task/report/frontend/FE-BKC-027.md) |
+| Hak akses, privasi, dan regresi kas shift kasir (seluruh `PC-DEC-001`–`013`; `PC-DES-001`–`014`) | Seluruh kontrak Petty Cash | ✅ `BE-BKC-038` | — | `BIL-AT-064`–`080` penuh | ✅ **SELESAI — 8 September 2026.** Dua cacat ditemukan dan diperbaiki: audit log yang sebelumnya tidak benar-benar tercetak (`BIL-AT-079`), dan regresi `NullReferenceException` pada replay idempotency akibat perbaikan itu. `dotnet build` LULUS; `dotnet test` 89/89 LULUS (gabungan Petty Cash + Number Series + Access Permission + Cashier Shift), termasuk konfirmasi ulang setelah kedua perbaikan. `BIL-AT-072`,`077`,`078`,`079` `Covered` baru sesi ini; `BIL-AT-071`,`080` `Partial` (concurrency/unique-index hanya dapat dibuktikan provider relational, § 6 laporan). Bukti: [`be-bkc-038-hardening-lintas-slice-petty-cash`](../task/report/backend/be-bkc-038-hardening-lintas-slice-petty-cash.md) |
 
 ## 2. Cakupan acceptance test
 
@@ -289,3 +294,67 @@ Tidak ada satu pun `PC-DEC-*` maupun `PC-DES-*` yang berstatus selain `approved`
 berbeda dari gelombang `MVP-4`–`MVP-12` yang sempat menyisakan `BKC-GAP-01`/`02` (keputusan
 `approved` tanpa desain). Petty Cash tidak mewarisi kondisi itu: keputusan bisnis dan desainnya
 disetujui pada sesi desain yang sama, 7 September 2026.
+
+---
+
+# Amendment 8 September 2026 — `FE-BKC-022` (Struk Pasien) dibuka kembali
+
+```yaml
+roadmap_revision: 5
+status: DRAFT_FORWARD_TEST
+pemicu: /plan-module-delivery menemukan BKC-DEC-093-096 approved 7 September 2026 tapi
+  frontend-roadmap.md § 2 dan requirement-traceability.md § 3 (di atas) masih menulis BLOCKED
+scope_pass_ini: HANYA FE-BKC-022/Struk Pasien. Tabel § 1 (Petty Cash) dan seluruh baris
+  rumpun lain TIDAK disentuh dan TIDAK dinilai ulang pass ini
+```
+
+## 5. `FE-BKC-022` — status diperbarui dari `BLOCKED` menjadi `READY_FOR_TASK_APPROVAL`
+
+Definisi task lengkap ada di `frontend-roadmap.md` § "Amendment 8 September 2026 —
+`FE-BKC-022` dibuka kembali sebagai `READY_FOR_TASK_APPROVAL`". Ringkasan cross-check § 3 di
+atas, diperbarui:
+
+| Elemen PDF staging | Decision ID | Status (7 September) | Status (8 September, pass ini) |
+| --- | --- | --- | --- |
+| Item baris (baseline) | `BKC-DEC-058` | Covered | Covered — tidak berubah |
+| Breakdown Subtotal/Pajak/Harus Dibayar | `BKC-DEC-093` | BLOCKED (gap keputusan) | **READY** — keputusan `approved`; kontrak `GET /{id}/calculation-preview` diverifikasi ulang langsung ke source pass ini, tidak ada field baru dibutuhkan |
+| Field Penjamin | `BKC-DEC-094` | BLOCKED (gap keputusan) | **READY, dengan koreksi bukti** — keputusan `approved`, TAPI premis "berdampingan dengan field Asuransi yang sudah ada" salah (tidak ada field Asuransi hari ini; backend hanya expose SATU field payer per kunjungan, bukan dua sekaligus). Lihat `frontend-roadmap.md` § 1 amendment ini untuk detail lengkap dan kenapa ini tidak membatalkan keputusannya |
+| QR verifikasi | `BKC-DEC-095` | BLOCKED (belum dibahas) | **Ditunda secara sadar** — bukan lagi gap, keputusan eksplisit "jangan dibangun sekarang". Tidak ada task |
+| Blok tanda tangan | `BKC-DEC-096` | BLOCKED (gap keputusan) | **READY** — keputusan `approved`, `DEV_DISCRETION` untuk detail layout, tidak ada kontrak data yang dibutuhkan |
+
+`BKC-GAP-09`, `10`, `12` dinyatakan **DITUTUP** (bukan sekadar dijawab — implementasinya
+sudah dapat direncanakan penuh, tidak ada sisa pertanyaan turunan). `BKC-GAP-11` **DITUTUP
+sebagai keputusan ditunda**, tetap tidak punya task.
+
+**Coverage gap yang tersisa (non-blocking, dicatat apa adanya):** `04-prd-to-mvp.md` belum
+punya Epic/FR/UAT untuk `BKC-DEC-093`–`096` — slice ini disusulkan ke Dokumen Kasir
+(`FE-BKC-011`/`017`/`018`) yang sudah lama melewati PRD aslinya. Penulisan Epic/FR/UAT formal
+adalah pekerjaan `design-business-module`, bukan `plan-module-delivery`; tidak dianggap
+memblokir `FE-BKC-022` karena acceptance criteria pada task itu sendiri sudah cukup spesifik
+dan dapat diuji tanpa menunggu penomoran PRD.
+
+**Tidak ada task backend baru pada amendment ini.** Kedua kontrak yang dipakai `FE-BKC-022`
+sudah live di backend saat ini (diverifikasi langsung ke source `BillingInvoiceService.cs`
+dan `BillingInvoiceDtos.cs`, bukan diasumsikan dari dokumen kontrak) — `backend-roadmap.md`
+sengaja tidak disentuh amendment ini.
+
+### Update 8 September 2026 (lanjutan, sesi berbeda) — `FE-BKC-022` dieksekusi, 🟡 SEBAGIAN
+
+`FE-BKC-022` dikerjakan lewat `build-module-frontend` pada sesi yang sama hari ini. Source
+ditulis (`billing-invoice-calculation-breakdown.js` baru, `menu-pembayaran-view.jsx`,
+`use-dokumen-kasir-page.js`, `struk-pasien-document.jsx` diubah), `eslint` (quiet dan full
+severity) PASS 0 error/warning, unit test baru (5 skenario rumus breakdown) PASS, `next build`
+exit 0. Detail penuh di [`task/report/frontend/FE-BKC-022.md`](../task/report/frontend/FE-BKC-022.md).
+
+Status **tidak** dinaikkan ke `✅` — verifikasi manual ter-autentikasi (klik-coba nyata dengan
+invoice tunai/asuransi/penjamin sungguhan, mencocokkan angka breakdown terhadap Ringkasan
+Pembayaran) belum dijalankan (`NOT FEASIBLE` pada sesi ini, tidak ada kredensial). Kriteria
+acceptance 1 (breakdown identik Ringkasan Pembayaran) baru terbukti lewat unit test rumus,
+belum lewat pengamatan layar nyata.
+
+Koreksi bukti `BKC-DEC-094` yang dicatat pada amendment 8 September (pertama) di atas
+**terkonfirmasi** saat implementasi: `struk-pasien-document.jsx` sebelum task ini benar-benar
+tidak punya field Asuransi apa pun, dan `TrxPatientEncounterGuarantor.cs`
+(`NewQuilvianSystemBackend/Areas/HealthServices/RegistrationManagement/Models/`) memang
+mengunci relasi satu-ke-satu payer per kunjungan. Implementasi mengikuti bentuk yang sudah
+dikoreksi (satu baris berlabel dinamis), bukan bentuk asli `BKC-DEC-094`.

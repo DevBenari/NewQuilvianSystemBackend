@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
@@ -497,6 +498,7 @@ public sealed class PettyCashVoucherService
         Guid idempotencyKey, string payloadHash, Guid actorUserId, CancellationToken cancellationToken)
     {
         var prior = await _dbContext.BilPettyCashVoucherCommands.AsNoTracking()
+            .Include(x => x.Voucher)
             .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
         if (prior is null) return null;
         if (prior.PayloadHash != payloadHash || prior.ActorUserId != actorUserId)
@@ -547,22 +549,23 @@ public sealed class PettyCashVoucherService
     // Privasi: RecipientName, Purpose, RejectionReason, dan ResponseJson (mengandung keduanya)
     // MUST NOT masuk log aplikasi (02-backend-architecture.md § Security, privacy...). Reason
     // command (RejectionReason/alasan batal) juga dikecualikan.
+    //
+    // BIL-AT-079 menuntut VoucherId/VoucherNumber/nominal/status/ActorUserId benar-benar TERCETAK
+    // pada keluaran log. LoggerService.WriteAsync HANYA menulis field bernama Path/Method/Ip/
+    // UserId/Username/Email yang diekstrak dari "data" ke log sesungguhnya - properti lain pada
+    // objek anonim "data" tidak pernah tercetak di mana pun (murni write-only). Karena itu field
+    // non-sensitif dibentuk langsung ke teks "message" di sini (yang MEMANG tercetak apa adanya),
+    // bukan dititipkan lewat "data" seperti sebelumnya - tanpa mengubah LoggerService itu sendiri,
+    // yang dipakai bersama seluruh modul lain.
     private Task AuditCommandAsync(BilPettyCashVoucherCommand command, bool isReplay) =>
-        _loggerService.AuditAsync(LogCategory, $"PettyCashVoucher.{command.CommandType}", "Transisi voucher kas kecil dicatat secara append-only.", new
-        {
-            command.VoucherId,
-            command.CommandType,
-            command.ActorUserId,
-            command.ActorRole,
-            command.EntityVersion,
-            command.StatusBefore,
-            command.StatusAfter,
-            command.Amount,
-            command.CorrelationId,
-            command.CausationId,
-            command.OccurredAt,
-            IsReplay = isReplay
-        });
+        _loggerService.AuditAsync(
+            LogCategory,
+            $"PettyCashVoucher.{command.CommandType}",
+            $"Transisi voucher kas kecil dicatat secara append-only. " +
+            $"VoucherId={command.VoucherId} VoucherNumber={command.Voucher.VoucherNumber} " +
+            $"Status={command.StatusBefore ?? "-"}->{command.StatusAfter} " +
+            $"Amount={command.Amount?.ToString(CultureInfo.InvariantCulture) ?? "-"} IsReplay={isReplay}",
+            new { Id = command.ActorUserId, command.ActorRole, command.CorrelationId, command.CausationId, command.OccurredAt });
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
     {
@@ -684,7 +687,6 @@ public sealed class PettyCashVoucherService
         };
 }
 
-public sealed class PettyCashVoucherValidationException(string message) : Exception(message);
 public sealed class PettyCashVoucherBadRequestException(string message) : Exception(message);
 public sealed class PettyCashVoucherForbiddenException(string message) : Exception(message);
 
