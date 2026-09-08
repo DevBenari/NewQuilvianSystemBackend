@@ -24,7 +24,8 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | HealthServices | OutPatientManagement / Outpatient | BUSINESS DOMAIN / MODULE | Out | PLANNED |
 | HealthServices | InsuranceManagement / Insurance | BUSINESS DOMAIN / MODULE | Ins | PLANNED |
 | Corporate/HumanResource | WorkflowManagement / Workflow | SHARED PLATFORM CAPABILITY | Wfl | ACTIVE / LEGACY |
-| HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
+| HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | ACTIVE |
+| HealthServices | NutritionManagement / Nutrition | BUSINESS DOMAIN / MODULE | Gz | ACTIVE |
 | HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | ACTIVE |
 | HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | ACTIVE |
 
@@ -51,6 +52,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Opr | Operating Room |
 | Mrc | Medical Record |
 | Bbk | Blood Bank |
+| Gz | Gizi — Nutrition |
 
 `DoctorAndScheduleManagement` berkategori MASTER / REFERENCE menurut bukti saat ini dan tidak memiliki prefix operasional tersendiri. Untuk entity operasional baru pakai `<PrefixPemilikDisetujui><KonsepBisnis>` tanpa pengulangan nama pemilik, misalnya `RegPatientEncounter`, `EmgVisit`, `WflInstance`, `LabOrder`.
 
@@ -101,3 +103,5 @@ Folder Area/Module/Submodule baru — atau folder yang sudah ada namun belum ter
 | 2026-09-03 | BloodBankManagement / `Bbk` | Baris baru — pendaftaran prefix `Bbk` = *Blood Bank* | Blueprint `BD-BP-001` keputusan modul Bank Darah. Memberi wewenang penamaan dan kepemilikan entity operasional `Bbk*`; tidak memberi wewenang implementasi, migration, database, maupun deployment. Lifecycle tetap `PLANNED` sampai ada keputusan aktivasi modul. |
 | 2026-09-03 | BloodBankManagement / `Bbk` | `PLANNED` → `ACTIVE` | Persetujuan owner Bank Darah dan approval blueprint BD-BP-001 contract v4. Membuka wewenang implementasi entity operasional `Bbk*` sesuai QBE-MOD-002. |
 | 2026-09-07 | Master / Reference / MasterData / `Mst` | Baris duplikat `MasterData / BloodBankManagement Existing Master Legacy` (`Mst` / `LEGACY`) dihapus dari tabel kepemilikan | Perbaikan regresi merge, sesi 2026-09-07. Baris itu dan baris `Master / Reference / MasterData` sama-sama mencocokkan folder `Areas/HealthServices/MasterData` dengan prefix `Mst`, sehingga `Resolve-RegistryOwnership` mengembalikan `Registry ownership is ambiguous for the source area/domain path.` dan **seluruh** entity `Mst*` baru terblokir QBE-MOD-002 — terlihat pada `MstBloodBankReason`, `MstBloodComponent`, dan `MstBloodStorageLocation`. Masing-masing baris benar di cabang asalnya; ambiguitas baru muncul ketika merge `b70b735` menyatukan keduanya. Wewenang penamaan data induk Bank Darah tidak berubah: entity `Mst*` yang sudah ada di `Areas/HealthServices/MasterData` tetap grandfathered dan tidak dinamai ulang, dan kewenangannya kini dipikul baris `Administrator / HealthServices` / `Master / Reference / MasterData` sesuai catatan 2026-09-04. Prefix, lifecycle, dan pemilik sebenarnya tidak berubah. |
+| 2026-09-08 | NutritionManagement / `Gz` | Baris baru — pendaftaran prefix `Gz` = *Gizi — Nutrition*, lifecycle `ACTIVE` | Ikbal Yuliyanto, pemilik keputusan modul Gizi, sesi 2026-09-08. Modul Gizi sudah memiliki entity operasional `Gz*` yang berjalan — order gizi, diet pasien, produksi, dan distribusi makanan — tetapi tidak pernah punya baris registry sama sekali, sehingga seluruhnya terblokir QBE-MOD-002 dengan alasan `No registry owner matches source area`. Pendaftaran ini mencabut penghalang itu dan menetapkan `Gz` sebagai prefix entity operasional Gizi berikutnya. Entity `Gz*` yang sudah ada tetap dipertahankan apa adanya. Wewenangnya penamaan, kepemilikan, dan implementasi; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
+| 2026-09-08 | OperatingRoomManagement / `Opr` | `PLANNED` → `ACTIVE` | Ikbal Yuliyanto, pemilik keputusan modul Operasi, sesi 2026-09-08. Modul Operasi sudah dalam tahap implementasi dengan capability yang berjalan, termasuk pembukuan pemakaian material ke kartu stok Farmasi. Mencabut penghalang QBE-MOD-002 atas entity operasional `Opr*`. **Tidak** mencakup rename entity yang sudah ada: `MstOperatingRoomStockSource` seharusnya bernama `OprStockSource`, dan penormalannya dicatat sebagai LEGACY MIGRATION tersendiri yang belum direncanakan maupun diverifikasi — source dan tabel fisiknya tidak diubah pada pekerjaan ini. Wewenangnya mencakup source dan pembuatan migration untuk entity `Opr*` baru; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
