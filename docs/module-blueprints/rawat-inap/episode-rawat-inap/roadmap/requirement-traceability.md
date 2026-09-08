@@ -28,16 +28,16 @@ input_revisions:
   04-prd-to-mvp.md: 0.6.1
   testing/acceptance-test-matrix.md: 0.4.0
 input_hashes:
-  blueprint-manifest.md (tingkat modul): "73ef73dc7d8d4f5d6123383af01b3109489f3ec568746f0946027fb889f7e963"
-  blueprint-manifest.md (sub-modul): "6d3fedda94325aa43c70612159a3f4067e0be78605f4b0b17ef948614d5d5d83"
-  00-interview-decisions.md: "e9f2c957dfc68d609c426d7c91018f01223b4d163c85498be525804387724d9c"
-  01-existing-capability-map.md: "567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6"
-  02-module-map.md: "62be6c334caa1651fc89db3b43d197235da3fa6be1d309da45e5b57f9536e54d"
+  blueprint-manifest.md (tingkat modul): "18d5b5589962ba24ecfee2a5cc378f087f4ec20d97b6aab2983ae168e3c6b902"
+  blueprint-manifest.md (sub-modul): "08ab5edd838ed1fb242d9245f3f171bbc9431d596105043f8ddfc50fe62b09fa"
+  00-interview-decisions.md: "44d1980f99e1b43b2881cc60afc5ae4281a3411e0ea161e6365191fd62729afa"
+  01-existing-capability-map.md: "0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03"
+  02-module-map.md: "94e54fd45ba09bd61eb9c218e7d7b424725c3a45b6dd76f16f4a51a98c6f7c85"
   02-backend-architecture.md: "b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f"
-  03-frontend-architecture.md: "7be9f2b30409c23841161daaccc29c167ebeb0238a4b82ac1522826e9ca3df42"
+  03-frontend-architecture.md: "6e280eae1ab85d3165aeee3dd9ccfbcc061ac55f74f653b1c1c7a66b52e0fe3d"
   05-skema-tampilan.md: "f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e"
-  04-prd-to-mvp.md: "af0e02537be2b7e78df8ab3c36a26d58165456ff7387a705251fc3ee1bac8700"
-  contracts/api-contract.md: "0357e52c2e35a0812d439758c74887c17b93c1bc24e1443b9a0ad6787061d14a"
+  04-prd-to-mvp.md: "99814d79eb09cce6b2a528deff6751d89915914a8f17b03f36e3c9c351c02a23"
+  contracts/api-contract.md: "4c592644e6a1aca63827332900eeb4aa3299e759ad16169733793cd552e2028a"
   contracts/encounter-company-guarantor-contract.md: "48bf0a73c511bf92315006330eb2a728e3363ec2be87736f7246b927c19f960b"
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   roadmap/backend-roadmap.md: "9ced4f769e4d34edea92abd8c2b95bbe44d0ebf22791bc04a03f53c54cbd57a6"
@@ -160,9 +160,9 @@ keenamnya punya sub-modul pemilik dan alasan bersebab. Yang perlu dibaca justru 
 | Rujukan dan daftar tunggu masuk | `CAP-001` | Ditunda setelah MVP | Tidak ada, dan memang tidak diklaim ada |
 | Cetak kartu, gelang, label | `CAP-007` | Ditunda setelah MVP | **Sebagian sudah ada.** `FE-RWI-028` mencetak persetujuan rawat inap tanpa menyimpannya (`RWI-DEC-077`), dan `FE-RWI-029` mencetak kartu pasien pada jalur pasien baru. Gelang dan label tetap belum ada — lihat 0-B.4 |
 | Dokumen persetujuan, serah terima, edukasi | `CAP-009` | `DEC-INP-003`, pemilik privasi belum ditunjuk | Cetak tanpa simpan lewat `FE-RWI-028`. **Penyimpanan** tetap tidak ada, dan layar dilarang menyatakan persetujuan tersimpan |
-| ~~Deposit~~, estimasi biaya, cek manfaat | `CAP-010` | **Deposit tidak lagi ditunda sejak `RWI-DEC-093` s.d. `RWI-DEC-096` (2026-09-04)**; ia masuk MVP sebagai `EPIC RI-35`. Estimasi biaya dan cek manfaat tetap ditunda | `BillingManagement` **sudah** punya `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, `BillingSettlementService`, `BillingRefundService`, dan `BillingPatientFundsController`. Yang belum: `EpisodeId` pada akun deposit, kebijakan minimum deposit, dan langkah Deposit pada admisi. Kelayakan keuangan masih ditandai manual kasir lewat `BE-RWI-024` sampai `EPIC RI-35b` selesai |
+| ~~Deposit~~, estimasi biaya, cek manfaat | `CAP-010` | **Deposit tidak lagi ditunda sejak `RWI-DEC-093` s.d. `RWI-DEC-096` (2026-09-08)**; ia masuk MVP sebagai `EPIC RI-35`. Estimasi biaya dan cek manfaat tetap ditunda | `BillingManagement` **sudah** punya `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, `BillingSettlementService`, `BillingRefundService`, dan `BillingPatientFundsController`. Yang belum: `EpisodeId` pada akun deposit, kebijakan minimum deposit, dan langkah Deposit pada admisi. Kelayakan keuangan masih ditandai manual kasir lewat `BE-RWI-024` sampai `EPIC RI-35b` selesai |
 | Permintaan dan serah terima kamar operasi | `CAP-018` | `OperatingRoomManagement` berstatus `PLANNED` | Tidak ada |
-| Tagihan berjalan | `CAP-019` | Tetap ditunda. **Alasannya berubah 2026-09-04:** bukan lagi "Billing belum punya kemampuan transaksi" — jalur invoice, finalisasi, dan `MstRoomChargePolicy` sudah ada — melainkan karena tagihan berjalan rinci berada di luar batas MVP sub-modul ini | Riwayat kelas dan lama dirawat tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
+| Tagihan berjalan | `CAP-019` | Tetap ditunda. **Alasannya berubah 2026-09-08:** bukan lagi "Billing belum punya kemampuan transaksi" — jalur invoice, finalisasi, dan `MstRoomChargePolicy` sudah ada — melainkan karena tagihan berjalan rinci berada di luar batas MVP sub-modul ini | Riwayat kelas dan lama dirawat tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
 
 ### 0-B.3 Pemeriksaan kemampuan yatim
 
@@ -189,13 +189,13 @@ kontrak.
 
 ---
 
-### 0-B.5 Coverage gap slice deposit — 2026-09-04
+### 0-B.5 Coverage gap slice deposit — 2026-09-08
 
 | Gap | Bentuknya | Menahan |
 | --- | --- | --- |
 | `RWI-AC-*` untuk `EPIC RI-35` belum ada | Dua belas baris FR pada bagian 2 punya task dan test, tetapi kolom AC kosong | Tidak menahan pelaksanaan; menahan klaim "traceability penuh" sampai `/qv-design` menomori acceptance criteria deposit |
 | Skema tampilan langkah Deposit belum ada | `05-skema-tampilan.md` `0.4` tidak memuat `FE-INP-20` | Keempat task frontend deposit — `RWI-UI-GAP-008` |
-| Persetujuan lintas modul `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu | **Dua** task backend deposit — `BE-RWI-038` dan `BE-RWI-040`. Dipersempit 2026-09-04 setelah `RWI-FACT-017` s.d. `RWI-FACT-019` |
+| Penerimaan task oleh pemilik `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu; kedua task sudah berdiri pada roadmap `billing-kasir` sebagai `BE-BKC-022` dan `BE-BKC-023` | `FE-RWI-043`, `FE-RWI-045`, `BE-RWI-042`, dan `BE-RWI-043` — seluruhnya lewat jalur dependency, bukan lewat task Rawat Inap yang terblokir |
 | Pemegang `BillingDeposit : Create` pada langkah admisi belum ditetapkan | Peta peran pada `permission-audit-matrix.md` `0.6.0` menuliskannya terbuka | `EPIC RI-35a` — `RWI-OQ-052` |
 | Kebijakan minimum deposit belum ada isinya | Master baru pada `BE-RWI-038`; siapa yang mengisi dan berapa angkanya adalah keputusan keuangan | Tidak menahan pelaksanaan; langkah Deposit berjalan tanpa minimum sampai terisi |
 | `UAT-34` s.d. `UAT-44` belum masuk `testing/acceptance-test-matrix.md` | Matriks masih `0.4.0` | Klaim kesiapan sign-off `EPIC RI-35` |
@@ -542,21 +542,21 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `7`. Kolom **Test** me
 
 ### `EPIC RI-35` — Deposit dan settlement finansial rawat inap
 
-Ditambahkan pada roadmap backend revision `4` dan frontend revision `7`, 2026-09-04. Kolom **Test**
+Ditambahkan pada roadmap backend revision `4` dan frontend revision `7`, 2026-09-08. Kolom **Test**
 berisi rencana; **tidak satu pun** sudah dijalankan, karena tidak satu pun task sudah dikerjakan.
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
 | `FR-RI-163`, `FR-RI-169` | Deposit terikat tepat satu episode, dan saldo tidak berpindah diam-diam | ❌ `BE-RWI-037` **dibatalkan** — kemampuannya sudah ada | — | `RWI-FACT-017`: `EncounterId` unique di `BilDepositAccount` dan `InpEpisode`. Sisa pembuktian ada pada `UAT-34` |
-| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | `BE-RWI-038` 🚫, `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | ➡️ `BE-BKC-022` (roadmap `billing-kasir`), `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
 | `FR-RI-165`, `FR-RI-166` | Penerimaan append-only, kwitansi unik, idempotensi | ❌ `BE-RWI-039` **dibatalkan** — kemampuannya sudah berjalan | — | `RWI-FACT-018`: header `Idempotency-Key`, unique index, jalur replay, dan test tersedia. Sisa pembuktian ada pada `UAT-34`, `UAT-35`, `UAT-36` |
-| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | `BE-RWI-040` 🚫, `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | ➡️ `BE-BKC-023` (roadmap `billing-kasir`), `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
 | `FR-RI-168` | Permintaan top-up tidak mengubah histori pembayaran | ❌ `BE-RWI-039` **dibatalkan** — mutasi deposit memang append-only | — | `RWI-FACT-018`; `UAT-35` **belum dijalankan** |
 | `FR-RI-170`, `FR-RI-171` | Settlement mengalokasikan deposit; kelebihan menjadi refund eksplisit | `BE-RWI-043` — **tidak lagi terblokir** | — | Alokasi dan refund sudah ada di Billing (`/allocations`, `/financial-exceptions/refunds`); `UAT-37`, `UAT-38` **belum dijalankan** |
 | `FR-RI-172` | `Cleared` hanya setelah settlement selesai | `BE-RWI-043` — perbaikan di dalam Rawat Inap | — | `InpDischargeService.Closure.cs:284` masih menandai manual; `UAT-39` **belum dijalankan** |
 | `FR-RI-173` | Pembatalan admisi tidak menghapus transaksi uang | `BE-RWI-043` 🚫 | — | `UAT-40`; **belum dijalankan** |
 | `FR-RI-174` | Deposit adalah langkah tersendiri pada alur admisi | `FE-RWI-042` 🟡 | — | `UAT-41`; **belum dijalankan** |
-| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, `BE-RWI-040` 🚫 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, ➡️ `BE-BKC-023` | — | `UAT-42`; **belum dijalankan** |
 | `FR-RI-177`, `FR-RI-143` | Penagihan berkala beserta ambang hari yang dapat diubah admin | `BE-RWI-041`, `BE-RWI-042` | — | `UAT-44`; **belum dijalankan** |
 | `FR-RI-178` | Transaksi terbentuk hanya setelah episode ada | `FE-RWI-044` 🟡 | — | Sisi backend siap (`RWI-FACT-018`); urutannya dijaga frontend. `UAT-43` **belum dijalankan** |
 

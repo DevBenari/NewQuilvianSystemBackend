@@ -15,6 +15,8 @@ Blueprint `BIL-CASH-001 revision 0.4` telah disetujui pada 20 Agustus 2026; revi
 | `BKC-PH-007` | Bukti lintas-slice dan hardening lengkap | `BE-BKC-017` | `FE-BKC-010` | Semua slice | `PLANNED` |
 | `BKC-PH-008` | Entri manual katalog tarif + coverage per item (form "Buat Invoice Manual (Testing)") — `BKC-DEC-059`–`062` | `BE-BKC-018`–`021` | `FE-BKC-014`–`016` | Blueprint `0.5 approved` (2 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
 
+| `BKC-PH-009` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096` | `BE-BKC-022`,`023` | — (layar ada di Rawat Inap) | PH-004 | `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053` |
+
 ## Aturan eksekusi
 
 1. Task backend dan frontend tetap terpisah.

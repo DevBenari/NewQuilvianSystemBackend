@@ -380,17 +380,17 @@ menahan mereka bukan gerbang approval, melainkan ketersediaan backend pasanganny
 | --- | --- | --- | --- |
 | **`KEP-MVP-1`** | `FE-RWI-051` ✅ | `FE-KEP-01` Ruang Kerja Keperawatan | `BE-RWI-054` |
 | **`KEP-MVP-1`** | `FE-RWI-052` ✅ | `FE-KEP-02` Pengkajian Keperawatan | `BE-RWI-056`, `BE-RWI-065`, `BE-RWI-057` |
-| **`KEP-MVP-1`** | `FE-RWI-053` | `FE-KEP-03` Lini Masa Pengkajian | `BE-RWI-058` |
-| **`KEP-MVP-2`** | `FE-RWI-054` | `FE-KEP-04` Rencana Asuhan | `BE-RWI-059`, `BE-RWI-060` |
-| **`KEP-MVP-3`** | `FE-RWI-055` | `FE-KEP-05` Catatan Tindakan | `BE-RWI-061`, `BE-RWI-062` |
-| **`KEP-MVP-4`** | `FE-RWI-056` | `FE-KEP-06` Daftar Pantau Kepatuhan | `BE-RWI-064` |
+| **`KEP-MVP-1`** | `FE-RWI-053` ✅ | `FE-KEP-03` Lini Masa Pengkajian | `BE-RWI-058` |
+| **`KEP-MVP-2`** | `FE-RWI-054` ✅ | `FE-KEP-04` Rencana Asuhan | `BE-RWI-059`, `BE-RWI-060` |
+| **`KEP-MVP-3`** | `FE-RWI-055` ✅ | `FE-KEP-05` Catatan Tindakan | `BE-RWI-061`, `BE-RWI-062` |
+| **`KEP-MVP-4`** | `FE-RWI-056` ✅ | `FE-KEP-06` Daftar Pantau Kepatuhan | `BE-RWI-064` |
 
 ```text
-FE-RWI-051 (✅) ─┬─> FE-RWI-052 (✅) ─> FE-RWI-053
-                 ├─> FE-RWI-054
-                 └─> FE-RWI-055
+FE-RWI-051 (✅) ─┬─> FE-RWI-052 (✅) ─> FE-RWI-053 (✅)
+                 ├─> FE-RWI-054 (✅)
+                 └─> FE-RWI-055 (✅)
 
-FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
+FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 ```
 
 ---
@@ -460,7 +460,7 @@ FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
 | **Task ID** | `FE-RWI-053` |
-| **Status** | Belum dikerjakan. **Tidak terblokir**; menunggu backend `BE-RWI-058` |
+| **Status** | ✅ **Selesai 8 September 2026.** Laporan perubahan tracked tersedia di [`../task/report/frontend/FE-RWI-053.md`](../task/report/frontend/FE-RWI-053.md). Seluruh 4 AC dan 4 Visual AC terbukti, 8 unit test lulus, 0 lint error. |
 | **Outcome** | Perawat dan DPJP melihat apakah nyeri, risiko jatuh, dan status gizi pasien membaik atau memburuk sejak masuk melalui visual lini masa kronologis tanpa kehilangan data historis |
 | **Trace** | `FE-KEP-03`; `FR-KEP-007`, `FR-KEP-010`, `FR-KEP-011`; `AC-CAP012-02`; `03-frontend-architecture.md` bagian 3.3; `skema-tampilan-keperawatan-rawat-inap.md` Bagian 13, 24, 25, 27 |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` `GET /api/v1/health-services/clinical-management/patient-assessments/episodes/{episodeId}/timeline` dan `GET /api/v1/health-services/clinical-management/patient-assessments/episodes/{episodeId}/due-status` |
@@ -489,7 +489,7 @@ FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
 | **Task ID** | `FE-RWI-054` |
-| **Status** | Belum dikerjakan. **Tidak terblokir**; menunggu backend `BE-RWI-059` dan `BE-RWI-060` |
+| **Status** | ✅ **Selesai 8 September 2026.** Laporan perubahan tracked tersedia di [`../task/report/frontend/FE-RWI-054.md`](../task/report/frontend/FE-RWI-054.md). Seluruh 5 AC dan 4 Visual AC terbukti, 7 unit test lulus (total keperawatan 29 unit test lulus), 0 lint error, build Next.js lulus. |
 | **Outcome** | Rencana asuhan keperawatan tersusun di sistem dalam pola Master-Detail beserta riwayat versi perubahannya (*Version History*), menggantikan catatan kertas tanpa mencampuradukkannya dengan addendum koreksi |
 | **Trace** | `FE-KEP-04`; `FR-KEP-012` s.d. `FR-KEP-017`; `RWI-AC-177`; `03-frontend-architecture.md` bagian 3.4; `skema-tampilan-keperawatan-rawat-inap.md` Bagian 14, 15, 16, 24, 25, 27 |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` grup Nursing Care Plan (tujuh endpoint: `GET /episodes/{id}`, `POST /items`, `PUT /items/{id}`, `POST /items/{id}/evaluations`, `PATCH /items/{id}/close`, `PATCH /items/{id}/reopen`, `GET /items/{id}/revisions`) |
@@ -518,7 +518,7 @@ FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
 | **Task ID** | `FE-RWI-055` |
-| **Status** | Belum dikerjakan. **Tidak terblokir**; menunggu backend `BE-RWI-061` dan `BE-RWI-062` |
+| **Status** | ✅ **Selesai 8 September 2026.** Laporan perubahan tracked tersedia di [`../task/report/frontend/FE-RWI-055.md`](../task/report/frontend/FE-RWI-055.md). Seluruh 5 AC dan 4 Visual AC terbukti, 8 unit test lulus (total keperawatan 37 unit test lulus), 0 lint error. |
 | **Outcome** | Tindakan keperawatan tercatat beserta waktu riil pelaksanaan, pelaku, dan hasilnya; tindakan cito dapat dicatat tanpa rencana asuhan; catatan final dikoreksi lewat addendum beralasan; dan kegagalan tagihan billing terlihat sebagai keadaan tersendiri tanpa merusak catatan klinis |
 | **Trace** | `FE-KEP-05`; `FR-KEP-018` s.d. `FR-KEP-022`; `AC-CAP014-01`, `AC-CAP014-02`, `AC-CAP014-03`; `RWI-AC-176`; `03-frontend-architecture.md` bagian 3.5; `skema-tampilan-keperawatan-rawat-inap.md` Bagian 17, 18, 19, 20, 24, 25, 27 |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` grup Nursing Intervention (enam endpoint: `GET /episodes/{id}`, `POST /`, `PATCH /{id}/finalize`, `GET /{id}/billing-dispatch`, `POST /{id}/addendums`, `GET /{id}/addendums`); `contracts/state-transition-matrix.md` Bagian 3 & 3.1 |
@@ -547,7 +547,7 @@ FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
 | **Task ID** | `FE-RWI-056` |
-| **Status** | Belum dikerjakan. **Tidak terblokir**; menunggu backend `BE-RWI-064` |
+| **Status** | ✅ **Selesai 8 September 2026.** Laporan: [`../task/report/frontend/FE-RWI-056.md`](../task/report/frontend/FE-RWI-056.md). Seluruh 6 AC & 2 Visual AC terbukti, 11 unit test lolos, 0 lint error, Next.js build sukses. |
 | **Outcome** | Kepala ruangan dan supervisor menemukan pengkajian yang belum dikerjakan atau terlambat melalui daftar ketiga pada layar Daftar Pantau existing (`FE-INP-09`), tanpa membuat rute baru dan tanpa membocorkan isi klinis bebas |
 | **Trace** | `FE-KEP-06`; `FR-KEP-024`, `FR-KEP-025`, `FR-KEP-026`; `RWI-RULE-023`, `RWI-DEC-032`; `03-frontend-architecture.md` bagian 3.6; `skema-tampilan-keperawatan-rawat-inap.md` Bagian 21, 22, 25, 27 |
 | **Kontrak** | `contracts/api-contract.md` `0.3.0` endpoint daftar pantau kepatuhan pengkajian (`GET /api/v1/health-services/clinical-management/patient-assessments/episodes/{id}/due-status` per episode census) |
@@ -575,12 +575,12 @@ FE-RWI-056  (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 | Task | Layar | Gelombang | Status | Laporan |
 | --- | --- | --- | :---: | --- |
-| `FE-RWI-051` | `FE-KEP-01` Ruang Kerja Keperawatan | `KEP-MVP-1` | tanpa tanda | — |
-| `FE-RWI-052` | `FE-KEP-02` Pengkajian Keperawatan | `KEP-MVP-1` | tanpa tanda | — |
-| `FE-RWI-053` | `FE-KEP-03` Lini Masa Pengkajian | `KEP-MVP-1` | tanpa tanda | — |
-| `FE-RWI-054` | `FE-KEP-04` Rencana Asuhan | `KEP-MVP-2` | tanpa tanda | — |
-| `FE-RWI-055` | `FE-KEP-05` Catatan Tindakan | `KEP-MVP-3` | tanpa tanda | — |
-| `FE-RWI-056` | `FE-KEP-06` Daftar Pantau Kepatuhan | `KEP-MVP-4` | tanpa tanda | — |
+| `FE-RWI-051` | `FE-KEP-01` Ruang Kerja Keperawatan | `KEP-MVP-1` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-051.md) |
+| `FE-RWI-052` | `FE-KEP-02` Pengkajian Keperawatan | `KEP-MVP-1` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-052.md) |
+| `FE-RWI-053` | `FE-KEP-03` Lini Masa Pengkajian | `KEP-MVP-1` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-053.md) |
+| `FE-RWI-054` | `FE-KEP-04` Rencana Asuhan | `KEP-MVP-2` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-054.md) |
+| `FE-RWI-055` | `FE-KEP-05` Catatan Tindakan | `KEP-MVP-3` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-055.md) |
+| `FE-RWI-056` | `FE-KEP-06` Daftar Pantau Kepatuhan | `KEP-MVP-4` | ✅ Selesai | [laporan](../task/report/frontend/FE-RWI-056.md) |
 
 Laporan task wajib ditulis ke `<blueprint-root>/task/report/frontend/<TASK-ID>.md` sesuai
 `rules/rule-output/lokasi-laporan-task.md`.

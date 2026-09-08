@@ -374,3 +374,70 @@ yang terdampak (rincian di laporan). Build/test **sengaja belum dijalankan** ses
 pengguna yang berlaku sepanjang sesi ini — evidence regresi nyata (`dotnet test`) dan notifikasi
 Finance/AR/Payer sebelum deploy tetap prasyarat wajib. Belum ditandai selesai; lihat
 `task/report/backend/BE-BKC-021.md` § 5 dan § 7.
+
+## Amendment 8 September 2026 — Deposit rawat inap terikat episode
+
+Permintaan datang dari modul **Rawat Inap**, bukan dari dalam Billing. Blueprint `RWI-BP-001`
+sub-modul `episode-rawat-inap` menetapkan deposit sebagai langkah di dalam alur admisi lewat
+`RWI-DEC-093` s.d. `RWI-DEC-096`, dan dua kemampuan yang dibutuhkannya berada di modul ini.
+
+```yaml
+requested_by_blueprint: RWI-BP-001 / episode-rawat-inap
+requested_by_decisions: [RWI-DEC-093, RWI-DEC-094, RWI-DEC-095, RWI-DEC-096]
+requested_at: 2026-09-08
+owner_approval: PENDING          # RWI-OQ-053 — pemilik BillingManagement belum menyatakan
+source_backend_at_design: 44099e4ddd921d51140d802cabf1cebbc5291d30
+source_frontend_at_design: 30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3
+contracts_referenced: [BIL-API-0.4, BIL-VALIDATION-0.4, BIL-PERMISSION-0.4]
+rawat_inap_contracts: [API 0.6.1, Validation 0.6.1, Permission/Audit 0.6.1]
+```
+
+**Kenapa hanya dua task, bukan lima.** Trace terhadap source `44099e4` pada 8 September 2026
+membuktikan tiga kebutuhan lain **sudah terpenuhi** modul ini:
+
+| Yang semula diminta | Ternyata | Buktinya |
+| --- | --- | --- |
+| Kolom `EpisodeId` pada `BilDepositAccount` | Tidak perlu | `BilDepositAccountConfiguration.cs:27` mengunci `EncounterId` unique, dan `InpEpisodeConfiguration.cs:26` juga — episodenya terbaca lewat join |
+| Idempotensi penerimaan deposit | Sudah ada | Header `Idempotency-Key` pada `BillingPatientFundsController.cs:99`; unique index pada `BilDepositMovementConfiguration.cs:31`; jalur replay pada `BillingDepositService.cs:76-80` |
+| Endpoint refund deposit | Sudah ada | `POST /financial-exceptions/refunds` beserta `approve` — `BillingFinancialExceptionsController.cs:112,157` |
+
+Karena itu usulan rute `billing-management/inpatient-deposits` dari pihak Rawat Inap **dicabut**
+sebelum sempat dipakai. Kedua task di bawah bersifat **aditif**: satu master baru dan satu operasi
+baca baru, tanpa menyentuh satu pun kolom tabel finansial yang sudah berisi data.
+
+## `BE-BKC-022` — Kebijakan minimum deposit per penjamin dan kelas perawatan
+
+| Field | Isi |
+| --- | --- |
+| Status | 🚫 `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053`. Rencana lengkap; yang belum ada adalah pernyataan pemilik modul ini |
+| Outcome | Petugas admisi rawat inap melihat minimum deposit yang benar untuk kombinasi penjamin dan kelas perawatan pasiennya, dan pasien yang penjaminnya menanggung penuh tidak dimintai uang muka sama sekali |
+| Trace | `RWI-DEC-094`; `FR-RI-164`, `FR-RI-175` pada `04-prd-to-mvp.md` `0.6.1` Rawat Inap; `api-contract.md` `0.6.1` Rawat Inap bagian Deposit Rawat Inap |
+| Kontrak | `BIL-API-0.4` **ditambah** satu operasi baca; `BIL-VALIDATION-0.4` dan `BIL-PERMISSION-0.4` tidak bergeser — memakai `BillingDeposit : Read` yang sudah ada |
+| Reuse | Pola master `MstDiscountPolicy`, `MstRoomChargePolicy`, dan `MstAdministrationFeePolicy` pada `BillingManagement/MasterData/` — kolom audit, soft delete, `IsActive`, dan konfigurasi EF mengikuti preseden itu apa adanya |
+| Scope | Satu master kebijakan deposit beserta konfigurasi EF, `DbSet`, dan migration; satu operasi baca `GET /patient-funds/deposit-policies?guarantorId=&patientClassId=`; DTO responsenya memuat `isRequired`, `minimumAmount`, dan `followUpIntervalDays` |
+| Dependency | `BE-BKC-001` fondasi; `BE-BKC-009` deposit yang sudah ada. **Tidak** bergantung pada task Rawat Inap mana pun |
+| Acceptance | 1. Kombinasi penjamin dan kelas yang punya kebijakan mengembalikan minimum beserta ambang tindak lanjutnya. 2. Kombinasi tanpa kebijakan mengembalikan `isRequired = false` — **bukan** 404, supaya layar admisi tidak menampilkan kesalahan pada keadaan yang wajar. 3. Perubahan kebijakan berlaku pada pembacaan berikutnya tanpa aplikasi dinyalakan ulang. 4. Nol perubahan pada tabel deposit yang sudah ada |
+| Verifikasi | Uji tiga kombinasi — mensyaratkan, tidak mensyaratkan, dan belum diatur; uji migration maju-mundur pada Postgres Docker sekali pakai; regresi `BillingDepositServiceTests.cs` tetap hijau |
+| Risiko/pemilik | Owner Billing/Finance. **Isi kebijakannya keputusan keuangan, bukan keputusan pelaksana**: siapa yang mengisi dan berapa angkanya belum ditetapkan. Sampai terisi, langkah Deposit di admisi berjalan tanpa minimum — perilaku ini disengaja, lihat `04-prd-to-mvp.md` Rawat Inap bagian 5.1 butir 4 |
+| DoD | Master, migration, endpoint, dan DTO ada; ketiga keadaan terbukti; build lulus; laporan menyatakan data kebijakan awal **belum** diisi beserta siapa pemiliknya |
+
+## `BE-BKC-023` — Ringkasan deposit per episode rawat inap
+
+| Field | Isi |
+| --- | --- |
+| Status | 🚫 `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053` |
+| Outcome | Layar admisi, layar kasir, dan gerbang penutupan episode membaca posisi deposit dari satu jawaban server yang sama, sehingga tidak ada dua tempat yang menghitung sendiri lalu berbeda hasil |
+| Trace | `RWI-DEC-095`; `FR-RI-167`, `FR-RI-176`, `FR-RI-172` pada `04-prd-to-mvp.md` `0.6.1` Rawat Inap |
+| Kontrak | `BIL-API-0.4` **ditambah** `GET /patient-funds/deposits/episodes/{episodeId}`. Rute `settle` hanya dibuat bila posisi settlement per episode tidak dapat diturunkan dari alokasi per kunjungan yang sudah ada |
+| Reuse | Perhitungan saldo pada `BillingDepositService`; `GET /invoices/encounters/{encounterId}/charge-summary` (`BillingInvoicesController.cs:122`) sebagai sumber tagihan final; join `EncounterId` → `InpEpisode` yang **sudah dipakai** `BillingCalculationService.cs:465` untuk charge kamar `BKC-DEC-043` |
+| Scope | Satu operasi baca per episode. Responsenya memuat minimum kebijakan, total diterima, total dialokasikan, total refund, saldo tersedia, **dua** angka kekurangan yang terpisah, dan outstanding top-up |
+| Dependency | `BE-BKC-022` untuk angka minimum; `BE-BKC-009` dan `BE-BKC-011` untuk saldo dan alokasi |
+| Acceptance | 1. Kekurangan terhadap **minimum kebijakan** dan kekurangan terhadap **tagihan final** dikembalikan sebagai dua field berbeda dan tidak pernah disatukan. 2. Episode tanpa deposit mengembalikan ringkasan bernilai nol, bukan 404. 3. Nilainya konsisten dengan histori mutasi bila dihitung ulang manual. 4. Pemanggil tidak perlu menghitung apa pun untuk menampilkan peringatan kekurangan |
+| Verifikasi | Uji episode tanpa deposit, deposit kurang, dan deposit lebih; bandingkan terhadap perhitungan manual atas `BilDepositMovement` |
+| Risiko/pemilik | Owner Billing/AR. **Risiko rancangan:** menyatukan kedua angka kekurangan membuat episode yang uang mukanya kurang tampak seperti episode yang tagihannya kurang — dilarang `RWI-DEC-095` |
+| DoD | Endpoint, DTO, dan test ketiga keadaan ada; build lulus; kontrak `BIL-API` dinaikkan beserta hash-nya |
+
+**Yang tetap dikerjakan modul Rawat Inap, bukan di sini.** Ambang hari tindak lanjut pada
+`MstInpatientSetting`, daftar pantau kekurangan deposit, langkah Deposit pada alur admisi, dan
+gerbang `FinancialClearance`. Keempatnya ada pada `RWI-BP-001` sebagai `BE-RWI-041`, `BE-RWI-042`,
+`BE-RWI-043`, dan `FE-RWI-042` s.d. `FE-RWI-045`.

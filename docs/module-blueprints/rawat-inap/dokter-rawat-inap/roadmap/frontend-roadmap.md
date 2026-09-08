@@ -164,12 +164,12 @@ sekali; task konsumen menggunakannya tanpa membuat salinan.
 | `ClinicalStateBoundary` ✅ | FE-RWI-042 | FE-RWI-043–050 | Rendering loading/empty/error/retry/read-only/denied berdasarkan props; tidak fetch API. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalStateBoundary.jsx` — [FE-RWI-042](../task/report/frontend/FE-RWI-042.md) |
 | `ClinicalSafetyAlert` ✅ | FE-RWI-043 | FE-RWI-044–049 | Pesan safety, error alergi, peringatan non-final/visite dekat; tidak menghitung risiko klinis. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalSafetyAlert.jsx` — [FE-RWI-043](../task/report/frontend/FE-RWI-043.md) |
 | `ClinicalActionGuard` ✅ | FE-RWI-043 | FE-RWI-044–049 | Hide/disable/penjelasan dari hasil authority domain; bukan mesin permission backend. **Sudah dibuat dan diekspor 7 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalActionGuard.jsx`; mode disable memakai `<fieldset disabled>` sehingga kontrol tulis benar-benar mati — [FE-RWI-043](../task/report/frontend/FE-RWI-043.md) |
-| `ClinicalValidationSummary` | FE-RWI-044 | Form domain lain bila perlu | Daftar validasi dan tautan fokus ke field; aturan wajib tetap dari kontrak |
-| `ClinicalCompletionBar` | FE-RWI-044 | FE-RWI-045 | Peringatan penguncian, Simpan Draft/Selesaikan satu dokumen, pending; tidak memfinalkan domain lain |
-| `ClinicalTimeline`, `ClinicalTimelineItem` | FE-RWI-045 | FE-RWI-046, FE-RWI-047 | Daftar/select item, slot waktu, metadata, isi/detail, audit; urutan dari adapter domain |
-| `ClinicalDocumentMeta` | FE-RWI-045 | FE-RWI-046, FE-RWI-047; detail kajian/tindakan bila perlu | Label penulis, profesi, waktu klinis, waktu catat, status; tidak mengganti penulis |
-| `ClinicalAuditBadge` | FE-RWI-045 | FE-RWI-046, FE-RWI-047 | Penanda koreksi/verifikasi/terlambat/batal, teks plus visual |
-| `ClinicalSegmentedNav` | FE-RWI-048 | FE-RWI-049 hanya bila kelak memakai segmen | Navigasi internal generik; FE-RWI-049 memakai dua section pada revision ini |
+| `ClinicalValidationSummary` ✅ | FE-RWI-044 | Form domain lain bila perlu | Daftar validasi dan tautan fokus ke field; aturan wajib tetap dari kontrak. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalValidationSummary.jsx` — [FE-RWI-044](../task/report/frontend/FE-RWI-044.md) |
+| `ClinicalCompletionBar` ✅ | FE-RWI-044 | FE-RWI-045 | Peringatan penguncian, Simpan Draft/Selesaikan satu dokumen, pending; tidak memfinalkan domain lain. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalCompletionBar.jsx` — [FE-RWI-044](../task/report/frontend/FE-RWI-044.md) |
+| `ClinicalTimeline`, `ClinicalTimelineItem` ✅ | FE-RWI-045 | FE-RWI-046, FE-RWI-047 | Daftar/select item, slot waktu, metadata, isi/detail, audit; urutan dari adapter domain. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalTimeline.jsx` dan `ClinicalTimelineItem.jsx`; item yang dapat dipilih dirender sebagai tombol sehingga fokus papan ketik ikut terpakai — [FE-RWI-045](../task/report/frontend/FE-RWI-045.md) |
+| `ClinicalDocumentMeta` ✅ | FE-RWI-045 | FE-RWI-046, FE-RWI-047; detail kajian/tindakan bila perlu | Label penulis, profesi, waktu klinis, waktu catat, status; tidak mengganti penulis. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalDocumentMeta.jsx`; waktu klinis dan waktu catat menempati baris sendiri-sendiri — [FE-RWI-045](../task/report/frontend/FE-RWI-045.md) |
+| `ClinicalAuditBadge` ✅ | FE-RWI-045 | FE-RWI-046, FE-RWI-047 | Penanda koreksi/verifikasi/terlambat/batal, teks plus visual. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalAuditBadge.jsx`; ikon selalu ditemani teks sehingga warna bukan satu-satunya pembeda — [FE-RWI-045](../task/report/frontend/FE-RWI-045.md) |
+| `ClinicalSegmentedNav` ✅ | FE-RWI-048 | FE-RWI-049 hanya bila kelak memakai segmen | Navigasi internal generik; FE-RWI-049 memakai dua section pada revision ini. **Sudah dibuat dan diekspor 8 September 2026** pada `src/components/ui/doctor-clinical-base/ClinicalSegmentedNav.jsx`; dirender sebagai `role="radiogroup"`, **bukan** `tablist` kedua, supaya relasi tab/panel shell tidak terbaca ganda. FE-RWI-049 memang tidak memakainya, sehingga nol dependency baru antar-cabang dibuat — [FE-RWI-048](../task/report/frontend/FE-RWI-048.md) |
 
 **Urutan pembuatan komponen bukan dependency backend baru.** Kolom Dependency existing tetap.
 Cabang boleh menyiapkan adapter/domain masing-masing secara paralel, tetapi integrasi consumer
@@ -268,13 +268,13 @@ sebelum rilis apa pun**. Urutan di dalamnya mengikuti kesiapan endpoint backend.
 | ---: | --- | --- | --- |
 | 1 | `FE-RWI-042` ✅ | — | Menu Dokter → Rawat Inap membuka daftar pasien episode; Census/detail tetap dapat dipakai |
 | 2 | `FE-RWI-043` ✅ | `BE-RWI-044` | Dokter membuka pasiennya sendiri, bukan antrean poliklinik |
-| 3 | `FE-RWI-044` | `BE-RWI-045` | Kajian medis awal dapat ditulis dan diselesaikan |
-| 4 | `FE-RWI-045` | `BE-RWI-046`, `BE-RWI-047` | Catatan harian ditulis, diurut waktu pemeriksaan, dan dikoreksi |
-| 5 | `FE-RWI-047` | `BE-RWI-048`, `BE-RWI-049` | Visite dicatat, dibatalkan, dan riwayatnya terbaca |
-| 6 | `FE-RWI-048` | `BE-RWI-050`, `BE-RWI-051` | Resep dan tindakan dikerjakan dari satu layar |
-| 7 | `FE-RWI-049` | `BE-RWI-052` | Pemeriksaan laboratorium dan radiologi dipesan, hasilnya dibaca |
-| 8 | `FE-RWI-046` | `BE-RWI-053` | Catatan terpadu dibaca dan diverifikasi DPJP |
-| 9 | `FE-RWI-050` | `BE-RWI-053` | Supervisor melihat verifikasi yang tertunggak |
+| 3 | `FE-RWI-044` 🟡 | `BE-RWI-045` | Kajian medis awal dapat ditulis dan diselesaikan |
+| 4 | `FE-RWI-045` ✅ | `BE-RWI-046`, `BE-RWI-047` | Catatan harian ditulis, diurut waktu pemeriksaan, dan dikoreksi |
+| 5 | `FE-RWI-047` ✅ | `BE-RWI-048`, `BE-RWI-049` | Visite dicatat, dibatalkan, dan riwayatnya terbaca |
+| 6 | `FE-RWI-048` ✅ | `BE-RWI-050`, `BE-RWI-051` | Resep dan tindakan dikerjakan dari satu layar |
+| 7 | `FE-RWI-049` ✅ | `BE-RWI-052` | Pemeriksaan laboratorium dan radiologi dipesan, hasilnya dibaca |
+| 8 | `FE-RWI-046` 🟡 | `BE-RWI-053` | Catatan terpadu dibaca dan diverifikasi DPJP |
+| 9 | `FE-RWI-050` 🟡 | `BE-RWI-053` | Supervisor melihat verifikasi yang tertunggak |
 
 ### Urutan dependency
 
@@ -286,19 +286,19 @@ Status mengikuti baris `Status` pada masing-masing task di bagian yang sama.
 FE-RWI-042 (menu Dokter → Rawat Inap; daftar pasien episode)   ✅ SELESAI 2026-09-07
    └── FE-RWI-043 (ruang kerja dan konteks pasien)             ✅ SELESAI 2026-09-07
           + BE-RWI-044
-          ├── FE-RWI-044 (kajian medis awal)                  ⬜ BELUM DIKERJAKAN
+          ├── FE-RWI-044 (kajian medis awal)                  🟡 SEBAGIAN 2026-09-08
           │      + BE-RWI-045
-          ├── FE-RWI-045 (catatan perkembangan dan koreksi)   ⬜ BELUM DIKERJAKAN
+          ├── FE-RWI-045 (catatan perkembangan dan koreksi)   ✅ SELESAI 2026-09-08
           │      + BE-RWI-046, BE-RWI-047
-          ├── FE-RWI-047 (pencatatan dan pembatalan visite)   ⬜ BELUM DIKERJAKAN
+          ├── FE-RWI-047 (pencatatan dan pembatalan visite)   ✅ SELESAI 2026-09-08
           │      + BE-RWI-048, BE-RWI-049
-          ├── FE-RWI-048 (resep dan tindakan)                ⬜ BELUM DIKERJAKAN
+          ├── FE-RWI-048 (resep dan tindakan)                ✅ SELESAI 2026-09-08
           │      + BE-RWI-050, BE-RWI-051
-          ├── FE-RWI-049 (laboratorium dan radiologi)         ⬜ BELUM DIKERJAKAN
+          ├── FE-RWI-049 (laboratorium dan radiologi)         ✅ SELESAI 2026-09-08
           │      + BE-RWI-052
-          └── FE-RWI-046 (catatan terpadu dan verifikasi DPJP) ⬜ BELUM DIKERJAKAN
+          └── FE-RWI-046 (catatan terpadu dan verifikasi DPJP) 🟡 SEBAGIAN 2026-09-08 ← nama verifikator tidak ada di kontrak baca
                  + BE-RWI-053
-                 └── FE-RWI-050 (daftar pantau verifikasi)   ⬜ BELUM DIKERJAKAN
+                 └── FE-RWI-050 (daftar pantau verifikasi)   🟡 SEBAGIAN 2026-09-08 ← urutan daftar menunggu peta modul
                         + BE-RWI-053
 ```
 
@@ -317,7 +317,7 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ## 3. Task
 
-### `FE-RWI-042` ✅ — Operational Entry Point Dokter Rawat Inap
+### ✅ `FE-RWI-042` — Operational Entry Point Dokter Rawat Inap
 
 | Field | Isi |
 | --- | --- |
@@ -346,7 +346,7 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-043` ✅ — Ruang kerja dokter berdiri di atas konteks pasien yang pasti
+### ✅ `FE-RWI-043` — Ruang kerja dokter berdiri di atas konteks pasien yang pasti
 
 | Field | Isi |
 | --- | --- |
@@ -375,11 +375,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-044` — Layar kajian medis awal, terpisah kasatmata dari pengkajian keperawatan
+### 🟡 `FE-RWI-044` — Layar kajian medis awal, terpisah kasatmata dari pengkajian keperawatan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 `SEBAGIAN` **8 September 2026.** **6 dari 6** acceptance criteria fungsional dan **9 dari 9** acceptance visual terpenuhi serta terpetakan ke source. **Yang belum: 1 elemen layout** — tombol **+ Tambah Diagnosis** pada Diagnosis / Problem List tertahan kontrak backend, karena `CreatePatientDiagnosisRequest.ConsultationId` bersifat `[Required]` sehingga diagnosis terstruktur hanya dapat lahir dari catatan dokter milik `FE-RWI-045`; daftar masalahnya sudah tampil hanya-baca beserta keterangan ke mana penambahannya menempel. Konflik kewenangan dokter jaga pada §6 **tidak** dinyatakan lulus, sesuai DoD task ini. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 487/487 lulus, 0 gagal (15 test baru task ini); `npm run build` beserta `postbuild` berhasil; **35 skenario peramban lulus** di Edge — 13 skenario `FE-RWI-044` (dua panel 70/30, rujukan kosong bukan penghalang, rujukan gagal ≠ kosong, isian bertahan saat simpan gagal, bagian kosong disebut satu per satu, Selesaikan tersembunyi bagi yang tidak berwenang, final tanpa sunting langsung, Koreksi tersembunyi saat tidak berwenang, koreksi tidak menimpa isi asli, payload draf, tiga viewport) ditambah 22 regresi `FE-RWI-042`/`FE-RWI-043`. Satu cacat ditemukan uji dan diperbaiki: modal penegasan sempat tetap terbuka saat penyelesaian ditolak sehingga ringkasan validasi tertutup. Laporan: [`task/report/frontend/FE-RWI-044.md`](../task/report/frontend/FE-RWI-044.md) |
 | **Outcome** | DPJP mengisi pemeriksaan menyeluruh pertama, dan tidak seorang pun dapat mengira dokumen itu adalah pengkajian keperawatan |
 | **Trace** | `FE-DOK-02`; `03-frontend-architecture.md` §3.2; `AC-CAP022-02` |
 | **Kontrak** | `0.3.0` |
@@ -404,11 +404,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-045` — Catatan perkembangan beserta waktu pemeriksaan dan koreksinya
+### ✅ `FE-RWI-045` — Catatan perkembangan beserta waktu pemeriksaan dan koreksinya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ `SELESAI` **8 September 2026.** Keenam acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Bukti kunci: lini masa memakai urutan server menurut waktu pemeriksaan dan menampilkan dua label waktu terpisah (contoh pemeriksaan 07.40 dicatat 11.03); waktu mundur diterima sementara masa depan dan sebelum pasien masuk kamar ditolak sesuai `VAL-DOK-13/14`; satu bagian S/O/A/P sudah cukup sesuai `VAL-DOK-12`; catatan final kehilangan editornya sama sekali dan nol kemunculan tombol Sunting/Edit; peringatan penguncian tampil **sebelum** tombol Selesaikan ditekan; penulis asli tidak pernah tergantikan pengoreksi. Empat base baru dibuat dan diekspor: `ClinicalTimeline`, `ClinicalTimelineItem`, `ClinicalDocumentMeta`, `ClinicalAuditBadge`. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. Laporan: [`task/report/frontend/FE-RWI-045.md`](../task/report/frontend/FE-RWI-045.md) |
 | **Outcome** | Dokter menulis catatan harian dengan waktu pemeriksaan yang sebenarnya, dan membetulkan yang sudah final tanpa dapat menyuntingnya diam-diam |
 | **Trace** | `FE-DOK-03`; `03-frontend-architecture.md` §3.3; `RWI-DEC-086`, `RWI-DEC-088` |
 | **Kontrak** | `0.3.0` |
@@ -433,11 +433,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-046` — Catatan terpadu dan verifikasi DPJP
+### 🟡 `FE-RWI-046` — Catatan terpadu dan verifikasi DPJP
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 `SEBAGIAN` **8 September 2026.** **4 dari 5** acceptance criteria terpenuhi penuh; **kriteria 2 terpenuhi separuh**. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Yang terbukti: setiap catatan menampilkan penulis beserta profesinya, dan nama penulis diambil berjenjang sehingga akun yang berganti nama tidak mengubah penulis catatan lama; Penulis dan Verifikator adalah **dua baris terpisah** sehingga nama penulis tidak mungkin tertimpa; tombol Verifikasi **disembunyikan** bila salah satu dari empat syarat gagal — DPJP aktif saat ini, bukan penulis, status menerima Verify, episode belum ditutup; kebijakan yang belum aktif berbunyi “Verifikasi DPJP tidak diwajibkan”, bukan daftar kosong; keterlambatan hanya dipantau dan tidak menahan penulisan berikutnya. **Yang belum: nama verifikator tidak dapat ditampilkan** karena `PatientIntegratedProgressNoteResponse` tidak mengembalikan `VerificationStatus`, `VerifiedAt`, maupun `VerifiedByUserId` — pemetaan `ToResponse` pada `PatientIntegratedProgressNoteController.cs:1397–1435` tidak menyertakannya, dan balasan `PATCH /{id}/verify` memakai pemetaan yang sama. Akibatnya status per catatan hanya dapat disimpulkan sebagian, dan layar menambahkan keadaan kelima **belum dapat dipastikan** alih-alih menebak “sudah diverifikasi”. Celah kontrak itu **tidak diperbaiki dari sini** karena task bermode `FRONTEND`. Gerbang §4.1 butir 10 karena itu terbukti separuh. **Isu §6 eligibility Verifikasi pada episode Closed tetap terbuka**; layar memakai baseline Closed hanya-baca. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. Laporan: [`task/report/frontend/FE-RWI-046.md`](../task/report/frontend/FE-RWI-046.md) |
 | **Outcome** | DPJP membaca catatan seluruh profesi pada satu lembar dan menyatakan sudah memeriksanya, tanpa nama penulis aslinya tergantikan |
 | **Trace** | `FE-DOK-04`; `03-frontend-architecture.md` §3.4; `AC-CAP021-03` |
 | **Kontrak** | `0.3.0` |
@@ -462,11 +462,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-047` — Riwayat visite beserta pencatatan dan pembatalannya
+### ✅ `FE-RWI-047` — Riwayat visite beserta pencatatan dan pembatalannya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ `SELESAI` **8 September 2026.** Keenam acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Bukti kunci: kejadian yang dibatalkan **tetap berdiri** di riwayat beserta alasan, pembatal, dan waktunya; keadaan kosong berbunyi “Belum ada visite tercatat” dan menegaskan catatan perkembangan tidak dihitung sebagai visite; kunci permintaan diturunkan dari isi kiriman sehingga kiriman ulang memakai kunci sama sementara dua visite nyata memakai kunci berbeda; visite berdekatan hanya **diperingatkan** dan tetap dapat dilanjutkan; alasan pembatalan wajib; pemindaian keempat berkas tab mengembalikan **nol** tombol Sunting/Edit. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. **Dua isu §6 tetap terbuka dan tidak dinyatakan lulus**: hak Cancel dokter konsulen, dan mutasi event pada episode Closed — layar memakai baseline Closed hanya-baca. Dependency `BE-RWI-048` 🟡 tetap, termasuk bukti concurrency PostgreSQL yang masih terbuka. Laporan: [`task/report/frontend/FE-RWI-047.md`](../task/report/frontend/FE-RWI-047.md) |
 | **Outcome** | Dokter mencatat kunjungannya, membatalkan yang salah catat, dan melihat riwayat yang jujur — termasuk baris yang dibatalkan |
 | **Trace** | `FE-DOK-05`; `03-frontend-architecture.md` §3.5; `RWI-DEC-084`, `RWI-DEC-085`; `RWI-AC-150` s.d. `RWI-AC-156` |
 | **Kontrak** | `0.3.0` |
@@ -491,11 +491,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-048` — Resep dan tindakan dari satu layar
+### ✅ `FE-RWI-048` — Resep dan tindakan dari satu layar
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ `SELESAI` **8 September 2026.** Kelima acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Bukti kunci: satu tab utama dengan dua segmen lewat `ClinicalSegmentedNav` baru; Rutin, Harian, dan Obat Pulang menghasilkan tiga label berbeda; pemindaian keempat berkas segmen mengembalikan **nol** kemunculan “Tandai Diserahkan”, dan service resep tidak memuat satu pun fungsi tulis status pemenuhan; keadaan Farmasi yang tidak dikenal berbunyi “belum diketahui” dan **tidak** dipalsukan menjadi “Sudah Diserahkan”; tindakan `Completed` dengan tagihan gagal tetap berstatus Selesai dan kegagalannya hanya menjadi penanda baris, bukan galat halaman; kiriman resep berulang memakai kunci permintaan yang sama. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. **Isu §6 percobaan ulang pengiriman tagihan tetap terbuka**: layar hanya menyediakan Baca Ulang Status, nol endpoint dispatch retry dikarang, dan `execute` tidak pernah dikirim ulang. Peringatan obat pulang `VAL-DOK-20` tetap tercatat belum dikerjakan di backend. Dependency `BE-RWI-051` 🟡 tetap. Laporan: [`task/report/frontend/FE-RWI-048.md`](../task/report/frontend/FE-RWI-048.md) |
 | **Outcome** | Dokter meresepkan dan mencatat tindakan tanpa berpindah layar, dan melihat status pemenuhan tanpa dapat mengubahnya |
 | **Trace** | `FE-DOK-06`; `03-frontend-architecture.md` §3.6; `RUL-DOK-01` |
 | **Kontrak** | `0.3.0` |
@@ -520,11 +520,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-049` — Pemeriksaan penunjang laboratorium dan radiologi
+### ✅ `FE-RWI-049` — Pemeriksaan penunjang laboratorium dan radiologi
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ `SELESAI` **8 September 2026.** Kelima acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Bukti kunci: Laboratorium dan Radiologi berdiri sebagai **dua section berjudul terpisah** dengan kolom, batas state, dan tombol pesan masing-masing — Radiologi membawa Modalitas dan Jadwal yang tidak ada pada Laboratorium; kefinalan hasil dibedakan **tiga arah** (final, belum final, belum dapat dipastikan) dan dua yang terakhir membawa kalimat larangan pemakaian klinis, bukan sekadar warna; isolasi perawatan ditegakkan server dan diberi lapis kedua di layar sesuai `INV-DOK-12`; pemindaian lima berkas mengembalikan **nol** kemunculan kalimat “pemeriksaan radiologi belum tersedia di sistem” dan **nol** kemunculan “Input Hasil”. Dua folder service baru dibuat karena `laboratory-management` dan `radiology-management` memang belum pernah ada di frontend. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. Tidak ada isu §6 yang tersisa untuk task ini. Laporan: [`task/report/frontend/FE-RWI-049.md`](../task/report/frontend/FE-RWI-049.md) |
 | **Outcome** | Dokter memesan pemeriksaan dan membaca hasil yang sudah disahkan, dengan hasil yang belum final tidak pernah terlihat seperti hasil sah |
 | **Trace** | `FE-DOK-07`; `03-frontend-architecture.md` §3.7; `INV-DOK-12` |
 | **Kontrak** | `0.3.0` |
@@ -549,11 +549,11 @@ lintas cabang mengikuti §1.2 sebelum integrasi; ini tidak menghapus atau menamb
 
 ---
 
-### `FE-RWI-050` — Daftar pantau verifikasi catatan terpadu
+### 🟡 `FE-RWI-050` — Daftar pantau verifikasi catatan terpadu
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 `SEBAGIAN` **8 September 2026.** **3 dari 5** acceptance criteria terpenuhi penuh, **1 separuh**, **1 belum**. Validasi nyata: `npm run lint:errors` 0 error; `npm run test:unit` 542/542 lulus, 0 gagal — 21 di antaranya uji baru untuk keenam task ini; `npm run build` beserta `postbuild` berhasil. Yang terbukti: daftar berdiri sebagai **bagian tambahan di dalam layar daftar pantau existing**, nol route dan nol butir menu baru dibuat, dan keempat daftar existing beserta urutannya tidak disentuh; tiga hasil dibedakan tegas dengan kalimat masing-masing — sudah terverifikasi, tidak diwajibkan, dan gagal dimuat — dan urutan penentuannya menaruh kegagalan paling depan sehingga daftar yang gagal dibaca tidak pernah terbaca sebagai beres; setiap baris membuka ruang kerja pasien itu langsung pada tab Catatan Terpadu lewat `?tab=`; nol isi klinis ditampilkan pada sel, tooltip, baris yang dapat dibuka, maupun atribut aksesibilitas. **Kriteria 4 separuh**: `CpptVerificationWatchItem` hanya membawa `ProviderUserId`, bukan nama penulis, sehingga kolom Penulis berbunyi “Nama penulis belum tersedia” — id pengguna sengaja tidak ditampilkan. **Kriteria 5 belum terpenuhi**: urutan daftar di dalam `FE-INP-09` ditetapkan tingkat modul dan slot dokter belum dinyatakan, sehingga bagian ini ditempatkan sementara **di bawah** keempat daftar existing. Sesuai §6, integrasi dan urutannya **belum dinyatakan lulus**; nol endpoint baru dikarang, dan daftar lintas pasien disusun dari pembacaan per episode atas episode yang sedang tampil dengan cakupan yang dinyatakan di layar. Butir DoD bukti visual tiga viewport **dikecualikan atas keputusan pengguna** bahwa pengujian e2e dan `.mjs` bukan gerbang selesai pada repository ini; catatan verifikasinya tetap tercatat sebagai `NOT RUN` pada laporan, tidak dihapus. Laporan: [`task/report/frontend/FE-RWI-050.md`](../task/report/frontend/FE-RWI-050.md) |
 | **Outcome** | Supervisor klinis menemukan catatan yang menunggu atau lewat batas verifikasi, dan tidak salah membaca daftar kosong sebagai kebijakan yang tidak aktif |
 | **Trace** | `FE-DOK-08`; `03-frontend-architecture.md` §3.8 |
 | **Kontrak** | `0.3.0` |
@@ -646,10 +646,10 @@ atau mencabut dependency backend.
 | Status | File + rule yang bertentangan/belum lengkap | Dampak dan tindakan; pemilik |
 | --- | --- | --- |
 | `NEEDS CONFIRMATION` | `03-frontend-architecture.md` §4 dan `04-prd-to-mvp.md` §6 membatasi kajian awal pada DPJP; `contracts/permission-audit-matrix.md` §2 memberi dokter jaga hak sama kecuali Verify, §3 serta `validation-matrix.md` VAL-DOK-05/06 menyebut dokter/authority pasien | FE-RWI-044 tidak boleh mengunci sendiri hak dokter jaga dari nama role. Cocokkan capability/authority backend dan putusan pemilik; DPJP berwenang serta referensi read-only dapat dikerjakan. Product/Domain + ClinicalManagement |
-| `NEEDS CONFIRMATION` | `03-frontend-architecture.md` §4 mengizinkan Cancel visite bagi konsulen; `contracts/permission-audit-matrix.md` §2 hanya memberi konsulen Read dan Create CPPT/visite; `state-transition-matrix.md` §5 mensyaratkan pemilik event atau supervisor | FE-RWI-047 tidak boleh memberi Cancel hanya karena label konsulen/pemilik event. Resource–Action **dan** ownership sama-sama diperlukan; klarifikasi hak peran konsulen. Product/Domain + pemilik permission |
-| `NEEDS CONFIRMATION` | Skema §17 mengatakan Closed read-only kecuali koreksi final; state §3/§5 dan API §3/§4 tidak merinci eligibility Verify CPPT, Cancel/links visite setelah Closed | FE-RWI-046/047 memakai baseline Closed read-only; jangan membuka mutasi event/verifikasi hanya berdasarkan permission umum. Minta keputusan lifecycle aksi spesifik, bukan menyamakan dengan addendum; layout, baca riwayat dan kasus episode aktif tetap dapat berjalan. Product/Domain + ClinicalManagement |
-| `NEEDS CONFIRMATION` | Skema §11.2 menggambar **Coba Lagi** untuk dispatch Billing; `contracts/api-contract.md` §5 hanya mengontrak create/execute/read, `integration-contract.md` INT-DOK-03 menyebut daftar percobaan ulang tanpa aksi frontend workspace | FE-RWI-048 menampilkan dispatch per row dan retry **baca status** dengan label jelas. Jangan mengirim ulang execute atau menciptakan endpoint dispatch retry. Aksi retry pengiriman menunggu kontrak/permission pemilik Billing/ClinicalManagement; tidak menahan tampilan row-level failure |
-| `NEEDS CONFIRMATION — monitoring` | Arsitektur §3.8 memberi verification-status per episode; skema §13 menggambar daftar lintas pasien. Peta modul §3.3 belum memberi nomor slot dokter. Pada FE SHA review, `src/lib/constants/health-services/inpatient-management/inpatient-monitoring-constants.jsx`, `INPATIENT_MONITORING_LIST_KEYS` memuat empat daftar existing tanpa CPPT, belum ada slot yang dapat direuse langsung | FE-RWI-050 reuse host monitoring dan scope pasien berizin; bentuk agregasi/pagination lintas episode dan posisi daftar dokter harus ditetapkan dari bukti/keputusan pemilik, jangan mengarang endpoint baru atau mengubah urutan empat daftar lain. Layout data minimum/state dapat disiapkan; integrasi/urutan belum boleh dianggap lulus. Pemilik peta modul + Frontend authority + ClinicalManagement |
+| `NEEDS CONFIRMATION` | `03-frontend-architecture.md` §4 mengizinkan Cancel visite bagi konsulen; `contracts/permission-audit-matrix.md` §2 hanya memberi konsulen Read dan Create CPPT/visite; `state-transition-matrix.md` §5 mensyaratkan pemilik event atau supervisor | FE-RWI-047 tidak boleh memberi Cancel hanya karena label konsulen/pemilik event. Resource–Action **dan** ownership sama-sama diperlukan; klarifikasi hak peran konsulen. Product/Domain + pemilik permission. **Tetap terbuka per 8 September 2026:** `FE-RWI-047` diimplementasikan tanpa memutuskan sendiri — tombol Batalkan mengikuti kewenangan menulis pada episode yang sudah dihitung shell `FE-RWI-043`, dan penolakan akhirnya tetap milik server — [FE-RWI-047](../task/report/frontend/FE-RWI-047.md) |
+| `NEEDS CONFIRMATION` | Skema §17 mengatakan Closed read-only kecuali koreksi final; state §3/§5 dan API §3/§4 tidak merinci eligibility Verify CPPT, Cancel/links visite setelah Closed | FE-RWI-046/047 memakai baseline Closed read-only; jangan membuka mutasi event/verifikasi hanya berdasarkan permission umum. Minta keputusan lifecycle aksi spesifik, bukan menyamakan dengan addendum; layout, baca riwayat dan kasus episode aktif tetap dapat berjalan. Product/Domain + ClinicalManagement. **Tetap terbuka per 8 September 2026:** kedua task diimplementasikan dengan baseline Closed hanya-baca — `canVerifyNote` menolak verifikasi pada episode tertutup, dan jalur tulis visite ditutup penjaga kewenangan; nol mutasi dibuka dari permission umum — [FE-RWI-046](../task/report/frontend/FE-RWI-046.md), [FE-RWI-047](../task/report/frontend/FE-RWI-047.md) |
+| `NEEDS CONFIRMATION` | Skema §11.2 menggambar **Coba Lagi** untuk dispatch Billing; `contracts/api-contract.md` §5 hanya mengontrak create/execute/read, `integration-contract.md` INT-DOK-03 menyebut daftar percobaan ulang tanpa aksi frontend workspace | FE-RWI-048 menampilkan dispatch per row dan retry **baca status** dengan label jelas. Jangan mengirim ulang execute atau menciptakan endpoint dispatch retry. Aksi retry pengiriman menunggu kontrak/permission pemilik Billing/ClinicalManagement; tidak menahan tampilan row-level failure. **Tetap terbuka per 8 September 2026:** layar hanya menyediakan **Baca Ulang Status**, nol endpoint dispatch retry dikarang, dan `execute` tidak pernah dikirim ulang; kegagalan tagihan tampil sebagai penanda baris sementara status klinisnya tetap utuh — [FE-RWI-048](../task/report/frontend/FE-RWI-048.md) |
+| `NEEDS CONFIRMATION — monitoring` | Arsitektur §3.8 memberi verification-status per episode; skema §13 menggambar daftar lintas pasien. Peta modul §3.3 belum memberi nomor slot dokter. Pada FE SHA review, `src/lib/constants/health-services/inpatient-management/inpatient-monitoring-constants.jsx`, `INPATIENT_MONITORING_LIST_KEYS` memuat empat daftar existing tanpa CPPT, belum ada slot yang dapat direuse langsung | FE-RWI-050 reuse host monitoring dan scope pasien berizin; bentuk agregasi/pagination lintas episode dan posisi daftar dokter harus ditetapkan dari bukti/keputusan pemilik, jangan mengarang endpoint baru atau mengubah urutan empat daftar lain. Layout data minimum/state dapat disiapkan; integrasi/urutan belum boleh dianggap lulus. Pemilik peta modul + Frontend authority + ClinicalManagement. **Tetap terbuka per 8 September 2026:** layout data minimum, tiga hasil, dan deep link sudah dikerjakan di dalam host existing; nol endpoint baru dikarang dan urutan keempat daftar lain tidak disentuh. Daftar lintas pasien disusun dari pembacaan **per episode** atas episode yang sedang tampil, dan cakupan itu dinyatakan di layar. **Yang masih dibutuhkan:** ketetapan urutan/slot dokter, nama penulis pada `CpptVerificationWatchItem`, dan keputusan bentuk agregasi lintas episode. `FE-RWI-050` karena itu 🟡 `SEBAGIAN` — [FE-RWI-050](../task/report/frontend/FE-RWI-050.md) |
 | `RESOLVED — selisih dokumentasi permission` | Arsitektur §2 memakai `InpatientCensus : Read`; peta modul §3.1 memakai `InpatientEpisode : Read` untuk census. Backend SHA review: `Areas/HealthServices/InPatientManagement/Controllers/InpatientCensusController.cs:94`, `[AccessPermission("InpatientCensus", "Read")]` | FE-RWI-042 memakai resource aktual **InpatientCensus : Read** untuk daftar; akses episode tetap mengikuti controller episode. Tidak membuat/mengganti permission backend. Selisih peta modul dicatat untuk sinkronisasi dokumen; pemilik episode. ✅ **Diterapkan 7 September 2026:** daftar memanggil endpoint census (`InpatientCensus : Read`) dan ruang kerja memanggil detail episode (`InpatientEpisode : Read`); nol permission baru dibuat — [FE-RWI-042](../task/report/frontend/FE-RWI-042.md) |
 | `OPEN — dependency backend dipertahankan` | `roadmap/backend-roadmap.md` BE-RWI-048 dan BE-RWI-051 masih SEBAGIAN: bukti concurrency/percobaan ulang PostgreSQL belum terpenuhi | FE-RWI-047/048 tidak boleh mengklaim end-to-end selesai dari mock frontend. Seluruh dependency BE-RWI-044–053 tetap persis; status/bukti mengikuti roadmap dan laporan backend. Pemilik lingkungan uji/backend |
 | `OPEN — kebijakan/kontrak hilir` | PRD §8, `VAL-DOK-24/25`, backend roadmap §6: batas waktu verifikasi/kajian belum disahkan; BE-RWI-050 mencatat warning obat pulang `VAL-DOK-20` belum dikerjakan; pembacaan balik penyerahan obat pulang `RWI-DOK-RQG-003` masih menunggu Farmasi | Jangan menanam angka SLA, menganggap NotRequired sebagai Verified, atau menulis status fulfillment/clearance. Tidak ada approval baru atas policy/kontrak hilir. Clinical Governance + pemilik ClinicalManagement/PharmacyManagement |
@@ -660,9 +660,19 @@ Revision ini hanya memperjelas rencana kerja **FE-RWI-042 s.d. FE-RWI-050**. Sem
 source frontend/backend, database, commit, push, atau merge yang diberikan oleh revisi ini.
 
 > **Status sesudah revision.** Kalimat di atas menggambarkan keadaan saat revision 2 ditulis.
-> Per **7 September 2026**, `FE-RWI-042` dan `FE-RWI-043` berstatus ✅ `SELESAI` dengan bukti pada
-> [`task/report/frontend/FE-RWI-042.md`](../task/report/frontend/FE-RWI-042.md) dan
-> [`task/report/frontend/FE-RWI-043.md`](../task/report/frontend/FE-RWI-043.md); tujuh task
-> frontend sisanya tetap `BELUM DIKERJAKAN`. `FE-RWI-042` sudah di-commit pemilik pekerjaan
-> sebagai `30db3734a`; perubahan `FE-RWI-043` belum di-commit — commit dan push dilakukan
-> pemilik pekerjaan sendiri.
+> Per **8 September 2026**, **seluruh sembilan task frontend sudah dikerjakan** dan tidak ada
+> lagi yang berstatus `BELUM DIKERJAKAN`:
+>
+> - ✅ `SELESAI` — `FE-RWI-042`, `FE-RWI-043`, `FE-RWI-045`, `FE-RWI-047`, `FE-RWI-048`,
+>   `FE-RWI-049`;
+> - 🟡 `SEBAGIAN` — `FE-RWI-044` (tombol Tambah Diagnosis tertahan kontrak),
+>   `FE-RWI-046` (nama verifikator tidak ada pada kontrak baca CPPT), dan `FE-RWI-050`
+>   (urutan daftar menunggu ketetapan peta modul, nama penulis tidak ada pada daftar pantau).
+>
+> Buktinya ada pada sembilan laporan di [`task/report/frontend/`](../task/report/frontend/).
+> Gelombang `DOK-MVP-FE` karena itu **belum** dapat dinyatakan selesai selama ketiga task
+> 🟡 di atas belum ditutup; ketiganya tertahan kontrak backend dan keputusan pemilik,
+> bukan kekurangan source. Source `FE-RWI-042` s.d. `FE-RWI-044` sudah di-commit pemilik
+> pekerjaan (`30db3734a`, `94f01819f`, lalu `52b07d363`), dan source keenam task berikutnya
+> ikut di-commit pemilik pekerjaan sebagai `e194509dc`. Agent tidak menjalankan satu pun tindakan
+> Git; commit dan push tetap dilakukan pemilik pekerjaan sendiri.

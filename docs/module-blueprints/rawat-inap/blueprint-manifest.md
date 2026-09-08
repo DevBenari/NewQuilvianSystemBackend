@@ -179,9 +179,9 @@ pada manifest sub-modulnya.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`00-interview-decisions.md`](./00-interview-decisions.md) | `17` | `draft / trace ulang deposit setelah merge` | `8708adca3ed28e101fc38cd86175d14f1c417bb83461336667774821e4275454` |
+| [`00-interview-decisions.md`](./00-interview-decisions.md) | `17` | `draft / trace ulang deposit setelah merge` | `44d1980f99e1b43b2881cc60afc5ae4281a3411e0ea161e6365191fd62729afa` |
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) | `1.3` | `source-audited / focused-impact-scan` | `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
-| [`02-module-map.md`](./02-module-map.md) | `1` | `draft` — bagian dokter **diamendemen 2026-09-02**: gelombang migration M0, nama `CliPhysicianVisit`, Radiologi masuk MVP, dan satu butir menu ter-commit yang wajib dicabut | `be48b39b968781e5d267b23cfe64aef5781de0ecb45ff2363c83ae762271f44a` |
+| [`02-module-map.md`](./02-module-map.md) | `1` | `draft` — bagian dokter **diamendemen 2026-09-02**: gelombang migration M0, nama `CliPhysicianVisit`, Radiologi masuk MVP, dan satu butir menu ter-commit yang wajib dicabut | `94e54fd45ba09bd61eb9c218e7d7b424725c3a45b6dd76f16f4a51a98c6f7c85` |
 | [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.4` | `CURRENT / focused keperawatan INP-S16` | `03bdcb31d8bb51478e2b9cf8a78392bd0c0b2e0ca5a60de79e566e5b9c5f2f9c` |
 | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) | `0.2` | `draft / amendment Dokter Rawat Inap` | `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 

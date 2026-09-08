@@ -57,8 +57,8 @@ masing-masing hanya menahan task yang ditunjuk di sana.
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
 | [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.5` | `draft` | `b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.6` | `draft` | `cedfdfc4189d20ffa31588f84876658df151b4078b9f3749f303a00cb88b771a` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.1` | `draft` | `333aca44564a4a878f2a76b1c6569d3bcbf158ce09e46496fcdb5deaf126ef5f` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.6` | `draft` | `6e280eae1ab85d3165aeee3dd9ccfbcc061ac55f74f653b1c1c7a66b52e0fe3d` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.1` | `draft` | `99814d79eb09cce6b2a528deff6751d89915914a8f17b03f36e3c9c351c02a23` |
 | [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e` |
 | [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `73eaa7d0c6d0567a37380679b4c9c0fd150d75a8851e7b6fd4b1d5f4e28a41e4` |
@@ -71,12 +71,12 @@ masing-masing hanya menahan task yang ditunjuk di sana.
 | [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.6.1` | `draft` | `a0ba4ad5f8f4d587dff5c8321fc2c33fe1be825c32cb2fed06099b1e9858d6e9` |
 | [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` | `draft` | `357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c` |
 
-> **Pemutakhiran kedua 2026-09-04 sore — `/qv-trace` setelah merge.** Empat artefak naik ke
+> **Pemutakhiran kedua 2026-09-08 sore — `/qv-trace` setelah merge.** Empat artefak naik ke
 > `0.6.1`: kolom `EpisodeId` dibatalkan (`RWI-FACT-017`), rute refund dikembalikan ke `BIL-API-0.4`,
 > dan dua aturan validasi dicabut karena sudah dijaga unique index. Baseline SHA ikut bergeser ke
 > `44099e4` backend dan `30db3734` frontend.
 >
-> **Pemutakhiran 2026-09-04 — Amendment Pass deposit admisi.** Lima artefak di atas naik karena
+> **Pemutakhiran 2026-09-08 — Amendment Pass deposit admisi.** Lima artefak di atas naik karena
 > `RWI-DEC-093` s.d. `RWI-DEC-096`. `04-prd-to-mvp.md` naik dua tingkat sekaligus, `0.4.1` → `0.6.0`,
 > karena revisi `0.5.0` sempat disusun di luar pohon blueprint pada `docs/Modul-RS/Rawat-Inap/` lalu
 > diport masuk; berkas asalnya ditandai `SUPERSEDED`. `state-transition-matrix.md`,
@@ -92,11 +92,11 @@ berubah hanya pada rujukan path, sehingga revision-nya tidak bergerak.
 ### 2.1 Roadmap dan traceability
 
 Ditulis `/qv-plan`, bukan skill desain. Ketiganya di-resync ke masukan revision `5` pada
-2026-09-02, lalu **ditulis ulang 2026-09-04** untuk memuat slice deposit `EPIC RI-35`.
+2026-09-02, lalu **ditulis ulang 2026-09-08** untuk memuat slice deposit `EPIC RI-35`.
 
 | Artefak | Revision | Status | Gerbang |
 |---|---|---|---|
-| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 41 task selesai; dua task deposit dibatalkan 2026-09-04 karena kemampuannya terbukti sudah ada. Revision `4` menambah tujuh task deposit — dua di antaranya sudah dibatalkan — dan **belum disetujui**; approval revision `3` tidak meluas ke sana. **Dua** di antaranya `BLOCKED` oleh `RWI-OQ-053` |
+| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 39 task selesai. Dua task deposit dibatalkan dan dua lagi dipindahkan ke roadmap `billing-kasir` pada 2026-09-08. Revision `4` menambah tujuh task deposit — dua di antaranya sudah dibatalkan — dan **belum disetujui**; approval revision `3` tidak meluas ke sana. **Dua** di antaranya `BLOCKED` oleh `RWI-OQ-053` |
 | [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `7` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 45** task selesai; 12 terbuka, empat di antaranya task deposit `FE-RWI-042` s.d. `FE-RWI-045` yang seluruhnya menunggu `RWI-UI-GAP-008` |
 | [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `7` | `DRAFT` | Mengikuti roadmap frontend. Bagian `EPIC RI-35` ditambahkan dengan kolom AC **sengaja kosong**; penomoran `RWI-AC-181` dan seterusnya milik `/qv-design` |
 
