@@ -189,7 +189,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (!exists)
                 throw new KeyNotFoundException("Batas nilai tidak ditemukan.");
 
-            return await _dbContext.LabValueBoundHistories
+            var baris = await _dbContext.LabValueBoundHistories
                 .AsNoTracking()
                 .Where(x => x.ValueBoundId == id && !x.IsDelete)
                 .OrderByDescending(x => x.OccurredAt)
@@ -206,6 +206,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     OccurredAt = x.OccurredAt
                 })
                 .ToListAsync(cancellationToken);
+
+            // Nama pelaku diambil sekali untuk seluruh baris, bukan satu kueri per baris —
+            // riwayat satu batas nilai bisa panjang dan pelakunya banyak berulang.
+            var penunjuk = baris
+                .Select(x => x.ActorUserId)
+                .Concat(baris.Where(x => x.ApprovedByUserId != null).Select(x => x.ApprovedByUserId!.Value))
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (penunjuk.Count > 0)
+            {
+                var nama = await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(x => penunjuk.Contains(x.Id))
+                    .Select(x => new
+                    {
+                        x.Id,
+                        Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode
+                    })
+                    .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+
+                foreach (var item in baris)
+                {
+                    item.ActorUserName = nama.GetValueOrDefault(item.ActorUserId);
+
+                    if (item.ApprovedByUserId is { } penyetuju)
+                    {
+                        item.ApprovedByUserName = nama.GetValueOrDefault(penyetuju);
+                    }
+                }
+            }
+
+            return baris;
         }
 
         // =================================================================

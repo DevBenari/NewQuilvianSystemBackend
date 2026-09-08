@@ -306,6 +306,28 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 > yang sudah ada ke Patologi Klinik, Patologi Anatomi, atau Mikrobiologi adalah keputusan
 > klinis, bukan turunan teknis. Menebaknya akan menghasilkan katalog yang tampak lengkap
 > tetapi salah golong, dan `INV-22` kemudian menolak pesanan yang sebenarnya sah.
+>
+> **Penahannya ternyata bukan hanya penggolongan klinis — jalur pengisiannya pun tidak ada.
+> Dibangun 2026-09-08.** Kolom `LabDiscipline` memang bertambah pada model dan tabel, tetapi
+> tidak pernah dibuka pada `ProcedureDtos.cs` maupun `ProcedureController.cs`. Telusur seluruh
+> backend menemukan nol jalur tulis: bukan lewat API, bukan lewat layar, bukan lewat seeder.
+> Artinya seandainya daftar penggolongan dari pihak klinis sudah ada sejak 2026-09-04, nilainya
+> tetap **tidak dapat dimasukkan**. Butir DoD *"nilainya terisi"* karena itu tidak pernah dapat
+> dipenuhi siapa pun, dan alasan yang tercatat selama ini hanya menyebut separuh sebabnya.
+>
+> Yang dibangun: `labDiscipline` diterima `POST` dan `PUT`, terbit pada respons daftar, detail,
+> dan opsi beserta `labDisciplineName` siap baca, masuk ke `filters/metadata` sebagai
+> `labDisciplineOptions` dan sebagai ruas form bernomor urut 11, serta muncul sebagai pilihan
+> **Disiplin Laboratorium** pada layar Master Data → Prosedur. Daftar disiplin yang sah diambil
+> dari `Enum.GetNames<LabDiscipline>()`, bukan konstanta teks tersendiri, supaya controller ini
+> tidak dapat menerima golongan yang tidak dikenali Laboratorium. Dua aturan ditegakkan:
+> golongan pada tindakan non-laboratorium **ditolak** alih-alih dikosongkan diam-diam, dan
+> mengirimnya kosong mencabut golongan sehingga penanda `IsLaboratory` tidak pernah mati
+> sambil meninggalkan golongan yatim. Delapan uji menjaganya
+> (`ProcedureLabDisciplineTests`), enam uji lagi di sisi layar.
+>
+> **Yang masih menahan tinggal satu: daftar penggolongannya.** Itu tetap keputusan klinis, dan
+> tetap tidak boleh ditebak.
 
 | Butir | Isi |
 |---|---|
@@ -318,7 +340,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Acceptance criteria** | `AC-51` bergantung padanya |
 | **Verifikasi** | Kolom ada, terisi untuk seluruh pemeriksaan berpenanda `IsLaboratory`, dan `BE-LAB-07` dapat menyaring dengannya |
 | **Risiko/pemilik** | Dependency eksternal. Persetujuannya sudah ada; pelaksanaannya belum dijadwalkan. Pemilik: pemilik `master-data` |
-| **DoD** | Kolom ada **(terpenuhi)**, nilainya terisi **(belum — butuh daftar penggolongan dari pihak klinis)**, penyaringan katalog per disiplin terbukti bekerja **(terpenuhi lewat uji)** |
+| **DoD** | Kolom ada **(terpenuhi)**, nilainya terisi **(belum — jalur pengisiannya sudah ada sejak 2026-09-08; yang tersisa daftar penggolongan dari pihak klinis)**, penyaringan katalog per disiplin terbukti bekerja **(terpenuhi lewat uji)** |
 
 ---
 
@@ -836,7 +858,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | `BE-LAB-17` | `MVP-0` | `S3`, `S11` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-17.md) | Tidak ada |
 | `BE-LAB-18` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-18.md) | Tidak ada |
 | `BE-LAB-19` | `MVP-0` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-19.md) | Tidak ada |
-| `BE-EXT-01` | `MVP-0` | `S14` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-01.md) | Pengisian nilai disiplin menunggu penggolongan dari pihak klinis |
+| `BE-EXT-01` | `MVP-0` | `S14` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-01.md) | Jalur pengisian dibangun 2026-09-08. Nilainya menunggu daftar penggolongan dari pihak klinis |
 | `BE-EXT-02` | `MVP-1` | `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-02.md) | Tidak ada |
 | `BE-EXT-03` | `MVP-1` | `S13a`, `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-03.md) | Tidak ada. Pelaksana `INT-05` menyusul 2026-09-07 lewat `BE-LAB-08` |
 | `BE-LAB-08` | `MVP-1` | `S13a`, `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-08.md) | Tidak ada. Pelaksana `INT-05` dibangun di sisi Registrasi pada sesi yang sama; migration terbukti dua arah pada dev pemilik |
@@ -984,6 +1006,7 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 24 | 2026-09-08 | **Koreksi penahan `BE-EXT-01`, ditulis manual atas instruksi pemilik modul.** Penahan pengisian disiplin selama ini tercatat sebagai *"menunggu penggolongan dari pihak klinis"* saja. Telusur backend menemukan sebab kedua yang tidak pernah tercatat dan lebih menentukan: `MstProcedure.LabDiscipline` **tidak muncul pada satu pun DTO, service, maupun controller Master Data**, sehingga tidak ada jalur tulis apa pun — bukan API, bukan layar, bukan seeder. Butir DoD *"nilainya terisi"* karena itu tidak pernah dapat dipenuhi siapa pun, bahkan seandainya daftar penggolongannya sudah tersedia. Jalur pengisiannya dibangun pada revisi ini: `labDiscipline` diterima `POST` dan `PUT`, terbit pada respons daftar, detail, dan opsi beserta labelnya, masuk ke `filters/metadata`, dan muncul sebagai pilihan **Disiplin Laboratorium** pada layar Master Data → Prosedur. Daftar disiplin yang sah diturunkan dari enum `LabDiscipline`, bukan disalin, supaya Master Data tidak dapat menerima golongan yang tidak dikenali Laboratorium. Golongan pada tindakan non-laboratorium ditolak, bukan dikosongkan diam-diam. Delapan uji backend dan enam uji frontend menjaganya; `dotnet build` 0 error, 424 uji backend dan 539 uji frontend lolos. **Satu kekeliruan pembacaan ikut diluruskan:** mengisi `MstProcedure.LabDiscipline` membuat **penyaring katalog** berisi, bukan ketiga layar monitoring — `LabMonitoringService` menyaring `LabOrder.Discipline`, dan `LabOrderService` menyalinnya apa adanya dari permintaan tanpa pernah menurunkannya dari prosedur yang dipilih. Karena ruas Disiplin pada layar Buat Pesanan tidak wajib, setiap pesanan yang dibuat tanpa memilihnya tidak muncul di satu pun layar monitoring. Penurunan disiplin pesanan dari pemeriksaannya belum berpemilik task dan dicatat sebagai temuan terbuka | `DRAFT` |
 | 1 | 2026-09-02 | Roadmap backend pertama. 15 task Laboratorium dan 3 task dependency eksternal disusun untuk empat gelombang. Diterbitkan setelah kelima kontrak dikunci dan penanda `STALE` pada capability map dicabut | `DRAFT` |
 | 3 | 2026-09-02 | Audit diperluas ke empat dimensi lain: aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik, tetapi kutipannya jauh dari lengkap — 30 dari 50 aturan validasi tidak pernah disebut task mana pun. Yang paling berarti: `VAL-09`, aturan empat mata pada tingkat wadah, sempat tidak tersebut sama sekali dan kini dibebankan tegas ke `BE-LAB-12`. Bagian 8 diperluas menjadi lima sub-cakupan | `DRAFT` |
 | 2 | 2026-09-02 | Audit cakupan endpoint dijalankan. Empat endpoint grup Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan. Daftar endpoint pada `BE-LAB-06` dan `BE-LAB-15` ditulis eksplisit agar lubang sejenis tidak tersembunyi lagi. Bagian 8 Cakupan Endpoint ditambahkan | `DRAFT` |

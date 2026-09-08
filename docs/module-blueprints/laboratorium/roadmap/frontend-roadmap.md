@@ -491,10 +491,63 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 |---|---|---|
 | Selesai | `FE-LAB-01` .. `FE-LAB-09` — **seluruhnya** | **Sembilan dari sembilan task frontend selesai per 2026-09-07.** Gelombang `MVP-0`, `MVP-1`, `MVP-2`, dan `MVP-3` tuntas. `FE-LAB-06` sempat dikerjakan lebih dulu ketika dependency `FE-LAB-05` diwaive pemilik modul |
 | Terblokir | — | Tidak ada |
-| Menunggu verifikasi manual | `FE-LAB-05`, `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Keempatnya selesai pada source, uji, lint, dan build. Yang tersisa bukan pekerjaan kode: `FE-LAB-05` menunggu data induk perujuk diisi; tiga lainnya menunggu backend dijalankan beserta data yang memadai |
+| Menunggu verifikasi manual | `FE-LAB-05`, `FE-LAB-07`, `FE-LAB-08`, `FE-LAB-09` | Keempatnya selesai pada source, uji, lint, dan build. **Dicoba dijalankan 2026-09-08 dan tetap tidak dapat diselesaikan — sebabnya lebih luas daripada yang tercatat sebelumnya.** Lihat bagian 8.1 |
 | Menunggu data, bukan kode | `FE-LAB-05` | Layarnya selesai, tetapi formulir rujukan luar **belum dapat dipakai** sampai data induk instansi dan dokter perujuk diisi. Delapan skenario verifikasi manual menunggu itu |
 
 `LAB-OPEN-018` sudah tidak menahan sejak 2026-09-04; lihat catatannya pada bagian 1.
+
+### 8.1 Percobaan verifikasi manual — 2026-09-08
+
+Backend dan frontend dijalankan lokal (`https://localhost:7184` dan `http://localhost:3000`)
+terhadap `QuilvianNewDevYoga`. Keduanya **hidup dan sehat**. Yang menahan bukan aplikasinya.
+
+**Basis data dev praktis kosong untuk Laboratorium.** Dihitung lewat API, bukan dugaan:
+
+| Yang dibutuhkan skenario | Jumlah sebenarnya |
+|---|---:|
+| Prosedur berpenanda `IsLaboratory` | **0** — dari 1 prosedur di seluruh basis data |
+| Katalog pemeriksaan laboratorium | **0** |
+| Instansi perujuk / dokter perujuk | **0** / **0** |
+| Batas nilai pemeriksaan | **0** |
+| Pesanan laboratorium | **0** |
+| Daftar kerja: belum selesai / cito terlambat | **0** / **0** |
+| Monitoring ketiga disiplin | **0** / **0** / **0** |
+| *pembanding:* alasan penolakan sampel (ter-seed otomatis) | 10 |
+
+Konsekuensinya, **ke-32 skenario tidak dapat dijalankan**. Bukan hanya `FE-LAB-05` yang
+menunggu data induk perujuk seperti tercatat sebelumnya: `FE-LAB-07`, `FE-LAB-08`, dan
+`FE-LAB-09` sama-sama membutuhkan pesanan laboratorium, dan pesanan tidak dapat dibuat karena
+**tidak ada satu pun jenis pemeriksaan laboratorium** untuk dipesan. Catatan lama *"menunggu
+backend dijalankan"* karena itu menyesatkan — backend berjalan; yang tidak ada adalah datanya.
+
+**Yang berhasil diverifikasi.** Dijalankan lewat Playwright terhadap aplikasi yang benar-benar
+berjalan, **21 dari 21 pemeriksaan lolos**:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Masuk sebagai `superadmin` | lolos |
+| Kesembilan menu Laboratorium muncul di sidebar | 9/9 lolos |
+| Kesembilan halaman terbuka, judulnya cocok, tanpa error boundary maupun galat runtime | 9/9 lolos |
+| Ruas **Disiplin Laboratorium** tampil pada form Master Data → Prosedur | lolos |
+| Ketiga pilihan disiplin muncul dengan label Indonesia | lolos |
+
+Ini sekaligus menutup temuan bahwa enam route milik `FE-LAB-05`, `FE-LAB-08`, dan `FE-LAB-09`
+tidak pernah terdaftar di sidebar sejak dibangun, sehingga hanya terbuka lewat pengetikan URL.
+
+**Rantai penuh Master Data → katalog juga terbukti**, 9 dari 9, memakai satu prosedur uji yang
+dibuat lalu dihapus kembali sehingga tidak ada penggolongan klinis karangan yang tertinggal:
+disiplin pada tindakan non-laboratorium ditolak `400`, disiplin tak dikenal ditolak `400`,
+prosedur berdisiplin Mikrobiologi tersimpan dan terbaca beserta labelnya, katalog memuatnya,
+penyaring `discipline=Microbiology` menjaringnya sementara `ClinicalPathology` tidak, dan
+mengosongkan disiplin mencabut golongannya.
+
+**Yang dibutuhkan supaya ke-32 skenario dapat dijalankan**, berurutan:
+
+1. Jenis pemeriksaan laboratorium diisi ke `MstProcedure` beserta disiplinnya — jalurnya sudah
+   ada sejak 2026-09-08, daftar penggolongannya belum.
+2. Tarif untuk pemeriksaan itu, supaya harga tampil saat memesan (`AC-43`).
+3. Instansi dan dokter perujuk, untuk `FE-LAB-05` jalur rujukan luar.
+4. Pasien dan kunjungan, untuk membuat pesanan.
 
 ---
 
@@ -502,6 +555,7 @@ Laboratorium selesai, sehingga tidak ada lagi task frontend yang menunggu pasang
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 12 | 2026-09-08 | **Percobaan verifikasi manual dan koreksi penahannya, ditulis manual atas instruksi pemilik modul.** Backend dan frontend dijalankan lokal terhadap `QuilvianNewDevYoga`; keduanya sehat. Ke-32 skenario tetap **tidak dapat dijalankan**, tetapi sebabnya berbeda dari yang tercatat: basis data dev tidak memiliki **satu pun** jenis pemeriksaan laboratorium — 0 dari 1 prosedur di seluruh basis data — sehingga pesanan tidak dapat dibuat sama sekali. Catatan lama *"menunggu backend dijalankan"* untuk `FE-LAB-07`, `FE-LAB-08`, dan `FE-LAB-09` karena itu menyesatkan; ketiganya menunggu **data**, bukan proses. Angkanya dihitung lewat API dan dicatat pada bagian 8.1. Yang berhasil diverifikasi dijalankan lewat Playwright terhadap aplikasi berjalan, **21 dari 21 lolos**: login, kesembilan menu Laboratorium muncul di sidebar, kesembilan halaman terbuka tanpa error boundary maupun galat runtime, dan ruas **Disiplin Laboratorium** tampil beserta ketiga pilihannya. Ini sekaligus menutup temuan bahwa enam route milik `FE-LAB-05`, `FE-LAB-08`, dan `FE-LAB-09` tidak pernah terdaftar di sidebar sejak dibangun, sehingga selama ini hanya terbuka lewat pengetikan URL. Rantai Master Data → katalog terbukti terpisah, 9 dari 9, memakai prosedur uji yang dibuat lalu dihapus kembali | `DRAFT` |
 | 1 | 2026-09-02 | Roadmap frontend pertama. 9 task disusun dan dipasangkan ke gelombang backendnya, bukan ditumpuk pada `MVP-4`, setelah kontrak dikunci mengizinkan kerja paralel | `DRAFT` |
 | 2 | 2026-09-04 | `FE-LAB-01` selesai dikerjakan dan divalidasi. Status task dan tautan laporannya dicatat; gerbang `LAB-OPEN-018` dinyatakan tidak lagi menahan pekerjaan frontend karena berkas aturannya sudah tersedia di runtime | `DRAFT` |
 | 3 | 2026-09-04 | `FE-LAB-02` selesai dikerjakan dan divalidasi. Enam layar batas nilai berdiri beserta jalur pengajuan batas kritis yang terpisah. Tiga temuan dicatat: `AC-34` belum memuat pelaku karena respons riwayat backend tanpa nama, status sebelas endpoint pada dokumen kontrak masih tertulis `Rencana` padahal sudah ada, dan peran pemegang `LabCriticalBound : Approve` masih belum ditetapkan | `DRAFT` |
