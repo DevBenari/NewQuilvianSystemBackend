@@ -378,6 +378,71 @@ public sealed class AccessPermissionEnforcementTests
         Assert.True(hasAccess);
     }
 
+    // --- BE-BKC-038 / BIL-AT-078: pengguna tanpa butir hak akses Petty Cash ditolak lewat jalur
+    // otorisasi SUNGGUHAN (bukan reflection atas argumen atribut) ---
+
+    [Fact]
+    public async Task HasAccessAsync_DeniesApprovingPettyCashVoucherWithoutPermission()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var kasir = await SeedUserAsync(db);
+        // Diberi izin mengajukan voucher, TAPI bukan menyetujuinya - persis skenario BIL-AT-078.
+        var (departmentId, positionId) = await GrantPolicyAsync(db, "PettyCashVoucher", "Create");
+        await AssignUserToOrganizationAsync(db, kasir, departmentId, positionId);
+        var service = CreateService(db);
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(kasir.Id), "PettyCashVoucher", "Approve");
+
+        Assert.False(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_DeniesToppingUpPettyCashBudgetWithoutPermission()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var kasir = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(db, "PettyCashBudget", "Read");
+        await AssignUserToOrganizationAsync(db, kasir, departmentId, positionId);
+        var service = CreateService(db);
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(kasir.Id), "PettyCashBudget", "TopUp");
+
+        Assert.False(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_DeniesReadingPettyCashVoucherListWithoutPermission()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        // User punya organisasi tapi tidak pernah diberi butir hak akses Petty Cash apa pun.
+        var (departmentId, positionId) = await GrantPolicyAsync(db, "SomeOtherController", "SomeOtherAction");
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId);
+        var service = CreateService(db);
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(user.Id), "PettyCashVoucher", "Read");
+
+        Assert.False(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_AllowsApprovingPettyCashVoucherWhenExplicitlyGranted()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var kepalaKasir = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(db, "PettyCashVoucher", "Approve");
+        await AssignUserToOrganizationAsync(db, kepalaKasir, departmentId, positionId);
+        var service = CreateService(db);
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(kepalaKasir.Id), "PettyCashVoucher", "Approve");
+
+        Assert.True(hasAccess);
+    }
+
     // --- Pipeline filter penuh (AccessPermissionFilter) - bentuk 401/403 yang dikembalikan ke HTTP caller ---
 
     private static AuthorizationFilterContext BuildFilterContext(ClaimsPrincipal principal)

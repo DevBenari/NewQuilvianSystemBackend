@@ -57,6 +57,7 @@ using Serilog.Formatting.Compact;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -595,6 +596,10 @@ try
 
     builder.Services.AddScoped<CashierShiftService>();
 
+    // billing petty cash
+    builder.Services.AddScoped<PettyCashCategoryService>();
+    builder.Services.AddScoped<PettyCashVoucherService>();
+    builder.Services.AddScoped<PettyCashBudgetService>();
 
     builder.Services.AddAuthorization(options =>
     {

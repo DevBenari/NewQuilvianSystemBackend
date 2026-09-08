@@ -756,14 +756,21 @@ pengguna eksplisit meminta menjalankannya sendiri. Belum di-commit, belum diveri
 ter-autentikasi. Lihat `task/report/frontend/FE-BKC-018.md` (ditulis ulang, riwayat versi
 sebelumnya yang tidak akurat tetap tercatat di § 0 laporan itu).
 
-## 2. `FE-BKC-022` — Struk Pasien: penyelarasan terhadap referensi staging (**`BLOCKED` penuh**)
+## 2. `FE-BKC-022` — Struk Pasien: penyelarasan terhadap referensi staging (~~**`BLOCKED` penuh**~~ **DITUTUP — lihat Amendment 8 September 2026 di bawah**)
+
+**Status baris ini sudah usang.** Keempat elemen di bawah sudah dijawab lewat `/grill-me`
+(`BKC-DEC-093`–`096`, `00-interview-decisions.md`, `approved`). Definisi task yang berlaku
+sekarang ada di § "Amendment 8 September 2026 — `FE-BKC-022` dibuka kembali sebagai
+`READY_FOR_TASK_APPROVAL`" di akhir berkas ini. Isi asli di bawah **dipertahankan apa adanya**
+sebagai riwayat kenapa task ini pernah `BLOCKED` — jangan dihapus, jangan dibaca sebagai status
+terkini.
 
 | Field | Isi |
 | --- | --- |
 | Outcome yang diminta | Struk Pasien menampilkan breakdown finansial dan elemen verifikasi yang terlihat pada PDF referensi staging (`staging.quilvian-mmchospital.com`) |
 | Trace | Lihat cross-check keputusan lengkap di `requirement-traceability.md` § Amendment 7 September 2026 |
-| Status | **`BLOCKED` penuh** — keempat elemen yang diminta **tidak satu pun** punya keputusan bisnis yang mengikat penempatannya di Struk Pasien |
-| Dependency | `/grill-me` — pertanyaan tertutup per elemen ada di tabel di bawah |
+| Status (SAAT DITULIS, 7 September 2026) | **`BLOCKED` penuh** — keempat elemen yang diminta **tidak satu pun** punya keputusan bisnis yang mengikat penempatannya di Struk Pasien |
+| Dependency (SAAT DITULIS) | `/grill-me` — pertanyaan tertutup per elemen ada di tabel di bawah |
 
 **PDF referensi staging BUKAN bukti requirement yang locked** (per instruksi eksplisit pemilik
 modul) — ia dari environment/build yang berbeda, bukan dari `00-interview-decisions.md`. Setiap
@@ -839,10 +846,11 @@ atau halaman terpisah untuk `FE-PC-02`/`FE-PC-03`), dan pilihan pustaka komponen
 `DEV_DISCRETION` — lihat tabel "Kewenangan UI" pada `03-frontend-architecture.md` § Amendment 7
 September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 
-## `FE-BKC-023` — Monitoring Voucher Petty Cash (`FE-PC-01`) dan butir menu "Petty Cash"
+## 🟡 `FE-BKC-023` — Monitoring Voucher Petty Cash (`FE-PC-01`) dan butir menu "Petty Cash"
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Route, view, hook, tiga Redux slice baru, dan butir menu sidebar selesai ditulis: kartu saldo (dua `SummaryGrid`, murni `REUSE`), saringan lengkap (pencarian/status/kategori/periode/jumlah baris), tabel dengan kolom Aksi diturunkan dari `availableActions`, keempat aksi transisi status (`Approve`/`Reject`/`Cancel`/`Disburse`) dengan `Idempotency-Key` yang dibentuk sekali per target. `npx eslint .` PASS; `npm run test:unit` PASS (445/445, tanpa regresi); `npm run build` PASS (route terkonfirmasi ada pada `.next/server/app/...`). `ATTACH_PROOF`/"+ Buat Voucher" **sengaja tidak diimplementasikan** — scope `FE-BKC-024`. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (browser, akun berhak, data voucher nyata, uji retry idempotency "Uang Diberikan") **belum dilakukan** — tidak ada kredensial pada sesi ini. Bukti: [laporan](../task/report/frontend/FE-BKC-023.md) |
 | Outcome | Kasir dan Kepala Kasir dapat memantau seluruh voucher, melihat saldo kas kecil berjalan, dan menjalankan aksi yang berhak langsung dari satu layar |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-045`,`047`–`053`; `FE-PC-01`; acceptance 48–51,53,55–58 (`03-frontend-architecture.md`) |
@@ -855,10 +863,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Menyimpulkan kolom Aksi dari `status` alih-alih `availableActions` akan menampilkan tombol yang lalu ditolak `403` — mengabaikan aturan kepemilikan pembatalan (`PC-DEC-007`) yang hanya backend yang tahu. Owner Frontend/Billing |
 | DoD | Butir menu terjangkau dari sidebar bagi yang berhak; tests/lint/build lulus; tidak ada UUID mentah dirender di layar |
 
-## `FE-BKC-024` — Buat Voucher dan Bukti Nota/Kasir (`FE-PC-02`, `FE-PC-03`)
+## 🟡 `FE-BKC-024` — Buat Voucher dan Bukti Nota/Kasir (`FE-PC-02`, `FE-PC-03`)
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** `CreateVoucherModal` (`FE-PC-02`) dan `AttachProofModal` (`FE-PC-03`, endpoint+modal sama untuk isi nota pertama maupun koreksi) selesai ditulis, mengisi kedua tombol yang sengaja dikecualikan `FE-BKC-023`. `voucherNumber` tidak pernah menjadi bagian form/payload (tinjauan kode). **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis, bukan hasil tooling. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (form Buat Voucher, Input Nota, Koreksi Nota, retry idempotency) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-024.md) |
 | Outcome | Petugas dapat mengajukan voucher baru dan memasukkan atau mengoreksi bukti nota pada voucher yang uangnya sudah diserahkan |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-045`,`051`; `PC-DES-008`,`012`; acceptance 53,54 |
@@ -871,10 +880,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Field `voucherNumber` **MUST NOT** pernah muncul sebagai isian yang dapat diketik atau dikirim pada payload — bertentangan dengan `PC-DES-008`. Owner Frontend/Billing |
 | DoD | Tests/lint/build lulus; payload `POST /petty-cash/vouchers` terverifikasi tidak memuat `voucherNumber` (structural) |
 
-## `FE-BKC-025` — Detail Voucher (`FE-PC-04`)
+## 🟡 `FE-BKC-025` — Detail Voucher (`FE-PC-04`)
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** `VoucherDetailModal` selesai ditulis, dibuka lewat klik dua kali pada baris tabel monitoring (`FE-BKC-023`, `DataTable.onRowDoubleClick` bawaan). Menampilkan ringkasan voucher dan riwayat perintah (`GET /{id}`) sebagai tabel, label transisi status diambil dari `StatusOptions` yang sudah dimuat (`PC-DEC-013`). **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (buka detail pada tiap status voucher) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-025.md) |
 | Outcome | Pengguna dapat membuka detail satu voucher beserta riwayat perintahnya — siapa mengajukan, menyetujui, menyerahkan, dan memasukkan nota |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-053` |
@@ -887,10 +897,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Riwayat perintah adalah satu-satunya jawaban "siapa menyetujui pengeluaran ini tujuh bulan lalu" — menampilkannya salah urutan atau salah pelaku merusak fungsi audit rumpun ini. Owner Frontend/Billing |
 | DoD | Tests/lint/build lulus |
 
-## `FE-BKC-026` — Anggaran Kas Kecil (`FE-PC-05`) dan butir menu "Anggaran Kas Kecil"
+## 🟡 `FE-BKC-026` — Anggaran Kas Kecil (`FE-PC-05`) dan butir menu "Anggaran Kas Kecil"
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Layar baru selesai ditulis: tiga kartu saldo (`SummaryGrid`, `REUSE`), tombol Tambah Anggaran/Koreksi Saldo (dua modal `COMPOSE`), tabel riwayat pergerakan dengan saringan jenis+periode, butir menu "Anggaran Kas Kecil" terdaftar. `petty-cash-budget-slice.jsx` (milik `FE-BKC-023`) diperluas tiga thunk baru tanpa menyentuh export yang sudah dipakai. **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (tambah anggaran, koreksi naik/turun termasuk yang ditolak `422`) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-026.md) |
 | Outcome | Finance dapat melihat saldo kas kecil, menambah dan mengoreksi anggaran beserta alasannya, dan menelusuri riwayat pergerakan baris per baris |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-054`,`056`,`057`,`059` |
@@ -903,10 +914,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Menghitung "sisa yang bebas" sendiri di layar akan menyimpang dari server begitu ada satu voucher yang tidak ikut terkirim pada halaman yang sedang tampil. Owner Frontend/Billing |
 | DoD | Butir menu terjangkau; tests/lint/build lulus |
 
-## `FE-BKC-027` — Kategori Petty Cash (`FE-PC-06`–`08`) dan butir menu "Kategori Petty Cash"
+## 🟡 `FE-BKC-027` — Kategori Petty Cash (`FE-PC-06`–`08`) dan butir menu "Kategori Petty Cash"
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Bentuk penuh tujuh-berkas selesai ditulis (list/detail/editor mengikuti `master-data-feature-standard.md`, memakai `hr/master-data/job-level` sebagai template struktural karena Tax Rule/Discount Policy/Room Charge Policy/Register ternyata tidak lengkap — lihat laporan § Keputusan), `categoryCode` diketik Finance saat tambah dan terkunci saat ubah, sembilan thunk memetakan sembilan endpoint `BE-BKC-035`, butir menu "Kategori Petty Cash" terdaftar. `master-data-petty-cash-category-slice.jsx` (milik `FE-BKC-023`) diperluas 8 thunk baru tanpa menyentuh export yang sudah dipakai. **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (tambah, ubah, nonaktifkan, hapus kategori terpakai vs tidak terpakai) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-027.md) |
 | Outcome | Finance dapat menambah, mengubah, dan menonaktifkan kategori pengeluaran kas kecil lewat menu Master Data, tanpa memerlukan perubahan kode aplikasi |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-061`–`063` |
@@ -918,6 +930,115 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Verifikasi | Component test pesan "Kategori yang sudah dipakai voucher tidak dapat dihapus." saat percobaan hapus kategori terpakai; lint/build |
 | Risiko/pemilik | Kode kategori diisi Finance sendiri (bukan sistem) — mengikuti pola `MstTaxRule.Code`, bukan pola baru. Owner Frontend/Finance |
 | DoD | Butir menu terjangkau; tests/lint/build lulus |
+
+---
+
+# Amendment 8 September 2026 — `FE-BKC-022` dibuka kembali sebagai `READY_FOR_TASK_APPROVAL`
+
+```yaml
+roadmap_revision: 5
+roadmap_status: DRAFT_FORWARD_TEST
+pemicu: /plan-module-delivery menemukan BKC-DEC-093-096 (00-interview-decisions.md) sudah
+  approved sejak 7 September 2026, sementara baris FE-BKC-022 di atas masih menulis BLOCKED
+  menunggu /grill-me - dua berkas bergerak sendiri-sendiri tanpa saling mengabari
+backend_source_diverifikasi_langsung: NewQuilvianSystemBackend (branch Yasmina, working tree
+  ada perubahan tidak terkait di PettyCashVoucherService.cs dan tiga berkas test - TIDAK
+  disentuh amendment ini, TIDAK relevan untuk Struk Pasien)
+frontend_source_diverifikasi_langsung: QuilvianSystemFrontendDev (branch yasmina, HEAD 52d7de26e)
+catatan_staleness: blueprint-manifest.md mencatat backend_commit_sha dd31bc9 dan
+  frontend_commit_sha 12f9242c (branch QuilvianIntegrationFrontend) - KEDUANYA berbeda dari HEAD
+  yang benar-benar diperiksa pass ini. Pass ini TIDAK mempercayai SHA yang tercatat; setiap
+  klaim source di bawah dibaca ULANG langsung dari file saat ini, bukan dari catatan manifest.
+  Pembaruan SHA manifest itu sendiri tetap pekerjaan /manage-module-blueprint, di luar scope
+  plan-module-delivery.
+```
+
+## 0. Kenapa dibuka kembali, dan apa yang berubah dari catatan 7 September
+
+`BKC-DEC-093`–`096` sudah **`approved`** (`00-interview-decisions.md`, amendment "Penutupan
+`BKC-GAP-09`–`12`"). Tidak ada satu pun keputusan bisnis yang masih terbuka. Yang tersisa
+sebelum task ini bisa dikerjakan `build-module-frontend` HANYA verifikasi kontrak — dan
+verifikasi itu sudah dilakukan pass ini, langsung ke source, dengan hasil: **tidak ada
+kontrak baru yang perlu ditambahkan sama sekali.**
+
+| Elemen | Keputusan | Kontrak yang dicek | Hasil |
+| --- | --- | --- | --- |
+| Breakdown Subtotal Mandiri/Penjamin, Pajak Mandiri/Penjamin, Harus Dibayar | `BKC-DEC-093` | `GET /billing/invoices/{id}/calculation-preview` (`BillingInvoicesController.cs:288`) | **Sudah ada dan sudah dikonsumsi** — persis kontrak yang sama sudah dipakai `menu-pembayaran-view.jsx` untuk Ringkasan Pembayaran. Field mentahnya (`breakdown.items[].itemPrimaryAmount/itemUnresolvedAmount/...`, `breakdown.administrationFee`, `breakdown.roomCharge`, `breakdown.coverage.nonBillableResidualAmount`, dst.) dan thunk-nya (`previewBillingInvoiceCalculation`, `billing-invoice-slice.jsx`) **tidak berubah**. Tidak ada field baru, tidak ada endpoint baru |
+| Field Penjamin (`BKC-DEC-094`) | `BKC-DEC-094` | `InvoiceDetailResponse.Patient` (`InvoicePatientSummaryResponse`, `BillingInvoiceDtos.cs:185-200`) — dipakai `GET /billing/invoices/{id}` (Menu Pembayaran DAN Dokumen Kasir sama-sama memanggil ini lewat `useBillingInvoiceDetail`) | **Sudah ada dan sudah dikonsumsi**, TAPI kontrak sebenarnya berbeda dari yang diasumsikan `BKC-DEC-094`. Lihat § 1 di bawah — ini koreksi bukti, bukan pembukaan ulang keputusan |
+| Blok tanda tangan (`BKC-DEC-096`) | `BKC-DEC-096` | Tidak ada kontrak data — murni elemen layout cetak, `DEV_DISCRETION` per keputusan itu sendiri | Tidak relevan untuk kontrak; nama kasir diambil dari sesi pengguna yang sudah tersedia di seluruh halaman ini (`useAuth`/pola serupa yang sudah dipakai `kwitansi-document.jsx`) |
+| QR verifikasi | `BKC-DEC-095` | — | **TETAP di luar scope task ini** — `BKC-DEC-095` menunda elemen ini secara eksplisit, bukan menugaskannya. Tidak ada task/sub-task untuk QR pada slice ini |
+
+**Kesimpulan: `FE-BKC-022` adalah task FRONTEND MURNI. Tidak ada task backend baru yang
+perlu direncanakan** — kedua kontrak yang dipakai (`calculation-preview` dan
+`InvoicePatientSummaryResponse.GuarantorName`/`PaymentType`) sudah live di backend saat ini,
+diverifikasi langsung dari source pass ini, bukan diasumsikan dari dokumen kontrak.
+
+## 1. Koreksi bukti — premis `BKC-DEC-094` tentang field "Asuransi" tidak akurat
+
+`BKC-DEC-094` disetujui dengan premis: field `Penjamin` (Company Guarantor) ditampilkan
+**"berdampingan dengan field `Asuransi` (nama `MstInsuranceProvider`) yang sudah ada"**. Dua
+bagian premis itu diperiksa langsung ke source pass ini dan **tidak sepenuhnya akurat**:
+
+1. **Tidak ada field "Asuransi" pada Struk Pasien hari ini.** `struk-pasien-document.jsx`
+   (diperiksa penuh) hanya menampilkan Invoice No., No. Kunjungan, No. Rekam Medis, Nama
+   Pasien, tabel item, dan Total — nol field payer/penjamin. "Berdampingan dengan yang sudah
+   ada" salah; keduanya (Asuransi maupun Penjamin) sama-sama BARU pada task ini.
+2. **Backend tidak punya dua field payer yang bisa tampil bersamaan.** `TrxPatientEncounterGuarantor`
+   adalah relasi **satu-ke-satu** per kunjungan (komentar model: "Sumber pembayaran
+   satu-ke-satu milik encounter") dengan SATU `PaymentType` (`Cash` XOR `Insurance` XOR
+   `CompanyGuarantor`) dan SATU `PaymentSourceNameSnapshot`, diekspos sebagai SATU field
+   `InvoicePatientSummaryResponse.GuarantorName` — bukan dua field independen. Satu kunjungan
+   tidak pernah punya provider asuransi DAN perusahaan penjamin aktif sekaligus.
+
+**Ini TIDAK mengubah keputusan.** Maksud `BKC-DEC-094` — menampilkan nama pihak yang
+menjamin pembayaran pada Struk Pasien, bukan hanya menyembunyikannya — tetap valid dan
+tidak dipertanyakan ulang. Yang dikoreksi murni bentuknya: SATU baris berlabel dinamis
+("Asuransi" bila `patient.paymentType === "Insurance"`, "Penjamin" bila `"CompanyGuarantor"`,
+baris disembunyikan sepenuhnya bila `"Cash"`) yang membaca `patient.guarantorName` — BUKAN dua
+baris tetap berdampingan yang salah satunya akan selalu kosong. Dicatat di sini sebagai
+koreksi bukti (pola yang sama seperti `BKC-DEC-057` mengoreksi `BKC-DEC-054` berdasarkan bukti
+legacy) — owner keputusan (Product/Domain Owner) berhak meninjau ulang bila keberatan, tetapi
+tidak memblokir implementasi karena hasil akhirnya (nama penjamin terlihat pasien) sama persis
+dengan yang disetujui.
+
+## 2. Kenapa formulanya WAJIB diekstrak, bukan ditulis ulang di komponen baru
+
+`subtotalMandiri`/`subtotalAsuransi`/`pajakMandiri`/`pajakAsuransi`/`harusDibayar` di
+`menu-pembayaran-view.jsx` BUKAN penjumlahan sederhana — turunannya melewati breakdown per
+komponen (`itemPrimaryAmount`/`itemUnresolvedAmount`/`itemNonBillableResidualAmount` per item,
+plus `administrationFee`/`roomCharge`/`coverage`), sekitar 140 baris logika yang sudah tiga
+kali diperbaiki karena versi sebelumnya menyimpang dari angka sebenarnya (lihat komentar
+`FE-BKC-016`, `FE-BKC-019`, `FE-BKC-020` pada file yang sama). Menulis ulang formula ini dari
+nol di `struk-pasien-document.jsx` mengulang persis pola bug yang tiga kali terjadi di file
+itu sendiri — dua tempat yang menghitung angka finansial yang sama dengan rumus yang ditulis
+terpisah selalu berisiko diam-diam menyimpang begitu salah satu diubah tanpa mengubah yang lain.
+
+**MUST**: turunan `subtotalMandiri`/`subtotalAsuransi`/`pajakMandiri`/`pajakAsuransi`/
+`harusDibayar` (dan komponen antaranya yang relevan) diekstrak menjadi SATU fungsi murni yang
+dipanggil KEDUA tempat (`menu-pembayaran-view.jsx` dan hook di belakang Struk Pasien) dari
+`calculationPreview` mentah yang sama. Lokasi file/nama fungsi persisnya `DEV_DISCRETION`
+(mis. `billing-calculation-breakdown.js` di folder hooks modul ini, mengikuti pola penamaan
+util yang sudah ada) — yang **MUST NOT** didiskresikan adalah keberadaan DUA rumus terpisah
+untuk angka yang sama.
+
+## 3. 🟡 `FE-BKC-022` — Struk Pasien: breakdown, Penjamin, tanda tangan
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Source ditulis penuh (4 berkas berubah/baru), `npx eslint --quiet` dan `npx eslint` (full severity) PASS 0 error/warning pada seluruh berkas berubah, `node --import ./tests/helpers/register.mjs --test tests/unit/` PASS 445/445 (440 existing + 5 baru untuk fungsi breakdown), `npm run build` `next build` exit 0 dengan kedua route terdampak terkonfirmasi ada di output. Kriteria acceptance 2–5 terpetakan penuh ke source; kriteria 1 (breakdown identik Ringkasan Pembayaran) terpetakan ke source dan terbukti lewat unit test rumus, TAPI belum diverifikasi visual dengan invoice nyata. Butir DoD "verifikasi manual ketiga jenis payer" **belum terpenuhi** — `NOT FEASIBLE` pada sesi ini (tidak ada kredensial login tersedia untuk builder, sengaja tidak diminta lewat chat). Bukti: [FE-BKC-022](../task/report/frontend/FE-BKC-022.md) |
+| Outcome | Struk Pasien menampilkan breakdown Subtotal Mandiri/Penjamin, Pajak Mandiri/Penjamin, dan Harus Dibayar (sama seperti Ringkasan Pembayaran Menu Pembayaran); baris payer tunggal berlabel "Asuransi"/"Penjamin" sesuai jenis pembayaran kunjungan; blok tanda tangan cetak "Kasir"/"Penerima". QR verifikasi TIDAK termasuk (`BKC-DEC-095`, ditunda) |
+| Gelombang | Susulan gelombang Dokumen Kasir (`FE-BKC-011`/`017`/`018`), belum ditetapkan ke `MVP-*` manapun — `04-prd-to-mvp.md` belum punya Epic/FR/UAT untuk `BKC-DEC-093`–`096`; **coverage gap non-blocking**, penulisan Epic/FR/UAT adalah pekerjaan `design-business-module`, bukan roadmap ini |
+| Trace | `BKC-DEC-093`, `BKC-DEC-094` (dengan koreksi bukti § 1), `BKC-DEC-096`; `BKC-DEC-095` (QR, sengaja TIDAK ditrace ke task ini — ditunda) |
+| Kontrak | `GET /billing/invoices/{id}/calculation-preview` (existing, TIDAK berubah); `GET /billing/invoices/{id}` → `InvoiceDetailResponse.Patient.GuarantorName`/`PaymentType` (existing, TIDAK berubah). **Nol endpoint baru, nol field DTO baru** |
+| Reuse | WAJIB reuse (bukan reimplementasi) formula breakdown `menu-pembayaran-view.jsx` — lihat § 2 (ekstraksi fungsi murni); WAJIB reuse thunk `previewBillingInvoiceCalculation` dan selector `selectBillingCalculationPreview` (`billing-invoice-slice.jsx`) apa adanya, tanpa slice/thunk baru; layout dokumen mengikuti pola `data-flat-table` yang sudah dipakai `struk-pasien-document.jsx`/`kwitansi-document.jsx` |
+| Scope | (a) `use-dokumen-kasir-page.js`: dispatch `previewBillingInvoiceCalculation(invoiceId)` saat Struk Pasien dibuka (pola `useEffect` sama seperti fetch Invoice Asuransi pada hook yang sama, baris ~93-100 — hanya fetch saat tab aktif, bukan selalu), lalu tambahkan `guarantorName`, `paymentType`, dan hasil fungsi breakdown (§ 2) ke `strukDocumentProps`; (b) `struk-pasien-document.jsx`: render baris breakdown di atas footer Total yang sudah ada, baris payer tunggal berlabel dinamis (kosong sepenuhnya bila `paymentType === "Cash"`), dan blok tanda tangan dua kolom di bawah tanggal cetak; (c) file baru berisi fungsi breakdown yang diekstrak (§ 2), diimpor kedua pemakai |
+| Dependency | Tidak ada — kedua kontrak backend yang dipakai sudah live saat ini (diverifikasi § 0), tidak menunggu task backend apa pun |
+| Acceptance criteria | 1) Invoice dengan penjamin asuransi: Struk Pasien menampilkan Subtotal Mandiri, Subtotal Asuransi, Pajak Mandiri, Pajak Asuransi (disembunyikan bila Rp 0, sama seperti Ringkasan Pembayaran), Harus Dibayar — keempat angka **identik** dengan yang tampil di Ringkasan Pembayaran Menu Pembayaran untuk invoice yang sama pada saat yang sama. 2) Baris payer menampilkan label "Asuransi" dan `guarantorName` untuk kunjungan `PaymentType=Insurance`, label "Penjamin" untuk `PaymentType=CompanyGuarantor`, dan baris tidak muncul sama sekali untuk `PaymentType=Cash`. 3) Blok tanda tangan menampilkan nama kasir yang sedang login di kolom "Kasir" dan kolom "Penerima" kosong untuk diisi manual. 4) Tidak ada elemen QR pada dokumen ini. 5) Item baris (obat/tindakan/racikan/biaya admin) yang sudah benar sejak `BKC-DEC-058` **tidak berubah** |
+| Verifikasi | Component/unit test fungsi breakdown hasil ekstraksi (§ 2) dengan kasus invoice tunai, asuransi penuh, asuransi sebagian, dan `nonBillableResidualAmount > 0` — bandingkan hasilnya sama dengan yang sudah diuji `menu-pembayaran-view.jsx` untuk input yang sama; snapshot/manual-check tampilan tiga jenis payer; lint/build; verifikasi manual ter-autentikasi (cetak PDF nyata untuk ketiga jenis payer, cocokkan angka dengan Ringkasan Pembayaran) — pola yang sama seperti yang tertunda pada `FE-BKC-011` |
+| Risiko/pemilik | Risiko utama adalah pelaksana MENGABAIKAN § 2 dan menulis ulang formula breakdown secara terpisah — ini persis pola bug yang sudah tiga kali terjadi di modul ini. Reviewer **MUST** menolak PR yang menduplikasi formula breakdown alih-alih mengekstraknya. Owner Frontend/Billing |
+| DoD | Ketiga jenis payer (Tunai/Asuransi/Penjamin) diverifikasi manual menghasilkan PDF dengan angka yang cocok Ringkasan Pembayaran; unit test fungsi breakdown lulus; lint/build lulus; `BKC-DEC-093`/`094`/`096` masing-masing punya baris acceptance criteria yang terverifikasi eksplisit, bukan diklaim tercakup begitu saja |
+
+---
 
 ## Paralelisme gelombang ini
 
