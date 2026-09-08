@@ -393,6 +393,14 @@ public sealed class AdministrationFeeCalculationResponse
     // = AppliedAmount - PrimaryAmount - UnresolvedAmount.
     public decimal PrimaryAmount { get; set; }
     public decimal UnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi biaya administrasi yang tidak dapat dinilai penjaminnya
+    // karena data pendaftaran bermasalah. Lihat CoverageCalculationResponse.DataAnomalyAmount.
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi biaya administrasi yang tidak boleh ditagihkan ke pasien
+    // menurut kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal NonBillableResidualAmount { get; set; }
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini
@@ -413,6 +421,14 @@ public sealed class RoomChargeCalculationResponse
     // - hasil waterfall coverage sesungguhnya, bukan cuma kelayakan tingkat kategori.
     public decimal PrimaryAmount { get; set; }
     public decimal UnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi biaya kamar yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah. Lihat CoverageCalculationResponse.DataAnomalyAmount.
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi biaya kamar yang tidak boleh ditagihkan ke pasien menurut
+    // kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal NonBillableResidualAmount { get; set; }
 }
 
 public sealed class RoomChargeSegmentResponse
@@ -463,6 +479,17 @@ public sealed class CalculationItemResponse
     public decimal ItemUnresolvedAmount { get; set; }
     public decimal TaxPrimaryAmount { get; set; }
     public decimal TaxUnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi item/pajaknya yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah (BillingCoverageAnomaly). Sudah ikut masuk porsi pasien; lihat
+    // CoverageCalculationResponse.DataAnomalyAmount untuk penjelasan lengkap.
+    public decimal ItemDataAnomalyAmount { get; set; }
+    public decimal TaxDataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi item/pajaknya yang tidak boleh ditagihkan ke pasien menurut
+    // kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal ItemNonBillableResidualAmount { get; set; }
+    public decimal TaxNonBillableResidualAmount { get; set; }
 }
 
 public sealed class TaxCalculationResponse
@@ -491,6 +518,48 @@ public sealed class CoverageCalculationResponse
     public decimal UnresolvedAmount { get; set; }
     public decimal PatientAmount { get; set; }
     public IReadOnlyList<Guid> AppliedRuleIds { get; set; } = [];
+
+    // BIL-VAL-033/BKC-DES-004: membedakan "penjamin menanggung Rp 0" dari "kami tidak punya
+    // rinciannya". Sengaja tanpa nilai awal true: versi kalkulasi yang tersimpan sebelum rincian
+    // per baris ada tidak memuat properti ini, sehingga deserialisasi snapshot lama menghasilkan
+    // false dengan sendirinya. Consumer MUST memeriksa penanda ini sebelum memercayai angka per
+    // baris; BillingCalculationContract.Version MUST NOT dipakai untuk itu.
+    public bool IsPerItemAllocationAvailable { get; set; }
+
+    // BE-BKC-025/BKC-DES-010/011: total rupiah yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah - sudah ikut masuk PatientAmount di atas, BUKAN bucket uang ketiga.
+    // MUST NOT ditampilkan sebagai baris tersendiri di Ringkasan Pembayaran; ia peringatan, bukan
+    // subtotal (BKC-DES-011).
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BKC-DES-010: sengaja terpisah dari (DataAnomalyAmount > 0). Anomali dapat terjadi pada
+    // tagihan yang seluruh komponennya bernilai nol (mis. invoice yang baru dibuka) - dalam
+    // keadaan itu nominalnya nol tetapi masalah datanya nyata. Layar yang menguji nominal saja
+    // akan melewatkan kasus itu.
+    public bool HasDataAnomaly { get; set; }
+
+    // Kode program, TIDAK diterjemahkan: PAYER_NOT_ELIGIBLE, POLICY_INACTIVE,
+    // INSURANCE_PROVIDER_MISSING, ENCOUNTER_NOT_FOUND. Sejajar indeksnya dengan AnomalyMessages.
+    public IReadOnlyList<string> AnomalyCodes { get; set; } = [];
+
+    // Kalimat berbahasa Indonesia siap tampil sebagai peringatan kuning di atas Ringkasan
+    // Pembayaran. Sejajar indeksnya dengan AnomalyCodes.
+    public IReadOnlyList<string> AnomalyMessages { get; set; } = [];
+
+    // BE-BKC-028/BKC-DES-021/022/BKC-DEC-080: total rupiah selisih yang menurut kontrak penjamin
+    // TIDAK BOLEH ditagihkan ke pasien - sudah dikeluarkan dari PatientAmount di atas sejak
+    // amendment sebelumnya (dulu lewat UnresolvedAmount), BUKAN bucket uang tambahan. Layar kasir
+    // MUST tetap menampilkan satu baris "Selisih Tidak Ditagihkan (kontrak penjamin)" berisi
+    // UnresolvedAmount + NonBillableResidualAmount gabungan - pemisahannya berguna di layar
+    // Pengecualian Finansial (menunggu Finance mengajukan write-off), bukan di layar kasir.
+    public decimal NonBillableResidualAmount { get; set; }
+
+    // BKC-DES-021: disediakan terpisah dengan alasan yang berbeda dari HasDataAnomaly - bukan
+    // karena nominalnya bisa nol saat masalahnya nyata, melainkan karena layar Pengecualian
+    // Finansial perlu membedakan "tidak ada residual" dari "residual sudah habis ditulis-off".
+    // Bernilai true selama versi kalkulasi terkini memuat residual, terlepas dari sudah atau
+    // belum ditulis-off; sisa yang belum ditulis-off dibaca dari endpoint Pengecualian Finansial.
+    public bool HasNonBillableResidual { get; set; }
 }
 
 public static class BillingCalculationContract

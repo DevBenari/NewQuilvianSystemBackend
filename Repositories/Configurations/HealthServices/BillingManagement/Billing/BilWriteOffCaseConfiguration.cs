@@ -19,6 +19,7 @@ public sealed class BilWriteOffCaseConfiguration : IEntityTypeConfiguration<BilW
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+        entity.Property(x => x.Category).HasMaxLength(30).IsRequired().HasDefaultValue(BillingWriteOffCategories.PatientAr);
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.Amount).HasPrecision(18, 2);
@@ -34,6 +35,8 @@ public sealed class BilWriteOffCaseConfiguration : IEntityTypeConfiguration<BilW
         entity.HasIndex(x => x.IdempotencyKey).IsUnique();
         entity.HasIndex(x => x.CorrelationId).IsUnique();
         entity.HasIndex(x => new { x.InvoiceId, x.Status });
+        entity.HasIndex(x => new { x.InvoiceId, x.Category, x.Status })
+            .HasFilter("\"IsDelete\" = false");
         entity.HasOne(x => x.Invoice).WithMany().HasForeignKey(x => x.InvoiceId)
             .OnDelete(DeleteBehavior.Restrict);
     }

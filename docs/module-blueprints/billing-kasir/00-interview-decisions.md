@@ -1056,3 +1056,141 @@ masing-masing butuh tindakan konkret di luar percakapan:
 
 `BKC-OQ-091` (ratifikasi bentuk blueprint `SINGLE`) tetap ditandai non-blocking, sengaja tidak
 disentuh karena di luar permintaan eksplisit pengguna sepanjang sesi ini.
+
+## Amendment 5 September 2026 — Penutupan review Security atas pemakaian ulang `BillingInvoice:Read`
+
+Menutup satu dari tiga item pada daftar "Yang TIDAK ditutup pass sebelumnya" di atas (butir 2):
+review Security atas pemakaian ulang `BillingInvoice:Read` untuk lembar Invoice Asuransi berisi
+nomor polis (`BKC-GATE-03`, menahan `BE-BKC-023` dan `FE-BKC-018`).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-092` | Decision | Menutup `BKC-GATE-03`. Hak akses `BillingInvoice:Read` yang sudah ada **dipakai ulang apa adanya** untuk membaca dan mencetak Lembar Invoice Asuransi (berisi nomor polis) — **tidak** dibuat permission tersendiri (mis. `BillingInvoice:ReadInsuranceDocument`). Siapa pun yang sudah berwenang membaca invoice biasa kini juga berwenang membaca/mencetak lembar ini; tidak ada perubahan kode otorisasi maupun remapping role yang diperlukan. Risiko yang tetap terbuka dan **bukan** bagian keputusan ini: task `BE-BKC-023`/`FE-BKC-018` tetap **MUST** memastikan nama berkas PDF memakai nomor tagihan (bukan nama pasien) dan tidak ada nomor polis pada log peramban/audit — mitigasi teknis, bukan syarat gate permission. | Security Owner (pengguna, wewenang dikonfirmasi eksplisit saat pertanyaan diajukan — opsi yang dipilih secara sadar mensyaratkan wewenang Security untuk modul ini) | `approved` | "Pakai ulang BillingInvoice:Read apa adanya (Recommended)" dari 2 opsi bertanda rekomendasi, 5 September 2026 |
+
+**Status pass ini**: `BKC-GATE-03` DITUTUP PENUH oleh `BKC-DEC-092`. Dua item tersisa pada daftar
+"Yang TIDAK ditutup" di atas (`BKC-OQ-085` asli, kelengkapan master data UAT) **tetap terbuka** —
+keduanya butuh analisis Finance/pengecekan data langsung, bukan keputusan kebijakan yang dapat
+ditutup lewat wawancara.
+
+## Amendment 7 September 2026 — Penutupan `BKC-GAP-09`–`12` (Struk Pasien vs PDF referensi staging)
+
+`/plan-module-delivery` (roadmap revisi 3) menandai task `FE-BKC-022` `BLOCKED` penuh setelah
+pemilik modul menunjukkan PDF "Struk Pembayaran" dari lingkungan staging
+(`staging.quilvian-mmchospital.com`) yang formatnya lebih kaya dari implementasi Struk Pasien
+lokal saat ini. Empat elemen di PDF itu dicocokkan satu per satu terhadap decision log
+(`requirement-traceability.md` § Amendment 7 September 2026) — tidak satupun punya keputusan
+yang mengikat penempatannya di Struk Pasien, sehingga dicatat sebagai `BKC-GAP-09`–`12` dan
+dikembalikan ke `/grill-me`. **Fakta source yang diverifikasi sebelum bertanya** (bukan
+keputusan bisnis): data Company Guarantor (`MstCompanyGuarantor`,
+`TrxPatientEncounterGuarantor.CompanyGuarantorId`) sudah ada dan tercatat di sistem sejak
+migration 31 Agustus 2026 — pertanyaan `BKC-GAP-10` murni soal penempatan tampilan, bukan
+soal data yang belum tersedia.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-093` | Decision | Menutup `BKC-GAP-09`. Struk Pasien DITAMBAHKAN breakdown berjenjang Subtotal Mandiri / Subtotal Penjamin / Pajak / Harus Dibayar, sejalan dengan PDF referensi staging. Formula dan datanya sudah `approved` dan sudah terekspos backend (`GET /{id}/calculation-preview`, dipakai Ringkasan Pembayaran) — keputusan ini murni soal penempatan konten dokumen, TIDAK ada formula/kalkulasi baru. Ini MEMPERLUAS cakupan `BKC-DEC-058` AC#26 yang sebelumnya membatasi kewajiban Struk Pasien hanya pada tabel item baris. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, tambahkan breakdown ini" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-094` | Decision | Menutup `BKC-GAP-10`. Struk Pasien MENAMBAHKAN field `Penjamin` (nama Company Guarantor, dari `MstCompanyGuarantor` via `TrxPatientEncounterGuarantor.CompanyGuarantorId`) berdampingan dengan field `Asuransi` (nama `MstInsuranceProvider`) yang sudah ada — TAPI HANYA bila encounter memang punya company guarantor tercatat; bila tidak, field ini kosong/disembunyikan, bukan menampilkan placeholder kosong yang membingungkan. Ini keputusan BARU murni untuk dokumen Struk Pasien — TIDAK menarik atau memperluas `BKC-DEC-067` (yang mengunci Company Guarantor di luar scope untuk dokumen Invoice Asuransi, dokumen BERBEDA). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, tampilkan keduanya bila encounter punya company guarantor" dari 2 opsi bertanda rekomendasi |
+| `BKC-DEC-095` | Decision | Menutup `BKC-GAP-11` — DITUNDA, BUKAN ditolak. QR code "Scan untuk verifikasi pembayaran" TIDAK dibangun pada slice ini. Alasan: elemen ini butuh desain mekanisme verifikasi tersendiri (QR memvalidasi ke sistem/endpoint apa, siapa yang men-generate, apa isi payload-nya, apakah publik atau berotentikasi) yang belum pernah dibahas sama sekali di modul ini — bukan sekadar elemen visual yang bisa ditiru dari PDF referensi. Keputusan fail-closed: jangan dibangun sampai mekanismenya digali terpisah lewat `/grill-me` khusus, bila memang dibutuhkan di kemudian hari. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tunda dulu, jangan dibangun sekarang" dari 2 opsi, ditandai fail-closed |
+| `BKC-DEC-096` | Decision | Menutup `BKC-GAP-12`. Struk Pasien DITAMBAHKAN blok tanda tangan "Kasir" dan "Penerima" sebagai elemen cetak sederhana — nama kasir diambil dari sesi pengguna yang mencetak, kolom "Penerima" dikosongkan untuk diisi tanda tangan/nama fisik saat dicetak. Ini TIDAK terkait dan TIDAK menarik keputusan `BKC-DEC-069` (blok tanda tangan pada Invoice Asuransi, `DEV_DISCRETION` untuk dokumen itu) — keputusan ini berdiri sendiri khusus untuk Struk Pasien. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, tambahkan sebagai elemen cetak sederhana" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: `BKC-GAP-09`, `10`, `12` DITUTUP PENUH dengan keputusan "ya, bangun" —
+`FE-BKC-022` bisa direncanakan ulang untuk ketiga elemen ini. `BKC-GAP-11` (QR code) DITUTUP
+sebagai keputusan eksplisit "tunda", BUKAN dibiarkan menggantung — `FE-BKC-022` untuk elemen ini
+TETAP `BLOCKED` sampai ada kebutuhan bisnis yang jelas dan mekanisme verifikasinya digali
+terpisah, tapi ini keputusan sadar, bukan open question yang lupa dijawab.
+
+**Blocker desain yang masih terbuka sebelum implementasi** (bukan keputusan bisnis, cocok untuk
+`/design-business-module` touch-up kecil sebelum `/plan-module-delivery` menandai `FE-BKC-022`
+siap penuh): kontrak API/DTO untuk mengekspos field Company Guarantor (`BKC-DEC-094`) pada
+response yang dipakai Struk Pasien saat ini — perlu dicek apakah `GET /{id}/calculation-preview`
+atau endpoint lain yang sudah dikonsumsi frontend untuk Struk Pasien sudah membawa field ini,
+atau perlu field baru ditambahkan.
+
+**Di luar scope — tidak disentuh pass ini**: mekanisme verifikasi QR (`BKC-GAP-11`, sengaja
+ditunda); Invoice Asuransi (`FE-BKC-018`, sudah siap dibangun ulang lewat `build-module-frontend`
+tanpa perlu wawancara tambahan).
+
+## Amendment 7 September 2026 — Kapabilitas baru: Petty Cash (Voucher Kas Kecil)
+
+Pengguna meminta kapabilitas baru: monitoring dan approval voucher Petty Cash (kas kecil),
+disertai referensi tampilan (daftar voucher dengan filter, modal "Buat Voucher", modal "Bukti
+Nota/Kasir", kartu ringkasan "Total Petty Cash"). Ini sudah tercatat sebagai antrian sejak
+amendment sebelumnya ("Petty Cash — tidak disebut di dokumen blueprint billing-kasir manapun
+sebelum pass ini... dicatat sebagai antrian") — pass ini menutup antrian tersebut.
+
+**Batas scope**: siklus hidup voucher Petty Cash — pengajuan, approval/penolakan, pencairan,
+bukti nota, dan sumber anggaran kumulatif. **Di dalam scope**. **Di luar scope — tidak
+ditemukan titik singgung ke modul lain sejauh ini**, kecuali satu titik sentuh yang secara
+eksplisit DIPUTUSKAN TIDAK terhubung (lihat `BKC-DEC-097`).
+
+**Fakta source diverifikasi sebelum bertanya**: modul ini sudah punya kapabilitas Shift Kasir
+(`BilCashierShift`, `CashierShiftService`, `BKC-DEC-038`) yang melacak kas fisik per shift —
+dicek apakah Petty Cash memakai kas yang sama sebelum pertanyaan diajukan.
+
+**Bentuk blueprint**: Petty Cash dinilai sebagai rumpun baru yang MEMENUHI 4 dari 5 syarat
+pemecahan (bounded context sendiri, kosakata status sendiri, dapat dirilis mandiri, master data
+dan approval sendiri — hanya syarat "pemilik peran sendiri" yang tidak penuh karena approver-nya
+sama dengan Shift Kasir, Kepala Kasir/Finance Operations). TIDAK diusulkan `COMPOSITE` untuk
+modul secara keseluruhan: `billing-kasir` sudah punya banyak rumpun setara-berbeda (Shift Kasir,
+Diskon, Deposit, Refund, Pengecualian Finansial, dll.) yang seluruhnya hidup sebagai rumpun di
+dalam SATU blueprint `SINGLE` sejak revisi `0.2`, tanpa pernah dipecah meski masing-masing bisa
+lolos uji serupa. Petty Cash mengikuti preseden yang sama: rumpun baru di dalam struktur `SINGLE`
+yang sudah ada. Ini TIDAK mengubah status `BKC-OQ-091` (ratifikasi bentuk modul keseluruhan,
+masih pending, tidak memblokir).
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `PC-DEC-001` | Decision | Dana Petty Cash yang dicairkan berasal dari ANGGARAN PETTY CASH TERPISAH — TIDAK terhubung ke kas fisik Shift Kasir (`BilCashierShift`) manapun. Pencairan voucher TIDAK memengaruhi perhitungan variance/selisih kas saat shift ditutup (`BKC-DEC-038`). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Anggaran Petty Cash terpisah, TIDAK terhubung ke kas fisik shift kasir manapun" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-002` | Decision | "Total Petty Cash" adalah SALDO BERJALAN: nilai anggaran yang di-set/di-top-up manual oleh Finance, dikurangi voucher yang sudah berstatus "Uang Diterima" (lihat `PC-DEC-009` soal titik pengurangan persis). Bukan sekadar akumulasi historis nominal seluruh voucher. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Saldo berjalan: anggaran yang di-set manual dikurangi voucher yang sudah cair" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-003` | Decision | Voucher berstatus "Ditolak" TIDAK BISA diedit/diajukan ulang — catatan permanen sebagai audit trail keputusan approval. Kalau kebutuhan sama masih ada, pemohon membuat pengajuan baru dari awal. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Harus buat voucher baru" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-004` | Decision | Approval ("Disetujui"/"Ditolak") berwenang WAJIB Kepala Kasir/Finance Operations — SATU jenjang approval, TANPA eskalasi berjenjang berdasar nominal voucher. Owner sama dengan kapabilitas Shift Kasir yang sudah ada. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Kepala Kasir/Finance Operations" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-005` | Decision | Aksi "Uang Diberikan" adalah SATU LANGKAH oleh kasir/petugas — begitu ditekan, status LANGSUNG menjadi "Uang Diterima" tanpa konfirmasi terpisah dari penerima (tidak ada tanda tangan digital/OTP penerima pada slice ini). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Satu langkah oleh kasir" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-006` | Decision | Voucher berstatus "Uang Diterima" yang bukti notanya TIDAK PERNAH diinput TETAP MENGGANTUNG tanpa batas waktu pada MVP ini — TIDAK ADA mekanisme pemaksaan, eskalasi, atau pemblokiran otomatis. Finance memantau manual di luar sistem. Ditandai eksplisit sebagai kandidat penyempurnaan rilis berikutnya, BUKAN kelalaian. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tetap menggantung tanpa batas waktu, tidak ada mekanisme paksa" dari 2 opsi, ditandai rekomendasi untuk MVP |
+| `PC-DEC-007` | Decision | Pemohon BOLEH membatalkan pengajuannya sendiri SELAMA masih berstatus "Menunggu Persetujuan" (`PC-DEC-013`). Begitu sudah diputuskan (Disetujui/Ditolak), TIDAK BISA dibatalkan lagi. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Bisa, selama masih berstatus pending/belum diputuskan" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-008` | Decision | Nominal voucher DIVALIDASI terhadap sisa saldo anggaran SEBELUM/SAAT approval — sistem mencegah atau memperingatkan approver secara eksplisit kalau nominal yang mau disetujui akan membuat saldo anggaran negatif. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, ditolak/diperingatkan otomatis kalau melebihi sisa anggaran" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-009` | Decision | Saldo anggaran Petty Cash BERKURANG PERSIS pada saat status berubah menjadi "Uang Diterima" — bukan menunggu status "Selesai" (bukti nota). Status "Selesai" murni soal kelengkapan administratif (bukti sudah lengkap), TIDAK mengubah saldo lagi. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Saat status menjadi 'Uang Diterima'" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-010` | Decision | HANYA SATU pool anggaran Petty Cash untuk SELURUH rumah sakit pada MVP — bukan per unit/departemen/cabang. Pemisahan multi-pool eksplisit ditunda sebagai kandidat rilis berikutnya, bukan ditolak permanen. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Satu pool tunggal untuk seluruh rumah sakit" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-011` | Decision | Voucher DIBUAT oleh kasir/petugas administrasi (peran dengan akses ke form "Buat Voucher") ATAS NAMA siapa saja — field "Nama Penerima" tetap berupa teks bebas seperti pada rujukan tampilan, BUKAN dipilih dari daftar pegawai HR, dan BUKAN model self-service tempat setiap pegawai mengajukan untuk dirinya sendiri. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Kasir/petugas administrasi input atas nama siapa saja" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-012` | Decision | Daftar "Kategori" voucher (Transport, Operasional, Konsumsi, Maintenance, ATK, dst.) adalah MASTER DATA yang dapat dikelola (tambah/ubah/nonaktifkan) oleh Finance lewat menu tersendiri — BUKAN daftar tetap yang di-hardcode di kode aplikasi. Pola konsisten dengan master data lain di modul ini (`MstTaxRule`, `MstInsuranceCoverageRule`, dst.). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Master data yang bisa dikelola Finance" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-013` | Decision | Status awal voucher saat pertama dibuat (sebelum diputuskan) berlabel **"Menunggu Persetujuan"** — bukan "Diajukan". Kosakata status lengkap yang dikunci pass ini: `Menunggu Persetujuan` → (`Disetujui` → `Uang Diterima` → `Selesai`) ATAU (`Ditolak`, terminal). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "\"Menunggu Persetujuan\"" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: `PC-DEC-001`–`013` (13 keputusan) MENGUNCI seluruh siklus hidup, wewenang,
+formula saldo, dan sumber master data untuk MVP Petty Cash. Prefix `PC-` dipakai (bukan `BKC-`)
+karena ini rumpun baru dengan kosakata sendiri di dalam blueprint `billing-kasir` yang sama —
+konsisten dengan penomoran per-rumpun yang sudah dipraktikkan modul ini secara implisit
+(`BKC-DES-*` untuk keputusan desain, `BKC-GAP-*`/`BKC-OQ-*` untuk gap terpisah dari `BKC-DEC-*`
+keputusan bisnis inti). Jejak traceability tetap ke `blueprint_id: BIL-CASH-001` yang sama.
+
+**Yang TIDAK ditutup pass ini, dicatat eksplisit sebagai kandidat rilis berikutnya (BUKAN
+diabaikan)**: pengingat/eskalasi otomatis untuk bukti nota yang terlambat (`PC-DEC-006`);
+pemisahan anggaran multi-pool per unit/departemen (`PC-DEC-010`); model self-service pegawai
+mengajukan untuk diri sendiri (`PC-DEC-011`); approval berjenjang berdasar nominal (`PC-DEC-004`).
+
+**Di luar scope — untuk modul lain**: tidak ditemukan titik singgung ke modul lain pada pass
+ini, selain konfirmasi eksplisit TIDAK terhubung ke Shift Kasir (`PC-DEC-001`).
+
+**Langkah berikutnya**: kapabilitas ini sepenuhnya BARU (tidak ada source code sama sekali,
+sudah dicek — nol hasil untuk "PettyCash" di backend maupun frontend selain catatan antrian di
+file ini). Sesuai `CLAUDE.md`, langkah berikut yang sesuai adalah `trace-existing-capabilities`
+(audit cepat memastikan tidak ada kapabilitas serupa yang terlewat, mis. modul Expense/Kas Kecil
+di area Corporate), lalu `design-business-module` untuk arsitektur backend/frontend penuh,
+sebelum `plan-module-delivery`.
+
+## Amendment 7 September 2026 — Penutupan `PC-OQ-001` dan approval `PC-DES-001`–`014`
+
+`/design-business-module` (revisi blueprint `1.0`, draft) menghasilkan 14 keputusan desain
+(`PC-DES-001`–`014`) dan satu open question teknis: `PC-OQ-001`, penamaan master data kategori
+— agent desain menamainya `MstPettyCashCategory` (pola `Mst*` yang dipakai 6 dari 6 master data
+lain di modul ini), sementara pengarahan awal sempat menyebut prefix `Bil*` karena kepemilikan
+modulnya. Pengguna diberi pilihan eksplisit sebelum dikunci.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `PC-DEC-014` | Decision | Menutup `PC-OQ-001`. Master data kategori Petty Cash memakai nama `MstPettyCashCategory` (BUKAN `BilPettyCashCategory`) — konsisten dengan konvensi `Mst*` yang menandai JENIS data (master/reference), bukan kepemilikan modul, dan sudah dipakai seluruh master data lain di `billing-kasir` (`MstTaxRule`, `MstPaymentMethod`, dst.) walau sama-sama dimiliki modul ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "MstPettyCashCategory" dari 2 opsi bertanda rekomendasi |
+| `PC-DEC-015` | Decision | Menyetujui `PC-DES-001`–`014` secara utuh — arsitektur backend (`BilPettyCashVoucher`, `BilPettyCashVoucherCommand`, `BilPettyCashBudget`, `BilPettyCashBudgetMovement`, `MstPettyCashCategory`), perluasan `BilNumberSeries` untuk penomoran voucher, mekanisme saldo `CurrentBalance` + ledger dengan penjaga dua lapis (approval dan pencairan), pembatalan lewat `IsCancel` (bukan status keenam), serta permission `PettyCashVoucher`/`PettyCashBudget`/`PettyCashCategory`. Status naik dari `draft` menjadi `approved` untuk revisi `1.0`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | Konfirmasi eksplisit setelah `PC-OQ-001` diluruskan |
+
+**Status pass ini**: `PC-OQ-001` DITUTUP. `PC-DES-001`–`014` DISETUJUI PENUH. Tidak ada open
+question bisnis tersisa untuk rumpun Petty Cash. `PC-OQ-003` (baris registry kepemilikan modul
+untuk folder `PettyCash/`, `QBE-MOD-003`) TETAP terbuka tapi TIDAK memblokir `plan-module-delivery`
+— ia memblokir penulisan file model pertama saat implementasi, dicatat sebagai prasyarat
+`build-module-backend`, bukan blocker perencanaan.

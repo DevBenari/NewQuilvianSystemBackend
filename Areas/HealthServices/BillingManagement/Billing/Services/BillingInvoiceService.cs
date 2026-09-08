@@ -138,6 +138,183 @@ public sealed class BillingInvoiceService
         };
     }
 
+    // Ad-hoc, di luar roadmap, permintaan langsung pengguna: halaman "Riwayat Pembayaran" -
+    // BillingPaymentHistoryDtos.cs § komentar header untuk keputusan scope lengkap. Dua-pass
+    // (pola sama dengan GetActiveEncounterOptionsAsync di file ini): pass pertama menentukan
+    // halaman invoice yang dipaginasi, pass kedua mengambil data pendukung per batch ID (bukan
+    // correlated subquery per baris) supaya query tetap sederhana dan mudah diverifikasi.
+    public async Task<PagedResult<PaymentHistoryItemResponse>> GetPaymentHistoryAsync(
+        PaymentHistoryQuery request, CancellationToken cancellationToken)
+    {
+        // Invoice yang punya minimal satu tender SUCCEEDED pada settlement bertujuan
+        // InvoicePayment (bukan DepositTopUp - top-up deposit bukan "pembayaran tagihan").
+        var invoiceIdsWithPayment = _dbContext.BilSettlements.AsNoTracking()
+            .Where(s => s.InvoiceId != null && s.Purpose == BillingSettlementPurposes.InvoicePayment
+                && s.Tenders.Any(t => t.Status == BillingTenderStatuses.Succeeded))
+            .Select(s => s.InvoiceId!.Value)
+            .Distinct();
+
+        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete)
+            .Where(x => invoiceIdsWithPayment.Contains(x.Id));
+
+        if (!string.IsNullOrWhiteSpace(request.ServiceType))
+        {
+            var serviceType = request.ServiceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.ServiceType == serviceType);
+        }
+
+        var joined =
+            from invoice in query
+            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+                on invoice.EncounterId equals encounter.Id into encounterGroup
+            from encounter in encounterGroup.DefaultIfEmpty()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id into patientGroup
+            from patient in patientGroup.DefaultIfEmpty()
+            select new { invoice, encounter, patient };
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToUpper();
+            joined = joined.Where(x =>
+                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
+                (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
+                (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
+        }
+
+        if (request.VisitDateFrom.HasValue)
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
+        if (request.VisitDateTo.HasValue)
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+
+        var total = await joined.CountAsync(cancellationToken);
+        var page = await joined
+            .OrderByDescending(x => x.encounter != null ? x.encounter.EncounterDate : x.invoice.CreateDateTime)
+            .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
+            .Select(x => new
+            {
+                x.invoice.Id,
+                x.invoice.InvoiceNumber,
+                x.invoice.ServiceType,
+                EncounterId = x.invoice.EncounterId,
+                VisitDate = x.encounter != null ? x.encounter.EncounterDate : (DateTime?)null,
+                PatientName = x.patient != null ? x.patient.FullName : string.Empty,
+                MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty
+            })
+            .ToListAsync(cancellationToken);
+
+        var invoiceIds = page.Select(x => x.Id).ToList();
+        var encounterIds = page.Select(x => x.EncounterId).Distinct().ToList();
+
+        // Nama/tipe penjamin dari snapshot pendaftaran (sama seperti GetActiveEncounterOptionsAsync
+        // di file ini) - relevan bagi kasir adalah penjamin yang tercatat SAAT kunjungan itu.
+        var guarantorRows = encounterIds.Count == 0
+            ? []
+            : await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.EncounterId,
+                    x.PaymentType,
+                    x.PaymentSourceNameSnapshot,
+                    x.InsuranceProviderId
+                })
+                .ToListAsync(cancellationToken);
+        var guarantorByEncounter = guarantorRows.GroupBy(x => x.EncounterId).ToDictionary(g => g.Key, g => g.First());
+
+        var providerIds = guarantorByEncounter.Values
+            .Where(x => x.InsuranceProviderId.HasValue).Select(x => x.InsuranceProviderId!.Value).Distinct().ToList();
+        var claimMethodByProvider = providerIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(x => providerIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.ClaimMethod, cancellationToken);
+
+        // PatientAmount kalkulasi TERAKHIR per invoice - diambil dari seluruh baris lalu
+        // dikelompokkan di memori (bukan GroupBy+OrderBy+FirstOrDefault dalam query) supaya tidak
+        // bergantung pada dukungan translasi SQL provider untuk pola itu; volumenya terbatas
+        // (jumlah versi kalkulasi per invoice pada satu halaman, bukan seluruh tabel).
+        var calcRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.InvoiceId))
+                .Select(x => new { x.InvoiceId, x.VersionNo, x.PatientAmount })
+                .ToListAsync(cancellationToken);
+        var patientAmountByInvoice = calcRows.GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNo).First().PatientAmount);
+
+        // Seluruh tender SUCCEEDED lintas SEMUA settlement InvoicePayment milik invoice-invoice
+        // pada halaman ini - satu invoice bisa punya lebih dari satu settlement (mis. cicilan
+        // kedua dibuka di wadah baru setelah wadah pertama SETTLED, lihat use-billing-settlement.js
+        // komentar baris ~279).
+        var settlementRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilSettlements.AsNoTracking()
+                .Where(s => s.InvoiceId != null && invoiceIds.Contains(s.InvoiceId!.Value)
+                    && s.Purpose == BillingSettlementPurposes.InvoicePayment)
+                .Select(s => new { s.Id, InvoiceId = s.InvoiceId!.Value })
+                .ToListAsync(cancellationToken);
+        var settlementToInvoice = settlementRows.ToDictionary(s => s.Id, s => s.InvoiceId);
+        var settlementIds = settlementRows.Select(s => s.Id).ToList();
+
+        var tenderRows = settlementIds.Count == 0
+            ? []
+            : await _dbContext.BilTenders.AsNoTracking()
+                .Where(t => settlementIds.Contains(t.SettlementId) && t.Status == BillingTenderStatuses.Succeeded)
+                .Select(t => new { t.Id, t.SettlementId, t.KwitansiNumber, t.Amount, t.AttemptedAt })
+                .ToListAsync(cancellationToken);
+        var tendersByInvoice = tenderRows
+            .GroupBy(t => settlementToInvoice[t.SettlementId])
+            .ToDictionary(g => g.Key, g => g.OrderBy(t => t.AttemptedAt).ToList());
+
+        var items = page.Select(x =>
+        {
+            guarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
+            var tenders = tendersByInvoice.TryGetValue(x.Id, out var invoiceTenders)
+                ? invoiceTenders
+                : [];
+            var totalPaid = tenders.Sum(t => t.Amount);
+            var patientAmount = patientAmountByInvoice.TryGetValue(x.Id, out var pa) ? pa : 0m;
+            string? claimMethod = guarantor?.InsuranceProviderId.HasValue == true
+                && claimMethodByProvider.TryGetValue(guarantor.InsuranceProviderId.Value, out var cm)
+                ? cm
+                : null;
+
+            return new PaymentHistoryItemResponse
+            {
+                Id = x.Id,
+                InvoiceNumber = x.InvoiceNumber,
+                VisitDate = x.VisitDate,
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                PatientName = x.PatientName,
+                ServiceType = x.ServiceType,
+                PatientType = guarantor != null ? MapPaymentTypeLabel(guarantor.PaymentType) : "Tunai",
+                GuarantorName = guarantor?.PaymentSourceNameSnapshot ?? "Tunai",
+                ClaimMethod = claimMethod,
+                TotalBillAmount = patientAmount,
+                TotalPaidAmount = totalPaid,
+                IsFullyPaid = patientAmount > 0 && totalPaid >= patientAmount,
+                Tenders = tenders.Select(t => new PaymentHistoryTenderResponse
+                {
+                    Id = t.Id,
+                    SettlementId = t.SettlementId,
+                    KwitansiNumber = t.KwitansiNumber ?? string.Empty,
+                    Amount = t.Amount,
+                    AttemptedAt = t.AttemptedAt
+                }).ToList()
+            };
+        }).ToList();
+
+        return new PagedResult<PaymentHistoryItemResponse>
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
+            Items = items
+        };
+    }
+
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()

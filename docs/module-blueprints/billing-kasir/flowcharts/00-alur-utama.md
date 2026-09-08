@@ -67,3 +67,16 @@ flowchart TD
 ## Yang tidak digambarkan di sini
 
 Pembatalan item, koreksi, pengembalian uang, penghapusan piutang, pergantian shift kasir, dan deposit rawat inap adalah proses tersendiri yang sudah dikunci pada baseline blueprint. Ketiadaannya di sini bukan berarti tidak ada; ia berarti tidak termasuk jalur pokok yang dilalui setiap tagihan.
+
+## Rumpun yang berdiri di luar alur tagihan — Petty Cash
+
+Sejak revisi `1.0`, modul ini memiliki satu rumpun yang **sengaja tidak menyentuh alur di atas sama sekali**: Petty Cash, yaitu voucher kas kecil untuk keperluan operasional rumah sakit.
+
+Rumpun itu tidak digambar sebagai bagian alur pokok karena ia bukan bagian dari perjalanan tagihan pasien. Ia tidak dimulai dari pelayanan, tidak menghasilkan baris biaya pada tagihan siapa pun, dan tidak berakhir pada penyerahan piutang ke Keuangan. Yang dikeluarkan bukan uang pasien, melainkan uang rumah sakit sendiri.
+
+| Alurnya | Berkas |
+| --- | --- |
+| Perjalanan satu voucher, dari pengajuan sampai bukti nota | [`voucher-petty-cash.md`](voucher-petty-cash.md) |
+| Pengisian, koreksi, dan pengurangan saldo kas kecil | [`anggaran-petty-cash.md`](anggaran-petty-cash.md) |
+
+Satu hal yang **MUST** dipahami pembaca kedua alur itu: uang kas kecil dan uang kas shift kasir adalah dua kantong yang berbeda. Menyerahkan uang kas kecil tidak mengubah hitungan kas shift mana pun, dan tidak memunculkan selisih saat shift ditutup. Ini keputusan pemilik yang tercatat, bukan sambungan yang terlupa dirancang.
