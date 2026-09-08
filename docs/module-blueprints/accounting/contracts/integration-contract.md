@@ -202,6 +202,6 @@ Kejadian `Gagal` **menahan** penutupan; kejadian `Tertahan` hanya **memperingatk
 
 | Langkah | Pemilik | Keadaan |
 |---|---|---|
-| Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | Owner Billing dan owner Finance (Yasmin) | **Belum** |
+| Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | Owner Billing dan owner Finance (Yasmin) | **Belum.** Bahan pembahasannya: [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) |
 | Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Belum** |
 | Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Belum** — diperiksa 8 September 2026, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource` |

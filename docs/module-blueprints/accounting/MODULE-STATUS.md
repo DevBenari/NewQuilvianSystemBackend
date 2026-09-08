@@ -101,7 +101,7 @@ Ketiga penahan yang dicatat 8 September pagi sudah tidak berlaku lagi.
 
 | Penahan | Pemilik | Menahan apa |
 |---|---|---|
-| Ratifikasi `ACC-XM-001` | Owner Billing, Yasmin | **Hanya gelombang `POST-MVP`** — penyambungan sungguhan ke Finance |
+| Ratifikasi `ACC-XM-001` | Owner Billing, Yasmin | **Hanya gelombang `POST-MVP`**. Bahan rapatnya sudah siap: [`evidence/10`](evidence/10-billing-arap-handoff-scan.md) membuktikan penerbit sudah ada di Billing dan konsumennya kosong |
 | `DEC-ACC-P2-002` daftar jenis kejadian | Rizki, Yasmin | Pengisian data `P2-0` |
 | Modul Finance belum ada (`ACC-DEP-004`) | Yasmin | `POST-MVP` |
 

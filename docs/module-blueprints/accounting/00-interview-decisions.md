@@ -755,6 +755,7 @@ siapa yang menerbitkan kejadian itu, karena penerbitnya berada di modul lain.
 | Jawaban yang dipilih | **Finance yang menerbitkan.** Billing → Finance (Piutang/Utang) → kejadian keuangan resmi → Accounting |
 | Yang sudah setuju | Rizki, 8 September 2026, selaku owner modul Accounting |
 | Yang belum setuju | **Owner Billing** dan **owner Finance (Yasmin)** |
+| **Bukti baru 8 Sep 2026** | [`evidence/10-billing-arap-handoff-scan.md`](evidence/10-billing-arap-handoff-scan.md) — **penerbitnya ternyata sudah ada dan berjalan di Billing** (`BilArHandoff`, `BilApHandoff`, `BilHandoffAdjustment`, ditulis `BillingArApHandoffService` di dalam transaksi finalisasi faktur), tetapi **konsumennya nol**: tidak ada satu pun kode yang mengubah status `CREATED` menjadi `ACKNOWLEDGED`. Temuan ini **tidak membatalkan** `ACC-DEC-044`, tetapi mengubah ongkosnya dan memunculkan pilihan ketiga yang belum pernah dibahas. Enam pertanyaan untuk owner Billing ada di bagian 8 dokumen itu |
 | Memblokir | **Implementasi** jalur jurnal otomatis. **Tidak lagi** memblokir perancangan Phase 2 |
 | **Tidak** memblokir | Rilis pertama, karena `ACC-DEC-009` menempatkan integrasi otomatis di tahap berikutnya |
 
