@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -42,7 +43,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 new ClinicalMilestoneFactProducer(
                     c,
                     new BillingFolioService(c),
-                    ControllerTestHarness.BuatLoggerService()));
+                    ControllerTestHarness.BuatLoggerService()),
+                // BE-RWI-038. Finalisasi kini sekaligus mendaftarkan catatan ke mesin keutuhan
+                // rekam medis, sehingga service itu ikut disuntikkan pada uji.
+                new ClinicalDocumentIntegrityService(c));
 
         private static DoctorConsultationController BuatControllerKonsultasi(
             ApplicationDbContext c,
@@ -51,7 +55,8 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 c,
                 ControllerTestHarness.BuatLoggerService(actorUserId),
                 new ConsultationValidationService(c, new PrescriptionValidationService(c)),
-                Finalisasi(c))
+                Finalisasi(c),
+                new InpatientClinicalContextService(c))
                 .DenganPengguna(actorUserId);
 
         /// <summary>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -38,6 +39,17 @@ public sealed class BillingKwitansiNumberOptions
     public int SequenceDigits { get; set; } = 4;
 }
 
+// BE-BKC-034 / PC-DES-008: nomor voucher Petty Cash memakai ulang mekanisme BilNumberSeries yang
+// sama dengan empat jenis nomor di atas. Bawaan PTC + DAILY + 4 digit menghasilkan bentuk
+// PTC-YYYYMMDD-NNNN lewat AllocateNumberAsync yang TIDAK disentuh sama sekali.
+public sealed class PettyCashVoucherNumberOptions
+{
+    public const string SectionName = "Billing:PettyCashVoucherNumber";
+    public string Prefix { get; set; } = "PTC";
+    public string ResetPolicy { get; set; } = BillingNumberResetPolicies.Daily;
+    public int SequenceDigits { get; set; } = 4;
+}
+
 public static class BillingNumberResetPolicies
 {
     public const string Never = "NEVER";
@@ -53,24 +65,28 @@ public sealed class BillingNumberSeriesService
     private const string DepositAccountSequenceKey = "BILLING_DEPOSIT_ACCOUNT";
     private const string CashierShiftSequenceKey = "BILLING_CASHIER_SHIFT";
     private const string KwitansiSequenceKey = "BILLING_KWITANSI";
+    private const string PettyCashVoucherSequenceKey = "BILLING_PETTY_CASH_VOUCHER";
     private readonly ApplicationDbContext _dbContext;
     private readonly BillingInvoiceNumberOptions _invoiceOptions;
     private readonly BillingDepositAccountNumberOptions _depositOptions;
     private readonly BillingCashierShiftNumberOptions _cashierShiftOptions;
     private readonly BillingKwitansiNumberOptions _kwitansiOptions;
+    private readonly PettyCashVoucherNumberOptions _pettyCashVoucherOptions;
 
     public BillingNumberSeriesService(
         ApplicationDbContext dbContext,
         IOptions<BillingInvoiceNumberOptions> invoiceOptions,
         IOptions<BillingDepositAccountNumberOptions>? depositOptions = null,
         IOptions<BillingCashierShiftNumberOptions>? cashierShiftOptions = null,
-        IOptions<BillingKwitansiNumberOptions>? kwitansiOptions = null)
+        IOptions<BillingKwitansiNumberOptions>? kwitansiOptions = null,
+        IOptions<PettyCashVoucherNumberOptions>? pettyCashVoucherOptions = null)
     {
         _dbContext = dbContext;
         _invoiceOptions = invoiceOptions.Value;
         _depositOptions = depositOptions?.Value ?? new BillingDepositAccountNumberOptions();
         _cashierShiftOptions = cashierShiftOptions?.Value ?? new BillingCashierShiftNumberOptions();
         _kwitansiOptions = kwitansiOptions?.Value ?? new BillingKwitansiNumberOptions();
+        _pettyCashVoucherOptions = pettyCashVoucherOptions?.Value ?? new PettyCashVoucherNumberOptions();
     }
 
     public Task<string> AllocateInvoiceNumberAsync(
@@ -134,6 +150,26 @@ public sealed class BillingNumberSeriesService
             _cashierShiftOptions.SequenceDigits,
             "shift kasir",
             message => new CashierShiftValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    // BE-BKC-034 / PC-DES-008: dipanggil PettyCashVoucherService.CreateAsync (BE-BKC-037) SEKALI
+    // setiap voucher baru dibuat, dari dalam transaction milik pemanggil. Nomor yang sudah terbit
+    // tersimpan di BilPettyCashVoucher.VoucherNumber dan tidak pernah dialokasikan ulang.
+    // Kunci pg_advisory_xact_lock beserta jaminan anti-kembarnya diwarisi apa adanya dari
+    // AllocateNumberAsync — tidak ada mekanisme penomoran kelima yang dibuat (QBE-CODE-003).
+    public Task<string> AllocatePettyCashVoucherNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            PettyCashVoucherSequenceKey,
+            _pettyCashVoucherOptions.Prefix,
+            _pettyCashVoucherOptions.ResetPolicy,
+            _pettyCashVoucherOptions.SequenceDigits,
+            "voucher kas kecil",
+            message => new PettyCashVoucherValidationException(message),
             actorUserId,
             instant,
             cancellationToken);

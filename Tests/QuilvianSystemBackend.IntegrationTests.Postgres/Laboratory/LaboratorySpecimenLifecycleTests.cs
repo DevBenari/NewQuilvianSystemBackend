@@ -119,8 +119,8 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var hasil = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
 
             Assert.NotNull(hasil.Handoff);
-            Assert.Equal(ClinicalFactEmissionKind.Emitted, hasil.Handoff!.Kind);
-            Assert.Equal(1, hasil.Handoff.MilestoneFactVersion);
+            Assert.Equal(ClinicalFactEmissionKind.Emitted, hasil.Handoff!.Perwakilan.Kind);
+            Assert.Equal(1, hasil.Handoff.Perwakilan.MilestoneFactVersion);
 
             var barisTagihan = await context.BilChargeLines
                 .Where(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id)
@@ -178,8 +178,16 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.DoesNotContain(spUrin.Id, idKomponenTertagih);
 
             // Nilai rujukan yang diserahkan ke Billing berjumlah Rp350.000, bukan Rp450.000.
-            var totalRujukan = await context.LabSpecimens
+            //
+            // Sejak BE-LAB-11 salinan tarif tidak lagi ada pada wadah, sehingga jumlahnya
+            // diambil dari baris pemeriksaan yang ditopang wadah yang dinyatakan layak.
+            var idWadahLayak = await context.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && x.SpecimenStatus == LabSpecimenStatus.Accepted)
+                .Select(x => x.Id)
+                .ToListAsync();
+
+            var totalRujukan = await context.LabExaminations
+                .Where(x => idWadahLayak.Contains(x.SpecimenId) && !x.IsDelete)
                 .SumAsync(x => x.UnitPriceSnapshot ?? 0m);
 
             Assert.Equal(350_000m, totalRujukan);
@@ -269,12 +277,12 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var pertama = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
             var kedua = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
 
-            Assert.Equal(ClinicalFactEmissionKind.Emitted, pertama.Handoff!.Kind);
-            Assert.Equal(ClinicalFactEmissionKind.Replayed, kedua.Handoff!.Kind);
+            Assert.Equal(ClinicalFactEmissionKind.Emitted, pertama.Handoff!.Perwakilan.Kind);
+            Assert.Equal(ClinicalFactEmissionKind.Replayed, kedua.Handoff!.Perwakilan.Kind);
 
             // Identitas fakta stabil: pengulangan tidak membuat revisi baru.
-            Assert.Equal(pertama.Handoff.MilestoneFactId, kedua.Handoff.MilestoneFactId);
-            Assert.Equal(1, kedua.Handoff.MilestoneFactVersion);
+            Assert.Equal(pertama.Handoff.Perwakilan.MilestoneFactId, kedua.Handoff.Perwakilan.MilestoneFactId);
+            Assert.Equal(1, kedua.Handoff.Perwakilan.MilestoneFactVersion);
 
             var jumlahBaris = await context.BilChargeLines
                 .CountAsync(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id);
@@ -407,18 +415,18 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
             var layak = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
 
-            var idTagihanAsli = layak.Handoff!.MilestoneFactId;
+            var idTagihanAsli = layak.Handoff!.Perwakilan.MilestoneFactId;
 
             var batal = await specimenService.CancelAsync(
                 specimen.Id,
                 new CancelLabSpecimenRequest { Reason = "Pasien pulang atas permintaan sendiri." });
 
             Assert.NotNull(batal.Handoff);
-            Assert.Equal(ClinicalFactEmissionKind.Emitted, batal.Handoff!.Kind);
+            Assert.Equal(ClinicalFactEmissionKind.Emitted, batal.Handoff!.Perwakilan.Kind);
 
             // Identitas fakta tetap sama; yang bertambah adalah versinya.
-            Assert.Equal(idTagihanAsli, batal.Handoff.MilestoneFactId);
-            Assert.Equal(2, batal.Handoff.MilestoneFactVersion);
+            Assert.Equal(idTagihanAsli, batal.Handoff.Perwakilan.MilestoneFactId);
+            Assert.Equal(2, batal.Handoff.Perwakilan.MilestoneFactVersion);
 
             // Tagihan asli tidak dihapus. Laboratorium tidak memiliki kewenangan menghapusnya.
             var barisTagihan = await context.BilChargeLines

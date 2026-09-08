@@ -3,13 +3,20 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
+| `contract_version` | `0.6.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
-| `input_revision` | `00-interview-decisions.md` revision `6`; `contracts/api-contract.md` revision `0.4.0` |
+| `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
 
+> **`0.6.0` menambah dua aksi, bukan satu resource baru.** `EPIC RI-35` memakai resource
+> `BillingDeposit` yang **sudah ada** pada `BillingManagement` — `Read`, `Create`, dan `Allocate`
+> terdaftar lewat `BillingPatientFundsController`. Yang baru hanya `Settle` dan `Refund`. Usulan
+> resource `InpatientDeposit` pada `0.5.0` dicabut sebelum sempat dipakai, supaya tidak ada dua
+> resource untuk satu ledger. Satu butir masih terbuka: siapa pemegang `BillingDeposit : Create`
+> pada langkah admisi — lihat bagian 3.
+>
 > **`0.4.0` sengaja tidak mengubah satu butir hak akses pun.** Keempat keputusan Amendment Pass
 > 2026-08-24 tidak menambah aktor, tidak menambah endpoint, dan tidak memindahkan kewenangan.
 > Pemeriksaan waktu tiba pada penempatan dijalankan aktor yang sama dengan yang sudah berwenang
@@ -139,6 +146,24 @@ atribut yang sama, dan butir haknya muncul sendiri.
 
 ---
 
+### 2.8 Deposit rawat inap — milik `BillingManagement`
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+| --- | --- | --- | --- | :---: |
+| `GET /patient-funds/deposits/{encounterId}` | `BillingDeposit` | `Read` | `[AccessPermission("BillingDeposit", "Read")]` | Tidak |
+| `GET /patient-funds/deposit-policies` | `BillingDeposit` | `Read` | `[AccessPermission("BillingDeposit", "Read")]` | Tidak |
+| `GET /patient-funds/deposits/episodes/{episodeId}` | `BillingDeposit` | `Read` | `[AccessPermission("BillingDeposit", "Read")]` | Tidak |
+| `POST /patient-funds/deposits/{encounterId}/top-ups` | `BillingDeposit` | `Create` | `[AccessPermission("BillingDeposit", "Create")]` | Ya |
+| `POST /patient-funds/deposits/{encounterId}/allocations` | `BillingDeposit` | `Allocate` | `[AccessPermission("BillingDeposit", "Allocate")]` | Ya |
+| `POST /patient-funds/deposits/episodes/{episodeId}/settle` | `BillingDeposit` | `Settle` | `[AccessPermission("BillingDeposit", "Settle")]` | Ya |
+| `POST /patient-funds/deposits/episodes/{episodeId}/refunds` | `BillingDeposit` | `Refund` | `[AccessPermission("BillingDeposit", "Refund")]` | Ya |
+| `GET /monitoring/deposit-shortfall` | `InpatientMonitoring` | `Read` | `[AccessPermission("InpatientMonitoring", "Read")]` | Tidak |
+
+Seluruh baris bertanda "Ya" memuat `EpisodeId` dan `EncounterId` pada payload log, tidak pernah
+memuat nomor kartu, nomor rekening, atau identitas pembayar.
+
+---
+
 ## 3. Peta peran ke butir hak akses
 
 Ini **usulan pemetaan**, bukan kebijakan yang sudah disahkan. Penetapan peran ke butir hak akses
@@ -146,11 +171,11 @@ dilakukan admin lewat layar Role Access yang sudah ada, dan pemilik keamanan bel
 
 | Peran | Butir hak akses yang diusulkan |
 | --- | --- |
-| Petugas admisi | `InpatientEpisode : Read/Create/Update/SetIsolation`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update/Close/RecordDeparture`, `InpatientCensus : Read`, `InpatientMonitoring : Read`. `SetIsolation` hanya berlaku selagi episode `Draft`, dijaga service |
+| Petugas admisi | `InpatientEpisode : Read/Create/Update/SetIsolation`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update/Close/RecordDeparture`, `InpatientCensus : Read`, `InpatientMonitoring : Read`, **`BillingDeposit : Read`**. `SetIsolation` hanya berlaku selagi episode `Draft`, dijaga service. **Terbuka:** apakah peran ini juga memegang `BillingDeposit : Create` untuk langkah Deposit admisi, atau langkah itu hanya mencatat nominal sementara kwitansi diterbitkan kasir. Pertanyaannya ada pada `04-prd-to-mvp.md` bagian 20.2 dan **belum terjawab** |
 | Perawat pelaksana | `InpatientEpisode : Read`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : RecordDeparture`, `InpatientCensus : Read` |
 | Kepala ruangan | Seperti perawat pelaksana, ditambah `InpatientEpisode : Update` untuk penugasan perawat dan pengalihan DPJP, serta `InpatientMonitoring : Read` |
 | Dokter dan DPJP | `InpatientEpisode : Read/SetIsolation`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : Read/Update/Sign`, `InpatientCensus : Read`. **Tanpa** `RecordDeparture`, karena kepergian dicatat petugas ruangan |
-| Petugas kasir atau billing | `InpatientEpisode : Read`, `InpatientDischarge : MarkFinancialClearance/ReadFinancialClearance`, `InpatientCensus : Read`. **Tanpa** `InpatientDischarge : Read`, sehingga kasir dapat memeriksa penandaan kelayakan keuangannya sendiri tanpa ikut membaca isi resume pulang |
+| Petugas kasir atau billing | `InpatientEpisode : Read`, `InpatientDischarge : MarkFinancialClearance/ReadFinancialClearance`, `InpatientCensus : Read`, **`BillingDeposit : Read/Create/Allocate/Settle/Refund`**. **Tanpa** `InpatientDischarge : Read`, sehingga kasir dapat memeriksa penandaan kelayakan keuangannya sendiri tanpa ikut membaca isi resume pulang |
 | Supervisor | Seluruh butir di atas, ditambah `InpatientEpisode : Reopen` dan `InpatientDischarge : CloseOverride` |
 | Admin master data | `InpatientSetting : Read/Update`, `InpatientClearanceItem : Read/Create/Update/Delete` |
 

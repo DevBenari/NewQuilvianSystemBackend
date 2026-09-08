@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -13,18 +13,26 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Services.Logging;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Tests.BillingManagement;
 
 public sealed class BillingCalculationServiceTests
 {
+    // BE-BKC-026 (perbaikan fixture basi): kategori item di sini WAJIB IsPharmacy=true. Test ini
+    // ditulis sebelum PPN dibatasi ke item Pharmacy/Drug/Alkes (lihat BillingCalculationService.cs
+    // ApplyInvoiceTax) - komentar lama "*" menandai tax rule TINGKAT INVOICE sudah tidak benar
+    // sejak perbaikan itu; TaxableCategory kini murni label, dan basis pajak SELALU digerbangi
+    // item.IsPharmacy, bukan level invoice. Tanpa perbaikan ini test salah mengasumsikan item non-
+    // pharmacy tetap kena pajak dan akan gagal di TaxAmount (lihat OutpatientNonPharmacyItemsAre
+    // NeverPartOfTaxBase di bawah untuk bukti sebaliknya).
     [Fact]
     public async Task RecalculateCreatesImmutableVersionsWithTaxProvenance()
     {
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
-        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at);
-        db.MstTaxRules.Add(TaxRule("PROC", at));
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
         await db.SaveChangesAsync();
         var service = CreateService(db, SelfPayCoverageAdapter.Instance);
 
@@ -43,13 +51,137 @@ public sealed class BillingCalculationServiceTests
         Assert.Equal(2, (await db.BilInvoices.FindAsync(invoice.Id))!.CurrentCalculationVersion);
     }
 
+    // BE-BKC-026 / BIL-AT-044: gerbang PPN rawat inap (isOutpatientForTax = ServiceType != Ranap)
+    // sudah terimplementasi lewat BE-BKC-FIX-004 di luar roadmap - task ini memverifikasi, bukan
+    // membangun. Obat/alkes pada tagihan RANAP dibebaskan PPN sepenuhnya, terlepas dari tarif pajak
+    // yang aktif.
+    [Fact]
+    public async Task InpatientPharmacyItemsAreExemptFromTax()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RANAP", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Obat rawat inap bebas PPN"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.TaxAmount);
+        Assert.Empty(result.Breakdown.Taxes);
+        Assert.Equal(100_000m, result.PatientAmount);
+    }
+
+    // BE-BKC-026 / BIL-AT-045: obat/alkes rawat JALAN tetap kena PPN, kebalikan langsung dari test
+    // di atas - keduanya sengaja memakai fixture identik (hanya ServiceType berbeda) supaya
+    // perbandingannya tidak bisa disangkal kebetulan setup.
+    [Fact]
+    public async Task OutpatientPharmacyItemsAreTaxed()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Obat rawat jalan kena PPN"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(11_000m, result.TaxAmount);
+        Assert.Equal(111_000m, result.PatientAmount);
+    }
+
+    // BE-BKC-026 / BIL-AT-046: IGD diperlakukan SAMA dengan rawat jalan, bukan dibebaskan seperti
+    // RANAP - satu-satunya gerbang pembebasan adalah ServiceType == Ranap secara eksplisit.
+    [Fact]
+    public async Task EmergencyPharmacyItemsAreTaxedLikeOutpatient()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "IGD", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Obat IGD kena PPN"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(11_000m, result.TaxAmount);
+        Assert.Equal(111_000m, result.PatientAmount);
+    }
+
+    // BE-BKC-026 / BIL-AT-051: MCU belum dipakai sebagai ServiceType aktif (jawaban pemilik atas
+    // BKC-CQ-03) - tidak ada konstanta MCU pada AdministrationFeeServiceTypes. Hasil uji ini tetap
+    // dilampirkan sebagai bahan keputusan sebelum MCU diaktifkan: perilaku bawaannya sudah benar
+    // (tetap kena PPN) karena gerbangnya hanya mengecualikan Ranap secara eksplisit, ServiceType
+    // lain apa pun otomatis mengikuti jalur rawat jalan.
+    [Fact]
+    public async Task McuPharmacyItemsAreTaxedAsDefaultBehavior()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "MCU", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Obat MCU kena PPN sebagai default"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(11_000m, result.TaxAmount);
+        Assert.Equal(111_000m, result.PatientAmount);
+    }
+
+    // BE-BKC-026 / BIL-VAL-039: jenis kunjungan kosong atau tidak dikenal tetap dikenai PPN dan
+    // TIDAK menghentikan perhitungan - "!= Ranap" bernilai true untuk string apa pun selain "RANAP"
+    // persis, termasuk string kosong, sehingga tidak perlu penjaga eksplisit terpisah untuk kasus ini.
+    [Fact]
+    public async Task UnknownOrEmptyServiceTypeIsStillTaxedAndDoesNotHaltCalculation()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "", at, isPharmacy: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "ServiceType kosong tetap kena PPN"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(11_000m, result.TaxAmount);
+        Assert.Equal(111_000m, result.PatientAmount);
+    }
+
+    // BE-BKC-026 (acceptance criteria #6 - basis pajak): jasa konsultasi/tindakan tidak pernah masuk
+    // basis PPN, bahkan pada rawat jalan yang sepenuhnya kena pajak untuk item Pharmacy. Ini juga
+    // pembuktian terbalik dari RecalculateCreatesImmutableVersionsWithTaxProvenance di atas - fixture
+    // identik (RAJAL, tax rule sama) tapi isPharmacy=false (default) harus menghasilkan TaxAmount nol.
+    [Fact]
+    public async Task OutpatientNonPharmacyItemsAreNeverPartOfTaxBase()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        db.MstTaxRules.Add(TaxRule("*", at));
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Jasa tindakan tidak kena PPN"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.TaxAmount);
+        Assert.Empty(result.Breakdown.Taxes);
+        Assert.Equal(100_000m, result.PatientAmount);
+    }
+
     [Fact]
     public async Task CoverageWaterfallAppliesPrimaryThenExcessThenPatient()
     {
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
-        var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 60_000m, 25_000m, 0, []));
+        var adapter = new AllocatingCoverageAdapter("APPROVED", "APPROVED", 60_000m, 25_000m, 0);
         var service = CreateService(db, adapter);
 
         var result = await service.RecalculateAsync(
@@ -68,7 +200,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
         var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 80_000m, 30_000m, 0, []));
+            "INSURER-CONTRACT-TEST", "APPROVED", "APPROVED", 80_000m, 30_000m, 0, [], [], 0, 0, []));
         var service = CreateService(db, adapter);
 
         var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
@@ -78,20 +210,29 @@ public sealed class BillingCalculationServiceTests
         Assert.Empty(db.BilCalculationVersions);
     }
 
+    // BE-BKC-025 / BIL-VAL-036 / BIL-AT-043 (menggantikan RejectedCoverageRemainsUnresolvedAndDoes
+    // NotShiftToPatient di rilis sebelumnya): penjaga diretarget dari menguji UnresolvedAmount
+    // menjadi menguji DataAnomalyAmount (BKC-DES-012). Decision yang menyatakan PrimaryStatus
+    // REJECTED TANPA DataAnomalyAmount terisi kini DITOLAK - lewat
+    // RegistrationBillingCoverageAdapter keadaan ini seharusnya tidak pernah tercapai lagi (jalur
+    // REJECTED lama sudah diganti Anomaly(), lihat RegistrationCoverageAdapterPayerNotEligible...
+    // di bawah); dipalsukan di sini lewat FixedCoverageAdapter untuk membuktikan penjaganya
+    // sendiri bekerja terhadap IBillingCoverageAdapter mana pun yang masih mengklaim REJECTED
+    // tanpa anomali.
     [Fact]
-    public async Task RejectedCoverageRemainsUnresolvedAndDoesNotShiftToPatient()
+    public async Task RejectedCoverageWithoutDataAnomalyIsRejected()
     {
         await using var db = IsolatedBillingDbContextFactory.Create();
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
         var adapter = new FixedCoverageAdapter(new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "REJECTED", "NOT_CONFIGURED", 0, 0, 100_000m, []));
+            "INSURER-CONTRACT-TEST", "REJECTED", "NOT_CONFIGURED", 0, 0, 100_000m, [], [], 0, 0, []));
         var service = CreateService(db, adapter);
 
-        var result = await service.RecalculateAsync(
-            invoice.Id, Request(invoice.RowVersion, "Claim ditolak"), Guid.NewGuid(), CancellationToken.None);
+        var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
+            service.RecalculateAsync(invoice.Id, Request(invoice.RowVersion, "Claim ditolak tanpa anomali"), Guid.NewGuid(), CancellationToken.None));
 
-        Assert.Equal(0, result.PatientAmount);
-        Assert.Equal(100_000m, result.UnresolvedCoverageAmount);
+        Assert.Contains("tanpa policy kontrak", exception.Message);
+        Assert.Empty(db.BilCalculationVersions);
     }
 
     [Fact]
@@ -129,6 +270,61 @@ public sealed class BillingCalculationServiceTests
     // policy untuk coverage waterfall, bukan sekadar kolom dekoratif - lihat
     // ApplyCoverageWaterfall/BuildCoverageComponents (coverableAmount hanya menjumlahkan komponen
     // yang Coverable=true).
+    // BE-BKC-022 / BIL-VAL-028 (BIL-AT-029 jalur gagal): rincian per baris yang tidak menjumlah ke
+    // total tanggungan MUST menghentikan perhitungan, bukan diteruskan. Selisihnya sengaja dibuat
+    // Rp 10.000 dari total Rp 60.000 supaya jelas ini bukan soal pembulatan.
+    [Fact]
+    public async Task RincianTanggunganPerBarisYangTidakMenjumlahMenghentikanPerhitungan()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
+        var adapter = new MisallocatingCoverageAdapter(primaryTotal: 60_000m, allocatedTotal: 50_000m);
+        var service = CreateService(db, adapter);
+
+        var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
+            service.RecalculateAsync(
+                invoice.Id, Request(invoice.RowVersion, "Alokasi tidak menjumlah"), Guid.NewGuid(), CancellationToken.None));
+
+        Assert.Contains("tidak menjumlah ke total tanggungan", exception.Message);
+        Assert.Empty(db.BilCalculationVersions);
+    }
+
+    // BE-BKC-022 / BKC-DES-004: perhitungan yang baru dijalankan selalu menyatakan rinciannya
+    // tersedia. Penanda inilah yang membedakan "penjamin menanggung Rp 0" dari "kami tidak punya
+    // rinciannya" - dan consumer wajib memeriksanya, bukan memeriksa versi kontrak kalkulasi.
+    [Fact]
+    public async Task PerhitunganBaruMenyatakanRincianPerBarisTersedia()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", DateTimeOffset.UtcNow);
+        var service = CreateService(db, new AllocatingCoverageAdapter("APPROVED", "NOT_CONFIGURED", 60_000m, 0, 0));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Coverage dihitung"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(result.Breakdown.Coverage.IsPerItemAllocationAvailable);
+    }
+
+    // BE-BKC-022 / BIL-AT-050: versi kalkulasi yang tersimpan sebelum penanda ini ada tidak memuat
+    // propertinya sama sekali. Deserialisasi MUST menghasilkan false tanpa galat - bukan true, dan
+    // bukan melempar - supaya rincian Rp 0 milik snapshot lama tidak terbaca sebagai angka sungguhan.
+    [Fact]
+    public void SnapshotLamaTanpaPenandaTerbacaSebagaiRincianTidakTersedia()
+    {
+        const string snapshotLama = """
+            {"contractVersion":"BIL-CALCULATION-0.4","primaryStatus":"APPROVED","excessStatus":"NOT_CONFIGURED",
+             "eligibleAmount":100000,"primaryAmount":60000,"residualAfterPrimary":40000,"excessAmount":0,
+             "residualAfterExcess":40000,"unresolvedAmount":0,"patientAmount":40000,"appliedRuleIds":[]}
+            """;
+
+        var coverage = JsonSerializer.Deserialize<CoverageCalculationResponse>(
+            snapshotLama, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(coverage);
+        Assert.Equal(60_000m, coverage!.PrimaryAmount);
+        Assert.False(coverage.IsPerItemAllocationAvailable);
+    }
+
     [Fact]
     public async Task AdministrationFeeCoverableFlagGatesWhetherInsurerCanCoverIt()
     {
@@ -136,8 +332,12 @@ public sealed class BillingCalculationServiceTests
         // Item dasar 100.000 (selalu coverable, lihat SeedInvoiceAsync) + admin fee 20.000 -> total
         // eligible 120.000. Decision penjamin mencoba menanggung SELURUH 120.000, termasuk admin
         // fee - hanya sah bila policy admin fee Coverable=true.
-        var decision = new BillingCoverageDecision(
-            "INSURER-CONTRACT-TEST", "APPROVED", "NOT_CONFIGURED", 120_000m, 0, 0, []);
+        // Alokasi diturunkan dari komponen yang benar-benar diterima adapter, bukan daftar
+        // hardcoded: BIL-VAL-028 menolak decision yang totalnya tidak beralamat baris. Pada cabang
+        // admin fee tidak coverable, komponen yang tersedia hanya menyerap 100.000 sementara total
+        // yang dideklarasikan tetap 120.000 - penjaga cap yang berjalan lebih dulu tetap menangkapnya.
+        static AllocatingCoverageAdapter NewAdapter() =>
+            new("APPROVED", "NOT_CONFIGURED", 120_000m, 0, 0);
 
         await using (var coverableDb = IsolatedBillingDbContextFactory.Create())
         {
@@ -145,7 +345,7 @@ public sealed class BillingCalculationServiceTests
                 AdministrationPolicy("ADM-COVERABLE", "RAJAL", 20_000m, 10, at, coverable: true));
             var invoice = await SeedInvoiceAsync(coverableDb, Guid.NewGuid(), "RAJAL", at);
             await coverableDb.SaveChangesAsync();
-            var service = CreateService(coverableDb, new FixedCoverageAdapter(decision));
+            var service = CreateService(coverableDb, NewAdapter());
 
             var result = await service.RecalculateAsync(
                 invoice.Id, Request(invoice.RowVersion, "Admin fee coverable"), Guid.NewGuid(), CancellationToken.None);
@@ -161,7 +361,7 @@ public sealed class BillingCalculationServiceTests
                 AdministrationPolicy("ADM-NOT-COVERABLE", "RAJAL", 20_000m, 10, at, coverable: false));
             var invoice = await SeedInvoiceAsync(notCoverableDb, Guid.NewGuid(), "RAJAL", at);
             await notCoverableDb.SaveChangesAsync();
-            var service = CreateService(notCoverableDb, new FixedCoverageAdapter(decision));
+            var service = CreateService(notCoverableDb, NewAdapter());
 
             var exception = await Assert.ThrowsAsync<BillingCalculationValidationException>(() =>
                 service.RecalculateAsync(
@@ -245,6 +445,660 @@ public sealed class BillingCalculationServiceTests
         Assert.Equal(20_000m, result.PatientAmount);
         Assert.Equal("NOT_CONFIGURED", result.Breakdown.Coverage.ExcessStatus);
         Assert.Single(result.Breakdown.Coverage.AppliedRuleIds);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task RegistrationCoverageAdapterCoversItemEvenWhenRuleNeedsApprovalOrGuaranteeLetter(
+        bool needApproval, bool needGuaranteeLetter)
+    {
+        // BKC-DEC-062 (amendment BKC-DEC-042): rule Covered yang butuh approval dan/atau surat
+        // jaminan TIDAK LAGI digeser ke unresolved - approval/SJP adalah proses administratif
+        // terpisah, bukan penolakan coverage. Sebelum perbaikan ini, ketiga kombinasi flag di atas
+        // akan menghasilkan PrimaryAmount=0 dan seluruh gross jatuh ke UnresolvedAmount.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-APPROVAL",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-APPROVAL",
+            RuleName = "Coverage butuh approval/SJP",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 80,
+            IsNeedApproval = needApproval,
+            IsNeedGuaranteeLetter = needGuaranteeLetter,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Coverage butuh approval tetap dihitung"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(80_000m, result.PrimaryAmount);
+        Assert.Equal(20_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    // BE-BKC-024 / BIL-AT-036 / BKC-DEC-071: CoverageStatus="NeedApproval" TIDAK LAGI menggeser
+    // komponen ke unresolved (gate dicabut penuh, kembali dari
+    // RegistrationCoverageAdapterStillGatesRuleWithNeedApprovalCoverageStatus di rilis sebelumnya).
+    // Rule dengan status ini kini dihitung persis seperti Covered biasa.
+    [Fact]
+    public async Task RegistrationCoverageAdapterNoLongerGatesRuleWithNeedApprovalCoverageStatus()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-STATUS",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NEED-APPROVAL-STATUS",
+            RuleName = "Status coverage belum diputuskan",
+            ItemType = "Procedure",
+            CoverageStatus = "NeedApproval",
+            CoveragePercent = 80,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Status coverage belum diputuskan, tetap dihitung"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(80_000m, result.PrimaryAmount);
+        Assert.Equal(20_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    // BE-BKC-024 / BIL-AT-037 / BKC-DEC-071 (jawaban pemilik atas BKC-CQ-07): limit bulanan
+    // (MaxAmountPerMonth/MaxQuantityPerMonth) TIDAK LAGI menggeser komponen ke unresolved - kembali
+    // dari RegistrationCoverageAdapterStillGatesRuleWithMonthlyLimit di rilis sebelumnya. Diperlakukan
+    // SELALU TERSEDIA sampai mesin pemakaian kumulatif dibangun (coverage gap tertunda, bukan
+    // bagian rilis ini) - lihat 01-existing-capability-map.md 17.4.E.
+    [Fact]
+    public async Task RegistrationCoverageAdapterNoLongerGatesRuleWithMonthlyLimit()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-MONTHLY",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-MONTHLY-LIMIT",
+            RuleName = "Limit bulanan",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 80,
+            MaxAmountPerMonth = 50_000m,
+            MaxQuantityPerMonth = 1,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Limit bulanan diperlakukan selalu tersedia"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(80_000m, result.PrimaryAmount);
+        Assert.Equal(20_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    // BE-BKC-024 (regresi wajib diperiksa): batas PER KUNJUNGAN (MaxAmountPerVisit) bertetangga
+    // dengan limit bulanan yang baru saja dicabut di atas, tapi BKC-DEC-071 hanya mencabut limit
+    // bulanan. Rule di sini sengaja mengisi MaxAmountPerMonth (harus diabaikan) BERSAMA
+    // MaxAmountPerVisit (harus tetap menjepit) supaya keduanya tidak tertukar.
+    [Fact]
+    public async Task RegistrationCoverageAdapterStillEnforcesPerVisitLimit()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-PER-VISIT",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-PER-VISIT-LIMIT",
+            RuleName = "Batas per kunjungan tetap berlaku",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 80,
+            MaxAmountPerVisit = 30_000m,
+            MaxAmountPerMonth = 999_999m,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Batas per kunjungan tetap menjepit"), Guid.NewGuid(), CancellationToken.None);
+
+        // 80% dari 100.000 = 80.000, tetapi dijepit ke MaxAmountPerVisit = 30.000. Sisanya
+        // (70.000) menjadi porsi pasien karena IsAllowExcessPaymentByPatient = true (bukan unresolved).
+        Assert.Equal(30_000m, result.PrimaryAmount);
+        Assert.Equal(70_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    // BE-BKC-024 / BIL-AT-039: aturan NotCovered dengan IsAllowExcessPaymentByPatient = true membuat
+    // seluruh nominal menjadi porsi pasien (bukan unresolved). Cabang ini tidak disentuh task ini,
+    // tapi termasuk acceptance criteria yang wajib diverifikasi tetap benar.
+    [Fact]
+    public async Task RegistrationCoverageAdapterNotCoveredRuleWithExcessAllowedBecomesPatientPortion()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-NOT-COVERED",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NOT-COVERED-EXCESS",
+            RuleName = "NotCovered, excess diizinkan ke pasien",
+            ItemType = "Procedure",
+            CoverageStatus = "NotCovered",
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "NotCovered jadi porsi pasien"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.PrimaryAmount);
+        Assert.Equal(100_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+    }
+
+    // BE-BKC-030 / BIL-AT-062 / BKC-DEC-089 / BKC-DES-026: uji pasangan langsung dengan test di
+    // atas - rule NotCovered yang PERSIS sama kecuali IsAllowExcessPaymentByPatient=false kini
+    // masuk nonBillableResidual (akumulator yang sama dengan jalur 5), BUKAN unresolvedAmount lagi.
+    [Fact]
+    public async Task RegistrationCoverageAdapterNotCoveredRuleWithExcessDisallowedBecomesNonBillableResidual()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-NOT-COVERED-NON-BILLABLE",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NOT-COVERED-NON-BILLABLE",
+            RuleName = "NotCovered, dilarang ditagih ke pasien",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
+            CoverageStatus = "NotCovered",
+            IsAllowExcessPaymentByPatient = false,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "NotCovered dilarang ditagih ke pasien"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.PrimaryAmount);
+        Assert.Equal(0m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+        Assert.Equal(100_000m, result.Breakdown.Coverage.NonBillableResidualAmount);
+        Assert.True(result.Breakdown.Coverage.HasNonBillableResidual);
+        Assert.Equal(100_000m, result.GrossAmount);
+    }
+
+    // BE-BKC-030 / BIL-AT-063 / BKC-DES-026: satu tagihan yang memuat nominal dari jalur (2) DAN
+    // jalur (5) sekaligus menghasilkan SATU nominal nonBillableResidual gabungan - membuktikan
+    // kedua cabang benar-benar memakai akumulator yang sama, bukan dua akumulator yang dijumlahkan
+    // belakangan (godaan yang secara eksplisit dilarang BKC-DES-026's catatan desain).
+    [Fact]
+    public async Task RegistrationCoverageAdapterCombinesNotCoveredAndResidualIntoSingleNonBillableAmount()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var firstCategoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-COMBINED",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+
+        // Item kedua (kategori terpisah): item pertama (dari SeedInvoiceAsync) menempuh jalur (2)
+        // NotCovered; item kedua ini menempuh jalur (5) residual dari Covered 70%.
+        var secondCategory = new MstTariffCategory
+        {
+            Id = Guid.NewGuid(),
+            TariffCategoryCode = "PROC-2",
+            TariffCategoryName = "Procedure test kedua",
+            IsProcedure = true,
+            IsCoveredByInsuranceDefault = true,
+            IsActive = true
+        };
+        db.MstTariffCategories.Add(secondCategory);
+        db.BilInvoiceItems.Add(new BilInvoiceItem
+        {
+            InvoiceId = invoice.Id,
+            SourceDomain = "PROCEDURE",
+            SourceDetailId = Guid.NewGuid().ToString(),
+            SourceVersion = 1,
+            SourceContractVersion = "TEST-1",
+            SourceStatus = "CONFIRMED",
+            SourceOccurredAt = at,
+            CategoryId = secondCategory.Id,
+            Category = secondCategory,
+            DescriptionSnapshot = "Fisioterapi fiktif",
+            Quantity = 1,
+            UnitPrice = 100_000m,
+            Status = BillingInvoiceItemStatuses.Active,
+            SourcePayloadHash = new string('B', 64)
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-COMBINED-NOT-COVERED",
+            RuleName = "NotCovered dilarang ditagih ke pasien - item pertama",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = firstCategoryId,
+            CoverageStatus = "NotCovered",
+            IsAllowExcessPaymentByPatient = false,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-COMBINED-RESIDUAL",
+            RuleName = "Residual dilarang ditagih ke pasien - item kedua",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = secondCategory.Id,
+            CoverageStatus = "Covered",
+            CoveragePercent = 70,
+            IsAllowExcessPaymentByPatient = false,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Jalur (2) dan (5) digabung satu nominal"), Guid.NewGuid(), CancellationToken.None);
+
+        // Item 1 (100.000, NotCovered): seluruhnya nonBillableResidual.
+        // Item 2 (100.000, Covered 70%): primary=70.000, residual 30.000 nonBillableResidual.
+        Assert.Equal(70_000m, result.PrimaryAmount);
+        Assert.Equal(0m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+        Assert.Equal(130_000m, result.Breakdown.Coverage.NonBillableResidualAmount);
+        Assert.True(result.Breakdown.Coverage.HasNonBillableResidual);
+        Assert.Equal(200_000m, result.GrossAmount);
+    }
+
+    // BE-BKC-028 / BIL-AT-055 / BKC-DEC-080 / BKC-DES-021/022: residual jalur (5)
+    // (CalculateCoveredAmount, bukan NotCovered) dengan IsAllowExcessPaymentByPatient=false kini
+    // masuk NonBillableResidualAmount, BUKAN pasien maupun UnresolvedAmount - menunggu Finance
+    // mengajukan write-off kategori NON_BILLABLE_RESIDUAL, bukan menggantung tanpa tindak lanjut.
+    [Fact]
+    public async Task RegistrationCoverageAdapterResidualBecomesNonBillableWhenExcessNotAllowed()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-NON-BILLABLE",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NON-BILLABLE",
+            RuleName = "Residual dilarang ditagih ke pasien",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 70,
+            IsAllowExcessPaymentByPatient = false,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Residual tidak boleh ditagih ke pasien"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(70_000m, result.PrimaryAmount);
+        Assert.Equal(0m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+        Assert.Equal(30_000m, result.Breakdown.Coverage.NonBillableResidualAmount);
+        Assert.True(result.Breakdown.Coverage.HasNonBillableResidual);
+        Assert.Equal(100_000m, result.GrossAmount);
+    }
+
+    // BE-BKC-028 / BIL-AT-056: uji pasangan langsung dengan test di atas - rule yang PERSIS sama
+    // kecuali IsAllowExcessPaymentByPatient=true menghasilkan porsi pasien, BUKAN residual.
+    // Membuktikan cabang true amendment ini benar-benar tidak disentuh (BKC-DEC-070).
+    [Fact]
+    public async Task RegistrationCoverageAdapterResidualStaysPatientPortionWhenExcessAllowed()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-EXCESS-ALLOWED",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-EXCESS-ALLOWED",
+            RuleName = "Residual boleh ditagih ke pasien",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 70,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Residual boleh ditagih ke pasien"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(70_000m, result.PrimaryAmount);
+        Assert.Equal(30_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.NonBillableResidualAmount);
+        Assert.False(result.Breakdown.Coverage.HasNonBillableResidual);
+    }
+
+    // BE-BKC-028 / BIL-AT-057 / BKC-DES-023: mesin kalkulasi hanya MENDETEKSI dan MENANDAI residual
+    // non-billable - ia MUST NOT pernah membuat BilWriteOffCase sendiri (pengajuan tetap perbuatan
+    // manusia/Finance). Membuka layar perhitungan berulang (PreviewCalculationAsync, dipanggil
+    // Menu Pembayaran setiap kali dibuka) TIDAK BOLEH melahirkan satu pun kasus penanggungan.
+    [Fact]
+    public async Task CalculationEnginePreviewNeverCreatesWriteOffCaseForNonBillableResidual()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-NO-AUTO-WRITEOFF",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NO-AUTO-WRITEOFF",
+            RuleName = "Residual non-billable, tidak boleh melahirkan write-off otomatis",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 70,
+            IsAllowExcessPaymentByPatient = false,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        for (var i = 0; i < 10; i++)
+        {
+            var preview = await service.PreviewCalculationAsync(invoice.Id, Guid.NewGuid(), CancellationToken.None);
+            Assert.Equal(30_000m, preview.Breakdown.Coverage.NonBillableResidualAmount);
+        }
+
+        Assert.Empty(db.BilWriteOffCases);
+        Assert.Empty(db.BilCalculationVersions);
+    }
+
+    // BE-BKC-025 / BIL-AT-041 / BKC-DEC-073 / BKC-DES-010/011: penjamin belum dinyatakan layak
+    // (IsEligible=false) TIDAK LAGI membuat komponen menggantung (unresolved) - kalkulasi
+    // BERHASIL, seluruh biaya coverable jatuh ke pasien, dan kode PAYER_NOT_ELIGIBLE tercatat
+    // sebagai anomali data (bukan tagihan yang tidak dapat dialokasikan ke siapa pun seperti
+    // perilaku "Penjamin Belum Terverifikasi" sebelumnya).
+    [Fact]
+    public async Task RegistrationCoverageAdapterPayerNotEligibleBecomesAnomalyAndPatientPortion()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-NOT-ELIGIBLE",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = false,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        // Rule Covered SENGAJA disediakan untuk membuktikan anomali bergantung pada precondition
+        // penjamin (IsEligible), bukan pada ketiadaan rule yang cocok (itu jalur (1), sudah
+        // tercakup RegistrationCoverageAdapterUsesApprovedGenericPrimaryRule).
+        db.MstInsuranceCoverageRules.Add(new MstInsuranceCoverageRule
+        {
+            InsuranceProviderId = providerId,
+            RuleCode = "COV-NOT-ELIGIBLE",
+            RuleName = "Coverage tersedia tetapi penjamin belum eligible",
+            ItemType = "Procedure",
+            CoverageStatus = "Covered",
+            CoveragePercent = 100,
+            IsAllowExcessPaymentByPatient = true,
+            EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
+            EffectiveEndDate = DateTime.UtcNow.AddDays(1),
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Penjamin belum eligible"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0m, result.PrimaryAmount);
+        Assert.Equal(100_000m, result.PatientAmount);
+        Assert.Equal(0m, result.Breakdown.Coverage.UnresolvedAmount);
+        Assert.Equal(100_000m, result.Breakdown.Coverage.DataAnomalyAmount);
+        Assert.True(result.Breakdown.Coverage.HasDataAnomaly);
+        Assert.Equal(["PAYER_NOT_ELIGIBLE"], result.Breakdown.Coverage.AnomalyCodes);
+        Assert.Single(result.Breakdown.Coverage.AnomalyMessages);
+        // BE-BKC-028 / BIL-AT-055 acceptance 5: jalur anomali data tetap mengembalikan selisih
+        // non-billable bernilai nol - Anomaly() TIDAK PERNAH mengisi NonBillableResidualAmount.
+        Assert.Equal(0m, result.Breakdown.Coverage.NonBillableResidualAmount);
+        Assert.False(result.Breakdown.Coverage.HasNonBillableResidual);
+        Assert.Contains("Registrasi", result.Breakdown.Coverage.AnomalyMessages[0]);
+    }
+
+    // BE-BKC-025 / BIL-AT-042: polis tercatat tidak aktif menghasilkan kode POLICY_INACTIVE dengan
+    // perilaku nominal yang sama dengan PAYER_NOT_ELIGIBLE - logikanya sudah dibuktikan test di
+    // atas, di sini hanya membuktikan kodenya berbeda dan tepat.
+    [Fact]
+    public async Task RegistrationCoverageAdapterPolicyInactiveBecomesAnomalyWithCorrectCode()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var providerId = Guid.NewGuid();
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-POLICY-INACTIVE",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = providerId,
+            IsEligible = true,
+            IsPolicyActive = false,
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Polis tidak aktif"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(100_000m, result.PatientAmount);
+        Assert.Equal(100_000m, result.Breakdown.Coverage.DataAnomalyAmount);
+        Assert.Equal(["POLICY_INACTIVE"], result.Breakdown.Coverage.AnomalyCodes);
+    }
+
+    // BE-BKC-025: penjamin berjenis Insurance tetapi InsuranceProviderId kosong menghasilkan kode
+    // INSURANCE_PROVIDER_MISSING - keadaan data yang seharusnya dicegah form registrasi, tetapi
+    // adapter tetap MUST menanganinya sebagai anomali, bukan melempar galat tak tertangani.
+    // Cakupan DoD "empat kode dihasilkan pada keadaan yang benar"; ENCOUNTER_NOT_FOUND tidak diuji
+    // di sini karena CalculateAsync sudah memuat encounter lebih dulu sebelum memanggil adapter -
+    // jalur itu seharusnya tidak dapat dipicu lewat pipeline normal (dicatat sebagai keterbatasan
+    // pada laporan task, bukan diuji dengan cara yang dipaksakan).
+    [Fact]
+    public async Task RegistrationCoverageAdapterMissingInsuranceProviderBecomesAnomalyWithCorrectCode()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        {
+            EncounterId = invoice.EncounterId,
+            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PaymentSourceNumber = "PAY-PROVIDER-MISSING",
+            PaymentType = EncounterPaymentType.Insurance,
+            InsuranceProviderId = null,
+            IsEligible = true,
+            IsPolicyActive = true,
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+        var service = CreateService(db, new RegistrationBillingCoverageAdapter(db));
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Perusahaan asuransi belum dipilih"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(100_000m, result.PatientAmount);
+        Assert.Equal(["INSURANCE_PROVIDER_MISSING"], result.Breakdown.Coverage.AnomalyCodes);
     }
 
     [Fact]
@@ -414,7 +1268,8 @@ public sealed class BillingCalculationServiceTests
         Guid patientId,
         string serviceType,
         DateTimeOffset at,
-        bool isProcedure = false)
+        bool isProcedure = false,
+        bool isPharmacy = false)
     {
         var encounter = new TrxPatientEncounter
         {
@@ -427,12 +1282,13 @@ public sealed class BillingCalculationServiceTests
             EncounterDate = at.UtcDateTime,
             IsActive = true
         };
-        var category = new MstBillingItemCategory
+        var category = new MstTariffCategory
         {
             Id = Guid.NewGuid(),
-            BillingItemCategoryCode = "PROC",
-            BillingItemCategoryName = "Procedure test",
+            TariffCategoryCode = "PROC",
+            TariffCategoryName = "Procedure test",
             IsProcedure = isProcedure,
+            IsPharmacy = isPharmacy,
             IsCoveredByInsuranceDefault = true,
             IsActive = true
         };
@@ -464,7 +1320,7 @@ public sealed class BillingCalculationServiceTests
         });
 
         db.TrxPatientEncounters.Add(encounter);
-        db.MstBillingItemCategories.Add(category);
+        db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         await db.SaveChangesAsync();
         return invoice;
@@ -587,10 +1443,59 @@ public sealed class BillingCalculationServiceTests
             Task.FromResult(decision);
     }
 
+    // BE-BKC-022: menurunkan alokasi per komponen dari komponen yang benar-benar diterima adapter.
+    // Fixture tidak dapat menebak InvoiceItemId yang baru dibuat SeedInvoiceAsync, sementara
+    // BIL-VAL-028 menuntut jumlah alokasi menyamai total tanggungan. PrimaryAmount pada decision
+    // tetap nilai yang DIDEKLARASIKAN - bukan hasil alokasi - supaya penjaga cap masih dapat diuji
+    // dengan total yang sengaja melebihi biaya coverable.
+    private sealed class AllocatingCoverageAdapter(
+        string primaryStatus,
+        string excessStatus,
+        decimal primaryTotal,
+        decimal excessTotal,
+        decimal unresolvedTotal) : IBillingCoverageAdapter
+    {
+        public Task<BillingCoverageDecision> ResolveAsync(BillingCoverageContext context, CancellationToken cancellationToken)
+        {
+            var outcomes = new List<BillingCoverageComponentOutcome>();
+            var remaining = primaryTotal;
+            foreach (var component in context.Components.Where(x => x.Coverable && x.Amount > 0))
+            {
+                var covered = Math.Min(remaining, component.Amount);
+                remaining -= covered;
+                outcomes.Add(new BillingCoverageComponentOutcome(
+                    component.ComponentId, component.ComponentType, covered, 0, 0, 0));
+            }
+
+            return Task.FromResult(new BillingCoverageDecision(
+                "INSURER-CONTRACT-TEST", primaryStatus, excessStatus,
+                primaryTotal, excessTotal, unresolvedTotal, [], outcomes, 0, 0, []));
+        }
+    }
+
+    // BE-BKC-022: sengaja menghasilkan decision yang cacat - total tanggungan menyatakan satu angka,
+    // sementara alokasi per komponennya menjumlah ke angka lain. Inilah bentuk bug yang BIL-VAL-028
+    // ada untuk menangkapnya, dan satu-satunya cara mengujinya adalah memalsukannya di sini.
+    private sealed class MisallocatingCoverageAdapter(decimal primaryTotal, decimal allocatedTotal) : IBillingCoverageAdapter
+    {
+        public Task<BillingCoverageDecision> ResolveAsync(BillingCoverageContext context, CancellationToken cancellationToken)
+        {
+            var component = context.Components.First(x => x.Coverable && x.Amount > 0);
+            var outcomes = new List<BillingCoverageComponentOutcome>
+            {
+                new(component.ComponentId, component.ComponentType, allocatedTotal, 0, 0, 0)
+            };
+
+            return Task.FromResult(new BillingCoverageDecision(
+                "INSURER-CONTRACT-TEST", "APPROVED", "NOT_CONFIGURED",
+                primaryTotal, 0, 0, [], outcomes, 0, 0, []));
+        }
+    }
+
     private sealed class SelfPayCoverageAdapter : IBillingCoverageAdapter
     {
         public static readonly SelfPayCoverageAdapter Instance = new();
         public Task<BillingCoverageDecision> ResolveAsync(BillingCoverageContext context, CancellationToken cancellationToken) =>
-            Task.FromResult(new BillingCoverageDecision("SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, []));
+            Task.FromResult(new BillingCoverageDecision("SELF-PAY-TEST", "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], [], 0, 0, []));
     }
 }

@@ -520,7 +520,6 @@ public class LabExaminationTests
         {
             Id = Guid.NewGuid(),
             LabOrderId = order.Id,
-            ProcedureId = procedures[0].Id,
             SpecimenBarcode = "BC-0001",
             SpecimenSequence = 1,
             SpecimenStatus = LabSpecimenStatus.Planned

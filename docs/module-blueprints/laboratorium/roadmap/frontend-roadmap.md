@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `1` |
+| Roadmap revision | `2` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -100,6 +100,18 @@ produk.
 ## 3. Task Gelombang `MVP-0`
 
 ### `FE-LAB-01` — Kerangka modul dan kontrak penanganan state
+
+> **Status: `SELESAI` — 2026-09-04.** Seluruh butir DoD terpenuhi. Tujuh lapis modul
+> `laboratory-management` berdiri di frontend, halaman contoh **Ringkasan Laboratorium**
+> terbit sebagai route `/health-services/laboratory-management/overview`, dan ketujuh baris
+> kontrak penanganan state `03-frontend-architecture.md` bagian 4 ditangani — bukan hanya
+> empat yang disebut DoD. Tidak ada konstanta `master-data` yang diduplikasi. Laporan lengkap
+> beserta buktinya:
+> [`task/report/frontend/FE-LAB-01.md`](../task/report/frontend/FE-LAB-01.md).
+>
+> **Gerbang `LAB-OPEN-018` tidak lagi menahan.** Pada saat task ini dikerjakan, seluruh berkas
+> aturan frontend di akar rules runtime sudah tersedia dan terbaca, sehingga pijakan pola
+> komponen dan token desain tidak lagi hilang.
 
 | Butir | Isi |
 |---|---|
@@ -267,7 +279,7 @@ diputuskan:
 
 | Task | Gelombang | Slice | Pasangan backend | Status rencana |
 |---|---|---|---|---|
-| `FE-LAB-01` | `MVP-0` | — | — | Siap direncanakan |
+| `FE-LAB-01` | `MVP-0` | — | — | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-02` | `MVP-0` | `S3` | `BE-LAB-04`, `BE-LAB-05` | Siap direncanakan |
 | `FE-LAB-03` | `MVP-0` | `S11` | `BE-LAB-06` | Siap direncanakan |
 | `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | Siap direncanakan |
@@ -288,3 +300,4 @@ kelengkapan aturan frontend di runtime.
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-02 | Roadmap frontend pertama. 9 task disusun dan dipasangkan ke gelombang backendnya, bukan ditumpuk pada `MVP-4`, setelah kontrak dikunci mengizinkan kerja paralel | `DRAFT` |
+| 2 | 2026-09-04 | `FE-LAB-01` selesai dikerjakan dan divalidasi. Status task dan tautan laporannya dicatat; gerbang `LAB-OPEN-018` dinyatakan tidak lagi menahan pekerjaan frontend karena berkas aturannya sudah tersedia di runtime | `DRAFT` |

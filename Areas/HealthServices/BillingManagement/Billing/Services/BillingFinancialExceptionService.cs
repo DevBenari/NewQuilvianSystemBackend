@@ -247,7 +247,12 @@ public sealed class BillingFinancialExceptionService
         CancellationToken cancellationToken)
     {
         ValidateCreateWriteOffRequest(request, idempotencyKey, actorUserId);
-        var payloadHash = ComputeWriteOffPayloadHash(request);
+        var category = ResolveWriteOffCategory(request.Category);
+        // BIL-VAL-041: residual non-billable bukan piutang pasien - tidak ada yang "dilunasi".
+        if (category == BillingWriteOffCategories.NonBillableResidual && request.IsFullSettlement)
+            throw new BillingFinancialExceptionValidationException(
+                "Selisih yang tidak dapat ditagihkan bukan pelunasan tagihan pasien; hapus tanda pelunasan penuh.");
+        var payloadHash = ComputeWriteOffPayloadHash(request, category);
         IDbContextTransaction? transaction = null;
 
         try
@@ -284,10 +289,25 @@ public sealed class BillingFinancialExceptionService
                 throw new BillingFinancialExceptionConflictException(
                     "Data telah berubah. Muat ulang sebelum melanjutkan.");
 
-            var outstanding = await CalculateOutstandingAsync(invoice, cancellationToken);
-            if (request.Amount > outstanding)
-                throw new BillingFinancialExceptionValidationException(
-                    "Nominal write-off melebihi saldo outstanding invoice saat ini.");
+            // BE-BKC-029/BKC-DES-024: plafon bercabang mengikuti kategori. PATIENT_AR tetap
+            // dibatasi outstanding pasien (pesan lama dipertahankan apa adanya, regresi wajib
+            // nol). NON_BILLABLE_RESIDUAL dibatasi sisa selisih tidak dapat ditagihkan - plafon
+            // yang sama sekali berbeda dari outstanding pasien (BIL-VAL-040).
+            decimal plafon;
+            if (category == BillingWriteOffCategories.NonBillableResidual)
+            {
+                plafon = await CalculateNonBillableResidualRemainingAsync(invoice, cancellationToken);
+                if (request.Amount > plafon)
+                    throw new BillingFinancialExceptionValidationException(
+                        "Nominal write-off melebihi selisih yang tidak dapat ditagihkan pada tagihan ini.");
+            }
+            else
+            {
+                plafon = await CalculateOutstandingAsync(invoice, cancellationToken);
+                if (request.Amount > plafon)
+                    throw new BillingFinancialExceptionValidationException(
+                        "Nominal write-off melebihi saldo outstanding invoice saat ini.");
+            }
 
             var now = DateTimeOffset.UtcNow;
             var writeOffCase = new BilWriteOffCase
@@ -295,6 +315,7 @@ public sealed class BillingFinancialExceptionService
                 InvoiceId = invoice.Id,
                 Invoice = invoice,
                 Amount = request.Amount,
+                Category = category,
                 Status = BillingWriteOffCaseStatuses.Submitted,
                 RequestedBy = actorUserId,
                 Reason = request.Reason.Trim(),
@@ -314,8 +335,8 @@ public sealed class BillingFinancialExceptionService
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditWriteOffAsync(
-                "BillingWriteOff.Create", writeOffCase, actorUserId, false, outstanding, outstanding);
-            return MapWriteOff(writeOffCase, outstanding, outstanding, false);
+                "BillingWriteOff.Create", writeOffCase, actorUserId, false, plafon, plafon);
+            return MapWriteOff(writeOffCase, plafon, plafon, false);
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -373,14 +394,25 @@ public sealed class BillingFinancialExceptionService
                 throw new BillingFinancialExceptionForbiddenException(
                     "Pengaju write-off tidak boleh menyetujui pengajuannya sendiri.");
 
-            var outstandingBefore = await CalculateOutstandingAsync(writeOffCase.Invoice, cancellationToken);
-            if (writeOffCase.Amount > outstandingBefore)
+            // BE-BKC-029/BKC-DES-024: pemeriksaan ulang plafon sebelum posting bercabang kategori
+            // - persis seperti CreateWriteOffAsync, karena saldo dapat berubah di antara pengajuan
+            // dan persetujuan.
+            var isResidual = writeOffCase.Category == BillingWriteOffCategories.NonBillableResidual;
+            var plafonBefore = isResidual
+                ? await CalculateNonBillableResidualRemainingAsync(writeOffCase.Invoice, cancellationToken)
+                : await CalculateOutstandingAsync(writeOffCase.Invoice, cancellationToken);
+            if (writeOffCase.Amount > plafonBefore)
                 throw new BillingFinancialExceptionValidationException(
-                    "Saldo outstanding telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang.");
+                    isResidual
+                        ? "Selisih yang tidak dapat ditagihkan telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang."
+                        : "Saldo outstanding telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang.");
 
             var beforeStatus = writeOffCase.Status;
-            var outstandingAfter = Math.Max(outstandingBefore - writeOffCase.Amount, 0);
-            writeOffCase.IsFullSettlement = outstandingAfter == 0;
+            var plafonAfter = Math.Max(plafonBefore - writeOffCase.Amount, 0);
+            // BIL-VAL-018 dipertegas/BKC-DES-024: HANYA PATIENT_AR yang dapat menjadi pelunasan
+            // penuh dan memindahkan status invoice. Residual TIDAK PERNAH - uangnya bukan piutang
+            // pasien, sehingga "pelunasan" tidak berlaku baginya sama sekali, apa pun nominalnya.
+            writeOffCase.IsFullSettlement = !isResidual && plafonAfter == 0;
             writeOffCase.Status = BillingWriteOffCaseStatuses.Posted;
             writeOffCase.ApprovedBy = actorUserId;
             writeOffCase.PostedAt = DateTimeOffset.UtcNow;
@@ -395,11 +427,11 @@ public sealed class BillingFinancialExceptionService
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditWriteOffApprovalAsync(
-                writeOffCase, beforeStatus, outstandingBefore, outstandingAfter, actorUserId);
+                writeOffCase, beforeStatus, plafonBefore, plafonAfter, actorUserId);
             await _arApHandoffService.RecordCorrectionIfLinkedAsync(
                 writeOffCase.InvoiceId, null, writeOffCase.Id, BillingAdjustmentDirections.Credit,
                 writeOffCase.Amount, writeOffCase.Reason, actorUserId, cancellationToken);
-            return MapWriteOff(writeOffCase, outstandingBefore, outstandingAfter, false);
+            return MapWriteOff(writeOffCase, plafonBefore, plafonAfter, false);
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -656,18 +688,107 @@ public sealed class BillingFinancialExceptionService
                 && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess
                 && !x.IsDelete)
             .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
+        // BE-BKC-029/BKC-DES-024: writeOffTotal HANYA menyaring kategori PATIENT_AR - write-off
+        // residual non-billable tidak pernah mengurangi piutang pasien (uangnya memang bukan
+        // tanggungan pasien sejak BE-BKC-028), jadi tidak boleh ikut jadi pengurang di sini.
         var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
             .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingWriteOffCaseStatuses.Posted
+                && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
             .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        // BKC-DES-024: reversal atas write-off residual dikecualikan dari adjustmentNet - satu
+        // paket dengan penyaringan writeOffTotal di atas. Menyaring salah satu saja membuat
+        // pembatalan write-off residual menaikkan outstanding pasien atas uang yang tidak pernah
+        // ada di sana (kesalahan yang arahnya berlawanan tapi sama besarnya).
+        var residualCaseIds = await GetNonBillableResidualWriteOffCaseIdsAsync(invoice.Id, cancellationToken);
         var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
             .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
+                && (x.ReversesWriteOffCaseId == null
+                    || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
             .SumAsync(
                 x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
                 cancellationToken) ?? 0;
         return Math.Max(
             calculation.PatientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet, 0);
+    }
+
+    private Task<List<Guid>> GetNonBillableResidualWriteOffCaseIdsAsync(
+        Guid invoiceId, CancellationToken cancellationToken) =>
+        _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && x.Category == BillingWriteOffCategories.NonBillableResidual)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+    // BE-BKC-029/BKC-DES-025: berpasangan dengan CalculateOutstandingAsync, menjawab pertanyaan
+    // yang berbeda - bukan piutang pasien, melainkan berapa rupiah residual non-billable yang
+    // BELUM ditutup write-off. Dibaca dari kolom BilCalculationVersion.NonBillableResidualAmount
+    // (BE-BKC-027/028), BUKAN mengurai JSON BreakdownSnapshot (BKC-DES-025).
+    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
+        BilInvoice invoice,
+        CancellationToken cancellationToken)
+    {
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.InvoiceId == invoice.Id
+                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
+                cancellationToken)
+            ?? throw new BillingFinancialExceptionValidationException(
+                "Invoice belum memiliki hasil perhitungan terkini.");
+        return await CalculateNonBillableResidualRemainingAsync(
+            invoice.Id, calculation.NonBillableResidualAmount, cancellationToken);
+    }
+
+    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
+        Guid invoiceId, decimal calculatedResidualAmount, CancellationToken cancellationToken)
+    {
+        var postedTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.Category == BillingWriteOffCategories.NonBillableResidual
+                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        var residualCaseIds = await GetNonBillableResidualWriteOffCaseIdsAsync(invoiceId, cancellationToken);
+        var reversedTotal = residualCaseIds.Count == 0
+            ? 0
+            : await _dbContext.BilAdjustments.AsNoTracking()
+                .Where(x => x.InvoiceId == invoiceId && !x.IsDelete
+                    && x.Status == BillingAdjustmentStatuses.Posted
+                    && x.ReversesWriteOffCaseId != null
+                    && residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value))
+                .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        return Math.Max(calculatedResidualAmount - postedTotal + reversedTotal, 0);
+    }
+
+    // BE-BKC-029: dipakai GET .../financial-exceptions/invoices/{invoiceId} untuk mengisi
+    // NonBillableResidualRemaining. Beda dari overload privat di atas: invoice yang BELUM pernah
+    // dihitung sama sekali mengembalikan 0 (bukan galat) - endpoint ini murni baca-daftar, bukan
+    // pintu masuk pengajuan write-off yang memang mengharuskan kalkulasi ada lebih dulu.
+    public async Task<decimal> GetNonBillableResidualRemainingAsync(
+        Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.InvoiceId == invoice.Id
+                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
+                cancellationToken);
+        return calculation is null
+            ? 0
+            : await CalculateNonBillableResidualRemainingAsync(
+                invoiceId, calculation.NonBillableResidualAmount, cancellationToken);
+    }
+
+    // BE-BKC-029/BIL-VAL-042: nilai kosong diperlakukan PATIENT_AR (BKC-DES-014); teks asing
+    // MUST NOT diperlakukan sebagai bawaan.
+    private static string ResolveWriteOffCategory(string? category)
+    {
+        var trimmed = category?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return BillingWriteOffCategories.PatientAr;
+        if (trimmed is BillingWriteOffCategories.PatientAr or BillingWriteOffCategories.NonBillableResidual)
+            return trimmed;
+        throw new BillingFinancialExceptionValidationException("Kategori write-off tidak dikenali.");
     }
 
     private static void EnsureLedgerMutableInvoice(BilInvoice invoice)
@@ -762,14 +883,18 @@ public sealed class BillingFinancialExceptionService
         return Hash(canonical);
     }
 
-    private static string ComputeWriteOffPayloadHash(CreateWriteOffRequest request)
+    // BE-BKC-029: Category MUST ikut ke dalam PayloadHash - tanpa itu, dua pengajuan bernominal
+    // sama dengan kategori berbeda dianggap pengulangan idempotency yang sama, dan yang kedua
+    // diam-diam mengembalikan case pertama alih-alih diproses sebagai pengajuan baru yang sah.
+    private static string ComputeWriteOffPayloadHash(CreateWriteOffRequest request, string category)
     {
         var canonical = string.Join('|',
             request.InvoiceId.ToString("N"),
             request.Amount.ToString(CultureInfo.InvariantCulture),
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
-            request.CausationId.ToString("N"));
+            request.CausationId.ToString("N"),
+            category);
         return Hash(canonical);
     }
 
@@ -835,6 +960,7 @@ public sealed class BillingFinancialExceptionService
                 WriteOffCaseId = writeOffCase.Id,
                 writeOffCase.InvoiceId,
                 writeOffCase.Amount,
+                writeOffCase.Category,
                 writeOffCase.Status,
                 OutstandingBefore = outstandingBefore,
                 OutstandingAfter = outstandingAfter,
@@ -858,6 +984,7 @@ public sealed class BillingFinancialExceptionService
                 WriteOffCaseId = writeOffCase.Id,
                 writeOffCase.RequestedBy,
                 writeOffCase.ApprovedBy,
+                writeOffCase.Category,
                 writeOffCase.IsFullSettlement,
                 OutstandingBefore = outstandingBefore,
                 OutstandingAfter = outstandingAfter,
@@ -913,6 +1040,7 @@ public sealed class BillingFinancialExceptionService
             IsFullSettlement = writeOffCase.IsFullSettlement,
             OutstandingBefore = outstandingBefore ?? 0,
             OutstandingAfter = outstandingAfter ?? 0,
+            Category = writeOffCase.Category,
             Status = writeOffCase.Status,
             RequestedBy = writeOffCase.RequestedBy,
             ApprovedBy = writeOffCase.ApprovedBy,
