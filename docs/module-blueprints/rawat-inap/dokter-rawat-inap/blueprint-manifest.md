@@ -127,11 +127,17 @@ Berkas per proses pada `flowcharts/` bertambah dari satu menjadi dua. `01-catata
 tersendiri `02-visite-dokter.md` karena `RWI-DEC-084` menjadikannya kejadian yang berdiri sendiri
 dengan pemicu, pelaku, jalur koreksi, dan cara menghitung sendiri.
 
-`roadmap/` **sudah ada** sejak 2026-09-03, berisi tiga berkas yang ditulis `plan-module-delivery`:
-[`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) revision `1`,
-[`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) revision `1`, dan
-[`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) revision `1`.
-Ketiganya **bukan** bagian himpunan artefak desain, sehingga tidak masuk tabel hash di atas.
+`roadmap/` **sudah ada** sejak 2026-09-03, berisi tiga berkas yang ditulis `plan-module-delivery`.
+**Diperbarui 2026-09-08 oleh perencanaan ulang:**
+[`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) revision `2`,
+[`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) revision `3`, dan
+[`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) revision `2`.
+Ketiganya **bukan** bagian himpunan artefak desain, sehingga tidak masuk tabel hash di atas, dan
+perubahan revision-nya **tidak** menaikkan revision blueprint maupun versi kontrak.
+
+`task/report/` kini **sudah terisi**: 17 laporan backend dan 9 laporan frontend. Kalimat pada paragraf
+berikutnya yang menyatakan foldernya belum ada berlaku saat manifest ini pertama ditulis, dan
+dipertahankan sebagai jejak.
 
 `task/report/` belum ada, dan **itu bukan penyimpangan struktur**: ia ditulis kedua skill build saat
 task benar-benar dikerjakan.
@@ -275,8 +281,9 @@ justru karena desain berhenti membuat jalur koreksi sendiri lalu memakai mesin y
 | Keputusan `CAP-025` | **`DONE`** | `RWI-DEC-084` dan `RWI-DEC-085`; `DEC-INP-008 CLOSED` |
 | Amendment blueprint penuh | **`DONE`** | Revision `0.2` menyerap arsitektur domain; revision `0.3` menyerap `RWI-DEC-086` s.d. `RWI-DEC-088`. Sembilan artefak pada `0.3`, empat sengaja tetap `0.2` |
 | Approval manusia | **`DONE`** | Disetujui Muhammad Hamzah pada 2026-09-03 untuk seluruh 13 artefak revision `0.3` / kontrak `0.3.0` |
-| Delivery planning | **`DONE`** | Roadmap backend, frontend, dan traceability revision `1` ditulis 2026-09-03. **17 task backend** `BE-RWI-037` s.d. `BE-RWI-053`; **9 task frontend** `FE-RWI-042` s.d. `FE-RWI-050` |
-| Build / release | `BLOCKED` | Roadmap sudah ada, tetapi **belum ada satu pun task yang disetujui untuk dikerjakan**. Approval task adalah wewenang terpisah dari approval blueprint. Gerbang produksi pada bagian 6 juga masih terbuka |
+| Delivery planning | **`DONE`** | Roadmap backend, frontend, dan traceability revision `1` ditulis 2026-09-03. **17 task backend** `BE-RWI-037` s.d. `BE-RWI-053`; **9 task frontend** `FE-RWI-042` s.d. `FE-RWI-050`. **Direncanakan ulang 2026-09-08** menjadi backend revision `2`, frontend revision `3`, dan traceability revision `2`: **tiga task backend baru** `BE-RWI-066` s.d. `BE-RWI-068` menutup celah kontrak yang baru ketahuan saat layarnya dibuat. **Nol ID frontend baru** |
+| Eksekusi | **`PARTIAL`** | **17 dari 17 task backend revision `1` ✅ selesai.** Frontend: **6 ✅** dan **3 🟡** — `FE-RWI-044`, `FE-RWI-046`, `FE-RWI-050`, ketiganya tertahan celah kontrak backend, bukan kekurangan source. Ketiga task backend penutupnya belum dikerjakan, dan `BE-RWI-068` masih ⛔ |
+| Build / release | `BLOCKED` | **Diperbarui 2026-09-08.** Build sudah berjalan jauh — 26 task dikerjakan dan berlaporan — tetapi **rilis tetap terblokir**. Yang menahannya: gelombang `DOK-MVP-FE` belum selesai selama tiga task 🟡 belum tertutup; `BE-RWI-068` menunggu grup diagnosis masuk kontrak API; dan gerbang produksi pada bagian 6 masih terbuka. Approval task tetap wewenang terpisah dari approval blueprint |
 
 | Kondisi | Skill |
 |---|---|
@@ -301,8 +308,8 @@ diserap; pembaruan status ini sendiri tidak menaikkan keduanya.
 
 | Field | Nilai |
 |---|---|
-| `next_owner_ready_slice` | **Approval task pertama**, lalu `build-module-backend` untuk `BE-RWI-037`. Roadmap sudah tersedia sejak 2026-09-03 |
-| `next_owner_blocked_slice` | — tidak ada blocker keputusan bisnis pada scope Dokter Rawat Inap |
+| `next_owner_ready_slice` | **Diperbarui 2026-09-08.** `BE-RWI-037` s.d. `BE-RWI-053` sudah selesai. Yang siap berikutnya: **`BE-RWI-066` dan `BE-RWI-067`** — keduanya tidak menunggu kontrak baru, tidak menunggu keputusan siapa pun, dan tidak saling menunggu. Sesudah keduanya selesai, `FE-RWI-046` dan `FE-RWI-050` ditutup pada ID-nya sendiri lewat `build-module-frontend` |
+| `next_owner_blocked_slice` | **Diperbarui 2026-09-08.** `BE-RWI-068` ⛔ dan, lewatnya, penutupan `FE-RWI-044`. Dua penghalangnya: grup diagnosis belum ada pada kontrak API `0.3.0`, dan pelonggaran aturan wajibnya belum disetujui pemilik `ClinicalManagement`. Ditambah satu butir yang bukan task — ketetapan urutan daftar pantau pada `02-module-map.md` bagian 3.3, yang menahan acceptance criteria nomor 5 `FE-RWI-050` |
 | `blueprint_id` / `revision` | `RWI-BP-001` / `5` |
 | `current_phase` | Requirement gate `DONE`; domain amendment `DONE`; amendment blueprint `DONE` revision `0.3`; approval manusia `DONE` 2026-09-03; **delivery planning `DONE`**; build `BLOCKED` menunggu approval task |
 | `ready_capability_scope` | `CAP-015`, `CAP-020`, `CAP-021`, `CAP-022`, `CAP-023`, `CAP-024`, `CAP-025` |

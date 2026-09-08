@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -35,6 +35,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 ChiefComplaint = "Nyeri perut kanan bawah",
                 HasPain = skalaNyeri.HasValue,
                 PainScale = skalaNyeri,
+                FallRiskStatus = FallRiskStatus.NoRisk,
                 NutritionRiskStatus = NutritionRiskStatus.LowRisk
             };
 
@@ -207,10 +208,9 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
         /// gizinya belum diisi ditolak <c>400</c>, dan pesannya menyebut bagian yang kosong.
         /// </summary>
         /// <remarks>
-        /// <c>VAL-KEP-08</c>. Bagian yang benar-benar dapat "kosong" pada bentuk data hari ini
-        /// adalah skrining gizi; penilaian risiko jatuh tidak pernah tersimpan sebagai
-        /// <c>Unknown</c> karena perhitungan lama mengubah "tidak berisiko" dan "belum diisi"
-        /// menjadi nilai yang sama. Keterbatasan itu dicatat pada laporan task.
+        /// <c>VAL-KEP-08</c>. Skrining gizi disebut karena memang dibiarkan kosong. Sejak
+        /// penilaian risiko jatuh ikut dapat bernilai "belum diisi", bagian itu juga muncul pada
+        /// kalimat penolakan; uji berikutnya yang menjaga keduanya disebut satu per satu.
         /// </remarks>
         [Fact]
         public async Task MenyelesaikanPengkajianTanpaSkriningGizi_Ditolak400()
@@ -285,6 +285,228 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync();
 
             Assert.Equal(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+        }
+
+        // =====================================================================
+        // Kriteria 4 - penilaian risiko jatuh yang belum diisi
+        // =====================================================================
+
+        /// <summary>
+        /// `BE-RWI-056 AC 4` / <c>UAT-KEP-07</c> - menyelesaikan pengkajian dengan
+        /// <b>penilaian risiko jatuh</b> belum terisi ditolak <c>400</c>, dan bagian itulah yang
+        /// disebut.
+        /// </summary>
+        /// <remarks>
+        /// Inilah skenario yang sebelumnya tidak dapat ditegakkan. Perhitungan lama menyamakan
+        /// "belum diisi" dengan "tidak berisiko", sehingga perawat yang tidak pernah membuka
+        /// bagian risiko jatuh tersimpan sebagai perawat yang menyatakan pasiennya aman. Skrining
+        /// gizi sengaja <b>diisi</b> di sini supaya kalimat penolakannya membuktikan risiko jatuh
+        /// benar-benar berdiri sendiri sebagai bagian yang kosong.
+        /// </remarks>
+        [Fact]
+        public async Task MenyelesaikanPengkajianTanpaRisikoJatuh_Ditolak400()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+            var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
+
+            var dibuat = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CreateAssessment(new CreatePatientAssessmentRequest
+                {
+                    EncounterId = k.EncounterId,
+                    InpEpisodeId = k.EpisodeId,
+                    AssessmentType = PatientAssessmentType.Initial,
+                    ChiefComplaint = "Lemas",
+                    NutritionRiskStatus = NutritionRiskStatus.LowRisk
+                    // FallRiskStatus sengaja dibiarkan Unknown.
+                });
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            var pengkajian = await context.Set<TrxPatientAssessment>().SingleAsync();
+
+            // Yang tersimpan memang "belum diisi", bukan "tidak berisiko".
+            Assert.Equal(FallRiskStatus.Unknown, pengkajian.FallRiskStatus);
+
+            var hasil = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CompleteAssessment(pengkajian.Id, new CompletePatientAssessmentRequest());
+
+            Assert.Equal(400, ControllerTestHarness.KodeStatus(hasil));
+
+            var pesan = ControllerTestHarness.Pesan(hasil)!;
+            Assert.Contains("belum dapat diselesaikan", pesan);
+            Assert.Contains("penilaian risiko jatuh", pesan);
+            Assert.DoesNotContain("skrining gizi", pesan);
+
+            using var pembaca = database.CreateContext();
+            var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync();
+
+            Assert.NotEqual(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+        }
+
+        /// <summary>
+        /// `BE-RWI-056 AC 4` - ketika <b>dua</b> bagian kosong, keduanya disebut
+        /// <b>satu per satu</b>, bukan diringkas menjadi "data tidak lengkap".
+        /// </summary>
+        [Fact]
+        public async Task MenyelesaikanPengkajianDuaBagianKosong_KeduanyaDisebutSatuPerSatu()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+            var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
+
+            var dibuat = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CreateAssessment(new CreatePatientAssessmentRequest
+                {
+                    EncounterId = k.EncounterId,
+                    InpEpisodeId = k.EpisodeId,
+                    AssessmentType = PatientAssessmentType.Initial,
+                    ChiefComplaint = "Lemas"
+                    // FallRiskStatus dan NutritionRiskStatus dua-duanya Unknown.
+                });
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            var pengkajian = await context.Set<TrxPatientAssessment>().SingleAsync();
+
+            var hasil = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CompleteAssessment(pengkajian.Id, new CompletePatientAssessmentRequest());
+
+            Assert.Equal(400, ControllerTestHarness.KodeStatus(hasil));
+
+            var pesan = ControllerTestHarness.Pesan(hasil)!;
+
+            Assert.Contains("penilaian risiko jatuh", pesan);
+            Assert.Contains("skrining gizi", pesan);
+            Assert.Contains("penilaian risiko jatuh, skrining gizi", pesan);
+        }
+
+        /// <summary>
+        /// `BE-RWI-056 AC 4` - perawat yang benar-benar <b>menyatakan</b> pasiennya tidak
+        /// berisiko jatuh tetap dapat menyelesaikan pengkajiannya.
+        /// </summary>
+        /// <remarks>
+        /// Penjagaan ini menolak bagian yang <b>kosong</b>, bukan pasien yang memang aman.
+        /// Pernyataan "tidak berisiko" tersimpan apa adanya sebagai
+        /// <see cref="FallRiskStatus.NoRisk"/>.
+        /// </remarks>
+        [Fact]
+        public async Task RisikoJatuhDinyatakanTidakBerisiko_PengkajianDapatDiselesaikan()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+            var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
+
+            var dibuat = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CreateAssessment(new CreatePatientAssessmentRequest
+                {
+                    EncounterId = k.EncounterId,
+                    InpEpisodeId = k.EpisodeId,
+                    AssessmentType = PatientAssessmentType.Initial,
+                    ChiefComplaint = "Lemas",
+                    FallRiskStatus = FallRiskStatus.NoRisk,
+                    NutritionRiskStatus = NutritionRiskStatus.LowRisk
+                });
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            var pengkajian = await context.Set<TrxPatientAssessment>().SingleAsync();
+
+            Assert.Equal(FallRiskStatus.NoRisk, pengkajian.FallRiskStatus);
+
+            var hasil = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CompleteAssessment(pengkajian.Id, new CompletePatientAssessmentRequest());
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(hasil));
+
+            using var pembaca = database.CreateContext();
+            var sesudah = await pembaca.Set<TrxPatientAssessment>().SingleAsync();
+
+            Assert.Equal(PatientAssessmentStatus.Completed, sesudah.AssessmentStatus);
+            Assert.Equal(FallRiskStatus.NoRisk, sesudah.FallRiskStatus);
+        }
+
+        /// <summary>
+        /// `BE-RWI-056 AC 4` - pintu kedua penyelesaian ikut dijaga: pembuatan yang langsung
+        /// meminta selesai lewat <c>completeImmediately</c> juga ditolak <c>400</c>, dan
+        /// <b>tidak satu baris pun</b> tersimpan.
+        /// </summary>
+        /// <remarks>
+        /// Tanpa penjagaan ini aturan isian wajib dapat dilewati hanya dengan menyalakan satu
+        /// flag pada permintaan pembuatan, dan pengkajian rawat inap yang kosong tetap mendarat
+        /// sebagai <c>Completed</c>.
+        /// </remarks>
+        [Fact]
+        public async Task PengkajianLangsungSelesai_TanpaRisikoJatuh_Ditolak400()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var k = RawatInapTestData.SiapkanPerawatan(context);
+            var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
+
+            var hasil = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CreateAssessment(new CreatePatientAssessmentRequest
+                {
+                    EncounterId = k.EncounterId,
+                    InpEpisodeId = k.EpisodeId,
+                    AssessmentType = PatientAssessmentType.Initial,
+                    ChiefComplaint = "Lemas",
+                    NutritionRiskStatus = NutritionRiskStatus.LowRisk,
+                    CompleteImmediately = true
+                    // FallRiskStatus sengaja dibiarkan Unknown.
+                });
+
+            Assert.Equal(400, ControllerTestHarness.KodeStatus(hasil));
+            Assert.Contains("penilaian risiko jatuh", ControllerTestHarness.Pesan(hasil)!);
+
+            using var pembaca = database.CreateContext();
+
+            Assert.Empty(await pembaca.Set<TrxPatientAssessment>().ToListAsync());
+        }
+
+        /// <summary>
+        /// Regresi jalur bersama - pengkajian <b>poliklinik</b> yang tidak menyebut risiko jatuh
+        /// tetap tersimpan sebagai <see cref="FallRiskStatus.NoRisk"/>, persis seperti sebelum
+        /// task ini.
+        /// </summary>
+        /// <remarks>
+        /// Pembedaan "belum diisi" hanya berlaku bagi pengkajian yang menempel pada perawatan
+        /// rawat inap. Poliklinik, medical check-up, dan IGD memakai request yang sama; nilai
+        /// yang tersimpan bagi mereka tidak bergeser satu langkah pun.
+        /// </remarks>
+        [Fact]
+        public async Task PengkajianPoliklinik_TanpaRisikoJatuh_TetapTersimpanNoRisk()
+        {
+            using var database = TestDatabase.Create();
+            using var context = database.CreateContext();
+
+            var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
+            var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
+            var antrean = NursingAssessmentContextTests.BuatAntreanScreening(context, konteks);
+
+            var dibuat = await NursingAssessmentContextTests.BuatController(context, perawat.Id)
+                .CreateAssessment(new CreatePatientAssessmentRequest
+                {
+                    EncounterId = konteks.EncounterId,
+                    QueueId = antrean.Id,
+                    ChiefComplaint = "Batuk"
+                    // FallRiskStatus tidak disebut, persis seperti kiriman poliklinik hari ini.
+                });
+
+            Assert.Equal(200, ControllerTestHarness.KodeStatus(dibuat));
+
+            using var pembaca = database.CreateContext();
+            var pengkajian = await pembaca.Set<TrxPatientAssessment>().SingleAsync();
+
+            Assert.Equal(FallRiskStatus.NoRisk, pengkajian.FallRiskStatus);
+            Assert.Null(pengkajian.InpEpisodeId);
         }
 
         // =====================================================================

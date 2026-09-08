@@ -201,7 +201,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             };
 
             _dbContext.CliPhysicianVisits.Add(visit);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // BE-RWI-048 kriteria 3. Penjaga database yang menolak: dua permintaan berkunci
+                // sama tiba benar-benar bersamaan, sehingga pemeriksaan "sudah ada" di atas
+                // sama-sama menjawab belum ada. Yang kalah membaca ulang baris pemenangnya lalu
+                // menjawab seperti kiriman ulang biasa - acceptance criteria menuntut 200 dengan
+                // identitas yang sama, bukan 409 dan bukan galat.
+                _dbContext.Entry(visit).State = EntityState.Detached;
+
+                var pemenang = await _dbContext.CliPhysicianVisits
+                    .FirstOrDefaultAsync(x => x.IdempotencyKey == key, cancellationToken);
+
+                if (pemenang != null)
+                    return PhysicianVisitResult.Ok(pemenang, isReplay: true);
+
+                throw;
+            }
 
             return PhysicianVisitResult.Ok(visit);
         }
