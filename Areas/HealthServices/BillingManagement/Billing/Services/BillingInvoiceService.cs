@@ -1134,15 +1134,55 @@ public sealed class BillingInvoiceService
             throw new BillingInvoiceValidationException("CorrelationId dan CausationId wajib diisi.");
     }
 
-    private static string ComputePayloadHash(UpsertChargeRequest request, BillingChargeSourceSnapshot source)
+    private static string ComputePayloadHash(
+        UpsertChargeRequest request,
+        BillingChargeSourceSnapshot source)
     {
-        var canonical = string.Join('|', request.EncounterId.ToString("N"), source.SourceDomain, source.SourceDetailId,
-            request.SourceVersion.ToString(CultureInfo.InvariantCulture), source.SourceStatus,
-            request.OccurredAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture), request.CategoryId.ToString("N"),
-            request.DescriptionSnapshot.Trim(), request.Quantity.ToString(CultureInfo.InvariantCulture),
-            request.UnitPrice.ToString(CultureInfo.InvariantCulture), request.DoctorShare.ToString(CultureInfo.InvariantCulture),
-            request.ContractVersion.Trim(), request.CorrelationId.ToString("N"), request.CausationId.ToString("N"));
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        string canonical;
+
+        if (string.Equals(
+            source.SourceDomain,
+            "ADHOC_CATALOG",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            canonical = string.Join('|',
+                request.EncounterId.ToString("N"),
+                source.SourceDomain,
+                source.SourceDetailId,
+                request.SourceVersion.ToString(CultureInfo.InvariantCulture),
+                source.SourceStatus,
+                request.CategoryId.ToString("N"),
+                request.TariffId?.ToString("N") ?? string.Empty,
+                request.DescriptionSnapshot.Trim(),
+                request.Quantity.ToString(CultureInfo.InvariantCulture),
+                request.UnitPrice.ToString(CultureInfo.InvariantCulture),
+                request.DoctorShare.ToString(CultureInfo.InvariantCulture),
+                request.ContractVersion.Trim(),
+                request.CorrelationId.ToString("N"),
+                request.CausationId.ToString("N"));
+        }
+        else
+        {
+            canonical = string.Join('|',
+                request.EncounterId.ToString("N"),
+                source.SourceDomain,
+                source.SourceDetailId,
+                request.SourceVersion.ToString(CultureInfo.InvariantCulture),
+                source.SourceStatus,
+                request.OccurredAt.ToUniversalTime()
+                    .ToString("O", CultureInfo.InvariantCulture),
+                request.CategoryId.ToString("N"),
+                request.DescriptionSnapshot.Trim(),
+                request.Quantity.ToString(CultureInfo.InvariantCulture),
+                request.UnitPrice.ToString(CultureInfo.InvariantCulture),
+                request.DoctorShare.ToString(CultureInfo.InvariantCulture),
+                request.ContractVersion.Trim(),
+                request.CorrelationId.ToString("N"),
+                request.CausationId.ToString("N"));
+        }
+
+        return Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
     private static string ComputeVoidPayloadHash(
