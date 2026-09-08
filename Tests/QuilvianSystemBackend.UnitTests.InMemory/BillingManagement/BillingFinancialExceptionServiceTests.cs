@@ -107,10 +107,14 @@ public sealed class BillingFinancialExceptionServiceTests
             Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
         Assert.Equal(BillingWriteOffCategories.PatientAr, patientAr.Category);
 
+        // RowVersion dibaca lebih dahulu, di luar lambda: `await` tidak dapat dipakai di dalam
+        // lambda yang tidak async, dan berkas ini sebelumnya tidak dapat dikompilasi karenanya.
+        var rowVersion = (await db.BilInvoices.FindAsync(seeded.Invoice.Id))!.RowVersion;
+
         var exception = await Assert.ThrowsAsync<BillingFinancialExceptionValidationException>(() =>
             service.CreateWriteOffAsync(
                 WriteOffRequest(
-                    seeded.Invoice.Id, (await db.BilInvoices.FindAsync(seeded.Invoice.Id))!.RowVersion,
+                    seeded.Invoice.Id, rowVersion,
                     45_000m, "Melebihi sisa selisih", category: BillingWriteOffCategories.NonBillableResidual),
                 Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None));
 
