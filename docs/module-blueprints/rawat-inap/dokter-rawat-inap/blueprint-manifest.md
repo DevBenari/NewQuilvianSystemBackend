@@ -11,17 +11,17 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `judul` | Dokter Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`approved`** — revision `5` / kontrak `0.3.0`, disetujui Muhammad Hamzah 2026-09-03. **Tidak diturunkan oleh amendment `0.4.0`**, sebab baseline yang disetujui itu tidak tersentuh sedikit pun |
-| `pending_amendment` | **`0.4.0` — `draft`, 9 September 2026, menunggu approval.** Tujuh artefak diusulkan naik; enam lainnya tidak bergerak. Menahan **`BE-RWI-068` saja**. Rinciannya bagian 3.4 |
-| `artifact_readiness` | **`CURRENT`** — tujuh artefak diamendemen ke `0.4` / kontrak `0.4.0` pada 2026-09-09 menyerap temuan `FE-RWI-044` dan melahirkan `INT-DOK-10`; enam berkas lain sengaja tidak bergerak. Terikat `BE@93b3227` dan `FE@863f24b` |
-| `delivery_readiness` | **`READY_FOR_PLANNING` untuk yang terkunci pada `0.3.0`.** Seluruh task yang mengikat `0.3.0` tidak tersentuh amendment ini. **`BE-RWI-068` tetap belum boleh dibangun** sampai `0.4.0` disetujui pemilik — lihat bagian 3.4 |
+| `status` | **`approved`** — revision `5`, kontrak **`0.4.0`** disetujui Muhammad Hamzah 2026-09-09; kontrak `0.3.0` disetujui 2026-09-03 |
+| `pending_amendment` | **Nihil.** Amendment `0.4.0` **disetujui Muhammad Hamzah pada 2026-09-09**; tujuh artefak naik, enam lainnya tidak bergerak. Rinciannya bagian 3.4 |
+| `artifact_readiness` | **`CURRENT`** — tujuh artefak diamendemen ke `0.4` / kontrak `0.4.0` pada 2026-09-09 menyerap temuan `FE-RWI-044` dan melahirkan `INT-DOK-10`, **disetujui hari itu juga**; enam berkas lain sengaja tidak bergerak. Terikat `BE@93b3227` dan `FE@863f24b` |
+| `delivery_readiness` | **`READY_FOR_PLANNING`** — kontrak `0.4.0` terkunci 2026-09-09, nol pertanyaan memblokir. **`BE-RWI-068` kini boleh direncanakan**; scope dan verification-nya dikunci `plan-module-delivery`. Build tetap menunggu task yang disetujui dan gerbang produksi pada bagian 6 |
 | `last_focused_impact_scan` | `2026-09-02`; [`../01-existing-capability-map.md`](../01-existing-capability-map.md) bagian 15 |
 | `impact_scan_source_sha` | Backend `93b3227c431401d8f586dec4e1fb25fbf41766e3`; frontend `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | `last_focused_requirement_gate` | Revision `1.3`, 2026-09-02; seluruh tujuh capability `READY_FOR_DOMAIN_DESIGN`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085` |
 | `domain_architecture` | Revision `0.2`, 2026-09-02, **`DOMAIN_ARCHITECTURE_READY`** untuk ketujuh capability. [`../evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) Bagian Kedua, bagian O s.d. AB |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, `RWI-DEC-061` |
-| `approved_at` | **2026-09-03** untuk revision `5` / kontrak `0.3.0`. Amendment `0.4.0` **belum disetujui** |
+| `approved_at` | **2026-09-09** untuk kontrak `0.4.0`; **2026-09-03** untuk revision `5` / kontrak `0.3.0` |
 | `rumpun kemampuan` | Dokumentasi dokter — kajian medis, SOAP, CPPT, tindakan, visite, resep, dan penunjang |
 | `kemampuan` | **7** — `CAP-015`, `CAP-020` s.d. `CAP-025`, sesuai `RWI-DEC-083` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
@@ -104,19 +104,19 @@ modul.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.4` ★ | **`draft`** | `ca79bf187cd58d1fd6f346dbae72c393e4abac6a3ab881ef8f79ba3fb7fc3c00` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.4` ★ | **`approved`** | `b77429d02259dca85bf3b7170bcf4e6cf23ab9af6a4ffc2017d1218af8af7026` |
 | [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.3` | **`approved`** | `3e8c04ed74e117d629c678d71f6a63d6e87c69f9fc32fad30d9bbb7b11c4a5a8` |
 | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.3` | **`approved`** | `a0d5cc0c998fea5d7c23c587eeec1718e456320c6191eb5ffb752e0f3d79f9cb` |
 | [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.2` | **`approved`** | `102fc55af88f66b6b35b80aeae8cd7a5394fd404dc5847b44872b8f278fde96d` |
 | [`flowcharts/01-catatan-harian-dan-cppt.md`](./flowcharts/01-catatan-harian-dan-cppt.md) | `0.2` | **`approved`** | `5c5f75897d8d51d68b7b96ab78970ff92395927022360dff3c5ef89a7887dfef` |
 | [`flowcharts/02-visite-dokter.md`](./flowcharts/02-visite-dokter.md) | `0.2` | **`approved`** — **berkas baru** | `e28006d80ed19139349c64ed9852e7e0d3695a3e4b2ed4dd02a377711235a32c` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` ★ | **`draft`** | `34f404ca75162ef4add42dae847a32d928450573ca3d203a48efd99ad2e48126` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` ★ | **`draft`** | `b6377f4e9c5350f352a9438b76e5417cad07b251ffc9f8d4677e484d652c6a02` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` ★ | **`approved`** | `0659872afeade8cc5d35f4cd70648d19a33f854f49c828f34dd6d882f58b5958` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` ★ | **`approved`** | `5bf0ee69fd2877199d5a80708cefcbdfc270f34adea143426bb17ad37125eb41` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | **`approved`** | `024c330d0ccf5acf4a94ec5c87e7cde6c92626f8b8fdcd0a86dc086aa8a14802` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` ★ | **`draft`** | `525181cf007b4703f6761a9edc0421e685b7638cdf6219c8b5a08da5dcfebea6` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` ★ | **`draft`** | `328eef787330beb479101664221ef6b71c7a96519a0b7eea85e522d2400a69db` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.4.0` ★ | **`draft`** | `feffad3ae8f13ba8b99e0bd0452b17367749261ae143b732a2c87df21cd5eb5b` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` ★ | **`draft`** | `bbe9a73c21c5d69c7b514e7860038914ff85dfdd211e1d8935f2c2de9a0e7607` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` ★ | **`approved`** | `8844e3e0e64797eba48775a81d9221fae7aff4e55b4f86c7318201f1482e62af` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` ★ | **`approved`** | `23f381dbb0e17ae2a1169393ddb25f29670b276a6c978498ec6c4be474f3e7a2` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.4.0` ★ | **`approved`** | `dd8435f9222595164fca5192f7dc0bea0c533cf42512b8d2d66dd6d811318ef1` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` ★ | **`approved`** | `d29314eb7ed2c69830e69622fab5279d9846e5952605caa432f5ea2d946a41fc` |
 
 **Empat berkas sengaja tetap pada revision `0.2`** — ketiga flowchart dan kamus data — karena
 `RWI-DEC-086` s.d. `RWI-DEC-088` tidak menggerakkan isinya: alurnya sudah menyebut koreksi lewat
@@ -238,12 +238,12 @@ status pun.
 
 | Kontrak | Version | `last_changed_in` | Status |
 |---|---|---|---|
-| API | `0.4.0` | `0.4.0` | **`draft`** — grup Patient Diagnosis didaftarkan sebagai bagian 2.1; satu jalur tulis baru tanpa nomor konsultasi |
+| API | `0.4.0` | `0.4.0` | **`approved`** — grup Patient Diagnosis didaftarkan sebagai bagian 2.1; satu jalur tulis baru tanpa nomor konsultasi |
 | State transition | `0.3.0` | `0.3.0` | `approved` — **tidak bergerak pada `0.4.0`**. Mesin status diagnosis sudah ada dan tidak diubah amendment ini |
-| Validation | `0.4.0` | `0.4.0` | **`draft`** — lima aturan baru `VAL-DOK-36` s.d. `VAL-DOK-40`; nol aturan dicabut |
-| Integration | `0.4.0` | `0.4.0` | **`draft`** — `INT-DOK-10` lahir; `INT-DOK-01` s.d. `INT-DOK-09` tidak bergerak |
-| Permission dan audit | `0.4.0` | `0.4.0` | **`draft`** — Resource `PatientDiagnosis` masuk peta peran; nol Resource dan nol Action baru |
-| Acceptance test | `0.4.0` | `0.4.0` | **`draft`** — 63 skenario, 27 di antaranya jalur gagal; sembilan skenario baru pada bagian 11 |
+| Validation | `0.4.0` | `0.4.0` | **`approved`** — lima aturan baru `VAL-DOK-36` s.d. `VAL-DOK-40`; nol aturan dicabut |
+| Integration | `0.4.0` | `0.4.0` | **`approved`** — `INT-DOK-10` lahir; `INT-DOK-01` s.d. `INT-DOK-09` tidak bergerak |
+| Permission dan audit | `0.4.0` | `0.4.0` | **`approved`** — Resource `PatientDiagnosis` masuk peta peran; nol Resource dan nol Action baru |
+| Acceptance test | `0.4.0` | `0.4.0` | **`approved`** — 63 skenario, 27 di antaranya jalur gagal; sembilan skenario baru pada bagian 11 |
 
 Angka ini bergerak **sendiri**, terpisah dari `contract_versions` milik `episode-rawat-inap` yang
 sudah berada di `0.4.0`. Itulah gunanya bentuk `COMPOSITE`: satu sub-modul boleh maju tanpa menunggu

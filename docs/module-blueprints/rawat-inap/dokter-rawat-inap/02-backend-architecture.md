@@ -5,8 +5,8 @@
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082` |
 | Revision | `0.4` — amendment atas `0.3`, menyerap temuan `FE-RWI-044` dan membuka `BE-RWI-068` |
-| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik. Revision `0.3` `approved` |
-| `approved_by` / `approved_at` | `0.3` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4` **belum disetujui** |
+| Status | **`approved`** — revision `0.4` disetujui Muhammad Hamzah, 2026-09-09 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk revision `0.4`; `0.3` disetujui 2026-09-03 |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`); diamendemen 9 September 2026 |
 | Kemampuan | `CAP-015`, `CAP-020` s.d. `CAP-025` — `RWI-DEC-083` |
 | Masukan baseline | `PRD-RWI-FINAL-001` v1.0.0 bagian 18, 19, 23.1, 30.3 |

@@ -6,7 +6,7 @@
 module_id: rawat-inap
 module_name: InPatientManagement
 entity_prefix: Inp
-roadmap_revision: 2
+roadmap_revision: 3
 status: APPROVED
 approval_gate: BLUEPRINT_APPROVED
 blueprint_shape: COMPOSITE
@@ -20,9 +20,10 @@ owners:
   - "Security/Privacy: OPEN"
 approved_by:
   - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), approval desain 2026-09-03"
-approved_at: "2026-09-03"
-revision_authority: "Instruksi pengguna 2026-09-08: rencanakan ulang delivery sub-modul dokter-rawat-inap. Approval desain 2026-09-03 tetap berlaku dan tidak diulang"
-revision_scope: "Menyegarkan masukan yang bergerak, lalu merencanakan gelombang penutup DOK-MVP-7 bagi tiga celah kontrak yang ditemukan saat FE-RWI-044, FE-RWI-046, dan FE-RWI-050 dikerjakan. Bukan approval implementasi, bukan approval rilis, dan tidak mengubah status satu pun task lama"
+  - "Muhammad Hamzah — approval kontrak 0.4.0 pada 2026-09-09, mencabut kedua penghalang BE-RWI-068"
+approved_at: "2026-09-09"
+revision_authority: "Instruksi pengguna 2026-09-09: kunci BE-RWI-068 terhadap kontrak 0.4.0 yang disetujui Muhammad Hamzah pada hari yang sama. Revision 2 beserta seluruh task selesainya tetap berlaku dan tidak diulang"
+revision_scope: "Perencanaan ulang terarah pada SATU task. BE-RWI-068 dilepas dari BLOCKED menjadi READY dan scope, dependency, acceptance, verification, serta DoD-nya dikunci terhadap kontrak 0.4.0. Grafik Urutan Dependency berbentuk Mermaid ditambahkan sebagaimana dituntut plan-module-delivery. Nol ID task baru dibuat, nol status task lain diubah. Bukan approval implementasi dan bukan approval rilis"
 source_sha:
   backend: "93b3227c431401d8f586dec4e1fb25fbf41766e3"
   frontend: "863f24b0d1617069310c04e5770b47fd1b518b5b"
@@ -30,7 +31,7 @@ replan_source_sha:
   backend: "c82e69f327b01702b6bef595c685b10086ab7bd9"
   frontend: "e194509dc695aaa43264eab3ca7065762b14d2ee"
 replan_date: "2026-09-08"
-contract_versions: "0.4.0 (draft, menunggu approval) — task BE-RWI-037 s.d. BE-RWI-067 tetap terikat 0.3.0 yang approved"
+contract_versions: "0.4.0 (approved 2026-09-09) — task BE-RWI-037 s.d. BE-RWI-067 tetap terikat 0.3.0"
 input_revisions:
   blueprint-manifest.md (tingkat modul): 5
   blueprint-manifest.md (sub-modul): 5
@@ -45,18 +46,112 @@ input_hashes:
   01-existing-capability-map.md: "0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03"
   02-module-map.md: "94e54fd45ba09bd61eb9c218e7d7b424725c3a45b6dd76f16f4a51a98c6f7c85"
   evidence/03-hospital-domain-architecture.md: "226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717"
-  02-backend-architecture.md: "ca79bf187cd58d1fd6f346dbae72c393e4abac6a3ab881ef8f79ba3fb7fc3c00"
+  02-backend-architecture.md: "b77429d02259dca85bf3b7170bcf4e6cf23ab9af6a4ffc2017d1218af8af7026"
   04-prd-to-mvp.md: "a0d5cc0c998fea5d7c23c587eeec1718e456320c6191eb5ffb752e0f3d79f9cb"
 artifact_hashes:
-  contracts/api-contract.md: "b6377f4e9c5350f352a9438b76e5417cad07b251ffc9f8d4677e484d652c6a02"
+  contracts/api-contract.md: "5bf0ee69fd2877199d5a80708cefcbdfc270f34adea143426bb17ad37125eb41"
   contracts/state-transition-matrix.md: "024c330d0ccf5acf4a94ec5c87e7cde6c92626f8b8fdcd0a86dc086aa8a14802"
-  contracts/validation-matrix.md: "525181cf007b4703f6761a9edc0421e685b7638cdf6219c8b5a08da5dcfebea6"
-  contracts/integration-contract.md: "328eef787330beb479101664221ef6b71c7a96519a0b7eea85e522d2400a69db"
-  contracts/permission-audit-matrix.md: "feffad3ae8f13ba8b99e0bd0452b17367749261ae143b732a2c87df21cd5eb5b"
-  testing/acceptance-test-matrix.md: "bbe9a73c21c5d69c7b514e7860038914ff85dfdd211e1d8935f2c2de9a0e7607"
-  data/data-dictionary.md: "34f404ca75162ef4add42dae847a32d928450573ca3d203a48efd99ad2e48126"
+  contracts/validation-matrix.md: "8844e3e0e64797eba48775a81d9221fae7aff4e55b4f86c7318201f1482e62af"
+  contracts/integration-contract.md: "23f381dbb0e17ae2a1169393ddb25f29670b276a6c978498ec6c4be474f3e7a2"
+  contracts/permission-audit-matrix.md: "dd8435f9222595164fca5192f7dc0bea0c533cf42512b8d2d66dd6d811318ef1"
+  testing/acceptance-test-matrix.md: "d29314eb7ed2c69830e69622fab5279d9846e5952605caa432f5ea2d946a41fc"
+  data/data-dictionary.md: "0659872afeade8cc5d35f4cd70648d19a33f854f49c828f34dd6d882f58b5958"
 task_id_series: "BE-RWI-037 s.d. BE-RWI-053 (revision 1), ditambah BE-RWI-066 s.d. BE-RWI-068 (revision 2) — deret bersama seluruh modul, dilanjutkan dari BE-RWI-065 yang dipegang roadmap keperawatan"
 ```
+
+---
+
+## Grafik Urutan Dependency
+
+Panah berarti **prasyarat harus selesai lebih dulu**, dan artinya tidak pernah dibalik. Setiap task
+muncul **tepat satu kali** sebagai node, dan **jumlah panahnya sama persis** dengan isi kolom
+`Dependency` pada bagian 4 — tiga puluh panah untuk dua puluh task. Bila grafik ini berbeda dari
+kolom `Dependency`, **kolom itu yang berlaku** dan grafik ini yang salah.
+
+Task frontend **sengaja tidak digambar di sini**. Ketiganya adalah pemakai hasil, bukan prasyarat,
+sehingga menggambarnya akan menambah panah yang tidak ada pada kolom `Dependency`. Ketergantungan
+arah itu dipegang [`frontend-roadmap.md`](./frontend-roadmap.md).
+
+```mermaid
+flowchart TD
+    BE037["BE-RWI-037<br/>perbaikan jalur tanpa antrean"]
+    BE038["BE-RWI-038<br/>pendaftaran dokumen ke mesin keutuhan"]
+    BE039["BE-RWI-039<br/>service konteks klinis"]
+    BE040["BE-RWI-040<br/>kolom konteks 4 tabel klinis"]
+    BE041["BE-RWI-041<br/>tabel kejadian visite"]
+    BE042["BE-RWI-042<br/>konteks resep dan penunjang"]
+    BE043["BE-RWI-043<br/>pelonggaran 1 catatan 1 resep"]
+    BE044["BE-RWI-044<br/>pintu masuk dokter rawat inap"]
+    BE045["BE-RWI-045<br/>kajian medis awal"]
+    BE046["BE-RWI-046<br/>catatan harian"]
+    BE047["BE-RWI-047<br/>koreksi catatan lama"]
+    BE048["BE-RWI-048<br/>visite sebagai kejadian"]
+    BE049["BE-RWI-049<br/>pembatalan visite"]
+    BE050["BE-RWI-050<br/>resep berulang dan obat pulang"]
+    BE051["BE-RWI-051<br/>tindakan tanpa tagihan ganda"]
+    BE052["BE-RWI-052<br/>lab dan radiologi per perawatan"]
+    BE053["BE-RWI-053<br/>verifikasi DPJP atas CPPT"]
+    BE066["BE-RWI-066<br/>balasan membawa verifikator"]
+    BE067["BE-RWI-067<br/>nama penulis daftar pantau"]
+    BE068["BE-RWI-068<br/>diagnosis tanpa nomor konsultasi"]
+
+    BE037 --> BE039
+    BE039 --> BE040
+    BE040 --> BE041
+    BE039 --> BE042
+    BE039 --> BE043
+    BE042 --> BE043
+    BE039 --> BE044
+    BE040 --> BE044
+    BE043 --> BE044
+    BE044 --> BE045
+    BE044 --> BE046
+    BE038 --> BE047
+    BE046 --> BE047
+    BE041 --> BE048
+    BE044 --> BE048
+    BE048 --> BE049
+    BE042 --> BE050
+    BE043 --> BE050
+    BE044 --> BE050
+    BE040 --> BE051
+    BE044 --> BE051
+    BE048 --> BE051
+    BE042 --> BE052
+    BE044 --> BE052
+    BE040 --> BE053
+    BE046 --> BE053
+    BE053 --> BE066
+    BE053 --> BE067
+    BE039 --> BE068
+    BE045 --> BE068
+
+    classDef selesai fill:#d9f2d9,stroke:#2e7d32,color:#1b3d1b
+    classDef siap fill:#fff4d6,stroke:#b8860b,color:#4a3800
+    class BE037,BE038,BE039,BE040,BE041,BE042,BE043,BE044,BE045,BE046,BE047,BE048,BE049,BE050,BE051,BE052,BE053,BE066,BE067 selesai
+    class BE068 siap
+```
+
+Hijau berarti ✅ selesai. Kuning berarti **siap dikerjakan**: seluruh prasyaratnya selesai dan
+kontraknya sudah `approved`.
+
+### Gelombang eksekusi
+
+| Gelombang | Task | Keadaan | Kenapa gelombangnya di sini |
+| --- | --- | :---: | --- |
+| `DOK-MVP-0` | `BE-RWI-037` | ✅ | Nol dependency. Memperbaiki jalur yang hari ini berujung kegagalan sistem |
+| `DOK-MVP-0b` | `BE-RWI-038` | ✅ | Nol dependency, dan **tidak menunggu `DOK-MVP-0`**. Akar kedua yang berdiri sendiri |
+| `DOK-MVP-1` | `BE-RWI-039`, `BE-RWI-040`, `BE-RWI-041`, `BE-RWI-042`, `BE-RWI-043` | ✅ | Fondasi konteks, kolom, tabel visite, dan pelonggaran |
+| `DOK-MVP-2` | `BE-RWI-044`, `BE-RWI-045` | ✅ | Pintu masuk dokter dan kajian medis awal |
+| `DOK-MVP-3` | `BE-RWI-046`, `BE-RWI-047` | ✅ | Catatan harian beserta koreksinya. `BE-RWI-047` mempertemukan kedua akar |
+| `DOK-MVP-4` | `BE-RWI-048`, `BE-RWI-049` | ✅ | Visite sebagai kejadian tersendiri |
+| `DOK-MVP-5` | `BE-RWI-050`, `BE-RWI-051`, `BE-RWI-052` | ✅ | Resep, tindakan, dan penunjang |
+| `DOK-MVP-6` | `BE-RWI-053` | ✅ | Verifikasi DPJP atas catatan terpadu |
+| `DOK-MVP-7` | `BE-RWI-066` ✅, `BE-RWI-067` ✅, **`BE-RWI-068`** ⬜ | 🟡 | Menutup tiga celah kontrak yang ditemukan layar. **`BE-RWI-068` satu-satunya yang tersisa**, dan sejak 9 September 2026 ia **siap dikerjakan** |
+
+**Nol node blocker pada grafik ini.** Sampai 8 September 2026 `BE-RWI-068` digambar sebagai blocker
+tanpa nomor gelombang, karena kontraknya belum ada. Approval `0.4.0` pada 9 September 2026 mencabut
+keadaan itu, sehingga ia kini memegang nomor gelombang seperti task lain.
 
 ---
 
@@ -117,34 +212,6 @@ selera, melainkan apakah kontrak `0.3.0` sudah pernah menyebut endpoint-nya:
 > kompatibilitas yang dipakai kontrak ini sendiri pada barisnya "*Tidak ada endpoint yang dihapus
 > atau berubah bentuknya*".
 
-## 0.3 Apa yang berubah pada 9 September 2026 — kontrak naik ke `0.4.0`
-
-`/qv-design` dijalankan atas `BE-RWI-068` dan **mencabut penghalang pertamanya**. Grup Patient
-Diagnosis kini terdaftar pada kontrak API bagian 2.1, dan tujuh artefak desain naik ke `0.4` /
-`0.4.0` berstatus **`draft`**.
-
-| Penghalang `BE-RWI-068` | Keadaan sebelum | Keadaan sekarang |
-| --- | --- | --- |
-| ① Grup diagnosis belum ada pada kontrak API | ⛔ Menahan | ✅ **Tercabut** — `api-contract.md` `0.4.0` bagian 2.1; `INT-DOK-10`; `VAL-DOK-36` s.d. `VAL-DOK-40`; sembilan skenario acceptance pada bagian 11 |
-| ② Pelonggaran aturan wajibnya belum disetujui pemilik tabel | ⛔ Menahan | ⛔ **Masih menahan, tetapi bentuknya berubah** — tidak lagi menunggu keputusan bernomor tersendiri, melainkan **approval `0.4.0`** oleh Muhammad Hamzah. `RWI-DEC-062` sudah memberi persetujuan lintas modul atas perubahan `ClinicalManagement` yang dituntut blueprint ini, dan `0.4.0` inilah yang menjadikannya dituntut |
-
-**Satu hal yang wajib diketahui sebelum menyetujui, dan tidak terlihat pada revision 2.** Anggapan
-revision 2 bahwa grup diagnosis semata-mata **terlewat** ternyata hanya benar separuh. Kontrak API
-memang tidak pernah menyebutnya, tetapi dua artefak lain **menyebutnya secara tegas dan menolaknya**:
-
-| Artefak | Bunyinya | Keadaan sekarang |
-| --- | --- | --- |
-| `02-backend-architecture.md` bagian 9 | "Melonggarkan `ConsultationId` pada resep, tindakan, dan diagnosis — ketiganya memang lahir dari konsultasi; yang perlu dibuka adalah konsultasinya" | **Dibalik untuk diagnosis saja** pada revision `0.4`. Resep dan tindakan tetap ditolak dengan alasan yang sama |
-| `data/data-dictionary.md` bagian 3 | "Diagnosis berkode ICD tetap tinggal di sana dan **tetap menggantung pada catatan dokter**" | Kalimatnya diperbarui pada revision `0.4` |
-
-Alasan pembalikannya ditulis lengkap pada `contracts/integration-contract.md` bagian 10.1, dan
-ringkasnya: kajian medis awal adalah **dokumen dan layar tersendiri** yang lahir sebelum catatan
-harian pertama, sedangkan `PRD-RWI-FINAL-001` `CAP-022` aturan 5 menuntut daftar masalah berbentuk
-objek terstruktur. Kedua fakta itu belum tersedia saat baris bagian 9 ditulis pada 2 September.
-
-> **Approval `0.4.0` belum ada, dan tanpa itu `BE-RWI-068` tetap ⛔.** Yang berubah adalah apa yang
-> ditunggu: bukan lagi pekerjaan desain, melainkan satu tanda tangan.
-
 ## 0.2 Masukan yang bergerak sejak revision 1, dan apakah ia menggoyang sub-modul ini
 
 Perencanaan ulang **wajib** memeriksa ini lebih dulu; merencanakan di atas masukan basi berarti
@@ -180,6 +247,36 @@ sebagai gerbang terbuka pada bagian 5 supaya tidak hilang.
 
 ---
 
+## 0.3 Apa yang berubah pada 9 September 2026 — kontrak naik ke `0.4.0`
+
+`/qv-design` dijalankan atas `BE-RWI-068` dan **mencabut penghalang pertamanya**. Grup Patient
+Diagnosis kini terdaftar pada kontrak API bagian 2.1, dan tujuh artefak desain naik ke `0.4` /
+`0.4.0` berstatus **`draft`**.
+
+| Penghalang `BE-RWI-068` | Keadaan sebelum | Keadaan sekarang |
+| --- | --- | --- |
+| ① Grup diagnosis belum ada pada kontrak API | ⛔ Menahan | ✅ **Tercabut** — `api-contract.md` `0.4.0` bagian 2.1; `INT-DOK-10`; `VAL-DOK-36` s.d. `VAL-DOK-40`; sembilan skenario acceptance pada bagian 11 |
+| ② Pelonggaran aturan wajibnya belum disetujui pemilik tabel | ⛔ Menahan | ✅ **Tercabut 9 September 2026** — `0.4.0` disetujui **Muhammad Hamzah**. `RWI-DEC-062` sudah memberi persetujuan lintas modul atas perubahan `ClinicalManagement` yang dituntut blueprint ini, dan approval `0.4.0` adalah tanda tangan itu |
+
+**Satu hal yang wajib diketahui sebelum menyetujui, dan tidak terlihat pada revision 2.** Anggapan
+revision 2 bahwa grup diagnosis semata-mata **terlewat** ternyata hanya benar separuh. Kontrak API
+memang tidak pernah menyebutnya, tetapi dua artefak lain **menyebutnya secara tegas dan menolaknya**:
+
+| Artefak | Bunyinya | Keadaan sekarang |
+| --- | --- | --- |
+| `02-backend-architecture.md` bagian 9 | "Melonggarkan `ConsultationId` pada resep, tindakan, dan diagnosis — ketiganya memang lahir dari konsultasi; yang perlu dibuka adalah konsultasinya" | **Dibalik untuk diagnosis saja** pada revision `0.4`. Resep dan tindakan tetap ditolak dengan alasan yang sama |
+| `data/data-dictionary.md` bagian 3 | "Diagnosis berkode ICD tetap tinggal di sana dan **tetap menggantung pada catatan dokter**" | Kalimatnya diperbarui pada revision `0.4` |
+
+Alasan pembalikannya ditulis lengkap pada `contracts/integration-contract.md` bagian 10.1, dan
+ringkasnya: kajian medis awal adalah **dokumen dan layar tersendiri** yang lahir sebelum catatan
+harian pertama, sedangkan `PRD-RWI-FINAL-001` `CAP-022` aturan 5 menuntut daftar masalah berbentuk
+objek terstruktur. Kedua fakta itu belum tersedia saat baris bagian 9 ditulis pada 2 September.
+
+> **Kedua penghalang `BE-RWI-068` tercabut pada 9 September 2026.** `0.4.0` disetujui Muhammad
+> Hamzah pada hari yang sama, sehingga yang tersisa tinggal perencanaan dan pembangunannya.
+
+---
+
 ## 1. Cara membaca roadmap ini
 
 | Kolom | Artinya |
@@ -195,8 +292,9 @@ sebagai gerbang terbuka pada bagian 5 supaya tidak hilang.
 | **Risk/blocker** | Risiko nyata beserta pemiliknya |
 | **DoD** | Daftar yang jawabannya hanya "ya" atau "belum" |
 
-Status setiap task ditulis pada kartunya masing-masing memakai empat tanda: ✅ selesai, 🟡 sebagian,
-⛔ terblokir, dan tanpa tanda untuk yang belum dikerjakan. Tanda hanya boleh dinaikkan setelah
+Status setiap task ditulis pada kartunya masing-masing memakai lima tanda: ✅ selesai, 🟡 sebagian,
+⛔ terblokir, ⬜ siap dikerjakan — seluruh dependency dan kontraknya sudah beres tetapi task-nya belum
+dimulai — dan tanpa tanda untuk yang belum dikerjakan dan belum diperiksa kesiapannya. Tanda hanya boleh dinaikkan setelah
 laporan tracked task itu ada di `../task/report/backend/`.
 
 Per 8 September 2026: **seluruh 17 task `BE-RWI-037` s.d. `BE-RWI-053` ✅ selesai.** Tidak ada
@@ -205,10 +303,10 @@ di antara ketujuh belas itu yang 🟡 sebagian, ⛔ terblokir, maupun belum dike
 **Revision 2 menambahkan tiga task baru.** Per 8 September 2026, dua di antaranya sudah selesai:
 `BE-RWI-066` ✅ dan `BE-RWI-067` ✅ dikerjakan bersamaan pada satu rangkaian validasi
 (`dotnet test` `Failed: 0, Passed: 470, Total: 470`, 17 di antaranya uji baru kedua task itu;
-`dotnet build` 0 error `CS`; nol migration dibuat). `BE-RWI-068` tetap berstatus ⛔ **TERBLOKIR**.
-Alasan ketiganya dijelaskan pada bagian 0.1. **Diperbarui 9 September 2026:** grup diagnosis sudah
-masuk kontrak API lewat `0.4.0`, sehingga yang ditunggu `BE-RWI-068` tinggal **approval kontrak itu**
-— bagian 0.3.
+`dotnet build` 0 error `CS`; nol migration dibuat). **Diperbarui 9 September 2026:** `BE-RWI-068`
+tidak lagi ⛔. Kontrak `0.4.0` ditulis dan disetujui pada hari yang sama, kedua penghalangnya
+tercabut, dan seluruh dependency-nya sudah ✅ — sehingga statusnya menjadi ⬜ **siap dikerjakan**.
+Alasannya pada bagian 0.3.
 
 Uji migration maju-mundur dijalankan 5 September 2026 terhadap PostgreSQL 15.15 sungguhan dan
 menutup `BE-RWI-040`, `BE-RWI-042`, serta `BE-RWI-043`; `BE-RWI-045` ditutup setelah pemilik
@@ -255,7 +353,7 @@ yang membuat permintaan yang kalah melempar alih-alih dijawab `200`.
 | **`DOK-MVP-4`** ✅ | Visite | `BE-RWI-048` ✅, `BE-RWI-049` ✅ | ✅ selesai 8 September 2026. Kunjungan dokter tercatat, terhitung, dan dapat dibatalkan beralasan; uji concurrency `BE-RWI-048` hijau, dan celah perlombaan yang ditemukannya sudah ditutup |
 | **`DOK-MVP-5`** ✅ | Resep, tindakan, penunjang | `BE-RWI-050` ✅, `BE-RWI-051` ✅, `BE-RWI-052` ✅ | ✅ selesai 8 September 2026. Dokter meresepkan berulang, mencatat tindakan, dan memesan lab serta radiologi; uji percobaan ulang `BE-RWI-051` hijau terhadap PostgreSQL sungguhan |
 | **`DOK-MVP-6`** ✅ | Catatan terpadu dan verifikasi | `BE-RWI-053` ✅ | ✅ selesai 4 September 2026. DPJP memverifikasi catatan profesi lain; keterlambatan terpantau lewat daftar pantau berkebijakan kosong |
-| **`DOK-MVP-7`** 🟡 ★ baru revision 2 | Menutup tiga celah kontrak yang ditemukan layar | `BE-RWI-066` ✅, `BE-RWI-067` ✅, `BE-RWI-068` ⛔ | Layar dapat menyebut **siapa yang memverifikasi** sebuah catatan dan **siapa penulis** catatan yang menunggu verifikasi, tanpa menebak. Setelah `BE-RWI-066` dan `BE-RWI-067` selesai, `FE-RWI-046` dan `FE-RWI-050` dapat ditutup pada ID-nya masing-masing. `BE-RWI-068` menyusul setelah kontraknya **disetujui** — kontraknya sendiri sudah ditulis 9 September 2026 sebagai `0.4.0` `draft` — dan barulah `FE-RWI-044` dapat ditutup |
+| **`DOK-MVP-7`** 🟡 ★ baru revision 2 | Menutup tiga celah kontrak yang ditemukan layar | `BE-RWI-066` ✅, `BE-RWI-067` ✅, `BE-RWI-068` ⬜ **siap** | Layar dapat menyebut **siapa yang memverifikasi** sebuah catatan dan **siapa penulis** catatan yang menunggu verifikasi, tanpa menebak. Setelah `BE-RWI-066` dan `BE-RWI-067` selesai, `FE-RWI-046` dan `FE-RWI-050` dapat ditutup pada ID-nya masing-masing. `BE-RWI-068` **siap dikerjakan sejak 9 September 2026**, setelah kontrak `0.4.0` ditulis dan disetujui pada hari yang sama; setelah task itu selesai barulah `FE-RWI-044` dapat ditutup |
 
 **Nol gelombang memuat epic `OPEN DECISION`**, karena sub-modul ini memang tidak punya satu pun.
 
@@ -269,41 +367,12 @@ yang membuat permintaan yang kalah melempar alih-alih dijawab `200`.
 
 ### Urutan dependency
 
-Grafik di bawah adalah **tampilan lain dari kolom `Dependency` pada bagian 4**, bukan sumber
-kebenaran baru. Bila keduanya berbeda, kolom `Dependency` pada tabel task yang berlaku.
+Grafik kanonisnya ada di [**Grafik Urutan Dependency**](#grafik-urutan-dependency) pada kepala
+roadmap ini, berikut tabel gelombang eksekusinya. Bagian ini tidak menggambar ulang grafik yang sama
+— dua gambar yang sama persis hanya menciptakan dua tempat yang harus dijaga tetap sinkron.
 
-```text
-BE-RWI-037 (perbaikan jalur tanpa antrean)                        ✅ SELESAI
-   └── BE-RWI-039 (service konteks klinis)                        ✅ SELESAI
-          ├── BE-RWI-040 (kolom konteks pada empat tabel klinis)  ✅ SELESAI
-          │      └── BE-RWI-041 (tabel visite)                    ✅ SELESAI
-          └── BE-RWI-042 (konteks pada resep dan pesanan penunjang) ✅ SELESAI
-                 └── BE-RWI-043 (pelonggaran satu catatan dan satu resep) ✅ SELESAI
-                        └── BE-RWI-044 (pintu masuk dokter)                 ✅ SELESAI
-                               ├── BE-RWI-045 (kajian medis awal)           ✅ SELESAI
-                               ├── BE-RWI-046 (catatan harian)              ✅ SELESAI
-                               │      ├── BE-RWI-047 (koreksi catatan lama) ✅ SELESAI
-                               │      └── BE-RWI-053 (verifikasi DPJP)      ✅ SELESAI
-                               ├── BE-RWI-048 (visite sebagai kejadian)     ✅ SELESAI
-                               │      ├── BE-RWI-049 (pembatalan visite)    ✅ SELESAI
-                               │      └── BE-RWI-051 (tindakan dokter)      ✅ SELESAI
-                               ├── BE-RWI-050 (resep berulang dan obat pulang) ✅ SELESAI
-                               └── BE-RWI-052 (lab dan radiologi)           ✅ SELESAI
-
-BE-RWI-038 (pendaftaran dokumen ke mesin keutuhan) ✅ SELESAI ─────> BE-RWI-047
-
-Gelombang penutup DOK-MVP-7 — revision 2
-BE-RWI-053 (verifikasi DPJP) ✅ SELESAI
-   ├── BE-RWI-066 (balasan membawa identitas verifikator)  ✅ SELESAI ────────> FE-RWI-046
-   └── BE-RWI-067 (nama penulis pada daftar pantau)        ✅ SELESAI ────────> FE-RWI-050
-
-BE-RWI-045 (kajian medis awal) ✅ SELESAI
-   └── BE-RWI-068 (diagnosis tanpa nomor konsultasi)       ⛔ MENUNGGU APPROVAL 0.4.0 ──> FE-RWI-044
-```
-
-Tanda `+` berarti **dependency tambahan** yang tidak terlihat dari garis induknya. Contoh:
-`BE-RWI-048` digambar di bawah `BE-RWI-044`, tetapi juga menunggu `BE-RWI-041` karena tabel
-visitenya lahir di sana.
+Yang ditambahkan bagian ini adalah hal yang **tidak terbaca dari grafik**: apa yang boleh berjalan
+bersamaan, dan task mana yang paling mahal bila terlambat.
 
 **Dua akar yang tidak saling menunggu.** `BE-RWI-037` dan `BE-RWI-038` sama-sama tidak punya
 dependency dan **boleh dikerjakan orang berbeda sejak hari pertama**. Keduanya baru bertemu di
@@ -677,21 +746,21 @@ lebih dulu membuatnya, dan yang kedua menerima baris dependency, bukan salinan t
 
 ---
 
-### ⛔ `BE-RWI-068` — Diagnosis kerja dapat dicatat langsung dari kajian medis awal
+### ⬜ `BE-RWI-068` — Diagnosis kerja dapat dicatat langsung dari kajian medis awal
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR — menunggu approval kontrak `0.4.0`.** Diperbarui 9 September 2026: penghalang pertama **tercabut**, grup diagnosis kini ada pada kontrak API bagian 2.1. Yang tersisa tinggal **satu tanda tangan pemilik**, bukan lagi pekerjaan desain. Task ini tetap **tidak boleh dimulai** sampai `0.4.0` berstatus `approved` |
+| **Status** | ⬜ **SIAP DIKERJAKAN sejak 9 September 2026.** Kedua penghalangnya tercabut pada hari yang sama: grup diagnosis masuk kontrak API bagian 2.1, dan kontrak `0.4.0` **disetujui Muhammad Hamzah**. Seluruh dependency-nya sudah ✅. Task ini **belum dikerjakan**; approval task tersendiri tetap dituntut sebelum builder dijalankan |
 | **Outcome** | DPJP menambahkan diagnosis kerja **langsung dari layar kajian medis awal**. Hari ini diagnosis terstruktur hanya dapat lahir dari catatan dokter, sehingga dokter yang baru selesai memeriksa pasien untuk pertama kali terpaksa membuat catatan harian lebih dulu — semata-mata supaya ada tempat menggantungkan diagnosisnya. Urutan itu terbalik dari cara kerja sebenarnya: diagnosis kerja justru lahir **pada** pemeriksaan pertama |
 | **Trace** | `CAP-022`; `AC-CAP022-02`; `04-prd-to-mvp.md` bagian kajian medis; `03-frontend-architecture.md` bagian 3.2. **Ditemukan** saat `FE-RWI-044` dikerjakan — [laporan FE-RWI-044](../task/report/frontend/FE-RWI-044.md) |
-| **Kontrak** | **`0.4.0` — `draft`, ditulis 9 September 2026, belum disetujui.** `contracts/api-contract.md` bagian 2.1 grup Patient Diagnosis beserta aturan konteks 2.1.2; `contracts/integration-contract.md` `INT-DOK-10`; `contracts/validation-matrix.md` `VAL-DOK-36` s.d. `VAL-DOK-40`; `contracts/permission-audit-matrix.md` bagian 2 dan 3; `testing/acceptance-test-matrix.md` bagian 11. **Mengikat baru setelah `approved`** |
+| **Kontrak** | **`0.4.0` — `approved` Muhammad Hamzah, 9 September 2026. Terkunci dan mengikat.** `contracts/api-contract.md` bagian 2.1 beserta aturan konteks 2.1.2 dan kode status 2.1.3; `contracts/integration-contract.md` `INT-DOK-10` bagian 10; `contracts/validation-matrix.md` bagian 9 `VAL-DOK-36` s.d. `VAL-DOK-40`; `contracts/permission-audit-matrix.md` bagian 1.1, 2, 3, 4, dan 5; `testing/acceptance-test-matrix.md` bagian 11; `02-backend-architecture.md` bagian 4.10 dan bagian 7.3 langkah 11; `data/data-dictionary.md` bagian 10.1 |
 | **Reuse** | Endpoint, tabel, dan mesin diagnosisnya **sudah ada** di `ClinicalManagement`; yang menghalangi hanya satu aturan wajib pada permintaannya. Pelonggarannya sekelas dengan `INT-DOK-02`, yang dulu dikerjakan `BE-RWI-043` dan memakai konteks perawatan sebagai pengganti nomor konsultasi |
-| **Scope** | *Belum dikunci — pengunciannya wewenang `/qv-plan`, bukan `/qv-design`.* Titik perubahannya kini diketahui lengkap: `DTOs/PatientDiagnosisDtos.cs` baris 148–152 melepas `[Required]` pada `ConsultationId` dan menerima `InpEpisodeId`; `Models/TrxPatientDiagnosis.cs` baris 20–21 beserta configuration dan satu migration; `Controllers/PatientDiagnosisController.cs` baris 326 mengganti `FirstAsync` menjadi pencarian yang bercabang menurut konteks, ditambah penyaring `inpEpisodeId` pada baris 149 dan 221. Rinciannya `02-backend-architecture.md` bagian 4.10 |
-| **Dependency** | `BE-RWI-039` ✅ service konteks klinis dan `BE-RWI-045` ✅ kajian medis awal. Keduanya sudah selesai; yang menahan **bukan** task lain |
-| **Acceptance criteria** | 1. Diagnosis terstruktur dapat dibuat dengan menyebut **perawatan rawat inap** sebagai konteks, tanpa nomor konsultasi. 2. Diagnosis yang dibuat tanpa nomor konsultasi tetap terhubung ke pasien dan kunjungan yang benar, dan terbaca pada daftar masalah kajian medis pasien itu. 3. Jalur **rawat jalan dan IGD tidak berubah**: permintaan tanpa nomor konsultasi pada jalur itu tetap ditolak seperti sebelumnya — `RWI-AC-143`. 4. Diagnosis tidak dapat digantungkan pada perawatan yang bukan milik pasien tersebut. 5. Kewenangan menulis diagnosis mengikuti kewenangan menulis kajian medis pasien itu, bukan sekadar nama peran |
-| **Verification** | Sembilan skenario `testing/acceptance-test-matrix.md` bagian 11 — empat jalur gagal dan **dua regresi**. Yang paling mudah terlewat: test yang menghitung baris konsultasi sebelum dan sesudah, untuk membuktikan **tidak ada konsultasi bayangan** yang dibuatkan diam-diam; dan test rawat jalan yang membandingkan **kalimat penolakannya utuh**, bukan hanya kode `400` |
-| **Risk / blocker** | **Tinggal satu penghalang, dan ia menunggu satu tanda tangan.** ① Grup diagnosis pada kontrak API — ✅ **tercabut 9 September 2026** lewat `0.4.0`. ② **Approval `0.4.0` oleh Muhammad Hamzah.** Kedua penghalang lama menyatu di sini: `RWI-DEC-062` sudah memberi persetujuan lintas modul atas perubahan `ClinicalManagement` yang **dituntut blueprint ini**, dan `0.4.0` inilah yang menjadikannya dituntut, sehingga approval kontrak **adalah** persetujuan pemilik tabel yang dimaksud. **Yang wajib pemilik ketahui sebelum menandatangani:** `0.4.0` **membalik** satu baris pada `02-backend-architecture.md` bagian 9 yang semula menolak pelonggaran ini — alasannya pada `integration-contract.md` bagian 10.1. **Risiko teknis yang tersisa setelah approval:** langkah mundur migration-nya **tidak simetris** (bagian 7.3 langkah 11), dan satu jaring pengaman basis data dilepas karena "salah satu wajib" tidak dapat ditegakkan `NOT NULL`. **Yang tetap berjalan tanpa menunggu apa pun:** daftar masalah hanya-baca pada layar kajian medis sudah ada lewat `FE-RWI-044` |
-| **DoD** | Sebelum apa pun: `contracts/api-contract.md` `0.4.0` terbaca **`approved`** beserta nama penyetuju dan tanggalnya, dan manifest sub-modul ikut naik. Sesudah itu berlaku DoD yang sama seperti task lain — acceptance terpetakan ke source, validasi dijalankan dan dicatat apa adanya, laporan tracked ada di `../task/report/backend/BE-RWI-068.md`, register bagian 4.1 dan `requirement-traceability.md` ikut diperbarui. **Satu butir tambahan yang khas task ini:** uji regresi rawat jalan wajib membandingkan kalimat penolakan **utuh**, bukan hanya kode balasannya |
+| **Scope** | **Terkunci 9 September 2026.** Seluruhnya di dalam `Areas/HealthServices/ClinicalManagement/`, nol berkas di bawah `InPatientManagement/`. ① `Models/TrxPatientDiagnosis.cs` — tambah `InpEpisodeId` nullable, lepas `[Required]` pada `ConsultationId`, tambah relasi `InpEpisode`. ② Configuration entity-nya — index `InpEpisodeId` bersama `PatientId`, `DeleteBehavior.Restrict`. ③ **Satu migration**, tanpa mematikan layanan; nol baris lama disentuh. ④ `DTOs/PatientDiagnosisDtos.cs` baris 148–152 — `ConsultationId` menjadi `Guid?`, `InpEpisodeId` ditambahkan pada `CreatePatientDiagnosisRequest`, `UpdatePatientDiagnosisRequest`, dan kedua DTO balasan. ⑤ `Controllers/PatientDiagnosisController.cs` baris 326 — `FirstAsync` diganti pencarian bercabang menurut konteks, ditambah penegakan `VAL-DOK-36` s.d. `VAL-DOK-40`. ⑥ Penyaring `inpEpisodeId` pada `GetDiagnoses` baris 149 dan `GetDiagnosisOptions` baris 221. **Di luar scope:** resep, tindakan, jalur IGD, dan penghapusan diagnosis — seluruhnya ditolak `api-contract.md` bagian 11 |
+| **Dependency** | `BE-RWI-039` ✅ service konteks klinis dan `BE-RWI-045` ✅ kajian medis awal. **Keduanya selesai, sehingga nol dependency tersisa.** Dua panah pada [Grafik Urutan Dependency](#grafik-urutan-dependency) |
+| **Acceptance criteria** | **1.** Diagnosis terstruktur dapat dibuat dengan menyebut **perawatan rawat inap** sebagai konteks, tanpa nomor konsultasi, ketika pasien itu belum punya satu pun catatan harian — `CAP-022` aturan 5. **2.** Diagnosis itu tetap terhubung ke pasien dan kunjungan yang benar, dan **terbaca pada daftar masalah kajian medis** pasien itu lewat penyaring `inpEpisodeId` — `CAP-022` aturan 2. **3.** Permintaan yang **tidak menyebut satu pun** konteks ditolak `400`, dan **nol baris konsultasi terbentuk** — `VAL-DOK-36`. **4.** Permintaan yang menyebut konteks milik pasien lain ditolak `400` — `VAL-DOK-37`, `VAL-DOK-40`. **5.** Kewenangan menulis diagnosis mengikuti kewenangan menulis kajian medis pasien itu, bukan sekadar nama peran; dokter yang memegang butir hak akses tetapi bukan DPJP pasien itu ditolak `403` — `VAL-DOK-39`. **6.** Jalur **rawat jalan dan medical check-up tidak berubah**: permintaan tanpa nomor konsultasi tetap ditolak dengan **kode dan kalimat yang sama persis** seperti sebelum `0.4.0` — `VAL-DOK-38`, `RWI-AC-143`. **7.** Jalur **IGD tidak ikut dibuka** — `api-contract.md` bagian 11. **8.** Permintaan lama yang menyebut nomor konsultasi tetap berperilaku identik seperti sebelum `0.4.0`. **9.** Kajian medis tetap dapat diselesaikan ketika diagnosis kerja teks kosong tetapi daftar terstruktur terisi — `VAL-DOK-11` |
+| **Verification** | **Terkunci pada sembilan skenario** `testing/acceptance-test-matrix.md` bagian 11 — lima jalur gagal dan **dua regresi** — dipetakan satu-satu ke acceptance criteria di atas. `dotnet build` tanpa error `CS`. `dotnet test` dijalankan dan hasilnya dicatat apa adanya. **Uji migration maju-mundur wajib** terhadap PostgreSQL sungguhan lewat container sekali pakai, sebab langkah mundurnya **tidak simetris** — `02-backend-architecture.md` bagian 7.3 langkah 11. Tiga test yang paling mudah terlewat dan karena itu disebut namanya: ⓐ menghitung baris `TrxDoctorConsultation` sebelum dan sesudah permintaan gagal, membuktikan **nol konsultasi bayangan**; ⓑ membandingkan kalimat penolakan rawat jalan **utuh**, bukan hanya kode `400`, cara yang sama dipakai `BE-RWI-043`; ⓒ menguji `VAL-DOK-39` dengan peran **non-SuperAdmin** yang memegang `PatientDiagnosis : Create`, sehingga penolakannya benar-benar datang dari aturan bisnis dan bukan dari mesin hak akses — pelajaran `BE-RWI-034` |
+| **Risk / blocker** | **Nol blocker. Tiga risiko teknis yang wajib dibawa pelaksana.** ① **Langkah mundur tidak simetris.** Mengembalikan `ConsultationId` menjadi `NOT NULL` **gagal** bila sudah ada diagnosis rawat inap tanpa nomor konsultasi. Urutan mundurnya: kembalikan validasi lebih dulu, tangani baris yang telanjur ada bersama pemilik klinis, baru turunkan migration — bagian 7.3 langkah 11. ② **Satu jaring pengaman basis data dilepas.** Aturan salah-satu-wajib tidak dapat ditegakkan `NOT NULL`, sehingga basis data tidak lagi menolak diagnosis tanpa konteks; penjagaannya sepenuhnya `VAL-DOK-36`, dan itulah sebabnya kasus keduanya kosong diuji khusus. ③ **Tabel ini dipakai poliklinik setiap hari.** Yang paling mungkin rusak bukan jalur barunya melainkan jalur lamanya, dan itu sebabnya dua dari sembilan skenario adalah regresi. **Pemilik perubahan:** `ClinicalManagement` — Muhammad Hamzah, `RWI-DEC-062`, dikuatkan approval `0.4.0`. **Penjadwalannya tetap wewenang pemilik modul**, sebagaimana peringatan pertama bagian 0 |
+| **DoD** | Kesembilan acceptance criteria terpetakan ke source yang benar-benar ada. `dotnet build` dan `dotnet test` dijalankan dan hasilnya dicatat **apa adanya**, termasuk bila gagal. Uji migration maju-mundur dijalankan terhadap PostgreSQL sungguhan dan hasilnya dicatat; nol perintah dikirim ke database bersama mana pun. Uji regresi rawat jalan membandingkan kalimat penolakan **utuh**, bukan hanya kode balasannya. Nol konsultasi bayangan, dan itu **dibuktikan test**, bukan sekadar dinyatakan. Laporan tracked ada di `../task/report/backend/BE-RWI-068.md`. Register bagian 4.1 dan `requirement-traceability.md` ikut diperbarui. **QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi** dari `AGENTS.md` repository backend target beserta dokumen engineering canonical — bukan dari roadmap ini |
 
 ---
 
@@ -725,7 +794,7 @@ menautkan berkas yang belum ada hanya membuat register ini berbohong.
 | `BE-RWI-053` | Verifikasi DPJP atas catatan terpadu | ✅ | [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
 | `BE-RWI-066` ★ | Balasan membawa identitas verifikator | ✅ | [BE-RWI-066](../task/report/backend/BE-RWI-066.md) — selesai 8 September 2026 |
 | `BE-RWI-067` ★ | Nama penulis pada daftar pantau verifikasi | ✅ | [BE-RWI-067](../task/report/backend/BE-RWI-067.md) — selesai 8 September 2026 |
-| `BE-RWI-068` ★ | Diagnosis tanpa nomor konsultasi | ⛔ | Belum ada — menunggu approval kontrak `0.4.0` yang ditulis 9 September 2026 |
+| `BE-RWI-068` ★ | Diagnosis tanpa nomor konsultasi | ⬜ | Belum ada — task **siap dikerjakan** sejak kontrak `0.4.0` disetujui 9 September 2026 |
 
 ---
 
@@ -748,7 +817,7 @@ Tidak satu pun menahan roadmap ini disusun, tetapi seluruhnya menahan **rilis**.
 | **Peringatan obat pulang sebelum pasien dinyatakan boleh pulang — `VAL-DOK-20`** ★ baru 4 September 2026 | Belum dikerjakan; alasan tercatat | Pemilik `PharmacyManagement` | Kelengkapan `CAP-023`. `BE-RWI-050` tidak membuatnya karena bentuk penyampaian **peringatan** pada balasan pembuatan resep belum ada polanya di controller itu; rinciannya pada [laporan BE-RWI-050](../task/report/backend/BE-RWI-050.md) |
 | ~~**Tempat menyimpan diagnosis, pemeriksaan fisik, dan rencana terapi kajian medis**~~ ✅ **DITUTUP 5 September 2026** | — | — | Product/Domain memilih **pilihan 1**: `TrxPatientAssessment` memperoleh `PhysicalExamination`, `WorkingDiagnosis`, dan `TherapyPlan`, seluruhnya nullable, dengan `data/data-dictionary.md` bagian 3 direvisi `0.2` → `0.3` dan jalan **A** pada `02-backend-architecture.md` bagian 4.2 dikunci. `BE-RWI-045` naik menjadi ✅ — lihat [laporan BE-RWI-045](../task/report/backend/BE-RWI-045.md) bagian 8 |
 | **Pelonggaran `Emergency` pada `INT-DOK-02`** ★ baru 3 September 2026 | Belum dikerjakan; alasan teknis tercatat | Pemilik `PharmacyManagement` | Kelengkapan `INT-DOK-02`. `BE-RWI-043` melonggarkan `Inpatient` saja karena `TrxPrescription` tidak memiliki kolom pembeda resep IGD; rinciannya pada [laporan BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
-| ~~Grup diagnosis belum ada pada kontrak API~~ → **Approval kontrak `0.4.0`** ★ diperbarui 9 September 2026 | Grupnya **sudah ditulis** 9 September 2026 pada `api-contract.md` bagian 2.1; tujuh artefak naik ke `0.4` / `0.4.0` berstatus `draft`. Yang tersisa tinggal approval. Perlu diketahui penyetuju: `0.4.0` **membalik** satu baris `02-backend-architecture.md` bagian 9 | Product/Domain **Muhammad Hamzah**, yang juga pemilik `ClinicalManagement` lewat `RWI-DEC-062` | **`BE-RWI-068` seluruhnya**, dan lewat task itu acceptance criteria tombol Tambah Diagnosis pada `FE-RWI-044`. Bukan menahan task lain |
+| ~~Grup diagnosis pada kontrak API, lalu approval `0.4.0`~~ ✅ **TERTUTUP 9 September 2026** | Grupnya ditulis pada `api-contract.md` bagian 2.1, tujuh artefak naik ke `0.4` / `0.4.0`, dan seluruhnya **disetujui Muhammad Hamzah** pada hari yang sama. Approval itu sekaligus menjadi persetujuan pemilik `ClinicalManagement` lewat `RWI-DEC-062`. Baris ini dipertahankan sebagai jejak | Product/Domain **Muhammad Hamzah** | **Nol.** `BE-RWI-068` kini ⬜ siap dikerjakan |
 | **Slot urutan daftar pantau bagi dokter belum ditetapkan** ★ baru 8 September 2026 | `02-module-map.md` bagian 3.3 hanya menyebut `FE-DOK-08` sebagai "daftar tambahan", tanpa nomor urutan — berbeda dari `keperawatan` yang mendapat kata "ketiga" | Pemilik `02-module-map.md` bersama Frontend authority | Acceptance criteria nomor 5 `FE-RWI-050`. **Tidak** menahan `BE-RWI-067`, dan tidak menahan task backend mana pun |
 | **Registry peta modul masih membaca sub-modul ini `draft`** ★ baru 8 September 2026 | Selisih dokumen tingkat modul | Pemilik `02-module-map.md` | Kerapian dokumen. `02-module-map.md` bagian 1 masih menulis approval "Belum", padahal manifest sub-modul `approved` sejak 3 September 2026 dan `RWI-DEC-092` menyatakan ketiga sub-modul sudah disetujui. **Tidak** menahan satu pun task |
 

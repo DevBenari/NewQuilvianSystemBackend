@@ -869,7 +869,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Pengkajian keperawatan tidak tersentuh aturan ini; perilakunya tidak berubah.
             if (isKajianMedis)
             {
-                var bagianKosong = BagianKajianMedisYangKosong(entity);
+                // BE-RWI-068 / VAL-DOK-11. Sejak diagnosis terstruktur dapat lahir dari kajian
+                // medis, daftar masalah punya dua bentuk sah: teks bebas WorkingDiagnosis, dan
+                // baris berkode ICD pada TrxPatientDiagnosis. Kajian lolos bila salah satu
+                // terisi; menuntut keduanya memaksa dokter mengetik hal yang sama dua kali.
+                var adaDaftarMasalahTerstruktur =
+                    await AdaDaftarMasalahTerstrukturAsync(entity);
+
+                var bagianKosong = BagianKajianMedisYangKosong(
+                    entity,
+                    adaDaftarMasalahTerstruktur);
 
                 if (bagianKosong.Count > 0)
                 {
@@ -1819,7 +1828,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// bahasa layar, bukan nama kolom, karena kalimatnya dibaca dokter.
         /// </para>
         /// </remarks>
-        private static List<string> BagianKajianMedisYangKosong(TrxPatientAssessment entity)
+        /// <param name="entity">Kajian yang hendak diselesaikan.</param>
+        /// <param name="adaDaftarMasalahTerstruktur">
+        /// Benar bila perawatan yang menaungi kajian ini sudah memiliki setidaknya satu
+        /// diagnosis terstruktur berkode ICD yang masih berlaku - <c>BE-RWI-068</c>.
+        /// </param>
+        private static List<string> BagianKajianMedisYangKosong(
+            TrxPatientAssessment entity,
+            bool adaDaftarMasalahTerstruktur)
         {
             var kosong = new List<string>();
 
@@ -1832,13 +1848,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (string.IsNullOrWhiteSpace(entity.PhysicalExamination))
                 kosong.Add("pemeriksaan fisik");
 
-            if (string.IsNullOrWhiteSpace(entity.WorkingDiagnosis))
+            // BE-RWI-068 / VAL-DOK-11, dipertajam pada kontrak 0.4.0 - bukan diperketat.
+            // Bagian ini terbaca kosong hanya ketika kedua bentuk daftar masalah sama-sama
+            // kosong. Kajian lama yang mengisi teks bebas tetap lolos persis seperti dulu.
+            if (string.IsNullOrWhiteSpace(entity.WorkingDiagnosis) &&
+                !adaDaftarMasalahTerstruktur)
                 kosong.Add("diagnosis kerja");
 
             if (string.IsNullOrWhiteSpace(entity.TherapyPlan))
                 kosong.Add("rencana terapi");
 
             return kosong;
+        }
+
+        /// <summary>
+        /// Menjawab apakah perawatan yang menaungi kajian ini sudah memiliki daftar masalah
+        /// terstruktur - <c>BE-RWI-068</c>, <c>CAP-022</c> aturan 5.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Yang dihitung adalah baris <c>TrxPatientDiagnosis</c> milik perawatan yang sama,
+        /// yang belum dibatalkan dan belum dinyatakan teratasi. Masalah yang sudah teratasi
+        /// memang bukan lagi daftar masalah yang berlaku, sehingga tidak boleh menutup
+        /// pemeriksaan kelengkapan.
+        /// </para>
+        /// <para>
+        /// Kajian yang tidak menaungi perawatan - poliklinik, medical check-up, IGD - selalu
+        /// menjawab salah, sehingga perilakunya tidak bergeser satu langkah pun.
+        /// </para>
+        /// </remarks>
+        private async Task<bool> AdaDaftarMasalahTerstrukturAsync(TrxPatientAssessment entity)
+        {
+            if (!entity.InpEpisodeId.HasValue || entity.InpEpisodeId.Value == Guid.Empty)
+                return false;
+
+            return await _dbContext.Set<TrxPatientDiagnosis>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.InpEpisodeId == entity.InpEpisodeId.Value &&
+                    !x.IsDelete &&
+                    x.DiagnosisStatus != PatientDiagnosisStatus.Cancelled &&
+                    x.DiagnosisStatus != PatientDiagnosisStatus.Resolved);
         }
 
         /// <summary>

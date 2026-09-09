@@ -6,9 +6,9 @@
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
 | Contract version | `0.4.0` |
 | `last_changed_in` | `0.4.0` |
-| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
+| Status | **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
-| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Compatibility impact | `0.4.0`: lima aturan baru `VAL-DOK-36` s.d. `VAL-DOK-40` untuk diagnosis terstruktur. Sebelumnya `0.3.0` menambah `VAL-DOK-32` s.d. `VAL-DOK-35`. **Nol aturan dicabut, dan nol aturan lama dilonggarkan** — `VAL-DOK-38` justru menuliskan secara tegas bahwa jalur rawat jalan tidak berubah |

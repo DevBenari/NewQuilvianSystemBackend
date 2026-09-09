@@ -17,8 +17,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid ConsultationId { get; set; }
+        /// <summary>
+        /// Catatan dokter yang menaungi diagnosis ini. <b>Boleh kosong sejak</b>
+        /// <c>BE-RWI-068</c> — <c>INT-DOK-10</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Sampai <c>0.4.0</c> kolom ini wajib terisi, sehingga diagnosis terstruktur hanya
+        /// dapat lahir dari catatan dokter. Kajian medis awal adalah dokumen dan layar
+        /// tersendiri yang lahir <b>sebelum</b> catatan harian pertama ada, sehingga kewajiban
+        /// itu memaksa dokter membuat catatan harian semata-mata supaya ada tempat
+        /// menggantungkan diagnosisnya — <c>CAP-022</c> aturan 2 dan aturan 5.
+        /// </para>
+        /// <para>
+        /// <b>Nol baris lama berubah nilainya.</b> Seluruh diagnosis yang sudah ada terisi dan
+        /// tidak disentuh; melepas kewajiban terisi tidak mengubah satu nilai pun. Bentuknya
+        /// mengikuti preseden <c>QueueId</c> pada <c>TrxPatientAssessment</c> yang dilonggarkan
+        /// <c>BE-IGD-026</c>.
+        /// </para>
+        /// <para>
+        /// <b>Kewajibannya tidak hilang, ia berpindah tempat.</b> Salah satu dari
+        /// <c>ConsultationId</c> atau <c>InpEpisodeId</c> tetap wajib terisi, dan itu dijaga
+        /// aturan bisnis <c>VAL-DOK-36</c> — bukan oleh <c>NOT NULL</c>, sebab tidak ada satu
+        /// kolom pun yang selalu terisi pada kedua jalur.
+        /// </para>
+        /// </remarks>
+        public Guid? ConsultationId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi diagnosis ini. Boleh kosong — <c>INV-DOK-01</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-068</c>, <c>INT-DOK-10</c>. Nama dan polanya sama persis dengan kolom
+        /// sejenis pada empat tabel klinis lain sejak <c>BE-RWI-040</c>. Terisi ketika
+        /// diagnosis lahir dari kajian medis awal, dan kosong pada seluruh baris rawat jalan,
+        /// medical check-up, serta IGD.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
 
         [Required]
         public Guid PatientId { get; set; }

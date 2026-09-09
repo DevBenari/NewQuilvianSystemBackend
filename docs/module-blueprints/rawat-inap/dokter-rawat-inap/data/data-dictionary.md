@@ -5,8 +5,8 @@
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
 | Revision | `0.4` — amendment atas `0.3`, menyerap `INT-DOK-10` |
-| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik. Revision `0.3` `approved`; bagian 3 direvisi dan disetujui ulang 2026-09-05 |
-| `approved_by` / `approved_at` | `0.3` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4` **belum disetujui** |
+| Status | **`approved`** — revision `0.4` disetujui Muhammad Hamzah, 2026-09-09; bagian 3 direvisi dan disetujui ulang 2026-09-05 |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk revision `0.4`; `0.3` disetujui 2026-09-03 |
 | Tanggal | 2 September 2026; diamendemen 9 September 2026 |
 | Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.4` bagian 4 |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |

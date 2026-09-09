@@ -6,9 +6,9 @@
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
 | Contract version | `0.4.0` |
 | `last_changed_in` | `0.4.0` |
-| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
+| Status | **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
-| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
+| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` bagian X |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Compatibility impact | `0.4.0`: `INT-DOK-10` lahir — pelonggaran nomor konsultasi pada diagnosis terstruktur. Penomoran `INT-DOK-01` s.d. `INT-DOK-09` **tidak bergerak**; tabel pemetaan dari `0.1.0` tetap di bagian 0.2 |
@@ -260,7 +260,7 @@ berkas lain yang memergokinya.
 | Produsen dan konsumen | `ClinicalManagement` mengubah aturan internalnya sendiri |
 | Yang diminta | Untuk kunjungan bertipe `Inpatient`: diagnosis terstruktur boleh menyebut **perawatan rawat inap** sebagai konteks, sehingga **nomor konsultasi tidak lagi wajib**. Kolom `ConsultationId` pada `TrxPatientDiagnosis` menjadi boleh kosong, dan kolom konteks `InpEpisodeId` ditambahkan |
 | Dasarnya | `PRD-RWI-FINAL-001` `CAP-022` aturan 2 dan aturan 5; temuan `FE-RWI-044`; wewenang lintas modul `RWI-DEC-062` |
-| Keadaan keputusan | **Belum ada keputusan bernomor.** `RWI-DEC-062` memberi persetujuan atas perubahan lintas modul **yang dituntut blueprint ini**, dan `0.4.0` inilah yang menjadikannya dituntut. Approval `0.4.0` oleh pemilik **adalah** tanda tangan yang dimaksud — lihat 10.1 |
+| Keadaan keputusan | **`approved` 2026-09-09.** Tidak ada keputusan bernomor tersendiri: `RWI-DEC-062` sudah memberi persetujuan atas perubahan lintas modul **yang dituntut blueprint ini**, dan `0.4.0` inilah yang menjadikannya dituntut. **Approval `0.4.0` oleh Muhammad Hamzah pada 2026-09-09 adalah tanda tangan itu** — lihat 10.1. Yang belum ada kodenya |
 | Status pada source | **`Extend`** — `PatientDiagnosisDtos.cs` baris 148–152 menandai `EncounterId` dan `ConsultationId` keduanya `[Required]`; `TrxPatientDiagnosis.cs` baris 20–21 menuntut kolomnya terisi; `PatientDiagnosisController.cs` baris 326 mencari konsultasi yang cocok dan **melempar** bila tidak ketemu |
 | Kenapa wajib | Diagnosis kerja lahir **pada** pemeriksaan pertama. Selama nomor konsultasi wajib, dokter harus membuat catatan harian lebih dulu semata-mata supaya ada tempat menggantungkan diagnosisnya — urutan yang terbalik dari cara kerja sebenarnya |
 | Yang **tidak** berubah | Rawat jalan dan medical check-up tetap menuntut nomor konsultasi, dengan kalimat penolakan yang sama persis — `VAL-DOK-38`, `RWI-AC-143`. **IGD juga tidak ikut**, lihat 10.2. Nol baris lama berubah nilainya |
