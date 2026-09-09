@@ -38,8 +38,9 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
     /// sebagai galat konfigurasi dan tidak menyentuh database mana pun.
     /// </para>
     /// </remarks>
+    [Collection(PostgresIntegrationTestCollection.Name)]
     public sealed class PhysicianVisitUniquenessTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+        : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();
@@ -242,24 +243,57 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
         public async Task DuaVisitePadaTanggalSama_DiterimaKeduanya()
         {
             var p = await SiapkanPerawatanAsync();
-            var hariIni = DateTime.UtcNow.Date.AddHours(7);
+
+            // Gunakan tanggal kemarin agar test deterministik dan tidak pernah
+            // dianggap mencatat visite di masa depan.
+            var tanggalUji = DateTime.UtcNow.Date.AddDays(-1);
+
+            var waktuPagi = tanggalUji.AddHours(7);
+            var waktuSore = tanggalUji.AddHours(16);
 
             await using var context = _fixture.CreateContext();
             var service = Service(context);
 
             var pagi = await service.RecordAsync(
-                Perintah(p, hariIni, "kunci-postgres-pagi"), p.Seed.ActorUserId);
+                Perintah(
+                    p,
+                    waktuPagi,
+                    "kunci-postgres-pagi"),
+                p.Seed.ActorUserId);
+
             var sore = await service.RecordAsync(
-                Perintah(p, hariIni.AddHours(9), "kunci-postgres-sore"), p.Seed.ActorUserId);
+                Perintah(
+                    p,
+                    waktuSore,
+                    "kunci-postgres-sore"),
+                p.Seed.ActorUserId);
 
-            Assert.True(pagi.IsSuccess);
-            Assert.True(sore.IsSuccess);
-            Assert.NotEqual(pagi.Visit!.Id, sore.Visit!.Id);
+            Assert.True(
+                pagi.IsSuccess,
+                pagi.ErrorMessage);
 
-            Assert.Equal(2, await service.CountRecordedByEpisodeAsync(p.EpisodeId));
+            Assert.True(
+                sore.IsSuccess,
+                sore.ErrorMessage);
 
-            var nomor = new[] { pagi.Visit.PhysicianVisitNumber, sore.Visit.PhysicianVisitNumber };
-            Assert.Equal(2, nomor.Distinct().Count());
+            Assert.NotEqual(
+                pagi.Visit!.Id,
+                sore.Visit!.Id);
+
+            Assert.Equal(
+                2,
+                await service.CountRecordedByEpisodeAsync(
+                    p.EpisodeId));
+
+            var nomor = new[]
+            {
+                pagi.Visit.PhysicianVisitNumber,
+                sore.Visit.PhysicianVisitNumber
+            };
+
+            Assert.Equal(
+                2,
+                nomor.Distinct().Count());
         }
     }
 }
