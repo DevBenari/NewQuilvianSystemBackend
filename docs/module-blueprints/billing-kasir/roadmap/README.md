@@ -27,6 +27,7 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-017` | **Rumpun baru — Petty Cash.** Fondasi skema, penomoran, dan data induk kategori (`MVP-13`) | `BE-BKC-033`–`035` | — | Blueprint revisi `1.0 approved`; `PC-OQ-003` non-blocking (lihat catatan task) | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-018` | **Rumpun baru — Petty Cash.** Kolam anggaran, siklus hidup voucher penuh, dan hardening lintas-slice (`MVP-14`) | `BE-BKC-036`–`038` | — | `BKC-PH-017` selesai dan terverifikasi | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-019` | **Rumpun baru — Petty Cash.** Layar monitoring, Buat Voucher, Bukti Nota, detail voucher, Anggaran Kas Kecil, dan Kategori Petty Cash (`MVP-15`) | — | `FE-BKC-023`–`027` | `BKC-PH-018` selesai dan terverifikasi (sequencing, bukan gerbang) | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-020` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096`. Semula `BKC-PH-009`/`BE-BKC-022`,`023`, dinomori ulang 9 September 2026 karena bentrok dengan gelombang 4 September | `BE-BKC-039`,`040` | — (layar ada di Rawat Inap) | `BKC-PH-004` | `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053` |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -118,8 +119,6 @@ penutupan `BKC-GATE-01` (kontrak dikunci) — ada di [backend-roadmap.md](./back
 Rincian gerbang, urutan gelombang, dan alasan tiap dependency ada di
 [backend-roadmap.md](./backend-roadmap.md) § Amendment 4 September 2026 dan
 [requirement-traceability.md](./requirement-traceability.md) § Amendment 4 September 2026.
-
-| `BKC-PH-009` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096` | `BE-BKC-022`,`023` | — (layar ada di Rawat Inap) | PH-004 | `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053` |
 
 ## Aturan eksekusi
 

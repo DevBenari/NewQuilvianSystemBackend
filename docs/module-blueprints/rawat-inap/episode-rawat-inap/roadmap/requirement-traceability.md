@@ -195,7 +195,7 @@ kontrak.
 | --- | --- | --- |
 | `RWI-AC-*` untuk `EPIC RI-35` belum ada | Dua belas baris FR pada bagian 2 punya task dan test, tetapi kolom AC kosong | Tidak menahan pelaksanaan; menahan klaim "traceability penuh" sampai `/qv-design` menomori acceptance criteria deposit |
 | Skema tampilan langkah Deposit belum ada | `05-skema-tampilan.md` `0.4` tidak memuat `FE-INP-20` | Keempat task frontend deposit — `RWI-UI-GAP-008` |
-| Penerimaan task oleh pemilik `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu; kedua task sudah berdiri pada roadmap `billing-kasir` sebagai `BE-BKC-022` dan `BE-BKC-023` | `FE-RWI-043`, `FE-RWI-045`, `BE-RWI-042`, dan `BE-RWI-043` — seluruhnya lewat jalur dependency, bukan lewat task Rawat Inap yang terblokir |
+| Penerimaan task oleh pemilik `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu; kedua task sudah berdiri pada roadmap `billing-kasir` sebagai `BE-BKC-039` dan `BE-BKC-040` | `FE-RWI-043`, `FE-RWI-045`, `BE-RWI-042`, dan `BE-RWI-043` — seluruhnya lewat jalur dependency, bukan lewat task Rawat Inap yang terblokir |
 | Pemegang `BillingDeposit : Create` pada langkah admisi belum ditetapkan | Peta peran pada `permission-audit-matrix.md` `0.6.0` menuliskannya terbuka | `EPIC RI-35a` — `RWI-OQ-052` |
 | Kebijakan minimum deposit belum ada isinya | Master baru pada `BE-RWI-038`; siapa yang mengisi dan berapa angkanya adalah keputusan keuangan | Tidak menahan pelaksanaan; langkah Deposit berjalan tanpa minimum sampai terisi |
 | `UAT-34` s.d. `UAT-44` belum masuk `testing/acceptance-test-matrix.md` | Matriks masih `0.4.0` | Klaim kesiapan sign-off `EPIC RI-35` |
@@ -548,15 +548,15 @@ berisi rencana; **tidak satu pun** sudah dijalankan, karena tidak satu pun task 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
 | `FR-RI-163`, `FR-RI-169` | Deposit terikat tepat satu episode, dan saldo tidak berpindah diam-diam | ❌ `BE-RWI-037` **dibatalkan** — kemampuannya sudah ada | — | `RWI-FACT-017`: `EncounterId` unique di `BilDepositAccount` dan `InpEpisode`. Sisa pembuktian ada pada `UAT-34` |
-| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | ➡️ `BE-BKC-022` (roadmap `billing-kasir`), `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | ➡️ `BE-BKC-039` (roadmap `billing-kasir`), `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
 | `FR-RI-165`, `FR-RI-166` | Penerimaan append-only, kwitansi unik, idempotensi | ❌ `BE-RWI-039` **dibatalkan** — kemampuannya sudah berjalan | — | `RWI-FACT-018`: header `Idempotency-Key`, unique index, jalur replay, dan test tersedia. Sisa pembuktian ada pada `UAT-34`, `UAT-35`, `UAT-36` |
-| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | ➡️ `BE-BKC-023` (roadmap `billing-kasir`), `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | ➡️ `BE-BKC-040` (roadmap `billing-kasir`), `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
 | `FR-RI-168` | Permintaan top-up tidak mengubah histori pembayaran | ❌ `BE-RWI-039` **dibatalkan** — mutasi deposit memang append-only | — | `RWI-FACT-018`; `UAT-35` **belum dijalankan** |
 | `FR-RI-170`, `FR-RI-171` | Settlement mengalokasikan deposit; kelebihan menjadi refund eksplisit | `BE-RWI-043` — **tidak lagi terblokir** | — | Alokasi dan refund sudah ada di Billing (`/allocations`, `/financial-exceptions/refunds`); `UAT-37`, `UAT-38` **belum dijalankan** |
 | `FR-RI-172` | `Cleared` hanya setelah settlement selesai | `BE-RWI-043` — perbaikan di dalam Rawat Inap | — | `InpDischargeService.Closure.cs:284` masih menandai manual; `UAT-39` **belum dijalankan** |
 | `FR-RI-173` | Pembatalan admisi tidak menghapus transaksi uang | `BE-RWI-043` 🚫 | — | `UAT-40`; **belum dijalankan** |
 | `FR-RI-174` | Deposit adalah langkah tersendiri pada alur admisi | `FE-RWI-042` 🟡 | — | `UAT-41`; **belum dijalankan** |
-| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, ➡️ `BE-BKC-023` | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, ➡️ `BE-BKC-040` | — | `UAT-42`; **belum dijalankan** |
 | `FR-RI-177`, `FR-RI-143` | Penagihan berkala beserta ambang hari yang dapat diubah admin | `BE-RWI-041`, `BE-RWI-042` | — | `UAT-44`; **belum dijalankan** |
 | `FR-RI-178` | Transaksi terbentuk hanya setelah episode ada | `FE-RWI-044` 🟡 | — | Sisi backend siap (`RWI-FACT-018`); urutannya dijaga frontend. `UAT-43` **belum dijalankan** |
 
