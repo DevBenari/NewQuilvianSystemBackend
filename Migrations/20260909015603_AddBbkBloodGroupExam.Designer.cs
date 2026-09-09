@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909015603_AddBbkBloodGroupExam")]
+    partial class AddBbkBloodGroupExam
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77033,76 +77036,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("QueueDate", "ServiceUnitId", "ClinicId", "DoctorId", "QueueStatus", "IsDelete");
 
                     b.ToTable("TrxQueue", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models.NumNumberSeries", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("CurrentValue")
-                        .HasColumnType("bigint");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("LastAllocatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResetPolicy")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ScopeKey")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("SequenceKey")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SequenceKey", "ScopeKey")
-                        .IsUnique();
-
-                    b.ToTable("NumNumberSeries", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_NumNumberSeries_CurrentValue", "\"CurrentValue\" > 0");
-
-                            t.HasCheckConstraint("CK_NumNumberSeries_ResetPolicy", "\"ResetPolicy\" IN ('NEVER','YEARLY','MONTHLY','DAILY')");
-                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationRole", b =>

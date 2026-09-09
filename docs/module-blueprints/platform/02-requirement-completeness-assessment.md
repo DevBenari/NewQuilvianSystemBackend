@@ -11,7 +11,7 @@
 | Frontend SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — **tidak bergerak** |
 | Decision log | revisi **`2`** — `DEC-PLT-001`..`DEC-PLT-008`, `OQ-PLT-001`..`OQ-PLT-011`, `CONF-PLT-001`..`002`, `NOTE-PLT-001` |
 | Capability map | revisi **`3`** — `PLT-CAP-001`..`PLT-CAP-007`, termasuk jawaban `OQ-PLT-008` dan **koreksi bukti `PLT-CAP-001`/`PLT-CAP-007`** |
-| Tanggal | `2026-09-04`; **bukti disegarkan** `2026-09-07` |
+| Tanggal | `2026-09-04`; **bukti disegarkan** `2026-09-07`; **pemilik ditunjuk** `2026-09-09` |
 | Mode | Read-only terhadap repository aplikasi |
 
 > **Penyegaran bukti 7 September 2026 — kesiapan tidak berubah.** Audit terarah memindahkan dua baris
@@ -21,6 +21,14 @@
 > pintu masuk generik.
 >
 > **`PLT-SLICE-01` tetap `BUSINESS_DECISION_REQUIRED`, dan blocker-nya tetap `OQ-PLT-007` saja.**
+>
+> **Pembaruan 9 September 2026 — blocker itu sudah tertutup.** `OQ-PLT-007` dijawab: pemilik kontrak
+> engineering backend adalah **`Andry`**, ditunjuk eksplisit oleh pemilik kebutuhan. **Verdict kesiapan
+> di bawah sengaja TIDAK diputar sendiri** — menaikkan `PLT-SLICE-01` dari `BUSINESS_DECISION_REQUIRED`
+> adalah hasil penilaian, bukan akibat otomatis, dan menuntut `requirement-completeness-gate`
+> dijalankan ulang. Dua syarat yang masih nyata sebelum penilaian itu bermakna: **(a)** `Andry` benar-benar
+> menurunkan approval atas `DEC-PLT-002`..`008`, yang seluruhnya masih `draft`; **(b)** dimensi
+> `NON_BLOCKING_STANDARD` yang masih `MISSING`/`PROPOSED` di bagian 4 ditutup saat desain.
 > Yang berubah adalah **bentuk pekerjaannya**, bukan kesiapannya: dari "membangun mesin dari nol"
 > menjadi "menggeneralisasi mesin yang sudah terbukti". Audit teknis tidak dapat menutup pertanyaan
 > kepemilikan, sehingga kelima keputusan tetap `draft` sampai nama pemiliknya ditunjuk.
@@ -120,7 +128,7 @@ Dinilai terhadap `PLT-SLICE-01`, karena slice inilah yang dicalonkan maju.
 | Deret berjalan terus, tidak diulang (`DEC-PLT-004`) | `CONFIRMED` | — | semua |
 | Migrasi bertahap menurut risiko (`DEC-PLT-003`) | `CONFIRMED` | — | `01`, `02` |
 | Pembagian kewenangan platform/modul (`DEC-PLT-005`) | `CONFIRMED` | — | semua |
-| **Nama pemilik yang berwenang menyetujui** (`OQ-PLT-007`) | `MISSING` | **`BLOCKING`** | **semua** |
+| **Nama pemilik yang berwenang menyetujui** (`OQ-PLT-007`) | ✅ **`CONFIRMED`** 9 Sep 2026 — **`Andry`** | — | **semua** |
 | Perilaku saat alokasi berebut atau penyimpanan gagal | `MISSING` | `NON_BLOCKING_STANDARD` | `01` |
 | Identitas sebuah deret (modul + jenis dokumen + awalan) | `PROPOSED` | `NON_BLOCKING_STANDARD` | `01` |
 | Hak akses penerbitan nomor menempel pada hak membuat catatan | `PROPOSED` | `NON_BLOCKING_STANDARD` | `01` |

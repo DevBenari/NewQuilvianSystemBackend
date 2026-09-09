@@ -317,7 +317,7 @@ pekerjaan, bukan satu — memindahkan kepemilikan **dan** mengubah cara pencacah
 
 | ID | Pertanyaan | Pemilik | Memblokir |
 | --- | --- | --- | --- |
-| `OQ-PLT-007` | Siapa **nama** pemegang peran pemilik kontrak engineering backend? | belum diketahui | `DESIGN` — seluruh keputusan masih `draft` |
+| ~~`OQ-PLT-007`~~ | ~~Siapa **nama** pemegang peran pemilik kontrak engineering backend?~~ | **`Andry`** | ✅ **Tertutup 9 September 2026** — ditunjuk eksplisit oleh pemilik kebutuhan. **Penunjukan bukan approval:** `DEC-PLT-002`..`008` tetap `draft` sampai `Andry` menurunkan approval-nya |
 | ~~`OQ-PLT-008`~~ | ~~Deret mana yang tidak punya index unik~~ | — | ✅ **Terjawab** pada bagian 6: hanya `MstBank.BankCode` |
 | `OQ-PLT-009` | Untuk deret yang selama ini mengisi celah, apakah nomor kembar yang mungkin sudah terlanjur terbit perlu ditelusuri? | pemilik platform | `LATER SLICE` — menuntut akses data produksi |
 | ~~`OQ-PLT-010`~~ | ~~Bolehkah mesin `BillingNumberSeriesService` dinaikkan menjadi milik platform?~~ | — | ✅ **Terjawab** closure pass 7 September 2026 → `DEC-PLT-007`: **ekstrak mesin bersama**, konfigurasi Billing tetap milik Billing. Ini memilih **opsi ketiga** pada bagian 7.8. Keputusannya `draft` menunggu `OQ-PLT-007` |

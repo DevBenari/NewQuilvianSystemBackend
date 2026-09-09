@@ -8,8 +8,18 @@ module_name: BloodBankManagement
 blueprint_id: BD-BP-001
 blueprint_shape: SINGLE
 blueprint_root: docs/module-blueprints/bank-darah/
-roadmap_revision: 4
+roadmap_revision: 7
 revision_4_scope: SPLIT_BE_FE_ONLY
+revision_5_scope: CROSS_MODULE_DEPENDENCY_AND_STATUS_ONLY
+revision_5_note: >-
+  Nol task frontend ditambah, dihapus, atau diubah cakupannya. Yang berubah hanya dua:
+  FE-BD-009 naik dari BLOCKED menjadi PENDING karena BE-BD-011 selesai, dan penulisan
+  ulang gerbang G4 menjadi dependency lintas modul ke PLT-SLICE-01.
+revision_6_scope: BLOCKER_REFRESH_ONLY
+revision_7_scope: PLATFORM_DEPENDENCY_CONCRETE
+revision_6_note: >-
+  Nol task frontend berubah. Penahan G4 di sisi Platform disegarkan mengikuti
+  backend-roadmap.md bagian 6.1.
 status: FORWARD-TEST / DRAFT
 approval_gate: BLUEPRINT_APPROVED
 contract_version: v4 (approved)
@@ -46,6 +56,12 @@ keputusan produk dari dokumen ini.
 datang dari backend. Karena itu gerbang `G4` **tidak** menyentuh frontend secara langsung — ia
 menyentuh lewat ketiadaan endpoint pasangannya.
 
+**Pembaruan 9 September 2026 — `G4` berubah sifat.** Penghalangnya bukan lagi pemilik yang belum
+ditunjuk (`OQ-PLT-007` ✅ tertutup, pemiliknya `Andry`), melainkan **dependency pengiriman lintas
+modul**: kedelapan task frontend bertanda ⛔ menunggu gelombang `MVP-1` blueprint Platform
+(`PLT-SLICE-01`) yang menutup `G4`, lalu task backend pasangannya. Rinciannya di
+[backend-roadmap.md](backend-roadmap.md) bagian 6.1.
+
 ---
 
 ## 1. Cara membaca roadmap ini
@@ -62,15 +78,17 @@ menyentuh lewat ketiadaan endpoint pasangannya.
 
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
-| ✅ SELESAI | 0 | — |
-| 🟡 PENDING | 3 | `FE-BD-001`, `FE-BD-006`, `FE-BD-011` |
-| ⛔ BLOCKED | 9 | `FE-BD-002`, `003`, `004`, `005`, `007`, `008`, `009`, `010`, `012` |
+| ✅ SELESAI | 1 | `FE-BD-001` |
+| 🟡 PENDING | 3 | `FE-BD-006`, `FE-BD-009`, `FE-BD-011` |
+| ⛔ BLOCKED | 8 | `FE-BD-002`, `003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
-**Nol task frontend pernah dijalankan.** Fase `BD-PH-008` berstatus `NOT_STARTED`.
+**Satu task frontend selesai (`FE-BD-001`).** Tiga task `PENDING` siap dijadwalkan (`FE-BD-006`,
+`FE-BD-009`, `FE-BD-011`).
 
-Dari sembilan yang terblokir, **delapan tertahan `G4`** lewat rantai backend, dan **satu — `FE-BD-009` —
-tidak**: ia hanya menunggu `BE-BD-011` yang jalurnya terbuka.
+**`FE-BD-009` terbuka sejak 9 September 2026**, ketika `BE-BD-011` selesai
+([laporan](../task/report/backend/BE-BD-011.md)). Kedelapan yang masih terblokir kini **seluruhnya**
+tertahan `G4` lewat rantai backend — tidak ada lagi yang menunggu backend berjalur terbuka.
 
 ---
 
@@ -79,16 +97,17 @@ tidak**: ia hanya menunggu `BE-BD-011` yang jalurnya terbuka.
 ```text
 ════════ JALUR TERBUKA — pasangan backend sudah SELESAI ════════
 
-✅ BE-BD-001 (master komponen & alasan)  ──> 🟡 FE-BD-001 (setup master)          PENDING
+✅ BE-BD-001 (master komponen & alasan)  ──> ✅ FE-BD-001 (setup master)          SELESAI
 ✅ BE-BD-014 (master lokasi penyimpanan) ──> 🟡 FE-BD-011 (lokasi penyimpanan)    PENDING
                     G1 ✅ saja           ──> 🟡 FE-BD-006 (registrasi menu)       PENDING
 
+
 ════════ JALUR TERBUKA LEWAT BACKEND YANG SIAP DIKERJAKAN ════════
 
-🟡 BE-BD-005 (pemeriksaan golongan darah)   PENDING
-       └── 🟡 BE-BD-011 (penyelesaian konflik)   PENDING
-                  └── ⛔ FE-BD-009 (penyelesaian konflik di layar pemeriksaan)
-                             menunggu BE-BD-011 — jalurnya TERBUKA, bukan tertahan G4
+✅ BE-BD-005 (pemeriksaan golongan darah)   SELESAI
+       └── ✅ BE-BD-011 (penyelesaian konflik)   SELESAI
+                  └── 🟡 FE-BD-009 (penyelesaian konflik di layar pemeriksaan)
+                             TERBUKA sejak 9 September 2026 — BE-BD-011 selesai
 
 ════════ JALUR TERTAHAN G4 ════════
 
@@ -101,7 +120,7 @@ tidak**: ia hanya menunggu `BE-BD-011` yang jalurnya terbuka.
 ⛔ BE-BD-010 ──> ⛔ FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)
 
 ⛔ FE-BD-005 (golongan darah + bukti + pemberian + jalur darurat)
-       dep: BE-BD-005 🟡  +  BE-BD-007 ⛔  +  BE-BD-008 ⛔
+       dep: BE-BD-005 ✅  +  BE-BD-007 ⛔  +  BE-BD-008 ⛔
        └── SEBAGIAN terbuka: bagian pencatatan golongan darah mengikuti BE-BD-005,
            tetapi bagian bukti kecocokan dan pemberian tertahan G4.
            JANGAN dipecah tanpa persetujuan pemilik — lihat catatan pada task
@@ -114,11 +133,11 @@ bergantung dan boleh dikerjakan tiga orang berbeda.
 
 ## 4. Task
 
-### 🟡 `FE-BD-001` — Setup master dapat dikelola petugas
+### ✅ `FE-BD-001` — Setup master dapat dikelola petugas
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN.** Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti |
+| **Status** | ✅ **SELESAI (2026-09-07).** Laporan tracked: [FE-BD-001](../task/report/frontend/FE-BD-001.md). Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti. ESLint `0 Error(s)`, UI GATE 10 elemen `REUSE` |
 | **Outcome** | Petugas mengelola katalog komponen darah dan daftar alasan terkendali lewat layar |
 | **Layar** | `FE-BD-08`, `FE-BD-09` |
 | **Kontrak** | api-contract `v4` — Blood Component, Blood Bank Reason |
@@ -162,17 +181,17 @@ bergantung dan boleh dikerjakan tiga orang berbeda.
 
 ---
 
-### ⛔ `FE-BD-009` — Penyelesaian konflik di dalam layar pemeriksaan
+### 🟡 `FE-BD-009` — Penyelesaian konflik di dalam layar pemeriksaan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED menunggu `BE-BD-011`** — tetapi **jalurnya terbuka**, bukan tertahan `G4` |
-| **Kenapa dibedakan** | Ini satu-satunya task frontend terblokir yang **tidak** menunggu provider number-series. Begitu `BE-BD-005` lalu `BE-BD-011` dikerjakan, task ini langsung terbuka |
+| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak 9 September 2026. Blocker-nya hilang: `BE-BD-011` selesai ([laporan](../task/report/backend/BE-BD-011.md)), termasuk endpoint `POST /conflict-resolution` beserta butir hak akses `BloodGroupExam : ResolveConflict` yang terpisah dari `Validate` |
+| **Kenapa dibedakan** | Ini satu-satunya task frontend terblokir yang **tidak** menunggu provider number-series. `BE-BD-005` lalu `BE-BD-011` sudah dikerjakan, dan task ini terbuka persis seperti yang diperkirakan |
 | **Outcome** | Validator klinis menyelesaikan konflik golongan darah **di dalam layar pemeriksaan**, bukan lewat daftar kerja tersendiri |
 | **Layar** | `FE-BD-06` |
 | **Kontrak** | api-contract `v4` |
 | **Reuse** | `BD-CAP-021` |
-| **Dependency** | `G1` ✅, `BE-BD-011` 🟡 |
+| **Dependency** | `G1` ✅, `BE-BD-011` ✅ |
 | **Risk/owner** | Tinggi / klinis |
 | **DoD** | **Bukan** daftar kerja keempat — penyelesaian konflik hidup di layar pemeriksaan |
 
@@ -241,12 +260,12 @@ bergantung dan boleh dikerjakan tiga orang berbeda.
 | Field | Isi |
 | --- | --- |
 | **Status** | ⛔ **BLOCKED SEBAGIAN** — dependency-nya tiga task dengan keadaan berbeda |
-| **Rincian dependency** | `BE-BD-005` 🟡 **PENDING** · `BE-BD-007` ⛔ **BLOCKED** · `BE-BD-008` ⛔ **BLOCKED** |
+| **Rincian dependency** | `BE-BD-005` ✅ **SELESAI** · `BE-BD-007` ⛔ **BLOCKED** · `BE-BD-008` ⛔ **BLOCKED** |
 | **⚠️ Jangan dipecah sendiri** | Bagian pencatatan golongan darah secara teknis mengikuti `BE-BD-005` yang terbuka, tetapi bagian bukti kecocokan dan pemberian tertahan `G4`. Memecah task ini menjadi dua **mengubah scope roadmap** dan menuntut persetujuan pemilik. Roadmap ini **tidak** memecahnya sendiri |
 | **Outcome** | Petugas mencatat golongan darah, bukti kecocokan beserta hasilnya, lalu memberikan kantong; jalur darurat terbaca jelas dan berbeda dari jalur normal |
 | **Layar** | `FE-BD-05`, `FE-BD-06` (parsial) |
 | **Kontrak** | api-contract `v4` |
-| **Dependency** | `G1` ✅, `BE-BD-005` 🟡, `BE-BD-007` ⛔, `BE-BD-008` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-005` ✅, `BE-BD-007` ⛔, `BE-BD-008` ⛔ |
 | **Acceptance** | `FE-BD-021` hasil tidak cocok **menutup tombol Berikan** dengan pesan yang benar; `FE-BD-018` peran penerbit dipilih sendiri; `FE-BD-013` gerbang pemberian terbaca |
 | **Risk/owner** | **Tinggi / klinis & BDRS** |
 

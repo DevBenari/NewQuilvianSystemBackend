@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -747,9 +749,19 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
         public DbSet<MstBloodStorageLocation> MstBloodStorageLocations { get; set; }
         public DbSet<MstBloodBankReason> MstBloodBankReasons { get; set; }
+
+        public DbSet<BbkBloodGroupExam> BbkBloodGroupExams { get; set; }
+        public DbSet<BbkBloodGroupSample> BbkBloodGroupSamples { get; set; }
+        public DbSet<BbkBloodGroupConflictResolution> BbkBloodGroupConflictResolutions { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE
+
+        #region PLATFORM
+        // Pencacah deret nomor bisnis bersama. Dipakai lintas modul lewat NumberSeriesAllocator,
+        // tidak pernah disunting lewat layar mana pun (INV-PLT-001, INV-PLT-002).
+        public DbSet<NumNumberSeries> NumNumberSeries { get; set; }
+        #endregion PLATFORM
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

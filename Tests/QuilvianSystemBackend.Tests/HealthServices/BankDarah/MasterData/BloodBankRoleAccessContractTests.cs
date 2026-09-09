@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc.Routing;
+﻿using Microsoft.AspNetCore.Mvc.Routing;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -46,7 +47,20 @@ public sealed class BloodBankRoleAccessContractTests
     {
         typeof(BloodComponentController),
         typeof(BloodStorageLocationController),
-        typeof(BloodBankReasonController)
+        typeof(BloodBankReasonController),
+        typeof(BbkBloodGroupExamController)
+    };
+
+    /// <summary>
+    /// Task roadmap yang butir hak aksesnya <b>sudah</b> lahir bersama controller pemakainya.
+    /// Dipakai kedua penjaga cakupan di bagian 3.
+    /// </summary>
+    private static readonly string[] TaskSelesai =
+    {
+        "BE-BD-001",
+        "BE-BD-014",
+        "BE-BD-005",
+        "BE-BD-011"
     };
 
     /// <summary>
@@ -388,12 +402,10 @@ public sealed class BloodBankRoleAccessContractTests
     [Fact]
     public void ButirMilikTaskYangSudahSelesai_SeluruhnyaTerdaftar()
     {
-        string[] taskSelesai = { "BE-BD-001", "BE-BD-014" };
-
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var hilang = KontrakV4
-            .Where(x => taskSelesai.Contains(x.Task))
+            .Where(x => TaskSelesai.Contains(x.Task))
             .Where(x => !terdaftar.Contains((x.Resource, x.Action)))
             .Select(x => $"{x.Resource} : {x.Action} (milik {x.Task})")
             .ToList();
@@ -409,12 +421,10 @@ public sealed class BloodBankRoleAccessContractTests
     [Fact]
     public void ButirMilikTaskYangBelumDikerjakan_BelumTerdaftarDanItuBenar()
     {
-        string[] taskSelesai = { "BE-BD-001", "BE-BD-014" };
-
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var yatim = KontrakV4
-            .Where(x => !taskSelesai.Contains(x.Task))
+            .Where(x => !TaskSelesai.Contains(x.Task))
             .Where(x => terdaftar.Contains((x.Resource, x.Action)))
             .Select(x => $"{x.Resource} : {x.Action}")
             .ToList();
@@ -427,14 +437,42 @@ public sealed class BloodBankRoleAccessContractTests
     /// bergeser diam-diam.
     /// </summary>
     [Fact]
-    public void CakupanPendaftaranButirKontrak_DuaBelasDariTigaPuluhSembilan()
+    public void CakupanPendaftaranButirKontrak_TujuhBelasDariTigaPuluhSembilan()
     {
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var sudah = KontrakV4.Count(x => terdaftar.Contains((x.Resource, x.Action)));
 
         Assert.Equal(39, KontrakV4.Length);
-        Assert.Equal(12, sudah);
+        Assert.Equal(17, sudah);
+    }
+
+    /// <summary>
+    /// <c>DEC-BD-039</c> pada tingkat <b>penegakan</b>, bukan hanya daftar kontrak. Validasi
+    /// rutin dan penyelesaian konflik wajib dijaga dua butir yang benar-benar berbeda di
+    /// controller, sehingga petugas BDRS berwenang validasi dapat memegang
+    /// <c>Validate</c> tanpa ikut memperoleh <c>ResolveConflict</c> (<c>AC-BD-077</c>,
+    /// <c>AC-BD-078</c>).
+    /// </summary>
+    [Fact]
+    public void ValidasiRutinDanPenyelesaianKonflik_DijagaDuaButirBerbedaPadaController()
+    {
+        var pasangan = SeluruhPasanganPadaSource()
+            .Where(x => x.Resource == "BloodGroupExam")
+            .ToList();
+
+        var validate = pasangan.Where(x => x.Action == "Validate").ToList();
+        var resolve = pasangan.Where(x => x.Action == "ResolveConflict").ToList();
+
+        Assert.Single(validate);
+        Assert.Single(resolve);
+        Assert.NotEqual(validate[0].Lokasi, resolve[0].Lokasi);
+
+        // Tidak ada endpoint penyelesaian konflik yang diam-diam memakai butir Validate.
+        Assert.DoesNotContain(
+            pasangan,
+            x => x.Action == "Validate" &&
+                 x.Lokasi.Contains("ResolveConflict", StringComparison.OrdinalIgnoreCase));
     }
 
     // =====================================================================
