@@ -33,6 +33,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
+        public int Priority { get; set; } = 1;
+
+        public bool IsPrimary { get; set; } = true;
+
         /// <summary>Diisi hanya ketika <c>PaymentType</c> bernilai <c>Cash</c>.</summary>
         public Guid? PaymentMethodId { get; set; }
 

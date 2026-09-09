@@ -2027,6 +2027,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EncounterId = encounterId,
                 PatientId = request.PatientId,
                 PaymentType = request.PaymentType,
+                Priority = request.Priority > 0 ? request.Priority : 1,
+                IsPrimary = request.IsPrimary,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -2634,6 +2636,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 IsEligible = entity.IsEligible,
                 IsPolicyActive = entity.IsPolicyActive,
                 IsActive = entity.IsActive,
+                Priority = entity.Priority,
+                IsPrimary = entity.IsPrimary,
                 CreateDateTime = entity.CreateDateTime
             };
         }

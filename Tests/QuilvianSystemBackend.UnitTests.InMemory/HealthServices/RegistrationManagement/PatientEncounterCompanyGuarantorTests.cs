@@ -126,6 +126,8 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.True(payment.IsEligible);
         Assert.True(payment.IsPolicyActive);
+        Assert.Equal(1, payment.Priority);
+        Assert.True(payment.IsPrimary);
     }
 
     /// <remarks>
@@ -551,6 +553,30 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.False(await verifyContext.Set<TrxPatientEncounter>().AnyAsync());
         Assert.False(await verifyContext.Set<TrxPatientEncounterGuarantor>().AnyAsync());
+    }
+
+    [Fact]
+    public async Task CreateEncounter_SetsCustomPriorityAndIsPrimaryOnGuarantorAndResponse()
+    {
+        await using var world = await PatientEncounterTestWorld.CreateAsync();
+
+        var request = PermintaanPerusahaan(world);
+        request.Priority = 2;
+        request.IsPrimary = false;
+
+        var result = await world.Controller.CreateEncounterForAdmin(request);
+        Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
+
+        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        Assert.Equal(2, payment.Priority);
+        Assert.False(payment.IsPrimary);
+
+        var detail = await world.Controller.GetEncounterById(payment.EncounterId);
+        Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(detail));
+        var response = PatientEncounterTestWorld.Payload<PatientEncounterDetailResponse>(detail);
+        Assert.NotNull(response.Payment);
+        Assert.Equal(2, response.Payment!.Priority);
+        Assert.False(response.Payment!.IsPrimary);
     }
 
     /// <summary>

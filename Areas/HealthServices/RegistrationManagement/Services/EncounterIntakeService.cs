@@ -423,6 +423,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 EncounterId = encounter.Id,
                 PatientId = encounter.PatientId,
                 PaymentType = request.PaymentType,
+                Priority = request.Priority > 0 ? request.Priority : 1,
+                IsPrimary = request.IsPrimary,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,

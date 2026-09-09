@@ -35,6 +35,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.Priority)
+                .HasDefaultValue(1)
+                .IsRequired();
+
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(true)
+                .IsRequired();
+
             // =========================
             // PAYMENT REFERENCES
             // =========================
@@ -180,6 +188,18 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // Menjamin satu encounter hanya mempunyai satu sumber pembayaran.
             entity.HasIndex(x => x.EncounterId)
                 .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.EncounterId,
+                x.IsPrimary
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.EncounterId,
+                x.Priority
+            });
 
             entity.HasIndex(x => x.PatientId);
 

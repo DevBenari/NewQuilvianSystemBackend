@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -33,6 +33,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Urutan prioritas penjamin (1 = penjamin utama/pertama, 2 = penjamin sekunder, dst).
+        /// </summary>
+        public int Priority { get; set; } = 1;
+
+        /// <summary>
+        /// Menandakan apakah penjamin ini merupakan penjamin utama (primer) untuk encounter.
+        /// </summary>
+        public bool IsPrimary { get; set; } = true;
 
         // =========================
         // PAYMENT REFERENCES
