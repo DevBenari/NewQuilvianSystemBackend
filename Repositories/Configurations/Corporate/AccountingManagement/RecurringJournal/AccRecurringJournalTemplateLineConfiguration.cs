@@ -1,27 +1,30 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.AccountingManagement.JournalManagement
+namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.AccountingManagement.RecurringJournal
 {
-    public class AccJournalLineConfiguration : IEntityTypeConfiguration<AccJournalLine>
+    public class AccRecurringJournalTemplateLineConfiguration : IEntityTypeConfiguration<AccRecurringJournalTemplateLine>
     {
-        public void Configure(EntityTypeBuilder<AccJournalLine> entity)
+        public void Configure(EntityTypeBuilder<AccRecurringJournalTemplateLine> entity)
         {
-            // Check constraint lapis kedua: tepat satu sisi yang terisi. Service tetap
-            // memeriksanya lebih dahulu supaya pesannya dapat dibaca pengguna; constraint ini
-            // menjaga bila ada jalur tulis yang melewatkannya.
-            entity.ToTable("AccJournalLine", "public", table =>
+            // Check constraint lapis kedua: tepat satu sisi yang terisi. Bentuknya sama persis
+            // dengan CK_AccJournalLine_TepatSatuSisiTerisi, karena baris template memang akan
+            // menjadi baris jurnal.
+            //
+            // Catatan pengujian: constraint ini MUSTAHIL dipenuhi di SQLite, karena EF menyimpan
+            // decimal sebagai TEXT di sana (ACC-TD-001). Uji terhadap PostgreSQL sungguhan.
+            entity.ToTable("AccRecurringJournalTemplateLine", "public", table =>
             {
                 table.HasCheckConstraint(
-                    "CK_AccJournalLine_TepatSatuSisiTerisi",
+                    "CK_AccRecurringJournalTemplateLine_TepatSatuSisiTerisi",
                     "(\"DebitAmount\" > 0 AND \"CreditAmount\" = 0) "
                     + "OR (\"DebitAmount\" = 0 AND \"CreditAmount\" > 0)");
             });
 
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.JournalId)
+            entity.Property(x => x.TemplateId)
                 .IsRequired();
 
             entity.Property(x => x.LineNumber)
@@ -65,15 +68,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            // Cascade: baris jurnal tidak punya makna tanpa jurnalnya, dan penghapusan jurnal
-            // hanya mungkin saat masih Draft.
-            //
-            // Sejak BE-ACC-P2-002, pola yang sama dipakai AccRecurringJournalTemplateLine
-            // terhadap templatenya. Keduanya adalah relasi induk-baris; riwayat persetujuan dan
-            // riwayat penerbitan tetap memakai Restrict karena keduanya bukti audit.
-            entity.HasOne(x => x.Journal)
+            // Cascade: baris template tidak punya makna tanpa templatenya, sama seperti baris
+            // jurnal terhadap jurnalnya. Berbeda dari riwayat persetujuan yang memakai Restrict
+            // karena ia bukti audit.
+            entity.HasOne(x => x.Template)
                 .WithMany(x => x.Lines)
-                .HasForeignKey(x => x.JournalId)
+                .HasForeignKey(x => x.TemplateId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Account)
@@ -82,14 +82,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
                 .OnDelete(DeleteBehavior.Restrict);
 
             // MstCostCenter milik Human Resource — dirujuk saja, MUST NOT disalin, dan boleh
-            // kosong. Wajib hanya bila akunnya berjenis Expense (ACC-DEC-019), dan itu aturan
-            // service.
+            // kosong bila akunnya bukan berjenis Expense.
             entity.HasOne(x => x.CostCenter)
                 .WithMany()
                 .HasForeignKey(x => x.CostCenterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new { x.JournalId, x.LineNumber })
+            // Satu template tidak boleh punya dua baris bernomor sama.
+            entity.HasIndex(x => new { x.TemplateId, x.LineNumber })
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 

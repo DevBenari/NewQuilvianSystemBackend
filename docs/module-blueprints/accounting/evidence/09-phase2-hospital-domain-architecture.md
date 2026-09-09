@@ -67,7 +67,7 @@ karena sering tertukar dalam percakapan sehari-hari.
 
 Hubungannya adalah **Customer-Supplier dengan Published Language**, bukan sekadar Conformist.
 Artinya bentuk pesannya disepakati **bersama** dan dikunci di kontrak, bukan didikte sepihak
-oleh Finance. Yang mengunci bentuk itu adalah `ACC-DEC-048` (sepuluh bidang) dan
+oleh Finance. Yang mengunci bentuk itu adalah `ACC-DEC-048` dan `ACC-DEC-060` (dua belas bidang) dan
 `ACC-XMOD-0.1`.
 
 Konsekuensi arsitektur yang penting: karena bahasa pesannya disepakati bersama, **Accounting
@@ -358,7 +358,7 @@ Tagihan rawat jalan Budi, Rp 10.000.000, penjamin BPJS, badan hukum `LE-MMC-001`
 | 1 | Kasir menutup tagihan di Billing | — |
 | 2 | Billing menyerahkan ke Finance (`BIL-INT-007`) | — |
 | 3 | Finance mencatat Piutang Penjamin Rp 10.000.000 | — |
-| 4 | Finance menerbitkan `EVT-100`, sepuluh bidang terisi | `Diterima` |
+| 4 | Finance menerbitkan `EVT-100`, dua belas bidang terisi termasuk `CorrelationId` ke faktur Billing | `Diterima` |
 | 5 | Accounting mencari aturan posting jenis "Pengakuan Piutang" — **ketemu**, dan perlakuannya langsung sahkan | — |
 | 6 | Jurnal `JU/2026/09/00042` dibuat: debit `1-1201` Rp 10.000.000, kredit `4-1001` Rp 10.000.000, langsung `Posted` | `Terjurnal` |
 | 7 | `EVT-100` terkirim ulang dua kali karena jaringan | Tetap `Terjurnal`, nomor jurnal yang sama dikembalikan, **nol jurnal baru** |

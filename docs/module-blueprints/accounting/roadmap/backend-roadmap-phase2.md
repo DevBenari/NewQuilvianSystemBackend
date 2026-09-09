@@ -75,23 +75,23 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `BE-ACC-P2-001` | Entity dan enum penutupan periode | `P2-4` | — | `READY` |
-| `BE-ACC-P2-002` | Entity dan enum jurnal berulang | `P2-3` | — | `READY` |
+| `BE-ACC-P2-001` ✅ | Entity dan enum penutupan periode | `P2-4` | — | **`DONE`** 9 Sep 2026 |
+| `BE-ACC-P2-002` ✅ | Entity dan enum jurnal berulang | `P2-3` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-003` | Entity pengaturan akuntansi dan jenis jurnal `JT` | `P2-0a` | — | `READY` |
-| `BE-ACC-P2-004` | **Migration gelombang mandiri** | ketiganya | `001`,`002`,`003` | **`GATED`** |
+| `BE-ACC-P2-004` | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` | **`GATED`** |
 | `BE-ACC-P2-005` | Daftar periksa penutupan | `P2-4` | `004` | `READY` |
 | `BE-ACC-P2-006` | Ajukan, setujui, tolak penutupan | `P2-4` | `005` | `READY` |
-| `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` | `READY` |
+| `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` | `READY` — entity-nya sudah berdiri lewat `002` ✅ |
 | `BE-ACC-P2-008` | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` | `READY` |
 | `BE-ACC-P2-009` | Endpoint pengaturan akuntansi | `P2-0a` | `004` | `READY` |
 | `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006`, `009` | `READY` |
 
-**Jalur tercepat sampai ada yang terlihat:** `001` → `004` → `005` → `006`. Empat task, dan
-tutup bulan sudah berjalan penuh.
+**Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` → `005` → `006`. Empat task, dan
+tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 
 ---
 
-## `BE-ACC-P2-001` — Entity dan enum penutupan periode
+## `BE-ACC-P2-001` ✅ — Entity dan enum penutupan periode
 
 | Field | Isi |
 |---|---|
@@ -105,9 +105,10 @@ tutup bulan sudah berjalan penuh.
 | Verifikasi | `dotnet build -c Release`; pembandingan terhadap kamus data bagian 16 dan 18 |
 | Risiko/pemilik | **Menggeser nilai enum yang sudah tersimpan** akan mengubah arti data periode yang sudah ada. Owner Backend |
 | DoD | Build lulus. **Nol migration**, snapshot tidak berubah, database tidak disentuh |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing di project `Tests/`. **4 dari 4 acceptance lulus.** Nol migration, snapshot utuh, database tidak disentuh. Laporan: [`be-acc-p2-001`](../task/report/backend/be-acc-p2-001-entity-dan-enum-penutupan-periode.md) |
+| **Delta terbuka** | Kamus data bagian 16 menulis `Cascade`; diimplementasikan **`Restrict`** mengikuti `AccJournalApproval` — riwayat persetujuan adalah bukti audit. **Menunggu ratifikasi owner**; kamus data tidak diubah sepihak |
 
-## `BE-ACC-P2-002` — Entity dan enum jurnal berulang
+## `BE-ACC-P2-002` ✅ — Entity dan enum jurnal berulang
 
 | Field | Isi |
 |---|---|
@@ -121,7 +122,8 @@ tutup bulan sudah berjalan penuh.
 | Verifikasi | `dotnet build -c Release`; pembandingan terhadap kamus data |
 | Risiko/pemilik | Melewatkan unique index membuat penjaga terbit ganda hanya ada di kode, dan dua proses bersamaan akan lolos keduanya. Owner Backend |
 | DoD | Build lulus. **Nol migration** |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning — **angka yang sama persis** dengan sebelum task ini, jadi kesembilan berkas menyumbang nol warning baru. **4 dari 4 acceptance lulus.** Nol migration, snapshot utuh. Laporan: [`be-acc-p2-002`](../task/report/backend/be-acc-p2-002-entity-dan-enum-jurnal-berulang.md) |
+| **Catatan** | Enum `RecurringFrequency` sengaja **hanya memuat `Bulanan`** — nilai tanpa penanganan akan lolos validasi lalu gagal diam-diam di penjadwal. Satu berkas di luar cakupan disunting **komentarnya saja**: `AccJournalLineConfiguration.cs` yang menyatakan dirinya "satu-satunya Cascade", kini tidak lagi benar |
 
 ## `BE-ACC-P2-003` — Entity pengaturan akuntansi dan jenis jurnal `JT`
 
@@ -147,7 +149,7 @@ tutup bulan sudah berjalan penuh.
 | Trace | `02-backend-architecture.md` bagian 18, rencana migration urutan 1, 3, dan 4 |
 | Kontrak | Kamus data bagian 13–19 |
 | Cakupan | Satu migration `AddAccountingPhase2Independent` memuat: `AccPeriodClosingApproval`, tiga tabel jurnal berulang, `AccAccountingConfiguration`, dan dua kolom pada `AccAccountingPeriod`. **Tidak memuat** tabel kejadian maupun aturan posting |
-| Dependency | `BE-ACC-P2-001`, `002`, `003` |
+| Dependency | `BE-ACC-P2-001` ✅ selesai, `002` ✅ selesai, `003` belum |
 | Acceptance | (1) Snapshot bertambah **tanpa satu pun deletion**. (2) Dapat dijalankan tanpa mematikan layanan — seluruhnya tabel baru dan kolom nullable. (3) `Down` mengembalikan keadaan semula. (4) `CONTAMINATION GUARD` `CLEAN` |
 | Verifikasi | Pemeriksaan berkas migration dan snapshot sebelum diterapkan |
 | Risiko/pemilik | **Snapshot kehilangan blok modul lain** — pola kerusakan `ACC-DEP-001` yang pernah terjadi. Periksa jumlah tabel snapshot sebelum dan sesudah. Owner |
@@ -260,6 +262,7 @@ tutup bulan sudah berjalan penuh.
 | `ACC-TEST-0.1` | Matriks acceptance belum punya kolom bukti yang **sudah ada**, hanya "bukti yang diharapkan" | UAT `UAT-P2-11` sampai `UAT-P2-23` tidak punya tempat tinggal saat dijalankan |
 | `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | `BE-ACC-P2-007` mengasumsikan **nominal tetap**. Bila kelak berubah jadi rumus, baris template bertambah kolom |
 | `DEC-ACC-P2-006` | Koreksi sesudah jurnal penutup tahun sah | `BE-ACC-P2-010` acceptance (6) mengasumsikan pembalikan jurnal biasa. Belum diratifikasi |
+| `DEC-ACC-P2-009` | **Baru 9 Sep 2026.** `AccPostingRule` butuh dimensi kedua (cara pembayaran), karena satu jenis kejadian "pelunasan faktur" mendebit akun berbeda menurut tunai, transfer, atau kartu | **Nol dampak pada kesepuluh task roadmap ini.** Hanya menyentuh `P2-0b` dan `P2-1`. Bukti: [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 15 |
 
 ## Yang sengaja tidak ada di roadmap ini
 

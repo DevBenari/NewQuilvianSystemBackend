@@ -435,6 +435,8 @@ Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun 
 | `JournalId` | `Guid?` | Tidak | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal yang dihasilkan. **Kosong** untuk kejadian Tertahan, Gagal, dan Diabaikan |
 | `RawPayload` | `text` | Ya | — | — | — | — | **Ya** | Isi pesan asli apa adanya. Disimpan untuk menyelesaikan selisih angka di kemudian hari |
 | `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan otomatis. Berhenti di 3 (`ACC-DEC-049`) |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | Penelusuran ke kejadian asal di Billing (`ACC-DEC-060`). Diteruskan ke jurnal |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | Penelusuran ke tindakan penyebabnya (`ACC-DEC-060`) |
 | `IgnoreReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Alasan diabaikan. **Wajib** bila status `Diabaikan` |
 
 **Dua unique index, bukan satu.** `EventNumber` sendirian tidak cukup: bila penerbit keliru

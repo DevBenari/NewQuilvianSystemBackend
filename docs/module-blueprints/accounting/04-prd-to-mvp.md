@@ -773,7 +773,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 
 | ID | Functional requirement | Disposisi |
 |---|---|---|
-| `FR-P2-001` | Sistem menerima pesan kejadian berisi sepuluh bidang wajib dan menolak pesan yang kehilangan salah satunya | `MISSING / NEW` |
+| `FR-P2-001` | Sistem menerima pesan kejadian berisi **dua belas** bidang wajib dan menolak pesan yang kehilangan salah satunya | `MISSING / NEW` |
 | `FR-P2-002` | Kejadian dengan nomor yang sudah pernah diterima mengembalikan nomor jurnal yang sama tanpa membuat jurnal baru | `MISSING / NEW` |
 | `FR-P2-003` | Kejadian dengan gabungan modul asal, nomor transaksi, jenis, dan versi yang sudah pernah ada diperlakukan sama seperti `FR-P2-002` | `MISSING / NEW` |
 | `FR-P2-004` | Pesan bermata uang selain rupiah ditolak | `EXTEND` atas `ACC-DEC-020` |

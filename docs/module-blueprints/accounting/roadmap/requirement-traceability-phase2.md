@@ -10,7 +10,7 @@ decision_revision: 1.9
 contracts: [ACC-API-0.7, ACC-STATE-0.2, ACC-VALIDATION-0.5, ACC-PERMISSION-0.4]
 scope_waves: [P2-3, P2-4, P2-5]
 generated_at: 2026-09-08
-task_selesai: 0                       # belum ada task yang dikerjakan
+task_selesai: 2                       # BE-ACC-P2-001 dan BE-ACC-P2-002 selesai 9 Sep 2026
 ```
 
 Dokumen ini memetakan **requirement → task → bukti**. Ia dibuat sekarang, sebelum satu task pun
@@ -27,11 +27,11 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 
 | Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
 |---|---|---|---|---|---|---|
-| `FR-P2-018` | Template tidak seimbang ditolak | `ACC-DEC-050` | `BE-ACC-P2-002`, `007` | `FE-ACC-P2-004` | `UAT-P2-13` | `Planned` |
-| `FR-P2-019` | Template aktif menerbitkan jurnal `Draft` pada tanggalnya | `ACC-DEC-050` | `BE-ACC-P2-008` | `FE-ACC-P2-003` | `UAT-P2-11` | `Planned` |
-| `FR-P2-020` | Satu template satu jurnal per periode, ditegakkan **di database** | `ACC-DEC-050` | `BE-ACC-P2-002`, `008` | — | `UAT-P2-12` | `Planned` |
+| `FR-P2-018` | Template tidak seimbang ditolak | `ACC-DEC-050` | `BE-ACC-P2-002` ✅, `007` | `FE-ACC-P2-004` | `UAT-P2-13` | `Planned` — check constraint `TepatSatuSisiTerisi` berdiri, validasi keseimbangan belum |
+| `FR-P2-019` | Template aktif menerbitkan jurnal `Draft` pada tanggalnya | `ACC-DEC-050` | `BE-ACC-P2-002` ✅, `008` | `FE-ACC-P2-003` | `UAT-P2-11` | `Planned` — `DayOfMonth` 1–28 dijaga constraint, penjadwalnya belum |
+| `FR-P2-020` | Satu template satu jurnal per periode, ditegakkan **di database** | `ACC-DEC-050` | `BE-ACC-P2-002` ✅, `008` | — | `UAT-P2-12` | `Planned` — **unique index penjaganya sudah berdiri**; pembuktian konkurensi menunggu `008` |
 | `FR-P2-021` | Tidak menerbitkan ke periode yang tidak menerima pencatatan | `ACC-DEC-050` | `BE-ACC-P2-008` | — | — | `Planned` |
-| `FR-P2-022` | Template baru tidak aktif sampai diaktifkan | `ACC-DEC-050` | `BE-ACC-P2-002`, `007` | `FE-ACC-P2-003` | — | `Planned` |
+| `FR-P2-022` | Template baru tidak aktif sampai diaktifkan | `ACC-DEC-050` | `BE-ACC-P2-002` ✅, `007` | `FE-ACC-P2-003` | — | `Planned` — `IsActive` berbawaan `false` sudah berdiri, endpoint aktivasinya belum |
 
 ## 2. Tutup bulan (`P2-4`)
 
@@ -40,10 +40,10 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 | `FR-P2-023` | Daftar periksa dihitung saat diminta, bukan disimpan | `ACC-DEC-051` | `BE-ACC-P2-005` | `FE-ACC-P2-001` | — | `Planned` |
 | `FR-P2-024` | Pengajuan ditolak selama ada jurnal belum sah atau kejadian gagal | `ACC-DEC-051` | `BE-ACC-P2-005`, `006` | `FE-ACC-P2-002` | `UAT-P2-14` | `Planned` |
 | `FR-P2-025` | Kejadian tertahan hanya peringatan, tidak menahan | `ACC-DEC-051` | `BE-ACC-P2-005` | `FE-ACC-P2-001` | — | `Planned` |
-| `FR-P2-026` | Penutupan hanya disetujui `Accounting Director` | `ACC-DEC-055` | `BE-ACC-P2-006` | `FE-ACC-P2-002` | `UAT-P2-17` | `Planned` |
-| `FR-P2-027` | Penyetuju **bukan** pengaju | `ACC-DEC-016`, `052` | `BE-ACC-P2-006` | `FE-ACC-P2-002` | `UAT-P2-16` | `Planned` |
-| `FR-P2-028` | Penolakan wajib beralasan, periode kembali terbuka | `ACC-DEC-052` | `BE-ACC-P2-006` | `FE-ACC-P2-002` | `UAT-P2-18` | `Planned` |
-| `FR-P2-029` | Periode yang ditutup sebelum Phase 2 tetap sah tanpa riwayat | `ACC-DEC-052` | `BE-ACC-P2-006` | — | — | `Planned` |
+| `FR-P2-026` | Penutupan hanya disetujui `Accounting Director` | `ACC-DEC-055` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-17` | `Planned` — penyimpanannya berdiri, perilakunya belum |
+| `FR-P2-027` | Penyetuju **bukan** pengaju | `ACC-DEC-016`, `052` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-16` | `Planned` — kolom `ClosingSubmittedBy` berdiri, penegakannya belum |
+| `FR-P2-028` | Penolakan wajib beralasan, periode kembali terbuka | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-18` | `Planned` — kolom `ActionNote` berdiri, penegakannya belum |
+| `FR-P2-029` | Periode yang ditutup sebelum Phase 2 tetap sah tanpa riwayat | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` | — | — | `Planned` — kedua kolom baru **nullable**, sehingga periode lama tetap sah |
 
 ## 3. Tutup tahun dan pengaturan (`P2-5`, `P2-0a`)
 

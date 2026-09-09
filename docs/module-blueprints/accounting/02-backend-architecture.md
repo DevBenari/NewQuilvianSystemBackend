@@ -728,6 +728,8 @@ classDiagram
         +AccountingEventStatus EventStatus
         +Guid JournalId
         +string RawPayload
+        +Guid CorrelationId
+        +Guid CausationId
         +int AttemptCount
         +string IgnoreReason
     }
@@ -1001,7 +1003,7 @@ folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
 
 | Tabel | Status | Kolom yang berubah | Index dan unique constraint |
 |---|---|---|---|
-| `AccAccountingEvent` | **Baru** | — | Unique `(EventNumber)`; unique `(SourceModule, SourceTransactionId, EventTypeId, SourceVersion)`; index `(LegalEntityId, EventStatus)`; index `(AccountingDate)` |
+| `AccAccountingEvent` | **Baru** | — | Unique `(EventNumber)`; unique `(SourceModule, SourceTransactionId, EventTypeId, SourceVersion)`; index `(LegalEntityId, EventStatus)`; index `(AccountingDate)`; **index `(CorrelationId)`** untuk penelusuran balik ke Billing (`ACC-DEC-060`) |
 | `AccAccountingEventAttempt` | **Baru** | — | Unique `(AccountingEventId, AttemptNumber)` |
 | `AccPostingRule` | **Baru** | — | Unique `(LegalEntityId, EventTypeId)` **dengan filter `IsActive = true`** |
 | `AccPostingRuleLine` | **Baru** | — | Unique `(PostingRuleId, LineNumber)`; index `(ComponentCode)` |

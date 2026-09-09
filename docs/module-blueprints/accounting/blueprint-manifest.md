@@ -670,7 +670,7 @@ Keempatnya tetap wewenang terpisah, dan `BE-ACC-006` tetap punya gerbangnya send
 | `shape_decided_by` | `USER` — tersirat pada FINAL OWNER APPROVAL 1 September 2026 |
 | `backend_commit_sha` | `02c3219` (branch `rizkiG`) |
 | `frontend_commit_sha` | `e732424eb` (branch `RizkiV2`) |
-| `decision_revision` | `1.9` — `ACC-DEC-044` sampai `ACC-DEC-058` |
+| `decision_revision` | `2.0` — `ACC-DEC-044` sampai `ACC-DEC-060` |
 | `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` — keempat slice |
 | `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` — `ACC-DOMAIN-P2-0.2` |
 
@@ -678,9 +678,9 @@ Keempatnya tetap wewenang terpisah, dan `BE-ACC-006` tetap punya gerbangnya send
 
 | Kontrak | Sebelum | Sesudah | Yang berubah |
 |---|---|---|---|
-| `ACC-API` | `0.5` | **`0.7`** | 33 endpoint Phase 2, seluruhnya `Rencana (belum tersedia)`; `0.7` menambah daftar baris aturan posting dan rincian nilai kejadian (`ACC-DEC-058`) |
+| `ACC-API` | `0.5` | **`0.8`** | 33 endpoint Phase 2, seluruhnya `Rencana (belum tersedia)`; `0.7` menambah daftar baris aturan posting dan rincian nilai kejadian (`ACC-DEC-058`); `0.8` menambah `CorrelationId` dan `CausationId` (`ACC-DEC-060`) |
 | `ACC-STATE` | `0.1` | **`0.2`** | Lifecycle kejadian keuangan; periode bertambah `PendingClosingApproval` |
-| `ACC-VALIDATION` | `0.3` | **`0.5`** | Lima kelompok aturan Phase 2; `0.5` menambah aturan baris posting dan komponen nilai (`ACC-DEC-058`) |
+| `ACC-VALIDATION` | `0.3` | **`0.6`** | Lima kelompok aturan Phase 2; `0.5` menambah aturan baris posting dan komponen nilai (`ACC-DEC-058`); `0.6` menambah dua bidang penelusuran wajib (`ACC-DEC-060`) |
 | `ACC-PERMISSION` | `0.3` | **`0.4`** | Peran ketujuh dan 21 baris hak akses Phase 2 |
 | `ACC-INTEGRATION` | `0.2` | **`0.3`** | Kontrak integrasi Phase 2 terisi sungguhan |
 | `ACC-XMOD` | `0.1` | `0.1` | Tidak bergerak — bentuk batas Finance sudah benar sejak awal |

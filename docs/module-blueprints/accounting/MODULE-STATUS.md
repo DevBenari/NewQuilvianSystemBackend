@@ -101,12 +101,39 @@ Ketiga penahan yang dicatat 8 September pagi sudah tidak berlaku lagi.
 
 | Penahan | Pemilik | Menahan apa |
 |---|---|---|
-| Ratifikasi `ACC-XM-001` | Owner Billing, Yasmin | **Hanya gelombang `POST-MVP`**. Bahan rapatnya sudah siap: [`evidence/10`](evidence/10-billing-arap-handoff-scan.md) membuktikan penerbit sudah ada di Billing dan konsumennya kosong |
+| Ratifikasi `ACC-XM-001` | ~~Owner Billing~~ **selesai 9 Sep** · Yasmin **belum** | **Hanya gelombang `POST-MVP`**. Owner Billing sudah menjawab keenam pertanyaan (`ACC-DEC-059`): rantainya Billing → Finance → Accounting, Finance menerbitkan kejadian **tersendiri**, dan Accounting **dilarang** membaca `BilArHandoff` langsung. Sisa: bentuk pesan Finance → Accounting |
 | `DEC-ACC-P2-002` daftar jenis kejadian | Rizki, Yasmin | Pengisian data `P2-0` |
 | Modul Finance belum ada (`ACC-DEP-004`) | Yasmin | `POST-MVP` |
 
 **Gelombang `P2-3`, `P2-4`, dan `P2-5` — jurnal berulang, tutup bulan, tutup tahun — tidak
 menyentuh Finance sama sekali dan dapat dikerjakan tanpa menunggu siapa pun.**
+
+### Pemindaian penuh Billing — 9 September 2026
+
+[`evidence/10`](evidence/10-billing-arap-handoff-scan.md) **bagian kedua** memindai 20 entity
+Billing yang berdampak keuangan. Temuannya besar:
+
+| Temuan | Angka |
+|---|---|
+| Peristiwa keuangan Billing yang **belum punya penerbit** ke akuntansi | **11** |
+| Yang sudah punya | **2** — piutang (`BIL-INT-007`) dan jasa dokter (`BIL-INT-008`) |
+| Dari 11 itu, yang pemiliknya **Billing/Kasir**, bukan Finance | **10** |
+| Akun neraca yang belum ada di daftar akun | **7** — Kas Kasir, Bank, Kas Kecil, Utang Deposit Pasien, Utang Kelebihan Bayar, Beban Piutang Tak Tertagih, Selisih Kas |
+
+**Akibatnya bila dibiarkan:** Accounting hanya menerima sisi pengakuan pendapatan. Piutang tumbuh
+selamanya, kas tidak pernah bergerak, dan empat akun neraca tidak akan pernah ada isinya.
+
+**Status pertanyaan lintas modul per 9 September 2026:** pertanyaan 1–6 (jalur AR/AP) **sudah
+dijawab** owner Billing → `ACC-DEC-059` dan `ACC-DEC-060`. Pertanyaan 7–12 (sebelas peristiwa kas)
+**sudah dikirim, menunggu jawaban**.
+
+**Akibatnya pada `ACC-XM-001`:** pertanyaannya berubah bentuk. Bukan lagi "siapa penerbitnya",
+melainkan **"penerbitnya berbeda menurut jenis peristiwa"** — karena Finance tidak punya
+visibilitas atas selisih kas kasir, kas kecil, deposit pasien, maupun kelebihan bayar.
+
+**Yang TIDAK berubah:** kesepuluh task `BE-ACC-P2-*` dan keenam `FE-ACC-P2-*` tetap `READY`,
+roadmap tetap `APPROVED`. Seluruh temuan mendarat pada `P2-0b` dan `P2-1` yang memang belum
+direncanakan.
 
 ### Roadmap Phase 2 gelombang mandiri — 8 September 2026
 

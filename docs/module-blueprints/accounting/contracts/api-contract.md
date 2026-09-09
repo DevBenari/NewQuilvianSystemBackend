@@ -350,8 +350,8 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-API-0.7` |
-| `last_changed_in` | `ACC-API-0.7` — 8 September 2026, `ACC-DEC-058` mengubah aturan posting menjadi daftar baris dan menambah rincian nilai pada pesan kejadian. Sebelumnya `0.6`, penambahan 33 endpoint Phase 2 |
+| `contract_version` | `ACC-API-0.8` |
+| `last_changed_in` | `ACC-API-0.8` — 9 September 2026, `ACC-DEC-060` menambah `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12. Sebelumnya `0.7` (`ACC-DEC-058`, aturan posting daftar baris) dan `0.6` (33 endpoint Phase 2) |
 | Status | **`approved`** — Rizki, 8 September 2026 |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
 | `input_revision` | `00-interview-decisions.md@4`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
@@ -383,7 +383,7 @@ Arti kode status bagi pengguna:
 - `201` — kejadian baru diterima dan dicatat.
 - `200` **pada `POST /` untuk kejadian yang sudah pernah diterima** — ini bukan kesalahan.
   Sistem mengembalikan nomor jurnal yang sama tanpa membuat jurnal baru (`ACC-DEC-035`).
-- `400` — pesan tidak memuat kesepuluh bidang wajib (`ACC-DEC-048`), atau nilainya tidak masuk akal.
+- `400` — pesan tidak memuat kedua belas bidang wajib (`ACC-DEC-048` dan `ACC-DEC-060`), atau nilainya tidak masuk akal.
 - `403` — pengguna tidak berhak, atau badan hukum yang dituju bukan haknya.
 - `404` — kejadian tidak ditemukan.
 - `409` — mata uang bukan rupiah (`ACC-DEC-020`), atau kejadian hendak diabaikan padahal statusnya
@@ -518,9 +518,10 @@ Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran be
 | Year End Closing | `YearEndClosingPreviewDto`, `YearEndClosingPreviewLineDto`, `GenerateYearEndClosingRequest` |
 | Configuration | `AccountingConfigurationDto`, `UpdateAccountingConfigurationRequest` |
 
-### Isi `ReceiveAccountingEventRequest` — sepuluh bidang wajib
+### Isi `ReceiveAccountingEventRequest` — dua belas bidang wajib
 
-Mewujudkan `ACC-DEC-048`. Pesan yang kehilangan satu pun bidang ini ditolak `400`.
+Mewujudkan `ACC-DEC-048` (sepuluh bidang pertama) dan `ACC-DEC-060` (dua bidang penelusuran).
+Pesan yang kehilangan satu pun bidang ini ditolak `400`.
 
 | Bidang | Tipe | Wajib | Contoh |
 |---|---|:---:|---|
@@ -534,12 +535,29 @@ Mewujudkan `ACC-DEC-048`. Pesan yang kehilangan satu pun bidang ini ditolak `400
 | `Amount` | `decimal(18,2)` | Ya | `10000000.00` |
 | `CurrencyCode` | `string` | Ya | `IDR` — nilai lain ditolak `409` |
 | `LegalEntityId` | `Guid` | Ya | Badan hukum yang bukunya disentuh |
+| `CorrelationId` | `Guid` | **Ya** | Penelusuran ke kejadian asal di Billing (`ACC-DEC-060`) |
+| `CausationId` | `Guid` | **Ya** | Penelusuran ke tindakan yang menyebabkannya (`ACC-DEC-060`) |
 
 **Tidak ada bidang pengenal pasien**, dan itu disengaja (`ACC-DEC-056`).
 
+### Kenapa `CorrelationId` dan `CausationId` wajib, bukan opsional
+
+Owner Billing menyatakan 9 September 2026 bahwa kejadian yang diterbitkan Finance **tetap membawa
+correlation dan causation ke source Billing**. Tanpa keduanya disimpan Accounting,
+`SourceTransactionId` hanya berisi nomor pencatatan AR milik **Finance** — bukan nomor faktur
+Billing.
+
+Akibatnya pertanyaan *"jurnal ini berasal dari tagihan pasien yang mana"* menuntut membuka modul
+Finance lebih dahulu untuk mencari nomor fakturnya. Padahal penghubungnya sudah dibawakan
+Finance, dan hanya perlu disimpan.
+
+Dijadikan **wajib**, bukan opsional, karena bidang penelusuran yang boleh kosong cenderung
+berakhir kosong — dan baru ketahuan saat benar-benar dibutuhkan, yaitu ketika ada selisih angka
+yang harus ditelusuri.
+
 ### Bidang kesebelas yang bersifat opsional: `Components`
 
-Ditambahkan `ACC-DEC-058`. Bukan bagian dari sepuluh bidang wajib, sehingga pesan tanpa `Components`
+Ditambahkan `ACC-DEC-058`. Bukan bagian dari kedua belas bidang wajib, sehingga pesan tanpa `Components`
 tetap sah — ia berarti seluruh nilai memakai komponen `TOTAL`.
 
 | Bidang | Tipe | Wajib | Keterangan |

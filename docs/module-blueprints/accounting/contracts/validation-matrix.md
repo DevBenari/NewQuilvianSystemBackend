@@ -183,8 +183,8 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-VALIDATION-0.5` |
-| `last_changed_in` | `ACC-VALIDATION-0.5` — 8 September 2026, aturan baris posting `ACC-DEC-058`. Sebelumnya `0.4` |
+| `contract_version` | `ACC-VALIDATION-0.6` |
+| `last_changed_in` | `ACC-VALIDATION-0.6` — 9 September 2026, dua bidang penelusuran wajib `ACC-DEC-060`. Sebelumnya `0.5` (baris posting `ACC-DEC-058`) dan `0.4` |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
@@ -193,7 +193,8 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 
 | Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
 |---|---|---|---|---|
-| Sepuluh bidang wajib terisi | Terima | Salah satu bidang `ACC-DEC-048` kosong | `400` | "Pesan kejadian tidak lengkap. Bidang berikut wajib diisi: ..." |
+| **Dua belas** bidang wajib terisi | Terima | Salah satu bidang `ACC-DEC-048` atau `ACC-DEC-060` kosong | `400` | "Pesan kejadian tidak lengkap. Bidang berikut wajib diisi: ..." |
+| `CorrelationId` dan `CausationId` wajib | Terima | Salah satunya kosong atau bernilai `Guid.Empty` | `400` | "Pesan kejadian wajib membawa penelusuran ke transaksi asal." |
 | Mata uang harus rupiah | Terima | `CurrencyCode` bukan `IDR` | `409` | "Sistem akuntansi hanya menerima rupiah." |
 | Nilai tidak boleh nol atau negatif | Terima | `Amount <= 0` | `400` | "Nilai kejadian harus lebih besar dari nol." |
 | Jenis kejadian harus dikenal | Terima | `EventTypeCode` tidak ada di daftar jenis | `422` | "Jenis kejadian belum terdaftar. Kejadian ditahan sampai jenisnya ditambahkan." |

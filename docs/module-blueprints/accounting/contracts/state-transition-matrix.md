@@ -142,7 +142,7 @@ Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
 
 | Dari | Ke | Pemicu | Wewenang | Prasyarat |
 |---|---|---|---|---|
-| — | `Diterima` | Pesan masuk dari Finance | `AccountingEvent : Receive` | Kesepuluh bidang terisi, mata uang rupiah |
+| — | `Diterima` | Pesan masuk dari Finance | `AccountingEvent : Receive` | Kedua belas bidang terisi, mata uang rupiah |
 | `Diterima` | `Terjurnal` | Aturan posting ketemu, pemrosesan berhasil | Sistem | Periode menerima pencatatan; jurnal berhasil dibuat |
 | `Diterima` | `Tertahan` | Aturan posting **tidak** ketemu | Sistem | — |
 | `Diterima` | `Gagal` | Tiga percobaan otomatis habis | Sistem | `AttemptCount = 3` |

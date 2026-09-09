@@ -68,6 +68,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         public DateTime? ReopenedAt { get; set; }
 
         /// <summary>
+        /// Pengaju penutupan periode (<c>ACC-DEC-052</c>). Dipakai menegakkan aturan penyetuju
+        /// bukan pengaju, dan karena itu tetap terisi selama periode berstatus
+        /// <c>PendingClosingApproval</c>.
+        ///
+        /// Kosong pada periode yang ditutup <b>sebelum</b> Phase 2 berdiri, dan itu keadaan yang
+        /// sah — periode-periode itu memang ditutup ketika aturannya belum ada.
+        /// </summary>
+        public Guid? ClosingSubmittedBy { get; set; }
+
+        public DateTime? ClosingSubmittedAt { get; set; }
+
+        /// <summary>
         /// Alasan <b>terakhir</b> saja. Wajib diisi saat membuka kembali (<c>ACC-DEC-027</c>);
         /// penegakannya di service, bukan di sini.
         ///
@@ -78,5 +90,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         public string? LastReasonNote { get; set; }
 
         public MstLegalEntity? LegalEntity { get; set; }
+
+        /// <summary>
+        /// Riwayat pengajuan, persetujuan, dan penolakan penutupan periode ini
+        /// (<c>ACC-DEC-052</c>). Kosong pada periode yang ditutup sebelum Phase 2 berdiri.
+        /// </summary>
+        public ICollection<AccPeriodClosingApproval> ClosingApprovals { get; set; } =
+            new List<AccPeriodClosingApproval>();
     }
 }
