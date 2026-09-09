@@ -194,8 +194,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public Guid ActorUserId { get; set; }
 
+        /// <summary>
+        /// Nama pelaku, siap ditampilkan.
+        ///
+        /// <para>
+        /// <b><c>AC-34</c> menuntut riwayat menyebut siapa yang mengubah.</b> Sebelumnya
+        /// responsnya hanya membawa penunjuk, dan penunjuk tidak boleh ditampilkan
+        /// (<c>no-uuid-display</c>) — sehingga kolom pelaku pada layar riwayat terpaksa kosong
+        /// dan kriteria itu hanya terpenuhi sebagian.
+        /// </para>
+        ///
+        /// <para>Kosong bila penggunanya sudah tidak ada; layar menampilkannya sebagai "-".</para>
+        /// </summary>
+        public string? ActorUserName { get; set; }
+
         /// <summary>Terisi hanya bila yang berubah batas kritis.</summary>
         public Guid? ApprovedByUserId { get; set; }
+
+        /// <summary>Nama penyetuju, siap ditampilkan. Kosong bila bukan perubahan batas kritis.</summary>
+        public string? ApprovedByUserName { get; set; }
 
         public string? ChangeReason { get; set; }
 

@@ -306,6 +306,28 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 > yang sudah ada ke Patologi Klinik, Patologi Anatomi, atau Mikrobiologi adalah keputusan
 > klinis, bukan turunan teknis. Menebaknya akan menghasilkan katalog yang tampak lengkap
 > tetapi salah golong, dan `INV-22` kemudian menolak pesanan yang sebenarnya sah.
+>
+> **Penahannya ternyata bukan hanya penggolongan klinis — jalur pengisiannya pun tidak ada.
+> Dibangun 2026-09-08.** Kolom `LabDiscipline` memang bertambah pada model dan tabel, tetapi
+> tidak pernah dibuka pada `ProcedureDtos.cs` maupun `ProcedureController.cs`. Telusur seluruh
+> backend menemukan nol jalur tulis: bukan lewat API, bukan lewat layar, bukan lewat seeder.
+> Artinya seandainya daftar penggolongan dari pihak klinis sudah ada sejak 2026-09-04, nilainya
+> tetap **tidak dapat dimasukkan**. Butir DoD *"nilainya terisi"* karena itu tidak pernah dapat
+> dipenuhi siapa pun, dan alasan yang tercatat selama ini hanya menyebut separuh sebabnya.
+>
+> Yang dibangun: `labDiscipline` diterima `POST` dan `PUT`, terbit pada respons daftar, detail,
+> dan opsi beserta `labDisciplineName` siap baca, masuk ke `filters/metadata` sebagai
+> `labDisciplineOptions` dan sebagai ruas form bernomor urut 11, serta muncul sebagai pilihan
+> **Disiplin Laboratorium** pada layar Master Data → Prosedur. Daftar disiplin yang sah diambil
+> dari `Enum.GetNames<LabDiscipline>()`, bukan konstanta teks tersendiri, supaya controller ini
+> tidak dapat menerima golongan yang tidak dikenali Laboratorium. Dua aturan ditegakkan:
+> golongan pada tindakan non-laboratorium **ditolak** alih-alih dikosongkan diam-diam, dan
+> mengirimnya kosong mencabut golongan sehingga penanda `IsLaboratory` tidak pernah mati
+> sambil meninggalkan golongan yatim. Delapan uji menjaganya
+> (`ProcedureLabDisciplineTests`), enam uji lagi di sisi layar.
+>
+> **Yang masih menahan tinggal satu: daftar penggolongannya.** Itu tetap keputusan klinis, dan
+> tetap tidak boleh ditebak.
 
 | Butir | Isi |
 |---|---|
@@ -318,7 +340,7 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Acceptance criteria** | `AC-51` bergantung padanya |
 | **Verifikasi** | Kolom ada, terisi untuk seluruh pemeriksaan berpenanda `IsLaboratory`, dan `BE-LAB-07` dapat menyaring dengannya |
 | **Risiko/pemilik** | Dependency eksternal. Persetujuannya sudah ada; pelaksanaannya belum dijadwalkan. Pemilik: pemilik `master-data` |
-| **DoD** | Kolom ada **(terpenuhi)**, nilainya terisi **(belum — butuh daftar penggolongan dari pihak klinis)**, penyaringan katalog per disiplin terbukti bekerja **(terpenuhi lewat uji)** |
+| **DoD** | Kolom ada **(terpenuhi)**, nilainya terisi **(belum — jalur pengisiannya sudah ada sejak 2026-09-08; yang tersisa daftar penggolongan dari pihak klinis)**, penyaringan katalog per disiplin terbukti bekerja **(terpenuhi lewat uji)** |
 
 ---
 
@@ -436,6 +458,23 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 > `Areas/HealthServices/MasterData`, dan `Category`-nya bukan `BUSINESS DOMAIN`. Akibatnya
 > **tidak ada** modul yang berwenang membuat satu pun data induk baru. Registry diperbaiki dan
 > keputusannya dicatat bertanggal — lihat `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`.
+>
+> **Butir Verifikasi ini sempat tidak terpenuhi selama tiga hari, dan baru ketahuan 2026-09-07.**
+> Bunyinya *"kedua data induk dapat dipilih dari daftar"*, sementara task ini **tidak membuat
+> satu pun endpoint** — laporannya menyatakan itu apa adanya. Selama endpointnya tidak ada,
+> tidak ada layar mana pun yang dapat menawarkan daftarnya, sehingga satu-satunya cara mengisi
+> perujuk adalah mengetiknya — persis yang dilarang `LAB-DEC-035` dan `AC-50`. Celah itu tidak
+> terlihat sampai konsumen pertamanya dibangun.
+>
+> **Ditutup 2026-09-07 lewat `FE-LAB-05`.** Dua endpoint baca ditambahkan —
+> `GET /master-data/referral-institutions/options` dan
+> `GET /master-data/referral-doctors/options` — beserta service, DTO, dan delapan ujinya.
+> Keduanya **baca saja**; penambahan dan penyuntingan data induk perujuk tetap pekerjaan modul
+> Data Induk. Bukti: [`FE-LAB-05.md`](../task/report/frontend/FE-LAB-05.md) bagian 1.2 dan 3.3.
+>
+> **Yang masih tersisa dan bukan pekerjaan kode:** kedua tabel itu **masih kosong**. Selama
+> belum diisi, formulir pendaftaran rujukan luar tidak dapat dipakai walaupun layar dan
+> endpointnya sudah benar.
 
 | Butir | Isi |
 |---|---|
@@ -458,10 +497,13 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 > pada `contracts/integration-contract.md` bagian 2b. Laporan lengkap:
 > [`task/report/backend/BE-EXT-03.md`](../task/report/backend/BE-EXT-03.md).
 >
-> **Yang belum: endpoint pelaksananya.** Jalur pemanggilan Registrasi beserta penyimpanan kunci
-> idempotensinya adalah pekerjaan pemilik `registration-management`. Karena itu butir DoD
-> "idempotensi terbukti lewat uji" **belum** terpenuhi — ia menuntut endpoint yang belum ada,
-> dan buktinya menjadi cakupan `BE-LAB-08`.
+> **Endpoint pelaksananya menyusul 2026-09-07, lewat `BE-LAB-08`.** Jalur pemanggilan Registrasi
+> beserta penyimpanan kunci idempotensinya kini ada sebagai `EncounterIntakeService` di
+> `Areas/HealthServices/RegistrationManagement/Services/`, dengan kunci disimpan pada
+> `TrxPatientEncounter.RegistrationIdempotencyKey` ber-unique index tersaring. Dengan itu butir
+> DoD *"idempotensi terbukti lewat uji"* yang semula belum terpenuhi **kini terpenuhi** —
+> buktinya ada pada [`BE-LAB-08.md`](../task/report/backend/BE-LAB-08.md), bukan pada laporan
+> task ini. **Kartu ini dengan demikian `SELESAI` seluruhnya.**
 
 | Butir | Isi |
 |---|---|
@@ -474,9 +516,34 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | **Acceptance criteria** | `AC-44`, `AC-45`, `AC-46` bergantung padanya |
 | **Verifikasi** | Menekan Simpan dua kali tidak menghasilkan dua kunjungan untuk satu pasien pada hari yang sama; penolakan Registrasi diteruskan apa adanya tanpa data setengah jadi |
 | **Risiko/pemilik** | Dependency eksternal, tetapi **sebagian besar sudah ada**. Yang belum hanya dua kolom dan kesepakatan bentuk pemanggilannya. Pemilik: pemilik `registration-management` |
-| **DoD** | Dua kolom ada **(terpenuhi)**, kontrak `INT-05` disepakati tertulis **(terpenuhi pada tingkat bentuk; endpoint pelaksananya milik `registration-management`)**, idempotensi terbukti lewat uji **(belum — menunggu endpointnya)** |
+| **DoD** | Dua kolom ada **(terpenuhi)**, kontrak `INT-05` disepakati tertulis **(terpenuhi)**, idempotensi terbukti lewat uji **(terpenuhi 2026-09-07 lewat `BE-LAB-08`; buktinya pada [`BE-LAB-08.md`](../task/report/backend/BE-LAB-08.md) bagian 5)** |
 
 ### `BE-LAB-08` — Endpoint pendaftaran pasien laboratorium
+
+> **Status: `SELESAI` — 2026-09-07.** Seluruh butir DoD terpenuhi. Ketiga endpoint tersedia
+> dengan route, verb, dan `[AccessPermission]` yang cocok satu per satu dengan `LAB-API-v1` r3.
+> Laporan lengkap: [`task/report/backend/BE-LAB-08.md`](../task/report/backend/BE-LAB-08.md).
+>
+> **Penahannya dicabut pada sesi yang sama.** Pelaksana `INT-05` yang selama ini belum ada kini
+> dibangun **di sisi Registrasi** sebagai `EncounterIntakeService`, atas instruksi eksplisit
+> pemilik modul dan di bawah persetujuan `LAB-REQ-003` bagian 3b yang memang sudah mencakup
+> idempotensi sebagai bukti selesai. Laboratorium tidak menulis satu baris pun ke tabel
+> kunjungan.
+>
+> **`AC-45` dibuktikan dua kali, dengan cara yang berbeda.** Pertama lewat telusur seluruh
+> source modul Laboratorium — nol pembentukan maupun pengubahan kunjungan dan data induk
+> pasien. Kedua lewat perilaku: Laboratorium dan Registrasi diberi **dua penyimpanan terpisah**,
+> lalu satu pendaftaran dijalankan; kunjungan hanya muncul pada penyimpanan milik Registrasi.
+>
+> **Idempotensi bersandar pada basis data, bukan pada kode.** Kolom
+> `TrxPatientEncounter.RegistrationIdempotencyKey` ber-unique index tersaring; migration
+> `20260907072413_AddRegistrationIdempotencyKeyToPatientEncounter` **terbukti jalan dua arah**
+> terhadap `QuilvianNewDevYoga`: `Up`, lalu `Down`, lalu `Up` kembali.
+>
+> **Satu selisih dibuka.** `VAL-42` ditulis untuk pemanggilan jarak jauh, sementara `INT-05`
+> dilaksanakan sejalur proses. Pemetaannya dijelaskan pada laporan bagian 3.3. Ditambah satu
+> hal yang sengaja tidak diikutkan: kunjungan dari jalur ini **tidak** membawa snapshot kategori
+> umur seperti jalur loket — lihat Risiko tersisa pada laporan.
 
 | Butir | Isi |
 |---|---|
@@ -791,10 +858,10 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | `BE-LAB-17` | `MVP-0` | `S3`, `S11` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-17.md) | Tidak ada |
 | `BE-LAB-18` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-18.md) | Tidak ada |
 | `BE-LAB-19` | `MVP-0` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-19.md) | Tidak ada |
-| `BE-EXT-01` | `MVP-0` | `S14` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-01.md) | Pengisian nilai disiplin menunggu penggolongan dari pihak klinis |
+| `BE-EXT-01` | `MVP-0` | `S14` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-01.md) | Jalur pengisian dibangun 2026-09-08. Nilainya menunggu daftar penggolongan dari pihak klinis |
 | `BE-EXT-02` | `MVP-1` | `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-02.md) | Tidak ada |
-| `BE-EXT-03` | `MVP-1` | `S13a`, `S13b` | **`SELESAI` untuk kolom dan kontrak** — [laporan](../task/report/backend/BE-EXT-03.md) | Endpoint pemanggilan `INT-05` milik `registration-management` |
-| `BE-LAB-08` | `MVP-1` | `S13a`, `S13b` | Siap direncanakan | Endpoint pemanggilan `INT-05` belum ada; penyimpanannya sudah siap sejak 2026-09-04 |
+| `BE-EXT-03` | `MVP-1` | `S13a`, `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-EXT-03.md) | Tidak ada. Pelaksana `INT-05` menyusul 2026-09-07 lewat `BE-LAB-08` |
+| `BE-LAB-08` | `MVP-1` | `S13a`, `S13b` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-08.md) | Tidak ada. Pelaksana `INT-05` dibangun di sisi Registrasi pada sesi yang sama; migration terbukti dua arah pada dev pemilik |
 | `BE-LAB-09` | `MVP-1` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-09.md) | Tidak ada |
 | `BE-LAB-16` | `MVP-1` | `S2` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-16.md) | Tidak ada |
 | `BE-LAB-10` | `MVP-1` | `S1a` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-10.md) | Tidak ada |
@@ -804,16 +871,19 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 | `BE-LAB-14` | `MVP-3` | `S7` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-14.md) | Tidak ada |
 | `BE-LAB-15` | `MVP-3` | `S15` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-15.md) | Tidak ada |
 
-**Dua puluh satu dari dua puluh dua task backend selesai per 2026-09-04.** Ketiga dependency
+**Dua puluh dua dari dua puluh dua task backend selesai per 2026-09-07.** Ketiga dependency
 eksternal — `BE-EXT-01` sampai `BE-EXT-03` — dikerjakan atas instruksi pemilik modul yang
 juga kontributor `master-data`; persetujuannya sudah ada sejak 2026-09-01 lewat `LAB-REQ-001`,
 yang belum ada hanya pelaksanaannya.
 
-Satu yang tersisa adalah task Laboratorium sendiri, dan penahannya bukan lagi Laboratorium:
+Butir terakhir yang menggantung, **pelaksana `INT-05`**, ditutup bersamaan dengan `BE-LAB-08`
+pada 2026-09-07. Ia dibangun di sisi Registrasi sebagai `EncounterIntakeService`, sehingga butir
+DoD `BE-EXT-03` *"idempotensi terbukti lewat uji"* yang semula belum terpenuhi kini **terpenuhi**
+— buktinya ada pada [`BE-LAB-08.md`](../task/report/backend/BE-LAB-08.md) bagian 5.
 
 | Task | Keadaan |
 |---|---|
-| `BE-LAB-08` | Penyimpanannya siap — dua data induk perujuk dan dua penunjuknya pada kunjungan sudah ada. Yang belum: endpoint `INT-05` milik `registration-management`, yang juga menjadi syarat bukti idempotensi `AC-44` |
+| `BE-LAB-08` | **Selesai.** Ketiga endpoint tersedia, `AC-45` terbukti dua kali, idempotensi bersandar pada unique index tersaring, dan penolakan Registrasi diteruskan tanpa data setengah jadi |
 
 Di luar itu tersisa satu penahan lingkungan yang berlaku untuk seluruh repository: 52 uji pada
 `IntegrationTests.Postgres` menunggu database test tersendiri. Akun aplikasi tidak memiliki hak
@@ -936,9 +1006,13 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 26 | 2026-09-08 | **Amandemen `LAB-API-v1` `r6` disetujui pemilik modul dan dikerjakan.** Satu endpoint baca ditambahkan: `GET /lab-rejection-reasons/{id}`. Grup ini semula satu-satunya grup Laboratorium tanpa jalur detail, sehingga formulir ubah `FE-LAB-03` memuat barisnya dari halaman daftar yang sedang terbuka — bekerja selama barisnya masih ada di halaman itu, dan **diam-diam gagal** pada tautan langsung, muat ulang halaman, atau sesudah petugas berpindah halaman daftar; formulirnya terbuka kosong tanpa satu pun pesan. Amandemennya **aditif**: tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Empat berkas berubah bersamaan supaya kontrak, penjaga, dan source tidak dapat menyimpang — kontrak naik ke `r6` dengan barisnya, penjaga `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` naik 7 → 8 dengan komentar menyebut `r6` sebagai sumbernya, service memperoleh `GetByIdAsync` yang baca-saja dan tanpa penelusuran, dan controller memperoleh action-nya dengan hak akses `LabRejectionReason : Read` yang sama dengan daftarnya. Lima uji menjaganya: detail membawa kedua penanda sistem, penunjuk tak dikenal ditolak `404`, alasan terhapus tidak terbaca, alasan **nonaktif tetap terbaca** karena masih menempel pada riwayat penolakan yang tersimpan, dan jalur baca tidak meninggalkan entity terlacak. **Nomornya `r6`, bukan `r5`** seperti tertulis pada persetujuan lisan: `r5` sudah terpakai `BE-LAB-18`. Klasifikasi `TOUCHED LEGACY`; tanpa entity baru, tanpa migration, tanpa nomor bisnis | `DRAFT` |
+| 25 | 2026-09-08 | **Koreksi pembukuan kontrak, ditulis manual atas instruksi pemilik modul. Bukan amandemen.** Dua selisih fakta ditutup. Pertama, `contracts/api-contract.md` masih menandai **16 endpoint** sebagai `Rencana (belum tersedia)` padahal seluruhnya sudah ada sejak `BE-LAB-04`, `BE-LAB-05`, dan `BE-LAB-06` selesai — 6 pada Lab Value Bound, 5 pada Lab Critical Bound Approval, 5 pada Lab Rejection Reason; keenam belasnya diverifikasi langsung dari controller sebelum dikoreksi. Selisih ini dicatat `FE-LAB-02` pada 2026-09-04 dan tidak pernah ditindaklanjuti. Kedua, `blueprint-manifest.md` masih mencatat `LAB-API-v1` pada **revision 3**, tertinggal dua amandemen dari dokumen kontraknya yang sudah **revision 5** — kekeliruan yang berakibat nyata, karena pembaca manifest akan mengira `GET /lab-orders` masih mengembalikan larik padahal `r5` mengubahnya menjadi `PagedResult`. **Tidak ada endpoint yang ditambah, dihapus, atau berubah bentuk**; `LAB-API-v1` tetap `r5` dan tetap terkunci. **Satu pekerjaan dihentikan pada revisi ini:** penambahan `GET /{id}` pada grup Lab Rejection Reason diimplementasikan lalu **dikembalikan**, karena uji `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` mengunci jumlah endpoint grup itu pada tujuh sesuai kontrak. Menaikkan angka penjaga itu sama dengan mengamandemen kontrak terkunci lewat penyuntingan penjaganya sendiri, dan itu memerlukan persetujuan pemilik modul yang belum ada. Grup itu tetap tanpa jalur detail | `DRAFT` |
+| 24 | 2026-09-08 | **Koreksi penahan `BE-EXT-01`, ditulis manual atas instruksi pemilik modul.** Penahan pengisian disiplin selama ini tercatat sebagai *"menunggu penggolongan dari pihak klinis"* saja. Telusur backend menemukan sebab kedua yang tidak pernah tercatat dan lebih menentukan: `MstProcedure.LabDiscipline` **tidak muncul pada satu pun DTO, service, maupun controller Master Data**, sehingga tidak ada jalur tulis apa pun — bukan API, bukan layar, bukan seeder. Butir DoD *"nilainya terisi"* karena itu tidak pernah dapat dipenuhi siapa pun, bahkan seandainya daftar penggolongannya sudah tersedia. Jalur pengisiannya dibangun pada revisi ini: `labDiscipline` diterima `POST` dan `PUT`, terbit pada respons daftar, detail, dan opsi beserta labelnya, masuk ke `filters/metadata`, dan muncul sebagai pilihan **Disiplin Laboratorium** pada layar Master Data → Prosedur. Daftar disiplin yang sah diturunkan dari enum `LabDiscipline`, bukan disalin, supaya Master Data tidak dapat menerima golongan yang tidak dikenali Laboratorium. Golongan pada tindakan non-laboratorium ditolak, bukan dikosongkan diam-diam. Delapan uji backend dan enam uji frontend menjaganya; `dotnet build` 0 error, 424 uji backend dan 539 uji frontend lolos. **Satu kekeliruan pembacaan ikut diluruskan:** mengisi `MstProcedure.LabDiscipline` membuat **penyaring katalog** berisi, bukan ketiga layar monitoring — `LabMonitoringService` menyaring `LabOrder.Discipline`, dan `LabOrderService` menyalinnya apa adanya dari permintaan tanpa pernah menurunkannya dari prosedur yang dipilih. Karena ruas Disiplin pada layar Buat Pesanan tidak wajib, setiap pesanan yang dibuat tanpa memilihnya tidak muncul di satu pun layar monitoring. Penurunan disiplin pesanan dari pemeriksaannya belum berpemilik task dan dicatat sebagai temuan terbuka | `DRAFT` |
 | 1 | 2026-09-02 | Roadmap backend pertama. 15 task Laboratorium dan 3 task dependency eksternal disusun untuk empat gelombang. Diterbitkan setelah kelima kontrak dikunci dan penanda `STALE` pada capability map dicabut | `DRAFT` |
 | 3 | 2026-09-02 | Audit diperluas ke empat dimensi lain: aturan validasi, entity, kewenangan, dan integrasi. Seluruhnya berpemilik, tetapi kutipannya jauh dari lengkap — 30 dari 50 aturan validasi tidak pernah disebut task mana pun. Yang paling berarti: `VAL-09`, aturan empat mata pada tingkat wadah, sempat tidak tersebut sama sekali dan kini dibebankan tegas ke `BE-LAB-12`. Bagian 8 diperluas menjadi lima sub-cakupan | `DRAFT` |
 | 2 | 2026-09-02 | Audit cakupan endpoint dijalankan. Empat endpoint grup Lab Examination ternyata tanpa pemilik task; `BE-LAB-16` ditambahkan. Daftar endpoint pada `BE-LAB-06` dan `BE-LAB-15` ditulis eksplisit agar lubang sejenis tidak tersembunyi lagi. Bagian 8 Cakupan Endpoint ditambahkan | `DRAFT` |
+| 23 | 2026-09-07 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-08` berpindah menjadi **`SELESAI`**, dan dengan itu **seluruh 22 task backend Laboratorium selesai**. Ketiga endpoint grup Lab Patient Registration tersedia: `GET /patient-search`, `POST /walk-in`, dan `POST /external-referral`. Penahannya — pelaksana `INT-05` yang selama ini belum berpemilik — dicabut pada sesi yang sama dengan membangunnya **di sisi Registrasi** sebagai `EncounterIntakeService`, atas instruksi eksplisit pemilik modul dan di bawah persetujuan `LAB-REQ-003` bagian 3b yang memang sudah mencakup idempotensi sebagai bukti selesai. `AC-45` terbukti **dua kali dengan cara berbeda**: telusur seluruh source modul Laboratorium menemukan nol pembentukan maupun pengubahan kunjungan dan data induk pasien, dan uji perilaku dengan **dua penyimpanan terpisah** menunjukkan kunjungan hanya muncul di penyimpanan milik Registrasi. `AC-44`, `AC-46`, `AC-50`, serta `VAL-41` sampai `VAL-45` terbukti lewat 18 uji. Idempotensi bersandar pada unique index tersaring `TrxPatientEncounter.RegistrationIdempotencyKey`, bukan pada kode aplikasi; migration `20260907072413_AddRegistrationIdempotencyKeyToPatientEncounter` terbukti jalan dua arah terhadap `QuilvianNewDevYoga`. Butir DoD `BE-EXT-03` *"idempotensi terbukti lewat uji"* yang semula menggantung ikut **terpenuhi**, sehingga kartu itu kini `SELESAI` seluruhnya. Dua selisih dibuka: `VAL-42` ditulis untuk pemanggilan jarak jauh sementara `INT-05` dilaksanakan sejalur proses, dan kunjungan dari jalur ini tidak membawa snapshot kategori umur seperti jalur loket | `DRAFT` |
 | 22 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-07` berpindah menjadi **`SELESAI`**: `GET /lab-catalog/examinations`, `/examinations/{procedureId}/price`, dan `/tariffs` tersedia, seluruhnya baca saja. `AC-43` terbukti — tiga pemeriksaan menampilkan harga satuan 35.000, 30.000, dan 40.000 dengan total 105.000, dan **nol** baris tagihan, fakta klinis, maupun pemeriksaan terbentuk karenanya. `AC-47` terbukti: Laboratorium tidak memiliki satu pun entity tarif; yang ada hanya penunjuk `TariffId` dan salinan `*Snapshot`. `AC-48` dan `VAL-50` terbukti lewat ketiadaan jalur ubah. `AC-51` dan `VAL-46` terbukti: menambahkan Hemoglobin ke pesanan Mikrobiologi ditolak `422`, sementara pesanan atau katalog yang belum berdisiplin tidak ikut tertolak. **Dengan ini 21 dari 22 task backend selesai**; yang tersisa hanya `BE-LAB-08`, yang menunggu endpoint `INT-05` milik `registration-management` | `DRAFT` |
 | 21 | 2026-09-04 | **Dependency eksternal dikerjakan atas instruksi pemilik modul, ditulis `build-module-backend`.** `BE-EXT-01` dan `BE-EXT-02` menjadi **`SELESAI`**, `BE-EXT-03` **`SELESAI` untuk kolom dan kontrak**. Ketiganya sudah lama disetujui `andryzainhome` dan `sukmagp` lewat `LAB-REQ-001` pada 2026-09-01; yang belum ada hanya pelaksanaannya. Kolom `LabDiscipline` masuk ke `MstProcedure`, dua data induk perujuk dibuat, dan dua penunjuk perujuk masuk ke `TrxPatientEncounter`. Dua migration jalan dua arah pada dev pemilik. **Dua cacat tata kelola ikut ditemukan dan diperbaiki.** Pertama, `QBE-MOD-002` memblokir seluruh entity `Mst*` baru karena baris registry `Master / Reference` tidak cocok dengan folder `MasterData` dan `Category`-nya bukan `BUSINESS DOMAIN`; registry diperbaiki dan keputusannya dicatat. Kedua, `QuilvianSystemBackend.csproj` mengeluarkan `Migrations/**/*.Designer.cs` dan `ApplicationDbContextModelSnapshot.cs` dari kompilasi, sehingga EF hanya mengenali 7 dari 127 migration dan sempat menghasilkan satu migration ber-70.815 baris; kedua pengecualian dinonaktifkan. Penahan `BE-LAB-07` dicabut | `DRAFT` |
 | 20 | 2026-09-04 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-15` berpindah menjadi **`SELESAI`**: tiga daftar pantau sejajar tersedia beserta `GET /lab-orders/by-discipline/{discipline}`. `AC-41` terbukti dengan data campuran — tidak ada satu baris pun yang menyeberang ke daftar tetangganya, dan pesanan tanpa disiplin tidak muncul di ketiganya. `AC-42` terbukti sekaligus dengan `AC-19` lewat empat uji penelusuran: nol tipe, anggota, entity, dan route Laboratorium yang menyentuh Bank Darah maupun stok reagen. Penyaingnya ditulis satu kali dan dipakai bertiga, dan `LabMonitoringQuery` sengaja tanpa ruas disiplin. **Satu ruas kontrak dicatat tidak dapat dipenuhi**: penyaring nomor pesanan menuntut kolom yang tidak ada pada `LabOrder` | `DRAFT` |

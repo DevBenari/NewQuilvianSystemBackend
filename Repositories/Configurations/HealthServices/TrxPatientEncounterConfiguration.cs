@@ -217,6 +217,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasDefaultValue(true);
 
             // =========================
+            // INTEGRATION IDEMPOTENCY
+            // =========================
+
+            entity.Property(x => x.RegistrationIdempotencyKey)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            // =========================
             // IDENTITY MODEL
             // =========================
 
@@ -345,6 +353,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasIndex(x => x.EncounterNumber)
                 .IsUnique();
+
+            // Kunci idempotensi pendaftaran (INT-05, BE-LAB-08). Unique dan tersaring:
+            // baris tanpa kunci — pendaftaran loket, kiosk, dan seluruh kunjungan lama —
+            // tidak ikut terkena keunikannya, sehingga ribuan NULL tetap sah.
+            //
+            // Unique index inilah penegak idempotensi yang sebenarnya. Pembacaan lebih dulu
+            // menangani pengiriman ulang yang berurutan; index ini menangani dua permintaan
+            // yang tiba bersamaan, ketika keduanya sama-sama membaca "belum ada".
+            entity.HasIndex(x => x.RegistrationIdempotencyKey)
+                .IsUnique()
+                .HasFilter("\"RegistrationIdempotencyKey\" IS NOT NULL");
 
             entity.HasIndex(x => x.PatientId);
 

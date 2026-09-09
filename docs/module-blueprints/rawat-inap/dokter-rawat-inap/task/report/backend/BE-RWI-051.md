@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `9be5526d248d9813a4044f063e43066a2364dd7d` pada branch `MHamzah` |
 | Tanggal | 4 September 2026 |
-| Status | 🟡 **Sebagian, ditinjau ulang 5 September 2026.** Kelima acceptance criteria tetap terbukti pada SQLite. Butir Verification "integration test terhadap PostgreSQL untuk percobaan ulang" **tetap belum terpenuhi**; database uji tersendiri masih belum tersedia dan pemilik memutuskan melewatinya. Rinciannya pada bagian akhir |
+| Status | ✅ **Selesai, 8 September 2026.** Kelima acceptance criteria terbukti, dan butir Verification "integration test terhadap **PostgreSQL** untuk percobaan ulang" ditutup: **empat test baru hijau** terhadap PostgreSQL 15.15 sungguhan, termasuk dua permintaan yang tiba benar-benar bersamaan. Unique index parsial `IdempotencyKey` kini terbukti **menegakkan**, bukan sekadar terbentuk. Rinciannya pada bagian akhir |
 
 ## Backend Governance Preflight
 
@@ -153,7 +153,7 @@ Memaksa salah satu jalur akan membuat dokter memalsukan alur demi bisa menyimpan
 | Pasien dan kunjungan tidak cocok ditolak | `400`, pesan memuat "tidak sesuai dengan pasien"; nol tindakan tersimpan | `PASS` | `PasienDanKunjunganTidakCocok_Ditolak400` |
 | Penanda perawatan tidak cocok ditolak | `400`; nol tindakan tersimpan | `PASS` | `PenandaPerawatanTidakCocok_Ditolak400` |
 | Percobaan ulang tidak menggandakan tindakan maupun fakta | Dua `200` dengan identitas identik; satu baris tindakan; **satu** baris fakta klinis setelah dua kali penandaan dikerjakan | `PASS` | `PercobaanUlangBerkunciSama_TidakMenghasilkanTindakanMaupunFaktaGanda`, dijalankan terhadap **SQLite** |
-| **Percobaan ulang terhadap PostgreSQL sungguhan** | **Belum dijalankan** | `NOT RUN` | Tidak ada database uji yang tersedia: `BLOCKED_BY_TEST_DB_CONFIGURATION`. Unique index parsial `IdempotencyKey` pada `TrxPatientProcedure` sudah ada sejak `BE-RWI-040`, tetapi belum pernah diuji terhadap PostgreSQL |
+| **Percobaan ulang terhadap PostgreSQL sungguhan** | Satu tindakan, satu fakta klinis; dua permintaan bersamaan menyisakan satu baris; baris kembar ditolak database; tindakan tanpa kunci tetap berdampingan | `PASS` **8 September 2026** | Empat test `PatientProcedureRetryTests` — lihat peninjauan 8 September 2026 |
 | Billing gagal dihubungi → catatan tetap tersimpan, penerbitan tercatat gagal | Tindakan tetap `Completed` dan tetap ditandai dikerjakan; baris fakta berstatus bukan terkirim, dengan kode hasil terisi | `PASS` | `BillingGagalDihubungi_CatatanTindakanTetapTersimpanDanPenerbitanTercatatGagal` |
 | Kedua jalur pencatatan dipertahankan | Jalur rencana menghasilkan `Planned`; jalur langsung menghasilkan `Completed`; dua baris tersimpan | `PASS` | `KeduaJalurPencatatanTindakan_TetapBerjalan` |
 | Tautan visite opsional, wajib cocok ketika dikirim | Tanpa tautan diterima; tautan milik kunjungan sama tersimpan; tautan milik kunjungan lain ditolak `400` | `PASS` | `TautanKejadianVisite_OpsionalTetapiWajibCocokKetikaDikirim` |
@@ -198,7 +198,7 @@ pada [`BE-RWI-048`](BE-RWI-048.md).
 | --- | --- |
 | Kelima acceptance criteria terbukti | ✅ |
 | Test kegagalan Billing hijau | ✅ `BillingGagalDihubungi_...` |
-| Verifikasi percobaan ulang terhadap PostgreSQL | ⛔ **Belum.** Lihat bagian 5.1 |
+| Verifikasi percobaan ulang terhadap PostgreSQL | ✅ **8 September 2026.** Empat test `PatientProcedureRetryTests` hijau; lihat peninjauan 8 September 2026 |
 
 ---
 
@@ -263,4 +263,94 @@ ini. Perbedaannya dijaga tetap jelas, bukan dikaburkan agar terlihat selesai.
 | --- | --- |
 | Validasi ulang | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
 | Migration | **Nol** dari task ini |
+| Status Git | Tidak ada stage, commit, maupun push |
+
+---
+
+## Peninjauan 8 September 2026 — percobaan ulang terbukti pada PostgreSQL, task ditutup
+
+### Database uji tersendiri disediakan tanpa melemahkan penjagaan
+
+Sama seperti [`BE-RWI-041`](BE-RWI-041.md) dan [`BE-RWI-048`](BE-RWI-048.md), yang menahan task
+ini adalah ketiadaan database yang **boleh dibuang**, bukan ketiadaan PostgreSQL. Penjagaan
+`BillingTestDatabaseFixture` **tidak dilemahkan**; yang disediakan adalah database yang memenuhi
+tuntutannya apa adanya: container `postgres:15.15` sekali pakai bernama `quilvian_rwi_test` pada
+`localhost:55432`, kosong di awal, terisi **148 migration** dan **555 tabel**. Nol perintah
+dikirim ke database bersama mana pun.
+
+### Yang sebelumnya belum terbukti, dan kini terbukti
+
+Laporan 5 September 2026 mencatat bahwa unique index parsial `IdempotencyKey` pada
+`TrxPatientProcedure` sudah terbukti **terbentuk** di PostgreSQL lewat uji migration
+`BE-RWI-040`, tetapi belum terbukti **menegakkan** di bawah dua permintaan serentak. Perbedaan
+itu kini ditutup.
+
+Bentuk index-nya dibaca langsung dari `pg_indexes` pada database uji:
+
+```sql
+CREATE UNIQUE INDEX "IX_TrxPatientProcedure_IdempotencyKey"
+    ON public."TrxPatientProcedure" USING btree ("IdempotencyKey")
+    WHERE (("IdempotencyKey" IS NOT NULL) AND ("IsDelete" = false));
+```
+
+Penyaring `WHERE` itulah yang khas PostgreSQL, dan itulah sebabnya bukti ini tidak dapat berdiri
+di SQLite maupun InMemory.
+
+### Empat test baru
+
+Seluruhnya pada berkas baru
+`Tests/QuilvianSystemBackend.IntegrationTests.Postgres/ClinicalIntegration/PatientProcedureRetryTests.cs`,
+dan seluruhnya memanggil `PatientProcedureController` apa adanya — bukan lapisan di bawahnya.
+
+| Test | Yang dibuktikan | Hasil |
+| --- | --- | --- |
+| `PercobaanUlangBerkunciSama_TidakMenghasilkanTindakanMaupunFaktaGanda` | Dua pembuatan berkunci sama menghasilkan dua `200` beridentitas sama dan **satu** baris tindakan; sesudah ditandai dikerjakan dua kali, fakta klinisnya tetap **satu** baris | `PASS` |
+| `DuaPermintaanBersamaan_KunciSama_HanyaSatuTindakan` | Dua permintaan dimulai bersamaan pada dua konteks berbeda hanya menyisakan **satu** baris tindakan | `PASS` |
+| `KunciPermintaanKembar_DitolakDatabase` | Baris kedua berkunci sama ditolak **database** walaupun ditulis langsung tanpa melewati pemeriksaan controller | `PASS` |
+| `TindakanTanpaKunci_TetapDapatBerdampingan` | Tiga tindakan **tanpa** kunci permintaan tersimpan berdampingan — penyaring index memang parsial | `PASS` |
+
+```text
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres --filter PatientProcedureRetryTests
+Passed!  -  Failed: 0, Passed: 4, Skipped: 0, Total: 4
+```
+
+### Dua keputusan uji yang perlu dicatat apa adanya
+
+**Pertama — kenapa `KunciPermintaanKembar_DitolakDatabase` memakai tindakan master yang berbeda.**
+`TrxPatientProcedure` memiliki **dua** unique index yang dapat menolak baris kedua: unique parsial
+pada kunci permintaan, dan `UX_TrxPatientProcedure_Consultation_Procedure_Active` atas pasangan
+catatan dan tindakan. Bila baris kedua memakai tindakan master yang sama, tidak dapat dipastikan
+index mana yang menolaknya, dan uji itu akan tetap hijau seandainya index kunci permintaan hilang.
+Karena itu baris kedua sengaja memakai tindakan master yang **berbeda**, sehingga satu-satunya
+yang mungkin menolaknya adalah index yang sedang dibuktikan.
+
+**Kedua — kenapa uji bersamaan menerima `200` maupun `409`.** Permintaan yang kalah dalam
+perlombaan dapat berakhir dua cara yang sama-sama sah: `200` bila pemeriksaan "sudah ada" di
+dalam controller masih sempat menangkapnya, atau `409` bila database yang menolaknya lebih dulu.
+Keduanya diterima uji ini; yang **tidak** boleh terjadi — dan yang diperiksa tanpa syarat —
+adalah dua baris tindakan, karena dua baris berarti dua tagihan.
+
+Perilaku `409` itu **tidak diubah**. Controller sudah menanganinya sejak sebelum task ini beserta
+pesan yang menjelaskan kemungkinan penyebabnya kepada pengguna, dan acceptance criteria 2 hanya
+menuntut ketiadaan tindakan maupun fakta ganda — bukan kode balasan tertentu. Mengubahnya berarti
+mengubah perilaku yang sudah berjalan tanpa satu pun kriteria yang memintanya.
+
+### Berkas yang berubah pada peninjauan ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/ClinicalIntegration/PatientProcedureRetryTests.cs` | **Baru.** Empat test beserta penyiapan kunjungan rawat inap lengkap: sumber pembayaran, dokter, perawatan, catatan dokter, tindakan master, dan tarif rumah sakit |
+
+**Nol perubahan source aplikasi. Nol migration. Nol perubahan kontrak API.**
+
+### Catatan penutup peninjauan
+
+| Hal | Isi |
+| --- | --- |
+| Status akhir | ✅ **Selesai.** Kelima acceptance criteria dan ketiga butir Definition of Done terpenuhi |
+| Peringatan | Nol peringatan build baru |
+| Masalah yang diketahui | Tidak berubah: kunci permintaan tetap **opsional**, sehingga pemanggil yang tidak mengirimnya masih dapat melahirkan tindakan ganda saat jaringan terputus. `TindakanTanpaKunci_TetapDapatBerdampingan` justru membuktikan jalur itu memang terbuka — sengaja, karena tindakan poliklinik dan IGD tidak membawa kunci. Mewajibkannya adalah keputusan kontrak yang belum ada |
+| Risiko tersisa | Container uji tidak otomatis dinyalakan CI. Selama CI belum menyediakan PostgreSQL, keempat test ini akan `NOT RUN` di sana — terhalang konfigurasi, bukan gagal |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE` |
 | Status Git | Tidak ada stage, commit, maupun push |

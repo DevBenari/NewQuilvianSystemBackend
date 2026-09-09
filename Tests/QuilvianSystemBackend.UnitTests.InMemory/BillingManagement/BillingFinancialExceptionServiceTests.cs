@@ -107,15 +107,11 @@ public sealed class BillingFinancialExceptionServiceTests
             Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
         Assert.Equal(BillingWriteOffCategories.PatientAr, patientAr.Category);
 
-        var currentInvoice = await db.BilInvoices.FindAsync(seeded.Invoice.Id);
-
-        var exception = await Assert.ThrowsAsync<BillingFinancialExceptionValidationException>(() =>
-            service.CreateWriteOffAsync(
+        var exception = await Assert.ThrowsAsync<BillingFinancialExceptionValidationException>(async () =>
+            await service.CreateWriteOffAsync(
                 WriteOffRequest(
-                    seeded.Invoice.Id,
-                    currentInvoice!.RowVersion,
-                    45_000m, "Melebihi sisa selisih",
-                    category: BillingWriteOffCategories.NonBillableResidual),
+                    seeded.Invoice.Id, (await db.BilInvoices.FindAsync(seeded.Invoice.Id))!.RowVersion,
+                    45_000m, "Melebihi sisa selisih", category: BillingWriteOffCategories.NonBillableResidual),
                 Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None));
 
         Assert.Contains("selisih yang tidak dapat ditagihkan", exception.Message);

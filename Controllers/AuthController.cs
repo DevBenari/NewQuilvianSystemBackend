@@ -18,6 +18,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -36,6 +37,7 @@ namespace QuilvianSystemBackend.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly LanguageService _languageService;
         private readonly LoggerService _loggerService;
+        private readonly AccessPermissionService _accessPermissionService;
         private readonly IDataProtector _fingerprintProtector;
 
         public AuthController(
@@ -46,6 +48,7 @@ namespace QuilvianSystemBackend.Controllers
             IWebHostEnvironment environment,
             LanguageService languageService,
             LoggerService loggerService,
+            AccessPermissionService accessPermissionService,
             IDataProtectionProvider dataProtectionProvider)
         {
             _userManager = userManager;
@@ -55,6 +58,7 @@ namespace QuilvianSystemBackend.Controllers
             _environment = environment;
             _languageService = languageService;
             _loggerService = loggerService;
+            _accessPermissionService = accessPermissionService;
             _fingerprintProtector = dataProtectionProvider.CreateProtector("Quilvian.Fingerprint.Template.v1");
         }
 
@@ -580,6 +584,21 @@ namespace QuilvianSystemBackend.Controllers
                     User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                 },
                 "Login fingerprint berhasil."
+            ));
+        }
+
+        [HttpGet("permissions")]
+        [Authorize]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(ApiResponse<EffectivePermissionSet>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Permissions()
+        {
+            var hasil = await _accessPermissionService.GetEffectivePermissionsAsync(User);
+
+            return Ok(ApiResponse<EffectivePermissionSet>.Ok(
+                hasil,
+                "Daftar kewenangan berhasil diambil."
             ));
         }
 

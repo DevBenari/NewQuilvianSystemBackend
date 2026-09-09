@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting.Internal;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -606,7 +607,11 @@ public sealed class ClinicalRoleAccessContractTests
             .BuildServiceProvider()
             .GetRequiredService<UserManager<ApplicationUser>>();
 
-        return new AccessPermissionService(dbContext, userManager, configuration);
+        // Lingkungan dibutuhkan karena pelonggaran otorisasi pengembangan hanya boleh menyala
+        // di luar Production; tanpa itu sakelarnya akan berlaku di mana saja.
+        var environment = new HostingEnvironment { EnvironmentName = "Development" };
+
+        return new AccessPermissionService(dbContext, userManager, configuration, environment);
     }
 
     private static ClaimsPrincipal PrincipalOf(ApplicationUser user)

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `21` |
+| Revision | `22` |
 | Status | `draft` |
 | Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` selesai |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
@@ -1624,7 +1624,7 @@ Lima butir ditutup lewat `LAB-REQ-001`, disetujui `andryzainhome` (`andryzain01@
 | `LAB-OPEN-012` | Yang dibutuhkan adalah **satu angka** — jumlah baris `TrxLabSpecimen` di produksi. Persetujuan tidak memberi tahu berapa |
 | `LAB-OPEN-018` | Lokasi dokumen sudah diketahui, tetapi rules root yang **terpasang** belum memuatnya. Yang dibutuhkan adalah publikasi/pembaruan suite Skill, bukan persetujuan |
 | `LAB-OPEN-019` | Yang dibutuhkan adalah **kenaikan lifecycle registry** `PLANNED` → `ACTIVE` untuk `LaboratoryManagement`, dan itu wewenang pemilik repository backend |
-| `LAB-SIGN-001` | Pemilik repository **bukan** wewenang klinis. `LAB-DEC-011` yang disetujui pemilik modul sendiri mensyaratkan tanda tangan dokter penanggung jawab laboratorium atau Komite Medis |
+| `LAB-SIGN-001` | Pemilik repository **bukan** wewenang klinis. `LAB-DEC-011` yang disetujui pemilik modul sendiri mensyaratkan tanda tangan dokter penanggung jawab laboratorium atau Komite Medis. **Diajukan 2026-09-09 lewat `LAB-REQ-004`** — lihat `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md` |
 | `LAB-P0-007` | Aturan tagihan dan cakupan | Billing | `DESIGN` — tampilan tarif dan cakupan |
 | `LAB-P0-008` | Penyelarasan antaraplikasi | Yoga Aji Pratama + pemilik platform | `DESIGN` — batas integrasi |
 | `LAB-OPEN-013` | Dampak Cito dan Duplo pada tarif | Yoga Aji Pratama + Billing | `DESIGN` — bagian penandaan pemeriksaan |
@@ -1634,7 +1634,7 @@ Lima butir ditutup lewat `LAB-REQ-001`, disetujui `andryzainhome` (`andryzain01@
 | `DEC-LAB-009` | Di mana identitas dokter dan instansi perujuk disimpan? | Yoga Aji Pratama + pemilik `registration-management` | `DESIGN` — memblokir `S13b` pendaftaran rujukan luar |
 | `DEC-LAB-010` | Bagaimana disiplin melekat pada jenis pemeriksaan? `MstProcedure` hanya punya `IsLaboratory` tanpa pembeda disiplin | Yoga Aji Pratama + pemilik `master-data` | `DESIGN` — memblokir penegakan `INV-22` |
 | `DEC-LAB-008` | Apakah satu wadah fisik dapat melayani beberapa pemeriksaan? | Yoga Aji Pratama + kepala instalasi laboratorium | **Ditutup** `LAB-DEC-024` |
-| `LAB-SIGN-001` | Tanda tangan klinis untuk `LAB-DEC-003`, `LAB-DEC-004`, dan `LAB-DEC-007`, sesuai `LAB-DEC-011` | Dokter penanggung jawab laboratorium atau Komite Medis | `DESIGN` — **hanya bagian validasi hasil, nilai kritis, dan koreksi hasil**. Bagian lain boleh maju |
+| `LAB-SIGN-001` | Tanda tangan klinis untuk `LAB-DEC-003`, `LAB-DEC-004`, dan `LAB-DEC-007`, sesuai `LAB-DEC-011` | Dokter penanggung jawab laboratorium atau Komite Medis | `DESIGN` — **hanya bagian validasi hasil, nilai kritis, dan koreksi hasil**. Bagian lain boleh maju. Permintaan `LAB-REQ-004` diajukan 2026-09-09; penanda tangannya sendiri belum ditetapkan rumah sakit |
 | `LAB-AMD-001` | Amandemen `LAB-INH-001` dan `LAB-INH-006` pada blueprint `rawat-jalan`: `Draft` dihapus, batas kewenangan dokter menjadi "sampai sampel pertama diambil" | Pemilik blueprint `rawat-jalan` + Billing | `DESIGN` — **hanya bagian pembuatan dan penyuntingan pesanan** |
 | `LAB-COORD-001` | Kesepakatan dengan pemilik platform soal kemampuan pemberitahuan bersama | Yoga Aji Pratama + pemilik platform | `DESIGN` — **hanya bagian pemberitahuan** |
 | `LAB-COORD-002` | Kesepakatan dengan pemilik `rekam-medis` untuk menambah jenis dokumen klinis baru | Yoga Aji Pratama + pemilik `rekam-medis` | `DESIGN` — **hanya bagian penyajian hasil ke rekam medis** |
@@ -1686,7 +1686,10 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
    | `LAB-DEC-007` | Kewenangan koreksi hasil dan pemberitahuan ke dokter | Menentukan apa yang terjadi ketika hasil yang sudah dipakai ternyata salah |
 
    Dicatat sebagai `LAB-SIGN-001`. Ini **tidak** memblokir seluruh desain — hanya bagian
-   validasi hasil, nilai kritis, dan koreksi hasil yang harus menunggu.
+   validasi hasil, nilai kritis, dan koreksi hasil yang harus menunggu. Permintaan tanda tangannya
+   diajukan 2026-09-09 sebagai `LAB-REQ-004` pada `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md`,
+   yang sekaligus meminta penetapan **siapa** pemegang wewenang klinis — sampai hari ini
+   `blueprint-manifest.md` masih mencatatnya `belum ditetapkan`.
 3. Keputusan warisan `RJ-BIL-GATE-DEC-003` berstatus `locked-draft` dengan tata kelola formal
    `OPEN` di blueprint `rawat-jalan`. Statusnya tidak berubah oleh sesi ini.
 
@@ -1696,6 +1699,7 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 22 | 2026-09-09 | **`LAB-SIGN-001` diajukan resmi** sebagai `LAB-REQ-004` pada `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md`, ditujukan ke dokter penanggung jawab laboratorium atau Komite Medis. Memuat `LAB-DEC-003`, `LAB-DEC-004`, dan `LAB-DEC-007` untuk ditandatangani; dua penetapan rumah sakit yang menurunkan `LAB-DEC-022` butir 3 dan `LAB-DEC-023`; serta tiga pertanyaan klinis terbuka `LAB-P0-004`, `LAB-OPEN-014`, dan `LAB-P0-001`. Penelusuran ulang menemukan `LAB-COORD-001` dan `LAB-COORD-002` sudah ditutup 2026-09-01, sehingga `LAB-SIGN-001` kini **satu-satunya** penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6`. Dicatat pula bahwa penanda tangannya sendiri belum ditetapkan — `clinical_governance` masih kosong | `draft` |
 | 1 | 2026-09-01 | Scope pass dibuka. Fakta source code dicatat, keputusan warisan dari `RJ-BIL-GATE-DEC-003` dikutip, batas scope diajukan untuk dikonfirmasi | `draft` |
 | 2 | 2026-09-01 | Batas scope dikunci lewat `LAB-DEC-001` (rilis 1 sampai hasil dirilis) dan `LAB-DEC-002` (Patologi Klinik saja). `LAB-SCOPE-001` dan `LAB-OPEN-003` ditutup | `draft` |
 | 3 | 2026-09-01 | Invariant hasil dikunci: `LAB-DEC-003` prinsip empat mata, `LAB-DEC-004` nilai kritis, `LAB-DEC-005` hasil diketik manual. Risiko `LAB-RISK-001` dicatat | `draft` |

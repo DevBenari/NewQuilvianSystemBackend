@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
@@ -61,6 +62,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsReadOnlyGenerated { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+
+        /// <summary>
+        /// Keadaan verifikasi DPJP atas catatan ini, apa adanya seperti yang tersimpan pada
+        /// barisnya - <c>BE-RWI-066</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nilainya <b>tidak</b> diturunkan ulang di sini. <c>Overdue</c> lahir dari
+        /// perbandingan <see cref="VerificationDueAt"/> terhadap waktu sekarang dan dihitung
+        /// pada daftar pantau, bukan disimpan; mengarangnya di sini akan membuat dua sumber
+        /// kebenaran yang saling menyalip.
+        /// </remarks>
+        public CpptVerificationStatus VerificationStatus { get; set; }
+
+        /// <summary>Waktu verifikasi. Kosong selama catatan belum diverifikasi.</summary>
+        public DateTime? VerifiedAt { get; set; }
+
+        /// <summary>
+        /// Pengguna yang memverifikasi. <b>Bukan</b> penulis catatan pada
+        /// <see cref="ProviderUserId"/> - <c>INV-DOK-11</c>.
+        /// </summary>
+        public Guid? VerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama verifikator. Kosong berarti belum diverifikasi, atau verifikatornya tidak lagi
+        /// dapat dikenali - <b>bukan</b> nama tebakan dan <b>bukan</b> nama penulis.
+        /// </summary>
+        public string? VerifiedByUserName { get; set; }
+
+        /// <summary>
+        /// Batas waktu verifikasi. Kosong berarti catatan ini tidak dipantau; nilai batasnya
+        /// datang dari kebijakan <c>RWI-RULE-021</c> yang belum disahkan, dan nol angka
+        /// ditanam di kode.
+        /// </summary>
+        public DateTime? VerificationDueAt { get; set; }
     }
 
     public class PatientIntegratedProgressNoteDetailResponse : PatientIntegratedProgressNoteResponse
@@ -100,6 +135,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string NoteText { get; set; } = string.Empty;
         public bool IsGeneratedFromSource { get; set; }
         public bool IsReadOnlyGenerated { get; set; }
+
+        /// <summary>
+        /// Keadaan verifikasi DPJP atas catatan ini, apa adanya seperti yang tersimpan pada
+        /// barisnya - <c>BE-RWI-066</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nilainya <b>tidak</b> diturunkan ulang di sini. <c>Overdue</c> lahir dari
+        /// perbandingan <see cref="VerificationDueAt"/> terhadap waktu sekarang dan dihitung
+        /// pada daftar pantau, bukan disimpan; mengarangnya di sini akan membuat dua sumber
+        /// kebenaran yang saling menyalip.
+        /// </remarks>
+        public CpptVerificationStatus VerificationStatus { get; set; }
+
+        /// <summary>Waktu verifikasi. Kosong selama catatan belum diverifikasi.</summary>
+        public DateTime? VerifiedAt { get; set; }
+
+        /// <summary>
+        /// Pengguna yang memverifikasi. <b>Bukan</b> penulis catatan pada
+        /// <see cref="ProviderUserId"/> - <c>INV-DOK-11</c>.
+        /// </summary>
+        public Guid? VerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama verifikator. Kosong berarti belum diverifikasi, atau verifikatornya tidak lagi
+        /// dapat dikenali - <b>bukan</b> nama tebakan dan <b>bukan</b> nama penulis.
+        /// </summary>
+        public string? VerifiedByUserName { get; set; }
+
+        /// <summary>
+        /// Batas waktu verifikasi. Kosong berarti catatan ini tidak dipantau; nilai batasnya
+        /// datang dari kebijakan <c>RWI-RULE-021</c> yang belum disahkan, dan nol angka
+        /// ditanam di kode.
+        /// </summary>
+        public DateTime? VerificationDueAt { get; set; }
     }
 
     public class PatientIntegratedProgressNoteFilterMetadataResponse
