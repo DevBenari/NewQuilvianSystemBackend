@@ -153,7 +153,7 @@ public class LabPatientRegistrationTests
         string[] polaTerlarang =
         {
             "new TrxPatientEncounter",
-            "new TrxPatientEncounterGuarantor",
+            "new RegPatientEncounterGuarantor",
             "new MstPatient",
             "TrxPatientEncounters.Add",
             "TrxPatientEncounters.Update",
@@ -227,12 +227,12 @@ public class LabPatientRegistrationTests
 
         // Registrasi yang membuatnya.
         Assert.Single(registrasiContext.Set<TrxPatientEncounter>());
-        Assert.Single(registrasiContext.Set<TrxPatientEncounterGuarantor>());
+        Assert.Single(registrasiContext.Set<RegPatientEncounterGuarantor>());
 
         // Laboratorium tidak menulis apa pun — tidak kunjungan, tidak sumber pembayaran,
         // dan tidak pula data induk pasien.
         Assert.Empty(labContext.Set<TrxPatientEncounter>());
-        Assert.Empty(labContext.Set<TrxPatientEncounterGuarantor>());
+        Assert.Empty(labContext.Set<RegPatientEncounterGuarantor>());
         Assert.Single(labContext.Set<MstPatient>());
     }
 
@@ -274,7 +274,7 @@ public class LabPatientRegistrationTests
         Assert.Equal(patient.FullName, hasil.FullName);
 
         // Setiap kunjungan wajib punya tepat satu sumber pembayaran.
-        Assert.Single(context.Set<TrxPatientEncounterGuarantor>());
+        Assert.Single(context.Set<RegPatientEncounterGuarantor>());
     }
 
     [Fact]
@@ -383,7 +383,7 @@ public class LabPatientRegistrationTests
 
         Assert.Contains("tidak berhak membuat kunjungan baru", exception.Message);
         Assert.Empty(context.Set<TrxPatientEncounter>());
-        Assert.Empty(context.Set<TrxPatientEncounterGuarantor>());
+        Assert.Empty(context.Set<RegPatientEncounterGuarantor>());
     }
 
     /// <summary>
@@ -407,7 +407,7 @@ public class LabPatientRegistrationTests
             }));
 
         Assert.Empty(context.Set<TrxPatientEncounter>());
-        Assert.Empty(context.Set<TrxPatientEncounterGuarantor>());
+        Assert.Empty(context.Set<RegPatientEncounterGuarantor>());
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public class LabPatientRegistrationTests
         Assert.True(kedua.IsReplay);
 
         Assert.Single(context.Set<TrxPatientEncounter>());
-        Assert.Single(context.Set<TrxPatientEncounterGuarantor>());
+        Assert.Single(context.Set<RegPatientEncounterGuarantor>());
     }
 
     [Fact]

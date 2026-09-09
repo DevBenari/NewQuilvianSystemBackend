@@ -70,7 +70,7 @@ public sealed class BillingInsuranceInvoiceDocumentService
         };
 
         var warnings = new List<string>();
-        var guarantor = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+        var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -191,7 +191,7 @@ public sealed class BillingInsuranceInvoiceDocumentService
     // (kesepakatan komersial RS-asuransi) dan CardNumberSnapshot (nomor kartu asuransi). Lihat
     // 02-backend-architecture.md § Yang sengaja tidak dibuat.
     private async Task<InsuranceInvoicePayerResponse?> LoadPayerAsync(
-        TrxPatientEncounterGuarantor guarantor, CancellationToken cancellationToken)
+        RegPatientEncounterGuarantor guarantor, CancellationToken cancellationToken)
     {
         if (!guarantor.InsuranceProviderId.HasValue) return null;
         var provider = await _dbContext.MstInsuranceProviders.AsNoTracking()

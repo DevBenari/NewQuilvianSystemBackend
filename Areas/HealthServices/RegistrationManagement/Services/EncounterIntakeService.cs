@@ -361,7 +361,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 encounter.PaymentSource = paymentSource;
 
                 _dbContext.Set<TrxPatientEncounter>().Add(encounter);
-                _dbContext.Set<TrxPatientEncounterGuarantor>().Add(paymentSource);
+                _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
                 try
                 {
@@ -400,14 +400,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private void DetachPending(
             TrxPatientEncounter encounter,
-            TrxPatientEncounterGuarantor paymentSource)
+            RegPatientEncounterGuarantor paymentSource)
         {
             encounter.PaymentSource = null;
             _dbContext.Entry(paymentSource).State = EntityState.Detached;
             _dbContext.Entry(encounter).State = EntityState.Detached;
         }
 
-        private async Task<TrxPatientEncounterGuarantor> BuildPaymentSourceAsync(
+        private async Task<RegPatientEncounterGuarantor> BuildPaymentSourceAsync(
             TrxPatientEncounter encounter,
             EncounterIntakeRequest request,
             MstPatientInsurance? patientInsurance,
@@ -415,10 +415,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var paymentSource = new TrxPatientEncounterGuarantor
+            var paymentSource = new RegPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
-                PaymentSourceNumber = await AllocateRunningCodeAsync<TrxPatientEncounterGuarantor>(
+                PaymentSourceNumber = await AllocateRunningCodeAsync<RegPatientEncounterGuarantor>(
                     x => x.PaymentSourceNumber, PaymentSourceCodePrefix, cancellationToken),
                 EncounterId = encounter.Id,
                 PatientId = encounter.PatientId,

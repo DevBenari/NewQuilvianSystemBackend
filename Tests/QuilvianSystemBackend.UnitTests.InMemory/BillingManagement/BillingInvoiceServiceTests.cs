@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -216,7 +216,7 @@ public sealed class BillingInvoiceServiceTests
             PaymentType = EncounterPaymentType.Insurance,
             IsActive = true
         });
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = encounterId,
             PatientId = patientId,

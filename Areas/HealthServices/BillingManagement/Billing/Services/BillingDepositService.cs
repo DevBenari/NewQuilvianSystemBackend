@@ -124,7 +124,7 @@ public sealed class BillingDepositService
             .FirstOrDefaultAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Episode rawat inap tidak ditemukan.");
 
-        var guarantor = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+        var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
             .OrderByDescending(x => x.IsPrimary)
             .ThenBy(x => x.Priority)

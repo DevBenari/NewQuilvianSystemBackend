@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPatientEncounterGuarantorConfiguration : IEntityTypeConfiguration<TrxPatientEncounterGuarantor>
+    public class RegPatientEncounterGuarantorConfiguration : IEntityTypeConfiguration<RegPatientEncounterGuarantor>
     {
-        public void Configure(EntityTypeBuilder<TrxPatientEncounterGuarantor> entity)
+        public void Configure(EntityTypeBuilder<RegPatientEncounterGuarantor> entity)
         {
-            entity.ToTable("TrxPatientEncounterGuarantor", "public");
+            entity.ToTable("RegPatientEncounterGuarantor", "public");
 
             entity.HasKey(x => x.Id);
 
@@ -145,7 +145,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasOne(x => x.Encounter)
                 .WithOne(x => x.PaymentSource)
-                .HasForeignKey<TrxPatientEncounterGuarantor>(x => x.EncounterId)
+                .HasForeignKey<RegPatientEncounterGuarantor>(x => x.EncounterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Patient)

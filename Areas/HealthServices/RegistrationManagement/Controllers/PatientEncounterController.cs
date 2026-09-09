@@ -630,7 +630,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ApplyEncounterPaymentSummary(encounter, paymentSource);
 
                 _dbContext.Set<TrxPatientEncounter>().Add(encounter);
-                _dbContext.Set<TrxPatientEncounterGuarantor>().Add(paymentSource);
+                _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
                 TrxQueue? queue = null;
 
@@ -1123,7 +1123,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 entity.Notes = request.DeleteReason.Trim();
             }
 
-            var paymentSource = await _dbContext.Set<TrxPatientEncounterGuarantor>()
+            var paymentSource = await _dbContext.Set<RegPatientEncounterGuarantor>()
                 .FirstOrDefaultAsync(x => x.EncounterId == id && !x.IsDelete);
 
             if (paymentSource != null)
@@ -2012,7 +2012,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return (true, null);
         }
 
-        private async Task<TrxPatientEncounterGuarantor> BuildPaymentSourceAsync(
+        private async Task<RegPatientEncounterGuarantor> BuildPaymentSourceAsync(
             Guid encounterId,
             PatientEncounterCreateRequest request,
             MstPatientInsurance? patientInsurance,
@@ -2020,7 +2020,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             DateTime now,
             Guid actorUserId)
         {
-            var entity = new TrxPatientEncounterGuarantor
+            var entity = new RegPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
                 PaymentSourceNumber = await GeneratePaymentSourceNumberAsync(),
@@ -2109,7 +2109,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static void ApplyEncounterPaymentSummary(
             TrxPatientEncounter encounter,
-            TrxPatientEncounterGuarantor paymentSource)
+            RegPatientEncounterGuarantor paymentSource)
         {
             encounter.PaymentType = paymentSource.PaymentType;
             encounter.PaymentMethodId = paymentSource.PaymentType == EncounterPaymentType.Cash
@@ -2146,7 +2146,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private async Task<string> GeneratePaymentSourceNumberAsync()
         {
             // Prefix lama dipertahankan agar penomoran data existing tetap berlanjut.
-            return await GenerateRunningCodeAsync<TrxPatientEncounterGuarantor>(
+            return await GenerateRunningCodeAsync<RegPatientEncounterGuarantor>(
                 selector: x => x.PaymentSourceNumber,
                 prefix: PaymentSourceCodePrefix);
         }
@@ -2604,7 +2604,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static PatientEncounterPaymentResponse MapPaymentSourceResponse(
-            TrxPatientEncounterGuarantor entity)
+            RegPatientEncounterGuarantor entity)
         {
             return new PatientEncounterPaymentResponse
             {

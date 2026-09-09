@@ -119,7 +119,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // PAYMENT SUMMARY
             // =========================
             // Detail dan snapshot sumber pembayaran berada pada relasi one-to-one
-            // TrxPatientEncounterGuarantor. Header encounter hanya menyimpan summary.
+            // RegPatientEncounterGuarantor. Header encounter hanya menyimpan summary.
 
             entity.Property(x => x.PaymentType)
                 .HasConversion<int>()
@@ -344,8 +344,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Relasi one-to-one PaymentSource dikonfigurasi pada
-            // TrxPatientEncounterGuarantorConfiguration karena foreign key berada
-            // pada tabel TrxPatientEncounterGuarantor.
+            // RegPatientEncounterGuarantorConfiguration karena foreign key berada
+            // pada tabel RegPatientEncounterGuarantor.
 
             // =========================
             // INDEXES

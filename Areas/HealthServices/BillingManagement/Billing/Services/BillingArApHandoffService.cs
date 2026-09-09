@@ -65,7 +65,7 @@ public sealed class BillingArApHandoffService
         var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
         if (payerAmount > 0)
         {
-            var guarantor = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
                 .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
                 .FirstOrDefaultAsync(cancellationToken);
             _dbContext.BilArHandoffs.Add(new BilArHandoff

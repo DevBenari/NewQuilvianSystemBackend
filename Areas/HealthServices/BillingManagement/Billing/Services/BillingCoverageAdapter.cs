@@ -100,7 +100,7 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
         BillingCoverageContext context,
         CancellationToken cancellationToken)
     {
-        var paymentSource = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+        var paymentSource = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .FirstOrDefaultAsync(x => x.EncounterId == context.EncounterId && x.IsActive && !x.IsDelete, cancellationToken);
 
         if (paymentSource is null || paymentSource.PaymentType == EncounterPaymentType.Cash)

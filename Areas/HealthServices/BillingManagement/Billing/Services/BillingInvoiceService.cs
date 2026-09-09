@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -210,7 +210,7 @@ public sealed class BillingInvoiceService
         // di file ini) - relevan bagi kasir adalah penjamin yang tercatat SAAT kunjungan itu.
         var guarantorRows = encounterIds.Count == 0
             ? []
-            : await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            : await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
                 .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
                 .Select(x => new
                 {
@@ -645,7 +645,7 @@ public sealed class BillingInvoiceService
         // bagi kasir adalah penjamin yang tercatat saat kunjungan itu didaftarkan.
         var guarantorNames = encounterIds.Count == 0
             ? new Dictionary<Guid, string?>()
-            : await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            : await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
                 .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
                 .GroupBy(x => x.EncounterId)
                 .Select(group => new
@@ -709,7 +709,7 @@ public sealed class BillingInvoiceService
                 .Select(x => (string?)x.PatientClassName)
                 .FirstOrDefaultAsync(cancellationToken)
             : null;
-        var guarantorName = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+        var guarantorName = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .Where(x => x.EncounterId == encounterId && x.IsActive)
             .Select(x => x.PaymentSourceNameSnapshot)
             .FirstOrDefaultAsync(cancellationToken);

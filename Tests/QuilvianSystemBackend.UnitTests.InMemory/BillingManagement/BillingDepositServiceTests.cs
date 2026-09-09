@@ -489,7 +489,7 @@ public sealed class BillingDepositServiceTests
         };
         db.Set<InpEpisode>().Add(episode);
 
-        var guarantor = new TrxPatientEncounterGuarantor
+        var guarantor = new RegPatientEncounterGuarantor
         {
             Id = Guid.NewGuid(),
             EncounterId = encounterId,
@@ -499,7 +499,7 @@ public sealed class BillingDepositServiceTests
             Priority = 1,
             IsActive = true
         };
-        db.TrxPatientEncounterGuarantors.Add(guarantor);
+        db.RegPatientEncounterGuarantors.Add(guarantor);
 
         var policy = new MstDepositPolicy
         {
@@ -560,7 +560,7 @@ public sealed class BillingDepositServiceTests
         };
         db.Set<InpEpisode>().Add(episode);
 
-        var guarantor = new TrxPatientEncounterGuarantor
+        var guarantor = new RegPatientEncounterGuarantor
         {
             Id = Guid.NewGuid(),
             EncounterId = encounterId,
@@ -570,7 +570,7 @@ public sealed class BillingDepositServiceTests
             Priority = 1,
             IsActive = true
         };
-        db.TrxPatientEncounterGuarantors.Add(guarantor);
+        db.RegPatientEncounterGuarantors.Add(guarantor);
 
         var policy = new MstDepositPolicy
         {
@@ -680,7 +680,7 @@ public sealed class BillingDepositServiceTests
         };
         db.Set<InpEpisode>().Add(episode);
 
-        var guarantor = new TrxPatientEncounterGuarantor
+        var guarantor = new RegPatientEncounterGuarantor
         {
             Id = Guid.NewGuid(),
             EncounterId = encounterId,
@@ -690,7 +690,7 @@ public sealed class BillingDepositServiceTests
             Priority = 1,
             IsActive = true
         };
-        db.TrxPatientEncounterGuarantors.Add(guarantor);
+        db.RegPatientEncounterGuarantors.Add(guarantor);
 
         var policy = new MstDepositPolicy
         {

@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -176,7 +176,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public MstClinic? Clinic { get; set; }
 
-        public TrxPatientEncounterGuarantor? PaymentSource { get; set; }
+        public RegPatientEncounterGuarantor? PaymentSource { get; set; }
 
         public MstPatientInsurance? PatientInsurance { get; set; }
 

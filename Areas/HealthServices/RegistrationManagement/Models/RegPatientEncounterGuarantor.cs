@@ -9,11 +9,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
     /// <summary>
-    /// Sumber pembayaran satu-ke-satu milik encounter. Nama tabel lama dipertahankan
-    /// agar perubahan tidak memerlukan rename table yang tidak perlu.
+    /// Sumber pembayaran satu-ke-satu milik encounter.
     /// </summary>
-    [Table("TrxPatientEncounterGuarantor", Schema = "public")]
-    public class TrxPatientEncounterGuarantor : IdentityModel
+    [Table("RegPatientEncounterGuarantor", Schema = "public")]
+    public class RegPatientEncounterGuarantor : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

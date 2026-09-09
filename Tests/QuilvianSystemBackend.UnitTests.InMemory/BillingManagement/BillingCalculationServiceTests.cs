@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -411,7 +411,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -462,7 +462,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -510,7 +510,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -557,7 +557,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -605,7 +605,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -654,7 +654,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -699,7 +699,7 @@ public sealed class BillingCalculationServiceTests
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -749,7 +749,7 @@ public sealed class BillingCalculationServiceTests
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var firstCategoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -844,7 +844,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -892,7 +892,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -939,7 +939,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -988,7 +988,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -1045,7 +1045,7 @@ public sealed class BillingCalculationServiceTests
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
         var providerId = Guid.NewGuid();
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
@@ -1080,7 +1080,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
-        db.TrxPatientEncounterGuarantors.Add(new TrxPatientEncounterGuarantor
+        db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
             PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,

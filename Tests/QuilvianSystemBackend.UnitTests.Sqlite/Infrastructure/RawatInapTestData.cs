@@ -221,7 +221,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             // mempunyai tepat satu sumber pembayaran". Tanpa baris ini, seluruh jalur yang
             // menghitung tarif - resep dan tindakan - ditolak dengan "Sumber pembayaran
             // encounter tidak ditemukan", dan penolakan itu menyamarkan hal yang sedang diuji.
-            var sumberPembayaran = new TrxPatientEncounterGuarantor
+            var sumberPembayaran = new RegPatientEncounterGuarantor
             {
                 PaymentSourceNumber = $"BYR-{pembeda}",
                 EncounterId = kunjungan.Id,
@@ -230,7 +230,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 PaymentSourceNameSnapshot = "Tunai",
                 IsActive = true
             };
-            context.Set<TrxPatientEncounterGuarantor>().Add(sumberPembayaran);
+            context.Set<RegPatientEncounterGuarantor>().Add(sumberPembayaran);
             context.SaveChanges();
 
             var episode = new InpEpisode

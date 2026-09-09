@@ -81054,7 +81054,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPatientEncounter", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounterGuarantor", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounterGuarantor", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81232,7 +81232,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("InsuranceProviderId", "BenefitPlanCodeSnapshot", "IsPolicyActive", "IsActive", "IsDelete");
 
-                    b.ToTable("TrxPatientEncounterGuarantor", "public");
+                    b.ToTable("RegPatientEncounterGuarantor", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", b =>
@@ -103102,7 +103102,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PaymentCompletedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounterGuarantor", "PaymentSource")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounterGuarantor", "PaymentSource")
                         .WithMany()
                         .HasForeignKey("PaymentSourceId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -103967,7 +103967,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ServiceUnit");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounterGuarantor", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounterGuarantor", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstCompanyGuarantor", "CompanyGuarantor")
                         .WithMany()
@@ -103976,7 +103976,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
                         .WithOne("PaymentSource")
-                        .HasForeignKey("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounterGuarantor", "EncounterId")
+                        .HasForeignKey("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounterGuarantor", "EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

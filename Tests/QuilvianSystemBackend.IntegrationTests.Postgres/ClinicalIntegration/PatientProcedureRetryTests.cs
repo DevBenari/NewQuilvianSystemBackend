@@ -87,7 +87,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
                     .Where(x => _consultationIds.Contains(x.Id))
                     .ExecuteDeleteAsync();
 
-                await context.Set<TrxPatientEncounterGuarantor>()
+                await context.Set<RegPatientEncounterGuarantor>()
                     .Where(x => encounterIds.Contains(x.EncounterId))
                     .ExecuteDeleteAsync();
 
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
 
             _doctorIds.Add(dokter.Id);
 
-            context.Set<TrxPatientEncounterGuarantor>().Add(new TrxPatientEncounterGuarantor
+            context.Set<RegPatientEncounterGuarantor>().Add(new RegPatientEncounterGuarantor
             {
                 PaymentSourceNumber = $"BYR{pembeda}",
                 EncounterId = seed.EncounterId,

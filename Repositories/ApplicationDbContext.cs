@@ -660,7 +660,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
-        public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }
+        public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
         public DbSet<TrxQueue> TrxQueues { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }

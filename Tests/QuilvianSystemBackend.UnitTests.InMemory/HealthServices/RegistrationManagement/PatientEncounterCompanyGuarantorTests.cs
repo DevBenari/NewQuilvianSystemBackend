@@ -98,7 +98,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
         var encounter = await world.DbContext.Set<TrxPatientEncounter>().SingleAsync();
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
 
         Assert.Equal(EncounterPaymentType.CompanyGuarantor, encounter.PaymentType);
         Assert.Null(encounter.PaymentMethodId);
@@ -147,7 +147,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         master.CompanyGuarantorCode = "COMP-999";
         await world.DbContext.SaveChangesAsync();
 
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>()
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>()
             .AsNoTracking()
             .SingleAsync();
 
@@ -269,7 +269,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         Assert.Equal(pesanDiharapkan, PatientEncounterTestWorld.Pesan(result));
 
         Assert.False(await world.DbContext.Set<TrxPatientEncounter>().AnyAsync());
-        Assert.False(await world.DbContext.Set<TrxPatientEncounterGuarantor>().AnyAsync());
+        Assert.False(await world.DbContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
     // =====================================================================
@@ -414,7 +414,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
             PatientEncounterTestWorld.Pesan(result));
 
         Assert.False(await world.DbContext.Set<TrxPatientEncounter>().AnyAsync());
-        Assert.False(await world.DbContext.Set<TrxPatientEncounterGuarantor>().AnyAsync());
+        Assert.False(await world.DbContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
     /// <remarks>
@@ -440,7 +440,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
 
         Assert.Equal(paymentType, payment.PaymentType);
         Assert.Null(payment.PatientCompanyGuarantorId);
@@ -468,7 +468,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
 
         Assert.Equal(EncounterPaymentType.Cash, payment.PaymentType);
         Assert.Equal(world.PaymentMethod.Id, payment.PaymentMethodId);
@@ -500,7 +500,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
 
         Assert.Equal(EncounterPaymentType.Insurance, payment.PaymentType);
         Assert.Equal(world.PatientInsurance.Id, payment.PatientInsuranceId);
@@ -552,7 +552,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
             PatientEncounterTestWorld.BuildOptions(databaseName, databaseRoot));
 
         Assert.False(await verifyContext.Set<TrxPatientEncounter>().AnyAsync());
-        Assert.False(await verifyContext.Set<TrxPatientEncounterGuarantor>().AnyAsync());
+        Assert.False(await verifyContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
     [Fact]
@@ -567,7 +567,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         var result = await world.Controller.CreateEncounterForAdmin(request);
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var payment = await world.DbContext.Set<TrxPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
         Assert.Equal(2, payment.Priority);
         Assert.False(payment.IsPrimary);
 
