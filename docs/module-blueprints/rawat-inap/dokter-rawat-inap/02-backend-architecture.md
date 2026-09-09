@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082` |
-| Revision | `0.3` — amendment atas `0.2`, menyerap `RWI-DEC-086` s.d. `RWI-DEC-088` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
-| Tanggal | 2 September 2026 (`Asia/Jakarta`) |
+| Revision | `0.4` — amendment atas `0.3`, menyerap temuan `FE-RWI-044` dan membuka `BE-RWI-068` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik. Revision `0.3` `approved` |
+| `approved_by` / `approved_at` | `0.3` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4` **belum disetujui** |
+| Tanggal | 2 September 2026 (`Asia/Jakarta`); diamendemen 9 September 2026 |
 | Kemampuan | `CAP-015`, `CAP-020` s.d. `CAP-025` — `RWI-DEC-083` |
 | Masukan baseline | `PRD-RWI-FINAL-001` v1.0.0 bagian 18, 19, 23.1, 30.3 |
 | Masukan keputusan | [`../00-interview-decisions.md`](../00-interview-decisions.md) **revision `10`**, SHA-256 `de786bebc169636c0d7bd254d429a0209809890d78a7f1dcd8220d303fcbecc0` — `RWI-DEC-080` s.d. `RWI-DEC-088`; `RWI-DEC-038` dan `RWI-DEC-070` pelonggaran mesin klinis; `RWI-DEC-046` obat pulang; **`RWI-RULE-038` kapan catatan final dan bagaimana dikoreksi** |
@@ -53,6 +53,33 @@ terpadu**. Tiga jenis dokumen lain tidak pernah mendaftarkan diri, sedangkan pen
 selesai sudah dilarang — sehingga hari ini catatan dokter yang sudah diselesaikan **tidak dapat
 disunting dan tidak dapat dikoreksi**. Pencabutan kolomnya tetap benar; yang kurang adalah satu
 langkah pendaftaran.
+
+## 0.2 Apa yang berubah dari revision `0.3`
+
+Satu hal, dan ia **membalik satu baris pada bagian 9**. Amendment ini tidak lahir dari keputusan
+baru, melainkan dari layar yang akhirnya dibuat.
+
+| No | Yang berubah | Dari | Menjadi | Dasar |
+| ---: | --- | --- | --- | --- |
+| 1 | Diagnosis terstruktur pada kajian medis | Hanya dapat lahir dari catatan dokter; pelonggarannya **ditolak** bagian 9 | **Boleh lahir dari kajian medis** dengan menyebut perawatan rawat inap sebagai konteks. `TrxPatientDiagnosis` naik menjadi `Diperbarui` — bagian 4.10 | `PRD-RWI-FINAL-001` `CAP-022` aturan 2 dan 5; temuan `FE-RWI-044`; `INT-DOK-10` |
+
+**Kenapa pendirian bagian 9 dibalik untuk diagnosis, dan tidak untuk resep maupun tindakan.**
+Bagian 9 menolak pelonggaran `ConsultationId` pada ketiganya dengan satu kalimat: "ketiganya memang
+lahir dari konsultasi; yang perlu dibuka adalah konsultasinya". Kalimat itu ditulis 2 September,
+**sebelum** kajian medis punya kolom isian medis dan sebelum layarnya ada.
+
+Setelah `BE-RWI-045` menambahkan kolom isian medis pada 5 September dan `FE-RWI-044` membangun
+layarnya, satu hal menjadi terlihat: **kajian medis awal bukan catatan harian.** Ia dokumen
+tersendiri, dengan mesin status sendiri, yang justru lahir **sebelum** catatan harian pertama.
+"Membuka konsultasinya" memang membuat dokter bisa menulis, tetapi memaksanya membuat catatan
+harian yang tidak ia perlukan hanya sebagai gantungan diagnosis. Resep dan tindakan tidak punya
+masalah itu — keduanya memang dicatat dari catatan yang menaunginya, sehingga **alasan bagian 9
+tetap berlaku penuh bagi keduanya**.
+
+> **Ini perubahan yang wajib dilihat pemilik, bukan penyelarasan diam-diam.** Baris bagian 9
+> diperbarui apa adanya, kamus data diperbarui, dan alasannya ditulis di sini serta pada
+> `contracts/integration-contract.md` bagian 10.1. Menolaknya adalah pilihan yang sah; yang tidak
+> sah adalah membiarkan kontrak dan arsitektur mengatakan dua hal yang berbeda.
 
 ---
 
@@ -144,7 +171,7 @@ Dinomori tersendiri supaya tidak bertabrakan dengan penomoran kanonis.
 | Kajian medis awal | `ClinicalManagement` | Ya — ditulis lewat endpoint modul itu | **Tidak** — `RWI-DEC-081` |
 | Konsultasi dan SOAP | `ClinicalManagement` | Ya | **Tidak** |
 | CPPT | `ClinicalManagement` | Ya — **kontraknya milik sub-modul ini** (`CAP-021`) | **Tidak** |
-| Diagnosis dan daftar masalah | `ClinicalManagement` | Ya | **Tidak** |
+| Diagnosis dan daftar masalah | `ClinicalManagement` | Ya — **satu kolom diminta dan satu kewajiban dilonggarkan** pada `0.4`, bagian 4.10 | **Tidak** — `RWI-DEC-081` |
 | Tindakan dokter | `ClinicalManagement` | Ya | **Tidak** |
 | **Event visite dokter** | `ClinicalManagement` | Ya — **konsep baru, diminta kepada pemiliknya** | **Tidak.** Nama `Inp*` dilarang |
 | Integritas dokumen, addendum, pendelegasian penulis | `MedicalRecordManagement` | Ya — dipakai apa adanya | **Tidak** |
@@ -721,6 +748,44 @@ Mesinnya sudah mengenali tiga tingkat kewenangan, dan ketiganya dipakai apa adan
 > yang sama dengan `INV-DOK-13`: kewenangan per pasien, dijaga di dalam perintah bisnis. Rinciannya
 > pada `contracts/permission-audit-matrix.md` bagian 3.
 
+### 4.10 `TrxPatientDiagnosis` — `Diperbarui` — `CAP-022` aturan 5 ★ baru pada revision `0.4`
+
+Tabel ini sebelumnya berstatus `Sudah ada` dan hanya dirujuk. Ia naik menjadi `Diperbarui` karena
+`CAP-022` aturan 5 menuntut daftar masalah berbentuk objek terstruktur, dan bentuk kolomnya hari ini
+menutup jalur itu bagi kajian medis.
+
+| Keadaan hari ini | Buktinya |
+| --- | --- |
+| `ConsultationId` **wajib** pada permintaan | `PatientDiagnosisDtos.cs` baris 148–152 — `EncounterId` dan `ConsultationId` keduanya `[Required]` |
+| `ConsultationId` **wajib** pada tabelnya | `TrxPatientDiagnosis.cs` baris 20–21 |
+| Konsultasi yang disebut **wajib ada** | `PatientDiagnosisController.cs` baris 326 memakai `FirstAsync`, yang melempar bila tidak ketemu |
+| Tidak ada kolom konteks rawat inap | Pencarian `InpEpisodeId` pada berkas modelnya nihil |
+
+| Kolom yang diminta | Tipe | Wajib | Bawaan | Index | Kenapa |
+| --- | --- | :---: | --- | --- | --- |
+| `InpEpisodeId` | `uuid` | **Tidak** | `null` | Ya, bersama `PatientId` | Konteks perawatan bagi diagnosis yang lahir dari kajian medis. Pola dan namanya **sama persis** dengan kolom yang sudah dipakai pada empat tabel klinis lain sejak `BE-RWI-040` |
+
+| Kolom yang berubah | Dari | Menjadi | Akibat pada baris lama |
+| --- | --- | --- | --- |
+| `ConsultationId` | `NOT NULL` | **Boleh kosong** | **Nol.** Setiap baris lama sudah terisi dan tidak disentuh. Melepas kewajiban terisi tidak mengubah satu nilai pun |
+
+**Preseden yang diikuti apa adanya.** Pelonggaran berbentuk sama sudah pernah dikerjakan pada tabel
+milik `ClinicalManagement` yang sama: `QueueId` pada `TrxPatientAssessment` dilonggarkan oleh
+`BE-IGD-026` supaya pengkajian pasien IGD dapat disimpan, dengan alasan yang ditulis lengkap pada
+komentar modelnya. Bentuk, jaminan, dan cara membuktikannya diambil dari sana.
+
+| Yang dijaga | Caranya |
+| --- | --- |
+| Diagnosis tidak pernah menggantung tanpa konteks | Salah satu dari `ConsultationId` atau `InpEpisodeId` **wajib** terisi — `VAL-DOK-36`. Dijaga aturan bisnis, **bukan** oleh `NOT NULL`, karena tidak ada satu kolom pun yang selalu terisi pada kedua jalur |
+| Rawat jalan dan medical check-up tidak berubah | Pada kunjungan bertipe itu `ConsultationId` tetap dituntut, dengan kalimat penolakan yang sama persis — `VAL-DOK-38`, `RWI-AC-143` |
+| Tidak ada konsultasi bayangan | Jalur rawat inap **tidak** membuatkan baris konsultasi demi mengisi kolom. Dibuktikan dengan menghitung baris konsultasi sebelum dan sesudah — `testing/acceptance-test-matrix.md` bagian 11 |
+| Kewenangan per pasien | `VAL-DOK-39`, memakai pemeriksaan dokter aktif per episode yang **sudah ada** |
+
+> **`WorkingDiagnosis` tidak dicabut dan tidak digantikan.** Keduanya hidup berdampingan: teks bebas
+> menampung diagnosis kerja naratif, daftar terstruktur menampung kode ICD yang dapat dicari,
+> dinyatakan teratasi, dan dibawa ke ringkasan masalah. `VAL-DOK-11` lolos bila **salah satu**
+> terisi — menuntut keduanya berarti memaksa dokter mengetik hal yang sama dua kali.
+
 ---
 
 ## 5. Arsitektur folder
@@ -792,12 +857,18 @@ Areas/HealthServices/InPatientManagement/           ◄── NOL berkas baru
 | `TrxPrescription` | `Diperbarui` | `InpEpisodeId`, `PrescriptionOrderType`, `IdempotencyKey` — **tiga** | Tanpa mematikan layanan; baris lama `Routine` |
 | `LabOrder` | `Diperbarui` | `InpEpisodeId` — **satu** | Tanpa mematikan layanan |
 | `RadOrder` | `Diperbarui` | `InpEpisodeId` — **satu** | Tanpa mematikan layanan |
+| `TrxPatientDiagnosis` ★ `0.4` | `Diperbarui` | `InpEpisodeId` **ditambah** — satu, nullable; `ConsultationId` **dilonggarkan** dari `NOT NULL` menjadi boleh kosong | Tanpa mematikan layanan. **Satu-satunya kolom yang berubah bentuk di seluruh sub-modul ini**, dan arahnya melonggarkan |
 | `CliPhysicianVisit` | **`Baru`** | — | Tabel baru, kosong |
 | `MrcClinicalDocumentIntegrity`, `MrcClinicalNoteAddendum` | `Sudah ada` | **Nol** | Nol migration |
 
 **Nol tabel yang bentuknya rusak, nol kolom yang dihapus, nol kolom yang berubah tipe.**
 Dibanding revision `0.1`: **enam kolom lebih sedikit** diminta, dan satu tabel berganti nama
 sebelum sempat dibuat.
+
+**Satu kolom berubah kewajibannya pada `0.4`**, dan hanya satu: `ConsultationId` pada
+`TrxPatientDiagnosis`, dari wajib menjadi boleh kosong. Arahnya melonggarkan, sehingga **nol baris
+lama menjadi tidak sah** dan langkah mundurnya tidak kehilangan data — kecuali baris rawat inap
+yang memang lahir setelah pelonggaran, lihat bagian 7.3.
 
 ---
 
@@ -822,6 +893,7 @@ sebelum sempat dibuat.
 | 8 | Daftarkan `DbSet`, configuration, dan kedua service baru | `ClinicalManagement` | Ya |
 | 9 | **Pasang service konteks klinis** pada kedua controller | `ClinicalManagement` | **Tidak sepenuhnya** |
 | 10 | **Longgarkan batas jumlah konsultasi dan resep** untuk `Inpatient` dan `Emergency` | `ClinicalManagement`, `PharmacyManagement` | **Tidak sepenuhnya** |
+| 11 | **Tambah `InpEpisodeId` dan longgarkan `ConsultationId`** pada `TrxPatientDiagnosis`, lalu pindahkan penjagaannya ke aturan bisnis — `INT-DOK-10` ★ `0.4` | `ClinicalManagement` | **Tidak sepenuhnya** |
 
 > **Langkah 0 berada di urutan nol, dan itu disengaja.** Ia tidak menyentuh bentuk data sama
 > sekali, tetapi tanpanya langkah 9 mengundang pasien rawat inap ke jalur yang sudah diketahui
@@ -839,6 +911,7 @@ lama milik poliklinik dan IGD menerima nilai bawaan pada kolom baru dan **tidak 
 | 0 | Kembalikan kode ke bentuk semula. Nol perubahan data |
 | 2 s.d. 8 | Migration mundur. Tidak ada data hilang: kolomnya nullable atau bernilai bawaan, tabelnya baru dan kosong |
 | 9 dan 10 | Kembalikan validasi ke bentuk semula. Tidak ada bentuk data yang berubah |
+| 11 ★ `0.4` | **Mundurnya tidak simetris, dan itu wajib diketahui sebelum dijalankan.** Mengembalikan `ConsultationId` menjadi `NOT NULL` **gagal** bila sudah ada diagnosis rawat inap yang lahir tanpa nomor konsultasi. Urutan mundur yang benar: kembalikan validasinya lebih dulu supaya tidak ada baris baru, tangani baris yang sudah telanjur ada bersama pemilik klinis, baru turunkan migration-nya. Menambah `InpEpisodeId` sendiri mundur tanpa masalah |
 
 Langkah 9 dan 10 sengaja paling akhir dan **wajib diuji bersama test regresi poliklinik dan IGD**
 sesuai `RWI-DEC-051` dan `RWI-AC-143`.
@@ -876,7 +949,9 @@ sesuai `RWI-DEC-051` dan `RWI-AC-143`.
 | Unique "satu visite per dokter per hari" | `RWI-DEC-085`, `RWI-AC-154`. Dua kunjungan nyata adalah dua event |
 | Kolom status penyerahan obat milik Rawat Inap | `RUL-DOK-01` |
 | Tabel salinan hasil laboratorium maupun radiologi | `RUL-DOK-02`, `AC-CAP015-02` |
-| Melonggarkan `ConsultationId` pada resep, tindakan, dan diagnosis | Ketiganya memang lahir dari konsultasi. Yang perlu dibuka adalah **konsultasinya** |
+| Melonggarkan `ConsultationId` pada **resep dan tindakan** | Keduanya memang lahir dari catatan dokter, dan catatan dokter sendiri sudah dibuka `BE-RWI-043`. **Alasan ini tetap berlaku penuh bagi keduanya** |
+| ~~Melonggarkan `ConsultationId` pada **diagnosis**~~ ★ **dibalik pada revision `0.4`** | Baris ini semula menolak, dengan alasan yang sama seperti di atas. Ia **tidak berlaku** bagi diagnosis: kajian medis awal adalah dokumen tersendiri yang lahir sebelum catatan harian pertama, dan `CAP-022` aturan 5 menuntut daftar masalah berbentuk objek terstruktur. Lihat bagian 0.2 dan 4.10 |
+| **Membuatkan konsultasi bayangan** demi mengisi `ConsultationId` diagnosis | Menanam baris catatan dokter yang tidak pernah ditulis siapa pun ke dalam rekam medis. Yang dilonggarkan kolomnya, bukan dipalsukan isinya |
 | Merapikan controller legacy menjadi service | Utang teknis milik modul lain; task tersendiri, bukan menyelinap — bagian 5 |
 
 ---

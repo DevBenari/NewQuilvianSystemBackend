@@ -4,16 +4,16 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement`, `MedicalRecordManagement` (`RWI-DEC-081`) |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
+| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2`; `PRD-RWI-FINAL-001` v1.0.0 |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| Compatibility impact | **Tidak ada endpoint yang dihapus atau berubah bentuknya.** `0.3.0` menambah grup penetapan penulis pengganti, menambah endpoint koreksi atas nama penulis lain, dan menyatakan bahwa memfinalkan catatan sekaligus mendaftarkannya ke mesin keutuhan. Perilaku rawat jalan dan medical check-up tidak berubah — `RWI-AC-143` |
-| Tanggal | 2 September 2026 |
+| Compatibility impact | **Tidak ada endpoint yang dihapus atau berubah bentuknya.** `0.4.0` mendaftarkan grup **Patient Diagnosis** yang selama ini terlewat, dan membuka satu jalur baru: diagnosis terstruktur boleh lahir dari kajian medis tanpa nomor konsultasi. **Permintaan lama tetap sah apa adanya** — nomor konsultasi yang dikirim tetap diterima dan tetap diperlakukan sama. Perilaku rawat jalan dan medical check-up tidak berubah — `RWI-AC-143` |
+| Tanggal | 2 September 2026; diamendemen 9 September 2026 |
 
 ---
 
@@ -42,6 +42,24 @@ Kolom `Hak akses` adalah **satu-satunya** tempat pemetaan endpoint ke hak akses 
 | 1 | Memfinalkan catatan **sekaligus mendaftarkannya** ke mesin keutuhan sebagai dokumen tertanda tangan | `RWI-DEC-086`, `RWI-DEC-087` |
 | 2 | Endpoint koreksi **atas nama penulis lain** ditambahkan pada bagian 9 | Sudah ada di source, terlewat pada `0.2.0` |
 | 3 | Grup **penetapan penulis pengganti** ditambahkan sebagai bagian 9.1 | `RWI-DEC-088` menetapkan penerbitnya kepala unit rawat inap |
+
+### 0.3 Yang berubah dari `0.3.0`
+
+| No | Perubahan | Alasan |
+| ---: | --- | --- |
+| 1 | Grup **Patient Diagnosis** didaftarkan sebagai bagian 2.1 | Grupnya **sudah ada di source** dan sudah dibaca layar kajian medis, tetapi tidak pernah tercatat pada kontrak mana pun. Kelengkapan yang terlewat, sejenis dengan butir 2 pada `0.2.0` |
+| 2 | Satu jalur baru: diagnosis terstruktur boleh menyebut **perawatan rawat inap** sebagai konteks, tanpa nomor konsultasi | `PRD-RWI-FINAL-001` `CAP-022` aturan 2 dan aturan 5; temuan `FE-RWI-044`; menutup penghalang `BE-RWI-068` |
+| 3 | `INT-DOK-10` lahir pada `integration-contract.md` | Pelonggaran ini mengubah perilaku tabel milik `ClinicalManagement`, dan perubahan sejenis selalu punya entri integrasinya sendiri — preseden `INT-DOK-02` |
+
+> **Butir 2 membalik satu baris yang sebelumnya sengaja ditulis menolak.**
+> [`../02-backend-architecture.md`](../02-backend-architecture.md) bagian 9 mencantumkan
+> "melonggarkan `ConsultationId` pada resep, tindakan, dan diagnosis" sebagai hal yang **tidak
+> dibuat**, dengan alasan "yang perlu dibuka adalah konsultasinya". Alasan itu **benar untuk resep
+> dan tindakan**, dan tetap dipertahankan bagi keduanya. Ia **tidak cukup** bagi diagnosis, karena
+> satu fakta yang belum diketahui saat baris itu ditulis: kajian medis awal adalah **layar dan
+> dokumen tersendiri** yang lahir sebelum catatan harian pertama, sedangkan `CAP-022` aturan 2
+> menuntut daftar masalah menjadi bagian kajian itu dan aturan 5 menuntutnya berbentuk objek
+> terstruktur, bukan teks. Rinciannya pada bagian 2.1.
 
 ---
 
@@ -95,6 +113,72 @@ Judul grup: `[Tags("Health Services / Clinical Management / Patient Assessment")
 
 > Grup ini **dibagi** dengan sub-modul `keperawatan`. Pembedanya `AssessmentType`, dan kewenangan
 > menulisnya bercabang menurut jenis — `validation-matrix.md` `VAL-DOK-05`.
+
+### 2.1 Health Services / Clinical Management / Patient Diagnosis — `CAP-022` aturan 2 dan 5 ★ grup baru pada `0.4.0`
+
+Base URL: `api/v1/health-services/clinical-management/patient-diagnoses`
+Judul grup: `[Tags("Health Services / Clinical Management / Patient Diagnosis")]`
+
+**Grup ini bukan endpoint baru.** Kesepuluh endpoint di bawah sudah berjalan di source sejak sebelum
+sub-modul ini dirancang, dan sudah dibaca layar kajian medis `FE-RWI-044`. Yang baru hanyalah
+**pendaftarannya ke dalam kontrak** beserta satu jalur tulis tambahan pada baris pertama.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Mencatat diagnosis terstruktur berkode ICD. **Perubahan:** menerima `InpEpisodeId` sebagai konteks, dan **tidak lagi menuntut `ConsultationId`** bila konteks perawatan rawat inap terisi | `PatientDiagnosis : Create` | `CreatePatientDiagnosisRequest` **+ `InpEpisodeId`**, `ConsultationId` menjadi opsional | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia**, jalur tanpa konsultasi **Rencana** |
+| `GET` | `/` | Daftar diagnosis pasien, dapat disaring. **Perubahan:** penyaring `inpEpisodeId` ditambahkan | `PatientDiagnosis : Read` | Query `search`, `encounterId`, `consultationId`, **`inpEpisodeId`**, `patientId`, `doctorId`, `diagnosisType`, `diagnosisStatus`, `isPrimary`, `startDate`, `endDate`, paging | `ApiResponse<ResponsePatientDiagnosisPagedResult>` | **Tersedia**, penyaring episode **Rencana** |
+| `GET` | `/{id}` | Membaca satu diagnosis | `PatientDiagnosis : Read` | — | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia** |
+| `GET` | `/options` | Daftar ringkas untuk **daftar masalah** pada layar kajian medis | `PatientDiagnosis : Read` | Query `consultationId`, `encounterId`, **`inpEpisodeId`**, `patientId`, `onlyActive`, `search` | `ApiResponse<List<PatientDiagnosisOptionResponse>>` | **Tersedia**, penyaring episode **Rencana** |
+| `GET` | `/master-options` | Pencarian master diagnosis ICD untuk kotak pilih | `PatientDiagnosis : Read` | Query pencarian | `ApiResponse<...>` | **Tersedia** |
+| `GET` | `/filters/metadata` | Nilai bawaan penyaring dan pilihan urutan bagi layar | `PatientDiagnosis : Read` | — | `ApiResponse<PatientDiagnosisFilterMetadataResponse>` | **Tersedia** |
+| `PUT` | `/{id}` | Menyunting diagnosis yang belum diselesaikan | `PatientDiagnosis : Update` | `UpdatePatientDiagnosisRequest` | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia** |
+| `PATCH` | `/{id}/set-primary` | Menetapkan satu diagnosis sebagai diagnosis utama | `PatientDiagnosis : Update` | `SetPrimaryPatientDiagnosisRequest` | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia** |
+| `PATCH` | `/{id}/resolve` | Menyatakan masalah sudah teratasi beserta alasannya | `PatientDiagnosis : Update` | `ResolvePatientDiagnosisRequest` | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia** |
+| `PATCH` | `/{id}/cancel` | Membatalkan diagnosis salah catat beserta alasannya. Baris tidak dihapus | `PatientDiagnosis : Update` | `CancelPatientDiagnosisRequest` | `ApiResponse<PatientDiagnosisResponse>` | **Tersedia** |
+
+#### 2.1.1 Kenapa grup ini lahir sekarang, dan kenapa bukan sekadar teks bebas
+
+Kajian medis awal sudah punya kolom `WorkingDiagnosis` berupa **teks bebas** sejak `BE-RWI-045`, dan
+kolom itulah yang hari ini dipakai `VAL-DOK-11` untuk menolak penyelesaian kajian yang diagnosisnya
+kosong. Jadi dokter **tidak** sedang terhenti: ia tetap dapat menuliskan diagnosis kerjanya.
+
+Yang belum terpenuhi adalah `CAP-022` aturan 5, yang meminta daftar masalah berbentuk **objek
+klinis terstruktur atau rujukan**, bukan teks. Teks bebas tidak dapat dicari, tidak berkode ICD,
+tidak dapat dinyatakan teratasi, dan tidak terbawa ke ringkasan masalah pada kepala ruang kerja.
+
+| Yang dituntut `CAP-022` | Ditampung `WorkingDiagnosis`? | Ditampung grup ini? |
+| --- | :---: | :---: |
+| Aturan 2 — kajian medis memuat Diagnosis/Problem List | Ya, sebagai teks | Ya |
+| Aturan 5 — daftar masalah berbentuk objek terstruktur berkode | **Tidak** | Ya |
+| Masalah dapat dinyatakan teratasi atau dibatalkan beralasan | **Tidak** | Ya |
+
+#### 2.1.2 Aturan konteks yang mengikat baris pertama
+
+| Aturan | Bunyinya |
+| --- | --- |
+| Salah satu wajib | Permintaan wajib menyebut **`ConsultationId`** atau **`InpEpisodeId`**. Keduanya kosong ditolak — `VAL-DOK-36` |
+| Bukan pengganti satu sama lain | Bila keduanya terisi, keduanya wajib menunjuk pasien dan kunjungan yang sama — `VAL-DOK-37` |
+| Rawat jalan dan medical check-up **tidak berubah** | Pada kunjungan rawat jalan dan medical check-up, `ConsultationId` **tetap wajib** dan permintaan tanpa nomor konsultasi tetap ditolak dengan kalimat yang sama persis seperti sebelumnya — `VAL-DOK-38`, diuji `RWI-AC-143` |
+| IGD **tidak ikut dibuka** | Pelonggaran ini **hanya** untuk kunjungan bertipe `Inpatient`. Alasannya pada catatan di bawah |
+| Kewenangan mengikuti kajian medis | Yang boleh mencatat diagnosis dari kajian medis adalah yang boleh menulis kajian medis pasien itu, bukan sekadar pemegang peran — `VAL-DOK-39` |
+| Lintas pasien ditolak | Perawatan yang disebut wajib milik pasien pada permintaan itu — `VAL-DOK-40` |
+
+> **Kenapa IGD sengaja tidak ikut, padahal `RWI-DEC-070` dulu memperluas pelonggaran ke
+> `Emergency`.** Persetujuan lintas modul `RWI-DEC-062` **tidak mencakup** IGD sejak
+> `RWI-DEC-069` mencabut bagian itu — pemilik `EmergencyInstallationManagement` adalah **Rizki
+> Gunawan**, orang yang berbeda. Membuka jalur IGD dari sini berarti memutuskan atas nama pemilik
+> lain. IGD kemungkinan besar menghadapi keterbatasan yang sama, dan itu **dicatat sebagai temuan
+> untuk pemiliknya**, bukan dikerjakan diam-diam di sini.
+
+#### 2.1.3 Kode status dan artinya bagi pengguna
+
+| Kode | Artinya |
+| --- | --- |
+| `201` | Diagnosis tercatat pada daftar masalah |
+| `400` | Konteksnya tidak lengkap atau tidak cocok — tidak ada nomor konsultasi maupun perawatan, atau keduanya menunjuk pasien yang berbeda |
+| `403` | Anda tidak berwenang menulis kajian medis pasien ini |
+| `409` | Diagnosis sudah dinyatakan teratasi atau dibatalkan |
+| `422` | Pasien tidak sedang dirawat inap, atau perawatannya sudah ditutup |
 
 ---
 
@@ -288,3 +372,6 @@ Judul grup: `[Tags("Health Services / Medical Record Management / Clinical Note 
 | Endpoint agregasi tagihan visite | Milik Billing; kebijakannya belum ada — `ARCH-GAP-012` |
 | Endpoint resume pulang | `CAP-026` milik `episode-rawat-inap` — `RWI-DEC-083` |
 | Endpoint antrean apa pun untuk pasien rawat inap | `RWI-RULE-026` aturan 2 melarang antrean semu |
+| Diagnosis tanpa nomor konsultasi pada kunjungan **IGD** | Pemilik `EmergencyInstallationManagement` adalah **Rizki Gunawan**; `RWI-DEC-069` mencabut IGD dari persetujuan lintas modul `RWI-DEC-062`. Lihat catatan pada bagian 2.1.2 |
+| Melonggarkan `ConsultationId` pada **resep** dan **tindakan** | Tetap ditolak. Keduanya memang lahir dari catatan dokter, dan catatan dokter sendiri sudah dibuka `BE-RWI-043` — `02-backend-architecture.md` bagian 9 |
+| Endpoint menghapus diagnosis | Diagnosis salah catat **dibatalkan beralasan**, tidak dihapus. Baris tetap terbaca |

@@ -11,15 +11,15 @@
 | Trace | `FE-DOK-08`; `03-frontend-architecture.md` §3.8; `VAL-DOK-24`, `VAL-DOK-25`; `IA-INP-05`; `../02-module-map.md` §3.3 |
 | Contract version | `0.3.0` — `approved` oleh Muhammad Hamzah, 3 September 2026 |
 | Wewenang UI | `skema-tampilan-dokter-rawat-inap.md` §4, §13, §17–19, §21–22 dan rules §1 roadmap |
-| Dependency | `FE-RWI-046` 🟡 sebagian; `BE-RWI-053` ✅ selesai |
+| Dependency | `FE-RWI-046` ✅ **selesai 9 September 2026**; `BE-RWI-053` ✅ selesai; **`BE-RWI-067` ✅ selesai 8 September 2026** — penutup kriteria 4. **Kriteria 5 tidak menunggu task mana pun**, melainkan keputusan pemilik `02-module-map.md` |
 | Klasifikasi | `MEDIUM` — satu hook, satu constant, dua komponen view, penyisipan pada layar monitoring existing, dan satu penambahan style |
 | Task mode | `FRONTEND` — backend strict read-only |
 | Target tulis | `QuilvianSystemFrontendDev` untuk source; laporan ini dan tautan buktinya pada roadmap serta `requirement-traceability.md` sub-modul yang sama |
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit frontend saat dikerjakan | Dikerjakan di atas `52b07d363e92525739fb2ad63075ec80f6d4e230`, branch `HamzahV2`. Source-nya kemudian **di-commit pemilik pekerjaan sendiri** sebagai `e194509dc`; agent tidak menjalankan satu pun tindakan Git |
 | Commit backend yang dijadikan rujukan | `3a6373e90e5a590bfad1ba214c5c941e602fc245`, branch `MHamzah` |
-| Tanggal | 8 September 2026 |
-| Status | 🟡 `SEBAGIAN`. **3 dari 5** acceptance criteria terpenuhi penuh, **1 terpenuhi separuh**, **1 belum terpenuhi**. Kriteria 4 tertahan kontrak: daftar pantau backend mengembalikan `providerUserId`, bukan nama penulis. Kriteria 5 **belum terpenuhi** karena urutan daftar di dalam `FE-INP-09` **ditetapkan tingkat modul** dan slot dokter belum dinyatakan pemilik peta modul — roadmap §6 melarang memutuskannya sendiri |
+| Tanggal | Pass pertama 8 September 2026; **pass kedua 9 September 2026** sesudah `BE-RWI-067` menutup kriteria 4 |
+| Status | 🟡 `SEBAGIAN` **9 September 2026.** **4 dari 5** acceptance criteria kini terpenuhi penuh; **1 belum terpenuhi**. Kriteria 4 — yang pada pass pertama hanya separuh — kini tertutup: `BE-RWI-067` menambahkan `ProviderName` pada butir daftar pantau, dan kolom Penulis menyebut namanya. Kriteria 3 juga diperkuat: tautan tidak lagi sekadar membuka tab, melainkan mendarat pada catatan yang dituju dan menyorotnya. **Kriteria 5 tetap belum terpenuhi**, dan bukan karena pekerjaan yang kurang: urutan daftar di dalam `FE-INP-09` **ditetapkan tingkat modul**, slot dokter belum dinyatakan pemilik `02-module-map.md`, dan roadmap §6 melarang memutuskannya sendiri. **Satu cacat nyata ditemukan uji peramban pass ini dan diperbaiki:** seluruh sel tabel daftar pantau salah dirender — kolom Penulis dan Profesi berbunyi `[object Object]`, kolom Pasien berbunyi `-`, kolom Status selalu berbunyi "Lewat Batas", dan tombol Buka Catatan menghasilkan alamat tanpa nomor episode. Validasi nyata pass kedua: `npm run lint` **0 error, 611 warning**; `npm run test:unit` **563/563 lulus, 0 gagal**; `npm run build` beserta `postbuild` berhasil; **7 skenario peramban lulus** di Edge, tiga di antaranya milik daftar pantau ini. Butir DoD screenshot tiga viewport **dikecualikan atas keputusan pengguna 1 September 2026**; catatan `NOT RUN`-nya tetap tercatat, tidak dihapus |
 
 ---
 
@@ -115,6 +115,11 @@ ditampilkan apa adanya. Ia **tidak pernah** dilaporkan sebagai sukses penuh.
 | `src/components/view/health-services/inpatient-management/inpatient-monitoring-view.jsx` | Bagian baru disisipkan **di bawah** tabel existing; cakupan episode disusun dari baris daftar aktif. Keempat daftar existing dan urutannya tidak disentuh |
 | `src/style/health-services/inpatient-management/inpatient-monitoring.module.css` | Lima kelas baru untuk bagian verifikasi; kelas existing tidak diubah |
 | `…/physician-workspace/physician-workspace-view.jsx` | Tab pembuka dapat ditentukan alamat lewat `?tab=`, supaya tautan dari daftar pantau mendarat langsung pada tab Catatan Terpadu. Nilai di luar keenam tab diabaikan dan kembali ke tab bawaan |
+| **Pass kedua** — `…/cppt-verification-monitoring-columns.jsx` | Kolom Penulis membaca `providerName` dari `BE-RWI-067`. **Perbaikan cacat:** keenam `render` diubah ke kontrak `DataTable` yang sebenarnya |
+| **Pass kedua** — `…/cppt-verification-monitoring-section.jsx` | `pagination={false}`, supaya bar paginasi kedua tidak menuliskan "0 dari 0 data" di bawah baris yang jelas terlihat |
+| **Pass kedua** — `…/physician-workspace/physician-workspace-view.jsx` | Selain `?tab=`, alamat kini juga membawa `?note=`; nomor catatannya dibagikan lewat konteks ruang kerja |
+| **Pass kedua** — `…/tabs/integrated-note/integrated-note-timeline.jsx` dan `integrated-progress-note-tab.jsx` | Catatan yang dituju disorot dan digulir ke layar; catatan yang tidak ada pada daftar dikatakan apa adanya |
+| **Pass kedua** — `tests/unit/inpatient-physician-clinical-tabs.test.mjs` | Enam uji baru, dua di antaranya menjaga agar cacat kontrak `render` tidak kembali |
 
 ### 3.3 Kepatuhan arsitektur frontend
 
@@ -133,6 +138,68 @@ per episode, daftar lintas pasien disusun dari pembacaan atas episode yang **sud
 daftar aktif. Itu bukan endpoint baru yang dikarang, dan cakupannya tertulis pada deskripsi bagian
 supaya tidak ada yang membacanya sebagai daftar seluruh rumah sakit. Jumlah episode yang dibaca
 sekali jalan dibatasi 25 agar satu halaman daftar pantau tidak menerbitkan permintaan tanpa batas.
+
+
+### 3.4 Pass kedua — 9 September 2026
+
+#### Kriteria 4 ditutup `BE-RWI-067`
+
+Pada pass pertama, butir daftar pantau hanya membawa `ProviderUserId` — deretan angka dan huruf.
+Kolom Penulis karena itu berbunyi "Nama penulis belum tersedia", dan supervisor harus membuka
+catatan satu per satu hanya untuk tahu siapa yang perlu diingatkan.
+
+`BE-RWI-067` menambahkan `ProviderName`, diambil server secara berjenjang dengan salinan nama
+lebih dulu supaya akun yang berganti nama tidak menulis ulang penulis catatan lama. Layar
+membacanya apa adanya. Penulis yang memang tidak dapat dikenali lagi berbunyi **"Penulis tidak
+dapat dikenali"**, dan nomor penggunanya tetap **tidak pernah** ditampilkan sebagai gantinya.
+
+#### Cacat yang ditemukan uji peramban, dan perbaikannya
+
+Bagian ini adalah temuan terpenting pass kedua. Daftar pantau **tidak pernah dijalankan di
+peramban** pada pass pertama, dan seluruh tabelnya ternyata salah dirender.
+
+Penyebabnya satu: **dua tabel yang dipakai sub-modul ini punya kontrak `render` yang berbeda.**
+
+| Komponen tabel | Cara memanggil `render` | Dipakai di mana |
+| --- | --- | --- |
+| `DataTable` — base layar daftar pantau | `render(item, meta)` — argumen pertama adalah **barisnya** | Daftar pantau `FE-INP-09`, termasuk bagian ini |
+| `ClinicalDataTable` — base klinis dokter | `render(value, row, index)` — argumen pertama adalah **nilai selnya** | Tab klinis ruang kerja dokter |
+
+Definisi kolom bagian ini ditulis memakai bentuk `ClinicalDataTable`, padahal roadmap justru
+memerintahkan memakai `DataTable` milik host. Akibatnya di layar, dengan dua baris data:
+
+| Kolom | Yang seharusnya tampil | Yang benar-benar tampil sebelum perbaikan |
+| --- | --- | --- |
+| Pasien | `Ny. Sari Melati` | `-` |
+| Penulis | `Ns. Sari Wijaya` | `[object Object]` |
+| Profesi | `Perawat` | `[object Object]` |
+| Keterlambatan | `19 jam` | `Belum terhitung` |
+| Status | `Lewat Batas` pada satu baris, `Menunggu Verifikasi` pada baris lain | `Lewat Batas` pada **kedua** baris |
+| Aksi | Tautan ke episode dan catatannya | Alamat tanpa nomor episode dan tanpa nomor catatan |
+
+Baris status adalah yang paling berbahaya: objek baris selalu bernilai benar, sehingga **setiap**
+catatan yang menunggu terbaca sebagai sudah lewat batas. Supervisor akan mengejar catatan yang
+sebenarnya masih dalam tenggat.
+
+Perbaikannya mengubah keenam `render` ke kontrak `DataTable` yang sebenarnya, dan dua uji unit
+baru menjaganya — satu memeriksa bentuk keenam `render`, satu memeriksa kolom status dan
+keterlambatan membaca barisnya. Keduanya ikut berjalan pada `npm run test:unit`.
+
+Cacat kedua ditemukan pada layar yang sama: `DataTable` memasang bar paginasinya sendiri, dan
+karena bagian ini tidak mengirim `totalData`, bar itu berbunyi **"Menampilkan 0 sampai 0 dari 0
+data"** tepat di bawah dua baris yang jelas terlihat. Bagian ini memang tidak berpaginasi sendiri
+— cakupannya sudah ditentukan halaman daftar pantau di atasnya — sehingga paginasinya dimatikan.
+
+#### Kriteria 3 diperkuat: tautan mendarat pada catatannya
+
+Tautan kolom Aksi sejak pass pertama sudah membawa `?tab=integrated-note&note=<noteId>`, tetapi
+ruang kerja hanya membaca `?tab=`. Nomor catatannya dibuang diam-diam, sehingga supervisor
+mendarat pada tab yang benar lalu tetap harus menelusuri lini masa satu per satu.
+
+Sekarang nomor itu dipakai: ruang kerja membacanya, lini masa menyorot catatan yang dituju dan
+menggulirnya ke tengah layar. Bila catatan itu tidak ada pada daftar yang sedang tampil — paling
+sering karena penyaring profesi menyembunyikannya — layar mengatakannya, bukan mendarat tanpa
+menyorot apa pun.
 
 ---
 
@@ -190,6 +257,33 @@ alasan "tidak diwajibkan". Keadaan itu sendiri sudah tercatat sebagai gerbang te
 **Tidak dijalankan:** `npm run test:e2e`, `npm run test:uat`, screenshot tiga viewport, dan uji
 kebocoran isi klinis di peramban.
 
+### Pass kedua — 9 September 2026
+
+Seluruh baris di atas adalah riwayat pass pertama dan **tidak dihapus**. Baris di bawah adalah
+validasi yang benar-benar dijalankan ulang.
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `npm run lint` | 0 error, 611 warning | `PASS` | `✖ 611 problems (0 errors, 611 warnings)` — sama persis dengan garis dasar sebelum perubahan |
+| `npm run test:unit` | 563 uji lulus, 0 gagal | `PASS` | `tests 563 / pass 563 / fail 0`; garis dasar 557, jadi 6 uji baru |
+| `npm run build` beserta `postbuild` | Berhasil; **nol route baru** — keluaran tetap memuat satu route monitoring | `PASS` | `[prepare-standalone] Standalone runtime siap dijalankan.` |
+| **Peramban** — kolom Penulis menyebut nama, bukan nomor pengguna | Baris pertama berbunyi `Ns. Sari Wijaya`; baris kedua berbunyi `Penulis tidak dapat dikenali` | `PASS` | Edge, skenario `FE-RWI-050 K4` |
+| **Peramban** — nomor pengguna tidak pernah dirender | `outerHTML` seluruh bagian diperiksa; `8f3a1c92-…` dan `0c11ab77` nol kali muncul | `PASS` | Skenario yang sama |
+| **Peramban** — fixture teks klinis samaran tidak bocor | Kolom isi catatan diisi `NYERI-DADA-RAHASIA-UJI`, lalu `outerHTML` bagian diperiksa — nol kali muncul, termasuk di atribut dan tooltip | `PASS` | Skenario yang sama. Ini menutup baris `NOT RUN` pass pertama |
+| **Peramban** — tautan Buka Catatan membawa episode, tab, dan nomor catatan | `href` memuat `/episodes/…/physician`, `tab=integrated-note`, dan `note=…` | `PASS` | Skenario `FE-RWI-050 K3` |
+| **Peramban** — tautan itu benar-benar mendarat pada catatannya | Hanya catatan yang dituju bertanda `data-selected="true"`, dan posisinya diperiksa berada di dalam viewport | `PASS` | Skenario `FE-RWI-050 K3` |
+| **Peramban** — kebijakan tidak aktif berbeda tegas dari "semuanya beres" | `data-result="not-required"` beserta kalimat "Verifikasi DPJP tidak diwajibkan."; kalimat "Semua catatan sudah terverifikasi." diperiksa **tidak** muncul | `PASS` | Skenario `FE-RWI-050 K2` |
+| **Peramban** — keenam sel tabel dirender benar | Ditemukan **gagal** lebih dulu — lihat bagian 3.4 — lalu `PASS` sesudah kontrak `render` diperbaiki | `PASS` (sesudah perbaikan) | Skenario `FE-RWI-050 K4`, dijalankan dua kali |
+| Grep anti-regresi checklist konsistensi UI — keenam butir | Nol hasil | `PASS` | Dijalankan pada berkas yang diubah |
+| Navigasi dua klik dari Beranda ke daftar pantau | Tidak dijalankan | `NOT RUN` | Menu dan route tidak diubah task ini; daftar pantau dibuka langsung lewat alamatnya pada skenario di atas |
+| Screenshot tiga viewport | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 1 September 2026 |
+
+**Uji manual pass kedua:** `PASS`, dan **menemukan cacat**. Skenario dijalankan di Microsoft Edge
+terhadap `.next/standalone/server.js` pada port `3710`, dengan balasan API dipalsukan `page.route`.
+Konfigurasi Playwright dan spec-nya dibuat **sementara**, dijalankan, lalu **dihapus kembali**;
+`git status` sesudahnya hanya memuat berkas source yang memang diubah, dan `test-results/` tidak
+tertinggal. Perlindungan permanennya dipindahkan ke uji unit.
+
 ---
 
 ## 7. Acceptance criteria dan Definition of Done
@@ -198,20 +292,20 @@ kebocoran isi klinis di peramban.
 | --- | --- | --- |
 | 1. Daftar muncul sebagai daftar tambahan di dalam daftar pantau yang sudah ada, **bukan** layar baru | **Terpenuhi** | `CpptVerificationMonitoringSection` disisipkan di dalam `inpatient-monitoring-view.jsx`, di dalam shell yang sama. Nol route baru dibuat; keluaran build tetap menampilkan satu route monitoring. Nol butir menu baru ditambahkan |
 | 2. Tiga keadaan dibedakan tegas: sudah terverifikasi, tidak diwajibkan, dan gagal dimuat | **Terpenuhi** | `useCpptVerificationMonitoring` menghasilkan lima hasil terpisah, dan urutan penentuannya sengaja menaruh kegagalan paling depan sehingga daftar yang gagal dibaca **tidak pernah** terbaca sebagai "semuanya beres". Ketiganya memakai kalimat yang berbeda pada `emptyCopy` |
-| 3. Setiap baris membuka catatan terpadu pasien itu | **Terpenuhi** | Kolom Aksi merender tautan ke `buildInpatientPhysicianWorkspaceRoute(episodeId)` beserta `?tab=integrated-note&note=<noteId>`. `physician-workspace-view.jsx` membaca `?tab=` dan membuka tab Catatan Terpadu langsung; nilai di luar keenam tab diabaikan |
-| 4. Daftar menampilkan nama pasien, penulis, dan keterlambatan — **tanpa isi klinis** | **Terpenuhi separuh.** Bagian "tanpa isi klinis" terbukti; nama penulis **tertahan kontrak** | Enam kolom saja yang dirender, dan tidak satu pun memuat isi klinis — tidak di sel, tidak di tooltip, tidak di atribut. Nama pasien diambil dari baris daftar pantau host. **Yang belum:** `CpptVerificationWatchItem` hanya membawa `ProviderUserId`, bukan nama. Kolom Penulis karena itu berbunyi "Nama penulis belum tersedia" — id pengguna **sengaja tidak** ditampilkan, karena id bukan nama dan tidak menolong pembacanya |
-| 5. Urutan daftar di dalam daftar pantau mengikuti ketetapan `02-module-map.md`, bukan diputuskan sendiri | **Belum terpenuhi** | `../02-module-map.md` baris 371 menyatakan urutan daftar di dalam `FE-INP-09` **ditetapkan tingkat modul** dan "tidak boleh diputuskan sendiri-sendiri". Slot dokter belum dinyatakan. Bagian ini karena itu ditempatkan **di bawah** keempat daftar existing tanpa mengubah urutannya, sebagai penempatan sementara yang menunggu ketetapan pemilik peta modul |
+| 3. Setiap baris membuka catatan terpadu pasien itu | **Terpenuhi** — diperkuat 9 September 2026 | Kolom Aksi merender tautan ke `buildInpatientPhysicianWorkspaceRoute(episodeId)` beserta `?tab=integrated-note&note=<noteId>`. Sejak pass kedua, ruang kerja membaca **kedua** parameter itu: `?tab=` membuka tab Catatan Terpadu, dan `?note=` menyorot catatan yang dituju lalu menggulirnya ke tengah layar. Sebelumnya nomor catatan dibuang diam-diam. Nilai tab di luar keenam tab tetap diabaikan, dan nomor catatan yang tidak ada pada daftar dinyatakan apa adanya, bukan didiamkan. Diuji di peramban: `href` benar, catatan yang dituju tersorot, dan catatan lain tidak |
+| 4. Daftar menampilkan nama pasien, penulis, dan keterlambatan — **tanpa isi klinis** | **Terpenuhi** — 9 September 2026 | Enam kolom saja yang dirender, dan tidak satu pun memuat isi klinis. Larangan itu kini **dibuktikan di peramban**, bukan hanya dinyatakan: kolom isi catatan diisi teks samaran, lalu seluruh `outerHTML` bagian ini diperiksa dan teks itu nol kali muncul. **Bagian yang dulu tertahan kini tertutup:** sejak `BE-RWI-067`, butir daftar pantau membawa `ProviderName`, dan kolom Penulis menyebut namanya. Penulis yang tidak dapat dikenali berbunyi "Penulis tidak dapat dikenali"; nomor pengguna tetap **tidak pernah** ditampilkan, dan itu pun diperiksa pada `outerHTML`. Kolom Pasien, Profesi, Keterlambatan, dan Status juga baru benar-benar terbaca benar sejak cacat kontrak `render` diperbaiki — lihat bagian 3.4 |
+| 5. Urutan daftar di dalam daftar pantau mengikuti ketetapan `02-module-map.md`, bukan diputuskan sendiri | **Belum terpenuhi** — diperiksa ulang 9 September 2026 | `../02-module-map.md` baris 371 masih menyatakan urutan daftar di dalam `FE-INP-09` **ditetapkan tingkat modul** dan "tidak boleh diputuskan sendiri-sendiri", dan baris 232 masih menyebut `FE-DOK-08` sebagai "daftar tambahan" tanpa nomor urutan — berbeda dari `keperawatan` yang mendapat kata "ketiga". Slot dokter karena itu **masih belum dinyatakan**. Bagian ini tetap ditempatkan **di bawah** keempat daftar existing tanpa mengubah urutannya, sebagai penempatan sementara. **Ini satu-satunya kriteria yang belum terpenuhi, dan ia bukan pekerjaan yang kurang:** tidak ada task — backend maupun frontend — yang dapat menutupnya. Yang dibutuhkan adalah keputusan pemilik peta modul |
 
 ### Butir Definition of Done
 
 | Butir | Status |
 | --- | --- |
-| Kelima acceptance existing terbukti | **Belum** — kriteria 4 separuh, kriteria 5 belum |
-| State dan permission terbukti | Terpenuhi pada source dan tabel bagian 4; belum diverifikasi di peramban |
-| Visual Acceptance Criteria terbukti | **Belum diverifikasi di peramban.** Dikecualikan atas keputusan pengguna bahwa e2e dan `.mjs` bukan gerbang selesai |
-| Gate §4.1 relevan (butir 17, 18) | Butir 17 terbukti pada source: nol isi klinis pada sel, tooltip, baris yang dapat dibuka, maupun atribut aksesibilitas. Butir 18 terbukti: tiga hasil berbeda kalimat, dan gagal baca tidak pernah menjadi sukses |
+| Kelima acceptance existing terbukti | **Belum** — **4 dari 5** terbukti sejak 9 September 2026; kriteria 5 menunggu keputusan pemilik `02-module-map.md`, bukan pekerjaan |
+| State dan permission terbukti | Terpenuhi pada source dan tabel bagian 4; **tiga hasil daftar kini terbukti di peramban** — ada yang tertunda, tidak diwajibkan, dan tabel terisi benar |
+| Visual Acceptance Criteria terbukti | **Terpenuhi kecuali tiga viewport.** Tabel data minimum, tiga pesan hasil berbeda, tombol Coba Lagi, dan tidak adanya editor klinis duplikat kini terbukti di peramban. Screenshot tiga viewport **dikecualikan atas keputusan pengguna 1 September 2026** |
+| Gate §4.1 relevan (butir 17, 18) | **Butir 17 kini terbukti di peramban**, bukan hanya pada source: fixture teks klinis samaran diperiksa nol kali muncul pada seluruh `outerHTML` bagian ini, termasuk atribut dan tooltip. Butir 18 tetap terbukti: tiga hasil berbeda kalimat, dan gagal baca tidak pernah menjadi sukses |
 | Laporan menyertakan privasi data minimum, tiga hasil, dan deep link | Terpenuhi pada bagian 2, 4, dan 7 |
-| Urutan mengikuti peta modul | **Belum** — menunggu ketetapan pemilik |
+| Urutan mengikuti peta modul | **Belum** — menunggu ketetapan pemilik; diperiksa ulang 9 September 2026 dan `02-module-map.md` belum berubah |
 | Konflik §6 diselesaikan sebelum sign-off | **Belum** — lihat bagian 8 |
 
 ---
@@ -220,20 +314,22 @@ kebocoran isi klinis di peramban.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` pada scope task ini |
-| **Masalah yang diketahui — dua batas kontrak** | Pertama, **tidak ada endpoint daftar pantau verifikasi lintas pasien**; yang tersedia hanya per episode. Daftar lintas pasien karena itu disusun dari episode yang sedang tampil, dan cakupan itu dinyatakan pada layar. Kedua, **daftar pantau tidak mengembalikan nama penulis** — hanya `ProviderUserId`. Keduanya **tidak diperbaiki dari sini**: task bermode `FRONTEND`, backend strict read-only, dan roadmap §6 melarang mengarang endpoint baru |
+| Peringatan | **Pass kedua menemukan cacat render yang tidak terlihat lint maupun build.** Definisi kolom bagian ini ditulis memakai kontrak `render` milik `ClinicalDataTable`, padahal host-nya memakai `DataTable` yang kontraknya berbeda. Seluruh tabel salah dirender, dan yang paling berbahaya adalah kolom Status yang menandai **setiap** catatan sebagai sudah lewat batas. Rinciannya pada bagian 3.4. **Pelajarannya berlaku lebih luas dari task ini:** dua base tabel dengan nama mirip dan kontrak berbeda hidup berdampingan pada sub-modul yang sama, dan lint tidak dapat membedakannya. Berkas lain yang memakai bentuk `(value, row)` sudah diperiksa — keenamnya memakai `ClinicalDataTable` dan karena itu **benar**; nol berkas lain yang perlu diperbaiki |
+| **Batas kontrak — satu sudah ditutup, satu masih ada** | Pertama, **tidak ada endpoint daftar pantau verifikasi lintas pasien**; yang tersedia hanya per episode. Daftar lintas pasien karena itu tetap disusun dari episode yang sedang tampil, dan cakupan itu dinyatakan pada layar. Batas ini **masih ada**. Kedua, daftar pantau dulu tidak mengembalikan nama penulis — hanya `ProviderUserId`. Batas ini **sudah ditutup `BE-RWI-067`** pada 8 September 2026, dan layar membacanya pada pass kedua |
 | Dependency backend | `BE-RWI-053` ✅ selesai 4 September 2026. Mekanisme daftar pantaunya berjalan dengan kebijakan kosong, persis seperti yang dirancang |
-| Dependency frontend | `FE-RWI-046` 🟡 sebagian. Tautan dari daftar ini mendarat pada tab yang sudah berfungsi; keterbatasan nama verifikator pada `FE-RWI-046` tidak menghalangi navigasinya |
-| Perubahan sampingan | `NONE`. Keempat daftar pantau existing, urutannya, kolomnya, dan hook-nya tidak disentuh |
+| Dependency frontend | `FE-RWI-046` ✅ **selesai 9 September 2026**. Tautan dari daftar ini mendarat pada tab yang sudah berfungsi penuh, dan penyorotan catatan yang dituju justru dikerjakan pada lini masa milik task itu |
+| Perubahan sampingan | `NONE`. Keempat daftar pantau existing, urutannya, kolomnya, dan hook-nya tetap tidak disentuh. Perubahan pada lini masa catatan terpadu bukan perubahan sampingan — ia memang yang menutup kriteria 3 |
 | Interupsi | `NONE` |
-| Status Git | Saat pekerjaan agent selesai, berkas task ini muncul sebagai `??` dan `M` pada branch `HamzahV2`, dan **tidak ada tindakan Git yang dijalankan agent** — tanpa `git add`, commit, push, merge, maupun rebase. Pemilik pekerjaan kemudian meng-commit sendiri sebagai `e194509dc`, sehingga `git status --short` pada repository frontend kini bersih |
-| Langkah berikutnya | Meminta ketetapan urutan daftar di dalam `FE-INP-09` kepada pemilik `02-module-map.md`, dan mengajukan dua penambahan kontrak di bawah |
+| Status Git | **Pass pertama:** berkas task ini muncul sebagai `??` dan `M` pada branch `HamzahV2`, dan agent tidak menjalankan satu pun tindakan Git. Pemilik pekerjaan meng-commit sendiri sebagai `e194509dc`. **Pass kedua 9 September 2026:** dikerjakan di atas `423856322` pada branch `HamzahV2` yang sama; agent kembali **tidak menjalankan satu pun tindakan Git**. Konfigurasi Playwright sementara dan kedua spec sementaranya dihapus kembali, dan `test-results/` tidak tertinggal |
+| Langkah berikutnya | Meminta **ketetapan urutan daftar** di dalam `FE-INP-09` kepada pemilik `02-module-map.md`. Itu satu-satunya yang menahan task ini, dan ia bukan pekerjaan yang dapat diselesaikan agent mana pun |
 
 ### Yang dibutuhkan agar task ini dapat menjadi ✅
 
-| No | Kebutuhan | Pemilik |
-| ---: | --- | --- |
-| 1 | **Ketetapan urutan** daftar di dalam `FE-INP-09` beserta nomor slot daftar dokter. Satu layar kini dipakai tiga sub-modul, dan `02-module-map.md` baris 371 melarang memutuskannya sendiri-sendiri | Pemilik `02-module-map.md` bersama Frontend authority |
-| 2 | **Nama penulis** pada `CpptVerificationWatchItem`, atau endpoint pendamping yang memetakan `ProviderUserId` menjadi nama | `ClinicalManagement`, sebagai task backend baru |
-| 3 | Keputusan **bentuk agregasi lintas episode**: apakah cakupan "episode yang sedang tampil" dipertahankan, atau backend menyediakan daftar pantau lintas pasien tersendiri beserta paginasinya | Pemilik peta modul bersama `ClinicalManagement` |
-| 4 | **Kebijakan verifikasi yang aktif**, supaya daftar ini dapat diuji dengan data yang benar-benar tertunda. Selama `RWI-RULE-021` belum disahkan, daftar ini selalu berbunyi "tidak diwajibkan" | Clinical Governance |
+Diperiksa ulang 9 September 2026.
+
+| No | Kebutuhan | Pemilik | Keadaan 9 September 2026 |
+| ---: | --- | --- | --- |
+| 1 | **Ketetapan urutan** daftar di dalam `FE-INP-09` beserta nomor slot daftar dokter. Satu layar kini dipakai tiga sub-modul, dan `02-module-map.md` baris 371 melarang memutuskannya sendiri-sendiri | Pemilik `02-module-map.md` bersama Frontend authority | ⛔ **Masih dibutuhkan, dan ini satu-satunya yang menahan ✅.** Bukan pekerjaan, melainkan keputusan |
+| 2 | **Nama penulis** pada `CpptVerificationWatchItem`, atau endpoint pendamping yang memetakan `ProviderUserId` menjadi nama | `ClinicalManagement`, sebagai task backend baru | ✅ **Terpenuhi** — `BE-RWI-067` selesai 8 September 2026 |
+| 3 | Keputusan **bentuk agregasi lintas episode**: apakah cakupan "episode yang sedang tampil" dipertahankan, atau backend menyediakan daftar pantau lintas pasien tersendiri beserta paginasinya | Pemilik peta modul bersama `ClinicalManagement` | ⏳ **Masih terbuka.** Tidak menahan kelima acceptance criteria; cakupan yang berlaku dinyatakan apa adanya di layar |
+| 4 | **Kebijakan verifikasi yang aktif**, supaya daftar ini dapat diuji dengan data yang benar-benar tertunda. Selama `RWI-RULE-021` belum disahkan, daftar ini selalu berbunyi "tidak diwajibkan" pada data nyata | Clinical Governance | ⏳ **Masih terbuka.** Pass kedua menutupinya dengan balasan uji yang memuat catatan tertunda, sehingga tabelnya tetap terbukti benar-benar terisi |

@@ -4,16 +4,16 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
-| `input_revision` | `02-backend-architecture.md` `0.2`; seluruh kontrak `0.2.0`; arsitektur domain `0.2` |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
+| `input_revision` | `02-backend-architecture.md` `0.4`; seluruh kontrak `0.4.0`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
-| Tanggal | 2 September 2026; disetujui 3 September 2026 |
+| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
+| Tanggal | 2 September 2026; disetujui 3 September 2026; diamendemen 9 September 2026 |
 
-Dari **54** skenario di bawah, **22** adalah jalur gagal.
+Dari **63** skenario di bawah, **27** adalah jalur gagal. Sembilan skenario — bagian 11 — baru pada `0.4.0`.
 
 > **Keadaan awal yang wajib diketahui.** Bukti `DOK-TRC-VER-01` menyatakan **tidak ditemukan satu
 > pun** uji otomatis untuk konsultasi, pengkajian, CPPT, tindakan, resep, radiologi rawat inap,
@@ -193,6 +193,40 @@ kepemilikan, dan aturan penamaan backend.
 
 ---
 
+## 11. Diagnosis terstruktur dari kajian medis — `INT-DOK-10` ★ baru pada `0.4.0`
+
+Sembilan skenario, **lima** di antaranya jalur gagal, dan **dua** di antaranya regresi.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `CAP-022` aturan 5 | Dokter menambah diagnosis berkode ICD dari layar kajian medis, menyebut perawatan rawat inap, **tanpa nomor konsultasi**, ketika pasien itu belum punya satu pun catatan harian | Integration | `201`; barisnya tersimpan dengan kolom konsultasi **kosong** dan kolom perawatan **terisi** |
+| `CAP-022` aturan 2 | Diagnosis yang baru dibuat terbaca pada daftar masalah kajian medis pasien itu | Integration | Muncul pada pembacaan daftar yang disaring perawatan pasien tersebut |
+| `INT-DOK-10` | Diagnosis dibuat **dengan** nomor konsultasi seperti sebelum `0.4.0` | **Regression** | `201`; perilakunya identik dengan sebelum perubahan. **Jalur lama tidak boleh ikut berubah** |
+| `VAL-DOK-38` | **Gagal:** diagnosis tanpa nomor konsultasi pada kunjungan **rawat jalan** | **Regression** | `400`, dan **kalimat penolakannya dibandingkan utuh** dengan kalimat sebelum `0.4.0` — cara yang sama dipakai `BE-RWI-043` membuktikan `RWI-AC-143` |
+| `VAL-DOK-36` | **Gagal:** nomor konsultasi dan perawatan sama-sama kosong | Integration | `400`; **nol baris tersimpan**, dan **nol konsultasi terbentuk** — dibuktikan dengan menghitung baris konsultasi sebelum dan sesudah |
+| `VAL-DOK-37` | **Gagal:** nomor konsultasi dan perawatan sama-sama terisi tetapi milik pasien yang berbeda | Integration | `400`; nol baris tersimpan |
+| `VAL-DOK-40` | **Gagal:** perawatan yang disebut milik pasien lain | Integration | `400`; nol baris tersimpan |
+| `VAL-DOK-39` | **Gagal:** dokter yang **bukan** DPJP pasien itu menambah diagnosis dari kajian medis, walaupun butir hak akses `PatientDiagnosis : Create` dimilikinya | Integration | `403`. **Penjaga kewenangan per pasien, bukan penjaga hak akses** — mesin hak akses akan meloloskannya |
+| `VAL-DOK-11` | Kajian medis diselesaikan ketika diagnosis kerja berupa teks **kosong** tetapi daftar masalah terstruktur **terisi** | Integration | `200`; kajian selesai. Membuktikan `0.4.0` tidak memperketat aturan lama |
+
+> **Baris ketiga dan keempat adalah jaring pengaman amendment ini, dan keduanya regresi.** Yang
+> paling mungkin rusak dari pelonggaran sebuah kolom wajib bukanlah jalur barunya, melainkan jalur
+> lama yang selama ini bergantung pada kewajiban itu. Poliklinik memakai grup diagnosis ini setiap
+> hari.
+>
+> **Baris kelima menghitung baris konsultasi sebelum dan sesudah**, bukan sekadar memeriksa kode
+> `400`. Alasannya ditulis pada `integration-contract.md` bagian 11: cara termudah membuat jalur ini
+> "berhasil" adalah diam-diam membuatkan konsultasi bayangan, dan test yang hanya melihat kode
+> balasan tidak akan pernah menangkapnya.
+>
+> **Penomoran `RWI-AC-*` sengaja tidak dipakai di bagian ini.** Registry `RWI-AC-001` s.d.
+> `RWI-AC-180` penuh, dan `RWI-AC-181` dan seterusnya sudah **dipesan** untuk penyerapan keputusan
+> deposit pada `episode-rawat-inap`. Kesembilan skenario di atas karena itu ditambatkan pada aturan
+> validasi dan integrasinya sendiri. Nomor `RWI-AC-*` diberikan `grill-me` bila pemilik memilih
+> menerbitkan keputusan bernomor untuk `INT-DOK-10`.
+
+---
+
 ## 10. Yang belum dapat diuji
 
 | Butir | Kenapa belum | Kapan dapat diuji |
@@ -202,3 +236,4 @@ kepemilikan, dan aturan penamaan backend.
 | Pencatatan visite atas nama dokter | Kebijakannya belum ada | Setelah kebijakan ditetapkan; bawaan sekarang aman |
 | Agregasi tarif visite oleh Billing | Kebijakan agregasi milik Billing belum ada | Setelah kebijakannya turun. `RWI-AC-156` tetap dapat diuji dari sisi klinis: riwayat tidak boleh berubah |
 | Pembacaan balik status penyerahan obat pulang | Kontrak status final Farmasi belum disetujui pemiliknya | Setelah `RWI-DOK-RQG-003` selesai |
+| Diagnosis tanpa nomor konsultasi pada kunjungan **IGD** ★ `0.4.0` | Sengaja di luar scope — pemiliknya berbeda, `RWI-DEC-069` | Setelah pemilik `EmergencyInstallationManagement` memutuskan. `integration-contract.md` bagian 10.2 |

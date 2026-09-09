@@ -4,15 +4,15 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
+| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` bagian X |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
-| Compatibility impact | `0.3.0`: `INT-DOK-07` berubah dari "nol perubahan, satu jaminan yang perlu dipastikan" menjadi **pendaftaran tiga jenis dokumen** — `RWI-DEC-087`. Penomoran `INT-DOK-*` tetap seperti `0.2.0`; tabel pemetaan dari `0.1.0` ada di bagian 0.2 |
-| Tanggal | 2 September 2026 |
+| Compatibility impact | `0.4.0`: `INT-DOK-10` lahir — pelonggaran nomor konsultasi pada diagnosis terstruktur. Penomoran `INT-DOK-01` s.d. `INT-DOK-09` **tidak bergerak**; tabel pemetaan dari `0.1.0` tetap di bagian 0.2 |
+| Tanggal | 2 September 2026; diamendemen 9 September 2026 |
 
 ---
 
@@ -25,8 +25,8 @@ Sub-modul ini tidak memiliki satu tabel pun dan menyentuh **enam** modul lain:
 ### 0.1 Penomoran kanonis
 
 `INT-DOK-01` s.d. `INT-DOK-07` **diambil apa adanya** dari arsitektur domain bagian X.1 dan tidak
-diturunkan ulang di sini. `INT-DOK-08` dan `INT-DOK-09` adalah tambahan tingkat desain yang tidak
-punya padanan domain.
+diturunkan ulang di sini. `INT-DOK-08`, `INT-DOK-09`, dan `INT-DOK-10` adalah tambahan tingkat
+desain yang tidak punya padanan domain. `INT-DOK-10` lahir pada `0.4.0`.
 
 ### 0.2 Pemetaan dari penomoran `0.1.0`
 
@@ -253,7 +253,64 @@ berkas lain yang memergokinya.
 
 ---
 
-## 10. Integrasi yang tidak dibuat
+## 10. `INT-DOK-10` — Pelonggaran nomor konsultasi pada diagnosis terstruktur ★ baru pada `0.4.0`
+
+| Field | Isinya |
+| --- | --- |
+| Produsen dan konsumen | `ClinicalManagement` mengubah aturan internalnya sendiri |
+| Yang diminta | Untuk kunjungan bertipe `Inpatient`: diagnosis terstruktur boleh menyebut **perawatan rawat inap** sebagai konteks, sehingga **nomor konsultasi tidak lagi wajib**. Kolom `ConsultationId` pada `TrxPatientDiagnosis` menjadi boleh kosong, dan kolom konteks `InpEpisodeId` ditambahkan |
+| Dasarnya | `PRD-RWI-FINAL-001` `CAP-022` aturan 2 dan aturan 5; temuan `FE-RWI-044`; wewenang lintas modul `RWI-DEC-062` |
+| Keadaan keputusan | **Belum ada keputusan bernomor.** `RWI-DEC-062` memberi persetujuan atas perubahan lintas modul **yang dituntut blueprint ini**, dan `0.4.0` inilah yang menjadikannya dituntut. Approval `0.4.0` oleh pemilik **adalah** tanda tangan yang dimaksud — lihat 10.1 |
+| Status pada source | **`Extend`** — `PatientDiagnosisDtos.cs` baris 148–152 menandai `EncounterId` dan `ConsultationId` keduanya `[Required]`; `TrxPatientDiagnosis.cs` baris 20–21 menuntut kolomnya terisi; `PatientDiagnosisController.cs` baris 326 mencari konsultasi yang cocok dan **melempar** bila tidak ketemu |
+| Kenapa wajib | Diagnosis kerja lahir **pada** pemeriksaan pertama. Selama nomor konsultasi wajib, dokter harus membuat catatan harian lebih dulu semata-mata supaya ada tempat menggantungkan diagnosisnya — urutan yang terbalik dari cara kerja sebenarnya |
+| Yang **tidak** berubah | Rawat jalan dan medical check-up tetap menuntut nomor konsultasi, dengan kalimat penolakan yang sama persis — `VAL-DOK-38`, `RWI-AC-143`. **IGD juga tidak ikut**, lihat 10.2. Nol baris lama berubah nilainya |
+| Bila gagal | Permintaan ditolak `400` atau `422`; tidak ada diagnosis setengah jadi dan tidak ada konsultasi bayangan yang dibuatkan diam-diam |
+| Bukti selesai | Diagnosis pada perawatan rawat inap tanpa nomor konsultasi **diterima** dan terbaca pada daftar masalah kajian medis pasien itu; diagnosis tanpa nomor konsultasi pada kunjungan rawat jalan **tetap ditolak dengan kalimat yang sama persis** |
+
+### 10.1 Kenapa entri ini membalik satu baris yang sebelumnya menolak
+
+[`../02-backend-architecture.md`](../02-backend-architecture.md) bagian 9 mencantumkan
+"melonggarkan `ConsultationId` pada resep, tindakan, dan diagnosis" sebagai hal yang **sengaja
+tidak dibuat**, dengan alasan "ketiganya memang lahir dari konsultasi; yang perlu dibuka adalah
+konsultasinya". Baris itu ditulis 2 September 2026.
+
+| Untuk | Alasan itu masih berlaku? | Kenapa |
+| --- | :---: | --- |
+| Resep | **Ya** | Resep memang digantungkan pada satu catatan dokter, dan catatan kedua sudah dibuka `BE-RWI-043` |
+| Tindakan | **Ya** | Sama; tindakan dicatat dari catatan yang menaunginya |
+| **Diagnosis** | **Tidak** | Kajian medis awal adalah **dokumen dan layar tersendiri**, bukan catatan harian. Ia lahir sebelum catatan harian pertama ada |
+
+Yang berubah bukan pendiriannya, melainkan **fakta yang tersedia**. Saat baris bagian 9 ditulis,
+kajian medis belum punya layar dan belum punya kolom isian medis; keduanya baru lahir lewat
+`BE-RWI-045` pada 5 September dan `FE-RWI-044` sesudahnya. Barulah kelihatan bahwa "buka
+konsultasinya" **tidak menjawab** kasus ini: membuka konsultasi memang membuat dokter *bisa*
+menulis, tetapi memaksanya membuat catatan harian yang tidak ia perlukan hanya demi menampung
+diagnosis. `CAP-022` aturan 5 menuntut daftar masalah menjadi objek terstruktur, dan aturan 2
+menuntutnya berada di dalam kajian medis.
+
+> **Pemilik wajib membaca ini sebelum menyetujui `0.4.0`.** Amendment ini **membalik** satu baris
+> pada artefak yang sudah `approved`. Ia tidak diselipkan: baris bagian 9 diperbarui, kamus data
+> diperbarui, dan alasannya ditulis di sini. Menolak butir ini berarti `BE-RWI-068` tetap
+> terblokir, dan itu keputusan yang sah — yang tidak sah adalah membiarkan kontrak dan arsitektur
+> mengatakan dua hal yang berbeda.
+
+### 10.2 Kenapa IGD sengaja tidak ikut
+
+`RWI-DEC-070` dulu memperluas pelonggaran `RWI-RULE-026` ke kunjungan bertipe `Emergency`, sehingga
+pertanyaan wajar berikutnya adalah kenapa pelonggaran ini berhenti di `Inpatient`.
+
+Sebabnya kepemilikan, bukan teknis. `RWI-DEC-069` **mencabut** bagian IGD dari persetujuan lintas
+modul `RWI-DEC-062` setelah diketahui pemilik `EmergencyInstallationManagement` adalah **Rizki
+Gunawan**, bukan pemilik yang menandatangani `RWI-DEC-062`. Memperluas dari sini berarti memutuskan
+atas nama pemilik lain — persis kekeliruan yang `RWI-DEC-069` betulkan.
+
+**Temuan untuk pemilik IGD, dicatat dan tidak dikerjakan di sini:** pasien IGD kemungkinan besar
+menghadapi keterbatasan yang sama, karena pengkajian IGD sudah dilonggarkan dari antrean lewat
+`BE-IGD-026` tetapi diagnosis terstrukturnya tetap menuntut nomor konsultasi.
+
+---
+
+## 11. Integrasi yang tidak dibuat
 
 | Yang tidak dibuat | Alasan |
 | --- | --- |
@@ -263,3 +320,5 @@ berkas lain yang memergokinya.
 | Agregasi tarif visite | Milik Billing; kebijakannya belum ada — `ARCH-GAP-012`. `RWI-DEC-085` melarang agregasi menyentuh riwayat klinis |
 | Pemberitahuan otomatis kepada pengguna | Tidak ada requirement-nya; yang diminta hanya daftar pantau dan daftar percobaan ulang — `RWI-DOK-RQG-001` |
 | Antrean semu untuk pasien rawat inap | `RWI-RULE-026` aturan 2 |
+| Pembuatan **konsultasi bayangan** demi mengisi `ConsultationId` diagnosis | Menanam baris catatan dokter yang tidak pernah ditulis siapa pun ke dalam rekam medis. `INT-DOK-10` memilih melonggarkan kolomnya, bukan memalsukan isinya |
+| Pelonggaran nomor konsultasi pada **resep** dan **tindakan** | Tetap ditolak — `02-backend-architecture.md` bagian 9, dan alasannya masih berlaku bagi keduanya. Lihat 10.1 |

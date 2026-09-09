@@ -4,11 +4,11 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
-| Revision | `0.3` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03; bagian 3 direvisi dan disetujui ulang 2026-09-05 |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
-| Tanggal | 2 September 2026 |
-| Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.2` bagian 4 |
+| Revision | `0.4` — amendment atas `0.3`, menyerap `INT-DOK-10` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik. Revision `0.3` `approved`; bagian 3 direvisi dan disetujui ulang 2026-09-05 |
+| `approved_by` / `approved_at` | `0.3` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4` **belum disetujui** |
+| Tanggal | 2 September 2026; diamendemen 9 September 2026 |
+| Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.4` bagian 4 |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
 
 ---
@@ -55,7 +55,7 @@ sebagai contoh berisi data asli.
 | `MrcClinicalNoteAddendum` | `Sudah ada` | `MedicalRecordManagement` | Koreksi dokumen | **Nol perubahan** |
 | `MrcClinicalNoteAuthorDelegation` | `Sudah ada` | `MedicalRecordManagement` | Penulis pengganti | **Nol perubahan** |
 | `CliClinicalMilestoneFact` | `Sudah ada` | `ClinicalManagement` | Fakta ke Billing | **Nol perubahan** |
-| `TrxPatientDiagnosis` | `Sudah ada` | `ClinicalManagement` | `CAP-022` aturan 5 | Direferensikan, **MUST NOT** disalin |
+| `TrxPatientDiagnosis` | **`Diperbarui`** ★ `0.4` | `ClinicalManagement` | `CAP-022` aturan 5 | Naik dari `Sudah ada`. Satu kolom ditambah, satu kewajiban dilonggarkan — bagian 10.1. **MUST NOT** disalin |
 | `InpEpisode`, `InpDoctorAssignment` | `Sudah ada` | `InPatientManagement` | Konteks dan kewenangan | Direferensikan, **MUST NOT** disalin |
 
 ---
@@ -103,10 +103,17 @@ edukasi.
 > **Alasannya.** `VAL-DOK-10` menolak penyelesaian kajian ketika pemeriksaan atau rencana kosong,
 > dan `VAL-DOK-11` menolaknya ketika diagnosis kosong. Selama ketiganya tidak punya kolom, kedua
 > aturan itu **tidak dapat ditegakkan** — dan `BE-RWI-045` kriteria 4 tidak dapat dibuktikan.
-> Dua jalan lain ditolak: menggantungkan diagnosis pada `TrxPatientDiagnosis` menuntut
-> `ConsultationId` dilonggarkan, yaitu menyentuh tabel yang sedang dipakai poliklinik, dan tetap
-> tidak menyediakan tempat bagi pemeriksaan fisik maupun rencana terapi; sedangkan tabel kajian
-> medis tersendiri berarti menyalin puluhan kolom yang sudah ada di sini.
+> Dua jalan lain ditolak: menggantungkan **seluruh isian kajian** pada `TrxPatientDiagnosis`
+> menuntut `ConsultationId` dilonggarkan, yaitu menyentuh tabel yang sedang dipakai poliklinik, dan
+> tetap tidak menyediakan tempat bagi pemeriksaan fisik maupun rencana terapi; sedangkan tabel
+> kajian medis tersendiri berarti menyalin puluhan kolom yang sudah ada di sini.
+>
+> **Catatan revision `0.4`.** Keberatan "menyentuh tabel yang dipakai poliklinik" **dijawab**, bukan
+> dibatalkan, oleh `INT-DOK-10`: pelonggarannya hanya berlaku pada kunjungan bertipe `Inpatient`,
+> jalur poliklinik tetap menuntut nomor konsultasi dengan kalimat penolakan yang sama persis
+> (`VAL-DOK-38`), dan nol baris lama berubah. Keberatan kedua — tidak ada tempat bagi pemeriksaan
+> fisik dan rencana terapi — **tetap berlaku dan tetap benar**, dan itulah sebabnya ketiga kolom di
+> bawah tidak dicabut.
 
 ### 3.0 Kolom baru — isian medis kajian DPJP
 
@@ -121,8 +128,13 @@ sudah ada tidak perlu disentuh sama sekali. Wajibnya ditegakkan **aturan bisnis 
 kajian medis**, bukan oleh `NOT NULL` — pengkajian keperawatan memang tidak mengisinya.
 
 `WorkingDiagnosis` **bukan pengganti** `TrxPatientDiagnosis`. Diagnosis berkode ICD tetap tinggal
-di sana dan tetap menggantung pada catatan dokter; kolom ini menampung diagnosis kerja pada saat
-pemeriksaan pertama, ketika catatan yang menaunginya belum ada.
+di sana; kolom ini menampung diagnosis kerja naratif pada saat pemeriksaan pertama.
+
+> **Diperbarui pada revision `0.4`.** Kalimat asli berbunyi diagnosis berkode ICD "tetap menggantung
+> pada catatan dokter". Sejak `INT-DOK-10` itu **tidak lagi seluruhnya benar**: diagnosis
+> terstruktur kini boleh menggantung pada **perawatan rawat inap** ketika catatan dokter memang
+> belum ada. Yang tidak berubah adalah pembagian perannya — teks bebas untuk narasi, daftar
+> terstruktur untuk kode ICD yang dapat dicari dan dinyatakan teratasi. Rinciannya pada bagian 10.1.
 
 Migration: `20260905081108_AddMedicalAssessmentContentColumns`.
 
@@ -315,12 +327,38 @@ Rujukan model: `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalD
 | `EncounterId`, `EffectType` | Peristiwa klinis apa, pada kunjungan mana |
 | `IdempotencyKey` | Mencegah tagihan ganda saat kiriman diulang |
 
-### `TrxPatientDiagnosis` — `ClinicalManagement`
+### `TrxPatientDiagnosis` — `ClinicalManagement` — **`Diperbarui`** ★ `0.4`
+
+Tabel ini pindah dari daftar "kolom kunci saja" menjadi tabel `Diperbarui`. Rinciannya pada 10.1.
 
 | Kolom kunci | Dipakai untuk |
 | --- | --- |
-| `ConsultationId` | **Wajib** — diagnosis lahir dari catatan dokter |
+| `EncounterId` | Kunjungan tempat diagnosis dicatat. **Tetap wajib** |
+| `ConsultationId` | Catatan dokter yang menaungi diagnosis. **Menjadi boleh kosong pada `0.4`** |
+| `InpEpisodeId` | **Kolom baru `0.4`** — perawatan rawat inap yang menaungi diagnosis dari kajian medis |
+| `DiagnosisCode`, `DiagnosisName`, `IcdVersion` | Kode ICD dan namanya; inilah yang membedakannya dari teks bebas |
 | `DiagnosisType`, `IsPrimary` | Daftar masalah terstruktur |
+| `DiagnosisStatus`, `ResolvedAt`, `CancelledAt` | Masalah dapat dinyatakan teratasi atau dibatalkan beralasan, tanpa dihapus |
+
+#### 10.1 Kolom yang berubah pada revision `0.4`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `InpEpisodeId` | `uuid` | Tidak | `null` | Ya, bersama `PatientId` | `InpEpisode` | `Restrict` | Tidak | **Baru.** Konteks perawatan bagi diagnosis yang lahir dari kajian medis. Nama dan polanya sama persis dengan kolom sejenis pada empat tabel klinis lain sejak `BE-RWI-040` |
+| `ConsultationId` | `uuid` | **Tidak** — turun dari **Ya** | `null` | Ya | `TrxDoctorConsultation` | `Restrict` | Tidak | **Dilonggarkan.** Seluruh baris lama sudah terisi dan **tidak disentuh**; melepas kewajiban terisi tidak mengubah satu nilai pun |
+
+**Kolom sensitif pada tabel ini, didaftarkan pada `0.4`:** `ClinicalNote`, `AssessmentNote`,
+`PlanNote`, `DifferentialDiagnosisNote`, `SupportingFindingNote`, `ResolvedReason`, dan
+`CancelReason`. Ketujuhnya **MUST NOT** masuk payload custom logger —
+[`../contracts/permission-audit-matrix.md`](../contracts/permission-audit-matrix.md) bagian 5.
+
+> **Kewajibannya tidak hilang, ia berpindah tempat.** Tidak ada satu kolom pun yang selalu terisi
+> pada kedua jalur, sehingga "salah satu wajib" tidak dapat ditegakkan `NOT NULL`. Penjagaannya
+> pindah ke aturan bisnis `VAL-DOK-36`. Konsekuensinya jujur: **basis data tidak lagi menjadi
+> jaring pengaman terakhir** bagi diagnosis tanpa konteks, dan itulah sebabnya
+> `testing/acceptance-test-matrix.md` bagian 11 menguji kasus keduanya kosong secara khusus.
+>
+> **Langkah mundurnya tidak simetris** — `02-backend-architecture.md` bagian 7.3 langkah 11.
 
 ### `InpDoctorAssignment` — `InPatientManagement`
 

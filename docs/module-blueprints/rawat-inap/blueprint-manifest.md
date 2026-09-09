@@ -136,15 +136,18 @@ submodules:
     approved_by: Muhammad Hamzah
     approved_at: 2026-09-03
     contract_versions: 0.3.0
+    pending_amendment: 0.4.0 (draft, 2026-09-09, menunggu approval)
     designed_at: 2026-09-02
-    catatan: disetujui 2026-09-03 untuk 13 artefak revision 0.3 / kontrak 0.3.0; domain architecture READY; nol pertanyaan memblokir; approval desain BUKAN izin implementasi, migration, maupun deployment
+    catatan: disetujui 2026-09-03 untuk 13 artefak revision 0.3 / kontrak 0.3.0; domain architecture READY; nol pertanyaan memblokir; approval desain BUKAN izin implementasi, migration, maupun deployment.
+      Amendment 0.4.0 pada 2026-09-09 mengusulkan tujuh artefak naik untuk membuka BE-RWI-068 (grup Patient Diagnosis, INT-DOK-10).
+      Status sub-modul TIDAK diturunkan: baseline 0.3.0 yang disetujui tidak tersentuh, dan amendment ini hanya menahan BE-RWI-068
 ```
 
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
 |---|---|:---:|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | `approved` | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
 | [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | **`approved`** — Muhammad Hamzah, 2026-09-03, lewat `RWI-DEC-092`. `CAP-016` `DEFERRED`; roadmap wajib ditulis ulang `/qv-plan` revision `2` | [manifest](./keperawatan/blueprint-manifest.md) |
-| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | **`approved`** — disetujui Muhammad Hamzah 2026-09-03; revision `0.3`, kontrak `0.3.0`; siap `plan-module-delivery` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
+| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | **`approved`** — disetujui Muhammad Hamzah 2026-09-03; revision `0.3`, kontrak `0.3.0`; siap `plan-module-delivery`. **Amendment `0.4.0` `draft` sejak 2026-09-09** menunggu approval; menahan `BE-RWI-068` saja dan **tidak** menurunkan status | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
 

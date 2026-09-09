@@ -4,15 +4,15 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` |
+| Status | **`draft`** — amendment 9 September 2026, menunggu approval pemilik |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
-| `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
+| `approved_by` / `approved_at` | `0.3.0` disetujui **Muhammad Hamzah** / **2026-09-03**. `0.4.0` **belum disetujui** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
-| Compatibility impact | `0.3.0`: empat aturan baru `VAL-DOK-32` s.d. `VAL-DOK-35` untuk koreksi dokumen. Sebelumnya `0.2.0` menambah `VAL-DOK-26` s.d. `VAL-DOK-31`. Nol aturan dicabut |
-| Tanggal | 2 September 2026 |
+| Compatibility impact | `0.4.0`: lima aturan baru `VAL-DOK-36` s.d. `VAL-DOK-40` untuk diagnosis terstruktur. Sebelumnya `0.3.0` menambah `VAL-DOK-32` s.d. `VAL-DOK-35`. **Nol aturan dicabut, dan nol aturan lama dilonggarkan** — `VAL-DOK-38` justru menuliskan secara tegas bahwa jalur rawat jalan tidak berubah |
+| Tanggal | 2 September 2026; diamendemen 9 September 2026 |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis.
 
@@ -60,7 +60,7 @@ Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis.
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
 | --- | --- | --- | --- | --- |
 | `VAL-DOK-10` | Menyelesaikan kajian medis | Keluhan utama, pemeriksaan, atau rencana kosong | "Kajian medis belum dapat diselesaikan. Bagian berikut masih kosong: {daftar}." | `400` |
-| `VAL-DOK-11` | Menyelesaikan kajian medis | Daftar masalah atau diagnosis kosong | "Diagnosis atau daftar masalah belum diisi." | `400` |
+| `VAL-DOK-11` | Menyelesaikan kajian medis | Daftar masalah **dan** diagnosis kerja sama-sama kosong | "Diagnosis atau daftar masalah belum diisi." | `400` |
 | `VAL-DOK-12` | Menyelesaikan catatan dokter | Keempat bagian S/O/A/P kosong seluruhnya | "Catatan masih kosong." | `400` |
 | `VAL-DOK-13` | Waktu klinis | Waktu klinis melewati waktu sekarang | "Waktu pemeriksaan tidak boleh melewati waktu sekarang." | `400` |
 | `VAL-DOK-14` | Waktu klinis | Waktu klinis sebelum pasien masuk kamar | "Waktu pemeriksaan sebelum pasien masuk kamar. Periksa kembali." | `400` |
@@ -73,6 +73,11 @@ Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis.
 > **Contoh `VAL-DOK-14`.** Tn. Budi masuk kamar pukul 10.40 tanggal 1 September. Catatan dengan
 > waktu klinis 1 September pukul 08.00 ditolak, karena pada jam itu ia belum berada di kamar.
 > Catatan dengan waktu 1 September pukul 11.00 diterima.
+>
+> **`VAL-DOK-11` dipertajam pada `0.4.0`, bukan diperketat.** Sejak bagian 9 ada, daftar masalah
+> punya **dua** bentuk sah: diagnosis kerja berupa teks bebas, dan diagnosis terstruktur berkode
+> ICD. Kajian medis lolos bila **salah satu** terisi. Menuntut keduanya akan memaksa dokter
+> mengetik hal yang sama dua kali.
 
 ---
 
@@ -160,3 +165,36 @@ di tingkat niat.
 > **Contoh `VAL-DOK-32`.** dr. Andi menulis catatan dan menyimpannya sebagai konsep, lalu mencoba
 > menambahkan koreksi. Permintaan ditolak, dan pesannya mengarahkan ia menyunting langsung — karena
 > catatan itu memang belum final, sehingga tidak ada apa pun yang perlu dikoreksi.
+
+---
+
+## 9. Diagnosis terstruktur — `CAP-022` aturan 5 ★ baru pada `0.4.0`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VAL-DOK-36` ★ | Mencatat diagnosis terstruktur | **Nomor konsultasi dan perawatan rawat inap sama-sama kosong** | "Diagnosis harus melekat pada catatan dokter atau pada perawatan pasien yang sedang berjalan." | `400` |
+| `VAL-DOK-37` ★ | Mencatat diagnosis terstruktur | Nomor konsultasi dan perawatan sama-sama terisi tetapi **menunjuk pasien atau kunjungan yang berbeda** | "Diagnosis ini tidak cocok dengan perawatan pasien. Periksa kembali pasien yang sedang Anda buka." | `400` |
+| `VAL-DOK-38` ★ | Mencatat diagnosis terstruktur pada kunjungan **rawat jalan atau medical check-up** | Nomor konsultasi kosong | Kalimat penolakan **sama persis** seperti sebelum `0.4.0` | `400` |
+| `VAL-DOK-39` ★ | Mencatat diagnosis dari kajian medis | Pengguna tidak berwenang menulis kajian medis pasien itu | "Anda bukan DPJP pasien ini. Hubungi DPJP atau supervisor klinis." | `403` |
+| `VAL-DOK-40` ★ | Mencatat diagnosis terstruktur | Perawatan yang disebut **bukan milik pasien** pada permintaan itu | "Diagnosis ini tidak cocok dengan perawatan pasien. Periksa kembali pasien yang sedang Anda buka." | `400` |
+
+> **`VAL-DOK-38` adalah aturan yang paling penting di bagian ini, dan ia tidak menambah kemampuan
+> apa pun.** Ia menuliskan hitam di atas putih bahwa pelonggaran ini **tidak menetes** ke
+> poliklinik dan medical check-up. Bunyi penolakannya sengaja diikat pada "sama persis seperti
+> sebelumnya" supaya pengujiannya tidak dapat lolos hanya dengan menolak — kode **dan** kalimatnya
+> dibandingkan utuh, cara yang sama yang dipakai `BE-RWI-043` membuktikan `RWI-AC-143`.
+>
+> **`VAL-DOK-39` tidak dapat dijaga mesin hak akses**, sebab mesin itu tahu peran dan tidak tahu
+> pasien. Ia memakai pemeriksaan dokter aktif per episode yang **sudah ada** — penjaga yang sama
+> dengan `VAL-DOK-06`. Dicatat pada [`permission-audit-matrix.md`](./permission-audit-matrix.md)
+> bagian 3.
+>
+> **`VAL-DOK-37` dan `VAL-DOK-40` sengaja berbagi satu kalimat** dengan `VAL-DOK-26`. Bagi dokter
+> yang sedang membuka layar, ketiganya adalah kesalahan yang sama: ia menulis untuk pasien yang
+> keliru. Membedakan kalimatnya hanya memberi tahu penyerang bagian mana yang tidak cocok.
+>
+> **Contoh `VAL-DOK-36`.** dr. Sari baru selesai memeriksa Tn. Budi yang masuk kamar tadi pagi.
+> Ia menambahkan diagnosis "J18.9 Pneumonia" dari layar kajian medis. Permintaannya menyebut
+> perawatan rawat inap Tn. Budi, tanpa nomor konsultasi — dan **diterima**, karena catatan harian
+> pertama memang belum ada. Bila layar keliru mengirim keduanya kosong, permintaan ditolak dan
+> dokter diminta membuka pasiennya kembali.
