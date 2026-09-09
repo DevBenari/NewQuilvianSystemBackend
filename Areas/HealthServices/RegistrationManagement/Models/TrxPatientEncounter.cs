@@ -188,6 +188,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public bool IsActive { get; set; } = true;
 
         // =========================
+        // INTEGRATION IDEMPOTENCY
+        // =========================
+
+        /// <summary>
+        /// Kunci idempotensi pendaftaran yang ditetapkan modul pemanggil (<c>INT-05</c>,
+        /// <c>LAB-DEC-032</c>, <c>BE-LAB-08</c>).
+        ///
+        /// <b>Kenapa kuncinya disimpan pada kunjungan, bukan pada tabel tersendiri.</b> Yang
+        /// perlu dikenali ketika permintaan yang sama datang dua kali adalah kunjungan mana
+        /// yang sudah terbentuk. Menyimpannya di sini membuat pengenalan itu menjadi satu
+        /// pembacaan index, dan membuat unique index database sendiri yang menolak kunjungan
+        /// kedua ketika dua permintaan tiba bersamaan — bukan kode aplikasi yang harus
+        /// memenangkan balapan.
+        ///
+        /// Boleh kosong, dan sebagian besar baris memang kosong: pendaftaran loket dan kiosk
+        /// tidak memakai kunci ini, begitu pula seluruh kunjungan lama.
+        /// </summary>
+        [MaxLength(100)]
+        public string? RegistrationIdempotencyKey { get; set; }
+
+        // =========================
         // NAVIGATION
         // =========================
 

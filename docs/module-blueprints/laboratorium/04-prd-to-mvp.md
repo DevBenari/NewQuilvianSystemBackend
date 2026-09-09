@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `2` |
+| Revision | `3` |
 | Status | `draft` |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
@@ -126,13 +126,22 @@ Setiap penundaan menyebut **alasan bersebab** dan **penggantinya selama MVP berj
 | Kemampuan | Alasan penundaan | Pengganti selama MVP |
 |---|---|---|
 | Pengisian dan validasi hasil (`S4`) | `LAB-SIGN-001` — `LAB-DEC-011` mensyaratkan tanda tangan klinis sebelum desain final | Hasil tetap dicatat di luar sistem seperti sekarang. Sistem sudah menyimpan seluruh riwayat sampai wadah dinyatakan layak, sehingga penelusuran tidak mundur |
-| Nilai kritis dan pelaporannya (`S5`) | `LAB-SIGN-001` dan `LAB-COORD-001` | Pelaporan lisan berjalan seperti sekarang. Batas kritis **sudah tersimpan** pada MVP ini, sehingga saat slice dibuka tidak ada pekerjaan data yang tertinggal |
-| Koreksi hasil setelah rilis (`S6`) | `LAB-SIGN-001` dan `LAB-COORD-002` | Belum ada hasil yang dapat dikoreksi, jadi tidak ada kemampuan yang hilang |
+| Nilai kritis dan pelaporannya (`S5`) | `LAB-SIGN-001`. Seluk-beluk alurnya — ambang, batas waktu tanggap, eskalasi — masih menunggu `LAB-P0-004` dan `LAB-OPEN-014` | Pelaporan lisan berjalan seperti sekarang. Batas kritis **sudah tersimpan** pada MVP ini, sehingga saat slice dibuka tidak ada pekerjaan data yang tertinggal |
+| Koreksi hasil setelah rilis (`S6`) | `LAB-SIGN-001` | Belum ada hasil yang dapat dikoreksi, jadi tidak ada kemampuan yang hilang |
 | Pemberitahuan tersimpan (`S8`) | `LAB-COORD-001` — kepemilikannya ada di platform, bukan Laboratorium | Kepala instalasi memakai daftar pantau keterlambatan cito yang **sudah ada** pada MVP ini |
 | Pendaftaran hasil ke rekam medis (`S9`) | `LAB-COORD-002` | Belum ada hasil yang perlu didaftarkan |
 | Penyuntingan pesanan oleh dokter (`S1b`) | `LAB-AMD-001` — menyentuh keputusan terkunci milik blueprint `rawat-jalan` | Dokter yang salah pesan membatalkan lalu membuat pesanan baru. Aman secara uang karena pembatalan sebelum wadah layak tidak menimbulkan tagihan |
 | Sisa katalog laboratorium: jenis sampel, wadah, volume minimal, metode, panel | `LAB-DEC-001` menundanya ke Rilis 2 | Katalog memakai `MstProcedure` yang sudah ada |
 | Sambungan otomatis ke alat laboratorium | `LAB-DEC-005` | Belum ada hasil untuk dikirim alat, jadi belum ada yang hilang. Perhatikan `LAB-RISK-001` |
+
+> **Catatan penahan, diperbarui 2026-09-09.** `LAB-COORD-001` dan `LAB-COORD-002` berstatus
+> `closed` sejak 2026-09-01 lewat `LAB-REQ-001` butir 7 dan 8. Keduanya tidak lagi menahan `S5`
+> maupun `S6`, dan versi terdahulu tabel ini keliru mencantumkannya di sana. `S8` dan `S9` tetap
+> tertunda, tetapi yang ditunggu adalah **pengerjaan** kemampuan itu oleh modul pemiliknya —
+> platform dan `rekam-medis` — bukan lagi kesepakatannya.
+>
+> Akibatnya `LAB-SIGN-001` kini satu-satunya penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6`.
+> Permintaan tanda tangannya diajukan 2026-09-09 sebagai `LAB-REQ-004`.
 
 ---
 
@@ -410,5 +419,6 @@ dijawab.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 3 | 2026-09-09 | Penahan bagian 7 dikoreksi: `LAB-COORD-001` dan `LAB-COORD-002` sudah `closed` sejak 2026-09-01 dan tidak lagi menahan `S5` maupun `S6`. Penahan `S5` yang sebenarnya diperjelas menjadi `LAB-P0-004` dan `LAB-OPEN-014`. Dicatat bahwa `LAB-SIGN-001` kini satu-satunya penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6`, dan permintaan tanda tangannya diajukan sebagai `LAB-REQ-004` | `draft` |
 | 2 | 2026-09-01 | Batas MVP diperluas ke hulu: dimulai dari pasien tiba di laboratorium, bukan dari pesanan dibuat. Tiga epic ditambahkan — `EPIC-LAB-08` pendaftaran, `EPIC-LAB-09` katalog dan harga, `EPIC-LAB-10` monitoring per disiplin. Gelombang pengiriman disusun ulang menjadi lima; `EPIC-LAB-09` naik ke `MVP-0` karena nol tabel baru | `draft` |
 | 1 | 2026-09-01 | PRD ke MVP pertama. Tujuh epic dengan 30 functional requirement, 14 skenario UAT berpasangan berhasil dan gagal, 13 butir Definition of Done, dan empat gelombang pengiriman. Lima pertanyaan terbuka memblokir handoff ke perencanaan delivery | `draft` |

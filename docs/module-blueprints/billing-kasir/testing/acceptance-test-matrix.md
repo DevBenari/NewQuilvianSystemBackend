@@ -39,7 +39,7 @@ Setiap slice harus menyertakan test command dan hasil, request/response tersanit
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-TEST-0.5` · status **draft** · owner QA + Product/Billing/Finance/Security · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`. Test data wajib fiktif dan **MUST NOT** memakai data pasien produksi; nama perusahaan asuransi pada test memakai nama samaran.
+`contract_version: BIL-TEST-0.5` · status **approved** · owner QA + Product/Billing/Finance/Security · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved). Test data wajib fiktif dan **MUST NOT** memakai data pasien produksi; nama perusahaan asuransi pada test memakai nama samaran.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -68,7 +68,7 @@ Selain bukti keluar yang sudah berlaku, slice ini **MUST** menyertakan: satu con
 
 ## Amendment 4 September 2026 — Pembagian tanggungan, anomali data, dan gerbang PPN
 
-`last_changed_in: BIL-TEST-0.6` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+`last_changed_in: BIL-TEST-0.6` · status **approved** · owner QA + Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -111,7 +111,7 @@ Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijala
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-TEST-0.7` · status **draft** · owner QA + Product/Billing/Finance/Security · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+`last_changed_in: BIL-TEST-0.7` · status **approved** · owner QA + Product/Billing/Finance/Security · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`. Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
 
 | ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- | --- |
@@ -133,10 +133,90 @@ Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijala
 | Angka yang dilihat kasir pada baris "Selisih Tidak Ditagihkan" tidak berubah sama sekali | Nominalnya berpindah field, dan layar menjumlah kedua field. Bila layar lupa menjumlah salah satunya, kasir melihat selisih menghilang tanpa ada yang mengubah tagihan |
 | Total Tagihan, Subtotal Mandiri, dan Subtotal Asuransi tidak bergeser satu rupiah pun | Amendment ini **tidak** dimaksudkan mengubah nilai apa pun. Setiap pergeseran nominal pada regresi ini berarti suku yang seharusnya hanya berpindah nama ternyata ikut berubah besarnya |
 | Jalur `SelfPay()` dan jalur anomali data tetap mengembalikan `nonBillableResidualAmount = 0` | `BillingCoverageDecision` adalah `record` posisional dan bertambah satu argumen. Kesalahan urutan argumen paling mudah terjadi di sini dan paling terlambat ketahuan |
-| Jalur `NotCovered` + `IsAllowExcessPaymentByPatient = false` **masih** mengisi `unresolvedAmount` | Jalur (2) sengaja tidak disentuh (`BKC-OQ-093`). Ikut memindahkannya berarti mengarang keputusan bisnis yang tidak pernah diambil pemiliknya |
+| ~~Jalur `NotCovered` + `IsAllowExcessPaymentByPatient = false` **masih** mengisi `unresolvedAmount`~~ **DIKOREKSI revisi `0.9`** | Baris ini berlaku untuk revisi `0.8` saja. `BKC-DEC-089` menutup `BKC-OQ-093` dan memindahkan jalur (2) ke `nonBillableResidual` — lihat `BIL-AT-062` pada amendment revisi `0.9` di bawah, yang menggantikan baris regresi ini |
 
 ### Bukti keluar tambahan
 
 Slice ini **MUST** menyertakan: (1) hasil `dotnet build` yang benar-benar dijalankan dan lulus; (2) bukti migration dibuat **dan direview**, disertai pemeriksaan bahwa kedua kolom baru bernilai bawaan pada seluruh baris lama; (3) perbandingan angka sebelum dan sesudah untuk satu tagihan yang memuat residual non-billable, memperlihatkan Total Tagihan dan outstanding pasien **tidak berubah**; (4) hasil pemeriksaan berapa banyak baris `MstInsuranceCoverageRule` aktif yang bernilai `IsAllowExcessPaymentByPatient = false` di lingkungan uji — angka itu adalah perkiraan beban kerja write-off Finance dan menjadi bahan penilaian kelayakan pemicu manual (`BKC-DES-023`); (5) satu contoh kasus write-off residual yang telah melewati pengajuan, persetujuan oleh orang kedua, dan reversal, dengan seluruh jejak auditnya sudah disanitasi. Approval blueprint bukan bukti test.
 
 Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`.
+
+---
+
+## Amendment lanjutan 4 September 2026 — Perluasan perutean write-off ke jalur `NotCovered` (revisi `0.9`)
+
+`last_changed_in: BIL-TEST-0.8` · status **approved** · owner QA + Product/Billing/Finance · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 5 September 2026. Input: **`BKC-DEC-089`** menutup `BKC-OQ-093`; keputusan arsitektur `BKC-DES-026`–`027` (approved 5 September 2026). Data uji **MUST** fiktif; **MUST NOT** memakai data pasien produksi.
+
+| ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-062` | `BKC-DEC-089`, `BKC-DES-026` | Tindakan Akupunktur Rp 200.000 cocok aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = false` | Domain/Integration | `primaryAmount = 0`; `patientAmount = 0`; `unresolvedAmount = 0`; `nonBillableResidualAmount = 200000`; Total Tagihan tetap Rp 200.000. **Jalur gagal yang harus TIDAK terjadi**: Rp 200.000 masuk `unresolvedAmount` (perilaku revisi `0.8`) atau masuk porsi pasien |
+| `BIL-AT-063` | `BKC-DES-026` | Satu tagihan yang memuat nominal dari **kedua** jalur sekaligus: Rp 200.000 dari aturan `NotCovered` (`IsAllowExcessPaymentByPatient = false`) **dan** Rp 30.000 sisa perhitungan Fisioterapi (aturan `Covered` 70%, `IsAllowExcessPaymentByPatient = false`) | Domain/Integration | Satu nominal gabungan `nonBillableResidualAmount = 230000`; satu plafon write-off (`CalculateNonBillableResidualRemainingAsync` mengembalikan Rp 230.000); cukup **satu** pengajuan write-off menutup keduanya. **Jalur gagal yang harus TIDAK terjadi**: dua nominal terpisah, dua plafon, atau Finance dipaksa mengajukan dua write-off untuk satu tagihan |
+
+### Pembanding regresi (menggantikan baris revisi `0.8` yang kini usang)
+
+| Yang diperiksa | Kenapa berisiko |
+| --- | --- |
+| Aturan `NotCovered` dengan `IsAllowExcessPaymentByPatient = true` (nilai bawaan) tetap menjadi porsi pasien | Amendment ini **hanya** menyentuh aturan yang penandanya di-set `false` secara sengaja. Cabang `true` pada jalur (2) **tidak disentuh** — regresi `BIL-AT-039`/`RegistrationCoverageAdapterNotCoveredRuleWithExcessAllowedBecomesPatientPortion` **MUST** tetap lulus tanpa perubahan |
+| Jalur (5) residual (`Covered` + `IsAllowExcessPaymentByPatient = false`, `BIL-AT-055`) tetap berperilaku sama | Amendment ini memperluas syarat tangkap ke jalur (2) **tambahan**, bukan menggantikan jalur (5). Kedua jalur **MUST** menulis ke akumulator `nonBillableResidual` yang sama, bukan dua akumulator terpisah |
+| `unresolvedAmount` pada versi kalkulasi **lama** (dibuat sebelum revisi `0.9`) tetap memuat angka lamanya | Backfill/versi lama **MUST NOT** ditulis ulang — bukti perhitungan yang sudah terjadi tetap valid apa adanya (`BKC-DES-027`) |
+| Total Tagihan, Subtotal Mandiri, dan Subtotal Asuransi tidak bergeser satu rupiah pun | Amendment ini **tidak** dimaksudkan mengubah nilai apa pun — hanya memindahkan nasib nominal yang sudah keluar dari porsi pasien sejak revisi `0.7`/`0.8` |
+| Write-off kategori `NON_BILLABLE_RESIDUAL` yang sudah diajukan/disetujui pada data jalur (5) (revisi `0.8`) tetap berperilaku sama | Satu akumulator yang sama berarti mekanisme write-off-nya (`BE-BKC-029`) **tidak perlu diubah satu baris pun** — regresi `BIL-AT-058`–`061` **MUST** tetap lulus tanpa perubahan |
+
+### Bukti keluar tambahan
+
+Slice ini **MUST** menyertakan: (1) hasil `dotnet build`/`dotnet test` yang benar-benar dijalankan dan lulus; (2) perbandingan angka sebelum dan sesudah untuk satu tagihan yang memuat nominal jalur (2), memperlihatkan Total Tagihan dan porsi pasien **tidak berubah**; (3) satu contoh tagihan yang memuat nominal dari kedua jalur (2 dan 5) sekaligus, memperlihatkan satu nominal gabungan dan satu pengajuan write-off yang menutup keduanya; (4) hasil pemeriksaan dua kelompok `MstInsuranceCoverageRule` aktif bernilai `IsAllowExcessPaymentByPatient = false` — berapa berstatus `NotCovered` dan berapa `Covered` dengan tanggungan sebagian, sebagai perkiraan beban kerja Finance gabungan. **Nol bukti migration** — amendment ini tidak menyentuh skema. Approval blueprint bukan bukti test.
+
+Trace **`BKC-DEC-089`**, `BKC-DEC-080`, `BKC-DES-026`–`027`.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+`last_changed_in: BIL-TEST-0.9` · status **draft** · owner QA + Kepala Kasir/Finance Operations + Security · `approved_by`: — · `approved_at`: — · input: **`PC-DEC-001`–`PC-DEC-013`** (`approved` 7 September 2026); keputusan arsitektur `PC-DES-001`–`PC-DES-014`. Data uji **MUST** fiktif; nama penerima memakai nama samaran.
+
+| ID | Requirement/decision | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-064` | `PC-DEC-013`, `PC-DES-003` | Satu voucher berjalan penuh: dibuat, disetujui, uang diserahkan, nota dimasukkan | E2E | Status berpindah `WAITING_APPROVAL` → `APPROVED` → `CASH_RECEIVED` → `COMPLETED`, dan layar menampilkan label `Menunggu Persetujuan` → `Disetujui` → `Uang Diterima` → `Selesai` **persis** seperti `PC-DEC-013`. Empat baris `BilPettyCashVoucherCommand` terbentuk |
+| `BIL-AT-065` | `PC-DES-008`, `CAP-30`, `QBE-CODE-003` | Voucher pertama dibuat pada tanggal Asia/Jakarta tertentu | Integration | `VoucherNumber` berbentuk `PTC-YYYYMMDD-0001`. Satu baris `BilNumberSeries` ber-`SequenceKey = 'BILLING_PETTY_CASH_VOUCHER'` terbentuk. **Jalur gagal yang harus TIDAK terjadi**: nomor berbasis milidetik epoch seperti pada rujukan tampilan, atau nomor hasil `Count+1`/`Max+1` |
+| `BIL-AT-066` | `PC-DES-008` | Sepuluh voucher dibuat bersamaan dari sepuluh permintaan paralel | Concurrency | Sepuluh nomor berbeda, tidak ada yang kembar, dan tidak ada nomor yang terlewat. Membuktikan `pg_advisory_xact_lock` yang diwarisi benar-benar bekerja untuk jenis nomor baru |
+| `BIL-AT-067` | `PC-DEC-002`, `PC-DEC-009`, `PC-DES-004` | Saldo Rp 5.000.000. Voucher Rp 300.000 dibuat, lalu disetujui, lalu uangnya diserahkan | Integration | Setelah **dibuat**: saldo Rp 5.000.000, komitmen Rp 0. Setelah **disetujui**: saldo **tetap** Rp 5.000.000, komitmen Rp 300.000. Setelah **uang diserahkan**: saldo Rp 4.700.000, komitmen Rp 0, satu baris ledger `DISBURSEMENT` ber-`BalanceBefore` Rp 5.000.000 dan `BalanceAfter` Rp 4.700.000. **Jalur gagal yang harus TIDAK terjadi**: saldo berkurang saat persetujuan |
+| `BIL-AT-068` | `PC-DEC-009` | Voucher pada `BIL-AT-067` dimasukkan bukti notanya | Integration | Status menjadi `COMPLETED`; saldo **tetap** Rp 4.700.000; **tidak ada** baris ledger baru. Membuktikan `Selesai` murni administratif |
+| `BIL-AT-069` | `PC-DEC-008`, `PC-DES-005`, `BIL-VAL-047` | Saldo Rp 5.000.000. Voucher A Rp 300.000 disetujui. Voucher B Rp 4.800.000 hendak disetujui | Integration | Voucher B ditolak `422` beserta pesan yang menyebut sisa Rp 4.700.000. Voucher B **tetap** `Menunggu Persetujuan`. **Jalur gagal yang harus TIDAK terjadi**: voucher B lolos karena diuji terhadap Rp 5.000.000, lalu keduanya dicairkan dan saldo menjadi minus Rp 100.000 |
+| `BIL-AT-070` | `PC-DES-006`, `BIL-VAL-048` | Voucher Rp 300.000 disetujui saat saldo Rp 5.000.000. Saldo lalu diturunkan menjadi Rp 200.000 lewat jalur yang melewati penjaga komitmen. Kasir menekan "Uang Diberikan" | Integration | Ditolak `422`; voucher **tetap** `Disetujui`; saldo **tetap** Rp 200.000; **tidak ada** baris ledger. Membuktikan penjaga kedua benar-benar dipasang, bukan hanya penjaga di persetujuan |
+| `BIL-AT-071` | `PC-DES-006`, `BIL-VAL-057` | Tombol "Uang Diberikan" dikirim dua kali: (a) dengan `Idempotency-Key` sama; (b) tanpa kunci; (c) dua permintaan benar-benar bersamaan | Integration/concurrency | Ketiganya menghasilkan saldo berkurang **tepat satu kali** Rp 300.000 dan **tepat satu** baris ledger `DISBURSEMENT`. (a) mengembalikan hasil permintaan pertama; (b) ditolak `422` `BIL-VAL-046`; (c) satu berhasil dan satu ditolak. **Uji negatif inti seluruh rumpun ini** |
+| `BIL-AT-072` | `PC-DEC-003`, `PC-DES-013`, `BIL-VAL-052` | Voucher ditolak, lalu dicoba disunting, diajukan ulang, disetujui, dan dibatalkan | API/security | Keempatnya gagal. **Bukti yang diharapkan bukan hanya kode galat**: pemeriksaan daftar route membuktikan **tidak ada** endpoint `PUT`, `PATCH`, atau resubmit pada voucher sama sekali. Baris voucher `REJECTED` identik sebelum dan sesudah keempat percobaan |
+| `BIL-AT-073` | `PC-DEC-007`, `PC-DES-007`, `BIL-VAL-050` | Tiga percobaan pembatalan: (a) pemohon membatalkan voucher `Menunggu Persetujuan`; (b) orang lain membatalkan voucher itu; (c) pemohon membatalkan voucher yang sudah `Disetujui` | API/security | (a) berhasil — `IsCancel = true`, `CancelBy` terisi, dan `Status` **tetap** `WAITING_APPROVAL`; (b) ditolak `403`; (c) ditolak `422`. **Jalur gagal yang harus TIDAK terjadi**: lahirnya status keenam `CANCELLED` pada kolom `Status` |
+| `BIL-AT-074` | `PC-DEC-005` | Kasir menekan "Uang Diberikan" | Integration | Status langsung `CASH_RECEIVED` dalam **satu** permintaan. **Tidak ada** status antara dan **tidak ada** endpoint konfirmasi penerima yang perlu dipanggil sesudahnya |
+| `BIL-AT-075` | `PC-DEC-006` | Voucher `Uang Diterima` dibiarkan tanpa bukti nota, lalu waktu dimajukan melewati akhir bulan dan seluruh pekerjaan latar dijalankan | Integration | Voucher **tetap** `Uang Diterima`; tidak ada perubahan status, tidak ada pemberitahuan, dan tidak ada pemblokiran. **Ini keadaan yang dipilih sengaja**, bukan kelalaian. Test ini ada justru agar penambahan eskalasi kelak terlihat sebagai perubahan perilaku yang disengaja |
+| `BIL-AT-076` | `PC-DEC-012`, `PC-DES-002`, `BIL-VAL-053` | Finance membuat kategori, memakainya pada satu voucher, lalu mencoba menghapusnya, lalu menonaktifkannya | API | Penghapusan ditolak `400`. Penonaktifan berhasil. Voucher lama **tetap** menampilkan nama kategorinya; dropdown Buat Voucher **tidak** lagi menawarkannya |
+| `BIL-AT-077` | **`PC-DEC-001`** | Shift kasir dibuka, satu pembayaran pasien tunai diterima, satu voucher Petty Cash Rp 300.000 dicairkan, lalu shift ditutup | Integration | `SystemCash`, `PhysicalCash`, dan `Variance` shift **identik** dengan hasil skenario pembanding yang tidak mencairkan voucher sama sekali. **Jalur gagal yang harus TIDAK terjadi**: shift kasir ikut berkurang Rp 300.000. Ini uji regresi paling penting pada amendment ini |
+| `BIL-AT-078` | `PC-DEC-004`, hak akses | Pengguna tanpa `PettyCashVoucher : Approve` mencoba menyetujui; pengguna tanpa `PettyCashBudget : TopUp` mencoba menambah anggaran; pengguna tanpa `PettyCashVoucher : Read` membuka daftar | Security | Ketiganya `403`, tanpa mutasi apa pun. **Ditambah pemeriksaan yang wajib**: untuk setiap action pada ketiga controller baru, argumen pertama `[AccessAction]` sama persis dengan argumen kedua `[AccessPermission]`, dan `AccessType` bernilai salah satu dari `Read`/`Create`/`Update`/`Delete`. Kesalahan di sini tidak terlihat saat menguji memakai akun SuperAdmin |
+| `BIL-AT-079` | Privasi, `PC-DES-009` | Satu voucher berjalan penuh sambil log aplikasi direkam | Security | Log **tidak memuat** `RecipientName`, `Purpose`, `RejectionReason`, maupun isi `ResponseJson` — diperiksa dengan pencarian teks pada seluruh keluaran log, bukan hanya pada field yang diperiksa satu per satu. Log **memuat** `VoucherId`, `VoucherNumber`, nominal, status sebelum dan sesudah, serta `ActorUserId` |
+| `BIL-AT-080` | `PC-DEC-010`, `PC-DES-014`, `BIL-VAL-054` | Tiga percobaan: (a) menambah kolam aktif kedua; (b) koreksi saldo menjadi negatif; (c) koreksi saldo menjadi di bawah nominal voucher yang sudah disetujui | Integration | (a) ditolak unique index parsial; (b) dan (c) ditolak `422` beserta pesan yang menyebut nominal yang sudah dijanjikan. Saldo tidak bergerak pada ketiganya |
+
+### Regresi yang wajib diperiksa
+
+| Yang diperiksa | Kenapa berisiko |
+| --- | --- |
+| Keempat jenis nomor yang sudah ada tetap berformat sama persis | `BillingNumberSeriesService` disentuh amendment ini. Parameter constructor baru **MUST** opsional berbawaan; bila tidak, seluruh pemanggil dan test yang sudah berjalan rusak sekaligus, dan rusaknya menyentuh Invoice, Deposit, Shift Kasir, serta Kwitansi bersamaan |
+| Helper privat `AllocateNumberAsync` tidak berubah satu baris pun | Ia dipakai lima jenis nomor sesudah amendment ini. Perubahan di sana menyentuh seluruh penomoran modul |
+| `BilCashierShift` tidak bergerak satu rupiah pun oleh aktivitas Petty Cash | `PC-DEC-001`. Diuji langsung oleh `BIL-AT-077`; disebut ulang di sini karena ia juga perlu diperiksa pada setiap perubahan Petty Cash berikutnya, bukan hanya sekali |
+| Seluruh angka tagihan pasien tidak bergeser | Petty Cash **tidak** menyentuh `BilInvoice`, `BilCalculationVersion`, maupun rantai kalkulasi. Setiap pergeseran nominal pada regresi kalkulasi berarti ada sambungan yang tidak seharusnya dibuat |
+| `BillingManagementServiceCollectionExtensions` masih mendaftarkan seluruh service lama | Berkas itu disentuh amendment ini. Satu baris yang tidak sengaja terhapus akan melumpuhkan rumpun lain saat aplikasi mulai |
+| `ApplicationDbContext` masih memuat seluruh `DbSet` dan configuration lama | Alasan yang sama |
+
+### Bukti keluar tambahan
+
+Slice ini **MUST** menyertakan:
+
+1. hasil `dotnet build` yang benar-benar dijalankan dan lulus;
+2. bukti migration **dibuat dan direview**, disertai pemeriksaan bahwa kelima tabel lahir kosong dan tidak ada satu pun tabel existing yang di-`ALTER`;
+3. bukti seed berjalan: **tepat satu** baris `BilPettyCashBudget` dan lima baris `MstPettyCashCategory`, sehingga dropdown "Pilih Kategori" tidak kosong pada pemakaian pertama;
+4. satu contoh response voucher yang sudah disanitasi untuk masing-masing dari kelima status, memperlihatkan `statusLabel` sesuai `PC-DEC-013`;
+5. tangkapan layar perbandingan penutupan shift kasir dengan dan tanpa pencairan voucher pada hari yang sama, memperlihatkan angkanya identik (`BIL-AT-077`);
+6. hasil pemeriksaan pasangan `[AccessAction]`/`[AccessPermission]` untuk kedua belas action baru, ditulis sebagai tabel tiga kolom — nama method, argumen pertama `[AccessAction]`, argumen kedua `[AccessPermission]` — sehingga ketidaksesuaian terlihat tanpa membaca kode;
+7. bukti kedua belas butir hak akses baru **benar-benar muncul** di layar Akses Role dan dapat dicentang admin. Butir yang tidak muncul berarti permission-nya belum selesai, sekalipun endpointnya berjalan saat diuji memakai SuperAdmin.
+
+Approval blueprint bukan bukti test.
+
+Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`.

@@ -6,12 +6,17 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -514,6 +519,22 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxWorkflowApproverAssignment> TrxWorkflowApproverAssignments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT
 
+        #region CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+        public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
+        public DbSet<AccJournalType> AccJournalTypes { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
+        public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+        public DbSet<AccJournal> AccJournals { get; set; }
+        public DbSet<AccJournalLine> AccJournalLines { get; set; }
+        public DbSet<AccJournalApproval> AccJournalApprovals { get; set; }
+        public DbSet<AccNumberSeries> AccNumberSeries { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+
         #endregion CORPORATE
 
         #region HEALTH SERVICE        
@@ -565,6 +586,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
         public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
+        // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Kolam anggaran terpisah
+        // dari kas fisik shift kasir (PC-DEC-001); tidak ada relasi ke BilCashierShift.
+        public DbSet<MstPettyCashCategory> MstPettyCashCategories { get; set; }
+        public DbSet<BilPettyCashBudget> BilPettyCashBudgets { get; set; }
+        public DbSet<BilPettyCashBudgetMovement> BilPettyCashBudgetMovements { get; set; }
+        public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
+        public DbSet<BilPettyCashVoucherCommand> BilPettyCashVoucherCommands { get; set; }
         public DbSet<BilFolio> BilFolios { get; set; }
         public DbSet<BilChargeLine> BilChargeLines { get; set; }
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }

@@ -302,6 +302,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     CreateDateTime = x.CreateDateTime,
                     Discipline = x.Discipline != null ? x.Discipline.ToString() : null,
                     RequestedAt = x.RequestedAt,
+                    RequestedByUserId = x.RequestedByUserId,
+                    RequestedByName = x.RequestedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.RequestedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
                     Version = x.Version,
@@ -414,7 +421,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     ActorUserId = actorUserId
                 });
 
-            return MapDetailResponse(entity, procedure);
+            return MapDetailResponse(entity, procedure, await ResolveUserNameAsync(entity.RequestedByUserId, cancellationToken));
         }
 
         /// <summary>
@@ -741,7 +748,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
         }
 
-        private static LabOrderDetailResponse MapDetailResponse(LabOrder entity, MstProcedure? procedure)
+        /// <summary>
+        /// Nama pengguna untuk ditampilkan. Sumbernya sama dengan yang dipakai Master Data,
+        /// sehingga satu orang tidak terbaca dengan dua nama berbeda antar layar.
+        /// </summary>
+        private async Task<string?> ResolveUserNameAsync(
+            Guid? userId,
+            CancellationToken cancellationToken = default)
+        {
+            if (userId == null || userId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == userId.Value)
+                .Select(x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static LabOrderDetailResponse MapDetailResponse(
+            LabOrder entity,
+            MstProcedure? procedure,
+            string? requestedByName = null)
         {
             return new LabOrderDetailResponse
             {
@@ -757,6 +787,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 CreateDateTime = entity.CreateDateTime,
                 Discipline = entity.Discipline?.ToString(),
                 RequestedAt = entity.RequestedAt,
+                RequestedByUserId = entity.RequestedByUserId,
+                RequestedByName = requestedByName,
                 CompletedAt = entity.CompletedAt,
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),
                 Version = entity.Version,
