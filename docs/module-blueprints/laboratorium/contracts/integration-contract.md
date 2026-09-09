@@ -209,11 +209,27 @@ Tempat penyimpanan penunjuknya **sudah ada**: `TrxPatientEncounter.ReferralInsti
 | `encounterNumber` | Ditampilkan kepada petugas |
 | `patientId` | Menampilkan identitas pada layar berikutnya |
 
-**Yang masih menunggu pemilik `registration-management`:** endpoint pelaksananya beserta
-penyimpanan kunci idempotensi. Kolom penunjuk dan pemetaan di atas sudah tersedia dan sudah
-diterapkan ke basis data; yang belum ada adalah jalur pemanggilannya. Bukti idempotensi
-— menekan simpan dua kali tidak menghasilkan dua kunjungan — baru dapat dihasilkan
-setelah endpoint itu ada, dan menjadi cakupan `BE-LAB-08`.
+### Pelaksana — tersedia sejak 2026-09-07 (`BE-LAB-08`)
+
+Jalur pemanggilannya **sudah ada**, dan ia milik Registrasi:
+`Areas/HealthServices/RegistrationManagement/Services/EncounterIntakeService.cs`.
+
+| Aspek | Bentuk yang dipilih |
+|---|---|
+| Sifat pemanggilan | **Dalam proses**, bukan HTTP. Sama seperti `INT-02`, `INT-04`, dan `INT-06` yang juga sejalur-proses. Laboratorium memanggil service milik Registrasi, bukan menulis ke tabelnya |
+| Penyimpanan kunci idempotensi | Kolom `TrxPatientEncounter.RegistrationIdempotencyKey`, boleh kosong, ber-**unique index tersaring** `"RegistrationIdempotencyKey" IS NOT NULL` |
+| Penegak idempotensi | Dua lapis: pembacaan lebih dulu menangani pengiriman ulang berurutan; unique index menangani dua permintaan yang tiba bersamaan |
+| Kewenangan | Registrasi memeriksa sendiri `PatientEncounter : Create` atas pemanggilnya. Hak akses layar Laboratorium hanya membuka layarnya (`VAL-41`) |
+
+**Kenapa kuncinya tidak ditaruh pada tabel tersendiri.** Yang perlu dikenali saat permintaan
+yang sama datang dua kali adalah *kunjungan mana* yang sudah terbentuk. Menyimpannya pada
+kunjungan membuat pengenalan itu satu pembacaan index, dan membuat basis data sendiri yang
+menolak kunjungan kedua — bukan kode aplikasi yang harus memenangkan balapan.
+
+**Satu selisih yang perlu diketahui.** `VAL-42` — *"Registrasi tidak dapat dihubungi"* — ditulis
+untuk pemanggilan jarak jauh. Karena pemanggilannya sejalur proses, keadaan itu berubah makna
+menjadi *penyimpanannya* yang tidak dapat dicapai; kegagalan basis data dipetakan menjadi `503`
+beserta pesan yang sama.
 
 ---
 

@@ -91,6 +91,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Daftar alasan penolakan sampel berhasil diambil."));
         }
 
+        // Detail satu alasan penolakan beserta kedua penanda sistemnya (LAB-API-v1 r6).
+        //
+        // Ditambahkan supaya formulir ubah tidak lagi bergantung pada baris yang kebetulan
+        // masih ada di halaman daftar yang sedang terbuka. Tautan langsung dan muat ulang
+        // halaman sebelumnya berakhir pada formulir kosong tanpa pesan apa pun.
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<LabRejectionReasonResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Rejection Reason", Description = "Melihat detail alasan penolakan sampel", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabRejectionReason", "Read")]
+        public Task<IActionResult> GetById(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labRejectionReasonService.GetByIdAsync(id, cancellationToken),
+                "Detail alasan penolakan sampel berhasil diambil.");
+
         // Menambah alasan penolakan baru.
         //
         // Kedua penanda terkunci tidak dapat diisi dari sini; alasan baru selalu lahir dengan

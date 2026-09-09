@@ -29,6 +29,16 @@ The exclusion is deliberately narrow. Test-scope files are still evaluated by QB
 
 Both exclusions are reported rather than silent. The terminal report prints `Generated files excluded (bin/obj)` and `Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002`, and the JSON names every excluded test-scope file, so a reviewer can always see what was skipped.
 
+## Code-only evidence
+
+The persisted-entity detectors read code, not prose. Before QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002 inspect a file, comments (`//`, `///`, `/* */`) and literal text (regular, interpolated, verbatim `@"..."`, raw `"""..."""`, and character literals) are removed, leaving declarations only. Line structure is preserved, so nothing else shifts.
+
+Without this, documentation decided rule outcomes. A read-only service whose XML documentation explained why it exists — `<c>MstReferralInstitution</c> ... beserta <c>DbSet</c>-nya` — matched the `DbSet<` entity marker on the `DbSet</c>` tag, so the service class was reported as a new persisted entity failing all three rules. The remedy is not to reword documentation: prose is not code and must never be able to create or hide a violation.
+
+The same applies to cross-file lookups. `DbSet<T>` registration and `IEntityTypeConfiguration<T>` mapping are confirmed against stripped code, so a commented-out registration cannot supply evidence and a mapping named only inside a comment cannot suppress QBE-CFG-001. Those repository-wide lookups also skip `bin/` and `obj/`, matching the generated-output exclusion already applied to the evaluation scope.
+
+Detection strength is unchanged. A genuine new entity that does not inherit `IdentityModel`, has no dedicated configuration, or resolves to no registry owner is still reported. This is an evidence correction, not a relaxation, and the canonical contract is unchanged.
+
 ## Exit behavior
 
 The terminal report always states checker mode, scope, counts, and a final result.

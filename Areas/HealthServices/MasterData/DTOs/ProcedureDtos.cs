@@ -34,6 +34,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
         public bool IsLaboratory { get; set; }
+
+        /// <summary>
+        /// Disiplin laboratorium yang menaungi jenis pemeriksaan ini — nama enum
+        /// <c>LabDiscipline</c>: <c>ClinicalPathology</c>, <c>AnatomicalPathology</c>, atau
+        /// <c>Microbiology</c>. Kosong bila procedure ini bukan laboratorium, atau bila
+        /// laboratorium tetapi belum digolongkan (<c>BE-EXT-01</c>).
+        /// </summary>
+        public string? LabDiscipline { get; set; }
+
+        /// <summary>Label siap baca disiplinnya, mis. <c>Patologi Klinik</c>.</summary>
+        public string? LabDisciplineName { get; set; }
+
         public bool IsRadiology { get; set; }
         public bool IsTherapy { get; set; }
         public bool IsNeedDoctor { get; set; }
@@ -74,6 +86,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
         public bool IsLaboratory { get; set; }
+
+        /// <summary>
+        /// Disiplin laboratorium yang menaungi jenis pemeriksaan ini — nama enum
+        /// <c>LabDiscipline</c>: <c>ClinicalPathology</c>, <c>AnatomicalPathology</c>, atau
+        /// <c>Microbiology</c>. Kosong bila procedure ini bukan laboratorium, atau bila
+        /// laboratorium tetapi belum digolongkan (<c>BE-EXT-01</c>).
+        /// </summary>
+        public string? LabDiscipline { get; set; }
+
+        /// <summary>Label siap baca disiplinnya, mis. <c>Patologi Klinik</c>.</summary>
+        public string? LabDisciplineName { get; set; }
+
         public bool IsRadiology { get; set; }
         public bool IsTherapy { get; set; }
         public bool IsNeedDoctor { get; set; }
@@ -106,6 +130,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<ProcedureStringOptionResponse> ProcedureTypeOptions { get; set; } = new();
+        public List<ProcedureStringOptionResponse> LabDisciplineOptions { get; set; } = new();
         public List<ProcedureQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<ProcedureFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<ProcedureFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -204,6 +229,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNursingAction { get; set; } = false;
         public bool IsSurgery { get; set; } = false;
         public bool IsLaboratory { get; set; } = false;
+
+        /// <summary>
+        /// Disiplin laboratorium, diisi dengan nama enum <c>LabDiscipline</c>. Boleh kosong.
+        ///
+        /// <b>Hanya berlaku bila <see cref="IsLaboratory"/> bernilai benar.</b> Mengirimnya
+        /// pada procedure non-laboratorium ditolak, bukan diabaikan diam-diam: golongan yang
+        /// tersimpan pada baris yang tidak pernah dibaca Laboratorium hanya menyesatkan
+        /// pembacanya kelak.
+        /// </summary>
+        [MaxLength(50)]
+        public string? LabDiscipline { get; set; }
+
         public bool IsRadiology { get; set; } = false;
         public bool IsTherapy { get; set; } = false;
         public bool IsNeedDoctor { get; set; } = true;
