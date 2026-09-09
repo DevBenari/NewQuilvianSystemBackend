@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -28,6 +28,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// </summary>
         [Required]
         public Guid ProcedureId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pesanan ini. Boleh kosong.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-042</c>, <c>AC-CAP015-01</c>. Pesanan sudah terikat kunjungan tanpa antrean
+        /// maupun catatan dokter, sehingga pemesanan laboratorium rawat inap sudah mungkin
+        /// sebelum kolom ini ada; kolom inilah yang membuat kepemilikan perawatannya dapat
+        /// dibuktikan.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
 
         /// <summary>
         /// Disiplin yang menaungi pesanan ini — Patologi Klinik, Patologi Anatomi, atau

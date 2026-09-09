@@ -271,6 +271,25 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Perujuk (BE-EXT-03). Restrict, sama seperti seluruh relasi data induk di atas:
+            // instansi atau dokter perujuk yang masih ditunjuk kunjungan tidak boleh terhapus,
+            // karena kunjungan lama akan kehilangan asal rujukannya.
+            entity.HasOne(x => x.ReferralInstitution)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralInstitutionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ReferralDoctor)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.ReferralInstitutionId)
+                .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
+
+            entity.HasIndex(x => x.ReferralDoctorId)
+                .HasFilter("\"ReferralDoctorId\" IS NOT NULL");
+
             entity.HasOne(x => x.DoctorSchedule)
                 .WithMany()
                 .HasForeignKey(x => x.DoctorScheduleId)

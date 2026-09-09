@@ -102,6 +102,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labExaminationService.CancelAsync(id, request, cancellationToken),
                 "Pemeriksaan terpesan berhasil dibatalkan.");
 
+        // Menandai satu pemeriksaan cito atau mengembalikannya menjadi biasa.
+        //
+        // Kesegeraan melekat pada pemeriksaan, bukan pada pesanan (LAB-DEC-026). Tidak ada
+        // endpoint sejenis pada grup Lab Order, dan ketiadaan itu disengaja (AC-40).
+        //
+        // Bukan dokter pemesan ditolak 403 (VAL-03); pesanan yang sudah selesai atau
+        // dibatalkan ditolak 409 (VAL-04).
+        [HttpPut("{id:guid}/urgency")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Set Lab Examination Urgency", Description = "Menandai satu pemeriksaan cito atau mengembalikannya biasa", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabExamination", "Update")]
+        public Task<IActionResult> SetUrgency(
+            Guid id,
+            [FromBody] SetLabExaminationUrgencyRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labExaminationService.SetUrgencyAsync(id, request, cancellationToken),
+                "Kesegeraan pemeriksaan berhasil diperbarui.");
+
+        // Menandai satu pemeriksaan dikerjakan ganda, atau membatalkan penandaannya.
+        //
+        // Penandaan hanya berlaku pada pemeriksaan itu sendiri; pemeriksaan lain pada wadah
+        // yang sama tidak ikut berubah (AC-40). Wadah yang sudah ditolak ditolak 409.
+        [HttpPut("{id:guid}/duplo")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Set Lab Examination Duplo", Description = "Menandai satu pemeriksaan dikerjakan ganda", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("LabExamination", "Update")]
+        public Task<IActionResult> SetDuplo(
+            Guid id,
+            [FromBody] SetLabExaminationDuploRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labExaminationService.SetDuploAsync(id, request, cancellationToken),
+                "Penanda duplo pemeriksaan berhasil diperbarui.");
+
         private async Task<IActionResult> ExecuteListAsync(
             Func<Task<List<LabExaminationResponse>>> action,
             string successMessage)
@@ -137,6 +177,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationForbiddenException exception)
+            {
+                // VAL-03. Objek yang diminta memang ada dan pemanggilnya memang sudah masuk;
+                // yang tidak dia miliki adalah kewenangan atas pesanan ini. Karena itu 403,
+                // bukan 404 maupun 422.
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
             }
             catch (LabExaminationConflictException exception)
             {

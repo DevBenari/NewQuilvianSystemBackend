@@ -19,7 +19,8 @@ namespace QuilvianSystemBackend.BillingTests.Operational
     /// service terhadap PostgreSQL sungguhan. Provider InMemory tidak dipakai karena tidak
     /// menegakkan unique index — test akan lulus secara semu.
     /// </summary>
-    public sealed class BillingFolioServiceTests : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+    [Collection(PostgresIntegrationTestCollection.Name)]
+    public sealed class BillingFolioServiceTests : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();

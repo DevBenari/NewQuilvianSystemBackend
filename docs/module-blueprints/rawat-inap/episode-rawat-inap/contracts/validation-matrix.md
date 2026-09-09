@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
+| `contract_version` | `0.6.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `6`; `02-backend-architecture.md` revision `0.4` |
+| `input_revision` | `00-interview-decisions.md` revision `15`; `02-backend-architecture.md` revision `0.4`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing |
 
 Pesan pada kolom "Pesan bagi pengguna" ditulis sebagaimana akan dibaca petugas di layar. Bukan
@@ -182,6 +182,23 @@ Keempat syarat lainnya tetap wajib, dan tidak ada satu pun peran yang dapat mele
 | Wewenang | `POST /discharges/{id}/financial-clearance` | Bukan kasir atau billing | "Hanya petugas kasir atau billing yang dapat menandai kelayakan keuangan." | 403 |
 | Catatan wajib | idem | `Note` kosong | "Catatan wajib diisi saat menandai kelayakan keuangan." | 400 |
 | Episode belum ditutup | idem | Episode `Closed` tanpa sesi koreksi | "Episode sudah ditutup." | 409 |
+
+## 8A. Deposit rawat inap
+
+Aturan di bawah dijalankan `BillingManagement`. Modul Rawat Inap hanya membacanya. Baris bertanda
+**peringatan** sengaja **tidak** menghasilkan kode kesalahan: admisi tetap berlanjut.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| Nominal wajib berupa angka positif bila diisi | Langkah Deposit admisi | Nominal negatif atau bukan angka | "Jumlah deposit tidak boleh negatif." | 400 |
+| Deposit tidak boleh dikirim tanpa episode | `POST /patient-funds/deposits/{encounterId}/top-ups` | `episodeId` kosong pada penerimaan yang berasal dari admisi rawat inap | "Deposit rawat inap wajib terikat pada episode." | 422 |
+| Satu deposit satu episode | idem | `episodeId` menunjuk episode milik pasien lain atau kunjungan lain | "Episode yang dipilih bukan milik kunjungan ini." | 409 |
+| Retry tidak membuat kwitansi ganda | idem | `idempotencyKey` sama dengan penerimaan yang sudah tersimpan | Tidak ada pesan; transaksi pertama dikembalikan apa adanya | 200 |
+| **Peringatan** deposit di bawah minimum kebijakan | Langkah Deposit admisi | Nominal lebih kecil dari minimum kebijakan penjamin/kelas | "Deposit kurang Rp… dari minimum yang disarankan. Admisi tetap dapat dilanjutkan." | — |
+| **Peringatan** deposit belum diisi padahal kebijakan mensyaratkan | idem | Nominal kosong atau nol sementara kebijakan mensyaratkan deposit | "Deposit belum diisi. Admisi tetap dapat dilanjutkan dan kekurangannya akan ditagih." | — |
+| Kebijakan tidak mensyaratkan deposit | idem | Penjamin/kelas tidak mensyaratkan deposit | Langkah dilewati; tidak ada transaksi Rp0 yang dibuat | — |
+| `Cleared` ditolak selama settlement belum selesai | `POST /discharges/{id}/financial-clearance` | Masih ada kekurangan terhadap tagihan final atau refund yang belum diselesaikan | "Masih ada kekurangan pembayaran atau refund yang belum diselesaikan." | 422 |
+| Pembatalan admisi tidak menghapus uang | `POST /episodes/{id}/cancel` | Episode punya penerimaan deposit yang belum di-refund/reversal | "Deposit yang sudah diterima harus diselesaikan lebih dulu, atau pakai penutupan override supervisor." | 422 |
 
 ## 9. Sesi koreksi
 

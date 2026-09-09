@@ -289,6 +289,9 @@ try
     builder.Services.AddScoped<LabCriticalBoundApprovalService>();
     builder.Services.AddScoped<LabRejectionReasonService>();
     builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabMonitoringService>();
+    builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<BillingFolioService>();
@@ -305,6 +308,34 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+
+    // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
+    // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
+    // INT-DOK-09. Tanpa pendaftaran ini controller yang memakainya gagal dibuat oleh dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<InpatientClinicalContextService>();
+    builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
+    builder.Services.AddScoped<CpptVerificationService>();
+
+    // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
+    // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
+    builder.Services.AddScoped<NursingAssessmentMonitoringService>();
+
+    // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan. NursingActorService menemukan pegawai
+    // di balik pengguna yang masuk, karena dokumentasi keperawatan menyimpan siapa perawatnya,
+    // bukan siapa akunnya. Tanpa pendaftaran ini controller-nya gagal dibuat dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<NursingActorService>();
+    builder.Services.AddScoped<NursingCarePlanService>();
+
+    // BE-RWI-061 / BE-RWI-062 / CAP-014. Pencatatan tindakan keperawatan, finalisasi, koreksi,
+    // dan mesin keadaan pengiriman tagihan yang terpisah dari keadaan klinisnya.
+    builder.Services.AddScoped<NursingInterventionService>();
+
+    // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
+    // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
+    builder.Services.AddScoped<PhysicianVisitNumberService>();
+    builder.Services.AddScoped<PhysicianVisitService>();
 
     // Modul Rekam Medis — keutuhan dokumen klinis
     builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
@@ -371,6 +402,11 @@ try
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
+    // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
+    // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
+    builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
@@ -521,6 +557,8 @@ try
     builder.Services.AddScoped<BillingCalculationService>();
 
     builder.Services.AddScoped<BillingInvoiceService>();
+
+    builder.Services.AddScoped<BillingInsuranceInvoiceDocumentService>();
 
     builder.Services.AddScoped<BillingDiscountService>();
 

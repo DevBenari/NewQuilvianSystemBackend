@@ -11,7 +11,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Corporate / SelfServices | Human Resource | BUSINESS DOMAIN | Hrd | ACTIVE / LEGACY |
 | Corporate | WorkforceCore / WorkforceProfileManagement / Workforce Profile | BUSINESS DOMAIN / MODULE | Wfp | ACTIVE / LEGACY |
 | Finance | Finance | BUSINESS DOMAIN | Fin | ACTIVE |
-| Administrator / HealthServices | Master / Reference | MASTER / REFERENCE | Mst | ACTIVE |
+| Administrator / HealthServices | Master / Reference / MasterData | BUSINESS DOMAIN / MASTER / REFERENCE | Mst | ACTIVE |
 | HealthServices | ClinicalManagement / Clinical | BUSINESS DOMAIN / MODULE | Cli | ACTIVE / LEGACY |
 | HealthServices | RegistrationManagement / Registration | BUSINESS DOMAIN / MODULE | Reg | ACTIVE / LEGACY |
 | HealthServices | PatientManagement operational | BUSINESS DOMAIN / MODULE | Pat | ACTIVE |
@@ -26,6 +26,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Corporate/HumanResource | WorkflowManagement / Workflow | SHARED PLATFORM CAPABILITY | Wfl | ACTIVE / LEGACY |
 | HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
 | HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | ACTIVE |
+| HealthServices | BloodBankManagement / Blood Bank | BUSINESS DOMAIN / MODULE | Bbk | ACTIVE |
 
 ## Kepanjangan prefix
 
@@ -49,6 +50,7 @@ Persetujuan registry hanya memberi wewenang penamaan dan kepemilikan. Ia **tidak
 | Wfl | Workflow |
 | Opr | Operating Room |
 | Mrc | Medical Record |
+| Bbk | Blood Bank |
 
 `DoctorAndScheduleManagement` berkategori MASTER / REFERENCE menurut bukti saat ini dan tidak memiliki prefix operasional tersendiri. Untuk entity operasional baru pakai `<PrefixPemilikDisetujui><KonsepBisnis>` tanpa pengulangan nama pemilik, misalnya `RegPatientEncounter`, `EmgVisit`, `WflInstance`, `LabOrder`.
 
@@ -91,8 +93,11 @@ Folder Area/Module/Submodule baru — atau folder yang sudah ada namun belum ter
 
 | Tanggal | Modul | Perubahan | Wewenang |
 |---|---|---|---|
+| 2026-09-04 | Master / Reference / `Mst` | `Module/pemilik` bertambah alias `MasterData`; `Category` menjadi `BUSINESS DOMAIN / MASTER / REFERENCE` | Yoga Aji Pratama, kontributor `master-data`, sesi 2026-09-04. **Mencabut penghalang QBE-MOD-002 atas pembuatan entity `Mst*` baru.** Dua hal menghalanginya sekaligus, dan keduanya baru terlihat ketika entity `Mst*` baru pertama kali dibuat sejak checker ada. **(a)** Nama pemilik `Master / Reference` tidak pernah cocok dengan folder sebenarnya, `Areas/HealthServices/MasterData`, sehingga checker melaporkan tidak ada pemilik yang cocok; alias `MasterData` ditambahkan mengikuti pola baris `Wfp` yang juga mencatat folder yang sudah ada. **(b)** `Category` berbunyi `MASTER / REFERENCE` saja, sementara checker hanya mengakui baris ber-`Category` diawali `BUSINESS DOMAIN` sebagai pemberi wewenang entity baru. Akibat keduanya, **tidak ada** modul yang berwenang membuat satu pun data induk baru — walaupun persetujuan bisnisnya sudah ada. Ditemukan saat `BE-EXT-02` menambahkan `MstReferralInstitution` dan `MstReferralDoctor`, yang disetujui `andryzainhome` dan `sukmagp` pada 2026-09-01 lewat `LAB-REQ-001` (`LAB-COORD-004`). Berlaku untuk seluruh entity `Mst*` berikutnya, bukan hanya kedua tabel itu. Prefix, lifecycle, dan pemilik sebenarnya tidak berubah. |
 | 2026-08-24 | InPatientManagement / `Inp` | `PLANNED` → `ACTIVE` | Muhammad Hamzah, blueprint `RWI-BP-001` keputusan `RWI-DEC-068`. Mencabut penghalang QBE-MOD-002 atas pembuatan entity operasional `Inp*`. Eksekusi database di luar lokal dan deployment tetap merupakan wewenang terpisah. |
 | 2026-08-28 | WorkforceCore / WorkforceProfileManagement / `Wfp` | Baris baru — pendaftaran prefix `Wfp` = *Workforce Profile* | Instruksi pemilik repository, sesi 2026-08-28. Mencatat 40 entity `Wfp*` yang sudah ada di `Areas/Corporate/HumanResource/` yang selama ini belum terdaftar. Wewenangnya penamaan dan kepemilikan saja; tidak memberi wewenang implementasi, migration, maupun deployment. |
 | 2026-08-31 | MedicalRecordManagement / `Mrc` | `PLANNED` → `ACTIVE` | Yoga Aji Pratama, blueprint `RM-BP-001` keputusan `RM-DEC-029`. Membuka normalisasi LEGACY MIGRATION empat entity `Trx*` rekam medis menjadi `Mrc*` beserta tabel fisiknya (QBE-NAM-003), diterapkan lewat migration `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix`. Wewenang ini mencakup source dan pembuatan migration; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
-| 2026-09-03 | LaboratoryManagement / `Lab` | Normalisasi `LEGACY MIGRATION` dua entity `Trx*` | Yoga Aji Pratama, pemilik modul, sesi 2026-09-03. Membuka normalisasi `TrxLabSpecimen` → `LabSpecimen` dan `TrxLabTransitionHistory` → `LabTransitionHistory` beserta tabel fisiknya (QBE-NAM-003), diterapkan lewat migration `20260903094528_RenameLaboratoryTrxTablesToLabPrefix`. Seluruh entity Laboratorium kini berprefix `Lab`, kecuali `MstLabRejectionReason` yang tetap `Mst` sesuai catatan 2026-09-02. Wewenang ini mencakup source, pembuatan migration, dan eksekusi ke dev pemilik; deployment tetap merupakan wewenang terpisah. |
 | 2026-09-02 | LaboratoryManagement / `Lab` | `PLANNED` → `ACTIVE` | Muhammad Hamzah, blueprint `LAB-BP-001` lewat permintaan `LAB-REQ-002`. Mencabut penghalang QBE-MOD-002 atas entity operasional `Lab*` dan atas migration modul Laboratorium. Sekaligus menetapkan prefix data induk milik Laboratorium: entity baru memakai `Lab`, sehingga dua tabel batas nilai bernama `LabValueBound` dan `LabValueOption`; `MstLabRejectionReason` yang sudah ada diperlakukan legacy dan tidak dinamai ulang. Wewenang ini mencakup source dan pembuatan migration; eksekusi database di luar dev pemilik dan deployment tetap merupakan wewenang terpisah. |
+| 2026-09-03 | BloodBankManagement / `Bbk` | Baris baru — pendaftaran prefix `Bbk` = *Blood Bank* | Blueprint `BD-BP-001` keputusan modul Bank Darah. Memberi wewenang penamaan dan kepemilikan entity operasional `Bbk*`; tidak memberi wewenang implementasi, migration, database, maupun deployment. Lifecycle tetap `PLANNED` sampai ada keputusan aktivasi modul. |
+| 2026-09-03 | BloodBankManagement / `Bbk` | `PLANNED` → `ACTIVE` | Persetujuan owner Bank Darah dan approval blueprint BD-BP-001 contract v4. Membuka wewenang implementasi entity operasional `Bbk*` sesuai QBE-MOD-002. |
+| 2026-09-07 | Master / Reference / MasterData / `Mst` | Baris duplikat `MasterData / BloodBankManagement Existing Master Legacy` (`Mst` / `LEGACY`) dihapus dari tabel kepemilikan | Perbaikan regresi merge, sesi 2026-09-07. Baris itu dan baris `Master / Reference / MasterData` sama-sama mencocokkan folder `Areas/HealthServices/MasterData` dengan prefix `Mst`, sehingga `Resolve-RegistryOwnership` mengembalikan `Registry ownership is ambiguous for the source area/domain path.` dan **seluruh** entity `Mst*` baru terblokir QBE-MOD-002 — terlihat pada `MstBloodBankReason`, `MstBloodComponent`, dan `MstBloodStorageLocation`. Masing-masing baris benar di cabang asalnya; ambiguitas baru muncul ketika merge `b70b735` menyatukan keduanya. Wewenang penamaan data induk Bank Darah tidak berubah: entity `Mst*` yang sudah ada di `Areas/HealthServices/MasterData` tetap grandfathered dan tidak dinamai ulang, dan kewenangannya kini dipikul baris `Administrator / HealthServices` / `Master / Reference / MasterData` sesuai catatan 2026-09-04. Prefix, lifecycle, dan pemilik sebenarnya tidak berubah. |

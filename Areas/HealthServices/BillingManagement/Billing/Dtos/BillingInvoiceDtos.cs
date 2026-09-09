@@ -25,9 +25,10 @@ public static class BillingOtherChargeTypes
     public const string CompanionMeal = "MAKANAN_PENDAMPING";
     public const string ExtraBed = "EKSTRA_BED";
 
-    // Kategori billing tujuan dicari berdasarkan kode ini lebih dulu, lalu namanya.
-    public const string CategoryCode = "BIAYA_LAIN_LAIN";
-    public const string CategoryName = "Biaya Lain-Lain";
+    // Kategori tarif tujuan seluruh entri biaya lain-lain kasir. Dicari berdasarkan kode lebih
+    // dulu, lalu namanya, pada MstTariffCategory.
+    public const string CategoryCode = "OTHER";
+    public const string CategoryName = "Other";
 
     public static readonly IReadOnlyDictionary<string, string> Labels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -68,6 +69,44 @@ public sealed class AddOtherChargeRequest
     public Guid CausationId { get; set; }
 }
 
+// BKC-DEC-059: berbeda dari AddOtherChargeRequest - harga dan nama TIDAK dikirim client, keduanya
+// diambil server dari MstTariff (NormalPrice, TariffName) supaya tidak bisa dimanipulasi. Client
+// hanya memilih TariffId (sudah difilter FE lewat konteks unit layanan/klinik/kelas pasien pada
+// ActiveEncounterOptionResponse) dan kuantitasnya.
+public sealed class AddCatalogChargeRequest
+{
+    public Guid EncounterId { get; set; }
+    public Guid TariffId { get; set; }
+    [Range(
+        typeof(decimal),
+        "0.0001",
+        "99999999999999.9999",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Quantity { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+// BKC-DEC-060: hasil advisory dari InsuranceCoverageService.ResolveTariffAsync (Clinical
+// Management) - dipetakan secara sengaja SEBAGIAN, bukan seluruh InsuranceCoverageResult. Field
+// internal seperti ApprovalInstruction/InsuranceCoverageRuleId/BillingInstruction TIDAK
+// diteruskan ke sini karena bersifat operasional untuk approver, bukan konsumsi kasir pada layar
+// entri. IsAdvisory selalu true - angka final tetap dari RegistrationBillingCoverageAdapter saat
+// kalkulasi invoice sungguhan (BE-BKC-021), preview ini bisa berbeda (§ 16.2.A).
+public sealed class CatalogChargeCoveragePreviewResponse
+{
+    public string CoverageStatus { get; set; } = string.Empty;
+    public decimal CoveragePercent { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalPrice { get; set; }
+    public decimal CoveredAmount { get; set; }
+    public decimal PatientPayAmount { get; set; }
+    public bool IsNeedApproval { get; set; }
+    public string? CoverageNote { get; set; }
+    public bool IsAdvisory { get; set; } = true;
+}
+
 public sealed class UpsertChargeRequest
 {
     public Guid EncounterId { get; set; }
@@ -77,6 +116,12 @@ public sealed class UpsertChargeRequest
     [Required, MaxLength(30)] public string SourceStatus { get; set; } = string.Empty;
     public DateTimeOffset OccurredAt { get; set; }
     public Guid CategoryId { get; set; }
+
+    // BIL-AT-025: nullable karena hanya diisi saat SourceDomain="ADHOC_CATALOG" (lihat
+    // BillingInvoiceService.AddCatalogChargeAsync). Domain producer lain (PROCEDURE, LABORATORY,
+    // ADHOC, dst) tidak punya tarif induk sehingga tetap null - pemanggil lama tidak berubah.
+    public Guid? TariffId { get; set; }
+
     [Required, MaxLength(250)] public string DescriptionSnapshot { get; set; } = string.Empty;
     [Range(
         typeof(decimal),
@@ -109,6 +154,11 @@ public class InvoiceSummaryResponse
     public Guid Id { get; set; }
     public Guid EncounterId { get; set; }
     public string InvoiceNumber { get; set; } = string.Empty;
+
+    // Identitas pasien ikut dibawa daftar invoice. Nomor rekam medis disertakan bersama namanya
+    // karena nama pasien tidak unik - di daftar tagihan, salah orang berarti salah tagih.
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
     public string ServiceType { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int CurrentCalculationVersion { get; set; }
@@ -159,7 +209,20 @@ public sealed class InvoiceItemResponse
     public string SourceStatus { get; set; } = string.Empty;
     public DateTimeOffset SourceOccurredAt { get; set; }
     public Guid CategoryId { get; set; }
+
+    // Kode dan nama kategori tarif dibawa bersama item supaya tagihan bisa dikelompokkan per
+    // kategori di layar tanpa permintaan tambahan ke master data.
+    public string CategoryCode { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+
     public string DescriptionSnapshot { get; set; } = string.Empty;
+
+    // Enhancement (di luar roadmap, permintaan langsung pengguna): hanya terisi untuk item
+    // berkategori Drug/Pharmacy/Consumable-Alkes (Category.IsPharmacy) - MeasurementName dari
+    // MstDrug.DispenseUnitMeasurementId lewat Tariff.Drug.DispenseUnitMeasurement. Null untuk
+    // kategori lain atau item tanpa TariffId (SourceDomain "ADHOC"/domain lama).
+    public string? Unit { get; set; }
+
     public decimal Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal DoctorShare { get; set; }
@@ -197,6 +260,85 @@ public sealed class ActiveEncounterOptionResponse
     public string EncounterStatus { get; set; } = string.Empty;
     public DateTime EncounterDate { get; set; }
     public bool HasInvoice { get; set; }
+
+    // Konteks yang menentukan bagaimana tagihan diperlakukan, jadi harus terlihat sebelum invoice
+    // dibuat: asal kunjungan dalam istilah billing (RAJAL/IGD/RANAP/...) dan siapa yang membayar.
+    public string ServiceType { get; set; } = string.Empty;
+    public string PaymentType { get; set; } = string.Empty;
+    public string PaymentTypeLabel { get; set; } = string.Empty;
+    public string? GuarantorName { get; set; }
+
+    // BKC-DEC-061: konteks yang dipakai memfilter katalog tarif pada layar entri. Ditambahkan
+    // secara aditif - consumer lama yang tidak membacanya tidak terpengaruh.
+    public Guid ServiceUnitId { get; set; }
+    public Guid? ClinicId { get; set; }
+    public Guid? PatientClassId { get; set; }
+}
+
+// Rekap tagihan satu kunjungan, dikelompokkan per kategori biaya.
+//
+// Angkanya diambil dari kalkulasi pratinjau, bukan dari penjumlahan item mentah: diskon per item,
+// pajak, biaya admin, dan room charge semuanya lahir dari mesin kalkulasi. Kalau direkap dari
+// Quantity x UnitPrice saja, totalnya tidak akan pernah sama dengan "Harus Dibayar" yang dilihat
+// kasir - dan rekap yang tidak menjumlah ke total adalah rekap yang menyesatkan.
+public sealed class ChargeCategorySummaryResponse
+{
+    public Guid? CategoryId { get; set; }
+    public string CategoryCode { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
+
+    // ITEM = kategori dari item invoice. ADMINISTRATION_FEE dan ROOM_CHARGE adalah komponen
+    // hitungan, bukan item, sehingga tidak punya kategori master - keduanya dimunculkan sebagai
+    // baris tersendiri supaya jumlah seluruh baris tetap rekonsiliasi dengan total invoice.
+    public string Kind { get; set; } = ChargeSummaryKinds.Item;
+
+    public int ItemCount { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal NetAmount { get; set; }
+}
+
+public static class ChargeSummaryKinds
+{
+    public const string Item = "ITEM";
+    public const string AdministrationFee = "ADMINISTRATION_FEE";
+    public const string RoomCharge = "ROOM_CHARGE";
+}
+
+public sealed class ChargeSummaryTotalResponse
+{
+    public decimal GrossAmount { get; set; }
+    public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
+    public decimal ItemDiscount { get; set; }
+
+    // Diskon promo total tidak menempel pada item manapun, jadi tidak muncul di baris kategori.
+    public decimal PromoDiscount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal TaxAmount { get; set; }
+
+    public decimal PatientAmount { get; set; }
+    public decimal PrimaryAmount { get; set; }
+    public decimal ExcessAmount { get; set; }
+    public decimal UnresolvedCoverageAmount { get; set; }
+}
+
+public sealed class EncounterChargeSummaryResponse
+{
+    public Guid EncounterId { get; set; }
+    public Guid InvoiceId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public string ServiceType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int CurrentCalculationVersion { get; set; }
+
+    // Kode memperlakukan satu kunjungan = satu invoice, tetapi skema tidak memaksakannya. Nilai
+    // di atas 1 berarti ada anomali data dan rekap ini hanya mewakili invoice terbaru.
+    public int InvoiceCount { get; set; }
+
+    public List<ChargeCategorySummaryResponse> Categories { get; set; } = [];
+    public ChargeSummaryTotalResponse Totals { get; set; } = new();
 }
 
 public sealed class CalculationResponse
@@ -244,6 +386,21 @@ public sealed class AdministrationFeeCalculationResponse
     public int ReplacementPriority { get; set; }
     public bool Coverable { get; set; }
     public bool ReplacesEarlierFee { get; set; }
+
+    // Bug fix (di luar roadmap, laporan pengguna): hasil ATURAN sesungguhnya dari waterfall
+    // coverage untuk komponen ini (bukan cuma Coverable di atas - itu hanya kelayakan tingkat
+    // kategori) - dipakai split Subtotal/Pajak Mandiri-Asuransi eksak. Porsi Patient komponen ini
+    // = AppliedAmount - PrimaryAmount - UnresolvedAmount.
+    public decimal PrimaryAmount { get; set; }
+    public decimal UnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi biaya administrasi yang tidak dapat dinilai penjaminnya
+    // karena data pendaftaran bermasalah. Lihat CoverageCalculationResponse.DataAnomalyAmount.
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi biaya administrasi yang tidak boleh ditagihkan ke pasien
+    // menurut kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal NonBillableResidualAmount { get; set; }
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini
@@ -259,6 +416,19 @@ public sealed class RoomChargeCalculationResponse
     public decimal AppliedAmount { get; set; }
     public bool LeaveRuleEnforced { get; set; }
     public IReadOnlyList<RoomChargeSegmentResponse> Segments { get; set; } = [];
+
+    // Bug fix (di luar roadmap, laporan pengguna): sama seperti AdministrationFeeCalculationResponse
+    // - hasil waterfall coverage sesungguhnya, bukan cuma kelayakan tingkat kategori.
+    public decimal PrimaryAmount { get; set; }
+    public decimal UnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi biaya kamar yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah. Lihat CoverageCalculationResponse.DataAnomalyAmount.
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi biaya kamar yang tidak boleh ditagihkan ke pasien menurut
+    // kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal NonBillableResidualAmount { get; set; }
 }
 
 public sealed class RoomChargeSegmentResponse
@@ -291,6 +461,35 @@ public sealed class CalculationItemResponse
     public decimal TaxAmount { get; set; }
     public decimal NetAmount { get; set; }
     public bool Coverable { get; set; }
+
+    // Bug fix (di luar roadmap, permintaan pengguna): PPN di Indonesia hanya dikenakan atas
+    // penyerahan barang (obat-obatan dan alat kesehatan/alkes) - jasa pelayanan kesehatan
+    // dikecualikan (Pasal 4A UU PPN). IsPharmacy dipakai ApplyInvoiceTax untuk membatasi basis
+    // pajak hanya ke item kategori Pharmacy/Drug/Consumable-Alkes.
+    public bool IsPharmacy { get; set; }
+
+    // Bug fix (di luar roadmap, laporan pengguna): hasil waterfall coverage SESUNGGUHNYA untuk
+    // item ini, dipisah komponen ITEM (basis GrossAmount-ItemDiscount, pra-pajak) dan komponen
+    // TAX-nya sendiri (basis TaxAmount) - keduanya dicocokkan rule SECARA TERPISAH di backend,
+    // jadi bisa berakhir di bucket berbeda (mis. item-nya coverable tapi pajaknya sendiri tidak,
+    // tergantung TaxComponentCoverable/AllocationRule). Porsi Patient masing-masing = basisnya -
+    // Primary - Unresolved. Dipakai badge status per baris DAN split Subtotal/Pajak
+    // Mandiri-Asuransi di Menu Pembayaran, menggantikan pendekatan proporsional/heuristik lama.
+    public decimal ItemPrimaryAmount { get; set; }
+    public decimal ItemUnresolvedAmount { get; set; }
+    public decimal TaxPrimaryAmount { get; set; }
+    public decimal TaxUnresolvedAmount { get; set; }
+
+    // BE-BKC-025/BKC-DEC-073: porsi item/pajaknya yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah (BillingCoverageAnomaly). Sudah ikut masuk porsi pasien; lihat
+    // CoverageCalculationResponse.DataAnomalyAmount untuk penjelasan lengkap.
+    public decimal ItemDataAnomalyAmount { get; set; }
+    public decimal TaxDataAnomalyAmount { get; set; }
+
+    // BE-BKC-028/BKC-DES-021: porsi item/pajaknya yang tidak boleh ditagihkan ke pasien menurut
+    // kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
+    public decimal ItemNonBillableResidualAmount { get; set; }
+    public decimal TaxNonBillableResidualAmount { get; set; }
 }
 
 public sealed class TaxCalculationResponse
@@ -319,6 +518,48 @@ public sealed class CoverageCalculationResponse
     public decimal UnresolvedAmount { get; set; }
     public decimal PatientAmount { get; set; }
     public IReadOnlyList<Guid> AppliedRuleIds { get; set; } = [];
+
+    // BIL-VAL-033/BKC-DES-004: membedakan "penjamin menanggung Rp 0" dari "kami tidak punya
+    // rinciannya". Sengaja tanpa nilai awal true: versi kalkulasi yang tersimpan sebelum rincian
+    // per baris ada tidak memuat properti ini, sehingga deserialisasi snapshot lama menghasilkan
+    // false dengan sendirinya. Consumer MUST memeriksa penanda ini sebelum memercayai angka per
+    // baris; BillingCalculationContract.Version MUST NOT dipakai untuk itu.
+    public bool IsPerItemAllocationAvailable { get; set; }
+
+    // BE-BKC-025/BKC-DES-010/011: total rupiah yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah - sudah ikut masuk PatientAmount di atas, BUKAN bucket uang ketiga.
+    // MUST NOT ditampilkan sebagai baris tersendiri di Ringkasan Pembayaran; ia peringatan, bukan
+    // subtotal (BKC-DES-011).
+    public decimal DataAnomalyAmount { get; set; }
+
+    // BKC-DES-010: sengaja terpisah dari (DataAnomalyAmount > 0). Anomali dapat terjadi pada
+    // tagihan yang seluruh komponennya bernilai nol (mis. invoice yang baru dibuka) - dalam
+    // keadaan itu nominalnya nol tetapi masalah datanya nyata. Layar yang menguji nominal saja
+    // akan melewatkan kasus itu.
+    public bool HasDataAnomaly { get; set; }
+
+    // Kode program, TIDAK diterjemahkan: PAYER_NOT_ELIGIBLE, POLICY_INACTIVE,
+    // INSURANCE_PROVIDER_MISSING, ENCOUNTER_NOT_FOUND. Sejajar indeksnya dengan AnomalyMessages.
+    public IReadOnlyList<string> AnomalyCodes { get; set; } = [];
+
+    // Kalimat berbahasa Indonesia siap tampil sebagai peringatan kuning di atas Ringkasan
+    // Pembayaran. Sejajar indeksnya dengan AnomalyCodes.
+    public IReadOnlyList<string> AnomalyMessages { get; set; } = [];
+
+    // BE-BKC-028/BKC-DES-021/022/BKC-DEC-080: total rupiah selisih yang menurut kontrak penjamin
+    // TIDAK BOLEH ditagihkan ke pasien - sudah dikeluarkan dari PatientAmount di atas sejak
+    // amendment sebelumnya (dulu lewat UnresolvedAmount), BUKAN bucket uang tambahan. Layar kasir
+    // MUST tetap menampilkan satu baris "Selisih Tidak Ditagihkan (kontrak penjamin)" berisi
+    // UnresolvedAmount + NonBillableResidualAmount gabungan - pemisahannya berguna di layar
+    // Pengecualian Finansial (menunggu Finance mengajukan write-off), bukan di layar kasir.
+    public decimal NonBillableResidualAmount { get; set; }
+
+    // BKC-DES-021: disediakan terpisah dengan alasan yang berbeda dari HasDataAnomaly - bukan
+    // karena nominalnya bisa nol saat masalahnya nyata, melainkan karena layar Pengecualian
+    // Finansial perlu membedakan "tidak ada residual" dari "residual sudah habis ditulis-off".
+    // Bernilai true selama versi kalkulasi terkini memuat residual, terlepas dari sudah atau
+    // belum ditulis-off; sisa yang belum ditulis-off dibaca dari endpoint Pengecualian Finansial.
+    public bool HasNonBillableResidual { get; set; }
 }
 
 public static class BillingCalculationContract

@@ -1,4 +1,4 @@
-# Roadmap Delivery Backend — Sub-modul `dokter-rawat-inap` (Rawat Inap)
+﻿# Roadmap Delivery Backend — Sub-modul `dokter-rawat-inap` (Rawat Inap)
 
 ## Metadata
 
@@ -94,8 +94,21 @@ task_id_series: "BE-RWI-037 s.d. BE-RWI-053 — deret bersama seluruh modul, dil
 | **Risk/blocker** | Risiko nyata beserta pemiliknya |
 | **DoD** | Daftar yang jawabannya hanya "ya" atau "belum" |
 
-Seluruh task berstatus **`BELUM DIKERJAKAN`**. Tidak ada satu pun yang boleh ditandai selesai oleh
-roadmap ini.
+Status setiap task ditulis pada kartunya masing-masing memakai empat tanda: ✅ selesai, 🟡 sebagian,
+⛔ terblokir, dan tanpa tanda untuk yang belum dikerjakan. Tanda hanya boleh dinaikkan setelah
+laporan tracked task itu ada di `../task/report/backend/`.
+
+Per 5 September 2026: `BE-RWI-037`, `BE-RWI-038`, `BE-RWI-039`, `BE-RWI-040`, `BE-RWI-042`,
+`BE-RWI-043`, `BE-RWI-044`, `BE-RWI-045`, `BE-RWI-046`, `BE-RWI-047`, `BE-RWI-049`,
+`BE-RWI-050`, `BE-RWI-052`, dan `BE-RWI-053` ✅ selesai; `BE-RWI-041`, `BE-RWI-048`, dan
+`BE-RWI-051` 🟡 sebagian. **Tidak ada lagi task yang belum dikerjakan.**
+
+Uji migration maju-mundur dijalankan 5 September 2026 terhadap PostgreSQL 15.15 sungguhan dan
+menutup `BE-RWI-040`, `BE-RWI-042`, serta `BE-RWI-043`; `BE-RWI-045` ditutup setelah pemilik
+memutuskan struktur penyimpanan isian medis. Ketiga 🟡 yang tersisa menunggu satu hal yang sama
+dan hanya satu: **database uji tersendiri** bagi uji concurrency dan percobaan ulang. Fixture
+uji menolak database pengembang perorangan karena ia menulis baris nyata, dan penolakan itu
+sengaja tidak dilemahkan.
 
 ---
 
@@ -117,26 +130,81 @@ roadmap ini.
 
 | Gelombang | Isi | Task | Yang dapat diverifikasi bisnis setelahnya |
 | --- | --- | --- | --- |
-| **`DOK-MVP-0`** | Perbaikan jalur tanpa antrean | `BE-RWI-037` | Catatan untuk pasien tanpa antrean tersimpan, tidak lagi gagal |
-| **`DOK-MVP-0b`** | Pendaftaran dokumen ke mesin keutuhan | `BE-RWI-038` | Catatan yang sudah diselesaikan dapat dikoreksi |
-| **`DOK-MVP-1`** | Fondasi konteks, kolom, tabel visite, pelonggaran | `BE-RWI-039` s.d. `BE-RWI-043` | Belum terlihat pengguna; fondasi bagi seluruh gelombang berikutnya |
-| **`DOK-MVP-2`** | Pintu masuk dan kajian medis | `BE-RWI-044`, `BE-RWI-045` | Dokter menulis kajian medis awal tanpa nomor antrean |
-| **`DOK-MVP-3`** | Catatan harian | `BE-RWI-046`, `BE-RWI-047` | Dokter menulis catatan setiap hari dan membetulkannya lewat koreksi |
-| **`DOK-MVP-4`** | Visite | `BE-RWI-048`, `BE-RWI-049` | Kunjungan dokter tercatat, terhitung, dan dapat dikoreksi |
-| **`DOK-MVP-5`** | Resep, tindakan, penunjang | `BE-RWI-050` s.d. `BE-RWI-052` | Dokter meresepkan berulang, mencatat tindakan, memesan lab dan radiologi |
-| **`DOK-MVP-6`** | Catatan terpadu dan verifikasi | `BE-RWI-053` | DPJP memverifikasi catatan profesi lain; keterlambatan terpantau |
+| **`DOK-MVP-0`** ✅ | Perbaikan jalur tanpa antrean | `BE-RWI-037` ✅ | ✅ selesai 3 September 2026. Catatan untuk pasien tanpa antrean tersimpan, tidak lagi gagal |
+| **`DOK-MVP-0b`** ✅ | Pendaftaran dokumen ke mesin keutuhan | `BE-RWI-038` ✅ | ✅ selesai 4 September 2026. Catatan dokter, kajian medis, dan tindakan yang sudah diselesaikan kini terdaftar tertanda tangan dan dapat dikoreksi |
+| **`DOK-MVP-1`** 🟡 | Fondasi konteks, kolom, tabel visite, pelonggaran | `BE-RWI-039` ✅, `BE-RWI-040` ✅, `BE-RWI-041` 🟡, `BE-RWI-042` ✅, `BE-RWI-043` ✅ | 🟡 5 September 2026. Empat dari lima task ✅ selesai setelah uji migration maju-mundur dijalankan terhadap PostgreSQL 15.15. Tersisa `BE-RWI-041` 🟡 — keenam acceptance criteria-nya terbukti, tetapi dua test concurrency belum dapat dijalankan tanpa database uji tersendiri |
+| **`DOK-MVP-2`** ✅ | Pintu masuk dan kajian medis | `BE-RWI-044` ✅, `BE-RWI-045` ✅ | ✅ selesai 5 September 2026. Dokter menulis catatan dan kajian medis awal tanpa nomor antrean, dan kajian yang bagiannya masih kosong — termasuk **diagnosis** — ditolak beserta daftar bagiannya. Blocker struktur dicabut: `TrxPatientAssessment` memperoleh tiga kolom isian medis |
+| **`DOK-MVP-3`** ✅ | Catatan harian | `BE-RWI-046` ✅, `BE-RWI-047` ✅ | ✅ selesai 4 September 2026. Dokter menulis catatan setiap hari, membacanya sebagai lini masa menurut waktu pemeriksaan, dan membetulkannya kapan pun — termasuk setelah pasien pulang |
+| **`DOK-MVP-4`** 🟡 | Visite | `BE-RWI-048` 🟡, `BE-RWI-049` ✅ | 🟡 5 September 2026. Kunjungan dokter tercatat, terhitung, dan dapat dibatalkan beralasan; `BE-RWI-048` 🟡 sebagian karena uji concurrency masih menunggu database uji tersendiri |
+| **`DOK-MVP-5`** 🟡 | Resep, tindakan, penunjang | `BE-RWI-050` ✅, `BE-RWI-051` 🟡, `BE-RWI-052` ✅ | 🟡 5 September 2026. Dokter meresepkan berulang, mencatat tindakan, dan memesan lab serta radiologi; `BE-RWI-051` 🟡 sebagian karena uji percobaan ulang masih menunggu database uji tersendiri |
+| **`DOK-MVP-6`** ✅ | Catatan terpadu dan verifikasi | `BE-RWI-053` ✅ | ✅ selesai 4 September 2026. DPJP memverifikasi catatan profesi lain; keterlambatan terpantau lewat daftar pantau berkebijakan kosong |
 
 **Nol gelombang memuat epic `OPEN DECISION`**, karena sub-modul ini memang tidak punya satu pun.
+
+### Urutan dependency
+
+Grafik di bawah adalah **tampilan lain dari kolom `Dependency` pada bagian 4**, bukan sumber
+kebenaran baru. Bila keduanya berbeda, kolom `Dependency` pada tabel task yang berlaku.
+
+```text
+BE-RWI-037 (perbaikan jalur tanpa antrean)                        ✅ SELESAI
+   └── BE-RWI-039 (service konteks klinis)                        ✅ SELESAI
+          ├── BE-RWI-040 (kolom konteks pada empat tabel klinis)  ✅ SELESAI
+          │      └── BE-RWI-041 (tabel visite)                    🟡 SEBAGIAN ← dua test concurrency
+          └── BE-RWI-042 (konteks pada resep dan pesanan penunjang) ✅ SELESAI
+                 └── BE-RWI-043 (pelonggaran satu catatan dan satu resep) ✅ SELESAI
+                        └── BE-RWI-044 (pintu masuk dokter)                 ✅ SELESAI
+                               ├── BE-RWI-045 (kajian medis awal)           ✅ SELESAI
+                               ├── BE-RWI-046 (catatan harian)              ✅ SELESAI
+                               │      ├── BE-RWI-047 (koreksi catatan lama) ✅ SELESAI
+                               │      └── BE-RWI-053 (verifikasi DPJP)      ✅ SELESAI
+                               ├── BE-RWI-048 (visite sebagai kejadian)     🟡 SEBAGIAN ← uji concurrency
+                               │      ├── BE-RWI-049 (pembatalan visite)    ✅ SELESAI
+                               │      └── BE-RWI-051 (tindakan dokter)      🟡 SEBAGIAN ← uji percobaan ulang
+                               ├── BE-RWI-050 (resep berulang dan obat pulang) ✅ SELESAI
+                               └── BE-RWI-052 (lab dan radiologi)           ✅ SELESAI
+
+BE-RWI-038 (pendaftaran dokumen ke mesin keutuhan) ✅ SELESAI ─────> BE-RWI-047
+```
+
+Tanda `+` berarti **dependency tambahan** yang tidak terlihat dari garis induknya. Contoh:
+`BE-RWI-048` digambar di bawah `BE-RWI-044`, tetapi juga menunggu `BE-RWI-041` karena tabel
+visitenya lahir di sana.
+
+**Dua akar yang tidak saling menunggu.** `BE-RWI-037` dan `BE-RWI-038` sama-sama tidak punya
+dependency dan **boleh dikerjakan orang berbeda sejak hari pertama**. Keduanya baru bertemu di
+`BE-RWI-047`. Tabel gelombang menempatkan keduanya berurutan (`DOK-MVP-0` lalu `DOK-MVP-0b`), tetapi
+urutan itu urusan penomoran gelombang, bukan dependency teknis.
+
+**Yang boleh paralel.**
+
+| Setelah selesai | Yang lepas bersamaan | Kenapa tidak saling menunggu |
+| --- | --- | --- |
+| `BE-RWI-039` | `BE-RWI-040`, `BE-RWI-042` | Menyentuh tabel yang berbeda; keduanya hanya butuh service konteks |
+| `BE-RWI-044` | `BE-RWI-045`, `BE-RWI-046`, `BE-RWI-048`, `BE-RWI-050`, `BE-RWI-052` | Lima kemampuan berbeda di atas satu pintu masuk yang sama. `BE-RWI-048` menunggu `BE-RWI-041` lebih dulu |
+| `BE-RWI-046` | `BE-RWI-047`, `BE-RWI-053` | Koreksi dan verifikasi tidak saling menyentuh. `BE-RWI-047` menunggu `BE-RWI-038` |
+| `BE-RWI-048` | `BE-RWI-049`, `BE-RWI-051` | Pembatalan visite dan tindakan dokter berdiri sendiri |
+
+**Tiga task yang menahan paling banyak.** `BE-RWI-039` menahan empat belas task sesudahnya;
+`BE-RWI-040` menahan empat jalur berbeda (`041`, `044`, `051`, `053`); `BE-RWI-044` menahan sembilan
+task. Keterlambatan pada ketiganya berbiaya jauh lebih besar daripada keterlambatan di mana pun.
+
+**Paralel tidak berarti bebas jadwal.** Seluruh task di atas berjalan di dalam modul milik orang
+lain — peringatan pertama bagian 0. Urutan dependency menyatakan **apa yang secara teknis boleh
+dimulai**, sedangkan **kapan** dikerjakan tetap wewenang pemilik `ClinicalManagement`,
+`PharmacyManagement`, `LaboratoryManagement`, dan `RadiologyManagement`. `BE-RWI-039` dan
+`BE-RWI-040` juga dipakai bersama sub-modul `keperawatan` lewat `INT-DOK-09`: siapa pun yang mendarat
+lebih dulu membuatnya, dan yang kedua menerima baris dependency, bukan salinan task.
 
 ---
 
 ## 4. Task
 
-### `BE-RWI-037` — Catatan dokter untuk pasien tanpa antrean tidak lagi menggagalkan sistem
+### ✅ `BE-RWI-037` — Catatan dokter untuk pasien tanpa antrean tidak lagi menggagalkan sistem
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 3 September 2026.** Kelima acceptance criteria terbukti; nol perubahan bentuk data. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 219`, enam di antaranya uji khusus task ini termasuk regresi poliklinik, rawat jalan, dan IGD. Selisih yang dilaporkan: kode sukses endpoint adalah `200`, bukan `201` seperti tertulis pada kriteria 1 — bentuk itu sudah ada pada source sebelum task ini dan mengubahnya merusak consumer frontend. Bukti: [laporan](../task/report/backend/BE-RWI-037.md) |
 | **Outcome** | Dokter dapat menyimpan catatan untuk pasien yang tidak punya nomor antrean — keadaan normal bagi pasien menginap dan pasien IGD — tanpa permintaannya berujung kegagalan sistem |
 | **Trace** | `DOK-TRC-DEF-01`; `FR-DOK-037`; `02-backend-architecture.md` §3.2; `contracts/integration-contract.md` §1.1 |
 | **Kontrak** | `0.3.0` |
@@ -150,11 +218,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-038` — Catatan yang sudah diselesaikan dapat dikoreksi
+### ✅ `BE-RWI-038` — Catatan yang sudah diselesaikan dapat dikoreksi
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Keenam acceptance criteria terbukti. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, tujuh di antaranya uji khusus task ini termasuk regresi catatan terpadu. **Nol migration, nol tabel, nol kolom, nol nilai jenis dokumen baru.** Selisih yang dilaporkan: kalimat penolakan koreksi atas dokumen yang belum terdaftar diubah menjadi "Catatan ini belum final. Perbaiki langsung pada catatannya." mengikuti `VAL-DOK-32`. Bukti: [laporan](../task/report/backend/BE-RWI-038.md) |
 | **Outcome** | Dokter yang salah ketik pada catatan yang sudah diselesaikan dapat membetulkannya lewat koreksi beralasan, bukan terpaksa menulis catatan baru yang membantah catatan lama |
 | **Trace** | `RWI-DEC-086`, `RWI-DEC-087`, `RWI-RULE-038`, `RWI-FACT-014`; `FR-DOK-044`, `FR-DOK-045`, `FR-DOK-046`; `RWI-AC-157` s.d. `RWI-AC-162`; `02-backend-architecture.md` §4.9.2 |
 | **Kontrak** | `0.3.0` |
@@ -168,11 +236,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-039` — Satu tempat menjawab "dokumen ini milik perawatan yang mana"
+### ✅ `BE-RWI-039` — Satu tempat menjawab "dokumen ini milik perawatan yang mana"
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 3 September 2026.** Ketujuh acceptance criteria terbukti; nol tabel dan nol kolom; service terdaftar pada dependency injection. `dotnet build` `0 Error(s)`; enam belas uji khusus task ini hijau, termasuk uji yang menghitung baris antrean sebelum dan sesudah tujuh pemanggilan — sebelum `0`, sesudah `0`. Bukti: [laporan](../task/report/backend/BE-RWI-039.md) |
 | **Outcome** | Setiap dokumen klinis rawat inap dapat membuktikan pasien, kunjungan, perawatan, dan kewenangan dokternya — tanpa satu pun baris antrean semu dibuat |
 | **Trace** | `INT-DOK-01`; `CON-INP-015`; `INV-DOK-01`, `INV-DOK-02`, `INV-DOK-03`, `INV-DOK-13`; `RWI-RULE-026`; `02-backend-architecture.md` §3.4 |
 | **Kontrak** | `0.3.0` |
@@ -186,11 +254,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-040` — Dokumen klinis menyimpan konteks perawatannya
+### ✅ `BE-RWI-040` — Dokumen klinis menyimpan konteks perawatannya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI, 5 September 2026.** Keenam acceptance criteria terbukti. Kriteria 4 ditutup dengan uji **maju-mundur-maju** terhadap PostgreSQL **15.15** sungguhan pada database pengembang perorangan `QuilvianNewDevHamzah`, berisi 175 encounter data nyata: maju `Done.` (115 → 133 migration) dengan **13 kolom** terbukti hadir pada empat tabel lewat katalog `information_schema`; mundur `Done.` dengan **0 dari 13** tersisa; maju lagi `Done.` dengan **13** kembali. Satu migration `20260903092936_AddInpatientClinicalContextColumns`, terpasang pada database pengembang saja — penerapan ke database bersama tetap wewenang tersendiri. `dotnet build` `0 Error(s)`; `dotnet test` SQLite `Failed: 0, Passed: 324`, project `Tests` `Failed: 0, Passed: 288`. Bukti: [laporan](../task/report/backend/BE-RWI-040.md) |
 | **Outcome** | Pertanyaan "catatan ini milik perawatan A atau B" dapat dijawab tanpa penelusuran berlapis, dan waktu pemeriksaan terpisah dari waktu penulisan |
 | **Trace** | `02-backend-architecture.md` §4.1, §4.2, §4.3, §4.4; `data/data-dictionary.md` §2 s.d. §5; `INV-DOK-01` |
 | **Kontrak** | `0.3.0` |
@@ -205,11 +273,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-041` — Kunjungan dokter punya tempat menyimpan
+### 🟡 `BE-RWI-041` — Kunjungan dokter punya tempat menyimpan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 **SEBAGIAN, diperbarui 5 September 2026.** **Keenam acceptance criteria kini terbukti.** Kriteria 6 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL **15.15**: tabel `CliPhysicianVisit` berdiri dengan **29 kolom dan 14 index**, hilang seluruhnya saat mundur, dan kembali utuh saat maju lagi; katalog `pg_indexes` membuktikan kunci permintaan unique **penuh** tanpa klausa `WHERE`, kedua index waktu ada, dan **nol** unique atas pasangan perawatan-dokter-tanggal. Yang **belum** terpenuhi tinggal satu butir DoD: dua test `PhysicianVisitUniquenessTests` tetap `NOT RUN` karena fixture-nya menjalankan migration dan menulis baris, sehingga menolak database pengembang perorangan — penolakan yang benar dan sengaja tidak dilemahkan. Role `Quilvian_2026@` tanpa hak `CREATEDB`, sehingga database uji tersendiri belum dapat dibuat. `dotnet test` SQLite `Failed: 0, Passed: 324`. Bukti: [laporan](../task/report/backend/BE-RWI-041.md) |
 | **Outcome** | Sistem punya tempat mencatat bahwa seorang dokter benar-benar mendatangi pasien, terpisah dari catatan apa pun yang ia tulis |
 | **Trace** | `RWI-DEC-084`, `RWI-DEC-085`; `CON-EXT-015`; `02-backend-architecture.md` §4.6; `data/data-dictionary.md` §6 |
 | **Kontrak** | `0.3.0` |
@@ -223,11 +291,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-042` — Resep dan pesanan penunjang menyimpan konteks perawatan
+### ✅ `BE-RWI-042` — Resep dan pesanan penunjang menyimpan konteks perawatan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI, 5 September 2026.** Keenam acceptance criteria terbukti. Kriteria 6 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL **15.15** pada ketiga migration modul pemilik — Farmasi, Laboratorium, Radiologi — seluruhnya `Done.` di ketiga arah; **5 kolom** pada tiga tabel terbukti hadir lewat katalog, `0 dari 5` sesudah mundur, `5 dari 5` sesudah maju lagi. Arah mundur juga melewati rename tabel Laboratorium dan mengembalikannya ke `TrxLabSpecimen` serta `TrxLabTransitionHistory`, lalu memulihkannya. Baris registry `RadiologyManagement / Rad` **masih `PLANNED`** dan tetap dicatat sebagai utang terbuka — uji migration tidak mengubahnya. `dotnet test` SQLite `Failed: 0, Passed: 324`. Bukti: [laporan](../task/report/backend/BE-RWI-042.md) |
 | **Outcome** | Resep dan pesanan pemeriksaan dapat dibuktikan miliknya perawatan mana, sehingga pesanan perawatan A tidak dapat diproses sebagai milik perawatan B |
 | **Trace** | `02-backend-architecture.md` §4.5, §4.7, §4.8; `AC-CAP015-01`; `INV-DOK-01` |
 | **Kontrak** | `0.3.0` |
@@ -241,11 +309,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-043` — Dokter dapat menulis lebih dari satu catatan dan satu resep
+### ✅ `BE-RWI-043` — Dokter dapat menulis lebih dari satu catatan dan satu resep
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI, 5 September 2026.** Keenam acceptance criteria terbukti ujung ke ujung. Kriteria 1 ditutup `BE-RWI-044`; **kriteria 2 ditutup hari ini lewat endpoint** setelah `BE-RWI-050` menyalakan jalur resep rawat inap — `SupportingOrderAndPrescriptionContextTests.ResepKedua_DiterimaLewatEndpointRawatInap_DitolakLewatEndpointRawatJalan`: resep kedua rawat inap `200` dan tersimpan `2`, resep aktif kedua tanpa konteks perawatan `400` dengan kalimat dibandingkan **utuh** dan hitungan tetap `1`. Uji maju-mundur PostgreSQL dijalankan dan **menemukan satu cacat**: `Down()` membangun ulang unique index versi ketat, sehingga rollback gagal `23505` begitu fitur ini dipakai — dibuktikan dengan menyisipkan dua catatan, dan lulus kembali setelah baris uji dihapus. **Diperbaiki**: `Down()` kini berhenti dengan pesan `P0001` yang menyebut jumlah baris bentrok dan tindakan yang diperlukan, tanpa menghapus catatan klinis apa pun. Bagian `Emergency` pada `INT-DOK-02` **tetap sengaja belum dikerjakan**. `dotnet test` SQLite `Failed: 0, Passed: 324`. Bukti: [laporan](../task/report/backend/BE-RWI-043.md) |
 | **Outcome** | Pasien yang dirawat sepuluh hari menerima catatan harian dan resep sebanyak yang memang dibutuhkan, bukan satu untuk seluruh masa perawatan |
 | **Trace** | `INT-DOK-02`; `RWI-DEC-038`, `RWI-DEC-070`, `RWI-RULE-026` aturan 4 dan 5; `INV-DOK-04`, `INV-DOK-05`; `FR-DOK-002`, `FR-DOK-003` |
 | **Kontrak** | `0.3.0` |
@@ -259,11 +327,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-044` — Dokter membuka pasien rawat inap dan menulis tanpa nomor antrean
+### ✅ `BE-RWI-044` — Dokter membuka pasien rawat inap dan menulis tanpa nomor antrean
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Kelima acceptance criteria terbukti. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 262` — 16 di antaranya uji khusus task ini termasuk regresi poliklinik, medical check-up, dan IGD; project uji InMemory menambahkan 19 uji hak akses **peran non-SuperAdmin**. **Nol migration** dan nol perubahan bentuk data. Selisih yang dilaporkan: kalimat penolakan `VAL-DOK-04` diperbarui karena kalimat lama berhenti benar begitu pintu rawat inap dibuka — kode penolakannya tetap `400`. `VAL-DOK-06` sengaja belum ditegakkan; alasannya pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-044.md) |
 | **Outcome** | Dokter dapat mulai mendokumentasikan pasien menginap langsung dari konteks perawatannya, dan hak akses barunya benar-benar berfungsi bagi peran selain SuperAdmin |
 | **Trace** | `FR-DOK-001`, `FR-DOK-038`; `EPIC DOK-01`; `contracts/api-contract.md` §1, §2; `permission-audit-matrix.md` §1.1 |
 | **Kontrak** | `0.3.0` |
@@ -277,11 +345,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-045` — Kajian medis awal tersimpan terpisah dari catatan harian
+### ✅ `BE-RWI-045` — Kajian medis awal tersimpan terpisah dari catatan harian
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI, 5 September 2026.** Keenam acceptance criteria terbukti. Blocker struktur **dicabut**: Product/Domain memilih pilihan 1 — `TrxPatientAssessment` memperoleh `PhysicalExamination`, `WorkingDiagnosis`, dan `TherapyPlan`, seluruhnya nullable, dengan `data/data-dictionary.md` bagian 3 direvisi `0.2` → `0.3`. Daftar bagian kosong kini **lima** baris, bukan dua. Kriteria 4 dibuktikan dua arah oleh `KajianMedisTanpaDiagnosis_DitolakDanHanyaDiagnosisYangDisebut` — menyebut "diagnosis kerja" dan **tidak** menyebut empat bagian yang sudah diisi — beserta kendali positif `KajianMedisYangLengkap_DapatDiselesaikanDanIsianMedisnyaTersimpan`. Satu migration `20260905081108_AddMedicalAssessmentContentColumns`, diuji maju-mundur-maju terhadap PostgreSQL 15.15: `3` kolom → `0` → `3`. Satu regresi ditemukan dan diperbaiki pada `ClinicalDocumentFinalizationIntegrityTests`. `dotnet test` SQLite `Failed: 0, Passed: 324`, 17 di antaranya `MedicalAssessmentTests`. Bukti: [laporan](../task/report/backend/BE-RWI-045.md) |
 | **Outcome** | DPJP mengisi pemeriksaan menyeluruh pertama sebagai dokumen tersendiri, dan catatan harian berikutnya tidak pernah menimpanya |
 | **Trace** | `EPIC DOK-02`; `FR-DOK-006` s.d. `FR-DOK-011`; `AC-CAP022-02`; `02-backend-architecture.md` §4.2 |
 | **Kontrak** | `0.3.0` |
@@ -295,11 +363,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-046` — Catatan harian terbaca menurut waktu pemeriksaan yang sebenarnya
+### ✅ `BE-RWI-046` — Catatan harian terbaca menurut waktu pemeriksaan yang sebenarnya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Kelima acceptance criteria terbukti. `dotnet test` project uji SQLite `Failed: 0, Passed: 262`, 12 di antaranya uji khusus task ini. **Nol migration** — kolom dan index-nya sudah dibuat `BE-RWI-040`. Selisih yang dilaporkan: syarat penyelesaian catatan yang berkonteks perawatan dilonggarkan menjadi `VAL-DOK-12`, yaitu cukup satu bagian S/O/A/P terisi dan diagnosis utama tidak diwajibkan; catatan poliklinik tetap menuntut keempat bagian dan diagnosis, dijaga test regresi `CatatanTanpaKonteksPerawatan_TetapMenuntutSoapLengkapDanDiagnosis`. Bukti: [laporan](../task/report/backend/BE-RWI-046.md) |
 | **Outcome** | Lini masa perkembangan pasien menggambarkan urutan pemeriksaan yang sungguh terjadi, bukan urutan kapan dokter sempat mengetik |
 | **Trace** | `EPIC DOK-03`; `FR-DOK-012`, `FR-DOK-013`, `FR-DOK-014`; `contracts/api-contract.md` §1 |
 | **Kontrak** | `0.3.0` |
@@ -313,11 +381,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-047` — Catatan lama tetap dapat dibetulkan, termasuk setelah pasien pulang
+### ✅ `BE-RWI-047` — Catatan lama tetap dapat dibetulkan, termasuk setelah pasien pulang
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Keenam acceptance criteria terbukti, termasuk uji nomor 5 yang membuktikan seluruh pemeriksaan hak akses lolos dan penolakannya datang dari aturan bisnis. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, tujuh di antaranya uji khusus task ini. **Nol migration.** Butir DoD "nol perubahan pada `MedicalRecordManagement`" **tidak terpenuhi apa adanya**: nol perubahan model, tetapi `ClinicalNoteAddendumController` berubah dua baris karena jalur tulis koreksi hanya ada di sana. Utang pemberitahuan kepada pemilik modul tercatat pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-047.md) |
 | **Outcome** | Kesalahan tulis dapat dibetulkan kapan pun tanpa mengubah isi aslinya, dan tanpa membuka kembali perawatan yang sudah ditutup |
 | **Trace** | `FR-DOK-015`, `FR-DOK-016`, `FR-DOK-047`, `FR-DOK-048`; `RWI-DEC-088`; `RWI-AC-161`, `RWI-AC-163` s.d. `RWI-AC-167`; `permission-audit-matrix.md` §3 |
 | **Kontrak** | `0.3.0` |
@@ -331,11 +399,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-048` — Kunjungan dokter tercatat sebagai kejadian tersendiri
+### 🟡 `BE-RWI-048` — Kunjungan dokter tercatat sebagai kejadian tersendiri
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 **SEBAGIAN, ditinjau ulang 5 September 2026.** Ketujuh acceptance criteria tetap terbukti pada SQLite: grup endpoint visite berdiri dengan delapan endpoint, hitungan visite diturunkan dari kejadian dan bukan dari catatan — tiga catatan tanpa kejadian menghasilkan **nol**, dua visite nyata sehari menghasilkan **dua**, kiriman ulang berkunci sama menghasilkan **satu** dengan kode `200`. Butir DoD "test concurrency PostgreSQL hijau" **tetap belum terpenuhi**: PostgreSQL sungguhan kini tersedia dan dipakai menutup uji migration task lain, tetapi fixture uji menolak database pengembang perorangan karena ia menjalankan migration **dan menulis baris nyata** — penolakan yang benar dan sengaja tidak dilemahkan. Role `Quilvian_2026@` tanpa hak `CREATEDB`. **Keputusan pemilik 5 September 2026: dilewati.** Nol source disunting pada peninjauan ini. `dotnet test` SQLite `Failed: 0, Passed: 324`. **Nol migration.** Delta kontrak: tiga endpoint baca baseline transaksi ditambahkan di luar lima yang tercantum `api-contract.md` §4. Bukti: [laporan](../task/report/backend/BE-RWI-048.md) |
 | **Outcome** | Dokter yang mendatangi pasien dapat mencatat kunjungannya walaupun belum sempat menulis apa pun, dan tombol yang tertekan dua kali tidak melahirkan dua kunjungan |
 | **Trace** | `EPIC DOK-05`; `FR-DOK-023` s.d. `FR-DOK-028`, `FR-DOK-039`; `RWI-AC-150` s.d. `RWI-AC-155`; `contracts/api-contract.md` §4 |
 | **Kontrak** | `0.3.0` |
@@ -349,11 +417,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-049` — Kunjungan yang salah catat dapat dibatalkan tanpa menghilangkan jejaknya
+### ✅ `BE-RWI-049` — Kunjungan yang salah catat dapat dibatalkan tanpa menghilangkan jejaknya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Ketujuh acceptance criteria terbukti, termasuk **tiga uji arsitektur**: nol endpoint penyunting waktu maupun peran, nol endpoint penghapusan, dan nol tipe di luar `ClinicalManagement` yang menyentuh kejadian visite. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, tujuh di antaranya uji khusus task ini. **Nol migration.** Bukti: [laporan](../task/report/backend/BE-RWI-049.md) |
 | **Outcome** | Dokter yang salah mengisi jam dapat membetulkannya, dan auditor tetap dapat melihat bahwa pernah ada catatan yang dibatalkan beserta alasannya |
 | **Trace** | `FR-DOK-040`, `FR-DOK-041`; `INV-DOK-08`, `INV-DOK-09`; `RWI-AC-156`; `contracts/state-transition-matrix.md` §5.2 |
 | **Kontrak** | `0.3.0` |
@@ -367,11 +435,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-050` — Resep berulang dan obat pulang sepanjang perawatan
+### ✅ `BE-RWI-050` — Resep berulang dan obat pulang sepanjang perawatan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Keenam acceptance criteria terbukti, termasuk dua uji arsitektur yang membuktikan nol jalur tulis menuju status pemenuhan. Lima resep pada satu perawatan lima hari tersimpan seluruhnya, dan penyaring obat pulang mengembalikan **satu** baris. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, lima di antaranya uji khusus task ini. **Nol migration.** Selisih yang dilaporkan: kriteria 5 dipenuhi lebih kuat daripada yang diminta — permukaan penyerahan obat **tidak ada sama sekali**, sehingga tidak ada permintaan yang dapat mencapainya untuk ditolak `403`. Task ini **melepas penghalang `BE-RWI-043` kriteria 2**. Bukti: [laporan](../task/report/backend/BE-RWI-050.md) |
 | **Outcome** | Dokter meresepkan setiap hari sesuai kebutuhan, dan resep yang dibawa pulang dikenali petugas farmasi di layar mereka sendiri |
 | **Trace** | `EPIC DOK-06`; `FR-DOK-029` s.d. `FR-DOK-032`; `RWI-RULE-024`, `RWI-DEC-046`; `AC-CAP023-03` |
 | **Kontrak** | `0.3.0` |
@@ -385,11 +453,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-051` — Tindakan dokter tercatat dan tagihannya tidak pernah ganda
+### 🟡 `BE-RWI-051` — Tindakan dokter tercatat dan tagihannya tidak pernah ganda
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | 🟡 **SEBAGIAN, ditinjau ulang 5 September 2026.** Kelima acceptance criteria tetap terbukti pada SQLite, termasuk uji kegagalan Billing yang membuktikan catatan tindakan tetap tersimpan dan hasil penerbitannya tercatat gagal. Butir Verification "integration test terhadap **PostgreSQL** untuk percobaan ulang" **tetap belum terpenuhi**, dengan sebab yang sama seperti `BE-RWI-048`: fixture menolak database pengembang perorangan, dan penjagaannya sengaja tidak dilemahkan. **Keputusan pemilik 5 September 2026: dilewati.** Yang bertambah hanyalah bukti tidak langsung — unique index parsial `IdempotencyKey` pada `TrxPatientProcedure` kini terbukti benar-benar terbentuk di PostgreSQL 15.15 lewat uji migration `BE-RWI-040`; itu **belum** membuktikan perilakunya di bawah dua permintaan serentak. `dotnet test` SQLite `Failed: 0, Passed: 324`. **Nol migration.** Bukti: [laporan](../task/report/backend/BE-RWI-051.md) |
 | **Outcome** | Tindakan yang dikerjakan tercatat pada rekam medis pasien, dan kegagalan sistem keuangan tidak pernah menghapus bukti bahwa tindakan itu terjadi |
 | **Trace** | `FR-DOK-033`, `FR-DOK-034`; `INV-DOK-09`; `AC-CAP024-01`, `AC-CAP024-02`; `contracts/integration-contract.md` §3 |
 | **Kontrak** | `0.3.0` |
@@ -403,11 +471,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-052` — Pemeriksaan laboratorium dan radiologi dipesan dan hasilnya dibaca
+### ✅ `BE-RWI-052` — Pemeriksaan laboratorium dan radiologi dipesan dan hasilnya dibaca
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Keenam acceptance criteria terbukti, termasuk dua uji arsitektur yang membuktikan **nol tabel salinan hasil** dan nol permukaan pemesanan yang menerima isi hasil. Hasil yang belum final ditandai beserta kalimat larangan pemakaiannya sebagai dasar keputusan klinis. `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, enam di antaranya uji khusus task ini. **Nol migration.** Baris registry `RadiologyManagement / Rad` masih `PLANNED` dan tetap dicatat sebagai **utang terbuka**; `QBE-MOD-002` tidak terpicu karena task ini tidak membuat entity operasional baru di sana. Bukti: [laporan](../task/report/backend/BE-RWI-052.md) |
 | **Outcome** | Dokter memesan pemeriksaan dari konteks pasiennya dan membaca hasil yang sudah disahkan, tanpa satu baris salinan hasil pun disimpan Rawat Inap |
 | **Trace** | `CAP-015`; `FR-DOK-035`, `FR-DOK-036`, `FR-DOK-042`, `FR-DOK-043`; `INV-DOK-12`; `AC-CAP015-01`, `AC-CAP015-02` |
 | **Kontrak** | `0.3.0` |
@@ -421,11 +489,11 @@ roadmap ini.
 
 ---
 
-### `BE-RWI-053` — DPJP memverifikasi catatan profesi lain, dan keterlambatannya terpantau
+### ✅ `BE-RWI-053` — DPJP memverifikasi catatan profesi lain, dan keterlambatannya terpantau
 
 | Field | Isi |
 | --- | --- |
-| **Status** | `BELUM DIKERJAKAN` |
+| **Status** | ✅ **SELESAI 4 September 2026.** Keenam acceptance criteria terbukti. **Nol angka batas waktu ditanam di kode**: mekanismenya berjalan dengan kebijakan kosong, dan layar menerima penanda `isVerificationPolicyEmpty` supaya dapat menyatakan "kebijakan verifikasi belum aktif". `dotnet build` `0 Error(s)`; `dotnet test` project uji SQLite `Failed: 0, Passed: 320`, delapan di antaranya uji khusus task ini termasuk uji bahwa nama pada `[AccessAction]` dan `[AccessPermission]` untuk `Verify` sama persis. **Nol migration, nol tabel kebijakan dibuat.** Delta kontrak: `GET /episodes/{episodeId}` ikut dibuat karena daftar pantau tidak berarti tanpa permukaan yang menampilkan catatannya. Bukti: [laporan](../task/report/backend/BE-RWI-053.md) |
 | **Outcome** | DPJP dapat menyatakan sudah membaca catatan perawat dan profesi lain, tanpa verifikasi itu menahan satu pun pelayanan |
 | **Trace** | `EPIC DOK-04`; `FR-DOK-017` s.d. `FR-DOK-022`; `INV-DOK-11`; `AC-CAP021-03`; `contracts/state-transition-matrix.md` §3 |
 | **Kontrak** | `0.3.0` |
@@ -439,18 +507,51 @@ roadmap ini.
 
 ---
 
+## 4.1 Register status task
+
+Tabel ini adalah ringkasan status seluruh task pada bagian 4, beserta tautan laporan tracked-nya.
+Bila tabel ini berbeda dari baris `Status` di dalam kartu task, **kartu task yang berlaku**.
+
+| Task | Judul singkat | Status | Laporan |
+| --- | --- | :---: | --- |
+| `BE-RWI-037` | Perbaikan jalur tanpa antrean | ✅ | [BE-RWI-037](../task/report/backend/BE-RWI-037.md) |
+| `BE-RWI-038` | Pendaftaran dokumen ke mesin keutuhan | ✅ | [BE-RWI-038](../task/report/backend/BE-RWI-038.md) |
+| `BE-RWI-039` | Service konteks klinis | ✅ | [BE-RWI-039](../task/report/backend/BE-RWI-039.md) |
+| `BE-RWI-040` | Kolom konteks pada empat tabel klinis | ✅ | [BE-RWI-040](../task/report/backend/BE-RWI-040.md) |
+| `BE-RWI-041` | Tabel kejadian visite | 🟡 6 dari 6 kriteria; 2 test concurrency `NOT RUN` | [BE-RWI-041](../task/report/backend/BE-RWI-041.md) |
+| `BE-RWI-042` | Konteks pada resep dan pesanan penunjang | ✅ | [BE-RWI-042](../task/report/backend/BE-RWI-042.md) |
+| `BE-RWI-043` | Pelonggaran satu catatan dan satu resep | ✅ | [BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
+| `BE-RWI-044` | Pintu masuk dokter rawat inap | ✅ | [BE-RWI-044](../task/report/backend/BE-RWI-044.md) |
+| `BE-RWI-045` | Kajian medis awal | ✅ | [BE-RWI-045](../task/report/backend/BE-RWI-045.md) |
+| `BE-RWI-046` | Catatan harian menurut waktu pemeriksaan | ✅ | [BE-RWI-046](../task/report/backend/BE-RWI-046.md) |
+| `BE-RWI-047` | Koreksi catatan lama, termasuk setelah pasien pulang | ✅ | [BE-RWI-047](../task/report/backend/BE-RWI-047.md) |
+| `BE-RWI-048` | Visite sebagai kejadian tersendiri | 🟡 uji concurrency `NOT RUN` | [BE-RWI-048](../task/report/backend/BE-RWI-048.md) |
+| `BE-RWI-049` | Pembatalan visite tanpa menghilangkan jejak | ✅ | [BE-RWI-049](../task/report/backend/BE-RWI-049.md) |
+| `BE-RWI-050` | Resep berulang dan obat pulang | ✅ | [BE-RWI-050](../task/report/backend/BE-RWI-050.md) |
+| `BE-RWI-051` | Tindakan dokter tanpa tagihan ganda | 🟡 uji percobaan ulang `NOT RUN` | [BE-RWI-051](../task/report/backend/BE-RWI-051.md) |
+| `BE-RWI-052` | Lab dan radiologi per perawatan | ✅ | [BE-RWI-052](../task/report/backend/BE-RWI-052.md) |
+| `BE-RWI-053` | Verifikasi DPJP atas catatan terpadu | ✅ | [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
+
+---
+
 ## 5. Gerbang yang masih terbuka
 
 Tidak satu pun menahan roadmap ini disusun, tetapi seluruhnya menahan **rilis**.
 
 | Gerbang | Sifat | Pemilik | Menahan apa |
 | --- | --- | --- | --- |
-| Nilai batas waktu kajian medis dan verifikasi catatan terpadu — `RWI-RULE-021` | Belum disahkan | Pemilik klinis, **belum ditunjuk** | Rilis produksi. Mekanismenya tetap dibangun `BE-RWI-053` |
-| Baris registry `RadiologyManagement / Rad` masih `PLANNED` | Selisih registry terhadap source | Pemilik registry | Kerapian registry; **tidak** menahan `BE-RWI-042` |
+| Nilai batas waktu kajian medis dan verifikasi catatan terpadu — `RWI-RULE-021` | Belum disahkan | Pemilik klinis, **belum ditunjuk** | Rilis produksi. Mekanismenya **sudah dibangun** `BE-RWI-053` ✅ dan berjalan dengan kebijakan kosong; nol angka ditanam di kode |
+| Baris registry `RadiologyManagement / Rad` masih `PLANNED` | Selisih registry terhadap source | Pemilik registry | Kerapian registry; **tidak** menahan `BE-RWI-042` maupun `BE-RWI-052`. **Masih terbuka** per 4 September 2026: keduanya selesai dikerjakan tanpa menaikkannya, dan utangnya tercatat pada [laporan BE-RWI-042](../task/report/backend/BE-RWI-042.md) serta [laporan BE-RWI-052](../task/report/backend/BE-RWI-052.md) |
 | Rework ruang kerja dokter | `Conflict` | Frontend authority | **Rilis apa pun** — lihat roadmap frontend |
 | Kebijakan pencatatan visite atas nama dokter | Belum ada | Clinical Governance | Kemampuan itu saja; bawaan aman sudah berlaku |
 | Kebijakan agregasi tarif visite | Belum ada | Pemilik Billing | Penagihan visite; **tidak** menahan pencatatan klinis |
 | Penjadwalan pekerjaan di modul milik orang lain | Belum dijadwalkan | Pemilik masing-masing modul | Waktu mulai setiap task; persetujuannya sudah ada lewat `RWI-DEC-062` untuk tiga modul |
+| ~~**Verifikasi PostgreSQL bagi lima migration `DOK-MVP-1`**~~ ✅ **DITUTUP 5 September 2026** | — | — | Uji maju-mundur-maju dijalankan terhadap PostgreSQL **15.15** sungguhan di atas database berisi 175 encounter nyata. Ketujuh migration `DOK-MVP-1` lulus kedua arah, dan `BE-RWI-040`, `BE-RWI-042`, serta `BE-RWI-043` naik menjadi ✅. Ujinya **menemukan satu cacat** pada arah mundur `BE-RWI-043`, yang diperbaiki dalam task yang sama — lihat [laporan BE-RWI-043](../task/report/backend/BE-RWI-043.md) bagian 8.2 |
+| **Database uji tersendiri bagi uji concurrency dan percobaan ulang** ★ baru 4 September 2026, **dipersempit 5 September 2026** | Belum ada database sekali pakai; hak `CREATEDB` tidak dimiliki | Pemilik lingkungan uji / DBA | Menaikkan `BE-RWI-041`, `BE-RWI-048`, dan `BE-RWI-051` menjadi ✅. **Ini satu-satunya gerbang yang tersisa bagi ketiganya.** PostgreSQL sungguhan sudah tersedia dan sudah dipakai menutup gerbang di atasnya, tetapi `BillingTestDatabaseFixture` menjalankan `Database.Migrate()` **dan menulis baris nyata**, sehingga menolak nama database yang mengandung `dev`, `shared`, `staging`, `uat`, `prod`, atau `live` dan menuntut penanda `test` — penjagaan pasca-`RJ-BIL-BE-002` yang **sengaja tidak dilemahkan**. Role `Quilvian_2026@` tidak memiliki `CREATEDB` (`pg_roles.rolcreatedb = False`). Yang dibutuhkan: satu database bernama misalnya `QuilvianHamzahTest` pada server yang sama, lalu `QUILVIAN_BILLING_TEST_DB` diisi. Uji-nya sudah ditulis dan terkompilasi; nol pekerjaan implementasi tersisa |
+| **Pemberitahuan pemilik `MedicalRecordManagement`** ★ baru 4 September 2026 | Perubahan lintas modul di luar `RWI-DEC-062` | Pemilik `MedicalRecordManagement` | Kerapian kepemilikan. `BE-RWI-047` dan `BE-RWI-053` masing-masing menyentuh `ClinicalNoteAddendumController` dua baris — satu parameter konstruktor dan satu pemanggilan. Nol perubahan model, entity, maupun migration di sana. Aturan bisnisnya berada penuh pada service milik `ClinicalManagement` |
+| **Peringatan obat pulang sebelum pasien dinyatakan boleh pulang — `VAL-DOK-20`** ★ baru 4 September 2026 | Belum dikerjakan; alasan tercatat | Pemilik `PharmacyManagement` | Kelengkapan `CAP-023`. `BE-RWI-050` tidak membuatnya karena bentuk penyampaian **peringatan** pada balasan pembuatan resep belum ada polanya di controller itu; rinciannya pada [laporan BE-RWI-050](../task/report/backend/BE-RWI-050.md) |
+| ~~**Tempat menyimpan diagnosis, pemeriksaan fisik, dan rencana terapi kajian medis**~~ ✅ **DITUTUP 5 September 2026** | — | — | Product/Domain memilih **pilihan 1**: `TrxPatientAssessment` memperoleh `PhysicalExamination`, `WorkingDiagnosis`, dan `TherapyPlan`, seluruhnya nullable, dengan `data/data-dictionary.md` bagian 3 direvisi `0.2` → `0.3` dan jalan **A** pada `02-backend-architecture.md` bagian 4.2 dikunci. `BE-RWI-045` naik menjadi ✅ — lihat [laporan BE-RWI-045](../task/report/backend/BE-RWI-045.md) bagian 8 |
+| **Pelonggaran `Emergency` pada `INT-DOK-02`** ★ baru 3 September 2026 | Belum dikerjakan; alasan teknis tercatat | Pemilik `PharmacyManagement` | Kelengkapan `INT-DOK-02`. `BE-RWI-043` melonggarkan `Inpatient` saja karena `TrxPrescription` tidak memiliki kolom pembeda resep IGD; rinciannya pada [laporan BE-RWI-043](../task/report/backend/BE-RWI-043.md) |
 
 ---
 

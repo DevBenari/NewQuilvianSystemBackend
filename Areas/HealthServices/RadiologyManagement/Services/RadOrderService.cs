@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
@@ -57,26 +58,102 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 query = query.Where(x => x.EncounterId == encounterId.Value);
             }
 
-            return await query
-                .OrderByDescending(x => x.CreateDateTime)
-                .Select(x => new RadOrderListResponse
+            return await ProyeksikanDaftarAsync(
+                query.OrderByDescending(x => x.CreateDateTime), cancellationToken);
+        }
+
+        /// <summary>
+        /// Pesanan radiologi beserta ketersediaan hasilnya untuk satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-052</c>, <c>INV-DOK-12</c>, <c>RUL-DOK-02</c>. Penyaringnya adalah penanda
+        /// perawatan, bukan pasien, sehingga hasil perawatan lama tidak muncul pada layar
+        /// perawatan yang sedang berjalan.
+        /// </para>
+        /// <para>
+        /// <b>Nol tabel salinan.</b> Yang dibaca adalah baris pesanan dan study milik Radiologi
+        /// apa adanya.
+        /// </para>
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang pesanannya dibaca.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<List<RadOrderListResponse>> GetByEpisodeAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.RadOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.InpEpisodeId == episodeId);
+
+            return await ProyeksikanDaftarAsync(
+                query.OrderBy(x => x.CreateDateTime), cancellationToken);
+        }
+
+        /// <summary>
+        /// Memproyeksikan pesanan menjadi baris daftar beserta penanda ketersediaan hasilnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>VAL-DOK-30</c>. Hasil dinyatakan final hanya ketika pesanannya selesai, tidak
+        /// dibatalkan, dan memiliki sedikitnya satu study yang mutunya sudah diterima. Study
+        /// yang belum lolos mutu bukan hasil sah, dan menampilkannya seolah-olah hasil adalah
+        /// risiko keselamatan.
+        /// </remarks>
+        private static async Task<List<RadOrderListResponse>> ProyeksikanDaftarAsync(
+            IOrderedQueryable<RadOrder> query,
+            CancellationToken cancellationToken)
+        {
+            var baris = await query
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    EncounterId = x.EncounterId,
-                    ProcedureId = x.ProcedureId,
+                    x.Id,
+                    x.EncounterId,
+                    x.InpEpisodeId,
+                    x.ProcedureId,
                     ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
                     ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
-                    ModalityId = x.ModalityId,
+                    x.ModalityId,
                     ModalityCode = x.Modality != null ? x.Modality.ModalityCode : string.Empty,
                     ModalityName = x.Modality != null ? x.Modality.ModalityName : string.Empty,
-                    OrderStatus = x.OrderStatus.ToString(),
+                    x.OrderStatus,
                     StudyCount = x.Studies.Count(s => !s.IsDelete),
                     UsableStudyCount = x.Studies.Count(s =>
                         !s.IsDelete && s.StudyStatus == RadStudyStatus.QualityAccepted),
-                    IsCancel = x.IsCancel,
-                    CreateDateTime = x.CreateDateTime,
+                    x.IsCancel,
+                    x.CreateDateTime,
                 })
                 .ToListAsync(cancellationToken);
+
+            return baris.Select(x =>
+            {
+                var final = x.OrderStatus == RadOrderStatus.Completed
+                            && !x.IsCancel
+                            && x.UsableStudyCount > 0;
+
+                return new RadOrderListResponse
+                {
+                    Id = x.Id,
+                    EncounterId = x.EncounterId,
+                    InpEpisodeId = x.InpEpisodeId,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    ModalityId = x.ModalityId,
+                    ModalityCode = x.ModalityCode,
+                    ModalityName = x.ModalityName,
+                    OrderStatus = x.OrderStatus.ToString(),
+                    StudyCount = x.StudyCount,
+                    UsableStudyCount = x.UsableStudyCount,
+                    IsCancel = x.IsCancel,
+                    IsResultFinal = final,
+                    ResultAvailabilityNote = x.IsCancel
+                        ? "Pesanan dibatalkan; tidak ada hasil."
+                        : final
+                            ? "Hasil sudah final."
+                            : "Hasil belum final. Jangan dipakai sebagai dasar keputusan klinis.",
+                    CreateDateTime = x.CreateDateTime,
+                };
+            }).ToList();
         }
 
         public async Task<RadOrderDetailResponse?> GetDetailAsync(
@@ -118,9 +195,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     "Modalitas tidak ditemukan atau sedang tidak aktif.");
             }
 
+            // BE-RWI-052 kriteria 2, VAL-DOK-22. Penanda perawatan boleh kosong - pesanan
+            // poliklinik dan IGD memang tidak punya perawatan rawat inap. Yang dijaga adalah
+            // KECOCOKANNYA ketika penandanya dikirim.
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var episodeCocok = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.InpEpisodeId.Value
+                                   && x.EncounterId == request.EncounterId
+                                   && !x.IsDelete,
+                              cancellationToken);
+
+                if (!episodeCocok)
+                {
+                    return RadOperationResult<RadOrderDetailResponse>.Validation(
+                        RadErrorCodes.InvalidTransition,
+                        "Pesanan ini tidak cocok dengan perawatan pasien.");
+                }
+            }
+
             var entity = new RadOrder
             {
                 EncounterId = request.EncounterId,
+                // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir.
+                InpEpisodeId = request.InpEpisodeId,
                 ProcedureId = request.ProcedureId,
                 ModalityId = request.ModalityId,
                 ClinicalIndication = request.ClinicalIndication,

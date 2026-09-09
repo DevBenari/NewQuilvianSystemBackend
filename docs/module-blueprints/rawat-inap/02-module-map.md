@@ -117,6 +117,7 @@ sana sekarang hanya kelompok data milik sub-modul itu sendiri, beserta rujukan b
 | Pegawai dan profil tenaga kerja | Corporate HR Workforce (modul lain) | `episode-rawat-inap`, `keperawatan` | Tidak — `InpNurseAssignment.EmployeeId` |
 | Surat keterangan medis | Clinical Management (modul lain) | `episode-rawat-inap` | Tidak — dipakai apa adanya untuk lembar yang diserahkan pasien |
 | Faktur, tagihan, pembayaran | Billing Management (modul lain) | Tidak dipakai pada MVP | Tidak |
+| Deposit pasien rawat inap — akun, mutasi, kebijakan minimum, alokasi, refund | Billing Management (modul lain) | `episode-rawat-inap`, **dibaca**; `EpisodeId` **dikirim** saat penerimaan | Tidak — `BilDepositAccount` dan `BilDepositMovement` sudah ada. Rawat Inap **dilarang** membuat tabel `InpDeposit` apa pun (`RWI-DEC-093`). Perubahan yang dituntut — kolom `EpisodeId`, master kebijakan, empat endpoint — dikerjakan pemilik Billing dan **menunggu `RWI-OQ-053`** |
 | Disposisi IGD | Emergency Installation Management (modul lain) | `episode-rawat-inap`, hanya jalur serah terima | Tidak — di luar scope MVP; `DEC-INP-002` menunggu Rizki Gunawan |
 | Catatan kepergian pasien dari IGD | Emergency Installation Management (modul lain) | `episode-rawat-inap`, **dibaca** | Tidak — waktu tiba dibaca dari event `Tiba` di sana, `RWI-DEC-072` |
 | Rangkaian kedatangan antar kunjungan | Registration Management (modul lain) | `episode-rawat-inap`, **dibaca** | Tidak — kolom `TrxPatientEncounter.OriginEncounterId` dibuat dan diisi modul IGD, `RWI-DEC-073` |
@@ -298,7 +299,7 @@ bentuk `COMPOSITE` setiap `requirement-traceability.md` hanya memeriksa jatah su
 | Cetak kartu, gelang, label | `CAP-007` | Admission Documents | `DEFERRED` — ditunda setelah MVP |
 | Census pasien dirawat | `CAP-008` | Inpatient Census | Dirancang, `EPIC RI-24` |
 | Dokumen persetujuan, serah terima, edukasi | `CAP-009` | Patient Documents | `DEFERRED` — `DEC-INP-003`, pemilik privasi belum ditunjuk. Cetak tanpa simpan tersedia lewat `RWI-DEC-077` |
-| Deposit, estimasi biaya, cek manfaat | `CAP-010` | Financial Preparation | `DEFERRED` — menunggu Billing operasional |
+| Deposit, estimasi biaya, cek manfaat | `CAP-010` | Financial Preparation | **Sebagian dirancang sejak 2026-09-04.** Deposit masuk MVP lewat `EPIC RI-35` (`RWI-DEC-093` s.d. `RWI-DEC-096`); estimasi biaya dan cek manfaat tetap `DEFERRED`. Ledger tetap milik `BillingManagement`; Rawat Inap hanya memberi konteks `EpisodeId`, membaca ringkasan, dan memakai hasilnya sebagai gerbang penutupan |
 | Penugasan perawat penanggung jawab | `CAP-011` | Nurse Assignment | Dirancang, `EPIC RI-25` |
 | Pindah kamar, tempat tidur, kelas | `CAP-017` | Patient Transfer | Dirancang, `EPIC RI-26` |
 | Permintaan dan serah terima kamar operasi | `CAP-018` | Surgical Handoff | `DEFERRED` — `OperatingRoomManagement` berstatus `PLANNED` |

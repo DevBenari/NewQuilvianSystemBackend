@@ -36,6 +36,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public bool IsAvailableForAppointment { get; set; } = false;
 
+        /// <summary>
+        /// Menandai unit pelayanan ini berwenang membuat order darah ke Bank Darah.
+        /// </summary>
+        /// <remarks>
+        /// Bawaannya <b>menolak</b> (<c>DEC-BD-012</c>). Kewenangan memesan darah adalah sifat
+        /// konfigurasi, bukan daftar unit yang dikunci di dalam kode: unit baru diberi
+        /// kewenangan lewat layar master unit pelayanan, tanpa satu baris kode pun berubah.
+        ///
+        /// <b>Contoh.</b> Rawat Inap, IGD, dan Rawat Jalan diberi nilai <c>true</c> saat modul
+        /// Bank Darah dinyalakan. Ketika kelak Kamar Operasi perlu memesan darah sendiri,
+        /// admin cukup menyalakan penanda ini pada unit tersebut.
+        ///
+        /// Kolom ini <b>dititipkan</b> Bank Darah pada tabel milik Master Data. Pengelolaannya
+        /// tetap lewat kontrak unit pelayanan milik Master Data, bukan lewat endpoint Bank
+        /// Darah.
+        /// </remarks>
+        public bool IsAvailableForBloodOrder { get; set; } = false;
+
         public bool IsQueueRequired { get; set; } = true;
 
         public bool IsDoctorRequired { get; set; } = false;

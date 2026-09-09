@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -39,7 +39,17 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri
             // sebelum invoice final - beda dari domain producer klinis di atas yang begitu
             // selesai (dispensed/used) tidak lagi bisa dibatalkan normal.
-            ["ADHOC"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"])
+            // Biaya ad-hoc kasir tidak punya siklus pemenuhan order: begitu dicatat, layanannya
+            // sudah terjadi. Tanpa penanda ini, statusnya ADDED selalu masuk NormalVoidFromStatuses
+            // sehingga IsOrderComplete permanen false - dan invoice yang seluruh itemnya ADHOC
+            // tidak pernah bisa difinalisasi, baik otomatis maupun manual.
+            ["ADHOC"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"], completeOnEntry: true),
+
+            // BKC-DEC-059: entri dari katalog tarif. Siklus hidupnya identik dengan ADHOC - harga
+            // dan deskripsinya ditetapkan server saat item dicatat, bukan menunggu pemenuhan order
+            // dari modul klinis - tetapi dipisahkan sebagai SourceDomain sendiri supaya item yang
+            // berasal dari MstTariff dapat dibedakan dari entri bebas kasir pada audit dan laporan.
+            ["ADHOC_CATALOG"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"], completeOnEntry: true)
         };
 
     public BillingChargeSourceSnapshot ValidateAndNormalize(UpsertChargeRequest request)
@@ -90,6 +100,7 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
     {
         if (!SourcePolicies.TryGetValue(item.SourceDomain, out var policy))
             throw new BillingInvoiceValidationException("SourceDomain belum didukung oleh kontrak charge Billing.");
+        if (policy.CompleteOnEntry) return true;
         return !policy.NormalVoidFromStatuses.Contains(item.SourceStatus);
     }
 
@@ -101,10 +112,12 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
     private static SourceLifecyclePolicy Policy(
         string[] billableStatuses,
         string[] normalVoidFromStatuses,
-        string[] voidStatuses) => new(
+        string[] voidStatuses,
+        bool completeOnEntry = false) => new(
             Set(billableStatuses),
             Set(normalVoidFromStatuses),
-            Set(voidStatuses));
+            Set(voidStatuses),
+            completeOnEntry);
 
     private static IReadOnlySet<string> Set(params string[] values) =>
         new HashSet<string>(values, StringComparer.OrdinalIgnoreCase);
@@ -112,5 +125,6 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
     private sealed record SourceLifecyclePolicy(
         IReadOnlySet<string> BillableStatuses,
         IReadOnlySet<string> NormalVoidFromStatuses,
-        IReadOnlySet<string> VoidStatuses);
+        IReadOnlySet<string> VoidStatuses,
+        bool CompleteOnEntry);
 }
