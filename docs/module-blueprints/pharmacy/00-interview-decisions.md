@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `PHA-BP-001` |
-| Revision | `2` |
+| Revision | `3` |
 | Status | `draft` |
 | Interview mode | `Scope pass` |
 | Scope-pass result | `concluded 19 Agustus 2026`; keputusan lintas-owner masih perlu verifikasi |
 | Product/domain owner | User — menyatakan sebagai pemilik keputusan pada 18 Agustus 2026 |
 | Backend SHA | `767470f742bc6f2eebadbd653a873f69d6f93121` |
 | Frontend SHA | `400104f2a0f3239c14c40f5905b419977a538450` |
-| Input evidence | Jawaban wawancara 18–20 Agustus 2026 |
+| Input evidence | Jawaban wawancara 18–20 Agustus 2026; dokumen `FARMASI BUSINESS DECISION` 3 September 2026 |
 
 ## Scope dan outcome
 
@@ -209,6 +209,77 @@ invariant, permission, privacy, dan brief yang disetujui.
 | `PHA-OQ-015` | Open Question | Sumber authoritative status paid/approved/reversal/refund serta idempotency callback Billing | Billing/Finance + Security | `open`; `BLOCKING` untuk integrasi Billing | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
 | `PHA-OQ-016` | Open Question | Kebijakan partial dispensing, cakupan obat/layanan, approver, sisa resep, dan koreksi tagihan | Pharmacy + Clinical Governance + Billing | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
 | `PHA-OQ-017` | Open Question | Daftar obat yang wajib checker kedua dan matriks kewenangan checker | Pharmacy + Clinical Governance + Security | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
+| `PHA-DEC-042` | Decision | Klasifikasi pelayanan: OP = rawat jalan, IP = rawat inap, APS = pasien mandiri tanpa encounter reguler. APS tidak boleh disamakan dengan IP/OP dan hanya dipakai bila rumah sakit menyediakan pelayanan farmasi mandiri | Product/domain owner | `approved`; pemakaian APS masih bersyarat | `FARMASI BUSINESS DECISION` §1, 3 September 2026 |
+| `PHA-DEC-043` | Decision | Pemakaian obat tidak langsung menjadi tagihan. Alur: Pemakaian → `NOT BILLED` → validasi transaksi dan aturan charge → kirim ke Billing → `BILLED`. Billing tetap authority pembentukan tagihan; Farmasi hanya menghasilkan transaksi yang dapat ditagihkan | Product/domain owner; Billing/Finance perlu memverifikasi | `approved` oleh product owner | `FARMASI BUSINESS DECISION` §2, 3 September 2026 |
+| `PHA-DEC-044` | Decision | Lifecycle resep: Created → Reviewed → Prepared → Verified → Dispensed → Completed, ditambah Cancelled, Rejected, dan On Hold | Product/domain owner | `approved`; berbenturan dengan `PHA-DEC-008`/`PHA-DEC-041`, lihat `PHA-OQ-018` | `FARMASI BUSINESS DECISION` §3, 3 September 2026 |
+| `PHA-DEC-045` | Decision | Rawat inap memisahkan Prescription dari Medication Administration / Giving Record; satu resep dapat diberikan beberapa kali sesuai jadwal. `BELUM DIBERIKAN` tidak dipakai sebagai status utama resep | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §3, 3 September 2026 |
+| `PHA-DEC-046` | Decision | Validasi persediaan: stok tidak boleh negatif; batch dan expired date wajib dicatat; pengeluaran memakai FEFO; transfer tidak boleh melebihi stok tersedia; retur melalui verifikasi; racikan menyimpan komponen penyusun; adjustment wajib beralasan dan ter-audit; setiap perubahan stok menghasilkan histori mutasi | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §4, 3 September 2026 |
+| `PHA-DEC-047` | Decision | Baseline peran: Dokter membuat resep; Apoteker review, final check, dan validasi obat; Petugas Farmasi menyiapkan dan menjalankan dispensing; Checker melakukan double check untuk obat tertentu sesuai kebijakan; Kepala Farmasi/Supervisor menyetujui koreksi dan pembatalan transaksi tertentu | Product/domain owner; Clinical/Pharmacy Governance perlu memverifikasi | `approved` oleh product owner | `FARMASI BUSINESS DECISION` §5, 3 September 2026 |
+| `PHA-DEC-048` | Decision | Autorisasi pasien keluar bukan authority Modul Farmasi. Farmasi hanya menyelesaikan obat pulang bila ada dan memberikan status/informasi terkait obat; Billing menyelesaikan tagihan | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §6, 3 September 2026 |
+| `PHA-DEC-049` | Decision | Batch dan expired menjadi bagian inti persediaan dengan struktur Obat → Batch → Expired Date → Lokasi/Depo → Saldo, diperlukan untuk FEFO, recall, near-expired monitoring, dan traceability | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §7, 3 September 2026 |
+| `PHA-DEC-050` | Decision | Depo adalah lokasi yang memiliki saldo stok sendiri. Baseline depo: Gudang Farmasi, Depo Rawat Jalan, Depo Rawat Inap, Depo IGD. ICU, ICCU, OK, Kebidanan, Kamar Bayi, HD, Poli, dan CCVC tidak otomatis dianggap depo | Product/domain owner | `approved`; status tiap unit belum ditetapkan, lihat `PHA-OQ-019` | `FARMASI BUSINESS DECISION` §8, 3 September 2026 |
+| `PHA-DEC-051` | Decision | Transaksi lama tidak boleh diedit langsung. Koreksi melalui adjustment yang menghasilkan transaksi baru dan audit history, menyimpan nilai sebelum, nilai sesudah, alasan koreksi, user, dan waktu koreksi | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §9, 3 September 2026 |
+| `PHA-DEC-052` | Decision | Urutan implementasi: (1) master item farmasi, (2) lokasi/depo, (3) batch dan expired, (4) saldo stok per lokasi, (5) kartu stok/ledger mutasi, (6) transfer obat, (7) pemakaian obat pasien, (8) retur, (9) etiket dan copy resep, (10) integrasi Billing. Pemakaian obat tidak boleh dibangun sebelum ledger stok tersedia | Product/domain owner | `approved`; menutup `PHA-OQ-001` | `FARMASI BUSINESS DECISION`, 3 September 2026 |
+| `PHA-DEC-053` | Decision | Prinsip implementasi: reuse capability existing; tidak membuat duplicate source of truth; tidak membuat master pasien/dokter/lokasi baru bila sudah ada; backend menjadi authority validasi; seluruh transaksi stok immutable melalui mutation history; tidak membuat keputusan klinis yang belum disetujui | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION`, 3 September 2026 |
+| `PHA-OQ-018` | Open Question | Bagaimana lifecycle `PHA-DEC-044` berdamai dengan gating pembayaran/jaminan (`PHA-DEC-008`) dan reservasi setelah pembayaran (`PHA-DEC-041`)? Lifecycle baru tidak memuat state pembayaran, sedangkan enum terpasang memuat `WaitingForPayment` dan `ReadyForPharmacy` | Product/domain + Billing/Finance owner | `open`; `BLOCKING` untuk perubahan lifecycle resep | Konflik ditemukan saat pencatatan keputusan 3 September 2026 |
+| `PHA-OQ-019` | Open Question | Unit mana di antara ICU, ICCU, OK, Kebidanan, Kamar Bayi, HD, Poli, dan CCVC yang memiliki saldo stok sendiri sehingga menjadi Depo, dan mana yang hanya unit pelayanan | Pharmacy + warehouse owner | `superseded` oleh `PHA-DEC-054` | Diputuskan 3 September 2026 |
+| `PHA-DEC-054` | Decision | Lokasi dengan saldo stok sendiri hanya empat: Gudang Farmasi, Depo Rawat Jalan, Depo Rawat Inap, dan Depo IGD. ICU, ICCU, OK, Kebidanan, Kamar Bayi, HD, Poli, dan CCVC bukan depo stok mandiri pada tahap ini dan memperoleh obat lewat permintaan kepada Farmasi/Depo terkait. Bila kelak sebuah unit membutuhkan stok mandiri, dibuat keputusan dan konfigurasi terpisah | Product/domain owner | `approved` | Keputusan `PHA-OQ-019`, 3 September 2026 |
+| `PHA-DEC-055` | Decision | Transfer antar lokasi hanya sah bila lokasi asal berbendera `IsAllowTransferOut` dan lokasi tujuan berbendera `IsAllowTransferIn` pada `MstDrugStorageLocation`. Bendera yang sudah ada dipakai ulang; tidak dibuat penanda depo tersendiri | Product/domain owner | `approved`; hasil audit model lokasi 3 September 2026 | Implementasi transfer, 3 September 2026 |
+| `PHA-DEC-056` | Decision | Alur transfer: Draft → Diajukan → Disetujui (stok ditahan menurut FEFO) → Dikeluarkan dari asal → Diterima di tujuan. Keluar dan terima adalah dua langkah terpisah supaya selisih barang yang hilang atau rusak dalam perjalanan tetap terbaca. Pembatalan sebelum barang keluar melepas kembali stok yang tertahan | Product/domain owner | `approved` | Implementasi transfer, 3 September 2026 |
+| `PHA-OQ-020` | Open Question | Apakah reservasi stok (`PHA-DEC-013`, `PHA-DEC-041`) tetap berlaku setelah `PHA-DEC-046`? Daftar validasi persediaan 3 September 2026 tidak menyebut reservasi sama sekali | Product/domain + pharmacy owner | `superseded` oleh `PHA-DEC-052a` | Reservasi ditegaskan tetap berlaku, 3 September 2026 |
+| `PHA-DEC-057` | Decision | Warna dan jenis etiket dipilih Petugas Farmasi saat dispensing. Rute pemberian hanya ditampilkan sebagai informasi pendukung bila tersedia. Sistem DILARANG menurunkan warna etiket secara otomatis dari rute, karena data rute pada master obat belum lengkap dan inferensi otomatis akan menghasilkan label yang salah | Product/domain owner | `approved` | Keputusan 3 September 2026; bukti: 6.231 dari 7.864 baris `MstDrug` tidak memiliki `Route` |
+| `PHA-DEC-058` | Decision | **Direvisi 4 September 2026.** Copy resep ditunda, tetapi bukan karena SIA/SIPA. Audit master membuktikan legalitas sudah punya source-of-truth: `MstHospitalSite` untuk identitas fasilitas, `WfpCredentialLicense` untuk izin praktik apoteker, `MstLicenseType` untuk jenis izin. Konteksnya Instalasi Farmasi RS, bukan apotek eksternal, sehingga kop dokumen memakai identitas rumah sakit. SIPA adalah atribut orang yang menyerahkan, dibaca dari master saat cetak. **Dilarang membuat input SIA maupun SIPA pada form copy resep.** Data SIPA yang belum terisi adalah masalah kelengkapan master, bukan blocker workflow | Product/domain owner | `approved`; **diperbarui 7 September 2026** — capability dispensing sudah selesai dan teruji sehingga blocker itu terangkat, tetapi statusnya kembali menjadi **`BLOCKED_BY_BUSINESS_DECISION`** dengan sebab yang berbeda: format legal dokumennya belum diputuskan. Lihat `PHA-DEC-061` | Audit read-only 4 September 2026; pembaruan 7 September 2026 |
+| `PHA-DEC-059` | Decision | Copy resep memerlukan kapabilitas **Prescription Item Dispensing History**: Prescription → Prescription Item → Dispensing/Handover Record → Qty Dispensed → Qty Remaining. Untuk tiap item sistem harus tahu jumlah diresepkan, jumlah sudah diserahkan, jumlah tersisa, dan status `det`/`nedet`. Copy resep wajib mengambil datanya dari histori itu, bukan dari status resep. **`det`/`nedet` diturunkan dari sisa, tidak boleh diisi manual.** Urutan: bangun dispensing lebih dulu, copy resep terakhir | Product/domain owner | `approved`; menjadi prasyarat tunggal copy resep | Keputusan 4 September 2026 |
+| `PHA-DEC-060` | Decision | Identitas fasilitas dan apoteker pada copy resep diambil otomatis dari master, tidak pernah diketik petugas. Dilarang membuat duplicate source-of-truth dispensing | Product/domain owner | `approved` | Keputusan 4 September 2026 |
+| `PHA-OQ-021` | Open Question | Sumber Nomor SIA untuk instalasi farmasi | Pharmacy + legal/perizinan owner | **`closed`** — bukan blocker. Konteks Instalasi Farmasi RS memakai identitas rumah sakit dari `MstHospitalSite`; SIA apotek eksternal tidak berlaku | `PHA-DEC-058` revisi, 4 September 2026 |
+| `PHA-OQ-022` | Open Question | Sumber data apoteker penanggung jawab dan Nomor SIPA | Pharmacy + HR owner | **`closed`** — struktur sudah ada di `WfpCredentialLicense`. Tersisa pekerjaan data: tabelnya masih kosong, dan `MstLicenseType` belum memuat jenis `SIPA` (baru ada `STR Apoteker`) | `PHA-DEC-058` revisi, 4 September 2026 |
+| `PHA-OQ-023` | Open Question | Bentuk pencatatan penyerahan per item resep | Product/domain + pharmacy owner | **`closed`** — dijawab `PHA-DEC-059`. Inilah blocker copy resep yang sebenarnya | `PHA-DEC-058` revisi, 4 September 2026 |
+| `PHA-OQ-024` | Open Question | Izin operasional rumah sakit tidak punya tempat di master mana pun. `MstHospitalSite` hanya menyediakan `AccreditationNumber`, `MstLegalEntity` hanya NPWP dan nomor izin usaha. Perlu ditetapkan apakah nomor izin operasional dicetak pada dokumen farmasi | Legal/perizinan owner | `open`; **tidak blocking** untuk copy resep | Audit 4 September 2026 |
+| `PHA-DEC-061` | Decision | **Format legal copy resep belum diputuskan — `BUSINESS DECISION REQUIRED`.** Sampai ada keputusan: nomor copy resep memakai nomor sistem internal, identitas fasilitas dari `MstHospitalSite`, identitas apoteker dari `WfpCredentialLicense`. Dilarang mengarang nomor SIPA, nomor izin operasional, maupun pernyataan legal seperti *pro copy conform*, dan dilarang mengklaim format yang ada sebagai format legal final. UI final copy resep tidak boleh dibangun sebelum formatnya diputuskan | Product/domain + legal owner | `approved`; menjadi satu-satunya blocker copy resep | Keputusan 7 September 2026 |
+| `PHA-DEC-062` | Decision | Retur **tidak** mengurangi jumlah yang sudah diserahkan pada sebuah baris resep. Diresepkan 20, diserahkan 20, diretur 5 tetap menghasilkan diserahkan 20, sisa 0, penanda `det`. Alasannya: histori penyerahan menyatakan obat memang pernah sampai ke pasien, dan retur adalah transaksi tersendiri yang tidak mengubah fakta itu. Retur tetap tercatat dan dapat ditelusuri lewat `TrxDrugUsage`/`TrxDrugReturn` | Product/domain owner | `approved` | Penutupan `PHA-OQ-025`, 7 September 2026 |
+| `PHA-OQ-025` | Open Question | Apakah retur mengembalikan sisa sebuah baris resep. Retur pada sistem ini menunjuk pemakaian pada tingkat dokumen (`SourceDrugUsageId`), bukan tingkat baris resep, sehingga jumlahnya tidak dapat dikaitkan kembali ke baris tertentu | Product/domain + pharmacy owner | **`closed`** — dijawab `PHA-DEC-062`: retur tidak mengurangi histori penyerahan | Audit 7 September 2026 |
+
+## Keputusan bisnis 3 September 2026
+
+Dokumen `FARMASI BUSINESS DECISION` diterima dari product owner dan dicatat sebagai
+`PHA-DEC-042` sampai `PHA-DEC-053`. Dokumen itu menutup sebagian pertanyaan yang selama ini
+memblokir, tetapi tidak menutup seluruhnya.
+
+### Pertanyaan yang ditutup
+
+| Pertanyaan | Ditutup oleh | Catatan |
+|---|---|---|
+| `PHA-OQ-001` | `PHA-DEC-052` | Urutan sepuluh langkah dan batas slice pertama sudah ditetapkan. |
+| `PHA-OQ-003` | `PHA-DEC-046`, `PHA-DEC-049`, `PHA-DEC-051` | Batch, expired, FEFO, dan koreksi stok sudah diputuskan. Karantina dan stock opname belum disebut. |
+
+### Pertanyaan yang tetap terbuka
+
+- `PHA-OQ-002` — `PHA-DEC-047` menetapkan pembagian peran, tetapi SOP formularium, substitusi,
+  dan obat high-alert/narkotika belum disebut.
+- `PHA-OQ-004` dan `PHA-OQ-016` — partial dispensing, kekurangan stok, duplicate submit, dan
+  partial failure lintas modul belum dibahas dokumen 3 September.
+- `PHA-OQ-005`, `PHA-OQ-015` — `PHA-DEC-043` menegaskan Billing sebagai authority, tetapi
+  reversal tagihan, sumber status paid/refund, dan idempotency callback belum ditetapkan.
+- `PHA-OQ-009` — batas pengambilan 24 jam beserta retur, refund, dan notifikasi belum dibahas.
+- `PHA-OQ-014` — kegagalan reservasi atomik belum dibahas; lihat juga `PHA-OQ-020`.
+- `PHA-OQ-017` — `PHA-DEC-047` menyebut checker mengikuti kebijakan, sehingga daftar obatnya
+  justru tetap terbuka.
+
+### Benturan dengan keputusan sebelumnya
+
+Tiga hal berikut tidak boleh diselesaikan tanpa keputusan owner, karena menyentuh kode yang
+sudah terpasang dan keputusan yang sudah disetujui sebelumnya.
+
+1. **Lifecycle resep** (`PHA-OQ-018`). Lifecycle `PHA-DEC-044` tidak memuat state pembayaran,
+   sedangkan `PHA-DEC-008` dan `PHA-DEC-041` menggantungkan pemrosesan Farmasi pada
+   pembayaran/jaminan, dan enum terpasang `PrescriptionFulfillmentStatus` memuat sebelas nilai
+   termasuk `WaitingForPayment`, `ReadyForPharmacy`, dan `PartiallyDispensed`. Memetakan enum
+   lama ke lifecycle baru begitu saja akan menghapus gating pembayaran yang sudah disetujui.
+2. **Reservasi stok** (`PHA-OQ-020`). Daftar validasi `PHA-DEC-046` tidak menyebut reservasi,
+   sedangkan `PHA-DEC-041` menetapkannya. Diamnya dokumen baru bukan pencabutan.
+3. **Status depo per unit** (`PHA-OQ-019`). `PHA-DEC-050` melarang mengasumsikan setiap unit
+   memiliki stok, sehingga saldo stok per lokasi tidak dapat dirancang final sebelum daftarnya
+   ditetapkan.
 
 ## Acceptance criteria awal
 
@@ -287,3 +358,41 @@ invariant, permission, privacy, dan brief yang disetujui.
   tetap diperlukan pada keputusan yang menandainya.
 - Langkah berikutnya: `trace-existing-capabilities` untuk membuktikan kemampuan backend dan
   frontend yang dapat dipakai, diperbaiki, atau masih hilang sebelum blueprint target dibuat.
+
+## Status kapabilitas Farmasi per 3 September 2026
+
+Dicatat agar prioritas berikutnya tidak mengulang pekerjaan yang sudah selesai.
+
+### Selesai dan terbukti terhadap PostgreSQL
+
+| Kapabilitas | Bukti |
+|---|---|
+| Batch dan kedaluwarsa | `MstDrugBatch`; satu nomor batch satu kedaluwarsa |
+| Saldo stok per lokasi | `TrxDrugStockBalance`; check constraint saldo tidak negatif |
+| Kartu stok / mutasi | `TrxDrugStockMutation`; append-only, koreksi lewat baris baru |
+| FEFO | Batch kedaluwarsa terdekat keluar lebih dahulu |
+| Reservasi | OnHand − Reserved = Available; reservasi ganda ditolak |
+| Karantina sebagai stock state | Stok karantina tidak pernah ikut dilayankan |
+| Permintaan stok depo → gudang | Termasuk pemotongan stok saat penyerahan |
+| Transfer antar lokasi | Dua langkah keluar–terima; kartu stok dua sisi |
+| Pemakaian obat pasien | Draft → dicatat; stok berkurang, batch tersimpan |
+| Retur obat | Stok bertambah hanya setelah diperiksa |
+| Stok dan kartu stok UI | Layar Stok Farmasi dan Kartu Stok |
+| Etiket obat | `PHA-DEC-057`; warna dipilih petugas |
+
+### Tertahan
+
+| Kapabilitas | Sebab |
+|---|---|
+| Copy resep — data | Selesai; angka diambil dari histori penyerahan, identitas penerbit dari master |
+| Copy resep — dokumen | `PHA-DEC-061`; **`BUSINESS DECISION REQUIRED`** untuk format legalnya. UI final belum boleh dibangun |
+| Pencatatan penyerahan obat per item | `PHA-DEC-059`; **selesai dan teruji** — `PhmPrescriptionCopy` membacanya sebagai sumber |
+| Integrasi Billing | Menunggu `PHA-OQ-005` dan `PHA-OQ-015` |
+| Penerimaan barang dari pemasok | `PHA-DEC-052` menempatkannya pada fase berikutnya |
+
+### Belum diverifikasi
+
+- Pelonggaran otorisasi pengembangan (`Security:Authorization:Enabled = false`) baru terbukti
+  lewat pengujian unit, belum dengan akun non-superadmin pada sistem berjalan. Superadmin
+  melewati pemeriksaan kebijakan lebih dahulu, sehingga pengujian dengannya tidak membuktikan
+  apa pun tentang sakelar itu.

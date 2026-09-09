@@ -10,6 +10,13 @@ public class CreateOprMaterialUsageRequest
 
     [Required] public OprMaterialItemType ItemType { get; set; }
     public decimal Quantity { get; set; }
+    /// <summary>Satuan yang dipakai, merujuk `MstMeasurement` milik Farmasi.</summary>
+    /// <remarks>
+    /// Wajib. Angka pemakaian tanpa relasi satuan tidak dapat dibukukan ke stok: satuan yang
+    /// hanya berupa teks bebas tidak dapat dibandingkan maupun dikonversi terhadap satuan stok.
+    /// </remarks>
+    [Required] public Guid UnitMeasurementId { get; set; }
+
     [Required, MaxLength(30)] public string UnitCode { get; set; } = string.Empty;
     [Required] public OprMaterialOutcome Outcome { get; set; }
     [MaxLength(100)] public string? BatchNumber { get; set; }
@@ -35,6 +42,7 @@ public class OprMaterialUsageResponse
     public string ItemName { get; set; } = string.Empty;
     public OprMaterialItemType ItemType { get; set; }
     public decimal Quantity { get; set; }
+    public Guid? UnitMeasurementId { get; set; }
     public string UnitCode { get; set; } = string.Empty;
     public OprMaterialOutcome Outcome { get; set; }
     public string? BatchNumber { get; set; }

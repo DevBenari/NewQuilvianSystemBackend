@@ -1,6 +1,20 @@
 ﻿namespace QuilvianSystemBackend.Models
 {
-    public class IdentityModel
+    /// <summary>
+    /// Kolom jejak pembuatan yang dapat distempel tanpa perlu tahu tipe konkretnya.
+    /// </summary>
+    /// <remarks>
+    /// Dipisahkan sebagai antarmuka supaya penulis data generik — seeder, importer — dapat
+    /// menstempel siapa dan kapan lewat batasan tipe, bukan lewat uji tipe saat berjalan.
+    /// </remarks>
+    public interface IAuditStamped
+    {
+        DateTime CreateDateTime { get; set; }
+
+        Guid CreateBy { get; set; }
+    }
+
+    public class IdentityModel : IAuditStamped
     {
         public DateTime CreateDateTime { get; set; } = DateTime.UtcNow;
 

@@ -18,6 +18,9 @@ public class OprMaterialUsageConfiguration : IEntityTypeConfiguration<OprMateria
         builder.HasIndex(x => new { x.OprCaseId, x.ExternalItemId });
         builder.HasIndex(x => new { x.BatchNumber, x.SerialNumber });
         builder.HasIndex(x => new { x.OprCaseId, x.Id, x.Revision }).IsUnique();
+        builder.HasIndex(x => x.CorrectionOfUsageId);
         builder.HasOne(x => x.OprCase).WithMany().HasForeignKey(x => x.OprCaseId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.UnitMeasurement).WithMany().HasForeignKey(x => x.UnitMeasurementId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

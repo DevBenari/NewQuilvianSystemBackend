@@ -250,7 +250,7 @@ public class OperatingRoomRecoveryServiceTests
     }
 
     private static OperatingRoomRecoveryService Build(OperatingRoomTestContext ctx) =>
-        new(ctx.Context, ctx.Accessor, ctx.Logger);
+        new(ctx.Context, ctx.Accessor, ctx.Logger, OperatingRoomTestContext.StrictRules);
 
     private static async Task ReleaseRecoveryAsync(OperatingRoomTestContext ctx, OperatingRoomRecoveryService service)
     {

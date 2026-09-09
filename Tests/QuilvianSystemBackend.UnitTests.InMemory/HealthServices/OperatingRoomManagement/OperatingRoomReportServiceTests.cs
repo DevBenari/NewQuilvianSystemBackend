@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using Xunit;
 
 namespace QuilvianSystemBackend.Tests.HealthServices.OperatingRoomManagement;
@@ -113,17 +114,20 @@ public class OperatingRoomReportServiceTests
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.InProgress);
         var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger,
-            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger));
+            new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger), OperatingRoomTestContext.StrictRules,
+            new DrugUnitConversionResolver(ctx.Context));
         await material.RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
         {
             ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Implant, Quantity = 1,
-            UnitCode = "PCS", Outcome = OprMaterialOutcome.Used, SerialNumber = "SN-777",
+            UnitCode = "PCS", UnitMeasurementId = Guid.NewGuid(),
+            Outcome = OprMaterialOutcome.Used, SerialNumber = "SN-777",
             IdempotencyKey = "rep-mat-1"
         });
         await material.RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
         {
             ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Consumable, Quantity = 3,
-            UnitCode = "PCS", Outcome = OprMaterialOutcome.Used, IdempotencyKey = "rep-mat-2"
+            UnitCode = "PCS", UnitMeasurementId = Guid.NewGuid(),
+            Outcome = OprMaterialOutcome.Used, IdempotencyKey = "rep-mat-2"
         });
         var service = new OperatingRoomReportService(ctx.Context);
 

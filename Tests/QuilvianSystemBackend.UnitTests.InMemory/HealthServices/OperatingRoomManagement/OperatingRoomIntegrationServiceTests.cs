@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using Xunit;
 
 namespace QuilvianSystemBackend.Tests.HealthServices.OperatingRoomManagement;
@@ -21,7 +22,9 @@ public class OperatingRoomIntegrationServiceTests
         Assert.Single(result!.Deliveries);
         Assert.Equal(1, result.PendingCount);
         Assert.Equal(0, result.AcceptedCount);
-        Assert.Contains(OperatingRoomIntegrationService.InventoryDestination, result.BlockedDestinations);
+        // Inventory sudah punya consumer sejak `OPS-DEC-027`, sehingga ia tidak lagi tertahan.
+        // Billing masih: tarif dan tagihan adalah milik Billing dan kontraknya belum ada.
+        Assert.DoesNotContain(OperatingRoomIntegrationService.InventoryDestination, result.BlockedDestinations);
         Assert.Contains(OperatingRoomIntegrationService.BillingDestination, result.BlockedDestinations);
     }
 
@@ -153,10 +156,12 @@ public class OperatingRoomIntegrationServiceTests
         new(ctx.Context, ctx.Accessor, ctx.Logger);
 
     private static Task RecordMaterialAsync(OperatingRoomTestContext ctx, string key) =>
-        new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, Build(ctx))
+        new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, Build(ctx),
+            OperatingRoomTestContext.StrictRules, new DrugUnitConversionResolver(ctx.Context))
             .RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
             {
                 ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Consumable, Quantity = 1,
-                UnitCode = "PCS", Outcome = OprMaterialOutcome.Used, IdempotencyKey = key
+                UnitCode = "PCS", UnitMeasurementId = Guid.NewGuid(),
+                Outcome = OprMaterialOutcome.Used, IdempotencyKey = key
             });
 }
