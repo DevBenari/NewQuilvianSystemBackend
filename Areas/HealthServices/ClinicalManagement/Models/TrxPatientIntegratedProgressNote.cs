@@ -183,6 +183,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public ApplicationUser? ProviderUser { get; set; }
 
+        /// <summary>
+        /// Pengguna yang memverifikasi catatan ini. <b>Sengaja terpisah</b> dari
+        /// <see cref="ProviderUser"/>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-066</c>, <c>INV-DOK-11</c>. Relasinya sudah ada sejak <c>BE-RWI-040</c>,
+        /// tetapi tanpa navigation sehingga namanya tidak pernah dapat ikut terbaca. Navigation
+        /// ini memetakan kolom kunci asing yang <b>sama persis</b>; nol kolom tabel bertambah
+        /// dan nol migration dibutuhkan.
+        /// </remarks>
+        public ApplicationUser? VerifiedByUser { get; set; }
+
         public ApplicationUser? CancelledByUser { get; set; }
     }
 }

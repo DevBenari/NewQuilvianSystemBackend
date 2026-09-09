@@ -99,8 +99,8 @@ salah adalah salinan yang dikirim. Tiga task di bawah membetulkan salinan itu.
 
 | Yang ditemukan | Ditemukan saat | Buktinya di source | Task penutupnya |
 | --- | --- | --- | --- |
-| Balasan baca catatan terpadu **tidak memuat satu pun kolom verifikasi**, padahal keempat kolomnya sudah ada dan sudah terisi di tabel | `FE-RWI-046` | `PatientIntegratedProgressNoteDtos.cs` tidak memuat `VerificationStatus`, `VerifiedAt`, maupun `VerifiedByUserId`; pemetaan `ToResponse` pada `PatientIntegratedProgressNoteController.cs:1393` karena itu juga tidak memetakannya | **`BE-RWI-066`** |
-| Butir daftar pantau verifikasi hanya membawa **id pengguna** penulis, bukan namanya | `FE-RWI-050` | `CpptVerificationService.cs:41–59` — `CpptVerificationWatchItem` memuat `ProviderUserId`, dan tidak ada satu kolom nama pun | **`BE-RWI-067`** |
+| Balasan baca catatan terpadu **tidak memuat satu pun kolom verifikasi**, padahal keempat kolomnya sudah ada dan sudah terisi di tabel | `FE-RWI-046` | `PatientIntegratedProgressNoteDtos.cs` tidak memuat `VerificationStatus`, `VerifiedAt`, maupun `VerifiedByUserId`; pemetaan `ToResponse` pada `PatientIntegratedProgressNoteController.cs:1393` karena itu juga tidak memetakannya | **`BE-RWI-066`** ✅ **DITUTUP 8 September 2026** — [laporan](../task/report/backend/BE-RWI-066.md) |
+| Butir daftar pantau verifikasi hanya membawa **id pengguna** penulis, bukan namanya | `FE-RWI-050` | `CpptVerificationService.cs:41–59` — `CpptVerificationWatchItem` memuat `ProviderUserId`, dan tidak ada satu kolom nama pun | **`BE-RWI-067`** ✅ **DITUTUP 8 September 2026** — [laporan](../task/report/backend/BE-RWI-067.md) |
 | Diagnosis terstruktur **wajib** menyebut nomor konsultasi, sehingga tidak dapat lahir dari layar kajian medis | `FE-RWI-044` | `PatientDiagnosisDtos.cs:146–152` — `EncounterId` dan `ConsultationId` keduanya `[Required]` | **`BE-RWI-068`** ⛔ |
 
 **Dua di antaranya sengaja tidak menunggu kontrak baru, dan satu wajib menunggu.** Bedanya bukan
@@ -165,10 +165,11 @@ laporan tracked task itu ada di `../task/report/backend/`.
 Per 8 September 2026: **seluruh 17 task `BE-RWI-037` s.d. `BE-RWI-053` ✅ selesai.** Tidak ada
 di antara ketujuh belas itu yang 🟡 sebagian, ⛔ terblokir, maupun belum dikerjakan.
 
-**Revision 2 menambahkan tiga task baru**, dan ketiganya memang belum dikerjakan: `BE-RWI-066` dan
-`BE-RWI-067` berstatus **BELUM DIKERJAKAN** dan boleh dimulai begitu task-nya disetujui, sedangkan
-`BE-RWI-068` berstatus ⛔ **TERBLOKIR** menunggu grup diagnosis masuk kontrak API. Alasan ketiganya
-ada dijelaskan pada bagian 0.1.
+**Revision 2 menambahkan tiga task baru.** Per 8 September 2026, dua di antaranya sudah selesai:
+`BE-RWI-066` ✅ dan `BE-RWI-067` ✅ dikerjakan bersamaan pada satu rangkaian validasi
+(`dotnet test` `Failed: 0, Passed: 470, Total: 470`, 17 di antaranya uji baru kedua task itu;
+`dotnet build` 0 error `CS`; nol migration dibuat). `BE-RWI-068` tetap berstatus ⛔ **TERBLOKIR**
+menunggu grup diagnosis masuk kontrak API. Alasan ketiganya ada dijelaskan pada bagian 0.1.
 
 Uji migration maju-mundur dijalankan 5 September 2026 terhadap PostgreSQL 15.15 sungguhan dan
 menutup `BE-RWI-040`, `BE-RWI-042`, serta `BE-RWI-043`; `BE-RWI-045` ditutup setelah pemilik
@@ -215,7 +216,7 @@ yang membuat permintaan yang kalah melempar alih-alih dijawab `200`.
 | **`DOK-MVP-4`** ✅ | Visite | `BE-RWI-048` ✅, `BE-RWI-049` ✅ | ✅ selesai 8 September 2026. Kunjungan dokter tercatat, terhitung, dan dapat dibatalkan beralasan; uji concurrency `BE-RWI-048` hijau, dan celah perlombaan yang ditemukannya sudah ditutup |
 | **`DOK-MVP-5`** ✅ | Resep, tindakan, penunjang | `BE-RWI-050` ✅, `BE-RWI-051` ✅, `BE-RWI-052` ✅ | ✅ selesai 8 September 2026. Dokter meresepkan berulang, mencatat tindakan, dan memesan lab serta radiologi; uji percobaan ulang `BE-RWI-051` hijau terhadap PostgreSQL sungguhan |
 | **`DOK-MVP-6`** ✅ | Catatan terpadu dan verifikasi | `BE-RWI-053` ✅ | ✅ selesai 4 September 2026. DPJP memverifikasi catatan profesi lain; keterlambatan terpantau lewat daftar pantau berkebijakan kosong |
-| **`DOK-MVP-7`** ★ baru revision 2 | Menutup tiga celah kontrak yang ditemukan layar | `BE-RWI-066`, `BE-RWI-067`, `BE-RWI-068` ⛔ | Layar dapat menyebut **siapa yang memverifikasi** sebuah catatan dan **siapa penulis** catatan yang menunggu verifikasi, tanpa menebak. Setelah `BE-RWI-066` dan `BE-RWI-067` selesai, `FE-RWI-046` dan `FE-RWI-050` dapat ditutup pada ID-nya masing-masing. `BE-RWI-068` menyusul setelah kontraknya ada, dan barulah `FE-RWI-044` dapat ditutup |
+| **`DOK-MVP-7`** 🟡 ★ baru revision 2 | Menutup tiga celah kontrak yang ditemukan layar | `BE-RWI-066` ✅, `BE-RWI-067` ✅, `BE-RWI-068` ⛔ | Layar dapat menyebut **siapa yang memverifikasi** sebuah catatan dan **siapa penulis** catatan yang menunggu verifikasi, tanpa menebak. Setelah `BE-RWI-066` dan `BE-RWI-067` selesai, `FE-RWI-046` dan `FE-RWI-050` dapat ditutup pada ID-nya masing-masing. `BE-RWI-068` menyusul setelah kontraknya ada, dan barulah `FE-RWI-044` dapat ditutup |
 
 **Nol gelombang memuat epic `OPEN DECISION`**, karena sub-modul ini memang tidak punya satu pun.
 
@@ -254,8 +255,8 @@ BE-RWI-038 (pendaftaran dokumen ke mesin keutuhan) ✅ SELESAI ─────> 
 
 Gelombang penutup DOK-MVP-7 — revision 2
 BE-RWI-053 (verifikasi DPJP) ✅ SELESAI
-   ├── BE-RWI-066 (balasan membawa identitas verifikator)  BELUM DIKERJAKAN ──> FE-RWI-046
-   └── BE-RWI-067 (nama penulis pada daftar pantau)        BELUM DIKERJAKAN ──> FE-RWI-050
+   ├── BE-RWI-066 (balasan membawa identitas verifikator)  ✅ SELESAI ────────> FE-RWI-046
+   └── BE-RWI-067 (nama penulis pada daftar pantau)        ✅ SELESAI ────────> FE-RWI-050
 
 BE-RWI-045 (kajian medis awal) ✅ SELESAI
    └── BE-RWI-068 (diagnosis tanpa nomor konsultasi)       ⛔ TERBLOKIR ──────> FE-RWI-044
@@ -601,11 +602,11 @@ lebih dulu membuatnya, dan yang kedua menerima baris dependency, bukan salinan t
 
 ---
 
-### `BE-RWI-066` — Balasan catatan terpadu menyebutkan siapa yang memverifikasi dan kapan
+### ✅ `BE-RWI-066` — Balasan catatan terpadu menyebutkan siapa yang memverifikasi dan kapan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN.** Task baru pada revision 2. Boleh dimulai setelah approval task; nol prasyarat teknis yang belum selesai |
+| **Status** | ✅ **SELESAI 8 September 2026.** Keenam acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `dotnet build` **0 error `CS`** — dua error `MSB3027`/`MSB3021` yang muncul adalah berkas keluaran terkunci proses aplikasi backend yang sedang dijalankan pengguna, dicatat apa adanya sebagai `EXISTING / ENVIRONMENT ISSUE`; `dotnet test` **`Failed: 0, Passed: 470, Skipped: 0, Total: 470`**, 9 di antaranya uji baru task ini. Uji risiko jumlah query membuktikan lima catatan dengan lima verifikator berbeda dibaca dengan **tepat 2 perintah SQL**, bukan tujuh. **Nol migration dibuat, nol kolom tabel bertambah** — relasi `VerifiedByUserId` beserta index-nya sudah tercatat pada `ApplicationDbContextModelSnapshot.cs` sejak `BE-RWI-040`, dan yang ditambahkan hanya navigation model CLR. **Satu butir Verification tidak dapat dijalankan apa adanya:** uji "nama verifikator terbaca dari snapshot" menuntut kolom snapshot yang tidak ada di tabel, dan menambahkannya berarti kolom tabel baru beserta migration yang dilarang kartu ini; penggantinya membuktikan nama verifikator yang tidak dikenali **kosong** dan tidak pernah jatuh ke nama penulis. Laporan: [BE-RWI-066](../task/report/backend/BE-RWI-066.md) |
 | **Outcome** | Dokter dan supervisor membuka lini masa catatan terpadu, lalu melihat langsung bahwa sebuah catatan **sudah diverifikasi, oleh siapa, dan pukul berapa** — sementara nama penulis aslinya tetap berdiri di tempatnya. Hari ini keterangan itu sudah tersimpan di database tetapi tidak pernah ikut terkirim ke layar, sehingga layar hanya bisa berkata "belum dapat dipastikan" |
 | **Trace** | `CAP-021`; `AC-CAP021-03`; `INV-DOK-11`; `contracts/api-contract.md` bagian 3; `03-frontend-architecture.md` bagian 3.4; `RWI-DEC-062` untuk kewenangan menyentuh modul `ClinicalManagement`. **Ditemukan** saat `FE-RWI-046` dikerjakan — [laporan FE-RWI-046](../task/report/frontend/FE-RWI-046.md) |
 | **Kontrak** | `0.3.0` — **tidak berubah**, dan alasannya dijelaskan pada bagian 0.1. Kontrak bagian 3 sudah mengikat `PATCH /{id}/verify` mengembalikan `ApiResponse<ProgressNoteResponse>` beserta kalimat "**tidak mengubah penulis aslinya**". Kalimat itu tidak dapat dibuktikan pemakainya selama balasannya sendiri tidak menyebutkan verifikator, sehingga task ini **memenuhi** kontrak yang sudah disetujui alih-alih mengubahnya |
@@ -619,11 +620,11 @@ lebih dulu membuatnya, dan yang kedua menerima baris dependency, bukan salinan t
 
 ---
 
-### `BE-RWI-067` — Daftar pantau verifikasi menyebut nama penulis, bukan nomor pengguna
+### ✅ `BE-RWI-067` — Daftar pantau verifikasi menyebut nama penulis, bukan nomor pengguna
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN.** Task baru pada revision 2. Boleh dimulai setelah approval task; nol prasyarat teknis yang belum selesai |
+| **Status** | ✅ **SELESAI 8 September 2026.** Keenam acceptance criteria terpetakan ke source yang benar-benar ada. Validasi nyata: `dotnet build` **0 error `CS`** — dua error penyalinan berkas terkunci dicatat apa adanya sebagai `EXISTING / ENVIRONMENT ISSUE`; `dotnet test` **`Failed: 0, Passed: 470, Skipped: 0, Total: 470`**, 8 di antaranya uji baru task ini. Larangan bocornya isi klinis **dibuktikan test**, bukan dinyatakan: kedelapan kolom isi catatan diisi teks samaran, lalu seluruh properti bertipe teks pada butir daftar pantau diperiksa lewat refleksi. Uji risiko jumlah query membuktikan lima catatan dengan lima penulis berbeda dibaca dengan **tepat 1 perintah SQL**. **Nol migration, nol kolom tabel baru, nol endpoint baru**; satu berkas source berubah. Laporan: [BE-RWI-067](../task/report/backend/BE-RWI-067.md) |
 | **Outcome** | Supervisor klinis membuka daftar catatan yang menunggu verifikasi, lalu langsung tahu **siapa yang menulis** setiap catatan. Hari ini daftar itu hanya membawa nomor pengguna — deretan angka dan huruf yang tidak berarti apa-apa bagi manusia — sehingga layar terpaksa menuliskan "Nama penulis belum tersedia", dan supervisor harus membuka catatannya satu per satu hanya untuk tahu siapa yang perlu diingatkan |
 | **Trace** | `CAP-021`; `FE-DOK-08`; `contracts/api-contract.md` bagian 3 baris `GET /episodes/{episodeId}/verification-status`; `03-frontend-architecture.md` bagian 3.8; `RWI-DEC-062`. **Ditemukan** saat `FE-RWI-050` dikerjakan — [laporan FE-RWI-050](../task/report/frontend/FE-RWI-050.md) |
 | **Kontrak** | `0.3.0` — **tidak berubah**. Endpoint-nya sudah dikontrak beserta hak aksesnya; kontrak tidak pernah merinci daftar kolom `VerificationStatusResponse`, sehingga melengkapi butirnya adalah mengisi kontrak yang sudah ada |
@@ -683,8 +684,8 @@ menautkan berkas yang belum ada hanya membuat register ini berbohong.
 | `BE-RWI-051` | Tindakan dokter tanpa tagihan ganda | ✅ | [BE-RWI-051](../task/report/backend/BE-RWI-051.md) |
 | `BE-RWI-052` | Lab dan radiologi per perawatan | ✅ | [BE-RWI-052](../task/report/backend/BE-RWI-052.md) |
 | `BE-RWI-053` | Verifikasi DPJP atas catatan terpadu | ✅ | [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
-| `BE-RWI-066` ★ | Balasan membawa identitas verifikator | tanpa tanda | Belum ada — task baru revision 2 |
-| `BE-RWI-067` ★ | Nama penulis pada daftar pantau verifikasi | tanpa tanda | Belum ada — task baru revision 2 |
+| `BE-RWI-066` ★ | Balasan membawa identitas verifikator | ✅ | [BE-RWI-066](../task/report/backend/BE-RWI-066.md) — selesai 8 September 2026 |
+| `BE-RWI-067` ★ | Nama penulis pada daftar pantau verifikasi | ✅ | [BE-RWI-067](../task/report/backend/BE-RWI-067.md) — selesai 8 September 2026 |
 | `BE-RWI-068` ★ | Diagnosis tanpa nomor konsultasi | ⛔ | Belum ada — terblokir kontrak API |
 
 ---

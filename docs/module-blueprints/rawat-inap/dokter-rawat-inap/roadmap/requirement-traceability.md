@@ -69,7 +69,7 @@ sedangkan task punya pemilik, acceptance criteria, dan tempat pada register.
 | --- | --- | --- | --- | --- |
 | `CAP-015` | Pemeriksaan penunjang laboratorium dan radiologi | `EPIC DOK-06` | `BE-RWI-042`, `BE-RWI-052` | `FE-RWI-049` ✅ — [laporan](../task/report/frontend/FE-RWI-049.md) |
 | `CAP-020` | Dokumentasi SOAP | `EPIC DOK-01`, `EPIC DOK-03` | `BE-RWI-037`, `BE-RWI-043`, `BE-RWI-044`, `BE-RWI-046`, `BE-RWI-047` | `FE-RWI-045` ✅ — [laporan](../task/report/frontend/FE-RWI-045.md) |
-| `CAP-021` | Catatan terpadu beserta verifikasi | `EPIC DOK-04` | `BE-RWI-040`, `BE-RWI-053`, **`BE-RWI-066`**, **`BE-RWI-067`** | `FE-RWI-046` 🟡, `FE-RWI-050` 🟡 — keduanya tertahan kontrak baca CPPT yang tidak mengembalikan identitas verifikator maupun nama penulis; [FE-RWI-046](../task/report/frontend/FE-RWI-046.md), [FE-RWI-050](../task/report/frontend/FE-RWI-050.md) |
+| `CAP-021` | Catatan terpadu beserta verifikasi | `EPIC DOK-04` | `BE-RWI-040` ✅, `BE-RWI-053` ✅, **`BE-RWI-066`** ✅, **`BE-RWI-067`** ✅ | **Celah kontrak bacanya ditutup 8 September 2026** — [BE-RWI-066](../task/report/backend/BE-RWI-066.md), [BE-RWI-067](../task/report/backend/BE-RWI-067.md). `FE-RWI-046` 🟡 dan `FE-RWI-050` 🟡 menunggu dijalankan ulang di atas kontrak baca yang sudah lengkap itu; [FE-RWI-046](../task/report/frontend/FE-RWI-046.md), [FE-RWI-050](../task/report/frontend/FE-RWI-050.md) |
 | `CAP-022` | Kajian medis awal | `EPIC DOK-02` | `BE-RWI-040`, `BE-RWI-045`, **`BE-RWI-068`** ⛔ | `FE-RWI-044` 🟡 — tertahan `BE-RWI-068`, yang sendirinya menunggu grup diagnosis masuk kontrak API |
 | `CAP-023` | Resep rawat inap dan obat pulang | `EPIC DOK-06` | `BE-RWI-042`, `BE-RWI-043`, `BE-RWI-050` | `FE-RWI-048` ✅ — [laporan](../task/report/frontend/FE-RWI-048.md) |
 | `CAP-024` | Tindakan dokter | `EPIC DOK-06` | `BE-RWI-051` | `FE-RWI-048` ✅ — [laporan](../task/report/frontend/FE-RWI-048.md) |
@@ -111,7 +111,7 @@ frontend.
 | `FR-DOK-015` | Perawatan tertutup menolak catatan baru, menerima koreksi | `BE-RWI-047` | `AC-CAP020-03`, `RWI-AC-161` | Integration | ✅ Catatan baru ditolak `422` beserta arahan bahwa koreksi tetap bisa; koreksi atas catatan lama diterima `201` — [BE-RWI-047](../task/report/backend/BE-RWI-047.md) |
 | `FR-DOK-016` | Koreksi tidak mengaktifkan kembali perawatan | `BE-RWI-047` | `RWI-AC-161` | Integration | ✅ Status tetap tertutup; waktu masuk, waktu keluar, waktu tutup, dan tempat tidurnya identik sebelum dan sesudah koreksi — [BE-RWI-047](../task/report/backend/BE-RWI-047.md) |
 | `FR-DOK-017` | Catatan lintas profesi tampil terpisah | `BE-RWI-053` | `AC-CAP021-01` | Integration | ✅ `GET /patient-integrated-progress-notes/episodes/{episodeId}` mengembalikan lini masa lintas profesi satu perawatan, dapat disaring jenis profesi — [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
-| `FR-DOK-018` | Verifikasi tidak mengubah penulis asli | `BE-RWI-053` | `AC-CAP021-03` | Integration | ✅ Penulis tetap perawat, verifikator DPJP; keduanya tersimpan pada kolom berbeda dan terbukti berbeda — [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
+| `FR-DOK-018` | Verifikasi tidak mengubah penulis asli | `BE-RWI-053`, `BE-RWI-066` | `AC-CAP021-03` | Integration | ✅ Penulis tetap perawat, verifikator DPJP; keduanya tersimpan pada kolom berbeda dan terbukti berbeda — [BE-RWI-053](../task/report/backend/BE-RWI-053.md). **Ditambah 8 September 2026:** keduanya kini juga **terbaca** pada dua kolom balasan yang berbeda beserta namanya masing-masing, dan enam kolom penulis dibandingkan sebelum-sesudah verifikasi — [BE-RWI-066](../task/report/backend/BE-RWI-066.md) |
 | `FR-DOK-019` | Verifikasi hanya oleh DPJP aktif saat itu | `BE-RWI-053` | `VAL-DOK-07`, `INV-DOK-11` | Integration | ✅ Setelah pergantian DPJP, DPJP lama ditolak `403` dan DPJP baru diterima, walaupun catatannya ditulis pada masa DPJP lama — [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
 | `FR-DOK-020` | Keterlambatan terpantau tanpa menahan | `BE-RWI-053` | `AC-CAP021-02`, `VAL-DOK-25` | Integration | ✅ Catatan lewat batas muncul pada daftar pantau bertanda terlambat, dan catatan berikutnya tetap dapat ditulis — [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
 | `FR-DOK-021` | Kebijakan kosong berarti nol yang menunggu | `BE-RWI-053` | `VAL-DOK-24` | Integration | ✅ Tiga catatan lahir berstatus tidak-diwajibkan tanpa batas waktu; daftar pantau kosong; **nol angka batas waktu ditanam di kode** — [BE-RWI-053](../task/report/backend/BE-RWI-053.md) |
@@ -225,8 +225,8 @@ balasan sudah cukup adalah pemakainya, bukan penulisnya.
 
 | Celah | Ditemukan oleh | Akibatnya bagi pengguna | Task pemiliknya | Status |
 | --- | --- | --- | --- | --- |
-| Balasan baca catatan terpadu tidak memuat kolom verifikasi apa pun, padahal keempat kolomnya sudah ada dan terisi di tabel | `FE-RWI-046` | DPJP tidak dapat melihat siapa yang memverifikasi sebuah catatan. Layar menampilkan keadaan kelima **"belum dapat dipastikan"** alih-alih menebak "sudah diverifikasi" — pilihan yang benar, tetapi bukan yang dijanjikan `AC-CAP021-03` | **`BE-RWI-066`** | Direncanakan, belum dikerjakan |
-| Butir daftar pantau verifikasi hanya membawa nomor pengguna penulis | `FE-RWI-050` | Supervisor melihat kolom Penulis berbunyi "Nama penulis belum tersedia", lalu harus membuka catatannya satu per satu untuk tahu siapa yang perlu diingatkan | **`BE-RWI-067`** | Direncanakan, belum dikerjakan |
+| Balasan baca catatan terpadu tidak memuat kolom verifikasi apa pun, padahal keempat kolomnya sudah ada dan terisi di tabel | `FE-RWI-046` | DPJP tidak dapat melihat siapa yang memverifikasi sebuah catatan. Layar menampilkan keadaan kelima **"belum dapat dipastikan"** alih-alih menebak "sudah diverifikasi" — pilihan yang benar, tetapi bukan yang dijanjikan `AC-CAP021-03` | **`BE-RWI-066`** | ✅ **Ditutup 8 September 2026.** Balasan `GET /timeline`, `GET /episodes/{episodeId}`, `GET /`, `GET /{id}`, dan `PATCH /{id}/verify` kini membawa `verificationStatus`, `verifiedAt`, `verifiedByUserId`, `verifiedByUserName`, dan `verificationDueAt`. `dotnet test` `Failed: 0, Passed: 470` — [BE-RWI-066](../task/report/backend/BE-RWI-066.md) |
+| Butir daftar pantau verifikasi hanya membawa nomor pengguna penulis | `FE-RWI-050` | Supervisor melihat kolom Penulis berbunyi "Nama penulis belum tersedia", lalu harus membuka catatannya satu per satu untuk tahu siapa yang perlu diingatkan | **`BE-RWI-067`** | ✅ **Ditutup 8 September 2026.** Butir daftar pantau kini membawa `providerName`, diambil snapshot lebih dulu sehingga akun yang berganti nama tidak menulis ulang riwayat. Nol isi klinis bocor, dibuktikan test — [BE-RWI-067](../task/report/backend/BE-RWI-067.md) |
 | Kontrak API tidak memuat satu pun grup diagnosis, dan diagnosis terstruktur wajib menyebut nomor konsultasi | `FE-RWI-044` | DPJP tidak dapat menambah diagnosis kerja dari layar kajian medis awal, padahal di situlah diagnosis kerja sebenarnya lahir | **`BE-RWI-068`** | ⛔ Terblokir — menunggu kontrak `0.4.0` dan persetujuan pemilik `ClinicalManagement` |
 
 ### 4.6 Selisih dokumen yang ditemukan saat perencanaan ulang — ★ ditambahkan revision 2
@@ -262,8 +262,8 @@ roadmap sub-modul karena berkasnya milik tingkat modul.
 | `BE-RWI-051` | `CAP-024` |
 | `BE-RWI-052` | `CAP-015` |
 | `BE-RWI-053` | `CAP-021` |
-| `BE-RWI-066` ★ | `CAP-021` — melengkapi balasan verifikasi supaya `FE-RWI-046` dapat ditutup |
-| `BE-RWI-067` ★ | `CAP-021` — melengkapi daftar pantau supaya `FE-RWI-050` dapat ditutup |
+| `BE-RWI-066` ★ ✅ | `CAP-021` — melengkapi balasan verifikasi supaya `FE-RWI-046` dapat ditutup |
+| `BE-RWI-067` ★ ✅ | `CAP-021` — melengkapi daftar pantau supaya `FE-RWI-050` dapat ditutup |
 | `BE-RWI-068` ★ ⛔ | `CAP-022` — membuka diagnosis kerja dari kajian medis; menunggu kontrak |
 | `FE-RWI-042` ✅ | Seluruhnya — keterjangkauan |
 | `FE-RWI-043` ✅ | Seluruhnya — konteks pasien |
