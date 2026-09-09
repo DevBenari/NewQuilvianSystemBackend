@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
@@ -32,10 +33,13 @@ public sealed class OperatingRoomExecutionService
     private readonly LoggerService _loggerService;
     private readonly OperatingRoomIntegrationService _integrationService;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
     public OperatingRoomExecutionService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        OperatingRoomIntegrationService integrationService)
+        OperatingRoomIntegrationService integrationService, OperatingRoomRuleRelaxation relaxation)
     {
+        _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
@@ -65,7 +69,8 @@ public sealed class OperatingRoomExecutionService
                 "Operasi hanya dapat dimulai pada kasus berstatus Ready.");
         EnsureVersion(entity.Version, request.ExpectedVersion);
         await EnsurePrimarySurgeonAsync(entity, actorUserId, cancellationToken);
-        if (!request.ConfirmedPatientIdentity || !request.ConfirmedProcedure)
+        if (!_relaxation.IsRelaxed &&
+            (!request.ConfirmedPatientIdentity || !request.ConfirmedProcedure))
             throw new OperatingRoomUnprocessableException("StartNotConfirmed",
                 "Konfirmasi identitas pasien dan tindakan wajib dilakukan sebelum operasi dimulai.");
 
@@ -312,6 +317,10 @@ public sealed class OperatingRoomExecutionService
     /// <summary>Hanya dokter bedah utama pada tim berjalan yang boleh memulai dan mencatat operasi.</summary>
     private async Task EnsurePrimarySurgeonAsync(OprCase entity, Guid actorUserId, CancellationToken cancellationToken)
     {
+        // Dilepas saat aturan klinis dilonggarkan: siapa pun boleh memulai dan mencatat
+        // operasi, tanpa perlu terdaftar sebagai dokter bedah utama pada tim.
+        if (_relaxation.IsRelaxed) return;
+
         var workforceId = await ResolveWorkforceAsync(actorUserId, cancellationToken);
         var isSurgeon = entity.TeamMembers.Any(x => x.IsCurrent && !x.IsDelete &&
             x.WorkforceId == workforceId && x.Role == OprTeamRole.PrimarySurgeon);

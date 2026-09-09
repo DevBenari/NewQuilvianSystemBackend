@@ -35,6 +35,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
@@ -45,6 +46,7 @@ using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Seeders;
 using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
@@ -359,6 +361,18 @@ try
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<StockRequestService>();
+    builder.Services.AddScoped<DrugStockService>();
+    builder.Services.AddScoped<DrugUnitConversionResolver>();
+    builder.Services.AddScoped<StockTransferService>();
+    builder.Services.AddScoped<DrugUsageService>();
+    builder.Services.AddScoped<DrugReturnService>();
+    builder.Services.AddScoped<PrescriptionLabelService>();
+    builder.Services.AddScoped<PrescriptionDispensingService>();
+    builder.Services.AddScoped<PrescriptionCopyService>();
+    builder.Services.AddScoped<NutritionOrderService>();
+    builder.Services.AddScoped<NutritionDietService>();
+    builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
     // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
@@ -370,6 +384,8 @@ try
     builder.Services.AddScoped<OperatingRoomRecoveryService>();
     builder.Services.AddScoped<OperatingRoomIntegrationService>();
     builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomInventoryDispatchService>();
+    builder.Services.AddScoped<OperatingRoomStockSourceService>();
     builder.Services.AddScoped<OperatingRoomReportService>();
 
     // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
@@ -894,6 +910,88 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedOperatingRoomDemoAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        IConfiguration configuration,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("OperatingRoomDemoSeeder");
+
+        // Akun yang akan ditautkan ke dokter demo. Bila kosong, dipakai SuperAdmin hasil
+        // SuperAdminSeeder, karena itulah satu-satunya akun yang pasti ada di database baru.
+        var targetUserName = configuration["Seeders:OperatingRoomDemoTargetUserName"];
+        if (string.IsNullOrWhiteSpace(targetUserName))
+        {
+            targetUserName = configuration["SeedSuperAdmin:Username"];
+        }
+
+        var result = await OperatingRoomDemoSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            targetUserName,
+            configuration.GetValue<bool>("Seeders:OperatingRoomDemoCreateCase"),
+            cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[OperatingRoomDemo] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Dibuat: {Created}. Dipakai ulang: {Reused}.",
+            result.Created.Count == 0 ? "tidak ada" : string.Join(", ", result.Created),
+            result.Reused.Count == 0 ? "tidak ada" : string.Join(", ", result.Reused));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Pakai nilai ini di form Kasus Operasi -> PatientId={PatientId}, " +
+            "EncounterId={EncounterId}, DoctorId={DoctorId}, PatientProcedureId={ProcedureIds}",
+            result.PatientId, result.EncounterId, result.DoctorId,
+            string.Join(", ", result.PatientProcedureIds));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Penjadwalan -> RoomId={RoomId}, KetuaTim(WorkforceId)={SurgeonWorkforceId}, " +
+            "AnggotaTimLain={TeamWorkforceIds}",
+            result.RoomId, result.SurgeonWorkforceId, string.Join(", ", result.TeamWorkforceIds));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Material -> ItemId={MaterialItemIds}. Serah terima -> UnitTujuan={DestinationUnitId}",
+            string.Join(", ", result.MaterialItemIds), result.DestinationUnitId);
+
+        logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
+
+        var demoUserNotes = await OperatingRoomDemoSeeder.EnsureDemoUsersAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            result,
+            // Ikut kata sandi SuperAdmin bila tidak ditentukan sendiri, supaya seluruh akun
+            // demo di basis data pengembangan memakai sandi yang sama.
+            string.IsNullOrWhiteSpace(configuration["Seeders:OperatingRoomDemoUserPassword"])
+                ? configuration["SeedSuperAdmin:Password"]
+                : configuration["Seeders:OperatingRoomDemoUserPassword"],
+            cancellationToken);
+
+        foreach (var note in demoUserNotes)
+        {
+            logger.LogInformation("[OperatingRoomDemo] {Note}", note);
+        }
+
+        if (result.CaseId != Guid.Empty)
+        {
+            logger.LogInformation(
+                "[OperatingRoomDemo] Kasus contoh siap dicoba: CaseId={CaseId}. Kasus ini dibuat " +
+                "seeder, bukan lewat layar, jadi ia belum membuktikan form pembuatan berfungsi.",
+                result.CaseId);
+        }
+    }
+
     static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -1039,11 +1137,62 @@ try
 
     app.MapHealthChecks("/health");
 
+    if (builder.Configuration.GetValue("OperatingRoom:RelaxClinicalRules", false))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] OperatingRoom:RelaxClinicalRules bernilai true, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Aturan pelaku klinis tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] ATURAN KLINIS MODUL OPERASI DILEPAS pada lingkungan {Environment}. " +
+                "Siapa pun dapat membuat permintaan atas nama dokter lain, memulai operasi, dan " +
+                "memberi ketiga sign-off sendirian. Kesiapan tidak lagi menunggu consent maupun " +
+                "checklist. Kembalikan dengan OperatingRoom:RelaxClinicalRules = false sebelum " +
+                "menguji keselamatan atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
+
+    // Peringatan mencolok bila pemeriksaan hak akses sedang dimatikan, supaya keadaan ini
+    // tidak berlalu tanpa disadari dan tidak ikut terbawa saat lingkungan disalin.
+    if (!builder.Configuration.GetValue("Security:Authorization:Enabled", true))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] Security:Authorization:Enabled bernilai false, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Pemeriksaan hak akses tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] PEMERIKSAAN HAK AKSES DIMATIKAN pada lingkungan {Environment}. " +
+                "Setiap pengguna yang berhasil login dapat membuka dan mengubah apa pun. " +
+                "Nyalakan kembali dengan Security:Authorization:Enabled = true sebelum " +
+                "menguji hak akses atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
+
     await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+
+    var runOperatingRoomDemoSeed =
+        builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
+
+    if (runOperatingRoomDemoSeed)
+    {
+        await RunStartupSeederAsync(
+            "OperatingRoomDemoSeeder",
+            () => SeedOperatingRoomDemoAsync(app.Services, app.Environment, builder.Configuration));
+    }
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
