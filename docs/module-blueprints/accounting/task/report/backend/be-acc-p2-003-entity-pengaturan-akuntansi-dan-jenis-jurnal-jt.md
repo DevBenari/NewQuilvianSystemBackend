@@ -358,7 +358,7 @@ Uji manual: `NOT APPLICABLE` — task ini tidak menghasilkan permukaan yang dapa
 | --- | --- |
 | **Tabel belum ada di database** | `AccAccountingConfiguration` baru berdiri di model EF. Setiap kode yang menyentuhnya akan gagal saat dijalankan sampai `BE-ACC-P2-004` diterapkan owner. Ini memang bentuk yang dikehendaki roadmap, bukan cacat |
 | **Nilai `Restrict` bergantung ratifikasi** | Bila owner kelak menetapkan `Cascade` untuk `BE-ACC-P2-001`, keputusan yang sama perlu ditinjau untuk tabel ini sebelum migration dibuat — sesudah migration diterapkan, mengubahnya menuntut migration kedua |
-| **`JT` belum ada di database mana pun** | Seeder belum dijalankan. `BE-ACC-P2-010` menuntut baris `JT` benar-benar ada; menjalankan endpoint `seed` adalah langkah pengisian data yang terpisah dan butuh wewenang tersendiri |
+| ~~`JT` belum ada di database~~ | **DITUTUP.** **Diisi 9 September 2026** lewat `AccJournalTypeService.SeedAsync` sebagai `superadmin`: `Inserted: 1, Skipped: 4`, master menjadi 5 baris. Baris `JT` bernilai `RequiresApproval = true` dan `IsSystemType = true`, dan keempat baris lama tidak tersentuh |
 
 ### Status Git
 

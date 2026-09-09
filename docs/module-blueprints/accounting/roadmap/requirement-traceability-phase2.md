@@ -10,7 +10,8 @@ decision_revision: 2.2
 contracts: [ACC-API-0.7, ACC-STATE-0.2, ACC-VALIDATION-0.5, ACC-PERMISSION-0.4]
 scope_waves: [P2-3, P2-4, P2-5]
 generated_at: 2026-09-08
-task_selesai: 5                       # BE-ACC-P2-001, 002, 003, 011, dan 004 selesai 9 Sep 2026
+task_selesai: 6                       # BE-ACC-P2-001, 002, 003, 011, 004, 009 selesai
+task_sebagian: 3                      # BE-ACC-P2-005, 006, dan 013 - test integrasi PostgreSQL belum dijalankan
 database_state: applied               # migration 20260909060515_AddAccountingPhase2Independent diterapkan owner 9 Sep 2026
 ```
 
@@ -38,13 +39,13 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 
 | Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
 |---|---|---|---|---|---|---|
-| `FR-P2-023` | Daftar periksa dihitung saat diminta, bukan disimpan | `ACC-DEC-051` | `BE-ACC-P2-005` | `FE-ACC-P2-001` | — | `Planned` |
-| `FR-P2-024` | Pengajuan ditolak selama ada jurnal belum sah atau kejadian gagal | `ACC-DEC-051` | `BE-ACC-P2-005`, `006` | `FE-ACC-P2-002` | `UAT-P2-14` | `Planned` |
-| `FR-P2-025` | Kejadian tertahan hanya peringatan, tidak menahan | `ACC-DEC-051` | `BE-ACC-P2-005` | `FE-ACC-P2-001` | — | `Planned` |
-| `FR-P2-026` | Penutupan hanya disetujui `Accounting Director` | `ACC-DEC-055` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-17` | `Planned` — penyimpanannya berdiri, perilakunya belum |
-| `FR-P2-027` | Penyetuju **bukan** pengaju | `ACC-DEC-016`, `052` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-16` | `Planned` — kolom `ClosingSubmittedBy` berdiri, penegakannya belum |
-| `FR-P2-028` | Penolakan wajib beralasan, periode kembali terbuka | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` | `FE-ACC-P2-002` | `UAT-P2-18` | `Planned` — kolom `ActionNote` berdiri, penegakannya belum |
-| `FR-P2-029` | Periode yang ditutup sebelum Phase 2 tetap sah tanpa riwayat | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` | — | — | `Planned` — kedua kolom baru **nullable**, sehingga periode lama tetap sah |
+| `FR-P2-023` | Daftar periksa dihitung saat diminta, bukan disimpan | `ACC-DEC-051` | `BE-ACC-P2-005` 🟡 | `FE-ACC-P2-001` | — | **`Done` backend, bukti SQLite** — `GET /{id}/closing-checklist` menghitung ulang tiap panggilan; dibuktikan `TigaJurnalBelumSah_SahkanSatu_AngkanyaTurun` (3 → 2). Nol hasil disimpan. **Bukti PostgreSQL belum ada** |
+| `FR-P2-024` | Pengajuan ditolak selama ada jurnal belum sah atau kejadian gagal | `ACC-DEC-051` | `BE-ACC-P2-005` 🟡, `006` 🟡 | `FE-ACC-P2-002` | `UAT-P2-14` | **`Done` sebagian** — pengajuan ditolak `409` bila ada jurnal belum sah, dibuktikan `MasihAdaJurnalBelumSah_PengajuanDitolak409`. Penghalang **kejadian gagal belum dapat diperiksa** sampai `P2-1`, jadi pengajuan saat ini hanya ditahan jurnal |
+| `FR-P2-025` | Kejadian tertahan hanya peringatan, tidak menahan | `ACC-DEC-051` | `BE-ACC-P2-005` 🟡 | `FE-ACC-P2-001` | — | **`Done` bentuknya** — `HELD_EVENTS` berada di `Warnings` dan **tidak** di `Blockers`, dibuktikan `KejadianTertahan_AdaSebagaiPeringatan_BukanPenghalang`. Isinya menunggu `P2-1` |
+| `FR-P2-026` | Penutupan hanya disetujui `Accounting Director` | `ACC-DEC-055` | `BE-ACC-P2-001` ✅, `006` 🟡 | `FE-ACC-P2-002` | `UAT-P2-17` | **`Done` di kode** — `POST /{id}/approve-closing` memakai hak akses `Approve` yang **terpisah** dari `Close`, dibuktikan `HakAksesMenyetujui_TerpisahDariMengajukan`. **Peran `Accounting Director` belum diisi** di layar Administrator |
+| `FR-P2-027` | Penyetuju **bukan** pengaju | `ACC-DEC-016`, `052` | `BE-ACC-P2-001` ✅, `006` 🟡 | `FE-ACC-P2-002` | `UAT-P2-16` | **`Done`** — ditolak `403`, diperiksa terhadap `ClosingSubmittedBy` **tersimpan** (bukan isian permintaan); dibuktikan `PenyetujuSamaDenganPengaju_Ditolak403`. **Bukti PostgreSQL belum ada** |
+| `FR-P2-028` | Penolakan wajib beralasan, periode kembali terbuka | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` 🟡 | `FE-ACC-P2-002` | `UAT-P2-18` | **`Done`** — tanpa alasan ditolak `400` (diuji `null`, kosong, spasi); beralasan mengembalikan periode ke `Open` dan mengosongkan pengaju |
+| `FR-P2-029` | Periode yang ditutup sebelum Phase 2 tetap sah tanpa riwayat | `ACC-DEC-052` | `BE-ACC-P2-001` ✅, `006` 🟡 | — | — | **`Done`** — riwayat kosong dikembalikan sebagai jawaban sah, bukan error; daftar periksanya tetap dapat dihitung. Dibuktikan `PeriodeSoftClosedSebelumPhase2_TetapSahTanpaRiwayat` |
 
 ## 3. Tutup tahun dan pengaturan (`P2-5`, `P2-0a`)
 
@@ -52,7 +53,7 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 |---|---|---|---|---|---|---|
 | `FR-P2-030` | Pratinjau menampilkan saldo, **tanpa membuat apa pun** | `ACC-DEC-053` | `BE-ACC-P2-010` | `FE-ACC-P2-006` | `UAT-P2-21` | `Planned` |
 | `FR-P2-031` | Penyusunan ditolak bila ada periode belum tertutup | `ACC-DEC-053` | `BE-ACC-P2-010` | `FE-ACC-P2-006` | `UAT-P2-19` | `Planned` |
-| `FR-P2-032` | Penyusunan ditolak bila akun laba ditahan belum ditetapkan | `ACC-DEC-054` | `BE-ACC-P2-003` ✅, `009`, `010` | `FE-ACC-P2-005`, `006` | `UAT-P2-20` | `Planned` — **tempat penyimpanannya berdiri**: `AccAccountingConfiguration` beserta unique `(LegalEntityId)`, dibuktikan `AccAccountingConfigurationSchemaTests`. Penetapan akunnya menunggu `009`, penolakannya menunggu `010` |
+| `FR-P2-032` | Penyusunan ditolak bila akun laba ditahan belum ditetapkan | `ACC-DEC-054` | `BE-ACC-P2-003` ✅, `009` ✅, `010` | `FE-ACC-P2-005`, `006` | `UAT-P2-20` | **`Done` sisi penetapan** — `PUT /configuration/{legalEntityId}` menolak `422` untuk akun bukan Ekuitas, akun induk, akun badan hukum lain, dan akun nonaktif; satu badan hukum tetap satu pengaturan. Dibuktikan `AccAccountingConfigurationTests` (14 uji). **Penolakan saat menyusun jurnal penutup menunggu `010`** |
 | `FR-P2-033` | Jurnal penutup `Draft` berjenis `JT`, disahkan lewat jalur yang ada | `ACC-DEC-053` | `BE-ACC-P2-003` ✅, `010` | `FE-ACC-P2-006` | `UAT-P2-22` | `Planned` — **jenis `JT` sudah ada di seeder** ber-`RequiresApproval = true`, dibuktikan `AccountingMasterDataSeederTests`; seeder **belum dijalankan** ke database mana pun walaupun tabelnya sudah siap sejak `004` ✅. Penyusunan jurnalnya menunggu `010` |
 | `FR-P2-034` | Jurnal penutup dapat dibalik lewat pembalikan yang sudah ada | `ACC-DEC-029` | `BE-ACC-P2-010` | — | `UAT-P2-23` | `Planned` |
 
@@ -65,9 +66,9 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 | `FR-P2-035` | Akun dapat ditandai sebagai control account | `ACC-DEC-064` | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` | — | **`Done` backend** — kolom `IsControlAccount` berbawaan `false` beserta index-nya berdiri, dan penandanya dapat diisi lewat `POST`/`PUT` serta dibaca kembali lewat `GET`. Dibuktikan `AccChartOfAccountControlAccountTests`. **Sudah ada di database** sejak `BE-ACC-P2-004` ✅ diterapkan 9 Sep 2026 |
 | `FR-P2-036` | Jurnal **manual** ke control account ditolak | `ACC-DEC-064` | `BE-ACC-P2-012` | `FE-ACC-P2-007` | `UAT-P2-24` | `Planned` — **penandanya sudah berdiri lewat `011` ✅**, penolakannya belum. Jurnal manual ke control account **masih diterima** |
 | `FR-P2-037` | Jurnal dari kejadian, template, dan tutup tahun **tidak** terkena larangan itu | `ACC-DEC-064` | `BE-ACC-P2-012` | — | `UAT-P2-25` | `Planned` |
-| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `ACC-DEC-065` | `BE-ACC-P2-005` sebagian, penuh menunggu `P2-1` | `FE-ACC-P2-001` | `UAT-P2-26` | `Planned` — tempatnya disediakan, penegakannya menyusul |
-| `FR-P2-039` | Saldo control account dihitung dari baris `Posted` | `ACC-DEC-066` | `BE-ACC-P2-013` | `FE-ACC-P2-008` | `UAT-P2-27` | `Planned` — dependency `011` ✅ selesai, index penyaringnya siap dipakai |
-| `FR-P2-040` | Saldo subledger dibandingkan dan selisihnya dilaporkan | `ACC-DEC-066` | `BE-ACC-P2-014` ⛔ | `FE-ACC-P2-008` | `UAT-P2-28` | **`BLOCKED`** oleh `DEC-ACC-P2-011` |
+| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `ACC-DEC-065` | `BE-ACC-P2-005` 🟡 sebagian, penuh menunggu `P2-1` | `FE-ACC-P2-001` | `UAT-P2-26` | **`Done` tempatnya** — `OPEN_CASH_SHIFTS` selalu hadir pada `Blockers` ber-`State = NotYetAvailable` beserta alasannya, dibuktikan `PenghalangKetiga_AdaTempatnya_TetapiBelumDapatDiperiksa`. Bentuk respons tidak akan berubah saat `P2-1` datang |
+| `FR-P2-039` | Saldo control account dihitung dari baris `Posted` | `ACC-DEC-066` | `BE-ACC-P2-013` 🟡 | `FE-ACC-P2-008` | `UAT-P2-27` | **`Done` backend, bukti SQLite** — `GET /reconciliation/gl-balances` menghitung **hanya** dari baris `Posted`; `Draft` dan `Approved` diabaikan, dibuktikan `SaldoDihitungHanyaDariBarisPosted` (Rp 14.500.000 dari 2 baris, bukan Rp 1.614.500.000). Angkanya terbukti sama dengan `HitungSaldoAsync`. **Bukti PostgreSQL belum ada** |
+| `FR-P2-040` | Saldo subledger dibandingkan dan selisihnya dilaporkan | `ACC-DEC-066` | `BE-ACC-P2-014` ⛔ | `FE-ACC-P2-008` | `UAT-P2-28` | **`BLOCKED`** oleh `DEC-ACC-P2-011` — **sisi buku besarnya sudah berdiri** lewat `013` 🟡; yang tersisa hanya menyambungkan pembandingnya |
 
 **Tiga skenario UAT baru** perlu ditambahkan ke `04-prd-to-mvp.md`: `UAT-P2-24` sampai `UAT-P2-28`.
 Dicatat sebagai coverage gap sampai dokumen itu diperbarui.

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.DTOs;
@@ -381,6 +381,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             => AccountingServiceResult<AccountingPeriodResponse>.Fail(
                 StatusCodes.Status404NotFound, "Periode akuntansi tidak ditemukan.");
 
+        /// <remarks>
+        /// <para>
+        /// <b>Diperketat <c>BE-ACC-P2-006</c>.</b> Sampai MVP, endpoint ini menerima
+        /// <c>Open</c> menjadi <c>SoftClosed</c> maupun <c>Closed</c> secara langsung.
+        /// <c>ACC-DEC-052</c> mencabut keduanya: sejak Phase 2, penutupan periode <b>wajib</b>
+        /// melewati persetujuan orang kedua.
+        /// </para>
+        /// <para>
+        /// Membiarkannya terbuka berarti seluruh mekanisme empat mata dapat dilewati satu
+        /// panggilan — dan yang paling berbahaya, <b>tanpa error apa pun</b>: periode tertutup
+        /// rapi, angkanya final, dan tidak ada yang menandai bahwa tidak seorang pun pernah
+        /// memeriksanya. Karena itu perpindahan yang dilarang ditolak di sini, bukan sekadar
+        /// diatur lewat matriks hak akses.
+        /// </para>
+        /// <para>
+        /// Yang tersisa sah lewat endpoint ini hanya <c>SoftClosed</c> menjadi <c>Closed</c> —
+        /// penutupan permanen sesudah masa tenggang. Perpindahan lainnya masing-masing punya
+        /// endpoint tersendiri: pengajuan, persetujuan, penolakan, dan pembukaan kembali.
+        /// </para>
+        /// </remarks>
         private static AccountingServiceResult<AccountingPeriodResponse>? PeriksaPerpindahanTutup(
             AccountingPeriodStatus dari,
             AccountingPeriodStatus tujuan,
@@ -389,24 +409,43 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             if (dari == tujuan)
             {
                 var sebutan = tujuan == AccountingPeriodStatus.Closed ? "tutup permanen" : "tutup sementara";
-                return AccountingServiceResult<AccountingPeriodResponse>.Fail(
-                    StatusCodes.Status409Conflict,
-                    $"Periode {NamaPeriode(periode)} sudah berstatus {sebutan}.");
+                return Konflik(periode, $"sudah berstatus {sebutan}.");
             }
 
-            // Satu-satunya perpindahan mundur yang mungkin: Closed hendak dijadikan SoftClosed
-            // lewat endpoint tutup. Itu bukan penutupan, melainkan pembukaan kembali — dan ia
-            // punya endpoint tersendiri yang mewajibkan alasan tertulis.
-            if (dari == AccountingPeriodStatus.Closed && tujuan == AccountingPeriodStatus.SoftClosed)
+            // Closed tertutup permanen; satu-satunya jalan keluar adalah pembukaan kembali yang
+            // mewajibkan alasan tertulis (ACC-DEC-027).
+            if (dari == AccountingPeriodStatus.Closed)
             {
-                return AccountingServiceResult<AccountingPeriodResponse>.Fail(
-                    StatusCodes.Status409Conflict,
-                    $"Periode {NamaPeriode(periode)} sudah ditutup permanen. Pakai pembukaan kembali "
-                    + "yang mewajibkan alasan tertulis.");
+                return Konflik(periode,
+                    "sudah ditutup permanen. Pakai pembukaan kembali yang mewajibkan alasan tertulis.");
             }
 
+            // Sedang menunggu persetujuan — penutupannya diselesaikan lewat persetujuan atau
+            // penolakan, bukan lewat endpoint ini.
+            if (dari == AccountingPeriodStatus.PendingClosingApproval)
+            {
+                return Konflik(periode,
+                    "sedang menunggu persetujuan penutupan. Selesaikan lewat Setujui atau Tolak Penutupan.");
+            }
+
+            // ACC-DEC-052 — inti perbaikannya. Periode terbuka tidak dapat ditutup langsung,
+            // ke tutup sementara maupun ke tutup permanen.
+            if (dari == AccountingPeriodStatus.Open)
+            {
+                return Konflik(periode,
+                    "masih terbuka dan tidak dapat ditutup langsung. Ajukan penutupan lebih dahulu "
+                    + "supaya penutupannya melewati persetujuan orang kedua.");
+            }
+
+            // Tersisa: SoftClosed menjadi Closed, satu-satunya yang memang milik endpoint ini.
             return null;
         }
+
+        private static AccountingServiceResult<AccountingPeriodResponse> Konflik(
+            AccAccountingPeriod periode, string lanjutanPesan)
+            => AccountingServiceResult<AccountingPeriodResponse>.Fail(
+                StatusCodes.Status409Conflict,
+                $"Periode {NamaPeriode(periode)} {lanjutanPesan}");
 
         private static string NamaPeriode(AccAccountingPeriod periode)
             => $"{NamaBulan[periode.PeriodMonth - 1]} {periode.FiscalYear.ToString(CultureInfo.InvariantCulture)}";

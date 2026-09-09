@@ -385,7 +385,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             akun.ParentAccountId = request.ParentAccountId;
             akun.AccountLevel = request.AccountLevel;
             akun.IsPostable = request.IsPostable;
-            akun.IsControlAccount = request.IsControlAccount;
+
+            // Kosong berarti "jangan diubah", bukan "jadikan false". Lihat keterangan pada
+            // UpdateChartOfAccountRequest.IsControlAccount.
+            akun.IsControlAccount = request.IsControlAccount ?? akun.IsControlAccount;
             akun.Description = request.Description?.Trim();
             akun.EffectiveStartDate = request.EffectiveStartDate;
             akun.UpdateDateTime = DateTime.UtcNow;

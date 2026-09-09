@@ -241,7 +241,7 @@ Uji manual: `NOT APPLICABLE`.
 
 | # | Isu | Pemilik |
 | ---: | --- | --- |
-| 1 | **Jenis jurnal `JT` belum ada di database.** Seeder belum dijalankan; `BE-ACC-P2-010` menuntut barisnya benar-benar ada | Rizki |
+| 1 | ~~Jenis jurnal `JT` belum ada di database~~ — **SELESAI.** **Diisi 9 September 2026** lewat `AccJournalTypeService.SeedAsync` sebagai `superadmin`: `Inserted: 1, Skipped: 4`, master menjadi 5 baris. | Selesai |
 | 2 | **Penanda control account belum berakibat apa pun.** Kolomnya sudah ada di database, tetapi jurnal manual ke control account **masih diterima** sampai `BE-ACC-P2-012` berdiri | Rizki |
 | 3 | Delta `Cascade` lawan `Restrict` dari `BE-ACC-P2-001` — **kini sudah terlanjur diterapkan sebagai `Restrict`**. Mengubahnya sesudah ini menuntut migration kedua | Rizki |
 | 4 | `SwaggerDocumentationTests` tidak dapat lulus pada Release | Owner Backend |

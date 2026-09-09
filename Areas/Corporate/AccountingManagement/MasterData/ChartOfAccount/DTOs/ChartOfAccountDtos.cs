@@ -190,11 +190,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public bool IsPostable { get; set; }
 
         /// <summary>
-        /// Penanda control account (<c>ACC-DEC-064</c>). Bawaannya <c>false</c>: permintaan lama
-        /// yang tidak mengirim bidang ini akan <b>melepas</b> penandanya, sama seperti perilaku
-        /// <see cref="IsPostable"/> pada endpoint yang sama.
+        /// Penanda control account (<c>ACC-DEC-064</c>). <b>Boleh kosong</b>, dan bila kosong
+        /// nilai yang tersimpan <b>dipertahankan</b>.
         /// </summary>
-        public bool IsControlAccount { get; set; }
+        /// <remarks>
+        /// <para>
+        /// Sengaja <c>bool?</c>, berbeda dari <see cref="IsPostable"/> pada permintaan yang sama.
+        /// Alasannya bukan kerapian melainkan akibatnya: permintaan lama yang tidak mengenal
+        /// bidang ini akan mengirimkan <c>false</c> secara diam-diam bila tipenya <c>bool</c>,
+        /// sehingga <b>membuka kembali akun kas ke jurnal manual</b> hanya karena seseorang
+        /// mengubah nama akunnya.
+        /// </para>
+        /// <para>
+        /// Kegagalan seperti itu tidak menimbulkan error apa pun — penandanya hilang, jurnal
+        /// manual ke Kas Kasir kembali diterima, dan selisihnya baru ketahuan saat rekonsiliasi.
+        /// Karena itu melepas penanda kini menuntut pernyataan tegas <c>false</c>, bukan sekadar
+        /// tidak menyebutkannya.
+        /// </para>
+        /// </remarks>
+        public bool? IsControlAccount { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }

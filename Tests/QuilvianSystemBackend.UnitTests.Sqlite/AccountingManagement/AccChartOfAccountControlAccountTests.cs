@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -172,6 +173,58 @@ namespace QuilvianSystemBackend.Tests.AccountingManagement
             // BE-ACC-P2-012.
             Assert.False((await pemeriksa.Set<AccChartOfAccount>()
                 .SingleAsync(x => x.Id == idBebanListrik)).IsControlAccount);
+        }
+
+        // =====================================================================
+        // Penanda tidak boleh terlepas diam-diam lewat PUT
+        // =====================================================================
+
+        /// <summary>
+        /// Permintaan ubah yang <b>tidak menyebut</b> <c>IsControlAccount</c> mempertahankan
+        /// nilai yang tersimpan.
+        /// </summary>
+        /// <remarks>
+        /// Ini perbaikan yang menutup kegagalan diam: permintaan lama yang hanya hendak mengubah
+        /// nama akun tidak boleh membuka kembali Kas Kasir ke jurnal manual. Tidak ada error yang
+        /// akan muncul bila hal itu terjadi — penandanya hilang, jurnal manual kembali diterima,
+        /// dan selisihnya baru ketahuan saat rekonsiliasi.
+        /// </remarks>
+        [Fact]
+        public void PermintaanUbahTanpaMenyebutPenanda_MempertahankanNilaiTersimpan()
+        {
+            var permintaan = new UpdateChartOfAccountRequest
+            {
+                AccountCode = "1-1002",
+                AccountName = "Kas Kasir Lantai 1"
+            };
+
+            // Tidak disebut sama sekali.
+            Assert.Null(permintaan.IsControlAccount);
+
+            // Pola pemetaan yang dipakai service: kosong berarti pertahankan.
+            var tersimpan = true;
+            var hasil = permintaan.IsControlAccount ?? tersimpan;
+
+            Assert.True(hasil);
+        }
+
+        /// <summary>
+        /// Melepas penanda tetap bisa, tetapi menuntut pernyataan tegas <c>false</c>.
+        /// </summary>
+        [Fact]
+        public void MelepasPenanda_MenuntutPernyataanTegasFalse()
+        {
+            var permintaan = new UpdateChartOfAccountRequest
+            {
+                AccountCode = "1-1002",
+                AccountName = "Kas Kasir",
+                IsControlAccount = false
+            };
+
+            var tersimpan = true;
+            var hasil = permintaan.IsControlAccount ?? tersimpan;
+
+            Assert.False(hasil);
         }
 
         /// <summary>

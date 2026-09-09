@@ -79,19 +79,21 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-002` ✅ | Entity dan enum jurnal berulang | `P2-3` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-003` ✅ | Entity pengaturan akuntansi dan jenis jurnal `JT` | `P2-0a` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-004` ✅ | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` ✅, `011` ✅ | **`DONE`** 9 Sep 2026 — diterapkan owner |
-| `BE-ACC-P2-005` | Daftar periksa penutupan | `P2-4` | `004` ✅ | `READY` — **terbuka** |
-| `BE-ACC-P2-006` | Ajukan, setujui, tolak penutupan | `P2-4` | `005` | `READY` |
+| `BE-ACC-P2-005` 🟡 | Daftar periksa penutupan | `P2-4` | `004` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum dijalankan |
+| `BE-ACC-P2-006` 🟡 | Ajukan, setujui, tolak penutupan | `P2-4` | `005` 🟡 | **`SEBAGIAN`** 9 Sep 2026 — jalan pintas `close` **sudah ditutup**; sisa: test PostgreSQL |
 | `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` ✅ | `READY` — **terbuka**; entity-nya sudah berdiri lewat `002` ✅ |
 | `BE-ACC-P2-008` | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` | `READY` |
-| `BE-ACC-P2-009` | Endpoint pengaturan akuntansi | `P2-0a` | `004` ✅ | `READY` — **terbuka** |
-| `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006`, `009` | `READY` |
+| `BE-ACC-P2-009` ✅ | Endpoint pengaturan akuntansi | `P2-0a` | `004` ✅ | **`DONE`** 9 Sep 2026 |
+| `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006` 🟡, `009` ✅ | `READY` — **terbuka**; `JT` sudah terisi 9 Sep 2026, tersisa penetapan akun laba ditahan |
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | `READY` — **terbuka** |
-| `BE-ACC-P2-013` | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | `READY` — **dependency-nya sudah selesai** |
-| `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` | **`⛔ BLOCKED`** |
+| `BE-ACC-P2-013` 🟡 | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum |
+| `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` 🟡 | **`⛔ BLOCKED`** |
 
-**Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` ✅ → `005` → `006`. Empat task, dan
-tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.**
+**Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` ✅ → `005` 🟡 → `006` 🟡. **Keempatnya
+sudah dikerjakan.** Tutup bulan berjalan ujung ke ujung, dengan satu catatan penting: endpoint
+lama `POST /{id}/close` **masih mengizinkan `Open` → `SoftClosed`**, sehingga persetujuannya dapat
+dilewati. Lihat kartu `006`.
 
 **Bila mendahulukan control account** (`ACC-DEC-064`, satu-satunya yang menyentuh Phase 1):
 `011` ✅ → `004` ✅ → `012`. Kolomnya wajib masuk migration yang sama, jadi `011` **harus** sebelum `004`.
@@ -166,7 +168,7 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | **Status** | **✅ `DONE`** — 9 September 2026. Migration `20260909060515_AddAccountingPhase2Independent` **dibuat dan diterapkan owner sendiri**; agent nol perintah `dotnet ef`. Migration Coordination Gate **lulus 7 dari 7**. **4 dari 4 acceptance lulus**: snapshot **565 → 570 entity, nol deletion** (`CONTAMINATION GUARD` `CLEAN`), 5 `CreateTable` + 3 `AddColumn`, kedua kolom periode `nullable` dan `IsControlAccount` ber-`defaultValue: false`, `Down` lengkap. Laporan: [`be-acc-p2-004`](../task/report/backend/be-acc-p2-004-migration-gelombang-mandiri.md) |
 | **Risiko terbuka** | Ketiga berkas migration **belum di-commit**. Selama belum masuk `origin/QuilvianIntegrationBackend`, modul lain yang membuat migration berikutnya bekerja dari baseline tanpa 5 tabel ini — jendela `ACC-DEP-001` sedang terbuka |
 
-## `BE-ACC-P2-005` — Daftar periksa penutupan
+## `BE-ACC-P2-005` 🟡 — Daftar periksa penutupan
 
 | Field | Isi |
 |---|---|
@@ -181,9 +183,11 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | **Catatan `ACC-DEC-065`** | Penghalang ketiga memvalidasi keberadaan kejadian `CASH_SHIFT_CLOSED`, dan kotak masuk kejadian baru berdiri pada `P2-1` yang di luar lingkup roadmap ini. **Aman ditunda:** selama `P2-1` belum ada, nol kejadian kas mengalir, sehingga tidak ada shift yang dapat menahan penutupan. Yang wajib dikerjakan sekarang hanyalah **menyediakan tempatnya pada respons** — supaya frontend tidak perlu diubah bentuknya saat penghalang itu diaktifkan |
 | Risiko/pemilik | Menyimpan hasil hitungan akan membuat penutupan ditolak berdasarkan keadaan yang sudah berubah. **Melewatkan tempat penghalang ketiga** akan memaksa perubahan bentuk respons dan layar saat `P2-1` datang. Owner Backend |
 | DoD | Endpoint berjalan, test hijau, laporan task tertulis. Penghalang ketiga **tercatat sebagai pekerjaan menyusul**, bukan didiamkan |
-| Status | `READY` |
+| **Status** | **🟡 `SEBAGIAN`** — 9 September 2026. Endpoint `GET /{id}/closing-checklist` berjalan; build `Release` **0 error**, 145 warning (nol warning baru). **5 dari 5 acceptance terbukti** lewat **8 uji baru** (`Failed: 0, Passed: 8`); seluruh project Sqlite `Failed: 3, Passed: 466` — **nol regresi**. QBE `PASS`. **Yang membuat 🟡 dan bukan ✅:** kolom Verifikasi menuntut **test integrasi PostgreSQL**, dan itu **`NOT RUN`** — `QUILVIAN_BILLING_TEST_DB` tidak diset dan fixture-nya `fail-closed`; mengarahkannya ke database dev dilarang fixture itu sendiri. Skenarionya dijalankan di SQLite. Laporan: [`be-acc-p2-005`](../task/report/backend/be-acc-p2-005-daftar-periksa-penutupan.md) |
+| **Delta kontrak** | (1) Hak akses terpasang `("AccountingPeriod","Read")`, **bukan** `("Period","Read")` — argumen pertama wajib sama persis dengan `ControllerName`, kalau menyimpang hasilnya `403` permanen. (2) DTO memakai akhiran `Response` mengikuti konvensi source. (3) Empat bidang di luar kartu — `State`, `UnavailableReason`, `IsComplete`, `NotYetAvailableCount` — ditambahkan supaya butir yang **belum dapat diperiksa** tidak terbaca sebagai nol yang aman. **Menunggu ratifikasi** |
+| **Yang wajib diketahui** | **8 dari 9 butir belum dapat diperiksa** karena bergantung pada gelombang `P2-1`. `CanSubmitClosing` bisa bernilai benar sementara pemeriksaannya belum lengkap — `IsComplete` menyatakan itu, dan layar `FE-ACC-P2-001` wajib menampilkannya |
 
-## `BE-ACC-P2-006` — Ajukan, setujui, dan tolak penutupan
+## `BE-ACC-P2-006` 🟡 — Ajukan, setujui, dan tolak penutupan
 
 | Field | Isi |
 |---|---|
@@ -192,12 +196,15 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | Kontrak | `ACC-API-0.7`, `ACC-STATE-0.2` bagian 2, `ACC-PERMISSION-0.4` |
 | Reuse | Pola persetujuan `AccJournalService`, `AccountingLegalEntityGuard` |
 | Cakupan | `POST /{id}/submit-closing`, `POST /{id}/approve-closing`, `POST /{id}/reject-closing`; perluasan `AccPeriodClosingService`; permission `Period : Approve` |
-| Dependency | `BE-ACC-P2-005` |
+| Dependency | `BE-ACC-P2-005` 🟡 |
 | Acceptance | (1) Pengajuan ditolak `409` selama masih ada penghalang. (2) **Penyetuju sama dengan pengaju ditolak `403`.** (3) Penolakan tanpa alasan ditolak `400` dan mengembalikan periode ke `Open`. (4) Periode yang sudah `SoftClosed` sebelum Phase 2 **tetap sah tanpa riwayat persetujuan**. (5) Ketiga endpoint membawa `[AccessPermission]` yang benar |
 | Verifikasi | Test integrasi PostgreSQL untuk kelima acceptance, terutama (2) dan (4) |
 | Risiko/pemilik | **Sudah diverifikasi 8 September 2026: peran adalah DATA, bukan kode.** `Models/ApplicationRole.cs` adalah `IdentityRole<Guid>` biasa, dan `Areas/Administrator/Setting/Controllers/RoleAccessController.cs` menyediakan `POST /policies`. Menambah peran ketujuh cukup pengisian data lewat layar Administrator yang sudah ada — **nol perubahan platform, nol ketergantungan Security**. Yang tersisa hanya memastikan peran itu benar-benar diisi sebelum acceptance (2) diuji. Owner Backend |
 | DoD | Tiga endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **🟡 `SEBAGIAN`** — 9 September 2026. Tiga endpoint berjalan, ditambah `GET /{id}/closing-history`. Build `Release` **0 error**, 145 warning (nol baru). **5 dari 5 acceptance terbukti** lewat **16 uji baru** (`Failed: 0, Passed: 16`); seluruh project Sqlite `Failed: 3, Passed: 482` — **nol regresi**. QBE `PASS`. **Yang membuat 🟡:** (1) test integrasi PostgreSQL **`NOT RUN`** — tidak ada database test; (2) **jalan pintas belum ditutup**, lihat baris berikutnya. Laporan: [`be-acc-p2-006`](../task/report/backend/be-acc-p2-006-ajukan-setujui-tolak-penutupan.md) |
+| **✅ Jalan pintas DITUTUP** | `ACC-STATE-0.2` melarang `Open` → `SoftClosed` pada Phase 2, dan endpoint lama `POST /{id}/close` dulu masih mengizinkannya. **Diperbaiki 9 Sep 2026 atas instruksi owner:** `PeriksaPerpindahanTutup` kini hanya menerima `SoftClosed` → `Closed`; `Open` dan `PendingClosingApproval` ditolak `409` beserta pesan yang menunjukkan jalan yang benar. Diuji `AccPeriodCloseBypassTests` (6 uji). **Dampak frontend:** tombol Tutup Sementara dan Tutup Permanen pada `accounting-period-view.jsx` kini `409` untuk periode `Open` — disengaja, penggantinya `FE-ACC-P2-002`. Nol berkas frontend disentuh |
+| **Delta kontrak** | `GET /{id}/closing-history` di luar kartu — riwayat persetujuan adalah bukti audit yang tanpa endpoint ini tersimpan tetapi tak pernah terlihat. Hak akses terpasang `("AccountingPeriod", ...)`, bukan `("Period", ...)`. Hak akses `Approve` **baru**, terpisah dari `Close` |
+| **Prasyarat pemakaian** | Peran `Accounting Director` **belum terisi** di layar Administrator. Tanpa itu tidak ada yang dapat menyetujui, dan periode tertahan di `PendingClosingApproval` |
 
 ## `BE-ACC-P2-007` — CRUD template jurnal berulang
 
@@ -231,7 +238,7 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | DoD | Penjadwal berjalan, test konkurensi hijau, laporan task tertulis |
 | Status | `READY` |
 
-## `BE-ACC-P2-009` — Endpoint pengaturan akuntansi
+## `BE-ACC-P2-009` ✅ — Endpoint pengaturan akuntansi
 
 | Field | Isi |
 |---|---|
@@ -245,7 +252,9 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | Verifikasi | Test `UnitTests.Sqlite` untuk ketiga penolakan |
 | Risiko/pemilik | Owner Backend |
 | DoD | Dua endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 9 September 2026. Dua endpoint berjalan. Build `Release` **0 error**, 145 warning (nol baru). **4 dari 4 acceptance lulus** lewat **14 uji baru** (`Failed: 0, Passed: 14`); seluruh project Sqlite `Failed: 3, Passed: 504` — **nol regresi**. QBE `PASS`, `VIOLATION: 0`. Verifikasi yang diminta kartu adalah `UnitTests.Sqlite`, dan itulah yang dijalankan — **tidak ada verifikasi yang tertinggal**. Nol migration. Laporan: [`be-acc-p2-009`](../task/report/backend/be-acc-p2-009-endpoint-pengaturan-akuntansi.md) |
+| **Delta kontrak** | Dua penolakan **di luar** tulisan kartu: akun milik badan hukum lain, dan akun nonaktif. Keduanya menutup kesalahan yang sama-sama **tidak menimbulkan error** — laba terbuang ke buku besar badan hukum lain (`ACC-DEC-037`), dan tutup tahun gagal tepat di akhir tahun buku. `GET` menjawab `200` dengan `isConfigured: false` saat belum ditetapkan, bukan `404`. **Menunggu ratifikasi** |
+| **Batas yang perlu diketahui** | Sistem **tidak dapat** membedakan `Laba Ditahan` dari `Modal Disetor` — keduanya akun ekuitas yang menerima transaksi, jadi keduanya lolos. Yang membedakan adalah kebijakan akuntansi, dan `ACC-DEC-054` memang menyerahkannya ke pemilik proses |
 
 ## `BE-ACC-P2-010` — Pratinjau dan penyusunan jurnal penutup tahun
 
@@ -256,7 +265,7 @@ tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.*
 | Kontrak | `ACC-API-0.7` grup Year End Closing, `ACC-VALIDATION-0.5` bagian 5 |
 | Reuse | `AccChartOfAccountService.HitungSaldoAsync`, `AccJournalService` untuk pembuatan jurnal, jalur pengesahan jurnal yang sudah ada |
 | Cakupan | `Services/AccYearEndClosingService.cs`, dua endpoint, DTO pratinjau |
-| Dependency | `BE-ACC-P2-006`, `BE-ACC-P2-009` |
+| Dependency | `BE-ACC-P2-006` 🟡, `BE-ACC-P2-009` ✅ |
 | Acceptance | (1) **Pratinjau tidak membuat apa pun** — dipanggil sepuluh kali, nol jurnal terbentuk. (2) Ada periode belum tertutup ⇒ `409` beserta daftar periodenya. (3) Akun laba ditahan belum ditetapkan ⇒ `422`. (4) Jurnal penutup **seimbang** dan menolkan seluruh akun `Revenue` serta `Expense`. (5) Penyusunan kedua untuk tahun yang sama ⇒ `409`. (6) Jurnal penutup dapat dibalik lewat jalur pembalikan yang sudah ada |
 | Verifikasi | Test integrasi PostgreSQL memakai contoh berangka pada [`flowcharts/04-tutup-tahun.md`](../flowcharts/04-tutup-tahun.md): pendapatan Rp 1.300.000.000, beban Rp 900.000.000, laba Rp 400.000.000 |
 | Risiko/pemilik | **Salah hitung tutup tahun tidak menimbulkan error** — jurnalnya tetap seimbang, hanya angkanya salah, dan terbawa ke tahun berikutnya sebagai saldo awal. Acceptance (4) wajib memeriksa saldo tiap akun menjadi nol, bukan hanya memeriksa jurnalnya seimbang. Owner Backend |
@@ -305,7 +314,8 @@ Dua gelombang baru:
 | DoD | Build lulus. **Nol migration** — kolomnya ikut `BE-ACC-P2-004` |
 | **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing — angka sama persis dengan sebelum task ini. **5 dari 5 acceptance lulus**, dibuktikan **5 uji baru** (`Failed: 0, Passed: 5`). Seluruh project Sqlite `Failed: 3, Passed: 458` — **nol regresi**, ketiga kegagalan pre-existing di `MedicalRecordManagement`. QBE checker `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh, database tidak disentuh. Laporan: [`be-acc-p2-011`](../task/report/backend/be-acc-p2-011-kolom-control-account-pada-daftar-akun.md) |
 | **Delta kontrak** | Kartu menyebut **dua** DTO; diimplementasikan **tiga** — `ChartOfAccountListResponse` ikut diberi bidangnya, sebab tanpa itu penandanya menjadi hanya-tulis dan `FE-ACC-P2-007` mustahil menampilkannya. `ChartOfAccountOptionResponse` dan penyaring daftar **sengaja ditunda** ke `012`/`013` |
-| **Peringatan terbuka** | `PUT` yang tidak mengirim `IsControlAccount` akan **melepas** penandanya — perilaku `PUT` yang memang sudah berlaku (`IsPostable` sama), tetapi akibatnya di sini membuka kembali akun kas ke jurnal manual. Bentuk `PATCH /{id}/control-account` tersendiri adalah **keputusan kontrak yang belum diambil**. Menunggu owner |
+| **✅ Peringatan DITUTUP** | `UpdateChartOfAccountRequest.IsControlAccount` kini `bool?`: kosong berarti **pertahankan nilai tersimpan**, dan melepas penanda menuntut pernyataan tegas `false`. Diperbaiki 9 Sep 2026 atas instruksi owner, supaya permintaan lama yang hanya mengubah nama akun tidak membuka kembali akun kas ke jurnal manual. Isi peringatan aslinya: |
+| ~~Peringatan asli~~ | `PUT` yang tidak mengirim `IsControlAccount` akan **melepas** penandanya — perilaku `PUT` yang memang sudah berlaku (`IsPostable` sama), tetapi akibatnya di sini membuka kembali akun kas ke jurnal manual. Bentuk `PATCH /{id}/control-account` tersendiri adalah **keputusan kontrak yang belum diambil**. Menunggu owner |
 
 ## `BE-ACC-P2-012` — Penolakan jurnal manual ke control account
 
@@ -323,7 +333,7 @@ Dua gelombang baru:
 | DoD | Endpoint berjalan, test hijau, laporan task tertulis |
 | Status | `READY` |
 
-## `BE-ACC-P2-013` — Saldo control account dari buku besar
+## `BE-ACC-P2-013` 🟡 — Saldo control account dari buku besar
 
 | Field | Isi |
 |---|---|
@@ -337,7 +347,11 @@ Dua gelombang baru:
 | Verifikasi | Test integrasi PostgreSQL memakai contoh berangka |
 | Risiko/pemilik | Menghitung dari baris selain `Posted` akan menghasilkan saldo yang tidak pernah cocok dengan subledger, dan selisihnya akan disalahartikan sebagai cacat data. Owner Backend |
 | DoD | Endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` — **sisi buku besar sepenuhnya milik Accounting**, tidak menunggu siapa pun |
+| **Status** | **🟡 `SEBAGIAN`** — 9 September 2026. Endpoint `GET /reconciliation/gl-balances` berjalan. Build `Release` **0 error**, 145 warning (nol baru). **4 dari 4 acceptance terbukti** lewat **9 uji baru** (`Failed: 0, Passed: 9`); seluruh project Sqlite `Failed: 3, Passed: 513` — **nol regresi**. QBE `PASS`. **Yang membuat 🟡:** kolom Verifikasi menuntut **test integrasi PostgreSQL**, dan itu **`NOT RUN`** — contoh berangkanya dijalankan di SQLite. Laporan: [`be-acc-p2-013`](../task/report/backend/be-acc-p2-013-saldo-control-account-dari-buku-besar.md) |
+| **Delta pemakaian ulang** | `HitungSaldoAsync` **tidak diubah sedikit pun**, tetapi tidak dipanggil per akun: memanggilnya per akun berarti satu query per control account (N+1), dan fungsi itu juga tidak menerima batas tanggal yang dituntut acceptance (3). Dipakai satu query pengelompokan dengan rumus yang sama, dan **kesamaan angkanya diuji** lewat `AngkanyaSamaDenganHitungSaldoAsync` |
+| **Delta kontrak** | Grup Reconciliation belum ada di `ACC-API-0.8` — sudah diantisipasi kartu ini. Bidang tambahan `BalanceInNormalBalance` (akun bersaldo normal kredit tampil positif) dan `PostedLineCount`. **Menunggu ratifikasi** |
+| **Rintangan `ACC-TD-001`** | Empat uji yang menyimpan baris jurnal semula gagal — check constraint `CK_AccJournalLine_TepatSatuSisiTerisi` **mustahil dipenuhi di SQLite** karena EF menyimpan `decimal` sebagai TEXT. Diatasi dengan `PRAGMA ignore_check_constraints` pada koneksi uji saja; **nol perubahan pada model aplikasi** |
+| **Prasyarat pemakaian** | **Nol akun bertanda control account** di database. Laporan ini akan kosong sampai Kas Kasir, Kas Kecil, Piutang, dan Hutang dibuat di daftar akun lalu ditandai |
 
 ## `BE-ACC-P2-014` ⛔ — Perbandingan subledger dan laporan selisih
 
@@ -345,7 +359,7 @@ Dua gelombang baru:
 |---|---|
 | Outcome | Saldo control account dibandingkan dengan saldo subledger, dan selisihnya dilaporkan |
 | Trace | `ACC-DEC-066` |
-| Dependency | `BE-ACC-P2-013` |
+| Dependency | `BE-ACC-P2-013` 🟡 |
 | **Status** | **⛔ `BLOCKED`** |
 | **Pemblokirnya** | **`DEC-ACC-P2-011`** — belum diputuskan dari mana Accounting memperoleh saldo subledger, mengingat `ACC-DEC-061` melarangnya membaca tabel Finance maupun Billing |
 | Pemilik keputusan | Rizki bersama owner Finance |

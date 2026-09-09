@@ -92,7 +92,7 @@ berakibat apa pun terhadap jurnal.
 | Keadaan | Yang terjadi |
 | --- | --- |
 | Akun lama yang tidak pernah disentuh | Tetap `false`, tetap dapat dijurnal manual seperti biasa. **Nol perubahan perilaku** |
-| Permintaan `PUT` lama yang tidak mengirim bidang ini | Penanda **terlepas** menjadi `false` — lihat peringatan di bagian 7 |
+| Permintaan `PUT` lama yang tidak mengirim bidang ini | Penanda **dipertahankan** apa adanya. Melepasnya menuntut pernyataan tegas `false` (diperbaiki 9 Sep 2026) |
 | Akun sudah ditandai lalu ditandai lagi | Tidak ada akibat; nilainya tetap `true` |
 
 ### 2.3 Contoh berangka
@@ -283,7 +283,7 @@ Uji manual: `NOT APPLICABLE` — belum ada perilaku yang dapat dicoba pengguna s
 
 | # | Isu | Pemilik |
 | ---: | --- | --- |
-| 1 | **`PUT` yang tidak mengirim `IsControlAccount` akan melepas penandanya.** Ini perilaku `PUT` yang sudah berlaku pada endpoint itu — `IsPostable` bersifat sama persis — jadi **bukan cacat baru**, tetapi akibatnya di sini lebih besar: melepas penanda diam-diam membuka kembali akun kas ke jurnal manual. Bila ini dianggap terlalu berisiko, bentuk yang tepat adalah `PATCH /{id}/control-account` tersendiri, dan itu **keputusan kontrak yang belum diambil** | Rizki |
+| 1 | ~~`PUT` yang tidak mengirim `IsControlAccount` akan melepas penandanya~~ — **DIPERBAIKI 9 September 2026** atas instruksi Rizki. `UpdateChartOfAccountRequest.IsControlAccount` kini `bool?`; kosong berarti **pertahankan nilai tersimpan**, dan melepas penanda menuntut pernyataan tegas `false`. Permintaan lama yang hanya mengubah nama akun tidak lagi membuka kembali akun kas ke jurnal manual. Diuji `PermintaanUbahTanpaMenyebutPenanda_MempertahankanNilaiTersimpan` | Selesai |
 | 2 | `ChartOfAccountOptionResponse` dan penyaring `IsControlAccount` sengaja tidak ditambahkan — bagian 4 | `BE-ACC-P2-012` / `013` |
 | 3 | `SwaggerDocumentationTests` tidak dapat lulus pada Release — temuan `be-acc-p2-003`, belum tertangani | Owner Backend |
 | 4 | Delta `Cascade` lawan `Restrict` dari `BE-ACC-P2-001` — masih menunggu ratifikasi | Rizki |

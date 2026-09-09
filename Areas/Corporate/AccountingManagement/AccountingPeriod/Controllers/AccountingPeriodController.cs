@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
@@ -38,13 +38,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         private const string LogCategory = "Corporate.Accounting.AccountingPeriod";
 
         private readonly AccAccountingPeriodService _service;
+        private readonly AccPeriodClosingService _closingService;
         private readonly LoggerService _loggerService;
 
         public AccountingPeriodController(
             AccAccountingPeriodService service,
+            AccPeriodClosingService closingService,
             LoggerService loggerService)
         {
             _service = service;
+            _closingService = closingService;
             _loggerService = loggerService;
         }
 
@@ -100,6 +103,104 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
 
             // Alasan pembukaan kembali wajib tercatat di jejak audit — bagian dari DoD task ini.
             await CatatAsync("AccountingPeriod.Reopen", hasil, new { id, request.Reason, actor });
+
+            return ToActionResult(hasil);
+        }
+
+        /// <summary>
+        /// Daftar periksa penutupan periode: apa yang menahan, dan apa yang hanya perlu
+        /// diperhatikan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Dihitung saat diminta, tidak pernah disimpan</b> (`ACC-DEC-051`). Dua panggilan
+        /// berturut-turut menghasilkan angka berbeda bila ada jurnal yang disahkan di antaranya,
+        /// dan itu memang yang dikehendaki.
+        /// </para>
+        /// <para>
+        /// Memakai hak akses <c>Read</c>, bukan <c>Close</c>: membaca daftar periksa tidak
+        /// mengubah apa pun, dan Manajer Akuntansi perlu melihatnya jauh sebelum berhak menutup.
+        /// </para>
+        /// </remarks>
+        [HttpGet("{id:guid}/closing-checklist")]
+        [AccessAction("Read", "Read Accounting Period", Description = "Melihat daftar periksa penutupan periode", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("AccountingPeriod", "Read")]
+        public async Task<IActionResult> GetClosingChecklist(Guid id, CancellationToken ct)
+            => ToActionResult(await _closingService.GetChecklistAsync(id, ct));
+
+        /// <summary>
+        /// Riwayat penutupan periode: siapa mengajukan, siapa menyetujui atau menolak, dan kapan.
+        /// </summary>
+        /// <remarks>
+        /// Daftar kosong adalah jawaban yang sah untuk periode yang ditutup sebelum Phase 2
+        /// berdiri — mereka ditutup ketika aturan persetujuannya memang belum ada.
+        /// </remarks>
+        [HttpGet("{id:guid}/closing-history")]
+        [AccessAction("Read", "Read Accounting Period", Description = "Melihat riwayat penutupan periode", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("AccountingPeriod", "Read")]
+        public async Task<IActionResult> GetClosingHistory(Guid id, CancellationToken ct)
+            => ToActionResult(await _closingService.GetClosingHistoryAsync(id, ct));
+
+        /// <summary>
+        /// Mengajukan penutupan periode. Periode menjadi menunggu persetujuan.
+        /// </summary>
+        /// <remarks>
+        /// Memakai hak akses <c>Close</c> yang sudah ada — mengajukan penutupan adalah wewenang
+        /// Manajer Akuntansi yang sama, hanya alurnya kini melewati orang kedua
+        /// (<c>ACC-DEC-052</c>).
+        /// </remarks>
+        [HttpPost("{id:guid}/submit-closing")]
+        [AccessAction("Close", "Close Accounting Period", Description = "Mengajukan penutupan periode", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("AccountingPeriod", "Close")]
+        public async Task<IActionResult> SubmitClosing(Guid id, [FromBody] SubmitPeriodClosingRequest request, CancellationToken ct)
+        {
+            var actor = GetCurrentUserId();
+            if (actor == Guid.Empty) return IdentitasTidakValid();
+
+            var hasil = await _closingService.SubmitClosingAsync(id, request, actor, ct);
+            await CatatAsync("AccountingPeriod.SubmitClosing", hasil, new { id, request, actor });
+
+            return ToActionResult(hasil);
+        }
+
+        /// <summary>
+        /// Menyetujui penutupan periode. Periode menjadi tutup sementara.
+        /// </summary>
+        /// <remarks>
+        /// Hak akses <c>Approve</c> <b>terpisah</b> dari <c>Close</c>, dan itulah yang membuat
+        /// prinsip empat mata dapat ditegakkan lewat matriks hak akses: peran yang boleh
+        /// mengajukan tidak perlu diberi hak menyetujui. Pemeriksaan "penyetuju bukan pengaju"
+        /// tetap dilakukan backend, tidak diserahkan ke pengaturan peran.
+        /// </remarks>
+        [HttpPost("{id:guid}/approve-closing")]
+        [AccessAction("Approve", "Approve Accounting Period Closing", Description = "Menyetujui penutupan periode", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("AccountingPeriod", "Approve")]
+        public async Task<IActionResult> ApproveClosing(Guid id, [FromBody] ApprovePeriodClosingRequest request, CancellationToken ct)
+        {
+            var actor = GetCurrentUserId();
+            if (actor == Guid.Empty) return IdentitasTidakValid();
+
+            var hasil = await _closingService.ApproveClosingAsync(id, request, actor, ct);
+            await CatatAsync("AccountingPeriod.ApproveClosing", hasil, new { id, request, actor });
+
+            return ToActionResult(hasil);
+        }
+
+        /// <summary>
+        /// Menolak penutupan periode. Periode kembali terbuka, dan alasan tertulis wajib.
+        /// </summary>
+        [HttpPost("{id:guid}/reject-closing")]
+        [AccessAction("Approve", "Approve Accounting Period Closing", Description = "Menolak penutupan periode", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("AccountingPeriod", "Approve")]
+        public async Task<IActionResult> RejectClosing(Guid id, [FromBody] RejectPeriodClosingRequest request, CancellationToken ct)
+        {
+            var actor = GetCurrentUserId();
+            if (actor == Guid.Empty) return IdentitasTidakValid();
+
+            var hasil = await _closingService.RejectClosingAsync(id, request, actor, ct);
+
+            // Alasan penolakan wajib tercatat di jejak audit.
+            await CatatAsync("AccountingPeriod.RejectClosing", hasil, new { id, request.Reason, actor });
 
             return ToActionResult(hasil);
         }

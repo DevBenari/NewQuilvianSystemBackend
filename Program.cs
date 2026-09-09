@@ -7,6 +7,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
@@ -463,9 +465,12 @@ try
     // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
     builder.Services.AddScoped<AccChartOfAccountService>();
     builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccAccountingConfigurationService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccPeriodClosingService>();
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
+    builder.Services.AddScoped<AccControlAccountReconciliationService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
