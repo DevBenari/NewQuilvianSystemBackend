@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
@@ -40,6 +40,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             ChiefComplaint = "Nyeri dada",
             HasPain = true,
             PainScale = 3,
+            FallRiskStatus = FallRiskStatus.NoRisk,
             NutritionRiskStatus = NutritionRiskStatus.LowRisk
         };
 

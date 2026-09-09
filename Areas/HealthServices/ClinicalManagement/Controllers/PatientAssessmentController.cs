@@ -479,13 +479,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var encounter = queue?.Encounter ?? await _dbContext.Set<TrxPatientEncounter>()
                 .FirstAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
-            var calculated = CalculateAssessmentValues(request);
-
             // BE-RWI-044. Konteks perawatan distempel saat dokumen lahir, sehingga pertanyaan
             // "pengkajian ini milik perawatan yang mana" terjawab tanpa penelusuran berlapis -
             // INV-DOK-01. Kosong bagi kunjungan yang memang bukan rawat inap.
             var inpEpisodeId = await _inpatientClinicalContextService
                 .FindOpenEpisodeIdAsync(encounter.Id);
+
+            // BE-RWI-056. Perhitungan dijalankan SESUDAH perawatan diketahui, karena hanya
+            // pengkajian rawat inap yang membedakan "risiko jatuh belum diisi" dari "tidak
+            // berisiko". Urutan dua baris ini karena itu menentukan, bukan sekadar selera.
+            var calculated = CalculateAssessmentValues(request, inpEpisodeId.HasValue);
 
             // BE-RWI-045. Kajian medis dituliskan atas nama dokter yang benar-benar terhubung
             // ke pengguna yang masuk, bukan atas nama dokter yang kebetulan tertulis pada
@@ -618,6 +621,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeAssessmentData(entity);
 
+            // BE-RWI-056 / VAL-KEP-08. Penyelesaian punya DUA pintu: PATCH /{id}/complete dan
+            // pembuatan yang langsung meminta selesai lewat completeImmediately. Menjaga satu
+            // pintu saja berarti aturan isian wajib dapat dilewati hanya dengan menyalakan satu
+            // flag pada permintaan pembuatan, dan pengkajian rawat inap yang kosong tetap
+            // mendarat sebagai Completed.
+            //
+            // Penyaringnya sama persis dengan pintu pertama: keberadaan perawatan, bukan jenis
+            // pengkajian saja. Poliklinik, medical check-up, dan IGD tidak tersentuh.
+            if (!IsKajianMedis(entity.AssessmentType) &&
+                entity.InpEpisodeId.HasValue &&
+                entity.AssessmentStatus == PatientAssessmentStatus.Completed)
+            {
+                var bagianKosongSaatLahir = BagianPengkajianKeperawatanYangKosong(entity);
+
+                if (bagianKosongSaatLahir.Count > 0)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Pengkajian belum dapat diselesaikan. Bagian berikut masih kosong: " +
+                        $"{string.Join(", ", bagianKosongSaatLahir)}."
+                    ));
+                }
+            }
+
             _dbContext.Set<TrxPatientAssessment>().Add(entity);
 
             // Assessment adalah dokumen klinis. Perubahan status antrean/encounter
@@ -708,7 +735,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-            var calculated = CalculateAssessmentValues(request);
+            var calculated = CalculateAssessmentValues(request, entity.InpEpisodeId.HasValue);
 
             entity.ChiefComplaint = NormalizeNullableText(request.ChiefComplaint);
             entity.CurrentIllnessHistory = NormalizeNullableText(request.CurrentIllnessHistory);
@@ -1844,6 +1871,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         {
             var kosong = new List<string>();
 
+            // BE-RWI-056 / UAT-KEP-07. Sejak penilaian risiko jatuh dapat benar-benar bernilai
+            // "belum diisi", bagian ini ikut terbaca kosong - sebelumnya ia selalu terlanjur
+            // berubah menjadi "tidak berisiko" sehingga tidak pernah dapat disebut.
             if (entity.FallRiskStatus == FallRiskStatus.Unknown)
                 kosong.Add("penilaian risiko jatuh");
 
@@ -1862,7 +1892,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return $"{prefix}-{countToday + 1:D5}";
         }
 
-        private static CalculatedAssessmentValue CalculateAssessmentValues(CreatePatientAssessmentRequest request)
+        private static CalculatedAssessmentValue CalculateAssessmentValues(
+            CreatePatientAssessmentRequest request,
+            bool pengkajianRawatInap)
         {
             var bmi = CalculateBmi(request.Weight, request.Height);
             var map = CalculateMap(request.BloodPressureSystolic, request.BloodPressureDiastolic);
@@ -1880,7 +1912,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
             var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
+            var fallRiskStatus = CalculateFallRiskStatus(
+                hasFallRisk,
+                fallRiskScore,
+                request.FallRiskStatus,
+                pengkajianRawatInap);
 
             return new CalculatedAssessmentValue
             {
@@ -1895,7 +1931,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private static CalculatedAssessmentValue CalculateAssessmentValues(UpdatePatientAssessmentRequest request)
+        private static CalculatedAssessmentValue CalculateAssessmentValues(
+            UpdatePatientAssessmentRequest request,
+            bool pengkajianRawatInap)
         {
             var bmi = CalculateBmi(request.Weight, request.Height);
             var map = CalculateMap(request.BloodPressureSystolic, request.BloodPressureDiastolic);
@@ -1913,7 +1951,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
             var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
+            var fallRiskStatus = CalculateFallRiskStatus(
+                hasFallRisk,
+                fallRiskScore,
+                request.FallRiskStatus,
+                pengkajianRawatInap);
 
             return new CalculatedAssessmentValue
             {
@@ -2086,10 +2128,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return score;
         }
 
-        private static FallRiskStatus CalculateFallRiskStatus(bool hasFallRisk, int? fallRiskScore)
+        /// <summary>
+        /// Menentukan kategori risiko jatuh dari penanda risiko, skornya, dan kategori yang
+        /// dinyatakan perawat.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>BE-RWI-056 / UAT-KEP-07.</b> "Belum diisi" dan "tidak berisiko" adalah dua
+        /// pernyataan klinis yang berbeda. Perhitungan lama menyamakan keduanya: perawat yang
+        /// sama sekali tidak membuka bagian risiko jatuh tersimpan sebagai perawat yang menyatakan
+        /// pasiennya <b>tidak berisiko</b> — pernyataan yang tidak pernah ia buat. Karena itu
+        /// penyelesaian pengkajian tidak pernah dapat menolak bagian yang kosong.
+        /// </para>
+        /// <para>
+        /// Pembedanya adalah <paramref name="kategoriDinyatakan"/>, yaitu field
+        /// <c>FallRiskStatus</c> yang <b>sudah ada</b> pada kedua request. Kontrak
+        /// <c>VAL-KEP-09</c> memang memperlakukan kategori risiko jatuh sebagai pilihan perawat
+        /// yang terpisah dari skornya, sehingga tidak ada bentuk data baru yang diperlukan dan
+        /// <c>HasFallRisk</c> tetap <c>bool</c>.
+        /// </para>
+        /// <para>
+        /// Pembedaan itu <b>hanya</b> berlaku bagi pengkajian yang menempel pada perawatan rawat
+        /// inap. Poliklinik, medical check-up, dan IGD memakai request yang sama, dan tidak satu
+        /// pun jalur mereka bergeser: tanpa perawatan, hasilnya tetap <see cref="FallRiskStatus.NoRisk"/>
+        /// persis seperti sebelumnya.
+        /// </para>
+        /// </remarks>
+        private static FallRiskStatus CalculateFallRiskStatus(
+            bool hasFallRisk,
+            int? fallRiskScore,
+            FallRiskStatus kategoriDinyatakan,
+            bool pengkajianRawatInap)
         {
             if (!hasFallRisk)
+            {
+                if (pengkajianRawatInap && kategoriDinyatakan == FallRiskStatus.Unknown)
+                    return FallRiskStatus.Unknown;
+
                 return FallRiskStatus.NoRisk;
+            }
 
             if (!fallRiskScore.HasValue)
                 return FallRiskStatus.Unknown;
@@ -2139,7 +2216,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.HasAtaxia = false;
                 entity.HasPosturalInstability = false;
                 entity.FallRiskScore = null;
-                entity.FallRiskStatus = FallRiskStatus.NoRisk;
+
+                // BE-RWI-056. Perapian tidak boleh menghidupkan kembali penyamaan yang baru saja
+                // dicabut: "belum diisi" dibiarkan apa adanya, sedangkan kategori apa pun yang
+                // dinyatakan perawat dirapikan menjadi "tidak berisiko" karena tidak ada satu pun
+                // penanda risiko yang menyertainya.
+                if (entity.FallRiskStatus != FallRiskStatus.Unknown)
+                    entity.FallRiskStatus = FallRiskStatus.NoRisk;
+
                 entity.FallRiskNote = null;
             }
         }

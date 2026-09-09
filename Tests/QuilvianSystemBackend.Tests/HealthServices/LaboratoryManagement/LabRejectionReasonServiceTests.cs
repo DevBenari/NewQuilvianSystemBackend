@@ -580,8 +580,14 @@ public class LabRejectionReasonServiceTests
             .ToList();
 
         // Lima endpoint pengelolaan dari LAB-API-v1 r3, ditambah filters/metadata dan summary
-        // dari amandemen r4 (BE-LAB-17).
-        Assert.Equal(7, endpoints.Count);
+        // dari amandemen r4 (BE-LAB-17), ditambah GET /{id} dari amandemen r6 (2026-09-08).
+        //
+        // Angka ini mengunci kontrak, bukan sekadar mencatat keadaan. Menaikkannya hanya sah
+        // bersama amandemen kontrak yang disetujui pemilik modul; menaikkannya supaya sebuah
+        // endpoint baru lolos adalah mengamandemen kontrak lewat penyuntingan penjaganya
+        // sendiri. Percobaan menambah GET /{id} tanpa amandemen dihentikan uji ini pada
+        // 2026-09-08 dan baru dikerjakan setelah r6 disetujui.
+        Assert.Equal(8, endpoints.Count);
 
         // Hanya satu endpoint yang menuntut SystemFlag. Pemisahan inilah yang membuat kepala
         // instalasi tidak dapat memindahkan beban biaya pengambilan ulang sendirian.
@@ -892,5 +898,116 @@ public class LabRejectionReasonServiceTests
         context.ChangeTracker.Clear();
 
         return satuSatunya.Id;
+    }
+    // =====================================================================
+    // Detail satu alasan penolakan
+    //
+    // Grup ini semula tidak punya jalur detail sama sekali, sehingga layar ubah FE-LAB-03
+    // memuat barisnya dari daftar yang sedang terbuka. Cara itu diam-diam gagal ketika
+    // petugas membuka tautan langsung, menyegarkan halaman, atau berpindah halaman daftar
+    // lebih dulu — formulir terbuka kosong tanpa satu pun pesan.
+    // =====================================================================
+
+    [Fact]
+    public async Task Detail_MengembalikanSatuAlasanBesertaKeduaPenandaSistemnya()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, KepalaInstalasi);
+
+        var (clotted, _, other) = await SeedAsync(context);
+
+        var hasilClotted = await service.GetByIdAsync(clotted);
+
+        Assert.Equal("CLOTTED", hasilClotted.ReasonCode);
+
+        // Kedua penanda ikut terbaca. Tanpa keduanya layar ubah tidak dapat menampilkannya
+        // terkunci beserta nilainya, dan LAB-FE-012 tidak dapat ditegakkan.
+        Assert.True(hasilClotted.IsInternalHospitalError);
+        Assert.False(hasilClotted.RequiresNote);
+
+        var hasilOther = await service.GetByIdAsync(other);
+
+        Assert.False(hasilOther.IsInternalHospitalError);
+        Assert.True(hasilOther.RequiresNote);
+    }
+
+    [Fact]
+    public async Task Detail_PenunjukYangTidakDikenalDitolakSebagaiTidakDitemukan()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, KepalaInstalasi);
+
+        await SeedAsync(context);
+
+        // Ditolak tegas, bukan mengembalikan kosong yang terbaca layar sebagai formulir baru.
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => service.GetByIdAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Detail_AlasanTerhapusTidakIkutTerbaca()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, KepalaInstalasi);
+
+        var terhapus = new MstLabRejectionReason
+        {
+            Id = Guid.NewGuid(),
+            ReasonCode = "DELETED",
+            ReasonName = "Sudah dihapus",
+            IsActive = true,
+            SortOrder = 5,
+            IsDelete = true,
+        };
+
+        context.MstLabRejectionReasons.Add(terhapus);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(
+            () => service.GetByIdAsync(terhapus.Id));
+    }
+
+    [Fact]
+    public async Task Detail_AlasanNonaktifTetapTerbaca()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, KepalaInstalasi);
+
+        var nonaktif = new MstLabRejectionReason
+        {
+            Id = Guid.NewGuid(),
+            ReasonCode = "ARCHIVED",
+            ReasonName = "Sudah tidak dipakai",
+            IsActive = false,
+            SortOrder = 20,
+        };
+
+        context.MstLabRejectionReasons.Add(nonaktif);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        // Alasan nonaktif tetap menempel pada riwayat penolakan yang sudah tersimpan, jadi
+        // detailnya wajib tetap dapat dibuka — menyembunyikannya membuat riwayat lama tidak
+        // dapat ditelusuri.
+        var hasil = await service.GetByIdAsync(nonaktif.Id);
+
+        Assert.Equal("ARCHIVED", hasil.ReasonCode);
+        Assert.False(hasil.IsActive);
+    }
+
+    [Fact]
+    public async Task Detail_MembacaTidakMengubahApaPun()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, KepalaInstalasi);
+
+        var (clotted, _, _) = await SeedAsync(context);
+
+        await service.GetByIdAsync(clotted);
+
+        // Jalur baca tidak boleh meninggalkan entity terlacak yang dapat ikut tersimpan pada
+        // SaveChanges berikutnya.
+        Assert.Empty(context.ChangeTracker.Entries());
     }
 }

@@ -8,7 +8,7 @@ Aturan utamanya adalah:
 
 > Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `rules/backend/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `rules/backend/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
 Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
@@ -25,10 +25,10 @@ Akar aturan terpasang berbeda per vendor, sehingga seluruh dokumen menyebutnya m
 | Antigravity — Global | `~/.gemini/config/rules/` |
 | Antigravity — Workspace | `<workspace>/.agents/rules/` |
 
-Baca piagamnya lebih dulu di `rules/GLOBAL_RULES.md`; di situ ada urutan presedensi lengkap dan gerbang kegagalannya. Setelah itu baca dokumen berikut hanya ketika kondisinya berlaku:
+Baca piagamnya lebih dulu di `rules/README.md`; di situ ada urutan presedensi lengkap dan gerbang kegagalannya. Setelah itu baca dokumen berikut hanya ketika kondisinya berlaku:
 
 - Setiap task implementasi: `rules/backend/TASK_RULES.md`
-- Setiap implementasi aplikasi backend: `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- Setiap implementasi aplikasi backend: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` — keduanya berada di **repository ini**, bukan di suite Skill
 - Klasifikasi dan pemilihan model: `rules/backend/TASK_CLASSIFICATION.md`
 - Task lintas repository: `rules/backend/CROSS_REPO_RULES.md`
 - Sebelum penyelesaian: `rules/backend/REVIEW_RULES.md`
@@ -42,13 +42,15 @@ Batasan sumber aturan:
 - Aturan pada `rules/` berlaku untuk agent mana pun yang mengerjakan repository ini. Tidak ada lokasi aturan khusus per vendor, dan tidak ada lapisan aturan lain yang perlu dimuat untuk task backend.
 - `rules/backend/` mengikat pekerjaan backend saja. Jangan memakai `rules/frontend/` sebagai aturan untuk task backend.
 - Repository ini **tidak lagi** memiliki folder `agents/rules/`. Bila sisa folder itu masih muncul di working tree Anda — misalnya dari branch lama yang belum di-merge — perlakukan sebagai peninggalan yang sudah dicabut, jangan dipakai sebagai sumber aturan, dan laporkan.
-- Jika `AGENTS.md` ini atau akar `rules/` tidak dapat dibaca, berhenti dan laporkan `BLOCKED — canonical governance unavailable`, sebutkan berkas mana yang tidak terbaca, lalu minta suite Skill dipasang atau diperbarui. Jangan mengarang isi rules, menggantinya dengan sumber lain, atau memakai default agent sebagai pengganti.
+- Repository ini juga **tidak lagi** memiliki folder `.codex/`. Isinya sudah pindah: tujuh dokumen operasional ke `rules/backend/` pada suite Skill, sedangkan kontrak rekayasa dan registry kepemilikan ke `docs/engineering/` di repository ini. Sisa folder `.codex/` dari branch lama diperlakukan sama seperti `agents/rules/`: peninggalan yang sudah dicabut.
+- Governance canonical untuk task backend berada di tiga tempat, dan ketiganya harus terbaca: (1) `AGENTS.md` ini; (2) `docs/engineering/` pada repository ini; (3) `rules/backend/` pada suite Skill. Tidak ada tempat keempat.
+- Jika `AGENTS.md` ini, `docs/engineering/`, atau akar `rules/` tidak dapat dibaca, berhenti dan laporkan `BLOCKED — canonical governance unavailable`, sebutkan berkas mana yang tidak terbaca, lalu minta suite Skill dipasang atau diperbarui. Jangan mengarang isi rules, menggantinya dengan sumber lain, atau memakai default agent sebagai pengganti.
 
 Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, arsitektur, branch, keamanan, validasi, database, dan cakupan tulis khusus repository dalam file ini. Bila keduanya bertentangan, `AGENTS.md` yang berlaku, dan selisihnya dilaporkan. Pertanyaan read-only sederhana tidak memerlukan pemuatan seluruh lapisan operasional.
 
 ## Pemeriksaan Awal Kontrak Rekayasa Backend
 
-Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Folder Area/Module/Submodule baru — atau yang sudah ada namun belum terdaftar — yang akan memuat model persisted wajib didaftarkan lebih dulu di `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta prefixnya sebelum file model pertama dibuat (`QBE-MOD-003`, `QBE-NAM-004`). Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
+Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Folder Area/Module/Submodule baru — atau yang sudah ada namun belum terdaftar — yang akan memuat model persisted wajib didaftarkan lebih dulu di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta prefixnya sebelum file model pertama dibuat (`QBE-MOD-003`, `QBE-NAM-004`). Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
 
 ## Bahasa dan Komunikasi
 
@@ -61,7 +63,7 @@ Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix re
 ## Identitas Repository dan Alur Kerja Branch
 
 - Repository: `NewQuilvianSystemBackend`
-- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
+- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
 - Upstream yang diharapkan: `origin/<active-development-branch>`.
 - Repository referensi frontend: `QuilvianSystemFrontendDev` (temukan dari konteks workspace yang diberi wewenang; laporkan dependency yang hilang alih-alih menebak path).
 

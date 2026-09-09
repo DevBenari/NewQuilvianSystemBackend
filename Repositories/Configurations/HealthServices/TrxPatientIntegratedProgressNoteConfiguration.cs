@@ -303,7 +303,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Verifikator disimpan terpisah dari penulis asli pada ProviderUserId - INV-DOK-11.
-            entity.HasOne<ApplicationUser>()
+            // BE-RWI-066 memasang navigation-nya supaya nama verifikator dapat ikut dibaca.
+            // Relasi, kolom kunci asing, principal key, dan perilaku hapusnya TIDAK berubah
+            // sedikit pun; yang bertambah hanya navigation pada model CLR, sehingga tidak ada
+            // beda schema dan tidak ada migration yang dibutuhkan.
+            entity.HasOne(x => x.VerifiedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.VerifiedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);

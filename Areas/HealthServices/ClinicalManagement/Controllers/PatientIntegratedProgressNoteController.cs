@@ -678,6 +678,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.Encounter)
                 .Include(x => x.Doctor)
                 .Include(x => x.ProviderUser)
+                .Include(x => x.VerifiedByUser)
                 .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete && !x.IsCancel);
 
             if (!string.IsNullOrWhiteSpace(professionType))
@@ -776,6 +777,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.Encounter)
                 .Include(x => x.Doctor)
                 .Include(x => x.ProviderUser)
+                .Include(x => x.VerifiedByUser)
                 .FirstAsync(x => x.Id == hasil.Note.Id, cancellationToken);
 
             return Ok(ApiResponse<PatientIntegratedProgressNoteResponse>.Ok(
@@ -909,6 +911,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
                 .Include(x => x.ProviderUser)
+                .Include(x => x.VerifiedByUser)
                 .Include(x => x.CancelledByUser)
                 .Where(x => !x.IsDelete);
         }
@@ -1432,7 +1435,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsGeneratedFromSource = x.IsGeneratedFromSource,
                 IsReadOnlyGenerated = x.IsReadOnlyGenerated,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                VerificationStatus = x.VerificationStatus,
+                VerifiedAt = x.VerifiedAt,
+                VerifiedByUserId = x.VerifiedByUserId,
+                VerifiedByUserName = NamaVerifikator(x),
+                VerificationDueAt = x.VerificationDueAt
             };
         }
 
@@ -1489,7 +1497,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CancelledAt = x.CancelledAt,
                 CancelledByUserId = x.CancelledByUserId,
                 CancelledByUserName = x.CancelledByUser != null ? x.CancelledByUser.DisplayName : null,
-                CancelReason = x.CancelReason
+                CancelReason = x.CancelReason,
+                VerificationStatus = x.VerificationStatus,
+                VerifiedAt = x.VerifiedAt,
+                VerifiedByUserId = x.VerifiedByUserId,
+                VerifiedByUserName = NamaVerifikator(x),
+                VerificationDueAt = x.VerificationDueAt
             };
 
             return response;
@@ -1525,8 +1538,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 SourceReferenceNumber = x.SourceReferenceNumber,
                 NoteText = FirstNotEmpty(x.NoteText, BuildNoteText(x), "-"),
                 IsGeneratedFromSource = x.IsGeneratedFromSource,
-                IsReadOnlyGenerated = x.IsReadOnlyGenerated
+                IsReadOnlyGenerated = x.IsReadOnlyGenerated,
+                VerificationStatus = x.VerificationStatus,
+                VerifiedAt = x.VerifiedAt,
+                VerifiedByUserId = x.VerifiedByUserId,
+                VerifiedByUserName = NamaVerifikator(x),
+                VerificationDueAt = x.VerificationDueAt
             };
+        }
+
+        /// <summary>
+        /// Nama verifikator sebuah catatan terpadu, atau <c>null</c> bila ia tidak dapat
+        /// disebutkan - <c>BE-RWI-066</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Kosong dikembalikan sebagai <c>null</c>, bukan sebagai teks kosong. Teks kosong pada
+        /// kolom bernama "Verifikator" terbaca sebagai nama orang yang gagal dimuat, dan layar
+        /// tidak punya cara membedakannya dari catatan yang memang belum diverifikasi.
+        /// </para>
+        /// <para>
+        /// <b>Tidak ada jenjang cadangan ke penulis.</b> Penulis dan verifikator adalah dua
+        /// orang dengan dua tanggung jawab berbeda - <c>INV-DOK-11</c>. Menjatuhkan nama
+        /// verifikator ke nama penulis akan menampilkan tanda tangan atas bacaan yang tidak
+        /// pernah terjadi, dan itu kesalahan terburuk yang bisa dibuat layar rekam medis.
+        /// </para>
+        /// <para>
+        /// Kolom snapshot nama verifikator <b>belum ada</b> pada tabelnya, sehingga akun
+        /// verifikator yang kelak berganti nama akan mengubah nama yang tampil pada verifikasi
+        /// lama. Menambahkannya adalah kolom tabel baru beserta migration-nya, dan task ini
+        /// dibatasi nol migration; selisih itu dilaporkan, bukan ditambal diam-diam.
+        /// </para>
+        /// </remarks>
+        private static string? NamaVerifikator(TrxPatientIntegratedProgressNote x)
+        {
+            if (x.VerifiedByUser == null)
+                return null;
+
+            var nama = x.VerifiedByUser.DisplayName;
+
+            return string.IsNullOrWhiteSpace(nama) ? null : nama.Trim();
         }
 
         private static PatientIntegratedProgressNoteCreateResponse ToCreateUpdateResponse(TrxPatientIntegratedProgressNote x)

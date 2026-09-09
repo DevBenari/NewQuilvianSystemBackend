@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 using QuilvianSystemBackend.Repositories;
-using Microsoft.Extensions.Configuration;
 
 namespace QuilvianSystemBackend.Tests.BillingManagement;
 
@@ -150,10 +150,7 @@ public sealed class BillingNumberSeriesServiceTests
     public void AddBillingManagement_RegistersPettyCashVoucherNumberOptions()
     {
         var services = new ServiceCollection();
-
-        services.AddSingleton<IConfiguration>(
-            new ConfigurationBuilder().Build());
-
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddScoped(_ => IsolatedBillingDbContextFactory.Create());
         services.AddBillingManagement();
 

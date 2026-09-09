@@ -143,6 +143,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public DateTime? RequestedAt { get; set; }
 
+        /// <summary>
+        /// Dokter atau petugas yang meminta pemeriksaan ini.
+        ///
+        /// <para>
+        /// <b>Dibutuhkan layar untuk menegakkan <c>VAL-03</c> sebelum tombolnya ditekan.</b>
+        /// Kesegeraan hanya boleh ditandai pemesannya sendiri; tanpa ruas ini layar tidak punya
+        /// cara mengetahui siapa pemesannya, sehingga tombol Tandai Cito tampil kepada setiap
+        /// dokter dan baru ditolak <c>403</c> sesudah ditekan.
+        /// </para>
+        /// </summary>
+        public Guid? RequestedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama pemesan, siap ditampilkan. Penunjuknya sendiri tidak boleh muncul di layar
+        /// (<c>no-uuid-display</c>); yang dibaca petugas adalah ruas ini.
+        /// </summary>
+        public string? RequestedByName { get; set; }
+
         public DateTime? CompletedAt { get; set; }
 
         public string? StatusBeforeHold { get; set; }

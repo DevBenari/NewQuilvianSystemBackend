@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using Xunit;
 
 namespace QuilvianSystemBackend.Tests.HealthServices.OperatingRoomManagement;
@@ -50,6 +51,43 @@ public class OperatingRoomHardeningTests
         "OperatingRoomIntegration:Read"
     ];
 
+    /// <summary>
+    /// Permission yang disahkan pemilik kebutuhan pada 4 September 2026 bersama keputusan
+    /// `OPS-DEC-027` sampai `OPS-DEC-030`, mendahului revisi `opr-permission-v1`.
+    /// </summary>
+    /// <remarks>
+    /// Dipisahkan dari <see cref="ContractPermissions"/> supaya jelas mana yang berasal dari
+    /// kontrak berversi dan mana yang berasal dari keputusan yang belum masuk kontrak. Keduanya
+    /// sah dipakai; yang membedakan hanya asal-usulnya.
+    /// </remarks>
+    private static readonly HashSet<string> OwnerApprovedPermissions =
+    [
+        "OperatingRoomIntegration:Dispatch",
+        "OperatingRoomStockSource:Read",
+        "OperatingRoomStockSource:Update"
+    ];
+
+    /// <summary>
+    /// Endpoint pengubah data yang memang tidak dapat menghasilkan `409`.
+    /// </summary>
+    /// <remarks>
+    /// Aturan umumnya benar: hampir seluruh perintah modul ini memakai `ExpectedVersion` atau
+    /// transisi status, sehingga bentrok mungkin terjadi. Dua endpoint di bawah tidak.
+    /// Mencantumkan `409` pada keduanya hanya akan membuat kontrak API menjanjikan respons
+    /// yang tidak pernah dikirim.
+    /// <list type="bullet">
+    /// <item><c>DispatchInventory</c> tidak menolak apa pun karena bentrok: pesan yang sudah
+    /// diterima cukup dilewati, dan kegagalan per pesan dilaporkan di dalam badan respons.</item>
+    /// <item><c>OperatingRoomStockSourceController.Save</c> adalah penetapan konfigurasi tanpa
+    /// versi; penetapan baru menonaktifkan yang lama alih-alih bentrok dengannya.</item>
+    /// </list>
+    /// </remarks>
+    private static readonly HashSet<string> ConflictFreeMutations =
+    [
+        "OperatingRoomIntegrationController.DispatchInventory",
+        "OperatingRoomStockSourceController.Save"
+    ];
+
     [Fact]
     public void EveryEndpoint_DeclaresPermissionFromApprovedMatrix()
     {
@@ -70,7 +108,8 @@ public class OperatingRoomHardeningTests
                 continue;
             }
             var key = $"{arguments[0]}:{arguments[1]}";
-            if (!ContractPermissions.Contains(key) && !PendingContractPermissions.Contains(key))
+            if (!ContractPermissions.Contains(key) && !PendingContractPermissions.Contains(key) &&
+                !OwnerApprovedPermissions.Contains(key))
                 offenders.Add($"{controller.Name}.{action.Name}: {key} di luar matrix");
         }
 
@@ -128,12 +167,13 @@ public class OperatingRoomHardeningTests
             var isMutating = action.GetCustomAttributes<HttpMethodAttribute>()
                 .Any(x => x.HttpMethods.Any(m => m is "POST" or "PUT" or "PATCH"));
             if (!isMutating) continue;
+            var name = $"{controller.Name}.{action.Name}";
             var codes = action.GetCustomAttributes<ProducesResponseTypeAttribute>()
                 .Select(x => x.StatusCode).ToHashSet();
-            if (!codes.Contains(StatusCodes.Status409Conflict))
-                offenders.Add($"{controller.Name}.{action.Name}: tanpa 409");
+            if (!codes.Contains(StatusCodes.Status409Conflict) && !ConflictFreeMutations.Contains(name))
+                offenders.Add($"{name}: tanpa 409");
             if (!codes.Contains(StatusCodes.Status403Forbidden))
-                offenders.Add($"{controller.Name}.{action.Name}: tanpa 403");
+                offenders.Add($"{name}: tanpa 403");
         }
 
         Assert.Empty(offenders);
@@ -161,11 +201,12 @@ public class OperatingRoomHardeningTests
     public async Task FullLifecycle_FromScheduledToCompleted_ProducesOneTransitionPerStatus()
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.Scheduled);
-        var preparation = new OperatingRoomPreparationService(ctx.Context, ctx.Accessor, ctx.Logger);
+        var preparation = new OperatingRoomPreparationService(ctx.Context, ctx.Accessor, ctx.Logger, OperatingRoomTestContext.StrictRules);
         var integration = new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
-        var recovery = new OperatingRoomRecoveryService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
+        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration, OperatingRoomTestContext.StrictRules);
+        var recovery = new OperatingRoomRecoveryService(ctx.Context, ctx.Accessor, ctx.Logger, OperatingRoomTestContext.StrictRules);
+        var material = new OperatingRoomMaterialService(ctx.Context, ctx.Accessor, ctx.Logger, integration,
+            OperatingRoomTestContext.StrictRules, new DrugUnitConversionResolver(ctx.Context));
 
         // Persiapan: checklist selesai lalu tiga sign-off menutup gerbang kesiapan.
         await preparation.SaveChecklistAsync(ctx.CaseId, OprChecklistPhase.SignIn, new SaveOprChecklistRequest
@@ -197,7 +238,8 @@ public class OperatingRoomHardeningTests
         await material.RecordAsync(ctx.CaseId, new CreateOprMaterialUsageRequest
         {
             ExternalItemId = Guid.NewGuid(), ItemType = OprMaterialItemType.Consumable, Quantity = 4,
-            UnitCode = "PCS", Outcome = OprMaterialOutcome.Used, IdempotencyKey = "life-material"
+            UnitCode = "PCS", UnitMeasurementId = Guid.NewGuid(),
+            Outcome = OprMaterialOutcome.Used, IdempotencyKey = "life-material"
         });
 
         await execution.SaveRecordAsync(ctx.CaseId, new SaveOprExecutionRecordRequest
@@ -262,10 +304,10 @@ public class OperatingRoomHardeningTests
     {
         await using var ctx = await OperatingRoomTestContext.CreateAsync(OprCaseStatus.Completed);
         var integration = new OperatingRoomIntegrationService(ctx.Context, ctx.Accessor, ctx.Logger);
-        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration);
+        var execution = new OperatingRoomExecutionService(ctx.Context, ctx.Accessor, ctx.Logger, integration, OperatingRoomTestContext.StrictRules);
         var scheduling = new OperatingRoomSchedulingService(ctx.Context, ctx.Accessor, ctx.Logger,
             new OperatingRoomCredentialResolver(ctx.Context),
-            Options.Create(new OperatingRoomSchedulingOptions()));
+            Options.Create(new OperatingRoomSchedulingOptions()), OperatingRoomTestContext.StrictRules);
 
         var cancel = await Assert.ThrowsAsync<OperatingRoomConflictException>(() =>
             execution.CancelAsync(ctx.CaseId, new CancelOprCaseRequest
