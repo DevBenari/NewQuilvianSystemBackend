@@ -77,24 +77,25 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 |---|---|---|---|---|
 | `BE-ACC-P2-001` ✅ | Entity dan enum penutupan periode | `P2-4` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-002` ✅ | Entity dan enum jurnal berulang | `P2-3` | — | **`DONE`** 9 Sep 2026 |
-| `BE-ACC-P2-003` | Entity pengaturan akuntansi dan jenis jurnal `JT` | `P2-0a` | — | `READY` |
-| `BE-ACC-P2-004` | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003`, **`011`** | **`GATED`** |
+| `BE-ACC-P2-003` ✅ | Entity pengaturan akuntansi dan jenis jurnal `JT` | `P2-0a` | — | **`DONE`** 9 Sep 2026 |
+| `BE-ACC-P2-004` | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` ✅, `011` ✅ | **`GATED`** — seluruh dependency selesai; menunggu owner |
 | `BE-ACC-P2-005` | Daftar periksa penutupan | `P2-4` | `004` | `READY` |
 | `BE-ACC-P2-006` | Ajukan, setujui, tolak penutupan | `P2-4` | `005` | `READY` |
 | `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` | `READY` — entity-nya sudah berdiri lewat `002` ✅ |
 | `BE-ACC-P2-008` | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` | `READY` |
 | `BE-ACC-P2-009` | Endpoint pengaturan akuntansi | `P2-0a` | `004` | `READY` |
 | `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006`, `009` | `READY` |
-| `BE-ACC-P2-011` | **Kolom control account pada daftar akun** | `P2-CTRL` | — | `READY` |
-| `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004`, `011` | `READY` |
-| `BE-ACC-P2-013` | **Saldo control account dari buku besar** | `P2-RECON` | `011` | `READY` |
+| `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
+| `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004`, `011` ✅ | `READY` |
+| `BE-ACC-P2-013` | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | `READY` — **dependency-nya sudah selesai** |
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` | **`⛔ BLOCKED`** |
 
 **Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` → `005` → `006`. Empat task, dan
 tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 
 **Bila mendahulukan control account** (`ACC-DEC-064`, satu-satunya yang menyentuh Phase 1):
-`011` → `004` → `012`. Kolomnya wajib masuk migration yang sama, jadi `011` **harus** sebelum `004`.
+`011` ✅ → `004` → `012`. Kolomnya wajib masuk migration yang sama, jadi `011` **harus** sebelum `004`.
+**`011` sudah selesai 9 Sep 2026**, sehingga kolomnya siap ikut migration.
 
 ---
 
@@ -132,7 +133,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning — **angka yang sama persis** dengan sebelum task ini, jadi kesembilan berkas menyumbang nol warning baru. **4 dari 4 acceptance lulus.** Nol migration, snapshot utuh. Laporan: [`be-acc-p2-002`](../task/report/backend/be-acc-p2-002-entity-dan-enum-jurnal-berulang.md) |
 | **Catatan** | Enum `RecurringFrequency` sengaja **hanya memuat `Bulanan`** — nilai tanpa penanganan akan lolos validasi lalu gagal diam-diam di penjadwal. Satu berkas di luar cakupan disunting **komentarnya saja**: `AccJournalLineConfiguration.cs` yang menyatakan dirinya "satu-satunya Cascade", kini tidak lagi benar |
 
-## `BE-ACC-P2-003` — Entity pengaturan akuntansi dan jenis jurnal `JT`
+## `BE-ACC-P2-003` ✅ — Entity pengaturan akuntansi dan jenis jurnal `JT`
 
 | Field | Isi |
 |---|---|
@@ -146,7 +147,8 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Verifikasi | `dotnet build -c Release`; test idempotensi seeder |
 | Risiko/pemilik | Seeder yang tidak idempoten akan menggandakan jenis jurnal setiap kali dipanggil. Owner Backend |
 | DoD | Build lulus. **Nol migration**, seeder belum dijalankan |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing — **angka yang sama persis** dengan sebelum task ini. **4 dari 4 acceptance lulus**, dibuktikan **8 uji baru** (`Failed: 0, Passed: 8`) yang sekaligus menjadi uji pertama modul Accounting. QBE checker `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh, database tidak disentuh, seeder belum dijalankan. Laporan: [`be-acc-p2-003`](../task/report/backend/be-acc-p2-003-entity-pengaturan-akuntansi-dan-jenis-jurnal-jt.md) |
+| **Temuan di luar cakupan** | `SwaggerDocumentationTests` milik `MedicalRecordManagement` **tidak dapat lulus pada Release** karena `.csproj` sengaja mematikan `GenerateDocumentationFile` di sana; ketiganya lulus pada `Debug`. Dilaporkan, tidak diperbaiki |
 
 ## `BE-ACC-P2-004` — Migration gelombang mandiri
 
@@ -156,7 +158,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Trace | `02-backend-architecture.md` bagian 18, rencana migration urutan 1, 3, dan 4 |
 | Kontrak | Kamus data bagian 13–19 |
 | Cakupan | Satu migration `AddAccountingPhase2Independent` memuat: `AccPeriodClosingApproval`, tiga tabel jurnal berulang, `AccAccountingConfiguration`, dua kolom pada `AccAccountingPeriod`, dan **satu kolom `IsControlAccount` pada `AccChartOfAccount`** (`ACC-DEC-064`). **Tidak memuat** tabel kejadian maupun aturan posting |
-| Dependency | `BE-ACC-P2-001` ✅ selesai, `002` ✅ selesai, `003` belum, **`011` belum** |
+| Dependency | `BE-ACC-P2-001` ✅ selesai, `002` ✅ selesai, `003` ✅ selesai, **`011` belum** |
 | Acceptance | (1) Snapshot bertambah **tanpa satu pun deletion**. (2) Dapat dijalankan tanpa mematikan layanan — seluruhnya tabel baru dan kolom nullable. (3) `Down` mengembalikan keadaan semula. (4) `CONTAMINATION GUARD` `CLEAN` |
 | Verifikasi | Pemeriksaan berkas migration dan snapshot sebelum diterapkan |
 | Risiko/pemilik | **Snapshot kehilangan blok modul lain** — pola kerusakan `ACC-DEP-001` yang pernah terjadi. Periksa jumlah tabel snapshot sebelum dan sesudah. Owner |
@@ -286,7 +288,7 @@ Dua gelombang baru:
 
 ---
 
-## `BE-ACC-P2-011` — Kolom control account pada daftar akun
+## `BE-ACC-P2-011` ✅ — Kolom control account pada daftar akun
 
 | Field | Isi |
 |---|---|
@@ -300,7 +302,9 @@ Dua gelombang baru:
 | Verifikasi | `dotnet build -c Release -p:RunAnalyzers=false`; pembandingan terhadap kamus data bagian 1 |
 | Risiko/pemilik | **Ini menyentuh entity Phase 1 yang sudah berjalan.** Kolom wajib berbawaan `false` supaya 2 akun yang sudah ada di database tidak berubah perilakunya. Owner Backend |
 | DoD | Build lulus. **Nol migration** — kolomnya ikut `BE-ACC-P2-004` |
-| Status | `READY`. **Harus selesai sebelum `BE-ACC-P2-004`**, karena kolomnya masuk migration yang sama |
+| **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing — angka sama persis dengan sebelum task ini. **5 dari 5 acceptance lulus**, dibuktikan **5 uji baru** (`Failed: 0, Passed: 5`). Seluruh project Sqlite `Failed: 3, Passed: 458` — **nol regresi**, ketiga kegagalan pre-existing di `MedicalRecordManagement`. QBE checker `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh, database tidak disentuh. Laporan: [`be-acc-p2-011`](../task/report/backend/be-acc-p2-011-kolom-control-account-pada-daftar-akun.md) |
+| **Delta kontrak** | Kartu menyebut **dua** DTO; diimplementasikan **tiga** — `ChartOfAccountListResponse` ikut diberi bidangnya, sebab tanpa itu penandanya menjadi hanya-tulis dan `FE-ACC-P2-007` mustahil menampilkannya. `ChartOfAccountOptionResponse` dan penyaring daftar **sengaja ditunda** ke `012`/`013` |
+| **Peringatan terbuka** | `PUT` yang tidak mengirim `IsControlAccount` akan **melepas** penandanya — perilaku `PUT` yang memang sudah berlaku (`IsPostable` sama), tetapi akibatnya di sini membuka kembali akun kas ke jurnal manual. Bentuk `PATCH /{id}/control-account` tersendiri adalah **keputusan kontrak yang belum diambil**. Menunggu owner |
 
 ## `BE-ACC-P2-012` — Penolakan jurnal manual ke control account
 
@@ -311,7 +315,7 @@ Dua gelombang baru:
 | Kontrak | `ACC-VALIDATION-0.6` bagian 3b |
 | Reuse | `AccJournalService` dan `AccountingServiceResult<T>` yang sudah ada |
 | Cakupan | Penambahan pemeriksaan pada jalur simpan dan ajukan `AccJournalService` |
-| Dependency | `BE-ACC-P2-004` (kolomnya harus sudah ada di database), `BE-ACC-P2-011` |
+| Dependency | `BE-ACC-P2-004` (kolomnya harus sudah ada di database), `BE-ACC-P2-011` ✅ |
 | Acceptance | (1) Baris jurnal **manual** ke akun ber-`IsControlAccount = true` ditolak `422`, dan pesannya menyebut akun mana. (2) **Jurnal dari kejadian akuntansi, dari template berulang, dan jurnal penutup tahun TIDAK terkena aturan ini** — justru merekalah jalur yang sah. (3) Akun non-control tetap dapat dijurnal manual seperti biasa. (4) Jurnal manual yang sudah ada sebelumnya tidak ikut ditolak saat diubah, kecuali barisnya menyentuh control account |
 | Verifikasi | Test integrasi PostgreSQL untuk keempat acceptance, terutama (2) |
 | Risiko/pemilik | **Acceptance (2) adalah yang paling berbahaya bila keliru.** Bila aturan ini ikut mengenai jalur otomatis, seluruh posting dari kejadian akan tertolak dan Phase 2 mati total — tanpa error yang menjelaskan sebabnya. Owner Backend |
@@ -327,7 +331,7 @@ Dua gelombang baru:
 | Kontrak | `ACC-API-0.8` grup Reconciliation — **delta kontrak, endpoint baru** |
 | Reuse | **`AccChartOfAccountService.HitungSaldoAsync`** yang sudah `public static`, dipakai apa adanya |
 | Cakupan | `Services/AccControlAccountReconciliationService.cs`, satu endpoint `GET /reconciliation/gl-balances` |
-| Dependency | `BE-ACC-P2-011` |
+| Dependency | `BE-ACC-P2-011` ✅ |
 | Acceptance | (1) Hanya akun ber-`IsControlAccount = true` yang muncul. (2) Saldo dihitung **hanya dari baris berstatus `Posted`**. (3) Disaring per badan hukum dan per tanggal. (4) `[AccessPermission]` terpasang |
 | Verifikasi | Test integrasi PostgreSQL memakai contoh berangka |
 | Risiko/pemilik | Menghitung dari baris selain `Posted` akan menghasilkan saldo yang tidak pernah cocok dengan subledger, dan selisihnya akan disalahartikan sebagai cacat data. Owner Backend |

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 
@@ -41,6 +41,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
 
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true)
+                .IsRequired();
+
+            // Bawaan false, dan TIDAK nullable. Inilah yang membuat kolom ini aman ditambahkan
+            // ke tabel yang sudah berisi akun: baris lama terisi false sendiri oleh nilai
+            // bawaan, tanpa satu pun pengisian data, dan perilakunya tidak berubah.
+            entity.Property(x => x.IsControlAccount)
+                .HasDefaultValue(false)
                 .IsRequired();
 
             entity.Property(x => x.EffectiveStartDate)
@@ -94,6 +101,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
             entity.HasIndex(x => x.ParentAccountId);
 
             entity.HasIndex(x => x.AccountType);
+
+            // Rekonsiliasi BE-ACC-P2-013 menyaring daftar akun menurut penanda ini, dan
+            // penolakan jurnal manual BE-ACC-P2-012 membacanya pada setiap baris jurnal.
+            entity.HasIndex(x => x.IsControlAccount);
         }
     }
 }

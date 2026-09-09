@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.DTOs;
@@ -236,7 +236,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         }
 
         /// <summary>
-        /// Mengisi empat jenis jurnal bawaan lewat <see cref="AccountingMasterDataSeeder"/>.
+        /// Mengisi lima jenis jurnal bawaan lewat <see cref="AccountingMasterDataSeeder"/>.
         /// </summary>
         /// <remarks>
         /// <para>

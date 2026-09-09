@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
@@ -95,7 +95,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     ParentAccountId = x.ParentAccountId,
                     ParentAccountCode = x.ParentAccount != null ? x.ParentAccount.AccountCode : null,
                     IsPostable = x.IsPostable,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    IsControlAccount = x.IsControlAccount
                 })
                 .ToListAsync(ct);
 
@@ -298,6 +299,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 ParentAccountId = request.ParentAccountId,
                 AccountLevel = request.AccountLevel,
                 IsPostable = request.IsPostable,
+                IsControlAccount = request.IsControlAccount,
                 Description = request.Description?.Trim(),
                 EffectiveStartDate = request.EffectiveStartDate,
                 IsActive = true,
@@ -383,6 +385,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             akun.ParentAccountId = request.ParentAccountId;
             akun.AccountLevel = request.AccountLevel;
             akun.IsPostable = request.IsPostable;
+            akun.IsControlAccount = request.IsControlAccount;
             akun.Description = request.Description?.Trim();
             akun.EffectiveStartDate = request.EffectiveStartDate;
             akun.UpdateDateTime = DateTime.UtcNow;
@@ -630,6 +633,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 ParentAccountName = induk?.AccountName,
                 IsPostable = akun.IsPostable,
                 IsActive = akun.IsActive,
+                IsControlAccount = akun.IsControlAccount,
                 Description = akun.Description,
                 EffectiveStartDate = akun.EffectiveStartDate,
                 HasChildAccounts = await _db.Set<AccChartOfAccount>()

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
@@ -83,7 +83,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         }
 
         /// <summary>
-        /// Mengisi empat jenis jurnal bawaan sesuai `02-backend-architecture.md` bagian 9.1.
+        /// Mengisi lima jenis jurnal bawaan: empat dari `02-backend-architecture.md` bagian 9.1,
+        /// ditambah `JT` dari kamus data bagian 19 (`BE-ACC-P2-003`).
         /// </summary>
         /// <remarks>
         /// Endpoint kelima, **di luar empat yang tercantum `ACC-API-0.2`**. Ia adalah call site

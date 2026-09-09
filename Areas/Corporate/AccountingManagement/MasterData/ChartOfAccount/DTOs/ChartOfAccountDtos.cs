@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.DTOs
@@ -51,6 +51,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public bool IsPostable { get; set; }
 
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Akun terkunci dari jurnal manual (<c>ACC-DEC-064</c>). Diwarisi
+        /// <see cref="ChartOfAccountDetailResponse"/>.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
     }
 
     public class ChartOfAccountDetailResponse : ChartOfAccountListResponse
@@ -151,6 +157,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         public bool IsPostable { get; set; }
 
+        /// <summary>
+        /// Menandai akun sebagai control account (<c>ACC-DEC-064</c>). Bawaannya <c>false</c>,
+        /// sehingga permintaan lama yang tidak mengirim bidang ini tetap menghasilkan akun biasa.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 
@@ -176,6 +188,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public int AccountLevel { get; set; } = 1;
 
         public bool IsPostable { get; set; }
+
+        /// <summary>
+        /// Penanda control account (<c>ACC-DEC-064</c>). Bawaannya <c>false</c>: permintaan lama
+        /// yang tidak mengirim bidang ini akan <b>melepas</b> penandanya, sama seperti perilaku
+        /// <see cref="IsPostable"/> pada endpoint yang sama.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }
