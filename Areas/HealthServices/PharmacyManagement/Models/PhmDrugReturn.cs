@@ -138,7 +138,7 @@ public class PhmDrugReturnItem : IdentityModel
 
     public PhmDrugReturn? DrugReturn { get; set; }
     public MstDrug? Drug { get; set; }
-    public MstDrugBatch? DrugBatch { get; set; }
+    public PhmDrugBatch? DrugBatch { get; set; }
     public MstMeasurement? Measurement { get; set; }
 }
 

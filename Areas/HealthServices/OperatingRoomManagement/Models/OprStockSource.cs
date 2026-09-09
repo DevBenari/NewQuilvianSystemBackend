@@ -20,7 +20,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Mod
 /// stok opname.
 /// </para>
 /// </remarks>
-public class MstOperatingRoomStockSource : IdentityModel
+public class OprStockSource : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

@@ -680,7 +680,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
         public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
 
-        public DbSet<MstDrugBatch> MstDrugBatches { get; set; }
+        public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
 
@@ -825,7 +825,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmPrescriptionCopy> PhmPrescriptionCopies { get; set; }
         public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
 
-        public DbSet<MstOperatingRoomStockSource> MstOperatingRoomStockSources { get; set; }
+        public DbSet<OprStockSource> OprStockSources { get; set; }
 
         #endregion
 

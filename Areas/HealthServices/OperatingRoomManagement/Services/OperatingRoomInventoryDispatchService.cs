@@ -32,7 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Ser
 /// </para>
 /// <para>
 /// Kamar operasi bukan depo bersaldo mandiri. Depo sumbernya ditentukan
-/// <see cref="MstOperatingRoomStockSource"/>, bukan konstanta di dalam kode, sehingga rumah
+/// <see cref="OprStockSource"/>, bukan konstanta di dalam kode, sehingga rumah
 /// sakit yang kelak membuka Depo OK cukup mengubah satu baris pemetaan.
 /// </para>
 /// <para>
@@ -305,7 +305,7 @@ public sealed class OperatingRoomInventoryDispatchService
             ?? throw new OperatingRoomUnprocessableException("OPR-INV-003",
                 "Kasus belum memiliki jadwal berlaku, sehingga kamar operasinya belum diketahui.");
 
-        var locationId = await _dbContext.MstOperatingRoomStockSources.AsNoTracking()
+        var locationId = await _dbContext.OprStockSources.AsNoTracking()
             .Where(x => x.RoomId == roomId && x.IsActive && !x.IsDelete)
             .Select(x => (Guid?)x.StorageLocationId)
             .FirstOrDefaultAsync(cancellationToken)
@@ -403,7 +403,7 @@ public sealed class OperatingRoomInventoryDispatchService
         if (!string.IsNullOrWhiteSpace(usage.BatchNumber))
         {
             var batchNumber = usage.BatchNumber.Trim();
-            return await _dbContext.MstDrugBatches.AsNoTracking()
+            return await _dbContext.PhmDrugBatches.AsNoTracking()
                 .Where(x => x.DrugId == usage.ExternalItemId && x.BatchNumber == batchNumber && !x.IsDelete)
                 .Select(x => (Guid?)x.Id)
                 .FirstOrDefaultAsync(cancellationToken)
@@ -417,7 +417,7 @@ public sealed class OperatingRoomInventoryDispatchService
         return await _dbContext.PhmDrugStockBalances.AsNoTracking()
             .Where(x => x.DrugId == usage.ExternalItemId && x.StorageLocationId == locationId &&
                 !x.IsDelete)
-            .Join(_dbContext.MstDrugBatches.AsNoTracking().Where(b => !b.IsDelete),
+            .Join(_dbContext.PhmDrugBatches.AsNoTracking().Where(b => !b.IsDelete),
                 balance => balance.DrugBatchId, batch => batch.Id,
                 (balance, batch) => new { batch.Id, batch.ExpiryDate })
             .OrderBy(x => x.ExpiryDate == null).ThenBy(x => x.ExpiryDate)

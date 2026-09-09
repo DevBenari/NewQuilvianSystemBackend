@@ -31,7 +31,7 @@ public sealed class OperatingRoomStockSourceService
 
     public Task<List<OprStockSourceResponse>> ListAsync(bool includeInactive,
         CancellationToken cancellationToken = default) =>
-        _dbContext.MstOperatingRoomStockSources.AsNoTracking()
+        _dbContext.OprStockSources.AsNoTracking()
             .Where(x => !x.IsDelete && (includeInactive || x.IsActive))
             .OrderBy(x => x.Room!.RoomName)
             .Select(x => new OprStockSourceResponse
@@ -95,7 +95,7 @@ public sealed class OperatingRoomStockSourceService
 
         var now = DateTime.UtcNow;
 
-        var existing = await _dbContext.MstOperatingRoomStockSources
+        var existing = await _dbContext.OprStockSources
             .Where(x => x.RoomId == request.RoomId && x.IsActive && !x.IsDelete)
             .ToListAsync(cancellationToken);
 
@@ -110,7 +110,7 @@ public sealed class OperatingRoomStockSourceService
 
         if (entity == null)
         {
-            entity = new MstOperatingRoomStockSource
+            entity = new OprStockSource
             {
                 RoomId = request.RoomId,
                 StorageLocationId = request.StorageLocationId,
@@ -119,7 +119,7 @@ public sealed class OperatingRoomStockSourceService
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
-            _dbContext.MstOperatingRoomStockSources.Add(entity);
+            _dbContext.OprStockSources.Add(entity);
         }
         else
         {

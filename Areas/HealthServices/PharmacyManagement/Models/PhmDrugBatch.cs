@@ -21,8 +21,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 /// penelusuran obat yang sudah terlanjur dipakai pasien.
 /// </para>
 /// </remarks>
-[Table("MstDrugBatch", Schema = "public")]
-public class MstDrugBatch : IdentityModel
+[Table("PhmDrugBatch", Schema = "public")]
+public class PhmDrugBatch : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

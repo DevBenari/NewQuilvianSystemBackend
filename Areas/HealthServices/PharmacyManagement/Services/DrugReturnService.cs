@@ -484,7 +484,7 @@ public sealed class DrugReturnService
             throw new DrugReturnUnprocessableException("PHM074",
                 "Ada obat yang tidak ditemukan atau tidak aktif.");
 
-        var batches = await _dbContext.MstDrugBatches.AsNoTracking()
+        var batches = await _dbContext.PhmDrugBatches.AsNoTracking()
             .Where(x => batchIds.Contains(x.Id) && !x.IsDelete)
             .Select(x => new { x.Id, x.DrugId })
             .ToListAsync(cancellationToken);

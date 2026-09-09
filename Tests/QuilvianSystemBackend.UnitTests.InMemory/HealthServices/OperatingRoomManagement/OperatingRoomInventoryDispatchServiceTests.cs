@@ -365,13 +365,13 @@ public class OperatingRoomInventoryDispatchServiceTests
             RoomId = ctx.RoomId, StorageLocationId = second
         });
 
-        var active = await ctx.Context.MstOperatingRoomStockSources
+        var active = await ctx.Context.OprStockSources
             .Where(x => x.RoomId == ctx.RoomId && x.IsActive && !x.IsDelete)
             .ToListAsync();
 
         Assert.Single(active);
         Assert.Equal(second, active[0].StorageLocationId);
-        Assert.Equal(2, await ctx.Context.MstOperatingRoomStockSources.CountAsync());
+        Assert.Equal(2, await ctx.Context.OprStockSources.CountAsync());
     }
 
     // ------------------------------------------------------------------ penyiapan
@@ -495,7 +495,7 @@ public class OperatingRoomInventoryDispatchServiceTests
                     IsDefault = true, IsForStock = true, IsActive = true
                 });
             }
-            ctx.Context.MstDrugBatches.Add(new MstDrugBatch
+            ctx.Context.PhmDrugBatches.Add(new PhmDrugBatch
             {
                 Id = batchId, DrugId = drugId, BatchNumber = batchNumber,
                 ExpiryDate = expiry ?? new DateOnly(2027, 6, 30)
@@ -508,7 +508,7 @@ public class OperatingRoomInventoryDispatchServiceTests
 
             if (mapRoom)
             {
-                ctx.Context.MstOperatingRoomStockSources.Add(new MstOperatingRoomStockSource
+                ctx.Context.OprStockSources.Add(new OprStockSource
                 {
                     RoomId = ctx.RoomId, StorageLocationId = locationId, IsActive = true
                 });
@@ -522,7 +522,7 @@ public class OperatingRoomInventoryDispatchServiceTests
             DateOnly expiry, decimal onHand)
         {
             var batchId = Guid.NewGuid();
-            ctx.Context.MstDrugBatches.Add(new MstDrugBatch
+            ctx.Context.PhmDrugBatches.Add(new PhmDrugBatch
             {
                 Id = batchId, DrugId = DrugId, BatchNumber = batchNumber, ExpiryDate = expiry
             });

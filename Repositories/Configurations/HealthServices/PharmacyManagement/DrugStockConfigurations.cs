@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.PharmacyManagement;
 
-public class MstDrugBatchConfiguration : IEntityTypeConfiguration<MstDrugBatch>
+public class PhmDrugBatchConfiguration : IEntityTypeConfiguration<PhmDrugBatch>
 {
-    public void Configure(EntityTypeBuilder<MstDrugBatch> builder)
+    public void Configure(EntityTypeBuilder<PhmDrugBatch> builder)
     {
-        builder.ToTable("MstDrugBatch", "public");
+        builder.ToTable("PhmDrugBatch", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.BatchNumber).HasMaxLength(100).IsRequired();

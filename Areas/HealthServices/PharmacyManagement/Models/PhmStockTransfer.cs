@@ -138,7 +138,7 @@ public class PhmStockTransferAllocation : IdentityModel
     public bool IsReleased { get; set; }
 
     public PhmStockTransferItem? StockTransferItem { get; set; }
-    public MstDrugBatch? DrugBatch { get; set; }
+    public PhmDrugBatch? DrugBatch { get; set; }
 }
 
 /// <summary>Jejak perpindahan status transfer, sekaligus penyimpan kunci idempotensi.</summary>

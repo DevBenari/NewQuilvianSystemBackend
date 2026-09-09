@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.OperatingRoomManagement;
 
-public class MstOperatingRoomStockSourceConfiguration : IEntityTypeConfiguration<MstOperatingRoomStockSource>
+public class OprStockSourceConfiguration : IEntityTypeConfiguration<OprStockSource>
 {
-    public void Configure(EntityTypeBuilder<MstOperatingRoomStockSource> builder)
+    public void Configure(EntityTypeBuilder<OprStockSource> builder)
     {
-        builder.ToTable("MstOperatingRoomStockSource", "public");
+        builder.ToTable("OprStockSource", "public");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Note).HasMaxLength(500);
 

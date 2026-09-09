@@ -305,7 +305,7 @@ public class OperatingRoomToPharmacyEndToEndTests
             DrugName = "Cefazolin 1 g", IsActive = true, StockUnitMeasurementId = VialUnitId
         });
 
-        ctx.Context.MstDrugBatches.Add(new MstDrugBatch
+        ctx.Context.PhmDrugBatches.Add(new PhmDrugBatch
         {
             Id = batchId, DrugId = drugId, BatchNumber = "B-E2E",
             ExpiryDate = new DateOnly(2027, 8, 31)
@@ -317,7 +317,7 @@ public class OperatingRoomToPharmacyEndToEndTests
             Status = DrugStockStatus.Available, QuantityOnHand = onHand, QuantityReserved = 0m
         });
 
-        ctx.Context.MstOperatingRoomStockSources.Add(new MstOperatingRoomStockSource
+        ctx.Context.OprStockSources.Add(new OprStockSource
         {
             RoomId = ctx.RoomId, StorageLocationId = locationId, IsActive = true
         });

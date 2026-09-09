@@ -66,7 +66,7 @@ public class PhmDrugStockBalance : IdentityModel
     public int Version { get; set; }
 
     public MstDrug? Drug { get; set; }
-    public MstDrugBatch? DrugBatch { get; set; }
+    public PhmDrugBatch? DrugBatch { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
 }
 
@@ -144,7 +144,7 @@ public class PhmDrugStockMutation : IdentityModel
     public string? CorrelationId { get; set; }
 
     public MstDrug? Drug { get; set; }
-    public MstDrugBatch? DrugBatch { get; set; }
+    public PhmDrugBatch? DrugBatch { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
     public PhmDrugStockMutation? CorrectionOfMutation { get; set; }
 }

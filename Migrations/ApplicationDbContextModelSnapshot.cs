@@ -73279,7 +73279,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("GzProductionBatchDetail", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.MstOperatingRoomStockSource", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprStockSource", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -73336,7 +73336,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("StorageLocationId");
 
-                    b.ToTable("MstOperatingRoomStockSource", "public");
+                    b.ToTable("OprStockSource", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprAnesthesiaRecord", b =>
@@ -75578,7 +75578,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstPatientRelationship", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -75648,7 +75648,7 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("MstDrugBatch", "public");
+                    b.ToTable("PhmDrugBatch", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstPrescriptionReviewCriterion", b =>
@@ -102163,7 +102163,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ProductionBatch");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.MstOperatingRoomStockSource", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprStockSource", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstRoom", "Room")
                         .WithMany()
@@ -102544,7 +102544,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RelatedPatient");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
                         .WithMany()
@@ -102753,7 +102753,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugReturnItem", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
                         .WithMany()
                         .HasForeignKey("DrugBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -102788,7 +102788,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugStockBalance", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
                         .WithMany("Balances")
                         .HasForeignKey("DrugBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -102820,7 +102820,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("CorrectionOfMutationId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
                         .WithMany()
                         .HasForeignKey("DrugBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -102876,7 +102876,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugUsageAllocation", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
                         .WithMany()
                         .HasForeignKey("DrugBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -103517,7 +103517,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmStockTransferAllocation", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", "DrugBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
                         .WithMany()
                         .HasForeignKey("DrugBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -105462,7 +105462,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TeamMembers");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstDrugBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", b =>
                 {
                     b.Navigation("Balances");
                 });

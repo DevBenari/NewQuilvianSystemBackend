@@ -217,7 +217,7 @@ public sealed class DrugStockService
     public async Task<PagedResult<DrugBatchResponse>> GetBatchesAsync(DrugBatchQuery request,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.MstDrugBatches.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.PhmDrugBatches.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.DrugId.HasValue) query = query.Where(x => x.DrugId == request.DrugId);
 
@@ -695,7 +695,7 @@ public sealed class DrugStockService
         if (quantity <= 0)
             throw new DrugStockUnprocessableException("PHM022", "Jumlah harus lebih dari nol.");
 
-        var batch = await _dbContext.MstDrugBatches.AsNoTracking()
+        var batch = await _dbContext.PhmDrugBatches.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == drugBatchId && !x.IsDelete, cancellationToken)
             ?? throw new DrugStockUnprocessableException("PHM031", "Batch tidak ditemukan.");
 
@@ -962,7 +962,7 @@ public sealed class DrugStockService
             .ToListAsync(cancellationToken);
     }
 
-    private async Task<MstDrugBatch> EnsureBatchAsync(DrugBatchInput input,
+    private async Task<PhmDrugBatch> EnsureBatchAsync(DrugBatchInput input,
         CancellationToken cancellationToken)
     {
         if (input.ExpiryDate == null)
@@ -980,7 +980,7 @@ public sealed class DrugStockService
 
         var batchNumber = input.BatchNumber.Trim();
 
-        var existing = await _dbContext.MstDrugBatches
+        var existing = await _dbContext.PhmDrugBatches
             .FirstOrDefaultAsync(x => x.DrugId == input.DrugId &&
                                       x.BatchNumber == batchNumber && !x.IsDelete,
                 cancellationToken);
@@ -998,7 +998,7 @@ public sealed class DrugStockService
         }
 
         var actorUserId = GetCurrentUserId();
-        var batch = new MstDrugBatch
+        var batch = new PhmDrugBatch
         {
             DrugId = input.DrugId,
             BatchNumber = batchNumber,
@@ -1010,7 +1010,7 @@ public sealed class DrugStockService
             CreateBy = actorUserId
         };
 
-        _dbContext.MstDrugBatches.Add(batch);
+        _dbContext.PhmDrugBatches.Add(batch);
         return batch;
     }
 

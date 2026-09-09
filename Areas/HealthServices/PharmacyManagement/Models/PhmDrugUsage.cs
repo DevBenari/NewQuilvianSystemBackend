@@ -145,5 +145,5 @@ public class PhmDrugUsageAllocation : IdentityModel
     public decimal Quantity { get; set; }
 
     public PhmDrugUsageItem? DrugUsageItem { get; set; }
-    public MstDrugBatch? DrugBatch { get; set; }
+    public PhmDrugBatch? DrugBatch { get; set; }
 }

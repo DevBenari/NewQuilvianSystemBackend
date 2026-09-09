@@ -111,7 +111,7 @@ public static class OperatingRoomDemoSeeder
         var actor = user.Id;
 
         // ---------------------------------------------------------------- ketenagakerjaan
-        var workforceTypeId = await EnsureAsync(db.MstWorkforceTypes,
+        var workforceTypeId = await EnsureAsync(db,
             x => x.WorkforceTypeCode == CodePrefix + "-WT",
             () => new MstWorkforceType
             {
@@ -121,7 +121,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstWorkforceType", actor, now, ct);
 
-        var employeeCategoryId = await EnsureAsync(db.MstEmployeeCategories,
+        var employeeCategoryId = await EnsureAsync(db,
             x => x.EmployeeCategoryCode == CodePrefix + "-EC",
             () => new MstEmployeeCategory
             {
@@ -131,7 +131,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstEmployeeCategory", actor, now, ct);
 
-        var employmentTypeId = await EnsureAsync(db.MstEmploymentTypes,
+        var employmentTypeId = await EnsureAsync(db,
             x => x.EmploymentTypeCode == CodePrefix + "-ET",
             () => new MstEmploymentType
             {
@@ -141,7 +141,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstEmploymentType", actor, now, ct);
 
-        var employmentStatusId = await EnsureAsync(db.MstEmploymentStatuses,
+        var employmentStatusId = await EnsureAsync(db,
             x => x.EmploymentStatusCode == CodePrefix + "-ES",
             () => new MstEmploymentStatus
             {
@@ -151,7 +151,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstEmploymentStatus", actor, now, ct);
 
-        var professionId = await EnsureAsync(db.MstProfessions,
+        var professionId = await EnsureAsync(db,
             x => x.ProfessionCode == CodePrefix + "-PROF",
             () => new MstProfession
             {
@@ -162,7 +162,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstProfession", actor, now, ct);
 
-        var profileId = await EnsureAsync(db.MstWorkforceProfiles,
+        var profileId = await EnsureAsync(db,
             x => x.ProfileCode == CodePrefix + "-WFP",
             () => new MstWorkforceProfile
             {
@@ -174,7 +174,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstWorkforceProfile", actor, now, ct);
 
-        var doctorId = await EnsureAsync(db.MstDoctors,
+        var doctorId = await EnsureAsync(db,
             x => x.DoctorCode == CodePrefix + "-DR",
             () => new MstDoctor
             {
@@ -207,7 +207,7 @@ public static class OperatingRoomDemoSeeder
 
         foreach (var (key, suffix, displayName, userType) in teamProfiles)
         {
-            var teamProfileId = await EnsureAsync(db.MstWorkforceProfiles,
+            var teamProfileId = await EnsureAsync(db,
                 x => x.ProfileCode == CodePrefix + suffix,
                 () => new MstWorkforceProfile
                 {
@@ -227,7 +227,7 @@ public static class OperatingRoomDemoSeeder
         // dokter membaca MstDoctor, dan dropdown peran perawat membaca MstEmployee; keduanya
         // tidak pernah membaca MstWorkforceProfile secara langsung. Tanpa baris di bawah ini
         // tenaga demo ada di basis data tetapi tidak dapat dipilih siapa pun.
-        var departmentId = await EnsureAsync(db.MstDepartments,
+        var departmentId = await EnsureAsync(db,
             x => x.DepartmentCode == CodePrefix + "-DEPT",
             () => new MstDepartment
             {
@@ -237,7 +237,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstDepartment", actor, now, ct);
 
-        var positionId = await EnsureAsync(db.MstPositions,
+        var positionId = await EnsureAsync(db,
             x => x.PositionCode == CodePrefix + "-POS",
             () => new MstPosition
             {
@@ -248,7 +248,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstPosition", actor, now, ct);
 
-        await EnsureAsync(db.MstDoctors,
+        await EnsureAsync(db,
             x => x.DoctorCode == CodePrefix + "-DR-ANEST",
             () => new MstDoctor
             {
@@ -272,7 +272,7 @@ public static class OperatingRoomDemoSeeder
             ("PerawatSirkuler", "-EMP-CIRC", "Perawat Sirkuler Demo", "3200000000000002")
         })
         {
-            await EnsureAsync(db.MstEmployees,
+            await EnsureAsync(db,
                 x => x.EmployeeCode == CodePrefix + suffix,
                 () => new MstEmployee
                 {
@@ -300,7 +300,7 @@ public static class OperatingRoomDemoSeeder
         }
 
         // ------------------------------------------------------------- pelayanan pasien
-        var serviceUnitId = await EnsureAsync(db.MstServiceUnits,
+        var serviceUnitId = await EnsureAsync(db,
             x => x.ServiceUnitCode == CodePrefix + "-SU",
             () => new MstServiceUnit
             {
@@ -313,7 +313,7 @@ public static class OperatingRoomDemoSeeder
         // Ruang operasi. RoomType WAJIB OperatingRoom; penjadwalan menyaring tepat pada
         // nilai itu, sehingga kamar bertipe lain ditolak dengan "Ruang operasi tidak
         // ditemukan atau tidak aktif" walaupun kamarnya ada dan aktif.
-        var roomId = await EnsureAsync(db.MstRooms,
+        var roomId = await EnsureAsync(db,
             x => x.RoomCode == CodePrefix + "-OK1",
             () => new MstRoom
             {
@@ -329,7 +329,7 @@ public static class OperatingRoomDemoSeeder
 
         // Unit tujuan untuk serah terima pasca-recovery. Dibuat terpisah dari unit kamar
         // operasi supaya perpindahan pasien benar-benar berpindah unit, bukan ke dirinya.
-        var destinationUnitId = await EnsureAsync(db.MstServiceUnits,
+        var destinationUnitId = await EnsureAsync(db,
             x => x.ServiceUnitCode == CodePrefix + "-SU-RANAP",
             () => new MstServiceUnit
             {
@@ -341,7 +341,7 @@ public static class OperatingRoomDemoSeeder
 
         // Bahan dan implan untuk pencatatan pemakaian material. Modul Operasi membacanya
         // dari master farmasi, bukan dari master miliknya sendiri.
-        var drugCategoryId = await EnsureAsync(db.MstDrugCategories,
+        var drugCategoryId = await EnsureAsync(db,
             x => x.DrugCategoryCode == CodePrefix + "-DCAT",
             () => new MstDrugCategory
             {
@@ -357,7 +357,7 @@ public static class OperatingRoomDemoSeeder
             ("Implant", CodePrefix + "-ITEM-B", "Mesh Hernia (Demo)")
         })
         {
-            var drugId = await EnsureAsync(db.MstDrugs,
+            var drugId = await EnsureAsync(db,
                 x => x.DrugCode == code,
                 () => new MstDrug
                 {
@@ -372,7 +372,7 @@ public static class OperatingRoomDemoSeeder
             result.MaterialItemIds.Add(drugId);
         }
 
-        var patientId = await EnsureAsync(db.MstPatients,
+        var patientId = await EnsureAsync(db,
             x => x.PatientCode == CodePrefix + "-PT",
             () => new MstPatient
             {
@@ -383,7 +383,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstPatient", actor, now, ct);
 
-        var encounterId = await EnsureAsync(db.TrxPatientEncounters,
+        var encounterId = await EnsureAsync(db,
             x => x.EncounterNumber == CodePrefix + "-ENC-001",
             () => new TrxPatientEncounter
             {
@@ -396,7 +396,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "TrxPatientEncounter", actor, now, ct);
 
-        var queueId = await EnsureAsync(db.TrxQueues,
+        var queueId = await EnsureAsync(db,
             x => x.QueueCode == CodePrefix + "-Q-001",
             () => new TrxQueue
             {
@@ -410,7 +410,7 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "TrxQueue", actor, now, ct);
 
-        var consultationId = await EnsureAsync(db.TrxDoctorConsultations,
+        var consultationId = await EnsureAsync(db,
             x => x.ConsultationNumber == CodePrefix + "-CONS-001",
             () => new TrxDoctorConsultation
             {
@@ -436,7 +436,7 @@ public static class OperatingRoomDemoSeeder
 
         foreach (var (suffix, code, name) in catalog)
         {
-            var procedureId = await EnsureAsync(db.MstProcedures,
+            var procedureId = await EnsureAsync(db,
                 x => x.ProcedureCode == code,
                 () => new MstProcedure
                 {
@@ -448,7 +448,7 @@ public static class OperatingRoomDemoSeeder
                 },
                 x => x.Id, result, "MstProcedure", actor, now, ct);
 
-            var patientProcedureId = await EnsureAsync(db.TrxPatientProcedures,
+            var patientProcedureId = await EnsureAsync(db,
                 x => x.ProcedureCodeSnapshot == code && x.EncounterId == encounterId,
                 () => new TrxPatientProcedure
                 {
@@ -482,7 +482,7 @@ public static class OperatingRoomDemoSeeder
                 "Persetujuan Tindakan Anestesi (Demo)")
         })
         {
-            await EnsureAsync(db.Set<TrxPatientConsent>(),
+            await EnsureAsync<TrxPatientConsent>(db,
                 x => x.ConsentNumber == code,
                 () => new TrxPatientConsent
                 {
@@ -767,7 +767,7 @@ public static class OperatingRoomDemoSeeder
     /// Inilah yang membuat seeder aman dijalankan berulang kali.
     /// </summary>
     private static async Task<Guid> EnsureAsync<TEntity>(
-        DbSet<TEntity> set,
+        ApplicationDbContext db,
         Expression<Func<TEntity, bool>> match,
         Func<TEntity> build,
         Func<TEntity, Guid> selectId,
@@ -775,8 +775,9 @@ public static class OperatingRoomDemoSeeder
         string label,
         Guid actor,
         DateTime now,
-        CancellationToken ct) where TEntity : class
+        CancellationToken ct) where TEntity : class, IAuditStamped
     {
+        var set = db.Set<TEntity>();
         var existing = await set.FirstOrDefaultAsync(match, ct);
         if (existing is not null)
         {
@@ -785,11 +786,8 @@ public static class OperatingRoomDemoSeeder
         }
 
         var created = build();
-        if (created is IdentityModel audited)
-        {
-            audited.CreateDateTime = now;
-            audited.CreateBy = actor;
-        }
+        created.CreateDateTime = now;
+        created.CreateBy = actor;
 
         set.Add(created);
         result.Created.Add(label);
