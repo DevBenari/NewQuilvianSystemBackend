@@ -13,6 +13,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.BillingTests.Infrastructure;
 using QuilvianSystemBackend.Repositories;
 using Xunit;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.BillingTests.Laboratory
 {
@@ -32,8 +33,9 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
     ///   9. Pembatalan sebelum layak tidak menghasilkan koreksi finansial apa pun.
     ///  10. Perubahan bersamaan atas sampel yang sama ditolak salah satunya.
     /// </summary>
+    [Collection(PostgresIntegrationTestCollection.Name)]
     public sealed class LaboratorySpecimenLifecycleTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+        : IAsyncLifetime
     {
         private const decimal TarifDarahLengkap = 200_000m;
         private const decimal TarifFungsiHati = 150_000m;
@@ -112,18 +114,51 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var procedure = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
 
             await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, procedure.Id);
 
-            var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
-            var hasil = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
+
+            var collectorService =
+                CreateSpecimenService(context, collectorUserId);
+
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                procedure.Id);
+
+            var specimen = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id);
+
+            var verifierService =
+                CreateSpecimenService(context, verifierUserId);
+
+            var hasil = await verifierService.AcceptAsync(
+                specimen.Id,
+                new AcceptLabSpecimenRequest());
 
             Assert.NotNull(hasil.Handoff);
-            Assert.Equal(ClinicalFactEmissionKind.Emitted, hasil.Handoff!.Perwakilan.Kind);
+            var emission = hasil.Handoff!.Perwakilan;
+
+            Assert.True(
+                emission.Kind == ClinicalFactEmissionKind.Emitted,
+                $"Expected Emitted, actual {emission.Kind}. " +
+                $"Code={emission.Code ?? "<null>"}; " +
+                $"Message={emission.Message ?? "<null>"}");
             Assert.Equal(1, hasil.Handoff.Perwakilan.MilestoneFactVersion);
 
+            var examinationId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == specimen.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
             var barisTagihan = await context.BilChargeLines
-                .Where(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id)
+                .Where(x =>
+                    x.SourceContext == "Laboratory" &&
+                    x.SourceItemId == examinationId)
                 .ToListAsync();
 
             Assert.Single(barisTagihan);
@@ -148,34 +183,94 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var urin = await SeedLabProcedureAsync("Urin lengkap", TarifUrinLengkap);
 
             await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, darah.Id);
 
-            var spDarah = await SampaiDiterimaAsync(specimenService, order.Id, darah.Id);
-            var spHati = await SampaiDiterimaAsync(specimenService, order.Id, hati.Id);
-            var spUrin = await SampaiDiterimaAsync(specimenService, order.Id, urin.Id);
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
 
-            await specimenService.AcceptAsync(spDarah.Id, new AcceptLabSpecimenRequest());
-            await specimenService.AcceptAsync(spHati.Id, new AcceptLabSpecimenRequest());
+            var collectorService =
+                CreateSpecimenService(context, collectorUserId);
 
-            await specimenService.RejectAsync(spUrin.Id, new RejectLabSpecimenRequest
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                darah.Id);
+
+            var spDarah = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id,
+                darah.Id);
+
+            var spHati = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id,
+                hati.Id);
+
+            var spUrin = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id,
+                urin.Id);
+
+            var verifierService =
+                CreateSpecimenService(context, verifierUserId);
+
+            await verifierService.AcceptAsync(
+                spDarah.Id,
+                new AcceptLabSpecimenRequest());
+
+            await verifierService.AcceptAsync(
+                spHati.Id,
+                new AcceptLabSpecimenRequest());
+
+            await verifierService.RejectAsync(
+                spUrin.Id,
+                new RejectLabSpecimenRequest
+                {
+                    ReasonCode = "INSUFFICIENT_QUANTITY"
+                });
+
+            var examinationDarahId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == spDarah.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
+            var examinationHatiId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == spHati.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
+            var examinationUrinId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == spUrin.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
+            var examinationIds = new[]
             {
-                ReasonCode = "INSUFFICIENT_QUANTITY"
-            });
+                examinationDarahId,
+                examinationHatiId,
+                examinationUrinId
+            };
 
             var idKomponenTertagih = await context.BilChargeLines
-                .Where(x => x.SourceContext == "Laboratory")
-                .Where(x => x.SourceItemId == spDarah.Id ||
-                            x.SourceItemId == spHati.Id ||
-                            x.SourceItemId == spUrin.Id)
-                .Select(x => x.SourceItemId)
-                .ToListAsync();
+            .Where(x =>
+                x.SourceContext == "Laboratory" &&
+                x.SourceItemId.HasValue &&
+                examinationIds.Contains(x.SourceItemId.Value))
+            .Select(x => x.SourceItemId!.Value)
+            .ToListAsync();
 
-            // Dua komponen yang dikerjakan membentuk baris tagihan; komponen yang ditolak tidak.
             Assert.Equal(2, idKomponenTertagih.Count);
-            Assert.Contains(spDarah.Id, idKomponenTertagih);
-            Assert.Contains(spHati.Id, idKomponenTertagih);
-            Assert.DoesNotContain(spUrin.Id, idKomponenTertagih);
+            Assert.Contains(examinationDarahId, idKomponenTertagih);
+            Assert.Contains(examinationHatiId, idKomponenTertagih);
+            Assert.DoesNotContain(examinationUrinId, idKomponenTertagih);
 
             // Nilai rujukan yang diserahkan ke Billing berjumlah Rp350.000, bukan Rp450.000.
             //
@@ -232,11 +327,17 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
 
             var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
 
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                specimenService.RejectAsync(specimen.Id, new RejectLabSpecimenRequest
-                {
-                    ReasonCode = "OTHER"
-                }));
+            var galat = await Assert.ThrowsAsync<LabSpecimenValidationException>(() =>
+                specimenService.RejectAsync(
+                    specimen.Id,
+                    new RejectLabSpecimenRequest
+                    {
+                        ReasonCode = "OTHER"
+                    }));
+
+            Assert.Contains(
+                "membutuhkan keterangan tambahan",
+                galat.Message);
         }
 
         [Fact]
@@ -251,11 +352,17 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
 
             var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
 
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                specimenService.RejectAsync(specimen.Id, new RejectLabSpecimenRequest
-                {
-                    ReasonCode = "ALASAN_KARANGAN"
-                }));
+            var galat = await Assert.ThrowsAsync<LabSpecimenValidationException>(() =>
+                specimenService.RejectAsync(
+                    specimen.Id,
+                    new RejectLabSpecimenRequest
+                    {
+                        ReasonCode = "ALASAN_KARANGAN"
+                    }));
+
+            Assert.Contains(
+                "tidak berlaku",
+                galat.Message);
         }
 
         // =====================================================================
@@ -268,14 +375,33 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var seed = await NewEncounterAsync();
             var procedure = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
 
-            await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, procedure.Id);
+           await using var context = _fixture.CreateContext();
 
-            var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
 
-            var pertama = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
-            var kedua = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
+            var collectorService =
+                CreateSpecimenService(context, collectorUserId);
+
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                procedure.Id);
+
+            var specimen = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id);
+
+            var verifierService =
+                CreateSpecimenService(context, verifierUserId);
+
+            var pertama = await verifierService.AcceptAsync(
+                specimen.Id,
+                new AcceptLabSpecimenRequest());
+
+            var kedua = await verifierService.AcceptAsync(
+                specimen.Id,
+                new AcceptLabSpecimenRequest());
 
             Assert.Equal(ClinicalFactEmissionKind.Emitted, pertama.Handoff!.Perwakilan.Kind);
             Assert.Equal(ClinicalFactEmissionKind.Replayed, kedua.Handoff!.Perwakilan.Kind);
@@ -284,8 +410,18 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Equal(pertama.Handoff.Perwakilan.MilestoneFactId, kedua.Handoff.Perwakilan.MilestoneFactId);
             Assert.Equal(1, kedua.Handoff.Perwakilan.MilestoneFactVersion);
 
+            var examinationId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == specimen.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
             var jumlahBaris = await context.BilChargeLines
-                .CountAsync(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id);
+                .CountAsync(x =>
+                    x.SourceContext == "Laboratory" &&
+                    x.SourceItemId == examinationId);
 
             Assert.Equal(1, jumlahBaris);
         }
@@ -342,33 +478,83 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         public async Task PengambilanUlangKesalahanInternal_HanyaMenghasilkanSatuTagihan()
         {
             var seed = await NewEncounterAsync();
-            var procedure = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
+            var procedure = await SeedLabProcedureAsync(
+                "Darah lengkap",
+                TarifDarahLengkap);
 
             await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, procedure.Id);
 
-            var asli = await SampaiDiterimaAsync(specimenService, order.Id);
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
 
-            await specimenService.RejectAsync(asli.Id, new RejectLabSpecimenRequest
-            {
-                ReasonCode = "COLLECTION_ISSUE"
-            });
+            var collectorService =
+                CreateSpecimenService(
+                    context,
+                    collectorUserId);
 
-            var pengganti = await specimenService.RequestRecollectionAsync(
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                procedure.Id);
+
+            var asli = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id);
+
+            await collectorService.RejectAsync(
                 asli.Id,
-                new RequestLabRecollectionRequest { Cause = LabRecollectionCause.InternalHospitalError });
+                new RejectLabSpecimenRequest
+                {
+                    ReasonCode = "COLLECTION_ISSUE"
+                });
 
-            await specimenService.CollectAsync(pengganti.Specimen.Id, new CollectLabSpecimenRequest());
-            await specimenService.ReceiveAsync(pengganti.Specimen.Id, new ReceiveLabSpecimenRequest());
-            await specimenService.AcceptAsync(pengganti.Specimen.Id, new AcceptLabSpecimenRequest());
+            var pengganti = await collectorService.RequestRecollectionAsync(
+                asli.Id,
+                new RequestLabRecollectionRequest
+                {
+                    Cause = LabRecollectionCause.InternalHospitalError
+                });
+
+            await collectorService.CollectAsync(
+                pengganti.Specimen.Id,
+                new CollectLabSpecimenRequest());
+
+            await collectorService.ReceiveAsync(
+                pengganti.Specimen.Id,
+                new ReceiveLabSpecimenRequest());
+
+            var verifierService =
+                CreateSpecimenService(
+                    context,
+                    verifierUserId);
+
+            var layak = await verifierService.AcceptAsync(
+                pengganti.Specimen.Id,
+                new AcceptLabSpecimenRequest());
+
+            Assert.NotNull(layak.Handoff);
+
+            Assert.Equal(
+                ClinicalFactEmissionKind.Emitted,
+                layak.Handoff!.Perwakilan.Kind);
+
+            var examinationIds = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    (x.SpecimenId == asli.Id ||
+                    x.SpecimenId == pengganti.Specimen.Id) &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .ToListAsync();
 
             var jumlahBaris = await context.BilChargeLines
-                .CountAsync(x => x.SourceContext == "Laboratory" &&
-                                 (x.SourceItemId == asli.Id || x.SourceItemId == pengganti.Specimen.Id));
+                .CountAsync(x =>
+                    x.SourceContext == "Laboratory" &&
+                    x.SourceItemId.HasValue &&
+                    examinationIds.Contains(x.SourceItemId.Value));
 
-            // Pemeriksaan hanya benar-benar dikerjakan satu kali, sehingga tagihannya satu.
-            // Percobaan yang gagal karena kesalahan rumah sakit tidak menambah tanggungan pasien.
+            // Pemeriksaan hanya benar-benar dikerjakan satu kali,
+            // sehingga tagihannya satu.
             Assert.Equal(1, jumlahBaris);
         }
 
@@ -389,13 +575,17 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                 ReasonCode = "INSUFFICIENT_QUANTITY"
             });
 
-            await Assert.ThrowsAsync<ArgumentException>(() =>
+            var galat = await Assert.ThrowsAsync<LabSpecimenValidationException>(() =>
                 specimenService.RequestRecollectionAsync(
                     asli.Id,
                     new RequestLabRecollectionRequest
                     {
                         Cause = LabRecollectionCause.PatientOrSpecimenCondition
                     }));
+
+            Assert.Contains(
+                "membutuhkan alasan tertulis",
+                galat.Message);
         }
 
         // =====================================================================
@@ -409,17 +599,43 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var procedure = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
 
             await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, procedure.Id);
 
-            var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
-            var layak = await specimenService.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
 
-            var idTagihanAsli = layak.Handoff!.Perwakilan.MilestoneFactId;
+            var collectorService =
+                CreateSpecimenService(context, collectorUserId);
 
-            var batal = await specimenService.CancelAsync(
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                procedure.Id);
+
+            var specimen = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id);
+
+            var verifierService =
+                CreateSpecimenService(context, verifierUserId);
+
+            var layak = await verifierService.AcceptAsync(
                 specimen.Id,
-                new CancelLabSpecimenRequest { Reason = "Pasien pulang atas permintaan sendiri." });
+                new AcceptLabSpecimenRequest());
+
+            Assert.NotNull(layak.Handoff);
+            Assert.Equal(
+                ClinicalFactEmissionKind.Emitted,
+                layak.Handoff!.Perwakilan.Kind);
+
+            var idTagihanAsli =
+                layak.Handoff.Perwakilan.MilestoneFactId;
+
+            var batal = await verifierService.CancelAsync(
+                specimen.Id,
+                new CancelLabSpecimenRequest
+                {
+                    Reason = "Pasien pulang atas permintaan sendiri."
+                });
 
             Assert.NotNull(batal.Handoff);
             Assert.Equal(ClinicalFactEmissionKind.Emitted, batal.Handoff!.Perwakilan.Kind);
@@ -429,8 +645,18 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Equal(2, batal.Handoff.Perwakilan.MilestoneFactVersion);
 
             // Tagihan asli tidak dihapus. Laboratorium tidak memiliki kewenangan menghapusnya.
+            var examinationId = await context.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.SpecimenId == specimen.Id &&
+                    !x.IsDelete)
+                .Select(x => x.Id)
+                .SingleAsync();
+
             var barisTagihan = await context.BilChargeLines
-                .Where(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id)
+                .Where(x =>
+                    x.SourceContext == "Laboratory" &&
+                    x.SourceItemId == examinationId)
                 .ToListAsync();
 
             Assert.Single(barisTagihan);
@@ -463,33 +689,88 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         public async Task PembatalanPesanan_MembatalkanSampelDanMenerbitkanKoreksiUntukYangSudahLayak()
         {
             var seed = await NewEncounterAsync();
-            var darah = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
-            var urin = await SeedLabProcedureAsync("Urin lengkap", TarifUrinLengkap);
+            var darah = await SeedLabProcedureAsync(
+                "Darah lengkap",
+                TarifDarahLengkap);
+
+            var urin = await SeedLabProcedureAsync(
+                "Urin lengkap",
+                TarifUrinLengkap);
 
             await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var orderService = CreateOrderService(context, specimenService);
-            var order = await SeedOrderAsync(context, seed, darah.Id);
 
-            var spLayak = await SampaiDiterimaAsync(specimenService, order.Id, darah.Id);
-            var spBelum = await SampaiDiterimaAsync(specimenService, order.Id, urin.Id);
+            var collectorUserId = seed.ActorUserId;
+            var verifierUserId = Guid.NewGuid();
 
-            await specimenService.AcceptAsync(spLayak.Id, new AcceptLabSpecimenRequest());
+            // Petugas pertama: mengambil dan menerima sampel.
+            var collectorService =
+                CreateSpecimenService(
+                    context,
+                    collectorUserId);
+
+            var order = await SeedOrderAsync(
+                context,
+                seed,
+                darah.Id);
+
+            var spLayak = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id,
+                darah.Id);
+
+            var spBelum = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id,
+                urin.Id);
+
+            // Petugas kedua: menetapkan sampel darah sebagai layak.
+            var verifierService =
+                CreateSpecimenService(
+                    context,
+                    verifierUserId);
+
+            var layak = await verifierService.AcceptAsync(
+                spLayak.Id,
+                new AcceptLabSpecimenRequest());
+
+            Assert.NotNull(layak.Handoff);
+
+            Assert.Equal(
+                ClinicalFactEmissionKind.Emitted,
+                layak.Handoff!.Perwakilan.Kind);
+
+            // Pembatalan order juga harus memiliki actor klinis yang valid.
+            var orderService = CreateOrderService(
+                context,
+                verifierService,
+                verifierUserId);
 
             var hasil = await orderService.CancelAsync(
                 order.Id,
-                new CancelLabSpecimenRequest { Reason = "Pemeriksaan dibatalkan dokter." });
+                new CancelLabSpecimenRequest
+                {
+                    Reason = "Pemeriksaan dibatalkan dokter."
+                });
 
             // Hanya sampel yang sudah layak yang menghasilkan fakta pembatalan.
             Assert.Single(hasil.BillingHandoffs);
-            Assert.Equal(2, hasil.BillingHandoffs[0].MilestoneFactVersion);
 
-            var statusSampel = await context.LabSpecimens.AsNoTracking()
+            Assert.Equal(
+                2,
+                hasil.BillingHandoffs[0].MilestoneFactVersion);
+
+            var statusSampel = await context.LabSpecimens
+                .AsNoTracking()
                 .Where(x => x.LabOrderId == order.Id)
                 .Select(x => x.SpecimenStatus)
                 .ToListAsync();
 
-            Assert.All(statusSampel, status => Assert.Equal(LabSpecimenStatus.Cancelled, status));
+            Assert.All(
+                statusSampel,
+                status => Assert.Equal(
+                    LabSpecimenStatus.Cancelled,
+                    status));
+
             Assert.Equal(2, statusSampel.Count);
             Assert.Equal("Cancelled", hasil.Order.OrderStatus);
 
@@ -504,32 +785,87 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         public async Task DuaPetugasMenetapkanLayakBersamaan_SalahSatuDitolak()
         {
             var seed = await NewEncounterAsync();
-            var procedure = await SeedLabProcedureAsync("Darah lengkap", TarifDarahLengkap);
+            var procedure = await SeedLabProcedureAsync(
+                "Darah lengkap",
+                TarifDarahLengkap);
 
-            await using var context = _fixture.CreateContext();
-            var specimenService = CreateSpecimenService(context);
-            var order = await SeedOrderAsync(context, seed, procedure.Id);
+            await using var setupContext = _fixture.CreateContext();
 
-            var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
+            var collectorUserId = seed.ActorUserId;
+            var petugasAId = Guid.NewGuid();
+            var petugasBId = Guid.NewGuid();
 
-            // Dua context terpisah mewakili dua petugas yang memuat baris yang sama lalu
-            // menyimpannya bersamaan.
+            var collectorService =
+                CreateSpecimenService(
+                    setupContext,
+                    collectorUserId);
+
+            var order = await SeedOrderAsync(
+                setupContext,
+                seed,
+                procedure.Id);
+
+            var specimen = await SampaiDiterimaAsync(
+                collectorService,
+                order.Id);
+
+            // Dua context terpisah mewakili dua petugas yang membuka
+            // specimen pada waktu yang sama.
             await using var contextA = _fixture.CreateContext();
             await using var contextB = _fixture.CreateContext();
 
-            var layananA = CreateSpecimenService(contextA);
-            var layananB = CreateSpecimenService(contextB);
+            // PENTING:
+            // kedua context harus membaca versi yang sama SEBELUM
+            // salah satu petugas menyimpan perubahan.
+            var snapshotA = await contextA.LabSpecimens
+                .Include(x => x.LabOrder)
+                .SingleAsync(x => x.Id == specimen.Id);
 
-            await layananA.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
+            var snapshotB = await contextB.LabSpecimens
+                .Include(x => x.LabOrder)
+                .SingleAsync(x => x.Id == specimen.Id);
 
-            // Petugas kedua memegang versi lama, sehingga penyimpanannya harus ditolak.
+            Assert.Equal(
+                LabSpecimenStatus.Received,
+                snapshotA.SpecimenStatus);
+
+            Assert.Equal(
+                LabSpecimenStatus.Received,
+                snapshotB.SpecimenStatus);
+
+            var layananA =
+                CreateSpecimenService(
+                    contextA,
+                    petugasAId);
+
+            var layananB =
+                CreateSpecimenService(
+                    contextB,
+                    petugasBId);
+
+            // Petugas A menyimpan lebih dulu.
+            var hasilA = await layananA.AcceptAsync(
+                specimen.Id,
+                new AcceptLabSpecimenRequest());
+
+            Assert.Equal(
+                LabSpecimenStatus.Accepted,
+                hasilA.Specimen.SpecimenStatus);
+
+            // Context B masih memegang Version lama.
+            // Ketika mencoba menyimpan perubahan, concurrency token
+            // harus menolak update tersebut.
             var galat = await Assert.ThrowsAsync<LabConcurrencyException>(() =>
-                layananB.RejectAsync(specimen.Id, new RejectLabSpecimenRequest
-                {
-                    ReasonCode = "LABELING_ISSUE"
-                }));
+                layananB.RejectAsync(
+                    specimen.Id,
+                    new RejectLabSpecimenRequest
+                    {
+                        ReasonCode = "LABELING_ISSUE"
+                    }));
 
-            Assert.Contains("diubah oleh petugas lain", galat.Message);
+            Assert.Contains(
+                "diubah oleh petugas lain",
+                galat.Message);
         }
 
         // =====================================================================
@@ -549,8 +885,14 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
 
             await orderService.CancelAsync(order.Id);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                specimenService.PlanAsync(order.Id, new PlanLabSpecimenRequest()));
+            var galat = await Assert.ThrowsAsync<LabSpecimenConflictException>(() =>
+                specimenService.PlanAsync(
+                    order.Id,
+                    new PlanLabSpecimenRequest()));
+
+            Assert.Contains(
+                "sudah dibatalkan",
+                galat.Message);
         }
 
         [Fact]
@@ -566,8 +908,14 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             var planned = await specimenService.PlanAsync(order.Id, new PlanLabSpecimenRequest());
 
             // Sampel yang baru direncanakan belum pernah sampai di laboratorium.
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                specimenService.AcceptAsync(planned.Specimen.Id, new AcceptLabSpecimenRequest()));
+            var galat = await Assert.ThrowsAsync<LabSpecimenConflictException>(() =>
+                specimenService.AcceptAsync(
+                    planned.Specimen.Id,
+                    new AcceptLabSpecimenRequest()));
+
+            Assert.Contains(
+                "belum tercatat tiba",
+                galat.Message);
         }
 
         [Fact]
@@ -637,6 +985,42 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                 new HttpContextAccessor(),
                 BillingTestDatabaseFixture.CreateLoggerService());
 
+        private LabSpecimenService CreateSpecimenService(
+            ApplicationDbContext context,
+            Guid actorUserId)
+        {
+            if (actorUserId == Guid.Empty)
+                throw new ArgumentException(
+                    "Actor integration test tidak boleh Guid.Empty.",
+                    nameof(actorUserId));
+
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(
+                        ClaimTypes.NameIdentifier,
+                        actorUserId.ToString())
+                },
+                authenticationType: "IntegrationTest");
+
+            var accessor = new HttpContextAccessor
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            return new LabSpecimenService(
+                context,
+                new ClinicalMilestoneFactProducer(
+                    context,
+                    new BillingFolioService(context),
+                    BillingTestDatabaseFixture.CreateLoggerService()),
+                accessor,
+                BillingTestDatabaseFixture.CreateLoggerService());
+        }
+
         private static LabOrderService CreateOrderService(
             ApplicationDbContext context,
             LabSpecimenService specimenService) =>
@@ -645,6 +1029,40 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                 specimenService,
                 new HttpContextAccessor(),
                 BillingTestDatabaseFixture.CreateLoggerService());
+
+        private static LabOrderService CreateOrderService(
+            ApplicationDbContext context,
+            LabSpecimenService specimenService,
+            Guid actorUserId)
+        {
+            if (actorUserId == Guid.Empty)
+                throw new ArgumentException(
+                    "Actor integration test tidak boleh Guid.Empty.",
+                    nameof(actorUserId));
+
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(
+                        ClaimTypes.NameIdentifier,
+                        actorUserId.ToString())
+                },
+                authenticationType: "IntegrationTest");
+
+            var accessor = new HttpContextAccessor
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            return new LabOrderService(
+                context,
+                specimenService,
+                accessor,
+                BillingTestDatabaseFixture.CreateLoggerService());
+        }
 
         private async Task<MstProcedure> SeedLabProcedureAsync(
             string nama,
