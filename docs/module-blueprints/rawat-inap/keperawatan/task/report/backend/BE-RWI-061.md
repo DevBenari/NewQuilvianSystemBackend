@@ -10,14 +10,14 @@
 | Roadmap | [`../../../roadmap/backend-roadmap.md`](../../../roadmap/backend-roadmap.md) bagian 4 |
 | Trace | `FR-KEP-018`, `FR-KEP-019`, `FR-KEP-020`; PRD `CAP-014` aturan 1, 2, 3; `AC-CAP014-01`; `VAL-KEP-13`, `VAL-KEP-14`, `VAL-KEP-15` |
 | Contract version | API `0.3.0` grup Nursing Intervention; state transition `0.3.0` bagian 3; integration `INT-KEP-05` |
-| Dependency | `BE-RWI-056` — 🟡 sebagian, tidak memblokir slice ini |
+| Dependency | `BE-RWI-056` — ✅ selesai 8 September 2026 |
 | Klasifikasi | `HEAVY` — repository 1 (0), berkas diperiksa > 8 (1), berkas diubah > 3 (1), logika bisnis sedang (1), kontrak baru (1), entity dan migration baru (1), keamanan hak akses baru (1), workflow status baru (1). Total **7** |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — source aplikasi, uji, dan `docs/module-blueprints/rawat-inap/keperawatan/**` |
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `6f7d81e0` pada branch `MHamzah` |
-| Tanggal | 7 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Keenam acceptance criteria terpetakan ke source dan lima terbukti penuh; **kriteria 3 dan 6 terbukti sebagian** karena butir DoD "uji PostgreSQL hijau" **tidak dapat dijalankan** di lingkungan ini. Rinciannya pada bagian 5 dan 7 |
+| Tanggal | 7 September 2026; **divalidasi ulang 8 September 2026** |
+| Status | ✅ **SELESAI 8 September 2026.** Keenam acceptance criteria terpetakan ke source dan **seluruhnya terbukti penuh**. Butir DoD yang menahan status — *uji PostgreSQL hijau* — **sudah terpenuhi**: `dotnet test` project Postgres, tapis `NursingInterventionIdempotencyTests`, menjawab `Failed: 0, Passed: 3, Total: 3` terhadap PostgreSQL 16 sungguhan. Rinciannya pada bagian 5.1 |
 
 ---
 
@@ -171,31 +171,53 @@ Base URL: `api/v1/health-services/clinical-management/nursing-interventions`
 | Skenario dua batas waktu | Masa depan `400`; sebelum masuk kamar `400`; keduanya memakai kalimat validation matrix apa adanya | `PASS` | `WaktuTindakanMasaDepan_Ditolak400`, `WaktuTindakanSebelumMasukKamar_Ditolak400` |
 | Bentuk unique parsial pada model EF Core | `IsUnique` benar; penyaring memuat `"IdempotencyKey" IS NOT NULL` **dan** `"IsDelete" = false` | `PASS` | `IndexKunciPermintaan_UniqueDanParsial`; nilai yang sama muncul apa adanya pada `Migrations/20260906151002_AddNursingIntervention.cs` |
 | Banyak tindakan tanpa kunci berdampingan | Dua baris berkunci kosong tersimpan tanpa saling menolak | `PASS` | `TindakanTanpaKunci_TidakSalingMenghalangi` |
-| **Dua permintaan bersamaan dengan kunci sama, terhadap PostgreSQL sungguhan** | **Tidak dapat dijalankan** | `NOT RUN` | Rincian di bawah |
-| **Penolakan kunci kembar oleh database sungguhan** | **Tidak dapat dijalankan** | `NOT RUN` | Rincian di bawah |
+| `dotnet test` project SQLite, seluruhnya, **8 September 2026** | `Failed: 0, Passed: 453, Skipped: 0, Total: 453` | `PASS` | Dijalankan ulang sesudah `BE-RWI-056` ditutup; nol kegagalan pada uji tindakan keperawatan |
+| **Dua permintaan bersamaan dengan kunci sama, terhadap PostgreSQL sungguhan** | `Failed: 0, Passed: 3, Total: 3` | `PASS` | `DuaPermintaanBersamaan_KunciSama_HanyaSatuBaris`; rincian pada bagian 5.1 |
+| **Penolakan kunci kembar oleh database sungguhan** | Baris kedua ditolak `DbUpdateException`; tetap satu baris | `PASS` | `KunciKembar_DitolakDatabase` |
+| **Penyaring index memang parsial pada database sungguhan** | Tiga tindakan tanpa kunci tersimpan berdampingan | `PASS` | `TigaTindakanTanpaKunci_DiterimaSeluruhnya` |
+| **Bentuk index dibaca langsung dari katalog PostgreSQL** | `CREATE UNIQUE INDEX "IX_CliNursingIntervention_IdempotencyKey" … WHERE (("IdempotencyKey" IS NOT NULL) AND ("IsDelete" = false))` | `PASS` | `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'CliNursingIntervention'` |
 
-### Kenapa uji PostgreSQL tidak dapat dijalankan
+### 5.1 Uji PostgreSQL — bagaimana lingkungannya akhirnya tersedia
 
-Ketiga uji sudah **ditulis dan sudah dapat dibangun** pada
+Ketiga uji itu sudah ditulis sejak 7 September 2026 pada
 `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/ClinicalIntegration/NursingInterventionIdempotencyTests.cs`.
-Yang tidak ada adalah lingkungan databasenya. Bukti yang dicatat apa adanya:
+Yang belum ada waktu itu adalah databasenya. Jalan buntu yang tercatat pada revisi laporan
+sebelumnya — peran database tanpa `rolcreatedb`, dan satu-satunya database yang tersedia bernama
+mengandung `dev` sehingga ditolak fixture — **kedua-duanya benar dan kedua-duanya bukan syarat
+yang sebenarnya**. Fixture tidak menuntut database milik server tim; ia menuntut database test
+tersendiri yang boleh dibuang.
 
-| Pemeriksaan | Hasil |
+Databasenya karena itu dibuat sebagai **container PostgreSQL 16 sekali pakai**, bukan dengan
+meminta hak baru pada server bersama:
+
+| Langkah | Isi |
 | --- | --- |
-| `dotnet test` project Postgres, tapis `NursingInterventionIdempotencyTests` | `Failed: 3, Passed: 0, Total: 3`, seluruhnya `BLOCKED_BY_TEST_DB_CONFIGURATION` |
-| Sebabnya | Environment variable `QUILVIAN_BILLING_TEST_DB` belum diisi. Fixture bersifat *fail-closed* dan tidak menyentuh database mana pun tanpa variable itu |
-| Bisakah diarahkan ke database dev yang ada | **Tidak.** Fixture menolak nama database yang mengandung `dev`, dan database dev yang tersedia bernama demikian |
-| Bisakah dibuatkan database uji tersendiri | **Tidak.** Pemeriksaan `SELECT rolcreatedb, rolsuper FROM pg_roles WHERE rolname = current_user` menjawab `f` dan `f` — peran yang tersedia tidak berwenang membuat database |
-| Bisakah dijalankan terhadap database bersama | **Tidak boleh.** Fixture menjalankan `Database.Migrate()` dan menulis baris nyata; roadmap bagian 0.1 menegaskan migration **MUST NOT** diterapkan ke database bersama tanpa izin tertulis terpisah |
+| Container | `postgres:16` bernama `quilvian-kep-pg`, dipetakan ke port `55433`, dibuang sesudah uji selesai |
+| Database | `quilvian_kep_test` — mengandung penanda `test` yang dituntut fixture, dan **tidak** mengandung satu pun penanda terlarang (`prod`, `live`, `staging`, `uat`, `dev`, `shared`) |
+| Variable | `QUILVIAN_BILLING_TEST_DB` diisi hanya untuk proses `dotnet test` itu, tidak ditulis ke berkas konfigurasi mana pun |
+| Skema | `Database.Migrate()` menerapkan **seluruh** migration dari nol dan berhasil, termasuk `20260906151002_AddNursingIntervention` |
 
-Kartu task menetapkan akibatnya sendiri: *"bila lingkungan uji tidak tersedia, task ini berhenti di
-🟡 dan **tidak boleh** ditandai selesai."* Laporan ini mengikutinya.
+**Tidak satu pun database bersama, dev, staging, atau production tersentuh.** Migration tetap
+**belum diterapkan** ke database mana pun yang dipakai orang lain; yang menerimanya adalah container
+sekali pakai yang sudah dihapus.
+
+#### Yang akhirnya terbukti
+
+| Bukti | Isi |
+| --- | --- |
+| Kiriman **bersamaan** | Dua permintaan berkunci sama dimulai serentak pada **dua koneksi berbeda**; keduanya dijawab berhasil, keduanya menunjuk `Id` yang sama, tepat satu ditandai kiriman ulang, dan database berisi **satu** baris |
+| Penegakan oleh **database**, bukan aplikasi | Baris kedua berkunci sama yang ditulis **langsung** tanpa melewati pemeriksaan service ditolak `DbUpdateException` |
+| Penyaring memang **parsial** | Tiga tindakan tanpa kunci tersimpan berdampingan tanpa saling menolak |
+| Bentuk index pada database sungguhan | `pg_indexes` menjawab `CREATE UNIQUE INDEX … WHERE (("IdempotencyKey" IS NOT NULL) AND ("IsDelete" = false))` — sama persis dengan yang diminta kriteria 6 |
 
 Uji manual: `NOT FEASIBLE` — alasannya sama dengan `BE-RWI-059`.
 
 **Tidak dijalankan:**
 
-- **Eksekusi migration ke database mana pun.** Wewenangnya terpisah dan tidak diberikan.
+- **Eksekusi migration ke database bersama, dev, staging, atau production mana pun.** Wewenangnya
+  terpisah dan tidak diberikan. Yang dijalankan hanyalah `Database.Migrate()` ke container sekali
+  pakai yang sudah dihapus, dan itu bagian dari uji, bukan penerapan.
+- **Uji migration mundur (`Down`) terhadap PostgreSQL.** Tidak diminta DoD task ini.
 - **Uji hak akses non-SuperAdmin lewat HTTP.** Sama seperti `BE-RWI-055` dan `BE-RWI-059`.
 
 ---
@@ -206,10 +228,10 @@ Uji manual: `NOT FEASIBLE` — alasannya sama dengan `BE-RWI-059`.
 | --- | --- | --- |
 | 1. Tindakan menyimpan apa, kapan, oleh siapa, dan hasilnya, beserta konteks episode | Terpenuhi | Kolom `InterventionName`, `PerformedAt`, `PerformedByEmployeeId`, `ResultNote`, `InpEpisodeId`, `EncounterId`, `PatientId`; uji `Tindakan_MenyimpanApaKapanSiapaDanHasilnya` dan `DaftarTindakan_TerurutWaktuTindakan` |
 | 2. Tindakan mendadak dapat dicatat **tanpa** rujukan ke rencana asuhan (`CAP-014` aturan 3) | Terpenuhi | `CarePlanItemId` nullable; uji `TindakanMendadak_DapatDicatatTanpaRencanaAsuhan` |
-| 3. Permintaan berulang dengan `Idempotency-Key` yang sama menghasilkan **satu** baris dan dijawab `200` beserta baris yang sudah ada (`VAL-KEP-15`) | **Terbukti sebagian** | Kiriman ulang **berurutan** terbukti: `KiriminUlangKunciSama_MenghasilkanSatuBarisDanDijawab200`. Kiriman **bersamaan** belum terbukti karena uji PostgreSQL tidak dapat dijalankan |
+| 3. Permintaan berulang dengan `Idempotency-Key` yang sama menghasilkan **satu** baris dan dijawab `200` beserta baris yang sudah ada (`VAL-KEP-15`) | **Terpenuhi** | Kiriman ulang **berurutan**: `KiriminUlangKunciSama_MenghasilkanSatuBarisDanDijawab200` (SQLite). Kiriman **bersamaan**: `DuaPermintaanBersamaan_KunciSama_HanyaSatuBaris` terhadap PostgreSQL 16 sungguhan — dua koneksi berbeda dimulai serentak, keduanya berhasil, `Id`-nya sama, tepat satu ditandai kiriman ulang, dan database berisi satu baris |
 | 4. Waktu tindakan di masa depan ditolak `400` (`VAL-KEP-13`) | Terpenuhi | `WaktuTindakanMasaDepan_Ditolak400` |
 | 5. Waktu tindakan sebelum pasien masuk kamar ditolak `400` (`VAL-KEP-14`) | Terpenuhi | `WaktuTindakanSebelumMasukKamar_Ditolak400` |
-| 6. Unique parsial pada kunci idempotency terbentuk dengan penyaring kunci tidak kosong dan belum terhapus | **Terbukti sebagian** | Bentuknya terbukti pada model EF Core dan pada berkas migration; **penegakannya oleh PostgreSQL sungguhan belum terbukti** karena lingkungan ujinya tidak tersedia |
+| 6. Unique parsial pada kunci idempotency terbentuk dengan penyaring kunci tidak kosong dan belum terhapus | **Terpenuhi** | Bentuknya pada model EF Core dan berkas migration (`IndexKunciPermintaan_UniqueDanParsial`), **penegakannya** oleh database (`KunciKembar_DitolakDatabase` — baris kedua yang ditulis langsung tanpa melewati service ditolak `DbUpdateException`), **keparsialannya** (`TigaTindakanTanpaKunci_DiterimaSeluruhnya`), dan **bentuk akhirnya dibaca langsung dari katalog PostgreSQL**: `CREATE UNIQUE INDEX … WHERE (("IdempotencyKey" IS NOT NULL) AND ("IsDelete" = false))` |
 
 ### Definition of Done
 
@@ -219,11 +241,11 @@ Uji manual: `NOT FEASIBLE` — alasannya sama dengan `BE-RWI-059`.
 | Configuration | Terpenuhi |
 | `DbSet` | Terpenuhi |
 | Satu enum | **Terlampaui** — dua enum; penjelasannya pada bagian 7 |
-| Migration | Terpenuhi — `20260906151002_AddNursingIntervention`, **belum diterapkan** |
+| Migration | Terpenuhi — `20260906151002_AddNursingIntervention`. **Belum diterapkan** ke database bersama, dev, staging, atau production mana pun; yang menerimanya adalah container PostgreSQL 16 sekali pakai yang sudah dibuang |
 | Dua endpoint | Terpenuhi |
-| Penjaga idempotency di database | Terpenuhi pada **bentuk**; penegakannya belum diuji terhadap PostgreSQL |
-| Keenam acceptance criteria terbukti | **Belum** — kriteria 3 dan 6 terbukti sebagian |
-| **Uji PostgreSQL hijau** | **Belum terpenuhi** — `NOT RUN`, terhalang konfigurasi database uji |
+| Penjaga idempotency di database | **Terpenuhi** — bentuk dan penegakannya terbukti terhadap PostgreSQL 16 sungguhan |
+| Keenam acceptance criteria terbukti | **Terpenuhi** — keenamnya terbukti penuh |
+| **Uji PostgreSQL hijau** | **Terpenuhi** — `Failed: 0, Passed: 3, Total: 3` |
 | `dotnet build` lulus | Terpenuhi |
 
 ---
@@ -258,10 +280,11 @@ Uji manual: `NOT FEASIBLE` — alasannya sama dengan `BE-RWI-059`.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Jumlah warning solusi tetap `213`, sama persis dengan garis dasar |
-| Masalah yang diketahui | **Butir DoD "uji PostgreSQL hijau" belum terpenuhi.** Ujinya sudah ditulis dan sudah dapat dibangun; yang belum ada adalah database uji tersendiri. Begitu `QUILVIAN_BILLING_TEST_DB` diisi dengan database yang namanya mengandung `test`, ketiga uji berjalan tanpa perubahan kode |
-| Risiko tersisa | Idempotency yang hanya terbukti pada jalur berurutan **belum** membuktikan perlindungan terhadap dua instance aplikasi yang berjalan bersamaan. Bentuk index-nya sudah benar dan sudah masuk migration, tetapi penegakannya baru terbukti setelah uji PostgreSQL dijalankan |
+| Masalah yang diketahui | **Nol.** Butir DoD "uji PostgreSQL hijau" sudah terpenuhi pada 8 September 2026. Ramalan revisi sebelumnya terbukti tepat: ketiga uji berjalan **tanpa satu pun perubahan kode**, begitu `QUILVIAN_BILLING_TEST_DB` diarahkan ke database bernama `quilvian_kep_test` |
+| Risiko yang **sudah ditutup** | Perlindungan terhadap dua instance aplikasi yang berjalan bersamaan kini terbukti: yang menolak baris kedua adalah **database**, bukan pemeriksaan di dalam aplikasi yang kebetulan lebih dulu berjalan |
+| Risiko tersisa | Unique parsial itu baru **benar-benar** menjaga produksi setelah `20260906151002_AddNursingIntervention` diterapkan ke database yang dipakai aplikasi. Sampai itu terjadi, bukti hari ini berlaku bagi skema, bukan bagi baris yang sudah hidup. Penerapannya adalah wewenang terpisah dan **tidak** diminta task ini |
 | Risiko tersisa | `BillingManagement` belum memiliki kemampuan transaksi yang menerima pemicu `INT-KEP-05`. Tindakan yang dapat ditagih karena itu menunggu di keadaan `Pending`, dan tidak ada satu pun yang hilang sementara itu |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | 40 entri; nol berkas milik modul lain tersentuh |
-| Langkah berikutnya | 1. Minta database uji PostgreSQL tersendiri kepada pemilik infrastruktur, lalu jalankan ketiga uji itu dan naikkan task ini menjadi ✅. 2. `BE-RWI-062` melanjutkan dengan finalisasi, koreksi, dan pemisahan keadaan tagihan |
+| Status Git | Perubahan masih di working tree; **agent tidak menjalankan satu pun** `stage`, `commit`, `push`, `pull`, `merge`, `rebase`, maupun deployment. Validasi ulang 8 September 2026 **nol menyentuh berkas source**: yang berubah hanya laporan ini beserta roadmap dan `requirement-traceability.md` |
+| Langkah berikutnya | 1. Terapkan `20260906151002_AddNursingIntervention` ke database aplikasi lewat wewenang eksekusi database yang terpisah. 2. Pertimbangkan menuliskan resep container sekali pakai ini pada `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/README.md`, supaya uji PostgreSQL tidak lagi terhenti menunggu hak pada server bersama. 3. `BE-RWI-062` sudah selesai lebih dulu dan tetap hijau pada uji regresi hari ini |

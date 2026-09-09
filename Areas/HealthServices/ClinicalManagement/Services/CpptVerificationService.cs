@@ -48,6 +48,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
         public Guid? ProviderUserId { get; init; }
 
+        /// <summary>
+        /// Nama penulis catatan - <c>BE-RWI-067</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Kosong berarti penulisnya tidak dapat dikenali sama sekali. Nomor pengguna
+        /// <b>sengaja tidak</b> dipakai sebagai penggantinya: deretan angka dan huruf tidak
+        /// menolong supervisor yang sedang mencari siapa yang perlu diingatkan, dan menampilkan
+        /// nomor di kolom bernama "Penulis" hanya memindahkan pekerjaan menebak ke layar.
+        /// </para>
+        /// <para>
+        /// Diambil <b>snapshot lebih dulu</b>, baru relasi pengguna. Daftar pantau adalah catatan
+        /// historis: akun yang berganti nama tidak boleh mengubah nama penulis pada catatan lama.
+        /// </para>
+        /// </remarks>
+        public string? ProviderName { get; init; }
+
         public DateTime NoteDateTime { get; init; }
 
         public CpptVerificationStatus VerificationStatus { get; init; }
@@ -265,7 +282,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     x.ProviderUserId,
                     x.NoteDateTime,
                     x.VerificationStatus,
-                    x.VerificationDueAt
+                    x.VerificationDueAt,
+
+                    // BE-RWI-067. Kedua sumber nama ikut terbaca pada query yang sama; tidak ada
+                    // pembacaan tambahan per baris, dan tidak satu pun kolom isi catatan diambil.
+                    NamaSnapshot = x.ProviderDisplayNameSnapshot,
+                    NamaAkun = x.ProviderUser != null ? x.ProviderUser.DisplayName : null
                 })
                 .ToListAsync(cancellationToken);
 
@@ -278,6 +300,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     ProgressNoteNumber = x.ProgressNoteNumber,
                     ProfessionType = x.ProfessionType,
                     ProviderUserId = x.ProviderUserId,
+                    ProviderName = NamaPenulis(x.NamaSnapshot, x.NamaAkun),
                     NoteDateTime = x.NoteDateTime,
                     VerificationStatus = x.VerificationStatus,
                     VerificationDueAt = x.VerificationDueAt,
@@ -352,6 +375,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return true;
+        }
+
+        /// <summary>
+        /// Nama penulis sebuah catatan pada daftar pantau, atau <c>null</c> bila ia tidak dapat
+        /// disebutkan - <c>BE-RWI-067</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Snapshot lebih dulu, dan urutan itu mengikat.</b> Daftar pantau menyebut siapa yang
+        /// menulis sebuah catatan pada saat catatan itu ditulis. Ns. Sari yang menulis catatan
+        /// pada 1 September tetap Ns. Sari, walaupun akunnya berganti nama menjadi Ns. Sari
+        /// Wijaya pada 5 September. Membaca nama akun lebih dulu akan menulis ulang riwayat
+        /// setiap kali seseorang menikah, bergelar baru, atau namanya diperbaiki.
+        /// </para>
+        /// <para>
+        /// Penulis yang tidak dapat dikenali sama sekali menghasilkan <c>null</c>, bukan nomor
+        /// pengguna dan bukan nama tebakan.
+        /// </para>
+        /// </remarks>
+        private static string? NamaPenulis(string? snapshot, string? namaAkun)
+        {
+            if (!string.IsNullOrWhiteSpace(snapshot))
+                return snapshot.Trim();
+
+            if (!string.IsNullOrWhiteSpace(namaAkun))
+                return namaAkun.Trim();
+
+            return null;
         }
 
         /// <summary>
