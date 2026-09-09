@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -66,6 +66,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 InpEpisodeId = k.EpisodeId,
                 AssessmentType = jenis,
                 ChiefComplaint = "Lemas dan pusing sejak pagi",
+                FallRiskStatus = FallRiskStatus.NoRisk,
                 NutritionRiskStatus = NutritionRiskStatus.LowRisk
             };
 

@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -22,11 +23,15 @@ public sealed class OperatingRoomCaseService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
 
-    public OperatingRoomCaseService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
+    public OperatingRoomCaseService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor,
+        LoggerService loggerService, OperatingRoomRuleRelaxation relaxation)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _relaxation = relaxation;
     }
 
     public async Task<PagedResult<OprCaseSummaryResponse>> GetPagedAsync(OprCasePagedQuery request, CancellationToken cancellationToken = default)
@@ -75,7 +80,8 @@ public sealed class OperatingRoomCaseService
     {
         ValidateRequest(request.Procedures, request.Indication, request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
-        EnsureDoctorActor(GetCurrentDoctorId(), request.RequesterDoctorId);
+        if (!_relaxation.IsRelaxed)
+            EnsureDoctorActor(GetCurrentDoctorId(), request.RequesterDoctorId);
         var fingerprint = BuildFingerprint(request);
 
         var prior = await FindIdempotentCaseAsync("Request", request.IdempotencyKey, cancellationToken);
@@ -125,7 +131,7 @@ public sealed class OperatingRoomCaseService
     {
         ValidateRequest(request.Procedures, request.Indication, request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
-        var actorDoctorId = GetCurrentDoctorId();
+        var actorDoctorId = _relaxation.IsRelaxed ? Guid.Empty : GetCurrentDoctorId();
         var fingerprint = BuildFingerprint(request);
         var prior = await FindIdempotentCaseAsync("UpdateRequest", request.IdempotencyKey, cancellationToken);
         if (prior != null)
@@ -142,7 +148,8 @@ public sealed class OperatingRoomCaseService
             throw new OperatingRoomConflictException("InvalidStateTransition", "Permintaan hanya dapat diubah pada status Requested.");
         if (entity.Version != request.ExpectedVersion)
             throw new OperatingRoomConflictException("OPR012", "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
-        if (actorDoctorId != entity.RequesterDoctorId && actorDoctorId != entity.PrimarySurgeonId)
+        if (!_relaxation.IsRelaxed &&
+            actorDoctorId != entity.RequesterDoctorId && actorDoctorId != entity.PrimarySurgeonId)
             throw new OperatingRoomForbiddenException("Hanya dokter pemohon atau dokter bedah utama yang boleh mengubah permintaan.");
 
         await ValidateReferencesAsync(entity.PatientId, entity.EncounterId, request.RequesterDoctorId,
