@@ -670,7 +670,7 @@ Keempatnya tetap wewenang terpisah, dan `BE-ACC-006` tetap punya gerbangnya send
 | `shape_decided_by` | `USER` — tersirat pada FINAL OWNER APPROVAL 1 September 2026 |
 | `backend_commit_sha` | `02c3219` (branch `rizkiG`) |
 | `frontend_commit_sha` | `e732424eb` (branch `RizkiV2`) |
-| `decision_revision` | `2.0` — `ACC-DEC-044` sampai `ACC-DEC-060` |
+| `decision_revision` | `2.1` — `ACC-DEC-044` sampai `ACC-DEC-063` |
 | `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` — keempat slice |
 | `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` — `ACC-DOMAIN-P2-0.2` |
 

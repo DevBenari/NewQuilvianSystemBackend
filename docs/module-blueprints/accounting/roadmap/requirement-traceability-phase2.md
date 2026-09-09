@@ -6,7 +6,7 @@
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
 roadmap_revision: 1
-decision_revision: 1.9
+decision_revision: 2.2
 contracts: [ACC-API-0.7, ACC-STATE-0.2, ACC-VALIDATION-0.5, ACC-PERMISSION-0.4]
 scope_waves: [P2-3, P2-4, P2-5]
 generated_at: 2026-09-08
@@ -57,14 +57,28 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 
 ---
 
+## 3b. Control account dan rekonsiliasi (`P2-CTRL`, `P2-RECON`) — amandemen 9 September 2026
+
+| Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
+|---|---|---|---|---|---|---|
+| `FR-P2-035` | Akun dapat ditandai sebagai control account | `ACC-DEC-064` | `BE-ACC-P2-011` | `FE-ACC-P2-007` | — | `Planned` |
+| `FR-P2-036` | Jurnal **manual** ke control account ditolak | `ACC-DEC-064` | `BE-ACC-P2-012` | `FE-ACC-P2-007` | `UAT-P2-24` | `Planned` |
+| `FR-P2-037` | Jurnal dari kejadian, template, dan tutup tahun **tidak** terkena larangan itu | `ACC-DEC-064` | `BE-ACC-P2-012` | — | `UAT-P2-25` | `Planned` |
+| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `ACC-DEC-065` | `BE-ACC-P2-005` sebagian, penuh menunggu `P2-1` | `FE-ACC-P2-001` | `UAT-P2-26` | `Planned` — tempatnya disediakan, penegakannya menyusul |
+| `FR-P2-039` | Saldo control account dihitung dari baris `Posted` | `ACC-DEC-066` | `BE-ACC-P2-013` | `FE-ACC-P2-008` | `UAT-P2-27` | `Planned` |
+| `FR-P2-040` | Saldo subledger dibandingkan dan selisihnya dilaporkan | `ACC-DEC-066` | `BE-ACC-P2-014` ⛔ | `FE-ACC-P2-008` | `UAT-P2-28` | **`BLOCKED`** oleh `DEC-ACC-P2-011` |
+
+**Tiga skenario UAT baru** perlu ditambahkan ke `04-prd-to-mvp.md`: `UAT-P2-24` sampai `UAT-P2-28`.
+Dicatat sebagai coverage gap sampai dokumen itu diperbarui.
+
 ## 4. Ringkasan cakupan
 
 | Hal | Jumlah |
 |---|---:|
-| Requirement dalam lingkup roadmap ini | **17** dari 34 |
+| Requirement dalam lingkup roadmap ini | **23** dari 40 — bertambah 6 lewat amandemen 9 Sep |
 | Requirement di luar lingkup (kotak masuk kejadian) | 17 |
-| Task backend | 10 |
-| Task frontend | 6 |
+| Task backend | **14** — satu di antaranya ⛔ `BLOCKED` |
+| Task frontend | **8** |
 | Skenario UAT dalam lingkup | **13** dari 23 |
 | Task yang sudah selesai | **0** |
 
@@ -87,3 +101,4 @@ dicatat supaya tidak dianggap sudah teruji:
 | `ACC-TD-016` | Nol test backend Accounting yang ada sekarang. Dua task pada roadmap ini menyentuh `AccJournalService` milik MVP tanpa jaring regresi | Rizki |
 | `ACC-TEST-0.1` | `testing/acceptance-test-matrix.md` belum punya kolom bukti yang **sudah ada**. Ketiga belas UAT roadmap ini tidak punya tempat dicatat saat dijalankan | Rizki |
 | `ACC-GAP-001` | `requirement-traceability.md` milik MVP masih beku pra-implementasi. Dokumen ini sengaja dibuat terpisah agar tidak mewarisi masalah yang sama | Rizki |
+| `DEC-ACC-P2-011` | **Baru 9 Sep 2026.** Dari mana Accounting memperoleh **saldo subledger** untuk laporan rekonsiliasi (`ACC-DEC-066`), mengingat ia dilarang membaca tabel Finance maupun Billing (`ACC-DEC-061`)? Tiga kemungkinan: Finance menerbitkan kejadian saldo berkala, Finance menyediakan API yang dipanggil Accounting, atau laporannya disusun di luar Accounting | Rizki + owner Finance |

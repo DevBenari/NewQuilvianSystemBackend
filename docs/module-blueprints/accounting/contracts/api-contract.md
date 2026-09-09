@@ -36,7 +36,7 @@ Contract version: `ACC-API-0.3` — status `approved`
 | `GET` | `/tree` | Menampilkan akun sebagai susunan induk dan anak untuk satu badan hukum | `ChartOfAccount : Read` | `legalEntityId` pada query | `ApiResponse<List<ChartOfAccountTreeDto>>` |
 | `GET` | `/options` | Daftar ringkas akun yang menerima transaksi dan aktif, untuk isian pilihan pada form jurnal | `ChartOfAccount : Read` | `legalEntityId`, `search` pada query | `ApiResponse<List<ChartOfAccountOptionDto>>` |
 | `POST` | `/` | Menambah akun baru | `ChartOfAccount : Create` | `CreateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
-| `PUT` | `/{id}` | Mengubah kode, nama, induk, tingkat, atau keterangan akun. **Kode hanya dapat diubah selama akun belum dipakai jurnal yang disahkan** (`ACC-DEC-042`) | `ChartOfAccount : Update` | `UpdateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
+| `PUT` | `/{id}` | Mengubah kode, nama, induk, tingkat, keterangan, atau **penanda control account** akun. **Kode hanya dapat diubah selama akun belum dipakai jurnal yang disahkan** (`ACC-DEC-042`) | `ChartOfAccount : Update` | `UpdateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
 | `PATCH` | `/{id}/deactivate` | Menonaktifkan akun | `ChartOfAccount : Update` | `DeactivateChartOfAccountDto` | `ApiResponse<ChartOfAccountDetailDto>` |
 | `PATCH` | `/{id}/activate` | Mengaktifkan kembali akun | `ChartOfAccount : Update` | — | `ApiResponse<ChartOfAccountDetailDto>` |
 
@@ -71,6 +71,20 @@ mengujinya akan selalu lulus tanpa membuktikan apa pun.
 Owner memutuskan mengikuti bacaan validation matrix: **`AccountCode` dapat diubah selama akun
 belum dipakai baris jurnal yang disahkan.** Deskripsi `PUT` di atas diperbaiki mengikuti keputusan
 itu, dan `UpdateChartOfAccountDto` memuat `AccountCode`.
+
+### `ACC-DEC-064` — penanda control account, 9 September 2026
+
+`CreateChartOfAccountDto` dan `UpdateChartOfAccountDto` bertambah satu bidang:
+
+| Bidang | Tipe | Wajib | Bawaan | Keterangan |
+|---|---|:---:|---|---|
+| `IsControlAccount` | `bool` | Tidak | `false` | Akun bertanda ini **menolak baris jurnal manual**; pencatatannya hanya sah lewat kejadian akuntansi atau subledger |
+
+`ChartOfAccountDetailDto` dan `ChartOfAccountListDto` ikut memuatnya supaya layar COA dapat
+menampilkan penandanya, dan supaya Form Jurnal dapat menyaring akun control dari pemilihnya.
+
+**Ini perubahan pada kontrak Phase 1**, dikerjakan sebagai bagian Phase 2 lewat `BE-ACC-P2-011`.
+Nol endpoint bertambah; hanya bidang pada DTO yang sudah ada.
 
 Jurnal `Draft` **tidak** mengunci kode — ia belum menjadi transaksi. Dibuktikan
 `ChartOfAccountServiceTests.JurnalDraft_TidakMenguncikanAkun`.

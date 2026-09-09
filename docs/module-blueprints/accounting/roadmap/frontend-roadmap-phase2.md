@@ -6,15 +6,15 @@
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved
-roadmap_revision: 1
+roadmap_revision: 2                 # amandemen 9 Sep 2026 - ACC-DEC-064, 066
 roadmap_status: APPROVED
 approved_by: [Rizki]
-approved_at: 2026-09-08
+approved_at: 2026-09-09
 source_backend: 02c3219
 source_frontend: e732424eb          # branch RizkiV2
-decision_revision: 1.9
-contracts: [ACC-API-0.7, ACC-STATE-0.2, ACC-VALIDATION-0.5, ACC-PERMISSION-0.4]
-scope_waves: [P2-3, P2-4, P2-5]
+decision_revision: 2.2
+contracts: [ACC-API-0.8, ACC-STATE-0.2, ACC-VALIDATION-0.6, ACC-PERMISSION-0.4]
+scope_waves: [P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON]
 ```
 
 ## Baca ini lebih dahulu
@@ -51,6 +51,8 @@ bagian 11.
 | `FE-ACC-P2-004` | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
 | `FE-ACC-P2-005` | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | `READY` |
 | `FE-ACC-P2-006` | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | `READY` |
+| `FE-ACC-P2-007` | **Penanda control account pada layar COA** | `P2-CTRL` | `BE-ACC-P2-011` | `READY` |
+| `FE-ACC-P2-008` | **Layar Rekonsiliasi Control Account** | `P2-RECON` | `BE-ACC-P2-013` | `READY` sebagian — lihat kartunya |
 
 ---
 
@@ -152,6 +154,36 @@ bagian 11.
 
 ---
 
+## `FE-ACC-P2-007` — Penanda control account pada layar COA
+
+| Field | Isi |
+|---|---|
+| Outcome | Petugas dapat menandai sebuah akun sebagai control account, dan melihat penandanya di daftar |
+| Trace | `ACC-DEC-064` |
+| Kontrak | `ACC-API-0.8` grup Chart of Account |
+| Reuse | **Layar COA dan Form Akun yang sudah ada dari MVP.** Ini penambahan satu kolom dan satu kotak centang, **bukan layar baru** |
+| Cakupan | Satu kotak centang pada Form Akun, satu kolom penanda pada tabel COA, dan penjelasan singkat maknanya |
+| Dependency | `BE-ACC-P2-011` |
+| Acceptance | (1) Kotak centang hanya menyala bagi yang berhak mengubah akun. (2) Tabel COA menampilkan penandanya sehingga terbaca sekilas. (3) **Layar Form Jurnal menyembunyikan atau mematikan akun control dari pemilih akunnya**, disertai keterangan kenapa — supaya petugas tahu sebelum mengisi, bukan setelah ditolak |
+| Verifikasi | `npm run lint`; `npm run build`; unit test |
+| Risiko/pemilik | **Acceptance (3) yang paling menentukan pengalaman pemakaian.** Tanpa itu petugas baru tahu akunnya terlarang sesudah menekan Simpan dan ditolak `422`. Owner Frontend |
+| DoD | Lint dan build hijau, laporan task tertulis |
+| Status | `READY` |
+
+## `FE-ACC-P2-008` — Layar Rekonsiliasi Control Account
+
+| Field | Isi |
+|---|---|
+| Outcome | Saldo control account di buku besar tampil berdampingan dengan saldo subledger, beserta selisihnya |
+| Trace | `ACC-DEC-066` |
+| Reuse | Komponen tabel dan format rupiah dari layar Neraca Saldo |
+| Cakupan | Butir menu tingkat 2 `/accounting/reconciliation` |
+| Dependency | `BE-ACC-P2-013` untuk sisi buku besar; `BE-ACC-P2-014` untuk sisi subledger |
+| Acceptance | (1) Kolom saldo buku besar tampil segera setelah `BE-ACC-P2-013` berdiri. (2) **Kolom saldo subledger dan selisih ditampilkan sebagai "belum tersedia"**, bukan disembunyikan — supaya pembaca tahu laporannya memang belum lengkap, bukan mengira selisihnya nol. (3) Tidak memakai cache |
+| Risiko/pemilik | Menyembunyikan kolom yang belum ada datanya membuat laporan **terbaca seolah sudah cocok**. Itu kesalahan yang paling mahal pada layar rekonsiliasi. Owner Frontend |
+| DoD | Lint dan build hijau, laporan task tertulis |
+| Status | **`READY` sebagian** — sisi buku besar dapat dikerjakan; kolom subledger menunggu `BE-ACC-P2-014` yang ⛔ `BLOCKED` oleh `DEC-ACC-P2-011` |
+
 ## Peta butir menu yang ditambahkan
 
 | Butir menu | Tingkat | Induk | Route | Task |
@@ -159,6 +191,7 @@ bagian 11.
 | Jurnal Berulang | 2 | Accounting | `/accounting/recurring-journals` | `FE-ACC-P2-003` |
 | Tutup Tahun | 2 | Accounting | `/accounting/year-end-closing` | `FE-ACC-P2-006` |
 | Pengaturan Akuntansi | 3 | Accounting › Master Data | `/accounting/configuration` | `FE-ACC-P2-005` |
+| Rekonsiliasi Control Account | 2 | Accounting | `/accounting/reconciliation` | `FE-ACC-P2-008` |
 
 Daftar Periksa Penutupan **bukan** butir menu — ia layar anak dari Periode Akuntansi, sesuai
 `03-frontend-architecture.md` bagian 9.

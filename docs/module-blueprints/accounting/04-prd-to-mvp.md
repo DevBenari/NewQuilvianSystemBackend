@@ -727,6 +727,28 @@ Menambah tabel atau kolom Phase 2 ke MVP dengan alasan future proofing — terma
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
 | Backend SHA | `02c3219` · Frontend SHA `e732424eb` |
 
+## 21b. Penegasan lingkup Phase 1 — 9 September 2026
+
+`ACC-DEC-066` menegaskan lingkup Phase 1 **tidak berubah** dan tetap lima hal: **COA, Jurnal,
+Posting, Buku Besar, dan Neraca Saldo**. Rekonsiliasi control account masuk Phase 2, bukan
+penghalang Phase 1.
+
+Satu-satunya yang menyentuh artefak Phase 1 adalah `ACC-DEC-064`:
+
+| Yang berubah | Berkas | Dikerjakan lewat |
+|---|---|---|
+| Kolom `IsControlAccount` | `AccChartOfAccount` | `BE-ACC-P2-011` |
+| Penolakan baris jurnal manual ke akun control | `AccJournalService` | `BE-ACC-P2-012` |
+| Bidang pada DTO akun | `ACC-API-0.8` | `BE-ACC-P2-011` |
+| Kotak centang dan kolom penanda | Layar COA dan Form Akun | `FE-ACC-P2-007` |
+
+**Ke-31 endpoint Phase 1 tidak bertambah maupun berkurang.** Yang bertambah hanya satu bidang
+pada DTO akun yang sudah ada, dan satu pemeriksaan pada jalur simpan jurnal.
+
+Kemampuan Phase 1 yang sudah berjalan — membuat akun, membuat jurnal manual, mengesahkannya, dan
+membaca buku besar serta neraca saldo — **tidak satu pun berhenti bekerja**. Yang berubah hanya:
+akun yang **sengaja ditandai** sebagai control account tidak lagi menerima jurnal manual.
+
 ## 22. Batas Phase 2 — titik mulai dan titik akhir
 
 **Titik mulai:** MVP sudah berjalan. Daftar akun terisi, periode dibangkitkan, jurnal manual dapat

@@ -230,12 +230,24 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | Periode harus menerima pencatatan | Terbitkan | Periode `SoftClosed`, `Closed`, atau `PendingClosingApproval` | `422` | "Periode tujuan tidak menerima pencatatan baru." |
 | Template nonaktif tidak terbit | Terbitkan | `IsActive = false` | `409` | "Template sedang tidak aktif." |
 
+## 3b. Jurnal manual ke control account
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| **Control account menolak jurnal manual** | Simpan, Ajukan | Ada baris jurnal manual menunjuk akun ber-`IsControlAccount = true` | `422` | "Akun ini hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal manual." |
+| Penandaan control account hanya oleh yang berhak | Ubah akun | Pengguna tanpa hak mengubah `IsControlAccount` | `403` | — |
+
+**Berlaku pada jurnal yang dibuat manusia lewat layar Jurnal Manual.** Jurnal yang lahir dari
+kejadian akuntansi, template berulang, dan jurnal penutup tahun **tidak** terkena aturan ini —
+justru merekalah jalur yang sah menuju control account (`ACC-DEC-064`).
+
 ## 4. Penutupan periode
 
 | Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
 |---|---|---|---|---|
 | Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu | `409` | "Masih ada N jurnal yang belum disahkan." |
 | Tidak boleh ada kejadian gagal | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
+| **Seluruh shift kasir periode itu harus tertutup** | Ajukan | Belum ada kejadian `CASH_SHIFT_CLOSED` untuk salah satu shift pada periode itu | `409` | "Masih ada shift kasir yang belum ditutup." (`ACC-DEC-065`) |
 | Periode harus berstatus `Open` | Ajukan | Status bukan `Open` | `409` | "Periode ini tidak dalam keadaan terbuka." |
 | **Penyetuju bukan pengaju** | Setujui | `ActionBy == ClosingSubmittedBy` | `403` | "Penutupan tidak dapat disetujui oleh orang yang mengajukannya." |
 | Penolakan wajib beralasan | Tolak | `ActionNote` kosong | `400` | "Alasan penolakan wajib diisi." |

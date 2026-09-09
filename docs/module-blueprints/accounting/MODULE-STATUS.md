@@ -123,9 +123,45 @@ Billing yang berdampak keuangan. Temuannya besar:
 **Akibatnya bila dibiarkan:** Accounting hanya menerima sisi pengakuan pendapatan. Piutang tumbuh
 selamanya, kas tidak pernah bergerak, dan empat akun neraca tidak akan pernah ada isinya.
 
-**Status pertanyaan lintas modul per 9 September 2026:** pertanyaan 1–6 (jalur AR/AP) **sudah
-dijawab** owner Billing → `ACC-DEC-059` dan `ACC-DEC-060`. Pertanyaan 7–12 (sebelas peristiwa kas)
-**sudah dikirim, menunggu jawaban**.
+**Status pertanyaan lintas modul per 9 September 2026: SELURUH DUA BELAS TERJAWAB.**
+
+| Kiriman | Hasil |
+|---|---|
+| Pertanyaan 1–6, jalur AR/AP | `ACC-DEC-059`, `ACC-DEC-060` |
+| Pertanyaan 7–12, sebelas peristiwa kas | `ACC-DEC-061`, `ACC-DEC-062`, `ACC-DEC-063` |
+
+**Tiga hal terpenting yang berubah:**
+
+1. **Finance penerbit tunggal** untuk seluruh kejadian keuangan — lebih luas dari `ACC-DEC-044`
+   yang semula hanya menyebut tagihan pasien. Billing menyerahkan fakta operasional ke Finance,
+   tidak menerbitkan langsung ke Accounting.
+2. **Pola subledger dan control account** masuk ke rancangan — konsep yang belum pernah ada di
+   blueprint mana pun. Kas diringkas **per shift kasir**, rinciannya tinggal di subledger
+   Billing/Kasir. Volume jurnal turun dari puluhan ribu per bulan menjadi beberapa per hari.
+3. **`DEC-ACC-P2-009` batal diperlukan.** Mekanisme komponen `ACC-DEC-058` — yang diputuskan
+   8 September untuk alasan berbeda — ternyata sudah menangani beberapa cara bayar dalam satu
+   kejadian ringkasan shift.
+
+**Yang tersisa hanya urusan dengan owner Finance:** bentuk pesan dua belas bidang, daftar jenis
+kejadian (`DEC-ACC-P2-002`), dan sumber saldo subledger untuk rekonsiliasi (`DEC-ACC-P2-011`).
+
+### Keputusan owner 9 September 2026 — `ACC-DEC-064`, `065`, `066`
+
+Diambil sesudah menilai dampak jawaban owner Billing terhadap kedua fase.
+
+| Keputusan | Isi | Menyentuh Phase 1? |
+|---|---|:---:|
+| `ACC-DEC-064` | **Control account dikunci dari jurnal manual** — Kas Kasir, Kas Kecil, Piutang, Hutang | **YA** — kolom baru pada `AccChartOfAccount` dan penolakan di `AccJournalService` |
+| `ACC-DEC-065` | **Shift kasir belum ditutup menjadi penghalang ketiga** tutup bulan, dideteksi lewat kejadian `CASH_SHIFT_CLOSED` | Tidak |
+| `ACC-DEC-066` | **Rekonsiliasi control account masuk Phase 2** — perbandingan saldo GL, saldo subledger, dan laporan selisih. Lingkup Phase 1 tidak berubah | Tidak |
+
+**Roadmap Phase 2 perlu diamandemen** — satu task baru untuk `ACC-DEC-064`, perubahan acceptance
+`BE-ACC-P2-005`, dan penambahan cakupan `BE-ACC-P2-004`. Rinciannya di
+[`roadmap/backend-roadmap-phase2.md`](roadmap/backend-roadmap-phase2.md) bagian *Dampak keputusan
+9 September 2026*. Penulisannya menuntut `plan-module-delivery`, bukan wewenang task builder.
+
+**Kedua task yang sudah dibangun tidak terpengaruh.** `BE-ACC-P2-001` dan `BE-ACC-P2-002` nol
+menyentuh integrasi maupun control account.
 
 **Akibatnya pada `ACC-XM-001`:** pertanyaannya berubah bentuk. Bukan lagi "siapa penerbitnya",
 melainkan **"penerbitnya berbeda menurut jenis peristiwa"** — karena Finance tidak punya

@@ -557,3 +557,145 @@ Jawaban 6 justru menyebutnya sendiri sebagai hal yang perlu di-amendment.
 | Kesiapan AP | **DISEPAKATI** — `READY` + `ReadyAt` |
 | Bentuk pesan Finance → Accounting | **BELUM** — menunggu owner Finance |
 | Penerbit sebelas peristiwa kas | **BELUM** — pertanyaan 7–12 belum dijawab |
+
+
+---
+
+# BAGIAN KEEMPAT — Jawaban Owner Billing atas Pertanyaan 7–12
+
+| Field | Nilai |
+|---|---|
+| Diterima | 9 September 2026 |
+| Menjawab | Enam pertanyaan bagian 17 (sebelas peristiwa kas) |
+| Akibat | **Tiga keputusan baru** dan **satu perubahan rancangan yang batal diperlukan** |
+
+## 23. Jawaban apa adanya
+
+| # | Pertanyaan | Jawaban owner Billing |
+|---:|---|---|
+| 7 | Mana yang Billing terbitkan sendiri, mana lewat Finance? | **Billing tidak menerbitkan jurnal langsung.** Billing menerbitkan fakta/handoff **operasional** ke Finance. **Finance** yang menerbitkan financial event resmi ke Accounting. **Tidak semua state change menjadi jurnal** |
+| 8 | Tambah handoff, atau Accounting membaca tabel Billing? | **Tambah handoff/event.** Jangan Accounting membaca tabel Billing — direct table read melanggar boundary Accounting yang sudah ditetapkan |
+| 9 | Kas per transaksi atau diringkas per shift? | **Diringkas per shift kasir.** Detail transaksi dan tender tetap disimpan di **subledger** Billing/Kasir untuk audit |
+| 10 | Selisih kas saat `CLOSED_WITH_VARIANCE` atau `REVIEWED`? | `CLOSED_WITH_VARIANCE` = variance terdeteksi, **belum final**. `REVIEWED` = disposition sudah disahkan. Idealnya ada event deteksi + event resolution; bila hanya boleh satu jurnal, **posting final saat `REVIEWED`** |
+| 11 | Penghapusan piutang diterbitkan Billing atau Finance? | **Billing tetap owner workflow approval** write-off, tetapi **Finance owner pengurangan saldo AR** dan penerbit financial event ke Accounting. Jangan pindahkan approval Billing ke Finance hanya karena Finance punya AR |
+| 12 | Kas kecil di dalam atau di luar buku besar? | Operasionalnya terpisah, **tetapi bukan di luar General Ledger**. Pakai **subledger/control account Petty Cash** sendiri, lalu dampak finansialnya tetap masuk Accounting |
+
+## 24. Yang berubah pada arsitektur Accounting
+
+### 24.1 Finance adalah penerbit TUNGGAL, dan itu lebih luas dari yang kami tulis
+
+`ACC-DEC-044` menetapkan Finance sebagai penerbit **atas tagihan pasien**. Jawaban 7 dan 11
+memperluasnya: Finance adalah penerbit **seluruh** kejadian keuangan ke Accounting, termasuk kas,
+deposit, penghapusan piutang, dan kas kecil.
+
+Ini **menyederhanakan** rancangan kami, bukan memperumitnya:
+
+| Dugaan kami sebelumnya | Kenyataannya |
+|---|---|
+| Sepuluh dari sebelas peristiwa milik Billing/Kasir, sehingga Finance tidak punya visibilitas | Billing menyerahkan **fakta operasional** ke Finance lebih dahulu; Finance yang menerbitkan ke Accounting |
+| Accounting mungkin perlu berlangganan ke dua penerbit | **Satu penerbit saja: Finance** |
+| Kolom "Usulan penerbit" pada tabel bagian 11 | **Salah seluruhnya.** Seharusnya Finance untuk kesebelasnya |
+
+Konsekuensi yang menguntungkan: kotak masuk kejadian Accounting hanya perlu melayani **satu**
+sumber, dan aturan anti-ganda `ACC-DEC-035` cukup dijaga terhadap satu penerbit.
+
+### 24.2 Pola subledger dan control account — konsep BARU bagi rancangan kami
+
+Jawaban 9 dan 12 memperkenalkan pola yang **belum pernah disebut** blueprint Accounting mana pun.
+
+| Lapis | Isi | Pemilik |
+|---|---|---|
+| **Subledger** | Rincian tiap transaksi dan tender, tiap voucher kas kecil | Billing / Kasir |
+| **Control account** di buku besar | Saldo ringkas: Kas Kasir, Kas Kecil | **Accounting** |
+
+Buku besar memegang **saldo**, subledger memegang **rinciannya**. Keduanya wajib cocok, dan
+ketidakcocokan itulah yang dicari saat rekonsiliasi.
+
+Ini juga menjawab kepedulian yang kami catat sendiri pada 8 September — bahwa belum ada laporan
+pembanding antara saldo buku besar dan daftar rincian modul asal. Jawabannya: itu **rekonsiliasi
+control account**, dan ia memang bagian dari pola ini.
+
+### 24.3 Kas diringkas per shift — volume turun drastis
+
+| | Per transaksi | **Per shift kasir (dipilih)** |
+|---|---|---|
+| Baris jurnal per bulan | Puluhan ribu | **Beberapa per hari** |
+| Penelusuran ke transaksi | Langsung | Lewat nomor shift ke subledger |
+| Beban laporan | Berat | Ringan |
+
+`SourceTransactionId` pada kejadian ringkasan kas berisi **nomor shift**, bukan nomor transaksi.
+
+### 24.4 Selisih kas dijurnal saat `REVIEWED`
+
+Jawaban 10 menawarkan dua bentuk. Kami memilih yang sederhana: **satu jurnal, saat `REVIEWED`**.
+
+Alasannya: `CLOSED_WITH_VARIANCE` berarti selisihnya baru terdeteksi dan belum diketahui
+sebabnya. Menjurnalnya saat itu berarti mengakui beban yang mungkin ternyata hanya salah hitung
+kasir, lalu harus dibalik. Menunggu `REVIEWED` berarti yang masuk buku besar sudah berupa
+keputusan, bukan dugaan.
+
+Kejadian deteksi tetap boleh dikirim sebagai **pemberitahuan tanpa jurnal** — jawaban 7 sendiri
+menyatakan tidak semua state change menjadi jurnal.
+
+## 25. Satu perubahan rancangan yang BATAL diperlukan
+
+**`DEC-ACC-P2-009` tidak jadi dibutuhkan.**
+
+Pada 9 September kami mencatat masalah: `AccPostingRule` berkunci `(LegalEntityId, EventTypeId)`,
+padahal "pelunasan faktur" adalah satu jenis kejadian yang mendebit akun berbeda menurut cara
+bayarnya. Usulannya menambah dimensi kedua `PAYMENT_METHOD` pada aturan posting.
+
+**Jawaban 9 membuat usulan itu tidak perlu.** Karena kas diringkas per shift, satu kejadian
+ringkasan membawa **beberapa cara bayar sekaligus** — dan mekanisme **komponen** yang sudah
+ditetapkan `ACC-DEC-058` menanganinya apa adanya:
+
+Kejadian `Ringkasan Kas Shift SH-20260909-01`, nilai total Rp 10.000.000, dengan komponen:
+
+| Komponen | Nilai |
+|---|---:|
+| `TUNAI` | Rp 5.000.000 |
+| `TRANSFER` | Rp 3.000.000 |
+| `KARTU` | Rp 2.000.000 |
+
+Aturan postingnya empat baris:
+
+| Baris | Komponen | Akun | Sisi |
+|---:|---|---|---|
+| 1 | `TUNAI` | Kas Kasir | Debit |
+| 2 | `TRANSFER` | Bank | Debit |
+| 3 | `KARTU` | Bank | Debit |
+| 4 | `TOTAL` | Piutang | Kredit |
+
+Debit Rp 10.000.000 lawan kredit Rp 10.000.000, seimbang, tanpa satu pun kolom tambahan pada
+aturan posting.
+
+**`DEC-ACC-P2-009` ditutup sebagai `TIDAK DIPERLUKAN`.** Ini kebetulan yang menguntungkan:
+`ACC-DEC-058` diputuskan 8 September untuk alasan yang sama sekali berbeda — jasa medis dokter dan
+potongan penjualan — dan ternyata menyelesaikan ini juga.
+
+## 26. Akun yang dibutuhkan — diperbarui
+
+Tabel bagian 12 tetap berlaku, dengan dua penajaman dari jawaban 9 dan 12:
+
+| Akun | Peran |
+|---|---|
+| Kas Kasir | **Control account** — saldonya wajib cocok dengan subledger kasir |
+| Kas Kecil | **Control account** — saldonya wajib cocok dengan subledger kas kecil |
+| Bank | Menampung transfer, kartu, dan QRIS |
+| Utang Deposit Pasien, Utang Kelebihan Bayar, Beban Piutang Tak Tertagih, Selisih Kas | Seperti bagian 12 |
+
+## 27. Keadaan `ACC-XM-001` sesudah kedua kiriman
+
+| Hal | Keadaan |
+|---|---|
+| Arah rantai Billing → Finance → Accounting | **Disepakati** |
+| Finance penerbit **tunggal** untuk seluruh kejadian | **Disepakati** — jawaban 7 dan 11 |
+| Accounting **tidak** membaca tabel modul lain | **Disepakati** — jawaban 8 |
+| Kas diringkas per shift, rincian di subledger | **Disepakati** — jawaban 9 |
+| Kas kecil masuk GL lewat control account | **Disepakati** — jawaban 12 |
+| Selisih kas dijurnal saat `REVIEWED` | **Disepakati** — jawaban 10 |
+| Bentuk pesan dua belas bidang | **Belum** — menunggu owner Finance |
+| Daftar jenis kejadian yang akan diterbitkan Finance | **Belum** — `DEC-ACC-P2-002`, kini jelas ini milik Finance |
+
+**Seluruh pertanyaan ke owner Billing sudah terjawab.** Yang tersisa hanya urusan dengan owner
+Finance.

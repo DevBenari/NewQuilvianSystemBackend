@@ -161,6 +161,7 @@ classDiagram
         +NormalBalance NormalBalance
         +bool IsPostable
         +bool IsActive
+        +bool IsControlAccount
     }
     class AccJournalType {
         +Guid Id
@@ -618,6 +619,7 @@ Bagian ini mencegah orang berikutnya mengusulkan ulang hal yang sama.
 | `DbContext` khusus Accounting | `AGENTS.md` menetapkan satu `ApplicationDbContext` untuk seluruh aplikasi |
 | Lapisan repository atau interface service | Repository ini memakai `ApplicationDbContext` langsung, dan service tanpa interface. Menambah abstraksi baru melanggar konvensi yang berlaku |
 | Kolom `RequiresCostCenter` pada `AccChartOfAccount` | Kewajiban Cost Center diturunkan dari `AccountType == Expense` sesuai `ACC-DEC-019`. Kolom tersendiri menciptakan sumber kebenaran kedua yang bisa bertentangan |
+| ~~Kolom penanda control account~~ | **DIBATALKAN 9 September 2026 oleh `ACC-DEC-064`.** Kolom `IsControlAccount` **dibuat**. Berbeda dari baris di atasnya, penanda ini **tidak dapat diturunkan** dari data lain: `Kas Kasir` dan `Piutang` sama-sama berjenis `Asset`, tetapi tidak setiap akun `Asset` adalah control account. Tidak ada sumber kebenaran kedua yang mungkin bertentangan, karena memang tidak ada sumber pertama |
 | Kolom mata uang, kurs, dan selisih kurs | Dilarang `ACC-DEC-020`; rilis pertama hanya rupiah |
 | Kolom `SourceDomain` dan `SourceTransactionId` pada `AccJournal` | Milik jalur jurnal otomatis yang ada di Phase 2. Menambahkannya sekarang berarti menebak bentuk kontrak yang `ACC-XM-001`-nya belum diputuskan. Ditambahkan nanti sebagai kolom baru yang boleh kosong |
 | Tabel kotak masuk kejadian dan pemetaan posting | Phase 2 (`ACC-DEC-009`, `ACC-DEC-036`) |
@@ -1014,6 +1016,7 @@ folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
 | `AccRecurringJournalRun` | **Baru** | — | **Unique `(TemplateId, AccountingPeriodId)`** — inilah penjaga terbit ganda |
 | `AccPeriodClosingApproval` | **Baru** | — | Unique `(AccountingPeriodId, ActionSequence)` |
 | `AccAccountingConfiguration` | **Baru** | — | Unique `(LegalEntityId)` |
+| `AccChartOfAccount` | **Diperbarui** | Bertambah **satu kolom**: `IsControlAccount` (`bool`, bawaan `false`, tidak boleh kosong). Index biasa. **Ini artefak Phase 1 yang diubah oleh keputusan Phase 2** (`ACC-DEC-064`) | Index `(IsControlAccount)` |
 | `AccAccountingPeriod` | **Diperbarui** | Bertambah **dua kolom**: `ClosingSubmittedBy` (`uuid`, boleh kosong) dan `ClosingSubmittedAt` (`timestamptz`, boleh kosong). Enum `PeriodStatus` bertambah nilai `4`; **kolomnya tidak berubah tipe** | Tidak ada index baru |
 
 **Dua unique index yang paling menentukan**, dan alasannya:
@@ -1030,7 +1033,7 @@ folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
 
 | Urutan | Nama migration | Isi | Tanpa downtime? | Langkah mundur |
 |---:|---|---|:---:|---|
-| 1 | `AddAccountingPhase2MasterData` | `AccEventType`, `AccPostingRule`, **`AccPostingRuleLine`**, `AccAccountingConfiguration` | **Ya** — hanya tabel baru | `Down` menghapus keempat tabel; nol data lama tersentuh |
+| 1 | `AddAccountingPhase2MasterData` | `AccEventType`, `AccPostingRule`, **`AccPostingRuleLine`**, `AccAccountingConfiguration`, ditambah **satu kolom `IsControlAccount` pada `AccChartOfAccount`** (`ACC-DEC-064`) | **Ya** — tabel baru, dan kolom baru berbawaan `false` sehingga baris lama terisi sendiri | `Down` menghapus keempat tabel dan kolom itu; nol data lama tersentuh |
 | 2 | `AddAccountingEventInbox` | `AccAccountingEvent`, `AccAccountingEventAttempt`, **`AccAccountingEventComponent`** | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
 | 3 | `AddAccountingRecurringJournal` | Tiga tabel jurnal berulang | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
 | 4 | `AddAccountingPeriodClosingApproval` | `AccPeriodClosingApproval`, ditambah dua kolom pada `AccAccountingPeriod` | **Ya** — kedua kolom baru boleh kosong | `Down` menghapus tabel dan kedua kolom |

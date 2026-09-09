@@ -171,7 +171,7 @@ tengah akan mengubah arti angka yang sudah tersimpan di database.
 
 | Dari | Ke | Pemicu | Wewenang | Prasyarat |
 |---|---|---|---|---|
-| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** `ACC-DEC-051` |
+| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** — kini **tiga**: jurnal belum disahkan, kejadian gagal, dan shift kasir belum ditutup (`ACC-DEC-051` diperluas `ACC-DEC-065`) |
 | `PendingClosingApproval` | `SoftClosed` | Persetujuan penutupan | `Period : Approve` (**Director**) | Penyetuju **bukan** pengaju |
 | `PendingClosingApproval` | `Open` | Penolakan penutupan | `Period : Approve` | Alasan tertulis wajib |
 | `SoftClosed` | `Open` | Pembukaan kembali | `Period : Close` | Alasan tertulis wajib (`ACC-DEC-027`) |

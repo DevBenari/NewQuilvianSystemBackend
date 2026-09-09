@@ -41,6 +41,7 @@ Menyimpan satu akun pada daftar akun.
 | `NormalBalance` | `int` | Ya | — | — | — | — | Tidak | Enum `NormalBalance`. Disimpan tersendiri agar akun kontra dapat ditangani |
 | `IsPostable` | `bool` | Ya | `false` | — | — | — | Tidak | Menerima transaksi atau tidak. Wajib `false` bila punya anak (`ACC-DEC-022`) |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Tidak boleh dimatikan bila saldo belum nol (`ACC-DEC-024`) |
+| `IsControlAccount` | `bool` | Ya | `false` | Index | — | — | Tidak | **Baru `ACC-DEC-064`.** Akun bertanda ini **menolak baris jurnal manual**; pencatatannya hanya sah lewat kejadian akuntansi atau subledger. Berlaku untuk Kas Kasir, Kas Kecil, Piutang, dan Hutang |
 | `EffectiveStartDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Mulai berlaku |
 | `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Keterangan bebas |
 
