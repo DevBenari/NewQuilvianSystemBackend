@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `9be5526d248d9813a4044f063e43066a2364dd7d` pada branch `MHamzah` |
 | Tanggal | 4 September 2026 |
-| Status | 🟡 **Sebagian, ditinjau ulang 5 September 2026.** Ketujuh acceptance criteria tetap terbukti pada SQLite. Butir DoD "test concurrency PostgreSQL hijau" **tetap belum terpenuhi**; database uji tersendiri masih belum tersedia dan pemilik memutuskan melewatinya. Rinciannya pada bagian akhir |
+| Status | ✅ **Selesai, 8 September 2026.** Ketujuh acceptance criteria terbukti, dan butir Definition of Done terakhir ditutup: **test concurrency terhadap PostgreSQL 15.15 sungguhan hijau**. Menutupnya menyingkap satu celah nyata pada `PhysicianVisitService` — dua permintaan yang tiba benar-benar bersamaan membuat permintaan yang kalah **melempar**, bukan dijawab `200` seperti tuntutan kriteria 3. Celah itu ditutup pada task ini. Rinciannya pada bagian akhir |
 
 ## Backend Governance Preflight
 
@@ -180,7 +180,7 @@ pasien itu; `422` perawatan belum dimulai atau sudah ditutup.
 | Waktu visite di masa depan ditolak | `400`, pesan memuat "melewati waktu sekarang" | `PASS` | `WaktuVisiteDiMasaDepan_Ditolak400` |
 | Perawatan tertutup menolak kejadian baru | `422` | `PASS` | `PerawatanTertutup_MenolakKejadianVisiteBaru422` |
 | Dokter tanpa penugasan ditolak | `403` | `PASS` | `DokterTanpaPenugasanPadaPerawatan_Ditolak403` |
-| **Dua permintaan bersamaan berkunci sama terhadap PostgreSQL** | **Belum dijalankan** | `NOT RUN` | `PhysicianVisitUniquenessTests.KunciPermintaanKembar_DitolakDatabase` ada sejak `BE-RWI-041` dan berhenti pada penjagaannya sendiri: `BLOCKED_BY_TEST_DB_CONFIGURATION` — `QUILVIAN_BILLING_TEST_DB` belum diisi |
+| **Dua permintaan bersamaan berkunci sama terhadap PostgreSQL** | Satu kejadian; identitas keduanya sama; yang kalah dijawab `200` | `PASS` **8 September 2026** | `PhysicianVisitUniquenessTests.DuaPermintaanBersamaan_KunciSama_HanyaSatuKejadian` — lihat peninjauan 8 September 2026 |
 | `dotnet test` project uji InMemory | `Failed: 1, Passed: 908` | `EXISTING / ENVIRONMENT ISSUE` | Kegagalan `BillingFinalizationServiceTests`, berkas tidak disentuh task ini |
 | `dotnet test` project uji PostgreSQL | `Failed: 54, Passed: 34` | `EXISTING / ENVIRONMENT ISSUE` | Satu sebab: `BLOCKED_BY_TEST_DB_CONFIGURATION` |
 
@@ -208,7 +208,7 @@ Aturan repository melarang mengarahkan uji integrasi ke database dev bersama.
 | Butir | Status |
 | --- | --- |
 | Ketujuh acceptance criteria terbukti | ✅ |
-| **Test concurrency PostgreSQL hijau** | ⛔ **Belum.** Uji-nya ada dan terkompilasi; lingkungannya tidak tersedia |
+| **Test concurrency PostgreSQL hijau** | ✅ **8 September 2026.** `DuaPermintaanBersamaan_KunciSama_HanyaSatuKejadian` hijau terhadap PostgreSQL 15.15 |
 | Laporan mencantumkan hitungan pada keenam keadaan matriks status §5.3 | ✅ Bagian 2.4 dan tabel verifikasi |
 
 ---
@@ -268,4 +268,87 @@ Tidak ada source yang disunting task ini pada sesi 5 September 2026.
 | --- | --- |
 | Validasi ulang | `dotnet test` project uji SQLite `Failed: 0, Passed: 324` — naik dari 320 karena tiga uji baru milik `BE-RWI-043` dan `BE-RWI-045`, bukan milik task ini; project `Tests` `Failed: 0, Passed: 288` |
 | Migration | **Nol** |
+| Status Git | Tidak ada stage, commit, maupun push |
+
+---
+
+## Peninjauan 8 September 2026 — test concurrency hijau, task ditutup
+
+### Database uji tersendiri disediakan tanpa melemahkan penjagaan
+
+Gerbang yang menahan task ini sejak 4 September 2026 adalah ketiadaan database yang **boleh
+dibuang**, bukan ketiadaan PostgreSQL. Penjagaan `BillingTestDatabaseFixture` pasca-`RJ-BIL-BE-002`
+**tidak dilemahkan, tidak diberi override, dan tidak diberi jalan pintas**; yang disediakan
+adalah database yang memenuhi tuntutannya apa adanya.
+
+| Hal | Nilai |
+| --- | --- |
+| Server | PostgreSQL **15.15** — versi yang sama persis dengan server pengembang |
+| Bentuk | Container sekali pakai `quilvian-rwi-pgtest`, image `postgres:15.15`, `localhost:55432` |
+| Database | `quilvian_rwi_test` — memuat penanda `test`, nol penanda terlarang |
+| Isi awal | Kosong; migration dijalankan dari nol: **148 migration**, **555 tabel** |
+| Data nyata yang tersentuh | **Nol.** `QuilvianNewDevHamzah` dan database bersama lainnya tidak menerima satu perintah pun |
+
+### Celah yang tersingkap: permintaan yang kalah melempar, bukan dijawab `200`
+
+Uji concurrency yang selama ini hanya dikompilasi ternyata menyingkap sesuatu yang tidak dapat
+terlihat selama ia tidak pernah dijalankan.
+
+`PhysicianVisitService.RecordAsync` memeriksa kunci permintaan lebih dulu, lalu menyimpan. Dua
+permintaan yang tiba **benar-benar bersamaan** sama-sama melewati pemeriksaan itu karena baris
+pemenangnya memang belum ada saat keduanya membaca. Yang menahan baris kedua adalah unique index
+pada database — dan sampai sebelum task ini, penolakan itu keluar sebagai `DbUpdateException`
+yang **tidak ditangani**.
+
+| Keadaan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Kiriman ulang biasa, berurutan | `200`, identitas sama | `200`, identitas sama — tidak berubah |
+| Dua permintaan **bersamaan** | Yang kalah **melempar** | Yang kalah membaca ulang baris pemenangnya lalu dijawab `200` dengan identitas yang sama |
+
+Acceptance criteria 3 berbunyi "dua pengiriman berkunci sama menghasilkan **satu** kejadian
+dengan identitas sama, kode `200` pada yang kedua". Kriteria itu **tidak** membedakan berurutan
+dan bersamaan, sehingga perilaku lama memang belum memenuhinya di bawah perlombaan.
+
+Penanganannya mengikuti pola yang sudah berjalan pada repository ini —
+`NursingInterventionService.RecordAsync` milik `BE-RWI-061`, yang menutup celah yang sama untuk
+tindakan keperawatan atas dasar `VAL-KEP-15`. Nol pola baru diperkenalkan.
+
+Bagi dokter yang menekan Simpan dua kali karena jaringan lambat, bedanya nyata: sebelumnya salah
+satu tekanan berakhir sebagai galat yang membuatnya mengira pencatatannya gagal — lalu ia
+menekan sekali lagi.
+
+### Hasil
+
+| Test | Yang dibuktikan | Hasil |
+| --- | --- | --- |
+| `DuaPermintaanBersamaan_KunciSama_HanyaSatuKejadian` | Dua permintaan dimulai bersamaan pada dua konteks berbeda; satu baris tersimpan; identitas keduanya sama; tepat satu dijawab sebagai kiriman ulang berkode `200` | `PASS` |
+
+```text
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres --filter PhysicianVisitUniquenessTests
+Passed!  -  Failed: 0, Passed: 3, Skipped: 0, Total: 3
+```
+
+Dua test lainnya pada kelas itu milik `BE-RWI-041` — lihat [laporannya](BE-RWI-041.md) bagian 9.
+
+### Berkas yang berubah pada peninjauan ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/ClinicalManagement/Services/PhysicianVisitService.cs` | `RecordAsync` menangkap penolakan unique dari database, membaca ulang baris pemenangnya, lalu menjawabnya sebagai kiriman ulang berkode `200`. 22 baris ditambah, 1 diubah |
+| `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/ClinicalIntegration/PhysicianVisitUniquenessTests.cs` | Test `DuaPermintaanBersamaan_KunciSama_HanyaSatuKejadian` ditambahkan |
+
+**Nol migration. Nol perubahan model. Nol perubahan kontrak API** — kode balasan `200` pada
+kiriman ulang sudah tercantum pada kontrak sejak semula; yang berubah adalah pemenuhannya di
+bawah perlombaan.
+
+### Catatan penutup peninjauan
+
+| Hal | Isi |
+| --- | --- |
+| Status akhir | ✅ **Selesai.** Ketujuh acceptance criteria dan ketiga butir Definition of Done terpenuhi |
+| Peringatan | Nol peringatan build baru |
+| Risiko tersisa | Container uji tidak otomatis dinyalakan CI. Selama CI belum menyediakan PostgreSQL, test ini akan kembali `NOT RUN` di sana — terhalang konfigurasi, bukan gagal |
+| Delta kontrak | Tidak bertambah dari laporan 4 September 2026: tiga endpoint baca baseline transaksi di luar lima yang tercantum `api-contract.md` §4 |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE` |
 | Status Git | Tidak ada stage, commit, maupun push |

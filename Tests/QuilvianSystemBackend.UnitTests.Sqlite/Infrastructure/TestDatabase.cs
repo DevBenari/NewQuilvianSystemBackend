@@ -55,14 +55,26 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
         /// Membuat konteks baru berguna untuk membuktikan bahwa data benar-benar tersimpan,
         /// bukan sekadar masih tertahan di memori konteks sebelumnya.
         /// </summary>
-        public ApplicationDbContext CreateContext()
+        /// <param name="catatEksekusi">
+        /// Bila diisi, setiap baris log EF Core diteruskan ke sana. Dipakai uji yang perlu
+        /// menghitung berapa perintah SQL yang benar-benar dijalankan sebuah pembacaan, misalnya
+        /// untuk membuktikan sebuah daftar tidak melahirkan satu query tambahan per baris.
+        /// Dibiarkan kosong pada pemakaian biasa sehingga tidak ada biaya logging sama sekali.
+        /// </param>
+        public ApplicationDbContext CreateContext(Action<string>? catatEksekusi = null)
         {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            var builder = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseSqlite(_connection)
-                .EnableSensitiveDataLogging(false)
-                .Options;
+                .EnableSensitiveDataLogging(false);
 
-            return new ApplicationDbContext(options);
+            if (catatEksekusi != null)
+            {
+                builder = builder.LogTo(
+                    catatEksekusi,
+                    new[] { Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted });
+            }
+
+            return new ApplicationDbContext(builder.Options);
         }
 
         public void Dispose()

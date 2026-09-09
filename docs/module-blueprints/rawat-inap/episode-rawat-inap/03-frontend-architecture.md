@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.6` — naik 2026-09-04 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
+| Revision | `0.6` — naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
 | Status | `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Masukan | `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0` |
-| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, dijawab pemilik 2026-08-27; `RWI-DEC-093` s.d. `RWI-DEC-096`, dijawab pemilik 2026-09-04 |
+| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, dijawab pemilik 2026-08-27; `RWI-DEC-093` s.d. `RWI-DEC-096`, dijawab pemilik 2026-09-08 |
 | Batas tulis | Hanya dokumen blueprint |
 
 > **Batas kewenangan dokumen ini.** Dokumen ini menetapkan **kontrak fungsional**: layar apa yang
