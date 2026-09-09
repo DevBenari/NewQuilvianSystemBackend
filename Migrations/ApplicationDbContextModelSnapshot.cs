@@ -80862,6 +80862,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RegisteredByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("RegistrationIdempotencyKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<int>("RegistrationSource")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -80921,6 +80925,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
 
                     b.HasIndex("RegisteredByUserId");
+
+                    b.HasIndex("RegistrationIdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"RegistrationIdempotencyKey\" IS NOT NULL");
 
                     b.HasIndex("RoomId");
 

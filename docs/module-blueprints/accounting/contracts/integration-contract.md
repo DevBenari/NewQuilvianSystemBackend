@@ -97,6 +97,15 @@ Accounting MVP diperlakukan sebagai kemampuan **non-rumah-sakit**, sehingga pera
 berjalan tanpa `requirement-completeness-gate` maupun `hospital-domain-architect`. Dasarnya ada
 di [../02-backend-architecture.md](../02-backend-architecture.md) bagian 1.
 
+> **Kedua gerbang ini sudah DILEWATI pada 8 September 2026.**
+>
+> | Gerbang | Hasil | Bukti |
+> |---|---|---|
+> | `requirement-completeness-gate` | **`READY_FOR_DOMAIN_DESIGN`** keempat slice | [`evidence/08`](../evidence/08-phase2-requirement-completeness-gate.md) |
+> | `hospital-domain-architect` | **`DOMAIN_ARCHITECTURE_READY`**, `ACC-DOMAIN-P2-0.1` | [`evidence/09`](../evidence/09-phase2-hospital-domain-architecture.md) |
+>
+> Teks di bawah dipertahankan sebagai catatan sejarah tentang mengapa kedua gerbang itu diwajibkan.
+
 **Phase 2 tidak mendapat kelonggaran itu.** Begitu modul menerima kejadian keuangan yang berasal
 dari tagihan pasien, ia melintasi bounded context Billing dan menyentuh data yang terikat pada
 kunjungan pasien. Sebelum Phase 2 dirancang, dua skill berikut **wajib** dijalankan lebih dahulu:
@@ -109,10 +118,90 @@ sendiri.
 
 ## 5. Kapan berkas ini diisi
 
-Berkas ini diperbarui menjadi kontrak sungguhan ketika tiga hal terpenuhi:
+Berkas ini diperbarui menjadi kontrak sungguhan ketika tiga hal terpenuhi. Keadaannya per
+8 September 2026:
 
-1. `ACC-XM-001` diputuskan bersama owner Billing dan owner Finance.
-2. Sembilan pertanyaan `DEFERRED` pada `ACC-DEC-036` dijawab.
-3. Kedua gerbang pada bagian 4 dilewati.
+| # | Syarat | Keadaan |
+|---:|---|---|
+| 1 | `ACC-XM-001` diputuskan bersama owner Billing dan owner Finance | **Sebagian.** Diputuskan sisi Accounting lewat `ACC-DEC-044`; **ratifikasi owner Billing dan owner Finance belum ada** |
+| 2 | Sembilan pertanyaan `DEFERRED` pada `ACC-DEC-036` dijawab | **Selesai.** Menjadi `ACC-DEC-045` sampai `ACC-DEC-053` |
+| 3 | Kedua gerbang pada bagian 4 dilewati | **Selesai.** `READY_FOR_DOMAIN_DESIGN` dan `DOMAIN_ARCHITECTURE_READY` |
 
-Sampai saat itu, tidak ada satu pun kode integrasi yang boleh ditulis.
+Dua dari tiga terpenuhi. Karena itu **rancangan** Phase 2 boleh disusun dan sudah disusun — lihat
+bagian 6 di bawah.
+
+> **Yang masih dilarang tidak berubah:** tidak ada satu pun kode integrasi yang boleh ditulis
+> sampai syarat nomor 1 terpenuhi penuh. Rancangan boleh, kode belum.
+
+---
+
+## 6. Kontrak integrasi Phase 2
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-INTEGRATION-0.3` |
+| `last_changed_in` | `ACC-INTEGRATION-0.3` — 8 September 2026 |
+| Status | **`approved`** — Rizki, 8 September 2026; **implementasi tetap terkunci** sampai `ACC-XM-001` diratifikasi owner Billing dan owner Finance |
+| Traceability | `ACC-DEC-044`, `045`, `046`, `047`, `048`, `049`, `056` |
+
+### 6.1 Arah dan pemilik
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | **Satu arah**, Finance → Accounting |
+| Penerbit | **Finance** (`ACC-DEC-044`) |
+| Konsumen | Accounting |
+| Yang dilarang | Accounting berlangganan langsung ke Billing; Accounting menerbitkan kejadian ke modul lain (`ACC-DEC-002`) |
+| Bentuk hubungan | Customer-Supplier dengan Published Language — bentuk pesannya disepakati bersama, bukan didikte sepihak |
+
+### 6.2 Titik masuk
+
+Satu-satunya pintu masuk adalah
+`POST api/v1/corporate/accounting/accounting-events`, dijaga `AccountingEvent : Receive` yang
+hanya dimiliki akun layanan. Rinciannya di
+[`api-contract.md`](api-contract.md) bagian Phase 2.
+
+### 6.3 Bentuk pesan — sepuluh bidang wajib
+
+Dikunci `ACC-DEC-048`. Daftar lengkap beserta tipenya ada di `api-contract.md`. Tiga hal yang
+mengikat kedua pihak:
+
+1. **Kesepuluhnya wajib.** Pesan dengan satu bidang kosong ditolak `400`, bukan diterima sebagian.
+2. **Mata uang hanya `IDR`.** Nilai lain ditolak `409` (`ACC-DEC-020`).
+3. **Nol pengenal pasien.** Nama, nomor rekam medis, dan nomor kunjungan **dilarang** ada di dalam
+   pesan (`ACC-DEC-056`). Penelusuran ke pasien dilakukan lewat nomor transaksi asal.
+
+### 6.4 Pencegahan pencatatan ganda
+
+Dua kunci dipakai bersamaan (`ACC-DEC-035`), diwujudkan sebagai **dua unique index terpisah**:
+
+| Lapis | Kunci | Melindungi dari |
+|---|---|---|
+| Pertama | `EventNumber` | Pesan yang sama terkirim berulang |
+| Kedua | `SourceModule` + `SourceTransactionId` + `EventTypeId` + `SourceVersion` | Penerbit keliru membuat **nomor baru** untuk kejadian yang sama |
+
+Kiriman ulang dijawab `200` beserta nomor jurnal yang sama, **bukan** `409`. Alasannya ada di
+`api-contract.md`.
+
+### 6.5 Perilaku saat gagal
+
+| Keadaan | Perlakuan | Dasar |
+|---|---|---|
+| Gangguan teknis | Coba ulang 3 kali dengan jeda makin panjang, lalu masuk daftar gagal; Accounting Manager diberi tahu lewat penanda jumlah menu | `ACC-DEC-049`, `ACC-DEC-057` |
+| Jenis kejadian belum dipetakan | Kejadian **Tertahan**, nol jurnal dibuat, nol akun sementara dipakai | `ACC-DEC-046` |
+| Periode sudah tertutup | Jurnal masuk periode terbuka berikutnya; tanggal dokumen asli disimpan | `ACC-DEC-047` |
+| Mata uang bukan rupiah | Ditolak `409` | `ACC-DEC-020` |
+
+### 6.6 Rekonsiliasi
+
+Daftar kejadian **Tertahan** dan **Gagal** wajib muncul pada daftar periksa penutupan bulan.
+Kejadian `Gagal` **menahan** penutupan; kejadian `Tertahan` hanya **memperingatkan**
+(`ACC-DEC-051`).
+
+### 6.7 Yang wajib dilakukan sebelum implementasi
+
+| Langkah | Pemilik | Keadaan |
+|---|---|---|
+| Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | Owner Billing dan owner Finance (Yasmin) | **Belum.** Bahan pembahasannya: [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) |
+| Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Belum** |
+| Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Belum** — diperiksa 8 September 2026, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource` |
