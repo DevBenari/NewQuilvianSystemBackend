@@ -78,24 +78,24 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-001` ✅ | Entity dan enum penutupan periode | `P2-4` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-002` ✅ | Entity dan enum jurnal berulang | `P2-3` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-003` ✅ | Entity pengaturan akuntansi dan jenis jurnal `JT` | `P2-0a` | — | **`DONE`** 9 Sep 2026 |
-| `BE-ACC-P2-004` | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` ✅, `011` ✅ | **`GATED`** — seluruh dependency selesai; menunggu owner |
-| `BE-ACC-P2-005` | Daftar periksa penutupan | `P2-4` | `004` | `READY` |
+| `BE-ACC-P2-004` ✅ | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` ✅, `011` ✅ | **`DONE`** 9 Sep 2026 — diterapkan owner |
+| `BE-ACC-P2-005` | Daftar periksa penutupan | `P2-4` | `004` ✅ | `READY` — **terbuka** |
 | `BE-ACC-P2-006` | Ajukan, setujui, tolak penutupan | `P2-4` | `005` | `READY` |
-| `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` | `READY` — entity-nya sudah berdiri lewat `002` ✅ |
+| `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` ✅ | `READY` — **terbuka**; entity-nya sudah berdiri lewat `002` ✅ |
 | `BE-ACC-P2-008` | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` | `READY` |
-| `BE-ACC-P2-009` | Endpoint pengaturan akuntansi | `P2-0a` | `004` | `READY` |
+| `BE-ACC-P2-009` | Endpoint pengaturan akuntansi | `P2-0a` | `004` ✅ | `READY` — **terbuka** |
 | `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006`, `009` | `READY` |
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
-| `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004`, `011` ✅ | `READY` |
+| `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | `READY` — **terbuka** |
 | `BE-ACC-P2-013` | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | `READY` — **dependency-nya sudah selesai** |
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` | **`⛔ BLOCKED`** |
 
-**Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` → `005` → `006`. Empat task, dan
-tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
+**Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` ✅ → `005` → `006`. Empat task, dan
+tutup bulan sudah berjalan penuh. **Dua sudah selesai; tinggal `005` dan `006`.**
 
 **Bila mendahulukan control account** (`ACC-DEC-064`, satu-satunya yang menyentuh Phase 1):
-`011` ✅ → `004` → `012`. Kolomnya wajib masuk migration yang sama, jadi `011` **harus** sebelum `004`.
-**`011` sudah selesai 9 Sep 2026**, sehingga kolomnya siap ikut migration.
+`011` ✅ → `004` ✅ → `012`. Kolomnya wajib masuk migration yang sama, jadi `011` **harus** sebelum `004`.
+**Keduanya selesai 9 Sep 2026; kolom `IsControlAccount` sudah ada di database, tinggal `012`.**
 
 ---
 
@@ -150,7 +150,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing — **angka yang sama persis** dengan sebelum task ini. **4 dari 4 acceptance lulus**, dibuktikan **8 uji baru** (`Failed: 0, Passed: 8`) yang sekaligus menjadi uji pertama modul Accounting. QBE checker `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh, database tidak disentuh, seeder belum dijalankan. Laporan: [`be-acc-p2-003`](../task/report/backend/be-acc-p2-003-entity-pengaturan-akuntansi-dan-jenis-jurnal-jt.md) |
 | **Temuan di luar cakupan** | `SwaggerDocumentationTests` milik `MedicalRecordManagement` **tidak dapat lulus pada Release** karena `.csproj` sengaja mematikan `GenerateDocumentationFile` di sana; ketiganya lulus pada `Debug`. Dilaporkan, tidak diperbaiki |
 
-## `BE-ACC-P2-004` — Migration gelombang mandiri
+## `BE-ACC-P2-004` ✅ — Migration gelombang mandiri
 
 | Field | Isi |
 |---|---|
@@ -163,7 +163,8 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Verifikasi | Pemeriksaan berkas migration dan snapshot sebelum diterapkan |
 | Risiko/pemilik | **Snapshot kehilangan blok modul lain** — pola kerusakan `ACC-DEP-001` yang pernah terjadi. Periksa jumlah tabel snapshot sebelum dan sesudah. Owner |
 | DoD | Migration dibuat **dan** diterapkan owner, snapshot 0 deletion |
-| Status | **`GATED`** — menuntut instruksi eksplisit terpisah dari owner. **Jangan dijalankan** hanya karena task sebelumnya selesai |
+| **Status** | **✅ `DONE`** — 9 September 2026. Migration `20260909060515_AddAccountingPhase2Independent` **dibuat dan diterapkan owner sendiri**; agent nol perintah `dotnet ef`. Migration Coordination Gate **lulus 7 dari 7**. **4 dari 4 acceptance lulus**: snapshot **565 → 570 entity, nol deletion** (`CONTAMINATION GUARD` `CLEAN`), 5 `CreateTable` + 3 `AddColumn`, kedua kolom periode `nullable` dan `IsControlAccount` ber-`defaultValue: false`, `Down` lengkap. Laporan: [`be-acc-p2-004`](../task/report/backend/be-acc-p2-004-migration-gelombang-mandiri.md) |
+| **Risiko terbuka** | Ketiga berkas migration **belum di-commit**. Selama belum masuk `origin/QuilvianIntegrationBackend`, modul lain yang membuat migration berikutnya bekerja dari baseline tanpa 5 tabel ini — jendela `ACC-DEP-001` sedang terbuka |
 
 ## `BE-ACC-P2-005` — Daftar periksa penutupan
 
@@ -174,7 +175,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Kontrak | `ACC-API-0.7` grup Accounting Period, `GET /{id}/closing-checklist`; `ACC-VALIDATION-0.5` bagian 4 |
 | Reuse | `AccountingLegalEntityGuard`, `AccountingServiceResult<T>` |
 | Cakupan | `Services/AccPeriodClosingService.cs`, satu endpoint, `PeriodClosingChecklistDto`, `PeriodClosingBlockerDto` |
-| Dependency | `BE-ACC-P2-004` |
+| Dependency | `BE-ACC-P2-004` ✅ |
 | Acceptance | (1) **Dihitung saat diminta, bukan disimpan** — dua panggilan berturut-turut setelah satu jurnal disahkan menghasilkan angka berbeda. (2) Jurnal `Draft`, `PendingApproval`, dan `Approved` semuanya terhitung sebagai penghalang; `Posted` tidak. (3) Kejadian **Tertahan** muncul sebagai **peringatan**, bukan penghalang. (4) `[AccessPermission("Period","Read")]` terpasang. **(5) Penghalang ketiga — shift kasir belum ditutup (`ACC-DEC-065`) — disediakan tempatnya pada respons, tetapi bernilai kosong sampai gelombang `P2-1` berdiri.** Lihat baris Catatan |
 | Verifikasi | Test integrasi PostgreSQL: siapkan periode berisi 3 jurnal belum sah, panggil endpoint, sahkan satu, panggil lagi, pastikan angkanya turun |
 | **Catatan `ACC-DEC-065`** | Penghalang ketiga memvalidasi keberadaan kejadian `CASH_SHIFT_CLOSED`, dan kotak masuk kejadian baru berdiri pada `P2-1` yang di luar lingkup roadmap ini. **Aman ditunda:** selama `P2-1` belum ada, nol kejadian kas mengalir, sehingga tidak ada shift yang dapat menahan penutupan. Yang wajib dikerjakan sekarang hanyalah **menyediakan tempatnya pada respons** — supaya frontend tidak perlu diubah bentuknya saat penghalang itu diaktifkan |
@@ -207,7 +208,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Kontrak | `ACC-API-0.7` grup Recurring Journal, `ACC-VALIDATION-0.5` bagian 3 |
 | Reuse | Pola penyimpanan induk-baris `AccJournalService`, `AccountingLegalEntityGuard` |
 | Cakupan | `Services/AccRecurringJournalService.cs`, `RecurringJournalController`, tujuh endpoint, DTO terkait |
-| Dependency | `BE-ACC-P2-004` |
+| Dependency | `BE-ACC-P2-004` ✅ |
 | Acceptance | (1) Template tidak seimbang ditolak `400`. (2) Baris berakun `Expense` tanpa cost center ditolak `400`. (3) Baris berisi debit **dan** kredit sekaligus ditolak `400`. (4) Template baru berstatus tidak aktif. (5) Tujuh endpoint membawa `[AccessPermission]` |
 | Verifikasi | Test `UnitTests.Sqlite` untuk validasi; test integrasi untuk penyimpanan induk-baris |
 | Risiko/pemilik | **Jebakan EF yang sudah memakan waktu sekali:** mengganti baris anak dengan `RemoveRange` + `navigasi.Clear()` lalu menambah lewat navigasi terlacak membuat EF mengirim `UPDATE`, bukan `INSERT`. Tambahkan lewat `DbSet.AddRange`, dan `SaveChanges` penghapusan lebih dahulu di dalam satu transaction. Owner Backend |
@@ -239,7 +240,7 @@ tutup bulan sudah berjalan penuh. **Satu sudah selesai.**
 | Kontrak | `ACC-API-0.7` grup Configuration, `ACC-VALIDATION-0.5` bagian 5 |
 | Reuse | `AccountingLegalEntityGuard`, `AccChartOfAccountService.HitungSaldoAsync` bila diperlukan |
 | Cakupan | `AccountingConfigurationController`, dua endpoint, DTO terkait |
-| Dependency | `BE-ACC-P2-004` |
+| Dependency | `BE-ACC-P2-004` ✅ |
 | Acceptance | (1) Akun bukan `Equity` ditolak `422`. (2) Akun induk ditolak `422`. (3) Satu badan hukum hanya punya satu pengaturan. (4) Kedua endpoint membawa `[AccessPermission]` |
 | Verifikasi | Test `UnitTests.Sqlite` untuk ketiga penolakan |
 | Risiko/pemilik | Owner Backend |
@@ -315,7 +316,7 @@ Dua gelombang baru:
 | Kontrak | `ACC-VALIDATION-0.6` bagian 3b |
 | Reuse | `AccJournalService` dan `AccountingServiceResult<T>` yang sudah ada |
 | Cakupan | Penambahan pemeriksaan pada jalur simpan dan ajukan `AccJournalService` |
-| Dependency | `BE-ACC-P2-004` (kolomnya harus sudah ada di database), `BE-ACC-P2-011` ✅ |
+| Dependency | `BE-ACC-P2-004` ✅ (kolomnya **sudah** ada di database), `BE-ACC-P2-011` ✅ |
 | Acceptance | (1) Baris jurnal **manual** ke akun ber-`IsControlAccount = true` ditolak `422`, dan pesannya menyebut akun mana. (2) **Jurnal dari kejadian akuntansi, dari template berulang, dan jurnal penutup tahun TIDAK terkena aturan ini** — justru merekalah jalur yang sah. (3) Akun non-control tetap dapat dijurnal manual seperti biasa. (4) Jurnal manual yang sudah ada sebelumnya tidak ikut ditolak saat diubah, kecuali barisnya menyentuh control account |
 | Verifikasi | Test integrasi PostgreSQL untuk keempat acceptance, terutama (2) |
 | Risiko/pemilik | **Acceptance (2) adalah yang paling berbahaya bila keliru.** Bila aturan ini ikut mengenai jalur otomatis, seluruh posting dari kejadian akan tertolak dan Phase 2 mati total — tanpa error yang menjelaskan sebabnya. Owner Backend |

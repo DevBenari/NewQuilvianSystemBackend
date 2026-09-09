@@ -10,7 +10,8 @@ decision_revision: 2.2
 contracts: [ACC-API-0.7, ACC-STATE-0.2, ACC-VALIDATION-0.5, ACC-PERMISSION-0.4]
 scope_waves: [P2-3, P2-4, P2-5]
 generated_at: 2026-09-08
-task_selesai: 4                       # BE-ACC-P2-001, 002, 003, dan 011 selesai 9 Sep 2026
+task_selesai: 5                       # BE-ACC-P2-001, 002, 003, 011, dan 004 selesai 9 Sep 2026
+database_state: applied               # migration 20260909060515_AddAccountingPhase2Independent diterapkan owner 9 Sep 2026
 ```
 
 Dokumen ini memetakan **requirement → task → bukti**. Ia dibuat sekarang, sebelum satu task pun
@@ -52,7 +53,7 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 | `FR-P2-030` | Pratinjau menampilkan saldo, **tanpa membuat apa pun** | `ACC-DEC-053` | `BE-ACC-P2-010` | `FE-ACC-P2-006` | `UAT-P2-21` | `Planned` |
 | `FR-P2-031` | Penyusunan ditolak bila ada periode belum tertutup | `ACC-DEC-053` | `BE-ACC-P2-010` | `FE-ACC-P2-006` | `UAT-P2-19` | `Planned` |
 | `FR-P2-032` | Penyusunan ditolak bila akun laba ditahan belum ditetapkan | `ACC-DEC-054` | `BE-ACC-P2-003` ✅, `009`, `010` | `FE-ACC-P2-005`, `006` | `UAT-P2-20` | `Planned` — **tempat penyimpanannya berdiri**: `AccAccountingConfiguration` beserta unique `(LegalEntityId)`, dibuktikan `AccAccountingConfigurationSchemaTests`. Penetapan akunnya menunggu `009`, penolakannya menunggu `010` |
-| `FR-P2-033` | Jurnal penutup `Draft` berjenis `JT`, disahkan lewat jalur yang ada | `ACC-DEC-053` | `BE-ACC-P2-003` ✅, `010` | `FE-ACC-P2-006` | `UAT-P2-22` | `Planned` — **jenis `JT` sudah ada di seeder** ber-`RequiresApproval = true`, dibuktikan `AccountingMasterDataSeederTests`; seeder **belum dijalankan** ke database mana pun. Penyusunan jurnalnya menunggu `010` |
+| `FR-P2-033` | Jurnal penutup `Draft` berjenis `JT`, disahkan lewat jalur yang ada | `ACC-DEC-053` | `BE-ACC-P2-003` ✅, `010` | `FE-ACC-P2-006` | `UAT-P2-22` | `Planned` — **jenis `JT` sudah ada di seeder** ber-`RequiresApproval = true`, dibuktikan `AccountingMasterDataSeederTests`; seeder **belum dijalankan** ke database mana pun walaupun tabelnya sudah siap sejak `004` ✅. Penyusunan jurnalnya menunggu `010` |
 | `FR-P2-034` | Jurnal penutup dapat dibalik lewat pembalikan yang sudah ada | `ACC-DEC-029` | `BE-ACC-P2-010` | — | `UAT-P2-23` | `Planned` |
 
 ---
@@ -61,7 +62,7 @@ task-nya belum benar-benar selesai, walau kodenya sudah ada.
 
 | Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
 |---|---|---|---|---|---|---|
-| `FR-P2-035` | Akun dapat ditandai sebagai control account | `ACC-DEC-064` | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` | — | **`Done` backend** — kolom `IsControlAccount` berbawaan `false` beserta index-nya berdiri, dan penandanya dapat diisi lewat `POST`/`PUT` serta dibaca kembali lewat `GET`. Dibuktikan `AccChartOfAccountControlAccountTests`. **Belum ada di database** sampai `BE-ACC-P2-004` diterapkan |
+| `FR-P2-035` | Akun dapat ditandai sebagai control account | `ACC-DEC-064` | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` | — | **`Done` backend** — kolom `IsControlAccount` berbawaan `false` beserta index-nya berdiri, dan penandanya dapat diisi lewat `POST`/`PUT` serta dibaca kembali lewat `GET`. Dibuktikan `AccChartOfAccountControlAccountTests`. **Sudah ada di database** sejak `BE-ACC-P2-004` ✅ diterapkan 9 Sep 2026 |
 | `FR-P2-036` | Jurnal **manual** ke control account ditolak | `ACC-DEC-064` | `BE-ACC-P2-012` | `FE-ACC-P2-007` | `UAT-P2-24` | `Planned` — **penandanya sudah berdiri lewat `011` ✅**, penolakannya belum. Jurnal manual ke control account **masih diterima** |
 | `FR-P2-037` | Jurnal dari kejadian, template, dan tutup tahun **tidak** terkena larangan itu | `ACC-DEC-064` | `BE-ACC-P2-012` | — | `UAT-P2-25` | `Planned` |
 | `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `ACC-DEC-065` | `BE-ACC-P2-005` sebagian, penuh menunggu `P2-1` | `FE-ACC-P2-001` | `UAT-P2-26` | `Planned` — tempatnya disediakan, penegakannya menyusul |
