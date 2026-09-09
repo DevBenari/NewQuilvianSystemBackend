@@ -135,14 +135,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             var totalData = await source.CountAsync(cancellationToken);
 
-            var items = await source
+            // Proyeksi dikerjakan database, bukan klien. Baris ini sebelumnya memanggil sebuah
+            // method statis di dalam Select. EF Core tidak dapat menerjemahkan panggilan itu ke
+            // SQL, sehingga ia memuat entity apa adanya lalu memetakannya di memori — dan
+            // karena tidak ada Include, Procedure, AgeCategory, serta Options ikut kosong.
+            // Akibatnya daftar menampilkan nama pemeriksaan kosong dan jumlah pilihan nol,
+            // padahal datanya ada dan endpoint detail menampilkannya dengan benar. Menyusun
+            // ruasnya di sini membuat join dan penghitungan pilihan benar-benar terjadi di SQL.
+            //
+            // Kedua nama enum sengaja tidak ikut ke SQL: ResultForm dan GenderScope tersimpan
+            // sebagai angka, dan menerjemahkan ToString() atasnya berisiko menghasilkan "1"
+            // alih-alih "Numeric". Keduanya dirangkai setelah baris tiba di memori.
+            var rows = await source
                 .OrderBy(x => x.Procedure != null ? x.Procedure.ProcedureName : string.Empty)
                 .ThenBy(x => x.GenderScope)
                 .ThenBy(x => x.AgeCategoryId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => MapListProjection(x))
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ProcedureId,
+                    ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
+                    x.ResultForm,
+                    x.Unit,
+                    x.GenderScope,
+                    x.AgeCategoryId,
+                    AgeCategoryName = x.AgeCategory != null ? x.AgeCategory.AgeCategoryName : null,
+                    x.NormalLow,
+                    x.NormalHigh,
+                    x.CriticalLow,
+                    x.CriticalHigh,
+                    x.CitoTurnaroundMinutes,
+                    x.IsActive,
+                    OptionCount = x.Options.Count(o => !o.IsDelete)
+                })
                 .ToListAsync(cancellationToken);
+
+            var items = rows
+                .Select(x => new LabValueBoundListResponse
+                {
+                    Id = x.Id,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    ResultForm = x.ResultForm.ToString(),
+                    Unit = x.Unit,
+                    GenderScope = x.GenderScope.ToString(),
+                    AgeCategoryId = x.AgeCategoryId,
+                    AgeCategoryName = x.AgeCategoryName,
+                    NormalLow = x.NormalLow,
+                    NormalHigh = x.NormalHigh,
+                    CriticalLow = x.CriticalLow,
+                    CriticalHigh = x.CriticalHigh,
+                    CitoTurnaroundMinutes = x.CitoTurnaroundMinutes,
+                    IsActive = x.IsActive,
+                    OptionCount = x.OptionCount
+                })
+                .ToList();
 
             return new PagedResult<LabValueBoundListResponse>
             {
@@ -725,27 +776,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
         }
-
-        private static LabValueBoundListResponse MapListProjection(LabValueBound x) =>
-            new()
-            {
-                Id = x.Id,
-                ProcedureId = x.ProcedureId,
-                ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
-                ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
-                ResultForm = x.ResultForm.ToString(),
-                Unit = x.Unit,
-                GenderScope = x.GenderScope.ToString(),
-                AgeCategoryId = x.AgeCategoryId,
-                AgeCategoryName = x.AgeCategory != null ? x.AgeCategory.AgeCategoryName : null,
-                NormalLow = x.NormalLow,
-                NormalHigh = x.NormalHigh,
-                CriticalLow = x.CriticalLow,
-                CriticalHigh = x.CriticalHigh,
-                CitoTurnaroundMinutes = x.CitoTurnaroundMinutes,
-                IsActive = x.IsActive,
-                OptionCount = x.Options.Count(o => !o.IsDelete)
-            };
 
         private static LabValueBoundDetailResponse MapDetail(LabValueBound entity, bool hasPending)
         {

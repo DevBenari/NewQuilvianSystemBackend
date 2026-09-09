@@ -1045,6 +1045,18 @@ try
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
 
+    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
+    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
+    // proses bisnis lewat layar admin, bukan lewat seeder.
+    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+    if (runLabDummySeed)
+    {
+        await RunStartupSeederAsync(
+            "LabDummyDataSeeder",
+            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
+    }
+
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
          "Seeders:RunPrescriptionReviewCriterionSeed");
