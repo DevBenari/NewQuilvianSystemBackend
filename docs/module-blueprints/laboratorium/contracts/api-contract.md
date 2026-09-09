@@ -3,10 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `5` |
-| Status | `approved` — `r3` dikunci 2026-09-02; **amandemen `r4` dan `r5` disetujui pemilik modul 2026-09-03** |
+| Revision | `6` |
+| Status | `approved` — `r3` dikunci 2026-09-02; **amandemen `r4` dan `r5` disetujui pemilik modul 2026-09-03; amandemen `r6` disetujui 2026-09-08** |
 | Isi amandemen `r4` | Sepuluh endpoint baca ditambahkan: `GET /filters/metadata` dan `GET /summary` pada kelima grup Laboratorium yang sudah punya controller. Seluruhnya **aditif** — tidak satu pun endpoint, ruas, atau nilai enum `r3` yang berubah, berganti nama, atau hilang. Dikerjakan `BE-LAB-17` |
 | Isi amandemen `r5` | `GET /lab-orders` memperoleh penyaring, pengurutan, dan pagination di sisi server lewat `LabOrderPagedQuery`. **Ini satu-satunya perubahan breaking**: bentuk responsnya berubah dari `ApiResponse<List<LabOrderListResponse>>` menjadi `ApiResponse<PagedResult<LabOrderListResponse>>`. Dampak konsumen dinilai — lihat catatan di bawah. Dikerjakan `BE-LAB-18` |
+| Isi amandemen `r6` | Satu endpoint baca ditambahkan: `GET /lab-rejection-reasons/{id}`. **Aditif** — tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Grup ini semula satu-satunya grup Laboratorium tanpa jalur detail, sehingga formulir ubah `FE-LAB-03` memuat barisnya dari halaman daftar yang sedang terbuka dan diam-diam gagal pada tautan langsung maupun muat ulang. Jumlah endpoint grup naik dari **7 menjadi 8**, dan penjaga `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` disesuaikan bersamaan |
 
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
@@ -19,7 +20,32 @@
 Seluruh endpoint memerlukan login (`[Authorize]`). Pembungkus respons memakai
 `ApiResponse<T>.Ok(data, pesan)` dan `ApiResponse<T>.Fail(kode, pesan)`.
 
-Endpoint yang belum ada di kode ditandai **`Rencana (belum tersedia)`**.
+Endpoint yang belum ada di kode ditandai **`Rencana (belum tersedia)`**. Per 2026-09-08 tidak
+ada satu pun endpoint yang menyandangnya — lihat koreksi di bawah.
+
+> **Koreksi status, 2026-09-08 — bukan amandemen.** Enam belas baris masih tertulis
+> `Rencana (belum tersedia)` padahal endpointnya sudah ada sejak `BE-LAB-04`, `BE-LAB-05`, dan
+> `BE-LAB-06` selesai pada 2026-09-02 dan 2026-09-03. Selisih ini dicatat `FE-LAB-02` pada
+> 2026-09-04 dan tidak pernah ditindaklanjuti, sehingga dokumen kontrak menyatakan sebagian
+> modulnya belum dibangun padahal sudah.
+>
+> **Yang berubah hanya kolom status.** Tidak ada endpoint yang ditambah, dihapus, diubah
+> route, verb, hak akses, maupun bentuk permintaan dan jawabannya. `LAB-API-v1` tetap
+> revision `5` dan tetap terkunci; koreksi ini membuat dokumen menyebutkan keadaan yang
+> sebenarnya, bukan mengubah kesepakatannya.
+>
+> **Bukti**, dibaca langsung dari controller pada tanggal koreksi:
+>
+> | Grup | Baris dikoreksi | Endpoint yang terbukti ada |
+> |---|---:|---|
+> | Lab Value Bound | 6 | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `PUT /{id}/deactivate`, `GET /{id}/history` |
+> | Lab Critical Bound Approval | 5 | `GET /`, `POST /`, `POST /{requestId}/approve`, `POST /{requestId}/reject`, `POST /{requestId}/withdraw` |
+> | Lab Rejection Reason | 5 | `GET /`, `POST /`, `PUT /{id}`, `PUT /{id}/activation`, `PUT /{id}/system-flags` |
+>
+> Ketiga grup itu **tidak** memperoleh endpoint baru lewat koreksi ini. Khususnya Lab
+> Rejection Reason tetap tanpa `GET /{id}`: penambahannya adalah amandemen kontrak yang
+> belum disetujui, dan uji `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak`
+> menegakkannya dengan mengunci jumlah endpoint grup itu pada tujuh.
 
 > **Penilaian dampak amandemen `r5`.** Satu-satunya konsumen `GET /lab-orders` yang ditemukan
 > adalah modul IGD pada
@@ -139,12 +165,12 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 |---|---|---|---|---|---|---|
 | `GET` | `/filters/metadata` | Pilihan bentuk hasil, jenis kelamin, urutan, ukuran halaman, dan penanda bahwa batas kritis hanya berubah lewat pengajuan | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/summary` | Rekap batas nilai: aktif, nonaktif, per bentuk hasil, dan yang menunggu persetujuan batas kritis | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
-| `GET` | `/` | Daftar batas nilai, dapat disaring per jenis pemeriksaan | `LabValueBound : Read` | `LabValueBoundPagedQuery` | `ApiResponse<PagedResult<LabValueBoundListResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}` | Detail satu batas nilai beserta pilihannya | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Membuat batas nilai baru | `LabValueBound : Create` | `CreateLabValueBoundRequest` | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah satuan, batas normal, batas waktu cito, dan daftar pilihan | `LabValueBound : Update` | `UpdateLabValueBoundRequest` | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}/deactivate` | Menonaktifkan batas nilai | `LabValueBound : Update` | — | `ApiResponse<LabValueBoundDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}/history` | Riwayat perubahan batas nilai | `LabValueBound : Read` | — | `ApiResponse<List<LabValueBoundHistoryResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar batas nilai, dapat disaring per jenis pemeriksaan | `LabValueBound : Read` | `LabValueBoundPagedQuery` | `ApiResponse<PagedResult<LabValueBoundListResponse>>` | Tersedia |
+| `GET` | `/{id}` | Detail satu batas nilai beserta pilihannya | `LabValueBound : Read` | — | `ApiResponse<LabValueBoundDetailResponse>` | Tersedia |
+| `POST` | `/` | Membuat batas nilai baru | `LabValueBound : Create` | `CreateLabValueBoundRequest` | `ApiResponse<LabValueBoundDetailResponse>` | Tersedia |
+| `PUT` | `/{id}` | Mengubah satuan, batas normal, batas waktu cito, dan daftar pilihan | `LabValueBound : Update` | `UpdateLabValueBoundRequest` | `ApiResponse<LabValueBoundDetailResponse>` | Tersedia |
+| `PUT` | `/{id}/deactivate` | Menonaktifkan batas nilai | `LabValueBound : Update` | — | `ApiResponse<LabValueBoundDetailResponse>` | Tersedia |
+| `GET` | `/{id}/history` | Riwayat perubahan batas nilai | `LabValueBound : Read` | — | `ApiResponse<List<LabValueBoundHistoryResponse>>` | Tersedia |
 
 ### Health Services / Laboratory Management / Lab Critical Bound Approval
 
@@ -155,11 +181,11 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 |---|---|---|---|---|---|---|
 | `GET` | `/filters/metadata` | Pilihan status pengajuan, urutan, ukuran halaman, dan dua penanda keselamatan: larangan menyetujui pengajuan sendiri serta batas satu pengajuan belum diputuskan | `LabCriticalBound : Read` | — | `ApiResponse<LabCriticalBoundApprovalFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/summary` | Rekap pengajuan untuk **satu** batas nilai, per status | `LabCriticalBound : Read` | — | `ApiResponse<LabCriticalBoundApprovalSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
-| `GET` | `/` | Daftar pengajuan perubahan batas kritis | `LabCriticalBound : Read` | — | `ApiResponse<List<LabBoundChangeRequestResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Mengajukan perubahan batas kritis | `LabValueBound : Update` | `SubmitCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{requestId}/approve` | Menyetujui pengajuan; batas baru mulai berlaku | `LabCriticalBound : Approve` | `DecideCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{requestId}/reject` | Menolak pengajuan | `LabCriticalBound : Approve` | `DecideCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{requestId}/withdraw` | Menarik pengajuan sendiri | `LabValueBound : Update` | — | `ApiResponse<LabBoundChangeRequestResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar pengajuan perubahan batas kritis | `LabCriticalBound : Read` | — | `ApiResponse<List<LabBoundChangeRequestResponse>>` | Tersedia |
+| `POST` | `/` | Mengajukan perubahan batas kritis | `LabValueBound : Update` | `SubmitCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | Tersedia |
+| `POST` | `/{requestId}/approve` | Menyetujui pengajuan; batas baru mulai berlaku | `LabCriticalBound : Approve` | `DecideCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | Tersedia |
+| `POST` | `/{requestId}/reject` | Menolak pengajuan | `LabCriticalBound : Approve` | `DecideCriticalBoundChangeRequest` | `ApiResponse<LabBoundChangeRequestResponse>` | Tersedia |
+| `POST` | `/{requestId}/withdraw` | Menarik pengajuan sendiri | `LabValueBound : Update` | — | `ApiResponse<LabBoundChangeRequestResponse>` | Tersedia |
 
 ### Health Services / Laboratory Management / Lab Worklist
 
@@ -180,11 +206,12 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 |---|---|---|---|---|---|---|
 | `GET` | `/filters/metadata` | Pilihan urutan, ukuran halaman, dan daftar ruas yang terkunci bagi kepala instalasi | `LabRejectionReason : Read` | — | `ApiResponse<LabRejectionReasonFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/summary` | Rekap alasan penolakan: aktif, nonaktif, berpenanda kesalahan internal, dan wajib catatan | `LabRejectionReason : Read` | — | `ApiResponse<LabRejectionReasonSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
-| `GET` | `/` | Daftar alasan penolakan untuk pengelolaan | `LabRejectionReason : Read` | `LabRejectionReasonPagedQuery` | `ApiResponse<PagedResult<LabRejectionReasonResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah alasan penolakan | `LabRejectionReason : Create` | `CreateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah nama, keterangan, dan urutan | `LabRejectionReason : Update` | `UpdateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}/activation` | Mengaktifkan atau menonaktifkan | `LabRejectionReason : Update` | `SetLabRejectionReasonActivationRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}/system-flags` | Menyetel penanda kesalahan internal dan penanda wajib catatan | `LabRejectionReason : SystemFlag` | `SetLabRejectionReasonSystemFlagsRequest` | `ApiResponse<LabRejectionReasonResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar alasan penolakan untuk pengelolaan | `LabRejectionReason : Read` | `LabRejectionReasonPagedQuery` | `ApiResponse<PagedResult<LabRejectionReasonResponse>>` | Tersedia |
+| `GET` | `/{id}` | Detail satu alasan penolakan beserta kedua penanda sistemnya | `LabRejectionReason : Read` | — | `ApiResponse<LabRejectionReasonResponse>` | **Tersedia** — `r6`, 2026-09-08 |
+| `POST` | `/` | Menambah alasan penolakan | `LabRejectionReason : Create` | `CreateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | Tersedia |
+| `PUT` | `/{id}` | Mengubah nama, keterangan, dan urutan | `LabRejectionReason : Update` | `UpdateLabRejectionReasonRequest` | `ApiResponse<LabRejectionReasonResponse>` | Tersedia |
+| `PUT` | `/{id}/activation` | Mengaktifkan atau menonaktifkan | `LabRejectionReason : Update` | `SetLabRejectionReasonActivationRequest` | `ApiResponse<LabRejectionReasonResponse>` | Tersedia |
+| `PUT` | `/{id}/system-flags` | Menyetel penanda kesalahan internal dan penanda wajib catatan | `LabRejectionReason : SystemFlag` | `SetLabRejectionReasonSystemFlagsRequest` | `ApiResponse<LabRejectionReasonResponse>` | Tersedia |
 
 `GET /lab-specimens/rejection-reasons` yang sudah ada **tetap dipertahankan** sebagai jalur baca
 bagi petugas yang sedang menolak sampel. Endpoint pengelolaan di atas adalah jalur terpisah.
