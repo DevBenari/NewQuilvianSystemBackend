@@ -30,8 +30,9 @@ namespace QuilvianSystemBackend.BillingTests.Radiology;
 ///  11. Acquisition yang dihentikan mencatat sebab dan konsumsi tanpa menagih.
 ///  12. Pesanan tidak dapat dibatalkan ketika ada study yang sudah disinari.
 /// </summary>
+[Collection(PostgresIntegrationTestCollection.Name)]
 public sealed class RadiologyStudyLifecycleTests
-    : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+    : IAsyncLifetime
 {
     private readonly BillingTestDatabaseFixture _fixture;
     private readonly List<EncounterSeed> _seeds = new();
