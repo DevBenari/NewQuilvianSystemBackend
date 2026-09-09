@@ -6,6 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
@@ -54,6 +59,7 @@ using Serilog.Formatting.Compact;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -468,6 +474,15 @@ try
     builder.Services.AddScoped<AttendanceSchedulerService>();
     builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
 
+    // CORPORATE - ACCOUNTING MANAGEMENT
+    // Satu baris per service modul, sesuai 02-backend-architecture.md bagian 6. Pemanggilan
+    // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
+    builder.Services.AddScoped<AccChartOfAccountService>();
+    builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccJournalService>();
+    builder.Services.AddScoped<AccGeneralLedgerService>();
+
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
@@ -597,6 +612,10 @@ try
 
     builder.Services.AddScoped<CashierShiftService>();
 
+    // billing petty cash
+    builder.Services.AddScoped<PettyCashCategoryService>();
+    builder.Services.AddScoped<PettyCashVoucherService>();
+    builder.Services.AddScoped<PettyCashBudgetService>();
 
     builder.Services.AddAuthorization(options =>
     {
