@@ -5,11 +5,11 @@ blueprint_id: LAB-BP-001
 module_name: Laboratorium
 module_slug: laboratorium
 module_prefix: LAB
-revision: 24
+revision: 25
 status: approved-with-pending-reconciliation
 bentuk: SINGLE
 created_at: 2026-09-01T00:00:00+07:00
-updated_at: 2026-09-02T00:00:00+07:00
+updated_at: 2026-09-09T00:00:00+07:00
 
 scope:
   release: MVP Rilis 1 — bagian yang sudah lolos kedua gerbang
@@ -22,7 +22,7 @@ owners:
   api: belum ditetapkan
   security: belum ditetapkan
   frontend_authority: konvensi project + DEV_DISCRETION (LAB-DEC-010)
-  clinical_governance: belum ditetapkan — lihat LAB-SIGN-001
+  clinical_governance: belum ditetapkan — lihat LAB-SIGN-001. Permintaan penetapan sekaligus tanda tangan diajukan 2026-09-09 lewat LAB-REQ-004
 
 approved_by: Yoga Aji Pratama <yogaaji452@gmail.com>
 approved_at: 2026-09-01
@@ -66,7 +66,7 @@ domain_architecture_readiness: DOMAIN_ARCHITECTURE_READY
 domain_architecture_revision: LAB-DA-001-r4
 
 contract_versions:            # seluruhnya dikunci 2026-09-02 oleh Yoga Aji Pratama selaku pemilik modul
-  - LAB-API-v1: approved      # revision 3
+  - LAB-API-v1: approved      # revision 6 — r3 dikunci 2026-09-02; amandemen r4 (BE-LAB-17) dan r5 (BE-LAB-18) disetujui 2026-09-03; amandemen r6 (GET /lab-rejection-reasons/{id}) disetujui 2026-09-08. Nilai lama "revision 3" tertinggal tiga amandemen dan dikoreksi 2026-09-08
   - LAB-STATE-v1: approved    # revision 2
   - LAB-VAL-v1: approved      # revision 3
   - LAB-INT-v1: approved      # revision 3
@@ -85,7 +85,7 @@ evidence_baseline:
   limitation: audio video belum ditranskripsi; aturan yang hanya disampaikan lisan belum tercakup
 
 active_blockers:
-  - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6
+  - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6. SATU-SATUNYA penahan kelimanya: LAB-COORD-001 dan LAB-COORD-002 sudah ditutup 2026-09-01. Permintaan LAB-REQ-004 diajukan 2026-09-09, menunggu jawaban
   - LAB-AMD-001     # amandemen rawat-jalan — memblokir S1b
   - LAB-OPEN-018b   # SISA: marketplace quilvian masih terdaftar ke MHamzah1/QuilvianEngineeringSkillsClaude. Rules root runtime sudah lengkap lewat penyegaran manual, tetapi /plugin update berikutnya akan mengembalikannya ke 13 berkas. Perbaikan tetap: daftarkan ulang marketplace ke DevBenari/QuilvianEngineeringSkills. TIDAK memblokir implementasi saat ini
 
@@ -125,19 +125,19 @@ inherited_decisions:
 
 | Berkas | Ditulis oleh | Status |
 |---|---|---|
-| `blueprint-manifest.md` | `design-business-module` | rev 24 |
-| `00-interview-decisions.md` | `grill-me` | rev 21 — **36 keputusan `approved`**; 5 koordinasi lintas modul ditutup |
+| `blueprint-manifest.md` | `design-business-module` | rev 25 — `LAB-REQ-004` didaftarkan, `LAB-SIGN-001` dicatat sebagai satu-satunya penahan lima slice |
+| `00-interview-decisions.md` | `grill-me` | rev 22 — `LAB-SIGN-001` diajukan lewat `LAB-REQ-004`; **36 keputusan `approved`**; 5 koordinasi lintas modul ditutup |
 | `01-existing-capability-map.md` | `trace-existing-capabilities` | rev 2 — impact scan 2026-09-02, `STALE` dicabut, tidak ada status kemampuan yang berubah |
 | `02-requirement-completeness-assessment.md` | `requirement-completeness-gate` | rev 5 — `PARTIALLY_READY`, 10 dari 21 bagian siap |
 | `03-domain-architecture.md` | `hospital-domain-architect` | rev 4 — **`DOMAIN_ARCHITECTURE_READY`** untuk 10 slice |
 | `05-evidence-reconciliation.md` | `design-business-module` | rev 2 — `RECONCILED` |
 | `02-backend-architecture.md` | `design-business-module` | rev 3 |
 | `03-frontend-architecture.md` | `design-business-module` | rev 3 — menu data induk mengikuti konvensi FE yang sudah ada |
-| `04-prd-to-mvp.md` | `design-business-module` | rev 2 — batas MVP diperluas, 10 epic, 5 gelombang |
+| `04-prd-to-mvp.md` | `design-business-module` | rev 3 — batas MVP diperluas, 10 epic, 5 gelombang; penahan `S5` dan `S6` dikoreksi 2026-09-09 |
 | `erd/00-context-erd.md` | `design-business-module` | rev 2 — data induk perujuk dan kolom disiplin masuk |
 | `erd/laboratory-operations.md` | `design-business-module` | rev 2 — lapis rujukan katalog, harga, cakupan |
 | `erd/data-dictionary.md` | `design-business-module` | rev 2 — empat tabel milik modul lain didokumentasikan |
-| `contracts/api-contract.md` | `design-business-module` | rev 3 — `approved`, dikunci 2026-09-02; 3 grup endpoint baru |
+| `contracts/api-contract.md` | `design-business-module` | rev 6 — `approved`, dikunci 2026-09-02; 3 grup endpoint baru pada r3, sepuluh endpoint baca pada r4, paging `GET /lab-orders` pada r5, `GET /lab-rejection-reasons/{id}` pada r6. Status 16 endpoint dikoreksi 2026-09-08 |
 | `contracts/state-transition-matrix.md` | `design-business-module` | rev 2 — `approved`, dikunci 2026-09-02; sudah disesuaikan `LAB-DEC-026` |
 | `contracts/validation-matrix.md` | `design-business-module` | rev 3 — `approved`, dikunci 2026-09-02; VAL-40 sampai VAL-50 |
 | `contracts/integration-contract.md` | `design-business-module` | rev 3 — `approved`, dikunci 2026-09-02; `INT-05` dan `INT-06` |
@@ -154,6 +154,7 @@ inherited_decisions:
 | `approval-requests/2026-09-01-permintaan-koordinasi-lintas-modul.md` | Operasional, bukan artefak desain | **`dijawab sebagian`** — 6 selesai, 5 terbuka. Butir 9, 10, dan 11 diajukan 2026-09-02 |
 | `approval-requests/2026-09-02-permintaan-muhammad-hamzah.md` | Operasional | `LAB-REQ-002` — 3 butir terarah: rules root, lifecycle registry, prefix data induk |
 | `approval-requests/2026-09-02-permintaan-master-data-dan-registrasi.md` | Operasional | `LAB-REQ-003` — `BE-EXT-01` sampai `BE-EXT-03`, izinnya sudah ada sejak 2026-09-01 |
+| `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md` | Operasional | `LAB-REQ-004` — **`terbuka`**. Menutup `LAB-SIGN-001`: tiga keputusan untuk ditandatangani, dua penetapan rumah sakit, tiga pertanyaan klinis. Penanda tangannya sendiri belum ditetapkan |
 
 ## Catatan status
 
