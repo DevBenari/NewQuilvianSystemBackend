@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `c8e83854af240186b5091da412fadde3810afcb1` pada branch `MHamzah` |
 | Tanggal | 3 September 2026 |
-| Status | 🟡 **Sebagian, diperbarui 5 September 2026.** **Keenam acceptance criteria kini terbukti** — kriteria 6 ditutup dengan uji maju-mundur-maju terhadap PostgreSQL 15.15. Yang **belum** terpenuhi tinggal satu butir Definition of Done: dua test `PhysicianVisitUniquenessTests` masih `NOT RUN` karena fixture-nya menuntut database uji tersendiri yang belum tersedia. Rinciannya pada bagian 8 |
+| Status | ✅ **Selesai, 8 September 2026.** Keenam acceptance criteria terbukti, dan butir Definition of Done terakhir ditutup: kedua test `PhysicianVisitUniquenessTests` **hijau** terhadap PostgreSQL 15.15 sungguhan. Database uji tersendiri disediakan sebagai container sekali pakai, sehingga penjagaan fixture dipenuhi apa adanya dan **tidak** dilemahkan. Menutupnya menyingkap satu cacat pada uji itu sendiri, yang ikut diperbaiki. Rinciannya pada bagian 9 |
 
 ## Backend Governance Preflight
 
@@ -170,9 +170,9 @@ configuration, `DbSet`, enum, service, dan alokator nomor.
 | Dua visite pada tanggal yang sama | Dua baris, hitungan `2` | `PASS` | `…DuaVisitePadaTanggalSama_MenghasilkanDuaBaris` |
 | Pembatalan beralasan, tanpa alasan, dan berulang | Tanpa alasan `400`; berhasil sekali; pembatalan ulang `409`; kejadian tetap tampil pada riwayat beserta alasannya; hitungan menjadi `0` | `PASS` | `…VisiteYangDibatalkan_TetapTersimpanDanTidakDihitung` |
 | Pembangkitan SQL migration arah maju dan mundur | Keduanya dihasilkan tanpa galat | `PASS` | `dotnet ef migrations script` dua arah |
-| **Dua baris berkunci sama ditolak PostgreSQL** | **Tidak dijalankan** | `NOT RUN` | Uji sudah ditulis: `PhysicianVisitUniquenessTests.KunciPermintaanKembar_DitolakDatabase` |
-| **Dua visite dokter yang sama pada tanggal sama diterima PostgreSQL** | **Tidak dijalankan** | `NOT RUN` | Uji sudah ditulis: `PhysicianVisitUniquenessTests.DuaVisitePadaTanggalSama_DiterimaKeduanya` |
-| **Uji migration maju dan mundur terhadap PostgreSQL** | **Tidak dijalankan** | `NOT RUN` | Lihat "Tidak dijalankan" |
+| **Dua baris berkunci sama ditolak PostgreSQL** | Baris kedua ditolak database; tersisa satu baris | `PASS` **8 September 2026** | `PhysicianVisitUniquenessTests.KunciPermintaanKembar_DitolakDatabase` — lihat bagian 9 |
+| **Dua visite dokter yang sama pada tanggal sama diterima PostgreSQL** | Keduanya diterima; hitungan `2`; dua nomor bisnis berbeda | `PASS` **8 September 2026** | `PhysicianVisitUniquenessTests.DuaVisitePadaTanggalSama_DiterimaKeduanya` — lihat bagian 9 |
+| **Uji migration maju dan mundur terhadap PostgreSQL** | Berhasil kedua arah | `PASS` **5 September 2026** | Lihat bagian 8.2 |
 | `dotnet test` seluruh berkas uji SQLite | `Failed: 0, Passed: 219` | `PASS` | Keluaran perintah |
 
 Uji manual: `NOT APPLICABLE`.
@@ -219,9 +219,9 @@ penyedia seri nomor bersama hendak dijadikan wajib lintas modul.
 
 | Butir | Status |
 | --- | --- |
-| Keenam acceptance criteria terbukti | **Belum** — kriteria 6 belum terbukti |
+| Keenam acceptance criteria terbukti | Terpenuhi — kriteria 6 ditutup 5 September 2026, lihat bagian 8.2 |
 | Satu migration | Terpenuhi — `20260903093510_AddCliPhysicianVisit` |
-| Dua test PostgreSQL hijau | **Belum terpenuhi** — keduanya sudah ditulis dan terkompilasi, tetapi belum dijalankan |
+| Dua test PostgreSQL hijau | Terpenuhi **8 September 2026** — keduanya dijalankan dan hijau; lihat bagian 9 |
 | Laporan menyebut nama tabel apa adanya | Terpenuhi — `CliPhysicianVisit`, pada schema `public` |
 
 ---
@@ -277,7 +277,7 @@ memang tidak dibuat.
 
 | Butir DoD | Status | Sebab |
 | --- | --- | --- |
-| Dua test PostgreSQL hijau | ⛔ **`NOT RUN`** | `BLOCKED_BY_TEST_DB_CONFIGURATION` |
+| Dua test PostgreSQL hijau | ⛔ **`NOT RUN`** pada 5 September 2026; **ditutup 8 September 2026**, lihat bagian 9 | `BLOCKED_BY_TEST_DB_CONFIGURATION` |
 
 `PhysicianVisitUniquenessTests` memakai `BillingTestDatabaseFixture`, yang **menjalankan
 `Database.Migrate()` lalu menulis dan menghapus baris**. Karena itu fixture menolak setiap
@@ -302,4 +302,118 @@ Uji-nya sudah ditulis dan terkompilasi; tidak ada pekerjaan implementasi yang te
 | --- | --- |
 | Migration | `20260903093510_AddCliPhysicianVisit` — terpasang pada `QuilvianNewDevHamzah` |
 | Validasi | `dotnet test` project uji SQLite `Failed: 0, Passed: 324`; project `Tests` `Failed: 0, Passed: 288` |
+| Status Git | Tidak ada stage, commit, maupun push |
+
+---
+
+## 9. Pembaruan 8 September 2026 — dua test PostgreSQL hijau, task ditutup
+
+### 9.1 Database uji tersendiri akhirnya tersedia
+
+Gerbang yang menahan task ini sejak 4 September 2026 bukan ketiadaan PostgreSQL, melainkan
+ketiadaan database yang **boleh dibuang**. `BillingTestDatabaseFixture` menjalankan
+`Database.Migrate()` lalu menulis dan menghapus baris, sehingga ia menolak setiap nama database
+yang mengandung `dev`, `shared`, `staging`, `uat`, `prod`, atau `live`, dan menuntut penanda
+`test` sebagai bukti afirmatif.
+
+Penjagaan itu **tidak dilemahkan, tidak diberi jalan pintas, dan tidak diberi override**. Yang
+disediakan justru database yang memenuhi tuntutannya apa adanya: satu container PostgreSQL
+sekali pakai.
+
+| Hal | Nilai |
+| --- | --- |
+| Server | PostgreSQL **15.15** (Debian 15.15-1.pgdg13+1) — versi yang sama persis dengan server pengembang |
+| Bentuk | Container sekali pakai `quilvian-rwi-pgtest`, dari image `postgres:15.15` |
+| Database | `quilvian_rwi_test` — memuat penanda `test`, nol penanda terlarang |
+| Alamat | `localhost:55432`, terpisah penuh dari server mana pun yang dipakai bersama |
+| Isi awal | Kosong. Migration dijalankan dari nol: **148 migration**, **555 tabel** |
+| Data nyata yang tersentuh | **Nol.** Tidak ada satu pun perintah dikirim ke `160.22.250.77` maupun database bersama lainnya |
+
+Cara ini menutup gerbangnya tanpa menunggu DBA membuat database dan tanpa hak `CREATEDB` pada
+server bersama: databasenya lahir dan mati di mesin yang sama dengan yang menjalankan uji.
+
+Cara mengulanginya, apa adanya:
+
+```bash
+docker run -d --name quilvian-rwi-pgtest     -e POSTGRES_USER=rwitest -e POSTGRES_PASSWORD=rwitest     -e POSTGRES_DB=quilvian_rwi_test     -p 55432:5432 postgres:15.15
+
+export QUILVIAN_BILLING_TEST_DB="Host=localhost;Port=55432;Database=quilvian_rwi_test;Username=rwitest;Password=rwitest"
+
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres
+
+docker rm -f quilvian-rwi-pgtest
+```
+
+Container-nya **dihapus** setelah uji selesai; ia tidak ditinggalkan berjalan.
+
+### 9.2 Hasil kedua test
+
+| Test | Yang dibuktikan | Hasil |
+| --- | --- | --- |
+| `KunciPermintaanKembar_DitolakDatabase` | Baris kedua berkunci sama ditolak **database**, bukan pemeriksaan aplikasi yang kebetulan lebih dulu berjalan. Sesudahnya tersisa tepat satu baris | `PASS` |
+| `DuaVisitePadaTanggalSama_DiterimaKeduanya` | Dua visite dokter yang sama pada tanggal yang sama **diterima keduanya**; hitungan `2`; dua nomor bisnis berbeda | `PASS` |
+
+Perintah dan hasilnya:
+
+```text
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres --filter PhysicianVisitUniquenessTests
+Passed!  -  Failed: 0, Passed: 3, Skipped: 0, Total: 3
+```
+
+Angka tiga, bukan dua, karena satu test milik `BE-RWI-048` tinggal di kelas yang sama —
+lihat [laporan BE-RWI-048](BE-RWI-048.md).
+
+### 9.3 Cacat yang tersingkap saat gerbangnya dibuka
+
+Menjalankan uji yang selama ini hanya dikompilasi menyingkap satu hal yang tidak terlihat selama
+ia tidak pernah dijalankan: **`DuaVisitePadaTanggalSama_DiterimaKeduanya` gagal pada percobaan
+pertama.**
+
+| Hal | Isi |
+| --- | --- |
+| Gejala | `Assert.True(pagi.IsSuccess)` gagal |
+| Sebab | Uji memakai jam tetap: `DateTime.UtcNow.Date.AddHours(7)` untuk visite pagi dan `+9 jam` untuk visite sore, yaitu pukul 07.00 dan 16.00 UTC |
+| Kenapa baru sekarang | Uji ini ditulis 3 September 2026 pada `BE-RWI-041`. Sehari kemudian `BE-RWI-048` menambahkan penjagaan `VAL-DOK-16`: waktu kedatangan **tidak boleh melewati sekarang**, dengan toleransi 2 menit. Sejak itu uji ini hanya dapat hijau bila dijalankan lewat pukul 16.00 UTC |
+| Saat dijalankan | Pukul 05.16 UTC — kedua jam tetap itu masih di masa depan, sehingga **keduanya** ditolak `400` |
+| Perbaikan | Kedua waktu diturunkan dari jam sekarang dan dijamin sudah lewat, sambil tetap berada pada tanggal yang sama |
+
+Yang dibuktikan uji itu **tidak berubah**: dua kunjungan nyata pada tanggal yang sama, keduanya
+diterima, hitungannya dua. Yang berubah hanya cara waktunya ditentukan.
+
+**Penjagaan `VAL-DOK-16` sengaja tidak disentuh.** Menolak waktu kedatangan yang belum terjadi
+adalah perilaku yang benar: kunjungan besok bukan fakta, dan mencatatnya membuat hitungan visite
+hari ini memuat kunjungan yang belum terjadi. Yang keliru adalah asumsi jam pada uji, dan itulah
+yang diperbaiki.
+
+Assertion-nya sekaligus diberi pesan kegagalan — `Assert.True(pagi.IsSuccess, pagi.ErrorMessage)`
+— supaya kegagalan berikutnya menyebutkan alasan penolakannya, bukan sekadar `Expected: True`.
+
+### 9.4 Bukti katalog PostgreSQL
+
+Dibaca langsung dari `pg_indexes` pada database uji sesudah 148 migration terpasang:
+
+| Yang diminta acceptance criteria | Yang ada di PostgreSQL |
+| --- | --- |
+| Kunci permintaan unique **penuh**, tanpa penyaring | `CREATE UNIQUE INDEX "IX_CliPhysicianVisit_IdempotencyKey" ON public."CliPhysicianVisit" USING btree ("IdempotencyKey")` — **tanpa** klausa `WHERE` |
+| Nomor bisnis unique | `IX_CliPhysicianVisit_PhysicianVisitNumber` |
+| **Nol** unique atas pasangan perawatan, dokter, dan tanggal | Terbukti — hanya tiga index unique yang ada pada tabel ini, yaitu primary key, kunci permintaan, dan nomor bisnis |
+
+### 9.5 Berkas yang berubah pada pembaruan ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/ClinicalIntegration/PhysicianVisitUniquenessTests.cs` | Waktu kunjungan pada `DuaVisitePadaTanggalSama_DiterimaKeduanya` diturunkan dari jam sekarang, bukan jam tetap; assertion diberi pesan kegagalan |
+
+Nol perubahan pada source aplikasi milik task ini. Nol migration. Nol perintah ke database mana
+pun selain container sekali pakai.
+
+### 9.6 Catatan penutup pembaruan
+
+| Hal | Isi |
+| --- | --- |
+| Status akhir | ✅ **Selesai.** Keenam acceptance criteria dan keempat butir Definition of Done terpenuhi |
+| Peringatan | Nol peringatan build baru dari berkas task ini |
+| Risiko tersisa | Container uji bersifat sekali pakai dan **tidak** otomatis dinyalakan CI. Selama CI belum menyediakan PostgreSQL, kedua test ini akan kembali `NOT RUN` di sana — bukan gagal, melainkan terhalang konfigurasi. Menyediakannya di CI dicatat sebagai pekerjaan lingkungan, di luar lingkup task ini |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE` |
 | Status Git | Tidak ada stage, commit, maupun push |

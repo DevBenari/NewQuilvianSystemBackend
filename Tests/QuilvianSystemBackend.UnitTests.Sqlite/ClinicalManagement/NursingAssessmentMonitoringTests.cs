@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -300,6 +300,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                     AssessmentType = PatientAssessmentType.Initial,
                     HasPain = true,
                     PainScale = 3,
+                    FallRiskStatus = FallRiskStatus.NoRisk,
                     NutritionRiskStatus = NutritionRiskStatus.LowRisk
                 });
 
@@ -491,6 +492,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                     EncounterId = k.EncounterId,
                     InpEpisodeId = k.EpisodeId,
                     AssessmentType = PatientAssessmentType.DailyReassessment,
+                    FallRiskStatus = FallRiskStatus.NoRisk,
                     NutritionRiskStatus = NutritionRiskStatus.LowRisk
                 });
 
