@@ -29,6 +29,7 @@ namespace QuilvianSystemBackend.BillingTests.Radiology;
 ///  10. Pengulangan karena kebutuhan klinis baru menuntut pesanan tambahan.
 ///  11. Acquisition yang dihentikan mencatat sebab dan konsumsi tanpa menagih.
 ///  12. Pesanan tidak dapat dibatalkan ketika ada study yang sudah disinari.
+///  13. Aturan keselamatan yang masih berupa draf menolak acquisition — `AC-12`, `BE-RAD-06`.
 /// </summary>
 [Collection(PostgresIntegrationTestCollection.Name)]
 public sealed class RadiologyStudyLifecycleTests
@@ -80,6 +81,24 @@ public sealed class RadiologyStudyLifecycleTests
         // Fail-closed yang dituntut RJ-BIL-DEC-014. Modalitas tanpa satu pun aturan aktif
         // menolak acquisition, bukan meloloskannya.
         var konteks = await SiapkanAsync(denganAturan: false);
+
+        var study = await BuatStudyAsync(konteks);
+        await VerifikasiIdentitasAsync(study.Id);
+
+        var hasil = await JalankanAsync(s => s.StartAcquisitionAsync(study.Id));
+
+        Assert.Equal(RadOperationResultKind.PolicyNotConfigured, hasil.Kind);
+        Assert.Equal(RadErrorCodes.SafetyPolicyNotConfigured, hasil.ErrorCode);
+    }
+
+    [Fact]
+    public async Task AturanKeselamatanMasihDraf_AcquisitionDitolak()
+    {
+        // AC-12 pada RAD-DEC-005, dibuktikan sampai ke database. Aturan yang sudah tersimpan
+        // tetapi belum disahkan penanggung jawab klinis tidak boleh membuka gerbang. Bagi
+        // petugas, alat yang aturannya masih berupa draf harus terbaca sama persis dengan alat
+        // yang belum punya aturan sama sekali.
+        var konteks = await SiapkanAsync(statusAturan: RadSafetyRuleStatus.Draft);
 
         var study = await BuatStudyAsync(konteks);
         await VerifikasiIdentitasAsync(study.Id);
@@ -401,7 +420,15 @@ public sealed class RadiologyStudyLifecycleTests
         Guid RequirementWajibId,
         string KodeButirWajib);
 
-    private async Task<KonteksUji> SiapkanAsync(bool denganAturan = true)
+    /// <param name="denganAturan">Membuat baris aturan keselamatan atau tidak sama sekali.</param>
+    /// <param name="statusAturan">
+    /// Keadaan aturan pada siklus pengesahannya. Bawaannya <c>Active</c> karena hampir seluruh
+    /// skenario di berkas ini mengandaikan aturan yang sudah disahkan. Nilai bawaan entity
+    /// sendiri adalah <c>Draft</c>, sehingga statusnya wajib ditulis eksplisit di sini.
+    /// </param>
+    private async Task<KonteksUji> SiapkanAsync(
+        bool denganAturan = true,
+        RadSafetyRuleStatus statusAturan = RadSafetyRuleStatus.Active)
     {
         var seed = await _fixture.SeedEncounterAsync();
         _seeds.Add(seed);
@@ -455,6 +482,7 @@ public sealed class RadiologyStudyLifecycleTests
                     SafetyRequirementId = requirement.Id,
                     IsMandatory = true,
                     IsActive = true,
+                    RuleStatus = statusAturan,
                     RuleVersion = 1,
                     EffectiveFrom = DateTime.UtcNow.AddDays(-1),
                 };

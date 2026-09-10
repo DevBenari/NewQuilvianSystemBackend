@@ -246,7 +246,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Process Lab Order", Description = "Menandai order mulai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Process", "Process Lab Order", Description = "Menandai order mulai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("LabOrder", "Process")]
         public Task<IActionResult> StartProcess(Guid id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(
@@ -260,7 +260,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Process Lab Order", Description = "Menandai order selesai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Process", "Process Lab Order", Description = "Menandai order selesai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("LabOrder", "Process")]
         public Task<IActionResult> Complete(Guid id, CancellationToken cancellationToken = default) =>
             ExecuteAsync(
@@ -272,7 +272,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Hold Lab Order", Description = "Menahan order laboratorium", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Hold", "Hold Lab Order", Description = "Menahan order laboratorium", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabOrder", "Hold")]
         public Task<IActionResult> Hold(
             Guid id,
@@ -287,7 +287,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Hold Lab Order", Description = "Melanjutkan order laboratorium yang ditahan", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Hold", "Hold Lab Order", Description = "Melanjutkan order laboratorium yang ditahan", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabOrder", "Hold")]
         public Task<IActionResult> Resume(
             Guid id,
