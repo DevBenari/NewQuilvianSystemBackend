@@ -1,6 +1,6 @@
 # Rawat Inap — PRD ke MVP
 
-> **`SUPERSEDED` 2026-09-04.** Isi berkas ini sudah diport ke blueprint kanonik
+> **`SUPERSEDED` 2026-09-08.** Isi berkas ini sudah diport ke blueprint kanonik
 > [`docs/module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md`](../../module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md)
 > pada revisi `0.6.0`. Berkas ini disimpan sebagai jejak kerja dan **tidak boleh** disunting lagi;
 > seluruh perubahan berikutnya dilakukan pada blueprint kanonik.
@@ -13,24 +13,24 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.6.0` — naik 2026-09-04 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. Riwayat `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) dipertahankan di bawah, bukan dihapus |
+| Revision artefak | `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. Riwayat `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) dipertahankan di bawah, bukan dihapus |
 | `contract_version` | `0.6.0` — **naik**; langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-04 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
+| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-08 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
 
-**Perubahan pada `contract_version` `0.6.0`.** Peninjauan layar operasional 2026-09-04 menemukan selisih yang nyata: multi-step admisi rawat inap **sudah** mempunyai langkah `Input Deposit Rawat Inap` di antara langkah tipe pembayaran dan langkah Dokter, sedangkan revisi `0.5.0` hanya mengenal deposit sebagai aktivitas Billing/Kasir **sesudah** episode `Draft` ada. Empat arahan operasional berikut menutup selisih itu.
+**Perubahan pada `contract_version` `0.6.0`.** Peninjauan layar operasional 2026-09-08 menemukan selisih yang nyata: multi-step admisi rawat inap **sudah** mempunyai langkah `Input Deposit Rawat Inap` di antara langkah tipe pembayaran dan langkah Dokter, sedangkan revisi `0.5.0` hanya mengenal deposit sebagai aktivitas Billing/Kasir **sesudah** episode `Draft` ada. Empat arahan operasional berikut menutup selisih itu.
 
-| Arahan operasional 2026-09-04 | Masuk ke |
+| Arahan operasional 2026-09-08 | Masuk ke |
 | --- | --- |
-| `OPS-2026-09-04/A` deposit menjadi **langkah tersendiri** pada multi-step admisi, tepat setelah langkah tipe pembayaran dan sebelum langkah Dokter | Bagian 4, 9, `FR-RI-174`, `FR-RI-178` |
-| `OPS-2026-09-04/B` nilai minimum deposit berasal dari **kebijakan per penjamin dan kelas perawatan**, bukan angka tetap yang ditulis di layar | Bagian 5.1, `FR-RI-175` |
-| `OPS-2026-09-04/C` deposit di bawah minimum **tidak menghentikan admisi**; layar hanya memberi peringatan | `FR-RI-176`, `UAT-42` |
-| `OPS-2026-09-04/D` kekurangan minimum deposit ditagih **berkala** pada perawatan panjang, dan diperhitungkan pada pelunasan akhir untuk perawatan singkat | `FR-RI-177`, `UAT-44` |
+| `OPS-2026-09-08/A` deposit menjadi **langkah tersendiri** pada multi-step admisi, tepat setelah langkah tipe pembayaran dan sebelum langkah Dokter | Bagian 4, 9, `FR-RI-174`, `FR-RI-178` |
+| `OPS-2026-09-08/B` nilai minimum deposit berasal dari **kebijakan per penjamin dan kelas perawatan**, bukan angka tetap yang ditulis di layar | Bagian 5.1, `FR-RI-175` |
+| `OPS-2026-09-08/C` deposit di bawah minimum **tidak menghentikan admisi**; layar hanya memberi peringatan | `FR-RI-176`, `UAT-42` |
+| `OPS-2026-09-08/D` kekurangan minimum deposit ditagih **berkala** pada perawatan panjang, dan diperhitungkan pada pelunasan akhir untuk perawatan singkat | `FR-RI-177`, `UAT-44` |
 
 Layar hari ini menuliskan "Deposit wajib diisi dan tidak boleh 0" beserta minimum Rp100.000.000 sebagai angka tetap. Keduanya **tidak** dikunci sebagai aturan produk: `FR-RI-164` tetap berlaku penuh, dan angka itu berpindah menjadi nilai kebijakan yang dibaca layar.
 
@@ -140,7 +140,7 @@ isolasi di tempat tidur biasa — walaupun petugas memaksa.
 | Mesin penggerak status tempat tidur | Satu-satunya penulis `MstBed.BedStatus` adalah CRUD master data |
 | Daftar pasien dirawat | Tidak ada endpoint, view, maupun query census |
 | Layar Rawat Inap di frontend | Tidak ada satu pun route; menu hanya mengenal Rawat Jalan dan IGD |
-| ~~Kemampuan transaksi Billing~~ — **baris ini basi, dikoreksi 2026-09-04** | Pada peninjauan 2026-09-04, `BillingManagement` sudah punya lima controller (`invoices`, `finalizations`, `patient-funds`, `settlements`, `financial-exceptions`), lima belas service termasuk `BillingDepositService`, `BillingSettlementService`, dan `BillingRefundService`, serta master `MstRoomChargePolicy` dan `MstPaymentMethod`. Yang benar-benar belum ada untuk rawat inap tinggal **pengikatan `EpisodeId`** pada akun deposit dan **kebijakan minimum deposit** |
+| ~~Kemampuan transaksi Billing~~ — **baris ini basi, dikoreksi 2026-09-08** | Pada peninjauan 2026-09-08, `BillingManagement` sudah punya lima controller (`invoices`, `finalizations`, `patient-funds`, `settlements`, `financial-exceptions`), lima belas service termasuk `BillingDepositService`, `BillingSettlementService`, dan `BillingRefundService`, serta master `MstRoomChargePolicy` dan `MstPaymentMethod`. Yang benar-benar belum ada untuk rawat inap tinggal **pengikatan `EpisodeId`** pada akun deposit dan **kebijakan minimum deposit** |
 
 **Evidence legacy V1, bukan bukti implementasi V2.** Lampiran backend lama menunjukkan `DepositRanap` dipetakan dengan `NoKwitansi` wajib dan unique, tersedia `DbSet<DepositRanap>` serta `DbSet<DepositPersentase>`, dan `Program.cs` mendaftarkan `IPerkiraanBillingRanapService` serta `IDepositRanapNumberService`. Artinya konsep deposit rawat inap pernah ada pada V1 dan layak menjadi referensi migrasi, tetapi schema V1 **tidak otomatis dipakai ulang** untuk target V2. `EPIC RI-35` tetap diklasifikasikan sebagai cross-module `MISSING / EXTEND` sampai kontrak Billing V2 ditetapkan.
 
@@ -993,7 +993,7 @@ direkonstruksi**: dari riwayat penempatan, kelas dan lamanya menempati setiap ka
 Keputusan apakah episode lama ikut ditagihkan mundur adalah keputusan keuangan yang belum ada
 pemiliknya.
 
-> **Catatan bukti 2026-09-04.** `MstRoomChargePolicy` sudah ada pada `BillingManagement`, begitu pula
+> **Catatan bukti 2026-09-08.** `MstRoomChargePolicy` sudah ada pada `BillingManagement`, begitu pula
 > jalur invoice dan finalisasi. Keputusan MVP di atas tidak berubah — modul Rawat Inap tetap tidak
 > menghitung charge kamar — tetapi "Billing belum bisa apa-apa" bukan lagi gambaran yang benar, dan
 > asumsi itu tidak boleh dipakai lagi untuk menunda `FR-RI-170` s.d. `FR-RI-172`.
@@ -1387,7 +1387,7 @@ kemampuan yang ditunda pada bagian 8 seluruhnya berada di `POST-MVP`.
 **Empat pertanyaan yang memblokir seluruhnya tertutup pada 2026-08-21.** Daftar di bawah
 mempertahankan barisnya beserta jawabannya, bukan menghapusnya, supaya pembaca berikutnya tahu
 kenapa keputusannya berbunyi demikian. **Satu pertanyaan memblokir yang baru terbuka pada
-2026-09-04** menyusul di baris terakhir, dan ia hanya menahan `EPIC RI-35a`.
+2026-09-08** menyusul di baris terakhir, dan ia hanya menahan `EPIC RI-35a`.
 
 | Pertanyaan | Siapa yang menjawab | Status | Memblokir |
 | --- | --- | --- | :---: |
@@ -1400,7 +1400,7 @@ kenapa keputusannya berbunyi demikian. **Satu pertanyaan memblokir yang baru ter
 | Apakah satu pasien boleh punya dua episode aktif sekaligus? | Pemilik proses | **Tertutup** `RWI-DEC-054` — tidak, dijaga unique index parsial | Tidak |
 | Apakah resume pulang perlu riwayat versi? | Pemilik klinis | **Tertutup** `RWI-DEC-057` — ya, versi sebelumnya tersalin saat koreksi | Tidak |
 | Apakah bayi dan ibunya perlu penanda rawat gabung? | Pemilik proses | **Tertutup** `RWI-DEC-056` — ya, kolom opsional rujukan episode ibu | Tidak |
-| Siapa yang berwenang menerbitkan penerimaan deposit pada langkah admisi — petugas admisi sendiri, atau langkah itu hanya mencatat nominal sementara kwitansi diterbitkan kasir? | Pemilik keuangan | **Terbuka** sejak 2026-09-04. Layar admisi dipegang petugas admisi, sedangkan penerimaan uang selama ini milik kasir. Jawabannya menentukan siapa pemegang `BillingDeposit : Create` pada bagian 14 | Ya, untuk `EPIC RI-35a` |
+| Siapa yang berwenang menerbitkan penerimaan deposit pada langkah admisi — petugas admisi sendiri, atau langkah itu hanya mencatat nominal sementara kwitansi diterbitkan kasir? | Pemilik keuangan | **Terbuka** sejak 2026-09-08. Layar admisi dipegang petugas admisi, sedangkan penerimaan uang selama ini milik kasir. Jawabannya menentukan siapa pemegang `BillingDeposit : Create` pada bagian 14 | Ya, untuk `EPIC RI-35a` |
 
 ### 20.3 Yang masih menahan, dan bentuknya bukan pertanyaan
 
@@ -1409,7 +1409,7 @@ kenapa keputusannya berbunyi demikian. **Satu pertanyaan memblokir yang baru ter
 | Master kamar dan tempat tidur terisi **dan penandanya benar** | Pekerjaan data, bukan keputusan | `MVP-1`, termasuk `EPIC RI-34`. Penanda jenis kelamin, isolasi, dan boks bayi yang salah setel akan menolak penempatan yang sah, atau lebih buruk, meloloskan yang tidak sah |
 | Test regresi jalur lama untuk modul yang disentuh | Pekerjaan uji | `EPIC RI-32` dan seluruh task yang menyentuh modul lain — `NFR-008` |
 | Perbaikan pemanggilan tombol tempat tidur di frontend | Pekerjaan perbaikan | `EPIC RI-32` |
-| Sinkronisasi keputusan scope deposit 2026-09-03 **dan arahan operasional 2026-09-04 (`OPS-2026-09-04/A` s.d. `/D`)** ke `00-interview-decisions.md`, beserta kenaikan kontrak API/validation/permission Billing ke `0.6.0` | Pekerjaan dokumentasi dan contract lock, **bukan pertanyaan bisnis baru** | `EPIC RI-35` sebelum development lock |
+| Sinkronisasi keputusan scope deposit 2026-09-03 **dan arahan operasional 2026-09-08 (`OPS-2026-09-08/A` s.d. `/D`)** ke `00-interview-decisions.md`, beserta kenaikan kontrak API/validation/permission Billing ke `0.6.0` | Pekerjaan dokumentasi dan contract lock, **bukan pertanyaan bisnis baru** | `EPIC RI-35` sebelum development lock |
 | Masa simpan data, interoperabilitas nasional, persetujuan pasien | Keputusan hukum dan klinis | Melayani pasien sungguhan, bukan pengerjaan MVP — bagian 16 |
 
 Sesuai kontrak, dokumen ini tetap berstatus `draft` sampai ada approval manusia. Yang berubah pada

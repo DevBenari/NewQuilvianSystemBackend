@@ -50,10 +50,13 @@ public sealed class OperatingRoomSchedulingService
     private readonly OperatingRoomCredentialResolver _credentialResolver;
     private readonly OperatingRoomSchedulingOptions _options;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
     public OperatingRoomSchedulingService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor,
         LoggerService loggerService, OperatingRoomCredentialResolver credentialResolver,
-        IOptions<OperatingRoomSchedulingOptions> options)
+        IOptions<OperatingRoomSchedulingOptions> options, OperatingRoomRuleRelaxation relaxation)
     {
+        _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
@@ -348,6 +351,10 @@ public sealed class OperatingRoomSchedulingService
     private async Task ValidateTeamAsync(OprCase entity, IReadOnlyCollection<OprTeamMemberRequest> members,
         CancellationToken cancellationToken)
     {
+        // Seluruh pemeriksaan susunan tim dilepas saat aturan klinis dilonggarkan, sehingga
+        // jadwal dapat dibuat tanpa menyiapkan empat peran dan empat orang lebih dulu.
+        if (_relaxation.IsRelaxed) return;
+
         if (RequiredRoles.Any(role => members.All(x => x.Role != role)))
             throw new OperatingRoomUnprocessableException("OPR004",
                 "Lengkapi dokter bedah, dokter anestesi, perawat instrumen, dan perawat sirkuler.");

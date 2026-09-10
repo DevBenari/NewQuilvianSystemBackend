@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `259d53c`, branch `yoga` |
 | Tanggal | 2026-09-04 |
-| Status | **`SELESAI`.** Pengisian nilai untuk katalog yang sudah ada sengaja tidak dilakukan — lihat bagian 3.3 |
+| Status | **`SELESAI`.** Pengisian nilai untuk katalog yang sudah ada sengaja tidak dilakukan — lihat bagian 3.3. **Adendum 2026-09-08:** jalur pengisiannya ternyata juga belum ada dan kini dibangun — lihat bagian 8 |
 
 ### Backend Governance Preflight
 
@@ -135,3 +135,68 @@ Uji manual: `NOT FEASIBLE`.
 | Interupsi | `NONE` |
 | Status Git | Tidak ada operasi Git yang dijalankan dari sesi ini |
 | Langkah berikutnya | 1. Meminta daftar penggolongan disiplin dari pihak laboratorium, lalu mengisinya. 2. `BE-LAB-07` — katalog laboratorium; penahannya sudah dicabut |
+
+---
+
+## 8. Adendum — 2026-09-08
+
+### 8.1 Sebab kedua yang tidak tercatat
+
+Laporan ini menyatakan nilainya tidak diisi karena penggolongannya keputusan klinis. Itu benar,
+tetapi bukan satu-satunya penahan, dan bukan yang paling menentukan.
+
+> `MstProcedure.LabDiscipline` tidak pernah dibuka pada `ProcedureDtos.cs` maupun
+> `ProcedureController.cs`. Telusur seluruh backend menemukan **nol jalur tulis** — bukan lewat
+> API, bukan lewat layar, bukan lewat seeder. Kolomnya hanya dibaca Laboratorium.
+
+Akibatnya butir DoD *"nilainya terisi"* tidak dapat dipenuhi siapa pun. Seandainya daftar
+penggolongan dari pihak laboratorium sudah tersedia pada 2026-09-04, nilainya tetap tidak dapat
+dimasukkan. Bagian 5.1 mencatat pemeriksaan itu tidak dijalankan karena menunggu daftar
+penggolongan; sebab yang sebenarnya lebih dulu menghalangi tidak ikut tercatat.
+
+### 8.2 Yang dibangun
+
+| Berkas | Perubahan |
+| --- | --- |
+| `.../MasterData/DTOs/ProcedureDtos.cs` | `LabDiscipline` dan `LabDisciplineName` pada `ProcedureResponse` dan `ProcedureOptionResponse`; `LabDiscipline` pada `CreateProcedureRequest`; `LabDisciplineOptions` pada metadata |
+| `.../MasterData/Controllers/ProcedureController.cs` | Validasi, pemetaan create dan update, tiga mapper respons, pilihan metadata, ruas form bernomor urut 11, serta helper `ParseLabDiscipline` dan `BuildLabDisciplineLabel` |
+| `Tests/.../MasterData/ProcedureLabDisciplineTests.cs` | **Baru**, delapan uji |
+| Frontend `procedure-constants.jsx`, `procedure-utils.jsx` | Ruas **Disiplin Laboratorium** pada form Master Data → Prosedur, pemetaan payload dan detail, validasi sisi layar |
+| Frontend `tests/unit/procedure-lab-discipline.test.mjs` | **Baru**, enam uji |
+
+Dua hal yang sengaja tidak diserahkan pada selera:
+
+1. **Daftar disiplin yang sah diambil dari `Enum.GetNames<LabDiscipline>()`**, bukan konstanta
+   teks di Master Data. Menyalinnya membuat controller ini dapat menerima golongan yang tidak
+   dikenali Laboratorium, atau sebaliknya, tanpa satu pun uji gagal.
+2. **Golongan pada tindakan non-laboratorium ditolak**, bukan dikosongkan diam-diam. Golongan
+   yang tersimpan pada baris yang tidak pernah dibaca Laboratorium hanya menyesatkan pembacanya
+   kelak.
+
+### 8.3 Verifikasi
+
+| Perintah | Hasil |
+| --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj` | `0 Error(s)` |
+| `dotnet test` — `QuilvianSystemBackend.Tests` | `Failed: 0, Passed: 424` |
+| `dotnet test --filter ProcedureLabDisciplineTests` | `Failed: 0, Passed: 8` |
+| Uji unit frontend | `pass 539, fail 0` |
+| `npm run lint:errors` | Bersih |
+
+### 8.4 Yang masih menahan
+
+| Butir | Keadaan |
+| --- | --- |
+| Daftar penggolongan disiplin | **Masih terbuka.** Tetap keputusan klinis, dan tetap tidak boleh ditebak. `INV-22` pada `LabExaminationService` menolak pemeriksaan yang disiplinnya tidak cocok dengan disiplin pesanannya, sehingga salah golong membuat sistem menolak pesanan yang sebenarnya sah |
+| Layar monitoring | **Tidak bergantung pada kolom ini.** `LabMonitoringService` menyaring `LabOrder.Discipline`, bukan `MstProcedure.LabDiscipline`. Yang dibuka kolom ini adalah penyaring katalog. Lihat bagian 8.5 |
+
+### 8.5 Temuan sampingan — disiplin pesanan tidak pernah diturunkan dari pemeriksaannya
+
+`LabOrderService` menyalin `Discipline` apa adanya dari permintaan dan tidak pernah
+menurunkannya dari prosedur yang dipilih. Ruas Disiplin pada layar Buat Pesanan tidak wajib,
+sehingga setiap pesanan yang dibuat tanpa memilihnya bernilai kosong dan **tidak muncul di satu
+pun dari tiga layar monitoring** — terhitung sebagai `TanpaDisiplin` pada rekapnya.
+
+Menurunkan disiplin pesanan dari pemeriksaan yang dipilih ketika petugas tidak mengisinya adalah
+perbaikan yang wajar, tetapi **keputusan perilaku** dan karena itu belum dikerjakan. Dicatat di
+sini supaya tidak hilang.

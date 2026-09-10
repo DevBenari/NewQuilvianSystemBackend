@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.6.0` |
+| `contract_version` | `0.6.1` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | Belum ada |
 | `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Backend SHA | `5afb54b` |
+| Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
 
 ### Perubahan pada `contract_version` `0.2.0`
@@ -73,14 +73,27 @@ seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 >
 > Tidak ada lagi baris berstatus `Rencana` pada dokumen ini.
 
+### Koreksi pada `contract_version` `0.6.1`
+
+Trace terhadap source `44099e4` menemukan tiga baris `0.6.0` yang salah, bukan sekadar kurang.
+
+| Yang dikoreksi | Buktinya |
+| --- | --- |
+| `episodeId` **tidak jadi** ditambahkan pada `top-ups`, dan kolom `EpisodeId` dibatalkan | `BilDepositAccountConfiguration.cs:27` dan `InpEpisodeConfiguration.cs:26` sama-sama mengunci `EncounterId` unique; episodenya terbaca lewat join |
+| Rute `POST /deposits/episodes/{episodeId}/refunds` **dicabut** | `BillingFinancialExceptionsController.cs:112` sudah menyediakan `POST /financial-exceptions/refunds` beserta `approve`, di bawah `BIL-API-0.4` yang sudah disetujui |
+| Idempotensi tidak perlu dibangun | `BillingPatientFundsController.cs:99` memakai header `Idempotency-Key`; `BilDepositMovementConfiguration.cs:31` menguncinya unique |
+
+`POST /deposits/episodes/{episodeId}/settle` **dipertahankan sebagai rencana**: alokasi yang ada
+hari ini bekerja per kunjungan dan belum menghasilkan posisi settlement per episode.
+
 ### Perubahan pada `contract_version` `0.5.0` dan `0.6.0`
 
 | Yang berubah | Dasar |
 | --- | --- |
 | Bagian baru **Deposit Rawat Inap** pada `BillingManagement`, berisi tujuh baris: tiga rute `patient-funds` yang sudah ada dan empat rute baru | `EPIC RI-35`, `FR-RI-163` s.d. `FR-RI-178` |
-| `POST /patient-funds/deposits/{encounterId}/top-ups` wajib menerima dan menyimpan `episodeId` | `FR-RI-163`, `RWI-DEC-093` |
+| ~~`POST /patient-funds/deposits/{encounterId}/top-ups` wajib menerima `episodeId`~~ — **dicabut `0.6.1`** | `FR-RI-163`, `RWI-DEC-093` sebagaimana dikoreksi |
 | Rute baru `GET /patient-funds/deposit-policies` sebagai sumber minimum deposit pada langkah admisi | `FR-RI-175`, `RWI-DEC-094` |
-| Rute baru `GET /patient-funds/deposits/episodes/{episodeId}`, `POST …/settle`, dan `POST …/refunds` | `FR-RI-167`, `FR-RI-170`, `FR-RI-171` |
+| Rute baru `GET /patient-funds/deposits/episodes/{episodeId}` dan `POST …/settle`. Bagian `…/refunds` **dicabut `0.6.1`** | `FR-RI-167`, `FR-RI-170`, `FR-RI-171` |
 | Usulan base URL `billing-management/inpatient-deposits` **dicabut** sebelum sempat dipakai | `04-prd-to-mvp.md` `0.6.0` |
 | `GET /monitoring/deposit-shortfall` sebagai daftar pantau kekurangan deposit | `FR-RI-177`, `RWI-DEC-096` |
 
@@ -210,12 +223,14 @@ ada controller deposit di area Rawat Inap.
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/deposits/{encounterId}` | Membaca akun deposit satu kunjungan | `BillingDeposit : Read` | – | `ApiResponse<BillingDepositResponse>` | ✅ **Tersedia** — `BillingPatientFundsController.cs:67` |
-| `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up | `BillingDeposit : Create` | `TopUpDepositRequest` | `ApiResponse<BillingDepositResponse>` | ⚠️ **Tersedia, perlu `EXTEND`** — wajib menerima dan menyimpan `episodeId` |
-| `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | ⚠️ **Tersedia, perlu `EXTEND`** |
+| `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up. Header `Idempotency-Key` **wajib** | `BillingDeposit : Create` | `DepositTopUpRequest` | `ApiResponse<SettlementResponse>` | ✅ **Tersedia apa adanya** — `BillingPatientFundsController.cs:93`. Koreksi `0.6.1`: tidak perlu `episodeId` |
+| `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | ✅ **Tersedia apa adanya** — `BillingPatientFundsController.cs:31` |
 | `GET` | `/deposit-policies` | Kebijakan deposit untuk kombinasi penjamin dan kelas perawatan | `BillingDeposit : Read` | `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | **Rencana `0.6.0`** |
 | `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | **Rencana `0.6.0`** |
 | `POST` | `/deposits/episodes/{episodeId}/settle` | Alokasi deposit terhadap tagihan final beserta selisihnya | `BillingDeposit : Settle` | `SettleEpisodeDepositRequest` | `ApiResponse<EpisodeDepositSettlementResponse>` | **Rencana `0.6.0`** |
-| `POST` | `/deposits/episodes/{episodeId}/refunds` | Refund atau penyelesaian kelebihan deposit | `BillingDeposit : Refund` | `RefundEpisodeDepositRequest` | `ApiResponse<EpisodeDepositRefundResponse>` | **Rencana `0.6.0`** |
+| ~~`POST`~~ | ~~`/deposits/episodes/{episodeId}/refunds`~~ | **Dicabut `0.6.1`** — bertabrakan dengan kontrak Billing yang sudah disetujui | – | – | – | ❌ **Dicabut** |
+| `POST` | `/financial-exceptions/refunds` dan `/refunds/{id}/approve` | Refund kelebihan deposit beserta persetujuannya | `BillingRefund : Create` / `Approve` | Kontrak `BIL-API-0.4` | – | ✅ **Tersedia** — `BillingFinancialExceptionsController.cs:112,157` |
+| `GET` | `/invoices/encounters/{encounterId}/charge-summary` | Rekap tagihan satu kunjungan; sumber angka tagihan final pada settlement | `BillingInvoice : Read` | – | `ApiResponse<EncounterChargeSummaryResponse>` | ✅ **Tersedia** — `BillingInvoicesController.cs:122` |
 
 **Ringkasan episode wajib memuat dua angka kekurangan yang berbeda.** Kekurangan terhadap **minimum
 kebijakan** dipakai langkah admisi dan daftar pantau; kekurangan terhadap **tagihan final** dipakai

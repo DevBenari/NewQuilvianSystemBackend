@@ -134,6 +134,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             };
         }
 
+        /// <summary>
+        /// Satu alasan penolakan beserta kedua penanda sistemnya (<c>LAB-API-v1</c> `r6`).
+        ///
+        /// <para>
+        /// Grup ini semula tidak punya jalur detail, sehingga formulir ubah pada <c>FE-LAB-03</c>
+        /// memuat barisnya dari halaman daftar yang sedang terbuka. Cara itu bekerja selama
+        /// barisnya masih ada di halaman yang sama, dan diam-diam gagal ketika petugas membuka
+        /// tautan langsung, menyegarkan halaman, atau berpindah halaman daftar lebih dulu:
+        /// formulirnya terbuka kosong tanpa satu pun pesan.
+        /// </para>
+        ///
+        /// <para>
+        /// Baca saja, dan sengaja tanpa penelusuran — hak aksesnya <c>LabRejectionReason : Read</c>,
+        /// sama dengan daftarnya. Alasan nonaktif tetap terbaca karena ia masih menempel pada
+        /// riwayat penolakan yang sudah tersimpan; yang terhapus tidak.
+        /// </para>
+        /// </summary>
+        public async Task<LabRejectionReasonResponse> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var item = await _dbContext.MstLabRejectionReasons
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => Map(x))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (item == null)
+                throw new KeyNotFoundException("Alasan penolakan tidak ditemukan.");
+
+            return item;
+        }
+
         // =================================================================
         // Menambah
         // =================================================================

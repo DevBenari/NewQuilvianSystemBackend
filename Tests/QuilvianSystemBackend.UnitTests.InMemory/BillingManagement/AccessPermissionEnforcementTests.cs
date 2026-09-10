@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging.Abstractions;
+using QuilvianSystemBackend.DTOs.Auth;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Filters;
 using QuilvianSystemBackend.Models;
@@ -61,17 +63,24 @@ public sealed class AccessPermissionEnforcementTests
 
     private static AccessPermissionService CreateService(
         ApplicationDbContext dbContext,
-        bool enforceClinicalPolicyForSuperAdmin = false)
+        bool enforceClinicalPolicyForSuperAdmin = false,
+        bool authorizationEnabled = true,
+        string environmentName = "Development")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Security:Authorization:EnforceClinicalPolicyForSuperAdmin"] =
                     enforceClinicalPolicyForSuperAdmin ? "true" : "false",
+                ["Security:Authorization:Enabled"] =
+                    authorizationEnabled ? "true" : "false",
             })
             .Build();
 
-        return new AccessPermissionService(dbContext, CreateUserManager(dbContext), configuration);
+        var environment = new HostingEnvironment { EnvironmentName = environmentName };
+
+        return new AccessPermissionService(
+            dbContext, CreateUserManager(dbContext), configuration, environment);
     }
 
     private static LoggerService CreateLogger() =>
@@ -179,6 +188,50 @@ public sealed class AccessPermissionEnforcementTests
             authenticationType: "TestAuth"));
 
     private static ClaimsPrincipal UnauthenticatedPrincipal() => new(new ClaimsIdentity());
+
+    // --- Saklar mematikan otorisasi selama pengembangan ---
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_MeloloskanPenggunaTanpaPolicy_DiLuarProduksi()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        // Sengaja tidak diberi organisasi maupun policy apa pun.
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Development");
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(user.Id), BillingWriteOffController, ApproveAction);
+
+        Assert.True(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_TETAPMenolakDiProduksi()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Production");
+
+        var hasAccess = await service.HasAccessAsync(
+            AuthenticatedPrincipal(user.Id), BillingWriteOffController, ApproveAction);
+
+        // Inilah batas yang paling menentukan: konfigurasi tidak boleh dapat mematikan
+        // otorisasi di produksi, karena akibatnya seluruh rekam medis terbuka bagi siapa pun
+        // yang berhasil login.
+        Assert.False(hasAccess);
+    }
+
+    [Fact]
+    public async Task HasAccessAsync_SaklarMati_TidakMeloloskanPenggunaYangBelumLogin()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(db, authorizationEnabled: false, environmentName: "Development");
+
+        var hasAccess = await service.HasAccessAsync(
+            new ClaimsPrincipal(new ClaimsIdentity()), BillingWriteOffController, ApproveAction);
+
+        Assert.False(hasAccess);
+    }
 
     // --- Resolusi izin inti (AccessPermissionService.HasAccessAsync) ---
 
@@ -500,5 +553,229 @@ public sealed class AccessPermissionEnforcementTests
         await filter.OnAuthorizationAsync(context);
 
         Assert.Null(context.Result);
+    }
+    // --- Daftar kewenangan efektif (AccessPermissionService.GetEffectivePermissionsAsync) ---
+    //
+    // Dipakai frontend untuk menyembunyikan aksi yang memang tidak boleh dipakai. Sebelum ini
+    // tidak ada endpoint apa pun yang menerbitkan daftar tersebut, sehingga layar hanya dapat
+    // menebak dari nama peran - tombol tampil lalu ditolak 403, atau tersembunyi padahal berhak.
+    //
+    // Aturan yang dijaga di sini: JAWABANNYA WAJIB SAMA DENGAN HasAccessAsync. Daftar yang lebih
+    // longgar menghasilkan tombol yang menipu; yang lebih ketat menyembunyikan pekerjaan yang sah.
+
+    private static bool Contains(EffectivePermissionSet set, string resource, string action) =>
+        set.Permissions.Any(x => x.Resource == resource && x.Action == action);
+
+    [Fact]
+    public async Task GetEffectivePermissions_ReturnsOnlyPairsTheGuardWouldAllow()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+
+        // Satu pasangan diberikan lewat jabatan user, satu pasangan lain sengaja tidak.
+        var (departmentId, positionId) = await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId);
+        await GrantPolicyAsync(db, CashierShiftController, ReopenAction);
+
+        var service = CreateService(db);
+        var principal = AuthenticatedPrincipal(user.Id);
+
+        var set = await service.GetEffectivePermissionsAsync(principal);
+
+        Assert.True(Contains(set, BillingWriteOffController, ApproveAction));
+        Assert.False(Contains(set, CashierShiftController, ReopenAction));
+
+        // Pasangan demi pasangan, daftar dan penjaganya wajib sepakat.
+        foreach (var (resource, action) in new[]
+                 {
+                     (BillingWriteOffController, ApproveAction),
+                     (CashierShiftController, ReopenAction),
+                     (BillingInvoiceController, UpdateAction),
+                 })
+        {
+            Assert.Equal(
+                await service.HasAccessAsync(principal, resource, action),
+                Contains(set, resource, action));
+        }
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ExcludesPolicyThatIsNotAllowed()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(
+            db, BillingWriteOffController, ApproveAction, isAllowed: false);
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId);
+        var service = CreateService(db);
+
+        var set = await service.GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
+
+        Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ExcludesInactiveControllerOrAction()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+
+        var (dept1, pos1) = await GrantPolicyAsync(
+            db, BillingWriteOffController, ApproveAction, actionActive: false);
+        await AssignUserToOrganizationAsync(db, user, dept1, pos1);
+
+        var (dept2, pos2) = await GrantPolicyAsync(
+            db, CashierShiftController, ReopenAction, controllerActive: false);
+        await AssignUserToOrganizationAsync(db, user, dept2, pos2);
+
+        var service = CreateService(db);
+
+        var set = await service.GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
+
+        Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
+        Assert.False(Contains(set, CashierShiftController, ReopenAction));
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ExcludesSystemOnlyPairsForOrdinaryUser()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(
+            db, BillingWriteOffController, ApproveAction, actionSystemOnly: true);
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId);
+        var service = CreateService(db);
+
+        var principal = AuthenticatedPrincipal(user.Id);
+        var set = await service.GetEffectivePermissionsAsync(principal);
+
+        Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
+        Assert.False(await service.HasAccessAsync(principal, BillingWriteOffController, ApproveAction));
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ExcludesExpiredOrganizationAssignment()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        await AssignUserToOrganizationAsync(
+            db, user, departmentId, positionId,
+            effectiveEndDate: DateTime.UtcNow.AddDays(-1));
+        var service = CreateService(db);
+
+        var set = await service.GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
+
+        Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ReturnsEmptyForUnauthenticatedCaller()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        var service = CreateService(db);
+
+        var set = await service.GetEffectivePermissionsAsync(UnauthenticatedPrincipal());
+
+        Assert.False(set.IsSuperAdmin);
+        Assert.Empty(set.Permissions);
+        Assert.Equal(0, set.TotalPermission);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_ReturnsEmptyForInactiveUser()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db, isActive: false);
+        var (departmentId, positionId) = await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId);
+        var service = CreateService(db);
+
+        var set = await service.GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
+
+        Assert.Empty(set.Permissions);
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_SuperAdminWithoutClinicalEnforcementGetsEveryRegisteredPair()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var superAdmin = await SeedUserAsync(db, UserType.SuperAdmin);
+
+        // Tidak satu pun diberikan lewat kebijakan; SuperAdmin memang tidak melewatinya.
+        await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        await GrantPolicyAsync(db, CashierShiftController, ReopenAction);
+
+        var service = CreateService(db, enforceClinicalPolicyForSuperAdmin: false);
+        var principal = AuthenticatedPrincipal(superAdmin.Id);
+
+        var set = await service.GetEffectivePermissionsAsync(principal);
+
+        Assert.True(set.IsSuperAdmin);
+        Assert.True(Contains(set, BillingWriteOffController, ApproveAction));
+        Assert.True(Contains(set, CashierShiftController, ReopenAction));
+        Assert.True(await service.HasAccessAsync(principal, CashierShiftController, ReopenAction));
+    }
+
+    [Fact]
+    public async Task GetEffectivePermissions_DoesNotRepeatPairHeldThroughTwoAssignments()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+
+        // Satu pasangan yang sama diberikan lewat dua jabatan berbeda. Layar yang menghitung
+        // kewenangan dari panjang daftar akan keliru bila duplikatnya lolos.
+        var controllerAccess = new SysControllerAccess
+        {
+            Id = Guid.NewGuid(),
+            ModuleId = Guid.NewGuid(),
+            ControllerName = BillingInvoiceController,
+            DisplayName = BillingInvoiceController,
+            IsActive = true,
+        };
+        var actionAccess = new SysActionAccess
+        {
+            Id = Guid.NewGuid(),
+            ControllerAccessId = controllerAccess.Id,
+            ActionName = UpdateAction,
+            DisplayName = UpdateAction,
+            IsActive = true,
+        };
+        db.SysControllerAccesses.Add(controllerAccess);
+        db.SysActionAccesses.Add(actionAccess);
+
+        foreach (var _ in Enumerable.Range(0, 2))
+        {
+            var departmentId = Guid.NewGuid();
+            var positionId = Guid.NewGuid();
+
+            db.SysAccessPolicies.Add(new SysAccessPolicy
+            {
+                Id = Guid.NewGuid(),
+                DepartmentId = departmentId,
+                PositionId = positionId,
+                ControllerAccessId = controllerAccess.Id,
+                ActionAccessId = actionAccess.Id,
+                IsAllowed = true,
+            });
+
+            db.ApplicationUserOrganizations.Add(new ApplicationUserOrganization
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                DepartmentId = departmentId,
+                PositionId = positionId,
+                IsActive = true,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var set = await CreateService(db).GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
+
+        Assert.Single(
+            set.Permissions.Where(x =>
+                x.Resource == BillingInvoiceController && x.Action == UpdateAction));
     }
 }

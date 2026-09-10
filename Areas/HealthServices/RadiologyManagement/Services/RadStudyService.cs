@@ -372,25 +372,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     "modalitas belum diverifikasi.");
             }
 
-            if (study.StudyStatus != RadStudyStatus.SafetyCleared)
-            {
-                return RadOperationResult<RadStudyResponse>.SafetyBlocked(
-                    RadErrorCodes.SafetyGateNotCleared,
-                    $"Acquisition ditolak: study berstatus {study.StudyStatus}, bukan SafetyCleared.");
-            }
-
-            // Pemeriksaan ulang. Status SafetyCleared adalah catatan masa lalu; yang menentukan
-            // sekarang adalah keadaan gerbangnya saat ini.
+            // Policy keselamatan harus ada terlebih dahulu.
+            // Ketiadaan policy adalah kondisi konfigurasi, bukan sekadar
+            // study yang belum melewati gerbang keselamatan.
             var rules = await LoadApplicableRulesAsync(
-                study.ModalityId, study.ProcedureId, now, cancellationToken);
+                study.ModalityId,
+                study.ProcedureId,
+                now,
+                cancellationToken);
 
-            var outcome = RadSafetyGateEvaluator.Evaluate(rules, study.SafetyChecks.ToList());
+            var outcome = RadSafetyGateEvaluator.Evaluate(
+                rules,
+                study.SafetyChecks.ToList());
 
             if (!outcome.PolicyConfigured)
             {
                 return RadOperationResult<RadStudyResponse>.PolicyNotConfigured(
                     RadErrorCodes.SafetyPolicyNotConfigured,
                     RadSafetyGateEvaluator.DescribeBlockage(outcome));
+            }
+
+            if (study.StudyStatus != RadStudyStatus.SafetyCleared)
+            {
+                return RadOperationResult<RadStudyResponse>.SafetyBlocked(
+                    RadErrorCodes.SafetyGateNotCleared,
+                    $"Acquisition ditolak: study berstatus {study.StudyStatus}, bukan SafetyCleared.");
             }
 
             if (!outcome.Cleared)

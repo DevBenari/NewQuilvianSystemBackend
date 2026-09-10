@@ -155,7 +155,7 @@ public class OperatingRoomCaseServiceTests
             return new TestFixture
             {
                 Context = context,
-                Service = new OperatingRoomCaseService(context, accessor, logger),
+                Service = new OperatingRoomCaseService(context, accessor, logger, OperatingRoomTestContext.StrictRules),
                 PatientId = patientId,
                 EncounterId = encounterId,
                 DoctorId = doctorId,

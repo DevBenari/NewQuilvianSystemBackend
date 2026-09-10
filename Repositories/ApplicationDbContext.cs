@@ -52,6 +52,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
@@ -685,6 +686,27 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
         public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         public DbSet<TrxPatientIntegratedProgressNote> TrxPatientIntegratedProgressNotes { get; set; }
+        public DbSet<PhmStockRequest> PhmStockRequests { get; set; }
+        public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
+        public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
+
+        public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
+        public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
+        public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
+
+        public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
+        public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
+        public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }
+
+        public DbSet<PhmDrugUsage> PhmDrugUsages { get; set; }
+        public DbSet<PhmDrugUsageItem> PhmDrugUsageItems { get; set; }
+        public DbSet<PhmDrugUsageAllocation> PhmDrugUsageAllocations { get; set; }
+
+        public DbSet<PhmStockTransfer> PhmStockTransfers { get; set; }
+        public DbSet<PhmStockTransferItem> PhmStockTransferItems { get; set; }
+        public DbSet<PhmStockTransferAllocation> PhmStockTransferAllocations { get; set; }
+        public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
+
         public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
         public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
         public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
@@ -780,6 +802,21 @@ namespace QuilvianSystemBackend.Repositories
 
         #endregion
 
+        #region HEALTH SERVICE - Nutrition Management
+
+        public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
+        public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
+        public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
+        public DbSet<GzDietType> GzDietTypes { get; set; }
+        public DbSet<GzFoodForm> GzFoodForms { get; set; }
+        public DbSet<GzMealSchedule> GzMealSchedules { get; set; }
+        public DbSet<GzPatientDiet> GzPatientDiets { get; set; }
+        public DbSet<GzProductionBatch> GzProductionBatches { get; set; }
+        public DbSet<GzProductionBatchDetail> GzProductionBatchDetails { get; set; }
+        public DbSet<GzMealDelivery> GzMealDeliveries { get; set; }
+
+        #endregion
+
         #region HEALTH SERVICE - Operating Room Management
 
         public DbSet<OprCase> OprCases { get; set; }
@@ -795,6 +832,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprHandover> OprHandovers { get; set; }
         public DbSet<OprStatusHistory> OprStatusHistories { get; set; }
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
+        public DbSet<PhmPrescriptionCopy> PhmPrescriptionCopies { get; set; }
+        public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
+
+        public DbSet<OprStockSource> OprStockSources { get; set; }
 
         #endregion
 

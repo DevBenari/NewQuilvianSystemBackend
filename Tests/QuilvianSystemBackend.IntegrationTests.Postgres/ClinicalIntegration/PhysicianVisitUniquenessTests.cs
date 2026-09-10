@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -38,8 +39,8 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
     /// sebagai galat konfigurasi dan tidak menyentuh database mana pun.
     /// </para>
     /// </remarks>
-    public sealed class PhysicianVisitUniquenessTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+    [Collection(PostgresIntegrationTestCollection.Name)]
+    public sealed class PhysicianVisitUniquenessTests : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();
@@ -242,24 +243,85 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
         public async Task DuaVisitePadaTanggalSama_DiterimaKeduanya()
         {
             var p = await SiapkanPerawatanAsync();
-            var hariIni = DateTime.UtcNow.Date.AddHours(7);
+
+            // Kedua waktu diturunkan dari jam sekarang, bukan dari jam tetap seperti 07.00 dan
+            // 16.00 UTC. VAL-DOK-16 menolak waktu kedatangan yang melewati sekarang, sehingga
+            // jam tetap membuat uji ini hijau hanya pada rentang jam tertentu saja. Yang sedang
+            // dibuktikan adalah dua kunjungan pada tanggal yang sama, bukan jam berapa keduanya
+            // terjadi.
+            var kunjunganKedua = DateTime.UtcNow.AddMinutes(-5);
+            var satuJamSebelumnya = kunjunganKedua.AddHours(-1);
+
+            // Menjaga keduanya tetap pada tanggal yang sama ketika sekarang masih jam pertama
+            // hari itu; tengah malam hari yang sama tetap waktu yang sudah lewat.
+            var kunjunganPertama = satuJamSebelumnya < kunjunganKedua.Date
+                ? kunjunganKedua.Date
+                : satuJamSebelumnya;
+
+            Assert.Equal(kunjunganPertama.Date, kunjunganKedua.Date);
 
             await using var context = _fixture.CreateContext();
             var service = Service(context);
 
             var pagi = await service.RecordAsync(
-                Perintah(p, hariIni, "kunci-postgres-pagi"), p.Seed.ActorUserId);
+                Perintah(p, kunjunganPertama, "kunci-postgres-pagi"), p.Seed.ActorUserId);
             var sore = await service.RecordAsync(
-                Perintah(p, hariIni.AddHours(9), "kunci-postgres-sore"), p.Seed.ActorUserId);
+                Perintah(p, kunjunganKedua, "kunci-postgres-sore"), p.Seed.ActorUserId);
 
-            Assert.True(pagi.IsSuccess);
-            Assert.True(sore.IsSuccess);
+            Assert.True(pagi.IsSuccess, pagi.ErrorMessage);
+            Assert.True(sore.IsSuccess, sore.ErrorMessage);
             Assert.NotEqual(pagi.Visit!.Id, sore.Visit!.Id);
 
             Assert.Equal(2, await service.CountRecordedByEpisodeAsync(p.EpisodeId));
 
             var nomor = new[] { pagi.Visit.PhysicianVisitNumber, sore.Visit.PhysicianVisitNumber };
             Assert.Equal(2, nomor.Distinct().Count());
+        }
+
+        /// <summary>
+        /// `BE-RWI-048 AC 3` — <b>dua permintaan bersamaan</b> berkunci sama hanya menghasilkan
+        /// satu kejadian, dan permintaan yang kalah dijawab <c>200</c> beserta identitas yang
+        /// sama — bukan <c>409</c>, dan bukan galat.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Keduanya dijalankan pada dua konteks basis data yang berbeda dan dimulai bersamaan,
+        /// sehingga pemeriksaan "sudah ada" di dalam service berpeluang sama-sama menjawab belum
+        /// ada. Yang menahan baris kedua dalam keadaan itu adalah unique index pada database,
+        /// bukan pemeriksaan aplikasi yang kebetulan lebih dulu berjalan.
+        /// </para>
+        /// <para>
+        /// Provider InMemory tidak menegakkan unique index sama sekali, sehingga bukti ini
+        /// memang hanya dapat berdiri di sini.
+        /// </para>
+        /// </remarks>
+        [Fact]
+        public async Task DuaPermintaanBersamaan_KunciSama_HanyaSatuKejadian()
+        {
+            var p = await SiapkanPerawatanAsync();
+            const string kunci = "kunci-postgres-bersamaan-01";
+
+            async Task<PhysicianVisitResult> Kirim()
+            {
+                await using var context = _fixture.CreateContext();
+                return await Service(context).RecordAsync(
+                    Perintah(p, DateTime.UtcNow.AddHours(-1), kunci), p.Seed.ActorUserId);
+            }
+
+            var keduanya = await Task.WhenAll(Kirim(), Kirim());
+
+            Assert.All(keduanya, x => Assert.True(x.IsSuccess, x.ErrorMessage));
+
+            // Keduanya menunjuk kejadian yang sama, dan tepat satu di antaranya kiriman ulang.
+            Assert.Equal(keduanya[0].Visit!.Id, keduanya[1].Visit!.Id);
+            var kirimanUlang = Assert.Single(keduanya, x => x.IsReplay);
+
+            Assert.Equal(StatusCodes.Status200OK, kirimanUlang.StatusCode);
+
+            await using var pembaca = _fixture.CreateContext();
+
+            Assert.Equal(1, await pembaca.CliPhysicianVisits
+                .CountAsync(x => x.IdempotencyKey == kunci));
         }
     }
 }

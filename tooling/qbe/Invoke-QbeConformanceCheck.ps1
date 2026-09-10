@@ -31,6 +31,8 @@ $requiredAuthority = @(
 $implementedRules = @('QBE-ENT-001','QBE-NAM-001','QBE-CFG-001','QBE-CODE-002','QBE-CODE-003','QBE-MOD-002','QBE-SVC-001')
 $root = [IO.Path]::GetFullPath($RepositoryRoot)
 $script:testProjectPrefixes = $null
+$script:sourceFiles = $null
+$script:codeTextCache = @{}
 foreach ($authority in $requiredAuthority) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $authority) -PathType Leaf)) { throw "Canonical governance missing: $authority" }
 }
@@ -185,12 +187,115 @@ function Get-AddedLines([string]$relative, [string]$base, [string]$head) {
     }
     return $lines
 }
-function Test-PersistedEntity([string]$content, [string]$name) {
-    $hasDbSet = @((Get-ChildItem -LiteralPath $root -Recurse -Filter '*.cs' | Select-String -SimpleMatch "DbSet<$name>")).Count -gt 0
-    return $content -match "class\s+$([regex]::Escape($name))\b" -and ($content -match 'IdentityModel|\[Table\(|DbSet<' -or $hasDbSet)
+function Remove-NonCodeText([string]$content) {
+    if ([string]::IsNullOrEmpty($content)) { return '' }
+    $length = $content.Length
+    $builder = [System.Text.StringBuilder]::new($length)
+    $index = 0
+    while ($index -lt $length) {
+        $current = $content[$index]
+        $next = if (($index + 1) -lt $length) { $content[$index + 1] } else { [char]0 }
+        if ($current -eq '/' -and $next -eq '/') {
+            while ($index -lt $length -and $content[$index] -ne "`n") { $index++ }
+            continue
+        }
+        if ($current -eq '/' -and $next -eq '*') {
+            $index += 2
+            while ($index -lt $length) {
+                if ($content[$index] -eq '*' -and ($index + 1) -lt $length -and $content[$index + 1] -eq '/') { $index += 2; break }
+                if ($content[$index] -eq "`n") { [void]$builder.Append("`n") }
+                $index++
+            }
+            continue
+        }
+        if ($current -eq '"' -and $next -eq '"' -and ($index + 2) -lt $length -and $content[$index + 2] -eq '"') {
+            $fence = 0
+            while (($index + $fence) -lt $length -and $content[$index + $fence] -eq '"') { $fence++ }
+            $index += $fence
+            $run = 0
+            while ($index -lt $length) {
+                if ($content[$index] -eq '"') {
+                    $run++
+                    $index++
+                    if ($run -eq $fence) { break }
+                    continue
+                }
+                if ($content[$index] -eq "`n") { [void]$builder.Append("`n") }
+                $run = 0
+                $index++
+            }
+            continue
+        }
+        $quoteOffset = -1
+        $isVerbatim = $false
+        if ($current -eq '"') { $quoteOffset = 0 }
+        elseif ($current -eq '@' -and $next -eq '"') { $quoteOffset = 1; $isVerbatim = $true }
+        elseif ($current -eq '$' -and $next -eq '"') { $quoteOffset = 1 }
+        elseif (($current -eq '$' -and $next -eq '@' -or $current -eq '@' -and $next -eq '$') -and ($index + 2) -lt $length -and $content[$index + 2] -eq '"') { $quoteOffset = 2; $isVerbatim = $true }
+        if ($quoteOffset -ge 0) {
+            $index += $quoteOffset + 1
+            while ($index -lt $length) {
+                $character = $content[$index]
+                if ($isVerbatim) {
+                    if ($character -eq '"') {
+                        if (($index + 1) -lt $length -and $content[$index + 1] -eq '"') { $index += 2; continue }
+                        $index++
+                        break
+                    }
+                    if ($character -eq "`n") { [void]$builder.Append("`n") }
+                    $index++
+                    continue
+                }
+                if ($character -eq '\') { $index += 2; continue }
+                if ($character -eq '"') { $index++; break }
+                if ($character -eq "`n") { [void]$builder.Append("`n"); $index++; break }
+                $index++
+            }
+            continue
+        }
+        if ($current -eq "'") {
+            $index++
+            while ($index -lt $length) {
+                $character = $content[$index]
+                if ($character -eq '\') { $index += 2; continue }
+                if ($character -eq "'") { $index++; break }
+                if ($character -eq "`n") { [void]$builder.Append("`n"); $index++; break }
+                $index++
+            }
+            continue
+        }
+        [void]$builder.Append($current)
+        $index++
+    }
+    return $builder.ToString()
+}
+function Get-CodeText([string]$path) {
+    $full = [IO.Path]::GetFullPath($path)
+    if ($script:codeTextCache.ContainsKey($full)) { return [string]$script:codeTextCache[$full] }
+    $raw = Get-Content -Raw -LiteralPath $full -ErrorAction SilentlyContinue
+    if ($null -eq $raw) { $raw = '' }
+    $code = Remove-NonCodeText $raw
+    $script:codeTextCache[$full] = $code
+    return $code
+}
+function Get-SourceFiles {
+    if ($null -ne $script:sourceFiles) { return $script:sourceFiles }
+    $script:sourceFiles = @(Get-ChildItem -LiteralPath $root -Recurse -Filter '*.cs' -File -ErrorAction SilentlyContinue | Where-Object { -not (Test-IsGeneratedPath (Get-RelativePath $_.FullName)) })
+    return $script:sourceFiles
+}
+function Test-CodeMatchInRepository([string]$pattern) {
+    foreach ($candidate in @(Get-SourceFiles | Select-String -Pattern $pattern -List)) {
+        if ((Get-CodeText $candidate.Path) -match $pattern) { return $true }
+    }
+    return $false
+}
+function Test-PersistedEntity([string]$code, [string]$name) {
+    if ($code -notmatch "class\s+$([regex]::Escape($name))\b") { return $false }
+    if ($code -match 'IdentityModel|\[Table\(|DbSet<') { return $true }
+    return Test-CodeMatchInRepository "DbSet<\s*$([regex]::Escape($name))\s*>"
 }
 function Test-Configuration([string]$name) {
-    return @((Get-ChildItem -LiteralPath $root -Recurse -Filter '*.cs' | Select-String -Pattern "IEntityTypeConfiguration\s*<\s*$([regex]::Escape($name))\s*>" )).Count -gt 0
+    return Test-CodeMatchInRepository "IEntityTypeConfiguration\s*<\s*$([regex]::Escape($name))\s*>"
 }
 function ConvertTo-SemanticToken([string]$value) {
     if ([string]::IsNullOrWhiteSpace($value)) { return '' }
@@ -318,7 +423,7 @@ $findings = [System.Collections.Generic.List[object]]::new()
 foreach ($file in $files) {
     $full = Join-Path $root $file
     if (-not (Test-Path -LiteralPath $full)) { continue }
-    $content = Get-Content -Raw -LiteralPath $full
+    $code = Get-CodeText $full
     $added = @($addedByFile[$file])
     $isNew = if ($scope -eq 'ExplicitFiles') { -not (Test-GitTracked $file) } elseif ($scope -eq 'GitRange') { -not ((@((Invoke-Git -Arguments @('ls-tree', '-r', '--name-only', $BaseRef, '--', $file)).Output)) -contains $file) } else { -not (Test-GitTracked $file) }
     foreach ($line in $added) {
@@ -335,10 +440,10 @@ foreach ($file in $files) {
     }
     $isTestScopeFile = Test-IsTestScopeFile $file
     if ($isTestScopeFile) { [void]$script:testScopeExcludedFiles.Add($file) }
-    if (-not $isTestScopeFile -and $isNew -and $file -notmatch 'Controller\.cs$' -and $content -match 'class\s+(\w+)') {
+    if (-not $isTestScopeFile -and $isNew -and $file -notmatch 'Controller\.cs$' -and $code -match 'class\s+(\w+)') {
         $entity = $Matches[1]
-        if (Test-PersistedEntity $content $entity) {
-            if ($content -notmatch "class\s+$([regex]::Escape($entity))\s*:\s*IdentityModel") { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
+        if (Test-PersistedEntity $code $entity) {
+            if ($code -notmatch "class\s+$([regex]::Escape($entity))\s*:\s*IdentityModel") { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
             if (-not (Test-Configuration $entity)) { Add-Finding 'QBE-CFG-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity has no dedicated IEntityTypeConfiguration<T>.' 'Add dedicated mapping configuration.' }
             $ownership = Resolve-RegistryOwnership $file $entity
             if (-not $ownership.Resolved) {

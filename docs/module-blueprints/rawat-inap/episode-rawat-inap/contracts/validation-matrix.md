@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.6.0` |
+| `contract_version` | `0.6.1` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `15`; `02-backend-architecture.md` revision `0.4`; `04-prd-to-mvp.md` revision `0.6.0` |
@@ -191,9 +191,10 @@ Aturan di bawah dijalankan `BillingManagement`. Modul Rawat Inap hanya membacany
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
 | --- | --- | --- | --- | ---: |
 | Nominal wajib berupa angka positif bila diisi | Langkah Deposit admisi | Nominal negatif atau bukan angka | "Jumlah deposit tidak boleh negatif." | 400 |
-| Deposit tidak boleh dikirim tanpa episode | `POST /patient-funds/deposits/{encounterId}/top-ups` | `episodeId` kosong pada penerimaan yang berasal dari admisi rawat inap | "Deposit rawat inap wajib terikat pada episode." | 422 |
-| Satu deposit satu episode | idem | `episodeId` menunjuk episode milik pasien lain atau kunjungan lain | "Episode yang dipilih bukan milik kunjungan ini." | 409 |
-| Retry tidak membuat kwitansi ganda | idem | `idempotencyKey` sama dengan penerimaan yang sudah tersimpan | Tidak ada pesan; transaksi pertama dikembalikan apa adanya | 200 |
+| ~~Deposit tidak boleh dikirim tanpa episode~~ | — | **Dicabut `0.6.1`.** Penerimaan dikirim per kunjungan, dan satu kunjungan rawat inap hanya boleh punya satu episode — `InpEpisode.EncounterId` unique — sehingga episodenya tidak perlu dikirim ulang | — | — |
+| ~~Satu deposit satu episode~~ | — | **Dicabut `0.6.1`.** Sudah dijaga database: `BilDepositAccount.EncounterId` unique | — | — |
+| Retry tidak membuat kwitansi ganda | `POST /patient-funds/deposits/{encounterId}/top-ups` | Header `Idempotency-Key` sama dengan penerimaan yang sudah tersimpan | Tidak ada pesan; transaksi pertama dikembalikan dengan penanda `IsReplay` | 200 |
+| Kunci sama tetapi isinya berbeda | idem | `Idempotency-Key` diulang dengan nominal atau metode bayar yang berbeda | "Permintaan dengan kunci yang sama sudah dipakai untuk data yang berbeda." | 409 |
 | **Peringatan** deposit di bawah minimum kebijakan | Langkah Deposit admisi | Nominal lebih kecil dari minimum kebijakan penjamin/kelas | "Deposit kurang Rp… dari minimum yang disarankan. Admisi tetap dapat dilanjutkan." | — |
 | **Peringatan** deposit belum diisi padahal kebijakan mensyaratkan | idem | Nominal kosong atau nol sementara kebijakan mensyaratkan deposit | "Deposit belum diisi. Admisi tetap dapat dilanjutkan dan kekurangannya akan ditagih." | — |
 | Kebijakan tidak mensyaratkan deposit | idem | Penjamin/kelas tidak mensyaratkan deposit | Langkah dilewati; tidak ada transaksi Rp0 yang dibuat | — |
