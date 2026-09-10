@@ -5,9 +5,12 @@
 ```yaml
 module_id: rawat-inap
 repository: QuilvianSystemFrontendDev
-roadmap_revision: 7
+roadmap_revision: 8
 revision_6_scope: INPUT_RESYNC_ONLY
 revision_7_scope: DEPOSIT_SLICE
+revision_8_scope: "Perencanaan terarah pada SATU task baru. FE-RWI-057 ditambahkan supaya kartu tempat tidur menyebut aturan yang menolaknya, menggantikan kalimat buntu 'Tidak lolos kelayakan'. Blok Urutan dependency berbentuk pohon teks diganti menjadi Grafik Urutan Dependency berbentuk Mermaid sebagaimana dituntut aturan kanonik. Nol status task lain diubah."
+revision_8_planned_at: "2026-09-09"
+revision_8_trigger: "Bukti runtime pemilik 9 September 2026 pada layar Pilih Tempat Tidur."
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
 replan_done_at: "2026-09-08"
@@ -81,6 +84,137 @@ task_open_ids: "FE-RWI-019 (dibuka ulang, digantikan FE-RWI-035), FE-RWI-030, 03
 task_count_verified_at: "2026-09-08, dihitung ulang setelah empat task deposit FE-RWI-042 s.d. FE-RWI-045 ditambahkan"
 supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-27; revision 2 tetap di roadmap/archive/revision-2/frontend-roadmap.md"
 ```
+
+---
+
+## Grafik Urutan Dependency
+
+Panah berarti **prasyarat harus selesai lebih dulu**, dan artinya tidak pernah dibalik. Setiap task
+roadmap ini muncul **tepat satu kali** sebagai node. Prasyarat yang berasal dari roadmap backend
+digambar di dalam `subgraph` tersendiri sebagai cermin baca-saja; tandanya disalin dari
+[`backend-roadmap.md`](./backend-roadmap.md) dan tidak pernah ditentukan di berkas ini.
+
+### Alur admisi dan layar pendukungnya
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    FE020["✅ FE-RWI-020<br/>daftar kerja episode"]:::selesai
+    FE021["✅ FE-RWI-021<br/>beranda rawat inap"]:::selesai
+    FE022["✅ FE-RWI-022<br/>kerangka alur dua jalur"]:::selesai
+    FE023["✅ FE-RWI-023<br/>pendaftaran dan pasien lama"]:::selesai
+    FE024["✅ FE-RWI-024<br/>penjamin dan kelas"]:::selesai
+    FE025["✅ FE-RWI-025<br/>langkah dokter"]:::selesai
+    FE026["✅ FE-RWI-026<br/>pilih dan pesan bed"]:::selesai
+    FE027["✅ FE-RWI-027<br/>konfirmasi tanpa penempatan"]:::selesai
+    FE028["✅ FE-RWI-028<br/>cetak persetujuan"]:::selesai
+    FE029["✅ FE-RWI-029<br/>cetak kartu pasien"]:::selesai
+    FE030["✅ FE-RWI-030<br/>konfirmasi pasien masuk"]:::selesai
+    FE031["✅ FE-RWI-031<br/>pembatalan admisi"]:::selesai
+    FE032["✅ FE-RWI-032<br/>melanjutkan admisi tertinggal"]:::selesai
+    FE033["✅ FE-RWI-033<br/>keterjangkauan dan menu"]:::selesai
+    FE034["✅ FE-RWI-034<br/>bongkar layar admisi lama"]:::selesai
+
+    FE020 --> FE021
+    FE020 --> FE031
+    FE020 --> FE032
+    FE022 --> FE023
+    FE023 --> FE024
+    FE024 --> FE025
+    FE025 --> FE026
+    FE026 --> FE027
+    FE026 --> FE032
+    FE027 --> FE028
+    FE027 --> FE029
+    FE027 --> FE034
+    FE026 --> FE030
+    FE033 --> FE020
+```
+
+### Layar operasional, kesiapan, dan alasan penolakan
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend["Prasyarat backend — backend-roadmap.md"]
+        BE069["⛔ BE-RWI-069<br/>alasan penolakan ikut dikirim"]:::luar
+    end
+
+    subgraph alur["Prasyarat dari grafik alur admisi"]
+        FE026x["✅ FE-RWI-026<br/>pilih dan pesan bed"]:::luar
+        FE030x["✅ FE-RWI-030<br/>konfirmasi pasien masuk"]:::luar
+        FE033x["✅ FE-RWI-033<br/>keterjangkauan dan menu"]:::luar
+    end
+
+    FE036["✅ FE-RWI-036<br/>papan tempat tidur"]:::selesai
+    FE037["✅ FE-RWI-037<br/>census punya jalan kerja"]:::selesai
+    FE038["✅ FE-RWI-038<br/>daftar pantau"]:::selesai
+    FE039["FE-RWI-039<br/>selisih tempat tidur"]:::belum
+    FE040["✅ FE-RWI-040<br/>butir administrasi"]:::selesai
+    FE041["✅ FE-RWI-041<br/>pengaturan rawat inap"]:::selesai
+    FE035["🟡 FE-RWI-035<br/>alur utama ujung ke ujung"]:::sebagian
+    FE042["🟡 FE-RWI-042<br/>langkah deposit berdiri"]:::sebagian
+    FE043["🟡 FE-RWI-043<br/>minimum dan kekurangan terbaca"]:::sebagian
+    FE044["🟡 FE-RWI-044<br/>nominal terkirim dengan aman"]:::sebagian
+    FE045["🟡 FE-RWI-045<br/>posisi deposit pada konfirmasi"]:::sebagian
+    FE057["⛔ FE-RWI-057<br/>kartu bed menyebut aturannya"]:::terblokir
+
+    FE026x --> FE036
+    FE030x --> FE036
+    FE033x --> FE037
+    FE033x --> FE040
+    FE033x --> FE041
+    FE036 --> FE039
+    FE036 --> FE035
+    FE037 --> FE035
+    FE038 --> FE035
+    FE039 --> FE035
+    FE040 --> FE035
+    FE041 --> FE035
+    FE026x --> FE042
+    FE042 --> FE043
+    FE042 --> FE044
+    FE044 --> FE045
+    FE026x --> FE057
+    BE069 --> FE057
+```
+
+### Gelombang eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `FE-RWI-022` ✅, `FE-RWI-033` ✅ — boleh paralel |
+| 2 | `FE-RWI-022`, `FE-RWI-033` | `FE-RWI-020` ✅, `FE-RWI-023` ✅ |
+| 3 | `FE-RWI-020`, `FE-RWI-023` | `FE-RWI-021` ✅, `FE-RWI-024` ✅, `FE-RWI-031` ✅, `FE-RWI-037` ✅, `FE-RWI-040` ✅, `FE-RWI-041` ✅ |
+| 4 | `FE-RWI-024` | `FE-RWI-025` ✅ |
+| 5 | `FE-RWI-025` | `FE-RWI-026` ✅ |
+| 6 | `FE-RWI-026` | `FE-RWI-027` ✅, `FE-RWI-030` ✅, `FE-RWI-032` ✅ |
+| 7 | `FE-RWI-027`, `FE-RWI-030` | `FE-RWI-028` ✅, `FE-RWI-029` ✅, `FE-RWI-034` ✅, `FE-RWI-036` ✅ |
+| 8 | `FE-RWI-036` | `FE-RWI-039` — belum dikerjakan |
+| 9 | seluruh task di atas | `FE-RWI-035` 🟡 — tertahan `FE-RWI-039` |
+| 6 | `FE-RWI-026` | `FE-RWI-042` 🟡 |
+| 7 | `FE-RWI-042` | `FE-RWI-043` 🟡, `FE-RWI-044` 🟡 |
+| 8 | `FE-RWI-044` | `FE-RWI-045` 🟡 |
+| — | ⛔ menunggu `BE-RWI-069` | **`FE-RWI-057`** |
+
+`FE-RWI-038` tidak memiliki panah masuk pada grafik karena approval-nya diberikan terpisah dan
+layarnya tidak menunggu task frontend mana pun; ia tetap berada di gelombang 3 bersama layar
+operasional lainnya.
+
+Sembilan belas task revision `2`, yaitu `FE-RWI-001` sampai `FE-RWI-019`, **sengaja tidak digambar**.
+Kartunya sudah dipindahkan ke `roadmap/archive/revision-2/frontend-roadmap.md` dan statusnya
+dipelihara pada bagian 4 sebagai register, bukan sebagai pekerjaan yang masih berjalan. Menggambar
+keduanya akan membuat grafik ini menyimpang dari kolom `Dependency` yang berlaku hari ini.
 
 ---
 
@@ -281,6 +415,10 @@ repository tidak memiliki `playwright.config.*`, `npm run test:unit` gagal oleh
 target belum layak (`RWI-UI-GAP-007`).
 
 ### Urutan dependency
+
+Grafik kanonisnya ada di [**Grafik Urutan Dependency**](#grafik-urutan-dependency) pada kepala
+dokumen ini. Pohon teks di bawah adalah bentuk lama yang **sudah digantikan** grafik itu, dan
+dipertahankan sebagai jejak pembacaan revision `7`.
 
 ```text
 FE-RWI-020 (daftar kerja episode)                    ✅ SELESAI
@@ -873,6 +1011,29 @@ penyusunan skemanya, dan itu pekerjaan desain.
 | **Verification** | E2E episode tanpa deposit, deposit kurang, dan deposit lebih; uji jalur gagal baca |
 | **Risk/blocker** | Owner: Frontend. Kriteria 4 mencegah kesalahan yang sama dengan `BE-RWI-042` kriteria 5: nol yang menyesatkan |
 | **DoD** | Keempat kriteria lulus; lint dan build lulus |
+
+---
+
+### Slice alasan penolakan — revision `8`
+
+Satu task, pasangan frontend dari `BE-RWI-069`.
+
+### ⛔ `FE-RWI-057` — Kartu tempat tidur menyebut aturan yang menolaknya
+
+| Field | Isi |
+| --- | --- |
+| **Status** | **`BLOCKED_PENDING_BACKEND`.** Menunggu `BE-RWI-069`, yang sendirinya menunggu approval API `0.7.0`. Tidak ada bagian task ini yang dapat diselesaikan lebih dulu, karena seluruh kalimatnya berasal dari server |
+| **Outcome** | Petugas yang melihat tempat tidur redup langsung membaca sebabnya. "Tidak lolos kelayakan" digantikan kalimat yang menyebutkan kamar, jenis kelamin, atau isolasi, sesuai aturan yang benar-benar menolak |
+| **Trace** | Bukti runtime pemilik 9 September 2026; `RWI-RULE-012`; `FE-INP-02` langkah Pilih Bed; skema tampilan bagian 3.8 |
+| **Kontrak** | API `0.7.0`: query `includeIneligible` dan field `ineligible` pada `GET /bed-occupancies/available-beds`. Permission tidak berubah, tetap `InpatientBedOccupancy : Read` |
+| **Reuse** | `PlacementFailureList` yang **sudah ada** dan sudah merender bentuk `failures[]` pada modal Konfirmasi Masuk; `describeBedUnavailability`; `useInpatientBedBoard`. Nol komponen baru |
+| **Scope** | `useInpatientBedBoard` mengirim `includeIneligible` ketika `episodeId` ada, lalu menyusun peta `bedId` ke `failures`; `normalizeAvailableBeds` membaca field `ineligible`; `describeBedUnavailability` memakai kalimat server bila tersedia dan baru jatuh ke kalimat lama bila tidak. **Tidak** menyentuh papan tempat tidur berdiri sendiri, yang memang tidak punya episode |
+| **Wewenang UI** | Susunan kartu dan letak lencana aturan mengikuti bentuk `PlacementFailureList` yang sudah disetujui pada `FE-RWI-026`; gaya visual tetap `DEV_DISCRETION` |
+| **Dependency** | `BE-RWI-069` pada [`backend-roadmap.md`](./backend-roadmap.md), dan `FE-RWI-026` ✅ sebagai pemilik layar. Dua panah pada [Grafik Urutan Dependency](#grafik-urutan-dependency) |
+| **Acceptance criteria** | 1. Bed yang ditolak menampilkan kalimat dari server beserta nomor aturannya, bukan kalimat buatan layar. 2. Bed berstatus master Dipesan yang ditolak karena aturan lain menampilkan **alasan sebenarnya**, bukan kalimat status — ini menutup cacat yang dilaporkan pemilik. 3. Ketika server tidak mengirim alasan, kalimat lama tetap dipakai dan layar tidak menampilkan kartu kosong. 4. Layar **tidak** menghitung ulang satu pun aturan kelayakan; seluruh kalimat berasal dari response. 5. Bed yang lolos tidak menampilkan kalimat penolakan apa pun. 6. Bed terisi dan bed yang dipesan episode lain tetap menampilkan pemegangnya seperti sebelumnya |
+| **Verification** | Manual pada tiga keadaan yang terbukti ada di environment 9 September 2026: bed isolasi, bed sekamar dengan pasien berjenis kelamin berbeda, dan bed yang dapat dipilih. Lint dan build. Bukti berupa tangkapan layar ketiga keadaan |
+| **Risk/blocker** | Godaan menambahkan tebakan layar untuk aturan yang alasannya belum dikirim server. Kriteria 4 melarangnya, dan larangan itu sudah tertulis pada bagian 7 dokumen ini. Owner: Frontend |
+| **DoD** | Keenam kriteria lulus; `npm run lint` dan `npm run build` lulus; laporan task ditulis di `docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/` |
 
 ---
 

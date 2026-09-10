@@ -4,9 +4,10 @@
 
 ```yaml
 module_id: rawat-inap
-roadmap_revision: 7
+roadmap_revision: 8
 revision_6_scope: INPUT_RESYNC_ONLY
 revision_7_scope: DEPOSIT_SLICE
+revision_8_scope: "Menambahkan EPIC RI-36 beserta BE-RWI-069 dan FE-RWI-057. Nol epic lama diubah, nol task lama dipindahkan."
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
 blueprint_shape: COMPOSITE
@@ -220,8 +221,22 @@ kontrak.
 | `EPIC RI-32` | Perbaikan tempat tidur dan pembatasan wewenang status | `MVP-0` | `BE-RWI-006`, `BE-RWI-032` | `FE-RWI-001` |
 | `EPIC RI-33` | Bayi baru lahir dan boks bayi | `MVP-4` | `BE-RWI-031` | `FE-RWI-022` untuk memilih episode ibu; census dan penempatan tetap dipakai sesudah episode terbentuk |
 | `EPIC RI-34` | Kelayakan penempatan menurut jenis kelamin dan isolasi | `MVP-1` | `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-006`, `FE-RWI-007`, `FE-RWI-009`, `FE-RWI-016`, `FE-RWI-025`, `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-036`, `FE-RWI-038` |
+| `EPIC RI-36` | Alasan penolakan kelayakan terbaca petugas | `MVP-1` | ⛔ `BE-RWI-069` | ⛔ `FE-RWI-057` |
 
-**Empat belas epic, nol tanpa task.**
+**Lima belas epic, nol tanpa task.**
+
+`EPIC RI-36` lahir 9 September 2026 dari bukti runtime pemilik, bukan dari requirement baru. Ia
+tidak menambah satu pun aturan kelayakan; ia hanya membuat aturan yang **sudah dijalankan**
+`EPIC RI-34` dapat dibaca petugas di layar. Karena itu gelombangnya sama, `MVP-1`, dan
+dependency-nya menunjuk ke `BE-RWI-013` dan `BE-RWI-015` yang sudah selesai.
+
+| Butir | Isinya |
+| --- | --- |
+| Requirement asal | Tidak ada requirement baru. Turunan langsung `RWI-RULE-012` yang sudah disetujui |
+| Bukti pemicu | Runtime pemilik 9 September 2026 pada layar Pilih Tempat Tidur; kalimat "Tidak lolos kelayakan" muncul tanpa keterangan pada bed isolasi dan pada seluruh bed sekamar dengan pasien berjenis kelamin berbeda |
+| Contract version | API `0.7.0`, berstatus `draft` |
+| Coverage gap | Belum ada baris UAT yang menguji **keterbacaan alasan penolakan**. Ditutup oleh acceptance criteria kedua task, bukan oleh UAT baru |
+| Status | ⛔ Keduanya terblokir sampai pemilik menyetujui API `0.7.0` |
 
 Task lintas epic tidak dipaksa masuk ke epic yang salah. Ia wajib punya dasar langsung berupa
 decision, aturan arsitektur informasi (`IA-INP-*`), flow, kontrak, atau NFR. Pemetaan lengkapnya ada

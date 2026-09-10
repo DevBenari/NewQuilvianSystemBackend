@@ -6,10 +6,13 @@
 module_id: rawat-inap
 module_name: InPatientManagement
 entity_prefix: Inp
-roadmap_revision: 4
+roadmap_revision: 5
 revision_3_scope: INPUT_RESYNC_ONLY
 revision_4_scope: DEPOSIT_SLICE
 revision_4_corrected_at: "2026-09-08 sore, setelah /qv-trace terhadap source hasil merge"
+revision_5_scope: "Perencanaan terarah pada SATU task baru. BE-RWI-069 ditambahkan supaya /available-beds dapat menyebutkan tempat tidur yang DITOLAK beserta aturan yang menolaknya, menutup kalimat buntu 'Tidak lolos kelayakan' pada layar pemilihan bed. Blok Urutan dependency berbentuk pohon teks diganti menjadi Grafik Urutan Dependency berbentuk Mermaid sebagaimana dituntut aturan kanonik. Nol status task lain diubah, nol task lain dihapus. Bukan approval implementasi dan bukan approval rilis."
+revision_5_planned_at: "2026-09-09"
+revision_5_trigger: "Bukti runtime pemilik 9 September 2026. Papan pemilihan bed menampilkan 'Tidak lolos kelayakan' pada bed isolasi dan pada seluruh bed sekamar dengan pasien berjenis kelamin berbeda, tanpa satu pun keterangan. Pemilik menyatakan developer sendiri pun tidak dapat membacanya."
 status: DRAFT
 approval_gate: BLUEPRINT_APPROVED
 blueprint_shape: COMPOSITE
@@ -49,6 +52,7 @@ artifact_hashes:
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
+  - "API 0.7.0 — draft, BELUM disetujui. Memblokir BE-RWI-069 sampai pemilik menyetujuinya"
   - "API 0.6.1"
   - "Encounter company guarantor addendum 1.0.0"
   - "Bed board reservation metadata addendum 1.0.0"
@@ -68,7 +72,7 @@ current_contract_gap_scan:
   backend: "64d7419415e473968d752d873ca02e1ae1fcded8"
   frontend: "786bd247db47a3b7c97b8c08fb6ec633f57d0c72"
   result: "RWI-UI-GAP-002_CONFIRMED; ADMIN_ROUTE_AND_PERMISSION_CONFIRMED"
-task_count: 39
+task_count: 40
 task_count_cancelled: 2
 task_count_moved_out: 2
 task_count_note: "BE-RWI-037 dan BE-RWI-039 dibatalkan 2026-09-08 karena kemampuannya terbukti sudah ada (RWI-FACT-017, RWI-FACT-018). BE-RWI-038 dan BE-RWI-040 dipindahkan ke roadmap billing-kasir sebagai BE-BKC-039 dan BE-BKC-040 pada tanggal yang sama, dan tinggal sebagai baris dependency. Keempatnya disimpan sebagai jejak, tidak dihapus. Kedua nomor Billing itu semula BE-BKC-022 dan BE-BKC-023; dinomori ulang menjadi BE-BKC-039 dan BE-BKC-040 pada 2026-09-09 karena nomor lamanya sudah dipakai gelombang 4 September 2026 pada roadmap billing-kasir."
@@ -83,7 +87,234 @@ planned_slices:
   - "EPIC RI-35b — final settlement, refund, dan validasi FinancialClearance terhadap ringkasan Billing. Gelombang MVP-3."
 blocked_by:
   - "RWI-OQ-052 — pemegang BillingDeposit : Create pada langkah admisi belum ditetapkan. Memblokir EPIC RI-35a saja."
+  - "API contract 0.7.0 masih draft dan belum disetujui pemilik. Memblokir BE-RWI-069 saja."
 ```
+
+---
+
+## Grafik Urutan Dependency
+
+Panah berarti **prasyarat harus selesai lebih dulu**, dan artinya tidak pernah dibalik. Setiap task
+roadmap ini muncul **tepat satu kali** sebagai node, dan jumlah panahnya sama persis dengan isi
+kolom `Dependency` pada bagian 4. Bila keduanya berbeda, **kolom `Dependency` yang berlaku** dan
+grafik ini yang salah.
+
+Grafiknya dipecah per kelompok slice karena roadmap ini memuat empat puluh task, jauh melewati
+batas lima belas node per grafik. Grafik ringkasan antar-slice ada lebih dulu, baru grafik rincinya.
+
+### Ringkasan antar-slice
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    S0["✅ S0<br/>modul berdiri"]:::selesai
+    S1["✅ S1<br/>admisi dan pemesanan"]:::selesai
+    S2["✅ S2<br/>penempatan dan kelayakan"]:::selesai
+    S3["✅ S3<br/>census"]:::selesai
+    S4["✅ S4<br/>DPJP dan perpindahan"]:::selesai
+    S5["✅ S5<br/>boleh pulang"]:::selesai
+    S6["✅ S6<br/>penutupan episode"]:::selesai
+    S7["✅ S7<br/>riwayat dan daftar pantau"]:::selesai
+    S8["✅ S8<br/>bayi baru lahir"]:::selesai
+    S9["🟡 S9<br/>kesiapan sign-off"]:::sebagian
+    S10["✅ S10<br/>penjamin perusahaan"]:::selesai
+    S11["⛔ S11<br/>deposit diterima"]:::terblokir
+    S12["⛔ S12<br/>uang selesai sebelum tutup"]:::terblokir
+    S13["⛔ S13<br/>alasan penolakan terbaca"]:::terblokir
+
+    S0 --> S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9
+    S1 --> S10
+    S1 --> S11 --> S12
+    S2 --> S13
+```
+
+### S0 sampai S2 — fondasi, admisi, dan kelayakan penempatan
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    BE001["✅ BE-RWI-001<br/>dua tabel master"]:::selesai
+    BE002["✅ BE-RWI-002<br/>seeder master awal"]:::selesai
+    BE003["✅ BE-RWI-003<br/>sebelas tabel transaksi"]:::selesai
+    BE004["✅ BE-RWI-004<br/>enam service terdaftar"]:::selesai
+    BE005["✅ BE-RWI-005<br/>controller master"]:::selesai
+    BE006["✅ BE-RWI-006<br/>status bed milik Rawat Inap"]:::selesai
+    BE007["✅ BE-RWI-007<br/>buka admisi"]:::selesai
+    BE008["✅ BE-RWI-008<br/>ubah batal kedaluwarsa"]:::selesai
+    BE009["✅ BE-RWI-009<br/>daftar dan detail episode"]:::selesai
+    BE010["✅ BE-RWI-010<br/>cari dan pesan tempat tidur"]:::selesai
+    BE011["✅ BE-RWI-011<br/>penempatan pasien"]:::selesai
+    BE012["✅ BE-RWI-012<br/>tidak dirawat di dua tempat"]:::selesai
+    BE013["✅ BE-RWI-013<br/>kamar tidak campur"]:::selesai
+    BE014["✅ BE-RWI-014<br/>kebutuhan isolasi tercatat"]:::selesai
+    BE015["✅ BE-RWI-015<br/>kapasitas isolasi dua arah"]:::selesai
+
+    BE001 --> BE002
+    BE001 --> BE003
+    BE003 --> BE004
+    BE004 --> BE005
+    BE004 --> BE006
+    BE004 --> BE007
+    BE007 --> BE008
+    BE007 --> BE009
+    BE007 --> BE010
+    BE010 --> BE011
+    BE011 --> BE012
+    BE011 --> BE013
+    BE011 --> BE014
+    BE014 --> BE015
+```
+
+### S3 sampai S8 — census, pemulangan, penutupan, dan bayi
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyarat["Prasyarat dari grafik S0-S2"]
+        BE011x["✅ BE-RWI-011<br/>penempatan pasien"]:::luar
+    end
+
+    BE016["✅ BE-RWI-016<br/>census dan lama dirawat"]:::selesai
+    BE017["✅ BE-RWI-017<br/>DPJP berperiode"]:::selesai
+    BE018["✅ BE-RWI-018<br/>perawat penanggung jawab"]:::selesai
+    BE019["✅ BE-RWI-019<br/>perpindahan utuh"]:::selesai
+    BE020["✅ BE-RWI-020<br/>keputusan boleh pulang"]:::selesai
+    BE021["✅ BE-RWI-021<br/>resume dan tanda tangan"]:::selesai
+    BE022["✅ BE-RWI-022<br/>versi resume"]:::selesai
+    BE023["✅ BE-RWI-023<br/>daftar periksa penutupan"]:::selesai
+    BE024["✅ BE-RWI-024<br/>kelayakan keuangan"]:::selesai
+    BE025["✅ BE-RWI-025<br/>penutupan episode"]:::selesai
+    BE026["✅ BE-RWI-026<br/>jalan keluar supervisor"]:::selesai
+    BE027["✅ BE-RWI-027<br/>kepergian fisik"]:::selesai
+    BE028["✅ BE-RWI-028<br/>riwayat status"]:::selesai
+    BE029["✅ BE-RWI-029<br/>empat daftar pantau"]:::selesai
+    BE030["✅ BE-RWI-030<br/>sesi koreksi"]:::selesai
+    BE031["✅ BE-RWI-031<br/>boks bayi dan ibu"]:::selesai
+
+    BE011x --> BE016
+    BE016 --> BE017
+    BE016 --> BE018
+    BE017 --> BE019
+    BE018 --> BE020
+    BE020 --> BE021
+    BE021 --> BE022
+    BE020 --> BE023
+    BE023 --> BE024
+    BE024 --> BE025
+    BE025 --> BE026
+    BE025 --> BE027
+    BE027 --> BE028
+    BE027 --> BE029
+    BE027 --> BE030
+    BE027 --> BE031
+```
+
+### S9 sampai S13 — kesiapan, penjamin, deposit, dan alasan penolakan
+
+Kelompok ini memuat satu-satunya task baru revision `5`, yaitu `BE-RWI-069`, beserta seluruh task
+yang belum tuntas. Dua task dibatalkan dan dua task berpindah ke roadmap Billing; keempatnya tetap
+digambar supaya jejaknya terbaca.
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyaratlain["Prasyarat dari grafik sebelumnya"]
+        BE010y["✅ BE-RWI-010<br/>cari dan pesan tempat tidur"]:::luar
+        BE013y["✅ BE-RWI-013<br/>kamar tidak campur"]:::luar
+        BE015y["✅ BE-RWI-015<br/>kapasitas isolasi dua arah"]:::luar
+        BE025y["✅ BE-RWI-025<br/>penutupan episode"]:::luar
+    end
+
+    subgraph billing["Prasyarat roadmap billing-kasir"]
+        BEBKC039["⛔ BE-BKC-039<br/>kebijakan minimum deposit"]:::luar
+        BEBKC040["⛔ BE-BKC-040<br/>ringkasan deposit per episode"]:::luar
+    end
+
+    BE032["✅ BE-RWI-032<br/>test regresi modul tetangga"]:::selesai
+    BE033["✅ BE-RWI-033<br/>bukti penerimaan"]:::selesai
+    BE034["✅ BE-RWI-034<br/>perbaikan hak akses"]:::selesai
+    BE035["✅ BE-RWI-035<br/>penjamin perusahaan"]:::selesai
+    BE036["✅ BE-RWI-036<br/>metadata pemesanan papan"]:::selesai
+    BE037["BE-RWI-037<br/>DIBATALKAN RWI-FACT-017"]:::belum
+    BE038["BE-RWI-038<br/>DIPINDAH ke BE-BKC-039"]:::belum
+    BE039["BE-RWI-039<br/>DIBATALKAN RWI-FACT-018"]:::belum
+    BE040["BE-RWI-040<br/>DIPINDAH ke BE-BKC-040"]:::belum
+    BE041["BE-RWI-041<br/>ambang tindak lanjut"]:::belum
+    BE042["⛔ BE-RWI-042<br/>daftar pantau kekurangan deposit"]:::terblokir
+    BE043["⛔ BE-RWI-043<br/>gerbang Cleared"]:::terblokir
+    BE069["⛔ BE-RWI-069<br/>alasan penolakan ikut dikirim"]:::terblokir
+    API070{{"⛔ API contract 0.7.0<br/>belum disetujui pemilik"}}:::terblokir
+
+    BE010y --> BE036
+    BE025y --> BE032
+    BE032 --> BE033
+    BE033 --> BE034
+    BE035 --> BE041
+    BEBKC039 --> BEBKC040
+    BEBKC040 --> BE042
+    BE041 --> BE042
+    BEBKC040 --> BE043
+    BE013y --> BE069
+    BE015y --> BE069
+    API070 --> BE069
+```
+
+### Gelombang eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-RWI-001` ✅ |
+| 2 | `BE-RWI-001` | `BE-RWI-002` ✅, `BE-RWI-003` ✅ — boleh paralel |
+| 3 | `BE-RWI-003` | `BE-RWI-004` ✅ |
+| 4 | `BE-RWI-004` | `BE-RWI-005` ✅, `BE-RWI-006` ✅, `BE-RWI-007` ✅ — boleh paralel |
+| 5 | `BE-RWI-007` | `BE-RWI-008` ✅, `BE-RWI-009` ✅, `BE-RWI-010` ✅ — boleh paralel |
+| 6 | `BE-RWI-010` | `BE-RWI-011` ✅, `BE-RWI-036` ✅ |
+| 7 | `BE-RWI-011` | `BE-RWI-012` ✅, `BE-RWI-013` ✅, `BE-RWI-014` ✅, `BE-RWI-016` ✅ — boleh paralel |
+| 8 | `BE-RWI-014`, `BE-RWI-016` | `BE-RWI-015` ✅, `BE-RWI-017` ✅, `BE-RWI-018` ✅ |
+| 9 | `BE-RWI-017`, `BE-RWI-018` | `BE-RWI-019` ✅, `BE-RWI-020` ✅ |
+| 10 | `BE-RWI-020` | `BE-RWI-021` ✅, `BE-RWI-023` ✅ |
+| 11 | `BE-RWI-021`, `BE-RWI-023` | `BE-RWI-022` ✅, `BE-RWI-024` ✅ |
+| 12 | `BE-RWI-024` | `BE-RWI-025` ✅ |
+| 13 | `BE-RWI-025` | `BE-RWI-026` ✅, `BE-RWI-027` ✅, `BE-RWI-032` ✅ |
+| 14 | `BE-RWI-027`, `BE-RWI-032` | `BE-RWI-028` ✅, `BE-RWI-029` ✅, `BE-RWI-030` ✅, `BE-RWI-031` ✅, `BE-RWI-033` ✅ |
+| 15 | `BE-RWI-033` | `BE-RWI-034` ✅ |
+| — | tanpa prasyarat, sudah selesai | `BE-RWI-035` ✅ |
+| — | ⛔ menunggu `BE-RWI-035` dan keputusan `RWI-OQ-052` | `BE-RWI-041` |
+| — | ⛔ menunggu `BE-BKC-040` dan `BE-RWI-041` | `BE-RWI-042` |
+| — | ⛔ menunggu `BE-BKC-040` | `BE-RWI-043` |
+| — | ⛔ menunggu **approval API contract `0.7.0`** | **`BE-RWI-069`** |
+
+Empat task tidak muncul pada tabel gelombang dan **sengaja tidak diberi satu pun panah**, karena
+keempatnya bukan lagi pekerjaan roadmap ini. `BE-RWI-037` dan `BE-RWI-039` dibatalkan lewat
+`RWI-FACT-017` dan `RWI-FACT-018`; `BE-RWI-038` dan `BE-RWI-040` berpindah ke roadmap
+`billing-kasir` menjadi `BE-BKC-039` dan `BE-BKC-040`, yang digambar sebagai node `luar`. Node
+keempatnya dipertahankan sebagai jejak keputusan supaya nomornya tidak terbaca hilang.
+
+**Yang menahan `BE-RWI-069` hanya satu hal.** Kedua prasyarat teknisnya, `BE-RWI-013` dan
+`BE-RWI-015`, sudah selesai sejak Agustus 2026. Pemeriksaan kelayakan yang menghasilkan alasan
+penolakan sudah berjalan penuh hari ini. Yang belum ada adalah persetujuan pemilik atas bentuk
+jawaban barunya. Begitu `0.7.0` disetujui, task ini langsung naik ke gelombang dan tidak menunggu
+siapa pun lagi.
 
 ---
 
@@ -406,8 +637,14 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | **S10 — Encounter membawa penjamin perusahaan** | Encounter admin dapat menyimpan payer perusahaan yang sah tanpa mengubah Tunai/Asuransi | `MVP-0`; `RWI-CAP-002` | ✅ `BE-RWI-035` |
 | **S11 — Deposit dapat diterima dan ditelusuri ke episodenya** | Kasir menerima uang muka, sistem tahu deposit itu milik episode mana, minimumnya dibaca dari kebijakan, dan kekurangannya terlihat | `MVP-1`; `EPIC RI-35a` | Siap: `BE-RWI-041`, `BE-RWI-042`. ➡️ Dipindahkan ke Billing: `BE-BKC-039`, `BE-BKC-040`. ❌ Dibatalkan: `BE-RWI-037`, `BE-RWI-039` |
 | **S12 — Uang selesai sebelum episode ditutup** | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta | `MVP-3`; `EPIC RI-35b` | `BE-RWI-043` — **tidak lagi terblokir**, menunggu `BE-RWI-040` |
+| **S13 — Petugas tahu kenapa sebuah tempat tidur ditolak** | Layar pemilihan bed menyebut aturan yang menolak, bukan kalimat buntu. Alasannya datang dari server, bukan dari tebakan layar | `MVP-1`; bukti runtime pemilik 9 Sep 2026 | ⛔ `BE-RWI-069` — menunggu approval API `0.7.0` |
 
 ### Urutan dependency
+
+Grafik kanonisnya ada di [**Grafik Urutan Dependency**](#grafik-urutan-dependency) pada kepala
+dokumen ini. Pohon teks di bawah adalah bentuk lama yang **sudah digantikan** grafik itu, dan
+dipertahankan sebagai jejak pembacaan revision `4`. Bila keduanya berbeda, grafik Mermaid dan kolom
+`Dependency` yang berlaku.
 
 ```text
 BE-RWI-001 (dua tabel master)  ✅ SELESAI
@@ -1258,6 +1495,28 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 | **Verification** | Uji `UAT-37`, `UAT-38`, `UAT-39`, dan `UAT-40`; uji jalur gagal-aman saat Billing tidak terbaca; uji override |
 | **Risk/blocker** | Owner: Backend/API untuk sisi Rawat Inap; pemilik `BillingManagement` **hanya** bila rute `settle` jadi dibuat. Risiko terbesar tetap pada kriteria 4: menganggap sumber yang tidak terbaca sebagai lunas adalah cara paling mudah kehilangan uang |
 | **DoD** | Kedua endpoint dan validasi clearance ada; keempat UAT lulus; test gagal-aman ada; build lulus |
+
+---
+
+### Task slice S13 — revision `5`
+
+Satu task, lahir dari bukti runtime pemilik pada 9 September 2026.
+
+### ⛔ `BE-RWI-069` — Tempat tidur yang ditolak ikut menyebutkan alasannya
+
+| Field | Isi |
+| --- | --- |
+| **Status** | **`BLOCKED_PENDING_OWNER_APPROVAL`.** Yang menahan hanya persetujuan pemilik atas `api-contract.md` `0.7.0`. Kedua prasyarat teknisnya sudah selesai sejak Agustus 2026, dan tidak ada pekerjaan lain yang perlu didahulukan |
+| **Outcome** | Petugas admisi yang melihat sebuah tempat tidur tidak dapat dipilih langsung membaca **aturan mana** yang menolaknya, dengan kalimat yang sama persis seperti yang akan muncul bila penempatan tetap dipaksakan |
+| **Trace** | `RWI-RULE-012` bagian A dan B; `RWI-DEC-064` s.d. `RWI-DEC-066`; api contract `0.7.0` bagian Bed Occupancy; bukti runtime pemilik 9 September 2026 |
+| **Kontrak** | API `0.7.0` — query `includeIneligible` pada `GET /bed-occupancies/available-beds`, dan field `ineligible` pada `AvailableBedPagedResult`. Hak akses **tidak berubah**, tetap `InpatientBedOccupancy : Read` |
+| **Reuse** | `EvaluatePlacementEligibilityAsync` yang **sudah** dipanggil untuk setiap bed kandidat di dalam `SearchAvailableBedsAsync`, dan `PlacementEligibilityFailureResponse` yang **sudah** dipakai jawaban 422. Nol aturan baru, nol evaluator kedua, nol query tambahan |
+| **Scope** | `AvailableBedQuery` menerima `IncludeIneligible`; DTO baru `IneligibleBedResponse`; `AvailableBedPagedResult` membawa `Ineligible`; `SearchAvailableBedsAsync` menyimpan `evaluation.Failures` alih-alih membuangnya. **Tidak** menyentuh `EvaluatePlacementEligibilityAsync`, `GetBedBoardAsync`, penempatan, maupun pemesanan |
+| **Dependency** | `BE-RWI-013` ✅ dan `BE-RWI-015` ✅ sebagai sumber aturan jenis kelamin dan isolasi. Ditambah gerbang approval API `0.7.0`. Tiga panah pada [Grafik Urutan Dependency](#grafik-urutan-dependency) |
+| **Acceptance criteria** | 1. Tanpa `includeIneligible`, jawaban **sama persis** dengan sebelumnya dan `ineligible` terkirim sebagai array kosong. 2. Dengan `includeIneligible=true` dan `episodeId` terisi, setiap bed yang tidak lolos muncul di `ineligible` beserta seluruh aturan yang menolaknya, bukan hanya yang pertama. 3. Kalimat pada `failures[].message` **identik** dengan kalimat yang dikembalikan 422 pada `POST /placements` untuk bed dan episode yang sama. 4. Bed yang lolos **tidak pernah** muncul di kedua daftar sekaligus. 5. `includeIneligible=true` tanpa `episodeId` menjawab `ineligible` kosong, bukan alasan sebagian. 6. Jumlah query ke database tidak bertambah dibanding sebelum perubahan |
+| **Verification** | Integration test keenam kriteria memakai satu kamar berisi pasien perempuan dan satu bed isolasi, meniru keadaan runtime 9 September 2026: bed sekamar menghasilkan `ROOM_GENDER_MIXED` aturan 6, bed isolasi menghasilkan `ISOLATION_BED_RESERVED` aturan 8. Test pembanding yang memanggil `POST /placements` pada bed yang sama untuk membuktikan kriteria 3 |
+| **Risk/blocker** | Godaan terbesarnya menambahkan penyaringan baru di dalam `SearchAvailableBedsAsync` supaya daftar `ineligible` terlihat rapi. Itu akan membuat dua sumber kebenaran dan mengulang persis kesalahan `BE-RWI-034`. Kriteria 3 ada untuk menangkapnya. Owner: Backend/API |
+| **DoD** | Keenam kriteria lulus; api contract `0.7.0` disetujui dan baris `ineligible` naik dari **Rencana** menjadi **Tersedia**; `dotnet build` 0 error; suite `InPatientManagement` lulus; laporan task ditulis di `docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/` |
 
 ---
 
