@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 {
-    [Table("TrxPrescriptionCompound", Schema = "public")]
-    public class TrxPrescriptionCompound : IdentityModel
+    [Table("PhmPrescriptionCompound", Schema = "public")]
+    public class PhmPrescriptionCompound : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
 
         public MstMeasurement? PackageUnitMeasurement { get; set; }
 
@@ -115,7 +115,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public MstMeasurement? DoseUnitMeasurement { get; set; }
 
-        public ICollection<TrxPrescriptionCompoundItem> Items { get; set; }
-            = new List<TrxPrescriptionCompoundItem>();
+        public ICollection<PhmPrescriptionCompoundItem> Items { get; set; }
+            = new List<PhmPrescriptionCompoundItem>();
     }
 }

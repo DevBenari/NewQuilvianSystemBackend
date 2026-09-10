@@ -221,7 +221,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             // Kontrak bagian 1.8. Kunjungan berhenti di ConsultationCompleted; menaikkannya ke
             // Billing atau Completed bukan kewenangan modul dokter.
-            var kunjungan = verifikasi.Set<TrxPatientEncounter>().Single(x => x.Id == encounterId);
+            var kunjungan = verifikasi.Set<RegPatientEncounter>().Single(x => x.Id == encounterId);
             Assert.Equal(EncounterStatus.ConsultationCompleted, kunjungan.EncounterStatus);
         }
 
@@ -243,7 +243,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 dokterId);
 
             using var verifikasi = database.CreateContext();
-            var kunjungan = verifikasi.Set<TrxPatientEncounter>().Single(x => x.Id == encounterId);
+            var kunjungan = verifikasi.Set<RegPatientEncounter>().Single(x => x.Id == encounterId);
 
             Assert.NotEqual(EncounterStatus.Billing, kunjungan.EncounterStatus);
             Assert.NotEqual(EncounterStatus.Completed, kunjungan.EncounterStatus);
@@ -284,7 +284,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             Assert.Equal(QueueStatus.InConsultation, antrean.QueueStatus);
             Assert.Null(antrean.CompletedAt);
 
-            var kunjungan = verifikasi.Set<TrxPatientEncounter>().Single(x => x.Id == encounterId);
+            var kunjungan = verifikasi.Set<RegPatientEncounter>().Single(x => x.Id == encounterId);
             Assert.NotEqual(EncounterStatus.ConsultationCompleted, kunjungan.EncounterStatus);
             Assert.NotEqual(EncounterStatus.Completed, kunjungan.EncounterStatus);
         }

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -169,13 +169,13 @@ public class PharmacyDepotRoutingServiceTests
         return new ApplicationDbContext(options);
     }
 
-    private static TrxPatientEncounter AddEncounter(
+    private static RegPatientEncounter AddEncounter(
         ApplicationDbContext dbContext,
         EncounterType encounterType,
         Guid serviceUnitId,
         Guid? clinicId = null)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             EncounterType = encounterType,
             ServiceUnitId = serviceUnitId,
@@ -186,7 +186,7 @@ public class PharmacyDepotRoutingServiceTests
             IsActive = true
         };
 
-        dbContext.Set<TrxPatientEncounter>().Add(encounter);
+        dbContext.Set<RegPatientEncounter>().Add(encounter);
         return encounter;
     }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -261,6 +261,7 @@ public sealed class BillingSettlementService
                     SettlementId = settlement.Id,
                     Settlement = settlement,
                     PaymentMethodId = request.PaymentMethodId,
+                    PaymentMethodAccountId = request.PaymentMethodAccountId,
                     Amount = request.Amount,
                     CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
                         ? null
@@ -1095,6 +1096,7 @@ public sealed class BillingSettlementService
         Id = tender.Id,
         SettlementId = tender.SettlementId,
         PaymentMethodId = tender.PaymentMethodId,
+        PaymentMethodAccountId = tender.PaymentMethodAccountId,
         Amount = tender.Amount,
         Status = tender.Status,
         CashierReferenceNote = tender.CashierReferenceNote,

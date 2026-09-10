@@ -363,7 +363,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             var k = await SiapkanKonsultasiLayak(context);
 
-            context.Set<TrxPrescription>().Add(new TrxPrescription
+            context.Set<PhmPrescription>().Add(new PhmPrescription
             {
                 PrescriptionNumber = $"RSP-{Guid.NewGuid().ToString("N")[..8]}",
                 EncounterId = k.EncounterId,
@@ -400,7 +400,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var k = await SiapkanKonsultasiLayak(context);
             var lain = await SiapkanKonsultasiLayak(context);
 
-            context.Set<TrxPrescription>().Add(new TrxPrescription
+            context.Set<PhmPrescription>().Add(new PhmPrescription
             {
                 PrescriptionNumber = $"RSP-{Guid.NewGuid().ToString("N")[..8]}",
                 EncounterId = lain.EncounterId,
@@ -471,7 +471,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             context.AddRange(obat, tarif);
             await context.SaveChangesAsync();
 
-            var resep = new TrxPrescription
+            var resep = new PhmPrescription
             {
                 PrescriptionNumber = $"RSP-{pembeda}",
                 EncounterId = k.EncounterId,
@@ -483,10 +483,10 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 TotalItemCount = 1,
                 IsActive = true
             };
-            context.Set<TrxPrescription>().Add(resep);
+            context.Set<PhmPrescription>().Add(resep);
             await context.SaveChangesAsync();
 
-            var item = new TrxPrescriptionItem
+            var item = new PhmPrescriptionItem
             {
                 PrescriptionId = resep.Id,
                 DrugId = obat.Id,
@@ -500,7 +500,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 IsHighAlertSnapshot = true,
                 IsActive = true
             };
-            context.Set<TrxPrescriptionItem>().Add(item);
+            context.Set<PhmPrescriptionItem>().Add(item);
             await context.SaveChangesAsync();
 
             return $"HIGH_ALERT_DRUG:PrescriptionItem:{item.Id}";
@@ -759,7 +759,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var konsultasi = verifikasi.Set<TrxDoctorConsultation>().Single(x => x.Id == k.ConsultationId);
             Assert.Equal(DoctorConsultationStatus.Completed, konsultasi.ConsultationStatus);
 
-            var kunjungan = verifikasi.Set<TrxPatientEncounter>().Single(x => x.Id == k.EncounterId);
+            var kunjungan = verifikasi.Set<RegPatientEncounter>().Single(x => x.Id == k.EncounterId);
             Assert.Equal(EncounterStatus.ConsultationCompleted, kunjungan.EncounterStatus);
         }
 
@@ -785,12 +785,12 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             Assert.Null(antrean.CompletedAt);
             Assert.Null(antrean.ConsultationCompletedAt);
 
-            var kunjungan = await verifikasi.Set<TrxPatientEncounter>().SingleAsync(x => x.Id == k.EncounterId);
+            var kunjungan = await verifikasi.Set<RegPatientEncounter>().SingleAsync(x => x.Id == k.EncounterId);
             Assert.NotEqual(EncounterStatus.ConsultationCompleted, kunjungan.EncounterStatus);
             Assert.NotEqual(EncounterStatus.Completed, kunjungan.EncounterStatus);
 
             // Resep draf tidak boleh terfinalisasi sebagian.
-            var resepSubmitted = await verifikasi.Set<TrxPrescription>()
+            var resepSubmitted = await verifikasi.Set<PhmPrescription>()
                 .CountAsync(x => x.ConsultationId == k.ConsultationId &&
                                  x.PrescriptionStatus != PrescriptionStatus.Draft);
             Assert.Equal(0, resepSubmitted);

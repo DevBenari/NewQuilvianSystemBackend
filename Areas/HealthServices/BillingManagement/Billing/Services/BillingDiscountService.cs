@@ -160,7 +160,7 @@ public sealed class BillingDiscountService
             if (application.RequestedBy == actorUserId)
                 throw new BillingDiscountForbiddenException("Pembuat pengajuan tidak boleh menyetujui pengajuannya sendiri.");
 
-            var encounterDoctorId = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounterDoctorId = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .Where(x => x.Id == application.Invoice.EncounterId && !x.IsDelete && !x.IsCancel)
                 .Select(x => x.DoctorId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -206,7 +206,7 @@ public sealed class BillingDiscountService
     }
 
     // Antrean approval milik dokter yang sedang login. Kepemilikan ditentukan dari DPJP encounter
-    // (User.DoctorId == TrxPatientEncounter.DoctorId) - aturan kepemilikan yang sama persis dipakai
+    // (User.DoctorId == RegPatientEncounter.DoctorId) - aturan kepemilikan yang sama persis dipakai
     // ApproveDoctorAsync, sehingga daftar ini tidak pernah menampilkan pengajuan yang pada akhirnya
     // akan ditolak backend saat disetujui. Akun non-dokter mendapat daftar kosong, bukan error.
     public async Task<PagedResult<DoctorDiscountApprovalResponse>> GetPendingDoctorApprovalsAsync(
@@ -237,7 +237,7 @@ public sealed class BillingDiscountService
             from application in _dbContext.BilDiscountApplications.AsNoTracking()
             join invoice in _dbContext.BilInvoices.AsNoTracking()
                 on application.InvoiceId equals invoice.Id
-            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on invoice.EncounterId equals encounter.Id
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id

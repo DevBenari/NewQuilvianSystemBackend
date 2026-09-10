@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -179,7 +179,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var catatanRawatInap = BuatCatatan(context, k, aktor.Id, k.EpisodeId);
             var catatanRawatJalan = BuatCatatan(context, k, aktor.Id, episodeId: null);
 
-            TrxPrescription Resep(TrxDoctorConsultation catatan, Guid? episodeId) => new()
+            PhmPrescription Resep(TrxDoctorConsultation catatan, Guid? episodeId) => new()
             {
                 PrescriptionNumber = $"RSP-{Guid.NewGuid():N}"[..20],
                 EncounterId = k.EncounterId,
@@ -194,20 +194,20 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             };
 
             // Resep pertama dan kedua pada satu catatan rawat inap: keduanya tersimpan.
-            context.Set<TrxPrescription>().Add(Resep(catatanRawatInap, k.EpisodeId));
+            context.Set<PhmPrescription>().Add(Resep(catatanRawatInap, k.EpisodeId));
             await context.SaveChangesAsync();
 
-            context.Set<TrxPrescription>().Add(Resep(catatanRawatInap, k.EpisodeId));
+            context.Set<PhmPrescription>().Add(Resep(catatanRawatInap, k.EpisodeId));
             await context.SaveChangesAsync();
 
-            Assert.Equal(2, await context.Set<TrxPrescription>()
+            Assert.Equal(2, await context.Set<PhmPrescription>()
                 .CountAsync(x => x.ConsultationId == catatanRawatInap.Id));
 
             // Resep tanpa konteks perawatan tetap dibatasi satu per catatan.
-            context.Set<TrxPrescription>().Add(Resep(catatanRawatJalan, null));
+            context.Set<PhmPrescription>().Add(Resep(catatanRawatJalan, null));
             await context.SaveChangesAsync();
 
-            context.Set<TrxPrescription>().Add(Resep(catatanRawatJalan, null));
+            context.Set<PhmPrescription>().Add(Resep(catatanRawatJalan, null));
 
             await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
         }
@@ -232,7 +232,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                          PrescriptionOrderType.Discharge
                      })
             {
-                context.Set<TrxPrescription>().Add(new TrxPrescription
+                context.Set<PhmPrescription>().Add(new PhmPrescription
                 {
                     PrescriptionNumber = $"RSP-{Guid.NewGuid():N}"[..20],
                     EncounterId = k.EncounterId,
@@ -248,13 +248,13 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 await context.SaveChangesAsync();
             }
 
-            var obatPulang = await context.Set<TrxPrescription>()
+            var obatPulang = await context.Set<PhmPrescription>()
                 .Where(x => x.InpEpisodeId == k.EpisodeId &&
                             x.PrescriptionOrderType == PrescriptionOrderType.Discharge)
                 .ToListAsync();
 
             Assert.Single(obatPulang);
-            Assert.Equal(3, await context.Set<TrxPrescription>()
+            Assert.Equal(3, await context.Set<PhmPrescription>()
                 .CountAsync(x => x.InpEpisodeId == k.EpisodeId));
         }
 
@@ -323,7 +323,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             using var pembaca = database.CreateContext();
 
-            Assert.Equal(2, await pembaca.Set<TrxPrescription>()
+            Assert.Equal(2, await pembaca.Set<PhmPrescription>()
                 .CountAsync(x => x.ConsultationId == catatanRawatInap.Id));
 
             // Tanpa konteks perawatan: resep aktif kedua tetap ditolak, kalimatnya tak berubah.
@@ -342,7 +342,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             using var pembacaKedua = database.CreateContext();
 
-            Assert.Equal(1, await pembacaKedua.Set<TrxPrescription>()
+            Assert.Equal(1, await pembacaKedua.Set<PhmPrescription>()
                 .CountAsync(x => x.ConsultationId == catatanRawatJalan.Id));
         }
 

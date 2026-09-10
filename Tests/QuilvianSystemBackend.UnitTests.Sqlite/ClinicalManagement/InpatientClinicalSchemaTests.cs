@@ -356,11 +356,11 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             using var database = TestDatabase.Create();
             using var context = database.CreateContext();
 
-            Assert.True(Kolom<TrxPrescription>(context, "InpEpisodeId").IsNullable);
+            Assert.True(Kolom<PhmPrescription>(context, "InpEpisodeId").IsNullable);
             Assert.True(Kolom<LabOrder>(context, "InpEpisodeId").IsNullable);
             Assert.True(Kolom<RadOrder>(context, "InpEpisodeId").IsNullable);
 
-            var jenis = Kolom<TrxPrescription>(context, "PrescriptionOrderType");
+            var jenis = Kolom<PhmPrescription>(context, "PrescriptionOrderType");
             Assert.False(jenis.IsNullable);
             Assert.Equal(PrescriptionOrderType.Routine, jenis.GetDefaultValue());
 
@@ -380,7 +380,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             using var database = TestDatabase.Create();
             using var context = database.CreateContext();
 
-            var index = Entity<TrxPrescription>(context).GetIndexes()
+            var index = Entity<PhmPrescription>(context).GetIndexes()
                 .Single(x => x.Properties.Count == 1 && x.Properties[0].Name == "ConsultationId");
 
             Assert.True(index.IsUnique);

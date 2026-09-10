@@ -20,6 +20,8 @@ public sealed class BilDepositMovementConfiguration : IEntityTypeConfiguration<B
         entity.Property(x => x.Amount).HasPrecision(18, 2);
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.OccurredAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.PaymentMethodAccountId);
+        entity.Property(x => x.ReferenceNumber).HasMaxLength(150);
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
