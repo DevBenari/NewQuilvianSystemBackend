@@ -11,10 +11,74 @@ namespace QuilvianSystemBackend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Sebelum kategori billing lama dihapus, pastikan setiap kategori yang
+            // benar-benar digunakan BilInvoiceItem memiliki tepat satu pasangan
+            // MstTariffCategory berdasarkan code.
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM (
+                            SELECT oldcat."Id"
+                            FROM (
+                                SELECT DISTINCT "CategoryId"
+                                FROM public."BilInvoiceItem"
+                            ) used
+                            JOIN public."MstBillingItemCategory" oldcat
+                                ON oldcat."Id" = used."CategoryId"
+                            LEFT JOIN public."MstTariffCategory" tc
+                                ON UPPER(tc."TariffCategoryCode")
+                                = UPPER(oldcat."BillingItemCategoryCode")
+                            GROUP BY oldcat."Id"
+                            HAVING COUNT(tc."Id") <> 1
+                        ) invalid_mapping
+                    ) THEN
+                        RAISE EXCEPTION
+                            'Cannot migrate BilInvoiceItem.CategoryId: one or more used billing categories do not have exactly one matching MstTariffCategory by code.';
+                    END IF;
+                END
+                $$;
+                """);
+
             migrationBuilder.DropForeignKey(
                 name: "FK_BilInvoiceItem_MstBillingItemCategory_CategoryId",
                 schema: "public",
                 table: "BilInvoiceItem");
+
+            // Setelah FK lama dilepas, remap ID kategori lama ke ID kategori tarif.
+            // Mapping berdasarkan business code, bukan UUID environment tertentu.
+            migrationBuilder.Sql(
+                """
+                UPDATE public."BilInvoiceItem" AS bii
+                SET "CategoryId" = tc."Id"
+                FROM public."MstBillingItemCategory" AS oldcat,
+                    public."MstTariffCategory" AS tc
+                WHERE bii."CategoryId" = oldcat."Id"
+                AND UPPER(tc."TariffCategoryCode")
+                    = UPPER(oldcat."BillingItemCategoryCode");
+                """);
+
+            // Safety check kedua: jangan pernah menghapus tabel lama bila setelah
+            // remapping masih ada invoice item tanpa parent di MstTariffCategory.
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM public."BilInvoiceItem" bii
+                        LEFT JOIN public."MstTariffCategory" tc
+                            ON tc."Id" = bii."CategoryId"
+                        WHERE tc."Id" IS NULL
+                    ) THEN
+                        RAISE EXCEPTION
+                            'Cannot drop MstBillingItemCategory: BilInvoiceItem still contains CategoryId values without a matching MstTariffCategory.';
+                    END IF;
+                END
+                $$;
+                """);
 
             migrationBuilder.DropTable(
                 name: "MstBillingItemCategory",

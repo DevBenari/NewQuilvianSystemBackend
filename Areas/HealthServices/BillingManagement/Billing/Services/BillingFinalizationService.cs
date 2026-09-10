@@ -122,15 +122,10 @@ public sealed class BillingFinalizationService
                 CreateBy = actorUserId
             };
             _dbContext.BilFinalizationRecords.Add(record);
-            // Tagihan pasien yang sudah lunas langsung berstatus CLOSED, bukan FINAL. FINAL hanya
-            // untuk invoice yang difinalisasi dengan sisa tanggung jawab (departure exception) -
-            // di situ masih ada piutang yang menunggu penyelesaian.
-            var isFullySettled = !isDepartureException && readiness.Outstanding <= 0;
-            invoice.Status = isFullySettled
-                ? BillingInvoiceStatuses.Closed
-                : BillingInvoiceStatuses.Final;
+            // Kontrak BIL-STATE-0.4: finalisasi selalu menghasilkan FINAL.
+            // CLOSED hanya terjadi setelah AR/AP posting sukses.
+            invoice.Status = BillingInvoiceStatuses.Final;
             invoice.InvoiceDate ??= now;
-            if (isFullySettled) invoice.ClosedAt ??= now;
             invoice.RowVersion = Guid.NewGuid();
             invoice.UpdateDateTime = DateTime.UtcNow;
             invoice.UpdateBy = actorUserId;

@@ -46,8 +46,8 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
     /// kedua sama-sama berujung pada pasien membayar dua kali untuk satu tindakan yang sama.
     /// </para>
     /// </remarks>
-    public sealed class PatientProcedureRetryTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+    [Collection(PostgresIntegrationTestCollection.Name)]
+    public sealed class PatientProcedureRetryTests : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();
