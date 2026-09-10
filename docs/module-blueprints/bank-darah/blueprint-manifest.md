@@ -14,13 +14,34 @@ last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
   Modul NOT_READY karena cakupan, bukan kerusakan. Gelombang MVP-0 sendiri
-  READY_WITH_CONDITIONS dengan satu syarat tersisa: keempat migration dijalankan.
-  Sejak 7 September 2026 syarat itu berubah sifat, bukan berubah isi: migration
-  Bank Darah kini diselingi migration Laboratorium, Billing, dan Registration,
+  READY_WITH_CONDITIONS dengan satu syarat tersisa: seluruh migration Bank Darah
+  dijalankan. Sejak 7 September 2026 syarat itu berubah sifat, bukan berubah isi:
+  migration Bank Darah diselingi migration Laboratorium, Billing, dan Registration,
   sehingga menjalankannya menuntut koordinasi lintas modul.
-backend_source_sha: 5360286
+  DIPERBARUI 10 September 2026: syarat itu TERPENUHI di database QuilvianNewDevSukma
+  lewat dotnet ef database update, 137 dari 137 migration diterapkan dan nol tertunda.
+  Koordinasi lintas modul yang diramalkan memang terjadi: sebelas migration milik lima
+  modul ikut diterapkan, termasuk DropTableMstBillingCategory yang menghapus tabel
+  MstBillingItemCategory beserta isinya. Jumlah migration Bank Darah kini LIMA, bukan
+  empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
+  Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
+  dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
+backend_source_sha: 95e4b8d
+backend_source_sha_note: >-
+  Naik dari 5360286 pada 10 September 2026, delapan commit. Impact scan terbatas
+  dijalankan: 34 berkas source aplikasi berubah, 14 di antaranya milik Bank Darah
+  sendiri yaitu implementasi BE-BD-005/BE-BD-011 beserta migration AddBbkBloodGroupExam
+  yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
+  karena perubahannya adalah hasil kerja modul ini sendiri. Sisanya dokumentasi.
 backend_branch: sukmagp
-frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
+frontend_source_sha_note: >-
+  Naik dari 101ec5d3a pada 10 September 2026, dua commit: 7e90e0477 milik FE-BD-001 dan
+  f79af1684 milik FE-BD-011. Impact scan terbatas dijalankan: 44 berkas berubah, 42 di
+  antaranya milik Bank Darah sendiri; dua sisanya store.jsx dan menu-items.jsx, yaitu titik
+  registrasi wajib yang memang disentuh task Bank Darah. Nol dampak asing dan nol baris peta
+  kemampuan berpindah status. Pekerjaan FE-BD-006 berupa satu berkas menu-items.jsx BELUM
+  di-commit pada saat catatan ini ditulis.
 frontend_branch: sukmagpV2
 skill_suite_version: 1.6.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
@@ -45,8 +66,8 @@ capability_map_impact_scan_result: >-
   LabTransitionHistory.cs (ganti nama saja, kesembilan field utuh) dan BD-CAP-008
   TrxLabSpecimen.cs -> LabSpecimen.cs + LabExamination.cs (dipecah dua tingkat, pola tetap
   berlaku). Nol berkas source Bank Darah tersentuh; nol berkas bukti frontend berubah karena
-  SHA frontend tidak bergerak.
-capability_map_frontend_impact_scan_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+  SHA frontend BERGERAK sejak 10 September 2026 -- lihat frontend_source_sha_note.
+capability_map_frontend_impact_scan_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 capability_map_full_audit_recommended_before: MVP-2
 capability_map_full_audit_reason: >-
   MstBloodStorageLocation dan MstBloodBankReason sudah berdiri tetapi belum punya baris
@@ -587,7 +608,7 @@ sebelumnya tercatat 2 dan 2.
 | Cakupan | Putusan | Syarat tersisa |
 | --- | --- | --- |
 | Modul Bank Darah | **`NOT_READY`** | Gelombang `MVP-1`..`MVP-4` beserta 12 task frontend. Nol dari 15 entity `Bbk*` operasional ada |
-| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** | **Satu syarat:** keempat migration dijalankan. Pemilik: pemilik database. Selama belum, ketiga master tidak dapat dipakai di lingkungan mana pun — risikonya terkurung, bukan menyebar |
+| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** — syaratnya **terpenuhi di satu database** | **Satu syarat:** seluruh migration Bank Darah dijalankan — **lima**, bukan empat, sejak `AddBbkBloodGroupExam` lahir 9 September 2026. **Terpenuhi 10 September 2026 di `QuilvianNewDevSukma`**: `137/137` migration diterapkan, nol tertunda. Ketiga master kini **dapat dipakai** di database itu. **Belum** di `QuilvianNewDevTim01`, staging, maupun production — ketiganya wewenang tersendiri, dan selama belum, risikonya di sana tetap terkurung |
 
 `BD-PH-009` Verifikasi kesiapan karena itu berpindah dari `NOT_STARTED` ke **`IN_PROGRESS`**: fase itu
 sudah dijalankan dan memulangkan putusan, tetapi belum dapat ditutup `DONE`.

@@ -23,7 +23,7 @@ revision_6_note: >-
 status: FORWARD-TEST / DRAFT
 approval_gate: BLUEPRINT_APPROVED
 contract_version: v4 (approved)
-frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 frontend_branch: sukmagpV2
 backend_source_sha: 55ac6ab
 backend_branch: sukmagp
@@ -79,13 +79,14 @@ modul**: kedelapan task frontend bertanda ⛔ menunggu gelombang `MVP-1` bluepri
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
 | ✅ SELESAI | 1 | `FE-BD-001` |
-| 🟡 SELESAI SEBAGIAN | 1 | `FE-BD-011` — 1 dari 2 acceptance criteria |
-| 🟡 PENDING | 2 | `FE-BD-006`, `FE-BD-009` |
+| 🟡 SELESAI SEBAGIAN | 2 | `FE-BD-011` dan `FE-BD-006` — masing-masing 1 dari 2 acceptance criteria |
+| 🟡 PENDING | 1 | `FE-BD-009` |
 | ⛔ BLOCKED | 8 | `FE-BD-002`, `003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
 **Satu task frontend selesai (`FE-BD-001`).** `FE-BD-011` **dikerjakan 10 September 2026** dan
-berakhir 🟡 sebagian. Dua task `PENDING` tersisa dan siap dijadwalkan (`FE-BD-006`, `FE-BD-009`).
+berakhir 🟡 sebagian, dan `FE-BD-006` menyusul pada hari yang sama dengan hasil serupa. Satu
+task `PENDING` tersisa (`FE-BD-009`).
 
 **`FE-BD-009` terbuka sejak 9 September 2026**, ketika `BE-BD-011` selesai
 ([laporan](../task/report/backend/BE-BD-011.md)). Kedelapan yang masih terblokir kini **seluruhnya**
@@ -100,7 +101,7 @@ tertahan `G4` lewat rantai backend — tidak ada lagi yang menunggu backend berj
 
 ✅ BE-BD-001 (master komponen & alasan)  ──> ✅ FE-BD-001 (setup master)          SELESAI
 ✅ BE-BD-014 (master lokasi penyimpanan) ──> 🟡 FE-BD-011 (lokasi penyimpanan)    SEBAGIAN 1/2 AC
-                    G1 ✅ saja           ──> 🟡 FE-BD-006 (registrasi menu)       PENDING
+                    G1 ✅ saja           ──> 🟡 FE-BD-006 (registrasi menu)       SEBAGIAN 1/2 AC
 
 
 ════════ JALUR TERBUKA LEWAT BACKEND YANG SIAP DIKERJAKAN ════════
@@ -127,8 +128,8 @@ tertahan `G4` lewat rantai backend — tidak ada lagi yang menunggu backend berj
            JANGAN dipecah tanpa persetujuan pemilik — lihat catatan pada task
 ```
 
-**Yang boleh paralel.** `FE-BD-006` dan `FE-BD-009` tidak saling bergantung dan boleh dikerjakan
-dua orang berbeda. `FE-BD-011` sudah dikerjakan 10 September 2026.
+**Yang boleh paralel.** `FE-BD-011` dan `FE-BD-006` sudah dikerjakan 10 September 2026, keduanya
+berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 ---
 
@@ -171,7 +172,7 @@ dua orang berbeda. `FE-BD-011` sudah dikerjakan 10 September 2026.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN.** Dependency-nya hanya `G1` |
+| **Status** | 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-006.md). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 33.9s`**; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi.** Bagian *mengarah ke layar* ✅: ketiga butir Setup menunjuk route yang terbukti ada, susunannya cocok `03-frontend-architecture.md` §2, dan **tiga entri duplikat dibuang** — sebelumnya ketiga layar muncul dua kali (3 dari hanya 4 path terduplikat di seluruh berkas). Bagian *hanya tampil bagi peran yang berhak* ⛔ **belum**: `filterMenuItemsByRole` adalah **stub** yang seluruh logikanya dikomentari, dan frontend **tidak punya katalog permission** pengguna berjalan — tidak dapat dikerjakan dengan menyunting `menu-items.jsx`. Uji manual `NOT FEASIBLE`: menuntut aplikasi berjalan beserta sesi login |
 | **Outcome** | Setiap layar Bank Darah dapat dicapai dari menu, dan butir menu hanya tampil bagi peran yang berhak |
 | **Scope** | `menu-items.jsx` |
 | **Dependency** | `G1` ✅ — **nol dependency backend** |

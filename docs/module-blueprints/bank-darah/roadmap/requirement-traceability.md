@@ -16,7 +16,7 @@ backend_source_sha: 55ac6ab
 backend_source_sha_note: >-
   Rentang 55ac6ab..f0d6855 mengubah nol berkas .cs. PERINGATAN: working tree memuat 17
   berkas .cs milik BE-BD-005 dan BE-BD-011 yang belum ter-commit.
-frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 decision_revision: 11
 acceptance_criteria_range: AC-BD-001 .. AC-BD-097
 task_range_backend: BE-BD-001 .. BE-BD-016
@@ -56,7 +56,7 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | Penyelesaian kantong `PendingReview` | `DEC-BD-019/028/043/045` | ⛔ `BE-BD-009` | ⛔ `FE-BD-007` | Tertahan lewat `BE-BD-006/007` |
 | Koreksi pencatatan pemberian | `DEC-BD-030/034/041` | ⛔ `BE-BD-010` | ⛔ `FE-BD-008` | Tertahan lewat `BE-BD-007` |
 | Tindakan Bank Darah tercatat | `DEC-BD-021`, `DEC-BD-034` | ⛔ `BE-BD-012` | ⛔ `FE-BD-010` | Tertahan `G4` |
-| Layar terjangkau dari menu | — | — | 🟡 `FE-BD-006` | Siap |
+| Layar terjangkau dari menu | — | — | 🟡 `FE-BD-006` | **Dikerjakan 10 September 2026** ([laporan](../task/report/frontend/FE-BD-006.md)) — ketiga layar Setup terjangkau tepat sekali dan cocok kontrak; **1 dari 2 acceptance**: visibilitas menurut hak akses belum ada karena `filterMenuItemsByRole` masih stub |
 | Penyaluran biaya ke Billing | `DEC-BD-016` **OPEN** | — `BE-BD-013` | — | **Future scope** |
 
 ---
@@ -103,6 +103,7 @@ boleh** memakai SuperAdmin karena `HasAccessAsync` meloloskannya sebelum satu ba
 | **Provider number-series** (`BD-DEP-017` / `G4`) | **Berubah sifat 9 September 2026.** `OQ-PLT-007` ✅ tertutup — pemiliknya `Andry`; `DEC-PLT-002`..`005`, `007`, `008` ✅ `approved`; blueprint `PLT-SLICE-01` ✅ ada sebagai `DRAFT`. **Yang tersisa:** `OQ-PLT-012`/`OQ-PLT-013` (Area dan prefix registry Platform) masih terbuka dan memblokir perencanaan Platform, roadmap Platform belum ada, dan providernya nol baris kode | **79 acceptance criteria belum dapat diuji.** Tetap gap terbesar modul ini — tetapi kini **dependency pengiriman yang dapat dijadwalkan**, bukan penghalang organisasi. Menunggu gelombang `MVP-1` Platform |
 | **Asal `SampleIdentifier`** — **DITUTUP 9 September 2026** | Builder `BE-BD-005` menemukan pertentangan nyata: `03-domain-architecture.md:283` menulis *"terbitan sistem"*, sedangkan `03-frontend-architecture.md:218` dan `00-interview-decisions.md:214` memperlakukannya sebagai isian petugas. Dilaporkan sebelum kode ditulis; **pemilik memutuskan `SampleIdentifier` ditulis petugas** | Gap tertutup. `BE-BD-005` **tidak** terkena `G4`. **Sisa pekerjaan dokumentasi:** frasa `BD-DOM-10` pada `03-domain-architecture.md` perlu dikoreksi agar tidak menyesatkan pembaca berikutnya |
 | **Kategori alasan penyelesaian konflik golongan darah** — **BARU** | `BbkBloodGroupConflictResolution.ReasonCode` wajib dan merujuk `MstBloodBankReason`, tetapi kontrak `v4` tidak menetapkan kategori mana yang berlaku. Kesepuluh kategori yang ada seluruhnya menyangkut order dan kantong | **Tidak menahan task.** `BE-BD-011` menuntut alasan yang ada dan aktif tanpa memaksakan kategori. Keputusan pemilik proses diperlukan bila kategori khusus dikehendaki |
+| **Visibilitas menu menurut hak akses** — **BARU 10 September 2026** | Frontend **tidak punya katalog permission** pengguna yang sedang login. `filterMenuItemsByRole` adalah **stub**: Admin dan Manajer dikembalikan menu utuh, sedangkan untuk peran lain seluruh logika filternya dikomentari, sehingga fungsinya memulangkan daftar yang sama persis. `AccessDeniedGate` hanya reaktif — ia menampilkan pesan setelah backend memulangkan `403`. Nol slice dan nol endpoint menyediakan hak akses pengguna berjalan. Ditemukan builder `FE-BD-006`; bukti pada [laporannya](../task/report/frontend/FE-BD-006.md) §1.2 | **Menahan satu acceptance `FE-BD-006`** — butir menu tetap tampil bagi pengguna yang tidak berhak, dan penolakan baru terjadi ketika layarnya dibuka. **Data tidak bocor**, karena penolakannya ditegakkan backend; yang rusak adalah pengalamannya. **Bukan pekerjaan Bank Darah**: menutupnya menuntut sumber permission pengguna, pemetaan tiap butir menu ke `Resource : Action`, lalu penyaringan — kemampuan lintas modul. Catatan tambahan: stub itu menanam nama peran di kode (`Admin`, `Manajer`, dan pada blok terkomentari `Perawat`, `Dokter`), sehingga perbaikannya sebaiknya membaca hak akses yang diberikan, bukan nama peran |
 | Penyaluran biaya Billing | `DEC-BD-016` `OPEN DECISION` | `AC-BD-027` tidak dapat diuji; `BE-BD-013` di luar gelombang mana pun |
 | Jam masa berlaku bukti per komponen | `OQ-BD-012` | **Tidak** menahan task; nilainya dari konfigurasi master. Selama kosong, gerbang menolak |
 | Keadaan kantong setelah dikoreksi | `OQ-BD-014` | Menahan detail implementasi `BE-BD-010`, bukan bentuknya |
@@ -152,7 +153,7 @@ supaya tidak hilang, bukan sebagai penahan.
 | — 🟡 pending, siap dijadwalkan | 3 |
 | — ⛔ blocked | 8 |
 | **Total task** | **28** (27 dalam gelombang + 1 future scope) |
-| **Dapat dijadwalkan hari ini** | **2** — `FE-BD-006`, `FE-BD-009`. **Seluruhnya frontend**; nol task backend dapat dijadwalkan tanpa menutup `G4`. `FE-BD-011` sudah dikerjakan 10 September 2026 dan berakhir 🟡 sebagian |
+| **Dapat dijadwalkan hari ini** | **1** — `FE-BD-009`. **Frontend**; nol task backend dapat dijadwalkan tanpa menutup `G4`. `FE-BD-011` dan `FE-BD-006` sudah dikerjakan 10 September 2026, keduanya berakhir 🟡 sebagian |
 | Acceptance criteria seluruhnya | 97 |
 | — terbukti | 17 |
 | — tidak dapat diuji (keputusan terbuka) | 1 |

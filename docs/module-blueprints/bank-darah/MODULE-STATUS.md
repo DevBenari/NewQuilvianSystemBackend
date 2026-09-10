@@ -9,13 +9,13 @@
 | Module status | `IN_PROGRESS` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `2026-09-04` — hasil **`NOT_READY`** (modul); gelombang `MVP-0` **`READY_WITH_CONDITIONS`** |
-| Backend source SHA | **`5360286`** cabang `sukmagp` — bukti diperiksa ulang langsung di SHA ini, 7 September 2026 |
-| Frontend source SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — **tidak bergerak** sejak 4 September 2026 |
+| Backend source SHA | **`95e4b8d`** cabang `sukmagp` — naik dari `5360286` pada 10 September 2026. Impact scan terbatas dijalankan: 8 commit, 34 berkas source, **14 milik Bank Darah sendiri** (`BE-BD-005`/`BE-BD-011` beserta migration `AddBbkBloodGroupExam` yang kini ter-commit). **Nol baris peta kemampuan berpindah status, nol memburuk** |
+| Frontend source SHA | **`f79af16847c99961842081f707bc0c4ff6c2d93b`** cabang `sukmagpV2` — naik dari `101ec5d3a` pada 10 September 2026 lewat dua commit milik `FE-BD-001` dan `FE-BD-011`. Impact scan terbatas dijalankan 10 September 2026: 44 berkas berubah, **42 milik Bank Darah sendiri** (`FE-BD-001` dan `FE-BD-011`); dua sisanya `store.jsx` dan `menu-items.jsx`, yaitu titik registrasi wajib yang memang disentuh task Bank Darah. **Nol dampak asing, nol baris kemampuan berpindah status**. Pekerjaan `FE-BD-006` (satu berkas `menu-items.jsx`) **belum di-commit** |
 | Decision revision | `11` — `DEC-BD-001` sampai `DEC-BD-047` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | revisi `2` — **`APPROVED`** |
-| Terakhir diperbarui | `2026-09-07` — penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
+| Terakhir diperbarui | **`2026-09-10`** — migration diterapkan ke `QuilvianNewDevSukma` (`137/137`, nol tertunda), `FE-BD-011` selesai sebagian, dan SHA disegarkan ke `95e4b8d`. Sebelumnya `2026-09-07`: penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
 
 ## Keadaan sekarang — 7 September 2026
 
@@ -40,11 +40,47 @@ dijalankan ulang.
 **Bukti `MVP-0` selamat penuh.** Ketujuh berkas source dan keempat migration hasil gelombang `MVP-0`
 utuh di `5360286`. Dibuktikan langsung, bukan disimpulkan:
 
+> **Diperbarui 10 September 2026.** Migration Bank Darah kini **lima**, bukan empat —
+> `AddBbkBloodGroupExam` lahir 9 September 2026 dari `BE-BD-005`/`BE-BD-011`. Kelimanya
+> **sudah diterapkan** di `QuilvianNewDevSukma`; lihat bagian *Migration* di bawah.
+
 | Pemeriksaan | Hasil |
 | --- | --- |
 | `dotnet build QuilvianSystemBackend.sln` | **`0 Error(s)`**, 210 peringatan |
 | `dotnet test` penyaring Bank Darah | **`Failed: 0, Passed: 101`** |
 | `git status --porcelain` | Bersih |
+
+### Migration — diterapkan 10 September 2026
+
+Perintah `dotnet ef database update` dijalankan atas wewenang eksplisit pemilik pekerjaan dengan
+target yang disebut namanya: **`QuilvianNewDevSukma`**. Hasilnya **`137/137` migration diterapkan,
+nol tertunda**.
+
+| Sebelum | Sesudah |
+| ---: | ---: |
+| 126 diterapkan, 11 tertunda | **137 diterapkan, 0 tertunda** |
+
+**Empat dari lima migration Bank Darah ternyata sudah lebih dulu ada di sana** — termasuk
+`AddMstBloodStorageLocation`, sehingga layar `FE-BD-011` sebenarnya sudah dapat dipakai sebelum
+perintah ini dijalankan. Yang benar-benar baru diterapkan dari sisi Bank Darah hanya
+`AddBbkBloodGroupExam`.
+
+**Koordinasi lintas modul yang diramalkan 7 September 2026 memang terjadi.** Sebelas migration
+milik lima modul ikut diterapkan sekaligus, dan salah satunya **merusak**:
+
+| Modul | Migration | Catatan |
+| --- | --- | --- |
+| Billing | `DropTableMstBillingCategory` | ⚠️ **`MstBillingItemCategory` dihapus** beserta isinya |
+| Billing | `AddTariffIdToBilInvoiceItem` | Kolom baru |
+| Insurance | `FixTariffCategoryInsuranceCoverageDefault` | Perbaikan default |
+| Laboratorium | `AddLabExamination`, `RenameLaboratoryTrxTablesToLabPrefix`, `SplitLabSpecimenIntoExamination`, `AddLabExaminationIdToLabTransitionHistory`, `AddLabDisciplineAndReferralMasterData` | ⚠️ Dua di antaranya mengganti nama dan memecah tabel |
+| Registration | `AddReferralPointerToPatientEncounter` | Kolom baru |
+| **Bank Darah** | `AddBbkBloodGroupExam` | Tabel pemeriksaan golongan darah |
+| Platform | `AddNumNumberSeries` | Tabel pencacah deret nomor |
+
+**Batas yang jujur.** Baru **satu** database yang diterapkan. `QuilvianNewDevTim01`, staging, dan
+production **belum**, dan masing-masing menuntut wewenang tersendiri. Pernyataan "migration sudah
+dijalankan" tanpa menyebut nama database adalah pernyataan yang menyesatkan.
 
 ### Tiga hal yang berubah artinya, tanpa mengubah status
 
@@ -96,7 +132,7 @@ kerusakan, melainkan **cakupan** — baru satu dari lima gelombang yang ada.
 | Cakupan | Putusan kesiapan | Syarat tersisa |
 | --- | --- | --- |
 | Modul Bank Darah | **`NOT_READY`** | Gelombang `MVP-1`..`MVP-4` beserta 12 task frontend. Nol dari 15 entity `Bbk*` operasional ada |
-| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** | **Satu syarat:** keempat migration dijalankan |
+| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** — terpenuhi di satu database | **Satu syarat:** seluruh migration Bank Darah dijalankan — **lima**, bukan empat. **Terpenuhi 10 September 2026 di `QuilvianNewDevSukma`**; belum di `QuilvianNewDevTim01`, staging, maupun production |
 
 Seluruh fase perancangan sudah menghasilkan artefaknya, **tidak ada satu pun keputusan bisnis yang
 masih memblokir**, dan tidak ada satu pun fase yang `BLOCKED`.

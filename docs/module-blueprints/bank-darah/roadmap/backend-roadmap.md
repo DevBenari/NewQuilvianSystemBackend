@@ -42,7 +42,7 @@ backend_source_sha_note: >-
   dan BE-BD-011 yang BELUM ter-commit, sehingga source aktual sudah melampaui SHA mana pun
   di dokumen ini.
 backend_branch: sukmagp
-frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 frontend_branch: sukmagpV2
 decision_revision: 11
 domain_architecture_revision: 6
