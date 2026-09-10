@@ -17,8 +17,8 @@
 
 
 		<!--
-		  XML documentation hanya untuk Development.
-		  Release dimatikan untuk mempercepat build.
+		XML documentation diperlukan oleh Swagger dan acceptance test.
+		Harus tersedia pada Development maupun Release.
 		-->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
@@ -29,8 +29,6 @@
 
 		<DebugType>None</DebugType>
 		<DebugSymbols>false</DebugSymbols>
-
-		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 
 		<RunAnalyzers>false</RunAnalyzers>
 

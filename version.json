@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.3.4",
-  "releaseName": "Adjustment 8 Modul Health Service",
-  "description": "Release Adjustment Billing Management, Clinical Management, Inpatient Management, Laboratory Management, Pharmacy Management, Radiology Management, Registration Management, Master Data Health Services"
+  "backendVersion": "0.4.0",
+  "releaseName": "Health Services Integration Release 0.4.0",
+  "description": "Release integration and stabilization for Billing Management, Clinical Management, Laboratory Management, Master Data, Medical Record Management, Pharmacy Management, Radiology Management, and Registration Management, including validated database migration and release-gate repairs."
 }

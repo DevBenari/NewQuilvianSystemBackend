@@ -410,6 +410,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -427,7 +428,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-PROC",
             RuleName = "Coverage procedure test",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 80,
             IsAllowExcessPaymentByPatient = true,
@@ -461,6 +463,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -478,7 +481,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-APPROVAL",
             RuleName = "Coverage butuh approval/SJP",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 80,
             IsNeedApproval = needApproval,
@@ -509,6 +513,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -526,7 +531,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-NEED-APPROVAL-STATUS",
             RuleName = "Status coverage belum diputuskan",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "NeedApproval",
             CoveragePercent = 80,
             IsAllowExcessPaymentByPatient = true,
@@ -556,6 +562,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -573,7 +580,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-MONTHLY-LIMIT",
             RuleName = "Limit bulanan",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 80,
             MaxAmountPerMonth = 50_000m,
@@ -604,6 +612,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -621,7 +630,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-PER-VISIT-LIMIT",
             RuleName = "Batas per kunjungan tetap berlaku",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 80,
             MaxAmountPerVisit = 30_000m,
@@ -653,6 +663,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -670,7 +681,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-NOT-COVERED-EXCESS",
             RuleName = "NotCovered, excess diizinkan ke pasien",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "NotCovered",
             IsAllowExcessPaymentByPatient = true,
             EffectiveStartDate = DateTime.UtcNow.AddDays(-1),
@@ -843,6 +855,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -860,7 +873,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-NON-BILLABLE",
             RuleName = "Residual dilarang ditagih ke pasien",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 70,
             IsAllowExcessPaymentByPatient = false,
@@ -891,6 +905,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -908,7 +923,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-EXCESS-ALLOWED",
             RuleName = "Residual boleh ditagih ke pasien",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 70,
             IsAllowExcessPaymentByPatient = true,
@@ -938,6 +954,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -955,7 +972,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-NO-AUTO-WRITEOFF",
             RuleName = "Residual non-billable, tidak boleh melahirkan write-off otomatis",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 70,
             IsAllowExcessPaymentByPatient = false,
@@ -987,6 +1005,7 @@ public sealed class BillingCalculationServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
         var invoice = await SeedInvoiceAsync(db, Guid.NewGuid(), "RAJAL", at, isProcedure: true);
+        var categoryId = (await db.BilInvoiceItems.AsNoTracking().SingleAsync(x => x.InvoiceId == invoice.Id)).CategoryId;
         var providerId = Guid.NewGuid();
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
@@ -1007,7 +1026,8 @@ public sealed class BillingCalculationServiceTests
             InsuranceProviderId = providerId,
             RuleCode = "COV-NOT-ELIGIBLE",
             RuleName = "Coverage tersedia tetapi penjamin belum eligible",
-            ItemType = "Procedure",
+            ItemType = "ServiceCategory",
+            TariffCategoryId = categoryId,
             CoverageStatus = "Covered",
             CoveragePercent = 100,
             IsAllowExcessPaymentByPatient = true,
