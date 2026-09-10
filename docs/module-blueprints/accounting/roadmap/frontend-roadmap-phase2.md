@@ -50,10 +50,10 @@ bagian 11.
 | `FE-ACC-P2-002` 🟡 | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-003` | Layar daftar Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
 | `FE-ACC-P2-004` | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
-| `FE-ACC-P2-005` | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | `READY` |
-| `FE-ACC-P2-006` | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | `READY` |
+| `FE-ACC-P2-005` 🟡 | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | 🟡 `SEBAGIAN` |
+| `FE-ACC-P2-006` 🟡 | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-007` | **Penanda control account pada layar COA** | `P2-CTRL` | `BE-ACC-P2-011` | `READY` |
-| `FE-ACC-P2-008` | **Layar Rekonsiliasi Control Account** | `P2-RECON` | `BE-ACC-P2-013` | `READY` sebagian — lihat kartunya |
+| `FE-ACC-P2-008` | **Layar Rekonsiliasi Control Account** | `P2-RECON` | `BE-ACC-P2-013` | `READY` sebagian — kolom subledger kini menunggu **gelombang `P2-1`**, bukan menunggu keputusan owner |
 
 ---
 
@@ -137,7 +137,7 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | DoD | Lint dan build hijau, laporan task menyebut komponen mana yang dipakai ulang |
 | Status | `READY` |
 
-## `FE-ACC-P2-005` — Layar Pengaturan Akuntansi
+## 🟡 `FE-ACC-P2-005` — Layar Pengaturan Akuntansi
 
 | Field | Isi |
 |---|---|
@@ -151,9 +151,9 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Verifikasi | `npm run lint`; `npm run build`; unit test |
 | Risiko/pemilik | Owner Frontend |
 | DoD | Lint dan build hijau, laporan task tertulis |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 10 September 2026. `npm run lint` 0 error (jumlah warning tidak bertambah); `npm run build` compiled, route `/corporate/accounting/configuration` terdaftar; `node --test tests/unit/` **627 lulus 0 gagal**. Ketiga acceptance **terpenuhi**, termasuk penjaga hak akses `AccountingConfiguration : Update` pada tombol Simpan. **Belum:** UAT peramban, diserahkan kepada Rizki atas permintaannya. Laporan: [`fe-acc-p2-005`](../task/report/frontend/fe-acc-p2-005-layar-pengaturan-akuntansi.md) |
 
-## `FE-ACC-P2-006` — Layar Tutup Tahun
+## 🟡 `FE-ACC-P2-006` — Layar Tutup Tahun
 
 | Field | Isi |
 |---|---|
@@ -167,7 +167,7 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Verifikasi | `npm run lint`; `npm run build`; unit test; UAT peramban `UAT-P2-19`, `UAT-P2-20`, `UAT-P2-21`, `UAT-P2-22` |
 | Risiko/pemilik | Tutup tahun terasa menakutkan bagi petugas. Acceptance (1) bukan hiasan — tanpanya orang enggan menekan Pratinjau dan justru menebak angkanya. Owner Frontend |
 | DoD | Lint dan build hijau, empat UAT terbukti, laporan task tertulis |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 10 September 2026. Lint 0 error; build compiled, route `/corporate/accounting/year-end-closing` terdaftar; 627 uji lulus. Keempat acceptance **terpenuhi**: jaminan "Pratinjau tidak membuat apa pun" dirender sebelum tombolnya, `422` disertai tautan ke Pengaturan Akuntansi sementara `409` menampilkan daftar periode dari backend apa adanya, dan pratinjau tanpa cache. **Belum:** `UAT-P2-19` sampai `22`, diserahkan kepada Rizki. Laporan: [`fe-acc-p2-006`](../task/report/frontend/fe-acc-p2-006-layar-tutup-tahun.md) |
 
 ---
 
@@ -195,11 +195,11 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Trace | `ACC-DEC-066` |
 | Reuse | Komponen tabel dan format rupiah dari layar Neraca Saldo |
 | Cakupan | Butir menu tingkat 2 `/accounting/reconciliation` |
-| Dependency | `BE-ACC-P2-013` untuk sisi buku besar; `BE-ACC-P2-014` untuk sisi subledger |
+| Dependency | `BE-ACC-P2-013` untuk sisi buku besar; `BE-ACC-P2-014` untuk sisi subledger, yang kini bergantung pada gelombang `P2-1` |
 | Acceptance | (1) Kolom saldo buku besar tampil segera setelah `BE-ACC-P2-013` berdiri. (2) **Kolom saldo subledger dan selisih ditampilkan sebagai "belum tersedia"**, bukan disembunyikan — supaya pembaca tahu laporannya memang belum lengkap, bukan mengira selisihnya nol. (3) Tidak memakai cache |
 | Risiko/pemilik | Menyembunyikan kolom yang belum ada datanya membuat laporan **terbaca seolah sudah cocok**. Itu kesalahan yang paling mahal pada layar rekonsiliasi. Owner Frontend |
 | DoD | Lint dan build hijau, laporan task tertulis |
-| Status | **`READY` sebagian** — sisi buku besar dapat dikerjakan; kolom subledger menunggu `BE-ACC-P2-014` yang ⛔ `BLOCKED` oleh `DEC-ACC-P2-011` |
+| Status | **`READY` sebagian** — sisi buku besar dapat dikerjakan sekarang. Kolom subledger menunggu `BE-ACC-P2-014`, yang **tidak lagi terblokir keputusan** sejak `ACC-DEC-071` (10 Sep 2026) dan kini hanya menunggu gelombang `P2-1` menyediakan kotak masuk kejadiannya |
 
 ## Peta butir menu yang ditambahkan
 

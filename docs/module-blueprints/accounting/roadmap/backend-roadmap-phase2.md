@@ -88,7 +88,7 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | `READY` — **terbuka** |
 | `BE-ACC-P2-013` 🟡 | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum |
-| `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` 🟡 | **`⛔ BLOCKED`** |
+| `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` 🟡, gelombang `P2-1` | `READY` — blokir dibuka `ACC-DEC-071` 10 Sep 2026 |
 
 **Jalur tercepat sampai ada yang terlihat:** `001` ✅ → `004` ✅ → `005` 🟡 → `006` 🟡. **Keempatnya
 sudah dikerjakan.** Tutup bulan berjalan ujung ke ujung, dengan satu catatan penting: endpoint
@@ -303,7 +303,7 @@ Dua gelombang baru:
 | Gelombang | Isi | Catatan |
 |---|---|---|
 | `P2-CTRL` | Control account: penandanya, dan penolakan jurnal manual ke sana | **Menyentuh artefak Phase 1** |
-| `P2-RECON` | Rekonsiliasi control account | Separuhnya terblokir `DEC-ACC-P2-011` |
+| `P2-RECON` | Rekonsiliasi control account | Blokirnya dibuka `ACC-DEC-071` 10 Sep 2026; `BE-ACC-P2-014` kini menunggu gelombang `P2-1`, bukan menunggu keputusan |
 
 ---
 
@@ -362,19 +362,20 @@ Dua gelombang baru:
 | **Rintangan `ACC-TD-001`** | Empat uji yang menyimpan baris jurnal semula gagal — check constraint `CK_AccJournalLine_TepatSatuSisiTerisi` **mustahil dipenuhi di SQLite** karena EF menyimpan `decimal` sebagai TEXT. Diatasi dengan `PRAGMA ignore_check_constraints` pada koneksi uji saja; **nol perubahan pada model aplikasi** |
 | **Prasyarat pemakaian** | **Nol akun bertanda control account** di database. Laporan ini akan kosong sampai Kas Kasir, Kas Kecil, Piutang, dan Hutang dibuat di daftar akun lalu ditandai |
 
-## `BE-ACC-P2-014` ⛔ — Perbandingan subledger dan laporan selisih
+## `BE-ACC-P2-014` — Perbandingan subledger dan laporan selisih
 
 | Field | Isi |
 |---|---|
 | Outcome | Saldo control account dibandingkan dengan saldo subledger, dan selisihnya dilaporkan |
 | Trace | `ACC-DEC-066` |
 | Dependency | `BE-ACC-P2-013` 🟡 |
-| **Status** | **⛔ `BLOCKED`** |
-| **Pemblokirnya** | **`DEC-ACC-P2-011`** — belum diputuskan dari mana Accounting memperoleh saldo subledger, mengingat `ACC-DEC-061` melarangnya membaca tabel Finance maupun Billing |
-| Pemilik keputusan | Rizki bersama owner Finance |
-| Tiga kemungkinan yang belum dipilih | (a) Finance menerbitkan kejadian saldo berkala; (b) Finance menyediakan API yang dipanggil Accounting; (c) laporannya disusun di luar Accounting |
-| **Yang tetap dapat berjalan sendiri** | **`BE-ACC-P2-013`** — sisi buku besarnya utuh dan tidak bergantung pada keputusan itu. Begitu `DEC-ACC-P2-011` ditutup, yang tersisa hanya menyambungkan pembandingnya |
-| Kenapa tidak dipaksakan sekarang | Menebak bentuk sumber saldo subledger berarti membangun pembanding yang kemungkinan besar dibongkar ulang. Ongkos menunggu lebih kecil daripada ongkos menebak |
+| **Status** | `READY` — blokirnya dibuka 10 September 2026 |
+| **Pemblokirnya** | **`DEC-ACC-P2-011` — DITUTUP** oleh `ACC-DEC-071`, 10 September 2026 |
+| Keputusan yang mengikat | Finance menerbitkan saldo subledger **final per periode akuntansi** sebagai kejadian, memuat `LegalEntity`, `AccountingPeriod`, `ControlAccount`, `SubledgerBalance`, `AsOfDate`. Accounting **tidak** memanggil API Finance dan **tidak** membaca tabelnya |
+| Cakupan yang kini pasti | (1) Menerima dan menyimpan saldo subledger per control account per periode. (2) Membandingkannya dengan saldo buku besar pada periode yang sama. (3) Melaporkan selisihnya. (4) Menyumbang penghalang penutupan periode — lihat `ACC-GAP-013` |
+| Dependency baru | **Gelombang `P2-1`** (kotak masuk kejadian), karena saldo subledger tiba sebagai kejadian. Sisi pembandingnya dapat ditulis lebih dulu memakai `BE-ACC-P2-013` yang sudah berdiri |
+| Yang tetap dapat berjalan sendiri | **`BE-ACC-P2-013`** — sisi buku besarnya utuh dan sudah berdiri |
+| Catatan | Menebak bentuk sumber saldo subledger dulu ditolak justru supaya pembandingnya tidak dibongkar ulang. Bentuknya kini ditetapkan `ACC-DEC-071`, jadi alasan menunggu sudah hilang |
 
 ## Yang sengaja tidak ada di roadmap ini
 

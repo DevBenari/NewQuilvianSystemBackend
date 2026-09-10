@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `4` — 10 September 2026, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
+| Revision | `5` — 10 September 2026, `ACC-DEC-071` menutup `DEC-ACC-P2-011` (sumber saldo subledger) dan membuka `ACC-GAP-013`. Sebelumnya `4`, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
 | Status | `draft` — approval adalah tindakan manusia, belum diberikan |
 | Cakupan | **Dua bagian.** Bagian 1-8: MVP tulang punggung akuntansi (`ACC-DEC-009`). Bagian 9-14: Phase 2 (`ACC-PH-006`), mencakup `ACC-DEC-044` sampai `ACC-DEC-066` |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
@@ -563,6 +563,41 @@ keuangan yang **tidak pernah menjadi jurnal** — transaksi yang belum sampai ke
 boleh ditanam di kode layar** — lihat aturan ke-5 di atas. Ia dicantumkan di sini hanya supaya
 pembaca dokumen dapat mencocokkan dengan apa yang tampil di layar saat menguji.
 
+> **`ACC-GAP-013` — penghalang keempat menyusul, dan mesinnya belum siap menampungnya.**
+>
+> `ACC-DEC-071` (10 September 2026) menetapkan rekonsiliasi control account menjadi **bagian
+> proses penutupan periode**: bila saldo subledger belum diterima, atau hasilnya belum cocok,
+> penutupan **tidak boleh dianggap selesai**. Artinya daftar periksa ini akan bertambah dari
+> **tiga** penghalang menjadi **empat** saat `BE-ACC-P2-014` berdiri.
+>
+> **Layar tidak perlu diubah.** Aturan ke-5 di atas sudah melarang menanam jumlah butir di kode,
+> jadi penghalang keempat akan terender sendiri. Yang perlu diubah hanyalah kalimat "tiga
+> penghalang" pada dokumen ini, kontrak, dan acceptance `FE-ACC-P2-001` — pada saat itu tiba,
+> bukan sekarang.
+>
+> **Yang belum beres ada di mesinnya, bukan di layar.** `CanSubmitClosing` hari ini dihitung
+> `penghalangAktif == 0`, dan `penghalangAktif` **hanya** menghitung butir ber-`State = Evaluated`
+> yang `Count`-nya lebih dari nol. Penghalang berkeadaan `NotYetAvailable` **tidak menahan apa
+> pun** — itu memang disengaja, dan itulah sebabnya spanduk kelengkapan ada.
+>
+> Tetapi `ACC-DEC-071` menuntut keadaan "saldo subledger **belum diterima**" **menahan**
+> penutupan. Kalau butir itu dimodelkan sebagai `NotYetAvailable`, ia tidak akan menahan apa-apa,
+> dan keputusan owner tidak tertegakkan.
+>
+> **Jalan keluar yang disarankan — tanpa mengubah mesinnya sama sekali:** modelkan butir keempat
+> sebagai butir **`Evaluated`** yang `Count`-nya adalah *berapa control account yang saldo
+> subledger-nya belum diterima untuk periode ini*. Nol berarti semua sudah diterima; lebih dari
+> nol menahan penutupan, persis seperti `UNPOSTED_JOURNALS`. Pemeriksaannya memang **dapat**
+> dijalankan begitu `BE-ACC-P2-014` ada — yang belum ada hanya datanya, dan "data belum datang"
+> justru temuan yang sah, bukan alasan untuk tidak memeriksa.
+>
+> Alternatifnya mengubah `CanSubmitClosing` agar sebagian penghalang `NotYetAvailable` ikut
+> menahan. Itu menambah aturan baru pada mesin yang sudah bekerja, demi hasil yang sama.
+>
+> Satu hal masih perlu diputuskan owner: apakah butir keempat ini **butir baru**, atau peringatan
+> `INTEGRATION_MISMATCH` yang sudah ada **dinaikkan** menjadi penghalang. Keduanya sah; butir baru
+> lebih jelas karena `INTEGRATION_MISMATCH` bernama luas dan tidak khusus rekonsiliasi.
+
 ### 11.4 Tutup Tahun
 
 ```
@@ -649,10 +684,28 @@ nol" wajib terbaca bedanya.** Dua layar, satu kaidah.
 
 Layar ini **tidak memakai cache**, sama seperti daftar periksa penutupan dan pratinjau tutup tahun.
 
-**Satu pertanyaan turunan masih terbuka** — `DEC-ACC-P2-011`: dari mana Accounting memperoleh
-saldo subledger, mengingat ia dilarang membaca tabel modul lain (`ACC-DEC-061`). Selama itu belum
-diputuskan, `BE-ACC-P2-014` `BLOCKED` dan kolom subledger tetap "belum tersedia". Sisi buku besar
-tidak menunggu jawaban itu dan dapat dikerjakan lebih dulu.
+**`DEC-ACC-P2-011` sudah ditutup `ACC-DEC-071`, 10 September 2026.** Saldo subledger **diterbitkan
+Finance sebagai kejadian, per periode akuntansi** — bukan diambil Accounting lewat API, dan bukan
+dibaca dari tabel Finance. Batas `ACC-DEC-061` tetap utuh: arahnya tetap satu, Finance ke
+Accounting.
+
+Kejadiannya memuat sekurang-kurangnya `LegalEntity`, `AccountingPeriod`, `ControlAccount`,
+`SubledgerBalance`, dan `AsOfDate`. Accounting membandingkannya dengan saldo buku besar **pada
+periode dan cut-off yang sama**, lalu mencatat selisihnya.
+
+Rekonsiliasi **langsung/live tidak dipakai pada Phase 2**. Konsekuensinya bagi layar ini: tidak
+ada tombol "hitung ulang sekarang", dan angkanya selalu terikat pada satu periode yang dipilih —
+bukan pada waktu membuka layar. Rekonsiliasi periode yang sudah ditutup akan memberi jawaban yang
+sama selamanya, dan itu memang yang dicari auditor.
+
+Yang masih ditunggu bukan lagi keputusan, melainkan **gelombang `P2-1`** yang menyediakan kotak
+masuk kejadiannya. Sampai itu berdiri, kolom subledger dan selisih tetap berbunyi "belum
+tersedia" — dan tetap **ditampilkan, bukan disembunyikan**. Sisi buku besar tidak menunggu apa
+pun dan dapat dikerjakan lebih dulu.
+
+**Rekonsiliasi juga menjadi bagian penutupan periode** (`ACC-DEC-071` butir 6), jadi layar ini
+tidak berdiri sendiri: hasilnya menyumbang penghalang pada Daftar Periksa Penutupan. Rinciannya
+di `ACC-GAP-013`, bagian 11.3.
 
 ## 12. Aksi per peran Phase 2
 

@@ -142,8 +142,13 @@ selamanya, kas tidak pernah bergerak, dan empat akun neraca tidak akan pernah ad
    8 September untuk alasan berbeda — ternyata sudah menangani beberapa cara bayar dalam satu
    kejadian ringkasan shift.
 
-**Yang tersisa hanya urusan dengan owner Finance:** bentuk pesan dua belas bidang, daftar jenis
-kejadian (`DEC-ACC-P2-002`), dan sumber saldo subledger untuk rekonsiliasi (`DEC-ACC-P2-011`).
+**Yang tersisa hanya urusan dengan owner Finance:** bentuk pesan dua belas bidang dan daftar
+jenis kejadian (`DEC-ACC-P2-002`).
+
+`DEC-ACC-P2-011` — sumber saldo subledger untuk rekonsiliasi — **sudah ditutup** `ACC-DEC-071`
+pada 10 September 2026: Finance menerbitkannya sebagai kejadian **per periode akuntansi**, bukan
+lewat API pull. Yang perlu disepakati bersama owner Finance kini tinggal bentuk kejadiannya, yang
+menumpang perundingan bentuk pesan di atas.
 
 ### Keputusan owner 9 September 2026 — `ACC-DEC-064`, `065`, `066`
 
