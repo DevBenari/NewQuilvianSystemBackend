@@ -3,10 +3,17 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-PERM-001` |
-| Revision | `2` |
+| Revision | `3` |
 | Status | `approved` |
-| Backend SHA | `0e2eb105` |
-| Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005` |
+| Backend SHA | `50ccf615` |
+| Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005`, `RAD-DEC-015` |
+
+> **Amandemen revision 3 — 2026-09-10.** Disetujui pemilik modul setelah `BE-RAD-03` selesai.
+> Menutup selisih antara `RAD-STATE-001` bagian 5, yang menyebut penonaktifan aturan sebagai
+> wewenang penanggung jawab klinis, dan tabel bagian 4 yang memberi endpointnya penanda
+> `RadSafetyRule : Deactivate` — penanda yang berbeda dari `Approve`.
+>
+> **Keputusan: penandanya tetap terpisah, tetapi pemberiannya dikunci.** Lihat bagian 5.3.
 
 String `[AccessPermission(...)]` ditulis **apa adanya** supaya implementer menyalin, bukan
 menerjemahkan.
@@ -101,8 +108,11 @@ Base URL: `api/v1/health-services/radiology-management/master-data/rad-safety-ru
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 |---|---|---|---|:---:|
+| `GET /filters/metadata` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
+| `GET /summary` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `GET /` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `GET /coverage` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
+| `GET /{id}` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `POST /` | `RadSafetyRule` | `Create` | `[AccessPermission("RadSafetyRule", "Create")]` | Ya |
 | `PUT /{id}` | `RadSafetyRule` | `Update` | `[AccessPermission("RadSafetyRule", "Update")]` | Ya |
 | `POST /{id}/submit` | `RadSafetyRule` | `Submit` | `[AccessPermission("RadSafetyRule", "Submit")]` | Ya |
@@ -139,6 +149,31 @@ Admin Radiologi menyusun; penanggung jawab klinis mengesahkan.
 
 Memberikan keduanya kepada satu peran akan meniadakan seluruh gunanya pengesahan berjenjang.
 Ini **wajib** dijaga saat menyusun peran, dan **wajib** diuji.
+
+### 5.3 Penonaktifan aturan keselamatan — `RAD-DEC-005`, ditetapkan revision 3
+
+`RadSafetyRule : Deactivate` **hanya boleh diberikan kepada peran yang juga memegang**
+`RadSafetyRule : Approve`.
+
+**Mengapa dikunci.** Menghentikan sebuah aturan berarti menghapus pertanyaan yang berdiri antara
+sebuah permintaan dan penyinaran seorang pasien. Bahayanya setara dengan memberlakukan aturan
+baru, sehingga wewenangnya wajib setara pula — dan `RAD-STATE-001` bagian 5 memang menyebut
+penonaktifan sebagai wewenang penanggung jawab klinis.
+
+> **Contoh kalau tidak dikunci.** Administrator memberi seorang staf administrasi hak
+> `Deactivate` saja, dengan maksud "sekadar merapikan aturan yang sudah usang". Staf itu
+> menghentikan aturan skrining kehamilan untuk CT-Scan karena dianggap memperlambat antrian.
+> Sejak saat itu CT-Scan berjalan tanpa pertanyaan itu — tanpa satu pun penanggung jawab klinis
+> pernah menyetujuinya.
+
+**Mengapa penandanya tidak digabung saja menjadi `Approve`.** Memisahkannya membuat Administrator
+tetap dapat melihat dan mencabut kedua kewenangan itu satu per satu pada layar peran, dan
+membuat jejak pemberiannya terbaca apa adanya. Yang dikunci adalah **pemberiannya**, bukan
+penamaannya.
+
+**Cara membuktikannya.** `BE-RAD-14` wajib memuat uji yang gagal ketika ada peran memegang
+`RadSafetyRule : Deactivate` tanpa `RadSafetyRule : Approve`. Sampai uji itu ada, penjagaannya
+bersandar pada disiplin penyusunan peran, dan keadaan itu disebut apa adanya di sini.
 
 ---
 
@@ -248,3 +283,6 @@ Yang wajib dibuktikan uji tersebut:
 2. Tidak ada endpoint radiologi tanpa atribut hak akses.
 3. Aturan pemisahan wewenang pada bagian 5 benar-benar ditegakkan service, bukan hanya
    didokumentasikan.
+4. **Ditambahkan revision 3.** Tidak ada peran yang memegang `RadSafetyRule : Deactivate` tanpa
+   `RadSafetyRule : Approve` — bagian 5.3. Uji ini membaca susunan peran, bukan source, karena
+   yang dijaga adalah pemberian kewenangannya.

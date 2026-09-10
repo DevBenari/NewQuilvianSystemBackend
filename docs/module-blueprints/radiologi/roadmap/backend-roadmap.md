@@ -91,6 +91,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah |
 | Owner | Backend |
 | Definition of Done | Delapan endpoint tersedia sesuai kontrak; kode status sesuai `RAD-API-001` bagian 4 |
+| **Keadaan 2026-09-10** | **SELESAI.** `RadSafetyRuleController` dengan **sebelas** endpoint — sembilan dari kontrak revision 3, ditambah `filters/metadata` dan `summary` yang diwajibkan standar endpoint. String `[AccessPermission]` cocok baris demi baris dengan `RAD-PERM-001` bagian 4. Build lulus 0 error; **42 uji radiologi lulus**, 15 di antaranya baru. `GET /coverage` hanya memuat alat yang belum tercakup, sehingga daftar kosong berarti siap dipakai — bentuk yang dituntut `BE-RAD-15`. Laporan: `task/report/backend/BE-RAD-03.md` |
 
 ### `BE-RAD-04` — Kelola alat pencitraan
 

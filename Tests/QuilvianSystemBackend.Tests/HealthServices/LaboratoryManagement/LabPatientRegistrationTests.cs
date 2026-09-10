@@ -507,8 +507,66 @@ public class LabPatientRegistrationTests
         var lewatRm = await service.SearchPatientsAsync(new LabPatientSearchQuery { Search = "RM-000771" });
         var lewatNama = await service.SearchPatientsAsync(new LabPatientSearchQuery { Search = "Siti" });
 
-        Assert.Equal(patient.Id, Assert.Single(lewatRm).PatientId);
-        Assert.Equal(patient.Id, Assert.Single(lewatNama).PatientId);
+        Assert.Equal(patient.Id, Assert.Single(lewatRm.Items).PatientId);
+        Assert.Equal(patient.Id, Assert.Single(lewatNama.Items).PatientId);
+    }
+
+    /// <summary>
+    /// Pencarian mengembalikan jumlah seluruh pasien yang cocok, bukan hanya yang muat pada
+    /// halaman yang diminta.
+    ///
+    /// <para>
+    /// Tanpa angka itu layar pencarian tidak dapat menyusun halaman sama sekali, dan pasien
+    /// di luar halaman pertama menjadi tidak terjangkau. Petugas yang tidak menemukannya akan
+    /// menyimpulkan pasiennya belum terdaftar lalu mendaftarkannya sebagai pasien baru —
+    /// tepat yang layar ini ada untuk mencegah.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task PencarianPasien_MenghitungSeluruhYangCocokDanMemotongPerHalaman()
+    {
+        using var context = CreateInMemoryContext();
+
+        for (var urutan = 1; urutan <= 24; urutan++)
+            await SeedPatientAsync(context, nama: $"Pasien {urutan:D2}");
+
+        var service = CreateService(context, berwenang: true);
+
+        var halamanSatu = await service.SearchPatientsAsync(
+            new LabPatientSearchQuery { PageNumber = 1, PageSize = 20 });
+
+        var halamanDua = await service.SearchPatientsAsync(
+            new LabPatientSearchQuery { PageNumber = 2, PageSize = 20 });
+
+        Assert.Equal(24, halamanSatu.TotalData);
+        Assert.Equal(2, halamanSatu.TotalPage);
+        Assert.Equal(20, halamanSatu.Items.Count);
+
+        Assert.Equal(24, halamanDua.TotalData);
+        Assert.Equal(4, halamanDua.Items.Count);
+
+        // Tidak ada satu pun pasien yang muncul di dua halaman sekaligus, dan tidak ada yang
+        // hilang di antara keduanya.
+        var seluruhnya = halamanSatu.Items.Concat(halamanDua.Items)
+            .Select(x => x.PatientId)
+            .ToList();
+
+        Assert.Equal(24, seluruhnya.Distinct().Count());
+    }
+
+    /// <summary>Ukuran halaman dibatasi 50 supaya satu permintaan tidak menarik seluruh tabel pasien.</summary>
+    [Fact]
+    public async Task PencarianPasien_MembatasiUkuranHalamanPadaLimaPuluh()
+    {
+        using var context = CreateInMemoryContext();
+        await SeedPatientAsync(context);
+
+        var service = CreateService(context, berwenang: true);
+
+        var hasil = await service.SearchPatientsAsync(
+            new LabPatientSearchQuery { PageNumber = 1, PageSize = 5000 });
+
+        Assert.Equal(50, hasil.PageSize);
     }
 
     // =====================================================================

@@ -3,12 +3,21 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-API-001` |
-| Revision | `2` |
+| Revision | `3` |
 | Status | `approved` |
-| Backend SHA | `0e2eb105` |
+| Backend SHA | `50ccf615` |
 | Input | `RAD-ARCH-BE-001`, `RAD-DA-001-r1` |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama, 2026-09-10 |
+
+> **Amandemen revision 3 — 2026-09-10.** Disetujui pemilik modul setelah `BE-RAD-03` selesai.
+> Tiga perubahan, seluruhnya pada grup *Master Data / Rad Safety Rule*:
+>
+> 1. Delapan endpoint yang semula berlabel `Rencana (belum tersedia)` kini **`Tersedia`**.
+> 2. Tiga endpoint ditambahkan: `GET /filters/metadata` dan `GET /summary` karena diwajibkan
+>    baseline standar endpoint, serta **`GET /{id}`** karena form ubah memerlukan pembacaan satu
+>    baris — memakai `GET /` berfilter untuk keperluan itu boros dan janggal.
+> 3. Tiga endpoint baseline master data dinyatakan **sengaja tidak dibuat** beserta alasannya.
 
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.
@@ -132,22 +141,40 @@ Contract version: `v1` — status `draft`
 ### Health Services / Radiology Management / Master Data / Rad Safety Rule
 
 Base URL: `api/v1/health-services/radiology-management/master-data/rad-safety-rules`
-Contract version: `v1` — status `draft`
+Contract version: `v1` — status **berjalan** sejak `BE-RAD-03`, 2026-09-10
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/` | Melihat daftar aturan keselamatan | `RadSafetyRule : Read` | Query | `ApiResponse<PagedResult<RadSafetyRuleResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/coverage` | **Memeriksa alat mana yang belum punya aturan aktif** | `RadSafetyRule : Read` | — | `ApiResponse<List<RadModalityCoverageResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menyusun draf aturan | `RadSafetyRule : Create` | `CreateRadSafetyRuleRequest` | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah draf aturan | `RadSafetyRule : Update` | `UpdateRadSafetyRuleRequest` | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/submit` | Mengajukan aturan untuk disahkan | `RadSafetyRule : Submit` | — | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/approve` | Mengesahkan aturan; versi naik satu | `RadSafetyRule : Approve` | — | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/reject` | Menolak pengajuan aturan | `RadSafetyRule : Reject` | `RadSafetyRuleRejectRequest` | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/deactivate` | Menonaktifkan aturan yang berlaku | `RadSafetyRule : Deactivate` | — | `ApiResponse<RadSafetyRuleResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Pilihan penyaring, pengurutan, dan daftar aksi yang sah | `RadSafetyRule : Read` | — | `ApiResponse<RadSafetyRuleFilterMetadataResponse>` | Tersedia |
+| `GET` | `/summary` | Rekap jumlah aturan per keadaan beserta alat yang belum tercakup | `RadSafetyRule : Read` | — | `ApiResponse<RadSafetyRuleSummaryResponse>` | Tersedia |
+| `GET` | `/` | Melihat daftar aturan keselamatan | `RadSafetyRule : Read` | Query | `ApiResponse<PagedResult<RadSafetyRuleResponse>>` | Tersedia |
+| `GET` | `/coverage` | **Memeriksa alat mana yang belum punya aturan aktif** | `RadSafetyRule : Read` | — | `ApiResponse<List<RadModalityCoverageResponse>>` | Tersedia |
+| `GET` | `/{id}` | Melihat rincian satu aturan; dipakai form ubah | `RadSafetyRule : Read` | — | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `POST` | `/` | Menyusun draf aturan | `RadSafetyRule : Create` | `CreateRadSafetyRuleRequest` | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `PUT` | `/{id}` | Mengubah draf aturan | `RadSafetyRule : Update` | `UpdateRadSafetyRuleRequest` | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `POST` | `/{id}/submit` | Mengajukan aturan untuk disahkan | `RadSafetyRule : Submit` | — | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `POST` | `/{id}/approve` | Mengesahkan aturan; versi naik satu | `RadSafetyRule : Approve` | — | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `POST` | `/{id}/reject` | Menolak pengajuan aturan | `RadSafetyRule : Reject` | `RadSafetyRuleRejectRequest` | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
+| `POST` | `/{id}/deactivate` | Menonaktifkan aturan yang berlaku | `RadSafetyRule : Deactivate` | — | `ApiResponse<RadSafetyRuleResponse>` | Tersedia |
 
 > **Mengapa `GET /coverage` ada.** Gerbang keselamatan bersifat fail-closed. Tanpa layar yang
 > memberi tahu alat mana yang belum punya aturan aktif, admin baru tahu ada yang kurang ketika
 > pasien sudah berdiri di depan alat dan pemeriksaannya ditolak.
+>
+> Daftar ini hanya memuat alat yang **belum** tercakup, bukan seluruh alat beserta penandanya.
+> **Daftar kosong berarti seluruh alat siap dipakai** — bentuk jawaban yang dituntut
+> acceptance test `BE-RAD-15`.
+
+### Tiga endpoint baseline master data yang sengaja tidak dibuat
+
+Standar endpoint master data menyebut sembilan endpoint. Grup ini hanya memakai enam di
+antaranya, dan selisihnya disengaja.
+
+| Tidak dibuat | Alasan |
+|---|---|
+| `GET /options` | Aturan keselamatan bukan isi dropdown. Yang dipilih pada form lain adalah alat dan butir keselamatannya, bukan aturannya |
+| `PATCH /{id}/status` | Keadaan aturan berpindah karena kejadian bernama — diajukan, disahkan, ditolak, dihentikan — bukan karena seseorang menyetel nilai. Menyediakan penyetelan status generik akan melewati seluruh pengesahan berjenjang `RAD-DEC-005` |
+| `DELETE /{id}` | Aturan yang pernah berlaku tidak dihapus. Study lama yang lolos memakainya tetap harus dapat ditelusuri; yang tersedia adalah `POST /{id}/deactivate` |
 
 ---
 

@@ -439,6 +439,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public string RejectionReason { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Penyaring daftar aturan keselamatan.
+    ///
+    /// Setiap field di sini benar-benar diproses query. Menambah field tanpa memprosesnya
+    /// berarti layar menawarkan penyaring yang tidak mengubah apa pun.
+    /// </summary>
+    public class RadSafetyRulePagedQuery
+    {
+        /// <summary>Dicari pada kode dan nama alat, serta kode dan nama butir keselamatan.</summary>
+        public string? Search { get; set; }
+
+        public Guid? ModalityId { get; set; }
+
+        public Guid? SafetyRequirementId { get; set; }
+
+        public RadSafetyRuleStatus? RuleStatus { get; set; }
+
+        public bool? IsMandatory { get; set; }
+
+        public string? SortBy { get; set; }
+
+        public string? SortDirection { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
     public class RadSafetyRuleResponse
     {
         public Guid Id { get; set; }

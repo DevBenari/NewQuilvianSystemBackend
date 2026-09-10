@@ -36,7 +36,7 @@ keputusan asal, ia lahir dari selera, bukan kebutuhan.
 | `RAD-DEC-002` | Enam modalitas; butir keselamatan berbeda per alat | `BE-RAD-04`, `BE-RAD-15` | `FE-RAD-02`, `FE-RAD-08` | AC-6, `UAT-10` |
 | `RAD-DEC-003` | Radiolog boleh mengesahkan drafnya sendiri; bukan-radiolog tidak | `BE-RAD-08` | `FE-RAD-11` | AC-1 s/d AC-4, `UAT-04`, `UAT-05` |
 | `RAD-DEC-004` | Temuan kritis ditandai, dikirim, diakui | **Tidak ada task** | **Tidak ada task** | `S11` tertahan `DEC-RAD-002` |
-| `RAD-DEC-005` | Aturan keselamatan disusun admin, disahkan penanggung jawab klinis | `BE-RAD-01` **selesai sebagian 2026-09-10**, `BE-RAD-06` **selesai 2026-09-10** — AC-12 terpenuhi, `BE-RAD-02` **selesai 2026-09-10** — AC-13 s/d AC-15 terpenuhi, `BE-RAD-03` | `FE-RAD-04` | AC-12 s/d AC-17, `UAT-03`; AC-12 dibuktikan `RadiologySafetyGateTests`; AC-13 s/d AC-15 dibuktikan `RadSafetyPolicyServiceTests` 18 lulus |
+| `RAD-DEC-005` | Aturan keselamatan disusun admin, disahkan penanggung jawab klinis | `BE-RAD-01` **selesai sebagian 2026-09-10**, `BE-RAD-06` **selesai 2026-09-10** — AC-12 terpenuhi, `BE-RAD-02` **selesai 2026-09-10** — AC-13 s/d AC-15 terpenuhi, `BE-RAD-03` **selesai 2026-09-10** — AC-17 terpenuhi di backend | `FE-RAD-04` | AC-12 s/d AC-17, `UAT-03`; AC-12 dibuktikan `RadiologySafetyGateTests`; AC-13 s/d AC-15 dibuktikan `RadSafetyPolicyServiceTests`; AC-17 dibuktikan `RadSafetyRuleCatalogTests` — 42 uji radiologi lulus |
 | `RAD-DEC-006` | Rekam medis membaca langsung, tanpa salinan | `BE-RAD-11` | `FE-RAD-13` | AC-19 s/d AC-21, `UAT-08`, `UAT-09` |
 | `RAD-DEC-007` | Cara menyelesaikan konflik registry | **Selesai 2026-09-10** | — | Entri riwayat registry |
 | `RAD-DEC-008` | Pelewatan gerbang darurat | **Tidak ada task** | **Tidak ada task** | `S5` tertahan `DEC-RAD-001` |
@@ -58,7 +58,7 @@ Menghubungkan `01-existing-capability-map.md` dengan pekerjaan yang direncanakan
 |---|---|---|---|
 | `RAD-CAP-001` Kelola alat | `Repair` | `BE-RAD-04`, `FE-RAD-02` | Menjadi lengkap |
 | `RAD-CAP-002` Kelola butir keselamatan | `Repair` | `BE-RAD-05`, `FE-RAD-03` | Menjadi lengkap |
-| `RAD-CAP-003` Kelola aturan keselamatan | `Repair` — **risiko tertinggi** | `BE-RAD-01` **selesai sebagian**, `BE-RAD-02` **selesai 2026-09-10**, `BE-RAD-03`, `FE-RAD-04` | Menjadi lengkap; modul dapat dipakai. Aturan bisnisnya sudah ada; belum ada endpoint maupun layar yang memanggilnya |
+| `RAD-CAP-003` Kelola aturan keselamatan | `Repair` — **risiko tertinggi** | `BE-RAD-01` **selesai sebagian**, `BE-RAD-02` dan `BE-RAD-03` **selesai 2026-09-10**, `FE-RAD-04` | **Backend lengkap 2026-09-10** — aturan dapat disusun, disahkan, ditolak, dihentikan, dan dilihat cakupannya lewat sebelas endpoint. Sisa: layar `FE-RAD-04` dan pengisian data awal `BE-RAD-15` |
 | `RAD-CAP-007` Pesanan radiologi | `Ready to reuse` | `FE-RAD-05`, `FE-RAD-06` | Tetap; ditambah layar |
 | `RAD-CAP-008` Status `Draft` pesanan | `Extend` | Tidak dikerjakan — `RAD-DEC-011` | Tetap tidak dipakai |
 | `RAD-CAP-009` Study dan pengambilan citra | `Ready to reuse` | `FE-RAD-08`, `FE-RAD-09` | Tetap; ditambah layar |
@@ -85,7 +85,7 @@ Menghubungkan `01-existing-capability-map.md` dengan pekerjaan yang direncanakan
 | `S1` | Pesanan radiologi | `BE-RAD-12` | `FE-RAD-05`, `FE-RAD-06` |
 | `S2` | Study dan pengambilan citra | — | `FE-RAD-08`, `FE-RAD-09` |
 | `S3` | Penilaian gerbang keselamatan | `BE-RAD-06` **selesai 2026-09-10** | `FE-RAD-08` |
-| `S4` | Pengelolaan aturan keselamatan | `BE-RAD-01` s/d `BE-RAD-03` — `BE-RAD-01` dan `BE-RAD-02` **selesai 2026-09-10**, `BE-RAD-15` | `FE-RAD-04` |
+| `S4` | Pengelolaan aturan keselamatan | `BE-RAD-01` s/d `BE-RAD-03` **selesai 2026-09-10**, `BE-RAD-15` | `FE-RAD-04` |
 | `S6` | Mutu, pengulangan, penghentian | — | `FE-RAD-09` |
 | `S7` | Pencatatan pemakaian bahan | — | `FE-RAD-09` |
 | `S8` | Fakta kelayakan tagih | — | — |
@@ -130,7 +130,7 @@ Dari `04-prd-to-mvp.md` bagian 19.
 | Butir Definition of Done | Task yang membuktikannya | Keadaan |
 |---|---|---|
 | Registry mencatat `Rad` `ACTIVE` beserta entri riwayat | — | **Selesai 2026-09-10** |
-| Aturan keselamatan dapat disusun, diajukan, disahkan, ditolak | `BE-RAD-02` **selesai 2026-09-10**, `BE-RAD-03`, `FE-RAD-04` | **Sebagian** — aturan bisnisnya sudah ada dan terbukti 18 uji; belum dapat dipakai orang karena endpoint dan layarnya belum ada |
+| Aturan keselamatan dapat disusun, diajukan, disahkan, ditolak | `BE-RAD-02` dan `BE-RAD-03` **selesai 2026-09-10**, `FE-RAD-04` | **Backend selesai** — sebelas endpoint tersedia dan terbukti 42 uji. Sisa hanya layarnya |
 | Setiap alat punya sekurang-kurangnya satu aturan aktif | `BE-RAD-15` | Direncanakan |
 | Seluruh tabel master MVP terisi | `BE-RAD-15` | Direncanakan |
 | Satu pasien berjalan dari pesanan sampai hasil dibaca | Seluruh `MVP-0` s/d `MVP-3` | Direncanakan |

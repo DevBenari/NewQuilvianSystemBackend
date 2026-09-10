@@ -30,15 +30,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             _radOrderService = radOrderService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar pilihan penyaring order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = _radOrderService.GetFilterMetadata();
+
+            return Ok(ApiResponse<RadOrderFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter order radiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat rekap order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<RadOrderSummaryResponse>.Ok(
+                hasil, "Rekap order radiologi berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RadOrder", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] Guid? encounterId,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortDirection = null,
             CancellationToken cancellationToken = default)
         {
-            var result = await _radOrderService.GetListAsync(encounterId, cancellationToken);
+            var result = await _radOrderService.GetListAsync(
+                encounterId, sortBy, sortDirection, cancellationToken);
 
             return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
                 result, "Daftar order radiologi berhasil diambil."));
@@ -65,14 +92,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 result, "Detail order radiologi berhasil diambil."));
         }
 
-        /// <summary>
-        /// Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
-        /// </summary>
-        /// <remarks>
-        /// <c>BE-RWI-052</c>, <c>api-contract.md</c> bagian 8. Hasil yang belum final ditandai
-        /// dan <b>tidak</b> disajikan sebagai hasil sah — <c>VAL-DOK-30</c>. Tidak ada satu pun
-        /// baris hasil yang disalin ke Rawat Inap — <c>RUL-DOK-02</c>.
-        /// </remarks>
+        // Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        //
+        // BE-RWI-052, api-contract.md bagian 8. Hasil yang belum final ditandai dan TIDAK
+        // disajikan sebagai hasil sah — VAL-DOK-30. Tidak ada satu pun baris hasil yang
+        // disalin ke Rawat Inap — RUL-DOK-02.
         [HttpGet("episodes/{episodeId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan dan hasil radiologi satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -39,11 +39,128 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         }
 
         /* ================================================================ *
+         * Metadata penyaring dan ringkasan
+         * ================================================================ */
+
+        /// <summary>
+        /// Pilihan penyaring, pengurutan, dan parameter query untuk layar daftar pesanan.
+        ///
+        /// Tidak menyentuh database sama sekali: seluruh isinya berasal dari enum yang sudah
+        /// dikunci kontrak. Layar memakainya supaya tidak perlu menuliskan ulang daftar status
+        /// di sisi klien — daftar yang disalin adalah daftar yang cepat atau lambat berbeda.
+        /// </summary>
+        public RadOrderFilterMetadataResponse GetFilterMetadata() => new()
+        {
+            OrderStatuses = Enum.GetValues<RadOrderStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusPesanan(x),
+                })
+                .ToList(),
+
+            SortOptions =
+            [
+                new() { Value = "createDateTime", Label = "Tanggal pesanan dibuat" },
+                new() { Value = "orderStatus", Label = "Status pesanan" },
+            ],
+
+            SortDirections = ["asc", "desc"],
+
+            QueryParameters =
+            [
+                new()
+                {
+                    Name = "encounterId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Menyaring pesanan milik satu kunjungan pasien.",
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Kolom pengurutan. Nilainya diambil dari SortOptions.",
+                    Example = "createDateTime",
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Arah pengurutan, asc atau desc. Bawaannya desc.",
+                    Example = "desc",
+                },
+            ],
+        };
+
+        /// <summary>
+        /// Rekap jumlah pesanan radiologi menurut statusnya.
+        ///
+        /// Dihitung di database dengan satu perjalanan, bukan dengan menarik seluruh baris lalu
+        /// menghitungnya di memori.
+        /// </summary>
+        public async Task<RadOrderSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var rekap = await _dbContext.RadOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Diminta = g.Count(x => x.OrderStatus == RadOrderStatus.Requested),
+                    Diterima = g.Count(x => x.OrderStatus == RadOrderStatus.Accepted),
+                    Dijadwalkan = g.Count(x => x.OrderStatus == RadOrderStatus.Scheduled),
+                    SedangDikerjakan = g.Count(x => x.OrderStatus == RadOrderStatus.InProgress),
+                    Selesai = g.Count(x => x.OrderStatus == RadOrderStatus.Completed),
+                    Ditahan = g.Count(x => x.OrderStatus == RadOrderStatus.OnHold),
+                    Dibatalkan = g.Count(x => x.OrderStatus == RadOrderStatus.Cancelled),
+                    Ditolak = g.Count(x => x.OrderStatus == RadOrderStatus.Rejected),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new RadOrderSummaryResponse
+            {
+                TotalPesanan = rekap?.Total ?? 0,
+                Diminta = rekap?.Diminta ?? 0,
+                Diterima = rekap?.Diterima ?? 0,
+                Dijadwalkan = rekap?.Dijadwalkan ?? 0,
+                SedangDikerjakan = rekap?.SedangDikerjakan ?? 0,
+                Selesai = rekap?.Selesai ?? 0,
+                Ditahan = rekap?.Ditahan ?? 0,
+                Dibatalkan = rekap?.Dibatalkan ?? 0,
+                Ditolak = rekap?.Ditolak ?? 0,
+                BelumDikerjakan =
+                    (rekap?.Diminta ?? 0) + (rekap?.Diterima ?? 0) + (rekap?.Dijadwalkan ?? 0),
+            };
+        }
+
+        private static string LabelStatusPesanan(RadOrderStatus status) => status switch
+        {
+            RadOrderStatus.Draft => "Draf — tidak dipakai",
+            RadOrderStatus.Requested => "Diminta dokter",
+            RadOrderStatus.Accepted => "Diterima Radiologi",
+            RadOrderStatus.Scheduled => "Dijadwalkan",
+            RadOrderStatus.InProgress => "Sedang dikerjakan",
+            RadOrderStatus.Completed => "Selesai dikerjakan",
+            RadOrderStatus.OnHold => "Ditahan sementara",
+            RadOrderStatus.CancelRequested => "Menunggu pembatalan",
+            RadOrderStatus.Cancelled => "Dibatalkan",
+            _ => "Ditolak Radiologi",
+        };
+
+        /* ================================================================ *
          * Pembacaan
          * ================================================================ */
 
         public async Task<List<RadOrderListResponse>> GetListAsync(
             Guid? encounterId = null,
+            string? sortBy = null,
+            string? sortDirection = null,
             CancellationToken cancellationToken = default)
         {
             var query = _dbContext.RadOrders
@@ -59,7 +176,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             }
 
             return await ProyeksikanDaftarAsync(
-                query.OrderByDescending(x => x.CreateDateTime), cancellationToken);
+                Urutkan(query, sortBy, sortDirection), cancellationToken);
+        }
+
+        /// <summary>
+        /// Menerapkan pengurutan yang diminta layar.
+        ///
+        /// Hanya kolom yang benar-benar disebut <c>SortOptions</c> yang dilayani; nilai lain
+        /// jatuh ke urutan bawaan, bukan ditolak. Metadata yang menjanjikan pengurutan yang
+        /// tidak diproses daftar adalah cacat kontrak, sehingga keduanya sengaja ditulis
+        /// berdampingan di berkas ini.
+        /// </summary>
+        private static IOrderedQueryable<RadOrder> Urutkan(
+            IQueryable<RadOrder> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var menaik = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "orderstatus" => menaik
+                    ? query.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.OrderStatus)
+                        .ThenByDescending(x => x.CreateDateTime),
+
+                _ => menaik
+                    ? query.OrderBy(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.CreateDateTime),
+            };
         }
 
         /// <summary>

@@ -763,6 +763,181 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         }
 
         /* ================================================================ *
+         * Metadata penyaring dan ringkasan
+         * ================================================================ */
+
+        /// <summary>
+        /// Pilihan penyaring, pengurutan, dan parameter query untuk layar daftar study.
+        ///
+        /// Tidak menyentuh database: seluruh isinya berasal dari enum yang sudah dikunci
+        /// kontrak, termasuk keempat keadaan aturan keselamatan pada siklus pengesahannya.
+        /// </summary>
+        public RadStudyFilterMetadataResponse GetFilterMetadata() => new()
+        {
+            StudyStatuses = Enum.GetValues<RadStudyStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusStudy(x),
+                })
+                .ToList(),
+
+            SafetyCheckStates = Enum.GetValues<RadSafetyCheckState>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelKeadaanButir(x),
+                })
+                .ToList(),
+
+            SafetyRuleStatuses = Enum.GetValues<RadSafetyRuleStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusAturan(x),
+                })
+                .ToList(),
+
+            SortOptions =
+            [
+                new() { Value = "studySequence", Label = "Urutan study pada pesanan" },
+                new() { Value = "studyStatus", Label = "Status study" },
+                new() { Value = "createDateTime", Label = "Tanggal study dibuat" },
+            ],
+
+            SortDirections = ["asc", "desc"],
+
+            QueryParameters =
+            [
+                new()
+                {
+                    Name = "radOrderId",
+                    Type = "guid",
+                    Required = "Yes",
+                    Description = "Pesanan radiologi yang study-nya hendak dilihat.",
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Kolom pengurutan. Nilainya diambil dari SortOptions.",
+                    Example = "studySequence",
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Arah pengurutan, asc atau desc. Bawaannya asc.",
+                    Example = "asc",
+                },
+            ],
+        };
+
+        /// <summary>
+        /// Rekap study radiologi, ditambah dua angka yang tidak dapat dibaca dari status study
+        /// saja.
+        ///
+        /// <b>Yang pertama</b>, jumlah study yang identitasnya sudah diverifikasi tetapi
+        /// gerbang keselamatannya belum tuntas — inilah antrian yang benar-benar menunggu
+        /// jawaban petugas.
+        ///
+        /// <b>Yang kedua, dan yang paling penting</b>, jumlah alat aktif yang belum punya satu
+        /// pun aturan keselamatan berlaku. Gerbang bersifat fail-closed, sehingga setiap alat
+        /// yang terhitung di sana akan menolak seluruh pemeriksaannya. Angka itu wajib nol.
+        /// </summary>
+        public async Task<RadStudySummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var rekap = await _dbContext.RadStudies
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Direncanakan = g.Count(x => x.StudyStatus == RadStudyStatus.Planned),
+                    IdentitasTerverifikasi =
+                        g.Count(x => x.StudyStatus == RadStudyStatus.PatientVerified),
+                    LolosGerbang = g.Count(x => x.StudyStatus == RadStudyStatus.SafetyCleared),
+                    SedangDiambil =
+                        g.Count(x => x.StudyStatus == RadStudyStatus.AcquisitionStarted),
+                    CitraSudahDiambil = g.Count(x => x.StudyStatus == RadStudyStatus.Acquired),
+                    MutuDiterima = g.Count(x => x.StudyStatus == RadStudyStatus.QualityAccepted),
+                    MutuDitolak = g.Count(x => x.StudyStatus == RadStudyStatus.QualityRejected),
+                    Dihentikan = g.Count(x => x.StudyStatus == RadStudyStatus.Aborted),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Penyaringnya sama persis dengan yang dipakai gerbang keselamatan. Kalau keduanya
+            // berbeda, angka ini akan menyatakan semuanya beres sementara pemeriksaannya tetap
+            // ditolak — persis kekeliruan yang ditutup BE-RAD-06.
+            var alatTanpaAturan = await _dbContext.MstRadModalities
+                .AsNoTracking()
+                .CountAsync(
+                    x => !x.IsDelete &&
+                         x.IsActive &&
+                         !x.SafetyRules.Any(r =>
+                             !r.IsDelete &&
+                             r.RuleStatus == RadSafetyRuleStatus.Active &&
+                             r.EffectiveFrom <= now &&
+                             (r.EffectiveTo == null || r.EffectiveTo > now)),
+                    cancellationToken);
+
+            return new RadStudySummaryResponse
+            {
+                TotalStudy = rekap?.Total ?? 0,
+                Direncanakan = rekap?.Direncanakan ?? 0,
+                IdentitasTerverifikasi = rekap?.IdentitasTerverifikasi ?? 0,
+                LolosGerbangKeselamatan = rekap?.LolosGerbang ?? 0,
+                SedangDiambil = rekap?.SedangDiambil ?? 0,
+                CitraSudahDiambil = rekap?.CitraSudahDiambil ?? 0,
+                MutuDiterima = rekap?.MutuDiterima ?? 0,
+                MutuDitolak = rekap?.MutuDitolak ?? 0,
+                Dihentikan = rekap?.Dihentikan ?? 0,
+                MenungguGerbangKeselamatan = rekap?.IdentitasTerverifikasi ?? 0,
+                AlatTanpaAturanKeselamatanAktif = alatTanpaAturan,
+            };
+        }
+
+        private static string LabelStatusStudy(RadStudyStatus status) => status switch
+        {
+            RadStudyStatus.Planned => "Direncanakan",
+            RadStudyStatus.PatientVerified => "Identitas terverifikasi",
+            RadStudyStatus.SafetyCleared => "Lolos gerbang keselamatan",
+            RadStudyStatus.AcquisitionStarted => "Pengambilan citra dimulai",
+            RadStudyStatus.Acquired => "Citra sudah diambil",
+            RadStudyStatus.QualityAccepted => "Mutu citra diterima",
+            RadStudyStatus.OnHold => "Ditahan sementara",
+            RadStudyStatus.Aborted => "Dihentikan di tengah jalan",
+            RadStudyStatus.QualityRejected => "Mutu citra ditolak",
+            RadStudyStatus.RepeatRequired => "Perlu diulang",
+            _ => "Dibatalkan",
+        };
+
+        private static string LabelKeadaanButir(RadSafetyCheckState state) => state switch
+        {
+            RadSafetyCheckState.Pending => "Belum dijawab",
+            RadSafetyCheckState.Passed => "Dijawab aman",
+            RadSafetyCheckState.Failed => "Dinyatakan tidak aman",
+            _ => "Tidak berlaku bagi pasien ini",
+        };
+
+        private static string LabelStatusAturan(RadSafetyRuleStatus status) => status switch
+        {
+            RadSafetyRuleStatus.Draft => "Draf — belum berlaku",
+            RadSafetyRuleStatus.PendingApproval => "Menunggu pengesahan",
+            RadSafetyRuleStatus.Active => "Berlaku — dinilai gerbang",
+            _ => "Sudah dihentikan",
+        };
+
+        /* ================================================================ *
          * Pembacaan
          * ================================================================ */
 
@@ -833,17 +1008,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
         public async Task<List<RadStudyResponse>> GetByOrderAsync(
             Guid radOrderId,
+            string? sortBy = null,
+            string? sortDirection = null,
             CancellationToken cancellationToken = default)
         {
-            var studies = await _dbContext.RadStudies
+            var query = _dbContext.RadStudies
                 .AsNoTracking()
                 .Include(x => x.SafetyChecks.Where(c => !c.IsDelete))
                 .Include(x => x.Consumptions.Where(c => !c.IsDelete))
-                .Where(x => x.RadOrderId == radOrderId && !x.IsDelete)
-                .OrderBy(x => x.StudySequence)
+                .Where(x => x.RadOrderId == radOrderId && !x.IsDelete);
+
+            var studies = await Urutkan(query, sortBy, sortDirection)
                 .ToListAsync(cancellationToken);
 
             return studies.Select(MapStudy).ToList();
+        }
+
+        /// <summary>
+        /// Menerapkan pengurutan yang diminta layar.
+        ///
+        /// Hanya kolom yang benar-benar disebut <c>SortOptions</c> pada metadata penyaring yang
+        /// dilayani; nilai lain jatuh ke urutan bawaan, yaitu urutan study pada pesanannya.
+        /// </summary>
+        private static IOrderedQueryable<RadStudy> Urutkan(
+            IQueryable<RadStudy> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var menurun = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "studystatus" => menurun
+                    ? query.OrderByDescending(x => x.StudyStatus).ThenBy(x => x.StudySequence)
+                    : query.OrderBy(x => x.StudyStatus).ThenBy(x => x.StudySequence),
+
+                "createdatetime" => menurun
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime),
+
+                _ => menurun
+                    ? query.OrderByDescending(x => x.StudySequence)
+                    : query.OrderBy(x => x.StudySequence),
+            };
         }
 
         public async Task<List<RadTransitionHistoryResponse>> GetHistoryAsync(
