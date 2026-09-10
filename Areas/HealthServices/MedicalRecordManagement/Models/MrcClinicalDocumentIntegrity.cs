@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -98,7 +98,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
 
         public MstPatient? Patient { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public ICollection<MrcClinicalNoteAddendum> Addendums { get; set; }
             = new List<MrcClinicalNoteAddendum>();

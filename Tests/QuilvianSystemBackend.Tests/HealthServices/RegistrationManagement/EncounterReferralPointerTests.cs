@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Tests.HealthServices.RegistrationManagement;
 /// (<c>LAB-DEC-035</c>, <c>LAB-COORD-004</c>).
 ///
 /// Yang dibuktikan di sini:
-///   1. `TrxPatientEncounter` memiliki `ReferralInstitutionId` dan `ReferralDoctorId`, keduanya
+///   1. `RegPatientEncounter` memiliki `ReferralInstitutionId` dan `ReferralDoctorId`, keduanya
 ///      boleh kosong;
 ///   2. keduanya bertaut ke data induk perujuk dengan `Restrict`, sehingga instansi atau dokter
 ///      yang masih ditunjuk kunjungan tidak dapat terhapus;
@@ -31,14 +31,14 @@ public class EncounterReferralPointerTests
     {
         using var context = CreateRelationalModelContext();
 
-        var entityType = context.Model.FindEntityType(typeof(TrxPatientEncounter));
+        var entityType = context.Model.FindEntityType(typeof(RegPatientEncounter));
 
         Assert.NotNull(entityType);
 
         foreach (var nama in new[]
                  {
-                     nameof(TrxPatientEncounter.ReferralInstitutionId),
-                     nameof(TrxPatientEncounter.ReferralDoctorId)
+                     nameof(RegPatientEncounter.ReferralInstitutionId),
+                     nameof(RegPatientEncounter.ReferralDoctorId)
                  })
         {
             var kolom = entityType!.FindProperty(nama);
@@ -56,7 +56,7 @@ public class EncounterReferralPointerTests
     {
         using var context = CreateRelationalModelContext();
 
-        var entityType = context.Model.FindEntityType(typeof(TrxPatientEncounter));
+        var entityType = context.Model.FindEntityType(typeof(RegPatientEncounter));
 
         var keInstansi = entityType!.GetForeignKeys().Single(x =>
             x.PrincipalEntityType.ClrType == typeof(MstReferralInstitution));
@@ -65,11 +65,11 @@ public class EncounterReferralPointerTests
             x.PrincipalEntityType.ClrType == typeof(MstReferralDoctor));
 
         Assert.Equal(
-            nameof(TrxPatientEncounter.ReferralInstitutionId),
+            nameof(RegPatientEncounter.ReferralInstitutionId),
             keInstansi.Properties.Single().Name);
 
         Assert.Equal(
-            nameof(TrxPatientEncounter.ReferralDoctorId),
+            nameof(RegPatientEncounter.ReferralDoctorId),
             keDokter.Properties.Single().Name);
 
         Assert.Equal(DeleteBehavior.Restrict, keInstansi.DeleteBehavior);
@@ -81,12 +81,12 @@ public class EncounterReferralPointerTests
     {
         using var context = CreateRelationalModelContext();
 
-        var entityType = context.Model.FindEntityType(typeof(TrxPatientEncounter));
+        var entityType = context.Model.FindEntityType(typeof(RegPatientEncounter));
 
         foreach (var nama in new[]
                  {
-                     nameof(TrxPatientEncounter.ReferralInstitutionId),
-                     nameof(TrxPatientEncounter.ReferralDoctorId)
+                     nameof(RegPatientEncounter.ReferralInstitutionId),
+                     nameof(RegPatientEncounter.ReferralDoctorId)
                  })
         {
             var index = entityType!.GetIndexes().SingleOrDefault(x =>
@@ -116,7 +116,7 @@ public class EncounterReferralPointerTests
             DoctorName = "dr. Rina Wijaya"
         };
 
-        var rujukan = new TrxPatientEncounter
+        var rujukan = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = "ENC-0001",
@@ -129,7 +129,7 @@ public class EncounterReferralPointerTests
         };
 
         // Kunjungan biasa tetap sah tanpa satu pun penunjuk perujuk.
-        var biasa = new TrxPatientEncounter
+        var biasa = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = "ENC-0002",
@@ -139,12 +139,12 @@ public class EncounterReferralPointerTests
 
         context.MstReferralInstitutions.Add(instansi);
         context.MstReferralDoctors.Add(dokter);
-        context.TrxPatientEncounters.AddRange(rujukan, biasa);
+        context.RegPatientEncounters.AddRange(rujukan, biasa);
 
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var tersimpan = await context.TrxPatientEncounters
+        var tersimpan = await context.RegPatientEncounters
             .AsNoTracking()
             .Include(x => x.ReferralInstitution)
             .Include(x => x.ReferralDoctor)
@@ -155,7 +155,7 @@ public class EncounterReferralPointerTests
         Assert.Equal("Klinik Sehat Sentosa", tersimpan.ReferralInstitution!.InstitutionName);
         Assert.Equal("dr. Rina Wijaya", tersimpan.ReferralDoctor!.DoctorName);
 
-        var tanpaRujukan = await context.TrxPatientEncounters
+        var tanpaRujukan = await context.RegPatientEncounters
             .AsNoTracking()
             .SingleAsync(x => x.EncounterNumber == "ENC-0002");
 

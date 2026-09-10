@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
@@ -453,7 +453,7 @@ public sealed class BillingFinancialExceptionServiceTests
         string serviceType = "RAJAL",
         decimal nonBillableResidualAmount = 0m)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
@@ -488,7 +488,7 @@ public sealed class BillingFinancialExceptionServiceTests
             BreakdownSnapshot = "{}",
             CreateDateTime = DateTime.UtcNow
         };
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.BilInvoices.Add(invoice);
         db.BilCalculationVersions.Add(calculation);
         await db.SaveChangesAsync();

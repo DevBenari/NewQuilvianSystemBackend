@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -65,7 +65,7 @@ public sealed class BillingArApHandoffService
         var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
         if (payerAmount > 0)
         {
-            var guarantor = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
                 .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
                 .FirstOrDefaultAsync(cancellationToken);
             _dbContext.BilArHandoffs.Add(new BilArHandoff
@@ -88,7 +88,7 @@ public sealed class BillingArApHandoffService
             });
         }
 
-        var doctorId = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var doctorId = await _dbContext.RegPatientEncounters.AsNoTracking()
             .Where(x => x.Id == invoice.EncounterId)
             .Select(x => x.DoctorId)
             .FirstOrDefaultAsync(cancellationToken);

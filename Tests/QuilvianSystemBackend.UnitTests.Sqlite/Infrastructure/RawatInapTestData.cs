@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
@@ -204,7 +204,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             context.Set<MstPatient>().Add(pasien);
             context.SaveChanges();
 
-            var kunjungan = new TrxPatientEncounter
+            var kunjungan = new RegPatientEncounter
             {
                 EncounterNumber = $"KJG-{pembeda}",
                 PatientId = pasien.Id,
@@ -214,14 +214,14 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 EncounterStatus = EncounterStatus.Registered,
                 RegisteredByUserId = pendaftar.Id
             };
-            context.Set<TrxPatientEncounter>().Add(kunjungan);
+            context.Set<RegPatientEncounter>().Add(kunjungan);
             context.SaveChanges();
 
             // Sumber pembayaran wajib ada pada setiap kunjungan - "Satu encounter wajib
             // mempunyai tepat satu sumber pembayaran". Tanpa baris ini, seluruh jalur yang
             // menghitung tarif - resep dan tindakan - ditolak dengan "Sumber pembayaran
             // encounter tidak ditemukan", dan penolakan itu menyamarkan hal yang sedang diuji.
-            var sumberPembayaran = new TrxPatientEncounterGuarantor
+            var sumberPembayaran = new RegPatientEncounterGuarantor
             {
                 PaymentSourceNumber = $"BYR-{pembeda}",
                 EncounterId = kunjungan.Id,
@@ -230,7 +230,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 PaymentSourceNameSnapshot = "Tunai",
                 IsActive = true
             };
-            context.Set<TrxPatientEncounterGuarantor>().Add(sumberPembayaran);
+            context.Set<RegPatientEncounterGuarantor>().Add(sumberPembayaran);
             context.SaveChanges();
 
             var episode = new InpEpisode

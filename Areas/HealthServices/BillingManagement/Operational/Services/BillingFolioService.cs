@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -160,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                         return BuildExistingEffectResult(existing, fingerprint);
                     }
 
-                    var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
+                    var encounterExists = await _dbContext.Set<RegPatientEncounter>()
                         .AsNoTracking()
                         .AnyAsync(
                             x => x.Id == normalizedRequest.EncounterId && !x.IsDelete,

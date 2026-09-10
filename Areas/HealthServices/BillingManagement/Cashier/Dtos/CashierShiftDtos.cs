@@ -75,6 +75,33 @@ public sealed class ReopenShiftRequest
     public Guid CausationId { get; set; }
 }
 
+// Dipakai layar "Konfirmasi Terima Shift" untuk mengganti input Shift ID/Row Version manual
+// dengan daftar pencarian - satu baris per handover PENDING yang IncomingCashierId-nya adalah
+// pemanggil endpoint. ShiftRowVersion sengaja diambil dari BilCashierShift.RowVersion (bukan
+// RowVersion milik handover-nya sendiri), karena itulah nilai yang divalidasi HandoverAsync
+// (EnsureCurrent) saat konfirmasi dikirim.
+public sealed class CashierShiftPendingHandoverResponse
+{
+    public Guid ShiftId { get; set; }
+    public string ShiftNumber { get; set; } = string.Empty;
+    public Guid ShiftRowVersion { get; set; }
+    public Guid OutgoingCashierId { get; set; }
+    public string OutgoingCashierName { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public DateTimeOffset InitiatedAt { get; set; }
+}
+
+// Dipakai layar "Ajukan Handover" untuk mengganti input ID Kasir Penerima manual dengan daftar
+// pencarian - hanya user aktif yang saat ini TIDAK memiliki shift aktif (kandidat valid sesuai
+// aturan HandoverAsync: "Kasir penerima masih memiliki shift aktif" akan selalu ditolak server
+// jika dipaksakan), dan bukan diri sendiri.
+public sealed class CashierUserOptionResponse
+{
+    public Guid Id { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string UserCode { get; set; } = string.Empty;
+}
+
 public sealed class CashierShiftResponse
 {
     public Guid Id { get; set; }

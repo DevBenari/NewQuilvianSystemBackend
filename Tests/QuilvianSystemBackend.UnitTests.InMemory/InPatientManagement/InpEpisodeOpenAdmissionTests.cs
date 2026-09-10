@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
@@ -130,7 +130,7 @@ public sealed class InpEpisodeOpenAdmissionTests
 
         Assert.Equal(InpEpisodeOperationStatus.Success, hasil.Status);
 
-        var encounter = await db.Set<TrxPatientEncounter>().AsNoTracking().SingleAsync();
+        var encounter = await db.Set<RegPatientEncounter>().AsNoTracking().SingleAsync();
 
         Assert.Equal(EncounterType.Inpatient, encounter.EncounterType);
         Assert.Equal(world.Patient.Id, encounter.PatientId);
@@ -240,7 +240,7 @@ public sealed class InpEpisodeOpenAdmissionTests
         Assert.Empty(await pembaca.Set<InpEpisode>().AsNoTracking().ToListAsync());
         Assert.Empty(await pembaca.Set<InpStatusHistory>().AsNoTracking().ToListAsync());
         Assert.Empty(await pembaca.Set<InpDoctorAssignment>().AsNoTracking().ToListAsync());
-        Assert.Empty(await pembaca.Set<TrxPatientEncounter>().AsNoTracking().ToListAsync());
+        Assert.Empty(await pembaca.Set<RegPatientEncounter>().AsNoTracking().ToListAsync());
     }
 
     // Kriteria 6 — admisi Draft ganda BERHASIL disertai peringatan, bukan ditolak.

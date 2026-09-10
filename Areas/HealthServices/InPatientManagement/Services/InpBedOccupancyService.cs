@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -667,7 +667,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <b>Waktu mulai penempatan</b> adalah waktu penempatan dibuat, untuk jalur datang
         /// langsung dan poliklinik (<c>RWI-AC-147</c>). Jalur serah terima IGD membaca waktu
         /// tiba dari catatan kepergian IGD; jalur itu <c>INP-S09</c> yang di luar scope
-        /// revisi ini, dan kolom <c>TrxPatientEncounter.OriginEncounterId</c> yang menjadi
+        /// revisi ini, dan kolom <c>RegPatientEncounter.OriginEncounterId</c> yang menjadi
         /// syaratnya belum ada pada source hari ini.
         /// </para>
         /// </remarks>
@@ -1230,7 +1230,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <para>
         /// <b>Aturan 9 tidak pernah menyala pada revisi ini.</b> Ia hanya berlaku bila episode
         /// lahir dari serah terima IGD, yang dikenali dari
-        /// <c>TrxPatientEncounter.OriginEncounterId</c>. Kolom itu <b>belum ada</b> pada source
+        /// <c>RegPatientEncounter.OriginEncounterId</c>. Kolom itu <b>belum ada</b> pada source
         /// hari ini — ia dibuat modul IGD lewat <c>IGD-DEC-075</c> — sehingga aturannya tidak
         /// dapat diperiksa dan memang tidak perlu, karena jalur <c>INP-S09</c> di luar scope.
         /// </para>

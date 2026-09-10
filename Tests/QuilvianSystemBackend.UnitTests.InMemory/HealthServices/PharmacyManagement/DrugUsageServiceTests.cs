@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -84,7 +84,7 @@ public sealed class DrugUsageServiceTests
             FullName = "Pasien Uji", IsActive = true
         });
 
-        context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+        context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = encounterId, EncounterNumber = "ENC-001",
             PatientId = patientId, ServiceUnitId = serviceUnitId

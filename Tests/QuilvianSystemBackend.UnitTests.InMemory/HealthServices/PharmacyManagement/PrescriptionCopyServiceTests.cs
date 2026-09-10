@@ -90,7 +90,7 @@ public sealed class PrescriptionCopyServiceTests
         {
             Id = doctorId, DoctorCode = "DR-001", FullName = "dr. Uji Coba", IsActive = true
         });
-        context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+        context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = encounterId, EncounterNumber = "ENC-001",
             PatientId = patientId, ServiceUnitId = serviceUnitId
@@ -143,7 +143,7 @@ public sealed class PrescriptionCopyServiceTests
             });
         }
 
-        context.Set<TrxPrescription>().Add(new TrxPrescription
+        context.Set<PhmPrescription>().Add(new PhmPrescription
         {
             Id = prescriptionId, PrescriptionNumber = "RX-001", EncounterId = encounterId,
             PatientId = patientId, DoctorId = doctorId,
@@ -152,7 +152,7 @@ public sealed class PrescriptionCopyServiceTests
             FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyToDispense,
             PaymentStatus = PrescriptionPaymentStatus.Paid
         });
-        context.Set<TrxPrescriptionItem>().Add(new TrxPrescriptionItem
+        context.Set<PhmPrescriptionItem>().Add(new PhmPrescriptionItem
         {
             Id = itemId, PrescriptionId = prescriptionId, DrugId = drugId,
             DrugCodeSnapshot = "OBT-001", DrugNameSnapshot = "Amoxicillin 500 mg",
@@ -601,7 +601,7 @@ public sealed class PrescriptionCopyServiceTests
     public async Task ResepTanpaItem_TidakDapatDiterbitkan()
     {
         await using var f = await CreateAsync(prescribed: 20m);
-        var item = await f.Context.TrxPrescriptionItems.FirstAsync();
+        var item = await f.Context.PhmPrescriptionItems.FirstAsync();
         item.IsDelete = true;
         await f.Context.SaveChangesAsync();
         f.Context.ChangeTracker.Clear();

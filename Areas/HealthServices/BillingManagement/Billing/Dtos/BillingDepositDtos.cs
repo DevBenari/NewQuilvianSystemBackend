@@ -5,6 +5,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
 public sealed class DepositTopUpRequest
 {
     public Guid PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
+    [MaxLength(150)] public string? ReferenceNumber { get; set; }
     [Range(
         typeof(decimal),
         "0.01",
@@ -46,6 +48,12 @@ public sealed class DepositMovementResponse
     public decimal BalanceAfter { get; set; }
     public Guid? SettlementId { get; set; }
     public Guid? PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
+    public string? PaymentMethodName { get; set; }
+    public string? BankName { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public string? CashierName { get; set; }
     public Guid? CashierShiftId { get; set; }
     public Guid CorrelationId { get; set; }
     public DateTimeOffset OccurredAt { get; set; }

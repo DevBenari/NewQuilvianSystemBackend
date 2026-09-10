@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260827050000_RenameEmergencyTriageDetailToEmgPrefix")]
     public partial class RenameEmergencyTriageDetailToEmgPrefix : Migration
     {
         // Detail triase IGD pindah ke prefix registry `Emg`.

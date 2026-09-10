@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -328,7 +328,7 @@ public class LabMonitoringTests
             FullName = namaPasien
         };
 
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{suffix}",
@@ -383,7 +383,7 @@ public class LabMonitoringTests
         };
 
         context.MstPatients.Add(patient);
-        context.TrxPatientEncounters.Add(encounter);
+        context.RegPatientEncounters.Add(encounter);
         context.Set<MstProcedure>().Add(procedure);
         context.LabOrders.Add(order);
         context.LabSpecimens.Add(specimen);

@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -9,8 +9,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
-    [Table("TrxPatientEncounter", Schema = "public")]
-    public class TrxPatientEncounter : IdentityModel
+    [Table("RegPatientEncounter", Schema = "public")]
+    public class RegPatientEncounter : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -97,7 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         // =========================
         // Registrasi hanya menerima Cash atau satu Insurance.
         // Detail dan snapshot sumber pembayaran disimpan satu-ke-satu pada
-        // TrxPatientEncounterGuarantor.
+        // RegPatientEncounterGuarantor.
 
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
@@ -247,6 +247,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>
         /// Satu encounter wajib mempunyai tepat satu sumber pembayaran.
         /// </summary>
-        public TrxPatientEncounterGuarantor? PaymentSource { get; set; }
+        public RegPatientEncounterGuarantor? PaymentSource { get; set; }
     }
 }

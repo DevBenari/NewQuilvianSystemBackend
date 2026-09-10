@@ -417,7 +417,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete)
                 : null;
 
-            var encounter = queue?.Encounter ?? await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = queue?.Encounter ?? await _dbContext.Set<RegPatientEncounter>()
                 .FirstAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             var assessment = await ResolveAssessmentAsync(request.EncounterId, request.AssessmentId);
@@ -1074,7 +1074,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<CreateGuard> ValidateCreateWithoutQueueAsync(
             CreateDoctorConsultationRequest request)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             // Statusnya masih Registered, tetapi kunjungannya sudah punya waktu selesai.
             // Aturannya menuntut KEDUANYA, bukan salah satu.
-            var kunjungan = await context.Set<TrxPatientEncounter>()
+            var kunjungan = await context.Set<RegPatientEncounter>()
                 .SingleAsync(x => x.Id == konteks.EncounterId);
 
             kunjungan.CompletedAt = DateTime.UtcNow;
@@ -83,7 +83,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
 
-            var kunjungan = await context.Set<TrxPatientEncounter>()
+            var kunjungan = await context.Set<RegPatientEncounter>()
                 .SingleAsync(x => x.Id == konteks.EncounterId);
 
             kunjungan.IsCancel = true;
@@ -164,8 +164,8 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
 
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
 
-            context.Set<TrxPatientEncounter>().Remove(
-                await context.Set<TrxPatientEncounter>()
+            context.Set<RegPatientEncounter>().Remove(
+                await context.Set<RegPatientEncounter>()
                     .SingleAsync(x => x.Id == konteks.EncounterId));
 
             await context.SaveChangesAsync();

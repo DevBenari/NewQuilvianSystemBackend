@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -73,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 

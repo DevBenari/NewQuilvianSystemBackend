@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             ApplicationDbContext context,
             RekamMedisTestData.Konteks konteks)
         {
-            var kunjungan = new TrxPatientEncounter
+            var kunjungan = new RegPatientEncounter
             {
                 EncounterNumber = $"KJG-{Guid.NewGuid():N}"[..20],
                 PatientId = konteks.PatientId,
@@ -56,7 +56,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 RegisteredByUserId = konteks.UserId
             };
 
-            context.Set<TrxPatientEncounter>().Add(kunjungan);
+            context.Set<RegPatientEncounter>().Add(kunjungan);
             context.SaveChanges();
 
             return kunjungan.Id;

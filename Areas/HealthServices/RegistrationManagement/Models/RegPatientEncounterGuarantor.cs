@@ -9,11 +9,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
     /// <summary>
-    /// Sumber pembayaran satu-ke-satu milik encounter. Nama tabel lama dipertahankan
-    /// agar perubahan tidak memerlukan rename table yang tidak perlu.
+    /// Sumber pembayaran satu-ke-satu milik encounter.
     /// </summary>
-    [Table("TrxPatientEncounterGuarantor", Schema = "public")]
-    public class TrxPatientEncounterGuarantor : IdentityModel
+    [Table("RegPatientEncounterGuarantor", Schema = "public")]
+    public class RegPatientEncounterGuarantor : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -33,6 +32,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Urutan prioritas penjamin (1 = penjamin utama/pertama, 2 = penjamin sekunder, dst).
+        /// </summary>
+        public int Priority { get; set; } = 1;
+
+        /// <summary>
+        /// Menandakan apakah penjamin ini merupakan penjamin utama (primer) untuk encounter.
+        /// </summary>
+        public bool IsPrimary { get; set; } = true;
 
         // =========================
         // PAYMENT REFERENCES
@@ -135,7 +144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         // NAVIGATION
         // =========================
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 

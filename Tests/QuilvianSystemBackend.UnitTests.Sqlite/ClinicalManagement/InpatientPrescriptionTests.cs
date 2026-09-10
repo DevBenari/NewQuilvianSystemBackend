@@ -119,7 +119,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             Assert.Equal(200, ControllerTestHarness.KodeStatus(obatPulang));
 
             using var verifikasi = database.CreateContext();
-            Assert.Equal(5, verifikasi.Set<TrxPrescription>().Count());
+            Assert.Equal(5, verifikasi.Set<PhmPrescription>().Count());
 
             var seluruhnya = Isi<PagedResult<PrescriptionResponse>>(
                 await BuatControllerResep(context, k.DokterUserId).GetByEpisode(k.EpisodeId));
@@ -173,7 +173,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 Isi<PrescriptionCreateResponse>(kedua).Id);
 
             using var verifikasi = database.CreateContext();
-            Assert.Single(verifikasi.Set<TrxPrescription>());
+            Assert.Single(verifikasi.Set<PhmPrescription>());
         }
 
         // =====================================================================
@@ -207,7 +207,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             // Petugas farmasi menaikkan keadaan pemenuhan lewat permukaannya sendiri. Di sini
             // keadaan itu hanya ditiru langsung pada baris miliknya, karena yang diuji adalah
             // PEMBACAANNYA dari sisi Rawat Inap.
-            var resep = context.Set<TrxPrescription>().Single();
+            var resep = context.Set<PhmPrescription>().Single();
             resep.FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyForPharmacy;
             context.SaveChanges();
 
