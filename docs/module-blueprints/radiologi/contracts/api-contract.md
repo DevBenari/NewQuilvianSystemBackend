@@ -4,11 +4,11 @@
 |---|---|
 | Contract version | `RAD-API-001` |
 | Revision | `2` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-ARCH-BE-001`, `RAD-DA-001-r1` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | Belum |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 2026-09-10 |
 
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.

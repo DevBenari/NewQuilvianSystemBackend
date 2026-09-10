@@ -8,7 +8,7 @@
 | Blueprint ID | `RAD-BP-001` |
 | **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **12** dari 15 slice boleh maju ke arsitektur domain |
 | Perubahan revision 2 | `S12` naik menjadi siap setelah `DEC-RAD-003` ditutup `RAD-DEC-012` dan `RAD-DEC-013` |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Frontend SHA | `f66ed1885` |
 | Masukan | `00-interview-decisions.md` revision 7; `01-existing-capability-map.md` revision 1 |
 | Tanggal penilaian | 2026-09-09 |
@@ -33,7 +33,7 @@ sendiri. Pemecahan ini penting supaya satu bagian yang macet tidak menahan selur
 > aturannya dan boleh dirancang sekarang. Sedangkan daftar kerja petugas belum pernah dibahas
 > sama sekali. Kalau modul dinilai sebagai satu blok, hasil bacaan ikut tertahan tanpa alasan.
 
-| Slice | Nama | Keadaan di source `64da911` |
+| Slice | Nama | Keadaan di source `0e2eb105` |
 |---|---|---|
 | `S1` | Pesanan radiologi | Sudah ada |
 | `S2` | Study dan pengambilan citra | Sudah ada |
@@ -69,7 +69,7 @@ implementasi di bawahnya.
 | `RJ-BIL-DEC-014` | Keputusan penunjukan pemilik modul | Tingkat 1, diwariskan | Sifat data induk keselamatan, perilaku fail-closed |
 | `IGD-DEC-099` | Keputusan modul IGD, status `draft` | Tingkat 1, diwariskan — **sudah usang** | Titik sentuh IGD |
 | `01-existing-capability-map.md` rev 1 | Audit source | Tingkat 6 — bukti implementasi V2 | Apa yang saat ini ada |
-| Source `64da911` dan `f66ed1885` | Kode dan test | Tingkat 6 | Perilaku terverifikasi |
+| Source `0e2eb105` dan `f66ed1885` | Kode dan test | Tingkat 6 | Perilaku terverifikasi |
 
 **Yang tidak tersedia dan berpengaruh pada penilaian:**
 
@@ -400,7 +400,7 @@ butuh tata kelola klinis, hanya butuh satu sesi tanya jawab dengan pemilik modul
 |---|---|
 | Identitas modul | `radiologi`, blueprint `RAD-BP-001` |
 | Assessment ID | `RAD-RCG-001-r2` |
-| Snapshot bukti | BE `64da911`, FE `f66ed1885` |
+| Snapshot bukti | BE `0e2eb105`, FE `f66ed1885` |
 | Slice yang dikirim | `S1`, `S2`, `S3`, `S4`, `S6`, `S7`, `S8`, `S9`, `S10`, `S12`, `S13`, `S14` |
 | Slice yang **tidak** dikirim | `S5`, `S11` |
 | Decision ID belum selesai | `DEC-RAD-001`, `DEC-RAD-002`, `DEC-RAD-004`, `DEC-RAD-005`, `DEC-RAD-006` |

@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-INT-001` |
 | Revision | `1` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-DA-001-r1`, `RAD-DEC-006`, `RAD-DEC-009` |
 
 Modul Radiologi **tidak memanggil satu pun sistem di luar Quilvian**. Seluruh integrasi di
@@ -28,7 +28,7 @@ Status: **sudah berjalan**.
 | Arah | Satu arah, Radiologi ke Billing |
 | Pemicu | Study berpindah ke `QualityAccepted` |
 | Satuan | **Satu fakta per study**, bukan per pesanan |
-| Bukti | `Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@64da911` |
+| Bukti | `Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@0e2eb105` |
 
 ### Isi yang dikirim
 

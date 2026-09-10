@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-PERM-001` |
 | Revision | `2` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005` |
 
 String `[AccessPermission(...)]` ditulis **apa adanya** supaya implementer menyalin, bukan
@@ -120,8 +120,8 @@ service, bukan hanya oleh atribut endpoint.
 ### 5.1 Pengesahan hasil bacaan — `RAD-DEC-003`
 
 Memiliki `RadReport : Validate` **tidak dengan sendirinya** memperbolehkan seseorang
-mengesahkan sebuah draf. Service wajib memeriksa `AuthorRoleSnapshot` pada versi yang akan
-disahkan.
+mengesahkan sebuah draf. Service wajib memeriksa dua hal: `AuthorRoleSnapshot` pada versi yang
+akan disahkan, dan apakah pengesah memegang `RadReport : ActAsRadiologist` (`RAD-DEC-015`).
 
 | `AuthorRoleSnapshot` | Pengesah boleh orang yang sama? |
 |---|:---:|
@@ -142,20 +142,59 @@ Ini **wajib** dijaga saat menyusun peran, dan **wajib** diuji.
 
 ---
 
-## 6. Pemetaan Peran — Masih Terbuka
+## 6. Pengenalan Peran Klinis — Ditetapkan `RAD-DEC-015`
 
-Empat sebutan peran dipakai keputusan modul ini, dan **belum satu pun dipetakan** ke peran
-Quilvian yang sebenarnya. Ini `DEC-RAD-004`.
+Peran klinis dikenali lewat **hak akses penanda**, bukan lewat nama peran maupun tabel
+pemetaan tersendiri.
 
-| Sebutan | Dipakai untuk | Peran Quilvian |
-|---|---|---|
-| Dokter radiolog | Mengesahkan dan merilis hasil bacaan | **Belum dipetakan** |
-| Penanggung jawab klinis | Mengesahkan aturan keselamatan | **Belum dipetakan** |
-| DPJP | Pelewatan gerbang darurat (`S5`, belum dirancang) | **Belum dipetakan** |
-| Dokter jaga senior | Pelewatan gerbang darurat (`S5`, belum dirancang) | **Belum dipetakan** |
+| Sebutan | Hak akses penanda | String yang dipakai | Keadaan |
+|---|---|---|---|
+| Dokter radiolog | `RadReport : ActAsRadiologist` | `[AccessPermission("RadReport", "ActAsRadiologist")]` | **Baru** |
+| Penanggung jawab klinis | `RadSafetyRule : Approve` | `[AccessPermission("RadSafetyRule", "Approve")]` | Sudah pada tabel bagian 4 |
+| DPJP | Belum ditetapkan | — | Menyusul bersama `DEC-RAD-001`; `S5` belum dirancang |
+| Dokter jaga senior | Belum ditetapkan | — | Sama |
 
-**Ini menahan implementasi, bukan desain.** Kontrak di atas tetap sahih; yang belum ada adalah
-peta dari sebutan bisnis ke peran teknis.
+### `ActAsRadiologist` bukan endpoint
+
+Berbeda dari seluruh baris pada bagian 1 sampai 4, hak akses ini **tidak menempel pada satu
+endpoint pun**. Ia dibaca service ketika menilai `AuthorRoleSnapshot` dan ketika memutuskan
+boleh atau tidaknya pengesahan sendiri.
+
+### Bedanya dengan `Validate`
+
+| Hak akses | Artinya |
+|---|---|
+| `RadReport : Validate` | Boleh **mencoba** mengesahkan bacaan |
+| `RadReport : ActAsRadiologist` | **Dihitung sebagai** dokter radiolog |
+
+> **Contoh mengapa dipisah.** Seorang residen dapat diberi `Validate` supaya ia dapat
+> mengesahkan draf yang ditulis radiografer. Tanpa `ActAsRadiologist`, draf yang **ia tulis
+> sendiri** tetap ditolak saat ia mencoba mengesahkannya. Menggabungkan keduanya menjadi satu
+> hak akses akan menghapus perbedaan itu, dan aturan `RAD-DEC-003` ikut hilang.
+
+### Cara `AuthorRoleSnapshot` diisi
+
+Saat draf dibuat, service menilai hak akses penulis **pada saat itu**, lalu membekukannya:
+
+| Hak akses penulis saat menulis draf | `AuthorRoleSnapshot` |
+|---|---|
+| Memegang `RadReport : ActAsRadiologist` | `Radiologist` |
+| Tidak memegangnya, dan bukan proses sistem | `Resident` atau `Radiographer` sesuai peran yang diberikan Administrator |
+| Draf dihasilkan bantuan AI | `AiAssisted` |
+
+Perubahan hak akses seseorang di kemudian hari **tidak** menulis ulang draf yang sudah ada.
+
+### Disiplin pemberian
+
+`RadReport : ActAsRadiologist` menentukan siapa yang boleh menyatakan sebuah bacaan sah dipakai
+dokter lain. Ia **tidak boleh** masuk paket hak akses umum, dan pemberiannya wajib dapat
+ditelusuri.
+
+### Yang masih terbuka
+
+Nama peran Quilvian yang memegang hak akses ini belum ditetapkan. Itu pekerjaan Administrator
+saat menyusun peran, dan **tidak menahan desain maupun implementasi** — yang dirancang adalah
+hak aksesnya, bukan nama perannya.
 
 ---
 

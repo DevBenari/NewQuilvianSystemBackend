@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-STATE-001` |
 | Revision | `1` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RJ-BIL-GATE-DEC-004`, `RAD-DEC-003`, `RAD-DEC-005`, `RAD-DEC-011`, `RAD-DA-001-r1` |
 
 Transisi yang **tidak sah** ikut dituliskan, bukan hanya yang sah. Tanpa itu, implementer tidak

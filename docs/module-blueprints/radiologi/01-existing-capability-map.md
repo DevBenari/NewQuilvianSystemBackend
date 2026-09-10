@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `radiologi` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `draft` |
 | Jenis audit | Audit penuh (bukan `impact-scan`) |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Frontend SHA | `f66ed1885` |
 | Decision yang berlaku | `RAD-DEC-001`, `RAD-DEC-002`, `RAD-DEC-003`, `RAD-DEC-004` (`00-interview-decisions.md` revision 4) |
 | Decision warisan | `RJ-BIL-GATE-DEC-004`, `RJ-BIL-DEC-014`, `IGD-DEC-099` |
@@ -99,69 +99,69 @@ Singkatan repository: `BE` = `NewQuilvianSystemBackend`, `FE` = `QuilvianSystemF
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-001` | Kelola data induk alat pencitraan | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadModality.cs@64da911`; hanya dibaca lewat `BE/Areas/HealthServices/RadiologyManagement/Controllers/RadStudyController.cs#GetModalities:44@64da911` | `Repair` | Tabel dan endpoint baca sudah ada, tetapi tidak ada endpoint tambah/ubah/nonaktif dan tidak ada seeder | Alat baru hanya bisa didaftarkan lewat database langsung |
-| `RAD-CAP-002` | Kelola data induk butir keselamatan | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadSafetyRequirement.cs@64da911`; dibaca lewat `RadStudyController.cs#GetSafetyRequirements:56@64da911` | `Repair` | Sama seperti di atas | Butir keselamatan tidak bisa disesuaikan tanpa rilis, padahal `RJ-BIL-DEC-014` mewajibkan sebaliknya |
-| `RAD-CAP-003` | Kelola aturan keselamatan per alat | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadModalitySafetyRule.cs@64da911`; konfigurasi `BE/Repositories/Configurations/HealthServices/RadiologyManagement/MstRadModalitySafetyRuleConfiguration.cs@64da911` | `Repair` | **Tidak ada endpoint pengelolaan sama sekali.** Digabung dengan sifat fail-closed, seluruh pengambilan citra tertolak | **Tertinggi.** Modul tidak dapat menjalankan satu pun pemeriksaan |
-| `RAD-CAP-004` | Katalog prosedur dan tarif bersama | MasterData | `BE/Areas/HealthServices/MasterData/Models/MstProcedure.cs@64da911`; dipakai `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#ProcedureId@64da911` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-001` | Kelola data induk alat pencitraan | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadModality.cs@0e2eb105`; hanya dibaca lewat `BE/Areas/HealthServices/RadiologyManagement/Controllers/RadStudyController.cs#GetModalities:44@0e2eb105` | `Repair` | Tabel dan endpoint baca sudah ada, tetapi tidak ada endpoint tambah/ubah/nonaktif dan tidak ada seeder | Alat baru hanya bisa didaftarkan lewat database langsung |
+| `RAD-CAP-002` | Kelola data induk butir keselamatan | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadSafetyRequirement.cs@0e2eb105`; dibaca lewat `RadStudyController.cs#GetSafetyRequirements:56@0e2eb105` | `Repair` | Sama seperti di atas | Butir keselamatan tidak bisa disesuaikan tanpa rilis, padahal `RJ-BIL-DEC-014` mewajibkan sebaliknya |
+| `RAD-CAP-003` | Kelola aturan keselamatan per alat | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/MstRadModalitySafetyRule.cs@0e2eb105`; konfigurasi `BE/Repositories/Configurations/HealthServices/RadiologyManagement/MstRadModalitySafetyRuleConfiguration.cs@0e2eb105` | `Repair` | **Tidak ada endpoint pengelolaan sama sekali.** Digabung dengan sifat fail-closed, seluruh pengambilan citra tertolak | **Tertinggi.** Modul tidak dapat menjalankan satu pun pemeriksaan |
+| `RAD-CAP-004` | Katalog prosedur dan tarif bersama | MasterData | `BE/Areas/HealthServices/MasterData/Models/MstProcedure.cs@0e2eb105`; dipakai `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#ProcedureId@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
 
 ### Klaster Episode/Transaction Owner
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-005` | Menempel pada kunjungan pasien | RegistrationManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#EncounterId@64da911` menuju `TrxPatientEncounter` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-006` | Konteks perawatan rawat inap | InPatientManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#InpEpisodeId@64da911`; migration `BE/Migrations/20260903095444_AddRadOrderInpatientContext.cs@64da911` | `Ready to reuse` | Boleh kosong untuk pasien rawat jalan | Rendah |
+| `RAD-CAP-005` | Menempel pada kunjungan pasien | RegistrationManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#EncounterId@0e2eb105` menuju `TrxPatientEncounter` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-006` | Konteks perawatan rawat inap | InPatientManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#InpEpisodeId@0e2eb105`; migration `BE/Migrations/20260903095444_AddRadOrderInpatientContext.cs@0e2eb105` | `Ready to reuse` | Boleh kosong untuk pasien rawat jalan | Rendah |
 
 ### Klaster Order/Result
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-007` | Siklus hidup pesanan radiologi | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs@64da911`; 12 endpoint pada `RadOrderController.cs@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-008` | Dokter menyimpan draf pesanan sebelum dikirim | RadiologyManagement | Status tersedia di `Enums/RadiologyEnums.cs#RadOrderStatus.Draft@64da911`, tetapi pesanan selalu lahir `Requested` di `RadOrderService.cs:226@64da911`; `Draft` hanya muncul sebagai status yang boleh dibatalkan di `RadOrderService.cs:305@64da911` | `Extend` | Tidak ada endpoint yang menghasilkan `Draft` | Sedang. Siklus hidup terkunci `RJ-BIL-GATE-DEC-004` menyebut `Draft → Requested`; kenyataannya `Draft` tidak pernah terjadi |
-| `RAD-CAP-009` | Siklus hidup study dan pengambilan citra | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs@64da911`; 14 endpoint pada `RadStudyController.cs@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-010` | Hasil bacaan dokter radiolog | RadiologyManagement | Pencarian menyeluruh `*.cs@64da911` tidak menemukan `RadReport` maupun padanannya | `Missing` | Seluruh siklus `Pending → Drafted → Validated → Released` belum ada | **Tertinggi.** Inti Rilis 1 menurut `RAD-DEC-001` |
+| `RAD-CAP-007` | Siklus hidup pesanan radiologi | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs@0e2eb105`; 12 endpoint pada `RadOrderController.cs@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-008` | Dokter menyimpan draf pesanan sebelum dikirim | RadiologyManagement | Status tersedia di `Enums/RadiologyEnums.cs#RadOrderStatus.Draft@0e2eb105`, tetapi pesanan selalu lahir `Requested` di `RadOrderService.cs:226@0e2eb105`; `Draft` hanya muncul sebagai status yang boleh dibatalkan di `RadOrderService.cs:305@0e2eb105` | `Extend` | Tidak ada endpoint yang menghasilkan `Draft` | Sedang. Siklus hidup terkunci `RJ-BIL-GATE-DEC-004` menyebut `Draft → Requested`; kenyataannya `Draft` tidak pernah terjadi |
+| `RAD-CAP-009` | Siklus hidup study dan pengambilan citra | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs@0e2eb105`; 14 endpoint pada `RadStudyController.cs@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-010` | Hasil bacaan dokter radiolog | RadiologyManagement | Pencarian menyeluruh `*.cs@0e2eb105` tidak menemukan `RadReport` maupun padanannya | `Missing` | Seluruh siklus `Pending → Drafted → Validated → Released` belum ada | **Tertinggi.** Inti Rilis 1 menurut `RAD-DEC-001` |
 | `RAD-CAP-011` | Koreksi hasil berversi setelah rilis | RadiologyManagement | Tidak ada; bergantung `RAD-CAP-010` | `Missing` | Seluruh siklus `AmendmentDrafted → AmendmentValidated → AmendmentReleased` belum ada | Tinggi |
-| `RAD-CAP-012` | Temuan kritis dan pemberitahuannya | RadiologyManagement | Tidak ada penanda kritis, kotak pemberitahuan, maupun pencatatan kontak pada `*.cs@64da911` | `Missing` | Seluruh mekanisme `RAD-DEC-004` belum ada | Tinggi. Menyangkut keselamatan pasien |
-| `RAD-CAP-013` | Daftar kerja petugas radiologi | RadiologyManagement | Tidak ada endpoint daftar kerja; `RadOrderController#GetList@64da911` adalah daftar umum berhalaman, bukan antrian kerja per alat atau per petugas | `Missing` | Perlu endpoint antrian tersendiri | Sedang |
+| `RAD-CAP-012` | Temuan kritis dan pemberitahuannya | RadiologyManagement | Tidak ada penanda kritis, kotak pemberitahuan, maupun pencatatan kontak pada `*.cs@0e2eb105` | `Missing` | Seluruh mekanisme `RAD-DEC-004` belum ada | Tinggi. Menyangkut keselamatan pasien |
+| `RAD-CAP-013` | Daftar kerja petugas radiologi | RadiologyManagement | Tidak ada endpoint daftar kerja; `RadOrderController#GetList@0e2eb105` adalah daftar umum berhalaman, bukan antrian kerja per alat atau per petugas | `Missing` | Perlu endpoint antrian tersendiri | Sedang |
 
 ### Klaster Workflow/Status
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-014` | Riwayat perpindahan status yang tidak bisa diubah | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadTransitionHistory.cs@64da911`; ditulis lewat `RadStudyService.cs#AddHistory@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-015` | Gerbang keselamatan yang menolak bila belum diatur | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadSafetyGateEvaluator.cs#Evaluate@64da911` mengembalikan `PolicyConfigured: false, Cleared: false` ketika tidak ada aturan | `Ready to reuse` | Tidak ada. Logikanya murni dan dapat diuji tanpa database | Rendah sebagai logika, **tetapi lihat `RAD-CAP-003`** — tanpa data aturan, gerbang ini memblokir semuanya |
-| `RAD-CAP-016` | Pencegahan dua petugas mengubah data yang sama | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#Version@64da911` dan `RadStudy.cs#Version@64da911`; dijaga `RadStudyService.cs#SaveWithConcurrencyGuardAsync@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-017` | Pembekuan versi aturan keselamatan saat lolos | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#SafetyRuleVersionAtClearance@64da911` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-014` | Riwayat perpindahan status yang tidak bisa diubah | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadTransitionHistory.cs@0e2eb105`; ditulis lewat `RadStudyService.cs#AddHistory@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-015` | Gerbang keselamatan yang menolak bila belum diatur | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadSafetyGateEvaluator.cs#Evaluate@0e2eb105` mengembalikan `PolicyConfigured: false, Cleared: false` ketika tidak ada aturan | `Ready to reuse` | Tidak ada. Logikanya murni dan dapat diuji tanpa database | Rendah sebagai logika, **tetapi lihat `RAD-CAP-003`** — tanpa data aturan, gerbang ini memblokir semuanya |
+| `RAD-CAP-016` | Pencegahan dua petugas mengubah data yang sama | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs#Version@0e2eb105` dan `RadStudy.cs#Version@0e2eb105`; dijaga `RadStudyService.cs#SaveWithConcurrencyGuardAsync@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-017` | Pembekuan versi aturan keselamatan saat lolos | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#SafetyRuleVersionAtClearance@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
 
 ### Klaster Documentation/Record
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-018` | Tempat hasil radiologi di rekam medis | ClinicalManagement | `BE/Areas/HealthServices/ClinicalManagement/Enums/PatientClinicalDocumentSource.cs#Radiology=5@64da911`; `PatientClinicalDocumentType.cs#RadiologyResult=2@64da911` | `Reuse with adapter` | Slotnya sudah ada, tetapi pencarian menyeluruh menunjukkan **belum ada satu pun kode yang mengisinya** | Sedang. Perlu disambungkan saat `RAD-CAP-010` dibangun |
-| `RAD-CAP-019` | Larangan menyalin hasil penunjang ke modul lain | InPatientManagement | Uji arsitektur `BE/Tests/QuilvianSystemBackend.UnitTests.Sqlite/ClinicalManagement/InpatientSupportingOrderTests.cs#RawatInapTidakMemilikiSatuPunTabelSalinanHasilPenunjang@64da911` melarang nama tabel `RadResult` dan `RadReportCopy` di luar RadiologyManagement | `Ready to reuse` | Tidak ada | Rendah. Justru melindungi desain hasil bacaan nanti |
+| `RAD-CAP-018` | Tempat hasil radiologi di rekam medis | ClinicalManagement | `BE/Areas/HealthServices/ClinicalManagement/Enums/PatientClinicalDocumentSource.cs#Radiology=5@0e2eb105`; `PatientClinicalDocumentType.cs#RadiologyResult=2@0e2eb105` | `Reuse with adapter` | Slotnya sudah ada, tetapi pencarian menyeluruh menunjukkan **belum ada satu pun kode yang mengisinya** | Sedang. Perlu disambungkan saat `RAD-CAP-010` dibangun |
+| `RAD-CAP-019` | Larangan menyalin hasil penunjang ke modul lain | InPatientManagement | Uji arsitektur `BE/Tests/QuilvianSystemBackend.UnitTests.Sqlite/ClinicalManagement/InpatientSupportingOrderTests.cs#RawatInapTidakMemilikiSatuPunTabelSalinanHasilPenunjang@0e2eb105` melarang nama tabel `RadResult` dan `RadReportCopy` di luar RadiologyManagement | `Ready to reuse` | Tidak ada | Rendah. Justru melindungi desain hasil bacaan nanti |
 
 ### Klaster Financial
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-020` | Menerbitkan fakta kelayakan tagih ke Billing | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@64da911`, dipicu hanya ketika citra dinyatakan dapat dipakai di `RadStudyService.cs#DecideQualityAsync:517@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-021` | Pendaftaran Radiologi sebagai sumber sah di Billing | BillingManagement | `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs#RadiologySourceContext:42@64da911`; kebijakan siklus di `BillingChargeSourceAdapter.cs#SourcePolicies["RADIOLOGY"]:31@64da911`, contract version `BIL-INTEGRATION-0.4` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-022` | Pencegahan pengiriman fakta tagih ganda | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#BillingFactSubmitted@64da911`, diisi di `RadStudyService.cs:521@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-023` | Radiologi tidak punya wewenang finansial | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs@64da911` — tidak memuat satu pun kolom `Paid`, `Settlement`, `Void`, `Refund`, atau `Reversal` | `Ready to reuse` | Tidak ada. Invariant ditegakkan dengan cara meniadakan kolomnya | Rendah |
+| `RAD-CAP-020` | Menerbitkan fakta kelayakan tagih ke Billing | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@0e2eb105`, dipicu hanya ketika citra dinyatakan dapat dipakai di `RadStudyService.cs#DecideQualityAsync:517@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-021` | Pendaftaran Radiologi sebagai sumber sah di Billing | BillingManagement | `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs#RadiologySourceContext:42@0e2eb105`; kebijakan siklus di `BillingChargeSourceAdapter.cs#SourcePolicies["RADIOLOGY"]:31@0e2eb105`, contract version `BIL-INTEGRATION-0.4` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-022` | Pencegahan pengiriman fakta tagih ganda | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#BillingFactSubmitted@0e2eb105`, diisi di `RadStudyService.cs:521@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-023` | Radiologi tidak punya wewenang finansial | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs@0e2eb105` — tidak memuat satu pun kolom `Paid`, `Settlement`, `Void`, `Refund`, atau `Reversal` | `Ready to reuse` | Tidak ada. Invariant ditegakkan dengan cara meniadakan kolomnya | Rendah |
 
 ### Klaster Authorization/Audit
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-024` | Hak akses per endpoint | RadiologyManagement | 26 atribut `[AccessPermission(...)]` pada `RadOrderController.cs@64da911` dan `RadStudyController.cs@64da911`, mekanisme di `BE/Attributes/AccessPermissionAttribute.cs@64da911` | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-025` | Uji kontrak hak akses radiologi | RadiologyManagement | **Tidak ada.** Bandingkan `BE/Tests/QuilvianSystemBackend.IntegrationTests.Postgres/Laboratory/LaboratoryAuthorityTests.cs@64da911` dan `BE/Tests/QuilvianSystemBackend.Tests/HealthServices/BankDarah/MasterData/BloodBankRoleAccessContractTests.cs@64da911` yang dimiliki modul sebanding | `Missing` | Modul Laboratorium dan Bank Darah punya, Radiologi tidak | Sedang. Perubahan hak akses tidak akan ketahuan bila salah |
-| `RAD-CAP-026` | Identitas pelaku diambil dari sesi, bukan dari kiriman | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs#GetCurrentUserId:962-973@64da911` menolak tindakan bila identitas tidak dapat ditentukan | `Ready to reuse` | Tidak ada | Rendah |
-| `RAD-CAP-027` | Registry kepemilikan modul dan prefix `Rad` | Pemegang tata kelola | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22@64da911` tertulis `PLANNED`; salinan di suite Skill `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22` juga `PLANNED`; sedangkan `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs:11-13@64da911` menulis registry sudah dinaikkan ke `ACTIVE` | `Conflict` | Lihat bagian Conflict di bawah | **Tertinggi.** Menahan pembuatan entity `Rad*` baru berdasarkan `QBE-MOD-002` |
+| `RAD-CAP-024` | Hak akses per endpoint | RadiologyManagement | 26 atribut `[AccessPermission(...)]` pada `RadOrderController.cs@0e2eb105` dan `RadStudyController.cs@0e2eb105`, mekanisme di `BE/Attributes/AccessPermissionAttribute.cs@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-025` | Uji kontrak hak akses radiologi | RadiologyManagement | **Tidak ada.** Bandingkan `BE/Tests/QuilvianSystemBackend.IntegrationTests.Postgres/Laboratory/LaboratoryAuthorityTests.cs@0e2eb105` dan `BE/Tests/QuilvianSystemBackend.Tests/HealthServices/BankDarah/MasterData/BloodBankRoleAccessContractTests.cs@0e2eb105` yang dimiliki modul sebanding | `Missing` | Modul Laboratorium dan Bank Darah punya, Radiologi tidak | Sedang. Perubahan hak akses tidak akan ketahuan bila salah |
+| `RAD-CAP-026` | Identitas pelaku diambil dari sesi, bukan dari kiriman | RadiologyManagement | `BE/Areas/HealthServices/RadiologyManagement/Services/RadStudyService.cs#GetCurrentUserId:962-973@0e2eb105` menolak tindakan bila identitas tidak dapat ditentukan | `Ready to reuse` | Tidak ada | Rendah |
+| `RAD-CAP-027` | Registry kepemilikan modul dan prefix `Rad` | Pemegang tata kelola | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22@0e2eb105` tertulis `PLANNED`; salinan di suite Skill `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22` juga `PLANNED`; sedangkan `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs:11-13@0e2eb105` menulis registry sudah dinaikkan ke `ACTIVE` | `Conflict` | Lihat bagian Conflict di bawah | **Tertinggi.** Menahan pembuatan entity `Rad*` baru berdasarkan `QBE-MOD-002` |
 
 ### Klaster External Integration
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-028` | Penyimpanan citra dan pertukaran DICOM | Belum ada pemilik | Tempat penampung ada tetapi tidak dipakai: `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#ExternalStudyUid@64da911` dengan keterangan "Tidak dipakai sekarang" | `Missing` | **Disengaja.** `RJ-BIL-GATE-DEC-004` menyatakan integrasi RIS/PACS tidak diaktifkan, dan `RAD-DEC-001` menempatkannya di luar scope | Rendah selama tetap di luar scope |
+| `RAD-CAP-028` | Penyimpanan citra dan pertukaran DICOM | Belum ada pemilik | Tempat penampung ada tetapi tidak dipakai: `BE/Areas/HealthServices/RadiologyManagement/Models/RadStudy.cs#ExternalStudyUid@0e2eb105` dengan keterangan "Tidak dipakai sekarang" | `Missing` | **Disengaja.** `RJ-BIL-GATE-DEC-004` menyatakan integrasi RIS/PACS tidak diaktifkan, dan `RAD-DEC-001` menempatkannya di luar scope | Rendah selama tetap di luar scope |
 
 ### Klaster Frontend
 
@@ -176,8 +176,8 @@ Singkatan repository: `BE` = `NewQuilvianSystemBackend`, `FE` = `QuilvianSystemF
 
 | ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
 | --- | --- | --- | --- | --- | --- | --- |
-| `RAD-CAP-033` | IGD memesan radiologi lewat sistem | EmergencyInstallationManagement | `BE/Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyOrderKind.cs#RadiologyOrder=4@64da911` masih berketerangan "modul Radiologi belum ada, sehingga pesanannya dibuat di luar sistem"; teks yang sama tampil ke pengguna di `FE/src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-diagnostic-support-tab.jsx:189@f66ed1885`; tidak ada satu pun rujukan `RadOrder` di seluruh folder IGD backend | `Conflict` | Lihat bagian Conflict di bawah | Tinggi. Pengguna IGD diberi tahu hal yang tidak lagi benar |
-| `RAD-CAP-034` | Uji perilaku radiologi | RadiologyManagement | `BE/Tests/QuilvianSystemBackend.IntegrationTests.Postgres/Radiology/RadiologySafetyGateTests.cs@64da911` dan `RadiologyStudyLifecycleTests.cs@64da911` | `Ready to reuse` | Tidak ada | Rendah. Catatan: `AGENTS.md` masih menyatakan project test belum terdeteksi — pernyataan itu sudah usang |
+| `RAD-CAP-033` | IGD memesan radiologi lewat sistem | EmergencyInstallationManagement | `BE/Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyOrderKind.cs#RadiologyOrder=4@0e2eb105` masih berketerangan "modul Radiologi belum ada, sehingga pesanannya dibuat di luar sistem"; teks yang sama tampil ke pengguna di `FE/src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-diagnostic-support-tab.jsx:189@f66ed1885`; tidak ada satu pun rujukan `RadOrder` di seluruh folder IGD backend | `Conflict` | Lihat bagian Conflict di bawah | Tinggi. Pengguna IGD diberi tahu hal yang tidak lagi benar |
+| `RAD-CAP-034` | Uji perilaku radiologi | RadiologyManagement | `BE/Tests/QuilvianSystemBackend.IntegrationTests.Postgres/Radiology/RadiologySafetyGateTests.cs@0e2eb105` dan `RadiologyStudyLifecycleTests.cs@0e2eb105` | `Ready to reuse` | Tidak ada | Rendah. Catatan: `AGENTS.md` masih menyatakan project test belum terdeteksi — pernyataan itu sudah usang |
 
 ---
 
@@ -191,12 +191,12 @@ bagian `RAD-FACT-004` dan tidak diulang di sini.
 
 | Butir | Nilai as-is | Bukti |
 |---|---|---|
-| Nama sumber | `Radiology` | `BillingSourceContract.cs:42@64da911` |
-| Jenis efek yang sah | `RadiologyCharge` | `BillingSourceContract.cs:43@64da911` |
-| Versi kontrak | `BIL-INTEGRATION-0.4` | `BillingChargeSourceAdapter.cs:18@64da911` |
-| Satuan fakta | **Satu fakta per study**, bukan per pesanan | `BillingSourceContract.cs:34-41@64da911` |
-| Pemicu | Hanya ketika mutu citra dinyatakan dapat dipakai | `RadStudyService.cs#DecideQualityAsync:517@64da911` |
-| Isi rekaman | Nomor study, urutan, apakah pengulangan, sebab pengulangan, order tambahan, versi aturan keselamatan | `RadStudyService.cs:945-955@64da911` |
+| Nama sumber | `Radiology` | `BillingSourceContract.cs:42@0e2eb105` |
+| Jenis efek yang sah | `RadiologyCharge` | `BillingSourceContract.cs:43@0e2eb105` |
+| Versi kontrak | `BIL-INTEGRATION-0.4` | `BillingChargeSourceAdapter.cs:18@0e2eb105` |
+| Satuan fakta | **Satu fakta per study**, bukan per pesanan | `BillingSourceContract.cs:34-41@0e2eb105` |
+| Pemicu | Hanya ketika mutu citra dinyatakan dapat dipakai | `RadStudyService.cs#DecideQualityAsync:517@0e2eb105` |
+| Isi rekaman | Nomor study, urutan, apakah pengulangan, sebab pengulangan, order tambahan, versi aturan keselamatan | `RadStudyService.cs:945-955@0e2eb105` |
 
 **Contoh nyata.** Tn. B menjalani CT-Scan. Percobaan pertama gerakan pasien membuat citranya
 kabur, dinilai tidak dapat dipakai. Percobaan kedua berhasil. Yang terjadi:
@@ -219,7 +219,7 @@ kabur, dinilai tidak dapat dipakai. Percobaan kedua berhasil. Yang terjadi:
 | Butir tidak wajib dijawab tidak aman | **Diloloskan** | — |
 | Semua butir wajib `Passed` atau `NotApplicable` | **Diloloskan** | — |
 
-Bukti: `RadSafetyGateEvaluator.cs#Evaluate@64da911` dan `#DescribeBlockage@64da911`.
+Bukti: `RadSafetyGateEvaluator.cs#Evaluate@0e2eb105` dan `#DescribeBlockage@0e2eb105`.
 
 ---
 
@@ -229,11 +229,11 @@ Bukti: `RadSafetyGateEvaluator.cs#Evaluate@64da911` dan `#DescribeBlockage@64da9
 
 | Sumber | Isinya | Bukti |
 |---|---|---|
-| Keputusan yang disetujui | Menaikkan `RadiologyManagement`/`Rad` dari `PLANNED` ke `ACTIVE`, disetujui Sukma Giri 28 Agustus 2026 | `BE/docs/module-blueprints/rawat-jalan/00-interview-decisions.md#RJ-BIL-DEC-014:104@64da911` |
-| Kode aplikasi | Menyatakan kenaikan itu **sudah terjadi** | `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs:11-13@64da911` |
-| Registry di backend | Masih `PLANNED`, tanpa entri riwayat perubahan | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22@64da911` |
+| Keputusan yang disetujui | Menaikkan `RadiologyManagement`/`Rad` dari `PLANNED` ke `ACTIVE`, disetujui Sukma Giri 28 Agustus 2026 | `BE/docs/module-blueprints/rawat-jalan/00-interview-decisions.md#RJ-BIL-DEC-014:104@0e2eb105` |
+| Kode aplikasi | Menyatakan kenaikan itu **sudah terjadi** | `BE/Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs:11-13@0e2eb105` |
+| Registry di backend | Masih `PLANNED`, tanpa entri riwayat perubahan | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22@0e2eb105` |
 | Registry di suite Skill | Juga masih `PLANNED` | `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22` |
-| Pembanding | Modul Laboratorium mendapat entri riwayat `PLANNED → ACTIVE` tertanggal 2026-09-02 | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:104@64da911` |
+| Pembanding | Modul Laboratorium mendapat entri riwayat `PLANNED → ACTIVE` tertanggal 2026-09-02 | `BE/docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:104@0e2eb105` |
 
 **Akibatnya sekarang.** Aturan `QBE-MOD-002` menahan pembuatan entity operasional baru untuk
 modul berstatus `PLANNED`. Karena hasil bacaan (`RAD-CAP-010`) memerlukan tabel `Rad*` baru,
@@ -249,11 +249,11 @@ dicatat sebagai pengecualian, atau memang registry-nya yang lupa diperbarui.
 
 | Sumber | Isinya | Bukti |
 |---|---|---|
-| Keputusan IGD | Pemesanan radiologi ditunda sampai pemilik `RadiologyManagement` ditunjuk; sementara itu dipesan di luar sistem | `BE/docs/module-blueprints/igd/00-interview-decisions.md#IGD-DEC-099:3549@64da911`, status `draft`, jawaban pengguna 26 Agustus 2026 |
-| Kode IGD | `RadiologyOrder = 4` diberi keterangan "modul Radiologi belum ada" | `BE/Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyOrderKind.cs@64da911`, commit `f75ea039` tertanggal 2026-08-27 |
+| Keputusan IGD | Pemesanan radiologi ditunda sampai pemilik `RadiologyManagement` ditunjuk; sementara itu dipesan di luar sistem | `BE/docs/module-blueprints/igd/00-interview-decisions.md#IGD-DEC-099:3549@0e2eb105`, status `draft`, jawaban pengguna 26 Agustus 2026 |
+| Kode IGD | `RadiologyOrder = 4` diberi keterangan "modul Radiologi belum ada" | `BE/Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyOrderKind.cs@0e2eb105`, commit `f75ea039` tertanggal 2026-08-27 |
 | Teks ke pengguna | "Pemeriksaan radiologi juga belum dapat dipesan lewat sistem — modul Radiologi belum ada" | `FE/.../emergency-assessment-diagnostic-support-tab.jsx:189@f66ed1885` |
-| Kenyataan | Modul Radiologi rilis lewat commit `2d855803` tertanggal 2026-08-31, lengkap dengan `POST /rad-orders` | `BE/Migrations/20260828093000_AddRadiologyManagement.cs@64da911` |
-| Prasyarat yang sudah gugur | `IGD-DEC-099` menunggu penunjukan pemilik; `RJ-BIL-DEC-014` sudah menunjuk Sukma Giri pada 28 Agustus 2026 | `RJ-BIL-DEC-014@64da911` |
+| Kenyataan | Modul Radiologi rilis lewat commit `2d855803` tertanggal 2026-08-31, lengkap dengan `POST /rad-orders` | `BE/Migrations/20260828093000_AddRadiologyManagement.cs@0e2eb105` |
+| Prasyarat yang sudah gugur | `IGD-DEC-099` menunggu penunjukan pemilik; `RJ-BIL-DEC-014` sudah menunjuk Sukma Giri pada 28 Agustus 2026 | `RJ-BIL-DEC-014@0e2eb105` |
 
 **Urutan kejadiannya:**
 
@@ -286,13 +286,54 @@ endpoint yang mengisinya.
 
 ---
 
+## Impact Scan 2026-09-10 — `64da911` → `0e2eb105`
+
+Dijalankan sebelum `BE-RAD-01` dimulai, karena backend HEAD sudah bergeser dari baseline
+blueprint.
+
+**Verdict: peta ini tetap sahih.** Tidak ada satu pun temuan yang membatalkan kesimpulan
+sebelumnya.
+
+### Yang berubah
+
+12 commit, tiga di antaranya menyentuh area yang relevan.
+
+| Commit | Isinya | Dampak pada blueprint |
+|---|---|---|
+| `463dfc15` `fix(radiology): classify missing safety policy before acquisition` | Memindahkan pemeriksaan `PolicyConfigured` ke **depan** pemeriksaan `StudyStatus != SafetyCleared` pada `StartAcquisitionAsync` | **Menguatkan, bukan membatalkan.** Ketiadaan aturan kini dilaporkan sebagai persoalan konfigurasi tersendiri — persis yang dilayani `GET /coverage` dan peringatan pada layar pengelolaan |
+| `3cee0530` `updates BE modul lab` | Modul Laboratorium | Tidak menyentuh Radiologi |
+| `344e2ed9`, `70672911` | Billing dan migration kategori billing | Kontrak `BIL-INTEGRATION-0.4` tidak berubah |
+
+### Yang diperiksa dan terbukti tidak berubah
+
+| Yang diperiksa | Keadaan |
+|---|---|
+| `MstRadModalitySafetyRule` model dan configuration | **Tidak berubah** — dasar `BE-RAD-01` tetap sahih |
+| `RadSafetyGateEvaluator` | **Tidak berubah** — dasar `BE-RAD-06` tetap sahih |
+| `LoadApplicableRulesAsync` | Masih menyaring `x.IsActive` pada baris 171 — persis yang akan diubah menjadi `RuleStatus == Active` |
+| Delapan tabel `Rad*` | Tidak berubah |
+| Dua controller radiologi | Tidak berubah |
+| `RadiologySafetyGateTests` | Tidak berubah |
+| `RadiologyStudyLifecycleTests` | Berubah 3 baris, mengikuti `463dfc15` |
+
+### Yang perlu disesuaikan pada dokumen
+
+| Dokumen | Penyesuaian |
+|---|---|
+| `contracts/validation-matrix.md` bagian 4 | Urutan pesan penolakan: "aturan keselamatan belum ditetapkan" kini muncul **sebelum** "study belum SafetyCleared" |
+| Seluruh baseline SHA | `64da911` → `0e2eb105` |
+
+Tidak ada perubahan pada keputusan, arsitektur domain, ERD, maupun kontrak API.
+
+---
+
 ## Pemicu Impact Scan
 
 Peta ini menjadi **stale** dan wajib di-scan ulang secara terbatas bila salah satu terjadi:
 
 | Pemicu | Yang harus diperiksa ulang |
 |---|---|
-| Backend berpindah dari `64da911` | Seluruh klaster yang menyentuh `Areas/HealthServices/RadiologyManagement/` |
+| Backend berpindah dari `0e2eb105` | Seluruh klaster yang menyentuh `Areas/HealthServices/RadiologyManagement/` |
 | Frontend berpindah dari `f66ed1885` | `RAD-CAP-029` sampai `RAD-CAP-032` |
 | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` berubah | `RAD-CAP-027` dan `RAD-CONF-001` |
 | `BillingChargeSourceAdapter.ContractVersion` bergeser dari `BIL-INTEGRATION-0.4` | `RAD-CAP-020` sampai `RAD-CAP-022` |
@@ -322,4 +363,5 @@ harus dibawa ke `Closure pass`.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
-| 1 | 2026-09-09 | Audit penuh pertama pada BE `64da911` dan FE `f66ed1885`. 30 kemampuan diklasifikasikan, 2 conflict dan 7 closure question diterbitkan. | `draft` |
+| 2 | 2026-09-10 | Impact scan `0e2eb105` → `0e2eb105`. Verdict: peta tetap sahih. Satu commit radiologi ditemukan dan terbukti menguatkan desain. | `draft` |
+| 1 | 2026-09-09 | Audit penuh pertama pada BE `0e2eb105` dan FE `f66ed1885`. 30 kemampuan diklasifikasikan, 2 conflict dan 7 closure question diterbitkan. | `draft` |

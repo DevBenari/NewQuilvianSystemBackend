@@ -4,9 +4,9 @@
 |---|---|
 | Contract version | `RAD-ARCH-FE-001` |
 | Revision | `2` |
-| Status | `draft` |
+| Status | `approved` |
 | Frontend SHA | `f66ed1885` |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-STATE-001`, `RAD-PERM-001` |
 | Slice | `S15`, melayani `S1`, `S2`, `S3`, `S4`, `S6`, `S7`, `S9`, `S10`, **`S12`**, `S13`, `S14` |
 

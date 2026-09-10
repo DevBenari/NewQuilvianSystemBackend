@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-TEST-001` |
 | Revision | `2` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-ARCH-BE-001`, `RAD-STATE-001`, `RAD-VAL-001`, `RAD-PERM-001`, `RAD-ARCH-FE-001` |
 
 Matriks ini memuat **jalur gagal**, bukan hanya jalur berhasil. Uji yang hanya membuktikan

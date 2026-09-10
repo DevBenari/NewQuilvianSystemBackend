@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `radiologi` |
-| Revision | `8` |
+| Revision | `9` |
 | Status | `draft` |
-| Pass | `Scope pass` dan `Closure pass` selesai. `Amendment pass` **selesai** 2026-09-09 |
-| Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`) — bertindak sebagai pemilik modul pada sesi ini |
+| Pass | `Scope pass`, `Closure pass`, dan `Amendment pass` selesai. Dua conflict diselesaikan 2026-09-10 |
+| Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`) — ditetapkan `RAD-DEC-014` |
 | Clinical governance owner | **Belum ditunjuk** (lihat `RAD-OPEN-001`) |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Frontend SHA | `f66ed1885` |
 | Tanggal sesi | 2026-09-09 |
-| Capability map | `01-existing-capability-map.md` revision 1, audit pada BE `64da911` + FE `f66ed1885` |
+| Capability map | `01-existing-capability-map.md` revision 1, audit pada BE `0e2eb105` + FE `f66ed1885` |
 | Task mode | `MODULE BLUEPRINT MODE` — hanya `docs/module-blueprints/**` yang boleh ditulis |
 
 > **Cara membaca dokumen ini.**
@@ -95,7 +95,7 @@ citra di sistem eksternal.
 
 ### Di dalam scope
 
-| No | Kemampuan | Penjelasan singkat untuk pembaca non-teknis | Keadaan di source `64da911` | Rilis |
+| No | Kemampuan | Penjelasan singkat untuk pembaca non-teknis | Keadaan di source `0e2eb105` | Rilis |
 |---:|---|---|---|---|
 | 1 | Pesanan radiologi (*rad order*) | Dokter memesan foto atau pemindaian untuk satu kunjungan pasien | **Sudah ada** | Sudah ada |
 | 2 | Siklus hidup pesanan | Diterima radiologi, dijadwalkan, dikerjakan, selesai, ditahan, ditolak, dibatalkan | **Sudah ada** | Sudah ada |
@@ -159,7 +159,7 @@ Radiologi. Dicatat supaya tidak hilang, dan tidak dikejar di sesi ini.
 ## Fakta Berbukti dari Source Code
 
 Seluruh fakta di bawah dibaca langsung dari repository `NewQuilvianSystemBackend` pada commit
-`64da911` dan `QuilvianSystemFrontendDev` pada commit `f66ed1885`.
+`0e2eb105` dan `QuilvianSystemFrontendDev` pada commit `f66ed1885`.
 
 ### `RAD-FACT-001` — Modul Radiologi backend sudah ada dan sudah bermigrasi
 
@@ -780,6 +780,87 @@ Tanggung jawab tetap terlacak, dan pasien tidak menunggu sampai dr. Andi kembali
 
 ---
 
+### `RAD-DEC-015` — Cara sistem mengenali peran klinis
+
+Menjawab `DEC-RAD-004`. Ditetapkan 2026-09-10.
+
+**Keputusan.** Peran klinis dikenali lewat **hak akses penanda**, bukan lewat nama peran
+maupun tabel pemetaan tersendiri.
+
+| Sebutan | Hak akses penanda | Keterangan |
+|---|---|---|
+| Dokter radiolog | `RadReport : ActAsRadiologist` | **Baru.** Menentukan siapa boleh mengesahkan hasil bacaan |
+| Penanggung jawab klinis | `RadSafetyRule : Approve` | Sudah direncanakan; sekaligus menjadi penanda perannya |
+| DPJP dan dokter jaga senior | Belum ditetapkan | Dipakai `S5` yang belum dirancang. Menyusul bersama `DEC-RAD-001` |
+
+**Mengapa lewat hak akses.** Modul ini sudah memakai `[AccessPermission(...)]` pada 26
+endpoint yang berjalan. Memakai mesin yang sama berarti tidak ada tabel baru, tidak ada layar
+baru, dan tidak ada tempat kedua yang harus dijaga tetap selaras.
+
+Yang lebih penting: pemberian peran memang sudah pekerjaan Administrator. Mengubah siapa yang
+dihitung dokter radiolog cukup lewat pengaturan peran, **tanpa rilis** — sejalan dengan
+tuntutan `RJ-BIL-DEC-014` bahwa hal yang bersifat kebijakan dapat diubah tanpa rilis.
+
+**Perbedaan `ActAsRadiologist` dan `Validate`.** Keduanya diperlukan, dan artinya berbeda.
+
+| Hak akses | Artinya |
+|---|---|
+| `RadReport : Validate` | Boleh **mencoba** mengesahkan bacaan |
+| `RadReport : ActAsRadiologist` | **Dihitung sebagai** dokter radiolog |
+
+> **Contoh mengapa dipisah.** Seorang residen dapat diberi `RadReport : Validate` supaya
+> tombolnya muncul dan ia dapat mengesahkan draf yang ditulis radiografer. Tetapi tanpa
+> `ActAsRadiologist`, ia **tidak** dihitung radiolog — sehingga draf yang ia tulis sendiri tetap
+> ditolak ketika ia mencoba mengesahkannya. Menggabungkan keduanya menjadi satu hak akses akan
+> menghapus perbedaan itu.
+
+**Peran penulis tetap dibekukan.** `RAD-DEC-003` tidak berubah: `AuthorRoleSnapshot` diisi saat
+draf dibuat, dengan menilai hak akses penulis **pada saat itu**. Perubahan hak akses kemudian
+tidak menulis ulang draf lama.
+
+**Disiplin yang wajib dijaga.** `RadReport : ActAsRadiologist` menentukan siapa yang boleh
+menyatakan sebuah bacaan sah dipakai dokter lain. Ia **tidak boleh** diberikan sebagai bagian
+dari paket hak akses umum, dan pemberiannya wajib dapat ditelusuri.
+
+**Acceptance criteria:**
+
+1. Pengguna dengan `RadReport : Validate` tetapi tanpa `ActAsRadiologist` ditolak `403` saat
+   mengesahkan draf yang ia tulis sendiri.
+2. Pengguna dengan keduanya berhasil mengesahkan draf yang ia tulis sendiri.
+3. `AuthorRoleSnapshot` diisi berdasarkan hak akses penulis pada saat draf dibuat.
+4. Perubahan hak akses seseorang tidak mengubah `AuthorRoleSnapshot` draf yang sudah ada.
+5. `RadSafetyRule : Create` dan `RadSafetyRule : Approve` tidak dipegang satu peran yang sama.
+
+**Yang masih terbuka.** Nama peran Quilvian yang akan memegang hak akses ini belum ditetapkan.
+Itu pekerjaan Administrator saat menyusun peran, dan **tidak menahan desain maupun
+implementasi** — hak aksesnya yang dirancang, bukan nama perannya.
+
+---
+
+### `RAD-DEC-014` — Kepemilikan modul Radiologi
+
+Ditetapkan 2026-09-10.
+
+**Keputusan.** Product/Domain Owner modul Radiologi adalah **Yoga Aji Pratama**.
+
+**Hubungannya dengan `RJ-BIL-DEC-014`.** Keputusan itu, pada 28 Agustus 2026, menunjuk Sukma
+Giri sebagai Product/Domain Owner `RadiologyManagement`. Penunjukan itu dilakukan pemilik
+blueprint `rawat-jalan` atas modul yang saat itu tidak bertuan, dan dicatat sendiri sebagai
+penunjukan **tanpa countersignature sponsor governance klinis**.
+
+Sejak blueprint `RAD-BP-001` disusun, seluruh keputusan modul ini — `RAD-DEC-001` sampai
+`RAD-DEC-013` — diambil Yoga Aji Pratama. `RAD-DEC-014` menyatakan keadaan itu secara terbuka,
+sehingga tidak ada dua nama pemilik yang beredar.
+
+`RJ-BIL-DEC-014` **tidak dicabut**. Bagian penunjukan pemiliknya digantikan keputusan ini;
+bagian lain — kenaikan lifecycle registry, sifat fail-closed gerbang keselamatan, dan
+kewajiban aturan keselamatan sebagai data yang dapat diubah — tetap berlaku penuh.
+
+**Yang tidak berubah.** Kepemilikan registry prefix tetap pada Muhammad Hamzah, dan wewenang
+tata kelola klinis tetap belum ditunjuk (`RAD-OPEN-001`).
+
+---
+
 ### `RAD-DEC-012` — Bentuk daftar kerja petugas radiologi
 
 Menjawab sebagian `DEC-RAD-003`. Ditetapkan pada Amendment pass 2026-09-09.
@@ -887,7 +968,7 @@ menambah status berarti menambah keadaan yang harus diuji dan dirawat.
 | Sumber | Isinya |
 |---|---|
 | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 22 | `HealthServices` , `RadiologyManagement / Radiology` , `BUSINESS DOMAIN / MODULE` , prefix `Rad` , status `PLANNED` |
-| Source code pada `64da911` | Delapan tabel `Rad*` sudah rilis dan sudah bermigrasi ke database |
+| Source code pada `0e2eb105` | Delapan tabel `Rad*` sudah rilis dan sudah bermigrasi ke database |
 
 **Mengapa ini penting.** Aturan `QBE-MOD-002` menyatakan modul atau entity operasional baru
 tanpa entri registry yang disetujui berstatus `BLOCKED`. Selama registry masih `PLANNED`,
@@ -944,26 +1025,28 @@ Radiologi tetap perlu diputuskan bersama — lihat `RAD-CQ-005`.
 | `RAD-DEC-002` | Decision | Modul mencakup **seluruh pencitraan diagnostik**: X-Ray, CT-Scan, MRI, USG, mamografi, fluoroskopi. Kedokteran nuklir dan radioterapi **di luar** scope | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul pada sesi wawancara 2026-09-09; menutup `RAD-OPEN-002` |
 | `RAD-DEC-003` | Decision | Dokter radiolog boleh mengesahkan draf bacaannya sendiri. Draf yang ditulis residen/PPDS, radiografer, atau bantuan AI wajib disahkan dokter radiolog yang berbeda. Peran penulis disimpan melekat pada draf | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul pada sesi wawancara 2026-09-09; menutup `RAD-OPEN-004` |
 | `RAD-DEC-004` | Decision | Temuan kritis wajib ditandai, dikirim sebagai pemberitahuan berstatus, dan diakui dokter pengirim. Rilis hasil tidak ditahan. Radiolog wajib mencatat kontak langsung berisi waktu, cara, dan nama penerima | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul pada sesi wawancara 2026-09-09 |
-| `RAD-FACT-001` | Fact | Modul backend Radiologi sudah ada: 16 berkas, 3.492 baris, 2 migration | — | `approved` | Source `64da911` | `Areas/HealthServices/RadiologyManagement/`, `Migrations/20260828093000_AddRadiologyManagement.cs` |
-| `RAD-FACT-002` | Fact | Delapan tabel `Rad*` terdaftar di `ApplicationDbContext` | — | `approved` | Source `64da911` | `Repositories/ApplicationDbContext.cs:748-764` |
-| `RAD-FACT-003` | Fact | Tujuh enum status dan sebab sudah terkunci di kode | — | `approved` | Source `64da911` | `Areas/HealthServices/RadiologyManagement/Enums/RadiologyEnums.cs` |
-| `RAD-FACT-004` | Fact | 26 endpoint sudah tersedia pada dua controller | — | `approved` | Source `64da911` | `Controllers/RadOrderController.cs`, `Controllers/RadStudyController.cs` |
-| `RAD-FACT-005` | Fact | Kemampuan hasil bacaan (`RadReport`) belum ada sama sekali | — | `approved` | Source `64da911` | Pencarian menyeluruh `*.cs` tidak menemukan `RadReport` |
+| `RAD-FACT-001` | Fact | Modul backend Radiologi sudah ada: 16 berkas, 3.492 baris, 2 migration | — | `approved` | Source `0e2eb105` | `Areas/HealthServices/RadiologyManagement/`, `Migrations/20260828093000_AddRadiologyManagement.cs` |
+| `RAD-FACT-002` | Fact | Delapan tabel `Rad*` terdaftar di `ApplicationDbContext` | — | `approved` | Source `0e2eb105` | `Repositories/ApplicationDbContext.cs:748-764` |
+| `RAD-FACT-003` | Fact | Tujuh enum status dan sebab sudah terkunci di kode | — | `approved` | Source `0e2eb105` | `Areas/HealthServices/RadiologyManagement/Enums/RadiologyEnums.cs` |
+| `RAD-FACT-004` | Fact | 26 endpoint sudah tersedia pada dua controller | — | `approved` | Source `0e2eb105` | `Controllers/RadOrderController.cs`, `Controllers/RadStudyController.cs` |
+| `RAD-FACT-005` | Fact | Kemampuan hasil bacaan (`RadReport`) belum ada sama sekali | — | `approved` | Source `0e2eb105` | Pencarian menyeluruh `*.cs` tidak menemukan `RadReport` |
 | `RAD-FACT-006` | Fact | Frontend Radiologi belum ada; tidak ada pemanggil `rad-orders` maupun `rad-studies` | — | `approved` | Source `f66ed1885` | Pencarian menyeluruh `QuilvianSystemFrontendDev/src` |
-| `RAD-FACT-007` | Fact | Data induk radiologi hanya bisa dibaca, belum bisa dikelola | — | `approved` | Source `64da911` | `Controllers/RadStudyController.cs:44,56` |
-| `RAD-FACT-008` | Fact | Belum ada endpoint pelewatan gerbang keselamatan darurat | — | `approved` | Source `64da911` | Kedua controller tidak memuat endpoint pelewatan |
+| `RAD-FACT-007` | Fact | Data induk radiologi hanya bisa dibaca, belum bisa dikelola | — | `approved` | Source `0e2eb105` | `Controllers/RadStudyController.cs:44,56` |
+| `RAD-FACT-008` | Fact | Belum ada endpoint pelewatan gerbang keselamatan darurat | — | `approved` | Source `0e2eb105` | Kedua controller tidak memuat endpoint pelewatan |
 | `RAD-DEC-005` | Decision | Admin Radiologi mengelola aturan keselamatan; perubahan berlaku hanya setelah disahkan penanggung jawab klinis, dan setiap pengesahan menaikkan nomor versi | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-CQ-002` |
 | `RAD-DEC-006` | Decision | Rekam medis membaca hasil bacaan langsung dari modul Radiologi. Tidak ada salinan. Slot `PatientClinicalDocumentSource.Radiology` hanya untuk berkas unggahan dari luar | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-CQ-006` |
 | `RAD-DEC-007` | Decision | Registry diperbaiki menjadi `ACTIVE` dengan entri riwayat susulan yang mencatat tanggal keputusan, tanggal penerapan, dan selisihnya secara jujur | Pemilik modul, dijalankan pemegang registry | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-CQ-001` |
-| `RAD-CONFLICT-001` | Conflict | Registry mencatat `Rad` sebagai `PLANNED` padahal `RJ-BIL-DEC-014` sudah menyetujui kenaikan ke `ACTIVE` dan kodenya sudah rilis. **Jalan keluar sudah ditetapkan `RAD-DEC-007`; menunggu tindakan pemegang registry** | Pemegang registry | `draft` | — | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22`; `BillingSourceContract.cs:11-13`; `rawat-jalan/00-interview-decisions.md:104` |
+| `RAD-DEC-014` | Decision | Product/Domain Owner modul Radiologi adalah Yoga Aji Pratama; menggantikan bagian penunjukan pemilik pada `RJ-BIL-DEC-014` | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-10 | Pernyataan pemilik modul 2026-09-10 |
+| `RAD-DEC-015` | Decision | Peran klinis dikenali lewat hak akses penanda `RadReport : ActAsRadiologist` dan `RadSafetyRule : Approve`, bukan lewat nama peran atau tabel pemetaan | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-10 | Jawaban pemilik modul 2026-09-10; menjawab `DEC-RAD-004` |
+| ~~`RAD-CONFLICT-001`~~ | Conflict | ~~Registry mencatat `Rad` sebagai `PLANNED`~~ **DISELESAIKAN 2026-09-10.** Registry backend dinaikkan ke `ACTIVE` beserta entri riwayat, atas persetujuan Muhammad Hamzah lewat `RAD-REQ-001`. Ternyata registry canonical suite skill **sudah** `ACTIVE` sejak 2026-09-09; yang tertinggal hanya salinan backend | Pemegang registry | `closed` | Muhammad Hamzah, 2026-09-10 | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:22` dan entri riwayat 2026-09-10 |
 | `RAD-DEC-008` | Decision | Pelewatan gerbang keselamatan darurat tersedia, hanya oleh DPJP atau dokter jaga senior, wajib alasan tertulis, ditandai permanen, dan masuk daftar tinjauan. **Menunggu tanda tangan tata kelola klinis** | Pemilik modul | `approved` untuk desain, **belum** untuk production | Yoga Aji Pratama, 2026-09-09; countersignature klinis **tidak ada** | Jawaban pemilik modul 2026-09-09; menjawab `RAD-OPEN-003`; pengesahan terpisah yang dimaksud `RJ-BIL-GATE-DEC-004` |
 | `RAD-DEC-009` | Decision | IGD memesan lewat endpoint resmi `POST /rad-orders`; pesanan `External` lama dibiarkan sebagai riwayat dan tidak dipindahkan | Pemilik modul, dijalankan pemilik modul IGD | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-CQ-005` |
 | `RAD-DEC-010` | Decision | Pemberitahuan temuan kritis tetap atas nama pemesan dan sekaligus muncul di daftar pantau unit pasien; pengakuan oleh dokter lain diterima dan namanya dicatat terpisah | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-OPEN-008` |
 | `RAD-DEC-011` | Decision | Status `Draft` pada pesanan tidak dipakai; nilainya dibiarkan ada agar angka status lain tidak bergeser | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Jawaban pemilik modul 2026-09-09; menjawab `RAD-CQ-004` |
 | `RAD-DEC-012` | Decision | Daftar kerja petugas dikelompokkan **per alat pencitraan**; berupa penyaringan atas data yang sudah ada, **tanpa tabel baru** | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Amendment pass 2026-09-09; menutup sebagian `DEC-RAD-003` |
 | `RAD-DEC-013` | Decision | Dokter pengirim menandai pesanan sebagai cito; daftar kerja mendahulukannya. Menambah satu kolom pada tabel pesanan yang sudah ada | Pemilik modul | `approved` | Yoga Aji Pratama, 2026-09-09 | Amendment pass 2026-09-09; menutup sisa `DEC-RAD-003` |
-| `RAD-CONFLICT-002` | Conflict | Modul IGD masih menyatakan modul Radiologi belum ada, padahal sudah rilis sejak 31 Agustus 2026. **Jalan keluar sudah ditetapkan `RAD-DEC-009`; menunggu tindakan pemilik modul IGD** | Pemilik modul IGD | `draft` | — | `EmergencyOrderKind.cs`; `emergency-assessment-diagnostic-support-tab.jsx:189` |
-| `RAD-FACT-009` | Fact | Modul tidak dapat menjalankan satu pun pemeriksaan: gerbang keselamatan menolak bila aturan belum ada, dan tidak ada cara memasukkan aturan itu | — | `approved` | Source `64da911` | `RadSafetyGateEvaluator.cs#Evaluate`; tidak ada endpoint pengelolaan maupun seeder |
+| ~~`RAD-CONFLICT-002`~~ | Conflict | ~~Modul IGD masih menyatakan modul Radiologi belum ada~~ **DISELESAIKAN SEBAGIAN 2026-09-10.** Teks pada kode backend dan layar frontend IGD diperbaiki atas persetujuan Rizki selaku pemilik modul IGD. Penyambungan pemesanan IGD ke endpoint resmi **belum** dikerjakan dan sengaja menunggu frontend Radiologi Rilis 1 | Pemilik modul IGD | `closed` untuk teks; penyambungan tetap terbuka | Rizki, 2026-09-10 | `EmergencyOrderKind.cs`; `emergency-assessment-diagnostic-support-tab.jsx` |
+| `RAD-FACT-009` | Fact | Modul tidak dapat menjalankan satu pun pemeriksaan: gerbang keselamatan menolak bila aturan belum ada, dan tidak ada cara memasukkan aturan itu | — | `approved` | Source `0e2eb105` | `RadSafetyGateEvaluator.cs#Evaluate`; tidak ada endpoint pengelolaan maupun seeder |
 
 ---
 
@@ -975,9 +1058,10 @@ Radiologi tetap perlu diputuskan bersama — lihat `RAD-CQ-005`.
 | ~~`RAD-OPEN-002`~~ | ~~Apakah kedokteran nuklir dan USG termasuk modul ini, atau dipisah?~~ **DITUTUP 2026-09-09 oleh `RAD-DEC-002`.** USG masuk, kedokteran nuklir keluar | Pemilik modul | — |
 | ~~`RAD-OPEN-003`~~ | ~~Apakah pelewatan gerbang keselamatan darurat dibutuhkan, dan siapa yang mengesahkan?~~ **DITUTUP 2026-09-09 oleh `RAD-DEC-008`**, dengan catatan tanda tangan tata kelola klinis masih tertunda | Clinical Governance | Tersisa pada `RAD-OPEN-001` |
 | ~~`RAD-OPEN-004`~~ | ~~Siapa yang berwenang mengesahkan hasil bacaan, dan bolehkah penulis draf mengesahkan bacaannya sendiri?~~ **DITUTUP 2026-09-09 oleh `RAD-DEC-003`** | Pemilik modul | — |
-| `RAD-OPEN-005` | Registry `Rad` masih `PLANNED`. Kapan diperbarui menjadi aktif? | Pemegang registry | `IMPLEMENTATION` seluruh entity `Rad*` baru |
+| ~~`RAD-OPEN-005`~~ | ~~Registry `Rad` masih `PLANNED`~~ **DITUTUP 2026-09-10.** Salinan backend dinaikkan ke `ACTIVE`; salinan canonical suite skill sudah `ACTIVE` sejak 2026-09-09 | — | — |
 | `RAD-OPEN-009` | Apakah pesanan cito perlu dipantau keterlambatannya, dan berapa batas waktunya per jenis pemeriksaan? Ditunda oleh `RAD-DEC-013` karena butuh penetapan klinis | Clinical Governance | Tidak memblokir apa pun. Perluasan `POST-MVP` |
-| `RAD-OPEN-006` | **Diperluas 2026-09-09.** Empat peran kini dirujuk keputusan tetapi belum satu pun dipetakan ke data peran dan `AccessPermission` yang benar-benar ada: "dokter radiolog" (`RAD-DEC-003`), "penanggung jawab klinis" (`RAD-DEC-005`), serta "DPJP" dan "dokter jaga senior" (`RAD-DEC-008`) | Pemilik modul + Administrator | `IMPLEMENTATION` pengesahan hasil bacaan, pengesahan aturan keselamatan, dan pelewatan darurat |
+| `RAD-OPEN-010` | Salinan registry pada plugin cache `quilvian-engineering-skills/0.1.0` masih tertulis `Rad = PLANNED`, sementara repo canonical `QuilvianEngineeringSkills` sudah `ACTIVE` sejak 2026-09-09 dan salinan backend sejak 2026-09-10. Agent yang membaca aturan lewat jalur plugin akan melihat keadaan lama | Pemegang suite Skill | Tidak memblokir modul ini, tetapi dapat menyesatkan agent lain |
+| ~~`RAD-OPEN-006`~~ | ~~Empat peran belum dipetakan~~ **DITUTUP 2026-09-10 oleh `RAD-DEC-015`** untuk dokter radiolog dan penanggung jawab klinis. Penanda DPJP dan dokter jaga senior menyusul bersama `DEC-RAD-001`, karena `S5` belum dirancang | Pemilik modul + Administrator | — |
 | `RAD-OPEN-007` | Apa saja yang dihitung sebagai temuan kritis radiologi? Daftarnya harus ditetapkan supaya penandaan tidak bergantung selera masing-masing radiolog | Clinical Governance | `IMPLEMENTATION` bagian temuan kritis. **Tidak memblokir** `DESIGN`, karena mekanismenya sudah dikunci `RAD-DEC-004` |
 | ~~`RAD-OPEN-008`~~ | ~~Ke siapa pemberitahuan temuan kritis dialihkan bila dokter pemesan ganti jaga?~~ **DITUTUP 2026-09-09 oleh `RAD-DEC-010`** | — | — |
 
@@ -1063,5 +1147,6 @@ di sini.
 | 4 | 2026-09-09 | `RAD-DEC-004` mengunci penanganan temuan kritis beserta proses bisnis dan tabel perubahan statusnya. `RAD-OPEN-007` dan `RAD-OPEN-008` dibuka. Acceptance criteria menjadi 11 butir. `Scope pass` dinyatakan selesai. | `draft` |
 | 5 | 2026-09-09 | Disinkronkan dengan `01-existing-capability-map.md` revision 1. `RAD-FACT-009` dan `RAD-CONFLICT-002` ditambahkan, `RAD-CONFLICT-001` diperdalam, tujuh closure question `RAD-CQ-001` sampai `RAD-CQ-007` dicatat. | `draft` |
 | 6 | 2026-09-09 | `Closure pass` putaran 1. `RAD-DEC-005`, `RAD-DEC-006`, dan `RAD-DEC-007` dikunci; `RAD-CQ-001`, `RAD-CQ-002`, dan `RAD-CQ-006` ditutup. Acceptance criteria menjadi 21 butir. | `draft` |
+| 9 | 2026-09-10 | `RAD-DEC-014` menetapkan kepemilikan modul pada Yoga Aji Pratama. `RAD-CONFLICT-001` **diselesaikan** — registry backend dinaikkan ke `ACTIVE` atas persetujuan Muhammad Hamzah; ternyata salinan canonical sudah `ACTIVE` sejak 2026-09-09. `RAD-CONFLICT-002` **diselesaikan sebagian** — teks IGD diperbaiki atas persetujuan Rizki; penyambungan endpoint tetap menunggu frontend Rilis 1. `RAD-OPEN-005` ditutup, `RAD-OPEN-010` dibuka. | `draft` |
 | 8 | 2026-09-09 | `Amendment pass`. `RAD-DEC-012` dan `RAD-DEC-013` mengunci bentuk daftar kerja petugas dan penanda cito. `DEC-RAD-003` ditutup, `RAD-OPEN-009` dibuka. Slice `S12` naik menjadi siap dan **tidak** tertahan blocker registry. Acceptance criteria menjadi 42 butir. | `draft` |
 | 7 | 2026-09-09 | `Closure pass` putaran 2. `RAD-DEC-008` sampai `RAD-DEC-011` dikunci; `RAD-OPEN-003`, `RAD-OPEN-008`, `RAD-CQ-004`, dan `RAD-CQ-005` ditutup. Jalan keluar kedua conflict sudah ditetapkan. Acceptance criteria menjadi 35 butir. `Closure pass` dinyatakan selesai. | `draft` |

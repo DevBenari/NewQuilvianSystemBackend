@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-VAL-001` |
 | Revision | `1` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-ARCH-BE-001`, `RAD-STATE-001` |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis. Pesan yang hanya
@@ -79,11 +79,30 @@ Berlaku pada endpoint yang sudah tersedia. Direkam di sini supaya kontrak lengka
 
 | Aturan | Berlaku pada | Pesan bagi pengguna | Kode |
 |---|---|---|---|
-| Aturan keselamatan belum ada | Nyatakan lolos keselamatan | "Aturan keselamatan untuk modalitas ini belum ditetapkan, sehingga acquisition tidak dapat dijalankan. Hubungi admin Radiologi untuk menetapkan aturannya lebih dulu." | `409` |
+| Aturan keselamatan belum ada | Nyatakan lolos keselamatan; **dan mulai acquisition** | "Aturan keselamatan untuk modalitas ini belum ditetapkan, sehingga acquisition tidak dapat dijalankan. Hubungi admin Radiologi untuk menetapkan aturannya lebih dulu." | `409` |
 | Butir wajib belum dijawab | Nyatakan lolos keselamatan | "Gerbang keselamatan wajib belum dijawab: `<kode butir>`." | `409` |
 | Butir wajib dinyatakan tidak aman | Nyatakan lolos keselamatan | "Gerbang keselamatan wajib dinyatakan tidak aman: `<kode butir>`." | `409` |
 | Mutu dinilai sebelum citra diambil | Nilai mutu | "Kualitas hanya dapat dinilai untuk study berstatus Acquired." | `409` |
 | Identitas pelaku tidak diketahui | Semua tindakan | "Identitas petugas tidak dapat ditentukan dari sesi yang sedang berjalan. Tindakan radiologi tidak dijalankan." | `401` |
+
+### Urutan pemeriksaan pada mulai acquisition — diperbarui `0e2eb105`
+
+Commit `463dfc15` mengubah urutan pemeriksaan pada `StartAcquisitionAsync`. Urutan yang berlaku
+sekarang:
+
+| Urutan | Yang diperiksa | Pesan bila gagal |
+|---:|---|---|
+| 1 | Identitas pasien dan modalitas terverifikasi | "...belum diverifikasi." |
+| 2 | **Ada aturan keselamatan aktif** | "Aturan keselamatan untuk modalitas ini belum ditetapkan..." |
+| 3 | Study berstatus `SafetyCleared` | "Acquisition ditolak: study berstatus X, bukan SafetyCleared." |
+| 4 | Seluruh butir wajib tuntas | "Gerbang keselamatan wajib..." |
+
+**Mengapa urutannya penting.** Ketiadaan aturan adalah persoalan **konfigurasi**, bukan
+persoalan study yang belum melewati gerbang. Memeriksanya lebih dulu membuat petugas menerima
+pesan yang benar — "hubungi admin" — alih-alih pesan yang menyesatkan tentang status study.
+
+`BE-RAD-06` **wajib mempertahankan urutan ini** saat mengubah penilaian dari `IsActive` menjadi
+`RuleStatus`.
 
 ---
 

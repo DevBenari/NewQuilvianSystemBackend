@@ -303,6 +303,7 @@ try
     builder.Services.AddScoped<LabPatientRegistrationService>();
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
+    builder.Services.AddScoped<RadSafetyPolicyService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 

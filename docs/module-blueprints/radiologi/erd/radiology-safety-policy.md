@@ -4,9 +4,9 @@
 |---|---|
 | Contract version | `RAD-ERD-SAF-001` |
 | Revision | `1` |
-| Status | `draft` |
+| Status | `approved` |
 | Konteks | `BC-RAD-04` Safety Policy |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Decision | `RAD-DEC-005`, `RJ-BIL-DEC-014` |
 
 Konteks ini menetapkan **kebijakan**, bukan mengerjakan pasien. Ia yang menentukan pemeriksaan
@@ -92,7 +92,7 @@ erDiagram
 
 | Keadaan | Filter |
 |---|---|
-| Sekarang di `64da911` | `"IsDelete" = false AND "IsActive" = true` |
+| Sekarang di `0e2eb105` | `"IsDelete" = false AND "IsActive" = true` |
 | Setelah migration 1 | `"IsDelete" = false AND "RuleStatus" = 3` |
 
 Angka `3` adalah nilai `RadSafetyRuleStatus.Active`.

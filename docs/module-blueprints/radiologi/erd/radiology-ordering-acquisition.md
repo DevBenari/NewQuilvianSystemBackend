@@ -4,9 +4,9 @@
 |---|---|
 | Contract version | `RAD-ERD-ORD-001` |
 | Revision | `2` |
-| Status | `draft` |
+| Status | `approved` |
 | Konteks | `BC-RAD-01` Ordering, `BC-RAD-02` Acquisition |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 
 Empat dari lima tabel berstatus `Sudah ada` dan tidak berubah. **`RadOrder` berstatus
 `Diperbarui`** karena penanda cito (`RAD-DEC-013`).
@@ -119,7 +119,7 @@ erDiagram
 
 ## Index dan Batasan yang Berlaku
 
-Diambil apa adanya dari berkas configuration pada `64da911`.
+Diambil apa adanya dari berkas configuration pada `0e2eb105`.
 
 | Tabel | Index | Sifat |
 |---|---|---|

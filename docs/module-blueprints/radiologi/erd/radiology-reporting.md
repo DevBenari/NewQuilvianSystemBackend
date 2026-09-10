@@ -4,9 +4,9 @@
 |---|---|
 | Contract version | `RAD-ERD-REP-001` |
 | Revision | `1` |
-| Status | `draft` |
+| Status | `approved` |
 | Konteks | `BC-RAD-03` Reporting |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Decision | `RJ-BIL-GATE-DEC-004`, `RAD-DEC-003`, `RAD-DEC-006` |
 
 Kedua tabel di sini berstatus **`Baru`**. Belum ada satu pun di source.

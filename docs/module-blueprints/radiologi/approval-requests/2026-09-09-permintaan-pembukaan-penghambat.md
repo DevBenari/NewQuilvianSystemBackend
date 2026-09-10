@@ -3,14 +3,48 @@
 | Field | Value |
 |---|---|
 | `request_id` | `RAD-REQ-001` |
-| `tanggal` | 2026-09-09 |
-| `pengaju` | Yoga Aji Pratama — penyusun blueprint Radiologi |
-| `rujukan` | `blueprint-manifest.md` revision `5`; `04-prd-to-mvp.md` bagian 20 |
-| `status` | `terbuka` |
+| `tanggal` | 2026-09-09, diperbarui 2026-09-10 |
+| `pengaju` | Yoga Aji Pratama — Product/Domain Owner Radiologi (`RAD-DEC-014`) |
+| `rujukan` | `blueprint-manifest.md` revision `7`; `04-prd-to-mvp.md` bagian 20 |
+| `status` | **`dijawab sebagian`** — butir 1 dan 3 selesai, butir 2 masih terbuka. Lihat bagian 0.1 |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 
 Dokumen ini dapat diteruskan apa adanya. Setiap bagian berdiri sendiri: penerima cukup membaca
 bagian yang menyebut namanya.
+
+---
+
+## 0.1 Hasil — Diperbarui 2026-09-10
+
+Persetujuan disampaikan pemilik modul Radiologi pada 2026-09-10.
+
+### Selesai — dua butir
+
+| No | Yang diminta | Siapa yang menyetujui | Apa yang dikerjakan |
+|---:|---|---|---|
+| 1 | Menaikkan registry ke `ACTIVE` | Muhammad Hamzah, pemegang registry | Baris 22 `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dinaikkan ke `ACTIVE`; entri riwayat 2026-09-10 ditambahkan |
+| 3 | Memperbaiki pernyataan modul IGD | Rizki, pemilik modul IGD | Keterangan pada `EmergencyOrderKind.cs` dan pesan pada layar penunjang IGD diperbarui |
+
+**Temuan saat mengerjakan butir 1.** Registry canonical pada repo `QuilvianEngineeringSkills`
+ternyata **sudah** mencatat `Rad` sebagai `ACTIVE` sejak 2026-09-09. Yang tertinggal hanya
+salinan backend — pola selisih yang sama persis dengan `ACC-DEP-007`. Jadi pekerjaan ini
+menjadi **propagasi**, bukan persetujuan baru, dan itu dicatat apa adanya pada entri riwayat.
+
+Muncul satu hal baru: salinan registry pada plugin cache `quilvian-engineering-skills/0.1.0`
+masih tertulis `PLANNED`. Dicatat sebagai `RAD-OPEN-010`.
+
+**Batas butir 3.** Yang dikerjakan hanya perbaikan teks. Penyambungan pemesanan radiologi IGD
+ke endpoint resmi **belum** dikerjakan, dan memang sengaja menunggu frontend Radiologi Rilis 1
+sesuai catatan bagian 3.5. Peninjauan status `IGD-DEC-099` juga belum dilakukan dan tetap milik
+pemilik modul IGD.
+
+### Masih terbuka — satu butir
+
+| No | Yang dibutuhkan | Kenapa belum selesai |
+|---:|---|---|
+| 2 | Pemetaan empat sebutan peran ke peran Quilvian | Yang diminta adalah **empat baris isian**, bukan izin. Menyetujui permintaan tidak memberi tahu peran mana yang setara |
+
+**Butir 2 kini menjadi satu-satunya penghambat `/plan-module-delivery`.**
 
 ---
 

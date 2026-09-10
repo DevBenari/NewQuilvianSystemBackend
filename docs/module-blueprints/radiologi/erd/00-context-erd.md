@@ -4,8 +4,8 @@
 |---|---|
 | Contract version | `RAD-ERD-CTX-001` |
 | Revision | `1` |
-| Status | `draft` |
-| Backend SHA | `64da911` |
+| Status | `approved` |
+| Backend SHA | `0e2eb105` |
 | Input | `RAD-DA-001-r1`, `RAD-ARCH-BE-001` |
 
 Dokumen ini memperlihatkan **peta antar bounded context** beserta arah ketergantungannya. ERD

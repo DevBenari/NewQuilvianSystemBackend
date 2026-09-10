@@ -4,9 +4,9 @@
 |---|---|
 | Contract version | `RAD-ARCH-BE-001` |
 | Revision | `2` |
-| Status | `draft` |
+| Status | `approved` |
 | Blueprint ID | `RAD-BP-001` |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Frontend SHA | `f66ed1885` |
 | Input revision | Decisions rev 8; Capability map rev 1; `RAD-RCG-001-r2`; `RAD-DA-001-r2` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_PARTIAL` |
@@ -14,7 +14,7 @@
 | Slice yang **tidak** dirancang | `S5`, `S11` |
 | Perubahan revision 2 | `S12` daftar kerja masuk; `RadOrder` menjadi `Diperbarui` karena penanda cito |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | Belum — approval adalah tindakan manusia |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 2026-09-10 |
 
 > **Batas dokumen ini.** Dokumen ini merancang bentuk teknis backend. Ia **bukan** izin menulis
 > kode, **bukan** izin membuat migration, dan **bukan** izin menjalankan database.

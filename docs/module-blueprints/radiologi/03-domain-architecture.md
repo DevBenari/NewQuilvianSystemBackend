@@ -13,7 +13,7 @@
 | Slice yang dirancang | `S1`, `S2`, `S3`, `S4`, `S6`, `S7`, `S8`, `S9`, `S10`, **`S12`**, `S13`, `S14` |
 | Slice yang **tidak** dirancang | `S5`, `S11` |
 | Perubahan revision 2 | `S12` daftar kerja masuk setelah `DEC-RAD-003` ditutup |
-| Backend SHA | `64da911` |
+| Backend SHA | `0e2eb105` |
 | Frontend SHA | `f66ed1885` |
 | Decision ID mengikat | `RJ-BIL-GATE-DEC-004`, `RJ-BIL-DEC-014`, `RAD-DEC-001` s/d `RAD-DEC-013` |
 | Decision ID belum selesai | `DEC-RAD-001` s/d `DEC-RAD-006` |
@@ -120,7 +120,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Identitas | Identitas sendiri; menempel pada kunjungan pasien, tidak menggantikannya |
 | Peran lifecycle | Enam status jalur normal, empat status pengecualian |
 | Invariant utama | Tidak memiliki satu pun kolom finansial. Pesanan tidak pernah menerbitkan fakta tagih |
-| Bukti | `Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs@64da911` |
+| Bukti | `Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs@0e2eb105` |
 | Decision | `RJ-BIL-GATE-DEC-004`, `RAD-DEC-009`, `RAD-DEC-011` |
 | Keyakinan | Tinggi — sudah rilis dan teruji |
 
@@ -136,7 +136,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Peran lifecycle | Enam status jalur normal, lima status pengecualian |
 | Invariant utama | Pengulangan **tidak pernah** menimpa study aslinya. Study baru menunjuk study yang diulang beserta sebabnya |
 | Invariant kedua | Versi aturan keselamatan dibekukan saat study dinyatakan lolos |
-| Bukti | `Models/RadStudy.cs@64da911` |
+| Bukti | `Models/RadStudy.cs@0e2eb105` |
 | Decision | `RJ-BIL-GATE-DEC-004` |
 | Keyakinan | Tinggi |
 
@@ -155,7 +155,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Tujuan | Jawaban atas satu butir keselamatan pada satu study |
 | Identitas | Tidak berdiri sendiri di luar study-nya |
 | Invariant | Ketiadaan jawaban **bukan** jawaban. Butir wajib tanpa baris jawaban diperlakukan belum dijawab |
-| Bukti | `Models/RadStudySafetyCheck.cs@64da911`; `Services/RadSafetyGateEvaluator.cs@64da911` |
+| Bukti | `Models/RadStudySafetyCheck.cs@0e2eb105`; `Services/RadSafetyGateEvaluator.cs@0e2eb105` |
 | Keyakinan | Tinggi |
 
 ### `DC-RAD-04` — RadAcquisitionConsumption
@@ -167,7 +167,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Ownership | **Existing** |
 | Tujuan | Mencatat bahan yang benar-benar terpakai — kontras, film, BHP, obat |
 | Invariant | Dicatat sebagai **jumlah**, bukan nominal rupiah. Penilaian finansialnya milik Billing |
-| Bukti | `Models/RadAcquisitionConsumption.cs@64da911` |
+| Bukti | `Models/RadAcquisitionConsumption.cs@0e2eb105` |
 | Decision | `RJ-BIL-GATE-DEC-005` |
 | Keyakinan | Tinggi |
 
@@ -180,7 +180,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Ownership | **Existing** |
 | Tujuan | Merekam setiap perpindahan status beserta pelaku, waktu, dan alasannya |
 | Invariant | Hanya bertambah. Tidak pernah diubah maupun dihapus |
-| Bukti | `Models/RadTransitionHistory.cs@64da911` |
+| Bukti | `Models/RadTransitionHistory.cs@0e2eb105` |
 | Keyakinan | Tinggi |
 
 ### `DC-RAD-06` — RadModality
@@ -193,7 +193,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Tujuan | Daftar alat pencitraan yang dimiliki rumah sakit |
 | Peran lifecycle | Aktif atau nonaktif |
 | Gap | Belum ada cara menambah, mengubah, atau menonaktifkan selain lewat database langsung |
-| Bukti | `Models/MstRadModality.cs@64da911`; hanya dibaca lewat `Controllers/RadStudyController.cs#GetModalities:44@64da911` |
+| Bukti | `Models/MstRadModality.cs@0e2eb105`; hanya dibaca lewat `Controllers/RadStudyController.cs#GetModalities:44@0e2eb105` |
 | Decision | `RAD-DEC-001` butir 14, `RAD-DEC-002` |
 | Keyakinan | Tinggi |
 
@@ -206,7 +206,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Ownership | **Extend** |
 | Tujuan | Daftar butir pertanyaan keselamatan yang mungkin dipakai |
 | Gap | Sama seperti `DC-RAD-06` |
-| Bukti | `Models/MstRadSafetyRequirement.cs@64da911` |
+| Bukti | `Models/MstRadSafetyRequirement.cs@0e2eb105` |
 | Keyakinan | Tinggi |
 
 ### `DC-RAD-08` — RadModalitySafetyRule
@@ -221,7 +221,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Peran lifecycle | Draf → Menunggu persetujuan → Aktif → Nonaktif |
 | Invariant utama | Hanya aturan berstatus **Aktif** yang ikut dinilai gerbang keselamatan |
 | Invariant kedua | Setiap pengesahan menaikkan nomor versi tepat satu kali |
-| Bukti | `Models/MstRadModalitySafetyRule.cs@64da911`; `Repositories/Configurations/HealthServices/RadiologyManagement/MstRadModalitySafetyRuleConfiguration.cs@64da911` |
+| Bukti | `Models/MstRadModalitySafetyRule.cs@0e2eb105`; `Repositories/Configurations/HealthServices/RadiologyManagement/MstRadModalitySafetyRuleConfiguration.cs@0e2eb105` |
 | Decision | `RAD-DEC-005`, `RJ-BIL-DEC-014` |
 | Keyakinan | Tinggi |
 
@@ -276,7 +276,7 @@ Klasifikasi menggambarkan tanggung jawab domain, bukan bentuk tabel.
 | Ownership | **Adapter/View** — Radiologi menerbitkan, tidak memiliki akibatnya |
 | Tujuan | Memberi tahu Billing bahwa satu pemeriksaan benar-benar dikerjakan dan citranya layak |
 | Invariant | Satu fakta per study, bukan per pesanan. Hanya terbit saat citra dinyatakan layak |
-| Bukti | `Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@64da911`; kontrak `BIL-INTEGRATION-0.4` |
+| Bukti | `Services/RadStudyService.cs#EmitChargeEligibilityAsync:930-960@0e2eb105`; kontrak `BIL-INTEGRATION-0.4` |
 | Keyakinan | Tinggi |
 
 ### `DC-RAD-12` — Daftar Kerja Alat
@@ -563,7 +563,7 @@ tagihan, pengembalian dana, maupun pembalikan.
 | Idempotency | Penanda "fakta sudah terkirim" pada study mencegah pengiriman ganda |
 | Kontrak | `BIL-INTEGRATION-0.4` |
 | Bila gagal | Study tetap `QualityAccepted`; penanda tidak diset, sehingga dapat dikirim ulang |
-| Bukti | `Services/RadStudyService.cs:517-524@64da911` |
+| Bukti | `Services/RadStudyService.cs:517-524@0e2eb105` |
 
 **Yang bukan pemicu tagihan:** pesanan dibuat, pesanan diterima, pesanan dijadwalkan, dan
 **hasil bacaan dirilis**. Dikunci `RJ-BIL-GATE-DEC-004`.

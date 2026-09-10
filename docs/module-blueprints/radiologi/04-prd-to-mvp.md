@@ -8,15 +8,15 @@
 | Modul | Radiologi (`radiologi`), kode `RAD` |
 | Contract version | `RAD-PRD-001` |
 | Revision | `2` |
-| Status | `draft` |
+| Status | `approved` |
 | Repository target | `NewQuilvianSystemBackend`, `QuilvianSystemFrontendDev` |
-| Backend SHA baseline | `64da911` |
+| Backend SHA baseline | `0e2eb105` |
 | Frontend SHA baseline | `f66ed1885` |
 | Input | `RAD-ARCH-BE-001`, `RAD-ARCH-FE-001`, `RAD-API-001`, `RAD-STATE-001`, `RAD-VAL-001`, `RAD-INT-001`, `RAD-PERM-001`, `RAD-TEST-001` |
 | Kesiapan requirement | `RAD-RCG-001-r1` — `PARTIALLY_READY` |
 | Kesiapan arsitektur domain | `RAD-DA-001-r1` — `DOMAIN_ARCHITECTURE_PARTIAL` |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | **Belum** — approval adalah tindakan manusia |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 2026-09-10 |
 | Ringkasan cakupan | Melengkapi modul Radiologi yang mesin pemeriksaannya sudah berdiri, sampai hasil bacaan radiolog dapat dirilis dan dibaca dokter pengirim |
 
 > **PERINGATAN PENTING.** Dokumen ini berstatus `draft` dan **belum boleh diteruskan ke
@@ -46,7 +46,7 @@ melengkapi rantai sampai hasil bacaan dirilis.
 
 ### Apa yang sudah ada
 
-Dibuktikan dari source pada `64da911`.
+Dibuktikan dari source pada `0e2eb105`.
 
 | Kemampuan | ID kemampuan | Bukti |
 |---|---|---|
@@ -747,21 +747,24 @@ Tidak ada gelombang yang memuat epic berstatus `OPEN DECISION`.
 
 | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
 |---|---|---|:---:|
-| Kapan registry `Rad` dinaikkan menjadi `ACTIVE` beserta entri riwayatnya? Caranya sudah ditetapkan `RAD-DEC-007` | Pemegang registry | `MVP-0` tidak dapat dimulai; `QBE-MOD-002` menahan seluruh entity `Rad*` baru | **Ya** |
+| ~~Kapan registry `Rad` dinaikkan menjadi `ACTIVE`?~~ **TERJAWAB 2026-09-10** — salinan backend dinaikkan atas persetujuan Muhammad Hamzah; salinan canonical sudah `ACTIVE` sejak 2026-09-09 | Pemegang registry | — | ~~Ya~~ **Tidak lagi** |
 | Peran mana di Quilvian yang setara dengan dokter radiolog dan penanggung jawab klinis? (`DEC-RAD-004`) | Pemilik modul + Administrator | `EPIC RAD-01` dan `EPIC RAD-02` tidak dapat menegakkan aturan pengesahan | **Ya** |
 | Isi awal aturan keselamatan disiapkan tim atau diketik admin? (`DEC-RAD-005`) | Penanggung jawab klinis | `MVP-1` dapat berjalan, tetapi modul belum dapat dipakai sampai datanya terisi | Tidak |
 | Apakah tata kelola klinis menyetujui pelewatan gerbang darurat? (`DEC-RAD-001`) | Tata kelola klinis | Hanya memengaruhi `POST-MVP` | Tidak |
 | Apa saja yang dihitung temuan kritis? (`DEC-RAD-002`) | Tata kelola klinis | Hanya memengaruhi `POST-MVP` | Tidak |
 | Bagaimana bentuk daftar kerja petugas? (`DEC-RAD-003`) | Pemilik modul + kepala unit | Hanya memengaruhi `POST-MVP` | Tidak |
 
-### Akibat dua pertanyaan pemblokir
+### Akibat pertanyaan pemblokir yang tersisa — diperbarui 2026-09-10
 
-Dokumen ini **tetap berstatus `draft` dan tidak boleh diteruskan ke `/plan-module-delivery`**
-sampai kedua pertanyaan bertanda memblokir dijawab.
+Satu dari dua pertanyaan pemblokir sudah terjawab. Registry `Rad` kini `ACTIVE` pada kedua
+salinan, sehingga `QBE-MOD-002` tidak lagi menahan `RadReport` dan `RadReportVersion`.
+Gelombang `MVP-0` dapat dimulai begitu pemetaan peran tersedia.
 
-Keduanya bukan pertanyaan bisnis yang sulit — keputusannya sudah diambil. Yang belum terjadi
-adalah **eksekusinya**: registry belum diperbarui, dan peran belum dipetakan. Keduanya berada di
-luar kendali modul Radiologi.
+**Yang tersisa satu: pemetaan empat sebutan peran ke peran Quilvian (`DEC-RAD-004`).**
+
+Dokumen ini **tetap berstatus `draft` dan belum boleh diteruskan ke `/plan-module-delivery`**
+sampai pemetaan itu ada. Tanpa peta peran, aturan pengesahan hasil bacaan dan aturan pengesahan
+aturan keselamatan tidak dapat ditegakkan — keduanya hanya menjadi tulisan di dokumen.
 
 ---
 
@@ -770,4 +773,5 @@ luar kendali modul Radiologi.
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-09 | PRD ke MVP pertama. Enam epic, 24 functional requirement, 12 skenario UAT, 16 butir Definition of Done, lima gelombang pengiriman. Dua pertanyaan pemblokir dicatat. | `draft` |
+| 3 | 2026-09-10 | Registry `Rad` naik menjadi `ACTIVE`, sehingga satu dari dua pertanyaan pemblokir terjawab. `MVP-0` tidak lagi tertahan `QBE-MOD-002`. Sisa pemblokir: pemetaan peran `DEC-RAD-004`. | `draft` |
 | 2 | 2026-09-09 | `EPIC RAD-07` daftar kerja dan penanda cito ditambahkan setelah `DEC-RAD-003` ditutup. Enam functional requirement dan dua skenario UAT baru. Masuk gelombang `MVP-4`. Pemantauan keterlambatan cito pindah ke `POST-MVP`. | `draft` |

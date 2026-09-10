@@ -24,10 +24,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// Tiga keadaan dibedakan, dan ketiganya berbeda maknanya:
     ///
     /// <list type="bullet">
-    /// <item><b>Kebijakan belum ada.</b> Tidak satu pun aturan aktif untuk modalitas ini.
-    /// Acquisition <b>ditolak</b>. Ini perilaku fail-closed yang dituntut <c>RJ-BIL-DEC-014</c>:
-    /// tidak adanya aturan berarti belum ada yang menetapkan apa yang aman, bukan berarti
-    /// semuanya aman.</item>
+    /// <item><b>Kebijakan belum ada.</b> Tidak satu pun aturan berstatus
+    /// <c>RadSafetyRuleStatus.Active</c> untuk modalitas ini. Acquisition <b>ditolak</b>. Ini
+    /// perilaku fail-closed yang dituntut <c>RJ-BIL-DEC-014</c>: tidak adanya aturan berarti
+    /// belum ada yang menetapkan apa yang aman, bukan berarti semuanya aman.</item>
     /// <item><b>Kebijakan ada, butir wajib belum tuntas.</b> Acquisition ditolak sampai seluruh
     /// butir wajib berkeadaan <c>Passed</c> atau <c>NotApplicable</c>.</item>
     /// <item><b>Kebijakan ada dan seluruh butir wajib tuntas.</b> Acquisition boleh berjalan.</item>
@@ -37,6 +37,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// Menjadikannya pemblokir akan menghapus perbedaan antara wajib dan tidak wajib, dan
     /// membuat admin memilih menandai semuanya tidak wajib supaya pekerjaan tetap berjalan —
     /// yang justru melemahkan gerbangnya secara keseluruhan.
+    ///
+    /// Sejak <c>RAD-DEC-005</c>, aturan yang belum disahkan tidak ikut dinilai sama sekali.
+    /// Penyaringnya ditegakkan dua kali — pada query pemuat aturan dan sekali lagi di sini —
+    /// karena kedua kekeliruan yang mungkin terjadi tidak setara: aturan sah yang tersaring
+    /// keluar berakhir sebagai penolakan yang terlihat, sedangkan draf yang lolos masuk
+    /// berakhir sebagai pasien yang disinari atas dasar aturan yang belum disetujui siapa pun.
     /// </summary>
     public static class RadSafetyGateEvaluator
     {
@@ -50,18 +56,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             state == RadSafetyCheckState.Passed || state == RadSafetyCheckState.NotApplicable;
 
         /// <summary>
+        /// Aturan yang boleh ikut menentukan boleh-tidaknya seorang pasien disinari.
+        ///
+        /// Hanya <c>Active</c> yang boleh. <c>Draft</c> dan <c>PendingApproval</c> belum
+        /// disahkan penanggung jawab klinis, sedangkan <c>Inactive</c> sudah dihentikan;
+        /// ketiganya sama-sama bukan kebijakan yang berlaku hari ini.
+        /// </summary>
+        public static bool IsEnforceable(RadSafetyRuleStatus status) =>
+            status == RadSafetyRuleStatus.Active;
+
+        /// <summary>
         /// Menilai apakah sebuah study boleh melanjutkan ke acquisition.
         /// </summary>
         /// <param name="applicableRules">
-        /// Aturan aktif yang berlaku untuk modalitas dan pemeriksaan study ini.
+        /// Aturan yang berlaku untuk modalitas dan pemeriksaan study ini. Aturan yang belum
+        /// disahkan boleh ikut terkirim: penyaringnya ditegakkan lagi di sini, sehingga
+        /// pemanggil yang lupa menyaring berakhir pada penolakan, bukan pada kelolosan.
         /// </param>
         /// <param name="checks">Baris pemeriksaan keselamatan milik study tersebut.</param>
         public static RadSafetyGateOutcome Evaluate(
             IReadOnlyCollection<MstRadModalitySafetyRule> applicableRules,
             IReadOnlyCollection<RadStudySafetyCheck> checks)
         {
-            var rules = applicableRules ?? Array.Empty<MstRadModalitySafetyRule>();
             var safeChecks = checks ?? Array.Empty<RadStudySafetyCheck>();
+
+            // Aturan yang belum disahkan disingkirkan lebih dulu, sebelum apa pun dihitung.
+            // Akibatnya modalitas yang hanya punya draf terbaca sebagai "kebijakan belum
+            // ditetapkan" — persis keadaan modalitas yang memang belum punya aturan sama sekali,
+            // dan memang begitulah seharusnya: draf bukan kebijakan.
+            var rules = (applicableRules ?? Array.Empty<MstRadModalitySafetyRule>())
+                .Where(x => IsEnforceable(x.RuleStatus))
+                .ToList();
 
             if (rules.Count == 0)
             {
