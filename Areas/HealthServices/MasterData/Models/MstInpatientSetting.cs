@@ -27,6 +27,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public int PendingClosureThresholdHours { get; set; } = 4;
 
+        /// <summary>
+        /// Berapa hari sekali kekurangan uang muka ditagih ulang selama episode masih
+        /// berjalan. Bawaan 3 hari, sesuai <c>RWI-DEC-096</c>.
+        /// </summary>
+        /// <remarks>
+        /// Angka ini hanya menjadwalkan pengingat kerja. Ia <b>tidak pernah</b> dipakai
+        /// menahan perawatan, menutup episode, atau menolak tindakan apa pun.
+        /// </remarks>
+        public int DepositFollowUpIntervalDays { get; set; } = 3;
+
         [Required]
         [MaxLength(20)]
         public string EpisodeNumberPrefix { get; set; } = "RI";

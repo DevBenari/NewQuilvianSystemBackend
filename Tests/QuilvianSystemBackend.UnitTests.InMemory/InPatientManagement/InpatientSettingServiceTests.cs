@@ -153,6 +153,110 @@ public sealed class InpatientSettingServiceTests
         Assert.Equal(0, await service.CountLiveSettingsAsync());
     }
 
+    // =========================================================================
+    // BE-RWI-041 — ambang tindak lanjut kekurangan deposit dapat diubah admin
+    // =========================================================================
+
+    /// <summary>
+    /// Kriteria 1. Pada lingkungan yang baris pengaturannya belum diisi sama sekali, ambang
+    /// tindak lanjut terbaca 3 hari dan modul tetap menyala.
+    /// </summary>
+    [Fact]
+    public async Task Kriteria1_TanpaBarisPengaturan_AmbangTindakLanjutTerbacaTigaHari()
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var moduleLogger = new RecordingLogger<InpSettingService>();
+        var moduleService = new InpSettingService(db, moduleLogger);
+
+        var setting = await moduleService.GetEffectiveSettingAsync();
+
+        Assert.Equal(3, setting.DepositFollowUpIntervalDays);
+        Assert.False(setting.IsFromMasterData);
+    }
+
+    /// <summary>
+    /// Kriteria 2 dan 4. Admin mengubahnya lewat endpoint pengaturan yang sudah ada, dan
+    /// nilai barunya berlaku pada pembacaan berikutnya tanpa aplikasi dinyalakan ulang.
+    /// </summary>
+    [Fact]
+    public async Task Kriteria2Dan4_AmbangDiubahAdmin_BerlakuPadaPembacaanBerikutnya()
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var masterService = new InpatientSettingService(db);
+        var moduleLogger = new RecordingLogger<InpSettingService>();
+        var moduleService = new InpSettingService(db, moduleLogger);
+
+        var entity = BuildSetting(bedReservationMinutes: 120);
+        db.Set<MstInpatientSetting>().Add(entity);
+        await db.SaveChangesAsync();
+
+        Assert.Equal(3, (await moduleService.GetEffectiveSettingAsync()).DepositFollowUpIntervalDays);
+
+        // Rumah sakit memutuskan menagih ulang seminggu sekali, bukan tiga hari sekali.
+        var request = BuildUpdateRequest(120);
+        request.DepositFollowUpIntervalDays = 7;
+
+        var hasil = await masterService.UpdateAsync(entity.Id, request, ActorUserId);
+
+        Assert.Equal(InpatientSettingUpdateStatus.Success, hasil.Status);
+        Assert.Equal(7, (await moduleService.GetEffectiveSettingAsync()).DepositFollowUpIntervalDays);
+    }
+
+    /// <summary>
+    /// Kriteria 3. Nilai 0 dan nilai negatif ditolak, dan baris yang tersimpan tidak bergeser.
+    /// </summary>
+    /// <remarks>
+    /// Ambang <c>0</c> berarti kekurangan ditagih ulang tanpa jeda: setiap pembacaan daftar
+    /// pantau memunculkan episode yang sama, dan penagihan berkala kehilangan artinya.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(366)]
+    public async Task Kriteria3_AmbangDiLuarRentangWajar_Ditolak(int hari)
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var service = new InpatientSettingService(db);
+
+        var entity = BuildSetting(bedReservationMinutes: 120);
+        db.Set<MstInpatientSetting>().Add(entity);
+        await db.SaveChangesAsync();
+
+        var request = BuildUpdateRequest(120);
+        request.DepositFollowUpIntervalDays = hari;
+
+        var hasil = await service.UpdateAsync(entity.Id, request, ActorUserId);
+
+        Assert.Equal(InpatientSettingUpdateStatus.Invalid, hasil.Status);
+        Assert.Contains("tindak lanjut", hasil.Message);
+
+        var tersimpan = await db.Set<MstInpatientSetting>().AsNoTracking().SingleAsync();
+        Assert.Equal(3, tersimpan.DepositFollowUpIntervalDays);
+    }
+
+    /// <summary>
+    /// Baris pengaturan lama yang kolomnya belum pernah terisi tetap terbaca sebagai 3 hari,
+    /// bukan sebagai 0. Tanpa penjagaan ini, satu baris warisan membuat pengingat menyala
+    /// setiap hari tanpa ada yang memintanya.
+    /// </summary>
+    [Fact]
+    public async Task BarisWarisanBerambangNol_TetapTerbacaTigaHari()
+    {
+        await using var db = IsolatedInpatientDbContextFactory.Create();
+        var moduleLogger = new RecordingLogger<InpSettingService>();
+        var moduleService = new InpSettingService(db, moduleLogger);
+
+        var entity = BuildSetting(bedReservationMinutes: 120);
+        entity.DepositFollowUpIntervalDays = 0;
+        db.Set<MstInpatientSetting>().Add(entity);
+        await db.SaveChangesAsync();
+
+        var setting = await moduleService.GetEffectiveSettingAsync();
+
+        Assert.Equal(3, setting.DepositFollowUpIntervalDays);
+        Assert.True(setting.IsFromMasterData);
+    }
+
     private static MstInpatientSetting BuildSetting(int bedReservationMinutes)
         => new()
         {

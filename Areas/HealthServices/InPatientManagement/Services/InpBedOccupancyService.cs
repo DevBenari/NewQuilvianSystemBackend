@@ -151,6 +151,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var eligible = new List<MstBed>();
 
+            // BE-RWI-069. Alasan penolakan sudah dihitung untuk setiap bed kandidat di bawah,
+            // lalu selama ini dibuang. Menyimpannya tidak menambah satu pun query: daftar ini
+            // diisi dari hasil pemeriksaan yang sama, bukan dari pemeriksaan kedua.
+            var ineligible = new List<IneligibleBedResponse>();
+
+            // Tanpa episode, empat dari sembilan aturan tidak dapat dinilai sama sekali,
+            // sehingga alasan yang terkirim akan menyesatkan. Daftar penolakan karena itu
+            // hanya disusun ketika episodenya benar-benar ada.
+            var collectIneligible = query.IncludeIneligible && episode != null;
+
             foreach (var candidate in candidates)
             {
                 if (candidate.Room == null || candidate.Room.IsDelete || !candidate.Room.IsActive)
@@ -169,6 +179,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 if (evaluation.IsEligible)
                 {
                     eligible.Add(candidate);
+                    continue;
+                }
+
+                if (collectIneligible)
+                {
+                    ineligible.Add(new IneligibleBedResponse
+                    {
+                        BedId = candidate.Id,
+                        BedCode = candidate.BedCode,
+                        BedName = candidate.BedName,
+                        BedNumber = candidate.BedNumber,
+                        RoomId = candidate.RoomId,
+                        RoomCode = candidate.Room.RoomCode,
+                        RoomName = candidate.Room.RoomName,
+                        Failures = evaluation.Failures
+                    });
                 }
             }
 
@@ -206,7 +232,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = items,
+                Ineligible = ineligible
             };
         }
 

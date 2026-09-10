@@ -103,6 +103,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         int InitialAssessmentTargetHours,
         int ProgressNoteVerificationTargetHours,
         int PendingClosureThresholdHours,
+        int DepositFollowUpIntervalDays,
         string EpisodeNumberPrefix,
         bool IsFromMasterData)
     {
@@ -117,6 +118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InitialAssessmentTargetHours: 24,
             ProgressNoteVerificationTargetHours: 24,
             PendingClosureThresholdHours: 4,
+            DepositFollowUpIntervalDays: 3,
             EpisodeNumberPrefix: "RI",
             IsFromMasterData: false);
 
@@ -127,6 +129,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 InitialAssessmentTargetHours: entity.InitialAssessmentTargetHours,
                 ProgressNoteVerificationTargetHours: entity.ProgressNoteVerificationTargetHours,
                 PendingClosureThresholdHours: entity.PendingClosureThresholdHours,
+                DepositFollowUpIntervalDays: entity.DepositFollowUpIntervalDays < 1
+                    ? Defaults.DepositFollowUpIntervalDays
+                    : entity.DepositFollowUpIntervalDays,
                 EpisodeNumberPrefix: string.IsNullOrWhiteSpace(entity.EpisodeNumberPrefix)
                     ? Defaults.EpisodeNumberPrefix
                     : entity.EpisodeNumberPrefix.Trim().ToUpperInvariant(),

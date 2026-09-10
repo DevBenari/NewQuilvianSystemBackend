@@ -4,17 +4,23 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | `contract_version` | `0.7.0` |
-| Status | `draft` |
+| Status | **`approved`** |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
-| `approved_by` / `approved_at` | Belum ada |
+| `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
 | `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
 
 ### Perubahan pada `contract_version` `0.7.0`
 
-**Status: `draft`, menunggu persetujuan pemilik.** Selama belum disetujui, `BE-RWI-069` dan
-`FE-RWI-057` berstatus `BLOCKED_PENDING_OWNER_APPROVAL` pada roadmap masing-masing.
+**Status: `approved` sejak 10 September 2026.** Gerbang persetujuan pemilik dicabut hari itu,
+dan `BE-RWI-069` langsung dikerjakan pada tanggal yang sama — lihat
+[laporan `BE-RWI-069`](../task/report/backend/BE-RWI-069.md). `FE-RWI-057` pada roadmap frontend
+**tidak** ikut terbuka oleh approval ini; gerbangnya sendiri diputuskan terpisah.
+
+> **Keadaan sebelumnya, disimpan sebagai jejak.** Sampai 9 September 2026 versi ini berstatus
+> `draft`, dan selama itu `BE-RWI-069` serta `FE-RWI-057` berstatus
+> `BLOCKED_PENDING_OWNER_APPROVAL` pada roadmap masing-masing.
 
 Masalah yang ditutupnya. Layar pemilihan tempat tidur hari ini hanya menerima daftar bed yang
 **lolos** kelayakan. Bed yang ditolak hilang begitu saja tanpa satu pun keterangan, sehingga layar
@@ -215,7 +221,7 @@ Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku. Sejak `0.7.0` dapat sekaligus menyebutkan tempat tidur yang **ditolak** beserta aturan yang menolaknya | `InpatientBedOccupancy : Read` | Query, termasuk `includeIneligible` sejak `0.7.0` | `ApiResponse<AvailableBedPagedResult>`, dengan field `ineligible` sejak `0.7.0` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026. Bagian `ineligible` berstatus **Rencana**, menunggu `BE-RWI-069` |
+| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku. Sejak `0.7.0` dapat sekaligus menyebutkan tempat tidur yang **ditolak** beserta aturan yang menolaknya | `InpatientBedOccupancy : Read` | Query, termasuk `includeIneligible` sejak `0.7.0` | `ApiResponse<AvailableBedPagedResult>`, dengan field `ineligible` sejak `0.7.0` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026. Bagian `ineligible` ikut ✅ **Tersedia** sejak 10 Sep 2026 lewat `BE-RWI-069` |
 | `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` + metadata aditif [`RWI-BED-BOARD-RESERVATION-001 1.0.0`](bed-board-reservation-metadata-contract.md) | ✅ **Tersedia** — metadata reservasi aktif dilengkapi `BE-RWI-036` pada 1 Sep 2026 |
 | `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |

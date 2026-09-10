@@ -136,6 +136,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 InitialAssessmentTargetHours = entity.InitialAssessmentTargetHours,
                 ProgressNoteVerificationTargetHours = entity.ProgressNoteVerificationTargetHours,
                 PendingClosureThresholdHours = entity.PendingClosureThresholdHours,
+                DepositFollowUpIntervalDays = entity.DepositFollowUpIntervalDays,
                 EpisodeNumberPrefix = entity.EpisodeNumberPrefix,
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive,
