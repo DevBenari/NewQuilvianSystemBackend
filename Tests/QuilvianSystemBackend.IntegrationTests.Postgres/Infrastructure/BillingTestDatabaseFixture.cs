@@ -28,6 +28,11 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
     /// itulah yang menyebabkan `dotnet test` menerapkan migration ke database dev bersama
     /// QuilvianNewDevTim01 tanpa ada yang memerintahkannya. Menghapus fallback juga membuat
     /// fixture tidak lagi membaca kredensial dari file konfigurasi mana pun.
+    ///
+    /// Opt-in database personal sesuai keputusan RJ-BIL-DEC-019: developer boleh mengarahkan
+    /// test ke database pengembangan miliknya sendiri dengan mengisi
+    /// QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL bernilai nama database yang sama persis. Tanpa
+    /// variable itu perilaku fixture tidak berubah sedikit pun.
     /// </summary>
     public sealed class BillingTestDatabaseFixture : IAsyncLifetime
     {
@@ -47,6 +52,19 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         private const string RequiredTestMarker = "test";
 
         /// <summary>
+        /// Opt-in sengaja untuk database pengembangan personal (RJ-BIL-DEC-019). Nilainya wajib
+        /// sama persis dengan nama database pada connection string. Yang dilepas hanya penanda
+        /// <c>dev</c> dan tuntutan penanda <c>test</c>; daftar nama terlarang dan penanda lain
+        /// tetap ditolak mutlak.
+        /// </summary>
+        public const string PersonalDatabaseOptInVariable = "QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL";
+
+        /// <summary>
+        /// Satu-satunya penanda yang dapat dilepas lewat <see cref="PersonalDatabaseOptInVariable"/>.
+        /// </summary>
+        private const string PersonalOptInWaivableMarker = "dev";
+
+        /// <summary>
         /// Nama database yang ditolak secara eksplisit. Daftar ini menutup database dev bersama
         /// yang pernah tersentuh pada RJ-BIL-BE-002.
         /// </summary>
@@ -58,7 +76,9 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         /// <summary>
         /// Penanda nama yang menunjukkan database dipakai bersama orang lain atau melayani
         /// pengguna nyata. Test menerapkan migration dan menulis baris, sehingga tidak pernah
-        /// benar dijalankan terhadap database seperti itu dan tidak disediakan override apa pun.
+        /// benar dijalankan terhadap database seperti itu. Satu-satunya pengecualian adalah
+        /// penanda <c>dev</c> untuk database personal lewat
+        /// <see cref="PersonalDatabaseOptInVariable"/>; penanda lain tidak mengenal override.
         /// </summary>
         private static readonly string[] ForbiddenDatabaseMarkers =
         {
@@ -89,8 +109,8 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         /// database test tersendiri sebelum satu perintah pun dikirim ke server.
         ///
         /// Urutan pemeriksaan disusun agar pesan yang muncul adalah pesan yang paling berguna:
-        /// variable kosong, nilai tidak sah, nama database kosong, nama terlarang, lalu bukti
-        /// afirmatif penanda test.
+        /// variable kosong, nilai tidak sah, nama database kosong, nama terlarang, kecocokan
+        /// opt-in database personal, penanda terlarang, lalu bukti afirmatif penanda test.
         /// </summary>
         private static string ResolveDedicatedTestConnectionString()
         {
@@ -144,19 +164,32 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                 }
             }
 
+            var isPersonalDatabase = ResolvePersonalDatabaseOptIn(database);
+
             foreach (var marker in ForbiddenDatabaseMarkers)
             {
+                // Hanya penanda dev yang dilepas opt-in personal; penanda lain tetap mutlak.
+                if (isPersonalDatabase && marker == PersonalOptInWaivableMarker)
+                    continue;
+
                 if (database.Contains(marker, StringComparison.OrdinalIgnoreCase))
                 {
+                    var personalHint = marker == PersonalOptInWaivableMarker
+                        ? " Bila ini database pengembangan personal milik Anda sendiri, isi " +
+                          $"{PersonalDatabaseOptInVariable} dengan nama database yang sama persis " +
+                          "(RJ-BIL-DEC-019)."
+                        : string.Empty;
+
                     throw new InvalidOperationException(
                         $"{BlockedMarker}: nama database '{database}' mengandung penanda '{marker}', " +
                         "yang menandakan database bersama, staging, atau production. Test ini " +
                         "menerapkan migration dan menulis baris, sehingga hanya boleh berjalan " +
-                        "terhadap database test tersendiri.");
+                        "terhadap database test tersendiri." + personalHint);
                 }
             }
 
-            if (!database.Contains(RequiredTestMarker, StringComparison.OrdinalIgnoreCase))
+            if (!isPersonalDatabase &&
+                !database.Contains(RequiredTestMarker, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
                     $"{BlockedMarker}: nama database '{database}' tidak mengandung penanda " +
@@ -168,10 +201,36 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
             // Hanya nama host dan database yang dicetak. Username dan password tidak pernah
             // ikut ke output test.
-            Console.WriteLine(
-                $"[BILLING-TEST] Target database test '{database}' pada host '{builder.Host}'.");
+            Console.WriteLine(isPersonalDatabase
+                ? $"[BILLING-TEST] PERINGATAN: opt-in database personal aktif. Target '{database}' " +
+                  $"pada host '{builder.Host}' menerima migration yang tertunda dan baris uji."
+                : $"[BILLING-TEST] Target database test '{database}' pada host '{builder.Host}'.");
 
             return fromEnvironment;
+        }
+
+        /// <summary>
+        /// Membaca opt-in database personal (RJ-BIL-DEC-019). Variable kosong berarti opt-in
+        /// tidak aktif dan perilaku fixture tidak berubah. Bila diisi, nilainya wajib sama persis
+        /// dengan nama database pada connection string; nilai yang berbeda ditolak, bukan
+        /// diabaikan, supaya salah arah berakhir sebagai penolakan.
+        /// </summary>
+        private static bool ResolvePersonalDatabaseOptIn(string database)
+        {
+            var optIn = Environment.GetEnvironmentVariable(PersonalDatabaseOptInVariable);
+
+            if (string.IsNullOrWhiteSpace(optIn))
+                return false;
+
+            if (!string.Equals(optIn.Trim(), database, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"{BlockedMarker}: {PersonalDatabaseOptInVariable} bernilai '{optIn.Trim()}', " +
+                    $"tidak sama persis dengan database '{database}' pada {ConnectionStringVariable}. " +
+                    "Opt-in database personal hanya berlaku untuk satu nama yang disebut persis.");
+            }
+
+            return true;
         }
 
         public Task DisposeAsync() => Task.CompletedTask;

@@ -48,23 +48,24 @@ backend target dan dokumen engineering canonical — bukan di dokumen ini.
 registry. **`PLT-BE-001`, `PLT-BE-002`, dan `PLT-BE-003` seluruhnya selesai** pada hari yang sama,
 sehingga gerbang `G4` Bank Darah **tertutup secara kemampuan**: providernya ada.
 
-**Nol task Platform terblokir, dan nol tersisa pending.** `PLT-BE-005` **selesai** 10 September
-2026 — empat endpoint baca berdiri, 22 kasus uji baru seluruhnya lulus. `PLT-BE-004` sudah
-**ditulis** tetapi 🟡 **sebagian** — keenam uji-nya belum pernah dijalankan; ia menunggu database
-test, bukan menunggu kode. **Dipersempit 10 September 2026:** server PostgreSQL ternyata
-**terjangkau**, dan yang menahan tinggal **satu hak akses** — role-nya ditolak
-`42501: permission denied to create database`.
+**Kelima task backend Platform selesai.** `PLT-BE-005` **selesai** 10 September 2026 — empat
+endpoint baca berdiri, 22 kasus uji baru seluruhnya lulus. `PLT-BE-004` ✅ **selesai** 10 September
+2026 — keenam uji durabilitas **lulus di PostgreSQL sungguhan** pada database pengembangan personal
+`QuilvianNewDevSukma`, lewat opt-in `QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL` yang diputuskan
+`RJ-BIL-DEC-019`. **Riwayat:** sebelumnya 🟡 **sebagian** karena role database ditolak
+`42501: permission denied to create database`; hak `CREATEDB` itu kini **tidak lagi diperlukan**,
+karena pemilik memilih tidak membuat database test baru.
 
 ⚠️ **Empat endpoint `PLT-BE-005` belum dapat dipanggil.** Migration
 `20260909070218_AddNumNumberSeries` **belum dijalankan**, sehingga tabel `NumNumberSeries` belum
 ada di lingkungan mana pun. Kodenya berdiri dan terbukti; yang belum ada adalah tabelnya.
 Menjalankan migration adalah **wewenang terpisah**.
 
-⚠️ **`AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, dan `AC-PLT-012` masih belum terbukti.** Uji-nya
-sudah **ditulis dan compile** (`PLT-BE-004`), tetapi belum pernah dijalankan. **Sebabnya dikoreksi
-10 September 2026:** bukan karena tidak ada PostgreSQL — servernya ada dan terjangkau — melainkan
-karena role-nya belum berhak membuat database test. Menjadwalkan task Bank Darah sekarang berarti
-membangun di atas klaim durabilitas yang belum diperiksa — lihat bagian 6.1.
+✅ **`AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, dan `AC-PLT-012` terbukti 10 September 2026** di
+PostgreSQL sungguhan — `PLT-BE-004`, **6 lulus dari 6**. Klaim durabilitas yang dulu menahan
+penjadwalan task Bank Darah **sudah diperiksa**, sehingga syarat urutan aman pada bagian 6.1
+terpenuhi. **Riwayat:** sampai percobaan kedua 10 September 2026 keempatnya belum pernah dijalankan,
+karena role database belum berhak membuat database test.
 
 **Migration, eksekusi database, deployment, dan publikasi Git tetap wewenang tersendiri** yang
 diminta per tindakan.
@@ -129,8 +130,8 @@ pemilik registry — di luar scope slice ini.
 
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
-| ✅ SELESAI | 4 | `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003`, `PLT-BE-005` |
-| 🟡 SELESAI SEBAGIAN | 1 | `PLT-BE-004` — uji ditulis, **nol dari 4 AC terbukti**; tertahan hak `CREATEDB` |
+| ✅ SELESAI | 5 | `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003`, `PLT-BE-004`, `PLT-BE-005` |
+| 🟡 SELESAI SEBAGIAN | 0 | — `PLT-BE-004` naik ke ✅ 10 September 2026; sebelumnya 🟡, tertahan hak `CREATEDB` |
 | 🟡 PENDING | 0 | — |
 | ⛔ BLOCKED | 0 | — |
 | **Total** | **5** | |
@@ -151,10 +152,10 @@ pemilik registry — di luar scope slice ini.
                              │      dep: PLT-BE-002 ✅ · INTI SLICE INI
                              │      └──> G4 Bank Darah TERTUTUP secara kemampuan
                              │
-                             ├── 🟡 PLT-BE-004 (uji integrasi PostgreSQL)   SELESAI SEBAGIAN
+                             ├── ✅ PLT-BE-004 (uji integrasi PostgreSQL)   SELESAI 10 September 2026
                              │          dep: PLT-BE-003 ✅ · menuntut PostgreSQL berjalan
-                             │          6 uji DITULIS dan compile; NOL dijalankan
-                             │          tertahan 10 Sep 2026: role tanpa hak CREATEDB (42501)
+                             │          6 dari 6 LULUS di QuilvianNewDevSukma (RJ-BIL-DEC-019)
+                             │          AC-PLT-003/004/005/012 terbukti; hak CREATEDB tak lagi perlu
                              │
                              └── ✅ PLT-BE-005 (layar pemantauan — SHOULD HAVE)   SELESAI 10 September 2026
                                         dep: PLT-BE-003 ✅ · gelombang MVP-2
@@ -230,22 +231,22 @@ task Bank Darah sebelum `PLT-BE-004` lulus adalah risiko yang disadari** — lih
 
 ---
 
-### 🟡 `PLT-BE-004` — Durabilitas dan antrean dibuktikan di PostgreSQL sungguhan
+### ✅ `PLT-BE-004` — Durabilitas dan antrean dibuktikan di PostgreSQL sungguhan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SELESAI SEBAGIAN** 9 September 2026, **diperiksa ulang 10 September 2026**. Bukti: [laporan](../task/report/backend/PLT-BE-004.md). **Enam uji ditulis dan compile**; `dotnet build` solution `0 Error(s)`, 210 warning sama baseline. **Nol uji dijalankan dan nol dari empat acceptance criteria terbukti** — `AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, dan `AC-PLT-012` seluruhnya belum. Percobaan ulang 10 September 2026 pada `843430b`: `dotnet test` filter `~Platform` → **0 lulus, 6 gagal dalam 13 ms**, seluruhnya `42501: permission denied to create database`. **Blocker dipersempit:** server PostgreSQL **terjangkau** dan target `QuilvianNumberSeriesTest` **diterima** ketiga penjagaan fixture; yang belum ada tinggal **hak `CREATEDB`** pada role-nya. Nol database dibuat, nol schema berubah |
+| **Status** | ✅ **SELESAI 10 September 2026.** Keenam uji durabilitas **lulus di PostgreSQL sungguhan** — `dotnet test` filter `NumberSeriesDurabilityTests` → **6 lulus, 0 gagal** terhadap `QuilvianNewDevSukma`, lewat opt-in `QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL` (`RJ-BIL-DEC-019`). Keempat acceptance criteria terbukti. `dotnet build` solution `0 Error(s)`, **210 warning — sama persis baseline**; `UnitTests.Sqlite` filter `~Platform` **54 lulus, 0 gagal**. Pengaman fixture diuji lima skenario penolakan, seluruhnya ditolak sebelum koneksi dibuka. Bukti: [laporan](../task/report/backend/PLT-BE-004.md). **Riwayat:** 🟡 **SELESAI SEBAGIAN** 9 September 2026, **diperiksa ulang 10 September 2026**. Bukti: [laporan](../task/report/backend/PLT-BE-004.md). **Enam uji ditulis dan compile**; `dotnet build` solution `0 Error(s)`, 210 warning sama baseline. **Nol uji dijalankan dan nol dari empat acceptance criteria terbukti** — `AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, dan `AC-PLT-012` seluruhnya belum. Percobaan ulang 10 September 2026 pada `843430b`: `dotnet test` filter `~Platform` → **0 lulus, 6 gagal dalam 13 ms**, seluruhnya `42501: permission denied to create database`. **Blocker dipersempit:** server PostgreSQL **terjangkau** dan target `QuilvianNumberSeriesTest` **diterima** ketiga penjagaan fixture; yang belum ada tinggal **hak `CREATEDB`** pada role-nya. Nol database dibuat, nol schema berubah |
 | **Kenapa task tersendiri** | Yang diuji di sini adalah **apa yang terjadi pada `COMMIT` dan `ROLLBACK`**, dan bagaimana dua permintaan bersamaan diantrekan. Provider InMemory tidak punya transaksi sungguhan maupun `pg_advisory_xact_lock`, sehingga uji ini akan **lulus tanpa membuktikan apa pun** di sana — bentuk kegagalan yang paling berbahaya |
 | **Outcome** | Ada bukti yang dapat ditunjukkan bahwa nomor benar-benar hangus saat pekerjaan batal, dan benar-benar tidak pernah kembar saat berebut |
 | **Trace** | `AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, `AC-PLT-012` · `DEC-PLT-008`, `INV-PLT-001`, `INV-PLT-003` |
 | **Kontrak** | `testing/acceptance-test-matrix.md` |
 | **Scope** | Uji pada `IntegrationTests.Postgres`: pembatalan pemanggil, alokasi bersamaan deret sama, alokasi bersamaan deret berbeda, dan **pembuktian empat deret Billing tidak berubah perilakunya** |
 | **Dependency** | `PLT-BE-003` ✅ · **PostgreSQL yang berjalan** |
-| **Acceptance** | ⛔ **Nol dari empat terbukti.** `AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, `AC-PLT-012` — keempat uji-nya ada dan compile, tetapi belum pernah dijalankan |
+| **Acceptance** | ✅ **Keempatnya terbukti 10 September 2026** di PostgreSQL — `AC-PLT-003` pencacah tetap naik setelah pemanggil batal; `AC-PLT-004` dua puluh alokasi bersamaan menghasilkan dua puluh nomor berbeda; `AC-PLT-005` deret B selesai walau kunci deret A ditahan; `AC-PLT-012` deret Billing tetap memakai ulang nomor saat batal. **Riwayat:** sampai 10 September 2026 siang, nol dari empat terbukti |
 | **Verification** | Angka hasil uji dicatat apa adanya, termasuk yang `NOT RUN` beserta alasannya |
 | **Risk/owner** | **Tinggi / `Andry`.** Menuntut database berjalan — wewenang eksekusi terpisah |
-| **Yang dibutuhkan agar naik ✅** | **Dipersempit 10 September 2026 menjadi satu tindakan pemilik server:** `ALTER ROLE <role> CREATEDB;`, **atau** DBA membuatkan `QuilvianNumberSeriesTest` dengan role itu sebagai pemiliknya. Sesudah itu `QUILVIAN_BILLING_TEST_DB` diisi dan keenam uji dijalankan ulang. Nama database **wajib** memuat `test` dan **dilarang** memuat `dev`, `prod`, `staging`, `uat`, atau `shared` — penjagaan itu ada sejak temuan `RJ-BIL-BE-002`. Menyediakan server PostgreSQL **tidak lagi diperlukan** |
-| **DoD** | ⛔ **Belum terpenuhi.** `AC-PLT-003`/`AC-PLT-004` belum lulus di PostgreSQL. Yang **sudah** terpenuhi: nol uji inti dinyatakan lulus berdasarkan provider tanpa transaksi — justru itu sebabnya berkas ini terpisah dari uji SQLite |
+| **Yang dibutuhkan agar naik ✅** | ✅ **Terpenuhi 10 September 2026 lewat jalan lain.** Pemilik memilih tidak membuat database test baru; `RJ-BIL-DEC-019` membuka database pengembangan personal `QuilvianNewDevSukma` lewat opt-in eksplisit, sehingga hak `CREATEDB` tidak lagi diperlukan. **Riwayat:** **Dipersempit 10 September 2026 menjadi satu tindakan pemilik server:** `ALTER ROLE <role> CREATEDB;`, **atau** DBA membuatkan `QuilvianNumberSeriesTest` dengan role itu sebagai pemiliknya. Sesudah itu `QUILVIAN_BILLING_TEST_DB` diisi dan keenam uji dijalankan ulang. Nama database **wajib** memuat `test` dan **dilarang** memuat `dev`, `prod`, `staging`, `uat`, atau `shared` — penjagaan itu ada sejak temuan `RJ-BIL-BE-002`. Menyediakan server PostgreSQL **tidak lagi diperlukan** |
+| **DoD** | ✅ **Terpenuhi 10 September 2026.** `AC-PLT-003`/`AC-PLT-004` lulus **di PostgreSQL**, bukan InMemory. Empat deret Billing terbukti tidak berubah perilakunya — jalur invoice diuji langsung, tiga deret lain memakai mesin privat yang sama (`BillingNumberSeriesService.cs:141`) yang tidak berubah sejak `058e070`. Angka hasil uji dicatat apa adanya, termasuk riwayat `NOT RUN`. Nol uji inti dinyatakan lulus berdasarkan provider tanpa transaksi — justru itu sebabnya berkas ini terpisah dari uji SQLite |
 
 ---
 
@@ -277,13 +278,18 @@ task Bank Darah sebelum `PLT-BE-004` lulus adalah risiko yang disadari** — lih
 | --- | --- |
 | `PLT-BE-001`..`002` | Belum ada. `G4` tetap ⛔ |
 | **`PLT-BE-003`** | **`G4` tertutup.** Sembilan task backend Bank Darah — `BE-BD-003`, `004`, `006`, `007`, `008`, `009`, `010`, `012`, `015` — terbuka |
-| `PLT-BE-004` | Bukti perilakunya. **Disarankan lulus lebih dulu** sebelum task Bank Darah dijadwalkan |
+| `PLT-BE-004` | Bukti perilakunya. **Disarankan lulus lebih dulu** sebelum task Bank Darah dijadwalkan — ✅ **lulus 10 September 2026**, 6 dari 6 di PostgreSQL |
 
 **Risiko yang disadari dan dinyatakan terbuka.** Secara teknis `G4` tertutup begitu `PLT-BE-003`
 berdiri. Tetapi menjadwalkan `BE-BD-003` sebelum `PLT-BE-004` lulus berarti membangun order darah
 di atas alokator yang **durabilitasnya belum dibuktikan**. Bila `AC-PLT-003` ternyata gagal,
 perbaikannya menyentuh mesin yang sudah dipakai order darah. Urutan yang disarankan:
 `PLT-BE-003` → `PLT-BE-004` lulus → baru jadwalkan Bank Darah.
+
+✅ **Syarat urutan ini terpenuhi 10 September 2026.** `PLT-BE-004` lulus 6 dari 6 di PostgreSQL
+sungguhan, sehingga durabilitas alokator tidak lagi berupa klaim. Menandai `G4` tertutup pada
+roadmap Bank Darah **tidak** dilakukan dari task ini — gerbang itu milik pemiliknya, `Andry`, dan
+dicatat lewat pemeliharaan blueprint Bank Darah.
 
 ### 6.2 Billing — nol perubahan pada slice ini
 
@@ -305,7 +311,7 @@ Pemindahannya adalah `PLT-SLICE-02` dan menuntut `DEC-PLT-006` dijawab lebih dul
 | **`P1`** / `OQ-PLT-014` | Baris registry `Platform`/`Num` dicatat dan `ACTIVE` | `PLT-BE-002`..`005`, lalu `G4` | Pemilik registry engineering |
 | Verifikasi `AddDbContextFactory` | Berdampingan dengan `AddDbContext` existing | Detail implementasi `PLT-BE-003` | `Andry` |
 | Eksekusi migration | Wewenang terpisah | Pemakaian nyata, bukan pembangunan | Pemilik database |
-| **Hak `CREATEDB`** | Role database belum boleh membuat `QuilvianNumberSeriesTest`; ditemukan 10 September 2026 lewat `42501` | `PLT-BE-004` naik ke ✅, lalu `AC-PLT-003`/`004`/`005`/`012` | Pemilik server database |
+| ~~**Hak `CREATEDB`**~~ | ✅ **Tidak lagi diperlukan** 10 September 2026 — `RJ-BIL-DEC-019` membuka `QuilvianNewDevSukma` lewat opt-in, dan `PLT-BE-004` lulus tanpa database test baru. Semula: role database belum boleh membuat `QuilvianNumberSeriesTest`, ditemukan lewat `42501` | Tidak lagi menahan | — |
 | `DEC-PLT-006` | Penerimaan pelanggaran `INV-PLT-001` selama peralihan | `PLT-SLICE-02` | Pemilik platform |
 | `OQ-PLT-005` | Panjang nomor dan deret hampir habis | `PLT-SLICE-03`. Sementara ditahan `VAL-PLT-007` | Pemilik platform |
 | `OQ-PLT-006` | Kode fasilitas di dalam awalan | `LATER SLICE` | Pemilik platform |

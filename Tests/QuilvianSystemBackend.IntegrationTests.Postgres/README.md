@@ -21,31 +21,54 @@ fixture menjalankan migration sendiri sebelum test pertama.
 
 ## Database yang dipakai
 
-Connection string dicari dengan urutan berikut:
+Connection string **hanya** dibaca dari environment variable `QUILVIAN_BILLING_TEST_DB`. Bila
+variable itu kosong, fixture berhenti dengan `BLOCKED_BY_TEST_DB_CONFIGURATION` tanpa membuka
+koneksi ke database mana pun. Fallback ke `appsettings.Development.json` sudah dihapus sejak
+`RJ-BIL-BE-003`, karena fallback itulah yang dulu membuat `dotnet test` menerapkan migration ke
+database dev bersama tanpa ada yang memerintahkannya.
 
-1. Environment variable `QUILVIAN_BILLING_TEST_DB`, bila diisi.
-2. Bila kosong, `ConnectionStrings:DefaultConnection` pada `appsettings.Development.json`
-   milik project utama.
-
-Urutan ini dipilih agar test dapat dijalankan tanpa menyalin kredensial ke environment
-variable atau perintah shell.
-
-Contoh mengarahkan test ke database sendiri:
+Contoh mengarahkan test ke database test tersendiri:
 
 ```
-$env:QUILVIAN_BILLING_TEST_DB = "Host=localhost;Port=5432;Username=postgres;Password=rahasia;Database=QuilvianBillingTest;"
+$env:QUILVIAN_BILLING_TEST_DB = "Host=localhost;Port=5432;Username=<role>;Password=<password>;Database=QuilvianBillingTest;"
 dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres/QuilvianSystemBackend.IntegrationTests.Postgres.csproj
 ```
 
+### Database pengembangan personal
+
+Keputusan `RJ-BIL-DEC-019` membolehkan test berjalan terhadap database pengembangan milik
+developer sendiri, misalnya `QuilvianNewDevSukma`, lewat opt-in kedua yang harus diisi dengan
+sengaja. Nilainya wajib **sama persis** dengan nama database pada connection string:
+
+```
+$env:QUILVIAN_BILLING_TEST_DB = "Host=<host>;Port=5432;Username=<role>;Password=<password>;Database=QuilvianNewDevSukma;"
+$env:QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL = "QuilvianNewDevSukma"
+dotnet test Tests/QuilvianSystemBackend.IntegrationTests.Postgres/QuilvianSystemBackend.IntegrationTests.Postgres.csproj --filter "FullyQualifiedName~NumberSeriesDurabilityTests"
+```
+
+Pakai hanya untuk database yang memang milik Anda sendiri. Fixture menjalankan
+`Database.Migrate()`, sehingga migration yang tertunda **ikut diterapkan** ke database itu. Beberapa
+test juga meninggalkan baris permanen — contohnya deret `PLT_UJI_*` pada `NumNumberSeries`, yang
+memang tidak pernah dihapus karena pencacah nomor tidak boleh mundur.
+
 ### Pengaman target database
 
-| Nama database | Perilaku |
-| --- | --- |
-| Mengandung `prod` atau `production` | Ditolak. Tidak ada mekanisme override |
-| `QuilvianNewDevTim01` | Berjalan, disertai peringatan `[BILLING-TEST]` pada output |
-| Lainnya | Berjalan tanpa peringatan |
+Pemeriksaan dijalankan berurutan sebelum satu perintah pun dikirim ke server:
 
-Database production ditolak karena test membuat lalu menghapus baris.
+| Keadaan | Tanpa opt-in personal | Dengan opt-in personal yang cocok |
+| --- | --- | --- |
+| `QUILVIAN_BILLING_TEST_DB` kosong atau tidak sah | Ditolak | Ditolak |
+| Nama database `QuilvianNewDevTim01` | Ditolak | Ditolak |
+| Nilai opt-in berbeda dari nama database | — | Ditolak |
+| Nama mengandung `prod`, `production`, `live`, `staging`, `stage`, `uat`, atau `shared` | Ditolak | Ditolak — tidak mengenal override |
+| Nama mengandung `dev` | Ditolak | **Diteruskan**, dengan peringatan `[BILLING-TEST]` |
+| Nama tidak mengandung `test` | Ditolak | **Diteruskan** |
+| Nama sah, misalnya `QuilvianBillingTest` | Diteruskan | Diteruskan |
+
+Contoh: `QuilvianNewDevSukma` tanpa opt-in ditolak karena mengandung `dev`. Dengan
+`QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL=QuilvianNewDevSukma`, test berjalan. Dengan
+`QUILVIAN_BILLING_TEST_DB_ALLOW_PERSONAL=QuilvianNewDevsukma` — huruf `s` kecil — test ditolak
+karena nilainya tidak sama persis.
 
 ## Data yang dibuat dan dibersihkan
 
