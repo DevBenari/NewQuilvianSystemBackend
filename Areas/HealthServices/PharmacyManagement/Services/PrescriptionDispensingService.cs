@@ -542,7 +542,7 @@ public sealed class PrescriptionDispensingService
 
     private async Task<List<PrescriptionItemView>> LoadPrescriptionItemsAsync(Guid prescriptionId,
         CancellationToken cancellationToken) =>
-        await _dbContext.TrxPrescriptionItems.AsNoTracking()
+        await _dbContext.PhmPrescriptionItems.AsNoTracking()
             .Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete)
             .OrderBy(x => x.SortOrder)
             .Select(x => new PrescriptionItemView

@@ -347,7 +347,7 @@ public sealed class PrescriptionCopyService
     private async Task<List<PrescriptionCopyLineResponse>> BuildLinesAsync(Guid prescriptionId,
         CancellationToken cancellationToken)
     {
-        var items = await _dbContext.TrxPrescriptionItems.AsNoTracking()
+        var items = await _dbContext.PhmPrescriptionItems.AsNoTracking()
             .Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete)
             .OrderBy(x => x.SortOrder)
             .Select(x => new

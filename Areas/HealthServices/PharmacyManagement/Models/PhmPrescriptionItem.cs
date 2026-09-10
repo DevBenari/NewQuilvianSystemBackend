@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 {
-    [Table("TrxPrescriptionItem", Schema = "public")]
-    public class TrxPrescriptionItem : IdentityModel
+    [Table("PhmPrescriptionItem", Schema = "public")]
+    public class PhmPrescriptionItem : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

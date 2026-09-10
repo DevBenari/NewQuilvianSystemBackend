@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260910031500_RenameTrxPatientEncounterAndPrescriptionToCanonicalPrefix")]
     public partial class RenameTrxPatientEncounterAndPrescriptionToCanonicalPrefix : Migration
     {
         // Entity transaksi dinormalkan ke prefix modul pemiliknya:

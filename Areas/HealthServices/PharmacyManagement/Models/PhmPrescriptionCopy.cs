@@ -151,5 +151,5 @@ public class PhmPrescriptionCopyItem : IdentityModel
     public PrescriptionCopyMark Mark { get; set; }
 
     public PhmPrescriptionCopy? PrescriptionCopy { get; set; }
-    public TrxPrescriptionItem? PrescriptionItem { get; set; }
+    public PhmPrescriptionItem? PrescriptionItem { get; set; }
 }

@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260909000000_RenameDrugBatchAndOperatingRoomStockSource")]
     public partial class RenameDrugBatchAndOperatingRoomStockSource : Migration
     {
         // Dua entity dinormalkan ke prefix modul pemiliknya:

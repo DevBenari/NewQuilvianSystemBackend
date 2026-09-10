@@ -204,11 +204,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 issues.Add(Issue("GUARANTEE_LETTER_REQUIRED", ConsultationValidationSeverity.Information, $"{name} membutuhkan surat jaminan pada proses billing.", "Prescription", "prescription", null, entityType, id));
         }
 
-        private static ConsultationFinalizationIssueResponse ItemIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionItem item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse ItemIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionItem item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionItem", item.Id);
-        private static ConsultationFinalizationIssueResponse CompoundIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionCompound item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse CompoundIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionCompound item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionCompound", item.Id);
-        private static ConsultationFinalizationIssueResponse CompoundItemIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionCompoundItem item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse CompoundItemIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionCompoundItem item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionCompoundItem", item.Id);
 
         private static ConsultationFinalizationIssueResponse Issue(string code, ConsultationValidationSeverity severity, string message,

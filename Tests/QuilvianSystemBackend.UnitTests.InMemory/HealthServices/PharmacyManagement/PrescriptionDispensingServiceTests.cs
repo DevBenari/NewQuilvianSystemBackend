@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -120,7 +120,7 @@ public sealed class PrescriptionDispensingServiceTests
             PaymentStatus = payment
         });
 
-        context.Set<TrxPrescriptionItem>().Add(new TrxPrescriptionItem
+        context.Set<PhmPrescriptionItem>().Add(new PhmPrescriptionItem
         {
             Id = itemId,
             PrescriptionId = prescriptionId,

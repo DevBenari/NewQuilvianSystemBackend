@@ -192,8 +192,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public ApplicationUser? CancelledByUser { get; set; }
 
-        public ICollection<TrxPrescriptionItem> Items { get; set; } = new List<TrxPrescriptionItem>();
+        public ICollection<PhmPrescriptionItem> Items { get; set; } = new List<PhmPrescriptionItem>();
 
-        public ICollection<TrxPrescriptionCompound> Compounds { get; set; } = new List<TrxPrescriptionCompound>();
+        public ICollection<PhmPrescriptionCompound> Compounds { get; set; } = new List<PhmPrescriptionCompound>();
     }
 }

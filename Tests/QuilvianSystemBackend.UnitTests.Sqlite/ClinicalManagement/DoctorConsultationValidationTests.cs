@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -486,7 +486,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             context.Set<PhmPrescription>().Add(resep);
             await context.SaveChangesAsync();
 
-            var item = new TrxPrescriptionItem
+            var item = new PhmPrescriptionItem
             {
                 PrescriptionId = resep.Id,
                 DrugId = obat.Id,
@@ -500,7 +500,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
                 IsHighAlertSnapshot = true,
                 IsActive = true
             };
-            context.Set<TrxPrescriptionItem>().Add(item);
+            context.Set<PhmPrescriptionItem>().Add(item);
             await context.SaveChangesAsync();
 
             return $"HIGH_ALERT_DRUG:PrescriptionItem:{item.Id}";

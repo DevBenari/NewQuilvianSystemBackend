@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     x => x.Id == prescriptionId && !x.IsDelete,
                     cancellationToken);
 
-            var regularItems = await _dbContext.Set<TrxPrescriptionItem>()
+            var regularItems = await _dbContext.Set<PhmPrescriptionItem>()
                 .AsNoTracking()
                 .Where(x =>
                     x.PrescriptionId == prescriptionId &&
@@ -38,7 +38,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     x.IsActive)
                 .ToListAsync(cancellationToken);
 
-            var compounds = await _dbContext.Set<TrxPrescriptionCompound>()
+            var compounds = await _dbContext.Set<PhmPrescriptionCompound>()
                 .Where(x =>
                     x.PrescriptionId == prescriptionId &&
                     !x.IsDelete &&
@@ -49,8 +49,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             var compoundIds = compounds.Select(x => x.Id).ToList();
 
             var compoundItems = compoundIds.Count == 0
-                ? new List<TrxPrescriptionCompoundItem>()
-                : await _dbContext.Set<TrxPrescriptionCompoundItem>()
+                ? new List<PhmPrescriptionCompoundItem>()
+                : await _dbContext.Set<PhmPrescriptionCompoundItem>()
                     .AsNoTracking()
                     .Where(x =>
                         compoundIds.Contains(x.PrescriptionCompoundId) &&

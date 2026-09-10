@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -152,7 +152,7 @@ public sealed class PrescriptionCopyServiceTests
             FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyToDispense,
             PaymentStatus = PrescriptionPaymentStatus.Paid
         });
-        context.Set<TrxPrescriptionItem>().Add(new TrxPrescriptionItem
+        context.Set<PhmPrescriptionItem>().Add(new PhmPrescriptionItem
         {
             Id = itemId, PrescriptionId = prescriptionId, DrugId = drugId,
             DrugCodeSnapshot = "OBT-001", DrugNameSnapshot = "Amoxicillin 500 mg",
@@ -601,7 +601,7 @@ public sealed class PrescriptionCopyServiceTests
     public async Task ResepTanpaItem_TidakDapatDiterbitkan()
     {
         await using var f = await CreateAsync(prescribed: 20m);
-        var item = await f.Context.TrxPrescriptionItems.FirstAsync();
+        var item = await f.Context.PhmPrescriptionItems.FirstAsync();
         item.IsDelete = true;
         await f.Context.SaveChangesAsync();
         f.Context.ChangeTracker.Clear();

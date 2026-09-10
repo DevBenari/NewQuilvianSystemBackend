@@ -558,6 +558,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
+        public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
@@ -699,9 +700,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
 
         public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
-        public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
-        public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
-        public DbSet<TrxPrescriptionCompoundItem> TrxPrescriptionCompoundItems { get; set; }
+        public DbSet<PhmPrescriptionItem> PhmPrescriptionItems { get; set; }
+        public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
+        public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }
         public DbSet<MstPrescriptionTemplateItem> MstPrescriptionTemplateItems { get; set; }
         public DbSet<MstPrescriptionTemplateCompound> MstPrescriptionTemplateCompounds { get; set; }
