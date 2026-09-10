@@ -157,6 +157,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// Aturan khusus pemeriksaan dan aturan seluruh modalitas sama-sama ikut. Keduanya
         /// menumpuk, tidak saling menggantikan: aturan yang lebih spesifik menambah pertanyaan,
         /// bukan menghapus pertanyaan yang lebih umum.
+        ///
+        /// Yang menentukan sebuah aturan ikut dinilai adalah <c>RuleStatus</c>, bukan
+        /// <c>IsActive</c>. <c>RAD-DEC-005</c> memindahkan penentunya ke sana supaya aturan
+        /// hanya berlaku setelah disahkan penanggung jawab klinis; <c>IsActive</c> tinggal
+        /// sebagai kolom lama yang tidak lagi menentukan apa pun di sini.
         /// </summary>
         private async Task<List<MstRadModalitySafetyRule>> LoadApplicableRulesAsync(
             Guid modalityId,
@@ -168,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 .Include(x => x.SafetyRequirement)
                 .Where(x =>
                     !x.IsDelete &&
-                    x.IsActive &&
+                    x.RuleStatus == RadSafetyRuleStatus.Active &&
                     x.ModalityId == modalityId &&
                     (x.ProcedureId == null || x.ProcedureId == procedureId) &&
                     x.EffectiveFrom <= now &&
@@ -767,6 +772,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// Penanda itu perlu terlihat sebelum pasien dipanggil. Modalitas tanpa aturan aktif
         /// akan menolak setiap acquisition, dan mengetahuinya di depan jauh lebih baik daripada
         /// mengetahuinya ketika pasien sudah berbaring di meja pemeriksaan.
+        ///
+        /// Penandanya memakai penyaring yang sama persis dengan gerbang keselamatan, yaitu
+        /// <c>RuleStatus = Active</c>. Kalau keduanya berbeda, layar akan menyatakan sebuah
+        /// alat sudah siap sementara gerbangnya tetap menolak — dan petugas baru mengetahuinya
+        /// pada saat yang paling buruk.
         /// </summary>
         public async Task<List<RadModalityResponse>> GetModalitiesAsync(
             CancellationToken cancellationToken = default)
@@ -785,7 +795,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     UsesIonisingRadiation = x.UsesIonisingRadiation,
                     SupportsContrast = x.SupportsContrast,
                     HasActiveSafetyRule = x.SafetyRules.Any(r =>
-                        !r.IsDelete && r.IsActive &&
+                        !r.IsDelete &&
+                        r.RuleStatus == RadSafetyRuleStatus.Active &&
                         r.EffectiveFrom <= now &&
                         (r.EffectiveTo == null || r.EffectiveTo > now)),
                     IsActive = x.IsActive,

@@ -364,4 +364,135 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 
         public bool IsActive { get; set; }
     }
+
+    /* ==================================================================== *
+     * Aturan keselamatan — siklus pengesahan RAD-DEC-005
+     * ==================================================================== */
+
+    /// <summary>
+    /// Menyusun draf aturan keselamatan.
+    ///
+    /// Aturan yang lahir dari sini <b>belum berlaku</b>. Ia berstatus <c>Draft</c> sampai
+    /// diajukan dan disahkan penanggung jawab klinis.
+    /// </summary>
+    public class CreateRadSafetyRuleRequest
+    {
+        [Required]
+        public Guid ModalityId { get; set; }
+
+        /// <summary>
+        /// Pemeriksaan tertentu yang dikenai aturan ini. Dikosongkan berarti aturan berlaku
+        /// untuk seluruh pemeriksaan pada alat tersebut.
+        /// </summary>
+        public Guid? ProcedureId { get; set; }
+
+        [Required]
+        public Guid SafetyRequirementId { get; set; }
+
+        public bool IsMandatory { get; set; } = true;
+
+        /// <summary>
+        /// Mulai berlaku. Dikosongkan berarti berlaku sejak aturannya disahkan.
+        /// </summary>
+        public DateTime? EffectiveFrom { get; set; }
+
+        public DateTime? EffectiveTo { get; set; }
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Mengubah draf aturan keselamatan.
+    ///
+    /// Hanya draf yang dapat diubah. Aturan yang sedang berlaku wajib diganti lewat draf baru
+    /// dan pengesahan ulang, supaya penilaian study yang sudah terjadi tidak berubah artinya.
+    /// </summary>
+    public class UpdateRadSafetyRuleRequest
+    {
+        [Required]
+        public Guid ModalityId { get; set; }
+
+        public Guid? ProcedureId { get; set; }
+
+        [Required]
+        public Guid SafetyRequirementId { get; set; }
+
+        public bool IsMandatory { get; set; } = true;
+
+        public DateTime? EffectiveFrom { get; set; }
+
+        public DateTime? EffectiveTo { get; set; }
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Menolak pengajuan aturan keselamatan. Alasan wajib diisi — tanpa itu penyusun aturan
+    /// tidak tahu apa yang harus diperbaiki.
+    /// </summary>
+    public class RadSafetyRuleRejectRequest
+    {
+        [Required]
+        [MaxLength(1000)]
+        public string RejectionReason { get; set; } = string.Empty;
+    }
+
+    public class RadSafetyRuleResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid ModalityId { get; set; }
+
+        public string? ModalityCode { get; set; }
+
+        public string? ModalityName { get; set; }
+
+        public Guid? ProcedureId { get; set; }
+
+        public Guid SafetyRequirementId { get; set; }
+
+        public string? RequirementCode { get; set; }
+
+        public string? RequirementName { get; set; }
+
+        public bool IsMandatory { get; set; }
+
+        public DateTime EffectiveFrom { get; set; }
+
+        public DateTime? EffectiveTo { get; set; }
+
+        /// <summary>
+        /// Nomor versi aturan. Naik satu setiap kali aturan disahkan, dan dibekukan pada study
+        /// yang sudah dinyatakan lolos.
+        /// </summary>
+        public int RuleVersion { get; set; }
+
+        /// <summary>
+        /// Keadaan pada siklus pengesahan: <c>Draft</c>, <c>PendingApproval</c>, <c>Active</c>,
+        /// atau <c>Inactive</c>. Hanya <c>Active</c> yang dinilai gerbang keselamatan.
+        /// </summary>
+        public string RuleStatus { get; set; } = string.Empty;
+
+        public string? Note { get; set; }
+
+        public Guid? SubmittedByUserId { get; set; }
+
+        public DateTime? SubmittedAt { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        /// <summary>
+        /// Alasan penolakan terakhir. Sengaja tidak dihapus ketika aturannya diajukan ulang,
+        /// karena jejak penolakan termasuk audit yang tidak boleh diubah.
+        /// </summary>
+        public string? RejectionReason { get; set; }
+    }
 }
