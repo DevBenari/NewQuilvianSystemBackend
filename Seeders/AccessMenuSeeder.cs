@@ -80,6 +80,7 @@ namespace QuilvianSystemBackend.Seeders
 
             await NormalizeEmployeeSelfServiceLegacyEntriesAsync(dbContext);
             await NormalizeEmergencyMasterDataModuleMoveAsync(dbContext);
+            await NormalizeLaboratorySpecimenLegacyActionsAsync(dbContext);
             await NormalizeSystemOnlyVisibilityAsync(dbContext);
 
             await dbContext.SaveChangesAsync();
@@ -331,6 +332,67 @@ namespace QuilvianSystemBackend.Seeders
                     action.IsDelete = true;
                     action.UpdateDateTime = now;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Menutup dua aksi lama <c>LabSpecimen</c> yang sudah tidak diperiksa siapa pun.
+        /// </summary>
+        /// <remarks>
+        /// Dahulu seluruh jalur ubah wadah didaftarkan dengan nama aksi <c>Create</c> dan
+        /// <c>Update</c>, sementara pemeriksaannya memakai nama yang lebih spesifik —
+        /// <c>Plan</c>, <c>Collect</c>, <c>Receive</c>, <c>Accept</c>, <c>Hold</c>, dan
+        /// <c>Cancel</c>. Karena nama yang diperiksa tidak pernah terdaftar, seluruh daur hidup
+        /// wadah mustahil diberikan kepada siapa pun: admin tidak dapat mencentang aksi yang
+        /// tidak ada di katalog, dan <c>HasAccessAsync</c> menjawab tidak untuk aksi yang tidak
+        /// ditemukan. Hanya SuperAdmin yang lolos, dan itu pun karena ia memang melewati
+        /// pemeriksaan kebijakan.
+        ///
+        /// Setelah nama pendaftarannya diluruskan, kedua baris lama tetap tertinggal di
+        /// database. Keduanya tidak berbahaya — tidak satu pun endpoint memeriksanya — tetapi
+        /// <b>menyesatkan pada layar Role Access</b>: labelnya kembar persis dengan baris yang
+        /// benar, sehingga admin melihat "Plan Lab Specimen" dan "Cancel Lab Specimen" masing-
+        /// masing dua kali, dan yang satu tidak mengendalikan apa pun. Admin yang mencentang
+        /// baris yang salah akan mengira sudah memberi kewenangan, padahal petugasnya tetap
+        /// ditolak.
+        ///
+        /// Pembersihan ditaruh di seeder, bukan dikerjakan sekali lewat perintah database,
+        /// supaya setiap lingkungan yang pernah menjalankan versi lama ikut rapi dengan
+        /// sendirinya. Polanya menyalin penanganan <c>AttendanceCorrection</c> di atas.
+        ///
+        /// Baris hanya ditandai terhapus, tidak dihapus fisik, mengikuti soft delete yang
+        /// dipakai seluruh tabel audit.
+        /// </remarks>
+        private static async Task NormalizeLaboratorySpecimenLegacyActionsAsync(
+            ApplicationDbContext dbContext)
+        {
+            var now = DateTime.UtcNow;
+
+            var specimenController = await dbContext.SysControllerAccesses
+                .FirstOrDefaultAsync(x => x.ControllerName == "LabSpecimen");
+
+            if (specimenController == null)
+            {
+                return;
+            }
+
+            // Kedua nama ini sengaja disebut satu per satu, bukan disimpulkan dari selisih
+            // terhadap atribut yang ada. Menyimpulkan otomatis berarti setiap aksi yang
+            // kebetulan belum terbaca refleksi ikut dipensiunkan diam-diam.
+            var retiredActionNames = new[] { "Create", "Update" };
+
+            var staleActions = await dbContext.SysActionAccesses
+                .Where(x =>
+                    x.ControllerAccessId == specimenController.Id &&
+                    retiredActionNames.Contains(x.ActionName))
+                .ToListAsync();
+
+            foreach (var action in staleActions)
+            {
+                action.VisibleInRoleAccess = false;
+                action.IsActive = false;
+                action.IsDelete = true;
+                action.UpdateDateTime = now;
             }
         }
 

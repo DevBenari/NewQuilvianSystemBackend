@@ -23,8 +23,9 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
     ///   CASE B — batal setelah charge terbentuk: charge asli tidak dihapus.
     ///   CASE C — hasil sebelumnya tidak diketahui: wajib rekonsiliasi, dilarang koreksi buta.
     /// </summary>
+    [Collection(PostgresIntegrationTestCollection.Name)]
     public sealed class ClinicalMilestoneFactProducerTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+        : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();
