@@ -351,14 +351,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             {
                 AccountingPeriodStatus.Open => null,
 
-                // Tutup sementara hanya menerima penyesuaian dan pembalikan.
-                AccountingPeriodStatus.SoftClosed => kode is "JP" or "JB"
+                // Tutup sementara hanya menerima penyesuaian, pembalikan, dan penutup tahun.
+                //
+                // JT ditambahkan BE-ACC-P2-010. Tanpa baris ini jurnal penutup tahun MUSTAHIL
+                // disahkan: tutup tahun baru boleh disusun setelah seluruh periode tahun itu
+                // tertutup (`ACC-VALIDATION-0.6` bagian 5), sementara tanggal akuntansinya wajib
+                // berada DI DALAM tahun yang ditutup — yaitu tepat pada periode yang barusan
+                // ditutup itu. Membiarkan JT ditolak di sini membuat jurnal penutup lahir
+                // sebagai draft yang tidak pernah dapat diajukan maupun disahkan, karena syarat
+                // 9 `ACC-STATE-0.1` bagian 1.3 memeriksa aturan yang sama pada pengajuan dan
+                // pengesahan.
+                AccountingPeriodStatus.SoftClosed => kode is "JP" or "JB" or "JT"
                     ? null
-                    : $"Periode {namaPeriode} sudah ditutup sementara. Hanya jurnal penyesuaian "
-                      + "dan pembalikan yang masih dapat disahkan.",
+                    : $"Periode {namaPeriode} sudah ditutup sementara. Hanya jurnal penyesuaian, "
+                      + "pembalikan, dan penutup tahun yang masih dapat disahkan.",
 
                 AccountingPeriodStatus.Closed =>
                     $"Periode {namaPeriode} sudah ditutup permanen dan tidak menerima jurnal apa pun.",
+
+                // Sebelum BE-ACC-P2-010 status ini jatuh ke cabang terakhir dan menjawab "tidak
+                // dikenali" — menolak dengan benar, tetapi dengan kalimat yang menyesatkan:
+                // statusnya dikenal betul, periodenya memang sedang menunggu persetujuan.
+                AccountingPeriodStatus.PendingClosingApproval =>
+                    $"Periode {namaPeriode} sedang menunggu persetujuan penutupan dan tidak "
+                    + "menerima jurnal apa pun sampai penutupannya disetujui atau ditolak.",
 
                 _ => $"Status periode {namaPeriode} tidak dikenali."
             };
@@ -368,8 +384,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         public static List<string> JenisJurnalYangDiterima(AccountingPeriodStatus status) =>
             status switch
             {
-                AccountingPeriodStatus.Open => new List<string> { "JU", "JP", "JB", "SA" },
-                AccountingPeriodStatus.SoftClosed => new List<string> { "JP", "JB" },
+                // JT ikut disebut supaya daftar ini tidak pernah berbeda dari
+                // AlasanPenolakanJenisJurnal di atas. Sejak BE-ACC-P2-003 menambahkan jenis
+                // jurnal JT, periode Open sebenarnya sudah menerimanya — aturannya menjawab
+                // null untuk kode apa pun — tetapi daftar inilah yang dibaca layar, sehingga
+                // layar menyembunyikan jenis yang backend sebenarnya terima.
+                AccountingPeriodStatus.Open => new List<string> { "JU", "JP", "JB", "SA", "JT" },
+                AccountingPeriodStatus.SoftClosed => new List<string> { "JP", "JB", "JT" },
                 _ => new List<string>()
             };
 
@@ -447,7 +468,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 StatusCodes.Status409Conflict,
                 $"Periode {NamaPeriode(periode)} {lanjutanPesan}");
 
-        private static string NamaPeriode(AccAccountingPeriod periode)
+        /// <summary>
+        /// Nama periode siap tampil, contoh <c>Desember 2026</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dibuka menjadi <c>public static</c> oleh <c>BE-ACC-P2-010</c>: pesan penolakan tutup
+        /// tahun menyebut daftar periode yang belum ditutup, dan menyalin ulang nama bulannya di
+        /// sana akan melahirkan dua ejaan yang lambat laun berbeda.
+        /// </remarks>
+        public static string NamaPeriode(AccAccountingPeriod periode)
             => $"{NamaBulan[periode.PeriodMonth - 1]} {periode.FiscalYear.ToString(CultureInfo.InvariantCulture)}";
 
         private static AccountingPeriodResponse Petakan(AccAccountingPeriod x) => new()

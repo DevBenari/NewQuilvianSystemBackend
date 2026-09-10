@@ -81,10 +81,10 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-004` ✅ | **Migration gelombang mandiri** | ketiganya | `001` ✅, `002` ✅, `003` ✅, `011` ✅ | **`DONE`** 9 Sep 2026 — diterapkan owner |
 | `BE-ACC-P2-005` 🟡 | Daftar periksa penutupan | `P2-4` | `004` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum dijalankan |
 | `BE-ACC-P2-006` 🟡 | Ajukan, setujui, tolak penutupan | `P2-4` | `005` 🟡 | **`SEBAGIAN`** 9 Sep 2026 — jalan pintas `close` **sudah ditutup**; sisa: test PostgreSQL |
-| `BE-ACC-P2-007` | CRUD template jurnal berulang | `P2-3` | `004` ✅ | `READY` — **terbuka**; entity-nya sudah berdiri lewat `002` ✅ |
-| `BE-ACC-P2-008` | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` | `READY` |
+| `BE-ACC-P2-007` ✅ | CRUD template jurnal berulang | `P2-3` | `004` ✅ | **`DONE`** 10 Sep 2026 |
+| `BE-ACC-P2-008` ✅ | Penerbitan jurnal berulang dan penjadwalnya | `P2-3` | `007` ✅ | **`DONE`** 10 Sep 2026 — konkurensi terbukti di PostgreSQL |
 | `BE-ACC-P2-009` ✅ | Endpoint pengaturan akuntansi | `P2-0a` | `004` ✅ | **`DONE`** 9 Sep 2026 |
-| `BE-ACC-P2-010` | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006` 🟡, `009` ✅ | `READY` — **terbuka**; `JT` sudah terisi 9 Sep 2026, tersisa penetapan akun laba ditahan |
+| `BE-ACC-P2-010` 🟡 | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006` 🟡, `009` ✅ | **`SEBAGIAN`** 10 Sep 2026 — 6 dari 6 acceptance terbukti; sisa: test PostgreSQL belum |
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | `READY` — **terbuka** |
 | `BE-ACC-P2-013` 🟡 | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum |
@@ -116,7 +116,7 @@ dilewati. Lihat kartu `006`.
 | Risiko/pemilik | **Menggeser nilai enum yang sudah tersimpan** akan mengubah arti data periode yang sudah ada. Owner Backend |
 | DoD | Build lulus. **Nol migration**, snapshot tidak berubah, database tidak disentuh |
 | **Status** | **✅ `DONE`** — 9 September 2026. Build `Release` **0 error**, 145 warning seluruhnya pre-existing di project `Tests/`. **4 dari 4 acceptance lulus.** Nol migration, snapshot utuh, database tidak disentuh. Laporan: [`be-acc-p2-001`](../task/report/backend/be-acc-p2-001-entity-dan-enum-penutupan-periode.md) |
-| **Delta terbuka** | Kamus data bagian 16 menulis `Cascade`; diimplementasikan **`Restrict`** mengikuti `AccJournalApproval` — riwayat persetujuan adalah bukti audit. **Menunggu ratifikasi owner**; kamus data tidak diubah sepihak |
+| **Delta — DIRATIFIKASI** | Kamus data bagian 16 menulis `Cascade`; diimplementasikan **`Restrict`** mengikuti `AccJournalApproval` — riwayat persetujuan adalah bukti audit. **Diratifikasi `ACC-DEC-069`, 10 September 2026**: kamus data bagian 16 yang disesuaikan menjadi `Restrict`, bukan kodenya. Nol perubahan source, nol migration |
 
 ## `BE-ACC-P2-002` ✅ — Entity dan enum jurnal berulang
 
@@ -206,7 +206,7 @@ dilewati. Lihat kartu `006`.
 | **Delta kontrak** | `GET /{id}/closing-history` di luar kartu — riwayat persetujuan adalah bukti audit yang tanpa endpoint ini tersimpan tetapi tak pernah terlihat. Hak akses terpasang `("AccountingPeriod", ...)`, bukan `("Period", ...)`. Hak akses `Approve` **baru**, terpisah dari `Close` |
 | **Prasyarat pemakaian** | Peran `Accounting Director` **belum terisi** di layar Administrator. Tanpa itu tidak ada yang dapat menyetujui, dan periode tertahan di `PendingClosingApproval` |
 
-## `BE-ACC-P2-007` — CRUD template jurnal berulang
+## `BE-ACC-P2-007` ✅ — CRUD template jurnal berulang
 
 | Field | Isi |
 |---|---|
@@ -220,9 +220,12 @@ dilewati. Lihat kartu `006`.
 | Verifikasi | Test `UnitTests.Sqlite` untuk validasi; test integrasi untuk penyimpanan induk-baris |
 | Risiko/pemilik | **Jebakan EF yang sudah memakan waktu sekali:** mengganti baris anak dengan `RemoveRange` + `navigasi.Clear()` lalu menambah lewat navigasi terlacak membuat EF mengirim `UPDATE`, bukan `INSERT`. Tambahkan lewat `DbSet.AddRange`, dan `SaveChanges` penghapusan lebih dahulu di dalam satu transaction. Owner Backend |
 | DoD | Tujuh endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 10 September 2026. Tujuh endpoint berjalan pada grup baru `api/v1/corporate/accounting/recurring-journals`. Build `Release` seluruh solution **0 error**, 200 warning seluruhnya pre-existing — **nol dari berkas task ini**. **5 dari 5 acceptance terbukti** lewat **32 uji baru** (`Failed: 0, Passed: 32`); seluruh project Sqlite `Failed: 0, Passed: 604` — **nol regresi**. QBE `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh. Laporan: [`be-acc-p2-007`](../task/report/backend/be-acc-p2-007-crud-template-jurnal-berulang.md) |
+| **Jebakan EF yang dicatat kartu: DITUTUP** | Penghapusan baris disimpan **lebih dahulu** dengan `SaveChanges` tersendiri, lalu baris baru ditambahkan lewat `DbSet.AddRange` — bukan lewat navigation yang terlacak; keduanya dalam satu transaction. Yang membuktikannya bukan jumlah baris yang benar (itu tetap benar walaupun jebakan terjadi) melainkan **`Id` baris yang berganti seluruhnya**, diuji dengan nomor baris yang sengaja dibuat **sama persis** karena itulah yang memancing EF mencocokkan |
+| **Delta kontrak** | **Hak akses `Activate` terpisah dari `Update`** untuk `activate`/`deactivate` — mengaktifkan template menyalakan penulisan jurnal otomatis ke buku besar, jauh lebih berat daripada menyuntingnya; preseden `BE-ACC-P2-006` yang memisahkan `Approve` dari `Close`. Nol konsumen rusak, layar template belum ada. **Menunggu ratifikasi.** Ditambah: penamaan DTO `...Response`, empat bidang ringkasan (`LineCount`, `TotalAmount`, `RunCount`, `IsBalanced`), dan tiga penolakan di luar kartu — kode template kembar, masa berlaku terbalik, dan pengaktifan template yang barisnya tidak lagi layak |
+| **Batas yang perlu diketahui** | `RecurringFrequency` hanya memuat `Bulanan`, disengaja sejak `002`. Template dapat menunjuk akun yang **benar tetapi keliru**, dan tidak ada yang dapat menangkapnya selain orang yang memeriksa — itulah alasan template lahir tidak aktif |
 
-## `BE-ACC-P2-008` — Penerbitan jurnal berulang dan penjadwalnya
+## `BE-ACC-P2-008` ✅ — Penerbitan jurnal berulang dan penjadwalnya
 
 | Field | Isi |
 |---|---|
@@ -231,12 +234,15 @@ dilewati. Lihat kartu `006`.
 | Kontrak | `ACC-API-0.7` `POST /{id}/generate`, `ACC-VALIDATION-0.5` bagian 3 |
 | Reuse | **`LeaveAccrualSchedulerHostedService`** sebagai pola: `IServiceScopeFactory`, `IOptions<...SchedulerOptions>` dengan tombol `Enabled`, penjaga tanggal terakhir diproses |
 | Cakupan | `AccRecurringJournalSchedulerHostedService`, endpoint penerbitan manual, perluasan `AccRecurringJournalService` |
-| Dependency | `BE-ACC-P2-007` |
+| Dependency | `BE-ACC-P2-007` ✅ |
 | Acceptance | (1) **Penerbitan dua kali untuk periode yang sama hanya menghasilkan satu jurnal**, dan yang kedua ditolak **oleh database**, bukan hanya oleh kode. (2) Periode tidak menerima pencatatan ⇒ dilewati, bukan gagal. (3) Template nonaktif tidak menerbitkan apa pun. (4) Penjadwal dapat dimatikan lewat konfigurasi |
 | Verifikasi | **Test integrasi PostgreSQL wajib**: dua penerbitan bersamaan pada dua koneksi terpisah, pastikan tepat satu berhasil dan satu ditolak unique index. Meniru cara `GAP-ACC-004` dibuktikan pada `BE-ACC-010` |
 | Risiko/pemilik | Menguji penjaga terbit ganda hanya berurutan **tidak membuktikan apa pun** — yang dijaga justru dua proses bersamaan. Owner Backend |
 | DoD | Penjadwal berjalan, test konkurensi hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **✅ `DONE`** — 10 September 2026. Endpoint penerbitan manual dan hosted service penjadwal berjalan. Build `Release` **0 error**, 200 warning seluruhnya pre-existing — **nol dari berkas task ini**. **4 dari 4 acceptance terbukti** lewat **14 uji baru** (`Failed: 0, Passed: 14`); seluruh project Sqlite `Failed: 0, Passed: 604` — **nol regresi**. QBE `PASS`, `VIOLATION: 0`. Nol migration. Laporan: [`be-acc-p2-008`](../task/report/backend/be-acc-p2-008-penerbitan-jurnal-berulang-dan-penjadwalnya.md) |
+| **Acceptance (1) dibuktikan di PostgreSQL sungguhan** | Kartu menegaskan menguji berurutan *"tidak membuktikan apa pun"*. Karena itu pengujiannya dijalankan langsung ke `QuilvianNewDevRizki` dengan **dua koneksi terpisah yang berangkat bersamaan**, disinkronkan barrier. Hasilnya: koneksi A **berhasil**, koneksi B **ditolak** constraint `IX_AccRecurringJournalRun_TemplateId_AccountingPeriodId`, tersimpan **tepat 1 baris**. Satu template uji dan satu baris penerbitan dibuat lalu **dihapus seluruhnya**; nol DDL, nol migration |
+| **Delta kontrak** | `GenerateRecurringJournalRequest` membawa `accountingDate`, **bukan** `accountingPeriodId` — periode adalah turunan tanggal di seluruh modul ini, dan menerimanya langsung membuka jalan jurnal tercatat di periode yang tidak sesuai tanggalnya. Ditambah: bawaan penjadwal **`Enabled = false`** (berbeda dari `LeaveAccrualScheduler` yang ditiru — penjadwal ini menulis ke buku besar), dan hasil siklus dikembalikan sebagai objek supaya "dilewati, bukan gagal" dapat diuji tanpa membaca log |
+| **Batas yang perlu diketahui** | **Penjadwal bawaannya MATI.** Jurnal berulang tidak akan terbit sampai `Accounting:RecurringJournalScheduler:Enabled` diisi `true`. Penjaga `_tanggalTerakhirDiproses` hanya berlaku dalam satu proses; lebih dari satu instance akan mengerjakan siklus yang sama berulang — tidak berbahaya, karena unique index tetap menjaga, tetapi boros |
 
 ## `BE-ACC-P2-009` ✅ — Endpoint pengaturan akuntansi
 
@@ -253,10 +259,10 @@ dilewati. Lihat kartu `006`.
 | Risiko/pemilik | Owner Backend |
 | DoD | Dua endpoint berjalan, test hijau, laporan task tertulis |
 | **Status** | **✅ `DONE`** — 9 September 2026. Dua endpoint berjalan. Build `Release` **0 error**, 145 warning (nol baru). **4 dari 4 acceptance lulus** lewat **14 uji baru** (`Failed: 0, Passed: 14`); seluruh project Sqlite `Failed: 3, Passed: 504` — **nol regresi**. QBE `PASS`, `VIOLATION: 0`. Verifikasi yang diminta kartu adalah `UnitTests.Sqlite`, dan itulah yang dijalankan — **tidak ada verifikasi yang tertinggal**. Nol migration. Laporan: [`be-acc-p2-009`](../task/report/backend/be-acc-p2-009-endpoint-pengaturan-akuntansi.md) |
-| **Delta kontrak** | Dua penolakan **di luar** tulisan kartu: akun milik badan hukum lain, dan akun nonaktif. Keduanya menutup kesalahan yang sama-sama **tidak menimbulkan error** — laba terbuang ke buku besar badan hukum lain (`ACC-DEC-037`), dan tutup tahun gagal tepat di akhir tahun buku. `GET` menjawab `200` dengan `isConfigured: false` saat belum ditetapkan, bukan `404`. **Menunggu ratifikasi** |
+| **Delta kontrak — DIRATIFIKASI** | Dua penolakan **di luar** tulisan kartu: akun milik badan hukum lain, dan akun nonaktif. Keduanya menutup kesalahan yang sama-sama **tidak menimbulkan error** — laba terbuang ke buku besar badan hukum lain (`ACC-DEC-037`), dan tutup tahun gagal tepat di akhir tahun buku. `GET` menjawab `200` dengan `isConfigured: false` saat belum ditetapkan, bukan `404`. **Diratifikasi `ACC-DEC-069`, 10 September 2026** |
 | **Batas yang perlu diketahui** | Sistem **tidak dapat** membedakan `Laba Ditahan` dari `Modal Disetor` — keduanya akun ekuitas yang menerima transaksi, jadi keduanya lolos. Yang membedakan adalah kebijakan akuntansi, dan `ACC-DEC-054` memang menyerahkannya ke pemilik proses |
 
-## `BE-ACC-P2-010` — Pratinjau dan penyusunan jurnal penutup tahun
+## `BE-ACC-P2-010` 🟡 — Pratinjau dan penyusunan jurnal penutup tahun
 
 | Field | Isi |
 |---|---|
@@ -270,7 +276,10 @@ dilewati. Lihat kartu `006`.
 | Verifikasi | Test integrasi PostgreSQL memakai contoh berangka pada [`flowcharts/04-tutup-tahun.md`](../flowcharts/04-tutup-tahun.md): pendapatan Rp 1.300.000.000, beban Rp 900.000.000, laba Rp 400.000.000 |
 | Risiko/pemilik | **Salah hitung tutup tahun tidak menimbulkan error** — jurnalnya tetap seimbang, hanya angkanya salah, dan terbawa ke tahun berikutnya sebagai saldo awal. Acceptance (4) wajib memeriksa saldo tiap akun menjadi nol, bukan hanya memeriksa jurnalnya seimbang. Owner Backend |
 | DoD | Dua endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **🟡 `SEBAGIAN`** — 10 September 2026. Dua endpoint berjalan pada grup baru `api/v1/corporate/accounting/year-end-closing`. Build `Release` seluruh solution **0 error**, 200 warning seluruhnya pre-existing — **nol warning dari keenam berkas task ini**. **6 dari 6 acceptance terbukti** lewat **20 uji baru** (`Failed: 0, Passed: 20`); seluruh project Sqlite `Failed: 0, Passed: 558` — **nol regresi**. QBE checker `PASS`, `VIOLATION: 0`. Nol migration, snapshot utuh, nol perintah database. **Yang membuat 🟡:** test integrasi PostgreSQL **`NOT RUN`** — fixture-nya menerapkan migration sendiri ke basis data dev pemilik, dan itu wewenang terpisah yang sengaja dihentikan. Laporan: [`be-acc-p2-010`](../task/report/backend/be-acc-p2-010-pratinjau-dan-penyusunan-jurnal-penutup-tahun.md) |
+| **Bukti acceptance (4)** | Tidak berhenti pada "debit sama dengan kredit" — itu justru **selalu** benar, termasuk pada jurnal penutup yang angkanya salah. Uji menyusun, mengajukan, menyetujui dengan pelaku berbeda, lalu **mengesahkan** jurnal penutupnya, baru memeriksa saldo **tiap akun satu per satu** memakai `AccChartOfAccountService.HitungSaldoAsync` — penghitung milik buku besar, bukan penghitung khusus uji. Angkanya contoh berangka `flowcharts/04-tutup-tahun.md`: pendapatan Rp 1.300.000.000, beban Rp 900.000.000, laba Rp 400.000.000 |
+| **Delta kontrak — DIRATIFIKASI** | **`JT` kini diterima periode `SoftClosed`.** Tanpa ini task mustahil berjalan: tutup tahun menuntut seluruh periode tahun itu tertutup, sementara tanggal jurnal penutup wajib berada di dalam tahun yang ditutup — sehingga jurnalnya lahir sebagai draft yang tak pernah dapat diajukan maupun disahkan. **Diratifikasi `ACC-DEC-067`, 10 September 2026**; `ACC-STATE` naik `0.2` → `0.3`. Ditambah: controller tersendiri `YearEndClosingController` (dituntut `ACC-PERMISSION-0.4`, sebab argumen pertama `[AccessPermission]` wajib sama dengan `ControllerName`), penamaan DTO `...Response` mengikuti preseden `009`, penolakan ganda tidak berlaku pada pratinjau, dan dua penolakan `422` di luar kartu — periode terakhir tutup permanen, dan akun laba ditahan yang berubah tidak layak sesudah ditetapkan |
+| **Batas yang perlu diketahui** | **Penjaga jurnal penutup ganda belum dijamin database.** Pemeriksaan dan pembuatan berada dalam satu transaction, sehingga dua permintaan berurutan pasti tertangkap; dua permintaan **bersamaan** pada koneksi berbeda masih dapat lolos keduanya. Penutupnya unique constraint, dan itu menuntut migration — di luar wewenang task ini |
 
 ---
 
@@ -278,10 +287,10 @@ dilewati. Lihat kartu `006`.
 
 | Gap | Isi | Dampak |
 |---|---|---|
-| `ACC-TD-016` | **Nol test backend Accounting yang ada sekarang.** `BE-ACC-P2-007` dan `BE-ACC-P2-010` menyentuh `AccJournalService` yang sudah dipakai MVP, tanpa jaring regresi apa pun | Perubahan pada jalur jurnal MVP tidak akan tertangkap. Keputusan owner; disebut di sini karena roadmap ini yang menambah kode ke service tersebut |
+| ~~`ACC-TD-016`~~ | ~~**Nol test backend Accounting yang ada sekarang.**~~ **TIDAK BERLAKU LAGI 10 September 2026.** Project `UnitTests.Sqlite` kini berisi **604 uji hijau**, di antaranya seluruh acceptance `BE-ACC-P2-003`, `005`, `006`, `007`, `008`, `009`, `010`, `011`, dan `013`. Jaring regresinya berdiri: `BE-ACC-P2-007`, `008`, dan `010` sama-sama menyentuh `AccJournalService`, dan ketiganya dijalankan bersama seluruh uji lain tanpa satu pun regresi |
 | `ACC-TEST-0.1` | Matriks acceptance belum punya kolom bukti yang **sudah ada**, hanya "bukti yang diharapkan" | UAT `UAT-P2-11` sampai `UAT-P2-23` tidak punya tempat tinggal saat dijalankan |
-| `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | `BE-ACC-P2-007` mengasumsikan **nominal tetap**. Bila kelak berubah jadi rumus, baris template bertambah kolom |
-| `DEC-ACC-P2-006` | Koreksi sesudah jurnal penutup tahun sah | `BE-ACC-P2-010` acceptance (6) mengasumsikan pembalikan jurnal biasa. Belum diratifikasi |
+| `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | `BE-ACC-P2-007` **sudah dibangun** dengan **nominal tetap**, 10 Sep 2026. Bila kelak berubah jadi rumus, baris template bertambah kolom dan menuntut migration. **Masih terbuka** |
+| ~~`DEC-ACC-P2-006`~~ | ~~Koreksi sesudah jurnal penutup tahun sah~~ | **DITUTUP 10 September 2026 — `ACC-DEC-068`.** Alurnya ditetapkan tiga langkah: balik jurnal penutup, buka kembali Desember beserta alasan tertulis lalu tutup lagi, susun ulang jurnal penutupnya. Tanpa mekanisme "buka kembali tahun buku". Sudah terbukti berjalan pada acceptance (6) `BE-ACC-P2-010` |
 | ~~`DEC-ACC-P2-009`~~ | ~~`AccPostingRule` butuh dimensi kedua (cara pembayaran)~~ | **DITUTUP 9 September 2026 — `TIDAK DIPERLUKAN`.** Jawaban owner Billing nomor 9 menetapkan kas **diringkas per shift kasir**, sehingga satu kejadian membawa beberapa cara bayar sekaligus — dan mekanisme **komponen** `ACC-DEC-058` sudah menanganinya apa adanya, tanpa kolom tambahan. Bukti: [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 25 |
 
 ## Amandemen 9 September 2026 — `ACC-DEC-064`, `065`, `066`

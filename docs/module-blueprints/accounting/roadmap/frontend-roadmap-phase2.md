@@ -6,14 +6,15 @@
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved
-roadmap_revision: 2                 # amandemen 9 Sep 2026 - ACC-DEC-064, 066
+roadmap_revision: 3                 # amandemen 10 Sep 2026 - penyelarasan FE-ACC-P2-001/002
+                                    # dengan AccountingPeriodController; ACC-DEC-070
 roadmap_status: APPROVED
 approved_by: [Rizki]
-approved_at: 2026-09-09
+approved_at: 2026-09-10
 source_backend: 02c3219
 source_frontend: e732424eb          # branch RizkiV2
-decision_revision: 2.2
-contracts: [ACC-API-0.8, ACC-STATE-0.2, ACC-VALIDATION-0.6, ACC-PERMISSION-0.4]
+decision_revision: 2.3              # ACC-DEC-070
+contracts: [ACC-API-0.9, ACC-STATE-0.2, ACC-VALIDATION-0.6, ACC-PERMISSION-0.4]
 scope_waves: [P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON]
 ```
 
@@ -45,8 +46,8 @@ bagian 11.
 
 | ID | Judul | Gelombang | Dependency backend | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-001` | Layar Daftar Periksa Penutupan | `P2-4` | `BE-ACC-P2-005` | `READY` |
-| `FE-ACC-P2-002` | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | `READY` |
+| `FE-ACC-P2-001` 🟡 | Layar Daftar Periksa Penutupan | `P2-4` | `BE-ACC-P2-005` | 🟡 `SEBAGIAN` |
+| `FE-ACC-P2-002` 🟡 | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-003` | Layar daftar Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
 | `FE-ACC-P2-004` | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
 | `FE-ACC-P2-005` | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | `READY` |
@@ -56,37 +57,53 @@ bagian 11.
 
 ---
 
-## `FE-ACC-P2-001` — Layar Daftar Periksa Penutupan
+## 🟡 `FE-ACC-P2-001` — Layar Daftar Periksa Penutupan
 
 | Field | Isi |
 |---|---|
 | Outcome | Petugas melihat apa saja yang menahan penutupan bulan, dan tahu apa yang harus dikerjakan |
-| Trace | `ACC-DEC-051`; `FR-P2-023`, `FR-P2-025` |
-| Kontrak | `GET /accounting-periods/{id}/closing-checklist` pada `ACC-API-0.7` |
+| Trace | `ACC-DEC-051`, **`ACC-DEC-065`**, **`ACC-DEC-070`**; `FR-P2-023`, `FR-P2-025` |
+| Kontrak | `GET /periods/{id}/closing-checklist` dan `GET /periods/{id}/closing-history`, dijaga `AccountingPeriod : Read`, pada `ACC-API-0.9`. **Bukan** `accounting-periods`, **bukan** `Period : Read` |
 | Reuse | Tabel dan kartu dari layar Periode Akuntansi yang sudah ada; pemilih badan hukum |
 | Cakupan | Layar anak dari Periode Akuntansi, dibuka lewat tombol Tutup Periode. `accounting-period-closing-slice.jsx` |
 | Dependency | `BE-ACC-P2-005` |
-| Acceptance | (1) Dua penghalang dan lima peringatan tampil terpisah dan **terbaca bedanya**. (2) **Tidak memakai cache** — layar dibuka ulang selalu memanggil endpoint lagi. (3) Tautan Lihat membuka daftar jurnal yang sudah tersaring ke periode itu. (4) Keadaan kosong berbunyi "Tidak ada penghalang." |
+| Acceptance | (1) **Tiga** penghalang (`ACC-DEC-051` + `ACC-DEC-065`) dan **enam** peringatan (`ACC-DEC-051` + `ACC-DEC-070`) tampil terpisah dan **terbaca bedanya**. (2) Butir berkeadaan `NotYetAvailable` dirender **berbeda** dari butir yang sudah diperiksa dan bersih, tanpa menampilkan angka, disertai `UnavailableReason`-nya. (3) Selama `IsComplete` bernilai `false`, spanduk kelengkapan tampil di **atas** daftar memuat `NotYetAvailableCount`. (4) **Tidak memakai cache** — layar dibuka ulang selalu memanggil endpoint lagi. (5) Tautan Lihat membuka daftar jurnal yang sudah tersaring ke periode itu. (6) Keadaan kosong berbunyi "Tidak ada penghalang." (7) Riwayat penutupan tampil dari `closing-history`; gagalnya riwayat **tidak** menghilangkan daftar periksa |
 | Verifikasi | `npm run lint`; `npm run build`; unit test slice; UAT peramban `UAT-P2-14` |
-| Risiko/pemilik | Menampilkan angka dari cache membuat petugas mengambil keputusan penutupan berdasarkan keadaan lama. Owner Frontend |
+| Risiko/pemilik | **Dua risiko.** (a) Menampilkan angka dari cache membuat petugas mengambil keputusan penutupan berdasarkan keadaan lama. (b) **Merender butir `NotYetAvailable` sama seperti butir bersih.** Dua dari tiga penghalang belum dapat diperiksa selama gelombang `P2-1` belum dibangun; bila dirender sama, petugas menutup periode padahal tidak ada yang pernah memeriksa shift kasirnya. Owner Frontend |
 | DoD | Lint dan build hijau, unit test lulus, laporan task tertulis |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 10 September 2026. `npm run lint` 0 error; `npm run build` compiled; `node --test tests/unit/` **615 lulus 0 gagal** (17 uji baru). **Diuji terhadap backend sungguhan:** bentuk respons cocok 100% dengan normalizer, 3 penghalang + 6 peringatan, `notYetAvailableCount=7`, dan payload aslinya disimpan sebagai fixture. **Belum terpenuhi:** acceptance (5) — tautan Lihat belum menyaring ke periode; `UAT-P2-14` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) |
 
-## `FE-ACC-P2-002` — Aksi penutupan: ajukan, setujui, tolak
+
+## 🟡 `FE-ACC-P2-002` — Aksi penutupan: ajukan, setujui, tolak
 
 | Field | Isi |
 |---|---|
 | Outcome | Penutupan bulan dapat ditempuh penuh oleh dua orang berbeda lewat layar |
 | Trace | `ACC-DEC-052`, `ACC-DEC-055`, `ACC-DEC-016`; `FR-P2-026`, `027`, `028` |
-| Kontrak | `POST /submit-closing`, `/approve-closing`, `/reject-closing` |
+| Kontrak | `POST /periods/{id}/submit-closing` (`AccountingPeriod : Close`), `/approve-closing` dan `/reject-closing` (`AccountingPeriod : Approve`), pada `ACC-API-0.9`. **Bukan** `accounting-periods`, **bukan** `Period : ...` |
 | Reuse | Modal konfirmasi beralasan dari layar Buka Kembali Periode yang sudah ada |
-| Cakupan | Tiga tombol pada layar `FE-ACC-P2-001`; modal alasan penolakan |
-| Dependency | `BE-ACC-P2-006` |
+| Cakupan | Tiga tombol pada layar `FE-ACC-P2-001`; modal alasan penolakan. **Tidak ada layar sendiri** |
+| Dependency | `BE-ACC-P2-006`; **`FE-ACC-P2-001`** — lihat catatan urutan di bawah kartu ini |
 | Acceptance | (1) Tombol Ajukan **mati** selama masih ada penghalang, dan alasannya terbaca di layar. (2) Tombol Setujui dan Tolak **mati** bila pembuka layar adalah yang mengajukan, disertai keterangan. (3) Penolakan tanpa alasan tidak dapat dikirim. (4) Tombol yang bukan haknya dimatikan, bukan disembunyikan |
 | Verifikasi | `npm run lint`; `npm run build`; unit test; UAT peramban `UAT-P2-15`, `UAT-P2-16`, `UAT-P2-17`, `UAT-P2-18` |
 | Risiko/pemilik | **Peran `Accounting Director` harus sudah ada** di mekanisme hak akses sebelum acceptance (2) dapat diuji sungguhan. Bergantung `BE-ACC-P2-006`. Owner Frontend |
 | DoD | Lint dan build hijau, empat UAT terbukti, laporan task tertulis |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 10 September 2026, satu paket dengan `FE-ACC-P2-001`. Lint 0 error; build compiled; 615 uji lulus. **Alur penuh terbukti terhadap backend sungguhan** pada tahun buku uji 2019: ajukan → status 4, riwayat 1 baris; setujui oleh pengaju sendiri **403** (prinsip empat mata tegak); tolak tanpa alasan **400**; ajukan ulang **409**; tolak beralasan **200** dan periode kembali terbuka. **Satu cacat ditemukan dan diperbaiki:** urutan alasan tombol mati salah sesudah penolakan. **Belum terpenuhi:** tampilan tombol mati bagi pengguna kedua di peramban; `UAT-P2-15`..`18` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md) |
+
+
+### Urutan: `001` lebih dahulu, bukan sebaliknya
+
+**`FE-ACC-P2-002` tidak dapat dikerjakan lebih dulu.** Cakupannya adalah *tiga tombol pada layar
+`FE-ACC-P2-001`* — ia menumpang layar daftar periksa dan tidak punya layar sendiri. Tabel
+dependency di atas hanya menyebut `BE-ACC-P2-006`, sehingga kartunya **terbaca seolah berdiri
+sendiri**; itu yang mudah salah dibaca saat memilih task berikutnya.
+
+Kerjakan `001` lebih dahulu, atau keduanya sebagai **satu paket**. Yang tidak bisa: memulai `002`
+sementara `001` belum ada, karena tombolnya tidak punya tempat untuk diletakkan.
+
+Ada alasan kedua untuk menjadikannya satu paket: acceptance (1) `002` berbunyi "tombol Ajukan mati
+selama masih ada penghalang", dan daftar penghalang itu **milik** `001`. Menguji `002` tanpa `001`
+berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 
 ## `FE-ACC-P2-003` — Layar daftar Jurnal Berulang
 

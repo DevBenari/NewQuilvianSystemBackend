@@ -52,10 +52,10 @@ dikerjakan task ini.
 
 | Langkah | Pelaku | Yang terjadi |
 | ---: | --- | --- |
-| 1 | Pemilik proses akuntansi | Membuat akun `3-2001 Laba Ditahan` di daftar akun — berjenis Ekuitas, menerima transaksi |
+| 1 | Pemilik proses akuntansi | Membuat akun `3-3001 Laba Ditahan` di daftar akun — berjenis Ekuitas, menerima transaksi |
 | 2 | Pemilik proses akuntansi | Membuka layar pengaturan akuntansi |
 | 3 | Sistem | Menampilkan `isConfigured: false` — belum ditetapkan |
-| 4 | Pemilik proses akuntansi | Memilih `3-2001`, menyimpan |
+| 4 | Pemilik proses akuntansi | Memilih `3-3001`, menyimpan |
 | 5 | Sistem | Memeriksa lima hal, lalu menyimpan satu baris pengaturan |
 | 6 | Sistem | Panggilan berikutnya menampilkan akunnya lengkap dengan kode dan nama |
 
@@ -83,7 +83,7 @@ Rumah Sakit Uji punya empat akun ekuitas:
 | --- | --- | --- | :---: | --- |
 | `3-0000` | Ekuitas | Equity | Tidak (akun induk) | **Ditolak** — akun induk |
 | `3-1001` | Modal Disetor | Equity | Ya | Diterima secara teknis |
-| `3-2001` | Laba Ditahan | Equity | Ya | **Diterima** — inilah yang benar |
+| `3-3001` | Laba Ditahan | Equity | Ya | **Diterima** — inilah yang benar |
 | `1-1001` | Kas Besar | Asset | Ya | **Ditolak** — bukan Ekuitas |
 
 Baris `3-1001` menunjukkan batas kemampuan sistem: `Modal Disetor` lolos seluruh pemeriksaan

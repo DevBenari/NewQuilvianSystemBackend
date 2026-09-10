@@ -273,7 +273,7 @@ Uji manual: `NOT FEASIBLE` — layarnya `FE-ACC-P2-008`, belum dibuat.
 
 | # | Isu | Pemilik |
 | ---: | --- | --- |
-| 1 | **Belum ada satu pun akun bertanda control account di database.** Endpoint ini akan menjawab daftar kosong sampai Kas Kasir, Kas Kecil, Piutang, dan Hutang ditandai — dan keempatnya belum ada di daftar akun, yang saat ini berisi 3 akun | Pemilik proses akuntansi |
+| 1 | **Belum ada satu pun akun bertanda control account di database.** Endpoint ini menjawab daftar kosong sampai Kas Kasir, Kas Kecil, Piutang, dan Hutang ditandai. Sebab pokoknya lebih dalam: **daftar akun rumah sakit belum pernah disusun** — dicatat sebagai `ACC-TD-022` pada [UTANG-TEKNIS.md](../../../UTANG-TEKNIS.md) 10 September 2026. Menghambat **pemakaian**, bukan pembangunan | **Pemilik proses akuntansi** |
 | 2 | Grup Reconciliation belum ada di kontrak `ACC-API-0.8` | Rizki — ratifikasi |
 | 3 | Test integrasi PostgreSQL belum tersedia | Owner Backend |
 | 4 | `BE-ACC-P2-014` tetap **⛔ terblokir** `DEC-ACC-P2-011`; laporan ini hanya separuh rekonsiliasi | Rizki bersama owner Finance |
@@ -283,7 +283,7 @@ Uji manual: `NOT FEASIBLE` — layarnya `FE-ACC-P2-008`, belum dibuat.
 
 | Risiko | Penjelasan |
 | --- | --- |
-| **Laporan yang tampak bersih karena kosong** | Selama nol akun ditandai control account, laporan ini selalu kosong — dan kosong dapat disalahartikan sebagai "tidak ada selisih". Pesannya sudah membedakan keduanya, tetapi layar wajib menampilkan pesan itu |
+| **Laporan yang tampak bersih karena kosong** | Kosong dapat disalahartikan sebagai "tidak ada selisih". Pesannya sudah membedakan keduanya, tetapi layar wajib menampilkan pesan itu. **Sejak 10 Sep 2026 tidak lagi kosong**: 6 control account data pengembangan (`ACC-TD-022`) sudah berdiri, dan endpoint ini menjawab `HTTP 200` dengan keenamnya |
 | Perilaku PostgreSQL belum terbukti | Lihat bagian 5. Untuk laporan uang, agregasi `decimal` pantas dibuktikan di provider sungguhan |
 | Separuh rekonsiliasi | Tanpa `014`, angka ini masih harus dibandingkan manual dengan subledger |
 
@@ -300,9 +300,10 @@ Ditambah berkas `005`, `006`, `009`, dan dua perbaikan yang juga belum di-commit
 
 ### Langkah berikutnya
 
-1. **Susun daftar akun** — Kas Kasir, Kas Kecil, Piutang, Hutang — lalu tandai keempatnya sebagai
-   control account lewat `POST`/`PUT` daftar akun. Tanpa itu, `013` maupun `012` tidak punya data
-   untuk bekerja.
+1. **Susun daftar akun rumah sakit** (`ACC-TD-022`) — minimal Kas Kasir, Kas Kecil, Piutang, dan
+   Hutang, lalu tandai keempatnya sebagai control account. Ini keputusan pemilik proses akuntansi,
+   bukan pengembang: blueprint melarang menebaknya, dan contoh kode akun yang tersebar di
+   blueprint **saling bertabrakan** sehingga tidak dapat dipakai apa adanya.
 2. **`BE-ACC-P2-012`** — penolakan jurnal manual ke control account. Menunggu keputusan owner
    soal pembeda jurnal manual dan otomatis: parameter service, atau kolom `JournalSource` yang
    menuntut migration baru.

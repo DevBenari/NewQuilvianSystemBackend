@@ -364,16 +364,22 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-API-0.8` |
-| `last_changed_in` | `ACC-API-0.8` — 9 September 2026, `ACC-DEC-060` menambah `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12. Sebelumnya `0.7` (`ACC-DEC-058`, aturan posting daftar baris) dan `0.6` (33 endpoint Phase 2) |
-| Status | **`approved`** — Rizki, 8 September 2026 |
-| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
-| `input_revision` | `00-interview-decisions.md@4`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
-| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
-| Dampak kompatibilitas | Seluruhnya endpoint **baru**, ditambah **empat endpoint baru** pada grup Accounting Period yang sudah ada. **Nol endpoint existing berubah bentuk maupun rusak** |
+| `contract_version` | `ACC-API-0.9` |
+| `last_changed_in` | `ACC-API-0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
+| Status | **`approved`** — Rizki, 10 September 2026 |
+| `approved_by` / `approved_at` | Rizki / 10 September 2026 (ratifikasi `ACC-API-0.9`); sebelumnya Rizki / 8 September 2026 (`ACC-API-0.8`) |
+| `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`, ditambah `ACC-DEC-065` dan `ACC-DEC-070` |
+| Dampak kompatibilitas | Seluruhnya endpoint **baru**, ditambah **lima endpoint baru** pada grup Accounting Period yang sudah ada. **Nol endpoint existing berubah bentuk maupun rusak** |
 
-**Seluruh endpoint di bawah berlabel `Rencana (belum tersedia)`.** Tidak satu pun sudah berdiri di
-`02c3219`. Jangan menyangkanya sudah bisa dipakai.
+**Sebagian besar endpoint di bawah berlabel `Rencana (belum tersedia)`.** Jangan menyangka yang
+berlabel demikian sudah bisa dipakai.
+
+**Kecualinya grup Accounting Period.** Kelima endpoint barunya — `closing-checklist`,
+`closing-history`, `submit-closing`, `approve-closing`, `reject-closing` — **sudah berdiri** lewat
+`BE-ACC-P2-005` dan `BE-ACC-P2-006`, dan labelnya sudah diperbarui pada bagiannya. Kalimat
+sebelumnya berbunyi "tidak satu pun sudah berdiri di `02c3219`", benar saat ditulis dan sudah
+tidak benar sejak kedua task itu selesai.
 
 Amplop respons tetap `ApiResponse<T>`, daftar berhalaman tetap `PagedResult<T>`, sama seperti MVP.
 
@@ -470,23 +476,77 @@ Base URL: `api/v1/corporate/accounting/recurring-journals` — **Rencana (belum 
 `409` muncul bila template sudah pernah terbit untuk periode yang diminta — inilah penjaga terbit
 ganda. `422` muncul bila periode yang dituju tidak menerima pencatatan.
 
-## Corporate / Accounting / Accounting Period — empat endpoint baru
+## Corporate / Accounting / Accounting Period — lima endpoint baru
 
 `[Tags("Corporate - Accounting - Accounting Period")]`
-Base URL: `api/v1/corporate/accounting/accounting-periods` — grup **sudah ada**; keempat baris di
-bawah **Rencana (belum tersedia)**
+Base URL: `api/v1/corporate/accounting/periods` — grup **sudah ada**; kelima baris di bawah
+**sudah berdiri**, terbukti `AccountingPeriodController` pada `rizkiG`
+
+> **Diratifikasi Rizki, 10 September 2026 — `ACC-API-0.9`.** Empat perbaikan pada grup ini: base
+> URL `accounting-periods` menjadi `periods`, nama hak akses `Period` menjadi `AccountingPeriod`,
+> penambahan `GET /{id}/closing-history`, dan penambahan empat bidang keadaan pada
+> `PeriodClosingChecklistDto`. **Untuk keempatnya yang benar adalah kode, bukan dokumen ini.**
+> Rinciannya di bawah tabel.
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
-| `GET` | `/{id}/closing-checklist` | Daftar penghalang dan peringatan penutupan, **dihitung saat diminta** | `Period : Read` | — | `ApiResponse<PeriodClosingChecklistDto>` |
-| `POST` | `/{id}/submit-closing` | Accounting Manager mengajukan penutupan periode | `Period : Close` | `SubmitPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
-| `POST` | `/{id}/approve-closing` | **`Accounting Director`** menyetujui penutupan | `Period : Approve` | `ApprovePeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
-| `POST` | `/{id}/reject-closing` | Penyetuju menolak pengajuan; alasan tertulis wajib | `Period : Approve` | `RejectPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+| `GET` | `/{id}/closing-checklist` | Daftar penghalang dan peringatan penutupan, **dihitung saat diminta** | `AccountingPeriod : Read` | — | `ApiResponse<PeriodClosingChecklistDto>` |
+| `GET` | `/{id}/closing-history` | Riwayat tindakan penutupan satu periode — ajukan, setujui, tolak — berurut menaik. Barisnya **tidak pernah diubah maupun dihapus** | `AccountingPeriod : Read` | — | `ApiResponse<List<PeriodClosingApprovalDto>>` |
+| `POST` | `/{id}/submit-closing` | Accounting Manager mengajukan penutupan periode | `AccountingPeriod : Close` | `SubmitPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+| `POST` | `/{id}/approve-closing` | **`Accounting Director`** menyetujui penutupan | `AccountingPeriod : Approve` | `ApprovePeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
+| `POST` | `/{id}/reject-closing` | Penyetuju menolak pengajuan; alasan tertulis wajib | `AccountingPeriod : Approve` | `RejectPeriodClosingRequest` | `ApiResponse<AccountingPeriodDetailDto>` |
 
-`409` pada `submit-closing` muncul bila masih ada penghalang `ACC-DEC-051`: jurnal belum disahkan,
-atau kejadian keuangan gagal.
+`409` pada `submit-closing` muncul bila masih ada penghalang `ACC-DEC-051` beserta perluasannya
+`ACC-DEC-065`: jurnal belum disahkan, kejadian keuangan gagal, atau shift kasir belum ditutup.
 `403` pada `approve-closing` muncul bila penyetujunya adalah orang yang mengajukan — penerapan
 ulang prinsip empat mata `ACC-DEC-016`.
+
+### Base URL grup ini adalah `periods`, bukan `accounting-periods`
+
+Baris di atas sebelumnya menulis `api/v1/corporate/accounting/accounting-periods`, sementara
+bagian MVP dokumen yang sama menulis `api/v1/corporate/accounting/periods` untuk **grup yang sama
+persis**. Satu dokumen, dua base URL — dan yang dipakai `[Route(...)]` pada
+`AccountingPeriodController` adalah `periods`.
+
+`periods` **tidak dapat ditawar**: ia sudah dipakai sebelas layar Accounting MVP yang berjalan
+lewat `accounting-period-slice.jsx`. Mengubah route agar cocok dengan dokumen akan merusak
+kesebelasnya sekaligus.
+
+### Nama hak akses grup ini adalah `AccountingPeriod`, bukan `Period`
+
+Bagian Phase 2 sebelumnya menulis `Period : Read`, `Close`, dan `Approve`. Implementasinya
+`AccountingPeriod : ...`, sama seperti bagian MVP.
+
+Ini pun bukan pilihan: argumen pertama `[AccessPermission]` **wajib** sama dengan `ControllerName`
+pada controller yang bersangkutan, dan `ControllerName`-nya `"AccountingPeriod"`. Nama `Period`
+menghasilkan `403` permanen yang **tidak dapat diperbaiki dari layar Akses Role** — hak yang
+dicari tidak pernah ada untuk diberikan.
+
+### Empat bidang keadaan pada `PeriodClosingChecklistDto`
+
+Daftar periksa penutupan tidak hanya membawa jumlah; ia juga membawa **apakah setiap butir sudah
+sempat diperiksa**. Sebagiannya belum, karena gelombang `P2-1` belum berdiri.
+
+| Bidang | Letak | Tipe | Arti |
+|---|---|---|---|
+| `State` | tiap butir | `PeriodChecklistItemState` — `Evaluated` atau `NotYetAvailable` | `Evaluated` berarti butir ini benar-benar dihitung. `NotYetAvailable` berarti **belum dapat diperiksa sama sekali** |
+| `UnavailableReason` | tiap butir | `string?` | Diisi **hanya** bila `State` bernilai `NotYetAvailable`: alasannya, beserta gelombang yang akan menyediakannya |
+| `IsComplete` | akar respons | `bool` | Benar hanya bila **seluruh** butir sudah dapat diperiksa. Selama `P2-1` belum berdiri, nilainya `false` |
+| `NotYetAvailableCount` | akar respons | `int` | Jumlah butir yang belum dapat diperiksa, penghalang maupun peringatan |
+
+**`Count` bernilai `0` pada butir `NotYetAvailable`.** Nol di sana berarti "belum ada yang
+memeriksa", bukan "sudah diperiksa dan bersih". Layar yang merender keduanya sama membuat petugas
+menutup periode dengan yakin, padahal sebagian penghalangnya tidak pernah dihitung.
+
+Karena itu `CanSubmitClosing` bernilai benar bila tidak ada penghalang **yang sudah diperiksa**
+bernilai lebih dari nol — ia **tidak** menjamin seluruh pemeriksaan sudah berjalan. Yang menjamin
+itu `IsComplete`.
+
+Bentuk respons **tidak berubah** saat sebuah butir beralih dari `NotYetAvailable` ke `Evaluated`:
+`Blockers` selalu berisi **tiga** penghalang (`ACC-DEC-051` + `ACC-DEC-065`) dan `Warnings` selalu
+berisi **enam** peringatan (`ACC-DEC-051` + `ACC-DEC-070`), apa pun keadaannya. Layar tidak perlu
+diubah saat gelombang berikutnya menyalakan sebuah butir, dan **tidak boleh** menanam kedua angka
+itu di kodenya.
 
 ## Corporate / Accounting / Year End Closing
 
@@ -528,7 +588,7 @@ Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran be
 | Event Type | `EventTypePagedQuery`, `EventTypeListDto`, `EventTypeDetailDto`, `EventTypeOptionDto`, `CreateEventTypeRequest`, `UpdateEventTypeRequest` |
 | Posting Rule | `PostingRulePagedQuery`, `PostingRuleListDto`, `PostingRuleDetailDto`, **`PostingRuleLineDto`**, `CreatePostingRuleRequest`, `UpdatePostingRuleRequest` — keduanya memuat daftar baris |
 | Recurring Journal | `RecurringJournalPagedQuery`, `RecurringJournalListDto`, `RecurringJournalDetailDto`, `RecurringJournalLineDto`, `RecurringJournalRunDto`, `CreateRecurringJournalRequest`, `UpdateRecurringJournalRequest`, `GenerateRecurringJournalRequest` |
-| Period Closing | `PeriodClosingChecklistDto`, `PeriodClosingBlockerDto`, `PeriodClosingApprovalDto`, `SubmitPeriodClosingRequest`, `ApprovePeriodClosingRequest`, `RejectPeriodClosingRequest` |
+| Period Closing | `PeriodClosingChecklistDto` (+ `IsComplete`, `NotYetAvailableCount`), `PeriodClosingBlockerDto` (+ `State`, `UnavailableReason`), `PeriodClosingApprovalDto`, `SubmitPeriodClosingRequest`, `ApprovePeriodClosingRequest`, `RejectPeriodClosingRequest` |
 | Year End Closing | `YearEndClosingPreviewDto`, `YearEndClosingPreviewLineDto`, `GenerateYearEndClosingRequest` |
 | Configuration | `AccountingConfigurationDto`, `UpdateAccountingConfigurationRequest` |
 

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `3` |
+| Revision | `4` — 10 September 2026, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
 | Status | `draft` — approval adalah tindakan manusia, belum diberikan |
-| Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) |
+| Cakupan | **Dua bagian.** Bagian 1-8: MVP tulang punggung akuntansi (`ACC-DEC-009`). Bagian 9-14: Phase 2 (`ACC-PH-006`), mencakup `ACC-DEC-044` sampai `ACC-DEC-066` |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
-| Masukan | `02-backend-architecture.md@3`, `contracts/api-contract.md@ACC-API-0.1` |
+| Masukan | `02-backend-architecture.md@3`, `contracts/api-contract.md@ACC-API-0.1` (bagian 1-8); `contracts/api-contract.md@ACC-API-0.9` (bagian 9-14), `roadmap/frontend-roadmap-phase2.md@3`, `00-interview-decisions.md@6` |
 | Sumber konvensi | `QuilvianSystemFrontendDev/CLAUDE.md@fc49cc7` |
 
 Dokumen ini memuat **kontrak fungsional** frontend: layar apa yang dibutuhkan, siapa boleh
@@ -308,8 +308,11 @@ Seluruh aturan bagian 1 tetap berlaku penuh, terutama dua yang paling sering dil
 
 ## 9. Peta butir menu Phase 2
 
-Melanjutkan letak menu yang diputuskan `ACC-FE-001`. Enam butir bertambah, seluruhnya di dalam
-menu Accounting yang sudah ada.
+Melanjutkan letak menu yang diputuskan `ACC-FE-001`. **Tujuh** butir bertambah, seluruhnya di
+dalam menu Accounting yang sudah ada.
+
+Butir ketujuh menyusul lewat amandemen roadmap 9 September 2026 (`ACC-DEC-066`). Penanda control
+account `ACC-DEC-064` **tidak** menambah butir menu — ia menumpang layar COA yang sudah ada.
 
 | # | Butir menu | Tingkat | Induk | Route | Layar yang dituju | Hak akses penjaga |
 |---:|---|:---:|---|---|---|---|
@@ -319,6 +322,7 @@ menu Accounting yang sudah ada.
 | 4 | Jurnal Berulang | 2 | Accounting | `/accounting/recurring-journals` | Jurnal Berulang | `RecurringJournal : Read` |
 | 5 | Tutup Tahun | 2 | Accounting | `/accounting/year-end-closing` | Tutup Tahun | `YearEndClosing : Read` |
 | 6 | Pengaturan Akuntansi | 3 | Accounting › Master Data | `/accounting/configuration` | Pengaturan Akuntansi | `AccountingConfiguration : Update` |
+| 7 | Rekonsiliasi Control Account | 2 | Accounting | `/accounting/reconciliation` | Rekonsiliasi Control Account | `AccountingReconciliation : Read` |
 
 ### Layar anak yang tidak muncul sebagai butir menu
 
@@ -356,9 +360,11 @@ menuntut tindakan segera — ia menunggu pekerjaan pemetaan yang wajar dijadwalk
 | 17 | Jenis Kejadian | Master jenis kejadian; layar kecil | `ACC-P2-S1` |
 | 18 | Jurnal Berulang | Daftar template beserta status aktif dan jadwal terbitnya | `ACC-P2-S2` |
 | 19 | Form Jurnal Berulang | Kepala template ditambah tabel baris dengan total berjalan | `ACC-P2-S2` |
-| 20 | Daftar Periksa Penutupan | Dua penghalang dan lima peringatan, beserta tombol Ajukan | `ACC-P2-S3` |
+| 20 | Daftar Periksa Penutupan | **Tiga** penghalang beserta peringatannya, masing-masing dengan keadaan sudah/belum diperiksa, beserta tombol Ajukan | `ACC-P2-S3` |
 | 21 | Tutup Tahun | Pratinjau perhitungan dan tombol Susun Jurnal Penutup | `ACC-P2-S4` |
 | 22 | Pengaturan Akuntansi | Menetapkan akun laba ditahan per badan hukum; layar kecil | `ACC-P2-S4` |
+| 23 | Penanda Control Account | **Bukan layar baru.** Satu kotak centang pada Form Akun dan satu kolom penanda pada tabel COA yang sudah ada (`ACC-DEC-064`) | `ACC-P2-S5` |
+| 24 | Rekonsiliasi Control Account | Saldo buku besar berdampingan dengan saldo subledger, beserta selisihnya (`ACC-DEC-066`) | `ACC-P2-S5` |
 
 **Form Jurnal Berulang memakai ulang komponen Form Jurnal.** Keduanya sama-sama kepala ditambah
 tabel baris dengan total berjalan dan penjaga keseimbangan. Membuat komponen tandingan adalah
@@ -433,31 +439,129 @@ dibatalkan**, karena memang tidak dapat. Kolom alasan tidak boleh kosong.
 +--------------------------------------------------------------+
 | Tutup Periode 2026-09              [Ajukan Penutupan]        |
 +--------------------------------------------------------------+
+| ! Daftar periksa masih sebagian - 7 butir belum dapat        |
+|   diperiksa. Lihat keterangan tiap baris.                    |
++--------------------------------------------------------------+
 | PENGHALANG (harus nol)                                       |
 |  x 3 jurnal belum disahkan                    [Lihat]        |
-|  x 2 kejadian keuangan gagal                  [Lihat]        |
+|  ? Kejadian keuangan gagal                                   |
+|      Belum dapat diperiksa: kotak masuk kejadian             |
+|      keuangan belum berdiri.                                 |
+|  ? Shift kasir belum ditutup                                 |
+|      Belum dapat diperiksa: kejadian CASH_SHIFT_CLOSED       |
+|      belum mengalir.                                         |
 +--------------------------------------------------------------+
 | PERINGATAN (boleh dilewati)                                  |
-|  ! 1 kejadian tertahan                        [Lihat]        |
-|  ! Penyusutan belum dijalankan                               |
+|  v Tidak ada jurnal yang belum seimbang                      |
+|  ? Penyusutan belum dijalankan                               |
+|      Belum dapat diperiksa: penjadwal jurnal berulang        |
+|      belum berdiri (BE-ACC-P2-008).                          |
 +--------------------------------------------------------------+
 ```
 
+Tiga lambang, tiga arti yang **tidak boleh** tertukar: `x` sudah diperiksa dan bermasalah,
+`v` sudah diperiksa dan bersih, `?` belum dapat diperiksa sama sekali.
+
 | Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
 |---|---|---|---|---|---|
-| Penghalang | Dua jenis penghalang beserta jumlahnya | `GET /accounting-periods/{id}/closing-checklist` | `Period : Read` | "Tidak ada penghalang." Tombol Ajukan menyala | "Daftar periksa gagal dimuat." |
-| Peringatan | Lima jenis peringatan | Dari respons yang sama | `Period : Read` | "Tidak ada peringatan." | — |
-| Tombol Ajukan | — | `POST /accounting-periods/{id}/submit-closing` | `Period : Close` | **Mati** selama masih ada penghalang | Pesan galat |
+| Spanduk kelengkapan | Muncul **hanya** bila `IsComplete` bernilai `false`, memuat `NotYetAvailableCount` | `GET /periods/{id}/closing-checklist` | `AccountingPeriod : Read` | Disembunyikan saat `IsComplete` benar | Ikut hilang bersama isi layar |
+| Penghalang | **Tiga** penghalang beserta jumlah dan keadaannya | Respons yang sama, bidang `Blockers` | `AccountingPeriod : Read` | "Tidak ada penghalang." Tombol Ajukan menyala | "Daftar periksa gagal dimuat." |
+| Peringatan | Seluruh peringatan beserta jumlah dan keadaannya | Respons yang sama, bidang `Warnings` | `AccountingPeriod : Read` | "Tidak ada peringatan." | — |
+| Riwayat penutupan | Ajukan, setujui, tolak - berurut menaik beserta pelaku, waktu, dan catatannya | `GET /periods/{id}/closing-history` | `AccountingPeriod : Read` | "Periode ini belum pernah diajukan." | "Riwayat gagal dimuat." Isi layar lain tetap tampil |
+| Tombol Ajukan | — | `POST /periods/{id}/submit-closing` | `AccountingPeriod : Close` | **Mati** selama masih ada penghalang | Pesan galat |
 | Tautan Lihat | Membuka daftar tersaring | Layar Jurnal atau Kotak Masuk Kejadian | Sesuai layar tujuan | — | — |
+
+**Route grup ini `periods`, bukan `accounting-periods`, dan hak aksesnya `AccountingPeriod`,
+bukan `Period`.** Revisi sebelumnya menyalin keduanya dari bagian Phase 2 `api-contract.md` yang
+saat itu keliru; kontraknya sudah diperbaiki 10 September 2026. Nama `Period` menghasilkan `403`
+permanen yang **tidak dapat diperbaiki dari layar Akses Role**, karena hak yang dicari tidak
+pernah ada untuk diberikan.
 
 **Tombol Ajukan mati, bukan disembunyikan**, selama masih ada penghalang. Menyembunyikannya membuat
 petugas bertanya-tanya di mana tombolnya; mematikannya beserta daftar penghalang di atasnya
 menjelaskan sendiri apa yang harus dikerjakan lebih dulu.
 
 Layar persetujuan bagi **pimpinan keuangan** memakai layar yang sama, dengan tombol berbeda:
-`[Setujui Penutupan]` dan `[Tolak]`, dijaga `Period : Approve`. Bila pembuka layar adalah orang
-yang mengajukan, kedua tombol itu **mati** beserta keterangan "Penutupan tidak dapat disetujui
-oleh yang mengajukan."
+`[Setujui Penutupan]` dan `[Tolak]`, dijaga `AccountingPeriod : Approve`. Bila pembuka layar
+adalah orang yang mengajukan, kedua tombol itu **mati** beserta keterangan "Penutupan tidak dapat
+disetujui oleh yang mengajukan."
+
+#### Tiga penghalang, bukan dua
+
+`ACC-DEC-051` menetapkan dua penghalang. `ACC-DEC-065` memperluasnya menjadi **tiga** pada
+9 September 2026, bertambah **shift kasir yang belum ditutup**.
+
+| # | Penghalang | `Code` | Keadaan hari ini | Sumber |
+|---:|---|---|---|---|
+| 1 | Jurnal belum disahkan | `UNPOSTED_JOURNALS` | `Evaluated` — **satu-satunya yang sudah dapat diperiksa** | `ACC-DEC-051` |
+| 2 | Kejadian keuangan gagal | `FAILED_EVENTS` | `NotYetAvailable` — kotak masuk kejadian belum berdiri | `ACC-DEC-051` |
+| 3 | Shift kasir belum ditutup | `OPEN_CASH_SHIFTS` | `NotYetAvailable` — kejadian `CASH_SHIFT_CLOSED` belum mengalir | `ACC-DEC-065` |
+
+Penghalang ketiga ada karena kas datang **per shift**: shift yang melewati pergantian bulan dan
+belum ditutup membuat kasnya tidak pernah sampai ke buku besar, sementara periodenya tetap dapat
+ditutup dengan angka kas yang belum lengkap. Penegakannya lewat kejadian, bukan dengan membaca
+tabel Finance — batas `ACC-DEC-061` tetap utuh.
+
+#### Keadaan `NotYetAvailable` — bedanya wajib terbaca
+
+Setiap butir daftar periksa membawa `State`, bernilai `Evaluated` atau `NotYetAvailable`, dan
+`UnavailableReason` yang terisi hanya pada yang kedua. Akar responsnya membawa `IsComplete` dan
+`NotYetAvailableCount`.
+
+**Butir `NotYetAvailable` selalu mengembalikan `Count` bernilai `0`.** Nol di sana berarti "belum
+ada yang memeriksa" — **bukan** "sudah diperiksa dan bersih".
+
+> **Layar WAJIB membedakan keduanya.** Bila butir `NotYetAvailable` dirender sama seperti butir
+> `Evaluated` bernilai nol, layar berbohong: petugas melihat daftar penghalang yang tampak bersih,
+> menekan Ajukan dengan yakin, dan menutup periode padahal **tidak ada yang pernah memeriksa
+> shift kasirnya**. Ini bukan cacat tampilan — ini angka kas yang tidak pernah sampai ke buku
+> besar, ditutup permanen.
+
+Yang mengikat implementasi:
+
+1. Butir `NotYetAvailable` dirender dengan lambang dan warna **berbeda** dari butir bersih, dan
+   `UnavailableReason`-nya ditampilkan apa adanya — kalimatnya sudah siap dibaca pengguna.
+2. Butir `NotYetAvailable` **tidak menampilkan angka**. Menulis "0 shift kasir belum ditutup"
+   adalah persis kebohongan yang dilarang di atas.
+3. Selama `IsComplete` bernilai `false`, spanduk kelengkapan tampil di **atas** daftar, memuat
+   `NotYetAvailableCount`. Menaruhnya di bawah membuatnya terlewat.
+4. Tombol Ajukan **tetap menyala** bila `CanSubmitClosing` benar walaupun `IsComplete` masih
+   `false` — backend memang mengizinkannya. Yang wajib menyertainya adalah keterangan bahwa
+   sebagian pemeriksaan belum berjalan, supaya keputusannya diambil sadar.
+5. Jumlah butir **tidak boleh** ditanam di kode layar. `Blockers` dan `Warnings` selalu berisi
+   seluruh butirnya apa pun keadaannya, jadi layar cukup merender apa yang datang. Saat gelombang
+   `P2-1` menyalakan sebuah butir, bentuk responsnya tidak berubah dan layar ini tidak perlu
+   disentuh.
+
+Penghalang shift kasir akan **kembali** sebagai `NotYetAvailable` selama gelombang `P2-1` belum
+dibangun. Itu keadaan yang benar, bukan cacat yang perlu dilaporkan.
+
+#### Enam peringatan, bukan lima
+
+`ACC-DEC-051` menyebut lima peringatan. `ACC-DEC-070` memperluasnya menjadi **enam** pada
+10 September 2026, bertambah **kejadian keuangan tertahan** — yang sejak awal memang dikembalikan
+`AccPeriodClosingService` berkode `HELD_EVENTS`. Untuk selisih ini pun yang benar adalah kode.
+
+| # | Peringatan | `Code` | Keadaan hari ini | Sumber |
+|---:|---|---|---|---|
+| 1 | Jurnal belum seimbang | `UNBALANCED_JOURNALS` | `Evaluated` — **satu-satunya yang sudah dapat diperiksa** | `ACC-DEC-051` |
+| 2 | Kejadian keuangan tertahan | `HELD_EVENTS` | `NotYetAvailable` | **`ACC-DEC-070`** |
+| 3 | Integrasi belum cocok | `INTEGRATION_MISMATCH` | `NotYetAvailable` | `ACC-DEC-051` |
+| 4 | Penyusutan belum dijalankan | `DEPRECIATION_NOT_RUN` | `NotYetAvailable` — menunggu `BE-ACC-P2-008` | `ACC-DEC-051` |
+| 5 | Saldo tertinggal di akun sementara | `SUSPENSE_ACCOUNT_BALANCE` | `NotYetAvailable` | `ACC-DEC-051` |
+| 6 | Selisih saldo awal dan saldo akhir | `OPENING_CLOSING_MISMATCH` | `NotYetAvailable` | `ACC-DEC-051` |
+
+Kejadian tertahan tetap **peringatan, bukan penghalang**: ia menunggu pekerjaan pemetaan yang
+wajar dijadwalkan, bukan gangguan yang menuntut tindakan segera. Alasan yang sama dipakai
+`ACC-DEC-057` untuk tidak menghitungnya pada penanda angka di menu (bagian 9).
+
+Sekalipun begitu ia pantas muncul saat tutup bulan, karena kejadian tertahan adalah kejadian
+keuangan yang **tidak pernah menjadi jurnal** — transaksi yang belum sampai ke buku besar.
+
+**Tiga penghalang ditambah enam peringatan berarti `NotYetAvailableCount` bernilai `7` hari ini**
+(dua penghalang dan lima peringatan), dan `IsComplete` bernilai `false`. Angka itu **tetap tidak
+boleh ditanam di kode layar** — lihat aturan ke-5 di atas. Ia dicantumkan di sini hanya supaya
+pembaca dokumen dapat mencocokkan dengan apa yang tampil di layar saat menguji.
 
 ### 11.4 Tutup Tahun
 
@@ -488,6 +592,68 @@ oleh yang mengajukan."
 **Pratinjau tidak membuat apa pun.** Ini penting dinyatakan di layar, karena tutup tahun terasa
 menakutkan bagi petugas; menekan Pratinjau harus aman sepenuhnya.
 
+### 11.5 Penanda Control Account pada layar COA
+
+`ACC-DEC-064` mengunci **empat kelompok akun** dari jurnal manual umum: **Kas Kasir, Kas Kecil,
+Piutang, dan Hutang**. Pencatatan ke keempatnya hanya sah lewat kejadian akuntansi atau subledger.
+Jurnal manual **tetap boleh** menyentuh akun non-control — penyesuaian, akrual, koreksi beban, dan
+jurnal penutup.
+
+**Ini bukan layar baru.** Ia tiga sentuhan kecil pada layar MVP yang sudah ada, dikerjakan
+`FE-ACC-P2-007`:
+
+| Tempat | Yang ditambahkan | Hak akses penjaga |
+|---|---|---|
+| Form Akun (COA) | Satu kotak centang "Control account" beserta penjelasan singkat maknanya | `ChartOfAccount : Update` |
+| Tabel COA | Satu kolom penanda, supaya terbaca sekilas mana yang terkunci | `ChartOfAccount : Read` |
+| **Pemilih akun pada Form Jurnal** | Akun control **dimatikan atau disembunyikan** dari pemilih, disertai keterangan kenapa | `Journal : Create` |
+
+**Sentuhan ketiga yang paling menentukan.** Tanpa itu petugas baru tahu akunnya terlarang sesudah
+menekan Simpan dan ditolak `422` — sesudah mengisi seluruh baris jurnal. Penjagaan di sisi backend
+tetap ada dan tidak digantikan; yang ditambahkan di sini adalah memberitahu petugas **sebelum** ia
+mengisi, bukan sesudah.
+
+Penandanya disimpan sebagai kolom karena **tidak dapat diturunkan** dari data lain: `Kas Kasir`
+dan `Piutang` sama-sama berjenis `Asset`, tetapi tidak setiap akun `Asset` adalah control account.
+Layar membacanya apa adanya dari DTO akun, tanpa menyimpulkan sendiri dari `AccountType`.
+
+### 11.6 Rekonsiliasi Control Account
+
+`ACC-DEC-066` menempatkan rekonsiliasi control account di Phase 2. Isinya tiga: perbandingan saldo
+buku besar, perbandingan saldo subledger, dan laporan selisih. Dikerjakan `FE-ACC-P2-008`.
+
+```
++--------------------------------------------------------------+
+| Rekonsiliasi Control Account      Periode: 2026-09           |
++--------------------------------------------------------------+
+| Akun            | Buku Besar  | Subledger      | Selisih     |
+|-----------------|-------------|----------------|-------------|
+| Kas Kasir       | 12.500.000  | belum tersedia | belum       |
+| Piutang Pasien  |  8.750.000  | belum tersedia | belum       |
++--------------------------------------------------------------+
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| Kolom saldo buku besar | Saldo tiap control account pada periode terpilih | `GET /reconciliation/gl-balances` | `AccountingReconciliation : Read` | "Belum ada control account yang ditandai." | "Saldo buku besar gagal dimuat." |
+| Kolom saldo subledger | **"Belum tersedia"** sampai `BE-ACC-P2-014` berdiri | belum ada | `AccountingReconciliation : Read` | — | — |
+| Kolom selisih | **"Belum tersedia"** selama salah satu sisinya belum ada | turunan kedua kolom di atas | `AccountingReconciliation : Read` | — | — |
+
+> **Kolom yang belum ada datanya ditampilkan, bukan disembunyikan.** Menyembunyikan kolom subledger
+> dan selisih membuat laporan rekonsiliasi **terbaca seolah sudah cocok** — pembacanya menyimpulkan
+> selisihnya nol, padahal tidak ada yang pernah dibandingkan. Pada layar rekonsiliasi itu kesalahan
+> yang paling mahal.
+
+Ini pola yang sama dengan `NotYetAvailable` pada 11.3: **"belum diperiksa" dan "sudah diperiksa,
+nol" wajib terbaca bedanya.** Dua layar, satu kaidah.
+
+Layar ini **tidak memakai cache**, sama seperti daftar periksa penutupan dan pratinjau tutup tahun.
+
+**Satu pertanyaan turunan masih terbuka** — `DEC-ACC-P2-011`: dari mana Accounting memperoleh
+saldo subledger, mengingat ia dilarang membaca tabel modul lain (`ACC-DEC-061`). Selama itu belum
+diputuskan, `BE-ACC-P2-014` `BLOCKED` dan kolom subledger tetap "belum tersedia". Sisi buku besar
+tidak menunggu jawaban itu dan dapat dikerjakan lebih dulu.
+
 ## 12. Aksi per peran Phase 2
 
 | Aksi | Viewer | Staff | Approver | Manager | Director | Auditor | Administrator |
@@ -500,13 +666,15 @@ menakutkan bagi petugas; menekan Pratinjau harus aman sepenuhnya.
 | Ajukan penutupan periode | | | | ✓ | | | |
 | **Setujui atau tolak penutupan** | | | | | **✓** | | |
 | Susun jurnal penutup tahun | | | | ✓ | | | |
+| Menandai akun sebagai control account | | | | ✓ | | | ✓ |
+| Melihat rekonsiliasi control account | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Tombol yang tidak boleh ditekan peran tertentu **dimatikan, bukan disembunyikan**, mengikuti pola
 yang sudah dipakai sebelas layar MVP.
 
 ## 13. Redux slice Phase 2
 
-Melanjutkan bagian 3. Enam slice bertambah, mengikuti pola penamaan yang sudah ada.
+Melanjutkan bagian 3. **Tujuh** slice bertambah, mengikuti pola penamaan yang sudah ada.
 
 | Slice | Isi | Kapan dikosongkan |
 |---|---|---|
@@ -516,10 +684,15 @@ Melanjutkan bagian 3. Enam slice bertambah, mengikuti pola penamaan yang sudah a
 | `accounting-recurring-journal-slice.jsx` | Template beserta riwayat penerbitannya | Saat badan hukum berganti |
 | `accounting-period-closing-slice.jsx` | Daftar periksa penutupan | Setiap kali layar dibuka — **tidak boleh dari cache** |
 | `accounting-year-end-slice.jsx` | Pratinjau tutup tahun | Setiap kali Pratinjau ditekan |
+| `accounting-reconciliation-slice.jsx` | Saldo control account buku besar lawan subledger | Setiap kali layar dibuka — **tidak boleh dari cache** |
 
-**Dua slice terakhir sengaja tidak memakai cache.** Daftar periksa penutupan dan pratinjau tutup
-tahun adalah angka yang dihitung saat diminta; menampilkan angka lama membuat petugas mengambil
-keputusan penutupan berdasarkan keadaan yang sudah berubah.
+**Tiga slice terakhir sengaja tidak memakai cache.** Daftar periksa penutupan, pratinjau tutup
+tahun, dan rekonsiliasi control account adalah angka yang dihitung saat diminta; menampilkan angka
+lama membuat petugas mengambil keputusan penutupan berdasarkan keadaan yang sudah berubah.
+
+Penanda control account `ACC-DEC-064` **tidak menambah slice** — ia memakai
+`accounting-chart-of-account-slice.jsx` yang sudah ada dari MVP, bertambah satu bidang pada DTO
+akunnya.
 
 ## 14. Yang tidak dikerjakan frontend pada Phase 2
 

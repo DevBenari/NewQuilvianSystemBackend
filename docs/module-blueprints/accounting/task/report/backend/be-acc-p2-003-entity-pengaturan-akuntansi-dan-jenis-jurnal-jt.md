@@ -91,7 +91,7 @@ Task ini menyediakan **tempatnya**, bukan perilakunya. Endpoint pengisian pengat
 
 | Langkah | Pelaku | Yang terjadi |
 | ---: | --- | --- |
-| 1 | Pemilik proses akuntansi | Membuat akun laba ditahan di daftar akun, misalnya `3-2001 Laba Ditahan`, berjenis `Equity` dan menerima transaksi |
+| 1 | Pemilik proses akuntansi | Membuat akun laba ditahan di daftar akun, misalnya `3-3001 Laba Ditahan`, berjenis `Equity` dan menerima transaksi |
 | 2 | Pemilik proses akuntansi | Menunjuk akun itu sebagai akun laba ditahan badan hukumnya |
 | 3 | Sistem | Menyimpan satu baris `AccAccountingConfiguration` untuk badan hukum tersebut |
 | 4 | Sistem | Saat tutup tahun dijalankan, akun inilah yang dituju jurnal penutup |

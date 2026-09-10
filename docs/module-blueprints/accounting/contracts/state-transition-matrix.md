@@ -130,7 +130,7 @@ Daftar akun tidak punya alur berstatus banyak. Yang ada hanya penanda aktif.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-STATE-0.2` |
+| `contract_version` | `ACC-STATE-0.3` — 10 September 2026, `ACC-DEC-067` menetapkan periode `SoftClosed` menerima jurnal `JT`. Sebelumnya `0.2` |
 | `last_changed_in` | `ACC-STATE-0.2` — 8 September 2026 |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
@@ -199,4 +199,24 @@ Tidak ada state machine kedua.
 
 Sama alasannya. Jurnal penutup lahir `Draft` berjenis `JT`, lalu diajukan, disetujui, dan
 disahkan lewat jalur yang sudah ada. Koreksinya memakai pembalikan jurnal (`ACC-DEC-029`), bukan
-mekanisme "buka kembali tahun buku" — usulan ini menunggu ratifikasi `DEC-ACC-P2-006`.
+mekanisme "buka kembali tahun buku" — **diratifikasi `ACC-DEC-068`, 10 September 2026, menutup
+`DEC-ACC-P2-006`**.
+
+### Periode mana yang menerima jurnal `JT` — `ACC-DEC-067`
+
+| Status periode | Menerima `JT`? | Alasan |
+|---|:---:|---|
+| `Open` | Ya | Menerima seluruh jenis jurnal |
+| `SoftClosed` | **Ya** | **Diratifikasi 10 September 2026.** Masa tenggang tutup buku adalah satu-satunya tempat jurnal penutup tahun dapat tinggal |
+| `PendingClosingApproval` | Tidak | Menunggu persetujuan penutupan; tidak menerima jurnal apa pun |
+| `Closed` | Tidak | Tutup permanen; tidak menerima jurnal apa pun, termasuk jurnal penutupnya sendiri |
+
+**Kenapa `SoftClosed` wajib menerimanya.** Tutup tahun baru boleh disusun setelah seluruh periode
+tahun itu tertutup, sementara tanggal akuntansi jurnal penutup wajib berada **di dalam** tahun
+yang ditutup — yaitu tepat pada periode yang barusan ditutup. Menolak `JT` di sini membuat jurnal
+penutup lahir sebagai draft yang **tidak akan pernah dapat diajukan maupun disahkan**, karena
+syarat ke-9 `ACC-STATE-0.1` bagian 1.3 memeriksa aturan yang sama saat pengajuan dan pengesahan.
+
+**Akibat yang perlu diketahui:** menutup Desember secara **permanen** sebelum tutup tahun
+dijalankan akan mengunci tutup tahun selamanya. Urutan yang benar adalah tutup sementara seluruh
+bulan, jalankan tutup tahun, baru tutup permanen.

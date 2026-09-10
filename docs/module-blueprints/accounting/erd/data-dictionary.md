@@ -618,7 +618,7 @@ dari database.
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama `ActionSequence` | FK ke `AccAccountingPeriod` | `Cascade` | Tidak | Periode yang ditutup |
+| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama `ActionSequence` | FK ke `AccAccountingPeriod` | `Restrict` | Tidak | Periode yang ditutup |
 | `ActionSequence` | `int` | Ya | — | Unique bersama `AccountingPeriodId` | — | — | Tidak | Nomor urut tindakan |
 | `Action` | `int` | Ya | — | — | — | — | Tidak | Enum `PeriodClosingAction`: Diajukan, Disetujui, Ditolak |
 | `ActionBy` | `Guid` | Ya | — | Index | FK ke pengguna | `Restrict` | Tidak | Pelaku tindakan |
@@ -627,6 +627,14 @@ dari database.
 
 Meniru bentuk `AccJournalApproval` yang sudah ada, dan alasannya sama: ini **data bisnis** yang
 ditampilkan ke pengguna, bukan log teknis.
+
+**Koreksi 10 September 2026 — `Cascade` menjadi `Restrict` (`ACC-DEC-069`).** Sampai revisi ini
+tabel di atas menulis `Cascade`, sementara `BE-ACC-P2-001` sudah mengimplementasikan `Restrict`
+mengikuti `AccJournalApproval`. Yang disesuaikan adalah **kamus datanya**, bukan kodenya. Alasannya
+sama dengan bagian 5: riwayat persetujuan adalah **bukti audit**. `Cascade` akan menghapus jejak
+siapa mengajukan dan siapa menyetujui penutupan sebuah periode begitu periodenya terhapus — tanpa
+satu pun peringatan, dan justru pada data yang paling dibutuhkan saat ada yang mempertanyakan
+penutupan itu.
 
 ## 17. `AccAccountingConfiguration` — status `Baru`
 

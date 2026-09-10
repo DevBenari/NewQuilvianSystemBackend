@@ -423,7 +423,7 @@ Yang tersisa bukan keselamatan klinis melainkan **privasi**, dan itu sudah ditut
 |---|---|---|---|---|
 | `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan yang diterbitkan Finance | Isi `ACC-DC-04` dan baris `ACC-DC-03`. **Bentuknya tidak berubah** | Rizki + Yasmin | `OPEN` — menahan go-live, bukan perancangan |
 | `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap, atau dihitung dari rumus | Bentuk baris `ACC-DC-07` | Rizki | `OPEN` — usulan: nominal tetap dulu, rumus menyusul |
-| `DEC-ACC-P2-006` | Koreksi sesudah jurnal penutup tahun disahkan | Lifecycle `ACC-P2-S4` | Rizki | `OPEN` — **usulan arsitektur: pakai jalur pembalikan `ACC-DEC-029` yang sudah ada**, tanpa mekanisme baru |
+| ~~`DEC-ACC-P2-006`~~ | ~~Koreksi sesudah jurnal penutup tahun disahkan~~ | Lifecycle `ACC-P2-S4` | Rizki | **`CLOSED` 10 September 2026 — `ACC-DEC-068`.** Usulan arsitekturnya diterima apa adanya: pakai jalur pembalikan `ACC-DEC-029` yang sudah ada, tanpa mekanisme baru |
 | `DEC-ACC-P2-007` | Status `Diabaikan` pada kejadian gagal | Lifecycle `ACC-DC-01` dan penghalang tutup bulan | Rizki | `OPEN` — tanpa ini, kejadian gagal yang memang tak perlu dijurnal menahan penutupan selamanya |
 | `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Mutu angka laporan | Rizki | `OPEN` — usulan: laporan ringkas "jurnal otomatis per aturan posting per periode" |
 | `ACC-XM-001` | Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | **Implementasi** `ACC-P2-S1` | Owner Billing + Yasmin | `PENDING_RATIFICATION` |

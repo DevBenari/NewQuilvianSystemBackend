@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
@@ -491,6 +492,11 @@ try
     builder.Services.AddScoped<AccAccountingConfigurationService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
     builder.Services.AddScoped<AccPeriodClosingService>();
+    builder.Services.AddScoped<AccYearEndClosingService>();
+    builder.Services.AddScoped<AccRecurringJournalService>();
+    builder.Services.Configure<AccRecurringJournalSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:RecurringJournalScheduler"));
+    builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
     builder.Services.AddScoped<AccControlAccountReconciliationService>();
