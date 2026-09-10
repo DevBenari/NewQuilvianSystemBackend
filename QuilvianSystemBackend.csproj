@@ -17,8 +17,8 @@
 
 
 		<!--
-		  XML documentation hanya untuk Development.
-		  Release dimatikan untuk mempercepat build.
+		XML documentation diperlukan oleh Swagger dan acceptance test.
+		Harus tersedia pada Development maupun Release.
 		-->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
@@ -29,8 +29,6 @@
 
 		<DebugType>None</DebugType>
 		<DebugSymbols>false</DebugSymbols>
-
-		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 
 		<RunAnalyzers>false</RunAnalyzers>
 
@@ -52,19 +50,55 @@
 	     - Designer.cs jutaan baris generated code
 	     - ModelSnapshot besar
 
-	     Exclude dari Compile mengurangi waktu build.
+	     Exclude dari Compile mengurangi waktu build, tetapi lihat koreksi di bawah:
+	     pengecualian itu kini hanya berlaku bila dinyalakan secara sadar.
 	-->
-	<ItemGroup>
+	<!--
+    KOREKSI 4 September 2026.
 
-		<!--
-    Migration Designer files adalah generated code besar.
-    Tidak diperlukan saat compile aplikasi.
-    Migration utama tetap dipertahankan agar EF Core tetap bekerja.
-    -->
+    Pengecualian ini sebelumnya berlaku selalu, dengan alasan menghemat waktu build.
+    Alasannya benar — 126 berkas Designer dan snapshot berjumlah 6,7 juta baris — tetapi
+    akibatnya tidak seperti yang diperkirakan: EF Core TIDAK tetap bekerja.
 
+    Atribut [Migration("...")] yang dipakai EF untuk mengenali sebuah migration berada di
+    dalam berkas Designer, bukan di berkas migration utama. Ketika Designer tidak ikut
+    dikompilasi, EF hanya melihat migration yang atributnya ditulis tangan di berkas utama.
+    Yang terukur pada 4 September: `dotnet ef migrations list` hanya melihat 7 dari 131
+    migration, dan `dotnet ef migrations add` menghasilkan migration berisi 570 CreateTable
+    — seluruh skema dari nol, karena baseline-nya dianggap kosong. Migration seperti itu bila
+    terlanjur dijalankan akan membangun ulang database.
+
+    Karena itu bawaannya kini ikut dikompilasi. Penghematan build tetap tersedia lewat
+    properti di bawah, tetapi harus dinyalakan secara sadar:
+
+        dotnet build -p:SkipMigrationMetadata=true
+
+    JANGAN memakainya ketika menjalankan perkakas EF apa pun. Ia hanya aman untuk build
+    aplikasi yang tidak menyentuh migration.
+  -->
+	<PropertyGroup Condition="'$(SkipMigrationMetadata)' == ''">
+		<SkipMigrationMetadata>false</SkipMigrationMetadata>
+	</PropertyGroup>
+
+	<!--
+	  Temuan branch integration atas persoalan yang sama, dipertahankan karena memuat gejala
+	  yang tidak tercatat di atas:
+
+	  Designer.cs memuat atribut [Migration("...")]. Tanpa dikompilasi, seluruh migration hasil
+	  scaffold — yaitu semua migration sejak 2026-09-01 — menjadi TIDAK TERLIHAT oleh EF, dan
+	  akibatnya 'database update' tidak menerapkan apa pun namun tetap menjawab 'Done.'
+
+	  ApplicationDbContextModelSnapshot.cs adalah pembanding yang dipakai EF saat menyusun
+	  migration baru. Tanpa dikompilasi, EF menganggap belum ada schema sama sekali lalu
+	  menghasilkan migration berisi SELURUH database — satu kali terukur 70.815 baris — tanpa
+	  satu pun peringatan.
+
+	  Keduanya tidak terasa selama bin/ masih menyimpan hasil build lama yang memuat kedua
+	  berkas itu. Begitu ada full rebuild, kemampuan EF hilang diam-diam.
+	-->
+	<ItemGroup Condition="'$(SkipMigrationMetadata)' == 'true'">
 		<Compile Remove="Migrations\**\*.Designer.cs" />
 		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
-
 	</ItemGroup>
 
 	<ItemGroup>

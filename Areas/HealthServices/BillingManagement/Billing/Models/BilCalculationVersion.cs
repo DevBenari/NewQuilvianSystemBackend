@@ -20,6 +20,7 @@ public sealed class BilCalculationVersion : IdentityModel
     public decimal PrimaryAmount { get; set; }
     public decimal ExcessAmount { get; set; }
     public decimal UnresolvedCoverageAmount { get; set; }
+    public decimal NonBillableResidualAmount { get; set; }
     public decimal RoundingAmount { get; set; }
     public bool IsLocked { get; set; }
     public DateTimeOffset CalculatedAt { get; set; }

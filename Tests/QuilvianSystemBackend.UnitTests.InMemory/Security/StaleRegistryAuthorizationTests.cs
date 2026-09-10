@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Security;
+using Microsoft.Extensions.Hosting.Internal;
 
 namespace QuilvianSystemBackend.Tests.Security;
 
@@ -48,7 +49,16 @@ public sealed class StaleRegistryAuthorizationTests
             })
             .Build();
 
-        return new AccessPermissionService(dbContext, CreateUserManager(dbContext), configuration);
+        var environment = new HostingEnvironment
+        {
+            EnvironmentName = "Development"
+        };
+
+        return new AccessPermissionService(
+            dbContext,
+            CreateUserManager(dbContext),
+            configuration,
+            environment);
     }
 
     private static async Task<ApplicationUser> SeedUserAsync(ApplicationDbContext dbContext)

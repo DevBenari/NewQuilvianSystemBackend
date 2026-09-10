@@ -161,6 +161,8 @@ Selain logger, perpindahan status berikut wajib menghasilkan satu baris permanen
 | Pemeriksaan menjadi layak tagih | `LabExamination` | `Examination.ChargeEligible` | Tidak |
 | Pemeriksaan gugur karena wadah ditolak | `LabExamination` | `Examination.Void` | Tidak |
 | Pemeriksaan dibatalkan | `LabExamination` | `Examination.Cancel` | **Ya** |
+| Pemeriksaan ditandai cito atau dikembalikan biasa | `LabExamination` | `Examination.SetUrgency` | Tidak |
+| Pemeriksaan ditandai dikerjakan ganda atau penandaannya dibatalkan | `LabExamination` | `Examination.SetDuplo` | Tidak |
 
 Setiap baris menyimpan status asal dan tujuan, pelaku, waktu, dan penghubung rangkaian tindakan.
 

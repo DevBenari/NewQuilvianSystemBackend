@@ -8,15 +8,62 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.4.1` — naik 2026-09-02 karena **empat keterangan basi `DEC-INP-001` diperbaiki** pada bagian 7, 8, 14, dan 16. `DEC-INP-001` sudah tertutup `RWI-DEC-062` sejak 2026-08-21, dan sejak `RWI-DEC-080` dokumentasi klinis masuk scope modul lalu berpindah ke sub-modul `keperawatan/` dan `dokter-rawat-inap/` |
-| `contract_version` | `0.4.0` — **tidak naik**; tidak ada endpoint, aturan, status, atau permission yang bergeser |
+| Revision artefak | `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| `contract_version` | `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
-| Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`) |
-| Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
+| Backend SHA baseline | `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Frontend SHA baseline | `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-08 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
+| Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
+
+> **Catatan port 2026-09-08.** Revisi `0.5.0` dan `0.6.0` sempat disusun di luar pohon blueprint,
+> pada `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-deposit.md`, sehingga blueprint kanonik tertinggal di
+> `0.4.1` tanpa deposit sama sekali. Berkas ini sekarang **memuat keduanya** dan menjadi satu-satunya
+> sumber kebenaran; berkas di `docs/Modul-RS` ditandai `SUPERSEDED`. Pemeriksaan superset dijalankan
+> sebelum port: nol judul bagian, nol `FR-RI-*`, nol `UAT-*`, dan nol `EPIC RI-*` milik `0.4.1` yang
+> hilang.
+
+**Koreksi pada `contract_version` `0.6.1`.** Trace ulang terhadap source hasil merge menemukan
+tiga hal yang membuat `0.6.0` salah, bukan sekadar kurang lengkap.
+
+| Yang dikoreksi | Buktinya | Akibatnya |
+| --- | --- | --- |
+| **Kolom `EpisodeId` pada akun deposit dibatalkan** | `BilDepositAccountConfiguration.cs:27` mengunci `EncounterId` **unique**, dan `InpEpisodeConfiguration.cs:26` juga mengunci `EncounterId` **unique**. Episode dan akun deposit karena itu sudah 1:1 lewat kunjungan | `FR-RI-163` tetap berlaku; **mekanismenya** berubah dari kolom baru menjadi join. Nol migration pada tabel finansial yang sudah berisi data |
+| **Rute refund dibetulkan** | `BillingFinancialExceptionsController.cs:112` sudah menyediakan `POST /financial-exceptions/refunds` beserta `approve`, di bawah kontrak `BIL-API-0.4` yang **sudah disetujui** | Usulan `POST /deposits/episodes/{id}/refunds` pada `0.6.0` **dicabut**. Kontrak Rawat Inap yang mengalah, bukan kontrak Billing |
+| **Klaim charge kamar dicabut** | `BillingCalculationService.cs:455-470` menghitung charge kamar hidup-hidup dari `InpBedPlacement` sesuai `BKC-DEC-043` | Bagian 15.3 dibetulkan; asumsi "Billing belum bisa apa-apa" tidak boleh dipakai lagi |
+
+Satu temuan lagi tidak mengubah keputusan tetapi memperkecil pekerjaan: **idempotensi penerimaan
+deposit sudah berjalan**. `BillingPatientFundsController.cs:99` menerima header `Idempotency-Key`,
+`BilDepositMovementConfiguration.cs:31` menguncinya unique, dan `BillingDepositService.cs:76-80`
+mengembalikan transaksi pertama saat kunci diulang. `FR-RI-166` karena itu sudah terpenuhi source,
+tinggal dibuktikan lewat UAT.
+
+**Perubahan pada `contract_version` `0.6.0`.** Peninjauan layar operasional 2026-09-08 menemukan selisih yang nyata: multi-step admisi rawat inap **sudah** mempunyai langkah `Input Deposit Rawat Inap` di antara langkah tipe pembayaran dan langkah Dokter, sedangkan revisi `0.5.0` hanya mengenal deposit sebagai aktivitas Billing/Kasir **sesudah** episode `Draft` ada. Empat arahan operasional berikut menutup selisih itu.
+
+| Arahan operasional 2026-09-08 | Masuk ke |
+| --- | --- |
+| `OPS-2026-09-08/A` deposit menjadi **langkah tersendiri** pada multi-step admisi, tepat setelah langkah tipe pembayaran dan sebelum langkah Dokter | Bagian 4, 9, `FR-RI-174`, `FR-RI-178` |
+| `OPS-2026-09-08/B` nilai minimum deposit berasal dari **kebijakan per penjamin dan kelas perawatan**, bukan angka tetap yang ditulis di layar | Bagian 5.1, `FR-RI-175` |
+| `OPS-2026-09-08/C` deposit di bawah minimum **tidak menghentikan admisi**; layar hanya memberi peringatan | `FR-RI-176`, `UAT-42` |
+| `OPS-2026-09-08/D` kekurangan minimum deposit ditagih **berkala** pada perawatan panjang, dan diperhitungkan pada pelunasan akhir untuk perawatan singkat | `FR-RI-177`, `UAT-44` |
+
+Layar hari ini menuliskan "Deposit wajib diisi dan tidak boleh 0" beserta minimum Rp100.000.000 sebagai angka tetap. Keduanya **tidak** dikunci sebagai aturan produk: `FR-RI-164` tetap berlaku penuh, dan angka itu berpindah menjadi nilai kebijakan yang dibaca layar.
+
+Dua koreksi teknis ikut masuk pada revisi ini.
+
+**Pertama, endpoint deposit tidak dibuat dari nol.** `BillingManagement` sudah mempunyai `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, dan `BillingPatientFundsController` dengan rute `api/v1/health-services/billing-management/billing/patient-funds/deposits/{encounterId}` beserta `/top-ups` dan `/allocations`. Usulan base URL `billing-management/inpatient-deposits` pada `0.5.0` **dicabut**, karena ia melahirkan ledger deposit kedua di modul yang sama. Yang dikerjakan `EPIC RI-35` adalah **memperluas** rute yang sudah ada, termasuk menambahkan `EpisodeId` pada akun deposit yang hari ini hanya mengenal `EncounterId`.
+
+**Kedua, urutan langkah admisi tidak diubah demi kontrak.** Layar deposit berdiri sebelum episode dibuat, sedangkan `FR-RI-163` mewajibkan tiap transaksi terikat `EpisodeId`. Penyelesaiannya ada pada `FR-RI-178`: nominal deposit ditahan sebagai isian langkah selama admisi berjalan, dan transaksi uang baru dibentuk tepat setelah `POST /episodes` berhasil pada langkah Dokter — titik tulis yang memang sudah dipakai frontend hari ini.
+
+> **Catatan tata kelola.** Keempat arahan di atas beserta kedua koreksi teknisnya belum mempunyai ID `RWI-DEC-*`. Sebelum development lock, seluruhnya wajib disalin ke `00-interview-decisions.md` bersama arahan scope 2026-09-03 yang juga masih menunggu ID.
+
+**Perubahan pada `contract_version` `0.5.0`.** Arahan scope produk 2026-09-03 memindahkan **deposit pasien rawat inap** dari daftar kemampuan ditunda ke dalam MVP. Perubahan ini melahirkan `EPIC RI-35` dan `FR-RI-163` s.d. `FR-RI-173`. Deposit tetap **bukan milik entity `Inp`**: transaksi uang, kwitansi, alokasi, settlement, dan refund tetap dimiliki `BillingManagement`/Kasir; sub-modul `episode-rawat-inap` hanya menjadi konteks episode dan closure gate.
+
+Revisi ini **tidak** otomatis memasukkan seluruh estimasi biaya, tagihan berjalan rinci, atau klaim ke MVP. Ketiganya tetap berada pada bagian 8. Yang masuk adalah slice minimum agar pasien rawat inap dapat menerima deposit, menambah deposit, menggunakan deposit pada final settlement, membayar kekurangan atau menerima refund, lalu memperoleh `FinancialClearance`.
+
+> **Catatan tata kelola.** Arahan 2026-09-03 adalah keputusan scope yang dipakai untuk menyusun revisi ini, tetapi belum diberikan ID `RWI-DEC-*` pada sumber yang tersedia. Sebelum development lock, keputusan tersebut harus disalin ke `00-interview-decisions.md` dan kontrak API/permission/validation harus dinaikkan agar tidak ada kontrak yang tertinggal.
 
 **Perubahan pada `contract_version` `0.3.0`.** Tiga keputusan penutupan butir organisasi
 2026-08-21 masuk ke dokumen ini. **Satu kemampuan berpindah dari daftar ditunda ke dalam MVP**, dan
@@ -57,8 +104,7 @@ menutup perawatan selain mengubah data master secara manual.
 MVP ini menyelesaikan satu hal: **membuat satu perjalanan rawat inap benar-benar bisa berjalan dari
 awal sampai akhir tanpa ada petugas yang harus mengubah database.** Dari petugas admisi membuka
 admisi, memesan tempat tidur, menempatkan pasien; perawat dan dokter berganti penanggung jawab;
-pasien pindah kamar bila perlu; sampai DPJP menyatakan boleh pulang, resume ditandatangani, kasir
-menyatakan lunas, episode ditutup, dan tempat tidur kembali kosong untuk pasien berikutnya.
+pasien pindah kamar bila perlu; **deposit awal maupun tambahan dicatat oleh Billing/Kasir bila diperlukan**; sampai DPJP menyatakan boleh pulang, resume ditandatangani, deposit direkonsiliasi terhadap tagihan final, kasir menyelesaikan kekurangan atau refund, episode ditutup, dan tempat tidur kembali kosong untuk pasien berikutnya.
 
 Yang **belum** dikerjakan MVP ini: menulis pengkajian dan catatan dokter, membuat resep, menerima
 pasien dari IGD, dan mengirim data ke SATUSEHAT. Keempatnya bukan karena tidak penting.
@@ -76,6 +122,10 @@ pasien dari IGD, dan mengirim data ke SATUSEHAT. Keempatnya bukan karena tidak p
 Yang benar-benar masih ditahan keputusan yang belum turun tinggal empat: menerima pasien dari IGD
 (`DEC-INP-002`), persetujuan umum (`DEC-INP-003`), pengiriman SATUSEHAT (`DEC-INP-005`), serta
 `DEC-INP-006` serah terima klinis antar shift dan `DEC-INP-007` cara pulang meninggal dan kabur.
+
+**Sejak `0.5.0`, deposit menjadi bagian dari perjalanan MVP.** Kebutuhan deposit tidak di-hardcode untuk semua pasien; Billing/Kasir menentukannya berdasarkan kebijakan finansial dan penjamin. Bila deposit diperlukan, setiap penerimaan dan top-up menjadi transaksi baru dengan kwitansi sendiri. Saat pasien pulang, saldo deposit direkonsiliasi terhadap tagihan final: kekurangan dibayar, kelebihan menjadi refund, dan `FinancialClearance` tidak dapat menjadi `Cleared` selama settlement belum selesai.
+
+**Sejak `0.6.0`, deposit tidak lagi menunggu kasir sesudah admisi selesai.** Ia berdiri sebagai langkah tersendiri di dalam multi-step admisi, tepat setelah petugas memilih cara bayar dan kelas perawatan, karena begitulah rumah sakit menjalankannya hari ini. Nominal di bawah minimum kebijakan tetap diterima disertai peringatan — admisi tidak pernah berhenti karena uang muka kurang — dan kekurangannya ditagih berkala bila perawatan berlangsung lama.
 
 **Sejak `0.3.0`, MVP juga menolak penempatan yang tidak layak.** `DEC-INP-004` turun pada
 2026-08-21: jenis kelamin dan kebutuhan isolasi tidak lagi sekadar menyaring hasil pencarian,
@@ -107,7 +157,9 @@ isolasi di tempat tidur biasa — walaupun petugas memaksa.
 | Mesin penggerak status tempat tidur | Satu-satunya penulis `MstBed.BedStatus` adalah CRUD master data |
 | Daftar pasien dirawat | Tidak ada endpoint, view, maupun query census |
 | Layar Rawat Inap di frontend | Tidak ada satu pun route; menu hanya mengenal Rawat Jalan dan IGD |
-| Kemampuan transaksi Billing | `BillingManagement` hanya dua master dan satu service kosong |
+| ~~Kemampuan transaksi Billing~~ — **baris ini basi, dikoreksi 2026-09-08** | Pada peninjauan 2026-09-08, `BillingManagement` sudah punya lima controller (`invoices`, `finalizations`, `patient-funds`, `settlements`, `financial-exceptions`), lima belas service termasuk `BillingDepositService`, `BillingSettlementService`, dan `BillingRefundService`, serta master `MstRoomChargePolicy` dan `MstPaymentMethod`. Yang benar-benar belum ada untuk rawat inap tinggal **pengikatan `EpisodeId`** pada akun deposit dan **kebijakan minimum deposit** |
+
+**Evidence legacy V1, bukan bukti implementasi V2.** Lampiran backend lama menunjukkan `DepositRanap` dipetakan dengan `NoKwitansi` wajib dan unique, tersedia `DbSet<DepositRanap>` serta `DbSet<DepositPersentase>`, dan `Program.cs` mendaftarkan `IPerkiraanBillingRanapService` serta `IDepositRanapNumberService`. Artinya konsep deposit rawat inap pernah ada pada V1 dan layak menjadi referensi migrasi, tetapi schema V1 **tidak otomatis dipakai ulang** untuk target V2. `EPIC RI-35` tetap diklasifikasikan sebagai cross-module `MISSING / EXTEND` sampai kontrak Billing V2 ditetapkan.
 
 ### 3.3 Akibatnya hari ini
 
@@ -115,6 +167,8 @@ Petugas menempatkan Tn. Budi di tempat tidur `BD-RSMMC-00042`. Sistem tidak puny
 menyimpan fakta itu. Yang bisa dilakukan hanya mengubah kolom status tempat tidur menjadi
 `Occupied` lewat menu master data — tanpa jejak siapa yang menempati dan sejak kapan. Bila lupa
 dikembalikan, kamar terlihat penuh selamanya padahal kosong.
+
+Pada sisi finansial, PRD sebelumnya juga tidak menyediakan perjalanan deposit. Bila keluarga membayar uang muka Rp5.000.000 lalu menambah Rp3.000.000 selama perawatan, MVP lama tidak mempunyai contract untuk menyimpan dua transaksi itu sebagai penerimaan yang terpisah, tidak mempunyai ringkasan saldo deposit per episode, dan tidak dapat membuktikan bagaimana deposit tersebut dipakai atau dikembalikan saat final settlement.
 
 ---
 
@@ -124,18 +178,21 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 
 1. Pasien terdaftar → **kunjungan** bertipe rawat inap dibuat atau dipakai.
 2. Kunjungan → **episode rawat inap** dibuka, satu kunjungan tepat satu episode.
-3. Episode → **DPJP** ditetapkan, berbentuk riwayat berperiode.
-4. Episode → **pemesanan tempat tidur**, berlaku 2 jam.
-5. Episode → **kebutuhan isolasi** direkam petugas admisi atau diputuskan DPJP.
-6. Pemesanan → **Kelayakan Penempatan** diperiksa: tempat tidur, jenis kelamin, pencampuran kamar, dan isolasi → **penempatan tempat tidur**, dan episode menjadi aktif.
-7. Penempatan → **census** menjawab siapa dirawat, di mana, oleh siapa, sudah berapa hari.
-8. Penempatan → **perpindahan**, membentuk riwayat lokasi dan riwayat kelas.
-9. Episode → **perawat penanggung jawab**, juga berbentuk riwayat.
-10. Episode → **keputusan pulang** oleh DPJP → **resume pulang** ditandatangani.
-11. Episode → **daftar periksa administrasi** dan **kelayakan keuangan**.
-12. Episode → **penutupan**, dan tempat tidur kembali kosong.
-13. Seluruh langkah di atas → **riwayat status** yang tidak dapat diubah.
-
+3. Kunjungan → **kategori pembayaran, penjamin, dan kelas perawatan** dipilih; kombinasi itu menentukan **kebijakan deposit** yang berlaku — perlu atau tidak, dan berapa minimumnya.
+4. Kebijakan → **nominal deposit ditetapkan pada langkah admisi tersendiri**, bukan pada layar terpisah sesudah admisi. Nominal di bawah minimum diterima disertai peringatan.
+5. Episode → **DPJP** ditetapkan, berbentuk riwayat berperiode. Begitu `EpisodeId` terbentuk, nominal dari langkah Deposit menjadi **penerimaan pembayaran** bernomor kwitansi unik; pembayaran berikutnya menjadi **top-up baru**, bukan mengubah transaksi lama.
+6. Episode → **pemesanan tempat tidur**, berlaku 2 jam.
+7. Episode → **kebutuhan isolasi** direkam petugas admisi atau diputuskan DPJP.
+8. Pemesanan → **Kelayakan Penempatan** diperiksa: tempat tidur, jenis kelamin, pencampuran kamar, dan isolasi → **penempatan tempat tidur**, dan episode menjadi aktif.
+9. Penempatan → **census** menjawab siapa dirawat, di mana, oleh siapa, sudah berapa hari.
+10. Penempatan → **perpindahan**, membentuk riwayat lokasi dan riwayat kelas.
+11. Episode → **perawat penanggung jawab**, juga berbentuk riwayat.
+12. Selama perawatan → Billing/Kasir dapat membuat **permintaan top-up deposit**; seluruh penerimaan tetap terikat pada episode yang sama.
+13. Episode → **keputusan pulang** oleh DPJP → **resume pulang** ditandatangani.
+14. Billing/Kasir → **final settlement**: tagihan final dikurangi deposit yang dapat dialokasikan; kekurangan dibayar atau kelebihan dicatat sebagai refund.
+15. Episode → **daftar periksa administrasi** dan **kelayakan keuangan**; `Cleared` hanya bila settlement finansial selesai atau ditutup lewat override supervisor yang diaudit.
+16. Episode → **penutupan**, dan tempat tidur kembali kosong.
+17. Seluruh langkah di atas → **riwayat status** yang tidak dapat diubah; transaksi uang tetap diaudit di Billing/Kasir.
 ---
 
 ## 5. Batas MVP
@@ -145,6 +202,7 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 1. Pasien sudah terdaftar pada modul Patient Management.
 2. Master unit layanan, kamar, tempat tidur, dan kelas pasien sudah terisi lewat layar aplikasi, **beserta penanda jenis kelamin, isolasi, dan boks bayi pada tiap tempat tidur**. Sejak `0.3.0` penanda itu bukan lagi sekadar penyaring pencarian, melainkan penentu diterima atau ditolaknya penempatan, sehingga isian yang salah akan menolak penempatan yang sah.
 3. Petugas admisi membuka layar admisi rawat inap.
+4. Kebijakan deposit per penjamin dan kelas perawatan sudah terisi: perlu atau tidaknya deposit, nominal minimum, dan ambang hari tindak lanjut. Selama kebijakan itu kosong, langkah Deposit tampil tanpa minimum dan seluruh nominal diterima tanpa peringatan.
 
 ### 5.2 Titik akhir
 
@@ -153,6 +211,7 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 3. Riwayat status episode lengkap dan dapat ditelusuri urut.
 4. Resume pulang tersimpan dan tertandatangani.
 5. Episode muncul pada laporan pengecualian bila ditutup menembus gerbang keuangan.
+6. Bila episode memiliki deposit, seluruh deposit sudah direkonsiliasi: tidak ada kekurangan yang belum dibayar dan tidak ada kelebihan yang belum dibuatkan transaksi refund/penyelesaian finansial.
 
 ---
 
@@ -160,11 +219,11 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 
 | Pelaku | Tanggung jawabnya di dalam MVP |
 | --- | --- |
-| Petugas admisi | Membuka admisi, merekam kebutuhan isolasi sebagai catatan awal selagi episode `Draft`, memesan dan menempatkan tempat tidur, menandai butir administrasi, menutup episode |
+| Petugas admisi | Membuka admisi, **memasukkan nominal deposit pada langkah Deposit**, merekam kebutuhan isolasi sebagai catatan awal selagi episode `Draft`, memesan dan menempatkan tempat tidur, menandai butir administrasi, menutup episode |
 | Perawat pelaksana | Melihat census, memindahkan pasien |
 | Kepala ruangan | Menugaskan perawat penanggung jawab, mengalihkan DPJP, memindahkan pasien, menindaklanjuti daftar pantau |
 | DPJP | Menetapkan dan memperbarui kebutuhan isolasi sebagai keputusan klinis, memindahkan pasien yang menjadi tanggung jawabnya, menyatakan pasien boleh pulang, menyusun dan menandatangani resume |
-| Petugas kasir atau billing | Menandai kelayakan keuangan beserta catatannya |
+| Petugas kasir atau billing | Menentukan kebutuhan deposit sesuai kebijakan finansial, membuat permintaan deposit/top-up, menerima pembayaran, menerbitkan kwitansi, melakukan final settlement dan refund bila ada, lalu menandai kelayakan keuangan setelah validasi sistem |
 | Supervisor | Membatalkan admisi setelah pasien dirawat, menutup menembus gerbang keuangan, membuka sesi koreksi |
 | Admin master data | Mengisi master kamar dan tempat tidur, mengatur batas waktu dan butir administrasi |
 
@@ -190,7 +249,7 @@ sampai akhir?* dan *kalau tidak bisa, apakah ada jalan sementara yang aman dan t
 | Perpindahan dan pindah kelas | `RWI-CAP-017` | Wajib; kamar penuh dan perubahan kondisi adalah kejadian sehari-hari |
 | Resume pulang | `RWI-CAP-025` | Wajib; syarat penutupan episode |
 | Daftar periksa administrasi | `RWI-CAP-028` | Wajib; syarat penutupan episode |
-| Kelayakan keuangan | `RWI-CAP-027` | Wajib; syarat penutupan episode. Sumbernya penandaan manual, lihat bagian 15 |
+| Kelayakan keuangan | `RWI-CAP-027` | Wajib; syarat penutupan episode. Sejak `0.5.0`, `Cleared` harus tervalidasi terhadap settlement Billing/Kasir, bukan penandaan buta; lihat bagian 15 |
 | Penutupan episode dan pelepasan tempat tidur | `RWI-CAP-029` | Wajib; tanpa ini tempat tidur tidak pernah kembali kosong |
 | Pencatatan kepergian fisik pasien | `RWI-CAP-029` | Wajib; tanpa ini tempat tidur tertahan berjam-jam setelah pasien pulang. Ditambahkan pada `0.2.0` |
 | Satu pasien satu episode aktif | `RWI-CAP-008` | Wajib; tanpa ini satu pasien bisa tercatat dirawat di dua tempat. Ditambahkan pada `0.2.0` |
@@ -205,6 +264,10 @@ sampai akhir?* dan *kalau tidak bisa, apakah ada jalan sementara yang aman dan t
 | Kewenangan per pasien untuk DPJP | `RWI-CAP-036` | Wajib; `RWI-DEC-023` dan `RWI-DEC-024` menuntutnya |
 | Penolakan penempatan karena jenis kelamin dan isolasi | `RWI-CAP-033` | Wajib; tanpa ini sistem ikut menyebabkan pelanggaran privasi dan pengendalian infeksi. **Berpindah dari daftar ditunda pada `0.3.0`** lewat `RWI-DEC-064` |
 | Kebutuhan isolasi sebagai atribut episode | `RWI-CAP-033` | Wajib; aturan di atas tidak dapat dijalankan tanpa tempat menyimpan datanya. Ditambahkan pada `0.3.0` lewat `RWI-DEC-065` |
+| Deposit pasien rawat inap | `RWI-CAP-027` sebagian | **Wajib sejak `0.5.0`**; memungkinkan penerimaan uang muka yang terikat episode tanpa membuat entity finansial di `Inp` |
+| Top-up dan ringkasan saldo deposit | `RWI-CAP-027` sebagian | **Wajib sejak `0.5.0`**; satu episode dapat memiliki banyak transaksi deposit yang semuanya tetap dapat ditelusuri |
+| Settlement deposit saat pulang | `RWI-CAP-027` sebagian | **Wajib sejak `0.5.0`**; deposit harus dialokasikan terhadap tagihan final, kekurangan dibayar, dan kelebihan diselesaikan sebagai refund sebelum clearance normal |
+| Penetapan deposit di dalam multi-step admisi | `RWI-CAP-027` sebagian | **Wajib sejak `0.6.0`**; layar admisi operasional sudah memilikinya, dan tanpa langkah ini nominal deposit tidak pernah masuk sistem pada saat pasien benar-benar membayar |
 
 ---
 
@@ -216,6 +279,8 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > jenis kelamin" sebelumnya ditunda karena `DEC-INP-004` belum turun. Keputusannya turun 2026-08-21
 > lewat `RWI-DEC-064` sampai `RWI-DEC-066`, sehingga kemampuan itu **masuk MVP** sebagai
 > `EPIC RI-34`. Daftar ini kini berisi sembilan baris, bukan sepuluh.
+>
+> **Perubahan `0.5.0`.** Deposit keluar dari baris finansial yang ditunda dan masuk MVP sebagai `EPIC RI-35`. Estimasi biaya otomatis, tagihan berjalan rinci, dan klaim **tetap ditunda**, sehingga jumlah baris pada tabel ini tetap sembilan.
 
 | Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
 | --- | --- | --- | --- |
@@ -227,7 +292,7 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 | Serah terima klinis antar shift | Belum punya ID kemampuan | Ditandai `SAFETY_CHECK` oleh baseline; belum pernah dibahas — `DEC-INP-006` | Serah terima tetap dilakukan lisan dan tertulis di luar sistem. Modul mencatat siapa perawat penanggung jawab dan sejak kapan |
 | Cara pulang meninggal dan kabur | Bagian `RWI-CAP-026` | Sisi klinisnya masih terbuka — `DEC-INP-007` | Tiga cara pulang lain tersedia. Untuk dua kasus ini, episode ditutup lewat jalur supervisor disertai alasan, dan tercatat pada laporan pengecualian |
 | Daftar pantau kepatuhan pengkajian dan CPPT | Bagian `RWI-CAP-039` | Bergantung pada dokumentasi klinis, yang sejak `RWI-DEC-083` dimiliki sub-modul `keperawatan/` dan `dokter-rawat-inap/`. **Bukan** `DEC-INP-001`, yang sudah tertutup `RWI-DEC-062` 2026-08-21 | Dua daftar pantau lain tersedia |
-| Deposit, estimasi biaya, tagihan berjalan, klaim | `RWI-CAP-027` sebagian | `BillingManagement` belum punya kemampuan transaksi | Kelayakan keuangan ditandai manual kasir. Data lama dirawat dan riwayat kelas tersimpan lengkap sehingga charge kamar dapat direkonstruksi kelak |
+| Estimasi biaya otomatis, tagihan berjalan rinci, klaim | `RWI-CAP-027` sebagian | Full billing engine dan claim engine belum menjadi bagian dari sub-modul ini. **Deposit tidak lagi termasuk baris ini sejak `0.5.0`** | Deposit dan settlement minimum dikerjakan `EPIC RI-35`. Estimasi/tagihan rinci tetap dapat dikembangkan pada BillingManagement; data lama dirawat dan riwayat kelas tetap disimpan agar charge kamar dapat direkonstruksi |
 
 ---
 
@@ -237,23 +302,27 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 
 1. Petugas admisi memilih pasien yang sudah terdaftar.
 2. Sistem membuat kunjungan bertipe rawat inap, atau memakai kunjungan poliklinik yang sudah ada.
-3. Petugas memilih penjamin, kelas perawatan, unit layanan, dan DPJP. Episode dibuat berstatus `Draft`.
-4. Bila surat rujukan menyebut kebutuhan isolasi, petugas admisi merekamnya sebagai catatan awal selagi episode masih `Draft`.
-5. Petugas mencari tempat tidur kosong, lalu memesannya. Hasil pencarian sudah tersaring oleh kedelapan aturan Kelayakan Penempatan. Tempat tidur terbaca `Reserved` selama 2 jam.
-6. Pasien sampai di kamar. Petugas menekan konfirmasi masuk. Kelayakan Penempatan diperiksa **ulang** di sini — jenis kelamin, pencampuran kamar, dan isolasi termasuk di dalamnya. Bila salah satu gagal, penempatan ditolak dan isian admisi tetap utuh. Bila lolos, episode menjadi `Admitted`, tempat tidur `Occupied`, dan pasien muncul pada census.
-7. Kepala ruangan menugaskan perawat penanggung jawab.
-8. Bila DPJP kemudian mengubah kebutuhan isolasi, perubahannya diterima seketika. Bila tempat tidur yang sedang ditempati jadi tidak sesuai, episode muncul pada daftar pantau penempatan tidak sesuai sampai pasien dipindahkan.
-9. Bila kamar perlu berganti, kepala ruangan, perawat, supervisor, atau DPJP memindahkan pasien. Kelayakan Penempatan diperiksa dengan aturan yang sama persis seperti penempatan awal. Penempatan lama ditutup dan yang baru dibuka dalam satu tindakan utuh.
-10. Bila DPJP berhalangan, kepala ruangan atau supervisor mengalihkan tanggung jawab DPJP disertai alasan.
-11. DPJP menyatakan pasien boleh pulang dan memilih cara pulangnya. Episode menjadi `DischargePending`. Tempat tidur **belum** dilepas.
-12. DPJP menyusun resume pulang lalu menandatanganinya.
-13. Petugas admisi menandai butir daftar periksa administrasi.
-14. Petugas kasir menandai kelayakan keuangan `Cleared` disertai catatan.
-15. Keluarga menjemput dan pasien meninggalkan kamar. Petugas ruangan mencatat kepergiannya. Tempat tidur **langsung bebas** dan boleh dipesan pasien berikutnya, walaupun episodenya belum ditutup.
-16. Petugas admisi menutup episode. Episode menjadi `Closed`.
-17. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian.
-18. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi, dan versi resume sebelumnya tersimpan.
-
+3. Petugas memilih kategori pembayaran, penjamin, dan kelas perawatan pada langkah **Pembayaran**. Kombinasi penjamin dan kelas itu menentukan kebijakan deposit yang berlaku: perlu atau tidak, berapa minimumnya, dan berapa ambang hari tindak lanjutnya.
+4. Pada langkah **Deposit** — langkah tersendiri tepat sesudah langkah Pembayaran dan sebelum langkah Dokter — petugas memasukkan nominal deposit yang diterima. Layar menampilkan minimum menurut kebijakan tadi. Nominal di bawah minimum **diterima disertai peringatan** dan tidak menghentikan admisi. Bila kebijakan menyatakan deposit tidak diperlukan, langkah ini dilewati tanpa membuat transaksi bernilai nol.
+5. Petugas memilih unit layanan dan DPJP. Sistem membuat kunjungan lalu episode berstatus `Draft`. Tepat setelah `EpisodeId` terbentuk, nominal dari langkah Deposit dikirim sebagai transaksi penerimaan dengan kwitansi unik dan `idempotencyKey`. Bila pembuatan episode gagal, tidak ada transaksi uang yang terbentuk dan isian deposit tetap utuh di layar.
+6. Bila surat rujukan menyebut kebutuhan isolasi, petugas admisi merekamnya sebagai catatan awal selagi episode masih `Draft`. Kebijakan yang mensyaratkan deposit lunas sebelum penempatan tetap dimungkinkan, tetapi ia dimiliki domain finansial dan tidak di-hardcode oleh modul Rawat Inap.
+7. Petugas mencari tempat tidur kosong, lalu memesannya. Hasil pencarian sudah tersaring oleh kedelapan aturan Kelayakan Penempatan. Tempat tidur terbaca `Reserved` selama 2 jam.
+8. Pasien sampai di kamar. Petugas menekan konfirmasi masuk. Kelayakan Penempatan diperiksa **ulang** di sini — jenis kelamin, pencampuran kamar, dan isolasi termasuk di dalamnya. Bila salah satu gagal, penempatan ditolak dan isian admisi tetap utuh. Bila lolos, episode menjadi `Admitted`, tempat tidur `Occupied`, dan pasien muncul pada census.
+9. Kepala ruangan menugaskan perawat penanggung jawab.
+10. Bila DPJP kemudian mengubah kebutuhan isolasi, perubahannya diterima seketika. Bila tempat tidur yang sedang ditempati jadi tidak sesuai, episode muncul pada daftar pantau penempatan tidak sesuai sampai pasien dipindahkan.
+11. Bila kamar perlu berganti, kepala ruangan, perawat, supervisor, atau DPJP memindahkan pasien. Kelayakan Penempatan diperiksa dengan aturan yang sama persis seperti penempatan awal. Penempatan lama ditutup dan yang baru dibuka dalam satu tindakan utuh.
+12. Bila DPJP berhalangan, kepala ruangan atau supervisor mengalihkan tanggung jawab DPJP disertai alasan.
+13. Selama episode aktif, Billing/Kasir dapat membuat permintaan **top-up**. Pembayaran top-up selalu membuat transaksi baru; transaksi deposit sebelumnya tidak diubah dan seluruh kwitansi tetap dapat dibaca. Bila deposit yang sudah diterima masih di bawah minimum kebijakan dan lama rawat melewati ambang tindak lanjut — bawaan tiga hari, dapat diubah admin — episode muncul pada daftar pantau kekurangan deposit sebagai penagihan pelunasan berkala. Perawatan yang lebih singkat dari ambang itu tidak ditagih terpisah; kekurangannya langsung diperhitungkan pada pelunasan akhir di langkah 17.
+14. DPJP menyatakan pasien boleh pulang dan memilih cara pulangnya. Episode menjadi `DischargePending`. Tempat tidur **belum** dilepas.
+15. DPJP menyusun resume pulang lalu menandatanganinya.
+16. Petugas admisi menandai butir daftar periksa administrasi.
+17. Billing/Kasir menjalankan **final settlement**. Sistem membaca tagihan final dari BillingManagement dan menghitung posisi deposit episode: total diterima, total yang dialokasikan, saldo yang tersisa, kekurangan pembayaran, dan refund yang harus diberikan.
+18. Bila deposit lebih kecil dari tagihan final, pasien/penanggung membayar kekurangan. Bila deposit lebih besar, Billing/Kasir membuat transaksi refund/penyelesaian kelebihan. Tidak ada transaksi deposit lama yang dihapus atau ditimpa.
+19. Setelah settlement selesai, kasir menandai kelayakan keuangan `Cleared`. Service memvalidasi ringkasan Billing terlebih dahulu; permintaan `Cleared` ditolak bila masih ada kekurangan atau refund yang belum diselesaikan.
+20. Keluarga menjemput dan pasien meninggalkan kamar. Petugas ruangan mencatat kepergiannya. Tempat tidur **langsung bebas** dan boleh dipesan pasien berikutnya, walaupun episodenya belum ditutup.
+21. Petugas admisi menutup episode. Episode menjadi `Closed`.
+22. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor dapat menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian; transaksi deposit/utang/refund yang belum selesai **tidak dihapus** oleh override tersebut.
+23. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi, dan versi resume sebelumnya tersimpan.
 ---
 
 ## 10. Epic dan functional requirement
@@ -432,9 +501,8 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **Contoh:** permintaan tutup pukul 10:00 ditolak 422 dengan daftar: resume belum ditandatangani,
 > kelayakan keuangan masih `Pending`. Tiga syarat lain sudah terpenuhi dan ikut ditampilkan.
 
-> **`FR-RI-130` — Hanya kasir atau billing yang menandai kelayakan keuangan, dan catatan wajib**
-> **Contoh:** petugas admisi menandai `Cleared` dan ditolak 403. Kasir menandai tanpa catatan dan
-> ditolak 400.
+> **`FR-RI-130` — Hanya kasir atau billing yang dapat meminta `FinancialClearance = Cleared`, dan service memvalidasi settlement Billing terlebih dahulu**
+> **Contoh:** petugas admisi menandai `Cleared` dan ditolak 403. Kasir meminta `Cleared` ketika masih ada kekurangan Rp750.000 atau refund deposit yang belum diselesaikan dan ditolak 422. Kasir menandai tanpa catatan juga ditolak 400.
 
 > **`FR-RI-131` — Jalan keluar supervisor hanya menembus syarat keuangan**
 > **Contoh:** supervisor menutup episode sementara resume belum ditandatangani, dan tetap ditolak
@@ -510,6 +578,13 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **`FR-RI-141` — Lima angka dapat diubah dari satu layar dan berlaku pada pembacaan berikutnya**
 > **Contoh:** admin mengubah ambang penutupan tertunda dari 4 jam menjadi 6 jam. Daftar pantau
 > berikutnya memakai 6 jam tanpa aplikasi dinyalakan ulang.
+
+> **`FR-RI-143` — Ambang tindak lanjut kekurangan deposit ikut diatur di layar yang sama** (**baru `0.6.0`**)
+> Angka keenam menyusul bersama `FR-RI-177`: berapa hari sekali episode dengan kekurangan deposit
+> muncul kembali pada daftar pantau. Nilai bawaannya tiga hari, dan mengubahnya tidak boleh
+> menyentuh transaksi deposit yang sudah tercatat.
+> **Contoh:** admin mengubah ambang dari 3 hari menjadi 5 hari; episode yang kekurangannya belum
+> tertutup muncul berikutnya pada hari kelima, sementara kwitansi lama tidak berubah sama sekali.
 
 > **`FR-RI-142` — Modul tetap berjalan bila pengaturan belum terisi**
 > **Contoh:** pada lingkungan baru tanpa baris pengaturan, sistem memakai nilai bawaan dan mencatat
@@ -647,6 +722,82 @@ perpindahan
 > **Contoh:** memindahkan Tn. Budi ke `ANGGREK-01-B` di kamar yang sedang dihuni pasien perempuan
 > ditolak dengan alasan dan kode yang sama persis seperti penempatan awal.
 
+
+### `EPIC RI-35` — Deposit dan settlement finansial rawat inap
+
+**Tujuan:** uang muka pasien dapat diterima, ditambah, ditelusuri, dan diselesaikan terhadap tagihan akhir tanpa membuat ledger finansial kedua di modul Rawat Inap.
+**Disposisi backend:** `CROSS-MODULE / EXTEND` — **diturunkan dari `MISSING + EXTEND` pada `0.6.0`**. Transaksi dan ledger dimiliki `BillingManagement`/Kasir dan **sebagian besar sudah berjalan**: `BilDepositAccount`, `BilDepositMovement` dengan `IdempotencyKey`, `BillingDepositService`, `BillingSettlementService`, `BillingRefundService`, dan `BillingPatientFundsController`. `InPatientManagement` tetap hanya memberikan konteks `EpisodeId`, menampilkan ringkasan, dan memakai hasil settlement sebagai closure gate.
+**Yang benar-benar `MISSING`, dipersempit `0.6.1`:** kebijakan minimum deposit per penjamin dan kelas, ringkasan deposit per episode, langkah Deposit pada admisi, dan daftar pantau kekurangan deposit. ~~Pengikatan `EpisodeId`~~ dicabut dari daftar ini karena sudah tercapai lewat join (`RWI-FACT-017`).
+**Dasar scope:** arahan produk 2026-09-03. ID keputusan formal `RWI-DEC-*` belum tersedia pada sumber dan wajib disinkronkan sebelum development lock.
+**Evidence legacy:** V1 memiliki `DepositRanap`, `DepositPersentase`, `NoKwitansi` unique, `IPerkiraanBillingRanapService`, dan `IDepositRanapNumberService`; evidence ini dipakai sebagai referensi capability, **bukan** sebagai keputusan untuk menyalin schema V1.
+
+> **`FR-RI-163` — Setiap transaksi deposit terikat pada tepat satu episode rawat inap**
+> Deposit tidak boleh hanya menempel pada pasien karena pasien yang sama dapat memiliki banyak episode sepanjang waktu.
+> **Mekanismenya, dikoreksi `0.6.1`:** penelusuran dicapai lewat **kunjungan**, bukan lewat kolom baru. `BilDepositAccount.EncounterId` unique dan `InpEpisode.EncounterId` unique, sehingga satu akun deposit menunjuk tepat satu episode tanpa keraguan. Menambahkan kolom `EpisodeId` justru menciptakan dua sumber kebenaran yang bisa berbeda isi.
+> **Contoh:** deposit Rp5.000.000 untuk episode September tidak boleh otomatis muncul sebagai saldo episode Desember milik pasien yang sama.
+
+> **`FR-RI-164` — Kebutuhan deposit mengikuti kebijakan finansial, bukan aturan hardcode semua pasien**
+> Billing/Kasir menentukan apakah deposit diperlukan dan berapa targetnya berdasarkan kebijakan yang dimiliki domain finansial/penjamin. Bila deposit tidak diperlukan, sistem tidak membuat transaksi palsu bernilai nol.
+> **Contoh:** pasien dengan penjamin yang tidak mensyaratkan uang muka tetap dapat ditempatkan tanpa baris deposit Rp0.
+
+> **`FR-RI-165` — Deposit awal dan setiap top-up adalah transaksi append-only yang terpisah**
+> Pembayaran berikutnya tidak pernah mengubah nominal transaksi sebelumnya.
+> **Contoh:** Rp5.000.000 pukul 09:15, Rp3.000.000 hari kedua, dan Rp2.000.000 hari keempat tersimpan sebagai tiga transaksi dengan total penerimaan Rp10.000.000.
+
+> **`FR-RI-166` — Setiap penerimaan mempunyai kwitansi unik dan perlindungan idempotensi**
+> Satu pembayaran yang dikirim ulang karena timeout tidak boleh membentuk dua penerimaan.
+> **Contoh:** request pembayaran dengan `idempotencyKey` yang sama dikirim dua kali; response kedua mengembalikan transaksi pertama, bukan membuat kwitansi baru.
+
+> **`FR-RI-167` — Ringkasan deposit episode dapat dibaca tanpa menghitung ulang dari frontend**
+> Billing mengembalikan sekurang-kurangnya target/requested deposit bila ada, total diterima, total dialokasikan, total refund, saldo tersedia, dan kebutuhan top-up yang masih terbuka.
+> **Contoh:** dari penerimaan Rp8.000.000, alokasi Rp6.500.000, dan refund Rp500.000, layar menampilkan saldo tersedia Rp1.000.000 dari response backend yang sama.
+
+> **`FR-RI-168` — Permintaan top-up tidak mengubah histori pembayaran**
+> Billing/Kasir boleh membuat permintaan tambahan selama episode aktif berdasarkan kebijakan atau keputusan finansial. Top-up request dan top-up payment adalah dua kejadian berbeda.
+> **Contoh:** kasir meminta tambahan Rp2.000.000. Keluarga baru membayar Rp1.500.000; sistem tetap menunjukkan outstanding top-up Rp500.000 tanpa mengubah kwitansi deposit awal.
+
+> **`FR-RI-169` — Saldo deposit tidak dapat dipindahkan diam-diam ke episode lain**
+> Pemindahan, refund, atau penggunaan lintas episode harus melalui transaksi finansial eksplisit dengan audit trail.
+> **Contoh:** episode lama dibatalkan dan pasien dibuka episode baru; operator tidak boleh sekadar mengganti `EpisodeId` pada transaksi deposit lama.
+
+> **`FR-RI-170` — Final settlement mengalokasikan deposit terhadap tagihan final**
+> Billing menghitung `FinalBillAmount`, deposit yang dapat dialokasikan, dan selisih setelah alokasi. Modul Rawat Inap tidak menghitung tarif atau tagihan sendiri.
+> **Contoh:** tagihan final Rp12.000.000 dan deposit tersedia Rp10.000.000 menghasilkan kekurangan Rp2.000.000; setelah kekurangan dibayar, settlement dapat selesai.
+
+> **`FR-RI-171` — Kelebihan deposit menghasilkan refund/penyelesaian kelebihan yang eksplisit**
+> Saldo negatif atau penghapusan saldo tanpa transaksi dilarang.
+> **Contoh:** tagihan final Rp7.500.000 dan deposit tersedia Rp10.000.000 menghasilkan kelebihan Rp2.500.000. Billing membuat transaksi refund Rp2.500.000; histori tiga pembayaran deposit sebelumnya tetap utuh.
+
+> **`FR-RI-172` — `FinancialClearance = Cleared` hanya boleh setelah settlement finansial selesai**
+> Service penutupan membaca ringkasan Billing. Kekurangan pembayaran, deposit yang belum dialokasikan sesuai settlement, atau refund yang belum diselesaikan menahan clearance normal. Supervisor tetap dapat memakai `CloseOverride`, tetapi override tidak mengubah ledger Billing dan selalu masuk laporan pengecualian.
+> **Contoh:** kasir mencoba memberi `Cleared` saat refund Rp2.500.000 masih pending dan ditolak 422.
+
+> **`FR-RI-173` — Pembatalan admisi setelah deposit tidak pernah menghapus transaksi uang**
+> Pembatalan episode memicu kebutuhan refund/reversal pada Billing; transaksi penerimaan dan kwitansi asli tetap dapat diaudit.
+> **Contoh:** pasien membayar deposit Rp5.000.000 lalu admisi dibatalkan sebelum penempatan. Episode menjadi `Cancelled` hanya setelah jalur finansial mencatat refund/reversal yang sesuai, atau supervisor menggunakan override yang meninggalkan exception terbuka.
+
+> **`FR-RI-174` — Deposit adalah langkah tersendiri di dalam multi-step admisi**
+> Langkah Deposit berdiri sesudah langkah Pembayaran dan sebelum langkah Dokter, bukan layar terpisah yang dibuka kasir setelah admisi selesai. Isinya satu nominal deposit yang diterima, nilai minimum menurut kebijakan, dan status pemenuhannya.
+> **Contoh:** petugas memilih penjamin dan kelas perawatan, menekan lanjut, lalu langsung sampai pada layar `Input Deposit Rawat Inap` sebelum memilih dokter.
+
+> **`FR-RI-175` — Minimum deposit adalah nilai kebijakan per penjamin dan kelas perawatan**
+> Nominal minimum tidak boleh ditulis tetap di layar. Ia dibaca dari kebijakan finansial untuk kombinasi penjamin dan kelas yang dipilih pada langkah sebelumnya. Bila kebijakan tidak mensyaratkan deposit, langkah Deposit tidak menuntut nominal apa pun dan tidak membuat transaksi Rp0 — `FR-RI-164` tetap berlaku penuh.
+> **Contoh:** pasien umum kelas VIP meminta minimum Rp100.000.000, sedangkan pasien dengan penjamin yang menanggung penuh melewati langkah ini tanpa nominal.
+
+> **`FR-RI-176` — Deposit di bawah minimum memberi peringatan, bukan penolakan**
+> Admisi tetap berlanjut ketika nominal yang diterima lebih kecil dari minimum kebijakan. Layar menyatakan selisihnya, dan selisih itu tersimpan sebagai kekurangan deposit yang terbaca pada ringkasan episode. Nominal nol pada episode yang kebijakannya mensyaratkan deposit juga hanya menghasilkan peringatan.
+> **Contoh:** minimum Rp100.000.000 sementara keluarga membayar Rp40.000.000. Petugas tetap dapat maju ke langkah Dokter, dan ringkasan episode menunjukkan kekurangan Rp60.000.000.
+
+> **`FR-RI-177` — Kekurangan minimum deposit ditagih berkala pada perawatan yang melewati ambang hari**
+> Selama episode aktif dan kekurangan belum tertutup, episode muncul pada daftar pantau kekurangan deposit setiap kelipatan ambang tindak lanjut — bawaan tiga hari, diatur admin lewat `EPIC RI-31`. Perawatan yang selesai sebelum ambang pertama tidak menghasilkan penagihan terpisah; kekurangannya diperhitungkan pada pelunasan akhir. Penagihan ini adalah pengingat kerja, bukan gerbang yang menahan perawatan.
+> **Contoh:** pasien dirawat sembilan hari dengan kekurangan Rp60.000.000. Episode muncul pada daftar pantau di hari ketiga, keenam, dan kesembilan sampai kekurangannya tertutup lewat top-up atau lewat pelunasan akhir.
+
+> **`FR-RI-178` — Transaksi deposit admisi terbentuk hanya setelah `EpisodeId` ada**
+> Nominal pada langkah Deposit ditahan sebagai isian langkah, bukan sebagai transaksi uang. Transaksi penerimaan dibentuk tepat setelah episode `Draft` berhasil dibuat pada langkah Dokter, memakai `idempotencyKey` sehingga percobaan ulang tidak melahirkan kwitansi ganda. Bila pembuatan episode gagal, tidak ada penerimaan yang tersimpan dan tidak ada kwitansi yang terbit.
+> **Contoh:** petugas mengisi deposit Rp5.000.000, lalu `POST /episodes` ditolak 409 karena kunjungan sudah punya episode. Tidak ada transaksi deposit yang terbentuk; petugas kembali ke langkah sebelumnya dengan nominal masih terisi.
+
+> **Risiko yang diterima sadar — `RWI-RISK-006`.** Di antara petugas menekan lanjut pada langkah Deposit dan episode berhasil dibuat, uang sudah berada di tangan petugas sementara sistem belum menerbitkan kwitansi. Jendelanya sempit karena kedua langkah berurutan dalam satu sesi admisi, tetapi ia nyata. Mitigasinya: kwitansi hanya sah setelah transaksi terbentuk, dan admisi yang gagal pada langkah Dokter tidak boleh ditinggalkan dengan uang yang sudah diterima.
+
 ---
 
 ## 11. Model status yang diusulkan
@@ -658,7 +809,8 @@ perpindahan
 | Kebutuhan isolasi | Bukan status berperiode; satu penanda pada episode beserta asalnya — catatan awal admisi atau keputusan klinis DPJP | Yang tersimpan hanya **nilai yang berlaku sekarang**, bukan riwayat. Selagi `Draft` boleh disetel petugas admisi; setelah aktif hanya DPJP aktif |
 | Pemesanan tempat tidur | `Active`, `Consumed`, `Expired`, `Cancelled` | Satu tempat tidur paling banyak satu pemesanan aktif |
 | Penempatan tempat tidur | `Aktif`, `Berakhir` | Satu tempat tidur paling banyak satu penempatan aktif |
-| Kelayakan keuangan | `Pending`, `Cleared`, `Blocked` | Hanya `Cleared` yang membuka penutupan |
+| Kelayakan keuangan | `Pending`, `Cleared`, `Blocked` | Hanya `Cleared` yang membuka penutupan normal. Sejak `0.5.0`, transisi ke `Cleared` divalidasi terhadap settlement Billing/Kasir |
+| Ringkasan deposit episode | Bukan status `Inp`; nilai turunan dari Billing/Kasir | Membaca minimum kebijakan bila ada, total diterima, dialokasikan, refund, saldo tersedia, **kekurangan terhadap minimum kebijakan**, kekurangan terhadap tagihan final, dan outstanding top-up; tidak menjadi ledger kedua di Rawat Inap |
 | Resume pulang | Belum ditandatangani, Tertandatangani | Satu episode paling banyak satu resume **yang berlaku**; versi sebelumnya tersimpan sebagai salinan |
 | Sesi koreksi | `Terbuka`, `Tertutup` | Satu episode paling banyak satu sesi terbuka |
 
@@ -672,11 +824,15 @@ Rincian lengkap beserta perpindahan yang **tidak sah** ada pada
 | Kelompok | Isinya |
 | --- | --- |
 | **Dipakai ulang apa adanya** | Pasien, kunjungan, penjamin, tempat tidur, kamar, unit layanan, kelas pasien, dokter, pegawai, mesin hak akses, pola `ApiResponse`, pola seeder |
-| **Diperluas** | Perilaku `BedController.UpdateBedAvailability`; slice Redux tempat tidur di frontend |
-| **Baru** | Sebelas tabel transaksi berawalan `Inp`, dua master `MstInpatient*`, enam service, lima controller modul, dua controller master |
+| **Diperluas** | Perilaku `BedController.UpdateBedAvailability`; slice Redux tempat tidur di frontend; integrasi `FinancialClearance` dengan ringkasan settlement Billing/Kasir |
+| **Baru** | Sebelas tabel transaksi berawalan `Inp`, dua master `MstInpatient*`, enam service, lima controller modul, dua controller master; **ditambah contract cross-module deposit pada Billing/Kasir tanpa tabel `InpDeposit`** |
 
 Tidak satu pun tabel milik modul lain berubah bentuknya. **Tiga belas** tabel baru, nol perubahan
 kolom pada tabel existing.
+
+**`0.5.0` tidak menambah ledger finansial ke `InPatientManagement`.** `EPIC RI-35` boleh menambah atau memperluas tabel transaksi pada `BillingManagement`, tetapi nama entity dan tabelnya **tidak ditetapkan oleh PRD Rawat Inap ini** karena kontrak arsitektur Billing V2 tidak disertakan. Satu-satunya invariant lintas modul yang dikunci di sini adalah setiap transaksi deposit harus dapat dirujuk kembali ke `EpisodeId`, dan Inpatient hanya menyimpan/membaca referensi atau snapshot clearance yang diperlukan untuk closure gate.
+
+**`0.6.1` menambah satu master saja, dan nol kolom.** Rencana `0.6.0` untuk menambahkan `EpisodeId` pada `BilDepositAccount` **dibatalkan** setelah trace membuktikan kedua sisi sudah unique pada `EncounterId`; penelusuran episode dicapai lewat join. Yang tersisa sebagai tambahan hanyalah **master kebijakan minimum deposit** per penjamin dan kelas perawatan, dan tempatnya pada `BillingManagement` atau master penjamin — **bukan** pada `InPatientManagement`. Dengan begitu kalimat "nol perubahan kolom pada tabel existing" kini berlaku untuk seluruh modul, Billing termasuk.
 
 **`0.3.0` tidak menambah satu tabel pun.** Kebutuhan isolasi masuk sebagai enam kolom pada
 `InpEpisode` beserta satu enum `InpIsolationSource`, dan aturan pencampuran kamar dijalankan dengan
@@ -689,8 +845,8 @@ Rincian lengkap ada pada [`02-backend-architecture.md`](./02-backend-architectur
 
 ## 13. Sasaran kemampuan API
 
-Seluruh endpoint di bawah adalah bagian dari
-[`contracts/api-contract.md`](./contracts/api-contract.md) dan tidak melebihinya.
+Endpoint yang sudah ada pada revisi sebelumnya mengikuti
+[`contracts/api-contract.md`](./contracts/api-contract.md) rev `0.3.0`. **Endpoint deposit pada `0.6.0` terbagi dua: rute `patient-funds` yang sudah berjalan, dan tambahan baru yang diusulkan PRD ini.** Keduanya wajib disinkronkan ke `contracts/api-contract.md`, `validation-matrix.md`, dan `permission-audit-matrix.md` sebelum implementasi. Dengan demikian dokumen ini tidak mengklaim bahwa contract rev `0.3.0` sudah memuat deposit.
 
 ### Health Services / Inpatient Management / Inpatient Episode
 
@@ -731,6 +887,24 @@ Base URL: `api/v1/health-services/inpatient-management/discharges`
 | `POST` | `/{episodeId}/close` | Menutup episode | `InpatientEpisode : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | `EPIC RI-28` | **Rencana (belum tersedia)** |
 | `POST` | `/{episodeId}/close-with-override` | Menutup menembus gerbang keuangan | `InpatientEpisode : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | `EPIC RI-28` | **Rencana (belum tersedia)** |
 
+### Health Services / Billing Management / Deposit Rawat Inap
+
+Base URL: `api/v1/health-services/billing-management/billing/patient-funds` — **rute yang sudah ada**, bukan base URL baru. Usulan `billing-management/inpatient-deposits` pada `0.5.0` dicabut oleh `0.6.0` agar tidak lahir ledger deposit kedua.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/deposits/{encounterId}` | Membaca akun deposit satu kunjungan | `BillingDeposit : Read` | – | `ApiResponse<BillingDepositResponse>` | `EPIC RI-35` | **Sudah ada** — `BillingPatientFundsController.cs:67` |
+| `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up | `BillingDeposit : Create` | `TopUpDepositRequest` | `ApiResponse<BillingDepositResponse>` | `EPIC RI-35` | **Sudah ada, perlu `EXTEND`** — wajib menerima dan menyimpan `episodeId` |
+| `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | `EPIC RI-35` | **Sudah ada, perlu `EXTEND`** |
+| `GET` | `/deposit-policies` | Membaca kebijakan deposit untuk kombinasi penjamin dan kelas perawatan | `BillingDeposit : Read` | `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | `EPIC RI-35` | **Baru `0.6.0`** — sumber minimum pada langkah Deposit |
+| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode: minimum kebijakan, diterima, dialokasikan, refund, saldo, **dua** angka kekurangan, outstanding top-up | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | `EPIC RI-35` | **Baru `0.6.0`, tetap berlaku** |
+| `GET` | `/invoices/encounters/{encounterId}/charge-summary` | Rekap tagihan satu kunjungan; sumber angka tagihan final pada settlement | `BillingInvoice : Read` | – | `ApiResponse<EncounterChargeSummaryResponse>` | `EPIC RI-35` | ✅ **Sudah ada** — `BillingInvoicesController.cs:122` |
+| `POST` | `/financial-exceptions/refunds` beserta `/refunds/{id}/approve` | Mencatat dan menyetujui refund kelebihan deposit | `BillingRefund : Create` / `Approve` | Kontrak `BIL-API-0.4` | – | `EPIC RI-35` | ✅ **Sudah ada** — `BillingFinancialExceptionsController.cs:112,157`. Menggantikan usulan `/deposits/episodes/{id}/refunds` yang **dicabut `0.6.1`** |
+
+Daftar pantau kekurangan deposit `FR-RI-177` tidak menambah endpoint Billing. Ia dibaca lewat daftar pantau Rawat Inap yang sudah direncanakan `EPIC RI-29`, dengan satu penyaring baru dan angka kekurangan yang diambil dari ringkasan episode di atas.
+
+**Catatan:** ownership implementasi seluruh rute di atas tetap pada `BillingManagement`. Tidak boleh dibuat controller `InpDepositController` yang menyimpan ledger uang di area Rawat Inap, dan tidak boleh dibuat controller deposit kedua di `BillingManagement` yang menduplikasi `BillingPatientFundsController`.
+
 ### Health Services / Inpatient Management / Inpatient Census
 
 Base URL: `api/v1/health-services/inpatient-management/census`
@@ -769,8 +943,8 @@ Base URL: `api/v1/health-services/master-data/beds`
 
 ## 14. Matriks kewenangan
 
-String hak akses di bawah sama persis dengan
-[`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md).
+String hak akses yang sudah ada mengikuti
+[`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md). String `InpatientDeposit` yang diusulkan `0.5.0` **dicabut** pada `0.6.0`: `BillingManagement` sudah memakai `BillingDeposit` dengan aksi `Read`, `Create`, dan `Allocate` (`BillingPatientFundsController.cs:31-97`). Yang perlu ditambahkan ke matrix tinggal dua aksi baru, `Settle` dan `Refund`.
 
 | Tindakan | Peran | String yang dipakai |
 | --- | --- | --- |
@@ -781,6 +955,12 @@ String hak akses di bawah sama persis dengan
 | Menyatakan pasien boleh pulang, menyusun resume | DPJP | `[AccessPermission("InpatientDischarge", "Update")]` |
 | Menandatangani resume | DPJP | `[AccessPermission("InpatientDischarge", "Sign")]` |
 | Menandai kelayakan keuangan | Kasir, Billing | `[AccessPermission("InpatientFinancialClearance", "Update")]` |
+| Memasukkan nominal deposit pada langkah admisi | Petugas admisi, Kasir, Billing | `[AccessPermission("BillingDeposit", "Create")]` — **kepemilikan peran masih terbuka, lihat 20.2** |
+| Menerima top-up deposit selama perawatan | Kasir, Billing | `[AccessPermission("BillingDeposit", "Create")]` |
+| Melihat kebijakan dan ringkasan deposit episode | Kasir, Billing, Petugas admisi, Supervisor | `[AccessPermission("BillingDeposit", "Read")]` |
+| Mengalokasikan deposit ke tagihan | Kasir, Billing | `[AccessPermission("BillingDeposit", "Allocate")]` |
+| Menjalankan final settlement deposit | Kasir, Billing | `[AccessPermission("BillingDeposit", "Settle")]` — **baru `0.6.0`** |
+| Mencatat dan menyetujui refund deposit | Kasir, Billing sesuai kewenangan finansial | `[AccessPermission("BillingRefund", "Create")]` dan `[AccessPermission("BillingRefund", "Approve")]` — **dikoreksi `0.6.1`**; usulan `BillingDeposit : Refund` dicabut karena resource `BillingRefund` sudah ada |
 | Mencatat pasien sudah meninggalkan ruangan | Petugas admisi, Perawat, Kepala ruangan, Supervisor | `[AccessPermission("InpatientDischarge", "RecordDeparture")]` |
 | Menutup episode | Petugas admisi, Supervisor | `[AccessPermission("InpatientEpisode", "Close")]` |
 | Menutup menembus gerbang keuangan | Supervisor | `[AccessPermission("InpatientEpisode", "CloseOverride")]` |
@@ -815,27 +995,55 @@ tersebut. Pembedaannya dikerjakan service.
 
 ### 15.2 Kelayakan keuangan pada MVP
 
-`BillingManagement` belum punya kemampuan transaksi, sehingga nilai `Pending`, `Cleared`, dan
-`Blocked` tidak ada sumbernya. Pada MVP, nilai itu **disimpan pada episode dan ditandai manual**
-petugas kasir, disertai nama penandai, waktu, dan catatan wajib.
+Sejak `0.5.0`, penandaan `FinancialClearance` **tidak lagi boleh menjadi penandaan manual buta**. Status tetap disimpan pada episode sebagai closure gate, tetapi permintaan mengubahnya ke `Cleared` dilakukan oleh Kasir/Billing dan service wajib membaca ringkasan settlement dari `BillingManagement` terlebih dahulu.
 
-Ini bukan sistem billing mini. Yang disimpan hanya **pernyataan kelayakan**, bukan angka tagihan.
+`Cleared` hanya diterima bila tidak ada kekurangan pembayaran dan, bila deposit menghasilkan kelebihan, refund/penyelesaiannya sudah tercatat. `Blocked` tetap dapat dipakai Billing/Kasir untuk menyatakan ada hambatan finansial yang memang diketahui. Bila integrasi Billing tidak dapat dibaca, status **tidak boleh diasumsikan Cleared**; jalur normal tetap `Pending`/`Blocked`.
 
-**Risiko yang diterima secara sadar:** kasir dapat menandai `Cleared` tanpa ada tagihan yang sungguh
-dibuat, karena memang belum ada tagihan yang bisa diperiksa sistem. Tercatat sebagai `RWI-RISK-003`.
-Yang membedakan dari penanda serupa yang bermasalah di modul lain: penandaan ini menyimpan pelaku
-dan waktu, ditampilkan jelas sebagai penandaan manual, dan bersifat sementara.
+`CloseOverride` milik Supervisor tetap dipertahankan untuk kebutuhan operasional luar biasa. Override hanya menembus closure gate pada episode; ia **tidak** menghapus piutang, deposit, refund, atau transaksi Billing yang belum selesai. Episode selalu masuk laporan pengecualian.
 
-Ketika `BillingManagement` operasional, **sumber nilainya berpindah, aturan penutupannya tidak
-berubah**.
+`RWI-RISK-003` dari revisi sebelumnya — kasir dapat menandai `Cleared` tanpa tagihan yang benar-benar diperiksa — **tidak lagi diterima sebagai jalur normal pada `0.5.0`**. Risiko itu diganti dependency eksplisit terhadap API settlement Billing.
 
 ### 15.3 Charge kamar
 
-Tidak satu pun charge kamar tercatat selama MVP. Yang dijamin arsitektur adalah **datanya dapat
+**Dikoreksi `0.6.1`.** Kalimat berikut sudah **tidak berlaku** sejak `BKC-DEC-043`: Billing
+menghitung charge kamar langsung dari `InpBedPlacement` setiap kali invoice dihitung ulang, termasuk
+segmen yang masih berjalan, sehingga invoice terbuka menunjukkan estimasi hidup selama pasien masih
+dirawat (`BillingCalculationService.cs:455-470`). Yang tetap benar: **modul Rawat Inap tidak
+menghitung tarif apa pun sendiri**; ia hanya menyediakan garis waktu penghunian.
+
+~~Tidak satu pun charge kamar tercatat selama MVP.~~ Yang dijamin arsitektur adalah **datanya dapat
 direkonstruksi**: dari riwayat penempatan, kelas dan lamanya menempati setiap kamar terbaca lengkap.
 
 Keputusan apakah episode lama ikut ditagihkan mundur adalah keputusan keuangan yang belum ada
 pemiliknya.
+
+> **Catatan bukti 2026-09-08.** `MstRoomChargePolicy` sudah ada pada `BillingManagement`, begitu pula
+> jalur invoice dan finalisasi. Keputusan MVP di atas tidak berubah — modul Rawat Inap tetap tidak
+> menghitung charge kamar — tetapi "Billing belum bisa apa-apa" bukan lagi gambaran yang benar, dan
+> asumsi itu tidak boleh dipakai lagi untuk menunda `FR-RI-170` s.d. `FR-RI-172`.
+
+### 15.4 Batas minimum Billing yang wajib ada untuk `EPIC RI-35`
+
+Deposit tidak memaksa `InPatientManagement` membangun billing engine. Namun MVP deposit **tidak dapat dinyatakan selesai** hanya dengan tabel penerimaan uang. Billing/Kasir minimal harus mampu:
+
+1. membuat permintaan deposit awal dan top-up yang merujuk `EpisodeId`;
+2. menerima pembayaran secara idempotent dan menerbitkan nomor kwitansi unik;
+3. mengembalikan ringkasan total diterima, dialokasikan, refund, saldo tersedia, dan outstanding;
+4. menyediakan `FinalBillAmount` atau referensi final bill yang menjadi sumber settlement;
+5. mengalokasikan deposit ke final bill tanpa mengubah transaksi penerimaan lama;
+6. mencatat kekurangan pembayaran dan refund/kelebihan secara eksplisit;
+7. memberi hasil settlement yang dapat diverifikasi oleh `FinancialClearance`;
+8. ~~menyimpan `EpisodeId` pada akun deposit~~ — **dicabut `0.6.1`**; penelusuran episode dicapai lewat join pada `EncounterId` yang sudah unique di kedua sisi, tanpa kolom baru; dan
+9. menyediakan kebijakan minimum deposit per penjamin dan kelas perawatan yang dapat dibaca langkah admisi.
+
+Bila butir 4 belum tersedia karena charge kamar/full billing belum operasional, deposit tetap dapat **diterima dan ditambah**, tetapi `FR-RI-170` s.d. `FR-RI-172` belum lulus dan MVP end-to-end belum memenuhi Definition of Done. Ini adalah dependency delivery, bukan alasan memindahkan deposit kembali ke POST-MVP.
+
+**Dikoreksi `0.6.1`.** Butir 1, 2, 3, 5, 6, dan sebagian 7 **sudah terpenuhi** oleh source hasil
+merge: penerimaan dan top-up berjalan lewat `POST /patient-funds/deposits/{encounterId}/top-ups`
+dengan idempotensi terkunci di database, alokasi lewat `/allocations`, refund lewat
+`/financial-exceptions/refunds`, dan tagihan final lewat `charge-summary`. Yang benar-benar
+tersisa tinggal **butir 9** — kebijakan minimum deposit — ditambah satu ringkasan per episode yang
+menggabungkan angka-angka itu menjadi satu jawaban. Keduanya prasyarat `EPIC RI-35a`.
 
 ---
 
@@ -845,6 +1053,7 @@ pemiliknya.
 | --- | --- | --- |
 | Rekam medis elektronik | Resume pulang tersimpan, tertandatangani, dan terkunci setelah episode ditutup. Riwayat lokasi, DPJP, dan status tersimpan lengkap | Pengkajian, catatan dokter, dan CPPT belum masuk sistem. Sejak `RWI-DEC-080` ketiganya **sudah masuk scope modul** dan `RWI-DEC-083` memberikannya kepada sub-modul `keperawatan/` serta `dokter-rawat-inap/` yang belum dirancang. **Bukan** lagi `DEC-INP-001`, yang tertutup `RWI-DEC-062` 2026-08-21 |
 | Keterlacakan tindakan | Setiap perubahan status meninggalkan jejak yang tidak dapat diubah, lengkap dengan pelaku dan waktu | — |
+| Keterlacakan transaksi deposit | Setiap penerimaan, top-up, alokasi, refund, reversal, dan override finansial mempunyai referensi transaksi, pelaku, waktu, dan tidak dihapus saat episode ditutup/dibatalkan | Detail akuntansi/GL tetap milik Billing/Finance dan tidak ditentukan PRD Rawat Inap |
 | Koreksi rekam medis | Koreksi hanya lewat sesi koreksi supervisor, beralasan, daftar perubahannya tersimpan, dan versi resume sebelumnya tersalin | — |
 | Pengendalian infeksi dan privasi kamar | Penempatan dan perpindahan **ditolak** bila jenis kelamin tidak cocok, bila kamar sedang dihuni jenis kelamin berbeda, atau bila kebutuhan isolasi tidak cocok dengan sifat tempat tidur. Kebutuhan isolasi tersimpan beserta siapa dan kapan menetapkannya | Kebutuhan isolasi tersimpan sebagai **nilai berlaku**, bukan riwayat. Bila kelak audit pengendalian infeksi menuntut rentang tanggalnya, dibutuhkan Amendment Pass |
 | Masa simpan data | — | **Belum diputuskan** — `RWI-OQ-035`, keputusan hukum |
@@ -875,6 +1084,9 @@ dalam MVP. Gerbangnya kini berpindah bentuk: bukan lagi menunggu keputusan, mela
 | `NFR-006` | Penanganan waktu | Seluruh waktu UTC. Kedaluwarsa dihitung saat dibaca, tanpa program penjadwal. Lama dirawat dari selisih tanggal |
 | `NFR-007` | Privasi | Kolom sensitif tidak masuk log dan tidak tampil pada daftar |
 | `NFR-008` | Test regresi | Setiap task yang menyentuh modul milik pihak lain membawa test regresi jalur lama |
+| `NFR-009` | Idempotensi finansial | Penerimaan deposit, settlement, dan refund memakai idempotency key/reference unik sehingga retry tidak menghasilkan transaksi uang ganda |
+| `NFR-010` | Keutuhan nilai uang | Semua nilai finansial memakai tipe desimal yang sesuai domain Billing, bukan floating point; total ringkasan harus dapat direkonsiliasi ke transaksi sumber |
+| `NFR-011` | Konsistensi lintas modul | Penutupan episode tidak menghapus atau menulis ulang ledger Billing. Kegagalan sinkronisasi clearance menghasilkan status aman (`Pending`/`Blocked`) dan jejak error, bukan `Cleared` optimistis |
 
 ---
 
@@ -882,13 +1094,10 @@ dalam MVP. Gerbangnya kini berpindah bentuk: bukan lagi menunggu keputusan, mela
 
 Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu skenario gagal.
 
-> **`UAT-01` — Satu pasien dari masuk sampai pulang** (`EPIC RI-21` s.d. `RI-28`)
-> **Kondisi awal:** master kamar dan tempat tidur terisi; `BD-RSMMC-00042` tersedia.
-> **Langkah:** petugas admisi membuka admisi Tn. Budi, memesan tempat tidur, menempatkan; kepala
-> ruangan menugaskan perawat; DPJP menyatakan boleh pulang; DPJP menandatangani resume; petugas
-> menandai tiga butir administrasi; kasir menandai lunas; petugas menutup episode.
-> **Hasil yang diharapkan:** episode `Closed`, `BD-RSMMC-00042` kembali tersedia, riwayat status
-> memuat empat baris berurutan, resume tersimpan tertandatangani.
+> **`UAT-01` — Satu pasien dari masuk sampai pulang** (`EPIC RI-21` s.d. `RI-28`, `EPIC RI-35`)
+> **Kondisi awal:** master kamar dan tempat tidur terisi; `BD-RSMMC-00042` tersedia; kebijakan finansial menyatakan deposit awal Rp5.000.000 diperlukan.
+> **Langkah:** petugas admisi membuka admisi Tn. Budi; kasir menerima deposit Rp5.000.000; petugas memesan tempat tidur dan menempatkan; kepala ruangan menugaskan perawat; selama perawatan kasir menerima top-up Rp3.000.000; DPJP menyatakan boleh pulang dan menandatangani resume; petugas menandai tiga butir administrasi; Billing menjalankan final settlement, menyelesaikan kekurangan/refund bila ada; kasir meminta `FinancialClearance = Cleared`; petugas menutup episode.
+> **Hasil yang diharapkan:** episode `Closed`, `BD-RSMMC-00042` kembali tersedia, dua transaksi deposit dan dua kwitansi tetap terbaca, settlement berstatus selesai, tidak ada saldo finansial yang menggantung, riwayat status memuat empat baris berurutan, resume tersimpan tertandatangani.
 
 > **`UAT-02` — Dua petugas merebut tempat tidur yang sama** (`EPIC RI-23`)
 > **Kondisi awal:** `BD-RSMMC-00042` tersedia.
@@ -937,11 +1146,9 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 > **Langkah:** dokter yang bukan DPJP aktif menandatangani resume.
 > **Hasil yang diharapkan:** ditolak dengan pesan yang menyebut alasannya.
 
-> **`UAT-11` — Menutup episode yang syaratnya belum lengkap** (`EPIC RI-28`, gagal)
-> **Langkah:** petugas admisi menutup episode pukul 10:00, sementara resume belum ditandatangani
-> dan kasir belum menandai lunas.
-> **Hasil yang diharapkan:** ditolak, dan layar menampilkan **kelima syarat** beserta tanda sudah
-> atau belum, bukan satu kalimat umum.
+> **`UAT-11` — Menutup episode yang syaratnya belum lengkap** (`EPIC RI-28`, `EPIC RI-35`, gagal)
+> **Langkah:** petugas admisi menutup episode pukul 10:00, sementara resume belum ditandatangani dan settlement finansial masih mempunyai kekurangan pembayaran.
+> **Hasil yang diharapkan:** ditolak, dan layar menampilkan **kelima syarat** beserta tanda sudah atau belum. Syarat finansial menjelaskan bahwa settlement belum selesai, bukan sekadar satu kalimat umum.
 
 > **`UAT-12` — Supervisor menutup menembus gerbang keuangan** (`EPIC RI-28`)
 > **Langkah:** kasir tidak di tempat, pasien harus segera pulang. Supervisor menutup disertai alasan.
@@ -1063,6 +1270,59 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 > muncul pada daftar pantau di antara pukul 14:00 dan 15:20, lalu hilang dari sana setelah
 > dipindahkan. Perpindahan itu sendiri lolos karena tempat tidur tujuannya isolasi.
 
+> **`UAT-34` — Deposit awal menghasilkan transaksi dan kwitansi unik** (`EPIC RI-35`)
+> **Kondisi awal:** episode Tn. Budi `Draft`; Billing menyatakan deposit Rp5.000.000 diperlukan.
+> **Langkah:** kasir menerima pembayaran Rp5.000.000.
+> **Hasil yang diharapkan:** satu transaksi penerimaan terbentuk, terikat pada `EpisodeId`, mempunyai nomor kwitansi unik, dan ringkasan episode menunjukkan total diterima Rp5.000.000.
+
+> **`UAT-35` — Top-up tidak menimpa deposit lama** (`EPIC RI-35`)
+> **Kondisi awal:** sudah ada deposit Rp5.000.000.
+> **Langkah:** kasir menerima top-up Rp3.000.000 lalu membuka histori.
+> **Hasil yang diharapkan:** dua transaksi dan dua kwitansi tetap ada; total diterima Rp8.000.000. Tidak ada update nominal pada transaksi pertama.
+
+> **`UAT-36` — Retry pembayaran tidak membuat deposit ganda** (`EPIC RI-35`, gagal aman)
+> **Langkah:** request penerimaan Rp2.000.000 dikirim dua kali memakai `idempotencyKey` yang sama karena response pertama timeout.
+> **Hasil yang diharapkan:** hanya satu transaksi Rp2.000.000 dan satu kwitansi yang tersimpan; response retry menunjuk transaksi yang sama.
+
+> **`UAT-37` — Deposit kurang dari tagihan final** (`EPIC RI-35`)
+> **Kondisi awal:** deposit tersedia Rp10.000.000; final bill Rp12.000.000.
+> **Langkah:** Billing menjalankan settlement, lalu keluarga membayar kekurangan Rp2.000.000.
+> **Hasil yang diharapkan:** sebelum pembayaran, clearance ditolak dan kekurangan Rp2.000.000 terlihat. Setelah pembayaran, settlement selesai dan `FinancialClearance` dapat menjadi `Cleared`.
+
+> **`UAT-38` — Deposit lebih besar dari tagihan final** (`EPIC RI-35`)
+> **Kondisi awal:** deposit tersedia Rp10.000.000; final bill Rp7.500.000.
+> **Langkah:** Billing menjalankan settlement lalu mencatat refund Rp2.500.000.
+> **Hasil yang diharapkan:** sebelum refund diselesaikan, `Cleared` ditolak. Setelah transaksi refund tercatat sesuai kebijakan Billing, settlement selesai; seluruh transaksi deposit awal tetap terbaca.
+
+> **`UAT-39` — Kasir mencoba clearance dengan settlement belum selesai** (`EPIC RI-28`, `EPIC RI-35`, gagal)
+> **Langkah:** kasir meminta `Cleared` saat masih ada outstanding top-up/kekurangan atau refund pending.
+> **Hasil yang diharapkan:** ditolak 422 dengan rincian alasan finansial yang dapat ditindaklanjuti.
+
+> **`UAT-40` — Pembatalan admisi setelah deposit tidak menghapus uang** (`EPIC RI-21`, `EPIC RI-35`)
+> **Kondisi awal:** episode `Draft`, deposit Rp5.000.000 sudah diterima.
+> **Langkah:** supervisor membatalkan admisi dan Billing menjalankan refund/reversal.
+> **Hasil yang diharapkan:** episode `Cancelled`; transaksi penerimaan dan kwitansi awal tetap ada; transaksi refund/reversal tercatat terpisah; saldo episode selesai. Bila refund/reversal gagal, pembatalan normal tidak berpura-pura menyelesaikan uang dan exception tetap terlihat.
+
+> **`UAT-41` — Langkah Deposit muncul pada urutan yang benar dan minimumnya dari kebijakan** (`EPIC RI-35`)
+> **Kondisi awal:** kebijakan deposit untuk pasien umum kelas VIP bernilai minimum Rp100.000.000.
+> **Langkah:** petugas memilih pasien lama, tipe pasien, lalu kategori pembayaran tunai dan kelas VIP, kemudian menekan lanjut.
+> **Hasil yang diharapkan:** layar berikutnya adalah langkah Deposit, bukan langkah Dokter. Minimum yang tampil Rp100.000.000 dan berasal dari response kebijakan, bukan dari angka yang ditulis di layar. Untuk penjamin yang tidak mensyaratkan deposit, langkah ini dilewati tanpa transaksi Rp0.
+
+> **`UAT-42` — Deposit di bawah minimum tetap melanjutkan admisi** (`EPIC RI-35`)
+> **Kondisi awal:** minimum kebijakan Rp100.000.000.
+> **Langkah:** petugas memasukkan Rp40.000.000 lalu menekan lanjut.
+> **Hasil yang diharapkan:** peringatan selisih Rp60.000.000 tampil, tombol lanjut **tidak** terkunci, dan setelah episode terbentuk ringkasan deposit episode menunjukkan kekurangan Rp60.000.000.
+
+> **`UAT-43` — Episode gagal dibuat berarti tidak ada uang tercatat** (`EPIC RI-35`, gagal aman)
+> **Kondisi awal:** petugas mengisi deposit Rp5.000.000; kunjungan yang dipakai ternyata sudah punya episode.
+> **Langkah:** petugas menekan lanjut pada langkah Dokter dan `POST /episodes` ditolak 409.
+> **Hasil yang diharapkan:** tidak ada transaksi penerimaan dan tidak ada kwitansi terbit. Nominal deposit tetap terisi di layar, dan percobaan ulang setelah kunjungan diperbaiki hanya menghasilkan satu transaksi.
+
+> **`UAT-44` — Penagihan pelunasan berkala pada perawatan panjang** (`EPIC RI-35`)
+> **Kondisi awal:** kekurangan deposit Rp60.000.000; ambang tindak lanjut tiga hari.
+> **Langkah:** episode berjalan sembilan hari tanpa top-up, lalu keluarga membayar Rp60.000.000 pada hari kesembilan.
+> **Hasil yang diharapkan:** episode muncul pada daftar pantau kekurangan deposit di hari ketiga, keenam, dan kesembilan; setelah pembayaran ia hilang dari daftar tanpa mengubah transaksi deposit sebelumnya. Episode yang selesai pada hari kedua tidak pernah muncul di daftar itu.
+
 > **`UAT-23` — Membatalkan admisi setelah pasien dirawat** (`EPIC RI-21`, gagal)
 > **Langkah:** petugas admisi membatalkan episode berstatus Sedang dirawat.
 > **Hasil yang diharapkan:** ditolak. Hanya supervisor atau kepala ruangan yang boleh.
@@ -1103,6 +1363,18 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 | Kapasitas isolasi terjaga dari dua arah | `UAT-31` |
 | Catatan awal admisi dapat dibedakan dari keputusan klinis DPJP | `UAT-32` |
 | Pencatatan klinis tidak pernah ditahan demi aturan penempatan | `UAT-33` |
+| Deposit awal dan top-up tersimpan sebagai transaksi terpisah dengan kwitansi unik | `UAT-34`, `UAT-35` |
+| Retry transaksi finansial tidak menghasilkan deposit ganda | `UAT-36` |
+| Kekurangan setelah alokasi deposit wajib diselesaikan sebelum clearance normal | `UAT-37`, `UAT-39` |
+| Kelebihan deposit menghasilkan refund/penyelesaian yang eksplisit | `UAT-38` |
+| Pembatalan admisi tidak pernah menghapus histori penerimaan deposit | `UAT-40` |
+| Langkah Deposit berdiri di antara langkah Pembayaran dan langkah Dokter | `UAT-41` |
+| Minimum deposit dibaca dari kebijakan penjamin dan kelas, bukan angka tetap di layar | `UAT-41` |
+| Deposit di bawah minimum tidak pernah menghentikan admisi | `UAT-42` |
+| Gagalnya pembuatan episode tidak meninggalkan transaksi deposit menggantung | `UAT-43` |
+| Kekurangan deposit tertagih berkala pada perawatan yang melewati ambang hari | `UAT-44` |
+| Tidak ada controller deposit kedua; yang dipakai adalah rute `patient-funds` yang diperluas | Review arsitektur `EPIC RI-35`, bagian 13 |
+| Tidak ada entity/ledger deposit baru di `InPatientManagement`; ledger tetap milik Billing/Kasir | Review arsitektur `EPIC RI-35`, bagian 12 dan 15 |
 | Aturan penempatan berlaku sama pada perpindahan | `UAT-29` dijalankan ulang lewat perpindahan; `RWI-AC-133` |
 | Seluruh tabel master MVP sudah terisi | Rencana data master awal pada `02-backend-architecture.md` bagian 8 |
 | Setiap task yang menyentuh modul lain membawa test regresi | `RWI-AC-114`, `testing/acceptance-test-matrix.md` bagian 12 |
@@ -1118,9 +1390,9 @@ Ditulis sebagai gelombang, bukan tanggal. Penjadwalan tetap wewenang manusia.
 | Gelombang | Epic yang tercakup | Syarat mulai |
 | --- | --- | --- |
 | `MVP-0` | `EPIC RI-21` fondasi, `EPIC RI-31` pengaturan, `EPIC RI-32` perbaikan tempat tidur | Blueprint disetujui; persetujuan pemilik Master Data untuk `RI-32` |
-| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan beserta aturan satu pasien satu episode, `EPIC RI-24` census, **`EPIC RI-34` kelayakan penempatan** | `MVP-0` selesai; master kamar dan tempat tidur terisi **beserta penanda jenis kelamin, isolasi, dan boks bayi yang benar** |
+| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan beserta aturan satu pasien satu episode, `EPIC RI-24` census, **`EPIC RI-34` kelayakan penempatan**, **`EPIC RI-35a` langkah Deposit pada admisi** | `MVP-0` selesai; master kamar dan tempat tidur terisi **beserta penanda jenis kelamin, isolasi, dan boks bayi yang benar**; kebijakan deposit per penjamin dan kelas terisi; `EpisodeId` sudah ada pada akun deposit Billing |
 | `MVP-2` | `EPIC RI-25` penanggung jawab, `EPIC RI-26` perpindahan | `MVP-1` selesai |
-| `MVP-3` | `EPIC RI-27` pulang, resume, dan versi resume; `EPIC RI-28` penutupan dan pencatatan kepergian fisik | `MVP-2` selesai |
+| `MVP-3` | `EPIC RI-27` pulang, resume, dan versi resume; `EPIC RI-28` penutupan dan pencatatan kepergian fisik; **`EPIC RI-35b` settlement, refund, dan gerbang clearance finansial** | `MVP-2` selesai; contract minimum Billing/Kasir untuk final settlement sudah disinkronkan |
 | `MVP-4` | `EPIC RI-29` riwayat dan daftar pantau, `EPIC RI-30` sesi koreksi, `EPIC RI-33` bayi beserta penanda rawat gabung | `MVP-3` selesai |
 | `POST-MVP` | Seluruh kemampuan yang ditunda pada bagian 8 | Di luar cakupan rilis pertama; masing-masing menunggu Decision ID-nya |
 
@@ -1137,11 +1409,14 @@ dan penempatan yang sudah telanjur ada tidak dapat ditolak surut. Konsekuensinya
 Tidak ada satu pun epic berstatus `OPEN DECISION` yang masuk gelombang mana pun. Sembilan
 kemampuan yang ditunda pada bagian 8 seluruhnya berada di `POST-MVP`.
 
+**`EPIC RI-35` dipecah dua sejak `0.6.0`.** `RI-35a` — langkah Deposit pada admisi, kebijakan minimum, peringatan kekurangan, pengikatan `EpisodeId`, ringkasan episode, dan daftar pantau kekurangan — pindah ke `MVP-1`, karena layar admisi operasional sudah memilikinya; menundanya berarti gelombang pertama menghasilkan episode yang nominal depositnya hilang dari sistem. `RI-35b` — final settlement, refund, dan validasi `FinancialClearance` — tetap di `MVP-3` bersama discharge dan closure, karena ia bergantung pada tagihan final. Rilis MVP end-to-end tetap **tidak boleh dinyatakan selesai** sebelum `UAT-34` s.d. `UAT-44` lulus seluruhnya.
+
 ### 20.2 Pertanyaan terbuka sebelum development lock
 
 **Empat pertanyaan yang memblokir seluruhnya tertutup pada 2026-08-21.** Daftar di bawah
 mempertahankan barisnya beserta jawabannya, bukan menghapusnya, supaya pembaca berikutnya tahu
-kenapa keputusannya berbunyi demikian.
+kenapa keputusannya berbunyi demikian. **Satu pertanyaan memblokir yang baru terbuka pada
+2026-09-08** menyusul di baris terakhir, dan ia hanya menahan `EPIC RI-35a`.
 
 | Pertanyaan | Siapa yang menjawab | Status | Memblokir |
 | --- | --- | --- | :---: |
@@ -1154,6 +1429,7 @@ kenapa keputusannya berbunyi demikian.
 | Apakah satu pasien boleh punya dua episode aktif sekaligus? | Pemilik proses | **Tertutup** `RWI-DEC-054` — tidak, dijaga unique index parsial | Tidak |
 | Apakah resume pulang perlu riwayat versi? | Pemilik klinis | **Tertutup** `RWI-DEC-057` — ya, versi sebelumnya tersalin saat koreksi | Tidak |
 | Apakah bayi dan ibunya perlu penanda rawat gabung? | Pemilik proses | **Tertutup** `RWI-DEC-056` — ya, kolom opsional rujukan episode ibu | Tidak |
+| Siapa yang berwenang menerbitkan penerimaan deposit pada langkah admisi — petugas admisi sendiri, atau langkah itu hanya mencatat nominal sementara kwitansi diterbitkan kasir? | Pemilik keuangan | **Terbuka** sejak 2026-09-08. Layar admisi dipegang petugas admisi, sedangkan penerimaan uang selama ini milik kasir. Jawabannya menentukan siapa pemegang `BillingDeposit : Create` pada bagian 14 | Ya, untuk `EPIC RI-35a` |
 
 ### 20.3 Yang masih menahan, dan bentuknya bukan pertanyaan
 
@@ -1162,7 +1438,10 @@ kenapa keputusannya berbunyi demikian.
 | Master kamar dan tempat tidur terisi **dan penandanya benar** | Pekerjaan data, bukan keputusan | `MVP-1`, termasuk `EPIC RI-34`. Penanda jenis kelamin, isolasi, dan boks bayi yang salah setel akan menolak penempatan yang sah, atau lebih buruk, meloloskan yang tidak sah |
 | Test regresi jalur lama untuk modul yang disentuh | Pekerjaan uji | `EPIC RI-32` dan seluruh task yang menyentuh modul lain — `NFR-008` |
 | Perbaikan pemanggilan tombol tempat tidur di frontend | Pekerjaan perbaikan | `EPIC RI-32` |
+| Sinkronisasi keputusan scope deposit 2026-09-03 **dan arahan operasional 2026-09-08 (`OPS-2026-09-08/A` s.d. `/D`)** ke `00-interview-decisions.md`, beserta kenaikan kontrak API/validation/permission Billing ke `0.6.0` | Pekerjaan dokumentasi dan contract lock, **bukan pertanyaan bisnis baru** | `EPIC RI-35` sebelum development lock |
 | Masa simpan data, interoperabilitas nasional, persetujuan pasien | Keputusan hukum dan klinis | Melayani pasien sungguhan, bukan pengerjaan MVP — bagian 16 |
 
 Sesuai kontrak, dokumen ini tetap berstatus `draft` sampai ada approval manusia. Yang berubah pada
-`0.3.0`: **tidak ada lagi pertanyaan memblokir yang menahan `/plan-module-delivery`.**
+`0.3.0`: **tidak ada lagi pertanyaan memblokir yang menahan `/plan-module-delivery`.** Yang berubah
+pada `0.6.0`: keadaan itu tetap berlaku untuk seluruh epic **kecuali `EPIC RI-35a`**, yang menunggu
+jawaban kewenangan penerbitan kwitansi pada tabel 20.2.

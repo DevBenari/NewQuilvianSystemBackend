@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
@@ -56,6 +58,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.MedicationHistory)
                 .HasMaxLength(1000);
+
+            // Isian medis kajian DPJP — BE-RWI-045. Ketiganya nullable agar baris pengkajian
+            // keperawatan yang sudah ada tidak perlu diisi apa pun.
+            entity.Property(x => x.PhysicalExamination)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.TherapyPlan)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.WorkingDiagnosis)
+                .HasMaxLength(500);
 
             entity.Property(x => x.BloodPressureSystolic)
                 .IsRequired(false);
@@ -393,6 +406,79 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.AssessmentByUserId);
             entity.HasIndex(x => x.CompletedByUserId);
             entity.HasIndex(x => x.CancelledByUserId);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan dan jenis pengkajian
+            // =========================================================================
+            // Kedua kolom ini dipakai bersama sub-modul keperawatan lewat INT-DOK-09. Dibuat
+            // sekali di sini karena saat task ini dikerjakan keduanya memang belum ada.
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            entity.Property(x => x.AssessmentType)
+                .HasConversion<int>()
+                .HasDefaultValue(PatientAssessmentType.Initial)
+                .IsRequired();
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.InpEpisodeId);
+
+            // Menemukan kajian satu perawatan menurut jenisnya tanpa memindai seluruh tabel.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.AssessmentType
+            });
+
+            // =========================================================================
+            // BE-RWI-054 - tenggat pengkajian dan kebijakan yang dipakai menghitungnya
+            // =========================================================================
+            // Keduanya nullable, sehingga seluruh baris lama milik poliklinik, IGD, dan
+            // medical check-up tidak perlu disentuh sama sekali. Kolom yang kosong berarti
+            // "belum dipantau", bukan "terlambat" - VAL-KEP-17.
+            //
+            // PolicyId sengaja BELUM punya relasi di sini: tabel tujuannya,
+            // MstClinicalAssessmentPolicy, baru lahir pada BE-RWI-055. Relasinya dipasang di
+            // sana bersama tabelnya, supaya setiap migration tetap utuh berdiri sendiri.
+            entity.Property(x => x.DueAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.PolicyId)
+                .IsRequired(false);
+
+            // BE-RWI-055. Relasi ke master kebijakan dipasang sesudah tabelnya lahir.
+            // DeleteBehavior.Restrict: kebijakan yang sudah dipakai menilai pengkajian tidak
+            // boleh lenyap, karena pengkajiannya menyimpan penunjuk ini sebagai bukti menurut
+            // aturan mana ia dinilai.
+            entity.HasOne<MstClinicalAssessmentPolicy>()
+                .WithMany()
+                .HasForeignKey(x => x.PolicyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.PolicyId);
+
+            // =========================================================================
+            // BE-RWI-056 - index parsial pengkajian awal yang masih hidup
+            // =========================================================================
+            // SENGAJA NON-UNIQUE. Revision 1 roadmap sempat meminta unique index;
+            // 02-backend-architecture.md 0.3 bagian 4.1 mencabutnya, dan alasannya kejadian
+            // nyata: pengkajian awal yang salah dibatalkan lalu diulang. Unique index ikut
+            // menghitung baris yang dibatalkan, sehingga perawatan itu tidak akan pernah bisa
+            // punya pengkajian awal lagi.
+            //
+            // Aturan "satu pengkajian awal aktif per perawatan" karena itu dijaga di tingkat
+            // service; index ini hanya mempercepat pencariannya.
+            //
+            // Penyaringnya menyebut AssessmentType = 0, yaitu PatientAssessmentType.Initial.
+            entity.HasIndex(
+                    x => new { x.InpEpisodeId, x.AssessmentType },
+                    "IX_TrxPatientAssessment_Episode_Type_Active")
+                .HasFilter("\"AssessmentType\" = 0 AND \"IsDelete\" = false");
         }
     }
 }

@@ -30,6 +30,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public Guid? ClinicId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi tindakan ini. Boleh kosong — <c>INV-DOK-01</c>.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Tautan <b>opsional</b> ke kejadian visite dokter pada <c>CliPhysicianVisit</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>. Perilaku hapusnya <c>SetNull</c> dengan alasan yang sama seperti
+        /// pada catatan dokter: kejadian visite yang dibatalkan tidak menyeret catatan tindakan.
+        /// </remarks>
+        public Guid? PhysicianVisitId { get; set; }
+
+        /// <summary>
+        /// Kunci permintaan. Percobaan ulang dengan kunci yang sama tidak melahirkan tindakan
+        /// maupun tagihan ganda — <c>AC-CAP024-02</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dijaga unique parsial di database, bukan hanya oleh service: dua permintaan yang tiba
+        /// bersamaan tidak dapat dicegah oleh pemeriksaan di dalam aplikasi saja.
+        /// </remarks>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+
         [Required]
         public Guid ProcedureId { get; set; }
 

@@ -119,6 +119,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public bool IsReferralVerified { get; set; } = false;
 
+        /// <summary>
+        /// Instansi yang merujuk pasien ini (<c>LAB-DEC-035</c>, <c>BE-EXT-03</c>).
+        ///
+        /// <b>Penunjuk, bukan teks bebas.</b> Sebelum ini asal rujukan hanya hidup sebagai
+        /// nomor surat dan penanda <see cref="IsReferral"/>, sehingga satu klinik yang sama
+        /// dapat tercatat dengan lima ejaan berbeda dan laporan asal rujukan tidak pernah dapat
+        /// dipercaya.
+        ///
+        /// Boleh kosong: kunjungan yang bukan rujukan memang tidak punya perujuk, dan kunjungan
+        /// lama tidak pernah menyimpannya.
+        /// </summary>
+        public Guid? ReferralInstitutionId { get; set; }
+
+        /// <summary>
+        /// Dokter yang merujuk pasien ini — dokter <b>di luar</b> rumah sakit ini, bukan dokter
+        /// pada data induk internal (<c>LAB-DEC-035</c>).
+        /// </summary>
+        public Guid? ReferralDoctorId { get; set; }
+
         // =========================
         // REGISTRATION FLAGS
         // =========================
@@ -169,6 +188,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public bool IsActive { get; set; } = true;
 
         // =========================
+        // INTEGRATION IDEMPOTENCY
+        // =========================
+
+        /// <summary>
+        /// Kunci idempotensi pendaftaran yang ditetapkan modul pemanggil (<c>INT-05</c>,
+        /// <c>LAB-DEC-032</c>, <c>BE-LAB-08</c>).
+        ///
+        /// <b>Kenapa kuncinya disimpan pada kunjungan, bukan pada tabel tersendiri.</b> Yang
+        /// perlu dikenali ketika permintaan yang sama datang dua kali adalah kunjungan mana
+        /// yang sudah terbentuk. Menyimpannya di sini membuat pengenalan itu menjadi satu
+        /// pembacaan index, dan membuat unique index database sendiri yang menolak kunjungan
+        /// kedua ketika dua permintaan tiba bersamaan — bukan kode aplikasi yang harus
+        /// memenangkan balapan.
+        ///
+        /// Boleh kosong, dan sebagian besar baris memang kosong: pendaftaran loket dan kiosk
+        /// tidak memakai kunci ini, begitu pula seluruh kunjungan lama.
+        /// </summary>
+        [MaxLength(100)]
+        public string? RegistrationIdempotencyKey { get; set; }
+
+        // =========================
         // NAVIGATION
         // =========================
 
@@ -179,6 +219,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public MstClinic? Clinic { get; set; }
 
         public MstRoom? Room { get; set; }
+
+        public MstReferralInstitution? ReferralInstitution { get; set; }
+
+        public MstReferralDoctor? ReferralDoctor { get; set; }
 
         public MstDoctor? Doctor { get; set; }
 

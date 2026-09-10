@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -112,6 +113,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// sendiri — dan pesanan pasien lain ikut terkirim ke browsernya. Itu keadaan yang
         /// sebelumnya benar-benar terjadi pada layar IGD (<c>IGD-DEC-105</c>).
         /// </summary>
+        /// <remarks>
+        /// <c>BE-LAB-18</c> dan <c>BE-RWI-042</c> bertemu di jalur yang sama. Penyaring
+        /// kunjungan yang semula berdiri sendiri sebagai parameter lepas kini menjadi ruas
+        /// <c>EncounterId</c> pada <see cref="LabOrderPagedQuery"/>, sehingga hanya ada satu
+        /// daftar pesanan yang perlu dirawat — bukan dua yang perlahan berbeda isi.
+        /// </remarks>
         public async Task<PagedResult<LabOrderListResponse>> GetListAsync(
             LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
@@ -154,7 +161,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // yang mengirim kolom yang sudah tidak ada tetap memperoleh daftar yang masuk akal.
             var menaik = string.Equals(query.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
 
-            source = query.SortBy?.Trim().ToLowerInvariant() switch
+            var terurut = query.SortBy?.Trim().ToLowerInvariant() switch
             {
                 "orderstatus" => menaik
                     ? source.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime)
@@ -164,24 +171,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     : source.OrderByDescending(x => x.CreateDateTime)
             };
 
-            var items = await source
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new LabOrderListResponse
-                {
-                    Id = x.Id,
-                    EncounterId = x.EncounterId,
-                    ProcedureId = x.ProcedureId,
-                    ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
-                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
-                    OrderStatus = x.OrderStatus.ToString(),
-                    SpecimenCount = x.Specimens.Count(s => !s.IsDelete),
-                    AcceptedSpecimenCount = x.Specimens.Count(s =>
-                        !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
-                    IsCancel = x.IsCancel,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .ToListAsync(cancellationToken);
+            // Proyeksinya dipinjam dari jalur per-perawatan supaya penanda hasil final ikut
+            // terisi di sini juga. Daftar berpagination yang mengirim IsResultFinal selalu
+            // false akan menyatakan setiap hasil belum final - keliru ke arah yang berlawanan,
+            // tetapi tetap keliru.
+            var items = await ProyeksikanDaftarAsync(
+                terurut.Skip((pageNumber - 1) * pageSize).Take(pageSize),
+                cancellationToken);
 
             return new PagedResult<LabOrderListResponse>
             {
@@ -191,6 +187,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
+        }
+
+        /// <summary>
+        /// Pesanan laboratorium beserta ketersediaan hasilnya untuk satu perawatan rawat inap.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-052</c>, <c>INV-DOK-12</c>, <c>RUL-DOK-02</c>. Penyaringnya adalah penanda
+        /// perawatan, bukan pasien. Pasien yang dirawat dua kali dalam sebulan memiliki dua
+        /// rangkaian pesanan yang berbeda, dan menyaring per pasien akan menampilkan hasil
+        /// perawatan lama pada layar perawatan yang sedang berjalan.
+        /// </para>
+        /// <para>
+        /// <b>Nol tabel salinan.</b> Yang dibaca adalah baris pesanan milik Laboratorium apa
+        /// adanya. Rawat Inap tidak menyimpan satu baris hasil pun; menyalinnya berarti
+        /// menampilkan hasil yang sudah basi ketika Laboratorium merevisinya.
+        /// </para>
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang pesanannya dibaca.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<List<LabOrderListResponse>> GetByEpisodeAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.InpEpisodeId == episodeId);
+
+            return await ProyeksikanDaftarAsync(
+                query.OrderBy(x => x.CreateDateTime), cancellationToken);
+        }
+
+        /// <summary>
+        /// Memproyeksikan pesanan menjadi baris daftar beserta penanda ketersediaan hasilnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>VAL-DOK-30</c>. Hasil dinyatakan final hanya ketika pesanannya benar-benar selesai
+        /// dan tidak dibatalkan. Selain itu, barisnya ditandai belum final beserta kalimat yang
+        /// siap ditampilkan apa adanya - dokter harus melihat perbedaannya tanpa perlu
+        /// menerjemahkan nama status.
+        ///
+        /// Dipakai bersama oleh daftar berpagination dan daftar per perawatan, supaya penanda
+        /// keselamatan ini tidak dapat hilang hanya karena barisnya dibaca lewat jalur lain.
+        /// </remarks>
+        private static async Task<List<LabOrderListResponse>> ProyeksikanDaftarAsync(
+            IQueryable<LabOrder> query,
+            CancellationToken cancellationToken)
+        {
+            var baris = await query
+                .Select(x => new
+                {
+                    x.Id,
+                    x.EncounterId,
+                    x.InpEpisodeId,
+                    x.ProcedureId,
+                    ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
+                    x.OrderStatus,
+                    SpecimenCount = x.Specimens.Count(s => !s.IsDelete),
+                    AcceptedSpecimenCount = x.Specimens.Count(s =>
+                        !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
+                    x.IsCancel,
+                    x.CreateDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return baris.Select(x =>
+            {
+                var final = x.OrderStatus == LabOrderStatus.Completed && !x.IsCancel;
+
+                return new LabOrderListResponse
+                {
+                    Id = x.Id,
+                    EncounterId = x.EncounterId,
+                    InpEpisodeId = x.InpEpisodeId,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    OrderStatus = x.OrderStatus.ToString(),
+                    SpecimenCount = x.SpecimenCount,
+                    AcceptedSpecimenCount = x.AcceptedSpecimenCount,
+                    IsCancel = x.IsCancel,
+                    IsResultFinal = final,
+                    ResultAvailabilityNote = x.IsCancel
+                        ? "Pesanan dibatalkan; tidak ada hasil."
+                        : final
+                            ? "Hasil sudah final."
+                            : "Hasil belum final. Jangan dipakai sebagai dasar keputusan klinis.",
+                    CreateDateTime = x.CreateDateTime
+                };
+            }).ToList();
         }
 
         public async Task<LabOrderDetailResponse?> GetDetailAsync(
@@ -215,6 +302,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     CreateDateTime = x.CreateDateTime,
                     Discipline = x.Discipline != null ? x.Discipline.ToString() : null,
                     RequestedAt = x.RequestedAt,
+                    RequestedByUserId = x.RequestedByUserId,
+                    RequestedByName = x.RequestedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.RequestedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
                     CompletedAt = x.CompletedAt,
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
                     Version = x.Version,
@@ -246,6 +340,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (!encounterExists)
                 throw new KeyNotFoundException("Encounter tidak ditemukan.");
 
+            // BE-RWI-052 kriteria 1, VAL-DOK-22. Penanda perawatan boleh kosong - pesanan
+            // poliklinik dan IGD memang tidak punya perawatan rawat inap. Yang dijaga adalah
+            // KECOCOKANNYA ketika penandanya dikirim: pesanan perawatan A tidak boleh diproses
+            // sebagai milik perawatan B.
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var episodeCocok = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.InpEpisodeId.Value
+                                   && x.EncounterId == request.EncounterId
+                                   && !x.IsDelete,
+                              cancellationToken);
+
+                if (!episodeCocok)
+                    throw new ArgumentException("Pesanan ini tidak cocok dengan perawatan pasien.");
+            }
+
             var procedure = await _dbContext.Set<MstProcedure>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
@@ -267,6 +378,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var entity = new LabOrder
             {
                 EncounterId = request.EncounterId,
+                // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir, sehingga
+                // pembacaan per perawatan menjadi pemeriksaan satu kolom.
+                InpEpisodeId = request.InpEpisodeId,
                 ProcedureId = request.ProcedureId,
                 // Disiplin hanya boleh ditetapkan di sini. Setelah baris ini tersimpan, EF
                 // menolak setiap upaya mengubahnya (INV-21).
@@ -307,7 +421,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     ActorUserId = actorUserId
                 });
 
-            return MapDetailResponse(entity, procedure);
+            return MapDetailResponse(entity, procedure, await ResolveUserNameAsync(entity.RequestedByUserId, cancellationToken));
         }
 
         /// <summary>
@@ -519,8 +633,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 MilestoneFactId = emission.MilestoneFactId,
                 MilestoneFactVersion = emission.MilestoneFactVersion,
                 Code = emission.Code,
-                Message = emission.Message
+                Message = emission.Message,
+                MilestoneFactIds = emission.MilestoneFactId.HasValue
+                    ? new List<Guid> { emission.MilestoneFactId.Value }
+                    : new List<Guid>()
             };
+
+        /// <summary>
+        /// Bentuk jawaban untuk keputusan yang menerbitkan fakta <b>per pemeriksaan</b>
+        /// (<c>FR-05.1</c>).
+        ///
+        /// <c>MilestoneFactId</c> tetap diisi identitas fakta pertama supaya pemanggil lama
+        /// tidak putus, sementara <c>MilestoneFactIds</c> membawa seluruhnya. Satu wadah berisi
+        /// tiga pemeriksaan menerbitkan tiga fakta, dan satu ruas tidak dapat mewakili
+        /// ketiganya.
+        /// </summary>
+        public static LabBillingHandoffResponse MapHandoff(LabFactEmission emission)
+        {
+            var response = MapHandoff(emission.Perwakilan);
+
+            response.MilestoneFactIds = emission.FactIds.ToList();
+            response.MilestoneFactCount = emission.Count;
+
+            return response;
+        }
 
         private async Task<LabOrderDetailResponse> MoveOrderStatusAsync(
             Guid id,
@@ -612,7 +748,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
         }
 
-        private static LabOrderDetailResponse MapDetailResponse(LabOrder entity, MstProcedure? procedure)
+        /// <summary>
+        /// Nama pengguna untuk ditampilkan. Sumbernya sama dengan yang dipakai Master Data,
+        /// sehingga satu orang tidak terbaca dengan dua nama berbeda antar layar.
+        /// </summary>
+        private async Task<string?> ResolveUserNameAsync(
+            Guid? userId,
+            CancellationToken cancellationToken = default)
+        {
+            if (userId == null || userId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == userId.Value)
+                .Select(x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static LabOrderDetailResponse MapDetailResponse(
+            LabOrder entity,
+            MstProcedure? procedure,
+            string? requestedByName = null)
         {
             return new LabOrderDetailResponse
             {
@@ -628,6 +787,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 CreateDateTime = entity.CreateDateTime,
                 Discipline = entity.Discipline?.ToString(),
                 RequestedAt = entity.RequestedAt,
+                RequestedByUserId = entity.RequestedByUserId,
+                RequestedByName = requestedByName,
                 CompletedAt = entity.CompletedAt,
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),
                 Version = entity.Version,

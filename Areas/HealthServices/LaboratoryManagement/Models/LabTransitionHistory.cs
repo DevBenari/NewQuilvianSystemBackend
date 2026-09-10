@@ -21,6 +21,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public Guid? LabSpecimenId { get; set; }
 
+        /// <summary>
+        /// Terisi bila yang berpindah adalah satu pemeriksaan terpesan (<c>LAB-DEC-026</c>).
+        ///
+        /// Kosong pada baris berlingkup pesanan maupun wadah. Ketiga penunjuk itu tidak saling
+        /// menggantikan: satu baris riwayat menyebut pesanannya selalu, wadahnya bila memang
+        /// wadah yang berpindah, dan pemeriksaannya bila memang pemeriksaan yang berpindah.
+        /// </summary>
+        public Guid? LabExaminationId { get; set; }
+
         [Required]
         public Guid EncounterId { get; set; }
 
@@ -54,5 +63,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         public LabOrder? LabOrder { get; set; }
 
         public LabSpecimen? LabSpecimen { get; set; }
+
+        public LabExamination? LabExamination { get; set; }
     }
 }

@@ -20,15 +20,18 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingInvoiceService _service;
     private readonly BillingCalculationService _calculationService;
     private readonly BillingDiscountService _discountService;
+    private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
         BillingCalculationService calculationService,
-        BillingDiscountService discountService)
+        BillingDiscountService discountService,
+        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService)
     {
         _service = service;
         _calculationService = calculationService;
         _discountService = discountService;
+        _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
     }
 
     [HttpGet]
@@ -39,6 +42,21 @@ public sealed class BillingInvoicesController : ControllerBase
     {
         var result = await _service.GetPagedAsync(request, cancellationToken);
         return Ok(ApiResponse<PagedResult<InvoiceSummaryResponse>>.Ok(result, "Invoice Billing berhasil diambil."));
+    }
+
+    // Ad-hoc, di luar roadmap, permintaan langsung pengguna: halaman "Riwayat Pembayaran" lintas
+    // invoice/pasien - beda dari Get() di atas (Running Invoice) yang tidak membawa info
+    // penjamin/pembayaran. Hak akses dipakai ulang (BillingInvoice:Read) - murni view baca lain
+    // atas data invoice yang sama, tidak ada kewenangan baru.
+    [HttpGet("payment-history")]
+    [AccessAction("Read", "Read Billing Payment History", AccessType = AccessTypes.Read, SortOrder = 16)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PaymentHistoryItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentHistory(
+        [FromQuery] PaymentHistoryQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPaymentHistoryAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<PaymentHistoryItemResponse>>.Ok(result, "Riwayat pembayaran berhasil diambil."));
     }
 
     [HttpGet("{id:guid}")]
@@ -117,6 +135,98 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    // Rekap tagihan satu kunjungan per kategori biaya. Angkanya dihitung backend dari mesin
+    // kalkulasi yang sama dengan Menu Pembayaran, bukan dijumlah ulang di client.
+    [HttpGet("encounters/{encounterId:guid}/charge-summary")]
+    [AccessAction("Read", "Read Encounter Charge Summary", AccessType = AccessTypes.Read, SortOrder = 12)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<EncounterChargeSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetChargeSummaryByEncounter(
+        Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetChargeSummaryByEncounterAsync(
+                encounterId, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<EncounterChargeSummaryResponse>.Ok(
+                result, "Rekap tagihan kunjungan berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // Harga dan deskripsi ditentukan server dari MstTariff - klien hanya mengirim TariffId dan
+    // kuantitas, tidak bisa memanipulasi harga seperti pada biaya lain-lain bebas (other-charges).
+    [HttpPost("catalog-charges")]
+    [AccessAction("Create", "Add Billing Catalog Charge", AccessType = AccessTypes.Create, SortOrder = 13)]
+    [AccessPermission("BillingInvoice", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceDetailResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddCatalogCharge(
+        [FromBody] AddCatalogChargeRequest request,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.AddCatalogChargeAsync(
+                request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceDetailResponse>.Ok(
+                result, "Item tarif berhasil ditambahkan."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // Preview advisory, read-only: TIDAK menambah baris tagihan. Angka final tetap ditentukan
+    // saat kalkulasi invoice sungguhan (lihat catatan pada CatalogChargeCoveragePreviewResponse).
+    [HttpGet("catalog-charges/coverage-preview")]
+    [AccessAction("Read", "Preview Catalog Charge Coverage", AccessType = AccessTypes.Read, SortOrder = 14)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CatalogChargeCoveragePreviewResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCatalogChargeCoveragePreview(
+        [FromQuery] Guid encounterId,
+        [FromQuery] Guid tariffId,
+        [FromQuery] decimal quantity,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetCatalogChargeCoveragePreviewAsync(
+                encounterId, tariffId, quantity <= 0 ? 1 : quantity, cancellationToken);
+            return Ok(ApiResponse<CatalogChargeCoveragePreviewResponse>.Ok(
+                result, "Preview coverage tarif berhasil diambil."));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("other-charge-types")]
     [AccessAction("Read", "Read Other Charge Type", AccessType = AccessTypes.Read, SortOrder = 10)]
     [AccessPermission("BillingInvoice", "Read")]
@@ -187,6 +297,36 @@ public sealed class BillingInvoicesController : ControllerBase
                 id, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<CalculationResponse>.Ok(
                 result, "Pratinjau kalkulasi invoice berhasil dihitung."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // BKC-DEC-065-069: lembar dokumen murni baca, disusun dari mesin kalkulasi yang sama dengan
+    // Menu Pembayaran. Kunjungan tunai/penjamin perusahaan/tanpa data penjamin bukan galat -
+    // seluruhnya 200 dengan isPrintable=false beserta warnings (BKC-DES-008), lihat service.
+    // SortOrder 15: rencana desain menyebut 9, tetapi nomor itu sudah dipakai
+    // GetActiveEncounterOptions sejak amendment 2 September 2026 - 14 adalah nomor tertinggi yang
+    // sudah dipakai controller ini (coverage-preview), sehingga endpoint ini melanjutkan ke 15.
+    [HttpGet("{id:guid}/insurance-invoice-document")]
+    [AccessAction("Read", "Read Insurance Invoice Document", AccessType = AccessTypes.Read, SortOrder = 15)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InsuranceInvoiceDocumentResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInsuranceInvoiceDocument(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _insuranceInvoiceDocumentService.GetDocumentAsync(
+                id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InsuranceInvoiceDocumentResponse>.Ok(
+                result, "Dokumen Invoice Asuransi berhasil disusun."));
         }
         catch (KeyNotFoundException exception)
         {

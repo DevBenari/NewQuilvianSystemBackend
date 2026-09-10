@@ -217,6 +217,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasDefaultValue(true);
 
             // =========================
+            // INTEGRATION IDEMPOTENCY
+            // =========================
+
+            entity.Property(x => x.RegistrationIdempotencyKey)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            // =========================
             // IDENTITY MODEL
             // =========================
 
@@ -270,6 +278,25 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .WithMany()
                 .HasForeignKey(x => x.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Perujuk (BE-EXT-03). Restrict, sama seperti seluruh relasi data induk di atas:
+            // instansi atau dokter perujuk yang masih ditunjuk kunjungan tidak boleh terhapus,
+            // karena kunjungan lama akan kehilangan asal rujukannya.
+            entity.HasOne(x => x.ReferralInstitution)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralInstitutionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ReferralDoctor)
+                .WithMany()
+                .HasForeignKey(x => x.ReferralDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.ReferralInstitutionId)
+                .HasFilter("\"ReferralInstitutionId\" IS NOT NULL");
+
+            entity.HasIndex(x => x.ReferralDoctorId)
+                .HasFilter("\"ReferralDoctorId\" IS NOT NULL");
 
             entity.HasOne(x => x.DoctorSchedule)
                 .WithMany()
@@ -326,6 +353,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasIndex(x => x.EncounterNumber)
                 .IsUnique();
+
+            // Kunci idempotensi pendaftaran (INT-05, BE-LAB-08). Unique dan tersaring:
+            // baris tanpa kunci — pendaftaran loket, kiosk, dan seluruh kunjungan lama —
+            // tidak ikut terkena keunikannya, sehingga ribuan NULL tetap sah.
+            //
+            // Unique index inilah penegak idempotensi yang sebenarnya. Pembacaan lebih dulu
+            // menangani pengiriman ulang yang berurutan; index ini menangani dua permintaan
+            // yang tiba bersamaan, ketika keduanya sama-sama membaca "belum ada".
+            entity.HasIndex(x => x.RegistrationIdempotencyKey)
+                .IsUnique()
+                .HasFilter("\"RegistrationIdempotencyKey\" IS NOT NULL");
 
             entity.HasIndex(x => x.PatientId);
 

@@ -38,7 +38,9 @@ public sealed class BillingFinancialExceptionsController : ControllerBase
         {
             Adjustments = await _exceptionService.ListAdjustmentsByInvoiceAsync(invoiceId, cancellationToken),
             WriteOffs = await _exceptionService.ListWriteOffsByInvoiceAsync(invoiceId, cancellationToken),
-            Refunds = await _service.ListByInvoiceAsync(invoiceId, cancellationToken)
+            Refunds = await _service.ListByInvoiceAsync(invoiceId, cancellationToken),
+            NonBillableResidualRemaining = await _exceptionService.GetNonBillableResidualRemainingAsync(
+                invoiceId, cancellationToken)
         };
         return Ok(ApiResponse<InvoiceFinancialExceptionsResponse>.Ok(
             result, "Daftar pengecualian finansial invoice berhasil diambil."));
