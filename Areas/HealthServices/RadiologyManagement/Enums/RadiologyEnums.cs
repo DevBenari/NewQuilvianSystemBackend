@@ -195,4 +195,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums
         [Display(Name = "External Cause")]
         ExternalCause = 6
     }
+
+    /// <summary>
+    /// Keadaan sebuah aturan keselamatan pada siklus pengesahannya, sesuai
+    /// <c>RAD-DEC-005</c>.
+    ///
+    /// Hanya <see cref="Active"/> yang ikut dinilai gerbang keselamatan. Draf dan pengajuan
+    /// yang belum disahkan sengaja tidak berpengaruh apa pun: aturan yang belum disetujui
+    /// penanggung jawab klinis tidak boleh menentukan seorang pasien aman disinari atau tidak.
+    ///
+    /// Pemisahan <see cref="Draft"/> dari <see cref="Inactive"/> juga disengaja. Yang pertama
+    /// berarti aturannya sedang disusun dan belum pernah berlaku; yang kedua berarti aturannya
+    /// pernah berlaku lalu dihentikan. Study lama yang lolos memakai aturan yang kini
+    /// <see cref="Inactive"/> tetap sah, karena versinya sudah dibekukan pada study tersebut.
+    /// </summary>
+    public enum RadSafetyRuleStatus
+    {
+        [Display(Name = "Draft")]
+        Draft = 1,
+
+        [Display(Name = "Pending Approval")]
+        PendingApproval = 2,
+
+        [Display(Name = "Active")]
+        Active = 3,
+
+        [Display(Name = "Inactive")]
+        Inactive = 4
+    }
 }

@@ -39,8 +39,8 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
     /// sebagai galat konfigurasi dan tidak menyentuh database mana pun.
     /// </para>
     /// </remarks>
-    public sealed class PhysicianVisitUniquenessTests
-        : IClassFixture<BillingTestDatabaseFixture>, IAsyncLifetime
+    [Collection(PostgresIntegrationTestCollection.Name)]
+    public sealed class PhysicianVisitUniquenessTests : IAsyncLifetime
     {
         private readonly BillingTestDatabaseFixture _fixture;
         private readonly List<EncounterSeed> _seeds = new();

@@ -172,7 +172,7 @@ public sealed class BillingCalculationService
             // coverage-nya; obat/Alkes rawat INAP dibebaskan PPN sepenuhnya (bagian dari paket
             // layanan rawat inap yang sudah dibebaskan PPN sebagai jasa kesehatan).
             var isOutpatientForTax = invoice.ServiceType != AdministrationFeeServiceTypes.Ranap;
-            var taxRule = await LoadInvoiceTaxRuleAsync(calculatedAt, cancellationToken);
+            var taxRule = await LoadInvoiceTaxRuleAsync(effectiveAt, cancellationToken);
             var taxResult = ApplyInvoiceTax(itemResult.Items, taxRule, isOutpatientForTax);
             var taxes = taxResult.Taxes;
             var taxAmount = taxes.Sum(x => x.TaxAmount);

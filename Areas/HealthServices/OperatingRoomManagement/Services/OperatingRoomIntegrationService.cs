@@ -28,8 +28,16 @@ public sealed class OperatingRoomIntegrationService
     private const string AttemptAction = "IntegrationAttempt";
     private const string RetryAction = "IntegrationRetry";
 
-    /// <summary>Tujuan yang kontrak consumer-nya belum disahkan.</summary>
-    private static readonly string[] BlockedDestinations = [InventoryDestination, BillingDestination];
+    /// <summary>
+    /// Tujuan yang belum memiliki consumer, sehingga rekonsiliasinya masih manual.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="InventoryDestination"/> sudah keluar dari daftar ini: pemakaian material kini
+    /// dibukukan ke kartu stok Farmasi oleh
+    /// <see cref="OperatingRoomInventoryDispatchService"/>. Billing masih tertahan karena tarif
+    /// dan tagihan adalah milik Billing, dan kontraknya belum tersedia.
+    /// </remarks>
+    private static readonly string[] BlockedDestinations = [BillingDestination];
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;

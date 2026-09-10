@@ -21,10 +21,19 @@ public class RadiologySafetyGateTests
         RequirementName = kode,
     };
 
+    /// <summary>
+    /// Aturan yang sudah disahkan.
+    ///
+    /// <c>RuleStatus</c> ditulis eksplisit karena sejak <c>RAD-DEC-005</c> kolom itulah yang
+    /// menentukan sebuah aturan ikut dinilai atau tidak. Nilai bawaan entity adalah
+    /// <c>Draft</c> — sengaja, karena aturan lahir sebagai draf — sehingga aturan yang dimaksud
+    /// berlaku wajib menyebutkannya sendiri.
+    /// </summary>
     private static MstRadModalitySafetyRule Aturan(
         MstRadSafetyRequirement butir,
         bool wajib = true,
-        int versi = 1) => new()
+        int versi = 1,
+        RadSafetyRuleStatus status = RadSafetyRuleStatus.Active) => new()
     {
         Id = Guid.NewGuid(),
         ModalityId = Guid.NewGuid(),
@@ -33,6 +42,7 @@ public class RadiologySafetyGateTests
         IsMandatory = wajib,
         RuleVersion = versi,
         IsActive = true,
+        RuleStatus = status,
         EffectiveFrom = DateTime.UtcNow.AddDays(-1),
     };
 
@@ -95,6 +105,102 @@ public class RadiologySafetyGateTests
 
         Assert.False(tanpaAturan.Cleared);
         Assert.True(denganAturanTerpenuhi.Cleared);
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Siklus pengesahan: hanya aturan yang sudah disahkan yang dinilai
+     * AC-12 pada RAD-DEC-005
+     * ------------------------------------------------------------------ */
+
+    [Theory]
+    [InlineData(RadSafetyRuleStatus.Draft)]
+    [InlineData(RadSafetyRuleStatus.PendingApproval)]
+    [InlineData(RadSafetyRuleStatus.Inactive)]
+    public void AturanYangBelumDisahkan_DibacaSebagaiKebijakanYangBelumAda(
+        RadSafetyRuleStatus status)
+    {
+        // Aturan yang belum disahkan bukan kebijakan yang lebih longgar — ia bukan kebijakan
+        // sama sekali. Modalitas yang hanya punya draf harus dibaca persis seperti modalitas
+        // yang belum punya aturan apa pun: acquisition ditolak, dan yang diminta datang adalah
+        // admin, bukan petugas.
+        var butir = Butir("PREGNANCY_SCREENING");
+
+        var hasil = RadSafetyGateEvaluator.Evaluate(
+            new[] { Aturan(butir, status: status) },
+            new[] { Jawaban(butir, RadSafetyCheckState.Passed) });
+
+        Assert.False(hasil.PolicyConfigured);
+        Assert.False(hasil.Cleared);
+        Assert.Equal(0, hasil.RuleVersion);
+        Assert.Contains("belum ditetapkan", RadSafetyGateEvaluator.DescribeBlockage(hasil));
+    }
+
+    [Fact]
+    public void JawabanYangSudahAdaTidakMenolongAturanYangBelumDisahkan()
+    {
+        // Bahaya yang sesungguhnya bukan draf yang menahan, melainkan draf yang meloloskan.
+        // Sebuah butir yang sudah dijawab "aman" tidak boleh membuat aturan yang belum
+        // disetujui siapa pun berlaku bagi seorang pasien.
+        var butir = Butir("CONTRAST_ALLERGY");
+
+        var draf = RadSafetyGateEvaluator.Evaluate(
+            new[] { Aturan(butir, status: RadSafetyRuleStatus.Draft) },
+            new[] { Jawaban(butir, RadSafetyCheckState.Passed) });
+
+        var disahkan = RadSafetyGateEvaluator.Evaluate(
+            new[] { Aturan(butir) },
+            new[] { Jawaban(butir, RadSafetyCheckState.Passed) });
+
+        Assert.False(draf.Cleared);
+        Assert.True(disahkan.Cleared);
+    }
+
+    [Fact]
+    public void DrafBaruTidakMenahanStudyYangAturanSahnyaSudahTuntas()
+    {
+        // Sisi sebaliknya, dan sama pentingnya. Admin yang sedang menyusun butir keselamatan
+        // baru tidak boleh menghentikan pekerjaan yang sedang berjalan hanya karena drafnya
+        // sudah tersimpan. Draf tidak menahan dan tidak meloloskan; ia belum ada artinya.
+        var sah = Butir("PATIENT_IDENTITY");
+        var draf = Butir("METAL_IMPLANT_SCREENING");
+
+        var hasil = RadSafetyGateEvaluator.Evaluate(
+            new[] { Aturan(sah), Aturan(draf, status: RadSafetyRuleStatus.Draft) },
+            new[] { Jawaban(sah, RadSafetyCheckState.Passed) });
+
+        Assert.True(hasil.PolicyConfigured);
+        Assert.True(hasil.Cleared);
+        Assert.Empty(hasil.PendingMandatoryCodes);
+    }
+
+    [Fact]
+    public void VersiYangDibekukanDihitungHanyaDariAturanYangDisahkan()
+    {
+        // Versi yang dibekukan pada study harus menunjuk aturan yang benar-benar berlaku saat
+        // itu. Draf bernomor lebih tinggi tidak boleh ikut terbaca, karena study tersebut tidak
+        // pernah dinilai memakainya.
+        var sah = Butir("PATIENT_IDENTITY");
+        var draf = Butir("PRIOR_STUDY_COMPARISON");
+
+        var hasil = RadSafetyGateEvaluator.Evaluate(
+            new[]
+            {
+                Aturan(sah, versi: 2),
+                Aturan(draf, versi: 9, status: RadSafetyRuleStatus.Draft),
+            },
+            new[] { Jawaban(sah, RadSafetyCheckState.Passed) });
+
+        Assert.True(hasil.Cleared);
+        Assert.Equal(2, hasil.RuleVersion);
+    }
+
+    [Fact]
+    public void HanyaActiveYangDapatDitegakkan()
+    {
+        Assert.True(RadSafetyGateEvaluator.IsEnforceable(RadSafetyRuleStatus.Active));
+        Assert.False(RadSafetyGateEvaluator.IsEnforceable(RadSafetyRuleStatus.Draft));
+        Assert.False(RadSafetyGateEvaluator.IsEnforceable(RadSafetyRuleStatus.PendingApproval));
+        Assert.False(RadSafetyGateEvaluator.IsEnforceable(RadSafetyRuleStatus.Inactive));
     }
 
     /* ------------------------------------------------------------------ *

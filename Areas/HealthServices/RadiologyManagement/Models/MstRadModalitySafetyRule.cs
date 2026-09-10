@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 
@@ -60,9 +61,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Keadaan aturan pada siklus pengesahannya. Inilah sumber kebenaran yang dipakai
+        /// gerbang keselamatan sejak <c>RAD-DEC-005</c>.
+        ///
+        /// <see cref="IsActive"/> dipertahankan supaya data dan kode lama tidak patah, tetapi
+        /// tidak lagi menentukan aturan mana yang dinilai. Ketika keduanya berselisih, kolom
+        /// ini yang berlaku.
+        /// </summary>
+        public RadSafetyRuleStatus RuleStatus { get; set; } = RadSafetyRuleStatus.Draft;
+
+        /// <summary>Pengaju pengesahan. Kosong selama aturan masih berupa draf.</summary>
+        public Guid? SubmittedByUserId { get; set; }
+
+        public DateTime? SubmittedAt { get; set; }
+
         public Guid? ApprovedByUserId { get; set; }
 
         public DateTime? ApprovedAt { get; set; }
+
+        /// <summary>Penolak pengajuan. Kosong bila aturan belum pernah ditolak.</summary>
+        public Guid? RejectedByUserId { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        /// <summary>
+        /// Alasan penolakan. Wajib diisi ketika sebuah pengajuan ditolak; tanpa itu penyusun
+        /// aturan tidak tahu apa yang harus diperbaiki.
+        /// </summary>
+        public string? RejectionReason { get; set; }
 
         public MstRadModality? Modality { get; set; }
 

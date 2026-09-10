@@ -339,6 +339,13 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                         (x.LabSpecimenId != null && specimenIds.Contains(x.LabSpecimenId.Value)))
                     .ExecuteDeleteAsync(cancellationToken);
 
+                // Pemeriksaan memiliki FK Restrict ke LabOrder dan LabSpecimen.
+                // Riwayatnya sudah dihapus di atas, jadi pemeriksaan harus dihapus
+                // sebelum specimen dan order induknya.
+                await context.LabExaminations
+                    .Where(x => labOrderIds.Contains(x.LabOrderId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
                 // Recollection membuat rantai specimen yang menunjuk specimen sebelumnya, sehingga
                 // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
                 while (await context.LabSpecimens

@@ -3,27 +3,32 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RM-BP-001` |
-| Revision | `5` |
-| Status | **`approved`** — 22 keputusan disahkan 26 Agustus 2026 |
-| Interview mode | `Amendment pass` (revision 3, 4, dan 5); `Closure pass` (revision 2); `Scope pass` (revision 1) |
-| Input capability map | `01-existing-capability-map.md` revision `2`, penelusuran lanjutan 24 Agustus 2026 |
+| Revision | `6` |
+| Status | **`approved`** — 22 keputusan disahkan 26 Agustus 2026; 7 keputusan sambungan Laboratorium disahkan 10 September 2026 |
+| Interview mode | `Amendment pass` (revision 3, 4, 5, dan 6); `Closure pass` (revision 2); `Scope pass` (revision 1) |
+| Input capability map | `01-existing-capability-map.md` revision `2` — **basi** sejak SHA berubah. Digantikan capability map sambungan Laboratorium ↔ Rekam Medis, audit 10 September 2026 |
 | Product/domain owner | **Yoga Aji Pratama** — ditetapkan 26 Agustus 2026 |
 | Clinical governance owner | **Yoga Aji Pratama** — ditetapkan 26 Agustus 2026 |
 | Security/privacy owner | **Yoga Aji Pratama** — ditetapkan 26 Agustus 2026 |
 | Catatan kepemilikan | Ketiga peran dipegang **satu orang**. Konsekuensi dan batasnya dicatat pada `RM-DEC-027` |
-| Backend SHA | `ab37e3a` |
-| Frontend SHA | `c4e2ef2a6` |
-| Tanggal pass | 24 Agustus 2026; pengesahan 26 Agustus 2026 |
+| Backend SHA | `ab37e3a` (revision 1–5); **`0e2eb105`** (revision 6) |
+| Frontend SHA | `c4e2ef2a6` (revision 1–5); **`0e5d3c36`** (revision 6) |
+| Tanggal pass | 24 Agustus 2026; pengesahan 26 Agustus 2026; amandemen sambungan Laboratorium 10 September 2026 |
 | Primary evidence | Pembacaan source backend dan frontend pada SHA di atas; belum ada dokumen SOP rekam medis yang diserahkan |
 
 > **Status pengesahan.** Dua puluh dua keputusan pada dokumen ini berstatus `approved`,
 > disahkan Yoga Aji Pratama selaku penanggung jawab modul pada 26 Agustus 2026. Empat
-> pertanyaan terbuka berstatus `superseded` karena sudah digantikan keputusan lain, dan satu
-> (`RM-DEC-007`) masih terbuka tetapi tidak memblokir pekerjaan mana pun.
+> pertanyaan terbuka berstatus `superseded` karena sudah digantikan keputusan lain.
+>
+> **Pembaruan 10 September 2026 (revision 6).** Tujuh keputusan sambungan Laboratorium
+> ditambahkan, `RM-DEC-030` sampai `RM-DEC-036`. Dengan `RM-DEC-035`, **tidak ada lagi
+> pertanyaan pada dokumen ini yang berstatus terbuka** — `RM-DEC-007` yang selama ini
+> menggantung akhirnya tertutup, karena pemicunya sudah tiba: modul Laboratorium kini ada.
 >
 > **Batas yang tetap berlaku.** Pengesahan ini sah untuk memulai pembangunan. Ia **tidak**
 > menggantikan tinjauan komite medik maupun pihak perlindungan data bila kelak keduanya
-> ditunjuk — lihat `RM-DEC-027`.
+> ditunjuk — lihat `RM-DEC-027`. Batas yang sama melekat pada `RM-DEC-030`, `RM-DEC-032`,
+> dan `RM-DEC-033` yang menyentuh keselamatan klinis dan kerahasiaan.
 
 ---
 
@@ -83,6 +88,23 @@ dan menyimpannya sesuai masa retensi. Modul ini adalah versi digital dari pekerj
   dokumen keputusan IGD. Perlu modul integrasi tersendiri dengan owner tersendiri.
 - **Modul Rawat Inap.** Belum ada area-nya di backend. Rekam medis rawat inap akan bergantung
   pada modul ini ketika dibangun.
+
+Ditambahkan 10 September 2026, hasil amandemen sambungan Laboratorium:
+
+- **Entri hasil laboratorium.** Input nilai, verifikasi, dan rilis hasil adalah pekerjaan
+  modul Laboratorium, bukan modul ini. `RM-DEC-036` menetapkannya sebagai prasyarat, bukan
+  sebagai cakupan rekam medis.
+- **Mengangkat pola "baca langsung, dilarang menyalin" menjadi aturan seluruh modul
+  penunjang.** Scope amandemen ini sengaja dikunci hanya pada Laboratorium. `RM-DEC-030`
+  menjadi preseden kedua setelah `RAD-DEC-006`, sehingga aturan lintas modul dapat disusun
+  belakangan dengan dua contoh yang sudah sejalan.
+- **Tujuh tabel `ClinicalManagement` yang belum terbaca layar penelusuran.**
+  `CliNursingCarePlan`, `CliNursingCarePlanItem`, `CliNursingCarePlanItemRevision`,
+  `CliNursingIntervention`, `CliPhysicianVisit`, `TrxNosocomialInfection`, dan
+  `CliClinicalMilestoneFact`. Ini utang modul rekam medis sendiri, bukan soal laboratorium.
+- **Sumber klinis modul lain yang juga belum terbaca.** Resume medis rawat inap, laporan
+  operasi dan anestesi, rekam IGD, resep, serta asuhan gizi. Masing-masing proyek tersendiri.
+- **Nilai kritis dan eskalasinya.** Alur kerja internal laboratorium.
 
 ---
 
@@ -199,6 +221,9 @@ disetujui → konvensi proyek → kebijakan developer.
 | `RM-FE-008` | Status keutuhan dan status alur kerja harus dapat dibedakan pembaca, tidak boleh tampil sebagai satu penanda tunggal | Clinical governance owner | `draft` | Wajib dapat dibedakan; bentuk visual bebas | `RM-DEC-013` |
 | `RM-FE-004` | Bentuk navigasi berkas rekam medis: menu, rute, tab, modal, atau drawer | Frontend | `DEV_DISCRETION` | Mengikuti konvensi proyek yang sudah ada | Belum ada brief UI yang disetujui |
 | `RM-FE-005` | Tata letak, warna, ikon, dan komponen tabel | Frontend | `DEV_DISCRETION` | Mengikuti konvensi proyek yang sudah ada | Belum ada brief UI yang disetujui |
+| `RM-FE-017` | Bagian hasil laboratorium yang gagal dimuat wajib terbaca sebagai gangguan, dan wajib **dapat dibedakan** dari keadaan "pasien tidak punya pemeriksaan" | Clinical governance owner | `draft` | Wajib dibedakan; susunan kalimat bebas | `RM-DEC-030` |
+| `RM-FE-018` | Penanda bahwa sebuah hasil laboratorium **pernah diralat** wajib terlihat pada berkas rekam medis | Clinical governance owner | `draft` | Wajib terlihat; bentuk visual bebas | `RM-DEC-032` |
+| `RM-FE-019` | Bentuk tampilan hasil laboratorium pada berkas: tab tersendiri, panel, atau menyatu di daftar riwayat | Frontend | `DEV_DISCRETION` | Mengikuti konvensi proyek yang sudah ada | `RM-DEC-030` |
 
 ---
 
@@ -223,6 +248,13 @@ disetujui → konvensi proyek → kebijakan developer.
 | 15 | Menandatangani catatan menyimpan identitas pengguna yang sedang masuk, waktu, dan perangkat, tanpa meminta pengesahan ulang (`RM-DEC-021`) |
 | 16 | `PrivateNote` tidak muncul pada tampilan rekam medis rutin, dan hanya tampil setelah pengguna menempuh jalur akses beralasan yang tercatat (`RM-DEC-022`) |
 | 17 | Layar menampilkan keterangan bahwa label tingkat kerahasiaan belum membatasi akses (`RM-DEC-018`) |
+| 18 | Nol tabel di `MedicalRecordManagement` menyimpan nilai hasil laboratorium — dibuktikan dengan menelusuri seluruh model modul (`RM-DEC-030`) |
+| 19 | Nol kolom baru ditambahkan pada tabel `LaboratoryManagement` akibat sambungan ini (`RM-DEC-031`) |
+| 20 | Ketika modul Laboratorium tidak dapat dihubungi, layar menampilkan pesan gangguan. Uji memalsukan kegagalan panggilan lalu memeriksa bahwa yang tampil **bukan** daftar kosong (`RM-DEC-030`, `RM-FE-017`) |
+| 21 | Membuka berkas pasien yang memiliki tiga hasil laboratorium menghasilkan **tepat satu** baris `MrcAccessLog`, bukan empat (`RM-DEC-034`) |
+| 22 | Pengguna dengan izin `MedicalRecord : Read` **tanpa** izin apa pun pada modul Laboratorium tetap melihat hasil laboratorium pada berkas (`RM-DEC-033`) |
+| 23 | Hasil yang dirilis setelah kunjungan ditutup tetap tertaut ke kunjungan tersebut, dan status kunjungan itu tidak berubah (`RM-DEC-035`, turunan `RM-DEC-006`) |
+| 24 | Berkas yang masih memiliki pemeriksaan tanpa hasil tidak dapat dinyatakan lengkap, dan tampil sebagai "menunggu hasil" (`RM-DEC-035`) |
 
 ---
 
@@ -334,7 +366,7 @@ code. Semuanya diteruskan ke tahap audit kemampuan.
 | `RM-DEC-004` | Decision | Addendum pada catatan terkunci hanya boleh dibuat **penulis asli**. Bila penulis berhalangan, **kepala unit atau DPJP** boleh membuat addendum atas namanya sendiri dengan alasan wajib. Isi lama tidak pernah dihapus pada kondisi apa pun. | Clinical governance owner | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Wawancara Scope Pass pertanyaan 4 |
 | `RM-DEC-005` | Decision | Akses rekam medis bersifat **terbuka bagi tenaga klinis berwenang dengan rem**. Membuka rekam medis pasien yang sedang dirawat pengguna berjalan tanpa hambatan. Membuka rekam medis di luar rawatannya tetap diizinkan, tetapi wajib mengisi alasan dan akses tersebut ditandai untuk ditinjau unit rekam medis. Seluruh pembukaan dicatat. | Security/privacy owner | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Wawancara Scope Pass pertanyaan 5 |
 | `RM-DEC-006` | Decision | Kunjungan yang sudah ditutup **tidak pernah dibuka kembali**. Hasil atau dokumen susulan dicatat sebagai entri baru yang tertaut ke kunjungan tersebut, diberi penanda `Susulan` beserta tanggal masuk. Catatan yang sudah terkunci tetap terkunci. | Product/domain owner | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Wawancara Scope Pass pertanyaan 6 |
-| `RM-DEC-007` | Open Question | Sampai kapan entri susulan masih diterima untuk sebuah kunjungan yang sudah ditutup, dan bagaimana pemeriksaan kelengkapan memperlakukan berkas yang masih menunggu hasil? Turunan langsung dari `RM-DEC-006`. | Product/domain owner | `draft` | — | Wawancara Scope Pass pertanyaan 6 |
+| `RM-DEC-007` | Open Question | Sampai kapan entri susulan masih diterima untuk sebuah kunjungan yang sudah ditutup, dan bagaimana pemeriksaan kelengkapan memperlakukan berkas yang masih menunggu hasil? Turunan langsung dari `RM-DEC-006`. | Product/domain owner | `superseded` | Digantikan `RM-DEC-035`, disahkan Yoga Aji Pratama 10 September 2026 | Wawancara Scope Pass pertanyaan 6 |
 | `RM-DEC-008` | Decision | Tiga owner ditetapkan **sebelum** audit kemampuan dijalankan: pemilik proses (unit rekam medis), pemilik tata kelola klinis, dan pemilik keamanan/privasi. Keputusan `RM-DEC-001` sampai `RM-DEC-007` baru boleh naik status menjadi `approved` setelah owner yang sesuai bidangnya menyetujui. | Pemohon sesi | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Preseden blueprint IGD: tiga gate go-live tertahan karena owner ditunjuk belakangan |
 | `RM-DEC-009` | Open Question | Definisi **pasien rawatan** yang dapat diuji sistem: apakah berdasarkan DPJP yang tercatat, unit pelayanan pengguna, keterlibatan pada kunjungan aktif, atau gabungan? Menentukan kapan sistem meminta alasan pada `RM-DEC-005`. | Security/privacy owner | `superseded` | Digantikan `RM-DEC-016`, disahkan Yoga Aji Pratama 26 Agustus 2026 | Turunan `RM-DEC-005` |
 | `RM-DEC-010` | Open Question | Definisi **berhalangan** yang dapat diuji sistem: akun nonaktif, cuti terdaftar, atau penetapan manual kepala unit? Menentukan kapan jalur addendum pengganti pada `RM-DEC-004` terbuka. | Clinical governance owner | `superseded` | Digantikan `RM-DEC-020`, disahkan Yoga Aji Pratama 26 Agustus 2026 | Turunan `RM-DEC-004` |
@@ -357,9 +389,20 @@ code. Semuanya diteruskan ke tahap audit kemampuan.
 | `RM-DEC-026` | Decision | `BE-16` diperlakukan sebagai **pengaman**, bukan kebutuhan mendesak. Perilakunya tetap seperti rancangan semula: berkas pasien yang ditandai digabung ditolak dengan kode `409` disertai nomor rekam medis pengganti, bukan ditampilkan riwayat sebagiannya. Prioritasnya diturunkan ke akhir milestone B3. **Tafsir yang dipakai:** dari tiga pilihan pada closure question nomor 8, yang dipilih adalah pilihan pertama — menolak membuka, bukan menyatukan saat dibaca maupun memindahkan data klinis. | Product/domain owner | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Penelusuran `RM-CAP-007` 24 Agustus 2026 |
 | `RM-FACT-007` | Fact | Penggabungan pasien di sistem ini hanya berupa penandaan. Menyetel `MergedToPatientId` tidak memindahkan data klinis apa pun, dan tidak ada query di modul mana pun yang mengikutinya. `PatientStatus.Merged` tersedia tetapi tidak pernah ditetapkan kode mana pun | — | `draft` | — | Source SHA `ab37e3a`; rincian pada `01-existing-capability-map.md` revision 2 |
 | `RM-FACT-008` | Fact | Fitur penggabungan pasien **tidak dapat dipakai dari antarmuka**. Layar mengirim `mergedToPatientId` tanpa `mergeReason`, sementara `PatientController.cs:2380` mewajibkannya, sehingga permintaan selalu ditolak dengan kode 400. Akibat sampingannya: selama celah ini terbuka, tidak ada pasien bernomor rekam medis ganda baru yang tercipta | `PatientManagement` | `draft` | — | Source SHA `ab37e3a` dan `c4e2ef2a6`; dicatat sebagai `RM-CAP-033` dan `GAP-07` |
+| `RM-FACT-009` | Fact | Modul Laboratorium **belum menyimpan hasil pemeriksaan sama sekali**. `LabExaminationStatus` hanya mengenal `Ordered`, `ChargeEligible`, `Voided`, dan `Cancelled`; tidak ada entity maupun kolom nilai hasil, tidak ada tahap verifikasi, dan tidak ada penerbitan hasil. `LabValueBound` dan `LabValueOption` adalah master nilai rujukan dan nilai kritis, **bukan** hasil pasien | `LaboratoryManagement` | `draft` | — | `LaboratoryEnums.cs:114-130`; source SHA `0e2eb105` |
+| `RM-FACT-010` | Fact | **Nol `PatientId` pada seluruh model Laboratorium.** `LabOrder` hanya menyimpan `EncounterId`, dan `LabExamination` hanya `LabOrderId` serta `SpecimenId`. Identitas pasien hanya dapat dicapai lewat `TrxPatientEncounter`. Helper generik penarik sumber pada layar penelusuran menuntut entity menyediakan `PatientId` langsung, sehingga entity Laboratorium tidak dapat dipakai apa adanya | `LaboratoryManagement` | `draft` | — | `LabOrder.cs:21`; `MedicalRecordTimelineService.cs:495-505`; source SHA `0e2eb105` |
+| `RM-FACT-011` | Fact | **`RM-DEC-006` disahkan tetapi belum diimplementasikan.** Penanda `Susulan` beserta tanggal masuk tidak ditemukan di mana pun — penelusuran kata `Susulan` dan `LateEntry` pada seluruh `Areas/`, `Services/`, dan `src/` frontend menghasilkan nol temuan. `RM-FE-001` yang mewajibkan penanda itu terlihat ikut menggantung | Modul rekam medis | `draft` | — | Penelusuran source 10 September 2026; SHA `0e2eb105` dan `0e5d3c36` |
+| `RM-FACT-012` | Fact | **Layar penelusuran hanya membaca 13 dari 20 model `ClinicalManagement`.** Yang belum terbaca: `CliNursingCarePlan`, `CliNursingCarePlanItem`, `CliNursingCarePlanItemRevision`, `CliNursingIntervention`, `CliPhysicianVisit`, `TrxNosocomialInfection`, dan `CliClinicalMilestoneFact`. Jarak ini **melebar sendiri** setiap kali `ClinicalManagement` bertambah tabel, tanpa ada yang memberi tahu | Modul rekam medis | `draft` | — | `ClinicalManagement/Models/`; `MedicalRecordTimelineService.cs:1021-1289`; source SHA `0e2eb105` |
 | `RM-DEC-027` | Decision | **Yoga Aji Pratama** ditetapkan memegang ketiga peran sekaligus: pemilik proses, pemilik tata kelola klinis, dan pemilik keamanan/privasi. Seluruh keputusan `RM-DEC-001` sampai `RM-DEC-026` disahkan atas namanya pada 26 Agustus 2026, sehingga pembangunan backend dapat dimulai. **Batas yang tetap berlaku:** pengesahan ini tidak menggantikan tinjauan komite medik atas `RM-DEC-003`, `RM-DEC-004`, dan `RM-DEC-020`, maupun tinjauan pihak perlindungan data atas `RM-DEC-017`, `RM-DEC-021`, `RM-DEC-022`, dan `RM-DEC-024`, bila kedua pihak itu kelak ditunjuk. Bila tinjauan tersebut menghasilkan keputusan berbeda, bagian desain yang bergantung padanya wajib dirombak. **Risiko ini diterima secara sadar.** | Yoga Aji Pratama | `approved` | Yoga Aji Pratama — 26 Agustus 2026 | Penetapan kepemilikan modul 26 Agustus 2026 |
 | `RM-DEC-028` | Decision | **Yoga Aji Pratama** ditetapkan pula sebagai **pemilik frontend dan pemilik API**, melengkapi ketiga peran pada `RM-DEC-027`. Dengan itu `api_authority` dan `frontend_authority` tidak lagi `OPEN`, dan `contracts/api-contract.md` naik dari `draft` menjadi **`approved`** pada versi `0.1.0`. Gerbang paralel frontend terbuka: sepuluh task `FE-00` sampai `FE-09` tidak lagi `TERTAHAN KONTRAK`. **Yang ikut disahkan** adalah dua delta kontrak yang diterapkan `BE-14` dan tercatat pada api-contract bagian 2: (1) bentuk balasan `/timeline` berubah dari `PagedResult` langsung menjadi selubung `MedicalRecordTimelineResponse` yang memuat halaman beserta `failedSources`, `isTruncated`, dan `isComplete`; (2) field `access` ditambahkan pada seluruh balasan endpoint berkas rekam medis. **Batas yang tetap berlaku:** sama seperti `RM-DEC-027`, pengesahan ini tidak menggantikan tinjauan komite medik maupun pihak perlindungan data bila kedua pihak itu kelak ditunjuk. | Yoga Aji Pratama | `approved` | Yoga Aji Pratama — 27 Agustus 2026 | Penetapan kepemilikan frontend 27 Agustus 2026 |
 | `RM-DEC-029` | Decision | **Prefix modul `Mrc` dinaikkan dari `PLANNED` menjadi `ACTIVE`** pada Module Ownership & Prefix Registry, 31 Agustus 2026. Ini membuka normalisasi LEGACY MIGRATION empat entity operasional rekam medis dari `Trx*` ke `Mrc*` beserta tabel fisiknya, sesuai QBE-NAM-003 yang menuntut class, berkas, configuration, DbSet, rujukan, dan tabel dinormalkan bersama. Nama barunya: `MrcClinicalDocumentIntegrity`, `MrcClinicalNoteAddendum`, `MrcClinicalNoteAuthorDelegation`, dan **`MrcAccessLog`** — yang terakhir memendek karena registry melarang mengulang nama pemilik di dalam nama entity. **Yang ikut disahkan pada keputusan yang sama:** dua task backend baru di luar `BE-01`–`BE-18`, yaitu `BE-19` (penanda kunjungan aktif pada endpoint pencarian pasien) dan `BE-20` (`MedicalRecordAccessPurposeController`, enam endpoint api-contract bagian 7). **Batas yang tetap berlaku:** wewenang ini mencakup source dan pembuatan migration; eksekusi database di luar dev pemilik dan deployment tetap wewenang terpisah. | Yoga Aji Pratama | `approved` | Yoga Aji Pratama — 31 Agustus 2026 | Registry change log 31 Agustus 2026; migration `20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix` |
+| `RM-DEC-030` | Decision | **Hasil laboratorium dibaca langsung ke modul Laboratorium setiap kali berkas rekam medis dibuka. Menyalin isi hasil ke tabel modul lain dilarang.** Ketika modul Laboratorium tidak dapat dihubungi, bagian hasil laboratorium **wajib** menampilkan pesan gangguan dan **dilarang** menampilkan daftar kosong, karena daftar kosong terbaca sebagai "pasien tidak punya pemeriksaan" — kesimpulan yang salah dan berbahaya. Alasan pemilihan: salinan yang lupa diperbarui membuat dokter mengambil keputusan pengobatan atas hasil yang sudah diralat. Sejalan dengan `RAD-DEC-006` pada blueprint Radiologi, sehingga dua modul penunjang tidak berbeda aturan untuk masalah yang sama. | Product/domain owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026; capability map sambungan Laboratorium `RK-03` |
+| `RM-DEC-031` | Decision | **Rekam medis meminta hasil laboratorium dengan mengirim id pasien; modul Laboratorium yang menerjemahkannya menjadi kunjungan-kunjungan milik pasien tersebut.** Nol kolom ditambahkan pada tabel Laboratorium. Menutup conflict `RL-04`: tidak satu pun model Laboratorium menyimpan `PatientId`, sementara berkas rekam medis berpusat pada pasien. Dua alternatif ditolak: mengirim daftar id kunjungan dari rekam medis berisiko melewatkan kunjungan pada pasien hasil penggabungan nomor rekam medis, dan menambah kolom `PatientId` pada tabel laboratorium menciptakan dua sumber kebenaran yang dapat berselisih dengan kunjungannya. | Product/domain owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026; capability map sambungan Laboratorium `RL-04` |
+| `RM-DEC-032` | Decision | **Hasil laboratorium tidak tunduk pada aturan keutuhan dokumen rekam medis.** Laboratorium yang merilis hasil, Laboratorium pula yang mengatur ralat atas hasil yang sudah dirilis. Rekam medis hanya menampilkan penanda "hasil ini pernah diralat" yang dibacanya dari Laboratorium. Alasan: konsisten dengan `RM-DEC-030` — modul yang tidak menyimpan sebuah dokumen tidak berada pada posisi mengunci atau menandatanganinya. `RM-DEC-019` yang membatasi penegakan keutuhan pada CPPT tetap berlaku apa adanya. | Clinical governance owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026 |
+| `RM-DEC-033` | Decision | **Melihat hasil laboratorium di dalam berkas rekam medis cukup memerlukan izin `MedicalRecord : Read`.** Izin pada modul Laboratorium tidak diperlukan. Berkas rekam medis diperlakukan sebagai satu kesatuan: sekali seseorang berhak membukanya dan sudah melewati pemeriksaan keperluan akses, seluruh isinya terbaca. Alternatif "wajib punya kedua izin" ditolak karena menghasilkan bagian laboratorium kosong tanpa keterangan bagi dokter yang berhak atas berkas — bahaya yang sama persis dengan daftar kosong yang sudah ditolak `RM-DEC-030`. | Security/privacy owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026 |
+| `RM-DEC-034` | Decision | **Satu baris jejak akses per pembukaan berkas, sudah mencakup hasil laboratorium di dalamnya.** Tidak ada baris tambahan per hasil yang dibuka. Akibat yang diterima secara sadar: audit dapat menjawab "siapa membuka berkas pasien ini" tetapi tidak "siapa membaca hasil laboratorium yang mana". Alasan: `MrcAccessLog` dirancang bertahan **25 tahun** terbagi per tahun (`RM-DEC-024`), dan pencatatan per hasil melonjakkan volumenya jauh di atas rancangan kapasitas itu. | Security/privacy owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026; turunan `RM-DEC-024` |
+| `RM-DEC-035` | Decision | **Hasil susulan diterima tanpa batas waktu.** Kunjungan yang sudah ditutup tidak pernah dibuka kembali, dan hasil tetap tertaut padanya berapa pun jaraknya. **Berkas dinyatakan belum lengkap selama masih ada pemeriksaan yang hasilnya belum keluar**, dengan keadaan "menunggu hasil". Alasan: hasil kultur dan patologi anatomi wajar keluar berminggu-minggu setelah pasien pulang, sehingga batas waktu buatan akan membuang hasil yang sah dan justru memutus kaitannya dengan kunjungan yang melahirkannya. Konsekuensi yang diterima: unit rekam medis memerlukan daftar pantau berkas yang menunggu hasil, supaya berkas yang menggantung tidak hilang diam-diam. **Menggantikan `RM-DEC-007`.** | Product/domain owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026; menutup `RM-DEC-007` |
+| `RM-DEC-036` | Decision | **Entri hasil laboratorium — input nilai, verifikasi, dan rilis — dibangun lebih dulu di modul Laboratorium.** Aturan sambungan disahkan sekarang lewat `RM-DEC-030` sampai `RM-DEC-035`, tetapi **implementasinya tertahan prasyarat tersebut**. Dasar keputusan: audit 10 September 2026 membuktikan modul Laboratorium belum menyimpan hasil sama sekali — `LabExaminationStatus` hanya mengenal `Ordered`, `ChargeEligible`, `Voided`, dan `Cancelled`; `LabValueBound` dan `LabValueOption` adalah master nilai rujukan dan nilai kritis, bukan hasil pasien. Menyambungkan lebih dulu berarti membangun jalur kosong yang tetap harus dibongkar ketika bentuk hasil ditetapkan. **Pekerjaan entri hasil bukan bagian modul rekam medis** dan memerlukan wawancara serta desainnya sendiri pada blueprint Laboratorium. | Product/domain owner | `approved` | Yoga Aji Pratama — 10 September 2026 | Amendment pass 10 September 2026; capability map sambungan Laboratorium `RL-01`, `RL-02` |
 | `RM-FACT-001` | Fact | Isi rekam medis sudah tersedia sebagai 13 model di `ClinicalManagement` | — | `draft` | — | Source SHA `ab37e3a` |
 | `RM-FACT-002` | Fact | Tidak ada penguncian, tanda tangan, maupun addendum pada catatan klinis selain consent | — | `draft` | — | Source SHA `ab37e3a` |
 | `RM-FACT-003` | Fact | Tidak ada jejak audit akses baca | — | `draft` | — | Source SHA `ab37e3a` |
@@ -380,7 +423,7 @@ code. Semuanya diteruskan ke tahap audit kemampuan.
 | 6 | ~~Bentuk tanda tangan elektronik~~ | **Tertutup** oleh `RM-DEC-021` |
 | 7 | ~~Kerahasiaan kolom `PrivateNote`~~ | **Tertutup** oleh `RM-DEC-022` |
 | 8 | ~~Angka masa simpan jejak akses~~ | **Tertutup** oleh `RM-DEC-024`: 25 tahun |
-| 9 | Sampai kapan entri susulan diterima? | Terbuka, `RM-DEC-007`. Tidak memblokir rilis pertama karena baru relevan setelah modul Laboratorium ada |
+| 9 | ~~Sampai kapan entri susulan diterima?~~ | **Tertutup** 10 September 2026 oleh `RM-DEC-035`: tanpa batas waktu, berkas berstatus "menunggu hasil". Pemicunya sudah tiba — modul Laboratorium kini ada |
 | 10 | Alur penggabungan pasien duplikat dan dampaknya ke tampilan riwayat | Terbuka, `RM-CAP-007`. Perlu penelusuran source terarah, bukan keputusan manusia |
 | 11 | Apakah perbaikan `RM-CAP-011` sampai `013` memerlukan uji otomatis lebih dulu? | Terbuka. Diteruskan ke `/plan-module-delivery` karena menyangkut penyusunan urutan kerja |
 | 12 | Apakah rumah sakit sudah punya SOP rekam medis tertulis yang bisa dijadikan bukti? | Terbuka |
@@ -389,14 +432,24 @@ code. Semuanya diteruskan ke tahap audit kemampuan.
 
 | No | Blocker | Dampak |
 |---:|---|---|
-| 1 | Tiga owner belum ditunjuk namanya | Seluruh keputusan `RM-DEC-001` sampai `RM-DEC-023` tertahan di status `draft`. Sesuai `RM-DEC-008`, penunjukan ini mendahului tahap berikutnya |
+| 1 | ~~Tiga owner belum ditunjuk namanya~~ | **Tertutup** 26 Agustus 2026. Yoga Aji Pratama memegang ketiga peran pada `RM-DEC-027`, dilengkapi kepemilikan API dan frontend pada `RM-DEC-028` |
 | 2 | ~~Angka masa simpan jejak akses~~ | **Tertutup** 24 Agustus 2026. Ditetapkan 25 tahun pada `RM-DEC-024` |
-| 3 | Belum ada dokumen SOP rekam medis rumah sakit | Keputusan saat ini bertumpu pada praktik umum dan rekomendasi, bukan kebijakan setempat yang tertulis |
-| 4 | `RM-DEC-017` mengubah perilaku authorization di luar modul rekam medis | Memerlukan persetujuan security/privacy owner yang belum ada, dan berdampak pada seluruh aplikasi termasuk IGD |
+| 3 | Belum ada dokumen SOP rekam medis rumah sakit | Keputusan saat ini bertumpu pada praktik umum dan rekomendasi, bukan kebijakan setempat yang tertulis. Juga menahan pengisian awal master keperluan akses |
+| 4 | ~~`RM-DEC-017` menunggu persetujuan security/privacy owner~~ | **Tertutup** 26 Agustus 2026 oleh `RM-DEC-027`. Yang tersisa bukan approval, melainkan tinjauan pihak perlindungan data bila kelak ditunjuk |
+| 5 | Entri hasil laboratorium belum ada | Menahan **implementasi** seluruh sambungan `RM-DEC-030` sampai `RM-DEC-035`. Pemilik: blueprint Laboratorium. Lihat `RM-FACT-009` dan `RM-DEC-036` |
+| 6 | Mekanisme ralat hasil laboratorium yang tercatat belum ada | Menahan implementasi `RM-DEC-032` dan `RM-FE-018`. Pemilik: blueprint Laboratorium |
+| 7 | Endpoint Laboratorium berlingkup pasien belum ada | Menahan **desain** kontrak sambungan. Pemilik: blueprint Laboratorium. Turunan `RM-DEC-031` |
+| 8 | `RM-DEC-006` disahkan tetapi nol implementasi | Menahan implementasi `RM-DEC-035` dan `RM-FE-001`. Pemilik: modul rekam medis sendiri, **tidak menunggu modul lain**. Lihat `RM-FACT-011` |
 
-**Catatan penting.** Tidak ada satu pun keputusan pada dokumen ini yang berstatus `approved`.
-Seluruhnya dijawab pemohon sesi dan menunggu pengesahan owner berwenang. Dokumen ini belum
-boleh dipakai sebagai dasar implementasi.
+**Catatan penting — diperbarui 10 September 2026.** Kalimat pada revisi sebelumnya berbunyi
+"tidak ada satu pun keputusan pada dokumen ini yang berstatus `approved`". Itu sudah **tidak
+benar** sejak 26 Agustus 2026 dan dikoreksi di sini: dua puluh dua keputusan disahkan pada
+`RM-DEC-027`, ditambah tujuh keputusan sambungan Laboratorium pada 10 September 2026.
+
+Yang tetap perlu dibaca dengan hati-hati: seluruh peran owner dipegang **satu orang**, dan
+tinjauan komite medik maupun pihak perlindungan data belum pernah dilakukan. Blocker 5 sampai
+7 berada di modul Laboratorium, sedangkan blocker 8 milik modul ini sendiri dan dapat
+dikerjakan tanpa menunggu siapa pun.
 
 ---
 
@@ -409,3 +462,4 @@ boleh dipakai sebagai dasar implementasi.
 | 3 | 24 Agustus 2026 | Amendment pass | Penelusuran terarah `RM-CAP-007` selesai. Penggabungan pasien ternyata hanya penandaan, tidak memindahkan data klinis; statusnya naik menjadi `Conflict`. Ditemukan pula `RM-CAP-033`: fitur penggabungan tidak dapat dipakai dari antarmuka karena `mergeReason` tidak pernah dikirim. `RM-DEC-026` menetapkan `BE-16` sebagai pengaman berprioritas rendah dengan perilaku `409`. Dua fakta baru dicatat sebagai `RM-FACT-007` dan `RM-FACT-008`. |
 | 4 | 24 Agustus 2026 | Amendment pass | `RM-DEC-024` ditutup: masa simpan jejak akses **25 tahun**. Tabel `TrxMedicalRecordAccessLog` dirancang terbagi per tahun berdasarkan `AccessedAt`, 25 bagian pada keadaan penuh. `BE-10` naik dari `TERTAHAN BLOCKER` menjadi `TERTAHAN APPROVAL`, sehingga **tidak ada lagi task berstatus `TERTAHAN BLOCKER`**. Risiko operasional baru dicatat: bagian tahun yang lupa dibuat akan menghentikan pembacaan rekam medis. |
 | 5 | 26 Agustus 2026 | Amendment pass | **Kepemilikan modul ditetapkan.** Yoga Aji Pratama memegang ketiga peran owner sekaligus, dicatat pada `RM-DEC-027`. Dua puluh dua keputusan naik status dari `draft` menjadi `approved`. Empat pertanyaan terbuka yang sudah digantikan ditandai `superseded`. Seluruh gerbang pengesahan untuk pembangunan backend terbuka. Batas yang tetap berlaku: tinjauan komite medik dan pihak perlindungan data belum dilakukan. |
+| 6 | 10 September 2026 | Amendment pass | **Sambungan Laboratorium ke berkas rekam medis diputuskan aturannya.** Dijalankan setelah capability audit lintas modul pada SHA `0e2eb105`/`0e5d3c36`. Enam pertanyaan dijawab menghasilkan `RM-DEC-030` sampai `RM-DEC-036`. **`RM-DEC-007` akhirnya tertutup** lewat `RM-DEC-035` setelah menggantung sejak 24 Agustus — pemicunya baru tiba ketika modul Laboratorium ada. Conflict `RL-04` (lab berpusat kunjungan, rekam medis berpusat pasien) ditutup `RM-DEC-031` tanpa mengubah satu kolom pun pada tabel laboratorium. Empat fakta audit dicatat sebagai `RM-FACT-009` sampai `RM-FACT-012`, dua di antaranya utang yang sebelumnya tidak terlihat: `RM-DEC-006` nol implementasi, dan layar penelusuran hanya membaca 13 dari 20 model `ClinicalManagement`. Acceptance criteria bertambah dari 17 menjadi 24. Tiga entri `RM-FE` baru. Empat blocker baru dicatat, tiga di antaranya milik blueprint Laboratorium. Dua pernyataan basi pada dokumen ini dikoreksi: blocker 1 dan 4 yang sudah tertutup sejak 26 Agustus, dan catatan penutup yang masih menyatakan nol keputusan `approved`. |
