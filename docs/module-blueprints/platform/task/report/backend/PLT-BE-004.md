@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/platform/roadmap/backend-roadmap.md` §5 |
 | Trace | `AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, `AC-PLT-012` · `DEC-PLT-003`, `DEC-PLT-008` · `INV-PLT-001`, `INV-PLT-003` · `CONF-PLT-002`, `NOTE-PLT-001` |
 | Contract version | `v1` — ✅ **`approved`** |
-| Dependency | `PLT-BE-003` ✅ · **PostgreSQL yang berjalan** ⛔ |
+| Dependency | `PLT-BE-003` ✅ · **Database test PostgreSQL tersendiri** ⛔ — server terjangkau sejak 10 September 2026, tetapi role-nya belum berhak membuat database |
 | Klasifikasi | `MEDIUM` — nol source aplikasi, enam uji integrasi |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/**` |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `f0d6855` cabang `sukmagp` |
-| Tanggal | `2026-09-09` |
-| Status | 🟡 **SELESAI SEBAGIAN.** Uji ditulis dan **compile**, tetapi **nol acceptance criteria terbukti** — tidak ada PostgreSQL yang dapat dipakai di lingkungan ini |
+| Commit backend saat dikerjakan | `f0d6855` cabang `sukmagp` — ditulis 9 September 2026 · percobaan ulang 10 September 2026 pada `843430b`, cabang sama |
+| Tanggal | `2026-09-09` ditulis · **`2026-09-10` diperbarui** setelah percobaan menjalankan ulang |
+| Status | 🟡 **SELESAI SEBAGIAN.** Uji ditulis dan **compile**, tetapi **nol acceptance criteria terbukti**. Percobaan ulang 10 September 2026 mempersempit blocker-nya: server PostgreSQL **terjangkau** dan target `QuilvianNumberSeriesTest` **diterima** fixture, tetapi role-nya ditolak server dengan `42501: permission denied to create database` |
 
 ---
 
@@ -105,6 +105,9 @@ Yang dibuktikan enam uji tersebut:
 | **`AC-PLT-005`** deret berbeda tidak menunggu | **Tidak dijalankan** | **`NOT RUN`** | Sama |
 | **`AC-PLT-012`** deret Billing tidak berubah | **Tidak dijalankan** | **`NOT RUN`** | Sama |
 | Eksekusi migration | Tidak dijalankan | `NOT RUN` | Wewenang terpisah, dan tidak ada database untuk menerapkannya |
+| **Ulang 10 Sep 2026** — `dotnet build QuilvianSystemBackend.sln` | `0 Error(s)`, **`210 Warning(s)`** | `PASS` | Masih sama persis baseline pada `843430b` |
+| **Ulang 10 Sep 2026** — `dotnet test` filter `~Platform` (SQLite) | **54 lulus, 0 gagal** | `PASS` | Bukan milik task ini; dicatat sebagai pembanding bahwa ✅ lain masih sahih |
+| **Ulang 10 Sep 2026** — `dotnet test` filter `~Platform` (Postgres) | **0 lulus, 6 gagal dalam 13 ms** | **`NOT RUN`** | Seluruhnya `42501: permission denied to create database` — bukan kegagalan domain; lihat §4.2 |
 
 ### 4.1 Kenapa `NOT RUN`, bukan `FAIL`
 
@@ -124,7 +127,8 @@ bersifat *fail-closed* sejak temuan `RJ-BIL-BE-002`, ketika fallback ke
 `appsettings.Development.json` membuat `dotnet test` menerapkan migration ke database dev bersama
 `QuilvianNewDevTim01` tanpa ada yang memerintahkannya.
 
-Keadaan lingkungan yang diperiksa:
+Keadaan lingkungan yang diperiksa **pada 9 September 2026** — sebagian di antaranya **dikoreksi**
+10 September 2026; lihat §4.2:
 
 | Pemeriksaan | Hasil |
 | --- | --- |
@@ -137,6 +141,52 @@ Tidak ada PostgreSQL yang dapat dipakai di lingkungan ini, dan **tidak ada satu 
 yang sah**: menyalakan database, menyediakan container, atau mengarahkan uji ke database dev
 bersama adalah tindakan infrastruktur yang menuntut wewenang terpisah — dan yang terakhir persis
 yang dilarang fixture ini.
+
+### 4.2 Percobaan ulang 10 September 2026 — blocker dipersempit menjadi satu hak akses
+
+Percobaan kedua dijalankan pada `843430b` atas wewenang eksplisit pemilik pekerjaan, dengan target
+database yang disebut namanya: `QuilvianNumberSeriesTest`.
+
+**Tiga catatan 9 September 2026 dikoreksi:**
+
+| Yang dicatat 9 September 2026 | Keadaan sebenarnya 10 September 2026 |
+| --- | --- |
+| "Nol service `*postgres*`, port `5432` tidak LISTEN" | **Benar untuk mesin lokal, tetapi menyesatkan.** Server PostgreSQL yang dipakai project ini **remote** dan **terjangkau** pada port `5432` |
+| "Tidak ada PostgreSQL yang dapat dipakai di lingkungan ini" | **Tidak akurat.** Servernya ada; yang belum ada adalah **database test tersendiri** beserta **hak membuatnya** |
+| Blocker = "sediakan PostgreSQL" | Blocker sebenarnya = **satu grant privilege** |
+
+Catatan lama **tidak dihapus** — tabel §4.1 dibiarkan apa adanya sebagai riwayat, karena pada mesin
+lokal isinya memang benar.
+
+**Ketiga penjagaan nama fixture lolos.** `QuilvianNumberSeriesTest` bukan nama terlarang, nol
+penanda terlarang (`prod`, `production`, `live`, `staging`, `stage`, `uat`, `dev`, `shared`), dan
+memuat penanda wajib `test`. Fixture **menerima** target itu lalu melanjutkan ke pembuatan
+database — artinya bentuk connection string-nya sudah benar.
+
+**Yang menolak adalah server, bukan fixture:**
+
+```text
+Failed!  - Failed: 6, Passed: 0, Total: 6, Duration: 13 ms
+
+Npgsql.PostgresException : 42501: permission denied to create database
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlDatabaseCreator.Create()
+   at Microsoft.EntityFrameworkCore.Migrations.Internal.Migrator.Migrate(String targetMigration)
+```
+
+**Nol efek samping.** Penolakan terjadi pada perintah `CREATE DATABASE`, sebelum satu baris pun
+ditulis: nol database dibuat, nol schema berubah, dan **nol perintah tulis dikirim ke
+`QuilvianNewDevTim01`**. Nilai connection string hanya hidup di dalam proses uji itu dan tidak
+dipersistensi ke berkas, environment user, maupun environment machine mana pun.
+
+**Penutupnya satu tindakan pemilik server**, salah satu dari:
+
+```sql
+-- opsi A: beri hak buat database ke role yang dipakai
+ALTER ROLE <role> CREATEDB;
+
+-- opsi B: DBA yang membuatkan, role cukup jadi pemiliknya
+CREATE DATABASE "QuilvianNumberSeriesTest" OWNER <role>;
+```
 
 Uji manual: `NOT FEASIBLE` — sebabnya sama.
 
@@ -183,7 +233,7 @@ Uji manual: `NOT FEASIBLE` — sebabnya sama.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat bagian 8 |
-| Langkah berikutnya | **(1)** Sediakan database test PostgreSQL tersendiri, lalu isi `QUILVIAN_BILLING_TEST_DB` dengan connection string-nya — nama database **wajib** memuat `test` dan **tidak boleh** memuat `dev`, `prod`, `staging`, `uat`, atau `shared`. **(2)** Jalankan ulang keenam uji; task ini naik ke ✅ hanya setelah keempat `AC` benar-benar lulus. **(3)** Baru jadwalkan task Bank Darah |
+| Langkah berikutnya | **Dipersempit 10 September 2026.** **(1)** Pemilik server memberi hak buat database — `ALTER ROLE <role> CREATEDB;` — **atau** membuatkan `QuilvianNumberSeriesTest` dengan role itu sebagai pemiliknya. Langkah "sediakan PostgreSQL" **tidak lagi diperlukan**: servernya sudah ada dan terjangkau. **(2)** Isi `QUILVIAN_BILLING_TEST_DB`, lalu jalankan ulang keenam uji; task ini naik ke ✅ hanya setelah keempat `AC` benar-benar lulus. **(3)** Baru jadwalkan task Bank Darah |
 
 ---
 
@@ -197,3 +247,10 @@ Berkas lain pada working tree berasal dari task sebelumnya di sesi yang sama.
 
 Nol operasi `stage`, `commit`, `push`, `pull`, `merge`, `rebase`, `stash`, maupun `deploy`
 dijalankan. **Nol perintah database dijalankan.** `HEAD` tetap `f0d6855`.
+
+**Keadaan 10 September 2026.** `git status --short` **kosong** — nol berkas berubah pada percobaan
+ulang, karena berkas uji task ini sudah ter-commit pada `843430b`. Nol operasi `stage`, `commit`,
+`push`, `pull`, `merge`, `rebase`, `stash`, maupun `deploy` dijalankan. Berbeda dari 9 September
+2026, **satu perintah database dicoba dan ditolak server**: `CREATE DATABASE` lewat
+`Database.Migrate()`, atas wewenang eksplisit pemilik pekerjaan dengan target yang disebut
+namanya. **Nol perintah database berhasil dijalankan.**
