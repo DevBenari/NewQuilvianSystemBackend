@@ -5,11 +5,11 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 24
+revision: 25
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-07T00:00:00+07:00
+updated_at: 2026-09-10T00:00:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
@@ -26,9 +26,13 @@ last_readiness_scope_note: >-
   empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
   Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
   dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
-backend_source_sha: 95e4b8d
+backend_source_sha: 23fb65a
 backend_source_sha_note: >-
-  Naik dari 5360286 pada 10 September 2026, delapan commit. Impact scan terbatas
+  Naik dari 95e4b8d pada 10 September 2026 lewat dua commit: c606baf (dokumentasi Bank
+  Darah) dan 23fb65a (PLT-BE-004). Di luar docs/ hanya BillingTestDatabaseFixture.cs dan
+  README project uji Postgres yang berubah — nol source aplikasi, sehingga peta kemampuan
+  tetap CURRENT tanpa impact scan. Sebelumnya: naik dari 5360286 pada 10 September 2026,
+  delapan commit. Impact scan terbatas
   dijalankan: 34 berkas source aplikasi berubah, 14 di antaranya milik Bank Darah
   sendiri yaitu implementasi BE-BD-005/BE-BD-011 beserta migration AddBbkBloodGroupExam
   yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
@@ -147,6 +151,7 @@ resolved_dependency_ids:
   - BD-DEP-005
   - BD-DEP-008
   - BD-DEP-016
+  - BD-DEP-017
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
@@ -160,8 +165,11 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 2
+active_roadmap_revision: 7
 roadmap_status: APPROVED
+roadmap_status_note: >-
+  backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10. frontend-roadmap.md revisi 7
+  masih FORWARD-TEST / DRAFT dan menunggu keputusan tersendiri.
 supersedes: null
 ```
 
@@ -621,3 +629,26 @@ keputusan blueprint ini.
 
 Revisi naik ke 24 karena dua dependency berpindah status secara material. Set kontrak **tetap `v4`
 `approved`** dan tidak tersentuh: tidak ada arsitektur target, kontrak, maupun keputusan yang berubah.
+
+---
+
+**Penutupan `G4` dan approval roadmap backend revisi 7 — 10 September 2026, revisi 25.**
+
+Mesin pemberi nomor bisnis yang dapat dipakai Bank Darah kini ada dan terbukti andal, dan pemilik
+gerbangnya menyatakan gerbang itu tertutup.
+
+| Perubahan | Dari | Menjadi |
+| --- | --- | --- |
+| `BD-DEP-017` / `G4` provider number-series | terbuka | **tertutup** — masuk `resolved_dependency_ids` |
+| `active_roadmap_revision` | `2` | **`7`** — roadmap backend, disetujui `Sukmagp` 2026-09-10 |
+| `backend_source_sha` | `95e4b8d` | **`23fb65a`** — nol source aplikasi berubah |
+| `BE-BD-003` | ⛔ | 🟡 siap dijadwalkan |
+
+**Dasarnya:** `PLT-BE-003` (`NumberSeriesAllocator`, 9 September 2026), `PLT-BE-004` (6 dari 6 uji
+durabilitas lulus di PostgreSQL `QuilvianNewDevSukma`, 10 September 2026, commit `23fb65a`), dan
+pernyataan pemilik gerbang `Andry` yang disampaikan `Sukmagp` pada hari yang sama tanpa dokumen
+tertulis terlampir.
+
+**Nol perubahan arsitektur, kontrak, maupun keputusan Bank Darah.** Revisi naik ke 25 karena satu
+dependency berpindah status secara material — pola yang sama dengan revisi 24. Roadmap frontend
+revisi 7 **tidak** ikut disetujui.

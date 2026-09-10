@@ -11,6 +11,10 @@ revision_5_scope: CROSS_MODULE_DEPENDENCY_AND_STATUS_ONLY
 revision_6_scope: BLOCKER_REFRESH_ONLY
 revision_7_scope: PLATFORM_DEPENDENCY_CONCRETE
 status: FORWARD-TEST / DRAFT
+status_note: >-
+  backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10 dan gerbang G4 tertutup pada
+  hari yang sama. Dokumen penelusuran ini mengikuti roadmap frontend yang masih DRAFT;
+  isinya sudah diperbarui untuk mencerminkan penutupan G4.
 contract_version: v4 (approved)
 backend_source_sha: 55ac6ab
 backend_source_sha_note: >-
@@ -42,20 +46,20 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | --- | --- | --- | --- | --- |
 | Katalog komponen darah terkendali | `DEC-BD-024`, `DEC-BD-032` | ✅ `BE-BD-001` | ✅ `FE-BD-001` | Backend & frontend **terbukti** ([FE-BD-001](../task/report/frontend/FE-BD-001.md)) |
 | Daftar alasan berkategori | `DEC-BD-044`, `DEC-BD-024` | ✅ `BE-BD-001` | ✅ `FE-BD-001` | Backend & frontend **terbukti** ([FE-BD-001](../task/report/frontend/FE-BD-001.md)) |
-| Kewenangan unit memesan darah dari konfigurasi | `DEC-BD-012` | ✅ `BE-BD-002` | — | Penegakan diteruskan ke ⛔ `BE-BD-003` |
+| Kewenangan unit memesan darah dari konfigurasi | `DEC-BD-012` | ✅ `BE-BD-002` | — | Penegakan diteruskan ke 🟡 `BE-BD-003`, yang siap dijadwalkan sejak 10 September 2026 |
 | Lokasi penyimpanan darah dikelola | `DEC-BD-035`, `DEC-BD-037` | ✅ `BE-BD-014` | 🟡 `FE-BD-011` | Backend **terbukti**. Frontend **dikerjakan 10 September 2026** ([laporan](../task/report/frontend/FE-BD-011.md)) — layar `FE-BD-10` berdiri, build lulus, tetapi **1 dari 2 acceptance**: `FE-BD-015` menunggu angka kantong tertahan dari `BE-BD-015` |
 | Hak akses per tindakan | `DEC-BD-039`..`047` | 🟡 `BE-BD-016` 17/39 | — | Sisa lahir bersama controller pemakainya |
-| **Pemeriksaan golongan darah** | `DEC-BD-015`, `DEC-BD-018`, `DEC-BD-026` | ✅ `BE-BD-005` | ⛔ `FE-BD-005` | Backend **terbukti** ([BE-BD-005](../task/report/backend/BE-BD-005.md)). `FE-BD-005` **tetap tertahan** — dependency-nya juga `BE-BD-007`/`BE-BD-008` yang tertahan `G4`, dan roadmap frontend melarang memecahnya tanpa persetujuan pemilik |
+| **Pemeriksaan golongan darah** | `DEC-BD-015`, `DEC-BD-018`, `DEC-BD-026` | ✅ `BE-BD-005` | ⛔ `FE-BD-005` | Backend **terbukti** ([BE-BD-005](../task/report/backend/BE-BD-005.md)). `FE-BD-005` **tetap tertahan** — dependency-nya juga `BE-BD-007`/`BE-BD-008` yang tertahan rantai dependency (`G4` sendiri tertutup 10 September 2026), dan roadmap frontend melarang memecahnya tanpa persetujuan pemilik |
 | **Penyelesaian konflik golongan darah** | `DEC-BD-026`, `DEC-BD-031`, `DEC-BD-039` | ✅ `BE-BD-011` | 🟡 `FE-BD-009` | Backend **terbukti** ([BE-BD-011](../task/report/backend/BE-BD-011.md)); `FE-BD-009` kini terbuka |
-| Order darah dan pembatalannya | `DEC-BD-004/005/006/044` | ⛔ `BE-BD-003` | ⛔ `FE-BD-002` | Tertahan `G4` |
-| Permintaan PMI dan penerimaan | `DEC-BD-002/003/008/020` | ⛔ `BE-BD-004` | ⛔ `FE-BD-003` | Tertahan `G4` |
+| Order darah dan pembatalannya | `DEC-BD-004/005/006/044` | 🟡 `BE-BD-003` | ⛔ `FE-BD-002` | **`G4` ✅ tertutup 10 September 2026** — backend siap dijadwalkan; frontend menunggu backend-nya |
+| Permintaan PMI dan penerimaan | `DEC-BD-002/003/008/020` | ⛔ `BE-BD-004` | ⛔ `FE-BD-003` | Menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | Penyimpanan dan perpindahan kantong | `DEC-BD-036`, `DEC-BD-037` | ⛔ `BE-BD-015` | ⛔ `FE-BD-012` | Tertahan lewat `BE-BD-004` |
 | Alokasi kantong | `DEC-BD-003/007/029` | ⛔ `BE-BD-006` | ⛔ `FE-BD-004` | Tertahan lewat `BE-BD-015` |
 | Bukti kecocokan dan pemberian | `DEC-BD-013/027/028/038/042` | ⛔ `BE-BD-007` | ⛔ `FE-BD-005` | Tertahan lewat `BE-BD-006` |
 | Pemberian jalur darurat | `DEC-BD-017/038/040` | ⛔ `BE-BD-008` | ⛔ `FE-BD-005` | Tertahan lewat `BE-BD-007` |
 | Penyelesaian kantong `PendingReview` | `DEC-BD-019/028/043/045` | ⛔ `BE-BD-009` | ⛔ `FE-BD-007` | Tertahan lewat `BE-BD-006/007` |
 | Koreksi pencatatan pemberian | `DEC-BD-030/034/041` | ⛔ `BE-BD-010` | ⛔ `FE-BD-008` | Tertahan lewat `BE-BD-007` |
-| Tindakan Bank Darah tercatat | `DEC-BD-021`, `DEC-BD-034` | ⛔ `BE-BD-012` | ⛔ `FE-BD-010` | Tertahan `G4` |
+| Tindakan Bank Darah tercatat | `DEC-BD-021`, `DEC-BD-034` | ⛔ `BE-BD-012` | ⛔ `FE-BD-010` | Menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | Layar terjangkau dari menu | — | — | 🟡 `FE-BD-006` | **Dikerjakan 10 September 2026** ([laporan](../task/report/frontend/FE-BD-006.md)) — ketiga layar Setup terjangkau tepat sekali dan cocok kontrak; **1 dari 2 acceptance**: visibilitas menurut hak akses belum ada karena `filterMenuItemsByRole` masih stub |
 | Penyaluran biaya ke Billing | `DEC-BD-016` **OPEN** | — `BE-BD-013` | — | **Future scope** |
 
@@ -68,11 +72,11 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | `AC-BD-055`, `AC-BD-056` | ✅ `BE-BD-001` | **Terbukti** — laporan tracked, 56 test lulus |
 | `AC-BD-015`, `AC-BD-016` | ✅ `BE-BD-002` | **Terbukti** — 8 test lulus |
 | `AC-BD-064` | ✅ `BE-BD-014` | **Terbukti** — 25 test lulus |
-| `AC-BD-013` | ⛔ `BE-BD-003` | Diteruskan dari `BE-BD-002`; menunggu jalur order |
+| `AC-BD-013` | 🟡 `BE-BD-003` | Diteruskan dari `BE-BD-002`; task pemiliknya siap dijadwalkan sejak 10 September 2026 |
 | `AC-BD-030/034/035/077/078` | ✅ `BE-BD-005` | **Terbukti** — 29 test pada `BloodGroupExamServiceTests` + `BloodBankRoleAccessContractTests`. `AC-BD-077/078` terbukti pada tingkat penegakan atribut hak akses; batasnya dicatat di [laporan](../task/report/backend/BE-BD-005.md) bagian 6 |
 | `AC-BD-036/037/051/053/054/079/080` | ✅ `BE-BD-011` | **Terbukti** — 9 test penyelesaian konflik. `AC-BD-037` terbukti pada tingkat penegakan atribut hak akses; batasnya dicatat di [laporan](../task/report/backend/BE-BD-011.md) bagian 8 |
-| `AC-BD-001/002/003/004/010/011/017/095/096/097` | ⛔ `BE-BD-003` | Tertahan `G4` |
-| `AC-BD-005/006/009/022/023/031/032/033/059` | ⛔ `BE-BD-004` | Tertahan `G4` |
+| `AC-BD-001/002/003/004/010/011/017/095/096/097` | 🟡 `BE-BD-003` | Belum diuji — task siap dijadwalkan sejak `G4` tertutup 10 September 2026 |
+| `AC-BD-005/006/009/022/023/031/032/033/059` | ⛔ `BE-BD-004` | Menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | `AC-BD-060/061/063/066/067/068/069/070` | ⛔ `BE-BD-015` | Tertahan |
 | `AC-BD-062`, `AC-BD-065` | ⛔ `BE-BD-015` | Diteruskan dari `BE-BD-014` |
 | `AC-BD-043/044/045/046/071` | ⛔ `BE-BD-006` | Tertahan |
@@ -80,14 +84,18 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | `AC-BD-020/021/074/075/081/082/083/084/085` | ⛔ `BE-BD-008` | Tertahan |
 | `AC-BD-007/008/024/025/029/092/093/094` | ⛔ `BE-BD-009` | Tertahan |
 | `AC-BD-047/048/049/050/086/087/088` | ⛔ `BE-BD-010` | Tertahan |
-| `AC-BD-026/058` | ⛔ `BE-BD-012` | Tertahan `G4` |
+| `AC-BD-026/058` | ⛔ `BE-BD-012` | Menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | `AC-BD-027` | — `BE-BD-013` | **Tidak dapat diuji** — `DEC-BD-016` terbuka |
 
 **Hitungan bukti.** Dari 97 acceptance criteria, **17 sudah terbukti** — 5 dari gelombang master
 (`AC-BD-015/016/055/056/064`) ditambah 12 dari pemeriksaan golongan darah
 (`AC-BD-030/034/035/036/037/051/053/054/077/078/079/080`) pada 9 September 2026. **1 tidak dapat
-diuji** karena keputusan terbuka (`AC-BD-027`), dan **79 sisanya belum diuji, seluruhnya menunggu
-`G4`** — tidak ada lagi acceptance criteria yang menunggu task yang sudah dapat dijadwalkan.
+diuji** karena keputusan terbuka (`AC-BD-027`), dan **79 sisanya belum diuji**.
+
+**Diperbarui 10 September 2026:** `G4` tertutup, sehingga **11** dari ketujuh puluh sembilan —
+`AC-BD-001/002/003/004/010/011/013/017/095/096/097` — kini milik task yang siap dijadwalkan, yaitu
+`BE-BD-003`. **68** sisanya menunggu rantai dependency sesudahnya. **Riwayat:** sampai 10 September
+2026 ketujuh puluh sembilan seluruhnya menunggu `G4`.
 
 Tiga dari ketujuh belas — `AC-BD-037`, `AC-BD-077`, `AC-BD-078` — terbukti pada tingkat **penegakan
 atribut hak akses**, bukan pada percobaan panggilan ujung-ke-ujung oleh pengguna berperan berbeda.
@@ -100,7 +108,7 @@ boleh** memakai SuperAdmin karena `HasAccessAsync` meloloskannya sebelum satu ba
 
 | Gap | Keadaan | Akibat |
 | --- | --- | --- |
-| **Provider number-series** (`BD-DEP-017` / `G4`) | **Berubah sifat 9 September 2026.** `OQ-PLT-007` ✅ tertutup — pemiliknya `Andry`; `DEC-PLT-002`..`005`, `007`, `008` ✅ `approved`; blueprint `PLT-SLICE-01` ✅ ada sebagai `DRAFT`. **Yang tersisa:** `OQ-PLT-012`/`OQ-PLT-013` (Area dan prefix registry Platform) masih terbuka dan memblokir perencanaan Platform, roadmap Platform belum ada, dan providernya nol baris kode | **79 acceptance criteria belum dapat diuji.** Tetap gap terbesar modul ini — tetapi kini **dependency pengiriman yang dapat dijadwalkan**, bukan penghalang organisasi. Menunggu gelombang `MVP-1` Platform |
+| ~~**Provider number-series**~~ (`BD-DEP-017` / `G4`) | ✅ **TERTUTUP 10 September 2026.** `NumberSeriesAllocator` berdiri lewat `PLT-BE-003` pada 9 September 2026, dan durabilitasnya terbukti lewat `PLT-BE-004` pada 10 September 2026 — 6 dari 6 lulus di PostgreSQL. Pemiliknya, `Andry`, menyatakan gerbang tertutup. **Riwayat:** **Berubah sifat 9 September 2026.** `OQ-PLT-007` ✅ tertutup — pemiliknya `Andry`; `DEC-PLT-002`..`005`, `007`, `008` ✅ `approved`; blueprint `PLT-SLICE-01` ✅ ada sebagai `DRAFT`. **Yang tersisa:** `OQ-PLT-012`/`OQ-PLT-013` (Area dan prefix registry Platform) masih terbuka dan memblokir perencanaan Platform, roadmap Platform belum ada, dan providernya nol baris kode | **Tidak lagi menahan.** Acceptance criteria yang tersisa kini menunggu task Bank Darah sendiri, bukan gerbang. **Riwayat:** **79 acceptance criteria belum dapat diuji.** Tetap gap terbesar modul ini — tetapi kini **dependency pengiriman yang dapat dijadwalkan**, bukan penghalang organisasi. Menunggu gelombang `MVP-1` Platform |
 | **Asal `SampleIdentifier`** — **DITUTUP 9 September 2026** | Builder `BE-BD-005` menemukan pertentangan nyata: `03-domain-architecture.md:283` menulis *"terbitan sistem"*, sedangkan `03-frontend-architecture.md:218` dan `00-interview-decisions.md:214` memperlakukannya sebagai isian petugas. Dilaporkan sebelum kode ditulis; **pemilik memutuskan `SampleIdentifier` ditulis petugas** | Gap tertutup. `BE-BD-005` **tidak** terkena `G4`. **Sisa pekerjaan dokumentasi:** frasa `BD-DOM-10` pada `03-domain-architecture.md` perlu dikoreksi agar tidak menyesatkan pembaca berikutnya |
 | **Kategori alasan penyelesaian konflik golongan darah** — **BARU** | `BbkBloodGroupConflictResolution.ReasonCode` wajib dan merujuk `MstBloodBankReason`, tetapi kontrak `v4` tidak menetapkan kategori mana yang berlaku. Kesepuluh kategori yang ada seluruhnya menyangkut order dan kantong | **Tidak menahan task.** `BE-BD-011` menuntut alasan yang ada dan aktif tanpa memaksakan kategori. Keputusan pemilik proses diperlukan bila kategori khusus dikehendaki |
 | **Visibilitas menu menurut hak akses** — **BARU 10 September 2026** | Frontend **tidak punya katalog permission** pengguna yang sedang login. `filterMenuItemsByRole` adalah **stub**: Admin dan Manajer dikembalikan menu utuh, sedangkan untuk peran lain seluruh logika filternya dikomentari, sehingga fungsinya memulangkan daftar yang sama persis. `AccessDeniedGate` hanya reaktif — ia menampilkan pesan setelah backend memulangkan `403`. Nol slice dan nol endpoint menyediakan hak akses pengguna berjalan. Ditemukan builder `FE-BD-006`; bukti pada [laporannya](../task/report/frontend/FE-BD-006.md) §1.2 | **Menahan satu acceptance `FE-BD-006`** — butir menu tetap tampil bagi pengguna yang tidak berhak, dan penolakan baru terjadi ketika layarnya dibuka. **Data tidak bocor**, karena penolakannya ditegakkan backend; yang rusak adalah pengalamannya. **Bukan pekerjaan Bank Darah**: menutupnya menuntut sumber permission pengguna, pemetaan tiap butir menu ke `Resource : Action`, lalu penyaringan — kemampuan lintas modul. Catatan tambahan: stub itu menanam nama peran di kode (`Admin`, `Manajer`, dan pada blok terkomentari `Perawat`, `Dokter`), sehingga perbaikannya sebaiknya membaca hak akses yang diberikan, bukan nama peran |
@@ -120,7 +128,7 @@ boleh** memakai SuperAdmin karena `HasAccessAsync` meloloskannya sebelum satu ba
 | ~~`OQ-PLT-007`~~ | ~~Backend Engineering Contract Owner belum ditunjuk~~ ✅ **Tertutup 9 September 2026 — `Andry`** | Tidak lagi memblokir | — |
 | ~~`OQ-PLT-012`~~ | ~~Area registry modul Platform~~ ✅ **Tertutup 9 Sep 2026** → `DEC-PLT-009`: Area `Platform` baru | Tidak lagi memblokir | — |
 | ~~`OQ-PLT-013`~~ | ~~Prefix entity modul Platform~~ ✅ **Tertutup 9 Sep 2026** → `DEC-PLT-010`: prefix `Num` | Tidak lagi memblokir | — |
-| **Approval blueprint `PLT-SLICE-01`** | Blueprint Platform masih `DRAFT` dengan `contract_version: v1 (draft)` dan `approved_by: []` | **`PLT-SLICE-01`** → lalu `G4` → 9 task backend, 8 task frontend. **Inilah penahan terdekat sekarang** | Pemilik kontrak engineering backend — `Andry` |
+| ~~**Approval blueprint `PLT-SLICE-01`**~~ | ✅ **Turun 9 September 2026** — kontrak `v1` `approved` oleh `Sukma Giri Pratama`. Semula blueprint Platform masih `DRAFT` | Tidak lagi memblokir; `G4` tertutup 10 September 2026 | — |
 | ~~`OQ-PLT-014`~~ | ~~Baris registry `Platform`/`Num`~~ ✅ **Tertutup 9 Sep 2026** — dicatat dan `ACTIVE` | Tidak lagi memblokir; `PLT-BE-002` terbuka | — |
 | **Baru** | Kategori alasan penyelesaian konflik golongan darah belum ditetapkan kontrak `v4` | **Tidak memblokir** — `BE-BD-011` menerima alasan aktif mana pun | Pemilik proses BDRS |
 | `DEC-BD-016` | Persetujuan pemilik Billing atas konteks sumber biaya | `BE-BD-013` future scope | Pemilik BillingManagement |
@@ -132,7 +140,7 @@ boleh** memakai SuperAdmin karena `HasAccessAsync` meloloskannya sebelum satu ba
 | `OQ-BD-016` | Apakah bukti pendukung koreksi menuntut lampiran | Bentuk kolom bukti pendukung | Pemilik proses BDRS |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada | Penelusuran bukti ke kebutuhan | Pemilik kebutuhan |
 
-**Hanya `OQ-PLT-007` yang memblokir task.** Delapan lainnya menyangkut scope di luar rilis pertama,
+**Nol keputusan terbuka yang memblokir task per 10 September 2026.** **Riwayat:** sebelumnya hanya `OQ-PLT-007` yang memblokir task. Delapan lainnya menyangkut scope di luar rilis pertama,
 detail implementasi yang nilainya datang dari konfigurasi, atau satu baris seeder — dipertahankan
 supaya tidak hilang, bukan sebagai penahan.
 
@@ -145,22 +153,22 @@ supaya tidak hilang, bukan sebagai penahan.
 | Task backend seluruhnya | 16 |
 | — ✅ selesai | 5 |
 | — 🟡 selesai sebagian | 1 |
-| — 🟡 pending, siap dijadwalkan | 0 |
-| — ⛔ blocked | 9 |
+| — 🟡 pending, siap dijadwalkan | 1 — `BE-BD-003` |
+| — ⛔ blocked | 8 |
 | — future scope | 1 |
 | Task frontend seluruhnya | 12 |
 | — ✅ selesai | 1 |
 | — 🟡 pending, siap dijadwalkan | 3 |
 | — ⛔ blocked | 8 |
 | **Total task** | **28** (27 dalam gelombang + 1 future scope) |
-| **Dapat dijadwalkan hari ini** | **1** — `FE-BD-009`. **Frontend**; nol task backend dapat dijadwalkan tanpa menutup `G4`. `FE-BD-011` dan `FE-BD-006` sudah dikerjakan 10 September 2026, keduanya berakhir 🟡 sebagian |
+| **Dapat dijadwalkan hari ini** | **2** — `BE-BD-003` (backend, terbuka sejak `G4` tertutup 10 September 2026) dan `FE-BD-009` (frontend). `FE-BD-011` dan `FE-BD-006` sudah dikerjakan 10 September 2026, keduanya berakhir 🟡 sebagian |
 | Acceptance criteria seluruhnya | 97 |
 | — terbukti | 17 |
 | — tidak dapat diuji (keputusan terbuka) | 1 |
 | — belum diuji | 79 |
 | Keputusan bisnis | `DEC-BD-001`..`047` |
-| Gerbang tertutup | `G1`, `G2a`, `G2b` |
-| Gerbang terbuka | **`G4`** |
+| Gerbang tertutup | `G1`, `G2a`, `G2b`, **`G4`** — yang terakhir 10 September 2026 |
+| Gerbang terbuka | **Nol** |
 
 **Penelusuran utuh.** Setiap kebutuhan yang sudah diputuskan punya task pemilik, dan setiap task punya
 acceptance criteria. **Nol requirement yatim** — dipastikan ulang pada perencanaan 9 September 2026,
@@ -170,3 +178,6 @@ Yang kurang bukan penelusurannya, melainkan **bukti** — dan sebagian besar buk
 gerbang yang kini **sudah punya pemilik dan sudah punya blueprint**, tetapi belum punya kodenya.
 Perbedaan itu penting: sebelum 9 September 2026 tidak ada yang dapat dijadwalkan untuk menutup `G4`;
 sekarang ada, yaitu gelombang `MVP-1` blueprint Platform.
+
+**Diperbarui 10 September 2026.** Gelombang `MVP-1` Platform selesai dan `G4` tertutup. Bukti yang
+tersisa kini menunggu **task Bank Darah sendiri**, dimulai `BE-BD-003` — bukan lagi menunggu modul lain.
