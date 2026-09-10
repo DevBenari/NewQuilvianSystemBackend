@@ -24,7 +24,7 @@ decision_revision: 4
 | Durabilitas dan antrean terbukti | `DEC-PLT-008`, `INV-PLT-001` | 🟡 `PLT-BE-004` | — | **Uji ditulis, nol dijalankan** ([laporan](../task/report/backend/PLT-BE-004.md)). Menunggu database test |
 | Kewenangan platform/modul terbagi | `DEC-PLT-005` | ✅ `PLT-BE-003` | — | **Terbukti** — 4 dari 6 parameter milik pemanggil |
 | Deret baru tidak pernah diulang | `DEC-PLT-004`, `INV-PLT-004` | ✅ `PLT-BE-003` | — | **Terbukti** — pergantian tahun tidak mengulang deret |
-| Keadaan deret dapat dibaca administrator | — | 🟡 `PLT-BE-005` | ⛔ `PLT-FE-001` | `SHOULD HAVE`, gelombang `MVP-2` |
+| Keadaan deret dapat dibaca administrator | `FR-PLT-012`, `FR-PLT-013` | ✅ `PLT-BE-005` | ⛔ `PLT-FE-001` | **Terbukti** ([laporan](../task/report/backend/PLT-BE-005.md)) — 4 endpoint baca, 22 kasus uji lulus. **Belum dapat dipanggil**: migration belum dijalankan |
 
 **Nol requirement yatim.** Ketujuh kebutuhan pada `04-prd-to-mvp.md` punya task pemilik.
 
@@ -63,7 +63,8 @@ migration dijalankan.
 | Perilaku deret hampir habis | `OQ-PLT-005` terbuka | Sementara ditahan tegas oleh `VAL-PLT-007` |
 | Kode fasilitas dalam awalan | `OQ-PLT-006` terbuka | `LATER SLICE` |
 | Nomor kembar yang mungkin sudah terbit | `OQ-PLT-009` terbuka | `PLT-SLICE-04`; risiko lama dibiarkan apa adanya |
-| Perlu-tidaknya layar pemantauan | Belum ada brief navigasi | `PLT-BE-005`/`PLT-FE-001` dapat dicabut bersama tanpa memengaruhi `G4` |
+| ~~Perlu-tidaknya layar pemantauan~~ | Backend-nya **sudah berdiri** — `PLT-BE-005` selesai 10 Sep 2026. Brief navigasi masih belum ada | Tidak lagi menjadi gap backend. `PLT-FE-001` tetap menunggu brief navigasi; mencabutnya kini berarti membuang endpoint yang sudah terbukti, bukan sekadar membatalkan rencana |
+| **Migration `NumNumberSeries` belum dijalankan** | Tabelnya belum ada di lingkungan mana pun | Menahan **pemakaian nyata** `PLT-BE-003` dan keempat endpoint `PLT-BE-005`; nol pengaruh pada pembuktian kodenya. Wewenang terpisah |
 
 ---
 
@@ -94,9 +95,9 @@ migration dijalankan.
 | Butir | Jumlah |
 | --- | ---: |
 | Task backend | 5 |
-| — ✅ selesai | **3** — `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003` |
+| — ✅ selesai | **4** — `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003`, `PLT-BE-005` |
 | — 🟡 selesai sebagian | **1** — `PLT-BE-004`, nol AC terbukti |
-| — 🟡 pending, siap dijadwalkan | **1** — `PLT-BE-005` |
+| — 🟡 pending, siap dijadwalkan | **0** — nol tersisa |
 | — ⛔ blocked | 0 |
 | Task frontend | 1 |
 | — ⛔ blocked | 1 |

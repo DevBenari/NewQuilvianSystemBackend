@@ -422,6 +422,11 @@ try
     // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
     builder.Services.AddScoped<NumberSeriesAllocator>();
 
+    // Pembaca keadaan deret untuk layar pemantauan administrator (PLT-BE-005). Sengaja terpisah
+    // dari alokator: service ini hanya membaca dan tidak pernah memanggil SaveChanges, sehingga
+    // jalur layar tidak pernah menjadi jalan masuk untuk menyunting pencacah (INV-PLT-001).
+    builder.Services.AddScoped<NumberSeriesQueryService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(

@@ -48,9 +48,15 @@ backend target dan dokumen engineering canonical — bukan di dokumen ini.
 registry. **`PLT-BE-001`, `PLT-BE-002`, dan `PLT-BE-003` seluruhnya selesai** pada hari yang sama,
 sehingga gerbang `G4` Bank Darah **tertutup secara kemampuan**: providernya ada.
 
-**Nol task Platform terblokir.** `PLT-BE-004` sudah **ditulis** tetapi 🟡 **sebagian** — keenam
-uji-nya belum pernah dijalankan; ia menunggu database test, bukan menunggu kode. `PLT-BE-005`
-`SHOULD HAVE` dan siap dikerjakan kapan saja.
+**Nol task Platform terblokir, dan nol tersisa pending.** `PLT-BE-005` **selesai** 10 September
+2026 — empat endpoint baca berdiri, 22 kasus uji baru seluruhnya lulus. `PLT-BE-004` sudah
+**ditulis** tetapi 🟡 **sebagian** — keenam uji-nya belum pernah dijalankan; ia menunggu database
+test, bukan menunggu kode.
+
+⚠️ **Empat endpoint `PLT-BE-005` belum dapat dipanggil.** Migration
+`20260909070218_AddNumNumberSeries` **belum dijalankan**, sehingga tabel `NumNumberSeries` belum
+ada di lingkungan mana pun. Kodenya berdiri dan terbukti; yang belum ada adalah tabelnya.
+Menjalankan migration adalah **wewenang terpisah**.
 
 ⚠️ **`AC-PLT-003`, `AC-PLT-004`, `AC-PLT-005`, dan `AC-PLT-012` masih belum terbukti.** Uji-nya
 sudah **ditulis dan compile** (`PLT-BE-004`), tetapi belum pernah dijalankan karena tidak ada
@@ -120,9 +126,9 @@ pemilik registry — di luar scope slice ini.
 
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
-| ✅ SELESAI | 3 | `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003` |
+| ✅ SELESAI | 4 | `PLT-BE-001`, `PLT-BE-002`, `PLT-BE-003`, `PLT-BE-005` |
 | 🟡 SELESAI SEBAGIAN | 1 | `PLT-BE-004` — uji ditulis, **nol AC terbukti** |
-| 🟡 PENDING | 1 | `PLT-BE-005` |
+| 🟡 PENDING | 0 | — |
 | ⛔ BLOCKED | 0 | — |
 | **Total** | **5** | |
 
@@ -147,8 +153,10 @@ pemilik registry — di luar scope slice ini.
                              │          6 uji DITULIS dan compile; NOL dijalankan
                              │          tertahan: QUILVIAN_BILLING_TEST_DB belum diisi
                              │
-                             └── 🟡 PLT-BE-005 (layar pemantauan — SHOULD HAVE)   PENDING
+                             └── ✅ PLT-BE-005 (layar pemantauan — SHOULD HAVE)   SELESAI 10 September 2026
                                         dep: PLT-BE-003 ✅ · gelombang MVP-2
+                                        4 endpoint baca; 22 kasus uji baru, seluruhnya lulus
+                                        BELUM dapat dipanggil — migration belum dijalankan
 ```
 
 **Rantai ini lurus dan tidak dapat dipotong.** Tabel tidak dapat dibuat sebelum prefixnya sah,
@@ -238,21 +246,23 @@ task Bank Darah sebelum `PLT-BE-004` lulus adalah risiko yang disadari** — lih
 
 ---
 
-### 🟡 `PLT-BE-005` — Layar pemantauan deret dapat dibaca administrator
+### ✅ `PLT-BE-005` — Layar pemantauan deret dapat dibaca administrator
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING** sejak 9 September 2026. Gelombang `MVP-2`, **`SHOULD HAVE`** — tidak menahan `G4` |
+| **Status** | ✅ **SELESAI** 10 September 2026. Bukti: [laporan](../task/report/backend/PLT-BE-005.md). `dotnet build` `0 Error(s)`, `186 Warning(s)` — **nol dari berkas task ini**; `dotnet test` filter `~Platform` **54 lulus, 0 gagal** (naik dari 32; selisih 22 kasus adalah uji baru task ini). Keempat acceptance criteria terbukti |
 | **Kenapa bukan `MUST HAVE`** | Gerbang `G4` tertutup tanpa satu layar pun. Menjadikannya wajib akan menahan sembilan task Bank Darah demi daftar yang dibuka administrator beberapa kali setahun |
-| **Outcome** | Administrator dapat melihat keadaan deret saat menelusuri keluhan nomor |
+| **Outcome** | Administrator dapat melihat keadaan deret saat menelusuri keluhan nomor — dan **menjelaskan** lompatan nomor tanpa membuka database |
 | **Trace** | `FR-PLT-012`, `FR-PLT-013` |
 | **Kontrak** | `contracts/api-contract.md` §2 — empat endpoint, **seluruhnya baca**; `contracts/permission-audit-matrix.md` |
 | **Scope** | `NumberSeriesQueryService` + `NumberSeriesController` + DTO. Butir hak akses `NumberSeries : Read` |
 | **Dependency** | `PLT-BE-003` ✅ |
-| **Acceptance** | Empat endpoint memulangkan bentuk sesuai kontrak; butir `NumberSeries : Read` muncul dan dapat dicentang di layar Akses Role |
-| **Verification** | Contract test hak akses bergaya `BloodBankRoleAccessContractTests` |
+| **Acceptance** | ✅ **Keempatnya terbukti** — empat endpoint memulangkan bentuk sesuai kontrak; butir `NumberSeries : Read` lahir dari controller dan dapat dicentang di layar Akses Role; pasangan hak akses tidak menghasilkan `403` permanen; nol endpoint hanya terlindungi `[Authorize]` |
+| **Verification** | ✅ **Dijalankan.** 14 uji query service + 8 contract test hak akses bergaya `BloodBankRoleAccessContractTests`, seluruhnya lulus |
 | **Risk/owner** | Rendah / `Andry` |
-| **DoD** | **Nol** endpoint tulis. Nol tombol yang mengubah pencacah — menyetel ulang melanggar `INV-PLT-001` |
+| **DoD** | ✅ Seluruhnya terpenuhi dan **dipindai**, bukan diyakini: nol endpoint tulis (`SeluruhEndpoint_HanyaGet_NolPostPutPatchDelete`); nol butir hak akses tulis (`ModulHanyaMendaftarkanButirRead_NolButirTulis`); membaca seluruh permukaan tidak mengubah satu baris pun (`MembacaSeluruhPermukaan_TidakMengubahSatuBarisPun`) |
+| **⚠️ Belum dapat dipanggil** | **Migration `20260909070218_AddNumNumberSeries` belum dijalankan**, sehingga tabelnya belum ada di lingkungan mana pun. Risiko warisan dari `PLT-BE-002`, bukan tambahan task ini |
+| **Cacat yang ditangkap uji** | SQLite menolak `DateTimeOffset` pada `MAX` **dan** `ORDER BY`. Bukan cacat produksi — PostgreSQL menerjemahkan keduanya — tetapi membuat jalur ringkasan mustahil dibuktikan tanpa PostgreSQL. Diperbaiki dengan memindahkan kedua jalur itu ke sisi klien; rinciannya di laporan §5.1 |
 
 ---
 
