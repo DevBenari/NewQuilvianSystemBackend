@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -820,7 +820,7 @@ public sealed class BillingDepositServiceTests
         Repositories.ApplicationDbContext db,
         EncounterType encounterType = EncounterType.Inpatient)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
             PatientId = Guid.NewGuid(),
@@ -830,7 +830,7 @@ public sealed class BillingDepositServiceTests
             IsActive = true
         };
         var paymentMethod = PaymentMethod();
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstPaymentMethods.Add(paymentMethod);
         await db.SaveChangesAsync();
         return (encounter.Id, paymentMethod.Id);

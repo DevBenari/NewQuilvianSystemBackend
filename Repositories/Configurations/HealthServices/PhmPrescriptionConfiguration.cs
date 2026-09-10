@@ -6,11 +6,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPrescriptionConfiguration : IEntityTypeConfiguration<TrxPrescription>
+    public class PhmPrescriptionConfiguration : IEntityTypeConfiguration<PhmPrescription>
     {
-        public void Configure(EntityTypeBuilder<TrxPrescription> entity)
+        public void Configure(EntityTypeBuilder<PhmPrescription> entity)
         {
-            entity.ToTable("TrxPrescription", "public");
+            entity.ToTable("PhmPrescription", "public");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.PrescriptionNumber).HasMaxLength(50).IsRequired();
@@ -124,8 +124,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
         }
 
         private static void ConfigureNullableTimestamp(
-            EntityTypeBuilder<TrxPrescription> entity,
-            System.Linq.Expressions.Expression<Func<TrxPrescription, DateTime?>> property)
+            EntityTypeBuilder<PhmPrescription> entity,
+            System.Linq.Expressions.Expression<Func<PhmPrescription, DateTime?>> property)
         {
             entity.Property(property)
                 .HasColumnType("timestamp with time zone")

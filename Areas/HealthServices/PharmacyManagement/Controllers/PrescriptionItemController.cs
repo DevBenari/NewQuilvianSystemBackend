@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -194,7 +194,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     ex.Message));
             }
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == request.PrescriptionId && !x.IsDelete, cancellationToken);
 
@@ -361,7 +361,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     "Dose dan quantity harus lebih dari 0."));
             }
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == entity.PrescriptionId && !x.IsDelete, cancellationToken);
 
@@ -647,7 +647,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             if (request.Quantity <= 0)
                 return (false, "Quantity harus lebih dari 0.");
 
-            var prescriptionExists = await _dbContext.Set<TrxPrescription>()
+            var prescriptionExists = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == request.PrescriptionId && !x.IsDelete, cancellationToken);
             if (!prescriptionExists)

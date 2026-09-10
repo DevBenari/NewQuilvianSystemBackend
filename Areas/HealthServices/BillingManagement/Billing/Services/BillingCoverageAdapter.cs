@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -123,7 +123,7 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             return Anomaly(context.Components, "INSURANCE_PROVIDER_MISSING",
                 "Perusahaan asuransi kunjungan ini belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien. Lengkapi data penjamin di Registrasi.");
 
-        var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
         if (encounter is null)
             // Seharusnya tidak mungkin terjadi karena CalculateAsync sudah memuat encounter lebih

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -92,7 +92,7 @@ public sealed class BillingInvoiceService
         // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
         var joined =
             from invoice in query
-            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on invoice.EncounterId equals encounter.Id into encounterGroup
             from encounter in encounterGroup.DefaultIfEmpty()
             join patient in _dbContext.MstPatients.AsNoTracking()
@@ -165,7 +165,7 @@ public sealed class BillingInvoiceService
 
         var joined =
             from invoice in query
-            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on invoice.EncounterId equals encounter.Id into encounterGroup
             from encounter in encounterGroup.DefaultIfEmpty()
             join patient in _dbContext.MstPatients.AsNoTracking()
@@ -466,6 +466,19 @@ public sealed class BillingInvoiceService
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingInvoiceValidationException("Idempotency-Key wajib diisi.");
+
+        // Cek Idempotency Replay terlebih dahulu agar replay tidak menambah QTY berulang
+        var priorReceipt = await _dbContext.BilChargeReceipts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+        if (priorReceipt is not null)
+        {
+            var replayInvoice = await LoadInvoiceByItemAsync(priorReceipt.InvoiceItemId, cancellationToken);
+            if (replayInvoice.EncounterId != request.EncounterId)
+                throw new BillingInvoiceConflictException("Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
+            return MapDetail(replayInvoice, true);
+        }
 
         var now = DateTime.UtcNow;
         var tariff = await _dbContext.MstTariffs.AsNoTracking()
@@ -474,6 +487,46 @@ public sealed class BillingInvoiceService
                 && (x.EffectiveEndDate == null || now < x.EffectiveEndDate), cancellationToken)
             ?? throw new BillingInvoiceValidationException(
                 "Tarif tidak ditemukan, tidak aktif, atau sudah kedaluwarsa.");
+
+        // Cek apakah sudah ada item aktif dengan nama yang sama (atau TariffId sama) pada invoice encounter ini
+        var existingInvoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
+
+        var tariffName = tariff.TariffName.Trim();
+        var existingItem = existingInvoice?.Items.FirstOrDefault(x =>
+            !x.IsDelete
+            && x.Status == BillingInvoiceItemStatuses.Active
+            && (string.Equals(x.DescriptionSnapshot.Trim(), tariffName, StringComparison.OrdinalIgnoreCase)
+                || (x.TariffId.HasValue && x.TariffId == tariff.Id)));
+
+        if (existingItem is not null)
+        {
+            var newQuantity = existingItem.Quantity + request.Quantity;
+
+            return await UpsertChargeAsync(
+                new UpsertChargeRequest
+                {
+                    EncounterId = request.EncounterId,
+                    SourceDomain = existingItem.SourceDomain,
+                    SourceDetailId = existingItem.SourceDetailId,
+                    SourceVersion = existingItem.SourceVersion + 1,
+                    SourceStatus = existingItem.SourceStatus,
+                    OccurredAt = DateTimeOffset.UtcNow,
+                    CategoryId = existingItem.CategoryId,
+                    TariffId = existingItem.TariffId ?? tariff.Id,
+                    DescriptionSnapshot = existingItem.DescriptionSnapshot,
+                    Quantity = newQuantity,
+                    UnitPrice = existingItem.UnitPrice,
+                    DoctorShare = existingItem.DoctorShare,
+                    ContractVersion = ContractBillingChargeSourceAdapter.ContractVersion,
+                    CorrelationId = request.CorrelationId,
+                    CausationId = request.CausationId
+                },
+                idempotencyKey,
+                actorUserId,
+                cancellationToken);
+        }
 
         return await UpsertChargeAsync(
             new UpsertChargeRequest
@@ -595,7 +648,7 @@ public sealed class BillingInvoiceService
         var safeLimit = Math.Clamp(limit, 1, 100);
 
         var query =
-            from encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            from encounter in _dbContext.RegPatientEncounters.AsNoTracking()
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id
             where !encounter.IsDelete
@@ -685,7 +738,7 @@ public sealed class BillingInvoiceService
         Guid encounterId, CancellationToken cancellationToken)
     {
         var row = await (
-            from encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            from encounter in _dbContext.RegPatientEncounters.AsNoTracking()
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id
             where encounter.Id == encounterId && !encounter.IsDelete
@@ -764,7 +817,7 @@ public sealed class BillingInvoiceService
                 return MapDetail(replayInvoice, true);
             }
 
-            var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
             var categoryExists = await _dbContext.MstTariffCategories.AsNoTracking()

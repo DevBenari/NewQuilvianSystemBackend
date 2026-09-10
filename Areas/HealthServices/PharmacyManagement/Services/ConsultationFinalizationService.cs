@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             consultation.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var prescriptions = await _dbContext.Set<TrxPrescription>()
+            var prescriptions = await _dbContext.Set<PhmPrescription>()
                 .Where(x => x.ConsultationId == consultationId && !x.IsDelete && !x.IsCancel && x.IsActive)
                 .ToListAsync(cancellationToken);
 
@@ -121,7 +121,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var finalizedPrescriptionCount = 0;
-            var finalizedPrescriptions = new List<TrxPrescription>();
+            var finalizedPrescriptions = new List<PhmPrescription>();
             foreach (var prescription in prescriptions.Where(x => x.PrescriptionStatus == PrescriptionStatus.Draft))
             {
                 var workflow = await _prescriptionWorkflowService.FinalizeFromConsultationAsync(prescription, actorUserId, now, cancellationToken);
@@ -253,7 +253,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         /// dan pasien tidak disertakan karena kepemilikan angka tersebut masih menjadi bahasan
         /// RJ-BIL-CONFLICT-001 dan cakupan RJ-BIL-BE-005.
         /// </summary>
-        private static string BuildPrescriptionSnapshot(TrxPrescription prescription)
+        private static string BuildPrescriptionSnapshot(PhmPrescription prescription)
         {
             return JsonSerializer.Serialize(new
             {

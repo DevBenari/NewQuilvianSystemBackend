@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -78,7 +78,7 @@ public class PhmDrugUsage : IdentityModel
     /// <summary>Token konkurensi; naik setiap perubahan.</summary>
     public int Version { get; set; }
 
-    public TrxPatientEncounter? Encounter { get; set; }
+    public RegPatientEncounter? Encounter { get; set; }
     public MstDrugStorageLocation? StorageLocation { get; set; }
     public MstWorkforceProfile? RecordedByWorkforce { get; set; }
     public ICollection<PhmDrugUsageItem> Items { get; set; } = [];

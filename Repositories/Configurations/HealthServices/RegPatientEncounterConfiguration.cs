@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPatientEncounterConfiguration : IEntityTypeConfiguration<TrxPatientEncounter>
+    public class RegPatientEncounterConfiguration : IEntityTypeConfiguration<RegPatientEncounter>
     {
-        public void Configure(EntityTypeBuilder<TrxPatientEncounter> entity)
+        public void Configure(EntityTypeBuilder<RegPatientEncounter> entity)
         {
-            entity.ToTable("TrxPatientEncounter", "public");
+            entity.ToTable("RegPatientEncounter", "public");
 
             entity.HasKey(x => x.Id);
 

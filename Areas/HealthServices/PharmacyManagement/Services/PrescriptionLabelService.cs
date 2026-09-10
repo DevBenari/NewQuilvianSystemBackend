@@ -27,7 +27,7 @@ public sealed class PrescriptionLabelService
     public async Task<PrescriptionLabelResponse?> GetAsync(Guid prescriptionId,
         CancellationToken cancellationToken = default)
     {
-        var header = await _dbContext.TrxPrescriptions.AsNoTracking()
+        var header = await _dbContext.PhmPrescriptions.AsNoTracking()
             .Where(x => x.Id == prescriptionId && !x.IsDelete)
             .Select(x => new
             {

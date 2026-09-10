@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 await SiapkanKunjunganDenganTigaCatatan(context);
 
             // Kunjungan berpindah ke selesai, beserta penguncian dalam satu SaveChanges.
-            var kunjungan = context.Set<TrxPatientEncounter>().Single(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().Single(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterStatus = EncounterStatus.Completed;
             kunjungan.CompletedAt = Sekarang;
 
@@ -151,7 +151,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             await context.SaveChangesAsync();
 
             // Pembatalan tidak memanggil penguncian sama sekali.
-            var kunjungan = context.Set<TrxPatientEncounter>().Single(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().Single(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterStatus = EncounterStatus.Cancelled;
             kunjungan.IsCancel = true;
             context.SaveChanges();

@@ -162,7 +162,7 @@ public sealed class BillingArApHandoffServiceTests
         decimal primaryAmount = 0,
         decimal excessAmount = 0)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
@@ -228,7 +228,7 @@ public sealed class BillingArApHandoffServiceTests
             BreakdownSnapshot = "{}",
             CreateDateTime = DateTime.UtcNow.AddMinutes(-5)
         };
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         db.BilInvoiceItems.Add(item);

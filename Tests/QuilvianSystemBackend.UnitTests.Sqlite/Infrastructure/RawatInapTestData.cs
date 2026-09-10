@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
@@ -204,7 +204,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
             context.Set<MstPatient>().Add(pasien);
             context.SaveChanges();
 
-            var kunjungan = new TrxPatientEncounter
+            var kunjungan = new RegPatientEncounter
             {
                 EncounterNumber = $"KJG-{pembeda}",
                 PatientId = pasien.Id,
@@ -214,7 +214,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 EncounterStatus = EncounterStatus.Registered,
                 RegisteredByUserId = pendaftar.Id
             };
-            context.Set<TrxPatientEncounter>().Add(kunjungan);
+            context.Set<RegPatientEncounter>().Add(kunjungan);
             context.SaveChanges();
 
             // Sumber pembayaran wajib ada pada setiap kunjungan - "Satu encounter wajib

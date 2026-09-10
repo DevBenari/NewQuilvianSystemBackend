@@ -20,7 +20,6 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
 using System.Security.Claims;
 
 using ResponsePatientEncounterPagedResult =
@@ -46,10 +45,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private const string KioskReadPolicy = "KioskRead";
-        private const string EncounterCodePrefix = "ENC-RSMMC-";
-        private const string PaymentSourceCodePrefix = "EGT-RSMMC-";
-        private const int CodeNumberLength = 5;
-
         // Nama kelas dijadikan business key karena kode dan GUID master dapat
         // berbeda antar-environment. Penulisan dibandingkan secara case-insensitive
         // dan mengabaikan spasi berlebih.
@@ -59,17 +54,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly PatientEncounterNumberService _patientEncounterNumberService;
 
         public PatientEncounterController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueRealtimeService queueRealtimeService,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            PatientEncounterNumberService? patientEncounterNumberService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueRealtimeService = queueRealtimeService;
             _integrityService = integrityService;
+            _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
         }
 
         [HttpGet("admin/filters/metadata")]
@@ -563,10 +561,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             try
             {
-                var encounter = new TrxPatientEncounter
+                var encounter = new RegPatientEncounter
                 {
                     Id = Guid.NewGuid(),
-                    EncounterNumber = await GenerateEncounterNumberAsync(),
+                    EncounterNumber = await _patientEncounterNumberService.AllocateEncounterNumberAsync(HttpContext.RequestAborted),
                     PatientId = request.PatientId,
                     ServiceUnitId = request.ServiceUnitId,
                     ClinicId = NormalizeNullableGuid(request.ClinicId),
@@ -625,11 +623,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     patientInsurance,
                     patientCompanyGuarantor,
                     now,
-                    actorUserId);
+                    actorUserId,
+                    HttpContext.RequestAborted);
 
                 ApplyEncounterPaymentSummary(encounter, paymentSource);
 
-                _dbContext.Set<TrxPatientEncounter>().Add(encounter);
+                _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
                 TrxQueue? queue = null;
@@ -917,7 +916,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Status encounter tidak valid. Gunakan nilai dari endpoint filters/metadata."));
             }
 
-            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.Set<RegPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
@@ -970,7 +969,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Update")]
         public async Task<IActionResult> CheckInEncounter(Guid id)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.Set<RegPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
@@ -1005,7 +1004,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             Guid id,
             [FromBody] PatientEncounterAssignDoctorRequest request)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounter>()
+            var entity = await _dbContext.Set<RegPatientEncounter>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -1052,7 +1051,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Update")]
         public async Task<IActionResult> CancelEncounter(Guid id, [FromBody] PatientEncounterCancelRequest request)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.Set<RegPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
@@ -1096,7 +1095,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Delete")]
         public async Task<IActionResult> DeleteEncounter(Guid id, [FromBody] DeletePatientEncounterRequest? request = null)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.Set<RegPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
@@ -1147,9 +1146,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dihapus."));
         }
 
-        private IQueryable<TrxPatientEncounter> BuildBaseQuery()
+        private IQueryable<RegPatientEncounter> BuildBaseQuery()
         {
-            return _dbContext.Set<TrxPatientEncounter>()
+            return _dbContext.Set<RegPatientEncounter>()
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
@@ -1165,7 +1164,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<TrxPatientEncounter> ApplyDateFilter(IQueryable<TrxPatientEncounter> query, DateTime? startDate, DateTime? endDate, string? customPeriod)
+        private static IQueryable<RegPatientEncounter> ApplyDateFilter(IQueryable<RegPatientEncounter> query, DateTime? startDate, DateTime? endDate, string? customPeriod)
         {
             if (startDate.HasValue)
             {
@@ -1206,7 +1205,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private static IQueryable<TrxPatientEncounter> ApplyRelationFilter(IQueryable<TrxPatientEncounter> query, Guid? patientId, Guid? serviceUnitId)
+        private static IQueryable<RegPatientEncounter> ApplyRelationFilter(IQueryable<RegPatientEncounter> query, Guid? patientId, Guid? serviceUnitId)
         {
             var normalizedPatientId = NormalizeNullableGuid(patientId);
             if (normalizedPatientId.HasValue) query = query.Where(x => x.PatientId == normalizedPatientId.Value);
@@ -1217,8 +1216,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private static IQueryable<TrxPatientEncounter> ApplyStandardFilter(
-            IQueryable<TrxPatientEncounter> query,
+        private static IQueryable<RegPatientEncounter> ApplyStandardFilter(
+            IQueryable<RegPatientEncounter> query,
             EncounterStatus? encounterStatus,
             EncounterType? encounterType,
             EncounterPaymentType? paymentType,
@@ -2018,12 +2017,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             MstPatientInsurance? patientInsurance,
             MstPatientCompanyGuarantor? patientCompanyGuarantor,
             DateTime now,
-            Guid actorUserId)
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
         {
             var entity = new RegPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
-                PaymentSourceNumber = await GeneratePaymentSourceNumberAsync(),
+                PaymentSourceNumber = await _patientEncounterNumberService.AllocatePaymentSourceNumberAsync(cancellationToken),
                 EncounterId = encounterId,
                 PatientId = request.PatientId,
                 PaymentType = request.PaymentType,
@@ -2108,7 +2108,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
 
         private static void ApplyEncounterPaymentSummary(
-            TrxPatientEncounter encounter,
+            RegPatientEncounter encounter,
             RegPatientEncounterGuarantor paymentSource)
         {
             encounter.PaymentType = paymentSource.PaymentType;
@@ -2138,29 +2138,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return queues;
         }
 
-        private async Task<string> GenerateEncounterNumberAsync()
-        {
-            return await GenerateRunningCodeAsync<TrxPatientEncounter>(selector: x => x.EncounterNumber, prefix: EncounterCodePrefix);
-        }
 
-        private async Task<string> GeneratePaymentSourceNumberAsync()
-        {
-            // Prefix lama dipertahankan agar penomoran data existing tetap berlanjut.
-            return await GenerateRunningCodeAsync<RegPatientEncounterGuarantor>(
-                selector: x => x.PaymentSourceNumber,
-                prefix: PaymentSourceCodePrefix);
-        }
-
-        private async Task<string> GenerateRunningCodeAsync<TEntity>(Expression<Func<TEntity, string>> selector, string prefix) where TEntity : class
-        {
-            var existingCodes = await _dbContext.Set<TEntity>().IgnoreQueryFilters().AsNoTracking().Select(selector).Where(x => x.StartsWith(prefix)).ToListAsync();
-            var usedNumbers = existingCodes.Select(x => x.Replace(prefix, string.Empty)).Where(x => int.TryParse(x, out _)).Select(int.Parse).Where(x => x > 0).ToHashSet();
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber)) nextNumber++;
-
-            return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
-        }
 
         private async Task<int> GenerateQueueNumberAsync(DateTime operationalDate, Guid serviceUnitId, Guid? clinicId)
         {
@@ -2390,7 +2368,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static PatientEncounterResponse MapResponse(
-            TrxPatientEncounter entity,
+            RegPatientEncounter entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new PatientEncounterResponse
@@ -2472,7 +2450,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static PatientEncounterDetailResponse MapDetailResponse(
-            TrxPatientEncounter entity,
+            RegPatientEncounter entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var response = new PatientEncounterDetailResponse
@@ -2573,7 +2551,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static PatientEncounterOptionResponse MapOptionResponse(
-            TrxPatientEncounter entity)
+            RegPatientEncounter entity)
         {
             return new PatientEncounterOptionResponse
             {
@@ -2644,7 +2622,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
 
 
-        private static IQueryable<TrxPatientEncounter> ApplySorting(IQueryable<TrxPatientEncounter> query, string? sortBy, string? sortDirection)
+        private static IQueryable<RegPatientEncounter> ApplySorting(IQueryable<RegPatientEncounter> query, string? sortBy, string? sortDirection)
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 

@@ -683,7 +683,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 .Select(x => x.OrderReferenceId!.Value).ToHashSet();
             var now = DateTime.UtcNow;
 
-            var prescriptions = await _dbContext.Set<TrxPrescription>().AsNoTracking()
+            var prescriptions = await _dbContext.Set<PhmPrescription>().AsNoTracking()
                 .Where(x => x.EncounterId == encounterId && !x.IsDelete
                     && x.FulfillmentStatus != PrescriptionFulfillmentStatus.Dispensed
                     && x.FulfillmentStatus != PrescriptionFulfillmentStatus.Rejected

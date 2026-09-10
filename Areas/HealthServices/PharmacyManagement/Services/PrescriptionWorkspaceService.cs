@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
@@ -58,7 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             await _aggregateService.EnsureEditableAsync(prescriptionId, cancellationToken);
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstAsync(x => x.Id == prescriptionId && !x.IsDelete, cancellationToken);
 
             if (request.ExpectedUpdatedAt.HasValue &&
@@ -165,9 +165,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             };
         }
 
-        private IQueryable<TrxPrescription> BuildWorkspaceQuery()
+        private IQueryable<PhmPrescription> BuildWorkspaceQuery()
         {
-            return _dbContext.Set<TrxPrescription>()
+            return _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Encounter)
                 .Include(x => x.Consultation)
                 .Include(x => x.Patient)
@@ -231,7 +231,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         private async Task<TrxPrescriptionItem> UpsertRegularItemAsync(
-            TrxPrescription prescription,
+            PhmPrescription prescription,
             AutosavePrescriptionItemRequest request,
             Guid actorUserId,
             DateTime now,
@@ -324,7 +324,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         private async Task<TrxPrescriptionCompound> UpsertCompoundAsync(
-            TrxPrescription prescription,
+            PhmPrescription prescription,
             AutosavePrescriptionCompoundRequest request,
             Guid actorUserId,
             DateTime now,
@@ -402,7 +402,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         private async Task<TrxPrescriptionCompoundItem> UpsertCompoundItemAsync(
-            TrxPrescription prescription,
+            PhmPrescription prescription,
             TrxPrescriptionCompound compound,
             AutosavePrescriptionCompoundItemRequest request,
             Guid actorUserId,
@@ -946,7 +946,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.UpdateBy = actorUserId;
         }
 
-        private static PrescriptionWorkspaceResponse MapWorkspace(TrxPrescription x)
+        private static PrescriptionWorkspaceResponse MapWorkspace(PhmPrescription x)
         {
             return new PrescriptionWorkspaceResponse
             {

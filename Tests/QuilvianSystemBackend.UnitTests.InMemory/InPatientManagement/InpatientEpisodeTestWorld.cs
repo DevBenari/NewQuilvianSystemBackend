@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
@@ -231,11 +231,11 @@ internal sealed class InpatientEpisodeTestWorld
         };
 
     /// <summary>Menambahkan kunjungan yang sudah ada, untuk jalur admisi bukan datang langsung.</summary>
-    public async Task<TrxPatientEncounter> AddEncounterAsync(
+    public async Task<RegPatientEncounter> AddEncounterAsync(
         EncounterType encounterType = EncounterType.Inpatient,
         Guid? patientId = null)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-RSMMC-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
@@ -252,7 +252,7 @@ internal sealed class InpatientEpisodeTestWorld
             CreateBy = ActorUserId
         };
 
-        DbContext.Set<TrxPatientEncounter>().Add(encounter);
+        DbContext.Set<RegPatientEncounter>().Add(encounter);
         await DbContext.SaveChangesAsync();
 
         return encounter;

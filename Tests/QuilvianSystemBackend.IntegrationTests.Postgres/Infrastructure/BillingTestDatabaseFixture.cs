@@ -259,7 +259,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
             context.MstServiceUnits.Add(serviceUnit);
             await context.SaveChangesAsync(cancellationToken);
 
-            var encounter = new TrxPatientEncounter
+            var encounter = new RegPatientEncounter
             {
                 Id = Guid.NewGuid(),
                 EncounterNumber = $"ENC{suffix}",
@@ -269,7 +269,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                 RegisteredByUserId = user.Id
             };
 
-            context.TrxPatientEncounters.Add(encounter);
+            context.RegPatientEncounters.Add(encounter);
             await context.SaveChangesAsync(cancellationToken);
 
             return new EncounterSeed(encounter.Id, user.Id, patient.Id, serviceUnit.Id);
@@ -421,7 +421,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                 .Where(x => x.EncounterId == seed.EncounterId)
                 .ExecuteDeleteAsync(cancellationToken);
 
-            await context.TrxPatientEncounters
+            await context.RegPatientEncounters
                 .Where(x => x.Id == seed.EncounterId)
                 .ExecuteDeleteAsync(cancellationToken);
 

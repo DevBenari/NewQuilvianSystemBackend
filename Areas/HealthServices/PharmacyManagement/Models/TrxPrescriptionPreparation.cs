@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public string? PreparationNote { get; set; }
 
         public bool IsActive { get; set; } = true;
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
         public ICollection<TrxPrescriptionPreparationItem> Items { get; set; }
             = new List<TrxPrescriptionPreparationItem>();
     }

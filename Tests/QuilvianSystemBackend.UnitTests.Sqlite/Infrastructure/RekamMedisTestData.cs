@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -89,7 +89,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
 
             context.SaveChanges();
 
-            var kunjungan = new TrxPatientEncounter
+            var kunjungan = new RegPatientEncounter
             {
                 EncounterNumber = $"KJG-{pembeda}",
                 PatientId = pasien.Id,
@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Tests.Infrastructure
                 EncounterStatus = encounterStatus,
                 RegisteredByUserId = pendaftar.Id
             };
-            context.Set<TrxPatientEncounter>().Add(kunjungan);
+            context.Set<RegPatientEncounter>().Add(kunjungan);
 
             context.SaveChanges();
 

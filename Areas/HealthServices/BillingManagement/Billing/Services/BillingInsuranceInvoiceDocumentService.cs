@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -147,7 +147,7 @@ public sealed class BillingInsuranceInvoiceDocumentService
         Guid encounterId, CancellationToken cancellationToken)
     {
         var row = await (
-            from encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            from encounter in _dbContext.RegPatientEncounters.AsNoTracking()
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id
             where encounter.Id == encounterId && !encounter.IsDelete

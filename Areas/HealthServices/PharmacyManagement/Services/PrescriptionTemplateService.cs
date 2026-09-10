@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
@@ -100,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
                 .Include(x => x.Compounds.Where(c => !c.IsDelete && !c.IsCancel && c.IsActive))
                     .ThenInclude(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 .FirstOrDefaultAsync(x => x.Id == templateId && x.IsActive && !x.IsDelete, cancellationToken)
                 ?? throw new InvalidOperationException("Template resep tidak ditemukan atau tidak aktif.");
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstAsync(x => x.Id == request.PrescriptionId && !x.IsDelete, cancellationToken);
 
             var now = DateTime.UtcNow;

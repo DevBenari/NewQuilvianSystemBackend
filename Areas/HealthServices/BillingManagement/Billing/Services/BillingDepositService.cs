@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -253,7 +253,7 @@ public sealed class BillingDepositService
                 throw new BillingDepositConflictException(
                     "CorrelationId sudah diproses; gunakan correlation baru.");
 
-            var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .SingleOrDefaultAsync(
                     x => x.Id == encounterId && !x.IsDelete && !x.IsCancel,
                     cancellationToken)

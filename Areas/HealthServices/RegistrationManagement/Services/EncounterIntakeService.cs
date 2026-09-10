@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -20,7 +20,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     /// <b>Kenapa berkas ini ada, dan kenapa ia milik Registrasi.</b> Layar pendaftaran pasien
     /// laboratorium berada di modul Laboratorium supaya petugas tidak berpindah aplikasi.
     /// Kunjungannya tetap dibuat Registrasi. Tanpa berkas ini, satu-satunya cara Laboratorium
-    /// melayani pasien datang langsung adalah menulis sendiri ke <c>TrxPatientEncounter</c> —
+    /// melayani pasien datang langsung adalah menulis sendiri ke <c>RegPatientEncounter</c> —
     /// persis yang dilarang <c>AC-45</c>. Jadi berkas ini bukan kemudahan, melainkan
     /// <b>penjaga batas</b>: ia memberi Laboratorium jalur yang sah supaya jalur yang tidak sah
     /// tidak pernah perlu ditempuh.
@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         // Penyimpanan
         // =================================================================
 
-        private async Task<TrxPatientEncounter> PersistAsync(
+        private async Task<RegPatientEncounter> PersistAsync(
             EncounterIntakeRequest request,
             string? idempotencyKey,
             MstPatient patient,
@@ -314,10 +314,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 await using var transaction =
                     await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-                var encounter = new TrxPatientEncounter
+                var encounter = new RegPatientEncounter
                 {
                     Id = Guid.NewGuid(),
-                    EncounterNumber = await AllocateRunningCodeAsync<TrxPatientEncounter>(
+                    EncounterNumber = await AllocateRunningCodeAsync<RegPatientEncounter>(
                         x => x.EncounterNumber, EncounterCodePrefix, cancellationToken),
                     PatientId = patient.Id,
                     ServiceUnitId = serviceUnit.Id,
@@ -360,7 +360,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 encounter.PaymentSource = paymentSource;
 
-                _dbContext.Set<TrxPatientEncounter>().Add(encounter);
+                _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
                 try
@@ -399,7 +399,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         }
 
         private void DetachPending(
-            TrxPatientEncounter encounter,
+            RegPatientEncounter encounter,
             RegPatientEncounterGuarantor paymentSource)
         {
             encounter.PaymentSource = null;
@@ -408,7 +408,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         }
 
         private async Task<RegPatientEncounterGuarantor> BuildPaymentSourceAsync(
-            TrxPatientEncounter encounter,
+            RegPatientEncounter encounter,
             EncounterIntakeRequest request,
             MstPatientInsurance? patientInsurance,
             Guid actorUserId,
@@ -467,11 +467,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         // Pembantu
         // =================================================================
 
-        private async Task<TrxPatientEncounter?> FindByIdempotencyKeyAsync(
+        private async Task<RegPatientEncounter?> FindByIdempotencyKeyAsync(
             string idempotencyKey,
             CancellationToken cancellationToken)
         {
-            return await _dbContext.Set<TrxPatientEncounter>()
+            return await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.RegistrationIdempotencyKey == idempotencyKey && !x.IsDelete,
@@ -530,7 +530,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private static EncounterIntakeResult MapResult(TrxPatientEncounter encounter, bool isReplay) =>
+        private static EncounterIntakeResult MapResult(RegPatientEncounter encounter, bool isReplay) =>
             new()
             {
                 EncounterId = encounter.Id,

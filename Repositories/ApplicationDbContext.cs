@@ -659,7 +659,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
-        public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
+        public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
         public DbSet<TrxQueue> TrxQueues { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
@@ -698,7 +698,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockTransferAllocation> PhmStockTransferAllocations { get; set; }
         public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
 
-        public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
+        public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
         public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
         public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
         public DbSet<TrxPrescriptionCompoundItem> TrxPrescriptionCompoundItems { get; set; }

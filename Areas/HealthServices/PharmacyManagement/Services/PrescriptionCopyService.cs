@@ -492,7 +492,7 @@ public sealed class PrescriptionCopyService
 
     private Task<PrescriptionHeaderView?> LoadHeaderAsync(Guid prescriptionId,
         CancellationToken cancellationToken) =>
-        _dbContext.TrxPrescriptions.AsNoTracking()
+        _dbContext.PhmPrescriptions.AsNoTracking()
             .Where(x => x.Id == prescriptionId && !x.IsDelete)
             .Select(x => new PrescriptionHeaderView
             {

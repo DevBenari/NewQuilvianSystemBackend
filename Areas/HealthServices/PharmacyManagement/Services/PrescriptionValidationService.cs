@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -27,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             var issues = new List<ConsultationFinalizationIssueResponse>();
 
-            var prescriptions = await _dbContext.Set<TrxPrescription>()
+            var prescriptions = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .Include(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
                 .Include(x => x.Compounds.Where(c => !c.IsDelete && !c.IsCancel && c.IsActive))
@@ -63,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         /// menerbitkan fakta ke kunjungan orang lain.
         /// </summary>
         private static void ValidateEncounterRelation(
-            TrxPrescription prescription,
+            PhmPrescription prescription,
             Guid expectedEncounterId,
             List<ConsultationFinalizationIssueResponse> issues)
         {
@@ -75,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 "Prescription", "prescription", "EncounterId", "Prescription", prescription.Id));
         }
 
-        private static void ValidateHeader(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        private static void ValidateHeader(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             if (prescription.PrescriptionStatus != PrescriptionStatus.Draft)
                 return;
@@ -109,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
         }
 
-        private static void ValidateRegularItems(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        private static void ValidateRegularItems(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             var items = prescription.Items.ToList();
 
@@ -144,7 +144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
         }
 
-        private static void ValidateCompounds(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        private static void ValidateCompounds(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             foreach (var compound in prescription.Compounds)
             {

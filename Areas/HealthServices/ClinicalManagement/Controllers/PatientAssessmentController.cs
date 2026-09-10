@@ -476,7 +476,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete)
                 : null;
 
-            var encounter = queue?.Encounter ?? await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = queue?.Encounter ?? await _dbContext.Set<RegPatientEncounter>()
                 .FirstAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             // BE-RWI-044. Konteks perawatan distempel saat dokumen lahir, sehingga pertanyaan
@@ -1466,7 +1466,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<CreateGuard> ValidateCreateWithoutQueueAsync(
             CreatePatientAssessmentRequest request)
         {
-            var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
+            var encounterExists = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
@@ -1540,7 +1540,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 //  - Kunjungan poliklinik dan medical check-up memang tidak pernah punya
                 //    perawatan. Bagi keduanya jawabannya tetap 400 beserta kalimat lama, dan
                 //    perilakunya tidak berubah satu langkah pun - RWI-DEC-070.
-                var jenisKunjungan = await _dbContext.Set<TrxPatientEncounter>()
+                var jenisKunjungan = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .Where(x => x.Id == request.EncounterId && !x.IsDelete)
                     .Select(x => x.EncounterType)

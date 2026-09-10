@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -24,7 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             DateTime now,
             CancellationToken cancellationToken = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstAsync(
                     x => x.Id == prescriptionId && !x.IsDelete,
                     cancellationToken);
@@ -131,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             Guid prescriptionId,
             CancellationToken cancellationToken = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == prescriptionId && !x.IsDelete,

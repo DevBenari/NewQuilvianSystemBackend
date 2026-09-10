@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     ///
     /// <b>Batas yang membentuk seluruh berkas ini, dan yang paling mudah dilanggar.</b>
     /// Laboratorium memiliki <i>layarnya</i>, Registrasi memiliki <i>kunjungannya</i>. Karena
-    /// itu di sini tidak ada satu pun penulisan ke <c>TrxPatientEncounter</c> maupun
+    /// itu di sini tidak ada satu pun penulisan ke <c>RegPatientEncounter</c> maupun
     /// <c>MstPatient</c> — tidak ada <c>Add</c>, tidak ada <c>Update</c>, tidak ada
     /// <c>SaveChanges</c>. Yang ada hanya: menyusun isian, menyerahkannya ke
     /// <see cref="EncounterIntakeService"/> milik Registrasi, menunggu jawabannya, lalu

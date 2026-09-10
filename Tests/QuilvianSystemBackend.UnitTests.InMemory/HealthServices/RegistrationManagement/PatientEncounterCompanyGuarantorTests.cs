@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 
@@ -97,7 +98,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var encounter = await world.DbContext.Set<TrxPatientEncounter>().SingleAsync();
+        var encounter = await world.DbContext.Set<RegPatientEncounter>().SingleAsync();
         var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
 
         Assert.Equal(EncounterPaymentType.CompanyGuarantor, encounter.PaymentType);
@@ -268,7 +269,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         Assert.Equal(400, PatientEncounterTestWorld.KodeStatus(result));
         Assert.Equal(pesanDiharapkan, PatientEncounterTestWorld.Pesan(result));
 
-        Assert.False(await world.DbContext.Set<TrxPatientEncounter>().AnyAsync());
+        Assert.False(await world.DbContext.Set<RegPatientEncounter>().AnyAsync());
         Assert.False(await world.DbContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
@@ -325,7 +326,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
 
         Assert.Equal(400, PatientEncounterTestWorld.KodeStatus(result));
         Assert.Equal(pesanDiharapkan, PatientEncounterTestWorld.Pesan(result));
-        Assert.False(await world.DbContext.Set<TrxPatientEncounter>().AnyAsync());
+        Assert.False(await world.DbContext.Set<RegPatientEncounter>().AnyAsync());
     }
 
     /// <remarks>
@@ -413,7 +414,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
             "Tipe pembayaran Penjamin Perusahaan hanya tersedia pada registrasi petugas.",
             PatientEncounterTestWorld.Pesan(result));
 
-        Assert.False(await world.DbContext.Set<TrxPatientEncounter>().AnyAsync());
+        Assert.False(await world.DbContext.Set<RegPatientEncounter>().AnyAsync());
         Assert.False(await world.DbContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
@@ -551,7 +552,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
         using var verifyContext = new ApplicationDbContext(
             PatientEncounterTestWorld.BuildOptions(databaseName, databaseRoot));
 
-        Assert.False(await verifyContext.Set<TrxPatientEncounter>().AnyAsync());
+        Assert.False(await verifyContext.Set<RegPatientEncounter>().AnyAsync());
         Assert.False(await verifyContext.Set<RegPatientEncounterGuarantor>().AnyAsync());
     }
 
@@ -577,6 +578,41 @@ public sealed class PatientEncounterCompanyGuarantorTests
         Assert.NotNull(response.Payment);
         Assert.Equal(2, response.Payment!.Priority);
         Assert.False(response.Payment!.IsPrimary);
+    }
+
+    // =====================================================================
+    // 8. Penomoran bisnis via PatientEncounterNumberService
+    // =====================================================================
+
+    [Fact]
+    public async Task PatientEncounterNumberService_AlokasiNomorEncounterDanPaymentSource_MenjagaFormatBackward()
+    {
+        await using var dbContext = new ApplicationDbContext(PatientEncounterTestWorld.BuildOptions());
+        var service = new PatientEncounterNumberService(dbContext);
+
+        var enc1 = await service.AllocateEncounterNumberAsync();
+        var pmt1 = await service.AllocatePaymentSourceNumberAsync();
+
+        Assert.Equal("ENC-RSMMC-00001", enc1);
+        Assert.Equal("EGT-RSMMC-00001", pmt1);
+
+        dbContext.Set<RegPatientEncounter>().Add(new RegPatientEncounter
+        {
+            Id = Guid.NewGuid(),
+            EncounterNumber = enc1
+        });
+        dbContext.Set<RegPatientEncounterGuarantor>().Add(new RegPatientEncounterGuarantor
+        {
+            Id = Guid.NewGuid(),
+            PaymentSourceNumber = pmt1
+        });
+        await dbContext.SaveChangesAsync();
+
+        var enc2 = await service.AllocateEncounterNumberAsync();
+        var pmt2 = await service.AllocatePaymentSourceNumberAsync();
+
+        Assert.Equal("ENC-RSMMC-00002", enc2);
+        Assert.Equal("EGT-RSMMC-00002", pmt2);
     }
 
     /// <summary>

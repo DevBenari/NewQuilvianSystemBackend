@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -92,7 +92,7 @@ internal sealed class NutritionTestContext : IAsyncDisposable
                 FullName = $"Pasien {code}", IsActive = true
             });
 
-            context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+            context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
             {
                 Id = encounterId, EncounterNumber = $"ENC-{code}", PatientId = patientId,
                 ServiceUnitId = serviceUnitId, EncounterDate = DateTime.UtcNow,

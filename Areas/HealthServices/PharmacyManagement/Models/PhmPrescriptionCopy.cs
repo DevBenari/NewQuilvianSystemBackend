@@ -90,7 +90,7 @@ public class PhmPrescriptionCopy : IdentityModel
     /// <summary>Token konkurensi; naik setiap perubahan.</summary>
     public int Version { get; set; }
 
-    public TrxPrescription? Prescription { get; set; }
+    public PhmPrescription? Prescription { get; set; }
     public MstHospitalSite? HospitalSite { get; set; }
     public MstWorkforceProfile? PharmacistWorkforce { get; set; }
     public ICollection<PhmPrescriptionCopyItem> Items { get; set; } = [];

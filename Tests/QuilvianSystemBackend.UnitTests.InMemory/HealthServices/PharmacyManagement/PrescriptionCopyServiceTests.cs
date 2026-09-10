@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -90,7 +90,7 @@ public sealed class PrescriptionCopyServiceTests
         {
             Id = doctorId, DoctorCode = "DR-001", FullName = "dr. Uji Coba", IsActive = true
         });
-        context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+        context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = encounterId, EncounterNumber = "ENC-001",
             PatientId = patientId, ServiceUnitId = serviceUnitId
@@ -143,7 +143,7 @@ public sealed class PrescriptionCopyServiceTests
             });
         }
 
-        context.Set<TrxPrescription>().Add(new TrxPrescription
+        context.Set<PhmPrescription>().Add(new PhmPrescription
         {
             Id = prescriptionId, PrescriptionNumber = "RX-001", EncounterId = encounterId,
             PatientId = patientId, DoctorId = doctorId,

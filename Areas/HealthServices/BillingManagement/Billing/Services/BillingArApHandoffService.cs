@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -88,7 +88,7 @@ public sealed class BillingArApHandoffService
             });
         }
 
-        var doctorId = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var doctorId = await _dbContext.RegPatientEncounters.AsNoTracking()
             .Where(x => x.Id == invoice.EncounterId)
             .Select(x => x.DoctorId)
             .FirstOrDefaultAsync(cancellationToken);

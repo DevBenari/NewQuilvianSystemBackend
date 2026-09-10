@@ -152,15 +152,22 @@ public class LabPatientRegistrationTests
 
         string[] polaTerlarang =
         {
+            "new RegPatientEncounter",
             "new TrxPatientEncounter",
             "new RegPatientEncounterGuarantor",
             "new MstPatient",
+            "RegPatientEncounters.Add",
+            "RegPatientEncounters.Update",
+            "RegPatientEncounters.Remove",
             "TrxPatientEncounters.Add",
             "TrxPatientEncounters.Update",
             "TrxPatientEncounters.Remove",
             "MstPatients.Add",
             "MstPatients.Update",
             "MstPatients.Remove",
+            "Set<RegPatientEncounter>().Add",
+            "Set<RegPatientEncounter>().Update",
+            "Set<RegPatientEncounter>().Remove",
             "Set<TrxPatientEncounter>().Add",
             "Set<TrxPatientEncounter>().Update",
             "Set<TrxPatientEncounter>().Remove",
@@ -226,12 +233,12 @@ public class LabPatientRegistrationTests
         });
 
         // Registrasi yang membuatnya.
-        Assert.Single(registrasiContext.Set<TrxPatientEncounter>());
+        Assert.Single(registrasiContext.Set<RegPatientEncounter>());
         Assert.Single(registrasiContext.Set<RegPatientEncounterGuarantor>());
 
         // Laboratorium tidak menulis apa pun — tidak kunjungan, tidak sumber pembayaran,
         // dan tidak pula data induk pasien.
-        Assert.Empty(labContext.Set<TrxPatientEncounter>());
+        Assert.Empty(labContext.Set<RegPatientEncounter>());
         Assert.Empty(labContext.Set<RegPatientEncounterGuarantor>());
         Assert.Single(labContext.Set<MstPatient>());
     }
@@ -256,7 +263,7 @@ public class LabPatientRegistrationTests
             IdempotencyKey = "kunci-ac44"
         });
 
-        var encounter = Assert.Single(context.Set<TrxPatientEncounter>());
+        var encounter = Assert.Single(context.Set<RegPatientEncounter>());
 
         Assert.Equal(encounter.Id, hasil.EncounterId);
         Assert.Equal(encounter.EncounterNumber, hasil.EncounterNumber);
@@ -297,7 +304,7 @@ public class LabPatientRegistrationTests
             ReferralDoctorId = doctor.Id
         });
 
-        var encounter = Assert.Single(context.Set<TrxPatientEncounter>());
+        var encounter = Assert.Single(context.Set<RegPatientEncounter>());
 
         Assert.True(encounter.IsReferral);
         Assert.Equal("RJK/2026/00123", encounter.ReferralNumber);
@@ -331,7 +338,7 @@ public class LabPatientRegistrationTests
             }));
 
         Assert.Contains("Pilih instansi perujuk dari daftar", exception.Message);
-        Assert.Empty(context.Set<TrxPatientEncounter>());
+        Assert.Empty(context.Set<RegPatientEncounter>());
     }
 
     /// <summary><c>VAL-44</c>: nomor surat rujukan kosong ditolak.</summary>
@@ -357,7 +364,7 @@ public class LabPatientRegistrationTests
             }));
 
         Assert.Contains("Nomor surat rujukan wajib diisi", exception.Message);
-        Assert.Empty(context.Set<TrxPatientEncounter>());
+        Assert.Empty(context.Set<RegPatientEncounter>());
     }
 
     /// <summary>
@@ -382,7 +389,7 @@ public class LabPatientRegistrationTests
             }));
 
         Assert.Contains("tidak berhak membuat kunjungan baru", exception.Message);
-        Assert.Empty(context.Set<TrxPatientEncounter>());
+        Assert.Empty(context.Set<RegPatientEncounter>());
         Assert.Empty(context.Set<RegPatientEncounterGuarantor>());
     }
 
@@ -406,7 +413,7 @@ public class LabPatientRegistrationTests
                 IdempotencyKey = "kunci-tolak"
             }));
 
-        Assert.Empty(context.Set<TrxPatientEncounter>());
+        Assert.Empty(context.Set<RegPatientEncounter>());
         Assert.Empty(context.Set<RegPatientEncounterGuarantor>());
     }
 
@@ -458,7 +465,7 @@ public class LabPatientRegistrationTests
         Assert.False(pertama.IsReplay);
         Assert.True(kedua.IsReplay);
 
-        Assert.Single(context.Set<TrxPatientEncounter>());
+        Assert.Single(context.Set<RegPatientEncounter>());
         Assert.Single(context.Set<RegPatientEncounterGuarantor>());
     }
 
@@ -488,7 +495,7 @@ public class LabPatientRegistrationTests
             IdempotencyKey = "percobaan-2"
         });
 
-        Assert.Equal(2, context.Set<TrxPatientEncounter>().Count());
+        Assert.Equal(2, context.Set<RegPatientEncounter>().Count());
     }
 
     // =====================================================================
@@ -524,11 +531,11 @@ public class LabPatientRegistrationTests
     {
         using var context = CreateRelationalModelContext();
 
-        var entity = context.Model.FindEntityType(typeof(TrxPatientEncounter));
+        var entity = context.Model.FindEntityType(typeof(RegPatientEncounter));
 
         Assert.NotNull(entity);
 
-        var property = entity!.FindProperty(nameof(TrxPatientEncounter.RegistrationIdempotencyKey));
+        var property = entity!.FindProperty(nameof(RegPatientEncounter.RegistrationIdempotencyKey));
 
         Assert.NotNull(property);
         Assert.True(property!.IsNullable);
@@ -537,7 +544,7 @@ public class LabPatientRegistrationTests
         var index = entity.GetIndexes()
             .SingleOrDefault(x =>
                 x.Properties.Count == 1 &&
-                x.Properties[0].Name == nameof(TrxPatientEncounter.RegistrationIdempotencyKey));
+                x.Properties[0].Name == nameof(RegPatientEncounter.RegistrationIdempotencyKey));
 
         Assert.NotNull(index);
         Assert.True(index!.IsUnique);

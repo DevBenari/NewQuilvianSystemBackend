@@ -9,8 +9,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
-    [Table("TrxPatientEncounter", Schema = "public")]
-    public class TrxPatientEncounter : IdentityModel
+    [Table("RegPatientEncounter", Schema = "public")]
+    public class RegPatientEncounter : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

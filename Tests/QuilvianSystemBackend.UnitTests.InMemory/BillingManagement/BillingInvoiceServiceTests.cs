@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,7 +52,7 @@ public sealed class BillingInvoiceServiceTests
     {
         await using var db = IsolatedBillingDbContextFactory.Create();
         var (encounterId, categoryId) = await SeedAsync(db);
-        var encounter = await db.TrxPatientEncounters.SingleAsync(x => x.Id == encounterId);
+        var encounter = await db.RegPatientEncounters.SingleAsync(x => x.Id == encounterId);
         db.MstPatients.Add(new MstPatient
         {
             Id = encounter.PatientId,
@@ -83,7 +83,7 @@ public sealed class BillingInvoiceServiceTests
         // ini tetap aman karena penambahannya aditif pada response yang sudah ada.
         await using var db = IsolatedBillingDbContextFactory.Create();
         var (encounterId, _) = await SeedAsync(db);
-        var encounter = await db.TrxPatientEncounters.SingleAsync(x => x.Id == encounterId);
+        var encounter = await db.RegPatientEncounters.SingleAsync(x => x.Id == encounterId);
         var clinicId = Guid.NewGuid();
         var patientClassId = Guid.NewGuid();
         encounter.ClinicId = clinicId;
@@ -168,11 +168,10 @@ public sealed class BillingInvoiceServiceTests
     }
 
     [Fact]
-    public async Task CatalogChargeIdempotencyReplayIsNoOpForSameKeyButNewKeyAddsAnotherItem()
+    public async Task CatalogChargeIdempotencyReplayIsNoOpForSameKey()
     {
-        // SourceDetailId pada AddCatalogChargeAsync diturunkan dari idempotencyKey (bukan Guid acak
-        // per panggilan) supaya retry client dengan Idempotency-Key yang sama benar-benar no-op,
-        // bukan salah dianggap konflik oleh UpsertChargeAsync.
+        // Replay client dengan Idempotency-Key yang sama adalah no-op aman (IsReplay=true, QTY tidak bertambah).
+        // Request baru dengan item yang sama akan mengakumulasikan QTY tanpa membuat baris baru.
         await using var db = IsolatedBillingDbContextFactory.Create();
         var (encounterId, categoryId) = await SeedAsync(db);
         var tariffId = Guid.NewGuid();
@@ -189,6 +188,64 @@ public sealed class BillingInvoiceServiceTests
         Assert.False(first.IsReplay);
         Assert.True(replay.IsReplay);
         Assert.Single(replay.Items);
+        Assert.Equal(1, replay.Items[0].Quantity);
+        Assert.Single(second.Items);
+        Assert.Equal(2, second.Items[0].Quantity);
+        Assert.Equal(400_000m, second.Items[0].GrossAmount);
+    }
+
+    [Fact]
+    public async Task CatalogChargeSameItemNameAcrossDifferentCategoriesIncrementsQuantityAndDoesNotAddRow()
+    {
+        // Item dengan nama yang sama lintas kategori akan diakumulasikan QTY-nya tanpa menambah baris baru.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId1) = await SeedAsync(db);
+        var categoryId2 = Guid.NewGuid();
+        db.MstTariffCategories.Add(new MstTariffCategory
+        {
+            Id = categoryId2,
+            TariffCategoryCode = "CONS",
+            TariffCategoryName = "Consultation",
+            IsActive = true
+        });
+        var tariffId1 = Guid.NewGuid();
+        var tariffId2 = Guid.NewGuid();
+        db.MstTariffs.Add(Tariff(tariffId1, categoryId1, "Konsultasi Dokter Umum", 100_000m));
+        db.MstTariffs.Add(Tariff(tariffId2, categoryId2, "Konsultasi Dokter Umum", 100_000m));
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var first = await service.AddCatalogChargeAsync(
+            CatalogChargeRequest(encounterId, tariffId1, 1), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var second = await service.AddCatalogChargeAsync(
+            CatalogChargeRequest(encounterId, tariffId2, 2), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Single(first.Items);
+        Assert.Equal(1, first.Items[0].Quantity);
+        Assert.Single(second.Items);
+        Assert.Equal(3, second.Items[0].Quantity);
+        Assert.Equal(300_000m, second.Items[0].GrossAmount);
+    }
+
+    [Fact]
+    public async Task CatalogChargeDifferentItemNameAddsNewRow()
+    {
+        // Item dengan nama berbeda akan membuat baris baru seperti biasa.
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (encounterId, categoryId) = await SeedAsync(db);
+        var tariffId1 = Guid.NewGuid();
+        var tariffId2 = Guid.NewGuid();
+        db.MstTariffs.Add(Tariff(tariffId1, categoryId, "Konsultasi Spesialis", 150_000m));
+        db.MstTariffs.Add(Tariff(tariffId2, categoryId, "USG Abdomen", 350_000m));
+        await db.SaveChangesAsync();
+        var service = CreateService(db);
+
+        var first = await service.AddCatalogChargeAsync(
+            CatalogChargeRequest(encounterId, tariffId1, 1), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var second = await service.AddCatalogChargeAsync(
+            CatalogChargeRequest(encounterId, tariffId2, 1), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Single(first.Items);
         Assert.Equal(2, second.Items.Count);
     }
 
@@ -205,7 +262,7 @@ public sealed class BillingInvoiceServiceTests
         var categoryId = Guid.NewGuid();
         var tariffId = Guid.NewGuid();
 
-        db.TrxPatientEncounters.Add(new TrxPatientEncounter
+        db.RegPatientEncounters.Add(new RegPatientEncounter
         {
             Id = encounterId,
             EncounterNumber = "ENC-COVERAGE-1",
@@ -369,7 +426,7 @@ public sealed class BillingInvoiceServiceTests
         await using var db = IsolatedBillingDbContextFactory.Create();
         var (firstEncounter, categoryId) = await SeedAsync(db);
         var secondEncounter = Guid.NewGuid();
-        db.TrxPatientEncounters.Add(Encounter(secondEncounter, "ENC-2"));
+        db.RegPatientEncounters.Add(Encounter(secondEncounter, "ENC-2"));
         await db.SaveChangesAsync();
         var service = CreateService(db);
         await service.UpsertChargeAsync(Request(firstEncounter, categoryId, "SHARED-SOURCE"), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
@@ -613,7 +670,7 @@ public sealed class BillingInvoiceServiceTests
     {
         var encounterId = Guid.NewGuid();
         var categoryId = Guid.NewGuid();
-        db.TrxPatientEncounters.Add(Encounter(encounterId, "ENC-1"));
+        db.RegPatientEncounters.Add(Encounter(encounterId, "ENC-1"));
         db.MstTariffCategories.Add(new MstTariffCategory
         {
             Id = categoryId,
@@ -635,16 +692,16 @@ public sealed class BillingInvoiceServiceTests
         IsActive = true
     };
 
-    private static AddCatalogChargeRequest CatalogChargeRequest(Guid encounterId, Guid tariffId) => new()
+    private static AddCatalogChargeRequest CatalogChargeRequest(Guid encounterId, Guid tariffId, decimal quantity = 1) => new()
     {
         EncounterId = encounterId,
         TariffId = tariffId,
-        Quantity = 1,
+        Quantity = quantity,
         CorrelationId = Guid.NewGuid(),
         CausationId = Guid.NewGuid()
     };
 
-    private static TrxPatientEncounter Encounter(Guid id, string number) => new()
+    private static RegPatientEncounter Encounter(Guid id, string number) => new()
     {
         Id = id,
         EncounterNumber = number,

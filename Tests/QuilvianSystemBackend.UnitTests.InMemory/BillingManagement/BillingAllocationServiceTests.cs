@@ -232,13 +232,13 @@ public sealed class BillingAllocationServiceTests
                 [nameof(BilRefundableCredit.SourceType), nameof(BilRefundableCredit.SourceId)]));
     }
 
-    private static async Task<(TrxPatientEncounter Encounter, BilInvoice Invoice, BilDepositAccount Account)> SeedAsync(
+    private static async Task<(RegPatientEncounter Encounter, BilInvoice Invoice, BilDepositAccount Account)> SeedAsync(
         Repositories.ApplicationDbContext db,
         decimal patientAmount,
         decimal depositBalance,
         decimal currentItemAmount)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
             PatientId = Guid.NewGuid(),
@@ -290,7 +290,7 @@ public sealed class BillingAllocationServiceTests
             RowVersion = Guid.NewGuid()
         };
 
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         db.BilCalculationVersions.Add(Calculation(invoice.Id, 1, patientAmount));

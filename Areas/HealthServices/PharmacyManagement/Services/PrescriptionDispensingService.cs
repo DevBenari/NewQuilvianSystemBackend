@@ -103,7 +103,7 @@ public sealed class PrescriptionDispensingService
     public async Task<PrescriptionDispensingSummaryResponse?> GetSummaryAsync(Guid prescriptionId,
         CancellationToken cancellationToken = default)
     {
-        var header = await _dbContext.TrxPrescriptions.AsNoTracking()
+        var header = await _dbContext.PhmPrescriptions.AsNoTracking()
             .Where(x => x.Id == prescriptionId && !x.IsDelete)
             .Select(x => new { x.Id, x.PrescriptionNumber, x.FulfillmentStatus })
             .FirstOrDefaultAsync(cancellationToken);
@@ -147,7 +147,7 @@ public sealed class PrescriptionDispensingService
             .AnyAsync(x => x.Id == usageId && !x.IsDelete, cancellationToken);
         if (duplicate) return (await GetSummaryAsync(prescriptionId, cancellationToken))!;
 
-        var prescription = await _dbContext.TrxPrescriptions
+        var prescription = await _dbContext.PhmPrescriptions
             .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Resep tidak ditemukan.");
 
@@ -264,7 +264,7 @@ public sealed class PrescriptionDispensingService
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
 
-        var prescription = await _dbContext.TrxPrescriptions
+        var prescription = await _dbContext.PhmPrescriptions
             .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Resep tidak ditemukan.");
 
@@ -443,7 +443,7 @@ public sealed class PrescriptionDispensingService
     /// Statusnya diturunkan, bukan diminta pemanggil. Bila ia dapat diisi bebas, sebuah resep
     /// dapat dinyatakan selesai padahal masih ada baris yang belum diserahkan.
     /// </remarks>
-    private async Task ApplyFulfillmentStatusAsync(TrxPrescription prescription,
+    private async Task ApplyFulfillmentStatusAsync(PhmPrescription prescription,
         Guid justDispensedUsageId, Guid actorUserId, DateTime now,
         CancellationToken cancellationToken)
     {
@@ -609,7 +609,7 @@ public sealed class PrescriptionDispensingService
         return usage;
     }
 
-    private static void EnsureDispensable(TrxPrescription prescription)
+    private static void EnsureDispensable(PhmPrescription prescription)
     {
         if (prescription.PrescriptionStatus == PrescriptionStatus.Cancelled)
             throw new PrescriptionDispensingConflictException("PHM109",

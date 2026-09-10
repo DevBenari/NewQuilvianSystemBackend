@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -262,7 +262,7 @@ public class LabOrderDisciplineTests
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
 
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{suffix}",
@@ -282,7 +282,7 @@ public class LabOrderDisciplineTests
             IsActive = true
         };
 
-        context.Set<TrxPatientEncounter>().Add(encounter);
+        context.Set<RegPatientEncounter>().Add(encounter);
         context.Set<MstProcedure>().Add(procedure);
 
         await context.SaveChangesAsync();

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -372,7 +372,7 @@ public sealed class BillingCalculationServiceTests
     }
 
     // BE-BKC-017 hardening (26 Agustus 2026): CalculateAdministrationFeeAsync mendapat SQL pre-filter
-    // pada TrxPatientEncounter.EncounterDate (menggantikan penarikan seluruh riwayat pasien ke memori)
+    // pada RegPatientEncounter.EncounterDate (menggantikan penarikan seluruh riwayat pasien ke memori)
     // - lihat catatan di BillingCalculationService.cs. Test ini secara khusus membuktikan pre-filter
     // itu tetap benar untuk dua encounter yang berada pada businessDate WIB YANG SAMA tapi tanggal
     // kalender UTC-nya BERBEDA (melintasi batas 17:00 UTC), skenario yang akan salah bila pre-filter
@@ -415,7 +415,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-TEST",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -468,7 +468,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-APPROVAL",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -518,7 +518,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-STATUS",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -567,7 +567,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-MONTHLY",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -617,7 +617,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-PER-VISIT",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -668,7 +668,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-NOT-COVERED",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -714,7 +714,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-NOT-COVERED-NON-BILLABLE",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -764,7 +764,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-COMBINED",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -860,7 +860,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-NON-BILLABLE",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -910,7 +910,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-EXCESS-ALLOWED",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -959,7 +959,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-NO-AUTO-WRITEOFF",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -1010,7 +1010,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-NOT-ELIGIBLE",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -1068,7 +1068,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-POLICY-INACTIVE",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = providerId,
@@ -1103,7 +1103,7 @@ public sealed class BillingCalculationServiceTests
         db.RegPatientEncounterGuarantors.Add(new RegPatientEncounterGuarantor
         {
             EncounterId = invoice.EncounterId,
-            PatientId = (await db.TrxPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
+            PatientId = (await db.RegPatientEncounters.FindAsync(invoice.EncounterId))!.PatientId,
             PaymentSourceNumber = "PAY-PROVIDER-MISSING",
             PaymentType = EncounterPaymentType.Insurance,
             InsuranceProviderId = null,
@@ -1291,7 +1291,7 @@ public sealed class BillingCalculationServiceTests
         bool isProcedure = false,
         bool isPharmacy = false)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
@@ -1339,7 +1339,7 @@ public sealed class BillingCalculationServiceTests
             SourcePayloadHash = new string('A', 64)
         });
 
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         await db.SaveChangesAsync();
