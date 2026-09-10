@@ -507,6 +507,10 @@ order darah di atas alokator yang durabilitasnya belum dibuktikan di PostgreSQL 
 `AC-PLT-003` ternyata gagal, perbaikannya menyentuh mesin yang sudah dipakai order darah. Urutan
 aman: `PLT-BE-001` → `002` → `003` → `004` lulus → baru sembilan task Bank Darah dijadwalkan.
 
+✅ **Syarat urutan ini terpenuhi 10 September 2026.** `PLT-BE-004` lulus 6 dari 6 di PostgreSQL
+`QuilvianNewDevSukma`, sehingga `BE-BD-003` tidak lagi dibangun di atas klaim durabilitas yang belum
+diperiksa. Paragraf di atas dipertahankan sebagai riwayat.
+
 **Dependency yang berlaku sampai 10 September 2026 (riwayat):** kesembilan task backend bertanda ⛔ menunggu gelombang
 **`MVP-1` blueprint Platform** (`EPIC-PLT-01` + `EPIC-PLT-02`), bukan menunggu penunjukan siapa
 pun. Rinciannya di `docs/module-blueprints/platform/04-prd-to-mvp.md` bagian 5.

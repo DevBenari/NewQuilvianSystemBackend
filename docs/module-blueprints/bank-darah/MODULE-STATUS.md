@@ -9,7 +9,7 @@
 | Module status | `IN_PROGRESS` |
 | Current phase | `BD-PH-007` |
 | Last verified at | `2026-09-04` — hasil **`NOT_READY`** (modul); gelombang `MVP-0` **`READY_WITH_CONDITIONS`** |
-| Backend source SHA | **`23fb65a`** cabang `sukmagp` — naik dari `95e4b8d` pada 10 September 2026 lewat dua commit: `c606baf` dokumentasi Bank Darah dan `23fb65a` milik `PLT-BE-004`. Di luar `docs/` hanya dua berkas infrastruktur uji Postgres berubah — `BillingTestDatabaseFixture.cs` dan README-nya — **nol source aplikasi**, sehingga peta kemampuan tetap `CURRENT` tanpa impact scan. **Riwayat:** **`95e4b8d`** cabang `sukmagp` — naik dari `5360286` pada 10 September 2026. Impact scan terbatas dijalankan: 8 commit, 34 berkas source, **14 milik Bank Darah sendiri** (`BE-BD-005`/`BE-BD-011` beserta migration `AddBbkBloodGroupExam` yang kini ter-commit). **Nol baris peta kemampuan berpindah status, nol memburuk** |
+| Backend source SHA | **`7fca34c`** cabang `sukmagp` — naik dari `23fb65a` pada 10 September 2026; seluruh commit sesudahnya hanya menyentuh `docs/`, sehingga tidak ada impact scan. **Riwayat:** **`23fb65a`** cabang `sukmagp` — naik dari `95e4b8d` pada 10 September 2026 lewat dua commit: `c606baf` dokumentasi Bank Darah dan `23fb65a` milik `PLT-BE-004`. Di luar `docs/` hanya dua berkas infrastruktur uji Postgres berubah — `BillingTestDatabaseFixture.cs` dan README-nya — **nol source aplikasi**, sehingga peta kemampuan tetap `CURRENT` tanpa impact scan. **Riwayat:** **`95e4b8d`** cabang `sukmagp` — naik dari `5360286` pada 10 September 2026. Impact scan terbatas dijalankan: 8 commit, 34 berkas source, **14 milik Bank Darah sendiri** (`BE-BD-005`/`BE-BD-011` beserta migration `AddBbkBloodGroupExam` yang kini ter-commit). **Nol baris peta kemampuan berpindah status, nol memburuk** |
 | Frontend source SHA | **`f79af16847c99961842081f707bc0c4ff6c2d93b`** cabang `sukmagpV2` — naik dari `101ec5d3a` pada 10 September 2026 lewat dua commit milik `FE-BD-001` dan `FE-BD-011`. Impact scan terbatas dijalankan 10 September 2026: 44 berkas berubah, **42 milik Bank Darah sendiri** (`FE-BD-001` dan `FE-BD-011`); dua sisanya `store.jsx` dan `menu-items.jsx`, yaitu titik registrasi wajib yang memang disentuh task Bank Darah. **Nol dampak asing, nol baris kemampuan berpindah status**. Pekerjaan `FE-BD-006` (satu berkas `menu-items.jsx`) **belum di-commit** |
 | Decision revision | `11` — `DEC-BD-001` sampai `DEC-BD-047` |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
@@ -43,6 +43,17 @@ Status task yang berpindah:
 | `BE-BD-004`, `BE-BD-012` | ⛔ tertahan `G4` dan `BE-BD-003` | ⛔ tertahan `BE-BD-003` saja |
 | `BE-BD-015`, `006`, `007`, `008`, `009`, `010` | ⛔ lewat rantai dependency | ⛔ lewat rantai dependency — tidak berubah |
 | Delapan task frontend bertanda ⛔ | ⛔ | ⛔ — kini menunggu pasangan backend-nya, bukan gerbang |
+
+**Task backend berikutnya diverifikasi ulang 10 September 2026: `BE-BD-003`.** Verifikasi ini
+memeriksa bukti, bukan hanya membaca roadmap:
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Dependency `G1`, `G2b`, `G4` | Ketiganya ✅ tertutup |
+| Dependency `BE-BD-001`, `BE-BD-002` | Laporan keduanya berstatus `SELESAI` |
+| Provider nomor di source | `NumberSeriesAllocator.AllocateAsync` ada di `Areas/Platform/NumberSeriesManagement/Services/` |
+| Task sudah dimulai? | **Belum** — nol class `BbkBloodOrder` maupun `BbkBloodOrderLine` di source |
+| Kandidat lain | `BE-BD-005` dan `BE-BD-011` sudah ✅ sejak 9 September 2026. Sisa `BE-BD-016` hanya dapat lahir bersama controller pemakainya. Tujuh task backend lain masih ⛔ lewat rantai yang berawal dari `BE-BD-003` |
 
 **Batas yang jujur.**
 

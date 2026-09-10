@@ -26,9 +26,11 @@ last_readiness_scope_note: >-
   empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
   Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
   dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
-backend_source_sha: 23fb65a
+backend_source_sha: 7fca34c
 backend_source_sha_note: >-
-  Naik dari 95e4b8d pada 10 September 2026 lewat dua commit: c606baf (dokumentasi Bank
+  Naik dari 23fb65a pada 10 September 2026. Seluruh commit sesudahnya hanya menyentuh
+  docs/ — terakhir 7fca34c, sinkronisasi penutupan G4 — sehingga tidak ada impact scan.
+  Sebelumnya: naik dari 95e4b8d pada 10 September 2026 lewat dua commit: c606baf (dokumentasi Bank
   Darah) dan 23fb65a (PLT-BE-004). Di luar docs/ hanya BillingTestDatabaseFixture.cs dan
   README project uji Postgres yang berubah — nol source aplikasi, sehingga peta kemampuan
   tetap CURRENT tanpa impact scan. Sebelumnya: naik dari 5360286 pada 10 September 2026,
