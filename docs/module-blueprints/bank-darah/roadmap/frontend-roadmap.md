@@ -79,12 +79,13 @@ modul**: kedelapan task frontend bertanda ⛔ menunggu gelombang `MVP-1` bluepri
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
 | ✅ SELESAI | 1 | `FE-BD-001` |
-| 🟡 PENDING | 3 | `FE-BD-006`, `FE-BD-009`, `FE-BD-011` |
+| 🟡 SELESAI SEBAGIAN | 1 | `FE-BD-011` — 1 dari 2 acceptance criteria |
+| 🟡 PENDING | 2 | `FE-BD-006`, `FE-BD-009` |
 | ⛔ BLOCKED | 8 | `FE-BD-002`, `003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
-**Satu task frontend selesai (`FE-BD-001`).** Tiga task `PENDING` siap dijadwalkan (`FE-BD-006`,
-`FE-BD-009`, `FE-BD-011`).
+**Satu task frontend selesai (`FE-BD-001`).** `FE-BD-011` **dikerjakan 10 September 2026** dan
+berakhir 🟡 sebagian. Dua task `PENDING` tersisa dan siap dijadwalkan (`FE-BD-006`, `FE-BD-009`).
 
 **`FE-BD-009` terbuka sejak 9 September 2026**, ketika `BE-BD-011` selesai
 ([laporan](../task/report/backend/BE-BD-011.md)). Kedelapan yang masih terblokir kini **seluruhnya**
@@ -98,7 +99,7 @@ tertahan `G4` lewat rantai backend — tidak ada lagi yang menunggu backend berj
 ════════ JALUR TERBUKA — pasangan backend sudah SELESAI ════════
 
 ✅ BE-BD-001 (master komponen & alasan)  ──> ✅ FE-BD-001 (setup master)          SELESAI
-✅ BE-BD-014 (master lokasi penyimpanan) ──> 🟡 FE-BD-011 (lokasi penyimpanan)    PENDING
+✅ BE-BD-014 (master lokasi penyimpanan) ──> 🟡 FE-BD-011 (lokasi penyimpanan)    SEBAGIAN 1/2 AC
                     G1 ✅ saja           ──> 🟡 FE-BD-006 (registrasi menu)       PENDING
 
 
@@ -126,8 +127,8 @@ tertahan `G4` lewat rantai backend — tidak ada lagi yang menunggu backend berj
            JANGAN dipecah tanpa persetujuan pemilik — lihat catatan pada task
 ```
 
-**Yang boleh paralel.** Ketiga task `PENDING` — `FE-BD-001`, `FE-BD-006`, `FE-BD-011` — tidak saling
-bergantung dan boleh dikerjakan tiga orang berbeda.
+**Yang boleh paralel.** `FE-BD-006` dan `FE-BD-009` tidak saling bergantung dan boleh dikerjakan
+dua orang berbeda. `FE-BD-011` sudah dikerjakan 10 September 2026.
 
 ---
 
@@ -154,7 +155,7 @@ bergantung dan boleh dikerjakan tiga orang berbeda.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN.** Pasangan backend `BE-BD-014` **`SELESAI`** dengan 9 endpoint |
+| **Status** | 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-011.md). Layar `FE-BD-10` berdiri penuh — 14 berkas baru mengikuti bentuk baku master data, nol komponen baru (12 elemen seluruhnya `REUSE`). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 27.1s`** dengan keempat route terdaftar; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi:** `FE-BD-014` ✅ terbukti lewat penanda `IsBloodBankHaltedByEmptyActiveLocation`; **`FE-BD-015` ⛔ belum** — angka kantong tertahan **tidak ada di backend**, entity `BbkBloodUnitPlacement` menunggu `BE-BD-015`. Uji manual `NOT FEASIBLE`: migration `20260903083142_AddMstBloodStorageLocation` belum dijalankan |
 | **Outcome** | Petugas mengelola lokasi penyimpanan darah, dan akibat penonaktifan sebuah lokasi terbaca jelas sebelum dikonfirmasi |
 | **Layar** | `FE-BD-10` |
 | **Kontrak** | api-contract `v4` — Blood Storage Location |

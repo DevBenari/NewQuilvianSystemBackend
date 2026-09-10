@@ -43,7 +43,7 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | Katalog komponen darah terkendali | `DEC-BD-024`, `DEC-BD-032` | ✅ `BE-BD-001` | ✅ `FE-BD-001` | Backend & frontend **terbukti** ([FE-BD-001](../task/report/frontend/FE-BD-001.md)) |
 | Daftar alasan berkategori | `DEC-BD-044`, `DEC-BD-024` | ✅ `BE-BD-001` | ✅ `FE-BD-001` | Backend & frontend **terbukti** ([FE-BD-001](../task/report/frontend/FE-BD-001.md)) |
 | Kewenangan unit memesan darah dari konfigurasi | `DEC-BD-012` | ✅ `BE-BD-002` | — | Penegakan diteruskan ke ⛔ `BE-BD-003` |
-| Lokasi penyimpanan darah dikelola | `DEC-BD-035`, `DEC-BD-037` | ✅ `BE-BD-014` | 🟡 `FE-BD-011` | Backend **terbukti**, frontend siap |
+| Lokasi penyimpanan darah dikelola | `DEC-BD-035`, `DEC-BD-037` | ✅ `BE-BD-014` | 🟡 `FE-BD-011` | Backend **terbukti**. Frontend **dikerjakan 10 September 2026** ([laporan](../task/report/frontend/FE-BD-011.md)) — layar `FE-BD-10` berdiri, build lulus, tetapi **1 dari 2 acceptance**: `FE-BD-015` menunggu angka kantong tertahan dari `BE-BD-015` |
 | Hak akses per tindakan | `DEC-BD-039`..`047` | 🟡 `BE-BD-016` 17/39 | — | Sisa lahir bersama controller pemakainya |
 | **Pemeriksaan golongan darah** | `DEC-BD-015`, `DEC-BD-018`, `DEC-BD-026` | ✅ `BE-BD-005` | ⛔ `FE-BD-005` | Backend **terbukti** ([BE-BD-005](../task/report/backend/BE-BD-005.md)). `FE-BD-005` **tetap tertahan** — dependency-nya juga `BE-BD-007`/`BE-BD-008` yang tertahan `G4`, dan roadmap frontend melarang memecahnya tanpa persetujuan pemilik |
 | **Penyelesaian konflik golongan darah** | `DEC-BD-026`, `DEC-BD-031`, `DEC-BD-039` | ✅ `BE-BD-011` | 🟡 `FE-BD-009` | Backend **terbukti** ([BE-BD-011](../task/report/backend/BE-BD-011.md)); `FE-BD-009` kini terbuka |
@@ -152,7 +152,7 @@ supaya tidak hilang, bukan sebagai penahan.
 | — 🟡 pending, siap dijadwalkan | 3 |
 | — ⛔ blocked | 8 |
 | **Total task** | **28** (27 dalam gelombang + 1 future scope) |
-| **Dapat dijadwalkan hari ini** | **3** — `FE-BD-006`, `FE-BD-009`, `FE-BD-011`. **Seluruhnya frontend**; nol task backend dapat dijadwalkan tanpa menutup `G4` |
+| **Dapat dijadwalkan hari ini** | **2** — `FE-BD-006`, `FE-BD-009`. **Seluruhnya frontend**; nol task backend dapat dijadwalkan tanpa menutup `G4`. `FE-BD-011` sudah dikerjakan 10 September 2026 dan berakhir 🟡 sebagian |
 | Acceptance criteria seluruhnya | 97 |
 | — terbukti | 17 |
 | — tidak dapat diuji (keputusan terbuka) | 1 |
