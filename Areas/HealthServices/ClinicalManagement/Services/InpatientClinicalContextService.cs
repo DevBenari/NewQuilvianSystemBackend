@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -220,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             DateTime? atUtc = null,
             CancellationToken cancellationToken = default)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == encounterId && !x.IsDelete)
                 .Select(x => new { x.Id, x.PatientId })

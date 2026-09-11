@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -132,7 +132,7 @@ public class OperatingRoomCaseServiceTests
             var userId = Guid.NewGuid();
 
             context.MstPatients.Add(new MstPatient { Id = patientId, FullName = "Pasien Uji", PatientCode = "P001", MedicalRecordNumber = "MR001" });
-            context.TrxPatientEncounters.Add(new TrxPatientEncounter { Id = encounterId, PatientId = patientId, EncounterNumber = "E001" });
+            context.RegPatientEncounters.Add(new RegPatientEncounter { Id = encounterId, PatientId = patientId, EncounterNumber = "E001" });
             context.MstDoctors.Add(new MstDoctor { Id = doctorId, FullName = "Dokter Uji", DoctorCode = "D001", DoctorNumber = "DN001", IsActive = true });
             context.TrxPatientProcedures.Add(new TrxPatientProcedure
             {

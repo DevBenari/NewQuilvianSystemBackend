@@ -182,7 +182,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
             var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
 
-            var kunjungan = context.Set<TrxPatientEncounter>().First(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().First(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterType = EncounterType.Inpatient;
             await context.SaveChangesAsync();
 
@@ -267,7 +267,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
             var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
 
-            var kunjungan = context.Set<TrxPatientEncounter>().First(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().First(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterType = encounterType;
             await context.SaveChangesAsync();
 
@@ -295,7 +295,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var konteks = RekamMedisTestData.SiapkanPasienDanKunjungan(context);
             var perawat = RekamMedisTestData.BuatPengguna(context, "perawat");
 
-            var kunjungan = context.Set<TrxPatientEncounter>().First(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().First(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterType = EncounterType.Emergency;
             context.Set<EmgVisit>().Add(new EmgVisit
             {

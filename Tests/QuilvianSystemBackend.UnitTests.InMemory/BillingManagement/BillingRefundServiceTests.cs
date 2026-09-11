@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Controllers;
@@ -212,7 +212,7 @@ public sealed class BillingRefundServiceTests
         string serviceType = "RAJAL",
         bool cashRefundEligible = true)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
@@ -287,7 +287,7 @@ public sealed class BillingRefundServiceTests
             CreateDateTime = DateTime.UtcNow
         };
         settlement.Tenders.Add(cashTender);
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstPaymentMethods.Add(cashMethod);
         db.BilInvoices.Add(invoice);
         db.BilSettlements.Add(settlement);

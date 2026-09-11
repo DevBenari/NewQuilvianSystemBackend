@@ -87,7 +87,7 @@ public sealed class BillingCalculationService
 
         var lockContext = await (
             from invoice in _dbContext.BilInvoices.AsNoTracking()
-            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on invoice.EncounterId equals encounter.Id
             where invoice.Id == invoiceId && !invoice.IsDelete && !encounter.IsDelete && !encounter.IsCancel
             select new { invoice.EncounterId, encounter.PatientId, encounter.EncounterDate })
@@ -125,7 +125,7 @@ public sealed class BillingCalculationService
             if (invoice.RowVersion != request.ExpectedRowVersion)
                 throw new BillingCalculationConflictException("Data telah berubah. Muat ulang sebelum melanjutkan.");
 
-            var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter invoice tidak ditemukan.");
             if (encounter.PatientId != lockContext.PatientId
@@ -387,7 +387,7 @@ public sealed class BillingCalculationService
 
     private async Task<AdministrationFeeCalculationResponse> CalculateAdministrationFeeAsync(
         BilInvoice invoice,
-        TrxPatientEncounter encounter,
+        RegPatientEncounter encounter,
         DateTimeOffset effectiveAt,
         CancellationToken cancellationToken)
     {
@@ -406,7 +406,7 @@ public sealed class BillingCalculationService
         if (policy is null)
             return new AdministrationFeeCalculationResponse { BusinessDate = businessDate };
 
-        // Pre-filter SQL pada TrxPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
+        // Pre-filter SQL pada RegPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
         // yang sama persis dengan yang dipakai invoice ini) sebelum menarik BreakdownSnapshot ke
         // memori - tanpa ini, query menarik SELURUH riwayat kalkulasi pasien (bisa ribuan baris pada
         // pasien dengan riwayat kunjungan panjang) hanya untuk mencari kecocokan satu hari lewat
@@ -422,7 +422,7 @@ public sealed class BillingCalculationService
 
         var priorSnapshots = await (
             from priorInvoice in _dbContext.BilInvoices.AsNoTracking()
-            join priorEncounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join priorEncounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on priorInvoice.EncounterId equals priorEncounter.Id
             join calculation in _dbContext.BilCalculationVersions.AsNoTracking()
                 on new { InvoiceId = priorInvoice.Id, VersionNo = priorInvoice.CurrentCalculationVersion }

@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPatientEncounterGuarantorConfiguration : IEntityTypeConfiguration<TrxPatientEncounterGuarantor>
+    public class RegPatientEncounterGuarantorConfiguration : IEntityTypeConfiguration<RegPatientEncounterGuarantor>
     {
-        public void Configure(EntityTypeBuilder<TrxPatientEncounterGuarantor> entity)
+        public void Configure(EntityTypeBuilder<RegPatientEncounterGuarantor> entity)
         {
-            entity.ToTable("TrxPatientEncounterGuarantor", "public");
+            entity.ToTable("RegPatientEncounterGuarantor", "public");
 
             entity.HasKey(x => x.Id);
 
@@ -34,6 +34,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
+
+            entity.Property(x => x.Priority)
+                .HasDefaultValue(1)
+                .IsRequired();
+
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(true)
+                .IsRequired();
 
             // =========================
             // PAYMENT REFERENCES
@@ -137,7 +145,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasOne(x => x.Encounter)
                 .WithOne(x => x.PaymentSource)
-                .HasForeignKey<TrxPatientEncounterGuarantor>(x => x.EncounterId)
+                .HasForeignKey<RegPatientEncounterGuarantor>(x => x.EncounterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Patient)
@@ -180,6 +188,18 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // Menjamin satu encounter hanya mempunyai satu sumber pembayaran.
             entity.HasIndex(x => x.EncounterId)
                 .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.EncounterId,
+                x.IsPrimary
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.EncounterId,
+                x.Priority
+            });
 
             entity.HasIndex(x => x.PatientId);
 

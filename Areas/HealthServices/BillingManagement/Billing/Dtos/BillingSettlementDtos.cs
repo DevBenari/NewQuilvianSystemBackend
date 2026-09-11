@@ -23,6 +23,7 @@ public sealed class CreateSettlementRequest
 public sealed class CreateTenderRequest
 {
     public Guid PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
     [Range(
         typeof(decimal),
         "0.01",
@@ -65,6 +66,7 @@ public sealed class TenderResponse
     public Guid Id { get; set; }
     public Guid SettlementId { get; set; }
     public Guid PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
     public decimal Amount { get; set; }
     public string Status { get; set; } = BillingTenderStatuses.Created;
     public string? CashierReferenceNote { get; set; }

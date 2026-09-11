@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
@@ -58,7 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             await _aggregateService.EnsureEditableAsync(prescriptionId, cancellationToken);
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstAsync(x => x.Id == prescriptionId && !x.IsDelete, cancellationToken);
 
             if (request.ExpectedUpdatedAt.HasValue &&
@@ -165,9 +165,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             };
         }
 
-        private IQueryable<TrxPrescription> BuildWorkspaceQuery()
+        private IQueryable<PhmPrescription> BuildWorkspaceQuery()
         {
-            return _dbContext.Set<TrxPrescription>()
+            return _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Encounter)
                 .Include(x => x.Consultation)
                 .Include(x => x.Patient)
@@ -188,7 +188,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             if (request.RemovedItemIds.Count > 0)
             {
-                var items = await _dbContext.Set<TrxPrescriptionItem>()
+                var items = await _dbContext.Set<PhmPrescriptionItem>()
                     .Where(x => request.RemovedItemIds.Contains(x.Id) &&
                                 x.PrescriptionId == prescriptionId &&
                                 !x.IsDelete)
@@ -200,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             if (request.RemovedCompoundItemIds.Count > 0)
             {
-                var items = await _dbContext.Set<TrxPrescriptionCompoundItem>()
+                var items = await _dbContext.Set<PhmPrescriptionCompoundItem>()
                     .Include(x => x.PrescriptionCompound)
                     .Where(x => request.RemovedCompoundItemIds.Contains(x.Id) &&
                                 x.PrescriptionCompound != null &&
@@ -214,7 +214,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             if (request.RemovedCompoundIds.Count > 0)
             {
-                var compounds = await _dbContext.Set<TrxPrescriptionCompound>()
+                var compounds = await _dbContext.Set<PhmPrescriptionCompound>()
                     .Include(x => x.Items)
                     .Where(x => request.RemovedCompoundIds.Contains(x.Id) &&
                                 x.PrescriptionId == prescriptionId &&
@@ -230,8 +230,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
         }
 
-        private async Task<TrxPrescriptionItem> UpsertRegularItemAsync(
-            TrxPrescription prescription,
+        private async Task<PhmPrescriptionItem> UpsertRegularItemAsync(
+            PhmPrescription prescription,
             AutosavePrescriptionItemRequest request,
             Guid actorUserId,
             DateTime now,
@@ -271,10 +271,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             if (!coverage.IsValid)
                 throw new InvalidOperationException(coverage.ErrorMessage ?? "Coverage obat tidak dapat dihitung.");
 
-            TrxPrescriptionItem entity;
+            PhmPrescriptionItem entity;
             if (request.Id.HasValue && request.Id.Value != Guid.Empty)
             {
-                entity = await _dbContext.Set<TrxPrescriptionItem>()
+                entity = await _dbContext.Set<PhmPrescriptionItem>()
                     .FirstOrDefaultAsync(x => x.Id == request.Id.Value &&
                                               x.PrescriptionId == prescription.Id &&
                                               !x.IsDelete,
@@ -283,7 +283,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
             else
             {
-                entity = new TrxPrescriptionItem
+                entity = new PhmPrescriptionItem
                 {
                     Id = Guid.NewGuid(),
                     PrescriptionId = prescription.Id,
@@ -291,7 +291,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     CreateBy = actorUserId,
                     IsActive = true
                 };
-                _dbContext.Set<TrxPrescriptionItem>().Add(entity);
+                _dbContext.Set<PhmPrescriptionItem>().Add(entity);
             }
 
             ApplyDrugSnapshot(entity, drug);
@@ -323,8 +323,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             return entity;
         }
 
-        private async Task<TrxPrescriptionCompound> UpsertCompoundAsync(
-            TrxPrescription prescription,
+        private async Task<PhmPrescriptionCompound> UpsertCompoundAsync(
+            PhmPrescription prescription,
             AutosavePrescriptionCompoundRequest request,
             Guid actorUserId,
             DateTime now,
@@ -343,10 +343,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             ValidateCompoundHeader(request, finalQuantityUnit);
 
-            TrxPrescriptionCompound entity;
+            PhmPrescriptionCompound entity;
             if (request.Id.HasValue && request.Id.Value != Guid.Empty)
             {
-                entity = await _dbContext.Set<TrxPrescriptionCompound>()
+                entity = await _dbContext.Set<PhmPrescriptionCompound>()
                     .FirstOrDefaultAsync(x => x.Id == request.Id.Value &&
                                               x.PrescriptionId == prescription.Id &&
                                               !x.IsDelete,
@@ -355,7 +355,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
             else
             {
-                entity = new TrxPrescriptionCompound
+                entity = new PhmPrescriptionCompound
                 {
                     Id = Guid.NewGuid(),
                     PrescriptionId = prescription.Id,
@@ -363,7 +363,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     CreateBy = actorUserId,
                     IsActive = true
                 };
-                _dbContext.Set<TrxPrescriptionCompound>().Add(entity);
+                _dbContext.Set<PhmPrescriptionCompound>().Add(entity);
             }
 
             entity.CompoundName = request.CompoundName.Trim();
@@ -401,9 +401,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             return entity;
         }
 
-        private async Task<TrxPrescriptionCompoundItem> UpsertCompoundItemAsync(
-            TrxPrescription prescription,
-            TrxPrescriptionCompound compound,
+        private async Task<PhmPrescriptionCompoundItem> UpsertCompoundItemAsync(
+            PhmPrescription prescription,
+            PhmPrescriptionCompound compound,
             AutosavePrescriptionCompoundItemRequest request,
             Guid actorUserId,
             DateTime now,
@@ -412,10 +412,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             var drug = await GetDrugAsync(request.DrugId, true, cancellationToken);
             var parsedStrength = _compoundCalculationService.ParseStrength(drug.Strength);
 
-            TrxPrescriptionCompoundItem? existingEntity = null;
+            PhmPrescriptionCompoundItem? existingEntity = null;
             if (request.Id.HasValue && request.Id.Value != Guid.Empty)
             {
-                existingEntity = await _dbContext.Set<TrxPrescriptionCompoundItem>()
+                existingEntity = await _dbContext.Set<PhmPrescriptionCompoundItem>()
                     .FirstOrDefaultAsync(x =>
                         x.Id == request.Id.Value &&
                         x.PrescriptionCompoundId == compound.Id &&
@@ -540,14 +540,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     coverage.ErrorMessage ??
                     "Coverage bahan racikan tidak dapat dihitung.");
 
-            TrxPrescriptionCompoundItem entity;
+            PhmPrescriptionCompoundItem entity;
             if (existingEntity != null)
             {
                 entity = existingEntity;
             }
             else
             {
-                var duplicate = await _dbContext.Set<TrxPrescriptionCompoundItem>()
+                var duplicate = await _dbContext.Set<PhmPrescriptionCompoundItem>()
                     .AnyAsync(x =>
                         x.PrescriptionCompoundId == compound.Id &&
                         x.DrugId == drug.Id &&
@@ -559,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     throw new InvalidOperationException(
                         $"Obat {drug.DrugName} sudah ada pada racikan ini.");
 
-                entity = new TrxPrescriptionCompoundItem
+                entity = new PhmPrescriptionCompoundItem
                 {
                     Id = Guid.NewGuid(),
                     PrescriptionCompoundId = compound.Id,
@@ -567,7 +567,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     CreateBy = actorUserId,
                     IsActive = true
                 };
-                _dbContext.Set<TrxPrescriptionCompoundItem>().Add(entity);
+                _dbContext.Set<PhmPrescriptionCompoundItem>().Add(entity);
             }
 
             var verificationWasInvalidated =
@@ -647,7 +647,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         private static bool IsExistingVerificationCompatible(
-            TrxPrescriptionCompoundItem existing,
+            PhmPrescriptionCompoundItem existing,
             AutosavePrescriptionCompoundItemRequest request,
             CompoundCalculationResult preliminaryCalculation,
             MstMeasurement quantityUnit,
@@ -854,7 +854,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 : string.Join("; ", notes.Distinct(StringComparer.OrdinalIgnoreCase));
         }
 
-        private static void ApplyDrugSnapshot(TrxPrescriptionItem entity, MstDrug drug)
+        private static void ApplyDrugSnapshot(PhmPrescriptionItem entity, MstDrug drug)
         {
             entity.DrugCodeSnapshot = drug.DrugCode;
             entity.DrugNameSnapshot = drug.DrugName;
@@ -871,7 +871,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.IsHighAlertSnapshot = drug.IsHighAlert;
         }
 
-        private static void ApplyDrugSnapshot(TrxPrescriptionCompoundItem entity, MstDrug drug)
+        private static void ApplyDrugSnapshot(PhmPrescriptionCompoundItem entity, MstDrug drug)
         {
             entity.DrugCodeSnapshot = drug.DrugCode;
             entity.DrugNameSnapshot = drug.DrugName;
@@ -889,7 +889,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.IsAllowFractionalSourceSnapshot = drug.IsAllowFractionalDispense;
         }
 
-        private static void ApplyCoverage(TrxPrescriptionItem entity, InsuranceCoverageResult coverage)
+        private static void ApplyCoverage(PhmPrescriptionItem entity, InsuranceCoverageResult coverage)
         {
             entity.TariffId = coverage.TariffId;
             entity.InsuranceTariffId = coverage.InsuranceTariffId;
@@ -913,7 +913,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.CoverageNote = coverage.CoverageNote;
         }
 
-        private static void ApplyCoverage(TrxPrescriptionCompoundItem entity, InsuranceCoverageResult coverage)
+        private static void ApplyCoverage(PhmPrescriptionCompoundItem entity, InsuranceCoverageResult coverage)
         {
             entity.TariffId = coverage.TariffId;
             entity.InsuranceTariffId = coverage.InsuranceTariffId;
@@ -946,7 +946,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.UpdateBy = actorUserId;
         }
 
-        private static PrescriptionWorkspaceResponse MapWorkspace(TrxPrescription x)
+        private static PrescriptionWorkspaceResponse MapWorkspace(PhmPrescription x)
         {
             return new PrescriptionWorkspaceResponse
             {
@@ -1014,7 +1014,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             };
         }
 
-        private static PrescriptionWorkspaceItemResponse MapItem(TrxPrescriptionItem x) => new()
+        private static PrescriptionWorkspaceItemResponse MapItem(PhmPrescriptionItem x) => new()
         {
             Id = x.Id,
             DrugId = x.DrugId,
@@ -1068,7 +1068,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             SortOrder = x.SortOrder
         };
 
-        private static PrescriptionWorkspaceCompoundResponse MapCompound(TrxPrescriptionCompound x) => new()
+        private static PrescriptionWorkspaceCompoundResponse MapCompound(PhmPrescriptionCompound x) => new()
         {
             Id = x.Id,
             CompoundName = x.CompoundName,
@@ -1110,7 +1110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 .Select(MapCompoundItem).ToList()
         };
 
-        private static PrescriptionWorkspaceCompoundItemResponse MapCompoundItem(TrxPrescriptionCompoundItem x) => new()
+        private static PrescriptionWorkspaceCompoundItemResponse MapCompoundItem(PhmPrescriptionCompoundItem x) => new()
         {
             Id = x.Id,
             DrugId = x.DrugId,

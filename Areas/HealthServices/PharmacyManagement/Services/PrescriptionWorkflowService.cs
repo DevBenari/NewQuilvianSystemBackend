@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         public async Task<PrescriptionWorkflowResult> FinalizeFromConsultationAsync(
-            TrxPrescription entity,
+            PhmPrescription entity,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken = default)
@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         }
 
         public Task<PrescriptionWorkflowResult> SubmitAsync(
-            TrxPrescription entity,
+            PhmPrescription entity,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken = default)
@@ -69,7 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         // yang menentukan akibat finansialnya.
 
         public async Task<PrescriptionWorkflowResult> CancelAsync(
-            TrxPrescription entity,
+            PhmPrescription entity,
             string reason,
             Guid actorUserId,
             DateTime now,
@@ -109,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             return PrescriptionWorkflowResult.Ok();
         }
 
-        public bool CanDelete(TrxPrescription entity)
+        public bool CanDelete(PhmPrescription entity)
         {
             return entity.PrescriptionStatus == PrescriptionStatus.Draft &&
                    entity.TotalItemCount == 0 &&

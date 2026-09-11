@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -60,7 +60,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Clini
             builder.HasIndex(x => x.EncounterId);
             builder.HasIndex(x => x.DispatchStatus);
 
-            builder.HasOne<TrxPatientEncounter>()
+            builder.HasOne<RegPatientEncounter>()
                 .WithMany()
                 .HasForeignKey(x => x.EncounterId)
                 .OnDelete(DeleteBehavior.Restrict);

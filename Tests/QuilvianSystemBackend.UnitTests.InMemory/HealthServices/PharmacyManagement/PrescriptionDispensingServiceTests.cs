@@ -90,7 +90,7 @@ public sealed class PrescriptionDispensingServiceTests
             FullName = "Pasien Uji", IsActive = true
         });
 
-        context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+        context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = encounterId, EncounterNumber = "ENC-001",
             PatientId = patientId, ServiceUnitId = serviceUnitId
@@ -107,7 +107,7 @@ public sealed class PrescriptionDispensingServiceTests
             IsActive = true, IsAllowDispensing = true
         });
 
-        context.Set<TrxPrescription>().Add(new TrxPrescription
+        context.Set<PhmPrescription>().Add(new PhmPrescription
         {
             Id = prescriptionId,
             PrescriptionNumber = "RX-001",
@@ -120,7 +120,7 @@ public sealed class PrescriptionDispensingServiceTests
             PaymentStatus = payment
         });
 
-        context.Set<TrxPrescriptionItem>().Add(new TrxPrescriptionItem
+        context.Set<PhmPrescriptionItem>().Add(new PhmPrescriptionItem
         {
             Id = itemId,
             PrescriptionId = prescriptionId,
@@ -540,11 +540,11 @@ public sealed class PrescriptionDispensingServiceTests
         // Resep kedua yang benar-benar ada, supaya yang diuji adalah pemeriksaan kepemilikan
         // — bukan sekadar resep yang tidak ditemukan.
         var resepLain = Guid.NewGuid();
-        f.Context.Set<TrxPrescription>().Add(new TrxPrescription
+        f.Context.Set<PhmPrescription>().Add(new PhmPrescription
         {
             Id = resepLain,
             PrescriptionNumber = "RX-002",
-            EncounterId = (await f.Context.TrxPrescriptions.AsNoTracking()
+            EncounterId = (await f.Context.PhmPrescriptions.AsNoTracking()
                 .Where(x => x.Id == f.PrescriptionId).Select(x => x.EncounterId).FirstAsync()),
             PatientId = Guid.NewGuid(),
             DoctorId = Guid.NewGuid(),

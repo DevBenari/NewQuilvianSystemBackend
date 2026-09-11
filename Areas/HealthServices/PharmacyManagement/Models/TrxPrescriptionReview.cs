@@ -28,7 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public string PrescriptionSignatureSnapshot { get; set; } = string.Empty;
 
         public bool IsActive { get; set; } = true;
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
         public ICollection<TrxPrescriptionReviewItem> Items { get; set; }
             = new List<TrxPrescriptionReviewItem>();
         public ICollection<TrxPrescriptionClarification> Clarifications { get; set; }

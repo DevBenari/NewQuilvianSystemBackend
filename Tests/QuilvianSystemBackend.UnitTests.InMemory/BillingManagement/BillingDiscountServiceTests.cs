@@ -271,7 +271,7 @@ public sealed class BillingDiscountServiceTests
         decimal doctorShare = 0,
         bool administrationFeeCategory = false)
     {
-        var encounter = new TrxPatientEncounter
+        var encounter = new RegPatientEncounter
         {
             Id = Guid.NewGuid(),
             EncounterNumber = $"ENC-{Guid.NewGuid():N}",
@@ -321,7 +321,7 @@ public sealed class BillingDiscountServiceTests
             SourcePayloadHash = new string('D', 64)
         };
         invoice.Items.Add(item);
-        db.TrxPatientEncounters.Add(encounter);
+        db.RegPatientEncounters.Add(encounter);
         db.MstTariffCategories.Add(category);
         db.BilInvoices.Add(invoice);
         await db.SaveChangesAsync();

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
@@ -459,9 +459,9 @@ public class OperatingRoomInventoryDispatchServiceTests
 
             // Retur Farmasi menuntut kunjungan pasien yang sah; kasus operasi menunjuk salah
             // satunya, jadi kunjungan itu harus ada agar returnya dapat diajukan.
-            if (!await ctx.Context.Set<TrxPatientEncounter>().AnyAsync(x => x.Id == ctx.EncounterId))
+            if (!await ctx.Context.Set<RegPatientEncounter>().AnyAsync(x => x.Id == ctx.EncounterId))
             {
-                ctx.Context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+                ctx.Context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
                 {
                     Id = ctx.EncounterId, EncounterNumber = "ENC-OPR-001",
                     PatientId = ctx.PatientId, ServiceUnitId = Guid.NewGuid()

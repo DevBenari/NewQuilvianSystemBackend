@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260907040000_AddPharmacyPrescriptionDispensingLink")]
     public partial class AddPharmacyPrescriptionDispensingLink : Migration
     {
         // Menautkan pemakaian obat ke resep yang diserahkannya.

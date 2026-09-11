@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -12,8 +12,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 {
-    [Table("TrxPrescription", Schema = "public")]
-    public class TrxPrescription : IdentityModel
+    [Table("PhmPrescription", Schema = "public")]
+    public class PhmPrescription : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -164,7 +164,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public TrxDoctorConsultation? Consultation { get; set; }
 
@@ -176,7 +176,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public MstClinic? Clinic { get; set; }
 
-        public TrxPatientEncounterGuarantor? PaymentSource { get; set; }
+        public RegPatientEncounterGuarantor? PaymentSource { get; set; }
 
         public MstPatientInsurance? PatientInsurance { get; set; }
 
@@ -192,8 +192,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public ApplicationUser? CancelledByUser { get; set; }
 
-        public ICollection<TrxPrescriptionItem> Items { get; set; } = new List<TrxPrescriptionItem>();
+        public ICollection<PhmPrescriptionItem> Items { get; set; } = new List<PhmPrescriptionItem>();
 
-        public ICollection<TrxPrescriptionCompound> Compounds { get; set; } = new List<TrxPrescriptionCompound>();
+        public ICollection<PhmPrescriptionCompound> Compounds { get; set; } = new List<PhmPrescriptionCompound>();
     }
 }

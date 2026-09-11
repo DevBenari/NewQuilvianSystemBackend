@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
@@ -280,7 +280,7 @@ public class OperatingRoomToPharmacyEndToEndTests
         var batchId = Guid.NewGuid();
         var locationId = Guid.NewGuid();
 
-        ctx.Context.Set<TrxPatientEncounter>().Add(new TrxPatientEncounter
+        ctx.Context.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = ctx.EncounterId, EncounterNumber = "ENC-E2E-001",
             PatientId = ctx.PatientId, ServiceUnitId = Guid.NewGuid()

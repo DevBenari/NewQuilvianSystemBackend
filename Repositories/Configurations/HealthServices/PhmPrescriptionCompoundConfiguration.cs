@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPrescriptionCompoundConfiguration : IEntityTypeConfiguration<TrxPrescriptionCompound>
+    public class PhmPrescriptionCompoundConfiguration : IEntityTypeConfiguration<PhmPrescriptionCompound>
     {
-        public void Configure(EntityTypeBuilder<TrxPrescriptionCompound> entity)
+        public void Configure(EntityTypeBuilder<PhmPrescriptionCompound> entity)
         {
-            entity.ToTable("TrxPrescriptionCompound", "public");
+            entity.ToTable("PhmPrescriptionCompound", "public");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.PrescriptionId).IsRequired();

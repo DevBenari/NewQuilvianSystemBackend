@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -325,7 +325,7 @@ public sealed class InpEpisodeDraftLifecycleTests
             InpatientEpisodeTestWorld.ActorUserId,
             actorIsSupervisorOrWardHead: false);
 
-        var encounter = await db.Set<TrxPatientEncounter>().AsNoTracking().SingleAsync();
+        var encounter = await db.Set<RegPatientEncounter>().AsNoTracking().SingleAsync();
 
         // Supaya ia tidak muncul sebagai kunjungan rawat inap yang benar-benar terjadi pada
         // laporan kunjungan.
@@ -349,7 +349,7 @@ public sealed class InpEpisodeDraftLifecycleTests
             InpatientEpisodeTestWorld.ActorUserId,
             actorIsSupervisorOrWardHead: false);
 
-        var tersimpan = await db.Set<TrxPatientEncounter>()
+        var tersimpan = await db.Set<RegPatientEncounter>()
             .AsNoTracking()
             .SingleAsync(x => x.Id == encounter.Id);
 
@@ -369,7 +369,7 @@ public sealed class InpEpisodeDraftLifecycleTests
 
         await world.EpisodeService.GetEpisodeAsync(episodeId);
 
-        var encounter = await db.Set<TrxPatientEncounter>().AsNoTracking().SingleAsync();
+        var encounter = await db.Set<RegPatientEncounter>().AsNoTracking().SingleAsync();
 
         Assert.Equal(EncounterStatus.Cancelled, encounter.EncounterStatus);
     }

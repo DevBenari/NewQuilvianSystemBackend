@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxPatientEncounterConfiguration : IEntityTypeConfiguration<TrxPatientEncounter>
+    public class RegPatientEncounterConfiguration : IEntityTypeConfiguration<RegPatientEncounter>
     {
-        public void Configure(EntityTypeBuilder<TrxPatientEncounter> entity)
+        public void Configure(EntityTypeBuilder<RegPatientEncounter> entity)
         {
-            entity.ToTable("TrxPatientEncounter", "public");
+            entity.ToTable("RegPatientEncounter", "public");
 
             entity.HasKey(x => x.Id);
 
@@ -119,7 +119,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // PAYMENT SUMMARY
             // =========================
             // Detail dan snapshot sumber pembayaran berada pada relasi one-to-one
-            // TrxPatientEncounterGuarantor. Header encounter hanya menyimpan summary.
+            // RegPatientEncounterGuarantor. Header encounter hanya menyimpan summary.
 
             entity.Property(x => x.PaymentType)
                 .HasConversion<int>()
@@ -344,8 +344,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Relasi one-to-one PaymentSource dikonfigurasi pada
-            // TrxPatientEncounterGuarantorConfiguration karena foreign key berada
-            // pada tabel TrxPatientEncounterGuarantor.
+            // RegPatientEncounterGuarantorConfiguration karena foreign key berada
+            // pada tabel RegPatientEncounterGuarantor.
 
             // =========================
             // INDEXES

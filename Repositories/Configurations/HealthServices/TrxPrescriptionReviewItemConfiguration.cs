@@ -72,17 +72,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.CriterionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne<TrxPrescriptionItem>()
+            entity.HasOne<PhmPrescriptionItem>()
                 .WithMany()
                 .HasForeignKey(x => x.PrescriptionItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne<TrxPrescriptionCompound>()
+            entity.HasOne<PhmPrescriptionCompound>()
                 .WithMany()
                 .HasForeignKey(x => x.PrescriptionCompoundId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne<TrxPrescriptionCompoundItem>()
+            entity.HasOne<PhmPrescriptionCompoundItem>()
                 .WithMany()
                 .HasForeignKey(x => x.PrescriptionCompoundItemId)
                 .OnDelete(DeleteBehavior.Restrict);

@@ -98,7 +98,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                 context, new HubContextKosong<QueueHub>(), logger);
 
             return new PatientEncounterController(
-                    context, logger, realtime, new ClinicalDocumentIntegrityService(context))
+                    context, logger, realtime, new ClinicalDocumentIntegrityService(context), new PatientEncounterNumberService(context))
                 .DenganPengguna(userId);
         }
 
@@ -355,7 +355,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
                     .UpdateEncounterStatus(konteks.EncounterId, permintaan));
 
             using var konteksBaca = database.CreateContext();
-            var kunjungan = await konteksBaca.Set<TrxPatientEncounter>()
+            var kunjungan = await konteksBaca.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == konteks.EncounterId);
 
@@ -441,7 +441,7 @@ namespace QuilvianSystemBackend.Tests.MedicalRecordManagement
             Assert.Equal(StatusCodes.Status200OK, ControllerTestHarness.KodeStatus(hasil));
 
             using var konteksBaca = database.CreateContext();
-            var kunjungan = await konteksBaca.Set<TrxPatientEncounter>()
+            var kunjungan = await konteksBaca.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == konteks.EncounterId);
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -129,12 +129,14 @@ internal sealed class PatientEncounterTestWorld
             loggerService);
 
         var integrityService = new ClinicalDocumentIntegrityService(dbContext);
+        var numberService = new PatientEncounterNumberService(dbContext);
 
         var controller = new PatientEncounterController(
             dbContext,
             loggerService,
             queueRealtimeService,
-            integrityService);
+            integrityService,
+            numberService);
 
         var identity = new ClaimsIdentity(
             new[]

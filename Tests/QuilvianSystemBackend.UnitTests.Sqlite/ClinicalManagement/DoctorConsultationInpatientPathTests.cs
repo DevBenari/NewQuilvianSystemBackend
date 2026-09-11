@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
             var dokterMaster = RawatInapTestData.BuatDokterMaster(context);
             var aktor = RekamMedisTestData.BuatPengguna(context, "dokter");
 
-            var kunjungan = context.Set<TrxPatientEncounter>().First(x => x.Id == konteks.EncounterId);
+            var kunjungan = context.Set<RegPatientEncounter>().First(x => x.Id == konteks.EncounterId);
             kunjungan.EncounterType = encounterType;
             context.SaveChanges();
 
@@ -208,7 +208,7 @@ namespace QuilvianSystemBackend.Tests.ClinicalManagement
 
             await BuatController(context, k.AktorUserId).CreateConsultation(Permintaan(k));
 
-            var kunjungan = await context.Set<TrxPatientEncounter>().SingleAsync(x => x.Id == k.EncounterId);
+            var kunjungan = await context.Set<RegPatientEncounter>().SingleAsync(x => x.Id == k.EncounterId);
 
             Assert.Equal(EncounterStatus.InConsultation, kunjungan.EncounterStatus);
         }
