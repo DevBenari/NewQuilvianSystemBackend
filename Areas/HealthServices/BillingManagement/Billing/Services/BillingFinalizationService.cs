@@ -122,15 +122,10 @@ public sealed class BillingFinalizationService
                 CreateBy = actorUserId
             };
             _dbContext.BilFinalizationRecords.Add(record);
-            // Tagihan pasien yang sudah lunas langsung berstatus CLOSED, bukan FINAL. FINAL hanya
-            // untuk invoice yang difinalisasi dengan sisa tanggung jawab (departure exception) -
-            // di situ masih ada piutang yang menunggu penyelesaian.
-            var isFullySettled = !isDepartureException && readiness.Outstanding <= 0;
-            invoice.Status = isFullySettled
-                ? BillingInvoiceStatuses.Closed
-                : BillingInvoiceStatuses.Final;
+            // Kontrak BIL-STATE-0.4: finalisasi selalu menghasilkan FINAL.
+            // CLOSED hanya terjadi setelah AR/AP posting sukses.
+            invoice.Status = BillingInvoiceStatuses.Final;
             invoice.InvoiceDate ??= now;
-            if (isFullySettled) invoice.ClosedAt ??= now;
             invoice.RowVersion = Guid.NewGuid();
             invoice.UpdateDateTime = DateTime.UtcNow;
             invoice.UpdateBy = actorUserId;
@@ -264,13 +259,24 @@ public sealed class BillingFinalizationService
             .Where(x => x.InvoiceId == invoice.Id
                 && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess && !x.IsDelete)
             .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
+        // BE-BKC-029/BKC-DES-024: writeOffTotal HANYA menyaring kategori PATIENT_AR - write-off
+        // residual non-billable tidak pernah mengurangi piutang pasien (BE-BKC-028). adjustmentNet
+        // mengecualikan reversal yang menunjuk case residual - satu paket dengan penyaringan di
+        // atas, sama seperti BillingFinancialExceptionService.CalculateOutstandingAsync.
         var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
             .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingWriteOffCaseStatuses.Posted
+                && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
             .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        var residualCaseIds = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoice.Id && x.Category == BillingWriteOffCategories.NonBillableResidual)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
         var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
             .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
+                && (x.ReversesWriteOffCaseId == null
+                    || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
             .SumAsync(
                 x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
                 cancellationToken) ?? 0;

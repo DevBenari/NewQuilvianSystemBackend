@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.DTOs
 {
@@ -59,6 +59,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+
+        public List<PaymentMethodAccountDto> Accounts { get; set; } = new();
+    }
+
+    public class PaymentMethodAccountDto
+    {
+        public Guid Id { get; set; }
+        public Guid PaymentMethodId { get; set; }
+        public string BankName { get; set; } = string.Empty;
+        public string AccountNumber { get; set; } = string.Empty;
+        public string AccountHolderName { get; set; } = string.Empty;
+        public string Purpose { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int SortOrder { get; set; } = 0;
+    }
+
+    public class CreateOrUpdatePaymentMethodAccountRequest
+    {
+        public Guid? Id { get; set; }
+        [Required, MaxLength(100)]
+        public string BankName { get; set; } = string.Empty;
+        [Required, MaxLength(100)]
+        public string AccountNumber { get; set; } = string.Empty;
+        [Required, MaxLength(200)]
+        public string AccountHolderName { get; set; } = string.Empty;
+        [Required, MaxLength(100)]
+        public string Purpose { get; set; } = string.Empty;
+        [MaxLength(250)]
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int SortOrder { get; set; } = 0;
     }
 
     public class PaymentMethodDetailResponse : PaymentMethodResponse
@@ -101,6 +133,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         // ulang per kategori di sisi client.
         public string? Description { get; set; }
         public int SortOrder { get; set; }
+
+        public List<PaymentMethodAccountDto> Accounts { get; set; } = new();
     }
 
     public class PaymentMethodFilterMetadataResponse
@@ -213,6 +247,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public List<CreateOrUpdatePaymentMethodAccountRequest>? Accounts { get; set; }
     }
 
     public class UpdatePaymentMethodRequest
@@ -278,6 +314,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public List<CreateOrUpdatePaymentMethodAccountRequest>? Accounts { get; set; }
     }
 
     public class PaymentMethodCreateResponse

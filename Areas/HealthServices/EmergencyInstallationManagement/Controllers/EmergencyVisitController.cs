@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -597,7 +597,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.EncounterId.HasValue && request.EncounterId.Value != Guid.Empty)
             {
-                var encounter = await _dbContext.Set<TrxPatientEncounter>()
+                var encounter = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == request.EncounterId.Value && !x.IsDelete, cancellationToken);
 

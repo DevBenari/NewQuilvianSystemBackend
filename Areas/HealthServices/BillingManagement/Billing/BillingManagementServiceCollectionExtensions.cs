@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 
@@ -15,6 +16,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingModuleService>();
         services.AddScoped<BillingInvoiceService>();
         services.AddScoped<BillingCalculationService>();
+        services.AddScoped<BillingInsuranceInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
         services.AddScoped<BillingAllocationService>();
@@ -48,11 +50,21 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddOptions<BillingCashierShiftNumberOptions>()
             .BindConfiguration(BillingCashierShiftNumberOptions.SectionName)
             .ValidateOnStart();
+        // BE-BKC-034 / PC-DES-008: nomor voucher Petty Cash (PTC-YYYYMMDD-NNNN).
+        services.AddOptions<PettyCashVoucherNumberOptions>()
+            .BindConfiguration(PettyCashVoucherNumberOptions.SectionName)
+            .ValidateOnStart();
         services.AddScoped<AdministrationFeePolicyService>();
         services.AddScoped<DiscountPolicyService>();
         services.AddScoped<TaxRuleService>();
         services.AddScoped<RoomChargePolicyService>();
         services.AddScoped<RegisterService>();
+        // BE-BKC-035 / PC-DES-002: master data kategori pengeluaran kas kecil.
+        services.AddScoped<PettyCashCategoryService>();
+        // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
+        services.AddScoped<PettyCashBudgetService>();
+        // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.
+        services.AddScoped<PettyCashVoucherService>();
 
         return services;
     }

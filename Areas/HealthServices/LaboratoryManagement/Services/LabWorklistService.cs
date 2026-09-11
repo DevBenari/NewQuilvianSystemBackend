@@ -56,6 +56,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .OrderByDescending(x => x.Urgency)
                 .ThenBy(x => x.LabOrder != null ? x.LabOrder.RequestedAt : null)
                 .ThenBy(x => x.CreateDateTime)
+                .ThenBy(x => x.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new LabWorklistItemResponse
@@ -164,6 +165,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .OrderByDescending(x => x.OverdueMinutes ?? -1)
                 .ThenBy(x => x.RequestedAt)
                 .ThenBy(x => x.ChargeEligibleAt)
+                .ThenBy(x => x.ExaminationId)
                 .ToList();
 
             var items = terurut

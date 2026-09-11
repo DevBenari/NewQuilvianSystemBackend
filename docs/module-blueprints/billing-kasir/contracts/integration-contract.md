@@ -21,7 +21,7 @@ Setiap message menyertakan `ContractVersion`, `OccurredAt`, `CorrelationId`, `Ca
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-INTEGRATION-0.5` · status **draft** · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-INTEGRATION-0.5` · status **approved** · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 | ID | Producer → Consumer | Trigger/payload minimum | Idempotency | Failure/retry | Security/privacy |
 | --- | --- | --- | --- | --- | --- |
@@ -38,7 +38,7 @@ Trace `BKC-DEC-065`–`069`, `BKC-DES-009`. Tests `BIL-AT-031`, `BIL-AT-034`.
 
 ## Amendment 4 September 2026 — Bacaan care setting dan status penjamin
 
-`last_changed_in: BIL-INTEGRATION-0.6` · status **draft** · owner Registration + Billing + Finance/Tax · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+`last_changed_in: BIL-INTEGRATION-0.6` · status **approved** · owner Registration + Billing + Finance/Tax · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
 
 ### Yang berubah pada kontrak integrasi yang sudah ada
 
@@ -61,3 +61,49 @@ Trace `BKC-DEC-065`–`069`, `BKC-DES-009`. Tests `BIL-AT-031`, `BIL-AT-034`.
 Tidak ada pesan, outbox, dead-letter, maupun rekonsiliasi baru. Seluruh bacaan di atas adalah panggilan `ApplicationDbContext` dalam satu proses yang sama, dan tidak ada penulisan yang dapat gagal separuh jalan. Tidak ada kontrak baru Billing → pihak asuransi maupun Billing → kantor pajak; pelaporan PPN tetap berjalan lewat proses keuangan yang sudah ada di luar modul ini.
 
 Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+`last_changed_in: BIL-INTEGRATION-0.7` · status **draft** · owner Billing dan Kepala Kasir/Finance Operations · `approved_by`: — · `approved_at`: — · input: **`PC-DEC-001`–`PC-DEC-013`** (`approved` 7 September 2026); keputusan arsitektur `PC-DES-001`–`PC-DES-014`.
+
+### Tidak ada kontrak integrasi baru — dan itu keputusan, bukan kelalaian
+
+Petty Cash adalah rumpun paling terisolasi di seluruh modul ini. Ia **tidak** membaca dari modul lain, **tidak** menulis ke modul lain, dan **tidak** mengirim maupun menerima pesan.
+
+Berkas ini tetap disunting — walaupun tidak ada baris `BIL-INT-*` baru — karena yang perlu dicatat justru **ketiadaannya**. Dua titik singgung yang paling wajar diharapkan pembaca memang ada, dan keduanya **diputus secara eksplisit** oleh keputusan pemilik. Membiarkan berkas ini diam akan membuat pembaca berikutnya menyangka sambungan itu terlupa dirancang.
+
+### Titik singgung yang sengaja diputus
+
+| Titik singgung yang wajar diharapkan | Keadaan sebenarnya | Dasar |
+| --- | --- | --- |
+| Petty Cash → Cashier Operations (`BilCashierShift`) | **Tidak ada, dan tidak boleh ada.** Pencairan voucher **MUST NOT** menambah `SystemCash`, mengurangi `PhysicalCash`, atau menggerakkan `Variance` shift mana pun. Menutup shift pada hari yang sama dengan pencairan voucher menghasilkan angka yang persis sama seperti bila voucher itu tidak pernah ada | **`PC-DEC-001`** — anggaran Petty Cash adalah kolam terpisah |
+| Petty Cash → Billing (`BilInvoice`, `BilCalculationVersion`) | **Tidak ada.** Tidak satu rupiah pun pengeluaran kas kecil masuk `PatientAmount`, `PrimaryAmount`, `TaxAmount`, maupun `NonBillableResidualAmount`. Petty Cash bukan biaya pasien | `PC-DEC-001`; batas scope amendment |
+| Petty Cash → Human Resource (`WorkforceProfile`, `MstEmployee`) | **Tidak ada.** "Nama Penerima" adalah teks bebas, bukan pilihan dari master pegawai | **`PC-DEC-011`** |
+| Petty Cash → `Corporate/HumanResource/ExpenseManagement` (`TrxExpenseClaim`, `MstExpenseCategory`) | **Tidak ada.** Kategori Petty Cash adalah master data milik `billing-kasir` sendiri | `PC-DEC-012`; `01-existing-capability-map.md` § 18.3 |
+| Petty Cash → Finance/Accounting (jurnal, buku besar) | **Tidak ada pada rilis ini.** Tidak ada pos jurnal yang dibentuk otomatis dari pencairan voucher | Tidak ada keputusan yang memintanya. `Areas/Corporate/AccountingManagement` terverifikasi **kosong** (`01-existing-capability-map.md` § 18.5), sehingga tidak ada konsumen yang dapat dituju |
+
+### Bacaan dalam proses yang **tidak** menjadi kontrak baru
+
+Ketiganya adalah pembacaan langsung `ApplicationDbContext` di dalam satu proses yang sama, pada tabel yang dimiliki modul ini sendiri atau pada infrastruktur bersama yang sudah terpakai. Tidak ada pesan, tidak ada HTTP, tidak ada outbox, dan tidak ada dead-letter — karena tidak ada penulisan yang dapat gagal separuh jalan di luar transaction.
+
+| Yang dibaca atau ditulis | Dari | Cara | Alasan tidak menjadi kontrak baru |
+| --- | --- | --- | --- |
+| `BilNumberSeries` | Tabel milik modul ini sendiri | `BillingNumberSeriesService.AllocatePettyCashVoucherNumberAsync`, memakai helper privat `AllocateNumberAsync` yang sudah ada | Bukan lintas modul. Mekanisme yang sama sudah dipakai empat jenis nomor lain di modul ini (`CAP-30`) |
+| `MstPettyCashCategory` | Tabel milik modul ini sendiri | Properti navigasi pada entity yang sudah dimuat | Bukan lintas modul |
+| Identitas pengguna (`ApplicationUser`) | Administrator / Identity | `Guid` dari claim pengguna yang sedang login, **tanpa** foreign key | Pola yang sudah berjalan di seluruh modul ini, misalnya `BilCashierShiftCommand.ActorUserId` (`CAP-32`). Menampilkan nama pengguna pada response memakai jalur pembacaan identitas yang sudah ada, bukan kontrak baru |
+
+### Konsekuensi yang **MUST** diketahui pemilik proses
+
+| Konsekuensi | Penjelasan |
+| --- | --- |
+| Uang kas kecil tidak muncul di laporan kas shift kasir | Ini yang `PC-DEC-001` minta. Bila kelak Finance menghendaki keduanya tampil dalam satu laporan kas rumah sakit, itu **kemampuan pelaporan baru** yang membaca kedua sumber, **bukan** menyambungkan kedua tabel |
+| Pengeluaran kas kecil tidak otomatis menjadi jurnal akuntansi | Selama MVP, Finance menjurnal manual dari riwayat pergerakan anggaran (`GET /budget/movements`). Bila kelak diperlukan otomatis, itu kontrak `Billing → Accounting` baru yang menuntut modul Accounting berdiri lebih dulu |
+| Tidak ada rekonsiliasi otomatis antara saldo sistem dan uang fisik di laci | Tidak ada penghitungan uang fisik seperti pada penutupan shift. Selisih dikoreksi lewat `POST /budget/adjustments` yang beralasan dan tercatat di ledger |
+
+### Yang tidak ditambahkan
+
+Tidak ada pesan, outbox, dead-letter, rekonsiliasi, penjadwal, maupun pekerjaan latar apa pun. Secara khusus, **tidak ada** pekerjaan latar yang memindai voucher `Uang Diterima` yang bukti notanya belum masuk — `PC-DEC-006` menyatakan eksplisit tidak ada mekanisme pemaksaan pada MVP ini, dan menandainya sebagai kandidat rilis berikutnya.
+
+Trace **`PC-DEC-001`**, `PC-DEC-011`, `PC-DEC-012`, `PC-DES-001`, `PC-DES-008`, `PC-DES-010`. Tests `BIL-AT-077` (bukti `BilCashierShift` tidak bergerak).

@@ -34,13 +34,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
          * Referensi
          * ================================================================ */
 
-        /// <summary>
-        /// Daftar modalitas beserta penanda apakah aturan keselamatannya sudah ditetapkan.
-        ///
-        /// Penanda itu penting untuk ditampilkan lebih dulu: modalitas tanpa aturan aktif akan
-        /// menolak setiap acquisition, dan petugas berhak tahu itu sebelum pasien dipanggil,
-        /// bukan setelah pasien sudah di ruangan.
-        /// </summary>
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudyFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Study", Description = "Melihat daftar pilihan penyaring study radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadStudy", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = _radStudyService.GetFilterMetadata();
+
+            return Ok(ApiResponse<RadStudyFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter study radiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudySummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Study", Description = "Melihat rekap study radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadStudy", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radStudyService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<RadStudySummaryResponse>.Ok(
+                hasil, "Rekap study radiologi berhasil diambil."));
+        }
+
+        // Daftar modalitas beserta penanda apakah aturan keselamatannya sudah ditetapkan.
+        //
+        // Penanda itu penting untuk ditampilkan lebih dulu: modalitas tanpa aturan aktif akan
+        // menolak setiap acquisition, dan petugas berhak tahu itu sebelum pasien dipanggil,
+        // bukan setelah pasien sudah di ruangan.
         [HttpGet("modalities")]
         [ProducesResponseType(typeof(ApiResponse<List<RadModalityResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Study", Description = "Melihat daftar modalitas radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -73,9 +95,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         [ProducesResponseType(typeof(ApiResponse<List<RadStudyResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Study", Description = "Melihat study pada satu order", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RadStudy", "Read")]
-        public async Task<IActionResult> GetByOrder(Guid radOrderId, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetByOrder(
+            Guid radOrderId,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string? sortDirection = null,
+            CancellationToken cancellationToken = default)
         {
-            var result = await _radStudyService.GetByOrderAsync(radOrderId, cancellationToken);
+            var result = await _radStudyService.GetByOrderAsync(
+                radOrderId, sortBy, sortDirection, cancellationToken);
 
             return Ok(ApiResponse<List<RadStudyResponse>>.Ok(
                 result, "Daftar study radiologi berhasil diambil."));
@@ -150,9 +177,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             Execute(() => _radStudyService.AbortAcquisitionAsync(id, request, cancellationToken),
                 "Acquisition dihentikan dan sebabnya tercatat.");
 
-        /// <summary>
-        /// Menilai kualitas citra. Inilah satu-satunya titik yang menerbitkan kelayakan tagih.
-        /// </summary>
+        // Menilai kualitas citra. Inilah satu-satunya titik yang menerbitkan kelayakan tagih.
         [HttpPost("{id:guid}/decide-quality")]
         [ProducesResponseType(typeof(ApiResponse<RadStudyActionResult>), StatusCodes.Status200OK)]
         [AccessAction("Quality", "Decide Rad Study Quality", Description = "Menilai kualitas citra", AccessType = AccessTypes.Update, SortOrder = 6)]
@@ -214,8 +239,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                             result.ErrorMessage ?? "Terjadi konflik.",
                             new { Code = result.ErrorCode })),
 
+                    RadOperationResultKind.Forbidden =>
+                        StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                            StatusCodes.Status403Forbidden,
+                            result.ErrorMessage ?? "Anda tidak berwenang melakukan tindakan ini.",
+                            new { Code = result.ErrorCode })),
+
                     RadOperationResultKind.SafetyBlocked or
-                    RadOperationResultKind.PolicyNotConfigured =>
+                    RadOperationResultKind.PolicyNotConfigured or
+                    RadOperationResultKind.BusinessRule =>
                         UnprocessableEntity(ApiResponse<object>.Fail(
                             StatusCodes.Status422UnprocessableEntity,
                             result.ErrorMessage ?? "Prasyarat belum terpenuhi.",

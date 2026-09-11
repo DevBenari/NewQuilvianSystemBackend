@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -95,7 +95,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -261,6 +261,7 @@ public sealed class BillingSettlementService
                     SettlementId = settlement.Id,
                     Settlement = settlement,
                     PaymentMethodId = request.PaymentMethodId,
+                    PaymentMethodAccountId = request.PaymentMethodAccountId,
                     Amount = request.Amount,
                     CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
                         ? null
@@ -726,13 +727,24 @@ public sealed class BillingSettlementService
                     && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess
                     && !x.IsDelete)
                 .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
+            // BE-BKC-029/BKC-DES-024: writeOffTotal HANYA menyaring kategori PATIENT_AR - write-off
+            // residual non-billable tidak pernah mengurangi piutang pasien (BE-BKC-028).
+            // adjustmentNet mengecualikan reversal yang menunjuk case residual - satu paket dengan
+            // penyaringan di atas, sama seperti BillingFinancialExceptionService.CalculateOutstandingAsync.
             var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
                 .Where(x => x.InvoiceId == invoice.Id
-                    && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+                    && x.Status == BillingWriteOffCaseStatuses.Posted
+                    && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
                 .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+            var residualCaseIds = await _dbContext.BilWriteOffCases.AsNoTracking()
+                .Where(x => x.InvoiceId == invoice.Id && x.Category == BillingWriteOffCategories.NonBillableResidual)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
             var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
                 .Where(x => x.InvoiceId == invoice.Id
-                    && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete)
+                    && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
+                    && (x.ReversesWriteOffCaseId == null
+                        || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
                 .SumAsync(
                     x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
                     cancellationToken) ?? 0;
@@ -1084,6 +1096,7 @@ public sealed class BillingSettlementService
         Id = tender.Id,
         SettlementId = tender.SettlementId,
         PaymentMethodId = tender.PaymentMethodId,
+        PaymentMethodAccountId = tender.PaymentMethodAccountId,
         Amount = tender.Amount,
         Status = tender.Status,
         CashierReferenceNote = tender.CashierReferenceNote,

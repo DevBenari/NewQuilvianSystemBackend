@@ -4,8 +4,8 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
-| Revision | `0.2` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Revision | `0.3` |
+| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03; bagian 3 direvisi dan disetujui ulang 2026-09-05 |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Tanggal | 2 September 2026 |
 | Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.2` bagian 4 |
@@ -44,7 +44,7 @@ sebagai contoh berisi data asli.
 | Entity | Status | Owner | Kemampuan | Catatan |
 | --- | --- | --- | --- | --- |
 | `TrxDoctorConsultation` | **`Diperbarui`** | `ClinicalManagement` | `CAP-020` | Entity legacy `Trx*`; **jangan ditiru** modul baru |
-| `TrxPatientAssessment` | **`Diperbarui`** — hanya nilai enum | `ClinicalManagement` | `CAP-022` | Dibagi dengan `keperawatan` |
+| `TrxPatientAssessment` | **`Diperbarui`** — nilai enum + 3 kolom isian medis | `ClinicalManagement` | `CAP-022` | Dibagi dengan `keperawatan` |
 | `TrxPatientIntegratedProgressNote` | **`Diperbarui`** | `ClinicalManagement` | `CAP-021` | Kontraknya milik sub-modul ini |
 | `TrxPatientProcedure` | **`Diperbarui`** | `ClinicalManagement` | `CAP-024` | — |
 | **`CliPhysicianVisit`** | **`Baru`** | `ClinicalManagement` | `CAP-025` | Memakai prefix registry `Cli` — **bukan** `Trx*` |
@@ -87,12 +87,44 @@ edukasi.
 
 ---
 
-## 3. `TrxPatientAssessment` — `Diperbarui`, hanya nilai enum
+## 3. `TrxPatientAssessment` — `Diperbarui`
 
 | Yang berubah | Isinya |
 | --- | --- |
-| Kolom baru dari sub-modul ini | **Nol** |
+| Kolom baru dari sub-modul ini | **Tiga** — isian medis kajian DPJP |
 | Jenis kajian | Bertambah nilai kajian medis awal dan kajian medis ulang |
+
+> **Perubahan keputusan struktur, 5 September 2026.** Revisi sebelumnya menyatakan sub-modul ini
+> menambahkan **nol** kolom pada tabel ini. Keputusan itu **diganti** Product/Domain bersama
+> pemilik `ClinicalManagement` — jalan **A** pada
+> [`../02-backend-architecture.md`](../02-backend-architecture.md) bagian 4.2 diambil, dan
+> `TrxPatientAssessment` memperoleh tiga kolom isian medis.
+>
+> **Alasannya.** `VAL-DOK-10` menolak penyelesaian kajian ketika pemeriksaan atau rencana kosong,
+> dan `VAL-DOK-11` menolaknya ketika diagnosis kosong. Selama ketiganya tidak punya kolom, kedua
+> aturan itu **tidak dapat ditegakkan** — dan `BE-RWI-045` kriteria 4 tidak dapat dibuktikan.
+> Dua jalan lain ditolak: menggantungkan diagnosis pada `TrxPatientDiagnosis` menuntut
+> `ConsultationId` dilonggarkan, yaitu menyentuh tabel yang sedang dipakai poliklinik, dan tetap
+> tidak menyediakan tempat bagi pemeriksaan fisik maupun rencana terapi; sedangkan tabel kajian
+> medis tersendiri berarti menyalin puluhan kolom yang sudah ada di sini.
+
+### 3.0 Kolom baru — isian medis kajian DPJP
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `PhysicalExamination` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Pemeriksaan fisik naratif oleh DPJP |
+| `WorkingDiagnosis` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Diagnosis kerja pada kajian medis awal |
+| `TherapyPlan` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Rencana terapi |
+
+Ketiganya **nullable**, sehingga seluruh baris pengkajian keperawatan, poliklinik, dan IGD yang
+sudah ada tidak perlu disentuh sama sekali. Wajibnya ditegakkan **aturan bisnis saat penyelesaian
+kajian medis**, bukan oleh `NOT NULL` — pengkajian keperawatan memang tidak mengisinya.
+
+`WorkingDiagnosis` **bukan pengganti** `TrxPatientDiagnosis`. Diagnosis berkode ICD tetap tinggal
+di sana dan tetap menggantung pada catatan dokter; kolom ini menampung diagnosis kerja pada saat
+pemeriksaan pertama, ketika catatan yang menaunginya belum ada.
+
+Migration: `20260905081108_AddMedicalAssessmentContentColumns`.
 
 Kolom `InpEpisodeId`, `DueAt`, dan `PolicyId` **sudah diminta** `keperawatan` dan dipakai apa adanya
 di sini. Rinciannya di [`../../keperawatan/data/data-dictionary.md`](../../keperawatan/data/data-dictionary.md).
@@ -106,8 +138,10 @@ di sini. Rinciannya di [`../../keperawatan/data/data-dictionary.md`](../../keper
 | `AssessmentStatus` | `Draft`, `InProgress`, `Completed`, `Cancelled` |
 | `DoctorId` | Membuktikan tabel ini memang tidak pernah menjadi milik perawat saja |
 
-> Berbagi satu tabel adalah keputusan struktur yang **menunggu persetujuan pemilik** —
-> `../02-backend-architecture.md` bagian 4.2, beserta keberatan yang sudah dicatat.
+> Berbagi satu tabel adalah keputusan struktur yang **sudah disetujui pemilik** 5 September 2026
+> — `../02-backend-architecture.md` bagian 4.2 jalan A. Harganya tetap seperti yang dicatat di
+> sana: mesin hak akses hanya melihat satu sumber daya untuk dua jenis dokumen, sehingga
+> pembedaan kajian medis dan pengkajian keperawatan bersandar sepenuhnya pada aturan bisnis.
 
 ---
 

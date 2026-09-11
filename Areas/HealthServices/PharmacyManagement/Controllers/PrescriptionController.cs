@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             [FromQuery] string? search = null,
             CancellationToken cancellationToken = default)
         {
-            var query = _dbContext.Set<TrxPrescription>()
+            var query = _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -273,6 +273,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             [FromBody] CreatePrescriptionRequest request,
             CancellationToken cancellationToken = default)
         {
+            // BE-RWI-050 kriteria 3. Kiriman ulang dengan kunci yang sama mengembalikan resep
+            // yang sudah ada, bukan resep kedua. Diperiksa PALING AWAL supaya percobaan ulang
+            // tidak menyentuh konteks pembayaran maupun penomoran resep sama sekali.
+            var kunciPermintaan = NormalizeNullableText(request.IdempotencyKey);
+
+            if (kunciPermintaan != null)
+            {
+                var sudahAda = await _dbContext.Set<PhmPrescription>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.IdempotencyKey == kunciPermintaan && !x.IsDelete,
+                                         cancellationToken);
+
+                if (sudahAda != null)
+                {
+                    var ringkasanUlang = await _prescriptionSummaryService.ReadConsultationSummaryAsync(
+                        sudahAda.ConsultationId, cancellationToken);
+
+                    return Ok(ApiResponse<PrescriptionCreateResponse>.Ok(
+                        ToCreateResponse(sudahAda, ringkasanUlang),
+                        "Resep sudah tercatat sebelumnya dengan kunci permintaan yang sama."));
+                }
+            }
+
             var validation = await ValidateCreateRequestAsync(request, cancellationToken);
             if (!validation.IsValid)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data resep tidak valid."));
@@ -294,12 +317,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var entity = new TrxPrescription
+            var entity = new PhmPrescription
             {
                 Id = Guid.NewGuid(),
                 PrescriptionNumber = await _prescriptionNumberService.GenerateAsync(now, cancellationToken),
                 EncounterId = consultation.EncounterId,
                 ConsultationId = consultation.Id,
+                // BE-RWI-042 dan BE-RWI-043. Konteks perawatan diwarisi dari catatan dokternya,
+                // bukan ditanyakan ulang: resep memang lahir dari satu catatan, dan mewarisinya
+                // membuat resep tidak pernah menunjuk perawatan yang berbeda dari catatannya.
+                InpEpisodeId = consultation.InpEpisodeId,
+                // BE-RWI-050. Jenis resep dan kunci permintaan distempel saat resep lahir.
+                PrescriptionOrderType = request.PrescriptionOrderType,
+                IdempotencyKey = kunciPermintaan,
                 PatientId = consultation.PatientId,
                 DoctorId = consultation.DoctorId,
                 ServiceUnitId = consultation.ServiceUnitId,
@@ -327,7 +357,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxPrescription>().Add(entity);
+            _dbContext.Set<PhmPrescription>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var summary = await _prescriptionSummaryService.RebuildConsultationSummaryAsync(
@@ -343,6 +373,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return Ok(ApiResponse<PrescriptionCreateResponse>.Ok(response, "Header resep berhasil dibuat."));
         }
 
+        /// <summary>
+        /// Seluruh resep satu perawatan rawat inap beserta keadaan pemenuhannya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-050</c> kriteria 1, 2, dan 4; <c>api-contract.md</c> bagian 6. Pasien yang
+        /// dirawat lima hari menerima resep setiap hari, dan seluruhnya terbaca di sini terurut
+        /// waktu penulisan.
+        /// </para>
+        /// <para>
+        /// <b>Keadaan pemenuhan hanya dibaca.</b> Tidak ada satu pun endpoint pada controller
+        /// ini yang mengubahnya - <c>RUL-DOK-01</c>. Menandai obat sudah diserahkan adalah
+        /// kewenangan petugas Farmasi lewat permukaannya sendiri.
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePrescriptionPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Prescription", Description = "Melihat resep satu perawatan rawat inap beserta status pemenuhannya", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Prescription", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            [FromQuery] PrescriptionOrderType? orderType = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete);
+
+            if (orderType.HasValue)
+                query = query.Where(x => x.PrescriptionOrderType == orderType.Value);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var entities = await query
+                .OrderBy(x => x.PrescriptionDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            var hasil = new ResponsePrescriptionPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(ToResponse).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePrescriptionPagedResult>.Ok(
+                hasil, "Resep perawatan rawat inap berhasil diambil."));
+        }
+
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PrescriptionUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -351,7 +439,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         [AccessPermission("Prescription", "Update")]
         public async Task<IActionResult> UpdatePrescription(Guid id, [FromBody] UpdatePrescriptionRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<PhmPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Resep tidak ditemukan."));
             if (entity.PrescriptionStatus != PrescriptionStatus.Draft)
@@ -447,7 +535,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         [AccessPermission("Prescription", "Delete")]
         public async Task<IActionResult> DeletePrescription(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<PhmPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Resep tidak ditemukan."));
             if (!_prescriptionWorkflowService.CanDelete(entity))
@@ -466,9 +554,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return Ok(ApiResponse<object>.Ok(null, "Resep draft berhasil dihapus."));
         }
 
-        private IQueryable<TrxPrescription> BuildBaseQuery()
+        private IQueryable<PhmPrescription> BuildBaseQuery()
         {
-            return _dbContext.Set<TrxPrescription>()
+            return _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Encounter)
                 .Include(x => x.Consultation)
                 .Include(x => x.Patient)
@@ -486,8 +574,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<TrxPrescription> ApplyFilters(
-            IQueryable<TrxPrescription> query,
+        private static IQueryable<PhmPrescription> ApplyFilters(
+            IQueryable<PhmPrescription> query,
             string? search,
             Guid? encounterId,
             Guid? consultationId,
@@ -531,7 +619,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return query;
         }
 
-        private static IQueryable<TrxPrescription> ApplySorting(IQueryable<TrxPrescription> query, string? sortBy, string? sortDirection)
+        private static IQueryable<PhmPrescription> ApplySorting(IQueryable<PhmPrescription> query, string? sortBy, string? sortDirection)
         {
             var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             return (sortBy ?? "prescriptionDateTime").ToLowerInvariant() switch
@@ -557,19 +645,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed) return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan resep.");
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled) return (false, "Konsultasi yang sudah cancelled tidak dapat ditambahkan resep.");
 
-            var exists = await _dbContext.Set<TrxPrescription>().AsNoTracking().AnyAsync(x =>
+            // BE-RWI-043 / INT-DOK-02. Batas satu resep aktif per catatan tidak berlaku bagi
+            // catatan yang menempel pada perawatan rawat inap: pasien yang dirawat berhari-hari
+            // menerima resep sebanyak yang dibutuhkan - RWI-DEC-070, RWI-RULE-026 aturan 5.
+            //
+            // Penyaringnya adalah konteks perawatan pada catatan dokternya, bukan nama peran
+            // maupun tipe kunjungan yang ditebak. Resep rawat jalan dan medical check-up tetap
+            // ditolak dengan kalimat yang sama persis - INV-DOK-05, RWI-AC-143.
+            if (consultation.InpEpisodeId.HasValue)
+                return (true, null);
+
+            var exists = await _dbContext.Set<PhmPrescription>().AsNoTracking().AnyAsync(x =>
                 x.ConsultationId == request.ConsultationId && !x.IsDelete && !x.IsCancel && x.PrescriptionStatus != PrescriptionStatus.Cancelled,
                 cancellationToken);
             return exists ? (false, "Konsultasi ini sudah memiliki resep aktif.") : (true, null);
         }
 
-        private async Task<TrxPrescription?> GetWorkflowEntityAsync(Guid id, CancellationToken cancellationToken)
-            => await _dbContext.Set<TrxPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+        private async Task<PhmPrescription?> GetWorkflowEntityAsync(Guid id, CancellationToken cancellationToken)
+            => await _dbContext.Set<PhmPrescription>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
-        private async Task<TrxPrescription> ReloadAsync(Guid id, CancellationToken cancellationToken)
+        private async Task<PhmPrescription> ReloadAsync(Guid id, CancellationToken cancellationToken)
             => await BuildBaseQuery().AsNoTracking().FirstAsync(x => x.Id == id, cancellationToken);
 
-        private static PrescriptionResponse ToResponse(TrxPrescription x)
+        private static PrescriptionResponse ToResponse(PhmPrescription x)
         {
             return new PrescriptionResponse
             {
@@ -597,6 +695,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionStatus = x.PrescriptionStatus,
                 PaymentStatus = x.PaymentStatus,
                 FulfillmentStatus = x.FulfillmentStatus,
+                // BE-RWI-050. Jenis resep dan penanda perawatan ikut dibaca, supaya layar
+                // farmasi dapat menyaring obat pulang dan layar dokter dapat membaca seluruh
+                // resep satu perawatan.
+                PrescriptionOrderType = x.PrescriptionOrderType,
+                InpEpisodeId = x.InpEpisodeId,
                 PrescriptionDateTime = x.PrescriptionDateTime,
                 RegularItemCount = x.RegularItemCount,
                 CompoundCount = x.CompoundCount,
@@ -612,7 +715,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             };
         }
 
-        private static PrescriptionDetailResponse ToDetailResponse(TrxPrescription x)
+        private static PrescriptionDetailResponse ToDetailResponse(PhmPrescription x)
         {
             var response = new PrescriptionDetailResponse
             {
@@ -652,20 +755,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return response;
         }
 
-        private static void CopyBaseResponse(TrxPrescription x, PrescriptionResponse response)
+        private static void CopyBaseResponse(PhmPrescription x, PrescriptionResponse response)
         {
             var b = ToResponse(x);
             foreach (var property in typeof(PrescriptionResponse).GetProperties().Where(p => p.CanRead && p.CanWrite))
                 property.SetValue(response, property.GetValue(b));
         }
 
-        private static PrescriptionCreateResponse ToCreateResponse(TrxPrescription x, PrescriptionSummaryResult summary)
+        private static PrescriptionCreateResponse ToCreateResponse(PhmPrescription x, PrescriptionSummaryResult summary)
             => new()
             {
                 Id = x.Id,
                 PrescriptionNumber = x.PrescriptionNumber,
                 EncounterId = x.EncounterId,
                 ConsultationId = x.ConsultationId,
+                InpEpisodeId = x.InpEpisodeId,
+                PrescriptionOrderType = x.PrescriptionOrderType,
                 PrescriptionStatus = x.PrescriptionStatus,
                 PaymentStatus = x.PaymentStatus,
                 FulfillmentStatus = x.FulfillmentStatus,
@@ -679,7 +784,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionText = summary.PrescriptionText
             };
 
-        private static PrescriptionUpdateResponse ToUpdateResponse(TrxPrescription x, PrescriptionSummaryResult summary)
+        private static PrescriptionUpdateResponse ToUpdateResponse(PhmPrescription x, PrescriptionSummaryResult summary)
             => new()
             {
                 Id = x.Id,

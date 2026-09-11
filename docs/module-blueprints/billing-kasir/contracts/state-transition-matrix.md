@@ -52,7 +52,7 @@ Tidak ada status baru pada `BilInvoice`/`BilInvoiceItem`. `POST catalog-charges`
 
 ## Amendment 3 September 2026 — Dokumen Invoice Asuransi
 
-`contract_version: BIL-STATE-0.5` · status **draft** · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009`.
+`contract_version: BIL-STATE-0.5` · status **approved** · approved_by Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · approved_at 4 September 2026 · input `BKC-DEC-065`–`069`, `BKC-DES-001`–`009` (approved).
 
 **Tidak ada status baru, dan tidak ada transisi baru.** `GET {id}/insurance-invoice-document` adalah endpoint baca murni: ia tidak mengubah `BilInvoice.Status`, tidak membuat `BilCalculationVersion` baru, dan tidak menyentuh `BilInvoiceItem.Status`. Mencetak dokumen tidak pernah menjadi peristiwa yang mengubah keadaan tagihan.
 
@@ -73,7 +73,7 @@ Trace `BKC-DEC-065`–`069`. Tests `BIL-AT-029`–`035`.
 
 ## Amendment 4 September 2026 — Anomali data penjamin dan gerbang PPN
 
-`last_changed_in: BIL-STATE-0.6` · status **draft** · owner Billing/Finance/Cashier · `approved_by`/`approved_at`: belum ada. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
+`last_changed_in: BIL-STATE-0.6` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`.
 
 ### Status invoice — tidak ada status baru
 
@@ -110,7 +110,7 @@ Trace `BKC-DEC-070`–`079`, `BKC-DES-010`–`020`. Tests `BIL-AT-036`–`048`.
 
 ## Amendment lanjutan 4 September 2026 — Residual non-billable dirutekan ke write-off
 
-`last_changed_in: BIL-STATE-0.7` · status **draft** · owner Billing/Finance/Cashier · `approved_by`/`approved_at`: belum ada. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`.
+`last_changed_in: BIL-STATE-0.7` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) · `approved_at`: 4 September 2026. Input: **`BKC-DEC-080`** beserta `BKC-DEC-036`; keputusan arsitektur `BKC-DES-021`–`025`.
 
 ### Tidak ada status baru — yang bertambah adalah kategori
 
@@ -159,3 +159,96 @@ Entry koreksi reversal tetap berupa `BilAdjustment` ber-`Direction = Debit` yang
 - Finalisasi invoice **tidak** diblokir oleh residual yang belum ditulis-off pada rilis ini — hanya diperingatkan. Bila kelak diputuskan memblokir, satu baris transisi baru wajib ditambahkan di sini. Lihat `BKC-OQ-094`.
 
 Trace **`BKC-DEC-080`**, `BKC-DEC-036`, `BKC-DES-021`–`025`. Tests `BIL-AT-055`–`061`.
+
+---
+
+## Amendment 7 September 2026 — Rumpun baru: Petty Cash (Voucher Kas Kecil)
+
+`last_changed_in: BIL-STATE-0.8` · status **draft** · owner Kepala Kasir/Finance Operations · `approved_by`: — · `approved_at`: — · input: **`PC-DEC-001`–`PC-DEC-013`** (`approved` 7 September 2026); keputusan arsitektur `PC-DES-001`–`PC-DES-014`.
+
+### Kosakata status — lima nilai, dikunci pemilik
+
+`PC-DEC-013` mengunci kosakata status voucher secara utuh dan menyebutnya lengkap. Tabel di bawah memasangkan label yang dikunci itu dengan kode yang benar-benar disimpan di database (`PC-DES-003`).
+
+| Kode persisted | Label terkunci | Kapan muncul | Terminal? |
+| --- | --- | --- | :---: |
+| `WAITING_APPROVAL` | **`Menunggu Persetujuan`** | Sejak voucher dibuat sampai diputuskan | Tidak |
+| `APPROVED` | **`Disetujui`** | Kepala Kasir menyetujui; uang **belum** diserahkan | Tidak |
+| `CASH_RECEIVED` | **`Uang Diterima`** | Kasir menekan "Uang Diberikan"; uang sudah keluar | Tidak |
+| `COMPLETED` | **`Selesai`** | Bukti nota sudah dimasukkan | **Ya** |
+| `REJECTED` | **`Ditolak`** | Kepala Kasir menolak | **Ya, dan immutable** |
+
+Label di atas **MUST** dipakai apa adanya di layar. Layar **MUST NOT** menerjemahkan ulang, menyingkat, atau menambah status keenam.
+
+**Pembatalan bukan status.** `PC-DEC-007` mengizinkan pemohon membatalkan pengajuannya, tetapi `PC-DEC-013` sudah mengunci kosakata pada lima nilai. Keduanya dipenuhi bersamaan dengan menyimpan pembatalan sebagai **penandaan** `IsCancel` warisan `IdentityModel`, bukan sebagai nilai `Status` (`PC-DES-007`). Voucher yang dibatalkan tetap ber-`Status = WAITING_APPROVAL` di database, dan layar menampilkannya sebagai penanda "Dibatalkan" berdasarkan `isCancelled`.
+
+### Transisi yang sah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Buat voucher | `Menunggu Persetujuan` | Kasir/petugas administrasi (`PettyCashVoucher : Create`) | Nama penerima, kategori aktif, nominal lebih besar dari nol, dan tujuan terisi | `400`/`422`; voucher tidak terbentuk dan nomor tidak terpakai |
+| `Menunggu Persetujuan` | Setujui | `Disetujui` | Kepala Kasir/Finance Operations (`PettyCashVoucher : Approve`) | Nominal **tidak melebihi** sisa anggaran yang benar-benar bebas, yaitu saldo dikurangi voucher yang sudah disetujui tetapi belum dicairkan (`PC-DEC-008`, `PC-DES-005`); voucher belum dibatalkan | `422` `BIL-VAL-047`; voucher **tetap** `Menunggu Persetujuan` dan dapat disetujui lagi setelah anggaran ditambah |
+| `Menunggu Persetujuan` | Tolak | `Ditolak` | Kepala Kasir/Finance Operations (`PettyCashVoucher : Reject`) | Alasan penolakan wajib terisi | `422` `BIL-VAL-049`; voucher tidak berpindah |
+| `Menunggu Persetujuan` | Batalkan | `Menunggu Persetujuan` + `IsCancel = true` | **Pemohon voucher itu sendiri** (`PettyCashVoucher : Cancel`) | Pembatal **MUST** orang yang sama dengan `RequestedBy` (`PC-DEC-007`); voucher belum diputuskan | `403` bila bukan pemohonnya; `422` `BIL-VAL-050` bila sudah diputuskan |
+| `Disetujui` | Uang Diberikan | `Uang Diterima` | Kasir (`PettyCashVoucher : Disburse`) | Saldo anggaran **saat itu** masih mencukupi (penjaga kedua, `PC-DES-006`); belum pernah ada baris pencairan untuk voucher ini | `422` `BIL-VAL-048`; voucher **tetap** `Disetujui` dan saldo tidak bergerak |
+| `Uang Diterima` | Input Nota | `Selesai` | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota/kwitansi terisi | `422` `BIL-VAL-051`; voucher tetap `Uang Diterima` |
+| `Selesai` | Koreksi nomor nota | `Selesai` (tidak berpindah) | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota baru terisi | `422`; nomor lama dipertahankan |
+
+### Transisi yang **tidak sah** dan tetap tidak sah
+
+Daftar ini sama pentingnya dengan daftar di atas, dan lebih sering menjadi sumber cacat.
+
+| Dari status | Tindakan | Siapa pun | Kenapa tidak sah | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| `Ditolak` | Sunting, ajukan ulang, setujui, batalkan, atau apa pun | Siapa pun, termasuk Kepala Kasir | `PC-DEC-003` menjadikan voucher ditolak sebagai catatan audit permanen | **Tidak ada endpoint yang menerimanya** (`PC-DES-013`). Pemohon membuat voucher baru bernomor baru |
+| `Disetujui` | Batalkan | Pemohon maupun penyetuju | `PC-DEC-007` membatasi pembatalan hanya selagi belum diputuskan | `422` `BIL-VAL-050` |
+| `Uang Diterima` | Batalkan, tolak, atau kembalikan ke `Disetujui` | Siapa pun | Uangnya sudah keluar. Mengembalikan status berarti mengaku uang itu tidak pernah keluar | `422`. Koreksi memakai penyesuaian anggaran beralasan, bukan mundurnya status |
+| `Selesai` | Kembalikan ke `Uang Diterima` | Siapa pun | Bukti yang sudah masuk tidak dapat "belum masuk" | `422`. Salah nomor nota dikoreksi lewat aksi koreksi yang tetap `Selesai` (`PC-DES-012`) |
+| `Menunggu Persetujuan` | Uang Diberikan | Kasir | Uang tidak boleh keluar sebelum disetujui | `422` `BIL-VAL-046` |
+| `Menunggu Persetujuan` atau `Disetujui` | Input Nota | Siapa pun | Nota hanya ada setelah uang benar-benar keluar | `422` `BIL-VAL-051` |
+| Status apa pun | Menyunting `RecipientName`, `CategoryId`, `Amount`, atau `Purpose` | Siapa pun | Tidak ada endpoint penyuntingan sama sekali | Tidak ada jalurnya. Voucher yang salah dibatalkan lalu dibuat ulang |
+| Status apa pun | Menghapus voucher | Siapa pun | Voucher mencatat uang yang benar-benar keluar | Tidak ada endpoint `DELETE` |
+
+### Di mana saldo anggaran bergerak — satu titik saja
+
+Ini bagian yang paling mudah salah diterapkan, jadi ditulis eksplisit.
+
+| Transisi | `CurrentBalance` | `ReservedAmount` (komitmen) | Baris ledger yang lahir |
+| --- | --- | --- | --- |
+| Buat voucher | **Tidak bergerak** | Tidak bergerak | Tidak ada |
+| Setujui | **Tidak bergerak** (`PC-DEC-009`) | **Bertambah** sebesar nominal voucher | Tidak ada |
+| Tolak | Tidak bergerak | Tidak bergerak | Tidak ada |
+| Batalkan | Tidak bergerak | Tidak bergerak | Tidak ada |
+| **Uang Diberikan** | **Berkurang** sebesar nominal voucher | **Berkurang** sebesar nominal voucher | **Satu** baris `DISBURSEMENT` |
+| Input Nota | **Tidak bergerak** (`PC-DEC-009`) | Tidak bergerak | Tidak ada |
+| Koreksi nomor nota | Tidak bergerak | Tidak bergerak | Tidak ada |
+
+> **Kenapa komitmen ada, padahal saldo baru berkurang saat pencairan.** `PC-DEC-008` meminta persetujuan dicegah bila akan membuat saldo negatif, sedangkan `PC-DEC-009` menetapkan saldo baru berkurang saat pencairan. Di antara kedua titik itu ada jeda, dan tanpa komitmen jeda itu dapat diisi persetujuan lain.
+>
+> **Contoh berangka.** Saldo Rp 5.000.000. Voucher A Rp 300.000 disetujui pukul 09.00 — saldo tetap Rp 5.000.000, komitmen Rp 300.000. Pukul 09.05 voucher B Rp 4.800.000 hendak disetujui. Tanpa komitmen, penjaga membandingkannya dengan Rp 5.000.000 dan **meloloskannya**; keduanya lalu dicairkan dan saldo menjadi minus Rp 100.000. Dengan komitmen, penjaga membandingkannya dengan Rp 4.700.000 dan **menolaknya** — inilah yang `PC-DEC-008` minta.
+
+**Penjaga kedua saat pencairan** (`PC-DES-006`) tetap diperlukan walaupun komitmen sudah ada, karena Finance dapat menurunkan kolam lewat penyesuaian setelah sebuah voucher disetujui. Tanpa pemeriksaan ulang di dalam kunci, saldo masih dapat menjadi negatif.
+
+### Status kolam anggaran
+
+| Dari | Tindakan | Ke | Pelaku | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Seed awal | `ACTIVE` | Migration | Belum ada kolam aktif | Unique index parsial menolak kolam aktif kedua |
+| `ACTIVE` | Tambah anggaran | `ACTIVE` | Finance (`PettyCashBudget : TopUp`) | Nominal lebih besar dari nol, alasan terisi | `422` |
+| `ACTIVE` | Koreksi saldo | `ACTIVE` | Finance (`PettyCashBudget : Adjust`) | Hasilnya **tidak** negatif dan **tidak** di bawah komitmen berjalan | `422` `BIL-VAL-054` |
+| `ACTIVE` | Nonaktifkan | `INACTIVE` | Finance | Tidak ada voucher `Disetujui` yang belum dicairkan | `422`. Menonaktifkan kolam yang masih punya janji pembayaran akan menggantung voucher yang sudah disetujui |
+
+### Bukti nota yang tidak pernah masuk — keadaan yang dipilih sengaja
+
+Voucher berstatus `Uang Diterima` yang notanya tidak pernah dimasukkan **tetap** `Uang Diterima` tanpa batas waktu. Tidak ada pekerjaan latar yang memindahkannya, tidak ada tenggat yang memblokir, dan tidak ada pemberitahuan otomatis.
+
+Ini keputusan `PC-DEC-006`, bukan kelalaian desain. Finance memantau manual di luar sistem selama MVP, dan mekanisme pengingat/eskalasi ditandai sebagai kandidat rilis berikutnya. Bila kelak diputuskan memblokir atau meng-eskalasi, satu baris transisi baru **MUST** ditambahkan pada tabel di atas — dan saat itu keputusan bisnisnya sudah harus ada lebih dulu.
+
+### Yang **tidak** berubah pada rumpun lain
+
+Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pada `BilInvoice`, `BilSettlement`, `BilTender`, `BilCashierShift`, `BilWriteOffCase`, `BilRefundCase`, atau `BilAdjustment`. Secara khusus:
+
+- **Pencairan voucher Petty Cash tidak memengaruhi `BilCashierShift` sama sekali** — tidak menambah `SystemCash`, tidak mengurangi `PhysicalCash`, dan tidak menggerakkan `Variance` (`PC-DEC-001`). Menutup shift kasir pada hari yang sama dengan pencairan voucher menghasilkan angka yang persis sama seperti bila voucher itu tidak pernah ada.
+- Kasir **tidak** perlu punya shift aktif untuk menyerahkan uang kas kecil. `BIL-VAL-019` ("Buka shift kasir sebelum menerima uang tunai") berlaku untuk **penerimaan** uang dari pasien, bukan untuk pengeluaran kas kecil.
+
+Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`.

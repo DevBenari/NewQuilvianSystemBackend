@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -26,7 +26,7 @@ public class OprCase : IdentityModel
     public int Version { get; set; }
 
     public MstPatient? Patient { get; set; }
-    public TrxPatientEncounter? Encounter { get; set; }
+    public RegPatientEncounter? Encounter { get; set; }
     public MstDoctor? RequesterDoctor { get; set; }
     public MstDoctor? PrimarySurgeon { get; set; }
     public ICollection<OprCaseProcedure> Procedures { get; set; } = [];

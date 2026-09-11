@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -30,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     "Encounter pasien tidak dapat digunakan untuk menentukan Depo Farmasi.");
             }
 
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x =>
                     x.Id == encounterId &&

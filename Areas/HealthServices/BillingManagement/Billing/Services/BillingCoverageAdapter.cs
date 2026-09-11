@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -44,7 +44,28 @@ public sealed record BillingCoverageDecision(
     decimal ExcessAmount,
     decimal UnresolvedAmount,
     IReadOnlyList<Guid> AppliedRuleIds,
-    IReadOnlyList<BillingCoverageComponentOutcome> ComponentOutcomes);
+    IReadOnlyList<BillingCoverageComponentOutcome> ComponentOutcomes,
+    // BE-BKC-025/BKC-DES-010: total rupiah yang tidak dapat dinilai penjaminnya karena data
+    // pendaftaran bermasalah (penjamin belum eligible, polis tidak aktif, perusahaan asuransi
+    // belum dipilih, atau encounter tidak ditemukan) - BUKAN bucket uang ketiga, melainkan
+    // penanda DI ATAS pembagian primary/pasien yang sudah ada (BKC-DES-011). Nominalnya SUDAH
+    // ikut masuk porsi pasien lewat identitas turunan yang sama seperti sebelumnya.
+    decimal DataAnomalyAmount,
+    // BE-BKC-028/BKC-DES-021/022: total rupiah selisih yang menurut kontrak penjamin (rule
+    // IsAllowExcessPaymentByPatient = false) TIDAK BOLEH ditagihkan ke pasien - berbeda dari
+    // DataAnomalyAmount (masalah data pendaftaran, jatuh ke pasien) dan berbeda dari
+    // UnresolvedAmount (jalur NotCovered, menunggu keputusan pemilik). Nominal ini TIDAK jatuh ke
+    // pasien maupun ke penjamin - ia menunggu Finance mengajukan write-off kategori
+    // NON_BILLABLE_RESIDUAL (BKC-DEC-080). Satu-satunya titik pengisi: cabang residual jalur (5)
+    // di ResolveAsync ketika rule.IsAllowExcessPaymentByPatient == false.
+    decimal NonBillableResidualAmount,
+    IReadOnlyList<BillingCoverageAnomaly> Anomalies);
+
+// BE-BKC-025/BKC-DES-010: satu masalah data pendaftaran yang membuat penilaian penjamin tidak
+// dapat dilakukan dengan benar. Code MUST NOT diterjemahkan (kunci program); Message MUST berupa
+// kalimat siap dibaca kasir, bukan nama kolom. Daftar Code yang berlaku: PAYER_NOT_ELIGIBLE,
+// POLICY_INACTIVE, INSURANCE_PROVIDER_MISSING, ENCOUNTER_NOT_FOUND.
+public sealed record BillingCoverageAnomaly(string Code, string Message);
 
 // Bug fix (di luar roadmap, laporan pengguna): sebelumnya waterfall hanya mengembalikan TOTAL
 // gabungan (PrimaryAmount/UnresolvedAmount di atas) - badge per item Menu Pembayaran dan split
@@ -52,13 +73,21 @@ public sealed record BillingCoverageDecision(
 // tiap item sesungguhnya) sebagai pendekatan. ComponentOutcomes membawa hasil PER KOMPONEN (item
 // ATAU komponen pajaknya, sesuai ComponentId+ComponentType) - PatientAmount komponen itu TIDAK
 // disimpan eksplisit di sini, cukup diturunkan pemanggil sebagai
-// component.Amount - PrimaryAmount - UnresolvedAmount (identitas ini selalu benar by construction).
-// Komponen yang tidak muncul di daftar ini (mis. jalur SelfPay) dianggap seluruhnya Patient.
+// component.Amount - PrimaryAmount - UnresolvedAmount - DataAnomalyAmount (identitas ini selalu
+// benar by construction). Komponen yang tidak muncul di daftar ini (mis. jalur SelfPay) dianggap
+// seluruhnya Patient.
 public sealed record BillingCoverageComponentOutcome(
     Guid ComponentId,
     string ComponentType,
     decimal PrimaryAmount,
-    decimal UnresolvedAmount);
+    decimal UnresolvedAmount,
+    // BE-BKC-025/BKC-DES-010: porsi komponen ini yang tidak dapat dinilai karena data pendaftaran
+    // bermasalah. Hanya jalur (4) (Anomaly()) yang pernah mengisinya bukan nol.
+    decimal DataAnomalyAmount,
+    // BE-BKC-028/BKC-DES-021: porsi komponen ini yang tidak boleh ditagihkan ke pasien menurut
+    // kontrak penjamin. Hanya jalur (5) residual dengan IsAllowExcessPaymentByPatient=false yang
+    // pernah mengisinya bukan nol.
+    decimal NonBillableResidualAmount);
 
 public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 {
@@ -71,19 +100,37 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
         BillingCoverageContext context,
         CancellationToken cancellationToken)
     {
-        var paymentSource = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+        var paymentSource = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .FirstOrDefaultAsync(x => x.EncounterId == context.EncounterId && x.IsActive && !x.IsDelete, cancellationToken);
 
         if (paymentSource is null || paymentSource.PaymentType == EncounterPaymentType.Cash)
             return SelfPay();
 
-        if (!paymentSource.IsEligible || !paymentSource.IsPolicyActive || !paymentSource.InsuranceProviderId.HasValue)
-            return Unresolved(context.Components, "REJECTED");
+        // BE-BKC-025/BKC-DEC-073/BKC-DES-010/011: keempat precondition ini dulu sama-sama berujung
+        // ke Unresolved(...) (nominal menggantung, tidak berakhir pada penjamin maupun pasien).
+        // Kini masing-masing punya kode anomalinya sendiri lewat Anomaly(...): kalkulasi tetap
+        // BERHASIL, seluruh komponen coverable jatuh ke pasien (Subtotal Mandiri), dan kode
+        // anomalinya tampil sebagai peringatan yang dibaca petugas pendaftaran - bukan tagihan yang
+        // tidak dapat dialokasikan ke siapa pun. Diperiksa satu-per-satu (bukan disatukan dengan
+        // ||) supaya kodenya tepat menyebut penyebabnya, bukan "REJECTED" generik.
+        if (!paymentSource.IsEligible)
+            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
+                "Penjamin kunjungan ini belum dinyatakan layak (eligible). Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.");
+        if (!paymentSource.IsPolicyActive)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Polis asuransi kunjungan ini tercatat tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.");
+        if (!paymentSource.InsuranceProviderId.HasValue)
+            return Anomaly(context.Components, "INSURANCE_PROVIDER_MISSING",
+                "Perusahaan asuransi kunjungan ini belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien. Lengkapi data penjamin di Registrasi.");
 
-        var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
         if (encounter is null)
-            return Unresolved(context.Components, "UNRESOLVED");
+            // Seharusnya tidak mungkin terjadi karena CalculateAsync sudah memuat encounter lebih
+            // dulu sebelum memanggil adapter ini; bila muncul, ia menandakan data terhapus di
+            // tengah perhitungan.
+            return Anomaly(context.Components, "ENCOUNTER_NOT_FOUND",
+                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.");
 
         var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
         var providerId = paymentSource.InsuranceProviderId.Value;
@@ -99,7 +146,18 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             .ToListAsync(cancellationToken);
 
         decimal primary = 0;
+        // BE-BKC-030/BKC-DES-027: TIDAK ADA satu jalur pun lagi di bawah yang mengisi variabel ini
+        // - selalu bernilai 0 sesudah amendment ini. TETAP DIPERTAHANKAN (bukan dihapus): masih
+        // bagian arity BillingCoverageDecision/kolom BilCalculationVersion.UnresolvedCoverageAmount
+        // yang MUST NOT diganti nama/dihapus, karena versi kalkulasi LAMA (dibuat sebelum amendment
+        // ini) masih memuat angka sungguhan di kolom itu sebagai bukti perhitungan yang sudah
+        // terjadi. Angka nol yang jujur pada versi baru lebih baik daripada field yang hilang.
         decimal unresolved = 0;
+        // BE-BKC-028/030/BKC-DES-022/026: akumulator BERSAMA untuk jalur (2) NotCovered dan jalur
+        // (5) residual, keduanya dengan IsAllowExcessPaymentByPatient=false - SATU akumulator, DUA
+        // cabang (BKC-DES-026), bukan dua akumulator terpisah. Lihat
+        // BillingCoverageDecision.NonBillableResidualAmount.
+        decimal nonBillableResidual = 0;
         var appliedRuleIds = new HashSet<Guid>();
         var appliedPerVisit = new Dictionary<Guid, decimal>();
         var outcomes = new List<BillingCoverageComponentOutcome>();
@@ -111,46 +169,40 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             {
                 // Keputusan pengguna (di luar roadmap, mengubah sebagian gating BE-BKC-021): TIDAK
                 // ADA rule sama sekali yang menyasar kategori/tarif/prosedur/obat ini untuk provider
-                // ini - beda dari rule yang ADA tapi butuh verifikasi (NeedApproval/limit
-                // bulanan/NotCovered-tanpa-excess, TETAP unresolved seperti sebelumnya, lihat
-                // cabang-cabang di bawah). Tidak ada rule berarti provider ini memang tidak
-                // menanggung jenis layanan ini sama sekali - langsung jadi tanggungan pasien
-                // (Patient implisit lewat outcome 0/0), BUKAN unresolved/menunggu verifikasi manual.
+                // ini - beda dari rule yang ADA tapi NotCovered-tanpa-excess (jalur (2) di bawah,
+                // sejak BE-BKC-030 sudah tidak lagi mengisi unresolved juga - lihat BKC-DES-027).
+                // Tidak ada rule berarti provider ini memang tidak menanggung jenis layanan ini sama
+                // sekali - langsung jadi tanggungan pasien (Patient implisit lewat outcome 0/0),
+                // BUKAN unresolved/menunggu verifikasi manual.
                 outcomes.Add(new BillingCoverageComponentOutcome(
-                    component.ComponentId, component.ComponentType, 0, 0));
+                    component.ComponentId, component.ComponentType, 0, 0, 0, 0));
                 continue;
             }
 
             appliedRuleIds.Add(rule.Id);
-            // BKC-DEC-062 (amendment BKC-DEC-042): IsNeedApproval/IsNeedGuaranteeLetter TIDAK LAGI
-            // menggeser komponen ke unresolved. Sebelumnya, item dengan rule Covered tapi butuh
-            // approval/surat jaminan ikut jatuh ke unresolved - padahal approval itu proses
-            // administratif terpisah, bukan penolakan coverage. Subtotal Asuransi jadi salah kecil
-            // di Menu Pembayaran untuk kasus yang sangat umum (banyak rule asuransi mewajibkan
-            // approval/SJP tapi tetap Covered). Scope dipersempit, BUKAN pelepasan gating penuh:
-            // CoverageStatus=="NeedApproval" (rule yang secara eksplisit BELUM diputuskan statusnya)
-            // dan limit bulanan (butuh pemeriksaan pemakaian kumulatif yang belum tersedia di sini)
-            // tetap menggeser ke unresolved seperti sebelumnya.
-            //
-            // Bug fix (di luar roadmap, laporan pengguna): form master data Insurance Coverage Rule
-            // menjanjikan "Isi 0 jika tidak dibatasi" - GetValueOrDefault() > 0 menyelaraskan gerbang
-            // ini dengan janji itu, supaya rule tanpa batas bulanan sungguhan (diisi 0, bukan angka
-            // nyata) tidak lagi ikut tergeser ke unresolved.
-            if (string.Equals(rule.CoverageStatus, "NeedApproval", StringComparison.OrdinalIgnoreCase)
-                || rule.MaxAmountPerMonth.GetValueOrDefault() > 0 || rule.MaxQuantityPerMonth.GetValueOrDefault() > 0)
-            {
-                unresolved += component.Amount;
-                outcomes.Add(new BillingCoverageComponentOutcome(
-                    component.ComponentId, component.ComponentType, 0, component.Amount));
-                continue;
-            }
-
+            // BKC-DEC-071/072/074 (BE-BKC-024, melanjutkan penyempitan BKC-DEC-062/BE-BKC-021):
+            // CoverageStatus=="NeedApproval" dan limit bulanan (MaxAmountPerMonth/MaxQuantityPerMonth)
+            // TIDAK LAGI menggeser komponen ke unresolved - keduanya dicabut penuh sesuai jawaban
+            // pemilik (01-existing-capability-map.md 17.4.E): rule yang statusnya NeedApproval kini
+            // dihitung seperti Covered biasa, dan limit bulanan diperlakukan SELALU TERSEDIA sampai
+            // mesin pemakaian kumulatif dibangun (coverage gap tertunda, bukan bagian rilis ini).
+            // Kolomnya TIDAK dihapus - tetap terbaca di layar entri, cuma tidak lagi menahan
+            // perhitungan tagihan. Limit PER KUNJUNGAN (MaxAmountPerVisit/MaxQuantityPerVisit) di
+            // bawah TIDAK ikut tercabut - keduanya bertetangga di kode tapi BKC-DEC-071 hanya
+            // mencabut batas bulanan.
             if (string.Equals(rule.CoverageStatus, "NotCovered", StringComparison.OrdinalIgnoreCase))
             {
-                var notCoveredUnresolved = !rule.IsAllowExcessPaymentByPatient ? component.Amount : 0;
-                if (notCoveredUnresolved > 0) unresolved += notCoveredUnresolved;
+                // BE-BKC-030/BKC-DES-026/BKC-DEC-089: titik tangkap BKC-DES-022 diperlebar, bukan
+                // dipindah dan bukan digandakan. Jalur (2) ini kini menulis ke akumulator
+                // nonBillableResidual yang SAMA PERSIS dengan jalur (5) di bawah - "penjamin tidak
+                // membayar, DAN kontrak yang sama melarang menagihkannya ke pasien" berlaku identik
+                // untuk kedua jalur, apa pun sumber angkanya. unresolved TIDAK LAGI diisi jalur mana
+                // pun sesudah ini (BKC-DES-027) - field/kolomnya tetap dipertahankan sebagai bukti
+                // perhitungan versi kalkulasi lama, bukan dihapus.
+                var notCoveredNonBillable = !rule.IsAllowExcessPaymentByPatient ? component.Amount : 0;
+                if (notCoveredNonBillable > 0) nonBillableResidual += notCoveredNonBillable;
                 outcomes.Add(new BillingCoverageComponentOutcome(
-                    component.ComponentId, component.ComponentType, 0, notCoveredUnresolved));
+                    component.ComponentId, component.ComponentType, 0, 0, 0, notCoveredNonBillable));
                 continue;
             }
 
@@ -164,10 +216,16 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 
             primary += covered;
             var residual = component.Amount - covered;
-            var residualUnresolved = !rule.IsAllowExcessPaymentByPatient ? residual : 0;
-            if (residualUnresolved > 0) unresolved += residualUnresolved;
+            // BE-BKC-028/BKC-DES-022/BKC-DEC-080: satu-satunya perubahan perilaku amendment ini.
+            // Residual jalur (5) yang kontraknya melarang penagihan ke pasien
+            // (IsAllowExcessPaymentByPatient=false) kini masuk nonBillableResidual, BUKAN unresolved
+            // lagi - nominal yang sama, ember yang berbeda (menunggu Finance mengajukan write-off
+            // kategori NON_BILLABLE_RESIDUAL, bukan menggantung tanpa tindak lanjut). Cabang true
+            // TIDAK disentuh: residual tetap jatuh ke pasien lewat identitas turunan (BKC-DEC-070).
+            var residualNonBillable = !rule.IsAllowExcessPaymentByPatient ? residual : 0;
+            if (residualNonBillable > 0) nonBillableResidual += residualNonBillable;
             outcomes.Add(new BillingCoverageComponentOutcome(
-                component.ComponentId, component.ComponentType, covered, residualUnresolved));
+                component.ComponentId, component.ComponentType, covered, 0, 0, residualNonBillable));
         }
 
         return new BillingCoverageDecision(
@@ -178,7 +236,10 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             0,
             unresolved,
             appliedRuleIds.Order().ToArray(),
-            outcomes);
+            outcomes,
+            0,
+            nonBillableResidual,
+            []);
     }
 
     private static bool Matches(MstInsuranceCoverageRule rule, BillingCoverageComponent component)
@@ -236,22 +297,29 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
     // Tanpa outcome eksplisit sama sekali - SETIAP komponen dianggap seluruhnya Patient oleh
     // pemanggil (lihat komentar BillingCoverageComponentOutcome), sesuai semantik SELF_PAY.
     private static BillingCoverageDecision SelfPay() =>
-        new(ContractVersion, "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], []);
+        new(ContractVersion, "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], [], 0, 0, []);
 
-    // Provider tidak eligible/aktif, atau encounter tidak ditemukan - SELURUH komponen coverable
-    // (bukan cuma totalnya) ditandai unresolved secara eksplisit per komponen, supaya badge/split
-    // per item tidak keliru menganggapnya Patient (default kosong-berarti-Patient TIDAK berlaku
-    // di sini - beda dari SelfPay, di jalur ini komponen MEMANG coverable, cuma belum bisa
-    // diverifikasi, bukan benar-benar tunai).
-    private static BillingCoverageDecision Unresolved(
-        IReadOnlyList<BillingCoverageComponent> components, string primaryStatus)
+    // BE-BKC-025/BKC-DEC-073/BKC-DES-010/011: menggantikan Unresolved(...) untuk jalur (4).
+    // Precondition penjamin/encounter bermasalah TIDAK LAGI membuat komponen menggantung
+    // (unresolved) - kalkulasi tetap BERHASIL, seluruh komponen coverable (bukan cuma totalnya)
+    // dicatat DataAnomalyAmount = Amount secara eksplisit per komponen (supaya badge/split per
+    // item tidak keliru menganggapnya Patient lewat default kosong-berarti-Patient), dan
+    // nilainya jatuh ke pasien lewat identitas turunan yang sama seperti sebelumnya
+    // (PatientAmount = Amount - Primary - Unresolved - DataAnomalyAmount). PrimaryStatus TETAP
+    // "NO_COVERAGE" seperti jalur normal tanpa rule cocok - anomali dibedakan lewat Anomalies,
+    // bukan lewat status baru, supaya konsumen lama yang hanya membaca PrimaryStatus tidak keliru
+    // membacanya sebagai penolakan klaim.
+    private static BillingCoverageDecision Anomaly(
+        IReadOnlyList<BillingCoverageComponent> components, string code, string message)
     {
         var coverable = components.Where(x => x.Coverable && x.Amount > 0).ToList();
         var outcomes = coverable
-            .Select(x => new BillingCoverageComponentOutcome(x.ComponentId, x.ComponentType, 0, x.Amount))
+            .Select(x => new BillingCoverageComponentOutcome(x.ComponentId, x.ComponentType, 0, 0, x.Amount, 0))
             .ToList();
         var amount = coverable.Sum(x => x.Amount);
 
-        return new(ContractVersion, primaryStatus, "NOT_CONFIGURED", 0, 0, amount, [], outcomes);
+        return new(
+            ContractVersion, "NO_COVERAGE", "NOT_CONFIGURED", 0, 0, 0, [], outcomes,
+            amount, 0, [new BillingCoverageAnomaly(code, message)]);
     }
 }

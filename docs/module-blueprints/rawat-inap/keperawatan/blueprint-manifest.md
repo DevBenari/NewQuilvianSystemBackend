@@ -103,10 +103,19 @@ sebelumnya mengisi kesebelas berkas ini sudah digantikan isinya.
 `flowcharts/01-pengkajian-awal.md` adalah berkas per proses; jumlahnya mengikuti proses, bukan
 berkas pasti.
 
-`roadmap/` **sudah ada sejak 2026-09-02**, ditulis `/qv-plan` dengan status `DRAFT` / `FORWARD_TEST`:
-11 task backend `BE-RWI-054` s.d. `BE-RWI-064` dan 6 task frontend `FE-RWI-051` s.d. `FE-RWI-056`,
-seluruhnya `BLOCKED` pada gerbang approval sub-modul ini. `task/report/` belum ada, dan **itu bukan
-penyimpangan struktur**: ia ditulis kedua skill build, bukan oleh skill desain maupun perencanaan.
+`roadmap/` berstatus **`APPROVED` sejak 2026-09-05**, ditulis ulang `/qv-plan` menjadi
+`roadmap_revision` `2` sebagaimana dituntut `RWI-DEC-092`: **12** task backend `BE-RWI-054` s.d.
+`BE-RWI-065` dan 6 task frontend `FE-RWI-051` s.d. `FE-RWI-056`, **nol** di antaranya `BLOCKED`.
+Revision `1` yang berstatus `DRAFT_STALE` disimpan di `roadmap/archive/revision-1/`.
+
+Tiga hal menaikkannya: approval `RWI-DEC-092`; penyerapan `RWI-DEC-091` yang mengubah bentuk
+koreksi menjadi addendum dan melahirkan task baru `BE-RWI-065`; dan pembacaan source pada
+`BE@7d4bf2b` yang menemukan `INT-KEP-01` beserta substansi `RWI-OQ-051` **sudah mendarat** lewat
+`BE-RWI-038`, `BE-RWI-039`, dan `BE-RWI-040` milik `dokter-rawat-inap` — sesuai `INT-DOK-09`.
+Rinciannya ada pada `roadmap/backend-roadmap.md` bagian 2.
+
+`task/report/` belum ada, dan **itu bukan penyimpangan struktur**: ia ditulis kedua skill build,
+bukan oleh skill desain maupun perencanaan.
 
 ---
 

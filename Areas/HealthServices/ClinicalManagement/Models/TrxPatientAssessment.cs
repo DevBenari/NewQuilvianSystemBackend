@@ -51,6 +51,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public Guid? DoctorId { get; set; }
 
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi pengkajian ini. Boleh kosong — <c>INV-DOK-01</c>.
+        /// </summary>
+        /// <remarks>
+        /// Kolom ini diminta bersama oleh sub-modul <c>keperawatan</c> (<c>INT-KEP-01</c>) dan
+        /// <c>dokter-rawat-inap</c> (<c>INT-DOK-01</c>). Dibuat sekali oleh yang mendarat lebih
+        /// dulu, lalu dipakai apa adanya oleh yang kedua — <c>INT-DOK-09</c>.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Jenis pengkajian: pengkajian keperawatan atau kajian medis.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>. Bawaannya <c>Initial</c>, sehingga seluruh baris lama milik
+        /// poliklinik dan IGD terbaca sebagai pengkajian awal dan tidak perlu disentuh.
+        /// Pembedaan antara kajian medis dan pengkajian keperawatan dijaga aturan bisnis lewat
+        /// kolom ini; mesin hak akses hanya melihat satu sumber daya.
+        /// </remarks>
+        public PatientAssessmentType AssessmentType { get; set; } = PatientAssessmentType.Initial;
+
+        /// <summary>
+        /// Batas waktu penyelesaian pengkajian ini, dihitung saat pengkajian dibuat. Kosong
+        /// bila belum ada kebijakan batas waktu yang berlaku.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-054</c>, <c>FR-KEP-010</c>, PRD 16.2 aturan 11. Tenggat disimpan sebagai
+        /// nilai, bukan dihitung ulang setiap dibaca. Sebabnya sederhana: kebijakan batas waktu
+        /// boleh berubah, dan pengkajian yang dulu tepat waktu <b>tidak boleh</b> berubah
+        /// menjadi terlambat hanya karena angkanya diperbarui hari ini.
+        /// </para>
+        /// <para>
+        /// <b>Kosong bukan berarti terlambat.</b> Selama <c>MstClinicalAssessmentPolicy</c>
+        /// belum berisi kebijakan yang berlaku, kolom ini dibiarkan kosong dan pengkajiannya
+        /// terbaca sebagai <i>belum dipantau</i> - <c>VAL-KEP-17</c>. Pencatatan tetap berjalan
+        /// penuh.
+        /// </para>
+        /// </remarks>
+        public DateTime? DueAt { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu yang dipakai menghitung <see cref="DueAt"/>. Kosong bila tidak
+        /// ada kebijakan yang berlaku saat pengkajian dibuat.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-054</c>, <c>BE-RWI-055</c>. Menunjuk <c>MstClinicalAssessmentPolicy.Id</c>.
+        /// Menyimpan penunjuknya - bukan hanya angkanya - membuat pertanyaan "menurut kebijakan
+        /// yang mana pengkajian ini dinilai" terjawab bertahun-tahun kemudian, termasuk setelah
+        /// kebijakannya diganti.
+        /// </remarks>
+        public Guid? PolicyId { get; set; }
+
         public DateTime AssessmentDateTime { get; set; } = DateTime.UtcNow;
 
         public PatientAssessmentStatus AssessmentStatus { get; set; } = PatientAssessmentStatus.Draft;
@@ -68,6 +121,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         [MaxLength(1000)]
         public string? MedicationHistory { get; set; }
+
+        // =========================
+        // ISIAN MEDIS — KAJIAN MEDIS DPJP
+        // =========================
+        // Ketiga kolom di bawah dipakai kajian medis (`AssessmentType` bernilai
+        // `MedicalInitial` atau `MedicalReassessment`) dan dibiarkan kosong oleh pengkajian
+        // keperawatan. Seluruhnya nullable, sehingga baris lama milik poliklinik, IGD, dan
+        // keperawatan tidak perlu disentuh sama sekali.
+        //
+        // Tanpa ketiganya, `VAL-DOK-10` dan `VAL-DOK-11` tidak dapat ditegakkan: penyelesaian
+        // kajian medis wajib menolak bila pemeriksaan, rencana, atau diagnosis masih kosong,
+        // sedangkan kolom penampungnya sebelumnya tidak ada.
+
+        /// <summary>
+        /// Hasil pemeriksaan fisik yang ditulis DPJP pada kajian medis. Kosong untuk pengkajian
+        /// keperawatan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-045</c>, <c>VAL-DOK-10</c>. Berbeda dari tanda vital, kesadaran, nyeri,
+        /// gizi, dan risiko jatuh yang sudah ada di tabel ini — seluruhnya bercorak keperawatan
+        /// dan terstruktur. Yang ini naratif, dan memang milik dokter.
+        /// </remarks>
+        [MaxLength(2000)]
+        public string? PhysicalExamination { get; set; }
+
+        /// <summary>
+        /// Rencana terapi yang disusun DPJP pada kajian medis. Kosong untuk pengkajian
+        /// keperawatan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-045</c>, <c>VAL-DOK-10</c>.
+        /// </remarks>
+        [MaxLength(2000)]
+        public string? TherapyPlan { get; set; }
+
+        /// <summary>
+        /// Diagnosis kerja pada kajian medis awal. Kosong untuk pengkajian keperawatan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-045</c>, <c>VAL-DOK-11</c>. Ini <b>bukan</b> pengganti
+        /// <c>TrxPatientDiagnosis</c>, yang tetap menjadi tempat diagnosis berkode ICD milik
+        /// catatan dokter. Kolom ini menampung diagnosis kerja saat pemeriksaan pertama, ketika
+        /// catatan dokter yang menaunginya belum ada — <c>TrxPatientDiagnosis</c> mewajibkan
+        /// <c>ConsultationId</c>, sehingga diagnosis di sana selalu menggantung pada catatan.
+        /// Melonggarkan kolom itu berarti menyentuh tabel yang sedang dipakai poliklinik, dan
+        /// itu sengaja tidak dikerjakan di sini.
+        /// </remarks>
+        [MaxLength(500)]
+        public string? WorkingDiagnosis { get; set; }
 
         // =========================
         // VITAL SIGN
@@ -241,7 +343,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public TrxQueue? Queue { get; set; }
 

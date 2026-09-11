@@ -87,7 +87,7 @@ public sealed class BillingCalculationService
 
         var lockContext = await (
             from invoice in _dbContext.BilInvoices.AsNoTracking()
-            join encounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on invoice.EncounterId equals encounter.Id
             where invoice.Id == invoiceId && !invoice.IsDelete && !encounter.IsDelete && !encounter.IsCancel
             select new { invoice.EncounterId, encounter.PatientId, encounter.EncounterDate })
@@ -125,7 +125,7 @@ public sealed class BillingCalculationService
             if (invoice.RowVersion != request.ExpectedRowVersion)
                 throw new BillingCalculationConflictException("Data telah berubah. Muat ulang sebelum melanjutkan.");
 
-            var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter invoice tidak ditemukan.");
             if (encounter.PatientId != lockContext.PatientId
@@ -172,7 +172,7 @@ public sealed class BillingCalculationService
             // coverage-nya; obat/Alkes rawat INAP dibebaskan PPN sepenuhnya (bagian dari paket
             // layanan rawat inap yang sudah dibebaskan PPN sebagai jasa kesehatan).
             var isOutpatientForTax = invoice.ServiceType != AdministrationFeeServiceTypes.Ranap;
-            var taxRule = await LoadInvoiceTaxRuleAsync(calculatedAt, cancellationToken);
+            var taxRule = await LoadInvoiceTaxRuleAsync(effectiveAt, cancellationToken);
             var taxResult = ApplyInvoiceTax(itemResult.Items, taxRule, isOutpatientForTax);
             var taxes = taxResult.Taxes;
             var taxAmount = taxes.Sum(x => x.TaxAmount);
@@ -218,11 +218,15 @@ public sealed class BillingCalculationService
                 {
                     calcItem.ItemPrimaryAmount = itemOutcome.PrimaryAmount;
                     calcItem.ItemUnresolvedAmount = itemOutcome.UnresolvedAmount;
+                    calcItem.ItemDataAnomalyAmount = itemOutcome.DataAnomalyAmount;
+                    calcItem.ItemNonBillableResidualAmount = itemOutcome.NonBillableResidualAmount;
                 }
                 if (outcomeByComponent.TryGetValue((calcItem.InvoiceItemId, "TAX"), out var taxOutcome))
                 {
                     calcItem.TaxPrimaryAmount = taxOutcome.PrimaryAmount;
                     calcItem.TaxUnresolvedAmount = taxOutcome.UnresolvedAmount;
+                    calcItem.TaxDataAnomalyAmount = taxOutcome.DataAnomalyAmount;
+                    calcItem.TaxNonBillableResidualAmount = taxOutcome.NonBillableResidualAmount;
                 }
             }
             if (outcomeByComponent.TryGetValue(
@@ -230,12 +234,16 @@ public sealed class BillingCalculationService
             {
                 administrationFee.PrimaryAmount = adminOutcome.PrimaryAmount;
                 administrationFee.UnresolvedAmount = adminOutcome.UnresolvedAmount;
+                administrationFee.DataAnomalyAmount = adminOutcome.DataAnomalyAmount;
+                administrationFee.NonBillableResidualAmount = adminOutcome.NonBillableResidualAmount;
             }
             if (outcomeByComponent.TryGetValue(
                     (roomCharge.PolicyId ?? Guid.Empty, "ROOM_CHARGE"), out var roomOutcome))
             {
                 roomCharge.PrimaryAmount = roomOutcome.PrimaryAmount;
                 roomCharge.UnresolvedAmount = roomOutcome.UnresolvedAmount;
+                roomCharge.DataAnomalyAmount = roomOutcome.DataAnomalyAmount;
+                roomCharge.NonBillableResidualAmount = roomOutcome.NonBillableResidualAmount;
             }
 
             var discountableItemIds = activeItems.Where(x => !x.Category.IsAdministrationFee)
@@ -285,6 +293,7 @@ public sealed class BillingCalculationService
                 PrimaryAmount = coverageResult.PrimaryAmount,
                 ExcessAmount = coverageResult.ExcessAmount,
                 UnresolvedCoverageAmount = coverageResult.UnresolvedAmount,
+                NonBillableResidualAmount = coverageResult.NonBillableResidualAmount,
                 RoundingAmount = roundingAmount,
                 IsLocked = false,
                 CalculatedAt = calculatedAt,
@@ -378,7 +387,7 @@ public sealed class BillingCalculationService
 
     private async Task<AdministrationFeeCalculationResponse> CalculateAdministrationFeeAsync(
         BilInvoice invoice,
-        TrxPatientEncounter encounter,
+        RegPatientEncounter encounter,
         DateTimeOffset effectiveAt,
         CancellationToken cancellationToken)
     {
@@ -397,7 +406,7 @@ public sealed class BillingCalculationService
         if (policy is null)
             return new AdministrationFeeCalculationResponse { BusinessDate = businessDate };
 
-        // Pre-filter SQL pada TrxPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
+        // Pre-filter SQL pada RegPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
         // yang sama persis dengan yang dipakai invoice ini) sebelum menarik BreakdownSnapshot ke
         // memori - tanpa ini, query menarik SELURUH riwayat kalkulasi pasien (bisa ribuan baris pada
         // pasien dengan riwayat kunjungan panjang) hanya untuk mencari kecocokan satu hari lewat
@@ -413,7 +422,7 @@ public sealed class BillingCalculationService
 
         var priorSnapshots = await (
             from priorInvoice in _dbContext.BilInvoices.AsNoTracking()
-            join priorEncounter in _dbContext.TrxPatientEncounters.AsNoTracking()
+            join priorEncounter in _dbContext.RegPatientEncounters.AsNoTracking()
                 on priorInvoice.EncounterId equals priorEncounter.Id
             join calculation in _dbContext.BilCalculationVersions.AsNoTracking()
                 on new { InvoiceId = priorInvoice.Id, VersionNo = priorInvoice.CurrentCalculationVersion }
@@ -982,10 +991,66 @@ public sealed class BillingCalculationService
         if (unresolvedAmount > residualAfterExcess)
             throw new BillingCalculationValidationException(
                 "Nilai coverage yang belum terselesaikan melebihi sisa tagihan.");
+
+        // BIL-VAL-043 (BE-BKC-028/BKC-DES-021/022): NonBillableResidualAmount MUST ikut dijumlahkan
+        // pada pemeriksaan batas "> coverableAmount" - berlawanan arah dengan DataAnomalyAmount
+        // (BIL-VAL-035, dikecualikan). Nominal anomali data sudah terwakili sebagai porsi pasien
+        // sehingga menjumlahkannya berarti menghitung dua kali; residual non-billable TIDAK
+        // terwakili di suku mana pun (dikeluarkan dari porsi pasien, tidak masuk porsi penjamin)
+        // sehingga tanpa dijumlahkan di sini tidak ada penjaga yang mencegahnya membengkak
+        // melebihi biaya tagihannya. Diperiksa terpisah dari batas primary+excess+unresolved di
+        // atas (yang MUST NOT diubah, BKC-DES-021) supaya pesannya tetap tepat menyebut sebabnya.
+        var nonBillableResidualAmount = Money(decision.NonBillableResidualAmount);
+        if (nonBillableResidualAmount < 0)
+            throw new BillingCalculationValidationException("Nilai coverage tidak boleh negatif.");
+        if (primaryAmount + excessAmount + unresolvedAmount + nonBillableResidualAmount > coverableAmount)
+            throw new BillingCalculationValidationException(
+                "Selisih yang tidak dapat ditagihkan melebihi biaya yang memenuhi syarat; hubungi tim teknis.");
+
+        // BIL-VAL-035 (BE-BKC-025): DataAnomalyAmount MUST NOT ikut dijumlahkan ke pemeriksaan
+        // "> coverableAmount" di atas - nominalnya sudah terwakili sebagai porsi pasien lewat
+        // PatientAmount di bawah, sehingga menjumlahkannya berarti menghitung uang yang sama dua
+        // kali. Diperiksa terpisah terhadap coverableAmount saja.
+        var dataAnomalyAmount = Money(decision.DataAnomalyAmount);
+        if (dataAnomalyAmount < 0)
+            throw new BillingCalculationValidationException("Nilai coverage tidak boleh negatif.");
+        if (dataAnomalyAmount > coverableAmount)
+            throw new BillingCalculationValidationException(
+                "Nilai anomali data penjamin melebihi biaya yang memenuhi syarat; hubungi tim teknis.");
+
+        // BIL-VAL-036 (BKC-DES-012): diretarget dari menguji unresolvedAmount == 0 menjadi
+        // menguji dataAnomalyAmount == 0. Tanggungan yang ditolak (REJECTED) boleh berpindah ke
+        // pasien HANYA bila kondisinya tercatat sebagai anomali data - bukan diam-diam. Lewat
+        // RegistrationBillingCoverageAdapter jalur ini seharusnya tidak pernah tercapai lagi
+        // (jalur REJECTED lama sudah diganti Anomaly(), yang mengisi DataAnomalyAmount dan
+        // PrimaryStatus="NO_COVERAGE", bukan "REJECTED"); penjaga ini tetap dipertahankan sebagai
+        // invariant terhadap IBillingCoverageAdapter lain yang mungkin masih mengklaim REJECTED.
         if (decision.PrimaryStatus.Contains("REJECTED", StringComparison.OrdinalIgnoreCase)
-            && unresolvedAmount == 0 && coverableAmount > 0)
+            && dataAnomalyAmount == 0 && coverableAmount > 0)
             throw new BillingCalculationValidationException(
                 "Coverage yang ditolak tidak boleh otomatis dipindahkan ke pasien tanpa policy kontrak.");
+
+        // BIL-VAL-037 (BE-BKC-025): invariant internal - setiap anomali WAJIB punya kode dan
+        // kalimat penjelas. Seharusnya tidak pernah tercapai lewat Anomaly() (selalu mengisi
+        // keduanya bersamaan); penjaga terhadap IBillingCoverageAdapter lain yang keliru mengisi
+        // DataAnomalyAmount tanpa Anomalies.
+        var hasDataAnomaly = decision.Anomalies.Count > 0;
+        var anomalyCodes = decision.Anomalies.Select(x => x.Code).ToList();
+        var anomalyMessages = decision.Anomalies.Select(x => x.Message).ToList();
+        if (hasDataAnomaly && anomalyCodes.Count == 0)
+            throw new BillingCalculationValidationException(
+                "Anomali data penjamin terdeteksi tanpa keterangan; hubungi tim teknis.");
+
+        // BIL-VAL-028: rincian tanggungan per komponen wajib menjumlah persis ke total tanggungan.
+        // Ambang toleransinya NOL, bukan kelalaian: setiap nominal per komponen sudah dibulatkan dua
+        // desimal di sumbernya (BillingCoverageAdapter), sehingga selisih satu rupiah pun berarti bug
+        // alokasi, bukan pembulatan. Dibiarkan lolos, selisih itu muncul sebagai lembar tagihan yang
+        // tidak menjumlah di meja petugas klaim asuransi - jauh lebih mahal daripada gagal di sini.
+        // Jalur SelfPay mengembalikan daftar outcome kosong dengan primary 0, sehingga 0 == 0 lolos.
+        var allocatedPrimaryAmount = Money(decision.ComponentOutcomes.Sum(x => x.PrimaryAmount));
+        if (allocatedPrimaryAmount != primaryAmount)
+            throw new BillingCalculationValidationException(
+                "Rincian tanggungan penjamin per baris tidak menjumlah ke total tanggungan; hubungi tim teknis.");
 
         return new CoverageCalculationResponse
         {
@@ -998,8 +1063,21 @@ public sealed class BillingCalculationService
             ExcessAmount = excessAmount,
             ResidualAfterExcess = residualAfterExcess,
             UnresolvedAmount = unresolvedAmount,
-            PatientAmount = residualAfterExcess - unresolvedAmount,
-            AppliedRuleIds = decision.AppliedRuleIds
+            // BKC-DES-021/022: suku yang dikurangkan hanya berpindah nama untuk residual yang
+            // kontraknya melarang penagihan ke pasien (dulu lewat UnresolvedAmount, kini lewat
+            // NonBillableResidualAmount) - hasilnya identik, bukan pengurang baru.
+            PatientAmount = residualAfterExcess - unresolvedAmount - nonBillableResidualAmount,
+            AppliedRuleIds = decision.AppliedRuleIds,
+            // Selalu true di sini karena nilainya baru saja dihitung mesin yang sudah melacak
+            // alokasi per komponen. Yang bernilai false hanyalah snapshot lama, yang tidak memuat
+            // properti ini sama sekali sehingga jatuh ke default saat dideserialisasi.
+            IsPerItemAllocationAvailable = true,
+            DataAnomalyAmount = dataAnomalyAmount,
+            HasDataAnomaly = hasDataAnomaly,
+            AnomalyCodes = anomalyCodes,
+            AnomalyMessages = anomalyMessages,
+            NonBillableResidualAmount = nonBillableResidualAmount,
+            HasNonBillableResidual = nonBillableResidualAmount > 0
         };
     }
 
