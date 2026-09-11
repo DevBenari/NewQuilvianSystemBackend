@@ -9,7 +9,15 @@ entity_prefix: Bbk
 blueprint_id: BD-BP-001
 blueprint_shape: SINGLE
 blueprint_root: docs/module-blueprints/bank-darah/
-roadmap_revision: 7
+roadmap_revision: 8
+revision_8_scope: ACCEPTANCE_REHOME_BE_BD_012
+revision_8_note: >-
+  Satu task berubah acceptance criteria-nya, satu task menerima dua kriteria pindahan. BE-BD-012
+  kini memakai AC-BD-098 sampai AC-BD-102 (pencatatan tindakan, resolusi tarif, salinan tarif,
+  penyelesaian, tanpa Billing); AC-BD-026 dan AC-BD-058 dipindah ke BE-BD-013 karena keduanya
+  baru dapat dibuktikan ketika fakta biaya terkirim ke Billing. Dasarnya keputusan pemilik
+  DEC-BD-048 dan DEC-BD-049 (Sukmagp, 2026-09-11). Nol task baru, nol dependency berubah, nol
+  kontrak berubah. BE-BD-012 kembali siap dijadwalkan.
 revision_4_scope: SPLIT_BE_FE_ONLY
 revision_5_scope: CROSS_MODULE_DEPENDENCY_AND_STATUS_ONLY
 revision_5_note: >-
@@ -49,7 +57,7 @@ backend_source_sha_note: >-
 backend_branch: sukmagp
 frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 frontend_branch: sukmagpV2
-decision_revision: 11
+decision_revision: 12
 domain_architecture_revision: 6
 owners:
   - "Product/Domain: pemilik proses BDRS"
@@ -58,7 +66,8 @@ owners:
 approved_by:
   - "Sukmagp — set kontrak v4 dan roadmap revisi 2, 2026-09-03"
   - "Sukmagp — roadmap backend revisi 7, 2026-09-10"
-approved_at: "2026-09-10"
+  - "Sukmagp — acceptance criteria BE-BD-012 (AC-BD-098..102), pemindahan AC-BD-026/058 ke BE-BD-013, DEC-BD-048/049, 2026-09-11"
+approved_at: "2026-09-11"
 approval_note: >-
   Approval 2026-09-03 berlaku atas roadmap revisi 2. Revisi 3 menambahkan gerbang G4
   dan revisi 4 memecah roadmap menjadi backend dan frontend; approval tidak berpindah
@@ -180,8 +189,8 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 | --- | ---: | --- |
 | ✅ SELESAI | 6 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-005`, `BE-BD-011`, `BE-BD-014` |
 | 🟡 SELESAI SEBAGIAN | 2 | `BE-BD-016` — 25 dari 39 butir hak akses · `BE-BD-004` — 6 dari 9 kriteria, 11 September 2026 ([laporan](../task/report/backend/BE-BD-004.md)) |
-| 🟡 PENDING | 1 | `BE-BD-012` — terbuka 11 September 2026 setelah `BE-BD-003` selesai |
-| ⛔ BLOCKED | 6 | `BE-BD-006`, `007`, `008`, `009`, `010`, `015` — seluruhnya lewat rantai dependency |
+| 🟡 PENDING | 1 | `BE-BD-012` — siap dijadwalkan kembali sejak roadmap revisi 8, 11 September 2026. **Riwayat:** terbuka 11 September 2026 setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
+| ⛔ BLOCKED | 6 | `BE-BD-006`, `007`, `008`, `009`, `010`, `015` — lewat rantai dependency. **Riwayat:** 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
 | — Future scope | 1 | `BE-BD-013` |
 | **Total** | **16** | |
 
@@ -208,7 +217,7 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 
 ✅ BE-BD-003 (order darah)   SELESAI 11 Sep 2026; OrderNumber dari provider
        │      dep: G1 ✅, G2b ✅, BE-BD-001 ✅, BE-BD-002 ✅, G4 ✅
-       ├── 🟡 BE-BD-012 (tindakan Bank Darah)   PENDING — siap dijadwalkan
+       ├── 🟡 BE-BD-012 (tindakan Bank Darah)   PENDING — siap dijadwalkan (revisi 8)
        │
        └── 🟡 BE-BD-004 (permintaan PMI + penerimaan + kantong lahir)   SELESAI SEBAGIAN 11 Sep 2026 — 6/9 AC
                   └── ⛔ BE-BD-015 (penyimpanan & perpindahan kantong)   BLOCKED lewat BE-BD-004
@@ -375,14 +384,14 @@ tidak dapat diberikan sebelum dialokasikan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak 11 September 2026: `BE-BD-003` ✅ selesai. **Riwayat:** BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
+| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak roadmap revisi 8, 11 September 2026. Ketiga penahan tertutup pada hari yang sama: aturan tarif oleh `DEC-BD-049`, sumber unit dan kelas oleh `DEC-BD-048`, dan acceptance criteria diganti `AC-BD-098` sampai `AC-BD-102`. Belum ada source; laporan yang ada mencatat pemberhentian sebelum keputusan turun. **Riwayat:** ⛔ **BLOCKED 11 September 2026 — menunggu tiga keputusan** ([laporan](../task/report/backend/BE-BD-012.md)). Builder berhenti sebelum satu baris source ditulis; build, test, dan migration `NOT RUN`. **(1)** Aturan pemilihan tarif tindakan — kontrak tidak menetapkannya, dan source memuat dua aturan yang memberi angka berbeda; pemilik Billing bersama BDRS (`DEC-BD-021`). **(2)** Sumber `ServiceUnitId` dan `PatientClassId` — pemilik proses BDRS. **(3)** `AC-BD-026` dan `AC-BD-058` menuntut fakta biaya ke Billing (`DEC-BD-016` `OPEN`) serta pemberian dan koreksi (`BE-BD-007`, `BE-BD-010`), sehingga tidak dapat dibuktikan pada task ini — pemilik roadmap lewat `plan-module-delivery`. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak 11 September 2026 setelah `BE-BD-003` ✅. **Riwayat:** BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
 | **Yang memblokir** | **Nihil sejak 11 September 2026** — `BE-BD-003` ✅. **Riwayat:** `BE-BD-003`, sesuai kolom Dependency. `BbkBloodBankProcedure.ProcedureNumber` (`:336`, `:443`) wajib dari provider number-series, dan provider itu **sudah ada** sejak `G4` tertutup |
 | **Outcome** | Tindakan Bank Darah tercatat beserta snapshot tarifnya, **tanpa** penyaluran biaya ke Billing |
-| **Trace** | `DEC-BD-021`, `DEC-BD-034`; `BD-AGG-05` |
-| **Kontrak** | api-contract `v4` |
-| **Scope** | `BbkBloodBankProcedure` dengan snapshot tarif; **tanpa** penyaluran Billing |
+| **Trace** | `DEC-BD-021`, `DEC-BD-034`, **`DEC-BD-048`**, **`DEC-BD-049`**; `BD-AGG-05` |
+| **Kontrak** | api-contract `v4` — Blood Bank Procedure; kamus data `BbkBloodBankProcedure`; state-transition §5; validation §5 |
+| **Scope** | `BbkBloodBankProcedure` dengan snapshot tarif; **tanpa** penyaluran Billing. Unit dan kelas pasien diambil dari kunjungan order (`DEC-BD-048`). Tarif dipilih backend memakai predikat kecocokan `InsuranceCoverageService` — paling spesifik menang, tarif tanpa kelas sebagai cadangan, tanpa kandidat ditolak `422` (`DEC-BD-049`). `ProcedureNumber` dari `NumberSeriesAllocator`; migration |
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-003` ✅, **`G4` ✅** — tertutup 10 September 2026 |
-| **Acceptance** | `AC-BD-026/058` |
+| **Acceptance** | `AC-BD-098/099/100/101/102` — roadmap revisi 8. **Riwayat:** `AC-BD-026/058` sampai revisi 7; keduanya kini milik `BE-BD-013` |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
@@ -515,7 +524,11 @@ diperiksa. Paragraf di atas dipertahankan sebagai riwayat.
 **`MVP-1` blueprint Platform** (`EPIC-PLT-01` + `EPIC-PLT-02`), bukan menunggu penunjukan siapa
 pun. Rinciannya di `docs/module-blueprints/platform/04-prd-to-mvp.md` bagian 5.
 
-**Diperbarui 11 September 2026 sesudah `BE-BD-004`:** `BE-BD-004` 🟡 selesai sebagian — seluruh scope-nya selesai, tiga kriteria menunggu `BE-BD-015` dan `BE-BD-006`. Yang dapat dijadwalkan kini `BE-BD-012`. `BE-BD-015` terbuka begitu pemilik roadmap meneruskan ketiga kriteria itu ([laporan](../task/report/backend/BE-BD-004.md) bagian 6).
+**Diperbarui 11 September 2026 — roadmap revisi 8:** `BE-BD-012` 🟡 **siap dijadwalkan kembali**. Pemilik memutuskan aturan tarif dan sumber unit/kelas (`DEC-BD-048`, `DEC-BD-049`) dan mengganti kriterianya dengan `AC-BD-098` sampai `AC-BD-102`. `BE-BD-015` tetap menunggu keputusan penerusan tiga kriteria `BE-BD-004`.
+
+**Riwayat — diperbarui 11 September 2026 sesudah `BE-BD-012`:** `BE-BD-012` ⛔ — builder berhenti sebelum implementasi karena tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)). **Nol task backend dapat dijadwalkan** sampai pemilik roadmap memutuskan penerusan kriteria `BE-BD-004` dan rumah kriteria `BE-BD-012`, dan pemilik Billing/BDRS memutuskan aturan tarif.
+
+**Riwayat — diperbarui 11 September 2026 sesudah `BE-BD-004`:** `BE-BD-004` 🟡 selesai sebagian — seluruh scope-nya selesai, tiga kriteria menunggu `BE-BD-015` dan `BE-BD-006`. Yang dapat dijadwalkan kini `BE-BD-012`. `BE-BD-015` terbuka begitu pemilik roadmap meneruskan ketiga kriteria itu ([laporan](../task/report/backend/BE-BD-004.md) bagian 6).
 
 **Riwayat — yang dapat dijadwalkan per 11 September 2026 sebelum `BE-BD-004`:** `BE-BD-004` dan `BE-BD-012` di backend — keduanya terbuka setelah `BE-BD-003` ✅. `BE-BD-004` berada di jalur kritis `BE-BD-004` → `BE-BD-015` → `BE-BD-006` → `BE-BD-007`, sehingga disarankan lebih dulu. Di frontend, `FE-BD-002` kehilangan penahan backend-nya.
 
@@ -539,7 +552,7 @@ terbuka.
 
 | Butir | Alasan |
 | --- | --- |
-| `BE-BD-013` penyaluran biaya ke Billing | Future scope; `DEC-BD-016` `OPEN DECISION` |
+| `BE-BD-013` penyaluran biaya ke Billing | Future scope; `DEC-BD-016` `OPEN DECISION`. Acceptance `AC-BD-026`, `AC-BD-027`, `AC-BD-058` — `026` dan `058` dipindah dari `BE-BD-012` pada revisi 8 |
 | Integrasi HCLAB | `DEC-BD-022` menempatkannya di luar MVP |
 | Integrasi PMI otomatis | `DEC-BD-002` — permintaan dicatat, pengiriman manual |
 | Task frontend | Ada di [frontend-roadmap.md](frontend-roadmap.md) |

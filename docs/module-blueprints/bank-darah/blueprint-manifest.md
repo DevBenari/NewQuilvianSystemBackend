@@ -5,7 +5,7 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 25
+revision: 26
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
@@ -62,7 +62,7 @@ frontend_source_sha_note: >-
 frontend_branch: sukmagpV2
 skill_suite_version: 1.18.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 11
+decision_revision: 12
 capability_map_revision: 5
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
@@ -190,10 +190,13 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 7
+active_roadmap_revision: 8
 roadmap_status: APPROVED
 roadmap_status_note: >-
-  backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10. frontend-roadmap.md revisi 7
+  backend-roadmap.md revisi 8 pada 2026-09-11 mencatat keputusan Sukmagp atas BE-BD-012:
+  kriteria AC-BD-098..102, pemindahan AC-BD-026/058 ke BE-BD-013, serta DEC-BD-048/049.
+  Nol task baru, nol dependency berubah, nol kontrak berubah.
+  Sebelumnya: backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10. frontend-roadmap.md revisi 7
   masih FORWARD-TEST / DRAFT dan menunggu keputusan tersendiri.
 supersedes: null
 ```

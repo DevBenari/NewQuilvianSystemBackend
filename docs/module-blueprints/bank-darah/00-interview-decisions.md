@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `11` |
-| Decision revision | `11` |
-| Status | `draft` |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03) |
+| Revision | `12` |
+| Decision revision | `12` |
+| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03), Procedure tariff decision pass (2026-09-11) |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
 | Backend SHA pada revisi 5 | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86`. Perbedaan sampai `792acb9` **hanya** dokumen blueprint Bank Darah, nol berkas source aplikasi — sudah diperiksa dengan `git diff --name-only` |
@@ -1285,6 +1285,41 @@ Berkas lain **tidak** perlu berubah, dan itu sudah diperiksa satu per satu:
 pemetaan peran yang bertentangan dengan tiga sumber lain di dalam set yang sama — bukan perubahan
 aturan, endpoint, atau kewenangan yang sebelumnya disepakati.
 
+### 8.28 Procedure tariff decision pass — 11 September 2026
+
+**Asal.** Builder `BE-BD-012` berhenti sebelum menulis source karena kontrak `v4` tidak menetapkan tiga
+hal: tarif mana yang dirujuk tindakan, dari mana unit dan kelas pasien tindakan diambil, dan acceptance
+criteria mana yang benar-benar milik pencatatan tindakan. Buktinya ada pada
+[laporan `BE-BD-012`](task/report/backend/BE-BD-012.md). Pemilik, **`Sukmagp`**, memutuskan ketiganya pada
+hari yang sama.
+
+| ID | Menutup | Jenis | Isi | Pemilik | Status | Approved |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-048` | Gap "sumber `ServiceUnitId` dan `PatientClassId` tindakan" | `Decision` | Unit dan kelas pasien pada `BbkBloodBankProcedure` **diambil dari kunjungan order** — `TrxPatientEncounter` yang ditunjuk `BbkBloodOrder.EncounterId`. Client **tidak** mengirim keduanya | `Sukmagp` | `approved` | `Sukmagp`, 2026-09-11 |
+| `DEC-BD-049` | Gap "aturan pemilihan tarif tindakan Bank Darah" | `Decision` | Backend memilih tarif, client **tidak pernah** mengirim nominal (`VAL-BD-027`). Kandidat: `MstTariff` yang aktif, tidak dihapus, berlaku pada waktu pencatatan, dan `ProcedureId`-nya sama dengan `ProcedureRefId`. Kecocokan terhadap kunjungan memakai predikat yang sama dengan `InsuranceCoverageService` — kolom `PatientClassId`, `ServiceUnitId`, dan `ClinicId` tarif yang **kosong** berarti berlaku umum; yang **terisi** wajib sama dengan kunjungan. Yang **paling spesifik** menang (klinik, lalu unit, lalu kelas), lalu tanggal mulai berlaku terbaru. Tarif tanpa kelas menjadi **cadangan** bila tarif kelas pasien tidak ada. Tidak ada satu kandidat pun → **ditolak `422`** | `Sukmagp` | `approved` | `Sukmagp`, 2026-09-11 |
+
+**Contoh berangka `DEC-BD-049`.** Tindakan "Uji Silang Serasi" punya dua tarif aktif: tarif umum
+Rp150.000 tanpa kelas, dan tarif kelas VIP Rp250.000. Pasien A dirawat di kelas VIP → tarif VIP terpilih,
+salinan Rp250.000. Pasien B dirawat di kelas 3 → tidak ada tarif kelas 3, tarif umum menjadi cadangan,
+salinan Rp150.000. Bila tarif umum pun tidak ada → pencatatan ditolak, dan petugas diarahkan ke data induk
+tarif. Bila kunjungan tidak mencatat kelas, hanya tarif tanpa kelas yang cocok.
+
+**Kenapa predikat `InsuranceCoverageService`, bukan pola Laboratorium.** Predikat itu sudah dipakai
+resep, tindakan klinis, dan Billing. Memakainya menjaga salinan tarif Bank Darah sama dengan angka yang
+akan dihitung Billing untuk tindakan yang sama ketika `BE-BD-013` kelak menyalurkan faktanya. Pola
+Laboratorium memilih tarif terbaru tanpa melihat kelas, dan akan memilih harga kelas yang keliru bila
+tarif dibedakan menurut kelas.
+
+**Keputusan perencanaan pada pass yang sama**, dicatat pada roadmap revisi 8, bukan di sini: acceptance
+criteria `BE-BD-012` diganti menjadi `AC-BD-098` sampai `AC-BD-102` di bawah, sedangkan `AC-BD-026` dan
+`AC-BD-058` dipindah ke `BE-BD-013` karena keduanya baru dapat dibuktikan ketika fakta biaya benar-benar
+terkirim ke Billing.
+
+**Yang tidak berubah.** `DEC-BD-016`, `DEC-BD-021`, dan `DEC-BD-034` tetap berlaku apa adanya: biaya
+berasal dari tindakan, penyalurannya tetap tertahan, dan koreksi tidak membalik biaya. Set kontrak tetap
+`v4`; kamus data tidak mendapat kolom baru — `ServiceUnitId`, `PatientClassId`, `TariffId`, dan ketiga
+kolom salinan sudah ada di sana sejak `v1`.
+
 ## 9. Acceptance Criteria
 
 | ID | Kondisi | Hasil yang diharapkan |
@@ -1386,6 +1421,11 @@ aturan, endpoint, atau kewenangan yang sebelumnya disepakati.
 | `AC-BD-095` | Dokter peminta membatalkan ordernya karena kebutuhan klinis berubah | Berhasil; alasan terkendali, pelaku, waktu, dan riwayat tersimpan (`INV-BD-035`) |
 | `AC-BD-096` | Petugas BDRS membatalkan order ganda dengan alasan operasional | Berhasil; alasan terkendali membedakannya dari pembatalan klinis |
 | `AC-BD-097` | Pembatalan order dicoba tanpa alasan terkendali | Ditolak — tidak ada pembatalan order tanpa audit (`INV-BD-035`) |
+| `AC-BD-098` | Order darah sah dan tindakan sah; petugas berwenang mencatat tindakan Bank Darah | `BbkBloodBankProcedure` tersimpan dengan `ProcedureNumber` unik, `BloodOrderId`, `ProcedureRefId`, dokter BDRS dan petugas, unit, kelas pasien, `TariffId`, dan status `Recorded` |
+| `AC-BD-099` | Satu tindakan punya tarif berbeda menurut kelas pasien; tindakan dicatat untuk kunjungan pasien | Backend memilih tarif aktif dan masih berlaku yang cocok dengan `ProcedureRefId` dan `PatientClassId` dari kunjungan (`DEC-BD-048`, `DEC-BD-049`) — **bukan** menerima nominal harga dari client |
+| `AC-BD-100` | Tindakan sudah tercatat dengan salinan tarif, lalu `MstProcedure` atau `MstTariff` diubah | `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, dan `TariffAmountSnapshot` pada tindakan lama **tidak berubah** |
+| `AC-BD-101` | Tindakan berstatus `Recorded`; petugas berwenang menyelesaikannya | Status menjadi `Completed` dan transisi beserta auditnya tersimpan. Percobaan menyelesaikan tindakan pada keadaan yang tidak sah ditolak secara terkendali |
+| `AC-BD-102` | Tindakan dibuat maupun diselesaikan | Tidak ada invoice, item, maupun fakta biaya yang dibuat; tidak ada pemanggilan posting Billing; tidak ada jalur penyaluran biaya. Penyaluran tetap milik `BE-BD-013` |
 
 `AC-BD-071` adalah turunan langsung dari model alokasi yang sudah disepakati, bukan aturan baru:
 pengalihan kantong ke pasien lain menghasilkan ikatan alokasi yang sama bentuknya dengan alokasi
