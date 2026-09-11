@@ -556,6 +556,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstInsuranceProvider> MstInsuranceProviders { get; set; }
         public DbSet<MstPatientInsurance> MstPatientInsurances { get; set; }
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
+        public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
@@ -567,6 +568,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstRegister> MstRegisters { get; set; }
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
+        public DbSet<BilInvoiceItemPayerAssignment> BilInvoiceItemPayerAssignments { get; set; }
+        public DbSet<BilInvoiceItemBillingDisposition> BilInvoiceItemBillingDispositions { get; set; }
+        public DbSet<BilInvoicePayerChangeCommand> BilInvoicePayerChangeCommands { get; set; }
         public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
         public DbSet<BilDiscountApplication> BilDiscountApplications { get; set; }
         public DbSet<BilChargeReceipt> BilChargeReceipts { get; set; }
@@ -583,6 +587,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
         public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
         public DbSet<BilArHandoff> BilArHandoffs { get; set; }
+        public DbSet<BilPaymentReminder> BilPaymentReminders { get; set; }
         public DbSet<BilApHandoff> BilApHandoffs { get; set; }
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
@@ -636,6 +641,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDrugCategory> MstDrugCategories { get; set; }
         public DbSet<MstDrug> MstDrugs { get; set; }
         public DbSet<MstInsuranceCoverageRule> MstInsuranceCoverageRules { get; set; }
+        public DbSet<MstCompanyGuarantorCoverageRule> MstCompanyGuarantorCoverageRules { get; set; }
         public DbSet<MstInsuranceTariff> MstInsuranceTariffs { get; set; }
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }

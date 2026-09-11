@@ -1580,3 +1580,328 @@ baca baru, tanpa menyentuh satu pun kolom tabel finansial yang sudah berisi data
 `MstInpatientSetting`, daftar pantau kekurangan deposit, langkah Deposit pada alur admisi, dan
 gerbang `FinancialClearance`. Keempatnya ada pada `RWI-BP-001` sebagai `BE-RWI-041`, `BE-RWI-042`,
 `BE-RWI-043`, dan `FE-RWI-042` s.d. `FE-RWI-045`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun baru: Edit Tagihan & Multi-Payer Coverage, gelombang `MVP-16`–`MVP-19`
+
+```yaml
+roadmap_revision: 5
+roadmap_status: READY_FOR_TASK_APPROVAL
+pemicu: /plan-module-delivery untuk rumpun Edit Tagihan & Multi-Payer, blueprint revision 1.1
+blueprint_revision_dibaca: 1.1 (blueprint-manifest.md, status approved; readiness DESIGN_APPROVED
+  untuk rumpun ini — seluruh MPY-DES-001-017 approved lewat MPY-DEC-012)
+scope_pass_ini: HANYA rumpun Edit Tagihan & Multi-Payer. Rumpun lain TIDAK disentuh dan entri
+  roadmap mereka di atas TIDAK diubah
+input_keputusan_bisnis: MPY-DEC-001-012 (00-interview-decisions.md, seluruhnya approved 11 September
+  2026 — tiga sub-amendment bertanggal sama, ditutup oleh MPY-DEC-011 dan MPY-DEC-012)
+input_keputusan_arsitektur: MPY-DES-001-017 (02-backend-architecture.md amendment 11 September 2026,
+  status approved lewat MPY-DEC-012)
+kemampuan_asal: CAP-33 (Missing), CAP-34 (Reuse with adapter), CAP-35 (Ready to reuse), CAP-36
+  (Ready to reuse as template; entity-nya sendiri Missing), CAP-37 (Missing), CAP-38 (Reuse with
+  adapter), CAP-39 (Ready to reuse), CAP-40 (Reuse with adapter), CAP-41 (pola saja)
+  — 01-existing-capability-map.md § 19
+backend_commit_sha: d295c4d59b68d223edc597c8b165b7ef4282b49f (branch Yasmina)
+frontend_commit_sha: 0eafa76bf397a47ceb9d44a6f69006ee25f8ba51 (branch yasmina)
+contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8, BIL-PERMISSION-0.8,
+  BIL-TEST-1.0, BIL-CALCULATION-0.9]
+task_id_series: BE-BKC-041 s.d. BE-BKC-052 — dilanjutkan dari BE-BKC-040
+prasyarat_lintas_modul_TERPENUHI: MPY-OQ-004 ditutup MPY-DEC-011 — pemilik RegistrationManagement
+  (Muhammad Hamzah) MENYETUJUI pembangunan EncounterPaymentSourceService di modulnya. Gelombang
+  MVP-17 karena itu TIDAK BLOCKED
+prasyarat_non_blocking: MPY-OQ-005 (kolom penanda sudah-ditagih pada PhmDrugUsage milik Pharmacy) —
+  dicatat sebagai dependency tingkat task pada BE-BKC-049; MPY-CQ-03 (koordinasi urutan commit
+  dengan pekerjaan "Payment Reminder") — dicatat pada setiap task yang menyentuh tiga berkas itu
+```
+
+## 0. Kenapa seluruh gelombang ini `READY_FOR_TASK_APPROVAL`
+
+Tidak ada satu pun pertanyaan bertanda memblokir yang tersisa untuk rumpun ini
+(`blueprint-manifest.md` § `blocking_questions_revision_1_1`). Satu-satunya yang sempat memblokir,
+`MPY-OQ-004`, **sudah ditutup** 11 September 2026 oleh `MPY-DEC-011` — pemilik
+`RegistrationManagement` menyetujui pembangunan layanan ubah penanggung di modulnya beserta
+bentuk yang dirancang. Karena itu `MVP-17` yang sebelumnya tertahan kini ikut berjalan.
+
+**Yang tetap berlaku untuk setiap task di bawah, tanpa kecuali:**
+
+1. Kontrak terkunci **bukan** wewenang tulis. Setiap task menunggu approval task tersendiri dan
+   konfirmasi `TASK MODE: BACKEND` beserta cabang kerja sebelum satu baris source ditulis.
+2. Pembuatan dan eksekusi migration (`BE-BKC-041`) adalah **wewenang terpisah** dari approval
+   task, sesuai `AGENTS.md` bagian Aturan Entity Framework dan Akses Data. Approval desain
+   `MPY-DEC-012` secara eksplisit menyatakan dirinya **bukan** otorisasi itu.
+3. QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi** dari `AGENTS.md`
+   backend target beserta dokumen engineering canonical, bukan diputuskan di roadmap ini.
+
+> **Peringatan koordinasi yang mengikat lima task.** `BillingInvoicesController.cs`,
+> `BillingInvoiceDtos.cs`, dan `BillingInvoiceService.cs` **sudah memiliki perubahan yang belum
+> di-commit** dari pekerjaan lain di working tree yang sama — kemungkinan "Payment Reminder"
+> (`blueprint-manifest.md` § `working_tree_uncommitted_revision_1_1`). Task `BE-BKC-047`,
+> `048`, `049`, `050`, dan `051` menyentuh berkas yang sama. Sebelum menulis, implementer **MUST**
+> menyelaraskan urutan commit dengan pemilik pekerjaan itu, dan **MUST NOT** membuang, menimpa,
+> atau mengembalikan perubahan tersebut (`MPY-CQ-03`).
+
+**Arti tanda status pada bagian ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh |
+| ⛔ | Terblokir. Prasyaratnya belum terpenuhi |
+| tanpa tanda | Belum dikerjakan |
+
+## Grafik Urutan Dependency
+
+```text
+🟡 BE-BKC-041 ─┬─> BE-BKC-042
+             │
+             ├─> BE-BKC-043 ─> BE-BKC-052
+             │
+             └─> BE-BKC-044 ─┬─> BE-BKC-048 ─┐
+                             │                │
+                             ├─> BE-BKC-049 ─┤
+                             │                │
+                             ├─> BE-BKC-050 ─┤
+                             │                │
+     BE-BKC-045 ─┬───────────┴─> BE-BKC-047 ─┴─> BE-BKC-051
+                 │
+     BE-BKC-046 ─┘
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | 🟡 `BE-BKC-041`, `BE-BKC-045`, `BE-BKC-046` — boleh paralel |
+| 2 | 🟡 `BE-BKC-041` | `BE-BKC-042`, `BE-BKC-043`, `BE-BKC-044` — boleh paralel |
+| 3 | `BE-BKC-044`, `BE-BKC-045`, `BE-BKC-046` | `BE-BKC-047` |
+| 3 | `BE-BKC-044` | `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` — boleh paralel |
+| 3 | `BE-BKC-043` | `BE-BKC-052` |
+| 4 | `BE-BKC-047`, `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` | `BE-BKC-051` |
+
+## 1. Pemetaan gelombang MVP ke gelombang eksekusi
+
+| Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
+| --- | --- | --- |
+| `MVP-16` (fondasi) | 🟡 `BE-BKC-041`, `042`, `043`, `044`, `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan |
+| `MVP-17` (ganti payer) | `BE-BKC-045`, `046`, `047` | Kasir dapat mengganti penanggung kunjungan sebelum pembayaran, dengan pratinjau perbandingan lebih dulu |
+| `MVP-18` (koreksi per baris) | `BE-BKC-048`, `049` | Kasir dapat menandai penanggung tiap baris biaya dan menentukan obat yang masuk tagihan |
+| `MVP-19` (dokumen + hardening) | `BE-BKC-050`, `051` | Perusahaan penjamin dapat ditagih dengan lembar tersendiri; hak akses, privasi, dan regresi terbukti |
+
+**Kenapa `BE-BKC-044` mendahului hampir semuanya.** Ia satu-satunya task yang membuat kunjungan
+berpenjamin perusahaan dapat dihitung sama sekali. Tanpa itu, penanggung per baris bertanda
+Penjamin, perintah ganti payer ke Penjamin, dan lembar tagihan perusahaan semuanya akan
+menghasilkan angka nol yang menyesatkan — bukan karena logikanya salah, melainkan karena mesin
+tanggungannya belum ada.
+
+## 🟡 `BE-BKC-041` — Fondasi skema: lima tabel dan satu migration
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Lima tabel baru tersedia sebagai fondasi seluruh task rumpun ini: penanggung per baris biaya, disposisi penebusan obat, jejak perubahan payer, rute reimbursement perusahaan, dan aturan tanggungan perusahaan |
+| Gelombang | `MVP-16` — eksekusi gelombang 1 |
+| Trace | `MPY-DEC-008`, `MPY-DES-003`, `MPY-DES-008`, `MPY-DES-010`; `CAP-36`, `CAP-37` (keduanya Missing) |
+| Kontrak | Skema pada [`data/data-dictionary.md`](../data/data-dictionary.md) amendment 11 September; **tidak ada endpoint** pada task ini |
+| Reuse | Pola configuration EF existing — kolom audit warisan `IdentityModel`, unique index tersaring, `DeleteBehavior.Restrict` untuk relasi finansial |
+| Scope | 5 model class (`MstCompanyGuarantorReimbursementRoute` di `Areas/Administrator/MasterData/Models/`; `MstCompanyGuarantorCoverageRule` di `Areas/HealthServices/MasterData/Models/`; `BilInvoiceItemPayerAssignment`, `BilInvoiceItemBillingDisposition`, `BilInvoicePayerChangeCommand` di `Areas/HealthServices/BillingManagement/Billing/Models/`); 5 EF configuration di `Repositories/Configurations/...` sesuai § Arsitektur folder target; 5 `DbSet`; satu migration aditif |
+| Dependency | Tidak ada |
+| Acceptance | Kelima tabel, kolom, index tersaring, dan FK `Restrict` sesuai kamus data; migration **dibuat**, TIDAK dijalankan ke database tanpa otorisasi terpisah |
+| Verifikasi | `dotnet build`; review struktural migration — urutan `CREATE TABLE` aman terhadap FK |
+| Risiko/pemilik | Unique index tersaring yang salah tulis akan mengizinkan dua penanggung aktif pada satu baris biaya. Owner Backend/API. **Eksekusi migration adalah wewenang terpisah** |
+| DoD | Model, configuration, dan migration source lulus build; `git status --short` dilaporkan; database **tidak** dijalankan |
+| Status | 🟡 **Sebagian 11 September 2026.** 5 model, 5 konfigurasi EF Core (filtered unique index + FK Restrict), dan 5 DbSet pada `ApplicationDbContext` telah diimplementasikan. Sesuai instruksi pengguna, otomatisasi pembuatan migration, build, dan test ditiadakan untuk dijalankan manual oleh pengguna. Laporan: [BE-BKC-041](../task/report/backend/BE-BKC-041.md) |
+
+## `BE-BKC-042` — Master rute reimbursement perusahaan penjamin
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Admin master data dapat mencatat bagaimana tiap perusahaan penjamin memperoleh penggantian biaya — menanggung sendiri atau lewat asuransi mitra |
+| Gelombang | `MVP-16` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-083`; `MPY-DEC-008`, `MPY-DES-014`; `CAP-35` (Ready to reuse) |
+| Kontrak | Grup `Administrator / Master Data / Company Guarantor Reimbursement Route`, 9 endpoint (`BIL-API-1.0`); `BIL-VAL-087`–`091` |
+| Reuse | Pola `CompanyGuarantorController` pada area yang sama — apa adanya |
+| Scope | Controller, service, DTO pada `Areas/Administrator/MasterData/`; Resource hak akses `CompanyGuarantorReimbursementRoute` terdaftar otomatis lewat atribut |
+| Dependency | `BE-BKC-041` (tabelnya) |
+| Acceptance | `BIL-AT-099` bagian rute; pasangan jenis rute dan asuransi mitra ditegakkan; maksimal satu rute bawaan aktif per perusahaan |
+| Verifikasi | Unit test aturan pasangan; integration test penolakan rute bawaan kedua; `dotnet build` |
+| Risiko/pemilik | Melewatkan atribut hak akses membuat endpoint tidak terlindungi **sekaligus** tidak terdaftar — kegagalan senyap. Owner Backend/API |
+| DoD | Sembilan endpoint berjalan; butir hak akses muncul pada pengaturan peran setelah aplikasi start; build dan test lulus |
+
+## `BE-BKC-043` — Master aturan tanggungan perusahaan penjamin
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Admin master data dapat menentukan berapa bagian biaya yang ditanggung tiap perusahaan penjamin, per jenis item, kelas perawatan, paket manfaat, dan golongan karyawan |
+| Gelombang | `MVP-16` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-066`, `FR-BKC-067`; `MPY-DEC-008`, `MPY-DES-006`; `CAP-36` |
+| Kontrak | Grup `Health Services / Master Data / Company Guarantor Coverage Rule`, 9 endpoint (`BIL-API-1.0`); `BIL-VAL-092`–`097` |
+| Reuse | Pola `InsuranceCoverageRuleController` — **cetakan 1:1**, termasuk derivasi server-side urun biaya dari persentase tanggungan |
+| Scope | Controller, service, DTO pada `Areas/HealthServices/MasterData/`; Resource hak akses `CompanyGuarantorCoverageRule` |
+| Dependency | `BE-BKC-041` (tabelnya) |
+| Acceptance | `BIL-AT-099` bagian aturan tanggungan; urun biaya **diturunkan server** dan masukan klien diabaikan; penolakan hapus aturan yang sudah dipakai versi perhitungan |
+| Verifikasi | Unit test derivasi urun biaya dan rentang persentase; integration test penolakan hapus; `dotnet build` |
+| Risiko/pemilik | Menerima urun biaya dari klien akan membuat dua angka yang saling bertentangan pada satu aturan. Owner Backend/API |
+| DoD | Sembilan endpoint berjalan; derivasi urun biaya terbukti lewat test; build dan test lulus |
+
+## `BE-BKC-044` — Mesin tanggungan perusahaan dan perbaikan adapter
+
+| Field | Isi |
+| --- | --- |
+| Outcome | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu dan porsi penjaminnya terhitung benar.** Ini task yang menutup cacat yang sudah aktif hari ini |
+| Gelombang | `MVP-16` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-064`, `FR-BKC-065`, `FR-BKC-067`; `MPY-DES-006`, `MPY-DES-007`, `MPY-DES-017`; `CAP-34` (Reuse with adapter) |
+| Kontrak | `BIL-CALCULATION-0.9` — **sumbu kalkulasi bergerak pada task ini**; penanda jenis payer pada breakdown |
+| Reuse | Logika pemilihan aturan dan perhitungan persen/nominal/limit pada mesin tanggungan asuransi — dipakai ulang polanya, **bukan** disalin mentah |
+| Scope | `CompanyGuarantorCoverageService` baru di `Areas/HealthServices/ClinicalManagement/Services/`; `RegistrationBillingCoverageAdapter` menjadi dispatcher per jenis payer; nilai `ContractVersion` adapter dinaikkan; penanda jenis payer dibawa pada hasil |
+| Dependency | `BE-BKC-041` (tabel aturan tanggungan) |
+| Acceptance | `BIL-AT-100` — kunjungan berpenjamin perusahaan tidak lagi menghasilkan anomali "perusahaan asuransi belum dipilih", **dan** kunjungan tunai serta berasuransi menghasilkan angka **identik** dengan sebelum task ini |
+| Verifikasi | Unit test pemilihan aturan menurut prioritas dan masa berlaku; **regresi wajib** atas tiga tagihan lama (tunai, asuransi, penjamin perusahaan); `dotnet build` |
+| Risiko/pemilik | Perubahan pada adapter menyentuh mesin kalkulasi yang dipakai seluruh tagihan. Regresi angka pada kunjungan tunai dan asuransi adalah **kegagalan**, bukan efek samping yang dapat ditoleransi. Owner Backend/API bersama Finance/AR |
+| DoD | Regresi angka terbukti nol selisih untuk tunai dan asuransi; kunjungan berpenjamin perusahaan terbukti terhitung; build dan test lulus |
+
+## `BE-BKC-045` — Serah terima kontrak ubah sumber pembayaran ke `RegistrationManagement`
+
+> **Task ini TIDAK menulis source.** Pekerjaan source-nya berada di modul `RegistrationManagement`
+> dan dikerjakan pemiliknya, bukan oleh `billing-kasir` yang tidak punya wewenang tulis di sana.
+> Yang dihasilkan task ini adalah **dokumen serah terima** yang dapat langsung dikerjakan pemilik
+> modul itu.
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Pemilik `RegistrationManagement` menerima spesifikasi tertulis berisi persis apa yang perlu ditambahkan di modulnya — satu layanan baru, nol perubahan skema — beserta pembagian tanggung jawab pemeriksaan, urutan transaksi, kewajiban pengujian, dan tiga hal yang perlu ia putuskan |
+| Gelombang | `MVP-17` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-068`, `FR-BKC-069`, `FR-BKC-071`; `MPY-DEC-007`, `MPY-DEC-010`, `MPY-DEC-011`, `MPY-DES-001`, `MPY-DES-002`, `MPY-DES-004`; `CAP-33` (Missing) |
+| Kontrak | **`MPY-ENC-PAYER-001`** — [`encounter-payment-source-change-contract.md`](../../rawat-inap/episode-rawat-inap/contracts/encounter-payment-source-change-contract.md) (disimpan di `<blueprint-root>` `rawat-inap/episode-rawat-inap`, berdampingan dengan `RWI-ENC-PAYER-001`, mengikuti preseden addendum lintas modul milik `RegistrationManagement` — lihat catatan penempatan di kepala berkas itu), `contract_version` `1.0.0`. Terhubung ke `BIL-INTEGRATION-0.8` |
+| Reuse | Preseden `RWI-ENC-PAYER-001` — addendum lintas modul yang ditulis modul peminta lalu disetujui modul pemilik. Pola yang sama dipakai di sini |
+| Scope | **Dokumen kontrak serah terima saja.** Isi yang diminta dari `RegistrationManagement`: satu `EncounterPaymentSourceService` baru, satu baris registrasi dependency, **nol** perubahan tabel/migration/endpoint/controller/DTO |
+| Dependency | Tidak ada. **Wewenang lintas modul sudah diberikan** — `MPY-DEC-011` (Muhammad Hamzah) |
+| Acceptance | Dokumen kontrak memuat: bentuk pemanggilan, yang dijamin layanan, yang **MUST NOT** dilakukannya, pembagian pemeriksaan antara kedua modul, urutan transaksi, kewajiban pengujian termasuk regresi pendaftaran, dan daftar berkas yang disentuh. Tiga hal yang perlu diputuskan pemilik modul disajikan beserta usulan dan konsekuensi bila dikoreksi |
+| Verifikasi | Dokumen ditinjau dan ditandatangani pemilik `RegistrationManagement`; hasil peninjauannya dicatat pada metadata kontrak |
+| Risiko/pemilik | Persetujuan `MPY-DEC-011` sampai kepada tim lewat Product/Domain Owner, **bukan** pernyataan langsung pemilik modul — dicatat sebagai provenance pada kontrak dan pada `00-interview-decisions.md`. Dokumen ini justru dibuat untuk menutup selisih itu. Owner `RegistrationManagement` (Muhammad Hamzah) |
+| DoD | Kontrak `MPY-ENC-PAYER-001` ada, lengkap kesepuluh bagiannya, dan sudah diserahkan kepada pemilik `RegistrationManagement` untuk dikerjakan di modulnya |
+
+**Status pekerjaan source-nya dilacak di mana.** Implementasi `EncounterPaymentSourceService`
+berjalan sebagai task milik `RegistrationManagement`, dengan penomoran dan roadmap modul itu
+sendiri. `BE-BKC-047` menunggu **selesainya layanan itu**, bukan menunggu task ini — task ini
+selesai begitu kontraknya diserahkan.
+
+## `BE-BKC-046` — Konteks payer eksplisit pada mesin tanggungan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Mesin tanggungan dapat dipanggil untuk payer kandidat mana pun, bukan hanya payer yang sedang berlaku pada kunjungan — prasyarat pratinjau perbandingan |
+| Gelombang | `MVP-17` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-070`; `MPY-DES-005`; `CAP-34` |
+| Kontrak | Perluasan internal; tidak ada endpoint publik baru pada task ini |
+| Reuse | Seluruh logika perhitungan yang sudah ada — hanya sumber konteks payer-nya yang menjadi parameter |
+| Scope | Parameter konteks payer **opsional** pada mesin tanggungan asuransi; cara membangun konteks dari kartu asuransi kandidat tanpa menyentuh kunjungan |
+| Dependency | Tidak ada |
+| Acceptance | Seluruh pemanggil yang sudah ada berperilaku **identik** tanpa perubahan satu baris pun pada sisi pemanggil; membangun konteks kandidat **tidak menulis apa pun** |
+| Verifikasi | Regresi seluruh test mesin tanggungan yang sudah ada tanpa modifikasi; test bahwa pemanggilan kandidat nol tulisan; `dotnet build` |
+| Risiko/pemilik | Parameter baru yang tidak opsional akan merusak seluruh pemanggil existing. Owner Backend/API |
+| DoD | Test existing lulus tanpa disentuh; build lulus |
+
+## `BE-BKC-047` — Konteks layar edit, pratinjau perbandingan, dan perintah ganti payer
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat membuka layar Edit Tagihan, membandingkan payer kandidat, lalu mengganti penanggung kunjungan — seluruhnya sekaligus atau tidak sama sekali |
+| Gelombang | `MVP-17` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-068`, `FR-BKC-070`, `FR-BKC-072`, `FR-BKC-073`, `FR-BKC-085`, `FR-BKC-086`; `MPY-DES-001`, `MPY-DES-003`, `MPY-DES-009`, `MPY-DES-015`, `MPY-DES-016` |
+| Kontrak | `GET /{id}/edit-context`, `POST /{id}/payer-comparison-preview`, `PUT /{id}/payment-source` (`BIL-API-1.0`); `BIL-VAL-059`–`074` |
+| Reuse | Pola perintah finansial existing — versi baris, kunci idempotensi, alasan wajib, korelasi |
+| Scope | `BillingPayerEditService` baru sebagai orkestrator pemegang transaksi; tiga endpoint pada `BillingInvoicesController`; DTO pada berkas DTO baru; reset penanggung baris yang tidak lagi sah; pencatatan jejak perintah |
+| Dependency | `BE-BKC-044` (mesin tanggungan perusahaan, agar kandidat Penjamin dapat dihitung), `BE-BKC-045` (kontrak serah terima sudah diserahkan), `BE-BKC-046` (konteks payer eksplisit untuk pratinjau) |
+| **Gerbang eksternal** | **`EncounterPaymentSourceService` harus sudah tersedia di `RegistrationManagement`.** Ini pekerjaan modul lain yang dilacak roadmap modul itu, bukan roadmap ini — karena itu ia **tidak** ditulis sebagai entri `Dependency` maupun garis pada grafik, dan task ID-nya tidak dikarang di sini. Kontraknya `MPY-ENC-PAYER-001`. Perintah ganti payer **MUST NOT** dianggap selesai sebelum layanan itu ada; dua endpoint lain pada task ini (`edit-context` dan pratinjau perbandingan) **tidak** bergantung padanya dan dapat diselesaikan lebih dulu |
+| Acceptance | `BIL-AT-081`, `085`, `086`, `087`, `088`, `092` — termasuk pratinjau nol tulisan, versi basi nol perubahan tersimpan, dan reset penanggung baris terhitung benar |
+| Verifikasi | Integration test ganti payer beserta kalkulasi ulang; test dua kasir bersamaan; test perintah ganda dengan kunci idempotensi sama; `dotnet build` |
+| Risiko/pemilik | **Menyentuh tiga berkas yang punya perubahan belum di-commit dari pekerjaan lain** (`MPY-CQ-03`) — koordinasikan urutan commit lebih dulu. Owner Backend/API |
+| DoD | Ketiga endpoint berjalan; transaksi terbukti sekaligus-atau-tidak-sama-sekali; jejak perintah tercatat; build dan test lulus; `git status --short` dilaporkan |
+
+## `BE-BKC-048` — Perintah penanggung per baris biaya
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat menandai tiap baris biaya sebagai tanggungan pasien, asuransi, atau penjamin perusahaan, lalu tagihan dihitung ulang |
+| Gelombang | `MVP-18` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-074`, `FR-BKC-075`, `FR-BKC-076`, `FR-BKC-077`; `MPY-DEC-004`, `MPY-DES-008`; `CAP-37` |
+| Kontrak | `PUT /{id}/item-payer-assignments` (`BIL-API-1.0`); `BIL-VAL-075`–`080` |
+| Reuse | Orkestrator dan pola perintah dari `BE-BKC-047` bila sudah ada; bila dikerjakan paralel, polanya disepakati lebih dulu |
+| Scope | Endpoint dan DTO; penulisan penanggung baris secara nonaktifkan-lalu-sisipkan; integrasi ke mesin kalkulasi agar penanggung manual dihormati |
+| Dependency | `BE-BKC-044` (mesin tanggungan perusahaan) |
+| Acceptance | `BIL-AT-089`, `090`, `091` — termasuk **baris tidak tertanggung tetap boleh ditandai asuransi** dan hasilnya nol tertanggung, bukan ditolak |
+| Verifikasi | Integration test penjumlahan tagihan nol selisih sesudah perubahan; test penolakan jenis payer yang tidak tersedia; `dotnet build` |
+| Risiko/pemilik | Menggerbang penandaan berdasarkan hasil tanggungan akan melanggar `MPY-DEC-004` dan menghilangkan kemampuan yang justru diminta. **Menyentuh tiga berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API |
+| DoD | Endpoint berjalan; riwayat penanggung terbaca dari baris nonaktif; build dan test lulus |
+
+## `BE-BKC-049` — Perintah penebusan obat
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat menentukan obat mana yang benar-benar dibawa pulang pasien, dan obat yang tidak ditebus keluar dari tagihan |
+| Gelombang | `MVP-18` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-078`, `FR-BKC-079`, `FR-BKC-080`, `FR-BKC-081`; `MPY-DEC-009`, `MPY-DES-010`, `MPY-DES-011`, `MPY-DES-012`; `CAP-37` |
+| Kontrak | `PUT /{id}/drug-billing-disposition` (`BIL-API-1.0`); `BIL-VAL-081`–`086` |
+| Reuse | Sinyal jenis layanan yang sudah dipakai gerbang PPN rawat inap/rawat jalan; flag kategori obat pada master kategori item billing |
+| Scope | Endpoint dan DTO; penulisan disposisi; pengeluaran baris ber-disposisi dikecualikan dari nominal layak **sebelum** mesin tanggungan dipanggil |
+| Dependency | `BE-BKC-044` (mesin tanggungan perusahaan). **Prasyarat non-blocking `MPY-OQ-005`** — sebelum task ini dikerjakan, implementer **MUST** memeriksa lewat pembacaan source apakah kolom penanda sudah-ditagih pada catatan penyerahan obat milik Farmasi sudah dipakai proses lain, supaya tidak lahir mekanisme paralel yang bertentangan. Ini memblokir **langkah pertama implementasi**, bukan approval task |
+| Acceptance | `BIL-AT-093`, `094`, `095`, `096` — termasuk **IGD diterima sementara rawat inap ditolak**, jumlah obat tidak berubah, dan **nol baris data Farmasi tersentuh** |
+| Verifikasi | Integration test ketiga mode; **regresi lintas modul** membuktikan data penyerahan obat identik sebelum dan sesudah; `dotnet build` |
+| Risiko/pemilik | Menulis ke data Farmasi melanggar `MPY-DEC-009` dan merusak sumber kebenaran penyerahan obat. **Menyentuh tiga berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API bersama pemilik Pharmacy |
+| DoD | Endpoint berjalan; `MPY-OQ-005` terjawab dan jawabannya dicatat pada laporan task; regresi Farmasi terbukti nol sentuhan; build dan test lulus |
+
+## `BE-BKC-050` — Lembar tagihan penjamin perusahaan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perusahaan penjamin dapat ditagih dengan lembar tersendiri yang memuat identitas perusahaan, identitas karyawan, rincian biaya, dan keterangan rute penggantian biaya |
+| Gelombang | `MVP-19` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-082`, `FR-BKC-083`, `FR-BKC-084`; `MPY-DEC-006`, `MPY-DES-013`, `MPY-DES-014`; `CAP-38` (Reuse with adapter) |
+| Kontrak | `GET /{id}/company-guarantor-invoice-document` (`BIL-API-1.0`); hak akses `BillingInvoice : Read` **dipakai ulang** |
+| Reuse | Pola lembar Invoice Asuransi — DTO, service baca-saja dari versi perhitungan terkunci, route, dan penyaringan baris tertanggung. **Duplikasi terstruktur**, bukan menambah cabang pada service yang sudah ada |
+| Scope | `CompanyGuarantorInvoiceDocumentResponse` dan `BillingCompanyGuarantorInvoiceDocumentService` baru; satu endpoint; **tidak** menghitung ulang tanggungan sendiri |
+| Dependency | `BE-BKC-044` (agar porsi penjamin perusahaan terhitung benar sebelum dicetak) |
+| Acceptance | Lembar terbit untuk kunjungan berpenjamin perusahaan dan **tidak dapat** terbit untuk tunai maupun asuransi pribadi; rute reimbursement tampil sebagai keterangan, debitur tetap perusahaan |
+| Verifikasi | Integration test ketiga jenis kunjungan; test nama berkas memakai nomor tagihan; `dotnet build` |
+| Risiko/pemilik | Menambah cabang pada service lembar Invoice Asuransi akan membuat satu service melayani dua dokumen berbeda debitur. **Menyentuh berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API |
+| DoD | Endpoint berjalan; ketiga jenis kunjungan terbukti berperilaku benar; build dan test lulus |
+
+## `BE-BKC-051` — Hak akses, privasi, dan hardening lintas-slice
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Seluruh rumpun terbukti terlindungi hak akses, tidak membocorkan data rahasia ke catatan log maupun nama berkas, dan tidak menggeser angka tagihan yang tidak menjadi sasarannya |
+| Gelombang | `MVP-19` — eksekusi gelombang 4 |
+| Trace | `FR-BKC-085`, `FR-BKC-086`; `MPY-DEC-005`, `MPY-DEC-006`; `NFR-020`–`027` |
+| Kontrak | `BIL-PERMISSION-0.8`, `BIL-TEST-1.0` |
+| Reuse | Pola hardening lintas-slice yang sudah dipakai rumpun sebelumnya di modul ini |
+| Scope | Verifikasi menyeluruh: hak akses ketiga perintah dan kedua master; penyaringan kolom sensitif dari payload log; nama berkas dokumen; gerbang kelayakan edit; regresi angka |
+| Dependency | `BE-BKC-047`, `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` |
+| Acceptance | `BIL-AT-097`, `BIL-AT-098`, `BIL-AT-100` |
+| Verifikasi | Integration test hak akses per peran; pemeriksaan isi catatan log; regresi menyeluruh tiga tagihan lama; `dotnet build` |
+| Risiko/pemilik | Kolom sensitif yang lolos ke catatan log tidak dapat ditarik kembali. Owner Backend/API bersama Security |
+| DoD | Seluruh acceptance test rumpun ini lulus; nol kolom sensitif pada catatan log terbukti; build dan test lulus |
+
+## `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Setiap perusahaan penjamin aktif memiliki sekurang-kurangnya satu aturan tanggungan dan satu rute reimbursement, sehingga fitur dapat dipakai sungguhan |
+| Gelombang | `MVP-16` — eksekusi gelombang 3 |
+| Trace | `MPY-OQ-006`; § "Rencana data master awal" pada [`02-backend-architecture.md`](../02-backend-architecture.md) |
+| Kontrak | Tidak ada endpoint maupun source baru — task ini **bukan** task source |
+| Reuse | CRUD yang dibangun `BE-BKC-042` dan `BE-BKC-043` |
+| Scope | Koordinasi pengisian data master bersama Admin Master Data dan Finance, memakai kontrak kerja sama tiap perusahaan sebagai sumber nilai. **Nol perubahan source** |
+| Dependency | `BE-BKC-043` (layar dan endpoint aturan tanggungan harus ada lebih dulu) |
+| Acceptance | Nol perusahaan penjamin aktif yang tidak punya aturan tanggungan; nol yang tidak punya rute reimbursement |
+| Verifikasi | Query hitung perusahaan penjamin aktif tanpa aturan tanggungan — hasilnya **MUST** nol sebelum fitur diaktifkan |
+| Risiko/pemilik | **Tanpa task ini, fitur aktif tetapi seluruh tanggungan perusahaan terhitung nol** dan pasien tertagih penuh. Owner Product/Domain bersama Admin Master Data |
+| DoD | Query verifikasi mengembalikan nol; daftar perusahaan beserta aturannya direview Finance |
+
+## Paralelisme dan urutan ringkas
+
+`BE-BKC-041`, `045`, dan `046` tidak saling bergantung dan boleh dikerjakan bersamaan sejak hari
+pertama. Sesudah `041` selesai, ketiga task gelombang 2 (`042`, `043`, `044`) juga boleh paralel.
+Titik sempit satu-satunya adalah `BE-BKC-044`: empat task menunggunya, karena tanpa mesin
+tanggungan perusahaan tidak satu pun dari keempatnya menghasilkan angka yang benar.
+
+Tidak ada task pada gelombang ini yang mengubah rumus, status, atau perilaku bisnis rumpun
+`billing-kasir` lainnya — kecuali satu yang memang disengaja dan sudah disetujui: `BE-BKC-044`
+memperbaiki perhitungan kunjungan berpenjamin perusahaan yang selama ini salah.

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -197,6 +197,11 @@ public sealed class InvoicePatientSummaryResponse
     public string? ServiceUnitName { get; set; }
     public string? PatientClassName { get; set; }
     public string? GuarantorName { get; set; }
+    public string? DoctorInChargeName { get; set; }
+    public string? BedName { get; set; }
+    public string? BedNumber { get; set; }
+    public DateTime? AdmissionDateTime { get; set; }
+    public string? PaymentTypeLabel { get; set; }
 }
 
 public sealed class InvoiceItemResponse

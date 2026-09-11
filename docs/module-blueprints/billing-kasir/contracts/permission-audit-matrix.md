@@ -245,3 +245,77 @@ Rumpun ini **tidak menyentuh satu pun data pasien** — tidak ada `EncounterId`,
 **Masa simpan.** Baris `BilPettyCashVoucherCommand` dan `BilPettyCashBudgetMovement` **MUST NOT** dihapus maupun ditandai hapus dalam keadaan apa pun. Keduanya adalah catatan keuangan, dan penghapusannya menghapus bukti pengeluaran uang.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`, khususnya `BIL-AT-078` (hak akses) dan `BIL-AT-079` (privasi log).
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-PERMISSION-0.8` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> Pemetaan endpoint ke hak akses **tidak diulang di sini** — ia hidup pada kolom `Hak akses` di [`api-contract.md`](./api-contract.md). Bagian di bawah hanya memuat hal yang tidak dapat diturunkan dari daftar endpoint.
+
+## Butir hak akses yang dipakai rumpun ini
+
+| Resource | Action | Dipakai untuk | Status |
+| --- | --- | --- | --- |
+| `BillingInvoice` | `Read` | Membuka layar Edit Tagihan, pratinjau perbandingan payer, dan mencetak lembar tagihan perusahaan penjamin | **Sudah ada, dipakai ulang** |
+| `BillingInvoice` | `Update` | Ketiga perintah edit: ganti payer, penanggung per baris, disposisi penebusan | **Sudah ada, dipakai ulang** |
+| `CompanyGuarantorReimbursementRoute` | `Read`, `Create`, `Update`, `Delete` | CRUD master rute reimbursement | **Baru** |
+| `CompanyGuarantorCoverageRule` | `Read`, `Create`, `Update`, `Delete` | CRUD master aturan tanggungan perusahaan | **Baru** |
+
+**Nol permission baru pada `BillingInvoice`.** Lembar tagihan perusahaan penjamin memakai ulang `BillingInvoice : Read` apa adanya (`MPY-DEC-006`), mengikuti preseden `BKC-DEC-092` untuk lembar Invoice Asuransi. Konsekuensinya dicatat terbuka: **siapa pun yang sudah berwenang membaca tagihan biasa otomatis berwenang membaca lembar tagihan perusahaan**, termasuk identitas karyawan di dalamnya. Ini keputusan sadar pemilik, bukan kelalaian.
+
+## Cara Resource baru terdaftar
+
+Tidak ada berkas seed maupun berkas konstanta yang perlu disunting. Pendaftaran berlangsung **otomatis lewat pemindaian atribut saat aplikasi dijalankan**: seluruh action controller dipindai, atribut di tingkat kelas dan di tingkat method dibaca, lalu baris modul, controller, dan action di-upsert ke tabel hak akses (`CAP-39`, `Seeders/AccessMenuSeeder.cs`).
+
+Konsekuensi bagi implementer kedua controller master baru:
+
+1. Pasang atribut di tingkat kelas beserta nama controller yang persis sama dengan nama Resource pada tabel di atas.
+2. Pasang atribut action dan atribut permission pada setiap endpoint.
+3. Jalankan aplikasi sekali. Baris hak akses baru akan muncul dengan sendirinya pada layar pengaturan peran.
+
+Melewatkan langkah 1 atau 2 membuat endpoint **tidak terlindungi sekaligus tidak terdaftar** — kegagalan yang senyap, karena aplikasinya tetap berjalan normal.
+
+## Peta peran ke butir hak akses
+
+| Peran rumah sakit | Butir hak akses | Yang dapat dilakukan pada rumpun ini |
+| --- | --- | --- |
+| Kasir | `BillingInvoice : Read`, `BillingInvoice : Update` | Membuka Edit Tagihan, membandingkan payer, mengganti payer, mengubah penanggung baris biaya, mengatur penebusan obat, mencetak lembar tagihan perusahaan |
+| Kepala Kasir / Finance Operations | Sama dengan Kasir | **Tidak ada kewenangan tambahan pada rumpun ini** — `MPY-DEC-005` menetapkan satu kasir berwenang cukup, tanpa persetujuan tahap kedua |
+| Admin Master Data | `CompanyGuarantorReimbursementRoute : *`, `CompanyGuarantorCoverageRule : *` | Mengelola rute reimbursement dan aturan tanggungan perusahaan |
+| Finance / Akuntansi | `BillingInvoice : Read` | Membaca dan mencetak lembar tagihan perusahaan untuk keperluan penagihan |
+| Petugas Registrasi | — | **Tidak memakai rumpun ini.** Perubahan kartu penjamin pasien tetap lewat layar Data Pasien/Registrasi dengan hak aksesnya sendiri |
+
+## Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga yang ada | Yang **tidak** dijaganya | Risiko yang tersisa |
+| --- | --- | --- | --- |
+| Mengganti payer kunjungan | Hak akses `BillingInvoice : Update`, gerbang status tagihan, alasan wajib, jejak perintah yang tidak dapat dihapus | **Tidak ada pemeriksaan orang kedua** (`MPY-DEC-005`). Seorang kasir dapat mengganti payer berulang kali selama tagihan belum dibayar | Perubahan payer yang keliru atau disengaja tidak tercegah di depan; ia hanya **terbaca setelahnya** lewat jejak perintah. Mitigasinya bersifat administratif: tinjauan berkala atas jejak perubahan payer |
+| Menandai baris biaya ditanggung asuransi padahal tidak tertanggung | Tidak ada — ini **disengaja** (`MPY-DEC-004`) | Mesin tidak menolak penandaan semacam itu | Rendah secara uang: hasil perhitungannya tetap nol tertanggung sehingga pasien tetap membayar penuh. Yang berpindah hanya keterangan, bukan nominal |
+| Menandai obat tidak ditebus padahal pasien menerimanya | Alasan wajib, jejak baris nonaktif yang tidak dihapus | Mesin tidak dapat mengetahui apa yang benar-benar diterima pasien di loket obat | Pendapatan hilang bila disalahgunakan. Penjaga sebenarnya ada di luar sistem: pencocokan dengan catatan penyerahan milik Farmasi, yang memang tetap utuh karena rumpun ini tidak pernah menyentuhnya |
+| Mengubah aturan tanggungan perusahaan | Hak akses master data, penolakan hapus aturan yang sudah dipakai | Mesin tidak memeriksa apakah aturan baru sesuai kontrak kerja sama yang sebenarnya | Aturan yang salah ketik menggeser tanggungan seluruh karyawan perusahaan itu. Mitigasi: aturan bermasa berlaku, dan versi perhitungan lama tetap menyimpan angka yang sudah terjadi |
+
+## Audit
+
+| Kejadian | Lapisan pencatatan | Tahan lama |
+| --- | --- | --- |
+| Ganti payer kunjungan | Baris jejak perintah tersendiri, memuat jenis dan nama payer sebelum/sesudah, versi perhitungan sebelum/sesudah, jumlah penanggung baris yang ikut direset, alasan, dan kunci idempotensi | **Ya — append-only.** Baris ini **MUST NOT** diperbarui maupun ditandai hapus dalam keadaan apa pun |
+| Ubah penanggung baris biaya | Baris lama dinonaktifkan dan baris baru disisipkan; riwayatnya terbaca dari deretan baris nonaktif | Ya |
+| Ubah disposisi penebusan | Pola yang sama | Ya |
+| Perubahan master rute dan aturan tanggungan | Pencatatan logger sesuai konvensi project | Ya |
+| Membuka layar Edit Tagihan, pratinjau perbandingan, mencetak lembar tagihan | **Tidak dicatat** | Sesuai konvensi: `GET` tidak dicatat |
+
+Satu pengecualian bernama terhadap konvensi "selain `GET` dicatat": **pratinjau perbandingan payer memakai `POST` tetapi tidak mengubah apa pun**, sehingga ia tidak menghasilkan jejak perubahan. Ia memakai `POST` semata karena parameternya berbentuk badan permintaan, bukan karena ia perintah. Pencatatan logger tetap mengikuti konvensi untuk metode non-`GET`; yang tidak ada adalah jejak perubahan data, karena memang tidak ada data yang berubah.
+
+## Kolom sensitif dan masa simpan
+
+| Kolom | Tabel | Ketentuan |
+| --- | --- | --- |
+| `EmployeeGrade` | Aturan tanggungan perusahaan | Golongan karyawan. **MUST NOT** masuk payload logger |
+| Nomor polis, nomor kartu, nomor karyawan, nama karyawan | Baris sumber pembayaran kunjungan (milik Registrasi) dan lembar tagihan perusahaan | **MUST NOT** masuk payload logger, **MUST NOT** muncul pada pesan galat (`BIL-VAL` batas isi pesan), dan **MUST NOT** dipakai sebagai nama berkas dokumen |
+| Nama berkas lembar tagihan perusahaan | — | **MUST** memakai nomor tagihan, bukan nama pasien maupun nama perusahaan — mitigasi yang sama seperti lembar Invoice Asuransi |
+
+**Masa simpan.** Baris jejak perubahan payer adalah catatan keuangan: ia menerangkan mengapa satu tagihan berpindah penanggung, dan menghapusnya menghapus satu-satunya bukti nilai payer sebelumnya. Baris itu **MUST NOT** dihapus maupun ditandai hapus dalam keadaan apa pun.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`, khususnya `BIL-AT-097` (hak akses) dan `BIL-AT-098` (privasi log dan nama berkas).

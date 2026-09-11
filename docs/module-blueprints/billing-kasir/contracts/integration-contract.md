@@ -107,3 +107,59 @@ Ketiganya adalah pembacaan langsung `ApplicationDbContext` di dalam satu proses 
 Tidak ada pesan, outbox, dead-letter, rekonsiliasi, penjadwal, maupun pekerjaan latar apa pun. Secara khusus, **tidak ada** pekerjaan latar yang memindai voucher `Uang Diterima` yang bukti notanya belum masuk — `PC-DEC-006` menyatakan eksplisit tidak ada mekanisme pemaksaan pada MVP ini, dan menandainya sebagai kandidat rilis berikutnya.
 
 Trace **`PC-DEC-001`**, `PC-DEC-011`, `PC-DEC-012`, `PC-DES-001`, `PC-DES-008`, `PC-DES-010`. Tests `BIL-AT-077` (bukti `BilCashierShift` tidak bergerak).
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-INTEGRATION-0.8` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> **Berbeda dari rumpun Petty Cash yang tidak punya satu pun titik singgung**, rumpun ini adalah rumpun dengan permukaan lintas modul **paling lebar** di `billing-kasir`. Ia menyentuh empat modul lain, dan satu di antaranya ditulis — bukan hanya dibaca.
+
+## Peta arah baca dan tulis
+
+| Modul lawan | Data | Arah | Cara | Catatan |
+| --- | --- | --- | --- | --- |
+| **Registration Management** | Sumber pembayaran kunjungan | **Baca dan TULIS** | Pemanggilan langsung `EncounterPaymentSourceService` di dalam proses yang sama | **Satu-satunya titik tulis lintas modul pada rumpun ini.** `billing-kasir` **MUST NOT** menulis tabelnya sendiri (`MPY-DEC-007`, `MPY-DES-004`) |
+| Registration Management | Data kunjungan — kelas perawatan, jenis kunjungan, pasien | Baca | Query langsung, hanya baca | Sudah menjadi pola modul ini sejak baseline |
+| **Patient Management** | Kartu asuransi pasien, kartu penjamin perusahaan pasien | **Baca saja** | Query langsung, hanya baca | Dipakai menyusun daftar pilihan payer dan memvalidasi kandidat. Kartu **MUST NOT** dibuat atau diubah dari sini (`MPY-DEC-003`) |
+| **Administrator / Master Data** | Perusahaan penjamin, perusahaan asuransi, rute reimbursement | Baca | Query langsung | Rute reimbursement adalah tabel baru milik area itu, dikelola CRUD-nya sendiri |
+| **Health Services / Master Data** | Aturan tanggungan asuransi dan aturan tanggungan perusahaan | Baca | Query langsung oleh mesin tanggungan | Aturan tanggungan perusahaan adalah tabel baru milik area itu |
+| **Pharmacy Management** | Fakta penyerahan obat | **Baca saja** | Query langsung, hanya baca | **MUST NOT** ditulis dalam keadaan apa pun (`MPY-DEC-009`). Lihat bagian khusus di bawah |
+
+## Kontrak pemanggilan ke Registration Management
+
+Ini satu-satunya kontrak antar modul yang perlu disepakati dua pihak pada rumpun ini.
+
+| Aspek | Kesepakatan |
+| --- | --- |
+| Siapa yang memanggil | Orkestrator edit tagihan milik `billing-kasir` |
+| Siapa yang dipanggil | `EncounterPaymentSourceService` milik `RegistrationManagement` — **belum ada, wajib dibangun** (`CAP-33`) |
+| Bentuk pemanggilan | Pemanggilan method langsung di dalam proses yang sama, bukan HTTP, bukan pesan |
+| Transaksi | **Ikut transaksi pemanggil.** Layanan yang dipanggil **MUST NOT** membuka atau menutup transaksinya sendiri, supaya perubahan payer dan hasil perhitungan menjadi satu kesatuan yang batal bersama |
+| Yang dijamin pemanggil | Gerbang kelayakan edit sudah lolos, versi baris tagihan sudah diperiksa, dan alasan sudah terisi |
+| Yang dijamin yang dipanggil | Invariant satu sumber pembayaran per kunjungan tetap utuh; seluruh kolom salinan dibangun ulang; kartu yang dipilih sah milik pasien yang sama dan masih berlaku |
+| Kegagalan | Dikembalikan sebagai penolakan bisnis yang dapat dibaca pengguna, bukan sebagai galat teknis. Pemanggil membatalkan seluruh transaksi |
+| Persetujuan yang dibutuhkan | **Pembuatan layanan ini menunggu persetujuan pemilik `RegistrationManagement`, Muhammad Hamzah** (`MPY-DEC-010`). Ini memblokir implementasi, bukan desain |
+
+**Yang sengaja tidak dipakai:** HTTP antar modul, antrian pesan, outbox, dan *eventual consistency*. Ketiganya akan memecah perubahan payer dan perhitungan ulang menjadi dua kejadian yang dapat berbeda nasib — tepat yang tidak boleh terjadi pada angka tagihan. Karena kedua modul berbagi satu `ApplicationDbContext`, satu transaksi biasa sudah cukup.
+
+## Batas terhadap Pharmacy Management
+
+Bagian ini ditulis panjang karena ia batas yang paling mudah dilanggar tanpa sengaja.
+
+| Hal | Ketentuan |
+| --- | --- |
+| Yang dibaca | Baris penyerahan obat, untuk mengetahui obat apa yang benar-benar diserahkan kepada pasien |
+| Yang **MUST NOT** dilakukan | Membuat, mengubah, membatalkan, atau menandai hapus satu baris pun milik Farmasi; mengubah jumlah yang diserahkan; mengubah status penyerahan |
+| Sebabnya | Farmasi adalah pemilik otoritatif fakta penyerahan obat, lengkap dengan riwayat, jumlah tersisa per baris resep, dan penyerahan bertahap. Source Farmasi sendiri menyatakan batas ini: *"Pencatatan ini berhenti sebagai transaksi yang dapat ditagihkan. Keputusan menagih beserta aturannya milik Billing."* |
+| Yang dicatat `billing-kasir` sebagai gantinya | Keputusan **inklusi finansial** pada tabel miliknya sendiri. Dua pertanyaan berbeda: Farmasi menjawab "obat ini diserahkan atau tidak", Billing menjawab "obat ini ditagihkan atau tidak" |
+| Titik singgung yang belum diputuskan | Kolom penanda "sudah ditagih" pada baris penyerahan Farmasi sudah ada tetapi belum diketahui dipakai proses apa. **MUST** diperiksa sebelum implementasi supaya rumpun ini tidak membuat mekanisme paralel yang bertentangan — dicatat sebagai pertanyaan terbuka pada `04-prd-to-mvp.md` |
+
+## Yang tidak ada pada rumpun ini
+
+Tidak ada pesan, outbox, dead-letter, rekonsiliasi, penjadwal, maupun pekerjaan latar apa pun. Secara khusus **tidak ada** pekerjaan latar yang menyelaraskan penanggung baris biaya dengan payer kunjungan: penyelarasan terjadi **serentak** di dalam transaksi perubahan payer (`MPY-DES-009`), bukan menyusul belakangan. Alasannya sederhana — angka tagihan yang menyusul benar adalah angka tagihan yang sempat salah.
+
+Tidak ada pula perubahan pada arah piutang. Rute reimbursement perusahaan ke asuransi mitra adalah **keterangan pada dokumen**, bukan perpindahan debitur: rumah sakit tetap menagih perusahaan penjamin (`MPY-DES-014`).
+
+Trace **`MPY-DEC-001`**, `MPY-DEC-003`, `MPY-DEC-007`–`010`, `MPY-DES-004`, `MPY-DES-009`, `MPY-DES-014`. Tests `BIL-AT-081`–`100`, khususnya `BIL-AT-096` (bukti nol baris Farmasi tersentuh).

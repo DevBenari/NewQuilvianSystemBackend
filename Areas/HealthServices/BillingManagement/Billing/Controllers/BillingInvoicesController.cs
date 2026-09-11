@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -21,17 +21,20 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingCalculationService _calculationService;
     private readonly BillingDiscountService _discountService;
     private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
+    private readonly BillingReminderService _reminderService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
         BillingCalculationService calculationService,
         BillingDiscountService discountService,
-        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService)
+        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService,
+        BillingReminderService reminderService)
     {
         _service = service;
         _calculationService = calculationService;
         _discountService = discountService;
         _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
+        _reminderService = reminderService;
     }
 
     [HttpGet]
@@ -57,6 +60,59 @@ public sealed class BillingInvoicesController : ControllerBase
     {
         var result = await _service.GetPaymentHistoryAsync(request, cancellationToken);
         return Ok(ApiResponse<PagedResult<PaymentHistoryItemResponse>>.Ok(result, "Riwayat pembayaran berhasil diambil."));
+    }
+
+    // Halaman "Invoice & Billing Kasir" (Cashier Overview): ringkasan operasional kasir terpadu
+    // yang menggabungkan status tagihan, tanggal bayar terakhir, sisa tagihan, info & status deposit,
+    // serta umur tagihan dan reminder dalam satu baris per invoice/kunjungan.
+    [HttpGet("cashier-overview")]
+    [AccessAction("Read", "Read Cashier Billing Overview", AccessType = AccessTypes.Read, SortOrder = 17)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CashierBillingInvoiceListItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCashierOverview(
+        [FromQuery] CashierBillingInvoiceQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetCashierOverviewAsync(request, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CashierBillingInvoiceListItemResponse>>.Ok(
+                result, "Daftar invoice & billing kasir berhasil diambil."));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // Aksi kasir: Kirim pengingat pembayaran ke pasien (WhatsApp/Chat).
+    // Memeriksa bahwa tagihan belum lunas, mencatat entri audit BilPaymentReminder,
+    // dan secara transparan melaporkan batasan penyedia gateway (tanpa memalsukan status pengiriman).
+    [HttpPost("{id:guid}/reminders")]
+    [AccessAction("Create", "Send Billing Payment Reminder", AccessType = AccessTypes.Create, SortOrder = 18)]
+    [AccessPermission("BillingInvoice", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<SendPaymentReminderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SendReminder(
+        Guid id,
+        [FromBody] SendPaymentReminderRequest? request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _reminderService.SendReminderAsync(
+                id, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<SendPaymentReminderResponse>.Ok(
+                result, result.Message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
     }
 
     [HttpGet("{id:guid}")]
