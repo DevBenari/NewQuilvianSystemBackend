@@ -592,8 +592,7 @@ public sealed class BillingDepositServiceTests
             EncounterId = encounterId,
             AccountNumber = "DEP-SEP-001",
             AvailableBalance = 3_000_000m,
-            Status = BillingDepositAccountStatuses.Active,
-            IsActive = true
+            Status = BillingDepositAccountStatuses.Active
         };
         db.BilDepositAccounts.Add(account);
 
@@ -606,8 +605,7 @@ public sealed class BillingDepositServiceTests
             PaymentMethodId = paymentMethodId,
             OccurredAt = DateTimeOffset.UtcNow,
             Reason = "Top-up parsial",
-            PayloadHash = "hash-sep",
-            IsActive = true
+            PayloadHash = "hash-sep"
         };
         db.BilDepositMovements.Add(movement);
 
@@ -618,8 +616,7 @@ public sealed class BillingDepositServiceTests
             InvoiceNumber = "INV-SEP-001",
             ServiceType = "Inpatient",
             Status = BillingInvoiceStatuses.Open,
-            CurrentCalculationVersion = 1,
-            IsActive = true
+            CurrentCalculationVersion = 1
         };
         db.BilInvoices.Add(invoice);
 
@@ -629,8 +626,7 @@ public sealed class BillingDepositServiceTests
             InvoiceId = invoice.Id,
             VersionNo = 1,
             PatientAmount = 10_000_000m,
-            Reason = "Kalkulasi sementara",
-            IsActive = true
+            Reason = "Kalkulasi sementara"
         };
         db.BilCalculationVersions.Add(calc);
 
@@ -712,8 +708,7 @@ public sealed class BillingDepositServiceTests
             EncounterId = encounterId,
             AccountNumber = "DEP-CALC-001",
             AvailableBalance = 2_000_000m,
-            Status = BillingDepositAccountStatuses.Active,
-            IsActive = true
+            Status = BillingDepositAccountStatuses.Active
         };
         db.BilDepositAccounts.Add(account);
 
@@ -726,8 +721,7 @@ public sealed class BillingDepositServiceTests
             PaymentMethodId = paymentMethodId,
             OccurredAt = DateTimeOffset.UtcNow.AddHours(-3),
             Reason = "Top-up awal 10 juta",
-            PayloadHash = "hash1",
-            IsActive = true
+            PayloadHash = "hash1"
         };
         var reversal = new BilDepositMovement
         {
@@ -738,8 +732,7 @@ public sealed class BillingDepositServiceTests
             PaymentMethodId = paymentMethodId,
             OccurredAt = DateTimeOffset.UtcNow.AddHours(-2),
             Reason = "Koreksi kelebihan setor 2 juta",
-            PayloadHash = "hash2",
-            IsActive = true
+            PayloadHash = "hash2"
         };
         var allocation = new BilDepositMovement
         {
@@ -749,8 +742,7 @@ public sealed class BillingDepositServiceTests
             Amount = 5_000_000m,
             OccurredAt = DateTimeOffset.UtcNow.AddHours(-1),
             Reason = "Alokasi tagihan running 5 juta",
-            PayloadHash = "hash3",
-            IsActive = true
+            PayloadHash = "hash3"
         };
         var refund = new BilDepositMovement
         {
@@ -760,8 +752,7 @@ public sealed class BillingDepositServiceTests
             Amount = 1_000_000m,
             OccurredAt = DateTimeOffset.UtcNow,
             Reason = "Refund pengembalian 1 juta",
-            PayloadHash = "hash4",
-            IsActive = true
+            PayloadHash = "hash4"
         };
         db.BilDepositMovements.AddRange(topUp1, reversal, allocation, refund);
 
@@ -772,8 +763,7 @@ public sealed class BillingDepositServiceTests
             InvoiceNumber = "INV-CALC-001",
             ServiceType = "Inpatient",
             Status = BillingInvoiceStatuses.Open,
-            CurrentCalculationVersion = 1,
-            IsActive = true
+            CurrentCalculationVersion = 1
         };
         db.BilInvoices.Add(invoice);
 
@@ -783,8 +773,7 @@ public sealed class BillingDepositServiceTests
             InvoiceId = invoice.Id,
             VersionNo = 1,
             PatientAmount = 8_000_000m,
-            Reason = "Tagihan kamar dan tindakan",
-            IsActive = true
+            Reason = "Tagihan kamar dan tindakan"
         };
         db.BilCalculationVersions.Add(calc);
 

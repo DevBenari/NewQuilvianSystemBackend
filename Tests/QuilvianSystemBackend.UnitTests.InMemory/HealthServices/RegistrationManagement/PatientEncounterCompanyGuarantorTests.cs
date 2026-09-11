@@ -559,7 +559,7 @@ public sealed class PatientEncounterCompanyGuarantorTests
     [Fact]
     public async Task CreateEncounter_SetsCustomPriorityAndIsPrimaryOnGuarantorAndResponse()
     {
-        await using var world = await PatientEncounterTestWorld.CreateAsync();
+        var world = await PatientEncounterTestWorld.CreateAsync();
 
         var request = PermintaanPerusahaan(world);
         request.Priority = 2;
@@ -568,14 +568,21 @@ public sealed class PatientEncounterCompanyGuarantorTests
         var result = await world.Controller.CreateEncounterForAdmin(request);
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(result));
 
-        var payment = await world.DbContext.Set<RegPatientEncounterGuarantor>().SingleAsync();
+        var payment = await world.DbContext
+            .Set<RegPatientEncounterGuarantor>()
+            .SingleAsync();
+
         Assert.Equal(2, payment.Priority);
         Assert.False(payment.IsPrimary);
 
-        var detail = await world.Controller.GetEncounterById(payment.EncounterId);
+        var detail = await world.Controller.GetById(payment.EncounterId);
         Assert.Equal(200, PatientEncounterTestWorld.KodeStatus(detail));
-        var response = PatientEncounterTestWorld.Payload<PatientEncounterDetailResponse>(detail);
-        Assert.NotNull(response.Payment);
+
+        var response =
+            PatientEncounterTestWorld.Data<PatientEncounterDetailResponse>(detail);
+
+        Assert.NotNull(response);
+        Assert.NotNull(response!.Payment);
         Assert.Equal(2, response.Payment!.Priority);
         Assert.False(response.Payment!.IsPrimary);
     }
