@@ -25,15 +25,42 @@ Tidak menyalakan aplikasi. Tidak memakai host ASP.NET. Tidak membuka koneksi dat
 memanggil `AccessMenuSeeder`. Tidak menyentuh `SysAccessPolicy`. Tidak menulis apa pun ke dalam
 repository.
 
-## Satu-satunya otoritas penemuan
+## Otoritas penemuan
+
+Verifier ini **tidak** memakai `grep`, **tidak** mem-parsing source, dan **tidak** punya algoritma
+penemuan sendiri. Seluruh identitas diturunkan dari `PermissionRegistryDescriptor`.
+
+Yang perlu dinyatakan tepat — seeder dan verifier **tidak memakai entry point yang sama**:
+
+| Pemakai | Entry point | Cara mengumpulkan endpoint |
+|---|---|---|
+| `AccessMenuSeeder` | `PermissionRegistryDescriptor.Build(provider)` | `IActionDescriptorCollectionProvider` milik host MVC yang sedang berjalan |
+| Verifier ini | `PermissionRegistryDescriptor.BuildFromAssembly(assembly)` | Refleksi atas tipe di dalam assembly, tanpa host |
 
 ```csharp
 PermissionRegistryDescriptor.BuildFromAssembly(typeof(AccessPermissionService).Assembly)
 ```
 
-Sama persis dengan yang dipakai `AccessMenuSeeder`. Verifier ini **tidak** memakai `grep`, **tidak**
-mem-parsing source, dan **tidak** punya algoritma penemuan sendiri. Bila kelak seeder berubah cara
-menurunkan identitas, verifier ikut berubah dengan sendirinya — itu memang tujuannya.
+Yang membuat keduanya setara **bukan** entry point-nya, melainkan dua hal berikut:
+
+1. **Kontrak atribut yang sama** — `[AccessController]`, `[AccessAction]`, `[AccessPermission]`.
+   `[AccessPermission]` tetap identitas runtime kanonik; `[AccessAction]` tetap metadata
+   tampilan/registry dan **bukan** sumber identitas kanonik.
+2. **Klasifikasi yang sama** — kedua entry point berakhir pada `BuildCore(endpoints)` yang identik.
+   Di sanalah modul, resource, action, `MetadataGaps`, `UnenforcedActions`, dan `DeclaredKeys`
+   diturunkan. Perbedaannya hanya pada cara endpoint dikumpulkan; `BuildFromAssembly` mengisi
+   `HttpMethod` dan `RoutePath` dengan `null`, dan tidak satu pun invarian memakai keduanya.
+
+Konsekuensinya: bila kelak `BuildCore` berubah cara menurunkan identitas, seeder dan verifier ikut
+berubah bersama-sama — itu memang tujuannya. Yang **tidak** dijamin oleh desain ini adalah perbedaan
+pada tahap pengumpulan endpoint; karena itu penambahan sumber identitas baru wajib masuk ke
+`BuildCore`, bukan ke salah satu pemanggil saja.
+
+Bila kelak ada **permission eksplisit non-endpoint** (identitas yang tidak melekat pada satu action
+controller), ia wajib dideklarasikan pada **satu sumber bersama** yang ikut dibaca `BuildCore`,
+sehingga `Build(provider)` dan `BuildFromAssembly(assembly)` menghasilkan registry kanonik yang sama.
+Mendeklarasikannya terpisah di seeder, di verifier, atau di script mana pun akan menciptakan otoritas
+penemuan kedua — persis yang dilarang desain ini.
 
 ## Kenapa runner-nya dibuat saat dijalankan
 

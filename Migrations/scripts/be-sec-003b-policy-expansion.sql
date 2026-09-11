@@ -40,8 +40,14 @@
 --
 --     1. Aplikasi HEAD start SEKALI dalam jendela pemeliharaan, tanpa traffic pengguna.
 --        AccessMenuSeeder membuat baris registry identitas baru dan menutup yang lama.
---     2. Jalankan bagian 1 skrip ini. Seluruh baris wajib berstatus 'ok'.
+--     2. Jalankan bagian 1 skrip ini. Bagian 1.0b WAJIB berbunyi 24 / 24 dan seluruh
+--        baris 1.0 serta 1.1 wajib berstatus 'ok'.
 --     3. Baru Tahap 1, lalu verifikasi, lalu Tahap 2.
+--
+--   Sejak perbaikan gerbang prasyarat, Tahap 1 TIDAK LAGI dapat gagal secara senyap:
+--   bagian 4.0 membatalkan transaksi bila salah satu dari 24 identitas target belum
+--   terdaftar/aktif, dan bagian 4.2b membatalkan transaksi bila barisnya tidak terbentuk
+--   sesuai kepemilikan — termasuk PatientAssessment.Amend.
 --
 --   Antara langkah 1 dan selesainya Tahap 1, identitas baru sudah ditegakkan endpoint
 --   tetapi belum diberikan kepada siapa pun. Pada jendela itu dokter akan ditolak 403.
@@ -114,6 +120,65 @@ VALUES
 -- Karena itu Amend dikerjakan terpisah pada bagian 2, SESUDAH Complete.
 
 -- =====================================================================================
+-- BAGIAN 0b — Daftar 24 identitas target BE-SEC-003 yang WAJIB terdaftar dan AKTIF.
+--
+-- KENAPA DAFTAR INI ADA TERPISAH DARI PETA
+--
+--   Peta bagian 0 memuat 23 identitas baru. Identitas ke-24, PatientAssessment.Amend,
+--   sengaja tidak ada di sana karena sumber kepemilikannya bukan Update melainkan
+--   Complete.
+--
+--   Akibatnya, sebelum perbaikan ini, TIDAK ADA satu pun pemeriksaan prasyarat yang
+--   menyentuh Amend: bagian 1.1 hanya menelusuri peta, dan bagian 3.1 hanya menghitung
+--   sisa terhadap be_sec_003b_target yang juga diturunkan dari peta. Bila baris registry
+--   Amend belum dibuat seeder, JOIN pada bagian 4.2 menghasilkan nol baris dan Tahap 1
+--   menyisipkan 35 baris, bukan 36 — TANPA error dan TANPA peringatan. Itu persis mode
+--   'gagal senyap' yang dilarang berkas ini.
+--
+--   Daftar di bawah menutup celah itu. Isinya HANYA nama identitas yang berasal dari
+--   source code, sama seperti peta bagian 0, dan identik dengan
+--   tools/authorization-verifier/required-identities.txt. Bukan data, bukan GUID.
+--
+--   CATATAN: berbeda dari be_sec_003b_identitas yang sengaja tidak menuntut action aktif
+--   (karena identitas LAMA yang sudah pensiun justru harus ketemu), daftar ini menuntut
+--   identitas BARU benar-benar AKTIF — identitas target yang tidak aktif tidak akan
+--   pernah ditegakkan endpoint mana pun.
+-- =====================================================================================
+
+DROP VIEW IF EXISTS be_sec_003b_wajib;
+CREATE TEMP VIEW be_sec_003b_wajib (resource, action) AS
+VALUES
+    ('PatientProcedure',   'Select'),
+    ('PatientProcedure',   'Edit'),
+    ('PatientProcedure',   'Approve'),
+    ('PatientProcedure',   'Execute'),
+    ('PatientProcedure',   'RemoveDraft'),
+    ('PatientProcedure',   'Cancel'),
+
+    ('DoctorQueue',        'Call'),
+    ('DoctorQueue',        'StartConsultation'),
+    ('DoctorQueue',        'FinishConsultation'),
+    ('DoctorQueue',        'Skip'),
+    ('DoctorQueue',        'NoShow'),
+    ('DoctorQueue',        'Requeue'),
+
+    ('DoctorConsultation', 'WriteSoap'),
+    ('DoctorConsultation', 'Complete'),
+    ('DoctorConsultation', 'Cancel'),
+
+    ('PatientAssessment',  'Complete'),
+    ('PatientAssessment',  'Cancel'),
+    ('PatientAssessment',  'Amend'),
+
+    ('PatientDiagnosis',   'SetPrimary'),
+    ('PatientDiagnosis',   'Resolve'),
+    ('PatientDiagnosis',   'Cancel'),
+
+    ('PatientVitalSign',   'Verify'),
+    ('PatientVitalSign',   'NotifyDoctor'),
+    ('PatientVitalSign',   'Cancel');
+
+-- =====================================================================================
 -- Resolusi identitas -> baris registry.
 --
 -- Sengaja TIDAK menuntut action aktif: identitas yang sudah pensiun pun harus ketemu,
@@ -173,6 +238,44 @@ JOIN be_sec_003b_identitas baru
 -- =====================================================================================
 -- BAGIAN 1 — DRY RUN. Pemeriksaan prasyarat. HANYA MEMBACA.
 -- =====================================================================================
+
+\echo ''
+\echo '==== 1.0 PRASYARAT MUTLAK: 24 identitas target wajib TERDAFTAR dan AKTIF ===='
+\echo '     Mencakup PatientAssessment.Amend, yang TIDAK tercakup 1.1 maupun 3.1.'
+\echo '     Kolom status wajib ok untuk SELURUH 24 baris sebelum Tahap 1 dijalankan.'
+
+SELECT
+    w.resource,
+    w.action,
+    CASE
+        WHEN i.action_access_id IS NULL           THEN 'TIDAK_TERDAFTAR'
+        WHEN i.action_is_delete                   THEN 'TERDAFTAR_TAPI_DIHAPUS'
+        WHEN NOT i.action_is_active               THEN 'TERDAFTAR_TAPI_NONAKTIF'
+        ELSE 'ok'
+    END AS status
+FROM be_sec_003b_wajib w
+LEFT JOIN be_sec_003b_identitas i
+       ON i.resource = w.resource AND i.action = w.action
+ORDER BY w.resource, w.action;
+
+\echo ''
+\echo '==== 1.0b Ringkasan prasyarat — wajib berbunyi 24 / 24 ===='
+
+SELECT
+    count(*) FILTER (
+        WHERE i.action_access_id IS NOT NULL
+          AND i.action_is_active
+          AND NOT i.action_is_delete
+    )                                   AS identitas_siap,
+    count(*)                            AS identitas_wajib,
+    count(*) FILTER (
+        WHERE i.action_access_id IS NULL
+           OR NOT i.action_is_active
+           OR i.action_is_delete
+    )                                   AS belum_siap
+FROM be_sec_003b_wajib w
+LEFT JOIN be_sec_003b_identitas i
+       ON i.resource = w.resource AND i.action = w.action;
 
 \echo ''
 \echo '==== 1.1 Apakah setiap identitas pada peta benar-benar terdaftar? ===='
@@ -368,6 +471,49 @@ HAVING count(*) > 1;
 
 BEGIN;
 
+-- 4.0 GERBANG PRASYARAT — WAJIB, DAN SENGAJA MENGGAGALKAN TRANSAKSI.
+--
+-- Menghentikan Tahap 1 bila salah satu dari 24 identitas target belum terdaftar, atau
+-- terdaftar tetapi tidak aktif / sudah dihapus. Tanpa gerbang ini, identitas yang hilang
+-- hanya membuat JOIN-nya kosong: 4.1/4.2 menyisipkan lebih sedikit baris dari yang
+-- diharapkan dan transaksi tetap COMMIT — gagal senyap.
+--
+-- Khususnya PatientAssessment.Amend: ia tidak tercakup peta bagian 0, tidak tercakup 1.1,
+-- dan tidak tercakup 3.1. Sebelum gerbang ini, Amend yang belum terdaftar menghasilkan
+-- 35 baris, bukan 36, tanpa satu pun tanda.
+--
+-- RAISE EXCEPTION membatalkan SELURUH transaksi. Tidak ada baris yang tertinggal.
+DO $$
+DECLARE
+    belum_siap  integer;
+    rincian     text;
+BEGIN
+    SELECT count(*),
+           string_agg(w.resource || '.' || w.action || ' (' ||
+               CASE
+                   WHEN i.action_access_id IS NULL THEN 'TIDAK_TERDAFTAR'
+                   WHEN i.action_is_delete         THEN 'TERDAFTAR_TAPI_DIHAPUS'
+                   ELSE 'TERDAFTAR_TAPI_NONAKTIF'
+               END || ')', ', ' ORDER BY w.resource, w.action)
+      INTO belum_siap, rincian
+      FROM be_sec_003b_wajib w
+      LEFT JOIN be_sec_003b_identitas i
+             ON i.resource = w.resource AND i.action = w.action
+     WHERE i.action_access_id IS NULL
+        OR NOT i.action_is_active
+        OR i.action_is_delete;
+
+    IF belum_siap > 0 THEN
+        RAISE EXCEPTION
+            'BE-SEC-003B PRASYARAT GAGAL: % dari 24 identitas target belum siap -> %. '
+            'Jalankan aplikasi HEAD sekali dalam jendela pemeliharaan supaya '
+            'AccessMenuSeeder membuat baris registry-nya, lalu ulangi bagian 1.',
+            belum_siap, rincian;
+    END IF;
+
+    RAISE NOTICE 'Gerbang prasyarat lulus: 24 / 24 identitas target terdaftar dan aktif.';
+END $$;
+
 -- 4.1 Pelestarian: seluruh identitas baru pada peta bagian 0.
 INSERT INTO public."SysAccessPolicy" (
     "Id", "DepartmentId", "PositionId", "ControllerAccessId", "ActionAccessId",
@@ -402,6 +548,58 @@ WHERE h.resource = 'PatientAssessment' AND h.action = 'Complete'
       AND p."PositionId"         = h.position_id
       AND p."ControllerAccessId" = amend.controller_access_id
       AND p."ActionAccessId"     = amend.action_access_id);
+
+-- 4.2b VERIFIKASI DI DALAM TRANSAKSI — menutup sisa jalur gagal senyap.
+--
+-- Gerbang 4.0 membuktikan identitasnya ADA. Blok ini membuktikan barisnya BENAR-BENAR
+-- TERBENTUK. Keduanya berbeda: 4.0 memeriksa registry, 4.2b memeriksa hasil penulisan.
+--
+-- Angka pembandingnya DITURUNKAN dari data, bukan ditulis tangan, sehingga tetap benar
+-- bila kepemilikan di database berubah. Nilai yang diharapkan pada database development
+-- 11 September 2026 adalah 35 pelestarian + 1 Amend = 36; NOTICE di bawah mencetak
+-- angka sebenarnya supaya dapat dibandingkan dengan bagian 1.4.
+DO $$
+DECLARE
+    sisa_peta       integer;
+    pemegang_compl  integer;
+    baris_amend     integer;
+BEGIN
+    -- (a) Seluruh baris peta bagian 0 wajib sudah ada.
+    SELECT count(*) INTO sisa_peta
+      FROM be_sec_003b_target t
+     WHERE NOT EXISTS (
+        SELECT 1 FROM public."SysAccessPolicy" p
+        WHERE p."DepartmentId"       = t.department_id
+          AND p."PositionId"         = t.position_id
+          AND p."ControllerAccessId" = t.controller_access_id
+          AND p."ActionAccessId"     = t.action_access_id);
+
+    IF sisa_peta > 0 THEN
+        RAISE EXCEPTION
+            'BE-SEC-003B TAHAP 1 GAGAL: % baris peta belum terbentuk sesudah 4.1.',
+            sisa_peta;
+    END IF;
+
+    -- (b) Amend wajib diterima PERSIS oleh pemegang Complete — tidak kurang, tidak lebih.
+    SELECT count(*) INTO pemegang_compl
+      FROM be_sec_003b_pemegang
+     WHERE resource = 'PatientAssessment' AND action = 'Complete';
+
+    SELECT count(*) INTO baris_amend
+      FROM be_sec_003b_pemegang
+     WHERE resource = 'PatientAssessment' AND action = 'Amend';
+
+    IF baris_amend <> pemegang_compl THEN
+        RAISE EXCEPTION
+            'BE-SEC-003B TAHAP 1 GAGAL: baris Amend = %, pemegang Complete = %. '
+            'Keduanya wajib sama. Selisih berarti 4.2 tidak menyambung ke registry Amend.',
+            baris_amend, pemegang_compl;
+    END IF;
+
+    RAISE NOTICE 'Tahap 1: seluruh baris peta terbentuk; Amend = % baris (= pemegang Complete). '
+                 'Bandingkan total dengan bagian 1.4 — nilai yang diharapkan 36.',
+                 baris_amend;
+END $$;
 
 -- Ganti baris berikut dengan COMMIT; hanya bila keluaran bagian 1.3 dan 1.4 sudah benar.
 ROLLBACK;

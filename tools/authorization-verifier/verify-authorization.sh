@@ -14,13 +14,30 @@
 #   - tidak menyentuh SysAccessPolicy
 #   - tidak menulis apa pun ke dalam repository
 #
-# SATU-SATUNYA OTORITAS PENEMUAN
+# OTORITAS PENEMUAN
 #   PermissionRegistryDescriptor.BuildFromAssembly(
 #       typeof(AccessPermissionService).Assembly)
 #
-#   Sama persis dengan yang dipakai AccessMenuSeeder. Verifier ini TIDAK
-#   memakai grep, tidak mem-parsing source, dan tidak punya algoritma
-#   penemuan sendiri.
+#   Verifier ini TIDAK memakai grep, tidak mem-parsing source, dan tidak
+#   punya algoritma penemuan sendiri.
+#
+#   Seeder dan verifier TIDAK memakai entry point yang sama:
+#     AccessMenuSeeder : PermissionRegistryDescriptor.Build(provider)
+#                        -> IActionDescriptorCollectionProvider host MVC
+#     verifier ini     : PermissionRegistryDescriptor.BuildFromAssembly(asm)
+#                        -> refleksi assembly, tanpa host
+#
+#   Yang membuat keduanya setara adalah kontrak atribut yang sama
+#   ([AccessController], [AccessAction], [AccessPermission] — dengan
+#   [AccessPermission] sebagai identitas runtime kanonik dan [AccessAction]
+#   sebagai metadata tampilan/registry), DAN klasifikasi yang sama: kedua
+#   entry point berakhir pada BuildCore(endpoints) yang identik.
+#   BuildFromAssembly mengisi HttpMethod/RoutePath dengan null; tidak satu
+#   pun invarian di bawah memakai keduanya.
+#
+#   Permission eksplisit non-endpoint, bila kelak ada, wajib dideklarasikan
+#   pada SATU sumber bersama yang ikut dibaca BuildCore — bukan diulang
+#   terpisah di seeder, di verifier, atau di script mana pun.
 #
 # KENAPA RUNNER-NYA DIBUAT SAAT DIJALANKAN
 #   QuilvianSystemBackend.csproj sudah TIDAK lagi memiliki
@@ -42,7 +59,7 @@ CONFIGURATION="Release"
 while [ $# -gt 0 ]; do
   case "$1" in
     --configuration) CONFIGURATION="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,54p' "$0"; exit 0 ;;
     *) echo "Argumen tidak dikenal: $1" >&2; exit 2 ;;
   esac
 done
