@@ -1,0 +1,105 @@
+name: Integration to DEV Gate
+
+on:
+  push:
+    branches:
+      - QuilvianIntegrationBackend
+
+  workflow_dispatch:
+
+concurrency:
+  group: integration-to-dev-gate
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration-gate:
+    name: Integration Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Show candidate
+        shell: bash
+        run: |
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Candidate SHA: $GITHUB_SHA"
+
+      - name: Restore solution
+        run: dotnet restore ./QuilvianSystemBackend.sln
+
+      # Build normal terlebih dahulu karena EF membutuhkan
+      # migration metadata yang lengkap.
+      - name: Build backend Release for EF
+        run: >
+          dotnet build
+          ./QuilvianSystemBackend.csproj
+          --configuration Release
+          --no-restore
+
+      - name: EF model consistency
+        run: >
+          dotnet ef migrations has-pending-model-changes
+          --context ApplicationDbContext
+          --configuration Release
+          --no-build
+
+      # Compile seluruh solution/test project.
+      # Migration metadata boleh dilewati pada compile gate ini.
+      - name: Build full solution
+        run: >
+          dotnet build
+          ./QuilvianSystemBackend.sln
+          --configuration Release
+          --no-restore
+          -p:SkipMigrationMetadata=true
+
+      - name: InMemory tests
+        run: >
+          dotnet test
+          ./Tests/QuilvianSystemBackend.UnitTests.InMemory/QuilvianSystemBackend.UnitTests.InMemory.csproj
+          --configuration Release
+          --no-build
+
+      - name: General tests
+        run: >
+          dotnet test
+          ./Tests/QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj
+          --configuration Release
+          --no-build
+
+      - name: SQLite tests
+        run: >
+          dotnet test
+          ./Tests/QuilvianSystemBackend.UnitTests.Sqlite/QuilvianSystemBackend.UnitTests.Sqlite.csproj
+          --configuration Release
+          --no-build
+
+      - name: Gate summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## Integration Gate PASSED"
+            echo ""
+            echo "- Candidate: \`${GITHUB_SHA}\`"
+            echo "- Release build: PASS"
+            echo "- EF model consistency: PASS"
+            echo "- Solution build: PASS"
+            echo "- InMemory: PASS"
+            echo "- General Tests: PASS"
+            echo "- SQLite: PASS"
+            echo ""
+            echo "Promotion is intentionally disabled during rollout phase 1."
+          } >> "$GITHUB_STEP_SUMMARY"
