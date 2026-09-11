@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` — bagian 5A lahir: jalur hapus tanda vital dan kewenangan perawat berbasis unit |
 | Compatibility impact | `0.3.0`: skenario amandemen diganti skenario **addendum** sesuai `RWI-DEC-091`, dan satu skenario baru menjaga rencana asuhan **tetap** berversi |
-| Status | `draft` |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Tanggal | 2 September 2026 |
 
 Matriks memuat **jalur gagal**, bukan hanya jalur berhasil. Dari 24 skenario di bawah, **11**
@@ -78,6 +78,35 @@ adalah jalur gagal.
 
 ---
 
+
+## 5A. Gelombang 1A — jalur hapus dan kewenangan perawat — `0.4.0` ★ baru
+
+Menyerap `RWI-DEC-098` dan `RWI-DEC-100`. Seluruh baris di bawah ini belum pernah ada.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-040` | `DELETE /patient-vital-signs/{id}` dipanggil | Integrasi | **`404`**, bukan `403`. Route tidak ada |
+| `AC-KEP-041` | Tanda vital yang sudah tercatat tetap terbaca pada lini masa setelah perubahan | Integrasi | Deret waktu utuh; nol baris hilang |
+| `AC-KEP-042` | Penanda pemberitahuan dokter tidak dapat dimatikan lewat penghapusan | Integrasi | Tidak ada jalur yang mematikan `NeedDoctorNotification` tanpa alasan tersimpan |
+| `AC-KEP-043` | Regresi Rawat Jalan dan IGD: pencatatan tanda vital di luar rawat inap tidak ikut berubah | Integrasi | Perilaku sama persis seperti sebelum perubahan. **Wajib**, karena controller dipakai bersama |
+| `AC-KEP-044` | Perawat menulis pengkajian untuk pasien di **unitnya**, bukan pasien penanggung jawabnya | Integrasi | **`200`**. Ini jalur normal dinas malam, dan wajib dibuktikan berhasil |
+| `AC-KEP-045` | Perawat menulis untuk pasien di unit lain | Integrasi | `403` |
+| `AC-KEP-046` | Pengguna tanpa `ApplicationUser.EmployeeId` menulis | Integrasi | `403` |
+| `AC-KEP-047` | Perawat mengirim `nurseId` milik perawat lain | Integrasi | `403`, dan nol baris tersimpan atas nama pihak lain |
+| `AC-KEP-048` | Perawat penanggung jawab berganti, perawat lama tetap dapat menulis selama masih di unit yang sama | Integrasi | `200`. Membuktikan `InpNurseAssignment` memang bukan gerbang |
+| `AC-KEP-049` | Pasien dipindahkan ke unit lain, perawat unit lama menulis | Integrasi | `403`. Membuktikan kewenangan mengikuti unit **episode**, bukan salinan unit pada baris penugasan |
+| `AC-KEP-050` | Seluruh skenario negatif dijalankan memakai peran nyata, bukan SuperAdmin | Integrasi | Peran yang dipakai tercatat pada laporan task |
+
+### 5A.1 Satu butir yang **belum dapat** diuji
+
+| Yang belum | Sebabnya |
+| --- | --- |
+| Pembatalan tanda vital final ditolak dan diarahkan ke addendum | `ClinicalDocumentKind.VitalSign` belum termasuk jenis yang ditegakkan mesin keutuhan dokumen. Selama itu belum berubah, tidak ada keadaan "final" yang dapat diuji. Dilacak `V2-UNK-01` |
+
+Butir itu **tidak** memblokir `Gelombang 1A`, tetapi ia memblokir pernyataan bahwa jalur pengganti
+sudah lengkap. Menuliskannya lulus sekarang berarti mengaku menguji sesuatu yang tidak ada.
+
+---
 ## 6. Gizi — `CAP-027`
 
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |

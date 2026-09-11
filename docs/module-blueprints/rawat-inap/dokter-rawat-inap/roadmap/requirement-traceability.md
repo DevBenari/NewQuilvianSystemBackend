@@ -365,3 +365,37 @@ pemilik pekerjaan.
 > `DOK-MVP-FE` **tetap belum boleh ditutup**. Dua task masih 🟡 — `FE-RWI-050` menunggu ketetapan
 > urutan daftar dari pemilik `02-module-map.md`, dan `FE-RWI-044` menunggu `BE-RWI-068` yang sendirinya
 > ⛔. Keduanya tertahan hal yang bukan pekerjaan frontend.
+
+## Gelombang 1A — traceability koreksi keselamatan
+
+**Ditambahkan 11 September 2026.** Menyerap `RWI-DEC-098` dan `RWI-DEC-099`.
+
+| Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
+| --- | --- | --- | --- | --- | --- |
+| `V2-CAP-02` Catatan klinis final tidak dapat disembunyikan | `EPIC DOK-08` | `FR-DOK-060` s.d. `FR-DOK-062` | `BE-RWI-075` ⛔ | **Nol task** — frontend tidak pernah memanggil `DELETE` CPPT | ⛔ menunggu approval kontrak `0.5.0` |
+| `V2-CAP-03` Penulis klinis dari identitas terautentikasi | `EPIC DOK-09` | `FR-DOK-063` s.d. `FR-DOK-067` | `BE-RWI-076` ⛔ | **Nol task** — perubahan tidak mengubah rupa layar | ⛔ menunggu approval kontrak `0.5.0` dan `BE-RWI-074` |
+
+| Requirement | Keputusan / aturan | Kontrak `0.5.0` | Acceptance test | Task |
+| --- | --- | --- | --- | --- |
+| `FR-DOK-060` | `RWI-DEC-098` | `api-contract.md` bagian 0.A.1 | `AC-DOK-060` | `BE-RWI-075` |
+| `FR-DOK-061` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.3 | `AC-DOK-061`, `AC-DOK-062` | `BE-RWI-075` |
+| `FR-DOK-062` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.2 | `AC-DOK-065` | `BE-RWI-075` |
+| `FR-DOK-063` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-067` | `BE-RWI-076` |
+| `FR-DOK-064` | `RWI-DEC-099` | `api-contract.md` bagian 0.A.2 | `AC-DOK-069` | `BE-RWI-076` |
+| `FR-DOK-065` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-068`, `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-076` |
+| `FR-DOK-066` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.3 | `AC-DOK-072` | `BE-RWI-076` |
+| `FR-DOK-067` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.4 | `AC-DOK-073`, `AC-DOK-074` | `BE-RWI-076` |
+| `FR-DOK-068` | `OPEN-MVP-004` | — | — | **Nol task.** `OPEN DECISION`, tidak masuk gelombang pengiriman mana pun |
+
+### Ketergantungan lintas sub-modul
+
+| Yang dibutuhkan | Dari | Kenapa |
+| --- | --- | --- |
+| Kolom `AssignmentRole` pada `InpDoctorAssignment` | `BE-RWI-074`, sub-modul `episode-rawat-inap` | Kewenangan menulis dinilai dari peran penugasan. Tabelnya milik `episode-rawat-inap`, dan sub-modul ini **membacanya**, tidak membuatnya |
+
+### Coverage gap yang dinyatakan terbuka
+
+| Requirement | Yang belum tercakup test | Sebabnya |
+| --- | --- | --- |
+| `FR-DOK-068` kewenangan konsulen memutuskan pulang | Nol acceptance test untuk jalur "boleh" | Kebijakannya belum ada. Yang diuji hanya jalur **ditolak** lewat `RWI-AC-084f`. Dilacak `OPEN-MVP-004` |
+| Delapan jalur hapus lain pada `ClinicalManagement` | Nol acceptance test | `RWI-DEC-098` sengaja tidak menutupnya. Konsekuensinya diterima pemilik; ketegangannya dilacak `RWI-OQ-055` |

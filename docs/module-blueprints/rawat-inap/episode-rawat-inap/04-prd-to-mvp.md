@@ -8,7 +8,7 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| Revision artefak | `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
 | `contract_version` | `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
 | Status | `draft` — **belum disetujui manusia** |
@@ -1445,3 +1445,107 @@ Sesuai kontrak, dokumen ini tetap berstatus `draft` sampai ada approval manusia.
 `0.3.0`: **tidak ada lagi pertanyaan memblokir yang menahan `/plan-module-delivery`.** Yang berubah
 pada `0.6.0`: keadaan itu tetap berlaku untuk seluruh epic **kecuali `EPIC RI-35a`**, yang menunggu
 jawaban kewenangan penerbitan kwitansi pada tabel 20.2.
+
+## 21. Gelombang 1A — Rawat Inap Safety Corrections
+
+**Ditambahkan 11 September 2026**, menyerap `RWI-DEC-097` s.d. `RWI-DEC-104`. Bagian ini **tidak**
+menggantikan bagian 1 sampai 20; ia menambahkan satu gelombang perbaikan di atas MVP yang sudah
+dirancang. Seluruh isinya **menurunkan** dari `02-backend-architecture.md` revision `0.7`,
+`data/data-dictionary.md`, dan ketiga kontrak `0.8.0`.
+
+### 21.1 Kenapa gelombang ini ada
+
+`PRD-to-MVP-Rawat-Inap-V2` menemukan empat penyimpangan yang harus dibereskan sebelum modul ini
+dipakai melayani pasien sungguhan. Dua di antaranya dimiliki sub-modul ini.
+
+| Penyimpangan | Keadaan hari ini di source | Kenapa berbahaya |
+| --- | --- | --- |
+| Kelayakan tempat tidur menilai jenis kelamin penghuni kamar lain | Berjalan, kode `ROOM_GENDER_MIXED` terbit dari `InpBedOccupancyService` | Kamar berisi satu pasien laki-laki menolak seluruh pasien perempuan walau tempat tidurnya dikonfigurasi menerima keduanya. Petugas admisi tidak punya jalan keluar selain memindahkan pasien yang sudah dirawat |
+| Penugasan dokter tidak mengenal peran | `InpDoctorAssignment` tidak punya kolom peran sama sekali | Konsulen dan dokter jaga tidak dapat dibedakan dari DPJP, sehingga matriks kewenangan bagian 14 tidak dapat diwujudkan |
+
+### 21.2 Batas gelombang ini
+
+**Titik mulai.**
+
+1. Blueprint revision `6` dan kontrak `0.8.0` berstatus `draft`.
+2. Keputusan `RWI-DEC-099` dan `RWI-DEC-101` sudah `approved`.
+3. Snapshot `BE@201de753` dan `FE@7f6b9356`.
+
+**Titik akhir.**
+
+1. Kode `ROOM_GENDER_MIXED` tidak terbit dari jalur mana pun, dan pemetaannya hilang dari frontend.
+2. `InpDoctorAssignment` menyimpan peran, dan satu episode dapat memiliki satu DPJP bersama beberapa konsulen dan dokter jaga.
+3. Aturan isolasi dan `BED_GENDER_MISMATCH` terbukti masih menolak.
+4. Seluruh acceptance criteria pada bagian 21.5 lulus.
+
+**Yang sengaja di luar gelombang ini.** Kelayakan keuangan, walaupun berstatus `P0`. `RWI-DEC-102`
+mengeluarkannya karena bergantung pada `BE-BKC-040` milik roadmap `billing-kasir`, yang nol
+barisnya ada. Ia **tidak** turun menjadi `P1`; statusnya `P0 — external dependency`.
+
+### 21.3 Epic dan functional requirement
+
+| ID | Epic | Prioritas | Disposisi |
+| --- | --- | --- | --- |
+| `EPIC RI-36` | Kelayakan tempat tidur hanya menilai penanda tempat tidur | `P0` | `EXTEND` — memangkas aturan yang sudah ada |
+| `EPIC RI-37` | Penugasan dokter mengenal peran | `P0` | `EXTEND` — satu kolom, satu enum, dua index |
+
+| FR | Bunyi requirement | Epic | Disposisi |
+| --- | --- | --- | --- |
+| `FR-RI-179` | Penempatan dan perpindahan **tidak** memeriksa jenis kelamin penghuni kamar lain dalam bentuk apa pun | `RI-36` | `EXTEND` |
+| `FR-RI-180` | Kode `ROOM_GENDER_MIXED` tidak terbit dari pencarian, pemesanan, penempatan, maupun perpindahan | `RI-36` | `EXTEND` |
+| `FR-RI-181` | Pasien tanpa jenis kelamin tercatat dapat ditempatkan pada tempat tidur yang menerima keduanya, **tanpa memandang** ada tidaknya penghuni lain | `RI-36` | `EXTEND` |
+| `FR-RI-182` | Tempat tidur yang dikonfigurasi satu jenis kelamin **tetap** menolak jenis kelamin lain | `RI-36` | `EXISTING / REUSE` |
+| `FR-RI-183` | Aturan isolasi dua arah **tetap** menolak | `RI-36` | `EXISTING / REUSE` |
+| `FR-RI-184` | Penempatan ke boks bayi tetap dikecualikan dari aturan jenis kelamin yang tersisa | `RI-36` | `EXISTING / REUSE` |
+| `FR-RI-185` | Penugasan dokter menyimpan peran bernilai `Dpjp`, `Consultant`, atau `OnCallDoctor` | `RI-37` | `MISSING / NEW` |
+| `FR-RI-186` | Satu episode memiliki **tepat satu** DPJP aktif, dan boleh memiliki beberapa konsulen serta dokter jaga aktif bersamaan | `RI-37` | `EXTEND` |
+| `FR-RI-187` | Kewenangan dinilai pada waktu klinis dokumen, bukan waktu penyimpanan | `RI-37` | `MISSING / NEW` |
+| `FR-RI-188` | Peran pada satu baris penugasan **tidak dapat** diubah; perubahan dilakukan dengan menutup baris lalu membuka baris baru | `RI-37` | `MISSING / NEW` |
+| `FR-RI-189` | Migration mengisi seluruh baris lama menjadi `Dpjp` tanpa satu pun baris ambigu | `RI-37` | `MISSING / NEW` |
+| `FR-RI-190` | Konsulen dan dokter jaga **tidak** memperoleh kewenangan perpindahan, keputusan pulang, tanda tangan resume, maupun perubahan isolasi | `RI-37` | `EXTEND` |
+
+### 21.4 Skenario UAT
+
+**Jalur berhasil.**
+
+1. Petugas admisi menempatkan Ny. Sari pada tempat tidur netral di kamar yang sudah dihuni Tn. Budi. Penempatan **berhasil**, dan tidak ada peringatan apa pun tentang pencampuran.
+2. Pasien yang jenis kelaminnya belum tercatat ditempatkan pada tempat tidur yang menerima keduanya, di kamar berpenghuni. Penempatan **berhasil**.
+3. Kepala ruangan melibatkan dua konsulen sekaligus pada satu pasien yang sudah punya DPJP. Ketiganya tercatat aktif bersamaan.
+4. Supervisor mengalihkan DPJP. Baris lama tertutup beserta alasannya, baris baru terbuka, dan tidak pernah ada saat tanpa DPJP.
+
+**Jalur gagal.**
+
+1. Petugas menempatkan pasien laki-laki pada tempat tidur bertanda perempuan saja. **Ditolak**, pesannya menyebut batasan tempat tidurnya.
+2. Petugas menempatkan pasien tanpa kebutuhan isolasi pada tempat tidur isolasi. **Ditolak**.
+3. Pasien yang membutuhkan isolasi ditempatkan pada tempat tidur biasa. **Ditolak**.
+4. Konsulen meminta keputusan pulang. **Ditolak**, dan penolakan itu dinyatakan sebagai keadaan sementara yang menunggu kebijakan, bukan sebagai kesalahan petugas.
+5. Supervisor mencoba menugaskan DPJP kedua tanpa menutup yang lama. **Ditolak**.
+
+### 21.5 Definition of Done gelombang ini
+
+| Butir | Cara menjawabnya |
+| --- | --- |
+| Kode `ROOM_GENDER_MIXED` nol hasil pada pencarian source backend | `grep` pada `Areas/**` mengembalikan nol baris di luar komentar sejarah |
+| Pemetaan kode itu hilang dari frontend, dan ketiga berkas test disesuaikan | Pencarian pada `src/` dan `tests/` mengembalikan nol baris aktif |
+| Aturan isolasi terbukti masih menolak | `RWI-AC-133a` lulus |
+| Pengecualian boks bayi terbukti masih berlaku | `RWI-AC-133b` lulus |
+| Kolom peran ada, terisi, dan index unik memfilter peran | `RWI-AC-084a` dan `RWI-AC-084b` lulus |
+| Urutan migration terbukti mengikat | `RWI-AC-084c` lulus |
+| Batas rollback terbukti nyata | `RWI-AC-084h` lulus |
+| Konsulen dan dokter jaga terbukti tidak memperoleh kewenangan DPJP | `RWI-AC-084f` dan `RWI-AC-084g` lulus |
+| Backend dan frontend dirilis pada gelombang yang sama | Bukti rilis menyebut kedua repository |
+| Nol `[AccessPermission]` baru lahir | Daftar permission sebelum dan sesudah sama persis |
+
+**Satu butir yang sengaja tidak ada di sini.** Definition of Done ini **tidak** memuat pernyataan
+bahwa MVP Rawat Inap siap produksi. `RWI-DEC-102` menegaskan kesiapan itu tetap menunggu kelayakan
+keuangan, yang berada di luar gelombang ini.
+
+### 21.6 Pertanyaan terbuka yang menyertai gelombang ini
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | --- |
+| `OPEN-MVP-004` | Kewenangan konsulen atas keputusan pulang | **Tidak memblokir gelombang ini.** Perilaku fail-closed berlaku: ditolak |
+| `RWI-OQ-053` | Pemilik `BillingManagement` belum bernama | Tidak memblokir gelombang ini; memblokir gelombang kelayakan keuangan |
+| `RWI-OQ-054` | Penomoran ulang sebelas task ID | **Memblokir `plan-module-delivery`**, bukan desain ini. Dijawab `RWI-DEC-103`, eksekusinya belum dikerjakan |
+
+---

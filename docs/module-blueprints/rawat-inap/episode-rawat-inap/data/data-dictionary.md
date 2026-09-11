@@ -49,19 +49,52 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `Notes` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | Catatan bebas petugas admisi |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Mengikuti konvensi project |
 
-## 2. `InpDoctorAssignment` — status `Baru`
+## 2. `InpDoctorAssignment` — status `Diperbarui` sejak `0.8.0`
+
+**Satu kolom ditambahkan** pada 11 September 2026 oleh `RWI-DEC-099`, dan **satu index unik
+berubah filternya**. Sebelum itu status tabel ini `Baru`.
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `EpisodeId` | `Guid` | Ya | — | Index | FK ke `InpEpisode` | `Restrict` | Tidak | Episode pemilik |
-| `DoctorId` | `Guid` | Ya | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | Dokter yang ditunjuk sebagai DPJP |
-| `SequenceNumber` | `int` | Ya | — | Unique bersama `EpisodeId` | — | — | Tidak | Urutan penugasan, dimulai dari 1 |
-| `StartDateTime` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Mulai berlakunya tanggung jawab |
-| `EndDateTime` | `DateTime?` | Tidak | — | Index parsial | — | — | Tidak | Kosong berarti masih aktif. Unique atas `EpisodeId` bila kosong, menjaga `INV-INP-03` |
-| `AssignedByUserId` | `Guid` | Ya | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang menugaskan atau mengalihkan |
-| `HandoverReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib diisi bila baris ini lahir dari pengalihan |
+| `DoctorId` | `Guid` | Ya | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | Dokter yang ditunjuk. ~~Selalu DPJP~~ — sejak `0.8.0` perannya ditentukan `AssignmentRole` |
+| **`AssignmentRole`** | `int` enum | Ya | `1` `Dpjp` | Index gabungan, lihat di bawah | — | — | Tidak | **Kolom baru `0.8.0`.** `1` `Dpjp`, `2` `Consultant`, `3` `OnCallDoctor`. Menentukan kewenangan menulis dan kewenangan memutuskan pulang |
+| `SequenceNumber` | `int` | Ya | — | Unique bersama `EpisodeId` | — | — | Tidak | Urutan penugasan, dimulai dari 1. Deretnya **satu per episode**, bukan satu per peran |
+| `StartDateTime` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Mulai berlakunya tanggung jawab. Dipakai menilai kewenangan pada **waktu klinis** dokumen |
+| `EndDateTime` | `DateTime?` | Tidak | — | Index parsial | — | — | Tidak | Kosong berarti masih aktif. **Filter unique berubah `0.8.0`**, lihat catatan index |
+| `AssignedByUserId` | `Guid` | Ya | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang menugaskan atau mengalihkan. Untuk konsulen dan dokter jaga, ini kepala ruangan atau supervisor |
+| `HandoverReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib diisi bila baris ini lahir dari pengalihan. **Sejak `0.8.0` juga wajib** bila perannya `Consultant` atau `OnCallDoctor`, berisi alasan pelibatan |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
+
+### 2.1 Perubahan index unik — wajib dibaca sebelum migration
+
+Index `IX_InpDoctorAssignment_EpisodeId_Active` hari ini berbunyi unik atas `EpisodeId` dengan
+filter `"EndDateTime" IS NULL`. Artinya **satu episode hanya boleh punya satu penugasan terbuka**.
+
+Selama tabel ini hanya menyimpan DPJP, index itu benar. Begitu konsulen dan dokter jaga masuk,
+index itu **menolak baris kedua di tingkat database**, dan `RWI-DEC-099` tidak akan pernah dapat
+dijalankan. Ini bukan pilihan gaya; tanpa perubahan index, keputusan itu gagal pada `INSERT`
+kedua.
+
+| Keadaan | Filter index | Akibatnya |
+| --- | --- | --- |
+| Sebelum `0.8.0` | `"EndDateTime" IS NULL` | Satu penugasan terbuka per episode. Konsulen kedua **ditolak database** |
+| Sejak `0.8.0` | `"EndDateTime" IS NULL AND "AssignmentRole" = 1` | **Tepat satu DPJP aktif** per episode; konsulen dan dokter jaga boleh banyak dan boleh bersamaan |
+
+`INV-INP-03` berbunyi "episode belum `Closed`/`Cancelled` punya tepat satu DPJP aktif". Filter
+baru itu menegakkan bunyi invariant **apa adanya**, sedangkan filter lama menegakkan sesuatu yang
+lebih ketat daripada yang diminta. Jadi perubahan ini **memulihkan** invariant, bukan
+melonggarkannya.
+
+**Pengisian data lama.** Seluruh baris yang sudah ada diisi `AssignmentRole = 1` `Dpjp`. Itu bukan
+tebakan: sebelum `0.8.0` tabel ini memang hanya menyimpan DPJP, sebagaimana tertulis pada kolom
+`DoctorId` versi sebelumnya. Tidak ada baris yang ambigu, sehingga tidak ada laporan
+`unresolved` yang perlu dibuat.
+
+**Urutan migration yang aman tanpa mematikan layanan.** Tambah kolom dengan nilai bawaan lebih
+dulu, isi baris lama, baru ganti index. Membuang index lama sebelum kolomnya terisi membuka celah
+waktu ketika dua DPJP aktif dapat tersimpan.
 
 ## 3. `InpNurseAssignment` — status `Baru`
 
@@ -442,6 +475,7 @@ CREATE TABLE public."InpDoctorAssignment" (
     "Id"                 uuid          NOT NULL,
     "EpisodeId"          uuid          NOT NULL,
     "DoctorId"           uuid          NOT NULL,
+    "AssignmentRole"     integer       NOT NULL DEFAULT 1,  -- kolom baru 0.8.0
     "SequenceNumber"     integer       NOT NULL,
     "StartDateTime"      timestamp     NOT NULL,
     "EndDateTime"        timestamp,
@@ -456,9 +490,22 @@ CREATE TABLE public."InpDoctorAssignment" (
         FOREIGN KEY ("DoctorId") REFERENCES public."MstDoctor" ("Id") ON DELETE RESTRICT
 );
 
--- Menjaga INV-INP-03: satu episode hanya boleh punya satu DPJP aktif
-CREATE UNIQUE INDEX "IX_InpDoctorAssignment_EpisodeId_Active"
-    ON public."InpDoctorAssignment" ("EpisodeId") WHERE "EndDateTime" IS NULL;
+-- Menjaga INV-INP-03: satu episode hanya boleh punya satu DPJP aktif.
+--
+-- Bentuk sampai contract_version 0.7.0, DICABUT 11 September 2026:
+--     CREATE UNIQUE INDEX "IX_InpDoctorAssignment_EpisodeId_Active"
+--         ON public."InpDoctorAssignment" ("EpisodeId") WHERE "EndDateTime" IS NULL;
+--
+-- Filter lama menolak SETIAP penugasan terbuka kedua, termasuk konsulen dan dokter jaga
+-- yang disahkan RWI-DEC-099. Filter baru menegakkan bunyi INV-INP-03 apa adanya, yaitu
+-- tepat satu DPJP aktif, sambil mengizinkan konsulen dan dokter jaga berdampingan.
+CREATE UNIQUE INDEX "IX_InpDoctorAssignment_EpisodeId_ActiveDpjp"
+    ON public."InpDoctorAssignment" ("EpisodeId")
+    WHERE "EndDateTime" IS NULL AND "AssignmentRole" = 1;
+
+-- Mempercepat penilaian kewenangan menulis pada waktu klinis tertentu
+CREATE INDEX "IX_InpDoctorAssignment_Episode_Doctor_Role_Period"
+    ON public."InpDoctorAssignment" ("EpisodeId", "DoctorId", "AssignmentRole", "StartDateTime");
 
 
 CREATE TABLE public."InpStatusHistory" (

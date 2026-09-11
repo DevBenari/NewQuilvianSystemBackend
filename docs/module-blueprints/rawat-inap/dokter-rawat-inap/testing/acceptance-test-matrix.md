@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` |
-| Status | **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
+| Contract version | `0.5.0` |
+| `last_changed_in` | `0.5.0` — bagian 3A lahir: jalur hapus CPPT dan penegakan penulis klinis |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | `input_revision` | `02-backend-architecture.md` `0.4`; seluruh kontrak `0.4.0`; arsitektur domain `0.2` |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
 | Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
@@ -88,6 +88,49 @@ Dari **63** skenario di bawah, **27** adalah jalur gagal. Sembilan skenario — 
 
 ---
 
+
+## 3A. Penutupan jalur hapus dan penegakan penulis — `0.5.0` ★ baru
+
+Menyerap `RWI-DEC-098` dan `RWI-DEC-099`. Seluruh baris di bawah ini **belum pernah ada** pada
+revisi sebelumnya.
+
+### 3A.1 Jalur hapus catatan terpadu
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-DOK-060` | `DELETE /patient-integrated-progress-notes/{id}` dipanggil | Integrasi | **`404`**, bukan `403`. Route tidak ada sama sekali |
+| `AC-DOK-061` | Membatalkan catatan berstatus `Final` | Integrasi | `422`, disertai keterangan bahwa koreksi dilakukan lewat addendum |
+| `AC-DOK-062` | Membatalkan catatan berstatus `Terverifikasi` | Integrasi | `422` |
+| `AC-DOK-063` | Membatalkan catatan berstatus `Draf` beserta alasan | Integrasi | `200`, catatan terbaca sebagai dibatalkan beserta alasan dan pelakunya |
+| `AC-DOK-064` | Membatalkan catatan `Draf` tanpa alasan | Integrasi | `400` |
+| `AC-DOK-065` | Catatan yang sudah dibatalkan **tetap terbaca** pada rekam medis dan audit | Integrasi | Baris masih ada, tidak hilang dari pembacaan normal |
+| `AC-DOK-066` | Regresi Rawat Jalan: jalur pembatalan CPPT rawat jalan tidak ikut berubah perilakunya | Integrasi | Perilaku rawat jalan sama persis seperti sebelum perubahan. **Wajib**, karena controller-nya dipakai bersama |
+
+### 3A.2 Penulis dan kewenangan dokter
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-DOK-067` | Pengguna tanpa `ApplicationUser.DoctorId` menulis catatan | Integrasi | `403` |
+| `AC-DOK-068` | Dokter tanpa penugasan aktif pada episode itu menulis | Integrasi | `403` |
+| `AC-DOK-069` | Dokter mengirim `DoctorId` milik dokter lain | Integrasi | `403`, dan **nol** baris tersimpan atas nama pihak lain |
+| `AC-DOK-070` | Dokter dengan penugasan berakhir menulis dengan waktu klinis **di dalam** periodenya | Integrasi | `200`. Membuktikan penilaian memakai waktu klinis |
+| `AC-DOK-071` | Dokter dengan penugasan berakhir menulis dengan waktu klinis **di luar** periodenya | Integrasi | `403`. Membuktikan backdating tidak dapat dipakai melewati periode |
+| `AC-DOK-072` | Kelima grup jalur tulis memanggil resolver dengan dokter pelaku | Integrasi | Satu test per grup: Doctor Consultation, Patient Assessment, Patient Integrated Progress Note, Patient Diagnosis, Patient Procedure. **Lima test, bukan satu** |
+| `AC-DOK-073` | Verifikasi CPPT oleh dokter tanpa penugasan aktif | Integrasi | `403` |
+| `AC-DOK-074` | Verifikasi CPPT **tidak** mengubah penulis aslinya | Integrasi | Penulis asli sama persis sebelum dan sesudah verifikasi |
+| `AC-DOK-075` | Seluruh skenario negatif dijalankan memakai peran nyata, bukan SuperAdmin | Integrasi | Bukti peran yang dipakai tercatat pada laporan task |
+
+### 3A.3 Kenapa test hak akses lama tidak cukup
+
+`Gelombang 1A` melahirkan **nol** Resource dan **nol** Action baru pada sub-modul ini. Akibatnya
+seluruh test hak akses yang sudah ada **tetap lulus tanpa disentuh**, baik sebelum maupun sesudah
+perbaikan.
+
+Itu berarti test hak akses **tidak dapat** dipakai sebagai bukti bahwa penjaga baru bekerja. Satu-
+satunya bukti yang sah adalah skenario negatif per-pasien pada bagian 3A.2. Menyatakan `Gelombang
+1A` selesai karena test hak akses hijau adalah kesimpulan yang salah.
+
+---
 ## 4. Event visite — `CAP-025`
 
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |

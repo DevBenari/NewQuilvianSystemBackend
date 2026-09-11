@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` — Gelombang 1A: jalur hapus tanda vital ditutup, kewenangan menulis perawat ditentukan unit |
 | Compatibility impact | `0.3.0`: dua endpoint `amend` berubah menjadi **penambahan addendum** sesuai `RWI-DEC-091`. Status dokumen **tidak lagi berpindah** ke `Amended`; nilai status itu dicabut. Endpoint rencana asuhan tidak berubah |
-| Status | `draft` — belum disetujui manusia |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
 | `input_revision` | `02-backend-architecture.md` `0.3`; `PRD-RWI-FINAL-001` v1.0.0; decision log `13` |
@@ -16,6 +16,77 @@
 
 ---
 
+
+## 0.A Perubahan pada `contract_version` `0.4.0` — Gelombang 1A
+
+**Status `approved` sejak 11 September 2026** lewat `RWI-DEC-105`. Menyerap dua koreksi `P0` dari `PRD-to-MVP-Rawat-Inap-V2` yang menyentuh sub-modul ini.
+
+### 0.A.1 Jalur hapus tanda vital ditutup — `RWI-DEC-098`
+
+Tanda vital **bukan** grup endpoint milik kontrak ini, tetapi ia dibaca ruang kerja keperawatan
+dan dicatat perawat. Karena itu perubahannya disebut di sini sebagai titik sentuh, dan grup
+endpointnya tetap dimiliki `ClinicalManagement`.
+
+| Method | Path | Keadaan sebelum `0.4.0` | Ketetapan `0.4.0` |
+| --- | --- | --- | --- |
+| `DELETE` | `/patient-vital-signs/{id}` | **Ada di source**, `PatientVitalSignController` baris 799. Soft delete tanpa pemeriksaan status, tanpa alasan, dan tanpa memeriksa penulis. Ia juga mematikan `NeedDoctorNotification`, sehingga pemberitahuan ke dokter ikut hilang diam-diam | **DIHAPUS.** Route tidak lagi tersedia; jawabannya `404` |
+
+**Kenapa tanda vital lebih berbahaya daripada dokumen lain.** Tanda vital adalah dasar penilaian
+perburukan pasien. Menghapus satu baris tanda vital tidak hanya menghilangkan angka; ia memutus
+deret waktu yang dipakai perawat dan dokter untuk melihat kecenderungan. Baris yang hilang tidak
+menyisakan lubang yang terlihat, sehingga grafik tetap tampak wajar.
+
+| Keadaan dokumen | Jalur yang sah sejak `0.4.0` |
+| --- | --- |
+| Salah catat, belum final | Pembatalan beralasan, mengikuti pola `PATCH /{id}/cancel` yang sudah dipakai pengkajian dan tindakan |
+| Sudah final atau terverifikasi | Addendum lewat mesin `MedicalRecordManagement` |
+
+**Satu prasyarat yang belum terpenuhi dan wajib disebut.** `ClinicalDocumentKind.VitalSign`
+bernomor `6`, tetapi **belum termasuk** jenis yang ditegakkan mesin keutuhan dokumen. Yang
+ditegakkan hari ini hanya `ProgressNote`, `Consultation`, `Assessment`, dan `Procedure`. Selama
+`VitalSign` belum masuk daftar itu, pembatalan beralasan **tidak dapat** memeriksa status final,
+sehingga pengganti jalur hapus belum utuh. Keputusan menaikkannya milik pemilik
+`MedicalRecordManagement` dan dilacak sebagai `V2-UNK-01` pada
+[`../01-existing-capability-map.md`](../01-existing-capability-map.md) bagian 16.5.
+
+> **Akibat yang harus diterima secara sadar.** Bila `VitalSign` tidak dinaikkan, menutup `DELETE`
+> tetap menghilangkan cara menyembunyikan catatan, tetapi pembatalan draf belum terjaga terhadap
+> dokumen yang sudah final. Itu tetap lebih baik daripada keadaan sekarang, dan bukan pengganti
+> penegakan yang utuh.
+
+### 0.A.2 Kewenangan menulis perawat ditentukan unit — `RWI-DEC-100`
+
+| Yang berubah | Ketetapan `0.4.0` |
+| --- | --- |
+| Sumber identitas penulis | Diambil dari `ApplicationUser.EmployeeId` milik pengguna terautentikasi. `nurseId` pada request **tidak** menentukan penulis |
+| Syarat boleh menulis | Perawat bertugas pada **unit tempat episode berada**. Penugasan per episode **bukan** syarat |
+| Peran `InpNurseAssignment` | Tetap sebagai **penunjukan perawat penanggung jawab** yang tampil di kepala konteks pasien. Ia **tidak** mengunci hak tulis |
+| Episode `Closed` atau `Cancelled` | Seluruh aksi tulis ditolak, sebagaimana sudah berlaku |
+
+| Keadaan | Jawaban sejak `0.4.0` |
+| --- | --- |
+| Perawat bangsal menulis untuk pasien di unitnya, bukan pasien penanggung jawabnya | `200`. Ini jalur normal dinas malam |
+| Perawat menulis untuk pasien di unit lain | `403` |
+| Pengguna tanpa pemetaan pegawai menulis | `403` |
+| Perawat mengirim `nurseId` milik perawat lain | `403` |
+
+**Perbedaan yang disengaja terhadap gerbang dokter.** Gerbang perawat memang lebih longgar
+daripada gerbang dokter pada `dokter-rawat-inap` `0.5.0`. Itu **bukan kelalaian**. DPJP melekat
+pada pasien selama berhari-hari, sedangkan perawat berganti tiga shift sehari pada bangsal berisi
+20 sampai 30 pasien, dan sistem **tidak mempunyai konsep shift perawat sama sekali**. Menuntut
+penugasan per episode berarti membuat sekitar 90 baris penugasan manual per hari per bangsal.
+Dasarnya `RWI-DEC-100`.
+
+**Kemampuan yang belum ada dan menjadi pekerjaan baru.** `InpatientClinicalContextService` hari
+ini **nol menyebut perawat**; satu-satunya pemeriksaan kewenangan yang tersedia adalah
+`IsDoctorAssignedAsync`. Resolver perlu kemampuan baru untuk menilai unit tempat perawat bertugas.
+Sumber data "unit tempat perawat bertugas" **belum ditetapkan**, karena `InpNurseAssignment` tidak
+menyimpannya. Penetapannya adalah pekerjaan desain teknis pada task implementasi, dan **tidak
+boleh** diselesaikan dengan menambahkan kolom unit ke `InpNurseAssignment`, karena itu melahirkan
+sumber kebenaran kedua yang dapat berbeda dari unit episode saat pasien pindah. Dasarnya
+`RWI-FACT-022` dan bagian 0.5 pada `02-backend-architecture.md` sub-modul `episode-rawat-inap`.
+
+---
 ## 0. Batas dokumen ini
 
 **Tidak satu pun endpoint di bawah ini dimiliki modul Rawat Inap.** `RWI-DEC-081` dan

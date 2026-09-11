@@ -1,13 +1,13 @@
-# Laporan Perubahan Backend — `BE-RWI-043`
+# Laporan Perubahan Backend — `BE-RWI-072`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-RWI-043` |
+| Task ID | `BE-RWI-072` |
 | Judul | Settlement, refund, dan `Cleared` yang tidak lagi buta |
 | Slice | `S12` — Uang selesai sebelum episode ditutup; `EPIC RI-35b`, gelombang `MVP-3` |
-| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-043` |
+| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-072` |
 | Trace | `FR-RI-170`, `FR-RI-171`, `FR-RI-172`; `RWI-RISK-003`; `validation-matrix.md` `0.6.0` bagian 8A baris `Cleared` |
 | Contract version | API `0.6.1` berlaku. Baris `GET /deposits/episodes/{episodeId}` masih **`Rencana 0.6.0`** |
 | Dependency | `BE-BKC-040` pada roadmap `billing-kasir` — **belum dikerjakan** |
@@ -68,7 +68,7 @@ Alur yang dituju task ini.
 
 | Berkas atau dokumen | Untuk menetapkan |
 | --- | --- |
-| `roadmap/backend-roadmap.md` kartu `BE-RWI-043` | Scope, dependency, kelima acceptance criteria |
+| `roadmap/backend-roadmap.md` kartu `BE-RWI-072` | Scope, dependency, kelima acceptance criteria |
 | `../../billing-kasir/roadmap/backend-roadmap.md` kartu `BE-BKC-040` | Status prasyaratnya |
 | `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs:299` | Bentuk `MarkFinancialClearanceAsync` yang sudah ada |
 | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs:140` | Ketersediaan tagihan final per kunjungan |

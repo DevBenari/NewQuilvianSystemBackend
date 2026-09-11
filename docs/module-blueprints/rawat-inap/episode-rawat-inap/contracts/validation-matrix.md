@@ -3,11 +3,26 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.6.1` |
-| Status | `draft` |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `15`; `02-backend-architecture.md` revision `0.4`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing |
+| `input_revision` | `00-interview-decisions.md` revision `16`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
+| Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing. **Sejak `0.8.0` satu aturan dicabut**, dan pencabutan itu **melonggarkan** penolakan, bukan menambahnya |
+
+### Perubahan pada `contract_version` `0.8.0` — 11 September 2026
+
+Menyerap `RWI-DEC-101`. Tiga baris pada bagian 3 berubah:
+
+| Baris | Perubahan |
+| --- | --- |
+| Kamar sudah dihuni jenis kelamin berbeda | **Dicabut.** Kode `ROOM_GENDER_MIXED` dihapus, penghuni kamar tidak lagi diperiksa |
+| Jenis kelamin belum tercatat | **Dipersempit.** Syarat "kamar belum ada penghuninya" dicabut; yang tersisa hanya syarat tempat tidur menerima keduanya |
+| Pengecualian boks bayi | Jumlah aturan yang dikecualikan turun dari tiga menjadi dua |
+
+Dua aturan isolasi pada bagian yang sama **tidak tersentuh**, dan `BED_GENDER_MISMATCH` juga
+tidak. Baris lama dipertahankan dengan coretan supaya pembaca berikutnya tahu aturan itu pernah
+ada dan kenapa dicabut.
 
 Pesan pada kolom "Pesan bagi pengguna" ditulis sebagaimana akan dibaca petugas di layar. Bukan
 istilah teknis, bukan nama kolom.
@@ -48,11 +63,11 @@ istilah teknis, bukan nama kolom.
 | **Satu pasien satu episode yang hadir** | idem | Pasien sudah punya episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat | "Tn. Budi sudah dirawat pada episode RI-2026-09-000123 di Melati 3B. Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." | 409 |
 | Peringatan admisi `Draft` ganda | `POST /episodes` | Pasien sudah punya episode `Draft` lain | **Bukan penolakan.** "Pasien ini punya admisi lain yang sedang disiapkan sejak kemarin." Petugas boleh lanjut atau membatalkan yang lama | 200 |
 | **Jenis kelamin tidak diterima tempat tidur** | idem | Penanda tempat tidur tidak menerima jenis kelamin pasien | "Tempat tidur ini hanya untuk pasien laki-laki." | 422 |
-| **Jenis kelamin belum tercatat** | idem | `MstPatient.Gender` kosong dan tempat tidur tidak menerima keduanya, atau kamarnya sudah berpenghuni | "Jenis kelamin pasien belum tercatat. Pilih tempat tidur yang menerima laki-laki dan perempuan, di kamar yang belum ada penghuninya." | 422 |
-| **Kamar sudah dihuni jenis kelamin berbeda** | idem | Ada penempatan aktif di kamar yang sama dengan jenis kelamin berbeda, di luar boks bayi | "Kamar Melati 3 sedang dihuni pasien perempuan, sehingga tidak dapat menerima pasien laki-laki." | 422 |
+| **Jenis kelamin belum tercatat** | idem | `MstPatient.Gender` kosong **dan** tempat tidur tidak menerima laki-laki dan perempuan sekaligus. Penghuni kamar **tidak diperiksa** sejak `RWI-DEC-101` | "Jenis kelamin pasien belum tercatat. Pilih tempat tidur yang menerima laki-laki dan perempuan." | 422 |
+| ~~**Kamar sudah dihuni jenis kelamin berbeda**~~ **DICABUT 11 September 2026** oleh `RWI-DEC-101` | — | ~~Ada penempatan aktif di kamar yang sama dengan jenis kelamin berbeda, di luar boks bayi~~ Penghuni kamar **tidak lagi diperiksa sama sekali** | ~~"Kamar Melati 3 sedang dihuni pasien perempuan, sehingga tidak dapat menerima pasien laki-laki."~~ Tidak ada pesan; kode `ROOM_GENDER_MIXED` dihapus | — |
 | **Butuh isolasi, tempat tidur bukan isolasi** | idem | `RequiresIsolation` benar dan `MstBed.IsIsolationBed` salah | "Pasien ini membutuhkan isolasi, sehingga hanya dapat ditempatkan pada tempat tidur isolasi." | 422 |
 | **Tidak butuh isolasi, tempat tidur isolasi** | idem | `RequiresIsolation` salah dan `MstBed.IsIsolationBed` benar | "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi." | 422 |
-| Pengecualian boks bayi | idem | Tempat tidur bertanda `IsForNewborn` | **Tidak ada penolakan** dari tiga aturan jenis kelamin di atas | — |
+| Pengecualian boks bayi | idem | Tempat tidur bertanda `IsForNewborn` | **Tidak ada penolakan** dari **dua** aturan jenis kelamin yang tersisa. Sebelum `RWI-DEC-101` aturannya tiga | — |
 | **Pasien asal IGD belum tercatat tiba** | idem | Episode lahir dari serah terima IGD dan catatan kepergian IGD belum bertanda `Tiba` | "Pasien belum tercatat tiba di bangsal. Perawat penerima perlu mencatat kedatangannya lebih dulu." | 422 |
 
 **Lingkup aturan pasien asal IGD.** Aturan itu hanya diperiksa bila episode punya kunjungan asal,
@@ -84,7 +99,7 @@ Ini sesuai `RWI-RULE-015`.
 | Seluruh aturan Kelayakan Penempatan | idem | Tidak terpenuhi | Sama seperti bagian 2 | 409 atau 422 |
 | **Kewenangan per pasien** | idem | Pemohon adalah dokter, tetapi bukan DPJP aktif episode itu | "Hanya DPJP episode ini yang dapat memindahkan pasien. Alihkan tanggung jawab DPJP lebih dulu bila diperlukan." | 403 |
 | Pasien yang sudah pergi tidak dapat dipindahkan | idem | Kepergian fisik pasien sudah dicatat | "Pasien sudah tercatat meninggalkan ruangan, sehingga tidak dapat dipindahkan." | 422 |
-| Aturan jenis kelamin dan isolasi | idem | Salah satu dari lima aturan pada bagian 3 tidak terpenuhi | Sama seperti pesan di bagian 3 | 422 |
+| Aturan jenis kelamin dan isolasi | idem | Salah satu dari **empat** aturan pada bagian 3 tidak terpenuhi. Sebelum `RWI-DEC-101` aturannya lima | Sama seperti pesan di bagian 3 | 422 |
 | Perpindahan utuh | idem | Salah satu langkah gagal di tengah jalan | "Perpindahan gagal. Pasien tetap berada di tempat tidur semula." | 500 |
 
 **Catatan tentang baris kewenangan.** Aturan ini berlaku **hanya untuk pemohon berperan dokter**.

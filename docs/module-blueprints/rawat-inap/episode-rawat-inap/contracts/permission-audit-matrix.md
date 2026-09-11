@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.6.1` |
-| Status | `draft` |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — peran penugasan dokter, tiga penjaga penulisan klinis baru |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
 | `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
 | Backend SHA | `5afb54b` |
@@ -220,6 +221,79 @@ tidak dicabut, dan risikonya sudah diterima secara sadar sebagai `RWI-RISK-001`.
 
 ---
 
+
+## 4-A. Penjaga per-pasien setelah peran penugasan lahir — `0.8.0`
+
+**Ditambahkan 11 September 2026**, menyerap `RWI-DEC-099`. Sebelum ini, `InpDoctorAssignment`
+tidak punya kolom peran, sehingga kalimat "DPJP aktif" pada keempat penjaga di atas identik dengan
+"punya penugasan aktif". Sejak kolom `AssignmentRole` lahir, kedua kalimat itu **tidak lagi sama**,
+dan perbedaannya wajib dinyatakan supaya konsulen tidak diam-diam memperoleh kewenangan DPJP.
+
+### 4-A.1 Pembacaan ulang keempat penjaga
+
+Keempat penjaga `GUARD-INP-01` s.d. `GUARD-INP-04` berbunyi **`AssignmentRole = Dpjp`**, bukan
+sekadar "punya penugasan aktif".
+
+| Penjaga | `Dpjp` | `Consultant` | `OnCallDoctor` |
+| --- | :---: | :---: | :---: |
+| `GUARD-INP-01` perpindahan oleh dokter | Ya | **Tidak** | **Tidak** |
+| `GUARD-INP-02` keputusan pulang | Ya | **Tidak** — lihat 4-A.2 | **Tidak** |
+| `GUARD-INP-03` tanda tangan resume | Ya | **Tidak** | **Tidak** |
+| `GUARD-INP-04` ubah kebutuhan isolasi | Ya | **Tidak** | **Tidak** |
+
+**Kenapa ketiganya ditutup rapat bagi konsulen.** Keempat tindakan itu bukan pencatatan, melainkan
+**keputusan atas arah perawatan**. Konsulen dilibatkan untuk memberi pendapat pada satu masalah,
+bukan untuk mengambil alih tanggung jawab pelayanan. Membuka `GUARD-INP-04` bagi konsulen,
+misalnya, berarti seorang dokter yang dipanggil untuk satu konsultasi dapat mengubah status isolasi
+pasien yang bukan tanggung jawabnya.
+
+### 4-A.2 Satu baris yang sengaja fail-closed
+
+Matriks hak akses `PRD-to-MVP-Rawat-Inap-V2` bagian 18 menuliskan kewenangan konsulen atas
+keputusan pulang sebagai **"hanya bila policy memberi kewenangan"**. Kebijakan itu **belum ada
+sumbernya**, dan `RWI-DEC-097` **tidak** membukanya.
+
+| Keadaan | Perilaku yang berlaku |
+| --- | --- |
+| Kebijakan belum ada, konsulen meminta keputusan pulang | **Ditolak `403`** |
+| Kebijakan kelak disetujui | Penjaga `GUARD-INP-02` diperlebar lewat amandemen tersendiri, bukan lewat konfigurasi diam-diam |
+
+Penolakan itu adalah **keadaan sementara yang dinyatakan terbuka**, bukan kebijakan yang sudah
+diputuskan. Dilacak `OPEN-MVP-004`. Menuliskannya sebagai "boleh" sekarang berarti mengarang
+kebijakan klinis yang belum pernah diambil siapa pun.
+
+### 4-A.3 Penjaga baru untuk penulisan klinis
+
+Tiga penjaga lahir bersama `Gelombang 1A`. Ketiganya sama sifatnya dengan keempat penjaga lama:
+ditulis di dalam service, **tidak** dapat dipasang sebagai atribut, sehingga tunduk pada risiko
+`RWI-RISK-004` yang sama.
+
+| Penjaga | Isinya | Ditulis di mana |
+| --- | --- | --- |
+| `GUARD-INP-05` | Penulis klinis dokter diambil dari `ApplicationUser.DoctorId` pengguna terautentikasi. `DoctorId` pada payload **tidak** menentukan penulis; bila dikirim dan berbeda, permintaan ditolak | `InpatientClinicalContextService.ResolveAsync`, dipanggil seluruh jalur tulis dokter |
+| `GUARD-INP-06` | Kewenangan dinilai pada **waktu klinis** dokumen, bukan waktu penyimpanan | Pemeriksaan periode penugasan di dalam resolver yang sama |
+| `GUARD-INP-07` | Penulis klinis perawat diambil dari `ApplicationUser.EmployeeId`, dan kewenangannya dinilai dari **unit tempat episode berada**, bukan dari penugasan per episode | Kemampuan baru pada resolver; hari ini resolver **nol menyebut perawat** sesuai `RWI-FACT-022` |
+
+**Butir hak akses tidak bertambah.** Ketiga penjaga ini bekerja di atas Resource dan Action yang
+sudah ada. Nol `[AccessPermission]` baru lahir dari `Gelombang 1A`. Yang bertambah adalah
+pemeriksaan hubungan pelaku dengan pasien, dan itu memang tidak pernah dapat diwakili butir hak
+akses.
+
+### 4-A.4 Yang wajib diuji dengan peran nyata
+
+`RWI-DEC-051` sudah mewajibkan test untuk penjaga lama. Kewajiban yang sama berlaku bagi ketiga
+penjaga baru, dan **tidak boleh** diuji memakai SuperAdmin saja.
+
+| Skenario negatif wajib | Hasil yang diharapkan |
+| --- | --- |
+| Dokter berperan `Consultant` meminta keputusan pulang | `403` |
+| Dokter berperan `OnCallDoctor` menandatangani resume | `403` |
+| Dokter dengan penugasan yang periodenya sudah lewat, menulis dengan waktu klinis di luar periode | `403` |
+| Dokter mengirim `DoctorId` milik dokter lain | `403`, dan nol baris tersimpan atas nama pihak lain |
+| Perawat menulis untuk pasien di unit lain | `403` |
+| Pengguna tanpa `DoctorId` maupun `EmployeeId` menulis | `403` |
+
+---
 ## 5. Audit dan histori
 
 ### 5.1 Tiga lapis yang dipakai

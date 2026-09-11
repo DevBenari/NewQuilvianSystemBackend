@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.1.0` |
-| `last_changed_in` | `0.1.0` |
-| Status | `draft` — belum disetujui manusia |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` — bagian 3A lahir: kewenangan menulis perawat ditentukan unit |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
 | `input_revision` | `02-backend-architecture.md` `0.1`; `PRD-RWI-FINAL-001` v1.0.0 |
@@ -78,6 +78,72 @@ bisnis, dan **wajib diketahui** karena ketiadaannya tidak akan terlihat dari daf
 
 ---
 
+
+## 3A. Kewenangan menulis perawat ditentukan unit — `0.4.0`
+
+**Bagian baru 11 September 2026**, menyerap `RWI-DEC-100`. Ia melengkapi bagian 3, dan seperti
+bagian itu, isinya kewenangan yang **tidak dapat** dijaga mesin hak akses.
+
+### 3A.1 Keadaan hari ini
+
+`InpatientClinicalContextService` **nol menyebut perawat** pada seluruh berkasnya. Satu-satunya
+pemeriksaan kewenangan yang tersedia adalah `IsDoctorAssignedAsync`. Akibatnya
+`PatientAssessmentController`, yang dipakai perawat, tidak punya penjaga kewenangan apa pun,
+bahkan bila dokter pelaku dikirimkan. Dasarnya `RWI-FACT-022`.
+
+Artinya hari ini pengguna mana pun yang memegang `PatientAssessment : Create` dapat menulis
+pengkajian untuk pasien mana pun di rumah sakit.
+
+### 3A.2 Penjaga yang berlaku
+
+| Penjaga | Isinya |
+| --- | --- |
+| `GUARD-INP-07` | Penulis diambil dari `ApplicationUser.EmployeeId` pengguna terautentikasi. `nurseId` pada payload **tidak** menentukan penulis |
+| `GUARD-INP-08` | Perawat boleh menulis untuk pasien yang episodenya berada di **unit tempat perawat itu bertugas**. Penugasan per episode **bukan** syarat |
+
+Definisi kanonik `GUARD-INP-07` dipegang
+[`../episode-rawat-inap/contracts/permission-audit-matrix.md`](../../episode-rawat-inap/contracts/permission-audit-matrix.md)
+bagian 4-A.3. `GUARD-INP-08` lahir di sini karena hanya menyangkut perawat.
+
+### 3A.3 Kenapa gerbang perawat lebih longgar daripada gerbang dokter
+
+Perbedaan ini **disengaja** dan wajib dibaca sebagai keputusan, bukan sebagai kelalaian.
+
+| Hal | Dokter | Perawat |
+| --- | --- | --- |
+| Lama melekat pada pasien | Berhari-hari | Satu shift |
+| Berapa pasien sekaligus | Beberapa | 20 sampai 30 satu bangsal |
+| Pergantian per hari | Jarang | Tiga kali |
+| Sumber kewenangan | Penugasan per episode | Unit tempat episode berada |
+
+Menuntut penugasan per episode bagi perawat berarti membuat sekitar 90 baris penugasan manual per
+hari per bangsal, karena sistem **tidak mempunyai konsep shift perawat sama sekali** yang dapat
+membangkitkannya. Dasarnya `RWI-DEC-100`.
+
+### 3A.4 `InpNurseAssignment` tetap ada, dan maknanya tidak berubah
+
+| Yang ia lakukan | Yang ia **tidak** lakukan |
+| --- | --- |
+| Menandai perawat penanggung jawab yang tampil pada kepala konteks pasien | Mengunci siapa yang boleh menulis |
+| Menjadi bahan daftar pantau episode tanpa perawat | Menjadi gerbang hak akses |
+
+### 3A.5 Satu hal yang belum ditetapkan dan menjadi pekerjaan desain teknis
+
+Sumber data "unit tempat perawat bertugas" **belum ditetapkan**. `InpNurseAssignment` tidak
+menyimpannya, dan penetapannya adalah pekerjaan pada task implementasi.
+
+**Satu jalan yang dilarang.** Menambahkan kolom unit ke `InpNurseAssignment` **tidak boleh**
+dipakai sebagai jalan pintas. Unit episode dapat berubah ketika pasien dipindahkan, sehingga
+menyalin unit ke baris penugasan melahirkan sumber kebenaran kedua yang akan berbeda dari unit
+episode begitu perpindahan pertama terjadi.
+
+### 3A.6 Nol butir hak akses baru
+
+Sama seperti sub-modul dokter, `Gelombang 1A` tidak melahirkan Resource maupun Action baru di sini.
+Test hak akses lama akan tetap lulus tanpa disentuh, sehingga **tidak dapat** dipakai sebagai bukti
+bahwa penjaga baru bekerja.
+
+---
 ## 4. Audit
 
 | Lapisan | Yang dicatat |

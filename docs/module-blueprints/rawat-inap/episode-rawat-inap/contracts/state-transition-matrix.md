@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
-| Status | `draft` |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — bagian 6A lahir: siklus penugasan dokter berperiode beserta perannya |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
 | Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
@@ -212,6 +213,67 @@ keenam, dan yang membuat `RWI-DEC-009` serta `RWI-AC-004` tidak dilanggar.
 
 ---
 
+
+## 6A. Penugasan dokter berperiode — lahir `0.8.0`
+
+**Bagian baru 11 September 2026**, menyerap `RWI-DEC-099`. Sebelum ini penugasan dokter tidak
+pernah dimuat matriks ini, karena bentuknya periode dan bukan mesin status. Peran baru mengubah
+keadaan itu: sejak `AssignmentRole` lahir, satu episode dapat memiliki **beberapa** penugasan
+terbuka sekaligus, dan aturan yang menjaganya berbeda per peran.
+
+### 6A.1 Dua keadaan, bukan mesin status
+
+Satu baris penugasan hanya punya dua keadaan, dan keduanya dibaca dari `EndDateTime`:
+
+| Keadaan | Cara membacanya | Arti bagi kewenangan menulis |
+| --- | --- | --- |
+| **Aktif** | `EndDateTime` kosong | Dokter boleh menulis untuk waktu klinis di dalam periodenya |
+| **Berakhir** | `EndDateTime` terisi | Dokter **masih** boleh menulis untuk waktu klinis **di dalam** periode lama, dan **tidak boleh** untuk waktu klinis di luarnya |
+
+Baris kedua itu yang sering salah dipahami. Penugasan yang berakhir **tidak** menghapus kewenangan
+atas dokumen yang waktu klinisnya berada di dalam periode itu. Dokter yang lupa mencatat visite
+kemarin sore tetap boleh mencatatnya hari ini, selama waktu klinis yang ia tulis memang jatuh
+ketika ia masih bertugas. Ini yang dituntut `AC-MVP-012`, dan inilah alasan penilaian memakai
+waktu klinis, bukan waktu penyimpanan.
+
+### 6A.2 Berapa banyak yang boleh aktif bersamaan
+
+| Peran | Batas penugasan aktif per episode | Dijaga oleh |
+| --- | --- | --- |
+| `Dpjp` | **Tepat satu** | Index unik `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp` ditambah pemeriksaan service |
+| `Consultant` | Banyak, tidak dibatasi | Tidak ada batas teknis; yang membatasi adalah kewajaran klinis |
+| `OnCallDoctor` | Banyak, tidak dibatasi | Sama |
+
+**Kenapa konsulen tidak dibatasi.** Satu pasien dapat dikonsultasikan ke penyakit dalam, bedah, dan
+anestesi sekaligus pada hari yang sama. Membatasinya menjadi satu berarti memaksa kepala ruangan
+menutup konsultasi yang masih berjalan hanya supaya konsultasi berikutnya dapat dibuat.
+
+### 6A.3 Perpindahan yang sah
+
+| Dari | Ke | Pemicu | Yang wajib ada | Yang dilarang |
+| --- | --- | --- | --- | --- |
+| Tidak ada DPJP | `Dpjp` aktif | Admisi episode | Dokter, waktu mulai | Membuat episode `Admitted` tanpa DPJP |
+| `Dpjp` aktif | `Dpjp` aktif milik dokter lain | Pengalihan tanggung jawab | **Satu transaksi**: tutup baris lama dengan `EndDateTime`, buka baris baru, `HandoverReason` wajib | Dua baris `Dpjp` terbuka pada saat yang sama, walau sekejap |
+| Tidak ada | `Consultant` aktif | Kepala ruangan atau supervisor melibatkan konsulen | Alasan pelibatan pada `HandoverReason` | Konsulen membuat penugasannya sendiri |
+| Tidak ada | `OnCallDoctor` aktif | Kepala ruangan atau supervisor memanggil dokter jaga | Alasan pemanggilan | Dokter jaga membuat penugasannya sendiri |
+| `Consultant` atau `OnCallDoctor` aktif | Berakhir | Konsultasi selesai, atau shift jaga selesai | Waktu selesai | Menghapus barisnya |
+| Peran apa pun | Peran lain pada baris yang sama | — | — | **Dilarang.** Peran tidak dapat diubah pada baris yang sudah ada; tutup baris lama, buka baris baru |
+
+**Kenapa peran tidak boleh diubah di tempat.** Mengubah `Consultant` menjadi `Dpjp` pada baris yang
+sama akan menulis ulang sejarah: dokumen yang ditulis semasa ia konsulen mendadak terbaca seakan
+ditulis DPJP. Penugasan adalah catatan berperiode, dan catatan berperiode dikoreksi dengan menutup
+lalu membuka, bukan dengan menimpa.
+
+### 6A.4 Pengaruh penutupan episode
+
+| Keadaan episode | Yang terjadi pada penugasan |
+| --- | --- |
+| `DischargePending` | Seluruh penugasan **tetap aktif**. Dokumen susulan masih mungkin dibuat |
+| `Closed` | Seluruh penugasan yang masih terbuka ditutup pada waktu penutupan |
+| `Cancelled` | Sama seperti `Closed` |
+| Episode dibuka kembali lewat sesi koreksi | Penugasan **tidak** ikut dibuka kembali. Sesi koreksi tidak menerima catatan klinis baru sesuai `FR-MVP-EP-022` |
+
+---
 ## 7. Traceability
 
 | Bagian | Requirement dan decision asal |

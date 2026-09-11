@@ -10,7 +10,7 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`approved`** — revision `4` disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-074`; revision `3` sebelumnya lewat `RWI-DEC-067` |
+| `status` | **`approved`** — revision `6` beserta kontrak `0.8.0` disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105`; revision `5` sebelumnya `approved`. Revision `4` disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-074`; revision `3` sebelumnya lewat `RWI-DEC-067` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
 | `approved_at` | `2026-08-24` |
@@ -56,17 +56,17 @@ masing-masing hanya menahan task yang ditunjuk di sana.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.5` | `draft` | `b1bb39dc0c4da1d1e14b362cc5d0a85b8452a17d780f4a59a79ab93b43c6504f` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.6` | `draft` | `6e280eae1ab85d3165aeee3dd9ccfbcc061ac55f74f653b1c1c7a66b52e0fe3d` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.7` | `draft` | hash dihitung ulang saat approval `0.8.0` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.7` | `draft` | hash dihitung ulang saat approval `0.8.0` |
 | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.6.1` | `draft` | `99814d79eb09cce6b2a528deff6751d89915914a8f17b03f36e3c9c351c02a23` |
 | [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `f74a845433ba64806ee1cd945f8ca515228af2a470082c4095f95f682ceed09e` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.5` | `draft` | hash dihitung ulang saat approval `0.8.0` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `73eaa7d0c6d0567a37380679b4c9c0fd150d75a8851e7b6fd4b1d5f4e28a41e4` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `7f21508a0f66470b9b6b1d625359636882b89481318b16da7472735e916449eb` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.6.1` | `draft` | `4c592644e6a1aca63827332900eeb4aa3299e759ad16169733793cd552e2028a` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.8.0` | `draft` | hash dihitung ulang saat approval `0.8.0` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.4.0` | `draft` | `35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.6.1` | `draft` | `2f168cdd85b72c66dfa534e6560610e65e3582a973bbccf6f6d7b543b3dbb4ce` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.8.0` | `draft` | hash dihitung ulang saat approval `0.8.0` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` | `draft` | `99ef4d4fb982987fa25b51dc49720344366a6bb42d31f8c7c6b153070a62aab0` |
 | [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.6.1` | `draft` | `a0ba4ad5f8f4d587dff5c8321fc2c33fe1be825c32cb2fed06099b1e9858d6e9` |
 | [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` | `draft` | `357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c` |
@@ -97,7 +97,7 @@ Ditulis `/qv-plan`, bukan skill desain. Ketiganya di-resync ke masukan revision 
 | Artefak | Revision | Status | Gerbang |
 |---|---|---|---|
 | [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `4` | `DRAFT` | `BLUEPRINT_APPROVED` — 36 dari 39 task selesai. Dua task deposit dibatalkan dan dua lagi dipindahkan ke roadmap `billing-kasir` pada 2026-09-08. Revision `4` menambah tujuh task deposit — dua di antaranya sudah dibatalkan — dan **belum disetujui**; approval revision `3` tidak meluas ke sana. **Dua** di antaranya `BLOCKED` oleh `RWI-OQ-053` |
-| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `7` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 45** task selesai; 12 terbuka, empat di antaranya task deposit `FE-RWI-042` s.d. `FE-RWI-045` yang seluruhnya menunggu `RWI-UI-GAP-008` |
+| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `7` | `DRAFT` | `UI_SCHEMA_APPROVAL_REQUIRED` — **33 dari 45** task selesai; 12 terbuka, empat di antaranya task deposit `FE-RWI-058` s.d. `FE-RWI-061` yang seluruhnya menunggu `RWI-UI-GAP-008` |
 | [`roadmap/requirement-traceability.md`](./roadmap/requirement-traceability.md) | `7` | `DRAFT` | Mengikuti roadmap frontend. Bagian `EPIC RI-35` ditambahkan dengan kolom AC **sengaja kosong**; penomoran `RWI-AC-181` dan seterusnya milik `/qv-design` |
 
 Revision `3` dan `6` berlingkup `INPUT_RESYNC_ONLY`: nol task ditambah, diubah, atau dihapus.

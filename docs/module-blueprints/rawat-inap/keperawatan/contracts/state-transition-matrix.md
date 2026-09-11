@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
+| Contract version | `0.4.0` |
+| `last_changed_in` | `0.4.0` — bagian 3A lahir: jalur hapus tanda vital dicabut |
 | Compatibility impact | `0.3.0`: status **`Amended` dicabut** dari mesin pengkajian dan mesin catatan tindakan. Koreksi kini dipegang mesin addendum `MedicalRecordManagement`, sejalan `RWI-DEC-091`. Mesin butir rencana asuhan **tidak berubah**. Nol nilai status baru, nol enum baru |
-| Status | `draft` — belum disetujui manusia |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
 | `input_revision` | `02-backend-architecture.md` `0.3`; `PRD-RWI-FINAL-001` v1.0.0; decision log `13` |
@@ -119,6 +119,49 @@ Karena itu status tagihan **bukan** status catatan.
 
 ---
 
+
+## 3A. Penutupan jalur hapus tanda vital — `0.4.0`
+
+**Bagian baru 11 September 2026**, menyerap `RWI-DEC-098`. Tanda vital **bukan** mesin status milik
+sub-modul ini; tabelnya dimiliki `ClinicalManagement`. Bagian ini ada karena tanda vital dicatat
+perawat dan dibaca ruang kerja keperawatan, sehingga perubahannya menyentuh alur kerja di sini.
+
+### 3A.1 Keadaan yang dicabut
+
+| Keadaan | Cara mencapainya sebelum `0.4.0` | Ketetapan `0.4.0` |
+| --- | --- | --- |
+| **Terhapus** | `DELETE /patient-vital-signs/{id}` mengubah `IsDelete` menjadi benar, `IsActive` menjadi salah, **dan `NeedDoctorNotification` menjadi salah** | **Dicabut.** Route tidak tersedia; jawabannya `404` |
+
+Perhatikan bagian ketiga. Penghapusan tanda vital ikut mematikan penanda pemberitahuan ke dokter,
+sehingga nilai kritis yang sudah tercatat dapat hilang **beserta** kewajiban memberitahukannya,
+dalam satu panggilan, tanpa alasan tersimpan.
+
+### 3A.2 Kenapa tanda vital berbeda dari dokumen lain
+
+Tanda vital adalah deret waktu, bukan dokumen tunggal. Menghapus satu baris tidak menyisakan lubang
+yang terlihat: grafik tetap tersambung dan tetap tampak wajar. Pembaca berikutnya tidak punya cara
+mengetahui bahwa pernah ada pengukuran di antara dua titik yang ia lihat.
+
+Dokumen naratif seperti catatan terpadu berbeda. Hilangnya satu catatan meninggalkan jeda waktu
+yang dapat dipertanyakan orang.
+
+### 3A.3 Satu prasyarat yang belum terpenuhi
+
+`ClinicalDocumentKind.VitalSign` bernomor `6`, tetapi **belum termasuk** jenis yang ditegakkan mesin
+keutuhan dokumen. Yang ditegakkan hari ini hanya `ProgressNote`, `Consultation`, `Assessment`, dan
+`Procedure`.
+
+| Keadaan | Akibatnya bagi jalur pengganti |
+| --- | --- |
+| `VitalSign` belum dinaikkan | Pembatalan beralasan **belum dapat** memeriksa apakah dokumen sudah final. Penutupan `DELETE` tetap menghilangkan cara menyembunyikan catatan, tetapi penggantinya belum utuh |
+| `VitalSign` kelak dinaikkan | Jalur pembatalan memeriksa keutuhan seperti catatan terpadu, dan koreksi dokumen final berpindah ke addendum |
+
+Keputusan menaikkannya milik pemilik `MedicalRecordManagement`, dilacak `V2-UNK-01` pada
+[`../../01-existing-capability-map.md`](../../01-existing-capability-map.md) bagian 16.5. Ia
+**tidak** memblokir penutupan `DELETE`, tetapi **memblokir** pernyataan bahwa penggantinya sudah
+lengkap.
+
+---
 ## 4. Satu syarat teknis yang wajib dibaca sebelum dibangun
 
 `RWI-DEC-091` memakai mesin keutuhan dokumen milik `MedicalRecordManagement`. Pembacaan source

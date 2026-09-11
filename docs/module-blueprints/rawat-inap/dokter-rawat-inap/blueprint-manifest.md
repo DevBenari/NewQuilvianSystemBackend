@@ -111,7 +111,7 @@ modul.
 | [`flowcharts/01-catatan-harian-dan-cppt.md`](./flowcharts/01-catatan-harian-dan-cppt.md) | `0.2` | **`approved`** | `5c5f75897d8d51d68b7b96ab78970ff92395927022360dff3c5ef89a7887dfef` |
 | [`flowcharts/02-visite-dokter.md`](./flowcharts/02-visite-dokter.md) | `0.2` | **`approved`** — **berkas baru** | `e28006d80ed19139349c64ed9852e7e0d3695a3e4b2ed4dd02a377711235a32c` |
 | [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.4` ★ | **`approved`** | `0659872afeade8cc5d35f4cd70648d19a33f854f49c828f34dd6d882f58b5958` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` ★ | **`approved`** | `5bf0ee69fd2877199d5a80708cefcbdfc270f34adea143426bb17ad37125eb41` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.5.0` | **`approved`** 2026-09-11 | hash dihitung ulang saat rilis |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | **`approved`** | `024c330d0ccf5acf4a94ec5c87e7cde6c92626f8b8fdcd0a86dc086aa8a14802` |
 | [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` ★ | **`approved`** | `8844e3e0e64797eba48775a81d9221fae7aff4e55b4f86c7318201f1482e62af` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` ★ | **`approved`** | `23f381dbb0e17ae2a1169393ddb25f29670b276a6c978498ec6c4be474f3e7a2` |

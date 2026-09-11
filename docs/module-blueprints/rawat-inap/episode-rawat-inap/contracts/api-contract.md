@@ -3,13 +3,55 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.7.0` |
-| Status | **`approved`** |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
 | `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+
+
+### Perubahan pada `contract_version` `0.8.0`
+
+**Status: `approved` sejak 11 September 2026** lewat `RWI-DEC-105`. Amandemen ini menyerap `RWI-DEC-101`, yang menutup temuan `P0` nomor satu pada `PRD-to-MVP-Rawat-Inap-V2`.
+
+**Masalah yang ditutupnya.** Kelayakan tempat tidur ikut menilai jenis kelamin **penghuni kamar
+lain**. Akibatnya kamar berisi satu pasien laki-laki menolak seluruh pasien perempuan, walaupun
+tempat tidur yang dituju memang dikonfigurasi Admin Master Data untuk menerima keduanya. Keputusan
+privasi berubah menjadi akibat sampingan dari siapa yang kebetulan datang lebih dulu, dan petugas
+admisi tidak punya jalan keluar selain memindahkan pasien yang sudah dirawat.
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Kode penolakan `ROOM_GENDER_MIXED` **dihapus seluruhnya**. Ia tidak lagi muncul pada `failures[]` mana pun, baik pada pencarian, pemesanan, penempatan, maupun perpindahan | `RWI-DEC-101`; `MVP-RWI-D-002` |
+| Aturan nomor 6 pada Kelayakan Penempatan **dipensiunkan**. Nomor 6 dibiarkan kosong dan tidak dipakai ulang | `RWI-DEC-101` |
+| Aturan nomor 5 `PATIENT_GENDER_UNKNOWN` **dipersempit**: syaratnya kini hanya tempat tidur menerima laki-laki dan perempuan sekaligus. Syarat "kamar belum berpenghuni" dicabut | `RWI-DEC-101`; `FR-MVP-EP-006` |
+| `BED_GENDER_MISMATCH` aturan 4 **tidak berubah sama sekali** | `RWI-RULE-012` B.1 tetap berlaku |
+| `ISOLATION_REQUIRED` aturan 7 dan `ISOLATION_BED_RESERVED` aturan 8 **tidak berubah sama sekali** | `RWI-RULE-012` bagian A tidak tersentuh |
+| Pengecualian boks bayi **tidak berubah** | `RWI-RULE-012` B.5 tetap berlaku |
+
+**Kenapa ini perubahan yang merusak, dan bagi siapa.** Bagi pemanggil yang hanya membaca daftar
+bed yang lolos, perubahan ini **menambah** bed yang sebelumnya tertolak, sehingga tidak ada bentuk
+response yang berubah. Yang rusak adalah pemanggil yang **memetakan kode penolakan**: frontend
+menyimpan `ROOM_GENDER_MIXED` pada `inpatient-placement-utils.jsx`, dan tiga berkas test
+menguncinya, yaitu `tests/unit/inpatient-placement.test.mjs` pada tiga tempat serta
+`tests/e2e/inpatient-episode-detail.spec.mjs`. Karena itu backend dan frontend **wajib berada pada
+satu gelombang rilis**; menurunkan salah satunya lebih dulu meninggalkan test yang menguji kode
+yang sudah tidak pernah terbit.
+
+**Contoh perubahan perilaku yang dapat diuji.** Kamar Melati 1 berisi tiga tempat tidur yang
+seluruhnya dikonfigurasi `IsForMale` dan `IsForFemale` bernilai benar. Pukul 08:00 Tn. Budi
+menempati `MELATI-01-A`.
+
+| Keadaan | Sebelum `0.8.0` | Sejak `0.8.0` |
+| --- | --- | --- |
+| Ny. Sari ditempatkan ke `MELATI-01-B` | **Ditolak** `422 ROOM_GENDER_MIXED` | **Berhasil** |
+| Pasien laki-laki ke tempat tidur bertanda perempuan saja | Ditolak `422 BED_GENDER_MISMATCH` | **Tetap ditolak** `422 BED_GENDER_MISMATCH` |
+| Pasien tanpa jenis kelamin tercatat ke `MELATI-01-B` | **Ditolak** `422 PATIENT_GENDER_UNKNOWN` karena kamar sudah berpenghuni | **Berhasil**, karena tempat tidurnya menerima keduanya |
+| Pasien tanpa jenis kelamin tercatat ke tempat tidur perempuan saja | Ditolak `422 PATIENT_GENDER_UNKNOWN` | **Tetap ditolak** `422 PATIENT_GENDER_UNKNOWN` |
+| Pasien tanpa kebutuhan isolasi ke tempat tidur isolasi | Ditolak `422 ISOLATION_BED_RESERVED` | **Tetap ditolak** `422 ISOLATION_BED_RESERVED` |
 
 ### Perubahan pada `contract_version` `0.7.0`
 
@@ -63,9 +105,9 @@ Contoh jawaban, dipersingkat pada bagian yang tidak berubah.
         "bedId": "4842ce58-a1c9-481f-b691-aa6c5cbc88f9",
         "failures": [
           {
-            "ruleNumber": 6,
-            "code": "ROOM_GENDER_MIXED",
-            "message": "Kamar Ruang Rawat Inap Kelas I 1 sedang dihuni pasien perempuan, sehingga tidak dapat menerima pasien laki-laki.",
+            "ruleNumber": 4,
+            "code": "BED_GENDER_MISMATCH",
+            "message": "Tempat tidur ini hanya menerima pasien perempuan.",
             "statusCode": 422
           }
         ]

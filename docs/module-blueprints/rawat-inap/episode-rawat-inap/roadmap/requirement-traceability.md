@@ -196,7 +196,7 @@ kontrak.
 | --- | --- | --- |
 | `RWI-AC-*` untuk `EPIC RI-35` belum ada | Dua belas baris FR pada bagian 2 punya task dan test, tetapi kolom AC kosong | Tidak menahan pelaksanaan; menahan klaim "traceability penuh" sampai `/qv-design` menomori acceptance criteria deposit |
 | Skema tampilan langkah Deposit belum ada | `05-skema-tampilan.md` `0.4` tidak memuat `FE-INP-20` | Keempat task frontend deposit — `RWI-UI-GAP-008` |
-| Penerimaan task oleh pemilik `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu; kedua task sudah berdiri pada roadmap `billing-kasir` sebagai `BE-BKC-039` dan `BE-BKC-040` | `FE-RWI-043`, `FE-RWI-045`, `BE-RWI-042`, dan `BE-RWI-043` — seluruhnya lewat jalur dependency, bukan lewat task Rawat Inap yang terblokir |
+| Penerimaan task oleh pemilik `BillingManagement` belum ada | `RWI-DEC-062` tidak mencakup modul itu; kedua task sudah berdiri pada roadmap `billing-kasir` sebagai `BE-BKC-039` dan `BE-BKC-040` | `FE-RWI-059`, `FE-RWI-061`, `BE-RWI-071`, dan `BE-RWI-072` — seluruhnya lewat jalur dependency, bukan lewat task Rawat Inap yang terblokir |
 | Pemegang `BillingDeposit : Create` pada langkah admisi belum ditetapkan | Peta peran pada `permission-audit-matrix.md` `0.6.0` menuliskannya terbuka | `EPIC RI-35a` — `RWI-OQ-052` |
 | Kebijakan minimum deposit belum ada isinya | Master baru pada `BE-RWI-038`; siapa yang mengisi dan berapa angkanya adalah keputusan keuangan | Tidak menahan pelaksanaan; langkah Deposit berjalan tanpa minimum sampai terisi |
 | `UAT-34` s.d. `UAT-44` belum masuk `testing/acceptance-test-matrix.md` | Matriks masih `0.4.0` | Klaim kesiapan sign-off `EPIC RI-35` |
@@ -217,7 +217,7 @@ kontrak.
 | `EPIC RI-28` | Daftar periksa, kelayakan keuangan, dan penutupan | `MVP-3` | `BE-RWI-023`, `BE-RWI-024`, `BE-RWI-025`, `BE-RWI-026`, `BE-RWI-027` | `FE-RWI-013`, `FE-RWI-014`, `FE-RWI-015` |
 | `EPIC RI-29` | Riwayat status dan daftar pantau | `MVP-4` | `BE-RWI-028`, `BE-RWI-029` | `FE-RWI-016`, `FE-RWI-017`, `FE-RWI-038`, `FE-RWI-039` |
 | `EPIC RI-30` | Sesi koreksi episode | `MVP-4` | `BE-RWI-030` | `FE-RWI-018` |
-| `EPIC RI-31` | Pengaturan yang dapat diubah admin | `MVP-0` | `BE-RWI-005`, ✅ `BE-RWI-041` | `FE-RWI-003`, `FE-RWI-004`, `FE-RWI-040`, `FE-RWI-041` |
+| `EPIC RI-31` | Pengaturan yang dapat diubah admin | `MVP-0` | `BE-RWI-005`, ✅ `BE-RWI-070` | `FE-RWI-003`, `FE-RWI-004`, `FE-RWI-040`, `FE-RWI-041` |
 | `EPIC RI-32` | Perbaikan tempat tidur dan pembatasan wewenang status | `MVP-0` | `BE-RWI-006`, `BE-RWI-032` | `FE-RWI-001` |
 | `EPIC RI-33` | Bayi baru lahir dan boks bayi | `MVP-4` | `BE-RWI-031` | `FE-RWI-022` untuk memilih episode ibu; census dan penempatan tetap dipakai sesudah episode terbentuk |
 | `EPIC RI-34` | Kelayakan penempatan menurut jenis kelamin dan isolasi | `MVP-1` | `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-006`, `FE-RWI-007`, `FE-RWI-009`, `FE-RWI-016`, `FE-RWI-025`, `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-036`, `FE-RWI-038` |
@@ -367,9 +367,9 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 | `BE-RWI-033` | Bukti penerimaan lengkap dan traceability tertutup (`RWI-AC-001` s.d. `RWI-AC-149`; ke-33 UAT) | **Selesai 1 September 2026.** Menemukan dan menutup 67 acceptance criteria tanpa penunjuk, 4 UAT tanpa pasangan, dan 1 baris api contract yang masih `Rencana`. Hasil akhir: 51 baris endpoint tanpa `Rencana`, 146 acceptance criteria tanpa satu pun tanpa penunjuk atau alasan, 33 UAT berpasangan, 0 butir "menyusul". Daftar lengkapnya pada bagian **Penutupan bukti penerimaan** di bawah | ✅ **Selesai** — [laporan](../task/report/backend/BE-RWI-033.md) |
 | `BE-RWI-034` | Menyelaraskan sembilan pasangan hak akses yang tidak dapat diberikan kepada peran non-SuperAdmin dan menyediakan pembacaan ulang kelayakan keuangan | **Selesai 1 September 2026.** Kesembilan pasangan diselaraskan sebagai butir halus per aksi; `GET /discharges/{episodeId}/financial-clearance` dibuka dengan butir hak akses tersendiri. Dibuktikan tanpa SuperAdmin lewat `InpatientRoleAccessContractTests`. Penggunaan nyata `FE-RWI-009` s.d. `FE-RWI-015` tidak lagi tertahan kode, tetapi masih menunggu admin memberikan delapan butir barunya | ✅ **Selesai** — [laporan](../task/report/backend/BE-RWI-034.md) |
 | `BE-RWI-035` | Encounter admin dapat menyimpan Penjamin Perusahaan sebagai satu-satunya payer dengan referensi dan snapshot yang sah | Kedelapan acceptance criteria terbukti. `dotnet build` solution `0 Error(s)`; `dotnet test` **786/786 lulus**, termasuk 25 test baru. Migration `20260831075231_AddCompanyGuarantorToPatientEncounterGuarantor` sudah **diterapkan ke database dev pemilik**; database bersama/target belum. [laporan](../task/report/backend/BE-RWI-035.md) | ✅ **Selesai 31 Agustus 2026** |
-| `BE-RWI-041` | Ambang hari penagihan ulang kekurangan uang muka menjadi setelan rumah sakit, bukan angka di dalam kode (`RWI-DEC-096`; `FR-RI-143`, `FR-RI-177`) | Kelima acceptance criteria terbukti. Kolom `DepositFollowUpIntervalDays` bawaan `3` pada `MstInpatientSetting`, dibaca dan diubah lewat endpoint pengaturan yang sudah ada; nilai `0`, negatif, dan `366` ditolak. `dotnet build` **`0 error CS`**; `dotnet test` kelas uji terkait **`Failed: 0, Passed: 21`**. Migration `20260910041922_AddDepositFollowUpIntervalToInpatientSetting` dibuat dan **belum diterapkan** ke database dev pemilik maupun database bersama. Uji migration maju-mundur PostgreSQL `NOT RUN` dan **dikecualikan atas keputusan pemilik**; butir itu bukan salah satu dari kelima acceptance criteria. [laporan](../task/report/backend/BE-RWI-041.md) | ✅ **Selesai 10 September 2026** |
-| `BE-RWI-042` | Daftar pantau kekurangan deposit supaya penagihan berkala punya tempat kerja (`RWI-DEC-096`; `FR-RI-177`) | **Nol baris source ditulis.** Prasyarat `BE-RWI-041` sudah ✅, tetapi `BE-BKC-040` **nol barisnya ada di source** — rute `deposits/episodes/{episodeId}`, tipe ringkasannya, master `BE-BKC-039`, dan laporan task Billing-nya sama-sama tidak ditemukan. Empat dari lima kriteria tidak punya angka untuk diuji; kriteria kelima tidak punya sumber yang dapat digagalkan. [laporan](../task/report/backend/BE-RWI-042.md) | ⛔ **Terblokir 10 September 2026** |
-| `BE-RWI-043` | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta (`FR-RI-170` s.d. `FR-RI-172`; `RWI-RISK-003`) | **Nol baris source ditulis.** Tiga dari empat bahannya sudah ada dan berjalan — alokasi, refund, dan tagihan final — begitu pula `MarkFinancialClearanceAsync`. Yang hilang hanya ringkasan deposit per episode milik `BE-BKC-040`. Kriteria 4 melarang menganggap sumber yang tidak terbaca sebagai lunas, sehingga gerbang di atas sumber yang belum ada hanya punya dua kemungkinan dan keduanya merugikan. [laporan](../task/report/backend/BE-RWI-043.md) | ⛔ **Terblokir 10 September 2026** |
+| `BE-RWI-070` | Ambang hari penagihan ulang kekurangan uang muka menjadi setelan rumah sakit, bukan angka di dalam kode (`RWI-DEC-096`; `FR-RI-143`, `FR-RI-177`) | Kelima acceptance criteria terbukti. Kolom `DepositFollowUpIntervalDays` bawaan `3` pada `MstInpatientSetting`, dibaca dan diubah lewat endpoint pengaturan yang sudah ada; nilai `0`, negatif, dan `366` ditolak. `dotnet build` **`0 error CS`**; `dotnet test` kelas uji terkait **`Failed: 0, Passed: 21`**. Migration `20260910041922_AddDepositFollowUpIntervalToInpatientSetting` dibuat dan **belum diterapkan** ke database dev pemilik maupun database bersama. Uji migration maju-mundur PostgreSQL `NOT RUN` dan **dikecualikan atas keputusan pemilik**; butir itu bukan salah satu dari kelima acceptance criteria. [laporan](../task/report/backend/BE-RWI-070.md) | ✅ **Selesai 10 September 2026** |
+| `BE-RWI-071` | Daftar pantau kekurangan deposit supaya penagihan berkala punya tempat kerja (`RWI-DEC-096`; `FR-RI-177`) | **Nol baris source ditulis.** Prasyarat `BE-RWI-070` sudah ✅, tetapi `BE-BKC-040` **nol barisnya ada di source** — rute `deposits/episodes/{episodeId}`, tipe ringkasannya, master `BE-BKC-039`, dan laporan task Billing-nya sama-sama tidak ditemukan. Empat dari lima kriteria tidak punya angka untuk diuji; kriteria kelima tidak punya sumber yang dapat digagalkan. [laporan](../task/report/backend/BE-RWI-071.md) | ⛔ **Terblokir 10 September 2026** |
+| `BE-RWI-072` | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta (`FR-RI-170` s.d. `FR-RI-172`; `RWI-RISK-003`) | **Nol baris source ditulis.** Tiga dari empat bahannya sudah ada dan berjalan — alokasi, refund, dan tagihan final — begitu pula `MarkFinancialClearanceAsync`. Yang hilang hanya ringkasan deposit per episode milik `BE-BKC-040`. Kriteria 4 melarang menganggap sumber yang tidak terbaca sebagai lunas, sehingga gerbang di atas sumber yang belum ada hanya punya dua kemungkinan dan keduanya merugikan. [laporan](../task/report/backend/BE-RWI-072.md) | ⛔ **Terblokir 10 September 2026** |
 | `BE-RWI-069` | Tempat tidur yang ditolak ikut menyebutkan aturan yang menolaknya, menggantikan kalimat buntu "Tidak lolos kelayakan" (`RWI-RULE-012` A dan B; `RWI-DEC-064` s.d. `RWI-DEC-066`) | Keenam acceptance criteria terbukti. Kriteria 3 dibuktikan dengan membandingkan kalimat penolakan **utuh** terhadap jawaban `POST /placements`; kriteria 6 dibuktikan dengan **menghitung perintah SQL sungguhan** lewat `RelationalEventId.CommandExecuted` pada provider relasional, dan hitungannya sama persis dengan dan tanpa `includeIneligible`. `dotnet build` **`0 error CS`**; `dotnet test` SQLite **`Failed: 0, Passed: 1`**, kelas uji terkait **`Failed: 0, Passed: 21`**. **Nol migration.** API contract `0.7.0` disetujui 10 September 2026 dan baris `ineligible` naik menjadi **Tersedia**. [laporan](../task/report/backend/BE-RWI-069.md) | ✅ **Selesai 10 September 2026** |
 
 **35 dari 36 task backend selesai (97%) per 1 September 2026.** Kesembilan task yang berstatus
@@ -567,17 +567,17 @@ berisi rencana; **tidak satu pun** sudah dijalankan, karena tidak satu pun task 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
 | `FR-RI-163`, `FR-RI-169` | Deposit terikat tepat satu episode, dan saldo tidak berpindah diam-diam | ❌ `BE-RWI-037` **dibatalkan** — kemampuannya sudah ada | — | `RWI-FACT-017`: `EncounterId` unique di `BilDepositAccount` dan `InpEpisode`. Sisa pembuktian ada pada `UAT-34` |
-| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | ➡️ `BE-BKC-039` (roadmap `billing-kasir`), `FE-RWI-043` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-164`, `FR-RI-175` | Kebutuhan dan minimum deposit mengikuti kebijakan penjamin/kelas | ➡️ `BE-BKC-039` (roadmap `billing-kasir`), `FE-RWI-059` 🟡 | — | `UAT-41`; **belum dijalankan** |
 | `FR-RI-165`, `FR-RI-166` | Penerimaan append-only, kwitansi unik, idempotensi | ❌ `BE-RWI-039` **dibatalkan** — kemampuannya sudah berjalan | — | `RWI-FACT-018`: header `Idempotency-Key`, unique index, jalur replay, dan test tersedia. Sisa pembuktian ada pada `UAT-34`, `UAT-35`, `UAT-36` |
-| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | ➡️ `BE-BKC-040` (roadmap `billing-kasir`), `FE-RWI-045` 🟡 | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-167` | Ringkasan deposit episode dibaca dari server, bukan dihitung layar | ➡️ `BE-BKC-040` (roadmap `billing-kasir`), `FE-RWI-061` 🟡 | — | `UAT-42`; **belum dijalankan** |
 | `FR-RI-168` | Permintaan top-up tidak mengubah histori pembayaran | ❌ `BE-RWI-039` **dibatalkan** — mutasi deposit memang append-only | — | `RWI-FACT-018`; `UAT-35` **belum dijalankan** |
-| `FR-RI-170`, `FR-RI-171` | Settlement mengalokasikan deposit; kelebihan menjadi refund eksplisit | `BE-RWI-043` — **tidak lagi terblokir** | — | Alokasi dan refund sudah ada di Billing (`/allocations`, `/financial-exceptions/refunds`); `UAT-37`, `UAT-38` **belum dijalankan** |
-| `FR-RI-172` | `Cleared` hanya setelah settlement selesai | `BE-RWI-043` — perbaikan di dalam Rawat Inap | — | `InpDischargeService.Closure.cs:284` masih menandai manual; `UAT-39` **belum dijalankan** |
-| `FR-RI-173` | Pembatalan admisi tidak menghapus transaksi uang | `BE-RWI-043` 🚫 | — | `UAT-40`; **belum dijalankan** |
-| `FR-RI-174` | Deposit adalah langkah tersendiri pada alur admisi | `FE-RWI-042` 🟡 | — | `UAT-41`; **belum dijalankan** |
-| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-043` 🟡, ➡️ `BE-BKC-040` | — | `UAT-42`; **belum dijalankan** |
-| `FR-RI-177`, `FR-RI-143` | Penagihan berkala beserta ambang hari yang dapat diubah admin | `BE-RWI-041`, `BE-RWI-042` | — | `UAT-44`; **belum dijalankan** |
-| `FR-RI-178` | Transaksi terbentuk hanya setelah episode ada | `FE-RWI-044` 🟡 | — | Sisi backend siap (`RWI-FACT-018`); urutannya dijaga frontend. `UAT-43` **belum dijalankan** |
+| `FR-RI-170`, `FR-RI-171` | Settlement mengalokasikan deposit; kelebihan menjadi refund eksplisit | `BE-RWI-072` — **tidak lagi terblokir** | — | Alokasi dan refund sudah ada di Billing (`/allocations`, `/financial-exceptions/refunds`); `UAT-37`, `UAT-38` **belum dijalankan** |
+| `FR-RI-172` | `Cleared` hanya setelah settlement selesai | `BE-RWI-072` — perbaikan di dalam Rawat Inap | — | `InpDischargeService.Closure.cs:284` masih menandai manual; `UAT-39` **belum dijalankan** |
+| `FR-RI-173` | Pembatalan admisi tidak menghapus transaksi uang | `BE-RWI-072` 🚫 | — | `UAT-40`; **belum dijalankan** |
+| `FR-RI-174` | Deposit adalah langkah tersendiri pada alur admisi | `FE-RWI-058` 🟡 | — | `UAT-41`; **belum dijalankan** |
+| `FR-RI-176` | Kekurangan hanya memberi peringatan | `FE-RWI-059` 🟡, ➡️ `BE-BKC-040` | — | `UAT-42`; **belum dijalankan** |
+| `FR-RI-177`, `FR-RI-143` | Penagihan berkala beserta ambang hari yang dapat diubah admin | `BE-RWI-070`, `BE-RWI-071` | — | `UAT-44`; **belum dijalankan** |
+| `FR-RI-178` | Transaksi terbentuk hanya setelah episode ada | `FE-RWI-060` 🟡 | — | Sisi backend siap (`RWI-FACT-018`); urutannya dijaga frontend. `UAT-43` **belum dijalankan** |
 
 **Acceptance criteria `RWI-AC-*` belum ada untuk epic ini.** Kolom AC sengaja dikosongkan, bukan
 diisi tebakan. Penomoran `RWI-AC-181` dan seterusnya diberikan saat keputusan deposit diserap ke
@@ -983,3 +983,49 @@ yang menuntut lingkungan berjalan atau keputusan yang belum turun:
 | Dua cara pulang — meninggal dan kabur — aturan klinisnya belum disahkan (`RWI-OQ-039`, `RWI-DEC-059` masih `draft`) | Product/Domain bersama Clinical governance |
 | Delapan butir hak akses baru wajib diberikan admin sebelum `FE-RWI-009` s.d. `FE-RWI-015` dapat dipakai | Admin sistem |
 | `RWI-RISK-002` turun tetapi **belum tertutup** — jalur poliklinik, IGD, dan farmasi di luar `MstBed` masih tanpa test | Backend/API |
+
+## Gelombang 1A — traceability koreksi keselamatan
+
+**Ditambahkan 11 September 2026.** Menyerap `RWI-DEC-099`, `RWI-DEC-101`, dan `RWI-DEC-104`.
+
+| Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
+| --- | --- | --- | --- | --- | --- |
+| `V2-CAP-01` Kelayakan bed tidak dipengaruhi penghuni kamar lain | `EPIC RI-36` | `FR-RI-179` s.d. `FR-RI-184` | `BE-RWI-073` ⛔ | `FE-RWI-062` ⛔ | ⛔ menunggu approval kontrak `0.8.0` |
+| `V2-CAP-03` Penulis klinis dari identitas terautentikasi — bagian penugasan | `EPIC RI-37` | `FR-RI-185` s.d. `FR-RI-190` | `BE-RWI-074` ⛔ | **Nol task** — tidak mengubah rupa layar | ⛔ menunggu approval kontrak `0.8.0` |
+
+| Requirement | Keputusan / aturan | Kontrak `0.8.0` | Acceptance test | Task |
+| --- | --- | --- | --- | --- |
+| `FR-RI-179` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-130` berbalik | `BE-RWI-073` |
+| `FR-RI-180` | `RWI-DEC-101` | `api-contract.md` bagian 0.8.0 | `RWI-AC-130a` | `BE-RWI-073`, `FE-RWI-062` |
+| `FR-RI-181` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-129` dipersempit | `BE-RWI-073` |
+| `FR-RI-182` | `RWI-RULE-012` B.1 | `validation-matrix.md` bagian 3 | `RWI-AC-128` | `BE-RWI-073` |
+| `FR-RI-183` | `RWI-RULE-012` bagian A | `validation-matrix.md` bagian 3 | `RWI-AC-133a` | `BE-RWI-073` |
+| `FR-RI-184` | `RWI-RULE-012` B.5 | `validation-matrix.md` bagian 3 | `RWI-AC-133b` | `BE-RWI-073` |
+| `FR-RI-185` | `RWI-DEC-099` | `data-dictionary.md` bagian 2 | `RWI-AC-084a` | `BE-RWI-074` |
+| `FR-RI-186` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084`, `RWI-AC-084a` | `BE-RWI-074` |
+| `FR-RI-187` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.1 | `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-074`, `BE-RWI-076` |
+| `FR-RI-188` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.3 | `RWI-AC-084d` | `BE-RWI-074` |
+| `FR-RI-189` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084b`, `RWI-AC-084c`, `RWI-AC-084h` | `BE-RWI-074` |
+| `FR-RI-190` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 4-A.1 | `RWI-AC-084f`, `RWI-AC-084g` | `BE-RWI-074` |
+
+### Penomoran ulang task — `RWI-DEC-103` dieksekusi 11 September 2026
+
+| Nomor lama | Nomor baru | Judul |
+| --- | --- | --- |
+| `BE-RWI-041` | **`BE-RWI-070`** | Ambang tindak lanjut deposit dapat diubah admin |
+| `BE-RWI-042` | **`BE-RWI-071`** | Daftar pantau kekurangan deposit |
+| `BE-RWI-043` | **`BE-RWI-072`** | Settlement, refund, dan `Cleared` yang tidak lagi buta |
+| `FE-RWI-042` | **`FE-RWI-058`** | Langkah Deposit berdiri di antara Pembayaran dan Dokter |
+| `FE-RWI-043` | **`FE-RWI-059`** | Minimum kebijakan dan peringatan kekurangan terbaca |
+| `FE-RWI-044` | **`FE-RWI-060`** | Nominal deposit terkirim sesudah episode lahir |
+| `FE-RWI-045` | **`FE-RWI-061`** | Posisi deposit terbaca pada Konfirmasi dan detail episode |
+
+**Nomor lama dipensiunkan permanen dan tidak boleh dipakai ulang.** Empat nomor `BE-RWI-037` s.d.
+`BE-RWI-040` **tidak** dinomori ulang karena task episode-nya sudah dibatalkan atau dipindah ke
+Billing; barisnya kini bertanda coretan dan menyebut nomornya milik `dokter-rawat-inap`.
+
+### Coverage gap yang dinyatakan terbuka
+
+| Requirement | Yang belum tercakup test | Sebabnya |
+| --- | --- | --- |
+| Kelayakan keuangan berbasis fakta Billing | `AC-MVP-021` s.d. `AC-MVP-023` nol test | `RWI-DEC-102` mengeluarkannya dari `Gelombang 1A`. Menunggu `BE-BKC-040` pada roadmap `billing-kasir`, yang nol barisnya ada |

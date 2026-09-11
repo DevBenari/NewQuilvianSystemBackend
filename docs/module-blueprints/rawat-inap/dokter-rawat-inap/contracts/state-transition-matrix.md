@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.3.0` |
-| `last_changed_in` | `0.3.0` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Contract version | `0.5.0` |
+| `last_changed_in` | `0.5.0` — bagian 3A lahir: jalur hapus catatan terpadu dicabut, pembatalan wajib memeriksa keutuhan dokumen |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement`, `MedicalRecordManagement` |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` |
@@ -108,6 +108,63 @@ Memakai mesin status yang sama dengan pengkajian keperawatan — `Draft`, `InPro
 
 ---
 
+
+## 3A. Penutupan jalur hapus catatan terpadu — `0.5.0`
+
+**Bagian baru 11 September 2026**, menyerap `RWI-DEC-098`. Sebelum ini mesin status catatan
+terpadu memiliki satu jalan keluar yang tidak pernah dirancang: baris `IsDelete` bernilai benar,
+yang menghilangkan catatan dari seluruh pembacaan normal tanpa meninggalkan keadaan yang dapat
+dibaca.
+
+### 3A.1 Keadaan yang dicabut
+
+| Keadaan | Cara mencapainya sebelum `0.5.0` | Ketetapan `0.5.0` |
+| --- | --- | --- |
+| **Terhapus** | `DELETE /{id}` mengubah `IsDelete` menjadi benar, `IsActive` menjadi salah | **Dicabut.** Keadaan ini tidak dapat dicapai lagi dari API mana pun |
+
+Yang membuatnya berbahaya bukan penghapusan datanya, melainkan bahwa ia **tidak menyisakan
+keadaan**. Catatan yang dibatalkan masih terbaca sebagai "dibatalkan beserta alasannya"; catatan
+yang dihapus tidak terbaca sama sekali, sehingga pembaca berikutnya tidak punya cara mengetahui
+bahwa pernah ada sesuatu di sana.
+
+### 3A.2 Mesin status setelah pencabutan
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draf
+    Draf --> Final : finalisasi penulis
+    Draf --> Dibatalkan : pembatalan beralasan
+    Final --> Terverifikasi : verifikasi DPJP
+    Final --> Final : addendum bernomor urut
+    Terverifikasi --> Terverifikasi : addendum bernomor urut
+    Dibatalkan --> [*]
+    Terverifikasi --> [*]
+```
+
+Catatan `Final` dan `Terverifikasi` **tidak pernah** kembali menjadi `Draf`, dan **tidak pernah**
+menjadi `Dibatalkan`. Koreksinya hanya lewat addendum, dan addendum tidak mengubah isi aslinya.
+
+### 3A.3 Transisi yang tidak sah, dan jawabannya
+
+| Percobaan | Jawaban | Kenapa |
+| --- | --- | --- |
+| `DELETE /{id}` pada catatan mana pun | **`404`** | Route tidak ada. Bukan `403`, karena `403` menyiratkan endpointnya ada dan hanya kurang hak akses |
+| Membatalkan catatan `Final` | **`422`** | Jalur pembatalan wajib memanggil pemeriksaan keutuhan dokumen lebih dulu. Diarahkan ke addendum |
+| Membatalkan catatan `Terverifikasi` | **`422`** | Sama |
+| Membatalkan catatan `Draf` tanpa alasan | `400` | Alasan wajib |
+| Membatalkan catatan `Draf` beserta alasan | `200` | Jalur normal |
+| Menambah addendum pada catatan `Draf` | `422` | Addendum hanya untuk dokumen yang sudah terkunci |
+
+### 3A.4 Satu perubahan perilaku pada endpoint yang sudah ada
+
+`PATCH /{id}/cancel` sudah tersedia sejak `0.3.0`, tetapi hari ini **tidak** memanggil
+`EnsureMutableAsync`. Pemeriksaan keutuhan di controller yang sama hanya terpasang pada jalur
+pembaruan. Sejak `0.5.0`, jalur pembatalan wajib memanggilnya lebih dulu.
+
+Tanpa perubahan itu, menutup `DELETE` hanya memindahkan lubangnya: catatan final yang tadinya dapat
+dihapus akan dapat dibatalkan, dan hasilnya sama saja bagi pembaca rekam medis.
+
+---
 ## 4. Tindakan dokter
 
 Nilai status diambil apa adanya dari enum yang sudah ada di source.

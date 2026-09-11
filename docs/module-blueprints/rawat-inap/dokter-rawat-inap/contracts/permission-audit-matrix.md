@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` |
-| Status | **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
+| Contract version | `0.5.0` |
+| `last_changed_in` | `0.5.0` — bagian 3A lahir: penulis klinis diambil dari pengguna terautentikasi |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `api-contract.md` `0.4.0`; arsitektur domain `0.2` bagian V dan W |
@@ -110,6 +110,74 @@ implementasi.
 
 ---
 
+
+## 3A. Penulis klinis diambil dari pengguna terautentikasi — `0.5.0`
+
+**Bagian baru 11 September 2026**, menyerap `RWI-DEC-099`. Ia melengkapi bagian 3, dan seperti
+bagian itu, isinya adalah kewenangan yang **tidak dapat** dijaga mesin hak akses.
+
+### 3A.1 Keadaan hari ini, dan kenapa ia berbahaya
+
+`InpatientClinicalContextService.ResolveAsync` sudah memiliki pemeriksaan kewenangan yang benar.
+Masalahnya, pemeriksaan itu **mati**: `isDoctorAuthorized` bernilai benar secara bawaan dan hanya
+diuji ketika pemanggil mengirimkan dokter pelaku. Dari sembilan titik panggil, hanya satu yang
+mengirimkannya.
+
+Akibatnya dokter mana pun yang memegang butir hak akses `PatientIntegratedProgressNote : Create`
+dapat menulis catatan untuk pasien mana pun di rumah sakit, dan penulis yang tersimpan diambil
+dari antrean, payload, atau kunjungan, bukan dari siapa yang sedang login.
+
+Ini bukan kelemahan mesin hak akses. Butir hak akses memang hanya menjawab "peran ini boleh
+memanggil endpoint ini", dan tidak pernah dapat menjawab "dokter ini boleh menulis untuk pasien
+ini". Jawabannya harus ditulis di dalam service.
+
+### 3A.2 Tiga penjaga yang mengikat sub-modul ini
+
+Ketiganya dimiliki bersama dengan `episode-rawat-inap`, dan definisinya dipegang
+[`../episode-rawat-inap/contracts/permission-audit-matrix.md`](../../episode-rawat-inap/contracts/permission-audit-matrix.md)
+bagian 4-A.3 supaya tidak ada dua salinan yang dapat berbeda isi.
+
+| Penjaga | Yang wajib dipenuhi setiap jalur tulis sub-modul ini |
+| --- | --- |
+| `GUARD-INP-05` | Penulis diambil dari `ApplicationUser.DoctorId`. Tanpa pemetaan aktif, penulisan ditolak `403` |
+| `GUARD-INP-06` | Kewenangan dinilai pada **waktu klinis** dokumen, bukan waktu penyimpanan |
+| `GUARD-INP-07` | Berlaku bagi perawat; disebut di sini hanya karena `PatientAssessmentController` dipakai dua profesi |
+
+### 3A.3 Jalur tulis yang wajib memanggil ketiganya
+
+| Grup endpoint | Jalur tulis | Keadaan hari ini |
+| --- | --- | --- |
+| Doctor Consultation | `POST /`, pembaruan, finalisasi | **Tidak** mengirim dokter pelaku |
+| Patient Assessment | Tiga jalur tulis | **Tidak** mengirim dokter pelaku |
+| Patient Integrated Progress Note | `POST /`, `PATCH /{id}/verify`, `PATCH /{id}/cancel` | **Tidak** mengirim dokter pelaku |
+| Patient Diagnosis | Dua jalur tulis | **Tidak** mengirim dokter pelaku |
+| Patient Procedure | Satu jalur tulis | **Tidak** mengirim dokter pelaku |
+| Physician Visit | `POST /` | **Sudah** mengirim dokter pelaku. Satu-satunya yang benar hari ini, dan menjadi pola bagi yang lain |
+
+### 3A.4 Verifikasi CPPT — satu hal yang tidak berubah
+
+Verifikasi CPPT **tidak** mengubah penulis aslinya, dan penegakan penulis ini tidak mengubah aturan
+itu. Yang berubah hanya bahwa **verifikator** juga wajib dokter terautentikasi dengan penugasan
+aktif, sedangkan sebelumnya identitas verifikator tunduk pada masalah yang sama.
+
+| Yang disimpan verifikasi | Sumbernya |
+| --- | --- |
+| Penulis asli | **Tidak disentuh** |
+| Verifikator | `ApplicationUser.DoctorId` pengguna yang memverifikasi |
+| Waktu verifikasi | Waktu server |
+| Hubungan penugasan verifikator | Dinilai pada waktu klinis catatan yang diverifikasi |
+
+### 3A.5 Nol butir hak akses baru
+
+`Gelombang 1A` **tidak** melahirkan satu pun Resource maupun Action baru pada sub-modul ini.
+Seluruh perubahan bekerja di atas butir hak akses yang sudah ada. Yang bertambah adalah pemeriksaan
+hubungan pelaku dengan pasien, dan itu memang bukan sesuatu yang dapat diwakili butir hak akses.
+
+Konsekuensinya untuk pengujian: **test hak akses lama tetap lulus tanpa perubahan**, dan itu justru
+berbahaya bila dianggap cukup. Bukti bahwa penjaga baru bekerja hanya datang dari skenario negatif
+per-pasien, bukan dari test peran.
+
+---
 ## 4. Audit
 
 | Lapisan | Yang dicatat |

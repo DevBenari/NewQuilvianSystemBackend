@@ -550,6 +550,70 @@ lini masa yang bermakna.
 
 ---
 
+
+## S5. Gelombang 1A — Rawat Inap Safety Corrections
+
+**Slice baru 11 September 2026.** Menyerap `RWI-DEC-098` dan `RWI-DEC-100` lewat `04-prd-to-mvp.md`
+bagian 21. Dua task, keduanya `⛔` menunggu approval kontrak.
+
+### Grafik Urutan Dependency — S5
+
+```mermaid
+flowchart LR
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+
+    subgraph s5["S5 — koreksi keselamatan keperawatan"]
+        BE077["BE-RWI-077<br/>jalur hapus tanda vital ditutup"]:::belum
+        BE078["BE-RWI-078<br/>kewenangan perawat berbasis unit"]:::belum
+    end
+```
+
+**Kedua task tidak saling menunggu.** Keduanya menyentuh berkas yang berbeda dan dapat dikerjakan
+paralel begitu gerbangnya terbuka.
+
+### Tabel gelombang eksekusi — S5
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-RWI-077`, `BE-RWI-078` — boleh paralel |
+
+---
+
+### `BE-RWI-077` — Deret waktu tanda vital tidak dapat diputus diam-diam
+
+| Field | Isi |
+| --- | --- |
+| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026: kontrak `0.4.0` disetujui lewat `RWI-DEC-105`. Boleh paralel dengan `BE-RWI-078`. **Wewenang menulis source masih terpisah** |
+| **Outcome** | Tanda vital yang sudah tercatat tidak dapat dihilangkan, sehingga grafik perburukan pasien tidak pernah menyembunyikan titik yang pernah ada. Penanda pemberitahuan ke dokter juga tidak dapat dimatikan lewat penghapusan |
+| **Trace** | `RWI-DEC-098`; `FR-KEP-029`, `FR-KEP-030`; `04-prd-to-mvp.md` bagian 21.3 |
+| **Kontrak** | `contracts/api-contract.md` `0.4.0` bagian 0.A.1; `contracts/state-transition-matrix.md` `0.4.0` bagian 3A |
+| **Reuse** | Nol tabel baru, nol migration. Tabelnya milik `ClinicalManagement` sesuai `RWI-DEC-081`; task ini hanya mencabut route |
+| **Cakupan** | Hapus route `HttpDelete` pada `PatientVitalSignController`; sesuaikan test yang mengunci perilaku lama; pastikan jalur pembatalan yang ada mengikuti pola pengkajian dan tindakan |
+| **Dependency** | Approval kontrak `0.4.0` |
+| **Acceptance criteria** | `AC-KEP-040` s.d. `AC-KEP-043` pada `testing/acceptance-test-matrix.md` `0.4.0` bagian 5A |
+| **Verification** | Integration test keempat butir. `AC-KEP-043` adalah **regresi Rawat Jalan dan IGD** dan bersifat wajib, karena controller ini dipakai bersama ketiga pelayanan |
+| **Risk/Blocker** | **Satu butir DoD tidak akan terpenuhi pada task ini, dan itu disengaja.** `ClinicalDocumentKind.VitalSign` belum termasuk jenis yang ditegakkan mesin keutuhan dokumen, sehingga pembatalan tanda vital final belum dapat diuji. Butir itu ditulis **`NOT RUN` apa adanya** pada laporan, bukan dihilangkan. Dilacak `V2-UNK-01`, pemiliknya `MedicalRecordManagement` |
+| **DoD** | Keempat acceptance criteria terpetakan ke source; nol `HttpDelete` tersisa pada berkas itu; regresi Rawat Jalan dan IGD lulus; butir yang tidak dapat diuji ditulis `NOT RUN` beserta sebabnya; `dotnet build` tanpa error baru. **Kesesuaian QBE dan preflight engineering diselesaikan saat eksekusi** |
+
+---
+
+### `BE-RWI-078` — Perawat hanya menulis untuk pasien di unit tempat ia bertugas
+
+| Field | Isi |
+| --- | --- |
+| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026 lewat `RWI-DEC-105`. Boleh paralel dengan `BE-RWI-077`. **Wewenang menulis source masih terpisah** |
+| **Outcome** | Dokumentasi keperawatan hanya dapat ditulis perawat yang benar-benar bertugas di unit tempat pasien dirawat, dan penulisnya adalah orang yang sedang login. Hari ini pengguna mana pun yang memegang hak aksesnya dapat menulis untuk pasien mana pun di rumah sakit |
+| **Trace** | `RWI-DEC-100`; `RWI-FACT-022`; `FR-KEP-031` s.d. `FR-KEP-034`; `04-prd-to-mvp.md` bagian 21.3 |
+| **Kontrak** | `contracts/api-contract.md` `0.4.0` bagian 0.A.2; `contracts/permission-audit-matrix.md` `0.4.0` bagian 3A |
+| **Reuse** | `ApplicationUser.EmployeeId` sudah ada. `InpNurseAssignment` dipakai apa adanya sebagai penunjukan, **bukan** diubah menjadi gerbang |
+| **Cakupan** | Tambah kemampuan pada `InpatientClinicalContextService` untuk menilai unit tempat perawat bertugas — hari ini resolver **nol menyebut perawat**; ambil penulis dari `ApplicationUser.EmployeeId`; tolak `nurseId` payload yang berbeda; terapkan pada seluruh jalur tulis keperawatan |
+| **Dependency** | Approval kontrak `0.4.0` |
+| **Acceptance criteria** | `AC-KEP-044` s.d. `AC-KEP-050` pada `testing/acceptance-test-matrix.md` `0.4.0` bagian 5A |
+| **Verification** | `AC-KEP-044` membuktikan jalur **berhasil** dan sama pentingnya dengan yang ditolak: perawat dinas malam wajib tetap dapat mendokumentasikan pasien yang bukan tanggung jawabnya. `AC-KEP-049` membuktikan kewenangan mengikuti unit episode, bukan salinan |
+| **Risk/Blocker** | **Sumber data unit tempat perawat bertugas belum ditetapkan**, dan penetapannya bagian dari task ini. **Satu jalan dilarang:** menambahkan kolom unit ke `InpNurseAssignment`, karena unit episode berubah saat pasien dipindahkan dan salinan itu akan berbeda sejak perpindahan pertama. Pemilik risiko: pelaksana task bersama pemilik modul |
+| **DoD** | Ketujuh acceptance criteria terpetakan ke source; sumber data unit ditetapkan dan alasannya tertulis pada laporan; nol kolom baru pada `InpNurseAssignment`; peran nyata dipakai pada test negatif; nol `[AccessPermission]` baru; `dotnet build` tanpa error baru. **Kesesuaian QBE dan preflight engineering diselesaikan saat eksekusi** |
+
+---
 ## 4.1 Register status task
 
 | Task | Judul singkat | Gelombang | Status | Laporan |
@@ -566,6 +630,8 @@ lini masa yang bermakna.
 | `BE-RWI-062` | Pemisahan kegagalan tagihan dan koreksi tindakan | `KEP-MVP-3` | ✅ | [BE-RWI-062](../task/report/backend/BE-RWI-062.md) |
 | `BE-RWI-063` | Catatan keperawatan pada catatan terpadu | `KEP-MVP-3` | ✅ | [BE-RWI-063](../task/report/backend/BE-RWI-063.md) |
 | `BE-RWI-064` | Daftar pantau kepatuhan pengkajian | `KEP-MVP-4` | ✅ | [BE-RWI-064](../task/report/backend/BE-RWI-064.md) |
+| `BE-RWI-077` ★ | Jalur hapus tanda vital ditutup | `KEP-1A` | tanpa tanda | belum ada; ditulis saat task dikerjakan |
+| `BE-RWI-078` ★ | Kewenangan perawat berbasis unit | `KEP-1A` | tanpa tanda | belum ada; ditulis saat task dikerjakan |
 
 | Gelombang | Task di dalamnya | Status |
 | --- | --- | --- |

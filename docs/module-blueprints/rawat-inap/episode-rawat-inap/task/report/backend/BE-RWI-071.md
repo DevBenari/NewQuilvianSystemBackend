@@ -1,16 +1,16 @@
-# Laporan Perubahan Backend — `BE-RWI-042`
+# Laporan Perubahan Backend — `BE-RWI-071`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-RWI-042` |
+| Task ID | `BE-RWI-071` |
 | Judul | Daftar pantau kekurangan deposit |
 | Slice | `S11` — Deposit dapat diterima dan ditelusuri ke episodenya; `EPIC RI-35a`, gelombang `MVP-1` |
-| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-042` |
+| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-071` |
 | Trace | `RWI-DEC-096`; `FR-RI-177`; `api-contract.md` `0.6.0` `GET /monitoring/deposit-shortfall` |
 | Contract version | API `0.6.1` berlaku. Baris `GET /deposit-shortfall` masih berstatus **`Rencana 0.6.0`** pada kontrak |
-| Dependency | `BE-BKC-040` pada roadmap `billing-kasir` — **belum dikerjakan**; `BE-RWI-041` — ✅ selesai 10 September 2026 |
+| Dependency | `BE-BKC-040` pada roadmap `billing-kasir` — **belum dikerjakan**; `BE-RWI-070` — ✅ selesai 10 September 2026 |
 | Klasifikasi | `MEDIUM` — satu operasi baca, satu DTO, lima keadaan uji. Tidak dinilai lebih lanjut karena task tidak dieksekusi |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — **nol berkas source ditulis pada task ini** |
@@ -48,7 +48,7 @@ Alur yang dituju task ini, ditulis supaya jelas bagian mana yang hilang.
 3. **Langkah 2.** Untuk setiap episode, sistem **membaca** posisi depositnya dari ringkasan milik
    Billing — berapa minimum kebijakannya, berapa yang sudah diterima, dan berapa kekurangannya.
 4. **Langkah 3.** Episode yang lama rawatnya belum melewati ambang tindak lanjut disaring keluar.
-   Ambang itu diambil dari pengaturan Rawat Inap, dan sejak `BE-RWI-041` ✅ nilainya sudah dapat
+   Ambang itu diambil dari pengaturan Rawat Inap, dan sejak `BE-RWI-070` ✅ nilainya sudah dapat
    diubah admin.
 5. **Hasil.** Daftar episode beserta angka kekurangan dan lama harinya.
 6. **Jalur tidak normal.** Bila ringkasan Billing tidak dapat dibaca, daftar wajib menyatakan
@@ -66,7 +66,7 @@ seluruh angka pada daftar.
 
 | Berkas atau dokumen | Untuk menetapkan |
 | --- | --- |
-| `roadmap/backend-roadmap.md` kartu `BE-RWI-042` | Scope, dependency, kelima acceptance criteria |
+| `roadmap/backend-roadmap.md` kartu `BE-RWI-071` | Scope, dependency, kelima acceptance criteria |
 | `../../billing-kasir/roadmap/backend-roadmap.md` kartu `BE-BKC-040` | Status prasyaratnya |
 | `contracts/api-contract.md` bagian Deposit dan Monitoring | Bentuk jawaban yang dijanjikan |
 | `Areas/HealthServices/BillingManagement/**` | Apakah ringkasan deposit per episode benar-benar ada |
@@ -120,7 +120,7 @@ diuji, dan kriteria kelima tidak punya sumber yang dapat digagalkan.
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | 1. Episode aktif yang kekurangannya di atas nol muncul pada daftar | **Belum terpenuhi** | Angka kekurangan hanya ada pada `BE-BKC-040` yang belum dibuat |
-| 2. Episode yang lama rawatnya belum melewati ambang **tidak** muncul | **Belum terpenuhi** | Ambangnya sudah tersedia lewat `BE-RWI-041` ✅, tetapi daftar yang menyaringnya belum ada |
+| 2. Episode yang lama rawatnya belum melewati ambang **tidak** muncul | **Belum terpenuhi** | Ambangnya sudah tersedia lewat `BE-RWI-070` ✅, tetapi daftar yang menyaringnya belum ada |
 | 3. Episode yang kekurangannya sudah tertutup hilang dari daftar tanpa transaksi lama berubah | **Belum terpenuhi** | Sama seperti kriteria 1 |
 | 4. Angka kekurangan pada daftar sama persis dengan ringkasan Billing | **Belum terpenuhi** | Tidak ada ringkasan Billing untuk dibandingkan |
 | 5. Bila ringkasan Billing tidak dapat dibaca, daftar menyatakan datanya tidak tersedia | **Belum terpenuhi** | Tidak ada sumber yang dapat digagalkan |
@@ -134,12 +134,12 @@ kelima keadaan belum ada. Butir `build lulus` tidak berlaku karena nol berkas di
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Ambang tindak lanjut yang dipakai daftar ini **sudah** tersedia sejak `BE-RWI-041` ✅ 10 September 2026. Yang menahan tinggal satu, yaitu angka kekurangannya |
+| Peringatan | Ambang tindak lanjut yang dipakai daftar ini **sudah** tersedia sejak `BE-RWI-070` ✅ 10 September 2026. Yang menahan tinggal satu, yaitu angka kekurangannya |
 | Masalah yang diketahui | `BE-BKC-039` dan `BE-BKC-040` berstatus `BLOCKED_PENDING_OWNER_APPROVAL` lewat `RWI-OQ-053`, dan pemilik `BillingManagement` **belum ditunjuk namanya** pada sumber yang tersedia. Selama pemiliknya belum ada, tidak ada pihak yang dapat menerima kedua task itu ke dalam gelombang deliverynya |
 | Risiko tersisa | Penagihan pelunasan berkala pada perawatan panjang tetap tidak punya daftar kerja. Kekurangan uang muka baru terbaca saat tagihan final disusun, yaitu saat pasien sudah hendak pulang dan daya tawarnya paling kecil |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Nol berkas source berubah oleh task ini. Berkas yang berubah pada sesi ini seluruhnya milik `BE-RWI-041` dan `BE-RWI-069` |
+| Status Git | Nol berkas source berubah oleh task ini. Berkas yang berubah pada sesi ini seluruhnya milik `BE-RWI-070` dan `BE-RWI-069` |
 | Langkah berikutnya | Tetapkan pemilik `BillingManagement` supaya `RWI-OQ-053` dapat ditutup, lalu kerjakan `BE-BKC-039` dan `BE-BKC-040` pada roadmap `billing-kasir`. Sesudah `BE-BKC-040` ada, task ini dapat langsung dikerjakan tanpa menunggu siapa pun lagi |
 
 ---

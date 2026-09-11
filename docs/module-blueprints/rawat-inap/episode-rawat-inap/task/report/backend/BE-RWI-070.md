@@ -1,13 +1,13 @@
-# Laporan Perubahan Backend — `BE-RWI-041`
+# Laporan Perubahan Backend — `BE-RWI-070`
 
 ## Metadata
 
 | Field | Nilai |
 | --- | --- |
-| Task ID | `BE-RWI-041` |
+| Task ID | `BE-RWI-070` |
 | Judul | Ambang tindak lanjut deposit dapat diubah admin |
 | Slice | `S11` — Deposit dapat diterima dan ditelusuri ke episodenya; `EPIC RI-31` pengaturan yang dapat diubah admin |
-| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-041` |
+| Roadmap | `docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap.md` bagian 4, kartu `BE-RWI-070` |
 | Trace | `RWI-DEC-096`; `FR-RI-143`, `FR-RI-177`; `04-prd-to-mvp.md` `EPIC RI-31` |
 | Contract version | API `0.6.1`. **Nol perubahan kontrak** — endpoint pengaturan yang sudah ada hanya bertambah satu field |
 | Dependency | **Tidak ada.** Kartu task menuliskan `—` |
@@ -91,7 +91,7 @@ sekali**.
 
 | Berkas atau dokumen | Untuk menetapkan |
 | --- | --- |
-| `roadmap/backend-roadmap.md` kartu `BE-RWI-041` | Scope, kelima acceptance criteria, dan verifikasi yang diminta |
+| `roadmap/backend-roadmap.md` kartu `BE-RWI-070` | Scope, kelima acceptance criteria, dan verifikasi yang diminta |
 | `Areas/HealthServices/MasterData/Models/MstInpatientSetting.cs` | Tempat kolomnya, dan pola nilai bawaan kolom lain |
 | `Areas/HealthServices/MasterData/Services/InpatientSettingService.cs` | Pola validasi dan penyimpanan yang sudah ada lewat `BE-RWI-005` |
 | `Areas/HealthServices/InPatientManagement/Services/InpSettingService.cs` | Pola nilai bawaan `InpatientSettingValues.Defaults` |
@@ -238,9 +238,9 @@ benar-benar dijalankan.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Kolom ini **hanya menjadwalkan pengingat**. Ia tidak menahan perawatan, tidak menahan penutupan episode, dan tidak menolak tindakan apa pun. Kehati-hatian itu disebut kartu task dan sengaja dicatat ulang di sini supaya tidak bergeser artinya kelak |
-| Masalah yang diketahui | Kolomnya sudah ada, tetapi **belum ada satu pun pembacanya**. Pemakainya adalah `BE-RWI-042` daftar pantau kekurangan deposit, yang masih ⛔ terblokir menunggu `BE-BKC-040`. Sampai itu selesai, angka ini tersimpan dan dapat diubah admin tetapi belum memengaruhi perilaku apa pun |
+| Masalah yang diketahui | Kolomnya sudah ada, tetapi **belum ada satu pun pembacanya**. Pemakainya adalah `BE-RWI-071` daftar pantau kekurangan deposit, yang masih ⛔ terblokir menunggu `BE-BKC-040`. Sampai itu selesai, angka ini tersimpan dan dapat diubah admin tetapi belum memengaruhi perilaku apa pun |
 | Risiko tersisa | Rendah. Perubahan bersifat aditif ke satu tabel master yang berisi satu baris |
 | Perubahan sampingan | Dua hal di luar source, keduanya disebut apa adanya. **Pertama**, perubahan sempat di-`stash` dan dikembalikan utuh untuk mengukur garis dasar test; pemulihannya dikonfirmasi. **Kedua**, container Docker `quilvian_rwi041_test` sempat dibuat untuk uji migration. Mesin Docker mati sendiri karena memori habis sebelum container itu dapat dihapus, sehingga ia **mungkin muncul kembali sebagai container berhenti** ketika Docker dinyalakan lagi. Container itu tidak dipakai apa pun dan aman dihapus dengan `docker rm -f quilvian_rwi041_test` |
 | Interupsi | `NONE` |
 | Status Git | Berkas berubah dan bertambah; nol operasi `add`, `commit`, `push`, `merge`, maupun `rebase` dijalankan |
-| Langkah berikutnya | Terapkan migration ke database dev pemilik bila diinginkan — wewenang terpisah. Pemakaian angkanya menunggu `BE-RWI-042`, yang menunggu `BE-BKC-040` pada roadmap `billing-kasir` |
+| Langkah berikutnya | Terapkan migration ke database dev pemilik bila diinginkan — wewenang terpisah. Pemakaian angkanya menunggu `BE-RWI-071`, yang menunggu `BE-BKC-040` pada roadmap `billing-kasir` |
