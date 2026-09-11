@@ -373,3 +373,6 @@ agency-local/
 # everything else under .claude/ (cache, local overrides, session state) stays ignored.
 .claude/*
 !.claude/settings.json
+
+
+/Tests/
