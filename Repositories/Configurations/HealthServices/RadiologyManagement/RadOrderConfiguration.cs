@@ -12,11 +12,20 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
             builder.ToTable("RadOrder", "public");
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.OrderNumber).HasMaxLength(64).IsRequired();
             builder.Property(x => x.OrderStatus).HasConversion<int>().IsRequired();
             builder.Property(x => x.StatusBeforeHold).HasConversion<int>();
             builder.Property(x => x.ClinicalIndication).HasMaxLength(1000);
             builder.Property(x => x.ClosureReason).HasMaxLength(1000);
             builder.Property(x => x.Version).IsConcurrencyToken();
+
+            // Nomor pesanan tidak boleh kembar. Dijaga database, bukan hanya service: dua
+            // permintaan bersamaan sama-sama lolos pemeriksaan di memori, dan yang kedua harus
+            // ditolak di sini. Penyaring IsDelete mengikuti RadReport.ReportNumber supaya
+            // pesanan yang sudah dihapus lunak tidak menahan nomor selamanya.
+            builder.HasIndex(x => x.OrderNumber)
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
 
             builder.HasIndex(x => x.EncounterId);
             builder.HasIndex(x => x.OrderStatus);

@@ -59,14 +59,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RadOrder", "Read")]
+        // RAD-CONF-001 bagian 8 butir 3. Penyaring pindah ke satu objek query supaya lima
+        // kategori daftar pasien radiologi dan delapan kriteria riwayat dilayani dari sini.
+        //
+        // Pemanggil lama tidak perlu berubah: ?encounterId=, ?sortBy=, dan ?sortDirection=
+        // tetap terikat ke properti bernama sama pada RadOrderListQuery.
         public async Task<IActionResult> GetList(
-            [FromQuery] Guid? encounterId,
-            [FromQuery] string? sortBy = null,
-            [FromQuery] string? sortDirection = null,
+            [FromQuery] RadOrderListQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _radOrderService.GetListAsync(
-                encounterId, sortBy, sortDirection, cancellationToken);
+            var result = await _radOrderService.GetListAsync(query, cancellationToken);
 
             return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
                 result, "Daftar order radiologi berhasil diambil."));

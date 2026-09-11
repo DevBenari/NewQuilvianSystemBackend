@@ -309,6 +309,7 @@ try
     builder.Services.AddScoped<RadSafetyRequirementService>();
     builder.Services.AddScoped<RadReportService>();
     builder.Services.AddScoped<RadReportNumberService>();
+    builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 

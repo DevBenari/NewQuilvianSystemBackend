@@ -18,6 +18,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        /// <summary>
+        /// Nomor pesanan yang terbaca manusia. Tidak boleh kembar.
+        /// </summary>
+        /// <remarks>
+        /// <c>RAD-CONF-001</c> bagian 8 butir 2. Inilah yang disebut orang ketika menunjuk
+        /// sebuah pesanan — pada label yang menempel di amplop citra, pada lembar permintaan
+        /// yang dibawa pasien, dan pada pencarian riwayat. <c>Guid</c> tidak dapat dibacakan
+        /// lewat telepon dan tidak dapat diketik ulang petugas.
+        /// </remarks>
+        [Required]
+        public string OrderNumber { get; set; } = string.Empty;
+
         [Required]
         public Guid EncounterId { get; set; }
 

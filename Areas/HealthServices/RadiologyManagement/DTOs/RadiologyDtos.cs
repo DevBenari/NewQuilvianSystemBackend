@@ -55,6 +55,140 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     }
 
     /// <summary>
+    /// Penyaring daftar pesanan radiologi — <c>RAD-CONF-001</c> bagian 8 butir 3.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Sebelum ini <c>GET /rad-orders</c> hanya menerima <c>encounterId</c>. Akibatnya lima
+    /// kategori daftar pasien radiologi — rawat jalan, rawat inap, pasien luar, persiapan, dan
+    /// perjanjian — tidak dapat dibentuk sama sekali, dan layar riwayat terpaksa menarik seluruh
+    /// pesanan rumah sakit lalu menyaringnya di browser.
+    /// </para>
+    /// <para>
+    /// <b><c>EncounterId</c> tetap bernama sama.</b> Pemanggil lama yang mengirim
+    /// <c>?encounterId=...</c> terus bekerja tanpa perubahan apa pun di sisi mereka; bentuk
+    /// objek ini hanya menambah parameter, tidak mengganti satu pun yang sudah ada.
+    /// </para>
+    /// <para>
+    /// Bentuknya mengikuti <c>LabMonitoringQuery</c> yang sudah berjalan pada modul
+    /// Laboratorium, supaya layar radiologi dapat memakai komponen penyaring yang sama.
+    /// </para>
+    /// </remarks>
+    public class RadOrderListQuery
+    {
+        /// <summary>Menyaring pesanan milik satu kunjungan. Parameter lama, tidak berubah.</summary>
+        public Guid? EncounterId { get; set; }
+
+        /// <summary>Menyaring pesanan milik satu pasien, lintas kunjungan.</summary>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>Nomor rekam medis, cocok sebagian.</summary>
+        public string? MedicalRecordNumber { get; set; }
+
+        /// <summary>Nomor registrasi/kunjungan, cocok sebagian.</summary>
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Nomor pesanan radiologi, cocok sebagian.</summary>
+        public string? OrderNumber { get; set; }
+
+        /// <summary>Nomor foto/study pada salah satu study pesanan, cocok sebagian.</summary>
+        public string? StudyNumber { get; set; }
+
+        /// <summary>
+        /// Awal periode. Dihitung dari waktu pemesanan, dan jatuh ke waktu baris dibuat ketika
+        /// pesanan lama tidak memilikinya.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>Akhir periode.</summary>
+        public DateTime? EndDate { get; set; }
+
+        /// <summary>
+        /// Jenis kunjungan: rawat jalan, rawat inap, gawat darurat. Inilah yang memisahkan
+        /// kategori daftar pasien radiologi.
+        /// </summary>
+        public int? EncounterType { get; set; }
+
+        /// <summary>Unit layanan asal pesanan.</summary>
+        public Guid? ServiceUnitId { get; set; }
+
+        /// <summary>Ruangan asal pesanan.</summary>
+        public Guid? RoomId { get; set; }
+
+        /// <summary>Alat pencitraan yang diminta.</summary>
+        public Guid? ModalityId { get; set; }
+
+        /// <summary>Jenis pemeriksaan yang diminta.</summary>
+        public Guid? ProcedureId { get; set; }
+
+        /// <summary>Status operasional pesanan.</summary>
+        public RadOrderStatus? OrderStatus { get; set; }
+
+        /// <summary>Menyaring pesanan bertanda cito saja — <c>RAD-DEC-013</c>.</summary>
+        public bool? OnlyUrgent { get; set; }
+
+        /// <summary>
+        /// Menyaring pesanan yang sudah mempunyai tanggal pemeriksaan terjadwal. Inilah yang
+        /// membentuk daftar Pasien Perjanjian.
+        /// </summary>
+        public bool? OnlyScheduled { get; set; }
+
+        /// <summary>Awal periode jadwal pemeriksaan, dipakai daftar perjanjian.</summary>
+        public DateTime? ScheduledFrom { get; set; }
+
+        /// <summary>Akhir periode jadwal pemeriksaan.</summary>
+        public DateTime? ScheduledTo { get; set; }
+
+        /// <summary>
+        /// Pencarian bebas pada nama pasien, nomor rekam medis, nomor kunjungan, dan nomor
+        /// pesanan.
+        /// </summary>
+        public string? Search { get; set; }
+
+        /// <summary>Kolom pengurutan. Nilainya diambil dari metadata penyaring.</summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>Arah pengurutan, <c>asc</c> atau <c>desc</c>. Bawaannya <c>desc</c>.</summary>
+        public string? SortDirection { get; set; }
+
+        /// <summary>
+        /// Batas jumlah baris yang dikembalikan. Bawaannya <see cref="DefaultLimit"/>, paling
+        /// banyak <see cref="MaxLimit"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Mengapa ada batas, dan mengapa bukan paging penuh.</b> Sebelum penyaring ini
+        /// ditambahkan, daftar pesanan hampir selalu dipanggil dengan <c>encounterId</c>,
+        /// sehingga jumlah barisnya dengan sendirinya kecil. Penyaring riwayat mengubah itu:
+        /// <c>?search=budi</c> adalah pertanyaan se-rumah-sakit, dan tanpa batas ia akan menarik
+        /// seluruh pesanan yang pernah ada.
+        /// </para>
+        /// <para>
+        /// Perpindahan ke <c>PagedResult</c> sudah ditargetkan <c>RAD-API-001</c>, tetapi ia
+        /// mengubah bentuk response dan merusak pemanggil yang sudah ada — karena itu tetap
+        /// menjadi task tersendiri. Batas baris menutup lubangnya tanpa mengubah bentuk apa pun.
+        /// </para>
+        /// <para>
+        /// Barisnya diambil dari ujung urutan yang diminta, jadi bawaan <c>desc</c> memberi yang
+        /// terbaru. Nilai bawaan sengaja jauh di atas jumlah pesanan satu kunjungan mana pun,
+        /// sehingga pemanggil lama tidak akan pernah menyentuhnya.
+        /// </para>
+        /// </remarks>
+        public int? Limit { get; set; }
+
+        /// <summary>Batas baris bawaan ketika pemanggil tidak menyebutkannya.</summary>
+        public const int DefaultLimit = 200;
+
+        /// <summary>Batas baris tertinggi yang dilayani.</summary>
+        public const int MaxLimit = 1000;
+
+        /// <summary>Batas baris yang benar-benar dipakai, sudah dijepit ke rentang yang sah.</summary>
+        public int BatasBaris() => Limit is null or < 1
+            ? DefaultLimit
+            : Math.Min(Limit.Value, MaxLimit);
+    }
+
+    /// <summary>
     /// Satu baris daftar kerja petugas pada sebuah alat pencitraan — <c>RAD-DEC-012</c>.
     /// </summary>
     /// <remarks>
@@ -230,11 +364,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
      * Balasan
      * ------------------------------------------------------------------ */
 
+    /// <summary>
+    /// Konteks pasien dan kunjungan pada sebuah pesanan radiologi — <c>RAD-CONF-001</c>
+    /// bagian 8 butir 1.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Seluruhnya dibaca, tidak satu pun disalin.</b> Pemilik data ini tetap
+    /// <c>registration-management</c> dan <c>patient-management</c>; Radiologi hanya
+    /// menggabungkannya saat membalas permintaan. Tidak ada kolom baru di tabel radiologi mana
+    /// pun untuk menampung isi bagian ini, dan itu disengaja — nama pasien yang disalin ke tabel
+    /// radiologi akan berselisih dengan aslinya begitu pendaftaran memperbaiki ejaan nama.
+    /// </para>
+    /// <para>
+    /// <b>Mengapa ikut pada setiap baris daftar.</b> Tanpa ini, layar yang menampilkan 50
+    /// pesanan harus memanggil registrasi 50 kali lagi hanya untuk mendapatkan nama dan nomor
+    /// rekam medis. Selain lambat, urutan balasan yang tidak dijamin membuat nama pasien
+    /// berisiko menempel pada baris pesanan milik pasien lain — dan pemeriksaan atas nama yang
+    /// salah adalah kejadian keselamatan, bukan cacat tampilan.
+    /// </para>
+    /// <para>
+    /// <b>Alergi belum ikut.</b> PRD menyebutnya bersyarat, dan di repository ini alergi hanya
+    /// tersimpan sebagai isi dokumen milik <c>medical-record-management</c>. Membacanya dari
+    /// Radiologi adalah titik sentuh lintas modul yang belum diputuskan, sehingga sengaja tidak
+    /// dikarang di sini.
+    /// </para>
+    /// </remarks>
+    public class RadOrderPatientContextResponse
+    {
+        public Guid? PatientId { get; set; }
+
+        /// <summary>Nomor rekam medis.</summary>
+        public string? MedicalRecordNumber { get; set; }
+
+        public string? PatientName { get; set; }
+
+        /// <summary>Jenis kelamin sebagai teks. Kosong bila data pasien tidak mencatatnya.</summary>
+        public string? Gender { get; set; }
+
+        public DateTime? BirthDate { get; set; }
+
+        /// <summary>
+        /// Umur pada saat kunjungan dibuat, sebagaimana dibekukan pendaftaran. Dipakai apa
+        /// adanya — Radiologi tidak menghitung ulang umur, karena hasil hitungannya akan berbeda
+        /// dari yang tercetak pada berkas kunjungan.
+        /// </summary>
+        public string? AgeText { get; set; }
+
+        /// <summary>Nomor registrasi kunjungan.</summary>
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Rawat jalan, rawat inap, atau gawat darurat.</summary>
+        public string? EncounterType { get; set; }
+
+        /// <summary>Kunjungan baru atau kunjungan lama.</summary>
+        public string? VisitType { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        public Guid? RoomId { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public Guid? PatientClassId { get; set; }
+
+        /// <summary>Kelas perawatan.</summary>
+        public string? PatientClassName { get; set; }
+
+        /// <summary>
+        /// Jenis penjamin kunjungan: tunai, asuransi, atau penjamin perusahaan.
+        /// </summary>
+        public string? PaymentType { get; set; }
+
+        /// <summary>
+        /// Nama penjamin sebagaimana dibekukan pendaftaran.
+        /// </summary>
+        /// <remarks>
+        /// <b>Ini nama penjamin, bukan status pembayaran.</b> Radiologi tidak memiliki satu pun
+        /// status finansial — <c>RJ-BIL-GATE-DEC-004</c> — dan tidak boleh menyimpulkan lunas
+        /// atau belum lunas dari field ini. Penyajian status pembayaran menunggu
+        /// <c>RAD-CONF-DEC-02</c>.
+        /// </remarks>
+        public string? GuarantorName { get; set; }
+    }
+
     public class RadOrderListResponse
     {
         public Guid Id { get; set; }
 
+        /// <summary>
+        /// Nomor pesanan yang terbaca manusia, dipakai pencarian, label, dan riwayat —
+        /// <c>RAD-CONF-001</c> bagian 8 butir 2.
+        /// </summary>
+        public string OrderNumber { get; set; } = string.Empty;
+
         public Guid EncounterId { get; set; }
+
+        /// <summary>
+        /// Konteks pasien dan kunjungan, dibaca dari pendaftaran. Kosong hanya bila kunjungannya
+        /// benar-benar tidak ditemukan.
+        /// </summary>
+        public RadOrderPatientContextResponse? Patient { get; set; }
 
         /// <summary>Perawatan rawat inap yang menaungi pesanan, bila ada.</summary>
         public Guid? InpEpisodeId { get; set; }
@@ -301,6 +533,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public string? ClinicalIndication { get; set; }
 
         public DateTime? RequestedAt { get; set; }
+
+        /// <summary>Siapa yang mengonfirmasi pesanan ini. Kosong berarti belum dikonfirmasi.</summary>
+        /// <remarks>
+        /// <para>
+        /// <c>RAD-CONF-001</c> bagian 8 butir 4. Datanya <b>tidak</b> disimpan sebagai kolom
+        /// pada tabel pesanan; ia dibaca dari <c>RadTransitionHistory</c> — baris
+        /// <c>Order.Accept</c> — yang memang sudah mencatat pelaku dan waktunya sejak awal.
+        /// </para>
+        /// <para>
+        /// Menyalinnya menjadi kolom tersendiri berarti dua sumber kebenaran untuk satu fakta,
+        /// dan yang kedua pasti akan berselisih dengan riwayat cepat atau lambat. Yang
+        /// diselesaikan di sini hanyalah keharusan frontend memanggil endpoint riwayat terpisah
+        /// hanya untuk menampilkan dua kolom pada layar detail.
+        /// </para>
+        /// <para>
+        /// Yang dipakai adalah konfirmasi <b>pertama</b>. Pesanan yang sempat ditahan lalu
+        /// dilanjutkan tidak berpindah konfirmator, karena yang ditanya layar adalah siapa yang
+        /// dahulu menerima pesanan ini ke radiologi.
+        /// </para>
+        /// </remarks>
+        public Guid? ConfirmedByUserId { get; set; }
+
+        /// <summary>Kapan pesanan ini dikonfirmasi. Kosong berarti belum dikonfirmasi.</summary>
+        public DateTime? ConfirmedAt { get; set; }
 
         public DateTime? ScheduledAt { get; set; }
 
