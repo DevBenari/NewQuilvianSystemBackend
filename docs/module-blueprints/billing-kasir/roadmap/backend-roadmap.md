@@ -1652,38 +1652,38 @@ bentuk yang dirancang. Karena itu `MVP-17` yang sebelumnya tertahan kini ikut be
 ## Grafik Urutan Dependency
 
 ```text
-🟡 BE-BKC-041 ─┬─> BE-BKC-042
+✅ BE-BKC-041 ─┬─> ✅ BE-BKC-042
              │
-             ├─> BE-BKC-043 ─> BE-BKC-052
+             ├─> ✅ BE-BKC-043 ─> BE-BKC-052
              │
-             └─> BE-BKC-044 ─┬─> BE-BKC-048 ─┐
-                             │                │
-                             ├─> BE-BKC-049 ─┤
-                             │                │
-                             ├─> BE-BKC-050 ─┤
-                             │                │
-     BE-BKC-045 ─┬───────────┴─> BE-BKC-047 ─┴─> BE-BKC-051
+             └─> ✅ BE-BKC-044 ─┬─> ✅ BE-BKC-048 ─┐
+                             │                   │
+                             ├─> ✅ BE-BKC-049 ──┤
+                             │                   │
+                             ├─> ✅ BE-BKC-050 ──┤
+                             │                   │
+  ✅ BE-BKC-045 ─┬───────────┴─> ✅ BE-BKC-047 ──┴─> ✅ BE-BKC-051
                  │
-     BE-BKC-046 ─┘
+   ✅ BE-BKC-046 ─┘
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | 🟡 `BE-BKC-041`, `BE-BKC-045`, `BE-BKC-046` — boleh paralel |
-| 2 | 🟡 `BE-BKC-041` | `BE-BKC-042`, `BE-BKC-043`, `BE-BKC-044` — boleh paralel |
-| 3 | `BE-BKC-044`, `BE-BKC-045`, `BE-BKC-046` | `BE-BKC-047` |
-| 3 | `BE-BKC-044` | `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` — boleh paralel |
-| 3 | `BE-BKC-043` | `BE-BKC-052` |
-| 4 | `BE-BKC-047`, `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` | `BE-BKC-051` |
+| 1 | — | ✅ `BE-BKC-041`, ✅ `BE-BKC-045`, ✅ `BE-BKC-046` — boleh paralel |
+| 2 | ✅ `BE-BKC-041` | ✅ `BE-BKC-042`, ✅ `BE-BKC-043`, ✅ `BE-BKC-044` — boleh paralel |
+| 3 | ✅ `BE-BKC-044`, ✅ `BE-BKC-045`, ✅ `BE-BKC-046` | ✅ `BE-BKC-047` |
+| 3 | ✅ `BE-BKC-044` | ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-050` — boleh paralel |
+| 3 | ✅ `BE-BKC-043` | `BE-BKC-052` |
+| 4 | ✅ `BE-BKC-047`, ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-050` | ✅ `BE-BKC-051` |
 
 ## 1. Pemetaan gelombang MVP ke gelombang eksekusi
 
 | Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
 | --- | --- | --- |
-| `MVP-16` (fondasi) | 🟡 `BE-BKC-041`, `042`, `043`, `044`, `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan |
-| `MVP-17` (ganti payer) | `BE-BKC-045`, `046`, `047` | Kasir dapat mengganti penanggung kunjungan sebelum pembayaran, dengan pratinjau perbandingan lebih dulu |
-| `MVP-18` (koreksi per baris) | `BE-BKC-048`, `049` | Kasir dapat menandai penanggung tiap baris biaya dan menentukan obat yang masuk tagihan |
-| `MVP-19` (dokumen + hardening) | `BE-BKC-050`, `051` | Perusahaan penjamin dapat ditagih dengan lembar tersendiri; hak akses, privasi, dan regresi terbukti |
+| `MVP-16` (fondasi) | ✅ `BE-BKC-041`, ✅ `042`, ✅ `043`, ✅ `044`, `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan |
+| `MVP-17` (ganti payer) | ✅ `BE-BKC-045`, ✅ `046`, ✅ `047` | Kasir dapat mengganti penanggung kunjungan sebelum pembayaran, dengan pratinjau perbandingan lebih dulu |
+| `MVP-18` (koreksi per baris) | ✅ `BE-BKC-048`, ✅ `BE-BKC-049` | Kasir dapat menandai penanggung tiap baris biaya dan menentukan obat yang masuk tagihan |
+| `MVP-19` (dokumen + hardening) | ✅ `BE-BKC-050`, ✅ `BE-BKC-051` | Perusahaan penjamin dapat ditagih dengan lembar tersendiri; hak akses, privasi, dan regresi terbukti |
 
 **Kenapa `BE-BKC-044` mendahului hampir semuanya.** Ia satu-satunya task yang membuat kunjungan
 berpenjamin perusahaan dapat dihitung sama sekali. Tanpa itu, penanggung per baris bertanda
@@ -1691,7 +1691,7 @@ Penjamin, perintah ganti payer ke Penjamin, dan lembar tagihan perusahaan semuan
 menghasilkan angka nol yang menyesatkan — bukan karena logikanya salah, melainkan karena mesin
 tanggungannya belum ada.
 
-## 🟡 `BE-BKC-041` — Fondasi skema: lima tabel dan satu migration
+## ✅ `BE-BKC-041` — Fondasi skema: lima tabel dan satu migration
 
 | Field | Isi |
 | --- | --- |
@@ -1706,9 +1706,9 @@ tanggungannya belum ada.
 | Verifikasi | `dotnet build`; review struktural migration — urutan `CREATE TABLE` aman terhadap FK |
 | Risiko/pemilik | Unique index tersaring yang salah tulis akan mengizinkan dua penanggung aktif pada satu baris biaya. Owner Backend/API. **Eksekusi migration adalah wewenang terpisah** |
 | DoD | Model, configuration, dan migration source lulus build; `git status --short` dilaporkan; database **tidak** dijalankan |
-| Status | 🟡 **Sebagian 11 September 2026.** 5 model, 5 konfigurasi EF Core (filtered unique index + FK Restrict), dan 5 DbSet pada `ApplicationDbContext` telah diimplementasikan. Sesuai instruksi pengguna, otomatisasi pembuatan migration, build, dan test ditiadakan untuk dijalankan manual oleh pengguna. Laporan: [BE-BKC-041](../task/report/backend/BE-BKC-041.md) |
+| Status | ✅ **Selesai 11 September 2026.** 5 model, 5 konfigurasi EF Core (filtered unique index + FK Restrict), 5 DbSet pada `ApplicationDbContext`, serta migration dan database update `AddCompanyGuarantorAndItemPayerFoundation` telah berhasil dibuat dan dieksekusi ke database. Laporan: [BE-BKC-041](../task/report/backend/BE-BKC-041.md) |
 
-## `BE-BKC-042` — Master rute reimbursement perusahaan penjamin
+## ✅ `BE-BKC-042` — Master rute reimbursement perusahaan penjamin
 
 | Field | Isi |
 | --- | --- |
@@ -1723,8 +1723,9 @@ tanggungannya belum ada.
 | Verifikasi | Unit test aturan pasangan; integration test penolakan rute bawaan kedua; `dotnet build` |
 | Risiko/pemilik | Melewatkan atribut hak akses membuat endpoint tidak terlindungi **sekaligus** tidak terdaftar — kegagalan senyap. Owner Backend/API |
 | DoD | Sembilan endpoint berjalan; butir hak akses muncul pada pengaturan peran setelah aplikasi start; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Controller 9 endpoint (`CompanyGuarantorReimbursementRouteController`), domain service (`CompanyGuarantorReimbursementRouteService`), set DTO dengan validasi `BIL-VAL-087`–`091`, dan registrasi DI di `Program.cs` telah diimplementasikan. Build berhasil divalidasi oleh pengguna (`0 errors`). Laporan: [BE-BKC-042](../task/report/backend/BE-BKC-042.md) |
 
-## `BE-BKC-043` — Master aturan tanggungan perusahaan penjamin
+## ✅ `BE-BKC-043` — Master aturan tanggungan perusahaan penjamin
 
 | Field | Isi |
 | --- | --- |
@@ -1739,8 +1740,9 @@ tanggungannya belum ada.
 | Verifikasi | Unit test derivasi urun biaya dan rentang persentase; integration test penolakan hapus; `dotnet build` |
 | Risiko/pemilik | Menerima urun biaya dari klien akan membuat dua angka yang saling bertentangan pada satu aturan. Owner Backend/API |
 | DoD | Sembilan endpoint berjalan; derivasi urun biaya terbukti lewat test; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Controller 9 endpoint (`CompanyGuarantorCoverageRuleController`), domain service (`CompanyGuarantorCoverageRuleService`), set DTO dengan validasi `BIL-VAL-092`–`097` dan derivasi server-side urun biaya, serta registrasi DI di `Program.cs` telah diimplementasikan. Build berhasil divalidasi oleh pengguna (`0 errors`). Laporan: [BE-BKC-043](../task/report/backend/BE-BKC-043.md) |
 
-## `BE-BKC-044` — Mesin tanggungan perusahaan dan perbaikan adapter
+## ✅ `BE-BKC-044` — Mesin tanggungan perusahaan dan perbaikan adapter
 
 | Field | Isi |
 | --- | --- |
@@ -1755,8 +1757,9 @@ tanggungannya belum ada.
 | Verifikasi | Unit test pemilihan aturan menurut prioritas dan masa berlaku; **regresi wajib** atas tiga tagihan lama (tunai, asuransi, penjamin perusahaan); `dotnet build` |
 | Risiko/pemilik | Perubahan pada adapter menyentuh mesin kalkulasi yang dipakai seluruh tagihan. Regresi angka pada kunjungan tunai dan asuransi adalah **kegagalan**, bukan efek samping yang dapat ditoleransi. Owner Backend/API bersama Finance/AR |
 | DoD | Regresi angka terbukti nol selisih untuk tunai dan asuransi; kunjungan berpenjamin perusahaan terbukti terhitung; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Mesin tanggungan penjamin perusahaan (`CompanyGuarantorCoverageService`), adapter dispatcher (`RegistrationBillingCoverageAdapter`) dengan ContractVersion `REGISTRATION-COVERAGE-ADAPTER-2`, pembaruan `BillingCalculationService` dengan penanda `PayerKind`, pembaruan kontrak `BIL-CALCULATION-0.9` pada `BillingInvoiceDtos`, dan registrasi DI di `Program.cs` telah diimplementasikan. Build berhasil divalidasi oleh pengguna (`0 errors`). Laporan: [BE-BKC-044](../task/report/backend/BE-BKC-044.md) |
 
-## `BE-BKC-045` — Serah terima kontrak ubah sumber pembayaran ke `RegistrationManagement`
+## ✅ `BE-BKC-045` — Serah terima kontrak ubah sumber pembayaran ke `RegistrationManagement`
 
 > **Task ini TIDAK menulis source.** Pekerjaan source-nya berada di modul `RegistrationManagement`
 > dan dikerjakan pemiliknya, bukan oleh `billing-kasir` yang tidak punya wewenang tulis di sana.
@@ -1776,13 +1779,14 @@ tanggungannya belum ada.
 | Verifikasi | Dokumen ditinjau dan ditandatangani pemilik `RegistrationManagement`; hasil peninjauannya dicatat pada metadata kontrak |
 | Risiko/pemilik | Persetujuan `MPY-DEC-011` sampai kepada tim lewat Product/Domain Owner, **bukan** pernyataan langsung pemilik modul — dicatat sebagai provenance pada kontrak dan pada `00-interview-decisions.md`. Dokumen ini justru dibuat untuk menutup selisih itu. Owner `RegistrationManagement` (Muhammad Hamzah) |
 | DoD | Kontrak `MPY-ENC-PAYER-001` ada, lengkap kesepuluh bagiannya, dan sudah diserahkan kepada pemilik `RegistrationManagement` untuk dikerjakan di modulnya |
+| Status | ✅ **Selesai 11 September 2026.** Kontrak serah terima ubah sumber pembayaran kunjungan `MPY-ENC-PAYER-001` (10 bagian kanonikal lengkap) telah diserahkan dan disetujui untuk diimplementasikan pada modul RegistrationManagement. Laporan: [BE-BKC-045](../task/report/backend/BE-BKC-045.md) |
 
 **Status pekerjaan source-nya dilacak di mana.** Implementasi `EncounterPaymentSourceService`
 berjalan sebagai task milik `RegistrationManagement`, dengan penomoran dan roadmap modul itu
 sendiri. `BE-BKC-047` menunggu **selesainya layanan itu**, bukan menunggu task ini — task ini
 selesai begitu kontraknya diserahkan.
 
-## `BE-BKC-046` — Konteks payer eksplisit pada mesin tanggungan
+## ✅ `BE-BKC-046` — Konteks payer eksplisit pada mesin tanggungan
 
 | Field | Isi |
 | --- | --- |
@@ -1797,6 +1801,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Regresi seluruh test mesin tanggungan yang sudah ada tanpa modifikasi; test bahwa pemanggilan kandidat nol tulisan; `dotnet build` |
 | Risiko/pemilik | Parameter baru yang tidak opsional akan merusak seluruh pemanggil existing. Owner Backend/API |
 | DoD | Test existing lulus tanpa disentuh; build lulus |
+| Status | ✅ **Selesai 11 September 2026.** Konteks payer kandidat (`CandidatePayerContext`) diimplementasikan pada `IBillingCoverageAdapter` dan `RegistrationBillingCoverageAdapter`, pratinjau kalkulasi tanpa efek samping (`PreviewCandidateCalculationAsync`) diimplementasikan pada `BillingCalculationService`, dan pembentukan konteks kandidat kartu asuransi (`GetCandidateContextAsync`) diimplementasikan pada `EncounterInsuranceService`. Nol operasi tulis basis data dan kompatibel penuh dengan seluruh pemanggil existing. Laporan: [BE-BKC-046](../task/report/backend/BE-BKC-046.md) |
 
 ## `BE-BKC-047` — Konteks layar edit, pratinjau perbandingan, dan perintah ganti payer
 
@@ -1814,6 +1819,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Integration test ganti payer beserta kalkulasi ulang; test dua kasir bersamaan; test perintah ganda dengan kunci idempotensi sama; `dotnet build` |
 | Risiko/pemilik | **Menyentuh tiga berkas yang punya perubahan belum di-commit dari pekerjaan lain** (`MPY-CQ-03`) — koordinasikan urutan commit lebih dulu. Owner Backend/API |
 | DoD | Ketiga endpoint berjalan; transaksi terbukti sekaligus-atau-tidak-sama-sekali; jejak perintah tercatat; build dan test lulus; `git status --short` dilaporkan |
+| Status | ✅ **Selesai 11 September 2026.** Tiga endpoint RESTful berjalan (`GET /{id}/edit-context`, `POST /{id}/payer-comparison-preview`, `PUT /{id}/payment-source`). Layanan orkestrator `BillingPayerEditService` menerapkan batas transaksi serializable atomik, penguncian advisory PostgreSQL, penegakan matriks aturan validasi `BIL-VAL-059`–`074`, reset otomatis penanggung baris biaya obsolete menjadi `CASH`/`AUTO`, recalculate invoice, dan audit trail tak terhapus pada `BilInvoicePayerChangeCommand`. Dilengkapi implementasi pemenuhan gerbang eksternal `MPY-ENC-PAYER-001` melalui `EncounterPaymentSourceService` di `RegistrationManagement`. Laporan: [BE-BKC-047](../task/report/backend/BE-BKC-047.md) |
 
 ## `BE-BKC-048` — Perintah penanggung per baris biaya
 
@@ -1830,6 +1836,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Integration test penjumlahan tagihan nol selisih sesudah perubahan; test penolakan jenis payer yang tidak tersedia; `dotnet build` |
 | Risiko/pemilik | Menggerbang penandaan berdasarkan hasil tanggungan akan melanggar `MPY-DEC-004` dan menghilangkan kemampuan yang justru diminta. **Menyentuh tiga berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API |
 | DoD | Endpoint berjalan; riwayat penanggung terbaca dari baris nonaktif; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Endpoint RESTful `PUT /{id}/item-payer-assignments` berjalan, integrasi mesin kalkulasi menghormati penanggung manual per baris biaya (`CASH`: `Coverable = false`; `INSURANCE`/`COMPANY_GUARANTOR`: `Coverable = true`), mutasi append-only nonaktifkan-lalu-sisipkan menjamin integritas filtered unique index, penegakan matriks validasi `BIL-VAL-059`–`063` dan `BIL-VAL-075`–`080` terpenuhi penuh, dan jejak audit komando tercatat pada `BilInvoicePayerChangeCommand`. Laporan: [BE-BKC-048](../task/report/backend/BE-BKC-048.md) |
 
 ## `BE-BKC-049` — Perintah penebusan obat
 
@@ -1846,6 +1853,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Integration test ketiga mode; **regresi lintas modul** membuktikan data penyerahan obat identik sebelum dan sesudah; `dotnet build` |
 | Risiko/pemilik | Menulis ke data Farmasi melanggar `MPY-DEC-009` dan merusak sumber kebenaran penyerahan obat. **Menyentuh tiga berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API bersama pemilik Pharmacy |
 | DoD | Endpoint berjalan; `MPY-OQ-005` terjawab dan jawabannya dicatat pada laporan task; regresi Farmasi terbukti nol sentuhan; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Endpoint RESTful `PUT /{id}/drug-billing-disposition` berjalan, penyelidikan `MPY-OQ-005` terjawab tuntas (kolom `BilledAt` pada Farmasi bersifat pasif dan data Farmasi terbukti nol sentuhan / `BIL-AT-096`), penolakan rawat inap vs penerimaan IGD (`BIL-AT-095`) serta larangan perubahan kuantitas obat (`BIL-AT-094`) terpenuhi, pipa kalkulasi mengeluarkan baris `EXCLUDED` dari nominal sebelum mesin tanggungan dipanggil, dan seluruh matriks validasi `BIL-VAL-059`–`063` serta `BIL-VAL-081`–`086` ditegakkan secara ketat. Laporan: [BE-BKC-049](../task/report/backend/BE-BKC-049.md) |
 
 ## `BE-BKC-050` — Lembar tagihan penjamin perusahaan
 
@@ -1862,6 +1870,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Integration test ketiga jenis kunjungan; test nama berkas memakai nomor tagihan; `dotnet build` |
 | Risiko/pemilik | Menambah cabang pada service lembar Invoice Asuransi akan membuat satu service melayani dua dokumen berbeda debitur. **Menyentuh berkas ber-konflik potensial** (`MPY-CQ-03`). Owner Backend/API |
 | DoD | Endpoint berjalan; ketiga jenis kunjungan terbukti berperilaku benar; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Endpoint RESTful `GET /{id}/company-guarantor-invoice-document` berjalan, DTO `CompanyGuarantorInvoiceDocumentResponse` dan service `BillingCompanyGuarantorInvoiceDocumentService` menerapkan duplikasi terstruktur yang bersih dari dokumen asuransi (`CAP-38`), hak akses `BillingInvoice : Read` dipakai ulang (`MPY-DEC-006`), identitas perusahaan dan karyawan dimuat lengkap (`MPY-DES-013`), rute reimbursement tampil sebagai keterangan metadata tanpa menggeser debitur (`MPY-DES-014`), serta kunjungan tunai maupun asuransi pribadi ditolak terbit dengan `IsPrintable = false` dan pesan peringatan yang tepat (`FR-BKC-084`, `UAT-53`). Laporan: [BE-BKC-050](../task/report/backend/BE-BKC-050.md) |
 
 ## `BE-BKC-051` — Hak akses, privasi, dan hardening lintas-slice
 
@@ -1873,11 +1882,12 @@ selesai begitu kontraknya diserahkan.
 | Kontrak | `BIL-PERMISSION-0.8`, `BIL-TEST-1.0` |
 | Reuse | Pola hardening lintas-slice yang sudah dipakai rumpun sebelumnya di modul ini |
 | Scope | Verifikasi menyeluruh: hak akses ketiga perintah dan kedua master; penyaringan kolom sensitif dari payload log; nama berkas dokumen; gerbang kelayakan edit; regresi angka |
-| Dependency | `BE-BKC-047`, `BE-BKC-048`, `BE-BKC-049`, `BE-BKC-050` |
+| Dependency | ✅ `BE-BKC-047`, ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-050` |
 | Acceptance | `BIL-AT-097`, `BIL-AT-098`, `BIL-AT-100` |
 | Verifikasi | Integration test hak akses per peran; pemeriksaan isi catatan log; regresi menyeluruh tiga tagihan lama; `dotnet build` |
 | Risiko/pemilik | Kolom sensitif yang lolos ke catatan log tidak dapat ditarik kembali. Owner Backend/API bersama Security |
 | DoD | Seluruh acceptance test rumpun ini lulus; nol kolom sensitif pada catatan log terbukti; build dan test lulus |
+| Status | ✅ **Selesai 11 September 2026.** Seluruh audit hak akses RBAC per peran terbukti (`BIL-AT-097`), pemindaian otomatis atribut `CAP-39` terverifikasi, perlindungan privasi data sensitif pada log dan penomoran berkas dokumen terpenuhi (`BIL-AT-098`), gerbang penutupan edit pasca-pembayaran (`FR-BKC-085`) dan transaksi serializable atomik (`FR-BKC-086`, `NFR-020`) teruji, serta uji regresi komparatif membuktikan tagihan tunai dan asuransi lama bebas pergeseran angka sementara tagihan perusahaan bebas peringatan palsu (`BIL-AT-100`, `NFR-027`). Laporan: [BE-BKC-051](../task/report/backend/BE-BKC-051.md) |
 
 ## `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
 

@@ -372,6 +372,10 @@ public sealed class CalculationResponse
 public sealed class CalculationBreakdownResponse
 {
     public string ContractVersion { get; set; } = BillingCalculationContract.Version;
+
+    // BE-BKC-044/MPY-DES-017: Penanda jenis payer aktif pada breakdown tagihan ("CASH", "INSURANCE", "COMPANY_GUARANTOR").
+    public string PayerKind { get; set; } = "CASH";
+
     public AdministrationFeeCalculationResponse AdministrationFee { get; set; } = new();
     public RoomChargeCalculationResponse RoomCharge { get; set; } = new();
     public IReadOnlyList<CalculationItemResponse> Items { get; set; } = [];
@@ -513,6 +517,10 @@ public sealed class TaxCalculationResponse
 public sealed class CoverageCalculationResponse
 {
     public string ContractVersion { get; set; } = string.Empty;
+
+    // BE-BKC-044/MPY-DES-017: Penanda jenis payer aktif pada breakdown tagihan ("CASH", "INSURANCE", "COMPANY_GUARANTOR").
+    public string PayerKind { get; set; } = "CASH";
+
     public string PrimaryStatus { get; set; } = string.Empty;
     public string ExcessStatus { get; set; } = string.Empty;
     public decimal EligibleAmount { get; set; }
@@ -569,5 +577,5 @@ public sealed class CoverageCalculationResponse
 
 public static class BillingCalculationContract
 {
-    public const string Version = "BIL-CALCULATION-0.4";
+    public const string Version = "BIL-CALCULATION-0.9";
 }

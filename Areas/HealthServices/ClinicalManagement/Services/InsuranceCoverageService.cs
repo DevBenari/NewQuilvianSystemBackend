@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -29,9 +29,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid drugId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
@@ -65,9 +66,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid procedureId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
@@ -99,9 +101,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid tariffId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
