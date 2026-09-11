@@ -7,9 +7,9 @@
 | Task ID | `BE-BD-015` |
 | Judul | Kantong disimpan, dipindahkan, riwayatnya tak pernah ditimpa |
 | Jalur | Jalur kritis `BE-BD-004` → **`BE-BD-015`** → `BE-BD-006` → `BE-BD-007` |
-| Roadmap | `docs/module-blueprints/bank-darah/roadmap/backend-roadmap.md` revisi 9, blok task `BE-BD-015` |
+| Roadmap | `docs/module-blueprints/bank-darah/roadmap/backend-roadmap.md` revisi 9, blok task `BE-BD-015`. Status ditutup pada **revisi 10** (penerusan verifikasi final bagian alokasi, 11 September 2026) |
 | Trace | `DEC-BD-036`, `DEC-BD-037` · `BD-DOM-25` · `INV-BD-025`..`028` · `ARCH-BD-POS-04/05/06` · `contracts/api-contract.md` §Blood Unit dan §Blood Storage Location · `contracts/state-transition-matrix.md` §3 · `contracts/validation-matrix.md` §4b (`VAL-BD-060`..`064`, `VAL-BD-068`) · `contracts/permission-audit-matrix.md` §1 (`BloodUnit : Store`) · `data/data-dictionary.md` §`BbkBloodUnitPlacement`, §`BbkBloodUnit` · `testing/acceptance-test-matrix.md` §7 |
-| Acceptance criteria | `AC-BD-060/061/063/066/067/068/069/070` · `AC-BD-062/065` (diteruskan dari `BE-BD-014`) · `AC-BD-023/032` (diteruskan dari `BE-BD-004`, roadmap revisi 9) |
+| Acceptance criteria | `AC-BD-061/063/066/067/069` · `AC-BD-062/065` (diteruskan dari `BE-BD-014`) · `AC-BD-023/032` (diteruskan dari `BE-BD-004`, roadmap revisi 9) · bagian gerbang `AC-BD-060/068/070` — verifikasi final bagian alokasinya diteruskan ke `BE-BD-006` pada roadmap revisi 10. **Riwayat:** `AC-BD-060/061/063/066/067/068/069/070` · `AC-BD-062/065` · `AC-BD-023/032` sampai revisi 9 |
 | Contract version | `v4` — **`approved`** (`Sukmagp` / `2026-09-03`) |
 | Dependency | `G1` ✅ · `G2b` ✅ · `BE-BD-004` ✅ · `BE-BD-014` ✅ |
 | Klasifikasi | `HEAVY` — entity baru dengan FK melingkar, migration, konkurensi, lintas master data |
@@ -19,7 +19,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `46de845` cabang `sukmagp` — "docs(bank-darah): unblock BE-BD-015 storage delivery" |
 | Tanggal | `2026-09-11` |
-| Status | 🟡 **`SELESAI SEBAGIAN`** — seluruh scope dan seluruh validasi teknis selesai. **9 dari 12 kriteria terbukti penuh.** `AC-BD-060`, `AC-BD-068`, dan `AC-BD-070` terbukti pada tingkat **gerbang alokasi**; bagian "dicoba **dialokasikan**" menuntut endpoint alokasi milik `BE-BD-006`, yang dilarang dibuat pada task ini. Lihat bagian 7 dan 9 |
+| Status | ✅ **`SELESAI`** sejak roadmap revisi 10, 11 September 2026 — pemilik (`Sukmagp`) meneruskan verifikasi final bagian alokasi `AC-BD-060`, `AC-BD-068`, dan `AC-BD-070` ke `BE-BD-006`, sehingga seluruh kriteria yang tetap milik task ini terbukti penuh, bagian gerbang ketiganya terbukti, dan seluruh butir DoD milik task ini terpenuhi (bagian 7). Seluruh bukti di bawah dipertahankan apa adanya. Nol source, test, maupun migration berubah untuk penerusan ini. **Riwayat:** 🟡 **`SELESAI SEBAGIAN`** — seluruh scope dan seluruh validasi teknis selesai. **9 dari 12 kriteria terbukti penuh.** `AC-BD-060`, `AC-BD-068`, dan `AC-BD-070` terbukti pada tingkat **gerbang alokasi**; bagian "dicoba **dialokasikan**" menuntut endpoint alokasi milik `BE-BD-006`, yang dilarang dibuat pada task ini. Lihat bagian 7 dan 9 |
 
 ---
 
@@ -278,9 +278,9 @@ dibandingkan dengan baseline `210 Warning(s)` yang diukur dengan analyzer aktif.
 | `AC-BD-069` — sistem tidak memindahkan kantong sendiri | ✅ **Terbukti** | `AC_BD_069_…` — lewat `PATCH` maupun `PUT`: potret kantong, penempatan, dan jumlah riwayat identik; nol `IHostedService` di Bank Darah dan master lokasi. PostgreSQL: potret identik |
 | `AC-BD-023` — kantong sesudah `ClosedEncounter` → disimpan lalu `PendingReview` | ✅ **Terbukti penuh** | `AC_BD_023_…` — dari penerimaan susulan sampai `PendingReview`; asal permintaan dan statusnya utuh; riwayat `HoldForReview` dengan sebabnya; muncul di daftar `PendingReview` hanya **sesudah** disimpan. Bagian penerimaan sudah dibuktikan `BE-BD-004` |
 | `AC-BD-032` — kantong ke-3 → `PendingReview` + alasan, muncul di daftar #2 | ✅ **Terbukti penuh** | `AC_BD_032_…` — dua kantong `Available`, kantong berlebih `PendingReview` beralasan "Kiriman melebihi permintaan.", satu-satunya baris daftar `unitStatus=PendingReview`. HTTP: `Controller_DaftarKerjaDua_…` |
-| `AC-BD-060` — kantong `Received` dicoba dialokasikan → `VAL-BD-063` | 🟡 **Tingkat gerbang** | `AC_BD_060_…` — gerbang tertutup dengan kode dan pesan kanonis; aksi alokasi tidak ditawarkan. **Endpoint `allocate` belum ada** — milik `BE-BD-006`, yang juga mencantumkan `AC-BD-060` |
-| `AC-BD-068` — kantong di lokasi nonaktif dicoba dialokasikan → `VAL-BD-064` | 🟡 **Tingkat gerbang** | `AC_BD_068_…` dan PostgreSQL — gerbang tertutup `VAL-BD-064`. Endpoint `allocate` milik `BE-BD-006`, yang juga mencantumkan `AC-BD-068` |
-| `AC-BD-070` — dipindahkan dari lokasi nonaktif ke aktif lalu dialokasikan → berhasil, pelaku & waktu tercatat, gerbang terbuka | 🟡 **Tingkat gerbang** | `AC_BD_070_…` dan PostgreSQL — perpindahan berhasil, pelaku dan waktu tercatat, lokasi asal tetap terbaca, gerbang **terbuka kembali**. Langkah "lalu mengalokasikan → berhasil" menuntut endpoint `allocate` `BE-BD-006` |
+| `AC-BD-060` — kantong `Received` dicoba dialokasikan → `VAL-BD-063` | ✅ **Bagian gerbang terbukti** · verifikasi final → `BE-BD-006` (revisi 10). **Riwayat:** 🟡 tingkat gerbang | `AC_BD_060_…` — gerbang tertutup dengan kode dan pesan kanonis; aksi alokasi tidak ditawarkan. **Endpoint `allocate` belum ada** — milik `BE-BD-006`, yang juga mencantumkan `AC-BD-060`. Sejak revisi 10 percobaan alokasi lewat endpoint itu menjadi verifikasi final `BE-BD-006` |
+| `AC-BD-068` — kantong di lokasi nonaktif dicoba dialokasikan → `VAL-BD-064` | ✅ **Bagian gerbang terbukti** · verifikasi final → `BE-BD-006` (revisi 10). **Riwayat:** 🟡 tingkat gerbang | `AC_BD_068_…` dan PostgreSQL — gerbang tertutup `VAL-BD-064`. Endpoint `allocate` milik `BE-BD-006`, yang juga mencantumkan `AC-BD-068`. Sejak revisi 10 percobaan alokasi lewat endpoint itu menjadi verifikasi final `BE-BD-006` |
+| `AC-BD-070` — dipindahkan dari lokasi nonaktif ke aktif lalu dialokasikan → berhasil, pelaku & waktu tercatat, gerbang terbuka | ✅ **Bagian gerbang terbukti** · verifikasi final → `BE-BD-006` (revisi 10). **Riwayat:** 🟡 tingkat gerbang | `AC_BD_070_…` dan PostgreSQL — perpindahan berhasil, pelaku dan waktu tercatat, lokasi asal tetap terbaca, gerbang **terbuka kembali**. Langkah "lalu mengalokasikan → berhasil" menuntut endpoint `allocate` `BE-BD-006`; sejak revisi 10 `AC-BD-070` ditambahkan pada acceptance `BE-BD-006` untuk langkah itu |
 
 **Skenario risiko matriks §7 di luar `AC-BD-*`:**
 
@@ -305,7 +305,7 @@ dibandingkan dengan baseline `210 Warning(s)` yang diukur dengan analyzer aktif.
 | Riwayat hanya-tambah terbukti; tepat satu penempatan berlaku dijaga | **Terpenuhi** — termasuk di PostgreSQL |
 | Penetapan pertama, perpindahan, penolakan lokasi nonaktif, penonaktifan tanpa pemindahan | **Terpenuhi** |
 | `AC-BD-023`, `AC-BD-032` terbukti penuh | **Terpenuhi** |
-| Seluruh `AC-BD-060/061/062/063/065/066/067/068/069/070` terbukti | **Belum terpenuhi** — 7 dari 10 penuh; `060`/`068`/`070` pada tingkat gerbang |
+| Seluruh `AC-BD-060/061/062/063/065/066/067/068/069/070` terbukti | **Terpenuhi sejak roadmap revisi 10** — ketujuh kriteria yang tetap milik task ini (`061/062/063/065/066/067/069`) terbukti penuh, dan bagian gerbang `060`/`068`/`070` terbukti; verifikasi final bagian alokasinya milik `BE-BD-006`. **Riwayat:** belum terpenuhi — 7 dari 10 penuh; `060`/`068`/`070` pada tingkat gerbang |
 | Konkurensi, otorisasi, jalur gagal | **Terpenuhi** |
 | Build, test, PostgreSQL | **Terpenuhi** |
 | Migration hanya ke `QuilvianNewDevSukma`, 0 pending, `has-pending-model-changes` bersih | **Terpenuhi** |
@@ -335,10 +335,10 @@ dibandingkan dengan baseline `210 Warning(s)` yang diukur dengan analyzer aktif.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `NONE` |
-| Masalah yang diketahui | Bagian "dicoba dialokasikan" pada `AC-BD-060/068/070` menunggu endpoint `allocate` `BE-BD-006`. Karena `BE-BD-006` bergantung pada `BE-BD-015` ✅, keduanya saling menunggu sampai pemilik roadmap memutuskan — sama persis dengan keadaan `BE-BD-004` sebelum revisi 9 |
+| Masalah yang diketahui | `NONE` sejak roadmap revisi 10 — bagian "dicoba dialokasikan" pada `AC-BD-060/068/070` kini verifikasi final `BE-BD-006`, sehingga saling-tunggu antara kedua task terurai. **Riwayat:** bagian itu menunggu endpoint `allocate` `BE-BD-006`. Karena `BE-BD-006` bergantung pada `BE-BD-015` ✅, keduanya saling menunggu sampai pemilik roadmap memutuskan — sama persis dengan keadaan `BE-BD-004` sebelum revisi 9 |
 | Risiko tersisa | **(1)** Penolakan index unik terfilter dipetakan ke `409` berdasarkan nama constraint; bila nama index diubah kelak, pemetaannya ikut diperbarui (`BbkBloodUnitPlacementConfiguration.CurrentUnitIndexName`). **(2)** Endpoint alokasi `BE-BD-006` wajib memanggil `EvaluateAllocationGateAsync` — bila tidak, gerbang ini tidak menjaga apa pun |
 | Temuan di luar scope | **(1)** `FE-BD-011` belum memakai `heldUnitCount`, sehingga `FE-BD-015` masih belum terpenuhi di layar. **(2)** `FE-BD-015` melarang tombol hapus lokasi di layar, sementara `DELETE` master masih ada dari `BE-BD-014`; kini ia menolak lokasi yang pernah dipakai. **(3)** `UnitTests.InMemory` punya 9 kegagalan Billing baseline — milik BillingManagement |
 | Perubahan sampingan | `NONE` — snapshot migration adalah bangkitan EF milik migration task ini |
 | Interupsi | `NONE` |
 | Status Git | Seluruh perubahan pada bagian 3.2 belum di-stage, belum di-commit. Nol push |
-| Langkah berikutnya | Keputusan pemilik roadmap: teruskan bagian alokasi `AC-BD-060/068/070` ke `BE-BD-006` (`060`/`068` sudah tercantum di sana; `070` perlu ditambahkan). Sesudahnya `BE-BD-015` sah ✅ dan `BE-BD-006` terbuka |
+| Langkah berikutnya | **Selesai pada roadmap revisi 10:** pemilik meneruskan verifikasi final bagian alokasi `AC-BD-060/068/070` ke `BE-BD-006` (`060`/`068` sudah tercantum di sana; `070` ditambahkan), sehingga `BE-BD-015` ✅ dan `BE-BD-006` 🟡 siap dijadwalkan. Berikutnya `BE-BD-006` lewat `build-module-backend`, dengan wewenang tersendiri; endpoint `allocate`-nya memanggil `EvaluateAllocationGateAsync` sesuai `02-backend-architecture.md` §F.4. **Riwayat:** keputusan pemilik roadmap: teruskan bagian alokasi `AC-BD-060/068/070` ke `BE-BD-006` (`060`/`068` sudah tercantum di sana; `070` perlu ditambahkan). Sesudahnya `BE-BD-015` sah ✅ dan `BE-BD-006` terbuka |

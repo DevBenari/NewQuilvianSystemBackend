@@ -101,7 +101,7 @@ pasien benar-benar dijaga.
 | Requirement | Skenario | Jenis | Bukti yang diharapkan |
 | --- | --- | --- | --- |
 | `AC-BD-059` | Kantong baru diterima dari PMI | Integ | Status `Received`; belum dapat dialokasikan |
-| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-063`; pesan menyebut kantong belum disimpan |
+| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-063`; pesan menyebut kantong belum disimpan. **Verifikasi final lewat endpoint alokasi milik `BE-BD-006` sejak roadmap revisi 10 (11 September 2026)**; `BE-BD-015` sudah membuktikan bagian gerbangnya — kantong `Received` ditolak gerbang alokasi `VAL-BD-063` |
 | `AC-BD-061` | Petugas menetapkan lokasi pada kantong `Received` | Integ | Kantong `Stored` lalu `Available`; satu baris riwayat penempatan bertambah |
 | `AC-BD-062` | Lokasi nonaktif dipilih untuk penyimpanan baru | Integ | **Ditolak** `VAL-BD-060` |
 | `AC-BD-063` | Kantong `Stored` dipindahkan ke lokasi lain | Integ | Riwayat bertambah; **status tidak berubah**; catatan penerimaan awal tidak tersentuh |
@@ -109,9 +109,9 @@ pasien benar-benar dijaga.
 | `AC-BD-065` | Lokasi nonaktif dipilih untuk penyimpanan kantong baru | Integ | **Ditolak** `VAL-BD-060` |
 | `AC-BD-066` | Lokasi nonaktif dipilih sebagai **tujuan perpindahan** | Integ | **Ditolak** `VAL-BD-060` — aturan berlaku untuk perpindahan, bukan hanya penempatan pertama |
 | `AC-BD-067` | Lokasi dinonaktifkan sementara masih ada kantong di dalamnya | Integ | Penonaktifan **berhasil**; kantong tetap tercatat di sana; status kantong tidak berubah; peringatan `VAL-BD-068` menyebut jumlah |
-| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064` |
+| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064`. **Verifikasi final lewat endpoint alokasi milik `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan bagian gerbangnya — lokasi current nonaktif menutup gerbang alokasi `VAL-BD-064` |
 | `AC-BD-069` | Sistem diminta memindahkan sendiri kantong saat lokasi dinonaktifkan | Integ | **Tidak terjadi** — nol baris riwayat penempatan baru, nol perubahan status, nol job berjalan |
-| `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali |
+| `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali. **Langkah "lalu mengalokasikan → berhasil" diverifikasi final oleh `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan perpindahan, riwayat beserta pelaku dan waktu, dan gerbang yang terbuka kembali |
 | `AC-BD-071` | Kantong `PendingReview` di lokasi nonaktif dicoba dialihkan ke pasien lain | Integ | **Ditolak** `VAL-BD-064` — pengalihan adalah alokasi dengan nama lain |
 | `AC-BD-072` | Kantong sudah dialokasikan dan bukti masih berlaku, lokasinya dinonaktifkan **sesudah** alokasi, lalu dicoba diberikan | **Integ** | **Ditolak** `VAL-BD-065`. Skenario inti `DEC-BD-038` — membuktikan gerbang dinilai **ulang**, bukan diwarisi |
 | `AC-BD-073` | Kantong yang sama dipindahkan ke lokasi aktif lalu diberikan | Integ | Berhasil; alokasi ke pasien tujuan tidak pernah putus sepanjang kejadian |
