@@ -6,20 +6,41 @@ on:
       - QuilvianIntegrationBackend
 
   workflow_dispatch:
+    inputs:
+      db_ready:
+        description: 'DEV database is ready for detected migration changes'
+        required: false
+        default: false
+        type: boolean
 
+# Jangan cancel workflow yang mungkin sedang berada di tengah promotion.
+# Candidate lama akan ditolak oleh stale-candidate check.
 concurrency:
-  group: integration-to-dev-gate
-  cancel-in-progress: true
+  group: integration-to-dev-promotion
+  cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 jobs:
   integration-gate:
     name: Integration Fast Gate
     runs-on: ubuntu-latest
 
+    outputs:
+      migration_changed: ${{ steps.migrations.outputs.changed }}
+      candidate_sha: ${{ github.sha }}
+
     steps:
+      - name: Verify Integration source
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_NAME" != "QuilvianIntegrationBackend" ]; then
+            echo "::error::This workflow must run from QuilvianIntegrationBackend."
+            exit 1
+          fi
+
       - name: Checkout candidate
         uses: actions/checkout@v4
         with:
@@ -44,12 +65,15 @@ jobs:
           dotnet build
           ./QuilvianSystemBackend.csproj
           --configuration Release
+          --no-restore
           -p:SkipMigrationMetadata=true
 
       - name: Detect migration changes
         id: migrations
         shell: bash
         run: |
+          set -euo pipefail
+
           git fetch origin QuilvianDevDeploy
 
           MIGRATION_CHANGES="$(
@@ -79,6 +103,137 @@ jobs:
             echo "- Candidate: \`${GITHUB_SHA}\`"
             echo "- Backend project build: PASS"
             echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+  migration-hold:
+    name: Migration Review Required
+    needs:
+      - integration-gate
+
+    if: >
+      needs.integration-gate.result == 'success' &&
+      needs.integration-gate.outputs.migration_changed == 'true' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.db_ready == true)
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hold DEV promotion
+        shell: bash
+        run: |
+          {
+            echo "## DEV Promotion HELD"
             echo ""
-            echo "Auto promotion is still disabled during validation."
+            echo "Migration changes were detected."
+            echo ""
+            echo "No database change was performed."
+            echo "No promotion to QuilvianDevDeploy was performed."
+            echo ""
+            echo "After the DEV database is ready:"
+            echo "1. Run this workflow manually from QuilvianIntegrationBackend."
+            echo "2. Set db_ready = true."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+  promote-dev:
+    name: Promote Integration to DEV
+    needs:
+      - integration-gate
+
+    if: >
+      needs.integration-gate.result == 'success' &&
+      (
+        needs.integration-gate.outputs.migration_changed == 'false' ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.db_ready == true
+        )
+      )
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate candidate and prepare promotion
+        id: promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin \
+            QuilvianIntegrationBackend \
+            QuilvianDevDeploy
+
+          CANDIDATE="${{ needs.integration-gate.outputs.candidate_sha }}"
+          LATEST_INTEGRATION="$(git rev-parse origin/QuilvianIntegrationBackend)"
+
+          echo "Candidate SHA          : $CANDIDATE"
+          echo "Latest Integration SHA : $LATEST_INTEGRATION"
+
+          if [ "$CANDIDATE" != "$LATEST_INTEGRATION" ]; then
+            echo "::error::Promotion blocked because a newer Integration candidate exists."
+            exit 1
+          fi
+
+          git switch -C QuilvianDevDeploy origin/QuilvianDevDeploy
+
+          if ! git merge \
+            --no-ff \
+            "$CANDIDATE" \
+            -m "chore: promote Integration to DEV"; then
+
+            git merge --abort || true
+
+            echo "::error::Promotion blocked because Integration cannot be merged cleanly into QuilvianDevDeploy."
+            exit 1
+          fi
+
+          # Deployment branch must contain exactly the same source tree
+          # as the validated Integration candidate.
+          if ! git diff --quiet "$CANDIDATE" HEAD -- .; then
+            echo "::error::Promotion blocked because resulting DEV source differs from the validated Integration candidate."
+            exit 1
+          fi
+
+          PROMOTED_SHA="$(git rev-parse HEAD)"
+
+          echo "promoted_sha=$PROMOTED_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Push promotion to QuilvianDevDeploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git push origin HEAD:QuilvianDevDeploy
+
+      - name: Trigger DEV deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh workflow run \
+            deploy-developer.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref QuilvianDevDeploy
+
+      - name: Promotion summary
+        shell: bash
+        run: |
+          {
+            echo "## DEV Promotion PASSED"
+            echo ""
+            echo "- Integration candidate: \`${{ needs.integration-gate.outputs.candidate_sha }}\`"
+            echo "- DeployDev commit: \`${{ steps.promotion.outputs.promoted_sha }}\`"
+            echo "- Promotion: PASS"
+            echo "- DEV deployment workflow: DISPATCHED"
           } >> "$GITHUB_STEP_SUMMARY"
