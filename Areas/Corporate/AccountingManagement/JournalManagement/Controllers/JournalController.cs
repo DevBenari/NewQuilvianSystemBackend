@@ -72,7 +72,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             var actor = GetCurrentUserId();
             if (actor == Guid.Empty) return IdentitasTidakValid();
 
-            var hasil = await _service.CreateAsync(request, actor, await AmbilIzinAsync(), ct);
+            // Jalur manual: larangan control account berlaku (BE-ACC-P2-012).
+            var hasil = await _service.CreateManualAsync(request, actor, await AmbilIzinAsync(), ct);
 
             await CatatAsync("Journal.Create", hasil);
 

@@ -126,6 +126,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         /// <summary>Diturunkan dari jenis akun, tidak disimpan (`ACC-DEC-019`).</summary>
         public bool RequiresCostCenter { get; set; }
+
+        /// <summary>
+        /// Penanda control account (<c>ACC-DEC-064</c>, usulan <c>ACC-API-0.11</c>). Dikirim
+        /// supaya tiap layar menyaring menurut kebutuhannya sendiri — Form Jurnal menyembunyikan
+        /// akun control, sedangkan Buku Besar tetap harus dapat memilih Kas Kasir.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
     }
 
     public class CreateChartOfAccountRequest

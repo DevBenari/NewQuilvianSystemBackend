@@ -170,10 +170,11 @@ dibatalkan.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-PERMISSION-0.4` |
-| `last_changed_in` | `ACC-PERMISSION-0.4` — 8 September 2026 |
+| `contract_version` | `ACC-PERMISSION-0.5` |
+| `last_changed_in` | `ACC-PERMISSION-0.5` — 11 September 2026: (1) baris baru `RecurringJournal : Activate` beserta pembagian perannya; (2) `Period : Read`/`Close`/`Approve` menjadi `AccountingPeriod : ...` — sisa kesalahan yang sudah diperbaiki di `api-contract.md` (`ACC-API-0.9`) tetapi terlewat di sini. Sebelumnya `0.4` — 8 September 2026 |
+| Amandemen menunggu ratifikasi | **`ACC-PERMISSION-0.6` (usulan) — 11 September 2026.** Baris baru `AccountingReconciliation : Read` untuk grup Reconciliation (`ACC-API-0.11`), beserta usulan pembagian perannya, dan satu pertanyaan terbuka: apakah pembacaan saldo rekonsiliasi dicatat `LoggerService`. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** |
-| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-PERMISSION-0.5`); sebelumnya Rizki / 8 September 2026 (`ACC-PERMISSION-0.4`) |
 | Traceability | `ACC-DEC-055` peran ketujuh, `ACC-DEC-044` sampai `ACC-DEC-057` |
 
 ## Peran ketujuh: `Accounting Director`
@@ -204,22 +205,43 @@ peran serba bisa kedua di samping Manager.
 | Melihat template jurnal berulang | `RecurringJournal : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Menambah template | `RecurringJournal : Create` | | ✓ | | ✓ | | | ✓ |
 | Mengubah template | `RecurringJournal : Update` | | | | ✓ | | | ✓ |
+| **Mengaktifkan atau menonaktifkan template** | **`RecurringJournal : Activate`** | | | | ✓ | | | ✓ |
 | Menerbitkan jurnal berulang manual | `RecurringJournal : Generate` | | | | ✓ | | | ✓ |
-| Melihat daftar penghalang penutupan | `Period : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Mengajukan penutupan periode | `Period : Close` | | | | ✓ | | | |
-| **Menyetujui atau menolak penutupan** | `Period : Approve` | | | | | **✓** | | |
+| Melihat daftar penghalang penutupan | `AccountingPeriod : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Mengajukan penutupan periode | `AccountingPeriod : Close` | | | | ✓ | | | |
+| **Menyetujui atau menolak penutupan** | `AccountingPeriod : Approve` | | | | | **✓** | | |
 | Melihat pratinjau tutup tahun | `YearEndClosing : Read` | | | | ✓ | ✓ | ✓ | |
 | Menyusun jurnal penutup tahun | `YearEndClosing : Generate` | | | | ✓ | | | |
 | Melihat pengaturan akuntansi | `AccountingConfiguration : Read` | | | | ✓ | ✓ | ✓ | ✓ |
 | Mengubah pengaturan akuntansi | `AccountingConfiguration : Update` | | | | ✓ | | | ✓ |
+| **Melihat saldo rekonsiliasi control account** *(usulan `0.6`)* | **`AccountingReconciliation : Read`** | | | | ✓ | ✓ | ✓ | ✓ |
 
-**Dua baris yang perlu diperhatikan:**
+**Baris yang perlu diperhatikan:**
 
 1. `AccountingEvent : Receive` **hanya dimiliki Administrator**, karena pemanggilnya adalah modul
    Finance lewat akun layanan, bukan manusia. Memberikannya kepada peran manusia membuka jalur
    penyisipan jurnal yang tidak dimaksudkan.
-2. `Period : Approve` **hanya dimiliki `Accounting Director`** — tidak juga Administrator.
+2. `AccountingPeriod : Approve` **hanya dimiliki `Accounting Director`** — tidak juga Administrator.
    Menyetujui penutupan buku adalah pernyataan keuangan, bukan tindakan teknis.
+3. `RecurringJournal : Activate` **terpisah dari `Update`.** Template aktif mulai menulis ke buku
+   besar pada siklus penjadwal berikutnya, sedangkan menyunting template tidak aktif belum
+   berakibat apa pun. Hak ini harus dicentang tersendiri di layar Akses Role; peran yang hanya
+   punya `Update` mendapat `403` saat menekan Aktifkan. Pembagian peran di atas — Manager dan
+   Administrator, sama dengan `Update` dan `Generate` — **diratifikasi bersama
+   `ACC-PERMISSION-0.5`**, Rizki, 11 September 2026.
+4. `AccountingReconciliation : Read` — **usulan `ACC-PERMISSION-0.6`.** Nama resource mengikuti
+   `ControllerName = "AccountingReconciliation"` pada `ReconciliationController`, bukan
+   `Reconciliation`. Pembagian peran di atas meniru `AccountingConfiguration : Read` — Manager,
+   Director, Auditor, dan Administrator — dan **menunggu konfirmasi owner**. Per 11 September 2026
+   hak ini punya **nol pemberian** di `SysAccessPolicy`, sehingga hanya SuperAdmin yang dapat
+   membuka layarnya sebelum hak itu dicentang di layar Akses Role.
+
+### Nama resource penutupan periode adalah `AccountingPeriod`
+
+Tiga baris penutupan periode di atas sebelumnya menulis `Period`. Argumen pertama
+`[AccessPermission]` wajib sama dengan `ControllerName`, dan `ControllerName`-nya
+`"AccountingPeriod"`. Nama `Period` menghasilkan `403` permanen yang tidak dapat diperbaiki dari
+layar Akses Role, karena hak yang dicari tidak pernah ada untuk diberikan.
 
 ## Pencatatan jejak audit Phase 2
 
@@ -234,6 +256,7 @@ peran serba bisa kedua di samping Manager.
 | Jurnal penutup tahun disusun | **Ya** | `EntityId`, pelaku |
 | Membaca daftar kejadian | **Tidak** | Pembacaan sehari-hari tidak dicatat (`ACC-DEC-032`) |
 | Membaca pratinjau tutup tahun | **Ya** | Termasuk pembacaan laporan keuangan pada `ACC-DEC-032` |
+| Membaca saldo rekonsiliasi control account *(usulan `0.6`)* | **Belum diputuskan** | Kode saat ini **tidak** mencatatnya. `ACC-DEC-032` mencatat pembacaan laporan keuangan; apakah saldo control account termasuk di dalamnya menunggu keputusan owner |
 
 **Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
 `02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.

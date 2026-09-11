@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Char
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Repositories;
@@ -49,6 +50,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
         /// <summary>Lebar urutan pada nomor jurnal — lima angka, contoh <c>00001</c>.</summary>
         private const int LebarUrutan = 5;
+
+        /// <summary>
+        /// Kode jenis jurnal penutup tahun. Sama dengan <c>AccYearEndClosingService</c>; di sini
+        /// hanya dipakai bersama bentuk barisnya, tidak pernah sendirian (lihat
+        /// <see cref="BerasalDariJalurOtomatisAsync"/>).
+        /// </summary>
+        private const string KodeJenisTutupTahun = "JT";
+
+        /// <summary>
+        /// Sebutan jalur Form Jurnal pada kalimat penolakan control account:
+        /// "... hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal manual."
+        /// (<c>ACC-VALIDATION-0.7</c> bagian 3b).
+        /// </summary>
+        public const string JalurJurnalManual = "jurnal manual";
+
+        /// <summary>Sebutan jalur penyesuaian <c>JP</c> pada kalimat penolakan control account.</summary>
+        public const string JalurJurnalPenyesuaian = "jurnal penyesuaian";
+
+        /// <summary>Sebutan jalur template berulang pada kalimat penolakan control account.</summary>
+        public const string JalurTemplateBerulang = "template jurnal berulang";
 
         private static readonly string[] NamaBulan =
         {
@@ -172,6 +193,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
         /// Acceptance (1), (2), (5), (6), (7), dan (8) `BE-ACC-010` bertemu di method ini.
         /// Urutannya disengaja: seluruh pemeriksaan selesai <b>sebelum</b> transaction dibuka,
         /// supaya isian yang salah tidak pernah memegang advisory lock nomor jurnal.
+        ///
+        /// <b>Method ini tidak memeriksa control account</b> — ia juga jalur penerbitan template
+        /// dan tutup tahun. Jalur yang disusun manusia memanggil <see cref="CreateManualAsync"/>.
         /// </remarks>
         public async Task<AccountingServiceResult<JournalDetailResponse>> CreateAsync(
             CreateJournalRequest request,
@@ -264,6 +288,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             }
         }
 
+        /// <summary>
+        /// Jalur Form Jurnal: <see cref="CreateAsync"/> didahului larangan control account
+        /// (<c>ACC-DEC-064</c>). Hanya <c>JournalController</c> yang memanggilnya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Larangannya sengaja <b>tidak</b> dipasang di dalam <see cref="CreateAsync"/>. Method
+        /// itu juga dipanggil penerbitan template (<c>AccRecurringJournalService</c>) dan tutup
+        /// tahun (<c>AccYearEndClosingService</c>) — dua jalur yang justru sah menuju control
+        /// account menurut acceptance (2) <c>BE-ACC-P2-012</c>. Memasangnya di sana mematikan
+        /// keduanya dengan <c>422</c>.
+        /// </para>
+        /// <para>
+        /// <see cref="AccJournal"/> tidak menyimpan asal-usulnya, dan menambahkannya menuntut
+        /// migration. Pembedanya karena itu <b>pintu masuknya</b>: jalur baru yang disusun
+        /// manusia wajib memanggil method ini, bukan <see cref="CreateAsync"/>.
+        /// </para>
+        /// </remarks>
+        public async Task<AccountingServiceResult<JournalDetailResponse>> CreateManualAsync(
+            CreateJournalRequest request,
+            Guid actorUserId,
+            JournalActorPermissions? izin = null,
+            CancellationToken ct = default)
+        {
+            var penjaga = await AccountingLegalEntityGuard.PeriksaAsync<JournalDetailResponse>(_db, ct);
+            if (penjaga is not null) return penjaga;
+
+            var alasanControl = await AlasanControlAccountAsync(
+                _db,
+                (request.Lines ?? new List<CreateJournalLineRequest>()).Select(x => x.AccountId),
+                JalurJurnalManual,
+                ct);
+
+            if (alasanControl is not null) return TolakControlAccount<JournalDetailResponse>(alasanControl);
+
+            return await CreateAsync(request, actorUserId, izin, ct);
+        }
+
         /// <remarks>
         /// Baris dikirim <b>utuh</b> dan menggantikan seluruh baris sebelumnya. Nomor jurnal
         /// tidak pernah dialokasikan ulang, walaupun bulan akuntansinya berubah: nomor adalah
@@ -285,6 +347,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
             var status = PeriksaDapatDisunting<JournalDetailResponse>(jurnal, untukPenghapusan: false);
             if (status is not null) return status;
+
+            // BE-ACC-P2-012. Setiap penggantian baris lewat method ini adalah susunan manusia —
+            // termasuk atas draft hasil template dan jurnal pembalik yang ditolak (`ACC-DEC-072`
+            // butir 3, `ACC-DEC-073` butir 4). Hanya JournalController yang memanggilnya.
+            var alasanControl = await AlasanControlAccountAsync(
+                _db,
+                (request.Lines ?? new List<CreateJournalLineRequest>()).Select(x => x.AccountId),
+                JalurJurnalManual,
+                ct);
+
+            if (alasanControl is not null) return TolakControlAccount<JournalDetailResponse>(alasanControl);
 
             // Rejected -> Draft. Perpindahan ini bagian dari penyuntingan itu sendiri
             // (`ACC-STATE-0.1` bagian 1.1), bukan endpoint tersendiri: memperbaiki jurnal yang
@@ -460,6 +533,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
             var syarat = await PeriksaSembilanSyaratAsync<JournalDetailResponse>(jurnal, ct);
             if (syarat is not null) return syarat;
+
+            // BE-ACC-P2-012 — larangan control account, dengan pengecualian menurut asal-usul.
+            var control = await PeriksaControlAccountSaatDiajukanAsync<JournalDetailResponse>(jurnal, ct);
+            if (control is not null) return control;
 
             var sekarang = DateTime.UtcNow;
 
@@ -801,6 +878,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                     asal.LegalEntityId, request.AdjustmentLines, ct);
 
                 if (disusun.Gagal is not null) return disusun.Gagal;
+
+                // ACC-DEC-072 butir (2). Baris penyesuaian diketik bebas dan boleh dibuat atas
+                // jurnal Disahkan mana pun; tanpa pemeriksaan ini "penyesuaian" menjadi pintu
+                // belakang ke Kas Kasir. Diperiksa terlepas dari isi jurnal asalnya. Pembalikan
+                // penuh di cabang atas sengaja tidak diperiksa: ia hanya membalik baris asal.
+                var alasanControl = await AlasanControlAccountAsync(
+                    _db, disusun.Baris.Select(x => x.AccountId), JalurJurnalPenyesuaian, ct);
+
+                if (alasanControl is not null)
+                    return TolakControlAccount<JournalDetailResponse>(alasanControl);
 
                 // Penyesuaian wajib seimbang sejak dibuat — berbeda dari jurnal manual biasa yang
                 // boleh disimpan timpang (`ACC-DEC-025`). Koreksi yang timpang berarti
@@ -1454,6 +1541,184 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             }
 
             return new HasilPersiapan<T> { Baris = hasil };
+        }
+
+        // ------------------------------------------------------------------
+        // Control account — BE-ACC-P2-012
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Kalimat penolakan bila ada control account di antara <paramref name="idAkun"/>, atau
+        /// <c>null</c> bila tidak ada (<c>ACC-DEC-064</c>, <c>ACC-VALIDATION-0.7</c> bagian 3b).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Seluruh akun control yang ditemukan disebut sekaligus, bukan hanya yang pertama:
+        /// penolakan satu per satu memaksa petugas menyimpan berulang kali hanya untuk menemukan
+        /// semuanya.
+        /// </para>
+        /// <para>
+        /// Dibuat <c>public static</c> menerima <see cref="ApplicationDbContext"/> supaya
+        /// <c>AccRecurringJournalService</c> memakai pemeriksaan dan kalimat yang sama persis
+        /// tanpa registrasi DI baru — <c>02-backend-architecture.md</c> bagian 6.
+        /// </para>
+        /// </remarks>
+        public static async Task<string?> AlasanControlAccountAsync(
+            ApplicationDbContext db,
+            IEnumerable<Guid> idAkun,
+            string jalur,
+            CancellationToken ct = default)
+        {
+            var daftar = idAkun.Where(x => x != Guid.Empty).Distinct().ToList();
+
+            if (daftar.Count == 0) return null;
+
+            var akunControl = await db.Set<AccChartOfAccount>()
+                .AsNoTracking()
+                .Where(x => daftar.Contains(x.Id) && !x.IsDelete && x.IsControlAccount)
+                .OrderBy(x => x.AccountCode)
+                .Select(x => new { x.AccountCode, x.AccountName })
+                .ToListAsync(ct);
+
+            if (akunControl.Count == 0) return null;
+
+            var sebutan = string.Join(", ", akunControl.Select(x => $"{x.AccountCode} {x.AccountName}"));
+
+            return $"Akun {sebutan} hanya dapat dicatat lewat kejadian akuntansi, bukan {jalur}.";
+        }
+
+        private static AccountingServiceResult<T> TolakControlAccount<T>(string alasan)
+            => AccountingServiceResult<T>.Fail(StatusCodes.Status422UnprocessableEntity, alasan);
+
+        /// <summary>
+        /// Larangan control account saat pengajuan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Pengajuan memakai endpoint yang sama bagi jurnal manual, draft hasil template, jurnal
+        /// pembalik yang ditolak lalu diajukan ulang, dan jurnal penutup tahun. Karena
+        /// <see cref="AccJournal"/> tidak menyimpan asal-usulnya, pengecualiannya diturunkan dari
+        /// <b>data</b> jurnal — lihat <see cref="BerasalDariJalurOtomatisAsync"/>.
+        /// </para>
+        /// <para>
+        /// Yang terutama ditangkap di sini adalah draft yang tersimpan <b>sebelum</b> akunnya
+        /// ditandai control, termasuk draft yang sudah ada sebelum aturan ini berlaku. Draft yang
+        /// barisnya diubah lewat Form Jurnal sudah diperiksa di <see cref="UpdateAsync"/>.
+        /// </para>
+        /// </remarks>
+        private async Task<AccountingServiceResult<T>?> PeriksaControlAccountSaatDiajukanAsync<T>(
+            AccJournal jurnal,
+            CancellationToken ct)
+        {
+            var baris = jurnal.Lines.Where(x => !x.IsDelete).ToList();
+
+            var alasan = await AlasanControlAccountAsync(
+                _db, baris.Select(x => x.AccountId), JalurJurnalManual, ct);
+
+            // Tidak menyentuh control account sama sekali: asal-usulnya tidak perlu dinilai.
+            if (alasan is null) return null;
+
+            return await BerasalDariJalurOtomatisAsync(jurnal, baris, ct)
+                ? null
+                : TolakControlAccount<T>(alasan);
+        }
+
+        /// <summary>
+        /// Apakah jurnal ini lahir dari jalur yang sah menuju control account menurut
+        /// acceptance (2) <c>BE-ACC-P2-012</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Kode jenis jurnal saja tidak pernah cukup.</b> Form Jurnal menerima jenis apa pun,
+        /// termasuk <c>JB</c> dan <c>JT</c>: pada 11 September 2026 satu-satunya jurnal di basis
+        /// data dev, <c>JB/2026/09/00001</c>, berjenis Jurnal Pembalik tetapi dibuat lewat Form
+        /// Jurnal. Tiga jalur dikenali dari jejak datanya masing-masing:
+        /// </para>
+        /// <list type="number">
+        /// <item><b>Draft hasil template</b> — ada <see cref="AccRecurringJournalRun"/> yang
+        /// menunjuk jurnal ini. Templatenya sudah diperiksa saat disimpan dan diaktifkan
+        /// (<c>ACC-DEC-073</c>).</item>
+        /// <item><b>Pembalikan penuh</b> — <c>ReversalOfJournalId</c> terisi, cara koreksinya
+        /// <c>FullReversal</c>, dan barisnya masih persis kebalikan jurnal asal
+        /// (<c>ACC-DEC-072</c>). Begitu barisnya berbeda dari cermin jurnal asal, ia bukan lagi
+        /// pembalikan.</item>
+        /// <item><b>Jurnal penutup tahun</b> — berjenis <c>JT</c> <b>dan</b> setiap barisnya
+        /// berakun Pendapatan, Beban, atau Ekuitas. Itulah bentuk yang disusun
+        /// <c>AccYearEndClosingService.SusunRencanaAsync</c>: saldo akun <c>Revenue</c> dan
+        /// <c>Expense</c>, ditambah satu akun laba ditahan yang wajib <c>Equity</c>. Jalur itu
+        /// tidak menyimpan penanda apa pun; jurnalnya dibuat lewat <see cref="CreateAsync"/> yang
+        /// sama. Jurnal <c>JT</c> yang menyentuh Kas, Piutang, atau Utang karena itu
+        /// <b>bukan</b> hasil tutup tahun.</item>
+        /// </list>
+        /// <para>
+        /// Jalur kejadian akuntansi (<c>P2-1</c>) belum ada di kode. Kelak cukup tidak melewati
+        /// jalur manual.
+        /// </para>
+        /// </remarks>
+        private async Task<bool> BerasalDariJalurOtomatisAsync(
+            AccJournal jurnal,
+            List<AccJournalLine> baris,
+            CancellationToken ct)
+        {
+            var hasilTemplate = await _db.Set<AccRecurringJournalRun>()
+                .AsNoTracking()
+                .AnyAsync(x => x.JournalId == jurnal.Id && !x.IsDelete, ct);
+
+            if (hasilTemplate) return true;
+
+            if (jurnal.ReversalOfJournalId.HasValue
+                && jurnal.CorrectionType == JournalCorrectionType.FullReversal)
+            {
+                return await MencerminkanJurnalAsalAsync(jurnal.ReversalOfJournalId.Value, baris, ct);
+            }
+
+            return jurnal.JournalType?.JournalTypeCode == KodeJenisTutupTahun
+                   && baris.All(x => x.Account is not null
+                                     && (x.Account.AccountType is AccountType.Revenue
+                                                                 or AccountType.Expense
+                                                                 or AccountType.Equity));
+        }
+
+        /// <summary>
+        /// Apakah <paramref name="baris"/> persis kebalikan baris jurnal asalnya: akun dan unit
+        /// biaya yang sama, nilai yang bertukar sisi.
+        /// </summary>
+        private async Task<bool> MencerminkanJurnalAsalAsync(
+            Guid idJurnalAsal,
+            List<AccJournalLine> baris,
+            CancellationToken ct)
+        {
+            var cermin = await _db.Set<AccJournalLine>()
+                .AsNoTracking()
+                .Where(x => x.JournalId == idJurnalAsal && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.AccountId,
+                    x.CostCenterId,
+                    Debit = x.CreditAmount,
+                    Kredit = x.DebitAmount
+                })
+                .ToListAsync(ct);
+
+            if (cermin.Count != baris.Count) return false;
+
+            var harapan = cermin
+                .Select(x => (x.AccountId, x.CostCenterId, x.Debit, x.Kredit))
+                .OrderBy(x => x.AccountId)
+                .ThenBy(x => x.CostCenterId)
+                .ThenBy(x => x.Debit)
+                .ThenBy(x => x.Kredit)
+                .ToList();
+
+            var nyata = baris
+                .Select(x => (x.AccountId, x.CostCenterId, Debit: x.DebitAmount, Kredit: x.CreditAmount))
+                .OrderBy(x => x.AccountId)
+                .ThenBy(x => x.CostCenterId)
+                .ThenBy(x => x.Debit)
+                .ThenBy(x => x.Kredit)
+                .ToList();
+
+            return harapan.SequenceEqual(nyata);
         }
 
         // ------------------------------------------------------------------

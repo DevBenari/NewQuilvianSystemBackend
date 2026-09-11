@@ -48,8 +48,8 @@ bagian 11.
 |---|---|---|---|---|
 | `FE-ACC-P2-001` 🟡 | Layar Daftar Periksa Penutupan | `P2-4` | `BE-ACC-P2-005` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-002` 🟡 | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | 🟡 `SEBAGIAN` |
-| `FE-ACC-P2-003` | Layar daftar Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
-| `FE-ACC-P2-004` | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | `READY` |
+| `FE-ACC-P2-003` 🟡 | Layar daftar Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | 🟡 `SEBAGIAN` |
+| `FE-ACC-P2-004` 🟡 | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-005` 🟡 | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-006` 🟡 | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | 🟡 `SEBAGIAN` |
 | `FE-ACC-P2-007` | **Penanda control account pada layar COA** | `P2-CTRL` | `BE-ACC-P2-011` | `READY` |
@@ -105,7 +105,7 @@ Ada alasan kedua untuk menjadikannya satu paket: acceptance (1) `002` berbunyi "
 selama masih ada penghalang", dan daftar penghalang itu **milik** `001`. Menguji `002` tanpa `001`
 berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 
-## `FE-ACC-P2-003` — Layar daftar Jurnal Berulang
+## 🟡 `FE-ACC-P2-003` — Layar daftar Jurnal Berulang
 
 | Field | Isi |
 |---|---|
@@ -119,9 +119,9 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Verifikasi | `npm run lint`; `npm run build`; unit test slice |
 | Risiko/pemilik | Owner Frontend |
 | DoD | Lint dan build hijau, laporan task tertulis |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 11 September 2026, satu paket dengan `FE-ACC-P2-004`. `npm run lint` 0 error (warning tidak bertambah); `npm run build` compiled 44 dtk, rute daftar dan rincian terdaftar; `node --test tests/unit/` **640 lulus 0 gagal** (13 baru). Keempat acceptance terpenuhi di kode; tombol Aktifkan dijaga **`RecurringJournal : Activate`** sesuai controller, amandemen kontrak `ACC-API-0.10` menunggu ratifikasi. **Belum:** uji peramban, diserahkan kepada Rizki; acceptance (2) belum dapat diperlihatkan dengan data nyata karena penjadwal mati dan belum ada template. Laporan: [`fe-acc-p2-003`](../task/report/frontend/fe-acc-p2-003-layar-daftar-jurnal-berulang.md) |
 
-## `FE-ACC-P2-004` — Form Jurnal Berulang
+## 🟡 `FE-ACC-P2-004` — Form Jurnal Berulang
 
 | Field | Isi |
 |---|---|
@@ -135,7 +135,7 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Verifikasi | `npm run lint`; `npm run build`; unit test; UAT peramban `UAT-P2-13` |
 | Risiko/pemilik | Menyalin komponen tabel baris membuat dua tempat yang harus diperbaiki setiap kali aturan keseimbangan berubah. Acceptance (4) ada justru untuk mencegahnya. Owner Frontend |
 | DoD | Lint dan build hijau, laporan task menyebut komponen mana yang dipakai ulang |
-| Status | `READY` |
+| Status | 🟡 **`SEBAGIAN`** — 11 September 2026. Lint 0 error; build compiled, rute `/create` dan `/[slug]/update` terdaftar; 640 uji lulus. Keempat acceptance terpenuhi: **`JournalLineRow` milik `FE-ACC-006` diimpor apa adanya**, hitungan keseimbangan memakai util bersama baru alih-alih salinan ketiga. **Belum:** `UAT-P2-13`, diserahkan kepada Rizki. Laporan: [`fe-acc-p2-004`](../task/report/frontend/fe-acc-p2-004-form-jurnal-berulang.md) |
 
 ## 🟡 `FE-ACC-P2-005` — Layar Pengaturan Akuntansi
 
@@ -177,7 +177,7 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 |---|---|
 | Outcome | Petugas dapat menandai sebuah akun sebagai control account, dan melihat penandanya di daftar |
 | Trace | `ACC-DEC-064` |
-| Kontrak | `ACC-API-0.8` grup Chart of Account |
+| Kontrak | `ACC-API-0.8` grup Chart of Account. Bidang `IsControlAccount` pada `/options` — yang dibutuhkan acceptance (3) — diajukan `ACC-API-0.11` (usulan, 11 Sep 2026) dan dibangun `BE-ACC-P2-012`. `/options` **tidak** menyaring akun control; penyaringan di hook tiap layar |
 | Reuse | **Layar COA dan Form Akun yang sudah ada dari MVP.** Ini penambahan satu kolom dan satu kotak centang, **bukan layar baru** |
 | Cakupan | Satu kotak centang pada Form Akun, satu kolom penanda pada tabel COA, dan penjelasan singkat maknanya |
 | Dependency | `BE-ACC-P2-011` |
@@ -193,6 +193,7 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 |---|---|
 | Outcome | Saldo control account di buku besar tampil berdampingan dengan saldo subledger, beserta selisihnya |
 | Trace | `ACC-DEC-066` |
+| Kontrak | `GET /reconciliation/gl-balances` dijaga `AccountingReconciliation : Read` — diajukan `ACC-API-0.11` dan `ACC-PERMISSION-0.6` (usulan, 11 Sep 2026). Tampilkan **`BalanceInNormalBalance`**, bukan `Balance`. Endpoint sisi subledger belum dirancang (`BE-ACC-P2-014`). Kolom ini sebelumnya tidak ada pada kartu |
 | Reuse | Komponen tabel dan format rupiah dari layar Neraca Saldo |
 | Cakupan | Butir menu tingkat 2 `/accounting/reconciliation` |
 | Dependency | `BE-ACC-P2-013` untuk sisi buku besar; `BE-ACC-P2-014` untuk sisi subledger, yang kini bergantung pada gelombang `P2-1` |

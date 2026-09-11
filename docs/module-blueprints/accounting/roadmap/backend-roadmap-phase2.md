@@ -86,7 +86,7 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-009` ✅ | Endpoint pengaturan akuntansi | `P2-0a` | `004` ✅ | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-010` 🟡 | Pratinjau dan penyusunan jurnal penutup tahun | `P2-5` | `006` 🟡, `009` ✅ | **`SEBAGIAN`** 10 Sep 2026 — 6 dari 6 acceptance terbukti; sisa: test PostgreSQL belum |
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
-| `BE-ACC-P2-012` | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | `READY` — **terbuka** |
+| `BE-ACC-P2-012` 🟡 | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | **🟡 `SEBAGIAN`** 11 Sep 2026 — source keempat acceptance ada; build, uji, dan uji PostgreSQL `NOT RUN` |
 | `BE-ACC-P2-013` 🟡 | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`SEBAGIAN`** 9 Sep 2026 — test PostgreSQL belum |
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` 🟡, gelombang `P2-1` | `READY` — blokir dibuka `ACC-DEC-071` 10 Sep 2026 |
 
@@ -326,21 +326,22 @@ Dua gelombang baru:
 | **✅ Peringatan DITUTUP** | `UpdateChartOfAccountRequest.IsControlAccount` kini `bool?`: kosong berarti **pertahankan nilai tersimpan**, dan melepas penanda menuntut pernyataan tegas `false`. Diperbaiki 9 Sep 2026 atas instruksi owner, supaya permintaan lama yang hanya mengubah nama akun tidak membuka kembali akun kas ke jurnal manual. Isi peringatan aslinya: |
 | ~~Peringatan asli~~ | `PUT` yang tidak mengirim `IsControlAccount` akan **melepas** penandanya — perilaku `PUT` yang memang sudah berlaku (`IsPostable` sama), tetapi akibatnya di sini membuka kembali akun kas ke jurnal manual. Bentuk `PATCH /{id}/control-account` tersendiri adalah **keputusan kontrak yang belum diambil**. Menunggu owner |
 
-## `BE-ACC-P2-012` — Penolakan jurnal manual ke control account
+## `BE-ACC-P2-012` 🟡 — Penolakan jurnal manual ke control account
 
 | Field | Isi |
 |---|---|
 | Outcome | Jurnal manual yang menunjuk control account ditolak; jalur otomatis tetap lolos |
-| Trace | `ACC-DEC-064` |
-| Kontrak | `ACC-VALIDATION-0.6` bagian 3b |
+| Trace | `ACC-DEC-064`; diperluas `ACC-DEC-072` (koreksi) dan `ACC-DEC-073` (template), 11 Sep 2026 |
+| Kontrak | `ACC-VALIDATION-0.6` bagian 3b, **diamandemen usulan `ACC-VALIDATION-0.7`**; `ACC-API-0.11` (usulan) untuk `IsControlAccount` pada `/options` dan kode `422` pada grup Journal dan Recurring Journal |
 | Reuse | `AccJournalService` dan `AccountingServiceResult<T>` yang sudah ada |
 | Cakupan | Penambahan pemeriksaan pada jalur simpan dan ajukan `AccJournalService` |
+| **Perluasan cakupan 11 Sep 2026** | Tiga tambahan dari keputusan owner, **tanpa migration**: (1) jalur penyesuaian `ReverseAsync` (`ACC-DEC-072`); (2) simpan, ubah, dan aktifkan pada `AccRecurringJournalService` — kode milik `BE-ACC-P2-007` (`ACC-DEC-073`); (3) bidang `IsControlAccount` pada `ChartOfAccountOptionResponse`, yang ditunda `BE-ACC-P2-011` ke task ini. **Pengecualian dikenali dari asal-usul jurnal, bukan dari kode jenis** — Form Jurnal menerima jenis apa pun, termasuk `JB` dan `JT` |
 | Dependency | `BE-ACC-P2-004` ✅ (kolomnya **sudah** ada di database), `BE-ACC-P2-011` ✅ |
 | Acceptance | (1) Baris jurnal **manual** ke akun ber-`IsControlAccount = true` ditolak `422`, dan pesannya menyebut akun mana. (2) **Jurnal dari kejadian akuntansi, dari template berulang, dan jurnal penutup tahun TIDAK terkena aturan ini** — justru merekalah jalur yang sah. (3) Akun non-control tetap dapat dijurnal manual seperti biasa. (4) Jurnal manual yang sudah ada sebelumnya tidak ikut ditolak saat diubah, kecuali barisnya menyentuh control account |
 | Verifikasi | Test integrasi PostgreSQL untuk keempat acceptance, terutama (2) |
 | Risiko/pemilik | **Acceptance (2) adalah yang paling berbahaya bila keliru.** Bila aturan ini ikut mengenai jalur otomatis, seluruh posting dari kejadian akan tertolak dan Phase 2 mati total — tanpa error yang menjelaskan sebabnya. Owner Backend |
 | DoD | Endpoint berjalan, test hijau, laporan task tertulis |
-| Status | `READY` |
+| **Status** | **🟡 `SEBAGIAN`** — 11 September 2026. Keempat acceptance **terpetakan ke source**: (1) `AccJournalService.AlasanControlAccountAsync` dipasang pada `CreateManualAsync`, `UpdateAsync`, `SubmitAsync`, jalur penyesuaian `ReverseAsync`, serta simpan, ubah, dan aktifkan template; pesannya menyebut kode dan nama akun. (2) Pengecualian diturunkan dari **asal-usul**, bukan kode jenis — `BerasalDariJalurOtomatisAsync`: baris penerbitan template, cermin pembalikan penuh, dan bentuk jurnal `JT` hasil tutup tahun. (3) Akun non-control tidak tersentuh. (4) `UpdateAsync` hanya menolak baris yang menyentuh control account. **Yang membuat 🟡:** atas instruksi owner **tanpa build**, sehingga `dotnet build`, **15 uji SQLite baru** (`AccControlAccountJournalGuardTests`), dan uji integrasi PostgreSQL yang dituntut kolom Verifikasi **`NOT RUN`**. Uji PostgreSQL diserahkan kepada Rizki lewat Swagger atau layar. Laporan: [`be-acc-p2-012`](../task/report/backend/be-acc-p2-012-penolakan-jurnal-manual-ke-control-account.md) |
 
 ## `BE-ACC-P2-013` 🟡 — Saldo control account dari buku besar
 
@@ -358,7 +359,7 @@ Dua gelombang baru:
 | DoD | Endpoint berjalan, test hijau, laporan task tertulis |
 | **Status** | **🟡 `SEBAGIAN`** — 9 September 2026. Endpoint `GET /reconciliation/gl-balances` berjalan. Build `Release` **0 error**, 145 warning (nol baru). **4 dari 4 acceptance terbukti** lewat **9 uji baru** (`Failed: 0, Passed: 9`); seluruh project Sqlite `Failed: 3, Passed: 513` — **nol regresi**. QBE `PASS`. **Yang membuat 🟡:** kolom Verifikasi menuntut **test integrasi PostgreSQL**, dan itu **`NOT RUN`** — contoh berangkanya dijalankan di SQLite. Laporan: [`be-acc-p2-013`](../task/report/backend/be-acc-p2-013-saldo-control-account-dari-buku-besar.md) |
 | **Delta pemakaian ulang** | `HitungSaldoAsync` **tidak diubah sedikit pun**, tetapi tidak dipanggil per akun: memanggilnya per akun berarti satu query per control account (N+1), dan fungsi itu juga tidak menerima batas tanggal yang dituntut acceptance (3). Dipakai satu query pengelompokan dengan rumus yang sama, dan **kesamaan angkanya diuji** lewat `AngkanyaSamaDenganHitungSaldoAsync` |
-| **Delta kontrak** | Grup Reconciliation belum ada di `ACC-API-0.8` — sudah diantisipasi kartu ini. Bidang tambahan `BalanceInNormalBalance` (akun bersaldo normal kredit tampil positif) dan `PostedLineCount`. **Menunggu ratifikasi** |
+| **Delta kontrak** | Grup Reconciliation belum ada di `ACC-API-0.8` — sudah diantisipasi kartu ini. Bidang tambahan `BalanceInNormalBalance` (akun bersaldo normal kredit tampil positif) dan `PostedLineCount`. **Menunggu ratifikasi** — **diajukan 11 Sep 2026** sebagai `ACC-API-0.11` grup Reconciliation dan `ACC-PERMISSION-0.6` baris `AccountingReconciliation : Read` |
 | **Rintangan `ACC-TD-001`** | Empat uji yang menyimpan baris jurnal semula gagal — check constraint `CK_AccJournalLine_TepatSatuSisiTerisi` **mustahil dipenuhi di SQLite** karena EF menyimpan `decimal` sebagai TEXT. Diatasi dengan `PRAGMA ignore_check_constraints` pada koneksi uji saja; **nol perubahan pada model aplikasi** |
 | **Prasyarat pemakaian** | **Nol akun bertanda control account** di database. Laporan ini akan kosong sampai Kas Kasir, Kas Kecil, Piutang, dan Hutang dibuat di daftar akun lalu ditandai |
 

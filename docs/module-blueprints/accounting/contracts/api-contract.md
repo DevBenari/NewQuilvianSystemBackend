@@ -93,6 +93,31 @@ Endpoint `/options` sengaja hanya mengembalikan akun yang **menerima transaksi d
 Dengan begitu petugas tidak pernah melihat akun induk pada daftar pilihan, dan `ACC-DEC-022`
 terjaga sejak di layar, bukan hanya saat penyimpanan.
 
+### `IsControlAccount` pada `/options` dan `bool?` pada Ubah — amandemen menunggu ratifikasi
+
+> **`ACC-API-0.11` (usulan), 11 September 2026.** Dua perubahan pada grup ini. Status `approved`
+> grup tidak diubah.
+
+**(1) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`.** Bagian `ACC-DEC-064` di atas
+menyebut Detail dan List, tetapi tidak menyebut Option — padahal Form Jurnal mengisi pemilih
+akunnya dari `/options`, bukan dari daftar akun. Tanpa bidang ini acceptance (3) `FE-ACC-P2-007`,
+yaitu menyembunyikan atau mematikan akun control di Form Jurnal, mustahil dipenuhi.
+`BE-ACC-P2-011` sengaja menunda bidang ini ke `BE-ACC-P2-012`.
+
+**`/options` TIDAK menyaring akun control.** Ia tetap mengembalikan seluruh akun yang menerima
+transaksi dan aktif, lengkap dengan penandanya. Enam layar memakai endpoint ini — Form Jurnal,
+pembalikan jurnal, Form Jurnal Berulang, Buku Besar, Pengaturan Akuntansi, dan Form Akun — dan
+**Buku Besar justru harus tetap dapat memilih Kas Kasir**. Penyaringan dilakukan tiap layar menurut
+kebutuhannya, bukan di backend.
+
+**(2) `UpdateChartOfAccountRequest.IsControlAccount` bertipe `bool?`, bukan `bool`.** Tabel
+`ACC-DEC-064` di atas menulis `bool` berbawaan `false` tanpa membedakan Create dan Update. Untuk
+Update itu tidak lagi benar sejak 9 September 2026: **kosong berarti nilai tersimpan
+dipertahankan**, dan melepas penanda menuntut `false` yang tegas. Sebabnya, permintaan lama yang
+tidak mengenal bidang ini akan mengirim `false` diam-diam dan membuka kembali akun kas ke jurnal
+manual hanya karena seseorang mengubah nama akunnya. Tercatat pada kartu `BE-ACC-P2-011` baris
+*Peringatan DITUTUP*, tetapi belum pernah menyeberang ke kontrak. **Yang benar adalah kode.**
+
 ---
 
 ## Corporate / Accounting / Master Data / Journal Type
@@ -164,6 +189,12 @@ pembalikan penuh, sistem membuat jurnal berjenis `JB` yang membalik seluruh bari
 dipilih penyesuaian, sistem membuat jurnal berjenis `JP` berisi baris selisih yang dikirim
 pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 (`ACC-DEC-029`).
+
+> **Usulan `ACC-API-0.11` — 11 September 2026.** `422` juga muncul bila baris jurnal manual
+> menunjuk control account saat Simpan, Ubah, atau Ajukan (`ACC-DEC-064`), dan bila **baris
+> penyesuaian** `JP` menunjuk control account (`ACC-DEC-072`). Pembalikan penuh `JB` tidak terkena.
+> Pesannya menyebut akunnya. Rincian jalur yang terkena dan yang tidak ada di
+> `validation-matrix.md` bagian 3b Phase 2.
 
 ---
 
@@ -238,16 +269,21 @@ parameter daftar bernama `...Query`.
 | Nama class | Jenis | Field |
 |---|---|---|
 | `ChartOfAccountPagedQuery` | Query | `PageNumber`, `PageSize`, `LegalEntityId?`, `AccountType?`, `IsActive?`, `IsPostable?`, `Search?`, `SortBy?`, `SortDirection?` |
-| `ChartOfAccountListResponse` | Response | `Id`, `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `AccountLevel`, `ParentAccountId?`, `ParentAccountCode?`, `IsPostable`, `IsActive` |
+| `ChartOfAccountListResponse` | Response | `Id`, `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `AccountLevel`, `ParentAccountId?`, `ParentAccountCode?`, `IsPostable`, `IsActive`, `IsControlAccount` |
 | `ChartOfAccountDetailResponse` | Response | **Mewarisi `ChartOfAccountListResponse`**, ditambah `ParentAccountName?`, `Description?`, `EffectiveStartDate?`, `HasChildAccounts`, `HasPostedJournalLines`, `RequiresCostCenter`, `CreateDateTime` |
 | `ChartOfAccountTreeResponse` | Response | `Id`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `AccountLevel`, `IsPostable`, `IsActive`, `Children` |
-| `ChartOfAccountOptionResponse` | Option | `Id`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `RequiresCostCenter` |
-| `CreateChartOfAccountRequest` | Create | `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `Description?`, `EffectiveStartDate?` |
-| `UpdateChartOfAccountRequest` | Update | `AccountCode`, `AccountName`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `Description?`, `EffectiveStartDate?` |
+| `ChartOfAccountOptionResponse` | Option | `Id`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `RequiresCostCenter`, **`IsControlAccount`** *(usulan `ACC-API-0.11`)* |
+| `CreateChartOfAccountRequest` | Create | `LegalEntityId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `IsControlAccount`, `Description?`, `EffectiveStartDate?` |
+| `UpdateChartOfAccountRequest` | Update | `AccountCode`, `AccountName`, `ParentAccountId?`, `AccountLevel`, `IsPostable`, `IsControlAccount?`, `Description?`, `EffectiveStartDate?` |
 | `DeactivateChartOfAccountRequest` | Status | `Reason?` |
 
 > `UpdateChartOfAccountRequest` **tidak memuat `NormalBalance`.** Saldo normal tidak dapat diubah
 > sesudah akun dibuat. Daftar sebelumnya mencantumkannya — itu keliru.
+>
+> `IsControlAccount` pada List, Create, dan Update ditetapkan `ACC-DEC-064` (grup Chart of Account
+> di atas) tetapi belum pernah dimasukkan ke tabel ini — disinkronkan 11 September 2026, tanpa
+> mengubah isi keputusannya. Pada Update bertipe `bool?`; pada Option, bidangnya **usulan
+> `ACC-API-0.11`**.
 
 ### Master Data — Journal Type
 
@@ -364,10 +400,11 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-API-0.9` |
-| `last_changed_in` | `ACC-API-0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
-| Status | **`approved`** — Rizki, 10 September 2026 |
-| `approved_by` / `approved_at` | Rizki / 10 September 2026 (ratifikasi `ACC-API-0.9`); sebelumnya Rizki / 8 September 2026 (`ACC-API-0.8`) |
+| `contract_version` | `ACC-API-0.10` |
+| `last_changed_in` | `ACC-API-0.10` — 11 September 2026, penyelarasan grup Recurring Journal dengan `RecurringJournalController`: hak akses `activate`/`deactivate` menjadi `RecurringJournal : Activate`, empat bidang ringkasan, dan label ketersediaan. Sebelumnya `0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
+| Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Empat perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`). **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
+| Status | **`approved`** — Rizki, 11 September 2026 |
+| `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-API-0.10`); sebelumnya Rizki / 10 September 2026 (`ACC-API-0.9`) dan Rizki / 8 September 2026 (`ACC-API-0.8`) |
 | `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`, ditambah `ACC-DEC-065` dan `ACC-DEC-070` |
 | Dampak kompatibilitas | Seluruhnya endpoint **baru**, ditambah **lima endpoint baru** pada grup Accounting Period yang sudah ada. **Nol endpoint existing berubah bentuk maupun rusak** |
@@ -380,6 +417,9 @@ berlabel demikian sudah bisa dipakai.
 `BE-ACC-P2-005` dan `BE-ACC-P2-006`, dan labelnya sudah diperbarui pada bagiannya. Kalimat
 sebelumnya berbunyi "tidak satu pun sudah berdiri di `02c3219`", benar saat ditulis dan sudah
 tidak benar sejak kedua task itu selesai.
+
+Grup Recurring Journal (`ACC-API-0.10`) dan Reconciliation (usulan `ACC-API-0.11`) juga sudah
+berdiri; labelnya tercatat pada bagian masing-masing.
 
 Amplop respons tetap `ApiResponse<T>`, daftar berhalaman tetap `PagedResult<T>`, sama seperti MVP.
 
@@ -458,23 +498,63 @@ bila ada baris berakun dari badan hukum yang berbeda, atau bila aturannya tidak 
 
 ## Corporate / Accounting / Recurring Journal
 
-`[Tags("Corporate - Accounting - Recurring Journal")]`
-Base URL: `api/v1/corporate/accounting/recurring-journals` — **Rencana (belum tersedia)**
+`[Tags("Corporate / Accounting / Recurring Journal")]`
+Base URL: `api/v1/corporate/accounting/recurring-journals` — kedelapan endpoint **sudah berdiri**
+lewat `BE-ACC-P2-007` dan `BE-ACC-P2-008`, terbukti `RecurringJournalController` pada `rizkiG`
+
+> **Diratifikasi Rizki, 11 September 2026 — `ACC-API-0.10`.** Hak akses `activate` dan `deactivate`
+> diubah dari `RecurringJournal : Update` menjadi **`RecurringJournal : Activate`**, empat bidang
+> ringkasan dicatat, dan label ketersediaan diperbarui. **Untuk ketiganya yang benar adalah kode,
+> bukan dokumen ini** — delta hak aksesnya sudah dicatat laporan `BE-ACC-P2-007` sejak
+> 10 September, hanya belum pernah menyeberang ke kontrak.
 
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
 | `GET` | `/` | Daftar template berhalaman | `RecurringJournal : Read` | `RecurringJournalPagedQuery` | `ApiResponse<PagedResult<RecurringJournalListDto>>` |
 | `GET` | `/{id}` | Rincian template beserta barisnya | `RecurringJournal : Read` | — | `ApiResponse<RecurringJournalDetailDto>` |
 | `GET` | `/{id}/runs` | Riwayat penerbitan template per periode beserta jurnal yang dihasilkan | `RecurringJournal : Read` | — | `ApiResponse<List<RecurringJournalRunDto>>` |
-| `POST` | `/` | Menambah template beserta barisnya | `RecurringJournal : Create` | `CreateRecurringJournalRequest` | `ApiResponse<RecurringJournalDetailDto>` |
+| `POST` | `/` | Menambah template beserta barisnya. Template baru **selalu lahir tidak aktif** | `RecurringJournal : Create` | `CreateRecurringJournalRequest` | `ApiResponse<RecurringJournalDetailDto>` |
 | `PUT` | `/{id}` | Mengubah template beserta barisnya | `RecurringJournal : Update` | `UpdateRecurringJournalRequest` | `ApiResponse<RecurringJournalDetailDto>` |
-| `PATCH` | `/{id}/activate` | Mengaktifkan template | `RecurringJournal : Update` | — | `ApiResponse<RecurringJournalDetailDto>` |
-| `PATCH` | `/{id}/deactivate` | Menonaktifkan template | `RecurringJournal : Update` | — | `ApiResponse<RecurringJournalDetailDto>` |
+| `PATCH` | `/{id}/activate` | Mengaktifkan template | **`RecurringJournal : Activate`** | — | `ApiResponse<RecurringJournalDetailDto>` |
+| `PATCH` | `/{id}/deactivate` | Menonaktifkan template | **`RecurringJournal : Activate`** | — | `ApiResponse<RecurringJournalDetailDto>` |
 | `POST` | `/{id}/generate` | Menerbitkan jurnal draft untuk satu periode secara manual, di luar jadwal | `RecurringJournal : Generate` | `GenerateRecurringJournalRequest` | `ApiResponse<RecurringJournalRunDto>` |
 
-`400` muncul bila total debit dan kredit baris template tidak sama.
+`400` muncul bila total debit dan kredit baris template tidak sama, bila satu baris berisi debit
+**dan** kredit sekaligus, atau bila baris berakun beban tidak menyebut unit biaya.
 `409` muncul bila template sudah pernah terbit untuk periode yang diminta — inilah penjaga terbit
-ganda. `422` muncul bila periode yang dituju tidak menerima pencatatan.
+ganda — dan juga saat **mengaktifkan** template yang barisnya sudah tidak sah lagi (akun
+dinonaktifkan, unit biaya dipindah, atau jenis jurnal dimatikan sesudah template tersimpan).
+`422` muncul bila periode yang dituju tidak menerima pencatatan.
+
+> **Usulan `ACC-API-0.11` — 11 September 2026 (`ACC-DEC-073`).** `422` juga muncul pada `POST /`,
+> `PUT /{id}`, dan `PATCH /{id}/activate` bila ada baris template yang menunjuk control account,
+> dengan pesan yang menyebut akunnya. Pada `activate` kodenya **`422`, bukan `409`** seperti baris
+> tidak sah lainnya: ini aturan control account yang sama dengan bagian 3b `validation-matrix.md`,
+> dan satu aturan dijawab satu kode di setiap jalurnya. `POST /{id}/generate` dan penjadwal
+> **tidak** memeriksanya ulang.
+
+### Hak akses `Activate` terpisah dari `Update`
+
+Bagian ini sebelumnya menulis `RecurringJournal : Update` untuk `activate` dan `deactivate`.
+Implementasinya memakai **`RecurringJournal : Activate`**, didaftarkan `[AccessAction]` sebagai
+aksi tersendiri di layar Akses Role.
+
+Pemisahannya disengaja: mengaktifkan template jauh lebih berat daripada menyuntingnya. Template
+aktif mulai **menulis ke buku besar** pada siklus penjadwal berikutnya, sedangkan menyunting
+template yang tidak aktif belum berakibat apa pun. Karena itu keduanya boleh dipegang orang yang
+berbeda.
+
+Akibatnya bagi pemasangan: hak `Activate` **harus dicentang tersendiri**. Peran yang hanya punya
+`Update` dapat menyunting template tetapi mendapat `403` saat mengaktifkannya.
+
+### Empat bidang ringkasan di luar daftar DTO semula
+
+| Bidang | Letak | Arti |
+|---|---|---|
+| `LineCount` | daftar | Jumlah baris template |
+| `TotalAmount` | daftar | Total nilai debit template |
+| `RunCount` | daftar | Berapa kali template pernah terbit. Membedakan template yang belum pernah terbit dari yang rutin terbit |
+| `IsBalanced` | rincian | Apakah total debit sama dengan total kredit, dihitung backend |
 
 ## Corporate / Accounting / Accounting Period — lima endpoint baru
 
@@ -578,6 +658,73 @@ Base URL: `api/v1/corporate/accounting/configuration` — **Rencana (belum terse
 `422` muncul bila akun yang ditunjuk bukan akun berjenis Ekuitas, atau bukan akun yang menerima
 transaksi.
 
+## Corporate / Accounting / Reconciliation
+
+`[Tags("Corporate / Accounting / Reconciliation")]`
+Base URL: `api/v1/corporate/accounting/reconciliation` — `gl-balances` **sudah berdiri** lewat
+`BE-ACC-P2-013`, terbukti `ReconciliationController` pada `rizkiG`
+
+> **Amandemen menunggu ratifikasi — `ACC-API-0.11`, 11 September 2026.** Grup ini belum pernah
+> tercatat di kontrak mana pun, padahal endpoint pertamanya sudah berdiri sejak 9 September 2026.
+> Kartu `BE-ACC-P2-013` sudah mengantisipasinya sebagai *"delta kontrak, endpoint baru"*, dan
+> laporannya mencatatnya menunggu ratifikasi. **Untuk baris `gl-balances` yang benar adalah kode,
+> bukan dokumen ini.**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/gl-balances` | Saldo buku besar seluruh control account satu badan hukum, dihitung **hanya dari baris jurnal `Posted`**, sampai tanggal batas bila diminta. **Tidak menyimpan apa pun** | `AccountingReconciliation : Read` | `ControlAccountBalanceQuery` — `legalEntityId` wajib, `asOfDate` opsional, keduanya pada query | `ApiResponse<ControlAccountBalanceReportResponse>` |
+
+`400` muncul bila `legalEntityId` tidak disebutkan — saldo dua badan hukum tidak boleh tercampur.
+`409` muncul dari penjaga badan hukum utama (`ACC-DEC-043`), sama seperti seluruh endpoint
+Accounting. Badan hukum tanpa satu pun control account dijawab **`200` berdaftar kosong** beserta
+pesan bahwa belum ada akun yang ditandai — bukan `404`, karena itu keadaan wajar sebelum daftar
+akun dilengkapi.
+
+Hak aksesnya bernama **`AccountingReconciliation`**, bukan `Reconciliation`: argumen pertama
+`[AccessPermission]` wajib sama dengan `ControllerName`, dan `ControllerName`-nya
+`"AccountingReconciliation"` — alasan yang sama dengan `AccountingPeriod` di atas.
+
+### Aturan perhitungan yang mengikat
+
+| Aturan | Isi |
+|---|---|
+| Hanya `Posted` | Baris dari jurnal `Draft`, `PendingApproval`, dan `Approved` **tidak** dihitung. Menghitungnya menghasilkan saldo yang tidak pernah cocok dengan subledger, dan selisihnya akan disalahartikan sebagai cacat data |
+| Batas tanggal inklusif | `asOfDate = 2026-09-30` memuat jurnal bertanggal akuntansi 30 September. Kosong berarti seluruh riwayat. Hanya bagian tanggalnya yang dipakai |
+| Akun yang ikut | Seluruh akun ber-`IsControlAccount = true` milik badan hukum itu yang belum dihapus, **termasuk yang nonaktif**. Akun hanya dapat dinonaktifkan saat saldonya nol (`ACC-DEC-024`) |
+| Rumus | Sama persis dengan `AccChartOfAccountService.HitungSaldoAsync`; kesamaannya diuji `AngkanyaSamaDenganHitungSaldoAsync` |
+| Tanpa cache | Dihitung saat diminta; `EvaluatedAt` mencatat kapan |
+
+### Bidang respons
+
+| Bidang | Letak | Tipe | Arti |
+|---|---|---|---|
+| `LegalEntityId` | akar | `Guid` | Badan hukum yang dibaca |
+| `AsOfDate` | akar | `DateTime?` | Tanggal batas yang dipakai; kosong berarti seluruh riwayat |
+| `EvaluatedAt` | akar | `DateTime` (UTC) | Waktu perhitungan. Angkanya tidak pernah disimpan |
+| `AccountCount` | akar | `int` | Jumlah control account |
+| `TotalDebit`, `TotalCredit` | akar | `decimal` | Jumlah seluruh akun |
+| `Accounts` | akar | daftar | Satu butir per control account, berurut kode akun |
+| `AccountId`, `AccountCode`, `AccountName`, `AccountType`, `NormalBalance` | tiap akun | — | Identitas akun |
+| `TotalDebit`, `TotalCredit` | tiap akun | `decimal` | Jumlah baris `Posted` |
+| `Balance` | tiap akun | `decimal` | Debit dikurangi kredit — bentuk mentah |
+| **`BalanceInNormalBalance`** | tiap akun | `decimal` | Saldo menurut saldo normal akunnya. Akun bersaldo normal kredit — Utang, misalnya — tampil **positif** saat sehat. Bidang inilah yang ditampilkan di layar |
+| **`PostedLineCount`** | tiap akun | `int` | Jumlah baris `Posted` yang membentuk saldo |
+
+`BalanceInNormalBalance` dan `PostedLineCount` adalah dua bidang di luar kartu `BE-ACC-P2-013`,
+dicatat laporannya sebagai delta kontrak.
+
+### Sisi subledger belum dirancang endpointnya
+
+`ACC-DEC-066` meminta tiga hal: saldo buku besar, saldo subledger, dan laporan selisih. Grup ini
+baru memuat yang pertama. Dua sisanya adalah `BE-ACC-P2-014`, yang menurut `ACC-DEC-071` membaca
+saldo subledger **dari kejadian yang diterbitkan Finance per periode** — dan kotak masuknya menunggu
+gelombang `P2-1`. Path, request, dan bentuk responsnya **sengaja belum ditulis di sini**; menulisnya
+sekarang berarti mengunci bentuk yang belum pernah dirancang. Ditambahkan saat `BE-ACC-P2-014`
+direncanakan.
+
+Sampai saat itu layar rekonsiliasi (`FE-ACC-P2-008`) menampilkan kolom subledger dan selisih
+sebagai **"belum tersedia"**, bukan menyembunyikannya.
+
 ## Daftar DTO Phase 2
 
 Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran bernama `Dto`.
@@ -591,6 +738,7 @@ Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran be
 | Period Closing | `PeriodClosingChecklistDto` (+ `IsComplete`, `NotYetAvailableCount`), `PeriodClosingBlockerDto` (+ `State`, `UnavailableReason`), `PeriodClosingApprovalDto`, `SubmitPeriodClosingRequest`, `ApprovePeriodClosingRequest`, `RejectPeriodClosingRequest` |
 | Year End Closing | `YearEndClosingPreviewDto`, `YearEndClosingPreviewLineDto`, `GenerateYearEndClosingRequest` |
 | Configuration | `AccountingConfigurationDto`, `UpdateAccountingConfigurationRequest` |
+| Reconciliation *(usulan `ACC-API-0.11`)* | `ControlAccountBalanceQuery`, `ControlAccountBalanceReportResponse`, `ControlAccountBalanceResponse` — **disalin dari source**, berakhiran `Query`/`Response` seperti kodenya |
 
 ### Isi `ReceiveAccountingEventRequest` — dua belas bidang wajib
 

@@ -115,6 +115,9 @@ pembalikan yang masih dapat disahkan."
 | Penyesuaian harus seimbang | Baris selisih tidak seimbang | "Baris penyesuaian belum seimbang. Selisih Rp {selisih}." | `400` |
 | Periode tujuan menerima | Periode tujuan jurnal pembalik menolak | "Periode {nama periode} tidak menerima jurnal pembalik." | `422` |
 
+> **Sejak Phase 2:** penyesuaian yang **barisnya** menunjuk control account ditolak `422`; pembalikan
+> penuh tidak terkena. Lihat bagian 3b Phase 2 (`ACC-DEC-072`, usulan `ACC-VALIDATION-0.7`).
+
 ## 6. Periode akuntansi
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -185,6 +188,7 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 |---|---|
 | `contract_version` | `ACC-VALIDATION-0.6` |
 | `last_changed_in` | `ACC-VALIDATION-0.6` — 9 September 2026, dua bidang penelusuran wajib `ACC-DEC-060`. Sebelumnya `0.5` (baris posting `ACC-DEC-058`) dan `0.4` |
+| Amandemen menunggu ratifikasi | **`ACC-VALIDATION-0.7` (usulan) — 11 September 2026.** Bagian 3 dan 3b diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`: penyesuaian `JP` dan template berulang ikut terkena larangan control account, template dicabut dari daftar jalur sah, pesan penolakan menyebut akunnya, dan tabel jalur yang terkena ditambahkan. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
@@ -229,17 +233,49 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | **Satu template satu terbit per periode** | Terbitkan | Template sudah terbit untuk periode itu | `409` | "Template ini sudah diterbitkan untuk periode tersebut." |
 | Periode harus menerima pencatatan | Terbitkan | Periode `SoftClosed`, `Closed`, atau `PendingClosingApproval` | `422` | "Periode tujuan tidak menerima pencatatan baru." |
 | Template nonaktif tidak terbit | Terbitkan | `IsActive = false` | `409` | "Template sedang tidak aktif." |
+| **Template tidak menunjuk control account** *(usulan `0.7`)* | Tambah, Ubah, **Aktifkan** | Ada baris template menunjuk akun ber-`IsControlAccount = true` | `422` | Lihat bagian 3b (`ACC-DEC-073`). **Tidak** diperiksa ulang saat terbit |
 
 ## 3b. Jurnal manual ke control account
 
+> **Amandemen menunggu ratifikasi — `ACC-VALIDATION-0.7`, 11 September 2026.** Bagian ini
+> diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`. Tiga perubahan terhadap `0.6`: (1) jalur
+> penyesuaian `JP` dan template berulang ikut terkena aturan; (2) **template berulang dicabut dari
+> daftar jalur sah** — kalimat `0.6` bertentangan dengan `ACC-DEC-064`, yang hanya mengizinkan
+> kejadian akuntansi atau subledger; (3) pesan penolakan menyebut akunnya, sesuai acceptance (1)
+> `BE-ACC-P2-012`. Kalimat `0.6` yang digantikan: *"Jurnal yang lahir dari kejadian akuntansi,
+> template berulang, dan jurnal penutup tahun tidak terkena aturan ini."*
+
 | Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
 |---|---|---|---|---|
-| **Control account menolak jurnal manual** | Simpan, Ajukan | Ada baris jurnal manual menunjuk akun ber-`IsControlAccount = true` | `422` | "Akun ini hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal manual." |
+| **Control account menolak jurnal manual** | Simpan, Ubah, Ajukan | Ada baris jurnal manual menunjuk akun ber-`IsControlAccount = true` | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal manual." |
+| **Penyesuaian tidak boleh menyentuh control account** | Balik — `CorrectionType = Adjustment` | Ada **baris penyesuaian** menunjuk akun control, apa pun isi jurnal asalnya | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal penyesuaian." (`ACC-DEC-072`) |
+| **Template tidak boleh menunjuk control account** | Tambah, Ubah, Aktifkan template | Ada baris template menunjuk akun control | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan template jurnal berulang." (`ACC-DEC-073`) |
 | Penandaan control account hanya oleh yang berhak | Ubah akun | Pengguna tanpa hak mengubah `IsControlAccount` | `403` | — |
 
-**Berlaku pada jurnal yang dibuat manusia lewat layar Jurnal Manual.** Jurnal yang lahir dari
-kejadian akuntansi, template berulang, dan jurnal penutup tahun **tidak** terkena aturan ini —
-justru merekalah jalur yang sah menuju control account (`ACC-DEC-064`).
+Bila lebih dari satu baris menunjuk akun control, pesannya menyebut seluruh akun itu — penolakan
+satu per satu memaksa petugas menyimpan berulang kali hanya untuk menemukan semuanya.
+
+### Jalur yang terkena dan yang tidak
+
+| Jalur | Terkena? | Alasan |
+|---|:---:|---|
+| Form Jurnal — Simpan, Ubah, Ajukan | **Ya** | Baris disusun manusia |
+| Penyesuaian `JP` lewat `POST /journals/{id}/reverse` | **Ya** | Baris penyesuaian diketik bebas dan dapat dibuat atas jurnal Disahkan mana pun (`ACC-DEC-072`) |
+| Template berulang — Tambah, Ubah, Aktifkan | **Ya** | Ditolak di hulu, selagi masih ada manusia yang membaca pesannya (`ACC-DEC-073`) |
+| Draft hasil template, atau jurnal pembalik, yang **barisnya diubah** lewat Form Jurnal | **Ya** | Begitu diubah manusia, barisnya bukan lagi hasil jalur otomatis |
+| Pembalikan penuh `JB` lewat `POST /journals/{id}/reverse` | Tidak | Hanya membalik baris jurnal asal; tidak dapat memasukkan akun yang tidak ada di jurnal asal (`ACC-DEC-072`) |
+| Draft hasil template yang barisnya belum diubah, saat diajukan | Tidak | Templatenya sudah diperiksa saat disimpan dan diaktifkan (`ACC-DEC-073`) |
+| Jurnal penutup tahun hasil `POST /year-end-closing/generate` | Tidak | Disusun sistem dari saldo pendapatan dan beban |
+| Jurnal dari kejadian akuntansi (`P2-1`) | Tidak | Jalur sah menurut `ACC-DEC-064`. Belum berdiri |
+
+**Asal-usul jurnal dikenali dari datanya, bukan dari kode jenis jurnal.** Form Jurnal menerima
+jenis jurnal apa pun, termasuk `JB` dan `JT`. Diperiksa 11 September 2026: `JB/2026/09/00001`
+berjenis Jurnal Pembalik tetapi dibuat lewat Form Jurnal. Pengecualian menurut kode jenis dapat
+diakali siapa pun yang memilih jenis itu di layar. Penanda asal-usul yang dipakai ditetapkan dan
+dibuktikan pada `BE-ACC-P2-012`.
+
+**Sisa risiko yang diterima (`ACC-DEC-073`):** template yang sudah aktif, lalu salah satu akunnya
+baru ditandai control, tetap terbit sampai dinonaktifkan atau diubah.
 
 ## 4. Penutupan periode
 

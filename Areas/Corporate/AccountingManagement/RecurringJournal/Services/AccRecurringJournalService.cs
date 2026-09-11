@@ -422,6 +422,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJo
                     $"Template {template.TemplateCode} tidak dapat diaktifkan. {alasan}");
             }
 
+            // ACC-DEC-073 butir (2): menangkap template yang disimpan SEBELUM akunnya ditandai
+            // control. Sengaja tidak dimasukkan ke AlasanTidakLayakTerbitAsync — method itu juga
+            // dipakai penerbitan, sedangkan butir (3) melarang pemeriksaan ulang saat terbit.
+            // Kodenya 422, bukan 409 seperti baris tidak sah lainnya: satu aturan control account
+            // dijawab satu kode di setiap jalurnya (`ACC-API-0.11`).
+            var alasanControl = await AccJournalService.AlasanControlAccountAsync(
+                _db,
+                template.Lines.Where(x => !x.IsDelete).Select(x => x.AccountId),
+                AccJournalService.JalurTemplateBerulang,
+                ct);
+
+            if (alasanControl is not null)
+            {
+                return Gagal<RecurringJournalDetailResponse>(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Template {template.TemplateCode} tidak dapat diaktifkan. {alasanControl}");
+            }
+
             template.IsActive = true;
             template.UpdateDateTime = DateTime.UtcNow;
             template.UpdateBy = actorUserId;
@@ -1097,6 +1115,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJo
 
             var barisSiap = await SusunBarisAsync(legalEntityId, lines, ct);
             if (barisSiap.Gagal is not null) return barisSiap;
+
+            // ACC-DEC-073 butir (1). Diperiksa di hulu, saat masih ada manusia yang membaca
+            // pesannya — bukan saat terbit, yang terjadi di penjadwal tanpa penonton.
+            var alasanControl = await AccJournalService.AlasanControlAccountAsync(
+                _db,
+                barisSiap.Baris.Select(x => x.AccountId),
+                AccJournalService.JalurTemplateBerulang,
+                ct);
+
+            if (alasanControl is not null)
+                return Tolak(StatusCodes.Status422UnprocessableEntity, alasanControl);
 
             return new HasilPersiapan { KodeTemplate = kode, Baris = barisSiap.Baris };
         }

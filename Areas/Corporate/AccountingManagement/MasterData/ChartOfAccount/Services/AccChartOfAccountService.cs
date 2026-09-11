@@ -196,6 +196,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// Hanya akun yang menerima transaksi dan aktif. Dengan begitu petugas tidak pernah
         /// melihat akun induk pada daftar pilihan, dan `ACC-DEC-022` terjaga sejak di layar —
         /// bukan hanya saat penyimpanan.
+        ///
+        /// Akun control <b>tidak</b> disaring di sini; hanya penandanya yang dikirim
+        /// (<c>BE-ACC-P2-012</c>). Enam layar memakai endpoint ini, dan Buku Besar justru harus
+        /// tetap dapat memilih Kas Kasir.
         /// </remarks>
         public async Task<AccountingServiceResult<List<ChartOfAccountOptionResponse>>> GetOptionsAsync(
             Guid legalEntityId,
@@ -228,7 +232,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     AccountName = x.AccountName,
                     AccountType = x.AccountType,
                     NormalBalance = x.NormalBalance,
-                    RequiresCostCenter = x.AccountType == AccountType.Expense
+                    RequiresCostCenter = x.AccountType == AccountType.Expense,
+                    IsControlAccount = x.IsControlAccount
                 })
                 .ToListAsync(ct);
 
