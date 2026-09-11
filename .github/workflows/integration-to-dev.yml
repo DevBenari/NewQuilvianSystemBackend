@@ -46,6 +46,18 @@ jobs:
           --configuration Release
           -p:SkipMigrationMetadata=true
 
+      # Gerbang regresi otorisasi. Menggantikan invarian yang dulu dijaga backend
+      # test project. BACA-SAJA: tidak menyalakan aplikasi, tidak menyentuh
+      # database, tidak memanggil AccessMenuSeeder.
+      #
+      # Sengaja ditempatkan SESUDAH build backend dan SEBELUM keputusan migration
+      # serta promosi ke DEV: kandidat yang gagal di sini tidak boleh dipromosikan.
+      # Dipanggil lewat `bash`, bukan `./`, supaya tidak bergantung pada bit
+      # executable yang sering hilang saat berkas dibuat di Windows.
+      - name: Verify authorization registry
+        shell: bash
+        run: bash ./tools/authorization-verifier/verify-authorization.sh --configuration Release
+
       - name: Detect migration changes
         id: migrations
         shell: bash
@@ -78,6 +90,7 @@ jobs:
             echo ""
             echo "- Candidate: \`${GITHUB_SHA}\`"
             echo "- Backend project build: PASS"
+            echo "- Authorization verifier: PASS"
             echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
             echo ""
             echo "Auto promotion is still disabled during validation."
