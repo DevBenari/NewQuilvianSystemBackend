@@ -167,7 +167,7 @@ flowchart TD
     FE043["🟡 FE-RWI-059<br/>minimum dan kekurangan terbaca"]:::sebagian
     FE044["🟡 FE-RWI-060<br/>nominal terkirim dengan aman"]:::sebagian
     FE045["🟡 FE-RWI-061<br/>posisi deposit pada konfirmasi"]:::sebagian
-    FE057["⛔ FE-RWI-057<br/>kartu bed menyebut aturannya"]:::terblokir
+    FE057["FE-RWI-057<br/>kartu bed menyebut aturannya"]:::belum
 
     FE026x --> FE036
     FE030x --> FE036
@@ -205,7 +205,7 @@ flowchart TD
 | 6 | `FE-RWI-026` | `FE-RWI-058` 🟡 |
 | 7 | `FE-RWI-058` | `FE-RWI-059` 🟡, `FE-RWI-060` 🟡 |
 | 8 | `FE-RWI-060` | `FE-RWI-061` 🟡 |
-| — | ⛔ menunggu `BE-RWI-069` | **`FE-RWI-057`** |
+| 1 | — | **`FE-RWI-057`** — penghalangnya gugur 10 September 2026 |
 
 `FE-RWI-038` tidak memiliki panah masuk pada grafik karena approval-nya diberikan terpisah dan
 layarnya tidak menunggu task frontend mana pun; ia tetap berada di gelombang 3 bersama layar
@@ -1018,11 +1018,11 @@ penyusunan skemanya, dan itu pekerjaan desain.
 
 Satu task, pasangan frontend dari `BE-RWI-069`.
 
-### ⛔ `FE-RWI-057` — Kartu tempat tidur menyebut aturan yang menolaknya
+### `FE-RWI-057` — Kartu tempat tidur menyebut aturan yang menolaknya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **`BLOCKED_PENDING_BACKEND`.** Menunggu `BE-RWI-069`, yang sendirinya menunggu approval API `0.7.0`. Tidak ada bagian task ini yang dapat diselesaikan lebih dulu, karena seluruh kalimatnya berasal dari server |
+| **Status** | **BELUM DIKERJAKAN, siap dimulai.** ~~`BLOCKED_PENDING_BACKEND` menunggu `BE-RWI-069` dan approval API `0.7.0`~~ — **kedua penghalang itu sudah gugur**: kontrak `0.7.0` disetujui 10 September 2026 dan `BE-RWI-069` ✅ selesai pada tanggal yang sama. Blokir ini terbaca basi sampai dibetulkan 11 September 2026 |
 | **Outcome** | Petugas yang melihat tempat tidur redup langsung membaca sebabnya. "Tidak lolos kelayakan" digantikan kalimat yang menyebutkan kamar, jenis kelamin, atau isolasi, sesuai aturan yang benar-benar menolak |
 | **Trace** | Bukti runtime pemilik 9 September 2026; `RWI-RULE-012`; `FE-INP-02` langkah Pilih Bed; skema tampilan bagian 3.8 |
 | **Kontrak** | API `0.7.0`: query `includeIneligible` dan field `ineligible` pada `GET /bed-occupancies/available-beds`. Permission tidak berubah, tetap `InpatientBedOccupancy : Read` |
