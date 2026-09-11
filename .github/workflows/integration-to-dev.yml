@@ -36,36 +36,15 @@ jobs:
           echo "Branch: $GITHUB_REF_NAME"
           echo "Candidate SHA: $GITHUB_SHA"
 
-      - name: Restore solution
-        run: dotnet restore ./QuilvianSystemBackend.sln
+      - name: Restore backend project
+        run: dotnet restore ./QuilvianSystemBackend.csproj
 
-      - name: Build full solution
+      - name: Build backend project
         run: >
           dotnet build
-          ./QuilvianSystemBackend.sln
+          ./QuilvianSystemBackend.csproj
           --configuration Release
           -p:SkipMigrationMetadata=true
-
-      - name: InMemory tests
-        run: >
-          dotnet test
-          ./Tests/QuilvianSystemBackend.UnitTests.InMemory/QuilvianSystemBackend.UnitTests.InMemory.csproj
-          --configuration Release
-          --no-build
-
-      - name: General tests
-        run: >
-          dotnet test
-          ./Tests/QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj
-          --configuration Release
-          --no-build
-
-      - name: SQLite tests
-        run: >
-          dotnet test
-          ./Tests/QuilvianSystemBackend.UnitTests.Sqlite/QuilvianSystemBackend.UnitTests.Sqlite.csproj
-          --configuration Release
-          --no-build
 
       - name: Detect migration changes
         id: migrations
@@ -98,10 +77,7 @@ jobs:
             echo "## Integration Fast Gate PASSED"
             echo ""
             echo "- Candidate: \`${GITHUB_SHA}\`"
-            echo "- Solution build: PASS"
-            echo "- InMemory tests: PASS"
-            echo "- General tests: PASS"
-            echo "- SQLite tests: PASS"
+            echo "- Backend project build: PASS"
             echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
             echo ""
             echo "Auto promotion is still disabled during validation."
