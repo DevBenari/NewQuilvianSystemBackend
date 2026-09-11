@@ -150,6 +150,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .OrderBy(x => x.Procedure != null ? x.Procedure.ProcedureName : string.Empty)
                 .ThenBy(x => x.GenderScope)
                 .ThenBy(x => x.AgeCategoryId)
+                .ThenBy(x => x.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new

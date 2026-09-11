@@ -3,10 +3,77 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-PERM-001` |
-| Revision | `2` |
+| Revision | `9` |
 | Status | `approved` |
-| Backend SHA | `0e2eb105` |
-| Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005` |
+| Backend SHA | `50ccf615` |
+| Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005`, `RAD-DEC-015` |
+
+> **Amandemen revision 3 — 2026-09-10.** Disetujui pemilik modul setelah `BE-RAD-03` selesai.
+> Menutup selisih antara `RAD-STATE-001` bagian 5, yang menyebut penonaktifan aturan sebagai
+> wewenang penanggung jawab klinis, dan tabel bagian 4 yang memberi endpointnya penanda
+> `RadSafetyRule : Deactivate` — penanda yang berbeda dari `Approve`.
+>
+> **Keputusan: penandanya tetap terpisah, tetapi pemberiannya dikunci.** Lihat bagian 5.3.
+
+> **Amandemen revision 4 — 2026-09-11.** Menyusul `BE-RAD-04`. Grup *Rad Modality* bertambah
+> empat baris endpoint baca dan status: `filters/metadata`, `summary`, `options`, dan
+> `PATCH /{id}/status`. Tidak ada string hak akses baru — seluruhnya memakai `Read` dan
+> `Update` yang sudah ada.
+
+> **Amandemen revision 5 — 2026-09-11.** Menyusul `BE-RAD-05`. Grup *Rad Safety Requirement*
+> bertambah empat baris dengan pola yang sama: `filters/metadata`, `summary`, `options`, dan
+> `PATCH /{id}/status`. Tidak ada string hak akses baru.
+
+> **Amandemen revision 6 — 2026-09-11. Ditulis pelaksana `BE-RAD-09`, DISETUJUI pemilik modul
+> Yoga Aji Pratama, 2026-09-11.** Grup *Rad Report* berpindah menjadi berjalan untuk delapan endpoint, ditambah
+> dua baris baca baseline `filters/metadata` dan `summary`. **Tidak ada string hak akses baru** —
+> keduanya memakai `RadReport : Read`.
+>
+> **Penghalang yang saat itu belum selesai — kini DITUTUP revision 9.** Penanda
+> `RadReport : ActAsRadiologist` pada bagian 6 ketika itu **belum dapat diberikan kepada peran
+> mana pun**. `AccessMenuSeeder` mendaftarkan pasangan hak akses hanya dari action MVC yang punya
+> `[AccessController]` dan `[AccessAction]`; penanda ini sengaja tidak menempel pada endpoint,
+> sehingga tidak pernah masuk `SysActionAccesses` dan `HasAccessAsync` selalu menjawab `false`
+> untuk semua orang kecuali SuperAdmin. Akibatnya aturan `RAD-DEC-003` ada di kode tetapi belum
+> berjalan. Sejak `BE-RAD-09`, baris `SysControllerAccess` untuk `RadReport` **sudah lahir** dari
+> `RadReportController`, sehingga yang kurang tinggal baris aksinya. Rinciannya beserta dua
+> pilihan penyelesaiannya ada pada `task/report/backend/BE-RAD-08.md` bagian 7.1 dan
+> `BE-RAD-09.md` bagian 7.1.
+
+> **Amandemen revision 7 — 2026-09-11. Ditulis pelaksana `BE-RAD-10`, DISETUJUI pemilik modul
+> Yoga Aji Pratama, 2026-09-11.** Dua baris terakhir grup *Rad Report* berpindah menjadi berjalan:
+> `GET /{id}/versions` dan `POST /{id}/amendments`. String hak akses `RadReport : Amend` kini
+> benar-benar terdaftar dan dapat dicentang pada layar Akses Role.
+>
+> Penghalang `RadReport : ActAsRadiologist` pada revision 6 belum berubah keadaannya saat itu.
+> **Ditutup revision 9 di bawah.**
+
+> **Amandemen revision 8 — 2026-09-11. Ditulis pelaksana `BE-RAD-13`, disetujui pemilik modul
+> Yoga Aji Pratama.** Dua baris terakhir grup *Rad Order* berpindah menjadi berjalan:
+> `GET /worklist` dan `PUT /{id}/urgency`. **Tidak ada string hak akses baru** — keduanya memakai
+> `RadOrder : Read` dan `RadOrder : Update` yang sudah ada.
+
+> **Amandemen revision 9 — 2026-09-11. Disetujui pemilik modul Yoga Aji Pratama.**
+> **Penghalang `RadReport : ActAsRadiologist` DITUTUP.**
+>
+> `AccessMenuSeeder` kini mengenal satu jenis pendaftaran tambahan: **hak akses penanda** —
+> pasangan yang dibaca service lewat `HasAccessAsync`, bukan yang menempel pada sebuah endpoint.
+> Daftarnya ditulis tangan dan pendek, ada di `Seeders/AccessMenuSeeder.cs` pada
+> `PenandaTanpaEndpointYangDidaftarkan`.
+>
+> `RadReport : ActAsRadiologist` karena itu **kini terdaftar dan dapat dicentang pada layar Akses
+> Role**, dengan `HttpMethod` dan `RoutePath` kosong — ia memang tidak punya route, dan
+> mengisinya dengan alamat karangan akan menampilkan jalur yang tidak dapat dipanggil siapa pun.
+>
+> **Penandanya tetap terpisah dari `RadReport : Validate`**, sesuai bagian 6. Menggabungkannya
+> akan menghapus aturan `RAD-DEC-003`: seorang residen dapat diberi `Validate` supaya dapat
+> mengesahkan draf radiografer, dan tanpa penanda ini draf yang ia tulis sendiri tetap ditolak.
+>
+> **Celah pada bagian 9 ikut ditutup.** Keempat butirnya hanya memeriksa pasangan yang dipakai
+> `[AccessPermission]` pada endpoint — dan justru karena itu keempatnya buta terhadap penghalang
+> ini selama empat task. `RadiologyRoleAccessContractTests` kini memuat butir kelima: **setiap
+> pasangan yang dibaca service lewat `HasAccessAsync` wajib terdaftar sebagai baris yang dapat
+> dicentang**, dipindai langsung dari source modul.
 
 String `[AccessPermission(...)]` ditulis **apa adanya** supaya implementer menyalin, bukan
 menerjemahkan.
@@ -34,8 +101,8 @@ Base URL: `api/v1/health-services/radiology-management/rad-orders`
 | `PUT /{id}/resume` | `RadOrder` | `Hold` | `[AccessPermission("RadOrder", "Hold")]` | Ya |
 | `PUT /{id}/reject` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya |
 | `PUT /{id}/cancel` | `RadOrder` | `Cancel` | `[AccessPermission("RadOrder", "Cancel")]` | Ya |
-| `GET /worklist` **(rencana)** | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak |
-| `PUT /{id}/urgency` **(rencana)** | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya |
+| `GET /worklist` | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak |
+| `PUT /{id}/urgency` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya |
 
 ## 2. Rad Study — sudah berjalan
 
@@ -58,12 +125,14 @@ Base URL: `api/v1/health-services/radiology-management/rad-studies`
 | `POST /{id}/repeat` | `RadStudy` | `Repeat` | `[AccessPermission("RadStudy", "Repeat")]` | Ya |
 | `POST /{id}/consumptions` | `RadStudy` | `Consumption` | `[AccessPermission("RadStudy", "Consumption")]` | Ya |
 
-## 3. Rad Report — rencana
+## 3. Rad Report — berjalan penuh sejak `BE-RAD-10`, 2026-09-11
 
 Base URL: `api/v1/health-services/radiology-management/rad-reports`
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 |---|---|---|---|:---:|
+| `GET /filters/metadata` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak |
+| `GET /summary` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak |
 | `GET /` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak |
 | `GET /{id}` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak |
 | `GET /{id}/versions` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak |
@@ -81,28 +150,39 @@ Base URL: `api/v1/health-services/radiology-management/master-data/rad-modalitie
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 |---|---|---|---|:---:|
+| `GET /filters/metadata` | `RadModality` | `Read` | `[AccessPermission("RadModality", "Read")]` | Tidak |
+| `GET /summary` | `RadModality` | `Read` | `[AccessPermission("RadModality", "Read")]` | Tidak |
 | `GET /` | `RadModality` | `Read` | `[AccessPermission("RadModality", "Read")]` | Tidak |
+| `GET /options` | `RadModality` | `Read` | `[AccessPermission("RadModality", "Read")]` | Tidak |
 | `GET /{id}` | `RadModality` | `Read` | `[AccessPermission("RadModality", "Read")]` | Tidak |
 | `POST /` | `RadModality` | `Create` | `[AccessPermission("RadModality", "Create")]` | Ya |
 | `PUT /{id}` | `RadModality` | `Update` | `[AccessPermission("RadModality", "Update")]` | Ya |
+| `PATCH /{id}/status` | `RadModality` | `Update` | `[AccessPermission("RadModality", "Update")]` | Ya |
 | `DELETE /{id}` | `RadModality` | `Delete` | `[AccessPermission("RadModality", "Delete")]` | Ya |
 
 Base URL: `api/v1/health-services/radiology-management/master-data/rad-safety-requirements`
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 |---|---|---|---|:---:|
+| `GET /filters/metadata` | `RadSafetyRequirement` | `Read` | `[AccessPermission("RadSafetyRequirement", "Read")]` | Tidak |
+| `GET /summary` | `RadSafetyRequirement` | `Read` | `[AccessPermission("RadSafetyRequirement", "Read")]` | Tidak |
 | `GET /` | `RadSafetyRequirement` | `Read` | `[AccessPermission("RadSafetyRequirement", "Read")]` | Tidak |
+| `GET /options` | `RadSafetyRequirement` | `Read` | `[AccessPermission("RadSafetyRequirement", "Read")]` | Tidak |
 | `GET /{id}` | `RadSafetyRequirement` | `Read` | `[AccessPermission("RadSafetyRequirement", "Read")]` | Tidak |
 | `POST /` | `RadSafetyRequirement` | `Create` | `[AccessPermission("RadSafetyRequirement", "Create")]` | Ya |
 | `PUT /{id}` | `RadSafetyRequirement` | `Update` | `[AccessPermission("RadSafetyRequirement", "Update")]` | Ya |
+| `PATCH /{id}/status` | `RadSafetyRequirement` | `Update` | `[AccessPermission("RadSafetyRequirement", "Update")]` | Ya |
 | `DELETE /{id}` | `RadSafetyRequirement` | `Delete` | `[AccessPermission("RadSafetyRequirement", "Delete")]` | Ya |
 
 Base URL: `api/v1/health-services/radiology-management/master-data/rad-safety-rules`
 
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 |---|---|---|---|:---:|
+| `GET /filters/metadata` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
+| `GET /summary` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `GET /` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `GET /coverage` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
+| `GET /{id}` | `RadSafetyRule` | `Read` | `[AccessPermission("RadSafetyRule", "Read")]` | Tidak |
 | `POST /` | `RadSafetyRule` | `Create` | `[AccessPermission("RadSafetyRule", "Create")]` | Ya |
 | `PUT /{id}` | `RadSafetyRule` | `Update` | `[AccessPermission("RadSafetyRule", "Update")]` | Ya |
 | `POST /{id}/submit` | `RadSafetyRule` | `Submit` | `[AccessPermission("RadSafetyRule", "Submit")]` | Ya |
@@ -139,6 +219,31 @@ Admin Radiologi menyusun; penanggung jawab klinis mengesahkan.
 
 Memberikan keduanya kepada satu peran akan meniadakan seluruh gunanya pengesahan berjenjang.
 Ini **wajib** dijaga saat menyusun peran, dan **wajib** diuji.
+
+### 5.3 Penonaktifan aturan keselamatan — `RAD-DEC-005`, ditetapkan revision 3
+
+`RadSafetyRule : Deactivate` **hanya boleh diberikan kepada peran yang juga memegang**
+`RadSafetyRule : Approve`.
+
+**Mengapa dikunci.** Menghentikan sebuah aturan berarti menghapus pertanyaan yang berdiri antara
+sebuah permintaan dan penyinaran seorang pasien. Bahayanya setara dengan memberlakukan aturan
+baru, sehingga wewenangnya wajib setara pula — dan `RAD-STATE-001` bagian 5 memang menyebut
+penonaktifan sebagai wewenang penanggung jawab klinis.
+
+> **Contoh kalau tidak dikunci.** Administrator memberi seorang staf administrasi hak
+> `Deactivate` saja, dengan maksud "sekadar merapikan aturan yang sudah usang". Staf itu
+> menghentikan aturan skrining kehamilan untuk CT-Scan karena dianggap memperlambat antrian.
+> Sejak saat itu CT-Scan berjalan tanpa pertanyaan itu — tanpa satu pun penanggung jawab klinis
+> pernah menyetujuinya.
+
+**Mengapa penandanya tidak digabung saja menjadi `Approve`.** Memisahkannya membuat Administrator
+tetap dapat melihat dan mencabut kedua kewenangan itu satu per satu pada layar peran, dan
+membuat jejak pemberiannya terbaca apa adanya. Yang dikunci adalah **pemberiannya**, bukan
+penamaannya.
+
+**Cara membuktikannya.** `BE-RAD-14` wajib memuat uji yang gagal ketika ada peran memegang
+`RadSafetyRule : Deactivate` tanpa `RadSafetyRule : Approve`. Sampai uji itu ada, penjagaannya
+bersandar pada disiplin penyusunan peran, dan keadaan itu disebut apa adanya di sini.
 
 ---
 
@@ -248,3 +353,6 @@ Yang wajib dibuktikan uji tersebut:
 2. Tidak ada endpoint radiologi tanpa atribut hak akses.
 3. Aturan pemisahan wewenang pada bagian 5 benar-benar ditegakkan service, bukan hanya
    didokumentasikan.
+4. **Ditambahkan revision 3.** Tidak ada peran yang memegang `RadSafetyRule : Deactivate` tanpa
+   `RadSafetyRule : Approve` — bagian 5.3. Uji ini membaca susunan peran, bukan source, karena
+   yang dijaga adalah pemberian kewenangannya.

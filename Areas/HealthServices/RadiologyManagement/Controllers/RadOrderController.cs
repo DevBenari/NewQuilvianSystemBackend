@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -30,15 +31,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             _radOrderService = radOrderService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar pilihan penyaring order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = _radOrderService.GetFilterMetadata();
+
+            return Ok(ApiResponse<RadOrderFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter order radiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat rekap order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<RadOrderSummaryResponse>.Ok(
+                hasil, "Rekap order radiologi berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RadOrder", "Read")]
+        // RAD-CONF-001 bagian 8 butir 3. Penyaring pindah ke satu objek query supaya lima
+        // kategori daftar pasien radiologi dan delapan kriteria riwayat dilayani dari sini.
+        //
+        // Pemanggil lama tidak perlu berubah: ?encounterId=, ?sortBy=, dan ?sortDirection=
+        // tetap terikat ke properti bernama sama pada RadOrderListQuery.
         public async Task<IActionResult> GetList(
-            [FromQuery] Guid? encounterId,
+            [FromQuery] RadOrderListQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _radOrderService.GetListAsync(encounterId, cancellationToken);
+            var result = await _radOrderService.GetListAsync(query, cancellationToken);
 
             return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
                 result, "Daftar order radiologi berhasil diambil."));
@@ -65,14 +95,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 result, "Detail order radiologi berhasil diambil."));
         }
 
-        /// <summary>
-        /// Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
-        /// </summary>
-        /// <remarks>
-        /// <c>BE-RWI-052</c>, <c>api-contract.md</c> bagian 8. Hasil yang belum final ditandai
-        /// dan <b>tidak</b> disajikan sebagai hasil sah — <c>VAL-DOK-30</c>. Tidak ada satu pun
-        /// baris hasil yang disalin ke Rawat Inap — <c>RUL-DOK-02</c>.
-        /// </remarks>
+        // Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        //
+        // BE-RWI-052, api-contract.md bagian 8. Hasil yang belum final ditandai dan TIDAK
+        // disajikan sebagai hasil sah — VAL-DOK-30. Tidak ada satu pun baris hasil yang
+        // disalin ke Rawat Inap — RUL-DOK-02.
         [HttpGet("episodes/{episodeId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan dan hasil radiologi satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -171,6 +198,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             CancellationToken cancellationToken = default) =>
             Execute(() => _radOrderService.CancelAsync(id, request, cancellationToken),
                 "Order radiologi berhasil dibatalkan.");
+
+        // Daftar kerja petugas pada satu alat — RAD-DEC-012.
+        //
+        // Diletakkan pada controller pesanan, bukan controller study, dan itu disengaja: daftar
+        // kerja dimulai dari pesanan yang sudah diterima tetapi belum tentu punya study. Kalau
+        // diletakkan di controller study, pekerjaan yang belum direncanakan sama sekali tidak
+        // akan muncul — padahal justru itu yang paling perlu dikerjakan.
+        [HttpGet("worklist")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadWorklistItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar kerja petugas pada satu alat pencitraan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public Task<IActionResult> GetWorklist(
+            [FromQuery] Guid? modalityId = null,
+            [FromQuery] DateTime? date = null,
+            [FromQuery] RadOrderStatus? status = null,
+            CancellationToken cancellationToken = default) =>
+            Execute(
+                () => _radOrderService.GetWorklistAsync(modalityId, date, status, cancellationToken),
+                "Daftar kerja berhasil diambil.");
+
+        // Mengubah penanda cito setelah pesanan dibuat. POST, bukan PATCH: perubahannya masuk
+        // riwayat dan punya pelaku, sehingga ia perintah — bukan suntingan atribut.
+        //
+        // Kontrak RAD-API-001 menuliskannya sebagai PUT. Bentuk yang dipakai mengikuti kontrak;
+        // selisihnya terhadap aturan verb pada transaction-endpoint-standard.md dicatat pada
+        // laporan BE-RAD-13.
+        [HttpPut("{id:guid}/urgency")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Update Rad Order", Description = "Mengubah penanda cito pesanan radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Update")]
+        public Task<IActionResult> SetUrgency(
+            Guid id,
+            [FromBody] RadOrderUrgencyRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.SetUrgencyAsync(id, request, cancellationToken),
+                request is { IsUrgent: true }
+                    ? "Pesanan berhasil ditandai cito."
+                    : "Penanda cito berhasil dicabut.");
 
         /// <summary>
         /// Menjalankan satu tindakan dan memetakan hasilnya menjadi status HTTP.

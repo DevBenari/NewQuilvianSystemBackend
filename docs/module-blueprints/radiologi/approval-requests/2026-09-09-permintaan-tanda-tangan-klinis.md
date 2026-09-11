@@ -34,6 +34,54 @@ bergerak.
 
 ---
 
+## 0.1 Yang Dibutuhkan Sekarang — Dipersempit 2026-09-11
+
+> **Permintaan ini semula mengajukan lima butir sekaligus, dan itu membuatnya lebih besar
+> daripada yang sebenarnya perlu dijawab hari ini.** Gelombang `MVP-1` frontend selesai pada
+> 2026-09-11, dan pemeriksaannya kini tertahan **hanya** oleh dua butir.
+
+| Butir | Dibutuhkan untuk `MVP-1` dipakai? | Alasan |
+|---:|:---:|---|
+| 1 — Penunjukan penanggung jawab klinis | **Ya, dan ini satu-satunya akar** | Tanpa orangnya, tidak ada yang boleh mengesahkan aturan keselamatan. Tanpa aturan berlaku, gerbang fail-closed menolak **setiap** pemeriksaan |
+| 5 — Sumber nilai awal aturan keselamatan | **Ya, tetapi sudah terjawab sendiri** | `BE-RAD-15` sudah menyusun aturannya sebagai `Draft` lewat seeder. Yang tersisa hanya mengesahkannya — itu kembali ke butir 1 |
+| 2 — Tanda tangan `RJ-BIL-GATE-DEC-004` | Untuk **production**, ya | Modul dapat diuji di lingkungan pengembangan tanpanya, tetapi tidak boleh dipakai pada pasien sungguhan |
+| 3 — Pelewatan gerbang darurat | **Tidak** | Slice `S5`, di luar `MVP-1`. Tidak menahan satu pun pemeriksaan biasa |
+| 4 — Daftar temuan kritis | **Tidak** | Slice `S11`, di luar `MVP-1`. Menahan pelaporan temuan kritis, bukan pemeriksaannya |
+
+**Artinya: untuk membuat `MVP-1` dapat dipakai, yang benar-benar diminta hanya butir 1.**
+Butir 3 dan 4 dapat dijawab kapan pun tanpa menahan apa pun yang berjalan hari ini.
+
+### Kesiapan teknis — diperiksa 2026-09-11
+
+Satu hal yang sebelumnya tidak pasti kini terbukti: **hak akses pengesahan benar-benar dapat
+diberikan.** Ini bukan formalitas — penanda `RadReport : ActAsRadiologist` sempat tidak dapat
+diberikan kepada peran mana pun selama empat task, dan `403` yang dihasilkannya tidak dapat
+diperbaiki dari layar mana pun.
+
+| Yang diperiksa | Hasil |
+|---|---|
+| `RadSafetyRuleController` punya `[AccessController]` | **Ya** — begitu pula kelima controller radiologi lainnya |
+| `Approve`, `Reject`, `Deactivate`, `Submit` punya `[AccessAction]` + `[AccessPermission]` | **Ya**, keempatnya, dan seluruhnya menempel pada endpoint nyata |
+| Karena itu pasangan `RadSafetyRule : Approve` masuk `SysActionAccesses` | **Ya** — berbeda dari `ActAsRadiologist` yang harus didaftarkan tersendiri |
+| Draf aturan keselamatan tersedia untuk disahkan | **Ya** — `RadiologyMasterDataSeeder` berjalan saat backend menyala dan menyusunnya sebagai `Draft` |
+| Layar untuk mengesahkannya | **Ada** — `FE-RAD-04`, selesai 2026-09-11, lengkap dengan papan kesiapan alat |
+
+**Tidak ada penghalang teknis yang tersisa.** Begitu butir 1 dijawab, langkahnya tinggal empat.
+
+### Empat langkah dari penunjukan sampai modul dapat dipakai
+
+| Urutan | Langkah | Pelaksana |
+|---:|---|---|
+| 1 | Menunjuk penanggung jawab tata kelola klinis, dengan nama | Manajemen rumah sakit |
+| 2 | Mencentang `RadSafetyRule : Approve`, `: Reject`, dan `: Deactivate` pada peran orang itu; serta `: Create`, `: Update`, dan `: Submit` pada peran Admin Radiologi | Administrator |
+| 3 | Admin Radiologi mengajukan draf aturan yang sudah tersusun; penanggung jawab klinis mengesahkannya | Admin Radiologi, lalu penanggung jawab klinis |
+| 4 | Memastikan papan kesiapan alat pada layar Aturan Keselamatan menjadi hijau — tidak ada alat tersisa | Admin Radiologi |
+
+Langkah 4 adalah buktinya. Selama papan itu masih menampilkan satu alat pun, pemeriksaan pada
+alat tersebut masih ditolak.
+
+---
+
 ## 1. Mengapa Ini Bukan Formalitas
 
 Keempat butir di bawah menentukan hal yang berakibat langsung pada tubuh pasien.
@@ -51,7 +99,22 @@ kewenangan itu.
 
 ---
 
-## 2. Butir 1 — Penunjukan Penanggung Jawab Tata Kelola Klinis
+## 2. Butir 1 — Penunjukan Penanggung Jawab Tata Kelola Klinis — **TERJAWAB 2026-09-11**
+
+> **Jawaban: Komite Medis**, sebagai badan, bukan perorangan. Dicatat sebagai `RAD-DEC-016`.
+>
+> **Yang tertutup:** pertanyaan kewenangan. Kewenangan mengesahkan aturan keselamatan,
+> menolaknya, dan menghentikannya kini punya pemilik yang jelas.
+>
+> **Yang belum tertutup, dan perlu dikerjakan Komite Medis sendiri:** hak akses Quilvian
+> melekat pada **peran pengguna**, bukan pada badan. Sebuah badan tidak dapat masuk ke sistem.
+> Komite Medis karena itu tetap perlu menunjuk siapa yang memegang akun pengesahnya —
+> perorangan atau beberapa orang. Dicatat sebagai `RAD-OPEN-011`.
+>
+> Selama `RAD-OPEN-011` terbuka, langkah 2 sampai 4 pada bagian 0.1 belum dapat dijalankan,
+> dan modul masih menolak setiap pemeriksaan. Yang berubah: pertanyaannya tidak lagi
+> "siapa yang berwenang" — melainkan "akun siapa yang menjalankan kewenangan itu", dan
+> jawabannya kini milik Komite Medis, bukan lagi manajemen rumah sakit.
 
 ### Yang diminta
 
@@ -251,4 +314,5 @@ menentukan siapa yang menjawab sisanya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 2 | 2026-09-11 | **Permintaan dipersempit.** Bagian 0.1 memisahkan yang benar-benar menahan `MVP-1` dari yang dapat menyusul: hanya butir 1 yang tersisa sebagai penahan, karena butir 5 sudah terjawab sendiri lewat `BE-RAD-15` dan butir 3 serta 4 berada di luar `MVP-1`. Kesiapan teknis diperiksa dan **tidak ada penghalang tersisa** — hak akses `RadSafetyRule : Approve` terbukti dapat diberikan, draf aturan tersedia, dan layar pengesahannya selesai pada `FE-RAD-04`. Empat langkah dari penunjukan sampai modul dapat dipakai dicantumkan. | `terbuka` |
 | 1 | 2026-09-09 | Permintaan pertama. Lima butir, seluruhnya berakar pada penunjukan yang belum ada. | `terbuka` |
