@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -568,10 +568,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
+        public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
         public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }
+        public DbSet<MstDepositPolicy> MstDepositPolicies { get; set; }
         public DbSet<MstRegister> MstRegisters { get; set; }
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
@@ -668,8 +670,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
-        public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
-        public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }
+        public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
+        public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
         public DbSet<TrxQueue> TrxQueues { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
@@ -707,10 +709,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockTransferAllocation> PhmStockTransferAllocations { get; set; }
         public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
 
-        public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
-        public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
-        public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
-        public DbSet<TrxPrescriptionCompoundItem> TrxPrescriptionCompoundItems { get; set; }
+        public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
+        public DbSet<PhmPrescriptionItem> PhmPrescriptionItems { get; set; }
+        public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
+        public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }
         public DbSet<MstPrescriptionTemplateItem> MstPrescriptionTemplateItems { get; set; }
         public DbSet<MstPrescriptionTemplateCompound> MstPrescriptionTemplateCompounds { get; set; }

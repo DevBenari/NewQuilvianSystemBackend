@@ -214,8 +214,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                             result.ErrorMessage ?? "Terjadi konflik.",
                             new { Code = result.ErrorCode })),
 
+                    RadOperationResultKind.Forbidden =>
+                        StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                            StatusCodes.Status403Forbidden,
+                            result.ErrorMessage ?? "Anda tidak berwenang melakukan tindakan ini.",
+                            new { Code = result.ErrorCode })),
+
                     RadOperationResultKind.SafetyBlocked or
-                    RadOperationResultKind.PolicyNotConfigured =>
+                    RadOperationResultKind.PolicyNotConfigured or
+                    RadOperationResultKind.BusinessRule =>
                         UnprocessableEntity(ApiResponse<object>.Fail(
                             StatusCodes.Status422UnprocessableEntity,
                             result.ErrorMessage ?? "Prasyarat belum terpenuhi.",

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Repositories;
 
@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             var prefix = $"RX-{serviceDate:yyyyMMdd}";
 
-            var existingNumbers = await _dbContext.Set<TrxPrescription>()
+            var existingNumbers = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .Where(x => x.PrescriptionNumber.StartsWith(prefix))
                 .Select(x => x.PrescriptionNumber)

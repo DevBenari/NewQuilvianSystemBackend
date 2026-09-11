@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using QuilvianSystemBackend.Repositories;
 
@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260826090500_ImplementIgdFullPatientJourney")]
     public partial class ImplementIgdFullPatientJourney : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

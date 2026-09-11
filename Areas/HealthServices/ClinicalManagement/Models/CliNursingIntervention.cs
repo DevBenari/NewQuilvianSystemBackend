@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -133,7 +133,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [MaxLength(500)]
         public string? BillingDispatchFailureReason { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public InpEpisode? InpEpisode { get; set; }
 

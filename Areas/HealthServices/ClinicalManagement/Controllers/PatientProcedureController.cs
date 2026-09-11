@@ -1507,7 +1507,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateInpatientMarkersAsync(
             CreatePatientProcedureRequest request)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == request.EncounterId && !x.IsDelete)
                 .Select(x => new { x.Id, x.PatientId })

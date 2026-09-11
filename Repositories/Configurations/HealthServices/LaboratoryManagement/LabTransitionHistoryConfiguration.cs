@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -41,7 +41,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
                 .HasForeignKey(x => x.LabExaminationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne<TrxPatientEncounter>()
+            builder.HasOne<RegPatientEncounter>()
                 .WithMany()
                 .HasForeignKey(x => x.EncounterId)
                 .OnDelete(DeleteBehavior.Restrict);

@@ -18,7 +18,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         NotFound = 3,
         Conflict = 4,
         SafetyBlocked = 5,
-        PolicyNotConfigured = 6
+        PolicyNotConfigured = 6,
+
+        /// <summary>
+        /// Pelakunya memang tidak boleh melakukan tindakan itu — bukan karena isian yang salah
+        /// dan bukan karena keadaan data.
+        ///
+        /// Dipisahkan dari <see cref="Validation"/> karena tidak ada satu pun perbaikan isian
+        /// yang dapat menolong: yang salah adalah siapa yang menekan tombolnya. Contoh yang
+        /// menjadi alasan keberadaannya, dari <c>RAD-DEC-005</c>: admin yang menyusun sebuah
+        /// aturan keselamatan tidak boleh mengesahkan aturannya sendiri.
+        /// </summary>
+        Forbidden = 7,
+
+        /// <summary>
+        /// Bentuk permintaannya benar, tetapi aturan bisnis menolaknya — <c>422</c> pada
+        /// <c>RAD-API-001</c> bagian 4.
+        ///
+        /// Contohnya menyusun aturan keselamatan yang menunjuk alat yang sudah dipensiunkan.
+        /// Tidak ada yang salah pada isiannya; yang salah adalah keadaan data yang dirujuknya.
+        /// </summary>
+        BusinessRule = 8
     }
 
     /// <summary>
@@ -56,6 +76,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
         public static RadOperationResult<T> Conflict(string code, string message) =>
             new(RadOperationResultKind.Conflict) { ErrorCode = code, ErrorMessage = message };
+
+        public static RadOperationResult<T> Forbidden(string code, string message) =>
+            new(RadOperationResultKind.Forbidden) { ErrorCode = code, ErrorMessage = message };
+
+        public static RadOperationResult<T> BusinessRule(string code, string message) =>
+            new(RadOperationResultKind.BusinessRule) { ErrorCode = code, ErrorMessage = message };
 
         public static RadOperationResult<T> SafetyBlocked(string code, string message) =>
             new(RadOperationResultKind.SafetyBlocked) { ErrorCode = code, ErrorMessage = message };
@@ -96,5 +122,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         public const string RepeatSourceInvalid = "RAD_REPEAT_SOURCE_INVALID";
         public const string RepeatAuthorizationRequired = "RAD_REPEAT_AUTHORIZATION_REQUIRED";
         public const string ReasonRequired = "RAD_REASON_REQUIRED";
+
+        /* ---------------------------------------------------------------- *
+         * Siklus pengesahan aturan keselamatan — RAD-DEC-005
+         * ---------------------------------------------------------------- */
+
+        public const string SafetyRuleNotFound = "RAD_SAFETY_RULE_NOT_FOUND";
+        public const string SafetyRequirementNotFound = "RAD_SAFETY_REQUIREMENT_NOT_FOUND";
+        public const string ProcedureNotFound = "RAD_PROCEDURE_NOT_FOUND";
+
+        /// <summary>Isian permintaan belum lengkap atau bentuknya salah.</summary>
+        public const string ValidationFailed = "RAD_VALIDATION_FAILED";
+
+        /// <summary>Alat atau butir keselamatan yang dirujuk sudah tidak aktif.</summary>
+        public const string MasterDataInactive = "RAD_MASTER_DATA_INACTIVE";
+
+        /// <summary>Aturan berada pada keadaan yang tidak lagi boleh diubah.</summary>
+        public const string SafetyRuleNotEditable = "RAD_SAFETY_RULE_NOT_EDITABLE";
+
+        /// <summary>
+        /// Penyusun aturan mencoba mengesahkan aturannya sendiri.
+        ///
+        /// Inilah pengaman yang tidak dapat ditegakkan sistem izin: memegang
+        /// <c>RadSafetyRule : Approve</c> menjawab "boleh mengesahkan", bukan "boleh mengesahkan
+        /// yang ini". Yang membedakan hanya siapa yang menyusun baris itu sebelumnya.
+        /// </summary>
+        public const string SelfApprovalNotAllowed = "RAD_SELF_APPROVAL_NOT_ALLOWED";
+
+        /// <summary>Sudah ada aturan berlaku untuk kombinasi alat, pemeriksaan, dan butir yang sama.</summary>
+        public const string ActiveSafetyRuleExists = "RAD_ACTIVE_SAFETY_RULE_EXISTS";
     }
 }

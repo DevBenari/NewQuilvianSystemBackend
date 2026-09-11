@@ -10,13 +10,6 @@
 		<PlatformTarget>x64</PlatformTarget>
 
 		<!--
-		  Folder test terpisah dari web project.
-		  Tidak boleh ikut compile ke aplikasi utama.
-		-->
-		<DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
-
-
-		<!--
 		XML documentation diperlukan oleh Swagger dan acceptance test.
 		Harus tersedia pada Development maupun Release.
 		-->
