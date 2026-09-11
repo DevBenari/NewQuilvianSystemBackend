@@ -66049,6 +66049,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("AssignedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AssignmentRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -66116,9 +66121,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EpisodeId", "SequenceNumber")
                         .IsUnique();
 
-                    b.HasIndex(new[] { "EpisodeId" }, "IX_InpDoctorAssignment_EpisodeId_Active")
+                    b.HasIndex(new[] { "EpisodeId" }, "IX_InpDoctorAssignment_EpisodeId_ActiveDpjp")
                         .IsUnique()
-                        .HasFilter("\"EndDateTime\" IS NULL");
+                        .HasFilter("\"EndDateTime\" IS NULL AND \"AssignmentRole\" = 1");
+
+                    b.HasIndex(new[] { "EpisodeId", "DoctorId", "AssignmentRole", "StartDateTime" }, "IX_InpDoctorAssignment_Episode_Doctor_Role_Period");
 
                     b.ToTable("InpDoctorAssignment", "public");
                 });

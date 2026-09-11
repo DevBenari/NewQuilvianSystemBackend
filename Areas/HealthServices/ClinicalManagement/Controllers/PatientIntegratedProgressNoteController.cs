@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -47,18 +47,141 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly CpptVerificationService _verificationService;
         private readonly InpatientClinicalContextService _inpatientClinicalContextService;
 
+        /// <summary>
+        /// Penemu pegawai di balik pengguna yang sedang masuk - <c>BE-RWI-078</c>,
+        /// <c>GUARD-INP-07</c>. Dipakai hanya oleh catatan berprofesi perawat pada perawatan
+        /// rawat inap.
+        /// </summary>
+        private readonly NursingActorService _nursingActorService;
+
         public PatientIntegratedProgressNoteController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ClinicalDocumentIntegrityService integrityService,
             CpptVerificationService verificationService,
-            InpatientClinicalContextService inpatientClinicalContextService)
+            InpatientClinicalContextService inpatientClinicalContextService,
+            NursingActorService nursingActorService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _integrityService = integrityService;
             _verificationService = verificationService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
+            _nursingActorService = nursingActorService;
+        }
+
+        /// <summary>
+        /// Penjagaan kewenangan menulis perawat pada catatan terpadu - <c>BE-RWI-078</c>,
+        /// <c>GUARD-INP-07</c> dan <c>GUARD-INP-08</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Tiga penyaring sebelum penjaga bekerja.</b> Ia hanya berlaku bagi catatan
+        /// berprofesi perawat, hanya bagi catatan yang menempel pada perawatan rawat inap, dan
+        /// karena itu tidak menyentuh satu pun catatan dokter, farmasi, gizi, maupun catatan
+        /// rawat jalan. Catatan terpadu dipakai seluruh profesi pada seluruh jenis pelayanan -
+        /// memasang gerbang unit tanpa penyaringan akan menutup jauh lebih banyak daripada yang
+        /// diminta kontrak.
+        /// </para>
+        /// <para>
+        /// Mengembalikan <c>null</c> ketika boleh melanjutkan, atau jawaban <c>403</c> siap pakai
+        /// ketika tidak - <c>AC-KEP-045</c> dan <c>AC-KEP-046</c>.
+        /// </para>
+        /// </remarks>
+        private async Task<IActionResult?> EnsureNursingUnitAuthorityAsync(
+            string? professionType,
+            Guid? inpEpisodeId)
+        {
+            if (!string.Equals(NormalizeProfessionType(professionType), "Nurse", StringComparison.Ordinal))
+                return null;
+
+            if (!inpEpisodeId.HasValue || inpEpisodeId.Value == Guid.Empty)
+                return null;
+
+            var employeeId = await _nursingActorService.ResolveEmployeeIdAsync(User, GetCurrentUserId());
+
+            if (employeeId == null)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanPerawatTanpaPegawai
+                ));
+            }
+
+            var bertugas = await _inpatientClinicalContextService.IsNurseOnDutyAtEpisodeAsync(
+                inpEpisodeId.Value, employeeId.Value, DateTime.UtcNow);
+
+            if (bertugas)
+                return null;
+
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                StatusCodes.Status403Forbidden,
+                InpatientClinicalContextService.PenolakanPerawatUnitLain
+            ));
+        }
+
+        /// <summary>
+        /// Penjaga penulis catatan dokter pada lembar terpadu — <c>GUARD-INP-05</c> dan
+        /// <c>GUARD-INP-06</c>, <c>BE-RWI-076</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Pasangan dokter bagi <see cref="EnsureNursingUnitAuthorityAsync"/>, dan penyaringnya
+        /// disusun dengan cara yang sama: hanya catatan berprofesi dokter, dan hanya catatan
+        /// yang menempel pada perawatan rawat inap. Catatan farmasi, gizi, fisioterapi, dan
+        /// seluruh catatan rawat jalan karena itu tidak tersentuh sama sekali.
+        /// </para>
+        /// <para>
+        /// <b>Kewenangan dinilai pada waktu klinis catatan</b>, yaitu <c>NoteDateTime</c>, bukan
+        /// pada waktu penyimpanannya. Dokter yang lupa mencatat visite kemarin sore tetap boleh
+        /// mencatatnya hari ini selama waktu klinis yang ia tulis jatuh ketika ia masih
+        /// bertugas; menuliskannya untuk waktu di luar periode penugasan ditolak.
+        /// </para>
+        /// <para>
+        /// Mengembalikan <c>null</c> ketika boleh melanjutkan, atau jawaban <c>403</c> siap
+        /// pakai ketika tidak — <c>AC-DOK-067</c> sampai <c>AC-DOK-071</c>.
+        /// </para>
+        /// </remarks>
+        private async Task<IActionResult?> EnsureDoctorWriteAuthorityAsync(
+            string? professionType,
+            Guid? encounterId,
+            Guid? inpEpisodeId,
+            Guid? requestedDoctorId,
+            DateTime? clinicalDateTime,
+            CancellationToken cancellationToken = default)
+        {
+            if (!string.Equals(NormalizeProfessionType(professionType), "Doctor", StringComparison.Ordinal))
+                return null;
+
+            if (!inpEpisodeId.HasValue || inpEpisodeId.Value == Guid.Empty)
+                return null;
+
+            if (!encounterId.HasValue || encounterId.Value == Guid.Empty)
+                return null;
+
+            var penjaga = await _inpatientClinicalContextService.ResolveForDoctorWriteAsync(
+                User,
+                GetCurrentUserId(),
+                encounterId.Value,
+                expectedEpisodeId: inpEpisodeId,
+                requestedDoctorId: requestedDoctorId,
+                forNewDocument: true,
+                atUtc: clinicalDateTime,
+                cancellationToken: cancellationToken);
+
+            if (penjaga.IsResolved)
+                return null;
+
+            // Hanya penolakan kewenangan yang dijawab di sini. Sebab lain — perawatan belum
+            // dimulai, perawatan sudah ditutup — sudah dijawab penjagaan konteks yang lama,
+            // dan menjawabnya dua kali akan mengubah kode balasan jalur yang sudah berjalan.
+            if (penjaga.StatusCode != StatusCodes.Status403Forbidden)
+                return null;
+
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                StatusCodes.Status403Forbidden,
+                penjaga.ErrorMessage ?? InpatientClinicalContextService.PenolakanBukanDokter
+            ));
         }
 
         [HttpGet("filters/metadata")]
@@ -269,6 +392,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [AccessAction("Create", "Create Patient Integrated Progress Note", Description = "Membuat CPPT", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientIntegratedProgressNote", "Create")]
         public async Task<IActionResult> CreateProgressNote([FromBody] CreatePatientIntegratedProgressNoteRequest request)
@@ -306,6 +430,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     context.ErrorMessage ?? "Konteks klinis CPPT tidak valid."
                 ));
             }
+
+            var penjagaPerawat = await EnsureNursingUnitAuthorityAsync(
+                request.ProfessionType, context.InpEpisodeId);
+
+            if (penjagaPerawat != null)
+                return penjagaPerawat;
+
+            // BE-RWI-076 / GUARD-INP-05 dan GUARD-INP-06. Dipasang bersebelahan dengan penjaga
+            // perawat supaya kedua profesi yang menulis pada lembar yang sama tunduk pada
+            // pemeriksaan yang setara, dan supaya penambahan profesi berikutnya punya tempat
+            // yang jelas.
+            var penjagaDokter = await EnsureDoctorWriteAuthorityAsync(
+                request.ProfessionType,
+                context.EncounterId,
+                context.InpEpisodeId,
+                request.DoctorId,
+                request.NoteDateTime ?? now);
+
+            if (penjagaDokter != null)
+                return penjagaDokter;
 
             var entity = new TrxPatientIntegratedProgressNote
             {
@@ -572,6 +716,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            var penjagaPerawat = await EnsureNursingUnitAuthorityAsync(
+                entity.ProfessionType, entity.InpEpisodeId);
+
+            if (penjagaPerawat != null)
+                return penjagaPerawat;
+
             if (entity.IsReadOnlyGenerated)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -825,7 +975,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Cancel Patient Integrated Progress Note", Description = "Membatalkan CPPT", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PatientIntegratedProgressNote", "Update")]
         public async Task<IActionResult> CancelProgressNote(Guid id, [FromBody] CancelPatientIntegratedProgressNoteRequest request)
@@ -838,6 +990,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "CPPT tidak ditemukan."
+                ));
+            }
+
+            var penjagaPerawat = await EnsureNursingUnitAuthorityAsync(
+                entity.ProfessionType, entity.InpEpisodeId);
+
+            if (penjagaPerawat != null)
+                return penjagaPerawat;
+
+            // RWI-DEC-098 / BE-RWI-075. Pembatalan wajib beralasan, dan alasan yang hanya
+            // berisi spasi bukan alasan. [Required] menolak kosong dan null, tetapi meloloskan
+            // " " — dan alasan kosong menghapus satu-satunya jejak yang membedakan pembatalan
+            // dari penghapusan.
+            if (string.IsNullOrWhiteSpace(request.CancelReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pembatalan wajib diisi."
+                ));
+            }
+
+            // RWI-DEC-098 / BE-RWI-075. Catatan yang sudah final atau terkunci tidak boleh
+            // disembunyikan lewat pembatalan; koreksinya harus meninggalkan jejak addendum.
+            var integrityGuard = await _integrityService.EnsureMutableAsync(
+                ClinicalDocumentKind.ProgressNote, entity.Id);
+
+            if (!integrityGuard.IsAllowed)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    integrityGuard.ErrorMessage
+                        ?? "Catatan ini tidak dapat dibatalkan. Gunakan addendum untuk membetulkan."
+                ));
+            }
+
+            // Status verifikasi tinggal pada CPPT, terpisah dari baris keutuhan dokumen.
+            // Karena itu catatan terverifikasi tetap perlu ditolak secara eksplisit walaupun
+            // baris keutuhannya berasal dari data lama dan masih terbaca sebagai draf.
+            if (entity.VerificationStatus == CpptVerificationStatus.Verified)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Catatan ini sudah diverifikasi dan tidak dapat dibatalkan. " +
+                    "Gunakan addendum untuk membetulkan."
                 ));
             }
 
@@ -859,42 +1055,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Ok(ApiResponse<object>.Ok(
                 null,
                 "CPPT berhasil dibatalkan."
-            ));
-        }
-
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Integrated Progress Note", Description = "Menghapus CPPT", AccessType = AccessTypes.Delete, SortOrder = 5)]
-        [AccessPermission("PatientIntegratedProgressNote", "Delete")]
-        public async Task<IActionResult> DeleteProgressNote(Guid id)
-        {
-            var entity = await _dbContext.Set<TrxPatientIntegratedProgressNote>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "CPPT tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsDelete = true;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.IsActive = false;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "CPPT berhasil dihapus."
             ));
         }
 

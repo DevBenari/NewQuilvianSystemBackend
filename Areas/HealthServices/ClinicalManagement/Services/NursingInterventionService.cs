@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -204,16 +204,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (penjagaButir != null)
                 return penjagaButir;
 
-            var employeeId = await ResolvePerformerAsync(
-                request.PerformedByEmployeeId, user, actorUserId, cancellationToken);
+            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
 
             if (employeeId == null)
             {
                 return NursingInterventionResult.Fail(
                     StatusCodes.Status400BadRequest,
-                    request.PerformedByEmployeeId.HasValue && request.PerformedByEmployeeId.Value != Guid.Empty
-                        ? "Perawat pelaksana tidak ditemukan atau tidak aktif."
-                        : NursingActorService.PenolakanTanpaPegawai);
+                    NursingActorService.PenolakanTanpaPegawai);
+            }
+
+            // GUARD-INP-07 - BE-RWI-078, AC-KEP-047, RWI-DEC-100. Pelaksana diambil dari pengguna
+            // yang sedang masuk, dan permintaan yang menyebut pegawai lain ditolak alih-alih
+            // diam-diam dipakai. Jalur "mencatatkan tindakan rekan" yang dibuka BE-RWI-061 karena
+            // itu tertutup: kontrak 0.4.0 menuntut penulis catatan keperawatan adalah orang yang
+            // sedang masuk, dan pencatatan atas nama orang lain memakai jalur pengganti milik
+            // MedicalRecordManagement seperti pada koreksi.
+            if (request.PerformedByEmployeeId.HasValue &&
+                request.PerformedByEmployeeId.Value != Guid.Empty &&
+                request.PerformedByEmployeeId.Value != employeeId.Value)
+            {
+                return NursingInterventionResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    NursingActorService.PenolakanPegawaiPihakLain);
+            }
+
+            // GUARD-INP-08 - BE-RWI-078, AC-KEP-045, AC-KEP-049. Unit dibaca dari episodenya saat
+            // ini, sehingga kewenangan ikut berpindah begitu pasien dipindahkan.
+            var bertugas = await _contextService.IsNurseOnDutyAtUnitAsync(
+                konteks.Context.ServiceUnitId, employeeId.Value, now, cancellationToken);
+
+            if (!bertugas)
+            {
+                return NursingInterventionResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanPerawatUnitLain);
             }
 
             var tindakan = new CliNursingIntervention
@@ -405,6 +429,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public async Task<NursingInterventionResult> UpdateAsync(
             Guid id,
             UpdateNursingInterventionRequest request,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
@@ -440,6 +465,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     StatusCodes.Status403Forbidden,
                     PenolakanBukanPenulis);
             }
+
+            var penjagaUnit = await EnsureNurseUnitAuthorityAsync(
+                tindakan, user, actorUserId, cancellationToken);
+
+            if (penjagaUnit != null)
+                return penjagaUnit;
 
             var penjagaKeutuhan = await _integrityService.EnsureMutableAsync(
                 ClinicalDocumentKind.Procedure, tindakan.Id, cancellationToken);
@@ -484,6 +515,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         /// </remarks>
         public async Task<NursingInterventionResult> FinalizeAsync(
             Guid id,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             string? deviceInfo,
             string? ipAddress,
@@ -500,6 +532,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (tindakan.RecordStatus == NursingInterventionStatus.Finalized)
                 return NursingInterventionResult.Ok(tindakan, isReplay: true);
+
+            // GUARD-INP-08 - BE-RWI-078. Kepala ruangan yang memfinalkan catatan perawatnya tetap
+            // lolos, karena ia bertugas di unit yang sama; yang ditolak adalah penanda tangan dari
+            // unit lain. Kiriman ulang atas catatan yang sudah final dijawab lebih dulu di atas,
+            // sehingga penjaga ini tidak pernah mengubah jawaban idempotent itu.
+            var penjagaUnit = await EnsureNurseUnitAuthorityAsync(
+                tindakan, user, actorUserId, cancellationToken);
+
+            if (penjagaUnit != null)
+                return penjagaUnit;
 
             var now = DateTime.UtcNow;
 
@@ -756,22 +798,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         }
 
         /// <summary>
-        /// Menemukan perawat pelaksana: yang disebut permintaan bila terisi dan memang ada, atau
-        /// perawat yang sedang masuk.
+        /// Menegakkan <c>GUARD-INP-07</c> dan <c>GUARD-INP-08</c> atas satu catatan tindakan yang
+        /// sudah ada - <c>BE-RWI-078</c>.
         /// </summary>
-        private async Task<Guid?> ResolvePerformerAsync(
-            Guid? diminta,
+        /// <remarks>
+        /// <para>
+        /// Mengembalikan <c>null</c> ketika pengguna boleh melanjutkan, atau penolakan siap pakai
+        /// ketika tidak. Bentuk ini dipilih supaya pemanggilnya membaca seperti penjaga lain pada
+        /// berkas ini, dan supaya jalur koreksi di controller memakai penjaga yang sama persis.
+        /// </para>
+        /// <para>
+        /// Penjaga kepemilikan baris tetap terpisah dan tetap berlaku. Yang diputuskan di sini
+        /// hanya unit, sehingga catatan milik perawat lain tetap tidak dapat disunting walaupun
+        /// keduanya bertugas di bangsal yang sama.
+        /// </para>
+        /// </remarks>
+        public async Task<NursingInterventionResult?> EnsureNurseUnitAuthorityAsync(
+            CliNursingIntervention tindakan,
             ClaimsPrincipal? user,
             Guid actorUserId,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (diminta.HasValue && diminta.Value != Guid.Empty)
+            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+
+            if (employeeId == null)
             {
-                var ada = await _actorService.IsActiveEmployeeAsync(diminta.Value, cancellationToken);
-                return ada ? diminta : null;
+                return NursingInterventionResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    NursingActorService.PenolakanTanpaPegawai);
             }
 
-            return await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+            var bertugas = await _contextService.IsNurseOnDutyAtEpisodeAsync(
+                tindakan.InpEpisodeId ?? Guid.Empty, employeeId.Value, DateTime.UtcNow, cancellationToken);
+
+            return bertugas
+                ? null
+                : NursingInterventionResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanPerawatUnitLain);
         }
 
         /// <summary>

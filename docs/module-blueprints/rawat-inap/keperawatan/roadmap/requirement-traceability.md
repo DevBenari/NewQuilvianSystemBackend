@@ -175,8 +175,8 @@ functional requirement yang aktif.
 
 | Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
 | --- | --- | --- | --- | --- | --- |
-| `V2-CAP-02` Catatan klinis final tidak dapat disembunyikan | `EPIC KEP-07` | `FR-KEP-029`, `FR-KEP-030` | `BE-RWI-077` ⛔ | **Nol task** — frontend tidak pernah memanggil endpoint itu | ⛔ menunggu approval kontrak `0.4.0` |
-| `V2-CAP-03` Penulis klinis dari identitas terautentikasi | `EPIC KEP-08` | `FR-KEP-031` s.d. `FR-KEP-034` | `BE-RWI-078` ⛔ | **Nol task** — perubahan tidak mengubah rupa layar | ⛔ menunggu approval kontrak `0.4.0` |
+| `V2-CAP-02` Catatan klinis final tidak dapat disembunyikan | `EPIC KEP-07` | `FR-KEP-029`, `FR-KEP-030` | `BE-RWI-077` ✅ | **Nol task** — frontend tidak pernah memanggil endpoint itu | ✅ selesai 11 September 2026; uji integrasi `AC-KEP-040` s.d. `AC-KEP-043` dan `dotnet build` `NOT RUN`. Bukti: [BE-RWI-077](../task/report/backend/BE-RWI-077.md) |
+| `V2-CAP-03` Penulis klinis dari identitas terautentikasi | `EPIC KEP-08` | `FR-KEP-031` s.d. `FR-KEP-034` | `BE-RWI-078` ✅ | **Nol task** — perubahan tidak mengubah rupa layar | ✅ selesai 11 September 2026; sumber data unit ditetapkan lewat `WfpOrganizationAssignment`. `AC-KEP-050` belum terpenuhi dan uji integrasi serta `dotnet build` `NOT RUN`. Bukti: [BE-RWI-078](../task/report/backend/BE-RWI-078.md) |
 
 **Kenapa nol task frontend, dan ini bukan kelalaian.** Pencarian pada `src/` repository frontend
 pada `FE@7f6b9356` membuktikan layar **tidak pernah** memanggil `DELETE` tanda vital. Menutup route
@@ -185,12 +185,12 @@ server dan tidak mengubah rupa layar; yang berubah hanya bahwa permintaan terten
 
 | Requirement | Keputusan / aturan | Kontrak `0.4.0` | Acceptance test | Task |
 | --- | --- | --- | --- | --- |
-| `FR-KEP-029` | `RWI-DEC-098` | `api-contract.md` bagian 0.A.1 | `AC-KEP-040` | `BE-RWI-077` |
-| `FR-KEP-030` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.1 | `AC-KEP-042` | `BE-RWI-077` |
-| `FR-KEP-031` | `RWI-DEC-100` | `api-contract.md` bagian 0.A.2 | `AC-KEP-046`, `AC-KEP-047` | `BE-RWI-078` |
-| `FR-KEP-032` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.2 | `AC-KEP-044`, `AC-KEP-045` | `BE-RWI-078` |
-| `FR-KEP-033` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.4 | `AC-KEP-048` | `BE-RWI-078` |
-| `FR-KEP-034` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.5 | `AC-KEP-049` | `BE-RWI-078` |
+| `FR-KEP-029` | `RWI-DEC-098` | `api-contract.md` bagian 0.A.1 | `AC-KEP-040` | `BE-RWI-077` ✅ |
+| `FR-KEP-030` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.1 | `AC-KEP-042` | `BE-RWI-077` ✅ |
+| `FR-KEP-031` | `RWI-DEC-100` | `api-contract.md` bagian 0.A.2 | `AC-KEP-046`, `AC-KEP-047` | `BE-RWI-078` ✅ |
+| `FR-KEP-032` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.2 | `AC-KEP-044`, `AC-KEP-045` | `BE-RWI-078` ✅ |
+| `FR-KEP-033` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.4 | `AC-KEP-048` | `BE-RWI-078` ✅ |
+| `FR-KEP-034` | `RWI-DEC-100` | `permission-audit-matrix.md` bagian 3A.5 | `AC-KEP-049` | `BE-RWI-078` ✅ |
 
 ### Coverage gap yang dinyatakan terbuka
 

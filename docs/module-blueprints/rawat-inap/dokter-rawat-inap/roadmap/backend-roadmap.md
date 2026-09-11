@@ -784,14 +784,16 @@ bagian 21. Dua task, keduanya `⛔` menunggu approval kontrak.
 flowchart LR
     classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+    classDef selesai fill:#d9f2d9,stroke:#2e7d32,color:#1b3d1b
+    classDef sebagian fill:#fdebd0,stroke:#c47f17,color:#4a3800
 
     subgraph lain["Prasyarat milik sub-modul episode-rawat-inap"]
-        BE074["BE-RWI-074<br/>kolom peran penugasan"]:::luar
+        BE074["✅ BE-RWI-074<br/>kolom peran penugasan"]:::luar
     end
 
     subgraph s5["S5 — koreksi keselamatan dokter"]
-        BE075["BE-RWI-075<br/>jalur hapus CPPT ditutup"]:::belum
-        BE076["BE-RWI-076<br/>penulis dokter ditegakkan"]:::belum
+        BE075["✅ BE-RWI-075<br/>jalur hapus CPPT ditutup"]:::selesai
+        BE076["✅ BE-RWI-076<br/>penulis dokter ditegakkan"]:::selesai
     end
 
     BE074 --> BE076
@@ -801,16 +803,16 @@ flowchart LR
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-RWI-075` |
-| 2 | `BE-RWI-074` selesai, milik sub-modul `episode-rawat-inap` | `BE-RWI-076` |
+| 1 | — | ✅ `BE-RWI-075` |
+| 2 | ✅ `BE-RWI-074` selesai 11 September 2026, milik sub-modul `episode-rawat-inap` | ✅ `BE-RWI-076` |
 
 ---
 
-### `BE-RWI-075` — Catatan terpadu tidak dapat disembunyikan lagi
+### ✅ `BE-RWI-075` — Catatan terpadu tidak dapat disembunyikan lagi
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026: kontrak `0.5.0` disetujui lewat `RWI-DEC-105`. **Wewenang menulis source masih terpisah** dan belum diberikan |
+| **Status** | ✅ **SELESAI 11 September 2026.** Ketujuh acceptance criteria terpetakan ke source yang benar-benar ada. Action `DeleteProgressNote` beserta route `HttpDelete("{id:guid}")` **dihapus seluruhnya**, dan pencarian `HttpDelete` pada berkas itu mengembalikan **0 hasil** — sehingga permintaan ke path itu dijawab `404` oleh routing, bukan `403` oleh mesin hak akses. Jalur `PATCH /{id}/cancel` memanggil `EnsureMutableAsync` sebelum satu pun kolom pembatalan disentuh, menolak `422`. **Satu lubang tambahan ditutup:** status verifikasi CPPT tinggal pada baris CPPT sementara keutuhan dokumen tinggal pada tabel lain, sehingga catatan terverifikasi yang baris keutuhannya belum terdaftar dulu tetap dapat dibatalkan; pemeriksaan kedua yang berdiri sendiri kini menolaknya `422`. Alasan pembatalan yang hanya berisi spasi ditolak `400`. Diff: **1 berkas**, 36 baris action hapus dicabut; nol endpoint baru, nol tabel, nol migration, nol `[AccessPermission]` baru. `tooling/qbe/Invoke-QbeConformanceCheck.ps1` mode `Strict` menjawab `VIOLATION: 0`, `Findings: none`, `Final result: PASS`. **Dua butir verifikasi tidak dijalankan dan ditulis apa adanya:** `dotnet build` `NOT RUN` — dikecualikan atas instruksi pemilik pada task aktif 11 September 2026 bahwa build dijalankan sendiri, sehingga jumlah error tidak diklaim; serta integration test `AC-DOK-060` s.d. `AC-DOK-066` `NOT RUN` karena folder `Tests/` sudah tidak ada dan `rules/backend/TEST_POLICY.md` melarang membuatnya kembali — digantikan penelusuran source beserta contoh berangka. **Satu akibat yang perlu diketahui:** butir hak akses `PatientIntegratedProgressNote : Delete` menjadi butir yatim pada data hak akses, dan pembersihannya adalah pekerjaan data, bukan source. Bukti: [laporan](../task/report/backend/BE-RWI-075.md) |
 | **Outcome** | Catatan terpadu yang sudah final tidak dapat dihilangkan dari rekam medis oleh siapa pun. Kesalahan dibetulkan dengan addendum yang menyisakan jejak, bukan dengan penghapusan yang tidak menyisakan apa-apa |
 | **Trace** | `RWI-DEC-098`; `FR-DOK-060` s.d. `FR-DOK-062`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `contracts/api-contract.md` `0.5.0` bagian 0.A.1 dan bagian 3; `contracts/state-transition-matrix.md` `0.5.0` bagian 3A |
@@ -824,11 +826,11 @@ flowchart LR
 
 ---
 
-### `BE-RWI-076` — Catatan dokter selalu punya penulis yang benar-benar menulisnya
+### ✅ `BE-RWI-076` — Catatan dokter selalu punya penulis yang benar-benar menulisnya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN.** Approval kontrak `0.5.0` sudah diberikan 11 September 2026 lewat `RWI-DEC-105`. **Satu prasyarat tersisa:** `BE-RWI-074` pada sub-modul `episode-rawat-inap`, karena kewenangan menulis dinilai dari peran penugasan yang kolomnya belum ada |
+| **Status** | ✅ **SELESAI 11 September 2026.** Kesembilan acceptance criteria terpetakan ke source yang benar-benar ada. Penjaga kewenangan penulis sebelumnya **mati**: ia hanya diuji bila pemanggil mengirim dokter pelaku, dan dari sembilan titik panggil hanya `PhysicianVisitController` yang mengirimkannya. Penjaga bersama `InpatientClinicalContextService.ResolveForDoctorWriteAsync` dibuat — **satu implementasi, bukan lima salinan** — dan dipanggil dari **enam titik pada kelima grup**: Doctor Consultation, Patient Assessment, Patient Integrated Progress Note, Patient Diagnosis dua cabang, dan Patient Procedure. `AC-DOK-072` dibuktikan dengan pencarian `ResolveForDoctorWriteAsync` di luar service pemiliknya, yang mengembalikan tepat keenam titik itu. Cabang diagnosis bernomor konsultasi dulu satu-satunya jalur rawat inap yang lolos **tanpa memeriksa penulis sama sekali**, dan kini ikut dijaga. Penulis diambil dari akun lewat empat langkah berdata — kolom `DoctorId` akun, klaim dokter, profil tenaga kerja, lalu surel — dan resolver dokter lokal milik diagnosis yang menjadi kode mati dihapus, 86 baris. **Batas rawat jalan dijaga ketat:** penjaga hanya menyala ketika kunjungan benar-benar menaungi perawatan rawat inap, sehingga poliklinik, medical check-up, dan IGD tidak mendadak menuntut penautan akun ke baris dokter. Diff: **6 berkas**; nol endpoint baru, nol tabel, nol migration, nol `[AccessPermission]` baru, nol `IsInRole` maupun nama peran ditambahkan. `tooling/qbe/Invoke-QbeConformanceCheck.ps1` mode `Strict` atas 7 berkas menjawab `VIOLATION: 0`, `Findings: none`, `Final result: PASS`. **Dua butir verifikasi tidak dijalankan dan ditulis apa adanya:** `dotnet build` `NOT RUN` — dikecualikan atas instruksi pemilik pada task aktif; serta integration test `AC-DOK-067` s.d. `AC-DOK-075` `NOT RUN` sesuai `rules/backend/TEST_POLICY.md`, digantikan penelusuran source beserta delapan contoh berangka. **`AC-DOK-075` dipenuhi lewat bukti pengganti, bukan lewat eksekusi.** Kriteria itu membatasi cara kedelapan kriteria lain diuji; karena integration test sudah dicabut dari governance backend, tidak tersisa eksekusi yang dapat dibatasi. Maksudnya — memastikan penolakan datang dari penjaga baru, bukan dari mesin hak akses — dibuktikan pada source: **nol** nama peran, nama jabatan, dan `UserType` pada jalur penjaga; **nol** jalan pintas SuperAdmin pada `AccessPermissionFilter`; dan penjaga berada di service yang dipanggil **sesudah** filter meloloskan permintaan. Laporan bagian 5.4. **Satu selisih antar-dokumen kontrak dicatat, bukan diputuskan sepihak:** `permission-audit-matrix.md` bagian 3A.4 menyatakan kewenangan verifikator CPPT dinilai pada waktu klinis catatan, sedangkan `AC-DOK-073` menuntut penugasan **aktif** dan source mengikuti kriteria itu; diserahkan kepada pemilik kontrak. Bukti: [laporan](../task/report/backend/BE-RWI-076.md) |
 | **Outcome** | Catatan klinis tidak dapat tersimpan atas nama dokter lain, dan dokter tanpa kewenangan atas pasien itu tidak dapat menulis sama sekali |
 | **Trace** | `RWI-DEC-099`; `FR-DOK-063` s.d. `FR-DOK-067`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `contracts/api-contract.md` `0.5.0` bagian 0.A.2; `contracts/permission-audit-matrix.md` `0.5.0` bagian 3A |
@@ -872,8 +874,8 @@ menautkan berkas yang belum ada hanya membuat register ini berbohong.
 | `BE-RWI-066` ★ | Balasan membawa identitas verifikator | ✅ | [BE-RWI-066](../task/report/backend/BE-RWI-066.md) — selesai 8 September 2026 |
 | `BE-RWI-067` ★ | Nama penulis pada daftar pantau verifikasi | ✅ | [BE-RWI-067](../task/report/backend/BE-RWI-067.md) — selesai 8 September 2026 |
 | `BE-RWI-068` ★ | Diagnosis tanpa nomor konsultasi | 🟡 9 dari 9 kriteria ber-source, 0 terbukti uji | [BE-RWI-068](../task/report/backend/BE-RWI-068.md) — dibangun 9 September 2026; `dotnet test` dan uji migration belum dijalankan |
-| `BE-RWI-075` ★ | Jalur hapus CPPT ditutup | tanpa tanda — siap dimulai | belum ada; ditulis saat task dikerjakan |
-| `BE-RWI-076` ★ | Penulis dokter ditegakkan pada lima grup | tanpa tanda — menunggu `BE-RWI-074` | belum ada; ditulis saat task dikerjakan |
+| `BE-RWI-075` ★ | Jalur hapus CPPT ditutup | ✅ 7 dari 7 kriteria ber-source | [BE-RWI-075](../task/report/backend/BE-RWI-075.md) — selesai 11 September 2026; `dotnet build` dan integration test `NOT RUN` |
+| `BE-RWI-076` ★ | Penulis dokter ditegakkan pada lima grup | ✅ 9 dari 9 kriteria ber-source | [BE-RWI-076](../task/report/backend/BE-RWI-076.md) — selesai 11 September 2026; `dotnet build` dan integration test `NOT RUN`, `AC-DOK-075` dipenuhi lewat bukti pengganti |
 
 ---
 
@@ -883,6 +885,10 @@ Tidak satu pun menahan roadmap ini disusun, tetapi seluruhnya menahan **rilis**.
 
 | Gerbang | Sifat | Pemilik | Menahan apa |
 | --- | --- | --- | --- |
+| **Skenario negatif `BE-RWI-076` belum dijalankan memakai peran nyata** ★ baru 11 September 2026 | Pembuktian runtime belum ada | Pemilik modul | **Tidak menahan status `BE-RWI-076`**, yang sudah ✅: `AC-DOK-075` dipenuhi lewat bukti pengganti pada source, dan `TEST_POLICY.md` menyatakan ketiadaan integration test bukan alasan task dianggap belum selesai. Yang tertahan hanya ketenangan rilis — bahwa aplikasi yang benar-benar berjalan menjawab persis seperti yang ditelusuri |
+| **Waktu penilaian kewenangan verifikator CPPT** ★ baru 11 September 2026 | Selisih **antar-dokumen kontrak** | Pemilik kontrak | `permission-audit-matrix.md` bagian 3A.4 menuntut penilaian pada **waktu klinis catatan**, sedangkan `AC-DOK-073` pada acceptance test matrix menuntut penugasan **aktif**. Keduanya sama-sama `approved` dan saling bertentangan; source mengikuti `AC-DOK-073`, dan mengikuti 3A.4 dapat mengunci verifikasi seluruh catatan lama setiap kali DPJP berganti. Tidak menahan pekerjaan; menahan ketepatan kontrak |
+| **Butir hak akses yatim `PatientIntegratedProgressNote : Delete`** ★ baru 11 September 2026 | Sisa data sesudah route dicabut | Admin sistem | Tidak menahan apa pun dan tidak memberi izin atas apa pun — action pemiliknya sudah dihapus `BE-RWI-075`. Butirnya tetap terlihat pada layar Akses Role sampai dirapikan. Pembersihannya pekerjaan data, bukan source |
+| **Pemanggil `DELETE` CPPT pada frontend** ★ baru 11 September 2026 | Lintas repository | Pemilik frontend | Tidak menahan `BE-RWI-075`. Menahan ketenangan rilis: tombol hapus CPPT yang masih tersisa akan menjawab `404`. Pemeriksaan repository frontend berada di luar target tulis `BE-RWI-075` |
 | Nilai batas waktu kajian medis dan verifikasi catatan terpadu — `RWI-RULE-021` | Belum disahkan | Pemilik klinis, **belum ditunjuk** | Rilis produksi. Mekanismenya **sudah dibangun** `BE-RWI-053` ✅ dan berjalan dengan kebijakan kosong; nol angka ditanam di kode |
 | Baris registry `RadiologyManagement / Rad` masih `PLANNED` | Selisih registry terhadap source | Pemilik registry | Kerapian registry; **tidak** menahan `BE-RWI-042` maupun `BE-RWI-052`. **Masih terbuka** per 4 September 2026: keduanya selesai dikerjakan tanpa menaikkannya, dan utangnya tercatat pada [laporan BE-RWI-042](../task/report/backend/BE-RWI-042.md) serta [laporan BE-RWI-052](../task/report/backend/BE-RWI-052.md) |
 | Rework ruang kerja dokter | `Conflict` | Frontend authority | **Rilis apa pun** — lihat roadmap frontend |

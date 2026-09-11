@@ -1051,7 +1051,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph be["Prasyarat milik roadmap backend"]
-        BE073["BE-RWI-073<br/>aturan kamar dicabut"]:::luar
+        BE073["✅ BE-RWI-073<br/>aturan kamar dicabut"]:::luar
     end
 
     subgraph f14["F14 — pembersihan frontend"]

@@ -1537,8 +1537,8 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph s9["S9 — koreksi keselamatan"]
-        BE073["BE-RWI-073<br/>aturan kamar dicabut"]:::belum
-        BE074["BE-RWI-074<br/>peran penugasan dokter"]:::belum
+        BE073["✅ BE-RWI-073<br/>aturan kamar dicabut"]:::selesai
+        BE074["✅ BE-RWI-074<br/>peran penugasan dokter"]:::selesai
     end
 ```
 
@@ -1551,24 +1551,24 @@ sebagai cermin pada grafik roadmap pemiliknya masing-masing, bukan di sini:
 | Task yang menunggu | Menunggu | Digambar di |
 | --- | --- | --- |
 | `FE-RWI-062` | `BE-RWI-073` | `roadmap/frontend-roadmap.md` bagian F14 |
-| `BE-RWI-076` | `BE-RWI-074` | `dokter-rawat-inap/roadmap/backend-roadmap.md` bagian S5 |
+| `BE-RWI-076` | ✅ `BE-RWI-074` | `dokter-rawat-inap/roadmap/backend-roadmap.md` bagian S5 |
 
 ### Tabel gelombang eksekusi — S9
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-RWI-073`, `BE-RWI-074` — boleh paralel |
+| 1 | — | ✅ `BE-RWI-073`, ✅ `BE-RWI-074` — boleh paralel |
 
 Keduanya berada di gelombang 1 karena **nol prasyarat**. Sampai 11 September 2026 keduanya bertanda
 `⛔` menunggu approval kontrak; gerbang itu dicabut `RWI-DEC-105` pada tanggal yang sama.
 
 ---
 
-### `BE-RWI-073` — Kelayakan tempat tidur berhenti menilai penghuni kamar lain
+### ✅ `BE-RWI-073` — Kelayakan tempat tidur berhenti menilai penghuni kamar lain
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026: kontrak `0.8.0` disetujui Muhammad Hamzah lewat `RWI-DEC-105`. Boleh dikerjakan paralel dengan `BE-RWI-074`. **Wewenang menulis source masih terpisah** dan belum diberikan |
+| **Status** | ✅ **SELESAI 11 September 2026.** Kedelapan acceptance criteria terbukti pada source. Blok aturan 6 beserta kode `ROOM_GENDER_MIXED` dihapus, dan pencarian literal `"ROOM_GENDER_MIXED"` pada seluruh `Areas/` mengembalikan **0 baris** — satu-satunya sisa adalah komentar dokumentasi sejarah pada `InpBedOccupancyService.cs:1249`, yang diizinkan `04-prd-to-mvp.md` bagian 21.5. Klausa `countedOccupants.Count > 0` pada aturan 5 dicabut, dan kalimatnya disesuaikan dengan `validation-matrix.md` `0.8.0`. `LoadRoomOccupantsAsync`, `RoomOccupant`, dan `GenderLabel` **terbukti menjadi kode mati** — masing-masing 0 pemanggil tersisa — lalu dihapus; `NormalizeGender` dan `BedGenderMessage` masih dipakai aturan 4 dan 5 sehingga dipertahankan. Aturan 4, 7, dan 8 beserta pengecualian boks bayi **tidak berubah satu karakter pun**, dan nomor 7 serta 8 tidak bergeser. Diff: **1 berkas, 21 baris ditambah, 76 baris dihapus**; nol endpoint, nol DTO, nol migration, nol `[AccessPermission]` baru. `dotnet build` **`NOT RUN` \u2014 dikecualikan atas keputusan pemilik 10 September 2026** bahwa build dijalankan sendiri. Perintahnya tetap dinyalakan 11 September 2026 ke folder keluaran terpisah supaya `bin/` aplikasi dev tidak terkunci, tetapi belum selesai dalam sesi ini sehingga hasilnya **tidak diklaim**. Sebagai ganti bukti otomatis, `tooling/qbe/Invoke-QbeConformanceCheck.ps1` pada berkas yang berubah menjawab `VIOLATION: 0`, `REVIEW: 0`, `Findings: none`, `Final result: PASS`. **Dua butir verifikasi tidak dijalankan dan ditulis apa adanya:** integration test `RWI-AC-133a` dan `RWI-AC-133b` `NOT RUN` karena folder `Tests/` sudah tidak ada di repository dan `rules/backend/TEST_POLICY.md` melarang membuatnya kembali tanpa permintaan pemilik pada task aktif — keduanya digantikan penelusuran source beserta contoh berangka menurut `TEST_POLICY.md` bagian 5; serta butir DoD "pemetaan kode hilang dari frontend" **belum terpenuhi** karena itu pekerjaan `FE-RWI-062` dan frontend masih memuat 5 baris aktif pada 3 berkas. Bukti: [laporan](../task/report/backend/BE-RWI-073.md) |
 | **Outcome** | Kamar berisi pasien laki-laki dapat menerima pasien perempuan pada tempat tidur yang memang dikonfigurasi menerima keduanya. Petugas admisi tidak lagi harus memindahkan pasien yang sudah dirawat hanya supaya pasien berikutnya dapat masuk |
 | **Trace** | `RWI-DEC-101`; `RWI-DEC-104`; `FR-RI-179` s.d. `FR-RI-184`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `contracts/api-contract.md` `0.8.0`; `contracts/validation-matrix.md` `0.8.0`; `02-backend-architecture.md` revision `0.7` bagian 0.1 |
@@ -1582,11 +1582,11 @@ Keduanya berada di gelombang 1 karena **nol prasyarat**. Sampai 11 September 202
 
 ---
 
-### `BE-RWI-074` — Penugasan dokter mengenal DPJP, konsulen, dan dokter jaga
+### ✅ `BE-RWI-074` — Penugasan dokter mengenal DPJP, konsulen, dan dokter jaga
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026 lewat `RWI-DEC-105`. Boleh dikerjakan paralel dengan `BE-RWI-073`. **Wewenang menulis source masih terpisah** dan belum diberikan |
+| **Status** | ✅ **SELESAI 11 September 2026.** Kesembilan acceptance criteria terpetakan ke source yang benar-benar ada. Enum `InpDoctorAssignmentRole` lahir dengan `Dpjp = 1`, `Consultant = 2`, `OnCallDoctor = 3`; kolom `AssignmentRole` `NOT NULL DEFAULT 1` ditambahkan; index unik `IX_InpDoctorAssignment_EpisodeId_Active` **diganti** `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp` berfilter `"EndDateTime" IS NULL AND "AssignmentRole" = 1`; index pendukung `IX_InpDoctorAssignment_Episode_Doctor_Role_Period` dibuat. Keempat penjaga `GUARD-INP-01` s.d. `GUARD-INP-04` dibaca ulang menjadi `AssignmentRole = Dpjp` lewat **satu** titik, yaitu `GetActiveDoctorIdAsync`, sehingga keempatnya berubah serentak. Kriteria 7 dibuktikan dengan pencarian menyeluruh: **tepat dua** penulisan `AssignmentRole` pada seluruh `Areas/` dan `Repositories/`, keduanya pada pembuatan baris baru, **nol** jalur yang mengubah peran baris yang sudah ada. Diff: **12 berkas**, 2 di antaranya baru; nol endpoint baru, nol tabel baru, nol `[AccessPermission]` baru. **Satu migration dibuat dan nol environment disentuh.** `tooling/qbe/Invoke-QbeConformanceCheck.ps1` atas 11 berkas menjawab `VIOLATION: 0`, `REVIEW: 0`, `Findings: none`, `Final result: PASS` pada mode `ReportOnly` **dan** `Strict`. **Tiga butir verifikasi tidak dijalankan dan ditulis apa adanya:** `dotnet build` `NOT RUN` — dikecualikan atas instruksi pemilik pada task aktif 11 September 2026 bahwa build dijalankan sendiri, sehingga jumlah error tidak diklaim; serta `RWI-AC-084b`, `RWI-AC-084c`, dan `RWI-AC-084h` `NOT RUN` karena menuntut penerapan migration ke Postgres, yang merupakan wewenang terpisah dan belum diberikan. **Batas rollback:** `Down()` aman hanya selama belum ada baris berperan `2` atau `3`, dan batas itu **ditegakkan** di dalam berkas migration, bukan sekadar dicatat. **Satu butir cakupan yang sengaja tidak dikerjakan:** jalur tulis lewat endpoint untuk konsulen dan dokter jaga belum ada, karena kolom `Cakupan` task ini tidak memuatnya dan `api-contract.md` `0.8.0` belum menyediakan barisnya. Bukti: [laporan](../task/report/backend/BE-RWI-074.md) |
 | **Outcome** | Kepala ruangan dapat melibatkan konsulen dan memanggil dokter jaga tanpa menggusur DPJP, dan sistem dapat membedakan ketiganya. Hari ini pembedaan itu tidak ada sama sekali, sehingga matriks kewenangan tidak dapat diwujudkan |
 | **Trace** | `RWI-DEC-099`; `FR-RI-185` s.d. `FR-RI-190`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `data/data-dictionary.md` bagian 2 dan 2.1; `02-backend-architecture.md` revision `0.7` bagian 0.2 s.d. 0.4; `contracts/state-transition-matrix.md` `0.8.0` bagian 6A |
@@ -1623,6 +1623,10 @@ Keduanya berada di gelombang 1 karena **nol prasyarat**. Sampai 11 September 202
 | Masa simpan riwayat | `RWI-OQ-035`, sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum | Sama |
 | ~~**Approval API contract `0.7.0`**~~ | ✅ **DITUTUP 2026-09-10.** Disetujui Muhammad Hamzah lewat instruksi eksplisit mengerjakan `BE-RWI-069`, mengikuti pola approval per-task `BE-RWI-036`. Status kontrak naik `draft` → `approved`, dan baris `ineligible` naik **Rencana** → **Tersedia** | — |
 | **`BE-BKC-040` ringkasan deposit per episode belum ada di source** | Dibuka `BE-RWI-071` dan `BE-RWI-072` pada 2026-09-10. Pemeriksaan seluruh source menemukan **nol baris**: rute `deposits/episodes/{episodeId}`, tipe ringkasannya, master `BE-BKC-039`, dan laporan task Billing-nya sama-sama tidak ada. Akarnya `RWI-OQ-053` — pemilik `BillingManagement` belum ditunjuk namanya | ⛔ `BE-RWI-071` dan ⛔ `BE-RWI-072` tidak dapat dikerjakan sama sekali. Selama itu gerbang `Cleared` tetap buta, sehingga episode masih dapat ditutup dengan uang yang belum selesai ke dua arah |
+| **Backend dan frontend belum rilis satu gelombang untuk pencabutan `ROOM_GENDER_MIXED`** | Dibuka `BE-RWI-073` 2026-09-11. Backend sudah tidak pernah menerbitkan kode itu lagi, tetapi frontend masih memetakannya pada `src/utils/health-services/inpatient-management/inpatient-placement-utils.jsx` baris 12, dan dua berkas test masih menguncinya di empat tempat. `api-contract.md` `0.8.0` menuntut kedua repository berada pada **satu gelombang rilis** | Tidak menahan `BE-RWI-073`, yang kedelapan acceptance criteria-nya sudah terbukti. Menahan ketenangan rilis: `FE-RWI-062` perlu selesai lebih dulu, karena test frontend akan gagal bila dijalankan terhadap backend yang sudah dicabut |
+| **Konsulen dan dokter jaga belum punya jalur tulis** | Dibuka `BE-RWI-074` 2026-09-11. Kolom `AssignmentRole`, kedua index, dan keempat penjaga sudah siap menerima ketiga peran, tetapi **nol endpoint** yang dapat membuat baris berperan `Consultant` maupun `OnCallDoctor`: satu-satunya jalur tulis tetap `POST /{id}/doctor-assignments`, yang selalu membuat baris `Dpjp`. Kolom `Cakupan` `BE-RWI-074` memang tidak memuat endpoint, dan `api-contract.md` `0.8.0` belum menyediakan barisnya. Ikut menggantung: kewajiban `HandoverReason` bagi peran `2` dan `3` pada `data-dictionary.md` bagian 2 belum ditegakkan, karena belum ada jalur yang dapat mengujinya | Tidak menahan `BE-RWI-074`, yang kesembilan acceptance criteria-nya sudah terbukti pada source. Menahan **outcome**-nya: kepala ruangan belum dapat melibatkan konsulen lewat layar mana pun. Perlu amandemen `api-contract.md` lebih dulu, lalu satu task backend tersendiri |
+| **`AssignmentRole` belum tercatat pada `api-contract.md`** | Dibuka `BE-RWI-074` 2026-09-11. Jawaban `InpatientDoctorAssignmentResponse` kini membawa field `AssignmentRole`, dan `contracts/api-contract.md` `0.8.0` belum menyebutnya. Penambahannya **aditif dan kompatibel** — pemanggil lama yang tidak membacanya tidak terpengaruh — tetapi selisihnya nyata dan menjadi milik pemilik kontrak. Berkas kontrak sengaja tidak disunting dari task implementasi | Tidak menahan pekerjaan. Menahan ketepatan kontrak: layar yang hendak membedakan DPJP dari konsulen membaca field yang belum tertulis pada kontraknya |
+| **Uji migration `BE-RWI-074` belum dijalankan** | Dibuka 2026-09-11. `RWI-AC-084b`, `RWI-AC-084c`, dan `RWI-AC-084h` menuntut penerapan migration ke Postgres sekali pakai, dan penerapan migration adalah wewenang terpisah yang belum diberikan. Perilaku yang diuji ketiganya **sudah ditegakkan di dalam berkas migration** lewat dua blok pemeriksaan yang menggagalkan langkah secara terkendali, tetapi penegakan itu belum dibuktikan berjalan | Tidak menahan `BE-RWI-074`. Menahan penerapan ke database sungguhan: batas rollback belum dibuktikan nyata, dan begitu satu baris konsulen tersimpan pemulihan hanya dapat maju |
 | **Uji migration maju-mundur `BE-RWI-070`** | Dibuka 2026-09-10. Container `postgres:15.15` sekali pakai dinyalakan, tetapi penerapan migration berhenti sebelum satu tabel pun terbentuk karena memori komputer habis — sisa 401 MB dari 32 GB. Pemilik menyatakan build dan verifikasi sisa dijalankan sendiri | Tidak menahan `BE-RWI-070`, yang kelima acceptance criteria-nya sudah terbukti lewat test. Yang tersisa hanya pembuktian arah mundur migration sebelum diterapkan ke database sungguhan |
 
 ---

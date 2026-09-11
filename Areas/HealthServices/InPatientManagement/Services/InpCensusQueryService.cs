@@ -110,13 +110,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                     PatientClassId = x.PatientClassId,
                     PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
+                    // Kolom ini berarti DPJP, bukan "dokter mana pun yang sedang terlibat".
+                    // Sejak BE-RWI-074 saringan perannya wajib, kalau tidak konsulen dengan
+                    // nomor urut terbesar akan tampil sebagai penanggung jawab pasien.
                     DoctorId = x.Episode.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => (Guid?)d.DoctorId)
                         .FirstOrDefault(),
                     DoctorName = x.Episode.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => d.Doctor != null ? d.Doctor.FullName : null)
                         .FirstOrDefault(),
@@ -876,8 +885,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (query.DoctorId.HasValue && query.DoctorId.Value != Guid.Empty)
             {
+                // Saringan ini disamakan dengan kolom DoctorId di atas: keduanya berarti DPJP.
+                // Membiarkannya membaca peran apa pun akan memunculkan baris yang kolom
+                // dokternya menyebut nama orang lain — BE-RWI-074.
                 filtered = filtered.Where(x =>
                     x.Episode!.DoctorAssignments.Any(d =>
+                        d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
                         d.EndDateTime == null &&
                         !d.IsDelete &&
                         d.DoctorId == query.DoctorId.Value));

@@ -95,8 +95,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     PhysicallyLeftAt = x.PhysicallyLeftAt,
                     ClosedAt = x.ClosedAt,
                     RequiresIsolation = x.RequiresIsolation,
+                    // Nama DPJP aktif. Saringan peran wajib sejak BE-RWI-074.
                     ActiveDoctorName = x.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => d.Doctor != null ? d.Doctor.FullName : null)
                         .FirstOrDefault(),

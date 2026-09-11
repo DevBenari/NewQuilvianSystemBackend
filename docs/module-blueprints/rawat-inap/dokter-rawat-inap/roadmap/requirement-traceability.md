@@ -372,26 +372,26 @@ pemilik pekerjaan.
 
 | Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
 | --- | --- | --- | --- | --- | --- |
-| `V2-CAP-02` Catatan klinis final tidak dapat disembunyikan | `EPIC DOK-08` | `FR-DOK-060` s.d. `FR-DOK-062` | `BE-RWI-075` ⛔ | **Nol task** — frontend tidak pernah memanggil `DELETE` CPPT | ⛔ menunggu approval kontrak `0.5.0` |
-| `V2-CAP-03` Penulis klinis dari identitas terautentikasi | `EPIC DOK-09` | `FR-DOK-063` s.d. `FR-DOK-067` | `BE-RWI-076` ⛔ | **Nol task** — perubahan tidak mengubah rupa layar | ⛔ menunggu approval kontrak `0.5.0` dan `BE-RWI-074` |
+| `V2-CAP-02` Catatan klinis final tidak dapat disembunyikan | `EPIC DOK-08` | `FR-DOK-060` s.d. `FR-DOK-062` | `BE-RWI-075` ✅ | **Nol task** — frontend tidak pernah memanggil `DELETE` CPPT | ✅ Gerbang kontrak `0.5.0` dicabut `RWI-DEC-105`, dan backend ✅ **selesai 11 September 2026**: route hapus dicabut, jalur pembatalan menolak catatan final dan terverifikasi — [laporan](../task/report/backend/BE-RWI-075.md). Koreksi `RWI-DEC-098` yang kedua, yaitu tanda vital, dimiliki `BE-RWI-077` pada sub-modul `keperawatan` |
+| `V2-CAP-03` Penulis klinis dari identitas terautentikasi | `EPIC DOK-09` | `FR-DOK-063` s.d. `FR-DOK-067` | `BE-RWI-076` ✅ | **Nol task** — perubahan tidak mengubah rupa layar | ✅ Kedua gerbangnya dicabut 11 September 2026, dan backend ✅ **selesai** pada hari yang sama: penjaga penulis yang sebelumnya mati kini dipanggil dari enam titik pada kelima grup — [laporan](../task/report/backend/BE-RWI-076.md). Integration test `NOT RUN` sesuai `TEST_POLICY.md`, digantikan penelusuran source |
 
 | Requirement | Keputusan / aturan | Kontrak `0.5.0` | Acceptance test | Task |
 | --- | --- | --- | --- | --- |
-| `FR-DOK-060` | `RWI-DEC-098` | `api-contract.md` bagian 0.A.1 | `AC-DOK-060` | `BE-RWI-075` |
-| `FR-DOK-061` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.3 | `AC-DOK-061`, `AC-DOK-062` | `BE-RWI-075` |
-| `FR-DOK-062` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.2 | `AC-DOK-065` | `BE-RWI-075` |
-| `FR-DOK-063` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-067` | `BE-RWI-076` |
-| `FR-DOK-064` | `RWI-DEC-099` | `api-contract.md` bagian 0.A.2 | `AC-DOK-069` | `BE-RWI-076` |
-| `FR-DOK-065` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-068`, `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-076` |
-| `FR-DOK-066` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.3 | `AC-DOK-072` | `BE-RWI-076` |
-| `FR-DOK-067` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.4 | `AC-DOK-073`, `AC-DOK-074` | `BE-RWI-076` |
+| `FR-DOK-060` | `RWI-DEC-098` | `api-contract.md` bagian 0.A.1 | `AC-DOK-060` | `BE-RWI-075` ✅ — action `DeleteProgressNote` dihapus seluruhnya; pencarian `HttpDelete` pada berkas itu **0 hasil**, sehingga path-nya dijawab `404` oleh routing. [laporan](../task/report/backend/BE-RWI-075.md) |
+| `FR-DOK-061` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.3 | `AC-DOK-061`, `AC-DOK-062` | `BE-RWI-075` ✅ — `EnsureMutableAsync` pada jalur pembatalan menolak catatan final dan terkunci `422`; catatan terverifikasi ditolak penjaga kedua yang berdiri sendiri. [laporan](../task/report/backend/BE-RWI-075.md) |
+| `FR-DOK-062` | `RWI-DEC-098` | `state-transition-matrix.md` bagian 3A.2 | `AC-DOK-065` | `BE-RWI-075` ✅ — pembatalan tidak menyentuh `IsDelete` dan query dasar menyaring `!IsDelete` saja, sehingga catatan yang dibatalkan tetap terbaca. [laporan](../task/report/backend/BE-RWI-075.md) |
+| `FR-DOK-063` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-067` | `BE-RWI-076` ✅ — penulis diambil dari akun lewat empat langkah berdata; akun tanpa tautan dokter ditolak `403`. [laporan](../task/report/backend/BE-RWI-076.md) |
+| `FR-DOK-064` | `RWI-DEC-099` | `api-contract.md` bagian 0.A.2 | `AC-DOK-069` | `BE-RWI-076` ✅ — payload yang menyebut dokter lain ditolak `403` **sebelum** entity dibentuk, sehingga nol baris sempat lahir. [laporan](../task/report/backend/BE-RWI-076.md) |
+| `FR-DOK-065` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.2 | `AC-DOK-068`, `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-076` ✅ — kewenangan dinilai pada waktu klinis dokumen, sehingga penugasan yang sudah berakhir tetap sah untuk waktu di dalam periodenya dan ditolak untuk waktu di luarnya. [laporan](../task/report/backend/BE-RWI-076.md) |
+| `FR-DOK-066` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.3 | `AC-DOK-072` | `BE-RWI-076` ✅ — enam titik panggil pada kelima grup memakai penjaga bersama yang sama; dibuktikan pencarian source. [laporan](../task/report/backend/BE-RWI-076.md) |
+| `FR-DOK-067` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 3A.4 | `AC-DOK-073`, `AC-DOK-074` | `BE-RWI-076` ✅ — kedua kriteria sudah terpenuhi di source sebelum task ini dan tidak diubah. **Selisih antar-dokumen kontrak yang terbuka:** bagian 3A.4 menuntut penilaian pada waktu klinis catatan, sedangkan `AC-DOK-073` menuntut penugasan **aktif** dan source mengikuti kriteria itu; diserahkan kepada pemilik kontrak. [laporan](../task/report/backend/BE-RWI-076.md) |
 | `FR-DOK-068` | `OPEN-MVP-004` | — | — | **Nol task.** `OPEN DECISION`, tidak masuk gelombang pengiriman mana pun |
 
 ### Ketergantungan lintas sub-modul
 
 | Yang dibutuhkan | Dari | Kenapa |
 | --- | --- | --- |
-| Kolom `AssignmentRole` pada `InpDoctorAssignment` | `BE-RWI-074`, sub-modul `episode-rawat-inap` | Kewenangan menulis dinilai dari peran penugasan. Tabelnya milik `episode-rawat-inap`, dan sub-modul ini **membacanya**, tidak membuatnya |
+| Kolom `AssignmentRole` pada `InpDoctorAssignment` | ✅ `BE-RWI-074`, sub-modul `episode-rawat-inap` — **selesai 11 September 2026**, [laporan `BE-RWI-074`](../../episode-rawat-inap/task/report/backend/BE-RWI-074.md) | Kewenangan menulis dinilai dari peran penugasan. Tabelnya milik `episode-rawat-inap`, dan sub-modul ini **membacanya**, tidak membuatnya. Kolom, enum `InpDoctorAssignmentRole`, dan penyaringan keempat penjaga kini ada di source |
 
 ### Coverage gap yang dinyatakan terbuka
 

@@ -554,17 +554,17 @@ lini masa yang bermakna.
 ## S5. Gelombang 1A — Rawat Inap Safety Corrections
 
 **Slice baru 11 September 2026.** Menyerap `RWI-DEC-098` dan `RWI-DEC-100` lewat `04-prd-to-mvp.md`
-bagian 21. Dua task, keduanya `⛔` menunggu approval kontrak.
+bagian 21. Dua task, keduanya `✅` selesai 11 September 2026.
 
 ### Grafik Urutan Dependency — S5
 
 ```mermaid
 flowchart LR
-    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
 
     subgraph s5["S5 — koreksi keselamatan keperawatan"]
-        BE077["BE-RWI-077<br/>jalur hapus tanda vital ditutup"]:::belum
-        BE078["BE-RWI-078<br/>kewenangan perawat berbasis unit"]:::belum
+        BE077["✅ BE-RWI-077<br/>jalur hapus tanda vital ditutup"]:::selesai
+        BE078["✅ BE-RWI-078<br/>kewenangan perawat berbasis unit"]:::selesai
     end
 ```
 
@@ -575,15 +575,15 @@ paralel begitu gerbangnya terbuka.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-RWI-077`, `BE-RWI-078` — boleh paralel |
+| 1 | — | `✅ BE-RWI-077`, `✅ BE-RWI-078` — boleh paralel |
 
 ---
 
-### `BE-RWI-077` — Deret waktu tanda vital tidak dapat diputus diam-diam
+### ✅ `BE-RWI-077` — Deret waktu tanda vital tidak dapat diputus diam-diam
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026: kontrak `0.4.0` disetujui lewat `RWI-DEC-105`. Boleh paralel dengan `BE-RWI-078`. **Wewenang menulis source masih terpisah** |
+| **Status** | ✅ **SELESAI 11 September 2026.** Keempat acceptance criteria terpetakan ke source; action `HttpDelete` beserta `[AccessAction]` dan `[AccessPermission]`-nya dicabut dari `PatientVitalSignController`, menyisakan **nol** atribut `HttpDelete` dan **nol** `AccessTypes.Delete` pada berkas itu. Penelusuran frontend atas route ini bernilai **nol** pemanggil. **Nol tabel, nol kolom, nol migration.** Butir DoD yang **dikecualikan pemilik pada sesi ini**: `dotnet restore` dan `dotnet build QuilvianSystemBackend.sln` ditulis `NOT RUN`. Butir DoD yang **belum terpenuhi**: uji integrasi `AC-KEP-040` s.d. `AC-KEP-043` `NOT RUN`, sehingga regresi Rawat Jalan dan IGD baru bersandar pada penalaran diff. Pembatalan tanda vital final tetap `NOT RUN` karena `ClinicalDocumentKind.VitalSign` belum ditegakkan mesin keutuhan — `V2-UNK-01`, milik `MedicalRecordManagement`. Bukti: [laporan](../task/report/backend/BE-RWI-077.md) |
 | **Outcome** | Tanda vital yang sudah tercatat tidak dapat dihilangkan, sehingga grafik perburukan pasien tidak pernah menyembunyikan titik yang pernah ada. Penanda pemberitahuan ke dokter juga tidak dapat dimatikan lewat penghapusan |
 | **Trace** | `RWI-DEC-098`; `FR-KEP-029`, `FR-KEP-030`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `contracts/api-contract.md` `0.4.0` bagian 0.A.1; `contracts/state-transition-matrix.md` `0.4.0` bagian 3A |
@@ -597,11 +597,11 @@ paralel begitu gerbangnya terbuka.
 
 ---
 
-### `BE-RWI-078` — Perawat hanya menulis untuk pasien di unit tempat ia bertugas
+### ✅ `BE-RWI-078` — Perawat hanya menulis untuk pasien di unit tempat ia bertugas
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **BELUM DIKERJAKAN, siap dimulai.** Gerbangnya dicabut 11 September 2026 lewat `RWI-DEC-105`. Boleh paralel dengan `BE-RWI-077`. **Wewenang menulis source masih terpisah** |
+| **Status** | ✅ **SELESAI 11 September 2026.** Ketujuh acceptance criteria terpetakan ke source. Sumber data unit **ditetapkan**: `InpEpisode.ServiceUnitId` → `MstServiceUnit.OrganizationUnitId` → `MstOrganizationUnit.DepartmentId` di sisi pasien, dan `ApplicationUser.EmployeeId` → `MstEmployee.WorkforceProfileId` → `WfpOrganizationAssignment` berperiode di sisi perawat; alasannya tertulis pada laporan bagian 2. Tujuh berkas diubah, seluruhnya di `Areas/HealthServices/ClinicalManagement/`. **Nol kolom baru pada `InpNurseAssignment`, nol `[AccessPermission]` baru, nol tabel baru, nol migration.** Butir DoD yang **dikecualikan pemilik pada sesi ini**: `dotnet restore` dan `dotnet build QuilvianSystemBackend.sln` ditulis `NOT RUN`. Butir DoD yang **belum terpenuhi**: `AC-KEP-050` — uji integrasi `AC-KEP-044` s.d. `AC-KEP-050` `NOT RUN`, sehingga peran nyata yang dipakai pada skenario negatif belum dapat dicatat. Delta kontrak: pencatatan tindakan atas nama rekan lewat `PerformedByEmployeeId` **tertutup** sesuai `AC-KEP-047`. Bukti: [laporan](../task/report/backend/BE-RWI-078.md) |
 | **Outcome** | Dokumentasi keperawatan hanya dapat ditulis perawat yang benar-benar bertugas di unit tempat pasien dirawat, dan penulisnya adalah orang yang sedang login. Hari ini pengguna mana pun yang memegang hak aksesnya dapat menulis untuk pasien mana pun di rumah sakit |
 | **Trace** | `RWI-DEC-100`; `RWI-FACT-022`; `FR-KEP-031` s.d. `FR-KEP-034`; `04-prd-to-mvp.md` bagian 21.3 |
 | **Kontrak** | `contracts/api-contract.md` `0.4.0` bagian 0.A.2; `contracts/permission-audit-matrix.md` `0.4.0` bagian 3A |
@@ -630,8 +630,8 @@ paralel begitu gerbangnya terbuka.
 | `BE-RWI-062` | Pemisahan kegagalan tagihan dan koreksi tindakan | `KEP-MVP-3` | ✅ | [BE-RWI-062](../task/report/backend/BE-RWI-062.md) |
 | `BE-RWI-063` | Catatan keperawatan pada catatan terpadu | `KEP-MVP-3` | ✅ | [BE-RWI-063](../task/report/backend/BE-RWI-063.md) |
 | `BE-RWI-064` | Daftar pantau kepatuhan pengkajian | `KEP-MVP-4` | ✅ | [BE-RWI-064](../task/report/backend/BE-RWI-064.md) |
-| `BE-RWI-077` ★ | Jalur hapus tanda vital ditutup | `KEP-1A` | tanpa tanda | belum ada; ditulis saat task dikerjakan |
-| `BE-RWI-078` ★ | Kewenangan perawat berbasis unit | `KEP-1A` | tanpa tanda | belum ada; ditulis saat task dikerjakan |
+| `BE-RWI-077` ★ | Jalur hapus tanda vital ditutup | `KEP-1A` | ✅ | [BE-RWI-077](../task/report/backend/BE-RWI-077.md) |
+| `BE-RWI-078` ★ | Kewenangan perawat berbasis unit | `KEP-1A` | ✅ | [BE-RWI-078](../task/report/backend/BE-RWI-078.md) |
 
 | Gelombang | Task di dalamnya | Status |
 | --- | --- | --- |
@@ -643,7 +643,7 @@ paralel begitu gerbangnya terbuka.
 
 Laporan task ditulis ke `<blueprint-root>/task/report/backend/<TASK-ID>.md` sesuai
 `rules/rule-output/lokasi-laporan-task.md`. Folder itu **sudah ada sejak 6 September 2026** dan
-memuat **dua belas** laporan, satu untuk setiap task.
+memuat **empat belas** laporan, satu untuk setiap task.
 
 ---
 

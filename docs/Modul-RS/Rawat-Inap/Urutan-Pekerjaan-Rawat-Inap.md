@@ -50,8 +50,8 @@ Ini yang dikerjakan lebih dulu. Seluruhnya menutup empat penyimpangan `P0` yang 
 | 1 | `BE-RWI-074` | `episode-rawat-inap` | Backend | Jalur kritis. Satu-satunya migration, dan satu-satunya prasyarat task lain |
 | 2 | `BE-RWI-073` | `episode-rawat-inap` | Backend | Membuka pekerjaan frontend di repo sebelah |
 | 3 | `BE-RWI-075` | `dokter-rawat-inap` | Backend | Membentuk pola tutup-hapus yang ditiru task berikutnya |
-| 4 | `BE-RWI-077` | `keperawatan` | Backend | Menyalin pola dari `BE-RWI-075` |
-| 5 | `BE-RWI-078` | `keperawatan` | Backend | Butuh keputusan teknis di dalam task |
+| 4 | ✅ `BE-RWI-077` | `keperawatan` | Backend | Menyalin pola dari `BE-RWI-075` |
+| 5 | ✅ `BE-RWI-078` | `keperawatan` | Backend | Butuh keputusan teknis di dalam task |
 | 6 | `BE-RWI-076` | `dokter-rawat-inap` | Backend | Menunggu `BE-RWI-074` |
 | 7 | `FE-RWI-062` | `episode-rawat-inap` | **Frontend** | Menunggu `BE-RWI-073` |
 
@@ -148,7 +148,7 @@ dapat dibatalkan, dan hasilnya sama saja bagi pembaca rekam medis. Kedua bagian 
 
 ---
 
-#### `BE-RWI-077` — Deret waktu tanda vital tidak dapat diputus diam-diam
+#### ✅ `BE-RWI-077` — Deret waktu tanda vital tidak dapat diputus diam-diam
 
 | Field | Isi |
 |---|---|
@@ -156,6 +156,7 @@ dapat dibatalkan, dan hasilnya sama saja bagi pembaca rekam medis. Kedua bagian 
 | Yang dikerjakan | Hapus route `HttpDelete`; sesuaikan test |
 | Letak | `Areas/HealthServices/ClinicalManagement/Controllers/PatientVitalSignController.cs` |
 | Prasyarat | Nol |
+| Status | ✅ **Selesai 11 September 2026.** Nol atribut `HttpDelete` tersisa. `dotnet build` dan uji integrasi `NOT RUN` atas permintaan pemilik. Bukti: [BE-RWI-077](../../module-blueprints/rawat-inap/keperawatan/task/report/backend/BE-RWI-077.md) |
 
 **Kenapa tanda vital berbeda dari dokumen lain.** Ia deret waktu, bukan dokumen tunggal. Menghapus
 satu baris tidak menyisakan lubang yang terlihat: grafik tetap tersambung dan tetap tampak wajar.
@@ -169,19 +170,21 @@ dapat diuji. Tulis **`NOT RUN` apa adanya** pada laporan, jangan dihilangkan dar
 
 ---
 
-#### `BE-RWI-078` — Perawat hanya menulis untuk pasien di unit tempat ia bertugas
+#### ✅ `BE-RWI-078` — Perawat hanya menulis untuk pasien di unit tempat ia bertugas
 
 | Field | Isi |
 |---|---|
 | Outcome | Dokumentasi keperawatan hanya dapat ditulis perawat yang bertugas di unit tempat pasien dirawat |
 | Yang dikerjakan | Tambah kemampuan pada resolver untuk menilai unit perawat; ambil penulis dari `ApplicationUser.EmployeeId`; tolak `nurseId` payload yang berbeda |
 | Prasyarat | Nol |
+| Status | ✅ **Selesai 11 September 2026.** Sumber data unit ditetapkan lewat `WfpOrganizationAssignment` berperiode, bukan kolom baru pada `InpNurseAssignment`. `AC-KEP-050`, uji integrasi, dan `dotnet build` `NOT RUN` atas permintaan pemilik. Bukti: [BE-RWI-078](../../module-blueprints/rawat-inap/keperawatan/task/report/backend/BE-RWI-078.md) |
 
 **Kemampuannya belum ada sama sekali.** `InpatientClinicalContextService` nol menyebut perawat;
 satu-satunya pemeriksaan yang tersedia adalah `IsDoctorAssignedAsync`.
 
-**Sumber data unit tempat perawat bertugas belum ditetapkan**, dan menetapkannya bagian dari task
-ini. **Satu jalan dilarang:** menambahkan kolom unit ke `InpNurseAssignment`, karena unit episode
+**Sumber data unit tempat perawat bertugas sudah ditetapkan pada pelaksanaan task ini**: rantai
+`MstServiceUnit.OrganizationUnitId` di sisi pasien dan `WfpOrganizationAssignment` berperiode di
+sisi perawat. **Satu jalan dilarang:** menambahkan kolom unit ke `InpNurseAssignment`, karena unit episode
 berubah saat pasien dipindahkan dan salinannya akan berbeda sejak perpindahan pertama.
 
 **Gerbang perawat memang lebih longgar daripada gerbang dokter, dan itu disengaja.** Perawat

@@ -990,23 +990,23 @@ yang menuntut lingkungan berjalan atau keputusan yang belum turun:
 
 | Kemampuan | Epic | Requirement | Task backend | Task frontend | Status |
 | --- | --- | --- | --- | --- | --- |
-| `V2-CAP-01` Kelayakan bed tidak dipengaruhi penghuni kamar lain | `EPIC RI-36` | `FR-RI-179` s.d. `FR-RI-184` | `BE-RWI-073` ⛔ | `FE-RWI-062` ⛔ | ⛔ menunggu approval kontrak `0.8.0` |
-| `V2-CAP-03` Penulis klinis dari identitas terautentikasi — bagian penugasan | `EPIC RI-37` | `FR-RI-185` s.d. `FR-RI-190` | `BE-RWI-074` ⛔ | **Nol task** — tidak mengubah rupa layar | ⛔ menunggu approval kontrak `0.8.0` |
+| `V2-CAP-01` Kelayakan bed tidak dipengaruhi penghuni kamar lain | `EPIC RI-36` | `FR-RI-179` s.d. `FR-RI-184` | `BE-RWI-073` ✅ | `FE-RWI-062` | 🟡 Backend ✅ **selesai 11 September 2026**, kedelapan kriteria terbukti — [laporan](../task/report/backend/BE-RWI-073.md). Gerbang kontrak `0.8.0` dicabut `RWI-DEC-105`, sehingga `FE-RWI-062` tidak lagi terblokir dan kini hanya belum dikerjakan. Kemampuan ini baru utuh setelah kedua repository rilis satu gelombang |
+| `V2-CAP-03` Penulis klinis dari identitas terautentikasi — bagian penugasan | `EPIC RI-37` | `FR-RI-185` s.d. `FR-RI-190` | `BE-RWI-074` ✅ | **Nol task** — tidak mengubah rupa layar | 🟡 Gerbang kontrak `0.8.0` dicabut `RWI-DEC-105`. Backend ✅ **selesai 11 September 2026**, kesembilan kriteria terpetakan ke source — [laporan](../task/report/backend/BE-RWI-074.md). Kemampuan ini **belum utuh**: schema, index, dan keempat penjaga sudah membedakan ketiga peran, tetapi jalur tulis lewat endpoint untuk konsulen dan dokter jaga belum ada dan `api-contract.md` belum menyediakan barisnya |
 
 | Requirement | Keputusan / aturan | Kontrak `0.8.0` | Acceptance test | Task |
 | --- | --- | --- | --- | --- |
-| `FR-RI-179` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-130` berbalik | `BE-RWI-073` |
-| `FR-RI-180` | `RWI-DEC-101` | `api-contract.md` bagian 0.8.0 | `RWI-AC-130a` | `BE-RWI-073`, `FE-RWI-062` |
-| `FR-RI-181` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-129` dipersempit | `BE-RWI-073` |
-| `FR-RI-182` | `RWI-RULE-012` B.1 | `validation-matrix.md` bagian 3 | `RWI-AC-128` | `BE-RWI-073` |
-| `FR-RI-183` | `RWI-RULE-012` bagian A | `validation-matrix.md` bagian 3 | `RWI-AC-133a` | `BE-RWI-073` |
-| `FR-RI-184` | `RWI-RULE-012` B.5 | `validation-matrix.md` bagian 3 | `RWI-AC-133b` | `BE-RWI-073` |
-| `FR-RI-185` | `RWI-DEC-099` | `data-dictionary.md` bagian 2 | `RWI-AC-084a` | `BE-RWI-074` |
-| `FR-RI-186` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084`, `RWI-AC-084a` | `BE-RWI-074` |
-| `FR-RI-187` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.1 | `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-074`, `BE-RWI-076` |
-| `FR-RI-188` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.3 | `RWI-AC-084d` | `BE-RWI-074` |
-| `FR-RI-189` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084b`, `RWI-AC-084c`, `RWI-AC-084h` | `BE-RWI-074` |
-| `FR-RI-190` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 4-A.1 | `RWI-AC-084f`, `RWI-AC-084g` | `BE-RWI-074` |
+| `FR-RI-179` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-130` berbalik | `BE-RWI-073` ✅ — penghuni kamar tidak lagi dibaca; `LoadRoomOccupantsAsync` dihapus. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-180` | `RWI-DEC-101` | `api-contract.md` bagian 0.8.0 | `RWI-AC-130a` | `BE-RWI-073` ✅ — 0 baris literal `"ROOM_GENDER_MIXED"` pada `Areas/`; `FE-RWI-062` belum, 5 baris aktif tersisa di frontend. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-181` | `RWI-DEC-101` | `validation-matrix.md` bagian 3 | `RWI-AC-129` dipersempit | `BE-RWI-073` ✅ — klausa `countedOccupants.Count > 0` dicabut dari aturan 5. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-182` | `RWI-RULE-012` B.1 | `validation-matrix.md` bagian 3 | `RWI-AC-128` | `BE-RWI-073` ✅ — aturan 4 `BED_GENDER_MISMATCH` tidak berubah. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-183` | `RWI-RULE-012` bagian A | `validation-matrix.md` bagian 3 | `RWI-AC-133a` | `BE-RWI-073` ✅ — aturan 7 dan 8 tidak berubah, nomornya tidak bergeser; `RWI-AC-133a` `NOT RUN`, digantikan penelusuran source. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-184` | `RWI-RULE-012` B.5 | `validation-matrix.md` bagian 3 | `RWI-AC-133b` | `BE-RWI-073` ✅ — penjaga `if (!bed.IsForNewborn)` utuh; `RWI-AC-133b` `NOT RUN`, digantikan penelusuran source. [laporan](../task/report/backend/BE-RWI-073.md) |
+| `FR-RI-185` | `RWI-DEC-099` | `data-dictionary.md` bagian 2 | `RWI-AC-084a` | `BE-RWI-074` ✅ — enum `InpDoctorAssignmentRole` dan kolom `AssignmentRole` `NOT NULL DEFAULT 1` ada di source. [laporan](../task/report/backend/BE-RWI-074.md) |
+| `FR-RI-186` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084`, `RWI-AC-084a` | `BE-RWI-074` ✅ — filter index unik kini `"EndDateTime" IS NULL AND "AssignmentRole" = 1`; konsulen dan dokter jaga boleh berdampingan, DPJP kedua tetap ditolak. [laporan](../task/report/backend/BE-RWI-074.md) |
+| `FR-RI-187` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.1 | `AC-DOK-070`, `AC-DOK-071` | `BE-RWI-074` ✅ — penilaian pada waktu klinis menyaring peran lewat `GetDoctorAssignmentAtAsync`; kewenangan **menulis** sengaja tetap terbuka bagi ketiga peran. [laporan](../task/report/backend/BE-RWI-074.md). `BE-RWI-076` belum |
+| `FR-RI-188` | `RWI-DEC-099` | `state-transition-matrix.md` bagian 6A.3 | `RWI-AC-084d` | `BE-RWI-074` ✅ — pencarian menyeluruh menemukan **tepat dua** penulisan `AssignmentRole`, keduanya pada pembuatan baris baru; nol jalur mengubah peran baris yang sudah ada. [laporan](../task/report/backend/BE-RWI-074.md) |
+| `FR-RI-189` | `RWI-DEC-099` | `data-dictionary.md` bagian 2.1 | `RWI-AC-084b`, `RWI-AC-084c`, `RWI-AC-084h` | `BE-RWI-074` 🟡 — migration tiga langkah dibuat beserta dua blok pemeriksaan yang menggagalkan urutan terbalik dan rollback terlambat secara terkendali; ketiga acceptance test itu `NOT RUN` karena penerapan migration adalah wewenang terpisah. [laporan](../task/report/backend/BE-RWI-074.md) |
+| `FR-RI-190` | `RWI-DEC-099` | `permission-audit-matrix.md` bagian 4-A.1 | `RWI-AC-084f`, `RWI-AC-084g` | `BE-RWI-074` ✅ — keempat penjaga bermuara pada `GetActiveDoctorIdAsync` yang menyaring `AssignmentRole = Dpjp`, sehingga peran `2` dan `3` tidak pernah cocok. [laporan](../task/report/backend/BE-RWI-074.md) |
 
 ### Penomoran ulang task — `RWI-DEC-103` dieksekusi 11 September 2026
 

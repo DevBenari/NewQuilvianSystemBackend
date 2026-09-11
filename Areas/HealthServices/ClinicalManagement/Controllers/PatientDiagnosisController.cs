@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -410,6 +410,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientDiagnosisCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [AccessAction("Create", "Create Patient Diagnosis", Description = "Membuat diagnosis pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientDiagnosis", "Create")]
         public async Task<IActionResult> CreateDiagnosis([FromBody] CreatePatientDiagnosisRequest request)
@@ -1022,14 +1023,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 // VAL-DOK-37. Keduanya terisi, sehingga keduanya wajib menunjuk kunjungan dan
                 // pasien yang sama. Penanda perawatan milik kunjungan lain menempelkan
                 // diagnosis pada pasien yang keliru.
-                var konteksBersama = await _inpatientClinicalContextService.ResolveAsync(
-                    consultation.EncounterId,
-                    expectedPatientId: consultation.PatientId,
-                    expectedEpisodeId: inpEpisodeId,
-                    forNewDocument: true);
+                // BE-RWI-076 / GUARD-INP-05. Cabang ini dulu satu-satunya jalur rawat inap yang
+                // lolos tanpa memeriksa penulis sama sekali: menyebut nomor konsultasi cukup
+                // untuk menggantungkan diagnosis pada perawatan pasien mana pun. Kini ia
+                // memakai penjaga yang sama dengan cabang tanpa konsultasi di bawah.
+                var konteksBersama = await _inpatientClinicalContextService
+                    .ResolveForDoctorWriteAsync(
+                        User,
+                        GetCurrentUserId(),
+                        consultation.EncounterId,
+                        expectedPatientId: consultation.PatientId,
+                        expectedEpisodeId: inpEpisodeId,
+                        forNewDocument: true);
 
                 if (!konteksBersama.IsResolved)
                 {
+                    if (konteksBersama.Outcome == InpatientClinicalContextOutcome.DoctorNotIdentified)
+                    {
+                        return DiagnosisContextResolution.Fail(
+                            PenolakanBukanDokter,
+                            StatusCodes.Status403Forbidden);
+                    }
+
+                    if (konteksBersama.Outcome == InpatientClinicalContextOutcome.DoctorNotAuthorized ||
+                        konteksBersama.Outcome == InpatientClinicalContextOutcome.DoctorImpersonation)
+                    {
+                        return DiagnosisContextResolution.Fail(
+                            PenolakanBukanDpjpPasien,
+                            StatusCodes.Status403Forbidden);
+                    }
+
                     return konteksBersama.StatusCode == StatusCodes.Status400BadRequest
                         ? DiagnosisContextResolution.Fail(PenolakanKonteksPasienBerbeda)
                         : DiagnosisContextResolution.Fail(
@@ -1057,13 +1080,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!inpEpisodeId.HasValue)
                 return DiagnosisContextResolution.Fail(PenolakanTanpaKonteks);
 
-            var konteks = await _inpatientClinicalContextService.ResolveAsync(
+            // VAL-DOK-05 lalu VAL-DOK-39, sejak BE-RWI-076 ditegakkan lewat penjaga bersama.
+            // Kewenangan menulis diagnosis dari kajian medis mengikuti kewenangan menulis
+            // kajian medis pasien itu: pengguna wajib terhubung ke satu baris dokter aktif, dan
+            // dokter itu wajib memegang penugasan yang berlaku pada perawatan tersebut. Mesin
+            // hak akses tidak dapat menjaga ini - ia tahu peran dan tidak tahu pasien.
+            var konteks = await _inpatientClinicalContextService.ResolveForDoctorWriteAsync(
+                User,
+                GetCurrentUserId(),
                 request.EncounterId,
                 expectedEpisodeId: inpEpisodeId,
                 forNewDocument: true);
 
             if (!konteks.IsResolved)
             {
+                if (konteks.Outcome == InpatientClinicalContextOutcome.DoctorNotIdentified)
+                {
+                    return DiagnosisContextResolution.Fail(
+                        PenolakanBukanDokter,
+                        StatusCodes.Status403Forbidden);
+                }
+
+                if (konteks.Outcome == InpatientClinicalContextOutcome.DoctorNotAuthorized ||
+                    konteks.Outcome == InpatientClinicalContextOutcome.DoctorImpersonation)
+                {
+                    return DiagnosisContextResolution.Fail(
+                        PenolakanBukanDpjpPasien,
+                        StatusCodes.Status403Forbidden);
+                }
+
                 // VAL-DOK-40. Perawatan milik pasien lain terbaca sebagai penanda yang tidak
                 // cocok dengan kunjungannya, dan kalimatnya dipakai bersama VAL-DOK-37.
                 return konteks.StatusCode == StatusCodes.Status400BadRequest
@@ -1073,33 +1118,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         konteks.StatusCode);
             }
 
-            // VAL-DOK-05 lalu VAL-DOK-39. Kewenangan menulis diagnosis dari kajian medis
-            // mengikuti kewenangan menulis kajian medis pasien itu: pengguna wajib terhubung ke
-            // satu baris dokter aktif, dan dokter itu wajib memegang penugasan yang berlaku
-            // pada perawatan tersebut. Mesin hak akses tidak dapat menjaga ini - ia tahu peran
-            // dan tidak tahu pasien.
-            var doctorId = await ResolveCurrentDoctorIdAsync();
-
-            if (!doctorId.HasValue)
-            {
-                return DiagnosisContextResolution.Fail(
-                    PenolakanBukanDokter,
-                    StatusCodes.Status403Forbidden);
-            }
-
-            var berwenang = await _inpatientClinicalContextService.IsDoctorAssignedAsync(
-                konteks.Context!.EpisodeId,
-                doctorId.Value,
-                DateTime.UtcNow);
-
-            if (!berwenang)
-            {
-                return DiagnosisContextResolution.Fail(
-                    PenolakanBukanDpjpPasien,
-                    StatusCodes.Status403Forbidden);
-            }
-
-            return DiagnosisContextResolution.Ok(null, konteks.Context, doctorId);
+            // Penulis diambil dari hasil penjaga, bukan dari payload. Inilah nilai yang
+            // disimpan sebagai dokter pada baris diagnosis — BE-RWI-076.
+            return DiagnosisContextResolution.Ok(null, konteks.Context, konteks.Context!.ActorDoctorId);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
@@ -1622,92 +1643,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 : Guid.Empty;
         }
 
-        /// <summary>
-        /// Menemukan baris dokter yang melekat pada pengguna yang sedang masuk.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// <c>BE-RWI-068</c>, <c>VAL-DOK-05</c>. Urutannya sama persis dengan
-        /// <c>PatientAssessmentController.ResolveCurrentDoctorIdAsync</c>: klaim identitas
-        /// dokter lebih dulu, lalu penautan lewat profil tenaga kerja, lalu surel. Ketiganya
-        /// bersandar pada <b>data</b> - tidak satu pun membaca nama peran, nama jabatan, maupun
-        /// <c>UserType</c>.
-        /// </para>
-        /// <para>
-        /// Mengembalikan kosong bila pengguna tidak terhubung ke dokter mana pun. Itulah yang
-        /// menolak perawat menulis diagnosis dari kajian medis, tanpa satu baris pun kode yang
-        /// menyebut kata perawat.
-        /// </para>
-        /// </remarks>
-        private async Task<Guid?> ResolveCurrentDoctorIdAsync()
-        {
-            var doctorIdClaim = User.FindFirstValue("doctor_id") ?? User.FindFirstValue("DoctorId");
-
-            if (Guid.TryParse(doctorIdClaim, out var dariKlaimDokter) && dariKlaimDokter != Guid.Empty)
-            {
-                var adaDokter = await _dbContext.Set<MstDoctor>()
-                    .AsNoTracking()
-                    .AnyAsync(x => x.Id == dariKlaimDokter && !x.IsDelete && x.IsActive);
-
-                if (adaDokter)
-                    return dariKlaimDokter;
-            }
-
-            var workforceClaim = User.FindFirstValue("workforce_profile_id")
-                                 ?? User.FindFirstValue("WorkforceProfileId");
-
-            Guid? workforceProfileId =
-                Guid.TryParse(workforceClaim, out var dariKlaimProfil) && dariKlaimProfil != Guid.Empty
-                    ? dariKlaimProfil
-                    : null;
-
-            var currentUserId = GetCurrentUserId();
-
-            var pengguna = currentUserId == Guid.Empty
-                ? null
-                : await _dbContext.Users
-                    .AsNoTracking()
-                    .Where(x => x.Id == currentUserId)
-                    .Select(x => new { x.WorkforceProfileId, x.Email })
-                    .FirstOrDefaultAsync();
-
-            workforceProfileId ??= pengguna?.WorkforceProfileId;
-
-            if (workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty)
-            {
-                var dokter = await _dbContext.Set<MstDoctor>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.WorkforceProfileId == workforceProfileId.Value &&
-                        !x.IsDelete &&
-                        x.IsActive)
-                    .Select(x => (Guid?)x.Id)
-                    .FirstOrDefaultAsync();
-
-                if (dokter.HasValue)
-                    return dokter;
-            }
-
-            if (!string.IsNullOrWhiteSpace(pengguna?.Email))
-            {
-                var surel = pengguna.Email.ToLower();
-
-                var dokter = await _dbContext.Set<MstDoctor>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.Email != null &&
-                        x.Email.ToLower() == surel &&
-                        !x.IsDelete &&
-                        x.IsActive)
-                    .Select(x => (Guid?)x.Id)
-                    .FirstOrDefaultAsync();
-
-                if (dokter.HasValue)
-                    return dokter;
-            }
-
-            return null;
-        }
 
         private class DiagnosisSummaryResult
         {

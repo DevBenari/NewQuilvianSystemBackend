@@ -1240,18 +1240,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// perintah bisnisnya berubah.
         ///
         /// <para>
-        /// <b>Dua pengecualian boks bayi, keduanya berlaku dua arah.</b> Menempatkan <b>ke</b>
-        /// boks bayi melewati aturan 4, 5, dan 6 — bayi laki-laki boleh menempati boks di
-        /// kamar ibunya. Penghuni yang <b>berada di</b> boks bayi tidak dihitung saat aturan 5
-        /// dan 6 memeriksa penghuni kamar — bayi tidak menutup kamar bagi pasien lain.
+        /// <b>Pengecualian boks bayi.</b> Menempatkan <b>ke</b> boks bayi melewati aturan 4
+        /// dan 5 — bayi laki-laki boleh menempati boks di kamar ibunya.
         /// </para>
         ///
         /// <para>
-        /// <b>Aturan 6 diperiksa dari penghuni yang sedang ada</b>, bukan dari penanda pada
-        /// <c>MstRoom</c>. Penanda <c>IsForMale</c> dan <c>IsForFemale</c> bernilai benar
-        /// secara bawaan untuk setiap kamar, sehingga tidak dapat membedakan kamar yang boleh
-        /// campur. Kolom "boleh campur" ditolak tegas oleh <c>RWI-DEC-066</c> dan dikunci
-        /// `blueprint-manifest.md` bagian 8 butir 7; menambahkannya bukan keputusan pelaksana.
+        /// <b>Aturan 6 dipensiunkan sejak kontrak <c>0.8.0</c>.</b> Dahulu ia menolak dengan
+        /// kode <c>ROOM_GENDER_MIXED</c> bila kamar sedang dihuni pasien berjenis kelamin lain.
+        /// <c>RWI-DEC-101</c> mencabutnya seluruhnya: kelayakan tempat tidur tidak lagi menilai
+        /// penghuni kamar lain dalam bentuk apa pun, dan privasi jenis kelamin sepenuhnya
+        /// bersandar pada penanda <c>IsForMale</c> serta <c>IsForFemale</c> milik tempat tidur
+        /// yang ditetapkan Admin Master Data. Nomor 6 <b>dibiarkan kosong</b> dan tidak dipakai
+        /// ulang, supaya nomor aturan 7 dan 8 pada <c>failures[]</c> tidak bergeser bagi
+        /// pemanggil yang sudah terbit. Kolom "boleh campur" pada <c>MstRoom</c> tetap ditolak
+        /// tegas oleh <c>RWI-DEC-066</c>; pencabutan ini justru membuatnya tidak dibutuhkan.
         /// </para>
         ///
         /// <para>
@@ -1357,16 +1359,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return result;
             }
 
-            // --- Aturan 4, 5, dan 6: privasi jenis kelamin --------------------------------
-            // Pengecualian pertama: menempatkan KE boks bayi melewati ketiganya.
+            // --- Aturan 4 dan 5: privasi jenis kelamin ------------------------------------
+            // Nomor 6 dipensiunkan RWI-DEC-101 dan sengaja dibiarkan kosong, supaya nomor
+            // aturan 7 dan 8 tidak bergeser. Penghuni kamar lain tidak diperiksa lagi.
+            // Pengecualian boks bayi: menempatkan KE boks bayi melewati keduanya.
             if (!bed.IsForNewborn)
             {
                 var patientGender = NormalizeGender(patient?.Gender);
-
-                var occupants = await LoadRoomOccupantsAsync(room.Id, episodeId, cancellationToken);
-
-                // Pengecualian kedua: penghuni yang BERADA DI boks bayi tidak dihitung.
-                var countedOccupants = occupants.Where(x => !x.BedIsForNewborn).ToList();
 
                 if (patientGender.HasValue)
                 {
@@ -1379,33 +1378,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     {
                         result.Add(4, "BED_GENDER_MISMATCH", BedGenderMessage(bed), 422);
                     }
-
-                    // Aturan 6.
-                    var conflicting = countedOccupants
-                        .FirstOrDefault(x => NormalizeGender(x.Gender) != patientGender.Value);
-
-                    if (conflicting != null)
-                    {
-                        result.Add(
-                            6,
-                            "ROOM_GENDER_MIXED",
-                            $"Kamar {room.RoomName} sedang dihuni pasien " +
-                            $"{GenderLabel(NormalizeGender(conflicting.Gender))}, sehingga tidak " +
-                            $"dapat menerima pasien {GenderLabel(patientGender.Value)}.",
-                            422);
-                    }
                 }
                 else
                 {
-                    // Aturan 5. Gagal salah satu saja sudah menolak.
-                    if (!bed.IsForMale || !bed.IsForFemale || countedOccupants.Count > 0)
+                    // Aturan 5. Sejak RWI-DEC-101 syaratnya hanya penanda tempat tidur;
+                    // syarat "kamar belum ada penghuninya" dicabut.
+                    if (!bed.IsForMale || !bed.IsForFemale)
                     {
                         result.Add(
                             5,
                             "PATIENT_GENDER_UNKNOWN",
                             "Jenis kelamin pasien belum tercatat. Pilih tempat tidur yang " +
-                            "menerima laki-laki dan perempuan, di kamar yang belum ada " +
-                            "penghuninya.",
+                            "menerima laki-laki dan perempuan.",
                             422);
                     }
                 }
@@ -1636,28 +1620,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return new BedWithRoom { Bed = bed, Room = room };
         }
 
-        private async Task<List<RoomOccupant>> LoadRoomOccupantsAsync(
-            Guid roomId,
-            Guid excludeEpisodeId,
-            CancellationToken cancellationToken)
-        {
-            return await _dbContext.Set<InpBedPlacement>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.RoomId == roomId &&
-                    x.EpisodeId != excludeEpisodeId &&
-                    x.EndDateTime == null &&
-                    !x.IsDelete)
-                .Select(x => new RoomOccupant
-                {
-                    BedIsForNewborn = x.Bed != null && x.Bed.IsForNewborn,
-                    Gender = x.Episode != null && x.Episode.Patient != null
-                        ? x.Episode.Patient.Gender
-                        : null
-                })
-                .ToListAsync(cancellationToken);
-        }
-
         private async Task FillServiceUnitAndClassNamesAsync(
             List<AvailableBedResponse> items,
             CancellationToken cancellationToken)
@@ -1771,22 +1733,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <remarks>
         /// <c>Unknown</c> dan <c>NotDisclosed</c> keduanya diperlakukan sebagai belum tercatat.
         /// Yang kedua sering dikira "sudah diisi" karena pasien memang menolak menyebutkan;
-        /// untuk aturan privasi kamar keduanya sama saja, karena sistem tetap tidak dapat
-        /// membuktikan kamarnya tidak menjadi campur.
+        /// untuk aturan 5 keduanya sama saja, karena sistem tetap tidak dapat membuktikan
+        /// tempat tidur satu jenis kelamin memang cocok bagi pasien itu.
         /// </remarks>
         private static Gender? NormalizeGender(Gender? gender)
         {
             return gender is Gender.Male or Gender.Female ? gender : null;
-        }
-
-        private static string GenderLabel(Gender? gender)
-        {
-            return gender switch
-            {
-                Gender.Male => "laki-laki",
-                Gender.Female => "perempuan",
-                _ => "yang jenis kelaminnya belum tercatat"
-            };
         }
 
         private sealed class BedWithRoom
@@ -1794,13 +1746,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             public MstBed Bed { get; set; } = null!;
 
             public MstRoom? Room { get; set; }
-        }
-
-        private sealed class RoomOccupant
-        {
-            public bool BedIsForNewborn { get; set; }
-
-            public Gender? Gender { get; set; }
         }
     }
 

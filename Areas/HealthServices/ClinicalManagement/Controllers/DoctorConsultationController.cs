@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -381,6 +381,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DoctorConsultationCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [AccessAction("Create", "Create Doctor Consultation", Description = "Membuat konsultasi dokter", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("DoctorConsultation", "Create")]
         public async Task<IActionResult> CreateConsultation([FromBody] CreateDoctorConsultationRequest request)
@@ -1231,13 +1232,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<CreateGuard> ValidateInpatientMarkersAsync(
             CreateDoctorConsultationRequest request)
         {
-            var context = await _inpatientClinicalContextService.ResolveAsync(
+            // BE-RWI-076 / GUARD-INP-05 dan GUARD-INP-06. Penulis diambil dari pengguna
+            // terautentikasi, dan kewenangannya dinilai pada WAKTU KLINIS catatan. Penjagaan
+            // ini hanya menyala ketika kunjungan benar-benar menaungi perawatan rawat inap;
+            // jalur poliklinik, medical check-up, dan IGD dijawab NoInpatientEpisode dan
+            // diteruskan apa adanya di bawah.
+            var context = await _inpatientClinicalContextService.ResolveForDoctorWriteAsync(
+                User,
+                GetCurrentUserId(),
                 request.EncounterId,
                 expectedEpisodeId: request.InpEpisodeId,
-                forNewDocument: true);
+                requestedDoctorId: request.DoctorId,
+                forNewDocument: true,
+                atUtc: request.ClinicalDateTime);
 
             if (context.Outcome == InpatientClinicalContextOutcome.EpisodeMismatch)
                 return CreateGuard.Fail(context.ErrorMessage!, context.StatusCode);
+
+            // Penolakan penulis dikembalikan apa adanya beserta 403-nya. Tanpa cabang ini ia
+            // akan jatuh ke pemeriksaan waktu di bawah dan lolos tanpa jejak.
+            if (context.Outcome == InpatientClinicalContextOutcome.DoctorNotIdentified ||
+                context.Outcome == InpatientClinicalContextOutcome.DoctorImpersonation ||
+                context.Outcome == InpatientClinicalContextOutcome.DoctorNotAuthorized)
+            {
+                return CreateGuard.Fail(context.ErrorMessage!, context.StatusCode);
+            }
 
             // Penanda perawatan dikirim untuk kunjungan yang tidak menaungi perawatan mana pun.
             // Nilainya jelas tidak dapat cocok, dan kalimatnya dibuat sama dengan penolakan

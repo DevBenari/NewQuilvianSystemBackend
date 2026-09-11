@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -146,14 +146,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PenolakanEpisodeBukanAdmitted);
             }
 
-            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+            var (employeeId, penolakanPenulis) = await ResolvePenulisBerwenangAsync(
+                konteks.Context.ServiceUnitId, user, actorUserId, cancellationToken);
 
-            if (employeeId == null)
-            {
-                return NursingCarePlanResult.Fail(
-                    StatusCodes.Status400BadRequest,
-                    NursingActorService.PenolakanTanpaPegawai);
-            }
+            if (penolakanPenulis != null)
+                return penolakanPenulis;
 
             var sudahAda = await _dbContext.Set<CliNursingCarePlan>()
                 .AsNoTracking()
@@ -224,14 +221,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (penjagaPengkajian != null)
                 return penjagaPengkajian;
 
-            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+            var (employeeId, penolakanPenulis) = await ResolvePenulisEpisodeAsync(
+                rencana.InpEpisodeId, user, actorUserId, cancellationToken);
 
-            if (employeeId == null)
-            {
-                return NursingCarePlanResult.Fail(
-                    StatusCodes.Status400BadRequest,
-                    NursingActorService.PenolakanTanpaPegawai);
-            }
+            if (penolakanPenulis != null)
+                return penolakanPenulis;
 
             var now = DateTime.UtcNow;
 
@@ -297,14 +291,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     "Butir ini sudah ditutup, sehingga isinya tidak dapat diperbarui.");
             }
 
-            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+            var (employeeId, penolakanPenulis) = await ResolvePenulisEpisodeAsync(
+                rencana!.InpEpisodeId, user, actorUserId, cancellationToken);
 
-            if (employeeId == null)
-            {
-                return NursingCarePlanResult.Fail(
-                    StatusCodes.Status400BadRequest,
-                    NursingActorService.PenolakanTanpaPegawai);
-            }
+            if (penolakanPenulis != null)
+                return penolakanPenulis;
 
             var now = DateTime.UtcNow;
 
@@ -357,19 +348,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (penolakan != null)
                 return penolakan;
 
+            // GUARD-INP-07 dan GUARD-INP-08 - BE-RWI-078. Penjaganya dijalankan lebih dulu dan
+            // tanpa syarat, termasuk pada evaluasi pertama yang tidak mengarsipkan versi. Evaluasi
+            // adalah penilaian klinis atas pasien, dan penilaian dari unit lain tetap ditolak
+            // walaupun tidak ada versi yang perlu disalin.
+            var (employeeId, penolakanPenulis) = await ResolvePenulisEpisodeAsync(
+                rencana!.InpEpisodeId, user, actorUserId, cancellationToken);
+
+            if (penolakanPenulis != null)
+                return penolakanPenulis;
+
             var now = DateTime.UtcNow;
 
             if (butir!.LastEvaluatedAt != null)
             {
-                var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
-
-                if (employeeId == null)
-                {
-                    return NursingCarePlanResult.Fail(
-                        StatusCodes.Status400BadRequest,
-                        NursingActorService.PenolakanTanpaPegawai);
-                }
-
                 ArsipkanVersiSaatIni(butir, now, actorUserId);
 
                 butir.VersionNumber += 1;
@@ -398,6 +390,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public async Task<NursingCarePlanResult> CloseItemAsync(
             Guid itemId,
             CloseCarePlanItemRequest request,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
@@ -429,6 +422,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     StatusCodes.Status409Conflict,
                     "Butir ini sudah ditutup sebelumnya.");
             }
+
+            // GUARD-INP-07 dan GUARD-INP-08 - BE-RWI-078. Penutupan masalah keperawatan adalah
+            // pernyataan klinis bahwa masalahnya selesai, jadi ia tunduk pada gerbang yang sama
+            // seperti penulisannya.
+            var (_, penolakanPenulis) = await ResolvePenulisEpisodeAsync(
+                rencana!.InpEpisodeId, user, actorUserId, cancellationToken);
+
+            if (penolakanPenulis != null)
+                return penolakanPenulis;
 
             // VAL-KEP-16. Berhenti sebelum satu nilai pun berubah, sehingga butirnya benar-benar
             // tetap Active - bukan sekadar dikembalikan begitu pada balasan.
@@ -637,6 +639,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             };
 
             _dbContext.Set<CliNursingCarePlanItemRevision>().Add(revisi);
+        }
+
+        /// <summary>
+        /// Menemukan penulis yang sah bagi satu perawatan, sekaligus menegakkan
+        /// <c>GUARD-INP-07</c> dan <c>GUARD-INP-08</c> - <c>BE-RWI-078</c>.
+        /// </summary>
+        /// <remarks>
+        /// Unit perawatan dibaca dari episodenya, bukan dari salinan mana pun, sehingga perawat
+        /// unit lama ditolak segera setelah pasien dipindahkan - <c>AC-KEP-049</c>.
+        /// </remarks>
+        private async Task<(Guid? EmployeeId, NursingCarePlanResult? Penolakan)>
+            ResolvePenulisEpisodeAsync(
+                Guid episodeId,
+                ClaimsPrincipal? user,
+                Guid actorUserId,
+                CancellationToken cancellationToken)
+        {
+            var serviceUnitId = await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => x.Id == episodeId && !x.IsDelete)
+                .Select(x => (Guid?)x.ServiceUnitId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!serviceUnitId.HasValue)
+            {
+                return (null, NursingCarePlanResult.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Perawatan rawat inap tidak ditemukan."));
+            }
+
+            return await ResolvePenulisBerwenangAsync(
+                serviceUnitId.Value, user, actorUserId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Bentuk dasar penjaga penulis: pengguna wajib tertaut ke pegawai, dan pegawai itu wajib
+        /// bertugas di unit tempat perawatannya berada.
+        /// </summary>
+        /// <remarks>
+        /// Kedua penolakannya sengaja berbeda kode. Akun tanpa pegawai adalah data induk yang
+        /// belum lengkap dan dijawab <c>400</c> seperti sebelumnya; perawat dari unit lain adalah
+        /// kewenangan dan dijawab <c>403</c>. Menyamakan keduanya akan mengirim perawat ke
+        /// bagian kepegawaian untuk masalah yang bukan di sana.
+        /// </remarks>
+        private async Task<(Guid? EmployeeId, NursingCarePlanResult? Penolakan)>
+            ResolvePenulisBerwenangAsync(
+                Guid serviceUnitId,
+                ClaimsPrincipal? user,
+                Guid actorUserId,
+                CancellationToken cancellationToken)
+        {
+            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+
+            if (employeeId == null)
+            {
+                return (null, NursingCarePlanResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    NursingActorService.PenolakanTanpaPegawai));
+            }
+
+            var bertugas = await _contextService.IsNurseOnDutyAtUnitAsync(
+                serviceUnitId, employeeId.Value, DateTime.UtcNow, cancellationToken);
+
+            if (!bertugas)
+            {
+                return (null, NursingCarePlanResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanPerawatUnitLain));
+            }
+
+            return (employeeId, null);
         }
 
         /// <summary>
