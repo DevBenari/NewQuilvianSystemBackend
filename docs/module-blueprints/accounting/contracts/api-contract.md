@@ -196,6 +196,12 @@ pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 > Pesannya menyebut akunnya. Rincian jalur yang terkena dan yang tidak ada di
 > `validation-matrix.md` bagian 3b Phase 2.
 
+> **Usulan `ACC-API-0.11` — penegasan kode status `reverse`, 11 September 2026.**
+> `POST /{id}/reverse` yang berhasil menjawab **`200`**, bukan `201`, walaupun ia membuat jurnal
+> pembalik atau penyesuaian baru. Itu perilaku sejak `BE-ACC-013` dan sudah tercatat di laporannya;
+> bagian ini hanya menuliskannya eksplisit. Diputuskan Rizki atas temuan Skenario 6
+> `BE-ACC-P2-012`. **Kode tidak diubah.**
+
 ---
 
 ## Corporate / Accounting / Accounting Period
@@ -402,7 +408,7 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 |---|---|
 | `contract_version` | `ACC-API-0.10` |
 | `last_changed_in` | `ACC-API-0.10` — 11 September 2026, penyelarasan grup Recurring Journal dengan `RecurringJournalController`: hak akses `activate`/`deactivate` menjadi `RecurringJournal : Activate`, empat bidang ringkasan, dan label ketersediaan. Sebelumnya `0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
-| Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Empat perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`). **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
+| Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Lima perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`); (5) penegasan bahwa `POST /journals/{id}/reverse` yang berhasil menjawab **`200`**, bukan `201` — perilaku sejak `BE-ACC-013`, dituliskan eksplisit atas keputusan Rizki 11 September 2026 (Skenario 6 `BE-ACC-P2-012`); kode tidak diubah. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** — Rizki, 11 September 2026 |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-API-0.10`); sebelumnya Rizki / 10 September 2026 (`ACC-API-0.9`) dan Rizki / 8 September 2026 (`ACC-API-0.8`) |
 | `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |

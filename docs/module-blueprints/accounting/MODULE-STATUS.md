@@ -292,6 +292,53 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### Titik lanjut — 11 September 2026
+
+**Gelombang mandiri Phase 2 tuntas sisi development.** Seluruh 8 task frontend dan 13 dari 14
+task backend sudah dikerjakan; status per task ada di
+[roadmap frontend](roadmap/frontend-roadmap-phase2.md) dan
+[roadmap backend](roadmap/backend-roadmap-phase2.md). Sejak 11 September 2026 berlaku alur kerja
+owner: UAT dijalankan tim UAT terpisah dan **bukan** penghalang development; status dipisah
+Implementation / Developer Verification / UAT; `UAT PASS` tidak pernah ditulis sebelum tim UAT
+menguji.
+
+#### Yang menunggu owner lebih dahulu
+
+| # | Langkah | Catatan |
+|---:|---|---|
+| 1 | `npm run build` frontend, lalu commit frontend (`RizkiV2`) dan backend (`rizkiG`) | Build terakhir oleh agent berjalan sebelum `FE-ACC-P2-001` acceptance (5). Sesudah build owner hijau, `FE-ACC-P2-001` dan `002` memenuhi syarat ✅ |
+| 2 | Bekal tim UAT | Beri hak lewat layar Akses Role — `AccountingReconciliation`, `RecurringJournal`, `AccountingConfiguration`, `YearEndClosing` (0 pemberian per catatan 11 Sep 2026); siapkan akun pengguna kedua untuk persetujuan empat mata, termasuk `JB/2026/09/00002` |
+
+#### Jalur B — membuka gelombang `P2-1` dan `BE-ACC-P2-014`
+
+**Belum boleh dibangun.** `BE-ACC-P2-014` bergantung pada gelombang `P2-1` (kotak masuk kejadian)
+yang sengaja tidak ada di roadmap gelombang mandiri; kartunya belum punya Acceptance, Kontrak, DoD,
+dan Verifikasi; dan cakupan (1) — menyimpan saldo subledger per control account per periode —
+menuntut entity dan migration baru. Urutan yang disarankan:
+
+| # | Langkah | Pemilik | Bahan |
+|---:|---|---|---|
+| B1 | Ratifikasi `ACC-API-0.11`, `ACC-VALIDATION-0.7`, `ACC-PERMISSION-0.6` | Rizki | `contracts/` — ketiganya masih usulan per 11 Sep 2026 |
+| B2 | Putuskan `ACC-GAP-013` — penghalang keempat tutup bulan: butir baru di daftar periksa, atau `INTEGRATION_MISMATCH` dinaikkan menjadi penghalang | Rizki | [03-frontend-architecture.md](03-frontend-architecture.md) bagian 11.3. Saran: butir baru ber-`State = Evaluated` dengan `Count` = jumlah control account yang saldonya belum diterima, supaya mesin `CanSubmitClosing` yang ada langsung menahannya |
+| B3 | Putuskan `DEC-ACC-P2-002` — isi jenis kejadian dan aturan posting (`AccEventType`, `AccPostingRule`, `AccPostingRuleLine`) | Rizki | [00-interview-decisions.md](00-interview-decisions.md); `ACC-DEC-058` sudah menetapkan aturan posting berbentuk daftar baris |
+| B4 | Sepakati sisi lintas modul dengan owner Finance dan Billing — penerbit kejadian (`ACC-XM-001`, `ACC-DEC-044`) dan bentuk kejadian saldo subledger (`ACC-DEC-071`) | Rizki + owner Finance/Billing | [evidence/10-billing-arap-handoff-scan.md](evidence/10-billing-arap-handoff-scan.md). Modul Finance belum ada di branch mana pun per 8 Sep 2026 |
+| B5 | Susun roadmap gelombang `P2-1` lewat skill `plan-module-delivery`, termasuk merinci ulang kartu `BE-ACC-P2-014` | Agent | Sesudah B1–B4 |
+| B6 | Migration entity kotak masuk kejadian dan saldo subledger | **Rizki sendiri** | Agent berhenti sebelum `dotnet ef migrations add` |
+| B7 | Bangun `BE-ACC-P2-014`, lalu ubah satu fungsi `normalizeControlAccountBalanceRow` di frontend supaya kolom Saldo Subledger dan Selisih `FE-ACC-P2-008` menyala | Agent | Layar sudah menyiapkan kedua kolom itu sebagai "Belum tersedia" |
+
+**Yang tidak perlu dikerjakan ulang:** sisi buku besar rekonsiliasi (`BE-ACC-P2-013` +
+`FE-ACC-P2-008`) sudah berdiri dan terbukti di runtime 11 Sep 2026.
+
+**Sisa 🟡 backend yang hanya menunggu keputusan, bukan coding:** `BE-ACC-P2-005`, `006`, `010`,
+`013` tertahan uji integrasi PostgreSQL; `BE-ACC-P2-012` verifikasi otomatisnya `DEFERRED` atas
+keputusan owner. Bila owner memperlakukan keempat yang pertama sama, cukup keputusan tertulis.
+
+**Catatan untuk sesi di komputer lain:** memori agent tersimpan lokal per komputer dan tidak ikut
+akun. Bagian ini, kedua roadmap Phase 2, traceability, dan laporan `task/report/` adalah sumber
+titik lanjut yang ikut ter-commit.
+
+### Riwayat — 4 September 2026
+
 Diperbarui **4 September 2026**, sesudah `BE-ACC-015` dan jurnal pertama terbentuk.
 
 **Backend 15 dari 15 `DONE`. Frontend 6 dari 11 `IMPLEMENTED`.** Enam layar berdiri di

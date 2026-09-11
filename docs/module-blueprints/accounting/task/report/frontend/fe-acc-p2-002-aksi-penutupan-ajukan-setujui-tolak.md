@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `47cf3c6a0` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `3e2fb76` (branch `rizkiG`) |
 | Tanggal | 10 September 2026 |
-| Status | Alur penuh **terbukti terhadap backend sungguhan**; satu cacat ditemukan dan diperbaiki. Acceptance (2) terbukti sebagian — lihat bagian 6 dan 7 |
+| Status | **🟡 Tinggal satu butir DoD: `npm run build`, dijalankan owner — penilaian ulang 11 September 2026.** Keempat acceptance terpetakan ke source; tampilan tombol mati bagi pengguna kedua (`UAT-P2-15`..`18`) dikecualikan dari DoD development atas keputusan owner dan diserahkan ke tim UAT, `READY FOR UAT`. Layarnya ikut disentuh `FE-ACC-P2-001` acceptance (5), jadi build ulang diperlukan. *Riwayat: Alur penuh **terbukti terhadap backend sungguhan**; satu cacat ditemukan dan diperbaiki. Acceptance (2) terbukti sebagian — lihat bagian 6 dan 7.* |
 
 ---
 

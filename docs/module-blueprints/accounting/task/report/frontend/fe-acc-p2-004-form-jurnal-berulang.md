@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `460f717a0` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `968841e` (branch `rizkiG`) |
 | Tanggal | 11 September 2026 |
-| Status | Selesai di kode. `UAT-P2-13` diserahkan kepada Rizki |
+| Status | **✅ `SELESAI` sisi development — penilaian ulang 11 September 2026.** `IMPLEMENTATION COMPLETE` · `READY FOR UAT`; UAT belum dijalankan, diserahkan ke tim UAT terpisah atas keputusan owner. Lihat baris Status kartu task pada roadmap. *Riwayat: Selesai di kode. `UAT-P2-13` diserahkan kepada Rizki.* |
 
 ---
 

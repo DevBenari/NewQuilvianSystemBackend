@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `47cf3c6a0` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `3e2fb76` (branch `rizkiG`) |
 | Tanggal | 10 September 2026 |
-| Status | Selesai dan **diuji terhadap backend sungguhan**. Sisa: acceptance (5) sebagian, dan UAT peramban `NOT FEASIBLE` |
+| Status | **🟡 Ketujuh acceptance terpetakan ke source — 11 September 2026.** Acceptance (5) ditutup (bagian 9). Tinggal `npm run build` oleh owner; `UAT-P2-14` diserahkan ke tim UAT, `READY FOR UAT`. *Riwayat: Selesai dan **diuji terhadap backend sungguhan**. Sisa: acceptance (5) sebagian, dan UAT peramban `NOT FEASIBLE`.* |
 
 ---
 
@@ -291,3 +291,109 @@ baru terpenuhi sebagian.
 | Interupsi | `NONE` |
 | Status Git | `M accounting-period-view.jsx`, `M accounting-period-constants.jsx`, `M store.jsx`, `M accounting-period-view.module.css`, ditambah tujuh berkas baru pada `src/app/corporate/accounting/periods/[slug]/`, `src/components/view/corporate/accounting/accounting-period/closing/`, `period-closing-constants.jsx`, `use-period-closing.jsx`, `accounting-period-closing-slice.jsx`, `period-closing-view.module.css`, dan `tests/unit/accounting-period-closing.test.mjs`. Tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Jalankan `UAT-P2-14` di peramban dengan sesi sungguhan. Pertimbangkan task lanjutan untuk penyaring periode pada layar Jurnal agar acceptance (5) terpenuhi penuh |
+
+---
+
+## 9. Acceptance (5) dan penilaian ulang — 11 September 2026
+
+Dikerjakan atas instruksi owner sebagai penutup gelombang mandiri Phase 2. Status dipisah menurut
+alur kerja owner: UAT dijalankan tim UAT terpisah dan bukan penghalang development.
+
+```text
+IMPLEMENTATION STATUS          : IMPLEMENTATION COMPLETE — ketujuh acceptance terpetakan ke source
+DEVELOPER VERIFICATION STATUS  : PARTIAL — lint dan unit test hijau; npm run build dijalankan owner
+UAT STATUS                     : READY FOR UAT — UAT-P2-14 belum diuji tim UAT
+```
+
+### 9.1 Masalah yang ditutup
+
+Tautan Lihat pada butir "Jurnal belum disahkan" dan "Jurnal tidak seimbang" membuka **seluruh**
+daftar jurnal. Petugas yang sedang menutup September harus menyaring sendiri, dan mudah membaca
+jurnal Oktober sebagai penghalang September.
+
+### 9.2 Cara kerjanya
+
+| Langkah | Yang terjadi |
+| ---: | --- |
+| 1 | Layar daftar periksa mengambil daftar periode — `GET /periods`, `pageSize=200`, urutan menurun — endpoint dan thunk yang sama dengan layar Periode dan Neraca Saldo |
+| 2 | Periode dicari menurut `accountingPeriodId` dari respons daftar periksa, lalu `StartDate`/`EndDate`-nya diambil |
+| 3 | Tautan Lihat menjadi `/corporate/accounting/journals?dateFrom=2026-09-01&dateTo=2026-09-30` |
+| 4 | Layar Jurnal membaca kedua tanggal itu saat dibuka dan mengisinya ke penyaring Tanggal Awal dan Tanggal Akhir; `GET /journals` menyaring `AccountingDate` secara inklusif (`AccJournalService`) |
+
+**Kenapa rentang tanggal, bukan `accountingPeriodId`.** `JournalQuery` backend tidak punya bidang
+periode — hanya `DateFrom`/`DateTo`. Periode sebuah jurnal ditentukan tanggal akuntansinya, jadi
+rentang tanggal periode menyaring himpunan jurnal yang sama. Nol perubahan backend.
+
+Keputusan yang jangan diulang penelusurannya:
+
+- **Tanggal tidak diturunkan dari kode periode** (`2026-09` dianggap 1–30 September) — itu menebak
+  batas yang ditetapkan backend. Bila periodenya tidak ketemu, tautan tetap membuka daftar jurnal
+  tanpa penyaring.
+- **Jebakan zona waktu.** `toDateInputValue` memakai `toISOString`, sehingga `2026-09-01T00:00:00`
+  tanpa `Z` bergeser ke `2026-08-31` di WIB, dan tautannya akan menyaring 31 Agustus sampai 29
+  September. Util baru `toDateOnlyText` mengambil sepuluh karakter pertama apa adanya; ada uji yang
+  memagari.
+- **Batas Suspense.** `useSearchParams` di halaman statis menuntut batas Suspense; tanpa itu
+  `next build` gagal saat prerender. Dipasang di `journals/page.jsx`, mengikuti
+  `lab-orders/create/page.jsx`.
+- **Hanya tanggal yang masuk bilah alamat**, tidak ada id. Nilai query yang bukan tanggal sah
+  dibuang sebelum sampai ke permintaan backend.
+
+### 9.3 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/utils/corporate/accounting/journal/journal-filter-query-utils.jsx` (baru) | `isValidDateOnly`, `toDateOnlyText`, `readJournalDateFiltersFromQuery`, `buildJournalListHref` |
+| `src/utils/corporate/accounting/accounting-period/period-closing-utils.jsx` (baru) | `findPeriodDateRange`, `resolveChecklistItemHref` |
+| `src/lib/hooks/corporate/accounting/accounting-period/use-period-closing.jsx` | Ambil daftar periode sekali; `periodRange` dan `checklistHrefByCode` |
+| `src/components/view/corporate/accounting/accounting-period/closing/period-closing-view.jsx` | Tautan Lihat memakai `checklistHrefByCode` |
+| `src/lib/hooks/corporate/accounting/journal/use-journal.jsx` | Penyaring tanggal awal dibaca dari URL lewat `useSearchParams` |
+| `src/app/corporate/accounting/journals/page.jsx` | Batas `Suspense` |
+| `tests/unit/accounting-period-closing-link.test.mjs` (baru) | 9 uji |
+
+`UI GATE: 2 elemen — REUSE 2, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0` — `BaseButton as={Link}` yang
+sudah ada, dan `FilterDatePicker` yang sudah ada di layar Jurnal. Nol komponen, nol endpoint, nol
+slice baru.
+
+### 9.4 Verifikasi
+
+| Perintah | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npm run lint:errors` seluruh repository | `0 errors`, exit 0 | `PASS` |
+| `npx eslint` pada 7 berkas di atas | `0 errors`, 0 warning | `PASS` |
+| `node --import ./tests/helpers/register.mjs --test tests/unit/` | **686 lulus, 0 gagal** (677 → 686) | `PASS` |
+| `npm run build` | Tidak dijalankan | `NOT RUN` — instruksi owner: build dijalankan owner sendiri |
+
+`AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/ — PASS`
+
+`MANUAL TEST: NOT FEASIBLE` — sesi ini tidak menjalankan peramban; uji fungsional diserahkan kepada
+tim UAT.
+
+### 9.5 Acceptance dan DoD, dinilai ulang
+
+| Kriteria | Status | Bukti |
+| --- | --- | --- |
+| (1)–(4), (6), (7) | Terpenuhi | Bagian 7, tidak berubah |
+| (5) Tautan Lihat membuka daftar jurnal yang sudah tersaring ke periode itu | **Terpenuhi di source** | 9.2; uji `alamat tautan Lihat terbaca kembali utuh oleh layar Jurnal` |
+| DoD — lint hijau, unit test lulus, laporan | Terpenuhi | 9.4 |
+| DoD — build hijau | **Belum** | Dijalankan owner. Sesudah hijau, task ini memenuhi syarat ✅ |
+| `UAT-P2-14` | Dikecualikan dari DoD development | Keputusan owner 11 September 2026; `READY FOR UAT` |
+
+### 9.6 Dampak ke layar lain
+
+Layar Jurnal (`FE-ACC-005`, MVP): penyaring awalnya kini dapat datang dari URL. Tanpa query,
+perilakunya sama persis dengan sebelumnya; atur ulang tetap mengosongkan seluruh penyaring.
+
+### 9.7 Yang perlu diuji tim UAT
+
+| No | Langkah | Yang diharapkan |
+| ---: | --- | --- |
+| 1 | Periode Akuntansi → Tutup Periode pada periode yang punya jurnal belum disahkan → Lihat | Daftar jurnal terbuka dengan Tanggal Awal dan Tanggal Akhir terisi batas periode; hanya jurnal periode itu yang tampil |
+| 2 | Jurnal bertanggal akuntansi hari terakhir periode, dan hari pertama periode berikutnya | Yang pertama ikut, yang kedua tidak |
+| 3 | Atur ulang penyaring di layar Jurnal | Kembali ke seluruh jurnal |
+| 4 | Buka `/corporate/accounting/journals?dateFrom=abc` | Penyaring kosong, tanpa galat |
+| 5 | Buka daftar jurnal dari menu | Perilaku lama, tanpa penyaring |
+
+### 9.8 Status Git
+
+Nol commit, stage, push, merge, atau rebase. Owner menjalankan build dan commit sendiri.
