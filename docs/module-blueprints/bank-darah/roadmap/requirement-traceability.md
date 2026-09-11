@@ -52,7 +52,7 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | **Pemeriksaan golongan darah** | `DEC-BD-015`, `DEC-BD-018`, `DEC-BD-026` | ✅ `BE-BD-005` | ⛔ `FE-BD-005` | Backend **terbukti** ([BE-BD-005](../task/report/backend/BE-BD-005.md)). `FE-BD-005` **tetap tertahan** — dependency-nya juga `BE-BD-007`/`BE-BD-008` yang tertahan rantai dependency (`G4` sendiri tertutup 10 September 2026), dan roadmap frontend melarang memecahnya tanpa persetujuan pemilik |
 | **Penyelesaian konflik golongan darah** | `DEC-BD-026`, `DEC-BD-031`, `DEC-BD-039` | ✅ `BE-BD-011` | 🟡 `FE-BD-009` | Backend **terbukti** ([BE-BD-011](../task/report/backend/BE-BD-011.md)); `FE-BD-009` kini terbuka |
 | Order darah dan pembatalannya | `DEC-BD-004/005/006/044` | ✅ `BE-BD-003` | 🟡 `FE-BD-002` | Backend **terbukti** 11 September 2026 ([BE-BD-003](../task/report/backend/BE-BD-003.md)); `FE-BD-002` kehilangan penahan backend-nya |
-| Permintaan PMI dan penerimaan | `DEC-BD-002/003/008/020` | 🟡 `BE-BD-004` | ⛔ `FE-BD-003` | Backend siap dijadwalkan sejak `BE-BD-003` selesai 11 September 2026. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
+| Permintaan PMI dan penerimaan | `DEC-BD-002/003/008/020` | 🟡 `BE-BD-004` | ⛔ `FE-BD-003` | Backend **selesai sebagian 11 September 2026** ([BE-BD-004](../task/report/backend/BE-BD-004.md)): permintaan, penerimaan termasuk kelebihan, dan kantong `Received` terbukti; 6 dari 9 kriteria. **Riwayat:** siap dijadwalkan sejak `BE-BD-003` selesai 11 September 2026; tertahan `G4` sampai 10 September 2026 |
 | Penyimpanan dan perpindahan kantong | `DEC-BD-036`, `DEC-BD-037` | ⛔ `BE-BD-015` | ⛔ `FE-BD-012` | Tertahan lewat `BE-BD-004` |
 | Alokasi kantong | `DEC-BD-003/007/029` | ⛔ `BE-BD-006` | ⛔ `FE-BD-004` | Tertahan lewat `BE-BD-015` |
 | Bukti kecocokan dan pemberian | `DEC-BD-013/027/028/038/042` | ⛔ `BE-BD-007` | ⛔ `FE-BD-005` | Tertahan lewat `BE-BD-006` |
@@ -76,7 +76,9 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | `AC-BD-030/034/035/077/078` | ✅ `BE-BD-005` | **Terbukti** — 29 test pada `BloodGroupExamServiceTests` + `BloodBankRoleAccessContractTests`. `AC-BD-077/078` terbukti pada tingkat penegakan atribut hak akses; batasnya dicatat di [laporan](../task/report/backend/BE-BD-005.md) bagian 6 |
 | `AC-BD-036/037/051/053/054/079/080` | ✅ `BE-BD-011` | **Terbukti** — 9 test penyelesaian konflik. `AC-BD-037` terbukti pada tingkat penegakan atribut hak akses; batasnya dicatat di [laporan](../task/report/backend/BE-BD-011.md) bagian 8 |
 | `AC-BD-001/002/003/004/010/011/017/095/096/097` | ✅ `BE-BD-003` | **Terbukti** — 79 test `BloodOrderServiceTests` ditambah 4 uji PostgreSQL; rincian per kriteria di [laporan](../task/report/backend/BE-BD-003.md) bagian 6. Keduanya lulus kembali pada verifikasi ulang 11 September 2026, commit `8e30aa9` — 79/79 dan 4/4 (bagian 5.1). `AC-BD-004` dibuktikan lewat perpindahan order ke `Expired` dan hilangnya penahanan; tafsirannya menunggu konfirmasi pemilik proses |
-| `AC-BD-005/006/009/022/023/031/032/033/059` | 🟡 `BE-BD-004` | Belum diuji — task siap dijadwalkan sejak 11 September 2026. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
+| `AC-BD-005/006/009/022/031/059` | ✅ `BE-BD-004` | **Terbukti 11 September 2026** — 63 test `ProviderRequestServiceTests` ditambah 5 uji PostgreSQL; rincian per kriteria di [laporan](../task/report/backend/BE-BD-004.md) bagian 6. `AC-BD-022` dibuktikan lewat service; pemicu otomatisnya belum ada |
+| `AC-BD-023`, `AC-BD-032` | 🟡 `BE-BD-004` | **Sebagian** — penerimaan dicatat, kantong berlebih ditandai `IsExcess` beserta alasan "Kiriman melebihi permintaan.", dan kantong susulan sesudah `ClosedEncounter` membawa rujukan asal. Perpindahan kantong ke `PendingReview` terjadi sesudah disimpan, milik `BE-BD-015` |
+| `AC-BD-033` | 🟡 `BE-BD-004` | **Belum** — penolakan `VAL-BD-033` hidup pada endpoint alokasi `BE-BD-006`. Pada `BE-BD-004` belum ada satu jalur pun yang dapat mengalokasikan kantong. **Riwayat baris gabungan:** belum diuji — task siap dijadwalkan sejak 11 September 2026; tertahan `G4` sampai 10 September 2026 |
 | `AC-BD-060/061/063/066/067/068/069/070` | ⛔ `BE-BD-015` | Tertahan |
 | `AC-BD-062`, `AC-BD-065` | ⛔ `BE-BD-015` | Diteruskan dari `BE-BD-014` |
 | `AC-BD-043/044/045/046/071` | ⛔ `BE-BD-006` | Tertahan |
@@ -87,7 +89,9 @@ penelusurannya utuh tetapi buktinya belum ada — dua hal yang berbeda.
 | `AC-BD-026/058` | 🟡 `BE-BD-012` | Belum diuji — task siap dijadwalkan sejak 11 September 2026. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | `AC-BD-027` | — `BE-BD-013` | **Tidak dapat diuji** — `DEC-BD-016` terbuka |
 
-**Hitungan bukti per 11 September 2026: 28 dari 97 terbukti.** Kesebelas acceptance criteria `BE-BD-003` — `AC-BD-001/002/003/004/010/011/013/017/095/096/097` — terbukti, menambah 17 yang sudah ada. **1 tidak dapat diuji** (`AC-BD-027`), dan **68 sisanya belum diuji** — seluruhnya milik task sesudah `BE-BD-003`.
+**Hitungan bukti per 11 September 2026 sesudah `BE-BD-004`: 34 dari 97 terbukti.** Enam kriteria `BE-BD-004` — `AC-BD-005/006/009/022/031/059` — terbukti, menambah 28 yang sudah ada. `AC-BD-023` dan `AC-BD-032` **terbukti sebagian** dan belum dihitung; `AC-BD-033` belum. **1 tidak dapat diuji** (`AC-BD-027`), dan **62 sisanya belum terbukti penuh**.
+
+**Riwayat — hitungan bukti per 11 September 2026 sebelum `BE-BD-004`: 28 dari 97 terbukti.** Kesebelas acceptance criteria `BE-BD-003` — `AC-BD-001/002/003/004/010/011/013/017/095/096/097` — terbukti, menambah 17 yang sudah ada. **1 tidak dapat diuji** (`AC-BD-027`), dan **68 sisanya belum diuji** — seluruhnya milik task sesudah `BE-BD-003`.
 
 **Riwayat — hitungan bukti 10 September 2026.** Dari 97 acceptance criteria, **17 sudah terbukti** — 5 dari gelombang master
 (`AC-BD-015/016/055/056/064`) ditambah 12 dari pemeriksaan golongan darah
@@ -110,6 +114,11 @@ boleh** memakai SuperAdmin karena `HasAccessAsync` meloloskannya sebelum satu ba
 
 | Gap | Keadaan | Akibat |
 | --- | --- | --- |
+| **Tiga kriteria `BE-BD-004` menunjuk state task lain** — **BARU 11 September 2026** | `AC-BD-023`/`032` menuntut kantong `PendingReview`, yang menurut matriks §3 `v2` lahir sesudah penyimpanan (`BE-BD-015`); `AC-BD-033` menuntut endpoint alokasi (`BE-BD-006`). Ditemukan builder `BE-BD-004` | **Menahan `BE-BD-004` di 🟡 dan, lewat dependency, `BE-BD-015`.** Keputusan pemilik roadmap: teruskan ketiganya ke task tempat penegakannya hidup, mengikuti preseden `BE-BD-002` → `BE-BD-003` dan `BE-BD-014` → `BE-BD-015` |
+| **Kantong yang datang sesudah permintaan `Fulfilled`** — **BARU 11 September 2026** | Matriks §2 menyebut `Fulfilled` terminal; hanya `ClosedEncounter` yang menerima kantong susulan. `BE-BD-004` karena itu menolak penerimaan pada permintaan `Fulfilled` | **Tidak menahan task.** Dapat bertentangan dengan semangat `DEC-BD-025` bila PMI mengirim kantong tambahan dalam kiriman terpisah. Perlu keputusan pemilik proses BDRS |
+| **Kategori alasan pembatalan permintaan PMI** — **BARU 11 September 2026** | Kontrak menuntut alasan terkendali tanpa menetapkan kategori | **Tidak menahan task.** `BE-BD-004` menerima alasan aktif mana pun, sama seperti `BE-BD-011` |
+| **Pemicu `ClosedEncounter` otomatis** — **BARU 11 September 2026** | Perpindahannya ada di `BbkProviderRequestService.CloseForEncounterEndAsync` dan terbukti (`AC-BD-022`), tetapi pemicu otomatisnya belum ada — sama dengan kedaluwarsa order | Satu task pemicu dapat melayani keduanya |
+| **`AC-BD-014` tanpa task pemilik** — **BARU 11 September 2026** | "Permintaan tanpa jumlah kantong" (`VAL-BD-007`) tidak tercantum pada kartu task backend mana pun. `BE-BD-004` menegakkan `VAL-BD-007` pada order tanpa jumlah yang dapat diminta, karena jumlahnya diturunkan dari baris order | Pemilik roadmap memutuskan rumahnya |
 | **`BloodOrder : Update` tanpa endpoint** — **BARU 11 September 2026** | Matriks hak akses menyebut butir ini sebagai pasangan yang dipisahkan dari `Cancel` (`DEC-BD-044`), tetapi api-contract `v4` tidak punya endpoint suntingan order. Ditemukan builder `BE-BD-003` | **Tidak menahan task.** Butir tidak didaftarkan; contract test menandainya `TANPA-ENDPOINT-V4`. Keputusan pemilik kontrak diperlukan: buat endpoint suntingan beserta aturannya, atau cabut butir dari matriks |
 | **Pemicu kedaluwarsa order otomatis** — **BARU 11 September 2026** | Perpindahan `Active` → `Expired` ada di `BbkBloodOrderService.ExpireAsync` dan terbukti (`AC-BD-004/017`), tetapi pemicu otomatis yang membaca sinyal kunjungan tidak termasuk scope `BE-BD-003` dan belum ada | Order pada kunjungan yang sudah berakhir tetap tercatat `Active` sampai pemicunya ada. **Penahanan ganda tidak terdampak**, karena order baru pada kunjungan yang berakhir sudah ditolak. Perlu task tersendiri |
 | **Tafsiran "kunjungan sah"** — **BARU 11 September 2026** | `BE-BD-003` menolak order baru pada kunjungan yang sudah berakhir, sebagai turunan `DEC-BD-006`, `ASM-BD-002`, dan pesan `VAL-BD-004` | Perlu konfirmasi pemilik proses BDRS |
@@ -156,10 +165,10 @@ supaya tidak hilang, bukan sebagai penahan.
 | Dimensi | Angka |
 | --- | ---: |
 | Task backend seluruhnya | 16 |
-| — ✅ selesai | 5 |
-| — 🟡 selesai sebagian | 1 |
-| — 🟡 pending, siap dijadwalkan | 1 — `BE-BD-003` |
-| — ⛔ blocked | 8 |
+| — ✅ selesai | 6 — per 11 September 2026. **Riwayat:** 5 |
+| — 🟡 selesai sebagian | 2 — `BE-BD-016`, `BE-BD-004`. **Riwayat:** 1 |
+| — 🟡 pending, siap dijadwalkan | 1 — `BE-BD-012`. **Riwayat:** `BE-BD-003` |
+| — ⛔ blocked | 6 — `BE-BD-006`..`010`, `015`. **Riwayat:** 8 |
 | — future scope | 1 |
 | Task frontend seluruhnya | 12 |
 | — ✅ selesai | 1 |
@@ -168,9 +177,9 @@ supaya tidak hilang, bukan sebagai penahan.
 | **Total task** | **28** (27 dalam gelombang + 1 future scope) |
 | **Dapat dijadwalkan hari ini** | **2** — `BE-BD-003` (backend, terbuka sejak `G4` tertutup 10 September 2026) dan `FE-BD-009` (frontend). `FE-BD-011` dan `FE-BD-006` sudah dikerjakan 10 September 2026, keduanya berakhir 🟡 sebagian |
 | Acceptance criteria seluruhnya | 97 |
-| — terbukti | 17 |
+| — terbukti | 34 — per 11 September 2026 sesudah `BE-BD-004`. **Riwayat:** 17 |
 | — tidak dapat diuji (keputusan terbuka) | 1 |
-| — belum diuji | 79 |
+| — belum terbukti penuh | 62 — termasuk `AC-BD-023`/`032` yang terbukti sebagian. **Riwayat:** 79 |
 | Keputusan bisnis | `DEC-BD-001`..`047` |
 | Gerbang tertutup | `G1`, `G2a`, `G2b`, **`G4`** — yang terakhir 10 September 2026 |
 | Gerbang terbuka | **Nol** |
