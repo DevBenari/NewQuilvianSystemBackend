@@ -14,10 +14,32 @@
 | Decision revision | `12` — `DEC-BD-001` sampai `DEC-BD-049`. `DEC-BD-048`/`049` dinyatakan pemilik `Sukmagp` 11 September 2026 |
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
-| Roadmap | Backend revisi **`8`** — acceptance criteria `BE-BD-012` diganti `AC-BD-098`..`102` dan `AC-BD-026/058` dipindah ke `BE-BD-013` atas keputusan `Sukmagp` 2026-09-11. **Riwayat:** revisi `7` — **`APPROVED`** oleh `Sukmagp` 2026-09-10. Frontend revisi `7` masih `FORWARD-TEST / DRAFT`. **Riwayat:** revisi `2` `APPROVED` 2026-09-03 |
-| Terakhir diperbarui | **`2026-09-11`** — **`BE-BD-012` selesai**: tindakan Bank Darah tercatat dengan tarif dari data induk dan salinan beku, tanpa jalur Billing; migration `AddBbkBloodBankProcedure` diterapkan ke `QuilvianNewDevSukma` (`140/140`, nol tertunda); 600 + 231 test dan 13 uji PostgreSQL lulus; kelima kriteria terbukti ([laporan](task/report/backend/BE-BD-012.md)). Sebelumnya pada hari yang sama **roadmap revisi 8**: keputusan `DEC-BD-048`/`049` dan kriteria `AC-BD-098`..`102` dicatat; `BE-BD-012` 🟡 siap dijadwalkan kembali. Sebelumnya pada hari yang sama **`BE-BD-012` ⛔ BLOCKED** sebelum implementasi: aturan pemilihan tarif, sumber unit dan kelas, dan rumah `AC-BD-026`/`058` belum diputuskan; nol source ditulis ([laporan](task/report/backend/BE-BD-012.md)). Sebelumnya pada hari yang sama **`BE-BD-004` selesai sebagian**: permintaan PMI, penerimaan, dan kantong `Received`; migration `AddBbkProviderRequestAndBloodUnit` diterapkan ke `QuilvianNewDevSukma` (`139/139`, nol tertunda); 561 + 231 test dan 9 uji PostgreSQL lulus; 6 dari 9 kriteria. Sebelumnya pada hari yang sama: penyegaran metadata sesudah `BE-BD-003`: SHA backend `d07dcf3`, bukti build di `8e30aa9` (verifikasi ulang: build `0 Error(s)`, 498 + 231 test, 4 uji PostgreSQL), suite skill `1.18.0`. Revisi tetap `25`. Sebelumnya pada hari yang sama **`BE-BD-003` selesai**: order darah, migration `AddBbkBloodOrder` diterapkan ke `QuilvianNewDevSukma` (`138/138`, nol tertunda), 498 test dan 4 uji PostgreSQL lulus. Sebelumnya **`2026-09-10`** — **gerbang `G4` tertutup** atas pernyataan `Andry`, dan roadmap backend revisi 7 disetujui `Sukmagp`. Sebelumnya pada hari yang sama: migration diterapkan ke `QuilvianNewDevSukma` (`137/137`, nol tertunda), `FE-BD-011` selesai sebagian, dan SHA disegarkan ke `95e4b8d`. Sebelumnya `2026-09-07`: penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
+| Roadmap | Backend revisi **`9`** — `AC-BD-023`/`032` diteruskan dari `BE-BD-004` ke `BE-BD-015` dan `AC-BD-033` ke `BE-BD-006` atas keputusan `Sukmagp` 2026-09-11. **Riwayat:** revisi `8` — acceptance criteria `BE-BD-012` diganti `AC-BD-098`..`102` dan `AC-BD-026/058` dipindah ke `BE-BD-013` atas keputusan `Sukmagp` 2026-09-11. **Riwayat:** revisi `7` — **`APPROVED`** oleh `Sukmagp` 2026-09-10. Frontend revisi `7` masih `FORWARD-TEST / DRAFT`. **Riwayat:** revisi `2` `APPROVED` 2026-09-03 |
+| Terakhir diperbarui | **`2026-09-11`** — **roadmap revisi 9**: tiga kriteria `BE-BD-004` diteruskan (`AC-BD-023`/`032` → `BE-BD-015`, `AC-BD-033` → `BE-BD-006`); `BE-BD-004` ✅ dan `BE-BD-015` 🟡 siap dijadwalkan. Nol source, nol migration. Sebelumnya pada hari yang sama **`BE-BD-012` selesai**: tindakan Bank Darah tercatat dengan tarif dari data induk dan salinan beku, tanpa jalur Billing; migration `AddBbkBloodBankProcedure` diterapkan ke `QuilvianNewDevSukma` (`140/140`, nol tertunda); 600 + 231 test dan 13 uji PostgreSQL lulus; kelima kriteria terbukti ([laporan](task/report/backend/BE-BD-012.md)). Sebelumnya pada hari yang sama **roadmap revisi 8**: keputusan `DEC-BD-048`/`049` dan kriteria `AC-BD-098`..`102` dicatat; `BE-BD-012` 🟡 siap dijadwalkan kembali. Sebelumnya pada hari yang sama **`BE-BD-012` ⛔ BLOCKED** sebelum implementasi: aturan pemilihan tarif, sumber unit dan kelas, dan rumah `AC-BD-026`/`058` belum diputuskan; nol source ditulis ([laporan](task/report/backend/BE-BD-012.md)). Sebelumnya pada hari yang sama **`BE-BD-004` selesai sebagian**: permintaan PMI, penerimaan, dan kantong `Received`; migration `AddBbkProviderRequestAndBloodUnit` diterapkan ke `QuilvianNewDevSukma` (`139/139`, nol tertunda); 561 + 231 test dan 9 uji PostgreSQL lulus; 6 dari 9 kriteria. Sebelumnya pada hari yang sama: penyegaran metadata sesudah `BE-BD-003`: SHA backend `d07dcf3`, bukti build di `8e30aa9` (verifikasi ulang: build `0 Error(s)`, 498 + 231 test, 4 uji PostgreSQL), suite skill `1.18.0`. Revisi tetap `25`. Sebelumnya pada hari yang sama **`BE-BD-003` selesai**: order darah, migration `AddBbkBloodOrder` diterapkan ke `QuilvianNewDevSukma` (`138/138`, nol tertunda), 498 test dan 4 uji PostgreSQL lulus. Sebelumnya **`2026-09-10`** — **gerbang `G4` tertutup** atas pernyataan `Andry`, dan roadmap backend revisi 7 disetujui `Sukmagp`. Sebelumnya pada hari yang sama: migration diterapkan ke `QuilvianNewDevSukma` (`137/137`, nol tertunda), `FE-BD-011` selesai sebagian, dan SHA disegarkan ke `95e4b8d`. Sebelumnya `2026-09-07`: penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
 
-## Keadaan sekarang — 11 September 2026: `BE-BD-012` selesai
+## Keadaan sekarang — 11 September 2026: roadmap revisi 9, `BE-BD-004` selesai
+
+Modul tetap **`IN_PROGRESS`**. Pemilik meneruskan tiga kriteria `BE-BD-004` ke task tempat aturannya
+benar-benar ditegakkan. **Contoh:** `AC-BD-033` menuntut "kantong berlebih ditolak ketika dialokasikan".
+Penolakan itu baru dapat diuji bila ada endpoint alokasi, dan endpoint itu lahir di `BE-BD-006` —
+bukan di `BE-BD-004` yang hanya mencatat penerimaan.
+
+| Kriteria | Dari | Ke | Kenapa |
+| --- | --- | --- | --- |
+| `AC-BD-023` | `BE-BD-004` | `BE-BD-015` | Kantong masuk `PendingReview` sesudah disimpan, dan penyimpanan milik `BE-BD-015`. Bagian penerimaannya sudah terbukti di `BE-BD-004` |
+| `AC-BD-032` | `BE-BD-004` | `BE-BD-015` | Sama; penanda berlebih dan alasannya sudah terbukti di `BE-BD-004` |
+| `AC-BD-033` | `BE-BD-004` | `BE-BD-006` | Penolakan `VAL-BD-033` hidup pada endpoint alokasi |
+
+| Akibat | Keadaan |
+| --- | --- |
+| `BE-BD-004` | 🟡 → ✅ **selesai** — keenam kriteria yang tetap miliknya terbukti ([laporan](task/report/backend/BE-BD-004.md)) |
+| `BE-BD-015` | ⛔ → 🟡 **siap dijadwalkan** — `BE-BD-004` ✅ dan `BE-BD-014` ✅, nol keputusan terbuka |
+| `BE-BD-006` | Tetap ⛔ lewat `BE-BD-015`; kini juga memuat `AC-BD-033` |
+| `FE-BD-003` | Kehilangan penahan backend-nya; roadmap frontend masih `DRAFT` |
+| Hitungan kriteria terbukti | Tetap **39 dari 102** — penerusan hanya memindahkan pemilik |
+| Yang tidak berubah | Nol source, test, migration, kontrak, dependency, maupun aturan bisnis. `BE-BD-012` dan `BE-BD-013` tidak disentuh |
+
+## Riwayat — 11 September 2026: `BE-BD-012` selesai
 
 Modul tetap **`IN_PROGRESS`**. Bank Darah kini mencatat **tindakan yang dikerjakannya** beserta
 tarifnya. Contoh: uji silang serasi untuk pasien kelas VIP tercatat dengan tarif VIP Rp250.000 yang
@@ -332,7 +354,7 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `DONE` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). **Bukti penerimaan:** set kontrak `v4` disetujui `Sukmagp` pada `2026-09-03` (`G1`), tercatat di manifest revisi 20 dan di kepala setiap artefak kontrak. |
 | `BD-PH-006` | Perencanaan delivery | `DONE` | Roadmap **revisi 2** menggantikan revisi 1 yang `STALE`, dan statusnya naik dari `FORWARD-TEST / DRAFT` menjadi **`APPROVED`** ketika `G1` turun. Ketiga gerbangnya tertutup: `G1` approval, `G2a` penamaan (`ed7fba8`), `G2b` aktivasi (`8075784`); `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. |
-| `BD-PH-007` | Implementasi backend | **`IN_PROGRESS`** | **Per 11 September 2026 sesudah `BE-BD-004`:** delapan task backend berlaporan — `BE-BD-001`, `002`, `003`, `005`, `011`, `014` ✅; `BE-BD-016` 🟡 25 dari 39 butir; `BE-BD-004` 🟡 6 dari 9 kriteria. `BE-BD-012` **siap dijadwalkan**. **Riwayat per 11 September 2026 sebelum `BE-BD-004`:** tujuh task backend berlaporan — `BE-BD-001`, `002`, `003`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 20 dari 39 butir; `BE-BD-004` dan `BE-BD-012` **siap dijadwalkan**. **Riwayat per 10 September 2026:** enam task backend berlaporan — `BE-BD-001`, `002`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 17 dari 39 butir. `G4` tertutup, sehingga `BE-BD-003` (`MVP-1`) **siap dijadwalkan**. **Riwayat:** Gelombang `MVP-0` **tuntas secara kode dan terbukti**. `BE-BD-001`, `BE-BD-002`, `BE-BD-014` **selesai**; `BE-BD-016` **selesai sebagian** (12 dari 39 butir; sisanya arsitektural). Keempatnya meninggalkan laporan tracked. Build hijau dan **101 pengujian Bank Darah lulus** di `5f7acaf`. `MVP-1` (`BE-BD-003`) **kini aman dijadwalkan**. |
+| `BD-PH-007` | Implementasi backend | **`IN_PROGRESS`** | **Per 11 September 2026 sesudah roadmap revisi 9:** sembilan task backend berlaporan — `BE-BD-001`, `002`, `003`, `004`, `005`, `011`, `012`, `014` ✅; `BE-BD-016` 🟡 28 dari 39 butir. `BE-BD-015` **siap dijadwalkan**. **Riwayat per 11 September 2026 sesudah `BE-BD-004`:** delapan task backend berlaporan — `BE-BD-001`, `002`, `003`, `005`, `011`, `014` ✅; `BE-BD-016` 🟡 25 dari 39 butir; `BE-BD-004` 🟡 6 dari 9 kriteria. `BE-BD-012` **siap dijadwalkan**. **Riwayat per 11 September 2026 sebelum `BE-BD-004`:** tujuh task backend berlaporan — `BE-BD-001`, `002`, `003`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 20 dari 39 butir; `BE-BD-004` dan `BE-BD-012` **siap dijadwalkan**. **Riwayat per 10 September 2026:** enam task backend berlaporan — `BE-BD-001`, `002`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 17 dari 39 butir. `G4` tertutup, sehingga `BE-BD-003` (`MVP-1`) **siap dijadwalkan**. **Riwayat:** Gelombang `MVP-0` **tuntas secara kode dan terbukti**. `BE-BD-001`, `BE-BD-002`, `BE-BD-014` **selesai**; `BE-BD-016` **selesai sebagian** (12 dari 39 butir; sisanya arsitektural). Keempatnya meninggalkan laporan tracked. Build hijau dan **101 pengujian Bank Darah lulus** di `5f7acaf`. `MVP-1` (`BE-BD-003`) **kini aman dijadwalkan**. |
 | `BD-PH-008` | Implementasi frontend | **`IN_PROGRESS`** | **Per 10 September 2026:** tiga task frontend berlaporan — `FE-BD-001` ✅, `FE-BD-011` 🟡 1 dari 2 kriteria, `FE-BD-006` 🟡 1 dari 2 kriteria; `FE-BD-009` siap dijadwalkan. **Riwayat (`NOT_STARTED`):** Kontrak API **sudah** `approved` dan terkunci pada `v4`, sehingga gerbangnya tidak lagi menahan. Yang menahan tinggal urutan biasa: tidak ada task FE yang mendahului task BE pasangannya, dan belum ada satu pun task BE yang dijalankan. |
 | `BD-PH-009` | Verifikasi kesiapan | **`IN_PROGRESS`** | Dijalankan dua kali pada 4 September 2026. Pass `f940ae3`: `NOT_READY`, dua blocker kritis. Pass `5f7acaf`: **`NOT_READY` karena cakupan**, kedua blocker kritis tertutup; gelombang `MVP-0` sendiri **`READY_WITH_CONDITIONS`**. Belum dapat ditutup `DONE`. |
 
@@ -366,13 +388,15 @@ keberadaan laporan `task/report/**`, bukan diperkirakan.
 | `FE-BD-011` | `SELESAI SEBAGIAN` 10 September 2026 | 1 dari 2 kriteria; jumlah kantong tertahan menunggu `BE-BD-015` |
 | `FE-BD-006` | `SELESAI SEBAGIAN` 10 September 2026 | 1 dari 2 kriteria; penyaringan menu menurut hak akses belum ada di frontend |
 | `BE-BD-003` | ✅ **`SELESAI`** 11 September 2026 | — |
-| `BE-BD-004` | 🟡 `SELESAI SEBAGIAN` 11 September 2026 | 6 dari 9 kriteria; `AC-BD-023`/`032` menunggu `BE-BD-015`, `AC-BD-033` menunggu `BE-BD-006` — butuh keputusan penerusan pemilik roadmap |
+| `BE-BD-004` | ✅ **`SELESAI`** 11 September 2026 — roadmap revisi 9 | —. Keenam kriteria yang tetap miliknya terbukti; `AC-BD-023`/`032` diteruskan ke `BE-BD-015`, `AC-BD-033` ke `BE-BD-006`. **Riwayat:** 🟡 `SELESAI SEBAGIAN` — 6 dari 9 kriteria, menunggu keputusan penerusan |
 | `BE-BD-012` | ✅ **`SELESAI`** 11 September 2026 | —. Kelima kriteria `AC-BD-098`..`102` terbukti; dua tafsiran menunggu konfirmasi pemilik tanpa menahan kriteria ([laporan](task/report/backend/BE-BD-012.md) bagian 7). **Riwayat:** 🟡 siap dijadwalkan sejak roadmap revisi 8; ⛔ `BLOCKED` 11 September 2026 menunggu tiga keputusan, seluruhnya diputuskan pemilik pada hari yang sama |
 | `FE-BD-002` | 🟡 penahan backend-nya hilang 11 September 2026 | Roadmap frontend masih `FORWARD-TEST / DRAFT` |
 | `FE-BD-009` | 🟡 **siap dijadwalkan** sejak 9 September 2026 | — |
-| 13 task lainnya | ⛔ `BLOCKED` | 6 task backend dan 7 task frontend, seluruhnya lewat rantai dependency sesudah `BE-BD-003` |
+| `BE-BD-015` | 🟡 **siap dijadwalkan** sejak roadmap revisi 9, 11 September 2026 | — kini juga memuat `AC-BD-023`/`032`. **Riwayat:** ⛔ lewat `BE-BD-004` |
+| `FE-BD-003`, `FE-BD-010` | 🟡 penahan backend-nya hilang 11 September 2026 | Roadmap frontend masih `FORWARD-TEST / DRAFT` |
+| 10 task lainnya | ⛔ `BLOCKED` | 5 task backend (`BE-BD-006`..`010`) dan 5 task frontend, seluruhnya lewat rantai dependency yang berawal dari `BE-BD-015`. **Riwayat:** 13 task — 6 backend dan 7 frontend, lewat rantai sesudah `BE-BD-003` |
 
-**Kemajuan delivery per 11 September 2026 sesudah `BE-BD-012`: 8 selesai penuh dan 4 selesai sebagian, dari 27 task** — `BE-BD-012` menambah satu yang penuh. **Riwayat:** **7 selesai penuh dan 4 selesai sebagian** sesudah `BE-BD-004`, yang menambah satu yang sebagian. **Riwayat:** **7 selesai penuh dan 3 selesai sebagian** sebelum `BE-BD-004`, `BE-BD-003` menambah satu. **Riwayat:** **kemajuan per 10 September 2026: 6 selesai penuh dan 3 selesai sebagian, dari 27 task.**
+**Kemajuan delivery per 11 September 2026 sesudah roadmap revisi 9: 9 selesai penuh dan 3 selesai sebagian, dari 27 task** — `BE-BD-004` naik dari sebagian ke penuh. **Riwayat:** **8 selesai penuh dan 4 selesai sebagian** sesudah `BE-BD-012`, yang menambah satu yang penuh. **Riwayat:** **7 selesai penuh dan 4 selesai sebagian** sesudah `BE-BD-004`, yang menambah satu yang sebagian. **Riwayat:** **7 selesai penuh dan 3 selesai sebagian** sebelum `BE-BD-004`, `BE-BD-003` menambah satu. **Riwayat:** **kemajuan per 10 September 2026: 6 selesai penuh dan 3 selesai sebagian, dari 27 task.**
 Angka ini dihitung dari sembilan laporan yang benar-benar ada di `task/report/**`. **Riwayat:** 3
 selesai penuh dan 1 selesai sebagian per 4 September 2026.
 
@@ -502,7 +526,17 @@ bukan yang dikutip peta — `base-editor-view.jsx` berbeda dari `base-editor-for
 
 ## Task berikutnya yang disarankan
 
-### Per 11 September 2026 — sesudah `BE-BD-012`
+### Per 11 September 2026 — sesudah roadmap revisi 9
+
+| Urutan | Tindakan | Pemilik | Sifat |
+| --- | --- | --- | --- |
+| 1 | **`BE-BD-015`** — penyimpanan dan perpindahan kantong | `build-module-backend` | 🟡 **siap dijadwalkan.** Jalur kritis `BE-BD-015` → `BE-BD-006` → `BE-BD-007`. Kini juga membuktikan `AC-BD-023`/`032`. Satu task satu wewenang |
+| 2 | Konfirmasi dua tafsiran `BE-BD-012`: kunjungan tanpa kelas pasien, dan arti "order sah" untuk tindakan | Pemilik proses BDRS | [Laporan](task/report/backend/BE-BD-012.md) bagian 7 nomor 4 dan 5. Tidak menahan task mana pun |
+| 3 | Jawab dua pertanyaan terbuka `BE-BD-004`: kantong sesudah `Fulfilled`, dan kategori alasan pembatalan permintaan PMI | Pemilik proses BDRS | Lihat laporan `BE-BD-004` bagian 8 |
+| 4 | Jadwalkan `FE-BD-003` dan `FE-BD-010` | Pemilik roadmap frontend | Penahan backend keduanya hilang; roadmap frontend masih `DRAFT` |
+| 5 | Terapkan migration Bank Darah ke `QuilvianNewDevTim01`, staging, dan production | Pemilik database | Wewenang terpisah per database; sejauh ini baru `QuilvianNewDevSukma` |
+
+### Riwayat — per 11 September 2026 sesudah `BE-BD-012`
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |

@@ -190,10 +190,13 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 8
+active_roadmap_revision: 9
 roadmap_status: APPROVED
 roadmap_status_note: >-
-  backend-roadmap.md revisi 8 pada 2026-09-11 mencatat keputusan Sukmagp atas BE-BD-012:
+  backend-roadmap.md revisi 9 pada 2026-09-11 mencatat penerusan kriteria yang disetujui Sukmagp:
+  AC-BD-023/032 dari BE-BD-004 ke BE-BD-015 dan AC-BD-033 ke BE-BD-006. Nol task baru, nol
+  dependency, kontrak, maupun aturan bisnis berubah.
+  Sebelumnya: backend-roadmap.md revisi 8 pada 2026-09-11 mencatat keputusan Sukmagp atas BE-BD-012:
   kriteria AC-BD-098..102, pemindahan AC-BD-026/058 ke BE-BD-013, serta DEC-BD-048/049.
   Nol task baru, nol dependency berubah, nol kontrak berubah.
   Sebelumnya: backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10. frontend-roadmap.md revisi 7

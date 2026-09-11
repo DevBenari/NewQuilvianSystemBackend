@@ -35,10 +35,10 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | `AC-BD-009` | Permintaan dikirim, darah belum diterima fisik | Integ | Stok tak bertambah |
 | `AC-BD-014` | Permintaan tanpa jumlah kantong | Unit | Ditolak (`VAL-BD-007`) |
 | `AC-BD-022` | Sisa 1 kantong saat kunjungan berakhir | Integ | `ClosedEncounter`, riwayat utuh |
-| `AC-BD-023` | Kantong datang setelah `ClosedEncounter` | Integ | Penerimaan dicatat, kantong → `PendingReview` |
+| `AC-BD-023` | Kantong datang setelah `ClosedEncounter` | Integ | Penerimaan dicatat, kantong → `PendingReview`. **Milik `BE-BD-015` sejak roadmap revisi 9 (11 September 2026)**; semula `BE-BD-004`, yang sudah membuktikan bagian penerimaannya |
 | `AC-BD-031` | Minta 2 PRC, datang 3 | Integ | `Fulfilled` sisa 0 (bukan −1); 3 kantong tercatat |
-| `AC-BD-032` | Kantong ke-3 pada `AC-BD-031` | Integ | `PendingReview` + alasan "kiriman melebihi permintaan", muncul di daftar #2 |
-| `AC-BD-033` | Kantong berlebih dialokasikan langsung ke order pasien sama | Integ | Ditolak (`VAL-BD-033`) |
+| `AC-BD-032` | Kantong ke-3 pada `AC-BD-031` | Integ | `PendingReview` + alasan "kiriman melebihi permintaan", muncul di daftar #2. **Milik `BE-BD-015` sejak roadmap revisi 9**; semula `BE-BD-004`, yang sudah membuktikan penanda berlebih dan alasannya |
+| `AC-BD-033` | Kantong berlebih dialokasikan langsung ke order pasien sama | Integ | Ditolak (`VAL-BD-033`). **Milik `BE-BD-006` sejak roadmap revisi 9**; semula `BE-BD-004` |
 
 ## 3. Alokasi, bukti, pemberian, koreksi
 

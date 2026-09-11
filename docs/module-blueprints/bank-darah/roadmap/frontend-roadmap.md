@@ -123,9 +123,9 @@ pasangannya, dimulai `BE-BD-003` yang sudah siap dijadwalkan.
 ════════ JALUR MENUNGGU BACKEND — G4 ✅ tertutup 10 Sep 2026 ════════
 
 ✅ BE-BD-003 ──> 🟡 FE-BD-002 (order darah + pemenuhan + pembatalan)
-⛔ BE-BD-004 ──> ⛔ FE-BD-003 (permintaan PMI + penerimaan)
+✅ BE-BD-004 ──> ⛔ FE-BD-003 (permintaan PMI + penerimaan)
 ✅ BE-BD-012 ──> ⛔ FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
-⛔ BE-BD-015 ──> ⛔ FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
+🟡 BE-BD-015 ──> ⛔ FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
 ⛔ BE-BD-006 ──> ⛔ FE-BD-004 (alokasi kantong + pembatalan alokasi)
 ⛔ BE-BD-009 ──> ⛔ FE-BD-007 (penyelesaian PendingReview — tiga tombol tiga penjaga)
 ⛔ BE-BD-010 ──> ⛔ FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)
@@ -233,7 +233,7 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 | **Outcome** | Petugas membuat permintaan ke PMI dan mencatat penerimaan, termasuk penerimaan berlebih |
 | **Layar** | `FE-BD-03` |
 | **Kontrak** | api-contract `v4` — Provider Request |
-| **Dependency** | `G1` ✅, `BE-BD-004` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-004` ✅ — selesai 11 September 2026, roadmap backend revisi 9 |
 | **Acceptance** | Penerimaan termasuk kelebihan tercatat dan tidak membuat sisa negatif |
 | **Risk/owner** | Sedang / BDRS |
 
@@ -247,7 +247,7 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 | **Outcome** | Petugas menempatkan dan memindahkan kantong, dan kantong yang tertahan tersaring jelas |
 | **Layar** | `FE-BD-04`, `FE-BD-05` (parsial) |
 | **Kontrak** | api-contract `v4` |
-| **Dependency** | `G1` ✅, `BE-BD-015` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-015` 🟡 — siap dijadwalkan sejak roadmap backend revisi 9, belum selesai |
 | **Acceptance** | `FE-BD-010` saringan `Received` dan lokasi nonaktif **wajib**; `FE-BD-011` kolom lokasi beserta penandanya |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | **Bukan** daftar kerja keempat — saringan menempel pada daftar yang sudah ada |

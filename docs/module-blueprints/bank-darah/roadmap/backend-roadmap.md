@@ -9,7 +9,15 @@ entity_prefix: Bbk
 blueprint_id: BD-BP-001
 blueprint_shape: SINGLE
 blueprint_root: docs/module-blueprints/bank-darah/
-roadmap_revision: 8
+roadmap_revision: 9
+revision_9_scope: ACCEPTANCE_FORWARD_BE_BD_004
+revision_9_note: >-
+  Tiga acceptance criteria berpindah task, nol lainnya berubah. AC-BD-023 dan AC-BD-032 (bagian
+  perpindahan kantong ke PendingReview) diteruskan dari BE-BD-004 ke BE-BD-015, dan AC-BD-033
+  (penolakan VAL-BD-033 pada alokasi) ke BE-BD-006, karena penegakannya hidup pada kemampuan
+  penyimpanan dan alokasi milik kedua task itu. Preseden BE-BD-002 -> BE-BD-003 dan BE-BD-014 ->
+  BE-BD-015. Keputusan Sukmagp 2026-09-11. Akibatnya BE-BD-004 selesai dan BE-BD-015 siap
+  dijadwalkan. Nol task baru, nol dependency, kontrak, maupun aturan bisnis berubah.
 revision_8_scope: ACCEPTANCE_REHOME_BE_BD_012
 revision_8_note: >-
   Satu task berubah acceptance criteria-nya, satu task menerima dua kriteria pindahan. BE-BD-012
@@ -67,6 +75,7 @@ approved_by:
   - "Sukmagp — set kontrak v4 dan roadmap revisi 2, 2026-09-03"
   - "Sukmagp — roadmap backend revisi 7, 2026-09-10"
   - "Sukmagp — acceptance criteria BE-BD-012 (AC-BD-098..102), pemindahan AC-BD-026/058 ke BE-BD-013, DEC-BD-048/049, 2026-09-11"
+  - "Sukmagp — penerusan AC-BD-023/032 ke BE-BD-015 dan AC-BD-033 ke BE-BD-006 (roadmap revisi 9), 2026-09-11"
 approved_at: "2026-09-11"
 approval_note: >-
   Approval 2026-09-03 berlaku atas roadmap revisi 2. Revisi 3 menambahkan gerbang G4
@@ -90,7 +99,7 @@ tersendiri** yang diminta per tindakan.
 **Preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi** dari `AGENTS.md`
 backend target dan dokumen engineering canonical — bukan di dokumen ini.
 
-**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` 🟡 **selesai sebagian 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — 6 dari 9 kriteria; tiga sisanya menunggu `BE-BD-015` dan `BE-BD-006`. `BE-BD-012` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-012.md)). Task bertanda ⛔
+**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — keenam kriteria yang tetap miliknya terbukti; `AC-BD-023`/`032` diteruskan ke `BE-BD-015` dan `AC-BD-033` ke `BE-BD-006` pada roadmap revisi 9, sehingga `BE-BD-015` 🟡 kini siap dijadwalkan. `BE-BD-012` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-012.md)). Task bertanda ⛔
 tetap tidak boleh dijadwalkan — kini karena task pendahulunya belum selesai, bukan karena gerbang.
 Rinciannya di bagian 2. **Riwayat:** sampai 10 September 2026 gerbang ini menahan sembilan dari lima
 belas task backend.
@@ -187,10 +196,10 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
-| ✅ SELESAI | 7 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-005`, `BE-BD-011`, `BE-BD-012`, `BE-BD-014`. `BE-BD-012` selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)) |
-| 🟡 SELESAI SEBAGIAN | 2 | `BE-BD-016` — 28 dari 39 butir hak akses · `BE-BD-004` — 6 dari 9 kriteria, 11 September 2026 ([laporan](../task/report/backend/BE-BD-004.md)) |
-| 🟡 PENDING | 0 | — **Riwayat:** 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8, 11 September 2026; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
-| ⛔ BLOCKED | 6 | `BE-BD-006`, `007`, `008`, `009`, `010`, `015` — lewat rantai dependency. **Riwayat:** 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
+| ✅ SELESAI | 8 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-004`, `BE-BD-005`, `BE-BD-011`, `BE-BD-012`, `BE-BD-014`. `BE-BD-004` selesai pada roadmap revisi 9 ([laporan](../task/report/backend/BE-BD-004.md)); `BE-BD-012` selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)) |
+| 🟡 SELESAI SEBAGIAN | 1 | `BE-BD-016` — 28 dari 39 butir hak akses. **Riwayat:** 2, termasuk `BE-BD-004` — 6 dari 9 kriteria sebelum penerusan revisi 9 |
+| 🟡 PENDING | 1 | `BE-BD-015` — siap dijadwalkan sejak roadmap revisi 9, 11 September 2026. **Riwayat:** 0 sesudah `BE-BD-012` ✅; sebelumnya 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
+| ⛔ BLOCKED | 5 | `BE-BD-006`, `007`, `008`, `009`, `010` — lewat rantai dependency yang berawal dari `BE-BD-015`. **Riwayat:** 6 termasuk `BE-BD-015`; sebelumnya 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
 | — Future scope | 1 | `BE-BD-013` |
 | **Total** | **16** | |
 
@@ -219,9 +228,9 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
        │      dep: G1 ✅, G2b ✅, BE-BD-001 ✅, BE-BD-002 ✅, G4 ✅
        ├── ✅ BE-BD-012 (tindakan Bank Darah)   SELESAI 11 Sep 2026
        │
-       └── 🟡 BE-BD-004 (permintaan PMI + penerimaan + kantong lahir)   SELESAI SEBAGIAN 11 Sep 2026 — 6/9 AC
-                  └── ⛔ BE-BD-015 (penyimpanan & perpindahan kantong)   BLOCKED lewat BE-BD-004
-                             dep: BE-BD-004 ⛔, BE-BD-014 ✅
+       └── ✅ BE-BD-004 (permintaan PMI + penerimaan + kantong lahir)   SELESAI 11 Sep 2026 — 3 AC diteruskan (revisi 9)
+                  └── 🟡 BE-BD-015 (penyimpanan & perpindahan kantong)   PENDING — siap dijadwalkan (revisi 9)
+                             dep: BE-BD-004 ✅, BE-BD-014 ✅
                              └── ⛔ BE-BD-006 (alokasi kantong)   BLOCKED lewat BE-BD-015
                                         └── ⛔ BE-BD-007 (bukti kecocokan + pemberian)   BLOCKED
                                                    │      dep: BE-BD-005 ✅, BE-BD-006 ⛔
@@ -364,18 +373,18 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
-### 🟡 `BE-BD-004` — Permintaan PMI dibuat, penerimaan dicatat, kantong lahir `Received`
+### ✅ `BE-BD-004` — Permintaan PMI dibuat, penerimaan dicatat, kantong lahir `Received`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SELESAI SEBAGIAN 11 September 2026** — [laporan](../task/report/backend/BE-BD-004.md). Seluruh pekerjaan di dalam scope selesai: build `0 Error(s)` dengan `210 Warning(s)` sama dengan baseline, 561/561 test (63 permintaan PMI), 231/231 test Sqlite, 9/9 uji PostgreSQL, migration `20260911032311_AddBbkProviderRequestAndBloodUnit` diterapkan ke `QuilvianNewDevSukma` (`139/139`, pending 0). **6 dari 9 kriteria terbukti penuh** (`AC-BD-005/006/009/022/031/059`). `AC-BD-023` dan `AC-BD-032` terbukti sampai kantong lahir `Received`; perpindahannya ke `PendingReview` menunggu `BE-BD-015`. `AC-BD-033` menunggu endpoint alokasi `BE-BD-006`. Menjadi ✅ bila pemilik roadmap meneruskan ketiganya, mengikuti preseden `BE-BD-002` dan `BE-BD-014`. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak 11 September 2026; BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
+| **Status** | ✅ **SELESAI 11 September 2026 — roadmap revisi 9.** Keenam kriteria yang tetap miliknya — `AC-BD-005/006/009/022/031/059` — terbukti penuh ([laporan](../task/report/backend/BE-BD-004.md) bagian 6); build, test, uji PostgreSQL, dan migration sudah lulus pada pengerjaannya. `AC-BD-023` dan `AC-BD-032` diteruskan ke `BE-BD-015`, `AC-BD-033` ke `BE-BD-006`, atas persetujuan `Sukmagp` 11 September 2026 — mengikuti preseden `BE-BD-002` → `BE-BD-003` dan `BE-BD-014` → `BE-BD-015`. Nol source, test, maupun migration ditulis untuk penerusan ini. **Riwayat:** 🟡 **SELESAI SEBAGIAN 11 September 2026** — [laporan](../task/report/backend/BE-BD-004.md). Seluruh pekerjaan di dalam scope selesai: build `0 Error(s)` dengan `210 Warning(s)` sama dengan baseline, 561/561 test (63 permintaan PMI), 231/231 test Sqlite, 9/9 uji PostgreSQL, migration `20260911032311_AddBbkProviderRequestAndBloodUnit` diterapkan ke `QuilvianNewDevSukma` (`139/139`, pending 0). **6 dari 9 kriteria terbukti penuh** (`AC-BD-005/006/009/022/031/059`). `AC-BD-023` dan `AC-BD-032` terbukti sampai kantong lahir `Received`; perpindahannya ke `PendingReview` menunggu `BE-BD-015`. `AC-BD-033` menunggu endpoint alokasi `BE-BD-006`. Menjadi ✅ bila pemilik roadmap meneruskan ketiganya, mengikuti preseden `BE-BD-002` dan `BE-BD-014`. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak 11 September 2026; BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
 | **Yang memblokir** | **Nihil sejak 11 September 2026** — `BE-BD-003` ✅. **Riwayat:** `BE-BD-003`, sesuai kolom Dependency. `BbkProviderRequest.RequestNumber` (`:183`, `:401`) wajib dari provider number-series, dan provider itu **sudah ada** sejak `G4` tertutup. **`PmiBagNumber` tidak termasuk** — nomor kantong datang dari PMI (`ASM-BD-003`) |
 | **Outcome** | Permintaan ke PMI dicatat; penerimaan termasuk kelebihan tercatat; kantong lahir berstatus `Received` dan belum dapat dialokasikan |
 | **Trace** | `DEC-BD-002/003/008/020/025/036`; `BD-AGG-02`, `BD-XINV-02/03` |
 | **Kontrak** | api-contract `v4` — Provider Request; state-transition; validation |
 | **Scope** | `BbkProviderRequest` + `BbkProviderReceipt` + `BbkBloodUnit`; sisa ≥ 0 dijaga token `Version`; kelebihan → `IsExcess`; migration |
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-003` ✅, **`G4` ✅** — tertutup 10 September 2026 |
-| **Acceptance** | `AC-BD-005/006/009/022/023/031/032/033/059` |
+| **Acceptance** | `AC-BD-005/006/009/022/031/059` — roadmap revisi 9. **Riwayat:** `AC-BD-005/006/009/022/023/031/032/033/059` sampai revisi 8; `AC-BD-023/032` kini milik `BE-BD-015`, `AC-BD-033` milik `BE-BD-006` |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
@@ -396,18 +405,18 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
-### ⛔ `BE-BD-015` — Kantong disimpan, dipindahkan, riwayatnya tak pernah ditimpa
+### 🟡 `BE-BD-015` — Kantong disimpan, dipindahkan, riwayatnya tak pernah ditimpa
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED lewat `BE-BD-004`** — bukan karena butuh nomor. **Catatan 11 September 2026:** kantong kini ada — `BbkBloodUnit` lahir bersama `BE-BD-004` 🟡 dan tabelnya sudah di `QuilvianNewDevSukma`. Yang masih menahan adalah status `BE-BD-004` yang belum ✅, bukan ketiadaan kantong; lihat kartu `BE-BD-004` |
-| **Kenapa terblokir** | Kantong belum ada sampai `BE-BD-004` menciptakannya. Tidak ada yang dapat disimpan |
+| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak roadmap revisi 9, 11 September 2026. Seluruh dependency tertutup: `BE-BD-004` ✅ dan `BE-BD-014` ✅; kantong `BbkBloodUnit` sudah ada di `QuilvianNewDevSukma`. Menerima `AC-BD-023` dan `AC-BD-032` dari `BE-BD-004`. Belum ada source. **Riwayat:** ⛔ **BLOCKED lewat `BE-BD-004`** — bukan karena butuh nomor. **Catatan 11 September 2026:** kantong kini ada — `BbkBloodUnit` lahir bersama `BE-BD-004` 🟡 dan tabelnya sudah di `QuilvianNewDevSukma`. Yang masih menahan adalah status `BE-BD-004` yang belum ✅, bukan ketiadaan kantong; lihat kartu `BE-BD-004` |
+| **Yang memblokir** | **Nihil sejak 11 September 2026** — `BE-BD-004` ✅ pada roadmap revisi 9. **Riwayat:** kantong belum ada sampai `BE-BD-004` menciptakannya; sesudah itu status `BE-BD-004` yang belum ✅ |
 | **Outcome** | Kantong ditempatkan pada lokasi, dipindahkan, dan riwayat penempatannya hanya dapat ditambah |
 | **Trace** | `DEC-BD-036/037`; `BD-DOM-25`; `INV-BD-025/026/027/028`; `ARCH-BD-POS-04/05/06` |
 | **Kontrak** | api-contract `v4` — storage-location, placements; state-transition; validation |
 | **Scope** | `BbkBloodUnitPlacement` + filtered-unique `IsCurrent` + `BbkBloodUnit.CurrentPlacementId` dalam satu transaksi; `POST`/`PUT /{id}/storage-location`; `GET /{id}/placements`; migration |
-| **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-004` ⛔, `BE-BD-014` ✅ |
-| **Acceptance** | `AC-BD-060/061/063/066/067/068/069/070` + `AC-BD-062/065` diteruskan dari `BE-BD-014` |
+| **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-004` ✅, `BE-BD-014` ✅ |
+| **Acceptance** | `AC-BD-060/061/063/066/067/068/069/070` + `AC-BD-062/065` diteruskan dari `BE-BD-014` + **`AC-BD-023/032` diteruskan dari `BE-BD-004`** pada roadmap revisi 9. Untuk kedua kriteria terakhir, bagian penerimaan sudah terbukti di `BE-BD-004`; yang dibuktikan di sini adalah perpindahan kantong ke `PendingReview` sesudah disimpan dan kemunculannya di daftar kantong `PendingReview` |
 | **Risk/owner** | Sedang / BDRS. Riwayat append-only; nol background job; nol batch update |
 | **Catatan urutan** | **Wajib mendahului `BE-BD-006`** — kantong tak dapat dialokasikan sebelum tersimpan |
 
@@ -421,7 +430,7 @@ tidak dapat diberikan sebelum dialokasikan.
 | **Trace** | `DEC-BD-003/007/029/036/037`; `BD-AGG-03` |
 | **Kontrak** | api-contract `v4`; state-transition; validation |
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-015` ⛔ |
-| **Acceptance** | `AC-BD-043/044/045/046/060/068/071` + konkurensi `VAL-BD-018c` |
+| **Acceptance** | `AC-BD-043/044/045/046/060/068/071` + konkurensi `VAL-BD-018c` + **`AC-BD-033` diteruskan dari `BE-BD-004`** pada roadmap revisi 9 — kantong berlebih ditolak ketika dialokasikan langsung (`VAL-BD-033`) |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
@@ -524,7 +533,9 @@ diperiksa. Paragraf di atas dipertahankan sebagai riwayat.
 **`MVP-1` blueprint Platform** (`EPIC-PLT-01` + `EPIC-PLT-02`), bukan menunggu penunjukan siapa
 pun. Rinciannya di `docs/module-blueprints/platform/04-prd-to-mvp.md` bagian 5.
 
-**Diperbarui 11 September 2026 sesudah `BE-BD-012`:** `BE-BD-012` ✅ **selesai** ([laporan](../task/report/backend/BE-BD-012.md)). **Nol task backend dapat dijadwalkan** sampai pemilik roadmap memutuskan penerusan tiga kriteria `BE-BD-004`; sesudahnya `BE-BD-015` terbuka di jalur kritis. Di frontend, `FE-BD-010` kehilangan penahan backend-nya.
+**Diperbarui 11 September 2026 — roadmap revisi 9:** pemilik meneruskan `AC-BD-023`/`032` ke `BE-BD-015` dan `AC-BD-033` ke `BE-BD-006`, sehingga `BE-BD-004` ✅. **Yang dapat dijadwalkan kini `BE-BD-015`** — jalur kritis `BE-BD-015` → `BE-BD-006` → `BE-BD-007`. Di frontend, `FE-BD-003` kehilangan penahan backend-nya.
+
+**Riwayat — diperbarui 11 September 2026 sesudah `BE-BD-012`:** `BE-BD-012` ✅ **selesai** ([laporan](../task/report/backend/BE-BD-012.md)). **Nol task backend dapat dijadwalkan** sampai pemilik roadmap memutuskan penerusan tiga kriteria `BE-BD-004`; sesudahnya `BE-BD-015` terbuka di jalur kritis. Di frontend, `FE-BD-010` kehilangan penahan backend-nya.
 
 **Riwayat — diperbarui 11 September 2026, roadmap revisi 8:** `BE-BD-012` 🟡 **siap dijadwalkan kembali**. Pemilik memutuskan aturan tarif dan sumber unit/kelas (`DEC-BD-048`, `DEC-BD-049`) dan mengganti kriterianya dengan `AC-BD-098` sampai `AC-BD-102`. `BE-BD-015` tetap menunggu keputusan penerusan tiga kriteria `BE-BD-004`.
 
