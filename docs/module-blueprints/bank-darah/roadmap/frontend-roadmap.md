@@ -124,7 +124,7 @@ pasangannya, dimulai `BE-BD-003` yang sudah siap dijadwalkan.
 
 ✅ BE-BD-003 ──> 🟡 FE-BD-002 (order darah + pemenuhan + pembatalan)
 ⛔ BE-BD-004 ──> ⛔ FE-BD-003 (permintaan PMI + penerimaan)
-⛔ BE-BD-012 ──> ⛔ FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
+✅ BE-BD-012 ──> ⛔ FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
 ⛔ BE-BD-015 ──> ⛔ FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
 ⛔ BE-BD-006 ──> ⛔ FE-BD-004 (alokasi kantong + pembatalan alokasi)
 ⛔ BE-BD-009 ──> ⛔ FE-BD-007 (penyelesaian PendingReview — tiga tombol tiga penjaga)
@@ -313,7 +313,7 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 | --- | --- |
 | **Status** | ⛔ **BLOCKED** — `BE-BD-012` menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | **Layar** | `FE-BD-07` |
-| **Dependency** | `G1` ✅, `BE-BD-012` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-012` ✅ — selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)) |
 | **Risk/owner** | Sedang / BDRS |
 | **Catatan** | Tindakan dicatat **tanpa** penyaluran biaya ke Billing — penyaluran adalah `BE-BD-013` future scope |
 

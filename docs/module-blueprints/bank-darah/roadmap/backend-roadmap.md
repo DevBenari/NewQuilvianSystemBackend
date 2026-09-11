@@ -90,7 +90,7 @@ tersendiri** yang diminta per tindakan.
 **Preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi** dari `AGENTS.md`
 backend target dan dokumen engineering canonical — bukan di dokumen ini.
 
-**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` 🟡 **selesai sebagian 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — 6 dari 9 kriteria; tiga sisanya menunggu `BE-BD-015` dan `BE-BD-006`. Task bertanda ⛔
+**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` 🟡 **selesai sebagian 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — 6 dari 9 kriteria; tiga sisanya menunggu `BE-BD-015` dan `BE-BD-006`. `BE-BD-012` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-012.md)). Task bertanda ⛔
 tetap tidak boleh dijadwalkan — kini karena task pendahulunya belum selesai, bukan karena gerbang.
 Rinciannya di bagian 2. **Riwayat:** sampai 10 September 2026 gerbang ini menahan sembilan dari lima
 belas task backend.
@@ -187,9 +187,9 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 
 | Penanda | Jumlah | Task |
 | --- | ---: | --- |
-| ✅ SELESAI | 6 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-005`, `BE-BD-011`, `BE-BD-014` |
-| 🟡 SELESAI SEBAGIAN | 2 | `BE-BD-016` — 25 dari 39 butir hak akses · `BE-BD-004` — 6 dari 9 kriteria, 11 September 2026 ([laporan](../task/report/backend/BE-BD-004.md)) |
-| 🟡 PENDING | 1 | `BE-BD-012` — siap dijadwalkan kembali sejak roadmap revisi 8, 11 September 2026. **Riwayat:** terbuka 11 September 2026 setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
+| ✅ SELESAI | 7 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-005`, `BE-BD-011`, `BE-BD-012`, `BE-BD-014`. `BE-BD-012` selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)) |
+| 🟡 SELESAI SEBAGIAN | 2 | `BE-BD-016` — 28 dari 39 butir hak akses · `BE-BD-004` — 6 dari 9 kriteria, 11 September 2026 ([laporan](../task/report/backend/BE-BD-004.md)) |
+| 🟡 PENDING | 0 | — **Riwayat:** 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8, 11 September 2026; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
 | ⛔ BLOCKED | 6 | `BE-BD-006`, `007`, `008`, `009`, `010`, `015` — lewat rantai dependency. **Riwayat:** 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
 | — Future scope | 1 | `BE-BD-013` |
 | **Total** | **16** | |
@@ -202,7 +202,7 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 ✅ BE-BD-001 (master komponen darah + alasan terkendali)   SELESAI
 ✅ BE-BD-002 (flag IsAvailableForBloodOrder pada MstServiceUnit)   SELESAI
 ✅ BE-BD-014 (master lokasi penyimpanan darah)   SELESAI
-🟡 BE-BD-016 (seeder resource & action hak akses)   SELESAI SEBAGIAN 25/39
+🟡 BE-BD-016 (seeder resource & action hak akses)   SELESAI SEBAGIAN 28/39
        └── sisa butir lahir bersama controller pemakainya
 
 ════════ JALUR TERBUKA — tidak menyentuh number-series ════════
@@ -217,7 +217,7 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 
 ✅ BE-BD-003 (order darah)   SELESAI 11 Sep 2026; OrderNumber dari provider
        │      dep: G1 ✅, G2b ✅, BE-BD-001 ✅, BE-BD-002 ✅, G4 ✅
-       ├── 🟡 BE-BD-012 (tindakan Bank Darah)   PENDING — siap dijadwalkan (revisi 8)
+       ├── ✅ BE-BD-012 (tindakan Bank Darah)   SELESAI 11 Sep 2026
        │
        └── 🟡 BE-BD-004 (permintaan PMI + penerimaan + kantong lahir)   SELESAI SEBAGIAN 11 Sep 2026 — 6/9 AC
                   └── ⛔ BE-BD-015 (penyimpanan & perpindahan kantong)   BLOCKED lewat BE-BD-004
@@ -300,7 +300,7 @@ tidak dapat diberikan sebelum dialokasikan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SELESAI SEBAGIAN** — **25 dari 39** butir terdaftar per 11 September 2026, naik dari 20 setelah `BloodProviderRequest : Read`, `Create`, `Process`, `Update`, dan `BloodUnit : Read` lahir bersama controller-nya di `BE-BD-004` ([laporan](../task/report/backend/BE-BD-004.md)). **Riwayat:** 20 dari 39 pada hari yang sama, naik dari 17 setelah `BloodOrder : Read`, `Create`, dan `Cancel` lahir bersama controller-nya di `BE-BD-003` ([laporan](../task/report/backend/BE-BD-003.md)). `BloodOrder : Update` **tidak** lahir karena kontrak `v4` tidak punya endpoint yang memakainya. **Riwayat:** 17 dari 39 per 9 September 2026, naik dari 12 setelah kelima butir `BloodGroupExam` lahir bersama controller-nya di `BE-BD-005` dan `BE-BD-011`. Bukti: [laporan](../task/report/backend/BE-BD-016.md), [BE-BD-005](../task/report/backend/BE-BD-005.md) |
+| **Status** | 🟡 **SELESAI SEBAGIAN** — **28 dari 39** butir terdaftar per 11 September 2026, naik dari 25 setelah `BloodBankProcedure : Read`, `Create`, dan `Update` lahir bersama controller-nya di `BE-BD-012` ([laporan](../task/report/backend/BE-BD-012.md)). **Riwayat:** 25 dari 39 pada hari yang sama, naik dari 20 setelah `BloodProviderRequest : Read`, `Create`, `Process`, `Update`, dan `BloodUnit : Read` lahir bersama controller-nya di `BE-BD-004` ([laporan](../task/report/backend/BE-BD-004.md)). **Riwayat:** 20 dari 39 pada hari yang sama, naik dari 17 setelah `BloodOrder : Read`, `Create`, dan `Cancel` lahir bersama controller-nya di `BE-BD-003` ([laporan](../task/report/backend/BE-BD-003.md)). `BloodOrder : Update` **tidak** lahir karena kontrak `v4` tidak punya endpoint yang memakainya. **Riwayat:** 17 dari 39 per 9 September 2026, naik dari 12 setelah kelima butir `BloodGroupExam` lahir bersama controller-nya di `BE-BD-005` dan `BE-BD-011`. Bukti: [laporan](../task/report/backend/BE-BD-016.md), [BE-BD-005](../task/report/backend/BE-BD-005.md) |
 | **Kenapa belum penuh** | Alasannya **arsitektural, bukan kelalaian**. Sisa 19 butir: 18 menunjuk controller yang belum ada, dan `BloodOrder : Update` tidak punya endpoint pada kontrak `v4`; mendaftarkannya sekarang berarti membuat butir hak akses yang tidak menjaga apa pun |
 | **Outcome** | Setiap tindakan Bank Darah punya butir hak akses yang dapat diberikan kepada peran |
 | **Trace** | `DEC-BD-039`..`DEC-BD-047` |
@@ -380,11 +380,11 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
-### 🟡 `BE-BD-012` — Tindakan Bank Darah dicatat tanpa penyaluran biaya
+### ✅ `BE-BD-012` — Tindakan Bank Darah dicatat tanpa penyaluran biaya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak roadmap revisi 8, 11 September 2026. Ketiga penahan tertutup pada hari yang sama: aturan tarif oleh `DEC-BD-049`, sumber unit dan kelas oleh `DEC-BD-048`, dan acceptance criteria diganti `AC-BD-098` sampai `AC-BD-102`. Belum ada source; laporan yang ada mencatat pemberhentian sebelum keputusan turun. **Riwayat:** ⛔ **BLOCKED 11 September 2026 — menunggu tiga keputusan** ([laporan](../task/report/backend/BE-BD-012.md)). Builder berhenti sebelum satu baris source ditulis; build, test, dan migration `NOT RUN`. **(1)** Aturan pemilihan tarif tindakan — kontrak tidak menetapkannya, dan source memuat dua aturan yang memberi angka berbeda; pemilik Billing bersama BDRS (`DEC-BD-021`). **(2)** Sumber `ServiceUnitId` dan `PatientClassId` — pemilik proses BDRS. **(3)** `AC-BD-026` dan `AC-BD-058` menuntut fakta biaya ke Billing (`DEC-BD-016` `OPEN`) serta pemberian dan koreksi (`BE-BD-007`, `BE-BD-010`), sehingga tidak dapat dibuktikan pada task ini — pemilik roadmap lewat `plan-module-delivery`. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak 11 September 2026 setelah `BE-BD-003` ✅. **Riwayat:** BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
+| **Status** | ✅ **SELESAI 11 September 2026** — [laporan](../task/report/backend/BE-BD-012.md). Build `0 Error(s)` (`-p:RunAnalyzers=false`); 600/600 test `QuilvianSystemBackend.Tests` (39 tindakan Bank Darah), 231/231 test Sqlite, 13/13 uji PostgreSQL Bank Darah (4 tindakan); migration `20260911072451_AddBbkBloodBankProcedure` diterapkan ke `QuilvianNewDevSukma` (`140/140`, pending 0), `has-pending-model-changes` bersih. **Kelima kriteria `AC-BD-098` sampai `AC-BD-102` terbukti**; nol butir DoD dikecualikan. `UnitTests.InMemory` 896/905 — 9 kegagalan Billing baseline, di luar task. Dua tafsiran menunggu konfirmasi pemilik tanpa menahan kriteria: kunjungan tanpa kelas ditolak `422`, dan "order sah" tidak dibatasi status bisnis order ([laporan](../task/report/backend/BE-BD-012.md) bagian 7). Delta kontrak: `VAL-BD-084`, `Scope` `BloodBankProcedure`, klarifikasi urutan `DEC-BD-049`. **Riwayat:** 🟡 **PENDING — SIAP DIJADWALKAN** sejak roadmap revisi 8, 11 September 2026. Ketiga penahan tertutup pada hari yang sama: aturan tarif oleh `DEC-BD-049`, sumber unit dan kelas oleh `DEC-BD-048`, dan acceptance criteria diganti `AC-BD-098` sampai `AC-BD-102`. Belum ada source; laporan yang ada mencatat pemberhentian sebelum keputusan turun. **Riwayat:** ⛔ **BLOCKED 11 September 2026 — menunggu tiga keputusan** ([laporan](../task/report/backend/BE-BD-012.md)). Builder berhenti sebelum satu baris source ditulis; build, test, dan migration `NOT RUN`. **(1)** Aturan pemilihan tarif tindakan — kontrak tidak menetapkannya, dan source memuat dua aturan yang memberi angka berbeda; pemilik Billing bersama BDRS (`DEC-BD-021`). **(2)** Sumber `ServiceUnitId` dan `PatientClassId` — pemilik proses BDRS. **(3)** `AC-BD-026` dan `AC-BD-058` menuntut fakta biaya ke Billing (`DEC-BD-016` `OPEN`) serta pemberian dan koreksi (`BE-BD-007`, `BE-BD-010`), sehingga tidak dapat dibuktikan pada task ini — pemilik roadmap lewat `plan-module-delivery`. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak 11 September 2026 setelah `BE-BD-003` ✅. **Riwayat:** BLOCKED oleh `BE-BD-003` sampai 11 September 2026, dan oleh `G4` secara langsung sampai 10 September 2026 |
 | **Yang memblokir** | **Nihil sejak 11 September 2026** — `BE-BD-003` ✅. **Riwayat:** `BE-BD-003`, sesuai kolom Dependency. `BbkBloodBankProcedure.ProcedureNumber` (`:336`, `:443`) wajib dari provider number-series, dan provider itu **sudah ada** sejak `G4` tertutup |
 | **Outcome** | Tindakan Bank Darah tercatat beserta snapshot tarifnya, **tanpa** penyaluran biaya ke Billing |
 | **Trace** | `DEC-BD-021`, `DEC-BD-034`, **`DEC-BD-048`**, **`DEC-BD-049`**; `BD-AGG-05` |
@@ -524,7 +524,9 @@ diperiksa. Paragraf di atas dipertahankan sebagai riwayat.
 **`MVP-1` blueprint Platform** (`EPIC-PLT-01` + `EPIC-PLT-02`), bukan menunggu penunjukan siapa
 pun. Rinciannya di `docs/module-blueprints/platform/04-prd-to-mvp.md` bagian 5.
 
-**Diperbarui 11 September 2026 — roadmap revisi 8:** `BE-BD-012` 🟡 **siap dijadwalkan kembali**. Pemilik memutuskan aturan tarif dan sumber unit/kelas (`DEC-BD-048`, `DEC-BD-049`) dan mengganti kriterianya dengan `AC-BD-098` sampai `AC-BD-102`. `BE-BD-015` tetap menunggu keputusan penerusan tiga kriteria `BE-BD-004`.
+**Diperbarui 11 September 2026 sesudah `BE-BD-012`:** `BE-BD-012` ✅ **selesai** ([laporan](../task/report/backend/BE-BD-012.md)). **Nol task backend dapat dijadwalkan** sampai pemilik roadmap memutuskan penerusan tiga kriteria `BE-BD-004`; sesudahnya `BE-BD-015` terbuka di jalur kritis. Di frontend, `FE-BD-010` kehilangan penahan backend-nya.
+
+**Riwayat — diperbarui 11 September 2026, roadmap revisi 8:** `BE-BD-012` 🟡 **siap dijadwalkan kembali**. Pemilik memutuskan aturan tarif dan sumber unit/kelas (`DEC-BD-048`, `DEC-BD-049`) dan mengganti kriterianya dengan `AC-BD-098` sampai `AC-BD-102`. `BE-BD-015` tetap menunggu keputusan penerusan tiga kriteria `BE-BD-004`.
 
 **Riwayat — diperbarui 11 September 2026 sesudah `BE-BD-012`:** `BE-BD-012` ⛔ — builder berhenti sebelum implementasi karena tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)). **Nol task backend dapat dijadwalkan** sampai pemilik roadmap memutuskan penerusan kriteria `BE-BD-004` dan rumah kriteria `BE-BD-012`, dan pemilik Billing/BDRS memutuskan aturan tarif.
 

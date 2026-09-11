@@ -51,7 +51,8 @@ public sealed class BloodBankRoleAccessContractTests
         typeof(BbkBloodGroupExamController),
         typeof(BbkBloodOrderController),
         typeof(BbkProviderRequestController),
-        typeof(BbkBloodUnitController)
+        typeof(BbkBloodUnitController),
+        typeof(BbkBloodBankProcedureController)
     };
 
     /// <summary>
@@ -65,7 +66,8 @@ public sealed class BloodBankRoleAccessContractTests
         "BE-BD-005",
         "BE-BD-011",
         "BE-BD-003",
-        "BE-BD-004"
+        "BE-BD-004",
+        "BE-BD-012"
     };
 
     /// <summary>
@@ -458,14 +460,14 @@ public sealed class BloodBankRoleAccessContractTests
     /// bergeser diam-diam.
     /// </summary>
     [Fact]
-    public void CakupanPendaftaranButirKontrak_DuaPuluhLimaDariTigaPuluhSembilan()
+    public void CakupanPendaftaranButirKontrak_DuaPuluhDelapanDariTigaPuluhSembilan()
     {
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var sudah = KontrakV4.Count(x => terdaftar.Contains((x.Resource, x.Action)));
 
         Assert.Equal(39, KontrakV4.Length);
-        Assert.Equal(25, sudah);
+        Assert.Equal(28, sudah);
     }
 
     /// <summary>

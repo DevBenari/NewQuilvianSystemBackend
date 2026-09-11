@@ -420,6 +420,7 @@ try
     builder.Services.AddScoped<BbkBloodOrderService>();
     builder.Services.AddScoped<BbkProviderRequestService>();
     builder.Services.AddScoped<BbkBloodUnitService>();
+    builder.Services.AddScoped<BbkBloodBankProcedureService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,

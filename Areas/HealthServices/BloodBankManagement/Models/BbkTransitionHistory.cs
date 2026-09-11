@@ -89,5 +89,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
         public const string ProviderRequest = "ProviderRequest";
         public const string BloodUnit = "BloodUnit";
         public const string BloodGroupExam = "BloodGroupExam";
+
+        /// <summary>
+        /// Scope kelima, tambahan <c>BE-BD-012</c> (11 September 2026). <c>AC-BD-101</c> menuntut
+        /// transisi dan audit penyelesaian tindakan tersimpan; kolomnya <c>string(30)</c>, sehingga
+        /// tidak ada perubahan schema. Dicatat sebagai delta pada kamus data.
+        /// </summary>
+        public const string BloodBankProcedure = "BloodBankProcedure";
     }
 }

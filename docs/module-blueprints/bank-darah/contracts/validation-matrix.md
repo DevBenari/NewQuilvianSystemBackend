@@ -178,6 +178,13 @@ individu tertentu. Yang dijaga adalah kesesuaian **kategori alasan** dengan pera
 | --- | --- | --- | --- | --- |
 | `VAL-BD-026` | Catat tindakan | Tidak menunjuk order sah | "Tindakan Bank Darah wajib menunjuk satu order yang sah." | `400` |
 | `VAL-BD-027` | Tindakan | Percobaan menghitung tarif sendiri | "Tarif tidak dihitung di modul ini; dirujuk dari data tindakan bertarif." | `422` |
+| `VAL-BD-084` | Catat tindakan | Tidak ada satu pun `MstTariff` aktif dan berlaku yang cocok dengan tindakan, kelas pasien, unit, dan klinik kunjungan (`DEC-BD-049`) | "Tarif tindakan ini belum diatur untuk kelas pasien dan unit kunjungan ini. Hubungi bagian data induk tarif." | `422` |
+
+**`VAL-BD-084` — tambahan `BE-BD-012`, 11 September 2026.** Turunan langsung `DEC-BD-049` ("tidak ada
+kandidat → ditolak `422`"), yang belum punya kode dan kalimat pada `v4`. Nomornya melanjutkan
+`VAL-BD-083`. **Contoh:** tindakan "Uji Silang Serasi" hanya punya tarif kelas 1, sedangkan pasiennya
+dirawat di kelas VIP. Tarif kelas 1 tidak boleh dipakai untuk pasien VIP, dan tidak ada tarif umum,
+sehingga pencatatan ditolak dengan pesan ini dan nomor tindakan tidak diterbitkan.
 
 ---
 

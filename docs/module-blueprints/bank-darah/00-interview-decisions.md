@@ -1310,6 +1310,19 @@ akan dihitung Billing untuk tindakan yang sama ketika `BE-BD-013` kelak menyalur
 Laboratorium memilih tarif terbaru tanpa melihat kelas, dan akan memilih harga kelas yang keliru bila
 tarif dibedakan menurut kelas.
 
+**Klarifikasi pelaksanaan `BE-BD-012` — 11 September 2026.** Dicatat builder `BE-BD-012`; rinciannya di
+[laporan `BE-BD-012`](task/report/backend/BE-BD-012.md) bagian 7.
+
+| No | Hal | Yang dijalankan | Dasar |
+| ---: | --- | --- | --- |
+| 1 | **Urutan prioritas** | **Kelas pasien lebih dulu**, lalu klinik, lalu unit, lalu tanggal mulai berlaku terbaru. Kalimat "klinik, lalu unit, lalu kelas" di atas memberi hasil lain pada satu keadaan: tarif **tanpa kelas** yang terikat unit kunjungan akan mengalahkan tarif kelas pasien yang tidak terikat unit. Keadaan itu bertentangan dengan kalimat "tarif tanpa kelas menjadi **cadangan**" pada keputusan yang sama | Instruksi pemilik pada task `BE-BD-012`: "tarif yang cocok dengan `PatientClassId` encounter diprioritaskan; tarif dengan `PatientClassId = null` adalah tarif umum/cadangan" |
+| 2 | **Kunjungan tanpa kelas** | Pencatatan **ditolak `422`**, tanpa kode `VAL-BD-*`. Kalimat "hanya tarif tanpa kelas yang cocok" tetap benar sebagai aturan kecocokan tarif, tetapi tindakannya tidak dapat disimpan, karena kamus data mewajibkan `PatientClassId` dan pass ini menyatakan kamus data tidak berubah | **Menunggu konfirmasi pemilik.** Bila tindakan tanpa kelas dikehendaki, `PatientClassId` dijadikan boleh kosong lewat satu migration aditif |
+
+**Contoh klarifikasi 1.** Tindakan "Penyiapan Komponen" punya tarif kelas VIP Rp260.000 yang berlaku di
+unit mana pun, dan tarif umum Rp175.000 yang khusus unit ICU. Pasien VIP di ICU → **Rp260.000**. Menurut
+urutan "klinik, lalu unit, lalu kelas", yang terpilih justru Rp175.000, padahal pasiennya punya tarif
+kelas sendiri.
+
 **Keputusan perencanaan pada pass yang sama**, dicatat pada roadmap revisi 8, bukan di sini: acceptance
 criteria `BE-BD-012` diganti menjadi `AC-BD-098` sampai `AC-BD-102` di bawah, sedangkan `AC-BD-026` dan
 `AC-BD-058` dipindah ke `BE-BD-013` karena keduanya baru dapat dibuktikan ketika fakta biaya benar-benar
