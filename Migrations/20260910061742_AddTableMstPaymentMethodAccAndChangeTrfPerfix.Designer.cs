@@ -12,7 +12,7 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    
+    [Migration("20260910061742_AddTableMstPaymentMethodAccAndChangeTrfPerfix")]
     partial class AddTableMstPaymentMethodAccAndChangeTrfPerfix
     {
         /// <inheritdoc />
