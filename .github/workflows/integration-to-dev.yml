@@ -44,7 +44,6 @@ jobs:
           dotnet build
           ./QuilvianSystemBackend.sln
           --configuration Release
-          --no-restore
           -p:SkipMigrationMetadata=true
 
       - name: InMemory tests
