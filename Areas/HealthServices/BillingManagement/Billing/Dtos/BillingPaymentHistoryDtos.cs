@@ -24,7 +24,7 @@ public sealed class PaymentHistoryItemResponse
     public string MedicalRecordNumber { get; set; } = string.Empty;
     public string PatientName { get; set; } = string.Empty;
 
-    // Tunai/Asuransi/Penjamin Perusahaan - dari TrxPatientEncounterGuarantor.PaymentType aktif.
+    // Tunai/Asuransi/Penjamin Perusahaan - dari RegPatientEncounterGuarantor.PaymentType aktif.
     public string PatientType { get; set; } = string.Empty;
 
     public string ServiceType { get; set; } = string.Empty;

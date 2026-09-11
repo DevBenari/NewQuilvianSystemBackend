@@ -333,7 +333,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (request.Discipline.HasValue && !Enum.IsDefined(request.Discipline.Value))
                 throw new ArgumentException("Disiplin laboratorium tidak dikenal.");
 
-            var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
+            var encounterExists = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete, cancellationToken);
 

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -518,7 +518,7 @@ public sealed class DrugReturnService
 
     private async Task EnsureEncounterAsync(Guid encounterId, CancellationToken cancellationToken)
     {
-        var valid = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var valid = await _dbContext.RegPatientEncounters.AsNoTracking()
             .AnyAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
         if (!valid)
             throw new DrugReturnUnprocessableException("PHM074", "Kunjungan pasien tidak ditemukan.");

@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260831000000_RenameMedicalRecordTrxTablesToMrcPrefix")]
     public partial class RenameMedicalRecordTrxTablesToMrcPrefix : Migration
     {
         // Empat entitas operasional Rekam Medis pindah ke prefix registry `Mrc`.

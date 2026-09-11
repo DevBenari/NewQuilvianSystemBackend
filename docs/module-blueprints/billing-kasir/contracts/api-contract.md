@@ -33,6 +33,8 @@ Base URL: `api/v1/health-services/billing-management/billing/patient-funds`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/deposits/{encounterId}` | Lihat saldo/ledger | `BillingDeposit : Read` | — | `ApiResponse<DepositResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
+| `GET` | `/deposit-policies` | Ambil kebijakan deposit aktif per penjamin dan kelas rawat | `BillingDeposit : Read` | query `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | **Diimplementasikan (BE-BKC-039)** |
+| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan saldo, alokasi, dan kekurangan deposit per episode rawat inap | `BillingDeposit : Read` | — | `ApiResponse<EpisodeDepositSummaryResponse>` | **Diimplementasikan (BE-BKC-040)** |
 | `POST` | `/deposits/{encounterId}/top-ups` | Top-up deposit | `BillingDeposit : Create` | `DepositTopUpRequest` | `ApiResponse<SettlementResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/deposits/{encounterId}/allocations` | Progress allocation | `BillingDeposit : Allocate` | `DepositAllocationRequest` | `ApiResponse<AllocationResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |
 | `POST` | `/settlements` | Mulai pembayaran split | `BillingPayment : Create` | `CreateSettlementRequest` | `ApiResponse<SettlementResponse>` | **Diimplementasikan (backend, belum diverifikasi manual)** |

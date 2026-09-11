@@ -96,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
         /// <summary>Kapan pesanan ini ditandai cito. Kosong ketika tidak cito.</summary>
         public DateTime? UrgentMarkedAt { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstProcedure? Procedure { get; set; }
 

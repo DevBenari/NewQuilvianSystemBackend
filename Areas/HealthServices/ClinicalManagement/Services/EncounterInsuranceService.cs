@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (encounterId == Guid.Empty)
                 return EncounterInsuranceContext.Fail(encounterId, "EncounterId wajib diisi.");
 
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Include(x => x.PatientClass)
                 .Include(x => x.PaymentSource)
