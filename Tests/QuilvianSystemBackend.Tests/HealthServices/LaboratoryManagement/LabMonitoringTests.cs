@@ -299,6 +299,50 @@ public class LabMonitoringTests
     // Pembantu
     // =====================================================================
 
+    // =====================================================================
+    // Penelusuran halaman
+    // =====================================================================
+
+    /// <summary>
+    /// Daftar pantau satu disiplin dapat ditelusuri sampai halaman terakhir tanpa satu pesanan
+    /// pun hilang atau terbaca dua kali.
+    /// </summary>
+    [Fact]
+    public async Task DaftarPantau_DitelusuriPerHalaman_TidakAdaPesananYangHilangAtauKembar()
+    {
+        await using var context = CreateContext();
+        var service = new LabMonitoringService(context);
+
+        for (var i = 0; i < 7; i++)
+            await SeedPesananAsync(context, LabDiscipline.ClinicalPathology, $"Pasien {i:D2}");
+
+        var halaman1 = await service.GetByDisciplineAsync(
+            LabDiscipline.ClinicalPathology,
+            new LabMonitoringQuery { PageNumber = 1, PageSize = 3 });
+
+        var halaman2 = await service.GetByDisciplineAsync(
+            LabDiscipline.ClinicalPathology,
+            new LabMonitoringQuery { PageNumber = 2, PageSize = 3 });
+
+        var halaman3 = await service.GetByDisciplineAsync(
+            LabDiscipline.ClinicalPathology,
+            new LabMonitoringQuery { PageNumber = 3, PageSize = 3 });
+
+        Assert.Equal(7, halaman1.TotalData);
+        Assert.Equal(3, halaman1.TotalPage);
+        Assert.Equal(3, halaman1.Items.Count);
+        Assert.Equal(3, halaman2.Items.Count);
+        Assert.Equal(1, halaman3.Items.Count);
+
+        var seluruhnya = halaman1.Items
+            .Concat(halaman2.Items)
+            .Concat(halaman3.Items)
+            .Select(x => x.LabOrderId)
+            .ToList();
+
+        Assert.Equal(7, seluruhnya.Distinct().Count());
+    }
+
     private static ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

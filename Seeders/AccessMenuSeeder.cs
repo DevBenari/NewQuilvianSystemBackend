@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Reflection;
@@ -12,6 +13,61 @@ namespace QuilvianSystemBackend.Seeders
 {
     public static class AccessMenuSeeder
     {
+        /// <summary>
+        /// Hak akses <b>penanda</b>: pasangan yang dibaca service, bukan yang menempel pada
+        /// sebuah endpoint.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Seluruh pasangan hak akses lain lahir dari pemindaian action MVC yang punya
+        /// <c>[AccessController]</c> dan <c>[AccessAction]</c>. Sebagian aturan keselamatan
+        /// tidak berbentuk begitu: ia menjawab "orang ini dihitung sebagai apa", bukan "orang
+        /// ini boleh memanggil endpoint apa", sehingga tidak ada endpoint yang pantas
+        /// menampungnya.
+        /// </para>
+        /// <para>
+        /// <b>Tanpa daftar ini, pasangan semacam itu tidak pernah masuk
+        /// <c>SysActionAccess</c>.</b> Akibatnya bukan galat yang terlihat, melainkan
+        /// <c>403</c> permanen yang <b>tidak dapat diperbaiki dari layar mana pun</b> — karena
+        /// baris untuk dicentangnya memang tidak ada. Itulah yang terjadi pada
+        /// <c>RadReport : ActAsRadiologist</c> sejak <c>BE-RAD-08</c> sampai penambahan ini.
+        /// </para>
+        /// <para>
+        /// Daftar ini <b>sengaja pendek dan ditulis tangan</b>. Setiap baris di sini adalah
+        /// kewenangan yang tidak dapat ditelusuri dari source dengan cara biasa, jadi ia harus
+        /// terbaca di satu tempat yang mudah diperiksa saat review.
+        /// </para>
+        /// </remarks>
+        public static readonly PenandaTanpaEndpoint[] PenandaTanpaEndpointYangDidaftarkan =
+        [
+            // RAD-DEC-015, RAD-PERM-001 bagian 6. Dibaca RadReportService ketika membekukan
+            // peran penulis draf dan ketika memutuskan boleh-tidaknya pengesahan sendiri.
+            //
+            // Sengaja TIDAK digabung dengan RadReport : Validate. "Boleh mencoba mengesahkan"
+            // dan "dihitung sebagai dokter radiolog" adalah dua hal berbeda: seorang residen
+            // dapat diberi Validate supaya dapat mengesahkan draf radiografer, dan tanpa
+            // penanda ini draf yang ia tulis sendiri tetap ditolak. Menggabungkannya menghapus
+            // aturan RAD-DEC-003.
+            new(
+                ModuleCode: "HEALTH_SERVICE_RADIOLOGY_MANAGEMENT",
+                ControllerName: "RadReport",
+                ActionName: "ActAsRadiologist",
+                DisplayName: "Act As Radiologist",
+                Description: "Dihitung sebagai dokter radiolog saat menulis dan mengesahkan hasil bacaan",
+                AccessType: AccessTypes.Update,
+                SortOrder: 7),
+        ];
+
+        /// <summary>Satu hak akses penanda yang didaftarkan tanpa endpoint.</summary>
+        public sealed record PenandaTanpaEndpoint(
+            string ModuleCode,
+            string ControllerName,
+            string ActionName,
+            string DisplayName,
+            string Description,
+            string AccessType,
+            int SortOrder);
+
         public static async Task SeedAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
@@ -75,6 +131,14 @@ namespace QuilvianSystemBackend.Seeders
                     actionAttribute
                 );
             }
+
+            // Dijalankan SETELAH pemindaian, karena baris controllernya lahir dari pemindaian
+            // itu. Sebuah penanda tidak dapat didaftarkan pada controller yang belum ada.
+            EnsurePenandaTanpaEndpoint(
+                dbContext,
+                modulesByCode,
+                controllersByModuleAndName,
+                actionsByControllerAndName);
 
             await dbContext.SaveChangesAsync();
 
@@ -250,6 +314,93 @@ namespace QuilvianSystemBackend.Seeders
             actionsByControllerAndName.Add(
                 BuildActionKey(action.ControllerAccessId, action.ActionName),
                 action);
+        }
+
+        /// <summary>
+        /// Mendaftarkan hak akses penanda supaya dapat dicentang pada layar Akses Role.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Gagal keras bila controllernya tidak ditemukan</b>, dan itu disengaja. Penanda yang
+        /// gagal didaftarkan menghasilkan <c>403</c> permanen yang tidak dapat diperbaiki dari
+        /// layar mana pun — persis bentuk kegagalan yang membuat method ini ada. Melewatinya
+        /// diam-diam berarti mengulangi cacat yang sedang ditutup, kali ini dengan kode yang
+        /// terlihat seperti sudah menanganinya.
+        /// </para>
+        /// <para>
+        /// <c>HttpMethod</c> dan <c>RoutePath</c> dibiarkan kosong. Penanda ini memang tidak
+        /// punya route, dan mengisinya dengan nilai karangan akan membuat layar Akses Role
+        /// menampilkan alamat yang tidak dapat dipanggil siapa pun.
+        /// </para>
+        /// </remarks>
+        private static void EnsurePenandaTanpaEndpoint(
+            ApplicationDbContext dbContext,
+            IDictionary<string, SysApplicationModule> modulesByCode,
+            IDictionary<string, SysControllerAccess> controllersByModuleAndName,
+            IDictionary<string, SysActionAccess> actionsByControllerAndName)
+        {
+            foreach (var penanda in PenandaTanpaEndpointYangDidaftarkan)
+            {
+                if (!modulesByCode.TryGetValue(penanda.ModuleCode, out var module))
+                {
+                    throw new InvalidOperationException(
+                        $"Hak akses penanda '{penanda.ControllerName} : {penanda.ActionName}' " +
+                        $"menunjuk module '{penanda.ModuleCode}' yang tidak terdaftar. Penanda " +
+                        "yang gagal didaftarkan menghasilkan 403 permanen yang tidak dapat " +
+                        "diperbaiki dari layar mana pun.");
+                }
+
+                var controllerKey = BuildControllerKey(module.Id, penanda.ControllerName);
+
+                if (!controllersByModuleAndName.TryGetValue(controllerKey, out var controller))
+                {
+                    throw new InvalidOperationException(
+                        $"Hak akses penanda '{penanda.ControllerName} : {penanda.ActionName}' " +
+                        $"menunjuk controller '{penanda.ControllerName}' yang tidak ditemukan. " +
+                        "Bila controllernya memang dihapus, hapus juga penandanya dari " +
+                        "PenandaTanpaEndpointYangDidaftarkan.");
+                }
+
+                var actionKey = BuildActionKey(controller.Id, penanda.ActionName);
+
+                if (actionsByControllerAndName.TryGetValue(actionKey, out var existing))
+                {
+                    existing.DisplayName = penanda.DisplayName;
+                    existing.Description = penanda.Description;
+                    existing.AccessType = penanda.AccessType;
+                    existing.SortOrder = penanda.SortOrder;
+                    existing.HttpMethod = null;
+                    existing.RoutePath = null;
+                    existing.VisibleInRoleAccess = true;
+                    existing.IsSystemOnly = false;
+                    existing.IsActive = true;
+                    existing.IsDelete = false;
+
+                    continue;
+                }
+
+                var action = new SysActionAccess
+                {
+                    Id = Guid.NewGuid(),
+                    ControllerAccessId = controller.Id,
+                    ActionName = penanda.ActionName,
+                    DisplayName = penanda.DisplayName,
+                    HttpMethod = null,
+                    RoutePath = null,
+                    Description = penanda.Description,
+                    SortOrder = penanda.SortOrder,
+                    AccessType = penanda.AccessType,
+                    VisibleInRoleAccess = true,
+                    IsSystemOnly = false,
+                    IsActive = true,
+                    CreateDateTime = DateTime.UtcNow,
+                    IsDelete = false,
+                    IsCancel = false,
+                };
+
+                dbContext.SysActionAccesses.Add(action);
+                actionsByControllerAndName.Add(actionKey, action);
+            }
         }
 
         private static string BuildControllerKey(Guid moduleId, string controllerName) =>

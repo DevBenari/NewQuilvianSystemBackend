@@ -763,6 +763,10 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
 
+        public DbSet<RadReport> RadReports { get; set; }
+
+        public DbSet<RadReportVersion> RadReportVersions { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Emergency Installation Management

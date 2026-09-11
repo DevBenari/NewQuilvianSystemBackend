@@ -577,6 +577,53 @@ public class LabValueBoundServiceTests
     /// normal, sesuai <c>VAL-26</c> dan <c>VAL-27</c>. Diturunkan dari rentang normalnya supaya
     /// data uji tidak diam-diam melanggar aturan yang justru sedang diuji di tempat lain.
     /// </summary>
+    /// <summary>
+    /// Daftar batas nilai dapat ditelusuri sampai halaman terakhir walaupun seluruh kunci
+    /// urutannya seri.
+    ///
+    /// <para>
+    /// Urutannya disusun menurut nama pemeriksaan, lingkup jenis kelamin, lalu kelompok usia —
+    /// ketiganya dapat bernilai sama pada baris yang berbeda. Tanpa pemecah seri yang pasti,
+    /// satu batas dapat terbaca dua kali sementara batas lain tidak pernah tampil, dan batas
+    /// yang tidak tampil adalah batas yang tidak dapat diperbaiki petugas.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task DaftarBatas_DitelusuriPerHalaman_TidakAdaBarisYangHilangAtauKembar()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context);
+
+        // Lima pemeriksaan bernama sama, masing-masing satu batas berlingkup sama dan tanpa
+        // kelompok usia — seluruh kunci urutannya seri kecuali penandanya sendiri.
+        for (var i = 0; i < 5; i++)
+        {
+            var (procedureId, _, _) = await SeedAsync(context);
+            await service.CreateAsync(Angka(procedureId, LabGenderScope.All, null, 3.5m, 5.1m));
+        }
+
+        var halaman1 = await service.GetListAsync(
+            new LabValueBoundPagedQuery { PageNumber = 1, PageSize = 2 });
+
+        var halaman2 = await service.GetListAsync(
+            new LabValueBoundPagedQuery { PageNumber = 2, PageSize = 2 });
+
+        var halaman3 = await service.GetListAsync(
+            new LabValueBoundPagedQuery { PageNumber = 3, PageSize = 2 });
+
+        Assert.Equal(5, halaman1.TotalData);
+        Assert.Equal(3, halaman1.TotalPage);
+        Assert.Equal(1, halaman3.Items.Count);
+
+        var seluruhnya = halaman1.Items
+            .Concat(halaman2.Items)
+            .Concat(halaman3.Items)
+            .Select(x => x.Id)
+            .ToList();
+
+        Assert.Equal(5, seluruhnya.Distinct().Count());
+    }
+
     private static CreateLabValueBoundRequest Angka(
         Guid procedureId,
         LabGenderScope genderScope,

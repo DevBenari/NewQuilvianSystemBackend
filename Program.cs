@@ -28,6 +28,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
@@ -304,6 +305,10 @@ try
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<RadSafetyPolicyService>();
+    builder.Services.AddScoped<RadModalityService>();
+    builder.Services.AddScoped<RadSafetyRequirementService>();
+    builder.Services.AddScoped<RadReportService>();
+    builder.Services.AddScoped<RadReportNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
@@ -1184,6 +1189,12 @@ try
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+
+    // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
+    // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
+    // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
+    // (RJ-BIL-DEC-014, DEC-RAD-005).
+    await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
 
     // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
     // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik

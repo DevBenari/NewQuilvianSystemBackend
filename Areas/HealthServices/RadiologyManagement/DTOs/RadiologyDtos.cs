@@ -31,6 +31,113 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// bercampur pada layar dokter.
         /// </remarks>
         public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Penanda cito — <c>RAD-DEC-013</c>. <b>Boleh kosong</b>, dan kosong berarti tidak cito.
+        /// </summary>
+        /// <remarks>
+        /// <c>FR-RAD-065</c>. Dibuat <c>bool?</c> dan bukan <c>bool</c> supaya pemanggil lama
+        /// yang tidak mengenal field ini tetap berhasil membuat pesanan tanpa perubahan apa pun
+        /// di sisi mereka. Modul Rawat Jalan, IGD, dan Rawat Inap sudah memanggil endpoint ini
+        /// hari ini; menjadikan field ini wajib akan merusak ketiganya sekaligus.
+        /// </remarks>
+        public bool? IsUrgent { get; set; }
+    }
+
+    /// <summary>
+    /// Mengubah penanda cito setelah pesanan dibuat — <c>RAD-DEC-013</c>.
+    /// </summary>
+    public class RadOrderUrgencyRequest
+    {
+        /// <summary>Nyalakan untuk menandai cito, matikan untuk mencabutnya.</summary>
+        [Required]
+        public bool IsUrgent { get; set; }
+    }
+
+    /// <summary>
+    /// Satu baris daftar kerja petugas pada sebuah alat pencitraan — <c>RAD-DEC-012</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Tidak ada tabel daftar kerja.</b> Seluruh isi baris ini dihitung dari <c>RadOrder</c>
+    /// dan <c>RadStudy</c> yang sudah ada. Pesanan yang dibatalkan langsung hilang dari daftar
+    /// tanpa proses penyelarasan apa pun, karena memang tidak ada apa pun yang perlu
+    /// diselaraskan — <c>FR-RAD-061</c>.
+    /// </remarks>
+    public class RadWorklistItemResponse
+    {
+        public Guid RadOrderId { get; set; }
+
+        public Guid EncounterId { get; set; }
+
+        public Guid ProcedureId { get; set; }
+
+        public string ProcedureCode { get; set; } = string.Empty;
+
+        public string ProcedureName { get; set; } = string.Empty;
+
+        public Guid ModalityId { get; set; }
+
+        public string ModalityCode { get; set; } = string.Empty;
+
+        public string ModalityName { get; set; } = string.Empty;
+
+        public string OrderStatus { get; set; } = string.Empty;
+
+        /// <summary>Teks keadaan siap tampil dalam Bahasa Indonesia.</summary>
+        public string OrderStatusLabel { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Penanda cito. Baris bertanda ini berada di urutan atas — <c>FR-RAD-062</c>.
+        /// </summary>
+        public bool IsUrgent { get; set; }
+
+        public DateTime? UrgentMarkedAt { get; set; }
+
+        public DateTime? RequestedAt { get; set; }
+
+        public DateTime? ScheduledAt { get; set; }
+
+        /// <summary>
+        /// Waktu yang dipakai menempatkan pekerjaan ini pada sebuah hari kerja: jadwal bila
+        /// sudah dijadwalkan, kalau tidak waktu pemesanan, kalau tidak waktu pesanan dibuat.
+        /// </summary>
+        public DateTime WorkAt { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+
+        /// <summary>
+        /// Study yang sudah lahir dari pesanan ini. <b>Kosong bukan berarti tidak ada
+        /// pekerjaan</b> — justru pesanan tanpa study adalah yang belum direncanakan sama
+        /// sekali.
+        /// </summary>
+        public List<RadWorklistStudyResponse> Studies { get; set; } = new();
+    }
+
+    /// <summary>Satu study pada baris daftar kerja.</summary>
+    public class RadWorklistStudyResponse
+    {
+        public Guid Id { get; set; }
+
+        public string StudyNumber { get; set; } = string.Empty;
+
+        public int StudySequence { get; set; }
+
+        public string StudyStatus { get; set; } = string.Empty;
+
+        public string StudyStatusLabel { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Penanda cito, <b>diturunkan dari pesanannya</b> — <c>AC-41</c>.
+        /// </summary>
+        /// <remarks>
+        /// Sengaja tidak disimpan sebagai kolom pada <c>RadStudy</c>. Kolom salinan akan
+        /// berselisih dengan pesanannya begitu penandanya diubah lewat
+        /// <c>PUT /rad-orders/{id}/urgency</c>, dan dua sumber kebenaran untuk pertanyaan
+        /// "mana yang mendesak" lebih buruk daripada satu yang perlu digabungkan.
+        /// </remarks>
+        public bool IsUrgent { get; set; }
+
+        public bool? IsUsable { get; set; }
     }
 
     public class RadOrderTransitionRequest
@@ -174,11 +281,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 
         public bool IsCancel { get; set; }
 
+        /// <summary>
+        /// Penanda cito. Daftar kerja mendahulukan pesanan bertanda ini —
+        /// <c>RAD-DEC-013</c>.
+        /// </summary>
+        public bool IsUrgent { get; set; }
+
         public DateTime CreateDateTime { get; set; }
     }
 
     public class RadOrderDetailResponse : RadOrderListResponse
     {
+        /// <summary>Siapa yang menandai pesanan ini cito. Kosong ketika tidak cito.</summary>
+        public Guid? UrgentMarkedByUserId { get; set; }
+
+        /// <summary>Kapan pesanan ini ditandai cito. Kosong ketika tidak cito.</summary>
+        public DateTime? UrgentMarkedAt { get; set; }
+
         public string? ClinicalIndication { get; set; }
 
         public DateTime? RequestedAt { get; set; }
@@ -344,6 +463,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public bool HasActiveSafetyRule { get; set; }
 
         public bool IsActive { get; set; }
+
+        public string? Description { get; set; }
+
+        public int SortOrder { get; set; }
     }
 
     public class RadSafetyRequirementResponse

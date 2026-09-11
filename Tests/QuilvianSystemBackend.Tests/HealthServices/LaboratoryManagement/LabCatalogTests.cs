@@ -362,6 +362,89 @@ public class LabCatalogTests
     // Pembantu
     // =====================================================================
 
+    // =====================================================================
+    // Penelusuran halaman
+    // =====================================================================
+
+    /// <summary>
+    /// Katalog dapat ditelusuri sampai halaman terakhir walaupun beberapa pemeriksaan bernama
+    /// sama persis.
+    ///
+    /// <para>
+    /// Nama pemeriksaan bukan penanda unik — satu rumah sakit lazim memiliki "Hemoglobin" di
+    /// bawah lebih dari satu kode. Mengurutkan katalog hanya menurut namanya membuat batas
+    /// antar halaman tidak pasti, dan pemeriksaan yang terlewat tidak akan pernah dapat
+    /// dipesan lewat layar katalog.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task Katalog_DitelusuriPerHalaman_NamaYangKembarTetapTerbacaSemua()
+    {
+        await using var context = CreateInMemoryContext();
+        var service = new LabCatalogService(context);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await SeedProcedureAsync(
+                context, "LAB-HB", "Hemoglobin", LabDiscipline.ClinicalPathology, 35_000m);
+        }
+
+        var halaman1 = await service.GetExaminationsAsync(
+            new LabCatalogQuery { PageNumber = 1, PageSize = 2 });
+
+        var halaman2 = await service.GetExaminationsAsync(
+            new LabCatalogQuery { PageNumber = 2, PageSize = 2 });
+
+        var halaman3 = await service.GetExaminationsAsync(
+            new LabCatalogQuery { PageNumber = 3, PageSize = 2 });
+
+        Assert.Equal(5, halaman1.TotalData);
+        Assert.Equal(3, halaman1.TotalPage);
+        Assert.Equal(1, halaman3.Items.Count);
+
+        var seluruhnya = halaman1.Items
+            .Concat(halaman2.Items)
+            .Concat(halaman3.Items)
+            .Select(x => x.ProcedureId)
+            .ToList();
+
+        Assert.Equal(5, seluruhnya.Distinct().Count());
+    }
+
+    /// <summary>Daftar tarif ditelusuri dengan jaminan yang sama.</summary>
+    [Fact]
+    public async Task DaftarTarif_DitelusuriPerHalaman_TidakAdaTarifYangHilangAtauKembar()
+    {
+        await using var context = CreateInMemoryContext();
+        var service = new LabCatalogService(context);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await SeedProcedureAsync(
+                context, "LAB-HB", "Hemoglobin", LabDiscipline.ClinicalPathology, 35_000m);
+        }
+
+        var halaman1 = await service.GetTariffsAsync(
+            new LabTariffQuery { PageNumber = 1, PageSize = 2 });
+
+        var halaman2 = await service.GetTariffsAsync(
+            new LabTariffQuery { PageNumber = 2, PageSize = 2 });
+
+        var halaman3 = await service.GetTariffsAsync(
+            new LabTariffQuery { PageNumber = 3, PageSize = 2 });
+
+        Assert.Equal(5, halaman1.TotalData);
+        Assert.Equal(3, halaman1.TotalPage);
+
+        var seluruhnya = halaman1.Items
+            .Concat(halaman2.Items)
+            .Concat(halaman3.Items)
+            .Select(x => x.TariffId)
+            .ToList();
+
+        Assert.Equal(5, seluruhnya.Distinct().Count());
+    }
+
     private static ApplicationDbContext CreateInMemoryContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

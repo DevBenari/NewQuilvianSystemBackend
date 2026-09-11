@@ -108,6 +108,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah |
 | Owner | Backend |
 | Definition of Done | Alat baru dapat didaftarkan tanpa menyentuh database langsung |
+| **Keadaan 2026-09-11** | **SELESAI.** `RadModalityController` dengan **sembilan** endpoint baseline master data — lima dari kontrak, ditambah `filters/metadata`, `summary`, `options`, dan `PATCH /{id}/status`. Kode alat kembar ditolak `409`, termasuk yang hanya berbeda huruf besar-kecil; alat yang masih dipakai aturan berlaku tidak dapat dinonaktifkan maupun dihapus. Build lulus 0 error; **61 uji radiologi lulus**, 19 di antaranya baru. Delta: akses data ditempatkan di service, **tidak** memakai `ApplicationDbContext` langsung seperti tertulis pada baris "Yang dikerjakan" — `QBE-SVC-001` mengalahkan pola legacy untuk `NEW CODE`. Laporan: `task/report/backend/BE-RAD-04.md` |
 
 ### `BE-RAD-05` — Kelola butir keselamatan
 
@@ -124,6 +125,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah |
 | Owner | Backend |
 | Definition of Done | Butir keselamatan dapat dikelola lewat endpoint |
+| **Keadaan 2026-09-11** | **SELESAI.** `RadSafetyRequirementController` dengan **sembilan** endpoint baseline master data. Kode butir kembar ditolak `409` termasuk yang berbeda huruf besar-kecil; butir yang masih dipakai aturan berlaku tidak dapat dinonaktifkan maupun dihapus, sedangkan butir yang hanya dipakai draf boleh. Kelompok butir diturunkan dari isinya, bukan daftar tetap. Build lulus 0 error; **78 uji radiologi lulus**, 17 di antaranya baru. Laporan: `task/report/backend/BE-RAD-05.md` |
 
 ### `BE-RAD-06` — Gerbang keselamatan menilai `RuleStatus`
 
@@ -161,6 +163,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | **Isi awalnya belum ditetapkan klinis** (`DEC-RAD-005`). Usulan pemetaan pada `RAD-ARCH-BE-001` bagian 9 bersifat usulan, wajib diverifikasi terhadap SOP rumah sakit |
 | Owner | Backend + penanggung jawab klinis |
 | Definition of Done | Setiap alat punya aturan aktif; **termasuk USG**, yang butirnya tidak wajib tetapi tetap perlu satu baris aturan agar tidak tertolak fail-closed |
+| **Keadaan 2026-09-11** | **SELESAI SEBAGIAN — sisanya bukan wewenang backend.** Seeder `RadiologyMasterDataSeeder` mengisi enam alat dan empat butir keselamatan, lalu menyusun dua belas usulan aturan **berstatus `Draft`** sesuai usulan baseline `DEC-RAD-005`. Tidak satu pun `Active`: aturan yang menentukan kapan pasien disinari hanya sah setelah disahkan penanggung jawab klinis. Build lulus 0 error; **88 uji radiologi lulus**, 10 di antaranya baru. **`GET /coverage` sengaja TETAP berisi enam alat** — dibuktikan menjadi kosong begitu drafnya disahkan. Penahan: `DEC-RAD-005` masih `OPEN`, pemilik tata kelola klinis. Laporan: `task/report/backend/BE-RAD-15.md` |
 
 > **Jebakan yang paling mudah terlewat.** USG tidak punya satu pun butir keselamatan wajib.
 > Karena gerbang bersifat fail-closed, USG tetap **membutuhkan** sedikitnya satu aturan `Active`
@@ -186,6 +189,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Sedang. Dua tabel baru; **jangan** menambahkan kunci asing dari induk ke versi berlaku, karena melingkar |
 | Owner | Backend |
 | Definition of Done | Kedua tabel terbentuk sesuai DDL pada kamus data; tabel lain tidak tersentuh |
+| **Keadaan 2026-09-11** | **SELESAI untuk source dan migration.** Tiga enum, dua model, dua configuration, dan migration `20260911025734_AddRadReport`. Build lulus 0 error; **121 uji radiologi lulus**, 15 di antaranya baru. Migration **dibuat, TIDAK dijalankan** — eksekusi database wewenang terpisah yang belum diberikan, sehingga butir "migration dapat dimundurkan" **belum terbukti**. Snapshot bertambah tepat dua entity, tidak ada yang hilang; hanya dua tabel baru yang disentuh. Laporan: `task/report/backend/BE-RAD-07.md` |
 
 ### `BE-RAD-08` — Service penulisan dan pengesahan bacaan
 
@@ -202,6 +206,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | **Inti keselamatan modul.** Pemeriksaan `ActAsRadiologist` wajib di service, bukan hanya di atribut endpoint |
 | Owner | Backend |
 | Definition of Done | Seluruh transisi sah dan tidak sah pada `RAD-STATE-001` bagian 3 terbukti lewat uji |
+| **Keadaan 2026-09-11** | **SELESAI untuk source dan uji, dengan satu penghalang terbuka.** `RadReportService` beserta `RadReportNumberService` dan `RadReportDtos`; pemeriksaan `ActAsRadiologist` dan penjagaan pengesahan sendiri berada di service. Build lulus 0 error; **162 uji radiologi lulus**, 41 di antaranya baru; seluruh 1.367 uji in-memory lulus. Tujuh baris tabel pengesahan `RAD-STATE-001` bagian 3 seluruhnya terbukti, termasuk residen yang kemudian menjadi radiolog tetap ditolak atas draf lamanya. **Penghalang**: penanda `RadReport : ActAsRadiologist` belum dapat diberikan kepada peran mana pun karena `AccessMenuSeeder` hanya mendaftarkan pasangan yang menempel pada endpoint, sedangkan penanda ini sengaja tanpa endpoint — aturan `RAD-DEC-003` ada di kode tetapi belum berjalan di sistem sebenarnya. Perlu diselesaikan pada `BE-RAD-09`. **Belum tersambung**: `RadStudyService` belum memanggil kelahiran bacaan saat study menjadi `QualityAccepted`. Tidak ada perubahan schema, entity, maupun migration. Laporan: `task/report/backend/BE-RAD-08.md` |
 
 ### `BE-RAD-09` — Endpoint hasil bacaan
 
@@ -218,6 +223,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah |
 | Owner | Backend |
 | Definition of Done | Endpoint sesuai kontrak; pesan kesalahan memakai bahasa pada `RAD-VAL-001` |
+| **Keadaan 2026-09-11** | **SELESAI, penghalang `BE-RAD-08` masih terbuka.** `RadReportController` dengan **sepuluh** endpoint — delapan dari kontrak, ditambah `filters/metadata` dan `summary` yang diwajibkan baseline `transaction-endpoint-standard.md`. `GET /{id}/versions` dan `POST /{id}/amendments` **sengaja tidak dibuat**, keduanya milik `BE-RAD-10`, dan ada ujinya yang memastikan tidak terbawa. Build lulus 0 error; **203 uji radiologi lulus**, 41 di antaranya baru; seluruh 1.408 uji in-memory lulus. AC-1 sampai AC-4 dibuktikan **lewat jalur HTTP**, bukan hanya di service. Kontrak diamandemen menjadi `RAD-API-001` rev 6 dan `RAD-PERM-001` rev 6 — **menunggu konfirmasi pemilik modul**. Delta: `POST /by-study/{id}/draft` menjawab `200`, bukan `201` seperti contoh `RAD-API-001` bagian 4, mengikuti seluruh endpoint create modul yang sudah berjalan; `RadReportValidateRequest` tidak dibuat karena tidak ada isian maupun kolom untuknya. **Penghalang tetap**: `RadReport : ActAsRadiologist` belum dapat diberikan kepada peran mana pun. Laporan: `task/report/backend/BE-RAD-09.md` |
 
 ### `BE-RAD-10` — Koreksi berversi
 
@@ -234,6 +240,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | **Tidak boleh ada satu pun jalur yang menimpa versi rilis.** Tidak ada endpoint hapus versi |
 | Owner | Backend |
 | Definition of Done | Riwayat versi utuh dan dapat ditelusuri mundur lewat `PreviousVersionId` |
+| **Keadaan 2026-09-11** | **SELESAI.** `CreateAmendmentAsync` dan `GetVersionsAsync` beserta endpoint `POST /{id}/amendments` dan `GET /{id}/versions`; grup *Rad Report* kini **lengkap**. Build lulus 0 error; **233 uji radiologi lulus**, 30 di antaranya baru; seluruh 1.438 uji in-memory lulus. Versi lama terbukti tidak berubah satu huruf pun, rantai `PreviousVersionId` benar-benar ditelusuri sampai bacaan aslinya, dan **tidak ada satu pun jalur yang dapat mengubah atau menghapus versi** — dibuktikan dua uji ketiadaan jalur pada controller dan service. **Selisih kontrak ditemukan**: `RAD-STATE-001` bagian 3 menulis versi lama menjadi `Superseded` saat draf koreksi ditulis, sedangkan bagian 4 dan `FR-RAD-020` menyatakan saat koreksi **dirilis**. Yang dikerjakan mengikuti bagian 4 karena bacaan itu yang aman; kalimat bagian 3 perlu diperbaiki pemilik modul. Kontrak diamandemen menjadi `RAD-API-001` rev 7 dan `RAD-PERM-001` rev 7 — **menunggu konfirmasi**. Tidak ada perubahan schema, entity, maupun migration. Laporan: `task/report/backend/BE-RAD-10.md` |
 
 ---
 
@@ -254,6 +261,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Sedang. **Jangan** menyediakan jalur apa pun yang memungkinkan modul lain menyimpan salinan |
 | Owner | Backend |
 | Definition of Done | Uji arsitektur membuktikan tidak ada tabel di luar Radiologi yang menyimpan isi bacaan |
+| **Keadaan 2026-09-11** | **SELESAI untuk sisi backend.** `GET /by-encounter/{encounterId}` kini menyaring bacaan yang belum pernah dirilis — draf **dan** bacaan yang sudah disahkan tetapi belum dirilis tidak muncul sama sekali. Build lulus 0 error; **245 uji radiologi lulus**, 12 di antaranya baru; seluruh 1.450 uji in-memory lulus. DoD dibuktikan **empat uji arsitektur** yang memeriksa dari empat arah — entity di luar Radiologi, source seluruh `Areas/`, source modul Radiologi terhadap slot dokumen rekam medis, dan ketergantungan constructor service; ketiga uji pemindaian dijaga terhadap lulus semu. **Perubahan perilaku** pada endpoint yang sudah berjalan, dicatat sebagai `RAD-API-001` rev 8 — **menunggu konfirmasi**. `FR-RAD-031` (gangguan dibedakan dari kekosongan) **tidak tersentuh** — kriteria layar, milik `FE-RAD-13`. Tidak ada perubahan schema, entity, maupun migration. Laporan: `task/report/backend/BE-RAD-11.md` |
 
 ### `BE-RAD-12` — Penanda cito pada pesanan
 
@@ -270,6 +278,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah. Menyentuh tabel yang sudah ada, tetapi hanya menambah kolom bernilai bawaan |
 | Owner | Backend |
 | Definition of Done | Kompatibilitas mundur terbukti; tidak ada pemanggil lama yang rusak |
+| **Keadaan 2026-09-11** | **SELESAI untuk source dan migration.** Tiga kolom pada `RadOrder`, index gabungan `ModalityId` + `IsUrgent` + `OrderStatus`, dan migration `20260911045053_AddRadOrderUrgency`. Build lulus 0 error; **259 uji radiologi lulus**, 14 di antaranya baru; 1.464 uji in-memory **dan 481 uji Sqlite** lulus tanpa satu pun disunting — inilah bukti terkuat DoD kompatibilitas mundurnya, karena project Sqlite memuat uji modul Rawat Inap yang memanggil `RadOrderService`. Migration **dibuat, TIDAK dijalankan**; hanya `RadOrder` yang disentuh, snapshot bertambah tanpa satu baris pun hilang. Penanda cito **tidak** disalin ke `RadStudy` — diturunkan dari pesanannya, dijaga uji. Kontrak diamandemen menjadi `RAD-API-001` rev 9 — **menunggu konfirmasi**; dua field jejak pada rincian berada di luar teks kontrak dan dicatat beserta alasannya. Laporan: `task/report/backend/BE-RAD-12.md` |
 
 ### `BE-RAD-13` — Daftar kerja per alat
 
@@ -286,6 +295,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah |
 | Owner | Backend |
 | Definition of Done | Daftar kerja hanya menyentuh `RadOrder` dan `RadStudy` |
+| **Keadaan 2026-09-11** | **SELESAI.** `GET /worklist` dan `PUT /{id}/urgency`; **dengan ini seluruh 15 task backend roadmap ini selesai.** Build lulus 0 error; **283 uji radiologi lulus**, 24 di antaranya baru; 1.488 uji in-memory dan 481 uji Sqlite lulus. **Tidak ada tabel daftar kerja** — dibuktikan dua uji arsitektur, salah satunya membaca source methodnya sendiri dan memastikan satu-satunya DbSet yang disentuh adalah `RadOrders`. Penanda cito ikut terbaca pada baris study **dan ikut berubah** ketika penanda pesanannya dicabut — bukti penurunan lebih baik daripada penyalinan. Hari kerja dihitung menurut **Waktu Indonesia Barat**, karena shift pagi 06.00 WIB berjalan pada 23.00 UTC hari sebelumnya. Setiap perubahan penanda masuk `RadTransitionHistory` beserta pelakunya, termasuk pencabutannya. **Selisih**: `transaction-endpoint-standard.md` melarang `PUT /{id}/<aksi>`, tetapi kontrak menuliskannya `PUT` dan seluruh dua belas endpoint aksi controller ini memakai `PUT` — dicatat pada `RAD-API-001` rev 10 untuk diputuskan pemilik modul. Tidak ada perubahan schema, entity, maupun migration. Laporan: `task/report/backend/BE-RAD-13.md` |
 
 ---
 
@@ -306,6 +316,7 @@ tidak akan pernah ada citra layak untuk dibaca.
 | Risiko | Rendah, tetapi ketiadaannya berisiko tinggi |
 | Owner | Backend |
 | Definition of Done | Uji lulus dan dijalankan pada setiap gelombang |
+| **Keadaan 2026-09-11** | **SELESAI.** `RadiologyRoleAccessContractTests` membuktikan keempat butir `RAD-PERM-001` bagian 9 atas 26 endpoint di lima controller. Build lulus 0 error; **106 uji radiologi lulus**, 18 di antaranya baru. **Tidak ditemukan satu pun cacat** — cacat `403` permanen yang menimpa sembilan endpoint Rawat Inap tidak terjadi di Radiologi. Uji ditempatkan di project in-memory, bukan Postgres, supaya benar-benar dijalankan. Laporan: `task/report/backend/BE-RAD-14.md` |
 
 ---
 

@@ -376,6 +376,101 @@ public class LabWorklistTests
     // Pembantu
     // =====================================================================
 
+    // =====================================================================
+    // Penelusuran halaman
+    // =====================================================================
+
+    /// <summary>
+    /// Daftar kerja dapat ditelusuri sampai halaman terakhir tanpa satu baris pun hilang
+    /// atau muncul dua kali.
+    ///
+    /// <para>
+    /// Yang dijaga di sini bukan sekadar angka totalnya. Batas antar halaman harus jatuh di
+    /// tempat yang sama pada dua permintaan yang berbeda; bila urutannya tidak punya pemecah
+    /// seri yang pasti, satu pemeriksaan dapat terbaca di kedua halaman sementara pemeriksaan
+    /// lain tidak pernah terbaca di halaman mana pun — dan pekerjaan yang tidak pernah tampil
+    /// di daftar kerja adalah pekerjaan yang tidak pernah dikerjakan.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task DaftarKerja_DitelusuriPerHalaman_TidakAdaBarisYangHilangAtauKembar()
+    {
+        await using var context = CreateContext();
+        var kalium = await SeedProcedureAsync(context, "K", "Kalium");
+
+        // Waktu masuknya sengaja dibuat sama persis untuk seluruh lima belas baris, supaya
+        // yang memutuskan urutannya tinggal pemecah seri terakhir.
+        for (var i = 0; i < 15; i++)
+        {
+            await SeedPekerjaanAsync(
+                context, kalium, Pagi, LabExaminationUrgency.Routine, barcode: $"LSP-{i:D2}");
+        }
+
+        var service = CreateService(context);
+
+        var halaman1 = await service.GetPendingAsync(
+            new LabWorklistPagedQuery { PageNumber = 1, PageSize = 10 });
+
+        var halaman2 = await service.GetPendingAsync(
+            new LabWorklistPagedQuery { PageNumber = 2, PageSize = 10 });
+
+        Assert.Equal(15, halaman1.TotalData);
+        Assert.Equal(2, halaman1.TotalPage);
+        Assert.Equal(10, halaman1.Items.Count);
+        Assert.Equal(5, halaman2.Items.Count);
+
+        var seluruhnya = halaman1.Items.Concat(halaman2.Items)
+            .Select(x => x.ExaminationId)
+            .ToList();
+
+        Assert.Equal(15, seluruhnya.Distinct().Count());
+    }
+
+    /// <summary>
+    /// Pemantauan keterlambatan cito juga dapat ditelusuri per halaman. Perhitungannya
+    /// dilakukan di memori, sehingga batas halamannya tetap perlu urutan yang pasti.
+    /// </summary>
+    [Fact]
+    public async Task CitoTerlambat_DitelusuriPerHalaman_TidakAdaBarisYangHilangAtauKembar()
+    {
+        await using var context = CreateContext();
+        var kalium = await SeedProcedureAsync(context, "K", "Kalium");
+        await SeedBatasWaktuCitoAsync(context, kalium, 30);
+
+        // Kelimanya layak pada saat yang sama dan melewati batas yang sama, sehingga seluruh
+        // kunci urutannya seri kecuali penanda pemeriksaannya sendiri.
+        for (var i = 0; i < 5; i++)
+        {
+            await SeedPekerjaanAsync(
+                context, kalium, Pagi, LabExaminationUrgency.Cito,
+                barcode: $"LSP-CITO-{i:D2}", chargeEligibleAt: Pagi);
+        }
+
+        var service = CreateService(context);
+        var sekarang = Pagi.AddHours(2);
+
+        var halaman1 = await service.GetCitoOverdueAsync(
+            new LabWorklistPagedQuery { PageNumber = 1, PageSize = 2 }, sekarang);
+
+        var halaman2 = await service.GetCitoOverdueAsync(
+            new LabWorklistPagedQuery { PageNumber = 2, PageSize = 2 }, sekarang);
+
+        var halaman3 = await service.GetCitoOverdueAsync(
+            new LabWorklistPagedQuery { PageNumber = 3, PageSize = 2 }, sekarang);
+
+        Assert.Equal(5, halaman1.TotalData);
+        Assert.Equal(3, halaman1.TotalPage);
+        Assert.Equal(1, halaman3.Items.Count);
+
+        var seluruhnya = halaman1.Items
+            .Concat(halaman2.Items)
+            .Concat(halaman3.Items)
+            .Select(x => x.ExaminationId)
+            .ToList();
+
+        Assert.Equal(5, seluruhnya.Distinct().Count());
+    }
+
     private static ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()

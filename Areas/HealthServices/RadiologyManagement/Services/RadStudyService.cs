@@ -906,7 +906,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             };
         }
 
-        private static string LabelStatusStudy(RadStudyStatus status) => status switch
+        /// <summary>
+        /// Teks keadaan study yang siap ditampilkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>internal</c> sejak <c>BE-RAD-13</c> supaya daftar kerja pada <c>RadOrderService</c>
+        /// memakai peta yang sama persis. Menyalinnya akan membuat dua layar menyebut keadaan
+        /// yang sama dengan dua kalimat berbeda begitu salah satunya disunting.
+        /// </remarks>
+        internal static string LabelStatusStudy(RadStudyStatus status) => status switch
         {
             RadStudyStatus.Planned => "Direncanakan",
             RadStudyStatus.PatientVerified => "Identitas terverifikasi",

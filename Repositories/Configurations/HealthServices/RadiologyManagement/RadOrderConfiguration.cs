@@ -22,6 +22,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
             builder.HasIndex(x => x.OrderStatus);
             builder.HasIndex(x => new { x.ModalityId, x.OrderStatus });
 
+            // =========================================================================
+            // BE-RAD-12 — penanda cito, RAD-DEC-013
+            // =========================================================================
+
+            // Urutan kolomnya menentukan dan tidak boleh ditukar. Daftar kerja selalu bertanya
+            // "pekerjaan pada alat ini", lalu "yang cito lebih dulu", lalu "yang statusnya masih
+            // berjalan". Index dengan urutan itu terpakai penuh; urutan lain memaksa database
+            // memindai seluruh pesanan alat tersebut.
+            builder.HasIndex(x => new { x.ModalityId, x.IsUrgent, x.OrderStatus });
+
             builder.HasOne(x => x.Encounter)
                 .WithMany()
                 .HasForeignKey(x => x.EncounterId)
