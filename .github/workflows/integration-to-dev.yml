@@ -1,0 +1,84 @@
+name: Integration to DEV Gate
+
+on:
+  push:
+    branches:
+      - QuilvianIntegrationBackend
+
+  workflow_dispatch:
+
+concurrency:
+  group: integration-to-dev-gate
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration-gate:
+    name: Integration Fast Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Show candidate
+        shell: bash
+        run: |
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Candidate SHA: $GITHUB_SHA"
+
+      - name: Restore backend project
+        run: dotnet restore ./QuilvianSystemBackend.csproj
+
+      - name: Build backend project
+        run: >
+          dotnet build
+          ./QuilvianSystemBackend.csproj
+          --configuration Release
+          -p:SkipMigrationMetadata=true
+
+      - name: Detect migration changes
+        id: migrations
+        shell: bash
+        run: |
+          git fetch origin QuilvianDevDeploy
+
+          MIGRATION_CHANGES="$(
+            git diff --name-only \
+              origin/QuilvianDevDeploy \
+              HEAD \
+              -- Migrations/
+          )"
+
+          if [ -n "$MIGRATION_CHANGES" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+
+            echo "Migration changes detected:"
+            echo "$MIGRATION_CHANGES"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No migration changes detected."
+          fi
+
+      - name: Gate summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## Integration Fast Gate PASSED"
+            echo ""
+            echo "- Candidate: \`${GITHUB_SHA}\`"
+            echo "- Backend project build: PASS"
+            echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
+            echo ""
+            echo "Auto promotion is still disabled during validation."
+          } >> "$GITHUB_STEP_SUMMARY"
