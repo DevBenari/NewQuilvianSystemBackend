@@ -16,9 +16,9 @@
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/BloodBankManagement/**`, `Repositories/**`, `Migrations/**`, `Tests/**`, `Program.cs`, serta laporan, roadmap, traceability, dan `MODULE-STATUS` Bank Darah |
 | Wewenang database | Pembuatan migration **dan** penerapannya **hanya** ke `QuilvianNewDevSukma` — keduanya dinyatakan eksplisit dan terpisah pada prompt task, memenuhi syarat `CLAUDE.md` bagian *Larangan otomatisasi* |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `14f3778` cabang `sukmagp` |
-| Tanggal | `2026-09-10` dikerjakan · `2026-09-11` divalidasi dan ditutup |
-| Status | ✅ **`SELESAI`** — kesebelas acceptance criteria roadmap terbukti; build, 498 test, 4 uji PostgreSQL, dan penerapan migration ke `QuilvianNewDevSukma` lulus. Tiga delta kontrak menunggu keputusan pemilik (bagian 7) |
+| Commit backend saat dikerjakan | `14f3778` cabang `sukmagp` · hasilnya masuk commit `8e30aa9`, tempat verifikasi ulang dijalankan |
+| Tanggal | `2026-09-10` dikerjakan · `2026-09-11` divalidasi dan ditutup · `2026-09-11` diverifikasi ulang pada `8e30aa9` |
+| Status | ✅ **`SELESAI`** — kesebelas acceptance criteria roadmap terbukti; build, 498 test, 4 uji PostgreSQL, dan penerapan migration ke `QuilvianNewDevSukma` lulus. Tiga delta kontrak menunggu keputusan pemilik (bagian 7). **Diverifikasi ulang 11 September 2026 pada commit `8e30aa9`:** build, 498 + 231 test, dan 4 uji PostgreSQL lulus kembali; migration sudah terterapkan, pending 0 (bagian 5.1) |
 
 ---
 
@@ -262,6 +262,35 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta akun ber-hak-a
 | Uji PostgreSQL modul lain — Billing, Laboratory, Radiology, Platform | Wewenang eksekusi hanya untuk uji task ini |
 | `BillingTests` | Tidak berkaitan dengan task ini |
 
+### 5.1 Verifikasi ulang pada commit `8e30aa9` — 11 September 2026
+
+**Kenapa diulang.** Source `BE-BD-003` sampai di working copy ini lewat `git pull` fast-forward
+ke commit `8e30aa9` pada 11 September 2026 pukul 08.58. Assembly yang ada di `bin/` bertanggal
+10 September 2026 pukul 15.39 — lebih tua daripada source-nya — sehingga angka pada tabel di atas
+tidak dapat diakui untuk commit ini tanpa dijalankan ulang. Seluruh pemeriksaan di bawah dijalankan
+pada commit `8e30aa9` dari working tree yang bersih, dan **nol berkas source atau test diubah**.
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.sln -nodeReuse:false -p:UseSharedCompilation=false` | `0 Error(s)`, `210 Warning(s)`, 5 menit 22 detik | `PASS` | Sama dengan baseline 210. Nol warning menyebut berkas task ini |
+| `dotnet test --no-build` — `QuilvianSystemBackend.Tests` | `Failed: 0, Passed: 498, Total: 498`, 25 detik | `PASS` | Dihitung dari berkas `.trx`: nama lengkap memuat `BankDarah` **213** (210 di namespace `BankDarah` ditambah 3 `LabScopeBoundaryTests` yang namanya menyebut Bank Darah — cara hitung yang sama dengan tabel di atas) · `BloodOrderServiceTests` **79** · `BloodBankRoleAccessContractTests` **13**. Seluruhnya lulus |
+| `dotnet test --no-build` — `UnitTests.Sqlite` | `Failed: 0, Passed: 231, Total: 231`, 3 menit 40 detik | `PASS` | Keluaran perintah |
+| `dotnet test --no-build` — `UnitTests.InMemory` | `Failed: 9, Passed: 896, Total: 905` | `EXISTING / ENVIRONMENT ISSUE` | Kesembilannya `BillingManagement`: `BillingInvoiceServiceTests` 1, `BillingCalculationServiceTests` 7, `BillingFinalizationServiceTests` 1. Angkanya sama persis dengan baseline laporan `BE-BD-005` |
+| `BloodOrderPostgresTests` pada `QuilvianNewDevSukma` | **4 dari 4 lulus** | `PASS` | Keempat nama uji sama dengan tabel di atas. Hanya kelas uji ini yang dijalankan |
+| `ef migrations has-pending-model-changes --no-build` | "No changes have been made to the model since the last migration.", exit 0 | `PASS` | Keluaran perintah |
+| `ef migrations list --no-build` pada `QuilvianNewDevSukma` | 138 total, **138 terterapkan, pending 0**. `20260910153119_AddBbkBloodOrder` tercatat `applied=True` | `PASS` | Diperiksa **sebelum** uji PostgreSQL, karena fixture uji menjalankan `Database.Migrate()` sendiri |
+| `ef database update` pada `QuilvianNewDevSukma` | **Tidak dijalankan** — tidak ada migration yang tertunda | `NOT REQUIRED` | Migration task ini sudah diterapkan 11 September 2026 (tabel di atas). Menjalankannya lagi tidak mengubah apa pun. Pengaman skrip hanya mengizinkan eksekusi bila pending tepat satu, yaitu `AddBbkBloodOrder` |
+
+**Catatan verifikasi ulang, dicatat apa adanya.**
+
+| Hal | Isi |
+| --- | --- |
+| Log "fatal" dari alat EF | Setiap perintah `dotnet ef` mencetak `Application terminated unexpectedly` dengan `HostAbortedException` pada `Program.cs:line 849`. Itu cara normal alat EF menghentikan host di `builder.Build()` sebelum aplikasi berjalan — **bukan** galat aplikasi, dan seeder sesudah baris itu tidak dijalankan |
+| Cacat skrip saya | Percobaan pertama membaca `ef migrations list` gagal diurai, karena baris log terstruktur di atas memuat karakter `[` sebelum JSON-nya. Perintahnya hanya-baca, jadi **database tidak tersentuh**. Pengurai diperbaiki lalu dijalankan ulang |
+| Jejak di database | Uji PostgreSQL menaikkan lagi pencacah deret `BBK_BLOOD_ORDER`; baris uji lainnya dihapus teardown |
+| Temuan registry basi (bagian 3.4) | **Tertutup.** Suite skill terpasang kini versi `1.18.0`, dan registry-nya memuat `BloodBankManagement / Blood Bank / Bbk / ACTIVE` pada baris 29 beserta catatan lifecycle 3 September 2026 |
+| Proses tersisa | Satu proses `dotnet` yang mulai pukul 09.30 masih hidup sesudah verifikasi — kemungkinan node build dari perintah verifikasi ini, tetapi tidak terbukti, sehingga **tidak dihentikan** |
+
 ---
 
 ## 6. Acceptance criteria dan Definition of Done
@@ -319,12 +348,12 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta akun ber-hak-a
 | --- | --- |
 | Peringatan | Build solution `210 Warning(s)`, sama dengan baseline. Fixture PostgreSQL bawaan mencetak nama host database pada peringatan opt-in-nya ke konsol lokal; nilainya **tidak** disalin ke laporan ini maupun berkas lain |
 | Masalah yang diketahui | **(1)** `BloodOrder : Update` tanpa endpoint kontrak — butuh keputusan. **(2)** Pemicu otomatis kedaluwarsa order belum ada; perpindahan `Expired` tersedia di service dan terbukti, tetapi tidak ada yang memanggilnya secara berkala. **(3)** Angka "diberikan" pada ringkasan pemenuhan selalu nol sampai pemberian kantong lahir di `BE-BD-006`/`BE-BD-007` dan koreksinya di `BE-BD-010`; angkanya dihitung, bukan disimpan, sehingga tidak ada data yang perlu diisi ulang kelak. **(4)** FK `ReasonCode` riwayat tidak fisik (bagian 7) |
-| Risiko tersisa | **(1)** Migration baru ada di `QuilvianNewDevSukma`; `QuilvianNewDevTim01`, staging, dan production belum. **(2)** Sampai pemicu kedaluwarsa ada, order pada kunjungan yang sudah berakhir tetap tercatat `Active` di daftar kerja — penahanan ganda **tidak** terdampak karena order baru pada kunjungan itu sudah ditolak. **(3)** Tafsiran `AC-BD-004` dan "kunjungan sah" menunggu konfirmasi. **(4)** Uji PostgreSQL menaikkan pencacah deret `BBK_BLOOD_ORDER` di `QuilvianNewDevSukma` sekitar tiga angka dan sengaja tidak dikembalikan (`INV-PLT-001`), sehingga order nyata pertama di database itu tidak bernomor `ORD-00000001`. **(5)** Uji PostgreSQL membaca satu `MstDoctor` yang sudah ada, karena membuat dokter berarti menulis ke tabel milik modul HR |
-| Temuan di luar scope | **(1)** Registry pada suite skill terpasang basi (bagian 3.4). **(2)** Satu kompilasi penuh project utama memakan 50 menit sampai 5 jam 40 menit di mesin ini, dengan compiler hingga 15 GB — `EXISTING / ENVIRONMENT ISSUE`. **(3)** Sembilan kegagalan `BillingManagement` pada `UnitTests.InMemory` masih ada, milik pemilik Billing |
+| Risiko tersisa | **(1)** Migration baru ada di `QuilvianNewDevSukma`; `QuilvianNewDevTim01`, staging, dan production belum. **(2)** Sampai pemicu kedaluwarsa ada, order pada kunjungan yang sudah berakhir tetap tercatat `Active` di daftar kerja — penahanan ganda **tidak** terdampak karena order baru pada kunjungan itu sudah ditolak. **(3)** Tafsiran `AC-BD-004` dan "kunjungan sah" menunggu konfirmasi. **(4)** Uji PostgreSQL menaikkan pencacah deret `BBK_BLOOD_ORDER` di `QuilvianNewDevSukma` sekitar tiga angka dan sengaja tidak dikembalikan (`INV-PLT-001`), sehingga order nyata pertama di database itu tidak bernomor `ORD-00000001`. Verifikasi ulang 11 September 2026 menjalankan uji itu sekali lagi, sehingga pencacahnya naik lagi. **(5)** Uji PostgreSQL membaca satu `MstDoctor` yang sudah ada, karena membuat dokter berarti menulis ke tabel milik modul HR |
+| Temuan di luar scope | **(1)** Registry pada suite skill terpasang basi (bagian 3.4) — **tertutup 11 September 2026**: suite `1.18.0` sudah memuat `Bbk` berstatus `ACTIVE`. **(2)** Satu kompilasi penuh project utama memakan 50 menit sampai 5 jam 40 menit di mesin ini, dengan compiler hingga 15 GB — `EXISTING / ENVIRONMENT ISSUE`. **(3)** Sembilan kegagalan `BillingManagement` pada `UnitTests.InMemory` masih ada, milik pemilik Billing |
 | Perubahan sampingan | **`NONE` pada hasil akhir.** Selama pengerjaan: **(1)** penyuntingan lewat skrip sempat mengubah line ending `Program.cs` dan `ApplicationDbContext.cs` menjadi LF — dipulihkan ke CRLF dan diverifikasi `w/crlf`; berkas baru diseragamkan CRLF. **(2)** Build kedua yang masih memakai model lama dihentikan beserta proses anaknya, lalu `dotnet build-server shutdown` — seluruhnya proses milik task ini. **(3)** Baris uji PostgreSQL dihapus kembali pada teardown, kecuali pencacah nomor yang memang tidak boleh mundur |
-| Interupsi | Empat kali: **(1)** build pertama dihentikan pengguna; **(2)** dan **(3)** sesi berakhir saat build kedua berjalan; **(4)** build kedua sengaja dihentikan untuk membuang field karangan sebelum migration dibuat. Setiap kali dilanjutkan dari keadaan terverifikasi lewat `git status`, log build, dan stempel waktu assembly — tanpa penyuntingan ganda |
+| Interupsi | Empat kali: **(1)** build pertama dihentikan pengguna; **(2)** dan **(3)** sesi berakhir saat build kedua berjalan; **(4)** build kedua sengaja dihentikan untuk membuang field karangan sebelum migration dibuat. Setiap kali dilanjutkan dari keadaan terverifikasi lewat `git status`, log build, dan stempel waktu assembly — tanpa penyuntingan ganda. **(5)** Sesi verifikasi ulang 11 September 2026 dimulai dari working tree bersih pada `8e30aa9` dan tidak terinterupsi (bagian 5.1) |
 | Status Git | Bagian 9 |
-| Langkah berikutnya | **(1)** `BE-BD-004` — jalur kritis menuju `BE-BD-015`, `BE-BD-006`, dan `BE-BD-007`. **(2)** `BE-BD-012`, terbuka bersamaan. **(3)** `FE-BD-002` di frontend. **(4)** Keputusan `BloodOrder : Update`, konfirmasi tafsiran "kunjungan sah", dan task pemicu kedaluwarsa. **(5)** Penerapan migration ke database lain sebagai wewenang terpisah. **(6)** Pembaruan suite skill terpasang |
+| Langkah berikutnya | **(1)** `BE-BD-004` — jalur kritis menuju `BE-BD-015`, `BE-BD-006`, dan `BE-BD-007`. **(2)** `BE-BD-012`, terbuka bersamaan. **(3)** `FE-BD-002` di frontend. **(4)** Keputusan `BloodOrder : Update`, konfirmasi tafsiran "kunjungan sah", dan task pemicu kedaluwarsa. **(5)** Penerapan migration ke database lain sebagai wewenang terpisah. **(6)** Pembaruan suite skill terpasang — sudah terpenuhi, versi `1.18.0` |
 
 ---
 
@@ -359,3 +388,17 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta akun ber-hak-a
 ```
 
 Seluruh baris milik task ini. Nol stage, commit, push, merge, rebase, maupun deployment dilakukan.
+
+**Pada verifikasi ulang 11 September 2026.** Seluruh berkas di atas sudah masuk commit `8e30aa9`,
+yang sama dengan `origin/sukmagp`. `git status --short` kosong sebelum verifikasi dan tetap kosong
+sesudah build dan seluruh test dijalankan. Yang berubah sesudahnya hanya tiga berkas dokumentasi
+yang mencatat verifikasi ulang ini:
+
+```text
+ M docs/module-blueprints/bank-darah/roadmap/backend-roadmap.md
+ M docs/module-blueprints/bank-darah/roadmap/requirement-traceability.md
+ M docs/module-blueprints/bank-darah/task/report/backend/BE-BD-003.md
+```
+
+Tidak ada `git pull` yang dijalankan pada sesi ini; `pull` pukul 08.58 sudah terjadi sebelumnya.
+Nol stage, commit, push, merge, rebase, maupun deployment dilakukan.
