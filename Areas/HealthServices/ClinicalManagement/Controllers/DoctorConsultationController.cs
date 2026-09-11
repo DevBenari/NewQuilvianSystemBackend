@@ -676,8 +676,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<DoctorConsultationSoapUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Autosave Doctor Consultation SOAP", Description = "Menyimpan otomatis SOAP konsultasi dokter tanpa mengubah field lain", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("DoctorConsultation", "Update")]
+        [AccessAction("WriteSoap", "Autosave Doctor Consultation SOAP", Description = "Menyimpan otomatis SOAP konsultasi dokter tanpa mengubah field lain", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorConsultation", "WriteSoap")]
         public async Task<IActionResult> UpdateSoap(Guid id, [FromBody] UpdateDoctorConsultationSoapRequest request)
         {
             if (request == null)

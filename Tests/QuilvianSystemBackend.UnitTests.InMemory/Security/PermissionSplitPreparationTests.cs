@@ -25,7 +25,7 @@ public sealed class PermissionSplitPreparationTests
     private static readonly Assembly BackendAssembly = typeof(AccessPermissionService).Assembly;
 
     /// <summary>
-    /// 22 identitas baru hasil pemecahan pilot Dokter Rawat Jalan.
+    /// 23 identitas baru hasil pemecahan pilot Dokter Rawat Jalan.
     /// Dikunci sebagai himpunan persis supaya penambahan diam-diam menggagalkan test.
     /// </summary>
     private static readonly (string Resource, string Action)[] NewSplitIdentities =
@@ -37,6 +37,7 @@ public sealed class PermissionSplitPreparationTests
         ("PatientProcedure", "RemoveDraft"),
         ("PatientProcedure", "Cancel"),
 
+        ("DoctorConsultation", "WriteSoap"),
         ("DoctorConsultation", "Complete"),
         ("DoctorConsultation", "Cancel"),
 
@@ -96,7 +97,7 @@ public sealed class PermissionSplitPreparationTests
         ("PatientProcedureController", "CancelProcedure", "PatientProcedure", "Cancel"),
 
         ("DoctorConsultationController", "UpdateConsultation", "DoctorConsultation", "Update"),
-        ("DoctorConsultationController", "UpdateSoap", "DoctorConsultation", "Update"),
+        ("DoctorConsultationController", "UpdateSoap", "DoctorConsultation", "WriteSoap"),
         ("DoctorConsultationController", "CompleteConsultation", "DoctorConsultation", "Complete"),
         ("DoctorConsultationController", "CancelConsultation", "DoctorConsultation", "Cancel"),
 
@@ -156,7 +157,7 @@ public sealed class PermissionSplitPreparationTests
             "Identitas hasil pemecahan berikut tidak terdaftar di registry, sehingga tidak akan " +
             "muncul di layar Akses Role: " + string.Join(", ", missing));
 
-        Assert.Equal(22, NewSplitIdentities.Length);
+        Assert.Equal(23, NewSplitIdentities.Length);
     }
 
     /// <summary>
@@ -413,6 +414,7 @@ public sealed class PermissionSplitPreparationTests
                      ("PatientProcedure", "Approve"),
                      ("PatientProcedure", "Execute"),
                      ("PatientProcedure", "Cancel"),
+                     ("DoctorConsultation", "WriteSoap"),
                      ("DoctorConsultation", "Complete"),
                      ("DoctorQueue", "FinishConsultation"),
                  })

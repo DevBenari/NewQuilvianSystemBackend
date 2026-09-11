@@ -166,6 +166,7 @@ public sealed class AccessPermissionEnforcementTests
         Guid departmentId,
         Guid positionId,
         bool isActive = true,
+        bool isCancel = false,
         DateTime? effectiveStartDate = null,
         DateTime? effectiveEndDate = null)
     {
@@ -176,6 +177,7 @@ public sealed class AccessPermissionEnforcementTests
             DepartmentId = departmentId,
             PositionId = positionId,
             IsActive = isActive,
+            IsCancel = isCancel,
             EffectiveStartDate = effectiveStartDate,
             EffectiveEndDate = effectiveEndDate,
         });
@@ -666,6 +668,34 @@ public sealed class AccessPermissionEnforcementTests
 
         var set = await service.GetEffectivePermissionsAsync(AuthenticatedPrincipal(user.Id));
 
+        Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
+    }
+
+    /// <summary>
+    /// Regresi <c>BE-SEC-003</c>: penempatan organisasi yang <b>dibatalkan</b> tidak boleh
+    /// menyumbang kewenangan apa pun, pada kedua jalur sekaligus.
+    ///
+    /// <para><c>HasAccessAsync</c> sudah menyaring <c>!IsCancel</c> sejak Phase A0, sementara
+    /// <c>GetEffectivePermissionsAsync</c> lahir tanpa penyaring itu. Akibatnya daftar kewenangan
+    /// menyebut kemampuan yang penjaganya pasti tolak — tombol tampil lalu dijawab <c>403</c>,
+    /// persis kegagalan yang dokumentasi metode itu janjikan tidak akan terjadi.</para>
+    /// </summary>
+    [Fact]
+    public async Task GetEffectivePermissions_ExcludesCancelledOrganizationAssignment()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var user = await SeedUserAsync(db);
+        var (departmentId, positionId) = await GrantPolicyAsync(db, BillingWriteOffController, ApproveAction);
+        await AssignUserToOrganizationAsync(db, user, departmentId, positionId, isCancel: true);
+        var service = CreateService(db);
+        var principal = AuthenticatedPrincipal(user.Id);
+
+        var set = await service.GetEffectivePermissionsAsync(principal);
+
+        // Penjaga menolak penempatan yang dibatalkan.
+        Assert.False(await service.HasAccessAsync(principal, BillingWriteOffController, ApproveAction));
+
+        // Daftar wajib sepakat dengan penjaganya, bukan lebih longgar.
         Assert.False(Contains(set, BillingWriteOffController, ApproveAction));
     }
 

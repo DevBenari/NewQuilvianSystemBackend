@@ -284,6 +284,7 @@ namespace QuilvianSystemBackend.Services.Security
                 where organization.UserId == user.Id
                       && organization.IsActive
                       && !organization.IsDelete
+                      && !organization.IsCancel
                       && (!organization.EffectiveStartDate.HasValue ||
                           organization.EffectiveStartDate.Value <= now)
                       && (!organization.EffectiveEndDate.HasValue ||

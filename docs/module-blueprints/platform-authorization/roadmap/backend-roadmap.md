@@ -57,15 +57,19 @@ Bukti `BE-SEC-002`:
 Bukti planning `BE-SEC-003`:
 [`../evidence/04-be-sec-003-implementation-plan.md`](../evidence/04-be-sec-003-implementation-plan.md)
 
+Revalidasi dan koreksi `BE-SEC-003`:
+[`../evidence/05-be-sec-003-current-head-revalidation.md`](../evidence/05-be-sec-003-current-head-revalidation.md),
+[`../evidence/06-be-sec-003-readiness-correction.md`](../evidence/06-be-sec-003-readiness-correction.md)
+
 ---
 
 ## Task implementasi berikutnya
 
-### `BE-SEC-003` — Technical Permission Granularity Hardening (pilot Dokter Rawat Jalan)
+### 🟡 `BE-SEC-003` — Technical Permission Granularity Hardening (pilot Dokter Rawat Jalan)
 
 | Field | Isi |
 |---|---|
-| **Status** | **`READY FOR IMPLEMENTATION`** — planning selesai dan tracked; seluruh keputusan owner tertutup; menunggu wewenang eksekusi task |
+| **Status** | 🟡 **`PARTIAL`** — 11 September 2026. **Fase A** (pemecahan 22 identitas di source, commit `85fcc3fd` 4 September) dan **Fase A′** (koreksi `DoctorConsultation.WriteSoap` menjadi identitas ke-23, perbaikan paritas `IsCancel`, regression test, skrip diagnostik baca-saja) **selesai**. **Fase B** (perluasan `SysAccessPolicy`) dan **Fase C** (penyempitan audio antrean) **belum dijalankan**. **2 dari 10 acceptance criteria terpenuhi** (nomor 1 dan 3); nomor 2, 4, 5, 6, 9 menunggu Fase B/C; nomor 7, 8, 10 tidak dapat dibuktikan karena gerbang test mati. **Blocker:** proyek test `UnitTests.InMemory` gagal dikompilasi — 14 galat pada dua berkas milik modul lain (`BillingDepositServiceTests.cs` 11 galat, `PatientEncounterCompanyGuarantorTests.cs` 3 galat) — sehingga seluruh test keamanan ikut mati. `dotnet build` proyek utama **berhasil**, dan keempat berkas yang diubah task ini kompilasi bersih; keadaan database belum terukur. Laporan: [`../task/report/backend/BE-SEC-003.md`](../task/report/backend/BE-SEC-003.md) |
 | **Klasifikasi** | `HEAVY` (skor 11) |
 | **Planning evidence** | [`../evidence/04-be-sec-003-implementation-plan.md`](../evidence/04-be-sec-003-implementation-plan.md) — scope, split matrix, audit lifecycle seeder, deployment order, rollback, test plan, database impact, known limitations |
 | **Impact evidence** | [`../evidence/03-be-sec-003-pre-implementation-impact.md`](../evidence/03-be-sec-003-pre-implementation-impact.md) — hasil query read-only database development |
@@ -105,7 +109,7 @@ bagian L.
 ### Rantai dependency
 
 ```
-BE-SEC-003  (hardening identitas)
+BE-SEC-003 🟡 (hardening identitas)
    └── BE-SEC-004  (registry + skema katalog)
           └── BE-SEC-005  (isi katalog)
                  └── BE-SEC-006  (skema Access Profile)
