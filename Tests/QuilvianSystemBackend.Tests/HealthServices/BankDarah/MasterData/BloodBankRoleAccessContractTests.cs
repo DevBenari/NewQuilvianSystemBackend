@@ -48,7 +48,8 @@ public sealed class BloodBankRoleAccessContractTests
         typeof(BloodComponentController),
         typeof(BloodStorageLocationController),
         typeof(BloodBankReasonController),
-        typeof(BbkBloodGroupExamController)
+        typeof(BbkBloodGroupExamController),
+        typeof(BbkBloodOrderController)
     };
 
     /// <summary>
@@ -60,7 +61,8 @@ public sealed class BloodBankRoleAccessContractTests
         "BE-BD-001",
         "BE-BD-014",
         "BE-BD-005",
-        "BE-BD-011"
+        "BE-BD-011",
+        "BE-BD-003"
     };
 
     /// <summary>
@@ -68,6 +70,22 @@ public sealed class BloodBankRoleAccessContractTests
     /// mendaftarkannya. Ditulis apa adanya supaya cakupan yang belum selesai terbaca sebagai
     /// angka, bukan sebagai ingatan.
     /// </summary>
+    /// <summary>
+    /// Penanda butir yang tercantum pada matriks hak akses kontrak <c>v4</c> tetapi <b>tidak
+    /// punya satu endpoint pun</b> pada <c>contracts/api-contract.md</c>.
+    /// </summary>
+    /// <remarks>
+    /// Satu-satunya butir semacam itu adalah <c>BloodOrder : Update</c>. Matriks menyebutnya
+    /// sebagai butir yang dipisahkan dari <c>BloodOrder : Cancel</c> (<c>DEC-BD-044</c>), tetapi
+    /// api-contract tidak mendefinisikan endpoint suntingan order. Membuatnya pada
+    /// <c>BE-BD-003</c> berarti mengarang aturan suntingan — field apa yang boleh diubah dan
+    /// pada status apa — yang belum pernah diputuskan. Karena penanda ini bukan task yang
+    /// selesai, penjaga butir yatim di bagian 3 sekaligus memastikan tidak ada endpoint yang
+    /// diam-diam mendaftarkan butir itu sebelum kontraknya ada. Rinciannya di laporan
+    /// <c>BE-BD-003</c>.
+    /// </remarks>
+    private const string TanpaEndpointKontrakV4 = "TANPA-ENDPOINT-V4";
+
     public static readonly (string Resource, string Action, string Task)[] KontrakV4 =
     {
         ("BloodComponent", "Read", "BE-BD-001"),
@@ -87,7 +105,7 @@ public sealed class BloodBankRoleAccessContractTests
 
         ("BloodOrder", "Read", "BE-BD-003"),
         ("BloodOrder", "Create", "BE-BD-003"),
-        ("BloodOrder", "Update", "BE-BD-003"),
+        ("BloodOrder", "Update", TanpaEndpointKontrakV4),
         ("BloodOrder", "Cancel", "BE-BD-003"),
 
         ("BloodProviderRequest", "Read", "BE-BD-004"),
@@ -437,14 +455,14 @@ public sealed class BloodBankRoleAccessContractTests
     /// bergeser diam-diam.
     /// </summary>
     [Fact]
-    public void CakupanPendaftaranButirKontrak_TujuhBelasDariTigaPuluhSembilan()
+    public void CakupanPendaftaranButirKontrak_DuaPuluhDariTigaPuluhSembilan()
     {
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var sudah = KontrakV4.Count(x => terdaftar.Contains((x.Resource, x.Action)));
 
         Assert.Equal(39, KontrakV4.Length);
-        Assert.Equal(17, sudah);
+        Assert.Equal(20, sudah);
     }
 
     /// <summary>

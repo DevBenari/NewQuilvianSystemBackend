@@ -753,6 +753,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkBloodGroupExam> BbkBloodGroupExams { get; set; }
         public DbSet<BbkBloodGroupSample> BbkBloodGroupSamples { get; set; }
         public DbSet<BbkBloodGroupConflictResolution> BbkBloodGroupConflictResolutions { get; set; }
+
+        public DbSet<BbkBloodOrder> BbkBloodOrders { get; set; }
+        public DbSet<BbkBloodOrderLine> BbkBloodOrderLines { get; set; }
+        public DbSet<BbkTransitionHistory> BbkTransitionHistories { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE

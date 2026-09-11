@@ -67,7 +67,7 @@ modul**: kedelapan task frontend bertanda ⛔ menunggu gelombang `MVP-1` bluepri
 **Pembaruan 10 September 2026 — `G4` tertutup.** Pemiliknya, `Andry`, menyatakan gerbang itu tertutup
 setelah `PLT-BE-003` dan `PLT-BE-004` selesai. Kedelapan task frontend bertanda ⛔ **tetap ⛔**, tetapi
 alasannya kini murni pasangan backend yang belum dikerjakan — bukan lagi `G4`. Yang terdekat:
-`FE-BD-002` terbuka begitu `BE-BD-003` selesai, dan `BE-BD-003` sendiri sudah siap dijadwalkan.
+`FE-BD-002` terbuka begitu `BE-BD-003` selesai — **dan `BE-BD-003` ✅ selesai 11 September 2026**, sehingga `FE-BD-002` kini 🟡.
 
 ---
 
@@ -87,8 +87,8 @@ alasannya kini murni pasangan backend yang belum dikerjakan — bukan lagi `G4`.
 | --- | ---: | --- |
 | ✅ SELESAI | 1 | `FE-BD-001` |
 | 🟡 SELESAI SEBAGIAN | 2 | `FE-BD-011` dan `FE-BD-006` — masing-masing 1 dari 2 acceptance criteria |
-| 🟡 PENDING | 1 | `FE-BD-009` |
-| ⛔ BLOCKED | 8 | `FE-BD-002`, `003`, `004`, `005`, `007`, `008`, `010`, `012` |
+| 🟡 PENDING | 2 | `FE-BD-009`, `FE-BD-002` |
+| ⛔ BLOCKED | 7 | `FE-BD-003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
 **Satu task frontend selesai (`FE-BD-001`).** `FE-BD-011` **dikerjakan 10 September 2026** dan
@@ -122,7 +122,7 @@ pasangannya, dimulai `BE-BD-003` yang sudah siap dijadwalkan.
 
 ════════ JALUR MENUNGGU BACKEND — G4 ✅ tertutup 10 Sep 2026 ════════
 
-🟡 BE-BD-003 ──> ⛔ FE-BD-002 (order darah + pemenuhan + pembatalan)
+✅ BE-BD-003 ──> 🟡 FE-BD-002 (order darah + pemenuhan + pembatalan)
 ⛔ BE-BD-004 ──> ⛔ FE-BD-003 (permintaan PMI + penerimaan)
 ⛔ BE-BD-012 ──> ⛔ FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
 ⛔ BE-BD-015 ──> ⛔ FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
@@ -208,16 +208,17 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 ---
 
-### ⛔ `FE-BD-002` — Petugas mengelola order darah, pemenuhan, dan pembatalan
+### 🟡 `FE-BD-002` — Petugas mengelola order darah, pemenuhan, dan pembatalan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — menunggu `BE-BD-003`, yang kini 🟡 siap dijadwalkan. **Riwayat:** `BE-BD-003` tertahan `G4` sampai 10 September 2026 |
+| **Status** | 🟡 **PENDING** — `BE-BD-003` ✅ selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-003.md)). **Riwayat:** menunggu `BE-BD-003` sampai 11 September 2026; `BE-BD-003` tertahan `G4` sampai 10 September 2026 |
 | **Outcome** | Petugas membuat order darah, melihat pemenuhannya, dan membatalkannya dengan alasan berkategori |
 | **Layar** | `FE-BD-01`, `FE-BD-02` |
 | **Kontrak** | api-contract `v4` — Blood Order |
+| **Catatan backend** | Sepuluh endpoint tersedia per `BE-BD-003`: tujuh dari kontrak, ditambah `filters/metadata`, `summary`, dan `status-history`. **Tidak ada** endpoint suntingan order — `BloodOrder : Update` tidak punya endpoint kontrak `v4`. Rincian di [laporan](../task/report/backend/BE-BD-003.md) bagian 4 dan 7 |
 | **Reuse** | `BD-CAP-021` |
-| **Dependency** | `G1` ✅, `BE-BD-003` 🟡 |
+| **Dependency** | `G1` ✅, `BE-BD-003` ✅ |
 | **Acceptance** | Order ganda tertahan beserta alasannya (`FE-BD-003`); kategori alasan pembatalan **sesuai peran** |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | Empat keadaan layar digambar: kosong, memuat, berisi, gagal |

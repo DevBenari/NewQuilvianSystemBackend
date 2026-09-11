@@ -416,6 +416,8 @@ try
     // dan penyelesaiannya lewat pemeriksaan ulang (DEC-BD-031); keduanya dijaga dua butir hak
     // akses yang berbeda pada controller, bukan oleh pemeriksaan peran di dalam kode.
     builder.Services.AddScoped<BbkBloodGroupExamService>();
+    builder.Services.AddScoped<BbkEncounterStatusReader>();
+    builder.Services.AddScoped<BbkBloodOrderService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,

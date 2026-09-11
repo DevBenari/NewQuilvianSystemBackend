@@ -15,9 +15,20 @@
 | Domain architecture | revisi `6` — `DOMAIN_ARCHITECTURE_READY` |
 | Contract version | `v4` (**`approved`**) — `Sukmagp` / `2026-09-03` |
 | Roadmap | Backend revisi `7` — **`APPROVED`** oleh `Sukmagp` 2026-09-10. Frontend revisi `7` masih `FORWARD-TEST / DRAFT`. **Riwayat:** revisi `2` `APPROVED` 2026-09-03 |
-| Terakhir diperbarui | **`2026-09-10`** — **gerbang `G4` tertutup** atas pernyataan `Andry`, dan roadmap backend revisi 7 disetujui `Sukmagp`. Sebelumnya pada hari yang sama: migration diterapkan ke `QuilvianNewDevSukma` (`137/137`, nol tertunda), `FE-BD-011` selesai sebagian, dan SHA disegarkan ke `95e4b8d`. Sebelumnya `2026-09-07`: penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
+| Terakhir diperbarui | **`2026-09-11`** — **`BE-BD-003` selesai**: order darah, migration `AddBbkBloodOrder` diterapkan ke `QuilvianNewDevSukma` (`138/138`, nol tertunda), 498 test dan 4 uji PostgreSQL lulus. Sebelumnya **`2026-09-10`** — **gerbang `G4` tertutup** atas pernyataan `Andry`, dan roadmap backend revisi 7 disetujui `Sukmagp`. Sebelumnya pada hari yang sama: migration diterapkan ke `QuilvianNewDevSukma` (`137/137`, nol tertunda), `FE-BD-011` selesai sebagian, dan SHA disegarkan ke `95e4b8d`. Sebelumnya `2026-09-07`: penyegaran SHA dan bukti; peta kemampuan naik ke revisi **5** |
 
-## Keadaan sekarang — 10 September 2026: `G4` tertutup
+## Keadaan sekarang — 11 September 2026: `BE-BD-003` selesai
+
+Modul tetap **`IN_PROGRESS`**. Order darah — pintu masuk seluruh alur Bank Darah — kini ada, terbukti, dan tabelnya sudah ada di database pengembangan personal.
+
+| Yang terjadi | Bukti |
+| --- | --- |
+| Order darah elektronik dan manual, deteksi ganda, pembatalan dua peran | [laporan](../task/report/backend/BE-BD-003.md) |
+| Build dan test | Build solution `0 Error(s)`, `210 Warning(s)` sama dengan baseline; 498 test `QuilvianSystemBackend.Tests` lulus, 79 di antaranya order darah; 4 uji PostgreSQL lulus |
+| Migration | `20260910153119_AddBbkBloodOrder` diterapkan ke `QuilvianNewDevSukma` — `138/138`, nol tertunda, `has-pending-model-changes` bersih |
+| Task yang terbuka | `BE-BD-004`, `BE-BD-012`, dan `FE-BD-002` |
+
+## Riwayat — 10 September 2026: `G4` tertutup
 
 Modul tetap **`IN_PROGRESS`**. Yang berubah hari ini adalah satu gerbang: **`G4`** — mesin pemberi
 nomor bisnis yang dapat dipakai Bank Darah — **tertutup**. Gerbang itu menahan sembilan task backend
@@ -291,7 +302,7 @@ Relevan hanya bila kelak ada layar yang menyaring daftar unit berdasarkan penand
 | `BD-PH-004` | Arsitektur domain rumah sakit (opsional) | `DONE` | Revisi 6, `DOMAIN_ARCHITECTURE_READY`. Sepuluh bounded context, dua puluh lima konsep domain, lima aggregate, empat invariant lintas aggregate, tujuh posisi arsitektur. Sepuluh gap arsitektur seluruhnya tertutup; nol gap terbuka. |
 | `BD-PH-005` | Penyusunan blueprint target | `DONE` | Set kontrak naik empat kali: `v1` → `v2` (Storage Location) → `v3` (role & authority) → **`v4`** (role residue). **Bukti penerimaan:** set kontrak `v4` disetujui `Sukmagp` pada `2026-09-03` (`G1`), tercatat di manifest revisi 20 dan di kepala setiap artefak kontrak. |
 | `BD-PH-006` | Perencanaan delivery | `DONE` | Roadmap **revisi 2** menggantikan revisi 1 yang `STALE`, dan statusnya naik dari `FORWARD-TEST / DRAFT` menjadi **`APPROVED`** ketika `G1` turun. Ketiga gerbangnya tertutup: `G1` approval, `G2a` penamaan (`ed7fba8`), `G2b` aktivasi (`8075784`); `G3` revisi 1 dihapus karena `DEF-BD-004` tertutup. |
-| `BD-PH-007` | Implementasi backend | **`IN_PROGRESS`** | **Per 10 September 2026:** enam task backend berlaporan — `BE-BD-001`, `002`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 17 dari 39 butir. `G4` tertutup, sehingga `BE-BD-003` (`MVP-1`) **siap dijadwalkan**. **Riwayat:** Gelombang `MVP-0` **tuntas secara kode dan terbukti**. `BE-BD-001`, `BE-BD-002`, `BE-BD-014` **selesai**; `BE-BD-016` **selesai sebagian** (12 dari 39 butir; sisanya arsitektural). Keempatnya meninggalkan laporan tracked. Build hijau dan **101 pengujian Bank Darah lulus** di `5f7acaf`. `MVP-1` (`BE-BD-003`) **kini aman dijadwalkan**. |
+| `BD-PH-007` | Implementasi backend | **`IN_PROGRESS`** | **Per 11 September 2026:** tujuh task backend berlaporan — `BE-BD-001`, `002`, `003`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 20 dari 39 butir; `BE-BD-004` dan `BE-BD-012` **siap dijadwalkan**. **Riwayat per 10 September 2026:** enam task backend berlaporan — `BE-BD-001`, `002`, `005`, `011`, `014` ✅ dan `BE-BD-016` 🟡 17 dari 39 butir. `G4` tertutup, sehingga `BE-BD-003` (`MVP-1`) **siap dijadwalkan**. **Riwayat:** Gelombang `MVP-0` **tuntas secara kode dan terbukti**. `BE-BD-001`, `BE-BD-002`, `BE-BD-014` **selesai**; `BE-BD-016` **selesai sebagian** (12 dari 39 butir; sisanya arsitektural). Keempatnya meninggalkan laporan tracked. Build hijau dan **101 pengujian Bank Darah lulus** di `5f7acaf`. `MVP-1` (`BE-BD-003`) **kini aman dijadwalkan**. |
 | `BD-PH-008` | Implementasi frontend | **`IN_PROGRESS`** | **Per 10 September 2026:** tiga task frontend berlaporan — `FE-BD-001` ✅, `FE-BD-011` 🟡 1 dari 2 kriteria, `FE-BD-006` 🟡 1 dari 2 kriteria; `FE-BD-009` siap dijadwalkan. **Riwayat (`NOT_STARTED`):** Kontrak API **sudah** `approved` dan terkunci pada `v4`, sehingga gerbangnya tidak lagi menahan. Yang menahan tinggal urutan biasa: tidak ada task FE yang mendahului task BE pasangannya, dan belum ada satu pun task BE yang dijalankan. |
 | `BD-PH-009` | Verifikasi kesiapan | **`IN_PROGRESS`** | Dijalankan dua kali pada 4 September 2026. Pass `f940ae3`: `NOT_READY`, dua blocker kritis. Pass `5f7acaf`: **`NOT_READY` karena cakupan**, kedua blocker kritis tertutup; gelombang `MVP-0` sendiri **`READY_WITH_CONDITIONS`**. Belum dapat ditutup `DONE`. |
 
@@ -320,15 +331,17 @@ keberadaan laporan `task/report/**`, bukan diperkirakan.
 | `BE-BD-014` | ✅ **`SELESAI`** | — |
 | `BE-BD-005` | ✅ **`SELESAI`** 9 September 2026 | — |
 | `BE-BD-011` | ✅ **`SELESAI`** 9 September 2026 | — |
-| `BE-BD-016` | `SELESAI SEBAGIAN` | **17** dari 39 butir hak akses terdaftar per 9 September 2026 (naik dari 12); sisanya lahir bersama controller pemakainya |
+| `BE-BD-016` | `SELESAI SEBAGIAN` | **20** dari 39 butir hak akses terdaftar per 11 September 2026 (naik dari 17 lewat `BE-BD-003`); sisanya lahir bersama controller pemakainya, kecuali `BloodOrder : Update` yang tidak punya endpoint kontrak `v4` |
 | `FE-BD-001` | ✅ **`SELESAI`** 7 September 2026 | — |
 | `FE-BD-011` | `SELESAI SEBAGIAN` 10 September 2026 | 1 dari 2 kriteria; jumlah kantong tertahan menunggu `BE-BD-015` |
 | `FE-BD-006` | `SELESAI SEBAGIAN` 10 September 2026 | 1 dari 2 kriteria; penyaringan menu menurut hak akses belum ada di frontend |
-| `BE-BD-003` | 🟡 **siap dijadwalkan** sejak 10 September 2026 | — `G4` tertutup |
+| `BE-BD-003` | ✅ **`SELESAI`** 11 September 2026 | — |
+| `BE-BD-004`, `BE-BD-012` | 🟡 **siap dijadwalkan** sejak 11 September 2026 | — |
+| `FE-BD-002` | 🟡 penahan backend-nya hilang 11 September 2026 | Roadmap frontend masih `FORWARD-TEST / DRAFT` |
 | `FE-BD-009` | 🟡 **siap dijadwalkan** sejak 9 September 2026 | — |
-| 16 task lainnya | ⛔ `BLOCKED` | 8 task backend dan 8 task frontend, seluruhnya lewat rantai dependency yang berawal dari `BE-BD-003` atau task sesudahnya |
+| 13 task lainnya | ⛔ `BLOCKED` | 6 task backend dan 7 task frontend, seluruhnya lewat rantai dependency sesudah `BE-BD-003` |
 
-**Kemajuan delivery per 10 September 2026: 6 selesai penuh dan 3 selesai sebagian, dari 27 task.**
+**Kemajuan delivery per 11 September 2026: 7 selesai penuh dan 3 selesai sebagian, dari 27 task** — `BE-BD-003` menambah satu. **Riwayat:** **kemajuan per 10 September 2026: 6 selesai penuh dan 3 selesai sebagian, dari 27 task.**
 Angka ini dihitung dari sembilan laporan yang benar-benar ada di `task/report/**`. **Riwayat:** 3
 selesai penuh dan 1 selesai sebagian per 4 September 2026.
 
@@ -458,7 +471,18 @@ bukan yang dikutip peta — `base-editor-view.jsx` berbeda dari `base-editor-for
 
 ## Task berikutnya yang disarankan
 
-### Per 10 September 2026
+### Per 11 September 2026
+
+| Urutan | Tindakan | Pemilik | Sifat |
+| --- | --- | --- | --- |
+| 1 | **Jadwalkan `BE-BD-004`** — permintaan PMI, penerimaan, kantong lahir | `build-module-backend` | Jalur kritis `BE-BD-004` → `BE-BD-015` → `BE-BD-006` → `BE-BD-007`. `RequestNumber` dari `NumberSeriesAllocator`. Satu task satu wewenang |
+| 2 | `BE-BD-012` — tindakan Bank Darah | `build-module-backend` | Terbuka bersamaan; tidak di jalur kritis |
+| 3 | `FE-BD-002` — layar order darah | `build-module-frontend` | Penahan backend-nya hilang; roadmap frontend masih draft |
+| 4 | Putuskan `BloodOrder : Update` | Pemilik kontrak | Buat endpoint suntingan beserta aturannya, atau cabut butirnya dari matriks |
+| 5 | Konfirmasi tafsiran "kunjungan sah" dan jadwalkan pemicu kedaluwarsa otomatis | Pemilik proses BDRS | Lihat laporan `BE-BD-003` bagian 7 dan 8 |
+| 6 | Terapkan migration Bank Darah ke `QuilvianNewDevTim01`, staging, dan production | Pemilik database | Wewenang terpisah per database; sejauh ini baru `QuilvianNewDevSukma` |
+
+### Riwayat — 10 September 2026
 
 | Urutan | Tindakan | Pemilik | Sifat |
 | --- | --- | --- | --- |
