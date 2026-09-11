@@ -35,6 +35,8 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
@@ -169,6 +171,25 @@ try
             builder.Configuration.GetConnectionString("DefaultConnection")
         );
     });
+
+    // Factory konteks, dipakai NumberSeriesAllocator untuk membuka koneksi dan transaksinya
+    // SENDIRI. Tanpa ini, kenaikan pencacah nomor akan ikut dibatalkan bersama transaksi bisnis
+    // pemanggil, sehingga nomor yang sudah sempat terbit dipakai ulang - persis yang dilarang
+    // DEC-PLT-008.
+    //
+    // Lifetime SENGAJA Scoped, bukan Singleton yang menjadi bawaan AddDbContextFactory.
+    // Singleton akan mendaftarkan DbContextOptions<ApplicationDbContext> sebagai Singleton pula,
+    // berdampingan dengan pendaftaran Scoped milik AddDbContext di atas. Kompatibilitas keduanya
+    // sudah diverifikasi, bukan diasumsikan - lihat NumberSeriesCompositionTests, yang dijalankan
+    // dengan validateScopes aktif.
+    builder.Services.AddDbContextFactory<ApplicationDbContext>(
+        options =>
+        {
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection")
+            );
+        },
+        lifetime: ServiceLifetime.Scoped);
 
     // ASP.NET Core Identity
     builder.Services
@@ -444,6 +465,27 @@ try
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
     // LAB-DEC-035.
     builder.Services.AddScoped<ReferralMasterDataService>();
+
+    // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
+    // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
+    // dan penyelesaiannya lewat pemeriksaan ulang (DEC-BD-031); keduanya dijaga dua butir hak
+    // akses yang berbeda pada controller, bukan oleh pemeriksaan peran di dalam kode.
+    builder.Services.AddScoped<BbkBloodGroupExamService>();
+    builder.Services.AddScoped<BbkEncounterStatusReader>();
+    builder.Services.AddScoped<BbkBloodOrderService>();
+    builder.Services.AddScoped<BbkProviderRequestService>();
+    builder.Services.AddScoped<BbkBloodUnitService>();
+    builder.Services.AddScoped<BbkBloodBankProcedureService>();
+
+    // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
+    // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
+    // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
+    builder.Services.AddScoped<NumberSeriesAllocator>();
+
+    // Pembaca keadaan deret untuk layar pemantauan administrator (PLT-BE-005). Sengaja terpisah
+    // dari alokator: service ini hanya membaca dan tidak pernah memanggil SaveChanges, sehingga
+    // jalur layar tidak pernah menjadi jalan masuk untuk menyunting pencacah (INV-PLT-001).
+    builder.Services.AddScoped<NumberSeriesQueryService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
