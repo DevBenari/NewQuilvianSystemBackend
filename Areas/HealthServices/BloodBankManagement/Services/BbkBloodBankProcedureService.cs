@@ -274,7 +274,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 return Failed(BloodBankProcedureOutcome.Invalid, InvalidOrderMessage);
 
             // DEC-BD-048: unit dan kelas pasien dibaca dari kunjungan order, tidak dari client.
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == order.EncounterId && !x.IsDelete)
                 .Select(x => new { x.ServiceUnitId, x.ClinicId, x.PatientClassId })

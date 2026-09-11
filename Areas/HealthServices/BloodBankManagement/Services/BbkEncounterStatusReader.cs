@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             Guid encounterId,
             CancellationToken cancellationToken = default)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == encounterId && !x.IsDelete)
                 .Select(x => new { x.Id, x.EncounterStatus, x.EncounterType })

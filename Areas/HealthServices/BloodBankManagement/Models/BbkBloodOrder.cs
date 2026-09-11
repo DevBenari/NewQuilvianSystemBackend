@@ -85,7 +85,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
         public Guid EncounterId { get; set; }
 
         [ForeignKey(nameof(EncounterId))]
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         /// <summary>
         /// Unit pelayanan pemesan. Wajib berpenanda

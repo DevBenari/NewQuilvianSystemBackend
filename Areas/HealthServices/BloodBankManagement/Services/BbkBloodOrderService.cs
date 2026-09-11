@@ -595,7 +595,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             if (!patientExists)
                 return Failed(BloodOrderOutcome.Invalid, "Pasien tidak ditemukan atau sudah dihapus.");
 
-            var encounter = await _dbContext.Set<Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == request.EncounterId && !x.IsDelete)
                 .Select(x => new { x.Id, x.PatientId })

@@ -99942,7 +99942,7 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkBloodOrder", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
                         .WithMany()
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
