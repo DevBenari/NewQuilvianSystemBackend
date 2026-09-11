@@ -762,6 +762,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkBloodUnitReceipt> BbkBloodUnitReceipts { get; set; }
         public DbSet<BbkBloodUnit> BbkBloodUnits { get; set; }
         public DbSet<BbkBloodBankProcedure> BbkBloodBankProcedures { get; set; }
+        public DbSet<BbkBloodUnitPlacement> BbkBloodUnitPlacements { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE

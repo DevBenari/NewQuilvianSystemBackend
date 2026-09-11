@@ -15,10 +15,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums
     /// </para>
     ///
     /// <para>
-    /// <b>Seluruh nilai sudah didefinisikan di sini, tetapi baru satu yang dapat dihasilkan.</b>
-    /// Slice <c>BE-BD-004</c> hanya melahirkan kantong <see cref="Received"/>. Perpindahan ke
-    /// status lain lahir bersama task pemiliknya: penyimpanan pada <c>BE-BD-015</c>, alokasi pada
-    /// <c>BE-BD-006</c>, pemberian pada <c>BE-BD-007</c>/<c>BE-BD-008</c>, dan penyelesaian
+    /// <b>Seluruh nilai sudah didefinisikan di sini, tetapi tidak semuanya dapat dihasilkan.</b>
+    /// <c>BE-BD-004</c> melahirkan kantong <see cref="Received"/>; <c>BE-BD-015</c> membawanya
+    /// lewat <see cref="Stored"/> ke <see cref="Available"/> atau <see cref="PendingReview"/>.
+    /// Perpindahan ke status lain lahir bersama task pemiliknya: alokasi pada <c>BE-BD-006</c>,
+    /// pemberian pada <c>BE-BD-007</c>/<c>BE-BD-008</c>, dan penyelesaian
     /// <see cref="PendingReview"/> pada <c>BE-BD-009</c>.
     /// </para>
     ///

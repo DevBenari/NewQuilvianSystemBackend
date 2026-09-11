@@ -67,7 +67,8 @@ public sealed class BloodBankRoleAccessContractTests
         "BE-BD-011",
         "BE-BD-003",
         "BE-BD-004",
-        "BE-BD-012"
+        "BE-BD-012",
+        "BE-BD-015"
     };
 
     /// <summary>
@@ -460,14 +461,14 @@ public sealed class BloodBankRoleAccessContractTests
     /// bergeser diam-diam.
     /// </summary>
     [Fact]
-    public void CakupanPendaftaranButirKontrak_DuaPuluhDelapanDariTigaPuluhSembilan()
+    public void CakupanPendaftaranButirKontrak_DuaPuluhSembilanDariTigaPuluhSembilan()
     {
         var terdaftar = PasanganYangDidaftarkanSeeder();
 
         var sudah = KontrakV4.Count(x => terdaftar.Contains((x.Resource, x.Action)));
 
         Assert.Equal(39, KontrakV4.Length);
-        Assert.Equal(28, sudah);
+        Assert.Equal(29, sudah);
     }
 
     /// <summary>

@@ -58,12 +58,13 @@ public partial class ProviderRequestServiceTests
 
     /// <summary>
     /// Bentuk transaksi, bukan master data: tidak ada <c>GET /options</c>, <c>PATCH /{id}/status</c>
-    /// generik, <c>PUT</c>, maupun <c>DELETE</c>. Jumlah endpoint dikunci supaya penambahan tanpa
-    /// pembaruan kontrak ketahuan.
+    /// generik, maupun <c>DELETE</c>. <c>PUT</c> hanya satu, <c>PUT /{id}/storage-location</c> milik
+    /// kontrak <c>v4</c> untuk perpindahan lokasi kantong (<c>BE-BD-015</c>). Jumlah endpoint dikunci
+    /// supaya penambahan tanpa pembaruan kontrak ketahuan.
     /// </summary>
     [Theory]
     [InlineData(typeof(BbkProviderRequestController), BaseRouteProviderRequest, "BloodProviderRequest", "Health Services / Blood Bank Management / Provider Request", 8)]
-    [InlineData(typeof(BbkBloodUnitController), BaseRouteBloodUnit, "BloodUnit", "Health Services / Blood Bank Management / Blood Unit", 5)]
+    [InlineData(typeof(BbkBloodUnitController), BaseRouteBloodUnit, "BloodUnit", "Health Services / Blood Bank Management / Blood Unit", 8)]
     public void Controller_BerbentukTransaksi_DenganBaseRouteDanTagKontrak(
         Type type,
         string route,
@@ -84,8 +85,11 @@ public partial class ProviderRequestServiceTests
 
         Assert.DoesNotContain(endpoints, x =>
             x.GetCustomAttributes<HttpDeleteAttribute>().Any() ||
-            x.GetCustomAttributes<HttpPutAttribute>().Any() ||
             x.GetCustomAttributes<HttpPatchAttribute>().Any());
+
+        Assert.All(
+            endpoints.SelectMany(x => x.GetCustomAttributes<HttpPutAttribute>()),
+            x => Assert.Equal("{id:guid}/storage-location", x.Template));
 
         var templates = endpoints
             .SelectMany(x => x.GetCustomAttributes<HttpMethodAttribute>())
@@ -322,7 +326,7 @@ public partial class ProviderRequestServiceTests
     }
 
     private static BbkBloodUnitController KontrolerKantong(Lingkungan l)
-        => new(l.UnitService())
+        => new(l.UnitService(), new LoggerService(NullLogger<LoggerService>.Instance, new HttpContextAccessor()))
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };

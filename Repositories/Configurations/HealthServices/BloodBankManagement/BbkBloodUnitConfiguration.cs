@@ -11,8 +11,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
     /// dapat tercatat dua kali, di permintaan mana pun.
     /// </para>
     /// <para>
-    /// <b><c>IX_BbkBloodUnit_CurrentPlacementId</c> belum ada</b> karena kolomnya lahir bersama
-    /// <c>BbkBloodUnitPlacement</c> pada <c>BE-BD-015</c>.
+    /// <b><c>CurrentPlacementId</c> dan FK melingkarnya</b> lahir pada <c>BE-BD-015</c>. Kantong
+    /// menunjuk penempatannya, dan penempatan menunjuk balik kantongnya. Simpul itu dibereskan
+    /// dengan kolom yang boleh kosong: kantong lahir tanpa penempatan, lalu terisi saat
+    /// penempatan pertama (<c>02-backend-architecture.md</c>).
     /// </para>
     /// <para>
     /// Seluruh FK memakai <c>Restrict</c>: kantong adalah rekam klinis yang asalnya tidak boleh
@@ -42,6 +44,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
             builder.HasIndex(x => x.BloodComponentId);
             builder.HasIndex(x => x.UnitStatus);
             builder.HasIndex(x => x.IssuedToPatientId);
+            // Index biasa, sesuai kamus data. Dinyatakan eksplisit karena FK melingkar kantong ⇄
+            // penempatan membuat konvensi EF menandainya unik.
+            builder.HasIndex(x => x.CurrentPlacementId).IsUnique(false);
+
+            builder.HasOne(x => x.CurrentPlacement)
+                .WithMany()
+                .HasForeignKey(x => x.CurrentPlacementId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.BloodComponent)
                 .WithMany()

@@ -247,7 +247,7 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 | **Outcome** | Petugas menempatkan dan memindahkan kantong, dan kantong yang tertahan tersaring jelas |
 | **Layar** | `FE-BD-04`, `FE-BD-05` (parsial) |
 | **Kontrak** | api-contract `v4` |
-| **Dependency** | `G1` ✅, `BE-BD-015` 🟡 — siap dijadwalkan sejak roadmap backend revisi 9, belum selesai |
+| **Dependency** | `G1` ✅, `BE-BD-015` 🟡 — selesai sebagian 11 September 2026 ([laporan](../task/report/backend/BE-BD-015.md)); belum ✅ |
 | **Acceptance** | `FE-BD-010` saringan `Received` dan lokasi nonaktif **wajib**; `FE-BD-011` kolom lokasi beserta penandanya |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | **Bukan** daftar kerja keempat — saringan menempel pada daftar yang sudah ada |

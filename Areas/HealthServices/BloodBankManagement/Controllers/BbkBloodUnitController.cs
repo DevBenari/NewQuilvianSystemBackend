@@ -6,6 +6,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
+using System.Security.Claims;
 
 using BloodUnitPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -14,20 +16,24 @@ using BloodUnitPagedResult =
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Controllers
 {
     /// <summary>
-    /// Kantong darah operasional — permukaan baca. Kantong lahir dari penerimaan pada
+    /// Kantong darah operasional. Kantong lahir dari penerimaan pada
     /// <c>BbkProviderRequestController</c>, tidak pernah dari controller ini.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Pada slice <c>BE-BD-004</c> seluruh endpoint di sini hanya membaca.</b> Tindakan atas
-    /// kantong lahir bersama task pemiliknya: penyimpanan pada <c>BE-BD-015</c>, alokasi pada
-    /// <c>BE-BD-006</c>, bukti kecocokan dan pemberian pada <c>BE-BD-007</c>, jalur darurat pada
-    /// <c>BE-BD-008</c>, penyelesaian <c>PendingReview</c> pada <c>BE-BD-009</c>, dan koreksi pada
-    /// <c>BE-BD-010</c>.
+    /// <b>Sejak <c>BE-BD-015</c></b> controller ini juga menyimpan dan memindahkan kantong, dijaga
+    /// butir <c>BloodUnit : Store</c> — sengaja terpisah dari <c>Allocate</c>: menaruh kantong ke
+    /// kulkas adalah pekerjaan gudang, mengalokasikan adalah mengikat kantong pada pasien.
     /// </para>
     /// <para>
-    /// <b>Tidak ada endpoint untuk menambah kantong.</b> Stok bertambah hanya setelah kantong
-    /// diterima fisik (<c>VAL-BD-015</c>).
+    /// Tindakan lain lahir bersama task pemiliknya: alokasi pada <c>BE-BD-006</c>, bukti kecocokan
+    /// dan pemberian pada <c>BE-BD-007</c>, jalur darurat pada <c>BE-BD-008</c>, penyelesaian
+    /// <c>PendingReview</c> pada <c>BE-BD-009</c>, dan koreksi pada <c>BE-BD-010</c>.
+    /// </para>
+    /// <para>
+    /// <b>Tidak ada endpoint untuk menambah kantong</b> (<c>VAL-BD-015</c>), dan <b>tidak ada endpoint
+    /// untuk memindahkan kantong secara massal</b> — petugas memindahkan satu per satu, dan setiap
+    /// perpindahan menyimpan pelaku serta waktunya sendiri (<c>DEC-BD-037</c>).
     /// </para>
     /// </remarks>
     [ApiController]
@@ -39,19 +45,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
         displayName: "Blood Unit",
         AreaName = "HealthServices",
         ControllerName = "BloodUnit",
-        Description = "Memantau kantong darah yang sudah diterima dari PMI",
+        Description = "Memantau, menyimpan, dan memindahkan kantong darah yang sudah diterima dari PMI",
         SortOrder = 1
     )]
     [Tags("Health Services / Blood Bank Management / Blood Unit")]
     public class BbkBloodUnitController : ControllerBase
     {
+        private const string LogCategory = "HealthServices.BloodBankManagement.BloodUnit";
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
         private readonly BbkBloodUnitService _bloodUnitService;
+        private readonly LoggerService _loggerService;
 
-        public BbkBloodUnitController(BbkBloodUnitService bloodUnitService)
+        public BbkBloodUnitController(
+            BbkBloodUnitService bloodUnitService,
+            LoggerService loggerService)
         {
             _bloodUnitService = bloodUnitService;
+            _loggerService = loggerService;
         }
 
         /// <summary>Konfigurasi penyaring dan pengurutan daftar kantong darah.</summary>
@@ -82,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
 
         /// <summary>
         /// Daftar kantong darah. Penyaring <c>unitStatus=PendingReview</c> menjadi daftar kerja #2
-        /// (<c>DEC-BD-023</c>).
+        /// (<c>DEC-BD-023</c>). Setiap baris membawa lokasi saat ini beserta penanda keaktifannya.
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<BloodUnitPagedResult>), StatusCodes.Status200OK)]
@@ -117,7 +128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 "Daftar kantong darah berhasil diambil."));
         }
 
-        /// <summary>Detail satu kantong beserta asal dan riwayat perpindahan statusnya.</summary>
+        /// <summary>Detail satu kantong beserta asal, lokasi saat ini, dan riwayat statusnya.</summary>
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -155,6 +166,146 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             return Ok(ApiResponse<List<BloodBankTransitionDto>>.Ok(
                 history,
                 "Riwayat status kantong darah berhasil diambil."));
+        }
+
+        /// <summary>Riwayat penempatan kantong: di kulkas mana, sejak kapan, oleh siapa.</summary>
+        /// <remarks>
+        /// Terlama lebih dulu. Daftar kosong berarti kantong belum pernah disimpan. Lokasi yang
+        /// sudah dinonaktifkan tetap terbaca pada riwayat.
+        /// </remarks>
+        [HttpGet("{id:guid}/placements")]
+        [ProducesResponseType(typeof(ApiResponse<List<BloodUnitPlacementDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Blood Unit", Description = "Melihat riwayat penempatan kantong darah", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BloodUnit", "Read")]
+        public async Task<IActionResult> GetPlacements(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var placements = await _bloodUnitService.GetPlacementsAsync(id, cancellationToken);
+
+            if (placements == null)
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, NotFoundMessage));
+
+            return Ok(ApiResponse<List<BloodUnitPlacementDto>>.Ok(
+                placements,
+                placements.Count == 0
+                    ? "Kantong belum pernah disimpan."
+                    : "Riwayat penempatan kantong darah berhasil diambil."));
+        }
+
+        /// <summary>Menetapkan lokasi penyimpanan pertama kantong.</summary>
+        /// <remarks>
+        /// Membawa kantong <c>Received</c> → <c>Stored</c> → <c>Available</c>, atau
+        /// <c>PendingReview</c> bila kantongnya berlebih atau permintaan asalnya sudah ditutup
+        /// (<c>DEC-BD-036</c>). Gagal bila kantong sudah pernah ditempatkan (<c>VAL-BD-061</c>) atau
+        /// lokasinya nonaktif (<c>VAL-BD-060</c>).
+        /// </remarks>
+        [HttpPost("{id:guid}/storage-location")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Store", "Store Blood Unit", Description = "Menetapkan lokasi penyimpanan pertama kantong darah", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BloodUnit", "Store")]
+        public async Task<IActionResult> AssignStorageLocation(
+            Guid id,
+            [FromBody] AssignStorageLocationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.AssignStorageLocationAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogStorageAsync("BloodUnit.AssignStorageLocation", "Menetapkan lokasi penyimpanan pertama kantong darah.", result, request.StorageLocationId);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                await _bloodUnitService.GetDetailAsync(id, cancellationToken),
+                result.Message));
+        }
+
+        /// <summary>Memindahkan kantong ke lokasi penyimpanan lain. Status kantong tidak berubah.</summary>
+        /// <remarks>
+        /// Tetap berlaku ketika lokasi asalnya sudah dinonaktifkan — inilah jalan keluar kantong dari
+        /// kulkas yang rusak (<c>DEC-BD-037</c>). Gagal bila kantong belum pernah ditempatkan
+        /// (<c>VAL-BD-062</c>) atau lokasi tujuannya nonaktif (<c>VAL-BD-060</c>).
+        /// </remarks>
+        [HttpPut("{id:guid}/storage-location")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Store", "Store Blood Unit", Description = "Memindahkan kantong darah ke lokasi penyimpanan lain", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("BloodUnit", "Store")]
+        public async Task<IActionResult> MoveStorageLocation(
+            Guid id,
+            [FromBody] MoveStorageLocationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.MoveStorageLocationAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogStorageAsync("BloodUnit.MoveStorageLocation", "Memindahkan kantong darah ke lokasi penyimpanan lain.", result, request.StorageLocationId);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                await _bloodUnitService.GetDetailAsync(id, cancellationToken),
+                result.Message));
+        }
+
+        /// <remarks>Nomor kantong PMI sensitif dan sengaja tidak ditulis ke log.</remarks>
+        private Task LogStorageAsync(string eventName, string message, BloodUnitResult result, Guid storageLocationId)
+            => _loggerService.InfoAsync(
+                LogCategory,
+                eventName,
+                message,
+                new
+                {
+                    EntityId = result.Entity!.Id,
+                    result.Entity.CurrentPlacementId,
+                    StorageLocationId = storageLocationId,
+                    UnitStatus = result.Entity.UnitStatus.ToString(),
+                    Controller = "BloodUnit",
+                    Action = "Store"
+                });
+
+        /// <remarks>
+        /// <c>Invalid</c> → <c>400</c>; <c>NotFound</c> → <c>404</c>; <c>VersionConflict</c> →
+        /// <c>409</c>; <c>NotAllowedByState</c> → <c>422</c> (<c>VAL-BD-060/061/062</c>, master kosong).
+        /// </remarks>
+        private IActionResult MapFailure(BloodUnitResult result)
+            => result.Outcome switch
+            {
+                BloodUnitOutcome.NotFound => NotFound(
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
+
+                BloodUnitOutcome.VersionConflict => Conflict(
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+
+                BloodUnitOutcome.NotAllowedByState => UnprocessableEntity(
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message)),
+
+                _ => BadRequest(
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
+            };
+
+        private Guid GetCurrentUserId()
+        {
+            var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            return Guid.TryParse(value, out var id) ? id : Guid.Empty;
         }
     }
 }

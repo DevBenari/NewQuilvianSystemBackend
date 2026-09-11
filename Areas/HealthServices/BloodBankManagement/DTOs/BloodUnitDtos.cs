@@ -29,6 +29,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid ReceiptId { get; set; }
         public DateTime? ReceivedAt { get; set; }
 
+        /// <summary>Penempatan yang sedang berlaku. Kosong selama kantong <c>Received</c>.</summary>
+        public Guid? CurrentPlacementId { get; set; }
+        public Guid? CurrentStorageLocationId { get; set; }
+        public string? CurrentStorageLocationCode { get; set; }
+        public string? CurrentStorageLocationName { get; set; }
+
+        /// <summary>
+        /// Keaktifan lokasi saat ini, dibaca dari master ketika daftar diambil
+        /// (<c>ARCH-BD-POS-06</c>). <c>false</c> menjadi penanda kantong yang tertahan tanpa perlu
+        /// membuka detail (<c>FE-BD-011</c>). Kosong bila kantong belum pernah disimpan.
+        /// </summary>
+        public bool? IsCurrentStorageLocationActive { get; set; }
+
         public int Version { get; set; }
         public DateTime CreateDateTime { get; set; }
     }
@@ -68,13 +81,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid? IssuedByUserId { get; set; }
         public bool IssuedViaEmergency { get; set; }
 
+        /// <summary>Penempatan yang sedang berlaku. Kosong selama kantong <c>Received</c>.</summary>
+        public Guid? CurrentPlacementId { get; set; }
+        public Guid? CurrentStorageLocationId { get; set; }
+        public string? CurrentStorageLocationCode { get; set; }
+        public string? CurrentStorageLocationName { get; set; }
+
+        /// <summary>
+        /// Keaktifan lokasi saat ini, dibaca dari master (<c>ARCH-BD-POS-06</c>). <c>false</c>
+        /// berarti kantong tertahan alokasinya sampai dipindahkan. Kosong bila belum disimpan.
+        /// </summary>
+        public bool? IsCurrentStorageLocationActive { get; set; }
+
+        /// <summary>Sejak kapan kantong berada di lokasi saat ini.</summary>
+        public DateTime? CurrentPlacedAt { get; set; }
+
         public int Version { get; set; }
 
         public List<BloodBankTransitionDto> Transitions { get; set; } = new();
 
         /// <summary>
-        /// Aksi yang layak dicoba. <b>Kosong pada slice <c>BE-BD-004</c></b>: tindakan pertama atas
-        /// kantong <c>Received</c> adalah penyimpanan, yang lahir pada <c>BE-BD-015</c>.
+        /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;
+        /// <c>MoveStorageLocation</c> sesudah kantong punya lokasi dan belum keluar dari stok —
+        /// termasuk ketika lokasinya dinonaktifkan. Aksi alokasi belum ditawarkan karena endpoint-nya
+        /// lahir pada <c>BE-BD-006</c>.
         /// </summary>
         public List<string> AvailableActions { get; set; } = new();
 

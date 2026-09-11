@@ -418,8 +418,8 @@ public partial class ProviderRequestServiceTests
 
     /// <summary>
     /// <c>AC-BD-059</c> — kantong baru berstatus <c>Received</c>, belum punya lokasi, dan belum
-    /// dapat dialokasikan: tidak ada satu aksi pun yang ditawarkan sampai penyimpanan lahir
-    /// (<c>BE-BD-015</c>).
+    /// dapat dialokasikan: satu-satunya aksi yang ditawarkan adalah menyimpannya (<c>BE-BD-015</c>),
+    /// dan gerbang alokasinya tertutup <c>VAL-BD-063</c>.
     /// </summary>
     [Fact]
     public async Task AC_BD_059_KantongBaruDiterima_StatusReceived_BelumDapatDialokasikan()
@@ -445,7 +445,9 @@ public partial class ProviderRequestServiceTests
 
         Assert.Equal(BbkBloodUnitStatus.Received, detail.UnitStatus);
         Assert.Equal("Diterima", detail.UnitStatusLabel);
-        Assert.Empty(detail.AvailableActions);
+        Assert.Equal(new[] { "AssignStorageLocation" }, detail.AvailableActions);
+        Assert.Null(detail.CurrentPlacementId);
+        Assert.Equal("VAL-BD-063", (await l.UnitService().EvaluateAllocationGateAsync(kantong.Id))!.RuleCode);
         Assert.Equal(permintaan.Id, detail.ProviderRequestId);
         Assert.Equal(permintaan.RequestNumber, detail.RequestNumber);
         Assert.Equal(waktuTerima, detail.ReceivedAt);
@@ -734,7 +736,7 @@ public partial class ProviderRequestServiceTests
     [Theory]
     [InlineData(typeof(BbkProviderRequest), "Id,RequestNumber,BloodOrderId,PatientId,RequestStatus,Version")]
     [InlineData(typeof(BbkBloodUnitReceipt), "Id,ProviderRequestId,ReceivedQuantity,ReceivedAt,ReceivedByUserId,Sequence")]
-    [InlineData(typeof(BbkBloodUnit), "Id,PmiBagNumber,ProviderRequestId,ReceiptId,BloodComponentId,IsExcess,UnitStatus,IssuedToPatientId,IssuedAt,IssuedByUserId,IssuedViaEmergency,Version")]
+    [InlineData(typeof(BbkBloodUnit), "Id,PmiBagNumber,ProviderRequestId,ReceiptId,BloodComponentId,IsExcess,UnitStatus,CurrentPlacementId,IssuedToPatientId,IssuedAt,IssuedByUserId,IssuedViaEmergency,Version")]
     public void KolomTersimpan_SamaPersisDenganKamusData(Type entity, string kolom)
     {
         Assert.True(typeof(IdentityModel).IsAssignableFrom(entity));
