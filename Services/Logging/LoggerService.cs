@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Services.Logging
@@ -34,6 +34,32 @@ namespace QuilvianSystemBackend.Services.Logging
         public Task AuditAsync(string module, string action, string message, object? data = null)
         {
             return WriteAsync("AUD", module, action, message, null, data);
+        }
+
+        // Aliases for compatibility with Microsoft.Extensions.Logging naming conventions
+        public Task LogInfoAsync(string module, string action, string message, object? data = null)
+        {
+            return InfoAsync(module, action, message, data);
+        }
+
+        public Task LogInformationAsync(string module, string action, string message, object? data = null)
+        {
+            return InfoAsync(module, action, message, data);
+        }
+
+        public Task LogWarningAsync(string module, string action, string message, object? data = null)
+        {
+            return WarningAsync(module, action, message, data);
+        }
+
+        public Task LogErrorAsync(string module, string action, string message, Exception? exception = null, object? data = null)
+        {
+            return ErrorAsync(module, action, message, exception, data);
+        }
+
+        public Task LogAuditAsync(string module, string action, string message, object? data = null)
+        {
+            return AuditAsync(module, action, message, data);
         }
 
         private Task WriteAsync(

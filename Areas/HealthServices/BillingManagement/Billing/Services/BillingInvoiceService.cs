@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -12,6 +12,8 @@ using System.Security.Cryptography;
 using System.Text;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
@@ -313,6 +315,373 @@ public sealed class BillingInvoiceService
             TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
             Items = items
         };
+    }
+
+    // Dedicated read model/query untuk halaman "Invoice & Billing Kasir" (Cashier Overview).
+    // Dua-pass batch query (efisien, zero N+1) mengumpulkan data Pasien, Penjamin, Kalkulasi,
+    // Riwayat Tender Succeeded, Deposit Rawat Inap, dan Reminder.
+    public async Task<PagedResult<CashierBillingInvoiceListItemResponse>> GetCashierOverviewAsync(
+        CashierBillingInvoiceQuery request, CancellationToken cancellationToken)
+    {
+        // 1. Evaluasi PeriodPreset jika ada
+        if (!string.IsNullOrWhiteSpace(request.PeriodPreset))
+        {
+            var preset = request.PeriodPreset.Trim().ToUpperInvariant();
+            var utcNow = DateTime.UtcNow;
+            if (preset == CashierBillingPeriodPresets.All)
+            {
+                request.VisitDateFrom = null;
+                request.VisitDateTo = null;
+            }
+            else if (preset == CashierBillingPeriodPresets.Today)
+            {
+                var todayStart = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
+                request.VisitDateFrom = todayStart;
+                request.VisitDateTo = todayStart.AddDays(1).AddTicks(-1);
+            }
+            else if (preset == CashierBillingPeriodPresets.Last7Days)
+            {
+                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
+                request.VisitDateFrom = end.Date.AddDays(-7);
+                request.VisitDateTo = end;
+            }
+            else if (preset == CashierBillingPeriodPresets.Last30Days)
+            {
+                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
+                request.VisitDateFrom = end.Date.AddDays(-30);
+                request.VisitDateTo = end;
+            }
+        }
+
+        // 2. Validasi Tanggal
+        if (request.VisitDateFrom.HasValue && request.VisitDateTo.HasValue
+            && request.VisitDateFrom.Value > request.VisitDateTo.Value)
+        {
+            throw new BillingInvoiceValidationException("Tanggal Mulai tidak boleh lebih besar dari Tanggal Akhir.");
+        }
+
+        // 3. Base Query
+        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(request.ServiceType))
+        {
+            var serviceType = request.ServiceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.ServiceType == serviceType);
+        }
+
+        var joined =
+            from invoice in query
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking()
+                on invoice.EncounterId equals encounter.Id into encounterGroup
+            from encounter in encounterGroup.DefaultIfEmpty()
+            join patient in _dbContext.MstPatients.AsNoTracking()
+                on encounter.PatientId equals patient.Id into patientGroup
+            from patient in patientGroup.DefaultIfEmpty()
+            select new { invoice, encounter, patient };
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToUpper();
+            joined = joined.Where(x =>
+                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
+                (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
+                (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)) ||
+                _dbContext.RegPatientEncounterGuarantors.Any(g =>
+                    g.EncounterId == x.invoice.EncounterId &&
+                    g.IsActive && !g.IsDelete &&
+                    g.PaymentSourceNameSnapshot.ToUpper().Contains(search)));
+        }
+
+        if (request.VisitDateFrom.HasValue)
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
+        if (request.VisitDateTo.HasValue)
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+
+        var total = await joined.CountAsync(cancellationToken);
+        var page = await joined
+            .OrderByDescending(x => x.encounter != null ? x.encounter.EncounterDate : x.invoice.CreateDateTime)
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(x => new
+            {
+                x.invoice.Id,
+                x.invoice.EncounterId,
+                x.invoice.InvoiceNumber,
+                x.invoice.ServiceType,
+                x.invoice.Status,
+                x.invoice.InvoiceDate,
+                x.invoice.CreateDateTime,
+                PatientId = x.patient != null ? x.patient.Id : Guid.Empty,
+                PatientName = x.patient != null ? x.patient.FullName : string.Empty,
+                MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
+                EncounterType = x.encounter != null ? x.encounter.EncounterType.ToString() : string.Empty,
+                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null
+            })
+            .ToListAsync(cancellationToken);
+
+        var invoiceIds = page.Select(x => x.Id).ToList();
+        var encounterIds = page.Select(x => x.EncounterId).Distinct().ToList();
+
+        // 4. Batch query Penjamin & Payer
+        var guarantorRows = encounterIds.Count == 0
+            ? []
+            : await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.Priority)
+                .Select(x => new
+                {
+                    x.EncounterId,
+                    x.PaymentType,
+                    x.PaymentSourceNameSnapshot,
+                    x.InsuranceProviderId,
+                    x.CompanyGuarantorId
+                })
+                .ToListAsync(cancellationToken);
+        var guarantorByEncounter = guarantorRows.GroupBy(x => x.EncounterId).ToDictionary(g => g.Key, g => g.First());
+
+        var providerIds = guarantorByEncounter.Values
+            .Where(x => x.InsuranceProviderId.HasValue).Select(x => x.InsuranceProviderId!.Value).Distinct().ToList();
+        var claimMethodByProvider = providerIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(x => providerIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.ClaimMethod, cancellationToken);
+
+        // 5. Batch query Kalkulasi Terakhir (TotalBillAmount)
+        var calcRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.InvoiceId))
+                .Select(x => new { x.InvoiceId, x.VersionNo, x.PatientAmount })
+                .ToListAsync(cancellationToken);
+        var patientAmountByInvoice = calcRows.GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNo).First().PatientAmount);
+
+        // 6. Batch query Settlement & Tender SUCCEEDED
+        var settlementRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilSettlements.AsNoTracking()
+                .Where(s => s.InvoiceId != null && invoiceIds.Contains(s.InvoiceId!.Value)
+                    && s.Purpose == BillingSettlementPurposes.InvoicePayment)
+                .Select(s => new { s.Id, InvoiceId = s.InvoiceId!.Value })
+                .ToListAsync(cancellationToken);
+        var settlementToInvoice = settlementRows.ToDictionary(s => s.Id, s => s.InvoiceId);
+        var settlementIds = settlementRows.Select(s => s.Id).ToList();
+
+        var tenderRows = settlementIds.Count == 0
+            ? []
+            : await _dbContext.BilTenders.AsNoTracking()
+                .Where(t => settlementIds.Contains(t.SettlementId) && t.Status == BillingTenderStatuses.Succeeded)
+                .Select(t => new { t.Id, t.SettlementId, t.Amount, t.AttemptedAt })
+                .ToListAsync(cancellationToken);
+        var tendersByInvoice = tenderRows
+            .GroupBy(t => settlementToInvoice[t.SettlementId])
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // 7. Batch query Deposit untuk RANAP
+        var ranapEncounterIds = page
+            .Where(x => IsRanap(x.ServiceType, x.EncounterType))
+            .Select(x => x.EncounterId)
+            .Distinct()
+            .ToList();
+
+        var depositAccounts = ranapEncounterIds.Count == 0
+            ? []
+            : await _dbContext.BilDepositAccounts.AsNoTracking()
+                .Include(x => x.Movements)
+                .Where(x => ranapEncounterIds.Contains(x.EncounterId) && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+        var depositByEncounter = depositAccounts.ToDictionary(x => x.EncounterId, x => x);
+
+        var episodes = ranapEncounterIds.Count == 0
+            ? []
+            : await _dbContext.Set<InpEpisode>().AsNoTracking()
+                .Where(x => ranapEncounterIds.Contains(x.EncounterId) && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+        var episodeByEncounter = episodes.ToDictionary(x => x.EncounterId, x => x);
+
+        var nowOffset = DateTimeOffset.UtcNow;
+        var activePolicies = await _dbContext.MstDepositPolicies.AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete && !x.IsCancel
+                && x.EffectiveFrom <= nowOffset && (x.EffectiveTo == null || x.EffectiveTo > nowOffset))
+            .ToListAsync(cancellationToken);
+
+        // 8. Batch query Reminders (dengan safe fallback jika tabel belum dimigrasikan)
+        var remindersByInvoice = new Dictionary<Guid, List<BilPaymentReminder>>();
+        try
+        {
+            var reminderRows = await _dbContext.BilPaymentReminders.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.InvoiceId) && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+            remindersByInvoice = reminderRows.GroupBy(x => x.InvoiceId).ToDictionary(g => g.Key, g => g.ToList());
+        }
+        catch (Exception)
+        {
+            // Table BilPaymentReminder might not exist yet on remote DB
+        }
+
+        // 9. Susun Items Response
+        var items = page.Select(x =>
+        {
+            guarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
+            var isRanap = IsRanap(x.ServiceType, x.EncounterType);
+
+            string? claimMethod = guarantor?.InsuranceProviderId.HasValue == true
+                && claimMethodByProvider.TryGetValue(guarantor.InsuranceProviderId.Value, out var cm)
+                ? cm
+                : null;
+
+            var tenders = tendersByInvoice.TryGetValue(x.Id, out var invTenders)
+                ? invTenders
+                : [];
+            var totalPaid = tenders.Sum(t => t.Amount);
+            DateTimeOffset? lastPaymentAt = tenders.Count > 0 ? tenders.Max(t => (DateTimeOffset?)t.AttemptedAt) : null;
+            var patientAmount = patientAmountByInvoice.TryGetValue(x.Id, out var pa) ? pa : 0m;
+            var outstanding = Math.Max(0m, patientAmount - totalPaid);
+
+            string paymentStatus;
+            if (outstanding <= 0 && (patientAmount > 0 || totalPaid > 0))
+                paymentStatus = CashierPaymentStatuses.Paid;
+            else if (totalPaid > 0 && outstanding > 0)
+                paymentStatus = CashierPaymentStatuses.Partial;
+            else
+                paymentStatus = CashierPaymentStatuses.Unpaid;
+
+            // Deposit calculation
+            bool hasDepositAccount = false;
+            decimal depositAvailable = 0m;
+            decimal depositReceived = 0m;
+            decimal depositAllocated = 0m;
+            decimal policyShortfall = 0m;
+            decimal finalBillShortfall = 0m;
+            decimal outstandingTopUp = 0m;
+            string depositStatus = CashierDepositStatuses.NotApplicable;
+
+            if (isRanap)
+            {
+                depositByEncounter.TryGetValue(x.EncounterId, out var account);
+                episodeByEncounter.TryGetValue(x.EncounterId, out var ep);
+                hasDepositAccount = account != null;
+
+                if (account != null)
+                {
+                    var activeMovements = account.Movements.Where(m => !m.IsDelete).ToList();
+                    var topUp = activeMovements.Where(m => m.MovementType == BillingDepositMovementTypes.TopUp).Sum(m => m.Amount);
+                    var reversal = activeMovements.Where(m => m.MovementType == BillingDepositMovementTypes.Reversal).Sum(m => m.Amount);
+                    depositReceived = Math.Max(0m, topUp - reversal);
+                    depositAllocated = activeMovements.Where(m => m.MovementType == BillingDepositMovementTypes.Allocation).Sum(m => m.Amount);
+                    depositAvailable = account.AvailableBalance;
+                }
+
+                var gId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId;
+                var classId = ep != null && ep.PatientClassId != Guid.Empty ? (Guid?)ep.PatientClassId : null;
+                var policy = ResolveDepositPolicy(activePolicies, gId, classId);
+
+                if (policy != null && policy.IsRequired && policy.MinimumAmount > 0)
+                {
+                    policyShortfall = Math.Max(0m, policy.MinimumAmount - depositReceived);
+                }
+                finalBillShortfall = Math.Max(0m, patientAmount - depositAllocated - depositAvailable);
+                outstandingTopUp = policyShortfall;
+
+                if (!hasDepositAccount || depositReceived == 0)
+                    depositStatus = CashierDepositStatuses.NoDeposit;
+                else if (depositAllocated > 0 && depositAvailable == 0)
+                    depositStatus = CashierDepositStatuses.Exhausted;
+                else if (depositAllocated > 0)
+                    depositStatus = CashierDepositStatuses.Used;
+                else if (depositReceived > 0 && depositAllocated == 0)
+                    depositStatus = CashierDepositStatuses.AvailableNotUsed;
+                else
+                    depositStatus = CashierDepositStatuses.NoDeposit;
+            }
+
+            // Billing Age Days
+            var startBillingDate = x.InvoiceDate?.Date ?? x.CreateDateTime.Date;
+            var billingAgeDays = Math.Max(0, (DateTime.UtcNow.Date - startBillingDate).Days);
+
+            // Reminders
+            var reminders = remindersByInvoice.TryGetValue(x.Id, out var remList) ? remList : [];
+            var reminderCount = reminders.Count;
+            DateTime? lastReminderAt = reminderCount > 0 ? reminders.Max(r => r.SentAt) : null;
+            string reminderStatus;
+            if (paymentStatus == CashierPaymentStatuses.Paid)
+                reminderStatus = CashierReminderStatuses.NotApplicable;
+            else if (reminderCount > 0)
+                reminderStatus = CashierReminderStatuses.Sent;
+            else
+                reminderStatus = CashierReminderStatuses.NeverSent;
+
+            bool canSendReminder = outstanding > 0;
+            bool hasInsurance = guarantor != null && (guarantor.PaymentType == EncounterPaymentType.Insurance || guarantor.InsuranceProviderId.HasValue);
+
+            return new CashierBillingInvoiceListItemResponse
+            {
+                InvoiceId = x.Id,
+                EncounterId = x.EncounterId,
+                InvoiceNumber = x.InvoiceNumber,
+                PatientId = x.PatientId,
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                PatientName = x.PatientName,
+                EncounterType = x.EncounterType,
+                ServiceType = x.ServiceType,
+                PatientType = guarantor != null ? MapPaymentTypeLabel(guarantor.PaymentType) : "Tunai",
+                GuarantorName = guarantor?.PaymentSourceNameSnapshot ?? "Tunai",
+                ClaimMethod = claimMethod,
+                HasInsurancePayer = hasInsurance,
+                VisitDate = x.VisitDate,
+                TotalBillAmount = patientAmount,
+                LastSuccessfulPaymentAt = lastPaymentAt,
+                TotalPaidAmount = totalPaid,
+                OutstandingAmount = outstanding,
+                PaymentStatus = paymentStatus,
+                HasDepositAccount = hasDepositAccount,
+                DepositAvailableBalance = depositAvailable,
+                DepositTotalReceived = depositReceived,
+                DepositTotalAllocated = depositAllocated,
+                DepositPolicyShortfallAmount = policyShortfall,
+                DepositFinalBillShortfallAmount = finalBillShortfall,
+                DepositOutstandingTopUp = outstandingTopUp,
+                DepositStatus = depositStatus,
+                BillingAgeDays = billingAgeDays,
+                ReminderCount = reminderCount,
+                LastReminderAt = lastReminderAt,
+                ReminderStatus = reminderStatus,
+                CanSendReminder = canSendReminder
+            };
+        }).ToList();
+
+        return new PagedResult<CashierBillingInvoiceListItemResponse>
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
+            Items = items
+        };
+    }
+
+    private static bool IsRanap(string serviceType, string encounterType)
+    {
+        return string.Equals(serviceType, "RANAP", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(encounterType, "Inpatient", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(encounterType, "RANAP", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static MstDepositPolicy? ResolveDepositPolicy(
+        List<MstDepositPolicy> activePolicies, Guid? guarantorId, Guid? patientClassId)
+    {
+        return (guarantorId.HasValue && patientClassId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == guarantorId.Value && x.PatientClassId == patientClassId.Value)
+                : null)
+            ?? (guarantorId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == guarantorId.Value && x.PatientClassId == null)
+                : null)
+            ?? (patientClassId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == null && x.PatientClassId == patientClassId.Value)
+                : null)
+            ?? activePolicies.FirstOrDefault(x => x.GuarantorId == null && x.PatientClassId == null);
     }
 
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
@@ -767,6 +1136,41 @@ public sealed class BillingInvoiceService
             .Select(x => x.PaymentSourceNameSnapshot)
             .FirstOrDefaultAsync(cancellationToken);
 
+        string? doctorName = null;
+        if (row.encounter.DoctorId.HasValue)
+        {
+            doctorName = await _dbContext.MstDoctors.AsNoTracking()
+                .Where(d => d.Id == row.encounter.DoctorId.Value && !d.IsDelete)
+                .Select(d => d.FullName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        string? bedName = null;
+        string? bedNumber = null;
+        DateTime? admissionDateTime = null;
+
+        var episode = await _dbContext.Set<InpEpisode>().AsNoTracking()
+            .Where(e => e.EncounterId == encounterId && !e.IsDelete)
+            .OrderByDescending(e => e.CreateDateTime)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (episode != null)
+        {
+            admissionDateTime = episode.AdmittedAt;
+
+            var placement = await _dbContext.InpBedPlacements.AsNoTracking()
+                .Where(p => p.EpisodeId == episode.Id && !p.IsDelete && p.IsActive)
+                .OrderByDescending(p => p.StartDateTime)
+                .Include(p => p.Bed)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (placement?.Bed != null)
+            {
+                bedName = placement.Bed.BedName;
+                bedNumber = placement.Bed.BedNumber;
+            }
+        }
+
         return new InvoicePatientSummaryResponse
         {
             PatientId = row.patient.Id,
@@ -778,10 +1182,15 @@ public sealed class BillingInvoiceService
             EncounterDate = row.encounter.EncounterDate,
             EncounterType = row.encounter.EncounterType.ToString(),
             PaymentType = row.encounter.PaymentType.ToString(),
+            PaymentTypeLabel = MapPaymentTypeLabel(row.encounter.PaymentType),
             RoomName = roomName,
             ServiceUnitName = serviceUnitName,
             PatientClassName = patientClassName,
-            GuarantorName = guarantorName
+            GuarantorName = guarantorName,
+            DoctorInChargeName = doctorName,
+            BedName = bedName,
+            BedNumber = bedNumber,
+            AdmissionDateTime = admissionDateTime ?? row.encounter.CheckedInAt ?? row.encounter.EncounterDate
         };
     }
 
@@ -1276,9 +1685,17 @@ public sealed class BillingInvoiceService
         _ => throw new BillingInvoiceValidationException("Jenis encounter belum didukung untuk Billing.")
     };
 
-    private static InvoiceDetailResponse MapDetail(BilInvoice invoice, bool isReplay)
-    {
-        var items = invoice.Items.Where(x => !x.IsDelete)
+    /// <summary>
+    /// Pemetaan tunggal <see cref="BilInvoiceItem"/> -> <see cref="InvoiceItemResponse"/>, dipakai
+    /// <see cref="MapDetail"/> (GET /{id}) maupun <see cref="BillingPayerEditService.GetEditContextAsync"/>
+    /// (GET /{id}/edit-context, BE-BKC-FIX-009) supaya kedua layar membaca deskripsi/satuan/harga
+    /// satuan/qty/kategori item yang identik dari satu rumus, bukan dua salinan yang bisa menyimpang.
+    /// Pemanggil MUST memuat invoice dengan Include(Items).ThenInclude(Category) DAN
+    /// Include(Items).ThenInclude(Tariff).ThenInclude(Drug).ThenInclude(DispenseUnitMeasurement) -
+    /// tanpa include kedua, Unit selalu null untuk item farmasi.
+    /// </summary>
+    internal static List<InvoiceItemResponse> MapItems(IEnumerable<BilInvoiceItem> items) =>
+        items.Where(x => !x.IsDelete)
             .OrderBy(x => x.CreateDateTime).Select(x => new InvoiceItemResponse
             {
                 Id = x.Id,
@@ -1305,6 +1722,10 @@ public sealed class BillingInvoiceService
                 Status = x.Status,
                 VoidReason = x.VoidReason
             }).ToList();
+
+    private static InvoiceDetailResponse MapDetail(BilInvoice invoice, bool isReplay)
+    {
+        var items = MapItems(invoice.Items);
         var activeItems = items.Where(x => x.Status != BillingInvoiceItemStatuses.Voided).ToList();
         return new InvoiceDetailResponse
         {

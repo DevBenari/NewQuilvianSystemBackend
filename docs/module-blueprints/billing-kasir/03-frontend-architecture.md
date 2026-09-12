@@ -711,3 +711,212 @@ Pembagian di atas adalah **saran pemetaan**. Siapa yang benar-benar mendapat but
 58. Menutup shift kasir setelah mencairkan voucher pada hari yang sama menghasilkan angka kas shift yang sama persis seperti bila voucher itu tidak pernah dicairkan.
 59. Tidak ada satu pun UUID yang tampil di layar maupun di URL pada seluruh layar Petty Cash.
 
+---
+
+## Amendment 11 September 2026 — Rumpun baru: Edit Tagihan & Multi-Payer Coverage
+
+> Revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`, `01-existing-capability-map.md` § 19 (`CAP-40`).
+>
+> **Koreksi lokasi base component yang wajib dibaca implementer.** Komponen dasar generik repository ini berada di `src/components/features/base-features/`, **bukan** di `src/components/ui/`. Folder `src/components/ui/` hanya berisi pembungkus layout dan komponen khusus modul klinis. Dokumen sumber PDF menyebut lokasi yang keliru; yang berlaku adalah hasil pembacaan langsung pada `CAP-40`.
+
+### Kebutuhan layar
+
+| ID | Layar | Jenis | Jalan masuk |
+| --- | --- | --- | --- |
+| `FE-MPY-01` | Edit Tagihan | Halaman kerja per tagihan | Tombol pada Menu Pembayaran — **layar anak**, tidak mendapat butir menu sendiri |
+| `FE-MPY-02` | Panel Edit Asuransi beserta perbandingan berdampingan | Panel di dalam `FE-MPY-01` | Tombol mode pada `FE-MPY-01` |
+| `FE-MPY-03` | Panel Edit Status Tagihan | Panel di dalam `FE-MPY-01` | Tombol mode pada `FE-MPY-01` |
+| `FE-MPY-04` | Panel Edit Billing | Panel di dalam `FE-MPY-01` | Tombol mode pada `FE-MPY-01` |
+| `FE-MPY-05` | Lembar Invoice Penjamin Perusahaan | Tab pada halaman Dokumen Kasir yang sudah ada | **Layar anak** dari Dokumen Kasir |
+| `FE-MPY-06` | Master Data — Rute Reimbursement Penjamin Perusahaan | Daftar dan formulir | Butir menu sendiri |
+| `FE-MPY-07` | Master Data — Aturan Tanggungan Penjamin Perusahaan | Daftar dan formulir | Butir menu sendiri |
+
+### Peta butir menu
+
+```text
+Administrator
+└── Master Data
+    └── Rute Reimbursement Penjamin              -> .../master-data/company-guarantor-reimbursement-routes
+
+Health Services
+└── Master Data
+    └── Aturan Tanggungan Penjamin               -> .../master-data/company-guarantor-coverage-rules
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Rute Reimbursement Penjamin | 2 | Administrator › Master Data | `/administrator/master-data/company-guarantor-reimbursement-routes` | `FE-MPY-06` | `CompanyGuarantorReimbursementRoute : Read` | Baru |
+| Aturan Tanggungan Penjamin | 2 | Health Services › Master Data | `/health-services/master-data/company-guarantor-coverage-rules` | `FE-MPY-07` | `CompanyGuarantorCoverageRule : Read` | Baru |
+
+**Layar yang sengaja tidak mendapat butir menu**, beserta jalan masuknya:
+
+| Layar | Jalan masuk | Alasan |
+| --- | --- | --- |
+| `FE-MPY-01` sampai `FE-MPY-04` | Tombol "Edit Tagihan" pada Menu Pembayaran, pada tagihan tertentu | Layar ini hanya bermakna dalam konteks satu tagihan. Butir menu tanpa tagihan akan membuka layar kosong |
+| `FE-MPY-05` | Tab pada halaman Dokumen Kasir yang sudah ada | Mengikuti pola lembar Invoice Asuransi yang juga tab pada halaman yang sama |
+
+Pendaftaran kedua butir menu baru **MUST** menjadi acceptance criteria salah satu task layar master data, bukan pekerjaan yang menganggur di antara dua task. Preseden yang mendasarinya ada di modul ini sendiri: lima halaman `billing-management` pernah selesai dan lulus build tetapi tidak terjangkau siapa pun sampai pendaftaran menunya dikerjakan sebagai task tersendiri.
+
+### Skema fitur — `FE-MPY-01` Edit Tagihan
+
+```text
++- Edit Tagihan - INV-2026-000481 - Ny. S ------------------ FE-MPY-01 -+
+| Penanggung kunjungan: Penjamin - PT Sejahtera      [Kembali]          |
+| [Edit Asuransi] [Edit Status Tagihan] [Edit Billing]                  |
++-----------------------------------------------------------------------+
+|  panel mode aktif (FE-MPY-02 / 03 / 04)                               |
+|  [Simpan Perubahan]  [Batal Edit]                                     |
++-----------------------------------------------------------------------+
+| Rincian tagihan, dikelompokkan per kategori                           |
+| Deskripsi | Satuan | Penanggung | Harga Satuan | QTY | Harga          |
+| ...                                        SubTotal per kategori      |
++-----------------------------------------------------------------------+
+| Subtotal Mandiri | Subtotal Penjamin | Pajak | Total | Harus Dibayar   |
++-----------------------------------------------------------------------+
+| memuat -> kerangka baris                                              |
+| gagal  -> "Data tagihan gagal dimuat."            [Coba lagi]         |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor tagihan, nama pasien, penanggung kunjungan yang berlaku | `GET /{id}/edit-context` | `BillingInvoice : Read` | Gagal → seluruh layar diganti pesan beserta tombol coba lagi |
+| Tombol mode | Edit Asuransi, Edit Status Tagihan, Edit Billing | `capabilities` pada edit-context | `BillingInvoice : Update` | Mode yang tidak diizinkan tampil **nonaktif beserta alasannya**, bukan disembunyikan tanpa keterangan — kasir perlu tahu mengapa |
+| Panel mode | Isi mode yang sedang aktif | — | — | — |
+| Tombol simpan | Simpan Perubahan, Batal Edit | — | `BillingInvoice : Update` | Simpan nonaktif selama tidak ada perubahan |
+| Rincian tagihan | Baris biaya per kategori beserta penanggungnya | `calculation` pada edit-context | `BillingInvoice : Read` | Kosong → "Tagihan ini belum memiliki baris biaya." |
+| Ringkasan | Subtotal Mandiri, Subtotal Penjamin, Pajak, Total, Harus Dibayar | `calculation` pada edit-context | `BillingInvoice : Read` | Gagal → seluruh layar diganti pesan |
+
+**Label ringkasan mengikuti jenis penanggung.** Ketika kunjungan berpenjamin perusahaan, baris ringkasan berbunyi "Subtotal Penjamin"; ketika berasuransi, "Subtotal Asuransi". Keduanya membaca **ember rupiah yang sama** beserta penanda jenis payer yang dibawa response (`MPY-DES-017`). Frontend **MUST NOT** menampilkan dua baris subtotal terpisah untuk asuransi dan penjamin — salah satunya selalu nol, dan baris nol yang permanen membingungkan pembacanya.
+
+### Skema fitur — `FE-MPY-02` Edit Asuransi
+
+```text
++- Edit Asuransi --------------------------------------------- FE-MPY-02 -+
+| Penanggung sekarang: Penjamin - PT Sejahtera                            |
+| Ganti menjadi *  [ Tunai | Asuransi | Penjamin Perusahaan ]             |
+|                  [ pilih kartu milik pasien              v]            |
+|                  [Bandingkan]                                           |
++-------------------------------------------------------------------------+
+|  SEKARANG                        |  BILA DIGANTI                        |
+|  PT Sejahtera                    |  Prudential                          |
+|  Total        Rp 270.000         |  Total        Rp 270.000             |
+|  Ditanggung   Rp 160.000         |  Ditanggung   Rp 216.000             |
+|  Mandiri      Rp 110.000         |  Mandiri      Rp  54.000             |
++-------------------------------------------------------------------------+
+| Alasan perubahan * [                                        ]           |
++-------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Penanggung sekarang | Jenis dan nama penjamin yang berlaku | `currentPayer` pada edit-context | `BillingInvoice : Read` | — |
+| Pilihan kartu | Kartu asuransi dan kartu penjamin perusahaan milik pasien | `availablePayerOptions` pada edit-context | `BillingInvoice : Read` | Kosong → "Pasien ini belum memiliki kartu penjamin terdaftar. Pendaftaran kartu dilakukan di Data Pasien/Registrasi." |
+| Kartu tidak dapat dipakai | Tampil nonaktif beserta sebabnya | `availablePayerOptions[].blockReason` | — | Kartu kedaluwarsa atau belum layak tampil nonaktif, **bukan disembunyikan** — kasir perlu tahu kartunya ada tapi tidak dapat dipakai |
+| Perbandingan berdampingan | Total, ditanggung, mandiri pada kedua sisi, beserta selisih per baris | `POST /{id}/payer-comparison-preview` | `BillingInvoice : Read` | Gagal → panel perbandingan diganti pesan beserta tombol coba lagi; isian tetap utuh |
+| Alasan | Isian wajib | — | — | Kosong → simpan nonaktif |
+
+Frontend **MUST NOT** menghitung sendiri selisih harga maupun tanggungan. Seluruh angka pada kedua kolom berasal dari server.
+
+Sebelum menyimpan, tampilkan konfirmasi: *"Gunakan &lt;nama penjamin&gt; sebagai penanggung kunjungan ini? Tagihan akan dihitung ulang."* Sesudah berhasil, tampilkan pemberitahuan bila ada baris biaya yang penanggungnya ikut dikembalikan menjadi tanggungan pasien, beserta jumlahnya.
+
+### Skema fitur — `FE-MPY-03` Edit Status Tagihan
+
+Subjudul panel **MUST** berbunyi **"Ubah penanggung biaya per item"**. Label tombolnya boleh tetap "Edit Status Tagihan" mengikuti kebiasaan pengguna, tetapi tanpa subjudul itu pengguna akan menyangka yang diubah adalah status hidup-matinya tagihan.
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Daftar baris biaya | Tiap baris beserta isian penanggung: Pribadi, Asuransi, Penjamin | `itemPayerAssignments` pada edit-context | `BillingInvoice : Read` | Kosong → "Tagihan ini belum memiliki baris biaya." |
+| Pilihan yang tidak tersedia | Nonaktif beserta alasannya, misalnya "Kunjungan ini tidak memakai asuransi" | `availablePayerOptions` | — | **MUST** nonaktif beserta alasan, bukan hilang begitu saja |
+| Baris yang diubah | Ditandai halus | — | — | — |
+| Penghitung perubahan | "3 item diubah" | — | — | Nol perubahan → tombol simpan nonaktif |
+| Alasan | Isian wajib | — | — | Kosong → simpan nonaktif |
+
+Baris berstatus dibatalkan tampil tetapi isian penanggungnya nonaktif.
+
+### Skema fitur — `FE-MPY-04` Edit Billing
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Tiga tombol pilihan | Ditebus, Tebus Sebagian, Tidak Ditebus | `capabilities.canEditDrugBilling` | `BillingInvoice : Update` | Tidak layak → panel diganti keterangan: "Penebusan obat tidak dapat diubah untuk jenis kunjungan ini." |
+| Kotak centang per baris obat | Muncul **hanya** pada mode Tebus Sebagian, dan **hanya** pada baris obat yang layak | `eligibleDrugInvoiceItemIds` | — | Tagihan tanpa baris obat layak → "Tagihan ini tidak memiliki item obat yang dapat diatur penebusannya." |
+| Isian jumlah | **Selalu hanya-baca** | — | — | Tombol tambah dan kurang jumlah **MUST NOT** muncul sama sekali pada layar ini |
+| Baris non-obat | Tampil hanya-baca tanpa kotak centang | — | — | — |
+| Alasan | Isian wajib | — | — | Kosong → simpan nonaktif |
+
+Pada mode Ditebus, seluruh kotak centang tampil tercentang dan hanya-baca. Pada mode Tidak Ditebus, seluruhnya kosong dan hanya-baca.
+
+### Skema fitur — `FE-MPY-05`, `FE-MPY-06`, `FE-MPY-07`
+
+`FE-MPY-05` mengikuti bentuk lembar Invoice Asuransi yang sudah ada, dengan tiga perbedaan isi: identitas perusahaan penjamin menggantikan identitas perusahaan asuransi, ditambah identitas karyawan, ditambah satu baris keterangan rute penggantian biaya. Komponen lembarnya bersifat presentasional murni dan menerima seluruh isinya sebagai properti, sama seperti pendahulunya.
+
+`FE-MPY-06` dan `FE-MPY-07` memakai bentuk daftar dan formulir master data yang sudah baku di repository ini — keduanya berbagi bentuk yang sama dengan layar master data lain, sehingga cukup dirujuk, tidak perlu digambar ulang. Dua aturan isian yang mengikat:
+
+| Layar | Aturan isian |
+| --- | --- |
+| `FE-MPY-06` | Ketika jenis rute "Menanggung sendiri" dipilih, isian perusahaan asuransi mitra **MUST** disembunyikan dan nilainya dikosongkan — bukan sekadar dinonaktifkan sambil menyimpan nilai lama |
+| `FE-MPY-07` | Isian urun biaya **MUST** hanya-baca dan terisi otomatis mengikuti persentase tanggungan, karena nilainya diturunkan server |
+
+### Aksi per peran
+
+Diturunkan dari [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md), tidak dikarang ulang.
+
+| Peran | Dapat melihat | Dapat mengubah |
+| --- | --- | --- |
+| Kasir | Seluruh layar rumpun ini | Ganti penanggung kunjungan, penanggung per baris, penebusan obat |
+| Kepala Kasir / Finance Operations | Sama | **Sama persis** — tidak ada kewenangan tambahan, karena perubahan ini tidak memerlukan persetujuan tahap kedua |
+| Admin Master Data | `FE-MPY-06`, `FE-MPY-07` | Rute reimbursement dan aturan tanggungan |
+| Finance / Akuntansi | `FE-MPY-05` | — |
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Memuat | Kerangka baris, bukan layar kosong |
+| Kosong | Kalimat yang menyebut apa yang tidak ada dan apa langkah berikutnya |
+| Gagal | Pesan beserta tombol coba lagi; isian yang sudah diketik **MUST** tetap utuh |
+| Data basi (`409`) | "Data tagihan telah berubah. Muat ulang data sebelum menyimpan kembali." Layar memuat ulang edit-context; isian yang belum tersimpan **MUST** diberitahukan akan hilang |
+| Ditolak aturan bisnis (`422`) | Pesan dari server ditampilkan apa adanya — frontend **MUST NOT** mengarang kalimatnya sendiri |
+| Tidak berwenang (`403`) | Gerbang akses ditolak yang sudah ada |
+| Pengiriman ganda | Tombol simpan terkunci selama perintah berjalan; kunci idempotensi dikirim mengikuti pola perintah finansial yang sudah ada |
+| Pindah mode dengan perubahan belum tersimpan | Konfirmasi buang perubahan lebih dulu |
+| Angka finansial | **MUST NOT** diperbarui optimistis sebelum server berhasil. Angka pada layar selalu angka terakhir dari server |
+
+### Pemakaian ulang komponen
+
+| Komponen | Lokasi | Keputusan |
+| --- | --- | --- |
+| Tombol, tabel, lencana status, modal konfirmasi, peringatan, tumpukan pesan, isian pilihan dan teks | `src/components/features/base-features/` | **Pakai ulang apa adanya** |
+| `BasePayerWorkspace` beserta enam ekspor turunannya | `src/components/features/base-features/base-payer-workspace.jsx` | **Pakai ulang sebagai dasar panel Edit Asuransi.** Menutup `MPY-CQ-02`: komponen ini punya **tepat satu** konsumen hari ini, yaitu langkah pembayaran pada admisi Rawat Inap. Setiap penambahan properti **MUST** bersifat opsional berbawaan, supaya konsumen itu tidak berubah perilakunya sama sekali |
+| Tabel tagihan pada Menu Pembayaran | `menu-pembayaran-view.jsx` | **Ekstrak bagian presentasionalnya** untuk dipakai bersama. **MUST NOT** menyalin seluruh berkas — ia 1345 baris dan memuat logika pembayaran yang tidak relevan |
+| Tombol "Edit Tagihan" yang sudah ada pada Menu Pembayaran | `menu-pembayaran-view.jsx` | **Tidak dipakai ulang.** Tombol itu membuka tambah biaya lain-lain, tujuannya berbeda. Rumpun ini menambahkan jalan masuk tersendiri ke `FE-MPY-01` |
+
+Komponen dasar baru **MUST NOT** dibuat tanpa gerbang keputusan komponen yang berlaku di repository ini.
+
+### Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan ketiga mode dan urutannya pada toolbar | Mengikat — diturunkan dari `MPY-DEC-003`, `004`, `009` |
+| Subjudul "Ubah penanggung biaya per item" | **Mengikat** — mencegah salah paham yang sudah diperkirakan |
+| Isian jumlah obat hanya-baca, tanpa tombol tambah/kurang | **Mengikat** — `MPY-DEC-009` |
+| Perbandingan ditampilkan berdampingan pada layar lebar | Mengikat pada layar lebar; pada layar sempit boleh bertumpuk ke bawah |
+| Nama butir menu, urutan, ikon, pengelompokan visual | `DEV_DISCRETION` |
+| Bentuk panel: tab, modal, atau laci | `DEV_DISCRETION` |
+| Warna, jarak, bentuk lencana penanggung | `DEV_DISCRETION` |
+| Tombol Edit Penjamin Perusahaan | **MUST NOT dibuat** — perubahan kartu penjamin tetap lewat Data Pasien/Registrasi (`MPY-DEC-003`). Boleh menampilkan keterangan hanya-baca beserta arahan ke mana perubahan dilakukan |
+
+### Acceptance frontend
+
+60. Kasir dapat mengganti penanggung kunjungan dari tunai menjadi asuransi, lalu tagihan menampilkan angka hasil perhitungan server yang baru tanpa memuat ulang halaman secara manual.
+61. Kartu penjamin yang masa berlakunya sudah lewat tampil pada daftar dalam keadaan nonaktif beserta alasannya, bukan disembunyikan.
+62. Perbandingan berdampingan menampilkan angka yang seluruhnya berasal dari server; tidak ada satu pun selisih yang dihitung di sisi peramban.
+63. Pada kunjungan tunai, pilihan Asuransi dan Penjamin pada penanggung per baris tampil nonaktif beserta alasannya.
+64. Pada kunjungan rawat inap, tombol Edit Billing tidak aktif beserta keterangan jenis kunjungan.
+65. Pada mode Tebus Sebagian, tombol tambah dan kurang jumlah obat tidak muncul sama sekali.
+66. Sesudah penanggung kunjungan diganti, kasir melihat pemberitahuan berisi jumlah baris biaya yang penanggungnya ikut dikembalikan menjadi tanggungan pasien.
+67. Ringkasan menampilkan "Subtotal Penjamin" pada kunjungan berpenjamin perusahaan dan "Subtotal Asuransi" pada kunjungan berasuransi, dan tidak pernah menampilkan keduanya sekaligus.
+68. Menyimpan dengan versi data yang sudah basi menampilkan pesan muat ulang, dan tidak ada perubahan yang tersimpan sebagian.
+69. Kedua butir menu master data baru terdaftar dan dapat dijangkau peran yang berwenang.
+70. Langkah pembayaran pada admisi Rawat Inap tetap berperilaku sama persis sesudah `BasePayerWorkspace` dipakai ulang di modul ini.
+

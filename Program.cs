@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
@@ -308,6 +309,10 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
@@ -336,8 +341,10 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();

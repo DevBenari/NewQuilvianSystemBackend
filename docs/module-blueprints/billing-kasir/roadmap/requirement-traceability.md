@@ -358,3 +358,89 @@ tidak punya field Asuransi apa pun, dan `TrxPatientEncounterGuarantor.cs`
 (`NewQuilvianSystemBackend/Areas/HealthServices/RegistrationManagement/Models/`) memang
 mengunci relasi satu-ke-satu payer per kunjungan. Implementasi mengikuti bentuk yang sudah
 dikoreksi (satu baris berlabel dinamis), bukan bentuk asli `BKC-DEC-094`.
+
+> **Koreksi penamaan, 11 September 2026.** Nama `TrxPatientEncounterGuarantor` pada paragraf di
+> atas sudah **tidak berlaku** di source. Entity itu telah di-rename menjadi
+> `RegPatientEncounterGuarantor` mengikuti registry kepemilikan prefix. Isi kesimpulannya tetap
+> benar — relasi satu-ke-satu per kunjungan memang dikunci di sana — hanya namanya yang berubah.
+> Ditemukan saat wawancara rumpun Edit Tagihan & Multi-Payer dan dicatat pada
+> [`00-interview-decisions.md`](../00-interview-decisions.md) § Catatan koreksi.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+```yaml
+roadmap_revision: 5
+blueprint_revision: 1.1
+status: READY_FOR_TASK_APPROVAL
+backend_commit_sha: d295c4d59b68d223edc597c8b165b7ef4282b49f
+frontend_commit_sha: 0eafa76bf397a47ceb9d44a6f69006ee25f8ba51
+input_hash_00_interview_decisions: 6d74e4fbe954782895df0c89d441b4a8357dac38e20f945224778ed8440c3414
+input_hash_01_capability_map: b33911fb655fb71beda296affdc2a8980f0c5f0fd05dd4d01301e30c05a866e8
+approval_keputusan_bisnis: MPY-DEC-001-012, seluruhnya approved 11 September 2026
+approval_keputusan_arsitektur: MPY-DES-001-017, approved lewat MPY-DEC-012
+contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8,
+  BIL-PERMISSION-0.8, BIL-TEST-1.0, BIL-CALCULATION-0.9, MPY-ENC-PAYER-001]
+```
+
+## 1. Requirement sampai bukti
+
+| Requirement | Keputusan | Desain | Kontrak | Task backend | Task frontend | Bukti | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `FR-BKC-064` Aturan tanggungan perusahaan menentukan porsi penjamin | `MPY-DEC-008` | `MPY-DES-006` | `BIL-CALCULATION-0.9` | ✅ `BE-BKC-043`, ✅ `BE-BKC-044` | `FE-BKC-033` | `BIL-AT-100` | Selesai (backend) — master aturan tanggungan (`BE-BKC-043`) dan mesin kalkulasi `CompanyGuarantorCoverageService` (`BE-BKC-044`) selesai dan terverifikasi build |
+| `FR-BKC-065` Peringatan palsu pada kunjungan berpenjamin perusahaan dihapus | `MPY-DEC-008` | `MPY-DES-007` | `BIL-CALCULATION-0.9` | ✅ `BE-BKC-044` | — | `BIL-AT-100`, `UAT-54` | Selesai (backend) — `RegistrationBillingCoverageAdapter` diperbaiki menjadi dispatcher, anomali palsu `INSURANCE_PROVIDER_MISSING` dihapus pada `BE-BKC-044` |
+| `FR-BKC-066` Urun biaya diturunkan server | `MPY-DEC-008` | `MPY-DES-006` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-043` | `FE-BKC-033` | `BIL-AT-099` | Selesai (backend) — derivasi server-side urun biaya selesai diimplementasikan pada `BE-BKC-043` |
+| `FR-BKC-067` Aturan bermasa berlaku dan berprioritas | `MPY-DEC-008` | `MPY-DES-006` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-043`, ✅ `BE-BKC-044` | `FE-BKC-033` | `BIL-AT-099` | Selesai (backend) — master aturan tanggungan (`BE-BKC-043`) dan mesin kalkulasi berprioritas/masa berlaku (`BE-BKC-044`) selesai dan lulus build |
+| `FR-BKC-068` Penanggung kunjungan dapat diganti sebelum pembayaran | `MPY-DEC-003`, `MPY-DEC-007` | `MPY-DES-001`, `MPY-DES-004` | `BIL-API-1.0`, `MPY-ENC-PAYER-001` | ✅ `BE-BKC-045`, ✅ `BE-BKC-047` | `FE-BKC-028` | `BIL-AT-081`, `UAT-43` | Selesai (backend) — kontrak serah terima `MPY-ENC-PAYER-001` (`BE-BKC-045`) dan orkestrator ganti payer (`BE-BKC-047`) selesai |
+| `FR-BKC-069` Kunjungan tetap punya tepat satu penanggung | `MPY-DEC-001` | `MPY-DES-002` | `MPY-ENC-PAYER-001` | ✅ `BE-BKC-045`, ✅ `BE-BKC-047` | — | `BIL-AT-082` | Selesai (backend) — invariant satu penanggung dikunci di `MPY-ENC-PAYER-001` (`BE-BKC-045`) dan orkestrator ganti payer (`BE-BKC-047`) selesai |
+| `FR-BKC-070` Perbandingan sebelum mengganti tidak menyimpan apa pun | `MPY-DEC-003` | `MPY-DES-005`, `MPY-DES-015` | `BIL-API-1.0` | ✅ `BE-BKC-046`, ✅ `BE-BKC-047` | `FE-BKC-028` | `BIL-AT-087` | Selesai (backend) — mesin evaluasi payer kandidat tanpa efek samping (`BE-BKC-046`) dan endpoint `POST /{id}/payer-comparison-preview` (`BE-BKC-047`) selesai |
+| `FR-BKC-071` Kartu tidak sah ditolak beserta sebabnya | `MPY-DEC-003` | `MPY-DES-004` | `BIL-VALIDATION-0.9`, `MPY-ENC-PAYER-001` | ✅ `BE-BKC-045`, ✅ `BE-BKC-047` | `FE-BKC-028` | `BIL-AT-083`, `BIL-AT-084`, `UAT-44` | Selesai (backend) — aturan penolakan kartu dikunci di `MPY-ENC-PAYER-001` (`BE-BKC-045`) dan gerbang validasi ganti payer (`BE-BKC-047`) selesai |
+| `FR-BKC-072` Penanggung baris yang tidak lagi sah dikembalikan otomatis | `MPY-DEC-004` | `MPY-DES-009` | `BIL-STATE-0.9` | ✅ `BE-BKC-047` | `FE-BKC-028` | `BIL-AT-092`, `UAT-48` | Selesai (backend) — penanggung baris biaya yang tidak lagi sah direset otomatis menjadi `CASH`/`AUTO` pada `BE-BKC-047` |
+| `FR-BKC-073` Setiap penggantian meninggalkan jejak yang tidak dapat dihapus | `MPY-DEC-005` | `MPY-DES-003` | `BIL-PERMISSION-0.8` | ✅ `BE-BKC-041`, ✅ `BE-BKC-047` | — | `BIL-AT-088` | Selesai (backend) — tabel `BilInvoicePayerChangeCommand` (`BE-BKC-041`) dan pencatatan jejak audit tak terhapus (`BE-BKC-047`) selesai |
+| `FR-BKC-074` Penanggung baris dapat diubah sebelum pembayaran | `MPY-DEC-004` | `MPY-DES-008` | `BIL-API-1.0` | ✅ `BE-BKC-048` | `FE-BKC-029` | `BIL-AT-089`, `UAT-46` | Selesai (backend) — endpoint `PUT /{id}/item-payer-assignments` dan mutasi append-only selesai pada `BE-BKC-048` |
+| `FR-BKC-075` Pilihan penanggung mengikuti penanggung kunjungan | `MPY-DEC-004` | `MPY-DES-008` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-048` | `FE-BKC-029` | `BIL-AT-091`, `UAT-47` | Selesai (backend) — validasi `BIL-VAL-077` dan `BIL-VAL-078` menegakkan kesesuaian penanggung dengan kunjungan pada `BE-BKC-048` |
+| `FR-BKC-076` Penandaan tidak digerbang hasil tanggungan | `MPY-DEC-004` | `MPY-DES-008` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-048` | `FE-BKC-029` | `BIL-AT-090` | Selesai (backend) — penandaan tidak digerbang hasil tanggungan; baris tidak tertanggung tetap boleh ditandai dan hasilnya nol tertanggung pada `BE-BKC-048` |
+| `FR-BKC-077` Angka tagihan selalu menjumlah | `MPY-DEC-004` | `MPY-DES-017` | `BIL-CALCULATION-0.9` | ✅ `BE-BKC-048` | — | `BIL-AT-089` | Selesai (backend) — mesin kalkulasi menjumlah utuh komponen tagihan nol selisih pada `BE-BKC-048` |
+| `FR-BKC-078` Obat yang tidak ditebus tidak ditagihkan | `MPY-DEC-009` | `MPY-DES-010` | `BIL-API-1.0` | ✅ `BE-BKC-049` | `FE-BKC-030` | `BIL-AT-094`, `UAT-49` | Selesai (backend) — endpoint `PUT /{id}/drug-billing-disposition` dan pengeluaran obat `EXCLUDED` dari kalkulasi selesai pada `BE-BKC-049` |
+| `FR-BKC-079` Jumlah pada baris obat tidak pernah berubah | `MPY-DEC-009` | `MPY-DES-010` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-049` | `FE-BKC-030` | `BIL-AT-094` | Selesai (backend) — kuantitas obat pada `BilInvoiceItem` tidak diubah sama sekali; mutasi append-only disposisi selesai pada `BE-BKC-049` |
+| `FR-BKC-080` Rawat inap ditolak, IGD diterima | `MPY-DEC-009` | `MPY-DES-011` | `BIL-VALIDATION-0.9` | ✅ `BE-BKC-049` | `FE-BKC-030` | `BIL-AT-095`, `UAT-50`, `UAT-51` | Selesai (backend) — validasi `BIL-VAL-081` menolak RANAP dan menerima IGD/RAJAL pada `BE-BKC-049` |
+| `FR-BKC-081` Catatan penyerahan obat tidak tersentuh | `MPY-DEC-009` | `MPY-DES-010` | `BIL-INTEGRATION-0.8` | ✅ `BE-BKC-049` | — | `BIL-AT-096` | Selesai (backend) — isolasi data Farmasi dipatuhi penuh (0 baris Farmasi disentuh) pada `BE-BKC-049` |
+| `FR-BKC-082` Lembar tagihan perusahaan dapat dicetak | `MPY-DEC-006` | `MPY-DES-013` | `BIL-API-1.0` | ✅ `BE-BKC-050` | `FE-BKC-031` | `UAT-53` | Selesai (backend) — endpoint `GET /{id}/company-guarantor-invoice-document` dan service penyusunan dokumen selesai pada `BE-BKC-050` |
+| `FR-BKC-083` Rute penggantian biaya tampil sebagai keterangan | `MPY-DEC-008` | `MPY-DES-014` | `BIL-API-1.0` | ✅ `BE-BKC-042`, ✅ `BE-BKC-050` | `FE-BKC-032`, `FE-BKC-031` | `UAT-53` | Selesai (backend) — master rute reimbursement (`BE-BKC-042`) dan pemuatan metadata keterangan rute pada dokumen penjamin (`BE-BKC-050`) selesai |
+| `FR-BKC-084` Lembar khusus kunjungan berpenjamin perusahaan | `MPY-DEC-006` | `MPY-DES-013` | `BIL-API-1.0` | ✅ `BE-BKC-050` | `FE-BKC-031` | `UAT-53` | Selesai (backend) — penolakan terbit untuk tunai dan asuransi pribadi serta verifikasi penjamin perusahaan selesai pada `BE-BKC-050` |
+| `FR-BKC-085` Ketiga koreksi tertutup sesudah pembayaran | `MPY-DEC-005` | `MPY-DES-016` | `BIL-STATE-0.9` | ✅ `BE-BKC-047`, ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-051` | `FE-BKC-028` | `BIL-AT-085`, `UAT-45` | Selesai (backend) — gerbang status `OPEN` dan nol pembayaran (`BIL-VAL-059`–`060`) dikunci rapat dan terverifikasi penuh pada `BE-BKC-051` |
+| `FR-BKC-086` Perubahan bersifat sekaligus atau tidak sama sekali | `MPY-DEC-005` | `MPY-DES-016` | `BIL-API-1.0` | ✅ `BE-BKC-047`, ✅ `BE-BKC-051` | — | `BIL-AT-086`, `UAT-52` | Selesai (backend) — batas transaksi serializable atomik dan rollback total saat konflik concurrency/validasi terverifikasi pada `BE-BKC-051` |
+
+## 2. Kemampuan asal ke task
+
+| Kemampuan | Status audit | Task yang memakainya |
+| --- | --- | --- |
+| `CAP-33` Kapabilitas ubah payer encounter | **Missing** | ✅ `BE-BKC-045` (kontrak serah terima selesai), ✅ `BE-BKC-047` (diimplementasikan via `EncounterPaymentSourceService`) |
+| `CAP-34` Mesin tanggungan terikat satu payer | Reuse with adapter | ✅ `BE-BKC-044`, ✅ `BE-BKC-046` |
+| `CAP-35` Master perusahaan dan kartu karyawan | Ready to reuse | ✅ `BE-BKC-042`, ✅ `BE-BKC-047` |
+| `CAP-36` Aturan tanggungan asuransi sebagai cetakan | Ready to reuse as template | ✅ `BE-BKC-041`, ✅ `BE-BKC-043` |
+| `CAP-37` Penanggung per baris pada invoice | **Missing** | ✅ `BE-BKC-041`, ✅ `BE-BKC-048`, ✅ `BE-BKC-049` |
+| `CAP-38` Lembar Invoice Asuransi sebagai pola | Reuse with adapter | ✅ `BE-BKC-050`, `FE-BKC-031` |
+| `CAP-39` Pendaftaran hak akses lewat atribut | Ready to reuse | ✅ `BE-BKC-042`, ✅ `BE-BKC-043`, ✅ `BE-BKC-051` |
+| `CAP-40` Base component dan `BasePayerWorkspace` | Reuse with adapter | `FE-BKC-028`, `FE-BKC-034` |
+| `CAP-41` Pola penomoran dokumen | Pola saja | ✅ `BE-BKC-050` (memakai ulang nomor tagihan, tanpa seri baru) |
+
+## 3. Coverage gap
+
+| Butir | Keadaan |
+| --- | --- |
+| Requirement tanpa acceptance test | **Nihil.** Kedua puluh tiga `FR-BKC-064`–`086` seluruhnya punya sekurang-kurangnya satu `BIL-AT-*` atau `UAT-*` |
+| Acceptance test tanpa task pelaksana | **Nihil.** `BIL-AT-081`–`100` seluruhnya terpetakan ke sekurang-kurangnya satu task |
+| Epic tanpa UAT jalur gagal | **Nihil.** Kelima epic `MUST HAVE` punya skenario berhasil **dan** gagal |
+| Task tanpa jejak requirement | **Nihil**, kecuali `BE-BKC-052` yang memang task aktivasi data dan jejaknya ke `MPY-OQ-006`, bukan ke `FR` |
+| Verifikasi yang belum dapat dijalankan | Klik-coba ter-autentikasi dan pengujian ujung-ke-ujung masih bergantung ketersediaan environment — keadaan yang sama seperti rumpun sebelumnya di modul ini, dan **bukan** gap yang lahir dari rumpun ini |
+
+## 4. Pekerjaan di luar roadmap ini
+
+| Pekerjaan | Pemilik | Dilacak di mana |
+| --- | --- | --- |
+| `EncounterPaymentSourceService` | `RegistrationManagement` (Muhammad Hamzah) | Roadmap modul itu sendiri. Kontrak serah terimanya `MPY-ENC-PAYER-001` pada [`encounter-payment-source-change-contract.md`](../../rawat-inap/episode-rawat-inap/contracts/encounter-payment-source-change-contract.md), disimpan di `<blueprint-root>` `rawat-inap/episode-rawat-inap` berdampingan dengan `RWI-ENC-PAYER-001` |
+| Pemeriksaan kolom penanda sudah-ditagih pada catatan penyerahan obat | Backend/API bersama Pharmacy | `MPY-OQ-005`, selesai diselidiki pada langkah pertama `BE-BKC-049` (kolom `BilledAt` bersifat pasif, data Farmasi terisolasi penuh) |
+| Pengisian aturan tanggungan per perusahaan penjamin | Product/Domain bersama Admin Master Data | `MPY-OQ-006`, dilacak `BE-BKC-052`. **Interim 12 September 2026:** data `[DEV PLACEHOLDER]` (bukan kontrak riil) terpasang untuk kelima perusahaan aktif agar dapat diuji; task tetap terbuka sampai diganti nilai kontrak asli dan direview Finance — lihat kolom Status `BE-BKC-052` pada `backend-roadmap.md` |
+| Koordinasi urutan commit dengan pekerjaan "Payment Reminder" | Pemilik modul `billing-kasir` | `MPY-CQ-03`, dicatat pada `BE-BKC-047`, `048`, `049`, `050`, `051` |

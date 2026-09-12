@@ -534,3 +534,186 @@ Sembilan endpoint baseline master data, mengikuti `TaxRulesController` apa adany
 | Field apa pun yang menghubungkan voucher ke shift kasir atau ke invoice pasien | `PC-DEC-001` |
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Test mapping `BIL-AT-064`–`BIL-AT-080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-API-1.0` / revisi blueprint `1.1`, status **draft**. Owner: Backend/API Owner. `approved_by`/`approved_at`: belum. Masukan: `MPY-DEC-001`–`010` (`approved`), `MPY-DES-001`–`017` (`draft`), `01-existing-capability-map.md` § 19.
+>
+> **Dampak kompatibilitas: additive.** Nol endpoint existing berubah bentuk, nol field dihapus atau berganti nama. Satu perubahan **nilai** yang wajib disosialisasikan: kunjungan berpenjamin perusahaan yang sebelumnya menghasilkan anomali `INSURANCE_PROVIDER_MISSING` dengan seluruh biaya jatuh ke pasien, kini menghasilkan perhitungan tanggungan yang sebenarnya. Angka tagihan kunjungan seperti itu **akan berubah** — dan memang itulah perbaikannya.
+
+## Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+Contract version: `BIL-API-1.0` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/edit-context` | Memuat seluruh bahan layar Edit Tagihan dalam satu panggilan: tagihan, hasil perhitungan terkini, payer kunjungan yang berlaku, pilihan payer yang tersedia, penanggung tiap baris biaya, disposisi penebusan obat, dan kewenangan yang boleh dipakai kasir | `BillingInvoice : Read` | — | `ApiResponse<InvoiceEditContextResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/payer-comparison-preview` | Menghitung ulang tagihan seolah-olah memakai payer kandidat, tanpa menyimpan apa pun. Dipakai membandingkan asuransi saat ini dengan asuransi lain milik pasien | `BillingInvoice : Read` | `PayerComparisonPreviewRequest` | `ApiResponse<PayerComparisonPreviewResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/payment-source` | Mengganti payer kunjungan yang berlaku, lalu menghitung ulang tagihan | `BillingInvoice : Update` | `SwitchPaymentSourceRequest` | `ApiResponse<InvoiceEditResultResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/item-payer-assignments` | Mengubah penanggung beberapa baris biaya sekaligus, lalu menghitung ulang tagihan | `BillingInvoice : Update` | `UpdateItemPayerAssignmentsRequest` | `ApiResponse<InvoiceEditResultResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/drug-billing-disposition` | Menetapkan item obat mana yang masuk tagihan — seluruhnya, sebagian, atau tidak sama sekali | `BillingInvoice : Update` | `UpdateDrugBillingDispositionRequest` | `ApiResponse<InvoiceEditResultResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/company-guarantor-invoice-document` | Lembar tagihan yang ditujukan kepada perusahaan penjamin | `BillingInvoice : Read` | — | `ApiResponse<CompanyGuarantorInvoiceDocumentResponse>` | **Rencana (belum tersedia)** |
+
+### Kode status dan artinya bagi pengguna
+
+| Kode | Kapan muncul | Yang dibaca pengguna |
+| --- | --- | --- |
+| `200` | Perintah berhasil | Perubahan tersimpan dan tagihan sudah dihitung ulang |
+| `400` | Bentuk isian salah — misalnya `PaymentType` diisi `INSURANCE` tetapi kartu asuransinya tidak disertakan | "Isian yang dikirim tidak lengkap atau tidak sesuai" |
+| `403` | Pengguna tidak punya hak akses | "Anda tidak berwenang mengubah tagihan ini" |
+| `404` | Tagihan tidak ditemukan | "Tagihan tidak ditemukan" |
+| `409` | Versi baris tagihan sudah berubah sejak layar dibuka, **atau** tagihan sudah dibayar/difinalisasi | "Data tagihan telah berubah. Muat ulang data sebelum menyimpan kembali" |
+| `422` | Aturan bisnis dilanggar — kartu penjamin bukan milik pasien, kartu kedaluwarsa, item obat pada kunjungan rawat inap | Pesan spesifik dari `validation-matrix.md` |
+
+Pada `409` dan `422`, **tidak ada satu pun perubahan yang tersimpan** — seluruh langkah berada dalam satu transaksi.
+
+### Header wajib pada ketiga perintah `PUT`
+
+| Header | Wajib | Kegunaan |
+| --- | :---: | --- |
+| `Idempotency-Key` | Ya | Perintah yang terkirim dua kali karena tombol tertekan ganda hanya berpengaruh sekali |
+
+### Bentuk request
+
+**`SwitchPaymentSourceRequest`** — satu bentuk untuk ketiga jenis target (`MPY-DES-001`)
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `paymentType` | `string` | Ya | `CASH`, `INSURANCE`, atau `COMPANY_GUARANTOR` |
+| `paymentMethodId` | `Guid?` | Bersyarat | Wajib dan hanya boleh diisi bila `paymentType = CASH` |
+| `patientInsuranceId` | `Guid?` | Bersyarat | Wajib dan hanya boleh diisi bila `paymentType = INSURANCE` |
+| `patientCompanyGuarantorId` | `Guid?` | Bersyarat | Wajib dan hanya boleh diisi bila `paymentType = COMPANY_GUARANTOR` |
+| `expectedRowVersion` | `string` | Ya | Versi baris tagihan saat layar dibuka |
+| `reason` | `string` | Ya | Alasan yang dibaca auditor |
+| `correlationId` | `string?` | Tidak | Penelusuran lintas permintaan |
+| `causationId` | `string?` | Tidak | Perintah pemicu |
+
+**`UpdateItemPayerAssignmentsRequest`**
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `assignments` | `array` | Ya | Tiap butir: `invoiceItemId`, `payerKind` (`CASH`/`INSURANCE`/`COMPANY_GUARANTOR`) |
+| `expectedRowVersion` | `string` | Ya | — |
+| `reason` | `string` | Ya | — |
+| `correlationId`, `causationId` | `string?` | Tidak | — |
+
+Klien boleh mengirim hanya baris yang berubah. Server tetap memvalidasi seluruh baris yang dikirim terhadap tagihan yang bersangkutan.
+
+**`UpdateDrugBillingDispositionRequest`**
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `mode` | `string` | Ya | `ALL_REDEEMED`, `PARTIAL_REDEEMED`, atau `NOT_REDEEMED` |
+| `includedInvoiceItemIds` | `array<Guid>` | Bersyarat | Hanya dipakai dan hanya boleh diisi pada `PARTIAL_REDEEMED` |
+| `expectedRowVersion` | `string` | Ya | — |
+| `reason` | `string` | Ya | — |
+| `correlationId`, `causationId` | `string?` | Tidak | — |
+
+Jumlah pada baris obat **tidak pernah** ikut berubah oleh perintah ini. Pemilihan bersifat baris utuh.
+
+**`PayerComparisonPreviewRequest`**
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `candidatePaymentType` | `string` | Ya | Jenis payer yang ingin dibandingkan |
+| `candidatePatientInsuranceId` | `Guid?` | Bersyarat | Diisi bila membandingkan asuransi |
+| `candidatePatientCompanyGuarantorId` | `Guid?` | Bersyarat | Diisi bila membandingkan penjamin perusahaan |
+
+Perintah ini **MUST NOT** membuat versi perhitungan baru, **MUST NOT** menyentuh payer kunjungan, dan **MUST NOT** meninggalkan jejak perubahan apa pun.
+
+### Bentuk response
+
+**`InvoiceEditContextResponse`**
+
+| Bagian | Isi |
+| --- | --- |
+| `invoice` | Nomor, status, jenis layanan, versi baris |
+| `calculation` | Hasil perhitungan terkini beserta porsi pasien dan porsi penjamin |
+| `currentPayer` | Jenis payer yang berlaku, nama penjamin, nomor kartu tersamar, masa berlaku, kelayakan |
+| `availablePayerOptions` | Daftar kartu asuransi dan kartu penjamin perusahaan milik pasien yang masih berlaku, masing-masing beserta alasan bila tidak dapat dipakai |
+| `itemPayerAssignments` | Penanggung tiap baris biaya beserta sumber keputusannya |
+| `drugBillingDisposition` | Disposisi tiap baris obat yang layak diedit |
+| `eligibleDrugInvoiceItemIds` | Baris obat mana saja yang boleh diatur penebusannya |
+| `capabilities` | `canEditPaymentSource`, `canEditItemPayer`, `canEditDrugBilling`, masing-masing beserta `blockReason` bila bernilai salah |
+
+**`InvoiceEditResultResponse`**
+
+| Field | Keterangan |
+| --- | --- |
+| `calculation` | Hasil perhitungan **sesudah** perubahan — klien **MUST** memakai angka ini, bukan menghitung sendiri |
+| `rowVersion` | Versi baris tagihan yang baru |
+| `resetAssignmentCount` | Berapa penanggung baris biaya yang ikut direset otomatis (`MPY-DES-009`) |
+| `warnings` | Daftar peringatan yang dibaca kasir, misalnya penanggung item yang direset |
+
+**`PayerComparisonPreviewResponse`**
+
+| Field | Keterangan |
+| --- | --- |
+| `current` | Ringkasan payer berlaku beserta total tagihan, porsi penjamin, dan porsi pasien |
+| `candidate` | Ringkasan yang sama untuk payer kandidat |
+| `perItemComparison` | Per baris biaya: harga satuan, status tanggungan, nominal tertanggung, dan porsi pasien pada kedua sisi |
+| `warnings` | Misalnya kartu kandidat memerlukan surat jaminan |
+| `canApply` / `blockReason` | Apakah kandidat ini boleh diterapkan, dan bila tidak, sebabnya |
+
+**`CompanyGuarantorInvoiceDocumentResponse`** — bentuknya meniru `InsuranceInvoiceDocumentResponse` (`MPY-DES-013`), dengan tiga perbedaan:
+
+| Perbedaan | Isi |
+| --- | --- |
+| `payer` | Identitas **perusahaan penjamin**: nama, kode, nomor kontrak, alamat kantor, ditambah identitas karyawan (nomor dan nama karyawan, paket manfaat, masa berlaku kartu) |
+| `reimbursementRoute` | Keterangan rute penggantian biaya: `SELF`, atau nama asuransi mitra bila `INSURANCE_PROVIDER`. **Metadata saja** — debitur tetap perusahaan (`MPY-DES-014`) |
+| `payerKind` | Selalu `COMPANY_GUARANTOR`; dokumen ini **MUST NOT** dipakai untuk kunjungan berasuransi pribadi maupun tunai |
+
+Field yang **sengaja tidak** dimuat, mengikuti pembatasan yang sama seperti dokumen Invoice Asuransi: kode dan nama aturan tanggungan, petunjuk persetujuan, petunjuk penagihan, dan kontak PIC perusahaan — seluruhnya kesepakatan komersial yang tidak perlu tampil pada lembar tagihan.
+
+## Administrator / Master Data / Company Guarantor Reimbursement Route
+
+Base URL: `api/v1/administrator/master-data/company-guarantor-reimbursement-routes`
+Contract version: `BIL-API-1.0` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filter-metadata` | Pilihan saringan untuk layar daftar | `CompanyGuarantorReimbursementRoute : Read` | — | `ApiResponse<FilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Ringkasan jumlah rute per jenis | `CompanyGuarantorReimbursementRoute : Read` | — | `ApiResponse<RouteSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar rute, dengan saringan dan halaman | `CompanyGuarantorReimbursementRoute : Read` | query | `ApiResponse<PagedResult<RouteResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Daftar ringkas untuk isian pilihan | `CompanyGuarantorReimbursementRoute : Read` | query | `ApiResponse<List<OptionResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Rincian satu rute | `CompanyGuarantorReimbursementRoute : Read` | — | `ApiResponse<RouteResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah rute | `CompanyGuarantorReimbursementRoute : Create` | `CreateRouteRequest` | `ApiResponse<RouteResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah rute | `CompanyGuarantorReimbursementRoute : Update` | `UpdateRouteRequest` | `ApiResponse<RouteResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan rute | `CompanyGuarantorReimbursementRoute : Update` | `UpdateStatusRequest` | `ApiResponse<RouteResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Menandai rute terhapus | `CompanyGuarantorReimbursementRoute : Delete` | — | `ApiResponse<bool>` | **Rencana (belum tersedia)** |
+
+Bentuk, penamaan, dan perilaku halaman mengikuti `CompanyGuarantorController` yang sudah ada pada area yang sama.
+
+## Health Services / Master Data / Company Guarantor Coverage Rule
+
+Base URL: `api/v1/health-services/master-data/company-guarantor-coverage-rules`
+Contract version: `BIL-API-1.0` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filter-metadata` | Pilihan saringan untuk layar daftar | `CompanyGuarantorCoverageRule : Read` | — | `ApiResponse<FilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Ringkasan jumlah aturan per status tanggungan | `CompanyGuarantorCoverageRule : Read` | — | `ApiResponse<RuleSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar aturan, dengan saringan dan halaman | `CompanyGuarantorCoverageRule : Read` | query | `ApiResponse<PagedResult<RuleResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Daftar ringkas untuk isian pilihan | `CompanyGuarantorCoverageRule : Read` | query | `ApiResponse<List<OptionResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Rincian satu aturan | `CompanyGuarantorCoverageRule : Read` | — | `ApiResponse<RuleResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah aturan | `CompanyGuarantorCoverageRule : Create` | `CreateRuleRequest` | `ApiResponse<RuleResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah aturan | `CompanyGuarantorCoverageRule : Update` | `UpdateRuleRequest` | `ApiResponse<RuleResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan aturan | `CompanyGuarantorCoverageRule : Update` | `UpdateStatusRequest` | `ApiResponse<RuleResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}` | Menandai aturan terhapus | `CompanyGuarantorCoverageRule : Delete` | — | `ApiResponse<bool>` | **Rencana (belum tersedia)** |
+
+Bentuk dan perilakunya mengikuti `InsuranceCoverageRuleController` yang sudah ada, termasuk satu aturan yang **MUST** ditiru: `coPaymentPercent` **selalu diturunkan server** dari `coveragePercent`, dan nilai yang dikirim klien untuk field itu diabaikan.
+
+## Endpoint yang sengaja tidak dibuat
+
+| Yang tidak dibuat | Alasan |
+| --- | --- |
+| Endpoint mengganti kartu penjamin perusahaan pasien dari layar kasir | `MPY-DEC-003` — kasir hanya memilih dari kartu yang sudah terdaftar; perubahan kartu tetap lewat Data Pasien/Registrasi |
+| Endpoint mengubah jumlah pada baris obat | `MPY-DEC-009` dan dokumen sumber — penebusan sebagian memilih baris utuh, bukan mengubah jumlah |
+| Endpoint apa pun yang menulis data penyerahan obat | `MPY-DEC-009` — Farmasi pemilik otoritatifnya |
+| Endpoint persetujuan tahap kedua untuk perubahan payer | `MPY-DEC-005` — satu kasir berwenang cukup |
+| Endpoint menambah payer kedua pada satu kunjungan | `MPY-DEC-001` — satu kunjungan tetap satu payer aktif |
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping `BIL-AT-081`–`BIL-AT-100`.

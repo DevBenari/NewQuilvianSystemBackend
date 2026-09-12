@@ -247,3 +247,96 @@ Validasi tetap **wajib server-side**; layar hanya membantu pengguna mengisi lebi
 Pesan galat **MUST NOT** memuat `RecipientName`, `Purpose`, maupun `RejectionReason`; nominal dan sisa anggaran boleh disebut karena keduanya justru yang dibutuhkan pengguna untuk bertindak.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Test mapping: `BIL-AT-064`–`BIL-AT-080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-VALIDATION-0.9` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> Seluruh pesan ditulis sebagaimana dibaca kasir atau admin, bukan sebagai istilah teknis.
+
+## Gerbang kelayakan edit — berlaku untuk ketiga perintah
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-059` | Ganti payer, penanggung item, disposisi obat | Tagihan tidak berstatus `OPEN` | "Tagihan ini sudah difinalisasi sehingga tidak dapat diubah lagi." | `409` |
+| `BIL-VAL-060` | Ketiganya | Sudah ada pembayaran berhasil pada tagihan ini | "Tagihan ini sudah menerima pembayaran. Perubahan penjamin atau penanggung memerlukan proses pembalikan, bukan pengeditan." | `409` |
+| `BIL-VAL-061` | Ketiganya | Versi baris tagihan yang dikirim berbeda dari yang tersimpan | "Data tagihan telah berubah sejak layar ini dibuka. Muat ulang data sebelum menyimpan kembali." | `409` |
+| `BIL-VAL-062` | Ketiganya | Alasan kosong | "Alasan perubahan wajib diisi." | `400` |
+| `BIL-VAL-063` | Ketiganya | `Idempotency-Key` tidak dikirim | "Permintaan tidak lengkap. Muat ulang halaman lalu coba lagi." | `400` |
+
+Ketika salah satu gerbang ini menolak, **tidak ada satu pun perubahan yang tersimpan** — termasuk perubahan yang secara terpisah sebenarnya sah.
+
+## Ganti payer kunjungan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-064` | Ganti payer | `paymentType` bernilai di luar `CASH`/`INSURANCE`/`COMPANY_GUARANTOR` | "Jenis pembayaran tidak dikenali." | `400` |
+| `BIL-VAL-065` | Ganti payer | `paymentType = CASH` tetapi ada id kartu asuransi atau kartu perusahaan yang ikut dikirim | "Pembayaran tunai tidak boleh disertai kartu penjamin." | `400` |
+| `BIL-VAL-066` | Ganti payer | `paymentType = INSURANCE` tetapi kartu asuransi tidak dikirim, atau justru kartu perusahaan yang dikirim | "Pilih kartu asuransi yang akan dipakai." | `400` |
+| `BIL-VAL-067` | Ganti payer | `paymentType = COMPANY_GUARANTOR` tetapi kartu penjamin perusahaan tidak dikirim, atau justru kartu asuransi yang dikirim | "Pilih kartu penjamin perusahaan yang akan dipakai." | `400` |
+| `BIL-VAL-068` | Ganti payer | Kartu yang dipilih bukan milik pasien pada kunjungan ini | "Kartu penjamin yang dipilih bukan milik pasien ini." | `422` |
+| `BIL-VAL-069` | Ganti payer | Kartu yang dipilih sudah tidak aktif atau sudah ditandai terhapus | "Kartu penjamin yang dipilih sudah tidak berlaku. Perbarui data penjamin pasien di Registrasi." | `422` |
+| `BIL-VAL-070` | Ganti payer | Tanggal layanan berada di luar masa berlaku kartu | "Kartu penjamin ini tidak berlaku pada tanggal pelayanan. Pilih kartu lain atau perbarui masa berlakunya di Registrasi." | `422` |
+| `BIL-VAL-071` | Ganti payer | Kartu belum dinyatakan layak dipakai | "Kartu penjamin ini belum dinyatakan layak. Periksa kelayakannya di Registrasi sebelum dipakai." | `422` |
+| `BIL-VAL-072` | Ganti payer | Perusahaan asuransi pada kartu sudah tidak aktif atau kontraknya sudah berakhir | "Kerja sama dengan perusahaan asuransi ini sudah berakhir pada tanggal pelayanan." | `422` |
+| `BIL-VAL-073` | Ganti payer | Payer kandidat sama persis dengan payer yang sedang berlaku | "Penjamin yang dipilih sama dengan yang sedang dipakai. Tidak ada yang perlu diubah." | `422` |
+| `BIL-VAL-074` | Ganti payer | Kunjungan tidak memiliki baris sumber pembayaran sama sekali | "Data penjamin kunjungan ini belum lengkap. Hubungi Registrasi sebelum mengubah tagihan." | `422` |
+
+**Contoh `BIL-VAL-070`.** Kartu penjamin PT Sejahtera milik Ny. S berlaku 1 Januari 2026 sampai 31 Agustus 2026. Kunjungan yang sedang ditagih terjadi 11 September 2026. Kasir memilih kartu itu, lalu permintaannya ditolak dengan kode `422` dan pesan di atas. Tidak ada perubahan payer yang tersimpan, dan tagihan tetap memakai payer sebelumnya.
+
+## Penanggung per baris biaya
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-075` | Penanggung item | Baris biaya yang dikirim bukan milik tagihan ini | "Ada baris biaya yang tidak terdaftar pada tagihan ini." | `422` |
+| `BIL-VAL-076` | Penanggung item | Baris biaya berstatus dibatalkan | "Baris biaya yang sudah dibatalkan tidak dapat diubah penanggungnya." | `422` |
+| `BIL-VAL-077` | Penanggung item | Penanggung `INSURANCE` dipilih padahal kunjungan tidak berpayer asuransi | "Kunjungan ini tidak memakai asuransi, sehingga baris biaya tidak dapat ditanggung asuransi." | `422` |
+| `BIL-VAL-078` | Penanggung item | Penanggung `COMPANY_GUARANTOR` dipilih padahal kunjungan tidak berpenjamin perusahaan | "Kunjungan ini tidak memakai penjamin perusahaan, sehingga baris biaya tidak dapat ditanggung penjamin." | `422` |
+| `BIL-VAL-079` | Penanggung item | Daftar penanggung yang dikirim kosong | "Tidak ada perubahan penanggung yang dikirim." | `400` |
+| `BIL-VAL-080` | Penanggung item | Satu baris biaya muncul lebih dari sekali pada permintaan yang sama | "Ada baris biaya yang dikirim lebih dari satu kali." | `400` |
+
+`BIL-VAL-077` dan `BIL-VAL-078` adalah **satu-satunya** gerbang pada penanggung item. Hasil perhitungan tanggungan **bukan** gerbang: baris yang menurut aturan tidak tertanggung tetap boleh ditandai `INSURANCE` atau `COMPANY_GUARANTOR`, dan hasilnya nol tertanggung (`MPY-DEC-004`).
+
+## Disposisi penebusan obat
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-081` | Disposisi obat | Kunjungan berjenis rawat inap | "Penebusan obat tidak dapat diubah untuk kunjungan rawat inap." | `422` |
+| `BIL-VAL-082` | Disposisi obat | Baris yang dikirim bukan item obat | "Hanya baris obat yang dapat diatur penebusannya." | `422` |
+| `BIL-VAL-083` | Disposisi obat | Mode `PARTIAL_REDEEMED` tetapi daftar baris yang ditebus kosong | "Pilih baris obat yang ditebus, atau pilih Tidak Ditebus untuk seluruhnya." | `400` |
+| `BIL-VAL-084` | Disposisi obat | Mode `ALL_REDEEMED` atau `NOT_REDEEMED` tetapi daftar baris tetap dikirim | "Daftar baris hanya dipakai pada penebusan sebagian." | `400` |
+| `BIL-VAL-085` | Disposisi obat | Baris yang dikirim tidak termasuk baris obat yang layak diedit pada tagihan ini | "Ada baris obat yang tidak dapat diatur penebusannya pada tagihan ini." | `422` |
+| `BIL-VAL-086` | Disposisi obat | Tagihan tidak memiliki satu pun baris obat yang layak | "Tagihan ini tidak memiliki item obat yang dapat diatur penebusannya." | `422` |
+
+**Contoh `BIL-VAL-081`.** Kunjungan rawat inap Tn. B memiliki sembilan baris obat. Kasir membuka Edit Billing dan menekan Tidak Ditebus. Permintaan ditolak `422` dengan pesan di atas; kesembilan baris tetap masuk tagihan apa adanya. Pada layar, tombol itu memang sudah dinonaktifkan lebih dulu — penolakan server adalah lapis kedua, bukan satu-satunya penjaga.
+
+## Master rute reimbursement perusahaan penjamin
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-087` | Rute reimbursement | `RouteType = SELF` tetapi perusahaan asuransi mitra ikut diisi | "Perusahaan yang menanggung sendiri tidak memerlukan asuransi mitra." | `400` |
+| `BIL-VAL-088` | Rute reimbursement | `RouteType = INSURANCE_PROVIDER` tetapi perusahaan asuransi mitra kosong | "Pilih perusahaan asuransi mitra untuk rute ini." | `400` |
+| `BIL-VAL-089` | Rute reimbursement | Perusahaan asuransi mitra yang dipilih sudah tidak aktif | "Perusahaan asuransi yang dipilih sudah tidak aktif." | `422` |
+| `BIL-VAL-090` | Rute reimbursement | Menandai rute sebagai bawaan padahal perusahaan itu sudah punya rute bawaan aktif lain | "Perusahaan ini sudah memiliki rute bawaan. Nonaktifkan yang lama lebih dulu." | `422` |
+| `BIL-VAL-091` | Rute reimbursement | Tanggal akhir masa berlaku lebih awal dari tanggal mulai | "Tanggal akhir masa berlaku tidak boleh mendahului tanggal mulai." | `400` |
+
+## Master aturan tanggungan perusahaan penjamin
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-092` | Aturan tanggungan | Persentase tanggungan di luar rentang 0 sampai 100 | "Persentase tanggungan harus berada di antara 0 dan 100." | `400` |
+| `BIL-VAL-093` | Aturan tanggungan | Kode aturan sudah dipakai aturan lain pada perusahaan yang sama | "Kode aturan ini sudah dipakai pada perusahaan penjamin tersebut." | `422` |
+| `BIL-VAL-094` | Aturan tanggungan | Jenis item menuntut rujukan tertentu tetapi rujukannya kosong — misalnya jenis `Drug` tanpa obat yang dipilih | "Lengkapi item yang menjadi sasaran aturan ini." | `400` |
+| `BIL-VAL-095` | Aturan tanggungan | Lebih dari satu rujukan item diisi sekaligus sehingga sasarannya ambigu | "Aturan hanya boleh menyasar satu jenis item." | `400` |
+| `BIL-VAL-096` | Aturan tanggungan | Tanggal akhir masa berlaku lebih awal dari tanggal mulai | "Tanggal akhir masa berlaku tidak boleh mendahului tanggal mulai." | `400` |
+| `BIL-VAL-097` | Aturan tanggungan | Menghapus aturan yang sedang dipakai versi perhitungan yang tersimpan | "Aturan ini sudah dipakai pada tagihan yang tersimpan. Nonaktifkan saja, jangan dihapus." | `422` |
+
+**Contoh `BIL-VAL-092`.** Admin mengisi persentase tanggungan `120`. Permintaan ditolak `400`. Bila ia mengisi `80`, sistem menyimpan `CoveragePercent = 80` dan **menurunkan sendiri** `CoPaymentPercent = 20` — nilai yang dikirim klien untuk urun biaya diabaikan, mengikuti pola yang sudah berlaku pada aturan tanggungan asuransi.
+
+## Batas isi pesan galat
+
+Pesan galat pada rumpun ini **MUST NOT** memuat nomor polis, nomor kartu, nomor karyawan, maupun nama karyawan. Nama perusahaan penjamin dan nama perusahaan asuransi boleh disebut karena keduanya justru yang dibutuhkan pengguna untuk bertindak. Nominal dan tanggal masa berlaku boleh disebut dengan alasan yang sama.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping: `BIL-AT-081`–`BIL-AT-100`.
