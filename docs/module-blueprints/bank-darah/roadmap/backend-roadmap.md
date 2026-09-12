@@ -9,7 +9,26 @@ entity_prefix: Bbk
 blueprint_id: BD-BP-001
 blueprint_shape: SINGLE
 blueprint_root: docs/module-blueprints/bank-darah/
-roadmap_revision: 10
+roadmap_revision: 11
+revision_11_scope: ACCEPTANCE_REHOME_AC_BD_071_AND_VERIFICATION_POLICY
+revision_11_note: >-
+  Koreksi tata kelola saja, dijalankan SEBELUM BE-BD-006 dikerjakan. Nol source backend,
+  nol source frontend, nol migration, nol test, nol task dieksekusi. Dua hal berubah dan
+  satu hal dicatat.
+  PERTAMA — satu acceptance criteria berpindah pemilik. AC-BD-071 (kantong PendingReview di
+  lokasi nonaktif dicoba dialihkan ke pasien lain, ditolak VAL-BD-064) DILEPAS dari BE-BD-006
+  dan diteruskan ke BE-BD-009. Alasannya bukan selera, melainkan endpoint: "pengalihan" pada
+  AC-BD-071 adalah POST /api/v1/health-services/blood-bank-management/blood-units/{id}/reallocate,
+  dan endpoint itu milik BE-BD-009 — contracts/api-contract.md baris reallocate memakai hak akses
+  BloodUnit : ResolveReallocate, 03-frontend-architecture.md menempatkan tombol Alihkan pada
+  penyelesaian PendingReview, dan arsip revisi 3 sudah mencantumkan reallocate di scope BE-BD-009.
+  Nol task baru dibuat: pemilik reallocate memang sudah ada.
+  KEDUA — BE-BD-006 tetap pemilik penuh Blood Unit Allocation dan Cancel Allocation, dan dengan
+  AC-BD-071 keluar, task itu kini dapat diselesaikan penuh TANPA mengimplementasikan reallocate.
+  KETIGA — kebijakan verifikasi repository yang berlaku dicatat resmi di bagian 0.1. Bukti test
+  historis milik task yang sudah SELESAI dipertahankan apa adanya dan TIDAK ditulis ulang.
+  Keputusan Sukmagp 2026-09-12. Nol task baru, nol dependency, nol kontrak, nol aturan bisnis
+  berubah. Kartu BE-BD-007, BE-BD-008, dan BE-BD-010 sengaja tidak disentuh.
 revision_10_scope: ACCEPTANCE_FORWARD_BE_BD_015
 revision_10_note: >-
   Satu acceptance criteria bertambah pemilik, nol lainnya berubah. Verifikasi final bagian
@@ -88,13 +107,16 @@ approved_by:
   - "Sukmagp — acceptance criteria BE-BD-012 (AC-BD-098..102), pemindahan AC-BD-026/058 ke BE-BD-013, DEC-BD-048/049, 2026-09-11"
   - "Sukmagp — penerusan AC-BD-023/032 ke BE-BD-015 dan AC-BD-033 ke BE-BD-006 (roadmap revisi 9), 2026-09-11"
   - "Sukmagp — penerusan verifikasi final bagian alokasi AC-BD-060/068/070 dari BE-BD-015 ke BE-BD-006 (roadmap revisi 10), 2026-09-11"
-approved_at: "2026-09-11"
+  - "Sukmagp — pelepasan AC-BD-071 dari BE-BD-006 ke pemilik reallocate BE-BD-009 dan pencatatan kebijakan verifikasi repository (roadmap revisi 11), 2026-09-12"
+approved_at: "2026-09-12"
 approval_note: >-
   Approval 2026-09-03 berlaku atas roadmap revisi 2. Revisi 3 menambahkan gerbang G4
   dan revisi 4 memecah roadmap menjadi backend dan frontend; approval tidak berpindah
   otomatis. Pada 2026-09-10 Sukmagp menyetujui roadmap BACKEND revisi 7. Approval itu
   tidak menjangkau frontend-roadmap.md, yang tetap FORWARD-TEST / DRAFT sampai
-  diputuskan tersendiri.
+  diputuskan tersendiri. Pada 2026-09-12 Sukmagp menyetujui roadmap BACKEND revisi 11,
+  yang cakupannya tata kelola saja: perpindahan pemilik AC-BD-071 dan pencatatan kebijakan
+  verifikasi. Approval itu tetap tidak menjangkau frontend-roadmap.md.
 supersedes: roadmap/archive/revision-3/00-delivery-plan.md
 ```
 
@@ -111,10 +133,54 @@ tersendiri** yang diminta per tindakan.
 **Preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi** dari `AGENTS.md`
 backend target dan dokumen engineering canonical — bukan di dokumen ini.
 
-**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — keenam kriteria yang tetap miliknya terbukti; `AC-BD-023`/`032` diteruskan ke `BE-BD-015` dan `AC-BD-033` ke `BE-BD-006` pada roadmap revisi 9, sehingga `BE-BD-015` terbuka. `BE-BD-015` ✅ **selesai 11 September 2026 — roadmap revisi 10** ([laporan](../task/report/backend/BE-BD-015.md)) — seluruh kriteria yang tetap miliknya terbukti; verifikasi final bagian alokasi `AC-BD-060/068/070` diteruskan ke `BE-BD-006`, sehingga `BE-BD-006` 🟡 **siap dijadwalkan**. **Riwayat:** 🟡 selesai sebagian — 9 dari 12 kriteria penuh, bagian alokasi `AC-BD-060/068/070` menunggu endpoint `BE-BD-006`. `BE-BD-012` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-012.md)). Task bertanda ⛔
+**Gerbang `G4` tertutup 10 September 2026.** `BE-BD-003` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-003.md)), sehingga `BE-BD-004` dan `BE-BD-012` kini siap dijadwalkan. `BE-BD-004` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-004.md)) — keenam kriteria yang tetap miliknya terbukti; `AC-BD-023`/`032` diteruskan ke `BE-BD-015` dan `AC-BD-033` ke `BE-BD-006` pada roadmap revisi 9, sehingga `BE-BD-015` terbuka. `BE-BD-015` ✅ **selesai 11 September 2026 — roadmap revisi 10** ([laporan](../task/report/backend/BE-BD-015.md)) — seluruh kriteria yang tetap miliknya terbukti; verifikasi final bagian alokasi `AC-BD-060/068/070` diteruskan ke `BE-BD-006`, sehingga `BE-BD-006` terbuka. `BE-BD-006` 🟡 **dikerjakan 12 September 2026 — selesai sebagian** ([laporan](../task/report/backend/BE-BD-006.md)): source alokasi dan pembatalan alokasi lengkap, tetapi `dotnet build` `NOT RUN` atas instruksi pemilik, migration belum dibuat, dan kesembilan kriteria berstatus `NOT EXECUTED`. **Riwayat `BE-BD-006`:** 🟡 siap dijadwalkan sejak roadmap revisi 10. **Riwayat `BE-BD-015`:** 🟡 selesai sebagian — 9 dari 12 kriteria penuh, bagian alokasi `AC-BD-060/068/070` menunggu endpoint `BE-BD-006`. `BE-BD-012` ✅ **selesai 11 September 2026** ([laporan](../task/report/backend/BE-BD-012.md)). Task bertanda ⛔
 tetap tidak boleh dijadwalkan — kini karena task pendahulunya belum selesai, bukan karena gerbang.
 Rinciannya di bagian 2. **Riwayat:** sampai 10 September 2026 gerbang ini menahan sembilan dari lima
 belas task backend.
+
+### 0.1 Kebijakan verifikasi repository yang berlaku
+
+**Dicatat pada roadmap revisi 11, 12 September 2026.** Bagian ini tidak mengubah satu pun
+acceptance criteria. Ia menjawab satu pertanyaan yang selama ini dijawab berbeda-beda antar task:
+**apa yang sah dipakai sebagai bukti bahwa sebuah task backend Bank Darah benar-benar bekerja.**
+
+Ini bukan pelonggaran standar. Standarnya tetap sama — setiap acceptance criteria wajib punya bukti
+yang dapat ditunjuk. Yang berubah hanya **bentuk buktinya**, karena bentuk repository-nya memang
+berubah.
+
+**Keadaan repository per 12 September 2026, hasil pemeriksaan langsung:**
+
+| Yang diperiksa | Temuan |
+| --- | --- |
+| Folder `Tests/` di root repository backend | **Tidak ada** |
+| Project di `QuilvianSystemBackend.sln` | **Satu** — `QuilvianSystemBackend.csproj`, project produksi |
+| Project test terpisah | **Tidak ada** — sejalan dengan `AGENTS.md` backend, yang sudah mencatat "Project test terpisah belum terdeteksi ketika aturan ini dibuat" |
+
+**Aturan yang berlaku sejak sekarang:**
+
+| Aturan | Isi |
+| --- | --- |
+| Folder `Tests/` di root | **DILARANG.** Jangan membuatnya, jangan memulihkannya, jangan memindahkan apa pun ke dalamnya |
+| Project atau berkas test otomatis baru | **JANGAN DIBUAT.** Ini termasuk project xUnit/NUnit/MSTest baru, berkas `*Tests.cs` baru, dan fixture database uji baru |
+| `dotnet test` | **TIDAK DIPERSYARATKAN.** Sebuah task tidak boleh dinyatakan gagal, tertunda, atau "belum terbukti" hanya karena `dotnet test` tidak dijalankan. Perintah itu juga tidak boleh dilaporkan lulus kalau tidak benar-benar dijalankan dan sukses |
+
+**Bentuk bukti yang sah menggantikannya — seluruhnya wajib nyata, bukan klaim:**
+
+| Bentuk bukti | Contoh konkret yang diharapkan |
+| --- | --- |
+| Bukti kompilasi/build produksi | `dotnet build QuilvianSystemBackend.csproj` selesai dengan `0 Error(s)`, beserta angka warning dan pembandingnya terhadap baseline. Ini bukti minimum yang selalu ada |
+| Inspeksi EF dan skema | Nama migration yang lahir, hasil `has-pending-model-changes`, jumlah migration yang diterapkan, bentuk tabel/kolom/index yang benar-benar terbentuk, dan relasi pada `ApplicationDbContextModelSnapshot.cs` |
+| Kesesuaian QBE | Preflight QBE dan dokumen engineering canonical, diselesaikan pada waktu eksekusi dari `AGENTS.md` backend target — persis seperti bagian 0 sudah menyatakan |
+| Verifikasi manual terkendali: API | Panggilan endpoint sungguhan beserta HTTP method, path, payload samaran, status code, dan potongan response. Contoh: `POST /blood-units/{id}/allocate` atas kantong `Received` → `422` dengan kode `VAL-BD-063` |
+| Verifikasi manual terkendali: DB | Query `SELECT` baca-saja atas database dev pemilik untuk memastikan baris, status, dan riwayat benar-benar berubah seperti yang dijanjikan |
+| Batas keamanannya | Verifikasi manual hanya dijalankan **bila aman dieksekusi**. Eksekusi migration di luar dev pemilik, deployment, dan publikasi Git tetap wewenang tersendiri per tindakan, sebagaimana bagian 0 |
+
+**Bukti historis dipertahankan, bukan ditulis ulang.** Laporan task yang sudah ✅ **SELESAI** —
+`BE-BD-001`, `002`, `003`, `004`, `005`, `011`, `012`, `014`, `015`, dan sebagian `BE-BD-016` —
+memuat angka test seperti "561/561", "231/231 Sqlite", dan "19/19 uji PostgreSQL". Angka-angka itu
+**tetap berlaku sebagai catatan sejarah** atas apa yang benar-benar dijalankan pada saat task itu
+dikerjakan. Revisi 11 **tidak menghapus, tidak mengedit, dan tidak mendiskreditkan** satu pun dari
+angka itu. Yang dinyatakan hanya ini: **task berikutnya tidak dituntut menghasilkan angka sejenis.**
 
 ---
 
@@ -210,8 +276,8 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 | --- | ---: | --- |
 | ✅ SELESAI | 9 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-004`, `BE-BD-005`, `BE-BD-011`, `BE-BD-012`, `BE-BD-014`, `BE-BD-015`. `BE-BD-015` selesai pada roadmap revisi 10 ([laporan](../task/report/backend/BE-BD-015.md)); `BE-BD-004` selesai pada roadmap revisi 9 ([laporan](../task/report/backend/BE-BD-004.md)); `BE-BD-012` selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)). **Riwayat:** 8 sebelum revisi 10 |
 | 🟡 SELESAI SEBAGIAN | 1 | `BE-BD-016` — 29 dari 39 butir hak akses. **Riwayat:** 2 — `BE-BD-016` dan `BE-BD-015` (9 dari 12 kriteria) sebelum penerusan revisi 10; 1 — `BE-BD-016` sesudah revisi 9; sebelumnya 2, termasuk `BE-BD-004` — 6 dari 9 kriteria sebelum penerusan revisi 9 |
-| 🟡 PENDING | 1 | `BE-BD-006` — siap dijadwalkan sejak roadmap revisi 10, 11 September 2026. **Riwayat:** 0 sesudah `BE-BD-015` 🟡 selesai sebagian; 1 — `BE-BD-015`, siap dijadwalkan sejak roadmap revisi 9; sebelumnya 0 sesudah `BE-BD-012` ✅; sebelumnya 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
-| ⛔ BLOCKED | 4 | `BE-BD-007`, `008`, `009`, `010` — lewat rantai dependency yang berawal dari `BE-BD-006`. **Riwayat:** 5 termasuk `BE-BD-006`, lewat rantai yang berawal dari `BE-BD-015`; sebelumnya 6 termasuk `BE-BD-015`; sebelumnya 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
+| 🟡 SEBAGIAN | 1 | `BE-BD-006` — **dikerjakan 12 September 2026, source lengkap, build dan migration menunggu pemilik** ([laporan](../task/report/backend/BE-BD-006.md)). **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak roadmap revisi 10, 11 September 2026; sejak roadmap revisi 11 dapat diselesaikan penuh secara mandiri tanpa `reallocate`. **Riwayat:** 0 sesudah `BE-BD-015` 🟡 selesai sebagian; 1 — `BE-BD-015`, siap dijadwalkan sejak roadmap revisi 9; sebelumnya 0 sesudah `BE-BD-012` ✅; sebelumnya 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
+| ⛔ BLOCKED | 4 | `BE-BD-007`, `008`, `009`, `010` — lewat rantai dependency yang berawal dari `BE-BD-006`. `BE-BD-009` **menerima `AC-BD-071`** pada roadmap revisi 11 tanpa berubah status; penahannya tetap `BE-BD-007`. **Riwayat:** 5 termasuk `BE-BD-006`, lewat rantai yang berawal dari `BE-BD-015`; sebelumnya 6 termasuk `BE-BD-015`; sebelumnya 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
 | — Future scope | 1 | `BE-BD-013` |
 | **Total** | **16** | |
 
@@ -243,7 +309,7 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
        └── ✅ BE-BD-004 (permintaan PMI + penerimaan + kantong lahir)   SELESAI 11 Sep 2026 — 3 AC diteruskan (revisi 9)
                   └── ✅ BE-BD-015 (penyimpanan & perpindahan kantong)   SELESAI 11 Sep 2026 — 3 AC diteruskan (revisi 10)
                              dep: BE-BD-004 ✅, BE-BD-014 ✅
-                             └── 🟡 BE-BD-006 (alokasi kantong)   PENDING — siap dijadwalkan (revisi 10)
+                             └── 🟡 BE-BD-006 (alokasi kantong)   SEBAGIAN — source lengkap, build belum
                                         └── ⛔ BE-BD-007 (bukti kecocokan + pemberian)   BLOCKED
                                                    │      dep: BE-BD-005 ✅, BE-BD-006 ⛔
                                                    ├── ⛔ BE-BD-008 (jalur darurat)   BLOCKED
@@ -445,12 +511,13 @@ tidak dapat diberikan sebelum dialokasikan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **PENDING — SIAP DIJADWALKAN** sejak roadmap revisi 10, 11 September 2026. Seluruh dependency tertutup: `G1` ✅, `G2b` ✅, `BE-BD-015` ✅. Belum ada source. Wewenang menulis tetap diberikan terpisah lewat `build-module-backend`; preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend (bagian 0). **Riwayat:** ⛔ **BLOCKED lewat `BE-BD-015`** sampai roadmap revisi 10 — pada akhirnya karena `BE-BD-015` 🟡 selesai sebagian menunggu bagian alokasi `AC-BD-060/068/070`, yang hanya dapat dibuktikan endpoint task ini |
+| **Status** | 🟡 **SELESAI SEBAGIAN 12 September 2026 — source lengkap, validasi belum dijalankan** ([laporan](../task/report/backend/BE-BD-006.md)). Seluruh source di dalam scope ditulis: entity `BbkBloodUnitAllocation` beserta index unik terfilter `IX_BbkBloodUnitAllocation_ActiveUnit`, endpoint `POST /{id}/allocate` dan `POST /{id}/cancel-allocation`, hak akses `BloodUnit : Allocate`, dan pemakaian gerbang `EvaluateAllocationGateAsync` milik `BE-BD-015` tanpa duplikasi. **`dotnet build` `NOT RUN`, migration BELUM dibuat, database BELUM disentuh** — atas instruksi eksplisit pemilik pada task ini bahwa build dijalankan manual olehnya. Karena itu **0 dari 9 acceptance criteria terbukti**; kesembilannya berstatus `NOT EXECUTED`, bukan gagal. QBE `DEFERRED — REQUIRES USER COMMIT`. Butir DoD yang belum terpenuhi: build, migration, dan pembuktian seluruh AC. **Riwayat:** 🟡 **PENDING — SIAP DIJADWALKAN (READY)**, dipertegas pada roadmap revisi 11, 12 September 2026. Seluruh dependency tertutup: `G1` ✅, `G2b` ✅, `BE-BD-015` ✅. **Sejak revisi 11 task ini dapat diselesaikan penuh secara mandiri, tanpa mengimplementasikan endpoint `reallocate`** — satu-satunya kriteria yang menuntut `reallocate`, yaitu `AC-BD-071`, sudah dilepas ke `BE-BD-009`. Belum ada source. **Riwayat:** 🟡 PENDING sejak roadmap revisi 10, 11 September 2026. Wewenang menulis tetap diberikan terpisah lewat `build-module-backend`; preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend (bagian 0). **Riwayat:** ⛔ **BLOCKED lewat `BE-BD-015`** sampai roadmap revisi 10 — pada akhirnya karena `BE-BD-015` 🟡 selesai sebagian menunggu bagian alokasi `AC-BD-060/068/070`, yang hanya dapat dibuktikan endpoint task ini |
 | **Yang memblokir** | **Nihil sejak 11 September 2026** — `BE-BD-015` ✅ pada roadmap revisi 10 |
 | **Trace** | `DEC-BD-003/007/029/036/037`; `BD-AGG-03` |
 | **Kontrak** | api-contract `v4`; state-transition; validation |
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-015` ✅ — selesai 11 September 2026, roadmap revisi 10 ([laporan](../task/report/backend/BE-BD-015.md)) |
-| **Acceptance** | `AC-BD-043/044/045/046/060/068/070/071` + konkurensi `VAL-BD-018c` + **`AC-BD-033` diteruskan dari `BE-BD-004`** pada roadmap revisi 9 — kantong berlebih ditolak ketika dialokasikan langsung (`VAL-BD-033`) + **`AC-BD-070` ditambahkan pada roadmap revisi 10**. **Riwayat:** `AC-BD-043/044/045/046/060/068/071` + konkurensi + `AC-BD-033` sampai revisi 9 |
+| **Acceptance (final, roadmap revisi 11)** | Sembilan butir, **tanpa `AC-BD-071`**: `AC-BD-043` · `AC-BD-044` · `AC-BD-045` · `AC-BD-046` · `AC-BD-060` · `AC-BD-068` · `AC-BD-070` · `AC-BD-033` + konkurensi `VAL-BD-018c`. Rinciannya: `AC-BD-043` batalkan alokasi kantong belum diberikan pada order aktif → kantong kembali `Available` beserta riwayat; `AC-BD-044` batalkan alokasi ketika order asal sudah berakhir → kantong `PendingReview`, bukan `Available`; `AC-BD-045` batalkan alokasi tanpa alasan terkendali → ditolak `VAL-BD-016`; `AC-BD-046` batalkan alokasi kantong yang sudah `Issued` → ditolak `VAL-BD-023`; `AC-BD-060` kantong `Received` dialokasikan → ditolak `VAL-BD-063`; `AC-BD-068` kantong di lokasi nonaktif dialokasikan → ditolak `VAL-BD-064`; `AC-BD-070` kantong yang sudah dipindahkan ke lokasi aktif dialokasikan → berhasil; `AC-BD-033` kantong berlebih dialokasikan langsung → ditolak `VAL-BD-033` (diteruskan dari `BE-BD-004` pada revisi 9); `VAL-BD-018c` dua petugas memperebutkan satu kantong → tepat satu alokasi aktif menang, yang kalah ditolak. **`AC-BD-071` DILEPAS ke `BE-BD-009` pada revisi 11.** **Riwayat:** `AC-BD-043/044/045/046/060/068/070/071` + konkurensi + `AC-BD-033` sampai revisi 10; `AC-BD-043/044/045/046/060/068/071` + konkurensi + `AC-BD-033` sampai revisi 9 |
+| **`AC-BD-071` dilepas ke `BE-BD-009`** (revisi 11) | **Satu kriteria keluar, nol requirement hilang.** `AC-BD-071` berbunyi: kantong `PendingReview` di lokasi nonaktif dicoba **dialihkan** ke pasien lain → **ditolak** `VAL-BD-064`. Kata "dialihkan" di situ bukan kiasan — ia adalah endpoint `POST /api/v1/health-services/blood-bank-management/blood-units/{id}/reallocate`, yang pada kontrak `v4` dijaga hak akses **`BloodUnit : ResolveReallocate`** ([api-contract](../contracts/api-contract.md)). Endpoint itu **bukan milik task ini**: ia salah satu dari tiga jalur penyelesaian `PendingReview` milik `BE-BD-009`, bersama `return-to-provider` dan `mark-not-usable`. Karena itu `AC-BD-071` mustahil dibuktikan di `BE-BD-006` tanpa lebih dulu membangun `reallocate` — yaitu mengerjakan scope task lain. **Yang dibuktikan `BE-BD-006` dan sudah cukup:** gerbang `EvaluateAllocationGateAsync` menolak kantong di lokasi nonaktif dengan `VAL-BD-064` lewat endpoint `allocate` — itulah `AC-BD-068`. Kontrak `v4` [02-backend-architecture.md](../02-backend-architecture.md) §F.4 menetapkan gerbang yang sama dipakai `allocate` **dan** `reallocate`, sehingga ketika `BE-BD-009` membangun `reallocate` ia memakai gerbang yang gerbangnya sudah terbukti di sini. **Nol task baru dibuat** — pemilik `reallocate` memang sudah ada sejak arsip revisi 3 |
 | **Verifikasi final yang diteruskan dari `BE-BD-015`** (revisi 10) | Tiga kriteria, **tanpa requirement baru** — bunyi dan bukti yang diharapkan tetap mengikuti `testing/acceptance-test-matrix.md` §7. **`AC-BD-060`:** kantong `Received` dicoba dialokasikan lewat endpoint `allocate` → ditolak `VAL-BD-063`. **`AC-BD-068`:** kantong pada lokasi nonaktif dicoba dialokasikan → ditolak `VAL-BD-064`. **`AC-BD-070`:** sesudah dipindahkan ke lokasi aktif, kantong dapat dialokasikan → berhasil. **Sudah terbukti di `BE-BD-015` dan tidak perlu dibuktikan ulang:** gerbang `EvaluateAllocationGateAsync` menghasilkan `VAL-BD-063` dan `VAL-BD-064`; perpindahan dari lokasi nonaktif ke aktif menambah riwayat penempatan beserta pelaku dan waktu; gerbang terbuka kembali sesudahnya ([laporan](../task/report/backend/BE-BD-015.md) bagian 7). **Syarat agar bukti itu berlaku** — bukan aturan baru, melainkan kontrak `v4` `02-backend-architecture.md` §F.4, yang menetapkan `EvaluateAllocationGate` dipakai `allocate` dan `reallocate`: endpoint `allocate` memanggil gerbang `EvaluateAllocationGateAsync` yang sudah ada; bila tidak, gerbang itu tidak menjaga apa pun ([laporan](../task/report/backend/BE-BD-015.md) bagian 9) |
 | **Risk/owner** | Sedang / BDRS |
 
@@ -487,10 +554,12 @@ tidak dapat diberikan sebelum dialokasikan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED lewat `BE-BD-006` dan `BE-BD-007`** |
+| **Status** | ⛔ **BLOCKED lewat `BE-BD-006` dan `BE-BD-007`.** Anotasi `BE-BD-006 ⛔` pada baris dependency di bawah adalah keadaan sebelum roadmap revisi 10; keadaan `BE-BD-006` yang berlaku kini 🟡 **PENDING — siap dijadwalkan**. Penahan `BE-BD-007` masih nyata, sehingga status task ini tidak berubah |
 | **Trace** | `DEC-BD-019/028/043`; `DEC-BD-045` |
+| **Scope** | **Tiga jalur penyelesaian kantong `PendingReview`, tiga butir hak akses berbeda** — `POST /api/v1/health-services/blood-bank-management/blood-units/{id}/reallocate` (`BloodUnit : ResolveReallocate`), `.../return-to-provider` (`BloodUnit : ResolveReturn`), `.../mark-not-usable` (`BloodUnit : ResolveNotUsable`). Ditegaskan pada roadmap revisi 11 dari bukti yang sudah ada, bukan dari keputusan baru: [api-contract](../contracts/api-contract.md) `v4` mencantumkan ketiga endpoint itu, [03-frontend-architecture.md](../03-frontend-architecture.md) menempatkan ketiga tombolnya pada layar penyelesaian `PendingReview`, dan [arsip revisi 3](archive/revision-3/00-delivery-plan.md) sudah menulis `reallocate` di scope task ini. Jalur `reallocate` **wajib memanggil gerbang `EvaluateAllocationGate`** — kontrak `v4` [02-backend-architecture.md](../02-backend-architecture.md) §F.4 |
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-006` ⛔, `BE-BD-007` ⛔ |
-| **Acceptance** | `AC-BD-007/008/024/025/029/092/093/094` |
+| **Acceptance** | `AC-BD-007/008/024/025/029/092/093/094` + **`AC-BD-071` diteruskan dari `BE-BD-006`** pada roadmap revisi 11 |
+| **`AC-BD-071` diterima dari `BE-BD-006`** (revisi 11) | **Satu kriteria masuk, tanpa requirement baru** — bunyi dan bukti yang diharapkan tetap mengikuti [acceptance-test-matrix](../testing/acceptance-test-matrix.md) §7. **`AC-BD-071`:** kantong `PendingReview` yang berada di lokasi penyimpanan **nonaktif** dicoba dialihkan ke pasien lain lewat endpoint `reallocate` → **ditolak** `VAL-BD-064`. Dasarnya `INV-BD-028` dan `DEC-BD-036`/`DEC-BD-037`: pengalihan adalah pengikatan kantong ke baris kebutuhan pasien — yaitu **alokasi dengan nama lain** — sehingga gerbang alokasi berlaku sama kerasnya. **Sudah terbukti di task lain dan tidak perlu dibuktikan ulang:** gerbang `EvaluateAllocationGateAsync` menghasilkan `VAL-BD-064` untuk kantong di lokasi nonaktif ([BE-BD-015](../task/report/backend/BE-BD-015.md) bagian 7), dan penolakan itu terbukti lewat endpoint `allocate` di `BE-BD-006` (`AC-BD-068`). **Sisa yang dibuktikan di sini:** bahwa endpoint `reallocate` benar-benar memanggil gerbang yang sama, sehingga kantong `PendingReview` di lokasi nonaktif ikut tertolak. **Kenapa di sini, bukan di `BE-BD-006`:** `AC-BD-071` menuntut endpoint `reallocate`, dan endpoint itu lahir di task ini |
 | **Risk/owner** | Sedang / BDRS. Ketiga butir wewenang tetap terpisah |
 
 ---
@@ -554,7 +623,21 @@ diperiksa. Paragraf di atas dipertahankan sebagai riwayat.
 **`MVP-1` blueprint Platform** (`EPIC-PLT-01` + `EPIC-PLT-02`), bukan menunggu penunjukan siapa
 pun. Rinciannya di `docs/module-blueprints/platform/04-prd-to-mvp.md` bagian 5.
 
-**Diperbarui 11 September 2026, roadmap revisi 10:** pemilik meneruskan verifikasi final bagian alokasi `AC-BD-060`/`068`/`070` dari `BE-BD-015` ke `BE-BD-006`; `060`/`068` sudah tercantum di `BE-BD-006` dan tidak diduplikasi, `070` ditambahkan. Bukti tingkat gerbang `BE-BD-015` dipertahankan. Akibatnya `BE-BD-015` ✅ ([laporan](../task/report/backend/BE-BD-015.md)). **Yang dapat dijadwalkan kini `BE-BD-006`** — jalur kritis `BE-BD-006` → `BE-BD-007`. Di frontend, `FE-BD-012` kehilangan penahan backend-nya; statusnya tetap diputuskan pada [frontend-roadmap.md](frontend-roadmap.md), yang tidak disentuh pass ini.
+**Diperbarui 12 September 2026, roadmap revisi 11 — koreksi tata kelola, nol eksekusi.** Pemilik
+melepas `AC-BD-071` dari `BE-BD-006` ke `BE-BD-009`, pemilik endpoint `reallocate`, dan mencatat
+kebijakan verifikasi repository di bagian 0.1. **Yang dapat dijadwalkan tetap `BE-BD-006`** — tidak
+berubah — tetapi kini dengan satu perbedaan penting: **`BE-BD-006` dapat mencapai ✅ penuh secara
+mandiri**, karena satu-satunya kriterianya yang menuntut endpoint `reallocate` sudah keluar. Sebelum
+revisi 11, `BE-BD-006` akan berakhir 🟡 selesai sebagian dengan `AC-BD-071` menggantung — pola yang
+sudah tiga kali terjadi pada `BE-BD-002`, `BE-BD-004`, dan `BE-BD-015`, dan yang setiap kali menuntut
+revisi roadmap tambahan untuk menutupnya. Revisi 11 memutus pola itu di depan, bukan di belakang.
+Jalur kritis tetap `BE-BD-006` → `BE-BD-007`. Nol status task berubah: `BE-BD-006` tetap 🟡,
+`BE-BD-009` tetap ⛔ karena penahan `BE-BD-007` masih nyata. Nol source, nol migration, nol test,
+nol task dieksekusi pada pass ini.
+
+**Diperbarui 12 September 2026 sesudah `BE-BD-006` dikerjakan.** Source alokasi kantong dan pembatalan alokasi lengkap ([laporan](../task/report/backend/BE-BD-006.md)): tabel `BbkBloodUnitAllocation` beserta index unik terfilter satu-alokasi-aktif, endpoint `POST /{id}/allocate` dan `POST /{id}/cancel-allocation`, butir hak akses `BloodUnit : Allocate`, dan pemakaian gerbang `EvaluateAllocationGateAsync` milik `BE-BD-015` tanpa satu baris pun diduplikasi. **Task belum ✅ dan sengaja tidak ditandai begitu:** pemilik meminta build dijalankan manual olehnya, sehingga `dotnet build` `NOT RUN`, migration belum dibuat, database belum disentuh, dan **0 dari 9 acceptance criteria terbukti** — kesembilannya `NOT EXECUTED`, bukan gagal. QBE `DEFERRED — REQUIRES USER COMMIT` karena source belum ter-commit. **Yang dapat dijalankan berikutnya adalah build manual pemilik**, lalu lanjutan task ini dari keadaan terverifikasi; urutan pastinya ada di bagian 8 laporan. `BE-BD-007` tetap ⛔ — rantai dependency-nya menunggu `BE-BD-006` ✅, bukan hanya source-nya ada. Satu risiko klinis dicatat dan **tidak** dikarang jalan keluarnya: kecocokan komponen kantong terhadap baris kebutuhan **tidak** diperiksa, karena kontrak `v4` tidak memuat aturan maupun kode galatnya — keputusannya milik pemilik proses BDRS.
+
+**Riwayat — diperbarui 11 September 2026, roadmap revisi 10:** pemilik meneruskan verifikasi final bagian alokasi `AC-BD-060`/`068`/`070` dari `BE-BD-015` ke `BE-BD-006`; `060`/`068` sudah tercantum di `BE-BD-006` dan tidak diduplikasi, `070` ditambahkan. Bukti tingkat gerbang `BE-BD-015` dipertahankan. Akibatnya `BE-BD-015` ✅ ([laporan](../task/report/backend/BE-BD-015.md)). **Yang dapat dijadwalkan kini `BE-BD-006`** — jalur kritis `BE-BD-006` → `BE-BD-007`. Di frontend, `FE-BD-012` kehilangan penahan backend-nya; statusnya tetap diputuskan pada [frontend-roadmap.md](frontend-roadmap.md), yang tidak disentuh pass ini.
 
 **Riwayat — diperbarui 11 September 2026 sesudah `BE-BD-015`:** `BE-BD-015` 🟡 selesai sebagian ([laporan](../task/report/backend/BE-BD-015.md)) — seluruh scope selesai, 9 dari 12 kriteria penuh. **Nol task backend dapat dijadwalkan**: `BE-BD-006` menunggu `BE-BD-015` ✅, sedangkan `BE-BD-015` menunggu bagian alokasi `AC-BD-060/068/070` yang hanya dapat dibuktikan endpoint `BE-BD-006`. Jalan keluarnya keputusan pemilik roadmap: teruskan bagian itu ke `BE-BD-006`, seperti revisi 9. Di frontend, angka kantong tertahan yang ditunggu `FE-BD-011` kini tersedia di backend.
 

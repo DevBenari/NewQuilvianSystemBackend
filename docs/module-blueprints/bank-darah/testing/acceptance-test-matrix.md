@@ -9,6 +9,15 @@
 Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (aturan service), `Integ`
 (service + DB), `Concurrency` (perebutan data), `E2E/UAT` (jalur pengguna). Data samaran.
 
+> **Cara membaca kolom "Jenis" sejak 12 September 2026 (roadmap revisi 11).** Kolom itu menyatakan
+> **sifat skenario** — apakah ia menguji aturan murni, aturan bersama database, perebutan data, atau
+> jalur pengguna utuh. Ia **bukan** perintah membuat project test otomatis. Repository backend saat ini
+> tidak memuat project test sama sekali: `QuilvianSystemBackend.sln` berisi satu project produksi, dan
+> folder `Tests/` di root **dilarang dibuat**. Bukti untuk baris-baris di bawah karena itu berbentuk
+> bukti build produksi, inspeksi EF/skema, QBE, serta verifikasi manual API dan DB terkendali —
+> selengkapnya di [backend-roadmap.md](../roadmap/backend-roadmap.md) bagian 0.1. **Angka test pada
+> laporan task yang sudah ✅ SELESAI tetap berlaku sebagai catatan sejarah dan tidak ditulis ulang.**
+
 ---
 
 ## 1. Order darah & deteksi ganda
@@ -112,7 +121,7 @@ pasien benar-benar dijaga.
 | `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064`. **Verifikasi final lewat endpoint alokasi milik `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan bagian gerbangnya — lokasi current nonaktif menutup gerbang alokasi `VAL-BD-064` |
 | `AC-BD-069` | Sistem diminta memindahkan sendiri kantong saat lokasi dinonaktifkan | Integ | **Tidak terjadi** — nol baris riwayat penempatan baru, nol perubahan status, nol job berjalan |
 | `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali. **Langkah "lalu mengalokasikan → berhasil" diverifikasi final oleh `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan perpindahan, riwayat beserta pelaku dan waktu, dan gerbang yang terbuka kembali |
-| `AC-BD-071` | Kantong `PendingReview` di lokasi nonaktif dicoba dialihkan ke pasien lain | Integ | **Ditolak** `VAL-BD-064` — pengalihan adalah alokasi dengan nama lain |
+| `AC-BD-071` | Kantong `PendingReview` di lokasi nonaktif dicoba dialihkan ke pasien lain **lewat `POST /blood-units/{id}/reallocate`** | Integ | **Ditolak** `VAL-BD-064` — pengalihan adalah alokasi dengan nama lain. **Milik `BE-BD-009` sejak roadmap revisi 11 (12 September 2026)**; semula `BE-BD-006`, yang tidak melahirkan endpoint `reallocate` dan karena itu tidak dapat membuktikannya. `BE-BD-006` tetap membuktikan penolakan `VAL-BD-064` lewat endpoint `allocate` pada `AC-BD-068` |
 | `AC-BD-072` | Kantong sudah dialokasikan dan bukti masih berlaku, lokasinya dinonaktifkan **sesudah** alokasi, lalu dicoba diberikan | **Integ** | **Ditolak** `VAL-BD-065`. Skenario inti `DEC-BD-038` — membuktikan gerbang dinilai **ulang**, bukan diwarisi |
 | `AC-BD-073` | Kantong yang sama dipindahkan ke lokasi aktif lalu diberikan | Integ | Berhasil; alokasi ke pasien tujuan tidak pernah putus sepanjang kejadian |
 | `AC-BD-074` | Kantong di lokasi nonaktif diberikan lewat otorisasi darurat | Integ | Diizinkan; alasan, pelaku, waktu tercatat; penanda permanen melekat |

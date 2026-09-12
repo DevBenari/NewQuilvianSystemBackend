@@ -26,9 +26,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
     /// kulkas adalah pekerjaan gudang, mengalokasikan adalah mengikat kantong pada pasien.
     /// </para>
     /// <para>
-    /// Tindakan lain lahir bersama task pemiliknya: alokasi pada <c>BE-BD-006</c>, bukti kecocokan
-    /// dan pemberian pada <c>BE-BD-007</c>, jalur darurat pada <c>BE-BD-008</c>, penyelesaian
-    /// <c>PendingReview</c> pada <c>BE-BD-009</c>, dan koreksi pada <c>BE-BD-010</c>.
+    /// <b>Sejak <c>BE-BD-006</c></b> controller ini juga mengalokasikan kantong ke baris kebutuhan
+    /// order dan membatalkan alokasi yang keliru, dijaga butir <c>BloodUnit : Allocate</c> —
+    /// sengaja terpisah dari <c>Store</c>, karena mengikat kantong pada pasien adalah keputusan
+    /// klinis sedangkan menaruhnya ke kulkas adalah pekerjaan gudang. Kedua tindakan itu memakai
+    /// butir yang sama: yang membatalkan alokasi keliru adalah petugas yang berwenang
+    /// mengalokasikan (<c>DEC-BD-029</c>).
+    /// </para>
+    /// <para>
+    /// Tindakan lain lahir bersama task pemiliknya: bukti kecocokan dan pemberian pada
+    /// <c>BE-BD-007</c>, jalur darurat pada <c>BE-BD-008</c>, penyelesaian <c>PendingReview</c> —
+    /// termasuk <c>reallocate</c> — pada <c>BE-BD-009</c>, dan koreksi pada <c>BE-BD-010</c>.
     /// </para>
     /// <para>
     /// <b>Tidak ada endpoint untuk menambah kantong</b> (<c>VAL-BD-015</c>), dan <b>tidak ada endpoint
@@ -265,6 +273,115 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 result.Message));
         }
 
+        /// <summary>Mengalokasikan kantong ke satu baris kebutuhan order.</summary>
+        /// <remarks>
+        /// Membawa kantong <c>Available</c> → <c>Allocated</c> (<c>DEC-BD-003</c>,
+        /// <c>DEC-BD-007</c>). Gagal bila kantong belum disimpan (<c>422 VAL-BD-063</c>), lokasi
+        /// penyimpanannya sedang nonaktif (<c>422 VAL-BD-064</c>), kantongnya menunggu keputusan
+        /// atau berlebih (<c>422 VAL-BD-033</c>), atau kantong sudah punya alokasi aktif
+        /// (<c>409 VAL-BD-018c</c> — termasuk ketika dua petugas mengalokasikan kantong yang sama
+        /// pada saat yang sama; tepat satu yang berhasil).
+        /// </remarks>
+        [HttpPost("{id:guid}/allocate")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Allocate", "Allocate Blood Unit", Description = "Mengalokasikan kantong darah ke baris kebutuhan order dan membatalkan alokasi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BloodUnit", "Allocate")]
+        public async Task<IActionResult> Allocate(
+            Guid id,
+            [FromBody] AllocateUnitRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.AllocateAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogAllocationAsync(
+                "BloodUnit.Allocate",
+                "Mengalokasikan kantong darah ke baris kebutuhan order.",
+                result,
+                request.BloodOrderLineId,
+                reasonCode: null);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                await _bloodUnitService.GetDetailAsync(id, cancellationToken),
+                result.Message));
+        }
+
+        /// <summary>Membatalkan alokasi kantong yang keliru, sebelum kantong diberikan.</summary>
+        /// <remarks>
+        /// Kantong kembali <c>Available</c> bila order asalnya masih berjalan, dan masuk
+        /// <c>PendingReview</c> bila order atau kunjungan asalnya sudah berakhir
+        /// (<c>DEC-BD-029</c>, <c>DEC-BD-014</c>). Alasan <b>wajib</b> dipilih dari daftar
+        /// terkendali berkategori pembatalan alokasi (<c>400 VAL-BD-016</c>). Kantong yang sudah
+        /// diberikan tidak dapat dibatalkan (<c>422 VAL-BD-023</c>) — jalurnya catatan koreksi.
+        /// </remarks>
+        [HttpPost("{id:guid}/cancel-allocation")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Allocate", "Allocate Blood Unit", Description = "Mengalokasikan kantong darah ke baris kebutuhan order dan membatalkan alokasi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("BloodUnit", "Allocate")]
+        public async Task<IActionResult> CancelAllocation(
+            Guid id,
+            [FromBody] CancelWithReasonRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.CancelAllocationAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogAllocationAsync(
+                "BloodUnit.CancelAllocation",
+                "Membatalkan alokasi kantong darah.",
+                result,
+                bloodOrderLineId: null,
+                reasonCode: request.ReasonCode);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                await _bloodUnitService.GetDetailAsync(id, cancellationToken),
+                result.Message));
+        }
+
+        /// <remarks>
+        /// Nomor kantong PMI dan nama pasien sensitif, dan sengaja tidak ditulis ke log. Kode
+        /// alasan ditulis karena ia kode terkendali, bukan teks bebas berisi keterangan pasien.
+        /// </remarks>
+        private Task LogAllocationAsync(
+            string eventName,
+            string message,
+            BloodUnitResult result,
+            Guid? bloodOrderLineId,
+            string? reasonCode)
+            => _loggerService.InfoAsync(
+                LogCategory,
+                eventName,
+                message,
+                new
+                {
+                    EntityId = result.Entity!.Id,
+                    BloodOrderLineId = bloodOrderLineId,
+                    ReasonCode = reasonCode,
+                    UnitStatus = result.Entity.UnitStatus.ToString(),
+                    Controller = "BloodUnit",
+                    Action = "Allocate"
+                });
+
         /// <remarks>Nomor kantong PMI sensitif dan sengaja tidak ditulis ke log.</remarks>
         private Task LogStorageAsync(string eventName, string message, BloodUnitResult result, Guid storageLocationId)
             => _loggerService.InfoAsync(
@@ -282,8 +399,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 });
 
         /// <remarks>
-        /// <c>Invalid</c> → <c>400</c>; <c>NotFound</c> → <c>404</c>; <c>VersionConflict</c> →
-        /// <c>409</c>; <c>NotAllowedByState</c> → <c>422</c> (<c>VAL-BD-060/061/062</c>, master kosong).
+        /// <para>
+        /// <c>Invalid</c> → <c>400</c> (<c>VAL-BD-016</c>); <c>NotFound</c> → <c>404</c>;
+        /// <c>VersionConflict</c> dan <c>AllocationConflict</c> → <c>409</c>
+        /// (<c>VAL-BD-018c</c>); <c>NotAllowedByState</c> → <c>422</c>
+        /// (<c>VAL-BD-023/033/060/061/062/063/064</c>, master kosong).
+        /// </para>
+        /// <para>
+        /// <b>Seluruh pemetaan berhenti pada pesan bisnis.</b> Tidak ada
+        /// <c>DbUpdateException</c>, <c>PostgresException</c>, nama constraint, SQL, connection
+        /// string, maupun stack trace yang sampai ke pengguna — penerjemahannya selesai di
+        /// service.
+        /// </para>
         /// </remarks>
         private IActionResult MapFailure(BloodUnitResult result)
             => result.Outcome switch
@@ -291,7 +418,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 BloodUnitOutcome.NotFound => NotFound(
                     ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
 
-                BloodUnitOutcome.VersionConflict => Conflict(
+                BloodUnitOutcome.VersionConflict or BloodUnitOutcome.AllocationConflict => Conflict(
                     ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
 
                 BloodUnitOutcome.NotAllowedByState => UnprocessableEntity(
