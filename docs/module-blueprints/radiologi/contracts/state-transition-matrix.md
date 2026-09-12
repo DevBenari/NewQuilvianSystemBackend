@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-STATE-001` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `approved` |
 | Backend SHA | `0e2eb105` |
 | Input | `RJ-BIL-GATE-DEC-004`, `RAD-DEC-003`, `RAD-DEC-005`, `RAD-DEC-011`, `RAD-DA-001-r1` |
@@ -93,12 +93,32 @@ Status: **`Baru`**. Diturunkan dari `RJ-BIL-GATE-DEC-004` dan `RAD-DEC-003`.
 | `Drafted` | Ubah draf | `Drafted` | **Penulis draf itu sendiri** | Belum disahkan | `403` bila bukan penulisnya |
 | `Drafted` | Sahkan | `Validated` | **Dokter radiolog** | Bila `AuthorRoleSnapshot` bukan `Radiologist`, pengesah **wajib berbeda** dari penulis | `403` |
 | `Validated` | Rilis | `Released` | Dokter radiolog | — | `409` |
-| `Released` | Tulis draf koreksi | `AmendmentDrafted` | Radiolog, residen, radiografer, bantuan AI | **Alasan koreksi wajib.** Versi lama menjadi `Superseded`, isinya tidak berubah | `400` alasan kosong |
+| `Released` | Tulis draf koreksi | `AmendmentDrafted` | Radiolog, residen, radiografer, bantuan AI | **Alasan koreksi wajib.** Versi lama **tetap `Released` dan tetap berlaku** sampai koreksinya dirilis — lihat catatan di bawah tabel | `400` alasan kosong |
 | `AmendmentDrafted` | Sahkan koreksi | `AmendmentValidated` | **Dokter radiolog** | Aturan pengesahan sama seperti draf pertama | `403` |
 | `AmendmentValidated` | Rilis koreksi | `AmendmentReleased` | Dokter radiolog | Menjadi versi berlaku | `409` |
 | `AmendmentReleased` | Tulis draf koreksi lagi | `AmendmentDrafted` | Sama | Alasan wajib | `400` |
 
 **Tidak ada status terminal.** Bacaan yang sudah dirilis selalu dapat diamandemen.
+
+> **Perbaikan 2026-09-11, disetujui pemilik modul.** Versi terdahulu baris "Tulis draf koreksi"
+> berbunyi *"Versi lama menjadi `Superseded`"*, seolah perpindahan itu terjadi saat draf koreksi
+> ditulis. **Itu keliru**, dan bertentangan dengan bagian 4 dokumen ini serta contoh
+> `FR-RAD-020`.
+>
+> **Yang benar: versi lama berpindah menjadi `Superseded` ketika koreksinya DIRILIS**, bukan
+> ketika drafnya ditulis.
+>
+> **Mengapa ini menentukan.** Antara "koreksi mulai ditulis" dan "koreksi dirilis" bisa ada jeda
+> berjam-jam. Selama jeda itu versi lama adalah **satu-satunya bacaan yang sah** — ia sudah
+> diperiksa dokter radiolog dan sudah dirilis; draf koreksi belum diperiksa siapa pun.
+>
+> Kalau versi lama dipensiunkan begitu draf koreksi ditulis, dokter jaga yang membuka hasil pada
+> pukul 10 malam akan melihat salah satu dari dua hal: draf yang belum disahkan, atau tidak ada
+> bacaan berlaku sama sekali. Keduanya lebih buruk daripada membaca versi lama yang memang masih
+> berlaku.
+>
+> Penerapannya sudah mengikuti bacaan yang benar sejak `BE-RAD-10`; lihat
+> `task/report/backend/BE-RAD-10.md` bagian 2.3.
 
 ### Transisi yang tidak sah
 

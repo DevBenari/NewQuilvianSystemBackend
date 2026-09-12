@@ -68,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             var procedures = await source
                 .OrderBy(x => x.ProcedureName)
+                .ThenBy(x => x.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new
@@ -251,6 +252,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             var items = await source
                 .OrderBy(x => x.TariffName)
+                .ThenBy(x => x.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new LabTariffViewResponse

@@ -19,6 +19,15 @@
 > **Batas dokumen ini.** Roadmap bukan izin menulis kode. Setiap task memerlukan wewenang
 > `FRONTEND MODE` tersendiri saat dikerjakan.
 
+> **Tambahan 2026-09-11 — `RAD-CONF-001`.** PRD eksternal versi 1.0 diperiksa terhadap modul
+> terbangun, dan empat penghambat frontend sudah dibereskan di backend: konteks pasien ikut pada
+> setiap balasan pesanan, pesanan punya `OrderNumber`, `GET /rad-orders` menerima 19 parameter
+> penyaring, dan rincian pesanan memuat konfirmator beserta waktunya. Akibatnya layar daftar
+> pasien **tidak boleh lagi** memanggil registrasi sekali per baris, dan penyaringan **tidak
+> boleh** dikerjakan di browser. Sisa ketidaksesuaian terhadap PRD beserta tujuh pertanyaan
+> keputusan ada pada `05-prd-conformance-gap.md`; sampai keputusannya turun, roadmap ini tidak
+> berubah.
+
 ---
 
 ## 1. Ringkasan
@@ -62,6 +71,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Rendah. **Jangan** membuat Axios instance baru atau abstraksi generik |
 | Owner | Frontend |
 | Definition of Done | Struktur folder sesuai pola Laboratorium; tidak ada base component baru |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-01.md`. Sembilan berkas baru, dua diubah; 9 test baru lulus, 753 test repository lulus, lint bersih. Berkas `page.jsx` dan entri menu sengaja menyusul bersama `FE-RAD-02` |
 
 ### `FE-RAD-02` — Layar kelola alat pencitraan
 
@@ -77,6 +87,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Rendah |
 | Owner | Frontend |
 | Definition of Done | Alat baru dapat didaftarkan lewat layar, tanpa menyentuh database |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-02.md`. 13 berkas baru, 2 diubah; 13 test baru lulus, 766 test repository lulus, lint 0 error. Layar ditempatkan di `master-data/rad-modalities` mengikuti preseden master data Laboratorium — alasannya pada laporan bagian 1. Verifikasi manual `UAT-12` `NOT FEASIBLE`: belum ada satu pun aturan keselamatan `Active` untuk memicu penolakan `409` |
 
 ### `FE-RAD-03` — Layar kelola butir keselamatan
 
@@ -90,6 +101,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Rendah |
 | Owner | Frontend |
 | Definition of Done | Butir keselamatan dapat dikelola lewat layar |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-03.md`. 13 berkas baru, 2 diubah; 13 test baru lulus, 779 test repository lulus, lint 0 error. **Delta kontrak dicatat:** balasan daftar backend tidak memuat `sortOrder` maupun penanda pemakaian, sehingga kolomnya sengaja tidak dibuat — pemakaian dilayani lewat penyaring dan peringatan pada formulir ubah. Verifikasi manual jalur penolakan `NOT FEASIBLE`: belum ada aturan keselamatan `Active` |
 
 ### `FE-RAD-04` — Layar aturan keselamatan dan papan kesiapan alat
 
@@ -107,6 +119,12 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Sedang. Tanpa peringatan itu, ketiadaan aturan baru diketahui saat pasien sudah di depan alat |
 | Owner | Frontend |
 | Definition of Done | Peringatan tampil; tombol Sahkan tidak muncul bagi yang tidak berwenang |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-04.md`. 13 berkas baru, 2 diubah; 18 test baru lulus, 797 test repository lulus, lint 0 error. Ketentuan mengikat bagian 5 butir 5 dipenuhi dengan **empat** keadaan papan kesiapan — gagal, belum pernah dimuat, ada yang belum tercakup, dan seluruhnya tercakup — supaya papan kosong tidak pernah terbaca "semua alat aman". Verifikasi manual `UAT-03` `NOT FEASIBLE`: tidak ada akun pemegang `RadSafetyRule : Approve` karena penanggung jawab klinis belum ditunjuk (`RAD-OPEN-001`) |
+
+> **Gelombang `MVP-1` selesai 2026-09-11.** Keempat task `FE-RAD-01` sampai `FE-RAD-04`
+> terlaporkan. Yang menahan modul dipakai sekarang **bukan lagi frontend**: layar pengesahan
+> sudah siap, tetapi belum ada orang yang berwenang menekan Sahkan — `RAD-OPEN-001` dan
+> `DEC-RAD-005` masih terbuka.
 
 ---
 
@@ -128,6 +146,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Rendah |
 | Owner | Frontend |
 | Definition of Done | Pesanan terkirim sekali; penanda cito tersimpan |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-05.md`. 6 berkas baru, **nol berkas bersama disentuh**; 8 test baru lulus, 805 test repository lulus, lint 0 error. Ketentuan mengikat bagian 9 dipenuhi dengan **dua** penjaga: tombol dinonaktifkan, plus ref penjaga sinkron — `actionLoading` baru benar setelah render berikutnya, sehingga dua klik berdekatan masih sempat lolos tanpa penjaga kedua. Daftar pemeriksaan disaring `isRadiology=true` agar pesanan radiologi tidak dapat dibuat untuk tindakan laboratorium. Verifikasi manual `NOT FEASIBLE`: menuntut kunjungan aktif dan sesi dokter |
 
 ### `FE-RAD-06` — Antrian pesanan masuk
 
@@ -142,6 +161,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Rendah |
 | Owner | Frontend |
 | Definition of Done | Seluruh transisi sah dapat dijalankan dari layar |
+| **Keadaan** | **Selesai 2026-09-11** — laporan `task/report/frontend/FE-RAD-06.md`. 6 berkas baru, 2 diubah; 15 test baru lulus, 820 test repository lulus, lint 0 error. Grup menu **Radiologi** lahir di sini. **Dua delta kontrak–backend ditemukan**, satu di antaranya cacat: `HoldAsync` menerima status terminal sehingga `StatusBeforeHold` dapat menyimpan `Completed`, dan `Lanjutkan` mengembalikan pesanan ke status terminal lewat pintu samping. Layar sengaja lebih ketat; **jalur API belum diperbaiki dan perlu keputusan pemilik modul** |
 
 ### `FE-RAD-07` — Daftar kerja per alat
 

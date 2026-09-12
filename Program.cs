@@ -28,6 +28,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
@@ -306,6 +307,11 @@ try
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<RadSafetyPolicyService>();
+    builder.Services.AddScoped<RadModalityService>();
+    builder.Services.AddScoped<RadSafetyRequirementService>();
+    builder.Services.AddScoped<RadReportService>();
+    builder.Services.AddScoped<RadReportNumberService>();
+    builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
@@ -1188,12 +1194,21 @@ try
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
 
- // Gerbang integritas permission (Phase A0).
+    // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
+    // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
+    // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
+    // (RJ-BIL-DEC-014, DEC-RAD-005).
+    await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // Gerbang integritas permission (Phase A0).
     //
     // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
     // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
     // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
     // pemeriksaan.
+    //
+    // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
+    // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
     //
     // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
     // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
