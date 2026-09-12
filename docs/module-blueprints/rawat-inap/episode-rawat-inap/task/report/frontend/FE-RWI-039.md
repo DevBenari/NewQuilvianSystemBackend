@@ -23,7 +23,9 @@
 ## 1. Keadaan yang ditemukan di awal
 
 Task ini berstatus ⛔ `TERBLOKIR` sejak revision 2, dengan dua alasan yang dicatat pada
-`Urutan-Pekerjaan-Rawat-Inap.md`: approval skema layar, dan `RWI-UI-GAP-007`.
+`Urutan-Pekerjaan-Rawat-Inap.md` — berkas itu dipindah dan diganti nama pada hari yang sama
+menjadi [`Sisa-Pekerjaan-Rawat-Inap.md`](../../../../Sisa-Pekerjaan-Rawat-Inap.md): approval
+skema layar, dan `RWI-UI-GAP-007`.
 
 **Kedua alasan itu diperiksa ulang 12 September 2026 dan hasilnya berbeda dari catatannya.**
 
