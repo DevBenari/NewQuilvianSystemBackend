@@ -35,10 +35,10 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | `AC-BD-009` | Permintaan dikirim, darah belum diterima fisik | Integ | Stok tak bertambah |
 | `AC-BD-014` | Permintaan tanpa jumlah kantong | Unit | Ditolak (`VAL-BD-007`) |
 | `AC-BD-022` | Sisa 1 kantong saat kunjungan berakhir | Integ | `ClosedEncounter`, riwayat utuh |
-| `AC-BD-023` | Kantong datang setelah `ClosedEncounter` | Integ | Penerimaan dicatat, kantong → `PendingReview` |
+| `AC-BD-023` | Kantong datang setelah `ClosedEncounter` | Integ | Penerimaan dicatat, kantong → `PendingReview`. **Milik `BE-BD-015` sejak roadmap revisi 9 (11 September 2026)**; semula `BE-BD-004`, yang sudah membuktikan bagian penerimaannya |
 | `AC-BD-031` | Minta 2 PRC, datang 3 | Integ | `Fulfilled` sisa 0 (bukan −1); 3 kantong tercatat |
-| `AC-BD-032` | Kantong ke-3 pada `AC-BD-031` | Integ | `PendingReview` + alasan "kiriman melebihi permintaan", muncul di daftar #2 |
-| `AC-BD-033` | Kantong berlebih dialokasikan langsung ke order pasien sama | Integ | Ditolak (`VAL-BD-033`) |
+| `AC-BD-032` | Kantong ke-3 pada `AC-BD-031` | Integ | `PendingReview` + alasan "kiriman melebihi permintaan", muncul di daftar #2. **Milik `BE-BD-015` sejak roadmap revisi 9**; semula `BE-BD-004`, yang sudah membuktikan penanda berlebih dan alasannya |
+| `AC-BD-033` | Kantong berlebih dialokasikan langsung ke order pasien sama | Integ | Ditolak (`VAL-BD-033`). **Milik `BE-BD-006` sejak roadmap revisi 9**; semula `BE-BD-004` |
 
 ## 3. Alokasi, bukti, pemberian, koreksi
 
@@ -87,8 +87,9 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | `AC-BD-024` | Kantong `PendingReview` dialihkan dengan alasan | Integ | Berhasil; rantai pasien asal→alasan→tujuan tersimpan |
 | `AC-BD-025` | Kantong `PendingReview` diselesaikan tanpa alasan | Unit | Ditolak (`VAL-BD-016`) |
 | `AC-BD-029` | Alasan tidak layak diketik bebas | Unit | Ditolak (`VAL-BD-016`) |
-| `AC-BD-026` | Satu tindakan selesai dengan 2 kantong diberikan | Integ | Satu fakta biaya (bila kontrak Billing turun), bukan dua — **ditandai tertunda `DEC-BD-016`** |
+| `AC-BD-026` | Satu tindakan selesai dengan 2 kantong diberikan | Integ | Satu fakta biaya (bila kontrak Billing turun), bukan dua — **ditandai tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8 (11 September 2026)**; semula `BE-BD-012` |
 | `AC-BD-027` | Fakta biaya tindakan sama dikirim ulang | Integ | **Tertunda `DEC-BD-016`** — tidak diuji sampai kontrak Billing disetujui |
+| `AC-BD-058` | Koreksi pencatatan pemberian dibuat; sistem mencoba otomatis membalik fakta biaya tindakan | Integ | Ditolak — koreksi tidak mengubah biaya (`DEC-BD-034`, `INV-BD-024`). **Tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8**; semula `BE-BD-012`. Baris ini baru ditambahkan 11 September 2026 — sebelumnya kriteria ini tidak punya baris uji |
 
 ---
 
@@ -100,7 +101,7 @@ pasien benar-benar dijaga.
 | Requirement | Skenario | Jenis | Bukti yang diharapkan |
 | --- | --- | --- | --- |
 | `AC-BD-059` | Kantong baru diterima dari PMI | Integ | Status `Received`; belum dapat dialokasikan |
-| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-063`; pesan menyebut kantong belum disimpan |
+| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-063`; pesan menyebut kantong belum disimpan. **Verifikasi final lewat endpoint alokasi milik `BE-BD-006` sejak roadmap revisi 10 (11 September 2026)**; `BE-BD-015` sudah membuktikan bagian gerbangnya — kantong `Received` ditolak gerbang alokasi `VAL-BD-063` |
 | `AC-BD-061` | Petugas menetapkan lokasi pada kantong `Received` | Integ | Kantong `Stored` lalu `Available`; satu baris riwayat penempatan bertambah |
 | `AC-BD-062` | Lokasi nonaktif dipilih untuk penyimpanan baru | Integ | **Ditolak** `VAL-BD-060` |
 | `AC-BD-063` | Kantong `Stored` dipindahkan ke lokasi lain | Integ | Riwayat bertambah; **status tidak berubah**; catatan penerimaan awal tidak tersentuh |
@@ -108,9 +109,9 @@ pasien benar-benar dijaga.
 | `AC-BD-065` | Lokasi nonaktif dipilih untuk penyimpanan kantong baru | Integ | **Ditolak** `VAL-BD-060` |
 | `AC-BD-066` | Lokasi nonaktif dipilih sebagai **tujuan perpindahan** | Integ | **Ditolak** `VAL-BD-060` — aturan berlaku untuk perpindahan, bukan hanya penempatan pertama |
 | `AC-BD-067` | Lokasi dinonaktifkan sementara masih ada kantong di dalamnya | Integ | Penonaktifan **berhasil**; kantong tetap tercatat di sana; status kantong tidak berubah; peringatan `VAL-BD-068` menyebut jumlah |
-| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064` |
+| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | Integ | **Ditolak** `VAL-BD-064`. **Verifikasi final lewat endpoint alokasi milik `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan bagian gerbangnya — lokasi current nonaktif menutup gerbang alokasi `VAL-BD-064` |
 | `AC-BD-069` | Sistem diminta memindahkan sendiri kantong saat lokasi dinonaktifkan | Integ | **Tidak terjadi** — nol baris riwayat penempatan baru, nol perubahan status, nol job berjalan |
-| `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali |
+| `AC-BD-070` | Petugas memindahkan kantong dari lokasi nonaktif ke lokasi aktif lalu mengalokasikan | Integ | Berhasil; riwayat mencatat pelaku dan waktu; gerbang terbuka kembali. **Langkah "lalu mengalokasikan → berhasil" diverifikasi final oleh `BE-BD-006` sejak roadmap revisi 10**; `BE-BD-015` sudah membuktikan perpindahan, riwayat beserta pelaku dan waktu, dan gerbang yang terbuka kembali |
 | `AC-BD-071` | Kantong `PendingReview` di lokasi nonaktif dicoba dialihkan ke pasien lain | Integ | **Ditolak** `VAL-BD-064` — pengalihan adalah alokasi dengan nama lain |
 | `AC-BD-072` | Kantong sudah dialokasikan dan bukti masih berlaku, lokasinya dinonaktifkan **sesudah** alokasi, lalu dicoba diberikan | **Integ** | **Ditolak** `VAL-BD-065`. Skenario inti `DEC-BD-038` — membuktikan gerbang dinilai **ulang**, bukan diwarisi |
 | `AC-BD-073` | Kantong yang sama dipindahkan ke lokasi aktif lalu diberikan | Integ | Berhasil; alokasi ke pasien tujuan tidak pernah putus sepanjang kejadian |
@@ -191,6 +192,27 @@ Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancan
 
 ---
 
+## 10. Pencatatan tindakan Bank Darah — tambahan 11 September 2026
+
+Menutup `AC-BD-098` sampai `AC-BD-102`, milik `BE-BD-012`. Kriteria ini lahir dari keputusan pemilik
+`DEC-BD-048` dan `DEC-BD-049` (`00-interview-decisions.md` §8.28), dan **tidak** mengubah set kontrak `v4`:
+seluruh kolom yang diuji sudah ada di kamus data sejak `v1`.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-098` | Order sah, tindakan sah, petugas berwenang mencatat tindakan | Integ | Tersimpan dengan `ProcedureNumber` unik dari number-series, `BloodOrderId`, `ProcedureRefId`, dokter BDRS, petugas dari akun yang login, unit dan kelas dari kunjungan order, `TariffId`, status `Recorded` |
+| `AC-BD-098` — jalur gagal | Order tidak ada, dihapus, atau tidak sah | Integ | **Ditolak** `VAL-BD-026` |
+| `AC-BD-099` | Tindakan punya tarif umum dan tarif kelas VIP; kunjungan pasien berkelas VIP | Integ | Tarif VIP terpilih; salinan nominalnya sama dengan tarif VIP |
+| `AC-BD-099` — cadangan | Tarif kelas pasien tidak ada, tarif umum ada | Integ | Tarif umum terpilih |
+| `AC-BD-099` — jalur gagal | Tidak ada tarif aktif dan berlaku yang cocok; atau client mengirim nominal harga | Integ | **Ditolak** `422`; nominal dari client tidak pernah dipakai (`VAL-BD-027`) |
+| `AC-BD-100` | Tindakan tercatat, lalu kode, nama tindakan, dan nominal tarif di data induk diubah | Integ | Ketiga kolom salinan pada tindakan lama **tidak berubah** |
+| `AC-BD-101` | Tindakan `Recorded` diselesaikan | Integ | `Completed`; transisi, pelaku, dan waktu tersimpan |
+| `AC-BD-101` — jalur gagal | Tindakan yang sudah `Completed` diselesaikan lagi | Integ | **Ditolak** secara terkendali; status dan audit tidak bergerak |
+| `AC-BD-102` | Tindakan dibuat dan diselesaikan | Unit + Integ | Nol baris pada tabel Billing; nol pemanggilan service Billing; tidak ada endpoint maupun producer penyaluran biaya |
+| Konkurensi nomor | Beberapa tindakan dicatat serentak | Concurrency | Tidak ada `ProcedureNumber` ganda; dijaga provider number-series dan index unik |
+
+---
+
 ## Definition of Done (ringkas — lengkap di `04-prd-to-mvp.md`)
 
 | Butir | Bukti |
@@ -209,4 +231,5 @@ Skenario tambahan yang tidak berasal dari `AC-BD-*` tetapi menutup risiko rancan
 | Kantong di lokasi nonaktif tak dapat dialokasikan maupun diberikan lewat jalur normal | `AC-BD-068/072`; jalur darurat `AC-BD-074/075` |
 | Riwayat penempatan tak pernah ditimpa, dan sistem tak pernah memindahkan kantong sendiri | `AC-BD-063/069` |
 | Seluruh master MVP terisi — **termasuk minimal satu lokasi penyimpanan aktif** | Rencana data master awal `02-backend-architecture.md` §J. Tanpa ini modul berhenti total |
+| Tindakan tercatat dengan tarif dari data induk, salinannya tidak berubah, dan tanpa jalur Billing | `AC-BD-098/099/100/101/102` |
 | Billing charge & label **tidak** diuji pada MVP | `DEC-BD-016`, `OQ-BD-011` — di luar cakupan |
