@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | Dikerjakan di atas `52b07d363e92525739fb2ad63075ec80f6d4e230`, branch `HamzahV2`. Source-nya kemudian **di-commit pemilik pekerjaan sendiri** sebagai `e194509dc`; agent tidak menjalankan satu pun tindakan Git |
 | Commit backend yang dijadikan rujukan | `3a6373e90e5a590bfad1ba214c5c941e602fc245`, branch `MHamzah` |
 | Tanggal | Pass pertama 8 September 2026; **pass kedua 9 September 2026** sesudah `BE-RWI-067` menutup kriteria 4 |
-| Status | 🟡 `SEBAGIAN` **9 September 2026.** **4 dari 5** acceptance criteria kini terpenuhi penuh; **1 belum terpenuhi**. Kriteria 4 — yang pada pass pertama hanya separuh — kini tertutup: `BE-RWI-067` menambahkan `ProviderName` pada butir daftar pantau, dan kolom Penulis menyebut namanya. Kriteria 3 juga diperkuat: tautan tidak lagi sekadar membuka tab, melainkan mendarat pada catatan yang dituju dan menyorotnya. **Kriteria 5 tetap belum terpenuhi**, dan bukan karena pekerjaan yang kurang: urutan daftar di dalam `FE-INP-09` **ditetapkan tingkat modul**, slot dokter belum dinyatakan pemilik `02-module-map.md`, dan roadmap §6 melarang memutuskannya sendiri. **Satu cacat nyata ditemukan uji peramban pass ini dan diperbaiki:** seluruh sel tabel daftar pantau salah dirender — kolom Penulis dan Profesi berbunyi `[object Object]`, kolom Pasien berbunyi `-`, kolom Status selalu berbunyi "Lewat Batas", dan tombol Buka Catatan menghasilkan alamat tanpa nomor episode. Validasi nyata pass kedua: `npm run lint` **0 error, 611 warning**; `npm run test:unit` **563/563 lulus, 0 gagal**; `npm run build` beserta `postbuild` berhasil; **7 skenario peramban lulus** di Edge, tiga di antaranya milik daftar pantau ini. Butir DoD screenshot tiga viewport **dikecualikan atas keputusan pengguna 1 September 2026**; catatan `NOT RUN`-nya tetap tercatat, tidak dihapus |
+| Status | ✅ **SELESAI 12 September 2026.** ~~🟡 `SEBAGIAN` 9 September 2026, 4 dari 5~~. **Kriteria 5 kini tertutup, dan penutupnya bukan kode melainkan keputusan.** `02-module-map.md` menyatakan urutan daftar di dalam `FE-INP-09` ditetapkan tingkat modul dan **tidak boleh diputuskan sendiri-sendiri**; pemilik peta modul menetapkannya pada 12 September 2026 — **empat daftar `episode-rawat-inap` lebih dulu, lalu `dokter-rawat-inap`, lalu `keperawatan`** — dan ketetapan itu dicatat pada `02-module-map.md` bagian pertanyaan terbuka. Pemeriksaan source menemukan urutannya **tidak sesuai ketetapan**: `inpatient-monitoring-view.jsx` merender `NursingAssessmentComplianceSection` mendahului `CpptVerificationMonitoringSection`. Keduanya ditukar, dan satu test baru membandingkan posisi indeks ketiga kelompok supaya satu layar tidak dapat menukarnya lagi sendirian. Keempat kriteria lain tetap berlaku apa adanya sejak 9 September 2026. Validasi 12 September 2026: `npm run test:unit` **763 lulus, 0 gagal**; `npm run lint:errors` **0 error**; `npm run build` beserta `postbuild` berhasil. Butir DoD bukti visual tiga viewport tetap **dikecualikan atas keputusan pengguna 1 September 2026** dan tetap tercatat `NOT RUN`, tidak dihapus |
 
 ---
 
@@ -333,3 +333,47 @@ Diperiksa ulang 9 September 2026.
 | 2 | **Nama penulis** pada `CpptVerificationWatchItem`, atau endpoint pendamping yang memetakan `ProviderUserId` menjadi nama | `ClinicalManagement`, sebagai task backend baru | ✅ **Terpenuhi** — `BE-RWI-067` selesai 8 September 2026 |
 | 3 | Keputusan **bentuk agregasi lintas episode**: apakah cakupan "episode yang sedang tampil" dipertahankan, atau backend menyediakan daftar pantau lintas pasien tersendiri beserta paginasinya | Pemilik peta modul bersama `ClinicalManagement` | ⏳ **Masih terbuka.** Tidak menahan kelima acceptance criteria; cakupan yang berlaku dinyatakan apa adanya di layar |
 | 4 | **Kebijakan verifikasi yang aktif**, supaya daftar ini dapat diuji dengan data yang benar-benar tertunda. Selama `RWI-RULE-021` belum disahkan, daftar ini selalu berbunyi "tidak diwajibkan" pada data nyata | Clinical Governance | ⏳ **Masih terbuka.** Pass kedua menutupinya dengan balasan uji yang memuat catatan tertunda, sehingga tabelnya tetap terbukti benar-benar terisi |
+
+
+---
+
+## Lampiran — pembaruan 12 September 2026
+
+### Kriteria 5 ditutup oleh ketetapan pemilik, bukan oleh kode
+
+Kriteria 5 berbunyi: "Urutan daftar di dalam daftar pantau mengikuti ketetapan
+`02-module-map.md`, bukan diputuskan sendiri." Selama dokumen itu belum menetapkan apa pun,
+kriteria ini **tidak dapat ditutup pekerjaan siapa pun di sini** — dan itu sebabnya ia
+bertahan terbuka sejak 8 September 2026.
+
+Pemilik peta modul menetapkannya 12 September 2026:
+
+| Urut | Pemilik daftar |
+| :---: | --- |
+| 1–4 | `episode-rawat-inap` — empat daftar pantau existing |
+| 5 | `dokter-rawat-inap` — Verifikasi Catatan Terpadu, milik task ini |
+| 6 | `keperawatan` — Kepatuhan Pengkajian Awal Keperawatan, `FE-RWI-056` |
+
+### Satu temuan: source tidak sesuai ketetapan itu
+
+Sebelum ketetapan turun, bagian ini ditempatkan **sementara** di bawah keempat daftar
+existing. Pemeriksaan 12 September 2026 menemukan penempatan sementara itu meletakkannya
+**di bawah** daftar keperawatan juga:
+
+| | Sebelum | Sesudah |
+| --- | --- | --- |
+| Urutan render | episode → keperawatan → dokter | episode → **dokter** → keperawatan |
+
+Keduanya ditukar pada `inpatient-monitoring-view.jsx`. Diff: satu berkas, dua blok JSX
+bertukar posisi beserta komentarnya. Nol endpoint, nol route, nol komponen, nol perubahan
+pada isi kedua daftar.
+
+### Kenapa penukaran ini dikunci test
+
+Urutan ini keputusan **lintas sub-modul**. Satu layar yang menukarnya sendirian tidak akan
+terlihat salah bagi pembaca berikutnya — ketiga bagian itu berdiri berdampingan dan tidak ada
+yang menandakan urutannya bermakna. Test barunya membandingkan posisi indeks
+`monitoring-active-list`, `<CpptVerificationMonitoringSection`, dan
+`<NursingAssessmentComplianceSection`, lalu memastikan source menyebut `02-module-map.md`
+sebagai sumber ketetapannya. Perubahan urutan berikutnya akan gagal di CI, bukan ditemukan
+pemilik di layar.

@@ -434,7 +434,7 @@ task yang menulis di luar modul Rawat Inap.**
 | --- | --- |
 | ✅ `BE-RWI-070` ambang tindak lanjut deposit | Kolom pada `MstInpatientSetting`, sepenuhnya milik Rawat Inap. Tidak menyentuh Billing. **Selesai 10 September 2026** |
 | ⛔ `BE-RWI-072` gerbang kelayakan keuangan | Perbaikan di dalam `InpDischargeService`; hanya **membaca** tabel Billing, dan arah baca sebaliknya sudah dipakai `BKC-DEC-043`. **Terbukti belum dapat dikerjakan 10 September 2026**: sumber yang dibacanya, `BE-BKC-040`, nol barisnya ada di source |
-| Penyusunan skema tampilan langkah Deposit | Pekerjaan desain, bukan task roadmap. Menutup `RWI-UI-GAP-008` yang menahan keempat task frontend |
+| ~~Penyusunan skema tampilan langkah Deposit~~ | ✅ **SELESAI 12 September 2026.** Skema `FE-INP-20` ditulis pada `05-skema-tampilan.md` bagian 3.5A, revision naik `0.4` → `0.5`, status `draft` belum disetujui pemilik. Ia menutup `RWI-UI-GAP-008` dan membuka `FE-RWI-058` ✅ — tetapi **tidak** membuka ketiga task deposit lainnya, yang ternyata tertahan endpoint Billing |
 | Penyiapan pertanyaan untuk pemilik Billing | `RWI-OQ-053` sudah tertulis lengkap beserta tiga perubahan yang diminta |
 
 ### 0-AA.4 Yang **tidak** dikerjakan revision ini

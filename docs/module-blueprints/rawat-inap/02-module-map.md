@@ -368,7 +368,7 @@ memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseli
 | ~~Butir menu `keperawatan`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; keenam layarnya menjadi layar anak | — |
 | ~~Butir menu `dokter-rawat-inap`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; kedelapan layarnya menjadi layar anak | — |
 | **Pencabutan butir menu Dokter → Rawat Inap yang sudah ter-commit** — baru 2026-09-02 | Butir itu mengarah ke layar berbasis antrean rawat jalan; lihat bagian 3.3 | Frontend authority, sebagai bagian gelombang `DOK-MVP-FE` |
-| **Urutan daftar di dalam `FE-INP-09` Daftar Pantau** — baru 2026-09-02 | Satu layar kini dipakai tiga sub-modul: 4 daftar `episode-rawat-inap`, 1 `keperawatan`, 1 `dokter-rawat-inap` | Ditetapkan saat salah satu daftar baru dikerjakan; **tidak boleh** diputuskan sendiri-sendiri |
+| ~~**Urutan daftar di dalam `FE-INP-09` Daftar Pantau**~~ — dibuka 2026-09-02 | ✅ **DITETAPKAN 12 September 2026 oleh pemilik peta modul.** Urutannya: **empat daftar `episode-rawat-inap` lebih dulu, lalu `dokter-rawat-inap`, lalu `keperawatan`.** Sebelum ketetapan ini source merender keperawatan mendahului dokter; urutannya ditukar pada tanggal yang sama di `inpatient-monitoring-view.jsx`. Ketetapan ini menutup kriteria 5 `FE-RWI-050`. Perubahan urutan berikutnya tetap **tidak boleh** diputuskan satu sub-modul sendirian | Pemilik peta modul — **tertutup** |
 
 Tidak satu pun menahan pekerjaan `episode-rawat-inap`, dan `RWI-OQ-048` tidak menahan ketiga
 kemampuan `MUST HAVE` milik `keperawatan`.
