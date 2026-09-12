@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.4.0",
-  "releaseName": "Health Services Integration Release 0.4.0",
-  "description": "Release integration and stabilization for Billing Management, Clinical Management, Laboratory Management, Master Data, Medical Record Management, Pharmacy Management, Radiology Management, and Registration Management, including validated database migration and release-gate repairs."
+  "backendVersion": "0.5.0",
+  "releaseName": "Quilvian Integration Release 0.5.0",
+  "description": "Integration release for Blood Bank Management and the shared Number Series platform capability, with Radiology Management reporting, order urgency and numbering, Billing deposit policy and payment account master data, plus Laboratory, Clinical, Pharmacy and Registration stabilization. Includes canonical Reg/Phm table-prefix normalization and EF migration metadata repairs."
 }
