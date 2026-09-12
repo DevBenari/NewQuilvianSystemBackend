@@ -53,6 +53,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
         {
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
                 .Include(x => x.Items).ThenInclude(x => x.Category)
+                // BE-BKC-FIX-009: sama seperti BillingInvoiceService.GetDetailAsync - wajib untuk
+                // Unit (satuan dispensing obat/alkes) pada BillingInvoiceService.MapItems di bawah.
+                .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
 
@@ -206,6 +209,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                     EncounterNumber = encounter.EncounterNumber,
                     EncounterDate = encounter.EncounterDate
                 },
+                // BE-BKC-FIX-009: gap ditemukan FE-BKC-028 - rumus tunggal dipakai bersama GET /{id}.
+                Items = BillingInvoiceService.MapItems(invoice.Items),
                 Calculation = calculation,
                 CurrentPayer = currentPayer,
                 AvailablePayerOptions = availablePayerOptions,

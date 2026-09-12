@@ -1138,6 +1138,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; klik-coba ter-autentikasi bila environment tersedia |
 | Risiko/pemilik | Menghitung selisih perbandingan di peramban melanggar `NFR-025` dan menghasilkan angka yang berbeda dari tagihan sesungguhnya. Menambah properti wajib pada `BasePayerWorkspace` akan merusak alur admisi Rawat Inap. Owner Frontend |
 | DoD | Ketiga endpoint terpakai; nol perhitungan finansial di peramban; regresi langkah pembayaran admisi Rawat Inap terbukti tidak berubah; lint, test, dan build lulus; `git status --short` dilaporkan |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — kerangka `FE-MPY-01` dan panel `FE-MPY-02` selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Ditemukan delta kontrak `BE-BKC-047` (`InvoiceEditContextResponse` tidak membawa deskripsi/satuan/harga/qty per baris) — diselesaikan dengan memanggil ulang `GET /{id}` yang sudah ada, tanpa mengubah backend; lihat laporan untuk detail. **Update 12 September 2026:** gap itu ditutup di sisi backend lewat `BE-BKC-FIX-009` (`edit-context` kini membawa `Items`), dan halaman ini **sudah dibersihkan mengikutinya** — panggilan `GET /{id}` terpisah dihapus dari `use-billing-invoice-edit-tagihan.js`; tabel "Rincian tagihan" kini membaca `editContext.items` langsung, satu panggilan API per buka halaman. Panel `FE-MPY-03`/`FE-MPY-04` sengaja masih placeholder, menunggu `FE-BKC-029`/`030`. Laporan: [`task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md`](../task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) |
 
 ## `FE-BKC-029` — Panel Edit Status Tagihan
 
@@ -1155,6 +1156,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Menyembunyikan pilihan yang tidak tersedia alih-alih menonaktifkannya membuat kasir menyangka fiturnya rusak. Menghilangkan subjudul membuat pengguna menyangka yang diubah status hidup-matinya tagihan. Owner Frontend |
 | DoD | Panel berjalan; subjudul ada; pilihan nonaktif beserta alasan terbukti; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Baris `VOIDED` disumberkan dari `editContext.items` (`BE-BKC-FIX-009`) disilangkan dengan `itemPayerAssignments`, karena `itemPayerAssignments` sendiri mengecualikan baris `VOIDED` sepenuhnya. Ketersediaan pilihan Asuransi/Penjamin per baris memakai `currentPayer.paymentType`, dikonfirmasi cocok persis dengan validasi `BIL-VAL-077`/`078` di `BillingPayerEditService`. Laporan: [`task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md`](../task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md) |
 
 ## `FE-BKC-030` — Panel Edit Billing
 
@@ -1172,6 +1174,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Memunculkan kontrol jumlah pada layar ini melanggar `MPY-DEC-009` dan mengundang kasir mengubah resep dari konteks penagihan. Owner Frontend |
 | DoD | Panel berjalan; kontrol jumlah terbukti tidak ada; kelayakan per jenis kunjungan terbukti; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — panel selesai ditulis di branch `yasmina`, belum di-commit. Panel terakhir rumpun ini — seluruh tiga slot toolbar `FE-MPY-01` (`FE-BKC-028`–`030`) kini terisi. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Mode awal panel disimpulkan dari disposisi tersimpan (bukan selalu "Ditebus" kosong); jumlah dirender teks polos (bukan `<input>`) supaya Acceptance `#65` terpenuhi struktural; Acceptance `#64` sudah digerbang di level kerangka `FE-BKC-028` lewat `capabilities.canEditDrugBilling`. Laporan: [`task/report/frontend/fe-bkc-030-panel-edit-billing.md`](../task/report/frontend/fe-bkc-030-panel-edit-billing.md) |
 
 ## `FE-BKC-031` — Lembar tagihan penjamin perusahaan pada Dokumen Kasir
 
@@ -1189,6 +1192,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Merender data penjamin perusahaan memakai komponen lembar Invoice Asuransi akan mencampur dua dokumen berbeda debitur. Owner Frontend |
 | DoD | Tab berjalan; ketiga jenis kunjungan berperilaku benar; nama berkas terbukti memakai nomor tagihan; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — tab selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Tab SELALU tampil (tidak disembunyikan) untuk kunjungan non-perusahaan, mengikuti pola sibling Invoice Asuransi yang sudah ada persis — memilih opsi pertama Acceptance ("tab tidak tersedia **atau** menampilkan keterangan"). Laporan: [`task/report/frontend/fe-bkc-031-lembar-tagihan-penjamin-perusahaan-dokumen-kasir.md`](../task/report/frontend/fe-bkc-031-lembar-tagihan-penjamin-perusahaan-dokumen-kasir.md) |
 
 ## `FE-BKC-032` — Master Data Rute Reimbursement Penjamin Perusahaan
 
@@ -1206,6 +1210,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; butir menu terlihat pada sidebar saat masuk sebagai peran berwenang |
 | Risiko/pemilik | Layar selesai tetapi butir menunya lupa didaftarkan — kejadian nyata pada modul ini sebelumnya, dan itu sebabnya pendaftaran menu menjadi acceptance criteria task ini, bukan pekerjaan terpisah. Owner Frontend |
 | DoD | CRUD berjalan; butir menu terdaftar dan terjangkau; aturan sembunyikan-dan-kosongkan terbukti; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — fitur master data 7 berkas + 2 registrasi selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Entitas tidak punya field kode bisnis; `companyGuarantorId` hanya ada pada form create (tidak ada di update, bukan sekadar disabled — sesuai kontrak backend); aturan sembunyikan-dan-kosongkan `insuranceProviderId` pada SELF diimplementasikan lewat `hidden` dinamis + pengosongan nilai di `handleChange` dan `buildPayload`. Select relasi memakai `select-resource-registry.js` yang sudah ada (bukan pola manual `optionMap`+dispatch dari standar bagian 8) — kemungkinan celah dokumentasi, lihat laporan. Laporan: [`task/report/frontend/fe-bkc-032-master-data-rute-reimbursement-penjamin-perusahaan.md`](../task/report/frontend/fe-bkc-032-master-data-rute-reimbursement-penjamin-perusahaan.md) |
 
 ## `FE-BKC-033` — Master Data Aturan Tanggungan Penjamin Perusahaan
 
@@ -1223,6 +1228,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; butir menu terlihat pada sidebar |
 | Risiko/pemilik | Membiarkan urun biaya dapat diketik membuat admin menyangka nilainya tersimpan, padahal server menimpanya. Owner Frontend |
 | DoD | CRUD berjalan; butir menu terdaftar; urun biaya hanya-baca terbukti; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — fitur master data 7 berkas + 2 registrasi selesai ditulis di branch `yasmina`, belum di-commit. Backend (`BE-BKC-043`) sudah selesai penuh sebelum task ini dimulai, dikonfirmasi dari source. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Dibangun semirip mungkin dengan layar Aturan Cakupan Asuransi (`BaseGroupedEditorView`) sesuai arahan, tetapi memperbaiki beberapa cacat yang ditemukan pada rujukannya (field mati isCovered/isExcluded tidak ditiru, patientClassId jadi select asli bukan teks bebas, ItemType TariffCategory bukan ServiceCategory) — detail lengkap di laporan. Urun Biaya dikunci hanya-baca dan diturunkan otomatis dari Persentase Tanggungan, dengan backend tetap sebagai wasit akhir. Laporan: [`task/report/frontend/fe-bkc-033-master-data-aturan-tanggungan-penjamin-perusahaan.md`](../task/report/frontend/fe-bkc-033-master-data-aturan-tanggungan-penjamin-perusahaan.md) |
 
 ## `FE-BKC-034` — Aksesibilitas, privasi, dan regresi lintas layar
 
@@ -1239,6 +1245,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; penelusuran papan ketik manual |
 | Risiko/pemilik | Pemakaian ulang komponen bersama tanpa regresi konsumen lamanya adalah cara paling umum merusak modul yang tidak sedang dikerjakan. Owner Frontend |
 | DoD | Keempat layar lolos penelusuran papan ketik; regresi Rawat Inap terbukti; lint, test, dan build lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — audit kode selesai di branch `yasmina`. **Satu regresi nyata ditemukan dan diperbaiki**: ekstraksi tabel Menu Pembayaran (`FE-BKC-028`) kehilangan kelas CSS `margin-bottom: 0` sehingga membuka jarak 96px yang tidak pernah ada sebelumnya — sudah diperbaiki lewat prop `className` opsional. Acceptance `#70` (regresi Rawat Inap) terbukti *by construction*: `base-payer-workspace.jsx` dan konsumen aslinya nol baris berubah menurut `git diff`. 9 dari 10 berkas pra-eksisting lain terbukti murni tambahan tanpa baris dihapus/diubah. Nol UUID dan pemakaian nomor polis/karyawan sudah ditinjau kode dan sesuai konteks. `npm run lint`/`test:unit`/`build` dan penelusuran papan ketik manual di browser **TIDAK/BELUM dijalankan** (instruksi baku pengguna / NOT FEASIBLE tanpa environment ter-autentikasi). Laporan: [`task/report/frontend/fe-bkc-034-aksesibilitas-privasi-dan-regresi-lintas-layar.md`](../task/report/frontend/fe-bkc-034-aksesibilitas-privasi-dan-regresi-lintas-layar.md) |
 
 ## Paralelisme dan urutan ringkas
 

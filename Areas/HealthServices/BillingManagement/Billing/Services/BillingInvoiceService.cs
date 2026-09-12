@@ -1685,9 +1685,17 @@ public sealed class BillingInvoiceService
         _ => throw new BillingInvoiceValidationException("Jenis encounter belum didukung untuk Billing.")
     };
 
-    private static InvoiceDetailResponse MapDetail(BilInvoice invoice, bool isReplay)
-    {
-        var items = invoice.Items.Where(x => !x.IsDelete)
+    /// <summary>
+    /// Pemetaan tunggal <see cref="BilInvoiceItem"/> -> <see cref="InvoiceItemResponse"/>, dipakai
+    /// <see cref="MapDetail"/> (GET /{id}) maupun <see cref="BillingPayerEditService.GetEditContextAsync"/>
+    /// (GET /{id}/edit-context, BE-BKC-FIX-009) supaya kedua layar membaca deskripsi/satuan/harga
+    /// satuan/qty/kategori item yang identik dari satu rumus, bukan dua salinan yang bisa menyimpang.
+    /// Pemanggil MUST memuat invoice dengan Include(Items).ThenInclude(Category) DAN
+    /// Include(Items).ThenInclude(Tariff).ThenInclude(Drug).ThenInclude(DispenseUnitMeasurement) -
+    /// tanpa include kedua, Unit selalu null untuk item farmasi.
+    /// </summary>
+    internal static List<InvoiceItemResponse> MapItems(IEnumerable<BilInvoiceItem> items) =>
+        items.Where(x => !x.IsDelete)
             .OrderBy(x => x.CreateDateTime).Select(x => new InvoiceItemResponse
             {
                 Id = x.Id,
@@ -1714,6 +1722,10 @@ public sealed class BillingInvoiceService
                 Status = x.Status,
                 VoidReason = x.VoidReason
             }).ToList();
+
+    private static InvoiceDetailResponse MapDetail(BilInvoice invoice, bool isReplay)
+    {
+        var items = MapItems(invoice.Items);
         var activeItems = items.Where(x => x.Status != BillingInvoiceItemStatuses.Voided).ToList();
         return new InvoiceDetailResponse
         {

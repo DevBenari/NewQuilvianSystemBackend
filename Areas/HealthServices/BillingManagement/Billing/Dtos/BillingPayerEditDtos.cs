@@ -75,6 +75,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
     public sealed class InvoiceEditContextResponse
     {
         public InvoiceEditHeaderResponse Invoice { get; set; } = new();
+
+        // BE-BKC-FIX-009: baris biaya mentah (deskripsi/satuan/harga satuan/qty/kategori) - gap
+        // yang ditemukan FE-BKC-028. Sebelum field ini ada, dokumentasi ringkasan class ini
+        // ("seluruh bahan layar dalam satu panggilan") tidak sepenuhnya benar: Calculation.Breakdown.Items
+        // hanya membawa angka kalkulasi per item (primary/unresolved/pajak), BUKAN deskripsi/satuan/
+        // harga/qty/nama kategori yang dibutuhkan tabel Rincian Tagihan. Bentuk dan urutannya SAMA
+        // PERSIS dengan InvoiceDetailResponse.Items (GET /{id}) - satu rumus pemetaan
+        // (BillingInvoiceService.MapItems), termasuk item berstatus VOIDED (konsumen menyaring
+        // sendiri seperti Menu Pembayaran, bukan backend yang menyaring).
+        public List<InvoiceItemResponse> Items { get; set; } = [];
+
         public CalculationResponse Calculation { get; set; } = new();
         public CurrentPayerResponse CurrentPayer { get; set; } = new();
         public List<AvailablePayerOptionResponse> AvailablePayerOptions { get; set; } = [];
