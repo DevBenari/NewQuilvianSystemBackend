@@ -126,12 +126,23 @@ namespace QuilvianSystemBackend.Services.Security
                 .Select(x => x!)
                 .ToList();
 
-            return BuildCore(endpoints);
+            // Penanda tanpa endpoint dibaca dari assembly yang sama dengan controller yang
+            // dipindai, sehingga jalur ini dan BuildFromAssembly memakai sumber deklarasi yang
+            // identik. Lihat AccessExplicitPermissionAttribute.
+            var assemblies = provider
+                .ActionDescriptors
+                .Items
+                .OfType<ControllerActionDescriptor>()
+                .Select(x => x.ControllerTypeInfo.Assembly)
+                .Distinct();
+
+            return BuildCore(endpoints, ReadExplicitPermissions(assemblies));
         }
 
         /// <summary>
-        /// Membangun snapshot langsung dari assembly, tanpa host MVC. Dipakai test invarian supaya
-        /// registry yang diuji benar-benar diturunkan dari atribut yang sama dengan seeder.
+        /// Membangun snapshot langsung dari assembly, tanpa host MVC. Dipakai authorization
+        /// verifier supaya registry yang diperiksa benar-benar diturunkan dari kontrak atribut
+        /// yang sama dengan seeder, dan bermuara pada <see cref="BuildCore"/> yang sama.
         /// </summary>
         public static RegistrySnapshot BuildFromAssembly(Assembly assembly)
         {
@@ -171,10 +182,24 @@ namespace QuilvianSystemBackend.Services.Security
                 }
             }
 
-            return BuildCore(endpoints);
+            return BuildCore(endpoints, ReadExplicitPermissions([assembly]));
         }
 
-        private static RegistrySnapshot BuildCore(IReadOnlyList<EndpointFacts> endpoints)
+        /// <summary>
+        /// Membaca penanda tanpa endpoint dari atribut level assembly. Inilah satu-satunya
+        /// pembaca deklarasi tersebut; kedua entry point memanggilnya, sehingga tidak ada
+        /// otoritas penemuan kedua.
+        /// </summary>
+        private static IReadOnlyList<AccessExplicitPermissionAttribute> ReadExplicitPermissions(
+            IEnumerable<Assembly> assemblies) =>
+            assemblies
+                .Distinct()
+                .SelectMany(x => x.GetCustomAttributes<AccessExplicitPermissionAttribute>())
+                .ToList();
+
+        private static RegistrySnapshot BuildCore(
+            IReadOnlyList<EndpointFacts> endpoints,
+            IReadOnlyList<AccessExplicitPermissionAttribute> explicitPermissions)
         {
             var snapshot = new RegistrySnapshot();
 
@@ -250,6 +275,59 @@ namespace QuilvianSystemBackend.Services.Security
                         snapshot, resourceSeen, actionSeen, controllerAttribute, endpoint,
                         resourceName, actionName, controllerIsSystemOnly, controllerVisible);
                 }
+            }
+
+            // Penanda tanpa endpoint. Dijalankan SESUDAH pemindaian endpoint karena resource-nya
+            // lahir dari pemindaian itu: sebuah penanda tidak dapat didaftarkan pada resource yang
+            // belum ada.
+            //
+            // Sengaja TIDAK masuk allUsages maupun UnenforcedActions. Keduanya menjawab pertanyaan
+            // tentang endpoint — "adakah endpoint yang memberi kunci ini metadata" dan "adakah
+            // endpoint ber-[AccessAction] yang tidak ditegakkan permission". Penanda tidak punya
+            // endpoint sama sekali, sehingga memasukkannya ke sana akan melaporkan gap palsu atau
+            // melebarkan himpunan fallback yang sudah disetujui.
+            foreach (var explicitPermission in explicitPermissions)
+            {
+                var resourceKey = $"{explicitPermission.ModuleCode}|{explicitPermission.ResourceName}";
+
+                // Gagal keras, dan itu disengaja. Penanda yang gagal terdaftar menghasilkan 403
+                // permanen yang tidak dapat diperbaiki dari layar mana pun — persis bentuk
+                // kegagalan yang membuat mekanisme ini ada. Melewatinya diam-diam berarti
+                // mengulangi cacat itu dengan kode yang terlihat seperti sudah menanganinya.
+                if (!resourceSeen.Contains(resourceKey))
+                {
+                    throw new InvalidOperationException(
+                        $"Hak akses penanda '{explicitPermission.ResourceName} : " +
+                        $"{explicitPermission.ActionName}' menunjuk resource yang tidak terdaftar " +
+                        $"pada module '{explicitPermission.ModuleCode}'. Resource wajib lahir lebih " +
+                        "dulu dari pemindaian endpoint. Bila controllernya memang dihapus, hapus " +
+                        "juga deklarasi [assembly: AccessExplicitPermission] miliknya.");
+                }
+
+                var explicitActionKey =
+                    $"{explicitPermission.ModuleCode}|{explicitPermission.ResourceName}|{explicitPermission.ActionName}";
+
+                if (actionSeen.Add(explicitActionKey))
+                {
+                    // HttpMethod dan RoutePath dibiarkan null. Penanda ini memang tidak punya
+                    // route, dan mengisinya dengan nilai karangan membuat layar Akses Role
+                    // menampilkan alamat yang tidak dapat dipanggil siapa pun.
+                    snapshot.Actions.Add(new ActionDescriptorEntry(
+                        explicitPermission.ModuleCode,
+                        explicitPermission.ResourceName,
+                        explicitPermission.ActionName,
+                        explicitPermission.DisplayName,
+                        explicitPermission.Description,
+                        explicitPermission.AccessType,
+                        explicitPermission.SortOrder,
+                        VisibleInRoleAccess: true,
+                        IsSystemOnly: false,
+                        HttpMethod: null,
+                        RoutePath: null));
+                }
+
+                snapshot.DeclaredKeys.Add(RegistrySnapshot.Key(
+                    explicitPermission.ResourceName, explicitPermission.ActionName));
             }
 
             // Pass kedua: sebuah kunci runtime baru dianggap bermasalah bila TIDAK ADA satu pun
