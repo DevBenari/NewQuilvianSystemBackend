@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
@@ -27,39 +28,514 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
+        private readonly RadOrderNumberService _orderNumberService;
 
         public RadOrderService(
             ApplicationDbContext dbContext,
             IHttpContextAccessor httpContextAccessor,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            RadOrderNumberService orderNumberService)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
+            _orderNumberService = orderNumberService;
         }
+
+        /* ================================================================ *
+         * Metadata penyaring dan ringkasan
+         * ================================================================ */
+
+        /// <summary>
+        /// Pilihan penyaring, pengurutan, dan parameter query untuk layar daftar pesanan.
+        ///
+        /// Tidak menyentuh database sama sekali: seluruh isinya berasal dari enum yang sudah
+        /// dikunci kontrak. Layar memakainya supaya tidak perlu menuliskan ulang daftar status
+        /// di sisi klien — daftar yang disalin adalah daftar yang cepat atau lambat berbeda.
+        /// </summary>
+        public RadOrderFilterMetadataResponse GetFilterMetadata() => new()
+        {
+            OrderStatuses = Enum.GetValues<RadOrderStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusPesanan(x),
+                })
+                .ToList(),
+
+            SortOptions =
+            [
+                new() { Value = "createDateTime", Label = "Tanggal pesanan dibuat" },
+                new() { Value = "orderStatus", Label = "Status pesanan" },
+                new() { Value = "orderNumber", Label = "Nomor pesanan" },
+                new() { Value = "scheduledAt", Label = "Jadwal pemeriksaan" },
+            ],
+
+            SortDirections = ["asc", "desc"],
+
+            // RAD-CONF-001 bagian 8 butir 3. Daftar ini wajib menyebut persis parameter yang
+            // benar-benar diproses GetListAsync. Metadata yang menjanjikan penyaring yang tidak
+            // dilayani adalah cacat kontrak, dan layar yang mempercayainya akan menampilkan
+            // hasil yang tidak tersaring tanpa memberi tahu siapa pun.
+            QueryParameters =
+            [
+                new()
+                {
+                    Name = "encounterId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Menyaring pesanan milik satu kunjungan pasien.",
+                },
+                new()
+                {
+                    Name = "patientId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Menyaring pesanan milik satu pasien, lintas kunjungan.",
+                },
+                new()
+                {
+                    Name = "medicalRecordNumber",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Nomor rekam medis, cocok sebagian.",
+                },
+                new()
+                {
+                    Name = "encounterNumber",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Nomor registrasi kunjungan, cocok sebagian.",
+                },
+                new()
+                {
+                    Name = "orderNumber",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Nomor pesanan radiologi, cocok sebagian.",
+                    Example = "RAD-ORD-260911074012-A1B2C3",
+                },
+                new()
+                {
+                    Name = "studyNumber",
+                    Type = "string",
+                    Required = "No",
+                    Description =
+                        "Nomor foto/study. Pesanan ikut tersaring bila salah satu study-nya " +
+                        "bernomor itu.",
+                },
+                new()
+                {
+                    Name = "startDate",
+                    Type = "date",
+                    Required = "No",
+                    Description = "Awal periode, dihitung dari waktu pemesanan.",
+                    Example = "2026-09-01",
+                },
+                new()
+                {
+                    Name = "endDate",
+                    Type = "date",
+                    Required = "No",
+                    Description = "Akhir periode.",
+                    Example = "2026-09-30",
+                },
+                new()
+                {
+                    Name = "encounterType",
+                    Type = "int",
+                    Required = "No",
+                    Description =
+                        "Jenis kunjungan: rawat jalan, rawat inap, atau gawat darurat. " +
+                        "Inilah yang memisahkan kategori daftar pasien radiologi.",
+                },
+                new()
+                {
+                    Name = "serviceUnitId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Unit layanan asal pesanan.",
+                },
+                new()
+                {
+                    Name = "roomId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Ruangan asal pesanan.",
+                },
+                new()
+                {
+                    Name = "modalityId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Alat pencitraan yang diminta.",
+                },
+                new()
+                {
+                    Name = "procedureId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Jenis pemeriksaan yang diminta.",
+                },
+                new()
+                {
+                    Name = "orderStatus",
+                    Type = "int",
+                    Required = "No",
+                    Description = "Status pesanan. Nilainya diambil dari OrderStatuses.",
+                },
+                new()
+                {
+                    Name = "onlyUrgent",
+                    Type = "bool",
+                    Required = "No",
+                    Description = "Menyaring pesanan bertanda cito saja.",
+                },
+                new()
+                {
+                    Name = "onlyScheduled",
+                    Type = "bool",
+                    Required = "No",
+                    Description =
+                        "Menyaring pesanan yang sudah punya tanggal pemeriksaan. Inilah yang " +
+                        "membentuk daftar Pasien Perjanjian.",
+                },
+                new()
+                {
+                    Name = "scheduledFrom",
+                    Type = "date",
+                    Required = "No",
+                    Description = "Awal periode jadwal pemeriksaan.",
+                },
+                new()
+                {
+                    Name = "scheduledTo",
+                    Type = "date",
+                    Required = "No",
+                    Description = "Akhir periode jadwal pemeriksaan.",
+                },
+                new()
+                {
+                    Name = "search",
+                    Type = "string",
+                    Required = "No",
+                    Description =
+                        "Pencarian bebas pada nama pasien, nomor rekam medis, nomor kunjungan, " +
+                        "dan nomor pesanan.",
+                },
+                new()
+                {
+                    Name = "limit",
+                    Type = "int",
+                    Required = "No",
+                    Description =
+                        "Batas jumlah baris. Bawaannya 200, paling banyak 1000. Daftar ini " +
+                        "belum memakai PagedResult, sehingga batas inilah yang menjaga " +
+                        "pencarian se-rumah-sakit tetap terbatas.",
+                    Example = "200",
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Kolom pengurutan. Nilainya diambil dari SortOptions.",
+                    Example = "createDateTime",
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Arah pengurutan, asc atau desc. Bawaannya desc.",
+                    Example = "desc",
+                },
+            ],
+        };
+
+        /// <summary>
+        /// Rekap jumlah pesanan radiologi menurut statusnya.
+        ///
+        /// Dihitung di database dengan satu perjalanan, bukan dengan menarik seluruh baris lalu
+        /// menghitungnya di memori.
+        /// </summary>
+        public async Task<RadOrderSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var rekap = await _dbContext.RadOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Diminta = g.Count(x => x.OrderStatus == RadOrderStatus.Requested),
+                    Diterima = g.Count(x => x.OrderStatus == RadOrderStatus.Accepted),
+                    Dijadwalkan = g.Count(x => x.OrderStatus == RadOrderStatus.Scheduled),
+                    SedangDikerjakan = g.Count(x => x.OrderStatus == RadOrderStatus.InProgress),
+                    Selesai = g.Count(x => x.OrderStatus == RadOrderStatus.Completed),
+                    Ditahan = g.Count(x => x.OrderStatus == RadOrderStatus.OnHold),
+                    Dibatalkan = g.Count(x => x.OrderStatus == RadOrderStatus.Cancelled),
+                    Ditolak = g.Count(x => x.OrderStatus == RadOrderStatus.Rejected),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new RadOrderSummaryResponse
+            {
+                TotalPesanan = rekap?.Total ?? 0,
+                Diminta = rekap?.Diminta ?? 0,
+                Diterima = rekap?.Diterima ?? 0,
+                Dijadwalkan = rekap?.Dijadwalkan ?? 0,
+                SedangDikerjakan = rekap?.SedangDikerjakan ?? 0,
+                Selesai = rekap?.Selesai ?? 0,
+                Ditahan = rekap?.Ditahan ?? 0,
+                Dibatalkan = rekap?.Dibatalkan ?? 0,
+                Ditolak = rekap?.Ditolak ?? 0,
+                BelumDikerjakan =
+                    (rekap?.Diminta ?? 0) + (rekap?.Diterima ?? 0) + (rekap?.Dijadwalkan ?? 0),
+            };
+        }
+
+        private static string LabelStatusPesanan(RadOrderStatus status) => status switch
+        {
+            RadOrderStatus.Draft => "Draf — tidak dipakai",
+            RadOrderStatus.Requested => "Diminta dokter",
+            RadOrderStatus.Accepted => "Diterima Radiologi",
+            RadOrderStatus.Scheduled => "Dijadwalkan",
+            RadOrderStatus.InProgress => "Sedang dikerjakan",
+            RadOrderStatus.Completed => "Selesai dikerjakan",
+            RadOrderStatus.OnHold => "Ditahan sementara",
+            RadOrderStatus.CancelRequested => "Menunggu pembatalan",
+            RadOrderStatus.Cancelled => "Dibatalkan",
+            _ => "Ditolak Radiologi",
+        };
 
         /* ================================================================ *
          * Pembacaan
          * ================================================================ */
 
+        /// <summary>
+        /// Daftar pesanan radiologi beserta penyaringnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>RAD-CONF-001</c> bagian 8 butir 3. Lima kategori daftar pasien radiologi dan
+        /// delapan kriteria pencarian riwayat seluruhnya dilayani dari satu endpoint ini —
+        /// bukan dari lima endpoint yang isinya hampir sama.
+        /// </remarks>
         public async Task<List<RadOrderListResponse>> GetListAsync(
-            Guid? encounterId = null,
+            RadOrderListQuery? query = null,
             CancellationToken cancellationToken = default)
         {
-            var query = _dbContext.RadOrders
+            query ??= new RadOrderListQuery();
+
+            var source = _dbContext.RadOrders
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
+            source = TerapkanPenyaring(source, query);
+
+            return await ProyeksikanDaftarAsync(
+                Urutkan(source, query.SortBy, query.SortDirection),
+                query.BatasBaris(),
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Menerapkan seluruh penyaring daftar pesanan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Ditulis satu kali dan dipakai satu pintu, mengikuti <c>LabMonitoringService</c> yang
+        /// sudah berjalan. Penyaring yang disalin ke beberapa tempat lambat laun menyimpang satu
+        /// sama lain, dan penyimpangannya baru ketahuan ketika dua layar menampilkan jumlah
+        /// pasien yang berbeda untuk pertanyaan yang sama.
+        /// </para>
+        /// <para>
+        /// <b>Seluruh penyaring lintas modul dikerjakan sebagai subquery ke tabel pemiliknya,
+        /// bukan lewat kolom salinan.</b> Radiologi tidak menyimpan nama pasien maupun nomor
+        /// rekam medis, dan tidak boleh mulai menyimpannya hanya demi penyaringan.
+        /// </para>
+        /// </remarks>
+        private IQueryable<RadOrder> TerapkanPenyaring(
+            IQueryable<RadOrder> source,
+            RadOrderListQuery query)
+        {
             // Penyaring kunjungan disediakan sejak awal. Modul Laboratorium tidak memilikinya,
             // dan akibatnya layar Billing terpaksa menyaring seluruh pesanan rumah sakit di
             // sisi klien — batas yang tidak perlu diulang di sini.
-            if (encounterId.HasValue && encounterId.Value != Guid.Empty)
+            if (query.EncounterId.HasValue && query.EncounterId.Value != Guid.Empty)
             {
-                query = query.Where(x => x.EncounterId == encounterId.Value);
+                source = source.Where(x => x.EncounterId == query.EncounterId.Value);
             }
 
-            return await ProyeksikanDaftarAsync(
-                query.OrderByDescending(x => x.CreateDateTime), cancellationToken);
+            if (query.PatientId.HasValue && query.PatientId.Value != Guid.Empty)
+            {
+                source = source.Where(x =>
+                    x.Encounter != null && x.Encounter.PatientId == query.PatientId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.MedicalRecordNumber))
+            {
+                var nomor = query.MedicalRecordNumber.Trim();
+
+                source = source.Where(x =>
+                    x.Encounter != null &&
+                    _dbContext.MstPatients.Any(p =>
+                        p.Id == x.Encounter.PatientId && p.MedicalRecordNumber.Contains(nomor)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.EncounterNumber))
+            {
+                var nomor = query.EncounterNumber.Trim();
+
+                source = source.Where(x =>
+                    x.Encounter != null && x.Encounter.EncounterNumber.Contains(nomor));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.OrderNumber))
+            {
+                var nomor = query.OrderNumber.Trim();
+                source = source.Where(x => x.OrderNumber.Contains(nomor));
+            }
+
+            // Nomor foto tinggal pada study, bukan pesanan. Sebuah pesanan ikut tersaring bila
+            // SALAH SATU study-nya bernomor itu — petugas yang memegang amplop citra hanya
+            // memegang satu nomor, dan yang ia cari adalah pesanan yang memuatnya.
+            if (!string.IsNullOrWhiteSpace(query.StudyNumber))
+            {
+                var nomor = query.StudyNumber.Trim();
+
+                source = source.Where(x =>
+                    x.Studies.Any(s => !s.IsDelete && s.StudyNumber.Contains(nomor)));
+            }
+
+            if (query.StartDate.HasValue)
+            {
+                var mulai = query.StartDate.Value;
+                source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) >= mulai);
+            }
+
+            if (query.EndDate.HasValue)
+            {
+                var sampai = query.EndDate.Value;
+                source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) <= sampai);
+            }
+
+            if (query.EncounterType.HasValue)
+            {
+                var jenis = (EncounterType)query.EncounterType.Value;
+
+                source = source.Where(x =>
+                    x.Encounter != null && x.Encounter.EncounterType == jenis);
+            }
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                source = source.Where(x =>
+                    x.Encounter != null && x.Encounter.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            if (query.RoomId.HasValue && query.RoomId.Value != Guid.Empty)
+            {
+                source = source.Where(x =>
+                    x.Encounter != null && x.Encounter.RoomId == query.RoomId.Value);
+            }
+
+            if (query.ModalityId.HasValue && query.ModalityId.Value != Guid.Empty)
+            {
+                source = source.Where(x => x.ModalityId == query.ModalityId.Value);
+            }
+
+            if (query.ProcedureId.HasValue && query.ProcedureId.Value != Guid.Empty)
+            {
+                source = source.Where(x => x.ProcedureId == query.ProcedureId.Value);
+            }
+
+            if (query.OrderStatus.HasValue)
+            {
+                source = source.Where(x => x.OrderStatus == query.OrderStatus.Value);
+            }
+
+            if (query.OnlyUrgent == true)
+            {
+                source = source.Where(x => x.IsUrgent);
+            }
+
+            // Daftar Pasien Perjanjian: pesanan yang sudah punya tanggal pemeriksaan.
+            if (query.OnlyScheduled == true)
+            {
+                source = source.Where(x => x.ScheduledAt != null);
+            }
+
+            if (query.ScheduledFrom.HasValue)
+            {
+                var mulai = query.ScheduledFrom.Value;
+                source = source.Where(x => x.ScheduledAt != null && x.ScheduledAt >= mulai);
+            }
+
+            if (query.ScheduledTo.HasValue)
+            {
+                var sampai = query.ScheduledTo.Value;
+                source = source.Where(x => x.ScheduledAt != null && x.ScheduledAt <= sampai);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+
+                source = source.Where(x =>
+                    x.OrderNumber.Contains(search) ||
+                    (x.Encounter != null &&
+                     (x.Encounter.EncounterNumber.Contains(search) ||
+                      _dbContext.MstPatients.Any(p =>
+                          p.Id == x.Encounter.PatientId &&
+                          (p.FullName.Contains(search) ||
+                           p.MedicalRecordNumber.Contains(search))))));
+            }
+
+            return source;
+        }
+
+        /// <summary>
+        /// Menerapkan pengurutan yang diminta layar.
+        ///
+        /// Hanya kolom yang benar-benar disebut <c>SortOptions</c> yang dilayani; nilai lain
+        /// jatuh ke urutan bawaan, bukan ditolak. Metadata yang menjanjikan pengurutan yang
+        /// tidak diproses daftar adalah cacat kontrak, sehingga keduanya sengaja ditulis
+        /// berdampingan di berkas ini.
+        /// </summary>
+        private static IOrderedQueryable<RadOrder> Urutkan(
+            IQueryable<RadOrder> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var menaik = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "orderstatus" => menaik
+                    ? query.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.OrderStatus)
+                        .ThenByDescending(x => x.CreateDateTime),
+
+                "ordernumber" => menaik
+                    ? query.OrderBy(x => x.OrderNumber)
+                    : query.OrderByDescending(x => x.OrderNumber),
+
+                // Pesanan tanpa jadwal ditaruh di belakang pada urutan menaik, supaya daftar
+                // perjanjian tidak dibuka oleh sederet baris kosong.
+                "scheduledat" => menaik
+                    ? query.OrderBy(x => x.ScheduledAt == null)
+                        .ThenBy(x => x.ScheduledAt)
+                        .ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.ScheduledAt)
+                        .ThenByDescending(x => x.CreateDateTime),
+
+                _ => menaik
+                    ? query.OrderBy(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.CreateDateTime),
+            };
         }
 
         /// <summary>
@@ -87,7 +563,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 .Where(x => !x.IsDelete && x.InpEpisodeId == episodeId);
 
             return await ProyeksikanDaftarAsync(
-                query.OrderBy(x => x.CreateDateTime), cancellationToken);
+                query.OrderBy(x => x.CreateDateTime), null, cancellationToken);
         }
 
         /// <summary>
@@ -99,14 +575,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// yang belum lolos mutu bukan hasil sah, dan menampilkannya seolah-olah hasil adalah
         /// risiko keselamatan.
         /// </remarks>
+        /// <param name="query">Pesanan yang sudah disaring dan diurutkan.</param>
+        /// <param name="batasBaris">
+        /// Batas jumlah baris. <c>null</c> berarti tanpa batas, dan itu hanya dipakai jalur yang
+        /// dengan sendirinya sempit — daftar satu perawatan rawat inap. Jalur daftar umum selalu
+        /// mengirim batas, karena pencarian riwayat adalah pertanyaan se-rumah-sakit.
+        /// </param>
+        /// <param name="cancellationToken">Token pembatalan.</param>
         private static async Task<List<RadOrderListResponse>> ProyeksikanDaftarAsync(
             IOrderedQueryable<RadOrder> query,
+            int? batasBaris,
             CancellationToken cancellationToken)
         {
-            var baris = await query
+            // Pembatasan dilakukan SEBELUM proyeksi, supaya baris yang tidak akan dikembalikan
+            // tidak ikut menggabungkan tabel pasien, ruangan, kelas, dan penjamin.
+            IQueryable<RadOrder> terbatas = batasBaris.HasValue
+                ? query.Take(batasBaris.Value)
+                : query;
+
+            var baris = await terbatas
                 .Select(x => new
                 {
                     x.Id,
+                    x.OrderNumber,
                     x.EncounterId,
                     x.InpEpisodeId,
                     x.ProcedureId,
@@ -120,7 +611,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     UsableStudyCount = x.Studies.Count(s =>
                         !s.IsDelete && s.StudyStatus == RadStudyStatus.QualityAccepted),
                     x.IsCancel,
+                    x.IsUrgent,
                     x.CreateDateTime,
+
+                    // Konteks pasien — RAD-CONF-001 bagian 8 butir 1.
+                    //
+                    // Dibaca lewat navigasi kunjungan dalam SATU perjalanan ke database. Inilah
+                    // yang menggantikan pola "tarik daftar lalu panggil registrasi sekali per
+                    // baris" yang membuat daftar 50 pasien menjadi 51 permintaan.
+                    //
+                    // Enum sengaja dibawa apa adanya dan baru diubah menjadi teks setelah baris
+                    // terwujud di memori. ToString() atas enum tidak dapat diterjemahkan menjadi
+                    // SQL, dan memaksanya akan memindahkan seluruh penyaringan ke memori.
+                    HasEncounter = x.Encounter != null,
+                    PatientId = x.Encounter != null ? (Guid?)x.Encounter.PatientId : null,
+                    EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                    EncounterType = x.Encounter != null
+                        ? (EncounterType?)x.Encounter.EncounterType : null,
+                    VisitType = x.Encounter != null
+                        ? (VisitType?)x.Encounter.VisitType : null,
+                    PaymentType = x.Encounter != null
+                        ? (EncounterPaymentType?)x.Encounter.PaymentType : null,
+                    AgeText = x.Encounter != null ? x.Encounter.AgeTextAtEncounter : null,
+                    ServiceUnitId = x.Encounter != null ? (Guid?)x.Encounter.ServiceUnitId : null,
+                    ServiceUnitName = x.Encounter != null && x.Encounter.ServiceUnit != null
+                        ? x.Encounter.ServiceUnit.ServiceUnitName : null,
+                    RoomId = x.Encounter != null ? x.Encounter.RoomId : null,
+                    RoomName = x.Encounter != null && x.Encounter.Room != null
+                        ? x.Encounter.Room.RoomName : null,
+                    PatientClassId = x.Encounter != null ? x.Encounter.PatientClassId : null,
+                    PatientClassName = x.Encounter != null && x.Encounter.PatientClass != null
+                        ? x.Encounter.PatientClass.PatientClassName : null,
+                    GuarantorName = x.Encounter != null && x.Encounter.PaymentSource != null
+                        ? x.Encounter.PaymentSource.PaymentSourceNameSnapshot : null,
+                    PatientName = x.Encounter != null && x.Encounter.Patient != null
+                        ? x.Encounter.Patient.FullName : null,
+                    MedicalRecordNumber = x.Encounter != null && x.Encounter.Patient != null
+                        ? x.Encounter.Patient.MedicalRecordNumber : null,
+                    Gender = x.Encounter != null && x.Encounter.Patient != null
+                        ? x.Encounter.Patient.Gender : null,
+                    BirthDate = x.Encounter != null && x.Encounter.Patient != null
+                        ? x.Encounter.Patient.BirthDate : null,
                 })
                 .ToListAsync(cancellationToken);
 
@@ -133,7 +664,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 return new RadOrderListResponse
                 {
                     Id = x.Id,
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
+                    Patient = !x.HasEncounter ? null : new RadOrderPatientContextResponse
+                    {
+                        PatientId = x.PatientId,
+                        MedicalRecordNumber = x.MedicalRecordNumber,
+                        PatientName = x.PatientName,
+                        Gender = x.Gender?.ToString(),
+                        BirthDate = x.BirthDate,
+                        AgeText = x.AgeText,
+                        EncounterNumber = x.EncounterNumber,
+                        EncounterType = x.EncounterType?.ToString(),
+                        VisitType = x.VisitType?.ToString(),
+                        ServiceUnitId = x.ServiceUnitId,
+                        ServiceUnitName = x.ServiceUnitName,
+                        RoomId = x.RoomId,
+                        RoomName = x.RoomName,
+                        PatientClassId = x.PatientClassId,
+                        PatientClassName = x.PatientClassName,
+                        PaymentType = x.PaymentType?.ToString(),
+                        GuarantorName = x.GuarantorName,
+                    },
                     InpEpisodeId = x.InpEpisodeId,
                     ProcedureId = x.ProcedureId,
                     ProcedureCode = x.ProcedureCode,
@@ -145,6 +697,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     StudyCount = x.StudyCount,
                     UsableStudyCount = x.UsableStudyCount,
                     IsCancel = x.IsCancel,
+                    IsUrgent = x.IsUrgent,
                     IsResultFinal = final,
                     ResultAvailabilityNote = x.IsCancel
                         ? "Pesanan dibatalkan; tidak ada hasil."
@@ -170,7 +723,340 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     .ThenInclude(s => s.Consumptions.Where(c => !c.IsDelete))
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
-            return entity == null ? null : MapDetail(entity);
+            if (entity == null)
+            {
+                return null;
+            }
+
+            var detail = MapDetail(entity);
+
+            detail.Patient = await BacaKonteksPasienAsync(entity.EncounterId, cancellationToken);
+
+            // RAD-CONF-001 bagian 8 butir 4. Konfirmator dan waktunya dibaca dari riwayat, bukan
+            // dari kolom pada pesanan. Yang dipakai adalah konfirmasi PERTAMA: pesanan yang
+            // sempat ditahan lalu dilanjutkan tidak berganti konfirmator, karena yang ditanya
+            // layar adalah siapa yang dahulu menerima pesanan ini ke radiologi.
+            var konfirmasi = await _dbContext.RadTransitionHistories
+                .AsNoTracking()
+                .Where(x => x.RadOrderId == entity.Id
+                            && !x.IsDelete
+                            && x.Action == "Order.Accept")
+                .OrderBy(x => x.OccurredAt)
+                .Select(x => new { x.ActorUserId, x.OccurredAt })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (konfirmasi != null)
+            {
+                detail.ConfirmedByUserId = konfirmasi.ActorUserId;
+                detail.ConfirmedAt = konfirmasi.OccurredAt;
+            }
+
+            return detail;
+        }
+
+        /// <summary>
+        /// Membaca konteks pasien dan kunjungan untuk satu kunjungan.
+        /// </summary>
+        /// <remarks>
+        /// <c>RAD-CONF-001</c> bagian 8 butir 1. Dipakai layar detail; daftar memakai proyeksi
+        /// tersendiri supaya tidak menerbitkan satu permintaan per baris. Keduanya membaca
+        /// kolom yang sama persis, sehingga layar detail dan layar daftar tidak pernah
+        /// menampilkan identitas pasien yang berbeda untuk pesanan yang sama.
+        /// </remarks>
+        private async Task<RadOrderPatientContextResponse?> BacaKonteksPasienAsync(
+            Guid encounterId,
+            CancellationToken cancellationToken)
+        {
+            var konteks = await _dbContext.RegPatientEncounters
+                .AsNoTracking()
+                .Where(x => x.Id == encounterId && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.PatientId,
+                    x.EncounterNumber,
+                    x.EncounterType,
+                    x.VisitType,
+                    x.PaymentType,
+                    x.AgeTextAtEncounter,
+                    x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    x.RoomId,
+                    RoomName = x.Room != null ? x.Room.RoomName : null,
+                    x.PatientClassId,
+                    PatientClassName = x.PatientClass != null
+                        ? x.PatientClass.PatientClassName : null,
+                    GuarantorName = x.PaymentSource != null
+                        ? x.PaymentSource.PaymentSourceNameSnapshot : null,
+                    PatientName = x.Patient != null ? x.Patient.FullName : null,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    Gender = x.Patient != null ? x.Patient.Gender : null,
+                    BirthDate = x.Patient != null ? x.Patient.BirthDate : null,
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (konteks == null)
+            {
+                return null;
+            }
+
+            return new RadOrderPatientContextResponse
+            {
+                PatientId = konteks.PatientId,
+                MedicalRecordNumber = konteks.MedicalRecordNumber,
+                PatientName = konteks.PatientName,
+                Gender = konteks.Gender?.ToString(),
+                BirthDate = konteks.BirthDate,
+                AgeText = konteks.AgeTextAtEncounter,
+                EncounterNumber = konteks.EncounterNumber,
+                EncounterType = konteks.EncounterType.ToString(),
+                VisitType = konteks.VisitType.ToString(),
+                ServiceUnitId = konteks.ServiceUnitId,
+                ServiceUnitName = konteks.ServiceUnitName,
+                RoomId = konteks.RoomId,
+                RoomName = konteks.RoomName,
+                PatientClassId = konteks.PatientClassId,
+                PatientClassName = konteks.PatientClassName,
+                PaymentType = konteks.PaymentType.ToString(),
+                GuarantorName = konteks.GuarantorName,
+            };
+        }
+
+        /* ================================================================ *
+         * Daftar kerja petugas — RAD-DEC-012
+         * ================================================================ */
+
+        /// <summary>
+        /// Daftar kerja petugas pada satu alat pencitraan.
+        ///
+        /// <para>
+        /// <b>Tidak ada tabel daftar kerja, dan tidak boleh ada.</b> Seluruh isinya dihitung dari
+        /// <c>RadOrder</c> dan <c>RadStudy</c> yang sudah ada. Akibatnya sebuah pesanan yang
+        /// dibatalkan langsung hilang dari daftar begitu layar dibuka lagi — tanpa proses
+        /// penyelarasan apa pun, karena memang tidak ada apa pun yang perlu diselaraskan
+        /// (<c>FR-RAD-061</c>).
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Alat wajib dipilih.</b> Daftar kerja tanpa alat bukan daftar kerja siapa pun: di
+        /// radiologi, penempatan petugas mengikuti ruang alat, bukan mengikuti pasien
+        /// (<c>RAD-DEC-012</c>). Mengembalikan seluruh pekerjaan rumah sakit ketika alatnya tidak
+        /// disebut juga berarti memuat ribuan baris yang tidak seorang pun minta.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Pesanan cito berada di urutan atas</b> (<c>FR-RAD-062</c>), dan di antara sesama
+        /// cito urutannya kembali mengikuti waktu — yang lebih dulu dipesan dikerjakan lebih
+        /// dulu.
+        /// </para>
+        /// </summary>
+        /// <param name="modalityId">Alat pencitraan. <b>Wajib.</b></param>
+        /// <param name="date">
+        /// Hari kerja yang diminta, dibaca sebagai tanggal kalender Waktu Indonesia Barat.
+        /// Kosong berarti <b>hari ini</b>.
+        /// </param>
+        /// <param name="status">Menyaring satu keadaan pesanan saja. Kosong berarti seluruhnya.</param>
+        /// <param name="cancellationToken">Token pembatalan.</param>
+        public async Task<RadOperationResult<List<RadWorklistItemResponse>>> GetWorklistAsync(
+            Guid? modalityId,
+            DateTime? date,
+            RadOrderStatus? status,
+            CancellationToken cancellationToken = default)
+        {
+            if (!modalityId.HasValue || modalityId.Value == Guid.Empty)
+            {
+                return RadOperationResult<List<RadWorklistItemResponse>>.Validation(
+                    RadErrorCodes.WorklistModalityRequired,
+                    "Alat pencitraan wajib dipilih untuk membuka daftar kerja.");
+            }
+
+            var (awal, akhir) = RentangHariKerja(date);
+
+            var query = _dbContext.RadOrders
+                .AsNoTracking()
+                .Include(x => x.Procedure)
+                .Include(x => x.Modality)
+                .Include(x => x.Studies.Where(s => !s.IsDelete))
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ModalityId == modalityId.Value &&
+                    (x.ScheduledAt ?? x.RequestedAt ?? x.CreateDateTime) >= awal &&
+                    (x.ScheduledAt ?? x.RequestedAt ?? x.CreateDateTime) < akhir);
+
+            if (status.HasValue)
+            {
+                query = query.Where(x => x.OrderStatus == status.Value);
+            }
+
+            // Urutannya dikerjakan database, bukan di memori: index gabungan
+            // ModalityId + IsUrgent + OrderStatus dibuat BE-RAD-12 justru untuk ini.
+            var baris = await query
+                .OrderByDescending(x => x.IsUrgent)
+                .ThenBy(x => x.ScheduledAt ?? x.RequestedAt ?? x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            return RadOperationResult<List<RadWorklistItemResponse>>.Success(
+                baris.Select(MapWorklist).ToList());
+        }
+
+        /// <summary>
+        /// Mengubah penanda cito setelah pesanan dibuat — <c>RAD-DEC-013</c>.
+        ///
+        /// <para>
+        /// Perubahannya dicatat pada <c>RadTransitionHistory</c>, bukan hanya pada kolom
+        /// pesanannya. Kolom hanya menyimpan keadaan <b>sekarang</b>; riwayat menyimpan
+        /// <b>setiap</b> kali penanda dinyalakan dan dicabut beserta pelakunya — dan pertanyaan
+        /// "siapa yang mencabut penanda cito pasien ini" sama pentingnya dengan "siapa yang
+        /// memasangnya".
+        /// </para>
+        /// </summary>
+        public async Task<RadOperationResult<RadOrderDetailResponse>> SetUrgencyAsync(
+            Guid id,
+            RadOrderUrgencyRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            var entity = await _dbContext.RadOrders
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.NotFound(
+                    RadErrorCodes.OrderNotFound,
+                    "Pesanan radiologi tidak ditemukan.");
+            }
+
+            // Pesanan yang sudah selesai, dibatalkan, atau ditolak tidak lagi mengantre di
+            // daftar kerja mana pun. Mengubah penandanya tidak mendahulukan apa pun, dan hanya
+            // meninggalkan jejak yang membingungkan pembacanya kelak.
+            if (entity.OrderStatus is RadOrderStatus.Completed
+                or RadOrderStatus.Cancelled
+                or RadOrderStatus.Rejected)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Conflict(
+                    RadErrorCodes.UrgencyNotChangeable,
+                    $"Pesanan ini berstatus {LabelStatusPesanan(entity.OrderStatus).ToLowerInvariant()}, " +
+                    "sehingga penanda citonya tidak dapat diubah lagi.");
+            }
+
+            if (entity.IsUrgent == request.IsUrgent)
+            {
+                // Bukan kegagalan. Menekan tombol yang sama dua kali menghasilkan keadaan yang
+                // sama, dan permintaan yang tidak mengubah apa pun tidak perlu meninggalkan
+                // jejak seolah ada keputusan baru.
+                return RadOperationResult<RadOrderDetailResponse>.Success(
+                    (await GetDetailAsync(entity.Id, cancellationToken))!);
+            }
+
+            var sebelum = entity.IsUrgent;
+
+            entity.IsUrgent = request.IsUrgent;
+            entity.UrgentMarkedByUserId = request.IsUrgent ? actorUserId : null;
+            entity.UrgentMarkedAt = request.IsUrgent ? now : null;
+            entity.UpdateBy = actorUserId;
+            entity.UpdateDateTime = now;
+
+            AddHistory(
+                entity,
+                "Order.Urgency",
+                sebelum ? "Urgent" : "NotUrgent",
+                request.IsUrgent ? "Urgent" : "NotUrgent",
+                null,
+                null,
+                actorUserId,
+                now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Order.Urgency",
+                request.IsUrgent
+                    ? "Pesanan radiologi ditandai cito."
+                    : "Penanda cito pesanan radiologi dicabut.",
+                new { OrderId = entity.Id, entity.ModalityId, entity.IsUrgent, ActorUserId = actorUserId });
+
+            return RadOperationResult<RadOrderDetailResponse>.Success(
+                (await GetDetailAsync(entity.Id, cancellationToken))!);
+        }
+
+        private static RadWorklistItemResponse MapWorklist(RadOrder entity) => new()
+        {
+            RadOrderId = entity.Id,
+            EncounterId = entity.EncounterId,
+            ProcedureId = entity.ProcedureId,
+            ProcedureCode = entity.Procedure?.ProcedureCode ?? string.Empty,
+            ProcedureName = entity.Procedure?.ProcedureName ?? string.Empty,
+            ModalityId = entity.ModalityId,
+            ModalityCode = entity.Modality?.ModalityCode ?? string.Empty,
+            ModalityName = entity.Modality?.ModalityName ?? string.Empty,
+            OrderStatus = entity.OrderStatus.ToString(),
+            OrderStatusLabel = LabelStatusPesanan(entity.OrderStatus),
+            IsUrgent = entity.IsUrgent,
+            UrgentMarkedAt = entity.UrgentMarkedAt,
+            RequestedAt = entity.RequestedAt,
+            ScheduledAt = entity.ScheduledAt,
+            WorkAt = entity.ScheduledAt ?? entity.RequestedAt ?? entity.CreateDateTime,
+            CreateDateTime = entity.CreateDateTime,
+            Studies = entity.Studies
+                .Where(x => !x.IsDelete)
+                .OrderBy(x => x.StudySequence)
+                .Select(x => new RadWorklistStudyResponse
+                {
+                    Id = x.Id,
+                    StudyNumber = x.StudyNumber,
+                    StudySequence = x.StudySequence,
+                    StudyStatus = x.StudyStatus.ToString(),
+                    StudyStatusLabel = RadStudyService.LabelStatusStudy(x.StudyStatus),
+
+                    // AC-41. Diturunkan dari pesanannya, bukan disalin ke kolom pada RadStudy.
+                    IsUrgent = entity.IsUrgent,
+
+                    IsUsable = x.IsUsable,
+                })
+                .ToList(),
+        };
+
+        /// <summary>
+        /// Batas awal dan akhir satu hari kerja, dikembalikan dalam UTC.
+        ///
+        /// <para>
+        /// <b>Harinya dihitung menurut Waktu Indonesia Barat, bukan UTC.</b> Selisihnya tujuh
+        /// jam, dan itu bukan perkara kerapian: shift pagi yang mulai pukul 06.00 WIB berjalan
+        /// pada pukul 23.00 UTC <b>hari sebelumnya</b>. Memakai tanggal UTC akan menyajikan
+        /// daftar kerja hari kemarin kepada petugas yang baru masuk — tepat pada jam ketika
+        /// seluruh pekerjaan hari itu belum satu pun terlihat.
+        /// </para>
+        /// </summary>
+        private static (DateTime Awal, DateTime Akhir) RentangHariKerja(DateTime? date)
+        {
+            var zona = ZonaBisnis();
+            var hari = date?.Date ?? TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zona).Date;
+            var besok = hari.AddDays(1);
+
+            var awal = new DateTimeOffset(hari, zona.GetUtcOffset(hari));
+            var akhir = new DateTimeOffset(besok, zona.GetUtcOffset(besok));
+
+            return (awal.UtcDateTime, akhir.UtcDateTime);
+        }
+
+        /// <summary>
+        /// Zona waktu bisnis. Bentuknya disamakan dengan <c>BillingNumberSeriesService</c> supaya
+        /// seluruh modul memakai definisi "hari" yang sama.
+        /// </summary>
+        private static TimeZoneInfo ZonaBisnis()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
         }
 
         /* ================================================================ *
@@ -217,6 +1103,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var entity = new RadOrder
             {
+                // RAD-CONF-001 bagian 8 butir 2. Nomor dibentuk dari waktu dan enam karakter
+                // acak, bukan dari hitungan baris — QBE-CODE-003. Index unik pada database
+                // menjadi penjaga terakhirnya.
+                OrderNumber = _orderNumberService.Generate(),
+
                 EncounterId = request.EncounterId,
                 // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir.
                 InpEpisodeId = request.InpEpisodeId,
@@ -226,6 +1117,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 OrderStatus = RadOrderStatus.Requested,
                 RequestedAt = now,
                 RequestedByUserId = actorUserId,
+
+                // BE-RAD-12, RAD-DEC-013. Field-nya boleh kosong; kosong berarti tidak cito,
+                // sehingga pemanggil lama yang tidak mengenalnya tetap berhasil — FR-RAD-065.
+                //
+                // Jejak pelakunya hanya distempel ketika penandanya benar-benar dinyalakan.
+                // Menstempelnya pada seluruh pesanan akan membuat kolom "siapa menandai cito"
+                // terisi pada pesanan yang tidak pernah ditandai cito oleh siapa pun.
+                IsUrgent = request.IsUrgent == true,
+                UrgentMarkedByUserId = request.IsUrgent == true ? actorUserId : null,
+                UrgentMarkedAt = request.IsUrgent == true ? now : null,
+
                 CreateBy = actorUserId,
                 CreateDateTime = now,
             };
@@ -526,6 +1428,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             return new RadOrderDetailResponse
             {
                 Id = entity.Id,
+                OrderNumber = entity.OrderNumber,
                 EncounterId = entity.EncounterId,
                 ProcedureId = entity.ProcedureId,
                 ProcedureCode = entity.Procedure?.ProcedureCode ?? string.Empty,
@@ -538,6 +1441,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 UsableStudyCount = entity.Studies.Count(x =>
                     !x.IsDelete && x.StudyStatus == RadStudyStatus.QualityAccepted),
                 IsCancel = entity.IsCancel,
+                IsUrgent = entity.IsUrgent,
+                UrgentMarkedByUserId = entity.UrgentMarkedByUserId,
+                UrgentMarkedAt = entity.UrgentMarkedAt,
                 CreateDateTime = entity.CreateDateTime,
                 ClinicalIndication = entity.ClinicalIndication,
                 RequestedAt = entity.RequestedAt,
