@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `DevBenari/NewQuilvianSystemBackend` cabang `sukmagp` — `Areas/HealthServices/BloodBankManagement/**`, `Repositories/**`, `docs/module-blueprints/bank-darah/**` |
 | Model | `claude-opus-5` |
-| Commit backend saat dikerjakan | `5e54b1d5473d5995356221ea0ce2e9cc1c580dd8` cabang `sukmagp` (HEAD saat task dimulai) |
-| Tanggal | 12 September 2026 · **tinjauan statik 12 September 2026 sesudah mesin pemilik restart** |
-| Status | 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
+| Commit backend saat dikerjakan | Mulai: `5e54b1d5473d5995356221ea0ce2e9cc1c580dd8` cabang `sukmagp`. **Source `BE-BD-006` ter-commit pada `02b70618`** `feat(bank-darah): implement BE-BD-006 allocation source` — tepat delapan berkas source task ini, nol berkas lain di luar `docs/`. Commit dilakukan pemilik. **Belum ter-commit per 13 September 2026:** tiga berkas migration — `20260913070556_AddBbkBloodUnitAllocation.cs`, `.Designer.cs`, dan `ApplicationDbContextModelSnapshot.cs` |
+| Tanggal | 12 September 2026 · tinjauan statik 12 September 2026 sesudah mesin pemilik restart · **bukti build dan migration 13 September 2026** |
+| Status | 🟡 **SELESAI SEBAGIAN — BUILD DAN MIGRATION LOLOS, PENERAPAN DATABASE TERBLOKIR** (13 September 2026). Build Debug `0 Error(s)` / `191 Warning(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` terbentuk dengan scope bersih; `has-pending-model-changes` bersih. **Penerapan database: `BLOCKED — UNRELATED PENDING MIGRATIONS`** — migration ini tidak dapat diterapkan ke `QuilvianNewDevSukma` tanpa ikut menerapkan migration modul lain yang tertunda. Karena tabelnya belum ada di database, kesembilan acceptance criteria berstatus **`BLOCKED`** — bukan `PASS`, bukan gagal. **Riwayat:** 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
 
 ---
 
@@ -31,7 +31,7 @@
 | Pemilik & prefix pada registry | `BloodBankManagement / Blood Bank` · prefix **`Bbk`** · `BUSINESS DOMAIN / MODULE` |
 | Status registry | **`ACTIVE`** — terverifikasi pada **kedua** salinan: `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 30 (salinan yang dibaca `tooling/qbe/Invoke-QbeConformanceCheck.ps1`) dan registry canonical suite skill baris 30. Aktivasi tercatat 2026-09-03 atas approval owner Bank Darah dan blueprint `BD-BP-001` kontrak `v4` |
 | Keberlakuan | **`NEW CODE`** untuk `BbkBloodUnitAllocation`, `BbkAllocationStatus`, `BbkBloodUnitAllocationConfiguration`, dan `BloodUnitAllocationDtos`. **`TOUCHED`** untuk empat berkas milik modul ini sendiri yang sudah ada. **Nol `LEGACY MIGRATION`** — tidak ada rename entity, tidak ada tabel lama disentuh |
-| QBE ID yang berlaku | `QBE-MOD-002` kepemilikan modul dan prefix entity operasional — **lolos**, `Bbk` `ACTIVE`. `QBE-NAM-*` penamaan entity berprefix pemilik — **lolos**, `BbkBloodUnitAllocation`. `QBE-ENT-003` fakta tidak disalin dua kali — **lolos**, pasien dan komponen dibaca lewat relasi, tidak disalin ke tabel alokasi. `QBE-CODE-002`/`003` pembangkitan nomor `Count`/`Max`+1 — **tidak berlaku**, entity ini tidak punya nomor bisnis. `QBE-CODE-004` `SortOrder` generik yang dipersistensi — **tidak berlaku**. `QBE-DB-001`/`QBE-DB-002` migration dan eksekusi database — **belum dinilai**, karena migration belum dibuat |
+| QBE ID yang berlaku | `QBE-MOD-002` kepemilikan modul dan prefix entity operasional — **lolos**, `Bbk` `ACTIVE`. `QBE-NAM-*` penamaan entity berprefix pemilik — **lolos**, `BbkBloodUnitAllocation`. `QBE-ENT-003` fakta tidak disalin dua kali — **lolos**, pasien dan komponen dibaca lewat relasi, tidak disalin ke tabel alokasi. `QBE-CODE-002`/`003` pembangkitan nomor `Count`/`Max`+1 — **tidak berlaku**, entity ini tidak punya nomor bisnis. `QBE-CODE-004` `SortOrder` generik yang dipersistensi — **tidak berlaku**. `QBE-DB-001` migration — **migration ada dan diinspeksi statik 13 September 2026**: satu tabel `Bbk*` milik modul ini, nol operasi modul lain; penilaian QBE-nya sendiri belum dijalankan. `QBE-DB-002` eksekusi database — **terblokir**, migration modul lain tertunda. **Riwayat:** `QBE-DB-001`/`QBE-DB-002` belum dinilai karena migration belum dibuat |
 | Peninggalan `agents/rules/` di repository target | **Tidak ada** — sudah dicabut sebagaimana mestinya |
 | Selisih dua salinan governance | `BACKEND_ENGINEERING_CONTRACT.md` **identik**. `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` **berselisih** pada baris modul lain — salinan backend memuat `Platform / NumberSeriesManagement / Num` `ACTIVE` yang tidak ada di salinan suite, dan riwayat keduanya berbeda urutan. **Baris `Bbk` identik pada keduanya**, sehingga wewenang task ini tidak terpengaruh. Selisih ini adalah `ACC-DEP-007` yang sudah terbuka dan tetap milik lead — dicatat, tidak diperbaiki pada task ini |
 
@@ -200,7 +200,7 @@ tanpa registrasi tambahan.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | **Dua endpoint kontrak `v4` yang sebelumnya berstatus "Rencana" kini ada.** Kode galat dan HTTP-nya mengikuti `api-contract` baris `allocate` dan `cancel-allocation` persis: `409 VAL-BD-018c`, `422 VAL-BD-033/063/064` untuk alokasi; `422 VAL-BD-023` dan `400 VAL-BD-016` untuk pembatalan. Respons keduanya `ApiResponse<BloodUnitDetailDto>` sesuai kontrak. `GET /{id}` kini benar-benar memuat "riwayat alokasi" seperti yang sudah dijanjikan kontrak |
-| Database | **Satu tabel baru `BbkBloodUnitAllocation`** beserta empat index dan dua FK `Restrict`. **Migration BELUM dibuat** dan **database BELUM disentuh** — lihat bagian 5 dan 8 |
+| Database | **Satu tabel baru `BbkBloodUnitAllocation`** beserta empat index dan dua FK `Restrict`. **Migration `20260913070556_AddBbkBloodUnitAllocation` sudah dibuat** dan snapshot sesuai model (`has-pending-model-changes` bersih). **Penerapan ke `QuilvianNewDevSukma`: `BLOCKED — UNRELATED PENDING MIGRATIONS`**; status migration pada `migrations list` tetap `(Pending)`. Rinciannya bagian 5.3 |
 | Keamanan/Auth | `[Authorize]` tingkat controller berlaku. Kedua endpoint dijaga `[AccessPermission("BloodUnit", "Allocate")]` yang cocok persis dengan `ControllerName = "BloodUnit"` pada `[AccessController]` dan dengan argumen pertama `[AccessAction("Allocate", …)]` pada method yang sama, sehingga kemampuannya muncul dan dapat dicentang di layar Pengaturan → Manajemen Role → Akses Role. **Nol nama peran, jabatan, departemen, `UserType`, atau `IsInRole` dipakai sebagai penentu kewenangan.** Pelaku diambil dari klaim `NameIdentifier`, tidak pernah dari body. Status, waktu, dan teks alasan ditentukan server. Log tidak memuat nomor kantong PMI maupun nama pasien; yang ditulis hanya id, kode alasan terkendali, dan status |
 
 ---
@@ -284,13 +284,13 @@ dibuat, **nol** dependency test ditambahkan, dan `dotnet test` **tidak** dijalan
 | Inspeksi source — nol hardcode role | Nol `IsInRole`, nol daftar nama peran, nol `UserType` | `PASS` | Inspeksi controller dan service |
 | Inspeksi source — gerbang alokasi dipakai, tidak diduplikasi | `AllocateAsync` memanggil `EvaluateAllocationGateAsync` milik `BE-BD-015`; nol logika keaktifan lokasi ditulis ulang | `PASS` | `BbkBloodUnitService.AllocateAsync` langkah 5 |
 | Inspeksi source — galat database tidak bocor | `IsSingleRowGuardViolation` menangkap dua constraint bernama, lalu `MapFailure` hanya meneruskan pesan bisnis | `PASS` | Inspeksi service dan controller |
-| **`dotnet build`** | **`NOT RUN`** | **`NOT RUN`** | **Instruksi eksplisit pemilik pada task ini: "jangan lakukan build automatis, untuk build biarkan saya jalankan manual"** |
-| `dotnet ef migrations has-pending-model-changes` (baseline sebelum perubahan model) | `NOT RUN` | `NOT RUN` | Menuntut assembly yang baru dikompilasi; build belum dijalankan |
-| Migration `BE-BD-006` | **BELUM DIBUAT** | `NOT RUN` | Pembuatan migration menuntut baseline terkompilasi lebih dulu |
-| Penerapan database | **BELUM** | `NOT RUN` | Lihat bagian 8 |
-| Verifikasi manual API | `NOT EXECUTED` | `NOT RUN` | Aplikasi belum dapat dijalankan tanpa build |
-| Verifikasi read-only DB | `NOT EXECUTED` | `NOT RUN` | Tabelnya belum ada; `psql` juga tidak tersedia pada PATH mesin ini |
-| QBE Strict | **`DEFERRED — REQUIRES USER COMMIT`** | `NOT RUN` | QBE berbasis GitRange; source `BE-BD-006` masih belum ter-commit, dan commit adalah wewenang pemilik |
+| **`dotnet build`** Debug hemat sumber daya | **`0 Error(s)`, `191 Warning(s)`** | **`PASS`** | **Dijalankan dan dilaporkan pemilik 13 September 2026.** Agent tidak menjalankan build. Angka warning lebih rendah daripada `210` yang tercatat pada `BE-BD-004`, tetapi flag build keduanya berbeda sehingga bukan pembanding setara. **Riwayat:** `NOT RUN` 12 September 2026 atas instruksi pemilik; percobaan pertama pemilik membuat mesin restart |
+| `dotnet ef migrations has-pending-model-changes` sesudah migration dibuat | "No changes have been made to the model since the last migration." | **`PASS`** | Dilaporkan pemilik 13 September 2026 — snapshot cocok dengan model, nol perubahan model tercecer di luar migration. **Riwayat:** `NOT RUN` karena belum ada assembly terkompilasi |
+| Migration `BE-BD-006` | **`20260913070556_AddBbkBloodUnitAllocation`** | **`PASS`** | Dibuat pemilik 13 September 2026. **Inspeksi statik agent atas berkasnya mengonfirmasi scope bersih** — rinciannya bagian 5.3. **Riwayat:** belum dibuat |
+| Penerapan database ke `QuilvianNewDevSukma` | **`BLOCKED — UNRELATED PENDING MIGRATIONS`** | **`BLOCKED`** | `dotnet ef migrations list` menunjukkan `20260913070556_AddBbkBloodUnitAllocation (Pending)`, dan penerapannya menuntut migration modul lain yang juga tertunda ikut diterapkan lebih dulu. Sesuai aturan task: nol `database update`, nol penyuntingan riwayat migration, nol baris `__EFMigrationsHistory` dipalsukan, nol migration tim lain dilewati |
+| Verifikasi manual API | `NOT EXECUTED` | **`BLOCKED`** | Build sudah lolos, tetapi tabel `BbkBloodUnitAllocation` belum ada di database, sehingga endpoint alokasi pasti gagal saat menulis. Menunggu penerapan database |
+| Verifikasi read-only DB | `NOT EXECUTED` | **`BLOCKED`** | Tabel dan index terfilter belum ada di database untuk diperiksa |
+| QBE Strict | **`NOT RUN`** | `NOT RUN` | Source `BE-BD-006` kini ter-commit pada `02b70618`, sehingga rentang `5e54b1d..02b70618` dapat diperiksa. Namun tiga berkas migration **belum** ter-commit, sehingga QBE yang mencakup migration menuntut commit pemilik lebih dulu. Agent tidak menjalankan QBE dan tidak menyatakannya lolos. **Riwayat:** `DEFERRED — REQUIRES USER COMMIT` 12 September 2026 |
 
 ### 5.1 Pemeriksaan statis yang benar-benar dijalankan sebagai ganti build
 
@@ -358,6 +358,53 @@ mengompilasi apa pun**: nol `dotnet build`, nol `dotnet restore`, nol `dotnet te
 
 ---
 
+### 5.3 Bukti build dan migration — 13 September 2026
+
+Build dan seluruh perintah EF pada bagian ini **dijalankan pemilik**, bukan agent. Agent hanya
+mencatat hasilnya dan memeriksa berkas migration yang terbentuk secara statik — membaca isinya dan
+membandingkan diff snapshot — tanpa menjalankan compiler, EF, maupun database.
+
+| Bukti | Hasil | Sumber |
+| --- | --- | --- |
+| Build Debug hemat sumber daya | `0 Error(s)`, `191 Warning(s)` | Dilaporkan pemilik |
+| Migration terbentuk | `20260913070556_AddBbkBloodUnitAllocation` — `.cs`, `.Designer.cs`, dan perubahan `ApplicationDbContextModelSnapshot.cs` | Dilaporkan pemilik; berkasnya ada di `Migrations/` |
+| `has-pending-model-changes` | "No changes have been made to the model since the last migration." | Dilaporkan pemilik |
+| `migrations list` | `20260913070556_AddBbkBloodUnitAllocation (Pending)` | Dilaporkan pemilik |
+| Penerapan database | **`BLOCKED — UNRELATED PENDING MIGRATIONS`** | Keputusan pemilik |
+
+**Inspeksi statik agent atas isi migration — cocok dengan pernyataan pemilik bahwa scope bersih:**
+
+| Yang diperiksa | Temuan |
+| --- | --- |
+| Operasi `Up()` | Tepat **satu** `CreateTable` `public."BbkBloodUnitAllocation"` dan **empat** `CreateIndex`. Nol `AlterTable`, `AddColumn`, `DropColumn`, `RenameColumn`, maupun `Sql` mentah |
+| Operasi `Down()` | Tepat satu `DropTable` `BbkBloodUnitAllocation` — membalik `Up()` utuh |
+| Kolom | Sepuluh kolom kamus data — `Id`, `BloodUnitId`, `BloodOrderLineId`, `AllocationStatus` (`integer`), `AllocatedByUserId`, `AllocatedAt`, `CancelReasonCode` (`varchar(30)`, nullable), `CancelReasonNote` (`varchar(500)`, nullable), `CancelledByUserId` (nullable), `CancelledAt` (nullable) — ditambah sepuluh kolom audit `IdentityModel` |
+| Foreign key | `FK_BbkBloodUnitAllocation_BbkBloodUnit_BloodUnitId` dan `FK_BbkBloodUnitAllocation_BbkBloodOrderLine_BloodOrderLineId`, keduanya **`ReferentialAction.Restrict`** |
+| Index unik terfilter | **`IX_BbkBloodUnitAllocation_ActiveUnit`** atas `BloodUnitId`, `unique: true`, `filter: "\"AllocationStatus\" = 0"` — invariant satu alokasi aktif per kantong kini benar-benar ada di tingkat skema |
+| Index biasa | `IX_BbkBloodUnitAllocation_BloodUnitId`, `IX_BbkBloodUnitAllocation_BloodOrderLineId`, `IX_BbkBloodUnitAllocation_AllocationStatus` |
+| Diff snapshot | **+99 baris, −0 baris.** Entity yang disebut pada baris berubah hanya `BbkBloodUnitAllocation` beserta dua ujung relasinya, `BbkBloodUnit` dan `BbkBloodOrderLine`. Nol entity `PettyCash`, `Accounting`, `Pharmacy`, `Radiology`, `Inpatient`, `Laboratory`, `Registration`, maupun modul lain |
+
+**Kenapa penerapan database dihentikan, dan kenapa itu benar.** Riwayat migration EF bersifat urut:
+`database update` menerapkan **seluruh** migration tertunda yang lebih tua lebih dulu, baru migration
+`BE-BD-006`. Menerapkannya sekarang berarti ikut mengubah skema milik modul lain di database pemilik
+tanpa wewenang atas perubahan itu — risiko yang sama yang pada 10 September 2026 sempat menghapus
+tabel `MstBillingItemCategory` beserta isinya. Jalan pintas seperti menyunting riwayat migration,
+memalsukan baris `__EFMigrationsHistory`, atau menjalankan SQL migration ini saja **tidak** diambil.
+Daftar migration modul lain yang tertunda tidak dicatat di sini karena tidak diperiksa langsung oleh
+agent; penentuannya milik pemilik.
+
+**Yang kini sudah terbukti dan yang belum:**
+
+| Lapisan | Keadaan |
+| --- | --- |
+| Source terkompilasi | **Terbukti** — `0 Error(s)` |
+| Model EF selaras dengan migration | **Terbukti** — `has-pending-model-changes` bersih |
+| Skema invariant tertulis benar | **Terbukti pada berkas migration** — index terfilter, FK `Restrict` |
+| Skema benar-benar ada di PostgreSQL | **Belum** — terblokir |
+| Perilaku endpoint | **Belum** — terblokir, karena menuntut tabelnya ada |
+
+---
+
 ## 6. Acceptance criteria dan Definition of Done
 
 **Matriks acceptance — sembilan butir milik `BE-BD-006` pada roadmap revisi 11.** Tidak satu pun
@@ -366,15 +413,15 @@ buktinya belum.
 
 | Kriteria | Status bukti | Source yang menjawabnya | Yang masih dibutuhkan |
 | --- | --- | --- | --- |
-| `AC-BD-033` — kantong berlebih dialokasikan langsung → ditolak `VAL-BD-033` | **`NOT EXECUTED`** | `AllocateAsync` langkah 6 | Build, migration, lalu satu panggilan API atas kantong `IsExcess` yang sudah disimpan |
-| `AC-BD-043` — batalkan alokasi, order asal aktif → kantong `Available` + riwayat | **`NOT EXECUTED`** | `CancelAllocationAsync` + `IsAllocationOriginActiveAsync` | Build, migration, lalu satu alokasi dan satu pembatalan |
-| `AC-BD-044` — batalkan alokasi, order asal berakhir → kantong `PendingReview` | **`NOT EXECUTED`** | `IsAllocationOriginActiveAsync` lewat `BbkEncounterStatusReader` | Build, migration, lalu kunjungan yang ditutup |
-| `AC-BD-045` — batalkan alokasi tanpa alasan terkendali → ditolak `VAL-BD-016` | **`NOT EXECUTED`** | `CancelAllocationAsync` pemeriksaan alasan, `400` | Build, lalu panggilan tanpa `reasonCode` dan dengan kode palsu |
-| `AC-BD-046` — batalkan alokasi kantong `Issued` → ditolak `VAL-BD-023` | **`NOT EXECUTED`** | `CancelAllocationAsync` pemeriksaan status | Build; kantong `Issued` sendiri baru dapat dibuat `BE-BD-007`, sehingga pembuktian penuhnya menuntut data yang disiapkan langsung di database |
-| `AC-BD-060` — kantong `Received` dialokasikan → ditolak `VAL-BD-063` | **`NOT EXECUTED`** | `AllocateAsync` langkah 5, gerbang `BE-BD-015` | Build, migration, satu panggilan API |
-| `AC-BD-068` — kantong di lokasi nonaktif dialokasikan → ditolak `VAL-BD-064` | **`NOT EXECUTED`** | `AllocateAsync` langkah 5, gerbang `BE-BD-015` | Build, migration, satu lokasi dinonaktifkan |
-| `AC-BD-070` — sesudah dipindah ke lokasi aktif, alokasi berhasil | **`NOT EXECUTED`** | `AllocateAsync` jalur berhasil | Build, migration, lanjutan skenario `AC-BD-068` |
-| `VAL-BD-018c` — dua permintaan serentak → tepat satu berhasil, satu `409` | **`NOT EXECUTED`** | Index unik terfilter + token `Version` + `IsSingleRowGuardViolation` | Build, migration, lalu dua permintaan sungguhan yang dikirim bersamaan |
+| `AC-BD-033` — kantong berlebih dialokasikan langsung → ditolak `VAL-BD-033` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `AllocateAsync` langkah 6 | Penerapan database, lalu satu panggilan API atas kantong `IsExcess` yang sudah disimpan. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-043` — batalkan alokasi, order asal aktif → kantong `Available` + riwayat | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `CancelAllocationAsync` + `IsAllocationOriginActiveAsync` | Penerapan database, lalu satu alokasi dan satu pembatalan. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-044` — batalkan alokasi, order asal berakhir → kantong `PendingReview` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `IsAllocationOriginActiveAsync` lewat `BbkEncounterStatusReader` | Penerapan database, lalu kunjungan yang ditutup. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-045` — batalkan alokasi tanpa alasan terkendali → ditolak `VAL-BD-016` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `CancelAllocationAsync` pemeriksaan alasan, `400` | Penerapan database, lalu panggilan tanpa `reasonCode` dan dengan kode palsu. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-046` — batalkan alokasi kantong `Issued` → ditolak `VAL-BD-023` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `CancelAllocationAsync` pemeriksaan status | Penerapan database; kantong `Issued` baru dapat lahir dari `BE-BD-007`, sehingga pembuktian penuhnya menuntut data yang disiapkan langsung di database dev pemilik. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-060` — kantong `Received` dialokasikan → ditolak `VAL-BD-063` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `AllocateAsync` langkah 5, gerbang `BE-BD-015` | Penerapan database, satu panggilan API. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-068` — kantong di lokasi nonaktif dialokasikan → ditolak `VAL-BD-064` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `AllocateAsync` langkah 5, gerbang `BE-BD-015` | Penerapan database, satu lokasi dinonaktifkan. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `AC-BD-070` — sesudah dipindah ke lokasi aktif, alokasi berhasil | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | `AllocateAsync` jalur berhasil | Penerapan database, lanjutan skenario `AC-BD-068`. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
+| `VAL-BD-018c` — dua permintaan serentak → tepat satu berhasil, satu `409` | **`BLOCKED`** — penerapan database terblokir migration modul lain; tabel `BbkBloodUnitAllocation` belum ada | Index unik terfilter + token `Version` + `IsSingleRowGuardViolation`; index-nya kini tertulis pada migration | Penerapan database, lalu dua permintaan sungguhan yang dikirim bersamaan. **Riwayat:** `NOT EXECUTED` 12 September 2026 — build belum dijalankan |
 
 **`AC-BD-071` tidak ada di tabel ini, dan itu benar.** Ia milik `BE-BD-009` sejak roadmap revisi 11
 karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task ini.
@@ -389,9 +436,10 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 | Invariant satu alokasi aktif dijaga database | **Terpenuhi pada source**; belum ada di database |
 | Gerbang `EvaluateAllocationGateAsync` dipakai, bukan diduplikasi | **Terpenuhi** |
 | Gerbang tetap dapat dipakai ulang `BE-BD-009` | **Terpenuhi** — gerbangnya tidak disentuh sama sekali |
-| `dotnet build` `0 Error(s)` | **BELUM** — tidak dijalankan atas instruksi pemilik |
-| Migration dibuat dan diperiksa isinya | **BELUM** |
-| Seluruh acceptance criteria terbukti | **BELUM** — sembilan dari sembilan `NOT EXECUTED` |
+| `dotnet build` `0 Error(s)` | **Terpenuhi** 13 September 2026 — `0 Error(s)`, `191 Warning(s)`, dijalankan pemilik |
+| Migration dibuat dan diperiksa isinya | **Terpenuhi** — `20260913070556_AddBbkBloodUnitAllocation`, scope bersih, `has-pending-model-changes` bersih |
+| Migration diterapkan ke database dev pemilik | **Terblokir** — `BLOCKED — UNRELATED PENDING MIGRATIONS` |
+| Seluruh acceptance criteria terbukti | **BELUM** — sembilan dari sembilan `BLOCKED` oleh penerapan database |
 | Laporan tracked ada | **Terpenuhi** — dokumen ini |
 
 ---
@@ -405,14 +453,20 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 | Delta kontrak 3 — **`VAL-BD-018` lawan `VAL-BD-018c`** | Matriks perpindahan status §3 baris alokasi menyebut "`VAL-BD-018` alokasi ganda", sedangkan matriks validasi mendefinisikan `VAL-BD-018` sebagai gerbang bukti pada **pemberian** dan `VAL-BD-018c` sebagai alokasi aktif ganda. `api-contract` baris `allocate` menyebut **`VAL-BD-018c`**. Implementasi mengikuti matriks validasi dan `api-contract`; rujukan `VAL-BD-018` pada matriks perpindahan status perlu dirapikan pemilik kontrak |
 | **Risiko tersisa 1 — kecocokan komponen tidak diperiksa** | Kantong PRC saat ini **dapat** dialokasikan ke baris kebutuhan trombosit. Kontrak `v4` **tidak** memuat aturan maupun kode galat untuk ketidakcocokan komponen pada alokasi — sudah dicari pada matriks validasi, matriks perpindahan status, dan arsitektur domain. Aturan seperti itu **tidak diarang** di sini. **Ini risiko klinis yang perlu diputuskan pemilik proses BDRS**, dan bila diputuskan, tempatnya `AllocateAsync` langkah 9 ditambah satu kode `VAL-BD-*` baru |
 | Risiko tersisa 2 — `AC-BD-046` menuntut data dari task lain | Kantong berstatus `Issued` hanya dapat lahir dari `BE-BD-007`. Pembuktian `AC-BD-046` karena itu menuntut penyiapan data langsung di database dev pemilik, atau ditunda sampai `BE-BD-007` selesai |
-| Risiko tersisa 3 — **kemungkinan migration modul lain yang belum diterapkan** | Folder `Migrations/` kini memuat **179** migration, sedangkan catatan penerapan terakhir pada `BE-BD-015` (11 September 2026) menyebut `141/141`. Selisihnya belum dapat diperiksa karena `dotnet ef migrations list` menuntut build dan `psql` tidak tersedia. **Bila EF hendak menerapkan migration milik modul lain lebih dulu, penerapan wajib dihentikan** dan dilaporkan `DATABASE APPLICATION = BLOCKED — UNRELATED PENDING MIGRATIONS`; jangan menyunting riwayat migration, jangan memalsukan baris `__EFMigrationsHistory`, dan jangan melewati migration tim lain |
-| Risiko tersisa 4 — source belum pernah dikompilasi | Pemeriksaan statis menemukan dan memperbaiki satu cacat urutan argumen. Pemeriksaan seperti itu tidak menggantikan compiler; cacat lain masih mungkin ada dan hanya build yang dapat menjawabnya |
+| Risiko tersisa 3 — **TERKONFIRMASI: migration modul lain tertunda** | Kekhawatiran 12 September 2026 terbukti pada 13 September 2026: `20260913070556_AddBbkBloodUnitAllocation` berstatus `(Pending)` dan penerapannya terhalang migration modul lain yang juga tertunda. Penerapan dihentikan — `BLOCKED — UNRELATED PENDING MIGRATIONS`. **Jalan keluarnya milik pemilik database dan pemilik modul terkait**, bukan `BE-BD-006`: migration modul lain diterapkan oleh yang berwenang, atau wewenang eksplisit diberikan untuk menerapkannya bersama. **Riwayat:** 179 migration di repository lawan `141/141` yang tercatat diterapkan pada `BE-BD-015` |
+| Risiko tersisa 4 — ~~source belum pernah dikompilasi~~ **TERTUTUP** | Build Debug 13 September 2026 `0 Error(s)`. Keempat perbaikan tinjauan statik ikut terkompilasi. **Riwayat:** pemeriksaan statis sempat menemukan dan memperbaiki satu cacat urutan argumen sebelum build pertama |
 | Yang **tidak** dilakukan | Nol `Tests/` dibuat · nol `*Tests.cs` dibuat · nol project atau dependency test ditambahkan · `dotnet test` tidak dijalankan · frontend tidak disentuh · `reallocate` tidak diimplementasikan · `BE-BD-007` sampai `BE-BD-010` dan `BE-BD-013` tidak dimulai · nol migration dibuat · nol database disentuh · nol `git add`, `commit`, `push`, `pull`, `merge`, `rebase`, atau PR · nol laporan task historis disunting · nol kepemilikan acceptance criteria dipindah |
-| Task berikutnya | **Pemilik menjalankan build manual, lalu pekerjaan ini dilanjutkan dari keadaan terverifikasi** — perintahnya ada di bagian 8. Sesudah build hijau: baseline `has-pending-model-changes`, satu migration `BE-BD-006`, inspeksi isinya, penerapan ke `QuilvianNewDevSukma` bila tidak ada migration modul lain yang ikut, lalu sembilan skenario acceptance dijalankan dan laporan ini diperbarui |
+| Task berikutnya | **Tidak ada pekerjaan agent yang dapat berjalan sampai penerapan database terbuka.** Yang dibutuhkan: (1) pemilik database menyelesaikan migration modul lain yang tertunda di `QuilvianNewDevSukma`, atau memberi wewenang eksplisit menerapkannya bersama; (2) pemilik meng-commit tiga berkas migration `BE-BD-006`; (3) sesudah itu migration diterapkan, sembilan skenario acceptance dijalankan lewat API dan query read-only, QBE Strict dijalankan, dan laporan ini diperbarui. `BE-BD-007` tetap ⛔ sampai `BE-BD-006` ✅ |
 
 ---
 
 ## 8. Yang perlu dijalankan pemilik — urutan pasti
+
+> **Kemajuan per 13 September 2026.** Langkah 1 (build) **selesai** — `0 Error(s)`, `191 Warning(s)`.
+> Langkah 2 dan 3 (baseline EF dan migration ber-scope) **selesai** —
+> `20260913070556_AddBbkBloodUnitAllocation`, scope bersih, `has-pending-model-changes` bersih.
+> **Langkah 4 berhenti di pemeriksaan:** `migrations list` menunjukkan migration modul lain tertunda,
+> sehingga penerapan database **`BLOCKED — UNRELATED PENDING MIGRATIONS`**. Langkah 5 dan 6 menunggu langkah 4.
 
 Build dan seluruh langkah sesudahnya menunggu pemilik, sesuai instruksi pada task ini.
 
