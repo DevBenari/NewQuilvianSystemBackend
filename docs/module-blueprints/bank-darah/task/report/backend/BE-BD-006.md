@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `DevBenari/NewQuilvianSystemBackend` cabang `sukmagp` — `Areas/HealthServices/BloodBankManagement/**`, `Repositories/**`, `docs/module-blueprints/bank-darah/**` |
 | Model | `claude-opus-5` |
-| Commit backend saat dikerjakan | Mulai: `5e54b1d5473d5995356221ea0ce2e9cc1c580dd8` cabang `sukmagp`. **Source `BE-BD-006` ter-commit pada `02b70618`** `feat(bank-darah): implement BE-BD-006 allocation source` — tepat delapan berkas source task ini, nol berkas lain di luar `docs/`. Commit dilakukan pemilik. **Belum ter-commit per 13 September 2026:** tiga berkas migration — `20260913070556_AddBbkBloodUnitAllocation.cs`, `.Designer.cs`, dan `ApplicationDbContextModelSnapshot.cs` |
-| Tanggal | 12 September 2026 · tinjauan statik 12 September 2026 sesudah mesin pemilik restart · **bukti build dan migration 13 September 2026** |
-| Status | 🟡 **SELESAI SEBAGIAN — BUILD DAN MIGRATION LOLOS, PENERAPAN DATABASE TERBLOKIR** (13 September 2026). Build Debug `0 Error(s)` / `191 Warning(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` terbentuk dengan scope bersih; `has-pending-model-changes` bersih. **Penerapan database: `BLOCKED — UNRELATED PENDING MIGRATIONS`** — migration ini tidak dapat diterapkan ke `QuilvianNewDevSukma` tanpa ikut menerapkan migration modul lain yang tertunda. Karena tabelnya belum ada di database, kesembilan acceptance criteria berstatus **`BLOCKED`** — bukan `PASS`, bukan gagal. **Riwayat:** 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
+| Commit backend saat dikerjakan | Mulai: `5e54b1d5473d5995356221ea0ce2e9cc1c580dd8` cabang `sukmagp`. **Source `BE-BD-006` ter-commit pada `02b70618`** `feat(bank-darah): implement BE-BD-006 allocation source` — tepat delapan berkas source task ini, nol berkas lain di luar `docs/`. Commit dilakukan pemilik. **Migration ter-commit pada `6a7b193d`** `feat(bank-darah): add blood unit allocation migration` — tepat tiga berkas: `20260913070556_AddBbkBloodUnitAllocation.cs`, `.Designer.cs`, dan `ApplicationDbContextModelSnapshot.cs`. Bukti dokumen ter-commit pada `852668cc`. Seluruh commit dilakukan pemilik; working tree bersih saat QBE dicatat. **Riwayat:** tiga berkas migration belum ter-commit pada pencatatan bukti build 13 September 2026 |
+| Tanggal | 12 September 2026 · tinjauan statik 12 September 2026 sesudah mesin pemilik restart · bukti build dan migration 13 September 2026 · **bukti QBE Strict 13 September 2026** |
+| Status | 🟡 **SELESAI SEBAGIAN — BUILD, MIGRATION, DAN QBE STRICT LOLOS; PENERAPAN DATABASE TERBLOKIR** (13 September 2026). QBE Strict **`PASS`** — `GitRange` `origin/QuilvianIntegrationBackend` (`719b1c82d73748b194a43ea511886ae398c80f8a`)..`HEAD`, 11 berkas dievaluasi, `VIOLATION 0` / `REVIEW 0` / `INFO 0`, exit code `0`. Build Debug `0 Error(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` scope bersih; `has-pending-model-changes` bersih. **Task tetap sebagian karena penerapan database `BLOCKED — UNRELATED PENDING MIGRATIONS`**, sehingga kesembilan acceptance criteria runtime tetap **`BLOCKED`**. **Riwayat:** 🟡 **SELESAI SEBAGIAN — BUILD DAN MIGRATION LOLOS, PENERAPAN DATABASE TERBLOKIR** (13 September 2026). Build Debug `0 Error(s)` / `191 Warning(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` terbentuk dengan scope bersih; `has-pending-model-changes` bersih. **Penerapan database: `BLOCKED — UNRELATED PENDING MIGRATIONS`** — migration ini tidak dapat diterapkan ke `QuilvianNewDevSukma` tanpa ikut menerapkan migration modul lain yang tertunda. Karena tabelnya belum ada di database, kesembilan acceptance criteria berstatus **`BLOCKED`** — bukan `PASS`, bukan gagal. **Riwayat:** 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
 
 ---
 
@@ -31,7 +31,7 @@
 | Pemilik & prefix pada registry | `BloodBankManagement / Blood Bank` · prefix **`Bbk`** · `BUSINESS DOMAIN / MODULE` |
 | Status registry | **`ACTIVE`** — terverifikasi pada **kedua** salinan: `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 30 (salinan yang dibaca `tooling/qbe/Invoke-QbeConformanceCheck.ps1`) dan registry canonical suite skill baris 30. Aktivasi tercatat 2026-09-03 atas approval owner Bank Darah dan blueprint `BD-BP-001` kontrak `v4` |
 | Keberlakuan | **`NEW CODE`** untuk `BbkBloodUnitAllocation`, `BbkAllocationStatus`, `BbkBloodUnitAllocationConfiguration`, dan `BloodUnitAllocationDtos`. **`TOUCHED`** untuk empat berkas milik modul ini sendiri yang sudah ada. **Nol `LEGACY MIGRATION`** — tidak ada rename entity, tidak ada tabel lama disentuh |
-| QBE ID yang berlaku | `QBE-MOD-002` kepemilikan modul dan prefix entity operasional — **lolos**, `Bbk` `ACTIVE`. `QBE-NAM-*` penamaan entity berprefix pemilik — **lolos**, `BbkBloodUnitAllocation`. `QBE-ENT-003` fakta tidak disalin dua kali — **lolos**, pasien dan komponen dibaca lewat relasi, tidak disalin ke tabel alokasi. `QBE-CODE-002`/`003` pembangkitan nomor `Count`/`Max`+1 — **tidak berlaku**, entity ini tidak punya nomor bisnis. `QBE-CODE-004` `SortOrder` generik yang dipersistensi — **tidak berlaku**. `QBE-DB-001` migration — **migration ada dan diinspeksi statik 13 September 2026**: satu tabel `Bbk*` milik modul ini, nol operasi modul lain; penilaian QBE-nya sendiri belum dijalankan. `QBE-DB-002` eksekusi database — **terblokir**, migration modul lain tertunda. **Riwayat:** `QBE-DB-001`/`QBE-DB-002` belum dinilai karena migration belum dibuat |
+| QBE ID yang berlaku | `QBE-MOD-002` kepemilikan modul dan prefix entity operasional — **lolos**, `Bbk` `ACTIVE`. `QBE-NAM-*` penamaan entity berprefix pemilik — **lolos**, `BbkBloodUnitAllocation`. `QBE-ENT-003` fakta tidak disalin dua kali — **lolos**, pasien dan komponen dibaca lewat relasi, tidak disalin ke tabel alokasi. `QBE-CODE-002`/`003` pembangkitan nomor `Count`/`Max`+1 — **tidak berlaku**, entity ini tidak punya nomor bisnis. `QBE-CODE-004` `SortOrder` generik yang dipersistensi — **tidak berlaku**. `QBE-DB-001` migration — **migration ada dan diinspeksi statik 13 September 2026**: satu tabel `Bbk*` milik modul ini, nol operasi modul lain; **QBE Strict `PASS` 13 September 2026** atas rentang yang memuat source **dan** migration — nol temuan. **Riwayat:** penilaian QBE-nya sendiri belum dijalankan pada pencatatan bukti build. `QBE-DB-002` eksekusi database — **terblokir**, migration modul lain tertunda. **Riwayat:** `QBE-DB-001`/`QBE-DB-002` belum dinilai karena migration belum dibuat |
 | Peninggalan `agents/rules/` di repository target | **Tidak ada** — sudah dicabut sebagaimana mestinya |
 | Selisih dua salinan governance | `BACKEND_ENGINEERING_CONTRACT.md` **identik**. `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` **berselisih** pada baris modul lain — salinan backend memuat `Platform / NumberSeriesManagement / Num` `ACTIVE` yang tidak ada di salinan suite, dan riwayat keduanya berbeda urutan. **Baris `Bbk` identik pada keduanya**, sehingga wewenang task ini tidak terpengaruh. Selisih ini adalah `ACC-DEP-007` yang sudah terbuka dan tetap milik lead — dicatat, tidak diperbaiki pada task ini |
 
@@ -290,7 +290,7 @@ dibuat, **nol** dependency test ditambahkan, dan `dotnet test` **tidak** dijalan
 | Penerapan database ke `QuilvianNewDevSukma` | **`BLOCKED — UNRELATED PENDING MIGRATIONS`** | **`BLOCKED`** | `dotnet ef migrations list` menunjukkan `20260913070556_AddBbkBloodUnitAllocation (Pending)`, dan penerapannya menuntut migration modul lain yang juga tertunda ikut diterapkan lebih dulu. Sesuai aturan task: nol `database update`, nol penyuntingan riwayat migration, nol baris `__EFMigrationsHistory` dipalsukan, nol migration tim lain dilewati |
 | Verifikasi manual API | `NOT EXECUTED` | **`BLOCKED`** | Build sudah lolos, tetapi tabel `BbkBloodUnitAllocation` belum ada di database, sehingga endpoint alokasi pasti gagal saat menulis. Menunggu penerapan database |
 | Verifikasi read-only DB | `NOT EXECUTED` | **`BLOCKED`** | Tabel dan index terfilter belum ada di database untuk diperiksa |
-| QBE Strict | **`NOT RUN`** | `NOT RUN` | Source `BE-BD-006` kini ter-commit pada `02b70618`, sehingga rentang `5e54b1d..02b70618` dapat diperiksa. Namun tiga berkas migration **belum** ter-commit, sehingga QBE yang mencakup migration menuntut commit pemilik lebih dulu. Agent tidak menjalankan QBE dan tidak menyatakannya lolos. **Riwayat:** `DEFERRED — REQUIRES USER COMMIT` 12 September 2026 |
+| QBE Strict | **`PASS`** — `VIOLATION 0`, `REVIEW 0`, `INFO 0`, exit code `0` | **`PASS`** | **Dijalankan pemilik 13 September 2026**, bukan agent. Mode `Strict`, scope `GitRange`, base `origin/QuilvianIntegrationBackend` (`719b1c82d73748b194a43ea511886ae398c80f8a`), head `HEAD`, 11 berkas dievaluasi, nol berkas bangkitan dan nol berkas test dikecualikan. Rentangnya kini memuat source (`02b70618`) **dan** migration (`6a7b193d`), sehingga penilaian mencakup seluruh perubahan kode task ini. Rinciannya bagian 5.4. **Riwayat:** `NOT RUN` pada pencatatan bukti build 13 September 2026 — tiga berkas migration belum ter-commit; `DEFERRED — REQUIRES USER COMMIT` 12 September 2026 |
 
 ### 5.1 Pemeriksaan statis yang benar-benar dijalankan sebagai ganti build
 
@@ -405,6 +405,50 @@ agent; penentuannya milik pemilik.
 
 ---
 
+### 5.4 Bukti QBE Strict — 13 September 2026
+
+QBE **dijalankan pemilik**. Agent hanya mencatat keluarannya dan mencocokkan cakupannya dengan riwayat
+Git lewat perintah baca-saja — tanpa menjalankan QBE, build, EF, test, maupun database.
+
+**Keluaran checker, persis seperti dilaporkan pemilik:**
+
+| Field | Nilai |
+| --- | --- |
+| Checker mode | `Strict` |
+| Scope | `GitRange` |
+| Base | `origin/QuilvianIntegrationBackend` (`719b1c82d73748b194a43ea511886ae398c80f8a`) — SHA hasil fetch |
+| Head | `HEAD` |
+| Files evaluated | `11` |
+| Generated files excluded (`bin`/`obj`) | `0` |
+| Test-scope files excluded dari `QBE-ENT-001`/`QBE-CFG-001`/`QBE-MOD-002` | `0` |
+| `VIOLATION` | `0` |
+| `REVIEW` | `0` |
+| `INFO` | `0` |
+| Findings | none |
+| **Final result** | **`PASS`** |
+| Exit code | `0` |
+
+**Pencocokan cakupan oleh agent — baca-saja.** Referensi lokal `origin/QuilvianIntegrationBackend` menunjuk
+SHA yang sama, `719b1c8`. Berkas di luar `docs/` yang berubah dari merge-base base itu sampai `HEAD` lokal
+`852668cc` berjumlah **tepat 11**, dan seluruhnya milik `BE-BD-006`:
+
+| Kelompok | Berkas | Commit |
+| --- | --- | --- |
+| Source — 8 berkas | `BbkBloodUnitController.cs`, `BloodUnitAllocationDtos.cs`, `BloodUnitDtos.cs`, `BbkAllocationStatus.cs`, `BbkBloodUnitAllocation.cs`, `BbkBloodUnitService.cs`, `ApplicationDbContext.cs`, `BbkBloodUnitAllocationConfiguration.cs` | `02b70618` |
+| Migration — 3 berkas | `20260913070556_AddBbkBloodUnitAllocation.cs`, `.Designer.cs`, `ApplicationDbContextModelSnapshot.cs` | `6a7b193d` |
+
+Angka itu sama dengan `Files evaluated: 11`, sehingga QBE menilai **source dan migration sekaligus** — bukan
+salah satunya. Agent tidak menyimpulkan cara checker memperlakukan berkas `docs/`; yang dicatat hanya
+bahwa jumlah berkas non-`docs/` pada rentang itu cocok.
+
+**Apa arti `PASS` ini, dan apa yang tidak.** `PASS` membuktikan perubahan kode `BE-BD-006` lolos seluruh aturan
+engineering QBE mode `Strict` — termasuk kepemilikan modul dan prefix `Bbk` (`QBE-MOD-002`), yang pada
+preflight baru dinilai agent secara manual. `PASS` **tidak** membuktikan skema sudah ada di database, dan
+**tidak** membuktikan perilaku endpoint. Keduanya tetap terblokir penerapan database, sehingga status task
+tidak berubah: 🟡 sebagian.
+
+---
+
 ## 6. Acceptance criteria dan Definition of Done
 
 **Matriks acceptance — sembilan butir milik `BE-BD-006` pada roadmap revisi 11.** Tidak satu pun
@@ -438,6 +482,7 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 | Gerbang tetap dapat dipakai ulang `BE-BD-009` | **Terpenuhi** — gerbangnya tidak disentuh sama sekali |
 | `dotnet build` `0 Error(s)` | **Terpenuhi** 13 September 2026 — `0 Error(s)`, `191 Warning(s)`, dijalankan pemilik |
 | Migration dibuat dan diperiksa isinya | **Terpenuhi** — `20260913070556_AddBbkBloodUnitAllocation`, scope bersih, `has-pending-model-changes` bersih |
+| QBE Strict lolos atas rentang yang memuat source dan migration | **Terpenuhi** 13 September 2026 — `PASS`, nol `VIOLATION`/`REVIEW`/`INFO`, 11 berkas |
 | Migration diterapkan ke database dev pemilik | **Terblokir** — `BLOCKED — UNRELATED PENDING MIGRATIONS` |
 | Seluruh acceptance criteria terbukti | **BELUM** — sembilan dari sembilan `BLOCKED` oleh penerapan database |
 | Laporan tracked ada | **Terpenuhi** — dokumen ini |
@@ -456,7 +501,7 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 | Risiko tersisa 3 — **TERKONFIRMASI: migration modul lain tertunda** | Kekhawatiran 12 September 2026 terbukti pada 13 September 2026: `20260913070556_AddBbkBloodUnitAllocation` berstatus `(Pending)` dan penerapannya terhalang migration modul lain yang juga tertunda. Penerapan dihentikan — `BLOCKED — UNRELATED PENDING MIGRATIONS`. **Jalan keluarnya milik pemilik database dan pemilik modul terkait**, bukan `BE-BD-006`: migration modul lain diterapkan oleh yang berwenang, atau wewenang eksplisit diberikan untuk menerapkannya bersama. **Riwayat:** 179 migration di repository lawan `141/141` yang tercatat diterapkan pada `BE-BD-015` |
 | Risiko tersisa 4 — ~~source belum pernah dikompilasi~~ **TERTUTUP** | Build Debug 13 September 2026 `0 Error(s)`. Keempat perbaikan tinjauan statik ikut terkompilasi. **Riwayat:** pemeriksaan statis sempat menemukan dan memperbaiki satu cacat urutan argumen sebelum build pertama |
 | Yang **tidak** dilakukan | Nol `Tests/` dibuat · nol `*Tests.cs` dibuat · nol project atau dependency test ditambahkan · `dotnet test` tidak dijalankan · frontend tidak disentuh · `reallocate` tidak diimplementasikan · `BE-BD-007` sampai `BE-BD-010` dan `BE-BD-013` tidak dimulai · nol migration dibuat · nol database disentuh · nol `git add`, `commit`, `push`, `pull`, `merge`, `rebase`, atau PR · nol laporan task historis disunting · nol kepemilikan acceptance criteria dipindah |
-| Task berikutnya | **Tidak ada pekerjaan agent yang dapat berjalan sampai penerapan database terbuka.** Yang dibutuhkan: (1) pemilik database menyelesaikan migration modul lain yang tertunda di `QuilvianNewDevSukma`, atau memberi wewenang eksplisit menerapkannya bersama; (2) pemilik meng-commit tiga berkas migration `BE-BD-006`; (3) sesudah itu migration diterapkan, sembilan skenario acceptance dijalankan lewat API dan query read-only, QBE Strict dijalankan, dan laporan ini diperbarui. `BE-BD-007` tetap ⛔ sampai `BE-BD-006` ✅ |
+| Task berikutnya | **Tidak ada pekerjaan agent yang dapat berjalan sampai penerapan database terbuka.** Build, migration, commit, dan QBE Strict **sudah selesai**. Satu-satunya yang dibutuhkan: pemilik database menyelesaikan migration modul lain yang tertunda di `QuilvianNewDevSukma`, atau memberi wewenang eksplisit menerapkannya bersama. Sesudah itu migration `BE-BD-006` diterapkan, sembilan skenario acceptance dijalankan lewat API dan query read-only, dan laporan ini diperbarui. `BE-BD-007` tetap ⛔ sampai `BE-BD-006` ✅. **Riwayat:** pada pencatatan bukti build yang dibutuhkan juga commit tiga berkas migration dan QBE Strict — keduanya selesai 13 September 2026 |
 
 ---
 
@@ -467,6 +512,8 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 > `20260913070556_AddBbkBloodUnitAllocation`, scope bersih, `has-pending-model-changes` bersih.
 > **Langkah 4 berhenti di pemeriksaan:** `migrations list` menunjukkan migration modul lain tertunda,
 > sehingga penerapan database **`BLOCKED — UNRELATED PENDING MIGRATIONS`**. Langkah 5 dan 6 menunggu langkah 4.
+> **QBE Strict `PASS`** 13 September 2026 sesudah source dan migration ter-commit — 11 berkas, nol temuan.
+> Tidak ada lagi langkah pemilik selain langkah 4 yang menahan task ini.
 
 Build dan seluruh langkah sesudahnya menunggu pemilik, sesuai instruksi pada task ini.
 
