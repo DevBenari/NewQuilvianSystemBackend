@@ -17,8 +17,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public string? Search { get; set; }
 
-        /// <summary>Banyaknya baris yang dikembalikan. Dibatasi 1 sampai 50.</summary>
-        public int Limit { get; set; } = 20;
+        /// <summary>Halaman yang diminta, dimulai dari 1.</summary>
+        public int PageNumber { get; set; } = 1;
+
+        /// <summary>Banyaknya baris per halaman. Dibatasi 1 sampai 50.</summary>
+        public int PageSize { get; set; } = 20;
     }
 
     /// <summary>

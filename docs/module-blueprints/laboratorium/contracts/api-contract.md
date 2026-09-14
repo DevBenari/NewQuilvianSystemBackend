@@ -223,7 +223,7 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/patient-search` | Mencari pasien terdaftar sebelum mendaftarkan yang baru | `LabPatientRegistration : Read` | `LabPatientSearchQuery` | `ApiResponse<List<LabPatientSearchResponse>>` | **Tersedia** — `BE-LAB-08` |
+| `GET` | `/patient-search` | Mencari pasien terdaftar sebelum mendaftarkan yang baru | `LabPatientRegistration : Read` | `LabPatientSearchQuery` | `ApiResponse<PagedResult<LabPatientSearchResponse>>` | **Tersedia** — `BE-LAB-08` |
 | `POST` | `/walk-in` | Mendaftarkan pasien datang langsung; memanggil Registrasi lalu mengembalikan penunjuk kunjungan | `LabPatientRegistration : Create` | `RegisterLabWalkInRequest` | `ApiResponse<LabRegistrationResultResponse>` | **Tersedia** — `BE-LAB-08` |
 | `POST` | `/external-referral` | Mendaftarkan pasien rujukan luar beserta instansi dan dokter perujuknya | `LabPatientRegistration : Create` | `RegisterLabExternalReferralRequest` | `ApiResponse<LabRegistrationResultResponse>` | **Tersedia** — `BE-LAB-08` |
 

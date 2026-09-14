@@ -20,6 +20,14 @@ migration di `Migrations/`. Jika migration berubah, skripnya wajib dibuat ulang.
 | `20260904065309_AddLabDisciplineAndReferralMasterData.sql` | `20260904065309_AddLabDisciplineAndReferralMasterData` | Menambah kolom `LabDiscipline` pada `MstProcedure` beserta index bersyaratnya, dan membuat dua tabel data induk perujuk `MstReferralInstitution` serta `MstReferralDoctor`. Aditif; tidak ada kolom maupun tabel yang dihapus |
 | `20260904072427_AddReferralPointerToPatientEncounter.sql` | `20260904072427_AddReferralPointerToPatientEncounter` | Menambah `ReferralInstitutionId` dan `ReferralDoctorId` pada `TrxPatientEncounter` beserta foreign key dan index bersyaratnya. Aditif dan boleh kosong, sehingga kunjungan yang sudah ada tidak terpengaruh |
 | `rollback-20260904030116_SplitLabSpecimenIntoExamination.sql` | `20260904030116_SplitLabSpecimenIntoExamination` | Langkah mundurnya: keenam kolom, index, dan foreign key-nya dikembalikan. **Hanya aman pada tabel kosong** — `ProcedureId` dikembalikan sebagai kolom wajib berisi GUID nol, sehingga foreign key-nya gagal terbentuk bila sudah ada baris wadah |
+| `20260911_AddRadReport_AddRadOrderUrgency.sql` | `20260911025734_AddRadReport` **dan** `20260911045053_AddRadOrderUrgency` | Membuat dua tabel hasil bacaan Radiologi — `RadReport` dan `RadReportVersion` — beserta sembilan index, tiga di antaranya unik dan dua difilter `"IsDelete" = false`. Lalu menambah tiga kolom penanda cito pada `RadOrder`: `IsUrgent` (`NOT NULL DEFAULT false`), `UrgentMarkedByUserId`, dan `UrgentMarkedAt`, beserta index gabungan `ModalityId` + `IsUrgent` + `OrderStatus`. **Aditif seluruhnya** — tidak ada satu pun `DROP`, `TRUNCATE`, maupun `DELETE`, dan tidak ada tabel di luar ketiganya yang tersentuh |
+
+> **Satu skrip untuk dua migration — penyimpangan yang disengaja.** Skrip lain pada tabel ini
+> memuat tepat satu migration. Keduanya di sini digabung karena memang diterapkan bersamaan:
+> daftar kerja Radiologi (`AddRadOrderUrgency`) membaca kolom yang dibuatnya, dan hasil bacaan
+> (`AddRadReport`) tidak berguna tanpa modul yang sama berjalan. Satu transaksi untuk keduanya
+> menutup kemungkinan yang satu diterapkan lalu yang lain terlupakan — keadaan yang membuat
+> `GET /worklist` gagal karena kolom `IsUrgent` belum ada, tanpa ada yang menyadari sebabnya.
 
 ## Cara menjalankan
 
@@ -75,3 +83,20 @@ Pengujian otomatis modul Operasi berjalan di atas database dalam memori. Tiga ha
 | Filtered unique index pada `OprSchedule` | Database dalam memori tidak menegakkan index bersyarat | Coba buat dua jadwal aktif untuk satu kasus; yang kedua harus ditolak |
 | Kolom `jsonb` pada checklist dan recovery | Database dalam memori menyimpannya sebagai teks biasa | Simpan satu checklist, lalu baca kembali lewat `GET` persiapan |
 | Concurrency token `Version` | Perilaku benturan versi berbeda antar provider | Ubah satu kasus dari dua sesi; yang kedua harus dijawab `OPR012` |
+
+### Setelah `20260911_AddRadReport_AddRadOrderUrgency.sql` dijalankan
+
+Seluruh 287 uji Radiologi berjalan di atas database dalam memori. Empat hal berikut **belum
+terbukti** di PostgreSQL sungguhan:
+
+| Yang perlu dibuktikan | Alasan | Cara memeriksa |
+| --- | --- | --- |
+| Index unik satu bacaan per study | Database dalam memori tidak menegakkan index bersyarat | Coba buat dua bacaan untuk satu `RadStudyId`; yang kedua harus ditolak database |
+| Index unik nomor versi dalam satu bacaan | Sama | Coba sisipkan dua baris `RadReportVersion` dengan `RadReportId` dan `VersionNumber` yang sama |
+| Pesanan lama menjadi tidak-cito | `DEFAULT false` baru berlaku pada tabel berisi data | Setelah skrip jalan: `SELECT COUNT(*) FROM public."RadOrder" WHERE "IsUrgent" IS NOT FALSE;` harus `0` |
+| `Down()` kedua migration | **Belum pernah dijalankan sama sekali** | Bila perlu dibuktikan, jalankan pada salinan database — bukan pada yang berisi data yang masih dipakai |
+
+**Yang perlu diketahui tentang pemulihan.** `Down()` kedua migration ada, terbaca benar, dan
+terkompilasi, tetapi belum pernah dijalankan. `Down()` `AddRadReport` menjatuhkan kedua tabel
+hasil bacaan — **beserta seluruh isinya**. Karena itu pemulihan hanya aman selama belum ada
+bacaan yang ditulis.

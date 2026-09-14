@@ -274,18 +274,22 @@ baru.
 | `PerformedByUserId` | `Guid` | Ya | — | — | Petugas |
 | `PatientClassId` | `Guid` | Ya | Index | FK `MstPatientClass` | Kelas |
 | `ProcedureRefId` | `Guid` | Ya | Index | FK `MstProcedure` | Tindakan bertarif |
-| `TariffId` | `Guid` | Ya | — | FK tarif | Tarif dirujuk |
+| `TariffId` | `Guid` | Ya | — ¹ | FK tarif | Tarif dirujuk |
 | `ProcedureCodeSnapshot` | `string(50)` | Ya | — | — | Salinan kode |
 | `ProcedureNameSnapshot` | `string(200)` | Ya | — | — | Salinan nama |
 | `TariffAmountSnapshot` | `decimal(18,2)` | Ya | — | — | Salinan tarif (pola `BD-CAP-008`) |
 | `ProcedureStatus` | `int` (`BbkProcedureStatus`) | Ya | Index | — | `Recorded`/`Completed` |
+
+¹ **Delta `BE-BD-012`, 11 September 2026.** Migration `AddBbkBloodBankProcedure` memuat index
+`IX_BbkBloodBankProcedure_TariffId`, yang dibuat EF Core otomatis untuk setiap foreign key. Index itu
+tidak mengubah perilaku apa pun; ia hanya mempercepat pencarian tindakan menurut tarif.
 
 ### `BbkTransitionHistory`
 
 | Kolom | Tipe | Wajib | Index | Keterangan |
 | --- | --- | :---: | --- | --- |
 | `Id` | `Guid` | Ya | PK | Append-only |
-| `Scope` | `string(30)` | Ya | Index | `BloodOrder`/`ProviderRequest`/`BloodUnit`/`BloodGroupExam` |
+| `Scope` | `string(30)` | Ya | Index | `BloodOrder`/`ProviderRequest`/`BloodUnit`/`BloodGroupExam`/`BloodBankProcedure`. Nilai kelima ditambahkan `BE-BD-012` pada 11 September 2026 untuk riwayat pencatatan dan penyelesaian tindakan (`AC-BD-101`) — **delta kontrak tanpa perubahan schema**, karena kolomnya sudah `string(30)` |
 | `EntityId` | `Guid` | Ya | Index | Id entity terkait |
 | `Action` | `string(50)` | Ya | — | Nama tindakan |
 | `FromStatus` | `string(30)?` | Tidak | — | — |

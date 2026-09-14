@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
@@ -62,6 +63,379 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
         }
+
+        /* ================================================================ *
+         * Pembacaan
+         * ================================================================ */
+
+        /// <summary>
+        /// Pilihan penyaring, pengurutan, dan aksi untuk layar aturan keselamatan.
+        ///
+        /// Tidak menyentuh database. Daftar aksinya diturunkan langsung dari
+        /// <c>RAD-STATE-001</c> bagian 5, sehingga layar tidak perlu menuliskan ulang aturan
+        /// perpindahan status di sisi klien.
+        /// </summary>
+        public RadSafetyRuleFilterMetadataResponse GetFilterMetadata() => new()
+        {
+            RuleStatuses = Enum.GetValues<RadSafetyRuleStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatus(x),
+                })
+                .ToList(),
+
+            SortOptions =
+            [
+                new() { Value = "createDateTime", Label = "Tanggal aturan disusun" },
+                new() { Value = "effectiveFrom", Label = "Tanggal mulai berlaku" },
+                new() { Value = "ruleStatus", Label = "Keadaan pengesahan" },
+                new() { Value = "ruleVersion", Label = "Nomor versi" },
+            ],
+
+            SortDirections = ["asc", "desc"],
+            PageSizeOptions = [10, 25, 50, 100],
+
+            QueryParameters =
+            [
+                new()
+                {
+                    Name = "search",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Dicari pada kode dan nama alat, serta kode dan nama butir keselamatan.",
+                    Example = "CT",
+                },
+                new()
+                {
+                    Name = "modalityId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Menyaring aturan milik satu alat pencitraan.",
+                },
+                new()
+                {
+                    Name = "safetyRequirementId",
+                    Type = "guid",
+                    Required = "No",
+                    Description = "Menyaring aturan yang memakai satu butir keselamatan.",
+                },
+                new()
+                {
+                    Name = "ruleStatus",
+                    Type = "enum",
+                    Required = "No",
+                    Description = "Keadaan pengesahan. Nilainya diambil dari RuleStatuses.",
+                    Example = "3",
+                },
+                new()
+                {
+                    Name = "isMandatory",
+                    Type = "bool",
+                    Required = "No",
+                    Description = "Menyaring butir yang wajib dijawab saja, atau yang tidak wajib saja.",
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Kolom pengurutan. Nilainya diambil dari SortOptions.",
+                    Example = "createDateTime",
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Arah pengurutan, asc atau desc. Bawaannya desc.",
+                    Example = "desc",
+                },
+                new()
+                {
+                    Name = "pageNumber",
+                    Type = "int",
+                    Required = "No",
+                    Description = "Halaman yang diminta. Bawaannya 1.",
+                    Example = "1",
+                },
+                new()
+                {
+                    Name = "pageSize",
+                    Type = "int",
+                    Required = "No",
+                    Description = "Jumlah baris per halaman. Bawaannya 25, paling banyak 100.",
+                    Example = "25",
+                },
+            ],
+
+            Actions =
+            [
+                new()
+                {
+                    Action = "submit",
+                    Label = "Ajukan pengesahan",
+                    FromStatus = nameof(RadSafetyRuleStatus.Draft),
+                    ToStatus = nameof(RadSafetyRuleStatus.PendingApproval),
+                },
+                new()
+                {
+                    Action = "approve",
+                    Label = "Sahkan",
+                    FromStatus = nameof(RadSafetyRuleStatus.PendingApproval),
+                    ToStatus = nameof(RadSafetyRuleStatus.Active),
+                },
+                new()
+                {
+                    Action = "reject",
+                    Label = "Tolak",
+                    FromStatus = nameof(RadSafetyRuleStatus.PendingApproval),
+                    ToStatus = nameof(RadSafetyRuleStatus.Draft),
+                },
+                new()
+                {
+                    Action = "deactivate",
+                    Label = "Hentikan",
+                    FromStatus = nameof(RadSafetyRuleStatus.Active),
+                    ToStatus = nameof(RadSafetyRuleStatus.Inactive),
+                },
+            ],
+        };
+
+        /// <summary>
+        /// Rekap aturan keselamatan menurut keadaan pengesahannya, ditambah jumlah alat yang
+        /// belum tercakup satu pun aturan berlaku.
+        /// </summary>
+        public async Task<RadSafetyRuleSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var rekap = await _dbContext.MstRadModalitySafetyRules
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Draf = g.Count(x => x.RuleStatus == RadSafetyRuleStatus.Draft),
+                    Menunggu = g.Count(x => x.RuleStatus == RadSafetyRuleStatus.PendingApproval),
+                    Berlaku = g.Count(x => x.RuleStatus == RadSafetyRuleStatus.Active),
+                    Dihentikan = g.Count(x => x.RuleStatus == RadSafetyRuleStatus.Inactive),
+                    BerlakuWajib = g.Count(x =>
+                        x.RuleStatus == RadSafetyRuleStatus.Active && x.IsMandatory),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var belumTercakup = await AlatBelumTercakupQuery(now).CountAsync(cancellationToken);
+
+            return new RadSafetyRuleSummaryResponse
+            {
+                TotalAturan = rekap?.Total ?? 0,
+                Draf = rekap?.Draf ?? 0,
+                MenungguPengesahan = rekap?.Menunggu ?? 0,
+                Berlaku = rekap?.Berlaku ?? 0,
+                Dihentikan = rekap?.Dihentikan ?? 0,
+                BerlakuDanWajib = rekap?.BerlakuWajib ?? 0,
+                AlatBelumTercakup = belumTercakup,
+            };
+        }
+
+        /// <summary>
+        /// Daftar aturan keselamatan dengan penyaringan, pencarian, pengurutan, dan halaman.
+        /// </summary>
+        public async Task<PagedResult<RadSafetyRuleResponse>> GetPagedAsync(
+            RadSafetyRulePagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var (pageNumber, pageSize) = NormalkanHalaman(query.PageNumber, query.PageSize);
+
+            var sumber = _dbContext.MstRadModalitySafetyRules
+                .AsNoTracking()
+                .Include(x => x.Modality)
+                .Include(x => x.SafetyRequirement)
+                .Where(x => !x.IsDelete);
+
+            if (query.ModalityId.HasValue && query.ModalityId.Value != Guid.Empty)
+            {
+                sumber = sumber.Where(x => x.ModalityId == query.ModalityId.Value);
+            }
+
+            if (query.SafetyRequirementId.HasValue &&
+                query.SafetyRequirementId.Value != Guid.Empty)
+            {
+                sumber = sumber.Where(
+                    x => x.SafetyRequirementId == query.SafetyRequirementId.Value);
+            }
+
+            if (query.RuleStatus.HasValue)
+            {
+                sumber = sumber.Where(x => x.RuleStatus == query.RuleStatus.Value);
+            }
+
+            if (query.IsMandatory.HasValue)
+            {
+                sumber = sumber.Where(x => x.IsMandatory == query.IsMandatory.Value);
+            }
+
+            var pencarian = query.Search?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(pencarian))
+            {
+                sumber = sumber.Where(x =>
+                    (x.Modality != null &&
+                     (x.Modality.ModalityCode.Contains(pencarian) ||
+                      x.Modality.ModalityName.Contains(pencarian))) ||
+                    (x.SafetyRequirement != null &&
+                     (x.SafetyRequirement.RequirementCode.Contains(pencarian) ||
+                      x.SafetyRequirement.RequirementName.Contains(pencarian))));
+            }
+
+            var totalData = await sumber.CountAsync(cancellationToken);
+
+            var baris = await Urutkan(sumber, query.SortBy, query.SortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<RadSafetyRuleResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = baris.Select(Map).ToList(),
+            };
+        }
+
+        /// <summary>
+        /// Rincian satu aturan keselamatan, untuk halaman detail dan pengisian form ubah.
+        ///
+        /// Aturan yang sudah ditandai terhapus diperlakukan sebagai tidak ada, bukan
+        /// dikembalikan dengan penanda — layar tidak perlu tahu bedanya.
+        /// </summary>
+        public async Task<RadOperationResult<RadSafetyRuleResponse>> GetByIdAsync(
+            Guid ruleId,
+            CancellationToken cancellationToken = default)
+        {
+            var rule = await _dbContext.MstRadModalitySafetyRules
+                .AsNoTracking()
+                .Include(x => x.Modality)
+                .Include(x => x.SafetyRequirement)
+                .FirstOrDefaultAsync(x => x.Id == ruleId && !x.IsDelete, cancellationToken);
+
+            return rule == null
+                ? NotFound()
+                : RadOperationResult<RadSafetyRuleResponse>.Success(Map(rule));
+        }
+
+        /// <summary>
+        /// Alat pencitraan yang <b>belum</b> punya satu pun aturan keselamatan berlaku.
+        ///
+        /// Daftar ini sengaja hanya memuat alat yang bermasalah. Gerbang bersifat fail-closed,
+        /// sehingga setiap baris yang muncul di sini adalah alat yang akan menolak seluruh
+        /// pemeriksaannya hari ini. <b>Daftar kosong berarti modul siap dipakai</b> — itulah
+        /// bentuk jawaban yang diminta <c>BE-RAD-15</c>.
+        /// </summary>
+        public async Task<List<RadModalityCoverageResponse>> GetCoverageAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            return await AlatBelumTercakupQuery(now)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.ModalityCode)
+                .Select(x => new RadModalityCoverageResponse
+                {
+                    ModalityId = x.Id,
+                    ModalityCode = x.ModalityCode,
+                    ModalityName = x.ModalityName,
+                    UsesIonisingRadiation = x.UsesIonisingRadiation,
+                    DraftOrPendingRuleCount = x.SafetyRules.Count(r =>
+                        !r.IsDelete &&
+                        (r.RuleStatus == RadSafetyRuleStatus.Draft ||
+                         r.RuleStatus == RadSafetyRuleStatus.PendingApproval)),
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Alat aktif yang tidak punya satu pun aturan berlaku pada saat <paramref name="now"/>.
+        ///
+        /// Penyaringnya sama persis dengan yang dipakai gerbang keselamatan. Kalau keduanya
+        /// berbeda, layar akan menyatakan sebuah alat sudah siap sementara gerbangnya tetap
+        /// menolak.
+        /// </summary>
+        private IQueryable<MstRadModality> AlatBelumTercakupQuery(DateTime now) =>
+            _dbContext.MstRadModalities
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    !x.SafetyRules.Any(r =>
+                        !r.IsDelete &&
+                        r.RuleStatus == RadSafetyRuleStatus.Active &&
+                        r.EffectiveFrom <= now &&
+                        (r.EffectiveTo == null || r.EffectiveTo > now)));
+
+        private static IOrderedQueryable<MstRadModalitySafetyRule> Urutkan(
+            IQueryable<MstRadModalitySafetyRule> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var menaik = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "effectivefrom" => menaik
+                    ? query.OrderBy(x => x.EffectiveFrom)
+                    : query.OrderByDescending(x => x.EffectiveFrom),
+
+                "rulestatus" => menaik
+                    ? query.OrderBy(x => x.RuleStatus).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.RuleStatus)
+                        .ThenByDescending(x => x.CreateDateTime),
+
+                "ruleversion" => menaik
+                    ? query.OrderBy(x => x.RuleVersion)
+                    : query.OrderByDescending(x => x.RuleVersion),
+
+                _ => menaik
+                    ? query.OrderBy(x => x.CreateDateTime)
+                    : query.OrderByDescending(x => x.CreateDateTime),
+            };
+        }
+
+        private static (int PageNumber, int PageSize) NormalkanHalaman(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
+        }
+
+        private static string LabelStatus(RadSafetyRuleStatus status) => status switch
+        {
+            RadSafetyRuleStatus.Draft => "Draf — belum berlaku",
+            RadSafetyRuleStatus.PendingApproval => "Menunggu pengesahan",
+            RadSafetyRuleStatus.Active => "Berlaku — dinilai gerbang",
+            _ => "Sudah dihentikan",
+        };
 
         /* ================================================================ *
          * Menyusun dan mengubah draf
@@ -626,6 +1000,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 .Include(x => x.SafetyRequirement)
                 .FirstAsync(x => x.Id == ruleId, cancellationToken);
 
+            return Map(rule);
+        }
+
+        /// <summary>
+        /// Memetakan satu baris aturan menjadi bentuk yang dikirim ke layar.
+        ///
+        /// Nama alat dan butir hanya terisi bila navigasinya ikut dimuat pemanggil.
+        /// </summary>
+        private static RadSafetyRuleResponse Map(MstRadModalitySafetyRule rule)
+        {
             return new RadSafetyRuleResponse
             {
                 Id = rule.Id,

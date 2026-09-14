@@ -8,7 +8,7 @@
 | Diperbarui | `2026-09-07` — penyegaran SHA dan rujukan bukti. **Nol dependency berubah status**; `BD-DEP-004` dan `BD-DEP-005` tetap `RESOLVED` sejak `MVP-0` |
 | Sumber bukti | `02-existing-capability-map.md` revisi **5** dan `00-interview-decisions.md` revisi **11** |
 | Backend SHA | bukti dikumpulkan pada `9522caacf29371b1fddd1584e9a71ad94fe48d19`; **source terkini `5360286`** cabang `sukmagp` |
-| Frontend SHA | bukti dikumpulkan pada `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; **source terkini `101ec5d3a560bd6e54d4665ae53d425f255c609f`** cabang `sukmagpV2` — **tidak bergerak** sejak 4 September 2026 |
+| Frontend SHA | bukti dikumpulkan pada `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254`; **source terkini `f79af16847c99961842081f707bc0c4ff6c2d93b`** cabang `sukmagpV2` — naik dari `101ec5d3a` pada 10 September 2026 lewat dua commit milik `FE-BD-001` dan `FE-BD-011`; Impact scan terbatas dijalankan 10 September 2026: 44 berkas berubah, **42 milik Bank Darah sendiri** (`FE-BD-001` dan `FE-BD-011`); dua sisanya `store.jsx` dan `menu-items.jsx`, yaitu titik registrasi wajib yang memang disentuh task Bank Darah. **Nol dampak asing, nol baris kemampuan berpindah status** |
 
 Dokumen ini mencatat apa saja yang harus sudah tersedia sebelum Bank Darah bisa dikerjakan, dan
 sejauh mana masing-masing sudah siap.
