@@ -1,5 +1,7 @@
 # Laporan Perubahan Backend — `BE-BD-006`
 
+> **Catatan asal bukti (sinkronisasi dokumen 14 September 2026).** Status selesai di dokumen ini mengikuti hasil Claude yang diteruskan pemilik melalui percakapan. Bagian 9 memulihkan ringkasan hasil tersebut; bukan pengujian ulang. Log request/response lengkap, output SQL, dan log build/QBE sesi penutupan tidak terdapat dalam paket sumber yang direview. Bukti historis tetap dipertahankan; jangan menyamakan hasil yang dilaporkan dengan verifikasi independen.
+
 ## Metadata
 
 | Field | Nilai |
@@ -16,12 +18,14 @@
 | Target tulis | `DevBenari/NewQuilvianSystemBackend` cabang `sukmagp` — `Areas/HealthServices/BloodBankManagement/**`, `Repositories/**`, `docs/module-blueprints/bank-darah/**` |
 | Model | `claude-opus-5` |
 | Commit backend saat dikerjakan | Mulai: `5e54b1d5473d5995356221ea0ce2e9cc1c580dd8` cabang `sukmagp`. **Source `BE-BD-006` ter-commit pada `02b70618`** `feat(bank-darah): implement BE-BD-006 allocation source` — tepat delapan berkas source task ini, nol berkas lain di luar `docs/`. Commit dilakukan pemilik. **Migration ter-commit pada `6a7b193d`** `feat(bank-darah): add blood unit allocation migration` — tepat tiga berkas: `20260913070556_AddBbkBloodUnitAllocation.cs`, `.Designer.cs`, dan `ApplicationDbContextModelSnapshot.cs`. Bukti dokumen ter-commit pada `852668cc`. Seluruh commit dilakukan pemilik; working tree bersih saat QBE dicatat. **Pemeriksaan ulang 14 September 2026:** `HEAD` `baa1851b` (`docs(bank-darah): record BE-BD-006 QBE evidence`), working tree bersih sebelum pass ini; kesebelas berkas source dan migration masih ada pada path yang sama, dan nol commit sesudah `6a7b193d` menyentuh `Areas/`, `Repositories/`, maupun `Migrations/`. **Riwayat:** tiga berkas migration belum ter-commit pada pencatatan bukti build 13 September 2026 |
-| Tanggal | 12 September 2026 · tinjauan statik 12 September 2026 sesudah mesin pemilik restart · bukti build dan migration 13 September 2026 · **bukti QBE Strict 13 September 2026** · **pemeriksaan ulang bukti dan observasi runtime 14 September 2026** |
-| Status | 🟡 **PARTIAL — READY FOR RUNTIME VALIDATION** (14 September 2026; taksonomi repository: `SELESAI SEBAGIAN`). Implementation **COMPLETE** · migration artifact **COMPLETE** · static verification **COMPLETE** · build evidence **AVAILABLE** · QBE Strict **PASS** · runtime acceptance **PENDING** — 0 dari 9 skenario runtime terbukti. Task **tidak** boleh ✅ sebelum kesembilan skenario runtime punya bukti aktual; build, migration, dan QBE bukan pengganti runtime acceptance. Backend sempat dijalankan untuk validasi runtime, lalu dihentikan sebelum skenario acceptance dijalankan (bagian 5.5). **Riwayat:** 🟡 **SELESAI SEBAGIAN — BUILD, MIGRATION, DAN QBE STRICT LOLOS; PENERAPAN DATABASE TERBLOKIR** (13 September 2026). QBE Strict **`PASS`** — `GitRange` `origin/QuilvianIntegrationBackend` (`719b1c82d73748b194a43ea511886ae398c80f8a`)..`HEAD`, 11 berkas dievaluasi, `VIOLATION 0` / `REVIEW 0` / `INFO 0`, exit code `0`. Build Debug `0 Error(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` scope bersih; `has-pending-model-changes` bersih. **Task tetap sebagian karena penerapan database `BLOCKED — UNRELATED PENDING MIGRATIONS`**, sehingga kesembilan acceptance criteria runtime tetap **`BLOCKED`**. **Riwayat:** 🟡 **SELESAI SEBAGIAN — BUILD DAN MIGRATION LOLOS, PENERAPAN DATABASE TERBLOKIR** (13 September 2026). Build Debug `0 Error(s)` / `191 Warning(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` terbentuk dengan scope bersih; `has-pending-model-changes` bersih. **Penerapan database: `BLOCKED — UNRELATED PENDING MIGRATIONS`** — migration ini tidak dapat diterapkan ke `QuilvianNewDevSukma` tanpa ikut menerapkan migration modul lain yang tertunda. Karena tabelnya belum ada di database, kesembilan acceptance criteria berstatus **`BLOCKED`** — bukan `PASS`, bukan gagal. **Riwayat:** 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
+| Tanggal | 12 September 2026 · tinjauan statik 12 September 2026 sesudah mesin pemilik restart · bukti build dan migration 13 September 2026 · **bukti QBE Strict 13 September 2026** · **pemeriksaan ulang bukti dan observasi runtime 14 September 2026** · **validasi runtime penuh 14 September 2026 — lihat bagian 9** |
+| Status | ✅ **SELESAI 14 September 2026 (hasil dilaporkan Claude).** Kesembilan skenario runtime dilaporkan lulus; ringkasannya dipulihkan pada **bagian 9**. Status ini dipertahankan dari dokumen pemilik, bukan ditetapkan melalui eksekusi ulang dalam review ini. Build terbaru dilaporkan `0 Error(s)` / `193 Warning(s)` dengan pengecualian `Tests/**`; bukan bukti build polos berhasil. Batas bukti DB, QBE, dan otorisasi ada pada bagian 9.2 dan 9.5. **Riwayat:** 🟡 **PARTIAL — READY FOR RUNTIME VALIDATION** (14 September 2026; taksonomi repository: `SELESAI SEBAGIAN`). Implementation **COMPLETE** · migration artifact **COMPLETE** · static verification **COMPLETE** · build evidence **AVAILABLE** · QBE Strict **PASS** · runtime acceptance **PENDING** — 0 dari 9 skenario runtime terbukti. Task **tidak** boleh ✅ sebelum kesembilan skenario runtime punya bukti aktual; build, migration, dan QBE bukan pengganti runtime acceptance. Backend sempat dijalankan untuk validasi runtime, lalu dihentikan sebelum skenario acceptance dijalankan (bagian 5.5). **Riwayat:** 🟡 **SELESAI SEBAGIAN — BUILD, MIGRATION, DAN QBE STRICT LOLOS; PENERAPAN DATABASE TERBLOKIR** (13 September 2026). QBE Strict **`PASS`** — `GitRange` `origin/QuilvianIntegrationBackend` (`719b1c82d73748b194a43ea511886ae398c80f8a`)..`HEAD`, 11 berkas dievaluasi, `VIOLATION 0` / `REVIEW 0` / `INFO 0`, exit code `0`. Build Debug `0 Error(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` scope bersih; `has-pending-model-changes` bersih. **Task tetap sebagian karena penerapan database `BLOCKED — UNRELATED PENDING MIGRATIONS`**, sehingga kesembilan acceptance criteria runtime tetap **`BLOCKED`**. **Riwayat:** 🟡 **SELESAI SEBAGIAN — BUILD DAN MIGRATION LOLOS, PENERAPAN DATABASE TERBLOKIR** (13 September 2026). Build Debug `0 Error(s)` / `191 Warning(s)`; migration `20260913070556_AddBbkBloodUnitAllocation` terbentuk dengan scope bersih; `has-pending-model-changes` bersih. **Penerapan database: `BLOCKED — UNRELATED PENDING MIGRATIONS`** — migration ini tidak dapat diterapkan ke `QuilvianNewDevSukma` tanpa ikut menerapkan migration modul lain yang tertunda. Karena tabelnya belum ada di database, kesembilan acceptance criteria berstatus **`BLOCKED`** — bukan `PASS`, bukan gagal. **Riwayat:** 🟡 **SELESAI SEBAGIAN — SOURCE LENGKAP, VALIDASI BELUM DIJALANKAN.** Seluruh source di dalam scope selesai ditulis. **`dotnet build` TIDAK dijalankan atas instruksi eksplisit pemilik** ("jangan lakukan build automatis, untuk build biarkan saya jalankan manual"), sehingga migration belum dibuat dan database belum disentuh. Kesembilan acceptance criteria berstatus **`NOT EXECUTED`**, bukan `PASS` |
 
 ---
 
 ## 0. Backend Governance Preflight
+
+> Bagian ini mencatat preflight historis sebelum penutupan runtime. Keadaan database dan batas bukti terbaru yang **dilaporkan** ada pada bagian 9.2; penambahan registrasi DI dibahas pada bagian 9.4.
 
 | Field | Hasil |
 | --- | --- |
@@ -259,6 +263,8 @@ Request `CancelAllocationRequest`:
 ---
 
 ## 5. Verifikasi
+
+> **Riwayat:** bagian 5.1 sampai 5.5 dipertahankan dari proses sebelumnya, termasuk observasi awal 14 September sebelum acceptance dijalankan. Ringkasan penutupan runtime yang dilaporkan berada pada bagian 9.
 
 **`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis
 (rules/backend/TEST_POLICY.md).`** Kebijakan verifikasi roadmap revisi 11 bagian 0.1 berlaku dan
@@ -502,9 +508,12 @@ jangan diperbaiki di dalam `BE-BD-006`, dan jangan dijadikan dasar menandai sken
 
 ## 6. Acceptance criteria dan Definition of Done
 
-**Matriks acceptance — sembilan butir milik `BE-BD-006` pada roadmap revisi 11.** Tidak satu pun
-berstatus `PASS`, karena tidak satu pun benar-benar dijalankan. Source-nya ada dan dapat ditunjuk;
-buktinya belum.
+**Matriks acceptance — sembilan butir milik `BE-BD-006` pada roadmap revisi 11.**
+
+> **Tabel di bawah adalah riwayat 12-13 September dan observasi awal 14 September 2026, sebelum penutupan runtime.** Kesembilan skenario kemudian **dilaporkan lulus** oleh Claude. Ringkasan yang dipulihkan, beserta keterbatasan buktinya, ada pada **bagian 9**. Baris `PENDING` di bawah bukan status penutupan terbaru.
+
+**Keadaan historis sebelum penutupan runtime:** tidak satu pun berstatus `PASS`, karena tidak satu pun
+benar-benar dijalankan. Source-nya ada dan dapat ditunjuk; buktinya belum.
 
 | Kriteria | Status bukti | Source yang menjawabnya | Yang masih dibutuhkan |
 | --- | --- | --- | --- |
@@ -526,21 +535,23 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 | Butir | Keadaan |
 | --- | --- |
 | Source vertical slice lengkap | **Terpenuhi** |
-| Kontrak API diikuti tanpa penyimpangan kode galat | **Terpenuhi** |
-| Hak akses terdaftar dan ditegakkan | **Terpenuhi** |
-| Invariant satu alokasi aktif dijaga database | **Terpenuhi pada source**; belum ada di database |
+| Kontrak API diikuti tanpa penyimpangan kode galat | **Riwayat penilaian:** `Terpenuhi`. Penutupan runtime melaporkan ketidakseragaman envelope untuk `VAL-BD-016`; temuan masih terbuka, lihat bagian 9.6. |
+| Hak akses terdaftar dan ditegakkan | Deklarasi `BloodUnit : Allocate` ditemukan pada audit source pemilik. Pendaftaran database dan penegakan untuk pengguna non-SuperAdmin **belum diverifikasi dalam review ini**; sesi acceptance dilaporkan menggunakan SuperAdmin. **Riwayat penilaian:** `Terpenuhi` |
+| Invariant satu alokasi aktif dijaga database | **Dilaporkan terpenuhi 14 September 2026**: index unik terfilter tersedia; dua request serentak menghasilkan `200` dan `409` dengan tepat satu alokasi aktif. Output SQL primer tidak disertakan dalam paket review. **Riwayat:** terpenuhi pada source; belum ada di database |
 | Gerbang `EvaluateAllocationGateAsync` dipakai, bukan diduplikasi | **Terpenuhi** |
 | Gerbang tetap dapat dipakai ulang `BE-BD-009` | **Terpenuhi** — gerbangnya tidak disentuh sama sekali |
 | `dotnet build` `0 Error(s)` | **Terpenuhi** 13 September 2026 — `0 Error(s)`, `191 Warning(s)`, dijalankan pemilik |
 | Migration dibuat dan diperiksa isinya | **Terpenuhi** — `20260913070556_AddBbkBloodUnitAllocation`, scope bersih, `has-pending-model-changes` bersih |
 | QBE Strict lolos atas rentang yang memuat source dan migration | **Terpenuhi** 13 September 2026 — `PASS`, nol `VIOLATION`/`REVIEW`/`INFO`, 11 berkas |
-| Migration diterapkan ke database dev pemilik | **Belum terverifikasi** — penyelarasan database sedang diselesaikan (bagian 5.5). **Riwayat 13 September 2026:** terblokir — `BLOCKED — UNRELATED PENDING MIGRATIONS` |
-| Seluruh acceptance criteria terbukti | **BELUM** — sembilan dari sembilan runtime acceptance `PENDING`. **Riwayat 13 September 2026:** sembilan dari sembilan `BLOCKED` oleh penerapan database |
+| Migration diterapkan ke database dev pemilik | **Dilaporkan terpenuhi 14 September 2026** pada `QuilvianNewDevSukma`: `migrations list` 0 pending dari 180; `20260913070556_AddBbkBloodUnitAllocation` terterapkan (bagian 9.2). Ini bukan klaim keadaan database lain atau pemeriksaan DB baru. **Riwayat:** belum terverifikasi pada observasi awal 14 September; terblokir migration modul lain pada 13 September. |
+| Seluruh acceptance criteria terbukti | **9/9 dilaporkan lulus 14 September 2026**; ringkasan di bagian 9.3. Review dokumen ini tidak mengeksekusi ulang atau memverifikasi log primer yang tidak disertakan. **Riwayat:** seluruh skenario sebelumnya `PENDING` atau `BLOCKED`. |
 | Laporan tracked ada | **Terpenuhi** — dokumen ini |
 
 ---
 
 ## 7. Catatan penutup
+
+> **Riwayat sebelum penutupan runtime.** Pertanyaan kontrak dan risiko yang belum mempunyai keputusan tetap terbuka. Penahan penerapan database dan fixture `AC-BD-046` kemudian dilaporkan terselesaikan; lihat bagian 9. Risiko kecocokan komponen tidak dinyatakan selesai oleh adendum.
 
 | Hal | Isi |
 | --- | --- |
@@ -557,6 +568,8 @@ karena menguji endpoint `reallocate`. Endpoint itu **tidak** dibuat pada task in
 ---
 
 ## 8. Yang perlu dijalankan pemilik — urutan pasti
+
+> **Prosedur historis, bukan instruksi untuk dijalankan ulang.** Jangan membuat migration atau fixture yang sama lagi hanya karena membaca bagian ini. Ringkasan hasil penutupan dan langkah dokumentasi berikutnya ada pada bagian 9.
 
 > **Kemajuan per 13 September 2026.** Langkah 1 (build) **selesai** — `0 Error(s)`, `191 Warning(s)`.
 > Langkah 2 dan 3 (baseline EF dan migration ber-scope) **selesai** —
@@ -616,3 +629,88 @@ sungguhan, termasuk dua permintaan bersamaan untuk `VAL-BD-018c`. Alasan pembata
 
 **Langkah 6 — laporan ini dan roadmap diperbarui** dengan hasil sebenarnya, lalu status task
 dinaikkan dari 🟡 menjadi ✅ hanya bila kesembilan kriteria benar-benar terbukti.
+
+
+---
+
+## 9. Adendum penutupan runtime 14 September 2026 - ringkasan hasil yang dilaporkan
+
+### 9.1 Asal bukti dan batas rekonstruksi
+
+Adendum ini disusun saat review dokumentasi dari **ringkasan keluaran Claude yang ditempel pemilik dalam percakapan**. Dokumen ZIP sebelumnya sudah merujuk bagian 9, tetapi berakhir di bagian 8; karena itu rujukan tersebut belum mempunyai isi. Adendum ini memulihkan ringkasan yang tersedia, bukan memulihkan log primer yang tidak diberikan.
+
+Sumber yang dipakai:
+
+- ZIP lima dokumen Bank Darah yang diberikan pemilik untuk review.
+- Pesan hasil Claude dengan heading `Hasil`, `Tiga hal yang perlu keputusan Anda`, `Batas kejujuran bukti`, dan `Status Git - nol commit`.
+- Output PowerShell audit deklarasi `[AccessPermission]` yang dikirim pemilik: `TOTAL UNIQUE = 30`.
+
+Tidak ada backend, build, QBE, API, query database, migration, cleanup, atau publikasi Git yang dijalankan dalam penyusunan adendum ini. Nilai HTTP di tabel 9.3 adalah hasil yang **dilaporkan**, bukan response yang diamati langsung oleh penyusun adendum. Waktu request, GUID fixture, isi response JSON, SQL lengkap, dan lokasi log tidak ditebak.
+
+Status SELESAI pada metadata dipertahankan sebagaimana laporan pemilik. **Kelengkapan bukti primer untuk review independen masih perlu dilampirkan** jika akan dipakai sebagai dasar approval formal yang menuntut bukti tersebut. Kekurangan lampiran bukan bukti bahwa skenario gagal.
+
+### 9.2 Lingkungan, build, database, dan QBE yang dilaporkan
+
+| Pemeriksaan | Hasil yang tersedia dalam laporan | Batasnya |
+| --- | --- | --- |
+| Database | `QuilvianNewDevSukma`, development personal | Tidak digeneralisasi ke integration, staging, atau production; tidak dibaca ulang pada review ini |
+| Build sesi runtime | `0 Error(s)` / `193 Warning(s)` | Dilaporkan memakai `-p:DefaultItemExcludes="Tests/**"`; build polos justru dilaporkan gagal 26 error akibat sisa `Tests/obj`. Perintah lengkap dan log primer tidak dilampirkan |
+| EF migration | `migrations list`: 0 pending dari 180; `has-pending-model-changes` bersih | Angka dari dokumen penutupan pemilik, bukan hasil eksekusi baru; bukan persetujuan menjalankan migration tambahan |
+| Index PostgreSQL | `IX_BbkBloodUnitAllocation_ActiveUnit` dengan predikat `WHERE ("AllocationStatus" = 0)` dilaporkan tersedia | Output SQL verifikasi tidak ada dalam ZIP |
+| QBE Strict | `PASS` dilaporkan | Bukti rinci 13 September tetap pada 5.4. Ringkasan terbaru tidak menunjukkan perintah/rentang yang membuktikan `Program.cs` uncommitted ikut dievaluasi; jangan mengklaim seluruh working tree terbaru telah lolos QBE |
+| Alat pembacaan DB | Runner Npgsql sekali pakai di scratchpad, bukan `psql`, lalu dihapus | Penghapusan runner bukan bukti bahwa semua data fixture sudah dihapus |
+| Identitas pemanggil acceptance | Seluruh skenario dilaporkan memakai SuperAdmin | Membuktikan hasil aturan bisnis yang dilaporkan, bukan penegakan akses per peran biasa |
+
+### 9.3 Sembilan skenario runtime
+
+Semua status pada tabel ini berarti **PASS menurut laporan Claude yang diteruskan pemilik**, bukan hasil pengujian ulang dalam review dokumen.
+
+| Skenario | Kondisi dan tindakan | Hasil yang dilaporkan |
+| --- | --- | --- |
+| `AC-BD-060` | Kantong `Received` dicoba dialokasikan | HTTP `422`, penolakan terkait `VAL-BD-063` |
+| `AC-BD-033` | Kantong berlebih berstatus `PendingReview` dicoba dialokasikan langsung | HTTP `422`, penolakan terkait `VAL-BD-033` |
+| `AC-BD-043` | Alokasi dibatalkan saat order asal aktif | Kantong kembali `Tersedia` (`Available`) |
+| `AC-BD-044` | Order asal dibatalkan, lalu alokasi dibatalkan | Kantong menjadi `Menunggu keputusan` (`PendingReview`), bukan `Tersedia` |
+| `AC-BD-045` | Pembatalan dengan kode alasan kosong, kode asing, dan kategori salah | HTTP `400`, `400`, dan `422`; ketidakseragaman envelope tetap dicatat pada 9.6 |
+| `AC-BD-046` | Kantong fixture `Issued` dicoba dibatalkan alokasinya | HTTP `422`, penolakan terkait `VAL-BD-023`; verifikasi DB dilaporkan menunjukkan tidak ada perubahan akibat penolakan |
+| `AC-BD-068` | Kantong di lokasi nonaktif dicoba dialokasikan | HTTP `422`, penolakan terkait `VAL-BD-064` |
+| `AC-BD-070` | Kantong dipindah ke lokasi aktif, lalu dialokasikan | HTTP `200` |
+| `VAL-BD-018c` | Dua request alokasi serentak memperebutkan kantong yang sama | Satu HTTP `200`, satu HTTP `409`, tepat satu baris alokasi aktif di DB |
+
+Sembilan skenario tersebut terdiri atas **delapan ID `AC-BD-*` dan satu skenario konkurensi `VAL-BD-018c`**, bukan sembilan ID acceptance `AC` baru. `AC-BD-071` tetap milik `BE-BD-009`.
+
+`VAL-BD-*` di tabel adalah **identitas aturan**. Tabel ini tidak mengasumsikan API mempunyai field JSON `errorCode` yang berisi identitas tersebut. Untuk mengonfirmasi bentuk envelope, gunakan response asli, bukan membuat contoh JSON seolah-olah hasil eksekusi.
+
+`AC-BD-046` memakai fixture database minimal atas persetujuan pemilik. Laporan menyebut `UPDATE 1` dengan guard `Id` dan `UnitStatus = 3`; tidak ada implementasi BE-BD-007 untuk membuat fixture tersebut. Hasil ini menguji **penolakan cancel atas kondisi Issued yang disiapkan**, bukan membuktikan alur pemberian atau validasi kecocokan BE-BD-007.
+
+### 9.4 Pemulihan registrasi DI dan smoke validation
+
+Claude melaporkan registrasi `BloodComponentService`, `BloodStorageLocationService`, dan `BloodBankReasonService` dipulihkan pada `Program.cs` (+8 baris). Menurut penelusuran historinya, ketiganya pernah terdaftar, dan hilang pada merge `27d737cd`; `BloodBankReasonService` disebut sudah terdaftar sejak `7d006476`. Penelusuran histori itu tidak dijalankan ulang saat menyusun adendum ini.
+
+`BE-BD-001` dan `BE-BD-014` dilaporkan sempat turun ke selesai sebagian, lalu kembali selesai setelah perbaikan DI. **Sembilan endpoint/request smoke master dilaporkan berubah dari HTTP 500 menjadi 200.** Daftar method dan path yang diuji tidak disertakan. Ini **bukan klaim seluruh endpoint dari tiga controller master sudah diuji**, dan bukan bukti otorisasi pengguna non-SuperAdmin.
+
+Perubahan DI dilaporkan masih uncommitted pada akhir sesi Claude. Status Git terkini harus dibaca dari workstation, tidak diasumsikan dari kalimat historis tersebut. Commit lokal juga tidak berarti perubahan sudah tersedia di remote atau deployment lain.
+
+### 9.5 Audit permission dan batas otorisasi
+
+Output PowerShell pemilik mencatat **30 pasangan unik deklarasi `[AccessPermission]`**, termasuk `BloodUnit : Allocate`. Recount ini mengoreksi angka current 29/39; tidak menciptakan permission baru pada sesi review dokumen. Tabel inventaris berada pada [BE-BD-016](BE-BD-016.md) bagian 9.
+
+Audit regex tersebut belum memverifikasi kesesuaian seluruh `[AccessController]` dan `[AccessAction]`, baris hasil seeder di database, maupun keputusan allow/deny pada akun biasa. Pengujian SuperAdmin tidak menggantikan pembuktian itu. Baseline 39 tetap angka historis roadmap; daftar lengkap selisihnya perlu direkonsiliasi dengan kontrak aktual. Tidak ada action/endpoint dummy dibuat untuk mengejar angka.
+
+### 9.6 Temuan terbuka yang tidak diperbaiki dalam pass ini
+
+| Temuan | Yang dilaporkan | Pemilik/tindak lanjut |
+| --- | --- | --- |
+| Envelope `VAL-BD-016` | Bentuk response penolakan alasan tidak seragam | Pemilik kontrak/API Bank Darah: periksa response primer dan ruang lingkup perbaikannya; tidak mengubah konfigurasi error global dalam review ini |
+| `HeldUnitCount` | Balasan penonaktifan lokasi membawa 0, padahal pesan menyebut kantong tertahan | Temuan backend yang ditautkan ke `BE-BD-015`; laporan menyatakan menahan satu acceptance `FE-BD-011`. Jangan menandai selesai tanpa perbaikan dan bukti baru |
+| Sisa `Tests/obj` | `dotnet build` polos gagal 26 error; build dengan pengecualian `Tests/**` berhasil | Pemilik workstation/build: inspeksi artefak sebelum cleanup. Tidak ada folder dihapus atau project test dibuat dalam review ini |
+| Kecocokan komponen pada alokasi | Risiko yang sudah tercatat pada bagian 7 | Keputusan pemilik proses/kontrak masih diperlukan; 9 skenario di 9.3 tidak menutup risiko ini |
+| Bukti primer sesi closure | Ringkasan ada, tetapi request/response, hasil SELECT, dan log lengkap tidak disertakan | Lampirkan keluaran asli bila tersedia; jangan mengarang log atau menganggap review dokumen sebagai eksekusi baru |
+
+### 9.7 Data fixture yang ditinggalkan dan langkah berikutnya
+
+Menurut laporan Claude, data bertanda `TEST-BD006-20260914094559` masih berada pada `QuilvianNewDevSukma`: **8 kantong, 2 order, 2 permintaan PMI, dan 7 master**, termasuk satu kantong `Issued`. Unit pelayanan dibuat khusus, bukan mengubah flag unit existing; tidak ada data dev non-uji yang dilaporkan diubah.
+
+Identitas lengkap dan relasi record fixture belum disertakan dalam ZIP. **Tidak ada cleanup otomatis disetujui oleh adendum ini.** Jangan menghapus berdasarkan prefix saja, membalik status terminal data non-uji, atau memakai fixture Issued sebagai bukti pemberian klinis. Simpan evidence, identifikasi record beserta dependensinya, dan minta persetujuan pemilik atas rencana cleanup sebelum menulis DB.
+
+Keadaan delivery yang dipertahankan dari laporan pemilik: BE-BD-006 selesai menurut hasil yang dilaporkan; BE-BD-007 siap dijadwalkan; BE-BD-008/009/010 tetap menunggu BE-BD-007; BE-BD-016 selesai sebagian; BE-BD-013 tetap future scope. Review ini tidak mengimplementasikan task berikutnya atau memberi approval baru untuk kontrak klinis, migration, deployment, maupun publikasi Git.
