@@ -2286,3 +2286,551 @@ Rincian skenarionya di [`testing/acceptance-test-matrix.md`](./testing/acceptanc
 | Backend SHA diaudit | `dd31bc91818566c0b53e1b68c0129f5a6cf01a2b` (branch `Yasmina`) |
 | Frontend SHA diaudit | `12f9242ce62e4d80dbdb719f80bb0e7a2848474c` (branch `QuilvianIntegrationFrontend`) |
 | Status | **draft** — approval `PC-DES-001`–`014` adalah tindakan manusia dan belum diberikan. Approval itu, ketika kelak diberikan, **bukan** otorisasi membuat maupun menjalankan migration |
+
+---
+
+# Amendment 11 September 2026 — Rumpun baru: Edit Tagihan & Multi-Payer Coverage
+
+> Revisi blueprint `1.1`, status **draft**. Masukan keputusan bisnis: **`MPY-DEC-001`–`MPY-DEC-010`**, seluruhnya `approved` Product/Domain Owner 11 September 2026 (`00-interview-decisions.md`, tiga amendment bertanggal sama). Masukan audit kemampuan: `01-existing-capability-map.md` § 19 (`CAP-33`–`CAP-41`), dibaca pada backend SHA `d295c4d5`.
+>
+> Keputusan arsitektur amendment ini diberi ID **`MPY-DES-001`–`MPY-DES-017`**. Seluruhnya keputusan **teknis** dalam wewenang desain; tidak ada keputusan bisnis baru di dalamnya. Statusnya **draft** — approval tetap tindakan manusia.
+>
+> **Bentuk blueprint tidak berubah.** `billing-kasir` tetap `SINGLE`. Rumpun ini masuk sebagai rumpun baru di dalam blueprint yang sama, mengikuti preseden Petty Cash (`MPY-DEC-002`).
+>
+> **Kelengkapan requirement.** `requirement-completeness-gate` **tidak** dijalankan terpisah untuk rumpun ini. Sebagai gantinya, `00-interview-decisions.md` (`MPY-DEC-001`–`010`, sepuluh keputusan berstatus `approved` beserta owner dan evidence) dan `01-existing-capability-map.md` § 19 (sembilan kemampuan berbukti source langsung) dipakai sebagai bukti kelengkapan. Ini **deviasi yang dicatat**, bukan langkah yang terlewat — mengikuti pola pencatatan yang sama seperti `domain_architecture_readiness_petty_cash` pada `blueprint-manifest.md`. Dasarnya: wawancara rumpun ini menutup satu konflik lintas modul nyata (`RWI-ENC-PAYER-001`) dan tiga open question sampai tuntas, sehingga tidak ada keputusan bisnis yang masih menggantung saat desain ini ditulis.
+
+## Tujuan dan batas amendment ini
+
+Kasir menerima tagihan yang payer-nya sudah ditetapkan saat pendaftaran. Kenyataan di loket tidak selalu serapi itu: pasien lupa membawa kartu asuransi lalu didaftarkan tunai, kartu penjamin perusahaan baru ditunjukkan saat hendak membayar, atau sebagian item memang disepakati dibayar sendiri walaupun kunjungannya berpenjamin. Hari ini tidak ada satu pun jalan memperbaiki itu dari layar kasir — `RegistrationManagement` **create-only** untuk payer (`CAP-33`, dikonfirmasi nihil endpoint ubah payer pada seluruh controller/service-nya), sehingga satu-satunya jalan adalah membatalkan kunjungan dan mendaftar ulang.
+
+Amendment ini merancang tiga kemampuan koreksi sebelum pembayaran — mengganti payer kunjungan, menentukan penanggung per item, dan menentukan item obat mana yang masuk tagihan — beserta dua master data dan satu dokumen tagihan untuk penjamin perusahaan.
+
+**Yang ada di dalam amendment ini**: dua tabel master baru, tiga tabel operasional baru, satu service baru milik `RegistrationManagement`, tiga service baru milik `billing-kasir`, satu service coverage baru, perluasan pada dua service coverage yang sudah ada, dan sepuluh endpoint baru.
+
+**Di luar scope, dan sengaja tidak disentuh**:
+
+| Yang tidak disentuh | Alasan |
+| --- | --- |
+| Skema satu-payer-per-encounter (`RegPatientEncounterGuarantor`, unique index `EncounterId`) | `MPY-DEC-001` menolak premis multi-payer dari dokumen sumber. Kontrak `RWI-ENC-PAYER-001` milik `RegistrationManagement` (approved, migration sudah live) **MUST NOT** diubah oleh rumpun ini |
+| Data dispensing Pharmacy (`PhmDrugUsage`, `PhmDrugUsageItem`, `PrescriptionDispensingService`) | `MPY-DEC-009`. Pharmacy adalah pemilik otoritatif fakta penyerahan obat; source-nya sendiri menyatakan *"Keputusan menagih beserta aturannya milik Billing"*. Edit Billing hanya menentukan inklusi finansial, **MUST NOT** membuat atau mengubah satu baris pun milik Pharmacy |
+| `ExcessAmount` / `ExcessStatus` pada kontrak kalkulasi | Tetap terkunci nol sesuai `BKC-DES-014`. Dukungan Company Guarantor **tidak** membukanya kembali: dengan satu payer aktif (`MPY-DEC-001`), tidak pernah ada payer kedua yang menerima excess |
+| Data penjamin pasien (`MstPatientInsurance`, `MstPatientCompanyGuarantor`) | `MPY-DEC-003` — Edit Asuransi hanya **memilih** dari yang sudah terdaftar, tidak pernah membuat atau mengubah kartu penjamin. Perubahan kartu tetap lewat Data Pasien/Registrasi |
+| Perutean AR dan debitur | `MPY-DES-014`. Reimbursement route hanya metadata; rumah sakit tetap menagih Company Guarantor |
+
+## Bukti as-is — dibaca langsung pada HEAD `d295c4d5`
+
+Seluruh baris di bawah dibaca dari source `.cs`, bukan dari prosa blueprint. Disiplin ini ditegakkan setelah dokumentasi internal modul ini terbukti tertinggal pada rename `Trx*`→`Reg*` (lihat catatan koreksi pada `00-interview-decisions.md`).
+
+| Fakta | Bukti |
+| --- | --- |
+| Relasi encounter→payer adalah satu-ke-satu, ditegakkan database | `RegPatientEncounterGuarantorConfiguration.cs` — `HasOne(x => x.Encounter).WithOne(x => x.PaymentSource)`, dan `HasIndex(x => x.EncounterId).IsUnique()` dengan komentar source *"Menjamin satu encounter hanya mempunyai satu sumber pembayaran."* Index ini **tidak difilter** — baris ber-`IsDelete=true` pun tetap menabrak |
+| `RegPatientEncounter.PaymentSource` adalah properti tunggal | `RegPatientEncounter.cs` — `public RegPatientEncounterGuarantor? PaymentSource { get; set; }`, bukan koleksi |
+| `Priority` dan `IsPrimary` sudah ada tetapi selalu bernilai tetap | `RegPatientEncounterGuarantor.cs` — `Priority = 1`, `IsPrimary = true` sebagai nilai bawaan; kode aplikasi hanya pernah menyisipkan satu baris |
+| Payer hanya dapat dibuat, tidak dapat diubah | `PatientEncounterController.cs` — `RegPatientEncounterGuarantor` hanya disentuh pada `CreateEncounterCoreAsync` (insert) dan `DeleteEncounter` (soft-delete ikutan). Nol `[HttpPut]`/`[HttpPatch]` menyasar payer |
+| Mesin coverage terikat pada payer aktif encounter | `InsuranceCoverageService.Resolve*Async(encounterId, …)` dan `RegistrationBillingCoverageAdapter.ResolveAsync` — keduanya mencari payer murni lewat `EncounterId`, tanpa parameter payer |
+| **Encounter Company Guarantor hari ini menghasilkan anomali yang menyesatkan** | `BillingCoverageAdapter.cs` baris 106 hanya bercabang `Cash` vs selain-Cash; baris 122 kemudian menolak karena `InsuranceProviderId` kosong dengan kode `INSURANCE_PROVIDER_MISSING` dan pesan *"Perusahaan asuransi kunjungan ini belum dipilih… Lengkapi data penjamin di Registrasi."* Padahal untuk Company Guarantor kolom itu memang **wajib kosong**. Akibatnya seluruh biaya jatuh ke pasien sambil menyuruh petugas melengkapi data yang sebenarnya sudah lengkap |
+| Dokumen Invoice Asuransi menolak Company Guarantor secara eksplisit | `BillingInsuranceInvoiceDocumentService.cs` baris 92-93 — cabang `CompanyGuarantor` hanya menambah peringatan *"Dokumen ini belum mendukung penjamin perusahaan"*, `Payer` tidak diisi, `IsPrintable` selalu `false` |
+| Jenis layanan sudah membedakan IGD dari rawat jalan | `BilInvoice.ServiceType` bertipe `string(30)`; nilainya dari `AdministrationFeeServiceTypes` — `Rajal`, `Igd`, `Otc`, `Ranap`. `BillingRefundService.cs:18` memakai `"RANAP"` apa adanya |
+| `BilInvoiceItem` tidak mengenal payer | `BilInvoiceItem.cs` — `Status` hanya `ACTIVE`/`VOIDED`; nol kolom payer/guarantor/payment-source |
+
+**Konsekuensi terpenting**: baris keenam bukan sekadar "belum didukung", melainkan **cacat yang sudah aktif hari ini**. Setiap kunjungan berpenjamin perusahaan yang tagihannya dihitung sekarang menghasilkan anomali palsu. Menutupnya adalah bagian wajib rumpun ini, bukan efek samping.
+
+## Bounded context, aggregate, dan transaction boundary
+
+| Konteks | Pemilik | Yang dipegang | Yang **MUST NOT** dilakukan konteks lain |
+| --- | --- | --- | --- |
+| Sumber pembayaran kunjungan | `RegistrationManagement` | `RegPatientEncounterGuarantor` beserta invariant satu baris per encounter dan seluruh kolom snapshot-nya | `billing-kasir` **MUST NOT** menulis ke `DbSet<RegPatientEncounterGuarantor>`. Satu-satunya jalan tulis adalah service milik `RegistrationManagement` (`MPY-DES-004`) |
+| Master pihak penjamin | `Administrator / MasterData` | `MstCompanyGuarantor`, `MstInsuranceProvider`, dan rute reimbursement perusahaan | `billing-kasir` membaca; pembuatan/perubahan lewat CRUD master milik `Administrator` |
+| Master aturan tanggungan | `HealthServices / MasterData` | `MstInsuranceCoverageRule` dan aturan tanggungan perusahaan | Mesin coverage membaca; tidak menulis |
+| Kartu penjamin pasien | `PatientManagement / MasterData` | `MstPatientInsurance`, `MstPatientCompanyGuarantor` | Rumpun ini **hanya membaca** untuk memvalidasi kandidat payer |
+| Fakta penyerahan obat | `PharmacyManagement` | `PhmDrugUsage`, `PhmDrugUsageItem` | Rumpun ini **hanya membaca**; inklusi finansial dicatat di tabel milik Billing sendiri |
+| Tagihan dan keputusan menagih | `billing-kasir` | `BilInvoice`, `BilInvoiceItem`, penanggung per item, disposisi penebusan, jejak perubahan payer, dokumen tagihan | — |
+
+**Transaction boundary.** Ketiga perintah edit membuka **satu** transaksi database yang mencakup seluruh langkah, termasuk pemanggilan lintas konteks:
+
+```text
+BEGIN
+  1. kunci baris invoice, periksa ExpectedRowVersion
+  2. periksa gerbang kelayakan edit (status OPEN, belum ada pembayaran berhasil)
+  3. panggil EncounterPaymentSourceService (Registration) bila perintahnya ganti payer
+  4. tulis/nonaktifkan penanggung per item dan disposisi penebusan
+  5. reset penanggung item yang payer-kind-nya tidak lagi tersedia (MPY-DES-009)
+  6. jalankan kalkulasi ulang otoritatif, hasilkan versi kalkulasi baru
+  7. catat jejak perintah beserta nilai sebelum/sesudah
+COMMIT   -- gagal di langkah mana pun => ROLLBACK penuh, nol perubahan tersimpan
+```
+
+Kedua konteks berbagi `ApplicationDbContext` yang sama, sehingga satu `IDbContextTransaction` cukup — tidak diperlukan distributed transaction maupun outbox. Ini alasan teknis mengapa orkestrasi ditempatkan di Billing dan bukan sebaliknya: Billing yang memegang invoice, row version, dan kalkulasi, sehingga ia pemegang transaksi yang wajar.
+
+## Kepemilikan data — baris baru
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Sumber pembayaran kunjungan | Registration Management | Ya | **Tidak** — dibaca, dan ditulis hanya lewat service pemiliknya |
+| Kartu asuransi pasien | Patient Management | Ya | Tidak |
+| Kartu penjamin perusahaan pasien | Patient Management | Ya | Tidak |
+| Master perusahaan penjamin | Administrator / Master Data | Ya | Tidak |
+| Master perusahaan asuransi | Administrator / Master Data | Ya | Tidak |
+| **Rute reimbursement perusahaan penjamin** | Administrator / Master Data | Ya | **Ya — tabel baru**, karena menerangkan hubungan kontraktual antar dua master pihak dan belum ada tempatnya (`MPY-DEC-008`) |
+| Aturan tanggungan asuransi | Health Services / Master Data | Ya | Tidak |
+| **Aturan tanggungan perusahaan penjamin** | Health Services / Master Data | Ya | **Ya — tabel baru**, sejajar aturan tanggungan asuransi (`MPY-DEC-008`, `CAP-36`) |
+| Fakta penyerahan obat | Pharmacy Management | Ya | **Tidak** (`MPY-DEC-009`) |
+| **Penanggung per item tagihan** | Billing dan Kasir | Ya | **Ya — tabel baru** (`CAP-37`) |
+| **Disposisi penebusan item obat** | Billing dan Kasir | Ya | **Ya — tabel baru** (`CAP-37`) |
+| **Jejak perintah perubahan payer** | Billing dan Kasir | Ya | **Ya — tabel baru** (`MPY-DES-003`) |
+
+## Class diagram — perubahan payer kunjungan dan orkestrasinya
+
+```mermaid
+classDiagram
+    class RegPatientEncounter {
+        +Guid Id
+        +EncounterPaymentType PaymentType
+        +Guid PatientId
+    }
+    class RegPatientEncounterGuarantor {
+        +Guid Id
+        +Guid EncounterId
+        +EncounterPaymentType PaymentType
+        +Guid? PatientInsuranceId
+        +Guid? PatientCompanyGuarantorId
+        +bool IsEligible
+        +bool IsPolicyActive
+    }
+    class EncounterPaymentSourceService {
+        +SwitchAsync(command, ct)
+    }
+    class BillingPayerEditService {
+        +SwitchPaymentSourceAsync(...)
+        +ApplyItemPayerAssignmentsAsync(...)
+        +ApplyDrugDispositionAsync(...)
+    }
+    class BilInvoicePayerChangeCommand {
+        +Guid Id
+        +Guid InvoiceId
+        +string PreviousPayerKind
+        +string NewPayerKind
+        +Guid? PreviousCalculationVersionId
+        +Guid NewCalculationVersionId
+        +string Reason
+    }
+    class BilInvoice {
+        +Guid Id
+        +Guid EncounterId
+        +string Status
+        +string ServiceType
+    }
+    RegPatientEncounter "1" --> "1" RegPatientEncounterGuarantor : satu sumber pembayaran
+    EncounterPaymentSourceService --> RegPatientEncounterGuarantor : satu-satunya penulis
+    BillingPayerEditService --> EncounterPaymentSourceService : memanggil
+    BillingPayerEditService --> BilInvoicePayerChangeCommand : mencatat
+    BilInvoice "1" --> "0..*" BilInvoicePayerChangeCommand : riwayat perubahan payer
+```
+
+## Class diagram — penanggung per item dan penebusan obat
+
+```mermaid
+classDiagram
+    class BilInvoiceItem {
+        +Guid Id
+        +Guid InvoiceId
+        +Guid CategoryId
+        +string SourceDomain
+        +string Status
+    }
+    class BilInvoiceItemPayerAssignment {
+        +Guid Id
+        +Guid InvoiceItemId
+        +Guid? EncounterGuarantorId
+        +string PayerKind
+        +string AssignmentSource
+        +string? Reason
+        +bool IsActive
+    }
+    class BilInvoiceItemBillingDisposition {
+        +Guid Id
+        +Guid InvoiceItemId
+        +string Disposition
+        +string DecisionSource
+        +string? Reason
+        +bool IsActive
+    }
+    class BilCalculationVersion {
+        +Guid Id
+        +Guid InvoiceId
+        +int VersionNo
+    }
+    BilInvoiceItem "1" --> "0..*" BilInvoiceItemPayerAssignment : tepat satu aktif
+    BilInvoiceItem "1" --> "0..*" BilInvoiceItemBillingDisposition : tepat satu aktif
+    BilInvoiceItem "1" --> "0..*" BilCalculationVersion : hasil perhitungan
+```
+
+## Class diagram — master data penjamin perusahaan
+
+```mermaid
+classDiagram
+    class MstCompanyGuarantor {
+        +Guid Id
+        +string CompanyGuarantorCode
+        +string CompanyGuarantorName
+        +bool IsUsingHospitalTariff
+    }
+    class MstInsuranceProvider {
+        +Guid Id
+        +string InsuranceProviderName
+    }
+    class MstCompanyGuarantorReimbursementRoute {
+        +Guid Id
+        +Guid CompanyGuarantorId
+        +string RouteType
+        +Guid? InsuranceProviderId
+        +bool IsDefault
+        +int Priority
+    }
+    class MstCompanyGuarantorCoverageRule {
+        +Guid Id
+        +Guid CompanyGuarantorId
+        +string ItemType
+        +string CoverageStatus
+        +decimal CoveragePercent
+        +string? EmployeeGrade
+        +int Priority
+    }
+    class MstPatientCompanyGuarantor {
+        +Guid Id
+        +Guid PatientId
+        +Guid CompanyGuarantorId
+        +string? GradeLevel
+        +bool IsEligible
+    }
+    MstCompanyGuarantor "1" --> "0..*" MstCompanyGuarantorReimbursementRoute : rute penggantian biaya
+    MstCompanyGuarantorReimbursementRoute "0..*" --> "0..1" MstInsuranceProvider : mitra, boleh kosong
+    MstCompanyGuarantor "1" --> "0..*" MstCompanyGuarantorCoverageRule : aturan tanggungan
+    MstCompanyGuarantor "1" --> "0..*" MstPatientCompanyGuarantor : kartu karyawan
+```
+
+## Keputusan arsitektur amendment ini
+
+| ID | Keputusan | Dasar dan alasan |
+| --- | --- | --- |
+| `MPY-DES-001` | **Satu endpoint generik** untuk ganti payer, bukan tiga endpoint per tipe target. Request membawa `PaymentType` beserta id target yang sesuai | Menutup `MPY-CQ-01`. Modelnya memang satu baris dengan satu `PaymentType` dan tiga himpunan FK yang saling eksklusif; `BuildPaymentSourceAsync` yang sudah ada pun satu method bercabang per tipe. Tiga endpoint akan menggandakan tiga kali orkestrasi validasi, snapshot, dan kalkulasi ulang yang isinya identik |
+| `MPY-DES-002` | Ganti payer **memperbarui baris yang ada di tempat**, bukan menyisipkan baris baru lalu menonaktifkan yang lama | Unique index `EncounterId` **tidak difilter**, sehingga baris lama yang di-soft-delete pun tetap menabrak. Menyisipkan baris baru mustahil tanpa mengubah index itu — dan mengubahnya berarti menyentuh `RWI-ENC-PAYER-001` yang `MPY-DEC-001` larang |
+| `MPY-DES-003` | Jejak perubahan payer disimpan pada tabel **milik Billing** (`BilInvoicePayerChangeCommand`), bukan sebagai kolom riwayat di tabel Registration | Konsekuensi langsung `MPY-DES-002`: baris diperbarui di tempat, sehingga nilai lama hilang tanpa tabel terpisah. Ditaruh di Billing karena perintahnya lahir dari konteks Billing beserta row version dan idempotency-nya, mencatat sekaligus akibat kalkulasinya, dan menjaga permukaan lintas modul tetap **satu service saja** |
+| `MPY-DES-004` | Penulisan `RegPatientEncounterGuarantor` hanya lewat `EncounterPaymentSourceService` **milik `RegistrationManagement`** | `MPY-DEC-007`. `CAP-33` mengonfirmasi service ini belum ada sama sekali, sehingga ini kapabilitas baru di modul orang lain — **wajib approval Muhammad Hamzah (`MPY-DEC-010`) sebelum file pertamanya ditulis** |
+| `MPY-DES-005` | Mesin coverage diberi **parameter konteks payer opsional**, bukan service baru yang menyalin logikanya | `CAP-34`. Menambah parameter opsional bersifat backward-compatible: seluruh pemanggil yang ada tidak berubah. Menyalin logika matching rule akan melahirkan dua mesin yang pasti menyimpang setelah revisi pertama — persis `Conflict` yang sudah tercatat di `CAP-05` |
+| `MPY-DES-006` | `CompanyGuarantorCoverageService` baru, **sejajar dan setempat** dengan `InsuranceCoverageService` | Dua mesin coverage sebaiknya berada di satu folder supaya adapter punya satu tempat mencari, dan supaya pembaca berikutnya menemukan keduanya bersamaan |
+| `MPY-DES-007` | `RegistrationBillingCoverageAdapter` menjadi **dispatcher per jenis payer**; anomali `INSURANCE_PROVIDER_MISSING` **tidak lagi** dikenakan pada encounter berpenjamin perusahaan | Menutup cacat as-is yang sudah aktif hari ini (lihat Bukti as-is baris keenam). Tanpa ini, dukungan Company Guarantor tidak akan pernah terlihat oleh kalkulasi |
+| `MPY-DES-008` | `BilInvoiceItemPayerAssignment`: tepat satu baris aktif per item, dijaga **filtered unique index** (`WHERE IsActive AND NOT IsDelete`); perubahan menonaktifkan baris lama dan menyisipkan baris baru | Berbeda dari `MPY-DES-002` karena index ini milik kita sendiri, sehingga boleh difilter. Bentuk append-only membuat riwayat penanggung per item terbaca tanpa tabel audit tambahan |
+| `MPY-DES-009` | Ganti payer **mereset** penanggung item yang jenisnya tidak lagi tersedia menjadi Pribadi, bertanda `AUTO`, beserta alasan otomatis; jumlahnya dikembalikan sebagai peringatan pada response | Jalur pengecualian yang paling mudah terlewat. Tanpa aturan ini, kunjungan yang payer-nya berubah dari Asuransi ke Penjamin akan menyisakan item bertanda "Asuransi" yang menunjuk payer yang sudah tidak ada — angka tagihan benar, tetapi keterangannya berbohong |
+| `MPY-DES-010` | `BilInvoiceItemBillingDisposition` terpisah dari penanggung item, dengan filtered unique index yang sama bentuknya | `MPY-DEC-009` dan `DEC-06` dokumen sumber. "Siapa yang menanggung item ini" dan "apakah item ini masuk tagihan" adalah dua pertanyaan berbeda; menyatukannya membuat keadaan ambigu ketika obat sah secara klinis tetapi tidak ditebus |
+| `MPY-DES-011` | Kelayakan Edit Billing memakai **`BilInvoice.ServiceType` yang sudah ada**, dan `IGD` diperlakukan sebagai nilai tersendiri — bukan digabung ke `RAJAL` | `MPY-DEC-009` mewajibkan pemisahan IGD. Sinyalnya sudah tersedia dan sudah terbukti dipakai (`AdministrationFeeServiceTypes.Rajal/Igd/Otc/Ranap`), sehingga tidak perlu sinyal baru |
+| `MPY-DES-012` | Item obat dikenali lewat **flag kategori** pada master kategori item billing, bukan pencocokan teks deskripsi | Pencocokan teks akan salah pada nama obat yang mengandung kata lain, dan diam-diam berubah perilakunya setiap kali nama item diubah |
+| `MPY-DES-013` | Dokumen penjamin perusahaan dibuat sebagai **DTO, service, dan endpoint tersendiri**, meniru pola Invoice Asuransi — bukan menambah cabang pada service yang sudah ada | `MPY-DEC-006`, `CAP-38`. Menambah cabang akan membuat satu service melayani dua dokumen dengan dua pemilik debitur berbeda, dan setiap perubahan salah satunya berisiko merusak yang lain |
+| `MPY-DES-014` | Rute reimbursement hanya **metadata pada dokumen**; debitur rumah sakit tetap perusahaan penjamin, dan perutean AR tidak berubah sama sekali | Mitra reimbursement adalah urusan perusahaan dengan asuransinya, bukan piutang rumah sakit. Menjadikannya debitur akan memindahkan AR ke pihak yang tidak punya kontrak dengan rumah sakit |
+| `MPY-DES-015` | Satu endpoint **read model gabungan** (`edit-context`) menyajikan invoice, kalkulasi, pilihan payer, penanggung item, disposisi, dan kapabilitas dalam satu panggilan | Tanpa ini layar edit membutuhkan enam panggilan terpisah dan berisiko menampilkan potongan data dari dua waktu berbeda |
+| `MPY-DES-016` | Seluruh mutasi rumpun ini melewati **satu service orkestrator** (`BillingPayerEditService`) yang memegang batas transaksi; controller tetap tipis | Konvensi repository (`QBE-SVC-001`): controller **MUST NOT** mengakses `ApplicationDbContext` langsung |
+| `MPY-DES-017` | **Tidak ada ember rupiah baru.** Porsi penjamin tetap satu ember; yang ditambahkan adalah **penanda jenis payer** pada breakdown sehingga antarmuka dapat melabelinya "Penjamin" atau "Asuransi" dengan benar | Dokumen sumber meminta Company Guarantor tidak disamarkan sebagai "Asuransi". Dengan satu payer aktif (`MPY-DEC-001`), dua ember terpisah akan selalu membuat salah satunya nol pada setiap kunjungan — itu kolom kosong yang menyesatkan, bukan informasi. Melabeli ember yang sudah ada menyelesaikan kebutuhan yang sama tanpa mengubah arity kontrak kalkulasi |
+
+## Penjelasan setiap class yang baru atau berubah
+
+### `MstCompanyGuarantorReimbursementRoute`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Administrator/MasterData/Models/MstCompanyGuarantorReimbursementRoute.cs` |
+| Kategori | Master / Reference |
+| Tanggung jawab utama | Mencatat bagaimana sebuah perusahaan penjamin mendapatkan penggantian biaya: menanggung sendiri, atau lewat perusahaan asuransi mitra. Keterangan ini muncul pada dokumen tagihan perusahaan, dan tidak mengubah siapa yang ditagih |
+| Field penting | `CompanyGuarantorId`, `RouteType`, `InsuranceProviderId?`, `Priority`, `IsDefault`, `EffectiveStartDate?`, `EffectiveEndDate?` |
+| Navigation dan relasi | Milik `MstCompanyGuarantor`; menunjuk `MstInsuranceProvider` secara opsional |
+| Pemakaian dalam alur bisnis | Dibaca saat dokumen tagihan perusahaan dicetak; dikelola admin master data |
+| Catatan desain | `RouteType = SELF` **MUST** berpasangan dengan `InsuranceProviderId` kosong, dan `INSURANCE_PROVIDER` **MUST** berpasangan dengan provider aktif. Maksimal satu rute bawaan aktif per perusahaan. **MUST NOT** dipakai sebagai dasar memindahkan piutang ke asuransi mitra (`MPY-DES-014`) |
+| Ekuivalen model lama | — |
+
+### `MstCompanyGuarantorCoverageRule`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/MasterData/Models/MstCompanyGuarantorCoverageRule.cs` |
+| Kategori | Master / Reference |
+| Tanggung jawab utama | Menentukan berapa bagian biaya yang ditanggung perusahaan penjamin untuk satu jenis item, kelas perawatan, paket manfaat, atau golongan karyawan tertentu |
+| Field penting | `CompanyGuarantorId`, `RuleCode`, `ItemType`, `TariffId?`, `DrugId?`, `DrugCategoryId?`, `ProcedureId?`, `TariffCategoryId?`, `PatientClassId?`, `BenefitPlanCode?`, `EmployeeGrade?`, `CoverageStatus`, `CoveragePercent`, `MaxCoverageAmount?`, `CoPaymentPercent?`, `MaxQuantityPerVisit?`, `MaxAmountPerVisit?`, `Priority`, `EffectiveStartDate?`, `EffectiveEndDate?` |
+| Navigation dan relasi | Milik `MstCompanyGuarantor`; menunjuk master tarif/obat/tindakan/kategori/kelas secara opsional |
+| Pemakaian dalam alur bisnis | Dibaca mesin tanggungan perusahaan setiap kali tagihan dihitung ulang |
+| Catatan desain | Strukturnya **cetakan 1:1** dari `MstInsuranceCoverageRule` dengan kunci `CompanyGuarantorId` (`CAP-36`). `CoPaymentPercent` **MUST** diturunkan server dari `CoveragePercent` seperti pola aslinya — masukan klien untuk field itu diabaikan. `EmployeeGrade` adalah satu-satunya dimensi tambahan, karena master perusahaan memang mengenal tanggungan per golongan |
+| Ekuivalen model lama | — |
+
+### `BilInvoiceItemPayerAssignment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItemPayerAssignment.cs` |
+| Kategori | Transaksi Billing |
+| Tanggung jawab utama | Menyimpan siapa yang menanggung satu baris biaya: pasien sendiri, asuransi, atau penjamin perusahaan |
+| Field penting | `InvoiceItemId`, `EncounterGuarantorId?`, `PayerKind`, `AssignmentSource`, `Reason?`, `IsActive` |
+| Navigation dan relasi | Milik `BilInvoiceItem`; menunjuk baris sumber pembayaran kunjungan secara opsional |
+| Pemakaian dalam alur bisnis | Dibuat otomatis saat item lahir, diubah kasir lewat Edit Status Tagihan, dibaca mesin kalkulasi |
+| Catatan desain | Tepat satu baris aktif per item, dijaga filtered unique index. `EncounterGuarantorId` **MUST** kosong untuk `CASH`. Baris lama **MUST NOT** ditimpa — dinonaktifkan, lalu baris baru disisipkan, sehingga riwayatnya terbaca |
+| Ekuivalen model lama | — |
+
+### `BilInvoiceItemBillingDisposition`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItemBillingDisposition.cs` |
+| Kategori | Transaksi Billing |
+| Tanggung jawab utama | Menyimpan keputusan apakah satu baris obat masuk tagihan atau tidak, tanpa menyentuh catatan penyerahan obat milik Farmasi |
+| Field penting | `InvoiceItemId`, `Disposition`, `DecisionSource`, `Reason?`, `IsActive` |
+| Navigation dan relasi | Milik `BilInvoiceItem` |
+| Pemakaian dalam alur bisnis | Diubah kasir lewat Edit Billing; dibaca mesin kalkulasi untuk menentukan nominal yang layak dihitung |
+| Catatan desain | Item ber-`Disposition = EXCLUDED` dikeluarkan dari nominal yang layak **sebelum** mesin tanggungan dipanggil, sehingga tidak pernah muncul sebagai porsi penjamin maupun porsi pasien. **MUST NOT** dipakai untuk item non-obat |
+| Ekuivalen model lama | — |
+
+### `BilInvoicePayerChangeCommand`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoicePayerChangeCommand.cs` |
+| Kategori | Transaksi Billing / jejak perintah |
+| Tanggung jawab utama | Mencatat setiap perubahan payer kunjungan yang dilakukan dari layar kasir beserta nilai sebelum dan sesudahnya |
+| Field penting | `InvoiceId`, `EncounterId`, `PreviousPayerKind`, `NewPayerKind`, `PreviousPayerNameSnapshot`, `NewPayerNameSnapshot`, `PreviousCalculationVersionId?`, `NewCalculationVersionId`, `ResetAssignmentCount`, `Reason`, `IdempotencyKey`, `CorrelationId`, `CausationId` |
+| Navigation dan relasi | Milik `BilInvoice` |
+| Pemakaian dalam alur bisnis | Ditulis satu baris setiap perintah ganti payer berhasil; dibaca auditor dan layar riwayat |
+| Catatan desain | Append-only. **MUST NOT** diperbarui maupun dihapus. Mengikuti pola `BilCashierShiftCommand` yang sudah ada di modul ini |
+| Ekuivalen model lama | — |
+
+### `EncounterPaymentSourceService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Services/EncounterPaymentSourceService.cs` |
+| Kategori | Service — **milik `RegistrationManagement`, bukan `billing-kasir`** |
+| Tanggung jawab utama | Satu-satunya penulis sumber pembayaran kunjungan sesudah kunjungan dibuat. Memvalidasi kandidat payer, membangun ulang seluruh kolom snapshot, dan menjaga invariant satu payer per kunjungan |
+| Dipanggil oleh | `BillingPayerEditService` |
+| Membuka transaksi database | **Tidak** — ikut transaksi pemanggil, supaya perubahan payer dan kalkulasi ulang menjadi satu kesatuan |
+| Catatan desain | Memakai ulang logika snapshot yang sudah ada pada `BuildPaymentSourceAsync` alih-alih menyalinnya. **Pembuatan file ini menunggu approval pemilik `RegistrationManagement` (`MPY-DEC-010`)** |
+| Ekuivalen model lama | — |
+
+### `CompanyGuarantorCoverageService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/ClinicalManagement/Services/CompanyGuarantorCoverageService.cs` |
+| Kategori | Service — mesin tanggungan |
+| Tanggung jawab utama | Menghitung berapa bagian satu item yang ditanggung perusahaan penjamin, memakai aturan tanggungan perusahaan |
+| Dipanggil oleh | `RegistrationBillingCoverageAdapter` |
+| Membuka transaksi database | Tidak — hanya membaca |
+| Catatan desain | Aturan otoritatifnya **MUST** berasal dari aturan tanggungan perusahaan. Rute reimbursement ke asuransi mitra **MUST NOT** dipakai sebagai alasan memakai aturan tanggungan milik asuransi itu (`MPY-DES-014`). Bila perusahaan tidak punya buku tarif sendiri, dipakai tarif rumah sakit |
+| Ekuivalen model lama | — |
+
+### `BillingPayerEditService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingPayerEditService.cs` |
+| Kategori | Service — orkestrator |
+| Tanggung jawab utama | Menjalankan ketiga perintah edit sebagai satu kesatuan: gerbang kelayakan, perubahan data, reset penanggung yang tidak lagi sah, kalkulasi ulang, dan pencatatan jejak |
+| Dipanggil oleh | `BillingInvoicesController` |
+| Membuka transaksi database | **Ya** — satu transaksi untuk seluruh langkah |
+| Catatan desain | Pemegang gerbang `MPY-DEC-005` (satu kasir, tanpa persetujuan kedua) dan gerbang keamanan edit (invoice `OPEN`, belum ada pembayaran berhasil). **MUST NOT** menulis `RegPatientEncounterGuarantor` langsung |
+| Ekuivalen model lama | — |
+
+### `BillingCompanyGuarantorInvoiceDocumentService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCompanyGuarantorInvoiceDocumentService.cs` |
+| Kategori | Service — dokumen baca-saja |
+| Tanggung jawab utama | Menyusun lembar tagihan yang ditujukan kepada perusahaan penjamin, beserta identitas karyawan dan keterangan rute reimbursement |
+| Dipanggil oleh | `BillingInvoicesController` |
+| Membuka transaksi database | Tidak |
+| Catatan desain | Meniru pola dokumen Invoice Asuransi: baca-saja, mengambil dari versi kalkulasi terkunci bila invoice tidak lagi `OPEN`. **MUST NOT** menghitung ulang tanggungan sendiri |
+| Ekuivalen model lama | — |
+
+### `RegistrationBillingCoverageAdapter`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCoverageAdapter.cs` |
+| Kategori | Service — adapter tanggungan |
+| Yang berubah | Menjadi dispatcher per jenis payer; menghormati penanggung per item dan disposisi penebusan; membawa penanda jenis payer pada hasil; **berhenti** mengeluarkan anomali `INSURANCE_PROVIDER_MISSING` untuk kunjungan berpenjamin perusahaan |
+| Catatan desain | Nilai `ContractVersion` **MUST** dinaikkan karena perilaku perhitungannya berubah. Kunjungan tunai dan kunjungan berasuransi **MUST** menghasilkan angka yang identik dengan sebelum amendment ini — diuji sebagai regresi |
+| Ekuivalen model lama | — |
+
+### `InsuranceCoverageService` dan `EncounterInsuranceService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs`, `.../EncounterInsuranceService.cs` |
+| Yang berubah | Menerima konteks payer eksplisit sebagai parameter **opsional**; `EncounterInsuranceService` mendapat cara membangun konteks dari kartu asuransi kandidat tanpa menyentuh kunjungan |
+| Catatan desain | Backward-compatible: seluruh pemanggil yang ada tidak berubah sama sekali. Membangun konteks kandidat **MUST NOT** menulis apa pun — ia melayani pratinjau perbandingan |
+| Ekuivalen model lama | — |
+
+### Controller
+
+| Controller | Status | Lokasi file | Endpoint yang diurus | Service yang dipakai |
+| --- | --- | --- | --- | --- |
+| `BillingInvoicesController` | `Diperbarui` | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs` | `edit-context`, pratinjau perbandingan, ganti payer, penanggung item, disposisi obat, dokumen penjamin perusahaan | `BillingPayerEditService`, `BillingCompanyGuarantorInvoiceDocumentService` |
+| `CompanyGuarantorReimbursementRouteController` | `Baru` | `Areas/Administrator/MasterData/Controllers/CompanyGuarantorReimbursementRouteController.cs` | CRUD rute reimbursement | `CompanyGuarantorReimbursementRouteService` |
+| `CompanyGuarantorCoverageRuleController` | `Baru` | `Areas/HealthServices/MasterData/Controllers/CompanyGuarantorCoverageRuleController.cs` | CRUD aturan tanggungan perusahaan | `CompanyGuarantorCoverageRuleService` |
+
+> **Peringatan koordinasi.** `BillingInvoicesController.cs` beserta `BillingInvoiceDtos.cs` dan `BillingInvoiceService.cs` **sudah memiliki perubahan yang belum di-commit** dari pekerjaan lain (lihat `01-existing-capability-map.md` § 19.0). Implementer **MUST** menyelaraskan urutan commit dengan pemilik pekerjaan itu lebih dulu, dan **MUST NOT** membuang atau menimpa perubahan tersebut.
+
+## Arsitektur folder target
+
+```text
+Areas/Administrator/MasterData/
+├── Models/
+│   └── MstCompanyGuarantorReimbursementRoute.cs          # baru
+├── Controllers/
+│   └── CompanyGuarantorReimbursementRouteController.cs   # baru
+├── DTOs/
+│   └── CompanyGuarantorReimbursementRouteDtos.cs         # baru
+└── Services/
+    └── CompanyGuarantorReimbursementRouteService.cs      # baru
+
+Areas/HealthServices/MasterData/
+├── Models/
+│   └── MstCompanyGuarantorCoverageRule.cs                # baru
+├── Controllers/
+│   └── CompanyGuarantorCoverageRuleController.cs         # baru
+├── DTOs/
+│   └── CompanyGuarantorCoverageRuleDtos.cs               # baru
+└── Services/
+    └── CompanyGuarantorCoverageRuleService.cs            # baru
+
+Areas/HealthServices/RegistrationManagement/Services/
+└── EncounterPaymentSourceService.cs                      # baru — MILIK MODUL LAIN, tunggu approval
+
+Areas/HealthServices/ClinicalManagement/Services/
+├── CompanyGuarantorCoverageService.cs                    # baru
+├── InsuranceCoverageService.cs                           # diperbarui
+└── EncounterInsuranceService.cs                          # diperbarui
+
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilInvoiceItemPayerAssignment.cs                  # baru
+│   ├── BilInvoiceItemBillingDisposition.cs               # baru
+│   └── BilInvoicePayerChangeCommand.cs                   # baru
+├── Dtos/
+│   ├── BillingPayerEditDtos.cs                           # baru
+│   └── BillingCompanyGuarantorInvoiceDtos.cs             # baru
+├── Services/
+│   ├── BillingPayerEditService.cs                        # baru
+│   ├── BillingCompanyGuarantorInvoiceDocumentService.cs  # baru
+│   └── BillingCoverageAdapter.cs                         # diperbarui
+└── Controllers/
+    └── BillingInvoicesController.cs                      # diperbarui — ADA PERUBAHAN BELUM COMMIT
+
+Repositories/Configurations/
+├── Administrator/MasterData/
+│   └── MstCompanyGuarantorReimbursementRouteConfiguration.cs   # baru
+├── HealthServices/MasterData/
+│   └── MstCompanyGuarantorCoverageRuleConfiguration.cs         # baru
+└── HealthServices/BillingManagement/Billing/
+    ├── BilInvoiceItemPayerAssignmentConfiguration.cs           # baru
+    ├── BilInvoiceItemBillingDispositionConfiguration.cs        # baru
+    └── BilInvoicePayerChangeCommandConfiguration.cs            # baru
+```
+
+File configuration **tidak** berada di dalam `Areas/`; ia terpisah di bawah `Repositories/Configurations/<Domain>/<SubDomain>/` sesuai aturan struktur backend.
+
+## Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `MstCompanyGuarantorReimbursementRoute` | `Baru` | seluruh kolom | Tabel baru |
+| `MstCompanyGuarantorCoverageRule` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoiceItemPayerAssignment` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoiceItemBillingDisposition` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoicePayerChangeCommand` | `Baru` | seluruh kolom | Tabel baru |
+| `RegPatientEncounterGuarantor` | `Sudah ada` | **nol kolom berubah** | **Nol** — hanya cara menulisnya yang berubah, bukan bentuknya |
+| `BilInvoice`, `BilInvoiceItem` | `Sudah ada` | **nol kolom berubah** | **Nol** — penanggung dan disposisi tinggal di tabel terpisah |
+| `BilCalculationVersion` | `Sudah ada` | **nol kolom berubah** | **Nol** — penanda jenis payer dibawa pada response dan snapshot, bukan kolom baru (`MPY-DES-017`) |
+
+**Lima tabel baru, satu migration, nol perubahan pada tabel yang sudah ada.** Ini konsekuensi langsung `MPY-DEC-001`: karena skema satu-payer tidak diubah, tidak ada satu pun kolom existing yang perlu bergerak.
+
+## Rencana migration, backfill, dan rollback
+
+| Aspek | Rencana |
+| --- | --- |
+| Urutan | Satu migration tunggal berisi kelima tabel. Tidak ada ketergantungan urutan di dalamnya karena kelimanya hanya menunjuk tabel yang sudah ada |
+| Tanpa mematikan layanan | **Ya.** Seluruhnya `CREATE TABLE` baru; nol `ALTER` pada tabel yang sedang dipakai |
+| Pengisian data lama | **Tidak ada backfill saat migration.** Penanggung item dan disposisi diisi malas: item tanpa baris aktif diperlakukan mesin kalkulasi sebagai `AUTO` mengikuti payer kunjungan — persis perilaku hari ini. Ini membuat seluruh invoice lama tetap menghasilkan angka yang sama tanpa disentuh |
+| Langkah mundur | `DROP TABLE` kelimanya. Karena tidak ada kolom existing yang berubah dan tidak ada backfill, mundur tidak menghilangkan data mana pun yang sudah ada sebelum amendment ini |
+| Perilaku hapus relasi | Seluruh FK memakai `Restrict`, mengikuti konvensi repository untuk relasi finansial |
+
+Pembuatan dan eksekusi migration tetap memerlukan otorisasi terpisah dan **tidak** diberikan oleh approval desain ini.
+
+## Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| `MstCompanyGuarantorReimbursementRoute` | Satu rute bawaan per perusahaan penjamin yang sudah terdaftar. Perusahaan yang menanggung sendiri diisi `SELF` dengan mitra kosong | Kontrak kerja sama perusahaan, diisi admin master data |
+| `MstCompanyGuarantorCoverageRule` | Sekurang-kurangnya satu aturan berlaku umum per perusahaan penjamin aktif — misalnya seluruh jenis item ditanggung 100% dengan batas per kunjungan sesuai kontrak | Kontrak kerja sama perusahaan |
+
+**Tanpa isi minimum ini, kunjungan berpenjamin perusahaan akan dihitung nol tertanggung** — seluruh biaya jatuh ke pasien. Pengisian master **MUST** menjadi prasyarat aktivasi fitur, bukan pekerjaan menyusul.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Kolom `PayerKind` pada `BilInvoiceItem` | Penanggung item perlu riwayat, alasan, dan penanda sumber keputusan. Satu kolom tidak dapat menyimpan keempatnya, dan menambahkannya mengubah tabel inti yang dipakai banyak konsumen |
+| Tabel riwayat payer di sisi `RegistrationManagement` | Menambah tabel ke modul yang bukan milik kita memperlebar permukaan lintas modul dari satu service menjadi satu service ditambah satu tabel. Jejaknya dicatat di Billing (`MPY-DES-003`) |
+| Ember rupiah `CompanyGuarantorAmount` tersendiri | Dengan satu payer aktif, ember itu selalu nol pada kunjungan berasuransi dan sebaliknya (`MPY-DES-017`) |
+| `MstCompanyTariff` (buku tarif perusahaan) | Belum ada requirement yang menuntutnya, dan `MstCompanyGuarantor` sudah punya `IsUsingHospitalTariff`. Membuat buku tarif baru tanpa kebutuhan berarti mengarang master |
+| Endpoint ganti penjamin perusahaan pasien dari layar kasir | `MPY-DEC-003` dan dokumen sumber: perubahan kartu penjamin tetap di Data Pasien/Registrasi. Kasir hanya memilih dari yang sudah terdaftar |
+| Persetujuan berjenjang untuk perubahan payer | `MPY-DEC-005` memutuskan satu kasir cukup. Menambahkannya berarti mengarang aturan bisnis |
+| Nomor seri tersendiri untuk dokumen penjamin perusahaan | `CAP-41` — dokumen Invoice Asuransi pun memakai ulang nomor invoice, dan komentar source-nya menyatakan dokumen ini bukan surat klaim formal |
+
+## Security, privacy, exception, dan concurrency
+
+| Aspek | Rancangan |
+| --- | --- |
+| Hak akses baca dokumen | `BillingInvoice : Read` dipakai ulang untuk dokumen penjamin perusahaan (`MPY-DEC-006`), mengikuti preseden `BKC-DEC-092` |
+| Hak akses mutasi | Ketiga perintah edit memakai butir hak akses tulis pada `BillingInvoice`; kedua master baru mendapat Resource sendiri. Pendaftaran Resource bersifat otomatis lewat pemindaian atribut (`CAP-39`) — tidak ada berkas seed yang perlu disunting |
+| Kolom sensitif | Nomor polis, nomor kartu, nomor karyawan, dan nama karyawan bertanda sensitif. **MUST NOT** masuk payload logger, dan nama berkas dokumen memakai nomor tagihan, bukan nama pasien atau nama perusahaan |
+| Gerbang kelayakan edit | Invoice berstatus `OPEN`, belum ada pembayaran berhasil, tidak sedang finalisasi. Di luar itu, perintah ditolak — bukan dikerjakan sebagian |
+| Concurrency | `ExpectedRowVersion` wajib pada ketiga perintah. Versi basi menghasilkan penolakan konflik **tanpa satu pun perubahan tersimpan**, karena seluruh langkah berada dalam satu transaksi |
+| Idempotency | `Idempotency-Key` wajib pada ketiga perintah, mengikuti pola perintah finansial yang sudah ada di modul ini |
+| Jejak audit | Perubahan payer dicatat pada tabel jejak perintah beserta nilai sebelum/sesudah dan versi kalkulasi. Perubahan penanggung item dan disposisi terbaca dari baris nonaktif yang tidak pernah dihapus |
+| Jalur pengecualian yang dirancang | Kandidat payer tidak terdaftar milik pasien; kartu penjamin kedaluwarsa pada tanggal layanan; perusahaan penjamin belum punya aturan tanggungan; penanggung item menunjuk jenis payer yang tidak lagi tersedia sesudah ganti payer; item obat pada kunjungan rawat inap |
+
+## Strategi test
+
+| Lapis | Yang diuji |
+| --- | --- |
+| Unit | Aturan pasangan `RouteType`/mitra asuransi; derivasi `CoPaymentPercent` server-side; pemilihan aturan tanggungan perusahaan menurut prioritas; reset penanggung item sesudah ganti payer (`MPY-DES-009`); kelayakan Edit Billing per `ServiceType` termasuk penolakan `RANAP` dan pemisahan `IGD` dari `RAJAL` |
+| Integration | Ganti payer tunai→asuransi→penjamin→tunai berurutan pada satu kunjungan, masing-masing diikuti kalkulasi ulang; penolakan ganti payer pada invoice yang sudah dibayar; versi baris basi menghasilkan penolakan tanpa perubahan tersimpan; perintah berulang dengan kunci idempotensi sama hanya berpengaruh sekali |
+| Kontrak | Bentuk response kesepuluh endpoint baru; label jenis payer pada breakdown (`MPY-DES-017`) |
+| **Regresi** | **Kunjungan tunai dan kunjungan berasuransi menghasilkan angka yang identik dengan sebelum amendment ini**; kunjungan berpenjamin perusahaan **tidak lagi** menghasilkan anomali `INSURANCE_PROVIDER_MISSING`; nol baris `PhmDrugUsage`/`PhmDrugUsageItem` tersentuh oleh seluruh alur Edit Billing |
+
+Rincian skenarionya di [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md), `BIL-AT-081`–`BIL-AT-100`.
+
+## Trace dan approval
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | **`MPY-DEC-001`–`MPY-DEC-010`** — seluruhnya `approved` Product/Domain Owner, 11 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 19, `CAP-33` (Missing), `CAP-34` (Reuse with adapter), `CAP-35` (Ready to reuse), `CAP-36` (Ready to reuse as template; entity-nya sendiri Missing), `CAP-37` (Missing), `CAP-38` (Reuse with adapter), `CAP-39` (Ready to reuse), `CAP-40` (Reuse with adapter), `CAP-41` (pola saja) |
+| Keputusan arsitektur amendment ini | `MPY-DES-001`–`MPY-DES-017`, seluruhnya **draft** |
+| Prefix keputusan desain | `MPY-DES-*`, mengikuti `MPY-DEC-002`. Sekuens `BKC-DES-*` tetap berhenti di `BKC-DES-027`; sekuens `PC-DES-*` tetap berhenti di `PC-DES-014` |
+| Kontrak terdampak | `BIL-API-1.0`, `BIL-STATE-0.9`, `BIL-VALIDATION-0.9`, `BIL-INTEGRATION-0.8`, `BIL-PERMISSION-0.8`, `BIL-TEST-1.0`, **`BIL-CALCULATION-0.9`** — sumbu kalkulasi **bergerak** pada amendment ini, berbeda dari Petty Cash |
+| Acceptance test | `BIL-AT-081`–`BIL-AT-100` |
+| Dampak skema | **Lima tabel baru, satu migration.** Nol perubahan pada tabel yang sudah ada |
+| Ketergantungan lintas modul | Satu service baru milik `RegistrationManagement` (`MPY-DES-004`) — **memblokir implementasi**, bukan desain. Penjawab: Muhammad Hamzah (`MPY-DEC-010`) |
+| Kelengkapan requirement | `requirement-completeness-gate` **tidak dijalankan**; bukti kelengkapan diambil dari `MPY-DEC-001`–`010` dan `01-existing-capability-map.md` § 19. Deviasi tercatat, lihat blockquote pembuka amendment ini |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini. Alasannya: seluruh batas lintas konteks yang relevan sudah diputus eksplisit oleh keputusan bisnis — kepemilikan payer kunjungan (`MPY-DEC-007`), penempatan master data (`MPY-DEC-008`), dan batas terhadap Farmasi (`MPY-DEC-009`) — sehingga tidak ada batas domain tersisa untuk diselesaikan `hospital-domain-architect` |
+| Backend SHA diaudit | `d295c4d59b68d223edc597c8b165b7ef4282b49f` (branch `Yasmina`), beserta working tree yang belum di-commit — lihat `01-existing-capability-map.md` § 19.0 |
+| Frontend SHA diaudit | `0eafa76bf397a47ceb9d44a6f69006ee25f8ba51` (branch `yasmina`) |
+| Status | ~~draft~~ **approved** — `MPY-DES-001`–`017` disetujui Product/Domain Owner 11 September 2026 (`MPY-DEC-012`, wewenang ganda Finance/AR `BKC-DEC-085`). Persetujuan pemilik `RegistrationManagement` atas `MPY-DES-004` ditutup terpisah lewat `MPY-DEC-011` (Muhammad Hamzah). Approval ini **bukan** otorisasi membuat maupun menjalankan migration — itu tetap memerlukan konfirmasi terpisah saat implementasi |

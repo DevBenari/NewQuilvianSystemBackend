@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
@@ -16,7 +16,9 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingModuleService>();
         services.AddScoped<BillingInvoiceService>();
         services.AddScoped<BillingCalculationService>();
+        services.AddScoped<BillingPayerEditService>();
         services.AddScoped<BillingInsuranceInvoiceDocumentService>();
+        services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
         services.AddScoped<BillingAllocationService>();
@@ -26,6 +28,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingArApHandoffService>();
         services.AddScoped<BillingFinalizationService>();
         services.AddScoped<BillingNumberSeriesService>();
+        services.AddScoped<BillingReminderService>();
         services.AddScoped<CashierShiftService>();
         services.AddScoped<IBillingChargeSourceAdapter, ContractBillingChargeSourceAdapter>();
         services.AddScoped<IBillingCoverageAdapter, RegistrationBillingCoverageAdapter>();

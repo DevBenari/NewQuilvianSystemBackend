@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -19,19 +19,28 @@ public sealed class BillingInvoicesController : ControllerBase
 {
     private readonly BillingInvoiceService _service;
     private readonly BillingCalculationService _calculationService;
+    private readonly BillingPayerEditService _payerEditService;
     private readonly BillingDiscountService _discountService;
     private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
+    private readonly BillingCompanyGuarantorInvoiceDocumentService _companyGuarantorInvoiceDocumentService;
+    private readonly BillingReminderService _reminderService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
         BillingCalculationService calculationService,
+        BillingPayerEditService payerEditService,
         BillingDiscountService discountService,
-        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService)
+        BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService,
+        BillingCompanyGuarantorInvoiceDocumentService companyGuarantorInvoiceDocumentService,
+        BillingReminderService reminderService)
     {
         _service = service;
         _calculationService = calculationService;
+        _payerEditService = payerEditService;
         _discountService = discountService;
         _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
+        _companyGuarantorInvoiceDocumentService = companyGuarantorInvoiceDocumentService;
+        _reminderService = reminderService;
     }
 
     [HttpGet]
@@ -57,6 +66,59 @@ public sealed class BillingInvoicesController : ControllerBase
     {
         var result = await _service.GetPaymentHistoryAsync(request, cancellationToken);
         return Ok(ApiResponse<PagedResult<PaymentHistoryItemResponse>>.Ok(result, "Riwayat pembayaran berhasil diambil."));
+    }
+
+    // Halaman "Invoice & Billing Kasir" (Cashier Overview): ringkasan operasional kasir terpadu
+    // yang menggabungkan status tagihan, tanggal bayar terakhir, sisa tagihan, info & status deposit,
+    // serta umur tagihan dan reminder dalam satu baris per invoice/kunjungan.
+    [HttpGet("cashier-overview")]
+    [AccessAction("Read", "Read Cashier Billing Overview", AccessType = AccessTypes.Read, SortOrder = 17)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CashierBillingInvoiceListItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCashierOverview(
+        [FromQuery] CashierBillingInvoiceQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetCashierOverviewAsync(request, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CashierBillingInvoiceListItemResponse>>.Ok(
+                result, "Daftar invoice & billing kasir berhasil diambil."));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // Aksi kasir: Kirim pengingat pembayaran ke pasien (WhatsApp/Chat).
+    // Memeriksa bahwa tagihan belum lunas, mencatat entri audit BilPaymentReminder,
+    // dan secara transparan melaporkan batasan penyedia gateway (tanpa memalsukan status pengiriman).
+    [HttpPost("{id:guid}/reminders")]
+    [AccessAction("Create", "Send Billing Payment Reminder", AccessType = AccessTypes.Create, SortOrder = 18)]
+    [AccessPermission("BillingInvoice", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<SendPaymentReminderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SendReminder(
+        Guid id,
+        [FromBody] SendPaymentReminderRequest? request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _reminderService.SendReminderAsync(
+                id, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<SendPaymentReminderResponse>.Ok(
+                result, result.Message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
     }
 
     [HttpGet("{id:guid}")]
@@ -412,6 +474,227 @@ public sealed class BillingInvoicesController : ControllerBase
             request, CurrentUserId(), cancellationToken);
         return Ok(ApiResponse<PagedResult<DoctorDiscountApprovalResponse>>.Ok(
             result, "Antrean approval diskon jasa dokter berhasil diambil."));
+    }
+
+    /// <summary>
+    /// Memuat seluruh bahan layar Edit Tagihan dalam satu panggilan gabungan (BE-BKC-047, MPY-DES-015, BIL-API-1.0).
+    /// </summary>
+    [HttpGet("{id:guid}/edit-context")]
+    [AccessAction("Read", "Read Invoice Edit Context", AccessType = AccessTypes.Read, SortOrder = 18)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceEditContextResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetEditContext(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _payerEditService.GetEditContextAsync(id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceEditContextResponse>.Ok(result, "Konteks layar edit tagihan berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Menghitung pratinjau perbandingan perhitungan antara payer yang sedang berlaku dengan payer kandidat
+    /// tanpa efek samping apa pun (BE-BKC-047, MPY-DES-005, BIL-API-1.0).
+    /// </summary>
+    [HttpPost("{id:guid}/payer-comparison-preview")]
+    [AccessAction("Read", "Read Payer Comparison Preview", AccessType = AccessTypes.Read, SortOrder = 19)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PayerComparisonPreviewResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PreviewPayerComparison(
+        Guid id,
+        [FromBody] PayerComparisonPreviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _payerEditService.PreviewPayerComparisonAsync(id, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<PayerComparisonPreviewResponse>.Ok(result, "Pratinjau perbandingan penanggung berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingPayerEditBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+        catch (BillingPayerEditValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Mengganti sumber pembayaran / penanggung kunjungan yang berlaku dan menghitung ulang tagihan secara atomik
+    /// (BE-BKC-047, MPY-DES-001, MPY-DES-003, MPY-DES-009, MPY-DES-016, BIL-API-1.0).
+    /// </summary>
+    [HttpPut("{id:guid}/payment-source")]
+    [AccessAction("Update", "Update Invoice Payment Source", AccessType = AccessTypes.Update, SortOrder = 20)]
+    [AccessPermission("BillingInvoice", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceEditResultResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SwitchPaymentSource(
+        Guid id,
+        [FromBody] SwitchPaymentSourceRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _payerEditService.SwitchPaymentSourceAsync(
+                id, request, CurrentUserId(), idempotencyKey, cancellationToken);
+            return Ok(ApiResponse<InvoiceEditResultResponse>.Ok(result, "Penanggung kunjungan berhasil diubah dan tagihan telah dihitung ulang."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingPayerEditBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+        catch (BillingPayerEditConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingPayerEditValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (BillingCalculationConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Mengubah penanggung beberapa baris biaya sekaligus dan menghitung ulang tagihan secara atomik
+    /// (BE-BKC-048, MPY-DES-008, MPY-DEC-004, BIL-API-1.0).
+    /// </summary>
+    [HttpPut("{id:guid}/item-payer-assignments")]
+    [AccessAction("Update", "Update Invoice Item Payer Assignments", AccessType = AccessTypes.Update, SortOrder = 21)]
+    [AccessPermission("BillingInvoice", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceEditResultResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateItemPayerAssignments(
+        Guid id,
+        [FromBody] UpdateItemPayerAssignmentsRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _payerEditService.UpdateItemPayerAssignmentsAsync(
+                id, request, CurrentUserId(), idempotencyKey, cancellationToken);
+            return Ok(ApiResponse<InvoiceEditResultResponse>.Ok(result, "Penanggung baris biaya berhasil diperbarui dan tagihan telah dihitung ulang."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingPayerEditBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+        catch (BillingPayerEditConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingPayerEditValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (BillingCalculationConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Mengatur disposisi penebusan obat tagihan (ALL_REDEEMED, PARTIAL_REDEEMED, NOT_REDEEMED)
+    /// dan menghitung ulang tagihan secara atomik (BE-BKC-049, MPY-DES-010, MPY-DEC-009, BIL-API-1.0).
+    /// </summary>
+    [HttpPut("{id:guid}/drug-billing-disposition")]
+    [AccessAction("Update", "Update Invoice Drug Billing Disposition", AccessType = AccessTypes.Update, SortOrder = 22)]
+    [AccessPermission("BillingInvoice", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceEditResultResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateDrugBillingDisposition(
+        Guid id,
+        [FromBody] UpdateDrugBillingDispositionRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _payerEditService.UpdateDrugBillingDispositionAsync(
+                id, request, CurrentUserId(), idempotencyKey, cancellationToken);
+            return Ok(ApiResponse<InvoiceEditResultResponse>.Ok(result, "Disposisi penebusan obat berhasil diperbarui dan tagihan telah dihitung ulang."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingPayerEditBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+        catch (BillingPayerEditConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingPayerEditValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (BillingCalculationConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    // MPY-DEC-006 / MPY-DES-013 / CAP-38: lembar dokumen tagihan penjamin perusahaan (Company Guarantor Invoice).
+    // Murni baca, disusun dari mesin kalkulasi yang sama dengan Menu Pembayaran / Invoice Asuransi.
+    // Kunjungan tunai/asuransi pribadi/tanpa data penjamin bukan galat - seluruhnya 200 dengan isPrintable=false
+    // beserta warnings (BKC-DES-008, MPY-DES-013).
+    // Hak akses BillingInvoice:Read dipakai ulang (MPY-DEC-006, CAP-38).
+    [HttpGet("{id:guid}/company-guarantor-invoice-document")]
+    [AccessAction("Read", "Read Company Guarantor Invoice Document", AccessType = AccessTypes.Read, SortOrder = 23)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorInvoiceDocumentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetCompanyGuarantorInvoiceDocument(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _companyGuarantorInvoiceDocumentService.GetDocumentAsync(
+                id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<CompanyGuarantorInvoiceDocumentResponse>.Ok(
+                result, "Dokumen Tagihan Penjamin Perusahaan berhasil disusun."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
     }
 
     private async Task<IActionResult> ExecuteDiscountCommandAsync(
