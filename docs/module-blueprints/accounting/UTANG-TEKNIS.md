@@ -37,7 +37,7 @@ belas artefak.
 | ~~`ACC-TD-017`~~ | ~~Tanpa test otomatis, verifikasi manual~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
 | ~~`ACC-TD-019`~~ | ~~`RequiresApproval` disimpan tetapi tidak pernah ditegakkan~~ | — | — | **`CLOSED`** 3 Sep 2026 |
-| `ACC-TD-020` | `ReversalOfJournalId` tidak unique — pembalikan ganda ditahan advisory lock, bukan skema | Owner modul | Sedang | `OPEN` — source `BE-ACC-P2-031` selesai 14 Sep 2026; **menunggu migration Rizki** |
+| ~~`ACC-TD-020`~~ | ~~`ReversalOfJournalId` tidak unique — pembalikan ganda ditahan advisory lock, bukan skema~~ | — | — | **`CLOSED`** 14 Sep 2026 — `BE-ACC-P2-031`, migration `20260914044507` |
 | ~~`ACC-TD-021`~~ | ~~`actionLoading` mati pada thunk di luar factory — penjaga kiriman ganda tidak menjaga~~ | — | — | **`CLOSED`** 7 Sep 2026
 | `ACC-TD-022` | **Daftar akun belum pernah disusun** — modul akuntansi tanpa bagan akun | **Pemilik proses akuntansi** | **Tinggi** | `OPEN` — jalan sementara ditempuh 10 Sep 2026, lihat rinciannya | |
 | ~~`ACC-TD-023`~~ | ~~Nominal rupiah ikut tercatat di log `JournalController` dan `ChartOfAccountController` — melanggar `NFR-004`~~ | — | — | **`CLOSED`** 14 Sep 2026 — `BE-ACC-P2-033` |
@@ -650,7 +650,26 @@ menentukan alur**. Setiap jurnal, apa pun jenisnya, wajib melewati `submit` → 
 
 ---
 
-## `ACC-TD-020` — `ReversalOfJournalId` tidak unique
+## ~~`ACC-TD-020`~~ — `ReversalOfJournalId` tidak unique — **`CLOSED`**
+
+> **Ditutup 14 September 2026 dengan bukti, bukan pernyataan.** Migration
+> `20260914044507_AddAccountingPostingRuleMaster` — dibuat dan diterapkan Rizki (commit `12b8af63`),
+> digabung dengan `BE-ACC-P2-016` — mengganti index biasa `IX_AccJournal_ReversalOfJournalId`
+> dengan unique index parsial berfilter `"ReversalOfJournalId" IS NOT NULL AND "IsDelete" = false`.
+> Terhadap tabel lama, itulah satu-satunya operasinya; nol kolom berubah.
+>
+> **Pertanyaan "apakah data yang ada sudah memuat pembalik ganda" terjawab tak langsung.**
+> PostgreSQL menolak pembuatan unique index bila ada nilai kembar. `database update` berhasil dan
+> `dotnet ef migrations list` tanpa `(Pending)`, jadi datanya bersih saat itu, dan sejak itu
+> database sendiri yang menolak pembalik kedua. Query pemeriksaan tidak dijalankan sebagai langkah
+> terpisah; bukti tak langsung ini diterima owner.
+>
+> Pelanggaran index itu diterjemahkan `409`, bukan `500`, dan advisory lock tetap menjadi penjaga
+> pertama. **Yang tersisa bukan utang ini:** migration belum ada di branch integration, jadi
+> database yang dibangun dari baseline integration belum memiliki index-nya — dicatat sebagai
+> risiko pada [BE-ACC-P2-031](task/report/backend/BE-ACC-P2-031.md) bagian 7.
+>
+> Catatan di bawah dipertahankan sebagai riwayat.
 
 **Ditemukan:** audit risiko modul, 7 September 2026.
 
@@ -674,7 +693,8 @@ menjamin pembalikan tidak ganda — sehingga tidak ada satu pun index yang menah
 | **Kenapa masih `OPEN`** | Advisory lock menutup jalur aplikasi, **bukan** skema. Penulisan langsung ke database, jalur lain di masa depan, atau penyedia non-PostgreSQL tetap dapat menyisipkan pembalik kedua |
 | **Cara menutup** | Unique index parsial pada `AccJournal (ReversalOfJournalId)` untuk baris `ReversalOfJournalId IS NOT NULL AND IsDelete = false`. **Menuntut migration** |
 | Perlu diperiksa lebih dulu | Apakah data yang ada sudah memuat pembalik ganda. Bila ada, migration akan gagal dan datanya harus dibereskan lebih dahulu |
-| **Keadaan — 14 September 2026** | **Tetap `OPEN`.** `BE-ACC-P2-031` sudah memasang unique index parsial pada model EF dan menerjemahkan pelanggarannya menjadi `409`. Butir ini ditutup hanya sesudah migration dibuat **dan** diterapkan Rizki. Isi migration dan query pemeriksaan data: [BE-ACC-P2-031](task/report/backend/BE-ACC-P2-031.md) bagian 3.4 |
+| **Keadaan — 14 September 2026 pagi** | **Tetap `OPEN`.** `BE-ACC-P2-031` sudah memasang unique index parsial pada model EF dan menerjemahkan pelanggarannya menjadi `409`. Butir ini ditutup hanya sesudah migration dibuat **dan** diterapkan Rizki. Isi migration dan query pemeriksaan data: [BE-ACC-P2-031](task/report/backend/BE-ACC-P2-031.md) bagian 3.4 |
+| **Keadaan — 14 September 2026 sore** | **`CLOSED`.** Migration dibuat dan diterapkan Rizki; lihat kotak penutupan di atas |
 
 ---
 

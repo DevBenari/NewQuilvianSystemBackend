@@ -48,7 +48,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     SMANDIRI["🟡 Gelombang mandiri<br/>P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON<br/>13 dari 14 task"]:::sebagian
-    SHARD["🟡 Hardening<br/>BE-ACC-P2-031, 032, 033"]:::sebagian
+    SHARD["✅ Hardening<br/>BE-ACC-P2-031, 032, 033"]:::selesai
     SP20B["🟡 P2-0b Wave A<br/>Master aturan posting"]:::sebagian
     GP21{{"⛔ P2-1, P2-2, rekonsiliasi subledger<br/>menunggu OD-ACC-01, 04, 05, 06, 07, 08"}}:::terblokir
 
@@ -128,7 +128,7 @@ flowchart LR
         MBEACCP2010["✅ BE-ACC-P2-010<br/>Jurnal penutup tahun"]:::luar
     end
 
-    BEACCP2031["🟡 BE-ACC-P2-031<br/>Pembalikan ganda ditolak database"]:::sebagian
+    BEACCP2031["✅ BE-ACC-P2-031<br/>Pembalikan ganda ditolak database"]:::selesai
     BEACCP2032["✅ BE-ACC-P2-032<br/>Tutup tahun ganda terkunci"]:::selesai
     BEACCP2033["✅ BE-ACC-P2-033<br/>Log bebas nominal"]:::selesai
     BEACCP2015["✅ BE-ACC-P2-015<br/>Entity master aturan posting"]:::selesai
@@ -226,9 +226,9 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` ✅, gelombang `P2-1` | `READY` — blokir dibuka `ACC-DEC-071` 10 Sep 2026 |
 | `BE-ACC-P2-015` ✅ | Entity dan enum master aturan posting | `P2-0b` | — | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error, nol migration. [Laporan](../task/report/backend/BE-ACC-P2-015.md) |
 | `BE-ACC-P2-016` ✅ | Migration master aturan posting (**GATED**, dibuat Rizki) | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — `20260914044507_AddAccountingPostingRuleMaster` dibuat dan diterapkan Rizki, snapshot nol deletion. [Laporan](../task/report/backend/BE-ACC-P2-016.md) |
-| `BE-ACC-P2-017` 🟡 | API Jenis Kejadian | `P2-0b` | `015` ✅ | 🟡 **SEBAGIAN** 14 Sep 2026 — 6 dari 6 acceptance di source; menunggu build ulang dan pemanggilan endpoint sesudah `016`. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
+| `BE-ACC-P2-017` 🟡 | API Jenis Kejadian | `P2-0b` | `015` ✅ | 🟡 **SEBAGIAN** 14 Sep 2026 — 6 dari 6 acceptance di source; build ulang terpenuhi (0 error, 192 warning) dan `016` ✅ diterapkan; sisa hanya uji panggil `GET /event-types` dan `GET /posting-rules` — port 5107 tertutup saat diperiksa. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
 | `BE-ACC-P2-018` ✅ | API Aturan Posting | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error; dapat dipanggil sesudah `016`. [Laporan](../task/report/backend/BE-ACC-P2-018.md) |
-| `BE-ACC-P2-031` 🟡 | Penjaga database pembalikan ganda | `HARDENING` | — | 🟡 **SEBAGIAN** 14 Sep 2026 — source selesai, 3 dari 5 acceptance; sisa (4) migration dan (5) cek data milik Rizki. [Laporan](../task/report/backend/BE-ACC-P2-031.md) |
+| `BE-ACC-P2-031` ✅ | Penjaga database pembalikan ganda | `HARDENING` | — | ✅ **SELESAI** 14 Sep 2026 — 5 dari 5 acceptance; index unique parsial diterapkan lewat migration `20260914044507` (Rizki), dibuat tanpa penolakan data ganda; build owner 0 error. Riwayat: 🟡 pagi hari, 3 dari 5. [Laporan](../task/report/backend/BE-ACC-P2-031.md) |
 | `BE-ACC-P2-032` ✅ | Penjaga penyusunan jurnal penutup tahun bersamaan | `HARDENING` | `010` ✅ | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error. [Laporan](../task/report/backend/BE-ACC-P2-032.md) |
 | `BE-ACC-P2-033` ✅ | Nominal tidak masuk log | `HARDENING` | — | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error. [Laporan](../task/report/backend/BE-ACC-P2-033.md) |
 
@@ -559,7 +559,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | DoD | Source berubah, laporan task tertulis, register `ACC-TD-023` diperbarui |
 | **Status** | ✅ **SELESAI 14 September 2026.** 4 dari 4 acceptance terpetakan ke source: `CatatAsync` pada `JournalController` dan `ChartOfAccountController` meneruskan `TanpaNominal(hasil.Message)`, sedangkan `ToActionResult` tetap memakai pesan utuh. `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning** — garis dasar 145 diukur sebelum merge `b7ea1ae7`, asal kenaikan belum dipastikan. Nol migration. `ACC-TD-023` `CLOSED`. Automated test tidak dijalankan atas `ACC-DEC-081`; UAT belum dijalankan. **Temuan di luar cakupan:** pelaku pada log `ChartOfAccount`/`JournalType` Update, Deactivate, Activate tercatat sebagai id entitas (`QBE-LOG-001`). Bukti: [laporan](../task/report/backend/BE-ACC-P2-033.md) |
 
-## 🟡 `BE-ACC-P2-031` — Penjaga database pembalikan ganda
+## ✅ `BE-ACC-P2-031` — Penjaga database pembalikan ganda
 
 | Field | Isi |
 |---|---|
@@ -573,7 +573,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | Verifikasi | Pemeriksaan source; `dotnet build … -p:RunAnalyzers=false` oleh Rizki; pemeriksaan berkas migration oleh Rizki |
 | Risiko/pemilik | **Data pembalik ganda yang sudah ada** membuat migration gagal diterapkan. Selama migration belum diterapkan, penjaganya tetap advisory lock yang sudah ada — tidak ada kemunduran. Owner Backend + Rizki |
 | DoD | Source berubah dan laporan task tertulis. Butir "migration dibuat dan diterapkan" **milik Rizki** |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** Acceptance (1), (2), (3) terpenuhi di source: index unique parsial bernama `IX_AccJournal_ReversalOfJournalId` (nama sama dengan index lama), pelanggaran `23505` pada index itu diterjemahkan `409`, advisory lock tetap. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning**. **Belum terpenuhi:** (4) migration belum dibuat dan (5) pemeriksaan data pembalik ganda belum dijalankan — keduanya **milik Rizki**; isi migration dan query pemeriksaan tertulis di laporan bagian 3.4. Automated test tidak dijalankan atas `ACC-DEC-081`. Bukti: [laporan](../task/report/backend/BE-ACC-P2-031.md) |
+| **Status** | ✅ **SELESAI 14 September 2026.** 5 dari 5 acceptance terpenuhi. (1)–(3) di source: index unique parsial bernama `IX_AccJournal_ReversalOfJournalId` (nama sama dengan index lama), pelanggaran `23505` pada index itu diterjemahkan `409`, advisory lock tetap. (4) Migration `20260914044507_AddAccountingPostingRuleMaster` (Rizki, `12b8af63`, digabung dengan `016`) terhadap tabel lama hanya membawa pasangan `DropIndex`/`CreateIndex` index itu — nol kolom berubah. (5) Unique index **berhasil dibuat** saat `database update`, jadi data tidak memuat pembalik ganda — bukti tak langsung, diterima owner; query terpisah tidak dijalankan. `dotnet ef migrations list` tanpa `(Pending)`. `dotnet build … -p:RunAnalyzers=false` oleh Rizki sesudah migration: **0 error, 192 warning**, tidak ada yang berasal dari berkas task ini. `ACC-TD-020` `CLOSED`. Automated test tidak dijalankan atas `ACC-DEC-081`; `UAT-12` belum dijalankan. **Riwayat:** 🟡 SEBAGIAN pagi 14 September 2026 — 3 dari 5, build 189 warning, (4) dan (5) menunggu migration Rizki. Bukti: [laporan](../task/report/backend/BE-ACC-P2-031.md) |
 
 ## ✅ `BE-ACC-P2-032` — Penjaga penyusunan jurnal penutup tahun bersamaan
 
@@ -636,7 +636,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | Verifikasi | Pemeriksaan source dan kontrak; `dotnet build … -p:RunAnalyzers=false` oleh Rizki. Pemanggilan endpoint sesudah `016` diterapkan |
 | Risiko/pemilik | Endpoint menjawab `500` sampai migration `016` diterapkan. Owner Backend |
 | DoD | Source berubah, laporan task tertulis |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** 6 dari 6 acceptance terpetakan ke source: 6 endpoint kontrak + `PATCH /{id}/activate` (delta), hak `EventType : Read/Create/Update` cocok dengan `ControllerName`, kode kembar dan penonaktifan jenis yang masih dipakai ditolak `409`, penjaga badan hukum dipanggil. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning** — **sebelum** perbaikan sesi ini: muatan log `new { id }` menimpa `UserId` pelaku di `LoggerService`, diganti `EntityId` (3 baris). **Belum:** build ulang sesudah perbaikan itu, dan pemanggilan endpoint yang diminta kolom Verifikasi — menunggu `BE-ACC-P2-016` (Rizki). Delta standar master data (`/filters/metadata`, `/summary`, `PATCH /status`, `DELETE` tidak dibuat) tercatat di laporan. Bukti: [laporan](../task/report/backend/BE-ACC-P2-017.md) |
+| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** 6 dari 6 acceptance terpetakan ke source: 6 endpoint kontrak + `PATCH /{id}/activate` (delta), hak `EventType : Read/Create/Update` cocok dengan `ControllerName`, kode kembar dan penonaktifan jenis yang masih dipakai ditolak `409`, penjaga badan hukum dipanggil. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning** — **sebelum** perbaikan sesi ini: muatan log `new { id }` menimpa `UserId` pelaku di `LoggerService`, diganti `EntityId` (3 baris). **Belum:** build ulang sesudah perbaikan itu, dan pemanggilan endpoint yang diminta kolom Verifikasi — menunggu `BE-ACC-P2-016` (Rizki). Delta standar master data (`/filters/metadata`, `/summary`, `PATCH /status`, `DELETE` tidak dibuat) tercatat di laporan. **Pembaruan 14 September 2026 sore — tetap 🟡.** Build ulang sesudah perbaikan log **terpenuhi**: `dotnet build … -p:RunAnalyzers=false` oleh Rizki **0 error, 192 warning**, satu-satunya warning Accounting yang terlihat (`AccJournalService.cs(381)`) berasal dari `0d4ad3adf`. `BE-ACC-P2-016` ✅ sudah diterapkan. **Sisa satu-satunya:** uji panggil read-only `GET /event-types` dan `GET /posting-rules` saat backend berjalan — **belum dijalankan** karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB. Bukti: [laporan](../task/report/backend/BE-ACC-P2-017.md) |
 
 ## ✅ `BE-ACC-P2-018` — API Aturan Posting
 

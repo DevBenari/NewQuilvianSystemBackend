@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — controller, service, DTO jenis kejadian, satu registrasi `Program.cs`; laporan ini, baris status roadmap, traceability |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `b3ab542e` (branch `rizkiG`), perubahan belum di-commit |
+| Commit backend saat dikerjakan | `b3ab542e` (branch `rizkiG`), perubahan belum di-commit. Source ter-commit Rizki di `da1a4b6d`; diperbarui pada `917e97fd` |
 | Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source; dua butir verifikasi belum: build ulang sesudah perbaikan log sesi ini, dan pemanggilan endpoint yang menunggu migration `BE-ACC-P2-016` |
+| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source. Dari dua butir verifikasi yang semula belum, **build ulang sesudah perbaikan log sudah terpenuhi** (0 error, 192 warning) dan migration `BE-ACC-P2-016` sudah diterapkan. **Sisa satu-satunya:** uji panggil `GET /event-types` dan `GET /posting-rules` saat backend berjalan — belum dapat dijalankan karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB |
 
 ### Backend Governance Preflight
 
@@ -65,7 +65,7 @@ Task ini **tidak** mengisi datanya. Daftar jenis kejadian yang sungguh diterbitk
 | Menonaktifkan jenis yang sudah nonaktif, atau mengaktifkan yang sudah aktif | `409` | — |
 | Badan hukum utama tidak tunggal | `409` dari `AccountingLegalEntityGuard` | Sama dengan seluruh endpoint Accounting |
 | Id tidak ada atau sudah dihapus | `404` | — |
-| Tabel belum ada di database | `500` (`42P01`) | Migration `BE-ACC-P2-016` belum diterapkan — lihat bagian 7 |
+| Tabel belum ada di database | `500` (`42P01`) | **Riwayat sampai 14 September 2026 siang.** Migration `BE-ACC-P2-016` kini sudah diterapkan di `QuilvianNewDevRizki`; keadaan ini hanya muncul pada database yang belum menerapkan `20260914044507` — misalnya database yang dibangun dari baseline integration. Lihat bagian 7 |
 
 **Kenapa kode tidak dapat diubah.** Kejadian yang tertahan menyimpan `EventTypeCode` aslinya
 (`ACC-DEC-075`). Mengganti `PENGAKUAN-PIUTANG` menjadi `PIUTANG-DIAKUI` akan membuat kejadian
@@ -102,7 +102,7 @@ registrasi Accounting.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Grup baru `api/v1/corporate/accounting/event-types` — 6 endpoint kontrak + 1 di luar kontrak (`activate`). Delta di bagian 4 |
-| Database | Membaca dan menulis `AccEventType`, membaca `AccPostingRule`. Nol skema dari task ini. **Tabel belum ada sampai `BE-ACC-P2-016` diterapkan** |
+| Database | Membaca dan menulis `AccEventType`, membaca `AccPostingRule`. Nol skema dari task ini. Tabel berdiri sejak migration `20260914044507_AddAccountingPostingRuleMaster` diterapkan Rizki, 14 September 2026 (`BE-ACC-P2-016` ✅) |
 | Keamanan/Auth | `[AccessController]` `ControllerName = "EventType"`, modul `ACCOUNTING_MASTER_DATA`, urutan 4. Hak baru `EventType : Read/Create/Update` — **belum diberikan ke peran mana pun**; admin mencentangnya lewat layar Akses Role. Nol hardcode peran |
 
 ### 3.4 Perbaikan dalam sesi ini — pelaku log tertimpa
@@ -155,16 +155,21 @@ Base URL `api/v1/corporate/accounting/event-types`.
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
 | `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` oleh Rizki, 14 Sep 2026 — **sebelum** perbaikan 3.4 | `0 error`, 189 warning | `PASS` | Tangkapan layar owner |
-| Build ulang sesudah perbaikan 3.4 | Belum dijalankan | `NOT RUN` | Perubahan hanya nama properti tipe anonim; perlu build owner sebagai bukti |
+| Build ulang sesudah perbaikan 3.4 — **pagi 14 Sep 2026, riwayat** | Belum dijalankan | `NOT RUN` | Perubahan hanya nama properti tipe anonim; perlu build owner sebagai bukti |
+| `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` oleh Rizki — **sesudah** perbaikan 3.4, migration `016`, dan merge `ba124bbb` | `0 error`, 192 warning. Satu-satunya warning Accounting yang terlihat, `AccJournalService.cs(381)`, berasal dari `0d4ad3adf` (3 Sep 2026); tidak ada warning dari berkas `MasterData/EventType/` pada keluaran yang dilaporkan owner | `PASS` | Terminal Rizki. Perbaikan termuat: `EventTypeController.cs` baris 90, 104, 127 memakai `EntityId = id` (diperiksa ulang sesi penutupan) |
 | Pemeriksaan source — kecocokan hak akses | 7 action: argumen ke-1 `[AccessPermission]` = `EventType` = `ControllerName`; argumen ke-2 sama dengan argumen ke-1 `[AccessAction]` (`Read`, `Create`, `Update`); `AccessType` dari `AccessTypes` | `PASS` | `EventTypeController.cs` |
 | Pemeriksaan source — hardcode peran | Nol `IsInRole`, nol nama peran | `PASS` | Grep |
 | Pemeriksaan source — lapisan | Controller hanya memanggil `AccEventTypeService`; nol `ApplicationDbContext` di controller | `PASS` | Idem |
 | Pemeriksaan kontrak | 6 endpoint `ACC-API-0.10` hadir dengan method, path, dan hak yang sama | `PASS` | Bagian 4 |
-| **Pemanggilan endpoint sesudah `016` diterapkan** | Belum dapat dijalankan — tabel belum ada | `NOT RUN` | Menunggu `BE-ACC-P2-016` (Rizki) |
+| **Pemanggilan endpoint sesudah `016` diterapkan** — pagi 14 Sep 2026, riwayat | Belum dapat dijalankan — tabel belum ada | `NOT RUN` | Menunggu `BE-ACC-P2-016` (Rizki) |
+| Pemeriksaan backend berjalan — sesi penutupan, 14 Sep 2026 13.17 WIB | **Port 5107 tertutup.** `Test-NetConnection localhost -Port 5107` → `TcpTestSucceeded=False`; `curl http://127.0.0.1:5107/` gagal terhubung (exit 7); nol proses mendengarkan di 5107 maupun 7184 | — | Keluaran perintah pada sesi penutupan |
+| **Uji kontrak read-only `GET /event-types` dan `GET /posting-rules`** | Belum dijalankan — backend tidak berjalan. `016` ✅ sudah diterapkan, jadi penghalangnya kini hanya proses backend, bukan skema. Rencana ujinya: login, lalu `GET` saja — tanpa `POST`, `PUT`, atau `PATCH` | `NOT RUN` | Menunggu backend dijalankan |
 
-Uji manual: `NOT FEASIBLE` sampai migration `016` diterapkan.
+Uji manual: `NOT RUN` — backend tidak berjalan saat diperiksa. Semula `NOT FEASIBLE` karena tabel
+belum ada; alasan itu gugur sejak migration `016` diterapkan.
 
-**Tidak dijalankan:** automated test (`ACC-DEC-081`); pemanggilan endpoint (tabel belum ada).
+**Tidak dijalankan:** automated test (`ACC-DEC-081`); pemanggilan endpoint (backend tidak berjalan);
+query database oleh agent (di luar wewenang).
 
 ---
 
@@ -184,8 +189,8 @@ Uji manual: `NOT FEASIBLE` sampai migration `016` diterapkan.
 | Butir verifikasi / DoD | Hasil |
 | --- | --- |
 | Pemeriksaan source dan kontrak | **Ya** |
-| `dotnet build … -p:RunAnalyzers=false` oleh Rizki | **Sebagian** — hijau sebelum perbaikan 3.4; build ulang belum |
-| Pemanggilan endpoint sesudah `016` diterapkan | **Belum** — `016` belum dibuat |
+| `dotnet build … -p:RunAnalyzers=false` oleh Rizki | **Ya** — 0 error, 192 warning sesudah perbaikan 3.4. Riwayat: **sebagian** pagi hari, hijau hanya sebelum perbaikan |
+| Pemanggilan endpoint sesudah `016` diterapkan | **Belum** — `016` ✅ sudah diterapkan, tetapi backend tidak berjalan (port 5107 tertutup, 14 Sep 2026 13.17 WIB). Riwayat: pagi hari `016` belum dibuat |
 | Source berubah | **Ya** |
 | Laporan task tertulis | **Ya** — berkas ini |
 
@@ -195,15 +200,16 @@ Uji manual: `NOT FEASIBLE` sampai migration `016` diterapkan.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | 189 warning solution — lihat `BE-ACC-P2-033` bagian 5 |
-| Masalah yang diketahui | Endpoint menjawab `500` (`42P01: relation "AccEventType" does not exist`) sampai `BE-ACC-P2-016` diterapkan. Endpoint lain dan login **tidak** terdampak: startup tidak memanggil `Migrate()`, dan tidak ada tabel lama yang bertambah kolom |
-| Risiko tersisa | (1) Hak `EventType : *` belum diberikan ke peran mana pun — layar `FE-ACC-P2-009` akan `403` sampai admin mencentangnya. (2) Kode kembar dijaga pemeriksaan kode **dan** unique index; dua penyimpanan bersamaan dengan kode sama akan menghasilkan `500` dari unique index, bukan `409` — service ini tidak menerjemahkan `23505` seperti `AccPostingRuleService`. Kemungkinannya sangat rendah untuk master yang diisi manual |
+| Peringatan | 192 warning build terakhir (sebelumnya 189) — tidak ada yang berasal dari berkas task ini pada keluaran yang dilaporkan owner |
+| Masalah yang diketahui | **Tertutup di `QuilvianNewDevRizki` 14 September 2026:** endpoint tidak lagi menjawab `500` (`42P01`) karena `BE-ACC-P2-016` sudah diterapkan. **Tetap berlaku** pada database yang belum menerapkan `20260914044507`, termasuk yang dibangun dari baseline integration selama migration itu belum di-merge ke sana. Endpoint lain dan login tidak terdampak: startup tidak memanggil `Migrate()` |
+| Risiko tersisa | (1) Hak `EventType : *` belum diberikan ke peran mana pun — layar `FE-ACC-P2-009` akan `403` sampai admin mencentangnya; hal yang sama berlaku untuk uji panggil, yang menuntut pengguna uji ber-hak `EventType : Read` dan `PostingRule : Read`. (2) Kode kembar dijaga pemeriksaan kode **dan** unique index; dua penyimpanan bersamaan dengan kode sama akan menghasilkan `500` dari unique index, bukan `409` — service ini tidak menerjemahkan `23505` seperti `AccPostingRuleService`. Kemungkinannya sangat rendah untuk master yang diisi manual. (3) Migration `016` belum ada di `origin/QuilvianIntegrationBackend` |
 | Perubahan sampingan | `NONE` |
-| Interupsi | Source ditulis sesi 14 September 2026 sebelumnya; sesi ini memverifikasi dan memperbaiki muatan log |
-| Status Git | Lihat [`BE-ACC-P2-033`](BE-ACC-P2-033.md) bagian 7 — batch yang sama. Berkas milik task ini: `MasterData/EventType/{Controllers,Services,DTOs}`, `Program.cs` (bersama `018`). **Nol commit, push, stage, merge, rebase, atau migration** |
+| Interupsi | Source ditulis sesi 14 September 2026 pagi; sesi berikutnya memverifikasi dan memperbaiki muatan log. Penutupan sore hari sempat terputus batas percakapan dan dilanjutkan dari keadaan terverifikasi (`917e97fd`, working tree bersih); sesi penutupan hanya menyunting dokumen |
+| Status Git | Source task ini ter-commit Rizki di `da1a4b6d`. Sesi penutupan mengubah dokumen saja: laporan ini dan baris status `roadmap/backend-roadmap-phase2.md`. **Nol commit, push, stage, merge, rebase, atau migration oleh agent** |
 
 ### Langkah berikutnya
 
-1. **Rizki:** build ulang `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` untuk menutup butir build sesudah perbaikan 3.4.
-2. **Rizki:** buat dan terapkan migration `BE-ACC-P2-016`.
-3. Sesudah itu: `GET /event-types` dan `POST /event-types` dipanggil sebagai verifikasi developer, laporan ini diperbarui, task naik ke ✅.
+1. ~~**Rizki:** build ulang untuk menutup butir build sesudah perbaikan 3.4.~~ **Selesai 14 September 2026** — 0 error, 192 warning.
+2. ~~**Rizki:** buat dan terapkan migration `BE-ACC-P2-016`.~~ **Selesai 14 September 2026** — `20260914044507`, lihat [`BE-ACC-P2-016`](BE-ACC-P2-016.md).
+3. **Rizki:** jalankan backend (`dotnet run`, port 5107) dengan pengguna yang sudah diberi hak `EventType : Read` dan `PostingRule : Read` di Akses Role.
+4. Agent lalu menjalankan uji kontrak **read-only**: login, `GET /api/v1/corporate/accounting/event-types` dan `GET /api/v1/corporate/accounting/posting-rules` — tanpa `POST`, `PUT`, atau `PATCH`. Bila keduanya menjawab `200` dengan bentuk `PagedResult` yang cocok dengan bagian 4 laporan ini dan bagian 4 [`BE-ACC-P2-018`](BE-ACC-P2-018.md), laporan ini diperbarui dan task naik ke ✅. Riwayat: rencana semula menyebut `POST /event-types`; dipersempit menjadi `GET` saja atas instruksi owner 14 September 2026.

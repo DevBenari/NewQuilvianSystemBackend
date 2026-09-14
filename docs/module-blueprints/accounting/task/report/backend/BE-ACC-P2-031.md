@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `AccJournalConfiguration`, `AccJournalService`, laporan ini, baris status roadmap, traceability, register `ACC-TD-020`. **Tidak** termasuk migration |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `b3ab542e` (branch `rizkiG`), perubahan belum di-commit |
-| Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 3 dari 5 acceptance terpenuhi di source; acceptance (4) dan (5) adalah langkah migration **milik Rizki** dan belum dikerjakan |
+| Commit backend saat dikerjakan | `b3ab542e` (branch `rizkiG`), perubahan belum di-commit. Migration yang membawa index ini: `20260914044507_AddAccountingPostingRuleMaster`, commit `12b8af63` (Rizki), digabung dengan `BE-ACC-P2-016`. Ditutup pada `917e97fd` |
+| Tanggal | 14 September 2026 — source pagi hari; ditutup sore hari yang sama |
+| Status | **✅ SELESAI 14 September 2026** — 5 dari 5 acceptance terpenuhi. (1)–(3) di source; (4) dibuktikan dari berkas migration dan snapshot; (5) dibuktikan tak langsung lewat keberhasilan pembuatan unique index — lihat bagian 5. **Riwayat:** 🟡 SEBAGIAN pagi 14 September 2026, 3 dari 5, karena migration belum dibuat |
 
 ### Backend Governance Preflight
 
@@ -99,7 +99,7 @@ Kartu roadmap `BE-ACC-P2-031` dan `BE-ACC-P2-016`; `UTANG-TEKNIS.md` `ACC-TD-020
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | `NOT APPLICABLE` — status dan kalimat penolakan sama dengan penjaga kode yang sudah ada |
-| Database | **Model EF berubah; skema belum.** Index `IX_AccJournal_ReversalOfJournalId` pada model kini unique parsial. Migration **belum dibuat** — milik Rizki, boleh digabung dengan `BE-ACC-P2-016`. Selama belum diterapkan, penjaganya tetap advisory lock yang sudah ada — **tidak ada kemunduran** |
+| Database | **Model dan skema kini selaras (14 September 2026 sore).** Index `IX_AccJournal_ReversalOfJournalId` menjadi unique parsial lewat migration `20260914044507_AddAccountingPostingRuleMaster`, dibuat dan diterapkan Rizki bersama `BE-ACC-P2-016`. **Riwayat, pagi hari:** model EF sudah berubah tetapi skema belum; selama itu penjaganya tetap advisory lock yang sudah ada — tidak ada kemunduran |
 | Keamanan/Auth | `NOT APPLICABLE` — hak akses `Journal : Reverse` tidak berubah |
 
 ### 3.4 Isi migration yang diharapkan — untuk Rizki
@@ -127,6 +127,12 @@ HAVING COUNT(*) > 1;
 
 Bila ada baris, `CreateIndex` gagal dan datanya harus dibereskan owner lebih dahulu.
 
+**Terwujud 14 September 2026.** Isi di atas muncul persis di
+`Migrations/20260914044507_AddAccountingPostingRuleMaster.cs`: `DropIndex` baris 14–17 dan
+`CreateIndex` baris 143–149 pada `Up`; `DropIndex` lalu `CreateIndex` tanpa filter baris 233–241
+pada `Down`. Query di atas tidak dijalankan sebagai langkah terpisah — lihat bagian 5 tentang cara
+acceptance (5) dibuktikan.
+
 ---
 
 ## 4. Dokumentasi endpoint
@@ -147,13 +153,21 @@ Bila ada baris, `CreateIndex` gagal dan datanya harus dibereskan owner lebih dah
 | Pemeriksaan source — filter dan nama index | Filter persis kartu; nama sama dengan `AddAccountingFoundation` baris 391 dan dengan `NamaIndexPembalikTunggal` | `PASS` | Kedua berkas |
 | Pemeriksaan source — penangkapan dipersempit | `when (MelanggarIndexPembalikTunggal(ex))` membandingkan `SqlState == 23505` **dan** `ConstraintName` persis; `catch` umum berikutnya tetap `throw` | `PASS` | `AccJournalService.cs` baris 1027 dan pembantu |
 | Pemeriksaan source — advisory lock tetap | `pg_advisory_xact_lock(hashtext('ACC_REVERSE_{id}'))` di dalam transaction, sebelum pemeriksaan ulang | `PASS` | `AccJournalService.cs` baris 945–966 |
-| Pemeriksaan berkas migration oleh Rizki | Migration belum dibuat | `NOT RUN` | Milik Rizki |
-| Pemeriksaan data pembalik ganda | Belum dijalankan — eksekusi database di luar wewenang agent | `NOT RUN` | Query di bagian 3.4 |
+| Pemeriksaan berkas migration oleh Rizki — **pagi 14 Sep 2026, riwayat** | Migration belum dibuat | `NOT RUN` | Milik Rizki |
+| Pemeriksaan data pembalik ganda — **pagi 14 Sep 2026, riwayat** | Belum dijalankan — eksekusi database di luar wewenang agent | `NOT RUN` | Query di bagian 3.4 |
+| Pembacaan `Migrations/20260914044507_AddAccountingPostingRuleMaster.cs` — sesi penutupan, 14 Sep 2026 sore | Operasi terhadap `AccJournal` hanya `DropIndex` (baris 14–17) dan `CreateIndex` `IX_AccJournal_ReversalOfJournalId` `unique: true` berfilter persis kartu (baris 143–149). `git grep` pada `HEAD` untuk `AddColumn`, `AlterColumn`, `DropColumn`, `RenameColumn`, `DropTable`, `RenameTable`: **3 kecocokan, ketiganya `DropTable` di `Down`** (baris 221–230) milik tabel baru `BE-ACC-P2-016`. Nol operasi pada tabel lama selain index ini | `PASS` | Berkas migration pada `12b8af63` |
+| Snapshot `ApplicationDbContextModelSnapshot.cs` | Baris 2787–2790: `HasIndex("ReversalOfJournalId").IsUnique().HasDatabaseName("IX_AccJournal_ReversalOfJournalId").HasFilter(...)` — sama dengan `AccJournalConfiguration.cs` baris 143–146 dan `NamaIndexPembalikTunggal` `AccJournalService.cs` baris 78 | `PASS` | Ketiga berkas |
+| `dotnet ef database update` oleh Rizki | Berhasil sesudah perbaikan Blood Bank `b3361d07`; `CreateIndex` unique ikut diterapkan | `PASS` | [`BE-ACC-P2-016`](BE-ACC-P2-016.md) bagian 2 dan 5 |
+| `dotnet ef migrations list --no-build` oleh Rizki | Nol `(Pending)`; `20260914044507_AddAccountingPostingRuleMaster` tercatat diterapkan | `PASS` | Tangkapan layar Rizki, 14 Sep 2026 |
+| Data pembalik ganda — acceptance (5) | **Terbukti tak langsung.** PostgreSQL menolak `CREATE UNIQUE INDEX` dengan `23505` bila baris yang memenuhi filter memuat nilai kembar. Index berhasil dibuat, jadi pada saat penerapan **nol** `ReversalOfJournalId` kembar di antara baris `IsDelete = false`, dan sejak itu database sendiri yang menolaknya. Query bagian 3.4 **tidak** dijalankan sebagai langkah terpisah, baik oleh agent maupun Rizki; bukti ini **diterima owner** 14 September 2026 | `PASS` | Keberhasilan `database update` di atas |
+| `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` oleh Rizki, sesudah migration dan merge `ba124bbb` | `0 error`, 192 warning. Satu-satunya warning Accounting yang terlihat, `AccJournalService.cs(381)`, berasal dari `0d4ad3adf` (3 Sep 2026) — bukan dari task ini: baris 381 berada pada pemanggilan `SiapkanAsync` di jalur ubah draft, sedangkan task ini menyentuh konstanta baris 78, `ReverseAsync` (tangkapan mulai baris 1027), dan pembantu baris 1777 | `PASS` | Terminal Rizki |
 
 Uji manual: `NOT FEASIBLE` — jalur `409` dari database hanya dapat dipicu bila advisory lock
-dilewati, dan index-nya belum ada di database sampai migration diterapkan.
+dilewati, misalnya lewat `INSERT` langsung ke database. Sesudah index diterapkan pun itu menuntut
+eksekusi database langsung, yang di luar wewenang dan tidak boleh dipakai sebagai jalan pintas bukti.
 
-**Tidak dijalankan:** automated test (`ACC-DEC-081`); `dotnet ef` (wewenang Rizki).
+**Tidak dijalankan:** automated test (`ACC-DEC-081`); `dotnet ef` dan query database oleh agent
+(wewenang Rizki); `UAT-12` (milik tim UAT).
 
 ---
 
@@ -164,16 +178,20 @@ dilewati, dan index-nya belum ada di database sampai migration diterapkan.
 | 1 | Configuration memuat unique index parsial dengan filter persis di atas | **Terpenuhi** | `AccJournalConfiguration.cs` |
 | 2 | Bila database menolak pembalik kedua, pengguna menerima `409` beserta pesan yang sama dengan penjaga kode, **bukan** `500` | **Terpenuhi** di source | `catch (DbUpdateException) when (...)` → `409` "Jurnal ini sudah pernah dibalik dengan jurnal …". Bila nomor pembalik tidak dapat dibaca ulang, kalimatnya "Jurnal ini sudah pernah dibalik." |
 | 3 | Advisory lock dan pemeriksaan ulang yang sudah ada tetap dipertahankan | **Terpenuhi** | Baris 945–966 tidak berubah selain komentar |
-| 4 | Migration yang dibuat Rizki hanya mengganti index itu — nol tabel dan nol kolom lain berubah | **Belum terpenuhi** | Migration belum dibuat. Isi yang diharapkan di bagian 3.4 |
-| 5 | Sebelum migration diterapkan, Rizki memastikan data yang ada tidak memuat pembalik ganda | **Belum terpenuhi** | Query di bagian 3.4 belum dijalankan |
+| 4 | Migration yang dibuat Rizki hanya mengganti index itu — nol tabel dan nol kolom lain berubah | **Terpenuhi** 14 Sep 2026 | `20260914044507_AddAccountingPostingRuleMaster`: terhadap tabel yang sudah ada, satu-satunya operasi adalah pasangan `DropIndex`/`CreateIndex` `IX_AccJournal_ReversalOfJournalId`; nol kolom berubah. Tiga `CreateTable` di berkas yang sama milik `BE-ACC-P2-016`, digabung atas izin kartu `016` dan kartu ini. Riwayat: **belum terpenuhi** pagi hari |
+| 5 | Sebelum migration diterapkan, Rizki memastikan data yang ada tidak memuat pembalik ganda | **Terpenuhi** 14 Sep 2026 — bukti tak langsung, diterima owner | Unique index berhasil dibuat saat `database update`; PostgreSQL menolak pembuatannya bila ada nilai kembar. Query bagian 3.4 tidak dijalankan terpisah. Riwayat: **belum terpenuhi** pagi hari |
 
-**Tiga dari lima terpenuhi.** Dua sisanya bukan kekurangan source — keduanya langkah milik Rizki.
+**Lima dari lima terpenuhi.** Pagi hari tiga dari lima; dua sisanya — langkah migration milik Rizki —
+tertutup sore hari yang sama.
 
 | Butir DoD | Hasil |
 | --- | --- |
 | Source berubah | **Ya** |
 | Laporan task tertulis | **Ya** — berkas ini |
-| Migration dibuat dan diterapkan | **Belum** — milik Rizki, dinyatakan kartu di luar DoD agent |
+| Migration dibuat dan diterapkan | **Ya** — Rizki, `12b8af63`; `migrations list` tanpa `(Pending)`. Riwayat: **belum** pagi hari |
+| Register `ACC-TD-020` diperbarui | **Ya** — `CLOSED` 14 Sep 2026 |
+| Automated test | Dikecualikan atas `ACC-DEC-081` |
+| UAT | Belum dijalankan — milik tim UAT (`UAT-12`) |
 
 ---
 
@@ -181,14 +199,14 @@ dilewati, dan index-nya belum ada di database sampai migration diterapkan.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | 189 warning solution — lihat `BE-ACC-P2-033` bagian 5 |
-| Masalah yang diketahui | Model EF dan skema berselisih sampai migration diterapkan; `dotnet ef migrations add` berikutnya oleh siapa pun akan membawa perubahan index ini |
-| Risiko tersisa | (1) Data pembalik ganda yang sudah ada menggagalkan migration. (2) Setelah `DbUpdateException`, entitas jurnal pembalik yang gagal masih terlacak pada `DbContext` request itu; aman karena controller tidak menyimpan lagi sesudahnya, tetapi pemanggil baru yang memakai `ReverseAsync` di dalam alur penyimpanan lain wajib memperhatikannya |
+| Peringatan | 192 warning build terakhir (sebelumnya 189); tidak ada yang berasal dari berkas task ini — lihat bagian 5 |
+| Masalah yang diketahui | **Tertutup 14 September 2026:** model EF dan skema kini selaras. Riwayat: sampai migration diterapkan keduanya berselisih, dan `dotnet ef migrations add` berikutnya oleh siapa pun akan membawa perubahan index ini |
+| Risiko tersisa | (1) **Gugur** — data pembalik ganda tidak ada saat penerapan, terbukti dari keberhasilan pembuatan index. (2) Setelah `DbUpdateException`, entitas jurnal pembalik yang gagal masih terlacak pada `DbContext` request itu; aman karena controller tidak menyimpan lagi sesudahnya, tetapi pemanggil baru yang memakai `ReverseAsync` di dalam alur penyimpanan lain wajib memperhatikannya. (3) **Baru:** migration `20260914044507` baru ada di `origin/rizkiG`, **belum** di `origin/QuilvianIntegrationBackend`. Database yang dibangun dari baseline integration belum memiliki index ini, dan migration modul lain yang dibuat dari sana akan membangun snapshot tanpa index serta tiga tabel `BE-ACC-P2-016` — pola `ACC-DEP-001` |
 | Perubahan sampingan | `NONE` |
-| Interupsi | Source ditulis sesi 14 September 2026 sebelumnya; sesi ini memverifikasi diff tanpa menyunting ulang |
-| Status Git | Lihat [`BE-ACC-P2-033`](BE-ACC-P2-033.md) bagian 7 — batch yang sama. Berkas milik task ini: `AccJournalConfiguration.cs`, `AccJournalService.cs`. **Nol commit, push, stage, merge, rebase, atau migration** |
+| Interupsi | Source ditulis sesi 14 September 2026 pagi; sesi berikutnya memverifikasi diff tanpa menyunting ulang. Penutupan sore hari sempat terputus batas percakapan dan dilanjutkan dari keadaan terverifikasi: working tree bersih pada `917e97fd`, laporan `BE-ACC-P2-016` sudah ter-commit. Sesi penutupan hanya menyunting dokumen |
+| Status Git | Source task ini ter-commit Rizki di `da1a4b6d`; migration-nya di `12b8af63`. Sesi penutupan mengubah dokumen saja: laporan ini, `roadmap/backend-roadmap-phase2.md`, `roadmap/requirement-traceability-phase2.md`, `UTANG-TEKNIS.md`. **Nol commit, push, stage, merge, rebase, atau migration oleh agent** |
 
 ### Langkah berikutnya
 
-1. **Rizki:** jalankan query bagian 3.4; bila 0 baris, buat migration (boleh bersama `BE-ACC-P2-016`), periksa isinya sesuai bagian 3.4, lalu terapkan.
-2. Sesudah diterapkan, laporan ini diperbarui dan task naik ke ✅.
+1. **Rizki:** ajukan PR `rizkiG` → `QuilvianIntegrationBackend` supaya migration `20260914044507` masuk baseline integration.
+2. **Tim UAT:** jalankan `UAT-12` — pembalikan kedua atas jurnal yang sama ditolak `409`.

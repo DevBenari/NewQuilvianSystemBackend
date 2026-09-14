@@ -11,15 +11,15 @@
 | Trace | `FR-P2-007`, `FR-P2-008`; `ACC-DEC-045`, `ACC-DEC-058`, `ACC-DEC-064`, `ACC-DEC-074`; `03-frontend-architecture.md` bagian 10 butir 15 dan 16 |
 | Contract version | `ACC-API-0.10` grup Posting Rule + penyesuaian `JournalTypeId` 14 Sep 2026; `GET /event-types/options`; `GET /master-data/journal-types/options`; `GET /master-data/chart-of-accounts/options`; `ACC-PERMISSION-0.5` `PostingRule : Read/Create/Update`. Bentuk payload dari **source** `BE-ACC-P2-018` |
 | Wewenang UI | Kartu roadmap: daftar tersaring, form berbaris, control account tidak dimatikan. Warna, jarak, urutan kolom `DEV_DISCRETION` |
-| Dependency | `BE-ACC-P2-017` 🟡, `BE-ACC-P2-018` ✅ — source ada; data tampil sesudah migration `BE-ACC-P2-016` (Rizki) |
+| Dependency | `BE-ACC-P2-017` 🟡, `BE-ACC-P2-018` ✅ — source keduanya lengkap; sisa `017` hanya uji panggil `GET` saat backend berjalan. Migration `BE-ACC-P2-016` ✅ sudah diterapkan Rizki 14 Sep 2026 |
 | Klasifikasi | `HEAVY` — skor 9: repository 0, berkas diperiksa 2, berkas diubah 2 (13 berkas), logika 2 (form berbaris, tiga sumber pilihan, aturan sisi), kontrak API 1, database 0, keamanan 1, UI 1 |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` branch `RizkiV2`; laporan dan tautan bukti di repository backend |
 | Model | Claude Opus 5 |
-| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit |
-| Commit backend yang dijadikan rujukan | `b3ab542e` + working tree `BE-ACC-P2-015`/`017`/`018` (branch `rizkiG`) |
+| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit. Ter-commit Rizki di `a09ba4b13` (14 Sep 2026 13.11 WIB) bersama `FE-ACC-P2-009` dan `014` |
+| Commit backend yang dijadikan rujukan | `b3ab542e` + working tree `BE-ACC-P2-015`/`017`/`018` (branch `rizkiG`); source itu kini ter-commit di `da1a4b6d` |
 | Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 8 dari 8 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; tinggal `npm run build` oleh owner. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` sesudah migration `016` |
+| Status | **✅ SELESAI 14 September 2026** — 8 dari 8 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; `npm run build` oleh owner `✓ Compiled successfully`; verifikasi tiga arah diperiksa ulang pada sesi penutupan. Ketiga butir DoD kartu terpenuhi. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` — UAT dan uji peramban belum dijalankan. **Catatan dependency:** `BE-ACC-P2-017` masih 🟡 hanya karena uji panggil runtime — lihat bagian 8. **Riwayat:** 🟡 SEBAGIAN pada hari yang sama, hanya menunggu build owner |
 
 ---
 
@@ -220,13 +220,21 @@ nol typography, nol spacing literal.
 | **Tiga arah (2) payload ↔ isian** | Create: 5 kunci kepala + 6 kunci baris ↔ `CreatePostingRuleRequest`/`PostingRuleLineRequest`; Update: 3 kunci ↔ `UpdatePostingRuleRequest`. Nol kunci payload tanpa isian; `legalEntityId` dari pemilih badan hukum | `PASS` | idem |
 | **Tiga arah (3) angka pilihan ↔ enum** | `Treatment` "1" Langsung Disahkan / "2" Buat Draft ↔ `LangsungSahkan = 1`, `BuatDraft = 2`; `Side` "1" Debit / "2" Kredit ↔ `Debit = 1`, `Kredit = 2`; dikirim `Number(...)` | `PASS` | `AccountingEventTreatment.cs`, `PostingSide.cs` |
 | Control account tidak dimatikan | `buildPostingRuleAccountOption` mengembalikan `disabled: false`; `buildJournalAccountOption` milik Form Jurnal **tidak diubah** | `PASS` | `posting-rule-utils.jsx` |
-| Pemanggilan endpoint sungguhan | Tidak dapat — tabel belum ada sampai `016` | `NOT RUN` | — |
-| `npm run build` | Dijalankan owner — belum | `NOT RUN` | DoD kartu |
+| Pemanggilan endpoint sungguhan — **riwayat, pagi 14 Sep 2026** | Tidak dapat — tabel belum ada sampai `016` | `NOT RUN` | — |
+| Pemanggilan endpoint sungguhan — sesi penutupan, 14 Sep 2026 13.17 WIB | Tabel sudah ada (`016` ✅), tetapi backend tidak berjalan: port 5107 tertutup. Bukan butir Verifikasi maupun DoD kartu | `NOT RUN` | [`BE-ACC-P2-017`](../backend/BE-ACC-P2-017.md) bagian 5 |
+| `npm run build` — **riwayat, sebelum build owner** | Dijalankan owner — belum | `NOT RUN` | DoD kartu |
+| `npm run build` oleh Rizki, 14 Sep 2026, `RizkiV2` HEAD `a09ba4b13` | `▲ Next.js 16.2.12 (Turbopack)`; `✓ Compiled successfully in 34.7s`; `✓ Finished TypeScript in 333ms`; `✓ Generating static pages using 15 workers (326/326)`; postbuild `prepare-standalone` berhasil. Rute terdaftar: `/corporate/accounting/posting-rules` (`○`), `/posting-rules/create` (`○`), `/posting-rules/[slug]/update` (`ƒ`). Nol error | `PASS` | Keluaran terminal Rizki |
+| `npx eslint` ulang pada **26 berkas JSX commit `a09ba4b13`** — sesi penutupan, agent | Exit `0`, keluaran kosong — **0 error, 0 warning**; memuat seluruh berkas JSX task ini, `store.jsx`, dan `menu-items.jsx` | `PASS` | Terminal agent, 14 Sep 2026 |
+| Grep anti-regresi ulang atas diff commit | CSS ditambahkan (`posting-rule-form-view.module.css`): nol hex, `rgb`, `font-`, `line-height`, `!important`. JSX: nol `style={{`, nol `<button` mentah; dua `className="fs-4"` pada ikon butir menu — pola 192 butir menu lain, dipertahankan. `<table>` mentah pada form tetap dengan alasan bagian 3.3 | `PASS` dengan catatan | `git show a09ba4b13 -U0` disaring |
+| Tiga arah (3) diperiksa ulang — sesi penutupan | `POSTING_RULE_TREATMENT` `LANGSUNG_SAHKAN: 1`, `BUAT_DRAFT: 2` ↔ `AccountingEventTreatment.cs` baris 23, 26; `POSTING_RULE_SIDE` `DEBIT: 1`, `KREDIT: 2` ↔ `PostingSide.cs` baris 18, 21. `buildPostingRuleAccountOption` tetap `disabled: false` | `PASS` | Kedua sisi source |
+| Isi commit | `a09ba4b13` memuat tepat 28 berkas ketiga laporan, tanpa berkas lain; `globals.css` tidak termasuk | `PASS` | `git show --stat a09ba4b13` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ACC-DEC-081.`
 
-Uji manual: `NOT FEASIBLE` — agent tanpa peramban, dan kelima endpoint menjawab `500` sampai
-migration `BE-ACC-P2-016`. Skenario bagian 2 diserahkan ke tim UAT sesudah migration.
+Uji manual: `NOT FEASIBLE` bagi agent — tanpa peramban. Alasan kedua semula, tabel belum ada, gugur
+sejak migration `016` diterapkan; yang tersisa bagi siapa pun yang menguji adalah backend berjalan
+dan hak `PostingRule : *` serta `EventType : Read` diberikan lewat Akses Role. Skenario bagian 2
+diserahkan ke tim UAT.
 
 ---
 
@@ -245,9 +253,10 @@ migration `BE-ACC-P2-016`. Skenario bagian 2 diserahkan ke tim UAT sesudah migra
 
 | Butir DoD | Hasil |
 | --- | --- |
-| Lint hijau | **Ya** |
+| Lint hijau | **Ya** — diulang atas isi commit, 0 error, 0 warning |
 | Laporan task tertulis | **Ya** — berkas ini |
-| Build dijalankan owner | **Belum** |
+| Build dijalankan owner | **Ya** — 14 Sep 2026, `✓ Compiled successfully in 34.7s`, 326/326 halaman statis. Riwayat: **belum** sebelum build |
+| Uji manual / UAT | Bukan butir DoD kartu. Belum dijalankan — diserahkan ke tim UAT; **bukan** `UAT PASS` |
 
 ---
 
@@ -257,8 +266,8 @@ migration `BE-ACC-P2-016`. Skenario bagian 2 diserahkan ke tim UAT sesudah migra
 | --- | --- |
 | Peringatan | `NONE` |
 | Masalah yang diketahui | (1) Penyaring `journalTypeId` dan `treatment` diterima backend tetapi tidak dirender — tidak diminta kartu. (2) Unit biaya baris tidak disaring per badan hukum; backend menolak `409` bila tidak cocok — perilaku sama dengan Form Jurnal. (3) Aturan nonaktif masih dapat diubah karena backend menerimanya; layar hanya memperingatkan — menunggu keputusan owner (temuan 1 `BE-ACC-P2-018`) |
-| Dependency backend | `BE-ACC-P2-016` (migration, Rizki); `BE-ACC-P2-017` 🟡 |
+| Dependency backend | `BE-ACC-P2-016` ✅ diterapkan Rizki 14 Sep 2026. `BE-ACC-P2-018` ✅. `BE-ACC-P2-017` 🟡 — **dicatat, tidak menahan task ini:** kartu `FE-ACC-P2-010` meminta lint, build owner, dan verifikasi tiga arah, seluruhnya terpenuhi; layar ini hanya memakai `GET /event-types/options` dari `017`, yang sudah terkunci di source. **Bila uji panggil `017` atau `018` kelak menemukan bentuk respons berbeda dari `PostingRuleDtos.cs` atau `EventTypeDtos.cs`, task ini wajib diturunkan kembali ke 🟡** |
 | Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | ` M store.jsx`, ` M menu-items.jsx` (bersama `009`), `?? src/app/corporate/accounting/posting-rules/`, `?? src/components/view/corporate/accounting/posting-rule/`, `?? src/lib/constants/corporate/accounting/posting-rule/`, `?? src/lib/hooks/corporate/accounting/posting-rule/`, `?? src/lib/state/slice/corporate/accounting/accounting-posting-rule-slice.jsx`, `?? src/utils/corporate/accounting/posting-rule/`, `?? src/style/corporate/accounting/posting-rule-form-view.module.css`. Nol commit |
-| Langkah berikutnya | Owner: `npm run build`; migration `016`; beri hak `PostingRule : Read/Create/Update` dan `EventType : Read`. Tim UAT: skenario bagian 2 sesudah migration |
+| Interupsi | Penutupan status sesudah build owner dikerjakan sesi 14 September 2026 siang; source tidak disunting ulang |
+| Status Git | Saat dikerjakan: ` M store.jsx`, ` M menu-items.jsx`, dan tujuh jalur `??` di atas. Sekarang: ter-commit Rizki di `a09ba4b13`; working tree `RizkiV2` bersih saat diperiksa sesudah build. **Agent nol commit, push, stage, atau merge** |
+| Langkah berikutnya | ~~Owner: `npm run build`; migration `016`~~ **selesai 14 Sep 2026**. Owner: beri hak `PostingRule : Read/Create/Update` dan `EventType : Read`; putuskan temuan `BE-ACC-P2-018`. Backend: uji panggil `BE-ACC-P2-017`. Tim UAT: skenario bagian 2 |

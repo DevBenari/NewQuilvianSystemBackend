@@ -52,7 +52,7 @@ flowchart LR
 
     FTUTUP["🟡 Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::sebagian
     FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
-    FBATCH["🟡 Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::sebagian
+    FBATCH["✅ Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::selesai
 
     BMANDIRI --> FTUTUP
     BMANDIRI --> FLAIN
@@ -145,9 +145,9 @@ flowchart LR
         BEACCP2018["✅ BE-ACC-P2-018<br/>API aturan posting"]:::luar
     end
 
-    FEACCP2014["🟡 FE-ACC-P2-014<br/>Tombol periode mengikuti hak"]:::sebagian
-    FEACCP2009["🟡 FE-ACC-P2-009<br/>Layar jenis kejadian"]:::sebagian
-    FEACCP2010["🟡 FE-ACC-P2-010<br/>Layar dan form aturan posting"]:::sebagian
+    FEACCP2014["✅ FE-ACC-P2-014<br/>Tombol periode mengikuti hak"]:::selesai
+    FEACCP2009["✅ FE-ACC-P2-009<br/>Layar jenis kejadian"]:::selesai
+    FEACCP2010["✅ FE-ACC-P2-010<br/>Layar dan form aturan posting"]:::selesai
 
     BEACCP2017 --> FEACCP2009
     BEACCP2017 --> FEACCP2010
@@ -201,9 +201,9 @@ bagian 11.
 | `FE-ACC-P2-006` ✅ | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | ✅ `SELESAI` 11 Sep 2026 — `READY FOR UAT` |
 | `FE-ACC-P2-007` ✅ | **Penanda control account pada layar COA** | `P2-CTRL` | `BE-ACC-P2-011` | ✅ **`SELESAI`** 11 Sep 2026 — `IMPLEMENTATION COMPLETE`, `READY FOR UAT`; lint 0 error, 677 uji lulus, build compiled; dialog penyesuaian dan Form Jurnal Berulang ikut mematikan akun control. UAT belum dijalankan — diserahkan ke tim UAT |
 | `FE-ACC-P2-008` ✅ | **Layar Rekonsiliasi Control Account** | `P2-RECON` | `BE-ACC-P2-013` | ✅ **`SELESAI`** 11 Sep 2026 — `IMPLEMENTATION COMPLETE`, `READY FOR UAT`; saldo buku besar dari `gl-balances` terbukti di runtime; saldo subledger dan selisih "Belum tersedia" — `DEFERRED BACKEND CAPABILITY` (`BE-ACC-P2-014`, gelombang `P2-1`). UAT belum dijalankan |
-| `FE-ACC-P2-009` 🟡 | Layar master Jenis Kejadian | `P2-0b` | `BE-ACC-P2-017` | 🟡 `SEBAGIAN` 14 Sep 2026 — 7 dari 7 acceptance di source, lint 0 error; tinggal `npm run build` owner; data tampil sesudah migration `016`. [Laporan](../task/report/frontend/FE-ACC-P2-009.md) |
-| `FE-ACC-P2-010` 🟡 | Layar dan Form Aturan Posting | `P2-0b` | `BE-ACC-P2-017`, `BE-ACC-P2-018` | 🟡 `SEBAGIAN` 14 Sep 2026 — 8 dari 8 acceptance di source, lint 0 error; tinggal `npm run build` owner; data tampil sesudah migration `016`. [Laporan](../task/report/frontend/FE-ACC-P2-010.md) |
-| `FE-ACC-P2-014` 🟡 | Tombol Periode Akuntansi mengikuti hak akses (`ACC-GAP-010`) | `HARDENING` | — | 🟡 `SEBAGIAN` 14 Sep 2026 — 6 dari 6 acceptance di source, lint 0 error; tinggal `npm run build` owner; `READY FOR UAT`. [Laporan](../task/report/frontend/FE-ACC-P2-014.md) |
+| `FE-ACC-P2-009` ✅ | Layar master Jenis Kejadian | `P2-0b` | `BE-ACC-P2-017` | ✅ `SELESAI` 14 Sep 2026 — 7 dari 7 acceptance di source, lint 0 error, build owner `✓ Compiled successfully` (326/326); migration `016` ✅; `BE-ACC-P2-017` 🟡 tinggal uji panggil runtime. [Laporan](../task/report/frontend/FE-ACC-P2-009.md) |
+| `FE-ACC-P2-010` ✅ | Layar dan Form Aturan Posting | `P2-0b` | `BE-ACC-P2-017`, `BE-ACC-P2-018` | ✅ `SELESAI` 14 Sep 2026 — 8 dari 8 acceptance di source, lint 0 error, build owner `✓ Compiled successfully` (326/326); migration `016` ✅; `BE-ACC-P2-017` 🟡 tinggal uji panggil runtime. [Laporan](../task/report/frontend/FE-ACC-P2-010.md) |
+| `FE-ACC-P2-014` ✅ | Tombol Periode Akuntansi mengikuti hak akses (`ACC-GAP-010`) | `HARDENING` | — | ✅ `SELESAI` 14 Sep 2026 — 6 dari 6 acceptance di source, lint 0 error, build owner `✓ Compiled successfully` (326/326); `READY FOR UAT`. [Laporan](../task/report/frontend/FE-ACC-P2-014.md) |
 
 ---
 
@@ -361,7 +361,7 @@ Tiga aturan pada bagian *Baca ini lebih dahulu* tetap berlaku penuh. Ditambah sa
 **automated test bukan acceptance criterion** (`ACC-DEC-081`) — verifikasi task adalah
 `npm run lint`, `npm run build` oleh owner, dan pemeriksaan source. Jangan membuat berkas test baru.
 
-## 🟡 `FE-ACC-P2-014` — Tombol Periode Akuntansi mengikuti hak akses
+## ✅ `FE-ACC-P2-014` — Tombol Periode Akuntansi mengikuti hak akses
 
 | Field | Isi |
 |---|---|
@@ -375,9 +375,9 @@ Tiga aturan pada bagian *Baca ini lebih dahulu* tetap berlaku penuh. Ditambah sa
 | Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan source |
 | Risiko/pemilik | Menyembunyikan tombol membuat petugas mengira fitur itu tidak ada. Backend tetap menolak `403` sebagai pengaman sesungguhnya (`NFR-005`). Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`, `READY FOR UAT`. 6 dari 6 acceptance terpetakan ke source: tiga `usePermission` (`AccountingPeriod : Create/Close/Reopen`) di `use-accounting-period.jsx`; Bangkitkan Setahun, Tutup Sementara, Tutup Permanen, dan Buka Kembali tetap tampil tetapi mati beserta `title` dan keterangan terlihat ("Anda tidak memiliki hak Buka Kembali Periode."); perilaku saat daftar hak belum termuat mengikuti `usePermission` apa adanya. `npx eslint` 3 berkas: **0 error, 0 warning**; grep anti-regresi bersih. UI GATE 5 elemen — `REUSE` 5, `NEW` 0. **Belum:** `npm run build` oleh owner. Uji manual `NOT FEASIBLE` — diserahkan ke tim UAT (`UAT-08`, `UAT-09`). Bukti: [laporan](../task/report/frontend/FE-ACC-P2-014.md) |
+| **Status** | ✅ **SELESAI 14 September 2026.** Satu-satunya sisa DoD terpenuhi: `npm run build` oleh Rizki pada `RizkiV2` `a09ba4b13` — `✓ Compiled successfully in 34.7s`, `✓ Finished TypeScript`, 326/326 halaman statis, rute `/corporate/accounting/periods` terdaftar, nol error. `npx eslint` diulang agent pada 26 berkas JSX commit itu: **0 error, 0 warning**. `globals.css` tidak tersentuh. Uji manual dan `UAT-08`/`UAT-09` belum dijalankan — bukan butir DoD kartu, diserahkan ke tim UAT; bukan `UAT PASS`. **Riwayat:** 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`, `READY FOR UAT`. 6 dari 6 acceptance terpetakan ke source: tiga `usePermission` (`AccountingPeriod : Create/Close/Reopen`) di `use-accounting-period.jsx`; Bangkitkan Setahun, Tutup Sementara, Tutup Permanen, dan Buka Kembali tetap tampil tetapi mati beserta `title` dan keterangan terlihat ("Anda tidak memiliki hak Buka Kembali Periode."); perilaku saat daftar hak belum termuat mengikuti `usePermission` apa adanya. `npx eslint` 3 berkas: **0 error, 0 warning**; grep anti-regresi bersih. UI GATE 5 elemen — `REUSE` 5, `NEW` 0. **Belum:** `npm run build` oleh owner. Uji manual `NOT FEASIBLE` — diserahkan ke tim UAT (`UAT-08`, `UAT-09`). Bukti: [laporan](../task/report/frontend/FE-ACC-P2-014.md) |
 
-## 🟡 `FE-ACC-P2-009` — Layar master Jenis Kejadian
+## ✅ `FE-ACC-P2-009` — Layar master Jenis Kejadian
 
 | Field | Isi |
 |---|---|
@@ -391,9 +391,9 @@ Tiga aturan pada bagian *Baca ini lebih dahulu* tetap berlaku penuh. Ditambah sa
 | Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan kolom layar lawan DTO backend |
 | Risiko/pemilik | Layar kosong sampai migration `BE-ACC-P2-016` diterapkan, dan isi jenis kejadian menunggu `DEC-ACC-P2-002`. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 7 dari 7 acceptance terpetakan ke source: route `/corporate/accounting/event-types` (daftar, tambah, ubah bertoken privat), slice factory dengan tujuh thunk sesuai `EventTypeController`, nonaktifkan/aktifkan lewat `ConfirmModal` dengan penolakan `409` tampil apa adanya, tombol Tambah/Perbarui/Nonaktifkan/Simpan mati beserta keterangan lewat `usePermission`, butir menu tingkat 3. `npx eslint`: **0 error, 0 warning**; grep anti-regresi bersih; kolom layar dan payload cocok dengan `EventTypeDtos.cs`. UI GATE 10 elemen — `REUSE` 10, `NEW` 0. **Selisih terhadap `master-data-feature-standard` dilaporkan:** mengikuti pola modul Accounting — backend tanpa `/summary`, `/filters/metadata`, `DELETE`. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`; uji manual `NOT FEASIBLE` sampai saat itu. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-009.md) |
+| **Status** | ✅ **SELESAI 14 September 2026.** Satu-satunya sisa DoD terpenuhi: `npm run build` oleh Rizki pada `RizkiV2` `a09ba4b13` — `✓ Compiled successfully in 34.7s`, 326/326 halaman statis, rute `/corporate/accounting/event-types`, `/create`, dan `/[slug]/update` terdaftar, nol error. `npx eslint` diulang agent pada 26 berkas JSX commit itu: **0 error, 0 warning**; kolom layar dan payload diperiksa ulang lawan `EventTypeDtos.cs` — cocok. **Dependency:** `BE-ACC-P2-017` masih 🟡 hanya karena uji panggil runtime; kontrak dan source yang dikonsumsi sudah lengkap. Bila uji itu menemukan bentuk respons berbeda, task ini diturunkan kembali. Migration `016` ✅. Uji peramban dan UAT belum dijalankan — bukan butir DoD kartu; bukan `UAT PASS`. Hak `EventType : *` belum diberikan ke peran mana pun. **Riwayat:** 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 7 dari 7 acceptance terpetakan ke source: route `/corporate/accounting/event-types` (daftar, tambah, ubah bertoken privat), slice factory dengan tujuh thunk sesuai `EventTypeController`, nonaktifkan/aktifkan lewat `ConfirmModal` dengan penolakan `409` tampil apa adanya, tombol Tambah/Perbarui/Nonaktifkan/Simpan mati beserta keterangan lewat `usePermission`, butir menu tingkat 3. `npx eslint`: **0 error, 0 warning**; grep anti-regresi bersih; kolom layar dan payload cocok dengan `EventTypeDtos.cs`. UI GATE 10 elemen — `REUSE` 10, `NEW` 0. **Selisih terhadap `master-data-feature-standard` dilaporkan:** mengikuti pola modul Accounting — backend tanpa `/summary`, `/filters/metadata`, `DELETE`. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`; uji manual `NOT FEASIBLE` sampai saat itu. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-009.md) |
 
-## 🟡 `FE-ACC-P2-010` — Layar dan Form Aturan Posting
+## ✅ `FE-ACC-P2-010` — Layar dan Form Aturan Posting
 
 | Field | Isi |
 |---|---|
@@ -407,7 +407,7 @@ Tiga aturan pada bagian *Baca ini lebih dahulu* tetap berlaku penuh. Ditambah sa
 | Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan tiga arah — kolom layar lawan respons, kolom payload lawan isian, angka pilihan lawan enum backend |
 | Risiko/pemilik | Memakai ulang util pemilih akun Form Jurnal apa adanya akan **mematikan** akun control account dan membuat aturan untuk Kas Kasir mustahil disusun. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 8 dari 8 acceptance terpetakan ke source: route `/corporate/accounting/posting-rules` (daftar tersaring badan hukum dan jenis kejadian, tambah, ubah bertoken privat), form berbaris `react-hook-form` dengan Komponen, Akun, Unit Biaya (wajib dari `requiresCostCenter` backend), Sisi, Keterangan; pilihan dari `/event-types/options`, `/journal-types/options`, `/chart-of-accounts/options`; **control account tidak dimatikan** lewat `buildPostingRuleAccountOption` (util Form Jurnal tidak diubah); penolakan backend tampil apa adanya; tombol mati bagi yang tidak berhak. `npx eslint`: **0 error, 0 warning**. Verifikasi tiga arah `PASS`: kolom ↔ `PostingRuleDtos.cs`, payload ↔ isian, `Treatment` 1/2 dan `Side` 1/2 ↔ enum backend. UI GATE 12 elemen — `REUSE` 11, `COMPOSE` 1 (`PostingRuleLineRow` lokal, opsi A direkomendasikan), `NEW` 0. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-010.md) |
+| **Status** | ✅ **SELESAI 14 September 2026.** Satu-satunya sisa DoD terpenuhi: `npm run build` oleh Rizki pada `RizkiV2` `a09ba4b13` — `✓ Compiled successfully in 34.7s`, 326/326 halaman statis, rute `/corporate/accounting/posting-rules`, `/create`, dan `/[slug]/update` terdaftar, nol error. `npx eslint` diulang agent pada 26 berkas JSX commit itu: **0 error, 0 warning**; verifikasi tiga arah diperiksa ulang — `Treatment` 1/2 dan `Side` 1/2 cocok dengan enum backend, control account tetap tidak dimatikan. **Dependency:** `BE-ACC-P2-018` ✅; `BE-ACC-P2-017` masih 🟡 hanya karena uji panggil runtime. Bila uji itu menemukan bentuk respons berbeda, task ini diturunkan kembali. Migration `016` ✅. Uji peramban dan UAT belum dijalankan — bukan butir DoD kartu; bukan `UAT PASS`. **Riwayat:** 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 8 dari 8 acceptance terpetakan ke source: route `/corporate/accounting/posting-rules` (daftar tersaring badan hukum dan jenis kejadian, tambah, ubah bertoken privat), form berbaris `react-hook-form` dengan Komponen, Akun, Unit Biaya (wajib dari `requiresCostCenter` backend), Sisi, Keterangan; pilihan dari `/event-types/options`, `/journal-types/options`, `/chart-of-accounts/options`; **control account tidak dimatikan** lewat `buildPostingRuleAccountOption` (util Form Jurnal tidak diubah); penolakan backend tampil apa adanya; tombol mati bagi yang tidak berhak. `npx eslint`: **0 error, 0 warning**. Verifikasi tiga arah `PASS`: kolom ↔ `PostingRuleDtos.cs`, payload ↔ isian, `Treatment` 1/2 dan `Side` 1/2 ↔ enum backend. UI GATE 12 elemen — `REUSE` 11, `COMPOSE` 1 (`PostingRuleLineRow` lokal, opsi A direkomendasikan), `NEW` 0. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-010.md) |
 
 ## Peta butir menu yang ditambahkan
 

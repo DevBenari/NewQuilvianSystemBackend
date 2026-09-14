@@ -16,10 +16,10 @@
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` branch `RizkiV2` — layar Periode Akuntansi; laporan dan tautan bukti di repository backend |
 | Model | Claude Opus 5 |
-| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit |
+| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit. Ter-commit Rizki di `a09ba4b13` (14 Sep 2026 13.11 WIB) bersama `FE-ACC-P2-009` dan `010` — 28 berkas, tepat berkas ketiga laporan |
 | Commit backend yang dijadikan rujukan | `b3ab542e` (branch `rizkiG`) — `AccountingPeriodController` |
 | Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; tinggal `npm run build` oleh owner. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` |
+| Status | **✅ SELESAI 14 September 2026** — 6 dari 6 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; `npm run build` oleh owner `✓ Compiled successfully`. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` — UAT belum dijalankan. **Riwayat:** 🟡 SEBAGIAN pada hari yang sama, hanya menunggu build owner |
 
 ---
 
@@ -157,7 +157,11 @@ Daftar hak pengguna dibaca dari `GET /v1/auth/permissions` lewat `permission-sli
 | Grep anti-regresi — baris JSX yang ditambahkan | Nol `<button` mentah, nol `<table`, nol `style={{`, nol utility `fw-`/`fs-` | `PASS` | Idem |
 | Pemeriksaan source — ejaan hak | `Create`, `Close`, `Reopen` pada resource `AccountingPeriod` cocok dengan `AccountingPeriodController` baris 67–68, 81–82, 95–96 | `PASS` | Kedua berkas |
 | Uji unit yang memuat berkas ini | Tidak ada — grep `tests/` nol kecocokan | `NOT APPLICABLE` | — |
-| `npm run build` | Dijalankan owner — belum | `NOT RUN` | DoD kartu: "Build dijalankan owner" |
+| `npm run build` — **riwayat, sebelum build owner** | Dijalankan owner — belum | `NOT RUN` | DoD kartu: "Build dijalankan owner" |
+| `npm run build` oleh Rizki, 14 Sep 2026, `RizkiV2` HEAD `a09ba4b13` | `▲ Next.js 16.2.12 (Turbopack)`; `✓ Compiled successfully in 34.7s`; `✓ Finished TypeScript in 333ms`; `✓ Generating static pages using 15 workers (326/326)`; `✓ Finalizing page optimization`; postbuild `prepare-standalone` "Standalone runtime siap dijalankan". Rute `/corporate/accounting/periods` terdaftar (`○` static). Nol error | `PASS` | Keluaran terminal Rizki |
+| `npx eslint` ulang pada **26 berkas JSX commit `a09ba4b13`** — sesi penutupan, agent | Exit `0`, keluaran kosong — **0 error, 0 warning**. Lint sebelumnya dijalankan atas working tree sebelum commit; pengulangan ini membuktikan isi yang di-build sama-sama bersih | `PASS` | Terminal agent, 14 Sep 2026 |
+| Grep anti-regresi ulang atas diff commit | CSS ditambahkan: nol hex, `rgb`, `font-`, `line-height`, `!important`. JSX ditambahkan: nol `style={{`, nol `<button` mentah; dua `className="fs-4"` hanya pada ikon butir menu `menu-items.jsx` — milik `009`/`010`, pola ikon yang sama dipakai 192 kali di berkas itu. Berkas task ini bersih | `PASS` | `git show a09ba4b13 -U0` disaring |
+| `src/app/globals.css` | Commit terakhir yang menyentuhnya `ddda0cfd6`, bukan `a09ba4b13` | `PASS` | `git log -- src/app/globals.css` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ACC-DEC-081; tidak ada uji yang memuat ketiga berkas.`
 
@@ -182,7 +186,8 @@ Skenario bagian 2.2 diserahkan ke tim UAT (`UAT-08`, `UAT-09`).
 | --- | --- |
 | Lint hijau | **Ya** — 0 error, 0 warning pada berkas yang berubah |
 | Laporan task tertulis | **Ya** — berkas ini |
-| Build dijalankan owner | **Belum** — satu-satunya sisa |
+| Build dijalankan owner | **Ya** — 14 Sep 2026, `✓ Compiled successfully in 34.7s`, 326/326 halaman statis. Riwayat: **belum**, satu-satunya sisa sebelum build |
+| Uji manual / UAT | Bukan butir DoD kartu. `NOT FEASIBLE` bagi agent; diserahkan ke tim UAT (`UAT-08`, `UAT-09`) — **bukan** `UAT PASS` |
 
 ---
 
@@ -194,6 +199,6 @@ Skenario bagian 2.2 diserahkan ke tim UAT (`UAT-08`, `UAT-09`).
 | Masalah yang diketahui | Butir **Tutup Sementara** masih ditawarkan untuk periode Terbuka, padahal sejak `BE-ACC-P2-006` (9 Sep 2026) backend menolak `Open` → `SoftClosed` dengan `409`. Di luar cakupan task ini — dicatat, tidak diubah |
 | Dependency backend | `NONE` |
 | Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | ` M src/components/view/corporate/accounting/accounting-period/accounting-period-view.jsx`<br>` M src/lib/constants/corporate/accounting/accounting-period/accounting-period-constants.jsx`<br>` M src/lib/hooks/corporate/accounting/accounting-period/use-accounting-period.jsx`<br>` M src/style/corporate/accounting/accounting-period-view.module.css`<br>Nol commit, push, stage, atau merge |
-| Langkah berikutnya | Owner menjalankan `npm run build`; bila hijau, task naik ke ✅. Tim UAT menjalankan skenario bagian 2.2 dengan akun tanpa `Create`/`Reopen` |
+| Interupsi | Penutupan status sesudah build owner dikerjakan sesi 14 September 2026 siang; source tidak disunting ulang |
+| Status Git | Saat dikerjakan: ` M` pada keempat berkas di atas. Sekarang: ter-commit Rizki di `a09ba4b13`; working tree `RizkiV2` bersih saat diperiksa sesudah build. **Agent nol commit, push, stage, atau merge** |
+| Langkah berikutnya | ~~Owner menjalankan `npm run build`~~ **selesai 14 Sep 2026**. Tim UAT menjalankan skenario bagian 2.2 dengan akun tanpa `Create`/`Reopen`. Temuan Tutup Sementara untuk periode Terbuka tetap terbuka |

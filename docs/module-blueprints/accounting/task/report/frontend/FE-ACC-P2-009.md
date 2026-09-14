@@ -11,15 +11,15 @@
 | Trace | `FR-P2-007` (prasyarat); `ACC-DEC-045`; `03-frontend-architecture.md` bagian 9 butir 3 dan bagian 10 butir 17 |
 | Contract version | `ACC-API-0.10` grup Event Type (kontrak masih `Rencana (belum tersedia)`); `ACC-PERMISSION-0.5` `EventType : Read/Create/Update`. Bentuk payload diambil dari **source** `BE-ACC-P2-017` |
 | Wewenang UI | Kartu roadmap: daftar, tambah, ubah, nonaktifkan; tombol dimatikan bagi yang tidak berhak. Warna, jarak, urutan kolom `DEV_DISCRETION` |
-| Dependency | `BE-ACC-P2-017` 🟡 — source ada; endpoint baru menjawab data sesudah migration `BE-ACC-P2-016` (Rizki) |
+| Dependency | `BE-ACC-P2-017` 🟡 — source dan 6 dari 6 acceptance-nya lengkap, build backend 0 error; satu-satunya sisanya uji panggil `GET` saat backend berjalan. Migration `BE-ACC-P2-016` ✅ sudah diterapkan Rizki 14 Sep 2026 |
 | Klasifikasi | `MEDIUM` — skor 6: repository 0 (laporan saja di backend), berkas diperiksa 2, berkas diubah 2 (12 berkas), logika 1, kontrak API 1, database 0, keamanan 1, UI 1 |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` branch `RizkiV2`; laporan dan tautan bukti di repository backend |
 | Model | Claude Opus 5 |
-| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit |
-| Commit backend yang dijadikan rujukan | `b3ab542e` + working tree `BE-ACC-P2-017` (branch `rizkiG`) |
+| Commit frontend saat dikerjakan | `f6b1498fe` (branch `RizkiV2`), perubahan belum di-commit. Ter-commit Rizki di `a09ba4b13` (14 Sep 2026 13.11 WIB) bersama `FE-ACC-P2-010` dan `014` |
+| Commit backend yang dijadikan rujukan | `b3ab542e` + working tree `BE-ACC-P2-017` (branch `rizkiG`); source itu kini ter-commit di `da1a4b6d` |
 | Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 7 dari 7 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; tinggal `npm run build` oleh owner. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` sesudah migration `016` |
+| Status | **✅ SELESAI 14 September 2026** — 7 dari 7 acceptance terpetakan ke source; ESLint `0 error, 0 warning`; `npm run build` oleh owner `✓ Compiled successfully`. Ketiga butir DoD kartu terpenuhi. `IMPLEMENTATION COMPLETE`, `READY FOR UAT` — UAT dan uji peramban belum dijalankan. **Catatan dependency:** `BE-ACC-P2-017` masih 🟡 hanya karena uji panggil runtime backend; kontrak dan source yang dikonsumsi layar ini sudah lengkap — lihat bagian 8. **Riwayat:** 🟡 SEBAGIAN pada hari yang sama, hanya menunggu build owner |
 
 ---
 
@@ -68,7 +68,7 @@ Bila tetap dikonfirmasi, backend menolak `409` dan pesannya tampil apa adanya se
 | Kode kembar | Toast merah berisi pesan backend `409` "Kode jenis kejadian … sudah dipakai." |
 | Tautan ubah kedaluwarsa (token sesi hilang) | "Tautan jenis kejadian tidak valid. Buka ulang dari daftar Jenis Kejadian." |
 | Tanpa `EventType : Read` | `AccessDeniedGate` |
-| Migration `016` belum diterapkan | Pesan galat `500` dari backend di atas tabel — dikenali dari kalimat "relation … does not exist" di log backend |
+| Migration `016` belum diterapkan | Pesan galat `500` dari backend di atas tabel — dikenali dari kalimat "relation … does not exist" di log backend. **Sejak 14 Sep 2026 tidak berlaku lagi di `QuilvianNewDevRizki`**; tetap mungkin pada database yang belum menerapkan `20260914044507` |
 
 ---
 
@@ -174,13 +174,19 @@ token route privat, pola Jurnal Berulang.
 | Grep anti-regresi pada berkas baru | Nol `<button` mentah, `<table`, `style={{`, `fw-`/`fs-`, hex, `rgb` | `PASS` | `Select-String` |
 | **Kolom layar lawan DTO backend** | 5 kolom tabel ↔ `EventTypeListResponse` (`eventTypeCode`, `eventTypeName`, `sourceModule`, `activePostingRuleCount`, `isActive`) — cocok; 3 isian form ↔ `CreateEventTypeRequest`; 2 isian ↔ `UpdateEventTypeRequest` — cocok; batas panjang 50/200/50 sama dengan `[MaxLength]` | `PASS` | Bagian 5 |
 | Ejaan hak | `EventType : Create/Update` = `ControllerName` + argumen `[AccessAction]` | `PASS` | `EventTypeController.cs` |
-| Pemanggilan endpoint sungguhan | Tidak dapat — tabel belum ada sampai `016` | `NOT RUN` | — |
-| `npm run build` | Dijalankan owner — belum | `NOT RUN` | DoD kartu |
+| Pemanggilan endpoint sungguhan — **riwayat, pagi 14 Sep 2026** | Tidak dapat — tabel belum ada sampai `016` | `NOT RUN` | — |
+| Pemanggilan endpoint sungguhan — sesi penutupan, 14 Sep 2026 13.17 WIB | Tabel sudah ada (`016` ✅), tetapi backend tidak berjalan: port 5107 tertutup. Bukan butir Verifikasi maupun DoD kartu | `NOT RUN` | [`BE-ACC-P2-017`](../backend/BE-ACC-P2-017.md) bagian 5 |
+| `npm run build` — **riwayat, sebelum build owner** | Dijalankan owner — belum | `NOT RUN` | DoD kartu |
+| `npm run build` oleh Rizki, 14 Sep 2026, `RizkiV2` HEAD `a09ba4b13` | `▲ Next.js 16.2.12 (Turbopack)`; `✓ Compiled successfully in 34.7s`; `✓ Finished TypeScript in 333ms`; `✓ Generating static pages using 15 workers (326/326)`; postbuild `prepare-standalone` berhasil. Rute terdaftar: `/corporate/accounting/event-types` (`○`), `/event-types/create` (`○`), `/event-types/[slug]/update` (`ƒ`). Nol error | `PASS` | Keluaran terminal Rizki |
+| `npx eslint` ulang pada **26 berkas JSX commit `a09ba4b13`** — sesi penutupan, agent | Exit `0`, keluaran kosong — **0 error, 0 warning**; memuat seluruh berkas JSX task ini, `store.jsx`, dan `menu-items.jsx` | `PASS` | Terminal agent, 14 Sep 2026 |
+| Grep anti-regresi ulang atas diff commit | JSX ditambahkan: nol `style={{`, nol `<button` mentah. Dua `className="fs-4"` pada ikon butir menu Jenis Kejadian dan Aturan Posting di `menu-items.jsx` — **dipertahankan**: pola ikon yang sama dipakai 192 kali di berkas itu, bukan override typography layar | `PASS` dengan catatan | `git show a09ba4b13 -U0` disaring |
+| Isi commit | `a09ba4b13` memuat tepat 28 berkas ketiga laporan (`014`, `009`, `010`), tanpa berkas lain; `globals.css` tidak termasuk | `PASS` | `git show --stat a09ba4b13` |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ACC-DEC-081.`
 
-Uji manual: `NOT FEASIBLE` — agent tanpa peramban, dan endpoint menjawab `500` sampai migration
-`BE-ACC-P2-016` diterapkan. Skenario bagian 2 diserahkan ke tim UAT sesudah migration.
+Uji manual: `NOT FEASIBLE` bagi agent — tanpa peramban. Alasan kedua semula, tabel belum ada, gugur
+sejak migration `016` diterapkan; yang tersisa bagi siapa pun yang menguji adalah backend berjalan
+dan hak `EventType : *` diberikan lewat Akses Role. Skenario bagian 2 diserahkan ke tim UAT.
 
 ---
 
@@ -198,9 +204,10 @@ Uji manual: `NOT FEASIBLE` — agent tanpa peramban, dan endpoint menjawab `500`
 
 | Butir DoD | Hasil |
 | --- | --- |
-| Lint hijau | **Ya** |
+| Lint hijau | **Ya** — diulang atas isi commit, 0 error, 0 warning |
 | Laporan task tertulis | **Ya** — berkas ini |
-| Build dijalankan owner | **Belum** |
+| Build dijalankan owner | **Ya** — 14 Sep 2026, `✓ Compiled successfully in 34.7s`, 326/326 halaman statis. Riwayat: **belum** sebelum build |
+| Uji manual / UAT | Bukan butir DoD kartu. Belum dijalankan — diserahkan ke tim UAT; **bukan** `UAT PASS` |
 
 ---
 
@@ -209,9 +216,9 @@ Uji manual: `NOT FEASIBLE` — agent tanpa peramban, dan endpoint menjawab `500`
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `NONE` |
-| Masalah yang diketahui | Layar kosong/galat sampai migration `016`; isi datanya menunggu `DEC-ACC-P2-002`. Hak `EventType : *` belum diberikan ke peran mana pun — non-SuperAdmin melihat semua tombol mati |
-| Dependency backend | `BE-ACC-P2-016` (migration, Rizki); `BE-ACC-P2-017` 🟡 |
+| Masalah yang diketahui | Isi datanya menunggu `DEC-ACC-P2-002`, jadi layar akan menampilkan keadaan kosong sampai jenis kejadian ditambahkan. Hak `EventType : *` belum diberikan ke peran mana pun — non-SuperAdmin melihat semua tombol mati. **Tertutup 14 Sep 2026:** galat `500` karena tabel belum ada, di `QuilvianNewDevRizki` |
+| Dependency backend | `BE-ACC-P2-016` ✅ diterapkan Rizki 14 Sep 2026. `BE-ACC-P2-017` 🟡 — **dicatat, tidak menahan task ini:** kartu `FE-ACC-P2-009` meminta verifikasi lint, build owner, dan pemeriksaan kolom layar lawan DTO, ketiganya terpenuhi; kontrak `EventTypeController` yang dikonsumsi sudah terkunci di source dan 6 dari 6 acceptance `017` terpenuhi. Sisa `017` hanya uji panggil runtime. **Bila uji panggil itu kelak menemukan bentuk respons berbeda dari `EventTypeDtos.cs`, task ini wajib diturunkan kembali ke 🟡** |
 | Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | Bersama `FE-ACC-P2-014`: ` M store.jsx`, ` M menu-items.jsx`, `?? src/app/corporate/accounting/event-types/`, `?? src/components/view/corporate/accounting/event-type/`, `?? src/lib/constants/corporate/accounting/event-type/`, `?? src/lib/hooks/corporate/accounting/event-type/`, `?? src/lib/state/slice/corporate/accounting/accounting-event-type-slice.jsx`. Nol commit |
-| Langkah berikutnya | Owner: `npm run build`; migration `016`; beri hak `EventType : Read/Create/Update` lewat Akses Role. Tim UAT: skenario bagian 2 |
+| Interupsi | Penutupan status sesudah build owner dikerjakan sesi 14 September 2026 siang; source tidak disunting ulang |
+| Status Git | Saat dikerjakan: ` M store.jsx`, ` M menu-items.jsx`, dan lima jalur `??` di atas. Sekarang: ter-commit Rizki di `a09ba4b13`; working tree `RizkiV2` bersih saat diperiksa sesudah build. **Agent nol commit, push, stage, atau merge** |
+| Langkah berikutnya | ~~Owner: `npm run build`; migration `016`~~ **selesai 14 Sep 2026**. Owner: beri hak `EventType : Read/Create/Update` lewat Akses Role. Backend: uji panggil `BE-ACC-P2-017`. Tim UAT: skenario bagian 2 |
