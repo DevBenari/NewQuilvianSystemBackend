@@ -5,26 +5,64 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 24
+revision: 26
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-07T00:00:00+07:00
+updated_at: 2026-09-11T00:00:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
   Modul NOT_READY karena cakupan, bukan kerusakan. Gelombang MVP-0 sendiri
-  READY_WITH_CONDITIONS dengan satu syarat tersisa: keempat migration dijalankan.
-  Sejak 7 September 2026 syarat itu berubah sifat, bukan berubah isi: migration
-  Bank Darah kini diselingi migration Laboratorium, Billing, dan Registration,
+  READY_WITH_CONDITIONS dengan satu syarat tersisa: seluruh migration Bank Darah
+  dijalankan. Sejak 7 September 2026 syarat itu berubah sifat, bukan berubah isi:
+  migration Bank Darah diselingi migration Laboratorium, Billing, dan Registration,
   sehingga menjalankannya menuntut koordinasi lintas modul.
-backend_source_sha: 5360286
+  DIPERBARUI 10 September 2026: syarat itu TERPENUHI di database QuilvianNewDevSukma
+  lewat dotnet ef database update, 137 dari 137 migration diterapkan dan nol tertunda.
+  Koordinasi lintas modul yang diramalkan memang terjadi: sebelas migration milik lima
+  modul ikut diterapkan, termasuk DropTableMstBillingCategory yang menghapus tabel
+  MstBillingItemCategory beserta isinya. Jumlah migration Bank Darah kini LIMA, bukan
+  empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
+  Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
+  dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
+backend_source_sha: d07dcf3
+backend_source_sha_note: >-
+  Naik dari 7fca34c pada 11 September 2026 lewat tiga commit: 14f3778 (docs), 8e30aa9
+  (implementasi BE-BD-003), dan d07dcf3 (docs verifikasi ulang BE-BD-003). Impact scan
+  terbatas dijalankan: 21 berkas di luar docs/ berubah, seluruhnya milik Bank Darah
+  sendiri — source, migration AddBbkBloodOrder, dan test BE-BD-003 — ditambah tiga titik
+  bersama: Program.cs (+2 baris registrasi service) dan ApplicationDbContext.cs (+4 baris
+  DbSet), keduanya aditif murni, serta ApplicationDbContextModelSnapshot.cs yang merupakan
+  berkas bangkitan. Nol berkas bukti peta kemampuan tersentuh — MstPatient.cs,
+  TrxPatientEncounter.cs, EncounterStatus.cs, InpEpisode.cs, MstServiceUnit.cs,
+  MstDoctor.cs, dan MstBloodComponent.cs tidak berubah — sehingga nol baris berpindah
+  status dan peta tetap CURRENT.
+  Sebelumnya: naik dari 23fb65a pada 10 September 2026. Seluruh commit sesudahnya hanya
+  menyentuh docs/ — terakhir 7fca34c, sinkronisasi penutupan G4 — sehingga tidak ada
+  impact scan.
+  Sebelumnya: naik dari 95e4b8d pada 10 September 2026 lewat dua commit: c606baf (dokumentasi Bank
+  Darah) dan 23fb65a (PLT-BE-004). Di luar docs/ hanya BillingTestDatabaseFixture.cs dan
+  README project uji Postgres yang berubah — nol source aplikasi, sehingga peta kemampuan
+  tetap CURRENT tanpa impact scan. Sebelumnya: naik dari 5360286 pada 10 September 2026,
+  delapan commit. Impact scan terbatas
+  dijalankan: 34 berkas source aplikasi berubah, 14 di antaranya milik Bank Darah
+  sendiri yaitu implementasi BE-BD-005/BE-BD-011 beserta migration AddBbkBloodGroupExam
+  yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
+  karena perubahannya adalah hasil kerja modul ini sendiri. Sisanya dokumentasi.
 backend_branch: sukmagp
-frontend_source_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
+frontend_source_sha_note: >-
+  Naik dari 101ec5d3a pada 10 September 2026, dua commit: 7e90e0477 milik FE-BD-001 dan
+  f79af1684 milik FE-BD-011. Impact scan terbatas dijalankan: 44 berkas berubah, 42 di
+  antaranya milik Bank Darah sendiri; dua sisanya store.jsx dan menu-items.jsx, yaitu titik
+  registrasi wajib yang memang disentuh task Bank Darah. Nol dampak asing dan nol baris peta
+  kemampuan berpindah status. Pekerjaan FE-BD-006 berupa satu berkas menu-items.jsx BELUM
+  di-commit pada saat catatan ini ditulis.
 frontend_branch: sukmagpV2
-skill_suite_version: 1.6.0
+skill_suite_version: 1.18.0
 input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 11
+decision_revision: 12
 capability_map_revision: 5
 capability_map_status: CURRENT
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
@@ -45,8 +83,8 @@ capability_map_impact_scan_result: >-
   LabTransitionHistory.cs (ganti nama saja, kesembilan field utuh) dan BD-CAP-008
   TrxLabSpecimen.cs -> LabSpecimen.cs + LabExamination.cs (dipecah dua tingkat, pola tetap
   berlaku). Nol berkas source Bank Darah tersentuh; nol berkas bukti frontend berubah karena
-  SHA frontend tidak bergerak.
-capability_map_frontend_impact_scan_sha: 101ec5d3a560bd6e54d4665ae53d425f255c609f
+  SHA frontend BERGERAK sejak 10 September 2026 -- lihat frontend_source_sha_note.
+capability_map_frontend_impact_scan_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
 capability_map_full_audit_recommended_before: MVP-2
 capability_map_full_audit_reason: >-
   MstBloodStorageLocation dan MstBloodBankReason sudah berdiri tetapi belum punya baris
@@ -54,12 +92,20 @@ capability_map_full_audit_reason: >-
   adalah pekerjaan audit penuh, bukan impact scan terbatas. Sejak 7 September 2026 alasan
   kedua bertambah: Laboratorium mengganti nama dan memecah dua entity yang dipinjam peta
   sebagai pola, sehingga audit penuh berikutnya sebaiknya sekalian menilai ulang pola itu.
-build_evidence_sha: 5360286
+build_evidence_sha: 8e30aa9
 build_evidence_result: >-
-  dotnet build QuilvianSystemBackend.sln memulangkan 0 Error(s) dan 210 peringatan pada
-  7 September 2026. dotnet test penyaring BankDarah memulangkan Failed: 0, Passed: 101.
-  Working tree bersih, sehingga bukti tepat mewakili 5360286. Build hijau ini mencabut
-  kekhawatiran bahwa merge b70b735 merusak baseline; ia BUKAN bukti kesiapan modul.
+  Diverifikasi ulang 11 September 2026 di 8e30aa9, commit implementasi BE-BD-003;
+  d07dcf3 di atasnya hanya menyentuh docs/. dotnet build QuilvianSystemBackend.sln
+  memulangkan 0 Error(s) dan 210 peringatan, sama dengan baseline.
+  QuilvianSystemBackend.Tests Failed: 0, Passed: 498, dengan 213 bernama BankDarah.
+  UnitTests.Sqlite Failed: 0, Passed: 231. UnitTests.InMemory Failed: 9, Passed: 896 —
+  kesembilannya BillingManagement, bawaan dan tidak terkait Bank Darah.
+  BloodOrderPostgresTests 4 dari 4 lulus di QuilvianNewDevSukma. has-pending-model-changes
+  bersih. Working tree bersih, sehingga bukti tepat mewakili 8e30aa9. Bukti ini BUKAN
+  bukti kesiapan modul; putusan kesiapan milik verify-module-readiness, dan
+  last_verified_at karena itu tidak bergerak.
+  Sebelumnya: 5360286 pada 7 September 2026 — 0 Error(s), 210 peringatan, penyaring
+  BankDarah Failed: 0, Passed: 101.
 migration_execution_scope: CROSS_MODULE
 migration_execution_note: >-
   Keempat migration Bank Darah bukan lagi migration terakhir, dan
@@ -68,6 +114,10 @@ migration_execution_note: >-
   migration berurutan dan tidak boleh dilangkahi, sehingga menjalankan migration Bank Darah
   otomatis ikut menerapkan migration Laboratorium, Billing, dan Registration di antaranya.
   Eksekusi database tetap wewenang terpisah, dan kini juga menuntut kesepakatan lintas modul.
+  DIPERBARUI 11 September 2026: migration Bank Darah kini ENAM, dengan
+  20260910153119_AddBbkBloodOrder milik BE-BD-003. Di QuilvianNewDevSukma 138 dari 138
+  migration terterapkan dan nol tertunda. QuilvianNewDevTim01, staging, dan production
+  belum, dan masing-masing tetap wewenang tersendiri.
 prerequisite_readiness_revision: 4
 completeness_assessment_revision: 2
 domain_architecture_revision: 6
@@ -126,6 +176,7 @@ resolved_dependency_ids:
   - BD-DEP-005
   - BD-DEP-008
   - BD-DEP-016
+  - BD-DEP-017
 active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
@@ -139,8 +190,23 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 2
+active_roadmap_revision: 10
 roadmap_status: APPROVED
+roadmap_status_note: >-
+  backend-roadmap.md revisi 10 pada 2026-09-11 mencatat penerusan yang disetujui Sukmagp:
+  verifikasi final bagian alokasi AC-BD-060/068/070 dari BE-BD-015 ke BE-BD-006; AC-BD-070
+  ditambahkan pada BE-BD-006, sedangkan AC-BD-060/068 sudah tercantum di sana. Bukti tingkat
+  gerbang BE-BD-015 dipertahankan. Akibatnya BE-BD-015 selesai dan BE-BD-006 siap dijadwalkan.
+  Nol task baru, nol dependency, kontrak, maupun aturan bisnis berubah, sehingga revision
+  blueprint tetap 26 — perubahan pemilik kriteria dan status task bukan perubahan material.
+  Sebelumnya: backend-roadmap.md revisi 9 pada 2026-09-11 mencatat penerusan kriteria yang disetujui Sukmagp:
+  AC-BD-023/032 dari BE-BD-004 ke BE-BD-015 dan AC-BD-033 ke BE-BD-006. Nol task baru, nol
+  dependency, kontrak, maupun aturan bisnis berubah.
+  Sebelumnya: backend-roadmap.md revisi 8 pada 2026-09-11 mencatat keputusan Sukmagp atas BE-BD-012:
+  kriteria AC-BD-098..102, pemindahan AC-BD-026/058 ke BE-BD-013, serta DEC-BD-048/049.
+  Nol task baru, nol dependency berubah, nol kontrak berubah.
+  Sebelumnya: backend-roadmap.md revisi 7 disetujui Sukmagp 2026-09-10. frontend-roadmap.md revisi 7
+  masih FORWARD-TEST / DRAFT dan menunggu keputusan tersendiri.
 supersedes: null
 ```
 
@@ -587,7 +653,7 @@ sebelumnya tercatat 2 dan 2.
 | Cakupan | Putusan | Syarat tersisa |
 | --- | --- | --- |
 | Modul Bank Darah | **`NOT_READY`** | Gelombang `MVP-1`..`MVP-4` beserta 12 task frontend. Nol dari 15 entity `Bbk*` operasional ada |
-| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** | **Satu syarat:** keempat migration dijalankan. Pemilik: pemilik database. Selama belum, ketiga master tidak dapat dipakai di lingkungan mana pun — risikonya terkurung, bukan menyebar |
+| Gelombang `MVP-0` | **`READY_WITH_CONDITIONS`** — syaratnya **terpenuhi di satu database** | **Satu syarat:** seluruh migration Bank Darah dijalankan — **lima**, bukan empat, sejak `AddBbkBloodGroupExam` lahir 9 September 2026. **Terpenuhi 10 September 2026 di `QuilvianNewDevSukma`**: `137/137` migration diterapkan, nol tertunda. Ketiga master kini **dapat dipakai** di database itu. **Belum** di `QuilvianNewDevTim01`, staging, maupun production — ketiganya wewenang tersendiri, dan selama belum, risikonya di sana tetap terkurung |
 
 `BD-PH-009` Verifikasi kesiapan karena itu berpindah dari `NOT_STARTED` ke **`IN_PROGRESS`**: fase itu
 sudah dijalankan dan memulangkan putusan, tetapi belum dapat ditutup `DONE`.
@@ -600,3 +666,52 @@ keputusan blueprint ini.
 
 Revisi naik ke 24 karena dua dependency berpindah status secara material. Set kontrak **tetap `v4`
 `approved`** dan tidak tersentuh: tidak ada arsitektur target, kontrak, maupun keputusan yang berubah.
+
+---
+
+**Penutupan `G4` dan approval roadmap backend revisi 7 — 10 September 2026, revisi 25.**
+
+Mesin pemberi nomor bisnis yang dapat dipakai Bank Darah kini ada dan terbukti andal, dan pemilik
+gerbangnya menyatakan gerbang itu tertutup.
+
+| Perubahan | Dari | Menjadi |
+| --- | --- | --- |
+| `BD-DEP-017` / `G4` provider number-series | terbuka | **tertutup** — masuk `resolved_dependency_ids` |
+| `active_roadmap_revision` | `2` | **`7`** — roadmap backend, disetujui `Sukmagp` 2026-09-10 |
+| `backend_source_sha` | `95e4b8d` | **`23fb65a`** — nol source aplikasi berubah |
+| `BE-BD-003` | ⛔ | 🟡 siap dijadwalkan |
+
+**Dasarnya:** `PLT-BE-003` (`NumberSeriesAllocator`, 9 September 2026), `PLT-BE-004` (6 dari 6 uji
+durabilitas lulus di PostgreSQL `QuilvianNewDevSukma`, 10 September 2026, commit `23fb65a`), dan
+pernyataan pemilik gerbang `Andry` yang disampaikan `Sukmagp` pada hari yang sama tanpa dokumen
+tertulis terlampir.
+
+**Nol perubahan arsitektur, kontrak, maupun keputusan Bank Darah.** Revisi naik ke 25 karena satu
+dependency berpindah status secara material — pola yang sama dengan revisi 24. Roadmap frontend
+revisi 7 **tidak** ikut disetujui.
+
+---
+
+**Penyegaran metadata sesudah `BE-BD-003` — 11 September 2026, revisi tetap 25.**
+
+`BE-BD-003` selesai, ter-commit di `8e30aa9`, dan diverifikasi ulang di commit itu. Pass ini hanya
+menyelaraskan metadata dengan keadaan tersebut. Ia **tidak** menjalankan discovery, redesign,
+wawancara keputusan, gerbang kelengkapan requirement, maupun perubahan scope roadmap.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `backend_source_sha` | `7fca34c` | **`d07dcf3`** — impact scan terbatas: 21 berkas di luar `docs/`, seluruhnya milik Bank Darah ditambah dua titik registrasi aditif dan snapshot bangkitan. Nol berkas bukti peta kemampuan tersentuh |
+| `build_evidence_sha` | `5360286` | **`8e30aa9`** — build `0 Error(s)` dengan 210 peringatan, 498 + 231 test, 4 uji PostgreSQL |
+| `skill_suite_version` | `1.6.0` | **`1.18.0`** — registry di suite ini sudah memuat `Bbk` berstatus `ACTIVE`, sehingga temuan "registry basi" pada laporan `BE-BD-003` tertutup |
+| `migration_execution_note` | `137/137` | ditambah catatan `138/138` di `QuilvianNewDevSukma` |
+| `updated_at` | `2026-09-10` | `2026-09-11` |
+
+**Yang sengaja tidak bergerak.**
+
+| Field | Tetap | Alasan |
+| --- | --- | --- |
+| `revision` | `25` | Menandai task yang sudah didefinisikan sebagai selesai bukan perubahan material menurut kontrak template manifest |
+| `last_verified_at`, `last_readiness_result` | `2026-09-04`, `NOT_READY` | Build dan test yang hijau adalah bukti task, bukan verifikasi kesiapan modul. Putusan kesiapan milik `verify-module-readiness` |
+| `status`, `current_phase` | `IN_PROGRESS`, `BD-PH-007` | Implementasi backend masih berjalan; `BE-BD-004` dan `BE-BD-012` terbuka |
+| `capability_map_status` | `CURRENT` | Nol berkas bukti tersentuh pada rentang `7fca34c` → `d07dcf3` |
+| Set kontrak | `v4` `approved` | Nol perubahan arsitektur, kontrak, dependency, maupun keputusan |

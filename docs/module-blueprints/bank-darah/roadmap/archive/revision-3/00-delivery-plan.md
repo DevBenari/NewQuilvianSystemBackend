@@ -3,10 +3,11 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Roadmap revision | `2` — menggantikan revisi 1 yang ditandai `STALE`; gerbang direkonsiliasi 3 September 2026 |
-| **Roadmap status** | **`APPROVED`** — disusun sebagai forward-test di atas set kontrak `v4`, lalu ikut disetujui ketika `G1` turun pada 3 September 2026 |
-| Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/` |
-| Backend SHA | **`5360286`** cabang `sukmagp` — semula `ba75a05`; disegarkan 7 September 2026. Bukti kemampuan diperiksa ulang langsung di `5360286` lewat impact scan terbatas: nol baris berpindah status, nol berkas source Bank Darah tersentuh. Build hijau (`0 Error(s)`) dan 101 pengujian Bank Darah lulus di SHA ini |
+| Roadmap revision | **`3`** — menggantikan revisi 2. **Scope, ID task, dan pembagian gelombang tidak diubah sama sekali**; yang bertambah satu gerbang global baru (`G4`) beserta penandaan task yang terdampak. Revisi 2 ditandai `SUPERSEDED`, bukan salah |
+| **Roadmap status** | **`FORWARD-TEST / DRAFT`** — turun dari `APPROVED`. **Alasannya bukan cacat rencana:** approval 3 September 2026 diberikan atas rencana yang mengandaikan provider number-series sudah tersedia. Bukti terverifikasi membantah andaian itu (lihat `G4`), dan approval **tidak berpindah otomatis** ke rencana yang memuat gerbang baru. Menunggu keputusan pemilik |
+| Contract version yang dipakai | **`v4`** (**`approved`**) — `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/`, `contracts/`, `flowcharts/`, `testing/`. **Kontrak tidak berubah** dan tetap `approved` |
+| Backend SHA | **`55ac6ab`** cabang `sukmagp` — semula `5360286`; pergerakan `5360286` → `4a1da7d` → `55ac6ab` **docs-only murni** (terverifikasi `git diff --name-only`: nol berkas di luar `docs/`), sehingga seluruh bukti source tetap berlaku. Bukti kemampuan diperiksa ulang di `5360286` lewat impact scan terbatas: nol baris berpindah status, nol berkas source Bank Darah tersentuh. Build hijau (`0 Error(s)`) dan 101 pengujian Bank Darah lulus |
+| Revisi 3 disusun | `2026-09-07` oleh `plan-module-delivery`, dipicu bukti audit Platform `PLT-CAP-001` |
 | Frontend SHA | `101ec5d3a560bd6e54d4665ae53d425f255c609f` cabang `sukmagpV2` — semula `afbb8ab`; disegarkan 4 September 2026 dan **tidak bergerak** sejak itu |
 | Input hash | `design-business-module-role-residue-2026-09-03` · decision revisi **11** · domain arch revisi **6** (`DOMAIN_ARCHITECTURE_READY`) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
@@ -17,6 +18,34 @@ Roadmap ini **tidak** memberi wewenang implementasi, bahkan setelah disetujui. A
 tetap wewenang tersendiri yang diminta per tindakan. Preflight QBE dan
 kesesuaian engineering diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend target dan dokumen
 engineering canonical, bukan di sini.
+
+---
+
+## A0. Kenapa revisi 3 disusun — satu andaian kontrak terbantah bukti
+
+Revisi 2 tidak keliru menyusun task. Yang berubah adalah **kebenaran satu andaian** yang dipakainya.
+
+`02-backend-architecture.md` §Penomoran (baris 487–488) berbunyi:
+
+> *"Alokasi nomor bisnis (`OrderNumber`, `RequestNumber`, `ProcedureNumber`) memakai provider
+> number-series atomik **yang sudah ada**; **MUST NOT** memakai Count+1 / Max+1
+> (`QBE-CODE-002/003`)."*
+
+Frasa **"yang sudah ada"** itulah yang terbantah. Audit terarah Platform pada `4a1da7d` membuktikan:
+
+| Yang diandaikan kontrak | Yang sebenarnya ada |
+| --- | --- |
+| Provider number-series atomik yang dapat dipakai modul mana pun | Mesin atomik **memang ada** — `BillingNumberSeriesService` — tetapi **milik Billing**, dan keempat method publiknya dipatok kunci deret `BILLING_*`. Method generiknya `private`. **Tidak ada satu pun pintu masuk yang dapat dipanggil Bank Darah** |
+| Tinggal dipakai | Menaikkannya menjadi milik bersama adalah `DEC-PLT-007`, dan keputusan itu berstatus **`draft`** |
+| — | `PLT-SLICE-01` berstatus **`BUSINESS_DECISION_REQUIRED`**, terhalang `OQ-PLT-007`: **Backend Engineering Contract Owner belum ditunjuk** |
+
+**Kenapa ini tidak terlihat sebelumnya.** Register dependency Bank Darah — `01-prerequisite-readiness.md`,
+`MODULE-STATUS.md`, dan `blueprint-manifest.md` — **nol** menyebut penomoran. Ketergantungan ini hanya
+hidup di prosa arsitektur Bank Darah dan, dari arah sebaliknya, di blueprint Platform. Keduanya tidak
+pernah bertemu sebagai satu dependency ber-ID. Revisi 3 memperbaiki itu lewat `BD-DEP-017`.
+
+**Yang tidak diubah revisi 3:** nol task ditambah, nol task dihapus, nol ID berganti, nol scope
+bergeser, nol acceptance criteria disentuh, dan kontrak `v4` tetap `approved` apa adanya.
 
 ---
 
@@ -44,6 +73,72 @@ Storage Location kini punya keputusan, konsep domain (`BD-DOM-24`, `BD-DOM-25`),
 | ~~`G1` Approval desain~~ | Owner menyetujui blueprint & set kontrak `v4` | Pemilik proses BDRS + arsitektur backend | ✅ **TERTUTUP** 3 September 2026 oleh `Sukmagp`. Set kontrak `v4` naik dari `draft` ke `approved`; tercatat pada `blueprint-manifest.md` revisi 20 |
 | ~~`G2a` `BD-DEP-008`~~ | Pendaftaran prefix `Bbk` di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `ed7fba8`. Prefix yang disahkan **persis `Bbk`** |
 | ~~`G2b` `BD-DEP-016`~~ | Keputusan aktivasi modul: Lifecycle registri `PLANNED` → `ACTIVE` | Pemilik registry engineering | ✅ **TERTUTUP** 3 September 2026, commit `8075784`. Membuka wewenang entity operasional `Bbk*` dan migration modul |
+
+| **`G4` `BD-DEP-017`** — **BARU revisi 3** | **Provider number-series yang dapat dipakai Bank Darah.** Kontrak `v4` mewajibkan `OrderNumber`, `RequestNumber`, dan `ProcedureNumber` dialokasikan provider atomik, dan **melarang** `Count+1`/`Max+1` (`QBE-CODE-002/003`). Provider yang dapat dipanggil Bank Darah **belum ada** | Pemilik platform + pemilik kontrak engineering backend (**belum ditunjuk** — `OQ-PLT-007`) | **TERBUKA** — memblokir `BE-BD-003`, `BE-BD-004`, `BE-BD-012` secara langsung, dan enam task lain lewat rantai dependency |
+
+### B.1 `G4` — bukti, dampak, dan apa yang tetap boleh jalan
+
+**Statusnya bukan "belum dikerjakan", melainkan "belum boleh diputuskan".** Rantainya:
+
+```
+OQ-PLT-007  Backend Engineering Contract Owner belum ditunjuk
+   └─ menahan DEC-PLT-007 (ekstrak mesin bersama)      → draft
+   └─ menahan DEC-PLT-008 (nomor hangus saat rollback) → draft
+        └─ PLT-SLICE-01 = BUSINESS_DECISION_REQUIRED
+             └─ G4 Bank Darah tetap terbuka
+```
+
+**Tiga task terblokir langsung**, karena entity-nya memuat field yang wajib dialokasikan provider:
+
+| Task | Entity | Field | Bukti |
+| --- | --- | --- | --- |
+| `BE-BD-003` | `BbkBloodOrder` | `OrderNumber` | `02-backend-architecture.md:164`, `:387` |
+| `BE-BD-004` | `BbkProviderRequest` | `RequestNumber` | `02-backend-architecture.md:183`, `:401` |
+| `BE-BD-012` | `BbkBloodBankProcedure` | `ProcedureNumber` | `02-backend-architecture.md:336`, `:443` |
+
+**`PmiBagNumber` tidak termasuk.** Nomor kantong datang dari PMI, bukan dibuat server (`ASM-BD-003`,
+`02-backend-architecture.md:415`). Jadi `G4` **tidak** menyentuh penomoran kantong.
+
+**Enam task lain terblokir tidak langsung**, murni karena rantai dependency yang sudah tertulis pada
+revisi 2 — bukan karena butuh nomor:
+
+| Task | Terblokir lewat |
+| --- | --- |
+| `BE-BD-015` | `BE-BD-004` |
+| `BE-BD-006` | `BE-BD-015` → `BE-BD-004` |
+| `BE-BD-007` | `BE-BD-006` |
+| `BE-BD-008` | `BE-BD-007` |
+| `BE-BD-009` | `BE-BD-006`/`007` |
+| `BE-BD-010` | `BE-BD-007` |
+
+**Dua task backend tetap `READY` dan berdiri sendiri.** Ini bagian terpenting `G4`: ia **tidak**
+menghentikan seluruh modul.
+
+| Task | Kenapa tetap `READY` |
+| --- | --- |
+| `BE-BD-005` pemeriksaan golongan darah | Dependency-nya **hanya** `G1` dan `G2b`, keduanya tertutup. `BbkBloodGroupExam` memuat `PatientId` — **bukan** `BloodOrderId` — sehingga tidak menunggu order, dan nol field-nya dialokasikan number-series |
+| `BE-BD-011` penyelesaian konflik golongan darah | Dependency-nya `G1`, `G2b`, dan `BE-BD-005` |
+
+**Tiga task frontend juga tetap `READY`**, karena pasangan backend-nya sudah selesai atau tidak ada:
+
+| Task | Kenapa tetap `READY` |
+| --- | --- |
+| `FE-BD-001` setup master | `BE-BD-001` **`SELESAI`** |
+| `FE-BD-011` lokasi penyimpanan darah | `BE-BD-014` **`SELESAI`** |
+| `FE-BD-006` registrasi menu | Dependency-nya hanya `G1` |
+
+Ditambah `FE-BD-009` yang terbuka begitu `BE-BD-005` dan `BE-BD-011` selesai.
+
+**Cara `G4` ditutup — tiga jalan, dan memilihnya bukan wewenang roadmap ini:**
+
+| Jalan | Konsekuensi bagi Bank Darah |
+| --- | --- |
+| `PLT-SLICE-01` selesai lebih dulu (`DEC-PLT-007` naik dari `draft`) | Bank Darah memanggil provider bersama. Menunggu `OQ-PLT-007` |
+| Bank Darah membuat deret sendiri (`BbkNumberSeries`) mengikuti pola rumah | `G4` tertutup **tanpa** menunggu Platform. Pola `pg_advisory_xact_lock` sudah terpakai di 24 lokasi. Menuntut keputusan pemilik dan kemungkinan penyesuaian kontrak `v4` |
+| Kontrak `v4` diubah supaya ketiga nomor tidak lagi dari number-series | Menuntut amendment kontrak. **Tidak** disarankan roadmap ini — `QBE-CODE-002/003` tetap melarang `Count+1`/`Max+1` |
+
+Roadmap **tidak memilih** di antara ketiganya. Ini keputusan pemilik, dan sampai salah satunya turun,
+`G4` tetap terbuka.
 
 **`G3` revisi 1 dihapus.** Ia menahan seeding peran sampai `DEF-BD-004` turun. `DEC-BD-039` sampai
 `DEC-BD-044` sudah memetakan keenam wewenangnya, sehingga tidak ada lagi task yang menunggunya.
@@ -189,12 +284,41 @@ ditambah **pembatalan** dan **jalur darurat**. Sesuai prioritas yang diminta.
 | Gelombang | Isi | Syarat mulai |
 | --- | --- | --- |
 | `MVP-0` | `BE-BD-001`, `BE-BD-002`, `BE-BD-014`, `BE-BD-016` — seluruh master + seeder hak akses | `G1`. **Tidak menunggu `G2b`**. **Kemajuan:** `BE-BD-001`, `BE-BD-002`, dan `BE-BD-014` **selesai** 3 September 2026. `BE-BD-016` **selesai sebagian** — 12 dari 39 butir hak akses terdaftar, sisanya terikat task pembuat controller. **`MVP-0` tuntas dari sisi source**; empat migration menunggu dijalankan. ⚠️ **Sejak 7 September 2026 eksekusinya lintas modul:** keempat migration Bank Darah bukan lagi yang terakhir, dan `20260903071535_AddLabExamination` milik Laboratorium menyelip di tengahnya. Karena Entity Framework menerapkan migration berurutan dan tidak boleh dilangkahi, menjalankan migration Bank Darah otomatis ikut menerapkan migration Laboratorium, Billing, dan Registration. Perlu disepakati dengan ketiga pemilik itu lebih dulu; rinciannya di `02-existing-capability-map.md` §Dampak migration |
-| `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2b` + `MVP-0` |
-| `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** |
-| `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `MVP-1` |
-| `MVP-3` | `BE-BD-006`, `BE-BD-007`, `BE-BD-008` — alokasi, bukti+pemberian, jalur darurat | `MVP-1b` **dan** `MVP-2` |
-| `MVP-4` | `BE-BD-009`..`BE-BD-012` — penyelesaian, koreksi, konflik, tindakan | `MVP-3` |
+| `MVP-1` | `BE-BD-003`, `BE-BD-004` — order dan permintaan PMI | `G1` + `G2b` + `MVP-0` + **`G4`** ⛔ **TERBLOKIR** |
+| `MVP-1b` | `BE-BD-015` — penyimpanan dan perpindahan kantong | `MVP-1`. **Wajib mendahului `MVP-3`** ⛔ **TERBLOKIR** lewat `MVP-1` |
+| `MVP-2` | `BE-BD-005` — pemeriksaan golongan darah | `G1` + `G2b` + `MVP-0` — **dikoreksi revisi 3**, lihat di bawah ✅ **DAPAT JALAN** |
+| `MVP-3` | `BE-BD-006`, `BE-BD-007`, `BE-BD-008` — alokasi, bukti+pemberian, jalur darurat | `MVP-1b` **dan** `MVP-2` ⛔ **TERBLOKIR** lewat `MVP-1b` |
+| `MVP-4` | `BE-BD-009`..`BE-BD-012` — penyelesaian, koreksi, konflik, tindakan | `MVP-3`; `BE-BD-011` hanya butuh `BE-BD-005` ⛔ **SEBAGIAN** |
 | `POST-MVP` | Lihat bagian G | Di luar rilis pertama |
+
+### F.1 Satu koreksi urutan yang dibuat revisi 3
+
+Revisi 2 menulis syarat mulai `MVP-2` sebagai `MVP-1`. **Itu lebih ketat daripada dependency task yang
+sebenarnya.** Baris `BE-BD-005` pada bagian E.1 menyebut dependency-nya hanya `G1` dan `G2b` — tidak
+ada `BE-BD-003` maupun `BE-BD-004` di sana. Diperiksa ke arsitektur: `BbkBloodGroupExam` memuat
+`PatientId`, **bukan** `BloodOrderId`.
+
+Artinya pemeriksaan golongan darah **tidak pernah** benar-benar menunggu order darah. Urutan
+`MVP-1 → MVP-2` pada revisi 2 adalah urutan **penyajian nilai**, bukan urutan teknis. Selama `G4`
+terbuka, membedakan keduanya menentukan apakah modul ini berhenti total atau tetap bergerak.
+
+**Batas koreksi ini:** yang diubah hanya kolom *syarat mulai* `MVP-2`, disesuaikan dengan dependency
+task yang sudah tertulis sejak revisi 2. **Nol task berpindah gelombang**, dan `MVP-3` tetap menuntut
+`MVP-1b` **dan** `MVP-2` seperti semula.
+
+### F.2 Jalur yang tetap dapat dikerjakan selama `G4` terbuka
+
+| Urutan | Task | Sifat |
+| ---: | --- | --- |
+| 1 | `BE-BD-005` pemeriksaan golongan darah | Backend, berdiri sendiri |
+| 2 | `BE-BD-011` penyelesaian konflik golongan darah | Backend, menunggu `BE-BD-005` |
+| — | `FE-BD-001` setup master · `FE-BD-011` lokasi penyimpanan · `FE-BD-006` menu | Frontend, pasangan BE-nya sudah `SELESAI` |
+| — | `FE-BD-009` penyelesaian konflik | Frontend, terbuka setelah `BE-BD-011` |
+
+**Enam task nyata dari 23 yang tersisa tetap dapat berjalan** — dua backend dan empat frontend. Bila
+`BE-BD-005` dan `BE-BD-011` selesai, Bank Darah memiliki satu irisan vertikal yang benar-benar
+terpakai: petugas memeriksa golongan darah pasien, hasilnya divalidasi, dan konfliknya diselesaikan
+validator klinis — tanpa satu pun nomor bisnis diterbitkan.
 
 Frontend mengikuti gelombang backend yang kontraknya sudah di-approve; tidak ada FE yang mendahului
 task BE pasangannya.
@@ -251,6 +375,17 @@ task BE pasangannya.
 | Keadaan kantong setelah koreksi | `OQ-BD-014` | Menahan detail implementasi `BE-BD-010`, bukan bentuknya |
 | Rumah slice resmi `BR-BD-020` | Penilaian kelengkapan requirement masih revisi 2 | Tidak menahan task; `BR-BD-020` diperlakukan sebagai perluasan `BD-SLICE-03/04/10` |
 
+| **Provider number-series** — **BARU revisi 3** | `BD-DEP-017` / `G4` terbuka. `DEC-PLT-007` `draft`, `PLT-SLICE-01` `BUSINESS_DECISION_REQUIRED` | Menahan `BE-BD-003`, `BE-BD-004`, `BE-BD-012` secara langsung dan enam task lain lewat rantai dependency. `AC-BD-001`..`004` dan `AC-BD-005`/`006` belum dapat diuji sampai `G4` tertutup |
+| **Asal `SampleIdentifier`** — **BARU revisi 3** | Belum dinyatakan kontrak | `data/data-dictionary.md:250` menetapkan `SampleIdentifier` pada `BbkBloodGroupSample` sebagai `string(50)`, **wajib** dan **unik**, tetapi **tidak menyebut dari mana nilainya datang**. Ia **tidak** termasuk ketiga field yang disebut `02-backend-architecture.md:487` sebagai konsumen number-series. Dicatat sebagai gap penelusuran, **bukan** blocker |
+
+**Kenapa `SampleIdentifier` dicatat tetapi tidak memblokir `BE-BD-005`.** Kontrak `v4` menyebut secara
+tertutup tiga field yang dialokasikan number-series, dan `SampleIdentifier` bukan salah satunya. Karena
+itu `BE-BD-005` **tidak** mewarisi `G4`. Namun asalnya memang belum dinyatakan — bisa diisi petugas,
+bisa dibuat server. Contoh bedanya nyata: bila nomor sampel diketik petugas dari label tabung, cukup
+validasi keunikan; bila dibuat server, ia menjadi konsumen number-series keempat dan `BE-BD-005` ikut
+terblokir `G4`. **Pertanyaan ini diselesaikan pada waktu eksekusi `BE-BD-005`**, dan builder wajib
+berhenti serta melapor bila ternyata menuntut alokasi server. Roadmap **tidak** memutuskannya di sini.
+
 **Storage Location tidak lagi menjadi coverage gap.** Pada revisi 1 ia tercatat sebagai gap karena
 belum ada requirement, desain, maupun kontrak. Ketiganya kini ada, dan ia menjadi `BE-BD-014` +
 `BE-BD-015`.
@@ -259,14 +394,25 @@ belum ada requirement, desain, maupun kontrak. Ketiganya kini ada, dan ia menjad
 
 ## I. Langkah berikutnya
 
-Ketiga gerbang global — `G1` approval, `G2a` penamaan, `G2b` aktivasi — **seluruhnya tertutup pada
-3 September 2026**. Urutan di bawah karena itu bukan lagi daftar tunggu, melainkan urutan kerja.
+Tiga gerbang global — `G1` approval, `G2a` penamaan, `G2b` aktivasi — **tertutup pada 3 September 2026**.
+**Gerbang keempat, `G4`, terbuka sejak 7 September 2026.** Urutan di bawah karena itu bercabang dua:
+apa yang tetap bisa dikerjakan sekarang, dan apa yang menunggu `G4`.
 
-1. Jalankan `MVP-0` lewat `/build-module-backend`, satu task satu wewenang tulis:
-   `BE-BD-001` → `BE-BD-002` → `BE-BD-014` → `BE-BD-016`. Seluruhnya master `Mst*` dan seeder.
-2. Lanjutkan `MVP-1` → `MVP-1b` → `MVP-2` → `MVP-3` → `MVP-4` sesuai bagian F. `MVP-1b` **wajib
-   mendahului** `MVP-3` karena kantong tidak dapat dialokasikan sebelum tersimpan.
-3. FE mengikuti gelombang BE: tidak ada task FE yang mendahului task BE pasangannya, walaupun
+**Yang dapat dikerjakan sekarang — nol menunggu siapa pun:**
+
+1. `BE-BD-005` pemeriksaan golongan darah, lalu `BE-BD-011` penyelesaian konflik. Keduanya `READY`;
+   dependency-nya `G1` dan `G2b` yang sudah tertutup, dan nol field-nya menuntut number-series.
+2. `FE-BD-001`, `FE-BD-011`, dan `FE-BD-006` — ketiganya pasangan backend-nya sudah `SELESAI` atau
+   tidak punya pasangan backend. Setelah `BE-BD-011` selesai, `FE-BD-009` ikut terbuka.
+3. Jalankan keempat migration `MVP-0`. **Kini lintas modul** — migration Laboratorium, Billing, dan
+   Registration menyelip di antara dan sesudahnya, sehingga perlu disepakati dengan ketiga pemiliknya.
+
+**Yang menunggu `G4` — jangan dijadwalkan sebelum tertutup:**
+
+4. `MVP-1` (`BE-BD-003`, `BE-BD-004`) → `MVP-1b` (`BE-BD-015`) → `MVP-3` → sisa `MVP-4`.
+   `MVP-1b` tetap **wajib mendahului** `MVP-3` karena kantong tidak dapat dialokasikan sebelum
+   tersimpan. Seluruh task FE pasangannya ikut menunggu.
+5. FE mengikuti gelombang BE: tidak ada task FE yang mendahului task BE pasangannya, walaupun
    kontraknya sudah `approved` dan terkunci pada `v4`.
 4. ~~Dua pertanyaan terbuka `OQ-BD-017` dan `OQ-BD-018`.~~ ✅ **Sudah ditutup** 3 September 2026 oleh
    `DEC-BD-045` dan `DEC-BD-046`, sebelum `BE-BD-016` dijalankan sebagaimana disarankan. Register
@@ -276,6 +422,23 @@ Ketiga gerbang global — `G1` approval, `G2a` penamaan, `G2b` aktivasi — **se
 6. Setelah satu gelombang selesai, jalankan `/verify-module-readiness` atas bukti `task/report/**`
    sebelum gelombang berikutnya dinyatakan aman.
 
-Roadmap `APPROVED`, disetujui `Sukmagp` pada `2026-09-03`. **Approval ini membuka penjadwalan task, bukan
-izin menulis source.** Wewenang tulis backend, migration, eksekusi database di luar dev pemilik,
-deployment, dan publikasi Git tetap diminta terpisah untuk setiap tindakan.
+**Status approval revisi 3.** Revisi 2 disetujui `Sukmagp` pada `2026-09-03`. **Approval itu tidak
+berpindah otomatis ke revisi 3**, karena revisi 3 menambahkan gerbang global baru (`G4`) yang tidak ada
+saat approval diberikan. Revisi 3 karena itu berstatus **`FORWARD-TEST / DRAFT`** dan menunggu keputusan
+pemilik.
+
+**Yang perlu diputuskan pemilik atas revisi 3**, dan hanya ini:
+
+| Butir | Pertanyaannya |
+| --- | --- |
+| `G4` diterima sebagai gerbang | Apakah pemilik menerima bahwa `BE-BD-003`, `BE-BD-004`, dan `BE-BD-012` memang tertahan provider number-series? |
+| Jalan penutupan `G4` | Menunggu `PLT-SLICE-01`, membuat deret sendiri, atau amendment kontrak — lihat bagian B.1 |
+| Koreksi syarat mulai `MVP-2` | Apakah pemilik menerima bahwa `BE-BD-005` memang tidak pernah bergantung pada `MVP-1`? |
+
+**Sampai revisi 3 disetujui, revisi 2 tetap menjadi rekaman approval yang berlaku** — tetapi
+penjadwalan `MVP-1` di bawahnya **tidak aman**, karena bertumpu pada andaian yang sudah terbantah bukti.
+
+**Approval membuka penjadwalan task, bukan izin menulis source.** Wewenang tulis backend, migration,
+eksekusi database di luar dev pemilik, deployment, dan publikasi Git tetap diminta terpisah untuk setiap
+tindakan. Preflight QBE dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md`
+backend target dan dokumen engineering canonical.
