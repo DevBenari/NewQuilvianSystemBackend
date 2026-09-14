@@ -161,15 +161,18 @@ Satu-satunya pintu masuk adalah
 hanya dimiliki akun layanan. Rinciannya di
 [`api-contract.md`](api-contract.md) bagian Phase 2.
 
-### 6.3 Bentuk pesan — sepuluh bidang wajib
+### 6.3 Bentuk pesan — dua belas bidang wajib
 
-Dikunci `ACC-DEC-048`. Daftar lengkap beserta tipenya ada di `api-contract.md`. Tiga hal yang
-mengikat kedua pihak:
+Dikunci `ACC-DEC-048` dan `ACC-DEC-060`. Daftar lengkap beserta tipenya ada di `api-contract.md`.
+Empat hal yang mengikat kedua pihak:
 
 1. **Kesepuluhnya wajib.** Pesan dengan satu bidang kosong ditolak `400`, bukan diterima sebagian.
 2. **Mata uang hanya `IDR`.** Nilai lain ditolak `409` (`ACC-DEC-020`).
 3. **Nol pengenal pasien.** Nama, nomor rekam medis, dan nomor kunjungan **dilarang** ada di dalam
    pesan (`ACC-DEC-056`). Penelusuran ke pasien dilakukan lewat nomor transaksi asal.
+4. **`CorrelationId` dan `CausationId` wajib** (`ACC-DEC-060`). Owner Billing menyatakan 9
+   September 2026 bahwa kejadian Finance memang membawanya; Accounting menyimpannya supaya
+   penelusuran jurnal ke faktur Billing tidak terputus di Finance.
 
 ### 6.4 Pencegahan pencatatan ganda
 
@@ -202,6 +205,7 @@ Kejadian `Gagal` **menahan** penutupan; kejadian `Tertahan` hanya **memperingatk
 
 | Langkah | Pemilik | Keadaan |
 |---|---|---|
-| Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | Owner Billing dan owner Finance (Yasmin) | **Belum.** Bahan pembahasannya: [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) |
+| Ratifikasi `ACC-DEC-044` | Owner Billing | **Selesai 9 September 2026** — `ACC-DEC-059`. Finance menerbitkan kejadian tersendiri; Accounting **dilarang** membaca `BilArHandoff` langsung |
+| Ratifikasi `ACC-DEC-048` bentuk pesan | Owner Finance (Yasmin) | **Belum.** Ditambah usulan dua bidang baru `CorrelationId` dan `CausationId` — lihat [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 21.2 |
 | Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Belum** |
 | Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Belum** — diperiksa 8 September 2026, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource` |

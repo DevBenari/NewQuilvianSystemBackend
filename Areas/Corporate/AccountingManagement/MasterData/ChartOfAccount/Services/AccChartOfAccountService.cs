@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
@@ -95,7 +95,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     ParentAccountId = x.ParentAccountId,
                     ParentAccountCode = x.ParentAccount != null ? x.ParentAccount.AccountCode : null,
                     IsPostable = x.IsPostable,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    IsControlAccount = x.IsControlAccount
                 })
                 .ToListAsync(ct);
 
@@ -195,6 +196,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// Hanya akun yang menerima transaksi dan aktif. Dengan begitu petugas tidak pernah
         /// melihat akun induk pada daftar pilihan, dan `ACC-DEC-022` terjaga sejak di layar —
         /// bukan hanya saat penyimpanan.
+        ///
+        /// Akun control <b>tidak</b> disaring di sini; hanya penandanya yang dikirim
+        /// (<c>BE-ACC-P2-012</c>). Enam layar memakai endpoint ini, dan Buku Besar justru harus
+        /// tetap dapat memilih Kas Kasir.
         /// </remarks>
         public async Task<AccountingServiceResult<List<ChartOfAccountOptionResponse>>> GetOptionsAsync(
             Guid legalEntityId,
@@ -227,7 +232,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     AccountName = x.AccountName,
                     AccountType = x.AccountType,
                     NormalBalance = x.NormalBalance,
-                    RequiresCostCenter = x.AccountType == AccountType.Expense
+                    RequiresCostCenter = x.AccountType == AccountType.Expense,
+                    IsControlAccount = x.IsControlAccount
                 })
                 .ToListAsync(ct);
 
@@ -298,6 +304,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 ParentAccountId = request.ParentAccountId,
                 AccountLevel = request.AccountLevel,
                 IsPostable = request.IsPostable,
+                IsControlAccount = request.IsControlAccount,
                 Description = request.Description?.Trim(),
                 EffectiveStartDate = request.EffectiveStartDate,
                 IsActive = true,
@@ -383,6 +390,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             akun.ParentAccountId = request.ParentAccountId;
             akun.AccountLevel = request.AccountLevel;
             akun.IsPostable = request.IsPostable;
+
+            // Kosong berarti "jangan diubah", bukan "jadikan false". Lihat keterangan pada
+            // UpdateChartOfAccountRequest.IsControlAccount.
+            akun.IsControlAccount = request.IsControlAccount ?? akun.IsControlAccount;
             akun.Description = request.Description?.Trim();
             akun.EffectiveStartDate = request.EffectiveStartDate;
             akun.UpdateDateTime = DateTime.UtcNow;
@@ -630,6 +641,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 ParentAccountName = induk?.AccountName,
                 IsPostable = akun.IsPostable,
                 IsActive = akun.IsActive,
+                IsControlAccount = akun.IsControlAccount,
                 Description = akun.Description,
                 EffectiveStartDate = akun.EffectiveStartDate,
                 HasChildAccounts = await _db.Set<AccChartOfAccount>()
