@@ -241,11 +241,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     /// Satu baris pada daftar bacaan.
     /// </summary>
     /// <remarks>
-    /// <b>Isi bacaan sengaja tidak dibawa di sini.</b> <c>Findings</c>, <c>Impression</c>, dan
-    /// <c>Recommendation</c> adalah kesimpulan klinis atas seorang pasien, dan daftar sering
-    /// ditampilkan pada layar yang terbuka lebar — papan kerja, monitor bersama, hasil
-    /// pencarian. Yang perlu dilihat pada daftar adalah keadaan bacaan dan siapa yang
-    /// memegangnya; isinya dibuka lewat <c>GET /{id}</c> ketika memang hendak dibaca.
+    /// <para>
+    /// <b>Uraian temuan dan saran tindak lanjut sengaja tidak dibawa di sini.</b>
+    /// <c>Findings</c> dapat mencapai 8.000 huruf dan <c>Recommendation</c> 2.000 huruf;
+    /// keduanya dibuka lewat <c>GET /{id}</c> ketika memang hendak dibaca.
+    /// </para>
+    /// <para>
+    /// <b><c>Impression</c> ikut, tetapi hanya pada pembacaan yang berpusat pada pasien</b> —
+    /// <c>GET /by-encounter/{encounterId}</c> dan <c>GET /by-patient/{patientId}</c>. Pada
+    /// keduanya pembacanya adalah dokter yang sedang menangani pasien itu, dan kesimpulan bacaan
+    /// justru satu-satunya hal yang ia datangi. Memaksanya membuka satu per satu hanya untuk
+    /// membaca kesimpulan berarti menyembunyikan hal yang paling dibutuhkan di balik langkah
+    /// yang tidak menambah keamanan apa pun.
+    /// </para>
+    /// <para>
+    /// <b>Pada <c>GET /</c> yang berhalaman, <c>Impression</c> tetap kosong.</b> Daftar itu papan
+    /// kerja radiologi — sering terbuka lebar di monitor bersama dan hasil pencarian, dan
+    /// pembacanya belum tentu sedang menangani pasien yang barisnya kebetulan terlihat.
+    /// Pemisahan ini disengaja; lihat <c>MapList</c>.
+    /// </para>
     /// </remarks>
     public class RadReportListResponse
     {
@@ -280,6 +294,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public DateTime? FirstReleasedAt { get; set; }
 
         public DateTime? LastReleasedAt { get; set; }
+
+        /// <summary>
+        /// <b>Sensitif.</b> Kesimpulan versi yang <b>sedang berlaku</b>.
+        ///
+        /// <para>
+        /// Terisi hanya pada <c>GET /by-encounter/{encounterId}</c> dan
+        /// <c>GET /by-patient/{patientId}</c>; kosong pada daftar berhalaman. Kosong di sini
+        /// karena itu <b>tidak berarti bacaannya tanpa kesimpulan</b> — kesimpulan wajib diisi
+        /// pada setiap draf — melainkan berarti daftar ini memang tidak membawanya.
+        /// </para>
+        /// </summary>
+        public string? Impression { get; set; }
     }
 
     /// <summary>

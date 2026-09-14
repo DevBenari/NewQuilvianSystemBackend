@@ -17,9 +17,11 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `ec2bcac` cabang `sukmagp` |
 | Tanggal | `2026-09-03` |
-| Status | **`SELESAI SEBAGIAN`** — **12 dari 39** butir terdaftar per 3 September 2026, naik dari 8 setelah `MstBloodBankReason` selesai. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
+| Status | 🟡 **SELESAI SEBAGIAN.** Per audit source pemilik 14 September 2026: **30 deklarasi unik terhadap baseline roadmap 39**; pendaftaran DB dan penegakan akses non-SuperAdmin belum diverifikasi pada review ini. Lihat bagian 9. **Riwayat 3 September 2026:** **`SELESAI SEBAGIAN`** — **12 dari 39** butir terdaftar per 3 September 2026, naik dari 8 setelah `MstBloodBankReason` selesai. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
 
 ---
+
+> **Cara membaca laporan:** bagian 1-8 dan preflight di bawah dipertahankan sebagai histori pengerjaan awal 3 September 2026. Angka 8/12/39 serta test historis di dalamnya bukan inventaris source terkini. Pembaruan terbatas yang memiliki bukti output pemilik ada pada bagian 9.
 
 ## 1. Masalah yang diperbaiki
 
@@ -323,3 +325,35 @@ pola itu, dan pengujian kontrak task ini menjaganya tetap begitu.
 | `QBE-VAL-001`, `QBE-TXN-001` | Nol jalur request dan nol transaksi |
 | `QBE-LOG-001`, `QBE-AUD-001` | Nol perubahan state yang dihasilkan task ini |
 | `QBE-DB-001`, `QBE-DB-002` | Bukan `LEGACY MIGRATION` |
+
+
+---
+
+## 9. Adendum audit deklarasi source - 14 September 2026
+
+**Asal bukti:** output PowerShell yang dikirim pemilik, bukan pembacaan database atau eksekusi seeder oleh penyusun dokumen. Perintah memeriksa file tracked pada `Areas/HealthServices/BloodBankManagement/Controllers/*.cs` dan `Areas/HealthServices/MasterData/Controllers/*Blood*.cs`, lalu mengambil pasangan literal `[AccessPermission("Resource", "Action")]` dengan regex dan menghitung nilai unik. Output akhirnya `TOTAL UNIQUE = 30`.
+
+| Resource | Action yang ditemukan | Jumlah | Task asal sesuai roadmap |
+| --- | --- | ---: | --- |
+| `BloodBankProcedure` | `Create`, `Read`, `Update` | 3 | `BE-BD-012` |
+| `BloodBankReason` | `Create`, `Delete`, `Read`, `Update` | 4 | `BE-BD-001` |
+| `BloodComponent` | `Create`, `Delete`, `Read`, `Update` | 4 | `BE-BD-001` |
+| `BloodGroupExam` | `Create`, `Read`, `ResolveConflict`, `Update`, `Validate` | 5 | `BE-BD-005`, `BE-BD-011` |
+| `BloodOrder` | `Cancel`, `Create`, `Read` | 3 | `BE-BD-003` |
+| `BloodProviderRequest` | `Create`, `Process`, `Read`, `Update` | 4 | `BE-BD-004` |
+| `BloodStorageLocation` | `Create`, `Delete`, `Read`, `Update` | 4 | `BE-BD-014` |
+| `BloodUnit` | `Allocate`, `Read`, `Store` | 3 | `BE-BD-006`, `BE-BD-004`, `BE-BD-015` |
+| **Total deklarasi unik** | | **30** | |
+
+**Rekonsiliasi angka:** inventaris current diperbarui dari 29 menjadi 30 karena `BloodUnit : Allocate` dari BE-BD-006 belum ikut hitungan lama. Permission tersebut tidak baru dibuat pada sesi review dokumentasi. Angka **29 pada riwayat BE-BD-015 tetap dipertahankan**.
+
+**Baseline 39 belum diaudit ulang sebagai daftar endpoint yang semuanya sah.** Tabel historis 8.1 memuat 39 butir; selisih aritmetisnya kini 9. Selisih ini bukan bukti bahwa sembilan endpoint baru wajib dibuat. Roadmap mencatat `BloodOrder : Update` tidak memiliki endpoint pada kontrak v4. Keputusan atas butir itu tetap milik pemilik kontrak. Delapan selisih lain tidak diberi nama baru hanya berdasarkan angka; cocokkan dengan kontrak dan endpoint aktual sebelum final closure.
+
+**Batas bukti dan pekerjaan tersisa:**
+
+1. Cocokkan setiap deklarasi dengan `ControllerName` di `[AccessController]` dan action di `[AccessAction]`, serta endpoint pemakainya. Regex yang dipakai pemilik bukan validasi kompilasi atau routing.
+2. Periksa hasil `AccessMenuSeeder` pada database dev dan kemunculan butir di Akses Role.
+3. Buktikan allow/deny melalui akun non-SuperAdmin dengan permission berbeda. Sesi runtime BE-BD-006 memakai SuperAdmin, sehingga tidak membuktikan akses per peran.
+4. Saat BE-BD-007/008/009/010 melahirkan pemakai sah, perbarui inventaris secara incremental dan rekonsiliasi baseline kontrak. Jangan membuat permission, controller, endpoint, atau seeder tandingan palsu untuk mencapai 39/39.
+
+Status tetap **SELESAI SEBAGIAN**. Adendum ini tidak menjalankan test otomatis, tidak membuat folder `Tests/`, tidak menambah permission, tidak menulis database, dan tidak menutup keputusan kontrak.

@@ -39,10 +39,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string StoreAction = "Store";
         private const string MakeAvailableAction = "MakeAvailable";
         private const string HoldForReviewAction = "HoldForReview";
+        private const string AllocateAction = "Allocate";
+        private const string CancelAllocationAction = "CancelAllocation";
 
         /// <summary>Nama aksi pada <c>AvailableActions</c>.</summary>
         public const string AssignStorageLocationActionName = "AssignStorageLocation";
         public const string MoveStorageLocationActionName = "MoveStorageLocation";
+        public const string AllocateActionName = "Allocate";
+        public const string CancelAllocationActionName = "CancelAllocation";
 
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
@@ -85,6 +89,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             "Kantong ini berada di lokasi penyimpanan yang sudah tidak aktif. " +
             "Pindahkan dulu ke lokasi yang aktif sebelum dialokasikan.";
 
+        // Pesan kanonis matriks validasi §3, persis — alokasi dan pembatalannya (BE-BD-006).
+        private const string Val018cMessage =
+            "Kantong ini baru saja dialokasikan petugas lain. Muat ulang dan pilih kantong lain.";
+
+        private const string Val023Message =
+            "Kantong sudah diberikan. Pembatalan tidak dapat dilakukan; gunakan catatan koreksi bila " +
+            "pencatatannya keliru.";
+
+        private const string Val033Message =
+            "Kantong ini menunggu keputusan dan tidak dapat langsung dialokasikan. " +
+            "Selesaikan statusnya lebih dulu.";
+
+        private const string Val016Message =
+            "Alasan wajib dipilih dari daftar, tidak boleh diketik bebas.";
+
+        private const string OrderLineRequiredMessage =
+            "Baris kebutuhan order wajib dipilih.";
+
+        private const string OrderLineNotFoundMessage =
+            "Baris kebutuhan order tidak ditemukan atau sudah dihapus. Pilih baris dari order yang aktif.";
+
+        private const string NoActiveAllocationMessage =
+            "Kantong ini tidak sedang dialokasikan, sehingga tidak ada alokasi yang dapat dibatalkan.";
+
+        /// <summary>
+        /// Alasan pembatalan alokasi wajib berkategori <c>AllocationCancellation</c>
+        /// (<c>DEC-BD-029</c>). Bunyinya sejalan dengan penolakan kategori pada pembatalan order.
+        /// </summary>
+        private const string ReasonCategoryMismatchMessage =
+            "Alasan yang dipilih bukan alasan pembatalan alokasi kantong. Pilih alasan dari " +
+            "kategori pembatalan alokasi.";
+
         /// <summary>Alasan sistem memasukkan kantong ke <c>PendingReview</c> (<c>DEC-BD-025</c>).</summary>
         private const string ExcessHoldNote = "Kiriman melebihi permintaan.";
 
@@ -110,11 +146,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             BbkBloodUnitStatus.Reallocated
         };
 
-        private readonly ApplicationDbContext _dbContext;
+        /// <summary>
+        /// Status order yang masih menerima alokasi kantong (matriks §3, syarat "order aktif").
+        /// </summary>
+        /// <remarks>
+        /// <c>PartiallyFulfilled</c> ikut di sini karena kebutuhannya memang belum selesai —
+        /// itulah keadaan normal order yang darahnya datang bertahap. <c>FullyFulfilled</c>,
+        /// <c>Cancelled</c>, dan <c>Expired</c> tidak: order yang sudah terpenuhi tidak
+        /// membutuhkan kantong tambahan, dan dua sisanya sudah berhenti berlaku.
+        /// </remarks>
+        private static readonly BbkBloodOrderStatus[] AllocatableOrderStatuses =
+        {
+            BbkBloodOrderStatus.Active,
+            BbkBloodOrderStatus.PartiallyFulfilled
+        };
 
-        public BbkBloodUnitService(ApplicationDbContext dbContext)
+        private readonly ApplicationDbContext _dbContext;
+        private readonly BbkEncounterStatusReader _encounterStatusReader;
+
+        public BbkBloodUnitService(
+            ApplicationDbContext dbContext,
+            BbkEncounterStatusReader encounterStatusReader)
         {
             _dbContext = dbContext;
+            _encounterStatusReader = encounterStatusReader;
         }
 
         // =================================================================
@@ -264,6 +319,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             var location = entity.CurrentPlacement?.StorageLocation;
 
+            // Riwayat alokasi dibaca sekali lalu dipakai dua kali: seluruh barisnya, dan baris yang
+            // sedang berlaku. Membacanya dua kali hanya menambah satu perjalanan ke database.
+            var allocations = await ReadAllocationsAsync(entity.Id, cancellationToken);
+
             return new BloodUnitDetailDto
             {
                 Id = entity.Id,
@@ -301,7 +360,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 CurrentPlacedAt = entity.CurrentPlacement?.PlacedAt,
                 Version = entity.Version,
                 Transitions = await ReadTransitionsAsync(entity.Id, cancellationToken),
-                AvailableActions = AvailableActionsFor(entity.UnitStatus, entity.CurrentPlacementId),
+                Allocations = allocations,
+                CurrentAllocation = allocations
+                    .FirstOrDefault(x => x.AllocationStatus == BbkAllocationStatus.Active),
+                AvailableActions = AvailableActionsFor(
+                    entity.UnitStatus,
+                    entity.CurrentPlacementId,
+                    entity.IsExcess),
                 CreateDateTime = entity.CreateDateTime,
                 UpdateDateTime = entity.UpdateDateTime
             };
@@ -664,6 +729,321 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         }
 
         // =================================================================
+        // Alokasi kantong — BE-BD-006
+        // =================================================================
+
+        /// <summary>
+        /// Mengikat satu kantong <c>Available</c> pada satu baris kebutuhan order:
+        /// <c>Available</c> → <c>Allocated</c> (matriks §3, <c>DEC-BD-003</c>, <c>DEC-BD-007</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Gerbang penyimpanan dipakai, bukan ditiru.</b> Pertanyaan "sudah tersimpan dan
+        /// lokasinya sedang aktif?" dijawab <see cref="EvaluateAllocationGateAsync"/> yang lahir
+        /// pada <c>BE-BD-015</c> — kontrak <c>v4</c> <c>02-backend-architecture.md</c> §F.4
+        /// menetapkan gerbang yang sama dipakai <c>allocate</c> dan <c>reallocate</c>. Menyalin
+        /// logikanya ke sini akan membuat dua penjaga yang kelak berselisih diam-diam, dan
+        /// penonaktifan satu kulkas hanya akan menutup separuh jalur.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Urutan pemeriksaan disengaja dan tidak boleh ditukar.</b> Gerbang penyimpanan
+        /// dinilai <b>lebih dulu</b>, baru kantong yang menunggu keputusan. Kantong berlebih lahir
+        /// <c>Received</c> juga, dan <c>INV-BD-025</c> menetapkan tonggak penyimpanan sebagai
+        /// syarat pertama — sehingga kantong berlebih yang belum disimpan ditolak
+        /// <c>VAL-BD-063</c> karena memang belum disimpan, bukan <c>VAL-BD-033</c>. Sesudah
+        /// disimpan, kantong berlebih berstatus <c>PendingReview</c> dengan lokasi aktif, gerbang
+        /// terbuka, dan penolakan yang benar barulah <c>VAL-BD-033</c> (<c>AC-BD-033</c>).
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Satu alokasi aktif dijaga dua lapis, dan lapis keduanya yang menentukan.</b>
+        /// Pembacaan "belum ada alokasi aktif" hanya menyaring kesalahan biasa; dua permintaan yang
+        /// datang pada milidetik yang sama sama-sama lolos pembacaan itu. Yang menolak permintaan
+        /// kedua adalah index unik terfilter <c>IX_BbkBloodUnitAllocation_ActiveUnit</c> ditambah
+        /// token <see cref="BbkBloodUnit.Version"/>, dan penolakannya diterjemahkan menjadi
+        /// <c>409 VAL-BD-018c</c> oleh <see cref="TrySaveAsync"/> — bukan menjadi galat PostgreSQL
+        /// yang bocor ke pengguna (<c>VAL-BD-018c</c>).
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Satu transaksi.</b> Baris alokasi, perpindahan status kantong, kenaikan token, dan
+        /// baris riwayat tersimpan bersama atau tidak tersimpan sama sekali.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodUnitResult> AllocateAsync(
+            Guid id,
+            AllocateUnitRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            if (request.BloodOrderLineId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, OrderLineRequiredMessage);
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+                return Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage);
+
+            // Gerbang penyimpanan BE-BD-015, dipakai apa adanya: VAL-BD-063 dan VAL-BD-064.
+            var gate = await EvaluateAllocationGateAsync(id, cancellationToken);
+
+            if (gate == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (!gate.IsOpen)
+                return Failed(BloodUnitOutcome.NotAllowedByState, gate.Message);
+
+            // VAL-BD-033: kantong berlebih dan kantong yang menunggu keputusan tidak dapat
+            // dialokasikan langsung; jalurnya penyelesaian PendingReview milik BE-BD-009.
+            if (unit.IsExcess || unit.UnitStatus == BbkBloodUnitStatus.PendingReview)
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val033Message);
+
+            // VAL-BD-018c dari sisi status: kantong yang sudah terikat tidak dapat diikat lagi.
+            if (unit.UnitStatus == BbkBloodUnitStatus.Allocated)
+                return Failed(BloodUnitOutcome.AllocationConflict, Val018cMessage);
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Available)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    $"Kantong berstatus {BbkDisplayLabels.Of(unit.UnitStatus)} tidak dapat dialokasikan.");
+            }
+
+            var lineFailure = await CheckOrderLineAsync(request.BloodOrderLineId, cancellationToken);
+
+            if (lineFailure != null)
+                return lineFailure;
+
+            // Penyaring kesalahan biasa. Penjaga sebenarnya ada di database — lihat catatan method.
+            //
+            // Saringannya SENGAJA hanya status, tanpa IsDelete, supaya cocok persis dengan predikat
+            // index terfilter: WHERE "AllocationStatus" = 0. Index itu tidak menyebut IsDelete, jadi
+            // saringan aplikasi yang menambahkan !IsDelete akan menyimpulkan "belum ada alokasi
+            // aktif" untuk baris yang tetap menempati slot index — dan pembacaan itu berselisih
+            // dengan penjaga yang sebenarnya berlaku.
+            var hasActiveAllocation = await _dbContext.Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.BloodUnitId == id &&
+                         x.AllocationStatus == BbkAllocationStatus.Active,
+                    cancellationToken);
+
+            if (hasActiveAllocation)
+                return Failed(BloodUnitOutcome.AllocationConflict, Val018cMessage);
+
+            var now = DateTime.UtcNow;
+
+            var allocation = new BbkBloodUnitAllocation
+            {
+                Id = Guid.NewGuid(),
+                BloodUnitId = unit.Id,
+                BloodOrderLineId = request.BloodOrderLineId,
+                AllocationStatus = BbkAllocationStatus.Active,
+                AllocatedByUserId = actorUserId,
+                AllocatedAt = now,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.Set<BbkBloodUnitAllocation>().Add(allocation);
+
+            var fromStatus = unit.UnitStatus;
+
+            unit.UnitStatus = BbkBloodUnitStatus.Allocated;
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            // Alokasi tidak memakai alasan terkendali, sehingga reasonCode dibiarkan bawaan.
+            AppendTransition(
+                unit.Id,
+                AllocateAction,
+                fromStatus,
+                BbkBloodUnitStatus.Allocated,
+                reasonNote: null,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: allocation.Id);
+
+            if (!await TrySaveAsync(cancellationToken))
+                return Failed(BloodUnitOutcome.AllocationConflict, Val018cMessage);
+
+            return Succeeded(unit, "Kantong berhasil dialokasikan ke baris kebutuhan order.");
+        }
+
+        /// <summary>
+        /// Membatalkan alokasi yang keliru sebelum kantong diberikan: <c>Allocated</c> →
+        /// <c>Available</c>, atau <c>PendingReview</c> bila order asalnya sudah berakhir
+        /// (matriks §3, <c>DEC-BD-029</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Baris alokasinya tidak dihapus.</b> Ia berpindah ke <c>Cancelled</c> lalu menyimpan
+        /// pelaku, waktu, kode alasan, dan <b>salinan teks</b> alasannya (<c>ARCH-BD-POS-03</c>,
+        /// <c>INV-BD-035</c>). Pertanyaan audit "kantong ini pernah disiapkan untuk siapa saja"
+        /// hanya dapat dijawab bila percobaan yang dibatalkan pun tersimpan.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Kembali ke <c>Available</c>, tidak pernah ke <c>Stored</c> maupun <c>Received</c></b>
+        /// — tonggak penempatan hanya dilewati sekali (matriks §3 dan daftar perpindahan yang
+        /// dilarang). Kantongnya memang masih berada di kulkas yang sama; pembatalan alokasi tidak
+        /// memindahkan apa pun secara fisik.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Ke mana kantong kembali ditentukan order asalnya, bukan pilihan petugas</b>
+        /// (<c>AC-BD-043</c> dan <c>AC-BD-044</c>). Bila order asal masih berjalan, kantong kembali
+        /// menjadi stok yang boleh dialokasikan. Bila order asal sudah <c>Cancelled</c>,
+        /// <c>Expired</c>, <c>FullyFulfilled</c>, atau kunjungan pasiennya sudah berakhir menurut
+        /// <see cref="BbkEncounterStatusReader"/>, kantong <b>tidak</b> kembali ke stok bebas
+        /// melainkan masuk <c>PendingReview</c> — ia perlu keputusan manusia, karena pasien yang
+        /// menjadi alasan kantong itu diminta sudah tidak menunggunya lagi.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Contoh dua arah.</b> Kantong dialokasikan ke baris order Pasien A yang masih dirawat,
+        /// lalu petugas sadar salah kantong → dibatalkan, kantong kembali <c>Available</c> dan
+        /// dapat langsung dipakai pasien lain (<c>AC-BD-043</c>). Kantong lain dialokasikan ke
+        /// Pasien B, lalu Pasien B pulang dan kunjungannya ditutup → pembatalan membawa kantong ke
+        /// <c>PendingReview</c>, bukan <c>Available</c> (<c>AC-BD-044</c>).
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Kantong yang sudah diberikan tidak dapat dibatalkan</b> (<c>VAL-BD-023</c>,
+        /// <c>AC-BD-046</c>). Pemberian bersifat terminal; jalur perbaikannya catatan koreksi
+        /// <c>BE-BD-010</c>, bukan pembatalan alokasi. Perpindahan <c>Issued</c> →
+        /// <c>Available</c> tidak pernah terjadi lewat jalur mana pun.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodUnitResult> CancelAllocationAsync(
+            Guid id,
+            CancelWithReasonRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            // VAL-BD-016 (400): alasan wajib dipilih dari daftar terkendali, tidak diketik bebas.
+            //
+            // Dinormalkan menjadi string non-nullable, mengikuti NormalizeCode pada
+            // BbkBloodOrderService: nilai kosong menjadi string.Empty, bukan null. Bentuk itu dipakai
+            // di dalam lambda EF di bawah, dan local non-nullable menutup satu-satunya pertanyaan
+            // aliran nullable pada jalur ini.
+            var reasonCode = NormalizeReasonCode(request.ReasonCode);
+
+            if (reasonCode.Length == 0)
+                return Failed(BloodUnitOutcome.Invalid, Val016Message);
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+                return Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage);
+
+            // VAL-BD-023: pemberian terminal. Diperiksa sebelum alasan DICARI DI MASTER, sehingga
+            // kantong yang sudah diberikan ditolak dengan sebab yang benar walaupun kode alasannya
+            // sah. Permintaan yang kode alasannya kosong sama sekali tetap ditolak lebih dulu oleh
+            // VAL-BD-016 di atas, karena body seperti itu tidak sah bagi tindakan apa pun.
+            if (unit.UnitStatus == BbkBloodUnitStatus.Issued)
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val023Message);
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Allocated)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    $"Kantong berstatus {BbkDisplayLabels.Of(unit.UnitStatus)} tidak sedang dialokasikan, " +
+                    "sehingga tidak ada alokasi yang dapat dibatalkan.");
+            }
+
+            var reason = await _dbContext.Set<MstBloodBankReason>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => !x.IsDelete && x.IsActive && x.ReasonCode.ToUpper() == reasonCode,
+                    cancellationToken);
+
+            if (reason == null)
+                return Failed(BloodUnitOutcome.Invalid, Val016Message);
+
+            // Kategori alasan menentukan maknanya. Alasan pembatalan order atau jalur darurat tidak
+            // boleh dipakai membatalkan alokasi, walaupun keduanya sah sebagai alasan.
+            if (BloodBankReasonCategories.Normalize(reason.ReasonCategory)
+                != BloodBankReasonCategories.AllocationCancellation)
+            {
+                return Failed(BloodUnitOutcome.NotAllowedByState, ReasonCategoryMismatchMessage);
+            }
+
+            // Sama seperti pada alokasi, saringannya hanya status — mencerminkan predikat index
+            // terfilter. Kalau baris yang menempati slot index tidak terbaca di sini, kantong akan
+            // berstatus Allocated tanpa satu pun alokasi yang dapat dibatalkan, dan tidak ada jalan
+            // keluar dari keadaan itu lewat API.
+            var allocation = await _dbContext.Set<BbkBloodUnitAllocation>()
+                .FirstOrDefaultAsync(
+                    x => x.BloodUnitId == id &&
+                         x.AllocationStatus == BbkAllocationStatus.Active,
+                    cancellationToken);
+
+            if (allocation == null)
+                return Failed(BloodUnitOutcome.NotAllowedByState, NoActiveAllocationMessage);
+
+            var originStillActive = await IsAllocationOriginActiveAsync(
+                allocation.BloodOrderLineId,
+                cancellationToken);
+
+            var finalStatus = originStillActive
+                ? BbkBloodUnitStatus.Available
+                : BbkBloodUnitStatus.PendingReview;
+
+            var now = DateTime.UtcNow;
+
+            allocation.AllocationStatus = BbkAllocationStatus.Cancelled;
+            allocation.CancelReasonCode = reason.ReasonCode;
+            allocation.CancelReasonNote = reason.ReasonText;
+            allocation.CancelledByUserId = actorUserId;
+            allocation.CancelledAt = now;
+            allocation.UpdateDateTime = now;
+            allocation.UpdateBy = actorUserId;
+
+            unit.UnitStatus = finalStatus;
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            AppendTransition(
+                unit.Id,
+                CancelAllocationAction,
+                BbkBloodUnitStatus.Allocated,
+                finalStatus,
+                reasonNote: reason.ReasonText,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: allocation.Id,
+                reasonCode: reason.ReasonCode);
+
+            if (!await TrySaveAsync(cancellationToken))
+                return Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage);
+
+            return Succeeded(
+                unit,
+                originStillActive
+                    ? "Alokasi kantong berhasil dibatalkan. Kantong kembali tersedia."
+                    : "Alokasi kantong berhasil dibatalkan. Order asal sudah berakhir, sehingga kantong " +
+                      "masuk daftar menunggu keputusan.");
+        }
+
+        // =================================================================
         // Penolong
         // =================================================================
 
@@ -735,17 +1115,210 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 CreateBy = actorUserId
             };
 
-        private static List<string> AvailableActionsFor(BbkBloodUnitStatus status, Guid? currentPlacementId)
+        /// <remarks>
+        /// <para>
+        /// <b>Daftar ini kelayakan, bukan izin.</b> Ia menjawab tombol apa yang masuk akal
+        /// ditampilkan, bukan siapa yang boleh menekannya — hak akses tetap ditegakkan
+        /// <c>[AccessPermission]</c> pada controller, dan setiap aksi menilai ulang syaratnya
+        /// sendiri saat dijalankan.
+        /// </para>
+        /// <para>
+        /// <b>Aksi alokasi ditawarkan sejak <c>BE-BD-006</c>.</b> <c>Allocate</c> muncul hanya pada
+        /// kantong <c>Available</c> yang <b>bukan</b> kantong berlebih, karena kantong berlebih
+        /// ditolak <c>VAL-BD-033</c>. Keaktifan lokasi <b>tidak</b> diperiksa di sini: gerbang
+        /// <c>VAL-BD-064</c> dinilai saat tindakan dicoba, dan menyembunyikan tombolnya akan
+        /// membuat petugas tidak pernah melihat sebab penolakannya.
+        /// </para>
+        /// </remarks>
+        private static List<string> AvailableActionsFor(
+            BbkBloodUnitStatus status,
+            Guid? currentPlacementId,
+            bool isExcess)
         {
             if (!currentPlacementId.HasValue && status == BbkBloodUnitStatus.Received)
                 return new List<string> { AssignStorageLocationActionName };
 
-            if (currentPlacementId.HasValue && StillInStockStatuses.Contains(status))
-                return new List<string> { MoveStorageLocationActionName };
+            var actions = new List<string>();
 
-            return new List<string>();
+            if (currentPlacementId.HasValue && StillInStockStatuses.Contains(status))
+                actions.Add(MoveStorageLocationActionName);
+
+            if (currentPlacementId.HasValue && status == BbkBloodUnitStatus.Available && !isExcess)
+                actions.Add(AllocateActionName);
+
+            if (status == BbkBloodUnitStatus.Allocated)
+                actions.Add(CancelAllocationActionName);
+
+            return actions;
         }
 
+        /// <summary>
+        /// Memeriksa baris kebutuhan tujuan alokasi: barisnya ada, ordernya ada, ordernya masih
+        /// berjalan, dan kunjungan pasiennya belum berakhir (matriks §3 baris <c>Available</c> →
+        /// <c>Allocated</c>, syarat "order aktif").
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Dua sumber keaktifan, keduanya wajib.</b> Status order menjawab "apakah ordernya
+        /// masih diminta"; <see cref="BbkEncounterStatusReader"/> menjawab "apakah pasiennya masih
+        /// di tempat" (<c>DEC-BD-014</c>). Order yang masih berstatus <c>Active</c> tetapi
+        /// pasiennya sudah pulang <b>bukan</b> order aktif — dan mengalokasikan kantong ke situ
+        /// berarti menahan kantong untuk pasien yang tidak akan menerimanya.
+        /// </para>
+        /// <para>
+        /// <b>Kodenya belum ada di matriks validasi.</b> Kontrak <c>v4</c> menyebut syarat "order
+        /// aktif" pada matriks perpindahan status, tetapi tidak memberi kode <c>VAL-BD-*</c> untuk
+        /// penolakannya, dan <c>api-contract</c> hanya mencantumkan <c>409 VAL-BD-018c</c> serta
+        /// <c>422 VAL-BD-033/063/064</c> pada endpoint ini. Karena itu penolakan di sini memakai
+        /// pesan bisnis yang jelas tanpa mengarang kode baru; delta-nya dicatat pada laporan task
+        /// <c>BE-BD-006</c> untuk diputuskan pemilik kontrak.
+        /// </para>
+        /// </remarks>
+        private async Task<BloodUnitResult?> CheckOrderLineAsync(
+            Guid bloodOrderLineId,
+            CancellationToken cancellationToken)
+        {
+            var line = await _dbContext.Set<BbkBloodOrderLine>()
+                .AsNoTracking()
+                .Where(x => x.Id == bloodOrderLineId && !x.IsDelete && !x.IsCancel)
+                .Select(x => new
+                {
+                    x.BloodOrderId,
+                    OrderExists = x.BloodOrder != null && !x.BloodOrder.IsDelete,
+                    OrderStatus = x.BloodOrder != null ? x.BloodOrder.OrderStatus : (BbkBloodOrderStatus?)null,
+                    EncounterId = x.BloodOrder != null ? x.BloodOrder.EncounterId : (Guid?)null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (line == null || !line.OrderExists || !line.OrderStatus.HasValue || !line.EncounterId.HasValue)
+                return Failed(BloodUnitOutcome.Invalid, OrderLineNotFoundMessage);
+
+            if (!AllocatableOrderStatuses.Contains(line.OrderStatus.Value))
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    $"Order asal baris kebutuhan ini berstatus {BbkDisplayLabels.Of(line.OrderStatus.Value)} " +
+                    "dan tidak lagi menerima alokasi kantong.");
+            }
+
+            if (await _encounterStatusReader.IsEncounterClosedAsync(line.EncounterId.Value, cancellationToken))
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    "Kunjungan pasien pada order asal sudah berakhir, sehingga kantong tidak dapat " +
+                    "dialokasikan ke baris kebutuhan ini.");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Menjawab satu pertanyaan bagi pembatalan alokasi: apakah order asal baris kebutuhan ini
+        /// masih berjalan? Jawabannya menentukan kantong kembali <c>Available</c> atau masuk
+        /// <c>PendingReview</c> (<c>AC-BD-043</c> lawan <c>AC-BD-044</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Berat sebelah ke arah aman.</b> Baris kebutuhan atau order yang tidak dapat dibaca
+        /// dijawab "tidak aktif", sehingga kantong masuk <c>PendingReview</c> dan menunggu
+        /// keputusan manusia — bukan kembali ke stok bebas atas dasar data yang tidak terbaca.
+        /// Pilihan yang sama dipakai <see cref="BbkEncounterStatusReader"/> untuk kunjungan yang
+        /// tidak ditemukan.
+        /// </remarks>
+        private async Task<bool> IsAllocationOriginActiveAsync(
+            Guid bloodOrderLineId,
+            CancellationToken cancellationToken)
+        {
+            var origin = await _dbContext.Set<BbkBloodOrderLine>()
+                .AsNoTracking()
+                .Where(x => x.Id == bloodOrderLineId && !x.IsDelete)
+                .Select(x => new
+                {
+                    OrderStatus = x.BloodOrder != null && !x.BloodOrder.IsDelete
+                        ? x.BloodOrder.OrderStatus
+                        : (BbkBloodOrderStatus?)null,
+                    EncounterId = x.BloodOrder != null ? x.BloodOrder.EncounterId : (Guid?)null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (origin == null || !origin.OrderStatus.HasValue || !origin.EncounterId.HasValue)
+                return false;
+
+            if (!AllocatableOrderStatuses.Contains(origin.OrderStatus.Value))
+                return false;
+
+            return !await _encounterStatusReader.IsEncounterClosedAsync(
+                origin.EncounterId.Value,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Menormalkan kode alasan dari klien: dipangkas, dijadikan huruf besar, dan kosong menjadi
+        /// <see cref="string.Empty"/> alih-alih <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// Bentuknya sengaja sama dengan <c>NormalizeCode</c> pada <c>BbkBloodOrderService</c>
+        /// (<c>BE-BD-003</c>) supaya kedua jalur alasan terkendali Bank Darah memperlakukan masukan
+        /// klien dengan cara yang sama persis.
+        /// </remarks>
+        private static string NormalizeReasonCode(string? value)
+            => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToUpperInvariant();
+
+        /// <summary>
+        /// Riwayat alokasi satu kantong, terlama lebih dulu. Baris yang sudah dibatalkan
+        /// <b>tetap</b> terbaca (<c>ARCH-BD-POS-03</c>).
+        /// </summary>
+        private async Task<List<BloodUnitAllocationDto>> ReadAllocationsAsync(
+            Guid unitId,
+            CancellationToken cancellationToken)
+            => await _dbContext.Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .Where(x => x.BloodUnitId == unitId && !x.IsDelete)
+                .OrderBy(x => x.AllocatedAt)
+                .ThenBy(x => x.CreateDateTime)
+                .Select(x => new BloodUnitAllocationDto
+                {
+                    Id = x.Id,
+                    BloodUnitId = x.BloodUnitId,
+                    BloodOrderLineId = x.BloodOrderLineId,
+                    BloodOrderId = x.BloodOrderLine != null ? x.BloodOrderLine.BloodOrderId : null,
+                    OrderNumber = x.BloodOrderLine != null && x.BloodOrderLine.BloodOrder != null
+                        ? x.BloodOrderLine.BloodOrder.OrderNumber
+                        : null,
+                    LineSequence = x.BloodOrderLine != null ? x.BloodOrderLine.Sequence : null,
+                    BloodComponentId = x.BloodOrderLine != null ? x.BloodOrderLine.BloodComponentId : null,
+                    BloodComponentCode = x.BloodOrderLine != null && x.BloodOrderLine.BloodComponent != null
+                        ? x.BloodOrderLine.BloodComponent.ComponentCode
+                        : null,
+                    BloodComponentName = x.BloodOrderLine != null && x.BloodOrderLine.BloodComponent != null
+                        ? x.BloodOrderLine.BloodComponent.ComponentName
+                        : null,
+                    PatientId = x.BloodOrderLine != null && x.BloodOrderLine.BloodOrder != null
+                        ? x.BloodOrderLine.BloodOrder.PatientId
+                        : null,
+                    PatientName = x.BloodOrderLine != null &&
+                                  x.BloodOrderLine.BloodOrder != null &&
+                                  x.BloodOrderLine.BloodOrder.Patient != null
+                        ? x.BloodOrderLine.BloodOrder.Patient.FullName
+                        : null,
+                    AllocationStatus = x.AllocationStatus,
+                    AllocationStatusLabel = x.AllocationStatus == BbkAllocationStatus.Active
+                        ? "Aktif"
+                        : "Dibatalkan",
+                    AllocatedByUserId = x.AllocatedByUserId,
+                    AllocatedAt = x.AllocatedAt,
+                    CancelReasonCode = x.CancelReasonCode,
+                    CancelReasonNote = x.CancelReasonNote,
+                    CancelledByUserId = x.CancelledByUserId,
+                    CancelledAt = x.CancelledAt
+                })
+                .ToListAsync(cancellationToken);
+
+        /// <remarks>
+        /// <paramref name="reasonCode"/> ditambahkan pada <c>BE-BD-006</c>: pembatalan alokasi wajib
+        /// menyimpan kode alasan terkendali <b>beserta</b> salinan teksnya, sedangkan perpindahan
+        /// penyimpanan <c>BE-BD-015</c> memang tidak memakai alasan terkendali sama sekali. Nilai
+        /// bawaan <c>null</c> menjaga pemanggil lama tetap berperilaku sama persis.
+        /// </remarks>
         private void AppendTransition(
             Guid unitId,
             string action,
@@ -755,7 +1328,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             Guid actorUserId,
             DateTime occurredAt,
             DateTime recordedAt,
-            Guid correlationId)
+            Guid correlationId,
+            string? reasonCode = null)
         {
             _dbContext.Set<BbkTransitionHistory>().Add(new BbkTransitionHistory
             {
@@ -765,6 +1339,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 Action = action,
                 FromStatus = fromStatus.ToString(),
                 ToStatus = toStatus.ToString(),
+                ReasonCode = reasonCode,
                 ReasonNote = reasonNote,
                 ActorUserId = actorUserId,
                 OccurredAt = occurredAt,
@@ -792,7 +1367,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
                 return false;
             }
-            catch (DbUpdateException ex) when (IsCurrentPlacementViolation(ex))
+            catch (DbUpdateException ex) when (IsSingleRowGuardViolation(ex))
             {
                 _dbContext.ChangeTracker.Clear();
 
@@ -800,13 +1375,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             }
         }
 
-        private static bool IsCurrentPlacementViolation(DbUpdateException exception)
+        /// <summary>
+        /// Mengenali pelanggaran salah satu dari dua index unik terfilter Bank Darah: penempatan
+        /// berlaku (<c>BE-BD-015</c>) dan alokasi aktif (<c>BE-BD-006</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Hanya kedua index itu yang ditangkap.</b> Pelanggaran unik lain — misalnya nomor
+        /// kantong PMI ganda — sengaja dibiarkan naik sebagai galat, karena sebabnya berbeda dan
+        /// menerjemahkannya menjadi <c>409</c> akan menyembunyikan kesalahan data yang sebenarnya.
+        /// Nama constraint dibandingkan persis, dan tidak ada teks galat PostgreSQL, nama
+        /// constraint, maupun SQL yang diteruskan ke pengguna.
+        /// </remarks>
+        private static bool IsSingleRowGuardViolation(DbUpdateException exception)
             => exception.InnerException is PostgresException postgres &&
                postgres.SqlState == PostgresErrorCodes.UniqueViolation &&
-               string.Equals(
-                   postgres.ConstraintName,
-                   BbkBloodUnitPlacementConfiguration.CurrentUnitIndexName,
-                   StringComparison.Ordinal);
+               (string.Equals(
+                    postgres.ConstraintName,
+                    BbkBloodUnitPlacementConfiguration.CurrentUnitIndexName,
+                    StringComparison.Ordinal) ||
+                string.Equals(
+                    postgres.ConstraintName,
+                    BbkBloodUnitAllocationConfiguration.ActiveUnitIndexName,
+                    StringComparison.Ordinal));
 
         private async Task<List<BloodBankTransitionDto>> ReadTransitionsAsync(
             Guid unitId,
@@ -902,7 +1492,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         NotAllowedByState = 3,
 
         /// <summary>Kantong sudah berubah di tangan orang lain.</summary>
-        VersionConflict = 4
+        VersionConflict = 4,
+
+        /// <summary>
+        /// Kantong sudah punya alokasi aktif — <c>VAL-BD-018c</c>, <c>409</c>. Dipisahkan dari
+        /// <see cref="VersionConflict"/> karena sebabnya berbeda: bukan datanya sudah berubah,
+        /// melainkan kantongnya sudah terikat pada baris kebutuhan lain.
+        /// </summary>
+        AllocationConflict = 5
     }
 
     /// <summary>

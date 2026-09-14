@@ -9,7 +9,7 @@ revision: 26
 status: IN_PROGRESS
 current_phase: BD-PH-007
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-11T00:00:00+07:00
+updated_at: 2026-09-12T00:00:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
@@ -190,10 +190,31 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 10
+active_roadmap_revision: 11
 roadmap_status: APPROVED
 roadmap_status_note: >-
-  backend-roadmap.md revisi 10 pada 2026-09-11 mencatat penerusan yang disetujui Sukmagp:
+  backend-roadmap.md revisi 11 pada 2026-09-12 mencatat koreksi TATA KELOLA SAJA yang disetujui
+  Sukmagp, dijalankan SEBELUM BE-BD-006 dikerjakan. Nol source backend, nol source frontend,
+  nol migration, nol test, nol task dieksekusi.
+  (1) AC-BD-071 DILEPAS dari BE-BD-006 dan diteruskan ke BE-BD-009. AC-BD-071 menguji pengalihan
+  kantong PendingReview di lokasi nonaktif, yaitu endpoint
+  POST /api/v1/health-services/blood-bank-management/blood-units/{id}/reallocate dengan hak akses
+  BloodUnit : ResolveReallocate. Endpoint itu milik BE-BD-009, bukan BE-BD-006 — bukti: baris
+  reallocate pada contracts/api-contract.md v4, tombol Alihkan pada 03-frontend-architecture.md,
+  dan scope BE-BD-009 pada roadmap/archive/revision-3/00-delivery-plan.md. Nol task baru dibuat.
+  (2) BE-BD-006 tetap pemilik penuh Blood Unit Allocation dan Cancel Allocation, dengan acceptance
+  final AC-BD-043/044/045/046/060/068/070/033 + konkurensi VAL-BD-018c, dan kini READY serta dapat
+  diselesaikan penuh secara MANDIRI tanpa mengimplementasikan reallocate.
+  (3) Kebijakan verifikasi repository dicatat resmi pada backend-roadmap.md bagian 0.1: folder
+  Tests/ di root dilarang, project/berkas test otomatis baru tidak dibuat, dotnet test tidak
+  dipersyaratkan, dan bukti sah berbentuk kompilasi/build produksi, inspeksi EF/skema, QBE, serta
+  verifikasi manual API/DB terkendali bila aman dieksekusi. Dasarnya bukti repository:
+  QuilvianSystemBackend.sln memuat satu project produksi dan folder Tests/ di root tidak ada.
+  (4) Bukti test historis milik task yang sudah SELESAI dipertahankan apa adanya dan TIDAK ditulis
+  ulang. Nol dependency, kontrak, maupun aturan bisnis berubah, dan nol status task berpindah,
+  sehingga revision blueprint tetap 26 — perubahan pemilik kriteria dan pencatatan kebijakan
+  verifikasi bukan perubahan material atas blueprint target.
+  Sebelumnya: backend-roadmap.md revisi 10 pada 2026-09-11 mencatat penerusan yang disetujui Sukmagp:
   verifikasi final bagian alokasi AC-BD-060/068/070 dari BE-BD-015 ke BE-BD-006; AC-BD-070
   ditambahkan pada BE-BD-006, sedangkan AC-BD-060/068 sudah tercantum di sana. Bukti tingkat
   gerbang BE-BD-015 dipertahankan. Akibatnya BE-BD-015 selesai dan BE-BD-006 siap dijadwalkan.
