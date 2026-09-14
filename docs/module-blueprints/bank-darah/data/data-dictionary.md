@@ -36,7 +36,7 @@ Eksekusi migration-nya sendiri tetap wewenang terpisah yang diminta per tindakan
 | `MstBloodStorageLocation` | **Baru pada `v2`** | Bank Darah (master) | Master ketiga Setup MVP (`BD-DOM-24`, `DEC-BD-035`). Prasyarat go-live |
 | `MstDrugStorageLocation` | Sudah ada | HealthServices Master Data (Farmasi) | **Tidak dipakai dan tidak disentuh.** Ditolak sebagai kandidat pakai-ulang oleh `DEC-BD-035` |
 | `MstServiceUnit` | **Diperbarui** | HealthServices Master Data | +1 kolom `IsAvailableForBloodOrder` |
-| `MstPatient`, `TrxPatientEncounter`, `InpEpisode`, `MstDoctor`, `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`/tarif | Sudah ada | modul masing-masing | Direferensikan, **MUST NOT** disalin |
+| `MstPatient`, `RegPatientEncounter`, `InpEpisode`, `MstDoctor`, `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`/tarif | Sudah ada | modul masing-masing | Direferensikan, **MUST NOT** disalin |
 
 Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulang (`BD-CAP-016`).
 
@@ -51,7 +51,7 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `Id` | `Guid` | Ya | `NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `OrderNumber` | `string(30)` | Ya | — | Unique | — | — | Tidak | Dari number-series |
 | `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | Pasien |
-| `EncounterId` | `Guid` | Ya | — | Index | FK `TrxPatientEncounter` | `Restrict` | Tidak | Kunjungan asal |
+| `EncounterId` | `Guid` | Ya | — | Index | FK `RegPatientEncounter` | `Restrict` | Tidak | Kunjungan asal |
 | `ServiceUnitId` | `Guid` | Ya | — | Index | FK `MstServiceUnit` | `Restrict` | Tidak | Unit pemesan |
 | `RequestingDoctorId` | `Guid` | Ya | — | Index | FK `MstDoctor` | `Restrict` | Tidak | Dokter peminta |
 | `OrderSource` | `int` (`BbkOrderSource`) | Ya | `Electronic` | — | — | — | Tidak | Elektronik/manual |

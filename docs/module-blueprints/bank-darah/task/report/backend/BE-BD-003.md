@@ -14,11 +14,11 @@
 | Klasifikasi | `HEAVY` — skor 11: satu repository (0), berkas diperiksa lebih dari 20 (2), berkas diubah lebih dari 8 (2), logika kompleks (2), memakai kontrak yang sudah disetujui (1), entity baru beserta migration (2), hak akses berkaitan tetapi bukan inti (1), satu workflow (1) |
 | Task mode | `BACKEND` — dinyatakan eksplisit oleh pemilik pekerjaan |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/BloodBankManagement/**`, `Repositories/**`, `Migrations/**`, `Tests/**`, `Program.cs`, serta laporan, roadmap, traceability, dan `MODULE-STATUS` Bank Darah |
-| Wewenang database | Pembuatan migration **dan** penerapannya **hanya** ke `QuilvianNewDevSukma` — keduanya dinyatakan eksplisit dan terpisah pada prompt task, memenuhi syarat `CLAUDE.md` bagian *Larangan otomatisasi* |
+| Wewenang database | Pembuatan migration **dan** penerapannya **hanya** ke `QuilvianNewDevSukma` — keduanya dinyatakan eksplisit dan terpisah pada prompt task, memenuhi syarat `CLAUDE.md` bagian *Larangan otomatisasi*. Penerapan ke `QuilvianNewDevYoga` diberi wewenang terpisah oleh pemilik pekerjaan pada 14 September 2026 — lihat bagian 5.2 |
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `14f3778` cabang `sukmagp` · hasilnya masuk commit `8e30aa9`, tempat verifikasi ulang dijalankan |
-| Tanggal | `2026-09-10` dikerjakan · `2026-09-11` divalidasi dan ditutup · `2026-09-11` diverifikasi ulang pada `8e30aa9` |
-| Status | ✅ **`SELESAI`** — kesebelas acceptance criteria roadmap terbukti; build, 498 test, 4 uji PostgreSQL, dan penerapan migration ke `QuilvianNewDevSukma` lulus. Tiga delta kontrak menunggu keputusan pemilik (bagian 7). **Diverifikasi ulang 11 September 2026 pada commit `8e30aa9`:** build, 498 + 231 test, dan 4 uji PostgreSQL lulus kembali; migration sudah terterapkan, pending 0 (bagian 5.1) |
+| Tanggal | `2026-09-10` dikerjakan · `2026-09-11` divalidasi dan ditutup · `2026-09-11` diverifikasi ulang pada `8e30aa9` · `2026-09-14` rujukan kunjungan diperbaiki lalu diterapkan ke `QuilvianNewDevYoga` |
+| Status | ✅ **`SELESAI`** — kesebelas acceptance criteria roadmap terbukti; build, 498 test, 4 uji PostgreSQL, dan penerapan migration ke `QuilvianNewDevSukma` lulus. Tiga delta kontrak menunggu keputusan pemilik (bagian 7). **Diverifikasi ulang 11 September 2026 pada commit `8e30aa9`:** build, 498 + 231 test, dan 4 uji PostgreSQL lulus kembali; migration sudah terterapkan, pending 0 (bagian 5.1). Ditambah 14 September 2026: rujukan kunjungan pada migration diluruskan ke `RegPatientEncounter` dan seluruh migration Bank Darah terterapkan di `QuilvianNewDevYoga`; satu selisih nama constraint antar database **masih terbuka** dan menunggu keputusan pemilik modul — bagian 5.2 |
 
 ---
 
@@ -290,6 +290,43 @@ pada commit `8e30aa9` dari working tree yang bersih, dan **nol berkas source ata
 | Jejak di database | Uji PostgreSQL menaikkan lagi pencacah deret `BBK_BLOOD_ORDER`; baris uji lainnya dihapus teardown |
 | Temuan registry basi (bagian 3.4) | **Tertutup.** Suite skill terpasang kini versi `1.18.0`, dan registry-nya memuat `BloodBankManagement / Blood Bank / Bbk / ACTIVE` pada baris 29 beserta catatan lifecycle 3 September 2026 |
 | Proses tersisa | Satu proses `dotnet` yang mulai pukul 09.30 masih hidup sesudah verifikasi — kemungkinan node build dari perintah verifikasi ini, tetapi tidak terbukti, sehingga **tidak dihentikan** |
+
+### 5.2 Perbaikan rujukan kunjungan dan penerapan ke `QuilvianNewDevYoga` — 14 September 2026
+
+**Kenapa diulang.** Migration `20260910153119_AddBbkBloodOrder` membuat foreign key ke tabel
+`TrxPatientEncounter`. Tabel kunjungan pasien itu sudah berganti nama menjadi `RegPatientEncounter`
+oleh migration `20260910031500_RenameTrxPatientEncounterAndPrescriptionToCanonicalPrefix`. Pada
+database yang sudah menerima rename tersebut, migration ini **gagal** dan memblokir seluruh antrean
+migration Bank Darah yang menyusul.
+
+Penyebabnya perbedaan hasil merge: cabang Bank Darah lahir sebelum rename masuk, sehingga migration
+ini dibangkitkan di atas potret model sebelum rename. Commit `666af8f1` sudah meluruskan model dan
+`ApplicationDbContextModelSnapshot.cs`, tetapi berkas migration-nya ikut tertinggal. Itu sebabnya
+`ef migrations has-pending-model-changes` tetap menjawab "tidak ada perubahan" sementara penerapan
+ke database tetap gagal — dua pemeriksaan yang membaca sumber berbeda.
+
+**Yang diubah.** Dua baris pada `Migrations/20260910153119_AddBbkBloodOrder.cs`: nama constraint
+`FK_BbkBloodOrder_TrxPatientEncounter_EncounterId` menjadi
+`FK_BbkBloodOrder_RegPatientEncounter_EncounterId`, dan `principalTable` `TrxPatientEncounter`
+menjadi `RegPatientEncounter`. Tidak ada kolom, index, tabel, maupun perilaku yang berubah.
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `ef database update` pada `QuilvianNewDevYoga` — **sebelum** perbaikan | Gagal `42P01: relation "public.TrxPatientEncounter" does not exist` | `NEW ERROR` | Keluaran perintah. Seluruh transaksi dibatalkan EF; keenam migration tertunda tetap berstatus `(Pending)` sesudahnya, jadi database **tidak pernah** separuh jadi |
+| `dotnet build -p:RunAnalyzers=False` | `0 Error(s)`, `191 Warning(s)` | `PASS` | Jumlah warning sama persis dengan baseline sebelum suntingan, jadi tidak ada warning baru |
+| `ef database update` pada `QuilvianNewDevYoga` — **sesudah** perbaikan | `Done.` | `PASS` | Keluaran perintah |
+| `ef migrations list --no-build` pada `QuilvianNewDevYoga` | 179 total, **pending 0** | `PASS` | Keenam migration tertunda terterapkan: `AddBbkBloodGroupExam`, `AddNumNumberSeries`, `AddBbkBloodOrder`, `AddBbkProviderRequestAndBloodUnit`, `AddBbkBloodBankProcedure`, `AddBbkBloodUnitPlacement` |
+| `ef migrations has-pending-model-changes --no-build` | "No changes have been made to the model since the last migration." | `PASS` | Keluaran perintah |
+| Pemeriksaan skema langsung lewat `psql` | Tidak dijalankan — `psql` tidak terpasang di mesin ini | `NOT RUN` | Penerapan dibuktikan lewat keluaran alat EF di atas, bukan lewat pembacaan katalog PostgreSQL |
+
+**Catatan penerapan, dicatat apa adanya.**
+
+| Hal | Isi |
+| --- | --- |
+| Selisih antar database | Bagian 5.1 mencatat migration ini **sudah terterapkan** di `QuilvianNewDevSukma` pada 11 September 2026 dengan definisi lama. Baris riwayatnya sudah ada di sana, sehingga EF tidak akan menjalankannya ulang dan suntingan ini **tidak** merusak database tersebut. Akibatnya satu migration ID kini menghasilkan **nama constraint yang berbeda** di dua database: `FK_BbkBloodOrder_TrxPatientEncounter_EncounterId` di `QuilvianNewDevSukma`, `FK_BbkBloodOrder_RegPatientEncounter_EncounterId` di `QuilvianNewDevYoga`. Selisih ini perlu diputuskan pemilik modul, bukan ditutup diam-diam |
+| Riwayat tidak berurutan | Sebelum sesi ini `QuilvianNewDevYoga` berada dalam keadaan terterap-selektif: migration yang lebih baru sudah masuk sementara enam yang lebih lama terlewat. Keadaannya kini sudah lurus, tetapi pola update selektif itu sendiri yang memunculkan kegagalan ini |
+| Potret model migration masih basi | `20260910153119_AddBbkBloodOrder.Designer.cs` masih memuat `TrxPatientEncounter` (35 kemunculan), dan pola yang sama ada pada lima Designer pasca-rename lain, termasuk dua milik Radiologi. Berkas potret ini tidak dibaca saat migration dijalankan — EF memakai `ApplicationDbContextModelSnapshot.cs` yang sudah benar — sehingga **sengaja tidak disentuh** agar tidak memicu penulisan ulang massal terhadap legacy yang tidak dikerjakan task ini |
+| Dokumen kontrak yang ikut diluruskan | Empat baris yang menyebut nama tabel lama sebagai kontrak berlaku-kini: `contracts/integration-contract.md`, `data/data-dictionary.md` (dua baris), dan `02-backend-architecture.md`. Rujukan historis — keputusan `DEC-BD-048`, peta kemampuan, dan bukti yang dipatok ke commit `9522caa` — **tidak** diubah karena mengubahnya berarti memalsukan catatan |
 
 ---
 
