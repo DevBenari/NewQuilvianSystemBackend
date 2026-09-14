@@ -18,7 +18,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -525,10 +529,15 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
         public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
         public DbSet<AccJournalType> AccJournalTypes { get; set; }
+        public DbSet<AccAccountingConfiguration> AccAccountingConfigurations { get; set; }
+        public DbSet<AccEventType> AccEventTypes { get; set; }
+        public DbSet<AccPostingRule> AccPostingRules { get; set; }
+        public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
         public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
+        public DbSet<AccPeriodClosingApproval> AccPeriodClosingApprovals { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
@@ -537,6 +546,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccJournalApproval> AccJournalApprovals { get; set; }
         public DbSet<AccNumberSeries> AccNumberSeries { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
+        public DbSet<AccRecurringJournalTemplate> AccRecurringJournalTemplates { get; set; }
+        public DbSet<AccRecurringJournalTemplateLine> AccRecurringJournalTemplateLines { get; set; }
+        public DbSet<AccRecurringJournalRun> AccRecurringJournalRuns { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
 
         #endregion CORPORATE
 

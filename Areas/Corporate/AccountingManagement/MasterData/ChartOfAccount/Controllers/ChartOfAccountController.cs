@@ -148,12 +148,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             => Unauthorized(ApiResponse<object>.Fail(
                 StatusCodes.Status401Unauthorized, "Identitas user login tidak valid."));
 
+        /// <summary>
+        /// Mencatat jejak tindakan atas akun tanpa membawa nominal.
+        /// </summary>
+        /// <remarks>
+        /// Pesan hasilnya disaring lewat <see cref="TanpaNominal"/> (`BE-ACC-P2-033`, `NFR-004`):
+        /// penolakan penonaktifan akun menyebut saldonya dalam rupiah. Respons kepada pengguna
+        /// tidak disentuh — petugas tetap perlu tahu berapa saldo yang harus dipindahkan dulu.
+        /// </remarks>
         private Task CatatAsync<T>(string aksi, AccountingServiceResult<T> hasil, object muatan)
         {
+            var pesan = TanpaNominal(hasil.Message);
+
             return hasil.Success
-                ? _loggerService.InfoAsync(LogCategory, aksi, hasil.Message, muatan)
-                : _loggerService.WarningAsync(LogCategory, aksi, hasil.Message, muatan);
+                ? _loggerService.InfoAsync(LogCategory, aksi, pesan, muatan)
+                : _loggerService.WarningAsync(LogCategory, aksi, pesan, muatan);
         }
+
+        /// <summary>
+        /// Menghapus nominal dari kalimat yang hendak dicatat logger.
+        /// </summary>
+        /// <remarks>
+        /// Pola yang sama dengan <c>RecurringJournalController</c> dan
+        /// <c>YearEndClosingController</c>. Contoh: <i>"Akun masih bersaldo Rp 15.000.000 dan
+        /// tidak dapat dinonaktifkan."</i> tercatat sebagai <i>"Akun masih bersaldo Rp *** dan
+        /// tidak dapat dinonaktifkan."</i>
+        /// </remarks>
+        private static string TanpaNominal(string pesan)
+            => System.Text.RegularExpressions.Regex.Replace(
+                pesan, @"Rp\s?[\d.,]+", "Rp ***");
 
         private Guid GetCurrentUserId()
         {

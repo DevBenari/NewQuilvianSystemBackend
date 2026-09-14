@@ -41,6 +41,7 @@ Menyimpan satu akun pada daftar akun.
 | `NormalBalance` | `int` | Ya | — | — | — | — | Tidak | Enum `NormalBalance`. Disimpan tersendiri agar akun kontra dapat ditangani |
 | `IsPostable` | `bool` | Ya | `false` | — | — | — | Tidak | Menerima transaksi atau tidak. Wajib `false` bila punya anak (`ACC-DEC-022`) |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Tidak boleh dimatikan bila saldo belum nol (`ACC-DEC-024`) |
+| `IsControlAccount` | `bool` | Ya | `false` | Index | — | — | Tidak | **Baru `ACC-DEC-064`.** Akun bertanda ini **menolak baris jurnal manual**; pencatatannya hanya sah lewat kejadian akuntansi atau subledger. Berlaku untuk Kas Kasir, Kas Kecil, Piutang, dan Hutang |
 | `EffectiveStartDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Mulai berlaku |
 | `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Keterangan bebas |
 
@@ -422,7 +423,8 @@ Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun 
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `LegalEntityId` | `Guid` | Ya | — | Index bersama `EventStatus` | FK ke `MstLegalEntity` | `Restrict` | Tidak | Badan hukum yang bukunya disentuh |
 | `EventNumber` | `string(50)` | Ya | — | **Unique** | — | — | Tidak | Nomor kejadian dari penerbit, contoh `EVT-100`. Kunci anti-ganda **pertama** (`ACC-DEC-035`) |
-| `EventTypeId` | `Guid` | Ya | — | Unique bersama tiga kolom sumber | FK ke `AccEventType` | `Restrict` | Tidak | Jenis kejadian |
+| `EventTypeId` | `Guid?` | **Tidak** | — | Index | FK ke `AccEventType` | `Restrict` | Tidak | Jenis kejadian yang dikenal. **Kosong** bila kode jenis pada pesan belum terdaftar — kejadian itu berstatus Tertahan (`ACC-DEC-075`) |
+| `EventTypeCode` | `string(50)` | Ya | — | Unique bersama tiga kolom sumber | — | — | Tidak | Kode jenis **asli dari pesan**, disimpan apa adanya walaupun belum terdaftar. Inilah yang menjadi bagian kunci anti-ganda kedua, bukan `EventTypeId` (`ACC-DEC-075`) |
 | `SourceModule` | `string(50)` | Ya | — | Unique bersama tiga kolom lain | — | — | Tidak | Modul penerbit, contoh `Finance` |
 | `SourceTransactionId` | `string(100)` | Ya | — | Unique bersama tiga kolom lain | — | — | **Ya** | Nomor dokumen di modul asal. **Penunjuk ke kunjungan pasien** — lihat catatan sensitif |
 | `SourceVersion` | `string(20)` | Ya | `"1"` | Unique bersama tiga kolom lain | — | — | Tidak | Versi kejadian. Kunci anti-ganda **kedua** bersama tiga kolom di atas |
@@ -435,11 +437,21 @@ Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun 
 | `JournalId` | `Guid?` | Tidak | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal yang dihasilkan. **Kosong** untuk kejadian Tertahan, Gagal, dan Diabaikan |
 | `RawPayload` | `text` | Ya | — | — | — | — | **Ya** | Isi pesan asli apa adanya. Disimpan untuk menyelesaikan selisih angka di kemudian hari |
 | `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan otomatis. Berhenti di 3 (`ACC-DEC-049`) |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | Penelusuran ke kejadian asal di Billing (`ACC-DEC-060`). Diteruskan ke jurnal |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | Penelusuran ke tindakan penyebabnya (`ACC-DEC-060`) |
 | `IgnoreReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Alasan diabaikan. **Wajib** bila status `Diabaikan` |
 
 **Dua unique index, bukan satu.** `EventNumber` sendirian tidak cukup: bila penerbit keliru
 membuat nomor baru untuk kejadian yang sama, index pertama tidak menangkapnya. Gabungan
-`SourceModule` + `SourceTransactionId` + `EventTypeId` + `SourceVersion` adalah jaring keduanya.
+`SourceModule` + `SourceTransactionId` + `EventTypeCode` + `SourceVersion` adalah jaring keduanya.
+
+**Kenapa kunci kedua memakai `EventTypeCode`, bukan `EventTypeId`** (`ACC-DEC-075`, 14 September
+2026). Kejadian berjenis belum terdaftar disimpan dengan `EventTypeId` kosong. PostgreSQL
+menganggap dua nilai kosong **tidak sama**, sehingga unique index yang memuat `EventTypeId` tidak
+akan pernah menangkap kiriman ulang kejadian semacam itu. **Contoh:** Finance mengirim kejadian
+`AR-2026-09-00871` berkode `PENGHAPUSAN-PIUTANG` dua kali sebelum kode itu didaftarkan. Dengan
+`EventTypeId` di dalam kunci, keduanya tersimpan sebagai dua kejadian; dengan `EventTypeCode`,
+kiriman kedua dikenali sebagai kiriman ulang.
 
 ## 10. `AccAccountingEventAttempt` — status `Baru`
 
@@ -481,6 +493,7 @@ Kepala aturan posting: jenis kejadian, badan hukum, dan perlakuannya. Akunnya ad
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `LegalEntityId` | `Guid` | Ya | — | Unique bersama `EventTypeId`, **berfilter `IsActive = true`** | FK ke `MstLegalEntity` | `Restrict` | Tidak | Aturan berbeda per badan hukum (`ACC-DEC-037`) |
 | `EventTypeId` | `Guid` | Ya | — | Unique bersama `LegalEntityId` | FK ke `AccEventType` | `Restrict` | Tidak | Jenis kejadian yang dipetakan |
+| `JournalTypeId` | `Guid` | Ya | — | Index | FK ke `AccJournalType` | `Restrict` | Tidak | **Jenis jurnal yang dihasilkan aturan ini** (`ACC-DEC-074`). Menentukan awalan nomor jurnal otomatisnya, sama seperti `AccRecurringJournalTemplate.JournalTypeId` |
 | `Treatment` | `int` | Ya | `2` | — | — | — | Tidak | Enum `AccountingEventTreatment`. Bawaan `BuatDraft` — **sengaja yang lebih aman** |
 | `IsActive` | `bool` | Ya | `true` | Bagian dari unique berfilter | — | — | Tidak | Aturan lama disimpan nonaktif, tidak dihapus |
 
@@ -490,6 +503,13 @@ menyimpan riwayat menjadi mustahil.
 
 **Kenapa `Treatment` berbawaan `BuatDraft`.** Bila petugas lupa menetapkannya, akibat terburuknya
 adalah jurnal menumpuk menunggu pemeriksaan — bukan angka salah yang langsung masuk buku besar.
+
+**Kenapa jenis jurnal ditaruh di aturan, bukan di jenis kejadian** (`ACC-DEC-074`, 14 September
+2026). `AccJournal.JournalTypeId` wajib diisi, dan tanpa kolom ini mesin posting tidak tahu jenis
+jurnal apa yang harus dibuat. Ditaruh per aturan — bukan per jenis kejadian — karena aturan sudah
+berbeda per badan hukum, sama seperti template jurnal berulang yang juga menyebut jenis jurnalnya
+sendiri. **Pelaku** jurnal otomatis tidak disimpan di tabel ini; ia diambil dari konfigurasi
+`SystemActorUserId`, mengikuti penjadwal jurnal berulang.
 
 **Kenapa akun debit dan kredit TIDAK ada di tabel ini** (`ACC-DEC-058`). Akun berpindah ke
 `AccPostingRuleLine`, karena satu aturan dapat menghasilkan lebih dari dua baris. Bentuk lama
@@ -615,7 +635,7 @@ dari database.
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama `ActionSequence` | FK ke `AccAccountingPeriod` | `Cascade` | Tidak | Periode yang ditutup |
+| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama `ActionSequence` | FK ke `AccAccountingPeriod` | `Restrict` | Tidak | Periode yang ditutup |
 | `ActionSequence` | `int` | Ya | — | Unique bersama `AccountingPeriodId` | — | — | Tidak | Nomor urut tindakan |
 | `Action` | `int` | Ya | — | — | — | — | Tidak | Enum `PeriodClosingAction`: Diajukan, Disetujui, Ditolak |
 | `ActionBy` | `Guid` | Ya | — | Index | FK ke pengguna | `Restrict` | Tidak | Pelaku tindakan |
@@ -624,6 +644,14 @@ dari database.
 
 Meniru bentuk `AccJournalApproval` yang sudah ada, dan alasannya sama: ini **data bisnis** yang
 ditampilkan ke pengguna, bukan log teknis.
+
+**Koreksi 10 September 2026 — `Cascade` menjadi `Restrict` (`ACC-DEC-069`).** Sampai revisi ini
+tabel di atas menulis `Cascade`, sementara `BE-ACC-P2-001` sudah mengimplementasikan `Restrict`
+mengikuti `AccJournalApproval`. Yang disesuaikan adalah **kamus datanya**, bukan kodenya. Alasannya
+sama dengan bagian 5: riwayat persetujuan adalah **bukti audit**. `Cascade` akan menghapus jejak
+siapa mengajukan dan siapa menyetujui penutupan sebuah periode begitu periodenya terhapus — tanpa
+satu pun peringatan, dan justru pada data yang paling dibutuhkan saat ada yang mempertanyakan
+penutupan itu.
 
 ## 17. `AccAccountingConfiguration` — status `Baru`
 
