@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
@@ -100,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
                 .Include(x => x.Compounds.Where(c => !c.IsDelete && !c.IsCancel && c.IsActive))
                     .ThenInclude(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 .FirstOrDefaultAsync(x => x.Id == templateId && x.IsActive && !x.IsDelete, cancellationToken)
                 ?? throw new InvalidOperationException("Template resep tidak ditemukan atau tidak aktif.");
 
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstAsync(x => x.Id == request.PrescriptionId && !x.IsDelete, cancellationToken);
 
             var now = DateTime.UtcNow;
@@ -199,14 +199,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 var drug = source.Drug ?? throw new InvalidOperationException("Obat pada template tidak ditemukan.");
                 var coverage = await _coverageService.ResolveDrugAsync(prescription.EncounterId, drug.Id, source.Quantity, prescription.PrescriptionDateTime, cancellationToken);
                 if (!coverage.IsValid) throw new InvalidOperationException(coverage.ErrorMessage ?? "Coverage obat template gagal dihitung.");
-                var item = new TrxPrescriptionItem { Id = Guid.NewGuid(), PrescriptionId = prescription.Id, DrugId = drug.Id, CreateDateTime = now, CreateBy = actorUserId, IsActive = true };
+                var item = new PhmPrescriptionItem { Id = Guid.NewGuid(), PrescriptionId = prescription.Id, DrugId = drug.Id, CreateDateTime = now, CreateBy = actorUserId, IsActive = true };
                 CopyTemplateItem(item, source, drug, coverage);
-                _dbContext.Set<TrxPrescriptionItem>().Add(item);
+                _dbContext.Set<PhmPrescriptionItem>().Add(item);
             }
 
             foreach (var source in template.Compounds.OrderBy(x => x.SortOrder))
             {
-                var compound = new TrxPrescriptionCompound
+                var compound = new PhmPrescriptionCompound
                 {
                     Id = Guid.NewGuid(),
                     PrescriptionId = prescription.Id,
@@ -232,16 +232,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
-                _dbContext.Set<TrxPrescriptionCompound>().Add(compound);
+                _dbContext.Set<PhmPrescriptionCompound>().Add(compound);
 
                 foreach (var sourceItem in source.Items.OrderBy(x => x.SortOrder))
                 {
                     var drug = sourceItem.Drug ?? await _dbContext.Set<MstDrug>().FirstAsync(x => x.Id == sourceItem.DrugId, cancellationToken);
                     var coverage = await _coverageService.ResolveDrugAsync(prescription.EncounterId, drug.Id, sourceItem.TotalQuantity, prescription.PrescriptionDateTime, cancellationToken);
                     if (!coverage.IsValid) throw new InvalidOperationException(coverage.ErrorMessage ?? "Coverage bahan racikan gagal dihitung.");
-                    var item = new TrxPrescriptionCompoundItem { Id = Guid.NewGuid(), PrescriptionCompoundId = compound.Id, DrugId = drug.Id, CreateDateTime = now, CreateBy = actorUserId, IsActive = true };
+                    var item = new PhmPrescriptionCompoundItem { Id = Guid.NewGuid(), PrescriptionCompoundId = compound.Id, DrugId = drug.Id, CreateDateTime = now, CreateBy = actorUserId, IsActive = true };
                     CopyTemplateCompoundItem(item, sourceItem, drug, coverage);
-                    _dbContext.Set<TrxPrescriptionCompoundItem>().Add(item);
+                    _dbContext.Set<PhmPrescriptionCompoundItem>().Add(item);
                 }
             }
 
@@ -371,13 +371,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
         private async Task SoftDeletePrescriptionContentAsync(Guid prescriptionId, Guid actor, DateTime now, CancellationToken ct)
         {
-            var items = await _dbContext.Set<TrxPrescriptionItem>().Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete).ToListAsync(ct);
+            var items = await _dbContext.Set<PhmPrescriptionItem>().Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete).ToListAsync(ct);
             foreach (var x in items) SoftDelete(x, actor, now);
-            var compounds = await _dbContext.Set<TrxPrescriptionCompound>().Include(x => x.Items).Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete).ToListAsync(ct);
+            var compounds = await _dbContext.Set<PhmPrescriptionCompound>().Include(x => x.Items).Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete).ToListAsync(ct);
             foreach (var c in compounds) { foreach (var i in c.Items.Where(x => !x.IsDelete)) SoftDelete(i, actor, now); SoftDelete(c, actor, now); }
         }
 
-        private static void CopyTemplateItem(TrxPrescriptionItem e, MstPrescriptionTemplateItem s, MstDrug d, InsuranceCoverageResult c)
+        private static void CopyTemplateItem(PhmPrescriptionItem e, MstPrescriptionTemplateItem s, MstDrug d, InsuranceCoverageResult c)
         {
             e.DrugCodeSnapshot = d.DrugCode; e.DrugNameSnapshot = d.DrugName; e.GenericNameSnapshot = d.GenericName; e.DrugCategoryNameSnapshot = d.DrugCategory?.DrugCategoryName;
             e.DrugFormSnapshot = d.DrugForm; e.StrengthSnapshot = d.Strength; e.RouteSnapshot = d.Route; e.IsFormularySnapshot = d.IsFormulary; e.IsGenericSnapshot = d.IsGeneric;
@@ -389,7 +389,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             ApplyCoverage(e, c);
         }
 
-        private static void CopyTemplateCompoundItem(TrxPrescriptionCompoundItem e, MstPrescriptionTemplateCompoundItem s, MstDrug d, InsuranceCoverageResult c)
+        private static void CopyTemplateCompoundItem(PhmPrescriptionCompoundItem e, MstPrescriptionTemplateCompoundItem s, MstDrug d, InsuranceCoverageResult c)
         {
             e.DrugCodeSnapshot = d.DrugCode; e.DrugNameSnapshot = d.DrugName; e.GenericNameSnapshot = d.GenericName; e.DrugCategoryNameSnapshot = d.DrugCategory?.DrugCategoryName;
             e.DrugFormSnapshot = d.DrugForm; e.StrengthSnapshot = d.Strength; e.RouteSnapshot = d.Route; e.IsFormularySnapshot = d.IsFormulary; e.IsGenericSnapshot = d.IsGeneric;
@@ -399,9 +399,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             e.IngredientInstruction = s.IngredientInstruction; e.SortOrder = s.SortOrder; ApplyCoverage(e, c);
         }
 
-        private static void ApplyCoverage(TrxPrescriptionItem e, InsuranceCoverageResult c)
+        private static void ApplyCoverage(PhmPrescriptionItem e, InsuranceCoverageResult c)
         { e.TariffId = c.TariffId; e.InsuranceTariffId = c.InsuranceTariffId; e.InsuranceCoverageRuleId = c.InsuranceCoverageRuleId; e.HospitalUnitPrice = c.HospitalUnitPrice; e.ContractUnitPrice = c.ContractUnitPrice; e.UnitPrice = c.UnitPrice; e.TotalPrice = c.TotalPrice; e.PricingSource = c.PricingSource; e.IsCoverageApplicable = c.IsCoverageApplicable; e.IsCoveredByInsurance = c.IsCovered; e.CoverageStatus = c.CoverageStatus; e.CoveragePercent = c.CoveragePercent; e.CoveredAmount = c.CoveredAmount; e.PatientPayAmount = c.PatientPayAmount; e.CoPaymentAmount = c.CoPaymentAmount; e.IsNeedApproval = c.IsNeedApproval; e.IsApproved = !c.IsNeedApproval; e.IsNeedGuaranteeLetter = c.IsNeedGuaranteeLetter; e.IsAllowExcessPaymentByPatient = c.IsAllowExcessPaymentByPatient; e.CoverageNote = c.CoverageNote; }
-        private static void ApplyCoverage(TrxPrescriptionCompoundItem e, InsuranceCoverageResult c)
+        private static void ApplyCoverage(PhmPrescriptionCompoundItem e, InsuranceCoverageResult c)
         { e.TariffId = c.TariffId; e.InsuranceTariffId = c.InsuranceTariffId; e.InsuranceCoverageRuleId = c.InsuranceCoverageRuleId; e.HospitalUnitPrice = c.HospitalUnitPrice; e.ContractUnitPrice = c.ContractUnitPrice; e.UnitPrice = c.UnitPrice; e.TotalPrice = c.TotalPrice; e.PricingSource = c.PricingSource; e.IsCoverageApplicable = c.IsCoverageApplicable; e.IsCoveredByInsurance = c.IsCovered; e.CoverageStatus = c.CoverageStatus; e.CoveragePercent = c.CoveragePercent; e.CoveredAmount = c.CoveredAmount; e.PatientPayAmount = c.PatientPayAmount; e.CoPaymentAmount = c.CoPaymentAmount; e.IsNeedApproval = c.IsNeedApproval; e.IsApproved = !c.IsNeedApproval; e.IsNeedGuaranteeLetter = c.IsNeedGuaranteeLetter; e.IsAllowExcessPaymentByPatient = c.IsAllowExcessPaymentByPatient; e.CoverageNote = c.CoverageNote; }
 
         private static void SoftDelete(IdentityModel x, Guid actor, DateTime now) { x.IsDelete = true; x.DeleteDateTime = now; x.DeleteBy = actor; x.UpdateDateTime = now; x.UpdateBy = actor; }

@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260908000000_RenamePharmacyTrxTablesToPhmPrefix")]
     public partial class RenamePharmacyTrxTablesToPhmPrefix : Migration
     {
         // Lima belas entitas operasional Farmasi pindah ke prefix registry `Phm`.

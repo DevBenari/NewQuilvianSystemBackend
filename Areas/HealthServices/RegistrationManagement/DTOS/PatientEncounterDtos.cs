@@ -244,6 +244,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public bool IsActive { get; set; }
 
+        public int Priority { get; set; } = 1;
+
+        public bool IsPrimary { get; set; } = true;
+
         public DateTime CreateDateTime { get; set; }
     }
 
@@ -465,6 +469,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
             EncounterRegistrationSource.FrontDesk;
 
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
+
+        public int Priority { get; set; } = 1;
+
+        public bool IsPrimary { get; set; } = true;
 
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }

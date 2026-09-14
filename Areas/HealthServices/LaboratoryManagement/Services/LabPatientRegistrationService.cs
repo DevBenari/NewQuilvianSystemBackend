@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using System.Data.Common;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services
@@ -15,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     ///
     /// <b>Batas yang membentuk seluruh berkas ini, dan yang paling mudah dilanggar.</b>
     /// Laboratorium memiliki <i>layarnya</i>, Registrasi memiliki <i>kunjungannya</i>. Karena
-    /// itu di sini tidak ada satu pun penulisan ke <c>TrxPatientEncounter</c> maupun
+    /// itu di sini tidak ada satu pun penulisan ke <c>RegPatientEncounter</c> maupun
     /// <c>MstPatient</c> — tidak ada <c>Add</c>, tidak ada <c>Update</c>, tidak ada
     /// <c>SaveChanges</c>. Yang ada hanya: menyusun isian, menyerahkannya ke
     /// <see cref="EncounterIntakeService"/> milik Registrasi, menunggu jawabannya, lalu
@@ -49,12 +50,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         ///
         /// Dipakai sebelum mendaftarkan kunjungan, supaya pasien lama tidak berakhir punya dua
         /// nomor rekam medis. Membacanya tidak membentuk apa pun.
+        ///
+        /// <para>
+        /// Jalur ini semula hanya memotong hasilnya sebanyak <c>Limit</c> baris tanpa pernah
+        /// menghitung berapa yang sebenarnya cocok. Layar pencarian karena itu tidak punya
+        /// bahan untuk menyusun halaman: pasien ke-21 dan seterusnya tidak dapat dijangkau
+        /// dengan cara apa pun kecuali mempersempit kata kuncinya — dan petugas yang tidak tahu
+        /// hal itu akan menyimpulkan pasiennya belum terdaftar, lalu mendaftarkannya sebagai
+        /// pasien baru. Persis kejadian yang seluruh layar ini ada untuk mencegahnya.
+        /// </para>
         /// </summary>
-        public async Task<List<LabPatientSearchResponse>> SearchPatientsAsync(
+        public async Task<PagedResult<LabPatientSearchResponse>> SearchPatientsAsync(
             LabPatientSearchQuery query,
             CancellationToken cancellationToken = default)
         {
-            var limit = Math.Clamp(query.Limit, 1, MaxSearchLimit);
+            var pageNumber = Math.Max(1, query.PageNumber);
+            var pageSize = Math.Clamp(query.PageSize, 1, MaxSearchLimit);
 
             var source = _dbContext.Set<MstPatient>()
                 .AsNoTracking()
@@ -72,9 +83,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     (x.PhoneNumber != null && x.PhoneNumber.Contains(search)));
             }
 
-            return await source
+            var totalData = await source.CountAsync(cancellationToken);
+
+            // Urutannya dikunci pada nama lalu Id. Tanpa pemecah seri yang pasti, dua pasien
+            // bernama sama dapat bertukar tempat antar halaman dan salah satunya tidak pernah
+            // muncul di halaman mana pun.
+            var items = await source
                 .OrderBy(x => x.FullName)
-                .Take(limit)
+                .ThenBy(x => x.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new LabPatientSearchResponse
                 {
                     PatientId = x.Id,
@@ -88,6 +106,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     Address = x.Address
                 })
                 .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabPatientSearchResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
         }
 
         // =================================================================

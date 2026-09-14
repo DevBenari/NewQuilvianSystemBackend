@@ -74,7 +74,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// </summary>
         public int Version { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstProcedure? Procedure { get; set; }
 

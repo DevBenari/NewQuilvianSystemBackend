@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
@@ -86,7 +86,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// keperluan akses. Dua salinan aturan yang berbeda tipis akan membuat layar
         /// menjanjikan sesuatu yang ditolak server — atau lebih buruk, sebaliknya.
         /// </remarks>
-        private static readonly Expression<Func<TrxPatientEncounter, bool>> KunjunganMasihBerjalan =
+        private static readonly Expression<Func<RegPatientEncounter, bool>> KunjunganMasihBerjalan =
             x => !x.IsDelete
                  && !x.IsCancel
                  && x.CompletedAt == null
@@ -278,7 +278,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         {
             try
             {
-                return await _dbContext.Set<TrxPatientEncounter>()
+                return await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .Where(KunjunganMasihBerjalan)
                     .AnyAsync(x => x.PatientId == patientId, cancellationToken);
@@ -320,7 +320,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             try
             {
-                var berjalan = await _dbContext.Set<TrxPatientEncounter>()
+                var berjalan = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .Where(KunjunganMasihBerjalan)
                     .Where(x => idUnik.Contains(x.PatientId))

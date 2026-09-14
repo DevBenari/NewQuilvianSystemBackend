@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.DTOs;
@@ -194,11 +194,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities.Select(ToResponse).ToList();
 
             var result = new ResponsePaymentMethodPagedResult
             {
@@ -259,38 +260,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                     x.PaymentGroupName != null && x.PaymentGroupName.ToLower().Contains(keyword));
             }
 
-            var data = await query
+            var entities = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.PaymentMethodName)
-                .Select(x => new PaymentMethodOptionResponse
-                {
-                    Id = x.Id,
-                    PaymentMethodCode = x.PaymentMethodCode,
-                    PaymentMethodName = x.PaymentMethodName,
-                    PaymentMethodType = x.PaymentMethodType,
-                    PaymentGroupName = x.PaymentGroupName,
-                    IsCash = x.IsCash,
-                    IsBankTransfer = x.IsBankTransfer,
-                    IsCardPayment = x.IsCardPayment,
-                    IsQris = x.IsQris,
-                    IsInsurance = x.IsInsurance,
-                    IsCompanyGuarantor = x.IsCompanyGuarantor,
-                    IsMembership = x.IsMembership,
-                    IsNeedReferenceNumber = x.IsNeedReferenceNumber,
-                    IsNeedApproval = x.IsNeedApproval,
-                    IsNeedAttachment = x.IsNeedAttachment,
-                    IsAvailableForRegistration = x.IsAvailableForRegistration,
-                    IsAvailableForBilling = x.IsAvailableForBilling,
-                    IsAvailableForRefund = x.IsAvailableForRefund,
-                    BankName = x.BankName,
-                    BankAccountNumber = x.BankAccountNumber,
-                    BankAccountName = x.BankAccountName,
-                    AdminFeeAmount = x.AdminFeeAmount,
-                    AdminFeePercent = x.AdminFeePercent,
-                    Description = x.Description,
-                    SortOrder = x.SortOrder
-                })
                 .ToListAsync();
+
+            var data = entities.Select(x => new PaymentMethodOptionResponse
+            {
+                Id = x.Id,
+                PaymentMethodCode = x.PaymentMethodCode,
+                PaymentMethodName = x.PaymentMethodName,
+                PaymentMethodType = x.PaymentMethodType,
+                PaymentGroupName = x.PaymentGroupName,
+                IsCash = x.IsCash,
+                IsBankTransfer = x.IsBankTransfer,
+                IsCardPayment = x.IsCardPayment,
+                IsQris = x.IsQris,
+                IsInsurance = x.IsInsurance,
+                IsCompanyGuarantor = x.IsCompanyGuarantor,
+                IsMembership = x.IsMembership,
+                IsNeedReferenceNumber = x.IsNeedReferenceNumber,
+                IsNeedApproval = x.IsNeedApproval,
+                IsNeedAttachment = x.IsNeedAttachment,
+                IsAvailableForRegistration = x.IsAvailableForRegistration,
+                IsAvailableForBilling = x.IsAvailableForBilling,
+                IsAvailableForRefund = x.IsAvailableForRefund,
+                BankName = x.BankName,
+                BankAccountNumber = x.BankAccountNumber,
+                BankAccountName = x.BankAccountName,
+                AdminFeeAmount = x.AdminFeeAmount,
+                AdminFeePercent = x.AdminFeePercent,
+                Description = x.Description,
+                SortOrder = x.SortOrder,
+                Accounts = x.Accounts
+                    .Where(a => !a.IsDelete && (!onlyActive || a.IsActive))
+                    .OrderBy(a => a.SortOrder)
+                    .ThenBy(a => a.BankName)
+                    .Select(a => new PaymentMethodAccountDto
+                    {
+                        Id = a.Id,
+                        PaymentMethodId = a.PaymentMethodId,
+                        BankName = a.BankName,
+                        AccountNumber = a.AccountNumber,
+                        AccountHolderName = a.AccountHolderName,
+                        Purpose = a.Purpose,
+                        Description = a.Description,
+                        IsActive = a.IsActive,
+                        SortOrder = a.SortOrder
+                    })
+                    .ToList()
+            }).ToList();
 
             return Ok(ApiResponse<List<PaymentMethodOptionResponse>>.Ok(
                 data,
@@ -305,18 +324,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         [AccessPermission("PaymentMethod", "Read")]
         public async Task<IActionResult> GetPaymentMethodById(Guid id)
         {
-            var data = await BuildBaseQuery()
-                .Where(x => x.Id == id)
-                .Select(x => ToDetailResponse(x))
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Payment method tidak ditemukan."
                 ));
             }
+
+            var data = ToDetailResponse(entity);
 
             return Ok(ApiResponse<PaymentMethodDetailResponse>.Ok(
                 data,
@@ -388,6 +407,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 IsCancel = false
             };
 
+            if (request.Accounts != null && request.Accounts.Count > 0)
+            {
+                var sort = 0;
+                foreach (var acc in request.Accounts)
+                {
+                    if (string.IsNullOrWhiteSpace(acc.BankName) || string.IsNullOrWhiteSpace(acc.AccountNumber))
+                        continue;
+
+                    entity.Accounts.Add(new MstPaymentMethodAccount
+                    {
+                        Id = Guid.NewGuid(),
+                        PaymentMethodId = entity.Id,
+                        BankName = acc.BankName.Trim(),
+                        AccountNumber = acc.AccountNumber.Trim(),
+                        AccountHolderName = acc.AccountHolderName.Trim(),
+                        Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim(),
+                        Description = NormalizeNullableText(acc.Description),
+                        IsActive = acc.IsActive,
+                        SortOrder = acc.SortOrder != 0 ? acc.SortOrder : ++sort,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId,
+                        IsDelete = false,
+                        IsCancel = false
+                    });
+                }
+            }
+
             _dbContext.Set<MstPaymentMethod>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -419,6 +465,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public async Task<IActionResult> UpdatePaymentMethod(Guid id, [FromBody] UpdatePaymentMethodRequest request)
         {
             var entity = await _dbContext.Set<MstPaymentMethod>()
+                .Include(x => x.Accounts)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -445,6 +492,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                     validation.ErrorMessage ?? "Data payment method tidak valid."
                 ));
             }
+
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
 
             entity.PaymentMethodCode = request.PaymentMethodCode.Trim().ToUpperInvariant();
             entity.PaymentMethodName = request.PaymentMethodName.Trim();
@@ -475,8 +525,82 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (request.Accounts != null)
+            {
+                var incomingAccountIds = request.Accounts
+                    .Where(a => a.Id.HasValue && a.Id.Value != Guid.Empty)
+                    .Select(a => a.Id!.Value)
+                    .ToHashSet();
+
+                foreach (var existingAccount in entity.Accounts.Where(a => !a.IsDelete))
+                {
+                    if (!incomingAccountIds.Contains(existingAccount.Id))
+                    {
+                        var isAccountUsedInTender = await _dbContext.BilTenders
+                            .AnyAsync(t => !t.IsDelete && t.PaymentMethodAccountId == existingAccount.Id);
+                        var isAccountUsedInDeposit = await _dbContext.BilDepositMovements
+                            .AnyAsync(d => !d.IsDelete && d.PaymentMethodAccountId == existingAccount.Id);
+
+                        if (isAccountUsedInTender || isAccountUsedInDeposit)
+                        {
+                            return BadRequest(ApiResponse<object>.Fail(
+                                StatusCodes.Status400BadRequest,
+                                $"Rekening bank {existingAccount.BankName} - {existingAccount.AccountNumber} tidak dapat dihapus karena sudah memiliki riwayat transaksi."
+                            ));
+                        }
+
+                        existingAccount.IsDelete = true;
+                        existingAccount.DeleteDateTime = now;
+                        existingAccount.DeleteBy = actorUserId;
+                    }
+                }
+
+                var sort = 0;
+                foreach (var acc in request.Accounts)
+                {
+                    if (string.IsNullOrWhiteSpace(acc.BankName) || string.IsNullOrWhiteSpace(acc.AccountNumber))
+                        continue;
+
+                    if (acc.Id.HasValue && acc.Id.Value != Guid.Empty)
+                    {
+                        var existingAccount = entity.Accounts.FirstOrDefault(a => a.Id == acc.Id.Value && !a.IsDelete);
+                        if (existingAccount != null)
+                        {
+                            existingAccount.BankName = acc.BankName.Trim();
+                            existingAccount.AccountNumber = acc.AccountNumber.Trim();
+                            existingAccount.AccountHolderName = acc.AccountHolderName.Trim();
+                            existingAccount.Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim();
+                            existingAccount.Description = NormalizeNullableText(acc.Description);
+                            existingAccount.IsActive = acc.IsActive;
+                            existingAccount.SortOrder = acc.SortOrder != 0 ? acc.SortOrder : ++sort;
+                            existingAccount.UpdateDateTime = now;
+                            existingAccount.UpdateBy = actorUserId;
+                        }
+                    }
+                    else
+                    {
+                        entity.Accounts.Add(new MstPaymentMethodAccount
+                        {
+                            Id = Guid.NewGuid(),
+                            PaymentMethodId = entity.Id,
+                            BankName = acc.BankName.Trim(),
+                            AccountNumber = acc.AccountNumber.Trim(),
+                            AccountHolderName = acc.AccountHolderName.Trim(),
+                            Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim(),
+                            Description = NormalizeNullableText(acc.Description),
+                            IsActive = acc.IsActive,
+                            SortOrder = acc.SortOrder != 0 ? acc.SortOrder : ++sort,
+                            CreateDateTime = now,
+                            CreateBy = actorUserId,
+                            IsDelete = false,
+                            IsCancel = false
+                        });
+                    }
+                }
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -522,6 +646,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public async Task<IActionResult> DeletePaymentMethod(Guid id)
         {
             var entity = await _dbContext.Set<MstPaymentMethod>()
+                .Include(x => x.Accounts)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -532,10 +657,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 ));
             }
 
+            // Safe delete check against BilTender and BilDepositMovement
+            var isUsedInTender = await _dbContext.BilTenders
+                .AnyAsync(t => !t.IsDelete && t.PaymentMethodId == id);
+            var isUsedInDeposit = await _dbContext.BilDepositMovements
+                .AnyAsync(d => !d.IsDelete && d.PaymentMethodId == id);
+
+            if (isUsedInTender || isUsedInDeposit)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Metode pembayaran tidak dapat dihapus karena sudah memiliki riwayat transaksi pembayaran kasir atau deposit."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+
+            foreach (var acc in entity.Accounts.Where(a => !a.IsDelete))
+            {
+                acc.IsDelete = true;
+                acc.IsActive = false;
+                acc.DeleteDateTime = now;
+                acc.DeleteBy = actorUserId;
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -586,6 +736,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         private IQueryable<MstPaymentMethod> BuildBaseQuery()
         {
             return _dbContext.Set<MstPaymentMethod>()
+                .Include(x => x.Accounts.Where(a => !a.IsDelete))
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
         }
@@ -764,7 +915,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 AdminFeePercent = x.AdminFeePercent,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                Accounts = x.Accounts
+                    .Where(a => !a.IsDelete)
+                    .OrderBy(a => a.SortOrder)
+                    .ThenBy(a => a.BankName)
+                    .Select(a => new PaymentMethodAccountDto
+                    {
+                        Id = a.Id,
+                        PaymentMethodId = a.PaymentMethodId,
+                        BankName = a.BankName,
+                        AccountNumber = a.AccountNumber,
+                        AccountHolderName = a.AccountHolderName,
+                        Purpose = a.Purpose,
+                        Description = a.Description,
+                        IsActive = a.IsActive,
+                        SortOrder = a.SortOrder
+                    })
+                    .ToList()
             };
         }
 
@@ -802,7 +970,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 SortOrder = x.SortOrder,
                 Description = x.Description,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                Accounts = x.Accounts
+                    .Where(a => !a.IsDelete)
+                    .OrderBy(a => a.SortOrder)
+                    .ThenBy(a => a.BankName)
+                    .Select(a => new PaymentMethodAccountDto
+                    {
+                        Id = a.Id,
+                        PaymentMethodId = a.PaymentMethodId,
+                        BankName = a.BankName,
+                        AccountNumber = a.AccountNumber,
+                        AccountHolderName = a.AccountHolderName,
+                        Purpose = a.Purpose,
+                        Description = a.Description,
+                        IsActive = a.IsActive,
+                        SortOrder = a.SortOrder
+                    })
+                    .ToList()
             };
         }
 

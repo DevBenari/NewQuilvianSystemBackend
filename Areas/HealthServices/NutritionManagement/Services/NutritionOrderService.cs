@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -442,7 +442,7 @@ public sealed class NutritionOrderService
     private async Task ValidateReferencesAsync(Guid patientId, Guid encounterId,
         Guid doctorId, Guid? workforceId, CancellationToken cancellationToken)
     {
-        var encounterValid = await _dbContext.Set<TrxPatientEncounter>().AsNoTracking()
+        var encounterValid = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
             .AnyAsync(x => x.Id == encounterId && x.PatientId == patientId && !x.IsDelete,
                 cancellationToken);
         if (!encounterValid)

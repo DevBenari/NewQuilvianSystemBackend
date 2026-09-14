@@ -140,7 +140,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public TrxDoctorConsultation? Consultation { get; set; }
 

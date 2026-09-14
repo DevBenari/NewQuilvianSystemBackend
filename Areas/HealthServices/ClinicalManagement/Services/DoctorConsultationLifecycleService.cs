@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     ///
     /// Service ini tidak melakukan SaveChanges atau Commit. Pemanggil wajib
     /// menjalankannya di dalam transaction yang sama dengan perubahan status
-    /// TrxQueue dan TrxPatientEncounter.
+    /// TrxQueue dan RegPatientEncounter.
     /// </summary>
     public class DoctorConsultationLifecycleService
     {

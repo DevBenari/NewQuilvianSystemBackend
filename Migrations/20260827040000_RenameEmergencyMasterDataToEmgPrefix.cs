@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260827040000_RenameEmergencyMasterDataToEmgPrefix")]
     public partial class RenameEmergencyMasterDataToEmgPrefix : Migration
     {
         // Enam tabel master data IGD pindah ke prefix registry `Emg`.

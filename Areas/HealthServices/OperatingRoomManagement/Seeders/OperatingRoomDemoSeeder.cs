@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.See
 /// <code>
 /// MstWorkforceType, MstEmployeeCategory, MstEmploymentType, MstEmploymentStatus, MstProfession
 ///   -&gt; MstWorkforceProfile -&gt; MstDoctor -&gt; AspNetUsers."DoctorId" (klaim doctor_id)
-/// MstServiceUnit -&gt; MstPatient -&gt; TrxPatientEncounter -&gt; TrxQueue
+/// MstServiceUnit -&gt; MstPatient -&gt; RegPatientEncounter -&gt; TrxQueue
 ///   -&gt; TrxDoctorConsultation -&gt; TrxPatientProcedure (IsSurgeryRelated = true)
 ///   -&gt; barulah OprCase boleh dibuat
 /// </code>
@@ -90,7 +90,7 @@ public static class OperatingRoomDemoSeeder
 
         var now = DateTime.UtcNow;
 
-        // Akun sasaran dicari lebih dulu, bukan di akhir, karena TrxPatientEncounter punya
+        // Akun sasaran dicari lebih dulu, bukan di akhir, karena RegPatientEncounter punya
         // kolom RegisteredByUserId yang ber-foreign key ke AspNetUsers dan tidak boleh kosong.
         // Mengisinya Guid.Empty membuat PostgreSQL menolak dengan 23503.
         var user = string.IsNullOrWhiteSpace(targetUserName)
@@ -101,7 +101,7 @@ public static class OperatingRoomDemoSeeder
         {
             result.RefusedReason =
                 "Seeder demo Operasi membutuhkan satu akun yang sudah ada untuk dicatat sebagai " +
-                "pendaftar kunjungan, karena TrxPatientEncounter.RegisteredByUserId ber-foreign key " +
+                "pendaftar kunjungan, karena RegPatientEncounter.RegisteredByUserId ber-foreign key " +
                 "ke AspNetUsers. Akun sasaran " +
                 (string.IsNullOrWhiteSpace(targetUserName) ? "belum ditentukan" : "'" + targetUserName + "' tidak ditemukan") +
                 ". Pastikan SuperAdminSeeder sudah berjalan, atau isi Seeders:OperatingRoomDemoTargetUserName.";
@@ -385,7 +385,7 @@ public static class OperatingRoomDemoSeeder
 
         var encounterId = await EnsureAsync(db,
             x => x.EncounterNumber == CodePrefix + "-ENC-001",
-            () => new TrxPatientEncounter
+            () => new RegPatientEncounter
             {
                 Id = Deterministic("Encounter"),
                 EncounterNumber = CodePrefix + "-ENC-001",
@@ -394,7 +394,7 @@ public static class OperatingRoomDemoSeeder
                 EncounterDate = now,
                 RegisteredByUserId = actor
             },
-            x => x.Id, result, "TrxPatientEncounter", actor, now, ct);
+            x => x.Id, result, "RegPatientEncounter", actor, now, ct);
 
         var queueId = await EnsureAsync(db,
             x => x.QueueCode == CodePrefix + "-Q-001",

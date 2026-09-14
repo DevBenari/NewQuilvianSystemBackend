@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // Baca saja. Gunanya mencegah pasien lama didaftarkan ulang sebagai pasien baru dan
         // berakhir punya dua nomor rekam medis.
         [HttpGet("patient-search")]
-        [ProducesResponseType(typeof(ApiResponse<List<LabPatientSearchResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabPatientSearchResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Patient Registration", Description = "Mencari pasien terdaftar dari layar pendaftaran laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPatientRegistration", "Read")]
         public async Task<IActionResult> SearchPatients(
@@ -57,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         {
             var hasil = await _labPatientRegistrationService.SearchPatientsAsync(query, cancellationToken);
 
-            return Ok(ApiResponse<List<LabPatientSearchResponse>>.Ok(
+            return Ok(ApiResponse<PagedResult<LabPatientSearchResponse>>.Ok(
                 hasil, "Pencarian pasien berhasil dilakukan."));
         }
 

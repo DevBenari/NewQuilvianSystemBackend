@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -168,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.EncounterId.HasValue && request.EncounterId.Value != Guid.Empty)
             {
-                var encounter = await _dbContext.Set<TrxPatientEncounter>()
+                var encounter = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(
                         x => x.Id == request.EncounterId.Value && !x.IsDelete,

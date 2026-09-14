@@ -5,11 +5,11 @@ blueprint_id: RAD-BP-001
 module_name: Radiologi
 module_slug: radiologi
 module_prefix: RAD
-revision: 11
+revision: 14
 status: approved
 bentuk: SINGLE
 created_at: 2026-09-09T00:00:00+07:00
-updated_at: 2026-09-10T00:00:00+07:00
+updated_at: 2026-09-11T00:00:00+07:00
 
 tahap_saat_ini: SIAP_UNTUK_IMPLEMENTASI
 tahap_selesai:
@@ -45,7 +45,9 @@ owners:
   api: belum ditetapkan
   security: belum ditetapkan
   frontend_authority: belum ditetapkan
-  clinical_governance: belum ditetapkan — memblokir RAD-OPEN-001, RAD-OPEN-007, RAD-CQ-003, dan pemakaian production RAD-DEC-008
+  clinical_governance: Komite Medis — ditetapkan RAD-DEC-016 pada 2026-09-11, sebagai badan.
+    Pemegang akun pengesahnya belum ditunjuk (RAD-OPEN-011), sehingga kewenangannya belum dapat
+    dijalankan. Pemakaian production RAD-DEC-008 tetap menunggu butir 3 RAD-REQ-002.
   module_owner_registry: Muhammad Hamzah — pemegang registry prefix. Baris Rad dinaikkan ke ACTIVE pada 2026-09-10 lewat RAD-REQ-001
 
 approved_by: Yoga Aji Pratama <yogaaji452@gmail.com>
@@ -55,13 +57,13 @@ backend_commit_sha: "0e2eb105"   # impact scan dari 64da911 dijalankan 2026-09-1
 frontend_commit_sha: "f66ed1885"
 
 input_revisions:
-  decisions: 10
+  decisions: 11
   capability_map: 2
   requirement_gate: RAD-RCG-001-r2
   domain_architecture: RAD-DA-001-r2
 
 input_hashes:
-  00-interview-decisions.md: e290cdde752b82a0
+  00-interview-decisions.md: f4643e0da0d69e5f   # revision 11, dihitung ulang 2026-09-11
   01-existing-capability-map.md: dc5538f6b2060c13
   02-requirement-completeness-assessment.md: b72135f61be2f4d3
   03-domain-architecture.md: aa82f57da0670d6e
@@ -91,7 +93,7 @@ artifact_hashes:                # sha256 16 karakter pertama, metode sama dengan
   erd/radiology-reporting.md: ba5089482e130379
   erd/radiology-safety-policy.md: f17550766a3dc6b8
   erd/data-dictionary.md: 2b5adbabc1963425
-  contracts/api-contract.md: 46b86612b7368fb5
+  contracts/api-contract.md: 33dbecf20d584392   # diperbarui 2026-09-11, RAD-CONF-001 bagian 8
   contracts/state-transition-matrix.md: 3f4873f03525bed3
   contracts/validation-matrix.md: 355550560351c82b
   contracts/integration-contract.md: 1303c46371e9b472
@@ -128,10 +130,18 @@ Perbandingan dengan modul sebanding:
 | `laboratorium` | `LAB-RCG-001-r4` | `LAB-DA-001-r4` |
 | `radiologi` | `RAD-RCG-001-r2` | `RAD-DA-001-r2` |
 
+> **Masukan baru 2026-09-11 — PRD eksternal versi 1.0.** Sebuah PRD Modul Radiologi yang
+> disusun terpisah dari blueprint ini diterima pemilik modul. Ia **belum** melewati gerbang mana
+> pun, sehingga tidak menggantikan satu pun keputusan terkunci. Pemetaannya terhadap modul
+> terbangun ada pada `05-prd-conformance-gap.md`; tujuh pertanyaan keputusan yang ia timbulkan
+> masih terbuka dan tercatat di bawah.
+
 **Yang boleh masuk desain:** 12 slice `READY_FOR_DOMAIN_DESIGN`, dinyatakan eksplisit berdiri
 sendiri dari verdict `PARTIAL`.
 
-**Yang tidak boleh:** `S5` pelewatan darurat dan `S11` temuan kritis. Keduanya menunggu penanggung jawab tata kelola klinis yang belum ditunjuk.
+**Yang tidak boleh:** `S5` pelewatan darurat dan `S11` temuan kritis. Penanggung jawab tata
+kelola klinisnya kini ada — Komite Medis, `RAD-DEC-016` — tetapi keduanya masih menunggu
+**jawaban isi** atas `RAD-REQ-002` butir 3 dan butir 4, bukan lagi menunggu penunjukan.
 
 ### Catatan urutan pengerjaan dari arsitektur domain
 
@@ -155,7 +165,7 @@ Dokumen operasional, **bukan** artefak desain, sehingga tidak masuk daftar hash 
 | `request_id` | Berkas | Ditujukan kepada | Menahan | Status |
 |---|---|---|---|---|
 | `RAD-REQ-001` | `approval-requests/2026-09-09-permintaan-pembukaan-penghambat.md` | Pemegang registry; pemilik modul + Administrator; pemilik modul IGD | Tidak lagi menahan | **`selesai`** — ketiga butir terjawab 2026-09-10 |
-| `RAD-REQ-002` | `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md` | Manajemen rumah sakit, diteruskan ke dokter penanggung jawab radiologi atau Komite Medis | Slice `S5` dan `S11`; pemakaian production `RAD-DEC-008` | `terbuka` |
+| `RAD-REQ-002` | `approval-requests/2026-09-09-permintaan-tanda-tangan-klinis.md` | Semula manajemen rumah sakit; **butir sisanya kini milik Komite Medis** | Butir 1 **terjawab** `RAD-DEC-016`. Sisa: butir 2 pemakaian production, butir 3 slice `S5`, butir 4 slice `S11`. `MVP-1` kini tertahan `RAD-OPEN-011`, bukan permintaan ini | `dijawab sebagian` — revision 2, dipersempit 2026-09-11 |
 
 ---
 
@@ -168,10 +178,20 @@ Dokumen operasional, **bukan** artefak desain, sehingga tidak masuk daftar hash 
 | `DEC-RAD-001` | Pengesahan klinis atas pelewatan gerbang keselamatan | Clinical Governance | Slice `S5` |
 | `DEC-RAD-002` | Daftar temuan kritis belum ada | Clinical Governance | Slice `S11` |
 | ~~`DEC-RAD-003`~~ | ~~Kebutuhan daftar kerja petugas~~ **DITUTUP 2026-09-09** oleh `RAD-DEC-012` dan `RAD-DEC-013` | — | — |
-| `RAD-OPEN-001` | Penanggung jawab tata kelola klinis belum ditunjuk | Manajemen rumah sakit | `RAD-GATE-002`, dan empat open question lain |
+| ~~`RAD-OPEN-001`~~ | ~~Penanggung jawab tata kelola klinis belum ditunjuk~~ **DITUTUP 2026-09-11** oleh `RAD-DEC-016` — Komite Medis ditunjuk sebagai badan | — | — |
+| `RAD-OPEN-011` | Peran dan pemegang akun yang menjalankan kewenangan Komite Medis belum ditunjuk. **Badan tidak dapat masuk ke sistem**; hak akses Quilvian melekat pada peran pengguna | Komite Medis, dijalankan Administrator | Pengesahan aturan keselamatan — dan karena gerbang fail-closed, **seluruh pemeriksaan** |
 | ~~`RAD-OPEN-005`~~ | ~~Registry masih `PLANNED`~~ **DITUTUP 2026-09-10** — salinan backend dinaikkan ke `ACTIVE` atas persetujuan Muhammad Hamzah; salinan canonical sudah `ACTIVE` sejak 2026-09-09 | — | — |
 | ~~`DEC-RAD-004`~~ | ~~Pemetaan peran~~ **DITUTUP 2026-09-10** oleh `RAD-DEC-015` — peran dikenali lewat hak akses penanda `RadReport : ActAsRadiologist`, bukan nama peran | — | — |
 | `RAD-OPEN-010` | Plugin cache `quilvian-engineering-skills/0.1.0` masih tertulis `Rad = PLANNED` | Pemegang suite Skill | Tidak memblokir modul ini; dapat menyesatkan agent lain |
+| `RAD-CONF-DEC-01` | Satu order beberapa pemeriksaan lintas alat — `PRD-FR-RAD-003`, BR-RAD-007, `PRD-AC-002` | Pemilik modul | **Ditunda 2026-09-11.** Mengubah identitas `RadOrder` dan gerbang keselamatan yang terikat modalitas |
+| `RAD-CONF-DEC-02` | Menampilkan penjamin dan status pembayaran dari Billing — PRD §8, `PRD-AC-010` | Pemilik modul + pemilik Billing | Layar detail order sesuai PRD |
+| `RAD-CONF-DEC-03` | Mengaktifkan PACS — PRD §14, BR-RAD-010 | Pemilik modul | Bertentangan `RJ-BIL-GATE-DEC-004` |
+| `RAD-CONF-DEC-04` | Nomor foto dan model film — PRD §9 | Pemilik modul | `OD-RAD-010` PRD masih terbuka |
+| `RAD-CONF-DEC-05` | Persiapan pasien — `PRD-FR-RAD-008`, BP-RAD-002 | Pemilik modul | `OD-RAD-003` PRD masih terbuka |
+| `RAD-CONF-DEC-06` | ICD-10, DPJP/perujuk, jenis rujukan pada order — `PRD-FR-RAD-002`, `PRD-FR-RAD-005` | Pemilik modul | Layar pemesanan sesuai PRD |
+| `RAD-CONF-DEC-07` | Rujukan luar, cetak hasil, cetak label, laporan — PRD §11, §12, §16 | Pemilik modul | Empat kemampuan baru |
+| ~~`RAD-CONF-DEC-08`~~ | ~~Penomoran requirement PRD bentrok dengan blueprint~~ **DITUTUP 2026-09-11** — requirement PRD memakai awalan `PRD-`; ID blueprint tidak disentuh | — | — |
+| ~~`RAD-CONF-DEC-09`~~ | ~~PRD §25 terbaca melarang pengesahan bertingkat dan koreksi berversi~~ **DITUTUP 2026-09-11** — keduanya tetap berlaku; keputusan terkunci menang atas PRD | — | — |
 | ~~`RAD-CONFLICT-002`~~ | ~~Teks IGD menyatakan modul Radiologi belum ada~~ **DIPERBAIKI 2026-09-10** atas persetujuan Rizki. Penyambungan pemesanan IGD ke endpoint resmi **tetap terbuka**, sengaja menunggu frontend Radiologi Rilis 1 | Pemilik modul IGD | Titik sentuh IGD, bukan Rilis 1 Radiologi |
 
 ---
@@ -180,7 +200,7 @@ Dokumen operasional, **bukan** artefak desain, sehingga tidak masuk daftar hash 
 
 | Artefak | Revision | Isi | Sahih terhadap |
 |---|---:|---|---|
-| `00-interview-decisions.md` | 8 | 13 keputusan terkunci, 42 acceptance criteria dapat diuji, 2 conflict beserta jalan keluarnya | BE `0e2eb105`, FE `f66ed1885` |
+| `00-interview-decisions.md` | 10 | 15 keputusan terkunci, 42 acceptance criteria dapat diuji, 2 conflict beserta jalan keluarnya | BE `0e2eb105`, FE `f66ed1885` |
 | `01-existing-capability-map.md` | 2 | 34 kemampuan terklasifikasi, 2 conflict, 7 closure question | BE `0e2eb105`, FE `f66ed1885` |
 
 Keduanya menjadi masukan sah bagi `requirement-completeness-gate` tanpa perlu diulang.
@@ -194,7 +214,7 @@ Kontrak keluaran blueprint mewajibkan 13 berkas. Keadaannya sekarang:
 | Berkas | Keadaan | Pemilik tahap |
 |---|---|---|
 | `blueprint-manifest.md` | **Ada** — dokumen ini | manage-module-blueprint |
-| `00-interview-decisions.md` | **Ada**, revision 7 | grill-me |
+| `00-interview-decisions.md` | **Ada**, revision 10 | grill-me |
 | `01-existing-capability-map.md` | **Ada**, revision 2 — impact scan 2026-09-10 | trace-existing-capabilities |
 | `02-requirement-completeness-assessment.md` | **Ada**, `RAD-RCG-001-r1` | requirement-completeness-gate |
 | `03-domain-architecture.md` | **Ada**, `RAD-DA-001-r1` | hospital-domain-architect |
@@ -215,6 +235,7 @@ Kontrak keluaran blueprint mewajibkan 13 berkas. Keadaannya sekarang:
 | `roadmap/backend-roadmap.md` | **Ada**, `RAD-RM-BE-001` — 15 task | plan-module-delivery |
 | `roadmap/frontend-roadmap.md` | **Ada**, `RAD-RM-FE-001` — 13 task | plan-module-delivery |
 | `roadmap/requirement-traceability.md` | **Ada**, `RAD-TRACE-001` | plan-module-delivery |
+| `05-prd-conformance-gap.md` | **Ada**, `RAD-CONF-001` revision 3, `approved` — **di luar 13 berkas wajib.** Konformansi PRD eksternal, bukan artefak desain, sehingga tidak masuk daftar hash | — |
 
 Seluruh berkas canonical sudah lengkap. Tiga ERD per bounded context dibuat karena modul ini
 punya empat konteks; menggabungkannya menjadi satu diagram akan melanggar aturan "satu diagram
@@ -254,6 +275,9 @@ pun: pemegang registry menjalankan `RAD-DEC-007`, dan pemilik modul IGD menjalan
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 14 | 2026-09-11 | **`RAD-OPEN-001` ditutup.** `RAD-DEC-016` menunjuk **Komite Medis** sebagai penanggung jawab tata kelola klinis modul Radiologi, sebagai badan. Penunjukan itu menutup pertanyaan **kewenangan**, bukan pelaksanaannya: hak akses Quilvian melekat pada peran pengguna, dan badan tidak dapat masuk ke sistem. `RAD-OPEN-011` dibuka untuk penunjukan pemegang akunnya, dan pemiliknya kini Komite Medis — bukan lagi manajemen rumah sakit. `RAD-REQ-002` dipersempit pada revision 2: dari lima butir, hanya butir 1 yang menahan `MVP-1`, dan kesiapan teknisnya diperiksa — tidak ada penghalang tersisa. | `approved` |
+| 13 | 2026-09-11 | **Dua persoalan lintas dokumen ditutup Yoga Aji Pratama.** `RAD-CONF-DEC-08` menetapkan awalan `PRD-` bagi seluruh requirement PRD 1.0 — ID blueprint tidak disentuh karena sudah dirujuk 28 task roadmap dan 15 laporan task backend. `RAD-CONF-DEC-09` menetapkan pengesahan bertingkat hasil bacaan dan koreksi berversi **tetap berlaku**, dan ketika PRD berselisih dengan keputusan terkunci maka keputusan terkunci yang menang. `05-prd-conformance-gap.md` naik ke revision 3, status `approved`. Tujuh pertanyaan `RAD-CONF-DEC-01` sampai `RAD-CONF-DEC-07` **tetap terbuka**. | `approved` |
+| 12 | 2026-09-11 | **PRD eksternal versi 1.0 masuk sebagai masukan baru.** `05-prd-conformance-gap.md` (`RAD-CONF-001`) memetakannya terhadap modul terbangun: 9 alur bisnis, 12 functional requirement, 13 bagian tematik, 10 business rule, dan 10 acceptance criteria. PRD **bukan** turunan blueprint ini dan belum pernah melewati `/qv-grill` maupun `requirement-completeness-gate`. Empat penghambat frontend dikerjakan atas persetujuan pemilik modul; tujuh pertanyaan keputusan `RAD-CONF-DEC-01` sampai `RAD-CONF-DEC-07` diterbitkan dan **seluruhnya masih terbuka**. `RAD-CONF-DEC-01` — satu order beberapa pemeriksaan — ditunda ke pembahasan tersendiri. Dua persoalan lintas dokumen dicatat: penomoran `FR-RAD-001`–`005` dan `AC-001`–`010` bentrok artinya, dan PRD §25 melarang kemampuan yang sudah sah berjalan atas `RAD-DEC-003`/`RAD-DEC-004`. | `approved` |
 | 1 | 2026-09-09 | Manifest dibuat. Mencatat selesainya `Scope pass`, audit capability, dan `Closure pass`, serta gagalnya gerbang input desain. | `draft` |
 | 2 | 2026-09-09 | `requirement-completeness-gate` selesai — `RAD-RCG-001-r1`, verdict `PARTIALLY_READY`. `RAD-GATE-001` ditutup. Enam Decision ID `DEC-RAD-001` sampai `DEC-RAD-006` diterbitkan. | `draft` |
 | 3 | 2026-09-09 | `hospital-domain-architect` selesai — `RAD-DA-001-r1`, verdict `DOMAIN_ARCHITECTURE_PARTIAL`. `RAD-GATE-002` ditutup. Empat bounded context, empat aggregate, 11 konsep domain, lima gap arsitektur. Gerbang desain lolos untuk 11 slice. | `draft` |

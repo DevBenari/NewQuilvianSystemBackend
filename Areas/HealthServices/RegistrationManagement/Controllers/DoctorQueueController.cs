@@ -1190,7 +1190,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Distinct()
                 .ToList();
 
-            var visitCounts = await _dbContext.Set<TrxPatientEncounter>()
+            var visitCounts = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && patientIds.Contains(x.PatientId))
                 .GroupBy(x => x.PatientId)

@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -70,7 +70,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         /// <summary>Penanda rencana yang masih dipakai ruang kerja keperawatan.</summary>
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public InpEpisode? InpEpisode { get; set; }
 

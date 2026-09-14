@@ -1544,11 +1544,11 @@ Karena itu usulan rute `billing-management/inpatient-deposits` dari pihak Rawat 
 sebelum sempat dipakai. Kedua task di bawah bersifat **aditif**: satu master baru dan satu operasi
 baca baru, tanpa menyentuh satu pun kolom tabel finansial yang sudah berisi data.
 
-## `BE-BKC-039` — Kebijakan minimum deposit per penjamin dan kelas perawatan
+## ✅ `BE-BKC-039` — Kebijakan minimum deposit per penjamin dan kelas perawatan
 
 | Field | Isi |
 | --- | --- |
-| Status | 🚫 `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053`. Rencana lengkap; yang belum ada adalah pernyataan pemilik modul ini |
+| Status | ✅ SELESAI (2026-09-09) — Master data MstDepositPolicy, konfigurasi EF, migration, DTO DepositPolicyResponse, method GetDepositPolicyAsync pada BillingDepositService, dan endpoint GET /deposit-policies pada BillingPatientFundsController selesai beserta unit test. Verifikasi build/test manual oleh pengguna. Laporan: [BE-BKC-039.md](../task/report/backend/BE-BKC-039.md) |
 | Outcome | Petugas admisi rawat inap melihat minimum deposit yang benar untuk kombinasi penjamin dan kelas perawatan pasiennya, dan pasien yang penjaminnya menanggung penuh tidak dimintai uang muka sama sekali |
 | Trace | `RWI-DEC-094`; `FR-RI-164`, `FR-RI-175` pada `04-prd-to-mvp.md` `0.6.1` Rawat Inap; `api-contract.md` `0.6.1` Rawat Inap bagian Deposit Rawat Inap |
 | Kontrak | `BIL-API-0.4` **ditambah** satu operasi baca; `BIL-VALIDATION-0.4` dan `BIL-PERMISSION-0.4` tidak bergeser — memakai `BillingDeposit : Read` yang sudah ada |
@@ -1564,7 +1564,7 @@ baca baru, tanpa menyentuh satu pun kolom tabel finansial yang sudah berisi data
 
 | Field | Isi |
 | --- | --- |
-| Status | 🚫 `BLOCKED_PENDING_OWNER_APPROVAL` — `RWI-OQ-053` |
+| Status | ✅ `SELESAI` (9 September 2026) — Endpoint, DTO, service method, dan 3 unit test in-memory selesai; laporan task tracked `BE-BKC-040.md` terbit |
 | Outcome | Layar admisi, layar kasir, dan gerbang penutupan episode membaca posisi deposit dari satu jawaban server yang sama, sehingga tidak ada dua tempat yang menghitung sendiri lalu berbeda hasil |
 | Trace | `RWI-DEC-095`; `FR-RI-167`, `FR-RI-176`, `FR-RI-172` pada `04-prd-to-mvp.md` `0.6.1` Rawat Inap |
 | Kontrak | `BIL-API-0.4` **ditambah** `GET /patient-funds/deposits/episodes/{episodeId}`. Rute `settle` hanya dibuat bila posisi settlement per episode tidak dapat diturunkan dari alokasi per kunjungan yang sudah ada |

@@ -1117,7 +1117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (result.EncounterId.HasValue)
             {
-                var encounter = await _dbContext.Set<TrxPatientEncounter>()
+                var encounter = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == result.EncounterId.Value && !x.IsDelete);
 
