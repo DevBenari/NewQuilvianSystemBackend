@@ -10,8 +10,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid EncounterId { get; set; }
         public string EncounterNumber { get; set; } = string.Empty;
 
-        public Guid ConsultationId { get; set; }
+        // BE-RWI-068 / INT-DOK-10. Kosong pada diagnosis yang lahir dari kajian medis awal;
+        // seluruh baris lama tetap terisi apa adanya.
+        public Guid? ConsultationId { get; set; }
         public string ConsultationNumber { get; set; } = string.Empty;
+
+        public Guid? InpEpisodeId { get; set; }
 
         public Guid PatientId { get; set; }
         public string PatientName { get; set; } = string.Empty;
@@ -112,6 +116,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? Search { get; set; }
         public Guid? EncounterId { get; set; }
         public Guid? ConsultationId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
         public Guid? PatientId { get; set; }
         public Guid? DoctorId { get; set; }
         public Guid? ServiceUnitId { get; set; }
@@ -148,8 +153,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid ConsultationId { get; set; }
+        /// <summary>
+        /// Catatan dokter yang menaungi diagnosis. <b>Tidak lagi wajib</b> sejak
+        /// <c>BE-RWI-068</c> bila <see cref="InpEpisodeId"/> terisi — <c>INT-DOK-10</c>.
+        /// </summary>
+        /// <remarks>
+        /// Salah satu dari kedua kolom konteks wajib terisi; keduanya kosong ditolak
+        /// <c>400</c> lewat <c>VAL-DOK-36</c>. Pada kunjungan rawat jalan dan medical
+        /// check-up kolom ini <b>tetap</b> dituntut, dengan kalimat penolakan yang sama
+        /// persis seperti sebelumnya — <c>VAL-DOK-38</c>.
+        /// </remarks>
+        public Guid? ConsultationId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi diagnosis, dipakai layar kajian medis awal.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-068</c>, <c>CAP-022</c> aturan 2 dan 5. Hanya berlaku pada kunjungan
+        /// bertipe <c>Inpatient</c>; jalur IGD sengaja tidak ikut dibuka —
+        /// <c>integration-contract.md</c> bagian 10.2.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
 
         public Guid? DiagnosisId { get; set; }
 
@@ -197,6 +221,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
     public class UpdatePatientDiagnosisRequest
     {
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi diagnosis. Opsional, dan hanya diperiksa —
+        /// tidak pernah dipindahkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-068</c>. Konteks asal diagnosis tersimpan apa adanya sejak dibuat —
+        /// <c>permission-audit-matrix.md</c> bagian 4. Nilai yang tidak cocok dengan konteks
+        /// yang tersimpan ditolak <c>400</c>; nilai yang cocok, atau kosong, tidak mengubah
+        /// apa pun.
+        /// </remarks>
+        public Guid? InpEpisodeId { get; set; }
+
         public Guid? DiagnosisId { get; set; }
 
         [MaxLength(50)]
@@ -247,7 +283,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public Guid EncounterId { get; set; }
 
-        public Guid ConsultationId { get; set; }
+        // BE-RWI-068 / INT-DOK-10. Kosong pada diagnosis yang lahir dari kajian medis awal.
+        public Guid? ConsultationId { get; set; }
+
+        public Guid? InpEpisodeId { get; set; }
 
         public Guid? DiagnosisId { get; set; }
 

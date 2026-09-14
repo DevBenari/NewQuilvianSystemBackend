@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
-| Status | `draft` |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — bagian 2A.1 ditulis ulang karena aturan kamar dicabut; bagian 4.1 lahir untuk peran penugasan dokter |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
@@ -60,16 +61,24 @@ yang sedang terburu-buru.
 
 ### 2A.1 Pemisahan jenis kelamin
 
+**Ditulis ulang pada `0.8.0`, 11 September 2026.** `RWI-DEC-101` mencabut aturan jenis kelamin
+tingkat kamar, sehingga empat baris di bawah ini **berbalik arah**: skenario yang dulu wajib
+ditolak kini wajib berhasil. Baris lama dipertahankan dengan coretan supaya pembaca tahu
+pembalikannya disengaja, bukan test yang kendur.
+
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- |
-| `RWI-AC-128` | Pasien perempuan ditempatkan pada tempat tidur bertanda hanya laki-laki | Integrasi | 422 dengan pesan "Tempat tidur ini hanya untuk pasien laki-laki" |
-| `RWI-AC-130` | Kamar sudah dihuni pasien perempuan, pasien laki-laki hendak masuk tempat tidur lain di kamar yang sama | Integrasi | 422, dan **pesannya menyebut nama kamarnya**. Pemeriksaannya membaca penghuni yang sedang ada, bukan penanda `MstRoom` |
-| — | Kamar yang sama, pasien berikutnya berjenis kelamin sama | Integrasi | **Berhasil.** Membuktikan aturan menolak pencampuran, bukan menolak kamar berpenghuni |
-| — | Kamar berisi satu tempat tidur | Integrasi | Aturan pencampuran tidak pernah menolak, apa pun jenis kelamin penghuni sebelumnya di kamar lain |
-| `RWI-AC-129` | Jenis kelamin pasien belum tercatat, tempat tidur menerima keduanya, kamar belum berpenghuni | Integrasi | **Berhasil** |
-| **Gagal** | Jenis kelamin belum tercatat, kamar sudah berpenghuni | Integrasi | 422. Membuktikan syaratnya dua-duanya, bukan salah satu |
-| **Gagal** | Jenis kelamin belum tercatat, tempat tidur hanya menerima satu jenis kelamin | Integrasi | 422 |
-| `RWI-AC-133` | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda | Integrasi | 422 dengan kode dan pesan **sama persis** seperti penempatan. Membuktikan kedua tindakan memanggil pemeriksaan yang sama |
+| `RWI-AC-128` | Pasien perempuan ditempatkan pada tempat tidur bertanda hanya laki-laki | Integrasi | 422 `BED_GENDER_MISMATCH` dengan pesan "Tempat tidur ini hanya untuk pasien laki-laki". **Tidak berubah** |
+| ~~`RWI-AC-130`~~ **BERBALIK** | Kamar sudah dihuni pasien perempuan, pasien laki-laki masuk tempat tidur lain di kamar yang sama, dan tempat tidur itu menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422 dengan pesan menyebut nama kamar~~. Membuktikan penghuni kamar **tidak lagi diperiksa** |
+| `RWI-AC-130a` ★ baru | Response `ineligible` maupun penolakan **tidak pernah** memuat kode `ROOM_GENDER_MIXED` | Integrasi | Kode itu tidak ada lagi di seluruh jalur: pencarian, pemesanan, penempatan, dan perpindahan |
+| — | Kamar yang sama, pasien berikutnya berjenis kelamin sama | Integrasi | **Berhasil.** Tetap berlaku, tetapi kini membuktikan hal yang berbeda: bahwa tidak ada aturan kamar sama sekali |
+| — | Kamar berisi satu tempat tidur | Integrasi | Tetap berhasil. Nilainya turun karena aturan kamar sudah tidak ada; dipertahankan sebagai regresi murah |
+| ~~`RWI-AC-129`~~ **DIPERSEMPIT** | Jenis kelamin pasien belum tercatat, tempat tidur menerima keduanya, **kamar sudah berpenghuni** | Integrasi | **Berhasil.** ~~Dulu mensyaratkan kamar belum berpenghuni~~ |
+| ~~**Gagal**~~ **BERBALIK** | Jenis kelamin belum tercatat, kamar sudah berpenghuni, tempat tidur menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422~~. Ini `AC-MVP-003` pada PRD V2 |
+| **Gagal** | Jenis kelamin belum tercatat, tempat tidur hanya menerima satu jenis kelamin | Integrasi | 422 `PATIENT_GENDER_UNKNOWN`. **Tidak berubah.** Membuktikan pencabutan tidak melonggarkan syarat tempat tidur |
+| ~~`RWI-AC-133`~~ **BERBALIK** | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda, tempat tidur tujuan menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422~~. Tetap membuktikan penempatan dan perpindahan memanggil pemeriksaan yang sama |
+| `RWI-AC-133a` ★ baru | Isolasi tetap menolak setelah aturan kamar dicabut | Integrasi | `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED` **tetap** 422. Ini regresi terpenting pass ini, karena kedua aturan itu bertetangga di dalam method yang sama dengan aturan yang dihapus |
+| `RWI-AC-133b` ★ baru | Pengecualian boks bayi tetap berlaku | Integrasi | Penempatan **ke** boks bayi tetap melewati kedua aturan jenis kelamin yang tersisa |
 
 ### 2A.2 Pengecualian boks bayi — dua arah
 
@@ -137,6 +146,23 @@ yang sedang terburu-buru.
 | `RWI-AC-102` | Peran selain kepala ruangan menugaskan perawat | Integrasi | 403 |
 | `RWI-AC-104` | Episode tanpa perawat tetap dapat menerima perpindahan | Integrasi | Perpindahan berhasil walaupun perawat belum ditugaskan |
 | `RWI-AC-105` | Episode tanpa perawat muncul pada daftar pantau | Integrasi | `GET /monitoring/unassigned-nurse-episodes` memuat episode itu |
+
+### 4.1 Peran penugasan dokter — lahir `0.8.0`
+
+Menyerap `RWI-DEC-099`. Satu baris lama **berubah maknanya** dan wajib dibaca ulang sebelum
+test-nya ditulis.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| ~~`RWI-AC-084`~~ **DIPERSEMPIT** | Episode aktif tidak pernah punya dua **DPJP** aktif | Integrasi | Index unik menolak baris `Dpjp` kedua yang `EndDateTime` kosong. ~~Dulu menolak penugasan terbuka kedua apa pun perannya~~ |
+| `RWI-AC-084a` ★ baru | Satu episode punya satu DPJP, dua konsulen, dan satu dokter jaga aktif bersamaan | Integrasi | **Keempatnya tersimpan.** Membuktikan filter index memandang peran, bukan sekadar `EndDateTime` |
+| `RWI-AC-084b` ★ baru | Migration mengisi seluruh baris lama menjadi `Dpjp` | Migration | Nol baris berperan kosong; jumlah baris sebelum dan sesudah sama persis |
+| `RWI-AC-084c` ★ baru | Urutan migration dijalankan terbalik, index diganti sebelum kolom terisi | Migration | **Gagal terkendali**, bukan diam-diam lolos. Membuktikan urutan tiga langkah memang mengikat |
+| `RWI-AC-084d` ★ baru | Konsulen mencoba mengubah perannya sendiri menjadi `Dpjp` pada baris yang sama | Integrasi | Ditolak. Peran diubah dengan menutup baris lalu membuka baru, bukan menimpa |
+| `RWI-AC-084e` ★ baru | Pengalihan DPJP menutup baris lama dan membuka baris baru dalam satu transaksi | Integrasi | Tidak pernah ada saat ketika dua baris `Dpjp` terbuka, dan tidak pernah ada saat tanpa DPJP |
+| `RWI-AC-084f` ★ baru | Dokter berperan `Consultant` meminta keputusan pulang | Integrasi | 403. Ini keadaan fail-closed `OPEN-MVP-004`, bukan kebijakan yang sudah diputuskan |
+| `RWI-AC-084g` ★ baru | Dokter berperan `OnCallDoctor` menandatangani resume | Integrasi | 403 |
+| `RWI-AC-084h` ★ baru | Rollback migration dijalankan setelah satu baris `Consultant` tersimpan | Migration | **Gagal terkendali.** Membuktikan batas rollback yang tertulis pada `data/data-dictionary.md` bagian 2.1 memang nyata |
 
 ## 4A. Kepergian fisik pasien
 

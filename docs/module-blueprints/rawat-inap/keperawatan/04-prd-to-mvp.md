@@ -412,3 +412,80 @@ Tabel di bawah dipertahankan sebagai jejak pertanyaan aslinya.
 | Memblokir? | **Sudah tidak.** Ditutup `RWI-DEC-091` sebelum satu task pun dibangun — tepat seperti yang diharapkan baris ini. Yang tersisa adalah syarat teknis `RWI-OQ-051` |
 | Pemilik jawaban | Muhammad Hamzah, selaku Product/Domain sekaligus pemilik `ClinicalManagement` |
 | Langkah yang benar | ~~`/qv-grill` Amendment Pass~~ **Sudah dijalankan 2026-09-02.** Hasilnya `RWI-DEC-091` |
+
+## 21. Gelombang 1A — Rawat Inap Safety Corrections
+
+**Ditambahkan 11 September 2026**, menyerap `RWI-DEC-098` dan `RWI-DEC-100`. Menurunkan dari
+`contracts/api-contract.md` `0.4.0` beserta kedua matriks `0.4.0`.
+
+### 21.1 Dua penyimpangan yang dibereskan
+
+| Penyimpangan | Keadaan hari ini di source | Kenapa berbahaya |
+| --- | --- | --- |
+| Tanda vital dapat dihapus | `DELETE /patient-vital-signs/{id}` melakukan soft delete tanpa pemeriksaan status, tanpa alasan, **dan ikut mematikan penanda pemberitahuan dokter** | Tanda vital adalah deret waktu. Menghapus satu baris tidak menyisakan lubang yang terlihat; grafik tetap tersambung dan tetap tampak wajar |
+| Dokumentasi keperawatan tidak punya penjaga kewenangan | Resolver konteks klinis **nol menyebut perawat** | Pengguna mana pun yang memegang butir hak aksesnya dapat menulis pengkajian untuk pasien mana pun di rumah sakit |
+
+### 21.2 Batas gelombang ini
+
+**Titik mulai.** Kontrak `0.4.0` `draft`; keputusan `RWI-DEC-098` dan `RWI-DEC-100` `approved`.
+
+**Titik akhir.**
+
+1. `DELETE` pada tanda vital tidak tersedia; jawabannya `404`.
+2. Penulis keperawatan diambil dari pengguna terautentikasi.
+3. Kewenangan menulis dinilai dari unit tempat episode berada.
+4. Acceptance criteria `AC-KEP-040` s.d. `AC-KEP-050` lulus.
+
+### 21.3 Epic dan functional requirement
+
+| ID | Epic | Prioritas | Disposisi |
+| --- | --- | --- | --- |
+| `EPIC KEP-07` | Tanda vital tidak dapat disembunyikan | `P0` | `EXTEND` |
+| `EPIC KEP-08` | Penulis keperawatan berasal dari pengguna terautentikasi | `P0` | `MISSING / NEW` |
+
+| FR | Bunyi requirement | Epic | Disposisi |
+| --- | --- | --- | --- |
+| `FR-KEP-029` | Jalur `DELETE` pada tanda vital tidak tersedia | `KEP-07` | `EXTEND` |
+| `FR-KEP-030` | Penanda pemberitahuan dokter tidak dapat dimatikan tanpa alasan tersimpan | `KEP-07` | `EXTEND` |
+| `FR-KEP-031` | Penulis diambil dari `ApplicationUser.EmployeeId`; `nurseId` pada payload tidak menentukan penulis | `KEP-08` | `MISSING / NEW` |
+| `FR-KEP-032` | Perawat boleh menulis untuk pasien yang episodenya berada di unit tempat ia bertugas | `KEP-08` | `MISSING / NEW` |
+| `FR-KEP-033` | `InpNurseAssignment` tetap menjadi penunjukan penanggung jawab, **bukan** gerbang hak tulis | `KEP-08` | `EXISTING / REUSE` |
+| `FR-KEP-034` | Sumber data unit tempat perawat bertugas ditetapkan tanpa menyalin unit ke baris penugasan | `KEP-08` | `OPEN DECISION` — bentuk teknisnya diselesaikan pada task implementasi |
+
+### 21.4 Skenario UAT
+
+**Jalur berhasil.** Perawat dinas malam mendokumentasikan pengkajian untuk pasien di bangsalnya
+yang bukan tanggung jawabnya, dan berhasil. Perawat penanggung jawab berganti, tetapi perawat lama
+yang masih bertugas di unit itu tetap dapat menulis. Tanda vital yang sudah tercatat tetap terbaca
+utuh pada lini masa.
+
+**Jalur gagal.** Perawat menulis untuk pasien di unit lain dan ditolak. Pasien dipindahkan ke unit
+lain, lalu perawat unit lama menulis dan ditolak. Pengguna tanpa pemetaan pegawai menulis dan
+ditolak. Pemanggilan `DELETE` pada tanda vital dijawab sebagai route yang tidak ada.
+
+### 21.5 Definition of Done gelombang ini
+
+| Butir | Cara menjawabnya |
+| --- | --- |
+| `DELETE` hilang dari controller tanda vital | Pencarian source mengembalikan nol `HttpDelete` pada berkas itu |
+| Deret waktu tanda vital terbukti utuh | `AC-KEP-041` lulus |
+| Kewenangan berbasis unit terbukti bekerja dua arah | `AC-KEP-044` berhasil dan `AC-KEP-045` ditolak |
+| Kewenangan mengikuti unit episode, bukan salinan | `AC-KEP-049` lulus |
+| Regresi Rawat Jalan dan IGD lulus | `AC-KEP-043` lulus. **Wajib**, karena controller dipakai bersama |
+| Skenario negatif memakai peran nyata | `AC-KEP-050` lulus |
+| Nol butir hak akses baru | Daftar permission sebelum dan sesudah sama persis |
+
+**Satu butir yang sengaja dinyatakan belum terpenuhi.** Pembatalan tanda vital final belum dapat
+diuji, karena `ClinicalDocumentKind.VitalSign` belum termasuk jenis yang ditegakkan mesin keutuhan
+dokumen. Butir ini ditulis **`NOT RUN` apa adanya** pada laporan task, bukan dihilangkan dari
+daftar. Ia tidak memblokir gelombang ini, tetapi memblokir pernyataan bahwa jalur pengganti sudah
+lengkap. Dilacak `V2-UNK-01`.
+
+### 21.6 Yang sengaja di luar gelombang ini
+
+| Yang ditunda | Alasan |
+| --- | --- |
+| Medication Administration Record, transfusi, sliding scale, catatan cairan, handover shift, dan reaksi obat | Seluruhnya `Missing` pada capability map bagian 16. Di luar `Gelombang 1A`, dan sebagiannya menunggu sepuluh butir `OPEN-MVP` yang `RWI-DEC-097` tidak buka |
+| Peran pada penugasan perawat | `RWI-DEC-100` tidak membedakan peran perawat. Menambahkannya sekarang berarti merancang kebijakan yang belum diputuskan |
+
+---
