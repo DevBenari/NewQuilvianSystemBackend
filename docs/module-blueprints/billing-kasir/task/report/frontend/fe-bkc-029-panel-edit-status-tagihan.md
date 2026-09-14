@@ -8,7 +8,40 @@
 | Task mode | `FRONTEND` (backend read-only — endpoint dan aturan validasi `BE-BKC-048` dibaca langsung dari source, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `FE-BKC-028` (kerangka halaman — source selesai, lihat laporannya), `BE-BKC-048` ✅ (`PUT /{id}/item-payer-assignments`, dikonfirmasi ada persis sesuai kontrak beserta seluruh aturan validasinya dibaca dari `BillingPayerEditService.UpdateItemPayerAssignmentsAsync`) |
-| Status task | **Source selesai.** Panel terpasang pada slot `activeMode === INVOICE_EDIT_MODES.ITEM_STATUS` di `edit-tagihan-view.jsx` (disiapkan `FE-BKC-028`). **Sesuai instruksi baku pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — hanya `node --check` pada berkas logika non-JSX (lihat § DoD). Belum di-commit |
+| Status task | 🟡 **Sebagian.** Source semula selesai; lihat **Amendment 14 September 2026** di bawah untuk perubahan struktural setelahnya. `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini. Belum di-commit |
+
+## Amendment 14 September 2026 — tabel mini dihapus, digabung ke `FE-BKC-028`
+
+Bagian dari refactor "single table" lintas ketiga panel Edit Tagihan — detail lengkap latar
+belakang, perubahan, dan constraint kontrak yang ditemukan ada pada laporan
+[`FE-BKC-028`](fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) § "Amendment 14
+September 2026", karena perubahan ini menyentuh kerangka bersama (`edit-tagihan-view.jsx`) yang
+dimiliki task itu. Ringkas untuk task ini:
+
+- `<table>` mini "Ubah penanggung biaya per item" pada `edit-status-tagihan-panel.jsx` **dihapus
+  seluruhnya**. Kolom Status pada tabel "Rincian Tagihan" (dipakai bersama, milik `FE-BKC-028`)
+  kini menampilkan grup tombol Pribadi/Asuransi/Penjamin per baris — logika dan markup interaksi
+  (termasuk `kindAvailability`, baris `VOIDED` nonaktif) dipindah **persis sama**, hanya lokasi
+  render-nya berpindah dari tabel mini ke kolom Status tabel tunggal.
+- Hook `useEditStatusTagihanPanel` kini dipanggil dari `edit-tagihan-view.jsx` (bukan dari panel
+  ini), dan hasilnya diteruskan sebagai prop `panel` — supaya state pilihan per baris (`rows`,
+  `getSelectedKind`, `selectKind`, `kindAvailability`) bisa dipakai bersama oleh kolom Status pada
+  tabel. Tambahan field `isDirty` (derivasi dari `changedRows`/`reason`, tanpa state baru) dipakai
+  gerbang konfirmasi ganti mode di parent.
+- **Constraint kontrak yang tidak berubah:** `Reason` tetap wajib diisi (backend `BIL-VAL-062`
+  menolak alasan kosong) walau permintaan awal task ini menyebut "opsional" — lihat detail di
+  laporan `FE-BKC-028`.
+
+Tidak ada perubahan pada acceptance criteria task ini sendiri (§42 spesifikasi refactor) — perilaku
+fungsional identik, hanya lokasi visualnya yang berubah dari tabel terpisah menjadi kolom pada
+tabel yang sama.
+
+**Koreksi self-review:** draft awal amendment ini sempat menghapus subjudul terkunci **"Ubah
+penanggung biaya per item"** (kartu roadmap `FE-BKC-029` kolom Scope: *"subjudul wajib..."*) sama
+sekali karena tabel mininya dihapus. Ini ditemukan sebagai deviasi dari acceptance criteria
+terkunci dan **diperbaiki dalam sesi yang sama** sebelum dilaporkan selesai: subjudul dipertahankan
+verbatim sebagai judul strip kontrol, ditambah satu kalimat penjelas yang mengarahkan ke kolom
+Status pada tabel di bawahnya. Tidak ada acceptance criteria terkunci yang akhirnya dilanggar.
 
 ## Ringkasan untuk pembaca umum
 

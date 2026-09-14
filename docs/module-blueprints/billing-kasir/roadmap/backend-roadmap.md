@@ -1652,35 +1652,35 @@ bentuk yang dirancang. Karena itu `MVP-17` yang sebelumnya tertahan kini ikut be
 ## Grafik Urutan Dependency
 
 ```text
-✅ BE-BKC-041 ─┬─> ✅ BE-BKC-042
-             │
-             ├─> ✅ BE-BKC-043 ─> BE-BKC-052
-             │
-             └─> ✅ BE-BKC-044 ─┬─> ✅ BE-BKC-048 ─┐
-                             │                   │
-                             ├─> ✅ BE-BKC-049 ──┤
-                             │                   │
-                             ├─> ✅ BE-BKC-050 ──┤
-                             │                   │
-  ✅ BE-BKC-045 ─┬───────────┴─> ✅ BE-BKC-047 ──┴─> ✅ BE-BKC-051
-                 │
-   ✅ BE-BKC-046 ─┘
+BE-BKC-041 ✅ ─┬─> BE-BKC-042 ✅
+               │
+               ├─> BE-BKC-043 ✅ ─> BE-BKC-052 🟡
+               │
+               └─> BE-BKC-044 ✅ ─┬─> BE-BKC-048 ✅ ─┐
+                                  │                  │
+                                  ├─> BE-BKC-049 ✅ ─┤
+                                  │                  │
+                                  ├─> BE-BKC-050 ✅ ─┤
+                                  │                  │
+      BE-BKC-045 ✅ ─┬────────────┴─> BE-BKC-047 ✅ ─┴─> BE-BKC-051 ✅
+                     │
+      BE-BKC-046 ✅ ─┘
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | ✅ `BE-BKC-041`, ✅ `BE-BKC-045`, ✅ `BE-BKC-046` — boleh paralel |
-| 2 | ✅ `BE-BKC-041` | ✅ `BE-BKC-042`, ✅ `BE-BKC-043`, ✅ `BE-BKC-044` — boleh paralel |
-| 3 | ✅ `BE-BKC-044`, ✅ `BE-BKC-045`, ✅ `BE-BKC-046` | ✅ `BE-BKC-047` |
-| 3 | ✅ `BE-BKC-044` | ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-050` — boleh paralel |
-| 3 | ✅ `BE-BKC-043` | `BE-BKC-052` |
-| 4 | ✅ `BE-BKC-047`, ✅ `BE-BKC-048`, ✅ `BE-BKC-049`, ✅ `BE-BKC-050` | ✅ `BE-BKC-051` |
+| 1 | — | `BE-BKC-041` ✅, `BE-BKC-045` ✅, `BE-BKC-046` ✅ — selesai paralel |
+| 2 | `BE-BKC-041` ✅ | `BE-BKC-042` ✅, `BE-BKC-043` ✅, `BE-BKC-044` ✅ — selesai paralel |
+| 3 | `BE-BKC-044` ✅, `BE-BKC-045` ✅, `BE-BKC-046` ✅ | `BE-BKC-047` ✅ |
+| 3 | `BE-BKC-044` ✅ | `BE-BKC-048` ✅, `BE-BKC-049` ✅, `BE-BKC-050` ✅ — selesai paralel |
+| 3 | `BE-BKC-043` ✅ | `BE-BKC-052` 🟡 — data placeholder dev terpasang, menunggu nilai kontrak riil dan approval Finance (bukan blocker teknis) |
+| 4 | `BE-BKC-047` ✅, `BE-BKC-048` ✅, `BE-BKC-049` ✅, `BE-BKC-050` ✅ | `BE-BKC-051` ✅ |
 
 ## 1. Pemetaan gelombang MVP ke gelombang eksekusi
 
 | Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
 | --- | --- | --- |
-| `MVP-16` (fondasi) | ✅ `BE-BKC-041`, ✅ `042`, ✅ `043`, ✅ `044`, `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan |
+| `MVP-16` (fondasi) | ✅ `BE-BKC-041`, ✅ `042`, ✅ `043`, ✅ `044`, 🟡 `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan. Fase ini belum naik ✅ karena `BE-BKC-052` masih menunggu nilai kontrak riil dan approval Finance |
 | `MVP-17` (ganti payer) | ✅ `BE-BKC-045`, ✅ `046`, ✅ `047` | Kasir dapat mengganti penanggung kunjungan sebelum pembayaran, dengan pratinjau perbandingan lebih dulu |
 | `MVP-18` (koreksi per baris) | ✅ `BE-BKC-048`, ✅ `BE-BKC-049` | Kasir dapat menandai penanggung tiap baris biaya dan menentukan obat yang masuk tagihan |
 | `MVP-19` (dokumen + hardening) | ✅ `BE-BKC-050`, ✅ `BE-BKC-051` | Perusahaan penjamin dapat ditagih dengan lembar tersendiri; hak akses, privasi, dan regresi terbukti |
@@ -1889,7 +1889,7 @@ selesai begitu kontraknya diserahkan.
 | DoD | Seluruh acceptance test rumpun ini lulus; nol kolom sensitif pada catatan log terbukti; build dan test lulus |
 | Status | ✅ **Selesai 11 September 2026.** Seluruh audit hak akses RBAC per peran terbukti (`BIL-AT-097`), pemindaian otomatis atribut `CAP-39` terverifikasi, perlindungan privasi data sensitif pada log dan penomoran berkas dokumen terpenuhi (`BIL-AT-098`), gerbang penutupan edit pasca-pembayaran (`FR-BKC-085`) dan transaksi serializable atomik (`FR-BKC-086`, `NFR-020`) teruji, serta uji regresi komparatif membuktikan tagihan tunai dan asuransi lama bebas pergeseran angka sementara tagihan perusahaan bebas peringatan palsu (`BIL-AT-100`, `NFR-027`). Laporan: [BE-BKC-051](../task/report/backend/BE-BKC-051.md) |
 
-## `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
+## 🟡 `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
 
 | Field | Isi |
 | --- | --- |
@@ -1904,7 +1904,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Query hitung perusahaan penjamin aktif tanpa aturan tanggungan — hasilnya **MUST** nol sebelum fitur diaktifkan |
 | Risiko/pemilik | **Tanpa task ini, fitur aktif tetapi seluruh tanggungan perusahaan terhitung nol** dan pasien tertagih penuh. Owner Product/Domain bersama Admin Master Data |
 | DoD | Query verifikasi mengembalikan nol; daftar perusahaan beserta aturannya direview Finance |
-| Status | **Data placeholder dev terpasang 12 September 2026, task BELUM selesai.** Pengguna menjalankan 2 statement insert manual (60 baris: 5 `MstCompanyGuarantorReimbursementRoute` `RouteType=SELF` `IsDefault=true`, dan 55 `MstCompanyGuarantorCoverageRule` `ItemType=ServiceCategory` `CoveragePercent=100` lintas 11 kategori tarif aktif) untuk kelima perusahaan penjamin aktif saat ini (`COMP-PLN`, `COMP-TELKOM`, `COMP-ASTRA`, `COMP-BCA`, `COMP-UNILEVER`), supaya mesin tanggungan (`CompanyGuarantorCoverageService`) dapat diuji end-to-end tanpa selalu jatuh ke nol. Seluruh baris ditandai `[DEV PLACEHOLDER]` pada `RuleCode`/`RuleName`/`Description` dan **bukan** nilai dari kontrak kerja sama asli. Task ini baru boleh ditandai selesai setelah: (1) baris placeholder diganti nilai kontrak riil per perusahaan dari Admin Master Data, (2) daftar hasil akhir direview dan disetujui Finance, dan (3) kedua query verifikasi di atas dikonfirmasi ulang mengembalikan nol pasca-penggantian |
+| Status | 🟡 **SEBAGIAN 14 September 2026.** Kedua acceptance criteria (nol perusahaan penjamin aktif tanpa aturan tanggungan; nol yang tanpa rute reimbursement) **belum terbukti** — data yang terpasang masih placeholder, bukan nilai kontrak riil, dan kedua query verifikasi belum dijalankan pada sesi manapun. **Data placeholder dev terpasang 12 September 2026.** Pengguna menjalankan 2 statement insert manual (60 baris: 5 `MstCompanyGuarantorReimbursementRoute` `RouteType=SELF` `IsDefault=true`, dan 55 `MstCompanyGuarantorCoverageRule` `ItemType=ServiceCategory` `CoveragePercent=100` lintas 11 kategori tarif aktif) untuk kelima perusahaan penjamin aktif saat ini (`COMP-PLN`, `COMP-TELKOM`, `COMP-ASTRA`, `COMP-BCA`, `COMP-UNILEVER`), supaya mesin tanggungan (`CompanyGuarantorCoverageService`) dapat diuji end-to-end tanpa selalu jatuh ke nol. Seluruh baris ditandai `[DEV PLACEHOLDER]` pada `RuleCode`/`RuleName`/`Description` dan **bukan** nilai dari kontrak kerja sama asli. Task ini baru boleh ditandai ✅ setelah: (1) baris placeholder diganti nilai kontrak riil per perusahaan dari Admin Master Data, (2) daftar hasil akhir direview dan disetujui Finance, dan (3) kedua query verifikasi di atas dijalankan dengan wewenang database eksplisit dan dikonfirmasi mengembalikan nol pasca-penggantian. Bukti: [laporan](../task/report/backend/BE-BKC-052.md) |
 
 ## Paralelisme dan urutan ringkas
 

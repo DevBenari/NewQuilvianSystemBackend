@@ -8,7 +8,107 @@
 | Task mode | `FRONTEND` (backend read-only — ketiga endpoint `BE-BKC-047` dibaca langsung dari source dan dikonfirmasi ada persis sesuai kontrak, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `BE-BKC-047` ✅, `BE-BKC-048` ✅, `BE-BKC-049` ✅ — ketiga endpoint dasarnya (`edit-context`, `item-payer-assignments`, `drug-billing-disposition`) dikonfirmasi ada di `BillingInvoicesController.cs`; hanya tiga endpoint milik `BE-BKC-047` yang dipakai task ini |
-| Status task | **Source selesai** untuk kerangka `FE-MPY-01` (header, toolbar tiga mode, tabel rincian tagihan) dan panel `FE-MPY-02` Edit Asuransi penuh. Panel `FE-MPY-03`/`FE-MPY-04` (milik `FE-BKC-029`/`FE-BKC-030`) sengaja **belum** diisi — lihat § Keputusan butir 5. **Sesuai instruksi baku pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — hanya `node --check` pada berkas logika non-JSX (lihat § DoD). Belum di-commit |
+| Status task | 🟡 **Sebagian.** Source untuk kerangka `FE-MPY-01`, panel `FE-MPY-02`/`03`/`04`, dan amendment 14 September 2026 (refactor tabel tunggal) sudah lengkap ditulis. `npm run lint`/`test:unit`/`build` dan klik-coba ter-autentikasi **belum dijalankan** — lihat § DoD. Belum di-commit |
+
+## Amendment 14 September 2026 — Refactor tabel tunggal (konsolidasi Edit Asuransi/Status Tagihan/Billing)
+
+**Latar belakang.** Setelah `FE-BKC-029` dan `FE-BKC-030` menyelesaikan panelnya masing-masing,
+pengguna meninjau tampilan gabungan ketiganya dan menemukan pola yang secara eksplisit ingin
+dihindari: setiap panel (Edit Asuransi, Edit Status Tagihan, Edit Billing) merender **tabel mini
+miliknya sendiri** ("Ubah penanggung biaya per item", "Deskripsi/Jumlah/Ditebus") di ATAS, lalu
+tabel "Rincian Tagihan" baca-saja yang sama (`BillingInvoiceItemsTable`) dirender LAGI di bawahnya
+— dua tabel menampilkan baris tagihan yang sama, salah satunya untuk edit dan satunya untuk
+pratinjau. Task ini me-refactor ketiganya menjadi **satu tabel tagihan** yang kolom Status-nya
+berubah menjadi kontrol inline sesuai mode aktif, mengikuti referensi visual yang diberikan
+pengguna.
+
+**Perubahan struktural:**
+
+1. **`billing-invoice-items-table.jsx`** (dipakai bersama Menu Pembayaran) diberi dua prop opsional
+   baru — `renderStatusCell(item)` dan `getRowClassName(item)` — yang bila TIDAK dikirim (kasus
+   Menu Pembayaran) menjaga perilaku baca-saja lama persis seperti sebelumnya. Ini satu-satunya
+   perubahan pada komponen bersama ini; **nol dampak** pada Menu Pembayaran.
+2. **`edit-tagihan-view.jsx`** kini memanggil ketiga hook panel (`useEditAsuransiPanel`,
+   `useEditStatusTagihanPanel`, `useEditBillingPanel`) langsung di level halaman (Rules of Hooks —
+   ketiganya dipanggil tanpa syarat setiap render, hanya hasil milik mode aktif yang dipakai
+   membangun `renderStatusCell`), lalu merender **satu** `BillingInvoiceItemsTable`:
+   - Mode **Edit Status Tagihan**: kolom Status menjadi grup tombol Pribadi/Asuransi/Penjamin per
+     baris (logika/markup dipindah persis dari tabel mini lama, hanya lokasinya berpindah).
+   - Mode **Edit Billing**: kolom Status menjadi badge Ditebus/Tidak Ditebus (mode `ALL`/`NONE`)
+     atau kotak centang (mode `PARTIAL`, hanya baris obat) — baris non-obat tetap badge coverage
+     biasa.
+   - Mode **Edit Asuransi** (tanpa membandingkan): badge biasa, tidak berubah — interaksi mode ini
+     tetap di pemilihan kandidat penjamin, bukan per-baris.
+3. **`edit-asuransi-panel.jsx`**: blok perbandingan (`Bandingkan`) yang sebelumnya hanya
+   menampilkan ringkasan `<dl>` Total/Ditanggung/Mandiri kini menyertakan **dua**
+   `BillingInvoiceItemsTable` berdampingan (SEKARANG vs BILA DIGANTI) memakai komponen tabel yang
+   SAMA untuk kedua sisi — sesuai instruksi eksplisit "jangan implementasikan dua logika tabel
+   berbeda". Status per baris tiap sisi diturunkan dari `PerItemComparison`
+   (`PayerComparisonPreviewResponse`, murni data server). Tabel tunggal utama disembunyikan
+   sementara saat mode ini menampilkan perbandingan, supaya tagihan yang sama tidak pernah dirender
+   tiga kali sekaligus.
+4. **`edit-status-tagihan-panel.jsx`** dan **`edit-billing-panel.jsx`**: `<table>` mini masing-masing
+   **dihapus seluruhnya**. Keduanya kini murni strip kontrol (toggle mode/penghitung item diubah,
+   alasan, bar Batal/Simpan) dan menerima hasil hook (`panel`) sebagai prop dari parent, bukan
+   memanggil hook sendiri — supaya state pilihan/centang bisa dipakai bersama oleh kolom Status
+   pada tabel tunggal.
+5. **Ketiga hook panel** (`use-edit-asuransi-panel.js`, `use-edit-status-tagihan-panel.js`,
+   `use-edit-billing-panel.js`) diberi tambahan field `isDirty` (murni derivasi dari state yang
+   sudah ada, tidak ada state baru) untuk gerbang konfirmasi ganti mode.
+6. **Gerbang ganti mode dengan draft belum disimpan** (§31 spesifikasi task): `edit-tagihan-view.jsx`
+   kini menahan `setActiveMode` di belakang `requestModeChange` — bila mode aktif `isDirty`,
+   `ConfirmModal` "Perubahan belum disimpan. Buang perubahan dan pindah mode?" muncul lebih dulu.
+   Draft mode yang TIDAK sedang ditampilkan tidak pernah hilang tanpa sengaja karena hook-nya tetap
+   hidup (dipanggil tanpa syarat).
+7. **Entry point ganda diselesaikan** (§2 spesifikasi task) — `menu-pembayaran-view.jsx`: tombol
+   yang tadinya berlabel **"🔀 Edit Penanggung"** (padahal ini yang navigasi ke halaman Edit Tagihan
+   terpusat) diganti labelnya menjadi **"✏️ Edit Tagihan"**; tombol lain yang tadinya JUGA berlabel
+   **"✏️ Edit Tagihan"** (padahal fungsinya toggle form "Tambah Biaya Lain-Lain" yang tidak
+   berhubungan sama sekali dengan payer editing) diganti menjadi **"➕ Tambah Biaya Lain-lain"**.
+   Kedua tombol dan fiturnya **tidak dihapus** — hanya label yang diperjelas supaya tidak lagi
+   bertabrakan nama. `href`/handler masing-masing tidak berubah.
+
+**Constraint kontrak yang ditemukan (dilaporkan apa adanya, TIDAK disiasati):**
+
+1. **§17/§28 "Alasan opsional" TIDAK dapat dipenuhi tanpa mengubah backend.**
+   `BillingPayerEditService` (backend) menolak keras (`400`, `BIL-VAL-062` *"Alasan perubahan wajib
+   diisi"*) permintaan dengan `Reason` kosong pada ketiga endpoint (`PUT /payment-source`,
+   `PUT /item-payer-assignments`, `PUT /drug-billing-disposition`). Task ini `FRONTEND MODE` dan
+   secara eksplisit dilarang mengubah kontrak API. Field "Alasan perubahan" karena itu **tetap
+   wajib** (tombol Simpan tetap tergerbang `Boolean(reason.trim())`) di ketiga panel — bukan diam-
+   diam dikirim nilai dummy untuk menyiasati validasi backend. Direkomendasikan: task backend
+   terpisah melonggarkan `BIL-VAL-062` bila produk memang menghendaki alasan opsional.
+2. **§12-14 "Live calculation preview" hanya tersedia untuk Edit Asuransi.** Backend hanya
+   menyediakan satu endpoint pratinjau tanpa efek samping (`POST /payer-comparison-preview`) untuk
+   ganti payer kunjungan. Untuk Edit Status Tagihan dan Edit Billing, **tidak ada** endpoint
+   pratinjau — keduanya hanya endpoint mutate langsung (`PUT`). Menghitung pratinjau sendiri di
+   React eksplisit dilarang spesifikasi task ini ("Jangan menghitung coverage sendiri di React"),
+   dan task ini dilarang menambah endpoint baru. Konsekuensinya: Ringkasan Pembayaran pada dua mode
+   itu baru berubah **setelah** "Simpan Perubahan" berhasil (memuat ulang `edit-context`), bukan
+   reaktif per-klik draft seperti Edit Asuransi. Ini didokumentasikan langsung sebagai komentar di
+   `edit-tagihan-view.jsx` supaya tidak terulang salah paham di sesi berikutnya.
+
+**File yang ikut berubah pada amendment ini** (tambahan dari daftar § File yang diubah/ditambah
+di bawah, yang mencatat kondisi ASLI sebelum amendment):
+
+| File | Perubahan |
+| --- | --- |
+| `billing-invoice-items-table.jsx` | Tambah prop opsional `renderStatusCell`, `getRowClassName` (backward compatible) |
+| `edit-tagihan-view.jsx` | Restrukturisasi: satu tabel, ketiga hook panel dipanggil di level halaman, gerbang ganti mode |
+| `edit-asuransi-panel.jsx` | Blok perbandingan kini merender dua `BillingInvoiceItemsTable` berdampingan, bukan hanya `<dl>` |
+| `edit-status-tagihan-panel.jsx` | `<table>` mini dihapus; jadi strip kontrol menerima `panel` sebagai prop |
+| `edit-billing-panel.jsx` | `<table>` mini dihapus; jadi strip kontrol menerima `panel` sebagai prop |
+| `use-edit-asuransi-panel.js`, `use-edit-status-tagihan-panel.js`, `use-edit-billing-panel.js` | Tambah field `isDirty` (derivasi, tanpa state baru) |
+| `menu-pembayaran-view.jsx` | Label dua tombol diperjelas (§2) — `href`/handler tidak berubah |
+
+**Validasi amendment:** sama seperti seluruh sesi task ini — **`npm run lint`/`test:unit`/`build`
+TIDAK dijalankan** sesuai instruksi eksplisit pengguna ("jangan lakukan build automatis, biarkan
+saya yang build secara manual"). Diverifikasi lewat pembacaan ulang menyeluruh source (tag JSX
+terbuka/tertutup, prop yang dikonsumsi memang dikirim, tidak ada import yang tidak terpakai).
+`git status --short` dikonfirmasi hanya menyentuh 9 berkas di atas — nihil perubahan sampingan.
+
+- MANUAL TEST: NOT FEASIBLE pada sesi ini — perlu environment ter-autentikasi (sama seperti seluruh rumpun task frontend modul ini)
+- AUTOMATED TEST: SKIPPED (instruksi baku pengguna) — `lint`/`test:unit`/`build` menunggu dijalankan pengguna sendiri
 
 ## Update 12 September 2026 — pembersihan pasca `BE-BKC-FIX-009`
 
@@ -255,10 +355,16 @@ serta klik-coba ter-autentikasi belum dijalankan sesi ini.
    **RESOLVED 12 September 2026** — ditutup `BE-BKC-FIX-009` (`InvoiceEditContextResponse.Items`
    ditambahkan); halaman ini sudah dibersihkan mengikutinya (lihat § "Update 12 September 2026" di
    atas). Panggilan `GET /{id}` yang terpisah sudah dihapus, bukan lagi risiko yang tersisa.
-3. **Panel `FE-MPY-03`/`FE-MPY-04` masih placeholder** — kasir yang menekan tombol "Edit Status
-   Tagihan"/"Edit Billing" (bila kapabilitasnya aktif) akan melihat pesan "belum tersedia", bukan
-   panel fungsional. Ini sesuai scope task (milik `FE-BKC-029`/`030`), tetapi berarti fitur belum
-   benar-benar lengkap dari sudut pandang kasir sampai kedua task itu selesai.
+3. ~~**Panel `FE-MPY-03`/`FE-MPY-04` masih placeholder**~~ **RESOLVED** — `FE-BKC-029`/`030`
+   menyelesaikan keduanya, dan amendment 14 September 2026 di atas menggabungkan ketiga panel
+   menjadi satu tabel tunggal. Risiko baru pengganti: lihat butir 6 dan 7 di bawah.
+6. **Reason tetap wajib walau spesifikasi UI meminta opsional** (lihat § Amendment 14 September
+   2026, constraint 1) — kasir tidak bisa menyimpan tanpa mengisi alasan pada ketiga mode, sampai
+   ada task backend terpisah yang melonggarkan `BIL-VAL-062`.
+7. **Ringkasan Pembayaran tidak reaktif-per-draft untuk Edit Status Tagihan dan Edit Billing**
+   (lihat § Amendment 14 September 2026, constraint 2) — kasir baru melihat angka baru setelah
+   menekan Simpan, bukan saat masih mengubah draft. Membutuhkan endpoint pratinjau baru di backend
+   bila produk menghendaki perilaku reaktif penuh seperti Edit Asuransi.
 4. **`menu-pembayaran-view.jsx` dan `billing-invoice-constants.js` sudah punya perubahan tertunda
    dari `FE-BKC-FIX-008`** sebelum task ini dimulai (tercatat `blueprint-manifest.md`,
    *"BELUM di-commit dan BELUM pernah dibangun sekalipun"*). Task ini menumpuk perubahan baru di

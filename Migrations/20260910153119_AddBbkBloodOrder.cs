@@ -65,7 +65,7 @@ namespace QuilvianSystemBackend.Migrations
                         name: "FK_BbkBloodOrder_TrxPatientEncounter_EncounterId",
                         column: x => x.EncounterId,
                         principalSchema: "public",
-                        principalTable: "TrxPatientEncounter",
+                        principalTable: "RegPatientEncounter",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });

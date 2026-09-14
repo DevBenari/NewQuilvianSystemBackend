@@ -8,7 +8,31 @@
 | Task mode | `FRONTEND` (backend read-only — endpoint dan aturan validasi `BE-BKC-049` dibaca langsung dari source, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `FE-BKC-028` (kerangka halaman), `BE-BKC-049` ✅ (`PUT /{id}/drug-billing-disposition`, dikonfirmasi ada persis sesuai kontrak beserta seluruh aturan validasinya dibaca dari `BillingPayerEditService.UpdateDrugBillingDispositionAsync`) |
-| Status task | **Source selesai.** Panel terpasang pada slot terakhir (`activeMode === INVOICE_EDIT_MODES.DRUG_BILLING`) di `edit-tagihan-view.jsx`. **Sesuai instruksi baku pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — hanya `node --check` pada berkas logika non-JSX (lihat § DoD). Belum di-commit |
+| Status task | 🟡 **Sebagian.** Source semula selesai; lihat **Amendment 14 September 2026** di bawah untuk perubahan struktural setelahnya. `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini. Belum di-commit |
+
+## Amendment 14 September 2026 — tabel mini dihapus, digabung ke `FE-BKC-028`
+
+Bagian dari refactor "single table" lintas ketiga panel Edit Tagihan — detail lengkap latar
+belakang, perubahan, dan constraint kontrak yang ditemukan ada pada laporan
+[`FE-BKC-028`](fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) § "Amendment 14
+September 2026". Ringkas untuk task ini:
+
+- `<table>` mini (Deskripsi/Jumlah/Ditebus) pada `edit-billing-panel.jsx` **dihapus seluruhnya**.
+  Kolom Status pada tabel "Rincian Tagihan" (dipakai bersama, milik `FE-BKC-028`) kini menampilkan,
+  untuk baris obat: badge Ditebus/Tidak Ditebus pada mode `ALL_REDEEMED`/`NOT_REDEEMED`, atau kotak
+  centang pada mode `PARTIAL_REDEEMED` (persis larangan lama tetap dipertahankan: **tidak ada**
+  isian jumlah, kotak centang **hanya** pada baris obat). Baris non-obat tetap badge coverage biasa.
+- Hook `useEditBillingPanel` kini dipanggil dari `edit-tagihan-view.jsx`, hasilnya diteruskan
+  sebagai prop `panel`. Tambahan field `isDirty` (derivasi dari `mode`/`checkedIds`/`reason`, tanpa
+  state baru) dipakai gerbang konfirmasi ganti mode di parent.
+- **Constraint kontrak yang tidak berubah:** `Reason` tetap wajib diisi (backend `BIL-VAL-062`)
+  dan **tidak ada endpoint pratinjau** untuk mode ini (hanya `PUT` mutate langsung) — Ringkasan
+  Pembayaran baru berubah setelah Simpan berhasil, bukan reaktif per-draft. Detail di laporan
+  `FE-BKC-028`.
+
+Tidak ada perubahan pada acceptance criteria task ini sendiri (§44 spesifikasi refactor) — perilaku
+fungsional identik (termasuk larangan mutlak isian jumlah dan pemisahan dari status dispensing
+Farmasi), hanya lokasi visualnya yang berubah.
 
 ## Ringkasan untuk pembaca umum
 

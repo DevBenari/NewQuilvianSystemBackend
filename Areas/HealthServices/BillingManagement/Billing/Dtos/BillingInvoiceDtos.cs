@@ -166,6 +166,32 @@ public class InvoiceSummaryResponse
     public int ActiveItemCount { get; set; }
     public DateTime CreateDateTime { get; set; }
     public Guid RowVersion { get; set; }
+
+    // Kolom daftar Running Invoice, ditambahkan additive - authoritative dari
+    // RegPatientEncounter/RegPatientEncounterGuarantor/MstInsuranceProvider, bukan dihitung ulang
+    // di frontend. Tanggal Kunjungan dari encounter, bukan CreateDateTime invoice - keduanya bisa
+    // berbeda hari (invoice dibuat belakangan dari layanan yang sudah berjalan).
+    public DateTime? VisitDate { get; set; }
+
+    // Hanya diisi untuk kunjungan RAJAL (invoice.ServiceType == "RAJAL"); RANAP/IGD/OTC null.
+    public string? PolyclinicName { get; set; }
+
+    // "Umum" (Cash) / "Asuransi" (Insurance) / "Penjamin" (CompanyGuarantor) - dari PaymentType
+    // penjamin PRIMARY encounter, bukan dari GuarantorName/InsuranceProviderId != null.
+    public string PatientType { get; set; } = string.Empty;
+
+    // Nama penanggung primary pada SAAT kunjungan (snapshot registrasi), null untuk Cash. Tidak
+    // dibaca ulang dari profil pasien saat ini - invoice lama harus tetap menunjukkan penanggung
+    // yang dipakai pada encounter itu, bukan profil pasien yang mungkin sudah berubah.
+    public string? GuarantorName { get; set; }
+
+    // Dari MstInsuranceProvider.ClaimMethod (Cashless/Reimbursement/GuaranteeLetter/Mixed) - null
+    // untuk Cash dan CompanyGuarantor. Tidak pernah di-hardcode "Reimbursement".
+    public string? ClaimMethod { get; set; }
+
+    // CASH / INSURANCE / COMPANY_GUARANTOR - bentuk mesin dari PatientType, supaya frontend tidak
+    // perlu parse label tampilan untuk logika kondisional.
+    public string PrimaryPayerType { get; set; } = string.Empty;
 }
 
 public sealed class InvoiceDetailResponse : InvoiceSummaryResponse

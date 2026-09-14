@@ -100,7 +100,7 @@ public sealed class BillingInvoiceService
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id into patientGroup
             from patient in patientGroup.DefaultIfEmpty()
-            select new { invoice, patient };
+            select new { invoice, encounter, patient };
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -112,24 +112,130 @@ public sealed class BillingInvoiceService
         }
 
         var total = await joined.CountAsync(cancellationToken);
-        var items = await joined.OrderByDescending(x => x.invoice.CreateDateTime)
+        // Pass 1: halaman yang dipaginasi, murni dari invoice/encounter/patient yang sudah di-join.
+        var page = await joined.OrderByDescending(x => x.invoice.CreateDateTime)
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
-            .Select(x => new InvoiceSummaryResponse
+            .Select(x => new
             {
-                Id = x.invoice.Id,
-                EncounterId = x.invoice.EncounterId,
-                InvoiceNumber = x.invoice.InvoiceNumber,
+                x.invoice.Id,
+                x.invoice.EncounterId,
+                x.invoice.InvoiceNumber,
                 PatientName = x.patient != null ? x.patient.FullName : string.Empty,
                 MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
-                ServiceType = x.invoice.ServiceType,
-                Status = x.invoice.Status,
-                CurrentCalculationVersion = x.invoice.CurrentCalculationVersion,
+                x.invoice.ServiceType,
+                x.invoice.Status,
+                x.invoice.CurrentCalculationVersion,
                 RunningGrossAmount = x.invoice.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
                     .Sum(i => i.Quantity * i.UnitPrice),
                 ActiveItemCount = x.invoice.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
-                CreateDateTime = x.invoice.CreateDateTime,
-                RowVersion = x.invoice.RowVersion
+                x.invoice.CreateDateTime,
+                x.invoice.RowVersion,
+                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null,
+                ClinicId = x.encounter != null ? x.encounter.ClinicId : null
             }).ToListAsync(cancellationToken);
+
+        var encounterIds = page.Select(x => x.EncounterId).Distinct().ToList();
+        var clinicIds = page.Where(x => x.ClinicId.HasValue).Select(x => x.ClinicId!.Value).Distinct().ToList();
+
+        // Pass 2a: nama poliklinik untuk kunjungan RAJAL - hanya diambil bila memang dibutuhkan.
+        var clinicNameById = clinicIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.MstClinics.AsNoTracking()
+                .Where(x => clinicIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.ClinicName, cancellationToken);
+
+        // Pass 2b: penjamin aktif per encounter. Skema saat ini membatasi satu baris per
+        // EncounterId (unique index tidak difilter), tetapi seleksi tetap ditulis deterministic
+        // (IsPrimary lebih dulu, lalu Priority) supaya kode sudah siap bila kelak lebih dari satu
+        // baris hidup bersamaan - bukan .GroupBy(...).First() tanpa aturan.
+        var guarantorRows = encounterIds.Count == 0
+            ? []
+            : await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.IsActive && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.EncounterId,
+                    x.PaymentType,
+                    x.IsPrimary,
+                    x.Priority,
+                    x.PaymentSourceNameSnapshot,
+                    x.InsuranceProviderId,
+                    x.CompanyGuarantorId
+                })
+                .ToListAsync(cancellationToken);
+        var primaryGuarantorByEncounter = guarantorRows.GroupBy(x => x.EncounterId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Where(r => r.IsPrimary).OrderBy(r => r.Priority).FirstOrDefault()
+                    ?? g.OrderBy(r => r.Priority).First());
+
+        var providerIds = primaryGuarantorByEncounter.Values
+            .Where(x => x.InsuranceProviderId.HasValue).Select(x => x.InsuranceProviderId!.Value).Distinct().ToList();
+        var providerById = providerIds.Count == 0
+            ? new Dictionary<Guid, (string Name, string? ClaimMethod)>()
+            : await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(x => providerIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => (Name: x.InsuranceProviderName, ClaimMethod: (string?)x.ClaimMethod), cancellationToken);
+
+        var companyGuarantorIds = primaryGuarantorByEncounter.Values
+            .Where(x => x.CompanyGuarantorId.HasValue).Select(x => x.CompanyGuarantorId!.Value).Distinct().ToList();
+        var companyGuarantorNameById = companyGuarantorIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(x => companyGuarantorIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.CompanyGuarantorName, cancellationToken);
+
+        var items = page.Select(x =>
+        {
+            primaryGuarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
+            var paymentType = guarantor?.PaymentType ?? EncounterPaymentType.Cash;
+
+            string? guarantorName = paymentType == EncounterPaymentType.Cash
+                ? null
+                : !string.IsNullOrWhiteSpace(guarantor!.PaymentSourceNameSnapshot)
+                    ? guarantor.PaymentSourceNameSnapshot
+                    : paymentType == EncounterPaymentType.Insurance
+                        ? (guarantor.InsuranceProviderId.HasValue
+                            && providerById.TryGetValue(guarantor.InsuranceProviderId.Value, out var providerInfo)
+                                ? providerInfo.Name
+                                : null)
+                        : (guarantor.CompanyGuarantorId.HasValue
+                            && companyGuarantorNameById.TryGetValue(guarantor.CompanyGuarantorId.Value, out var companyName)
+                                ? companyName
+                                : null);
+
+            string? claimMethod = paymentType == EncounterPaymentType.Insurance
+                && guarantor!.InsuranceProviderId.HasValue
+                && providerById.TryGetValue(guarantor.InsuranceProviderId.Value, out var claimInfo)
+                ? claimInfo.ClaimMethod
+                : null;
+
+            return new InvoiceSummaryResponse
+            {
+                Id = x.Id,
+                EncounterId = x.EncounterId,
+                InvoiceNumber = x.InvoiceNumber,
+                PatientName = x.PatientName,
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                ServiceType = x.ServiceType,
+                Status = x.Status,
+                CurrentCalculationVersion = x.CurrentCalculationVersion,
+                RunningGrossAmount = x.RunningGrossAmount,
+                ActiveItemCount = x.ActiveItemCount,
+                CreateDateTime = x.CreateDateTime,
+                RowVersion = x.RowVersion,
+                VisitDate = x.VisitDate,
+                PolyclinicName = x.ServiceType == "RAJAL" && x.ClinicId.HasValue
+                    && clinicNameById.TryGetValue(x.ClinicId.Value, out var clinicName)
+                        ? clinicName
+                        : null,
+                PatientType = MapPatientTypeLabel(paymentType),
+                GuarantorName = guarantorName,
+                ClaimMethod = claimMethod,
+                PrimaryPayerType = MapPrimaryPayerTypeCode(paymentType)
+            };
+        }).ToList();
+
         return new PagedResult<InvoiceSummaryResponse>
         {
             PageNumber = request.PageNumber,
@@ -139,6 +245,25 @@ public sealed class BillingInvoiceService
             Items = items
         };
     }
+
+    // Label "Tipe Pasien" khusus daftar Running Invoice - berbeda dari MapPaymentTypeLabel yang
+    // sudah dipakai layar lain ("Tunai"/"Penjamin Perusahaan"), karena requirement layar ini
+    // secara eksplisit meminta "Umum"/"Penjamin".
+    private static string MapPatientTypeLabel(EncounterPaymentType paymentType) => paymentType switch
+    {
+        EncounterPaymentType.Cash => "Umum",
+        EncounterPaymentType.Insurance => "Asuransi",
+        EncounterPaymentType.CompanyGuarantor => "Penjamin",
+        _ => paymentType.ToString()
+    };
+
+    private static string MapPrimaryPayerTypeCode(EncounterPaymentType paymentType) => paymentType switch
+    {
+        EncounterPaymentType.Cash => "CASH",
+        EncounterPaymentType.Insurance => "INSURANCE",
+        EncounterPaymentType.CompanyGuarantor => "COMPANY_GUARANTOR",
+        _ => paymentType.ToString().ToUpperInvariant()
+    };
 
     // Ad-hoc, di luar roadmap, permintaan langsung pengguna: halaman "Riwayat Pembayaran" -
     // BillingPaymentHistoryDtos.cs § komentar header untuk keputusan scope lengkap. Dua-pass

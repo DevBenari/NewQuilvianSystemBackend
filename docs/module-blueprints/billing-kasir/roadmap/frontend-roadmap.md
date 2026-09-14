@@ -1122,7 +1122,7 @@ toolbar ketiga mode sekaligus, dan `edit-context` mengembalikan kewenangan untuk
 kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti gagal saat ditekan
 — cacat yang sudah terbaca sejak perencanaan, bukan temuan saat pengujian.
 
-## `FE-BKC-028` — Halaman Edit Tagihan dan panel Edit Asuransi
+## 🟡 `FE-BKC-028` — Halaman Edit Tagihan dan panel Edit Asuransi
 
 | Field | Isi |
 | --- | --- |
@@ -1138,9 +1138,9 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; klik-coba ter-autentikasi bila environment tersedia |
 | Risiko/pemilik | Menghitung selisih perbandingan di peramban melanggar `NFR-025` dan menghasilkan angka yang berbeda dari tagihan sesungguhnya. Menambah properti wajib pada `BasePayerWorkspace` akan merusak alur admisi Rawat Inap. Owner Frontend |
 | DoD | Ketiga endpoint terpakai; nol perhitungan finansial di peramban; regresi langkah pembayaran admisi Rawat Inap terbukti tidak berubah; lint, test, dan build lulus; `git status --short` dilaporkan |
-| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — kerangka `FE-MPY-01` dan panel `FE-MPY-02` selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Ditemukan delta kontrak `BE-BKC-047` (`InvoiceEditContextResponse` tidak membawa deskripsi/satuan/harga/qty per baris) — diselesaikan dengan memanggil ulang `GET /{id}` yang sudah ada, tanpa mengubah backend; lihat laporan untuk detail. **Update 12 September 2026:** gap itu ditutup di sisi backend lewat `BE-BKC-FIX-009` (`edit-context` kini membawa `Items`), dan halaman ini **sudah dibersihkan mengikutinya** — panggilan `GET /{id}` terpisah dihapus dari `use-billing-invoice-edit-tagihan.js`; tabel "Rincian tagihan" kini membaca `editContext.items` langsung, satu panggilan API per buka halaman. Panel `FE-MPY-03`/`FE-MPY-04` sengaja masih placeholder, menunggu `FE-BKC-029`/`030`. Laporan: [`task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md`](../task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) |
+| Status | 🟡 **SEBAGIAN 14 September 2026.** Kerangka `FE-MPY-01` dan panel `FE-MPY-02` selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Ditemukan delta kontrak `BE-BKC-047` — ditutup `BE-BKC-FIX-009` 12 September 2026. **Amendment 14 September 2026:** ketiga panel (`FE-MPY-02`/`03`/`04`, sebelumnya masing-masing punya tabel mini sendiri) di-refactor menjadi satu tabel tagihan dengan kolom Status inline per mode ("single table principle"); ditemukan constraint kontrak backend yang tidak bisa diubah pada task frontend ini — `Reason` tetap wajib diisi (`BIL-VAL-062`) dan tidak ada endpoint pratinjau untuk mode Edit Status Tagihan/Edit Billing. Kriteria yang belum terpenuhi: `lint`/`test`/`build` belum dijalankan; klik-coba ter-autentikasi belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md`](../task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) |
 
-## `FE-BKC-029` — Panel Edit Status Tagihan
+## 🟡 `FE-BKC-029` — Panel Edit Status Tagihan
 
 | Field | Isi |
 | --- | --- |
@@ -1156,9 +1156,9 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Menyembunyikan pilihan yang tidak tersedia alih-alih menonaktifkannya membuat kasir menyangka fiturnya rusak. Menghilangkan subjudul membuat pengguna menyangka yang diubah status hidup-matinya tagihan. Owner Frontend |
 | DoD | Panel berjalan; subjudul ada; pilihan nonaktif beserta alasan terbukti; lint, test, dan build lulus |
-| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Baris `VOIDED` disumberkan dari `editContext.items` (`BE-BKC-FIX-009`) disilangkan dengan `itemPayerAssignments`, karena `itemPayerAssignments` sendiri mengecualikan baris `VOIDED` sepenuhnya. Ketersediaan pilihan Asuransi/Penjamin per baris memakai `currentPayer.paymentType`, dikonfirmasi cocok persis dengan validasi `BIL-VAL-077`/`078` di `BillingPayerEditService`. Laporan: [`task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md`](../task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md) |
+| Status | 🟡 **SEBAGIAN 14 September 2026.** Panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna). Klik-coba ter-autentikasi belum dilakukan. **Amendment 14 September 2026:** tabel mini panel ini dihapus dan digabung ke kolom Status tabel tunggal `FE-BKC-028` ("single table principle") — subjudul terkunci "Ubah penanggung biaya per item" dipertahankan verbatim. Constraint ditemukan: `Reason` tetap wajib (`BIL-VAL-062`), tidak ada endpoint pratinjau untuk mode ini. Laporan: [`task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md`](../task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md) |
 
-## `FE-BKC-030` — Panel Edit Billing
+## 🟡 `FE-BKC-030` — Panel Edit Billing
 
 | Field | Isi |
 | --- | --- |
@@ -1174,7 +1174,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Memunculkan kontrol jumlah pada layar ini melanggar `MPY-DEC-009` dan mengundang kasir mengubah resep dari konteks penagihan. Owner Frontend |
 | DoD | Panel berjalan; kontrol jumlah terbukti tidak ada; kelayakan per jenis kunjungan terbukti; lint, test, dan build lulus |
-| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — panel selesai ditulis di branch `yasmina`, belum di-commit. Panel terakhir rumpun ini — seluruh tiga slot toolbar `FE-MPY-01` (`FE-BKC-028`–`030`) kini terisi. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Mode awal panel disimpulkan dari disposisi tersimpan (bukan selalu "Ditebus" kosong); jumlah dirender teks polos (bukan `<input>`) supaya Acceptance `#65` terpenuhi struktural; Acceptance `#64` sudah digerbang di level kerangka `FE-BKC-028` lewat `capabilities.canEditDrugBilling`. Laporan: [`task/report/frontend/fe-bkc-030-panel-edit-billing.md`](../task/report/frontend/fe-bkc-030-panel-edit-billing.md) |
+| Status | 🟡 **SEBAGIAN 14 September 2026.** Panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna). Klik-coba ter-autentikasi belum dilakukan. **Amendment 14 September 2026:** tabel mini panel ini dihapus dan digabung ke kolom Status tabel tunggal `FE-BKC-028` ("single table principle") — larangan mutlak isian jumlah tetap dipertahankan. Constraint ditemukan: `Reason` tetap wajib (`BIL-VAL-062`), tidak ada endpoint pratinjau untuk mode ini. Laporan: [`task/report/frontend/fe-bkc-030-panel-edit-billing.md`](../task/report/frontend/fe-bkc-030-panel-edit-billing.md) |
 
 ## `FE-BKC-031` — Lembar tagihan penjamin perusahaan pada Dokumen Kasir
 

@@ -667,6 +667,12 @@ try
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
+    builder.Services.AddScoped<BillingPayerEditService>();
+
+    builder.Services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
+
+    builder.Services.AddScoped<BillingReminderService>();
+
     builder.Services.AddScoped<BillingFinancialExceptionService>();
 
 
