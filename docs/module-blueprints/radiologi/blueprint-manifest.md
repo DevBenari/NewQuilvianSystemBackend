@@ -5,7 +5,7 @@ blueprint_id: RAD-BP-001
 module_name: Radiologi
 module_slug: radiologi
 module_prefix: RAD
-revision: 14
+revision: 15
 status: approved
 bentuk: SINGLE
 created_at: 2026-09-09T00:00:00+07:00
@@ -46,8 +46,11 @@ owners:
   security: belum ditetapkan
   frontend_authority: belum ditetapkan
   clinical_governance: Komite Medis — ditetapkan RAD-DEC-016 pada 2026-09-11, sebagai badan.
-    Pemegang akun pengesahnya belum ditunjuk (RAD-OPEN-011), sehingga kewenangannya belum dapat
-    dijalankan. Pemakaian production RAD-DEC-008 tetap menunggu butir 3 RAD-REQ-002.
+    Pemegang akunnya Yoga Aji Pratama — ditetapkan RAD-DEC-017 pada 2026-09-14, menutup
+    RAD-OPEN-011. Penanda RadReport ActAsRadiologist melekat pada posisi Dokter Radiologi,
+    sengaja terpisah dari kewenangan pengesahan aturan. AC-13 melarang penyusun dan pengaju
+    mengesahkan aturan yang sama, sehingga langkah Ajukan wajib dijalankan orang lain —
+    RAD-OPEN-012. Pemakaian production RAD-DEC-008 tetap menunggu butir 3 RAD-REQ-002.
   module_owner_registry: Muhammad Hamzah — pemegang registry prefix. Baris Rad dinaikkan ke ACTIVE pada 2026-09-10 lewat RAD-REQ-001
 
 approved_by: Yoga Aji Pratama <yogaaji452@gmail.com>
@@ -179,7 +182,8 @@ Dokumen operasional, **bukan** artefak desain, sehingga tidak masuk daftar hash 
 | `DEC-RAD-002` | Daftar temuan kritis belum ada | Clinical Governance | Slice `S11` |
 | ~~`DEC-RAD-003`~~ | ~~Kebutuhan daftar kerja petugas~~ **DITUTUP 2026-09-09** oleh `RAD-DEC-012` dan `RAD-DEC-013` | — | — |
 | ~~`RAD-OPEN-001`~~ | ~~Penanggung jawab tata kelola klinis belum ditunjuk~~ **DITUTUP 2026-09-11** oleh `RAD-DEC-016` — Komite Medis ditunjuk sebagai badan | — | — |
-| `RAD-OPEN-011` | Peran dan pemegang akun yang menjalankan kewenangan Komite Medis belum ditunjuk. **Badan tidak dapat masuk ke sistem**; hak akses Quilvian melekat pada peran pengguna | Komite Medis, dijalankan Administrator | Pengesahan aturan keselamatan — dan karena gerbang fail-closed, **seluruh pemeriksaan** |
+| ~~`RAD-OPEN-011`~~ | ~~Peran dan pemegang akun yang menjalankan kewenangan Komite Medis belum ditunjuk~~ **DITUTUP 2026-09-14** oleh `RAD-DEC-017` — **Yoga Aji Pratama** ditunjuk sebagai pemegang akun | — | — |
+| `RAD-OPEN-012` | **Siapa yang mengajukan aturan keselamatan.** `AC-13` melarang penyusun **dan** pengaju mengesahkan aturan yang sama, sehingga satu pengesah saja belum cukup — langkah *Ajukan* wajib dijalankan orang lain | Komite Medis, dijalankan Administrator | Pengesahan aturan keselamatan — dan karena gerbang fail-closed, **seluruh pemeriksaan** |
 | ~~`RAD-OPEN-005`~~ | ~~Registry masih `PLANNED`~~ **DITUTUP 2026-09-10** — salinan backend dinaikkan ke `ACTIVE` atas persetujuan Muhammad Hamzah; salinan canonical sudah `ACTIVE` sejak 2026-09-09 | — | — |
 | ~~`DEC-RAD-004`~~ | ~~Pemetaan peran~~ **DITUTUP 2026-09-10** oleh `RAD-DEC-015` — peran dikenali lewat hak akses penanda `RadReport : ActAsRadiologist`, bukan nama peran | — | — |
 | `RAD-OPEN-010` | Plugin cache `quilvian-engineering-skills/0.1.0` masih tertulis `Rad = PLANNED` | Pemegang suite Skill | Tidak memblokir modul ini; dapat menyesatkan agent lain |
@@ -275,6 +279,7 @@ pun: pemegang registry menjalankan `RAD-DEC-007`, dan pemilik modul IGD menjalan
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 15 | 2026-09-14 | **`RAD-OPEN-011` ditutup.** `RAD-DEC-017` menunjuk **Yoga Aji Pratama** sebagai pemegang akun tata kelola klinis, menjalankan kewenangan Komite Medis sehari-hari. Penanda `RadReport : ActAsRadiologist` ditetapkan melekat pada posisi **Dokter Radiologi**, sengaja terpisah dari kewenangan pengesahan aturan. **`RAD-OPEN-012` dibuka:** `AC-13` melarang penyusun **dan** pengaju mengesahkan aturan yang sama, sehingga menunjuk satu pengesah saja belum membuat modul dapat berjalan — langkah *Ajukan* wajib dijalankan orang lain. `BE-RAD-16` menutup penghalang nyata terakhir: `EnsurePendingReportAsync` kini dipanggil saat mutu citra diterima, `GET /rad-reports/by-patient/{patientId}` ditambahkan, dan `Impression` dibawa pada pembacaan yang berpusat pada pasien. `RAD-API-001` naik ke revision 11. **Dua penghalang yang selama ini tercatat terbuka ternyata sudah selesai sejak 2026-09-11**; koreksinya dicatat pada `BE-RAD-16` bagian 7.1 dan pada ketiga laporan frontend yang memuatnya. | `approved` |
 | 14 | 2026-09-11 | **`RAD-OPEN-001` ditutup.** `RAD-DEC-016` menunjuk **Komite Medis** sebagai penanggung jawab tata kelola klinis modul Radiologi, sebagai badan. Penunjukan itu menutup pertanyaan **kewenangan**, bukan pelaksanaannya: hak akses Quilvian melekat pada peran pengguna, dan badan tidak dapat masuk ke sistem. `RAD-OPEN-011` dibuka untuk penunjukan pemegang akunnya, dan pemiliknya kini Komite Medis — bukan lagi manajemen rumah sakit. `RAD-REQ-002` dipersempit pada revision 2: dari lima butir, hanya butir 1 yang menahan `MVP-1`, dan kesiapan teknisnya diperiksa — tidak ada penghalang tersisa. | `approved` |
 | 13 | 2026-09-11 | **Dua persoalan lintas dokumen ditutup Yoga Aji Pratama.** `RAD-CONF-DEC-08` menetapkan awalan `PRD-` bagi seluruh requirement PRD 1.0 — ID blueprint tidak disentuh karena sudah dirujuk 28 task roadmap dan 15 laporan task backend. `RAD-CONF-DEC-09` menetapkan pengesahan bertingkat hasil bacaan dan koreksi berversi **tetap berlaku**, dan ketika PRD berselisih dengan keputusan terkunci maka keputusan terkunci yang menang. `05-prd-conformance-gap.md` naik ke revision 3, status `approved`. Tujuh pertanyaan `RAD-CONF-DEC-01` sampai `RAD-CONF-DEC-07` **tetap terbuka**. | `approved` |
 | 12 | 2026-09-11 | **PRD eksternal versi 1.0 masuk sebagai masukan baru.** `05-prd-conformance-gap.md` (`RAD-CONF-001`) memetakannya terhadap modul terbangun: 9 alur bisnis, 12 functional requirement, 13 bagian tematik, 10 business rule, dan 10 acceptance criteria. PRD **bukan** turunan blueprint ini dan belum pernah melewati `/qv-grill` maupun `requirement-completeness-gate`. Empat penghambat frontend dikerjakan atas persetujuan pemilik modul; tujuh pertanyaan keputusan `RAD-CONF-DEC-01` sampai `RAD-CONF-DEC-07` diterbitkan dan **seluruhnya masih terbuka**. `RAD-CONF-DEC-01` — satu order beberapa pemeriksaan — ditunda ke pembahasan tersendiri. Dua persoalan lintas dokumen dicatat: penomoran `FR-RAD-001`–`005` dan `AC-001`–`010` bentrok artinya, dan PRD §25 melarang kemampuan yang sudah sah berjalan atas `RAD-DEC-003`/`RAD-DEC-004`. | `approved` |

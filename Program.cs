@@ -477,6 +477,14 @@ try
     builder.Services.AddScoped<BbkBloodUnitService>();
     builder.Services.AddScoped<BbkBloodBankProcedureService>();
 
+    // Master data Bank Darah: katalog komponen darah, lokasi penyimpanan, dan daftar alasan
+    // terkendali. Ketiganya di-inject langsung oleh controller master masing-masing, sehingga
+    // tanpa registrasi ini controller-nya gagal diaktifkan dan setiap action-nya menjawab 500 —
+    // termasuk jalur yang menyuplai gerbang alokasi BE-BD-006 (VAL-BD-016, VAL-BD-063/064).
+    builder.Services.AddScoped<BloodComponentService>();
+    builder.Services.AddScoped<BloodStorageLocationService>();
+    builder.Services.AddScoped<BloodBankReasonService>();
+
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
     // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).

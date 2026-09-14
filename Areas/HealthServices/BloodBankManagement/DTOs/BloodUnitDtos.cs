@@ -101,11 +101,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public List<BloodBankTransitionDto> Transitions { get; set; } = new();
 
         /// <summary>
+        /// Seluruh riwayat alokasi kantong ini, terlama lebih dulu — <b>termasuk</b> alokasi yang
+        /// sudah dibatalkan (<c>BE-BD-006</c>, <c>ARCH-BD-POS-03</c>).
+        /// </summary>
+        /// <remarks>
+        /// Kosong berarti kantong belum pernah dialokasikan. Baris berstatus <c>Cancelled</c>
+        /// sengaja tetap tampil: pertanyaan "kantong ini pernah disiapkan untuk siapa saja" hanya
+        /// dapat dijawab bila percobaan yang dibatalkan pun terbaca.
+        /// </remarks>
+        public List<BloodUnitAllocationDto> Allocations { get; set; } = new();
+
+        /// <summary>
+        /// Alokasi yang sedang berlaku. Kosong bila kantong tidak sedang dialokasikan. Paling
+        /// banyak satu, dijaga index unik terfilter database (<c>INV-BD-019</c>).
+        /// </summary>
+        public BloodUnitAllocationDto? CurrentAllocation { get; set; }
+
+        /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;
         /// <c>MoveStorageLocation</c> sesudah kantong punya lokasi dan belum keluar dari stok —
-        /// termasuk ketika lokasinya dinonaktifkan. Aksi alokasi belum ditawarkan karena endpoint-nya
-        /// lahir pada <c>BE-BD-006</c>.
+        /// termasuk ketika lokasinya dinonaktifkan; <c>Allocate</c> pada kantong <c>Available</c>
+        /// yang bukan kantong berlebih; dan <c>CancelAllocation</c> pada kantong <c>Allocated</c>
+        /// (keduanya sejak <c>BE-BD-006</c>).
         /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini kelayakan, bukan izin.</b> Hak akses tetap ditegakkan backend pada setiap
+        /// panggilan, dan setiap aksi menilai ulang syaratnya sendiri saat dijalankan — termasuk
+        /// gerbang lokasi <c>VAL-BD-064</c>, yang sengaja <b>tidak</b> menyembunyikan tombol
+        /// alokasi supaya petugas melihat sebab penolakannya.
+        /// </remarks>
         public List<string> AvailableActions { get; set; } = new();
 
         public DateTime CreateDateTime { get; set; }
