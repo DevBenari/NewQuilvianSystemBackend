@@ -134,7 +134,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
 
             entity.HasIndex(x => x.JournalStatus);
 
-            entity.HasIndex(x => x.ReversalOfJournalId);
+            // Satu jurnal hanya boleh dibalik sekali (FR-ACC-041, ACC-DEC-006) — dijaga database,
+            // bukan hanya advisory lock di AccJournalService.ReverseAsync (BE-ACC-P2-031,
+            // ACC-TD-020). Parsial: jurnal biasa (ReversalOfJournalId kosong) dan pembalik yang
+            // sudah dihapus tidak ikut dihitung, sama seperti pemeriksaan di service.
+            // Namanya dikunci eksplisit karena AccJournalService.NamaIndexPembalikTunggal mengenali
+            // pelanggarannya lewat nama ini — keduanya wajib sama persis.
+            entity.HasIndex(x => x.ReversalOfJournalId)
+                .IsUnique()
+                .HasFilter("\"ReversalOfJournalId\" IS NOT NULL AND \"IsDelete\" = false")
+                .HasDatabaseName("IX_AccJournal_ReversalOfJournalId");
         }
     }
 }

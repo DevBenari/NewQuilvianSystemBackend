@@ -684,7 +684,7 @@ penandaan `IsDelete`. Untuk jurnal yang sudah disahkan, penandaan itu **tetap di
 | Decision masukan | `ACC-DEC-044` sampai `ACC-DEC-057` |
 | Backend SHA | `02c3219` (branch `rizkiG`) |
 | Slice | `ACC-P2-S1` kotak masuk kejadian, `ACC-P2-S2` jurnal berulang, `ACC-P2-S3` tutup bulan, `ACC-P2-S4` tutup tahun |
-| Yang masih terbuka | `DEC-ACC-P2-002`, `005`, `006`, `007`, `008` — seluruhnya soal isi, bukan bentuk |
+| Yang masih terbuka | `DEC-ACC-P2-002` dan `008` — seluruhnya soal isi, bukan bentuk. `005` dan `007` **ditutup** `ACC-DEC-078` (14 September 2026); `006` ditutup `ACC-DEC-068` (10 September 2026) |
 
 ## 14. Tabel kepemilikan data Phase 2
 
@@ -718,7 +718,8 @@ classDiagram
         +Guid Id
         +Guid LegalEntityId
         +string EventNumber
-        +Guid EventTypeId
+        +Guid? EventTypeId
+        +string EventTypeCode
         +string SourceModule
         +string SourceTransactionId
         +string SourceVersion
@@ -747,6 +748,7 @@ classDiagram
         +Guid Id
         +Guid LegalEntityId
         +Guid EventTypeId
+        +Guid JournalTypeId
         +AccountingEventTreatment Treatment
         +bool IsActive
     }
@@ -786,6 +788,12 @@ classDiagram
     AccPostingRule "1" --> "2..*" AccPostingRuleLine : baris aturan
     AccPostingRuleLine "*" --> "1" AccChartOfAccount : akun
 ```
+
+**Dua penyesuaian 14 September 2026.** `AccPostingRule` bertambah `JournalTypeId` — jenis jurnal
+yang dihasilkan aturan, dan pelaku jurnal otomatis diambil dari konfigurasi `SystemActorUserId`
+(`ACC-DEC-074`). `AccAccountingEvent.EventTypeId` menjadi boleh kosong dan kode jenis asli disimpan
+pada `EventTypeCode`, supaya kejadian berjenis belum terdaftar tetap tersimpan sebagai Tertahan
+(`ACC-DEC-075`).
 
 **`AccPostingRule` berbentuk induk dan baris, bukan sepasang akun** (`ACC-DEC-058`). Bentuk lama
 tidak dapat mengungkapkan pendapatan rumah sakit yang lazim disertai jasa medis dokter maupun
@@ -931,7 +939,7 @@ Seluruh controller mengikuti pola MVP: `[Authorize]`, `[AccessController]`,
 
 | Enum | Status | Nilai | Catatan |
 |---|---|---|---|
-| `AccountingEventStatus` | **Baru** | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5` | `Diabaikan` menunggu `DEC-ACC-P2-007` |
+| `AccountingEventStatus` | **Baru** | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5` | `Diabaikan` ditetapkan `ACC-DEC-078` (`DEC-ACC-P2-007` ditutup 14 September 2026). **Belum dibangun** — bagian kotak masuk kejadian |
 | `AccountingEventTreatment` | **Baru** | `LangsungSahkan = 1`, `BuatDraft = 2` | Mewujudkan `ACC-DEC-045` |
 | `RecurringFrequency` | **Baru** | `Bulanan = 1` | Hanya satu nilai pada rilis pertama Phase 2; ruang untuk `Triwulanan` dan `Tahunan` disediakan tanpa dibangun |
 | `PeriodClosingAction` | **Baru** | `Diajukan = 1`, `Disetujui = 2`, `Ditolak = 3` | Meniru `JournalApprovalAction` yang sudah ada |
@@ -1005,9 +1013,9 @@ folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
 
 | Tabel | Status | Kolom yang berubah | Index dan unique constraint |
 |---|---|---|---|
-| `AccAccountingEvent` | **Baru** | — | Unique `(EventNumber)`; unique `(SourceModule, SourceTransactionId, EventTypeId, SourceVersion)`; index `(LegalEntityId, EventStatus)`; index `(AccountingDate)`; **index `(CorrelationId)`** untuk penelusuran balik ke Billing (`ACC-DEC-060`) |
+| `AccAccountingEvent` | **Baru** | — | Unique `(EventNumber)`; unique `(SourceModule, SourceTransactionId, EventTypeCode, SourceVersion)` — memakai kode, bukan FK, karena `EventTypeId` boleh kosong (`ACC-DEC-075`); index `(EventTypeId)`; index `(LegalEntityId, EventStatus)`; index `(AccountingDate)`; **index `(CorrelationId)`** untuk penelusuran balik ke Billing (`ACC-DEC-060`) |
 | `AccAccountingEventAttempt` | **Baru** | — | Unique `(AccountingEventId, AttemptNumber)` |
-| `AccPostingRule` | **Baru** | — | Unique `(LegalEntityId, EventTypeId)` **dengan filter `IsActive = true`** |
+| `AccPostingRule` | **Baru** | — | Unique `(LegalEntityId, EventTypeId)` **dengan filter `IsActive = true`**; index `(JournalTypeId)` (`ACC-DEC-074`) |
 | `AccPostingRuleLine` | **Baru** | — | Unique `(PostingRuleId, LineNumber)`; index `(ComponentCode)` |
 | `AccAccountingEventComponent` | **Baru** | — | Unique `(AccountingEventId, ComponentCode)` — satu komponen tidak boleh dikirim dua kali dalam satu kejadian |
 | `AccEventType` | **Baru** | — | Unique `(EventTypeCode)` |
@@ -1037,6 +1045,14 @@ folder standar; jangan disimpulkan bahwa modul lain boleh melewatkan `Models/`.
 | 2 | `AddAccountingEventInbox` | `AccAccountingEvent`, `AccAccountingEventAttempt`, **`AccAccountingEventComponent`** | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
 | 3 | `AddAccountingRecurringJournal` | Tiga tabel jurnal berulang | **Ya** — hanya tabel baru | `Down` menghapus ketiganya |
 | 4 | `AddAccountingPeriodClosingApproval` | `AccPeriodClosingApproval`, ditambah dua kolom pada `AccAccountingPeriod` | **Ya** — kedua kolom baru boleh kosong | `Down` menghapus tabel dan kedua kolom |
+
+**Keadaan sebenarnya per 14 September 2026.** Rencana empat migration di atas tidak dijalankan
+persis seperti tertulis. Migration `20260909060515_AddAccountingPhase2Independent` (`BE-ACC-P2-004`)
+sudah memuat `AccAccountingConfiguration`, kolom `IsControlAccount`, tiga tabel jurnal berulang,
+`AccPeriodClosingApproval`, dan dua kolom periode. Yang tersisa dari urutan 1 hanyalah
+`AccEventType`, `AccPostingRule` (termasuk `JournalTypeId`, `ACC-DEC-074`), dan
+`AccPostingRuleLine` — direncanakan sebagai migration tersendiri `BE-ACC-P2-016`. Urutan 2 kotak
+masuk kejadian belum direncanakan task-nya.
 
 **Pengisian data lama:** tidak ada. Keempat migration hanya menambah; nol baris existing perlu
 diubah. Periode yang sudah tertutup sebelum Phase 2 tetap `SoftClosed` atau `Closed` tanpa riwayat

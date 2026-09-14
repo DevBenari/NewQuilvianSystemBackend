@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.DTOs;
@@ -67,6 +68,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
         /// <summary>Sebutan jalur penyesuaian <c>JP</c> pada kalimat penolakan control account.</summary>
         public const string JalurJurnalPenyesuaian = "jurnal penyesuaian";
+
+        /// <summary>
+        /// Nama unique index parsial <c>AccJournal (ReversalOfJournalId)</c> — penjaga database
+        /// pembalikan ganda (`BE-ACC-P2-031`). Wajib sama persis dengan
+        /// <c>HasDatabaseName</c> pada <c>AccJournalConfiguration</c>, karena
+        /// <see cref="ReverseAsync"/> mengenali pelanggarannya lewat nama ini.
+        /// </summary>
+        public const string NamaIndexPembalikTunggal = "IX_AccJournal_ReversalOfJournalId";
 
         /// <summary>Sebutan jalur template berulang pada kalimat penolakan control account.</summary>
         public const string JalurTemplateBerulang = "template jurnal berulang";
@@ -924,9 +933,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 // pembaliknya disahkan, buku besar menghitung pembalikan itu dua kali —
                 // saldo akun meleset sebesar nilai jurnalnya.
                 //
-                // `ReversalOfJournalId` hanya ber-index biasa, bukan unique, jadi database tidak
-                // menahannya. Menjadikannya unique menuntut migration; advisory lock tidak, dan
-                // ia pola yang sudah dipakai serta terbukti pada alokator nomor di berkas ini.
+                // Sejak `BE-ACC-P2-031` database ikut menahannya lewat unique index parsial
+                // `NamaIndexPembalikTunggal` — lihat tangkapan `DbUpdateException` di bawah.
+                // Advisory lock tetap dipertahankan: ia memberi pesan yang enak dibaca dan tetap
+                // menjaga selama migration index itu belum diterapkan.
                 //
                 // Lock ber-scope pada id jurnal asal, dipegang database, dan lepas sendiri saat
                 // transaction berakhir. Permintaan kedua menunggu yang pertama selesai, lalu
@@ -1013,6 +1023,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                         ? $"Jurnal pembalik {nomor} berhasil dibuat dan menunggu persetujuan."
                         : $"Jurnal penyesuaian {nomor} berhasil dibuat dan menunggu persetujuan.",
                     actorUserId, izin, ct);
+            }
+            catch (DbUpdateException ex) when (MelanggarIndexPembalikTunggal(ex))
+            {
+                // Database menolak pembalik kedua (`BE-ACC-P2-031`). Ini BUKAN kegagalan sistem —
+                // ini penjaga yang bekerja, jadi diterjemahkan menjadi 409 dengan kalimat yang sama
+                // seperti penjaga kode, bukan 500. Nomor jurnal yang sempat dialokasikan ikut
+                // batal bersama transaction.
+                if (transaksi is null)
+                {
+                    // Transaction milik pemanggil sudah dibatalkan PostgreSQL; membaca ulang di
+                    // dalamnya akan gagal, jadi nomor pembalik yang sudah ada tidak disebut.
+                    return AccountingServiceResult<JournalDetailResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Jurnal ini sudah pernah dibalik.");
+                }
+
+                await transaksi.RollbackAsync(ct);
+
+                var pembalikTersimpan = await _db.Set<AccJournal>()
+                    .AsNoTracking()
+                    .Where(x => x.ReversalOfJournalId == asal.Id && !x.IsDelete)
+                    .Select(x => x.JournalNumber)
+                    .FirstOrDefaultAsync(ct);
+
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    pembalikTersimpan is null
+                        ? "Jurnal ini sudah pernah dibalik."
+                        : $"Jurnal ini sudah pernah dibalik dengan jurnal {pembalikTersimpan}.");
             }
             catch
             {
@@ -1724,6 +1763,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
         // ------------------------------------------------------------------
         // Pembantu
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Apakah penyimpanan gagal karena unique index pembalik tunggal — bukan karena sebab
+        /// lain seperti check constraint baris jurnal atau deret nomor.
+        /// </summary>
+        /// <remarks>
+        /// Sengaja dipersempit pada <b>nama index</b>, tidak menangkap seluruh
+        /// <see cref="DbUpdateException"/>: kegagalan lain di jalur pembalikan adalah kegagalan
+        /// sungguhan dan tidak boleh terbaca sebagai "sudah pernah dibalik". Pola pengenalan
+        /// <c>PostgresException</c> mengikuti <c>BillingFolioService</c>.
+        /// </remarks>
+        private static bool MelanggarIndexPembalikTunggal(DbUpdateException exception)
+        {
+            var postgresException = exception.InnerException as PostgresException;
+
+            return postgresException?.SqlState == PostgresErrorCodes.UniqueViolation
+                   && string.Equals(
+                       postgresException.ConstraintName,
+                       NamaIndexPembalikTunggal,
+                       StringComparison.Ordinal);
+        }
 
         private static HasilPersiapan<T> Tolak<T>(int statusCode, string pesan)
             => new() { Gagal = AccountingServiceResult<T>.Fail(statusCode, pesan) };

@@ -6,21 +6,168 @@
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved
-roadmap_revision: 3                 # amandemen 10 Sep 2026 - penyelarasan FE-ACC-P2-001/002
-                                    # dengan AccountingPeriodController; ACC-DEC-070
+roadmap_revision: 4                 # amandemen 14 Sep 2026 - ACC-DEC-074..081: FE-ACC-P2-009, 010, 014
+                                    # revisi 3: 10 Sep 2026, penyelarasan FE-ACC-P2-001/002; ACC-DEC-070
 roadmap_status: APPROVED
 approved_by: [Rizki]
-approved_at: 2026-09-10
-source_backend: 02c3219
-source_frontend: e732424eb          # branch RizkiV2
-decision_revision: 2.3              # ACC-DEC-070
-contracts: [ACC-API-0.9, ACC-STATE-0.2, ACC-VALIDATION-0.6, ACC-PERMISSION-0.4]
-scope_waves: [P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON]
+approved_at: 2026-09-14             # revisi 4; revisi 3 disetujui 2026-09-10
+source_backend: b3ab542e            # revisi 4; revisi 1-3 disusun di atas 02c3219
+source_frontend: f6b1498fe          # branch RizkiV2; revisi 1-3 di atas e732424eb
+decision_revision: 9                # 00-interview-decisions.md revisi 9, sampai ACC-DEC-081
+contracts: [ACC-API-0.10, ACC-STATE-0.3, ACC-VALIDATION-0.6, ACC-PERMISSION-0.5]
+scope_waves: [P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON, HARDENING, P2-0b]
+acceptance_policy: automated test bukan acceptance criterion (ACC-DEC-081)
 ```
+
+**Arti tanda status pada dokumen ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
+| ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
+| tanpa tanda | Belum dikerjakan |
+
+## Grafik Urutan Dependency
+
+Roadmap ini memuat 11 task, tetapi bersama task backend yang ditunggunya grafiknya melebihi 15
+node. Karena itu grafiknya dipecah per kelompok slice, didahului satu grafik ringkasan. Task
+backend digambar di dalam `subgraph` sebagai cermin baca-saja dari
+[backend-roadmap-phase2.md](backend-roadmap-phase2.md); tandanya disalin dari sana.
+
+### Ringkasan antar-slice
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend["Prasyarat backend — backend-roadmap-phase2.md"]
+        BMANDIRI["🟡 Backend gelombang mandiri<br/>13 dari 14 task"]:::luar
+        BP20B["🟡 Backend P2-0b<br/>BE-ACC-P2-015 sampai 018"]:::luar
+    end
+
+    FTUTUP["🟡 Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::sebagian
+    FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
+    FBATCH["🟡 Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::sebagian
+
+    BMANDIRI --> FTUTUP
+    BMANDIRI --> FLAIN
+    BP20B --> FBATCH
+```
+
+### Grafik 1 — tutup bulan dan jurnal berulang (`P2-4`, `P2-3`)
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend1["Prasyarat backend — backend-roadmap-phase2.md"]
+        BEACCP2005["✅ BE-ACC-P2-005<br/>Daftar periksa penutupan"]:::luar
+        BEACCP2006["✅ BE-ACC-P2-006<br/>Ajukan setujui tolak penutupan"]:::luar
+        BEACCP2007["✅ BE-ACC-P2-007<br/>CRUD template berulang"]:::luar
+    end
+
+    FEACCP2001["🟡 FE-ACC-P2-001<br/>Daftar periksa penutupan tampil"]:::sebagian
+    FEACCP2002["🟡 FE-ACC-P2-002<br/>Aksi ajukan setujui tolak"]:::sebagian
+    FEACCP2003["✅ FE-ACC-P2-003<br/>Daftar jurnal berulang"]:::selesai
+    FEACCP2004["✅ FE-ACC-P2-004<br/>Form jurnal berulang"]:::selesai
+
+    BEACCP2005 --> FEACCP2001
+    BEACCP2006 --> FEACCP2002
+    FEACCP2001 --> FEACCP2002
+    BEACCP2007 --> FEACCP2003
+    BEACCP2007 --> FEACCP2004
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-ACC-P2-005` ✅ | `FE-ACC-P2-001` 🟡 — tinggal `npm run build` owner |
+| 1 | `BE-ACC-P2-007` ✅ | `FE-ACC-P2-003` ✅, `FE-ACC-P2-004` ✅ |
+| 2 | `FE-ACC-P2-001`, `BE-ACC-P2-006` ✅ | `FE-ACC-P2-002` 🟡 — tinggal `npm run build` owner |
+
+### Grafik 2 — pengaturan, tutup tahun, control account, rekonsiliasi (`P2-0a`, `P2-5`, `P2-CTRL`, `P2-RECON`)
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend2["Prasyarat backend — backend-roadmap-phase2.md"]
+        BEACCP2009["✅ BE-ACC-P2-009<br/>Endpoint pengaturan akuntansi"]:::luar
+        BEACCP2010["✅ BE-ACC-P2-010<br/>Jurnal penutup tahun"]:::luar
+        BEACCP2011["✅ BE-ACC-P2-011<br/>Kolom control account"]:::luar
+        BEACCP2013["✅ BE-ACC-P2-013<br/>Saldo control account GL"]:::luar
+        BEACCP2014["⛔ BE-ACC-P2-014<br/>Perbandingan subledger"]:::luar
+    end
+
+    FEACCP2005["✅ FE-ACC-P2-005<br/>Layar pengaturan akuntansi"]:::selesai
+    FEACCP2006["✅ FE-ACC-P2-006<br/>Layar tutup tahun"]:::selesai
+    FEACCP2007["✅ FE-ACC-P2-007<br/>Penanda control account"]:::selesai
+    FEACCP2008["✅ FE-ACC-P2-008<br/>Layar rekonsiliasi"]:::selesai
+
+    BEACCP2009 --> FEACCP2005
+    BEACCP2010 --> FEACCP2006
+    BEACCP2011 --> FEACCP2007
+    BEACCP2013 --> FEACCP2008
+    BEACCP2014 --> FEACCP2008
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-ACC-P2-009` ✅ | `FE-ACC-P2-005` ✅ |
+| 1 | `BE-ACC-P2-010` ✅ | `FE-ACC-P2-006` ✅ |
+| 1 | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` ✅ |
+| 1 | `BE-ACC-P2-013` ✅; sisi subledger ⛔ menunggu `BE-ACC-P2-014` | `FE-ACC-P2-008` ✅ untuk sisi buku besar |
+
+### Grafik 3 — batch 14 September 2026 (`HARDENING`, `P2-0b`)
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend3["Prasyarat backend — backend-roadmap-phase2.md"]
+        BEACCP2017["🟡 BE-ACC-P2-017<br/>API jenis kejadian"]:::luar
+        BEACCP2018["✅ BE-ACC-P2-018<br/>API aturan posting"]:::luar
+    end
+
+    FEACCP2014["🟡 FE-ACC-P2-014<br/>Tombol periode mengikuti hak"]:::sebagian
+    FEACCP2009["🟡 FE-ACC-P2-009<br/>Layar jenis kejadian"]:::sebagian
+    FEACCP2010["🟡 FE-ACC-P2-010<br/>Layar dan form aturan posting"]:::sebagian
+
+    BEACCP2017 --> FEACCP2009
+    BEACCP2017 --> FEACCP2010
+    BEACCP2018 --> FEACCP2010
+```
+
+| Gelombang batch | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `FE-ACC-P2-014` |
+| 1 | `BE-ACC-P2-017` | `FE-ACC-P2-009` |
+| 1 | `BE-ACC-P2-017`, `BE-ACC-P2-018` | `FE-ACC-P2-010` |
+
+**Catatan runtime.** `FE-ACC-P2-009` dan `010` dapat ditulis begitu kontrak dan source backend
+`017`/`018` berdiri. Layarnya baru **menampilkan data sungguhan** sesudah migration
+`BE-ACC-P2-016` diterapkan Rizki.
 
 ## Baca ini lebih dahulu
 
-Enam task frontend, seluruhnya menunggu endpoint backend pasangannya berdiri. Tidak ada task
+Enam task frontend pada revisi pertama — kini sebelas sesudah amandemen 9 dan 14 September 2026 —
+seluruhnya menunggu endpoint backend pasangannya berdiri. Tidak ada task
 frontend yang boleh dimulai sebelum kontraknya benar-benar dapat dipanggil — pelajaran dari MVP,
 di mana layar dibangun lebih dahulu lalu ternyata nama DTO-nya berbeda (`ACC-GAP-004`).
 
@@ -54,6 +201,9 @@ bagian 11.
 | `FE-ACC-P2-006` ✅ | Layar Tutup Tahun | `P2-5` | `BE-ACC-P2-010` | ✅ `SELESAI` 11 Sep 2026 — `READY FOR UAT` |
 | `FE-ACC-P2-007` ✅ | **Penanda control account pada layar COA** | `P2-CTRL` | `BE-ACC-P2-011` | ✅ **`SELESAI`** 11 Sep 2026 — `IMPLEMENTATION COMPLETE`, `READY FOR UAT`; lint 0 error, 677 uji lulus, build compiled; dialog penyesuaian dan Form Jurnal Berulang ikut mematikan akun control. UAT belum dijalankan — diserahkan ke tim UAT |
 | `FE-ACC-P2-008` ✅ | **Layar Rekonsiliasi Control Account** | `P2-RECON` | `BE-ACC-P2-013` | ✅ **`SELESAI`** 11 Sep 2026 — `IMPLEMENTATION COMPLETE`, `READY FOR UAT`; saldo buku besar dari `gl-balances` terbukti di runtime; saldo subledger dan selisih "Belum tersedia" — `DEFERRED BACKEND CAPABILITY` (`BE-ACC-P2-014`, gelombang `P2-1`). UAT belum dijalankan |
+| `FE-ACC-P2-009` 🟡 | Layar master Jenis Kejadian | `P2-0b` | `BE-ACC-P2-017` | 🟡 `SEBAGIAN` 14 Sep 2026 — 7 dari 7 acceptance di source, lint 0 error; tinggal `npm run build` owner; data tampil sesudah migration `016`. [Laporan](../task/report/frontend/FE-ACC-P2-009.md) |
+| `FE-ACC-P2-010` 🟡 | Layar dan Form Aturan Posting | `P2-0b` | `BE-ACC-P2-017`, `BE-ACC-P2-018` | 🟡 `SEBAGIAN` 14 Sep 2026 — 8 dari 8 acceptance di source, lint 0 error; tinggal `npm run build` owner; data tampil sesudah migration `016`. [Laporan](../task/report/frontend/FE-ACC-P2-010.md) |
+| `FE-ACC-P2-014` 🟡 | Tombol Periode Akuntansi mengikuti hak akses (`ACC-GAP-010`) | `HARDENING` | — | 🟡 `SEBAGIAN` 14 Sep 2026 — 6 dari 6 acceptance di source, lint 0 error; tinggal `npm run build` owner; `READY FOR UAT`. [Laporan](../task/report/frontend/FE-ACC-P2-014.md) |
 
 ---
 
@@ -202,6 +352,63 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | DoD | Lint dan build hijau, laporan task tertulis |
 | Status | ✅ **`SELESAI` — 11 September 2026.** `IMPLEMENTATION COMPLETE`; developer verification `PASS`; `READY FOR UAT` — UAT **belum** dijalankan, diserahkan ke tim UAT terpisah (keputusan owner 11 September 2026). Layar `/corporate/accounting/reconciliation`, butir menu tingkat 2. Ketiga acceptance terpetakan ke source: (1) kolom Saldo Buku Besar dari `GET /reconciliation/gl-balances` memakai `BalanceInNormalBalance` — **bentuk respons terbukti cocok** dengan normalizer terhadap backend `rizkiG` `cca0957` (uji kontrak read-only, 6 control account; payloadnya disimpan sebagai fixture uji); (2) kolom Saldo Subledger dan Selisih **tampil** bertuliskan "Belum tersedia" — tidak disembunyikan, tidak pernah `Rp 0` — di bawah spanduk "Rekonsiliasi belum lengkap"; (3) tanpa cache — laporan dibuang saat layar ditutup dan saat badan hukum berganti, Muat Ulang memanggil ulang. `npx eslint` `0 errors`; **677 uji unit lulus** (+22 uji rekonsiliasi); `npm run build` `✓ Compiled successfully`, rute terdaftar. UI GATE 11 elemen: `REUSE` 10, `COMPOSE` 1, `NEW` 0. **`DEFERRED BACKEND CAPABILITY`:** saldo subledger — `BE-ACC-P2-014`, menunggu gelombang `P2-1` (`ACC-DEC-071`); selisih — membutuhkan saldo subledger. Kontrak `ACC-API-0.11` dan `ACC-PERMISSION-0.6` masih usulan. Laporan: [`fe-acc-p2-008`](../task/report/frontend/fe-acc-p2-008-layar-rekonsiliasi-control-account.md). **Riwayat — sebelum dikerjakan:** `READY` sebagian — sisi buku besar dapat dikerjakan sekarang. Kolom subledger menunggu `BE-ACC-P2-014`, yang **tidak lagi terblokir keputusan** sejak `ACC-DEC-071` (10 Sep 2026) dan kini hanya menunggu gelombang `P2-1` menyediakan kotak masuk kejadiannya |
 
+---
+
+## Amandemen 14 September 2026 — batch hardening dan Wave A
+
+Revisi 4 menambah **tiga task**, dasarnya keputusan owner `ACC-DEC-074` sampai `ACC-DEC-081`.
+Tiga aturan pada bagian *Baca ini lebih dahulu* tetap berlaku penuh. Ditambah satu aturan:
+**automated test bukan acceptance criterion** (`ACC-DEC-081`) — verifikasi task adalah
+`npm run lint`, `npm run build` oleh owner, dan pemeriksaan source. Jangan membuat berkas test baru.
+
+## 🟡 `FE-ACC-P2-014` — Tombol Periode Akuntansi mengikuti hak akses
+
+| Field | Isi |
+|---|---|
+| Outcome | Pengguna yang tidak berhak melihat tombol Bangkitkan, Tutup, dan Buka Kembali dalam keadaan mati beserta keterangannya, bukan tombol yang menyala lalu ditolak `403` |
+| Trace | `ACC-GAP-010`; `ACC-DEC-080`; acceptance (4) `FE-ACC-004` pada [frontend-roadmap.md](frontend-roadmap.md) |
+| Kontrak | Tidak berubah. Hak akses `AccountingPeriod : Create`, `AccountingPeriod : Close`, `AccountingPeriod : Reopen` pada `AccountingPeriodController` |
+| Reuse | Hook `usePermission` (`src/lib/hooks/auth/use-permission.jsx`); pola alasan tombol mati pada `period-closing-constants.jsx` dan `period-closing-view.jsx` |
+| Cakupan | `accounting-period-view.jsx` beserta hook/konstanta layar Periode Akuntansi bila perlu. **Tidak** menambah `AvailableActions` di backend |
+| Dependency | — |
+| Acceptance | (1) Tombol Bangkitkan Periode mati bagi pengguna tanpa `AccountingPeriod : Create`. (2) Tombol Tutup mati bagi pengguna tanpa `AccountingPeriod : Close`. (3) Tombol Buka Kembali mati bagi pengguna tanpa `AccountingPeriod : Reopen`. (4) Ketiganya **tetap tampil**, dan keterangan kenapa mati terbaca pengguna — contoh "Anda tidak memiliki hak Buka Kembali Periode." (5) Selama daftar hak belum dimuat, perilaku mengikuti `usePermission` apa adanya. (6) Nol perubahan backend, `globals.css` tidak disentuh, tanpa `style={{ }}` |
+| Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan source |
+| Risiko/pemilik | Menyembunyikan tombol membuat petugas mengira fitur itu tidak ada. Backend tetap menolak `403` sebagai pengaman sesungguhnya (`NFR-005`). Owner Frontend |
+| DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`, `READY FOR UAT`. 6 dari 6 acceptance terpetakan ke source: tiga `usePermission` (`AccountingPeriod : Create/Close/Reopen`) di `use-accounting-period.jsx`; Bangkitkan Setahun, Tutup Sementara, Tutup Permanen, dan Buka Kembali tetap tampil tetapi mati beserta `title` dan keterangan terlihat ("Anda tidak memiliki hak Buka Kembali Periode."); perilaku saat daftar hak belum termuat mengikuti `usePermission` apa adanya. `npx eslint` 3 berkas: **0 error, 0 warning**; grep anti-regresi bersih. UI GATE 5 elemen — `REUSE` 5, `NEW` 0. **Belum:** `npm run build` oleh owner. Uji manual `NOT FEASIBLE` — diserahkan ke tim UAT (`UAT-08`, `UAT-09`). Bukti: [laporan](../task/report/frontend/FE-ACC-P2-014.md) |
+
+## 🟡 `FE-ACC-P2-009` — Layar master Jenis Kejadian
+
+| Field | Isi |
+|---|---|
+| Outcome | Administrator akuntansi dapat melihat, menambah, mengubah, dan menonaktifkan jenis kejadian keuangan lewat layar |
+| Trace | `FR-P2-007` (prasyarat); `ACC-DEC-045`; `03-frontend-architecture.md` bagian 9 butir 3 dan bagian 10 butir 17 |
+| Kontrak | `ACC-API-0.10` grup Event Type — `GET /event-types`, `GET /{id}`, `GET /options`, `POST /`, `PUT /{id}`, `PATCH /{id}/deactivate`; `ACC-PERMISSION-0.5` `EventType : Read/Create/Update` |
+| Reuse | `master-data-resource-slice-factory.jsx`; `DataTable`, `DataFilter`; layar Jenis Jurnal (`FE-ACC-003`) sebagai pola terdekat; `usePermission`; modal konfirmasi yang sudah ada |
+| Cakupan | Route `/corporate/accounting/event-types` (daftar, tambah, ubah); butir menu tingkat 3 di Accounting › Master Data; slice didaftarkan di `store.jsx` |
+| Dependency | `BE-ACC-P2-017` |
+| Acceptance | (1) Daftar memakai `GET /event-types` dengan tabel berhalaman dan penyaring. (2) Form tambah dan ubah mengirim payload sesuai DTO backend. (3) Nonaktifkan meminta konfirmasi, dan penolakan `409` — misalnya jenis masih dipakai aturan posting aktif — tampil apa adanya. (4) Tombol Tambah, Ubah, dan Nonaktifkan dimatikan bagi yang tidak berhak. (5) Keadaan memuat, gagal, dan kosong ditangani. (6) Butir menu terdaftar. (7) `globals.css` tidak disentuh, tanpa `style={{ }}` |
+| Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan kolom layar lawan DTO backend |
+| Risiko/pemilik | Layar kosong sampai migration `BE-ACC-P2-016` diterapkan, dan isi jenis kejadian menunggu `DEC-ACC-P2-002`. Owner Frontend |
+| DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 7 dari 7 acceptance terpetakan ke source: route `/corporate/accounting/event-types` (daftar, tambah, ubah bertoken privat), slice factory dengan tujuh thunk sesuai `EventTypeController`, nonaktifkan/aktifkan lewat `ConfirmModal` dengan penolakan `409` tampil apa adanya, tombol Tambah/Perbarui/Nonaktifkan/Simpan mati beserta keterangan lewat `usePermission`, butir menu tingkat 3. `npx eslint`: **0 error, 0 warning**; grep anti-regresi bersih; kolom layar dan payload cocok dengan `EventTypeDtos.cs`. UI GATE 10 elemen — `REUSE` 10, `NEW` 0. **Selisih terhadap `master-data-feature-standard` dilaporkan:** mengikuti pola modul Accounting — backend tanpa `/summary`, `/filters/metadata`, `DELETE`. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`; uji manual `NOT FEASIBLE` sampai saat itu. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-009.md) |
+
+## 🟡 `FE-ACC-P2-010` — Layar dan Form Aturan Posting
+
+| Field | Isi |
+|---|---|
+| Outcome | Akuntansi dapat menyusun aturan posting berbaris — jenis kejadian, jenis jurnal, perlakuan, lalu baris komponen, akun, dan sisi — lewat layar |
+| Trace | `FR-P2-007`, `FR-P2-008`; `ACC-DEC-045`, `ACC-DEC-058`, `ACC-DEC-064`, `ACC-DEC-074`; `03-frontend-architecture.md` bagian 10 butir 15 dan 16 |
+| Kontrak | `ACC-API-0.10` grup Posting Rule beserta penyesuaian `JournalTypeId` 14 September 2026; `GET /event-types/options`; `GET /master-data/journal-types/options`; `GET /master-data/chart-of-accounts/options`; `ACC-PERMISSION-0.5` `PostingRule : Read/Create/Update` |
+| Reuse | Pola form berbaris Form Jurnal Berulang (`FE-ACC-P2-004`) dan pemilih cost center yang sudah ada; `DataTable`, `DataFilter`; `usePermission` |
+| Cakupan | Route `/corporate/accounting/posting-rules` (daftar, tambah, ubah); butir menu tingkat 3 di Accounting › Master Data; slice didaftarkan di `store.jsx` |
+| Dependency | `BE-ACC-P2-017`, `BE-ACC-P2-018` |
+| Acceptance | (1) Daftar memakai `GET /posting-rules` dan dapat disaring per badan hukum dan jenis kejadian. (2) Form memuat jenis kejadian dari `/event-types/options`, jenis jurnal dari `/journal-types/options`, dan perlakuan `LangsungSahkan`/`BuatDraft` yang angkanya **cocok** dengan enum backend. (3) Baris memuat komponen, akun, sisi Debit/Kredit, dan cost center; kewajiban cost center mengikuti respons backend, bukan aturan yang dihafal layar. (4) **Akun control account tidak dimatikan** pada pemilih akun layar ini — aturan posting adalah jalur otomatis yang sah (`ACC-DEC-064`), berbeda dari Form Jurnal. (5) Penolakan `400`, `409`, dan `422` tampil apa adanya. (6) Tombol dimatikan bagi yang tidak berhak. (7) Keadaan memuat, gagal, dan kosong ditangani. (8) `globals.css` tidak disentuh, tanpa `style={{ }}` |
+| Verifikasi | `npm run lint`; `npm run build` oleh owner; pemeriksaan tiga arah — kolom layar lawan respons, kolom payload lawan isian, angka pilihan lawan enum backend |
+| Risiko/pemilik | Memakai ulang util pemilih akun Form Jurnal apa adanya akan **mematikan** akun control account dan membuat aturan untuk Kas Kasir mustahil disusun. Owner Frontend |
+| DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** `IMPLEMENTATION COMPLETE`. 8 dari 8 acceptance terpetakan ke source: route `/corporate/accounting/posting-rules` (daftar tersaring badan hukum dan jenis kejadian, tambah, ubah bertoken privat), form berbaris `react-hook-form` dengan Komponen, Akun, Unit Biaya (wajib dari `requiresCostCenter` backend), Sisi, Keterangan; pilihan dari `/event-types/options`, `/journal-types/options`, `/chart-of-accounts/options`; **control account tidak dimatikan** lewat `buildPostingRuleAccountOption` (util Form Jurnal tidak diubah); penolakan backend tampil apa adanya; tombol mati bagi yang tidak berhak. `npx eslint`: **0 error, 0 warning**. Verifikasi tiga arah `PASS`: kolom ↔ `PostingRuleDtos.cs`, payload ↔ isian, `Treatment` 1/2 dan `Side` 1/2 ↔ enum backend. UI GATE 12 elemen — `REUSE` 11, `COMPOSE` 1 (`PostingRuleLineRow` lokal, opsi A direkomendasikan), `NEW` 0. **Belum:** `npm run build` owner. Data sungguhan tampil sesudah migration `BE-ACC-P2-016`. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-010.md) |
+
 ## Peta butir menu yang ditambahkan
 
 | Butir menu | Tingkat | Induk | Route | Task |
@@ -210,6 +417,8 @@ berarti menguji tombol tanpa hal yang menentukan nyala-matinya.
 | Tutup Tahun | 2 | Accounting | `/accounting/year-end-closing` | `FE-ACC-P2-006` |
 | Pengaturan Akuntansi | 3 | Accounting › Master Data | `/accounting/configuration` | `FE-ACC-P2-005` |
 | Rekonsiliasi Control Account | 2 | Accounting | `/accounting/reconciliation` | `FE-ACC-P2-008` |
+| Jenis Kejadian | 3 | Accounting › Master Data | `/accounting/event-types` | `FE-ACC-P2-009` |
+| Aturan Posting | 3 | Accounting › Master Data | `/accounting/posting-rules` | `FE-ACC-P2-010` |
 
 Daftar Periksa Penutupan **bukan** butir menu — ia layar anak dari Periode Akuntansi, sesuai
 `03-frontend-architecture.md` bagian 9.

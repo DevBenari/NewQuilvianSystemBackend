@@ -14,6 +14,8 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.S
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
@@ -491,6 +493,8 @@ try
     // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
     builder.Services.AddScoped<AccChartOfAccountService>();
     builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccEventTypeService>();
+    builder.Services.AddScoped<AccPostingRuleService>();
     builder.Services.AddScoped<AccAccountingConfigurationService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
     builder.Services.AddScoped<AccPeriodClosingService>();

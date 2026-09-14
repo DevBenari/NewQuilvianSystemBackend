@@ -701,3 +701,28 @@ beserta kelima kontraknya, termasuk koreksi `ACC-DEC-058`.
 pembuatan dan penerapan migration, penyambungan sungguhan ke Finance (menunggu ratifikasi
 `ACC-XM-001`), dan pengisian daftar jenis kejadian (`DEC-ACC-P2-002` masih `OPEN`). Ketiganya
 menuntut wewenang atau keputusan tersendiri.
+
+## Amendment 14 September 2026 — keputusan owner hasil review "rencana sampai 100%"
+
+Delapan keputusan `ACC-DEC-074` sampai `ACC-DEC-081` dicatat pada
+[00-interview-decisions.md](00-interview-decisions.md) revisi `9`. Artefak yang ikut disesuaikan:
+
+| Artefak | Perubahan |
+|---|---|
+| `erd/data-dictionary.md` bagian 9 dan 12 | `AccAccountingEvent.EventTypeId` boleh kosong, kolom `EventTypeCode` baru, kunci anti-ganda kedua memakai kode (`ACC-DEC-075`); `AccPostingRule.JournalTypeId` baru (`ACC-DEC-074`) |
+| `02-backend-architecture.md` bagian 13–18 | Diagram class, index, dan catatan keadaan migration yang sebenarnya |
+| `03-frontend-architecture.md` bagian 11.3 | `ACC-GAP-013` ditutup `ACC-DEC-076`; `SUSPENSE_ACCOUNT_BALANCE` dicabut `ACC-DEC-077` |
+| `contracts/api-contract.md` grup Posting Rule dan Accounting Event | `JournalTypeId` pada request aturan posting; kode jenis tak terdaftar tetap Tertahan |
+| `contracts/state-transition-matrix.md` Phase 2 bagian 1 | Pemicu `Diterima` → `Tertahan` diperluas |
+| `04-prd-to-mvp.md` bagian 29 | `DEC-ACC-P2-005` dan `007` ditutup `ACC-DEC-078` |
+| `roadmap/backend-roadmap-phase2.md` | Lima task 🟡 menjadi ✅ atas `ACC-DEC-081` |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| ID | Isi | Menahan |
+|---|---|---|
+| `ACC-XM-001` | Ratifikasi lintas modul, termasuk bentuk pesan oleh owner Finance | Kotak masuk kejadian, `POST-MVP` |
+| `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan | Pengisian data aturan posting |
+| `DEC-ACC-P2-008` | Deteksi aturan posting yang salah | Tidak menahan gelombang mana pun |
+| `OD-ACC-01`, `04`, `05`, `07`, `08` | Gerbang kode integrasi, bentuk pesan, autentikasi penerbit, deteksi shift kasir, bentuk saldo subledger | Kotak masuk kejadian dan rekonsiliasi subledger |
+| Definisi `DEPRECIATION_NOT_RUN`, `OPENING_CLOSING_MISMATCH` | Kapan kedua peringatan dianggap terjadi | Evaluasi kedua peringatan |

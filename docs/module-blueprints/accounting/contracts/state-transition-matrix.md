@@ -144,9 +144,9 @@ Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
 |---|---|---|---|---|
 | — | `Diterima` | Pesan masuk dari Finance | `AccountingEvent : Receive` | Kedua belas bidang terisi, mata uang rupiah |
 | `Diterima` | `Terjurnal` | Aturan posting ketemu, pemrosesan berhasil | Sistem | Periode menerima pencatatan; jurnal berhasil dibuat |
-| `Diterima` | `Tertahan` | Aturan posting **tidak** ketemu | Sistem | — |
+| `Diterima` | `Tertahan` | Aturan posting **tidak** ketemu, **atau kode jenis kejadian belum terdaftar** (`ACC-DEC-075`) | Sistem | — |
 | `Diterima` | `Gagal` | Tiga percobaan otomatis habis | Sistem | `AttemptCount = 3` |
-| `Tertahan` | `Terjurnal` | Akuntansi menambah aturan posting, lalu kejadian diproses ulang | Sistem atau `AccountingEvent : Retry` | Aturan posting untuk jenis itu kini ada dan aktif |
+| `Tertahan` | `Terjurnal` | Akuntansi menambah aturan posting — dan jenis kejadiannya bila belum terdaftar — lalu kejadian diproses ulang | Sistem atau `AccountingEvent : Retry` | Aturan posting untuk jenis itu kini ada dan aktif. Kejadian yang `EventTypeId`-nya kosong dipasangkan ke jenis yang kodenya sama dengan `EventTypeCode` tersimpan (`ACC-DEC-075`) |
 | `Gagal` | `Terjurnal` | Coba ulang manual berhasil | `AccountingEvent : Retry` | — |
 | `Gagal` | `Diabaikan` | Akuntansi menyatakan kejadian tidak perlu dijurnal | `AccountingEvent : Ignore` | **Alasan tertulis wajib** |
 

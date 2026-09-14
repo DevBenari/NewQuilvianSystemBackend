@@ -144,11 +144,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         /// </para>
         /// <para>
         /// <b>Penjaga jurnal ganda dan pembuatan jurnal berada dalam satu transaction</b>, supaya
-        /// keduanya tidak dapat disela penyimpanan lain dari koneksi yang sama. Perlu diketahui
-        /// batasnya: tanpa unique index di database, dua permintaan <b>bersamaan</b> pada dua
-        /// koneksi berbeda masih dapat lolos keduanya. Penutupnya adalah constraint database, dan
-        /// itu menuntut migration — di luar wewenang task ini. Dicatat sebagai risiko tersisa,
-        /// bukan didiamkan.
+        /// keduanya tidak dapat disela penyimpanan lain dari koneksi yang sama.
+        /// </para>
+        /// <para>
+        /// <b>Dua permintaan bersamaan dari koneksi berbeda ditahan advisory lock</b>
+        /// (<c>BE-ACC-P2-032</c>, <c>ACC-DEC-079</c>). Sebelum lock ini ada, keduanya dapat
+        /// sama-sama melihat "belum ada jurnal penutup" lalu sama-sama membuatnya. Unique
+        /// constraint tidak dapat mengungkapkan "satu jurnal <c>JT</c> per badan hukum per tahun
+        /// buku" pada skema <c>AccJournal</c> tanpa kolom baru, dan owner memutuskan tidak
+        /// menambah skema demi penjaga ini. Kuncinya ber-scope badan hukum dan tahun buku, jadi
+        /// penutupan tahun lain atau badan hukum lain tidak saling menunggu.
         /// </para>
         /// </remarks>
         public async Task<AccountingServiceResult<JournalDetailResponse>> GenerateAsync(
@@ -185,6 +190,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
 
             try
             {
+                // BE-ACC-P2-032 — kunci diambil DI DALAM transaction, sebelum pemeriksaan jurnal
+                // penutup yang sudah ada. Permintaan kedua untuk badan hukum dan tahun buku yang
+                // sama menunggu sampai yang pertama commit, lalu menemukan jurnalnya dan ditolak
+                // 409. Kunci lepas sendiri saat transaction berakhir. pg_advisory_xact_lock hanya
+                // ada di PostgreSQL, jadi penyedia lain dilewati — pola AccJournalService.
+                if (_db.Database.IsNpgsql())
+                {
+                    await _db.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"ACC_YEAR_END_{request.LegalEntityId:N}_{request.FiscalYear}"],
+                        ct);
+                }
+
                 var sudahAda = await CariJurnalPenutupAsync(
                     request.LegalEntityId, jenis.Id, rencana.IdPeriode, ct);
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `5` — 10 September 2026, `ACC-DEC-071` menutup `DEC-ACC-P2-011` (sumber saldo subledger) dan membuka `ACC-GAP-013`. Sebelumnya `4`, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
+| Revision | `6` — 14 September 2026, `ACC-DEC-076` menutup `ACC-GAP-013` (butir penghalang baru `Evaluated`, toleransi nol) dan `ACC-DEC-077` mencabut peringatan `SUSPENSE_ACCOUNT_BALANCE`. Sebelumnya `5` — 10 September 2026, `ACC-DEC-071` menutup `DEC-ACC-P2-011` (sumber saldo subledger) dan membuka `ACC-GAP-013`. Sebelumnya `4`, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
 | Status | `draft` — approval adalah tindakan manusia, belum diberikan |
 | Cakupan | **Dua bagian.** Bagian 1-8: MVP tulang punggung akuntansi (`ACC-DEC-009`). Bagian 9-14: Phase 2 (`ACC-PH-006`), mencakup `ACC-DEC-044` sampai `ACC-DEC-066` |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
@@ -548,8 +548,14 @@ dibangun. Itu keadaan yang benar, bukan cacat yang perlu dilaporkan.
 | 2 | Kejadian keuangan tertahan | `HELD_EVENTS` | `NotYetAvailable` | **`ACC-DEC-070`** |
 | 3 | Integrasi belum cocok | `INTEGRATION_MISMATCH` | `NotYetAvailable` | `ACC-DEC-051` |
 | 4 | Penyusutan belum dijalankan | `DEPRECIATION_NOT_RUN` | `NotYetAvailable` — menunggu `BE-ACC-P2-008` | `ACC-DEC-051` |
-| 5 | Saldo tertinggal di akun sementara | `SUSPENSE_ACCOUNT_BALANCE` | `NotYetAvailable` | `ACC-DEC-051` |
-| 6 | Selisih saldo awal dan saldo akhir | `OPENING_CLOSING_MISMATCH` | `NotYetAvailable` | `ACC-DEC-051` |
+| 5 | ~~Saldo tertinggal di akun sementara~~ | ~~`SUSPENSE_ACCOUNT_BALANCE`~~ | **DICABUT dari requirement** `ACC-DEC-077`, 14 September 2026 — bertentangan dengan `ACC-DEC-046` yang melarang akun sementara. Source `b3ab542e` **masih** mengembalikannya sebagai `NotYetAvailable`; pencabutannya di source menyusul lewat task tersendiri | `ACC-DEC-051`, dicabut `ACC-DEC-077` |
+| 6 | Selisih saldo awal dan saldo akhir | `OPENING_CLOSING_MISMATCH` | `NotYetAvailable` — **definisinya menunggu keputusan owner** | `ACC-DEC-051` |
+
+**Keadaan requirement per 14 September 2026 (`ACC-DEC-077`):** peringatan yang berlaku tinggal
+**lima**. `DEPRECIATION_NOT_RUN` dan `OPENING_CLOSING_MISMATCH` tetap tercantum, tetapi definisi
+keduanya **belum diputuskan owner** dan tidak boleh diisi tebakan. Keterangan "menunggu
+`BE-ACC-P2-008`" pada butir 4 sudah basi — penjadwalnya berdiri sejak 10 September 2026; yang
+menahan sekarang adalah definisi "penyusutan", bukan penjadwalnya.
 
 Kejadian tertahan tetap **peringatan, bukan penghalang**: ia menunggu pekerjaan pemetaan yang
 wajar dijadwalkan, bukan gangguan yang menuntut tindakan segera. Alasan yang sama dipakai
@@ -594,9 +600,14 @@ pembaca dokumen dapat mencocokkan dengan apa yang tampil di layar saat menguji.
 > Alternatifnya mengubah `CanSubmitClosing` agar sebagian penghalang `NotYetAvailable` ikut
 > menahan. Itu menambah aturan baru pada mesin yang sudah bekerja, demi hasil yang sama.
 >
-> Satu hal masih perlu diputuskan owner: apakah butir keempat ini **butir baru**, atau peringatan
-> `INTEGRATION_MISMATCH` yang sudah ada **dinaikkan** menjadi penghalang. Keduanya sah; butir baru
-> lebih jelas karena `INTEGRATION_MISMATCH` bernama luas dan tidak khusus rekonsiliasi.
+> ~~Satu hal masih perlu diputuskan owner: apakah butir keempat ini **butir baru**, atau peringatan
+> `INTEGRATION_MISMATCH` yang sudah ada **dinaikkan** menjadi penghalang.~~
+>
+> **DIPUTUSKAN — `ACC-DEC-076`, 14 September 2026. `ACC-GAP-013` ditutup.** Owner memilih
+> **butir baru ber-`State = Evaluated`**, persis jalan keluar di atas. Saldo subledger yang belum
+> lengkap **maupun** tidak cocok sama-sama menahan penutupan, dengan **toleransi selisih nol**.
+> Contoh: selisih Rp 500 antara saldo Kas Kasir di buku besar dan di subledger tetap menahan.
+> Implementasinya menunggu Wave D (rekonsiliasi subledger), karena datanya belum ada.
 
 ### 11.4 Tutup Tahun
 

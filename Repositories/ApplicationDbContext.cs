@@ -17,7 +17,9 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPerio
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -526,6 +528,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
         public DbSet<AccJournalType> AccJournalTypes { get; set; }
         public DbSet<AccAccountingConfiguration> AccAccountingConfigurations { get; set; }
+        public DbSet<AccEventType> AccEventTypes { get; set; }
+        public DbSet<AccPostingRule> AccPostingRules { get; set; }
+        public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD

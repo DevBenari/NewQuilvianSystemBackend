@@ -20,7 +20,7 @@ belas artefak.
 |---|---|---|:---:|:---:|
 | `ACC-TD-001` | Check constraint mustahil dipenuhi di SQLite | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-002` | Penyaringan badan hukum per pengguna tidak ada | Security/Platform | **Tinggi** | `OPEN` |
-| `ACC-TD-003` | Gerbang QBE akan menolak saat merge | Lead | Sedang | `OPEN` |
+| ~~`ACC-TD-003`~~ | ~~Gerbang QBE akan menolak saat merge~~ | — | — | **`CLOSED`** 14 Sep 2026 — registry backend kini memuat `Acc` `ACTIVE` |
 | ~~`ACC-TD-004`~~ | ~~Seeder jenis jurnal belum punya call site~~ | — | — | **`CLOSED`** 2 Sep 2026 |
 | `ACC-TD-005` | `UAT-15` tidak dapat dijalankan | Owner modul | Rendah | `OPEN` |
 | `ACC-TD-006` | Aturan koordinasi migration belum canonical | Lead | Rendah | `OPEN` |
@@ -32,14 +32,17 @@ belas artefak.
 | `ACC-TD-012` | Roadmap `BE-ACC-008` bertentangan dengan kontrak engineering | Owner modul | Rendah | `OPEN` |
 | ~~`ACC-TD-013`~~ | ~~`POST /seed` belum masuk `ACC-API`~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | ~~`ACC-TD-014`~~ | ~~Pemeriksaan periode lebih awal daripada kontrak~~ | — | — | **`CLOSED`** 3 Sep 2026 |
-| `ACC-TD-015` | Dua salinan registry berselisih **dua arah** | Lead / pemilik registry | Sedang | `OPEN` |
-| `ACC-TD-016` | **Seluruh test Accounting dihapus** — nol jaring regresi | **Rizki** | **Tinggi** | `OPEN` |
+| `ACC-TD-015` | Dua salinan registry berselisih — **kini satu arah**: salinan suite skill yang tertinggal | Lead / pemilik registry | Rendah | `OPEN` |
+| ~~`ACC-TD-016`~~ | ~~**Seluruh test Accounting dihapus** — nol jaring regresi~~ | — | — | **`CLOSED`** 14 Sep 2026 — risiko **diterima** atas `ACC-DEC-081` dan arahan lead `cefd927d` |
 | ~~`ACC-TD-017`~~ | ~~Tanpa test otomatis, verifikasi manual~~ | — | — | **`CLOSED`** 3 Sep 2026 |
 | `ACC-TD-018` | Verifikasi performa dan index buku besar tertunda | Owner modul | Sedang | `OPEN` |
 | ~~`ACC-TD-019`~~ | ~~`RequiresApproval` disimpan tetapi tidak pernah ditegakkan~~ | — | — | **`CLOSED`** 3 Sep 2026 |
-| `ACC-TD-020` | `ReversalOfJournalId` tidak unique — pembalikan ganda ditahan advisory lock, bukan skema | Owner modul | Sedang | `OPEN` — **butuh migration** |
+| `ACC-TD-020` | `ReversalOfJournalId` tidak unique — pembalikan ganda ditahan advisory lock, bukan skema | Owner modul | Sedang | `OPEN` — source `BE-ACC-P2-031` selesai 14 Sep 2026; **menunggu migration Rizki** |
 | ~~`ACC-TD-021`~~ | ~~`actionLoading` mati pada thunk di luar factory — penjaga kiriman ganda tidak menjaga~~ | — | — | **`CLOSED`** 7 Sep 2026
 | `ACC-TD-022` | **Daftar akun belum pernah disusun** — modul akuntansi tanpa bagan akun | **Pemilik proses akuntansi** | **Tinggi** | `OPEN` — jalan sementara ditempuh 10 Sep 2026, lihat rinciannya | |
+| ~~`ACC-TD-023`~~ | ~~Nominal rupiah ikut tercatat di log `JournalController` dan `ChartOfAccountController` — melanggar `NFR-004`~~ | — | — | **`CLOSED`** 14 Sep 2026 — `BE-ACC-P2-033` |
+| ~~`ACC-TD-024`~~ | ~~Dua penyusunan jurnal penutup tahun yang bersamaan dapat lolos keduanya~~ | — | — | **`CLOSED`** 14 Sep 2026 — `BE-ACC-P2-032` |
+| `ACC-TD-025` | Peringatan `SUSPENSE_ACCOUNT_BALANCE` masih dikembalikan source padahal sudah dicabut dari requirement | Owner modul | Rendah | `OPEN` — belum dijadwalkan |
 
 ---
 
@@ -89,7 +92,14 @@ dan satu jurnal tetap tidak boleh mencampur dua badan hukum.
 
 ---
 
-## `ACC-TD-003` — Gerbang QBE akan menolak saat merge
+## ~~`ACC-TD-003`~~ — Gerbang QBE akan menolak saat merge — **`CLOSED`**
+
+> **Ditutup 14 September 2026 dengan bukti, bukan pernyataan.** Registry
+> `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` pada `rizkiG` `b3ab542e` kini memuat baris
+> `| Corporate | AccountingManagement / Accounting | BUSINESS DOMAIN / MODULE | Acc | ACTIVE |`
+> (baris 31), dan baris yang sama ada pada `origin/QuilvianIntegrationBackend` (ref lokal 10
+> September 2026). Checker QBE karena itu tidak lagi punya dasar menolak entity `Acc*` lewat
+> `QBE-MOD-002`. Selisih dengan salinan suite skill tetap dicatat di `ACC-TD-015`.
 
 **Sumber:** `ACC-DEP-007`. **Diabaikan atas instruksi owner** 2 September 2026 agar pekerjaan
 dapat berlanjut.
@@ -342,6 +352,13 @@ Aturan "periode menerima jenis jurnal ini" terdaftar di `ACC-VALIDATION-0.2` **b
 
 ## `ACC-TD-015` — Dua salinan registry berselisih dua arah
 
+> **Pembaruan 14 September 2026 — selisihnya kini satu arah.** Registry backend pada `rizkiG`
+> `b3ab542e` sudah memuat **keduanya**: `Lab` `ACTIVE` (baris 21) dan `Acc` `ACTIVE` (baris 31).
+> Salinan suite skill terpasang (versi `1.17.1`) memuat `Lab` `ACTIVE` tetapi **tidak** memuat
+> `Acc`. Jadi yang tertinggal kini hanya suite skill, dan selisih itu tidak lagi mengancam gerbang
+> merge — checker membaca salinan backend. Butir tetap `OPEN` sampai pemilik registry
+> menyinkronkan suite skill. Berat turun menjadi **Rendah**.
+
 **Ditemukan:** `BE-ACC-010`, 3 September 2026, saat Backend Governance Preflight.
 
 Ini **menajamkan `ACC-TD-003`**, yang selama ini mencatat salinan backend "tertinggal tepat satu
@@ -372,7 +389,14 @@ repository backend, yaitu salinan yang justru kedaluwarsa. Ini bagian dari butir
 
 ---
 
-## `ACC-TD-016` — Seluruh test Accounting dihapus, nol jaring regresi
+## ~~`ACC-TD-016`~~ — Seluruh test Accounting dihapus, nol jaring regresi — **`CLOSED`, risiko diterima**
+
+> **Ditutup 14 September 2026 atas keputusan owner `ACC-DEC-081`.** Lead menghapus seluruh project
+> test backend dari branch integration (`cefd927d`, 11 September 2026) dan menyatakan test
+> dijalankan terpisah pada branch utama. Automated test karena itu **bukan** acceptance criterion
+> pekerjaan Accounting di branch developer. **Risikonya tidak hilang, hanya diterima:** perubahan
+> pada `AccJournalService` berikutnya tetap berjalan tanpa jaring regresi otomatis di branch ini.
+> Catatan di bawah dipertahankan sebagai riwayat dan bekal bila test kelak diminta kembali.
 
 **DIBUKA KEMBALI 3 September 2026.** Butir ini sempat ditutup pagi harinya lewat gerbang env var,
 lalu owner memutuskan **menghapus seluruh test Accounting** dengan alasan *"kita sudah menguji dan
@@ -650,6 +674,7 @@ menjamin pembalikan tidak ganda — sehingga tidak ada satu pun index yang menah
 | **Kenapa masih `OPEN`** | Advisory lock menutup jalur aplikasi, **bukan** skema. Penulisan langsung ke database, jalur lain di masa depan, atau penyedia non-PostgreSQL tetap dapat menyisipkan pembalik kedua |
 | **Cara menutup** | Unique index parsial pada `AccJournal (ReversalOfJournalId)` untuk baris `ReversalOfJournalId IS NOT NULL AND IsDelete = false`. **Menuntut migration** |
 | Perlu diperiksa lebih dulu | Apakah data yang ada sudah memuat pembalik ganda. Bila ada, migration akan gagal dan datanya harus dibereskan lebih dahulu |
+| **Keadaan — 14 September 2026** | **Tetap `OPEN`.** `BE-ACC-P2-031` sudah memasang unique index parsial pada model EF dan menerjemahkan pelanggarannya menjadi `409`. Butir ini ditutup hanya sesudah migration dibuat **dan** diterapkan Rizki. Isi migration dan query pemeriksaan data: [BE-ACC-P2-031](task/report/backend/BE-ACC-P2-031.md) bagian 3.4 |
 
 ---
 
@@ -883,3 +908,72 @@ sungguhan. Memisahkan akun pengembangan dari akun asli sesudah keduanya bercampu
 daripada membuat ulang — dan jurnal yang sudah disahkan tidak dapat dihapus (`ACC-DEC-015`).
 
 Butir ini ditutup hanya bila bagan akun sungguhan dari rumah sakit sudah diterima dan diisi.
+
+---
+
+## `ACC-TD-023` — Nominal rupiah ikut tercatat di log
+
+**Ditemukan:** review "rencana sampai 100%", 14 September 2026, pada `rizkiG` `b3ab542e`.
+
+`NFR-004` melarang nilai uang dan keterangan jurnal masuk catatan `LoggerService`. Dua controller
+mencatat pesan hasil layanan **apa adanya**, padahal beberapa pesan penolakan memuat nominal:
+
+| Controller | Pencatat | Pesan bernominal yang ikut tercatat |
+|---|---|---|
+| `JournalController` | `CatatAsync` | "Jurnal belum seimbang. Total debit Rp 4.500.000, total kredit Rp 4.000.000, selisih Rp 500.000." (`AccJournalService`), dan "Baris penyesuaian belum seimbang. Selisih Rp …" |
+| `ChartOfAccountController` | `CatatAsync` | "Akun masih bersaldo Rp 15.000.000 dan tidak dapat dinonaktifkan." (`AccChartOfAccountService`) |
+
+`RecurringJournalController` dan `YearEndClosingController` sudah menyaring nominal lewat
+`TanpaNominal` sebelum mencatat, jadi polanya sudah ada di modul ini.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat | Siapa pun yang dapat membaca log melihat angka keuangan rumah sakit |
+| Yang **tidak** terdampak | Pesan kepada pengguna — pesan lengkap memang dibutuhkan petugas untuk memperbaiki jurnal |
+| Cara menutup | Saring nominal pada kedua pencatat memakai pola `TanpaNominal` — `BE-ACC-P2-033` |
+| **Penutupan — 14 September 2026** | **`CLOSED`.** `CatatAsync` pada kedua controller meneruskan `TanpaNominal(hasil.Message)`; `ToActionResult` tetap memakai pesan utuh. Build owner `0 error`. Bukti: [BE-ACC-P2-033](task/report/backend/BE-ACC-P2-033.md). Batas yang tetap berlaku: pesan bernominal baru berformat selain `Rp <angka>` tidak tertangkap pola |
+
+---
+
+## `ACC-TD-024` — Dua penyusunan jurnal penutup tahun bersamaan dapat lolos keduanya
+
+**Ditemukan:** `BE-ACC-P2-010`, 10 September 2026; dicatat ke register 14 September 2026.
+
+`AccYearEndClosingService` memeriksa "apakah jurnal penutup tahun ini sudah ada" tanpa kunci.
+Dua permintaan yang tiba bersamaan pada koneksi berbeda sama-sama melihat "belum ada", lalu
+sama-sama membuat jurnal penutup.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat | Dua jurnal penutup untuk satu tahun buku. Bila keduanya disahkan, laba berpindah dua kali ke laba ditahan |
+| Kemungkinan | Rendah — tutup tahun sekali setahun dan hanya Accounting Manager yang berhak |
+| Cara menutup | Advisory transaction lock per badan hukum dan tahun buku, lalu periksa ulang di dalam transaction — **tanpa** kolom maupun migration (`ACC-DEC-079`). Dijadwalkan `BE-ACC-P2-032` |
+| **Penutupan — 14 September 2026** | **`CLOSED`.** `GenerateAsync` mengambil `pg_advisory_xact_lock` ber-kunci `ACC_YEAR_END_{LegalEntityId:N}_{FiscalYear}` di dalam transaction, sebelum pemeriksaan jurnal penutup yang sudah ada. Dibuktikan pemeriksaan source dan build owner `0 error`; uji dua permintaan bersamaan pada PostgreSQL **belum** dijalankan. Bukti: [BE-ACC-P2-032](task/report/backend/BE-ACC-P2-032.md) |
+
+---
+
+## `ACC-TD-025` — Peringatan yang sudah dicabut masih dikembalikan source
+
+**Ditemukan:** 14 September 2026, sesudah `ACC-DEC-077`.
+
+`ACC-DEC-077` mencabut peringatan `SUSPENSE_ACCOUNT_BALANCE` dari requirement, karena Accounting
+tidak memakai akun sementara (`ACC-DEC-046`). `AccPeriodClosingService` pada `b3ab542e` masih
+mengembalikannya sebagai butir `NotYetAvailable`, sehingga `NotYetAvailableCount` pada daftar
+periksa ikut terhitung satu lebih banyak dari requirement.
+
+| Hal | Keterangan |
+|---|---|
+| Akibat | Layar Daftar Periksa Penutupan menampilkan satu butir "belum dapat diperiksa" yang tidak akan pernah dapat diperiksa |
+| Cara menutup | Cabut butir itu dari `AccPeriodClosingService`, lalu sesuaikan kalimat "enam peringatan" pada kontrak dan acceptance `FE-ACC-P2-001`. Belum dijadwalkan; **tidak** termasuk batch 14 September 2026 |
+
+---
+
+## Keputusan atas gap readiness — 14 September 2026
+
+Dua butir `ACC-GAP` pada [testing/readiness-report.md](testing/readiness-report.md) dan
+[03-frontend-architecture.md](03-frontend-architecture.md) sudah punya keputusan owner:
+
+| Gap | Keputusan | Keadaan |
+|---|---|---|
+| `ACC-GAP-010` — tombol periode tidak mengikuti hak akses | `ACC-DEC-080`: diselesaikan di frontend memakai `usePermission`, tanpa `AvailableActions` di backend | Keputusan ada; implementasinya `FE-ACC-P2-014` |
+| `ACC-GAP-013` — penghalang keempat penutupan periode | `ACC-DEC-076`: butir baru ber-`State = Evaluated`, toleransi selisih nol | **Ditutup sebagai keputusan**; implementasinya menunggu Wave D |

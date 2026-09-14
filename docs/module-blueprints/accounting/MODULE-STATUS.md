@@ -292,6 +292,72 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### TITIK LANJUT — batch 14 September 2026 (belum selesai, dilanjutkan di sesi baru)
+
+Batch "hardening + Wave A" dikerjakan sesuai instruksi owner 14 September 2026. Governance yang
+dipakai: keputusan dicatat lewat `manage-module-blueprint`, kartu task ditambahkan lewat
+`plan-module-delivery` (roadmap backend revisi 3, frontend revisi 4), lalu setiap task lewat
+`build-module-backend`/`build-module-frontend`. **Nol commit, nol migration, nol build dijalankan.**
+
+| Task | Keadaan per akhir sesi |
+|---|---|
+| Dokumentasi keputusan (`ACC-DEC-074..081`, lima task → ✅, `UTANG-TEKNIS`, traceability, kartu roadmap + grafik) | **Selesai ditulis**, belum di-commit |
+| `BE-ACC-P2-033` log bebas nominal | **Source selesai** — `JournalController`, `ChartOfAccountController` |
+| `BE-ACC-P2-031` penjaga database pembalikan ganda | **Source selesai** — `AccJournalConfiguration` (unique parsial, nama `IX_AccJournal_ReversalOfJournalId`), `AccJournalService.ReverseAsync` (tangkap `23505` pada index itu → `409`). Migration **belum dibuat** — milik Rizki |
+| `BE-ACC-P2-032` tutup tahun ganda | **Source selesai** — `AccYearEndClosingService.GenerateAsync`, advisory lock `ACC_YEAR_END_{LegalEntityId:N}_{FiscalYear}` |
+| `BE-ACC-P2-015` entity master aturan posting | **Source selesai** — `MasterData/EventType/Models`, `MasterData/PostingRule/{Models,Enums}`, 3 configuration di `Repositories/Configurations/.../MasterData/`, 3 `DbSet` |
+| `BE-ACC-P2-016` migration | **Belum** — milik Rizki; boleh digabung dengan index `031` |
+| `BE-ACC-P2-017` API Jenis Kejadian | **Source selesai** — `EventTypeController` (6 endpoint kontrak + `activate`), `AccEventTypeService`, DTO, registrasi `Program.cs` |
+| `BE-ACC-P2-018` API Aturan Posting | **Source selesai** — `PostingRuleController` (5 endpoint), `AccPostingRuleService` (termasuk `CariAturanAktifAsync`), DTO, registrasi `Program.cs` |
+| `FE-ACC-P2-014`, `FE-ACC-P2-009`, `FE-ACC-P2-010` | **Belum dimulai** |
+
+**Langkah berikutnya, berurutan:**
+
+1. Rizki menjalankan `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false` (bila
+   backend sedang jalan, pakai direktori keluaran terpisah). Perbaiki galat kompilasi bila ada.
+2. Tulis laporan tracked `task/report/backend/` untuk `033`, `031`, `032`, `015`, `017`, `018`,
+   lalu tandai status pada kedua grafik, tabel ringkasan, kartu roadmap, dan traceability `3c`.
+   `031` dan `015` tetap 🟡 sampai migration diterapkan bila DoD-nya menuntut itu; `016` tanpa tanda.
+3. Kerjakan `FE-ACC-P2-014`, lalu `FE-ACC-P2-009` dan `FE-ACC-P2-010` lewat `build-module-frontend`
+   di branch `RizkiV2`. Catatan: enum backend dikirim sebagai **angka**; `Treatment` 1 langsung
+   disahkan / 2 buat draft, `Side` 1 debit / 2 kredit. Pemilih akun Aturan Posting **tidak boleh**
+   mematikan control account.
+4. Perbarui angka progress di bagian ini dan `UTANG-TEKNIS.md` (`ACC-TD-020`, `023`, `024`).
+
+**Delta yang wajib masuk laporan task:**
+
+- `AccountingEventTreatment` diletakkan di `MasterData/PostingRule/Enums`, bukan
+  `AccountingEvent/Enums`.
+- Unique `AccPostingRule` berfilter `"IsActive" = true AND "IsDelete" = false`.
+- `EventTypeController` punya `PATCH /{id}/activate` di luar kontrak.
+- Kedua controller baru tidak memuat `/filters/metadata`, `/summary`, `PATCH /{id}/status`, dan
+  `DELETE` dari standar master data.
+- Aturan "tidak akan pernah seimbang" ditegakkan sebagai "wajib ada baris debit dan kredit".
+- Penonaktifan aturan yang ditunggu kejadian Tertahan **ditunda**.
+- **Temuan untuk owner:** `PUT` mengubah aturan aktif di tempat, padahal kamus data menyebut aturan
+  lama "disimpan nonaktif sebagai riwayat" — perlu diputuskan sebelum mesin posting dibangun.
+
+### Keputusan owner — 14 September 2026
+
+Review "rencana sampai 100%" menghasilkan delapan keputusan owner yang kini final —
+`ACC-DEC-074` sampai `ACC-DEC-081` di [00-interview-decisions.md](00-interview-decisions.md):
+
+| Pertanyaan review | Keputusan | Isi singkat |
+|---|---|---|
+| `OD-ACC-02` | `ACC-DEC-074` | `JournalTypeId` pada `AccPostingRule`; pelaku jurnal otomatis dari `SystemActorUserId` |
+| `OD-ACC-03` | `ACC-DEC-075` | Kejadian berjenis tak dikenal disimpan Tertahan; `EventTypeId` boleh kosong, `EventTypeCode` asli disimpan |
+| `OD-ACC-09` | `ACC-DEC-076` | Penghalang penutupan baru `Evaluated` untuk rekonsiliasi, toleransi nol — menutup `ACC-GAP-013` |
+| `OD-ACC-10` | `ACC-DEC-077` | `SUSPENSE_ACCOUNT_BALANCE` dicabut; dua peringatan lain tetap menunggu definisi owner |
+| `OD-ACC-11` | `ACC-DEC-078` | `DEC-ACC-P2-005` dan `007` ditutup; `008` tetap terbuka |
+| `OD-ACC-13` | `ACC-DEC-079` | Advisory transaction lock untuk tutup tahun ganda, tanpa skema baru |
+| `OD-ACC-14` | `ACC-DEC-080` | `ACC-GAP-010` diselesaikan frontend lewat `usePermission` |
+| `OD-ACC-15` | `ACC-DEC-081` | Lima task backend 🟡 karena test menjadi ✅ |
+
+**Tetap terblokir dan tidak diputuskan:** `OD-ACC-01`, `04`, `05`, `06` (`DEC-ACC-P2-002`), `07`,
+`08`, definisi `DEPRECIATION_NOT_RUN` dan `OPENING_CLOSING_MISMATCH`, serta `ACC-XM-001`. Seluruh
+pekerjaan kotak masuk kejadian, penerimaan kejadian Finance, dan rekonsiliasi subledger **tidak
+dikerjakan** sampai keputusan lintas modul itu ada.
+
 ### Titik lanjut — 11 September 2026
 
 **Gelombang mandiri Phase 2 tuntas sisi development.** Seluruh 8 task frontend dan 13 dari 14
@@ -319,7 +385,7 @@ menuntut entity dan migration baru. Urutan yang disarankan:
 | # | Langkah | Pemilik | Bahan |
 |---:|---|---|---|
 | B1 | Ratifikasi `ACC-API-0.11`, `ACC-VALIDATION-0.7`, `ACC-PERMISSION-0.6` | Rizki | `contracts/` — ketiganya masih usulan per 11 Sep 2026 |
-| B2 | Putuskan `ACC-GAP-013` — penghalang keempat tutup bulan: butir baru di daftar periksa, atau `INTEGRATION_MISMATCH` dinaikkan menjadi penghalang | Rizki | [03-frontend-architecture.md](03-frontend-architecture.md) bagian 11.3. Saran: butir baru ber-`State = Evaluated` dengan `Count` = jumlah control account yang saldonya belum diterima, supaya mesin `CanSubmitClosing` yang ada langsung menahannya |
+| ~~B2~~ | ~~Putuskan `ACC-GAP-013`~~ — **DIPUTUSKAN 14 Sep 2026 `ACC-DEC-076`**: butir penghalang baru ber-`State = Evaluated`, saldo subledger belum lengkap maupun tidak cocok menahan penutupan, toleransi nol. Implementasi menunggu Wave D | Rizki | [00-interview-decisions.md](00-interview-decisions.md) |
 | B3 | Putuskan `DEC-ACC-P2-002` — isi jenis kejadian dan aturan posting (`AccEventType`, `AccPostingRule`, `AccPostingRuleLine`) | Rizki | [00-interview-decisions.md](00-interview-decisions.md); `ACC-DEC-058` sudah menetapkan aturan posting berbentuk daftar baris |
 | B4 | Sepakati sisi lintas modul dengan owner Finance dan Billing — penerbit kejadian (`ACC-XM-001`, `ACC-DEC-044`) dan bentuk kejadian saldo subledger (`ACC-DEC-071`) | Rizki + owner Finance/Billing | [evidence/10-billing-arap-handoff-scan.md](evidence/10-billing-arap-handoff-scan.md). Modul Finance belum ada di branch mana pun per 8 Sep 2026 |
 | B5 | Susun roadmap gelombang `P2-1` lewat skill `plan-module-delivery`, termasuk merinci ulang kartu `BE-ACC-P2-014` | Agent | Sesudah B1–B4 |
@@ -329,9 +395,10 @@ menuntut entity dan migration baru. Urutan yang disarankan:
 **Yang tidak perlu dikerjakan ulang:** sisi buku besar rekonsiliasi (`BE-ACC-P2-013` +
 `FE-ACC-P2-008`) sudah berdiri dan terbukti di runtime 11 Sep 2026.
 
-**Sisa 🟡 backend yang hanya menunggu keputusan, bukan coding:** `BE-ACC-P2-005`, `006`, `010`,
+~~**Sisa 🟡 backend yang hanya menunggu keputusan, bukan coding:** `BE-ACC-P2-005`, `006`, `010`,
 `013` tertahan uji integrasi PostgreSQL; `BE-ACC-P2-012` verifikasi otomatisnya `DEFERRED` atas
-keputusan owner. Bila owner memperlakukan keempat yang pertama sama, cukup keputusan tertulis.
+keputusan owner.~~ **Diputuskan 14 September 2026 `ACC-DEC-081`:** kelima task itu kini ✅ —
+automated test bukan acceptance criterion pekerjaan Accounting di branch developer.
 
 **Catatan untuk sesi di komputer lain:** memori agent tersimpan lokal per komputer dan tidak ikut
 akun. Bagian ini, kedua roadmap Phase 2, traceability, dan laporan `task/report/` adalah sumber

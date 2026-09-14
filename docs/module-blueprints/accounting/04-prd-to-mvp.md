@@ -934,10 +934,10 @@ tujuannya menunjukkan kemajuan Phase 2 tanpa menunggu Yasmin, ketiga gelombang i
 |---|---|:---:|---|
 | `ACC-XM-001` | Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | **Ya**, untuk `POST-MVP` saja | Owner Billing, Yasmin |
 | `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan | **Ya**, untuk pengisian data `P2-0` | Rizki, Yasmin |
-| `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | Tidak — usulan: nominal tetap dulu | Rizki |
+| ~~`DEC-ACC-P2-005`~~ | ~~Isi template jurnal berulang: nominal tetap atau rumus~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: nominal tetap, sesuai yang sudah dibangun `BE-ACC-P2-007` | Rizki |
 | ~~`DEC-ACC-P2-006`~~ | ~~Koreksi sesudah jurnal penutup tahun sah~~ | **DITUTUP 10 September 2026 — `ACC-DEC-068`**: pakai pembalikan jurnal yang sudah ada, tanpa mekanisme buka-kembali-tahun-buku | Rizki |
-| `DEC-ACC-P2-007` | Status `Diabaikan` pada kejadian gagal | Tidak — tetapi tanpanya kejadian gagal menahan tutup bulan selamanya | Rizki |
-| `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode | Rizki |
+| ~~`DEC-ACC-P2-007`~~ | ~~Status `Diabaikan` pada kejadian gagal~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: `Diabaikan` dipakai untuk kejadian Gagal dengan alasan tertulis wajib, sesuai `ACC-STATE` Phase 2 | Rizki |
+| `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode. **Tetap terbuka** per `ACC-DEC-078`, dan tidak memblokir Wave A | Rizki |
 
 **Nol epic berstatus `OPEN DECISION`.** Keenam pertanyaan di atas menyangkut isi data dan
 penyempurnaan, bukan bentuk yang belum diputuskan, sehingga seluruh epic boleh masuk gelombang

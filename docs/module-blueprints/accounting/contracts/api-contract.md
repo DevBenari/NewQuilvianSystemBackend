@@ -454,8 +454,9 @@ Arti kode status bagi pengguna:
 - `404` — kejadian tidak ditemukan.
 - `409` — mata uang bukan rupiah (`ACC-DEC-020`), atau kejadian hendak diabaikan padahal statusnya
   bukan Gagal.
-- `422` — kejadian sah tetapi jenisnya belum punya aturan posting. Kejadian tercatat berstatus
-  **Tertahan**, dan **tidak ada jurnal yang dibuat** (`ACC-DEC-046`).
+- `422` — kejadian sah tetapi jenisnya belum punya aturan posting, **atau kode jenisnya belum
+  terdaftar sama sekali**. Kejadian tetap tercatat berstatus **Tertahan** beserta kode jenis
+  aslinya, dan **tidak ada jurnal yang dibuat** (`ACC-DEC-046`, `ACC-DEC-075`).
 
 ### Kenapa `POST /` mengembalikan `200` untuk kiriman ulang, bukan `409`
 
@@ -495,12 +496,19 @@ Base URL: `api/v1/corporate/accounting/posting-rules` — **Rencana (belum terse
 | `GET` | `/` | Daftar aturan posting berhalaman, disaring per badan hukum dan jenis kejadian | `PostingRule : Read` | `PostingRulePagedQuery` | `ApiResponse<PagedResult<PostingRuleListDto>>` |
 | `GET` | `/{id}` | Rincian satu aturan posting | `PostingRule : Read` | — | `ApiResponse<PostingRuleDetailDto>` |
 | `POST` | `/` | Menambah aturan posting | `PostingRule : Create` | `CreatePostingRuleRequest` | `ApiResponse<PostingRuleDetailDto>` |
-| `PUT` | `/{id}` | Mengubah akun debit, akun kredit, atau perlakuannya | `PostingRule : Update` | `UpdatePostingRuleRequest` | `ApiResponse<PostingRuleDetailDto>` |
+| `PUT` | `/{id}` | Mengubah jenis jurnal, perlakuan, dan seluruh baris aturan (akun, sisi, komponen, cost center). Baris dikirim utuh | `PostingRule : Update` | `UpdatePostingRuleRequest` | `ApiResponse<PostingRuleDetailDto>` |
 | `PATCH` | `/{id}/deactivate` | Menonaktifkan aturan posting | `PostingRule : Update` | — | `ApiResponse<PostingRuleDetailDto>` |
 
 `409` muncul bila jenis kejadian itu sudah punya aturan aktif pada badan hukum yang sama, atau
 bila ada baris berakun dari badan hukum yang berbeda, atau bila aturannya tidak akan pernah seimbang.
 `422` muncul bila akun yang ditunjuk bukan akun yang menerima transaksi (`ACC-DEC-022`).
+
+> **Penyesuaian 14 September 2026 — `ACC-DEC-074`, disetujui owner.** `CreatePostingRuleRequest`
+> dan `UpdatePostingRuleRequest` memuat **`JournalTypeId`** wajib, dan `PostingRuleDetailDto`
+> mengembalikannya. Kalimat `PUT` sebelumnya — "mengubah akun debit, akun kredit" — tertinggal dari
+> `ACC-DEC-058` yang mengganti sepasang akun menjadi daftar baris, dan kini dibetulkan. Penyesuaian
+> ini **tidak** menunggu ratifikasi usulan `ACC-API-0.11`, karena dasarnya keputusan owner yang
+> sudah `approved`, dan grup ini masih `Rencana (belum tersedia)`.
 
 ## Corporate / Accounting / Recurring Journal
 
