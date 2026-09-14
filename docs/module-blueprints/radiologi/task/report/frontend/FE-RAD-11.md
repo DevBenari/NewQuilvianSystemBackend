@@ -85,6 +85,24 @@ ulang. Tidak ada pengiriman ulang otomatis; itu keputusan petugas.
 
 ## 3. Temuan yang menentukan: tidak ada yang dapat mengesahkan apa pun
 
+> **KOREKSI 2026-09-14 — temuan bagian ini KELIRU.** Penanda `RadReport : ActAsRadiologist`
+> **sudah dapat diberikan** sejak 2026-09-11: `AccessMenuSeeder` mendaftarkannya lewat
+> `PenandaTanpaEndpointYangDidaftarkan`, dipanggil `EnsurePenandaTanpaEndpoint` baris 137.
+> Penutupannya tercatat pada `approval-requests/2026-09-11-keputusan-empat-penghalang.md`
+> bagian 1, **tiga hari sebelum laporan ini ditulis.**
+>
+> **Sebab kekeliruannya:** keadaan penghalang dibaca dari dokumen blueprint yang belum
+> disegarkan, bukan dari source. Yang berlaku adalah source — dan governance memang sudah
+> menyatakannya demikian.
+>
+> Yang tersisa bukan pekerjaan kode melainkan pekerjaan Administrator: mencentang penanda itu
+> pada posisi yang memang dokter radiolog. Ditetapkan `RAD-DEC-017` pada 2026-09-14 —
+> **posisi Dokter Radiologi**.
+>
+> Keterangan di bawah ini dibiarkan apa adanya sebagai catatan keadaan yang dipercaya saat
+> `FE-RAD-11` dikerjakan. Rancangan layarnya **tidak terpengaruh**: ia memang tidak pernah
+> bergantung pada daftar kewenangan, dan itu masih benar.
+
 `HasRadiologistAuthorityAsync` dijawab penanda `RadReport : ActAsRadiologist`, yang menurut
 keterangannya sendiri **sengaja tidak menempel pada satu endpoint pun**:
 
@@ -202,7 +220,7 @@ dibaca langsung dari `RadReportService`, `RadReportController`, dan `ApiResponse
 
 | Hal | Keadaan |
 | --- | --- |
-| **`RadReport : ActAsRadiologist` tidak dapat diberikan** | Temuan bagian 3. **Layar ini belum dapat dipakai siapa pun.** Penghalang `BE-RAD-08` dan `BE-RAD-09`. **Perlu keputusan pemilik modul** |
+| **~~`RadReport : ActAsRadiologist` tidak dapat diberikan~~** | **KELIRU — dikoreksi 2026-09-14.** Penandanya sudah dapat diberikan sejak 2026-09-11; sisanya pekerjaan Administrator. Ditetapkan pada posisi **Dokter Radiologi** oleh `RAD-DEC-017` |
 | **Tidak ada aturan keselamatan `Active`** | `RAD-OPEN-011` terbuka. Tidak satu pun study mencapai `QualityAccepted`, sehingga tidak ada bacaan yang lahir sama sekali |
 | **`EnsurePendingReportAsync` tanpa pemanggil** | Temuan `FE-RAD-10`, masih terbuka |
 | **Empat transisi study tanpa endpoint** | Temuan `FE-RAD-09`, masih terbuka |

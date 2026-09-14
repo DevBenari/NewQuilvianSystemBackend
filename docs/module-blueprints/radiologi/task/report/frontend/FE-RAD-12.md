@@ -189,7 +189,7 @@ yang dibaca langsung dari `RadReportService` dan DTO-nya.
 
 | Hal | Keadaan |
 | --- | --- |
-| **`RadReport : ActAsRadiologist` tidak dapat diberikan** | Temuan `FE-RAD-11`. **Tidak akan pernah ada bacaan `Released`, sehingga layar koreksi tidak dapat dicapai.** Perlu keputusan pemilik modul |
+| **~~`RadReport : ActAsRadiologist` tidak dapat diberikan~~** | **KELIRU — dikoreksi 2026-09-14.** Penandanya sudah dapat diberikan sejak 2026-09-11; sisanya pekerjaan Administrator. Ditetapkan pada posisi **Dokter Radiologi** oleh `RAD-DEC-017` |
 | **Tidak ada aturan keselamatan `Active`** | `RAD-OPEN-011` terbuka. Tidak ada bacaan yang lahir sama sekali |
 | **`EnsurePendingReportAsync` tanpa pemanggil** | Temuan `FE-RAD-10`, masih terbuka |
 | **Empat transisi study tanpa endpoint** | Temuan `FE-RAD-09`, masih terbuka |

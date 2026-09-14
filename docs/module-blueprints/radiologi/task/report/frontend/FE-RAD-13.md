@@ -207,7 +207,7 @@ bukan nanti.
 | --- | --- |
 | **Penyajian pada rekam medis belum ada** | Bagian 5 dan 8. Yang dikerjakan baru workspace dokter. **Perlu keputusan pemilik modul** |
 | **`by-encounter` tanpa isi bacaan** | Temuan bagian 3. **Perlu keputusan pemilik modul** |
-| **`RadReport : ActAsRadiologist` tidak dapat diberikan** | Temuan `FE-RAD-11`. Tidak akan ada bacaan dirilis, sehingga layar ini selalu kosong |
+| **~~`RadReport : ActAsRadiologist` tidak dapat diberikan~~** | **KELIRU — dikoreksi 2026-09-14.** Penandanya sudah dapat diberikan sejak 2026-09-11; sisanya pekerjaan Administrator. Ditetapkan pada posisi **Dokter Radiologi** oleh `RAD-DEC-017` |
 | **`EnsurePendingReportAsync` tanpa pemanggil** | Temuan `FE-RAD-10`, masih terbuka |
 | **Empat transisi study tanpa endpoint** | Temuan `FE-RAD-09`, masih terbuka |
 | **Tiga enum tidak terbit pada metadata study** | Temuan `FE-RAD-09`, masih terbuka |
