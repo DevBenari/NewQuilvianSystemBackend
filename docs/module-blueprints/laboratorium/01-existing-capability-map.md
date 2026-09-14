@@ -3,21 +3,151 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `2` |
-| Status | `draft` — **`STALE` dicabut 2026-09-02** |
-| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas atas `CAP-11`, bagian utang teknis, dan verifikasi ulang SHA |
+| Revision | `3` |
+| Status | `draft` — **sebagian besar peta revision 1-2 `STALE`**, lihat Impact Scan Revision 3 |
+| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045` |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `c87d9c0` — diverifikasi sebagai `HEAD` pada 2026-09-02 |
-| Frontend SHA | `688daff90` — diverifikasi sebagai `HEAD` pada 2026-09-02 |
-| Masukan | `00-interview-decisions.md` revision 7, keputusan `LAB-DEC-001` sampai `LAB-DEC-014` |
-| Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02 |
+| Backend SHA | `466a7127` (branch `yoga`) — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya |
+| Frontend SHA | `9cd4cd03f` — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `688daff90`; **155 commit** di antaranya |
+| Masukan | Revision 1-2: `00-interview-decisions.md` revision 7. **Revision 3: revision 23**, keputusan `LAB-DEC-037` sampai `LAB-DEC-045` |
+| Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02. Revision 3: 2026-09-14 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 3 — 2026-09-14
+
+**Pemicu.** `LAB-OPEN-022` dan `LAB-OPEN-023`, dibuka Amendment Pass putaran 2 pada decision log
+revision 23. Peta ini dikunci pada BE `c87d9c0` + FE `688daff90`; `HEAD` sudah bergeser jauh.
+
+**Besar pergeserannya.** Backend **298 commit**, frontend **155 commit**. Ini bukan pergeseran
+kecil seperti revision 2, dan hasilnya **tidak** seperti revision 2 yang menemukan nol
+perubahan.
+
+> **Kesimpulan pendek.** Sembilan keputusan `LAB-DEC-037` sampai `LAB-DEC-045` diperiksa
+> terhadap source pada `HEAD`. **Tujuh terbukti berdiri di atas fakta yang masih benar.**
+> **Satu ternyata sudah dikerjakan kode dan bukan aturan baru** (`LAB-DEC-039`). **Satu berdiri
+> di atas fakta yang salah dan harus dibuka ulang** (`LAB-DEC-044`).
+
+### Verifikasi tujuh fakta dasar amendment
+
+| # | Klaim yang dipakai amendment | Keadaan pada `HEAD` | Hasil |
+|---:|---|---|---|
+| 1 | `LabExamination` tidak punya kolom Qty, hanya `IsDuplo` | `Models/LabExamination.cs:99` punya `IsDuplo`; tidak ada `Qty`/`Quantity` di model maupun `DTOs/LabExaminationDtos.cs` | ✅ **Benar** |
+| 2 | `LabSpecimen` hanya punya `SpecimenDescription` teks bebas | `Models/LabSpecimen.cs:45` `SpecimenDescription`; tidak ada `SpecimenType` maupun `Volume` di model maupun `DTOs/LabSpecimenDtos.cs` | ✅ **Benar** |
+| 3 | `ReceivedAt` diisi server, tidak ada waktu penerimaan fisik terpisah | `Models/LabSpecimen.cs:55` `ReceivedAt` + `ReceivedByUserId`; tidak ada kolom waktu fisik kedua | ✅ **Benar** |
+| 4 | `MstReferralInstitution`/`MstReferralDoctor` belum punya status menunggu persetujuan | Keduanya **sudah ada**; hanya punya `IsActive`. Tidak ada `ApprovalStatus`, `IsApproved`, maupun `ProposedBy` | ✅ **Benar**, dengan temuan tambahan di bawah |
+| 5 | Belum ada endpoint Billing yang menjawab metode pembayaran per kunjungan | **Fakta jauh berbeda dari dugaan** — lihat `CONF-02` | ❌ **Salah** |
+| 6 | `AC-20` mengunci daftar pemeriksaan pada `Collected` | Kode mengunci pada `Accepted or Rejected`, bukan `Collected` — lihat di bawah | ⚠️ **Sudah benar, tapi bukan aturan baru** |
+| 7 | Frontend punya tiga layar lab yang akan berdampingan dengan menu baru | Seluruh modul Laboratorium frontend **dibangun dari nol** sejak `688daff90`: 3.751 baris pada 31 berkas | ✅ **Benar**, dan `F5` kini **usang total** |
+
+### Temuan 6 — `LAB-DEC-039` bukan aturan baru, melainkan pembetulan catatan
+
+**Bukti.** `Areas/HealthServices/LaboratoryManagement/Services/LabExaminationService.cs:120-127`
+pada `466a7127`:
+
+```csharp
+// VAL-18. Wadah yang sudah diputuskan tidak boleh bertambah isinya: kelayakan
+// tagihnya sudah terbit, dan menambah pemeriksaan sesudahnya berarti menagihkan
+// sesuatu yang tidak pernah ikut dinilai layak.
+if (specimen.SpecimenStatus is LabSpecimenStatus.Accepted or LabSpecimenStatus.Rejected)
+```
+
+Kode **sudah** mengunci pada penetapan kelayakan, bukan pada `Collected`. Alasan yang ditulis di
+comment-nya sama persis dengan alasan yang dipakai `LAB-DEC-039`. Tidak ada satu pun rujukan
+`Collected` di `LabOrderService.cs` maupun `LabExaminationService.cs`.
+
+**Artinya.** `AC-20` sudah tidak sesuai kode **sejak sebelum** amendment ini. `LAB-DEC-039`
+tidak mengubah perilaku apa pun — ia menyamakan catatan dengan kenyataan yang sudah berjalan,
+dan memberi `VAL-18` dasar keputusannya. Status: **`Ready to reuse`**, bukan `Extend`.
+
+### Temuan 4 — data induk perujuk ada, tetapi tidak ada cara mengisinya
+
+| Yang diperiksa | Keadaan pada `HEAD` |
+|---|---|
+| `MstReferralInstitution` | Ada — `Areas/HealthServices/MasterData/Models/MstReferralInstitution.cs`, terdaftar `ApplicationDbContext.cs:626`, tabel `MstReferralInstitution` |
+| `MstReferralDoctor` | Ada — tertaut ke instansinya lewat `ReferralInstitutionId` |
+| Kunjungan menunjuk ke sana | Ada — `RegPatientEncounter.cs:223` `ReferralInstitution` |
+| Endpoint tulis | **Tidak ada satu pun.** `ReferralInstitutionController.cs` hanya punya `GET /options` |
+| Service tulis | **Tidak ada.** `ReferralMasterDataService.cs` hanya punya `GetInstitutionOptionsAsync` dan `GetDoctorOptionsAsync` |
+| Pengisi daftar saat ini | `Areas/HealthServices/LaboratoryManagement/Seeders/LabDummyDataSeeder.cs:498,513` |
+
+**Yang perlu disadari.** `VAL-43` menyuruh petugas *"hubungi bagian data induk untuk
+menambahkannya"* — padahal **bagian data induk pun tidak punya layarnya**. Satu-satunya yang
+mengisi tabel itu hari ini adalah seeder data contoh, dan seeder itu **berada di folder
+Laboratorium**, bukan Master Data.
+
+`LAB-DEC-043` karena itu **lebih besar dari yang diperkirakan**: yang kurang bukan sekadar
+status menunggu persetujuan, melainkan seluruh kemampuan pengelolaan data induknya. Status:
+**`Missing`**, bukan `Extend`. `LAB-COORD-006` perlu menyebutkan ini apa adanya.
+
+Catatan batas: seeder data induk global yang tinggal di folder Laboratorium adalah utang teknis
+terhadap `AC-49`. Dicatat, tidak diperbaiki — audit ini read-only.
+
+### Rangkuman status kemampuan yang terdampak
+
+| Kemampuan | Status | Bukti |
+|---|---|---|
+| Qty pada baris pemeriksaan (`LAB-DEC-038`) | `Missing` | `Models/LabExamination.cs@466a7127` — tidak ada kolomnya |
+| Jenis specimen terstruktur (`LAB-DEC-040`) | `Missing` | `Models/LabSpecimen.cs@466a7127` — hanya `SpecimenDescription` |
+| Volume specimen (`LAB-DEC-041`) | `Missing` | `Models/LabSpecimen.cs@466a7127` — tidak ada kolomnya |
+| Waktu penerimaan fisik (`LAB-DEC-042`) | `Extend` | `Models/LabSpecimen.cs:55@466a7127` — `ReceivedAt` ada, kolom kedua belum |
+| Titik kunci pada kelayakan (`LAB-DEC-039`) | `Ready to reuse` | `Services/LabExaminationService.cs:123@466a7127` — sudah berjalan sebagai `VAL-18` |
+| Data induk instansi perujuk (`LAB-DEC-043`) | `Missing` | `Controllers/ReferralInstitutionController.cs@466a7127` — hanya `GET /options` |
+| Metode pembayaran per kunjungan (`LAB-DEC-044`) | `Conflict` | Lihat `CONF-02` |
+| Menu baru berdampingan layar lama (`LAB-DEC-045`) | `Ready to reuse` | 31 berkas frontend lab pada `9cd4cd03f` |
+
+### Perubahan penamaan yang membuat rujukan lama tidak lagi ditemukan
+
+| Rujukan pada peta revision 1-2 dan decision log | Nama pada `466a7127` |
+|---|---|
+| `TrxPatientEncounter` | **`RegPatientEncounter`** |
+| `TrxPatientEncounterGuarantor` | **`RegPatientEncounterGuarantor`** |
+| `TrxLabSpecimen` | `LabSpecimen` |
+| `TrxLabTransitionHistory` | `LabTransitionHistory` |
+
+`BR-28` dan `BR-31` pada decision log masih menulis `TrxPatientEncounter@c87d9c0`. Buktinya
+tetap sahih, tetapi **nama simbolnya sudah berubah** dan pencarian dengan nama lama akan
+mengembalikan nol hasil.
+
+### `F5` dicabut — frontend Laboratorium sudah berdiri penuh
+
+Peta revision 1 mencatat *"Frontend belum punya modul Laboratorium sama sekali"* pada
+`c79bb6ee4`. Pada `9cd4cd03f` yang berdiri:
+
+| Route | Berkas |
+|---|---|
+| `laboratory-management/overview` | `laboratory-overview-view.jsx` |
+| `laboratory-management/lab-orders` + `create` + `[slug]` + `[slug]/specimens` | `lab-order-list-view.jsx`, `lab-order-form-view.jsx`, `lab-order-detail-view.jsx`, `lab-specimen-workspace-view.jsx` |
+| `laboratory-management/lab-patient-registrations` + `walk-in` + `external-referral` | `lab-patient-search-view.jsx`, `lab-patient-registration-form-view.jsx` |
+| `laboratory-management/lab-worklists` + `cito-overdue` | `lab-worklist-view.jsx` |
+| `laboratory-management/lab-monitoring/{clinical-pathology,anatomic-pathology,microbiology}` | `lab-monitoring-view.jsx` |
+| `laboratory-management/lab-tariffs` | `lab-tariff-view.jsx` |
+
+**Tidak ada route `lab-specimens` tersendiri.** `lab-specimen-workspace-view.jsx` hanya dipakai
+`lab-orders/[slug]/specimens/page.jsx` — menguatkan dasar `LAB-DEC-045`, karena hari ini
+penanganan wadah memang hanya dapat dicapai lewat sebuah pesanan yang sudah ada.
+
+### Pembukuan manifest — menutup `LAB-OPEN-023`
+
+Hash ulang dengan metode manifest (`tr -d '\r' | sha256sum`) pada 2026-09-14:
+
+| Berkas | Hash manifest | Hash sekarang | Hasil |
+|---|---|---|---|
+| `00-interview-decisions.md` | `6504b18a…` | `37424863bd618ecac785136e8835ad5bbc5da4e5addf26e5f2785b2057c9df6b` | ❌ Berubah — revision 23 |
+| `01-existing-capability-map.md` | `703a8dff…` | `703a8dffe23971ecc09f416a516e4d83e26cd834cae277a7875fab8c484f6117` | ✅ Sama (sebelum revision 3 ini ditulis) |
+| `02-requirement-completeness-assessment.md` | `3de86c82…` | `3de86c8242a313a5a864a1eaa1cfffdb21149658789f01095d0ec847a9c072d1` | ✅ Sama |
+| `03-domain-architecture.md` | `3279c0ef…` | `3279c0ef2309b52feab77d870f782f4ce02134b2457fa46bfd09d868d98493de` | ✅ Sama |
+
+`LAB-OPEN-023` karena itu **lebih sempit** dari dugaan: hanya baris `decisions`, hash decision
+log, hash capability map, dan kedua `*_commit_sha` pada manifest yang perlu diperbarui. Dua
+masukan lain tidak tersentuh.
 
 ---
 
@@ -280,6 +410,55 @@ jalur pembatalan — bukan sekadar menyunting draf.
 
 **Yang perlu diputuskan manusia:** lihat pertanyaan penutup `Q-LAB-01`.
 
+### `CONF-02` — `LAB-DEC-044` berdiri di atas fakta yang salah (ditemukan revision 3)
+
+> **Ditutup 2026-09-14** oleh `LAB-DEC-046` dan `LAB-DEC-047` pada decision log revision 25.
+> Uraian di bawah dipertahankan apa adanya sebagai catatan temuan; jangan dihapus.
+
+**Apa yang ditulis keputusan itu.** `LAB-DEC-044` menetapkan Laboratorium *"memanggil Billing
+dengan penunjuk kunjungan, menerima jawaban `Piutang Mitra` atau `Tunai`"*, dan membuka
+`LAB-COORD-007` untuk meminta endpoint baca baru kepada pemilik `billing-kasir`.
+
+**Tiga hal yang ditemukan scan ini membantahnya.**
+
+**Pertama, metode pembayaran per kunjungan sudah ada dan bukan milik Billing.**
+`Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs@466a7127`
+menyimpan `PaymentType`, `PaymentMethodId`, `InsuranceProviderId`, `CompanyGuarantorId`,
+`IsPrimary`, `Priority`, beserta belasan kolom salinan. Penjamin kunjungan adalah milik
+**Registrasi**, ditetapkan saat pendaftaran — bukan sesuatu yang perlu ditanyakan ke Billing.
+
+**Kedua, Laboratorium sudah mengirim metode pembayaran, bukan membacanya.**
+`DTOs/LabPatientRegistrationDtos.cs:80,83` dan `:120,122` pada `466a7127` **sudah memuat**
+`EncounterPaymentType PaymentType` dan `PaymentMethodId` sebagai bagian permintaan pendaftaran.
+Artinya arah datanya berlawanan dengan yang diasumsikan `LAB-DEC-044`: layar Laboratorium
+**menyodorkan** metode pembayaran kepada Registrasi, dan Registrasi yang menyimpannya.
+
+**Ketiga, `Piutang Mitra` tidak ada.**
+`Areas/HealthServices/RegistrationManagement/Enums/EncounterPaymentType.cs@466a7127` hanya
+mengenal tiga nilai:
+
+| Nilai | Label |
+|---|---|
+| `Cash = 1` | Tunai |
+| `Insurance = 2` | Asuransi |
+| `CompanyGuarantor = 3` | Penjamin Perusahaan |
+
+Tidak ada nilai untuk piutang mitra rumah sakit perujuk. Yang paling mirip, `CompanyGuarantor`,
+comment-nya menyebut *"hubungan pasien dengan perusahaan"* — yaitu tempat pasien bekerja, bukan
+rumah sakit yang merujuknya. Keduanya bukan hal yang sama, dan menumpangkan satu pada yang lain
+akan membuat laporan penjamin perusahaan memuat rumah sakit perujuk.
+
+Comment yang sama juga memperingatkan: *"nilai `Cash` dan `Insurance` tidak boleh bergeser"* —
+enum itu punya tata kelolanya sendiri (`RWI-ENC-PAYER-001`), sehingga menambah nilai baru bukan
+perubahan sepele.
+
+**Akibatnya.** `LAB-DEC-044` tidak dapat dipakai apa adanya, dan `LAB-COORD-007` ditujukan ke
+modul yang salah. Yang sebenarnya terbuka bukan "minta endpoint baca ke Billing", melainkan:
+apakah **`Piutang Mitra` menjadi nilai keempat** pada `EncounterPaymentType` milik Registrasi,
+atau statusnya diturunkan dari kerja sama rumah sakit perujuk lewat jalan lain.
+
+**Yang perlu diputuskan manusia:** lihat pertanyaan penutup `Q-LAB-06` dan `Q-LAB-07`.
+
 ---
 
 ## Unknown
@@ -462,6 +641,50 @@ milik `master-data`, atau menjadi tabel tersendiri milik Laboratorium yang menun
 
 **Pemilik keputusan:** Yoga Aji Pratama bersama pemilik `master-data`.
 
+### `Q-LAB-06` — `Piutang Mitra` menjadi nilai keempat, atau diturunkan lewat jalan lain?
+
+> **Dijawab 2026-09-14** oleh `LAB-DEC-046`: nilai keempat, ditambahkan secara aditif.
+> Berstatus `draft` sampai pemilik `registration-management` menyetujui.
+
+**Kenapa ditanyakan.** `EncounterPaymentType@466a7127` hanya mengenal `Cash`, `Insurance`, dan
+`CompanyGuarantor`. `LAB-EVD-001` meminta `Piutang Mitra` untuk rumah sakit perujuk berstatus
+PKS, dan nilai itu tidak ada. `CompanyGuarantor` bukan penggantinya — comment-nya menyatakan
+nilai itu untuk hubungan pasien dengan **tempatnya bekerja**, bukan rumah sakit yang merujuk.
+
+**Yang harus diputuskan:** apakah `EncounterPaymentType` bertambah satu nilai `PartnerReceivable`
+milik Registrasi, atau piutang mitra diperlakukan sebagai bentuk khusus dari penjamin yang sudah
+ada, atau rumah sakit memang tidak mengenal skema ini dan `RULE-012` pada `LAB-EVD-001`
+ditolak.
+
+**Yang perlu disadari:** enum itu punya tata kelola sendiri (`RWI-ENC-PAYER-001`) dan comment-nya
+melarang nilai lama bergeser. Menambah nilai bukan perubahan sepele, dan berdampak ke seluruh
+modul yang membaca penjamin kunjungan.
+
+**Pemilik keputusan:** Yoga Aji Pratama bersama pemilik `registration-management` dan
+`billing-kasir`.
+
+### `Q-LAB-07` — Metode pembayaran di layar penerimaan: dibaca, atau tetap disodorkan?
+
+> **Dijawab 2026-09-14** oleh `LAB-DEC-047`: dibedakan menurut jalur masuk — diturunkan untuk
+> rujukan luar, dinyatakan petugas untuk datang langsung.
+
+**Kenapa ditanyakan.** `LAB-DEC-044` menetapkan Laboratorium **membaca** metode pembayaran dari
+Billing dan menampilkannya baca-saja. Tetapi `LabPatientRegistrationDtos.cs:80,83,120,122`
+menunjukkan Laboratorium hari ini justru **mengirimkannya** ke Registrasi sebagai bagian
+pendaftaran. Arah datanya berlawanan, dan keduanya tidak dapat berlaku bersamaan.
+
+**Yang harus diputuskan:** apakah petugas lab tetap boleh memilih metode pembayaran saat
+mendaftarkan pasien — sebagaimana kode berjalan hari ini — atau kemampuan itu dicabut dan
+diganti tampilan baca-saja sebagaimana `LAB-DEC-044`.
+
+**Yang perlu disadari:** bila kemampuan memilih dicabut, `RegisterLabWalkInRequest` dan
+`RegisterLabExternalReferralRequest` yang sudah dipakai `FE-LAB-05` harus berubah, dan pasien
+datang langsung yang membayar tunai kehilangan cara menyatakannya di titik pendaftaran.
+Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran lebih dekat ke
+*memutuskan apakah pasien membayar* daripada sekadar menampilkan.
+
+**Pemilik keputusan:** Yoga Aji Pratama bersama pemilik `billing-kasir`.
+
 ---
 
 ## Riwayat Revisi
@@ -469,4 +692,5 @@ milik `master-data`, atau menjadi tabel tersendiri milik Laboratorium yang menun
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-01 | Audit penuh pertama pada backend `c87d9c0` dan frontend `688daff90`. 24 kemampuan diklasifikasikan, 1 conflict dan 2 unknown dicatat, 5 pertanyaan penutup diajukan | `draft` |
+| 3 | 2026-09-14 | *Impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`, menutup `LAB-OPEN-022` dan `LAB-OPEN-023`. Pergeseran **jauh lebih besar** dari revision 2: BE 298 commit, FE 155 commit. Tujuh dari sembilan keputusan amendment terbukti berdiri di atas fakta yang masih benar. **`LAB-DEC-039` ternyata sudah dikerjakan kode** sebagai `VAL-18` — bukan aturan baru, melainkan pembetulan `AC-20` yang sudah lama tidak sesuai kode. **`LAB-DEC-044` berdiri di atas fakta yang salah** dan dibuka sebagai `CONF-02`: metode pembayaran per kunjungan sudah ada pada `RegPatientEncounterGuarantor` milik Registrasi, Laboratorium justru sudah mengirimkannya lewat `LabPatientRegistrationDtos`, dan `Piutang Mitra` tidak ada pada `EncounterPaymentType`. `LAB-DEC-043` naik dari `Extend` menjadi `Missing` — data induk perujuk **tidak punya endpoint tulis sama sekali**, dan satu-satunya pengisinya adalah `LabDummyDataSeeder`. `F5` dicabut: frontend Laboratorium kini berdiri penuh, 31 berkas. Empat entity berganti nama, `TrxPatientEncounter` menjadi `RegPatientEncounter`. Dua pertanyaan penutup baru `Q-LAB-06` dan `Q-LAB-07` | `draft` |
 | 2 | 2026-09-02 | *Impact scan* terbatas atas `CAP-11` dan bagian utang teknis, sesuai penanda `STALE` pada manifest. **Tidak ada status kemampuan yang berubah**; `STALE` dicabut. Sepuluh kemampuan berisiko tinggi diverifikasi silang. Dua koreksi faktual: jumlah pengujian `CAP-24` 19 → 18, dan tanggal audit revision 1 yang tidak mungkin benar karena `c87d9c0` baru dibuat 2026-09-02 | `draft` |

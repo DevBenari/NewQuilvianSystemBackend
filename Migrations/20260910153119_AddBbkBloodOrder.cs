@@ -62,7 +62,7 @@ namespace QuilvianSystemBackend.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_BbkBloodOrder_TrxPatientEncounter_EncounterId",
+                        name: "FK_BbkBloodOrder_RegPatientEncounter_EncounterId",
                         column: x => x.EncounterId,
                         principalSchema: "public",
                         principalTable: "RegPatientEncounter",

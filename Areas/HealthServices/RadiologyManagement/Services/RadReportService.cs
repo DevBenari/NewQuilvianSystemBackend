@@ -538,7 +538,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             var versiBerlaku = await LoadCurrentVersionsAsync(baris, cancellationToken);
 
             return baris
-                .Select(x => MapList(x, versiBerlaku.GetValueOrDefault(x.Id)))
+                .Select(x => MapList(x, versiBerlaku.GetValueOrDefault(x.Id), sertakanKesimpulan: true))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Bacaan seorang pasien yang <b>sudah pernah dirilis</b>, lintas seluruh kunjungannya,
+        /// terbaru lebih dulu.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Rekam medis bersifat <b>per pasien</b>, bukan per kunjungan. Menyusunnya dari
+        /// <c>by-encounter</c> menuntut pemanggil mengumpulkan dulu seluruh kunjungan pasien lalu
+        /// memanggil satu per satu — pola N+1 yang hasilnya pun tidak lengkap bila ada kunjungan
+        /// yang terlewat.
+        /// </para>
+        /// <para>
+        /// <b>Penyaringnya sama persis dengan <c>GetByEncounterAsync</c></b>, dan sengaja
+        /// disalin apa adanya alih-alih dilonggarkan: statusnya menunjukkan bacaan sudah melewati
+        /// perilisan, <b>dan</b> waktunya membuktikan perilisan itu benar-benar pernah terjadi.
+        /// Baris yang kedua kolomnya berselisih ditahan, bukan diloloskan — <c>FR-RAD-032</c>.
+        /// </para>
+        /// <para>
+        /// <c>RadReport</c> hanya menyimpan <c>EncounterId</c>, sehingga kunjungan milik pasien
+        /// dibaca lewat subquery pada <c>RegPatientEncounters</c> dalam satu perjalanan ke
+        /// database — pola yang sama dengan <c>RadOrderService.BacaKonteksPasienAsync</c>.
+        /// </para>
+        /// </remarks>
+        public async Task<List<RadReportListResponse>> GetByPatientAsync(
+            Guid patientId,
+            CancellationToken cancellationToken = default)
+        {
+            var kunjunganPasien = _dbContext.RegPatientEncounters
+                .AsNoTracking()
+                .Where(x => x.PatientId == patientId && !x.IsDelete)
+                .Select(x => x.Id);
+
+            var baris = await _dbContext.RadReports
+                .AsNoTracking()
+                .Include(x => x.RadStudy)
+                .Where(x =>
+                    kunjunganPasien.Contains(x.EncounterId) &&
+                    !x.IsDelete &&
+                    !BelumDirilisStatuses.Contains(x.ReportStatus) &&
+                    x.FirstReleasedAt != null)
+                .OrderByDescending(x => x.FirstReleasedAt)
+                .ToListAsync(cancellationToken);
+
+            var versiBerlaku = await LoadCurrentVersionsAsync(baris, cancellationToken);
+
+            return baris
+                .Select(x => MapList(x, versiBerlaku.GetValueOrDefault(x.Id), sertakanKesimpulan: true))
                 .ToList();
         }
 
@@ -1622,11 +1672,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 .ToDictionary(v => v!.RadReportId, v => v!);
         }
 
+        /// <summary>
+        /// Satu baris daftar bacaan.
+        /// </summary>
+        /// <param name="report">Bacaan yang dipetakan.</param>
+        /// <param name="current">Versi yang sedang berlaku, atau kosong bila belum ada draf.</param>
+        /// <param name="sertakanKesimpulan">
+        /// Membawa <c>Impression</c> versi yang berlaku. <b>Hanya untuk pembacaan yang berpusat
+        /// pada pasien</b> — <c>by-encounter</c> dan <c>by-patient</c> — karena di sanalah
+        /// pembacanya dokter yang sedang menangani pasien itu, dan kesimpulan bacaan justru
+        /// satu-satunya hal yang ia datangi.
+        ///
+        /// <para>
+        /// Sengaja opt-in, bukan bawaan. Daftar berhalaman <c>GET /</c> adalah papan kerja
+        /// radiologi yang sering terbuka lebar di monitor bersama dan hasil pencarian;
+        /// menyalakan kesimpulan di sana berarti menaruh kesimpulan klinis seorang pasien pada
+        /// layar yang dilihat orang yang tidak sedang menanganinya.
+        /// </para>
+        /// </param>
         private static RadReportListResponse MapList(
             RadReport report,
-            RadReportVersion? current) => new()
+            RadReportVersion? current,
+            bool sertakanKesimpulan = false) => new()
             {
                 Id = report.Id,
+                Impression = sertakanKesimpulan ? current?.Impression : null,
                 ReportNumber = report.ReportNumber,
                 RadStudyId = report.RadStudyId,
                 StudyNumber = report.RadStudy?.StudyNumber,

@@ -164,6 +164,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             return Ok(ApiResponse<List<RadReportListResponse>>.Ok(hasil, pesan));
         }
 
+        // Rekam medis bersifat per pasien, bukan per kunjungan. Menyusunnya dari by-encounter
+        // menuntut pemanggil mengumpulkan seluruh kunjungan pasien lalu memanggil satu per satu,
+        // dan hasilnya pun tidak lengkap bila ada kunjungan yang terlewat.
+        //
+        // Penyaring bacaan belum dirilis sama persis dengan by-encounter. Daftar kosong tetap
+        // keadaan yang wajar, dan pesannya membedakannya dari kegagalan.
+        [HttpGet("by-patient/{patientId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadReportListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Report", Description = "Melihat seluruh hasil bacaan satu pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadReport", "Read")]
+        public async Task<IActionResult> GetByPatient(
+            Guid patientId,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radReportService.GetByPatientAsync(patientId, cancellationToken);
+
+            var pesan = hasil.Count == 0
+                ? "Pasien ini belum memiliki hasil bacaan radiologi yang sudah dirilis."
+                : $"{hasil.Count} hasil bacaan radiologi ditemukan untuk pasien ini.";
+
+            return Ok(ApiResponse<List<RadReportListResponse>>.Ok(hasil, pesan));
+        }
+
         /* ================================================================ *
          * Penulisan
          * ================================================================ */
