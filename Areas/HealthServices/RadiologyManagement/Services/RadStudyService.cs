@@ -38,16 +38,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
+        /// <summary>
+        /// Dipakai satu-satunya untuk melahirkan wadah bacaan ketika mutu citra diterima —
+        /// <c>RAD-STATE-001</c> bagian 3. Arahnya sengaja satu: <c>RadReportService</c> tidak
+        /// menginjeksi service ini balik, sehingga tidak ada lingkaran dependency.
+        /// </summary>
+        private readonly RadReportService _radReportService;
+
         public RadStudyService(
             ApplicationDbContext dbContext,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             IHttpContextAccessor httpContextAccessor,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            RadReportService radReportService)
         {
             _dbContext = dbContext;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
+            _radReportService = radReportService;
         }
 
         /* ================================================================ *
@@ -534,8 +543,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            await LahirkanBacaanAsync(study, cancellationToken);
+
             return RadOperationResult<RadStudyActionResult>.Success(
                 new RadStudyActionResult(MapStudy(study), handoff));
+        }
+
+        /// <summary>
+        /// Menyiapkan wadah bacaan berstatus <c>Pending</c> untuk study yang citranya baru
+        /// dinyatakan layak.
+        ///
+        /// <para>
+        /// <c>RAD-STATE-001</c> bagian 3 baris pertama menetapkannya: bacaan lahir
+        /// <b>otomatis</b> ketika study berpindah ke <c>QualityAccepted</c>, dan pelakunya
+        /// sistem. Tanpa panggilan ini tidak satu pun baris <c>RadReport</c> berstatus
+        /// <c>Pending</c> pernah ada, sehingga daftar bacaan yang menunggu dikerjakan selalu
+        /// kosong — bukan karena tidak ada pekerjaan, melainkan karena tidak ada yang pernah
+        /// mendaftarkannya.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Dipanggil paling akhir, di luar transaksi.</b> Penilaian mutu sudah tersimpan lewat
+        /// <c>SaveWithConcurrencyGuardAsync</c>, dan fakta kelayakan tagih sudah diserahkan.
+        /// <c>EnsurePendingReportAsync</c> membuka transaksinya sendiri beserta kunci penasihat
+        /// <c>RAD_REPORT_STUDY_*</c>; memanggilnya dari dalam transaksi lain akan menumpuk kunci
+        /// yang tidak perlu di jalur yang paling ramai pada modul ini.
+        /// </para>
+        /// <para>
+        /// <b>Kegagalannya tidak pernah menggagalkan penilaian mutu.</b> Pada titik ini citra
+        /// sudah dinyatakan layak dan faktanya sudah terkirim ke Billing — keduanya tidak dapat
+        /// ditarik kembali oleh kegagalan menyiapkan wadah bacaan. Membiarkan kegagalan itu
+        /// menjalar hanya akan membuat petugas melihat galat atas pekerjaan yang sebenarnya
+        /// sudah berhasil, lalu mencoba menilai mutu lagi dan ditolak karena statusnya sudah
+        /// berpindah.
+        /// </para>
+        /// <para>
+        /// <b>Kegagalannya juga tidak berakhir sebagai kehilangan permanen.</b>
+        /// <c>EnsurePendingReportAsync</c> idempoten, dan <c>CreateDraftAsync</c> tetap
+        /// melahirkan bacaannya sendiri bila wadahnya belum ada. Yang hilang ketika panggilan ini
+        /// gagal hanyalah kemunculan study itu pada daftar bacaan yang menunggu — dan itulah
+        /// sebabnya kegagalannya dicatat sebagai galat yang dapat dicari, bukan ditelan diam-diam.
+        /// </para>
+        /// </remarks>
+        private async Task LahirkanBacaanAsync(RadStudy study, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var hasil = await _radReportService.EnsurePendingReportAsync(
+                    study.Id, cancellationToken);
+
+                if (hasil.Kind == RadOperationResultKind.Success)
+                {
+                    return;
+                }
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "RadStudy.EnsureReportFailed",
+                    "Wadah bacaan gagal disiapkan setelah mutu citra diterima. Study tidak akan " +
+                    "muncul pada daftar bacaan yang menunggu sampai drafnya ditulis.",
+                    data: new
+                    {
+                        RadStudyId = study.Id,
+                        study.RadOrderId,
+                        Kode = hasil.ErrorCode,
+                        Pesan = hasil.ErrorMessage,
+                    });
+            }
+            catch (Exception exception)
+            {
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "RadStudy.EnsureReportFailed",
+                    "Wadah bacaan gagal disiapkan setelah mutu citra diterima.",
+                    exception,
+                    new { RadStudyId = study.Id, study.RadOrderId });
+            }
         }
 
         /* ================================================================ *
