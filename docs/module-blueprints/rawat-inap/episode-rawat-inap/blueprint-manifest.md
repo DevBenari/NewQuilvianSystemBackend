@@ -11,6 +11,7 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
 | `status` | **`approved`** — revision `6` beserta kontrak `0.8.0` disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105`; revision `5` sebelumnya `approved`. Revision `4` disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-074`; revision `3` sebelumnya lewat `RWI-DEC-067` |
+| `upstream_realignment` | **Tidak basi, tetapi terdampak sebagian — dicatat 2026-09-14.** `PRD-RWI-V2-001` v`2.0` menempatkan sub-modul ini sebagai **jangkar konteks** dan tidak mengubah desainnya. Namun menu keperawatan dan tab dokter pada PRD itu menampilkan kemampuan **milik sub-modul ini**: transfer `CAP-017`, pesan kamar operasi `CAP-018`, tagihan `CAP-019`, dan resume pulang `CAP-026`. Apakah itu sekadar permukaan tampilan atau perpindahan pemilik diputuskan pada `RLN-PH-02`, temuan `RLN-03` dan `RLN-06`. Enam task terbuka sub-modul ini **tidak** tertahan oleh PRD tersebut. Rincian di [`../blueprint-manifest.md`](../blueprint-manifest.md) bagian 0-B |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
 | `approved_at` | `2026-08-24` |

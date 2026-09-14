@@ -12,6 +12,8 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
 | `revision` | `5` — satu angka, dipegang tingkat modul |
 | `status` | **`approved`** — dirancang 2026-09-02, diamandemen menyerap `RWI-DEC-089` dan `RWI-DEC-091`, lalu **disetujui Muhammad Hamzah 2026-09-03** lewat `RWI-DEC-092` |
+| `upstream_realignment` | **`STALE_AGAINST_UPSTREAM` sejak 2026-09-14.** `PRD-RWI-V2-001` v`2.0` didaftarkan sebagai masukan hulu: layout V2 yang ada **dipertahankan**, tetapi isinya mengikuti kemampuan V1 dalam delapan menu (Pengkajian Pasien, Asuhan Keperawatan, Tindakan, Penunjang Medis, Pemakaian Alat, Transfer Pasien, Pemesanan Ruangan Bedah, Tagihan Pasien) dan Pengkajian Pasien memiliki progres. Status tetap `approved` dan task yang sudah ✅ tetap sah, tetapi **task baru sub-modul ini tidak boleh diturunkan** sampai amandemen `RLN-PH-06` disetujui. Temuan yang menyangkut sub-modul ini: `RLN-04`, `RLN-06`, `RLN-07`, `RLN-08`, `RLN-09`; `RLN-06` bertabrakan langsung dengan `RWI-DEC-089` (`CAP-016` `DEFERRED`). Rincian di [`../blueprint-manifest.md`](../blueprint-manifest.md) bagian 0-B |
+| `contract_versions` | **`0.4.0`** sesuai `RWI-DEC-105` 2026-09-11. Tabel bagian 4 di bawah masih menulis `0.3.0` dan **basi** — dicatat 2026-09-14, dibetulkan saat amandemen berikutnya |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
 | `approved_at` | `2026-09-03` |

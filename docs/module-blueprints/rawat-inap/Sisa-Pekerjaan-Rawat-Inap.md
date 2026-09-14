@@ -44,6 +44,12 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 | `dokter-rawat-inap` | 22 dari 22 ✅ | 9 dari 9 ✅ | **nol task** |
 | `keperawatan` | 14 dari 14 ✅ | 6 dari 6 ✅ | **nol task** |
 
+> **Catatan 14 September 2026 — "nol task" bukan berarti sesuai PRD terbaru.** `PRD-RWI-V2-001`
+> v`2.0` (`docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md`) sudah didaftarkan sebagai masukan hulu
+> untuk `dokter-rawat-inap` dan `keperawatan`. Pekerjaan penyelarasannya **belum menjadi task** dan
+> karena itu belum muncul di tabel ini. Nomor task baru baru boleh dialokasikan setelah amandemen
+> blueprint disetujui. Fase dan temuannya ada pada `blueprint-manifest.md` bagian 0-B.
+
 **Seluruh sisa pekerjaan Rawat Inap kini terkumpul pada satu sub-modul,
 `episode-rawat-inap`, dan terbagi dua kelompok:**
 
