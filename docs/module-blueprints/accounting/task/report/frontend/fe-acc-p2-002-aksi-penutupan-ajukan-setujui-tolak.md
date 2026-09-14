@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `47cf3c6a0` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `3e2fb76` (branch `rizkiG`) |
 | Tanggal | 10 September 2026 |
-| Status | **🟡 Tinggal satu butir DoD: `npm run build`, dijalankan owner — penilaian ulang 11 September 2026.** Keempat acceptance terpetakan ke source; tampilan tombol mati bagi pengguna kedua (`UAT-P2-15`..`18`) dikecualikan dari DoD development atas keputusan owner dan diserahkan ke tim UAT, `READY FOR UAT`. Layarnya ikut disentuh `FE-ACC-P2-001` acceptance (5), jadi build ulang diperlukan. *Riwayat: Alur penuh **terbukti terhadap backend sungguhan**; satu cacat ditemukan dan diperbaiki. Acceptance (2) terbukti sebagian — lihat bagian 6 dan 7.* |
+| Status | **✅ SELESAI 14 September 2026 — atas pilihan owner.** Butir DoD terakhir, `npm run build` oleh owner, hijau pada `RizkiV2` `a09ba4b13`; berkas task tidak berubah sejak commit `f6b1498fe` (11 Sep 2026). Lihat bagian 9. `READY FOR UAT` — `UAT-P2-15`..`18` belum dijalankan, bukan `UAT PASS`. **Riwayat:** 🟡 **Tinggal satu butir DoD: `npm run build`, dijalankan owner — penilaian ulang 11 September 2026.** Keempat acceptance terpetakan ke source; tampilan tombol mati bagi pengguna kedua (`UAT-P2-15`..`18`) dikecualikan dari DoD development atas keputusan owner dan diserahkan ke tim UAT, `READY FOR UAT`. Layarnya ikut disentuh `FE-ACC-P2-001` acceptance (5), jadi build ulang diperlukan. *Riwayat: Alur penuh **terbukti terhadap backend sungguhan**; satu cacat ditemukan dan diperbaiki. Acceptance (2) terbukti sebagian — lihat bagian 6 dan 7.* |
 
 ---
 
@@ -236,3 +236,48 @@ mekanisme hak akses.
 | Interupsi | `NONE` |
 | Status Git | Tidak ada berkas yang khusus milik task ini; perubahannya menyatu pada tiga berkas `FE-ACC-P2-001`. Tidak ada stage, commit, maupun push |
 | Langkah berikutnya | Siapkan dua akun uji beserta peran `Accounting Director`, lalu jalankan `UAT-P2-15` sampai `UAT-P2-18` untuk menutup acceptance (2) |
+
+---
+
+## 9. Penutupan — 14 September 2026
+
+Dikerjakan atas pilihan owner (opsi A), satu paket dengan `FE-ACC-P2-001`. Nol source disunting.
+
+```text
+IMPLEMENTATION STATUS          : IMPLEMENTATION COMPLETE — keempat acceptance terpetakan ke source
+DEVELOPER VERIFICATION STATUS  : COMPLETE — lint dan build owner hijau; aturan 403 empat mata terbukti di runtime 10 Sep 2026
+UAT STATUS                     : READY FOR UAT — UAT-P2-15..18 belum diuji tim UAT
+```
+
+### 9.1 Kenapa build ulang diperlukan, dan kini terpenuhi
+
+Build `✓ Compiled successfully in 32.4s` pada bagian 6 dijalankan 10 September 2026. Sesudahnya
+`period-closing-view.jsx` ikut disentuh acceptance (5) `FE-ACC-P2-001` pada 11 September 2026,
+sehingga bukti build lama tidak lagi berlaku untuk berkas itu. Build owner 14 September 2026 memuat
+keadaan sesudah perubahan tersebut.
+
+### 9.2 Bukti
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npm run build` oleh Rizki, `RizkiV2` HEAD `a09ba4b13` | `▲ Next.js 16.2.12 (Turbopack)`; `✓ Compiled successfully in 34.7s`; `✓ Finished TypeScript in 333ms`; `✓ Generating static pages using 15 workers (326/326)`; postbuild berhasil. Rute `/corporate/accounting/periods/[slug]/closing` (`ƒ`) terdaftar. Nol error | `PASS` |
+| Riwayat commit tiga berkas task | `accounting-period-closing-slice.jsx` `238592483` (10 Sep), `period-closing-constants.jsx` `a383e7622` (10 Sep), `use-period-closing.jsx` dan `period-closing-view.jsx` `f6b1498fe` (11 Sep) — tidak berubah sesudahnya | `PASS` |
+| `npx eslint` ulang, agent — seluruh berkas JSX layar penutupan beserta layar induk (12 berkas, sama dengan `FE-ACC-P2-001` bagian 10.1) | Exit `0`, keluaran kosong — **0 error, 0 warning** | `PASS` |
+| Pemeriksaan source | `usePermission("AccountingPeriod", "Close")` dan `("AccountingPeriod", "Approve")` di `period-closing-view.jsx` baris 68–69; `resolveApproveDisabledReason` di `period-closing-constants.jsx` baris 65; `requireReason={dialog?.mode === "reject"}` di `period-closing-view.jsx` baris 459 | `PASS` |
+
+`AUTOMATED TEST: SKIPPED (opsional) — ACC-DEC-081; bukti 686 lulus 11 Sep 2026 (FE-ACC-P2-001 bagian 9.4) atas berkas yang sama.`
+
+`MANUAL TEST: NOT FEASIBLE` — butuh dua identitas berbeda dan peran `Accounting Director`; milik tim UAT.
+
+### 9.3 Acceptance dan DoD, final
+
+| Kriteria | Status |
+| --- | --- |
+| (1), (3), (4) | Terpenuhi di source — bagian 7 |
+| (2) | Terpetakan ke source dan aturan `403` terbukti di runtime; **tampilan tombol mati bagi pengguna kedua di peramban tetap belum diperlihatkan** — bagian dari `UAT-P2-15`..`18`, dikecualikan dari DoD development atas keputusan owner 11 September 2026 |
+| DoD — lint hijau | Terpenuhi — diulang 14 Sep 2026 |
+| DoD — build hijau | **Terpenuhi** — 14 Sep 2026 |
+| DoD — laporan tracked | Terpenuhi — berkas ini |
+| DoD — empat UAT terbukti | Dikecualikan dari DoD development (keputusan owner 11 Sep 2026); `READY FOR UAT` — **bukan** `UAT PASS` |
+
+Status Git: working tree `RizkiV2` bersih; agent nol commit, stage, push, atau merge.

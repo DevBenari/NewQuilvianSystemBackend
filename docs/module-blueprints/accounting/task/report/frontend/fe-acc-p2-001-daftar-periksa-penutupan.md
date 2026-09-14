@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `47cf3c6a0` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `3e2fb76` (branch `rizkiG`) |
 | Tanggal | 10 September 2026 |
-| Status | **🟡 Ketujuh acceptance terpetakan ke source — 11 September 2026.** Acceptance (5) ditutup (bagian 9). Tinggal `npm run build` oleh owner; `UAT-P2-14` diserahkan ke tim UAT, `READY FOR UAT`. *Riwayat: Selesai dan **diuji terhadap backend sungguhan**. Sisa: acceptance (5) sebagian, dan UAT peramban `NOT FEASIBLE`.* |
+| Status | **✅ SELESAI 14 September 2026 — atas pilihan owner.** Butir DoD terakhir, `npm run build` oleh owner, hijau pada `RizkiV2` `a09ba4b13`; berkas task tidak berubah sejak commit `f6b1498fe` (11 Sep 2026). Lihat bagian 10. `READY FOR UAT` — `UAT-P2-14` belum dijalankan, bukan `UAT PASS`. **Riwayat:** 🟡 **Ketujuh acceptance terpetakan ke source — 11 September 2026.** Acceptance (5) ditutup (bagian 9). Tinggal `npm run build` oleh owner; `UAT-P2-14` diserahkan ke tim UAT, `READY FOR UAT`. *Riwayat: Selesai dan **diuji terhadap backend sungguhan**. Sisa: acceptance (5) sebagian, dan UAT peramban `NOT FEASIBLE`.* |
 
 ---
 
@@ -376,7 +376,7 @@ tim UAT.
 | (1)–(4), (6), (7) | Terpenuhi | Bagian 7, tidak berubah |
 | (5) Tautan Lihat membuka daftar jurnal yang sudah tersaring ke periode itu | **Terpenuhi di source** | 9.2; uji `alamat tautan Lihat terbaca kembali utuh oleh layar Jurnal` |
 | DoD — lint hijau, unit test lulus, laporan | Terpenuhi | 9.4 |
-| DoD — build hijau | **Belum** | Dijalankan owner. Sesudah hijau, task ini memenuhi syarat ✅ |
+| DoD — build hijau | **Belum** — **terpenuhi 14 September 2026**, lihat bagian 10 | Dijalankan owner. Sesudah hijau, task ini memenuhi syarat ✅ |
 | `UAT-P2-14` | Dikecualikan dari DoD development | Keputusan owner 11 September 2026; `READY FOR UAT` |
 
 ### 9.6 Dampak ke layar lain
@@ -397,3 +397,46 @@ perilakunya sama persis dengan sebelumnya; atur ulang tetap mengosongkan seluruh
 ### 9.8 Status Git
 
 Nol commit, stage, push, merge, atau rebase. Owner menjalankan build dan commit sendiri.
+
+---
+
+## 10. Penutupan — 14 September 2026
+
+Dikerjakan atas pilihan owner (opsi A): task yang sisa DoD-nya hanya build owner dinaikkan sesudah
+build itu hijau. Nol source disunting.
+
+```text
+IMPLEMENTATION STATUS          : IMPLEMENTATION COMPLETE — ketujuh acceptance terpetakan ke source
+DEVELOPER VERIFICATION STATUS  : COMPLETE — lint, unit test (11 Sep), dan build owner (14 Sep) hijau
+UAT STATUS                     : READY FOR UAT — UAT-P2-14 belum diuji tim UAT
+```
+
+### 10.1 Bukti
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npm run build` oleh Rizki, `RizkiV2` HEAD `a09ba4b13` | `▲ Next.js 16.2.12 (Turbopack)`; `✓ Compiled successfully in 34.7s`; `✓ Finished TypeScript in 333ms`; `✓ Generating static pages using 15 workers (326/326)`; postbuild `prepare-standalone` berhasil. Rute `/corporate/accounting/periods/[slug]/closing` (`ƒ`) dan `/corporate/accounting/journals` (`○`) terdaftar. Nol error. Batas `Suspense` pada `journals/page.jsx` (bagian 9.2) lolos prerender | `PASS` |
+| Riwayat commit berkas task | Enam berkas layar penutupan dan empat berkas acceptance (5) terakhir berubah di `f6b1498fe` (11 Sep 2026 15.59 WIB) atau lebih awal — **tidak berubah** sesudah bukti bagian 9.4. Empat berkas layar induk (`accounting-period-view.jsx`, `-constants.jsx`, `use-accounting-period.jsx`, `.module.css`) berubah di `a09ba4b13` oleh `FE-ACC-P2-014` dan ikut ter-build | `PASS` |
+| `npx eslint` ulang, agent — 12 berkas JSX: slice, konstanta, hook, view, route penutupan; dua util; `use-journal.jsx`; `journals/page.jsx`; tiga berkas JSX layar induk | Exit `0`, keluaran kosong — **0 error, 0 warning** | `PASS` |
+| Unit test | Tidak dijalankan ulang — bukti 11 Sep 2026 (**686 lulus, 0 gagal**) tetap berlaku untuk berkas yang tidak berubah; automated test bukan acceptance criterion (`ACC-DEC-081`) | `SKIPPED (opsional)` |
+
+`AUTOMATED TEST: SKIPPED (opsional) — ACC-DEC-081; bukti 686 lulus 11 Sep 2026 atas berkas yang sama.`
+
+`MANUAL TEST: NOT FEASIBLE` — agent tanpa peramban; skenario bagian 9.7 dan `UAT-P2-14` milik tim UAT.
+
+### 10.2 Acceptance dan DoD, final
+
+| Kriteria | Status |
+| --- | --- |
+| (1)–(7) | Terpenuhi di source — bagian 7 dan 9.5 |
+| DoD — lint hijau | Terpenuhi — diulang 14 Sep 2026 |
+| DoD — build hijau | **Terpenuhi** — 14 Sep 2026 |
+| DoD — unit test lulus | Terpenuhi — 11 Sep 2026 |
+| DoD — laporan tracked | Terpenuhi — berkas ini |
+| `UAT-P2-14` | Dikecualikan dari DoD development (keputusan owner 11 Sep 2026); `READY FOR UAT` |
+
+### 10.3 Yang tetap terbuka
+
+- **Data uji tahun buku 2019** (bagian 8) masih tertinggal; tidak ada endpoint hapus periode.
+- Tujuh butir daftar periksa tetap `NotYetAvailable` sampai gelombang `P2-1` — keadaan yang benar.
+- Status Git: working tree `RizkiV2` bersih; agent nol commit, stage, push, atau merge.

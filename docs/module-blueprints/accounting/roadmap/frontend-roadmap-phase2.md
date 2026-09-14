@@ -50,7 +50,7 @@ flowchart LR
         BP20B["🟡 Backend P2-0b<br/>BE-ACC-P2-015 sampai 018"]:::luar
     end
 
-    FTUTUP["🟡 Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::sebagian
+    FTUTUP["✅ Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::selesai
     FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
     FBATCH["✅ Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::selesai
 
@@ -75,8 +75,8 @@ flowchart LR
         BEACCP2007["✅ BE-ACC-P2-007<br/>CRUD template berulang"]:::luar
     end
 
-    FEACCP2001["🟡 FE-ACC-P2-001<br/>Daftar periksa penutupan tampil"]:::sebagian
-    FEACCP2002["🟡 FE-ACC-P2-002<br/>Aksi ajukan setujui tolak"]:::sebagian
+    FEACCP2001["✅ FE-ACC-P2-001<br/>Daftar periksa penutupan tampil"]:::selesai
+    FEACCP2002["✅ FE-ACC-P2-002<br/>Aksi ajukan setujui tolak"]:::selesai
     FEACCP2003["✅ FE-ACC-P2-003<br/>Daftar jurnal berulang"]:::selesai
     FEACCP2004["✅ FE-ACC-P2-004<br/>Form jurnal berulang"]:::selesai
 
@@ -193,8 +193,8 @@ bagian 11.
 
 | ID | Judul | Gelombang | Dependency backend | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-001` 🟡 | Layar Daftar Periksa Penutupan | `P2-4` | `BE-ACC-P2-005` | 🟡 `SEBAGIAN` 11 Sep 2026 — ketujuh acceptance di source; tinggal `npm run build` oleh owner; `READY FOR UAT` |
-| `FE-ACC-P2-002` 🟡 | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | 🟡 `SEBAGIAN` 11 Sep 2026 — tinggal `npm run build` oleh owner; `READY FOR UAT` |
+| `FE-ACC-P2-001` ✅ | Layar Daftar Periksa Penutupan | `P2-4` | `BE-ACC-P2-005` | ✅ `SELESAI` 14 Sep 2026 — ketujuh acceptance di source; build owner `✓ Compiled successfully` (326/326); `READY FOR UAT`. Riwayat: 🟡 11 Sep 2026, tinggal build. [Laporan](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) |
+| `FE-ACC-P2-002` ✅ | Aksi penutupan: ajukan, setujui, tolak | `P2-4` | `BE-ACC-P2-006` | ✅ `SELESAI` 14 Sep 2026 — keempat acceptance di source; build owner `✓ Compiled successfully` (326/326); `READY FOR UAT`. Riwayat: 🟡 11 Sep 2026, tinggal build. [Laporan](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md) |
 | `FE-ACC-P2-003` ✅ | Layar daftar Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | ✅ `SELESAI` 11 Sep 2026 — `READY FOR UAT` |
 | `FE-ACC-P2-004` ✅ | Form Jurnal Berulang | `P2-3` | `BE-ACC-P2-007` | ✅ `SELESAI` 11 Sep 2026 — `READY FOR UAT` |
 | `FE-ACC-P2-005` ✅ | Layar Pengaturan Akuntansi | `P2-0a` | `BE-ACC-P2-009` | ✅ `SELESAI` 11 Sep 2026 — `READY FOR UAT` |
@@ -207,7 +207,7 @@ bagian 11.
 
 ---
 
-## 🟡 `FE-ACC-P2-001` — Layar Daftar Periksa Penutupan
+## ✅ `FE-ACC-P2-001` — Layar Daftar Periksa Penutupan
 
 | Field | Isi |
 |---|---|
@@ -221,10 +221,10 @@ bagian 11.
 | Verifikasi | `npm run lint`; `npm run build`; unit test slice; UAT peramban `UAT-P2-14` |
 | Risiko/pemilik | **Dua risiko.** (a) Menampilkan angka dari cache membuat petugas mengambil keputusan penutupan berdasarkan keadaan lama. (b) **Merender butir `NotYetAvailable` sama seperti butir bersih.** Dua dari tiga penghalang belum dapat diperiksa selama gelombang `P2-1` belum dibangun; bila dirender sama, petugas menutup periode padahal tidak ada yang pernah memeriksa shift kasirnya. Owner Frontend |
 | DoD | Lint dan build hijau, unit test lulus, laporan task tertulis |
-| Status | 🟡 **`SEBAGIAN` — 11 September 2026, lanjutan. Tinggal satu butir DoD: `npm run build`, dijalankan owner.** Acceptance (5) kini **terpetakan ke source**: tautan Lihat membawa rentang tanggal periode (`?dateFrom=…&dateTo=…`) yang diambil dari `GET /periods` menurut `accountingPeriodId`, dan layar Jurnal membaca penyaring itu dari URL di balik `Suspense` — **ketujuh acceptance terpetakan ke source**. `npm run lint:errors` seluruh repository `0 errors`; **686 uji unit lulus, 0 gagal** (+9); `npm run build` **`NOT RUN` atas instruksi owner** — sesudah build owner hijau, task ini memenuhi syarat ✅. `UAT-P2-14` **dikecualikan dari DoD development atas keputusan owner 11 September 2026** (UAT dijalankan tim UAT terpisah; bukan `UAT PASS`); `READY FOR UAT`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) bagian 9. **Riwayat:** 🟡 `SEBAGIAN` — 10 September 2026. `npm run lint` 0 error; `npm run build` compiled; `node --test tests/unit/` **615 lulus 0 gagal** (17 uji baru). **Diuji terhadap backend sungguhan:** bentuk respons cocok 100% dengan normalizer, 3 penghalang + 6 peringatan, `notYetAvailableCount=7`, dan payload aslinya disimpan sebagai fixture. **Belum terpenuhi:** acceptance (5) — tautan Lihat belum menyaring ke periode; `UAT-P2-14` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) |
+| Status | ✅ **`SELESAI` — 14 September 2026, atas pilihan owner.** Butir DoD terakhir terpenuhi: `npm run build` oleh Rizki pada `RizkiV2` `a09ba4b13` — `✓ Compiled successfully in 34.7s`, 326/326 halaman statis, rute `/corporate/accounting/periods/[slug]/closing` dan `/corporate/accounting/journals` terdaftar, nol error. Berkas layar penutupan dan acceptance (5) tidak berubah sejak `f6b1498fe` (11 Sep 2026); `npx eslint` diulang agent pada 12 berkas JSX: **0 error, 0 warning**. Unit test tidak diulang — bukti **686 lulus** 11 Sep 2026 atas berkas yang sama. `UAT-P2-14` tetap dikecualikan dari DoD development; `READY FOR UAT`, bukan `UAT PASS`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) bagian 10. **Riwayat:** 🟡 **`SEBAGIAN` — 11 September 2026, lanjutan. Tinggal satu butir DoD: `npm run build`, dijalankan owner.** Acceptance (5) kini **terpetakan ke source**: tautan Lihat membawa rentang tanggal periode (`?dateFrom=…&dateTo=…`) yang diambil dari `GET /periods` menurut `accountingPeriodId`, dan layar Jurnal membaca penyaring itu dari URL di balik `Suspense` — **ketujuh acceptance terpetakan ke source**. `npm run lint:errors` seluruh repository `0 errors`; **686 uji unit lulus, 0 gagal** (+9); `npm run build` **`NOT RUN` atas instruksi owner** — sesudah build owner hijau, task ini memenuhi syarat ✅. `UAT-P2-14` **dikecualikan dari DoD development atas keputusan owner 11 September 2026** (UAT dijalankan tim UAT terpisah; bukan `UAT PASS`); `READY FOR UAT`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) bagian 9. **Riwayat:** 🟡 `SEBAGIAN` — 10 September 2026. `npm run lint` 0 error; `npm run build` compiled; `node --test tests/unit/` **615 lulus 0 gagal** (17 uji baru). **Diuji terhadap backend sungguhan:** bentuk respons cocok 100% dengan normalizer, 3 penghalang + 6 peringatan, `notYetAvailableCount=7`, dan payload aslinya disimpan sebagai fixture. **Belum terpenuhi:** acceptance (5) — tautan Lihat belum menyaring ke periode; `UAT-P2-14` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-001`](../task/report/frontend/fe-acc-p2-001-daftar-periksa-penutupan.md) |
 
 
-## 🟡 `FE-ACC-P2-002` — Aksi penutupan: ajukan, setujui, tolak
+## ✅ `FE-ACC-P2-002` — Aksi penutupan: ajukan, setujui, tolak
 
 | Field | Isi |
 |---|---|
@@ -238,7 +238,7 @@ bagian 11.
 | Verifikasi | `npm run lint`; `npm run build`; unit test; UAT peramban `UAT-P2-15`, `UAT-P2-16`, `UAT-P2-17`, `UAT-P2-18` |
 | Risiko/pemilik | **Peran `Accounting Director` harus sudah ada** di mekanisme hak akses sebelum acceptance (2) dapat diuji sungguhan. Bergantung `BE-ACC-P2-006`. Owner Frontend |
 | DoD | Lint dan build hijau, empat UAT terbukti, laporan task tertulis |
-| Status | 🟡 **`SEBAGIAN` — penilaian ulang 11 September 2026. Tinggal satu butir DoD: `npm run build`, dijalankan owner.** Keempat acceptance terpetakan ke source; aturan `403` empat mata terbukti di runtime. Layarnya ikut disentuh acceptance (5) `FE-ACC-P2-001` (tautan Lihat saja), sehingga bukti build 11 Sep 2026 tidak lagi berlaku untuk berkasnya — `npm run lint:errors` `0 errors`, 686 uji lulus, build `NOT RUN` atas instruksi owner. `UAT-P2-15`..`18`, termasuk tampilan tombol mati bagi pengguna kedua, **dikecualikan dari DoD development atas keputusan owner 11 September 2026** (UAT dijalankan tim UAT terpisah; bukan `UAT PASS`); `READY FOR UAT`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md). **Riwayat:** 🟡 `SEBAGIAN` — 10 September 2026, satu paket dengan `FE-ACC-P2-001`. Lint 0 error; build compiled; 615 uji lulus. **Alur penuh terbukti terhadap backend sungguhan** pada tahun buku uji 2019: ajukan → status 4, riwayat 1 baris; setujui oleh pengaju sendiri **403** (prinsip empat mata tegak); tolak tanpa alasan **400**; ajukan ulang **409**; tolak beralasan **200** dan periode kembali terbuka. **Satu cacat ditemukan dan diperbaiki:** urutan alasan tombol mati salah sesudah penolakan. **Belum terpenuhi:** tampilan tombol mati bagi pengguna kedua di peramban; `UAT-P2-15`..`18` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md) |
+| Status | ✅ **`SELESAI` — 14 September 2026, atas pilihan owner.** Butir DoD terakhir terpenuhi: `npm run build` oleh Rizki pada `RizkiV2` `a09ba4b13` — `✓ Compiled successfully in 34.7s`, 326/326 halaman statis, rute `/corporate/accounting/periods/[slug]/closing` terdaftar, nol error; build ini memuat perubahan acceptance (5) `FE-ACC-P2-001` yang membatalkan bukti build 10 Sep 2026. Berkas task tidak berubah sejak `f6b1498fe`; `npx eslint` diulang agent: **0 error, 0 warning**. Aturan `403` empat mata sudah terbukti di runtime 10 Sep 2026. Tampilan tombol mati bagi pengguna kedua dan `UAT-P2-15`..`18` tetap dikecualikan dari DoD development (keputusan owner 11 Sep 2026); `READY FOR UAT`, bukan `UAT PASS`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md) bagian 9. **Riwayat:** 🟡 **`SEBAGIAN` — penilaian ulang 11 September 2026. Tinggal satu butir DoD: `npm run build`, dijalankan owner.** Keempat acceptance terpetakan ke source; aturan `403` empat mata terbukti di runtime. Layarnya ikut disentuh acceptance (5) `FE-ACC-P2-001` (tautan Lihat saja), sehingga bukti build 11 Sep 2026 tidak lagi berlaku untuk berkasnya — `npm run lint:errors` `0 errors`, 686 uji lulus, build `NOT RUN` atas instruksi owner. `UAT-P2-15`..`18`, termasuk tampilan tombol mati bagi pengguna kedua, **dikecualikan dari DoD development atas keputusan owner 11 September 2026** (UAT dijalankan tim UAT terpisah; bukan `UAT PASS`); `READY FOR UAT`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md). **Riwayat:** 🟡 `SEBAGIAN` — 10 September 2026, satu paket dengan `FE-ACC-P2-001`. Lint 0 error; build compiled; 615 uji lulus. **Alur penuh terbukti terhadap backend sungguhan** pada tahun buku uji 2019: ajukan → status 4, riwayat 1 baris; setujui oleh pengaju sendiri **403** (prinsip empat mata tegak); tolak tanpa alasan **400**; ajukan ulang **409**; tolak beralasan **200** dan periode kembali terbuka. **Satu cacat ditemukan dan diperbaiki:** urutan alasan tombol mati salah sesudah penolakan. **Belum terpenuhi:** tampilan tombol mati bagi pengguna kedua di peramban; `UAT-P2-15`..`18` `NOT FEASIBLE`. Laporan: [`fe-acc-p2-002`](../task/report/frontend/fe-acc-p2-002-aksi-penutupan-ajukan-setujui-tolak.md) |
 
 
 ### Urutan: `001` lebih dahulu, bukan sebaliknya

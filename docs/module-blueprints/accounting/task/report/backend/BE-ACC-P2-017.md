@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `b3ab542e` (branch `rizkiG`), perubahan belum di-commit. Source ter-commit Rizki di `da1a4b6d`; diperbarui pada `917e97fd` |
 | Tanggal | 14 September 2026 |
-| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source. Dari dua butir verifikasi yang semula belum, **build ulang sesudah perbaikan log sudah terpenuhi** (0 error, 192 warning) dan migration `BE-ACC-P2-016` sudah diterapkan. **Sisa satu-satunya:** uji panggil `GET /event-types` dan `GET /posting-rules` saat backend berjalan — belum dapat dijalankan karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB |
+| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source. Dari dua butir verifikasi yang semula belum, **build ulang sesudah perbaikan log sudah terpenuhi** (0 error, 192 warning) dan migration `BE-ACC-P2-016` sudah diterapkan. **Sisa satu-satunya:** uji panggil `GET /event-types` dan `GET /posting-rules` saat backend berjalan — belum dapat dijalankan karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB. **Pembaruan 15.20 WIB:** backend berjalan dan kedua rute terbukti terdaftar (`401` tanpa login, rute kontrol `404`); respons `200` dengan login belum ada, jadi tetap 🟡 |
 
 ### Backend Governance Preflight
 
@@ -163,6 +163,8 @@ Base URL `api/v1/corporate/accounting/event-types`.
 | Pemeriksaan kontrak | 6 endpoint `ACC-API-0.10` hadir dengan method, path, dan hak yang sama | `PASS` | Bagian 4 |
 | **Pemanggilan endpoint sesudah `016` diterapkan** — pagi 14 Sep 2026, riwayat | Belum dapat dijalankan — tabel belum ada | `NOT RUN` | Menunggu `BE-ACC-P2-016` (Rizki) |
 | Pemeriksaan backend berjalan — sesi penutupan, 14 Sep 2026 13.17 WIB | **Port 5107 tertutup.** `Test-NetConnection localhost -Port 5107` → `TcpTestSucceeded=False`; `curl http://127.0.0.1:5107/` gagal terhubung (exit 7); nol proses mendengarkan di 5107 maupun 7184 | — | Keluaran perintah pada sesi penutupan |
+| Pemeriksaan ulang — 14 Sep 2026 15.20 WIB | **Backend berjalan** (PID 2368, mendengarkan 5107 dan 7184; Swagger `200`). Permintaan `GET` tanpa login ke `https://127.0.0.1:7184/api/v1/corporate/accounting/`: `event-types` **`401`**, `posting-rules` **`401`**, `event-types/options` **`401`**; rute kontrol `rute-tidak-ada` **`404`**. Port 5107 menjawab `307` ke HTTPS | `PASS` sebagian — membuktikan **rute terdaftar** dan penjaga login aktif; **belum** membuktikan tabel terbaca maupun bentuk respons, karena `401` terjadi sebelum query | `curl` agent |
+| Pernyataan owner — 14 Sep 2026 | Backend dijalankan dan pemberian hak lewat Akses Role **sudah berjalan di database utama**. Di `QuilvianNewDevRizki` belum, karena **departemen di sana kosong** — kebijakan hak disimpan per Departemen + Jabatan (`SysAccessPolicy`), sehingga tidak ada yang dapat dicentang. Respons `200` belum diserahkan | Dicatat apa adanya | Chat owner |
 | **Uji kontrak read-only `GET /event-types` dan `GET /posting-rules`** | Belum dijalankan — backend tidak berjalan. `016` ✅ sudah diterapkan, jadi penghalangnya kini hanya proses backend, bukan skema. Rencana ujinya: login, lalu `GET` saja — tanpa `POST`, `PUT`, atau `PATCH` | `NOT RUN` | Menunggu backend dijalankan |
 
 Uji manual: `NOT RUN` — backend tidak berjalan saat diperiksa. Semula `NOT FEASIBLE` karena tabel
