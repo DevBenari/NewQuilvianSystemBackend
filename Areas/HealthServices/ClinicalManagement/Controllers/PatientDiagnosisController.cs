@@ -1066,7 +1066,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // VAL-DOK-38. Jenis kunjungan menentukan apakah pelonggaran berlaku sama sekali.
             // Kunjungan yang tidak ditemukan pun jatuh ke sini, dan jawabannya tetap kalimat
             // lama - persis seperti sebelum 0.4.0.
-            var jenisKunjungan = await _dbContext.Set<TrxPatientEncounter>()
+            var jenisKunjungan = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => x.Id == request.EncounterId && !x.IsDelete)
                 .Select(x => x.EncounterType)
