@@ -64144,7 +64144,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<Guid>("ConsultationId")
+                    b.Property<Guid?>("ConsultationId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CreateBy")
@@ -64207,6 +64207,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("IcdVersion")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("InpEpisodeId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -64311,6 +64314,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ResolvedByUserId");
 
                     b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("InpEpisodeId", "PatientId");
 
                     b.HasIndex("ConsultationId", "DiagnosisCode", "IsDelete");
 
@@ -68276,6 +68281,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("AssignedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AssignmentRole")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -68343,9 +68353,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EpisodeId", "SequenceNumber")
                         .IsUnique();
 
-                    b.HasIndex(new[] { "EpisodeId" }, "IX_InpDoctorAssignment_EpisodeId_Active")
+                    b.HasIndex(new[] { "EpisodeId" }, "IX_InpDoctorAssignment_EpisodeId_ActiveDpjp")
                         .IsUnique()
-                        .HasFilter("\"EndDateTime\" IS NULL");
+                        .HasFilter("\"EndDateTime\" IS NULL AND \"AssignmentRole\" = 1");
+
+                    b.HasIndex(new[] { "EpisodeId", "DoctorId", "AssignmentRole", "StartDateTime" }, "IX_InpDoctorAssignment_Episode_Doctor_Role_Period");
 
                     b.ToTable("InpDoctorAssignment", "public");
                 });
@@ -72767,6 +72779,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DepositFollowUpIntervalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
 
                     b.Property<int>("DraftEpisodeExpiryHours")
                         .HasColumnType("integer");
@@ -103244,8 +103261,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
                         .WithMany()
                         .HasForeignKey("ConsultationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "Diagnosis")
                         .WithMany()
@@ -103263,6 +103279,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
+                        .WithMany()
+                        .HasForeignKey("InpEpisodeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
                         .WithMany()

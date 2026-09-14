@@ -295,11 +295,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 // INV-INP-03 — DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
+                // Perannya ditulis eksplisit sejak BE-RWI-074; nilai bawaan database ada
+                // untuk baris lama, bukan sebagai pengganti nilai domain pada baris baru.
                 var doctorAssignment = new InpDoctorAssignment
                 {
                     Id = Guid.NewGuid(),
                     EpisodeId = episode.Id,
                     DoctorId = request.DoctorId,
+                    AssignmentRole = InpDoctorAssignmentRole.Dpjp,
                     SequenceNumber = 1,
                     StartDateTime = now,
                     EndDateTime = null,
@@ -1002,8 +1005,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         : null,
                     CancelReason = x.CancelReason,
                     Notes = x.Notes,
+                    // DPJP aktif, bukan penugasan terbuka mana pun — BE-RWI-074.
                     ActiveDoctor = x.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => new InpatientEpisodeActiveDoctorResponse
                         {

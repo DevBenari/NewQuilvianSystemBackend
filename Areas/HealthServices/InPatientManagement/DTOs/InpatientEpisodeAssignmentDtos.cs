@@ -36,6 +36,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public string? DoctorName { get; set; }
 
+        /// <summary>
+        /// Peran dokter pada baris ini: <c>1</c> DPJP, <c>2</c> konsulen, <c>3</c> dokter
+        /// jaga. Ditambahkan <c>BE-RWI-074</c>.
+        /// </summary>
+        /// <remarks>
+        /// Tanpa field ini, riwayat penugasan menyajikan konsulen dan DPJP sebagai baris yang
+        /// tidak dapat dibedakan, dan layar tidak punya cara menampilkan siapa yang sebenarnya
+        /// bertanggung jawab.
+        /// </remarks>
+        public int AssignmentRole { get; set; }
+
         public int SequenceNumber { get; set; }
 
         public DateTime StartDateTime { get; set; }

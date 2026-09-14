@@ -450,7 +450,7 @@ menyebut pengiriman resume medis. Keduanya belum pernah dibahas. Ini bagian dari
 | 1 | ~~Persetujuan pemilik `ClinicalManagement` dan `PharmacyManagement` atas pelonggaran antrean dan konsultasi~~ | ~~`MISSING`~~ → **`CONFIRMED`** | ~~`BLOCKING`~~ → **tidak memblokir** | `INP-S05`, `INP-S06` | `DEC-INP-001` **TERTUTUP** 2026-08-21 lewat `RWI-DEC-062`; dicatat di sini 2026-09-02 |
 | 2 | Persetujuan pemilik `EmergencyInstallationManagement` atas serah terima disposisi `RANAP` | `MISSING` | `BLOCKING` | `INP-S09` | `DEC-INP-002` |
 | 3 | Persetujuan pemilik privasi dan hukum atas persetujuan umum yang tidak menahan admisi | `PROPOSED` | `BLOCKING` | `INP-S10` | `DEC-INP-003` |
-| 4 | Isolasi dan pemisahan jenis kelamin sebagai penyaring, bukan penolak penempatan | `CONFLICT` | `BLOCKING` | `INP-S11` | `DEC-INP-004` |
+| 4 | ~~Isolasi dan pemisahan jenis kelamin sebagai penyaring, bukan penolak penempatan~~ **TERTUTUP 2026-09-11** | ~~`CONFLICT`~~ `RESOLVED` | ~~`BLOCKING`~~ tidak memblokir | `INP-S11` | `DEC-INP-004` **`CLOSED`** oleh `RWI-DEC-064`, `RWI-DEC-065`, dan `RWI-DEC-101`; dicatat `RWI-DEC-104` |
 | 5 | Kepemilikan, isi, dan pemicu pengiriman SATUSEHAT rawat inap | `MISSING` | `BLOCKING` | `INP-S15` | `DEC-INP-005` |
 | 6 | Isi dan konfirmasi serah terima klinis antar shift keperawatan | `MISSING` | `BLOCKING` | Slice serah terima klinis, belum masuk daftar kemampuan | `DEC-INP-006` |
 | 7 | Aturan klinis pasien meninggal dan pasien kabur | `PROPOSED` | `BLOCKING` | `INP-S07` sebagian | `DEC-INP-007` |
@@ -557,8 +557,8 @@ ulang. Konflik baru focused scope dicatat sebagai `DEC-INP-008` pada bagian 11.8
 | Usulan baseline | Baseline `ID-INP-CAP-003` menempatkan kebutuhan isolasi dan kendala jenis kelamin sebagai pembatas penempatan, dan pasal 13 memasukkan isolasi ke dalam daftar kepedulian keselamatan klinis. Observasi ini `REFERENCE_ONLY` dan bukan kebijakan rumah sakit |
 | Dampak | Menyentuh pengendalian infeksi dan privasi pasien. Bila menjadi aturan keras, penempatan mendapat validasi baru yang dapat menolak |
 | Pemilik yang dibutuhkan | Pemilik klinis untuk isolasi; pemilik privasi untuk jenis kelamin. Keduanya belum ditunjuk |
-| Status | `OPEN` |
-| Dampak implementasi atau domain | `INP-S11` berhenti. `INP-S01` dan `INP-S02` tetap boleh berjalan dengan syarat pemeriksaan kelayakan penempatan dirancang sebagai titik yang dapat diisi aturan tambahan |
+| Status | ~~`OPEN`~~ **`CLOSED` 2026-09-11.** Dijawab `RWI-DEC-064` dan `RWI-DEC-065` yang keduanya `approved` 21 Agustus 2026, lalu dipersempit `RWI-DEC-101` 11 September 2026 yang mencabut bagian kamar tanpa mengembalikannya menjadi penyaring. Penutupannya dicatat `RWI-DEC-104` |
+| Dampak implementasi atau domain | ~~`INP-S11` berhenti.~~ **Tidak lagi berlaku.** `INP-S11` naik menjadi `READY_FOR_DOMAIN_DESIGN` sejak 2026-09-11. `INP-S01` dan `INP-S02` tetap berjalan sebagaimana sebelumnya |
 
 ### `DEC-INP-005`
 
@@ -615,7 +615,7 @@ ulang. Konflik baru focused scope dicatat sebagai `DEC-INP-008` pada bagian 11.8
 | `INP-S08` Clearance dan penutupan | `PARTIALLY_READY` | `DEC-INP-007` lewat `INP-S07` | Mesin penutupan siap. Yang menunggu hanya syarat penutupan untuk dua cara pulang yang terblokir |
 | `INP-S09` Serah terima IGD | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-002` | — |
 | `INP-S10` Persetujuan umum | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-003` | — |
-| `INP-S11` Jenis kelamin dan isolasi | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-004` | Satu-satunya butir berstatus `CONFLICT` |
+| `INP-S11` Jenis kelamin dan isolasi | ~~`BUSINESS_DECISION_REQUIRED`~~ **`READY_FOR_DOMAIN_DESIGN`** sejak 2026-09-11 | ~~`DEC-INP-004`~~ — | ~~Satu-satunya butir berstatus `CONFLICT`~~ Pemblokirnya tertutup; lihat `RWI-DEC-104`. Aturan yang berlaku kini `RWI-DEC-101`: jenis kelamin dinilai hanya terhadap penanda tempat tidur |
 | `INP-S12` Bayi baru lahir dan boks bayi | `READY_FOR_DOMAIN_DESIGN` | — | Master sudah punya seluruh penanda yang dibutuhkan |
 | `INP-S13` Riwayat status, audit, daftar pantau | `READY_FOR_DOMAIN_DESIGN` | — | Dua dari tiga daftar pantau siap; daftar pantau kepatuhan pengkajian dan CPPT menunggu `INP-S05` |
 | `INP-S14` Pengaturan admin | `READY_FOR_DOMAIN_DESIGN` | — | — |
@@ -671,7 +671,7 @@ Baris di luar `CAP-025` dipertahankan dari assessment awal dan tidak dinilai ula
 | `INP-S05`, hanya `CAP-025 Physician Visit` | `DEC-INP-008`: keputusan lama menurunkan visite dari SOAP/CPPT, sedangkan PRD final menuntut event mandiri; keduanya menghasilkan persistence, lifecycle, dan hitungan berbeda |
 | `INP-S09` | `DEC-INP-002` menentukan kunjungan mana yang menjadi jangkar episode |
 | `INP-S10` | `DEC-INP-003` adalah keputusan hukum dan privasi |
-| `INP-S11` | `DEC-INP-004` adalah satu-satunya `CONFLICT`, dan menyentuh pengendalian infeksi |
+| `INP-S11` | ~~`DEC-INP-004` adalah satu-satunya `CONFLICT`, dan menyentuh pengendalian infeksi~~ **Tertutup 2026-09-11** lewat `RWI-DEC-104`. Pengendalian infeksi tetap dijaga `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED`, yang **tidak** tersentuh pencabutan aturan kamar |
 | `INP-S15` | `DEC-INP-005` menentukan pemilik data riwayat lokasi |
 | Serah terima klinis antar shift | `DEC-INP-006`, kemampuan ini bahkan belum masuk daftar 18 MUST |
 | Cara pulang meninggal dan kabur | `DEC-INP-007` |

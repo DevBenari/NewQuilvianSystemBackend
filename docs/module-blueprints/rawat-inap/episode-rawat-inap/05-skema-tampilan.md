@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.4` |
-| Status | `draft` — menunggu persetujuan pemilik |
-| Cakupan revision ini | **Seluruh 19 layar fungsional `FE-INP-01` s.d. `FE-INP-19`** |
+| Revision | `0.5` — naik 12 September 2026 karena skema langkah **Deposit** `FE-INP-20` ditulis, menutup `RWI-UI-GAP-008`. Revision `0.4` tetap berlaku bagi kesembilan belas layar lainnya |
+| Status | `draft` — menunggu persetujuan pemilik. Bagian 3.5A **belum disetujui**; ia disusun 12 September 2026 atas permintaan pemilik untuk membuka `FE-RWI-058` dan `FE-RWI-060` |
+| Cakupan revision ini | **`FE-INP-20` saja** — langkah Deposit pada alur admisi, bagian 3.5A. Kesembilan belas layar `FE-INP-01` s.d. `FE-INP-19` **tidak diubah satu baris pun** |
 | Masukan otoritatif | `00-interview-decisions.md` revision `7`; `03-frontend-architecture.md` revision `0.4`; kontrak `0.4.0` |
 | Keluaran hilir | `roadmap/frontend-roadmap.md` revision `5` draft disinkronkan setelah skema ini |
 | Baseline desain | Frontend `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; backend `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
@@ -389,6 +389,88 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
    aturan backend yang menolak kelas di luar hak peserta; jangan menuliskannya seolah menolak.
 4. Wilayah kartu penjamin **tidak muncul** ketika Tunai dipilih. Yang muncul satu kartu ringkas
    bertuliskan "Pembayaran Tunai / Umum" beserta penanda "Dipilih".
+
+---
+
+### 3.5A Langkah 4 — Deposit — `FE-INP-20`
+
+**Layar baru, ditulis 12 September 2026 untuk menutup `RWI-UI-GAP-008`.** Dasarnya
+`RWI-DEC-093` s.d. `RWI-DEC-096` dan `03-frontend-architecture.md` revision `0.6` bagian 3A.2
+langkah 4.
+
+**Penyisipan langkah ini menggeser penomoran seluruh langkah sesudahnya.** Itu akibat yang
+paling mudah terlewat, jadi ditulis di depan:
+
+| Jalur | Sebelum `RWI-DEC-093` | Sesudah |
+| --- | :---: | :---: |
+| Pasien baru | 9 langkah; Dokter di urutan 4 | **10 langkah**; Deposit di urutan **4**, Dokter bergeser ke 5 |
+| Pasien lama | 8 langkah; Dokter di urutan 5 | **9 langkah**; Deposit di urutan **4**, Dokter bergeser ke 6 |
+
+Pelanjutan admisi `FE-RWI-032` memilih langkah tujuan berdasarkan keadaan episode. Ia **wajib
+diuji ulang** setelah penomoran bergeser, dan itu bagian dari Definition of Done `FE-RWI-058`.
+
+```text
+  LANGKAH 4
+  Deposit / Uang Muka
+
+  ┌── Kebijakan Deposit ─────────────────────────────────────────────┐
+  │  Penjamin    BPJS Kesehatan                                      │
+  │  Kelas       Kelas 1                                             │
+  │  Minimum     Rp 1.000.000                                        │
+  │  Kebijakan ini berlaku untuk penjamin dan kelas yang dipilih     │
+  │  pada langkah sebelumnya.                                        │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ┌── Nominal Diterima ──────────────────────────────────────────────┐
+  │  Nominal    [ Rp 750.000                                      ]  │
+  │                                                                  │
+  │  ⓘ Kurang Rp 250.000 dari minimum kebijakan.                     │
+  │    Admisi tetap dapat dilanjutkan.                               │
+  └──────────────────────────────────────────────────────────────────┘
+
+                                  [ Kembali ]   [ Lanjut ke Dokter ]
+```
+
+| Wilayah | Isi | Dari mana | Komponen |
+| --- | --- | --- | --- |
+| Kebijakan Deposit | Penjamin, kelas, dan nominal minimum | `GET …/patient-funds/deposit-policies?guarantorId=&patientClassId=` | `InformationAlert` atau panel ringkas; **tidak** membuat komponen baru |
+| Nominal Diterima | Satu isian nominal berformat rupiah | isian langkah, **ditahan di klien** | pola format rupiah milik `billing-deposit-panel.jsx` |
+| Peringatan kekurangan | Selisih terhadap minimum | dihitung dari response, bukan dari angka di kode layar | `InformationAlert` varian **peringatan**, bukan varian galat |
+
+| Tombol | Jenis | Kapan aktif | Yang terjadi |
+| --- | --- | --- | --- |
+| Kembali | kedua | selalu, selama titik tulis 1 belum lewat | Kembali ke Pembayaran; nominal yang sudah diketik **ikut terbawa** |
+| Lanjut ke Dokter | utama | **selalu** | Maju. Nominal disimpan sebagai isian langkah; nol permintaan jaringan dikirim dari langkah ini |
+
+**Enam aturan yang mengikat pada langkah ini:**
+
+1. **Tombol lanjut tidak pernah terkunci oleh nilai apa pun.** Nominal di bawah minimum, nominal
+   kosong, bahkan kebijakan yang gagal dibaca — semuanya hanya memberi keterangan. `RWI-DEC-095`
+   memutuskan deposit **tidak menahan admisi**, dan mengunci tombolnya membalik keputusan itu.
+2. **Peringatan kekurangan tidak boleh memakai bentuk visual yang sama dengan kesalahan yang
+   menahan.** Petugas yang melihat spanduk merah akan mengira admisi berhenti, padahal tidak.
+3. **Nol angka minimum ditulis di kode layar.** Seluruh angka berasal dari response. Kebijakan
+   berubah di master data, bukan di frontend.
+4. **Langkah ini tidak mengirim satu permintaan tulis pun.** Nominalnya ditahan lalu dikirim
+   menyusul titik tulis 1 pada langkah Dokter — `RWI-DEC-076` tidak berubah.
+5. **Kebijakan `isRequired = false` melewati langkah ini**, dan pelewatannya tidak boleh terbaca
+   sebagai layar kosong yang gagal memuat.
+6. **Gagal membaca kebijakan tidak menahan admisi.** Layar menyatakan minimumnya tidak diketahui,
+   lalu membiarkan petugas melanjutkan.
+
+**Keadaan layar:**
+
+| Keadaan | Yang tampil |
+| --- | --- |
+| `LOADING` | Wilayah Kebijakan berplaceholder; isian nominal sudah dapat diketik |
+| Kebijakan terbaca, deposit disyaratkan | Minimum tampil; peringatan muncul bila nominal di bawahnya |
+| Kebijakan terbaca, `isRequired = false` | Langkah dilewati; penanda langkah tetap menghitungnya sebagai langkah yang sudah lewat |
+| `ERROR` baca kebijakan | "Minimum kebijakan tidak dapat dibaca." Isian nominal tetap hidup, tombol lanjut tetap hidup |
+| Mundur lalu maju lagi | Nominal yang sudah diketik utuh |
+
+**Batas layar ini.** Ia **tidak** menampilkan posisi deposit episode, sebab episodenya belum ada.
+Posisi deposit dibaca pada langkah Konfirmasi dan pada detail episode — `FE-RWI-061`, dan itu
+menunggu `BE-BKC-040` yang **nol barisnya ada** per 12 September 2026.
 
 ---
 

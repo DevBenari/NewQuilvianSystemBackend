@@ -371,7 +371,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         {
             var actorUserId = GetCurrentUserId();
 
-            var hasil = await _carePlanService.CloseItemAsync(itemId, request, actorUserId, cancellationToken);
+            var hasil = await _carePlanService.CloseItemAsync(itemId, request, User, actorUserId, cancellationToken);
 
             if (!hasil.IsSuccess || hasil.Item == null)
             {

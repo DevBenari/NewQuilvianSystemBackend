@@ -455,6 +455,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Create", "Create Patient Procedure", Description = "Membuat tindakan pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientProcedure", "Create")]
@@ -478,6 +479,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                             sudahAda,
                             await ReadConsultationProcedureSummaryAsync(sudahAda.ConsultationId)),
                         "Tindakan sudah tercatat sebelumnya dengan kunci permintaan yang sama."
+                    ));
+                }
+            }
+
+            // BE-RWI-076 / GUARD-INP-05 dan GUARD-INP-06. Penjagaan penulis ditulis di sini,
+            // bukan di dalam rantai ValidateCreateRequestAsync, karena rantai itu hanya dapat
+            // membawa kalimat penolakan tanpa kode status dan seluruh isinya dijawab 400.
+            // Penolakan kewenangan wajib terbaca sebagai 403 supaya layar tidak menampilkannya
+            // sebagai kesalahan pengisian.
+            //
+            // Hanya tindakan yang menyebut perawatan rawat inap yang dijaga. Tindakan
+            // poliklinik dan IGD tidak membawa penanda perawatan sama sekali, dan perilakunya
+            // karena itu tidak bergeser satu langkah pun.
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var penjagaPenulis = await _inpatientClinicalContextService
+                    .ResolveForDoctorWriteAsync(
+                        User,
+                        GetCurrentUserId(),
+                        request.EncounterId,
+                        expectedPatientId: request.PatientId,
+                        expectedEpisodeId: request.InpEpisodeId,
+                        forNewDocument: false,
+                        atUtc: request.ProcedureDateTime);
+
+                if (!penjagaPenulis.IsResolved &&
+                    penjagaPenulis.StatusCode == StatusCodes.Status403Forbidden)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        penjagaPenulis.ErrorMessage ??
+                        "Anda tidak berwenang mencatat tindakan untuk pasien ini."
                     ));
                 }
             }
