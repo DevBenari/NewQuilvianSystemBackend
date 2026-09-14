@@ -220,3 +220,63 @@ Slice ini **MUST** menyertakan:
 Approval blueprint bukan bukti test.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-TEST-1.0` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> Seluruh contoh memakai data samaran.
+
+## Mengganti penanggung kunjungan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-081` | `MPY-DEC-003`, `MPY-DES-001` | Kunjungan rawat jalan didaftarkan tunai. Kasir mengganti penanggung menjadi kartu asuransi milik pasien yang masih berlaku | Integration | Penanggung kunjungan berubah menjadi asuransi; tagihan punya versi perhitungan baru; porsi penjamin naik dari nol; jejak perubahan tercatat satu baris |
+| `BIL-AT-082` | `MPY-DEC-003` | Kunjungan berasuransi diganti menjadi penjamin perusahaan, lalu diganti lagi menjadi tunai | Integration | Ketiga perubahan berhasil berurutan; kunjungan tetap punya **tepat satu** baris sumber pembayaran sepanjang seluruh rangkaian |
+| `BIL-AT-083` | `BIL-VAL-068` | Kasir memilih kartu asuransi milik pasien lain | Integration | Ditolak `422` beserta pesan yang dapat dibaca pengguna; penanggung kunjungan tidak berubah |
+| `BIL-AT-084` | `BIL-VAL-070` | Kartu penjamin berlaku sampai 31 Agustus 2026; tanggal pelayanan 11 September 2026 | Integration | Ditolak `422`; tidak ada versi perhitungan baru yang lahir |
+| `BIL-AT-085` | `BIL-VAL-060` | Tagihan sudah menerima satu pembayaran berhasil, lalu kasir mencoba mengganti penanggung | Integration | Ditolak `409`; angka tagihan dan pembayaran yang sudah masuk tidak bergeser sama sekali |
+| `BIL-AT-086` | `BIL-VAL-061` | Dua kasir membuka tagihan yang sama. Kasir A menyimpan lebih dulu, lalu Kasir B menyimpan dengan versi lama | Integration | Perintah Kasir B ditolak `409`; **nol perubahan tersimpan sebagian** — penanggung, penanggung baris, dan versi perhitungan seluruhnya tetap seperti hasil Kasir A |
+| `BIL-AT-087` | `MPY-DES-005`, `MPY-DES-015` | Kasir meminta pratinjau perbandingan lima kali berturut-turut | Integration | Nol versi perhitungan baru lahir; nol baris jejak perubahan lahir; penanggung kunjungan tidak bergerak. Angka pratinjau konsisten pada kelima pemanggilan |
+| `BIL-AT-088` | `MPY-DES-003`, NFR idempotency | Perintah ganti penanggung dikirim dua kali dengan kunci idempotensi yang sama | Integration | Hanya satu baris jejak perubahan tercatat; hanya satu versi perhitungan baru lahir; permintaan kedua mengembalikan hasil yang sama tanpa efek tambahan |
+
+## Menentukan penanggung per baris biaya
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-089` | `MPY-DEC-004` | Kunjungan berpenjamin perusahaan. Kasir menandai satu baris vitamin seharga Rp 80.000 menjadi tanggungan pasien | Integration | Porsi pasien bertambah Rp 80.000; porsi penjamin berkurang sebesar porsi yang tadinya ditanggung; **Subtotal Mandiri + Subtotal Penjamin + pajak = Total Tagihan**, tanpa selisih |
+| `BIL-AT-090` | `MPY-DEC-004` | Satu baris obat yang menurut aturan tanggungan berstatus tidak tertanggung ditandai ditanggung asuransi | Integration | Perintah **berhasil**, bukan ditolak; hasil perhitungan menunjukkan nol tertanggung dan pasien membayar penuh; keterangan penanggung baris tetap tercatat asuransi |
+| `BIL-AT-091` | `BIL-VAL-077`, `BIL-VAL-078` | Kunjungan tunai; kasir menandai satu baris ditanggung penjamin perusahaan | Integration | Ditolak `422` beserta pesan yang menyebut kunjungan tidak memakai penjamin |
+| `BIL-AT-092` | **`MPY-DES-009`** | Kunjungan berpenjamin perusahaan dengan tiga baris bertanda penjamin. Kasir mengganti penanggung kunjungan menjadi tunai | Integration | Ketiga baris **otomatis** kembali menjadi tanggungan pasien bertanda sumber otomatis beserta alasan bawaan; response menyebut angka tiga; nol baris tertinggal menunjuk penanggung yang sudah tidak ada |
+
+## Menentukan obat yang masuk tagihan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-093` | `MPY-DEC-009` | Tagihan rawat jalan dengan empat baris obat; kasir memilih Ditebus | Integration | Keempat baris masuk tagihan; subtotal obat sama dengan sebelum perintah dijalankan |
+| `BIL-AT-094` | `BIL-VAL-083`, `MPY-DES-010` | Dari empat baris obat, kasir mencentang dua lalu memilih Tebus Sebagian | Integration | Dua baris masuk tagihan, dua tidak; **jumlah pada keempat baris tidak berubah sedikit pun**; baris yang tidak ditebus tidak muncul sebagai porsi pasien maupun porsi penjamin |
+| `BIL-AT-095` | `BIL-VAL-081`, `MPY-DES-011` | (a) Kunjungan rawat inap, kasir mencoba mengatur penebusan. (b) Kunjungan IGD, kasir mengatur penebusan | Integration | (a) Ditolak `422`. (b) **Berhasil** — membuktikan IGD diperlakukan terpisah dari rawat inap dan tidak ikut tertolak |
+| `BIL-AT-096` | **`MPY-DEC-009`** | Seluruh alur Edit Billing dijalankan pada tagihan dengan resep yang sudah diserahkan sebagian oleh Farmasi | **Regresi lintas modul** | **Nol baris data penyerahan obat milik Farmasi tersentuh** — jumlah diserahkan, jumlah tersisa, status penyerahan, dan riwayatnya identik sebelum dan sesudah perintah |
+
+## Hak akses, privasi, dan master data
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-097` | `MPY-DEC-006`, `CAP-39` | Pengguna tanpa kewenangan ubah tagihan membuka layar Edit Tagihan; pengguna tanpa kewenangan master data membuka kedua layar master baru | Integration | Pembacaan diizinkan bagi pemegang kewenangan baca; ketiga perintah ubah ditolak `403`; kedua butir kewenangan master baru muncul pada pengaturan peran tanpa berkas seed disunting |
+| `BIL-AT-098` | Privasi | Ketiga perintah dijalankan, lalu lembar tagihan perusahaan diunduh | Integration | Catatan log **tidak memuat** nomor polis, nomor kartu, nomor karyawan, maupun nama karyawan; nama berkas lembar tagihan memakai nomor tagihan, bukan nama pasien maupun nama perusahaan |
+| `BIL-AT-099` | `BIL-VAL-087`–`092` | Admin membuat rute menanggung sendiri sambil mengisi asuransi mitra; lalu menandai rute kedua sebagai bawaan; lalu membuat aturan tanggungan dengan persentase 80 | Integration | Dua yang pertama ditolak beserta pesan yang dapat dibaca; yang ketiga tersimpan dengan urun biaya **20 yang diturunkan server**, bukan nilai yang dikirim klien |
+| `BIL-AT-100` | **Regresi menyeluruh** | Hitung ulang tiga tagihan lama: satu tunai, satu berasuransi, satu berpenjamin perusahaan | **Regresi** | Tagihan tunai dan tagihan berasuransi menghasilkan angka **identik** dengan sebelum amendment ini. Tagihan berpenjamin perusahaan **tidak lagi** menghasilkan anomali "perusahaan asuransi belum dipilih", dan porsi penjaminnya kini terhitung sesuai aturan tanggungan perusahaan |
+
+## Dokumen lembar tagihan perusahaan
+
+Pengujian lembar tagihan perusahaan penjamin mengikuti pola pengujian lembar Invoice Asuransi yang sudah ada (`BIL-AT-031`–`035`), dengan satu tambahan yang mengikat: lembar itu **MUST NOT** dapat dicetak untuk kunjungan tunai maupun kunjungan berasuransi pribadi, dan **MUST** memuat keterangan rute penggantian biaya bila perusahaannya memilikinya.
+
+## Catatan cakupan
+
+Setiap kemampuan wajib pada rumpun ini memiliki **sekurang-kurangnya satu skenario berhasil dan satu skenario gagal**. Tiga pengujian ditandai regresi karena keduanya menjaga hal yang paling mudah rusak tanpa disadari: angka tagihan kunjungan yang tidak disentuh rumpun ini (`BIL-AT-100`), data milik modul lain (`BIL-AT-096`), dan perilaku konsumen lama komponen yang dipakai ulang (acceptance frontend nomor 70).
+
+Approval blueprint bukan bukti test.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`.

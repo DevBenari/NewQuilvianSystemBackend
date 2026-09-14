@@ -252,3 +252,81 @@ Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pad
 - Kasir **tidak** perlu punya shift aktif untuk menyerahkan uang kas kecil. `BIL-VAL-019` ("Buka shift kasir sebelum menerima uang tunai") berlaku untuk **penerimaan** uang dari pasien, bukan untuk pengeluaran kas kecil.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-STATE-0.9` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+
+## Tidak ada status invoice baru
+
+Rumpun ini **tidak menambah satu pun status** pada `BilInvoice` maupun `BilInvoiceItem`. Kosakata yang sudah ada tetap utuh: invoice `OPEN`/`FINAL`/`CLOSED`/`SETTLED_BY_WRITE_OFF`, dan baris biaya `ACTIVE`/`VOIDED`. Yang ditambahkan adalah **perpindahan pada tiga hal di luar status invoice**: jenis payer kunjungan, penanggung per baris biaya, dan disposisi penebusan obat.
+
+## Perpindahan jenis payer kunjungan
+
+Berlaku pada baris sumber pembayaran milik kunjungan. Seluruh perpindahan hanya sah lewat perintah ganti payer dari layar Edit Tagihan.
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Cash` | Ganti payer | `Insurance` | Kasir berwenang | Tagihan `OPEN`, belum ada pembayaran berhasil, kartu asuransi milik pasien yang sama, masih berlaku pada tanggal layanan, dan berstatus layak | `409` bila tagihan tidak lagi `OPEN` atau versi baris basi; `422` bila kartu tidak sah |
+| `Cash` | Ganti payer | `CompanyGuarantor` | Kasir berwenang | Sama, memakai kartu penjamin perusahaan | Sama |
+| `Insurance` | Ganti payer | `Cash` | Kasir berwenang | Tagihan `OPEN`, belum ada pembayaran berhasil | `409` |
+| `Insurance` | Ganti payer | `Insurance` lain | Kasir berwenang | Kartu asuransi kandidat sah dan berbeda dari yang berlaku | `422` bila kandidat sama dengan yang berlaku |
+| `Insurance` | Ganti payer | `CompanyGuarantor` | Kasir berwenang | Sama | Sama |
+| `CompanyGuarantor` | Ganti payer | `Cash` / `Insurance` / `CompanyGuarantor` lain | Kasir berwenang | Sama | Sama |
+| **Apa pun** | Ganti payer | **Apa pun** | — | **Tagihan sudah `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF`, atau sudah ada pembayaran berhasil** | **Ditolak `409`.** Perubahan payer sesudah pembayaran adalah pekerjaan pembalikan, bukan pengeditan |
+
+**Perpindahan yang tidak sah dan sengaja tidak disediakan:**
+
+| Yang tidak sah | Sebabnya |
+| --- | --- |
+| Menambah payer kedua tanpa menghapus yang pertama | `MPY-DEC-001`. Kunjungan tetap tepat satu sumber pembayaran, dijaga index unik pada tingkat basis data |
+| Mengganti payer menjadi kartu milik pasien lain | Kartu **MUST** milik pasien pada kunjungan yang sama |
+| Mengganti payer tanpa alasan tertulis | Alasan wajib; ia yang dibaca auditor |
+| Mengganti payer dari modul mana pun selain lewat layanan milik Registrasi | `MPY-DEC-007`, `MPY-DES-004` |
+
+### Akibat ikutan yang wajib terjadi bersamaan
+
+Setiap perpindahan payer yang berhasil **MUST** menghasilkan keempat akibat berikut di dalam satu transaksi yang sama. Bila salah satu gagal, seluruhnya dibatalkan.
+
+1. Seluruh kolom salinan pada baris sumber pembayaran dibangun ulang dari kartu penjamin yang baru.
+2. Penanggung baris biaya yang jenisnya tidak lagi tersedia **direset** menjadi Pribadi bertanda `AUTO` (`MPY-DES-009`).
+3. Tagihan dihitung ulang dan menghasilkan versi perhitungan baru.
+4. Satu baris jejak perintah dicatat beserta nilai payer sebelum dan sesudah.
+
+## Perpindahan penanggung per baris biaya
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `CASH` | Ubah penanggung | `INSURANCE` | Kasir berwenang | Kunjungan berpayer `Insurance` yang layak | `422` bila kunjungan tidak berpayer asuransi |
+| `CASH` | Ubah penanggung | `COMPANY_GUARANTOR` | Kasir berwenang | Kunjungan berpayer `CompanyGuarantor` yang layak | `422` bila kunjungan tidak berpenjamin perusahaan |
+| `INSURANCE` / `COMPANY_GUARANTOR` | Ubah penanggung | `CASH` | Kasir berwenang | Tagihan `OPEN` | `409` |
+| Apa pun | **Reset otomatis** | `CASH` | **Sistem** | Terjadi sesudah ganti payer membuat jenis penanggung lama tidak lagi tersedia | — (ini akibat, bukan perintah) |
+| Apa pun | Ubah penanggung | Apa pun | — | Baris biaya berstatus `VOIDED` | Ditolak `422`; baris yang dibatalkan tidak punya penanggung |
+
+Penanggung baris biaya **tidak digerbang** oleh hasil perhitungan tanggungan (`MPY-DEC-004`): baris yang menurut aturan tidak tertanggung tetap boleh ditandai `INSURANCE`, dan hasilnya nol tertanggung dengan pasien membayar penuh. Ini disengaja — kasir menentukan **kepada siapa ditagihkan**, mesin menentukan **berapa yang ditanggung**.
+
+## Perpindahan disposisi penebusan obat
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `INCLUDED` | Tandai tidak ditebus | `EXCLUDED` | Kasir berwenang | Baris adalah item obat yang layak diedit, pada kunjungan rawat jalan, IGD, atau OTC | `422` bila baris bukan obat atau kunjungan rawat inap |
+| `EXCLUDED` | Tandai ditebus | `INCLUDED` | Kasir berwenang | Sama | Sama |
+| Apa pun | Apa pun | Apa pun | — | **Kunjungan rawat inap** | **Ditolak `422`** — penebusan obat rawat inap di luar cakupan rumpun ini |
+
+Disposisi **MUST NOT** mengubah jumlah pada baris obat, dan **MUST NOT** menyentuh satu baris pun data penyerahan obat milik Farmasi (`MPY-DEC-009`). Baris ber-disposisi `EXCLUDED` dikeluarkan dari nominal yang layak dihitung **sebelum** mesin tanggungan dipanggil, sehingga ia tidak pernah muncul sebagai porsi penjamin maupun porsi pasien.
+
+## Hubungan dengan status invoice yang sudah ada
+
+| Status invoice | Ganti payer | Ubah penanggung item | Ubah disposisi obat |
+| --- | :---: | :---: | :---: |
+| `OPEN`, belum ada pembayaran berhasil | Boleh | Boleh | Boleh bila layak |
+| `OPEN`, sudah ada pembayaran berhasil | **Tidak** | **Tidak** | **Tidak** |
+| `FINAL` | **Tidak** | **Tidak** | **Tidak** |
+| `CLOSED` | **Tidak** | **Tidak** | **Tidak** |
+| `SETTLED_BY_WRITE_OFF` | **Tidak** | **Tidak** | **Tidak** |
+
+Gerbang ini identik dengan gerbang yang sudah berlaku bagi perubahan finansial lain di modul ini, dan sengaja tidak dilonggarkan.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`.
