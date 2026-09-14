@@ -132,7 +132,7 @@ flowchart LR
     BEACCP2032["✅ BE-ACC-P2-032<br/>Tutup tahun ganda terkunci"]:::selesai
     BEACCP2033["✅ BE-ACC-P2-033<br/>Log bebas nominal"]:::selesai
     BEACCP2015["✅ BE-ACC-P2-015<br/>Entity master aturan posting"]:::selesai
-    BEACCP2016["BE-ACC-P2-016<br/>Migration P2-0b oleh Rizki"]:::belum
+    BEACCP2016["✅ BE-ACC-P2-016<br/>Migration P2-0b oleh Rizki"]:::selesai
     BEACCP2017["🟡 BE-ACC-P2-017<br/>API jenis kejadian"]:::sebagian
     BEACCP2018["✅ BE-ACC-P2-018<br/>API aturan posting"]:::selesai
 
@@ -225,7 +225,7 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-013` ✅ | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`DONE`** 14 Sep 2026 atas `ACC-DEC-081` — sebelumnya `SEBAGIAN` 9 Sep 2026 hanya karena test PostgreSQL |
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` ✅, gelombang `P2-1` | `READY` — blokir dibuka `ACC-DEC-071` 10 Sep 2026 |
 | `BE-ACC-P2-015` ✅ | Entity dan enum master aturan posting | `P2-0b` | — | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error, nol migration. [Laporan](../task/report/backend/BE-ACC-P2-015.md) |
-| `BE-ACC-P2-016` | Migration master aturan posting (**GATED**, dibuat Rizki) | `P2-0b` | `015` | Belum dikerjakan |
+| `BE-ACC-P2-016` ✅ | Migration master aturan posting (**GATED**, dibuat Rizki) | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — `20260914044507_AddAccountingPostingRuleMaster` dibuat dan diterapkan Rizki, snapshot nol deletion. [Laporan](../task/report/backend/BE-ACC-P2-016.md) |
 | `BE-ACC-P2-017` 🟡 | API Jenis Kejadian | `P2-0b` | `015` ✅ | 🟡 **SEBAGIAN** 14 Sep 2026 — 6 dari 6 acceptance di source; menunggu build ulang dan pemanggilan endpoint sesudah `016`. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
 | `BE-ACC-P2-018` ✅ | API Aturan Posting | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error; dapat dipanggil sesudah `016`. [Laporan](../task/report/backend/BE-ACC-P2-018.md) |
 | `BE-ACC-P2-031` 🟡 | Penjaga database pembalikan ganda | `HARDENING` | — | 🟡 **SEBAGIAN** 14 Sep 2026 — source selesai, 3 dari 5 acceptance; sisa (4) migration dan (5) cek data milik Rizki. [Laporan](../task/report/backend/BE-ACC-P2-031.md) |
@@ -607,7 +607,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | DoD | Source berubah, laporan task tertulis |
 | **Status** | ✅ **SELESAI 14 September 2026.** 8 dari 8 acceptance terpetakan ke source dan cocok dengan kamus data bagian 11, 12, 12b: tiga entity, dua enum (`LangsungSahkan = 1`/`BuatDraft = 2`, `Debit = 1`/`Kredit = 2`), tiga configuration, tiga `DbSet`; satu-satunya `Cascade` pada `AccPostingRuleLine.PostingRuleId`. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning**. Nol migration, snapshot tidak berubah. **Delta:** enum di `MasterData/PostingRule/Enums`, bukan `AccountingEvent/Enums`; unique index ikut berfilter `IsDelete = false`. Isi migration `016` yang diharapkan tertulis di laporan bagian 7. Bukti: [laporan](../task/report/backend/BE-ACC-P2-015.md) |
 
-## `BE-ACC-P2-016` — Migration master aturan posting (GATED)
+## ✅ `BE-ACC-P2-016` — Migration master aturan posting (GATED)
 
 | Field | Isi |
 |---|---|
@@ -620,7 +620,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | Verifikasi | Migration Coordination Gate (`06-shared-migration-coordination-rule.md`); pemeriksaan berkas migration dan snapshot |
 | Risiko/pemilik | Pola kerusakan `ACC-DEP-001`: snapshot kehilangan blok modul lain. **Pemilik: Rizki** — agent tidak menjalankan `dotnet ef` |
 | DoD | Migration dibuat **dan** diterapkan Rizki; snapshot nol deletion |
-| Status | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 14 September 2026.** Migration `20260914044507_AddAccountingPostingRuleMaster` **dibuat dan diterapkan Rizki** (commit `12b8af63`); agent nol perintah `dotnet ef`. 3 dari 3 acceptance terbukti: snapshot **+294/−1** — deletion satu-satunya index lama `AccJournal` milik `031`, nol blok modul lain hilang; `Down` menghapus ketiga tabel; `CONTAMINATION GUARD` `CLEAN` — 3 `CreateTable` `Acc*`, 1 pasang `DropIndex`/`CreateIndex` `IX_AccJournal_ReversalOfJournalId`, nol operasi pada tabel non-`Acc*`. `dotnet ef migrations list` tanpa `(Pending)` sesudah merge integration `ba124bbb`; snapshot 619 tabel. `database update` sempat gagal `42P01` di migration Blood Bank `AddBbkBloodOrder` — cacat lintas modul, diperbaiki integration `b3361d07`. **Risiko terbuka:** migration belum ada di integration. Bukti: [laporan](../task/report/backend/BE-ACC-P2-016.md) |
 
 ## 🟡 `BE-ACC-P2-017` — API Jenis Kejadian
 
