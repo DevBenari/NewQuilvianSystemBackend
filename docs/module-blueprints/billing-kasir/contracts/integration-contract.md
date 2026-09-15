@@ -163,3 +163,61 @@ Tidak ada pesan, outbox, dead-letter, rekonsiliasi, penjadwal, maupun pekerjaan 
 Tidak ada pula perubahan pada arah piutang. Rute reimbursement perusahaan ke asuransi mitra adalah **keterangan pada dokumen**, bukan perpindahan debitur: rumah sakit tetap menagih perusahaan penjamin (`MPY-DES-014`).
 
 Trace **`MPY-DEC-001`**, `MPY-DEC-003`, `MPY-DEC-007`–`010`, `MPY-DES-004`, `MPY-DES-009`, `MPY-DES-014`. Tests `BIL-AT-081`–`100`, khususnya `BIL-AT-096` (bukti nol baris Farmasi tersentuh).
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: ketiadaan sambungan Accounting yang disengaja
+
+`last_changed_in: BIL-INTEGRATION-0.9` · status **approved** · owner Billing dan Accounting · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-023`**; keputusan arsitektur `PC-DES-023`.
+
+Amendment ini **tidak menambah satu pun titik integrasi**. Isinya justru mencatat sebuah ketiadaan — dan ketiadaan itu adalah isi, bukan penomoran kosong, karena dokumen sumber revisi ini secara eksplisit meminta sebaliknya.
+
+### Yang diminta dokumen revisi, dan kenapa tidak dikerjakan sekarang
+
+Dokumen BRD/PRD revisi Petty Cash (15 September 2026) meminta pada BR-PC-016 dan PRD § 9 agar Kas Kecil menjadi sumber *accounting event*/subledger terkontrol, dan secara khusus melarang transaksi operasional dibuat lewat jurnal manual bebas ke akun kontrol Kas Kecil.
+
+Keadaan yang sebenarnya pada backend SHA `0ca85ba4`, terverifikasi `01-existing-capability-map.md` § 20.2:
+
+| Fakta | Bukti |
+| --- | --- |
+| Modul Accounting **sudah ada** | `Areas/Corporate/AccountingManagement/` memuat `AccJournal`, `AccJournalLine`, `AccJournalType`, `AccChartOfAccount`, `AccNumberSeries`, dan `AccJournalService` |
+| `AccJournalService` **hanya** melayani jurnal manual berjenjang | `CreateAsync` selalu menetapkan `JournalStatus = Draft`; pengesahan menuntut `SubmitAsync`, lalu `ApproveAsync`, lalu `PostAsync` — seluruhnya dipicu manusia. Tidak ada parameter maupun jalur yang membuat jurnal langsung `Posted` |
+| **Belum ada** modul domain mana pun yang memanggilnya | Pencarian `AccJournalService` di seluruh `Areas/` hanya menemukan pemakaian di dalam `AccountingManagement` sendiri dan pendaftaran di `Program.cs`. Tidak ada preseden pola integrasi lintas modul untuk ditiru |
+
+Memanggil `AccJournalService` dari Petty Cash berarti setiap pencairan melahirkan jurnal `Draft` yang menunggu pengesahan manusia di modul lain. Dengan kata lain: gerbang persetujuan yang baru saja dicabut `PC-DEC-016` dari Petty Cash akan muncul kembali satu lapis di belakangnya, di modul yang pemiliknya berbeda — dan itu justru bentuk "jurnal manual" yang BR-PC-016 larang.
+
+`PC-DEC-023` karena itu memilih menunda integrasi, bukan memaksakannya lewat jalur yang salah.
+
+### Titik integrasi Petty Cash setelah revisi
+
+| Arah | Modul lawan | Keadaan | Dasar |
+| --- | --- | --- | --- |
+| Petty Cash ke Accounting | `AccountingManagement` | **Tidak ada, disengaja** | `PC-DEC-023`, `PC-DES-023` |
+| Petty Cash ke kas fisik shift kasir | `billing-kasir` (`BIL-CTX-04`) | **Tidak ada, disengaja** | `PC-DEC-001`, tetap berlaku |
+| Petty Cash ke tagihan pasien | `billing-kasir` (`BIL-CTX-01`) | **Tidak ada, disengaja** | `PC-DES-001`, tetap berlaku |
+| Petty Cash ke master pegawai | `HumanResource` | **Tidak ada, disengaja** | `PC-DEC-011`, ditegaskan ulang `PC-DEC-019` |
+| Petty Cash ke penyimpanan berkas | Platform storage service | **Tidak ada, disengaja** | `PC-DEC-021` — bukti tetap berupa nomor referensi teks |
+
+Petty Cash setelah revisi ini tetap menjadi **rumpun paling terisolasi di seluruh modul**: nol titik integrasi keluar, nol ketergantungan lintas modul yang memblokir implementasi.
+
+### Apa yang menggantikan integrasi Accounting selama MVP
+
+`BilPettyCashBudgetMovement` diperlakukan sebagai **subledger kas kecil** yang berdiri sendiri. Ia sudah memenuhi syarat yang dituntut dokumen revisi atas sebuah subledger:
+
+| Syarat dokumen revisi | Dipenuhi oleh |
+| --- | --- |
+| Setiap mutasi saldo punya saldo sebelum dan sesudah | `BalanceBefore`, `BalanceAfter` |
+| Setiap mutasi punya pelaku dan waktu | `ActorUserId`, `OccurredAt` |
+| Ledger tidak dapat dihapus atau disunting | Append-only; koreksi lewat baris baru (`ADJUSTMENT`, `RETURN`, `REVERSAL`) |
+| Mutasi tidak terjadi dua kali karena tombol tertekan ganda | `IdempotencyKey` |
+| Setiap mutasi dapat ditelusuri ke dokumen sumbernya | `VoucherId` pada pergerakan bervoucher, `Reason` pada yang lain |
+
+Yang **belum** dipenuhi dan memang ditunda: pemetaan ke bagan akun, pembentukan jurnal, dan rekonsiliasi otomatis dengan buku besar. Selama MVP, rekonsiliasi antara saldo kas kecil dan Accounting dikerjakan **manual** oleh Finance dari laporan pergerakan, dengan periode anggaran sebagai satuan rekonsiliasinya.
+
+### Prasyarat bila integrasi dilanjutkan pada rilis berikutnya
+
+Ditulis sekarang supaya rilis berikutnya tidak mengulang penelusuran yang sama:
+
+1. Pemilik modul Accounting **MUST** memutuskan apakah `AccJournalService` mendapat jalur posting sistem yang melewati `Submit`/`Approve` manusia, atau apakah jurnal dari subledger tetap melewati pengesahan.
+2. Pemetaan akun (Kas Kecil, akun perantara uang muka, akun beban per kategori) **MUST** datang dari konfigurasi Accounting, **MUST NOT** ditulis tetap di controller maupun service Petty Cash.
+3. Titik pemicu jurnal **MUST** ditetapkan per peristiwa: pencairan, pengembalian, pembalikan, penambahan saldo, dan penutupan periode — kelimanya sudah punya baris ledger sendiri, sehingga pemicunya sudah tersedia tanpa perubahan skema.

@@ -816,3 +816,95 @@ Bila kemudian kasir mengganti payer kunjungan menjadi tunai, baris pertama sampa
 Seluruh contoh berangka memakai data samaran.
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+Status **approved** (`PC-DEC-026`, 15 September 2026) · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Seluruh tabel di bawah mewarisi `IdentityModel`; kesepuluh kolom auditnya tidak diulang di sini maupun pada DDL.
+
+### Status dan kepemilikan tabel
+
+| Tabel | Status | Modul pemilik | Perubahan |
+| --- | --- | --- | --- |
+| `BilPettyCashBudget` | **Diperbarui** | `billing-kasir` | Empat kolom baru; nilai `Status` dipetakan ulang |
+| `BilPettyCashVoucher` | **Diperbarui** | `billing-kasir` | Empat kolom baru; nilai `Status` dipetakan ulang |
+| `BilPettyCashBudgetMovement` | **Diperbarui** | `billing-kasir` | Nol kolom; empat nilai `MovementType` baru; satu unique index parsial baru |
+| `BilPettyCashVoucherCommand` | **Sudah ada** | `billing-kasir` | Nol perubahan bentuk |
+| `MstPettyCashCategory` | **Sudah ada** | `billing-kasir` | **Tidak disentuh** (`PC-DEC-020`) |
+
+### `BilPettyCashBudget` — kolom baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | :---: | --- |
+| `PeriodStart` | `date` | **Ya** | — | `(PoolCode, PeriodStart)` | Tidak | Tanggal mulai berlakunya anggaran periode ini. Baris warisan diisi dari tanggal `CreateDateTime`-nya sendiri (`PC-DES-024`) |
+| `PeriodEnd` | `date` | Tidak | `NULL` | — | Tidak | Tanggal selesai. `NULL` berarti periode berjalan sampai ditutup Finance — ini keadaan sah, bukan data yang belum diisi (`PC-DES-017`) |
+| `BudgetAmount` | `numeric(18,2)` | **Ya** | `0` | — | Tidak | Plafon anggaran periode. Baris warisan diisi dari `TotalTopUpAmount`-nya sendiri |
+| `SupersededByBudgetId` | `uuid` | Tidak | `NULL` | FK ke `BilPettyCashBudget.Id`, `Restrict` | Tidak | Periode penerus yang menerima sisa saldo saat periode ini ditutup (`PC-DES-018`) |
+
+**Kolom yang berubah arti:** `Status` kini bernilai `DRAFT`, `ACTIVE`, atau `CLOSED` — menggantikan `ACTIVE`/`INACTIVE`. Pemetaan data lama: `ACTIVE` tetap `ACTIVE`; `INACTIVE` menjadi `CLOSED`.
+
+**Index yang berubah:** unique index parsial lama "hanya satu kolam `ACTIVE`" diganti menjadi **"paling banyak satu baris `ACTIVE` per `PoolCode`"**. Perubahan ini yang membuat periode berikutnya boleh berdiri sebagai `DRAFT` sementara periode berjalan masih `ACTIVE`.
+
+### `BilPettyCashVoucher` — kolom baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | :---: | --- |
+| `ReturnedAmount` | `numeric(18,2)` | **Ya** | `0` | — | Tidak | Akumulasi sisa uang yang sudah dikembalikan penerima. **MUST NOT** melampaui `Amount` |
+| `ReversedBy` | `uuid` | Tidak | `NULL` | — | Tidak | Petugas yang membalik pencairan |
+| `ReversedAt` | `timestamptz` | Tidak | `NULL` | — | Tidak | Kapan pembalikan terjadi |
+| `ReversalReason` | `varchar(500)` | Tidak | `NULL` | — | **Ya** | Alasan pembalikan. **MUST NOT** masuk payload custom logger |
+
+**Kolom yang berubah arti:** `Status` kini bernilai `REQUESTED`, `CASH_RECEIVED`, `COMPLETED`, `REVERSED`, atau `REJECTED` (warisan). Pemetaan data lama: `WAITING_APPROVAL` dan `APPROVED` sama-sama menjadi `REQUESTED`; tiga nilai lain tetap.
+
+**Kolom yang dipertahankan walau tidak lagi diisi voucher baru:** `DecidedBy`, `DecidedAt`, `RejectionReason`. Ketiganya memuat jejak persetujuan yang pernah terjadi sebelum 15 September 2026 dan **MUST NOT** dihapus (`PC-DES-015`).
+
+### `BilPettyCashBudgetMovement` — nilai `MovementType`
+
+| Nilai | Keadaan | Arah saldo | `VoucherId` | `Reason` |
+| --- | --- | --- | --- | --- |
+| `TOP_UP` | Sudah ada | Bertambah | Kosong | **Wajib** |
+| `DISBURSEMENT` | Sudah ada | Berkurang | **Wajib** | Kosong |
+| `ADJUSTMENT` | Sudah ada | Dua arah | Kosong | **Wajib** |
+| `RETURN` | **Baru** | Bertambah | **Wajib** | **Wajib** |
+| `REVERSAL` | **Baru** | Bertambah | **Wajib** | **Wajib** |
+| `CARRY_FORWARD_OUT` | **Baru** | Berkurang sampai nol | Kosong | **Wajib** |
+| `CARRY_FORWARD_IN` | **Baru** | Bertambah | Kosong | **Wajib** |
+
+**Index baru:** unique index parsial pada `(VoucherId)` untuk `MovementType = 'REVERSAL'` — menegakkan "satu voucher paling banyak satu pembalikan". Index parsial lama untuk `DISBURSEMENT` tetap apa adanya. `RETURN` **sengaja tidak** diberi unique index karena pengembalian sebagian boleh terjadi berkali-kali; batasnya ditegakkan aturan bisnis `BIL-VAL-098`, bukan index.
+
+### Skema DDL
+
+> Bagian ini adalah **dokumentasi bentuk**, bukan skrip yang dijalankan. Bentuk sebenarnya lahir dari file configuration EF Core; menjalankan potongan di bawah secara langsung **MUST NOT** dilakukan.
+
+```sql
+ALTER TABLE public."BilPettyCashBudget"
+    ADD COLUMN "PeriodStart"          date,
+    ADD COLUMN "PeriodEnd"            date NULL,
+    ADD COLUMN "BudgetAmount"         numeric(18,2) NOT NULL DEFAULT 0,
+    ADD COLUMN "SupersededByBudgetId" uuid NULL
+        REFERENCES public."BilPettyCashBudget"("Id") ON DELETE RESTRICT;
+
+ALTER TABLE public."BilPettyCashVoucher"
+    ADD COLUMN "ReturnedAmount" numeric(18,2) NOT NULL DEFAULT 0,
+    ADD COLUMN "ReversedBy"     uuid NULL,
+    ADD COLUMN "ReversedAt"     timestamptz NULL,
+    ADD COLUMN "ReversalReason" varchar(500) NULL;
+
+CREATE UNIQUE INDEX "IX_BilPettyCashBudget_ActivePerPool"
+    ON public."BilPettyCashBudget" ("PoolCode")
+    WHERE "Status" = 'ACTIVE' AND "IsDelete" = false;
+
+CREATE INDEX "IX_BilPettyCashBudget_PoolCode_PeriodStart"
+    ON public."BilPettyCashBudget" ("PoolCode", "PeriodStart");
+
+CREATE UNIQUE INDEX "IX_BilPettyCashBudgetMovement_VoucherReversal"
+    ON public."BilPettyCashBudgetMovement" ("VoucherId")
+    WHERE "MovementType" = 'REVERSAL' AND "IsDelete" = false;
+```
+
+### Ringkasan dampak
+
+Delapan kolom baru pada dua tabel, empat nilai `MovementType` baru, dua index baru, satu index diganti, dan pemetaan data pada dua kolom `Status`. **Nol tabel baru, nol kolom dihapus, nol relasi antar tabel berubah.**

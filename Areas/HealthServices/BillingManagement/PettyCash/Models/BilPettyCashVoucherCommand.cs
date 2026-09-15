@@ -60,4 +60,10 @@ public static class PettyCashVoucherCommandTypes
     public const string Disburse = "DISBURSE";
     public const string AttachProof = "ATTACH_PROOF";
     public const string ProofCorrected = "PROOF_CORRECTED";
+
+    /// <summary>BE-BKC-057, PC-DES-019: sisa uang yang dikembalikan penerima. Status voucher TIDAK berpindah.</summary>
+    public const string Return = "RETURN";
+
+    /// <summary>BE-BKC-057, PC-DES-020: pencairan yang seharusnya tidak terjadi dibalik. Status voucher menjadi Reversed.</summary>
+    public const string Reversal = "REVERSAL";
 }

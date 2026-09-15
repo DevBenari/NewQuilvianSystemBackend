@@ -1479,3 +1479,156 @@ implementasi**:
 **Langkah berikutnya**: lanjutkan wawancara pada pass yang sama untuk mengunci aturan bisnis
 rinci (Edit Asuransi, Edit Status Tagihan, Edit Billing, coverage rule Company Guarantor, invoice
 document).
+
+## Amendment 15 September 2026 — Revisi Petty Cash: kasir cairkan langsung, anggaran per periode, satu halaman
+
+Pengguna mengajukan paket dokumen eksternal ("Petty Cash Revisi — BRD, PRD, dan MVP Final",
+15 September 2026: `00-Petty-Cash-BRD-PRD-MVP-Final.md`, `01-BRD-Petty-Cash-Revisi.md`,
+`02-PRD-Petty-Cash-Revisi.md`, `03-MVP-Petty-Cash-Revisi.md`) yang merevisi rumpun Petty Cash.
+Rumpun ini BUKAN modul baru — sudah `approved` penuh sejak 7 September 2026 (`PC-DEC-001`–`015`,
+`PC-DES-001`–`014`), dengan backend (`BilPettyCashVoucher`, `BilPettyCashBudget`,
+`BilPettyCashBudgetMovement`, `MstPettyCashCategory`, migration
+`20260907062238_AddTablePettyCashModule`) dan frontend (`/petty-cash/budget`,
+`/petty-cash/vouchers` — dua halaman terpisah, persis yang disebut dokumen baru sebagai
+"rancangan sebelumnya") sudah berjalan. Amendment ini memakai prefix `PC-DEC-*` yang sama,
+melanjutkan nomor dari `PC-DEC-015`, BUKAN rumpun/prefix baru.
+
+Sebelum wawancara ini, ditemukan bahwa dokumen revisi — bila diikuti apa adanya sebagai
+"revisi" — sebenarnya MEMBALIK tiga keputusan bisnis yang sudah `approved`, bukan sekadar
+menambah. Ketiganya diklarifikasi eksplisit ke pemilik keputusan; hasilnya di bawah.
+
+### Scope dan outcome
+
+**Di dalam scope**: penghapusan gate approval Petty Cash (alur create-to-disburse langsung oleh
+kasir); penggabungan halaman Anggaran + Monitoring/Voucher menjadi satu page; perubahan model
+anggaran dari pool tunggal menjadi per periode beserta aturan penutupan periode; perilaku
+Evidence/bukti menyusul; wewenang reversal/return; titik sentuh baru ke Accounting/subledger.
+
+**Di luar scope — untuk modul lain**: `TrxExpenseClaim`/`TrxTravelAdvanceRequest`
+(`Corporate/HumanResource`) — sudah ditutup pada audit 18.3 (7 September 2026), pola bisnis
+berbeda (reimbursement/advance formal vs Petty Cash bayar-dulu-nota-menyusul non-formal), tidak
+dibuka ulang. `BilCashierShift` (kas fisik shift kasir) — `PC-DEC-001` tetap berlaku penuh; Petty
+Cash tetap TIDAK terhubung ke kas fisik shift kasir manapun, dokumen baru tidak memintanya
+berubah. Mapping akun/COA final Accounting — dimiliki modul Accounting, bukan diputuskan di sini
+(lihat `PC-OQ-004`).
+
+### Decision Log
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `PC-DEC-016` | Decision | **Supersedes `PC-DEC-004`, `PC-DEC-013` (gate approval), dan bagian "penjaga dua lapis" pada `PC-DEC-015`.** Gate approval Kepala Kasir/Finance Operations DIHAPUS dari alur utama. Kasir/petugas administrasi dapat mencairkan Petty Cash langsung tanpa persetujuan terpisah. Kontrol bergeser dari cegah-sebelum-fakta (approval dua lapis) menjadi audit-setelah-fakta (ledger immutable + actor + reason), pola yang sama dengan `MPY-DEC-005` (Edit Tagihan). Status `WAITING_APPROVAL`/`APPROVED`/`REJECTED` tidak lagi menjadi bagian alur utama MVP; kosakata status baru mengikuti dokumen revisi: `REQUESTED` → `DISBURSED_PENDING_EVIDENCE` → `EVIDENCE_SUBMITTED` → `SETTLED`, atau `CANCELLED` (sebelum pencairan). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Hapus approval, kasir cairkan langsung" dari 3 opsi (opsi rekomendasi mempertahankan approval TIDAK dipilih) | 15 September 2026 |
+| `PC-DEC-017` | Decision | **Supersedes `PC-DEC-010` (pool tunggal).** Anggaran Petty Cash beralih dari satu pool statis (`HOSPITAL_MAIN`, tanpa periode) menjadi anggaran per periode yang dibuat Finance (`PeriodStart`/`PeriodEnd`/`BudgetAmount`/Status `Draft`/`Active`/`Closed`), sesuai dokumen revisi. Migrasi data pool `HOSPITAL_MAIN` existing ke periode pertama menjadi keputusan desain/build, dicatat sebagai `PC-OQ-005`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ganti ke anggaran per periode (ikuti dokumen)" dari 3 opsi bertanda rekomendasi lain | 15 September 2026 |
+| `PC-DEC-018` | Decision | Saat Finance menutup periode anggaran (status `Closed`), sisa `CurrentBalance` yang belum terpakai OTOMATIS dibawa ke periode berikutnya sebagai saldo awal (tercatat sebagai movement `CARRY_FORWARD` pada ledger) — BUKAN wajib dikembalikan/di-nol-kan manual dulu. Konsisten dengan `PC-DEC-002` (saldo berjalan): ini uang kas fisik sungguhan, bukan alokasi yang hangus per periode administratif. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Sisa saldo otomatis dibawa ke periode berikutnya" dari 3 opsi bertanda rekomendasi | 15 September 2026 |
+| `PC-DEC-019` | Decision | **Menegaskan kembali `PC-DEC-011`, TIDAK disupersede.** "Requester" pada dokumen revisi bukan aktor self-service baru — tetap kasir/petugas yang mengeksekusi pemberian uang; penerima ("bisa siapa saja") dan keperluannya tetap dicatat sebagai teks bebas tanpa akun/login terpisah. Tidak ada perubahan model aktor dari yang sudah berjalan. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Jadi yang memberi uang petty cashnya itu di petugas kasir. tpi penberimanya itu bisa siapa saja. Tpi nama penerima dan keperluannya tetap dicatat" | 15 September 2026 |
+| `PC-DEC-020` | Decision | **Menegaskan kembali `PC-DEC-012`, TIDAK disupersede.** Field Kategori (`MstPettyCashCategory`) tetap dipertahankan sebagai field WAJIB pada request/voucher, berdampingan dengan `Purpose` (teks bebas). Dokumen revisi tidak menyebut Kategori sama sekali, dinilai sebagai kealpaan penulisan dokumen, bukan keputusan sengaja menghapusnya — pelaporan Finance per kategori tetap dibutuhkan. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tetap dipertahankan sebagai field wajib" dari 3 opsi bertanda rekomendasi | 15 September 2026 |
+| `PC-DEC-021` | Decision | Evidence/bukti menyusul TETAP berbentuk field teks referensi (pola `ProofReferenceNumber` existing), BUKAN entity Evidence baru dengan upload file/foto nota seperti diusulkan dokumen revisi (PRD §7.4). Perilakunya berubah — tidak lagi memblokir pencairan (lihat `PC-DEC-016`) — tetapi bentuk datanya tidak berubah. Tidak ada kebutuhan integrasi storage service baru pada revisi ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tetap teks/nomor referensi saja, tanpa upload file" dari 3 opsi (opsi rekomendasi upload file TIDAK dipilih) | 15 September 2026 |
+| `PC-DEC-022` | Decision | Transaksi `RETURN`/`REVERSAL` (koreksi transaksi yang sudah cair) TIDAK dibatasi ke role Finance/Supervisor seperti disebut dokumen revisi (PRD §6 Permission Matrix) — kasir biasa dengan akses Petty Cash yang sama juga berwenang, konsisten dengan semangat `PC-DEC-016` (satu lapis kontrol, audit-setelah-fakta). Kontrol tetap ditegakkan lewat ledger immutable + reason wajib + actor tercatat, bukan lewat pembatasan role terpisah. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Kasir biasa juga boleh (konsisten dgn tanpa-approval)" dari 3 opsi bertanda rekomendasi | 15 September 2026 |
+
+### Assumption tercatat (bukan ditanyakan langsung, konsekuensi logis dari `PC-DEC-019`/`PC-DEC-022`)
+
+- Karena tidak ada aktor "Requester" terpisah dengan login sendiri (`PC-DEC-019`), pembatalan
+  request sebelum pencairan (status `CANCELLED`, mengganti semangat `PC-DEC-007` yang dulu
+  terikat status "Menunggu Persetujuan") tersedia untuk kasir/petugas mana pun yang memiliki
+  akses Petty Cash — bukan dibatasi ke "kasir yang membuat request itu saja". Konsisten dengan
+  `PC-DEC-022` (satu lapis kontrol operasional, bukan silo akuntabilitas individual). Bila asumsi
+  ini salah, tandai sebagai koreksi sebelum `design-business-module` mengunci permission matrix.
+
+### Status yang menjadi tidak berlaku (bukan dihapus, catatan historis)
+
+- `PC-DEC-003` (voucher `REJECTED` tidak bisa diedit/diajukan ulang), `PC-DEC-004` (approval satu
+  jenjang Kepala Kasir/Finance Operations), `PC-DEC-008` (validasi saldo saat approval), dan
+  bagian `PC-DEC-013` yang menyebut status `Menunggu Persetujuan`/`Disetujui`/`Ditolak` menjadi
+  TIDAK BERLAKU untuk alur utama MVP setelah `PC-DEC-016` — status `REJECTED`/`APPROVED` tidak
+  lagi bagian kosakata alur utama. Baris-baris ini TIDAK dihapus dari log (jejak historis kenapa
+  approval pernah dirancang), dan validasi saldo pada `PC-DEC-008` bergeser sepenuhnya ke titik
+  pencairan (`PC-DEC-009` tetap berlaku: saldo berkurang persis saat "Uang Diterima"/pencairan).
+
+### Open Question / dependency lintas modul — TIDAK memblokir wawancara, MUST diselesaikan sebelum implementasi
+
+- `PC-OQ-004` — Integrasi Accounting/subledger untuk Petty Cash (BR-PC-016, PRD §9) adalah titik
+  sentuh BARU — nol referensi Journal/Posting/Subledger ditemukan pada source Petty Cash saat ini
+  (diverifikasi lewat pencarian source, bukan asumsi). Mapping COA/akun kontrol final harus
+  ditentukan pemilik modul Accounting, bukan dikarang di sini. Penjawab: pemilik arsitektur
+  backend + pemilik modul Accounting.
+- `PC-OQ-005` — Migrasi data pool anggaran `HOSPITAL_MAIN` existing (satu baris `BilPettyCashBudget`
+  aktif dengan saldo berjalan) ke model anggaran per periode (`PC-DEC-017`) adalah keputusan
+  desain/build: apakah pool existing menjadi "periode pertama" otomatis, atau memerlukan langkah
+  migrasi eksplisit. Bukan blocker wawancara — dilempar ke `design-business-module`. Penjawab:
+  pemilik arsitektur backend.
+- `PC-OQ-006` — Taksonomi movement type `RETURN` vs `ADJUSTMENT` (existing hanya punya
+  `ADJUSTMENT`; dokumen revisi minta `RETURN` terpisah) adalah keputusan penamaan/desain, bukan
+  keputusan bisnis — apakah `RETURN` menjadi `MovementType` baru atau sub-kategori `ADJUSTMENT`
+  dilempar ke `design-business-module`.
+
+**Status pass ini**: `PC-DEC-016`–`022` (7 keputusan) MENGUNCI seluruh perubahan bisnis rumpun
+Petty Cash pada revisi ini. Tiga keputusan lama yang berpotensi konflik (`PC-DEC-004`,
+`PC-DEC-010`, `PC-DEC-011`) sudah diklarifikasi eksplisit — dua disupersede (`PC-DEC-016`,
+`PC-DEC-017`), satu ditegaskan tetap berlaku (`PC-DEC-019`, juga menegaskan `PC-DEC-012` lewat
+`PC-DEC-020`). Tidak ada open question bisnis yang memblokir desain; `PC-OQ-004`–`006` adalah
+dependency arsitektur/lintas-modul yang MUST diselesaikan sebelum implementasi, bukan sebelum
+desain.
+
+### Penutupan `PC-CQ-03` dan `PC-CQ-04` (15 September 2026, setelah impact scan section 20)
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `PC-DEC-023` | Decision | **Menutup `PC-CQ-03`/`PC-OQ-004`.** Integrasi posting ke Accounting DITUNDA ke rilis berikutnya, TIDAK masuk MVP revisi ini. `BilPettyCashBudgetMovement` (ledger Petty Cash sendiri) diperlakukan sebagai subledger yang memadai untuk MVP; tidak ada pemanggilan `AccJournalService` dari Petty Cash. Alasan: memakai `AccJournalService` apa adanya akan memasukkan kembali approval manual (siklus `Draft`→`Submit`→`Approve`→`Post`) yang baru saja dihapus dari Petty Cash lewat `PC-DEC-016` — kontradiksi langsung dengan BR-PC-016, dan jalur posting otomatis adalah perubahan pada modul Accounting yang butuh sign-off pemiliknya sendiri, bukan wewenang `billing-kasir`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tunda ke rilis berikutnya" dari 3 opsi bertanda rekomendasi | 15 September 2026 |
+| `PC-DEC-024` | Decision | **Menutup `PC-CQ-04`.** Action dan permission `PettyCashVoucher.Approve` serta `PettyCashVoucher.Reject` DIHAPUS dari `PettyCashVouchersController` beserta registry permission-nya — bukan dibiarkan dormant. Alasan: permission yang tidak lagi punya alur aktif berisiko membingungkan admin pengelola role. Prasyarat implementasi: cek lebih dulu apakah ada role yang HANYA berisi kedua permission ini sebelum penghapusan, supaya tidak meninggalkan role yatim tanpa kemampuan apa pun. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Hapus dari registry permission" dari 2 opsi bertanda rekomendasi | 15 September 2026 |
+
+| `PC-DEC-025` | Decision | **Mempersempit kosakata status pada `PC-DEC-016`.** Dua status terpisah `EVIDENCE_SUBMITTED` dan `SETTLED` yang disebut dokumen revisi DIGABUNG menjadi SATU status terminal `COMPLETED` (label `Selesai`) — begitu nomor nota diinput, voucher langsung selesai. Alasan: dokumen revisi sendiri menulis `SETTLED` sebagai kondisional ("jika proses pertanggungjawaban final digunakan") dan tidak pernah mendefinisikan peristiwa pemicunya; setelah `PC-DEC-021` menetapkan bukti hanya berupa nomor referensi teks (tanpa nominal nota, tanpa verifikasi, tanpa approval bukti), tidak ada peristiwa apa pun yang dapat memindahkan voucher dari status pertama ke status kedua — ia akan menjadi status mati yang tidak pernah tercapai. Ini juga mempertahankan perilaku dan label yang sudah berjalan (`PC-DES-012`). | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Satu status akhir saja: Selesai" dari 3 opsi bertanda rekomendasi | 15 September 2026 |
+
+| `PC-DEC-026` | Decision | **Menyetujui `PC-DES-015`–`PC-DES-025` secara utuh** — kosakata status baru beserta perlakuan berbeda untuk ketiga jenis kode lama (`PC-DES-015`), pencabutan mekanisme komitmen `ReservedAmount` (`PC-DES-016`), perubahan `BilPettyCashBudget` menjadi baris periode (`PC-DES-017`), carry-forward dua baris ledger (`PC-DES-018`), empat nilai `MovementType` baru (`PC-DES-019`), pemisahan perlakuan `RETURN` dan `REVERSAL` (`PC-DES-020`), penghapusan dan penambahan butir hak akses (`PC-DES-021`), dua endpoint terpisah untuk buat dan cairkan (`PC-DES-022`), ketiadaan sambungan Accounting yang disengaja (`PC-DES-023`), pemutakhiran data di dalam migration (`PC-DES-024`), dan satu halaman kanonik (`PC-DES-025`). Dengan ini keempat keputusan lama yang digantikan resmi berstatus `superseded`/dipersempit: `PC-DES-003`, `PC-DES-005`, `PC-DES-013`, `PC-DES-014`. Status revisi `1.2` naik dari `draft` menjadi `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan: "Saya menyetujui PC-DES-015–025") | `approved` | Konfirmasi eksplisit setelah desain lengkap disajikan | 15 September 2026 |
+
+> **Approval ini BUKAN otorisasi membuat maupun menjalankan migration.** Migration
+> `RevisePettyCashDirectDisbursementAndBudgetPeriod` memuat pemutakhiran data status yang tidak
+> dapat dimundurkan secara sempurna (`PC-DES-015`, langkah 6). Pembuatan dan eksekusinya tetap
+> menuntut konfirmasi eksplisit tersendiri saat implementasi, sesuai `AGENTS.md` bagian Aturan
+> Entity Framework dan Akses Data.
+>
+> **Approval ini juga BUKAN otorisasi menghapus butir hak akses.** `PC-OQ-007` (pemeriksaan
+> peran yang hanya memegang `Approve`/`Reject`) MUST diselesaikan lebih dulu, sesuai
+> `PC-DEC-024` sendiri.
+
+**Status setelah penutupan ini**: seluruh closure question rumpun Petty Cash TERTUTUP
+(`PC-OQ-004`/`PC-CQ-03` lewat `PC-DEC-023`; `PC-CQ-04` lewat `PC-DEC-024`). Yang tersisa murni
+keputusan desain teknis yang memang menjadi wewenang `design-business-module`: `PC-OQ-005`
+(migrasi pool `HOSPITAL_MAIN` ke periode pertama) dan `PC-OQ-006` (taksonomi `RETURN` vs
+`ADJUSTMENT`). Tidak ada lagi keputusan bisnis yang memblokir desain.
+
+**Langkah berikutnya**: capability map (`01-existing-capability-map.md` section 18) sudah
+mencakup rumpun Petty Cash existing secara menyeluruh dan SHA yang tercatat di sana (backend
+`dd31bc91...`) kemungkinan sudah basi setelah pekerjaan sesi-sesi berikutnya (Edit Tagihan/MPY,
+perbaikan migration, dll). Sebelum `design-business-module` mengunci arsitektur revisi ini,
+jalankan `trace-existing-capabilities` mode impact scan untuk memastikan tidak ada perubahan
+lain pada `BilPettyCashVoucher`/`BilPettyCashBudget`/`BilPettyCashBudgetMovement` sejak SHA
+tersebut yang belum tercatat.
+
+### Penutupan `PC-OQ-008` (15 September 2026, amendment pass — dipicu blocker implementasi `BE-BKC-059`)
+
+**Konteks.** `PC-OQ-008` pertama kali muncul di `04-prd-to-mvp.md` (bagian blocking question)
+dan `blueprint-manifest.md` (prasyarat implementasi revisi `1.2`), bukan lahir dari pass
+wawancara ini — sehingga belum pernah punya baris di Decision Log ini. Pertanyaannya: siapa yang
+membuat periode anggaran pertama setelah rilis, kapan, dan berapa plafonnya. Ini memblokir
+**aktivasi** task `BE-BKC-059` (murni pengisian data lewat layar, `PC-DES-024`/`PC-OQ-005`
+menetapkan `BE-BKC-053` sudah memindahkan kolam warisan `HOSPITAL_MAIN` menjadi periode pertama
+dengan plafon **turunan** dari `TotalTopUpAmount` historis — bukan angka yang sengaja diputuskan
+Finance), bukan pembangunan source-nya.
+
+Amendment pass ini dipicu Product/Domain Owner secara langsung dalam percakapan implementasi
+`BE-BKC-059`, di luar sesi wawancara utama revisi `1.2`.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `PC-DEC-027` | Decision | **Menutup `PC-OQ-008`.** Tidak ada aktor khusus, tanggal, maupun plafon yang dipatok di depan untuk periode anggaran pertama. Finance membuat dan mengaktifkan periode anggaran riilnya sendiri kapan pun setelah rilis, memakai endpoint self-service yang sudah ada (`POST /budget/periods`, `POST /budget/periods/{id}/activate`, dibangun `BE-BKC-054`) — bukan proses/aktor khusus di luar alur normal. Selama Finance belum bertindak, sistem **tetap berjalan** memakai periode warisan hasil migrasi (`PC-OQ-005`) dengan plafon turunannya; **tidak ada tenggat wajib** dan **tidak ada mekanisme pemblokiran otomatis** (`BIL-VAL-106` tidak ikut disentuh) maupun pengingat sistem yang menandai periode itu sebagai "masih warisan migrasi". Konsekuensi yang disadari dan diterima: plafon turunan bisa terpakai dalam jangka waktu berapa pun bila Finance menunda, tanpa ada peringatan otomatis apa pun. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tidak ada tenggat wajib" dari 3 opsi bertanda rekomendasi (opsi pengingat dan opsi tenggat keras/pemblokiran TIDAK dipilih) | 15 September 2026 |
+
+**Dampak ke task backend.** `BE-BKC-059` (roadmap `backend-roadmap.md`) tetap `⛔` — keputusan ini
+menjawab **kebijakannya**, tetapi belum ada **eksekusi nyata**: belum ada satu pun periode
+dibuat/diaktifkan di database manapun dengan plafon riil Finance, dan task itu sendiri menuntut
+verifikasi manual database dengan wewenang eksplisit terpisah (`AGENTS.md` bagian Keselamatan
+Database) sebelum boleh ditandai selesai. `PC-DEC-027` menghapus **blocker keputusan bisnisnya**,
+bukan langkah eksekusinya.
+
+**Tidak ada keputusan arsitektur (`PC-DES`) baru yang lahir dari penutupan ini** — opsi yang
+dipilih sengaja TIDAK menambah field, job terjadwal, maupun logika baru pada
+`BilPettyCashBudget`; seluruh mekanisme yang dibutuhkan (endpoint create/activate periode, gerbang
+`BIL-VAL-106`) sudah ada dari `BE-BKC-054`.

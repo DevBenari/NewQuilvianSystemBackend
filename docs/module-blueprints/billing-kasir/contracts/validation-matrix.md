@@ -340,3 +340,43 @@ Ketika salah satu gerbang ini menolak, **tidak ada satu pun perubahan yang tersi
 Pesan galat pada rumpun ini **MUST NOT** memuat nomor polis, nomor kartu, nomor karyawan, maupun nama karyawan. Nama perusahaan penjamin dan nama perusahaan asuransi boleh disebut karena keduanya justru yang dibutuhkan pengguna untuk bertindak. Nominal dan tanggal masa berlaku boleh disebut dengan alasan yang sama.
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping: `BIL-AT-081`–`BIL-AT-100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-VALIDATION-1.0` · status **approved** · owner Finance Operations/Billing · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+### Aturan lama yang berubah atau tidak berlaku lagi
+
+| Aturan | Keadaan | Sebab |
+| --- | --- | --- |
+| `BIL-VAL-046` (uang tidak boleh keluar sebelum disetujui) | **Tidak berlaku** | Gerbang persetujuan dicabut (`PC-DEC-016`) |
+| `BIL-VAL-047` (nominal melebihi sisa anggaran bebas saat persetujuan) | **Tidak berlaku** | Tidak ada peristiwa persetujuan lagi; penjaga saldo pindah seluruhnya ke `BIL-VAL-048` |
+| `BIL-VAL-049` (alasan penolakan wajib) | **Tidak berlaku** | Tidak ada peristiwa penolakan lagi |
+| `BIL-VAL-048` (saldo tidak mencukupi saat pencairan) | **Berlaku, cakupan diperluas** | Kini juga memeriksa keberadaan periode `ACTIVE`, bukan hanya nominal saldo |
+| `BIL-VAL-050` (pembatalan hanya selagi belum diputuskan) | **Berlaku, syarat berubah** | Syaratnya kini "belum dicairkan", bukan "belum diputuskan" |
+| `BIL-VAL-051` (nota hanya setelah uang keluar) | **Berlaku apa adanya** | Tidak tersentuh revisi ini |
+| `BIL-VAL-054` (koreksi saldo tidak boleh negatif) | **Berlaku, disederhanakan** | Klausa "tidak di bawah komitmen berjalan" dihapus bersama `ReservedAmount` (`PC-DES-016`) |
+
+### Aturan baru
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-098` | Kembalikan sisa uang | Nominal pengembalian kurang dari atau sama dengan nol, atau total seluruh pengembalian pada voucher itu melampaui nominal voucher | "Nominal pengembalian tidak boleh melebihi sisa uang yang masih ada di tangan penerima. Sisa saat ini Rp {outstanding}." | `422` |
+| `BIL-VAL-099` | Balikkan pencairan | Voucher sudah pernah dibalik, atau alasan pembalikan kosong | "Pencairan ini sudah pernah dibatalkan, atau alasan pembatalan belum diisi." | `422` |
+| `BIL-VAL-100` | Voucher berstatus `Dibatalkan (Uang Dikembalikan)` | Aksi apa pun dijalankan atasnya | "Pencairan ini sudah dibatalkan dan uangnya sudah kembali. Buat permintaan baru bila pengeluaran ini masih diperlukan." | `422` |
+| `BIL-VAL-101` | Kembalikan sisa atau balikkan pencairan | Voucher masih berstatus `Menunggu Pencairan` | "Uang untuk permintaan ini belum diserahkan, jadi tidak ada yang bisa dikembalikan atau dibatalkan." | `422` |
+| `BIL-VAL-102` | Buat periode anggaran | Tanggal mulai tumpang tindih dengan periode lain pada kolam yang sama, atau plafon kurang dari atau sama dengan nol, atau tanggal selesai lebih awal dari tanggal mulai | "Periode anggaran ini bertabrakan dengan periode yang sudah ada, atau tanggal dan plafonnya belum benar." | `422` |
+| `BIL-VAL-103` | Aktifkan periode anggaran | Sudah ada periode berstatus `ACTIVE` pada kolam yang sama | "Masih ada periode anggaran yang aktif. Tutup periode itu lebih dulu sebelum mengaktifkan yang baru." | `422` |
+| `BIL-VAL-104` | Tutup periode anggaran | Masih ada voucher `Menunggu Pencairan` pada periode itu, atau sisa saldo lebih besar dari nol tetapi periode penerus tidak disebutkan/tidak sah | "Periode ini belum bisa ditutup: masih ada permintaan yang belum dicairkan, atau periode penerus untuk sisa saldo belum dipilih." | `422` |
+| `BIL-VAL-105` | Periode anggaran berstatus `CLOSED` | Penambahan saldo, koreksi, pencairan, pengembalian, atau pembalikan dijalankan pada periode itu | "Periode anggaran ini sudah ditutup dan tidak menerima pergerakan lagi." | `422` |
+| `BIL-VAL-106` | Pencairan, pengembalian, pembalikan, penambahan saldo | Tidak ada satu pun periode anggaran berstatus `ACTIVE` | "Belum ada periode anggaran yang aktif. Finance perlu membuat dan mengaktifkan periode anggaran lebih dulu." | `422` |
+
+> **Kenapa `BIL-VAL-106` berdiri sendiri, bukan digabung ke `BIL-VAL-048`.** Keduanya sama-sama menghalangi pencairan, tetapi yang harus dikerjakan petugas berbeda sama sekali. `BIL-VAL-048` berarti uangnya kurang — kasir menunggu Finance menambah saldo. `BIL-VAL-106` berarti belum ada wadah anggarannya sama sekali — Finance harus membuat periode lebih dulu. Menggabungkan keduanya menjadi satu pesan "saldo tidak mencukupi" akan mengirim kasir menunggu penambahan saldo yang tidak akan menyelesaikan apa pun.
+
+### Contoh berangka
+
+**Pengembalian sisa bertahap.** Voucher Rp 500.000 sudah dicairkan. Penerima mengembalikan Rp 50.000 — sah, `returnedAmount` menjadi Rp 50.000, sisa di tangan Rp 450.000. Ia mengembalikan Rp 60.000 lagi — sah, `returnedAmount` Rp 110.000. Ia mencoba mengembalikan Rp 400.000 — **ditolak** `BIL-VAL-098`, karena sisa yang masih di tangan hanya Rp 390.000.
+
+**Pembalikan setelah pengembalian sebagian.** Voucher yang sama, `returnedAmount` Rp 110.000. Kasir membalik pencairannya: saldo bertambah Rp 390.000 (bukan Rp 500.000 — Rp 110.000 sudah kembali lebih dulu lewat baris `RETURN`). Total yang kembali ke kolam tetap Rp 500.000, dan ledger memperlihatkan keduanya secara terpisah.

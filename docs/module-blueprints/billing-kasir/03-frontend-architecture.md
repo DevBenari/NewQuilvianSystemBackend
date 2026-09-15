@@ -920,3 +920,188 @@ Komponen dasar baru **MUST NOT** dibuat tanpa gerbang keputusan komponen yang be
 69. Kedua butir menu master data baru terdaftar dan dapat dijangkau peran yang berwenang.
 70. Langkah pembayaran pada admisi Rawat Inap tetap berperilaku sama persis sesudah `BasePayerWorkspace` dipakai ulang di modul ini.
 
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: satu halaman kerja, pencairan langsung
+
+> Revisi `1.2`, status **approved** (`PC-DEC-026`, 15 September 2026). Masukan: **`PC-DEC-016`–`PC-DEC-025`** (`approved` Product/Domain Owner 15 September 2026) dan keputusan arsitektur `PC-DES-015`–`PC-DES-025` pada [`02-backend-architecture.md`](./02-backend-architecture.md). Frontend SHA diaudit `1f2f2c93c9e4369db6c60246776de4c3bd52b3af`.
+>
+> **Berbeda dari amendment 7 September**, seluruh layar Petty Cash kini **sudah ada dan berjalan** (`01-existing-capability-map.md` § 20.2). Amendment ini menggabungkan dua halaman menjadi satu, membuang aksi yang tidak berlaku lagi, dan menambah tiga aksi baru.
+>
+> Amendment ini **tidak** mengunci warna, jarak, ikon, pilihan component library, maupun bentuk wadah presentasi.
+
+### Batas amendment ini
+
+Yang berubah hanya rumpun Petty Cash. Menu Pembayaran, Dokumen Kasir, Running Invoice, Shift Kasir, dan seluruh master data lain **tidak disentuh**. Layar Kategori Petty Cash (`FE-PC-06`–`FE-PC-08`) juga **tidak disentuh sama sekali** (`PC-DEC-020`).
+
+### Kebutuhan layar setelah revisi
+
+| ID layar | Nama | Jenis | Jalan masuk | Keadaan |
+| --- | --- | --- | --- | --- |
+| `FE-PC-09` | **Petty Cash** — satu halaman kerja | Ringkasan + anggaran + monitoring + riwayat | **Butir menu** (satu-satunya) | **Baru** — menggabungkan `FE-PC-01` dan `FE-PC-05` |
+| `FE-PC-01` | Monitoring Voucher Petty Cash | Daftar | **Menjadi panel** di dalam `FE-PC-09` | **Diperbarui** — bukan halaman sendiri lagi |
+| `FE-PC-05` | Anggaran Kas Kecil | Panel anggaran | **Menjadi panel** di dalam `FE-PC-09` | **Diperbarui** — bukan halaman sendiri lagi |
+| `FE-PC-02` | Buat Permintaan Petty Cash | Isian | Layar anak `FE-PC-09` | **Diperbarui** — judul berubah dari "Buat Voucher" |
+| `FE-PC-03` | Bukti Nota/Kasir | Isian nomor nota | Layar anak `FE-PC-09` | Tidak berubah |
+| `FE-PC-04` | Detail Voucher | Detail + riwayat perintah | Layar anak `FE-PC-09` | **Diperbarui** — tambah saldo sebelum/sesudah dan riwayat pengembalian |
+| `FE-PC-10` | Kembalikan Sisa Uang | Isian nominal + alasan | Layar anak `FE-PC-09` | **Baru** |
+| `FE-PC-11` | Batalkan Pencairan | Isian alasan | Layar anak `FE-PC-09` | **Baru** |
+| `FE-PC-12` | Kelola Periode Anggaran | Daftar periode + buat/aktifkan/tutup | Layar anak `FE-PC-09` | **Baru** |
+| `FE-PC-06`–`FE-PC-08` | Kategori Petty Cash | Master data | Butir menu Master Data | Tidak disentuh |
+
+### Peta butir menu
+
+Dua butir menu menjadi **satu**. Ini konsekuensi langsung `PC-DEC-016`/FE-PC-001 dokumen revisi: monitoring dan anggaran tidak boleh lagi menjadi dua sumber data yang terpisah.
+
+```text
+Billing Management                                  <- tingkat 0, sudah ada
+├── Running Invoice                                 -> sudah ada
+├── Buat Invoice Manual (Testing)                   -> sudah ada
+├── Persetujuan Diskon Dokter                       -> sudah ada
+├── Shift Kasir                                     -> sudah ada
+├── Petty Cash                                      -> .../petty-cash              [DIUBAH]
+├── ~~Anggaran Kas Kecil~~                          -> DIHAPUS, menjadi panel      [HAPUS]
+└── Master Data                                     <- grup tingkat 1, sudah ada
+    └── Kategori Petty Cash                         -> tidak berubah
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Petty Cash | 1 | Billing Management | `/health-services/billing-management/petty-cash` | `FE-PC-09` | `PettyCashVoucher : Read` | **Diubah** — dari `.../petty-cash/vouchers` |
+| ~~Anggaran Kas Kecil~~ | — | — | — | — | — | **Dihapus dari sidebar** |
+| Kategori Petty Cash | 2 | Master Data | `/health-services/billing-management/master-data/petty-cash-category` | `FE-PC-06` | `PettyCashCategory : Read` | Tidak berubah |
+
+**Route lama MUST tetap hidup sebagai pengalihan**, bukan dihapus (FE-PC-012 dokumen revisi):
+
+| Route lama | Perlakuan |
+| --- | --- |
+| `/health-services/billing-management/petty-cash/vouchers` | Pengalihan permanen ke `/health-services/billing-management/petty-cash` |
+| `/health-services/billing-management/petty-cash/budget` | Pengalihan permanen ke halaman yang sama, dengan panel Anggaran dalam keadaan terbuka |
+
+Alasannya bukan kenyamanan: kedua route itu sudah berjalan di produksi sejak awal September, sehingga penanda halaman dan tautan yang sudah dibagikan petugas akan mati tanpa pengalihan.
+
+**Berkas yang disunting saat implementasi:** `src/utils/menu-sidebar/menu-items.jsx` (satu butir dihapus, satu `pathname` diubah). Pendaftaran butir menu **MUST** menjadi acceptance criteria salah satu task layar.
+
+### Skema fitur — `FE-PC-09` Petty Cash (halaman gabungan)
+
+```text
++- Petty Cash ---------------------------------------------- FE-PC-09 -+
+|  Periode: 1 Sep 2026 - 30 Sep 2026   [Kelola Periode]  (Finance)      |
+|                                                                       |
+|  +-----------+ +-----------+ +-----------+ +-----------+ +---------+  |
+|  | ANGGARAN  | | SALDO     | | PEMAKAIAN | | SISA      | | MENUNGGU|  |
+|  | PERIODE   | | SAAT INI  | | PERIODE   | | ANGGARAN  | | BUKTI   |  |
+|  | 10.000.000| | 4.700.000 | | 5.300.000 | | 4.700.000 | |    3    |  |
+|  +-----------+ +-----------+ +-----------+ +-----------+ +---------+  |
+|                                                                       |
+|  [+ Buat Permintaan] (Kasir)   [Tambah Saldo] (Kasir)                 |
+|                                                                       |
+|  +- Monitoring Permintaan ------------------------------------------+ |
+|  | Filter: periode | status | kategori | penerima | cari            | |
+|  |------------------------------------------------------------------| |
+|  | No.Voucher | Penerima | Kategori | Nominal | Status | Aksi       | |
+|  | PTC-...001 | Budi     | Transport| 300.000 | Menunggu Bukti | ... | |
+|  +------------------------------------------------------------------+ |
+|                                                                       |
+|  +- Riwayat Pergerakan Anggaran ------------------------------------+ |
+|  | Waktu | Jenis | Nominal | Saldo Sebelum | Saldo Sesudah | Pelaku | |
+|  +------------------------------------------------------------------+ |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Keadaan kosong | Keadaan gagal |
+| --- | --- | --- | --- | --- | --- |
+| Kepala halaman | Periode aktif, tombol Kelola Periode | `GET /budget/overview` | `PettyCashBudget : Create`/`Activate`/`Close` untuk tombolnya | "Belum ada periode anggaran aktif. Finance perlu membuat periode lebih dulu." beserta tombol Kelola Periode | "Gagal memuat anggaran. Coba muat ulang." |
+| Lima kartu ringkasan | Anggaran periode, saldo, pemakaian, sisa, jumlah menunggu bukti | `GET /budget/overview` — **satu panggilan**, layar **MUST NOT** menjumlahkannya sendiri dari daftar | — | Seluruh kartu menampilkan `Rp 0` / `0` | Kartu menampilkan tanda hubung, bukan `Rp 0` — supaya gagal-memuat tidak terbaca sebagai saldo nol |
+| Tombol aksi | Buat Permintaan, Tambah Saldo | — | `PettyCashVoucher : Create`, `PettyCashBudget : TopUp` | — | Tombol nonaktif selama pengiriman berlangsung |
+| Monitoring Permintaan | Daftar voucher berhalaman beserta filter | `GET /vouchers` | Aksi per baris mengikuti `availableActions` dari server | "Belum ada permintaan petty cash pada periode ini." | "Gagal memuat daftar permintaan." beserta tombol coba lagi |
+| Riwayat Pergerakan Anggaran | Ledger berhalaman | `GET /budget/movements` | `PettyCashBudget : Read` | "Belum ada pergerakan anggaran." | "Gagal memuat riwayat pergerakan." |
+
+**Aksi per baris pada Monitoring Permintaan**, seluruhnya digerakkan `availableActions` dari server — layar **MUST NOT** menyimpulkannya sendiri dari status:
+
+| Status baris | Aksi yang muncul | Hak akses |
+| --- | --- | --- |
+| `Menunggu Pencairan` | Cairkan, Batalkan, Detail | `Disburse`, `Cancel` |
+| `Menunggu Bukti` | Input Nota, Kembalikan Sisa, Batalkan Pencairan, Detail | `AttachProof`, `Return`, `Reverse` |
+| `Selesai` | Koreksi Nota, Kembalikan Sisa, Batalkan Pencairan, Detail | `AttachProof`, `Return`, `Reverse` |
+| `Dibatalkan (Uang Dikembalikan)` | Detail saja | `Read` |
+| `Ditolak (arsip)` | Detail saja | `Read` |
+
+### Penanda status
+
+| Label | Kapan | Catatan |
+| --- | --- | --- |
+| `Menunggu Pencairan` | Permintaan dibuat, uang belum keluar | Menggantikan `Menunggu Persetujuan` |
+| `Menunggu Bukti` | Uang sudah keluar, nota belum masuk | **Label berubah** dari `Uang Diterima` untuk kode yang sama |
+| `Selesai` | Nota sudah masuk | Tidak berubah |
+| `Dibatalkan (Uang Dikembalikan)` | Pencairan dibalik | Baru |
+| `Dibatalkan` | `isCancelled` bernilai benar | Penanda terpisah, bukan status — tetap seperti sebelumnya |
+| `Ditolak (arsip)` | Hanya pada baris sebelum 15 September 2026 | Baru; menandai data warisan |
+
+`Disetujui` dan `Ditolak` sebagai label aktif **MUST dihapus** dari seluruh layar, begitu pula tombol Setujui dan Tolak beserta pemanggilan endpointnya.
+
+### Skema fitur — `FE-PC-12` Kelola Periode Anggaran
+
+```text
++- Kelola Periode Anggaran --------------------------------- FE-PC-12 -+
+|  [+ Buat Periode]                                                     |
+|  Periode              | Plafon     | Saldo     | Status  | Aksi       |
+|  1-30 Sep 2026        | 10.000.000 | 4.700.000 | Aktif   | Tutup      |
+|  1-31 Okt 2026        | 12.000.000 |         0 | Draf    | Aktifkan   |
+|  1-31 Agu 2026        |  8.000.000 |         0 | Ditutup | Detail     |
++-----------------------------------------------------------------------+
+```
+
+| Wilayah | Sumber data | Hak akses | Keadaan gagal |
+| --- | --- | --- | --- |
+| Daftar periode | `GET /budget/periods` | `PettyCashBudget : Read` | "Gagal memuat daftar periode." |
+| Buat Periode | `POST /budget/periods` | `PettyCashBudget : Create` | Pesan `BIL-VAL-102` ditampilkan apa adanya dari server |
+| Aktifkan | `POST /budget/periods/{id}/activate` | `PettyCashBudget : Activate` | Pesan `BIL-VAL-103` |
+| Tutup | `POST /budget/periods/{id}/close` | `PettyCashBudget : Close` | Pesan `BIL-VAL-104` |
+
+**Dialog Tutup Periode MUST menampilkan sisa saldo dan meminta periode penerus** ketika sisanya lebih besar dari nol, disertai kalimat yang menyatakan sisa itu akan dipindahkan — bukan hilang. Tanpa kalimat itu, Finance tidak punya cara mengetahui ke mana uangnya pergi.
+
+### Penanganan keadaan
+
+| Keadaan | Perlakuan |
+| --- | --- |
+| Memuat | Kartu ringkasan dan kedua tabel memuat mandiri; kegagalan salah satu **MUST NOT** mengosongkan yang lain |
+| Kosong | Kalimat per wilayah seperti tabel di atas, bukan satu halaman kosong |
+| Gagal | Pesan dari server ditampilkan apa adanya; kode `BIL-VAL-*` sudah berbahasa pengguna |
+| Data basi | Setiap aksi yang berhasil **MUST** memuat ulang `GET /budget/overview` **dan** daftar yang terdampak dari server — saldo **MUST NOT** dihitung di layar |
+| Pengiriman ganda | Tombol dinonaktifkan selama permintaan berjalan **dan** setiap `POST` membawa `Idempotency-Key`; keduanya, bukan salah satu |
+| Perubahan bersamaan | `409` ditampilkan sebagai "Data sudah diubah petugas lain. Halaman dimuat ulang." lalu halaman dimuat ulang otomatis |
+
+### Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Penggabungan dua halaman menjadi satu | **Dikunci** — `PC-DEC-016`, FE-PC-001 dokumen revisi |
+| Route kanonik dan pengalihan route lama | **Dikunci** — FE-PC-012 |
+| Sumber data tiap wilayah | **Dikunci** — tabel skema fitur di atas |
+| Label status | **Dikunci** — `contracts/state-transition-matrix.md` |
+| Hak akses tiap tombol | **Dikunci** — `contracts/permission-audit-matrix.md` |
+| Urutan wilayah di halaman | **Dikunci** longgar — ringkasan di atas, monitoring di tengah, riwayat di bawah (PRD § 14 dokumen revisi) |
+| Bentuk wadah tiap panel (kartu, tab, laci, akordeon) | `DEV_DISCRETION` |
+| Warna, jarak, ikon, tipografi, component library | `DEV_DISCRETION` |
+| Bentuk `FE-PC-10`/`FE-PC-11` (modal atau laci) | `DEV_DISCRETION` |
+| Cara menampilkan saldo sebelum/sesudah pada `FE-PC-04` | `DEV_DISCRETION` selama keduanya terbaca |
+
+### Berkas frontend yang terdampak
+
+| Berkas | Perlakuan |
+| --- | --- |
+| `src/app/health-services/billing-management/petty-cash/page.jsx` | **Baru** — halaman kanonik |
+| `src/app/health-services/billing-management/petty-cash/vouchers/page.jsx` | Menjadi pengalihan |
+| `src/app/health-services/billing-management/petty-cash/budget/page.jsx` | Menjadi pengalihan |
+| `src/components/view/health-services/billing-management/petty-cash/petty-cash-vouchers-view.jsx` | **Dipakai ulang sebagai panel**, bukan ditulis ulang |
+| `.../petty-cash/petty-cash-budget-view.jsx` | **Dipakai ulang sebagai panel** |
+| `.../petty-cash/create-voucher-modal.jsx`, `attach-proof-modal.jsx`, `top-up-budget-modal.jsx`, `adjust-budget-modal.jsx`, `voucher-detail-modal.jsx` | Dipakai ulang; `voucher-detail-modal` diperbarui |
+| `.../petty-cash/return-voucher-modal.jsx`, `reverse-voucher-modal.jsx`, `budget-period-modal.jsx` | **Baru** |
+| `src/lib/hooks/.../petty-cash/use-petty-cash-vouchers.js`, `use-petty-cash-budget.js` | Diperbarui — aksi approve/reject dibuang, aksi baru ditambah |
+| `src/lib/state/slice/.../petty-cash-voucher-slice.jsx`, `petty-cash-budget-slice.jsx` | Diperbarui |
+| `src/lib/hooks/.../petty-cash/petty-cash-voucher-constants.js` | Diperbarui — kosakata status dan label |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui — satu butir dihapus, satu `pathname` diubah |
+
+Logika data yang sudah ada **MUST dipakai ulang**, bukan ditulis ulang di halaman baru. Modul ini sudah punya preseden mahalnya: rumus Subtotal/Pajak pada Menu Pembayaran tiga kali menyimpang karena ditulis ulang di tempat berbeda (lihat catatan pada `billing-invoice-calculation-breakdown.js`).
