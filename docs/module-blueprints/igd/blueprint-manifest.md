@@ -5,25 +5,76 @@
 | `blueprint_id` | `IGD-BP-001` |
 | `revision` | `6` |
 | `status` | `draft` — **tidak disetujui siapa pun**. Revision `4` yang berstatus `approved sebagian` tetap berlaku sebagai baseline sampai revisi ini disetujui |
-| `module` | `igd` / `EmergencyInstallationManagement`, prefix entity `TrxEmergency`/`MstEmergency` |
+| `module` | `igd` / `EmergencyInstallationManagement`, prefix entity **`Emg`** sejak 27 Agustus 2026 (17 tabel `Emg*`; nol `Trx*`/`Mst*` milik IGD tersisa). Prefix lama `TrxEmergency`/`MstEmergency` hanya berlaku pada artefak desain yang disusun sebelum tanggal itu |
 | `registry_lifecycle` | `ACTIVE` |
 | `design_snapshot_at` | `2026-08-26` (revisi 6); revisi 5 pada `2026-08-24` |
 | `backend_commit_sha` | `300922c` (branch `rizkiG`) — merge Hamzah/Ikbal/Yasmina. Revisi 5 disusun pada `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` |
 | `frontend_commit_sha` | `96a9120111f6acc6b7c0f37973ea0c717ba41f17` (branch `RizkiV2`) |
-| `owners` | Product/Domain: **Rizki Gunawan**, ditetapkan `IGD-DEC-089` 2026-08-24. Clinical Governance, Nursing authority, Security/Privacy: `OPEN`. Pemilik `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`: **belum ditunjuk** |
+| `status_check_sha` | **15 September 2026** — backend `e89907c5` (`rizkiG`), frontend `43adae648` (`RizkiV2`). SHA desain di atas **tidak diganti**; ini hanya tempat pemeriksaan status terakhir dijalankan. Lihat [evidence/2026-09-15-pemeriksaan-status.md](evidence/2026-09-15-pemeriksaan-status.md) |
+| `owners` | Product/Domain: **Rizki Gunawan**, ditetapkan `IGD-DEC-089` 2026-08-24. Clinical Governance, Nursing authority, Security/Privacy: `OPEN`. Pemilik `ClinicalManagement` dan `PharmacyManagement`: **belum ditunjuk** — digantikan sementara Product/Domain Owner IGD (`IGD-DEC-107`). Pemilik `LaboratoryManagement` dan `RadiologyManagement`: **Yoga Aji Pratama** (tercatat pada blueprint masing-masing; Radiologi lewat `RAD-DEC-014`, 10 September 2026) |
 | `approved_by` | Sebagian: **Rizki Gunawan** menyetujui `IGD-DEC-067`, `IGD-DEC-088`, `IGD-DEC-089`, dan `IGD-DEC-093` pada 24 Agustus 2026. Blueprint secara keseluruhan **belum** disetujui |
 | `approved_at` | Sebagian: `2026-08-24` |
 | `requirement_readiness` | **`UNCLASSIFIED`** — lihat bagian 0 |
 | `domain_architecture_revision` | **Tidak ada** — lihat bagian 0 |
 | `domain_architecture_readiness` | **`NOT_ASSESSED`** |
-| `input_revisions` | `00-interview-decisions.md` **105 keputusan**, terakhir `IGD-DEC-105`; `01-existing-capability-map.md` revision `3` + **suplemen `3.1`** (audit terarah `EmergencyTransfer` pada `300922c`) |
-| `delivery_state` | **`MVP-0` berjalan.** `BE-IGD-017`…`020` selesai 2026-08-26, **belum di-commit**. Suite `518 → 720`. Berikutnya `BE-IGD-021` (lima titik tulis observasi/resusitasi/disposisi) |
-| `amendment` | **2026-08-24 (kedua)** — `IGD-OQ-068`/`070`/`071` ditutup. **2026-08-26 (correction pass revisi 6)** — enam butir, lihat 0a.2 sampai 0a.4 |
-| `contract_versions` | API `0.4.0` **bukan aditif**; validation `0.4.0` **bukan aditif**; state `0.4.0` aditif; permission/audit `0.4.0` aditif; integration `0.3.0` tidak berubah. Rinciannya di 0a.2. Seluruhnya `draft`. `IGD-DEC-093` **tidak diperluas**: yang `approved` tetap hanya state §1/§1.1/§1.2 dan validation §2 aturan 4–5 |
+| `input_revisions` | `00-interview-decisions.md` **115 keputusan**, terakhir `IGD-DEC-115` (15 September 2026); sebelumnya 105 keputusan sampai `IGD-DEC-105` saat revisi 6 disusun; `01-existing-capability-map.md` revision `3` + **suplemen `3.1`** (audit terarah `EmergencyTransfer` pada `300922c`) |
+| `delivery_state` | **Per 15 September 2026, dipetakan ulang ke source:** `MVP-1`, `MVP-2`, dan R3.7 ✅; `MVP-0` 🟡 (`BE-IGD-017` tanpa laporan tracked); `MVP-3` 🟡 (`BE-IGD-026`); `MVP-4` 🟡 (`BE-IGD-031`); `MVP-5` 🟡 (`BE-IGD-035`, `EPIC IGD-04` tanpa task); `MVP-6` ⛔ (`BE-IGD-039`). Backend 18 task ✅, 4 🟡, 1 ⛔; frontend 5 ✅, 5 🟡, 1 belum dikerjakan. Seluruhnya sudah di-commit. Rincian di [MODULE-STATUS.md](MODULE-STATUS.md). *Keadaan lama (26 Agustus): "`MVP-0` berjalan, `BE-IGD-017`…`020` selesai, belum di-commit"* |
+| `amendment` | **2026-08-24 (kedua)** — `IGD-OQ-068`/`070`/`071` ditutup. **2026-08-26 (correction pass revisi 6)** — enam butir, lihat 0a.2 sampai 0a.4. **2026-09-15 (pemeriksaan status)** — `IGD-DEC-110`…`115`, `IGD-DEC-099` digantikan `IGD-DEC-111`; lihat bagian 0b |
+| `contract_versions` | API `0.4.0` **bukan aditif**; validation `0.4.0` **bukan aditif**; state `0.4.0` aditif; permission/audit `0.4.0` aditif; integration `0.3.0` tidak berubah. Rinciannya di 0a.2. Seluruhnya `draft`. `IGD-DEC-093` **tidak diperluas**: yang `approved` tetap hanya state §1/§1.1/§1.2 dan validation §2 aturan 4–5. **Dikoreksi 15 September 2026:** kalimat ini tertinggal dari `IGD-DEC-108` (27 Agustus 2026), yang menaikkan irisan kontrak `MVP-1`…`MVP-6` menjadi `approved` — state §2, 3, 4, 6, 6a; validation §1, 1.1, 3, 4, 4.1, 5, 5.1, 6, 7; API §1.1, §2, bagian pengkajian; permission/audit §3.1; integration bagian encounter IGD — dengan wewenang sementara `IGD-DEC-107` |
 | `roadmap_revision` | `3` — 2026-08-26, diperluas ke perjalanan pasien penuh: pendaftaran & triase, pengkajian, kepergian. Revision `2` (`MVP-0`) tetap di berkas yang sama; revision `1` diarsipkan ke `roadmap/archive/revision-1/`. **Penomoran gelombang bergeser**: pengkajian masuk `MVP-3`, kepergian ke `MVP-4`, serah terima `MVP-5`, kewenangan unit `MVP-6` |
 | `belum_direncanakan` | **Penunjang medis, pemakaian alat, billing IGD.** Batas lingkup ditutup `IGD-DEC-095`…`105`; masih nol epic, nol FR, nol kontrak. **Ditahan atas instruksi Product/Domain Owner** sampai correction pass revisi 6 tuntas dan `MVP-0` selesai |
 | `koreksi_desain_tertunda` | **Nihil.** Empat koreksi selesai pada revisi 6; enam butir correction pass 26 Agustus selesai — audit `EmergencyTransfer`, koreksi klaim aditif, penyelarasan metadata, pembentukan pesanan internal, unique constraint, kewenangan pesanan |
 | `compatibility_impact` | **Empat perubahan memutus.** Lihat bagian 3 |
+
+---
+
+## 0b. Amendment 15 September 2026 — pemeriksaan status terhadap source
+
+Dokumen IGD tidak diperbarui sejak 28 Agustus 2026 (`eb18ac6b`). Pemeriksaan status dijalankan
+pada backend `e89907c5` dan frontend `43adae648`; buktinya di
+[evidence/2026-09-15-pemeriksaan-status.md](evidence/2026-09-15-pemeriksaan-status.md).
+
+**Revisi blueprint tetap `6`.** Arsitektur target, kontrak, dan lingkup task tidak berubah. Yang
+berubah adalah keputusan, status, dan bukti.
+
+### 0b.1 Keputusan yang dicatat
+
+| Keputusan | Isi singkat |
+| --- | --- |
+| `IGD-DEC-110` | Automated test bukan acceptance criterion; angka test lama sah sebagai bukti historis |
+| `IGD-DEC-111` | Menggantikan `IGD-DEC-099`: radiologi dipesan lewat `POST rad-orders`; penyambungan ditahan sampai hasil bacaan radiologi dapat dirilis |
+| `IGD-DEC-112` | Pengaturan IGD tersirat (`f76ebaab`) disahkan, termasuk akibat sampingnya pada disposisi |
+| `IGD-DEC-113` | Laporan task gabungan lama diterima sebagai bukti |
+| `IGD-DEC-114` | `MVP-5` sebagian; `EPIC IGD-04` dijadwalkan |
+| `IGD-DEC-115` | Catatan penutupan observasi `Completed` → `CompletionSummary`; `IGD-OQ-083` dibuka untuk `Cancelled` |
+
+### 0b.2 Perubahan dari luar IGD yang menyentuh modul ini
+
+| Commit | Siapa | Dampak pada IGD |
+| --- | --- | --- |
+| `58c61a5b` (10 Sep) | Yasmina | Rename `TrxPatientEncounter` → `RegPatientEncounter` dan `TrxPrescription` → `PhmPrescription` pada empat berkas IGD. Konsisten di kode. Penerapan migration `20260910031500` ke basis data **belum diketahui** |
+| `50ccf615` (10 Sep) | Rivenjxv | Komentar `EmergencyOrderKind` saja |
+| `259d53ce`, `a517cdbd` (4 Sep) | Rivenjxv | `GET lab-orders` berhalaman + `encounterId`. Tab Penunjang IGD belum menyesuaikan — cacat baru |
+| `cefd927d`, `b3ab542e` (11 Sep) | lead, Rizki | Seluruh proyek test backend dihapus, termasuk test IGD |
+
+### 0b.3 Bukti yang `STALE`
+
+| Artefak/bukti | SHA tercatat | SHA terkini | Tinjauan dampak |
+| --- | --- | --- | --- |
+| `01-existing-capability-map.md` revision `3` + suplemen `3.1` | `f69e9e48` / `300922c` | `e89907c5` | **Wajib** sebelum gelombang berikutnya menyentuh `ClinicalManagement`, `RegistrationManagement`, `PharmacyManagement`, `LaboratoryManagement`, atau `RadiologyManagement` |
+| Nomor baris pada kartu roadmap revision `3` | `300922c` | `e89907c5` | Sudah ditinjau untuk acceptance criteria `BE-IGD-017`…`039` dan `FE-IGD-010`…`022` pada 15 September 2026; letak source terkini ada pada baris `Status` kartu |
+| `artifact_hashes` bagian 2 | 24 Agustus 2026 | — | Dihitung ulang pada pass desain berikutnya; `00-interview-decisions.md` sudah bertambah sejak itu |
+
+### 0b.4 Temuan terbuka yang lahir dari pemeriksaan ini
+
+| Bukti | Temuan | Pemilik tindak lanjut |
+| --- | --- | --- |
+| `IGD-EV-112` | Tab Penunjang memanggil `lab-orders` tanpa `encounterId` | IGD (frontend) |
+| `IGD-EV-115` | Layar masih menyatakan modul Radiologi belum ada | IGD (frontend), `IGD-DEC-111` |
+| `IGD-EV-117` | Endpoint daftar klinis menjawab permintaan tanpa filter dengan data semua pasien | Pemilik `ClinicalManagement` (sementara: IGD, `IGD-DEC-107`) |
+| `IGD-EV-121` | `Outpatient` belum dicabut walau syarat `IGD-DEC-109` terpenuhi | IGD (backend) |
+| `IGD-EV-122` | Penolakan penutupan kunjungan tidak menyebut pesanan mana | IGD (backend) |
+| `IGD-EV-123` | `FE-IGD-014` kriteria 2 tidak ada; `FE-IGD-017` pelaku tampil sebagai ID | IGD (frontend) |
 
 ---
 
