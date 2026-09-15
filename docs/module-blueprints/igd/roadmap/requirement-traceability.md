@@ -8,6 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039"
 status: ACTIVE
 status_synced_at: "2026-09-15 — backend e89907c5, frontend 43adae648; IGD-DEC-110 sampai IGD-DEC-115"
+planning_updated_at: "2026-09-15 (kedua) — BE-IGD-040..045, FE-IGD-019 (kartu susulan), FE-IGD-023..027; IGD-DEC-116 sampai IGD-DEC-121. Lihat bagian R3.4"
 generated_at: "2026-08-24"
 aligned_at: "2026-08-26 (correction pass revisi 6)"
 input_revisions:
@@ -198,7 +199,7 @@ Ditambahkan 26 Agustus 2026. Bagian di atas menelusuri `MVP-0` dan tetap berlaku
 > | `BE-IGD-037` | — (struktur modul) | ✅ | Sama |
 > | `BE-IGD-038` | `FR-IGD-060`, `FR-IGD-064` (kolom respons) | ✅ | Sama |
 > | `BE-IGD-039` | `FR-IGD-053`…`059` | ⛔ Security/Privacy owner | Sama |
-> | `FE-IGD-019` | `FR-IGD-060` | tanpa tanda — belum punya kartu roadmap | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
+> | `FE-IGD-019` | `FR-IGD-060` | ✅ — kartu susulan ditambahkan 15 September 2026 (lihat R3.4) | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 > | `FE-IGD-020` | — (route master) | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
 > | `FE-IGD-021` | — (kolom kesimpulan) | ✅ | Sama |
 > | `FE-IGD-022` | `FR-IGD-060`…`064` | 🟡 uji layar; tab lab cacat; teks radiologi | [fe-igd-022](../task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md) |
@@ -214,6 +215,12 @@ Diuraikan pada revisi roadmap berikutnya, setelah `MVP-3` selesai.
 
 > **Diperbarui 15 September 2026.** `IGD-DEC-114`: `EPIC IGD-04` **tetap dalam lingkup `MVP-5`**
 > dan dijadwalkan lewat `plan-module-delivery`. Selama belum punya task, `MVP-5` berstatus 🟡.
+>
+> **Koreksi rentang, 15 September 2026 (kedua).** `EPIC IGD-04` berisi **`FR-IGD-016` sampai
+> `FR-IGD-021`** menurut `04-prd-to-mvp.md`. `FR-IGD-022` milik `EPIC IGD-05` dan **tidak**
+> dipindahkan. Tulisan `FR-IGD-016`…`022` pada `IGD-DEC-114`, pada catatan di atas, dan pada
+> tabel bagian 5 dikoreksi di sini tanpa mengubah makna requirement. `EPIC IGD-04` kini
+> dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, dan `FE-IGD-027` — lihat R3.4.
 > `EPIC IGD-08` kini sebagian tertelusuri lewat `BE-IGD-039` (⛔).
 
 ## R3.3 Tiga area tanpa requirement sama sekali
@@ -229,3 +236,66 @@ yang dapat ditelusuri.
 | Billing IGD | Seam `POST /folios/internal/milestones/recognize` matang dan idempoten. Nol pemanggil dari luar billing | Kejadian IGD mana yang layak tagih |
 
 Menutup lubang ini adalah pekerjaan `/qv-grill`, bukan `/qv-plan`.
+
+---
+
+## R3.4 Perencanaan 15 September 2026 — task baru
+
+Ditambahkan `plan-module-delivery` pada backend `7b0c2ece` dan frontend `43adae648`. **Tidak
+ada task di bagian ini yang sudah diimplementasikan**, kecuali `FE-IGD-019` yang kartunya
+ditambahkan susulan.
+
+Empat keadaan dibedakan dengan tegas:
+
+| Kolom | Artinya | Contoh |
+| --- | --- | --- |
+| **Requirement approved** | Requirement atau keputusan yang menjadi dasar task sudah `approved` | `IGD-DEC-116` approved 15 Sep 2026 |
+| **Delivery planned** | Task sudah punya kartu, acceptance criteria, dan dependency di roadmap | Kartu `BE-IGD-045` ada |
+| **Implementation complete** | Source sudah ditulis **dan** acceptance criteria terpetakan, dengan laporan tracked | Hanya `FE-IGD-019` |
+| **Runtime verified** | Perilaku dibuktikan pada aplikasi yang berjalan — uji API manual atau uji layar. **Bukan** UAT | Belum ada satu pun di bagian ini |
+
+### R3.4.1 Task backend
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-017` (tindak lanjut) | — (perbaikan build) | Laporan tracked historis `BE-IGD-017.md`; nol source | — | — | Ya | Source: ya (26 Agt). Laporan: **belum** | Historis (26 Agt), tidak dapat diulang |
+| `BE-IGD-040` | `IGD-DEC-115`, `IGD-DEC-119`; **coverage gap: tanpa FR** | `EmergencyObservationController.UpdateObservationStatus`: `Completed` → `CompletionSummary`; batas 1000 karakter `400` | `IGD-DEC-115` ✅, `IGD-DEC-119` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — kriteria 1–7 ke source; delta pesan catatan > 2000 karakter tercatat; build **Not Verified** (diserahkan ke Rizki) — [laporan](../task/report/backend/BE-IGD-040.md) | **Belum** — uji API manual contoh 1–6 belum dijalankan |
+| `BE-IGD-041` | `FR-IGD-051`; `IGD-DEC-118` | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `ValidatePesananSebelumPenutupanAsync`; pesan menyebut pesanan | `IGD-DEC-118` ✅ | Ya | Ya | Belum | Belum |
+| `BE-IGD-042` | `FR-IGD-001`, `FR-IGD-002`; `IGD-DEC-074`, `IGD-DEC-109`, `IGD-DEC-120` | `EmergencyVisitService.PeriksaJenisEncounter` menolak `Outpatient` | ⛔ **OWNER DATA CONFIRMATION** — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; `IGD-DEC-120` ✅ | Ya | Ya — **⛔ BLOCKED** | Belum | Belum |
+| `BE-IGD-043` | `IGD-DEC-112` | Laporan tracked `BE-IGD-043.md` atas `f76ebaab`; nol source | — | Ya | Ya | Source: ya (28 Agt). Laporan: **belum** | Belum |
+| `BE-IGD-044` | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (draft klinis), `IGD-DEC-116` | Tabel `EmgDoctorAssignment` + unique bersyarat + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
+| `BE-IGD-045` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117` | `EmergencyDoctorAssignmentController`/`Service`: `GET /`, `GET /active?at=`, `POST /`, `POST /{id}/handover` | `BE-IGD-044`, `IGD-DEC-116` ✅, `IGD-DEC-117` ✅ | Sebagian — sama | Ya | Belum | Belum |
+
+### R3.4.2 Task frontend
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `FE-IGD-019` | `FR-IGD-060` | Tab Assesmen Awal memakai `VitalSignTab`/`AssessmentTab` dan builder payload bersama | `BE-IGD-026`, `BE-IGD-027` | Ya | Ya (kartu susulan) | **Ya** ✅ — [laporan](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) | Belum — uji simpan lewat layar tercatat pada `FE-IGD-013` |
+| `FE-IGD-023` | `FR-IGD-046`; `IGD-DEC-105`, `IGD-DEC-111` | `fetchLabOrders` dengan `encounterId` + paging; teks radiologi | `IGD-DEC-111` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — 8/8 kriteria ke source; lint exit 0; unit test 686/686 — [laporan](../task/report/frontend/FE-IGD-023.md) | **Belum** — uji layar `NOT FEASIBLE`, `npm run build` diserahkan ke Rizki |
+| `FE-IGD-024` | `IGD-DEC-115`, `IGD-DEC-119`, `IGD-DEC-121`; **coverage gap: tanpa FR** | Isian Kesimpulan opsional saat Selesaikan | `BE-IGD-040`, `IGD-DEC-121` ✅ | Ya | Ya | Belum | Belum |
+| `FE-IGD-025` | `IGD-EV-117`; `IGD-DEC-107` | Laporan tracked atas `bd1d94a8a` + daftar endpoint klinis tanpa filter; nol source | — | Ya | Ya | Source: ya (31 Agt). Laporan: **belum** | Belum |
+| `FE-IGD-026` | `FR-IGD-001`…`012` (dibaca); `IGD-DEC-084` | Laporan tracked atas `c8613d88c` (+ `40f0e6106`/`5bc96f09b`); nol source | — | Ya | Ya | Source: ya (29–30 Agt). Laporan: **belum** | Belum |
+| `FE-IGD-027` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117` | Layar triase memakai `Emergency Doctor Assignment`, bukan endpoint Registrasi | `BE-IGD-045` | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
+
+### R3.4.3 Requirement `EPIC IGD-04` — rantai penuh
+
+| Requirement | Isi | Uji | Task backend | Task frontend |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-016` | Penetapan dokter kedua lewat endpoint penetapan ditolak | `AT-IGD-124` | `BE-IGD-045` | `FE-IGD-027` |
+| `FR-IGD-017` | Pengalihan menutup baris lama dan membuka baris baru | `AT-IGD-125` | `BE-IGD-044`, `BE-IGD-045` | `FE-IGD-027` |
+| `FR-IGD-018` | Dokter penanggung jawab pada waktu tertentu dapat dijawab | `AT-IGD-126` | `BE-IGD-045` (`GET /active?at=`, `IGD-DEC-117`) | `FE-IGD-027` |
+| `FR-IGD-019` | Tepat satu dokter aktif per kunjungan, dijaga basis data | `AT-IGD-127` | `BE-IGD-044`, `BE-IGD-045` | — |
+| `FR-IGD-020` | Nilai efektif pada kunjungan selalu sama dengan dokter aktif | `AT-IGD-128` | `BE-IGD-045` | — |
+| `FR-IGD-021` | Pengalihan menuntut alasan | `AT-IGD-129` | `BE-IGD-045` | `FE-IGD-027` |
+
+Enam dari enam requirement `EPIC IGD-04` kini punya task. `FR-IGD-022` **bukan** bagian epic ini.
+
+### R3.4.4 Coverage gap yang tetap terbuka
+
+| Gap | Keterangan |
+| --- | --- |
+| `BE-IGD-040` dan `FE-IGD-024` tanpa `FR-IGD-*` | Penutupan observasi adalah kapabilitas reuse (`IGD-CAP-26`) tanpa requirement tertulis; dijejak ke `IGD-DEC-115`/`119`/`121` |
+| Uji `AT-IGD-124`…`129` tanpa automated test | Proyek test dihapus; bukti pengganti berupa uji API manual (`IGD-DEC-110`) |
+| Layar resusitasi IGD | Tanpa ID task atas instruksi owner (`IGD-EV-111`) |
+| Layar baca/aksi `order-items` | Tanpa ID task atas instruksi owner (`IGD-EV-109`); aksi tulis terhalang `BE-IGD-039` |
+| Teks berkas kontrak belum diselaraskan | API §3 nama tabel dan query `at`, validation §1 aturan 2, §6 aturan 4, dan batas 1000 karakter masih mengikuti teks lama; `IGD-DEC-116`…`120` yang berlaku |

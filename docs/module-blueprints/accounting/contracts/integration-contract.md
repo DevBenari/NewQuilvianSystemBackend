@@ -52,7 +52,7 @@ Yang belum diputuskan: **siapa yang menerbitkan** kejadian itu. Itulah `ACC-XM-0
 
 | Lapis | Kunci | Perannya |
 |---|---|---|
-| Pertama | Nomor kejadian (`EventId`) | Kunci utama |
+| Pertama | Nomor kejadian (`EventId` pada rancangan awal; sejak Phase 2 bernama `EventNumber` — lihat bagian 6.4) | Kunci utama |
 | Kedua | Gabungan modul asal, nomor transaksi asal, jenis kejadian, dan versi | Jaring pengaman bila pengirim keliru membuat ulang nomor |
 
 Keduanya diwujudkan sebagai **dua index unik terpisah** pada tabel kotak masuk kejadian. Satu
@@ -80,7 +80,7 @@ Merancangnya sekarang berisiko salah, karena `ACC-XM-001` belum diputuskan.
 | `ACC-DEP-004` | Modul Finance belum ada. Developernya sudah ditunjuk: **Yasmin** | `MISSING` |
 
 Bentuk batas Finance/AR/AP → Accounting sudah dituliskan lebih dahulu di
-[cross-module-contract.md](cross-module-contract.md) (`ACC-XMOD-0.1`), supaya Yasmin dapat
+[cross-module-contract.md](cross-module-contract.md) (`ACC-XMOD-0.1` saat itu; sejak 15 September 2026 `ACC-XMOD-0.2`, diselaraskan dengan bagian 6 berkas ini), supaya Yasmin dapat
 mengembangkan Finance secara paralel tanpa menunggu Phase 2. Kontrak itu mengunci **bentuk**
 batas, bukan implementasinya, dan tidak memindahkan posting otomatis ke MVP.
 
@@ -139,10 +139,11 @@ bagian 6 di bawah.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-INTEGRATION-0.3` |
-| `last_changed_in` | `ACC-INTEGRATION-0.3` — 8 September 2026 |
-| Status | **`approved`** — Rizki, 8 September 2026; **implementasi tetap terkunci** sampai `ACC-XM-001` diratifikasi owner Billing dan owner Finance |
-| Traceability | `ACC-DEC-044`, `045`, `046`, `047`, `048`, `049`, `056` |
+| `contract_version` | `ACC-INTEGRATION-0.4` |
+| `last_changed_in` | `ACC-INTEGRATION-0.4` — 15 September 2026. Sebelumnya `0.3`, 8 September 2026 |
+| Status | **`approved`** sampai `0.3` — Rizki, 8 September 2026. **`0.4` belum di-approve atas teksnya**: hanya menyelaraskan bagian 6.3, 6.4, dan 6.7 dengan `ACC-DEC-060` dan `ACC-DEC-075`, yang keduanya sudah diputuskan owner. **Implementasi tetap terkunci** sampai `ACC-XM-001` diratifikasi owner Finance |
+| Perubahan `0.3` → `0.4` | (1) Kunci anti-ganda kedua memakai `EventTypeCode`, bukan `EventTypeId` (`ACC-DEC-075` butir 4) — kamus data bagian 9 dan `02-backend-architecture.md` sudah memakainya sejak 14 September 2026, hanya berkas ini yang tertinggal. (2) Bagian 6.7 mencatat `CorrelationId`/`CausationId` sudah wajib, bukan lagi usulan. (3) Bagian 6.3 butir 1 "kesepuluhnya" menjadi "kedua belasnya", sesuai judul bagian dan `ACC-DEC-060`. Nol perubahan arah, pintu masuk, maupun perilaku |
+| Traceability | `ACC-DEC-044`, `045`, `046`, `047`, `048`, `049`, `056`, `059`, `060`, `075` |
 
 ### 6.1 Arah dan pemilik
 
@@ -166,7 +167,7 @@ hanya dimiliki akun layanan. Rinciannya di
 Dikunci `ACC-DEC-048` dan `ACC-DEC-060`. Daftar lengkap beserta tipenya ada di `api-contract.md`.
 Empat hal yang mengikat kedua pihak:
 
-1. **Kesepuluhnya wajib.** Pesan dengan satu bidang kosong ditolak `400`, bukan diterima sebagian.
+1. **Kedua belasnya wajib.** Pesan dengan satu bidang kosong ditolak `400`, bukan diterima sebagian.
 2. **Mata uang hanya `IDR`.** Nilai lain ditolak `409` (`ACC-DEC-020`).
 3. **Nol pengenal pasien.** Nama, nomor rekam medis, dan nomor kunjungan **dilarang** ada di dalam
    pesan (`ACC-DEC-056`). Penelusuran ke pasien dilakukan lewat nomor transaksi asal.
@@ -181,10 +182,18 @@ Dua kunci dipakai bersamaan (`ACC-DEC-035`), diwujudkan sebagai **dua unique ind
 | Lapis | Kunci | Melindungi dari |
 |---|---|---|
 | Pertama | `EventNumber` | Pesan yang sama terkirim berulang |
-| Kedua | `SourceModule` + `SourceTransactionId` + `EventTypeId` + `SourceVersion` | Penerbit keliru membuat **nomor baru** untuk kejadian yang sama |
+| Kedua | `SourceModule` + `SourceTransactionId` + `EventTypeCode` + `SourceVersion` | Penerbit keliru membuat **nomor baru** untuk kejadian yang sama |
 
 Kiriman ulang dijawab `200` beserta nomor jurnal yang sama, **bukan** `409`. Alasannya ada di
 `api-contract.md`.
+
+**Kenapa kunci kedua memakai kode jenis, bukan id master jenis** (`ACC-DEC-075`, diselaraskan pada
+`0.4`). Kejadian berjenis yang belum terdaftar disimpan **Tertahan** dengan id jenis kosong. Bila
+kunci kedua memakai id, kejadian itu tidak punya kunci kedua sama sekali: Finance mengirim
+`PENGHAPUSAN-PIUTANG` bernomor `EVT-200`, lalu karena gangguan mengirim ulang kejadian yang sama
+bernomor `EVT-201` — keduanya lolos dan menjadi dua jurnal begitu jenisnya didaftarkan. Dengan kode
+yang tersimpan apa adanya, kiriman kedua tertangkap sejak awal. Sampai `0.3` baris di atas masih
+menulis `EventTypeId`.
 
 ### 6.5 Perilaku saat gagal
 
@@ -206,6 +215,6 @@ Kejadian `Gagal` **menahan** penutupan; kejadian `Tertahan` hanya **memperingatk
 | Langkah | Pemilik | Keadaan |
 |---|---|---|
 | Ratifikasi `ACC-DEC-044` | Owner Billing | **Selesai 9 September 2026** — `ACC-DEC-059`. Finance menerbitkan kejadian tersendiri; Accounting **dilarang** membaca `BilArHandoff` langsung |
-| Ratifikasi `ACC-DEC-048` bentuk pesan | Owner Finance (Yasmin) | **Belum.** Ditambah usulan dua bidang baru `CorrelationId` dan `CausationId` — lihat [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 21.2 |
+| Ratifikasi `ACC-DEC-048` bentuk pesan | Owner Finance (Yasmin) | **Belum.** Termasuk dua bidang `CorrelationId` dan `CausationId` yang **sudah wajib** sejak `ACC-DEC-060` — dulu tercatat sebagai usulan, lihat [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 21.2. Bahan untuk Yasmin: [`evidence/12`](../evidence/12-paket-kontrak-kejadian-untuk-finance.md) |
 | Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Belum** |
 | Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Belum** — diperiksa 8 September 2026, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource` |

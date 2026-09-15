@@ -28,7 +28,7 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | `MVP-2` | Satu pasien satu episode (`BE-IGD-025`) | `DONE` ✅ | — |
 | `MVP-3` | Pengkajian IGD tanpa antrean (`BE-IGD-026`…`030`) | `IN_PROGRESS` 🟡 | `BE-IGD-026`: uji langkah mundur migration belum |
 | `MVP-4` | Kepergian pasien (`BE-IGD-031`…`034`) | `IN_PROGRESS` 🟡 | `BE-IGD-031`: uji `RENAME` balik belum |
-| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2; `EPIC IGD-04` belum punya task (`IGD-DEC-114`) |
+| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2 (direncanakan `BE-IGD-041`); `EPIC IGD-04` direncanakan `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` — belum dikerjakan |
 | R3.7 | Migration, master data pindah modul, kolom respons (`BE-IGD-036`…`038`) | `DONE` ✅ | — |
 | `MVP-6` | Kewenangan unit (`BE-IGD-039`) | `BLOCKED` ⛔ | Security/Privacy owner; pemetaan unit 0 dari 18 |
 
@@ -39,7 +39,7 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — 18 ✅, 4 🟡, 1 ⛔ dari 23 task | `IN_PROGRESS` — 5 ✅, 5 🟡, 1 belum dikerjakan dari 11 task | `PARTIAL` — radiologi ditahan `IGD-DEC-111`; laboratorium tersambung tetapi tab-nya cacat (`IGD-EV-112`); billing IGD belum direncanakan | `NOT_STARTED` untuk uji lewat layar; alur simpan lewat layar belum pernah dijalankan sejak roadmap revision `1` |
+| `IN_PROGRESS` — 18 ✅, 4 🟡, 1 ⛔ dari 23 task yang sudah dikerjakan; ditambah 6 task direncanakan 15 Sep 2026 (`BE-IGD-040`…`045`, satu di antaranya ⛔) — **29 task** | `IN_PROGRESS` — 6 ✅ (termasuk kartu susulan `FE-IGD-019`), 5 🟡, 1 belum dikerjakan; ditambah 5 task direncanakan (`FE-IGD-023`…`027`) — **17 task** | `PARTIAL` — radiologi ditahan `IGD-DEC-111`; laboratorium tersambung tetapi tab-nya cacat (`IGD-EV-112`); billing IGD belum direncanakan | `NOT_STARTED` untuk uji lewat layar; alur simpan lewat layar belum pernah dijalankan sejak roadmap revision `1` |
 
 ## Blockers and owners
 
@@ -51,44 +51,53 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | `ActAsRadiologist` | Hasil bacaan radiologi belum dapat dirilis siapa pun (`FE-RAD-11`) | Yoga Aji Pratama — pemilik Radiologi | Penyambungan pemesanan radiologi IGD (`IGD-DEC-111`) | Ya — perbaikan teks layar tidak menunggu |
 | `IGD-DEC-100`…`102` | Sikap pesanan, pesanan lab manual, penerimaan per pesanan masih `draft` | Clinical Governance, Nursing authority, pemilik Laboratorium | Butir 10 DoD `EPIC IGD-07` | Ya |
 | `IGD-OQ-083` | Tempat menyimpan alasan pembatalan observasi | Product/Domain Owner IGD | Bagian `Cancelled` dari `IGD-DEC-115` | Ya — bagian `Completed` tidak tertahan |
-| `EPIC IGD-04` | Riwayat penugasan dokter belum punya task | `plan-module-delivery` atas persetujuan Rizki | `MVP-5` | Ya |
+| ~~`EPIC IGD-04`~~ | ~~Riwayat penugasan dokter belum punya task~~ — **ditutup 15 September 2026**: dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` (`IGD-DEC-116`, `IGD-DEC-117`) | — | `MVP-5` | — |
+| OWNER DATA CONFIRMATION | `BE-IGD-042` menunggu jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; agent dilarang menjalankan kueri | Rizki | R3.8 | Ya — `BE-IGD-040`, `041`, `043` tidak tertahan |
+| `IGD-DEC-082` | Riwayat penugasan dokter masih `draft` klinis | Clinical Governance | Butir 10 DoD `EPIC IGD-04` | Ya — pekerjaan `BE-IGD-044`/`045` boleh dimulai |
+| ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
 
 ## Stale evidence
 
 | Artifact/evidence | Recorded SHA | Current SHA | Required impact review |
 | --- | --- | --- | --- |
 | `01-existing-capability-map.md` revision `3` + suplemen `3.1` | `f69e9e48` / `300922c` | `e89907c5` | Wajib sebelum gelombang berikutnya menyentuh modul lain; tim Registrasi, Laboratorium, dan Radiologi mengubah source sejak itu |
-| `blueprint-manifest.md` `artifact_hashes` | 24 Agustus 2026 | — | Dihitung ulang pada pass desain berikutnya |
+| ~~`blueprint-manifest.md` `artifact_hashes`~~ | 24 Agustus 2026 | 15 September 2026 | **Ditutup** — dihitung ulang pada pass penyelarasan teks kontrak (manifest bagian 0c) |
 | Angka test pada laporan `BE-IGD-018`…`038` | `761 total, 759 lulus` (27 Agt) | Proyek test dihapus 11 Sep | Tidak dapat diulang; sah sebagai bukti historis (`IGD-DEC-110`) |
-| Penerapan migration `20260910031500` (rename encounter/resep, milik tim Registrasi) | — | — | Belum diketahui apakah sudah diterapkan ke basis data; Rizki memastikannya sendiri |
+| ~~Penerapan migration `20260910031500` (rename encounter/resep, milik tim Registrasi)~~ | — | — | **Tidak lagi usang — dikoreksi 15 September 2026.** Migration **sudah diterapkan** pada `QuilvianNewDevRizki`. Bukti dari owner: Rizki menjalankan `dotnet ef migrations list --no-build` pada 15 September 2026, dan tidak ada migration berlabel `Pending`. Agent tidak menjalankan perintah basis data apa pun |
 
 ## Next recommended task
 
-Urutan yang tidak menunggu pihak lain. ID task masih usulan dan ditetapkan lewat
-`plan-module-delivery`.
+Seluruh task di bawah **sudah punya kartu roadmap** sejak 15 September 2026. Urutan yang tidak
+menunggu pihak lain:
 
-1. **Perbaikan tab Penunjang Medis** — kirim `encounterId` dan paging ke `lab-orders`, dan ganti
-   teks *"modul Radiologi belum ada"* (`IGD-EV-112`, `IGD-EV-115`, `IGD-DEC-111`). Usulan
-   `FE-IGD-023`.
-2. **Catatan penutupan observasi** — `Completed` menulis `CompletionSummary` (`IGD-DEC-115`).
-   Usulan `BE-IGD-040`.
-3. **Pesan penolakan penutupan menyebut pesanan** — sambungkan
-   `ValidatePesananSebelumPenutupanAsync` (`IGD-EV-122`), membuka `BE-IGD-035` kriteria 2.
-4. **Pencabutan `Outpatient`** setelah Rizki memastikan jumlah baris (`IGD-EV-121`).
-5. **Laporan tracked susulan** untuk `BE-IGD-017`, `f76ebaab`, `bd1d94a8a` (termasuk temuan
-   privasi `IGD-EV-117`), dan `c8613d88c`.
+1. **`FE-IGD-023`** — tab Penunjang Medis memakai `encounterId` + paging, teks radiologi sesuai
+   `IGD-DEC-111`.
+2. **`BE-IGD-040`**, lalu **`FE-IGD-024`** — kesimpulan observasi (`IGD-DEC-115`, `119`, `121`).
+3. **`BE-IGD-041`** — pesan penutupan menyebut pesanan (`IGD-DEC-118`), membuka `BE-IGD-035`
+   kriteria 2.
+4. **`BE-IGD-044`** → **`BE-IGD-045`** → **`FE-IGD-027`** — riwayat penugasan dokter
+   (`EPIC IGD-04`). Migration `BE-IGD-044` dikerjakan Rizki.
+5. **Laporan susulan:** `BE-IGD-017`, `BE-IGD-043` (`f76ebaab`), `FE-IGD-025` (`bd1d94a8a`,
+   termasuk temuan privasi `IGD-EV-117`), `FE-IGD-026` (`c8613d88c`).
 6. **Uji langkah mundur migration** `20260826090500` di basis data terpisah — membuka
    `BE-IGD-026` dan `BE-IGD-031`. Butuh basis data terpisah milik Rizki.
+
+Yang **menunggu owner**: `BE-IGD-042` — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`
+dari kueri yang dijalankan Rizki sendiri.
+
+Gap yang **tidak** diberi ID atas instruksi owner: layar resusitasi IGD (`IGD-EV-111`) dan layar
+baca/aksi `order-items` (`IGD-EV-109`).
 
 ## Optional deterministic delivery progress
 
 | Lapisan | Rumus | Hasil |
 | --- | --- | --- |
-| Backend | task ✅ / seluruh task roadmap | **18 / 23 = 78%**. Tidak dikecualikan: `BE-IGD-039` (⛔) tetap dihitung di penyebut |
-| Frontend | task ✅ / seluruh task roadmap | **5 / 11 = 45%**. `FE-IGD-019` tidak dihitung karena belum punya kartu roadmap |
+| Backend | task ✅ / seluruh task roadmap | **18 / 29 = 62%** (per 15 September 2026, sesudah perencanaan). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut |
+| Frontend | task ✅ / seluruh task roadmap | **6 / 17 = 35%**. `FE-IGD-019` kini dihitung |
 
-`EPIC IGD-04` dan tiga area R3.5 (penunjang medis, pemakaian alat, billing IGD) **tidak** masuk
-penyebut karena belum punya task. Persentase ini bukan ukuran kesiapan produksi.
+Persentase turun dari 78%/45% bukan karena ada yang mundur, melainkan karena penyebutnya
+bertambah task baru. Tiga area R3.5 (penunjang medis, pemakaian alat, billing IGD) **tidak**
+masuk penyebut karena belum punya task. Persentase ini bukan ukuran kesiapan produksi.
 
 ## Status contract
 

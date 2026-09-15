@@ -87,10 +87,16 @@ dan tidak mengubah perilaku.
 
 **Kesimpulan:** konsisten di kode.
 
-**Yang belum diketahui.** Apakah migration `20260910031500` sudah diterapkan ke basis data?
-Pertanyaan ini sengaja tidak dijawab karena pemeriksaan ini dilarang menjalankan query.
-Akibatnya penting: bila belum diterapkan, kode memanggil tabel `RegPatientEncounter` yang belum
-ada, sehingga pendaftaran IGD dan pembentukan pesanan saat pasien pergi akan gagal.
+**Yang belum diketahui saat pemeriksaan.** Apakah migration `20260910031500` sudah diterapkan ke
+basis data? Pertanyaan ini sengaja tidak dijawab karena pemeriksaan ini dilarang menjalankan
+query. Akibatnya penting: bila belum diterapkan, kode memanggil tabel `RegPatientEncounter` yang
+belum ada, sehingga pendaftaran IGD dan pembentukan pesanan saat pasien pergi akan gagal.
+
+> **Terjawab 15 September 2026 — bukti dari owner.** Migration `20260910031500` **sudah
+> diterapkan** pada basis data `QuilvianNewDevRizki`. Rizki menjalankan
+> `dotnet ef migrations list --no-build` pada 15 September 2026; keluarannya memuat migration itu
+> dan **tidak ada** migration berlabel `Pending`. Agent tidak menjalankan migration maupun
+> perintah basis data apa pun untuk bukti ini.
 
 ---
 
@@ -643,8 +649,13 @@ ID di bawah **usulan**. Penetapan resminya lewat `plan-module-delivery`.
 | --- | --- | --- | --- |
 | `FE-IGD-023` | Tab Penunjang memanggil `lab-orders` dengan `encounterId` dan paging; teks "modul Radiologi belum ada" diganti | Endpoint sudah ada; `RAD-DEC-009` butir 1 sudah `approved` | Kartu task |
 | `BE-IGD-040` | `PATCH observation-status` dengan `Completed` menulis `notes` ke `CompletionSummary`; frontend menambah isian kesimpulan | Tabel milik IGD, tanpa migration | `OD-IGD-06` |
-| `FE-IGD-024` | Layar resusitasi IGD | Controller lengkap dan tidak dijaga kewenangan unit | Kartu task; persetujuan tampilan |
-| `FE-IGD-025` | Tampilan **baca** pesanan kepergian (`GET order-items`): pesanan mana yang menahan penutupan kunjungan | Route baca tidak terhalang | Kartu task. Bagian tulis ⛔ menunggu `BE-IGD-039` |
+| ~~`FE-IGD-024`~~ **belum ber-ID** | Layar resusitasi IGD | Controller lengkap dan tidak dijaga kewenangan unit | Kartu task; persetujuan tampilan |
+| ~~`FE-IGD-025`~~ **belum ber-ID** | Tampilan **baca** pesanan kepergian (`GET order-items`): pesanan mana yang menahan penutupan kunjungan | Route baca tidak terhalang | Kartu task. Bagian tulis ⛔ menunggu `BE-IGD-039` |
+
+> **Dikoreksi 15 September 2026 (perencanaan delivery).** ID usulan pada tabel ini tidak
+> berlaku. `FE-IGD-024` dan `FE-IGD-025` resmi dialokasikan untuk isian Kesimpulan observasi dan
+> laporan susulan `bd1d94a8a`. Layar resusitasi dan tampilan `order-items` **tidak** diberi ID
+> atas instruksi owner, dan tercatat sebagai gap pada roadmap frontend bagian R3.6.
 | Laporan susulan | `f76ebaab`, `bd1d94a8a` (termasuk temuan privasi), `c8613d88c` | Kodenya sudah ada | Ditulis skill build; folder `task/report/` bukan wewenang skill ini |
 | Tinjauan dampak | Pemetaan ulang acceptance criteria `BE-IGD-021` sampai `038` pada `e89907c5` | Read-only | `verify-module-readiness` |
 
@@ -665,7 +676,7 @@ ID di bawah **usulan**. Penetapan resminya lewat `plan-module-delivery`.
 2. **Kerjakan `FE-IGD-023` sebagai task build pertama.** Paling kecil, tidak menunggu siapa pun,
    dan menutup cacat nyata sekaligus pelanggaran `RAD-DEC-009`.
 3. **Pastikan migration `20260910031500` sudah diterapkan** ke basis data Anda sebelum menjalankan
-   layar IGD lagi.
+   layar IGD lagi. *(Terpenuhi 15 September 2026 — lihat catatan pada `IGD-EV-108`.)*
 4. **Jangan bangun layar tulis sikap pesanan dulu.** Tanpa `BE-IGD-039`, setiap aksinya ditolak
    `403` untuk semua petugas.
 5. **Catat temuan privasi `IGD-EV-117`** ke pemilik `ClinicalManagement`: endpoint daftar klinis

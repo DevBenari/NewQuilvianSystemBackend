@@ -2,13 +2,13 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.4.0` — revisi 6. **Bukan aditif**: dua route revisi 5 diganti (`/pending-orders`, `/order-actions`). Lihat manifest 0a.2 |
+| `contract_version` | `0.5.0` — penyelarasan teks 15 September 2026. **Bukan aditif murni**: §3 bertambah query `at` pada `GET /active` (`IGD-DEC-117`, aditif), dan §5 mencatat satu penolakan `400` baru pada `PATCH .../observation-status` (`IGD-DEC-119`). Lihat manifest bagian 0c. *Sebelumnya `0.4.0` — revisi 6, bukan aditif: dua route revisi 5 diganti (`/pending-orders`, `/order-actions`); lihat manifest 0a.2* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
-| `input_revision` | `00-interview-decisions.md` **105 keputusan**, terakhir `IGD-DEC-105`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
-| `input_hash` | Dihitung ulang pada manifest revisi `6`, correction pass 2026-08-26 |
-| Versi sebelumnya | `0.2.0`, `approved` 14 Agustus 2026 |
+| `input_revision` | `00-interview-decisions.md` **121 keputusan**, terakhir `IGD-DEC-121`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
+| `input_hash` | Dihitung ulang pada manifest bagian 2, penyelarasan teks 2026-09-15 |
+| Versi sebelumnya | `0.4.0` (revisi 6, 26 Agustus 2026). Versi `approved` penuh terakhir: `0.2.0`, 14 Agustus 2026 |
 | Commit diaudit | backend `300922c` (suplemen capability `3.1`); revisi 5 disusun pada `f69e9e48` |
 
 ## Dampak kompatibilitas terhadap `0.2.0`
@@ -189,14 +189,14 @@ tidak memutus pemakai mana pun.
 
 ---
 
-## 3. `Emergency Doctor Assignment` — grup baru
+## 3. `Emergency Doctor Assignment` — grup baru, Rencana (belum tersedia)
 
 Base URL: `.../emergency-doctor-assignments`
 
 | Method | Path | Kegunaan | Hak akses | Kode status |
 | --- | --- | --- | --- | --- |
 | `GET` | `/` | Riwayat penugasan dokter pada satu kunjungan IGD | `EmergencyDoctorAssignment : Read` | `200`, `403` |
-| `GET` | `/active` | Dokter yang sedang aktif pada satu kunjungan | `EmergencyDoctorAssignment : Read` | `200`, `403`, `404` |
+| `GET` | `/active` | Dokter yang aktif pada satu kunjungan — **sekarang**, atau **pada waktu tertentu** lewat query `at` (bagian 3.1) | `EmergencyDoctorAssignment : Read` | `200`, `403`, `404` |
 | `POST` | `/` | Menetapkan dokter pertama | `EmergencyDoctorAssignment : Create` | `201`, `400`, `403`, `409` |
 | `POST` | `/{id}/handover` | Mengalihkan ke dokter lain; alasan wajib | `EmergencyDoctorAssignment : Update` | `200`, `400`, `403`, `409` |
 
@@ -208,6 +208,34 @@ transaksi yang sama.
 
 Endpoint lama `PATCH /patient-encounters/{id}/doctor` **tetap ada** dan tetap milik
 Registration Management, tetapi **tidak lagi dipakai layar IGD**.
+
+Riwayat penugasan disimpan pada tabel **`EmgDoctorAssignment`** (`IGD-DEC-116`). Nama
+`TrxEmergencyDoctorAssignment` pada dokumen desain lama dibaca sebagai nama yang sudah diganti.
+
+### 3.1 Query `at` pada `GET /active` — baru pada `0.5.0`
+
+Ditetapkan `IGD-DEC-117`. Pertanyaan *"siapa dokter penanggung jawab pasien ini pukul 10.30
+tadi?"* dijawab oleh endpoint yang sama, bukan endpoint baru.
+
+| Query | Tipe | Wajib | Nilai bawaan | Keterangan |
+| --- | --- | :---: | --- | --- |
+| `at` | `datetime?` | Tidak | Kosong = waktu sekarang | Waktu yang ditanyakan. Dokter dihitung dari riwayat `EmgDoctorAssignment` |
+
+Cara menyebut kunjungan yang ditanyakan mengikuti parameter yang sama dengan `GET /active` tanpa
+`at`; query `at` tidak mengubahnya.
+
+| Keadaan | Jawaban |
+| --- | --- |
+| Tanpa `at` | `200` — dokter yang aktif **sekarang** (perilaku lama, tidak berubah) |
+| Dengan `at`, ada penugasan yang berlaku pada waktu itu | `200` — dokter yang aktif **pada waktu itu** |
+| Dengan `at`, tidak ada dokter pada waktu itu — misalnya sebelum penugasan pertama | `404` |
+
+**Dilarang** membuat endpoint terpisah untuk pencarian berdasarkan waktu selama query parameter
+ini sudah cukup (`IGD-DEC-117`).
+
+*Contoh:* dr. Budi ditetapkan pukul 08.00, lalu dialihkan ke dr. Sita pukul 14.00. `GET /active`
+dengan `at=2026-09-15T10:30:00` menjawab dr. Budi. Tanpa `at` pada pukul 16.00 menjawab dr. Sita.
+Dengan `at=2026-09-15T07:00:00` menjawab `404`.
 
 ---
 
@@ -231,12 +259,13 @@ Endpoint ini **tidak pernah** menolak tindakan klinis apa pun; ia hanya membaca.
 
 `Emergency Triage`, `Emergency Triage Detail`, `Emergency Observation`,
 `Emergency Observation Detail`, `Emergency Resuscitation`, `Emergency Procedure Detail`, dan
-`Emergency Disposition` mempertahankan bentuk `0.2.0`, dengan dua pengecualian:
+`Emergency Disposition` mempertahankan bentuk `0.2.0`, dengan tiga pengecualian:
 
 | Grup | Perubahan perilaku, bukan bentuk |
 | --- | --- |
 | `Emergency Triage` | `PATCH /{id}/triage-status` menjadi `Completed` kini **wajib** lewat `CanTransition` dan **menolak** `409` bila kunjungan sudah `Disposed`, `Completed`, atau `Cancelled` |
 | `Emergency Disposition` | `PATCH /{id}/disposition-status` menjadi `Executed` membaca `ClosesEmergencyVisit` untuk menentukan apakah kunjungan menjadi `Disposed` |
+| `Emergency Observation` | **Baru pada `0.5.0`.** `PATCH /{id}/observation-status` dengan target `Completed` atau `Escalated` **menolak** `400` bila catatan lebih dari 1000 karakter; catatan **tidak pernah dipotong diam-diam**. Rincian di validation §8 (`IGD-DEC-119`) |
 
 ---
 
