@@ -460,42 +460,42 @@ contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8,
 
 | Requirement | Keputusan bisnis | Keputusan arsitektur | Kontrak | Task backend | Task frontend | Bukti verifikasi | Keadaan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FR-BKC-087` Permintaan baru langsung dapat dicairkan | `PC-DEC-016` | `PC-DES-015`, `PC-DES-022` | `BIL-API-1.1`, `BIL-STATE-1.0` | `BE-BKC-055` | `FE-BKC-036` | `BIL-AT-101`, `UAT-55` | Direncanakan |
-| `FR-BKC-088` Endpoint dan hak akses persetujuan dihapus | `PC-DEC-016`, `PC-DEC-024` | `PC-DES-021` | `BIL-API-1.1`, `BIL-PERMISSION-0.9` | ⛔ `BE-BKC-056` | `FE-BKC-036` | `BIL-AT-102`, `BIL-AT-103` | ⛔ Tertahan `PC-OQ-007` |
-| `FR-BKC-089` Voucher warisan dipetakan ke kosakata baru | `PC-DEC-016` | `PC-DES-015`, `PC-DES-024` | Kamus data | `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-104`, `BIL-AT-105`, `UAT-57` | Direncanakan |
-| `FR-BKC-090` Voucher warisan `Ditolak` tetap utuh | `PC-DEC-003`, `PC-DEC-016` | `PC-DES-015` | Kamus data | `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-106` | Direncanakan |
-| `FR-BKC-091` Pemesanan saldo dicabut | `PC-DEC-016` | `PC-DES-016` | `BIL-API-1.1` | `BE-BKC-055` | `FE-BKC-035` | `BIL-AT-107`, `BIL-AT-108` | Direncanakan |
-| `FR-BKC-092` Finance membuat periode anggaran | `PC-DEC-017` | `PC-DES-017` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-58` | Direncanakan |
-| `FR-BKC-093` Paling banyak satu periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | `BE-BKC-053`, `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-59` | Direncanakan |
-| `FR-BKC-094` Pergerakan uang hanya pada periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | `BE-BKC-054`, `BE-BKC-055` | — | `BIL-AT-114`, `BIL-AT-115` | Direncanakan |
-| `FR-BKC-095` Penutupan ditolak bila ada permintaan menggantung | `PC-DEC-017` | `PC-DES-018` | `BIL-VALIDATION-1.0` | `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-112`, `UAT-60` | Direncanakan |
-| `FR-BKC-096` Sisa saldo berpindah sebagai dua pergerakan | `PC-DEC-018` | `PC-DES-018`, `PC-DES-019` | `BIL-API-1.1` | `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-111`, `BIL-AT-113`, `UAT-58` | Direncanakan |
-| `FR-BKC-097` Kolam warisan menjadi periode pertama | `PC-DEC-017` | `PC-DES-024` | Kamus data | `BE-BKC-053`, ⛔ `BE-BKC-059` | — | Verifikasi manual data lama | ⛔ Aktivasinya tertahan `PC-OQ-008` |
-| `FR-BKC-098` Pengembalian sisa berkali-kali | `PC-DEC-022` | `PC-DES-019`, `PC-DES-020` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `BIL-AT-117`, `UAT-61` | 🟡 Source ada, bukti Integrasi tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-099` Pengembalian tidak mengubah status | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `UAT-61` | 🟡 Source ada, bukti Integrasi tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-100` Pembalikan mengembalikan sisa di tangan | `PC-DEC-022` | `PC-DES-020` | `BIL-API-1.1` | `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-118` | 🟡 Source ada, bukti Integrasi tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-101` Satu voucher paling banyak satu pembalikan | `PC-DEC-022` | `PC-DES-019` | Kamus data, `BIL-VALIDATION-1.0` | `BE-BKC-053`, `BE-BKC-057` | — | `BIL-AT-119`, `UAT-62` | 🟡 Source ada, bukti Integrasi tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-102` Voucher dibalik berstatus terminal | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-119` | 🟡 Source ada, bukti Integrasi tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-103` Satu halaman memuat empat wilayah | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | Direncanakan |
-| `FR-BKC-104` Kartu ringkasan dari satu panggilan | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Source ada, bukti request HTTP tertunda — [laporan](../task/report/backend/BE-BKC-058.md) |
+| `FR-BKC-087` Permintaan baru langsung dapat dicairkan | `PC-DEC-016` | `PC-DES-015`, `PC-DES-022` | `BIL-API-1.1`, `BIL-STATE-1.0` | ✅ `BE-BKC-055` | `FE-BKC-036` | `BIL-AT-101`, `UAT-55` | 🟡 Backend selesai, `dotnet build` lulus — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-036` belum dikerjakan |
+| `FR-BKC-088` Endpoint dan hak akses persetujuan dihapus | `PC-DEC-016`, `PC-DEC-024` | `PC-DES-021` | `BIL-API-1.1`, `BIL-PERMISSION-0.9` | ✅ `BE-BKC-056` | `FE-BKC-036` | `BIL-AT-102`, `BIL-AT-103` | 🟡 Backend selesai, `PC-OQ-007` tertutup (0 baris) — [laporan](../task/report/backend/BE-BKC-056.md); `FE-BKC-036` belum dikerjakan |
+| `FR-BKC-089` Voucher warisan dipetakan ke kosakata baru | `PC-DEC-016` | `PC-DES-015`, `PC-DES-024` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-104`, `BIL-AT-105`, `UAT-57` | 🟡 Backend selesai, migration diterapkan — [laporan](../task/report/backend/BE-BKC-053.md); `FE-BKC-036` belum dikerjakan |
+| `FR-BKC-090` Voucher warisan `Ditolak` tetap utuh | `PC-DEC-003`, `PC-DEC-016` | `PC-DES-015` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-106` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-053.md); `FE-BKC-036` belum dikerjakan |
+| `FR-BKC-091` Pemesanan saldo dicabut | `PC-DEC-016` | `PC-DES-016` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-035` | `BIL-AT-107`, `BIL-AT-108` | 🟡 Backend selesai, `reservedAmount`/`availableAmount` tidak lagi dibaca service voucher — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-035` belum dikerjakan |
+| `FR-BKC-092` Finance membuat periode anggaran | `PC-DEC-017` | `PC-DES-017` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-58` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` belum dikerjakan |
+| `FR-BKC-093` Paling banyak satu periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-59` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` belum dikerjakan |
+| `FR-BKC-094` Pergerakan uang hanya pada periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054`, ✅ `BE-BKC-055` | — | `BIL-AT-114`, `BIL-AT-115` | 🟡 Backend selesai, request HTTP sungguhan tertunda — [laporan](../task/report/backend/BE-BKC-054.md) |
+| `FR-BKC-095` Penutupan ditolak bila ada permintaan menggantung | `PC-DEC-017` | `PC-DES-018` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-112`, `UAT-60` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` belum dikerjakan |
+| `FR-BKC-096` Sisa saldo berpindah sebagai dua pergerakan | `PC-DEC-018` | `PC-DES-018`, `PC-DES-019` | `BIL-API-1.1` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-111`, `BIL-AT-113`, `UAT-58` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` belum dikerjakan |
+| `FR-BKC-097` Kolam warisan menjadi periode pertama | `PC-DEC-017` | `PC-DES-024` | Kamus data | ✅ `BE-BKC-053`, ⛔ `BE-BKC-059` | — | Verifikasi manual data lama | ⛔ Keputusan `PC-OQ-008` tertutup (`PC-DEC-027`), **eksekusi nyata Finance belum terjadi** — [laporan](../task/report/backend/BE-BKC-059.md) |
+| `FR-BKC-098` Pengembalian sisa berkali-kali | `PC-DEC-022` | `PC-DES-019`, `PC-DES-020` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `BIL-AT-117`, `UAT-61` | 🟡 Backend selesai, `dotnet build` lulus, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` belum dikerjakan |
+| `FR-BKC-099` Pengembalian tidak mengubah status | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `UAT-61` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` belum dikerjakan |
+| `FR-BKC-100` Pembalikan mengembalikan sisa di tangan | `PC-DEC-022` | `PC-DES-020` | `BIL-API-1.1` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-118` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` belum dikerjakan |
+| `FR-BKC-101` Satu voucher paling banyak satu pembalikan | `PC-DEC-022` | `PC-DES-019` | Kamus data, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-057` | — | `BIL-AT-119`, `UAT-62` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
+| `FR-BKC-102` Voucher dibalik berstatus terminal | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-119` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` belum dikerjakan |
+| `FR-BKC-103` Satu halaman memuat empat wilayah | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` belum dikerjakan |
+| `FR-BKC-104` Kartu ringkasan dari satu panggilan | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai, `dotnet build` lulus, bukti request HTTP tertunda — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` belum dikerjakan |
 | `FR-BKC-105` Route lama tetap hidup sebagai pengalihan | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-64` | Direncanakan |
 | `FR-BKC-106` Sidebar memuat satu butir Petty Cash | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-63` | Direncanakan |
-| `FR-BKC-107` Aksi baris digerakkan server | `PC-DEC-016` | `PC-DES-015` | `BIL-API-1.1` | `BE-BKC-055` | `FE-BKC-036` | `UAT-55`, `UAT-57` | Direncanakan |
-| `FR-BKC-108` Aksi berhasil memuat ulang dari server | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | Direncanakan |
+| `FR-BKC-107` Aksi baris digerakkan server | `PC-DEC-016` | `PC-DES-015` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-036` | `UAT-55`, `UAT-57` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-036` belum dikerjakan |
+| `FR-BKC-108` Aksi berhasil memuat ulang dari server | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` belum dikerjakan |
 
 ## 2. Kemampuan asal ke task
 
 | Kemampuan | Sumber | Disposisi | Task |
 | --- | --- | --- | --- |
 | Baseline voucher, anggaran, ledger, kategori | § 20.2 baris baseline | `Ready to reuse` sebagai basis | Seluruh task berdiri di atasnya |
-| Kosakata status dan gerbang pencairan | § 20.2 baris "Hapus gate approval" | `Repair` | `BE-BKC-053`, `BE-BKC-055` |
-| Hak akses persetujuan existing | § 20.2 baris "Permission Approve/Reject" | `Repair` (deprecate) | ⛔ `BE-BKC-056` |
-| Anggaran per periode | § 20.2 baris "Anggaran per periode" | `Missing` | `BE-BKC-053`, `BE-BKC-054` |
-| Carry-forward dan tipe pergerakan baru | § 20.2 baris "Carry-forward" | `Missing` | `BE-BKC-053`, `BE-BKC-054`, `BE-BKC-057` |
-| Pembalikan oleh kasir | § 20.2 baris "Reversal" | `Missing` | `BE-BKC-053`, `BE-BKC-057` |
-| Bukti tetap nomor referensi | § 20.2 baris "Evidence" | `Ready to reuse` — perilaku saja yang berubah | `BE-BKC-055` |
+| Kosakata status dan gerbang pencairan | § 20.2 baris "Hapus gate approval" | `Repair` | ✅ `BE-BKC-053`, ✅ `BE-BKC-055` |
+| Hak akses persetujuan existing | § 20.2 baris "Permission Approve/Reject" | `Repair` (deprecate) | ✅ `BE-BKC-056` |
+| Anggaran per periode | § 20.2 baris "Anggaran per periode" | `Missing` | ✅ `BE-BKC-053`, ✅ `BE-BKC-054` |
+| Carry-forward dan tipe pergerakan baru | § 20.2 baris "Carry-forward" | `Missing` | ✅ `BE-BKC-053`, ✅ `BE-BKC-054`, ✅ `BE-BKC-057` |
+| Pembalikan oleh kasir | § 20.2 baris "Reversal" | `Missing` | ✅ `BE-BKC-053`, ✅ `BE-BKC-057` |
+| Bukti tetap nomor referensi | § 20.2 baris "Evidence" | `Ready to reuse` — perilaku saja yang berubah | ✅ `BE-BKC-055` |
 | Kategori wajib | § 20.2 baris "Kategori" | `Ready to reuse` — tidak disentuh | — |
-| Halaman gabungan | § 20.2 baris "Satu halaman gabungan" | `Reuse with adapter` | `BE-BKC-058`, `FE-BKC-035` |
+| Halaman gabungan | § 20.2 baris "Satu halaman gabungan" | `Reuse with adapter` | ✅ `BE-BKC-058`, `FE-BKC-035` |
 | Integrasi Accounting | § 20.2 baris "Integrasi Accounting" | `Missing`, **sengaja ditunda** | Tidak ada task — `PC-DEC-023` |
 
 ## 3. Coverage gap
@@ -503,13 +503,18 @@ contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8,
 **Tidak ada requirement yatim.** Kedua puluh dua `FR-BKC-087`–`108` punya sekurang-kurangnya satu
 task dan satu bukti verifikasi.
 
-Dua requirement punya task yang tertahan gerbang, dan keduanya dicatat apa adanya, bukan
-disembunyikan:
+**Kedua gerbang yang sebelumnya menahan task backend sudah tertutup 15 September 2026** —
+`BE-BKC-056` (`PC-OQ-007`, 0 baris temuan) kini `✅`. Satu requirement masih punya task yang
+tertahan, dicatat apa adanya, bukan disembunyikan:
 
 | Requirement | Task | Blocker | Yang tetap bisa berjalan |
 | --- | --- | --- | --- |
-| `FR-BKC-088` | ⛔ `BE-BKC-056` | `PC-OQ-007` — pemeriksaan peran | `BE-BKC-055` sudah membuang kedua method dari service; yang tertahan hanya penghapusan atribut dan pembersihan baris hak akses |
-| `FR-BKC-097` | ⛔ `BE-BKC-059` | `PC-OQ-008` — plafon anggaran dari Finance | `BE-BKC-053` sudah memindahkan kolam warisan menjadi periode pertama; yang tertahan hanya penggantian plafon turunan dengan nilai riil |
+| `FR-BKC-097` | ⛔ `BE-BKC-059` | `PC-OQ-008` — **keputusannya sudah tertutup** (`PC-DEC-027`), tetapi eksekusi nyata Finance (membuat+mengaktifkan periode berplafon riil) belum terjadi | `BE-BKC-053`/`054` sudah memindahkan kolam warisan menjadi periode pertama dan menyediakan endpoint pembuatan/aktivasi; yang tertahan murni tindakan operasional Finance, bukan backend engineering |
+
+Seluruh delapan belas requirement backend lain (`FR-BKC-087`–`096`, `098`–`104`, `107`–`108`) kini
+punya task backend `✅` dengan laporan tracked, tetapi **belum sepenuhnya "Selesai"** karena task
+frontend pasangannya (`FE-BKC-035`–`038`) belum dikerjakan — dicatat `🟡` pada tabel § 1, bukan
+`✅`, karena "Selesai" di sini berarti requirement sudah dijawab **kedua** lapisan.
 
 **Catatan kebijakan test backend.** Mengikuti `rules/backend/TEST_POLICY.md`, ketiadaan automated
 backend test **bukan** coverage gap dan tidak memunculkan task pembuatan test. Bukti verifikasi

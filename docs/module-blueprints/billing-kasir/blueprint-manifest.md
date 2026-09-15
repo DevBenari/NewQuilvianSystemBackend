@@ -36,8 +36,13 @@ readiness: >
   Prasyarat implementasi revisi 1.2 yang TERSISA (BUKAN blocker perencanaan): otorisasi terpisah
   untuk membuat dan menjalankan satu migration yang memuat pemutakhiran data status; pemeriksaan
   PC-OQ-007 (peran yang hanya memegang hak akses Approve/Reject) sebelum butir hak akses itu
-  dihapus; dan pengisian periode anggaran pertama oleh Finance (PC-OQ-008) sebelum fitur
-  diaktifkan.
+  dihapus; dan pengisian periode anggaran pertama oleh Finance sebelum fitur diaktifkan.
+  PC-OQ-008 (siapa/kapan/berapa plafon periode pertama) DITUTUP 15 September 2026 lewat
+  PC-DEC-027 (00-interview-decisions.md): tidak ada aktor/tanggal/plafon yang dipatok di depan
+  dan tidak ada tenggat wajib — Finance memakai endpoint self-service BE-BKC-054 kapan pun
+  mereka siap, sistem tetap berjalan memakai periode warisan migrasi sampai saat itu. Yang
+  TERSISA murni eksekusi nyata (BE-BKC-059, bukan task source) dan verifikasi manual database
+  dengan wewenang eksplisit terpisah — bukan lagi blocker keputusan bisnis.
   DESIGN_APPROVED untuk seluruh rumpun sampai Petty Cash (revisi 1.0) — kontrak terkunci;
   wewenang tulis backend/frontend tetap terpisah (`BKC-GATE-09`/`BKC-OQ-092`). Satu prasyarat
   implementasi TERSISA sebelum file model Petty Cash pertama ditulis (BUKAN blocker perencanaan):

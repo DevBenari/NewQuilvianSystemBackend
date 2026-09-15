@@ -1602,3 +1602,33 @@ perbaikan migration, dll). Sebelum `design-business-module` mengunci arsitektur 
 jalankan `trace-existing-capabilities` mode impact scan untuk memastikan tidak ada perubahan
 lain pada `BilPettyCashVoucher`/`BilPettyCashBudget`/`BilPettyCashBudgetMovement` sejak SHA
 tersebut yang belum tercatat.
+
+### Penutupan `PC-OQ-008` (15 September 2026, amendment pass — dipicu blocker implementasi `BE-BKC-059`)
+
+**Konteks.** `PC-OQ-008` pertama kali muncul di `04-prd-to-mvp.md` (bagian blocking question)
+dan `blueprint-manifest.md` (prasyarat implementasi revisi `1.2`), bukan lahir dari pass
+wawancara ini — sehingga belum pernah punya baris di Decision Log ini. Pertanyaannya: siapa yang
+membuat periode anggaran pertama setelah rilis, kapan, dan berapa plafonnya. Ini memblokir
+**aktivasi** task `BE-BKC-059` (murni pengisian data lewat layar, `PC-DES-024`/`PC-OQ-005`
+menetapkan `BE-BKC-053` sudah memindahkan kolam warisan `HOSPITAL_MAIN` menjadi periode pertama
+dengan plafon **turunan** dari `TotalTopUpAmount` historis — bukan angka yang sengaja diputuskan
+Finance), bukan pembangunan source-nya.
+
+Amendment pass ini dipicu Product/Domain Owner secara langsung dalam percakapan implementasi
+`BE-BKC-059`, di luar sesi wawancara utama revisi `1.2`.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `PC-DEC-027` | Decision | **Menutup `PC-OQ-008`.** Tidak ada aktor khusus, tanggal, maupun plafon yang dipatok di depan untuk periode anggaran pertama. Finance membuat dan mengaktifkan periode anggaran riilnya sendiri kapan pun setelah rilis, memakai endpoint self-service yang sudah ada (`POST /budget/periods`, `POST /budget/periods/{id}/activate`, dibangun `BE-BKC-054`) — bukan proses/aktor khusus di luar alur normal. Selama Finance belum bertindak, sistem **tetap berjalan** memakai periode warisan hasil migrasi (`PC-OQ-005`) dengan plafon turunannya; **tidak ada tenggat wajib** dan **tidak ada mekanisme pemblokiran otomatis** (`BIL-VAL-106` tidak ikut disentuh) maupun pengingat sistem yang menandai periode itu sebagai "masih warisan migrasi". Konsekuensi yang disadari dan diterima: plafon turunan bisa terpakai dalam jangka waktu berapa pun bila Finance menunda, tanpa ada peringatan otomatis apa pun. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Tidak ada tenggat wajib" dari 3 opsi bertanda rekomendasi (opsi pengingat dan opsi tenggat keras/pemblokiran TIDAK dipilih) | 15 September 2026 |
+
+**Dampak ke task backend.** `BE-BKC-059` (roadmap `backend-roadmap.md`) tetap `⛔` — keputusan ini
+menjawab **kebijakannya**, tetapi belum ada **eksekusi nyata**: belum ada satu pun periode
+dibuat/diaktifkan di database manapun dengan plafon riil Finance, dan task itu sendiri menuntut
+verifikasi manual database dengan wewenang eksplisit terpisah (`AGENTS.md` bagian Keselamatan
+Database) sebelum boleh ditandai selesai. `PC-DEC-027` menghapus **blocker keputusan bisnisnya**,
+bukan langkah eksekusinya.
+
+**Tidak ada keputusan arsitektur (`PC-DES`) baru yang lahir dari penutupan ini** — opsi yang
+dipilih sengaja TIDAK menambah field, job terjadwal, maupun logika baru pada
+`BilPettyCashBudget`; seluruh mekanisme yang dibutuhkan (endpoint create/activate periode, gerbang
+`BIL-VAL-106`) sudah ada dari `BE-BKC-054`.
