@@ -1916,3 +1916,218 @@ tanggungan perusahaan tidak satu pun dari keempatnya menghasilkan angka yang ben
 Tidak ada task pada gelombang ini yang mengubah rumus, status, atau perilaku bisnis rumpun
 `billing-kasir` lainnya — kecuali satu yang memang disengaja dan sudah disetujui: `BE-BKC-044`
 memperbaiki perhitungan kunjungan berpenjamin perusahaan yang selama ini salah.
+
+---
+
+# Amendment 15 September 2026 — Revisi rumpun Petty Cash, gelombang `MVP-20`–`MVP-23`
+
+| Field | Isi |
+| --- | --- |
+| Blueprint | `BIL-CASH-001`, revisi `1.2`, status **approved** |
+| Masukan keputusan bisnis | `PC-DEC-016`–`PC-DEC-026`, seluruhnya `approved` 15 September 2026 |
+| Masukan keputusan arsitektur | `PC-DES-015`–`PC-DES-025`, seluruhnya `approved` 15 September 2026 lewat `PC-DEC-026` |
+| Kontrak yang berlaku | `BIL-API-1.1`, `BIL-STATE-1.0`, `BIL-VALIDATION-1.0`, `BIL-INTEGRATION-0.9`, `BIL-PERMISSION-0.9`, `BIL-TEST-1.1` — seluruhnya `approved` |
+| Backend SHA | `0ca85ba4610f2745b761d5e092b495bfc35396b0` (branch `Yasmina`) |
+| Frontend SHA | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`) |
+| Acceptance test | `BIL-AT-101`–`BIL-AT-120` |
+| Task | `BE-BKC-053`–`BE-BKC-059` (tujuh task) |
+
+## 0. Yang membedakan gelombang ini dari seluruh gelombang sebelumnya
+
+Ini gelombang pertama pada modul `billing-kasir` yang **mengubah kapabilitas yang sudah berjalan
+di produksi**, bukan membangun yang belum ada. Tiga akibatnya mengikat seluruh task di bawah:
+
+1. **Ada data lama yang MUST ikut dipindahkan.** Voucher dan kolam anggaran yang sudah ada
+   memuat nilai status yang tidak dikenal kode baru. Pemutakhirannya berada di dalam migration
+   yang sama (`PC-DES-024`), bukan langkah manual setelahnya.
+2. **Ada yang dihapus, bukan hanya ditambah.** Dua endpoint, dua butir hak akses, dua field
+   response, dan satu butir menu. Konsumen yang tidak ikut diperbarui **akan** rusak — daftar
+   lengkapnya pada `contracts/api-contract.md` bagian "Perubahan yang merusak konsumen".
+3. **Urutan backend-lalu-frontend menjadi wajib, bukan preferensi.** Layar Petty Cash yang
+   berjalan hari ini memanggil endpoint yang akan hilang. Menjalankan task frontend lebih dulu
+   berarti layar memanggil endpoint yang belum berubah; menjalankan backend lebih dulu berarti
+   ada jeda ketika tombol Setujui menghasilkan `404`. Jeda kedua yang dipilih, karena jauh lebih
+   pendek dan tidak menyentuh uang.
+
+> **QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi** dari `AGENTS.md`
+> backend beserta `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan
+> `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Roadmap ini tidak menggantikannya.
+
+## Grafik Urutan Dependency
+
+```text
+BE-BKC-053 ─┬─> BE-BKC-054 ─┬─> BE-BKC-058 🟡
+            │               │
+            │               └─────────────┬─> BE-BKC-059 ⛔
+            │                             │
+            │         {PC-OQ-008 ⛔} ─────┘
+            │
+            └─> BE-BKC-055 ─┬─> BE-BKC-057 🟡
+                            │
+                            └─────────────┬─> BE-BKC-056 ⛔
+                                          │
+                      {PC-OQ-007 ⛔} ─────┘
+```
+
+`{PC-OQ-007}` = pemeriksaan peran yang hanya memegang hak akses `Approve`/`Reject` sebelum butir
+itu dihapus. `{PC-OQ-008}` = penetapan periode anggaran pertama oleh Finance.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-BKC-053` |
+| 2 | `BE-BKC-053` | `BE-BKC-054`, `BE-BKC-055` — boleh paralel, berbeda service |
+| 3 | `BE-BKC-054` | `BE-BKC-058` |
+| 3 | `BE-BKC-055` | `BE-BKC-057` |
+| — | ⛔ menunggu `PC-OQ-007` dan `BE-BKC-055` | `BE-BKC-056` |
+| — | ⛔ menunggu `PC-OQ-008` dan `BE-BKC-054` | `BE-BKC-059` |
+
+## 1. Pemetaan gelombang MVP ke gelombang eksekusi
+
+| Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
+| --- | --- | --- |
+| `MVP-20` (anggaran per periode) | `BE-BKC-053`, `BE-BKC-054` | Finance dapat membuat, mengaktifkan, dan menutup periode anggaran; sisa saldo berpindah utuh ke periode berikutnya |
+| `MVP-21` (pencairan langsung) | `BE-BKC-055`, ⛔ `BE-BKC-056` | Kasir dapat menyerahkan uang tanpa menunggu persetujuan siapa pun |
+| `MVP-22` (uang kembali) | `BE-BKC-057` | Sisa uang yang dikembalikan penerima dan pencairan yang salah dapat dicatat tanpa menghapus jejak apa pun |
+| `MVP-23` (halaman gabungan + aktivasi) | `BE-BKC-058`, ⛔ `BE-BKC-059` | Satu panggilan menyajikan seluruh angka kartu ringkasan; periode anggaran pertama terisi nilai riil |
+
+**Kenapa `BE-BKC-053` mendahului semuanya.** Ia satu-satunya task yang menyentuh skema dan
+memindahkan data lama. Selama nilai status lama masih ada di tabel, setiap kode baru yang
+membandingkan status akan salah baca — bukan karena logikanya keliru, melainkan karena datanya
+belum berpindah.
+
+## `BE-BKC-053` — Fondasi skema, kosakata status, dan pemindahan data lama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Skema Petty Cash siap menerima alur baru, dan seluruh voucher serta kolam anggaran lama sudah memakai kosakata baru tanpa kehilangan satu baris pun |
+| Gelombang | `MVP-20` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-089`, `FR-BKC-097`; `PC-DES-015`, `PC-DES-017`, `PC-DES-019`, `PC-DES-024` |
+| Kontrak | Kamus data `data/data-dictionary.md` amendment 15 September 2026 |
+| Reuse | Pola migration existing modul ini; `IdentityModel`; index parsial yang sudah dipakai `DISBURSEMENT` |
+| Scope | Empat kolom pada `BilPettyCashBudget` (`PeriodStart`, `PeriodEnd`, `BudgetAmount`, `SupersededByBudgetId`); empat kolom pada `BilPettyCashVoucher` (`ReturnedAmount`, `ReversedBy`, `ReversedAt`, `ReversalReason`); empat nilai `MovementType` baru pada kelas konstanta; kosakata `PettyCashVoucherStatuses` dan `PettyCashBudgetStatuses` baru; tiga EF configuration; **satu migration berisi delapan langkah beserta pemutakhiran data** |
+| Dependency | — |
+| **Gerbang eksternal** | **Pembuatan dan eksekusi migration menuntut otorisasi terpisah.** `PC-DEC-026` menyetujui desainnya, **bukan** menjalankannya. Langkah 6 migration (`APPROVED` dan `WAITING_APPROVAL` sama-sama menjadi `REQUESTED`) **tidak dapat dimundurkan secara sempurna** |
+| Acceptance | `BIL-AT-104`, `BIL-AT-105`, `BIL-AT-106` — voucher warisan ketiga jenis terbaca benar sesudah pemindahan |
+| Verifikasi | Review diff dan scope; `dotnet restore` dan `dotnet build`; verifikasi bentuk kolom dan index terhadap kamus data; verifikasi proses bisnis atas pemetaan status; **verifikasi manual data lama sebelum dan sesudah** dengan wewenang database eksplisit |
+| Risiko/pemilik | **Tertinggi di seluruh gelombang ini.** Pemetaan status menyentuh baris yang mencatat uang yang benar-benar keluar. Jalankan pada salinan terlebih dahulu dan bandingkan jumlah baris per status sebelum dan sesudah. Owner Backend/API |
+| DoD | Kedelapan kolom ada; empat nilai `MovementType` terdaftar; kedua index terpasang; seluruh baris lama memakai nilai status baru; jumlah baris per status sebelum dan sesudah dilaporkan; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## `BE-BKC-054` — Daur hidup periode anggaran dan pemindahan sisa saldo
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Finance dapat membuat, mengaktifkan, dan menutup periode anggaran, dan sisa saldo periode yang ditutup berpindah utuh ke periode penerusnya |
+| Gelombang | `MVP-20` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-092`, `FR-BKC-093`, `FR-BKC-094`, `FR-BKC-095`, `FR-BKC-096`; `PC-DES-017`, `PC-DES-018` |
+| Kontrak | `POST /budget/periods`, `POST /budget/periods/{id}/activate`, `POST /budget/periods/{id}/close`, `GET /budget/periods` (`BIL-API-1.1`); `BIL-VAL-102`–`BIL-VAL-106` |
+| Reuse | `PettyCashBudgetService` yang sudah ada beserta kunci penasihat `pg_advisory_xact_lock` (`PC-DES-011`); pola versi baris dan kunci idempotensi yang sudah dipakai `TOP_UP` |
+| Scope | Tiga method daur hidup pada `PettyCashBudgetService`; carry-forward dua baris ledger dalam satu transaction; empat action pada `PettyCashBudgetController`; DTO periode; **pencabutan seluruh perhitungan `ReservedAmount`** dari service ini |
+| Dependency | `BE-BKC-053` (kolom periode dan kosakata status anggaran harus sudah ada) |
+| Acceptance | `BIL-AT-110`, `BIL-AT-111`, `BIL-AT-112`, `BIL-AT-113`, `BIL-AT-114` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi kontrak API terhadap `BIL-API-1.1`; **verifikasi proses bisnis atas contoh berangka carry-forward** pada `contracts/api-contract.md` — periode lama nol, periode penerus bertambah, keduanya dalam satu transaction; verifikasi runtime dua periode aktif ditolak |
+| Risiko/pemilik | Carry-forward memindahkan uang antar dua baris. Bila hanya satu baris ledger yang lahir, salah satu periode akan selamanya tidak balance. Owner Backend/API |
+| DoD | Keempat endpoint berjalan; dua baris carry-forward terbukti lahir bersamaan; penutupan dengan permintaan menggantung ditolak; `ReservedAmount` tidak lagi dihitung di mana pun; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## `BE-BKC-055` — Pencairan langsung dan pencabutan gerbang persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat menyerahkan uang kas kecil seketika setelah permintaan dibuat, tanpa persetujuan siapa pun, dan saldo tetap tidak dapat menjadi negatif |
+| Gelombang | `MVP-21` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-087`, `FR-BKC-091`; `PC-DES-015`, `PC-DES-016`, `PC-DES-022` |
+| Kontrak | `POST /vouchers`, `POST /vouchers/{id}/disburse`, `POST /vouchers/{id}/cancel`, `GET /vouchers/summary`, `GET /vouchers/filters/metadata` (`BIL-API-1.1`); `BIL-VAL-048`, `BIL-VAL-050`, `BIL-VAL-106` |
+| Reuse | `PettyCashVoucherService` yang sudah ada; penjaga saldo `PC-DES-006` beserta kunci penasihatnya dipertahankan apa adanya |
+| Scope | Status awal voucher menjadi `REQUESTED`; gerbang `DisburseAsync` berubah dari `APPROVED` menjadi `REQUESTED`; **penghapusan `ApproveAsync` dan `RejectAsync`**; syarat pembatalan berubah menjadi "belum dicairkan"; `GetSummaryAsync` dan `AllowedActions` ditulis ulang; label status dibentuk server |
+| Dependency | `BE-BKC-053` (kosakata status voucher harus sudah ada di konstanta dan di data) |
+| Acceptance | `BIL-AT-101`, `BIL-AT-107`, `BIL-AT-108`, `BIL-AT-109`, `BIL-AT-115` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi kontrak API; **verifikasi runtime konkurensi** — dua kasir mencairkan bersamaan dari saldo yang hanya cukup untuk satu, saldo akhir tidak negatif; verifikasi proses bisnis atas hilangnya pemesanan saldo |
+| Risiko/pemilik | Penjaga saldo kini **satu-satunya** pencegah saldo negatif; sebelumnya ada dua lapis. Uji konkurensinya sungguh-sungguh, bukan sekadar membaca kode. Owner Backend/API |
+| DoD | Permintaan baru dapat langsung dicairkan; kedua method persetujuan hilang dari service; `reservedAmount` dan `availableAmount` tidak lagi ada pada response; uji konkurensi terbukti; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## ⛔ `BE-BKC-056` — Pembersihan endpoint dan hak akses persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Endpoint Setujui dan Tolak beserta kedua butir hak aksesnya hilang dari sistem, tanpa meninggalkan peran yang kehilangan seluruh aksesnya diam-diam |
+| Gelombang | `MVP-21` — **tidak diberi nomor gelombang**, tertahan `PC-OQ-007` |
+| Trace | `FR-BKC-088`; `PC-DES-021`, `PC-DEC-024` |
+| Kontrak | Penghapusan `POST /vouchers/{id}/approve` dan `POST /vouchers/{id}/reject` (`BIL-API-1.1`); `BIL-PERMISSION-0.9` |
+| Reuse | `AccessMenuSeeder` yang sudah ada — pendaftarannya berbasis pemindaian atribut |
+| Scope | Dua action beserta atribut `[AccessAction]`/`[AccessPermission]` dihapus dari `PettyCashVouchersController`; lima butir hak akses baru ditambahkan (`PettyCashVoucher : Return`, `Reverse`; `PettyCashBudget : Create`, `Activate`, `Close`); **pembersihan baris `SysActionAccess` lama sebagai langkah tersendiri** |
+| Dependency | `BE-BKC-055` (kedua method service sudah hilang lebih dulu), `{PC-OQ-007}` |
+| **Blocker** | **`PC-OQ-007` MUST diselesaikan lebih dulu**: periksa apakah ada Departemen × Posisi yang **hanya** memegang `PettyCashVoucher : Approve` atau `Reject` dan tidak memegang butir Petty Cash lain. Peran seperti itu akan kehilangan seluruh aksesnya tanpa pesan apa pun — layarnya hanya menjadi kosong. Hasil pemeriksaan dilaporkan ke pemilik modul sebelum penghapusan dijalankan. Penjawab: pemilik arsitektur backend |
+| Acceptance | `BIL-AT-102`, `BIL-AT-103` — kedua endpoint menghasilkan `404` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi kontrak API atas ketiadaan kedua endpoint; **verifikasi manual daftar peran sebelum dan sesudah** dengan wewenang database eksplisit |
+| Risiko/pemilik | Penghapusan butir hak akses belum pernah dilakukan di modul ini. Baris lama tidak hilang otomatis saat atributnya dihapus. Owner Backend/API bersama Security |
+| DoD | Kedua endpoint menghasilkan `404`; lima butir hak akses baru terdaftar; laporan pemeriksaan peran dilampirkan; tidak ada peran yang kehilangan seluruh akses tanpa diberitahu; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ⛔ Tertahan `PC-OQ-007` |
+
+## 🟡 `BE-BKC-057` — Pengembalian sisa uang dan pembalikan pencairan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Sisa uang yang dikembalikan penerima dan pencairan yang seharusnya tidak terjadi dapat dicatat, dan keduanya terbaca terpisah di riwayat |
+| Gelombang | `MVP-22` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-098`, `FR-BKC-099`, `FR-BKC-100`, `FR-BKC-101`, `FR-BKC-102`; `PC-DES-019`, `PC-DES-020` |
+| Kontrak | `POST /vouchers/{id}/returns`, `POST /vouchers/{id}/reversals` (`BIL-API-1.1`); `BIL-VAL-098`, `BIL-VAL-099`, `BIL-VAL-100`, `BIL-VAL-101` |
+| Reuse | Pola pergerakan ledger `DISBURSEMENT` yang sudah ada beserta kunci penasihat dan kunci idempotensinya; `BilPettyCashVoucherCommand` untuk jejak perintah |
+| Scope | `ApplyReturnAsync` dan `ApplyReversalAsync` pada `PettyCashBudgetService`; `ReturnAsync` dan `ReverseAsync` pada `PettyCashVoucherService`; dua action pada controller; DTO; **invariant total pengembalian tidak melampaui nominal voucher**; pembalikan memindahkan voucher ke `REVERSED` |
+| Dependency | `BE-BKC-055` (kosakata status hidup dan gerbang pencairan sudah benar) |
+| Acceptance | `BIL-AT-116`, `BIL-AT-117`, `BIL-AT-118`, `BIL-AT-119` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi kontrak API; **verifikasi proses bisnis atas contoh berangka** pada `contracts/validation-matrix.md` — pengembalian bertahap Rp 50.000 lalu Rp 60.000 sah, Rp 400.000 ditolak, pembalikan sesudahnya sebesar Rp 390.000 |
+| Risiko/pemilik | Pengembalian boleh berkali-kali sedangkan pembalikan hanya sekali. Batas keduanya ditegakkan di tempat berbeda — aturan bisnis untuk pengembalian, index parsial untuk pembalikan. Owner Backend/API |
+| DoD | Kedua endpoint berjalan; pengembalian bertahap terbukti menjumlah benar; pembalikan kedua ditolak di lapis aturan **dan** database; status voucher berpindah hanya pada pembalikan; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN 15 September 2026.** Source kedua endpoint (`POST /vouchers/{id}/returns`, `POST /vouchers/{id}/reversals`) sudah lengkap, termasuk `ApplyReturnAsync`/`ApplyReversalAsync` pada `PettyCashBudgetService` dan gerbang `BIL-VAL-098`–`101` pada `PettyCashVoucherService`, direview manual baris-demi-baris. `dotnet build` **tidak dijalankan** atas instruksi eksplisit pengguna pada sesi ini (`NOT RUN`, bukan `PASS`). Keempat acceptance test (`BIL-AT-116`–`119`, seluruhnya Integrasi) **belum dijalankan** karena migration `BE-BKC-053` (`20260915052849_RevisePettyCashDirectDisbursementAndBudgetPeriod`) masih dalam proses regenerasi terpisah oleh pengguna dan skema pendukungnya belum diterapkan ke database manapun. Butir DoD "`dotnet build` lulus" dan keempat acceptance criteria **belum terpenuhi**. Bukti: [laporan](../task/report/backend/BE-BKC-057.md) |
+
+## 🟡 `BE-BKC-058` — Ringkasan halaman gabungan dan daftar periode
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Layar Petty Cash dapat menyajikan kelima kartu ringkasan dari satu panggilan, tanpa menjumlahkan apa pun sendiri |
+| Gelombang | `MVP-23` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-104`; `PC-DES-025` |
+| Kontrak | `GET /budget/overview` (`BIL-API-1.1`); bentuk `PettyCashOverviewResponse` |
+| Reuse | Query hitungan status yang sudah ada pada `GetSummaryAsync`; pola pagination `PagedResult<T>` |
+| Scope | Satu action ringkasan pada `PettyCashBudgetController`; DTO `PettyCashOverviewResponse` memuat anggaran periode aktif, saldo, pemakaian, sisa, jumlah menunggu bukti, dan jumlah menunggu pencairan; filter `budgetId` pada riwayat pergerakan |
+| Dependency | `BE-BKC-054` (periode anggaran beserta plafon dan sisanya harus sudah ada) |
+| Acceptance | Bagian "Bentuk `PettyCashOverviewResponse`" pada `contracts/api-contract.md` — keenam angka tersedia dalam satu panggilan |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis bahwa sisa anggaran dihitung server, bukan diturunkan layar |
+| Risiko/pemilik | Rendah. Murni query baca. Owner Backend/API |
+| DoD | Endpoint berjalan dan mengembalikan keenam angka; tidak ada angka kartu yang harus dijumlahkan layar; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN 15 September 2026.** Source `GET /budget/overview` sudah lengkap (`GetOverviewAsync`, `PettyCashOverviewResponse`), direview manual baris-demi-baris. `dotnet build` **tidak dijalankan** atas instruksi eksplisit pengguna (`NOT RUN`, bukan `PASS`). Permintaan HTTP sungguhan **belum dijalankan** karena migration `BE-BKC-053` masih dalam proses regenerasi terpisah dan belum diterapkan ke database manapun. Butir DoD "`dotnet build` lulus" dan "endpoint berjalan" **belum terpenuhi**. Bukti: [laporan](../task/report/backend/BE-BKC-058.md) |
+
+## ⛔ `BE-BKC-059` — Aktivasi: pengisian periode anggaran pertama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Ada satu periode anggaran berstatus Aktif berisi plafon riil dari Finance, sehingga kasir benar-benar dapat mencairkan uang |
+| Gelombang | `MVP-23` — **tidak diberi nomor gelombang**, tertahan `PC-OQ-008` |
+| Trace | `FR-BKC-097`; `PC-DEC-017` |
+| Kontrak | `POST /budget/periods`, `POST /budget/periods/{id}/activate` (`BIL-API-1.1`) |
+| Reuse | Endpoint yang dibangun `BE-BKC-054`; tidak ada source baru |
+| Scope | **Bukan task source.** Pengisian data lewat layar oleh Finance, beserta verifikasi bahwa periode warisan hasil migration sudah benar tanggal dan plafonnya |
+| Dependency | `BE-BKC-054` (endpoint pembuatan periode harus sudah ada), `{PC-OQ-008}` |
+| **Blocker** | **`PC-OQ-008` MUST dijawab Finance**: siapa yang membuat periode anggaran pertama setelah rilis, tanggal mulainya kapan, dan plafonnya berapa. Tanpa itu, periode warisan hasil migration memakai plafon turunan `TotalTopUpAmount` — angka yang benar secara aritmetika tetapi **bukan** keputusan anggaran Finance. Ini memblokir **aktivasi** fitur, bukan pembangunannya |
+| Acceptance | Tepat satu periode berstatus Aktif; plafonnya adalah nilai yang ditetapkan Finance, bukan nilai turunan migration; kasir dapat mencairkan tanpa `BIL-VAL-106` |
+| Verifikasi | Verifikasi manual daftar periode dengan wewenang database eksplisit; konfirmasi tertulis Finance atas plafon yang terpasang |
+| Risiko/pemilik | Selama ini tidak diselesaikan, seluruh pencairan ditolak `BIL-VAL-106` walau kodenya benar. Owner Finance bersama pemilik modul |
+| DoD | Satu periode Aktif berisi nilai yang disetujui Finance; pencairan percobaan berhasil; tidak ada baris periode bertanda turunan migration yang masih dipakai sebagai anggaran berjalan |
+| Status | ⛔ Tertahan `PC-OQ-008` |
+
+## Paralelisme dan urutan ringkas
+
+`BE-BKC-053` berdiri sendiri di gelombang 1 dan **MUST** selesai lebih dulu — ia satu-satunya yang
+memindahkan data lama. Sesudahnya `BE-BKC-054` dan `BE-BKC-055` boleh paralel karena menyentuh
+service yang berbeda: yang pertama `PettyCashBudgetService`, yang kedua `PettyCashVoucherService`.
+Titik temunya baru muncul di gelombang 3.
+
+Dua task tertahan gerbang, dan keduanya **bukan** blocker teknis: `BE-BKC-056` menunggu
+pemeriksaan peran, `BE-BKC-059` menunggu keputusan anggaran Finance. Keduanya dapat diselesaikan
+kapan saja secara paralel dengan pekerjaan lain begitu penjawabnya tersedia.
+
+Tidak ada task pada gelombang ini yang mengubah rumus, status, atau perilaku bisnis rumpun
+`billing-kasir` lainnya. Petty Cash tetap tidak menyentuh tagihan pasien, kas fisik shift kasir,
+maupun Accounting (`PC-DES-023`).

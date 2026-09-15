@@ -34,6 +34,28 @@ public sealed class PettyCashBudgetController : ControllerBase
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
 
+    [HttpGet("overview")]
+    [AccessAction("Read", "Read Petty Cash Budget", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("PettyCashBudget", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PettyCashOverviewResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOverview(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<PettyCashOverviewResponse>.Ok(
+                await _service.GetOverviewAsync(cancellationToken), "Ringkasan halaman kas kecil berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+    }
+
+    [HttpGet("periods")]
+    [AccessAction("Read", "Read Petty Cash Budget", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("PettyCashBudget", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PettyCashBudgetResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPeriods([FromQuery] PettyCashBudgetPeriodQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<PettyCashBudgetResponse>>.Ok(
+            await _service.GetPeriodsAsync(request, cancellationToken), "Daftar periode anggaran kas kecil berhasil diambil."));
+
     [HttpGet("movements")]
     [AccessAction("Read", "Read Petty Cash Budget", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("PettyCashBudget", "Read")]
@@ -69,6 +91,38 @@ public sealed class PettyCashBudgetController : ControllerBase
         ExecuteAsync(
             () => _service.AdjustAsync(request, idempotencyKey, CurrentUserId(), cancellationToken),
             "Saldo kas kecil berhasil dikoreksi.");
+
+    [HttpPost("periods")]
+    [AccessAction("Create", "Create Petty Cash Budget Period", AccessType = AccessTypes.Create, SortOrder = 4)]
+    [AccessPermission("PettyCashBudget", "Create")]
+    public Task<IActionResult> CreatePeriod(
+        [FromBody] CreatePettyCashBudgetPeriodRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.CreatePeriodAsync(request, CurrentUserId(), cancellationToken),
+            "Periode anggaran kas kecil berhasil dibuat.");
+
+    [HttpPost("periods/{id:guid}/activate")]
+    [AccessAction("Activate", "Activate Petty Cash Budget Period", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("PettyCashBudget", "Activate")]
+    public Task<IActionResult> ActivatePeriod(
+        Guid id,
+        [FromBody] ActivatePettyCashBudgetPeriodRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.ActivatePeriodAsync(id, request, CurrentUserId(), cancellationToken),
+            "Periode anggaran kas kecil berhasil diaktifkan.");
+
+    [HttpPost("periods/{id:guid}/close")]
+    [AccessAction("Close", "Close Petty Cash Budget Period", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("PettyCashBudget", "Close")]
+    public Task<IActionResult> ClosePeriod(
+        Guid id,
+        [FromBody] ClosePettyCashBudgetPeriodRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.ClosePeriodAsync(id, request, CurrentUserId(), cancellationToken),
+            "Periode anggaran kas kecil berhasil ditutup.");
 
     private async Task<IActionResult> ExecuteAsync(Func<Task<PettyCashBudgetResponse>> command, string successMessage)
     {

@@ -96,3 +96,74 @@ flowchart TD
 Penambahan dan koreksi anggaran kas kecil, beserta cara saldonya dihitung, ada di [`anggaran-petty-cash.md`](anggaran-petty-cash.md). Pengelolaan kategori adalah pengelolaan data induk biasa dan tidak digambar sebagai alur tersendiri.
 
 Alur ini juga **tidak** bersinggungan dengan penutupan shift kasir. Uang kas kecil dan uang kas shift adalah dua kantong yang berbeda; menyerahkan uang kas kecil tidak mengubah hitungan kas shift mana pun.
+
+---
+
+## Amendment 15 September 2026 — Alur baru: pencairan langsung tanpa persetujuan
+
+Status **approved** (`PC-DEC-026`) · input: **`PC-DEC-016`**, `PC-DEC-022`, `PC-DEC-025`; keputusan arsitektur `PC-DES-015`, `PC-DES-020`, `PC-DES-022`.
+
+Diagram di bawah **menggantikan** diagram pada bagian sebelumnya. Bagian lama tetap terbaca sebagai jejak alur yang pernah berlaku sampai 14 September 2026.
+
+Yang berubah pokok: dua kotak keputusan persetujuan hilang seluruhnya, dan dua jalur pengembalian uang muncul di ujung.
+
+### Alur utama beserta jalur pengecualiannya
+
+```mermaid
+flowchart TD
+    subgraph Kasir
+        A[Petugas menerima permintaan uang kas kecil] --> B[Isi nama penerima, kategori, nominal, tujuan]
+        B --> C{Isian lengkap?}
+        C -- Tidak --> C1[Perbaiki isian] --> B
+        C -- Ya --> D[Permintaan tercatat: Menunggu Pencairan]
+        D --> E{Serahkan uang sekarang?}
+        E -- Belum --> E1[Permintaan menunggu di daftar]
+        E1 --> E
+        E -- Batal --> E2[Dibatalkan]
+        E -- Ya --> F{Ada periode anggaran berjalan?}
+        F -- Tidak --> F1[Beritahu Finance membuka periode] --> E1
+        F -- Ya --> G{Saldo mencukupi?}
+        G -- Tidak --> G1[Beritahu Finance menambah saldo] --> E1
+        G -- Ya --> H[Serahkan uang dan catat: Menunggu Bukti]
+    end
+    subgraph Penerima
+        H --> I[Penerima memakai uang]
+        I --> J{Ada sisa uang?}
+        J -- Ya --> K[Penerima mengembalikan sisa]
+        J -- Tidak --> L[Penerima menyerahkan nota]
+        K --> L
+    end
+    subgraph Kasir_lanjutan[Kasir]
+        L --> M[Catat nomor nota: Selesai]
+        M --> N{Nomor nota salah ketik?}
+        N -- Ya --> N1[Koreksi nomor nota, tetap Selesai] --> M
+        N -- Tidak --> O[Pertanggungjawaban tuntas]
+        H --> P{Uang ternyata tidak seharusnya keluar?}
+        M --> P
+        P -- Ya --> Q[Batalkan pencairan, uang kembali penuh]
+        Q --> R[Dibatalkan Uang Dikembalikan]
+    end
+```
+
+### Tabel langkah
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Mencatat permintaan | Kasir/petugas administrasi | Nama penerima, kategori, nominal, tujuan | Permintaan bernomor berstatus `Menunggu Pencairan` | Perbaiki isian yang ditolak; nomor belum terpakai sehingga tidak ada yang terbuang |
+| Menyerahkan uang | Kasir | Permintaan yang belum dicairkan | Uang keluar; status `Menunggu Bukti`; saldo berkurang | Bila belum ada periode berjalan, mintakan Finance membukanya. Bila saldo kurang, mintakan Finance menambahnya. Permintaan tetap menunggu, tidak hangus |
+| Membatalkan permintaan | Kasir/petugas mana pun yang berwenang | Permintaan yang belum dicairkan | Permintaan bertanda `Dibatalkan` | Bila uang sudah terlanjur keluar, pembatalan ditolak — yang tersedia adalah pembatalan pencairan, yang mencatat uang keluar dan kembalinya |
+| Mengembalikan sisa uang | Kasir mencatat, penerima menyerahkan | Nominal sisa beserta keterangannya | Saldo bertambah; status permintaan tidak berubah | Bila nominalnya melebihi sisa yang masih di tangan penerima, catatan ditolak. Periksa kembali berapa yang sudah pernah dikembalikan |
+| Mencatat nomor nota | Kasir/petugas administrasi | Nomor nota atau kwitansi | Status `Selesai` | Bila uangnya belum keluar, pencatatan nota ditolak |
+| Mengoreksi nomor nota | Kasir/petugas administrasi | Nomor nota yang benar | Nomor diperbarui; status tetap `Selesai` | Nomor lama dipertahankan bila koreksinya ditolak |
+| Membatalkan pencairan | Kasir | Alasan pembatalan | Uang kembali penuh ke kolam; status `Dibatalkan (Uang Dikembalikan)` | Bila pencairan itu sudah pernah dibatalkan, permintaan kedua ditolak. Bila pengeluarannya ternyata memang perlu, buat permintaan baru |
+
+### Yang hilang dari alur lama
+
+| Langkah lama | Keadaan | Sebab |
+| --- | --- | --- |
+| Kepala Kasir menyetujui | **Hilang** | `PC-DEC-016` mencabut gerbang persetujuan |
+| Kepala Kasir menolak | **Hilang** | Tidak ada peristiwa keputusan lagi |
+| Menunggu di antrean persetujuan | **Hilang** | Permintaan langsung dapat dicairkan begitu dibuat |
+| Nominal dipesan sejak disetujui | **Hilang** | Tidak ada lagi pemesanan saldo (`PC-DES-016`) |
+
+Permintaan yang dibuat sebelum 15 September 2026 dan masih menunggu — termasuk yang sudah terlanjur disetujui — seluruhnya muncul sebagai `Menunggu Pencairan` dan dapat langsung dicairkan.

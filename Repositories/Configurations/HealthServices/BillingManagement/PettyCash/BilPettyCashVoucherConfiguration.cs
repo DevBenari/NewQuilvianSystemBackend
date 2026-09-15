@@ -11,9 +11,17 @@ public sealed class BilPettyCashVoucherConfiguration : IEntityTypeConfiguration<
         entity.ToTable("BilPettyCashVoucher", "public", table =>
         {
             table.HasCheckConstraint("CK_BilPettyCashVoucher_Amount", "\"Amount\" > 0");
-            table.HasCheckConstraint("CK_BilPettyCashVoucher_Status", "\"Status\" IN ('WAITING_APPROVAL','APPROVED','CASH_RECEIVED','COMPLETED','REJECTED')");
+            // Union nilai lama (WAITING_APPROVAL/APPROVED, masih ditulis
+            // PettyCashVoucherService yang belum disentuh task ini) dan nilai baru
+            // (REQUESTED/REVERSED, PC-DES-015). Dipersempit saat BE-BKC-055 menyentuh
+            // service tersebut.
+            table.HasCheckConstraint("CK_BilPettyCashVoucher_Status", "\"Status\" IN ('WAITING_APPROVAL','APPROVED','CASH_RECEIVED','COMPLETED','REJECTED','REQUESTED','REVERSED')");
             // RejectionReason wajib terisi tepat ketika Status = REJECTED, dan kosong pada status lain.
             table.HasCheckConstraint("CK_BilPettyCashVoucher_RejectionReason", "(\"Status\" = 'REJECTED' AND \"RejectionReason\" IS NOT NULL) OR (\"Status\" <> 'REJECTED' AND \"RejectionReason\" IS NULL)");
+            // Pola identik RejectionReason, untuk status REVERSED (PC-DES-020).
+            table.HasCheckConstraint("CK_BilPettyCashVoucher_ReversalReason", "(\"Status\" = 'REVERSED' AND \"ReversalReason\" IS NOT NULL) OR (\"Status\" <> 'REVERSED' AND \"ReversalReason\" IS NULL)");
+            // Sisa yang dikembalikan tidak pernah negatif maupun melampaui nominal voucher (PC-DES-020, BIL-VAL-098).
+            table.HasCheckConstraint("CK_BilPettyCashVoucher_ReturnedAmount", "\"ReturnedAmount\" >= 0 AND \"ReturnedAmount\" <= \"Amount\"");
         });
 
         entity.HasKey(x => x.Id);
@@ -30,6 +38,9 @@ public sealed class BilPettyCashVoucherConfiguration : IEntityTypeConfiguration<
         entity.Property(x => x.ProofReferenceNumber).HasMaxLength(60);
         entity.Property(x => x.ProofSubmittedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CompletedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ReturnedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.ReversedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ReversalReason).HasMaxLength(500);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");

@@ -2834,3 +2834,249 @@ Rincian skenarionya di [`testing/acceptance-test-matrix.md`](./testing/acceptanc
 | Backend SHA diaudit | `d295c4d59b68d223edc597c8b165b7ef4282b49f` (branch `Yasmina`), beserta working tree yang belum di-commit — lihat `01-existing-capability-map.md` § 19.0 |
 | Frontend SHA diaudit | `0eafa76bf397a47ceb9d44a6f69006ee25f8ba51` (branch `yasmina`) |
 | Status | ~~draft~~ **approved** — `MPY-DES-001`–`017` disetujui Product/Domain Owner 11 September 2026 (`MPY-DEC-012`, wewenang ganda Finance/AR `BKC-DEC-085`). Persetujuan pemilik `RegistrationManagement` atas `MPY-DES-004` ditutup terpisah lewat `MPY-DEC-011` (Muhammad Hamzah). Approval ini **bukan** otorisasi membuat maupun menjalankan migration — itu tetap memerlukan konfirmasi terpisah saat implementasi |
+
+---
+
+# Amendment 15 September 2026 — Revisi rumpun Petty Cash: pencairan langsung, anggaran per periode
+
+> Revisi blueprint `1.2`, status **approved**. Masukan keputusan bisnis: **`PC-DEC-016`–`PC-DEC-025`**, seluruhnya `approved` Product/Domain Owner 15 September 2026 (`00-interview-decisions.md`, amendment "Revisi Petty Cash"). Masukan audit kemampuan: `01-existing-capability-map.md` § 20, diaudit pada backend SHA `0ca85ba4` dan frontend SHA `1f2f2c93c`.
+>
+> Keputusan arsitektur amendment ini diberi ID **`PC-DES-015`–`PC-DES-025`**, melanjutkan sekuens `PC-DES-*` yang berhenti di `PC-DES-014`. Seluruhnya keputusan **teknis** dalam wewenang desain. Statusnya ~~draft~~ **`approved`** — disetujui Product/Domain Owner 15 September 2026 lewat `PC-DEC-026`.
+>
+> **Ini amendment pertama pada rumpun Petty Cash yang MEREVISI desain yang sudah dibangun**, bukan merancang kapabilitas baru. Seluruh tabel, service, controller, dan layar yang dirancang revisi `1.0` sudah berdiri dan berjalan di source (terverifikasi § 20.1, stabil sejak commit `fea81edf`). Karena itu setiap keputusan di bawah menyatakan secara eksplisit apa yang **digantikan**, bukan hanya apa yang ditambahkan.
+>
+> **Bentuk blueprint tidak berubah.** `billing-kasir` tetap `SINGLE`.
+
+## Keputusan lama yang digantikan
+
+Empat keputusan arsitektur revisi `1.0` berstatus **superseded** oleh amendment ini. Keempatnya tidak dihapus dari dokumen — bagian aslinya tetap terbaca sebagai jejak alasan, dan baris di bawah inilah yang berlaku.
+
+| Keputusan lama | Keadaan | Penggantinya | Sebab |
+| --- | --- | --- | --- |
+| `PC-DES-003` (kosakata status lima nilai) | **Dipersempit** | `PC-DES-015` | Dua dari lima status (`APPROVED`, `REJECTED`) lahir dari gerbang persetujuan yang dicabut `PC-DEC-016` |
+| `PC-DES-005` (komitmen `ReservedAmount`) | **Superseded — dicabut utuh** | `PC-DES-016` | Satu-satunya fungsinya menjembatani jeda antara persetujuan dan pencairan. Jeda itu tidak ada lagi |
+| `PC-DES-013` (voucher `REJECTED` immutable tanpa endpoint) | **Menjadi warisan** | `PC-DES-015` | Tidak ada voucher baru yang dapat masuk `REJECTED`; baris lama tetap dilindungi |
+| `PC-DES-014` (satu kolam `HOSPITAL_MAIN`, tanpa periode) | **Superseded** | `PC-DES-017` | `PC-DEC-017` mengganti kolam statis dengan anggaran per periode |
+
+`PC-DES-001`, `002`, `004`, `006`, `007`, `008`, `009`, `010`, `011`, `012` **tetap berlaku apa adanya**. Secara khusus: Petty Cash tetap tidak tersambung ke `BilInvoice`/`BilCashierShift`/`BilSettlement` (`PC-DES-001`), `RecipientName` tetap teks bebas tanpa foreign key (`PC-DES-010`, ditegaskan ulang `PC-DEC-019`), kategori tetap `MstPettyCashCategory` wajib (`PC-DES-002`, ditegaskan ulang `PC-DEC-020`), dan kunci penasihat pada operasi saldo tetap dipakai (`PC-DES-011`).
+
+## Tabel kepemilikan data — delta amendment ini
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Voucher kas kecil | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Anggaran/periode kas kecil | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Ledger pergerakan anggaran | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Kategori kas kecil | `billing-kasir` (master data) | Ya | Tidak — tidak disentuh sama sekali |
+| **Jurnal dan bagan akun** | **`AccountingManagement`** (modul lain) | **Tidak** | **Tidak** — lihat `PC-DES-023` |
+| Kas fisik shift kasir | `billing-kasir` (`BIL-CTX-04`) | Tidak | Tidak — `PC-DEC-001` tetap berlaku |
+| Master pegawai | `HumanResource` (modul lain) | Tidak | Tidak — `PC-DEC-019` menegaskan ulang `PC-DEC-011` |
+
+Amendment ini **tidak menambah satu pun tabel baru**. Seluruh perubahan skema berupa kolom tambahan dan nilai enum tambahan pada tiga tabel yang sudah ada.
+
+## Keputusan arsitektur `PC-DES-015`–`PC-DES-025`
+
+| ID | Keputusan | Turunan dari | Alasan |
+| --- | --- | --- | --- |
+| `PC-DES-015` | **Kosakata status disusun ulang menjadi empat nilai hidup** — `REQUESTED`, `CASH_RECEIVED`, `COMPLETED`, `REVERSED` — ditambah `REJECTED` sebagai **status warisan yang tidak dapat dimasuki voucher baru**. Kode `WAITING_APPROVAL` **diganti nama** menjadi `REQUESTED` (perlu pemutakhiran data); kode `CASH_RECEIVED` **dipertahankan apa adanya** dan hanya labelnya berubah menjadi `Menunggu Bukti`; `APPROVED` dipensiunkan | `PC-DEC-016`, `PC-DEC-025`, `PC-DES-003` | Tiga perlakuan berbeda karena tiga keadaan yang berbeda. `WAITING_APPROVAL` **wajib** diganti nama: artinya berubah total dari "menunggu diputuskan atasan" menjadi "sudah dibuat, belum dicairkan" — membiarkan namanya berarti setiap pembaca database akan salah membacanya selamanya. `CASH_RECEIVED` **tidak boleh** diganti nama: artinya persis sama seperti dulu (uang sudah keluar), dan `PC-DES-003` sudah memisahkan kode mesin dari label tampilan justru supaya perubahan kata di layar tidak menuntut pemutakhiran data. `REJECTED` **tidak boleh** dihapus: barisnya adalah catatan audit permanen menurut `PC-DEC-003`, dan menghapus nilainya berarti membuang alasan penolakan yang pernah ditulis manusia |
+| `PC-DES-016` | **Mekanisme komitmen `ReservedAmount` dicabut seluruhnya.** Tidak ada lagi perhitungan "sisa yang benar-benar bebas"; penjaga saldo tunggal berada di titik pencairan (`PC-DES-006`, tetap berlaku) | `PC-DEC-016`, mencabut `PC-DES-005` | `PC-DES-005` menyatakan sendiri alasan keberadaannya: menjembatani jeda antara pemeriksaan saat persetujuan (`PC-DEC-008`) dan pengurangan saat pencairan (`PC-DEC-009`). Dengan gerbang persetujuan dicabut, kedua titik itu menyatu menjadi satu peristiwa dan jedanya nol. Mempertahankan komitmen berarti memesan saldo untuk voucher yang siapa pun boleh membuatnya tanpa persetujuan siapa pun — sepuluh permintaan iseng akan mengunci kolam dan memblokir pencairan yang sah |
+| `PC-DES-017` | **`BilPettyCashBudget` berubah makna dari kolam statis menjadi baris periode.** Ditambahkan `PeriodStart` (wajib), `PeriodEnd` (opsional), `BudgetAmount`, dan status `DRAFT`/`ACTIVE`/`CLOSED` menggantikan `ACTIVE`/`INACTIVE`. `PoolCode` **dipertahankan** sebagai pengelompokan, dan unique index parsial diubah menjadi "paling banyak satu baris `ACTIVE` per `PoolCode`" | `PC-DEC-017`, mencabut `PC-DES-014` | Membuat tabel periode yang **baru** dan terpisah dari kolam akan memaksa setiap baris ledger memilih menunjuk ke kolam atau ke periode, dan memaksa saldo hidup di dua tempat. Menjadikan baris yang sudah ada sebagai baris periode membuat `BudgetId` pada ledger tetap bermakna tanpa satu pun perubahan relasi. `PoolCode` sengaja tidak dihapus: `PC-DEC-010` menunda multi-kolam, tidak menolaknya, dan kolomnya sudah ada — membuangnya sekarang berarti membangunnya lagi nanti. `PeriodEnd` dibuat opsional supaya periode berjalan yang belum ditentukan akhirnya, termasuk baris warisan, tidak memaksa siapa pun mengarang tanggal |
+| `PC-DES-018` | **Carry-forward saldo ditulis sebagai dua baris ledger dalam satu transaction**: `CARRY_FORWARD_OUT` pada periode yang ditutup (saldonya menjadi nol) dan `CARRY_FORWARD_IN` pada periode penerus (saldonya naik sebesar itu) | `PC-DEC-018` | Satu baris saja tidak cukup karena dua periode yang berbeda sama-sama harus dapat dijumlahkan sendiri dan hasilnya cocok dengan saldo tercatatnya. Bila saldo hanya "berpindah" tanpa baris keluar, periode lama akan selamanya terlihat memiliki sisa yang sebenarnya sudah tidak ada, dan laporan periode itu tidak akan pernah balance |
+| `PC-DES-019` | **Empat nilai `MovementType` baru**: `RETURN`, `REVERSAL`, `CARRY_FORWARD_IN`, `CARRY_FORWARD_OUT`. `TOP_UP`, `DISBURSEMENT`, dan `ADJUSTMENT` tetap | `PC-DEC-018`, `PC-DEC-022`, `PC-OQ-006` | `ADJUSTMENT` sengaja **tidak** dipakai ulang untuk pengembalian maupun pembalikan walaupun secara aritmetika ketiganya menambah saldo. `ADJUSTMENT` adalah koreksi Finance yang tidak menunjuk voucher mana pun; `RETURN` adalah sisa uang yang benar-benar dikembalikan penerima; `REVERSAL` adalah pengakuan bahwa pencairannya seharusnya tidak terjadi. Menyatukan ketiganya membuat pertanyaan "berapa uang yang kembali karena salah cair bulan ini" hanya terjawab dengan membaca kalimat alasan satu per satu |
+| `PC-DES-020` | **`REVERSAL` memindahkan voucher ke status terminal `REVERSED`; `RETURN` tidak mengubah status voucher sama sekali** dan boleh terjadi lebih dari sekali selama total seluruh `RETURN` tidak melampaui nominal voucher | `PC-DEC-022` | Keduanya beda peristiwa. Pembalikan menyatakan pencairannya batal, sehingga voucher tidak boleh lagi terlihat sebagai pengeluaran berjalan — ia butuh status sendiri, dan **tidak boleh** memakai penandaan `IsCancel` yang menurut `PC-DES-007` berarti "dibatalkan sebelum apa pun terjadi". Pengembalian sisa adalah kejadian normal pada kas kecil: penerima diberi Rp 500.000, terpakai Rp 420.000, sisanya kembali. Voucher itu tetap sah, tetap butuh nota, dan tetap harus selesai |
+| `PC-DES-021` | **Endpoint dan hak akses `Approve`/`Reject` dihapus**; ditambahkan hak akses `PettyCashVoucher : Return`, `PettyCashVoucher : Reverse`, `PettyCashBudget : Create`, `PettyCashBudget : Activate`, dan `PettyCashBudget : Close` | `PC-DEC-024`, `PC-DEC-022`, `PC-DEC-017` | Penghapusan mengikuti `PC-DEC-024` apa adanya. Butir hak akses baru tetap dipisah per kemampuan walaupun `PC-DEC-022` memberikan `Return`/`Reverse` kepada kasir biasa: butir hak akses menyatakan **kemampuan**, bukan tingkatan jabatan, dan menggabungkannya ke `Disburse` akan membuat pemberian wewenang mencairkan sekaligus memberikan wewenang membatalkan pencairan orang lain — selamanya, tanpa cara memisahkannya bila kelak dibutuhkan |
+| `PC-DES-022` | **Pembuatan dan pencairan tetap dua endpoint terpisah** (`POST /vouchers` lalu `POST /vouchers/{id}/disburse`), bukan satu aksi gabungan. Layar boleh memanggil keduanya berurutan | `PC-DEC-016`, alur `Flow C` dokumen revisi | Menggabungkannya menjadi satu endpoint atomik terdengar lebih rapi, tetapi menghapus keadaan istirahat yang dokumen revisi sendiri butuhkan: permintaan yang sudah dibuat tetapi **belum** bisa dicairkan karena saldo kurang. Dengan dua endpoint, kegagalan pencairan meninggalkan voucher `REQUESTED` yang sah dan dapat dicairkan lagi setelah Finance menambah saldo. Dengan satu endpoint, kegagalan yang sama membuang seluruh permintaan beserta nomornya |
+| `PC-DES-023` | **Tidak ada satu pun pemanggilan ke `AccountingManagement`.** Ketiadaan ini dicatat sebagai keputusan, bukan sebagai pekerjaan yang belum sempat | `PC-DEC-023` | `AccJournalService` yang ada hari ini membuat setiap jurnal berstatus `Draft` dan mewajibkan siklus `Submit` lalu `Approve` lalu `Post` oleh manusia (terverifikasi § 20.2). Memanggilnya dari Petty Cash berarti gerbang persetujuan yang baru saja dicabut `PC-DEC-016` muncul kembali satu lapis di belakang, di modul yang pemiliknya berbeda. `BilPettyCashBudgetMovement` sudah memenuhi syarat subledger: append-only, ber-`BalanceBefore`/`BalanceAfter`, ber-pelaku, dan ber-waktu |
+| `PC-DES-024` | **Pemutakhiran data lama dikerjakan di dalam migration yang sama**, dengan pemetaan status dan pengisian periode pertama yang disebutkan satu per satu pada Rencana migration di bawah | `PC-DEC-017`, `PC-DEC-016`, `PC-OQ-005` | Memisahkan pemutakhiran data ke langkah manual setelah migration berarti ada jeda ketika kolom `Status` memuat nilai yang tidak dikenal kode baru, dan ketika baris anggaran tidak punya periode sama sekali. Pada jeda itu seluruh layar Petty Cash gagal memuat |
+| `PC-DES-025` | **Satu halaman kanonik** pada route induk yang sudah ada, dengan kedua route lama diarahkan ke sana. Rinciannya di `03-frontend-architecture.md` | `PC-DEC-016`, FE-PC-001/FE-PC-012 dokumen revisi | Dicatat di sini karena berdampak pada backend: halaman gabungan membutuhkan satu endpoint ringkasan yang menyajikan anggaran periode aktif, saldo, pemakaian, sisa, dan jumlah voucher menunggu bukti dalam satu panggilan — bukan empat panggilan terpisah yang dijumlahkan layar |
+
+## Class diagram — `BIL-CTX-06` setelah revisi
+
+```mermaid
+classDiagram
+    class BilPettyCashBudget {
+        +Guid Id
+        +string PoolCode
+        +string PoolName
+        +DateOnly PeriodStart
+        +DateOnly PeriodEnd_nullable
+        +decimal BudgetAmount
+        +decimal CurrentBalance
+        +decimal TotalTopUpAmount
+        +decimal TotalDisbursedAmount
+        +string Status
+        +Guid SupersededByBudgetId_nullable
+        +DateTimeOffset LastMovementAt_nullable
+        +Guid RowVersion
+    }
+    class BilPettyCashBudgetMovement {
+        +Guid Id
+        +Guid BudgetId
+        +string MovementType
+        +decimal Amount
+        +decimal BalanceBefore
+        +decimal BalanceAfter
+        +Guid VoucherId_nullable
+        +string Reason_nullable
+        +Guid ActorUserId
+        +Guid IdempotencyKey_nullable
+        +Guid CorrelationId
+        +DateTimeOffset OccurredAt
+    }
+    class BilPettyCashVoucher {
+        +Guid Id
+        +string VoucherNumber
+        +string RecipientName
+        +Guid CategoryId
+        +decimal Amount
+        +decimal ReturnedAmount
+        +string Purpose
+        +string Status
+        +Guid RequestedBy
+        +DateTimeOffset SubmittedAt
+        +Guid DisbursedBy_nullable
+        +DateTimeOffset DisbursedAt_nullable
+        +Guid ReversedBy_nullable
+        +DateTimeOffset ReversedAt_nullable
+        +string ReversalReason_nullable
+        +string ProofReferenceNumber_nullable
+        +DateTimeOffset CompletedAt_nullable
+        +Guid RowVersion
+    }
+    class BilPettyCashVoucherCommand {
+        +Guid Id
+        +Guid VoucherId
+        +string CommandType
+        +Guid ActorUserId
+        +string ResponseJson_nullable
+    }
+    class MstPettyCashCategory {
+        +Guid Id
+        +string CategoryCode
+        +string CategoryName
+        +bool IsActive
+    }
+    BilPettyCashBudget "1" --> "0..*" BilPettyCashBudgetMovement : ledger
+    BilPettyCashBudget "0..1" --> "0..1" BilPettyCashBudget : diteruskan ke
+    BilPettyCashVoucher "1" --> "0..*" BilPettyCashVoucherCommand : jejak perintah
+    BilPettyCashBudgetMovement "0..*" --> "0..1" BilPettyCashVoucher : pergerakan bervoucher
+    BilPettyCashVoucher "0..*" --> "1" MstPettyCashCategory : kategori
+```
+
+Kolom `PeriodStart`, `PeriodEnd`, `BudgetAmount`, `SupersededByBudgetId`, `ReturnedAmount`, `ReversedBy`, `ReversedAt`, dan `ReversalReason` adalah tambahan amendment ini; akhiran `_nullable` pada diagram menandai kolom opsional. Kolom `DecidedBy`, `DecidedAt`, dan `RejectionReason` **tetap ada** di tabel dan tidak dihapus — ketiganya memuat jejak keputusan persetujuan yang pernah terjadi sebelum `PC-DEC-016`, dan pada voucher baru ketiganya selalu kosong.
+
+## Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `BilPettyCashBudget` | **Diperbarui** | `Areas/HealthServices/BillingManagement/PettyCash/Models/BilPettyCashBudget.cs` | Tambah `PeriodStart`, `PeriodEnd`, `BudgetAmount`, `SupersededByBudgetId`. Nilai `Status` berubah dari `ACTIVE`/`INACTIVE` menjadi `DRAFT`/`ACTIVE`/`CLOSED` |
+| `BilPettyCashBudgetMovement` | **Diperbarui** | `.../PettyCash/Models/BilPettyCashBudgetMovement.cs` | Tambah empat nilai `MovementType`. Nol kolom baru |
+| `BilPettyCashVoucher` | **Diperbarui** | `.../PettyCash/Models/BilPettyCashVoucher.cs` | Tambah `ReturnedAmount`, `ReversedBy`, `ReversedAt`, `ReversalReason`. Nilai `Status` disusun ulang (`PC-DES-015`) |
+| `BilPettyCashVoucherCommand` | **Sudah ada** | `.../PettyCash/Models/BilPettyCashVoucherCommand.cs` | Tidak berubah bentuk; bertambah nilai `CommandType` `RETURNED` dan `REVERSED`, sedangkan `APPROVED`/`REJECTED` tidak lagi dipakai perintah baru |
+| `MstPettyCashCategory` | **Sudah ada** | `Areas/HealthServices/BillingManagement/MasterData/Models/MstPettyCashCategory.cs` | **Tidak disentuh sama sekali** (`PC-DEC-020`) |
+| `PettyCashVoucherService` | **Diperbarui** | `.../PettyCash/Services/PettyCashVoucherService.cs` | Hapus `ApproveAsync`/`RejectAsync`; `DisburseAsync` digerbangi `REQUESTED` (bukan `APPROVED`); tambah `ReturnAsync`/`ReverseAsync`; `GetSummaryAsync` dan `AllowedActions` ditulis ulang mengikuti kosakata baru |
+| `PettyCashBudgetService` | **Diperbarui** | `.../PettyCash/Services/PettyCashBudgetService.cs` | Hapus seluruh perhitungan `ReservedAmount` (`PC-DES-016`); tambah `CreatePeriodAsync`, `ActivatePeriodAsync`, `ClosePeriodAsync` beserta carry-forward (`PC-DES-018`); tambah `ApplyReturnAsync`/`ApplyReversalAsync` |
+| `PettyCashVouchersController` | **Diperbarui** | `.../PettyCash/Controllers/PettyCashVouchersController.cs` | Hapus dua action beserta atribut hak aksesnya; tambah dua action |
+| `PettyCashBudgetController` | **Diperbarui** | `.../PettyCash/Controllers/PettyCashBudgetController.cs` | Tambah tiga action daur hidup periode dan satu endpoint ringkasan halaman gabungan |
+| `PettyCashCategoriesController` | **Sudah ada** | `.../MasterData/Controllers/PettyCashCategoriesController.cs` | Tidak disentuh |
+| `BilPettyCashBudgetConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/PettyCash/BilPettyCashBudgetConfiguration.cs` | Unique index parsial diubah menjadi satu `ACTIVE` per `PoolCode`; index baru pada `(PoolCode, PeriodStart)` |
+| `BilPettyCashBudgetMovementConfiguration` | **Diperbarui** | `.../PettyCash/BilPettyCashBudgetMovementConfiguration.cs` | Tambah unique index parsial kedua untuk `REVERSAL` |
+| `BilPettyCashVoucherConfiguration` | **Diperbarui** | `.../PettyCash/BilPettyCashVoucherConfiguration.cs` | Penyesuaian panjang kolom baru |
+
+## Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/PettyCash/
+├── Models/
+│   ├── BilPettyCashBudget.cs             # diperbarui — 4 kolom, status baru
+│   ├── BilPettyCashBudgetMovement.cs     # diperbarui — 4 nilai MovementType
+│   ├── BilPettyCashVoucher.cs            # diperbarui — 4 kolom, kosakata status
+│   └── BilPettyCashVoucherCommand.cs     # sudah ada — nilai CommandType saja
+├── Dtos/
+│   ├── PettyCashBudgetDtos.cs            # diperbarui — DTO periode + ringkasan gabungan
+│   └── PettyCashVoucherDtos.cs           # diperbarui — DTO return/reversal
+├── Services/
+│   ├── PettyCashBudgetService.cs         # diperbarui
+│   ├── PettyCashVoucherService.cs        # diperbarui
+│   └── PettyCashVoucherValidationException.cs  # sudah ada
+└── Controllers/
+    ├── PettyCashBudgetController.cs      # diperbarui
+    └── PettyCashVouchersController.cs    # diperbarui
+
+Repositories/Configurations/HealthServices/BillingManagement/PettyCash/
+├── BilPettyCashBudgetConfiguration.cs           # diperbarui
+├── BilPettyCashBudgetMovementConfiguration.cs   # diperbarui
+├── BilPettyCashVoucherCommandConfiguration.cs   # sudah ada
+└── BilPettyCashVoucherConfiguration.cs          # diperbarui
+```
+
+Nol file baru. Nol folder baru. `PC-OQ-003` (baris registry kepemilikan untuk folder `PettyCash/`) sudah tidak relevan bagi amendment ini karena tidak ada berkas model pertama yang dibuat — folder dan seluruh isinya sudah berdiri.
+
+## Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+| --- | --- | --- | --- |
+| `BilPettyCashBudget` | **Diperbarui** | `+PeriodStart` (`date`, NOT NULL), `+PeriodEnd` (`date`, NULL), `+BudgetAmount` (`numeric(18,2)`, NOT NULL default `0`), `+SupersededByBudgetId` (`uuid`, NULL, FK ke tabel sendiri, `Restrict`); nilai `Status` dipetakan ulang | Butuh pengisian data lama |
+| `BilPettyCashBudgetMovement` | **Diperbarui** | Nol kolom. Hanya nilai `MovementType` bertambah (kolom teks, tidak ada constraint enum di database) | Tidak butuh pengisian data lama |
+| `BilPettyCashVoucher` | **Diperbarui** | `+ReturnedAmount` (`numeric(18,2)`, NOT NULL default `0`), `+ReversedBy` (`uuid`, NULL), `+ReversedAt` (`timestamptz`, NULL), `+ReversalReason` (`varchar(500)`, NULL); nilai `Status` dipetakan ulang | Butuh pengisian data lama |
+| `BilPettyCashVoucherCommand` | **Sudah ada** | Nol | Tidak ada |
+| `MstPettyCashCategory` | **Sudah ada** | Nol | Tidak ada |
+
+## Rencana migration
+
+Satu migration, nama usulan `RevisePettyCashDirectDisbursementAndBudgetPeriod`.
+
+| Urutan | Langkah | Tanpa mematikan layanan? | Langkah mundur |
+| --- | --- | :---: | --- |
+| 1 | Tambah keempat kolom `BilPettyCashBudget` sebagai NULL dulu, kecuali `BudgetAmount` yang langsung NOT NULL berdefault `0` | Ya | `DropColumn` keempatnya |
+| 2 | Isi `PeriodStart` baris warisan dari tanggal `CreateDateTime` baris itu sendiri; `PeriodEnd` dibiarkan NULL (periode berjalan, `PC-DES-017`); `BudgetAmount` diisi dari `TotalTopUpAmount` baris itu | Ya | Tidak perlu — kolomnya ikut terbuang langkah 1 |
+| 3 | Naikkan `PeriodStart` menjadi NOT NULL | Ya | Turunkan kembali menjadi NULL |
+| 4 | Petakan `BilPettyCashBudget.Status`: `ACTIVE` menjadi `ACTIVE`, `INACTIVE` menjadi `CLOSED` | Ya | Petakan balik `CLOSED` menjadi `INACTIVE` |
+| 5 | Tambah keempat kolom `BilPettyCashVoucher` | Ya | `DropColumn` keempatnya |
+| 6 | Petakan `BilPettyCashVoucher.Status`: `WAITING_APPROVAL` menjadi `REQUESTED`; **`APPROVED` menjadi `REQUESTED`**; `CASH_RECEIVED`, `COMPLETED`, `REJECTED` tetap | Ya | Petakan balik `REQUESTED` menjadi `WAITING_APPROVAL` — **tidak sempurna**, lihat catatan |
+| 7 | Ganti unique index parsial kolam menjadi satu `ACTIVE` per `PoolCode`; tambah index `(PoolCode, PeriodStart)` | Ya | Kembalikan index lama |
+| 8 | Tambah unique index parsial `(VoucherId)` untuk `MovementType = 'REVERSAL'` | Ya | Buang index itu |
+
+> **Langkah 6 tidak dapat dimundurkan secara sempurna, dan itu disengaja.** Voucher yang sebelumnya `APPROVED` dan yang sebelumnya `WAITING_APPROVAL` sama-sama menjadi `REQUESTED`, sehingga perbedaan keduanya tidak dapat dipulihkan dari kolom `Status` saja. Pemulihannya tetap mungkin lewat `BilPettyCashVoucherCommand` (setiap persetujuan meninggalkan barisnya sendiri, `PC-DES-009`) dan lewat kolom `DecidedBy`/`DecidedAt` yang sengaja **tidak** dihapus (`PC-DES-015`). Keduanya cukup untuk merekonstruksi, tetapi rekonstruksinya bukan satu perintah SQL.
+
+> **Pembuatan dan eksekusi migration adalah wewenang terpisah.** Approval atas `PC-DES-015`–`025` **bukan** otorisasi membuat maupun menjalankan migration ini.
+
+## Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| `MstPettyCashCategory` | Tidak berubah — isi yang sudah ada tetap dipakai | Finance (`PC-DEC-012`) |
+| `BilPettyCashBudget` | Baris warisan `HOSPITAL_MAIN` menjadi **periode pertama** lewat langkah 2–4 migration. Tidak ada baris baru yang di-seed | `PC-DES-024` |
+
+Periode kedua dan seterusnya **tidak** di-seed: pembuatannya adalah pekerjaan Finance lewat layar, dan mengarang periode berikutnya di migration berarti menebak tanggal yang hanya Finance yang tahu.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel periode anggaran yang terpisah dari kolam | `PC-DES-017`. Saldo akan hidup di dua tempat dan setiap baris ledger harus memilih menunjuk ke mana |
+| Status `EVIDENCE_SUBMITTED` terpisah dari `SETTLED` | `PC-DEC-025`. Tidak ada peristiwa yang dapat memindahkan voucher di antara keduanya setelah `PC-DEC-021` menetapkan bukti hanya berupa nomor referensi |
+| Entity `BilPettyCashEvidence` tersendiri beserta unggahan berkas | `PC-DEC-021`. Bukti tetap berupa nomor referensi pada baris voucher; tidak ada integrasi storage service pada revisi ini |
+| Pemanggilan `AccJournalService` dari Petty Cash | `PC-DES-023`, `PC-DEC-023` |
+| Memakai `ADJUSTMENT` untuk pengembalian dan pembalikan | `PC-DES-019`. Tiga peristiwa bisnis berbeda yang kebetulan sama arah aritmetikanya |
+| Menghapus nilai status `REJECTED` beserta kolom `DecidedBy`/`DecidedAt`/`RejectionReason` | `PC-DES-015`. Baris lama adalah catatan audit permanen (`PC-DEC-003`), dan alasan penolakan yang pernah ditulis manusia tidak boleh hilang karena alur berubah |
+| Endpoint gabungan "buat sekaligus cairkan" | `PC-DES-022`. Menghapus keadaan istirahat yang dibutuhkan saat saldo kurang |
+| Mengganti nama kode `CASH_RECEIVED` | `PC-DES-015`. Artinya tidak berubah; hanya labelnya |
+
+## Keamanan dan privasi
+
+Tidak berubah dari revisi `1.0`. `RecipientName`, `Purpose`, `Reason`, dan `ReversalReason` bertanda **Sensitif** dan **MUST NOT** masuk payload custom logger. Kolom baru `ReversalReason` mengikuti perlakuan `Reason` yang sudah ada. Petty Cash tetap tidak menyentuh satu pun data pasien.
+
+## Ringkasan amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `PC-DEC-016`–`PC-DEC-025`, seluruhnya `approved` 15 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 20 |
+| Keputusan arsitektur | `PC-DES-015`–`PC-DES-025`, seluruhnya **approved** (`PC-DEC-026`) |
+| Keputusan lama yang digantikan | `PC-DES-003` (dipersempit), `PC-DES-005` (dicabut), `PC-DES-013` (menjadi warisan), `PC-DES-014` (superseded) |
+| Dampak skema | **Nol tabel baru.** Delapan kolom baru pada dua tabel, empat nilai `MovementType` baru, dua index diubah/ditambah, **satu migration** yang memuat pemutakhiran data |
+| Ketergantungan lintas modul | **Nol.** `PC-DES-023` mencatat ketiadaan sambungan ke Accounting sebagai keputusan |
+| Backend SHA diaudit | `0ca85ba4610f2745b761d5e092b495bfc35396b0` (branch `Yasmina`) |
+| Frontend SHA diaudit | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`) |
+| Status | ~~draft~~ **approved** — `PC-DES-015`–`025` disetujui Product/Domain Owner 15 September 2026 (`PC-DEC-026`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration, dan **bukan** otorisasi menghapus butir hak akses sebelum `PC-OQ-007` diperiksa |
