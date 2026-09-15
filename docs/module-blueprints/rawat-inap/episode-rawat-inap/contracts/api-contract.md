@@ -3,13 +3,130 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.6.1` |
-| Status | `draft` |
+| `contract_version` | `0.8.0` |
+| `last_changed_in` | `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
-| `approved_by` / `approved_at` | Belum ada |
+| `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
 | `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+
+
+### Perubahan pada `contract_version` `0.8.0`
+
+**Status: `approved` sejak 11 September 2026** lewat `RWI-DEC-105`. Amandemen ini menyerap `RWI-DEC-101`, yang menutup temuan `P0` nomor satu pada `PRD-to-MVP-Rawat-Inap-V2`.
+
+**Masalah yang ditutupnya.** Kelayakan tempat tidur ikut menilai jenis kelamin **penghuni kamar
+lain**. Akibatnya kamar berisi satu pasien laki-laki menolak seluruh pasien perempuan, walaupun
+tempat tidur yang dituju memang dikonfigurasi Admin Master Data untuk menerima keduanya. Keputusan
+privasi berubah menjadi akibat sampingan dari siapa yang kebetulan datang lebih dulu, dan petugas
+admisi tidak punya jalan keluar selain memindahkan pasien yang sudah dirawat.
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Kode penolakan `ROOM_GENDER_MIXED` **dihapus seluruhnya**. Ia tidak lagi muncul pada `failures[]` mana pun, baik pada pencarian, pemesanan, penempatan, maupun perpindahan | `RWI-DEC-101`; `MVP-RWI-D-002` |
+| Aturan nomor 6 pada Kelayakan Penempatan **dipensiunkan**. Nomor 6 dibiarkan kosong dan tidak dipakai ulang | `RWI-DEC-101` |
+| Aturan nomor 5 `PATIENT_GENDER_UNKNOWN` **dipersempit**: syaratnya kini hanya tempat tidur menerima laki-laki dan perempuan sekaligus. Syarat "kamar belum berpenghuni" dicabut | `RWI-DEC-101`; `FR-MVP-EP-006` |
+| `BED_GENDER_MISMATCH` aturan 4 **tidak berubah sama sekali** | `RWI-RULE-012` B.1 tetap berlaku |
+| `ISOLATION_REQUIRED` aturan 7 dan `ISOLATION_BED_RESERVED` aturan 8 **tidak berubah sama sekali** | `RWI-RULE-012` bagian A tidak tersentuh |
+| Pengecualian boks bayi **tidak berubah** | `RWI-RULE-012` B.5 tetap berlaku |
+
+**Kenapa ini perubahan yang merusak, dan bagi siapa.** Bagi pemanggil yang hanya membaca daftar
+bed yang lolos, perubahan ini **menambah** bed yang sebelumnya tertolak, sehingga tidak ada bentuk
+response yang berubah. Yang rusak adalah pemanggil yang **memetakan kode penolakan**: frontend
+menyimpan `ROOM_GENDER_MIXED` pada `inpatient-placement-utils.jsx`, dan tiga berkas test
+menguncinya, yaitu `tests/unit/inpatient-placement.test.mjs` pada tiga tempat serta
+`tests/e2e/inpatient-episode-detail.spec.mjs`. Karena itu backend dan frontend **wajib berada pada
+satu gelombang rilis**; menurunkan salah satunya lebih dulu meninggalkan test yang menguji kode
+yang sudah tidak pernah terbit.
+
+**Contoh perubahan perilaku yang dapat diuji.** Kamar Melati 1 berisi tiga tempat tidur yang
+seluruhnya dikonfigurasi `IsForMale` dan `IsForFemale` bernilai benar. Pukul 08:00 Tn. Budi
+menempati `MELATI-01-A`.
+
+| Keadaan | Sebelum `0.8.0` | Sejak `0.8.0` |
+| --- | --- | --- |
+| Ny. Sari ditempatkan ke `MELATI-01-B` | **Ditolak** `422 ROOM_GENDER_MIXED` | **Berhasil** |
+| Pasien laki-laki ke tempat tidur bertanda perempuan saja | Ditolak `422 BED_GENDER_MISMATCH` | **Tetap ditolak** `422 BED_GENDER_MISMATCH` |
+| Pasien tanpa jenis kelamin tercatat ke `MELATI-01-B` | **Ditolak** `422 PATIENT_GENDER_UNKNOWN` karena kamar sudah berpenghuni | **Berhasil**, karena tempat tidurnya menerima keduanya |
+| Pasien tanpa jenis kelamin tercatat ke tempat tidur perempuan saja | Ditolak `422 PATIENT_GENDER_UNKNOWN` | **Tetap ditolak** `422 PATIENT_GENDER_UNKNOWN` |
+| Pasien tanpa kebutuhan isolasi ke tempat tidur isolasi | Ditolak `422 ISOLATION_BED_RESERVED` | **Tetap ditolak** `422 ISOLATION_BED_RESERVED` |
+
+### Perubahan pada `contract_version` `0.7.0`
+
+**Status: `approved` sejak 10 September 2026.** Gerbang persetujuan pemilik dicabut hari itu,
+dan `BE-RWI-069` langsung dikerjakan pada tanggal yang sama — lihat
+[laporan `BE-RWI-069`](../task/report/backend/BE-RWI-069.md). `FE-RWI-057` pada roadmap frontend
+**tidak** ikut terbuka oleh approval ini; gerbangnya sendiri diputuskan terpisah.
+
+> **Keadaan sebelumnya, disimpan sebagai jejak.** Sampai 9 September 2026 versi ini berstatus
+> `draft`, dan selama itu `BE-RWI-069` serta `FE-RWI-057` berstatus
+> `BLOCKED_PENDING_OWNER_APPROVAL` pada roadmap masing-masing.
+
+Masalah yang ditutupnya. Layar pemilihan tempat tidur hari ini hanya menerima daftar bed yang
+**lolos** kelayakan. Bed yang ditolak hilang begitu saja tanpa satu pun keterangan, sehingga layar
+terpaksa menebak dari kolom seadanya dan berakhir pada kalimat "Tidak lolos kelayakan". Kalimat itu
+tidak memberitahu petugas apa pun. Padahal server sudah menghitung alasannya lengkap untuk setiap
+bed, lalu membuangnya di `SearchAvailableBedsAsync`.
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `GET /bed-occupancies/available-beds` menerima query baru `includeIneligible`, bawaannya `false` | `RWI-RULE-012`; bukti runtime pemilik 9 September 2026 |
+| `AvailableBedPagedResult` mendapat field baru `ineligible`, berisi daftar `{ bedId, failures[] }` | Bentuk `failures[]` **sudah ada**, dipakai jawaban 422 pada bagian Bed Occupancy |
+| Nol Resource baru, nol Action baru, nol endpoint baru | Hak aksesnya tetap `InpatientBedOccupancy : Read` |
+
+**Kenapa aditif dan aman.** `includeIneligible` bawaannya mati, sehingga setiap pemanggil lama
+menerima jawaban yang sama persis seperti sebelumnya. Field `ineligible` terkirim sebagai array
+kosong bagi pemanggil yang tidak memintanya. Tidak ada bentuk lama yang berubah dan tidak ada
+pemanggil lama yang perlu disesuaikan.
+
+**Batas yang mengikat.** Daftar `ineligible` hanya diisi ketika `episodeId` ikut dikirim. Tanpa
+episode, empat dari delapan aturan kelayakan tidak dapat dinilai sama sekali, sehingga alasan yang
+dikirim akan menyesatkan. Permintaan `includeIneligible=true` tanpa `episodeId` dijawab dengan
+`ineligible` kosong, bukan dengan tebakan sebagian.
+
+Contoh jawaban, dipersingkat pada bagian yang tidak berubah.
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalData": 1,
+    "totalPage": 1,
+    "items": [
+      { "bedId": "ea773e3d-5cca-4883-b112-26b83b6746b1", "bedCode": "BD-RSMMC-00003" }
+    ],
+    "ineligible": [
+      {
+        "bedId": "4842ce58-a1c9-481f-b691-aa6c5cbc88f9",
+        "failures": [
+          {
+            "ruleNumber": 4,
+            "code": "BED_GENDER_MISMATCH",
+            "message": "Tempat tidur ini hanya menerima pasien perempuan.",
+            "statusCode": 422
+          }
+        ]
+      },
+      {
+        "bedId": "f24fe210-b852-45c7-9813-8253597c1e71",
+        "failures": [
+          {
+            "ruleNumber": 8,
+            "code": "ISOLATION_BED_RESERVED",
+            "message": "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi.",
+            "statusCode": 422
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ### Perubahan pada `contract_version` `0.2.0`
 
@@ -146,7 +263,7 @@ Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku | `InpatientBedOccupancy : Read` | Query | `ApiResponse<AvailableBedPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku. Sejak `0.7.0` dapat sekaligus menyebutkan tempat tidur yang **ditolak** beserta aturan yang menolaknya | `InpatientBedOccupancy : Read` | Query, termasuk `includeIneligible` sejak `0.7.0` | `ApiResponse<AvailableBedPagedResult>`, dengan field `ineligible` sejak `0.7.0` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026. Bagian `ineligible` ikut ✅ **Tersedia** sejak 10 Sep 2026 lewat `BE-RWI-069` |
 | `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` + metadata aditif [`RWI-BED-BOARD-RESERVATION-001 1.0.0`](bed-board-reservation-metadata-contract.md) | ✅ **Tersedia** — metadata reservasi aktif dilengkapi `BE-RWI-036` pada 1 Sep 2026 |
 | `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 | `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |

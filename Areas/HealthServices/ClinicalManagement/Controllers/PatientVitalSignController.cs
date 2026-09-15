@@ -796,42 +796,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Vital Sign", Description = "Menghapus data tanda vital pasien", AccessType = AccessTypes.Delete, SortOrder = 7)]
-        [AccessPermission("PatientVitalSign", "Delete")]
-        public async Task<IActionResult> DeleteVitalSign(Guid id)
-        {
-            var entity = await _dbContext.Set<TrxPatientVitalSign>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Tanda vital pasien tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsDelete = true;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.IsActive = false;
-            entity.NeedDoctorNotification = false;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Tanda vital pasien berhasil dihapus."
-            ));
-        }
+        // BE-RWI-077 / RWI-DEC-098 / api-contract.md 0.4.0 bagian 0.A.1. Jalur hapus tanda
+        // vital DICABUT, dan tempatnya sengaja ditinggalkan bertanda supaya tidak dipasang
+        // kembali karena terlihat hilang.
+        //
+        // Yang dulu ada di sini: HttpDelete("{id:guid}") -> soft delete tanpa memeriksa status,
+        // tanpa alasan, tanpa memeriksa penulis, dan ikut mematikan NeedDoctorNotification.
+        // Akibatnya satu titik pada deret waktu perburukan pasien dapat hilang tanpa
+        // meninggalkan lubang yang terlihat, dan penanda pemberitahuan ke dokter ikut padam
+        // diam-diam. Grafiknya tetap tampak wajar justru karena barisnya sudah tidak ada.
+        //
+        // Penggantinya sudah ada dan tidak perlu dibuat: salah catat yang belum final
+        // dibatalkan beralasan lewat PATCH /{id}/cancel di atas - pembatalan menyimpan
+        // CancelReason, CancelledAt, dan CancelledByUserId, sehingga barisnya tetap terbaca
+        // pada lini masa. Dokumen yang sudah final atau terverifikasi dikoreksi lewat addendum
+        // milik MedicalRecordManagement.
+        //
+        // Route ini karena itu tidak lagi terdaftar, dan permintaan DELETE dijawab 404 oleh
+        // routing - bukan 403, karena tidak ada hak akses yang dapat membukanya kembali.
+        // Butir hak akses "Delete Patient Vital Sign" ikut hilang dari layar Akses Role,
+        // sebagaimana dituntut kontrak.
 
         private IQueryable<TrxPatientVitalSign> BuildBaseQuery()
         {

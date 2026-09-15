@@ -327,8 +327,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
 
+            // Hanya baris DPJP yang ditutup pengalihan. Konsulen dan dokter jaga yang sedang
+            // aktif TIDAK ikut tergusur — itulah inti RWI-DEC-099, dan tanpa saringan peran
+            // ini pengalihan DPJP akan mengakhiri seluruh konsultasi yang masih berjalan.
             var activeAssignments = await _dbContext.Set<InpDoctorAssignment>()
-                .Where(x => x.EpisodeId == episode.Id && x.EndDateTime == null && !x.IsDelete)
+                .Where(x =>
+                    x.EpisodeId == episode.Id &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    x.EndDateTime == null &&
+                    !x.IsDelete)
                 .OrderBy(x => x.SequenceNumber)
                 .ToListAsync(cancellationToken);
 
@@ -378,6 +385,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     Id = Guid.NewGuid(),
                     EpisodeId = episode.Id,
                     DoctorId = request.DoctorId,
+                    AssignmentRole = InpDoctorAssignmentRole.Dpjp,
                     SequenceNumber = lastSequence + 1,
                     StartDateTime = now,
                     EndDateTime = null,
@@ -403,8 +411,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await transaction.RollbackAsync(cancellationToken);
 
                 // Dua pengalihan pada saat hampir bersamaan. Unique index parsial
-                // IX_InpDoctorAssignment_EpisodeId_Active menolak yang kalah, sehingga
-                // INV-INP-03 tetap tidak pernah dilanggar.
+                // IX_InpDoctorAssignment_EpisodeId_ActiveDpjp menolak yang kalah, sehingga
+                // INV-INP-03 tetap tidak pernah dilanggar. Sejak BE-RWI-074 filternya
+                // membaca peran, sehingga penolakan itu hanya mengenai baris DPJP.
                 return InpEpisodeOperationResult.Conflict(
                     "Pengalihan DPJP lain sedang tersimpan untuk episode ini. Muat ulang " +
                     "layar lalu coba lagi.",
@@ -432,6 +441,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EpisodeId = x.EpisodeId,
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    AssignmentRole = (int)x.AssignmentRole,
                     SequenceNumber = x.SequenceNumber,
                     StartDateTime = x.StartDateTime,
                     EndDateTime = x.EndDateTime,
@@ -459,6 +469,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .AsNoTracking()
                 .Where(x =>
                     x.EpisodeId == episodeId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
                     !x.IsDelete &&
                     x.StartDateTime <= pointInTime &&
                     (x.EndDateTime == null || x.EndDateTime > pointInTime))
@@ -469,6 +480,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EpisodeId = x.EpisodeId,
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    AssignmentRole = (int)x.AssignmentRole,
                     SequenceNumber = x.SequenceNumber,
                     StartDateTime = x.StartDateTime,
                     EndDateTime = x.EndDateTime,
@@ -480,13 +492,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         /// <summary>Identitas DPJP yang sedang berlaku, atau <c>null</c> bila tidak ada.</summary>
+        /// <remarks>
+        /// <b>Sejak <c>BE-RWI-074</c> query ini menyaring peran, bukan hanya masa berlaku.</b>
+        /// Sebelum kolom <c>AssignmentRole</c> lahir, "punya penugasan aktif" dan "DPJP aktif"
+        /// adalah kalimat yang sama. Keduanya kini berbeda: satu episode dapat punya konsulen
+        /// dan dokter jaga yang aktif bersamaan, dan tidak satu pun dari mereka DPJP. Tanpa
+        /// saringan ini, konsulen dengan nomor urut terbesar akan terbaca sebagai DPJP dan
+        /// diam-diam memperoleh kewenangan keempat penjaga —
+        /// <c>permission-audit-matrix.md</c> bagian 4-A.1.
+        /// </remarks>
         public Task<Guid?> GetActiveDoctorIdAsync(
             Guid episodeId,
             CancellationToken cancellationToken = default)
         {
             return _dbContext.Set<InpDoctorAssignment>()
                 .AsNoTracking()
-                .Where(x => x.EpisodeId == episodeId && x.EndDateTime == null && !x.IsDelete)
+                .Where(x =>
+                    x.EpisodeId == episodeId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    x.EndDateTime == null &&
+                    !x.IsDelete)
                 .OrderByDescending(x => x.SequenceNumber)
                 .Select(x => (Guid?)x.DoctorId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -497,6 +522,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// tersebut. Inilah isi <c>GUARD-INP-01</c>, <c>GUARD-INP-02</c>, <c>GUARD-INP-03</c>,
         /// dan <c>GUARD-INP-04</c>.
         /// </summary>
+        /// <remarks>
+        /// Keempat penjaga berbunyi <c>AssignmentRole = Dpjp</c>. Konsulen dan dokter jaga
+        /// <b>boleh</b> menulis dokumen klinis, tetapi tidak boleh memutuskan pulang,
+        /// menandatangani resume, memindahkan pasien, maupun mengubah kebutuhan isolasi:
+        /// keempatnya adalah keputusan atas arah perawatan, bukan pencatatan. Baris konsulen
+        /// pada keputusan pulang sengaja <b>fail-closed</b> sampai ada kebijakan yang
+        /// disetujui — dilacak <c>OPEN-MVP-004</c>.
+        /// </remarks>
         public async Task<bool> IsActiveDoctorAsync(
             Guid episodeId,
             Guid? doctorId,

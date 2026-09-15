@@ -72,7 +72,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             var actor = GetCurrentUserId();
             if (actor == Guid.Empty) return IdentitasTidakValid();
 
-            var hasil = await _service.CreateAsync(request, actor, await AmbilIzinAsync(), ct);
+            // Jalur manual: larangan control account berlaku (BE-ACC-P2-012).
+            var hasil = await _service.CreateManualAsync(request, actor, await AmbilIzinAsync(), ct);
 
             await CatatAsync("Journal.Create", hasil);
 
@@ -241,12 +242,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
         /// Mencatat jejak tanpa membawa rahasia bisnis.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Berbeda dari controller master data, muatan permintaan <b>tidak</b> ikut dicatat.
         /// `ACC-PERMISSION-0.3` bagian 4 melarang <c>TotalDebit</c>, <c>TotalCredit</c>,
         /// <c>DebitAmount</c>, <c>CreditAmount</c>, serta isi <c>Description</c> jurnal maupun
         /// barisnya masuk payload log — dan seluruhnya ada di dalam
         /// <see cref="CreateJournalRequest"/>. Yang dicatat hanya identitas jurnal, hasilnya, dan
         /// statusnya, persis yang didaftar kolom "Yang dicatat" pada bagian itu.
+        /// </para>
+        /// <para>
+        /// Pesan hasilnya ikut disaring lewat <see cref="TanpaNominal"/> (`BE-ACC-P2-033`,
+        /// `NFR-004`): penolakan pengajuan dan pembalikan menyebut total debit, total kredit, dan
+        /// selisihnya dalam rupiah. Respons kepada pengguna tidak disentuh — angka itu tetap
+        /// dibutuhkan petugas untuk memperbaiki jurnalnya.
+        /// </para>
         /// </remarks>
         private Task CatatAsync<T>(string aksi, AccountingServiceResult<T> hasil, Guid? id = null)
         {
@@ -260,10 +269,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 hasil.StatusCode
             };
 
+            var pesan = TanpaNominal(hasil.Message);
+
             return hasil.Success
-                ? _loggerService.InfoAsync(LogCategory, aksi, hasil.Message, muatan)
-                : _loggerService.WarningAsync(LogCategory, aksi, hasil.Message, muatan);
+                ? _loggerService.InfoAsync(LogCategory, aksi, pesan, muatan)
+                : _loggerService.WarningAsync(LogCategory, aksi, pesan, muatan);
         }
+
+        /// <summary>
+        /// Menghapus nominal dari kalimat yang hendak dicatat logger.
+        /// </summary>
+        /// <remarks>
+        /// Pola yang sama dengan <c>RecurringJournalController</c> dan
+        /// <c>YearEndClosingController</c>. Yang dibuang hanya angkanya; kalimatnya tetap utuh
+        /// sehingga sebab kegagalan masih dapat ditelusuri dari log. Contoh: <i>"Jurnal belum
+        /// seimbang. Total debit Rp 4.500.000, total kredit Rp 4.000.000"</i> tercatat sebagai
+        /// <i>"Jurnal belum seimbang. Total debit Rp *** total kredit Rp ***"</i>.
+        /// </remarks>
+        private static string TanpaNominal(string pesan)
+            => System.Text.RegularExpressions.Regex.Replace(
+                pesan, @"Rp\s?[\d.,]+", "Rp ***");
 
         private Guid GetCurrentUserId()
         {

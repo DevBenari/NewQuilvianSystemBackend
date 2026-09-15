@@ -603,3 +603,84 @@ Kegagalan Billing tidak menghapus catatan klinis, dan agregasi Billing tidak men
 > melainkan **mendaftarkan tiga jenis dokumen** ke mesin keutuhan supaya koreksinya mungkin sama
 > sekali. Dokumen ini tetap berstatus `draft` dan approval manusia belum tergantikan, tetapi tidak
 > ada lagi pertanyaan yang menahannya diteruskan ke `/plan-module-delivery`.
+
+## 21. Gelombang 1A — Rawat Inap Safety Corrections
+
+**Ditambahkan 11 September 2026**, menyerap `RWI-DEC-098` dan `RWI-DEC-099`. Bagian ini menambahkan
+satu gelombang perbaikan di atas MVP yang sudah dirancang, dan menurunkan dari
+`contracts/api-contract.md` `0.5.0` beserta kedua matriks `0.5.0`.
+
+### 21.1 Dua penyimpangan yang dibereskan
+
+| Penyimpangan | Keadaan hari ini di source | Kenapa berbahaya |
+| --- | --- | --- |
+| Catatan terpadu dapat dihapus | `DELETE /{id}` melakukan soft delete tanpa pemeriksaan status, tanpa alasan, dan tanpa memeriksa penulis | Catatan hilang dari seluruh pembacaan normal **tanpa menyisakan keadaan**. Pembaca berikutnya tidak punya cara mengetahui pernah ada sesuatu di sana |
+| Penulis klinis diambil dari payload | `DoctorId` berasal dari antrean, permintaan, atau kunjungan | Dokter mana pun yang memegang butir hak akses dapat menulis untuk pasien mana pun, dan catatan dapat tersimpan atas nama dokter lain |
+
+### 21.2 Batas gelombang ini
+
+**Titik mulai.** Kontrak `0.5.0` `draft`; keputusan `RWI-DEC-098` dan `RWI-DEC-099` `approved`;
+kolom peran pada `InpDoctorAssignment` sudah dirancang `episode-rawat-inap`.
+
+**Titik akhir.**
+
+1. `DELETE` pada catatan terpadu tidak tersedia; jawabannya `404`.
+2. Pembatalan memanggil pemeriksaan keutuhan dokumen lebih dulu.
+3. Kelima grup jalur tulis mengirim dokter pelaku ke resolver.
+4. Seluruh acceptance criteria `AC-DOK-060` s.d. `AC-DOK-075` lulus.
+
+### 21.3 Epic dan functional requirement
+
+| ID | Epic | Prioritas | Disposisi |
+| --- | --- | --- | --- |
+| `EPIC DOK-08` | Catatan klinis final tidak dapat disembunyikan | `P0` | `REPAIR` — mesin keutuhan sudah ada, hanya tidak dipanggil |
+| `EPIC DOK-09` | Penulis klinis berasal dari pengguna terautentikasi | `P0` | `REPAIR` — penjaga sudah ada, hanya mati |
+
+| FR | Bunyi requirement | Epic | Disposisi |
+| --- | --- | --- | --- |
+| `FR-DOK-060` | Jalur `DELETE` pada catatan terpadu tidak tersedia | `DOK-08` | `EXTEND` |
+| `FR-DOK-061` | Pembatalan menolak catatan `Final` dan `Terverifikasi`, dan mengarahkannya ke addendum | `DOK-08` | `REPAIR` |
+| `FR-DOK-062` | Catatan yang dibatalkan tetap terbaca pada rekam medis beserta alasan dan pelakunya | `DOK-08` | `EXISTING / REUSE` |
+| `FR-DOK-063` | Penulis diambil dari `ApplicationUser.DoctorId`; tanpa pemetaan aktif, penulisan ditolak | `DOK-09` | `MISSING / NEW` |
+| `FR-DOK-064` | `DoctorId` pada payload tidak menentukan penulis; mismatch ditolak | `DOK-09` | `REPAIR` |
+| `FR-DOK-065` | Penulis wajib punya penugasan aktif pada episode, dinilai pada waktu klinis | `DOK-09` | `REPAIR` |
+| `FR-DOK-066` | Kelima grup jalur tulis memanggil resolver dengan dokter pelaku | `DOK-09` | `REPAIR` |
+| `FR-DOK-067` | Verifikasi CPPT tidak mengubah penulis aslinya, dan verifikator tunduk aturan yang sama | `DOK-09` | `EXTEND` |
+| `FR-DOK-068` | Kewenangan konsulen atas keputusan pulang ditolak selama kebijakannya belum ada | `DOK-09` | `OPEN DECISION` — perilaku fail-closed, tidak masuk gelombang pengiriman mana pun |
+
+### 21.4 Skenario UAT
+
+**Jalur berhasil.** DPJP menulis catatan untuk pasiennya. Konsulen dengan penugasan aktif menulis
+catatan konsultasi. Dokter membatalkan catatan draf yang salah, beserta alasannya, dan catatan itu
+tetap terbaca sebagai dibatalkan. Dokter mengoreksi catatan final lewat addendum, dan isi aslinya
+tetap utuh.
+
+**Jalur gagal.** Dokter tanpa penugasan menulis dan ditolak. Dokter mengirim identitas dokter lain
+dan ditolak tanpa satu pun baris tersimpan. Dokter membatalkan catatan yang sudah terverifikasi dan
+ditolak dengan arahan ke addendum. Pemanggilan `DELETE` dijawab sebagai route yang tidak ada.
+
+### 21.5 Definition of Done gelombang ini
+
+| Butir | Cara menjawabnya |
+| --- | --- |
+| `DELETE` hilang dari controller catatan terpadu | Pencarian source mengembalikan nol `HttpDelete` pada berkas itu |
+| Pembatalan memanggil pemeriksaan keutuhan | `AC-DOK-061` dan `AC-DOK-062` lulus |
+| Kelima grup mengirim dokter pelaku | `AC-DOK-072` lulus, **lima test terpisah** |
+| Penilaian memakai waktu klinis | `AC-DOK-070` dan `AC-DOK-071` lulus |
+| Regresi Rawat Jalan lulus | `AC-DOK-066` lulus. **Wajib**, karena controller dipakai bersama |
+| Skenario negatif memakai peran nyata | `AC-DOK-075` lulus; peran yang dipakai tercatat pada laporan task |
+| Nol butir hak akses baru | Daftar permission sebelum dan sesudah sama persis |
+
+**Satu jebakan yang dinyatakan terbuka.** Seluruh test hak akses lama akan tetap lulus tanpa
+disentuh, baik sebelum maupun sesudah perbaikan, karena gelombang ini tidak melahirkan Resource
+maupun Action baru. Test hak akses hijau **bukan** bukti bahwa penjaga baru bekerja.
+
+### 21.6 Yang sengaja di luar gelombang ini
+
+| Yang ditunda | Alasan |
+| --- | --- |
+| Delapan jalur hapus lain pada `ClinicalManagement` | `RWI-DEC-098` memilih menutup dua saja. Konsekuensinya diterima pemilik dan ketegangannya dilacak `RWI-OQ-055` |
+| Menaikkan sembilan `ClinicalDocumentKind` yang belum ditegakkan | Keputusan pemilik `MedicalRecordManagement`; dilacak `V2-UNK-01` |
+| Kewenangan konsulen memutuskan pulang | `OPEN-MVP-004` belum dijawab; perilaku fail-closed berlaku |
+
+---
