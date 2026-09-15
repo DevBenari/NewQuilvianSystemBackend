@@ -49,8 +49,8 @@ public sealed class NutritionDietService
     /// karena setiap pasien yang dirawat perlu makan, sementara order konsultasi hanya
     /// untuk pasien yang secara khusus dirujuk ke ahli gizi.
     /// </remarks>
-    public async Task<PagedResult<GzNutritionPatientResponse>> GetNutritionPatientsAsync(
-        GzNutritionPatientQuery request, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<GziNutritionPatientResponse>> GetNutritionPatientsAsync(
+        GziNutritionPatientQuery request, CancellationToken cancellationToken = default)
     {
         var query =
             from episode in _dbContext.Set<InpEpisode>().AsNoTracking()
@@ -69,7 +69,7 @@ public sealed class NutritionDietService
                  x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
         }
 
-        var projected = query.Select(episode => new GzNutritionPatientResponse
+        var projected = query.Select(episode => new GziNutritionPatientResponse
         {
             PatientId = episode.PatientId,
             EncounterId = episode.EncounterId,
@@ -95,33 +95,33 @@ public sealed class NutritionDietService
                 .OrderByDescending(d => d.SequenceNumber)
                 .Select(d => d.Doctor != null ? d.Doctor.FullName : null).FirstOrDefault(),
 
-            PatientDietId = _dbContext.GzPatientDiets
+            PatientDietId = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => (Guid?)d.Id).FirstOrDefault(),
-            DietTypeName = _dbContext.GzPatientDiets
+            DietTypeName = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => d.DietType != null ? d.DietType.DietTypeName : null).FirstOrDefault(),
-            FoodFormName = _dbContext.GzPatientDiets
+            FoodFormName = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => d.FoodForm != null ? d.FoodForm.FoodFormName : null).FirstOrDefault(),
-            EnergyRequirementKcal = _dbContext.GzPatientDiets
+            EnergyRequirementKcal = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => d.EnergyRequirementKcal).FirstOrDefault(),
-            DietInstruction = _dbContext.GzPatientDiets
+            DietInstruction = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => d.Instruction).FirstOrDefault(),
-            DietStatus = _dbContext.GzPatientDiets
+            DietStatus = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
-                .Select(d => (GzPatientDietStatus?)d.Status).FirstOrDefault(),
-            DietVersion = _dbContext.GzPatientDiets
+                            d.Status == GziPatientDietStatus.Active)
+                .Select(d => (GziPatientDietStatus?)d.Status).FirstOrDefault(),
+            DietVersion = _dbContext.GziPatientDiets
                 .Where(d => d.EncounterId == episode.EncounterId && !d.IsDelete &&
-                            d.Status == GzPatientDietStatus.Active)
+                            d.Status == GziPatientDietStatus.Active)
                 .Select(d => (int?)d.Version).FirstOrDefault()
         });
 
@@ -137,7 +137,7 @@ public sealed class NutritionDietService
             .Skip((pageNumber - 1) * pageSize).Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<GzNutritionPatientResponse>
+        return new PagedResult<GziNutritionPatientResponse>
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
@@ -150,7 +150,7 @@ public sealed class NutritionDietService
     // ========================================================== 2. diet pasien
 
     /// <summary>Riwayat diet satu kunjungan, terbaru lebih dulu.</summary>
-    public async Task<List<GzPatientDietResponse>> GetDietHistoryAsync(Guid encounterId,
+    public async Task<List<GziPatientDietResponse>> GetDietHistoryAsync(Guid encounterId,
         CancellationToken cancellationToken = default) =>
         await BuildDietQuery()
             .Where(x => x.EncounterId == encounterId)
@@ -158,7 +158,7 @@ public sealed class NutritionDietService
             .Select(x => MapDiet(x))
             .ToListAsync(cancellationToken);
 
-    public async Task<GzPatientDietResponse> PrescribeAsync(PrescribeGzDietRequest request,
+    public async Task<GziPatientDietResponse> PrescribeAsync(PrescribeGzDietRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -175,9 +175,9 @@ public sealed class NutritionDietService
         var now = DateTime.UtcNow;
         var startAt = request.EffectiveStartAt?.ToUniversalTime() ?? now;
 
-        var current = await _dbContext.GzPatientDiets
+        var current = await _dbContext.GziPatientDiets
             .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete &&
-                                      x.Status == GzPatientDietStatus.Active, cancellationToken);
+                                      x.Status == GziPatientDietStatus.Active, cancellationToken);
 
         if (current != null)
         {
@@ -188,7 +188,7 @@ public sealed class NutritionDietService
             // Diet lama TIDAK ditimpa. Ia ditutup dan tetap tersimpan sebagai riwayat,
             // sehingga urutan Diet Biasa -> Diabetes -> Lunak -> Puasa tetap dapat dibaca
             // seluruhnya di kemudian hari.
-            current.Status = GzPatientDietStatus.Changed;
+            current.Status = GziPatientDietStatus.Changed;
             current.EndAt = startAt;
             current.ChangeReason = request.ChangeReason.Trim();
             current.Version++;
@@ -196,7 +196,7 @@ public sealed class NutritionDietService
             current.UpdateBy = actorUserId;
         }
 
-        var diet = new GzPatientDiet
+        var diet = new GziPatientDiet
         {
             Id = deterministicId,
             NutritionOrderId = request.NutritionOrderId,
@@ -206,7 +206,7 @@ public sealed class NutritionDietService
             FoodFormId = request.FoodFormId,
             EnergyRequirementKcal = request.EnergyRequirementKcal,
             Instruction = Normalize(request.Instruction),
-            Status = GzPatientDietStatus.Active,
+            Status = GziPatientDietStatus.Active,
             StartAt = startAt,
             PrescribedByWorkforceId = request.PrescribedByWorkforceId,
             Version = 0,
@@ -214,7 +214,7 @@ public sealed class NutritionDietService
             CreateBy = actorUserId
         };
 
-        _dbContext.GzPatientDiets.Add(diet);
+        _dbContext.GziPatientDiets.Add(diet);
         await SaveAsync(cancellationToken);
 
         await _loggerService.AuditAsync(LogCategory, "NutritionDiet.Prescribe",
@@ -224,7 +224,7 @@ public sealed class NutritionDietService
         return MapDiet(await BuildDietQuery().FirstAsync(x => x.Id == diet.Id, cancellationToken));
     }
 
-    public async Task<GzPatientDietResponse> StopAsync(Guid dietId, StopGzDietRequest request,
+    public async Task<GziPatientDietResponse> StopAsync(Guid dietId, StopGzDietRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -233,11 +233,11 @@ public sealed class NutritionDietService
                 "Alasan penghentian diet wajib diisi.");
 
         var actorUserId = GetCurrentUserId();
-        var diet = await _dbContext.GzPatientDiets
+        var diet = await _dbContext.GziPatientDiets
             .FirstOrDefaultAsync(x => x.Id == dietId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Diet pasien tidak ditemukan.");
 
-        if (diet.Status != GzPatientDietStatus.Active)
+        if (diet.Status != GziPatientDietStatus.Active)
             throw new NutritionConflictException("GIZ004",
                 "Diet ini sudah tidak berlaku dan tidak dapat dihentikan lagi.");
 
@@ -246,7 +246,7 @@ public sealed class NutritionDietService
                 "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
 
         var now = DateTime.UtcNow;
-        diet.Status = GzPatientDietStatus.Stopped;
+        diet.Status = GziPatientDietStatus.Stopped;
         diet.EndAt = now;
         diet.ChangeReason = request.Reason.Trim();
         diet.Version++;
@@ -259,21 +259,21 @@ public sealed class NutritionDietService
 
     // =========================================================== 3. produksi
 
-    public async Task<List<GzProductionBatchSummaryResponse>> GetBatchesAsync(
+    public async Task<List<GziProductionBatchSummaryResponse>> GetBatchesAsync(
         DateOnly? serviceDate, CancellationToken cancellationToken = default)
     {
         var date = serviceDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var batches = await _dbContext.GzProductionBatches.AsNoTracking()
+        var batches = await _dbContext.GziProductionBatches.AsNoTracking()
             .Include(x => x.MealSchedule)
             .Where(x => !x.IsDelete && x.ServiceDate == date)
             .OrderBy(x => x.MealSchedule!.ServingTime)
             .ToListAsync(cancellationToken);
 
-        var result = new List<GzProductionBatchSummaryResponse>();
+        var result = new List<GziProductionBatchSummaryResponse>();
         foreach (var batch in batches)
         {
-            result.Add(new GzProductionBatchSummaryResponse
+            result.Add(new GziProductionBatchSummaryResponse
             {
                 Id = batch.Id,
                 BatchNumber = batch.BatchNumber,
@@ -300,7 +300,7 @@ public sealed class NutritionDietService
     /// Snapshot diambil di sini, sekali. Setelah batch ada, perubahan diet pasien tidak
     /// lagi mengubah isinya — karena dapur sudah bekerja berdasarkan angka ini.
     /// </remarks>
-    public async Task<GzProductionBatchDetailResponse> CreateBatchAsync(
+    public async Task<GziProductionBatchDetailResponse> CreateBatchAsync(
         CreateGzProductionBatchRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -308,27 +308,27 @@ public sealed class NutritionDietService
         var date = request.ServiceDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         var batchId = DeterministicId(request.IdempotencyKey);
-        var replay = await _dbContext.GzProductionBatches.AsNoTracking()
+        var replay = await _dbContext.GziProductionBatches.AsNoTracking()
             .AnyAsync(x => x.Id == batchId, cancellationToken);
         if (replay) return (await GetBatchDetailAsync(batchId, cancellationToken))!;
 
-        var scheduleValid = await _dbContext.GzMealSchedules.AsNoTracking()
+        var scheduleValid = await _dbContext.GziMealSchedules.AsNoTracking()
             .AnyAsync(x => x.Id == request.MealScheduleId && x.IsActive && !x.IsDelete,
                 cancellationToken);
         if (!scheduleValid)
             throw new NutritionUnprocessableException("GIZ014",
                 "Jadwal makan tidak ditemukan atau tidak aktif.");
 
-        var duplicate = await _dbContext.GzProductionBatches.AsNoTracking()
+        var duplicate = await _dbContext.GziProductionBatches.AsNoTracking()
             .AnyAsync(x => x.ServiceDate == date && x.MealScheduleId == request.MealScheduleId &&
-                           x.Status != GzProductionBatchStatus.Cancelled && !x.IsDelete,
+                           x.Status != GziProductionBatchStatus.Cancelled && !x.IsDelete,
                 cancellationToken);
         if (duplicate)
             throw new NutritionConflictException("GIZ015",
                 "Sudah ada batch produksi untuk tanggal dan jadwal makan ini.");
 
         var candidates = await GetNutritionPatientsAsync(
-            new GzNutritionPatientQuery { PageNumber = 1, PageSize = 200 }, cancellationToken);
+            new GziNutritionPatientQuery { PageNumber = 1, PageSize = 200 }, cancellationToken);
 
         var withDiet = candidates.Items.Where(x => x.PatientDietId.HasValue).ToList();
         if (withDiet.Count == 0)
@@ -336,13 +336,13 @@ public sealed class NutritionDietService
                 "Tidak ada pasien rawat inap dengan diet aktif. Tetapkan diet lebih dulu.");
 
         var now = DateTime.UtcNow;
-        var batch = new GzProductionBatch
+        var batch = new GziProductionBatch
         {
             Id = batchId,
             BatchNumber = $"PRD-{date:yyyyMMdd}-{batchId.ToString("N")[..6].ToUpperInvariant()}",
             ServiceDate = date,
             MealScheduleId = request.MealScheduleId,
-            Status = GzProductionBatchStatus.Draft,
+            Status = GziProductionBatchStatus.Draft,
             TotalPortion = withDiet.Count,
             Note = Normalize(request.Note),
             Version = 0,
@@ -350,11 +350,11 @@ public sealed class NutritionDietService
             CreateBy = actorUserId
         };
 
-        _dbContext.GzProductionBatches.Add(batch);
+        _dbContext.GziProductionBatches.Add(batch);
 
         foreach (var patient in withDiet)
         {
-            _dbContext.GzProductionBatchDetails.Add(new GzProductionBatchDetail
+            _dbContext.GziProductionBatchDetails.Add(new GziProductionBatchDetail
             {
                 ProductionBatchId = batch.Id,
                 PatientId = patient.PatientId,
@@ -384,13 +384,13 @@ public sealed class NutritionDietService
     }
 
     /// <summary>Memindahkan batch ke status berikutnya sesuai daur hidup yang sah.</summary>
-    public async Task<GzProductionBatchDetailResponse> ChangeBatchStatusAsync(Guid batchId,
+    public async Task<GziProductionBatchDetailResponse> ChangeBatchStatusAsync(Guid batchId,
         ChangeGzBatchStatusRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
 
-        var batch = await _dbContext.GzProductionBatches
+        var batch = await _dbContext.GziProductionBatches
             .FirstOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Batch produksi tidak ditemukan.");
 
@@ -400,7 +400,7 @@ public sealed class NutritionDietService
 
         EnsureTransitionAllowed(batch.Status, request.Status);
 
-        if (request.Status == GzProductionBatchStatus.Cancelled &&
+        if (request.Status == GziProductionBatchStatus.Cancelled &&
             string.IsNullOrWhiteSpace(request.Reason))
             throw new NutritionUnprocessableException("GIZ017",
                 "Alasan pembatalan batch wajib diisi.");
@@ -411,20 +411,20 @@ public sealed class NutritionDietService
         batch.UpdateDateTime = now;
         batch.UpdateBy = actorUserId;
 
-        if (request.Status == GzProductionBatchStatus.Confirmed) batch.ConfirmedAt = now;
-        if (request.Status == GzProductionBatchStatus.ReadyForDistribution) batch.ReadyAt = now;
-        if (request.Status == GzProductionBatchStatus.Completed) batch.CompletedAt = now;
-        if (request.Status == GzProductionBatchStatus.Cancelled)
+        if (request.Status == GziProductionBatchStatus.Confirmed) batch.ConfirmedAt = now;
+        if (request.Status == GziProductionBatchStatus.ReadyForDistribution) batch.ReadyAt = now;
+        if (request.Status == GziProductionBatchStatus.Completed) batch.CompletedAt = now;
+        if (request.Status == GziProductionBatchStatus.Cancelled)
             batch.CancelReason = request.Reason!.Trim();
 
         await SaveAsync(cancellationToken);
         return (await GetBatchDetailAsync(batchId, cancellationToken))!;
     }
 
-    public async Task<GzProductionBatchDetailResponse?> GetBatchDetailAsync(Guid batchId,
+    public async Task<GziProductionBatchDetailResponse?> GetBatchDetailAsync(Guid batchId,
         CancellationToken cancellationToken = default)
     {
-        var batch = await _dbContext.GzProductionBatches.AsNoTracking()
+        var batch = await _dbContext.GziProductionBatches.AsNoTracking()
             .Include(x => x.MealSchedule)
             .Include(x => x.Details.Where(d => !d.IsDelete))
                 .ThenInclude(d => d.Deliveries.Where(v => !v.IsDelete))
@@ -435,10 +435,10 @@ public sealed class NutritionDietService
         // Diet yang sedang berlaku dibaca terpisah, lalu dibandingkan dengan snapshot.
         // Snapshot tidak pernah diubah; yang dilaporkan hanyalah selisihnya.
         var encounterIds = batch.Details.Select(x => x.EncounterId).ToList();
-        var currentDiets = await _dbContext.GzPatientDiets.AsNoTracking()
+        var currentDiets = await _dbContext.GziPatientDiets.AsNoTracking()
             .Include(x => x.DietType)
             .Where(x => encounterIds.Contains(x.EncounterId) && !x.IsDelete &&
-                        x.Status == GzPatientDietStatus.Active)
+                        x.Status == GziPatientDietStatus.Active)
             .ToDictionaryAsync(x => x.EncounterId, cancellationToken);
 
         var portions = batch.Details.Select(detail =>
@@ -447,7 +447,7 @@ public sealed class NutritionDietService
             var delivery = detail.Deliveries.FirstOrDefault();
             var changed = currentDiet != null && currentDiet.Id != detail.PatientDietId;
 
-            return new GzProductionPortionResponse
+            return new GziProductionPortionResponse
             {
                 Id = detail.Id,
                 PatientId = detail.PatientId,
@@ -475,7 +475,7 @@ public sealed class NutritionDietService
         .OrderBy(x => x.RoomName).ThenBy(x => x.BedName).ThenBy(x => x.PatientName)
         .ToList();
 
-        return new GzProductionBatchDetailResponse
+        return new GziProductionBatchDetailResponse
         {
             Id = batch.Id,
             BatchNumber = batch.BatchNumber,
@@ -494,7 +494,7 @@ public sealed class NutritionDietService
             Portions = portions,
             Groups = [.. portions
                 .GroupBy(x => new { x.DietTypeName, x.FoodFormName })
-                .Select(g => new GzProductionGroupResponse
+                .Select(g => new GziProductionGroupResponse
                 {
                     DietTypeName = g.Key.DietTypeName,
                     FoodFormName = g.Key.FoodFormName,
@@ -506,26 +506,26 @@ public sealed class NutritionDietService
 
     // ========================================================= 4. distribusi
 
-    public async Task<GzProductionBatchDetailResponse> RecordDeliveryAsync(
+    public async Task<GziProductionBatchDetailResponse> RecordDeliveryAsync(
         RecordGzMealDeliveryRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
 
-        var detail = await _dbContext.GzProductionBatchDetails.AsNoTracking()
+        var detail = await _dbContext.GziProductionBatchDetails.AsNoTracking()
             .Include(x => x.ProductionBatch)
             .FirstOrDefaultAsync(x => x.Id == request.ProductionBatchDetailId && !x.IsDelete,
                 cancellationToken)
             ?? throw new KeyNotFoundException("Porsi produksi tidak ditemukan.");
 
         var batchStatus = detail.ProductionBatch?.Status;
-        if (batchStatus is not (GzProductionBatchStatus.ReadyForDistribution
-            or GzProductionBatchStatus.Completed))
+        if (batchStatus is not (GziProductionBatchStatus.ReadyForDistribution
+            or GziProductionBatchStatus.Completed))
             throw new NutritionConflictException("GIZ018",
                 "Makanan hanya dapat didistribusikan setelah batch siap distribusi.");
 
         var now = DateTime.UtcNow;
-        var existing = await _dbContext.GzMealDeliveries
+        var existing = await _dbContext.GziMealDeliveries
             .FirstOrDefaultAsync(x => x.ProductionBatchDetailId == request.ProductionBatchDetailId &&
                                       !x.IsDelete, cancellationToken);
 
@@ -534,7 +534,7 @@ public sealed class NutritionDietService
             // Pencatatan ulang memperbarui baris yang ada, bukan menambah baris baru,
             // supaya rekap sisa makanan tidak terhitung dua kali.
             existing.Status = request.Status;
-            existing.DeliveredAt = request.Status == GzMealDeliveryStatus.Delivered ? now : null;
+            existing.DeliveredAt = request.Status == GziMealDeliveryStatus.Delivered ? now : null;
             existing.DeliveredByWorkforceId = request.DeliveredByWorkforceId;
             existing.LeftoverPercent = request.LeftoverPercent;
             existing.Note = Normalize(request.Note);
@@ -543,12 +543,12 @@ public sealed class NutritionDietService
         }
         else
         {
-            _dbContext.GzMealDeliveries.Add(new GzMealDelivery
+            _dbContext.GziMealDeliveries.Add(new GziMealDelivery
             {
                 Id = DeterministicId(request.IdempotencyKey),
                 ProductionBatchDetailId = request.ProductionBatchDetailId,
                 Status = request.Status,
-                DeliveredAt = request.Status == GzMealDeliveryStatus.Delivered ? now : null,
+                DeliveredAt = request.Status == GziMealDeliveryStatus.Delivered ? now : null,
                 DeliveredByWorkforceId = request.DeliveredByWorkforceId,
                 LeftoverPercent = request.LeftoverPercent,
                 Note = Normalize(request.Note),
@@ -564,30 +564,30 @@ public sealed class NutritionDietService
     // ============================================================== penolong
 
     private Task<int> CountDietChangedAsync(Guid batchId, CancellationToken cancellationToken) =>
-        _dbContext.GzProductionBatchDetails.AsNoTracking()
+        _dbContext.GziProductionBatchDetails.AsNoTracking()
             .Where(d => d.ProductionBatchId == batchId && !d.IsDelete)
-            .CountAsync(d => _dbContext.GzPatientDiets.Any(cur =>
+            .CountAsync(d => _dbContext.GziPatientDiets.Any(cur =>
                 cur.EncounterId == d.EncounterId && !cur.IsDelete &&
-                cur.Status == GzPatientDietStatus.Active && cur.Id != d.PatientDietId),
+                cur.Status == GziPatientDietStatus.Active && cur.Id != d.PatientDietId),
                 cancellationToken);
 
     /// <summary>
     /// Transisi status batch yang sah. Selain yang tercantum di sini, ditolak — supaya
     /// batch yang sudah selesai tidak dapat dikembalikan menjadi draft dan menghapus jejak.
     /// </summary>
-    private static void EnsureTransitionAllowed(GzProductionBatchStatus from,
-        GzProductionBatchStatus to)
+    private static void EnsureTransitionAllowed(GziProductionBatchStatus from,
+        GziProductionBatchStatus to)
     {
         var allowed = from switch
         {
-            GzProductionBatchStatus.Draft =>
-                new[] { GzProductionBatchStatus.Confirmed, GzProductionBatchStatus.Cancelled },
-            GzProductionBatchStatus.Confirmed =>
-                [GzProductionBatchStatus.InProduction, GzProductionBatchStatus.Cancelled],
-            GzProductionBatchStatus.InProduction =>
-                [GzProductionBatchStatus.ReadyForDistribution, GzProductionBatchStatus.Cancelled],
-            GzProductionBatchStatus.ReadyForDistribution =>
-                [GzProductionBatchStatus.Completed],
+            GziProductionBatchStatus.Draft =>
+                new[] { GziProductionBatchStatus.Confirmed, GziProductionBatchStatus.Cancelled },
+            GziProductionBatchStatus.Confirmed =>
+                [GziProductionBatchStatus.InProduction, GziProductionBatchStatus.Cancelled],
+            GziProductionBatchStatus.InProduction =>
+                [GziProductionBatchStatus.ReadyForDistribution, GziProductionBatchStatus.Cancelled],
+            GziProductionBatchStatus.ReadyForDistribution =>
+                [GziProductionBatchStatus.Completed],
             _ => []
         };
 
@@ -612,21 +612,21 @@ public sealed class NutritionDietService
     private async Task EnsureMasterActiveAsync(Guid dietTypeId, Guid foodFormId,
         CancellationToken cancellationToken)
     {
-        var dietValid = await _dbContext.GzDietTypes.AsNoTracking()
+        var dietValid = await _dbContext.GziDietTypes.AsNoTracking()
             .AnyAsync(x => x.Id == dietTypeId && x.IsActive && !x.IsDelete, cancellationToken);
         if (!dietValid)
             throw new NutritionUnprocessableException("GIZ014",
                 "Jenis diet tidak ditemukan atau tidak aktif.");
 
-        var formValid = await _dbContext.GzFoodForms.AsNoTracking()
+        var formValid = await _dbContext.GziFoodForms.AsNoTracking()
             .AnyAsync(x => x.Id == foodFormId && x.IsActive && !x.IsDelete, cancellationToken);
         if (!formValid)
             throw new NutritionUnprocessableException("GIZ014",
                 "Bentuk makanan tidak ditemukan atau tidak aktif.");
     }
 
-    private IQueryable<GzPatientDiet> BuildDietQuery() =>
-        _dbContext.GzPatientDiets.AsNoTracking()
+    private IQueryable<GziPatientDiet> BuildDietQuery() =>
+        _dbContext.GziPatientDiets.AsNoTracking()
             .Include(x => x.Patient)
             .Include(x => x.DietType)
             .Include(x => x.FoodForm)
@@ -665,9 +665,9 @@ public sealed class NutritionDietService
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static Guid DeterministicId(string key) =>
-        new(SHA256.HashData(Encoding.UTF8.GetBytes($"GzDiet:{key.Trim()}"))[..16]);
+        new(SHA256.HashData(Encoding.UTF8.GetBytes($"GziDiet:{key.Trim()}"))[..16]);
 
-    private static GzPatientDietResponse MapDiet(GzPatientDiet x) => new()
+    private static GziPatientDietResponse MapDiet(GziPatientDiet x) => new()
     {
         Id = x.Id,
         NutritionOrderId = x.NutritionOrderId,

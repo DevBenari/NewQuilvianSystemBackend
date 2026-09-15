@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.NutritionManagement;
 
-public class GzNutritionOrderConfiguration : IEntityTypeConfiguration<GzNutritionOrder>
+public class GziNutritionOrderConfiguration : IEntityTypeConfiguration<GziNutritionOrder>
 {
-    public void Configure(EntityTypeBuilder<GzNutritionOrder> builder)
+    public void Configure(EntityTypeBuilder<GziNutritionOrder> builder)
     {
-        builder.ToTable("GzNutritionOrder", "public");
+        builder.ToTable("GziNutritionOrder", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.OrderNumber).HasMaxLength(50).IsRequired();
@@ -27,7 +27,7 @@ public class GzNutritionOrderConfiguration : IEntityTypeConfiguration<GzNutritio
         // berdua.
         builder.HasIndex(x => x.EncounterId)
             .IsUnique()
-            .HasFilter($"\"Status\" IN ({(int)GzOrderStatus.Requested}, {(int)GzOrderStatus.InProgress}) AND \"IsDelete\" = false");
+            .HasFilter($"\"Status\" IN ({(int)GziOrderStatus.Requested}, {(int)GziOrderStatus.InProgress}) AND \"IsDelete\" = false");
 
         builder.HasOne(x => x.Patient).WithMany().HasForeignKey(x => x.PatientId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -40,11 +40,11 @@ public class GzNutritionOrderConfiguration : IEntityTypeConfiguration<GzNutritio
     }
 }
 
-public class GzNutritionCareRecordConfiguration : IEntityTypeConfiguration<GzNutritionCareRecord>
+public class GziNutritionCareRecordConfiguration : IEntityTypeConfiguration<GziNutritionCareRecord>
 {
-    public void Configure(EntityTypeBuilder<GzNutritionCareRecord> builder)
+    public void Configure(EntityTypeBuilder<GziNutritionCareRecord> builder)
     {
-        builder.ToTable("GzNutritionCareRecord", "public");
+        builder.ToTable("GziNutritionCareRecord", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.AssessmentNote).HasMaxLength(2000);
@@ -69,11 +69,11 @@ public class GzNutritionCareRecordConfiguration : IEntityTypeConfiguration<GzNut
     }
 }
 
-public class GzNutritionOrderHistoryConfiguration : IEntityTypeConfiguration<GzNutritionOrderHistory>
+public class GziNutritionOrderHistoryConfiguration : IEntityTypeConfiguration<GziNutritionOrderHistory>
 {
-    public void Configure(EntityTypeBuilder<GzNutritionOrderHistory> builder)
+    public void Configure(EntityTypeBuilder<GziNutritionOrderHistory> builder)
     {
-        builder.ToTable("GzNutritionOrderHistory", "public");
+        builder.ToTable("GziNutritionOrderHistory", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Action).HasMaxLength(50).IsRequired();
@@ -94,11 +94,11 @@ public class GzNutritionOrderHistoryConfiguration : IEntityTypeConfiguration<GzN
     }
 }
 
-public class GzDietTypeConfiguration : IEntityTypeConfiguration<GzDietType>
+public class GziDietTypeConfiguration : IEntityTypeConfiguration<GziDietType>
 {
-    public void Configure(EntityTypeBuilder<GzDietType> builder)
+    public void Configure(EntityTypeBuilder<GziDietType> builder)
     {
-        builder.ToTable("GzDietType", "public");
+        builder.ToTable("GziDietType", "public");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.DietTypeCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.DietTypeName).HasMaxLength(200).IsRequired();
@@ -107,11 +107,11 @@ public class GzDietTypeConfiguration : IEntityTypeConfiguration<GzDietType>
     }
 }
 
-public class GzFoodFormConfiguration : IEntityTypeConfiguration<GzFoodForm>
+public class GziFoodFormConfiguration : IEntityTypeConfiguration<GziFoodForm>
 {
-    public void Configure(EntityTypeBuilder<GzFoodForm> builder)
+    public void Configure(EntityTypeBuilder<GziFoodForm> builder)
     {
-        builder.ToTable("GzFoodForm", "public");
+        builder.ToTable("GziFoodForm", "public");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.FoodFormCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.FoodFormName).HasMaxLength(200).IsRequired();
@@ -120,11 +120,11 @@ public class GzFoodFormConfiguration : IEntityTypeConfiguration<GzFoodForm>
     }
 }
 
-public class GzMealScheduleConfiguration : IEntityTypeConfiguration<GzMealSchedule>
+public class GziMealScheduleConfiguration : IEntityTypeConfiguration<GziMealSchedule>
 {
-    public void Configure(EntityTypeBuilder<GzMealSchedule> builder)
+    public void Configure(EntityTypeBuilder<GziMealSchedule> builder)
     {
-        builder.ToTable("GzMealSchedule", "public");
+        builder.ToTable("GziMealSchedule", "public");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.MealScheduleCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.MealScheduleName).HasMaxLength(200).IsRequired();
@@ -132,11 +132,11 @@ public class GzMealScheduleConfiguration : IEntityTypeConfiguration<GzMealSchedu
     }
 }
 
-public class GzPatientDietConfiguration : IEntityTypeConfiguration<GzPatientDiet>
+public class GziPatientDietConfiguration : IEntityTypeConfiguration<GziPatientDiet>
 {
-    public void Configure(EntityTypeBuilder<GzPatientDiet> builder)
+    public void Configure(EntityTypeBuilder<GziPatientDiet> builder)
     {
-        builder.ToTable("GzPatientDiet", "public");
+        builder.ToTable("GziPatientDiet", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Instruction).HasMaxLength(1000);
@@ -151,7 +151,7 @@ public class GzPatientDietConfiguration : IEntityTypeConfiguration<GzPatientDiet
         // perintah berbeda, bahkan ketika dua petugas menyimpan bersamaan.
         builder.HasIndex(x => x.EncounterId)
             .IsUnique()
-            .HasFilter($"\"Status\" = {(int)GzPatientDietStatus.Active} AND \"IsDelete\" = false");
+            .HasFilter($"\"Status\" = {(int)GziPatientDietStatus.Active} AND \"IsDelete\" = false");
 
         builder.HasOne(x => x.NutritionOrder).WithMany().HasForeignKey(x => x.NutritionOrderId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -168,11 +168,11 @@ public class GzPatientDietConfiguration : IEntityTypeConfiguration<GzPatientDiet
     }
 }
 
-public class GzProductionBatchConfiguration : IEntityTypeConfiguration<GzProductionBatch>
+public class GziProductionBatchConfiguration : IEntityTypeConfiguration<GziProductionBatch>
 {
-    public void Configure(EntityTypeBuilder<GzProductionBatch> builder)
+    public void Configure(EntityTypeBuilder<GziProductionBatch> builder)
     {
-        builder.ToTable("GzProductionBatch", "public");
+        builder.ToTable("GziProductionBatch", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.BatchNumber).HasMaxLength(50).IsRequired();
@@ -188,18 +188,18 @@ public class GzProductionBatchConfiguration : IEntityTypeConfiguration<GzProduct
         // yang sama dan dapur memasak dua kali.
         builder.HasIndex(x => new { x.ServiceDate, x.MealScheduleId })
             .IsUnique()
-            .HasFilter($"\"Status\" <> {(int)GzProductionBatchStatus.Cancelled} AND \"IsDelete\" = false");
+            .HasFilter($"\"Status\" <> {(int)GziProductionBatchStatus.Cancelled} AND \"IsDelete\" = false");
 
         builder.HasOne(x => x.MealSchedule).WithMany()
             .HasForeignKey(x => x.MealScheduleId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
-public class GzProductionBatchDetailConfiguration : IEntityTypeConfiguration<GzProductionBatchDetail>
+public class GziProductionBatchDetailConfiguration : IEntityTypeConfiguration<GziProductionBatchDetail>
 {
-    public void Configure(EntityTypeBuilder<GzProductionBatchDetail> builder)
+    public void Configure(EntityTypeBuilder<GziProductionBatchDetail> builder)
     {
-        builder.ToTable("GzProductionBatchDetail", "public");
+        builder.ToTable("GziProductionBatchDetail", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.PatientNameSnapshot).HasMaxLength(200).IsRequired();
@@ -227,11 +227,11 @@ public class GzProductionBatchDetailConfiguration : IEntityTypeConfiguration<GzP
     }
 }
 
-public class GzMealDeliveryConfiguration : IEntityTypeConfiguration<GzMealDelivery>
+public class GziMealDeliveryConfiguration : IEntityTypeConfiguration<GziMealDelivery>
 {
-    public void Configure(EntityTypeBuilder<GzMealDelivery> builder)
+    public void Configure(EntityTypeBuilder<GziMealDelivery> builder)
     {
-        builder.ToTable("GzMealDelivery", "public");
+        builder.ToTable("GziMealDelivery", "public");
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Note).HasMaxLength(1000);
