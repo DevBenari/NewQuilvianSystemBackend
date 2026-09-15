@@ -5,11 +5,11 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 9
+revision: 11   # disamakan 15 Sep 2026 dengan bagian "Amendment Phase 2"; angka 9 di sini tertinggal sejak 8 Sep 2026 (ACC-GAP-003)
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-04T00:00:00+07:00
+updated_at: 2026-09-15T00:00:00+07:00
 last_verified_at: 2026-09-07T00:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
@@ -120,26 +120,31 @@ input_revisions:
   capability_map: 2
   requirement_gate: null
   hospital_domain_architecture: null
+# Diperbarui 15 September 2026 (Amendment penyelarasan kontrak lintas modul, lihat bagian terakhir).
+# Nilai sebelumnya — api 0.5, state 0.1, validation 0.3, integration 0.2, permission 0.3,
+# cross_module 0.1 — tertinggal dari amendment Phase 2 dan 14 September 2026.
 contract_versions:
-  api: ACC-API-0.5
-  state: ACC-STATE-0.1
-  validation: ACC-VALIDATION-0.3
-  integration: ACC-INTEGRATION-0.2
-  permission: ACC-PERMISSION-0.3
+  api: ACC-API-0.10
+  state: ACC-STATE-0.3
+  validation: ACC-VALIDATION-0.6
+  integration: ACC-INTEGRATION-0.4   # 0.3 approved 8 Sep 2026; 0.4 penyelarasan teks ke ACC-DEC-060/075, teksnya belum di-approve
+  permission: ACC-PERMISSION-0.5
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
-  cross_module: ACC-XMOD-0.1   # consumer-side Accounting disetujui; alignment Finance/Billing belum
+  cross_module: ACC-XMOD-0.2   # draft; diturunkan dari kontrak approved, ratifikasi owner Finance belum
+contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6]   # usulan 11 Sep 2026, belum diratifikasi
 shared_engineering_rules:
   proposed: [QBE-MIG-001, QBE-MIG-002]
   canonical_home: docs/engineering/BACKEND_ENGINEERING_CONTRACT.md@origin/QuilvianIntegrationBackend
   status: PROPOSED
 cross_module:
-  provides: ACC-XMOD-0.1
+  provides: ACC-XMOD-0.2
   consumer_module: finance
   consumer_owner: Yasmin
-  consumer_blueprint_path: docs/module-blueprints/finance/
+  consumer_blueprint_path: docs/module-blueprints/finance/   # BELUM ADA per 15 Sep 2026 — folder tidak ditemukan di rizkiG
   depends_on_finance_contract: null
-  open_cross_module_decisions: [ACC-XM-001]   # diputuskan sisi Accounting 8 Sep 2026 (ACC-DEC-044); PENDING_RATIFICATION owner Billing + Yasmin
+  handoff_package: evidence/12-paket-kontrak-kejadian-untuk-finance.md
+  open_cross_module_decisions: [ACC-XM-001, OD-ACC-05, OD-ACC-08, DEC-ACC-P2-002]   # ACC-XM-001: diputuskan sisi Accounting (ACC-DEC-044), dikonfirmasi Billing (ACC-DEC-059), PENDING_RATIFICATION Yasmin
 artifact_hashes:
   00-interview-decisions.md: aaeb385f6194d707294777ab5c90ce178e216fc3c28097fd8198d51676759038
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
@@ -205,13 +210,17 @@ mengembangkan AR/AP secara paralel. Agent Finance **tidak perlu** membaca seluru
 
 | Artefak | Yang Finance perlu tahu darinya |
 |---|---|
+| [evidence/12-paket-kontrak-kejadian-untuk-finance.md](evidence/12-paket-kontrak-kejadian-untuk-finance.md) | **Mulai dari sini.** Ringkasan satu berkas: bentuk pesan, jawaban Accounting, anti-ganda, saldo subledger, dan enam pertanyaan untuk Finance |
 | [blueprint-manifest.md](blueprint-manifest.md) | Revision dan status Accounting yang menjadi dependency; batas ownership |
-| [contracts/cross-module-contract.md](contracts/cross-module-contract.md) | Kontrak Finance/AR/AP → Accounting: envelope, `CurrencyCode`, idempotency, source traceability, semantik penolakan |
-| [contracts/integration-contract.md](contracts/integration-contract.md) | Batas kepemilikan yang mengikat, dan gerbang wajib sebelum Phase 2 |
+| [contracts/cross-module-contract.md](contracts/cross-module-contract.md) | Kontrak Finance/AR/AP → Accounting **`ACC-XMOD-0.2`**: dua belas bidang wajib, anti-ganda, perlakuan setiap keadaan, pemetaan bidang dari `0.1` |
+| [contracts/integration-contract.md](contracts/integration-contract.md) — **bagian 6** | Kontrak integrasi Phase 2 **`ACC-INTEGRATION-0.4`**: arah, pintu masuk, anti-ganda, perilaku gagal, rekonsiliasi |
+| [contracts/api-contract.md](contracts/api-contract.md) — **hanya** grup *Accounting Event* dan bagian *Isi `ReceiveAccountingEventRequest`* | Endpoint `POST /accounting-events`, arti kode status, dan tabel bidang yang menjadi sumber kebenaran bentuk pesan |
 | [06-shared-migration-coordination-rule.md](06-shared-migration-coordination-rule.md) | Aturan koordinasi migration bersama — mengikat kedua modul |
-| [05-prerequisite-readiness.md](05-prerequisite-readiness.md) | Dependency lintas modul yang masih terbuka |
+| [05-prerequisite-readiness.md](05-prerequisite-readiness.md) | Dependency lintas modul — **keadaannya per 1 September 2026**; keadaan terbaru ada di paket `evidence/12` bagian 8 |
 
-Lima berkas. Itu saja.
+Tujuh rujukan, dan paket `evidence/12` cukup untuk memulai. Sampai 14 September 2026 daftar ini
+berisi lima berkas dan **tidak** memuat `api-contract.md`, padahal tabel bidang pesan yang berlaku
+hanya ada di sana — itu salah satu sebab `ACC-XMOD-0.1` tertinggal tanpa terlihat.
 
 ### `SHARED_ENGINEERING_RULE` — bukan milik Accounting
 
@@ -223,8 +232,9 @@ Lima berkas. Itu saja.
 
 `00-business-overview.md`, `00-interview-decisions.md`, `01-existing-capability-map.md`,
 `02-backend-architecture.md`, `03-frontend-architecture.md`, `04-prd-to-mvp.md`,
-`MODULE-STATUS.md`, `README.md`, seluruh `erd/`, seluruh `evidence/`, seluruh `roadmap/`,
-seluruh `testing/`, serta `contracts/api-contract.md`,
+`MODULE-STATUS.md`, `README.md`, seluruh `erd/`, seluruh `evidence/` kecuali `evidence/12`,
+seluruh `roadmap/`, seluruh `testing/`, serta `contracts/api-contract.md` di luar dua bagian yang
+disebut pada `CROSS_MODULE_REQUIRED`,
 `contracts/state-transition-matrix.md`, `contracts/validation-matrix.md`, dan
 `contracts/permission-audit-matrix.md`.
 
@@ -726,3 +736,50 @@ Delapan keputusan `ACC-DEC-074` sampai `ACC-DEC-081` dicatat pada
 | `DEC-ACC-P2-008` | Deteksi aturan posting yang salah | Tidak menahan gelombang mana pun |
 | `OD-ACC-01`, `04`, `05`, `07`, `08` | Gerbang kode integrasi, bentuk pesan, autentikasi penerbit, deteksi shift kasir, bentuk saldo subledger | Kotak masuk kejadian dan rekonsiliasi subledger |
 | Definisi `DEPRECIATION_NOT_RUN`, `OPENING_CLOSING_MISMATCH` | Kapan kedua peringatan dianggap terjadi | Evaluasi kedua peringatan |
+
+## Amendment 15 September 2026 — penyelarasan kontrak lintas modul untuk Finance
+
+| Field | Nilai |
+|---|---|
+| `revision` | **Tetap `11`.** Nol keputusan baru dan nol perubahan target: seluruh isi yang diubah sudah diputuskan owner sebelumnya (`ACC-DEC-044`, `047`, `048`, `059`, `060`, `071`, `075`). Yang bergerak hanya teks kontrak yang tertinggal |
+| Dikerjakan lewat | `manage-module-blueprint` → `design-business-module` (pass koreksi desain) |
+| `backend_commit_sha` | `7b0c2ece` (branch `rizkiG`); dokumen Accounting bersih sebelum pass dimulai |
+| `frontend_commit_sha` | `a09ba4b13` (branch `RizkiV2`) — tidak disentuh |
+| Pemicu | Owner meminta bahan kontrak untuk dikirim ke owner Finance. Pemeriksaan menemukan dua kontrak yang sama-sama dirujuk untuk Finance berbeda isi |
+
+### Selisih yang ditemukan
+
+| # | Selisih | Akibat bila dikirim apa adanya |
+|---:|---|---|
+| 1 | `cross-module-contract.md` `ACC-XMOD-0.1` memuat 11 bidang (`EventId` `Guid`, `SourceDomain`, `IdempotencyKey`, tanpa `EventOccurredAt`/`LegalEntityId`), sedangkan `api-contract.md` yang `approved` memuat 12 bidang dengan nama dan tipe lain | Penerbit Finance yang dibangun dari `0.1` ditolak `400` pada setiap pesan |
+| 2 | `ACC-XMOD-0.1` menulis periode tertutup **ditolak**, sedangkan `ACC-DEC-047` menetapkan jurnal masuk ke periode terbuka berikutnya | Finance mengira harus menahan atau mengirim ulang kejadian di sekitar tutup bulan |
+| 3 | `integration-contract.md` 6.4 dan `ACC-XMOD-0.1` bagian 5 memakai `EventTypeId` pada kunci anti-ganda kedua, sedangkan `ACC-DEC-075` butir 4 — dan kamus data bagian 9 serta `02-backend-architecture.md` — memakai `EventTypeCode` | Kejadian berjenis belum terdaftar dapat terjurnal dua kali bila implementasi mengikuti kontrak |
+| 4 | Daftar `CROSS_MODULE_REQUIRED` tidak memuat `api-contract.md`, satu-satunya tempat tabel bidang pesan yang berlaku | Selisih nomor 1 tidak terlihat oleh siapa pun yang mengikuti daftar |
+| 5 | Amendment Phase 2 menulis "`ACC-XMOD` tidak bergerak — bentuk batas Finance sudah benar sejak awal" | **Keliru** sejak `ACC-API-0.8` (8 September 2026). Kalimatnya dipertahankan sebagai riwayat; koreksinya di sini |
+
+### Artefak yang disesuaikan
+
+| Artefak | Versi | Perubahan | sha256 sesudah |
+|---|---|---|---|
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.1` → **`0.2`**, tetap `draft` | Ditulis ulang agar sama dengan kontrak berlaku: 12 bidang + `Components`, pintu masuk dan kode status, kunci kedua `EventTypeCode`, perlakuan setiap keadaan, saldo subledger `ACC-DEC-071`, daftar pertanyaan terbuka, pemetaan bidang `0.1` → `0.2`, dan kewajiban menaikkan `ACC-XMOD` bersama perubahan `api-contract` | `97fb84ac…e9da3fa6` |
+| `contracts/integration-contract.md` | `ACC-INTEGRATION-0.3` → **`0.4`** | Bagian 6.3 "kesepuluhnya" → "kedua belasnya"; 6.4 kunci kedua `EventTypeCode` beserta alasannya; 6.7 `CorrelationId`/`CausationId` sudah wajib; rujukan bagian 3 ke `ACC-XMOD-0.2`; keterangan nama `EventNumber` pada catatan bagian 2. **Teks `0.4` belum di-approve** | `fef2d3d1…fe8e4a87` |
+| `evidence/12-paket-kontrak-kejadian-untuk-finance.md` | Baru | Paket satu berkas untuk Yasmin beserta enam pertanyaan; pertanyaan 6 (titik mulai pengiriman) belum tercatat sebagai keputusan | `7aaf3676…71ea0c44` |
+| `blueprint-manifest.md` | — | `revision` 9 → 11 disamakan; `contract_versions` disamakan dengan roadmap Phase 2; blok `cross_module`; daftar `CROSS_MODULE_REQUIRED` dan `INTERNAL_ONLY` | — |
+
+### Yang sengaja tidak disentuh
+
+| Hal | Alasan |
+|---|---|
+| Contoh JSON di `api-contract.md` bagian *Bidang kesebelas yang bersifat opsional* hanya memuat 10 bidang, tanpa `CorrelationId` dan `CausationId` | Tabel bidang di atasnya sudah benar; mengubah contoh menuntut kenaikan `ACC-API`, sementara `0.11` sedang dipakai usulan lain. **Dicatat, belum diperbaiki.** Contoh lengkap 12 bidang ada di `ACC-XMOD-0.2` bagian 3 dan `evidence/12` |
+| `artifact_hashes` pada YAML di atas | Sebagian besar sudah usang sejak Phase 2 (bukan hanya dua berkas ini). Menghitung ulang sebagian akan terlihat seolah seluruhnya terverifikasi. Hash sesudah pass ini dicatat pada tabel di atas |
+| `evidence/10` bagian yang menyebut kunci kedua memakai `EventTypeId` | Bukti bertanggal 8 September 2026, benar pada saat ditulis |
+| Dokumen modul IGD yang sedang diubah sesi lain pada working tree yang sama | Di luar wewenang pass ini |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| ID | Isi | Menahan |
+|---|---|---|
+| Approval teks `ACC-INTEGRATION-0.4` | Owner mengonfirmasi bahwa teks bagian 6.3, 6.4, 6.7 sesuai keputusannya | Tidak menahan pengiriman paket; menahan status `approved` versi `0.4` |
+| `ACC-XM-001` + ratifikasi bentuk pesan | Ditunggu dari Yasmin | Kotak masuk kejadian |
+| `DEC-ACC-P2-002`, `OD-ACC-05`, `OD-ACC-08` | Daftar jenis kejadian, autentikasi penerbit, bentuk saldo subledger — `evidence/12` bagian 8 | Kotak masuk kejadian dan rekonsiliasi subledger |
+| `OD-ACC-01` | Boleh tidaknya kotak masuk dibangun sebelum ratifikasi Finance | Kotak masuk kejadian |

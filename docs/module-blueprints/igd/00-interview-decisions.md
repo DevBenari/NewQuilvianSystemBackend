@@ -3917,3 +3917,152 @@ mungkin" ditinggalkan **atas permintaan owner** karena seluruh gelombang dijalan
 | ID | Status baru |
 | --- | --- |
 | `IGD-OQ-082` | `closed` oleh `IGD-DEC-106`. **Tidak lagi memblokir `BE-IGD-032`** |
+
+---
+
+## Keputusan 15 September 2026 — pemeriksaan status terhadap source
+
+Keenam keputusan di bawah menjawab `OD-IGD-01` sampai `OD-IGD-06` pada
+[evidence/2026-09-15-pemeriksaan-status.md](evidence/2026-09-15-pemeriksaan-status.md) bagian 4.
+Product/Domain Owner IGD menyetujui seluruh rekomendasinya apa adanya lewat jawaban
+*"point 1 : saya setuju"* pada 15 September 2026. Pemeriksaan itu dijalankan pada backend
+`e89907c5` (`rizkiG`) dan frontend `43adae648` (`RizkiV2`).
+
+### `IGD-DEC-110` — automated test bukan acceptance criterion untuk pekerjaan IGD
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-110` | Decision | **Automated test bukan acceptance criterion untuk pekerjaan IGD pada branch developer**, setara `ACC-DEC-081` pada Accounting. Seluruh proyek test backend dihapus 11 September 2026 atas arahan lead (`cefd927d`, `b3ab542e`), termasuk test IGD. Tiga ketentuan: **(a)** angka test yang tercatat pada laporan task lama — misalnya *"761 test, 759 lulus"* — **tetap sah sebagai bukti historis**, tetapi tidak dapat diulang; **(b)** bukti pengganti untuk task berikutnya adalah **pemetaan setiap acceptance criteria ke source** ditambah **catatan uji API manual** pada laporan task; **(c)** status UAT tetap terpisah dan **tidak** ditulis lulus. Acceptance criteria yang menuntut bukti **selain** test — tangkapan layar, uji langkah mundur migration, uji lewat layar — **tidak** ikut dilepas keputusan ini. Syarat tambahan: matriks transisi status kunjungan (irisan `approved` `IGD-DEC-093`) wajib punya daftar periksa manual, karena 168 test yang menjaganya ikut hilang | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | `IGD-EV-119`; jawaban pengguna 15 September 2026 |
+
+*Contoh ketentuan (b):* satu baris daftar periksa manual berbunyi *"`PATCH /emergency-visits/{id}/visit-status` dari `Completed` ke `InTreatment` → `409`"*. Baris itu menggantikan satu sel matriks yang dulu dijaga `EmergencyVisitStatusTransitionTests`.
+
+### `IGD-DEC-111` — pemesanan radiologi IGD lewat modul Radiologi; menggantikan `IGD-DEC-099`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-111` | Decision | **Menggantikan `IGD-DEC-099`.** Premis *"modul Radiologi belum ada dan pemiliknya belum ditunjuk"* sudah gugur: `RAD-BP-001` berstatus `approved`, pemiliknya Yoga Aji Pratama (`RAD-DEC-014`), dan `RAD-DEC-009` (`approved` 9 September 2026) menetapkan titik sentuhnya. Isi keputusan: **(a)** IGD memesan radiologi lewat `POST api/v1/health-services/radiology-management/rad-orders`, tanpa perlakuan khusus dan tanpa tabel pesanan radiologi tandingan; **(b)** pesanan `External` berjenis `RadiologyOrder` yang sudah tercatat **dibiarkan sebagai riwayat**, tidak dipindahkan (`RAD-DEC-009`); **(c)** teks layar yang menyatakan modul Radiologi belum ada **diperbaiki segera**, tidak menunggu apa pun; **(d)** penyambungan pemesanan **ditahan** sampai hasil bacaan radiologi dapat dirilis — blocker bernama: `RadReport : ActAsRadiologist` belum dapat diberikan kepada peran mana pun (temuan `FE-RAD-11`, pemilik Yoga Aji Pratama). Selama ditahan, pemesanan radiologi tetap dicatat sebagai pesanan `External` pada serah terima | Product/Domain Owner IGD; pemilik `RadiologyManagement` sebagai penyedia endpoint | `approved` | **Rizki Gunawan / 2026-09-15** | `IGD-EV-115`, `IGD-EV-120`; `RAD-DEC-009`; jawaban pengguna 15 September 2026 |
+
+*Contoh ketentuan (d):* bila penyambungan dilakukan sekarang, dokter IGD memesan rontgen toraks pukul 09.00, radiografer memotretnya pukul 09.30, tetapi hasil bacaan tidak dapat dirilis siapa pun. Pesanan tampil "sedang diproses" tanpa batas waktu, dan dokter IGD tetap harus menelepon radiolog.
+
+### `IGD-DEC-112` — pengaturan IGD tersirat disahkan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-112` | Decision | **Perilaku pengaturan IGD tersirat pada commit `f76ebaab` (28 Agustus 2026) disahkan.** Bila tabel `EmgSetting` tidak memuat baris aktif **dan** master Unit Pelayanan memuat **tepat satu** unit aktif bertipe `Emergency`, unit itu dipakai sebagai pengaturan sementara yang **tidak disimpan** (`Id = Guid.Empty`, `Code = "IMPLICIT"`). Nol atau lebih dari satu unit → pendaftaran tetap ditolak. Satu baris `EmgSetting` sungguhan selalu menang. **Akibat samping yang ikut disahkan:** `RequireRegistrationCompletionBeforeDisposition` bernilai bawaan `true`, sehingga disposisi `Executed` kini **menuntut** registrasi `Completed` walau tabel pengaturan kosong — sebelumnya penjagaan itu mati diam-diam | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | `IGD-EV-118`; jawaban pengguna 15 September 2026 |
+
+*Contoh:* master Unit Pelayanan memuat "IGD Utama" (aktif) dan "IGD Lama" (nonaktif); `EmgSetting` kosong. Pendaftaran pasien diterima di "IGD Utama". Bila "IGD Lama" diaktifkan kembali, pendaftaran ditolak sampai master Pengaturan IGD diisi.
+
+### `IGD-DEC-113` — laporan task gabungan lama diterima sebagai bukti
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-113` | Decision | **Laporan task gabungan yang ditulis sebelum 15 September 2026 diterima sebagai tautan bukti** untuk tanda status roadmap — misalnya `be-igd-021-035-penyelesaian-perjalanan-pasien.md` untuk lima belas task. Laporan lama **tidak** dipecah ulang. Aturan *"satu task satu berkas"* (`lokasi-laporan-task.md`) berlaku **mulai task berikutnya** | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 |
+
+### `IGD-DEC-114` — `MVP-5` belum selesai; `EPIC IGD-04` dijadwalkan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-114` | Decision | **`MVP-5` berstatus sebagian (🟡), bukan selesai.** `MVP-5` berisi `EPIC IGD-04` (riwayat penugasan dokter, `FR-IGD-016`…`022`) dan `EPIC IGD-07`; `EPIC IGD-04` belum punya task. `EPIC IGD-04` **tetap dalam lingkup MVP** dan dijadwalkan lewat `plan-module-delivery`. Klaim metadata roadmap *"MVP-0..MVP-5 selesai"* dikoreksi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | `IGD-EV-114`; jawaban pengguna 15 September 2026 |
+
+### `IGD-DEC-115` — catatan penutupan observasi
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-115` | Decision | **`PATCH .../observation-status` dengan target `Completed` wajib menyimpan `notes` ke `EmgObservation.CompletionSummary`.** Kolomnya sudah ada; tanpa migration. Catatan untuk target `Cancelled` **diputuskan terpisah** sebagai `IGD-OQ-083`, karena belum ada kolom alasan pembatalan dan menambahkannya berarti migration yang dikerjakan Rizki sendiri | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | `IGD-EV-110`; jawaban pengguna 15 September 2026 |
+
+*Contoh:* perawat menutup observasi dengan catatan *"Nyeri dada hilang setelah 2 jam, EKG ulang normal, siap disposisi"*. Sesudah keputusan ini diimplementasikan, kalimat itu tampil pada kolom Kesimpulan riwayat observasi — hari ini kalimat itu dibuang.
+
+| ID | Jenis | Isi | Owner | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-083` | Open Question | Di mana alasan pembatalan periode observasi disimpan? `EmgObservation` tidak punya kolom untuknya; pilihannya kolom baru (migration) atau tidak menyimpan alasan sama sekali | Product/Domain Owner IGD | `open` | Bagian `Cancelled` dari `IGD-DEC-115` saja; bagian `Completed` tidak tertahan |
+
+### `IGD-DEC-099` digantikan
+
+| ID | Status baru |
+| --- | --- |
+| `IGD-DEC-099` | `superseded` oleh **`IGD-DEC-111`** (15 September 2026). Baris aslinya tidak diubah dan tetap menjadi riwayat |
+
+### Koreksi `IGD-DEC-114` — rentang requirement `EPIC IGD-04`
+
+Teks `IGD-DEC-114` menyebut `EPIC IGD-04` berisi `FR-IGD-016`…`022`. **Rentang itu salah tulis.**
+`04-prd-to-mvp.md` bagian `EPIC IGD-04` hanya memuat **`FR-IGD-016` sampai `FR-IGD-021`**
+(enam requirement). `FR-IGD-022` — *"Rangkaian fisik dan rangkaian dokumen berjalan
+sendiri-sendiri"* — milik `EPIC IGD-05`. Isi keputusannya tidak berubah; hanya rentangnya yang
+dikoreksi. Baris asli tidak disunting supaya riwayatnya utuh.
+
+---
+
+## Keputusan 15 September 2026 (kedua) — perencanaan delivery
+
+Keenam keputusan di bawah menjawab `OD-A`, `OD-C`, `OD-D`, `OD-E`, `OD-F`, dan `OD-G` yang
+diajukan `plan-module-delivery` pada 15 September 2026. Product/Domain Owner IGD memberikan
+jawabannya secara tertulis pada hari yang sama. Keenamnya **keputusan kontrak/perencanaan**;
+belum ada source yang ditulis.
+
+Teks berkas kontrak (`contracts/api-contract.md`, `contracts/validation-matrix.md`,
+`erd/data-dictionary.md`, `erd/*.md`, `02-backend-architecture.md`) **belum** diselaraskan.
+Sampai pass penyelarasan dijalankan, **keputusan di bawah yang berlaku** bila teks berkas
+kontrak berbeda — pola yang sama dengan Amendment 2026-08-24 pada `blueprint-manifest.md`
+bagian 4.0.
+
+### `IGD-DEC-116` — kontrak `Emergency Doctor Assignment` dan nama tabel `EmgDoctorAssignment`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-116` | Decision | **API §3 `Emergency Doctor Assignment` disetujui sebagai target kontrak** — `GET /`, `GET /active`, `POST /`, `POST /{id}/handover`, beserta aturannya pada validation §3 dan state §6 yang sudah `approved` lewat `IGD-DEC-108`. **Nama tabel ditetapkan `EmgDoctorAssignment`**, bukan `TrxEmergencyDoctorAssignment` seperti tertulis pada kamus data §4, ERD, dan arsitektur backend. Alasannya dua: tabel itu milik domain IGD, dan harus konsisten dengan prefix `Emg` yang sudah dipakai 17 entity IGD lain sejak 27 Agustus 2026. Nama class, konfigurasi, dan DbSet mengikuti. Isi kolom kamus data §4 tidak berubah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-A` |
+
+*Contoh:* berkas model yang dibuat kelak bernama `Models/EmgDoctorAssignment.cs` dengan
+`[Table("EmgDoctorAssignment")]`. Nama `TrxEmergencyDoctorAssignment` pada dokumen desain lama
+dibaca sebagai nama yang sudah diganti.
+
+### `IGD-DEC-117` — dokter penanggung jawab pada waktu tertentu
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-117` | Decision | **Sistem wajib dapat menjawab dokter penanggung jawab yang aktif pada waktu tertentu**, dihitung dari histori `EmgDoctorAssignment`. Bentuknya **query parameter pada endpoint yang sudah ada**: `GET /active?at={datetime}` atau bentuk query ekuivalen yang konsisten dengan desain API §3. **Dilarang membuat endpoint baru terpisah** bila query parameter sudah cukup. Tanpa `at`, `GET /active` tetap menjawab dokter yang aktif sekarang. Menjawab `FR-IGD-018` dan `AT-IGD-126`, dan menjadi bagian target kontrak `EPIC IGD-04` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-C` |
+
+*Contoh:* dr. Budi aktif sejak 08.00, lalu dialihkan ke dr. Sita pukul 14.00. `GET
+/active` untuk kunjungan itu dengan `at=2026-09-15T10:30:00` menjawab dr. Budi (cara menyebut
+kunjungannya mengikuti API §3); tanpa `at` pada pukul 16.00
+menjawab dr. Sita. Waktu sebelum penugasan pertama menjawab `404`.
+
+### `IGD-DEC-118` — penolakan penutupan kunjungan menyebut pesanan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-118` | Decision | **Validation §6 aturan 4 diubah** dari pesan generik *"Masih ada pesanan yang belum ditentukan sikapnya."* menjadi *"Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}."* Aturan: **(a)** paling banyak **5** pesanan ditampilkan; **(b)** bila lebih, ditambahkan *"dan N lainnya"*; **(c)** aturan kueri **tidak** diduplikasi; **(d)** memakai `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada. Kode status tetap `409`, kondisi penolakan tidak berubah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-D`; `IGD-EV-122` |
+
+*Contoh:* tujuh pesanan ditolak Rawat Inap → *"Masih ada pesanan yang belum ditentukan sikapnya:
+Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
+
+### `IGD-DEC-119` — batas panjang catatan status observasi
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-119` | Decision | **Catatan pada `PATCH .../observation-status` paling banyak 1000 karakter**, mengikuti kapasitas kolom `CompletionSummary` dan `EscalationReason` yang sudah ada. **Tidak ada migration** untuk memperpanjang kolom. Target perilaku: `Completed` + catatan lebih dari 1000 karakter → `400`; `Escalated` + catatan lebih dari 1000 karakter → `400`; pesan *"Catatan paling banyak 1000 karakter."* **Dilarang memotong catatan diam-diam** | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-E`; `EmgObservationConfiguration.cs:23–24` |
+
+*Contoh:* perawat menempelkan catatan 1.250 karakter lalu menekan Selesaikan. Sistem menolak `400`
+dan tidak mengubah apa pun; perawat meringkas catatannya lalu mengirim ulang.
+
+### `IGD-DEC-120` — pesan penolakan `EncounterType.Outpatient`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-120` | Decision | **Pesan penolakan jenis kunjungan memakai teks source code yang lebih informatif** sebagai target final: *"Encounter yang dipilih bukan kunjungan IGD. Pilih atau buat encounter dengan jenis kunjungan gawat darurat untuk pasien ini."* Validation §1 aturan 2 diselaraskan ke teks ini, menggantikan *"Jenis kunjungan pasien IGD harus Gawat Darurat."* **Pencabutan `Outpatient` (`BE-IGD-042`) tetap terblokir** sampai Product/Domain Owner menyerahkan **jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`** dari kueri yang ia jalankan sendiri. **Agent dilarang menjalankan kueri basis data**, termasuk `SELECT` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-F`; `IGD-EV-121` |
+
+### `IGD-DEC-121` — kesimpulan observasi opsional
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-121` | Decision | **Kesimpulan observasi bersifat opsional untuk tahap sekarang.** Layar tetap menyediakan isian *Kesimpulan* ketika petugas memilih *Selesaikan*, paling banyak 1000 karakter. Bila kosong, penyelesaian (`Completed`) tetap boleh dilakukan. Aksi pembatalan (`Cancelled`) **tidak** termasuk — tetap mengikuti `IGD-OQ-083` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-15** | Jawaban pengguna 15 September 2026 atas `OD-G` |
+
+### Gap yang dicatat tanpa ID task
+
+Atas instruksi Product/Domain Owner, dua pekerjaan berikut **tidak** diberi ID task sekarang.
+Keduanya tetap tercatat supaya tidak hilang, dan **tidak boleh** memakai `FE-IGD-024` maupun
+`FE-IGD-025` yang sudah dialokasikan untuk pekerjaan lain.
+
+| Gap | Bukti | Catatan |
+| --- | --- | --- |
+| Layar resusitasi IGD | `IGD-EV-111` — `EmergencyResuscitationController` nol pemakai di frontend | Tidak terhalang kewenangan unit |
+| Layar baca/aksi pesanan kepergian (`order-items`) | `IGD-EV-109` — nol pemakai di frontend | Aksi tulis terhalang `BE-IGD-039`; tampilan baca tidak |
