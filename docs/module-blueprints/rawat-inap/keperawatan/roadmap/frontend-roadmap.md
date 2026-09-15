@@ -369,8 +369,19 @@ Implementasi sub-modul Keperawatan Rawat Inap **BELUM BOLEH DIANGGAP SELESAI (DO
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
-Hari ini keenam task berstatus **belum dikerjakan**, dan **tidak satu pun** bertanda ⛔. Yang
-menahan mereka bukan gerbang approval, melainkan ketersediaan backend pasangannya.
+Keenam task berstatus ✅ **selesai**, dan **tidak satu pun** bertanda ⛔. Kalimat revisi sebelumnya
+yang menyebut keenamnya belum dikerjakan sudah tidak berlaku sejak 8 September 2026, ketika
+`FE-RWI-056` menutup gelombang terakhir.
+
+**Koreksi register 11 September 2026.** Tabel gelombang bagian 2 dan register bagian 3.1 sudah
+mencatat keenamnya ✅ sejak semula; yang tertinggal hanya tanda pada **judul kartu** bagian 3,
+sehingga register terbaca bertentangan dengan dirinya sendiri. Tanda judul kartu dibetulkan pada
+tanggal itu setelah keberadaan source ke-6 task diperiksa ulang terhadap `FE@7f6b9356`. Nol baris
+acceptance criteria, kontrak, dan dependency disentuh. Tiga berkas stub yang dikutip `FE-RWI-051` —
+`care-plan-section-stub.jsx`, `intervention-section-stub.jsx`, dan `timeline-section-stub.jsx` —
+memang **sudah tidak ada** pada `FE@7f6b9356`, karena `FE-RWI-053`, `FE-RWI-054`, dan `FE-RWI-055`
+menggantinya dengan folder `sections/timeline/`, `sections/care-plan/`, dan `sections/intervention/`
+yang sebenarnya. Penggantian itu perkembangan yang wajar, bukan source yang hilang.
 
 ---
 
@@ -385,19 +396,39 @@ menahan mereka bukan gerbang approval, melainkan ketersediaan backend pasanganny
 | **`KEP-MVP-3`** | `FE-RWI-055` ✅ | `FE-KEP-05` Catatan Tindakan | `BE-RWI-061`, `BE-RWI-062` |
 | **`KEP-MVP-4`** | `FE-RWI-056` ✅ | `FE-KEP-06` Daftar Pantau Kepatuhan | `BE-RWI-064` |
 
-```text
-FE-RWI-051 (✅) ─┬─> FE-RWI-052 (✅) ─> FE-RWI-053 (✅)
-                 ├─> FE-RWI-054 (✅)
-                 └─> FE-RWI-055 (✅)
+## Grafik Urutan Dependency
 
-FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
+```mermaid
+flowchart TD
+    FERWI051["✅ FE-RWI-051<br/>Ruang kerja keperawatan"]:::selesai
+    FERWI052["✅ FE-RWI-052<br/>Pengkajian keperawatan"]:::selesai
+    FERWI053["✅ FE-RWI-053<br/>Lini masa pengkajian"]:::selesai
+    FERWI054["✅ FE-RWI-054<br/>Rencana asuhan"]:::selesai
+    FERWI055["✅ FE-RWI-055<br/>Catatan tindakan"]:::selesai
+    FERWI056["✅ FE-RWI-056<br/>Daftar pantau kepatuhan"]:::selesai
+
+    FERWI051 --> FERWI052
+    FERWI052 --> FERWI053
+    FERWI051 --> FERWI054
+    FERWI051 --> FERWI055
+
+    classDef selesai fill:#d9f2e0,stroke:#2f7d4f,color:#12351f
+    classDef sebagian fill:#fdf0cd,stroke:#b8860b,color:#3d2f05
+    classDef terblokir fill:#fadbd8,stroke:#a93226,color:#3d1210
+    classDef belum fill:#f2f2f2,stroke:#999999,color:#333333
 ```
+
+`FE-RWI-056` berdiri sendiri dan menempel pada `FE-INP-09` Daftar Pantau, sehingga tidak mempunyai
+panah masuk dari task mana pun. Blok ini sebelumnya berupa pohon teks di dalam fence `text`, dan
+diubah menjadi Mermaid pada 11 September 2026 mengikuti `rules/rule-output/status-task-roadmap.md`
+bagian 3.3. Seluruh hubungan lamanya muncul kembali sebagai panah; nol node, nol panah, dan nol
+tabel gelombang ditambah atau dikurangi.
 
 ---
 
 ## 3. Spesifikasi Detail Task Frontend (FE-RWI-051 .. FE-RWI-056)
 
-### `FE-RWI-051` — Perawat Membuka Ruang Kerja Klinis Terpadu Satu Pasien
+### ✅ `FE-RWI-051` — Perawat Membuka Ruang Kerja Klinis Terpadu Satu Pasien
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
@@ -426,7 +457,7 @@ FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 ---
 
-### `FE-RWI-052` — Perawat Mengisi, Menyelesaikan, dan Membetulkan Pengkajian
+### ✅ `FE-RWI-052` — Perawat Mengisi, Menyelesaikan, dan Membetulkan Pengkajian
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
@@ -455,7 +486,7 @@ FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 ---
 
-### `FE-RWI-053` — Perkembangan Pasien Terbaca Sebagai Garis Waktu, Bukan Angka Terakhir
+### ✅ `FE-RWI-053` — Perkembangan Pasien Terbaca Sebagai Garis Waktu, Bukan Angka Terakhir
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
@@ -484,7 +515,7 @@ FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 ---
 
-### `FE-RWI-054` — Perawat Menetapkan Masalah, Tujuan, Evaluasi, dan Memantau Riwayat Versi Asuhan
+### ✅ `FE-RWI-054` — Perawat Menetapkan Masalah, Tujuan, Evaluasi, dan Memantau Riwayat Versi Asuhan
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
@@ -513,7 +544,7 @@ FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 ---
 
-### `FE-RWI-055` — Perawat Mencatat Tindakan Keperawatan dan Mengisolasi Kegagalan Tagihan
+### ✅ `FE-RWI-055` — Perawat Mencatat Tindakan Keperawatan dan Mengisolasi Kegagalan Tagihan
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |
@@ -542,7 +573,7 @@ FE-RWI-056 (✅) (berdiri sendiri, menempel pada FE-INP-09 Daftar Pantau)
 
 ---
 
-### `FE-RWI-056` — Kepala Ruangan Memantau Kepatuhan Pengkajian pada Layar Daftar Pantau Existing
+### ✅ `FE-RWI-056` — Kepala Ruangan Memantau Kepatuhan Pengkajian pada Layar Daftar Pantau Existing
 
 | Field | Spesifikasi & Kontrak |
 | --- | --- |

@@ -144,6 +144,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         /// <summary>Detail satu lokasi penyimpanan darah.</summary>
+        /// <remarks>
+        /// Membawa <c>HeldUnitCount</c> — jumlah kantong yang akan tertahan bila lokasi ini
+        /// dinonaktifkan — supaya konfirmasi penonaktifan dapat menyebutnya lebih dulu
+        /// (<c>FE-BD-015</c>). Angka itu dihitung saat dibaca, tidak disimpan.
+        /// </remarks>
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<BloodStorageLocationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -162,8 +167,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     "Lokasi penyimpanan darah tidak ditemukan atau sudah dihapus."));
             }
 
+            var response = BloodStorageLocationService.ToResponse(entity);
+            response.HeldUnitCount = await _storageLocationService.CountHeldUnitsAsync(id, cancellationToken);
+
             return Ok(ApiResponse<BloodStorageLocationResponse>.Ok(
-                BloodStorageLocationService.ToResponse(entity),
+                response,
                 "Detail lokasi penyimpanan darah berhasil diambil."));
         }
 
@@ -292,14 +300,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         /// <summary>Menandai lokasi penyimpanan terhapus. Tidak pernah menghapus baris fisik.</summary>
         /// <remarks>
-        /// Untuk keadaan sehari-hari, <b>menonaktifkan lebih tepat daripada menghapus</b>:
-        /// penonaktifan menutup gerbang tanpa memutus makna riwayat penempatan lama yang
-        /// menyebut lokasi itu.
+        /// Lokasi yang sudah pernah dipakai menyimpan kantong <b>ditolak <c>422</c></b>: riwayat
+        /// penempatan menunjuk ke sana dan wajib tetap terbaca. Untuk keadaan sehari-hari,
+        /// <b>menonaktifkan lebih tepat daripada menghapus</b>.
         /// </remarks>
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Delete", "Delete Blood Storage Location", Description = "Menghapus lokasi penyimpanan darah", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("BloodStorageLocation", "Delete")]
         public async Task<IActionResult> Delete(
@@ -336,6 +345,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
                 BloodStorageLocationStatus.DuplicateIdentity => Conflict(
                     ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+                BloodStorageLocationStatus.InUse => UnprocessableEntity(
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message)),
                 _ => BadRequest(
                     ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
             };

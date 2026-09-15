@@ -90,8 +90,11 @@ public sealed class NutritionDietService
                 .Where(p => p.EpisodeId == episode.Id && !p.IsDelete && p.EndDateTime == null)
                 .OrderByDescending(p => p.SequenceNumber)
                 .Select(p => p.Bed != null ? p.Bed.BedName : null).FirstOrDefault(),
+            // Nama DPJP, bukan dokter mana pun yang sedang terlibat. Saringan peran wajib
+            // sejak BE-RWI-074 menambahkan konsulen dan dokter jaga ke tabel yang sama.
             DoctorName = _dbContext.Set<InpDoctorAssignment>()
-                .Where(d => d.EpisodeId == episode.Id && !d.IsDelete && d.EndDateTime == null)
+                .Where(d => d.EpisodeId == episode.Id && !d.IsDelete && d.EndDateTime == null &&
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp)
                 .OrderByDescending(d => d.SequenceNumber)
                 .Select(d => d.Doctor != null ? d.Doctor.FullName : null).FirstOrDefault(),
 

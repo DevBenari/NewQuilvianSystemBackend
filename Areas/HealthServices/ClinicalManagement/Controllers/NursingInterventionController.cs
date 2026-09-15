@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -191,7 +191,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         {
             var actorUserId = GetCurrentUserId();
 
-            var hasil = await _interventionService.UpdateAsync(id, request, actorUserId, cancellationToken);
+            var hasil = await _interventionService.UpdateAsync(id, request, User, actorUserId, cancellationToken);
 
             if (!hasil.IsSuccess || hasil.Intervention == null)
             {
@@ -233,6 +233,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var hasil = await _interventionService.FinalizeAsync(
                 id,
+                User,
                 actorUserId,
                 deviceInfo: Request.Headers.UserAgent.ToString(),
                 ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -308,6 +309,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             var actorUserId = GetCurrentUserId();
+
+            // GUARD-INP-08 - BE-RWI-078. Koreksi adalah penulisan, jadi ia tunduk pada gerbang unit
+            // yang sama seperti pencatatan. Penjaganya dipanggil di sini, bukan di dalam
+            // ClinicalNoteAddendumService, karena aturan unit ini milik keperawatan rawat inap
+            // sedangkan mesin koreksi dipakai bersama seluruh jenis dokumen.
+            var penjagaUnit = await _interventionService.EnsureNurseUnitAuthorityAsync(
+                tindakan, User, actorUserId, cancellationToken);
+
+            if (penjagaUnit != null)
+            {
+                return StatusCode(penjagaUnit.StatusCode, ApiResponse<object>.Fail(
+                    penjagaUnit.StatusCode,
+                    penjagaUnit.ErrorMessage ?? "Koreksi tidak dapat ditambahkan."
+                ));
+            }
 
             var (hasil, addendum) = await _interventionService.CreateAddendumAsync(
                 id,

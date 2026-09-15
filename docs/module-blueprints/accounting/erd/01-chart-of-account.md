@@ -24,6 +24,7 @@ erDiagram
         int NormalBalance "enum disimpan sebagai int"
         boolean IsPostable "false bila punya anak"
         boolean IsActive
+        boolean IsControlAccount "ACC-DEC-064 - tolak jurnal manual"
         date EffectiveStartDate
         varchar Description "panjang 500"
     }

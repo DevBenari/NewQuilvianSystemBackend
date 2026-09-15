@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -192,6 +192,143 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 IsUsingHospitalTariff = provider.IsUsingHospitalTariff,
                 IsNeedGuaranteeLetter = paymentSource.PatientInsurance?.IsNeedGuaranteeLetter
                     ?? provider.IsNeedGuaranteeLetter,
+                IsNeedApprovalForDrug = provider.IsNeedApprovalForDrug,
+                IsNeedApprovalForProcedure = provider.IsNeedApprovalForProcedure,
+                IsAllowExcessPaymentByPatient = patientInsurance.IsAllowExcessPaymentByPatient &&
+                    provider.IsAllowExcessPaymentByPatient,
+                RemainingLimitAmount = patientInsurance.RemainingLimitAmount,
+                PolicyCoPaymentPercent = patientInsurance.CoPaymentPercent,
+                PolicyCoPaymentAmount = patientInsurance.CoPaymentAmount,
+                ServiceDate = effectiveDate
+            };
+        }
+
+        /// <summary>
+        /// Membangun konteks asuransi untuk kartu asuransi kandidat tanpa menyentuh atau memodifikasi
+        /// data encounter dan sumber pembayaran yang tersimpan (BE-BKC-046, MPY-DES-005, BIL-AT-087).
+        /// Bersifat murni read-only (AsNoTracking) untuk keperluan pratinjau perbandingan penanggung.
+        /// </summary>
+        public async Task<EncounterInsuranceContext> GetCandidateContextAsync(
+            Guid encounterId,
+            Guid patientInsuranceId,
+            DateTime? serviceDate = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (encounterId == Guid.Empty)
+                return EncounterInsuranceContext.Fail(encounterId, "EncounterId wajib diisi.");
+
+            if (patientInsuranceId == Guid.Empty)
+                return EncounterInsuranceContext.Fail(encounterId, "PatientInsuranceId wajib diisi.");
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .Include(x => x.PatientClass)
+                .FirstOrDefaultAsync(
+                    x => x.Id == encounterId &&
+                         !x.IsDelete &&
+                         x.IsActive,
+                    cancellationToken);
+
+            if (encounter == null)
+                return EncounterInsuranceContext.Fail(encounterId, "Encounter tidak ditemukan atau tidak aktif.");
+
+            var effectiveDate = (serviceDate ?? DateTime.UtcNow).Date;
+
+            var patientInsurance = await _dbContext.Set<MstPatientInsurance>()
+                .AsNoTracking()
+                .Include(x => x.InsuranceProvider)
+                .FirstOrDefaultAsync(
+                    x => x.Id == patientInsuranceId &&
+                         !x.IsDelete &&
+                         x.IsActive,
+                    cancellationToken);
+
+            if (patientInsurance == null)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Data kartu asuransi pasien kandidat tidak ditemukan atau tidak aktif.");
+            }
+
+            if (patientInsurance.PatientId != encounter.PatientId)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Kartu asuransi kandidat bukan milik pasien pada kunjungan ini.");
+            }
+
+            var provider = patientInsurance.InsuranceProvider;
+            if (provider == null || provider.IsDelete || !provider.IsActive)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Provider asuransi pada kartu kandidat tidak ditemukan atau tidak aktif.");
+            }
+
+            var policyStart = patientInsurance.EffectiveStartDate;
+            var policyEnd = patientInsurance.EffectiveEndDate;
+
+            if (policyStart.HasValue && policyStart.Value.Date > effectiveDate)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Polis asuransi kandidat belum mulai berlaku pada tanggal pelayanan.");
+            }
+
+            if (policyEnd.HasValue && policyEnd.Value.Date < effectiveDate)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Polis asuransi kandidat sudah berakhir pada tanggal pelayanan.");
+            }
+
+            if (provider.ContractStartDate.HasValue && provider.ContractStartDate.Value.Date > effectiveDate)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Kontrak provider asuransi kandidat belum mulai berlaku pada tanggal pelayanan.");
+            }
+
+            if (provider.ContractEndDate.HasValue && provider.ContractEndDate.Value.Date < effectiveDate)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Kontrak provider asuransi kandidat sudah berakhir pada tanggal pelayanan.");
+            }
+
+            if (!patientInsurance.IsEligible)
+            {
+                return EncounterInsuranceContext.Fail(
+                    encounterId,
+                    "Asuransi pasien kandidat belum eligible untuk digunakan.");
+            }
+
+            return new EncounterInsuranceContext
+            {
+                IsValid = true,
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                ServiceUnitId = encounter.ServiceUnitId,
+                ClinicId = encounter.ClinicId,
+                PatientClassId = encounter.PatientClassId,
+                PatientClassName = encounter.PatientClass?.PatientClassName,
+                PaymentType = EncounterPaymentType.Insurance,
+                PaymentTypeName = "Asuransi",
+                HasInsurance = true,
+                PaymentSourceId = Guid.Empty,
+                PaymentSourceName = provider.InsuranceProviderName,
+                PatientInsuranceId = patientInsurance.Id,
+                InsuranceProviderId = provider.Id,
+                InsuranceProviderName = provider.InsuranceProviderName,
+                BenefitPlanCode = patientInsurance.BenefitPlanCode,
+                BenefitPlanName = patientInsurance.PlanName,
+                PolicyNumber = patientInsurance.PolicyNumber,
+                IsEligible = patientInsurance.IsEligible,
+                IsPolicyActive = true,
+                IsInsuranceReady = true,
+                IsUsingInsuranceTariffBook = provider.IsUsingInsuranceTariffBook,
+                IsUsingHospitalTariff = provider.IsUsingHospitalTariff,
+                IsNeedGuaranteeLetter = patientInsurance.IsNeedGuaranteeLetter || provider.IsNeedGuaranteeLetter,
                 IsNeedApprovalForDrug = provider.IsNeedApprovalForDrug,
                 IsNeedApprovalForProcedure = provider.IsNeedApprovalForProcedure,
                 IsAllowExcessPaymentByPatient = patientInsurance.IsAllowExcessPaymentByPatient &&

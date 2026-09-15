@@ -164,11 +164,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var terurut = query.SortBy?.Trim().ToLowerInvariant() switch
             {
                 "orderstatus" => menaik
-                    ? source.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime)
-                    : source.OrderByDescending(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime),
+                    ? source.OrderBy(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime).ThenBy(x => x.Id)
+                    : source.OrderByDescending(x => x.OrderStatus).ThenByDescending(x => x.CreateDateTime).ThenBy(x => x.Id),
                 _ => menaik
-                    ? source.OrderBy(x => x.CreateDateTime)
-                    : source.OrderByDescending(x => x.CreateDateTime)
+                    ? source.OrderBy(x => x.CreateDateTime).ThenBy(x => x.Id)
+                    : source.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.Id)
             };
 
             // Proyeksinya dipinjam dari jalur per-perawatan supaya penanda hasil final ikut

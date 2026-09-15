@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -166,6 +166,32 @@ public class InvoiceSummaryResponse
     public int ActiveItemCount { get; set; }
     public DateTime CreateDateTime { get; set; }
     public Guid RowVersion { get; set; }
+
+    // Kolom daftar Running Invoice, ditambahkan additive - authoritative dari
+    // RegPatientEncounter/RegPatientEncounterGuarantor/MstInsuranceProvider, bukan dihitung ulang
+    // di frontend. Tanggal Kunjungan dari encounter, bukan CreateDateTime invoice - keduanya bisa
+    // berbeda hari (invoice dibuat belakangan dari layanan yang sudah berjalan).
+    public DateTime? VisitDate { get; set; }
+
+    // Hanya diisi untuk kunjungan RAJAL (invoice.ServiceType == "RAJAL"); RANAP/IGD/OTC null.
+    public string? PolyclinicName { get; set; }
+
+    // "Umum" (Cash) / "Asuransi" (Insurance) / "Penjamin" (CompanyGuarantor) - dari PaymentType
+    // penjamin PRIMARY encounter, bukan dari GuarantorName/InsuranceProviderId != null.
+    public string PatientType { get; set; } = string.Empty;
+
+    // Nama penanggung primary pada SAAT kunjungan (snapshot registrasi), null untuk Cash. Tidak
+    // dibaca ulang dari profil pasien saat ini - invoice lama harus tetap menunjukkan penanggung
+    // yang dipakai pada encounter itu, bukan profil pasien yang mungkin sudah berubah.
+    public string? GuarantorName { get; set; }
+
+    // Dari MstInsuranceProvider.ClaimMethod (Cashless/Reimbursement/GuaranteeLetter/Mixed) - null
+    // untuk Cash dan CompanyGuarantor. Tidak pernah di-hardcode "Reimbursement".
+    public string? ClaimMethod { get; set; }
+
+    // CASH / INSURANCE / COMPANY_GUARANTOR - bentuk mesin dari PatientType, supaya frontend tidak
+    // perlu parse label tampilan untuk logika kondisional.
+    public string PrimaryPayerType { get; set; } = string.Empty;
 }
 
 public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
@@ -197,6 +223,11 @@ public sealed class InvoicePatientSummaryResponse
     public string? ServiceUnitName { get; set; }
     public string? PatientClassName { get; set; }
     public string? GuarantorName { get; set; }
+    public string? DoctorInChargeName { get; set; }
+    public string? BedName { get; set; }
+    public string? BedNumber { get; set; }
+    public DateTime? AdmissionDateTime { get; set; }
+    public string? PaymentTypeLabel { get; set; }
 }
 
 public sealed class InvoiceItemResponse
@@ -367,6 +398,10 @@ public sealed class CalculationResponse
 public sealed class CalculationBreakdownResponse
 {
     public string ContractVersion { get; set; } = BillingCalculationContract.Version;
+
+    // BE-BKC-044/MPY-DES-017: Penanda jenis payer aktif pada breakdown tagihan ("CASH", "INSURANCE", "COMPANY_GUARANTOR").
+    public string PayerKind { get; set; } = "CASH";
+
     public AdministrationFeeCalculationResponse AdministrationFee { get; set; } = new();
     public RoomChargeCalculationResponse RoomCharge { get; set; } = new();
     public IReadOnlyList<CalculationItemResponse> Items { get; set; } = [];
@@ -508,6 +543,10 @@ public sealed class TaxCalculationResponse
 public sealed class CoverageCalculationResponse
 {
     public string ContractVersion { get; set; } = string.Empty;
+
+    // BE-BKC-044/MPY-DES-017: Penanda jenis payer aktif pada breakdown tagihan ("CASH", "INSURANCE", "COMPANY_GUARANTOR").
+    public string PayerKind { get; set; } = "CASH";
+
     public string PrimaryStatus { get; set; } = string.Empty;
     public string ExcessStatus { get; set; } = string.Empty;
     public decimal EligibleAmount { get; set; }
@@ -564,5 +603,5 @@ public sealed class CoverageCalculationResponse
 
 public static class BillingCalculationContract
 {
-    public const string Version = "BIL-CALCULATION-0.4";
+    public const string Version = "BIL-CALCULATION-0.9";
 }

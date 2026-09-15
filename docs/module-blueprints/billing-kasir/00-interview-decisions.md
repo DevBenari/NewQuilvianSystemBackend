@@ -1194,3 +1194,288 @@ question bisnis tersisa untuk rumpun Petty Cash. `PC-OQ-003` (baris registry kep
 untuk folder `PettyCash/`, `QBE-MOD-003`) TETAP terbuka tapi TIDAK memblokir `plan-module-delivery`
 — ia memblokir penulisan file model pertama saat implementasi, dicatat sebagai prasyarat
 `build-module-backend`, bukan blocker perencanaan.
+
+## Amendment 11 September 2026 — Kapabilitas baru: Edit Tagihan & Multi-Payer Coverage
+
+Pengguna mengajukan dokumen BRD/PRD eksternal ("Edit Tagihan & Multi-Payer Coverage", versi 1.0,
+11 September 2026) yang mengusulkan: (1) satu encounter dapat memakai insurance pribadi DAN
+company guarantor sekaligus (payment source *one-to-many*); (2) master baru
+`MstCompanyGuarantorReimbursementRoute` dan `MstCompanyGuarantorCoverageRule`; (3) tiga mode Edit
+Tagihan pada Menu Pembayaran — Edit Asuransi, Edit Status Tagihan (penanggung per item), Edit
+Billing (penebusan obat); (4) dokumen Invoice Company Guarantor terpisah dari Invoice Asuransi.
+Sebelum pertanyaan bisnis diajukan, dilakukan audit read-only terhadap blueprint ini dan modul
+tetangga.
+
+**Fakta source diverifikasi sebelum bertanya** (bukan keputusan bisnis):
+
+1. `RegPatientEncounterGuarantor` dan `EncounterInsuranceService` COCOK dengan source aktual —
+   dikonfirmasi LANGSUNG dari kode:
+   [Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs](../../../Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs)
+   dan
+   [Areas/HealthServices/ClinicalManagement/Services/EncounterInsuranceService.cs](../../../Areas/HealthServices/ClinicalManagement/Services/EncounterInsuranceService.cs)
+   dua-duanya ADA dan aktif dipakai. `EncounterInsuranceService` persis seperti klaim PDF: hanya
+   menangani `PaymentType.Cash`/`.Insurance`, menolak tipe lain eksplisit ("Tipe pembayaran
+   encounter tidak didukung.").
+2. `MstPatientCompanyGuarantor` ([Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs](../../../Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs))
+   sudah punya field perusahaan, nomor karyawan, benefit plan, masa berlaku, dan eligibility.
+   `MstCompanyGuarantor` (master perusahaan itu sendiri) ada di
+   [Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs](../../../Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs)
+   — **milik area `Administrator`, bukan `HealthServices/MasterData`** seperti diasumsikan awal.
+   Menambah satu owner relevan untuk `MPY-OQ-002` di bawah.
+3. Field `ExcessAmount`/`ExcessStatus` pada kontrak kalkulasi `billing-kasir` sudah ada sejak
+   awal sebagai cadangan untuk "penjamin kedua", tapi sengaja dikunci permanen ke
+   `0`/`"NOT_CONFIGURED"` lewat `BKC-DES-014` (approved,
+   [02-backend-architecture.md](./02-backend-architecture.md)) — bukti bahwa konsep payer kedua
+   pernah muncul di level kontrak dan secara sadar diputuskan tetap dorman.
+4. Blueprint `billing-kasir` sendiri belum pernah membahas konsep Edit Tagihan/Edit Asuransi/Edit
+   Billing/`IsPrimary`/switch insurer sama sekali sebelum pass ini (grep penuh berkas ini sebelum
+   amendment ini, nol hasil).
+5. **Relasi 1:1 dikonfirmasi LANGSUNG dari EF configuration**, bukan dari prosa blueprint mana
+   pun:
+   [Repositories/Configurations/HealthServices/RegPatientEncounterGuarantorConfiguration.cs](../../../Repositories/Configurations/HealthServices/RegPatientEncounterGuarantorConfiguration.cs)
+   — `entity.HasOne(x => x.Encounter).WithOne(x => x.PaymentSource)...`, dan
+   `entity.HasIndex(x => x.EncounterId).IsUnique()` dengan komentar source asli persis:
+   *"Menjamin satu encounter hanya mempunyai satu sumber pembayaran."* `RegPatientEncounter.PaymentSource`
+   dikonfirmasi properti tunggal (`RegPatientEncounterGuarantor? PaymentSource`, BUKAN
+   collection) di `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs`.
+
+**Catatan koreksi (11 September 2026)**: draft awal amendment ini sempat keliru menyimpulkan
+istilah teknis PDF "tidak cocok source", karena riset awal membaca dokumentasi prosa
+`billing-kasir` sendiri (`erd/00-context-erd.md`, yang memakai nama lama
+`TrxPatientEncounterGuarantor` — git log mengonfirmasi model ini memang pernah berprefix `Trx*`
+sebelum di-rename ke `Reg*` mengikuti registry, commit `946b95a7` lalu `58c61a5b`) alih-alih
+membaca source aktual. Pengguna mengoreksi ini secara langsung, dan fakta #1 serta #5 di atas
+sudah diperbaiki dengan bukti langsung dari source terkini. **Kesimpulan `MPY-DEC-001` di bawah
+TIDAK berubah — justru makin kuat**, karena unique index `EncounterId` kini terverifikasi
+langsung dari EF configuration, bukan dari kutipan dokumen pihak lain. Yang berubah hanya
+atribusi: dokumentasi internal `billing-kasir` (`erd/00-context-erd.md`) belum diperbarui
+mengikuti rename `Trx→Reg`, bukan dokumen PDF pengguna — dicatat sebagai temuan data-hygiene
+terpisah untuk blueprint ini, bukan bagian keputusan bisnis pass ini.
+
+**Konflik ditemukan sebelum bertanya**: premis inti dokumen PDF (dua payer aktif bersamaan per
+encounter) bertentangan langsung dengan model yang terverifikasi langsung dari source (fakta #5)
+DAN dengan kontrak lintas modul `RWI-ENC-PAYER-001` (v1.0.0, **approved**, disetujui Muhammad
+Hamzah 31 Agustus 2026, pemilik `RegistrationManagement`) — *"satu encounter hanya boleh
+mempunyai satu sumber pembayaran"*, ditegakkan unique index `EncounterId` pada
+`RegPatientEncounterGuarantor` yang **sudah live di database dev** sejak task `BE-RWI-035`
+(selesai, migration diterapkan 31 Agustus 2026). Topik "prioritas/multiple coverage antar payer"
+juga sudah tercatat sebagai open decision (`INS-DEC-004`) di modul `insurance-management` yang
+terpisah — modul itu sendiri berstatus pilot/belum diotorisasi produksi.
+
+**Batas scope**: modul `billing-kasir`. **Di dalam scope** — kasir dapat mengoreksi payer aktif
+encounter (switch, bukan tambah) dan penanggung per item tagihan, mengatur penebusan obat,
+sebelum invoice dibayar; coverage rule dan reimbursement route Company Guarantor; dokumen Invoice
+Company Guarantor terpisah. **Di luar scope — untuk modul lain**: kepemilikan
+`MstPatientInsurance`/`MstPatientCompanyGuarantor`/`TrxPatientEncounterGuarantor`/
+`InsuranceCoverageService` (RegistrationManagement/PatientManagement/ClinicalManagement);
+prioritas/multiple coverage antar payer (`INS-DEC-004`, insurance-management). **Di luar scope —
+sesuai PDF sendiri, dikonfirmasi selaras temuan repo**: Edit Company Guarantor pasien dari
+billing (tetap di Data Pasien/Registrasi, konsisten dengan gap `RWI-CAP-002` yang juga belum
+tertutup di modul asalnya), company tariff book baru, partial quantity redemption obat, payer
+switch pasca-pembayaran.
+
+**Bentuk blueprint**: rumpun baru ini dinilai sebagai SATU rumpun (bukan pecahan sub-modul) —
+kelima kemampuannya (Edit Asuransi, Edit Status Tagihan, Edit Billing, coverage rule Company
+Guarantor, invoice Company Guarantor) berbagi `BilInvoice` yang sama, lifecycle OPEN/pre-payment
+yang sama, dan aktor kasir yang sama; tidak ada dua sub-rumpun yang lolos 3 dari 5 syarat
+pemecahan. Mengikuti preseden rumpun Petty Cash: rumpun baru di dalam struktur `SINGLE`
+`billing-kasir` yang sudah ada, dengan prefix keputusan sendiri `MPY-*` (Multi-PaYer) — bukan
+melanjutkan sekuens `BKC-DEC-*`.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `MPY-DEC-001` | Decision | Menutup konflik model payer. Encounter TETAP tepat SATU payment source aktif — `RWI-ENC-PAYER-001` TIDAK diusulkan berubah, TIDAK perlu approval `RegistrationManagement`. "Edit Asuransi" berarti MENGGANTI (switch) payer aktif encounter, BUKAN menambah payer kedua. Opsi "Penjamin" pada Edit Status Tagihan per item HANYA muncul sebagai target valid bila payment source encounter itu sendiri memang `COMPANY_GUARANTOR` — bukan pilihan tambahan yang hidup berdampingan dengan `INSURANCE` pada encounter yang sama. Premis "one-to-many payment source" dari dokumen PDF DITOLAK untuk MVP ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Satu payer aktif, tetap switchable (Direkomendasikan)" dari 3 opsi bertanda rekomendasi |
+| `MPY-DEC-002` | Decision | Bentuk blueprint: rumpun baru "Edit Tagihan & Multi-Payer Coverage" tetap di dalam `billing-kasir` `SINGLE` (bukan blueprint/modul terpisah), memakai prefix keputusan `MPY-DEC-*`/`MPY-DES-*` mengikuti preseden `PC-DEC-*`/`PC-DES-*` (Petty Cash) — rumpun baru dengan kosakata sendiri di dalam blueprint yang sama. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Prefix baru MPY-DEC-*/MPY-DES-* (Direkomendasikan)" dari 2 opsi bertanda rekomendasi |
+| `MPY-DEC-003` | Decision | Edit Asuransi mendukung switch PaymentType APAPUN ke APAPUN (Tunai/Asuransi/Penjamin) pada encounter yang sama, SELAMA target payer sudah terdaftar valid di profil pasien (`MstPatientInsurance` aktif+eligible untuk Asuransi, `MstPatientCompanyGuarantor` aktif+eligible untuk Penjamin) — TIDAK PERNAH membuat/menambah data penjamin baru dari billing, hanya memilih yang sudah tercatat. Menutup skenario "pasien lupa bawa kartu asuransi saat registrasi, ketahuan sebelum bayar". Tidak bertentangan dengan "Edit Penjamin out of scope" (PDF §9.5/BR-16) karena itu soal MENGUBAH/MENAMBAH data penjamin pasien (tetap di Data Pasien/Registrasi), sementara ini MEMILIH opsi yang sudah ada di profil untuk encounter ini. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Semua PaymentType bisa saling diubah (Direkomendasikan)" dari 3 opsi bertanda rekomendasi |
+
+| `MPY-DEC-004` | Decision | Edit Status Tagihan TIDAK menggerbang opsi "Asuransi" berdasarkan hasil evaluasi coverage per item. Availability dropdown payer per item HANYA berdasarkan payer source apa yang aktif pada encounter (Pribadi selalu ada; Asuransi ada bila `PaymentType=Insurance`; Penjamin ada bila `PaymentType=CompanyGuarantor`) — BUKAN berdasarkan apakah item itu secara spesifik tercover rule. Item yang ditugaskan ke Asuransi tapi ternyata `NotCovered` tetap dihitung otomatis oleh coverage engine existing (hasil 0% coverage, pasien bayar penuh) — TIDAK diblokir di level UI. Konsisten dengan `FR-07` PDF dan cara kerja `InsuranceCoverageService` existing yang selalu menghasilkan persentase, bukan gate biner. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Asuransi tetap bisa dipilih walau tidak tercover (Direkomendasikan)" dari 2 opsi bertanda rekomendasi |
+
+| `MPY-DEC-005` | Decision | Edit Asuransi/Edit Status Tagihan/Edit Billing TIDAK butuh approval kedua — satu kasir berwenang (yang sudah punya akses fitur ini) dapat langsung menyimpan perubahan, konsisten dengan pola registrasi (satu petugas admisi menentukan payer awal tanpa approval berjenjang). Kontrol tetap ditegakkan lewat audit lengkap SETELAH fakta (actor, timestamp, reason, row version, correlation/causation — sudah jadi NFR wajib di `FR`/`NFR` PDF §6.3–6.4), BUKAN lewat pencegahan dua-tahap SEBELUM fakta seperti write-off (`BIL-VAL-017`) atau Petty Cash (`PC-DEC-004`). Alasan pembeda: write-off/Petty Cash bukan proses real-time di depan pasien yang menunggu, sedangkan Edit Tagihan adalah alur kasir yang harus cepat. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Satu kasir langsung menyimpan, tanpa approval kedua (Direkomendasikan)" dari 2 opsi bertanda rekomendasi |
+
+| `MPY-DEC-006` | Decision | Dokumen Invoice Company Guarantor memakai ulang permission `BillingInvoice:Read` yang sudah ada — TIDAK dibuat permission baru, mengikuti preseden persis `BKC-DEC-092` (Invoice Asuransi). Siapa pun yang sudah berwenang membaca invoice biasa juga berwenang membaca/mencetak lembar ini. Mitigasi teknis yang sama seperti Invoice Asuransi tetap berlaku: nama berkas PDF memakai nomor tagihan (bukan nama pasien/perusahaan), tidak ada data sensitif pada log peramban/audit. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Pakai ulang BillingInvoice:Read (Direkomendasikan)" dari 2 opsi bertanda rekomendasi |
+
+**Status pass ini**: enam keputusan inti rumpun "Edit Tagihan & Multi-Payer Coverage" TERKUNCI
+(`MPY-DEC-001`–`006`) — model payer, bentuk blueprint, cakupan Edit Asuransi, gate coverage per
+item, model approval, dan permission dokumen Company Guarantor.
+
+**Asumsi yang diwarisi dari dokumen PDF pengguna** (tidak ditanyakan ulang karena sudah cukup
+jelas dan tidak kontroversial pada dokumen sumber; ditinjau ulang bila `design-business-module`
+menemukan kontradiksi dengan source):
+
+- Edit Billing (penebusan obat) murni flag inklusi billing, TIDAK menyentuh data klinis
+  resep/dispensing (`BR-09` PDF) — item `EXCLUDED` tidak masuk total tagihan pasien, konsisten
+  dengan pola `Voided` yang sudah ada di glosarium modul ini (tersimpan lengkap untuk audit,
+  tidak dihapus fisik, tidak masuk total).
+- Sinyal eligibility RAJAL/IGD/OTC vs RANAP untuk Edit Billing SEBAIKNYA memakai ulang sinyal
+  `ServiceType` yang sudah dipakai gerbang PPN rawat inap/rawat jalan (`EPIC BKC-08`,
+  `BKC-DEC-081`/`082`) — bukan sinyal baru. Ini rekomendasi reuse, bukan keputusan bisnis; MUST
+  diverifikasi field persisnya saat `design-business-module`.
+- Ringkasan tagihan MUST membedakan `Subtotal Mandiri`/`Subtotal Asuransi`/`Subtotal Penjamin`
+  secara eksplisit (bukan menggabungkan Penjamin ke label Asuransi) — ini konsekuensi langsung
+  dan tidak ambigu dari `MPY-DEC-001`/`003`, bukan keputusan terpisah yang perlu ditanya ulang.
+
+**Open question / dependency lintas modul — TIDAK memblokir wawancara, MUST diselesaikan sebelum
+implementasi**:
+
+- `MPY-OQ-001` — Edit Asuransi butuh menulis ke `RegPatientEncounterGuarantor` (kolom payer
+  aktif), tabel milik `RegistrationManagement`. `MPY-DEC-001`/`003` memastikan TIDAK ada
+  perubahan skema/kontrak `RWI-ENC-PAYER-001`, tapi endpoint/service yang benar-benar melakukan
+  penulisan (dipanggil dari konteks billing-kasir, atau disediakan `RegistrationManagement`
+  untuk dipanggil billing-kasir) belum ditentukan. Perlu koordinasi dengan pemilik
+  `RegistrationManagement` (kontak tercatat: Muhammad Hamzah) sebelum desain backend dikunci.
+  Penjawab: pemilik arsitektur backend + pemilik `RegistrationManagement`.
+- `MPY-OQ-002` — Nama entity master baru (`MstCompanyGuarantorReimbursementRoute`,
+  `MstCompanyGuarantorCoverageRule`) memakai prefix `Mst`, tapi `MstCompanyGuarantor` (parent-nya)
+  terdaftar milik area `Administrator`, sementara `MstInsuranceCoverageRule` (pola yang ditiru)
+  ada di `HealthServices/MasterData`. Penempatan folder entity baru — ikut `Administrator`
+  (co-locate dengan parent) atau `HealthServices/MasterData` (co-locate dengan pola yang ditiru)
+  — belum ditentukan, dan menentukan siapa yang sign-off pembuatan entity-nya. Penjawab: pemilik
+  arsitektur backend.
+- `MPY-OQ-003` — Modul `pharmacy` (sibling blueprint) mungkin sudah punya kapabilitas tracking
+  penebusan/dispensing resep sendiri. Belum diverifikasi apakah "Edit Billing" di rumpun ini
+  akan tumpang tindih atau melengkapi kapabilitas itu. TIDAK memblokir pass ini karena `BR-09`
+  PDF sudah eksplisit membatasi Edit Billing hanya sebagai flag inklusi billing (bukan klaim atas
+  data dispensing) — tapi MUST dicek `trace-existing-capabilities` terhadap modul `pharmacy`
+  sebelum `design-business-module` mengunci kontrak field eligibility-nya. Penjawab: pemilik
+  arsitektur backend.
+
+**Acceptance criteria awal** (turunan langsung `MPY-DEC-001`–`006`, akan diperkaya
+`design-business-module`):
+
+1. Encounter tetap punya tepat SATU `RegPatientEncounterGuarantor` aktif per waktu — unique
+   index `EncounterId` TIDAK pernah dilonggarkan oleh rumpun ini.
+2. Edit Asuransi berhasil men-switch Tunai↔Asuransi↔Penjamin HANYA jika target payer sudah
+   terdaftar aktif+eligible milik pasien yang sama (`MstPatientInsurance`/
+   `MstPatientCompanyGuarantor`); gagal (`422`) bila tidak.
+3. Dropdown "Asuransi" pada Edit Status Tagihan tetap enabled untuk item `NotCovered` — hasil
+   kalkulasi tetap jalan otomatis (0% coverage, pasien bayar penuh), tidak diblokir UI.
+4. Dropdown "Penjamin" pada Edit Status Tagihan hanya muncul ketika `PaymentType` encounter
+   persis `CompanyGuarantor`.
+5. Save Edit Asuransi/Edit Status Tagihan/Edit Billing berhasil dengan satu kasir berwenang,
+   TANPA langkah approval kedua — tapi menghasilkan audit trail lengkap (actor, waktu, reason,
+   row version, correlation/causation).
+6. Invoice Company Guarantor dapat dibaca/dicetak oleh siapa pun yang memegang
+   `BillingInvoice:Read`, tanpa permission baru.
+7. Stale row version pada save manapun mengembalikan `409` tanpa partial write.
+
+**Langkah berikutnya**: enam keputusan bisnis inti sudah terkunci. Karena `01-existing-capability-map.md`
+modul ini terakhir diaudit pada SHA yang sudah beda dari HEAD saat ini (dikonfirmasi pass ini —
+lihat catatan koreksi di atas), langkah yang disarankan sebelum `design-business-module` adalah
+`trace-existing-capabilities` mode impact scan, khusus menutup `MPY-OQ-001`–`003` dan memverifikasi
+tidak ada kapabilitas lain yang bergeser sejak audit terakhir.
+
+## Amendment 11 September 2026 (lanjutan) — Penutupan `MPY-OQ-001`–`003`
+
+Pengguna menjawab ketiga open question di atas. Sebelum dicatat sebagai closed, setiap klaim
+teknis baru pada jawaban (nama class/file yang belum pernah diverifikasi pass ini) dicek LANGSUNG
+ke source — bukan diterima apa adanya — mengikuti disiplin yang sama seperti koreksi sebelumnya
+pada amendment ini.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `MPY-DEC-007` | Decision | Menutup `MPY-OQ-001` SEBAGIAN. Write authority `RegPatientEncounterGuarantor` TETAP pada `RegistrationManagement` — billing-kasir TIDAK PERNAH menulis langsung ke aggregate ini. Edit Asuransi (`MPY-DEC-003`) mengorkestrasi perubahan lewat service milik `RegistrationManagement` (endpoint/service tsb BELUM ada di source, MUST dibangun sebagai bagian slice ini, atas otorisasi terpisah dari pemilik `RegistrationManagement`). Perubahan model dari one-to-one menjadi multi-payer (bila kelak dibutuhkan) MUST melalui perubahan kontrak `RegistrationManagement`, bukan keputusan sepihak billing-kasir — memperkuat `MPY-DEC-001`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` (posisi arsitektur) | "Write authority tetap RegistrationManagement; Billing mengorkestrasi, tidak menulis langsung" |
+| `MPY-DEC-008` | Decision | Menutup `MPY-OQ-002` PENUH. `MstCompanyGuarantorReimbursementRoute` → `Areas/Administrator/MasterData/` — co-locate `MstCompanyGuarantor` DAN `MstInsuranceProvider`, DIKONFIRMASI LANGSUNG dari source keduanya ada di folder yang sama ([MstCompanyGuarantor.cs](../../../Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs), [MstInsuranceProvider.cs](../../../Areas/Administrator/MasterData/Models/MstInsuranceProvider.cs)). `MstCompanyGuarantorCoverageRule` → `Areas/HealthServices/MasterData/` — co-locate `MstInsuranceCoverageRule`, DIKONFIRMASI LANGSUNG ada di folder itu ([MstInsuranceCoverageRule.cs](../../../Areas/HealthServices/MasterData/Models/MstInsuranceCoverageRule.cs)). Pola boundary konsisten dan terverifikasi: entity "pihak/kontrak" (Provider, Guarantor) → `Administrator`; entity "aturan eligibility layanan kesehatan" (CoverageRule) → `HealthServices/MasterData`. Sign-off pembuatan entity baru mengikuti pemilik masing-masing area. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, diverifikasi langsung ke source) | `approved` | "MstCompanyGuarantorReimbursementRoute → Administrator/MasterData; MstCompanyGuarantorCoverageRule → HealthServices/MasterData" — dikonfirmasi cocok 3/3 file source |
+| `MPY-DEC-009` | Decision | Menutup `MPY-OQ-003` PENUH, DENGAN DAMPAK DESAIN. Edit Billing TIDAK PERNAH menulis/mengubah status dispensing Pharmacy (`PhmDrugUsage`/`PhmDrugUsageItem`/`PrescriptionDispensingService` — DIKONFIRMASI LANGSUNG ada di [Areas/HealthServices/PharmacyManagement/](../../../Areas/HealthServices/PharmacyManagement/Models/PhmDrugUsage.cs), lengkap dengan histori penyerahan, `PrescriptionItemId` yang menautkan ke baris resep, quantity sisa dihitung dari penjumlahan seluruh baris penyerahan yang menunjuk baris resep sama, dan `DrugUsageStatus`). Source `PhmDrugUsage` bahkan eksplisit menyatakan batasnya sendiri pada doc-comment: *"Pencatatan ini berhenti sebagai transaksi yang **dapat** ditagihkan. Keputusan menagih beserta aturannya milik Billing."* Edit Billing HANYA menentukan financial inclusion (`INCLUDED`/`EXCLUDED`) atas prescription item yang SUDAH tercatat dispensing-nya oleh Pharmacy — TIDAK PERNAH membuat/mengubah baris `PhmDrugUsageItem`. Scope IGD WAJIB dipisah dari RAJAL untuk Edit Billing — lifecycle billing obat IGD yang sudah disetujui berbeda dari RAJAL; eligibility signal TIDAK BOLEH menyamakan keduanya di bawah satu bucket "outpatient" generik. **Ini MENGOREKSI** bullet "Sinyal eligibility RAJAL/IGD/OTC..." pada "Asumsi yang diwarisi dari dokumen PDF pengguna" di atas — RAJAL dan IGD TIDAK boleh disamakan. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, diverifikasi langsung ke source) | `approved` | "Pharmacy sudah authoritative dispensing... Edit Billing hanya financial inclusion... Scope IGD wajib dipisah dari rawat jalan" — dikonfirmasi cocok penuh dengan source, termasuk doc-comment eksplisit |
+
+**Catatan teknis tambahan ditemukan saat verifikasi `MPY-DEC-009`** (bukan keputusan bisnis, MUST
+dibawa ke `design-business-module`): `PhmDrugUsage` sudah punya kolom `BilledAt` (nullable
+`DateTime`) — kemungkinan titik integrasi yang sudah disiapkan Pharmacy untuk menandai kapan satu
+baris pemakaian sudah ditagih. Belum jelas apakah kolom ini sudah dipakai proses lain atau masih
+dorman; MUST dicek sebelum Edit Billing dirancang supaya tidak membuat mekanisme paralel yang
+bertentangan dengan kolom yang sudah ada.
+
+**Status pass ini**: sembilan keputusan (`MPY-DEC-001`–`009`) terkunci.
+
+- `MPY-OQ-002` dan `MPY-OQ-003` **CLOSED PENUH** — seluruh klaim teknis pendukungnya diverifikasi
+  langsung ke source pass ini, bukan diterima dari kutipan.
+- `MPY-OQ-001` **PARTIALLY CLOSED** — posisi arsitektur terkunci (`MPY-DEC-007`), tapi residual
+  governance TETAP OPEN: Product/Domain Owner manusia untuk `RegistrationManagement` belum
+  tercatat di `docs/module-blueprints/` manapun (tidak ada blueprint `registration`/
+  `patient-management`). Kandidat kontak: Muhammad Hamzah, yang pernah menyetujui kontrak serupa
+  milik `RegistrationManagement` (`RWI-ENC-PAYER-001`) lewat proses addendum modul `rawat-inap` —
+  BELUM dikonfirmasi sebagai pemilik resmi `RegistrationManagement` secara umum. Residual ini
+  TIDAK memblokir `design-business-module` (arsitekturnya sudah cukup jelas untuk didesain), tapi
+  MEMBLOKIR implementasi endpoint sisi `RegistrationManagement` sampai owner diidentifikasi dan
+  menyetujui.
+
+**Langkah berikutnya (diperbarui)**: dengan `MPY-OQ-002`/`003` tertutup penuh berbukti langsung,
+kebutuhan `trace-existing-capabilities` impact scan yang disebutkan di amendment sebelumnya
+MENYEMPIT — cakupan yang tersisa hanya perlu memverifikasi ulang bagian `01-existing-capability-map.md`
+yang belum disentuh pass ini (di luar area payer/guarantor/pharmacy yang sudah diaudit langsung).
+Blocker satu-satunya sebelum implementasi (bukan sebelum desain) adalah residual `MPY-OQ-001`:
+identifikasi Product/Domain Owner `RegistrationManagement`.
+
+## Amendment 11 September 2026 (lanjutan 2) — Penutupan penuh `MPY-OQ-001`
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `MPY-DEC-010` | Decision | Menutup `MPY-OQ-001` PENUH. Product/Domain Owner untuk `RegistrationManagement` dikonfirmasi: **Muhammad Hamzah** — orang yang sama dengan penyetuju `RWI-ENC-PAYER-001` (kontrak yang menjaga invariant satu payer aktif per encounter, jadi sudah pernah memutuskan tepat di titik singgung yang sama). Governance untuk membangun/mengorkestrasi service Edit Asuransi lewat `RegistrationManagement` (`MPY-DEC-007`) kini punya jalur approval yang jelas — bukan lagi kandidat, melainkan owner terkonfirmasi. | Product/Domain Owner billing-kasir (persetujuan eksplisit dalam percakapan) | `approved` | "iya betul muhammad hamzah" |
+
+**Status pass ini**: SEMUA open question (`MPY-OQ-001`–`003`) CLOSED PENUH. Sepuluh keputusan
+(`MPY-DEC-001`–`010`) mengunci: model payer, bentuk blueprint, cakupan Edit Asuransi, gate
+coverage per item, model approval, permission invoice, write authority + orkestrasi lintas
+modul, penempatan master data baru, boundary dengan Pharmacy, dan owner `RegistrationManagement`.
+Tidak ada blocker desain tersisa untuk rumpun "Edit Tagihan & Multi-Payer Coverage". Blocker
+implementasi yang tersisa (endpoint baru sisi `RegistrationManagement`) kini punya jalur approval
+jelas ke Muhammad Hamzah, tapi approval itu sendiri belum diminta — dicatat sebagai prasyarat
+`build-module-backend`, bukan blocker perencanaan/desain, mengikuti pola yang sama seperti
+`PC-OQ-003` pada rumpun Petty Cash.
+
+**Langkah berikutnya**: interview pass ini SELESAI. Siap lanjut `design-business-module` untuk
+arsitektur backend/frontend penuh rumpun "Edit Tagihan & Multi-Payer Coverage", atas permintaan
+eksplisit pengguna.
+
+## Amendment 11 September 2026 (lanjutan 3) — Approval `MPY-DES-001`–`017` dan penutupan `MPY-OQ-004`
+
+`design-business-module` (revisi blueprint `1.1`, draft) menghasilkan 17 keputusan arsitektur
+(`MPY-DES-001`–`017`) beserta satu pertanyaan bertanda memblokir dengan cakupan terbatas pada
+gelombang `MVP-17`: persetujuan pemilik `RegistrationManagement` atas pembangunan
+`EncounterPaymentSourceService` di modulnya. Keduanya ditutup pada pass ini.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `MPY-DEC-011` | Decision | Menutup `MPY-OQ-004`. Pemilik `RegistrationManagement` **menyetujui** pembangunan `EncounterPaymentSourceService` di modulnya sebagai satu-satunya jalur tulis `RegPatientEncounterGuarantor` dari konteks billing (`MPY-DES-004`), beserta bentuk yang dirancang: **satu layanan generik** yang menerima jenis payer apa pun (`MPY-DES-001`), memperbarui baris yang ada di tempat tanpa menyentuh index unik `EncounterId` (`MPY-DES-002`), dan ikut transaksi pemanggil tanpa membuka transaksinya sendiri. Dengan ini gelombang `MVP-17` TIDAK lagi terblokir. | Muhammad Hamzah (pemilik `RegistrationManagement`, `MPY-DEC-010`) | `approved` | "Muhammad Hamzah dah setuju" |
+| `MPY-DEC-012` | Decision | Menyetujui `MPY-DES-001`–`MPY-DES-017` secara utuh — termasuk empat keputusan berbobot kebijakan yang ditonjolkan sebelum approval: (a) `MPY-DES-002`, ganti payer memperbarui baris di tempat karena index unik `EncounterId` tidak difilter, sehingga kontrak `RWI-ENC-PAYER-001` tidak tersentuh; (b) `MPY-DES-007`, adapter tanggungan berhenti mengeluarkan anomali `INSURANCE_PROVIDER_MISSING` untuk kunjungan berpenjamin perusahaan — ini MENGUBAH NILAI tagihan kunjungan semacam itu, dan memang itulah perbaikannya; (c) `MPY-DES-009`, ganti payer mereset penanggung baris yang jenisnya tidak lagi tersedia; (d) `MPY-DES-017`, tidak ada ember rupiah baru, yang ditambahkan penanda jenis payer. Status naik dari `draft` menjadi `approved` untuk revisi `1.1`. **Persetujuan ini BUKAN otorisasi membuat maupun menjalankan migration** — keduanya tetap memerlukan konfirmasi terpisah saat implementasi. | Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) | `approved` | "Sayapun setuju" |
+
+**Catatan provenance yang dicatat apa adanya.** Persetujuan `MPY-DEC-011` disampaikan kepada agent
+**melalui Product/Domain Owner dalam percakapan**, bukan sebagai pernyataan langsung Muhammad
+Hamzah pada sesi ini. Ini dicatat sebagai provenance, bukan disembunyikan — pola yang sama sudah
+dipakai `BKC-DEC-062`/`BKC-DEC-071` untuk approval lintas-owner. Bila pemilik
+`RegistrationManagement` kelak meminta bukti tertulis, butir ini perlu ditegaskan ulang lewat
+jalur approval modul itu sendiri, bukan dianggap final selamanya atas dasar baris ini saja.
+
+**Status pass ini**: SELURUH keputusan rumpun "Edit Tagihan & Multi-Payer Coverage" kini
+`approved` — sepuluh keputusan bisnis (`MPY-DEC-001`–`010`), dua keputusan penutup
+(`MPY-DEC-011`–`012`), dan tujuh belas keputusan arsitektur (`MPY-DES-001`–`017`). **Tidak ada
+lagi pertanyaan bertanda memblokir.** Keempat gelombang `MVP-16`–`MVP-19` dapat diteruskan ke
+`plan-module-delivery`.
+
+**Yang TETAP terbuka, TIDAK memblokir perencanaan**: `MPY-OQ-005` (kolom penanda "sudah ditagih"
+pada catatan penyerahan obat Farmasi — MUST dicek lewat pembacaan source sebelum `MVP-18`
+dimulai); `MPY-OQ-006` (pengisian aturan tanggungan per perusahaan — memblokir aktivasi fitur,
+bukan pembangunannya); `MPY-CQ-03` (koordinasi urutan commit dengan pekerjaan "Payment Reminder"
+yang working tree-nya menyentuh tiga berkas yang sama).
+
+**Langkah berikutnya**: `plan-module-delivery` untuk keempat gelombang, atas permintaan eksplisit
+pengguna.
+
+**Open question / dependency lintas modul — TIDAK memblokir wawancara, MUST diselesaikan sebelum
+implementasi**:
+
+- `MPY-OQ-001` — Edit Asuransi butuh menulis ke `TrxPatientEncounterGuarantor` (kolom payer
+  aktif), tabel milik `RegistrationManagement`. `MPY-DEC-001` memastikan TIDAK ada perubahan
+  skema/kontrak `RWI-ENC-PAYER-001`, tapi endpoint/service yang benar-benar melakukan penulisan
+  (dipanggil dari konteks billing-kasir, atau disediakan `RegistrationManagement` untuk dipanggil
+  billing-kasir) belum ditentukan. Perlu koordinasi dengan pemilik `RegistrationManagement`
+  (kontak tercatat: Muhammad Hamzah) sebelum desain backend dikunci. Penjawab: pemilik arsitektur
+  backend + pemilik `RegistrationManagement`.
+- `MPY-OQ-002` — Nama entity master baru (`MstCompanyGuarantorReimbursementRoute`,
+  `MstCompanyGuarantorCoverageRule`) memakai prefix `Mst`, tapi folder tempatnya
+  (`Areas/HealthServices/MasterData/`) terdaftar milik `Master/Reference/MasterData`, bukan
+  `billing-kasir` (`Bil`), di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Pembuatan entity baru di
+  folder itu butuh sign-off pemilik `MasterData`, bukan otomatis wewenang `billing-kasir`.
+  Penjawab: pemilik arsitektur backend.
+
+**Langkah berikutnya**: lanjutkan wawancara pada pass yang sama untuk mengunci aturan bisnis
+rinci (Edit Asuransi, Edit Status Tagihan, Edit Billing, coverage rule Company Guarantor, invoice
+document).

@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.5` |
+| Revision | `0.7` |
 | Status | `draft` — belum disetujui manusia |
+| Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Tabel kepemilikan data seluruh modul (bagian 2) dan urutan migration antar sub-modul (bagian 7) naik ke [`../02-module-map.md`](../02-module-map.md). Nol tabel, kolom, endpoint, aturan, dan kontrak yang bergerak |
@@ -70,6 +71,106 @@ sekarang supaya tidak dikarang ulang ketika `INP-S09` akhirnya dikerjakan.
 
 ---
 
+
+## 0. Yang diserap revision `0.7` — Gelombang 1A
+
+Revision `0.7` menyerap dua dari tiga koreksi keselamatan `Gelombang 1A` yang disahkan
+`RWI-DEC-102`. Koreksi ketiga, yaitu penutupan jalur hapus catatan klinis, **tidak** dimiliki
+sub-modul ini; ia berada pada `dokter-rawat-inap` dan `keperawatan` karena tabelnya milik
+`ClinicalManagement` sesuai `RWI-DEC-081`.
+
+| Koreksi | Keputusan | Yang berubah di sub-modul ini |
+| --- | --- | --- |
+| Aturan jenis kelamin tingkat kamar dicabut | `RWI-DEC-101` | Kelayakan Penempatan aturan 5 dipersempit, aturan 6 dipensiunkan |
+| Peran pada penugasan dokter | `RWI-DEC-099` | Satu kolom baru, satu enum baru, satu index unik berubah filter, satu index pendukung baru |
+
+### 0.1 Kelayakan Penempatan setelah pencabutan
+
+Bentuk barunya sudah tertulis pada bagian 1. Yang perlu ditegaskan di sini adalah **apa yang
+hilang dari kode**, karena ini yang menentukan cakupan task implementasi:
+
+| Yang dihapus | Letaknya hari ini | Akibat |
+| --- | --- | --- |
+| Blok aturan 6 beserta kode `ROOM_GENDER_MIXED` | `InpBedOccupancyService.EvaluatePlacementEligibilityAsync` | Kode penolakan itu tidak pernah terbit lagi |
+| Klausa `countedOccupants.Count > 0` pada aturan 5 | Blok yang sama | Pasien tanpa jenis kelamin tercatat tidak lagi menuntut kamar kosong |
+| Pemuatan penghuni kamar untuk keperluan jenis kelamin | `LoadRoomOccupantsAsync` | **Menjadi kode mati** bila tidak ada pemanggil lain. Task implementasi wajib memeriksanya, bukan menganggapnya pasti mati |
+
+Aturan 4, 7, dan 8 **tidak disentuh**, dan pengecualian boks bayi tetap berlaku bagi dua aturan
+jenis kelamin yang tersisa.
+
+**Satu pemeriksaan yang tidak boleh dilewatkan.** Pencabutan ini melonggarkan penolakan, sehingga
+tidak ada pasien yang tiba-tiba tertolak. Risikonya justru sebaliknya: aturan isolasi ikut
+tercabut karena letaknya berdampingan di dalam satu method. Regresi wajib membuktikan
+`ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED` masih menolak.
+
+### 0.2 Enum baru `InpDoctorAssignmentRole`
+
+| Field | Isi |
+| --- | --- |
+| Nama | `InpDoctorAssignmentRole` |
+| Status | **Baru** |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Enums/InpDoctorAssignmentRole.cs` |
+| Nilai | `Dpjp = 1`, `Consultant = 2`, `OnCallDoctor = 3` |
+| Nilai bawaan | `Dpjp = 1` |
+
+Nilai `0` sengaja tidak dipakai supaya baris lama yang terisi nilai bawaan database tidak dapat
+disalahartikan sebagai "peran belum ditetapkan". Setiap baris punya peran yang eksplisit.
+
+| Peran | Siapa yang membuat | Boleh menulis dokumen klinis | Boleh memutuskan pulang |
+| --- | --- | :---: | --- |
+| `Dpjp` | Petugas admisi saat admisi, atau supervisor saat pengalihan | Ya | Ya |
+| `Consultant` | Kepala ruangan atau supervisor | Ya | **Hanya bila kebijakan memberi kewenangan**, sesuai matriks hak akses `PRD-to-MVP-Rawat-Inap-V2` bagian 18 |
+| `OnCallDoctor` | Kepala ruangan atau supervisor | Ya | Tidak |
+
+Baris "hanya bila kebijakan memberi kewenangan" **belum** punya sumber kebijakan yang disetujui.
+Sampai ada, perilaku yang berlaku adalah **menolak**, dan itu ditulis apa adanya pada
+`contracts/validation-matrix.md` sebagai keadaan fail-closed, bukan sebagai kebijakan yang sudah
+diputuskan.
+
+### 0.3 Status model dan dampak migration revision `0.7`
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `InpDoctorAssignment` | **`Diperbarui`** | **Tambah** `AssignmentRole` `int` `NOT NULL DEFAULT 1` | Satu migration, aditif, dapat berjalan tanpa mematikan layanan |
+| `InpNurseAssignment` | `Sudah ada`, **tidak berubah** | — | Nol migration. `RWI-DEC-100` menjadikannya penunjukan, bukan gerbang, sehingga tidak butuh kolom apa pun |
+| `InpEpisode` | `Sudah ada`, tidak berubah | — | Nol migration |
+| `MstBed`, `MstRoom` | `Sudah ada`, tidak berubah | — | **Nol kolom baru.** `RWI-DEC-066` dahulu sudah menolak menambah penanda "boleh campur" pada `MstRoom`, dan pencabutan aturan kamar justru membuat penanda itu makin tidak dibutuhkan |
+
+### 0.4 Rencana migration revision `0.7`
+
+Satu migration, tiga langkah, **urutannya mengikat**.
+
+| Urut | Langkah | Kenapa urutannya begini |
+| ---: | --- | --- |
+| 1 | Tambah kolom `AssignmentRole` dengan `DEFAULT 1` | Baris lama langsung sah tanpa perlu diisi terpisah |
+| 2 | Isi baris lama menjadi `1` secara eksplisit, lalu lepas `DEFAULT` bila konvensi project menuntutnya | Nilai bawaan database bukan pengganti nilai domain yang eksplisit |
+| 3 | Buang `IX_InpDoctorAssignment_EpisodeId_Active`, buat `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp` dan `IX_InpDoctorAssignment_Episode_Doctor_Role_Period` | Index baru **membaca** kolom baru, sehingga kolomnya wajib sudah terisi |
+
+**Kenapa langkah 3 tidak boleh naik ke atas.** Antara membuang index lama dan memasang index baru
+ada jeda ketika **tidak ada** index yang menjaga `INV-INP-03`. Bila kolom belum terisi, filter
+`"AssignmentRole" = 1` tidak dapat dievaluasi dengan benar dan dua DPJP aktif dapat tersimpan pada
+jeda itu. Karena itu ketiganya berada di dalam satu migration, bukan tiga migration terpisah.
+
+**Langkah mundur bila gagal.** Pasang kembali index lama, lalu buang kolomnya. Aman dijalankan
+selama belum ada satu pun baris berperan `2` atau `3`. Begitu konsulen pertama tersimpan, langkah
+mundur **tidak lagi aman** karena index lama akan menolak baris itu; sejak titik itu pemulihan
+dilakukan maju, bukan mundur. Batas ini wajib disebut pada laporan task.
+
+**Pengisian data lama bukan tebakan.** Sebelum `0.7`, tabel ini hanya pernah menyimpan DPJP.
+Karena itu seluruh baris lama diisi `Dpjp` tanpa satu pun baris ambigu, dan tidak ada laporan
+`unresolved` yang perlu dibuat. Ini berbeda dari migrasi data V1 pada `RWI-DEC-097`, yang memang
+menuntut laporan ambiguitas.
+
+### 0.5 Yang sengaja tidak dibuat pada revision `0.7`
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Kolom "boleh campur" pada `MstRoom` | `RWI-DEC-066` sudah menolaknya, dan pencabutan aturan kamar membuatnya tidak berguna sama sekali |
+| Tabel jadwal jaga dokter milik Rawat Inap | Jadwal adalah master milik modul lain. `RWI-DEC-099` memilih penugasan eksplisit per episode, bukan pembacaan jadwal |
+| Kolom unit pada `InpNurseAssignment` | `RWI-DEC-100` menjadikan unit episode sebagai sumbernya. Menyalin unit ke baris penugasan melahirkan dua sumber kebenaran yang dapat berbeda saat pasien pindah unit |
+| Enum peran untuk perawat | `RWI-DEC-100` tidak membedakan peran perawat. Menambahkannya sekarang berarti merancang kebijakan yang belum diputuskan |
+
+---
 ## 1. Bounded context, aggregate, dan batas transaksi
 
 ### 1.1 Dua context milik modul ini
@@ -161,7 +262,8 @@ untuk setiap tindakan.
 
 Perintah menempatkan dan memindahkan pasien tidak memeriksa syarat satu per satu di dalam badannya,
 melainkan memanggil satu pemeriksaan bernama **Kelayakan Penempatan** yang isinya berupa daftar
-aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan.
+aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan; sejak revision `0.7` **satu aturan
+dipensiunkan** sehingga yang benar-benar dijalankan tinggal **delapan**.
 
 | No | Aturan | Kode penolakan | Dasar |
 | ---: | --- | ---: | --- |
@@ -169,11 +271,24 @@ aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan.
 | 2 | Tempat tidur tidak sedang dipegang pemesanan atau penempatan milik episode lain | 409 | `INV-INP-02` |
 | 3 | Bila ada pemesanan milik episode ini yang masih berlaku, pemesanan itu dipakai | — | `RWI-RULE-015` |
 | 4 | Penanda tempat tidur menerima jenis kelamin pasien | 422 | `RWI-RULE-012` B.1 |
-| 5 | Bila jenis kelamin pasien belum tercatat, tempat tidur harus menerima keduanya **dan** kamar belum berpenghuni | 422 | `RWI-RULE-012` B.2 |
-| 6 | Kamar belum dihuni pasien berjenis kelamin berbeda | 422 | `RWI-RULE-012` B.3 |
+| 5 | Bila jenis kelamin pasien belum tercatat, tempat tidur harus menerima **laki-laki dan perempuan sekaligus**. Penghuni kamar lain **tidak diperiksa** | 422 | `RWI-RULE-012` B.2, ditulis ulang `RWI-DEC-101` |
+| ~~6~~ | ~~Kamar belum dihuni pasien berjenis kelamin berbeda~~ — **DIPENSIUNKAN 11 September 2026** oleh `RWI-DEC-101`. Kode `ROOM_GENDER_MIXED` dihapus seluruhnya | ~~422~~ — | ~~`RWI-RULE-012` B.3~~ `superseded` |
 | 7 | Pasien yang membutuhkan isolasi hanya boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.5 |
 | 8 | Pasien yang tidak membutuhkan isolasi tidak boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.6 |
 | 9 | Bila episode lahir dari serah terima IGD, catatan kepergian IGD sudah bertanda `Tiba` | 422 | `RWI-RULE-029` aturan 8 |
+
+**Nomor aturan sengaja tidak dirapatkan.** Nomor 6 dibiarkan kosong dan **tidak boleh dipakai
+ulang** untuk aturan baru. Alasannya: `ruleNumber` ikut terkirim pada response `ineligible`, dan
+sudah dipakai test backend maupun frontend. Menggeser nomor 7 dan 8 menjadi 6 dan 7 akan
+menggagalkan test yang benar tanpa ada aturan bisnis yang berubah. Ini mengikuti aturan ID stabil
+pada `blueprint-update-rules.md`.
+
+**Apa yang hilang bagi pengguna.** Sebelum perubahan ini, kamar berisi satu pasien laki-laki
+menolak seluruh pasien perempuan, walaupun tempat tidur yang dituju memang dikonfigurasi menerima
+keduanya. Petugas admisi tidak punya jalan keluar selain memindahkan pasien lama. Sesudah
+perubahan ini, kelayakan hanya ditentukan penanda tempat tidur yang disetel Admin Master Data,
+sehingga keputusan privasi kembali menjadi keputusan konfigurasi, bukan akibat sampingan dari
+siapa yang kebetulan datang lebih dulu.
 
 **Dua pengecualian boks bayi**, dan keduanya berlaku dua arah:
 
