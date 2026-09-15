@@ -54,6 +54,7 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | ~~`EPIC IGD-04`~~ | ~~Riwayat penugasan dokter belum punya task~~ — **ditutup 15 September 2026**: dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` (`IGD-DEC-116`, `IGD-DEC-117`) | — | `MVP-5` | — |
 | OWNER DATA CONFIRMATION | `BE-IGD-042` menunggu jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; agent dilarang menjalankan kueri | Rizki | R3.8 | Ya — `BE-IGD-040`, `041`, `043` tidak tertahan |
 | `IGD-DEC-082` | Riwayat penugasan dokter masih `draft` klinis | Clinical Governance | Butir 10 DoD `EPIC IGD-04` | Ya — pekerjaan `BE-IGD-044`/`045` boleh dimulai |
+| Audit Observasi V1–V2 | Layar Observasi V2 `PARTIAL`: tanda vital/GCS/oksigen sudah ada di `TrxPatientVitalSign` dan FK `PatientVitalSignId` sudah ada, tetapi belum tersambung; validasi tautan belum memeriksa encounter yang sama. Usulan `BE-IGD-046`/`FE-IGD-028` **belum dialokasikan** ([evidence](evidence/2026-09-15-audit-observasi-v1-v2.md)) | Product/Domain Owner IGD — `IGD-OQ-084`, `085`, `088` | Pemantauan observasi | Ya — `FE-IGD-024`, `BE-IGD-040`, dan seluruh task lain tidak tertahan |
 | ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
 
 ## Stale evidence

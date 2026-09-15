@@ -4066,3 +4066,21 @@ Keduanya tetap tercatat supaya tidak hilang, dan **tidak boleh** memakai `FE-IGD
 | --- | --- | --- |
 | Layar resusitasi IGD | `IGD-EV-111` — `EmergencyResuscitationController` nol pemakai di frontend | Tidak terhalang kewenangan unit |
 | Layar baca/aksi pesanan kepergian (`order-items`) | `IGD-EV-109` — nol pemakai di frontend | Aksi tulis terhalang `BE-IGD-039`; tampilan baca tidak |
+
+---
+
+## Audit Observasi 15 September 2026 — pertanyaan terbuka
+
+Audit `plan-module-delivery` membandingkan Observasi V1 (frontend `rizkiG`, *legacy reference*),
+blueprint, dan V2. Bukti lengkap, pilihan A/B/C, dampak, dan rekomendasi ada di
+[evidence/2026-09-15-audit-observasi-v1-v2.md](evidence/2026-09-15-audit-observasi-v1-v2.md)
+bagian K. **Tidak ada keputusan yang diambil**; kelima baris di bawah menunggu jawaban owner.
+`FE-IGD-024` dan `BE-IGD-040` tidak terdampak.
+
+| ID | Jenis | Isi | Owner | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-084` | Open Question | Bagaimana tanda vital masuk ke pemantauan observasi: dicatat baru dari formulir pemantauan lalu ditautkan, dipilih dari vital sign yang sudah dicatat, atau keduanya? Angka tanda vital tetap milik `TrxPatientVitalSign`; yang disimpan observasi hanya `PatientVitalSignId` | Product/Domain Owner IGD + Nursing authority | `open` | Usulan task frontend pemantauan bertanda vital |
+| `IGD-OQ-085` | Open Question | Apakah ABCDE diulang selama observasi: ditampilkan dari triase terakhir (baca saja) dengan evaluasi ulang ditulis pada *Keadaan Klinis*, dijadikan isian terstruktur per pemantauan, atau hanya lewat retriase? Terkait `IGD-DEC-057` dan penundaan `IGD-GAP-027` | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `open` | Isi layar pemantauan; pilihan terstruktur berarti migration |
+| `IGD-OQ-086` | Open Question | Di mana alat bantu jalan napas (OPA, NPA, ETT, LMA, stoma) dicatat: teks sementara, area Pemakaian Alat (`IGD-DEC-096`), atau kolom baru pemantauan? V2 tidak punya tempat terstruktur untuknya | Product/Domain Owner IGD + tim PPI | `open` | Tidak memblokir usulan task; menunggu area Pemakaian Alat |
+| `IGD-OQ-087` | Open Question | Apakah enum `OxygenSupportType` milik `ClinicalManagement` perlu nilai Head Box, JR/T-Piece, Ambu Bag, dan Ventilator, atau cukup `Other` + catatan oksigen? | Pemilik `ClinicalManagement` (sementara Product/Domain Owner IGD, `IGD-DEC-107`) | `open` | Tidak memblokir |
+| `IGD-OQ-088` | Open Question | Apakah pemantauan boleh dicatat pada periode observasi yang sudah `Completed` atau `Cancelled`? Hari ini backend mengizinkannya tanpa penanda | Product/Domain Owner IGD + Nursing authority | `open` | Aturan validasi usulan task backend tautan tanda vital |

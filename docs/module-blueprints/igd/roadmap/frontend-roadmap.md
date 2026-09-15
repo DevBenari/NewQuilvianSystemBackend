@@ -120,7 +120,7 @@ flowchart LR
 | `FE-IGD-022` | Layar asuhan keperawatan IGD | 🟡 uji layar belum; tab lab cacat; teks radiologi usang — *tab lab dan teks radiologi ditangani `FE-IGD-023` ✅ 15 September 2026; uji layar `FE-IGD-022` tetap belum* | [fe-igd-022](../task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md) |
 | `FE-IGD-019` | Assesmen Awal IGD memakai formulir bersama | ✅ — kartu susulan 15 September 2026 | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 | `FE-IGD-023` | Tab Penunjang Medis membaca pesanan milik pasien | ✅ 15 September 2026 — implementasi; runtime belum diverifikasi | [FE-IGD-023](../task/report/frontend/FE-IGD-023.md) |
-| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | tanpa tanda — direncanakan, menunggu `BE-IGD-040` | — |
+| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi; build dan runtime belum diverifikasi | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
 | `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
@@ -662,7 +662,7 @@ flowchart LR
     DEC111{{"✅ IGD-DEC-111<br/>Radiologi belum disambungkan"}}:::selesai
     DEC121{{"✅ IGD-DEC-121<br/>Kesimpulan opsional"}}:::selesai
     FEIGD023["✅ FE-IGD-023<br/>Tab Penunjang baca pesanan pasien"]:::selesai
-    FEIGD024["FE-IGD-024<br/>Kesimpulan diisi saat Selesaikan"]:::belum
+    FEIGD024["✅ FE-IGD-024<br/>Kesimpulan diisi saat Selesaikan"]:::selesai
     FEIGD025["FE-IGD-025<br/>Laporan perombakan pengkajian"]:::belum
     FEIGD026["FE-IGD-026<br/>Laporan layar pendaftaran"]:::belum
     FEIGD027["FE-IGD-027<br/>Triase pakai riwayat dokter"]:::belum
@@ -698,11 +698,11 @@ flowchart LR
 | **Risiko** | Rendah |
 | **Owner** | Frontend |
 
-### `FE-IGD-024` — Isian Kesimpulan saat menyelesaikan periode observasi
+### ✅ `FE-IGD-024` — Isian Kesimpulan saat menyelesaikan periode observasi
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Direncanakan 15 September 2026 — belum dikerjakan.** Mulai setelah `BE-IGD-040` selesai |
+| **Status** | ✅ **SELESAI (implementasi) 15 September 2026.** Enam acceptance criteria dipetakan ke source frontend `RizkiV2` (belum di-commit, dasar `f37e949ea`): `emergency-assessment-observation-tab.jsx` dan `emergency-assessment-constant.jsx`. `npm run lint:errors` exit 0, nol error; `node --import ./tests/helpers/register.mjs --test tests/unit` **852 test, 852 lulus**; `npm run test:unit` tidak berjalan di Node 20 karena pola glob (`EXISTING / ENVIRONMENT ISSUE`). **Build = Not Verified** — `npm run build` diserahkan kepada Rizki. Uji peramban: `NOT FEASIBLE` bagi agent. **Runtime verified: belum.** Dependency `BE-IGD-040`: source selesai, build dan runtime belum diverifikasi. Bukan UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-024.md). *Keadaan sebelumnya: direncanakan 15 September 2026, menunggu `BE-IGD-040`* |
 | **Outcome** | Perawat dapat menulis kesimpulan saat menyelesaikan observasi, dan kesimpulan itu langsung tampil pada riwayat |
 | **Slice** | `IGD-S04` · layar observasi |
 | **Requirement** | **Coverage gap:** tidak ada `FR-IGD-*`; dijejak ke keputusan (lihat `BE-IGD-040`) |
