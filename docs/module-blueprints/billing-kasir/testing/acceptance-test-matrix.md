@@ -280,3 +280,43 @@ Setiap kemampuan wajib pada rumpun ini memiliki **sekurang-kurangnya satu skenar
 Approval blueprint bukan bukti test.
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-TEST-1.1` · status **approved** (`PC-DEC-026`, 15 September 2026) · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Dua puluh acceptance test, `BIL-AT-101`–`BIL-AT-120`. **Lima di antaranya regresi** — menguji bahwa yang seharusnya tidak berubah memang tidak berubah, dan bahwa yang dihapus benar-benar tidak dapat dipanggil lagi.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-101` | `PC-DEC-016` | Kasir membuat permintaan lalu langsung mencairkannya tanpa persetujuan siapa pun | Integrasi | Status berpindah `Menunggu Pencairan` lalu `Menunggu Bukti` dalam dua panggilan; saldo berkurang tepat sekali; satu baris `DISBURSEMENT` lahir |
+| `BIL-AT-102` | `PC-DEC-016`, `PC-DEC-024` | Memanggil `POST /vouchers/{id}/approve` setelah rilis | Integrasi | `404` — endpointnya tidak ada lagi. **Regresi** |
+| `BIL-AT-103` | `PC-DEC-024` | Memanggil `POST /vouchers/{id}/reject` setelah rilis | Integrasi | `404`. **Regresi** |
+| `BIL-AT-104` | `PC-DES-015` | Membaca voucher warisan yang sebelumnya `WAITING_APPROVAL` | Integrasi | `status` bernilai `REQUESTED`, `statusLabel` bernilai `Menunggu Pencairan`; nomor voucher, nominal, dan penerimanya tidak berubah |
+| `BIL-AT-105` | `PC-DES-015`, `PC-DES-024` | Membaca voucher warisan yang sebelumnya `APPROVED` dan belum dicairkan | Integrasi | `status` bernilai `REQUESTED` dan **dapat langsung dicairkan**; `decidedAt`/`decidedByName` tetap terbaca sebagai jejak lama |
+| `BIL-AT-106` | `PC-DES-015`, `PC-DEC-003` | Membaca voucher warisan berstatus `REJECTED` | Integrasi | Tetap `REJECTED` dengan label `Ditolak (arsip)`; `rejectionReason` utuh; seluruh aksi atasnya ditolak. **Regresi** |
+| `BIL-AT-107` | `PC-DES-016` | Membaca `GET /budget/current` | Integrasi | Response **tidak** lagi memuat `reservedAmount` maupun `availableAmount` |
+| `BIL-AT-108` | `PC-DES-016` | Sepuluh permintaan Rp 500.000 dibuat berturut-turut di atas saldo Rp 1.000.000 | Integrasi | Seluruh permintaan **berhasil dibuat** (tidak ada saldo yang terkunci); pencairan ketiga **ditolak** `BIL-VAL-048` karena saldo benar-benar habis |
+| `BIL-AT-109` | `PC-DES-006` | Dua kasir mencairkan bersamaan dari saldo yang hanya cukup untuk satu | Integrasi/konkurensi | Tepat satu berhasil; yang lain `422` `BIL-VAL-048`; saldo akhir **tidak** negatif. **Regresi** |
+| `BIL-AT-110` | `PC-DEC-017` | Finance membuat periode anggaran baru lalu mengaktifkannya sementara periode lain masih `ACTIVE` | Integrasi | Pembuatan berhasil (`DRAFT`); pengaktifan **ditolak** `BIL-VAL-103` |
+| `BIL-AT-111` | `PC-DEC-018`, `PC-DES-018` | Finance menutup periode bersisa Rp 1.250.000 dengan penerus yang sah | Integrasi | Periode lama bersaldo `0` dengan satu baris `CARRY_FORWARD_OUT`; periode penerus bertambah Rp 1.250.000 dengan satu baris `CARRY_FORWARD_IN`; keduanya dalam satu transaction |
+| `BIL-AT-112` | `BIL-VAL-104` | Finance menutup periode yang masih punya permintaan `Menunggu Pencairan` | Integrasi | `422` `BIL-VAL-104`; periode tetap `ACTIVE`; tidak ada baris carry-forward yang lahir |
+| `BIL-AT-113` | `BIL-VAL-104` | Finance menutup periode bersisa saldo tanpa menyebutkan periode penerus | Integrasi | `422`; saldo tidak berpindah ke mana pun |
+| `BIL-AT-114` | `BIL-VAL-105` | Penambahan saldo dijalankan pada periode `CLOSED` | Integrasi | `422` `BIL-VAL-105` |
+| `BIL-AT-115` | `BIL-VAL-106` | Pencairan dijalankan ketika tidak ada periode `ACTIVE` sama sekali | Integrasi | `422` `BIL-VAL-106` dengan pesan yang mengarahkan Finance membuat periode, **bukan** pesan saldo tidak mencukupi |
+| `BIL-AT-116` | `PC-DES-020` | Penerima mengembalikan sisa Rp 50.000 lalu Rp 60.000 dari voucher Rp 500.000 | Integrasi | Dua baris `RETURN`; `returnedAmount` menjadi Rp 110.000; **status voucher tidak berubah**; saldo bertambah Rp 110.000 |
+| `BIL-AT-117` | `BIL-VAL-098` | Pengembalian Rp 400.000 diajukan saat sisa di tangan hanya Rp 390.000 | Integrasi | `422` `BIL-VAL-098`; `returnedAmount` tidak berubah |
+| `BIL-AT-118` | `PC-DES-020` | Kasir membalik pencairan voucher Rp 500.000 yang `returnedAmount`-nya Rp 110.000 | Integrasi | Satu baris `REVERSAL` sebesar Rp 390.000; status menjadi `Dibatalkan (Uang Dikembalikan)`; total yang kembali ke kolam Rp 500.000 terbaca dari dua jenis baris yang terpisah |
+| `BIL-AT-119` | `BIL-VAL-099` | Pembalikan kedua diajukan atas voucher yang sudah dibalik | Integrasi | `422` `BIL-VAL-099`; unique index parsial juga menolaknya di lapis database |
+| `BIL-AT-120` | `PC-DEC-023`, `PC-DES-023` | Seluruh alur pencairan, pengembalian, pembalikan, dan penutupan periode dijalankan | Integrasi | **Nol** baris `AccJournal` lahir; **nol** pemanggilan ke `AccountingManagement`. **Regresi** terhadap keputusan menunda integrasi |
+
+### Yang sengaja tidak diuji
+
+| Yang tidak diuji | Alasan |
+| --- | --- |
+| Unggah berkas bukti | Tidak dibangun (`PC-DEC-021`) |
+| Perpindahan `EVIDENCE_SUBMITTED` ke `SETTLED` | Status itu tidak ada (`PC-DEC-025`) |
+| Posting jurnal otomatis ke Kas Kecil | Ditunda (`PC-DEC-023`); `BIL-AT-120` justru menguji ketiadaannya |
+| Approval berjenjang berdasarkan nominal | Tidak pernah masuk scope revisi ini |
