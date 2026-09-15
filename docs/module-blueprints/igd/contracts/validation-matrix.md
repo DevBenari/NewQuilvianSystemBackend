@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.4.0` — revisi 6. **Bukan aditif**: bagian 5 aturan 2 dan 4 berubah teksnya. Bagian 2 aturan 4-5 yang `approved` isinya utuh. Lihat manifest 0a.2 |
+| `contract_version` | `0.5.0` — penyelarasan teks 15 September 2026. **Bukan aditif**: pesan bagian 1 aturan 2 berubah (`IGD-DEC-120`) dan pesan bagian 6 aturan 4 berubah (`IGD-DEC-118`); bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`). Kode status dan kondisi penolakan tidak berubah. Bagian 2 aturan 4-5 isinya utuh. Lihat manifest bagian 0c. *Sebelumnya `0.4.0` — revisi 6, bukan aditif: bagian 5 aturan 2 dan 4 berubah teksnya; lihat manifest 0a.2* |
 | Status | `draft`, **kecuali bagian 2 aturan 4 dan 5 yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. Seluruh aturan lain tetap `draft` |
-| Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
+| Versi sebelumnya | `0.4.0`, sebelumnya `0.3.0` dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -18,12 +18,17 @@ dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum se
 | No | Aturan | Kode | Pesan | Keputusan |
 | ---: | --- | :-: | --- | --- |
 | 1 | Unit pelayanan harus IGD sesuai pengaturan aktif | `400` | "Asal kunjungan harus IGD." | Sudah ada |
-| 2 | Jenis kunjungan wajib `Emergency` | `400` | "Jenis kunjungan pasien IGD harus Gawat Darurat." | `IGD-DEC-074` |
+| 2 | Jenis kunjungan wajib `Emergency` | `400` | "Encounter yang dipilih bukan kunjungan IGD. Pilih atau buat encounter dengan jenis kunjungan gawat darurat untuk pasien ini." | `IGD-DEC-074`; teks pesan `IGD-DEC-120` |
 | 3 | Pasien tanpa identitas wajib punya nama sementara | `400` | "Nama sementara wajib diisi untuk pasien yang belum diketahui identitasnya." | Sudah ada |
 | 4 | Pasien tidak boleh punya dua kunjungan IGD aktif | `409` | "Pasien ini masih memiliki kunjungan IGD aktif bernomor {nomor}, tiba pukul {waktu}. Buka kunjungan tersebut, jangan mendaftar ulang." | `IGD-DEC-084` |
 | 5 | Master kelas pasien IGD wajib ada dan tepat satu | `400` | Bila kosong: "Master kelas pasien untuk IGD belum diisi. Hubungi penanggung jawab data master." Bila lebih dari satu: "Ditemukan lebih dari satu master kelas pasien IGD. Rapikan data master agar pemilihan tarif tidak ambigu." | `IGD-DEC-076` |
 | 6 | Satu encounter hanya boleh punya satu kunjungan IGD | `409` | "Kunjungan ini sudah memiliki kunjungan IGD." | Sudah ada |
 | 7 | Nilai kelas pasien yang dikirim pemanggil **diabaikan** | — | Tidak menolak; backend menetapkan sendiri | `IGD-DEC-076` |
+
+**Teks pesan aturan 2 diganti pada `0.5.0`** (`IGD-DEC-120`). Teks lama *"Jenis kunjungan pasien
+IGD harus Gawat Darurat."* tidak lagi berlaku; teks baru sama dengan teks yang sudah ada di source
+dan menyebut apa yang harus dilakukan petugas. Kondisi penolakannya tidak berubah. Pencabutan nilai
+`Outpatient` yang masih diterima source adalah pekerjaan `BE-IGD-042`, bukan perubahan aturan ini.
 
 ### 1.1 Jalan keluar beralasan untuk aturan 4
 
@@ -167,8 +172,24 @@ Sampai saat itu, aturan 5 melarang sistem berpura-pura tahu.
 | 1 | Status wajib `Disposed` | `409` | "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan." |
 | 2 | Tidak boleh ada observasi `Active` | `409` | "Masih ada observasi yang belum diselesaikan." |
 | 3 | Tidak boleh ada kepergian yang fisiknya belum `Arrived` atau `Cancelled` | `409` | "Masih ada proses kepergian pasien yang belum selesai." |
-| 4 | Tidak boleh ada pesanan tanpa sikap | `409` | "Masih ada pesanan yang belum ditentukan sikapnya." |
+| 4 | Tidak boleh ada pesanan tanpa sikap | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
 | 5 | Status tagihan **tidak** diperiksa | — | Sesuai `IGD-DEC-021` |
+
+### 6.1 Daftar pesanan pada aturan 4 — diubah pada `0.5.0`
+
+Ditetapkan `IGD-DEC-118`. Pesan generik *"Masih ada pesanan yang belum ditentukan sikapnya."*
+diganti karena petugas tidak dapat mengetahui pesanan mana yang menahan penutupan.
+
+| Ketentuan | Isi |
+| --- | --- |
+| (a) Jumlah yang ditampilkan | Paling banyak **5** pesanan |
+| (b) Bila lebih dari 5 | Ditambahkan *"dan N lainnya"*, N = sisa pesanan yang tidak ditampilkan |
+| (c) Aturan kueri | **Tidak** diduplikasi — pesanan yang disebut adalah pesanan yang memang menahan penutupan |
+| (d) Titik penegakan | `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada |
+| Kode dan kondisi | Tetap `409`; kondisi penolakan **tidak** berubah |
+
+*Contoh:* tujuh pesanan ditolak Rawat Inap → *"Masih ada pesanan yang belum ditentukan sikapnya:
+Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
 
 ---
 
@@ -186,3 +207,24 @@ Sampai saat itu, aturan 5 melarang sistem berpura-pura tahu.
 > mengizinkan semua orang (fail-open). Untuk data master yang belum lengkap, fail-closed
 > menghentikan pelayanan dan fail-open menghapus penjagaan. Keduanya buruk, dan pilihannya
 > milik Security/Privacy owner. Dicatat sebagai `IGD-OQ-071`.
+
+---
+
+## 8. Catatan status observasi — baru pada `0.5.0`
+
+Berlaku untuk `PATCH .../emergency-observations/{id}/observation-status`. Aturannya ditetapkan
+`IGD-DEC-119` dan `IGD-DEC-121`, keduanya `approved` Rizki Gunawan 15 September 2026.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Target `Completed` dengan catatan **lebih dari 1000 karakter** ditolak; tidak ada yang berubah | `400` | "Catatan paling banyak 1000 karakter." | `IGD-DEC-119` |
+| 2 | Target `Escalated` dengan catatan **lebih dari 1000 karakter** ditolak; tidak ada yang berubah | `400` | "Catatan paling banyak 1000 karakter." | `IGD-DEC-119` |
+| 3 | Catatan **dilarang dipotong diam-diam** agar muat | — | Tidak berlaku; penolakan aturan 1–2 yang dipakai | `IGD-DEC-119` |
+| 4 | Target `Completed` dengan catatan **kosong** tetap diterima — kesimpulan observasi opsional | — | Tidak menolak | `IGD-DEC-121` |
+
+Batas 1000 karakter mengikuti kapasitas kolom `CompletionSummary` dan `EscalationReason` yang
+sudah ada; **tidak ada migration** untuk memperpanjangnya. Catatan untuk target `Cancelled`
+**tidak** diatur di sini dan tetap menunggu `IGD-OQ-083`.
+
+*Contoh:* perawat menempelkan catatan 1.250 karakter lalu menekan Selesaikan. Sistem menolak
+`400` dan tidak mengubah apa pun; perawat meringkas catatannya lalu mengirim ulang.

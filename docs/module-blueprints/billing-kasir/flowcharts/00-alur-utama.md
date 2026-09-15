@@ -80,3 +80,19 @@ Rumpun itu tidak digambar sebagai bagian alur pokok karena ia bukan bagian dari 
 | Pengisian, koreksi, dan pengurangan saldo kas kecil | [`anggaran-petty-cash.md`](anggaran-petty-cash.md) |
 
 Satu hal yang **MUST** dipahami pembaca kedua alur itu: uang kas kecil dan uang kas shift kasir adalah dua kantong yang berbeda. Menyerahkan uang kas kecil tidak mengubah hitungan kas shift mana pun, dan tidak memunculkan selisih saat shift ditutup. Ini keputusan pemilik yang tercatat, bukan sambungan yang terlupa dirancang.
+
+## Koreksi tagihan sebelum pembayaran — rumpun Edit Tagihan & Multi-Payer
+
+Sejak revisi `1.1`, alur pokok di atas mendapat **tiga titik koreksi** yang seluruhnya berada di antara "tagihan terbentuk" dan "pasien membayar". Ketiganya bukan alur baru yang berdiri sendiri seperti Petty Cash, melainkan cabang perbaikan di tengah alur yang sudah ada: kasir menemukan sesuatu yang keliru, memperbaikinya, lalu alur pokok berlanjut seperti biasa dengan angka yang sudah dihitung ulang.
+
+| Yang diperbaiki | Kapan dipakai | Berkas |
+| --- | --- | --- |
+| Penjamin kunjungan keliru atau belum tercatat | Pasien lupa membawa kartu saat mendaftar, kartunya baru ditunjukkan di kasir | [`ganti-payer-kunjungan.md`](ganti-payer-kunjungan.md) |
+| Sebagian biaya ingin dibayar sendiri walaupun kunjungan berpenjamin | Pasien meminta satu tindakan atau obat tidak diklaimkan | [`penanggung-per-item-tagihan.md`](penanggung-per-item-tagihan.md) |
+| Tidak seluruh resep ditebus pasien | Pasien meninggalkan sebagian obat di loket farmasi | [`penebusan-obat-rawat-jalan.md`](penebusan-obat-rawat-jalan.md) |
+
+Tiga hal yang **MUST** dipahami pembaca ketiga alur itu:
+
+1. **Seluruhnya hanya berlaku sebelum pembayaran.** Begitu ada pembayaran yang berhasil atau tagihan difinalisasi, ketiganya tertutup. Perbaikan sesudah itu adalah pekerjaan pembalikan, bukan pengeditan.
+2. **Satu kunjungan tetap satu penjamin.** Mengganti penjamin berarti menggantikan yang lama, bukan menambah penjamin kedua. Tidak pernah ada keadaan di mana asuransi pribadi dan penjamin perusahaan berlaku bersamaan pada satu kunjungan.
+3. **Keputusan menagih terpisah dari fakta pelayanan.** Menandai obat tidak ditebus tidak mengubah catatan penyerahan obat milik Farmasi, dan menandai satu biaya sebagai tanggungan pasien tidak menghapus fakta bahwa pelayanannya memang diberikan.

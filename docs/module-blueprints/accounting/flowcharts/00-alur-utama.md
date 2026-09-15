@@ -46,7 +46,7 @@ flowchart TD
 |---:|---|---|---|---|---|
 | 1 | Mencatat piutang atas tagihan pasien | Modul Finance | Serah terima dari Billing | Piutang tercatat | Di luar wewenang Accounting |
 | 2 | Menerbitkan kejadian keuangan resmi | Modul Finance | Piutang yang baru tercatat | Kejadian bernomor unik | Di luar wewenang Accounting |
-| 3 | Menerima dan mencatat kejadian | Sistem | Pesan sepuluh bidang | Kejadian berstatus Diterima | Pesan tidak lengkap ditolak; Finance mengirim ulang setelah diperbaiki |
+| 3 | Menerima dan mencatat kejadian | Sistem | Pesan dua belas bidang | Kejadian berstatus Diterima | Pesan tidak lengkap ditolak; Finance mengirim ulang setelah diperbaiki |
 | 4 | Mencari aturan posting | Sistem | Jenis kejadian | Baris-baris aturan beserta akun dan sisinya | Aturan tidak ada ⇒ kejadian **Tertahan**, lihat `02-kejadian-tertahan.md` |
 | 5 | Membuat jurnal | Sistem | Aturan posting dan nilai kejadian | Jurnal, langsung sah atau draft | Gangguan teknis ⇒ lihat `01-kejadian-gagal.md` |
 | 6 | Memeriksa jurnal draft bernilai besar | Petugas Akuntansi | Daftar jurnal draft | Jurnal siap disahkan | Salah nilai ⇒ draft diubah atau dihapus |

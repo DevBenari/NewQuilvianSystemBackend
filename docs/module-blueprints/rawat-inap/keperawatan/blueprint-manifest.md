@@ -93,7 +93,7 @@ sebelumnya mengisi kesebelas berkas ini sudah digantikan isinya.
 | [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | `0.2` | `draft` | `0fc48f722da869eeb633a3ce0c8e163fa8adab4802c87f532a508dad1e4959ce` |
 | [`flowcharts/01-pengkajian-awal.md`](./flowcharts/01-pengkajian-awal.md) | `0.2` | `draft` | `01705b6c2e40b803884706e8eab0fe3abea715582a2b4836f5964bd9a1346b55` |
 | [`data/data-dictionary.md`](./data/data-dictionary.md) | `0.3` | `draft` | `857d2b3a52e0f33278d14598551820c6f03e6348e3a5e241f851c5360da8ffec` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.3.0` | `draft` | `67fc8e97ca6a29a5789972dc31f75fa803db9626a96799a8dea3bf47f7baba9d` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` | `draft` | hash dihitung ulang saat approval `0.4.0` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | `draft` | `9dbc84303410c716b55bb69ad52734b8569d5ec09dc5eab0418975005106b00e` |
 | [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.1.0` | `draft` | `bf811dddc5e968b596f6ff5c3d9ee3fbe9a4ac02afeb85e5b847f8bd6338cd7a` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.3.0` | `draft` | `f84ad786a26f7c611c84f3b73cf602c5d1288f7e1ef1850488415171055e399e` |

@@ -526,3 +526,293 @@ Perlu dicatat bahwa amendment ini adalah satu-satunya bagian modul ini yang **ti
 Seluruh contoh berangka pada dokumentasi ini memakai data samaran.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-CALCULATION-0.9` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010` (`approved`), `MPY-DES-001`–`017` (`draft`), `01-existing-capability-map.md` § 19.
+>
+> Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`, `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`, `CancelBy`, `IsCancel`, dan `IsDelete`. Kolom-kolom itu **tidak diulang** pada tabel mana pun di bawah, dan tidak ditulis ulang pada bagian DDL. Penghapusan bersifat penandaan lewat `IsDelete`, bukan penghapusan baris.
+
+## Status dan kepemilikan tabel
+
+| Entity | Status | Pemilik | Catatan |
+| --- | --- | --- | --- |
+| `MstCompanyGuarantorReimbursementRoute` | **Baru** | Administrator / Master Data | Menerangkan hubungan kontraktual dua master pihak (`MPY-DEC-008`) |
+| `MstCompanyGuarantorCoverageRule` | **Baru** | Health Services / Master Data | Cetakan 1:1 dari `MstInsuranceCoverageRule` (`CAP-36`) |
+| `BilInvoiceItemPayerAssignment` | **Baru** | Billing dan Kasir | Menutup `CAP-37` |
+| `BilInvoiceItemBillingDisposition` | **Baru** | Billing dan Kasir | Menutup `CAP-37`, terpisah dari penanggung (`MPY-DES-010`) |
+| `BilInvoicePayerChangeCommand` | **Baru** | Billing dan Kasir | Jejak perubahan payer (`MPY-DES-003`) |
+| `RegPatientEncounterGuarantor` | Sudah ada | Registration Management | Dirujuk dan diperbarui lewat service pemiliknya; **nol kolom berubah**, **MUST NOT** disalin |
+| `MstCompanyGuarantor`, `MstInsuranceProvider` | Sudah ada | Administrator / Master Data | Dirujuk saja |
+| `MstPatientCompanyGuarantor`, `MstPatientInsurance` | Sudah ada | Patient Management | Dirujuk untuk memvalidasi kandidat payer |
+| `BilInvoice`, `BilInvoiceItem`, `BilCalculationVersion` | Sudah ada | Billing dan Kasir | **Nol kolom berubah** |
+| `PhmDrugUsage`, `PhmDrugUsageItem` | Sudah ada | Pharmacy Management | Dibaca saja; **MUST NOT** ditulis (`MPY-DEC-009`) |
+
+### Kolom kunci tabel `Sudah ada` yang dipakai aturan bisnis rumpun ini
+
+| Tabel | Kolom kunci yang dipakai | Sumber lengkap |
+| --- | --- | --- |
+| `RegPatientEncounterGuarantor` | `EncounterId` (unique, tidak difilter), `PaymentType`, `PatientInsuranceId`, `InsuranceProviderId`, `PatientCompanyGuarantorId`, `CompanyGuarantorId`, `IsEligible`, `IsPolicyActive`, seluruh kolom `*Snapshot` | `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs` |
+| `BilInvoice` | `Id`, `EncounterId`, `Status`, `ServiceType` (`RAJAL`/`IGD`/`OTC`/`RANAP`), `CurrentCalculationVersion`, `RowVersion` | `.../Billing/Models/BilInvoice.cs` |
+| `BilInvoiceItem` | `Id`, `InvoiceId`, `CategoryId`, `SourceDomain`, `Status` (`ACTIVE`/`VOIDED`), `Quantity`, `UnitPrice` | `.../Billing/Models/BilInvoiceItem.cs` |
+| `MstPatientCompanyGuarantor` | `PatientId`, `CompanyGuarantorId`, `GradeLevel`, `BenefitPlanCode`, `EffectiveStartDate`, `EffectiveEndDate`, `IsEligible`, `IsActive` | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs` |
+
+## `MstCompanyGuarantorReimbursementRoute` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `CompanyGuarantorId` | `Guid` | Ya | — | Index | FK ke `MstCompanyGuarantor` | `Restrict` | Tidak | Perusahaan penjamin pemilik rute |
+| `RouteType` | `string(30)` | Ya | `SELF` | Index | — | — | Tidak | `SELF` atau `INSURANCE_PROVIDER` |
+| `InsuranceProviderId` | `Guid?` | Tidak | — | Index | FK ke `MstInsuranceProvider` | `Restrict` | Tidak | Wajib diisi hanya bila `RouteType = INSURANCE_PROVIDER`; **MUST** kosong bila `SELF` |
+| `Priority` | `int` | Ya | `1` | — | — | — | Tidak | Urutan bila satu perusahaan punya beberapa rute |
+| `IsDefault` | `bool` | Ya | `false` | Unique tersaring | — | — | Tidak | Maksimal satu rute bawaan aktif per perusahaan |
+| `EffectiveStartDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Awal masa berlaku kontrak |
+| `EffectiveEndDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | Akhir masa berlaku kontrak |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Catatan operasional |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Penanda aktif |
+
+## `MstCompanyGuarantorCoverageRule` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `CompanyGuarantorId` | `Guid` | Ya | — | Index | FK ke `MstCompanyGuarantor` | `Restrict` | Tidak | Perusahaan pemilik aturan |
+| `RuleCode` | `string(50)` | Ya | — | Index | — | — | Tidak | Kode aturan, unik per perusahaan |
+| `RuleName` | `string(200)` | Ya | — | — | — | — | Tidak | Nama aturan yang dibaca admin |
+| `ItemType` | `string(30)` | Ya | `Tariff` | Index | — | — | Tidak | `Tariff`/`Drug`/`DrugCategory`/`Procedure`/`ServiceCategory` |
+| `TariffId` | `Guid?` | Tidak | — | Index | FK ke master tarif | `Restrict` | Tidak | Diisi bila aturan menyasar satu tarif |
+| `DrugId` | `Guid?` | Tidak | — | Index | FK ke master obat | `Restrict` | Tidak | Diisi bila aturan menyasar satu obat |
+| `DrugCategoryId` | `Guid?` | Tidak | — | Index | FK ke master kategori obat | `Restrict` | Tidak | — |
+| `ProcedureId` | `Guid?` | Tidak | — | Index | FK ke master tindakan | `Restrict` | Tidak | — |
+| `TariffCategoryId` | `Guid?` | Tidak | — | Index | FK ke master kategori tarif | `Restrict` | Tidak | — |
+| `PatientClassId` | `Guid?` | Tidak | — | Index | FK ke master kelas perawatan | `Restrict` | Tidak | Aturan berbeda per kelas |
+| `BenefitPlanCode` | `string(100)?` | Tidak | — | Index | — | — | Tidak | Paket manfaat pada kartu karyawan |
+| `BenefitPlanName` | `string(150)?` | Tidak | — | — | — | — | Tidak | — |
+| `EmployeeGrade` | `string(50)?` | Tidak | — | Index | — | — | **Ya** | Golongan karyawan; satu-satunya dimensi yang tidak ada pada aturan asuransi |
+| `CoverageStatus` | `string(30)` | Ya | `Covered` | — | — | — | Tidak | `Covered`/`NotCovered`/`PartialCovered`/`NeedApproval` |
+| `CoveragePercent` | `numeric(5,2)` | Ya | `100` | — | — | — | Tidak | Persentase tanggungan, 0–100 |
+| `MaxCoverageAmount` | `numeric(18,2)?` | Tidak | — | — | — | — | Tidak | Batas rupiah tanggungan per baris |
+| `CoPaymentPercent` | `numeric(5,2)?` | Tidak | — | — | — | — | Tidak | **Diturunkan server** dari `CoveragePercent`; masukan klien diabaikan |
+| `CoPaymentAmount` | `numeric(18,2)?` | Tidak | — | — | — | — | Tidak | Urun biaya tetap |
+| `IsNeedApproval` | `bool` | Ya | `false` | — | — | — | Tidak | Perlu persetujuan perusahaan lebih dulu |
+| `IsNeedGuaranteeLetter` | `bool` | Ya | `false` | — | — | — | Tidak | Perlu surat jaminan |
+| `IsAllowExcessPaymentByPatient` | `bool` | Ya | `true` | — | — | — | Tidak | Bila `false`, selisih tidak boleh ditagihkan ke pasien |
+| `MaxQuantityPerVisit` | `numeric(18,3)?` | Tidak | — | — | — | — | Tidak | Batas jumlah per kunjungan |
+| `MaxQuantityPerMonth` | `numeric(18,3)?` | Tidak | — | — | — | — | Tidak | Batas jumlah per bulan |
+| `MaxAmountPerVisit` | `numeric(18,2)?` | Tidak | — | — | — | — | Tidak | Batas rupiah per kunjungan |
+| `MaxAmountPerMonth` | `numeric(18,2)?` | Tidak | — | — | — | — | Tidak | Batas rupiah per bulan |
+| `EffectiveStartDate` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Awal masa berlaku aturan |
+| `EffectiveEndDate` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Akhir masa berlaku aturan |
+| `Priority` | `int` | Ya | `0` | Index | — | — | Tidak | Prioritas pemilihan aturan; makin besar makin didahulukan |
+| `ApprovalInstruction` | `string(500)?` | Tidak | — | — | — | — | Tidak | Petunjuk bagi petugas |
+| `BillingInstruction` | `string(500)?` | Tidak | — | — | — | — | Tidak | Petunjuk penagihan |
+| `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+| `SortOrder` | `int` | Ya | `0` | — | — | — | Tidak | Urutan tampil |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | Penanda aktif |
+
+## `BilInvoiceItemPayerAssignment` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `InvoiceItemId` | `Guid` | Ya | — | **Unique tersaring** | FK ke `BilInvoiceItem` | `Restrict` | Tidak | Tepat satu baris aktif per item |
+| `EncounterGuarantorId` | `Guid?` | Tidak | — | Index | FK ke `RegPatientEncounterGuarantor` | `Restrict` | Tidak | **MUST** kosong untuk `CASH`; berisi baris payer kunjungan untuk `INSURANCE`/`COMPANY_GUARANTOR` |
+| `PayerKind` | `string(30)` | Ya | `CASH` | Index | — | — | Tidak | `CASH`/`INSURANCE`/`COMPANY_GUARANTOR` |
+| `AssignmentSource` | `string(20)` | Ya | `AUTO` | — | — | — | Tidak | `AUTO` (mengikuti payer kunjungan) atau `MANUAL` (diubah kasir) |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib diisi pada perubahan `MANUAL` dan pada reset otomatis |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | Baris lama dinonaktifkan, **MUST NOT** ditimpa |
+
+## `BilInvoiceItemBillingDisposition` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `InvoiceItemId` | `Guid` | Ya | — | **Unique tersaring** | FK ke `BilInvoiceItem` | `Restrict` | Tidak | Tepat satu keputusan aktif per item |
+| `Disposition` | `string(20)` | Ya | `INCLUDED` | Index | — | — | Tidak | `INCLUDED` atau `EXCLUDED` |
+| `DecisionSource` | `string(20)` | Ya | `AUTO` | — | — | — | Tidak | `AUTO` atau `CASHIER` |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib pada keputusan `CASHIER` |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | Baris lama dinonaktifkan |
+
+## `BilInvoicePayerChangeCommand` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `InvoiceId` | `Guid` | Ya | — | Index | FK ke `BilInvoice` | `Restrict` | Tidak | Tagihan tempat perintah dijalankan |
+| `EncounterId` | `Guid` | Ya | — | Index | — | — | Tidak | Kunjungan yang payer-nya berubah |
+| `PreviousPayerKind` | `string(30)` | Ya | — | — | — | — | Tidak | Jenis payer sebelum perubahan |
+| `NewPayerKind` | `string(30)` | Ya | — | — | — | — | Tidak | Jenis payer sesudah perubahan |
+| `PreviousPayerNameSnapshot` | `string(250)?` | Tidak | — | — | — | — | Tidak | Nama penjamin sebelumnya, disalin saat perintah dijalankan |
+| `NewPayerNameSnapshot` | `string(250)?` | Tidak | — | — | — | — | Tidak | Nama penjamin sesudahnya |
+| `PreviousCalculationVersionId` | `Guid?` | Tidak | — | — | FK ke `BilCalculationVersion` | `Restrict` | Tidak | Versi perhitungan sebelum perubahan |
+| `NewCalculationVersionId` | `Guid` | Ya | — | Index | FK ke `BilCalculationVersion` | `Restrict` | Tidak | Versi perhitungan hasil perubahan |
+| `ResetAssignmentCount` | `int` | Ya | `0` | — | — | — | Tidak | Berapa penanggung item yang ikut direset (`MPY-DES-009`) |
+| `Reason` | `string(500)` | Ya | — | — | — | — | Tidak | Alasan yang ditulis kasir; dibaca auditor |
+| `IdempotencyKey` | `string(100)` | Ya | — | Unique | — | — | Tidak | Mencegah perintah ganda terhitung dua kali |
+| `CorrelationId` | `string(100)?` | Tidak | — | Index | — | — | Tidak | Penelusuran lintas permintaan |
+| `CausationId` | `string(100)?` | Tidak | — | — | — | — | Tidak | Perintah pemicu |
+
+Tabel ini **append-only**: barisnya **MUST NOT** diperbarui maupun ditandai hapus dalam keadaan apa pun, karena ia satu-satunya bukti nilai payer sebelum perubahan.
+
+## Skema tabel dalam bentuk DDL
+
+> **Peringatan.** Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL di bawah adalah **dokumentasi bentuk tabel**, bukan skrip untuk dijalankan. Menjalankannya akan berbenturan dengan migration. Kolom audit `IdentityModel` tidak ditulis ulang di sini.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+
+CREATE TABLE public."MstCompanyGuarantorReimbursementRoute" (
+    "Id"                    uuid          NOT NULL,
+    "CompanyGuarantorId"    uuid          NOT NULL,
+    "RouteType"             varchar(30)   NOT NULL DEFAULT 'SELF',
+    "InsuranceProviderId"   uuid,
+    "Priority"              integer       NOT NULL DEFAULT 1,
+    "IsDefault"             boolean       NOT NULL DEFAULT false,
+    "EffectiveStartDate"    timestamp with time zone,
+    "EffectiveEndDate"      timestamp with time zone,
+    "Description"           varchar(500),
+    "IsActive"              boolean       NOT NULL DEFAULT true,
+    CONSTRAINT "PK_MstCompanyGuarantorReimbursementRoute" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_MstCompanyGuarantorReimbursementRoute_MstCompanyGuarantor"
+        FOREIGN KEY ("CompanyGuarantorId")
+        REFERENCES public."MstCompanyGuarantor" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_MstCompanyGuarantorReimbursementRoute_MstInsuranceProvider"
+        FOREIGN KEY ("InsuranceProviderId")
+        REFERENCES public."MstInsuranceProvider" ("Id") ON DELETE RESTRICT
+);
+
+-- Maksimal satu rute bawaan aktif per perusahaan penjamin.
+CREATE UNIQUE INDEX "IX_MstCompanyGuarantorReimbursementRoute_Default"
+    ON public."MstCompanyGuarantorReimbursementRoute" ("CompanyGuarantorId")
+    WHERE "IsDefault" = true AND "IsActive" = true AND "IsDelete" = false;
+
+CREATE TABLE public."MstCompanyGuarantorCoverageRule" (
+    "Id"                             uuid          NOT NULL,
+    "CompanyGuarantorId"             uuid          NOT NULL,
+    "RuleCode"                       varchar(50)   NOT NULL,
+    "RuleName"                       varchar(200)  NOT NULL,
+    "ItemType"                       varchar(30)   NOT NULL DEFAULT 'Tariff',
+    "TariffId"                       uuid,
+    "DrugId"                         uuid,
+    "DrugCategoryId"                 uuid,
+    "ProcedureId"                    uuid,
+    "TariffCategoryId"               uuid,
+    "PatientClassId"                 uuid,
+    "BenefitPlanCode"                varchar(100),
+    "BenefitPlanName"                varchar(150),
+    "EmployeeGrade"                  varchar(50),            -- SENSITIF
+    "CoverageStatus"                 varchar(30)   NOT NULL DEFAULT 'Covered',
+    "CoveragePercent"                numeric(5,2)  NOT NULL DEFAULT 100,
+    "MaxCoverageAmount"              numeric(18,2),
+    "CoPaymentPercent"               numeric(5,2),
+    "CoPaymentAmount"                numeric(18,2),
+    "IsNeedApproval"                 boolean       NOT NULL DEFAULT false,
+    "IsNeedGuaranteeLetter"          boolean       NOT NULL DEFAULT false,
+    "IsAllowExcessPaymentByPatient"  boolean       NOT NULL DEFAULT true,
+    "MaxQuantityPerVisit"            numeric(18,3),
+    "MaxQuantityPerMonth"            numeric(18,3),
+    "MaxAmountPerVisit"              numeric(18,2),
+    "MaxAmountPerMonth"              numeric(18,2),
+    "EffectiveStartDate"             timestamp with time zone,
+    "EffectiveEndDate"               timestamp with time zone,
+    "Priority"                       integer       NOT NULL DEFAULT 0,
+    "ApprovalInstruction"            varchar(500),
+    "BillingInstruction"             varchar(500),
+    "Description"                    varchar(500),
+    "SortOrder"                      integer       NOT NULL DEFAULT 0,
+    "IsActive"                       boolean       NOT NULL DEFAULT true,
+    CONSTRAINT "PK_MstCompanyGuarantorCoverageRule" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_MstCompanyGuarantorCoverageRule_MstCompanyGuarantor"
+        FOREIGN KEY ("CompanyGuarantorId")
+        REFERENCES public."MstCompanyGuarantor" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_MstCompanyGuarantorCoverageRule_Company_RuleCode"
+    ON public."MstCompanyGuarantorCoverageRule" ("CompanyGuarantorId", "RuleCode")
+    WHERE "IsDelete" = false;
+
+CREATE TABLE public."BilInvoiceItemPayerAssignment" (
+    "Id"                    uuid          NOT NULL,
+    "InvoiceItemId"         uuid          NOT NULL,
+    "EncounterGuarantorId"  uuid,
+    "PayerKind"             varchar(30)   NOT NULL DEFAULT 'CASH',
+    "AssignmentSource"      varchar(20)   NOT NULL DEFAULT 'AUTO',
+    "Reason"                varchar(500),
+    "IsActive"              boolean       NOT NULL DEFAULT true,
+    CONSTRAINT "PK_BilInvoiceItemPayerAssignment" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilInvoiceItemPayerAssignment_BilInvoiceItem"
+        FOREIGN KEY ("InvoiceItemId")
+        REFERENCES public."BilInvoiceItem" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_BilInvoiceItemPayerAssignment_RegPatientEncounterGuarantor"
+        FOREIGN KEY ("EncounterGuarantorId")
+        REFERENCES public."RegPatientEncounterGuarantor" ("Id") ON DELETE RESTRICT
+);
+
+-- Tepat satu penanggung aktif per baris biaya.
+CREATE UNIQUE INDEX "IX_BilInvoiceItemPayerAssignment_ActiveItem"
+    ON public."BilInvoiceItemPayerAssignment" ("InvoiceItemId")
+    WHERE "IsActive" = true AND "IsDelete" = false;
+
+CREATE TABLE public."BilInvoiceItemBillingDisposition" (
+    "Id"              uuid          NOT NULL,
+    "InvoiceItemId"   uuid          NOT NULL,
+    "Disposition"     varchar(20)   NOT NULL DEFAULT 'INCLUDED',
+    "DecisionSource"  varchar(20)   NOT NULL DEFAULT 'AUTO',
+    "Reason"          varchar(500),
+    "IsActive"        boolean       NOT NULL DEFAULT true,
+    CONSTRAINT "PK_BilInvoiceItemBillingDisposition" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilInvoiceItemBillingDisposition_BilInvoiceItem"
+        FOREIGN KEY ("InvoiceItemId")
+        REFERENCES public."BilInvoiceItem" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_BilInvoiceItemBillingDisposition_ActiveItem"
+    ON public."BilInvoiceItemBillingDisposition" ("InvoiceItemId")
+    WHERE "IsActive" = true AND "IsDelete" = false;
+
+CREATE TABLE public."BilInvoicePayerChangeCommand" (
+    "Id"                            uuid          NOT NULL,
+    "InvoiceId"                     uuid          NOT NULL,
+    "EncounterId"                   uuid          NOT NULL,
+    "PreviousPayerKind"             varchar(30)   NOT NULL,
+    "NewPayerKind"                  varchar(30)   NOT NULL,
+    "PreviousPayerNameSnapshot"     varchar(250),
+    "NewPayerNameSnapshot"          varchar(250),
+    "PreviousCalculationVersionId"  uuid,
+    "NewCalculationVersionId"       uuid          NOT NULL,
+    "ResetAssignmentCount"          integer       NOT NULL DEFAULT 0,
+    "Reason"                        varchar(500)  NOT NULL,
+    "IdempotencyKey"                varchar(100)  NOT NULL,
+    "CorrelationId"                 varchar(100),
+    "CausationId"                   varchar(100),
+    CONSTRAINT "PK_BilInvoicePayerChangeCommand" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilInvoicePayerChangeCommand_BilInvoice"
+        FOREIGN KEY ("InvoiceId")
+        REFERENCES public."BilInvoice" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_BilInvoicePayerChangeCommand_IdempotencyKey"
+    ON public."BilInvoicePayerChangeCommand" ("IdempotencyKey");
+```
+
+## Contoh berangka — bagaimana ketiga tabel operasional bekerja bersama
+
+Kunjungan rawat jalan Ny. S (data samaran) berpenjamin perusahaan PT Sejahtera, aturan tanggungan 80% untuk tindakan dan 100% untuk obat generik.
+
+| Baris biaya | Harga | Penanggung item | Disposisi | Hasil perhitungan |
+| --- | ---: | --- | --- | --- |
+| Konsultasi dokter | Rp 150.000 | `COMPANY_GUARANTOR` (`AUTO`) | `INCLUDED` (`AUTO`) | Penjamin Rp 120.000, pasien Rp 30.000 |
+| Obat generik A | Rp 40.000 | `COMPANY_GUARANTOR` (`AUTO`) | `INCLUDED` (`AUTO`) | Penjamin Rp 40.000, pasien Rp 0 |
+| Obat generik B | Rp 25.000 | `COMPANY_GUARANTOR` (`AUTO`) | **`EXCLUDED`** (`CASHIER`) | **Tidak masuk tagihan sama sekali** — pasien tidak menebusnya |
+| Vitamin tambahan | Rp 80.000 | **`CASH`** (`MANUAL`) | `INCLUDED` (`AUTO`) | Pasien Rp 80.000 — diminta dibayar sendiri |
+
+Total tagihan Rp 270.000 (Rp 295.000 dikurangi obat B yang tidak ditebus). Porsi penjamin Rp 160.000, porsi pasien Rp 110.000. Perhatikan bahwa obat B **tidak** muncul sebagai porsi pasien maupun porsi penjamin — ia keluar dari nominal yang layak dihitung sebelum mesin tanggungan dipanggil.
+
+Bila kemudian kasir mengganti payer kunjungan menjadi tunai, baris pertama sampai ketiga yang bertanda `COMPANY_GUARANTOR` **direset otomatis** menjadi `CASH`/`AUTO` beserta alasan bawaan, `ResetAssignmentCount` bernilai `3`, dan response memberi tahu kasir bahwa tiga penanggung item ikut berubah (`MPY-DES-009`).
+
+Seluruh contoh berangka memakai data samaran.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`.

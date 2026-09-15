@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Repositories;
 
@@ -14,9 +14,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
     /// Tiga batas yang mengikat seeder ini:
     ///
     /// 1. Isinya berasal dari <c>02-backend-architecture.md</c> bagian 9.1, bukan dari tebakan.
-    ///    Empat jenis jurnal itu masing-masing punya keputusan pendukungnya sendiri:
-    ///    <c>ACC-DEC-010</c> (JU), <c>ACC-DEC-017</c> (JP), <c>ACC-DEC-029</c> (JB), serta
-    ///    <c>ACC-DEC-018</c> dan <c>ACC-DEC-033</c> (SA).
+    ///    Kelima jenis jurnal itu masing-masing punya keputusan pendukungnya sendiri:
+    ///    <c>ACC-DEC-010</c> (JU), <c>ACC-DEC-017</c> (JP), <c>ACC-DEC-029</c> (JB),
+    ///    <c>ACC-DEC-018</c> dan <c>ACC-DEC-033</c> (SA), serta <c>ACC-DEC-053</c> (JT).
     /// 2. Seeder TIDAK PERNAH mengisi <c>AccChartOfAccount</c> maupun <c>AccAccountingPeriod</c>.
     ///    Daftar akun adalah kebijakan akuntansi rumah sakit dan wajib disusun pemilik proses
     ///    (bagian 9.3), sedangkan periode dibangkitkan lewat endpoint <c>POST /generate</c> pada
@@ -69,17 +69,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         }
 
         // ------------------------------------------------------------------
-        // Jenis jurnal — empat baris, 02-backend-architecture.md bagian 9.1
+        // Jenis jurnal — lima baris. Empat pertama dari 02-backend-architecture.md
+        // bagian 9.1; baris kelima JT ditambahkan BE-ACC-P2-003 mengikuti kamus data
+        // bagian 19.
         // ------------------------------------------------------------------
 
         /// <remarks>
         /// Keempatnya berstatus RequiresApproval, mengikuti ACC-DEC-010: jurnal manual selalu
         /// melewati pemeriksaan orang kedua, tanpa pengecualian jenis.
         ///
-        /// IsSystemType hanya pada JB dan SA. Keduanya lahir dari langkah yang dikendalikan
-        /// sistem — pembalikan jurnal dan pembukaan saldo awal — sehingga kode maupun awalan
-        /// nomornya tidak boleh diubah admin lewat BE-ACC-008. JU dan JP sebaliknya memang
-        /// milik pemilik proses dan boleh disesuaikan.
+        /// IsSystemType pada JB, SA, dan JT. Ketiganya lahir dari langkah yang dikendalikan
+        /// sistem — pembalikan jurnal, pembukaan saldo awal, dan penyusunan jurnal penutup
+        /// tahun — sehingga kode maupun awalan nomornya tidak boleh diubah admin lewat
+        /// BE-ACC-008. JU dan JP sebaliknya memang milik pemilik proses dan boleh disesuaikan.
+        ///
+        /// JT ditambahkan BE-ACC-P2-003 karena ACC-DEC-053 menetapkan jurnal penutup tahun
+        /// disusun sistem sebagai Draft lalu disahkan manual. Ia menempati baris kelima; empat
+        /// baris sebelumnya tidak disentuh, sehingga master yang sudah terisi hanya bertambah
+        /// satu baris dan tidak ada penomoran jurnal yang berubah.
         /// </remarks>
         private static async Task SeedJournalTypesAsync(
             ApplicationDbContext db,
@@ -93,7 +100,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 new JournalTypeDefinition("JU", "Jurnal Umum", "JU", true, false),
                 new JournalTypeDefinition("JP", "Jurnal Penyesuaian", "JP", true, false),
                 new JournalTypeDefinition("JB", "Jurnal Pembalik", "JB", true, true),
-                new JournalTypeDefinition("SA", "Saldo Awal", "SA", true, true)
+                new JournalTypeDefinition("SA", "Saldo Awal", "SA", true, true),
+                new JournalTypeDefinition("JT", "Jurnal Tutup Tahun", "JT", true, true)
             };
 
             var existingRows = await db.Set<AccJournalType>()

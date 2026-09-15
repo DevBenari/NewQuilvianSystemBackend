@@ -65,8 +65,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            // Satu-satunya relasi Cascade pada modul ini. Baris jurnal tidak punya makna tanpa
-            // jurnalnya, dan penghapusan jurnal hanya mungkin saat masih Draft.
+            // Cascade: baris jurnal tidak punya makna tanpa jurnalnya, dan penghapusan jurnal
+            // hanya mungkin saat masih Draft.
+            //
+            // Sejak BE-ACC-P2-002, pola yang sama dipakai AccRecurringJournalTemplateLine
+            // terhadap templatenya. Keduanya adalah relasi induk-baris; riwayat persetujuan dan
+            // riwayat penerbitan tetap memakai Restrict karena keduanya bukti audit.
             entity.HasOne(x => x.Journal)
                 .WithMany(x => x.Lines)
                 .HasForeignKey(x => x.JournalId)

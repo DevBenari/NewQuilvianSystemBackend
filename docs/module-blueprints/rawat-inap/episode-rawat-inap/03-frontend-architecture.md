@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.6` — naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
+| Revision | `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
 | Status | `draft` |
+| Apa yang berubah pada `0.7` | **Satu kode penolakan hilang dari layar.** `ROOM_GENDER_MIXED` tidak pernah terbit lagi dari server, sehingga pemetaan pesannya di frontend menjadi kode mati. Lihat bagian 4.3A. **Pekerjaan ini lintas repository** dan wajib satu gelombang dengan backend |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
@@ -471,7 +472,29 @@ paling sedikit 1 hari.
 | Pemesanan | Memakai daftar dan penyaring yang sama. Tambahannya: tempat tidur ber-`IsReservable` salah ditolak dengan pesan "Tempat tidur ini tidak dapat dipesan." |
 | Konfirmasi masuk | Kelayakan diperiksa **ulang** di sini. Penolakan pada tahap ini **wajar** dan wajib terbaca sebagai keadaan yang berubah, bukan sebagai kesalahan petugas |
 | Perpindahan | Aturan yang sama persis |
-| Kamar yang terhalang pencampuran | Pesan penolakan dari server **menyebut nama kamarnya** dan ditampilkan apa adanya |
+| ~~Kamar yang terhalang pencampuran~~ | ~~Pesan penolakan dari server **menyebut nama kamarnya** dan ditampilkan apa adanya~~ **DICABUT 11 September 2026** oleh `RWI-DEC-101`. Keadaan ini tidak pernah terjadi lagi |
+
+#### 4.3A.1 Pencabutan `ROOM_GENDER_MIXED` — pekerjaan lintas repository
+
+Server tidak pernah lagi menerbitkan kode `ROOM_GENDER_MIXED`. Yang tersisa di frontend adalah
+pemetaan pesan untuk kode yang sudah mati, ditambah test yang menguncinya.
+
+| Yang wajib dibereskan di frontend | Letaknya |
+| --- | --- |
+| Hapus entri `ROOM_GENDER_MIXED` dari pemetaan kode penolakan | `src/utils/health-services/inpatient-management/inpatient-placement-utils.jsx` |
+| Hapus atau ganti tiga assertion yang menguncinya | `tests/unit/inpatient-placement.test.mjs` |
+| Ganti skenario e2e yang mengharapkan penolakan itu | `tests/e2e/inpatient-episode-detail.spec.mjs` |
+| Sesuaikan pesan `PATIENT_GENDER_UNKNOWN` | Kalimat "di kamar yang belum ada penghuninya" dicabut; pesan baru ada pada `contracts/validation-matrix.md` bagian 3 |
+
+**Urutannya mengikat.** Bila backend turun lebih dulu, test frontend gagal karena menguji kode yang
+tidak pernah terbit. Bila frontend turun lebih dulu, petugas menerima penolakan tanpa pesan yang
+dapat dibaca. Karena itu keduanya **wajib satu gelombang rilis**, dan itu sudah dicatat pada
+`contracts/api-contract.md` `0.8.0`.
+
+**Satu hal yang tidak boleh ikut terhapus.** `isIsolationFailure` pada berkas yang sama menguji
+kode isolasi, dan salah satu assertion-nya kebetulan memakai `ROOM_GENDER_MIXED` sebagai contoh
+kode yang **bukan** kegagalan isolasi. Assertion itu perlu contoh pengganti, bukan dihapus, supaya
+pembedaan isolasi tetap teruji.
 
 ### 4.4 Bentuk daftar pantau — `RWI-FE-002`, `DEV_DISCRETION`
 

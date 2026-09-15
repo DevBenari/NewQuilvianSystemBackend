@@ -27,6 +27,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Maste
 
             builder.Property(x => x.Notes).HasMaxLength(1000);
 
+            // Baris pengaturan yang sudah ada di database dibuat jauh sebelum kolom ini
+            // lahir. Tanpa nilai bawaan di sisi database, migration mengisinya 0 dan
+            // pengingat kekurangan deposit menyala setiap hari tanpa ada yang memintanya.
+            builder.Property(x => x.DepositFollowUpIntervalDays).HasDefaultValue(3);
+
             builder.HasIndex(x => x.Code).IsUnique();
             builder.HasIndex(x => new { x.IsActive, x.IsDefault });
         }

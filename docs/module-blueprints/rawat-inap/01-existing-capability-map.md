@@ -1446,3 +1446,88 @@ membuat bagian ini stale. Impact scan berikutnya minimal wajib memeriksa:
 - route/menu Dokter Rawat Inap, `useDoctorQueue`, `useDoctorConsultationWorkspace`, service klinis,
   komponen `doctor-clinical-base`, serta test terkait di frontend;
 - perubahan kontrak `dokter-rawat-inap` atau keputusan `RWI-DEC-038`, `062`, `070`, `080`–`083`.
+
+---
+
+## 16. Impact scan terfokus — Rawat Inap V2 — 11 September 2026
+
+### 16.1 Batas audit
+
+| Atribut | Nilai |
+|---|---|
+| Pemicu | `RWI-DEC-097` — `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` diterima sebagai masukan hulu |
+| `blueprint_id` / `revision` | `RWI-BP-001` / `5` |
+| `backend_source_sha` | `201de7535d4ca00fa9ede2395d4fb769f023b9e6`, branch `MHamzah`, 10 September 2026 |
+| `frontend_source_sha` | `7f6b9356f6349d516570d6d603ca026f2c7f4ec2`, branch `HamzahV2`, 10 September 2026 |
+| `contract_versions` saat audit | `episode-rawat-inap` `0.6.1`, `keperawatan` `0.3.0`, `dokter-rawat-inap` `0.4.0` |
+| Cakupan | Empat penyimpangan `P0` PRD V2, ditambah pemeriksaan keberadaan sembilan kemampuan baru |
+| Yang **tidak** dinilai | Kinerja, migration yang sudah terpasang di environment, dan hasil test. Test **tidak dijalankan** |
+| Sifat | **Read-only** terhadap source kedua repository. Nol baris source disentuh |
+
+Kedua SHA di atas sama persis dengan snapshot audit PRD V2, sehingga temuan dokumen itu dapat
+diperiksa ulang baris demi baris. Hasilnya: **keempat temuan `P0` terbukti**, tetapi **tiga di
+antaranya lebih luas** daripada yang tertulis, dan **dua kemampuan yang dikira belum ada ternyata
+sudah tersedia sebagian**.
+
+### 16.2 Capability evidence map
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `V2-CAP-01` | Kelayakan bed tidak dipengaruhi jenis kelamin penghuni kamar lain | `InPatientManagement` | `InpBedOccupancyService.cs#EvaluatePlacementEligibilityAsync@201de753` baris 1359 s.d. 1410 | **Conflict** | Aturan 6 `ROOM_GENDER_MIXED` baris 1386 s.d. 1397 **wajib dihapus**. Aturan 5 `PATIENT_GENDER_UNKNOWN` baris 1401 memuat klausa `countedOccupants.Count > 0` yang **juga** membaca penghuni, sehingga ikut dicabut. `LoadRoomOccupantsAsync` baris 1639 menjadi kode mati bila keduanya lepas | Aturan 4 `BED_GENDER_MISMATCH`, aturan 7 `ISOLATION_REQUIRED`, dan aturan 8 `ISOLATION_BED_RESERVED` **tidak boleh ikut tercabut** |
+| `V2-CAP-02` | Catatan klinis final tidak dapat disembunyikan | `ClinicalManagement` dan `MedicalRecordManagement` | `ClinicalDocumentIntegrityService.cs#JenisYangDitegakkan@201de753` baris 75 s.d. 81; `PatientIntegratedProgressNoteController.cs@201de753` baris 586 dan 865 | **Repair** | Mesin keutuhan **sudah ada dan sudah terpasang pada controller yang sama**, tetapi `EnsureMutableAsync` hanya dipanggil pada `Update`, **tidak** pada `Delete`. Hanya **4 dari 13** `ClinicalDocumentKind` ditegakkan | **Sepuluh** controller punya `HttpDelete` tanpa satu pun state guard, bukan dua seperti tertulis pada PRD |
+| `V2-CAP-03` | Penulis klinis berasal dari identitas terautentikasi | `ClinicalManagement` | `InpatientClinicalContextService.cs#ResolveAsync@201de753` baris 304 s.d. 319; `DoctorConsultationController.cs@201de753` baris 452 | **Repair** | `isDoctorAuthorized` bernilai `true` secara bawaan dan hanya diuji bila `doctorId` dikirim. Dari sembilan titik panggil, **hanya `PhysicianVisitController` baris 298** yang mengirimnya | `ApplicationUser.DoctorId` **sudah ada**, tetapi dipakai **satu** service saja di seluruh repository, yaitu `BillingDiscountService` |
+| `V2-CAP-04` | Kelayakan keuangan berasal dari fakta Billing | `BillingManagement` dan `InPatientManagement` | `InpFinancialClearance.cs@201de753`; `InpDischargeService.Closure.cs@201de753` baris 277 s.d. 312 dan 641 s.d. 687 | **Extend** | Closure **nol** membaca Billing. `IsManualMarking` bernilai `true` bawaan dan `ClearanceStatus` hanya bertiga nilai. Butuh read model ringkasan finansial per episode | Keterangan baris 284 yang menyatakan Billing belum punya kemampuan transaksi **sudah basi**; enam belas service Billing tersedia, termasuk settlement, refund, dan finalisasi |
+| `V2-CAP-05` | Bukti consent tersimpan per episode | `ClinicalManagement` | `TrxPatientConsent.cs@201de753` baris 28, 200 s.d. 212, 261 s.d. 268 | **Extend** | **Lebih lengkap dari dugaan PRD.** `ConsentFileHash`, `ConsentFilePath`, `ConsentFileName`, `ConsentFileSizeBytes`, `SignerRelationship`, `ConsentMethod`, dan riwayat pencabutan **sudah ada**. Yang kurang: versi template, dan penegakan keutuhan karena `Consent` termasuk sembilan jenis yang belum ditegakkan | `PatientConsentController` baris 822 dapat menghapus consent tanpa guard apa pun |
+| `V2-CAP-06` | Lima cara keluar | `InPatientManagement` | `InpDischargeType.cs@201de753` | **Extend** | Hanya **tiga** nilai tersedia, yaitu `DoctorApproved`, `AgainstMedicalAdvice`, dan `Referred`. `Death` dan `Absconded` belum ada | Menunggu `MVP-RWI-D-011`, yang **tidak** dibuka `RWI-DEC-097` |
+| `V2-CAP-07` | Selector episode ibu operasional | `InPatientManagement` dan frontend | `InpEpisode.cs@201de753` baris 44 dan 86; `use-inpatient-admission-flow.jsx@7f6b9356` baris 23, 257, 266 | **Repair** | Backend `MotherEpisodeId` **sudah ada**. Frontend menyimpan `motherEpisodeId` sebagai state teks dan **mengunci langkah** dengannya, tetapi **nol** endpoint pencarian episode ibu dan **nol** komponen selector | Langkah admisi bayi baru lahir tidak dapat diselesaikan pengguna hari ini |
+| `V2-CAP-08` | Medication Administration Record | `ClinicalManagement` dan `PharmacyManagement` | Penelusuran `MedicationAdministration`, `MedicationDose`, `DoseEvent` pada seluruh `Areas/**` `@201de753` | **Missing** | Nol model, nol service, nol endpoint | `RWI-DEC-097` membalikkan statusnya dari luar-MVP menjadi `P0` dan `P1`; belum ada satu pun fondasi |
+| `V2-CAP-09` | Observasi transfusi dan reaksi | `ClinicalManagement` | Penelusuran `Transfusion` `@201de753` | **Missing** | Yang ada hanya `PatientConsentType` dan `MstBloodBankReason`, keduanya bukan workflow | — |
+| `V2-CAP-10` | Sliding scale | `ClinicalManagement` | Penelusuran `SlidingScale` `@201de753` | **Missing** | Nol jejak | Menuntut protokol berversi yang juga belum ada |
+| `V2-CAP-11` | Intake/output, drain, dan WSD | `ClinicalManagement` | `EmgObservationDetail.cs@201de753` | **Reuse with adapter** | Tidak ada di Rawat Inap, tetapi **pola yang sama sudah berjalan di IGD** lewat `EmergencyObservationDetailController`. Layak menjadi rujukan bentuk, bukan disalin | Menyalin tabel IGD ke Rawat Inap melanggar `RWI-DEC-081` |
+| `V2-CAP-12` | Handover antar shift keperawatan | `ClinicalManagement` | `BilCashierShiftHandover.cs@201de753` | **Missing** | Serah terima shift **hanya ada untuk kasir**, bukan klinis. Polanya dapat menjadi rujukan | — |
+| `V2-CAP-13` | Clinical handover transfer antarunit | `InPatientManagement` dan `ClinicalManagement` | Penelusuran `ClinicalHandover` dan `TransferHandover` `@201de753` | **Missing** | Transfer bed atomik sudah ada; artefak serah terima klinisnya belum | — |
+| `V2-CAP-14` | Adverse drug reaction dari MAR | `ClinicalManagement` | Penelusuran `AdverseDrugReaction` `@201de753` | **Missing** | Bergantung pada `V2-CAP-08` | — |
+
+### 16.3 Fakta, inferensi, dan rekomendasi
+
+**Fakta.** Seluruh baris pada bagian 16.2 dibaca langsung dari source pada kedua SHA yang
+tercatat. Tidak satu pun berasal dari ingatan sesi sebelumnya atau dari klaim dokumen.
+
+**Inferensi.** `LoadRoomOccupantsAsync` menjadi kode mati setelah aturan 5 dan 6 dicabut. Ini
+kesimpulan dari pembacaan pemakaian, bukan fakta yang diuji compiler; pemeriksaannya diserahkan
+ke task implementasi.
+
+**Rekomendasi.** Tiga koreksi `P0` berstatus `Repair` dan satu berstatus `Conflict`. Keempatnya
+dapat dikerjakan **tanpa keputusan bisnis baru**, karena mesinnya sudah ada dan `RWI-DEC-097`
+sudah membuka arah perbaikannya. Sembilan kemampuan `Missing` dan `Extend` **tidak** boleh masuk
+gelombang yang sama.
+
+### 16.4 Ketidakcocokan frontend dan backend
+
+| Temuan | Backend `@201de753` | Frontend `@7f6b9356` |
+|---|---|---|
+| Kode `ROOM_GENDER_MIXED` | Diterbitkan `InpBedOccupancyService` aturan 6 | Dipetakan `inpatient-placement-utils.jsx` baris 12, dan dikunci **tiga** berkas test, yaitu `inpatient-placement.test.mjs` baris 57, 82, dan 129, serta `inpatient-episode-detail.spec.mjs` baris 605 |
+| Selector episode ibu | `MotherEpisodeId` tersedia | State ada, pencarian dan komponen selector **tidak ada** |
+
+Mencabut aturan 6 di backend **akan** menggagalkan test frontend yang mengunci kodenya. Keduanya
+wajib berada pada satu gelombang, dan itu menjadikan koreksi ini pekerjaan lintas repository.
+
+### 16.5 Unknown dan pertanyaan penutup
+
+| ID | Pertanyaan | Kenapa tidak dapat dijawab source |
+|---|---|---|
+| `V2-UNK-01` | Apakah sembilan `ClinicalDocumentKind` yang belum ditegakkan memang disengaja, dan mana yang wajib naik untuk MVP V2? | Keterangan source menyebut keadaan itu wajib dinyatakan terbuka di layar lewat `RM-FE-009`, tetapi tidak menyebut rencana kenaikannya. Pemilik `MedicalRecordManagement` |
+| `V2-UNK-02` | Bentuk ringkasan finansial episode yang disediakan Billing, dan apakah dibaca langsung atau lewat snapshot bertanda `calculatedAt` | `OPEN-MVP-006`, pemilik `BillingManagement` |
+| `V2-UNK-03` | Apakah sepuluh jalur `HttpDelete` ditutup seluruhnya, atau hanya yang menyentuh dokumen klinis final | Keputusan pemilik `ClinicalManagement`; berdampak ke Rawat Jalan |
+
+### 16.6 Staleness dan pemicu impact scan
+
+Peta bagian 16 ini menjadi `STALE` ketika salah satu berikut berubah:
+
+- `Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs`;
+- `Areas/HealthServices/ClinicalManagement/Controllers/` mana pun yang memuat `HttpDelete`;
+- `Areas/HealthServices/ClinicalManagement/Services/InpatientClinicalContextService.cs`;
+- `Areas/HealthServices/MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs`;
+- `Areas/HealthServices/InPatientManagement/Enums/InpDischargeType.cs`;
+- `src/utils/health-services/inpatient-management/inpatient-placement-utils.jsx` pada frontend;
+- keputusan `RWI-DEC-097`, `RWI-OQ-047`, atau `RWI-OQ-054`.

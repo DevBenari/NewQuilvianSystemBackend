@@ -18,7 +18,11 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -525,10 +529,15 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
         public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
         public DbSet<AccJournalType> AccJournalTypes { get; set; }
+        public DbSet<AccAccountingConfiguration> AccAccountingConfigurations { get; set; }
+        public DbSet<AccEventType> AccEventTypes { get; set; }
+        public DbSet<AccPostingRule> AccPostingRules { get; set; }
+        public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
         public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
+        public DbSet<AccPeriodClosingApproval> AccPeriodClosingApprovals { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
@@ -537,6 +546,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccJournalApproval> AccJournalApprovals { get; set; }
         public DbSet<AccNumberSeries> AccNumberSeries { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
+        public DbSet<AccRecurringJournalTemplate> AccRecurringJournalTemplates { get; set; }
+        public DbSet<AccRecurringJournalTemplateLine> AccRecurringJournalTemplateLines { get; set; }
+        public DbSet<AccRecurringJournalRun> AccRecurringJournalRuns { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
 
         #endregion CORPORATE
 
@@ -558,6 +573,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstInsuranceProvider> MstInsuranceProviders { get; set; }
         public DbSet<MstPatientInsurance> MstPatientInsurances { get; set; }
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
+        public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
@@ -569,6 +585,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstRegister> MstRegisters { get; set; }
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
+        public DbSet<BilInvoiceItemPayerAssignment> BilInvoiceItemPayerAssignments { get; set; }
+        public DbSet<BilInvoiceItemBillingDisposition> BilInvoiceItemBillingDispositions { get; set; }
+        public DbSet<BilInvoicePayerChangeCommand> BilInvoicePayerChangeCommands { get; set; }
         public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
         public DbSet<BilDiscountApplication> BilDiscountApplications { get; set; }
         public DbSet<BilChargeReceipt> BilChargeReceipts { get; set; }
@@ -585,6 +604,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
         public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
         public DbSet<BilArHandoff> BilArHandoffs { get; set; }
+        public DbSet<BilPaymentReminder> BilPaymentReminders { get; set; }
         public DbSet<BilApHandoff> BilApHandoffs { get; set; }
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
@@ -638,6 +658,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDrugCategory> MstDrugCategories { get; set; }
         public DbSet<MstDrug> MstDrugs { get; set; }
         public DbSet<MstInsuranceCoverageRule> MstInsuranceCoverageRules { get; set; }
+        public DbSet<MstCompanyGuarantorCoverageRule> MstCompanyGuarantorCoverageRules { get; set; }
         public DbSet<MstInsuranceTariff> MstInsuranceTariffs { get; set; }
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
