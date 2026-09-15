@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` |
+| Revision | `5` |
 | Status | `draft` |
-| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15` |
-| Frontend SHA | `688daff90` |
+| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
+| Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
 | Wewenang UI | `LAB-DEC-010` |
 
 > **Keadaan awal.** Frontend Laboratorium **tidak ada sama sekali** pada `688daff90`. Tidak ada
@@ -286,3 +286,150 @@ satu kali dengan controller barunya.
 | Penyuntingan pesanan oleh dokter | Slice `S1b` terblokir `LAB-AMD-001` |
 
 Kelimanya **tidak boleh** dibangun lebih dulu "sekalian", karena perilakunya belum diputuskan.
+
+---
+
+## 10. Amandemen 2026-09-14 — Menu Penerimaan Sampling/Specimen
+
+Menurunkan `LAB-DEC-045` beserta `LAB-FE-009`, `LAB-FE-010`, dan `LAB-FE-011` dari decision log
+revision 26.
+
+> **Keadaan awal sudah berubah total.** Catatan pembuka dokumen ini menyatakan frontend
+> Laboratorium tidak ada sama sekali pada `688daff90`. Pada `9cd4cd03f` keadaannya terbalik:
+> **31 berkas, 3.751 baris**, dan seluruh layar `MVP-1` sudah berdiri. Capability map revision 3
+> mencabut fakta `F5`.
+
+### 10.1 Dua jalur masuk, bukan satu
+
+| Jalur | Menu | Dipakai untuk | Titik kunci daftar pemeriksaan |
+|---|---|---|---|
+| Pesanan dokter | **Tanpa butir menu sendiri** sejak `LAB-DEC-048`. Layar `lab-orders` dicapai dari ketiga menu `Pemeriksaan` | Pasien poliklinik, rawat inap, dan IGD | Sampel pertama `Collected` |
+| **Penerimaan langsung** | **`Penerimaan Sampling/Specimen`, baru** | Pasien rujukan luar dan datang langsung | **Penetapan kelayakan wadah** |
+
+Layar lama **tidak dihapus dan tidak diubah perilakunya** (`AC-76`). Keduanya memakai data dan
+aturan yang sama; yang berbeda urutan penyajian dan titik kuncinya (`LAB-DEC-039`).
+
+> **Diamandemen `LAB-DEC-048` pada 2026-09-14.** Butir menu **Pesanan Laboratorium dicabut**,
+> dan ketiga menu `Monitoring` dinamai ulang menjadi **`Pemeriksaan`** Patologi Klinik, Patologi
+> Anatomi, dan Mikrobiologi. Jalan masuk ke layar `lab-orders` berpindah: pembuatan pesanan dari
+> pendaftaran pasien laboratorium, dan detail pesanan dari baris pada ketiga layar `Pemeriksaan`
+> (`LAB-FE-012`).
+>
+> Disiplin pesanan juga berhenti ditanyakan kepada petugas — ia diturunkan dari pemeriksaan yang
+> dipilih (`LAB-FE-013`). Sebelumnya disiplin boleh dikosongkan, dan pesanan berdisiplin kosong
+> **tidak pernah muncul** di menu disiplin mana pun.
+
+### 10.2 Peta butir menu
+
+| Butir menu | Tingkat | Induk | Route | Layar | Hak akses penjaga |
+|---|:---:|---|---|---|---|
+| ~~Pesanan Laboratorium~~ | — | — | `.../lab-orders` | **Butir menunya dicabut** `LAB-DEC-048`; layarnya tetap ada dan dicapai dari menu `Pemeriksaan` | `LabOrder : Read` |
+| Pemeriksaan Patologi Klinik | 2 | Laboratory Management | `.../lab-monitoring/clinical-pathology` | Daftar pemeriksaan per disiplin | `LabMonitoring : Read` |
+| Pemeriksaan Patologi Anatomi | 2 | Laboratory Management | `.../lab-monitoring/anatomic-pathology` | Daftar pemeriksaan per disiplin | `LabMonitoring : Read` |
+| Pemeriksaan Mikrobiologi | 2 | Laboratory Management | `.../lab-monitoring/microbiology` | Daftar pemeriksaan per disiplin | `LabMonitoring : Read` |
+| Penerimaan Sampling/Specimen | 2 | Laboratory Management | `health-services/laboratory-management/specimen-receptions` | Daftar penerimaan | `LabSpecimen : Read` |
+| — (layar anak) | — | Penerimaan Sampling/Specimen | `.../specimen-receptions/create` | Formulir penerimaan | `LabSpecimen : Plan` |
+| — (layar anak) | — | Penerimaan Sampling/Specimen | `.../specimen-receptions/[slug]` | Detail penerimaan | `LabSpecimen : Read` |
+| Jenis Specimen | 2 | Health Services / Master Data | `health-services/master-data/lab-specimen-types` | Pengelolaan jenis specimen | `LabSpecimenType : Read` |
+| — (layar anak) | — | Jenis Specimen | `.../lab-specimen-types/other-usage` | Daftar pantau pemakaian `Lainnya` | `LabSpecimenType : Read` |
+
+**Kenapa Jenis Specimen berada di `master-data/`, bukan di folder Laboratorium.** `AC-49`
+membedakan kedua sisi dengan sengaja: di **backend** data induk khusus Laboratorium tinggal di
+folder Laboratorium, sedangkan di **frontend** seluruh menu data induk tetap di
+`health-services/master-data/` mengikuti konvensi yang sudah ada (`LAB-DEC-034` butir frontend,
+dipersempit revision 17). Jadi `LabSpecimenType.cs` ada di folder Laboratorium, tetapi menunya
+ada bersama data induk lain.
+
+**Nama route `specimen-receptions` bersifat usulan.** Penamaan akhir mengikuti `LAB-FE-001` —
+pola modul Health Services yang sudah ada. Yang **tidak** boleh berubah adalah jumlah menunya:
+dua jalur masuk tetap dua butir menu, tidak disatukan (`LAB-FE-009`).
+
+### 10.3 Skema fitur — Formulir Penerimaan
+
+```text
++-----------------------------------------------------------------+
+| A. Identifikasi Pasien                                          |
+|    NIK / No. RM . hasil pencarian . tombol daftarkan baru       |
++-----------------------------------------------------------------+
+| B. Data Pemeriksaan                                             |
+|    kategori lab . instalasi perujuk . dokter . diagnosa awal    |
+|    tanggal registrasi . [metode pembayaran - baca-saja]         |
++-------------------------------+---------------------------------+
+| C. Wadah / Specimen           | D. Daftar Pemeriksaan           |
+|    jenis specimen             |    nama . harga . subtotal      |
+|    keterangan (bila Lainnya)  |    cito . hapus                 |
+|    volume + satuan            |                                 |
+|    waktu penerimaan fisik     |    -- Grand Total --            |
++-------------------------------+---------------------------------+
+| E. Penetapan Kelayakan   [ Layak ]  [ Tidak Layak ]             |
+|    PERINGATAN: setelah ditetapkan, daftar pemeriksaan terkunci  |
++-----------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses penjaga tombol | Keadaan kosong | Keadaan gagal |
+|---|---|---|---|---|---|
+| A | Pencarian dan identifikasi pasien | `GET /lab-patient-registrations/patient-search` | `LabPatientRegistration : Read`; daftar baru `: Create` | "Belum ada pasien yang cocok. Periksa kembali NIK atau No. RM." | Pesan dari Registrasi diteruskan apa adanya (`VAL-40`) |
+| B | Data pemeriksaan dan perujuk | `GET /referral-institutions/options`; grup Lab Catalog | `LabPatientRegistration : Create` | "Daftar instansi perujuk masih kosong." | **Lihat 10.6** — dua bagian masih terbuka |
+| C | Wadah dan specimen | `GET /lab-specimen-types/options`; daftar satuan ber-`IsForLaboratory` | `LabSpecimen : Plan` | "Daftar jenis specimen belum diisi. Hubungi kepala instalasi." | `VAL-51` sampai `VAL-59` |
+| D | Daftar pemeriksaan | `GET /lab-catalog/examinations`; `POST /lab-examinations` | `LabExamination : Create` dan `: Delete` | "Belum ada pemeriksaan dipilih." | `VAL-46`, `VAL-07` |
+| E | Penetapan kelayakan | `POST /lab-specimens/{id}/accept` dan `/reject` | `LabSpecimen : Accept` | — | `VAL-18` bila wadah sudah diputuskan |
+
+### 10.4 Empat hal yang wajib, bukan `DEV_DISCRETION`
+
+| Butir | Yang wajib | Yang bebas |
+|---|---|---|
+| `LAB-FE-010` | Wilayah **C dan D terlihat berdampingan** sebelum kelayakan ditetapkan | Tata letaknya — berdampingan mendatar, bertumpuk, atau dua kolom |
+| `LAB-FE-010` | **Peringatan penguncian** terlihat sebelum tombol kelayakan ditekan | Bentuk visual peringatannya |
+| `LAB-FE-011` | Metode pembayaran **baca-saja**; tidak ada kotak pilihan pada jalur rujukan | Bentuk tampilannya |
+| `LAB-FE-009` | Penamaan menu membuat jelas siapa memakai jalur yang mana | Kata-kata persisnya |
+
+**Kenapa C dan D wajib berdampingan.** `LAB-DEC-039` mengunci daftar pemeriksaan tepat pada
+penetapan kelayakan, dan `AC-37` menerbitkan kelayakan tagih pada detik yang sama. Petugas perlu
+melihat tabung dan daftarnya sekaligus: ia memilih tiga pemeriksaan, melihat sampelnya hanya
+cukup untuk dua, menghapus satu, **lalu** menetapkan layak. Bila keduanya terpisah layar,
+penguncian datang tanpa peringatan yang terlihat.
+
+### 10.5 Kolom Jumlah **tidak dibuat**
+
+> **Diamandemen `LAB-DEC-050` pada 2026-09-14.** Bagian ini semula merancang kolom Jumlah/Qty
+> sebagai alat bantu isi cepat yang memecah diri menjadi beberapa baris. **Rancangan itu
+> dicabut.**
+
+**Kenapa.** `BE-LAB-23` menemukan `LabExamination` punya index unik `(SpecimenId, ProcedureId)`
+di tingkat database, dipasang atas dasar `BR-20` dan `AC-35`. Dua baris untuk jenis pemeriksaan
+yang sama pada satu wadah tidak mungkin ada.
+
+**Yang berlaku pada wilayah D:**
+
+| Hal | Keadaan |
+|---|---|
+| Kolom **Jumlah/Qty** | **Tidak ada.** Tidak di layar, tidak di permintaan API |
+| Petugas perlu dua pemeriksaan | Memilih **dua butir katalog** yang berbeda — Glukosa Puasa dan Glukosa 2 Jam PP memang dua butir terpisah |
+| Pengerjaan ganda satu pemeriksaan | Penanda **`IsDuplo`** pada baris itu, sesuai `LAB-DEC-026` |
+
+**Penguncian yang dimaksud `RULE-025`** karena itu berarti baris **tidak dapat ditambah** —
+dan sesuai `LAB-DEC-049`, pembatalan **tidak ikut terkunci**.
+
+**Satu hal yang wajib terlihat petugas.** Membatalkan pemeriksaan sesudah wadah dinyatakan
+`Layak` tidak serta-merta membatalkan tagihannya; kelayakan tagihnya sudah terbit dan
+koreksinya dikerjakan Billing. Layar wajib mengatakan itu pada saat tombol batal ditekan,
+bukan membiarkannya menjadi kejutan di loket (`BR-44`).
+
+### 10.6 Dua wilayah yang belum dapat diselesaikan
+
+| Wilayah | Keadaan | Yang sudah pasti | Yang menunggu |
+|---|---|---|---|
+| B — instansi perujuk belum terdaftar | Terblokir `LAB-COORD-006` | Nama perujuk **tidak pernah** diketik bebas (`AC-69`) | Bentuk layar usulan dan endpointnya |
+| B — metode pembayaran | Terblokir `LAB-COORD-007` | Baca-saja; saat sumbernya tidak terjawab, wajib menulis *belum dapat ditentukan*, bukan dikosongkan (`LAB-FE-011`) | Sumber datanya |
+
+Keduanya digambar pada skema 10.3 sebagai wilayah yang **ada**, supaya tata letaknya tidak perlu
+dirombak ketika `LAB-REQ-005` dijawab. Isinya belum dikunci.
+
+### 10.7 Layar yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Kenapa ditolak |
+|---|---|
+| Satu layar untuk kedua jalur masuk | `LAB-DEC-045`. Titik kuncinya berbeda; satu layar yang perilakunya berubah-ubah tanpa alasan yang terlihat lebih membingungkan daripada dua layar |
+| Route `lab-specimens` tersendiri | Penanganan wadah per pesanan sudah dicapai lewat `lab-orders/[slug]/specimens`. Menambah jalan kedua ke layar yang sama tidak menambah kemampuan |
+| Menu Jenis Specimen di dalam folder Laboratorium | `AC-49` — seluruh menu data induk frontend berada di `health-services/master-data/` |
+| Tombol `Pemeriksaan Diproses` tersendiri | `AC-56`. Penguncian melekat pada aksi penetapan kelayakan yang sudah ada |

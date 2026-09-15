@@ -739,6 +739,8 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 
+        public DbSet<LabSpecimenType> LabSpecimenTypes { get; set; }
+
         public DbSet<LabValueBound> LabValueBounds { get; set; }
 
         public DbSet<LabValueOption> LabValueOptions { get; set; }

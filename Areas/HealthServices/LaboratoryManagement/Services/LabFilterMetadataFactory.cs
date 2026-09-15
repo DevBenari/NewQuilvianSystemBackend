@@ -216,6 +216,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 SystemFlagFields = new() { "isInternalHospitalError", "requiresNote" }
             };
 
+        public static LabSpecimenTypeFilterMetadataResponse LabSpecimenType() =>
+            new()
+            {
+                SortOptions = new()
+                {
+                    new() { Value = "sortOrder", Label = "Urutan tampil" },
+                    new() { Value = "specimenTypeCode", Label = "Kode jenis" },
+                    new() { Value = "specimenTypeName", Label = "Nama jenis" }
+                },
+                SortDirections = new(ArahUrut),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode, nama, dan keterangan jenis.",
+                        Example = "darah"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false,
+                IsOtherBucketEditable = false
+            };
+
         // =================================================================
         // Pembantu
         // =================================================================

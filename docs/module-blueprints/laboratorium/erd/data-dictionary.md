@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `2` |
+| Revision | `3` |
 | Status | `draft` |
-| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `c87d9c0` |
+| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
+| Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
 `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
@@ -550,3 +550,134 @@ CREATE INDEX "IX_LabTransitionHistory_LabExaminationId"
 | Tabel | Berkas configuration |
 |---|---|
 | `MstLabRejectionReason` | `Areas/HealthServices/LaboratoryManagement/Configurations/LaboratoryManagementConfigurations.cs` — utang teknis lokasi, lihat `02-backend-architecture.md` bagian 5 |
+
+---
+
+## 12. Amandemen 2026-09-14 — Penerimaan Sampling/Specimen
+
+Menurunkan `LAB-DEC-040`, `LAB-DEC-041`, dan `LAB-DEC-042` dari decision log revision 26.
+Diaudit pada backend `466a7127`, diverifikasi tidak berubah pada `9067fa73`.
+
+Sepuluh kolom warisan `IdentityModel` tidak diulang di sini; lihat kepala dokumen.
+
+### 12.1 `LabSpecimenType` — `Baru`, milik Laboratorium
+
+Prefix `Lab`, bukan `Mst`. Dasarnya baris riwayat `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+tertanggal 2026-09-02: data induk milik Laboratorium memakai prefix `Lab`, sebagaimana
+`LabValueBound` dan `LabValueOption`.
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | tidak | — | PK | tidak | — |
+| `SpecimenTypeCode` | `varchar(32)` | tidak | — | Unique bila `IsDelete = false` | tidak | Kode yang dipakai seeder dan integrasi |
+| `SpecimenTypeName` | `varchar(128)` | tidak | — | — | tidak | Nama yang dilihat petugas |
+| `IsOtherBucket` | `boolean` | tidak | `false` | Unique parsial bila `true` dan `IsActive` | tidak | Penanda baris `Lainnya`; hanya satu boleh aktif |
+| `SortOrder` | `integer` | tidak | `0` | Index bersama `IsActive` | tidak | Urutan tampil |
+| `IsActive` | `boolean` | tidak | `true` | Index bersama `SortOrder` | tidak | Dinonaktifkan, tidak dihapus |
+| `Description` | `varchar(256)` | ya | `null` | — | tidak | Keterangan bagi petugas |
+
+**Perilaku hapus.** `DeleteBehavior.Restrict` dari `LabSpecimen`. Jenis yang sudah menempel
+pada wadah tidak dapat dihapus — riwayat penerimaan lama harus tetap terbaca.
+
+### 12.2 `LabSpecimen` — `Diperbarui`
+
+**Lima kolom ditambahkan. Tidak satu pun kolom lama diubah, dinamai ulang, atau dihapus.**
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `SpecimenTypeId` | `uuid` | ya | `null` | Index; FK ke `LabSpecimenType` | tidak | Wajib pada API untuk wadah baru; nullable agar baris lama tidak menghalangi migration |
+| `SpecimenTypeOtherNote` | `varchar(128)` | ya | `null` | — | tidak | Wajib bila jenisnya ber-`IsOtherBucket` |
+| `VolumeAmount` | `numeric(12,3)` | ya | `null` | — | tidak | Tanpa batas minimum maupun maksimum (`RULE-021`) |
+| `VolumeUnitId` | `uuid` | ya | `null` | Index; FK ke `MstMeasurement` | tidak | Wajib bila `VolumeAmount` terisi |
+| `PhysicallyReceivedAt` | `timestamp` | ya | `null` | Index | tidak | Kapan wadah sampai di meja penerimaan, diisi petugas |
+
+**Kolom lama yang maknanya dipertegas, tanpa perubahan tipe maupun nullability:**
+
+| Kolom | Makna yang berlaku sejak amandemen ini |
+|---|---|
+| `ReceivedAt` | **Kapan datanya masuk ke sistem.** Diisi server, tidak dapat diubah endpoint mana pun (`AC-65`) |
+| `SpecimenDescription` | **Keterangan operasional bebas** — misalnya "lengan kiri, tabung kedua". Berhenti menjadi tempat menyimpan jenis specimen (`AC-61`) |
+
+**Perilaku hapus kedua FK baru.** `DeleteBehavior.Restrict`.
+
+### 12.3 Tabel milik modul lain yang dipakai — `MstMeasurement`
+
+| Field | Isi |
+|---|---|
+| **Status** | `Sudah ada` — **tidak berubah** |
+| **Pemilik** | `master-data` |
+| **Berkas model** | `Areas/HealthServices/MasterData/Models/MstMeasurement.cs` |
+
+Kolom kunci yang dipakai modul ini:
+
+| Kolom | Kenapa dipakai |
+|---|---|
+| `Id` | Ditunjuk `LabSpecimen.VolumeUnitId` |
+| `MeasurementSymbol` | Ditampilkan di samping angka volume |
+| `IsForLaboratory` | **Penyaring daftar satuan** yang boleh dipilih petugas lab |
+| `IsDecimalAllowed`, `DecimalPrecision` | Menentukan apakah volume boleh berkoma |
+| `IsActive` | Satuan nonaktif tidak muncul sebagai pilihan |
+
+**Tidak ada kolom yang ditambahkan ke `MstMeasurement`.** Yang dibutuhkan hanya **lima baris
+data** ber-`IsForLaboratory = true`, dan pengisiannya adalah pekerjaan Master Data — lihat
+`02-backend-architecture.md` bagian 11.10 beserta alasannya pada `LAB-DEBT-001`.
+
+### 12.4 Bentuk DDL — dokumentasi, bukan skrip
+
+```sql
+CREATE TABLE public."LabSpecimenType" (
+    "Id"                uuid         NOT NULL,
+    "SpecimenTypeCode"  varchar(32)  NOT NULL,
+    "SpecimenTypeName"  varchar(128) NOT NULL,
+    "IsOtherBucket"     boolean      NOT NULL DEFAULT false,
+    "SortOrder"         integer      NOT NULL DEFAULT 0,
+    "IsActive"          boolean      NOT NULL DEFAULT true,
+    "Description"       varchar(256) NULL,
+    -- sepuluh kolom IdentityModel menyusul di sini
+    CONSTRAINT "PK_LabSpecimenType" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX "IX_LabSpecimenType_SpecimenTypeCode"
+    ON public."LabSpecimenType" ("SpecimenTypeCode")
+    WHERE "IsDelete" = false;
+
+-- Menegakkan "hanya satu jenis Lainnya yang aktif" di tingkat basis data,
+-- bukan hanya di service. Dasar: VAL-62.
+CREATE UNIQUE INDEX "IX_LabSpecimenType_SingleOtherBucket"
+    ON public."LabSpecimenType" (("IsOtherBucket"))
+    WHERE "IsOtherBucket" = true AND "IsActive" = true AND "IsDelete" = false;
+
+CREATE INDEX "IX_LabSpecimenType_IsActive_SortOrder"
+    ON public."LabSpecimenType" ("IsActive", "SortOrder");
+
+ALTER TABLE public."LabSpecimen"
+    ADD COLUMN "SpecimenTypeId"        uuid          NULL,
+    ADD COLUMN "SpecimenTypeOtherNote" varchar(128)  NULL,
+    ADD COLUMN "VolumeAmount"          numeric(12,3) NULL,
+    ADD COLUMN "VolumeUnitId"          uuid          NULL,
+    ADD COLUMN "PhysicallyReceivedAt"  timestamp     NULL;
+
+ALTER TABLE public."LabSpecimen"
+    ADD CONSTRAINT "FK_LabSpecimen_LabSpecimenType_SpecimenTypeId"
+    FOREIGN KEY ("SpecimenTypeId") REFERENCES public."LabSpecimenType" ("Id") ON DELETE RESTRICT;
+
+ALTER TABLE public."LabSpecimen"
+    ADD CONSTRAINT "FK_LabSpecimen_MstMeasurement_VolumeUnitId"
+    FOREIGN KEY ("VolumeUnitId") REFERENCES public."MstMeasurement" ("Id") ON DELETE RESTRICT;
+
+CREATE INDEX "IX_LabSpecimen_SpecimenTypeId"       ON public."LabSpecimen" ("SpecimenTypeId");
+CREATE INDEX "IX_LabSpecimen_VolumeUnitId"         ON public."LabSpecimen" ("VolumeUnitId");
+CREATE INDEX "IX_LabSpecimen_PhysicallyReceivedAt" ON public."LabSpecimen" ("PhysicallyReceivedAt");
+```
+
+**Seluruh kolom baru nullable**, sehingga `ALTER TABLE` di atas tidak menulis ulang satu baris
+pun dan tidak mengunci tabel yang sudah berisi data.
+
+### 12.5 Yang tidak ada di kamus ini
+
+| Yang dicari pembaca | Kenapa tidak ada |
+|---|---|
+| Kolom `Qty` pada `LabExamination` | `LAB-DEC-038` — Qty memperbanyak baris, tidak disimpan sebagai kolom |
+| Tabel rekap pemakaian `Lainnya` | Diturunkan dari `LabSpecimen`; lihat `GET /lab-specimen-types/other-usage` |
+| Kolom usulan instansi perujuk | Milik Master Data, menunggu `LAB-REQ-005` |
+| Kolom metode pembayaran pada tabel Laboratorium | Milik Registrasi. Laboratorium tidak menyalinnya |

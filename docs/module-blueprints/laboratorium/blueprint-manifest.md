@@ -5,11 +5,11 @@ blueprint_id: LAB-BP-001
 module_name: Laboratorium
 module_slug: laboratorium
 module_prefix: LAB
-revision: 25
-status: approved-with-pending-reconciliation
+revision: 26
+status: approved-with-pending-reconciliation   # rev 26: amandemen Penerimaan Sampling/Specimen berstatus draft, dua bagiannya menunggu LAB-REQ-005
 bentuk: SINGLE
 created_at: 2026-09-01T00:00:00+07:00
-updated_at: 2026-09-09T00:00:00+07:00
+updated_at: 2026-09-14T00:00:00+07:00
 
 scope:
   release: MVP Rilis 1 — bagian yang sudah lolos kedua gerbang
@@ -27,7 +27,8 @@ owners:
 approved_by: Yoga Aji Pratama <yogaaji452@gmail.com>
 approved_at: 2026-09-01
 
-backend_commit_sha: "c87d9c0"   # cabang yoga, sinkron dengan origin/yoga per 2026-09-01
+backend_commit_sha: "466a7127"  # cabang yoga, 2026-09-14. HEAD bergeser ke 9067fa73 saat sesi berjalan; diff atas seluruh berkas yang menjadi dasar temuan KOSONG, sehingga audit tetap sahih. Nilai lama c87d9c0 tertinggal 298 commit
+backend_commit_sha_previous: "c87d9c0"   # cabang yoga, sinkron dengan origin/yoga per 2026-09-01
 backend_impact_scan:
   from: "9124900"
   to: "c87d9c0"
@@ -40,19 +41,21 @@ backend_impact_scan:
   tidak_berdampak:
     - Model Laboratorium tidak berubah; temuan capability map atas model tetap sahih
     - Perubahan LabOrderService dan LabSpecimenService hanya pada baris using
-frontend_commit_sha: "688daff90"
+frontend_commit_sha: "9cd4cd03f"  # 2026-09-14. Nilai lama 688daff90 tertinggal 155 commit; fakta F5 "frontend Laboratorium belum ada" dicabut capability map revision 3
+frontend_commit_sha_previous: "688daff90"
 
-input_revisions:
-  decisions: 21   # rev 21 hanya merapikan tabel Riwayat Revisi; tidak mengubah satu keputusan pun, sehingga kontrak yang dikunci terhadap rev 20 tetap sahih
-  capability_map: 2   # STALE dicabut 2026-09-02 lewat impact scan; CAP-11 dan utang teknis diverifikasi tidak berubah
+input_revisions:                # diperbarui 2026-09-14, menutup LAB-OPEN-023
+  decisions: 28   # rev 23 amandemen Penerimaan Sampling/Specimen; rev 24 hasil impact scan; rev 25 amandemen metode pembayaran; rev 26 LAB-REQ-005 diajukan; rev 27 LAB-DEC-048 susunan menu dirapikan; rev 28 LAB-DEC-049 dan LAB-DEC-050 menutup dua pertentangan yang ditemukan saat implementasi
+  capability_map: 3   # impact scan 2026-09-14 atas BE 466a7127 + FE 9cd4cd03f. Sebagian besar peta revision 1-2 STALE; F5 dicabut
   requirement_gate: LAB-RCG-001-r4
   domain_architecture: LAB-DA-001-r4
 
-input_hashes:                  # sha256 penuh atas isi ber-line-ending LF, mengikuti konvensi pharmacy dan billing-kasir. Dihitung ulang 2026-09-02
-  00-interview-decisions.md: 6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82
-  01-existing-capability-map.md: 703a8dffe23971ecc09f416a516e4d83e26cd834cae277a7875fab8c484f6117
+input_hashes:                  # sha256 penuh atas isi ber-line-ending LF, mengikuti konvensi pharmacy dan billing-kasir. Dihitung ulang 2026-09-14
+  00-interview-decisions.md: a93c782320522a4ab78d592ffc88ca8590a78854fccfb737373c4ff25b09064b
+  01-existing-capability-map.md: f946a02a512f01d6de5bda0240158e216b913fa5081ad0f3975e56113b15c963
   02-requirement-completeness-assessment.md: 3de86c8242a313a5a864a1eaa1cfffdb21149658789f01095d0ec847a9c072d1
   03-domain-architecture.md: 3279c0ef2309b52feab77d870f782f4ce02134b2457fa46bfd09d868d98493de
+  # Kedua hash terakhir diverifikasi 2026-09-14 TIDAK berubah sejak 2026-09-02.
 input_hashes_method: |
   sha256 atas isi berkas dengan line ending LF — sama dengan isi blob yang disimpan Git.
   Perintah: tr -d '\r' < <berkas> | sha256sum
@@ -65,12 +68,12 @@ requirement_gate_readiness: PARTIALLY_READY
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_READY
 domain_architecture_revision: LAB-DA-001-r4
 
-contract_versions:            # seluruhnya dikunci 2026-09-02 oleh Yoga Aji Pratama selaku pemilik modul
-  - LAB-API-v1: approved      # revision 6 — r3 dikunci 2026-09-02; amandemen r4 (BE-LAB-17) dan r5 (BE-LAB-18) disetujui 2026-09-03; amandemen r6 (GET /lab-rejection-reasons/{id}) disetujui 2026-09-08. Nilai lama "revision 3" tertinggal tiga amandemen dan dikoreksi 2026-09-08
-  - LAB-STATE-v1: approved    # revision 2
-  - LAB-VAL-v1: approved      # revision 3
-  - LAB-INT-v1: approved      # revision 3
-  - LAB-PERM-v1: approved     # revision 3
+contract_versions:            # r3 dan sebelumnya dikunci 2026-09-02; amandemen 2026-09-14 disetujui Yoga Aji Pratama selaku pemilik modul
+  - LAB-API-v1: approved      # revision 9 — r3 dikunci 2026-09-02; r4 (BE-LAB-17) dan r5 (BE-LAB-18) disetujui 2026-09-03; r6 disetujui 2026-09-08; r7 (grup Lab Specimen Type beserta perluasan aditif pada lab-specimens dan lab-examinations) dan r8 (GET /filters/metadata dan GET /summary pada grup itu, ditemukan saat BE-LAB-20) dan r9 (ruas Quantity dicabut sebelum dibangun, temuan BE-LAB-23) disetujui 2026-09-14
+  - LAB-STATE-v1: approved    # revision 2 — tidak tersentuh amandemen 2026-09-14; tidak ada status baru
+  - LAB-VAL-v1: approved      # revision 4 — VAL-51..VAL-63 disetujui 2026-09-14; VAL-60 kemudian dicabut LAB-DEC-050 hari yang sama karena ruas Quantity tidak jadi dibuat
+  - LAB-INT-v1: approved      # revision 3 — tidak tersentuh amandemen 2026-09-14; tidak ada integrasi baru
+  - LAB-PERM-v1: approved     # revision 4 — resource LabSpecimenType disetujui 2026-09-14; tidak tersentuh pencabutan Quantity
 contract_lock_scope: |
   TERKUNCI PENUH sejak 2026-09-02. LAB-OPEN-021 dijawab Muhammad Hamzah: entity baru milik
   Laboratorium memakai prefix Lab, sehingga kedua tabel batas nilai bernama LabValueBound dan
@@ -85,11 +88,14 @@ evidence_baseline:
   limitation: audio video belum ditranskripsi; aturan yang hanya disampaikan lisan belum tercakup
 
 active_blockers:
+  - LAB-COORD-006   # data induk instansi perujuk TIDAK punya endpoint tulis sama sekali; satu-satunya pengisinya LabDummyDataSeeder. Memblokir bagian pendaftaran rujukan pada menu Penerimaan Sampling/Specimen. Diajukan LAB-REQ-005 butir 1-3 pada 2026-09-14
+  - LAB-COORD-007   # satu nilai EncounterPaymentType baru untuk piutang mitra, secara aditif, beserta penurunannya dari status PKS. Memblokir bagian metode pembayaran pada menu yang sama. Diajukan LAB-REQ-005 butir 4-7 pada 2026-09-14
+  - LAB-OPEN-024    # berapa lama usulan instansi perujuk boleh menggantung, apa yang terjadi bila ditolak, siapa yang berhak menggabungkan dua baris. Milik master-data; memblokir IMPLEMENTATION jalur penolakan usulan
   - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6. SATU-SATUNYA penahan kelimanya: LAB-COORD-001 dan LAB-COORD-002 sudah ditutup 2026-09-01. Permintaan LAB-REQ-004 diajukan 2026-09-09, menunggu jawaban
   - LAB-AMD-001     # amandemen rawat-jalan — memblokir S1b
   - LAB-OPEN-018b   # SISA: marketplace quilvian masih terdaftar ke MHamzah1/QuilvianEngineeringSkillsClaude. Rules root runtime sudah lengkap lewat penyegaran manual, tetapi /plugin update berikutnya akan mengembalikannya ke 13 berkas. Perbaikan tetap: daftarkan ulang marketplace ke DevBenari/QuilvianEngineeringSkills. TIDAK memblokir implementasi saat ini
 
-  - LAB-OPEN-012    # jumlah data lab existing belum diverifikasi — prasyarat migration BE-LAB-11
+  - LAB-OPEN-012    # jumlah data lab existing belum diverifikasi — prasyarat migration BE-LAB-11. Tidak menahan BE-LAB-20, yang migration-nya sudah diterapkan 2026-09-14
   - LAB-OPEN-013    # dampak cito dan duplo pada tarif
   - LAB-OPEN-014    # nilai kritis untuk mikrobiologi dan patologi anatomi
   - LAB-OPEN-017    # makna penanda Definitif
@@ -102,11 +108,22 @@ active_blockers:
   - LAB-P0-007      # aturan tagihan dan cakupan
   - LAB-P0-008      # penyelarasan antaraplikasi
 
-closed_blockers:                # ditutup 2026-09-02, disimpan sebagai jejak
+closed_blockers:                # ditutup 2026-09-02 kecuali yang bertanggal lain, disimpan sebagai jejak
+  - LAB-OPEN-022    # ditutup 2026-09-14 oleh impact scan capability map revision 3
+  - LAB-OPEN-023    # ditutup 2026-09-14: input_revisions, input_hashes, dan kedua commit_sha pada manifest ini disinkronkan
+  - LAB-CONFLICT-003 # ditutup 2026-09-14 oleh LAB-DEC-046 dan LAB-DEC-047
   - LAB-OPEN-018    # rules root runtime kini memuat 32 berkas termasuk GLOBAL_RULES.md dan backend/engineering/. Disegarkan dari sumber canonical DevBenari/QuilvianEngineeringSkills atas persetujuan pilihan B. Gerbang AGENTS.md tidak lagi aktif. Sisa pekerjaan dicatat sebagai LAB-OPEN-018b
   - LAB-OPEN-019    # lifecycle registry PLANNED -> ACTIVE, disetujui Muhammad Hamzah lewat LAB-REQ-002; diterapkan pada registry canonical dan salinan docs/engineering/
   - LAB-OPEN-020    # Invoke-QbeConformanceCheck.ps1 diperbaiki atas persetujuan Andry Zain: empat rujukan agents/rules/engineering/ diganti docs/engineering/. Checker kini PASS, exit 0
   - LAB-OPEN-021    # prefix data induk ditetapkan Lab; LabValueBound dan LabValueOption. MstLabRejectionReason tetap legacy
+
+cross_module_approvals_pending:   # dibuka 2026-09-14
+  request_id: LAB-REQ-005
+  file: approval-requests/2026-09-14-permintaan-penerimaan-sampling-specimen.md
+  addressed_to: pemilik master-data; pemilik registration-management; pemilik billing-kasir
+  status: menunggu jawaban
+  scope: LAB-COORD-006 (butir 1-3); LAB-COORD-007 (butir 4-7); konfirmasi perlakuan PaymentType per jalur; LAB-OPEN-024
+  note: penerima belum ditetapkan — blueprint belum mencatat nama pemilik ketiga modul itu
 
 cross_module_approvals:
   request_id: LAB-REQ-001

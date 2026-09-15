@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` |
+| Revision | `4` |
 | Status | `draft` |
-| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `c87d9c0` |
-| Frontend SHA | `688daff90` |
-| Masukan | Decisions rev 20; capability map rev 2; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2 |
+| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
+| Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
+| Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** |
+| Masukan | Revision 1-3: decisions rev 20; capability map rev 2; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4; `LAB-REC-001` rev 2. **Revision 4: decisions rev 26; capability map rev 3** |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` untuk kesepuluh slice |
 
 > **Perubahan revision 2.** Analisis konsolidasi bukti lapangan diadopsi lewat `LAB-DEC-025`
@@ -678,8 +678,259 @@ controller maupun frontend.
 
 ---
 
+## 11. Amandemen 2026-09-14 — Penerimaan Sampling/Specimen
+
+Menurunkan `LAB-DEC-038`, `LAB-DEC-039`, `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042`, dan
+`LAB-DEC-045` dari decision log revision 26.
+
+> **Batas amandemen ini.** Dua bagian menu Penerimaan Sampling/Specimen **tidak dirancang di
+> sini** karena masih terblokir `LAB-REQ-005`: pengusulan instansi perujuk (`LAB-DEC-043`,
+> `LAB-COORD-006`) dan metode pembayaran (`LAB-DEC-046`, `LAB-DEC-047`, `LAB-COORD-007`).
+> Keduanya disediakan **titik sambungnya** pada bagian 11.9, tanpa kontrak yang dikunci.
+
+### 11.1 Gerbang prefix — sudah terbuka
+
+`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 21 mencatat `HealthServices |
+LaboratoryManagement / Laboratory | BUSINESS DOMAIN / MODULE | Lab | ACTIVE`, dinaikkan dari
+`PLANNED` pada 2026-09-02 oleh Muhammad Hamzah lewat `LAB-REQ-002`. Penghalang `QBE-MOD-002`
+atas entity operasional `Lab*` dan atas migration modul Laboratorium **sudah dicabut**.
+
+Baris riwayat yang sama menetapkan satu hal yang menentukan bentuk amandemen ini:
+
+> *"Sekaligus menetapkan prefix data induk milik Laboratorium: entity baru memakai `Lab`,
+> sehingga dua tabel batas nilai bernama `LabValueBound` dan `LabValueOption`;
+> `MstLabRejectionReason` yang sudah ada diperlakukan legacy dan tidak dinamai ulang."*
+
+Karena itu data induk jenis specimen bernama **`LabSpecimenType`**, bukan
+`MstLabSpecimenType`, dan tinggal di folder Laboratorium — bukan di `MasterData`.
+
+### 11.2 Tabel kepemilikan data — tambahan
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di sini |
+|---|---|---|---|
+| Jenis specimen | **Laboratorium** | Ya — dimiliki | Tidak, baru |
+| **Satuan ukur** (`MstMeasurement`) | `master-data` | Ya — dibaca | **Tidak.** Dipakai ulang, lihat 11.4 |
+| Wadah specimen (`LabSpecimen`) | Laboratorium | Ya — dimiliki | Tidak, diperbarui |
+| Baris pemeriksaan (`LabExamination`) | Laboratorium | Ya — dimiliki | **Tidak berubah sama sekali** |
+
+### 11.3 `LabSpecimenType` — `Baru`
+
+| Field | Isi |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabSpecimenType.cs` |
+| **Configuration** | `Repositories/Configurations/HealthServices/LaboratoryManagement/LabSpecimenTypeConfiguration.cs` |
+| **DbSet** | `DbSet<LabSpecimenType> LabSpecimenTypes` |
+| **Tabel** | `public."LabSpecimenType"` |
+| **Pemilik** | Laboratorium |
+| **Dasar** | `LAB-DEC-040`, BR-35 |
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Catatan |
+|---|---|:---:|---|---|---|
+| `Id` | `Guid` | ya | `Guid.NewGuid()` | — | PK |
+| `SpecimenTypeCode` | `string` | ya | — | 32 | Unik di antara baris yang belum dihapus |
+| `SpecimenTypeName` | `string` | ya | — | 128 | Nama yang dilihat petugas |
+| `IsOtherBucket` | `bool` | ya | `false` | — | Penanda baris `Lainnya`. **Hanya satu baris aktif** boleh bernilai benar |
+| `SortOrder` | `int` | ya | `0` | — | Urutan tampil |
+| `IsActive` | `bool` | ya | `true` | — | Dinonaktifkan, tidak dihapus |
+| `Description` | `string?` | tidak | `null` | 256 | Keterangan bagi petugas |
+
+Sepuluh kolom warisan `IdentityModel` tidak diulang di sini.
+
+**Index dan constraint.** Unique atas `SpecimenTypeCode` dengan penyaring `IsDelete = false`.
+Index atas `IsActive, SortOrder` untuk daftar pilihan. `DeleteBehavior.Restrict` dari
+`LabSpecimen` — jenis yang sudah dipakai wadah **tidak boleh** dihapus.
+
+**Kenapa `IsOtherBucket` berupa kolom, bukan kode tetap `"OTHER"` di dalam source.** Kode
+literal di dalam service membuat perilaku wajib-berketerangan bergantung pada ejaan sebuah
+string. Satu baris data yang kodenya `OTH` alih-alih `OTHER` akan diam-diam melewati validasi.
+Penanda kolom membuat aturannya melekat pada datanya sendiri.
+
+### 11.4 `LabSpecimen` — `Diperbarui`
+
+| Field | Isi |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabSpecimen.cs` |
+| **Configuration** | `Repositories/Configurations/HealthServices/LaboratoryManagement/LabSpecimenConfiguration.cs` — `Diperbarui` |
+| **Dasar** | `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042` |
+
+**Empat kolom ditambahkan. Tidak satu pun kolom lama diubah atau dihapus.**
+
+| Kolom | Tipe | Wajib | Bawaan | Catatan |
+|---|---|:---:|---|---|
+| `SpecimenTypeId` | `Guid?` | lihat catatan | `null` | FK ke `LabSpecimenType`. **Nullable di basis data**, wajib pada API untuk wadah baru — baris lama tidak punya nilainya |
+| `SpecimenTypeOtherNote` | `string?` | kondisional | `null` | Wajib bila jenis terpilih ber-`IsOtherBucket`. Batas 128 |
+| `VolumeAmount` | `decimal?` | lihat catatan | `null` | `numeric(12,3)`. Nullable di basis data, wajib pada API untuk wadah baru |
+| `VolumeUnitId` | `Guid?` | lihat catatan | `null` | FK ke `MstMeasurement`. Wajib bila `VolumeAmount` terisi |
+| `PhysicallyReceivedAt` | `DateTime?` | tidak | `null` | Waktu specimen benar-benar diterima, diisi petugas |
+
+**Kenapa keempatnya nullable di basis data.** Tabel `LabSpecimen` sudah berisi data. Kolom
+wajib tanpa nilai bawaan yang masuk akal akan menggagalkan migration atau memaksa pengisian
+tebakan. Kewajibannya ditegakkan **di lapisan API untuk baris baru**, bukan oleh basis data —
+sama seperti pola `Discipline` pada `LabOrder` yang sengaja dibiarkan kosong untuk pesanan
+peninggalan.
+
+**`ReceivedAt` tidak disentuh.** Maknanya dipertegas pada dokumentasi kode: *kapan datanya
+masuk ke sistem*. `PhysicallyReceivedAt` adalah *kapan wadahnya sampai di meja penerimaan*.
+`AC-65` mensyaratkan tidak ada satu pun endpoint yang dapat mengubah `ReceivedAt`.
+
+**Satuan volume dipakai ulang, tidak dibuat baru.** `MstMeasurement@466a7127` sudah punya
+`MeasurementCode`, `MeasurementName`, `MeasurementSymbol`, `IsDecimalAllowed`,
+`DecimalPrecision`, dan — yang menentukan — penanda **`IsForLaboratory`**. Membuat daftar
+satuan sendiri di Laboratorium akan melanggar `AC-49` dan melahirkan dua sumber satuan.
+
+> **Ketidakkonsistenan yang dilaporkan, bukan diperbaiki.** `LabValueBound.Unit@466a7127`
+> menyimpan satuan hasil sebagai **string bebas**, bukan penunjuk ke `MstMeasurement`. Volume
+> dirancang sebagai penunjuk karena `LAB-DEC-041` justru menuntut satuan yang tidak ambigu.
+> Selisih gaya antara keduanya dicatat sebagai utang teknis; `LabValueBound` **tidak** diubah
+> oleh amandemen ini karena berada di luar scope-nya.
+
+**Index.** Index atas `SpecimenTypeId` untuk laporan jenis. Index atas `PhysicallyReceivedAt`
+untuk laporan penerimaan harian. `DeleteBehavior.Restrict` pada kedua FK baru.
+
+### 11.5 `LabExamination` — **tidak berubah sama sekali**
+
+> **Diamandemen `LAB-DEC-050` pada 2026-09-14.** Bagian ini semula merancang ruas `Quantity`
+> pada `CreateLabExaminationRequest` yang memperbanyak baris. **Rancangan itu dicabut** sebelum
+> sempat dibangun.
+
+**Kenapa dicabut.** `BE-LAB-23` menemukan `LabExamination` memiliki index unik di tingkat
+database atas pasangan `(SpecimenId, ProcedureId)`, dipasang
+`LabExaminationConfiguration.cs` atas dasar `BR-20` dan `AC-35` pada 2026-09-01:
+
+```csharp
+builder.HasIndex(x => new { x.SpecimenId, x.ProcedureId })
+    .IsUnique()
+    .HasFilter("\"IsDelete\" = false");
+```
+
+`Quantity` bernilai lebih dari satu untuk jenis pemeriksaan yang sama pada wadah yang sama
+karena itu **mustahil** — baris kedua ditolak service, dan bila lolos, ditolak database.
+
+**Contoh pada `BR-33` sendiri keliru.** Glukosa Puasa dan Glukosa 2 Jam PP adalah **dua
+`MstProcedure` yang berbeda** pada katalog yang tergolong benar; petugas memilih dua butir
+katalog, dan Qty tidak diperlukan.
+
+**Keadaan akhir:**
+
+| Hal | Keadaan |
+|---|---|
+| Tabel `LabExamination` | **Tidak berubah** |
+| DTO | **Tidak berubah** — ruas `Quantity` tidak jadi dibuat |
+| Service | **Tidak berubah** |
+| Migration | **Tidak ada** |
+| Kontrak | `LAB-API-v1` `r9` mencabut ruas `Quantity`; `POST /lab-examinations` sama persis dengan `r6` |
+
+`AC-37` tetap berlaku apa adanya: satu wadah layak menerbitkan kelayakan tagih sebanyak
+**baris** pemeriksaan yang ditopangnya. `IsDuplo` tetap satu-satunya cara menyatakan pengerjaan
+ganda atas satu pemeriksaan (`LAB-DEC-026`).
+
+### 11.6 Titik kunci — sudah berjalan, tidak dibangun ulang
+
+`LAB-DEC-039` **tidak memerlukan satu baris kode pun.**
+`Services/LabExaminationService.cs:120-127@466a7127` sudah menolak penambahan pemeriksaan pada
+wadah berstatus `Accepted` atau `Rejected`, dengan penanda `VAL-18`.
+
+| Yang dirancang | Tindakan |
+|---|---|
+| Penguncian penambahan baris | **Sudah ada.** `VAL-18` |
+| Penguncian penghapusan baris | **Diperiksa saat implementasi** — pastikan jalur hapus memakai penjagaan yang sama |
+| Aksi `Pemeriksaan Diproses` tersendiri | **Tidak dibuat.** Dipetakan ke aksi penetapan kelayakan yang sudah ada (`AC-56`) |
+
+### 11.7 Service dan Controller
+
+| Nama | Status | Fungsi | Transaksi DB |
+|---|---|---|---|
+| `LabSpecimenTypeService` | `Baru` | Kelola data induk jenis specimen; sediakan daftar pilihan; hitung rekap pemakaian `Lainnya` | Ya, pada tulis |
+| `LabSpecimenService` | `Diperbarui` | Menerima jenis, keterangan `Lainnya`, volume beserta satuannya, dan waktu penerimaan fisik | Sudah ada |
+| `LabExaminationService` | `Diperbarui` | Memperbanyak baris sebanyak `Quantity` | Sudah ada |
+
+| Controller | Status | Lokasi | Service |
+|---|---|---|---|
+| `LabSpecimenTypeController` | `Baru` | `Areas/HealthServices/LaboratoryManagement/Controllers/LabSpecimenTypeController.cs` | `LabSpecimenTypeService` |
+| `LabSpecimenController` | `Diperbarui` | sudah ada | `LabSpecimenService` |
+| `LabExaminationController` | `Diperbarui` | sudah ada | `LabExaminationService` |
+
+**Daftar pantau `Lainnya` tidak memakai tabel baru.** Rekapnya diturunkan dengan mengelompokkan
+`LabSpecimen` yang jenisnya ber-`IsOtherBucket` menurut `SpecimenTypeOtherNote`. Tabel ringkasan
+tersendiri akan menjadi salinan yang bisa basi tanpa menambah satu pun jawaban baru.
+
+### 11.8 Rencana migration
+
+| No | Migration | Isi | Tanpa downtime | Langkah mundur |
+|---:|---|---|:---:|---|
+| 1 | `AddLabSpecimenType` | Tabel `LabSpecimenType` beserta index dan unique | Ya | Drop tabel — belum ada yang menunjuk |
+| 2 | `SeedLabSpecimenType` | Tujuh baris awal, lihat 11.10 | Ya | Hapus baris berdasarkan kodenya |
+| 3 | `AddLabSpecimenTypeAndVolumeColumns` | Lima kolom nullable pada `LabSpecimen` beserta kedua FK dan index | Ya | Drop kolom — seluruhnya nullable, tidak ada yang kehilangan data wajib |
+
+Ketiganya berjalan berurutan dan **tidak mengunci tabel lama**, karena seluruh kolom baru
+nullable dan tidak ada nilai bawaan yang perlu dihitung untuk baris existing.
+
+**Pengisian data lama.** Baris `LabSpecimen` yang sudah ada **dibiarkan kosong**. Jenis
+specimennya hanya tersimpan sebagai teks bebas pada `SpecimenDescription`, dan menebak
+pemetaannya berisiko salah. `AC-61` mensyaratkan data lama tetap terbaca dan tidak dihapus.
+
+### 11.9 Dua titik sambung yang sengaja dibiarkan terbuka
+
+| Bagian | Keadaan | Yang sudah pasti | Yang menunggu |
+|---|---|---|---|
+| Pengusulan instansi perujuk | Terblokir `LAB-COORD-006` | Layar penerimaan memanggil satu endpoint milik **Master Data**; Laboratorium tidak menyimpan nama perujuk sebagai teks (`AC-69`) | Bentuk endpoint, status menunggu persetujuan, penggabungan baris |
+| Metode pembayaran | Terblokir `LAB-COORD-007` | Tampilan **baca-saja** pada jalur rujukan (`LAB-FE-011`); Laboratorium tidak membaca penanda PKS (`AC-73`) | Nilai `EncounterPaymentType` baru dan cara penurunannya |
+
+Keduanya **tidak dikunci kontraknya** di sini. Menuliskan bentuk endpoint milik modul lain
+sebelum pemiliknya menjawab akan menjadi tebakan yang dibaca implementer sebagai kesepakatan.
+
+### 11.10 Rencana data master awal
+
+**`LabSpecimenType` — tujuh baris, diisi Laboratorium:**
+
+| Kode | Nama | `IsOtherBucket` | Urutan |
+|---|---|:---:|---:|
+| `BLOOD` | Blood | tidak | 1 |
+| `URINE` | Urine | tidak | 2 |
+| `BODYFLUID` | Body Fluid | tidak | 3 |
+| `SPUTUM` | Sputum | tidak | 4 |
+| `PUS` | Pus | tidak | 5 |
+| `TISSUE` | Jaringan | tidak | 6 |
+| `OTHER` | Lainnya | **ya** | 99 |
+
+**`MstMeasurement` — lima baris, diisi Master Data, bukan Laboratorium:**
+
+| Kode | Nama | Simbol | Desimal |
+|---|---|---|:---:|
+| `ML` | Mililiter | `mL` | ya |
+| `UL` | Mikroliter | `µL` | ya |
+| `G` | Gram | `g` | ya |
+| `BLOK` | Blok | `blok` | tidak |
+| `SLIDE` | Slide | `slide` | tidak |
+
+Kelimanya harus ber-`IsForLaboratory = true`.
+
+> **Kenapa pengisiannya bukan pekerjaan Laboratorium.** `MstMeasurement` milik `master-data`.
+> `LAB-DEBT-001` mencatat bahwa data induk global instansi perujuk hari ini diisi
+> `LabDummyDataSeeder` — seeder milik Laboratorium — dan itu melanggar `AC-49`. Mengulanginya
+> untuk satuan ukur berarti menambah utang yang sama, bukan menyelesaikan pekerjaan.
+>
+> **Akibatnya: tanpa kelima baris itu, kolom volume tidak dapat dipakai.** Ini ketergantungan
+> nyata yang perlu dikoordinasikan, bukan sekadar catatan.
+
+### 11.11 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Kenapa ditolak |
+|---|---|
+| Kolom `Qty` pada `LabExamination` | `LAB-DEC-038`. Satu baris hasil tidak dapat menampung beberapa angka (`LAB-DEC-027`), dan `AC-37` menerbitkan kelayakan tagih per baris |
+| Daftar satuan volume milik Laboratorium | `MstMeasurement.IsForLaboratory` sudah ada. Dua sumber satuan melanggar `AC-49` |
+| Tabel rekap pemakaian `Lainnya` | Dapat diturunkan dari `LabSpecimen`; tabel ringkasan hanya menambah salinan yang bisa basi |
+| Aksi `Pemeriksaan Diproses` tersendiri | `LAB-DEC-039`. Titik kunci sudah ada sebagai `VAL-18`; tombol ketiga menambah jalan tanpa menambah makna |
+| Mengubah `LabValueBound.Unit` menjadi penunjuk `MstMeasurement` | Benar secara rancangan, tetapi di luar scope amandemen ini. Dicatat sebagai utang teknis |
+| Migration pengisian jenis specimen dari `SpecimenDescription` | Teks bebasnya tidak dapat dipetakan tanpa menebak. `AC-61` justru meminta data lama dibiarkan utuh |
+
+---
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 4 | 2026-09-14 | **Amandemen Penerimaan Sampling/Specimen** (bagian 11), menurunkan `LAB-DEC-038`..`042` dan `045`. Satu tabel baru `LabSpecimenType` — memakai prefix `Lab`, bukan `Mst`, sesuai baris riwayat registry 2026-09-02. Lima kolom nullable ditambahkan ke `LabSpecimen`. **`LabExamination` tidak berubah sama sekali**: Qty diperbanyak menjadi baris di lapisan service, bukan disimpan sebagai kolom. Titik kunci `LAB-DEC-039` terbukti **sudah berjalan** sebagai `VAL-18` dan tidak dibangun ulang. Satuan volume **dipakai ulang** dari `MstMeasurement.IsForLaboratory`, bukan daftar baru — dan pengisian kelima barisnya dinyatakan sebagai pekerjaan Master Data agar `LAB-DEBT-001` tidak berulang. Dua titik sambung dibiarkan terbuka tanpa kontrak terkunci karena `LAB-REQ-005` belum dijawab | `draft` |
 | 1 | 2026-09-01 | Arsitektur backend pertama untuk enam slice yang lolos kedua gerbang. Delapan model ditetapkan, tiga di antaranya diperbarui dan lima baru. Tiga utang teknis struktur folder ditemukan dan dicatat tanpa dirapikan | `draft` |

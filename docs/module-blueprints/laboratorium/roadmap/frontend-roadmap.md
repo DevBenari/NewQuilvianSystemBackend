@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `7` |
+| Roadmap revision | `8` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
-| Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `24` |
-| Backend SHA | `c87d9c0` |
-| Frontend SHA | `688daff90` |
-| Contract version | `LAB-API-v1` r3 `approved`, dikunci 2026-09-02 |
+| Tanggal | 2026-09-02; **gelombang `MVP-5a` ditambahkan 2026-09-14** |
+| Manifest | `blueprint-manifest.md` revision `26` |
+| Backend SHA | `466a7127`, diverifikasi tidak berubah pada `9067fa73` (revision 1-7 ditulis pada `c87d9c0`) |
+| Frontend SHA | `9cd4cd03f` (revision 1-7 ditulis pada `688daff90`) |
+| Contract version | `LAB-API-v1` **r7** `approved` — r3 dikunci 2026-09-02, amandemen `r7` disetujui pemilik modul 2026-09-14 |
 | Masukan | Decisions rev `21`; capability map rev `2`; `03-frontend-architecture.md` rev 3 |
 | Slice in scope | `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
 
@@ -451,6 +451,112 @@ produk.
 
 ---
 
+## 6b. Task Gelombang `MVP-5a` — Penerimaan Sampling/Specimen
+
+Ditambahkan 2026-09-14. Menurunkan `EPIC-LAB-11` `FR-11.1`, `FR-11.2`, dan `FR-11.8` dari
+`04-prd-to-mvp.md` revision 4 bagian 16, beserta `LAB-FE-009`, `LAB-FE-010`, dan `LAB-FE-011`.
+
+> **`FR-11.9` dan `FR-11.10` tidak punya task di sini.** Keduanya berstatus `OPEN DECISION`,
+> tertahan `LAB-COORD-006` dan `LAB-COORD-007`. Wilayahnya tetap digambar pada layar supaya
+> tata letaknya tidak perlu dirombak, tetapi isinya belum dikunci — lihat `FE-LAB-11` bagian
+> Cakupan.
+
+### Grafik urutan dependency — `MVP-5a`
+
+```text
+[BE] BE-LAB-20 ─┐
+                ├──> FE-LAB-10
+[BE] BE-LAB-25 ─┘
+
+[BE] BE-LAB-21 ─┐
+[BE] BE-LAB-22 ─┤
+                ├──> FE-LAB-11 ──> FE-LAB-12
+[BE] BE-LAB-23 ─┤
+[BE] BE-LAB-24 ─┘
+```
+
+Legenda:
+
+- `[BE]` — cermin baca-saja dari `backend-roadmap.md`. Task itu **tidak** dimiliki roadmap ini
+  dan tidak diberi gelombang di sini.
+- Ketiga task frontend muncul tepat satu kali.
+
+| Gelombang eksekusi | Task | Kenapa di sini |
+|---:|---|---|
+| 1 | `FE-LAB-10` | Menunggu `BE-LAB-20` dan `BE-LAB-25` |
+| 2 | `FE-LAB-11` | Menunggu keempat task backend yang menyusun formulirnya |
+| 3 | `FE-LAB-12` | Menampilkan hasil yang dibuat `FE-LAB-11` |
+
+**Tidak ada siklus.** Jumlah pasangan prasyarat→task pada grafik sama dengan isi kolom
+**Dependency** pada ketiga task di bawah.
+
+> **Batas yang dilaporkan apa adanya.** Grafik ini mencakup `MVP-5a` saja. Kesembilan task
+> frontend lama ditulis sebelum grafik urutan dependency menjadi kewajiban dan tidak memilikinya.
+> Dicatat sebagai gap, bukan diturunkan ulang dari ingatan dokumen.
+
+### `FE-LAB-10` — Pengelolaan jenis specimen dan daftar pantau `Lainnya`
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Kepala instalasi mengelola daftar jenis specimen, melihat keterangan `Lainnya` yang sering muncul, lalu menaikkannya menjadi jenis tetap |
+| **Requirement/decision** | `FR-11.1`, `FR-11.2`, `LAB-DEC-040`, BR-35 |
+| **Kontrak** | `LAB-API-v1` `r7` grup Lab Specimen Type — `approved`, terkunci |
+| **Reuse** | Pola layar data induk yang sudah ada pada `health-services/master-data/`, misalnya `lab-rejection-reasons` |
+| **Cakupan** | Dua layar di `src/app/health-services/master-data/lab-specimen-types/`: daftar beserta formulir kelola, dan layar daftar pantau `Lainnya`. **Bukan** di folder laboratory-management |
+| **Dependency** | `BE-LAB-20`, `BE-LAB-25` |
+| **Acceptance criteria** | `AC-58`, `AC-60`, `AC-49` |
+| **Verifikasi** | Uji komponen sesuai `rules/frontend/test-policy.md`; verifikasi manual: tujuh jenis tampil terurut; menonaktifkan `Lainnya` ditolak dengan pesan `VAL-63`; daftar pantau menampilkan "cairan kista" berjumlah tiga |
+| **Risiko/pemilik** | Rendah. Layar data induk mengikuti pola yang sudah berulang. Pemilik: Laboratorium |
+| **DoD** | Kedua layar dapat dicapai dari menu; berada di `master-data/`, bukan di folder laboratorium (`AC-49`); tombol kelola dijaga `LabSpecimenType : Create` dan `: Update`; keadaan kosong, gagal, dan muat ulang tertangani; tautan langsung ke layar kelola berfungsi tanpa membuka daftarnya lebih dulu |
+
+**Butir DoD terakhir bukan formalitas.** `LAB-API-v1` `r6` lahir justru karena `FE-LAB-03`
+memuat barisnya dari halaman daftar yang sedang terbuka, lalu diam-diam gagal pada tautan
+langsung dan muat ulang. Pola yang sama dicegah di sini sejak awal.
+
+### `FE-LAB-11` — Formulir Penerimaan Sampling/Specimen
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas menyelesaikan satu pasien rujukan luar dari identifikasi sampai penetapan kelayakan tanpa berpindah menu |
+| **Requirement/decision** | `FR-11.8`, `LAB-DEC-045`, BR-40; `LAB-FE-009`, `LAB-FE-010`, `LAB-FE-011` |
+| **Kontrak** | `LAB-API-v1` `r7` grup Lab Specimen, Lab Examination, Lab Catalog, Lab Patient Registration — `approved`, terkunci |
+| **Reuse** | `use-lab-order-form`, `use-lab-catalog-picker`, dan `lab-specimen-workspace-view` yang sudah ada pada `9cd4cd03f`. **Layar lama tidak diubah** — komponennya dipakai ulang, bukan dipindahkan |
+| **Cakupan** | Satu layar formulir memuat wilayah A sampai E sesuai `03-frontend-architecture.md` bagian 10.3. Wilayah metode pembayaran dan usulan perujuk **digambar sebagai tempat, tanpa isi yang dikunci** — keduanya menunggu `LAB-REQ-005` |
+| **Dependency** | `BE-LAB-21`, `BE-LAB-22`, `BE-LAB-23`, `BE-LAB-24` |
+| **Acceptance criteria** | `AC-75`, `AC-77`, dan `AC-76` sebagai regresi |
+| **Verifikasi** | Uji komponen; verifikasi manual jalur berhasil `UAT-11.1` dan `UAT-11.2`; jalur gagal `UAT-11.3` dan `UAT-11.4`; **seluruh uji layar lab yang sudah ada dijalankan kembali dan lulus tanpa disentuh** |
+| **Risiko/pemilik** | Sedang. Layar terbesar modul ini, dan dua wilayahnya belum punya isi. Pemilik: Laboratorium. Tata letak `DEV_DISCRETION` sesuai `LAB-FE-002` |
+| **DoD** | Wilayah C dan D **terlihat berdampingan** sebelum kelayakan ditetapkan (`LAB-FE-010`); peringatan penguncian terlihat sebelum tombol kelayakan dapat ditekan; metode pembayaran **baca-saja tanpa kotak pilihan** dan menulis *belum dapat ditentukan* saat sumbernya tidak terjawab (`LAB-FE-011`); jumlah/Qty dapat diisi dan hasilnya tersimpan sebagai beberapa baris; penamaan menu membedakan jalur ini dari pesanan dokter (`LAB-FE-009`); `AC-76` terbukti — uji layar lama lulus tanpa perubahan |
+
+> **Dua wilayah sengaja kosong, dan itu harus terlihat oleh petugas.** Wilayah metode
+> pembayaran menampilkan *belum dapat ditentukan*, bukan dikosongkan begitu saja. Wilayah
+> instansi perujuk tetap memakai daftar terkendali — bila perujuknya belum terdaftar,
+> pendaftaran ditolak `VAL-43` seperti hari ini. **Jalan buntunya belum hilang**, dan layar ini
+> tidak boleh berpura-pura sudah hilang.
+
+**Satu hal yang perlu terlihat sejak formulir:** mengisi jumlah `3` menghasilkan **tiga baris**
+pemeriksaan setelah tersimpan, bukan satu baris bertuliskan "3". Bila layar detail menampilkan
+tiga baris sementara formulirnya menampilkan satu, petugas akan menyangka ada yang salah.
+
+### `FE-LAB-12` — Daftar dan detail penerimaan
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas menelusuri penerimaan yang sudah dicatat, dan kepala instalasi membaca laporan penerimaan menurut waktu kedatangan sebenarnya |
+| **Requirement/decision** | `FR-11.5`, `FR-11.8`, `LAB-DEC-042`, `LAB-DEC-045` |
+| **Kontrak** | `LAB-API-v1` `r7` jalur baca grup Lab Specimen — `approved`, terkunci |
+| **Reuse** | Pola daftar dan detail yang sudah ada pada `lab-orders` |
+| **Cakupan** | Layar daftar penerimaan beserta penyaring rentang tanggal, dan layar detail satu penerimaan |
+| **Dependency** | `FE-LAB-11` |
+| **Acceptance criteria** | `AC-67`, `AC-75` |
+| **Verifikasi** | Uji komponen; verifikasi manual: wadah yang diterima Senin 21.10 dan dicatat Selasa 08.05 muncul pada **hari Senin**; selisih kedua waktu terbaca |
+| **Risiko/pemilik** | Rendah. Baca saja. Pemilik: Laboratorium |
+| **DoD** | Daftar memakai **waktu penerimaan nyata**, bukan waktu sistem; selisih terhadap waktu sistem dapat dilihat kepala instalasi; layar detail menampilkan setiap baris pemeriksaan secara terpisah; tautan langsung dan muat ulang berfungsi |
+
+**Butir DoD pertama adalah inti `LAB-DEC-042`.** Bila daftar ini keliru memakai `ReceivedAt`,
+seluruh guna kolom baru itu hilang tanpa satu pun kesalahan yang terlihat — layarnya tetap
+tampil benar, hanya tanggalnya yang salah.
+
 ## 7. Layar yang Sengaja Tidak Dibuat
 
 Kelima layar berikut **tidak boleh** dibangun lebih dulu "sekalian", karena perilakunya belum
@@ -555,6 +661,7 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 13 | 2026-09-14 | **Gelombang `MVP-5a` ditambahkan** — tiga task `FE-LAB-10` sampai `FE-LAB-12`. `FE-LAB-10` mengelola jenis specimen beserta daftar pantau `Lainnya`, ditempatkan di `health-services/master-data/` sesuai `AC-49`, bukan di folder laboratorium. `FE-LAB-11` formulir penerimaan memuat wilayah A sampai E; **dua wilayahnya digambar sebagai tempat tanpa isi yang dikunci** karena `FR-11.9` dan `FR-11.10` menunggu `LAB-REQ-005` — dan layar itu tidak boleh berpura-pura jalan buntunya sudah hilang. `FE-LAB-12` daftar dan detail penerimaan, dengan butir DoD bahwa daftarnya memakai **waktu penerimaan nyata**, bukan `ReceivedAt`. `AC-76` masuk DoD `FE-LAB-11` sebagai regresi: seluruh uji layar lab lama wajib lulus **tanpa disentuh**. Grafik urutan dependency ditulis untuk `MVP-5a`; ketiadaannya pada gelombang lama dicatat sebagai gap | `DRAFT` |
 | 12 | 2026-09-08 | **Percobaan verifikasi manual dan koreksi penahannya, ditulis manual atas instruksi pemilik modul.** Backend dan frontend dijalankan lokal terhadap `QuilvianNewDevYoga`; keduanya sehat. Ke-32 skenario tetap **tidak dapat dijalankan**, tetapi sebabnya berbeda dari yang tercatat: basis data dev tidak memiliki **satu pun** jenis pemeriksaan laboratorium — 0 dari 1 prosedur di seluruh basis data — sehingga pesanan tidak dapat dibuat sama sekali. Catatan lama *"menunggu backend dijalankan"* untuk `FE-LAB-07`, `FE-LAB-08`, dan `FE-LAB-09` karena itu menyesatkan; ketiganya menunggu **data**, bukan proses. Angkanya dihitung lewat API dan dicatat pada bagian 8.1. Yang berhasil diverifikasi dijalankan lewat Playwright terhadap aplikasi berjalan, **21 dari 21 lolos**: login, kesembilan menu Laboratorium muncul di sidebar, kesembilan halaman terbuka tanpa error boundary maupun galat runtime, dan ruas **Disiplin Laboratorium** tampil beserta ketiga pilihannya. Ini sekaligus menutup temuan bahwa enam route milik `FE-LAB-05`, `FE-LAB-08`, dan `FE-LAB-09` tidak pernah terdaftar di sidebar sejak dibangun, sehingga selama ini hanya terbuka lewat pengetikan URL. Rantai Master Data → katalog terbukti terpisah, 9 dari 9, memakai prosedur uji yang dibuat lalu dihapus kembali | `DRAFT` |
 | 1 | 2026-09-02 | Roadmap frontend pertama. 9 task disusun dan dipasangkan ke gelombang backendnya, bukan ditumpuk pada `MVP-4`, setelah kontrak dikunci mengizinkan kerja paralel | `DRAFT` |
 | 2 | 2026-09-04 | `FE-LAB-01` selesai dikerjakan dan divalidasi. Status task dan tautan laporannya dicatat; gerbang `LAB-OPEN-018` dinyatakan tidak lagi menahan pekerjaan frontend karena berkas aturannya sudah tersedia di runtime | `DRAFT` |

@@ -3,8 +3,10 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | `3` |
-| Status | `approved` — dikunci 2026-09-02 |
+| Revision | `4` |
+| Status | `approved` — `VAL-01`..`VAL-50` dikunci 2026-09-02; **`VAL-51`..`VAL-63` disetujui pemilik modul 2026-09-14** |
+| `r4` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
+| Isi amandemen `r4` | Tiga belas aturan baru untuk Penerimaan Sampling/Specimen: jenis specimen terkendali beserta jalan keluar `Lainnya` yang wajib berketerangan, volume yang wajib bersatuan tanpa batas minimum/maksimum, waktu penerimaan fisik, dan `Quantity` pemeriksaan. **`VAL-60` kemudian dicabut `LAB-DEC-050` pada 2026-09-14** karena ruas `Quantity` tidak jadi dibuat. **Tidak satu pun aturan `VAL-01`..`VAL-50` berubah.** `VAL-43` dan `VAL-44` tetap berlaku apa adanya sampai `LAB-REQ-005` dijawab |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
@@ -160,10 +162,48 @@ data induk yang belum lengkap.
 
 ---
 
+## 7b. Penerimaan Sampling/Specimen — amandemen `r4`, 2026-09-14
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-51` | Merencanakan wadah | Jenis specimen tidak diisi | "Pilih jenis specimen terlebih dahulu." | `422` |
+| `VAL-52` | Merencanakan wadah | Jenis specimen dikirim sebagai teks, bukan pilihan dari daftar | "Jenis specimen harus dipilih dari daftar. Bila jenisnya belum ada, pilih Lainnya lalu tuliskan keterangannya." | `422` |
+| `VAL-53` | Merencanakan wadah | Jenis terpilih adalah `Lainnya` tetapi keterangannya kosong | "Tuliskan jenis specimennya pada kolom keterangan." | `422` |
+| `VAL-54` | Merencanakan wadah | Jenis terpilih **bukan** `Lainnya` tetapi keterangan `Lainnya` ikut dikirim | "Keterangan jenis hanya diisi bila jenisnya Lainnya." | `422` |
+| `VAL-55` | Merencanakan wadah | Jenis specimen yang dipilih sudah dinonaktifkan | "Jenis specimen ini sudah tidak dipakai lagi. Pilih jenis lain." | `422` |
+| `VAL-56` | Merencanakan wadah | Volume diisi tanpa satuan | "Pilih satuan volumenya." | `422` |
+| `VAL-57` | Merencanakan wadah | Satuan yang dipilih bukan satuan laboratorium | "Satuan ini tidak dipakai laboratorium. Pilih dari daftar satuan yang tersedia." | `422` |
+| `VAL-58` | Merencanakan wadah | Waktu penerimaan fisik berada di masa depan | "Waktu penerimaan tidak boleh melewati waktu sekarang." | `422` |
+| `VAL-59` | Merencanakan wadah | Waktu penerimaan fisik mendahului waktu pengambilan specimen | "Waktu penerimaan tidak boleh lebih awal daripada waktu pengambilan." | `422` |
+| ~~`VAL-60`~~ | ~~Menambah pemeriksaan~~ | **Dicabut `LAB-DEC-050` pada 2026-09-14.** Ruas `Quantity` tidak jadi dibuat, sehingga tidak ada yang perlu divalidasi | — |
+| `VAL-61` | Menambah jenis specimen | Kode jenis sudah dipakai baris lain | "Kode jenis ini sudah dipakai data lain, jadi tidak bisa disimpan." | `409` |
+| `VAL-62` | Menambah atau mengubah jenis specimen | Permintaan mencoba menyetel penanda `Lainnya` pada baris kedua | "Hanya boleh ada satu jenis Lainnya yang aktif." | `422` |
+| `VAL-63` | Menonaktifkan jenis specimen | Baris yang dinonaktifkan adalah satu-satunya jenis `Lainnya` yang aktif | "Jenis Lainnya harus tetap aktif, karena menjadi jalan keluar ketika jenis specimen belum terdaftar." | `422` |
+
+**Kenapa `VAL-63` ada.** `LAB-DEC-040` memilih `Lainnya` justru untuk mencegah jalan buntu di
+meja penerimaan. Bila baris itu dapat dinonaktifkan, jalan buntunya kembali — dan kembalinya
+diam-diam, lewat satu klik pada layar pengelolaan yang tidak terlihat hubungannya dengan
+penerimaan sampel. Polanya sama dengan `VAL-38` pada alasan penolakan.
+
+**Kenapa tidak ada aturan batas minimum atau maksimum volume.** `RULE-021` pada `LAB-EVD-001`
+menyatakan tidak ada ketentuan bisnisnya, dan `LAB-DEC-041` menerima itu apa adanya. Sistem
+**tidak** menolak volume yang kecil dan **tidak** menghitung sendiri apakah sampelnya cukup —
+yang menyatakan sampel tidak cukup adalah petugas lewat penetapan kelayakan (`AC-63`).
+
+**Yang sengaja belum ditulis.** Aturan validasi untuk pengusulan instansi perujuk dan untuk
+metode pembayaran menunggu `LAB-REQ-005`. `VAL-43` dan `VAL-44` tetap berlaku apa adanya
+sampai jawabannya datang.
+
+---
+
 ## 8. Traceability
 
 | Aturan | Decision ID | Acceptance criteria |
 |---|---|---|
+| `VAL-51` sampai `VAL-55`, `VAL-61` sampai `VAL-63` | `LAB-DEC-040` | AC-58, AC-59, AC-60, AC-61 |
+| `VAL-56`, `VAL-57` | `LAB-DEC-041` | AC-62, AC-64 |
+| `VAL-58`, `VAL-59` | `LAB-DEC-042` | AC-66 |
+| ~~`VAL-60`~~ | ~~`LAB-DEC-038`~~ | **Dicabut `LAB-DEC-050`** bersama `AC-52` |
 | `VAL-03`, `VAL-04` | `LAB-DEC-013` | AC-18 |
 | `VAL-05`, `VAL-07`, `VAL-13`, `VAL-18` | `LAB-DEC-024` | AC-35, AC-36 |
 | `VAL-08` | `LAB-INH-008` | AC-12 |

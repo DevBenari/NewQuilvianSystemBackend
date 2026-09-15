@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `14` |
+| Roadmap revision | `31` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
-| Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `24` |
-| Backend SHA | `c87d9c0` |
-| Frontend SHA | `688daff90` |
-| Contract version | `LAB-API-v1` r5 (amandemen r4 aditif dan r5 breaking atas r3, 2026-09-03), `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — seluruhnya `approved`, dikunci 2026-09-02 |
+| Tanggal | 2026-09-02; **gelombang `MVP-5a` ditambahkan 2026-09-14** |
+| Manifest | `blueprint-manifest.md` revision `26` |
+| Backend SHA | `466a7127`, diverifikasi tidak berubah pada `9067fa73` (revision 1-14 ditulis pada `c87d9c0`) |
+| Frontend SHA | `9cd4cd03f` (revision 1-14 ditulis pada `688daff90`) |
+| Contract version | `LAB-API-v1` **r7**, `LAB-STATE-v1` r2, `LAB-VAL-v1` **r4**, `LAB-INT-v1` r3, `LAB-PERM-v1` **rev 4** — seluruhnya `approved`. r3 dan sebelumnya dikunci 2026-09-02; amandemen `MVP-5a` disetujui pemilik modul 2026-09-14 |
 | Masukan | Decisions rev `21`; capability map rev `2`; `LAB-RCG-001` rev 5; `LAB-DA-001` rev 4 |
 | Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` (decisions), dihitung 2026-09-02 |
 | Slice in scope | `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
@@ -74,6 +74,7 @@ sudah diketahui saat perencanaan.
 | `MVP-1` | `BE-LAB-08` .. `BE-LAB-10`, `BE-LAB-16`, `BE-EXT-02`, `BE-EXT-03` | `S13a`, `S13b`, `S1a` | Pendaftaran adalah hulu alur; penanda cito melekat pada pemeriksaan yang dibuat di situ |
 | `MVP-2` | `BE-LAB-11` .. `BE-LAB-13` | `S2`, `S10` | Satu perubahan struktural yang tidak dapat dipecah; fakta tagih mengikuti satuan barunya |
 | `MVP-3` | `BE-LAB-14`, `BE-LAB-15` | `S7`, `S15` | Membutuhkan penanda cito dari `MVP-1` dan satuan pekerjaan dari `MVP-2` |
+| `MVP-5a` | `BE-LAB-20` ✅, `BE-LAB-21` ✅, `BE-LAB-22` ◐, `BE-LAB-23` ⛔ dibatalkan, `BE-LAB-24` ✅, `BE-LAB-25` ✅ | `EPIC-LAB-11` | **Ditambahkan 2026-09-14.** Berdiri sebagai gelombang tersendiri agar penahan `LAB-REQ-005` tidak menular ke gelombang yang sudah siap jalan. Lihat bagian 6b |
 
 **Perubahan terhadap urutan pada `04-prd-to-mvp.md` bagian 14.** PRD menempatkan seluruh layar
 pada `MVP-4`. Sejak kontrak dikunci 2026-09-02, `plan-module-delivery` langkah 2 mengizinkan
@@ -844,10 +845,347 @@ versioned. Karena itu task frontend dipasangkan ke gelombang backendnya masing-m
 
 ---
 
+## 6b. Task Gelombang `MVP-5a` — Penerimaan Sampling/Specimen
+
+Ditambahkan 2026-09-14. Menurunkan `EPIC-LAB-11` `FR-11.1` sampai `FR-11.8` dari
+`04-prd-to-mvp.md` revision 4 bagian 16.
+
+> **`FR-11.9` dan `FR-11.10` tidak punya task di sini.** Keduanya berstatus `OPEN DECISION`,
+> tertahan `LAB-COORD-006` dan `LAB-COORD-007` yang diajukan sebagai `LAB-REQ-005`. Kontrak PRD
+> melarang epic berstatus itu masuk gelombang pengiriman mana pun, sehingga keduanya **tidak
+> diberi ID task** — bukan diberi ID lalu ditandai `BLOCKED`. ID task yang sudah ada cenderung
+> ikut masuk rencana kapasitas walaupun bertanda tertahan.
+
+**Gerbang prefix sudah terbuka.** `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 21 mencatat
+`LaboratoryManagement / Laboratory` berprefix `Lab` dan berlifecycle `ACTIVE` sejak 2026-09-02.
+`QBE-MOD-002` **tidak** menahan pembuatan entity `Lab*` maupun migration modul ini.
+
+### Grafik urutan dependency — `MVP-5a`
+
+```text
+{DATA-MST-MEASUREMENT} ─┐
+                        ├──> BE-LAB-21 ─┬──> BE-LAB-22
+BE-LAB-20 ✅ ───────────┘               │
+                                        └──> BE-LAB-25
+
+BE-LAB-23 ⛔ (dibatalkan)
+
+BE-LAB-24 ✅
+```
+
+Legenda:
+
+- `{DATA-MST-MEASUREMENT}` — gerbang **data**, bukan gerbang kode: lima baris `MstMeasurement`
+  ber-`IsForLaboratory` yang diisi Master Data. Ia menahan **verifikasi** volume pada
+  `BE-LAB-21`, bukan penulisan kodenya. Tidak diberi nomor gelombang.
+- `BE-LAB-23` ⛔ **dibatalkan** `LAB-DEC-050`; pekerjaannya sudah tidak ada. `BE-LAB-24` berdiri sendiri dan **terbuka kembali** setelah `LAB-DEC-049` mempersempit cakupannya.
+
+| Gelombang eksekusi | Task | Kenapa di sini |
+|---:|---|---|
+| 1 | `BE-LAB-20` ✅, `BE-LAB-23` ⛔ dibatalkan, `BE-LAB-24` ✅ | Ketiganya tanpa prasyarat. `BE-LAB-23` **dibatalkan** `LAB-DEC-050`; `BE-LAB-24` terbuka kembali setelah `LAB-DEC-049` dan tinggal menulis penjaga jalur tambah |
+| 2 | `BE-LAB-21` ✅ | Memerlukan tabel jenis specimen dari `BE-LAB-20`. **Selesai 2026-09-15**; migration diterapkan ke `QuilvianNewDevYoga`, `T-M2` dan `T-M4` terbukti |
+| 3 | `BE-LAB-22` ◐, `BE-LAB-25` ✅ | `BE-LAB-22` menyerialkan migration pada tabel yang sama — **selesai sebagian 2026-09-15**, `VAL-59` tertahan kontrak. `BE-LAB-25` memerlukan kolom keterangan beserta datanya, dan kolomnya sudah ada pada source sejak `BE-LAB-21` |
+
+**Tidak ada siklus.** Setiap task muncul tepat satu kali, dan jumlah pasangan prasyarat→task
+pada grafik sama dengan isi kolom **Dependency** pada keenam task di bawah.
+
+> **Batas yang dilaporkan apa adanya.** Grafik di atas mencakup **`MVP-5a` saja**. Gelombang
+> `MVP-0` sampai `MVP-3` ditulis sebelum grafik urutan dependency menjadi kewajiban, dan
+> roadmap ini tidak memilikinya untuk kesembilan belas task lamanya. Menurunkan grafik itu
+> sekarang berarti menyimpulkan ulang dependency sembilan belas task dari ingatan dokumen —
+> pekerjaan tersendiri yang berisiko keliru, dan berada di luar cakupan amandemen ini.
+> Dicatat sebagai gap, bukan dikerjakan diam-diam.
+
+### `BE-LAB-20` ✅ — Data induk jenis specimen
+
+> **Status: ✅ `SELESAI` — 2026-09-14.** Source, kedua migration, dan eksekusi database selesai; `dotnet build
+> -p:RunAnalyzers=False` **0 Error, 0 Warning**, tanpa satu pun warning dari berkas baru task
+> ini. Delapan endpoint berdiri — tujuh dari `r7` dikurangi `GET /other-usage` yang ditunda ke
+> `BE-LAB-25` karena membaca kolom milik `BE-LAB-21`, ditambah `GET /filters/metadata` dan
+> `GET /summary` sebagai permukaan baseline master data.
+>
+> **Eksekusi database selesai 2026-09-14** atas wewenang pemilik modul yang menyebut targetnya
+> secara tegas: `QuilvianNewDevYoga` di `160.22.250.77`. Terbukti terhadap database: **7 baris
+> baseline** terisi, kedua index unik parsial terbaca dari `pg_indexes` beserta filternya,
+> **`T-M3`** dan **`VAL-61`** ditolak `23505` pada constraint yang benar, dan **jalur `Down`
+> lalu `Up` lagi** dibuktikan dengan verifikasi ulang yang tetap lulus. Nol baris uji
+> tertinggal.
+>
+> **Dua butir tetap belum dibuktikan runtime, dan dicatat apa adanya:** `T-M4` menunggu foreign
+> key yang baru dibuat `BE-LAB-21`, dan `VAL-63` adalah aturan tingkat service yang terverifikasi
+> lewat source. `AC-58` terpenuhi sebagian — penolakan teks bebas saat mencatat wadah adalah
+> cakupan `BE-LAB-21`; `AC-60` cakupan `BE-LAB-25`.
+>
+> Kontrak sudah dinaikkan ke **`r8`** mencatat dua endpoint baseline yang ditambahkan.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-20.md`](../task/report/backend/BE-LAB-20.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ `SELESAI` — 2026-09-14. Migration diterapkan ke `QuilvianNewDevYoga`; `T-M3`, `VAL-61`, dan jalur `Down` terbukti |
+| **Outcome** | Kepala instalasi dapat melihat dan mengelola daftar jenis specimen; petugas penerimaan dapat memilih dari daftar itu |
+| **Requirement/decision** | `FR-11.1`, `LAB-DEC-040`, BR-35 |
+| **Kontrak** | `LAB-API-v1` `r7` grup Lab Specimen Type; `LAB-VAL-v1` `r4` `VAL-61`..`VAL-63`; `LAB-PERM-v1` rev 4 resource `LabSpecimenType` |
+| **Reuse** | `Missing`. Pola mengikuti `MstLabRejectionReason` yang sudah ada — tabel data induk beserta enam endkoint kelola dan pilihan |
+| **Cakupan** | Entity `LabSpecimenType` di `Areas/HealthServices/LaboratoryManagement/Models/`, configuration di `Repositories/Configurations/HealthServices/LaboratoryManagement/`, DbSet, migration tabel, migration seed tujuh baris, service, controller, DTO |
+| **Dependency** | — |
+| **Acceptance criteria** | `AC-58`, `AC-60` |
+| **Verifikasi** | QBE preflight dan conformance; review diff/scope; `dotnet restore` dan `dotnet build`; verifikasi kontrak API terhadap `r7`; verifikasi proses bisnis: tujuh baris terisi, `Lainnya` ada dan aktif, baris `Lainnya` kedua ditolak `VAL-62`, menonaktifkan satu-satunya `Lainnya` ditolak `VAL-63` |
+| **Risiko/pemilik** | Rendah. Tabel baru tanpa yang menunjuk padanya. **Prefix `Lab`, bukan `Mst`** — memakai `Mst` melanggar baris riwayat registry 2026-09-02 dan akan dilaporkan checker. Pemilik: Laboratorium |
+| **DoD** | Tabel berdiri beserta unique parsial `Lainnya`; tujuh baris terisi; ketujuh endpoint menjawab sesuai `r7`; `VAL-61`..`VAL-63` menolak dengan pesan yang tertulis di matriks; migration jalan maju dan mundur; tidak ada endpoint lama yang berubah perilakunya |
+
+**Kenapa unique parsial `Lainnya` ditegakkan di basis data, bukan hanya di service.** Aturan
+yang hanya dijaga service akan bocor lewat seeder, skrip perbaikan data, atau migration
+berikutnya — dan bocornya diam-diam. `T-M3` menguji penjagaan itu langsung di basis data.
+
+### `BE-LAB-21` — Jenis dan volume pada wadah
+
+> **Status: ✅ `SELESAI` — 2026-09-15.** Source, configuration, migration, **dan eksekusi ke
+> `QuilvianNewDevYoga`** selesai dan terverifikasi; jalur `Down` ikut dibuktikan.
+> `dotnet build -p:RunAnalyzers=False --no-incremental` **0 Error**, dan nol dari 191 warning
+> repository berasal dari kelima berkas task ini.
+>
+> **Terbukti terhadap database:** keempat kolom ada — `VolumeAmount` sebagai `numeric(12,3)` —
+> kedua foreign key ber-`delete_rule = RESTRICT`, kedua index terbaca dari `pg_indexes`,
+> **`T-M2`** lulus dengan 5 baris lama utuh beserta 4 keterangan lamanya, dan **`T-M4`** ditolak
+> `23503` pada constraint yang benar. Inilah foreign key yang ditunggu `BE-LAB-20`. **Jalur
+> `Down` lalu `Up`** dibuktikan dengan verifikasi ulang yang tetap lulus seluruhnya. Nol baris
+> uji tertinggal — percobaan `T-M4` dijalankan di dalam transaksi yang selalu di-`ROLLBACK`.
+>
+> **`T-63c` terbukti.** Seluruh rujukan `VolumeAmount` pada source ditelusuri: tidak ada satu pun
+> `<`, `>`, `<=`, maupun `>=` yang mengenainya. `RULE-021` tegak.
+>
+> **`DATA-MST-MEASUREMENT` terbantah sebagian oleh data sebenarnya.** Dugaan bahwa
+> `MstMeasurement` kosong **keliru**: 17 satuan ber-`IsForLaboratory` yang aktif sudah ada, dan
+> **`mL` serta `gram` termasuk di dalamnya**. Volume bersatuan mililiter dan gram karena itu
+> **dapat dipakai sekarang juga**. Yang masih tertahan hanya **tiga** satuan — `µL`, `blok`, dan
+> `slide` — sehingga `AC-64` terpenuhi sebagian, bukan nol. Permintaan ke `master-data` perlu
+> **ditulis ulang**: tiga baris, bukan lima, dan tanpa mendikte kode karena `MstMeasurement`
+> memakai seri tergenerasi `STN`.
+>
+> **Konsekuensi penerapan yang sudah diterima pemilik modul.** `specimenTypeId` kini **wajib**
+> sesuai `r7`, dan layar wadah yang sudah berjalan belum mengirimnya — sehingga
+> `lab-orders/{slug}/specimens` pada `QuilvianNewDevYoga` **kini menjawab `422`** sampai
+> `FE-LAB-11` selesai. Backend tidak dilonggarkan untuk menutupinya; melonggarkannya akan
+> membatalkan `AC-58`.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-21.md`](../task/report/backend/BE-LAB-21.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-09-15. Migration diterapkan ke `QuilvianNewDevYoga`; `T-M2`, `T-M4`, dan jalur `Down` terbukti. `mL` dan `gram` tersedia; `µL`/`blok`/`slide` menunggu Master Data |
+| **Outcome** | Petugas mencatat wadah beserta jenis specimennya dan volumenya, dan volume itu selalu membawa satuannya |
+| **Requirement/decision** | `FR-11.1`, `FR-11.3`, `FR-11.4`, `LAB-DEC-040`, `LAB-DEC-041`, BR-35, BR-36 |
+| **Kontrak** | `LAB-API-v1` `r7` perluasan `POST /lab-specimens/by-order/{labOrderId}`; `LAB-VAL-v1` `r4` `VAL-51`..`VAL-57` |
+| **Reuse** | `LabSpecimen` `Extend`. **`MstMeasurement` `Ready to reuse`** — penanda `IsForLaboratory` sudah ada; Laboratorium tidak membuat daftar satuan sendiri |
+| **Cakupan** | Empat kolom nullable pada `LabSpecimen` (`SpecimenTypeId`, `SpecimenTypeOtherNote`, `VolumeAmount`, `VolumeUnitId`), dua FK `Restrict`, dua index, satu migration, penyesuaian `PlanLabSpecimenRequest` dan `LabSpecimenResponse` |
+| **Dependency** | `BE-LAB-20`. **Gerbang data:** lima baris `MstMeasurement` ber-`IsForLaboratory` |
+| **Acceptance criteria** | `AC-58`, `AC-59`, `AC-61`, `AC-62`, `AC-63`, `AC-64` |
+| **Verifikasi** | QBE preflight; review diff/scope; build; verifikasi kontrak terhadap `r7`; verifikasi proses bisnis: wadah `Blood` `3` `mL` tersimpan; `Lainnya` tanpa keterangan ditolak `VAL-53`; **`Lainnya` berketerangan tersimpan tanpa penolakan**; volume tanpa satuan ditolak `VAL-56`; satuan bukan laboratorium ditolak `VAL-57`; baris `LabSpecimen` lama tetap terbaca dengan kolom baru kosong |
+| **Risiko/pemilik** | Sedang. Mengubah tabel yang sudah berisi data — seluruh kolom nullable sehingga migration tidak menulis ulang satu baris pun. Pemilik: Laboratorium |
+| **DoD** | Keempat kolom ada; kedua FK `Restrict`; `VAL-51`..`VAL-57` menolak sesuai matriks; **tidak ada satu pun jalur kode yang membandingkan volume terhadap batas minimum**; data lama utuh; migration jalan maju dan mundur |
+
+> **Batas yang perlu ditulis terang: task ini `SELESAI` secara kode sebelum verifikasi
+> volumenya dapat dijalankan.** Lima baris satuan `MstMeasurement` ber-`IsForLaboratory`
+> (`mL`, `µL`, `gram`, `blok`, `slide`) adalah pekerjaan **Master Data**, bukan Laboratorium —
+> mengisinya dari seeder Laboratorium akan mengulang `LAB-DEBT-001`.
+>
+> Selama kelima baris itu kosong, kolom volume **tidak dapat dipakai** walaupun kodenya benar.
+> Ini pola yang sudah pernah terjadi di modul ini: `FE-LAB-05` selesai 2026-09-07 dan delapan
+> skenario verifikasi manualnya masih menunggu sampai hari ini karena daftar perujuk kosong.
+> Statusnya **menunggu data, bukan menunggu kode**, dan wajib ditulis begitu pada laporannya.
+
+**Butir DoD yang bentuknya ketiadaan aturan.** `RULE-021` menyatakan tidak ada batas minimum
+maupun maksimum volume, dan `LAB-DEC-041` menerimanya apa adanya. Butir "tidak ada satu pun
+jalur kode yang membandingkan volume terhadap batas minimum" ada justru karena keputusan
+semacam ini paling mudah dilanggar tanpa sengaja — seorang implementer yang bermaksud baik
+menambahkan peringatan "volume terlalu sedikit", dan aturannya hilang tanpa seorang pun
+memutuskannya.
+
+### `BE-LAB-22` — Waktu penerimaan fisik
+
+> **Status: `SELESAI SEBAGIAN` — 2026-09-15.** Kolom `PhysicallyReceivedAt` beserta indexnya
+> berdiri, migration dibuat, dan `dotnet build -p:RunAnalyzers=False --no-incremental`
+> **0 Error** tanpa satu pun warning dari berkas task ini.
+>
+> **Tiga AC terpenuhi, satu terpenuhi separuh.** `AC-65` terbukti **secara struktural**: nol ruas
+> permintaan bernama `ReceivedAt` pada seluruh DTO Laboratorium, dan satu-satunya jalur tulisnya
+> diisi server. `AC-67` terpenuhi — rekap penerimaan beralih ke waktu nyata dengan cadangan
+> `CreateDateTime`, dan selisih kedua waktu tercatat pada jejak audit. **`AC-17` terbukti dua
+> kali**: nol rujukan `PhysicallyReceivedAt` pada `LabWorklistService`, dan nol diff pada ketiga
+> berkas perhitungan cito.
+>
+> **`VAL-59` tidak dapat ditegakkan pada kontrak `r7` sebagaimana disetujui, dan itu temuan
+> bukan kelalaian.** Aturannya membandingkan waktu penerimaan fisik terhadap **waktu
+> pengambilan** — tetapi satu-satunya permintaan yang membawa waktu penerimaan fisik adalah
+> `PlanLabSpecimenRequest`, dan pada saat wadah direncanakan `CollectedAt` masih kosong karena
+> diisi server nanti. Menegakkannya pada tindakan pengambilan **justru menolak skenario yang
+> menjadi alasan `LAB-DEC-042` dibuat**: wadah tiba Senin 21.10, diregistrasi Selasa 08.05.
+> `AC-66` karena itu terpenuhi separuh — `VAL-58` tegak penuh. Tiga pilihan disiapkan untuk
+> pemilik modul pada laporan bagian 6; **tidak satu pun dipilih sendiri**.
+>
+> Migration **belum diterapkan**. Dua migration kini menunggu pada tabel yang sama dan dapat
+> diterapkan dalam satu jendela wewenang.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-22.md`](../task/report/backend/BE-LAB-22.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | **`SELESAI SEBAGIAN`** — 2026-09-15. `AC-65`, `AC-67`, `AC-17` terpenuhi; `AC-66` separuh karena `VAL-59` tertahan kontrak |
+| **Outcome** | Wadah yang datang setelah jam operasional tercatat pada hari kedatangannya, sementara jejak kapan datanya masuk sistem tetap utuh |
+| **Requirement/decision** | `FR-11.5`, `LAB-DEC-042`, BR-37 |
+| **Kontrak** | `LAB-API-v1` `r7`; `LAB-VAL-v1` `r4` `VAL-58`, `VAL-59` |
+| **Reuse** | `LabSpecimen` `Extend`. `ReceivedAt` yang sudah ada **tidak disentuh** |
+| **Cakupan** | Satu kolom `PhysicallyReceivedAt` nullable beserta index, satu migration, penyesuaian DTO, dan jejak audit yang mencatat kedua waktu berdampingan |
+| **Dependency** | `BE-LAB-21` — menyerialkan migration pada tabel yang sama |
+| **Acceptance criteria** | `AC-65`, `AC-66`, `AC-67`, dan `AC-17` sebagai regresi |
+| **Verifikasi** | QBE preflight; build; verifikasi proses bisnis: wadah diterima Senin 21.10 dan dicatat Selasa 08.05 muncul pada laporan penerimaan **hari Senin**; waktu di masa depan ditolak `VAL-58`; waktu mendahului pengambilan ditolak `VAL-59`; mengirim `ReceivedAt` dari luar **diabaikan**; perhitungan keterlambatan cito **tidak berubah** |
+| **Risiko/pemilik** | Rendah untuk kodenya, **sedang untuk maknanya**. Bila laporan keliru memakai `ReceivedAt`, seluruh gunanya hilang tanpa satu pun kesalahan yang terlihat. Pemilik: Laboratorium |
+| **DoD** | Kolom ada; `ReceivedAt` tidak dapat diubah endpoint mana pun; tidak ada ruas permintaan bernama `ReceivedAt` pada DTO mana pun; laporan penerimaan memakai waktu nyata; selisih kedua waktu tercatat pada jejak audit; `AC-17` terbukti tidak berubah |
+
+### `BE-LAB-23` ⛔ — Jumlah pemeriksaan memperbanyak baris
+
+> **Status: `TERBLOKIR` — 2026-09-14.** Nol baris source diubah. `LAB-DEC-038` **tidak dapat
+> dilaksanakan** seperti tertulis.
+>
+> `LabExamination` punya **index unik di tingkat database** atas `(SpecimenId, ProcedureId)`,
+> dipasang atas dasar `BR-20` dan `AC-35` pada 2026-09-01. `Quantity` 3 untuk satu jenis
+> pemeriksaan pada satu wadah karena itu mustahil — baris kedua dan ketiga ditolak service, dan
+> bila lolos, ditolak database.
+>
+> Contoh pada `BR-33` sendiri keliru: Glukosa Puasa dan Glukosa 2 Jam PP adalah **dua
+> `MstProcedure` berbeda**, sehingga petugas memilih dua butir katalog dan Qty tidak diperlukan.
+>
+> **Ditutup hari yang sama.** Pemilik modul memilih mencabut `LAB-DEC-038` lewat `LAB-DEC-050`:
+> **kolom Jumlah tidak dibuat sama sekali.** Petugas memilih dua butir katalog berbeda bila
+> memang perlu dua pemeriksaan. `BR-20`, `AC-35`, dan index uniknya tetap utuh.
+>
+> **Task ini karena itu dibatalkan, bukan ditunda** — pekerjaannya sudah tidak ada. `AC-52`
+> sampai `AC-54` dicabut, `VAL-60` dicabut, dan ruas `Quantity` dicabut dari kontrak lewat
+> `LAB-API-v1` `r9` sebelum sempat dibangun. `POST /lab-examinations` tidak berubah sama sekali
+> dari `r6`.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-23.md`](../task/report/backend/BE-LAB-23.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | ⛔ `DIBATALKAN` — 2026-09-14 oleh `LAB-DEC-050`. Nol baris source diubah, dan tidak akan ada |
+| **Outcome** | Petugas mengisi jumlah satu kali, dan sistem membuat sebanyak itu baris pemeriksaan yang masing-masing dapat diisi hasil berbeda |
+| **Requirement/decision** | `FR-11.6`, `LAB-DEC-038`, BR-33 |
+| **Kontrak** | `LAB-API-v1` `r7` perluasan `POST /lab-examinations`; `LAB-VAL-v1` `r4` `VAL-60` |
+| **Reuse** | `LabExamination` `Ready to reuse`. **Tabelnya tidak berubah sama sekali** |
+| **Cakupan** | Satu ruas `Quantity` bernilai bawaan `1` pada `CreateLabExaminationRequest`, dan perubahan `LabExaminationService` agar memperbanyak baris. **Nol migration** |
+| **Dependency** | — |
+| **Acceptance criteria** | `AC-52`, `AC-53`, `AC-54` |
+| **Verifikasi** | Build; verifikasi kontrak terhadap `r7`; verifikasi proses bisnis: Glukosa ber-jumlah 2 menghasilkan **dua baris** yang dapat diisi `96` dan `143` tanpa saling menimpa; wadah layak yang menopang tiga baris menerbitkan **tiga** fakta kelayakan tagih; permintaan **tanpa** ruas `Quantity` berperilaku persis seperti sebelum `r7` |
+| **Risiko/pemilik** | Rendah pada kode, **perlu ketelitian pada uang**. Satu kesalahan di sini menagihkan tiga kali lipat atau sepertiga. Pemilik: Laboratorium |
+| **DoD** | Tidak ada satu pun properti bernama `Qty` atau `Quantity` pada model Laboratorium mana pun; jumlah `3` menghasilkan tiga baris bertarif masing-masing; `VAL-60` menolak jumlah nol atau kurang; **konsumen lama tanpa ruas `Quantity` tidak berubah perilakunya**; `IsDuplo` tetap ada dan tidak digantikan |
+
+**Kenapa "konsumen lama tidak berubah perilakunya" masuk DoD.** Perluasan yang diklaim aditif
+dapat diam-diam mengubah perilaku pemanggil lama. Tanpa butir ini, klaim aditif pada `r7` tidak
+pernah benar-benar diperiksa.
+
+### `BE-LAB-24` ✅ — Penguncian daftar pemeriksaan pada jalur hapus
+
+> **Status: ✅ `SELESAI` — 2026-09-14.** Nol baris source diubah, **dan memang tidak perlu**.
+> Riwayat lengkapnya ditulis apa adanya di bawah, termasuk tahap ketika task ini sempat terblokir.
+>
+> Pemeriksaan menemukan tiga hal. Jalur tambah **sudah terjaga** `VAL-18` sesuai dugaan. Jalur
+> hapus **bukan `DELETE`** melainkan `POST /{id}/cancel`. Dan ketiadaan penjagaan di sana
+> **disengaja**: `VAL-18` pada matriks bertuliskan "Berlaku pada: Menambah pemeriksaan",
+> `LAB-INH-001` memuat `Cancelled` sebagai pengecualian sah, `LAB-INH-006` mengatur jalur
+> pengajuan pembatalan, dan `LAB-INH-010` menyerahkan koreksi tagihan kepada Billing.
+>
+> **`AC-55` dan `AC-57` yang ditulis amandemen kemarin bertentangan dengan rancangan warisan
+> itu.** Menambahkan penjagaannya berarti mengubah kebijakan pembatalan, bukan menambal
+> kelalaian — di luar wewenang task ini. `AC-56` terpenuhi.
+>
+> **Ditutup hari yang sama oleh `LAB-DEC-049`.** Pemilik modul memilih **mempersempit
+> `AC-55`/`AC-57` ke penambahan saja**: pembatalan tetap terbuka sesudah kelayakan, dan koreksi
+> tagihannya wewenang Billing. `RJ-BIL-GATE-DEC-003` tidak tersentuh.
+>
+> **Cakupan task ini karena itu menyusut drastis.** Jalur tambah **sudah terjaga** `VAL-18`,
+> yang tidak boleh dikunci memang tidak terkunci. Keempat AC terverifikasi terhadap source, dan
+> automated test tidak dibuat sesuai `rules/backend/TEST_POLICY.md`.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-24.md`](../task/report/backend/BE-LAB-24.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ `SELESAI` — 2026-09-14. Keempat AC terpenuhi oleh kode yang sudah berjalan; **nol baris source diubah, dan memang tidak perlu** |
+| **Outcome** | Setelah kelayakan wadah ditetapkan, daftar pemeriksaan tidak dapat ditambah **maupun dihapus** |
+| **Requirement/decision** | `FR-11.7`, `LAB-DEC-039`, BR-34 |
+| **Kontrak** | `LAB-VAL-v1` `r3` `VAL-18` — **tidak berubah** |
+| **Reuse** | **`Ready to reuse`.** `LabExaminationService.cs:120-127@466a7127` sudah menolak penambahan pada wadah `Accepted` atau `Rejected` |
+| **Cakupan** | **Pemeriksaan, bukan pembangunan.** Telusuri jalur hapus baris pemeriksaan dan pastikan memakai penjagaan `VAL-18` yang sama. Bila ternyata belum, tambahkan penjagaannya. Tulis pengujian penjaga `T-55d` |
+| **Dependency** | — |
+| **Acceptance criteria** | `AC-55`, `AC-56`, `AC-57` |
+| **Verifikasi** | Review diff/scope; verifikasi proses bisnis: menambah dan menghapus baris **berhasil** selama kelayakan belum ditetapkan; menambah pada wadah `Accepted` ditolak `409`; menambah pada wadah `Rejected` ditolak `409`; **menghapus** pada wadah yang sudah diputuskan ditolak; telusuri seluruh controller Laboratorium dan pastikan tidak ada route bernama `process` atau sejenisnya |
+| **Risiko/pemilik** | Rendah dalam ukuran, **tinggi dalam akibat**. Bila jalur hapus ternyata longgar, pemeriksaan yang sudah terbit kelayakan tagihnya dapat hilang sementara tagihannya tetap berjalan. Pemilik: Laboratorium |
+| **DoD** | Jalur tambah dan jalur hapus memakai penjagaan yang sama; `T-55d` hijau; **tidak ada aksi `Pemeriksaan Diproses` tersendiri yang dibuat**; `VAL-18` tidak berubah bunyinya |
+
+> **Task ini boleh gagal pada percobaan pertama, dan itu memang gunanya.** `LAB-DEC-039`
+> menaikkan perilaku yang sudah berjalan menjadi keputusan. Yang belum diperiksa adalah jalur
+> hapus. Bila ternyata sudah terjaga, task ini selesai dengan menambah pengujian penjaganya
+> saja — dan itu hasil yang sah, bukan task yang sia-sia.
+
+### `BE-LAB-25` ✅ — Daftar pantau pemakaian `Lainnya`
+
+> **Status: ✅ `SELESAI` — 2026-09-15.** Endpoint `GET /other-usage` berdiri, `dotnet build`
+> **0 Error** tanpa satu pun warning dari berkas task ini, dan **verifikasi proses bisnisnya
+> dijalankan terhadap `QuilvianNewDevYoga`**, bukan sekadar ditelusuri pada source.
+>
+> **`T-60d` terbukti persis seperti butir Verifikasi:** tiga wadah berketerangan `cairan kista`
+> muncul sebagai **satu baris berjumlah tiga** beserta waktu pemakaian terakhirnya yang benar.
+> Satu wadah berketerangan `Cairan Kista` sengaja ikut disisipkan dan **tetap berdiri sebagai
+> baris tersendiri** — membuktikan ejaan tidak digabung diam-diam, yang justru menjadi alasan
+> layar ini dibuat. Seluruhnya di dalam transaksi yang di-`ROLLBACK`; nol baris uji tertinggal.
+>
+> **Pemeriksaan yang tidak dapat ditangkap `dotnet build` ikut dijalankan.** `ToQueryString()`
+> membuktikan pengelompokannya diterjemahkan menjadi **satu pernyataan `GROUP BY` penuh di
+> PostgreSQL** — nol evaluasi sisi klien, sehingga tabel `LabSpecimen` tidak pernah ditarik ke
+> memori. Waktu efektifnya `COALESCE(PhysicallyReceivedAt, CreateDateTime)`, **sama persis**
+> dengan rekap penerimaan `BE-LAB-22`.
+>
+> **Nol tabel, nol migration, nol permission baru.** `AC-60` — AC terakhir `LAB-DEC-040` yang
+> masih terbuka sejak `BE-LAB-20` — kini terpenuhi.
+>
+> Laporan lengkap beserta buktinya:
+> [`task/report/backend/BE-LAB-25.md`](../task/report/backend/BE-LAB-25.md).
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-09-15. `AC-60` terpenuhi dan terbukti terhadap database; nol tabel ringkasan |
+| **Outcome** | Kepala instalasi melihat keterangan `Lainnya` yang sering muncul, lalu menaikkannya menjadi jenis tetap |
+| **Requirement/decision** | `FR-11.2`, `LAB-DEC-040` butir 4-5, BR-35 |
+| **Kontrak** | `LAB-API-v1` `r7` `GET /lab-specimen-types/other-usage` |
+| **Reuse** | `Missing`. **Tanpa tabel baru** — rekapnya diturunkan dari `LabSpecimen` |
+| **Cakupan** | Satu endpoint baca beserta DTO responsnya dan pengelompokan pada service |
+| **Dependency** | `BE-LAB-21` — memerlukan kolom keterangan `Lainnya` beserta datanya |
+| **Acceptance criteria** | `AC-60` |
+| **Verifikasi** | Build; verifikasi kontrak terhadap `r7`; verifikasi proses bisnis: tiga wadah berketerangan "cairan kista" muncul sebagai satu baris berjumlah tiga beserta waktu pemakaian terakhirnya |
+| **Risiko/pemilik** | Rendah. Baca saja, nol tabel, nol migration. Pemilik: Laboratorium |
+| **DoD** | Endpoint menjawab sesuai `r7`; **tidak ada tabel ringkasan yang dibuat**; rekapnya berubah seketika ketika wadah baru dicatat |
+
+**Kenapa tanpa tabel ringkasan.** Tabel ringkasan adalah salinan yang bisa basi tanpa menambah
+satu pun jawaban baru. Yang ditanyakan kepala instalasi — keterangan apa yang sering muncul —
+sudah seluruhnya ada pada `LabSpecimen`.
+
 ## 7. Ringkasan Status Task
 
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
 |---|---|---|---|---|
+| `BE-LAB-20` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-14. Build 0 Error 0 Warning; 8 endpoint berdiri; migration diterapkan ke `QuilvianNewDevYoga`; 7 baris terisi; `T-M3` dan `VAL-61` terbukti `23505`; jalur `Down` lalu `Up` dibuktikan — [laporan](../task/report/backend/BE-LAB-20.md) | Tidak ada. `T-M4` menunggu foreign key dari `BE-LAB-21`; `VAL-63` terverifikasi source, pembuktian runtime menunggu aplikasi dijalankan |
+| `BE-LAB-21` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Build 0 Error; migration diterapkan ke `QuilvianNewDevYoga`; `T-M2`, `T-M4` (`23503`), dan jalur `Down` lalu `Up` terbukti; `T-63c` terbukti nol pembandingan volume — [laporan](../task/report/backend/BE-LAB-21.md) | Tidak ada penahan kode. `µL`, `blok`, dan `slide` menunggu Master Data — `mL` dan `gram` **sudah ada**. Layar wadah menjawab `422` sampai `FE-LAB-11` selesai, dan itu konsekuensi `r7` yang sudah diterima |
+| `BE-LAB-22` ◐ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI SEBAGIAN`** — 2026-09-15. Build 0 Error; migration diterapkan dan jalur `Down` terbukti; `AC-65`, `AC-67`, dan `AC-17` terbukti — [laporan](../task/report/backend/BE-LAB-22.md) | **`VAL-59` tidak dapat ditegakkan** pada kontrak `r7`: pembandingnya, waktu pengambilan, belum ada saat wadah direncanakan. `AC-66` terpenuhi separuh dan **menunggu keputusan pemilik modul** — `LAB-CONFLICT-006` |
+| `BE-LAB-23` ⛔ | `MVP-5a` | `EPIC-LAB-11` | **`DIBATALKAN`** — 2026-09-14 oleh `LAB-DEC-050`; nol baris source diubah dan tidak akan ada — [laporan](../task/report/backend/BE-LAB-23.md) | Tidak ada. Pekerjaannya dicabut bersama kolom Jumlah |
+| `BE-LAB-24` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-14, keempat AC terpenuhi kode yang sudah berjalan; nol baris source diubah — [laporan](../task/report/backend/BE-LAB-24.md) | Tidak ada |
+| `BE-LAB-25` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Build 0 Error; `GET /other-usage` berdiri; `T-60d` terbukti terhadap database — tiga wadah `cairan kista` menjadi satu baris berjumlah tiga, dan `Cairan Kista` tetap baris tersendiri — [laporan](../task/report/backend/BE-LAB-25.md) | Tidak ada. Nol tabel, nol migration, nol permission baru |
 | `BE-LAB-01` | `MVP-0` | `S15` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-01.md) | Tidak ada |
 | `BE-LAB-02` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-02.md) | Tidak ada |
 | `BE-LAB-03` | `MVP-0` | `S3` | **`SELESAI`** — [laporan](../task/report/backend/BE-LAB-03.md) | Tidak ada |
@@ -1006,6 +1344,11 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 31 | 2026-09-15 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-25` berpindah menjadi **✅ `SELESAI`**, dan dengan itu **keenam task backend `MVP-5a` selesai atau ditutup**. `GET /lab-specimen-types/other-usage` berdiri sebagai satu endpoint baca dengan dua DTO dan satu method service; **nol entity, nol migration, nol tabel ringkasan, nol permission baru**. `AC-60` — acceptance criteria terakhir `LAB-DEC-040` yang masih terbuka sejak `BE-LAB-20` menandainya "belum" pada 2026-09-14 — kini **terpenuhi dan terbukti terhadap database**. **`T-60d` dijalankan terhadap `QuilvianNewDevYoga`, bukan ditelusuri pada source**: tiga wadah berketerangan `cairan kista` muncul sebagai satu baris berjumlah tiga dengan waktu pemakaian terakhir yang benar, dan satu wadah berketerangan `Cairan Kista` yang sengaja ikut disisipkan **tetap berdiri sebagai baris tersendiri** — membuktikan ejaan tidak digabung diam-diam, yang justru menjadi alasan layar ini dibuat. Seluruhnya di dalam transaksi yang di-`ROLLBACK`; nol baris uji tertinggal. **Satu pemeriksaan dijalankan yang `dotnet build` tidak akan pernah menangkapnya:** `ToQueryString()` membuktikan pengelompokannya diterjemahkan menjadi **satu pernyataan `GROUP BY` penuh di PostgreSQL** — pencacahan, nilai terbesar dan terkecil, serta pengurutannya seluruhnya di database, sehingga tabel `LabSpecimen` tidak pernah ditarik ke memori. LINQ pengelompokan yang tidak dapat diterjemahkan tetap lolos kompilasi lalu gagal saat dipanggil, dan itu sebabnya pemeriksaan ini tidak dilewati. Waktu efektifnya `COALESCE(PhysicallyReceivedAt, CreateDateTime)`, **sama persis** dengan rekap penerimaan yang ditetapkan `BE-LAB-22`, supaya dua layar tentang wadah yang sama tidak memakai batas hari yang berbeda. Satu ruas aditif `firstUsedAt` ditambahkan di luar kontrak dan dilaporkan apa adanya: keterangan berjumlah 12 yang tersebar tiga bulan berbeda maknanya dari yang terkumpul dalam satu minggu. Status `GET /other-usage` pada `contracts/api-contract.md` dikoreksi dari `Rencana (belum tersedia)` menjadi **Tersedia**; **tidak ada revisi kontrak baru**. **`FE-LAB-10` tidak lagi tertahan** — kedua prasyaratnya, `BE-LAB-20` dan `BE-LAB-25`, kini selesai | `DRAFT` |
+| 30 | 2026-09-15 | **Eksekusi database `MVP-5a` putaran kedua, ditulis `build-module-backend`.** Kedua migration yang tertunda diterapkan ke **`QuilvianNewDevYoga`** dalam satu jendela atas wewenang pemilik modul yang menyebut targetnya secara tegas, sesudah `migrations list` memastikan hanya kedua migration itu yang `Pending`. **`BE-LAB-21` naik menjadi ✅ `SELESAI`**: keempat kolom terbaca dari `information_schema` — `VolumeAmount` sebagai `numeric(12,3)` — kedua foreign key ber-`delete_rule = RESTRICT`, ketiga index terbaca dari `pg_indexes`, **`T-M2`** lulus dengan 5 baris lama utuh beserta 4 keterangan lamanya, dan **`T-M4`** ditolak `23503` pada constraint yang benar — menutup butir yang digantung `BE-LAB-20` sejak 2026-09-14. **Jalur `Down` lalu `Up` dibuktikan** dengan verifikasi ulang yang tetap lulus seluruhnya; nol baris uji tertinggal karena percobaan `T-M4` dijalankan di dalam transaksi yang selalu di-`ROLLBACK`. `BE-LAB-22` tetap `SELESAI SEBAGIAN` dengan penahan yang sama, `LAB-CONFLICT-006`. **Satu dugaan blueprint terbantah oleh data sebenarnya, dan dikoreksi terang-terangan:** `DATA-MST-MEASUREMENT` mengandaikan `MstMeasurement` kosong dari satuan laboratorium, padahal **17 baris ber-`IsForLaboratory` yang aktif sudah ada** dan **`mL` serta `gram` termasuk di dalamnya**. Volume bersatuan mililiter dan gram karena itu dapat dipakai sekarang juga; yang tertahan hanya **tiga** satuan — `µL`, `blok`, `slide` — sehingga `AC-64` terpenuhi sebagian, bukan nol. Permintaan ke `master-data` **perlu ditulis ulang**: tiga baris bukan lima, dan tanpa mendikte kode karena `MstMeasurement` memakai seri tergenerasi `STN`, bukan kode buatan sendiri seperti `ML` atau `BLOK`. **Dua temuan sampingan dilaporkan, tidak diperbaiki diam-diam:** penanda `IsForLaboratory` jauh lebih longgar daripada yang diandaikan rancangan — `GALON`, `M3`, `KG`, dan `Liter/Jam` ikut membawanya, sehingga galon sah dipilih sebagai satuan volume sebuah tabung darah — dan ada **dua baris gram bersimbol sama**. `VAL-57` sengaja **tidak** dipersempit untuk menutupinya, karena penyaring tambahan berarti mengarang aturan yang tidak pernah diputuskan siapa pun dan justru akan menolak `blok` dan `slide` yang diminta `AC-64`. **Konsekuensi yang sudah diterima pemilik modul sebelum penerapan:** layar wadah pada `QuilvianNewDevYoga` kini menjawab `422` sampai `FE-LAB-11` selesai | `DRAFT` |
+| 29 | 2026-09-15 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-22` berpindah menjadi **`SELESAI SEBAGIAN`**. Kolom `PhysicallyReceivedAt` beserta indexnya berdiri, migration dibuat, build bersih **0 Error** tanpa satu pun warning dari berkas task ini. **Tiga acceptance criteria terpenuhi dan dua di antaranya terbukti tanpa menunggu apa pun.** `AC-65` terbukti **secara struktural** — nol ruas permintaan bernama `ReceivedAt` pada seluruh DTO Laboratorium, dan satu-satunya jalur tulisnya diisi server; pembuktian seperti ini lebih kuat daripada satu percobaan runtime. `AC-17` terbukti **dua kali**: nol rujukan `PhysicallyReceivedAt` pada `LabWorklistService`, `LabMonitoringService`, dan `LabExaminationService`, serta nol diff pada ketiganya. `AC-67` terpenuhi pada source — rekap penerimaan beralih ke waktu nyata dengan cadangan `CreateDateTime` supaya wadah lama tidak berubah perilakunya, dan selisih kedua waktu tercatat pada jejak audit berdampingan dengan `OccurredAt` yang menjadi pembandingnya. **Satu butir tidak terpenuhi, dan sebabnya bukan pada implementasi.** `VAL-59` membandingkan waktu penerimaan fisik terhadap **waktu pengambilan**, tetapi satu-satunya permintaan yang membawa waktu penerimaan fisik adalah `PlanLabSpecimenRequest`, dan pada saat wadah direncanakan `CollectedAt` masih kosong karena diisi server pada tindakan pengambilan. Pembandingnya belum ada. Menegakkannya pada tindakan pengambilan **justru menolak skenario yang menjadi alasan `LAB-DEC-042` dibuat** — wadah tiba Senin 21.10, diregistrasi Selasa 08.05 — karena `CollectedAt` di sana adalah waktu petugas menekan tombol di laboratorium, hampir selalu lebih akhir daripada waktu kedatangan. `AC-66` karena itu **terpenuhi separuh**; `VAL-58` tegak penuh. Aturannya tetap ditulis utuh di dalam `ResolvePhysicalReceipt` dan akan langsung menyala begitu kontrak memberi jalan bagi waktu pengambilan yang dinyatakan petugas. Tiga pilihan disiapkan untuk pemilik modul — tambah ruas lewat `r10`, persempit, atau cabut seperti `VAL-60` — dan **tidak satu pun dipilih sendiri**. **Ini temuan ketiga dengan pola yang sama** setelah `BE-LAB-23` dan `BE-LAB-24`: acceptance criteria dari amandemen `LAB-EVD-001` yang lolos sampai tahap implementasi tanpa pernah diadu dengan model data yang sudah berjalan | `DRAFT` |
+| 28 | 2026-09-15 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `BE-LAB-21` berpindah menjadi **`SELESAI SECARA KODE`**. Empat kolom nullable berdiri pada `LabSpecimen` — `SpecimenTypeId`, `SpecimenTypeOtherNote`, `VolumeAmount` bertipe `numeric(12,3)`, dan `VolumeUnitId` — beserta dua foreign key `RESTRICT` ke `LabSpecimenType` dan `MstMeasurement` dan dua index. `VAL-51` sampai `VAL-57` ditegakkan `ResolveSpecimenMaterialAsync` dengan pesan yang dibandingkan kata demi kata terhadap `LAB-VAL-v1` `r4`. **`T-63c` terbukti dengan pencarian yang tidak menemukan apa-apa:** nol `<`, `>`, `<=`, maupun `>=` mengenai `VolumeAmount` pada seluruh source aplikasi, sehingga `RULE-021` tegak. Build bersih penuh **0 Error**, dan nol dari 191 warning repository berasal dari kelima berkas task ini. **Tiga batas ditulis apa adanya.** Pertama, migration **dibuat tetapi belum diterapkan** — wewenang eksekusi adalah keputusan terpisah yang belum diminta, sehingga butir DoD *"migration jalan maju dan mundur"* belum terpenuhi dan `T-M2`, `T-M4`, `T-58c`, `T-59c`, `T-61a` ikut menunggu. Kedua, verifikasi volume tetap tertahan `DATA-MST-MEASUREMENT`: selama lima baris `MstMeasurement` ber-`IsForLaboratory` kosong, setiap upaya mengisi volume ditolak `VAL-57` karena tidak ada satuan laboratorium yang dapat dipilih — **menunggu data, bukan menunggu kode**. Ketiga, `specimenTypeId` kini **wajib** sesuai `r7`, sehingga layar wadah yang sudah berjalan akan menjawab `422` begitu migration diterapkan; urutannya perlu dikoordinasikan dengan `FE-LAB-11`, bukan ditutupi dengan melonggarkan backend. **Satu pembacaan kontrak dilaporkan, bukan diputuskan diam-diam:** hanya `specimenTypeId` yang dibuat wajib, karena `LAB-VAL-v1` `r4` tidak memiliki satu pun aturan yang menolak volume yang tidak diisi — `VAL-56` hanya menolak volume **tanpa satuan**. **Satu koreksi pembukuan:** ruas `Roadmap revision` pada kepala dokumen ini tertinggal pada `15` padahal bagian 9 sudah mencapai `27`; keduanya diselaraskan pada revisi ini | `DRAFT` |
+| 27 | 2026-09-14 | **Gelombang `MVP-5a` ditambahkan** — `EPIC-LAB-11` Penerimaan Sampling/Specimen, enam task `BE-LAB-20` sampai `BE-LAB-25`. Kontrak `LAB-API-v1` `r7`, `LAB-VAL-v1` `r4`, dan `LAB-PERM-v1` rev 4 disetujui pemilik modul hari yang sama, sehingga backend dan frontend boleh berjalan paralel. Satu tabel baru `LabSpecimenType` berprefix `Lab`; lima kolom nullable pada `LabSpecimen`; **`LabExamination` tidak berubah sama sekali** karena Qty memperbanyak baris di lapisan service. `BE-LAB-24` berdisposisi `EXISTING / REUSE` — `VAL-18` sudah berjalan pada `LabExaminationService.cs:123@466a7127`, pekerjaannya memeriksa jalur hapus dan menulis penjaganya. `BE-LAB-21` dicatat **menunggu data, bukan menunggu kode**: lima baris `MstMeasurement` ber-`IsForLaboratory` adalah pekerjaan `master-data`, dan tanpa itu verifikasi volumenya tidak dapat dijalankan. Grafik urutan dependency ditulis untuk `MVP-5a`; ketiadaannya pada `MVP-0`..`MVP-3` dicatat sebagai gap, tidak diturunkan ulang dari tebakan. `FR-11.9` dan `FR-11.10` **tidak diberi ID task sama sekali** karena berstatus `OPEN DECISION` | `DRAFT` |
 | 26 | 2026-09-08 | **Amandemen `LAB-API-v1` `r6` disetujui pemilik modul dan dikerjakan.** Satu endpoint baca ditambahkan: `GET /lab-rejection-reasons/{id}`. Grup ini semula satu-satunya grup Laboratorium tanpa jalur detail, sehingga formulir ubah `FE-LAB-03` memuat barisnya dari halaman daftar yang sedang terbuka — bekerja selama barisnya masih ada di halaman itu, dan **diam-diam gagal** pada tautan langsung, muat ulang halaman, atau sesudah petugas berpindah halaman daftar; formulirnya terbuka kosong tanpa satu pun pesan. Amandemennya **aditif**: tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Empat berkas berubah bersamaan supaya kontrak, penjaga, dan source tidak dapat menyimpang — kontrak naik ke `r6` dengan barisnya, penjaga `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` naik 7 → 8 dengan komentar menyebut `r6` sebagai sumbernya, service memperoleh `GetByIdAsync` yang baca-saja dan tanpa penelusuran, dan controller memperoleh action-nya dengan hak akses `LabRejectionReason : Read` yang sama dengan daftarnya. Lima uji menjaganya: detail membawa kedua penanda sistem, penunjuk tak dikenal ditolak `404`, alasan terhapus tidak terbaca, alasan **nonaktif tetap terbaca** karena masih menempel pada riwayat penolakan yang tersimpan, dan jalur baca tidak meninggalkan entity terlacak. **Nomornya `r6`, bukan `r5`** seperti tertulis pada persetujuan lisan: `r5` sudah terpakai `BE-LAB-18`. Klasifikasi `TOUCHED LEGACY`; tanpa entity baru, tanpa migration, tanpa nomor bisnis | `DRAFT` |
 | 25 | 2026-09-08 | **Koreksi pembukuan kontrak, ditulis manual atas instruksi pemilik modul. Bukan amandemen.** Dua selisih fakta ditutup. Pertama, `contracts/api-contract.md` masih menandai **16 endpoint** sebagai `Rencana (belum tersedia)` padahal seluruhnya sudah ada sejak `BE-LAB-04`, `BE-LAB-05`, dan `BE-LAB-06` selesai — 6 pada Lab Value Bound, 5 pada Lab Critical Bound Approval, 5 pada Lab Rejection Reason; keenam belasnya diverifikasi langsung dari controller sebelum dikoreksi. Selisih ini dicatat `FE-LAB-02` pada 2026-09-04 dan tidak pernah ditindaklanjuti. Kedua, `blueprint-manifest.md` masih mencatat `LAB-API-v1` pada **revision 3**, tertinggal dua amandemen dari dokumen kontraknya yang sudah **revision 5** — kekeliruan yang berakibat nyata, karena pembaca manifest akan mengira `GET /lab-orders` masih mengembalikan larik padahal `r5` mengubahnya menjadi `PagedResult`. **Tidak ada endpoint yang ditambah, dihapus, atau berubah bentuk**; `LAB-API-v1` tetap `r5` dan tetap terkunci. **Satu pekerjaan dihentikan pada revisi ini:** penambahan `GET /{id}` pada grup Lab Rejection Reason diimplementasikan lalu **dikembalikan**, karena uji `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` mengunci jumlah endpoint grup itu pada tujuh sesuai kontrak. Menaikkan angka penjaga itu sama dengan mengamandemen kontrak terkunci lewat penyuntingan penjaganya sendiri, dan itu memerlukan persetujuan pemilik modul yang belum ada. Grup itu tetap tanpa jalur detail | `DRAFT` |
 | 24 | 2026-09-08 | **Koreksi penahan `BE-EXT-01`, ditulis manual atas instruksi pemilik modul.** Penahan pengisian disiplin selama ini tercatat sebagai *"menunggu penggolongan dari pihak klinis"* saja. Telusur backend menemukan sebab kedua yang tidak pernah tercatat dan lebih menentukan: `MstProcedure.LabDiscipline` **tidak muncul pada satu pun DTO, service, maupun controller Master Data**, sehingga tidak ada jalur tulis apa pun — bukan API, bukan layar, bukan seeder. Butir DoD *"nilainya terisi"* karena itu tidak pernah dapat dipenuhi siapa pun, bahkan seandainya daftar penggolongannya sudah tersedia. Jalur pengisiannya dibangun pada revisi ini: `labDiscipline` diterima `POST` dan `PUT`, terbit pada respons daftar, detail, dan opsi beserta labelnya, masuk ke `filters/metadata`, dan muncul sebagai pilihan **Disiplin Laboratorium** pada layar Master Data → Prosedur. Daftar disiplin yang sah diturunkan dari enum `LabDiscipline`, bukan disalin, supaya Master Data tidak dapat menerima golongan yang tidak dikenali Laboratorium. Golongan pada tindakan non-laboratorium ditolak, bukan dikosongkan diam-diam. Delapan uji backend dan enam uji frontend menjaganya; `dotnet build` 0 error, 424 uji backend dan 539 uji frontend lolos. **Satu kekeliruan pembacaan ikut diluruskan:** mengisi `MstProcedure.LabDiscipline` membuat **penyaring katalog** berisi, bukan ketiga layar monitoring — `LabMonitoringService` menyaring `LabOrder.Discipline`, dan `LabOrderService` menyalinnya apa adanya dari permintaan tanpa pernah menurunkannya dari prosedur yang dipilih. Karena ruas Disiplin pada layar Buat Pesanan tidak wajib, setiap pesanan yang dibuat tanpa memilihnya tidak muncul di satu pun layar monitoring. Penurunan disiplin pesanan dari pemeriksaannya belum berpemilik task dan dicatat sebagai temuan terbuka | `DRAFT` |

@@ -35,6 +35,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         [MaxLength(200)]
         public string? SpecimenDescription { get; set; }
+
+        /// <summary>
+        /// Jenis bahan yang dibawa wadah ini, dipilih dari <c>GET /lab-specimen-types/options</c>
+        /// (<c>LAB-DEC-040</c>, <c>BR-35</c>).
+        ///
+        /// Wajib diisi untuk wadah baru (<c>VAL-51</c>). Jenis yang sudah dinonaktifkan ditolak
+        /// (<c>VAL-55</c>), dan jenis yang tidak ada pada daftar ditolak (<c>VAL-52</c>) —
+        /// termasuk upaya menamai jenisnya sebagai teks lewat
+        /// <see cref="SpecimenTypeOtherNote"/> tanpa memilih apa pun.
+        /// </summary>
+        public Guid? SpecimenTypeId { get; set; }
+
+        /// <summary>
+        /// Keterangan jenis, hanya untuk jenis <c>Lainnya</c>.
+        ///
+        /// Wajib bila jenis terpilih adalah baris <c>Lainnya</c> (<c>VAL-53</c>), dan ditolak
+        /// bila jenis terpilih bukan <c>Lainnya</c> (<c>VAL-54</c>).
+        /// </summary>
+        [MaxLength(128)]
+        public string? SpecimenTypeOtherNote { get; set; }
+
+        /// <summary>
+        /// Banyaknya bahan di dalam wadah (<c>LAB-DEC-041</c>, <c>BR-36</c>).
+        ///
+        /// <b>Berapa pun nilainya diterima.</b> <c>RULE-021</c> menyatakan tidak ada batas
+        /// minimum maupun maksimum, sehingga tidak ada satu pun pemeriksaan di sini yang
+        /// membandingkannya terhadap ambang apa pun.
+        /// </summary>
+        public decimal? VolumeAmount { get; set; }
+
+        /// <summary>
+        /// Satuan volume, dipilih dari <c>MstMeasurement</c> ber-<c>IsForLaboratory</c>.
+        ///
+        /// Wajib bila <see cref="VolumeAmount"/> diisi (<c>VAL-56</c>); satuan di luar daftar
+        /// satuan laboratorium ditolak (<c>VAL-57</c>).
+        /// </summary>
+        public Guid? VolumeUnitId { get; set; }
+
+        /// <summary>
+        /// Kapan wadahnya benar-benar sampai di meja penerimaan (<c>LAB-DEC-042</c>,
+        /// <c>BR-37</c>).
+        ///
+        /// Tidak boleh berada di masa depan (<c>VAL-58</c>). Boleh dikosongkan — wadah yang
+        /// direncanakan sebelum bahannya datang memang belum punya waktu kedatangan.
+        ///
+        /// <b>Ini bukan <c>ReceivedAt</c>.</b> <c>ReceivedAt</c> diisi server dan tidak dapat
+        /// diubah dari luar (<c>AC-65</c>); yang diisi petugas adalah ruas ini.
+        /// </summary>
+        public DateTime? PhysicallyReceivedAt { get; set; }
     }
 
     public class CollectLabSpecimenRequest
@@ -113,11 +162,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public string? SpecimenDescription { get; set; }
 
+        /// <summary>Jenis bahan wadah ini, kosong pada wadah yang dibuat sebelum `LAB-DEC-040`.</summary>
+        public Guid? SpecimenTypeId { get; set; }
+
+        /// <summary>
+        /// Nama jenis seperti yang dilihat petugas, misalnya "Blood" atau "Jaringan". Disertakan
+        /// supaya layar tidak perlu memanggil data induk hanya untuk menampilkan satu nama.
+        /// </summary>
+        public string? SpecimenTypeName { get; set; }
+
+        /// <summary>Keterangan jenis, terisi hanya pada wadah berjenis <c>Lainnya</c>.</summary>
+        public string? SpecimenTypeOtherNote { get; set; }
+
+        public decimal? VolumeAmount { get; set; }
+
+        public Guid? VolumeUnitId { get; set; }
+
+        /// <summary>
+        /// Simbol satuan volume, misalnya <c>mL</c> atau <c>slide</c>. Ditampilkan berdampingan
+        /// dengan <see cref="VolumeAmount"/> supaya angkanya tidak pernah berdiri tanpa satuan.
+        /// </summary>
+        public string? VolumeUnitSymbol { get; set; }
+
         public string SpecimenStatus { get; set; } = string.Empty;
 
         public DateTime? CollectedAt { get; set; }
 
+        /// <summary>Kapan datanya masuk ke sistem. Diisi server, tidak pernah dari permintaan.</summary>
         public DateTime? ReceivedAt { get; set; }
+
+        /// <summary>
+        /// Kapan wadahnya benar-benar sampai di meja penerimaan, diisi petugas.
+        ///
+        /// Selisihnya terhadap <see cref="ReceivedAt"/> adalah lama keterlambatan pencatatan,
+        /// dan kepala instalasi membacanya dari kedua ruas ini berdampingan (<c>AC-67</c>).
+        /// </summary>
+        public DateTime? PhysicallyReceivedAt { get; set; }
 
         public DateTime? DecidedAt { get; set; }
 

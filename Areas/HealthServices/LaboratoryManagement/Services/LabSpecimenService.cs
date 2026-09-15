@@ -145,8 +145,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Procedure komponen pemeriksaan tidak ditemukan, tidak aktif, atau bukan procedure laboratorium.");
             }
 
+            // VAL-51 .. VAL-57. Bahan yang dibawa wadah — jenisnya dan volumenya — diperiksa di
+            // sini, sebelum satu baris pun dibuat, supaya permintaan yang ditolak tidak
+            // meninggalkan wadah setengah jadi.
+            var material = await ResolveSpecimenMaterialAsync(request, cancellationToken);
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // VAL-58 dan VAL-59. Wadah baru belum memiliki waktu pengambilan tersimpan, sehingga
+            // yang benar-benar dapat ditegakkan di sini hanya VAL-58 — lihat catatan pada
+            // ResolvePhysicalReceipt.
+            var physicallyReceivedAt = ResolvePhysicalReceipt(
+                request.PhysicallyReceivedAt,
+                collectedAt: null,
+                now);
 
             var nextSequence = await _dbContext.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
@@ -163,6 +176,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 order,
                 nextSequence + 1,
                 request.SpecimenDescription,
+                material,
+                physicallyReceivedAt,
                 supersededSpecimenId: null,
                 recollectionCause: null,
                 recollectionReason: null,
@@ -181,6 +196,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     specimen.Id,
                     specimen.LabOrderId,
                     specimen.SpecimenSequence,
+                    specimen.SpecimenTypeId,
+                    specimen.VolumeUnitId,
                     ExaminationCount = berurutan.Count,
                     ActorUserId = actorUserId
                 });
@@ -657,10 +674,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => (int?)x.SpecimenSequence)
                 .MaxAsync(cancellationToken) ?? 0;
 
+            // Jenis bahan dan keterangan Lainnya-nya ikut pindah ke wadah pengganti: bahannya
+            // diambil ulang, bukan berganti jenis, dan permintaan pengambilan ulang memang tidak
+            // punya ruas untuk menyatakannya. Volumenya TIDAK ikut — bahan penggantinya belum
+            // diambil, sehingga berapa banyak yang akan terkumpul belum diketahui.
             var replacement = await CreateSpecimenAsync(
                 order,
                 nextSequence + 1,
                 specimen.SpecimenDescription,
+                new LabSpecimenMaterial(
+                    specimen.SpecimenType,
+                    specimen.SpecimenTypeOtherNote,
+                    VolumeAmount: null,
+                    VolumeUnit: null),
+                // Waktu penerimaan fisik tidak ikut diwariskan, dengan alasan yang sama seperti
+                // volume: bahan penggantinya belum diambil, apalagi sampai di meja penerimaan.
+                physicallyReceivedAt: null,
                 supersededSpecimenId: specimen.Id,
                 recollectionCause: cause,
                 recollectionReason: reasonText,
@@ -887,11 +916,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             DateTime endDate,
             CancellationToken cancellationToken = default)
         {
+            // AC-67. Rekap penerimaan menempatkan wadah menurut WAKTU NYATA-nya, bukan waktu
+            // datanya masuk ke sistem. Wadah yang tiba Senin 21.10 dan baru diregistrasi Selasa
+            // 08.05 karena itu terhitung pada hari Senin.
+            //
+            // CreateDateTime dipakai sebagai cadangan, bukan sebagai pilihan kedua yang setara:
+            // wadah lama dan wadah yang waktu kedatangannya memang tidak dicatat tetap harus
+            // muncul pada rekap, dan untuk baris-baris itu perilakunya sama persis seperti
+            // sebelum LAB-DEC-042.
             var source = _dbContext.LabSpecimens
                 .AsNoTracking()
                 .Where(x => !x.IsDelete &&
-                            x.CreateDateTime >= startDate &&
-                            x.CreateDateTime <= endDate);
+                            (x.PhysicallyReceivedAt ?? x.CreateDateTime) >= startDate &&
+                            (x.PhysicallyReceivedAt ?? x.CreateDateTime) <= endDate);
 
             var rekap = await source
                 .GroupBy(x => 1)
@@ -946,9 +983,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     SpecimenBarcode = x.SpecimenBarcode,
                     SpecimenSequence = x.SpecimenSequence,
                     SpecimenDescription = x.SpecimenDescription,
+                    SpecimenTypeId = x.SpecimenTypeId,
+                    SpecimenTypeName = x.SpecimenType != null ? x.SpecimenType.SpecimenTypeName : null,
+                    SpecimenTypeOtherNote = x.SpecimenTypeOtherNote,
+                    VolumeAmount = x.VolumeAmount,
+                    VolumeUnitId = x.VolumeUnitId,
+                    VolumeUnitSymbol = x.VolumeUnit != null ? x.VolumeUnit.MeasurementSymbol : null,
                     SpecimenStatus = x.SpecimenStatus.ToString(),
                     CollectedAt = x.CollectedAt,
                     ReceivedAt = x.ReceivedAt,
+                    PhysicallyReceivedAt = x.PhysicallyReceivedAt,
                     DecidedAt = x.DecidedAt,
                     RejectionReasonCode = x.RejectionReasonCode,
                     RejectionNote = x.RejectionNote,
@@ -1226,10 +1270,198 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             };
         }
 
+        /// <summary>
+        /// Bahan yang dibawa sebuah wadah: jenisnya, keterangan <c>Lainnya</c>-nya, volumenya,
+        /// dan satuan volumenya. Dikumpulkan menjadi satu supaya jalur perencanaan dan jalur
+        /// pengambilan ulang menyimpan hal yang sama persis.
+        /// </summary>
+        private sealed record LabSpecimenMaterial(
+            LabSpecimenType? Type,
+            string? OtherNote,
+            decimal? VolumeAmount,
+            MstMeasurement? VolumeUnit);
+
+        /// <summary>
+        /// Menegakkan <c>VAL-51</c> sampai <c>VAL-57</c> atas jenis dan volume wadah baru.
+        ///
+        /// Urutan pemeriksaannya disengaja. Jenis diperiksa lebih dulu karena keterangan
+        /// <c>Lainnya</c> hanya bermakna setelah diketahui jenisnya, dan volume diperiksa
+        /// terakhir karena ia yang paling sering dikosongkan petugas.
+        ///
+        /// <b>Tidak ada satu baris pun di sini yang membandingkan volume terhadap batas.</b>
+        /// <c>RULE-021</c> menyatakan tidak ada batas minimum maupun maksimum dan
+        /// <c>LAB-DEC-041</c> menerimanya apa adanya. Keputusan yang bentuknya <i>ketiadaan
+        /// aturan</i> paling mudah dilanggar tanpa sengaja — seorang implementer yang bermaksud
+        /// baik menambahkan peringatan "volume terlalu sedikit", dan aturannya hilang tanpa
+        /// seorang pun memutuskannya. Yang menyatakan bahan tidak cukup adalah petugas, lewat
+        /// penetapan kelayakan (<c>AC-63</c>).
+        /// </summary>
+        private async Task<LabSpecimenMaterial> ResolveSpecimenMaterialAsync(
+            PlanLabSpecimenRequest request,
+            CancellationToken cancellationToken)
+        {
+            var otherNote = string.IsNullOrWhiteSpace(request.SpecimenTypeOtherNote)
+                ? null
+                : request.SpecimenTypeOtherNote.Trim();
+
+            var specimenTypeId = request.SpecimenTypeId.GetValueOrDefault();
+
+            if (specimenTypeId == Guid.Empty)
+            {
+                // VAL-52. Keterangan yang dikirim tanpa satu pun jenis terpilih adalah upaya
+                // menamai jenisnya sebagai teks bebas — persis yang dicegah LAB-DEC-040.
+                if (otherNote != null)
+                {
+                    throw new LabSpecimenValidationException(
+                        "Jenis specimen harus dipilih dari daftar. Bila jenisnya belum ada, " +
+                        "pilih Lainnya lalu tuliskan keterangannya.");
+                }
+
+                // VAL-51.
+                throw new LabSpecimenValidationException("Pilih jenis specimen terlebih dahulu.");
+            }
+
+            // Dimuat terlacak, bukan AsNoTracking. Alasannya ada pada CreateSpecimenAsync:
+            // entity ini ditempelkan sebagai navigation pada wadah yang sedang dibuat.
+            var specimenType = await _dbContext.LabSpecimenTypes
+                .FirstOrDefaultAsync(x => x.Id == specimenTypeId && !x.IsDelete, cancellationToken);
+
+            // VAL-52. Penunjuk yang tidak ada pada daftar diperlakukan sama seperti teks bebas:
+            // keduanya sama-sama bukan pilihan dari daftar terkendali.
+            if (specimenType == null)
+            {
+                throw new LabSpecimenValidationException(
+                    "Jenis specimen harus dipilih dari daftar. Bila jenisnya belum ada, " +
+                    "pilih Lainnya lalu tuliskan keterangannya.");
+            }
+
+            // VAL-55.
+            if (!specimenType.IsActive)
+            {
+                throw new LabSpecimenValidationException(
+                    "Jenis specimen ini sudah tidak dipakai lagi. Pilih jenis lain.");
+            }
+
+            if (specimenType.IsOtherBucket)
+            {
+                // VAL-53.
+                if (otherNote == null)
+                {
+                    throw new LabSpecimenValidationException(
+                        "Tuliskan jenis specimennya pada kolom keterangan.");
+                }
+            }
+            else if (otherNote != null)
+            {
+                // VAL-54.
+                throw new LabSpecimenValidationException(
+                    "Keterangan jenis hanya diisi bila jenisnya Lainnya.");
+            }
+
+            var volumeUnitId = request.VolumeUnitId.GetValueOrDefault();
+
+            // VAL-56. Angka tanpa satuan tidak berarti apa-apa: 3 bisa berarti 3 mL atau 3 slide.
+            if (request.VolumeAmount.HasValue && volumeUnitId == Guid.Empty)
+                throw new LabSpecimenValidationException("Pilih satuan volumenya.");
+
+            MstMeasurement? volumeUnit = null;
+
+            if (volumeUnitId != Guid.Empty)
+            {
+                // VAL-57. Penyaring IsForLaboratory-lah yang memisahkan satuan laboratorium dari
+                // satuan obat, berat badan, dan satuan umum pada tabel yang sama.
+                volumeUnit = await _dbContext.Set<MstMeasurement>()
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == volumeUnitId &&
+                            x.IsForLaboratory &&
+                            x.IsActive &&
+                            !x.IsDelete,
+                        cancellationToken);
+
+                if (volumeUnit == null)
+                {
+                    throw new LabSpecimenValidationException(
+                        "Satuan ini tidak dipakai laboratorium. Pilih dari daftar satuan yang tersedia.");
+                }
+            }
+
+            return new LabSpecimenMaterial(specimenType, otherNote, request.VolumeAmount, volumeUnit);
+        }
+
+        /// <summary>
+        /// Menegakkan <c>VAL-58</c> dan <c>VAL-59</c> atas waktu penerimaan fisik.
+        ///
+        /// <b>Batas yang perlu diketahui pembaca berikutnya.</b> <c>VAL-59</c> membandingkan
+        /// waktu penerimaan fisik terhadap <b>waktu pengambilan</b> specimen. Pada kontrak
+        /// <c>LAB-API-v1</c> <c>r7</c>, satu-satunya permintaan yang membawa waktu penerimaan
+        /// fisik adalah <see cref="PlanLabSpecimenRequest"/> — dan pada saat wadah direncanakan,
+        /// <c>CollectedAt</c> masih kosong karena diisi server nanti pada tindakan pengambilan.
+        /// Pembandingnya karena itu belum ada, dan <c>VAL-59</c> belum dapat ditegakkan.
+        ///
+        /// Menegakkannya pada tindakan pengambilan justru salah: <c>CollectedAt</c> di sana
+        /// adalah waktu petugas menekan tombol di laboratorium, yang pada wadah rujukan luar
+        /// hampir selalu <b>lebih akhir</b> daripada waktu kedatangannya. Penjagaan seperti itu
+        /// akan menolak persis skenario yang dicontohkan <c>BR-37</c> sendiri — wadah tiba Senin
+        /// 21.10, diregistrasi Selasa 08.05.
+        ///
+        /// Parameternya tetap disediakan supaya aturannya berdiri utuh begitu kontrak memberi
+        /// jalan bagi waktu pengambilan yang dinyatakan petugas.
+        /// </summary>
+        private static DateTime? ResolvePhysicalReceipt(
+            DateTime? physicallyReceivedAt,
+            DateTime? collectedAt,
+            DateTime now)
+        {
+            if (!physicallyReceivedAt.HasValue)
+                return null;
+
+            var nilai = physicallyReceivedAt.Value;
+
+            // VAL-58. Wadah tidak dapat tiba pada waktu yang belum terjadi.
+            if (nilai > now)
+            {
+                throw new LabSpecimenValidationException(
+                    "Waktu penerimaan tidak boleh melewati waktu sekarang.");
+            }
+
+            // VAL-59.
+            if (collectedAt.HasValue && nilai < collectedAt.Value)
+            {
+                throw new LabSpecimenValidationException(
+                    "Waktu penerimaan tidak boleh lebih awal daripada waktu pengambilan.");
+            }
+
+            return nilai;
+        }
+
+        /// <summary>
+        /// Menyusun catatan jejak audit yang memuat <b>kedua waktu berdampingan</b> beserta
+        /// selisihnya (<c>LAB-DEC-042</c> butir 5, <c>AC-67</c>).
+        ///
+        /// Selisih itulah yang membuat keterlambatan pencatatan dapat ditelusuri tanpa menuduh
+        /// siapa pun: selisih sebelas jam pada sampel yang datang pukul 21.00 adalah jam
+        /// operasional, sedangkan selisih yang sama pada sampel yang datang pukul 10.00 adalah
+        /// pertanyaan yang pantas diajukan.
+        /// </summary>
+        private static string ComposePhysicalReceiptNote(DateTime physicallyReceivedAt, DateTime systemTime)
+        {
+            var selisihMenit = (int)Math.Floor((systemTime - physicallyReceivedAt).TotalMinutes);
+
+            return string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "Waktu penerimaan fisik {0:yyyy-MM-dd HH:mm} UTC; tercatat sistem {1:yyyy-MM-dd HH:mm} UTC; selisih {2} menit.",
+                physicallyReceivedAt,
+                systemTime,
+                selisihMenit);
+        }
+
         private async Task<LabSpecimen> CreateSpecimenAsync(
             LabOrder order,
             int sequence,
             string? description,
+            LabSpecimenMaterial material,
+            DateTime? physicallyReceivedAt,
             Guid? supersededSpecimenId,
             LabRecollectionCause? recollectionCause,
             string? recollectionReason,
@@ -1245,6 +1477,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 SpecimenSequence = sequence,
                 SpecimenDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 SpecimenStatus = LabSpecimenStatus.Planned,
+                SpecimenTypeOtherNote = material.OtherNote,
+                VolumeAmount = material.VolumeAmount,
+                PhysicallyReceivedAt = physicallyReceivedAt,
                 SupersededSpecimenId = supersededSpecimenId,
                 RecollectionCause = recollectionCause,
                 RecollectionReason = recollectionReason,
@@ -1254,7 +1489,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 CreateBy = actorUserId
             };
 
+            // Navigation disetel, bukan hanya foreign keynya, supaya respons tindakan ini dapat
+            // menyebut nama jenis dan simbol satuannya tanpa satu query tambahan.
+            //
+            // Keduanya dimuat TERLACAK oleh ResolveSpecimenMaterialAsync justru karena assignment
+            // ini: menempelkan entity yang tidak terlacak pada entity yang sedang ditambahkan
+            // membuat EF ikut menandainya Added, dan baris data induk yang sudah ada akan
+            // disisipkan ulang lalu ditolak index unik.
+            specimen.SpecimenType = material.Type;
+            specimen.VolumeUnit = material.VolumeUnit;
+
             _dbContext.LabSpecimens.Add(specimen);
+
+            // Kedua waktu dicatat berdampingan pada jejak audit beserta selisihnya. Baris
+            // riwayat inilah yang membuat keterlambatan pencatatan dapat ditelusuri kemudian,
+            // dan OccurredAt-nya adalah waktu sistem yang menjadi pembanding.
+            var reasonNote = physicallyReceivedAt.HasValue
+                ? ComposePhysicalReceiptNote(physicallyReceivedAt.Value, now)
+                : recollectionReason;
 
             AppendHistory(
                 order,
@@ -1264,7 +1516,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 fromStatus: null,
                 LabSpecimenStatus.Planned.ToString(),
                 reasonCode: null,
-                reasonNote: recollectionReason,
+                reasonNote,
                 actorUserId,
                 now);
 
@@ -1429,8 +1681,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private async Task<LabSpecimen> LoadSpecimenAsync(Guid specimenId, CancellationToken cancellationToken)
         {
+            // Jenis dan satuan ikut dimuat supaya respons setiap tindakan menyebut nama jenis dan
+            // simbol satuannya, bukan hanya penunjuknya. Keduanya baris data induk yang kecil.
             var specimen = await _dbContext.LabSpecimens
                 .Include(x => x.LabOrder)
+                .Include(x => x.SpecimenType)
+                .Include(x => x.VolumeUnit)
                 .FirstOrDefaultAsync(x => x.Id == specimenId && !x.IsDelete, cancellationToken);
 
             if (specimen?.LabOrder == null || specimen.LabOrder.IsDelete)

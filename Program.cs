@@ -318,6 +318,7 @@ try
     builder.Services.AddScoped<LabValueBoundService>();
     builder.Services.AddScoped<LabCriticalBoundApprovalService>();
     builder.Services.AddScoped<LabRejectionReasonService>();
+    builder.Services.AddScoped<LabSpecimenTypeService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -1241,6 +1242,7 @@ try
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenTypeSeeder", () => LabSpecimenTypeSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan

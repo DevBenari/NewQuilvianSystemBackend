@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `13` |
+| Roadmap revision | `18` |
 | Status | `DRAFT` |
-| Tanggal | 2026-09-02 |
-| Manifest | `blueprint-manifest.md` revision `24` |
-| Backend SHA | `c87d9c0` |
-| Frontend SHA | `688daff90` |
-| Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — `approved` 2026-09-02 |
+| Tanggal | 2026-09-02; **`EPIC-LAB-11` ditambahkan 2026-09-14** |
+| Manifest | `blueprint-manifest.md` revision `26` |
+| Backend SHA | `466a7127`, diverifikasi tidak berubah pada `9067fa73` |
+| Frontend SHA | `9cd4cd03f` |
+| Contract version | `LAB-API-v1` **r7**, `LAB-STATE-v1` r2, `LAB-VAL-v1` **r4**, `LAB-INT-v1` r3, `LAB-PERM-v1` **rev 4** — seluruhnya `approved`; amandemen `MVP-5a` disetujui 2026-09-14 |
 | Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-02 |
 | Masukan | Decisions rev `21`; capability map rev `2` |
 | Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` (decisions), dihitung 2026-09-02 |
@@ -119,6 +119,32 @@ bagian 4, bukan disembunyikan.
 
 ---
 
+### `EPIC-LAB-11` — Penerimaan Sampling/Specimen
+
+Ditambahkan 2026-09-14. Gelombang `MVP-5a`.
+
+| FR | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-11.1` | `LAB-DEC-040` | `02-backend-architecture.md` §11.3; `erd/data-dictionary.md` §12.1 | `LAB-API-v1` **r8**, `LAB-VAL-v1` r4, `LAB-PERM-v1` rev 4 | `BE-LAB-20` ✅, `BE-LAB-21` ✅ kode | `FE-LAB-10`, `FE-LAB-11` | `AC-58` **terpenuhi pada source, keduanya.** Sisi data induk **diterapkan ke `QuilvianNewDevYoga`**: 7 baris baseline terisi, kedua index unik parsial terbaca, `VAL-61` dan `VAL-62` ditolak `23505`, jalur `Down` lalu `Up` dibuktikan ([`BE-LAB-20.md`](../task/report/backend/BE-LAB-20.md)). Sisi wadah kini menolak teks bebas: `VAL-51`, `VAL-52`, `VAL-55` pada `LabSpecimenService.cs:1288-1321`, dan `AC-59` terpenuhi `VAL-53`/`VAL-54` pada `:1323-1338` ([`BE-LAB-21.md`](../task/report/backend/BE-LAB-21.md)). `VAL-63` tetap terverifikasi source; pembuktian runtime kedua task menunggu migration `BE-LAB-21` diterapkan | **`SELESAI`** |
+| `FR-11.2` | `LAB-DEC-040` butir 4-5 | `02-backend-architecture.md` §11.7 | `LAB-API-v1` r7 `GET /other-usage` — **Tersedia** | `BE-LAB-25` ✅ | `FE-LAB-10` | **`AC-60` terpenuhi dan terbukti terhadap database.** `T-60d` dijalankan pada `QuilvianNewDevYoga`: tiga wadah `cairan kista` menjadi **satu baris berjumlah tiga** dengan waktu pemakaian terakhir yang benar, sementara `Cairan Kista` **tetap baris tersendiri** — ejaan tidak digabung diam-diam. `ToQueryString()` membuktikan pengelompokannya satu `GROUP BY` penuh di PostgreSQL, nol evaluasi sisi klien. **Nol tabel ringkasan**, nol migration; rekapnya berubah seketika. Nol baris uji tertinggal; [`BE-LAB-25.md`](../task/report/backend/BE-LAB-25.md) | **`SELESAI`** |
+| `FR-11.3` | `LAB-DEC-041` | `erd/data-dictionary.md` §12.2 | `LAB-API-v1` r7, `LAB-VAL-v1` r4 `VAL-56`, `VAL-57` | `BE-LAB-21` ✅ | `FE-LAB-11` | `AC-62` terpenuhi `VAL-56` pada `LabSpecimenService.cs:1343`; `VAL-57` pada `:1350-1366`. **`AC-63` terpenuhi dan terbukti:** penelusuran seluruh rujukan `VolumeAmount` menemukan **nol** pembandingan terhadap batas apa pun, sehingga `RULE-021` tegak (`T-63c`). Kolom `numeric(12,3)` berdiri beserta FK `RESTRICT` ke `MstMeasurement`. Migration **diterapkan ke `QuilvianNewDevYoga` 2026-09-15**, `T-M4` ditolak `23503` dan jalur `Down` terbukti. **`mL` dan `gram` sudah tersedia**, sehingga volume dapat dipakai sekarang; [`BE-LAB-21.md`](../task/report/backend/BE-LAB-21.md) | **`SELESAI`** |
+| `FR-11.4` | `LAB-DEC-041` | `erd/data-dictionary.md` §12.3 | — | `BE-LAB-21` ✅ | `FE-LAB-11` | `AC-64` **terpenuhi pada kode, dapat dipakai sebagian.** Tidak ada satu pun jalur kode yang membatasi satuan menurut jenis specimen, sehingga jaringan bebas memakai `gram`, `blok`, atau `slide`. **Datanya tersedia sebagian:** `gram` sudah ada dan ber-`IsForLaboratory`, sehingga jaringan dapat menyimpan volumenya sekarang; `blok` dan `slide` **belum ada**, dan hanya keduanya yang tertahan `DATA-MST-MEASUREMENT`. Lihat §4 dan [`BE-LAB-21.md`](../task/report/backend/BE-LAB-21.md) §7 | **`SELESAI SEBAGIAN`** — `gram` tersedia; `blok` dan `slide` menunggu Master Data |
+| `FR-11.5` | `LAB-DEC-042` | `02-backend-architecture.md` §11.4; `erd/data-dictionary.md` §12.2 | `LAB-API-v1` r7, `LAB-VAL-v1` r4 `VAL-58`, **`VAL-59` terbukti tidak dapat dilaksanakan** | `BE-LAB-22` ◐ | `FE-LAB-12` | **`AC-65` terbukti secara struktural** — nol ruas permintaan bernama `ReceivedAt` pada seluruh DTO Laboratorium, satu-satunya jalur tulisnya diisi server (`LabSpecimenService.cs:1583`). **`AC-17` terbukti dua kali** — nol rujukan `PhysicallyReceivedAt` pada ketiga berkas perhitungan cito, dan nol diff pada ketiganya. `AC-67` terpenuhi pada source: rekap beralih ke waktu nyata (`:919-931`), selisih tercatat pada jejak audit (`:1507-1508`). **`AC-66` terpenuhi separuh** — `VAL-58` tegak (`:1421-1425`), `VAL-59` tertahan kontrak; [`BE-LAB-22.md`](../task/report/backend/BE-LAB-22.md) §6 | **`SELESAI SEBAGIAN`** — `AC-66` menunggu keputusan pemilik modul |
+| ~~`FR-11.6`~~ | ~~`LAB-DEC-038`~~ → `LAB-DEC-050` | `02-backend-architecture.md` §11.5 | `LAB-API-v1` **r9** — ruas `Quantity` dicabut | ~~`BE-LAB-23`~~ ⛔ | `FE-LAB-11` | **Dicabut 2026-09-14.** `AC-52` terbukti tidak dapat dipenuhi: index unik `(SpecimenId, ProcedureId)` atas dasar `BR-20` dan `AC-35` menolak baris kedua. Pemilik modul mencabut `LAB-DEC-038`; kolom Jumlah tidak dibuat. `AC-52`..`AC-54` dan `VAL-60` ikut dicabut; [`BE-LAB-23.md`](../task/report/backend/BE-LAB-23.md) | **`DICABUT`** |
+| `FR-11.7` | `LAB-DEC-039`, `LAB-DEC-049` | `02-backend-architecture.md` §11.6 | `LAB-VAL-v1` r3 `VAL-18` — **tidak berubah** | `BE-LAB-24` ✅ | `FE-LAB-11` | **Keempat AC terverifikasi terhadap source 2026-09-14.** `AC-55a` menambah diizinkan sebelum kelayakan; `AC-55b`/`AC-57` ditolak sesudahnya lewat `VAL-18` pada `LabExaminationService.cs:123`; `AC-55c` pembatalan **tidak terkunci** — nol rujukan `SpecimenStatus` pada `CancelAsync`; `AC-56` nol route `process` bertingkat pemeriksaan. **Nol baris source diubah, dan memang tidak perlu**; [`BE-LAB-24.md`](../task/report/backend/BE-LAB-24.md) | **`SELESAI`** |
+| `FR-11.8` | `LAB-DEC-045` | `03-frontend-architecture.md` §10 | `LAB-API-v1` r7 | — | `FE-LAB-11`, `FE-LAB-12` | `AC-75`, `AC-76`, `AC-77` — belum dikerjakan | **`BELUM DIMULAI`** |
+| `FR-11.9` | `LAB-DEC-043` | `02-backend-architecture.md` §11.9 — **titik sambung, tanpa kontrak** | — | **tidak ada** | **tidak ada** | Terblokir `LAB-COORD-006` | **`OPEN DECISION`** |
+| `FR-11.10` | `LAB-DEC-044` `amended`, `LAB-DEC-046`, `LAB-DEC-047` | `02-backend-architecture.md` §11.9 — **titik sambung, tanpa kontrak** | — | **tidak ada** | **tidak ada** | Terblokir `LAB-COORD-007` | **`OPEN DECISION`** |
+
+**`FR-11.7` perlu dibaca dengan teliti.** Statusnya `SEBAGIAN SUDAH ADA`, bukan
+`BELUM DIMULAI`. `VAL-18` sudah menegakkan penguncian pada jalur tambah sejak sebelum
+`LAB-DEC-039` ditulis; keputusan itu menyamakan `AC-20` dengan kenyataan, bukan mengubah
+perilaku. Yang tersisa adalah memeriksa jalur hapus dan menulis pengujian penjaganya.
+
+**`FR-11.9` dan `FR-11.10` sengaja tidak punya kolom Task.** Keduanya berstatus `OPEN DECISION`
+dan tidak diberi ID task sama sekali — bukan diberi ID lalu ditandai tertahan. ID task yang
+sudah ada cenderung ikut masuk rencana kapasitas walaupun bertanda tertahan.
+
 ## 2. Rekapitulasi Cakupan
 
 | Yang diperiksa | Jumlah | Tercakup | Keterangan |
@@ -178,6 +204,24 @@ membandingkan pelaku sebelumnya. `BE-LAB-05` wajib menegakkannya di dalam servic
 
 Dengan keduanya ditutup, **seluruh acceptance criteria dalam scope kini punya baris uji.**
 
+### 4.1b Gap yang dibuka amandemen 2026-09-14
+
+| Gap | Isi | Kenapa tidak ditutup sekarang |
+|---|---|---|
+| Grafik urutan dependency gelombang lama | `backend-roadmap.md` dan `frontend-roadmap.md` tidak punya grafik urutan dependency untuk `MVP-0` sampai `MVP-3` — sembilan belas task backend dan sembilan task frontend | Kedua roadmap ditulis sebelum grafik itu menjadi kewajiban. Menurunkannya sekarang berarti menyimpulkan ulang dependency dari ingatan dokumen, dan itu berisiko keliru. Gelombang `MVP-5a` punya grafiknya sendiri |
+| Verifikasi volume `BE-LAB-21` | **Dipersempit drastis 2026-09-15 setelah database dibaca langsung.** Dugaan bahwa `MstMeasurement` kosong dari satuan laboratorium **terbantah**: 17 baris ber-`IsForLaboratory` yang aktif sudah ada, dan **`mL` serta `gram` termasuk di dalamnya**. Volume bersatuan mililiter dan gram **dapat dipakai sekarang**. Yang tersisa hanya **tiga** satuan — `µL`, `blok`, `slide` — sehingga `AC-62` tidak lagi tertahan dan `AC-64` tertahan sebagian | Pengisian data induk global milik `master-data`. Permintaannya **perlu ditulis ulang**: tiga baris bukan lima, dan tanpa mendikte kode karena `MstMeasurement` memakai seri tergenerasi `STN`. Lihat `DATA-MST-MEASUREMENT` pada bagian 5 |
+| Kelonggaran `IsForLaboratory` | **Baru 2026-09-15, temuan sampingan.** Penanda itu dibawa juga oleh `GALON`, `M3`, `KG`, `ONS`, `IU`, `mcg`, dan `Liter/Jam`, sehingga daftar pilihan satuan volume di layar penerimaan akan menawarkan **galon dan meter kubik** untuk sebuah tabung darah. Ada pula **dua baris gram bersimbol sama** (`GRAM` dan `GR`) | Kebersihan data induk global, milik `master-data`. **`VAL-57` sengaja tidak dipersempit** — penyaring tambahan berarti mengarang aturan yang tidak pernah diputuskan, dan justru akan menolak `blok` dan `slide` yang diminta `AC-64` |
+| ~~Pembuktian runtime `BE-LAB-21` dan `BE-LAB-22`~~ | ✅ **Ditutup 2026-09-15.** Kedua migration diterapkan ke `QuilvianNewDevYoga` dalam satu jendela; `T-M2` dan `T-M4` (`23503`) terbukti, jalur `Down` lalu `Up` dibuktikan dengan verifikasi ulang yang tetap lulus, nol baris uji tertinggal. Butir DoD *"migration jalan maju dan mundur"* terpenuhi pada kedua task | Tersisa `T-58c`, `T-59c`, `T-61a`, `T-65a`, `T-67a`, `T-67b` yang memerlukan **aplikasi dijalankan**, bukan database. Bukan gap desain maupun gap kode |
+| **`VAL-59` tidak dapat dilaksanakan** | **Baru 2026-09-15, gap desain yang sesungguhnya.** `VAL-59` membandingkan waktu penerimaan fisik terhadap waktu pengambilan, tetapi satu-satunya permintaan yang membawa waktu penerimaan fisik adalah `PlanLabSpecimenRequest` — dan di sana `CollectedAt` masih kosong karena diisi server pada tindakan pengambilan. Menegakkannya pada tindakan pengambilan justru menolak skenario contoh `BR-37` sendiri. `AC-66` terpenuhi separuh | **Pemilik modul.** Tiga pilihan pada [`BE-LAB-22.md`](../task/report/backend/BE-LAB-22.md) §6: tambah ruas waktu pengambilan lewat `r10`, persempit `VAL-59`, atau cabut seperti `VAL-60`. **Temuan ketiga dengan pola yang sama** setelah `BE-LAB-23` dan `BE-LAB-24` |
+
+**Gap pertama dicatat, bukan dikerjakan diam-diam.** Menuliskan grafik yang dependency-nya
+ditebak lebih berbahaya daripada tidak punya grafik sama sekali: yang pertama terlihat
+otoritatif dan akan dipakai orang untuk mengurutkan pekerjaan.
+
+**`AC-60` perlu satu catatan.** Ia dibuktikan `BE-LAB-25` dan `FE-LAB-10`, tetapi daftar
+pantaunya baru berisi setelah ada wadah berjenis `Lainnya` yang tercatat. Pengujiannya karena
+itu menyiapkan datanya sendiri, bukan menunggu pemakaian nyata.
+
 ### 4.2 Dua puluh satu acceptance criteria di luar scope — bukan gap
 
 `AC-01` .. `AC-09`, `AC-14` .. `AC-16`, `AC-20` .. `AC-23`, `AC-27`, `AC-29` .. `AC-32` juga
@@ -218,6 +262,35 @@ manajemen rumah sakit menetapkan pemegangnya.
 | `LAB-OPEN-012` | `BE-LAB-11`, `FR-02.4`, `FR-02.6` | Pemilik repository backend atau DBA. **Terjawab `0` untuk dev pemilik, diverifikasi ulang oleh mesin 2026-09-04**; angka produksi tetap belum diketahui. Sejak `BE-LAB-11` prasyarat ini ditegakkan migration itu sendiri: bila tabelnya masih berisi, migration berhenti sebelum satu kolom pun dihapus |
 | `LAB-SIGN-001` | Slice `S4`, `S4b`, `S4c`, `S5`, `S6` — **di luar scope roadmap ini** | Dokter PJ laboratorium atau Komite Medis |
 | `LAB-AMD-001` | Slice `S1b` — **di luar scope roadmap ini** | Pemilik blueprint `rawat-jalan` |
+| `LAB-COORD-006` | `FR-11.9` — tidak diberi task sama sekali | Pemilik `master-data`, lewat `LAB-REQ-005` butir 1-3 |
+| `LAB-COORD-007` | `FR-11.10` — tidak diberi task sama sekali | Pemilik `registration-management` dan `billing-kasir`, lewat `LAB-REQ-005` butir 4-7 |
+| `DATA-MST-MEASUREMENT` | **Dipersempit 2026-09-15 oleh pembacaan database.** Bukan lima baris, melainkan **tiga**: `µL`, `blok`, dan `slide`. `mL` dan `gram` **sudah ada** dan ber-`IsForLaboratory`, sehingga volume sudah dapat dipakai dan `AC-62` tidak lagi tertahan. Yang tersisa menahan separuh `AC-64` — patologi anatomi belum dapat menyatakan blok maupun slide | Pemilik `master-data`. **Belum diajukan.** Permintaannya perlu **ditulis ulang** lebih dulu: tiga baris bukan lima, tanpa mendikte kode (seri `STN` tergenerasi), dan blok maupun slide tidak boleh mengizinkan desimal |
+| ~~`LAB-CONFLICT-004`~~ | **Ditutup 2026-09-14 oleh `LAB-DEC-049`.** ~~`BE-LAB-24` dan `FR-11.7` bagian jalur batal. **`AC-55` dan `AC-57` bertentangan dengan rancangan warisan** yang mengizinkan pembatalan terkendali sesudah titik tagih | Yoga Aji Pratama. Bila pilihan B diambil, juga pemilik `billing-kasir` dan `rawat-jalan` karena menyentuh `RJ-BIL-GATE-DEC-003` |
+| ~~`LAB-CONFLICT-005`~~ | **Ditutup 2026-09-14 oleh `LAB-DEC-050`.** ~~`BE-LAB-23` dan `FR-11.6`. **`AC-52` bertentangan dengan index unik `(SpecimenId, ProcedureId)`** yang dipasang atas dasar `BR-20` dan `AC-35`. Contoh pada `BR-33` juga keliru: Glukosa Puasa dan Glukosa 2 Jam PP adalah dua `MstProcedure` berbeda | Yoga Aji Pratama. Sebaiknya dijawab bersamaan dengan `LAB-CONFLICT-004` |
+
+**Akar kedua pertentangan itu sama, dan pantas dicatat sebagai pola.** Keduanya adalah
+acceptance criteria yang ditulis amandemen 2026-09-14 dari `LAB-EVD-001`, dan keduanya lolos
+sampai tahap implementasi tanpa pernah diadu dengan model data yang dikunci `LAB-DEC-024` pada
+2026-09-01. Artifact lapangan menggambarkan satu layar sebagaimana dipahami penggunanya; ia
+tidak tahu wadah dan pemeriksaan sudah dipisahkan, dan bahwa pemisahan itu membawa aturan
+keunikan.
+
+Amandemen berikutnya yang berangkat dari artifact lapangan perlu satu langkah tambahan:
+**mengadu setiap acceptance criteria baru dengan ERD dan index yang sudah berjalan sebelum
+disetujui**, bukan sesudah implementasinya dicoba.
+| ~~`DB-EXEC-MVP5A`~~ | **Ditutup 2026-09-14.** Migration diterapkan ke `QuilvianNewDevYoga` atas wewenang pemilik modul; `T-M3`, `VAL-61`, dan jalur `Down` terbukti. Tersisa `T-M4` yang menunggu foreign key `BE-LAB-21`, dan `VAL-63` yang pembuktian runtime-nya menunggu aplikasi dijalankan | — |
+| ~~`DB-EXEC-BE-LAB-21`~~ | ✅ **Ditutup 2026-09-15, hari yang sama ia dibuka.** Kedua migration diterapkan ke `QuilvianNewDevYoga` atas wewenang pemilik modul yang menyebut targetnya secara tegas; `T-M2`, `T-M4`, dan jalur `Down` lalu `Up` terbukti. Uraian aslinya disimpan sebagai jejak: **Dibuka 2026-09-15, cakupannya diperluas hari yang sama.** Dua migration sudah dibuat tetapi **belum diterapkan ke database mana pun**: `20260915035317_AddLabSpecimenTypeAndVolumeColumns` dan `20260915042458_AddLabSpecimenPhysicallyReceivedAt`. Menahan `T-M2`, `T-M4`, `T-58c`, `T-59c`, `T-61a`, `T-65a`, `T-67a`, `T-67b`, dan butir DoD *"migration jalan maju dan mundur"* pada kedua task. **Inilah foreign key yang ditunggu `DB-EXEC-MVP5A` untuk `T-M4`** | Pemilik modul. Wewenang yang diberikan pada sesi 2026-09-15 adalah **pembuatan migration saja**. Keduanya dapat diterapkan dalam **satu jendela**. **Perlu dikoordinasikan dengan `FE-LAB-11`** — `specimenTypeId` kini wajib, sehingga layar wadah yang sudah berjalan akan menjawab `422` begitu migration diterapkan |
+| `LAB-CONFLICT-006` | **Dibuka 2026-09-15.** `VAL-59` dan separuh `AC-66` **tidak dapat dilaksanakan** pada kontrak `r7`: pembandingnya — waktu pengambilan yang dinyatakan petugas — tidak ada pada satu pun DTO permintaan, dan `CollectedAt` yang tersimpan adalah cap waktu server yang justru lebih akhir daripada waktu kedatangan pada jalur rujukan luar | **Yoga Aji Pratama**, pemilik modul. Tiga pilihan pada [`BE-LAB-22.md`](../task/report/backend/BE-LAB-22.md) §6. Bila pilihan A diambil, `LAB-API-v1` perlu naik ke `r10` |
+
+**`DATA-MST-MEASUREMENT` adalah penahan jenis ketiga**, berbeda dari dua di atasnya: ia tidak
+menahan penulisan kode dan tidak menahan approval. Yang tertahan hanya pembuktiannya.
+`BE-LAB-21` dapat dinyatakan selesai secara kode sambil verifikasi volumenya menunggu — dan
+statusnya wajib ditulis **menunggu data, bukan menunggu kode** pada laporannya.
+
+Pola ini sudah pernah terjadi di modul ini. `FE-LAB-05` selesai 2026-09-07 dan delapan skenario
+verifikasi manualnya masih menunggu sampai hari ini karena daftar instansi perujuk kosong.
+Mencatatnya sebagai penahan tersendiri sejak awal mencegah task terlihat "selesai" padahal
+belum pernah dijalankan sekalipun.
 
 ---
 
@@ -225,6 +298,11 @@ manajemen rumah sakit menetapkan pemegangnya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 18 | 2026-09-15 | **Penutupan gelombang `MVP-5a` sisi backend, ditulis `build-module-backend`.** `FR-11.2` menjadi **`SELESAI`**, dan dengan itu **keenam task backend gelombang ini selesai atau ditutup**. `AC-60` — acceptance criteria terakhir `LAB-DEC-040` yang masih terbuka — terpenuhi dan **terbukti terhadap database**, bukan ditelusuri pada source: tiga wadah `cairan kista` menjadi satu baris berjumlah tiga, sementara `Cairan Kista` tetap baris tersendiri sehingga keragaman ejaan yang menjadi alasan layar itu dibuat tetap terlihat. Pengelompokannya terbukti diterjemahkan menjadi satu `GROUP BY` penuh di PostgreSQL. **Nol tabel ringkasan dibuat**, sesuai butir DoD-nya. **`FE-LAB-10` tidak lagi tertahan** — kedua prasyaratnya selesai. **Yang tersisa pada gelombang ini bukan pekerjaan backend:** `LAB-CONFLICT-006` menunggu keputusan pemilik modul, `DATA-MST-MEASUREMENT` menunggu tiga baris satuan dari `master-data`, ketiga task frontend menunggu dikerjakan dengan `FE-LAB-11` berstatus mendesak karena layar wadah menjawab `422` sejak migration diterapkan, dan `LAB-REQ-005` menunggu jawaban tiga modul lain | `DRAFT` |
+| 17 | 2026-09-15 | **Bukti eksekusi database dan satu koreksi asumsi, ditulis `build-module-backend`.** Kedua migration `MVP-5a` yang tertunda diterapkan ke `QuilvianNewDevYoga`; `DB-EXEC-BE-LAB-21` **ditutup pada hari yang sama ia dibuka**. `FR-11.1` dan `FR-11.3` menjadi **`SELESAI`**, `FR-11.4` menjadi **`SELESAI SEBAGIAN`**. `T-M4` terbukti `23503` — menutup butir yang digantung `BE-LAB-20` sejak 2026-09-14 — dan jalur `Down` lalu `Up` dibuktikan dengan verifikasi ulang yang tetap lulus. **Koreksi yang paling penting pada revisi ini bukan kemajuan, melainkan asumsi yang terbantah.** `DATA-MST-MEASUREMENT` sejak revision 14 mengandaikan `MstMeasurement` kosong dari satuan laboratorium; pembacaan database menunjukkan **17 baris ber-`IsForLaboratory` yang aktif sudah ada**, termasuk `mL` dan `gram`. Penahan itu karena itu **dipersempit dari lima baris menjadi tiga** — `µL`, `blok`, `slide` — `AC-62` tidak lagi tertahan sama sekali, dan `AC-64` tertahan separuh. Permintaan ke `master-data` perlu **ditulis ulang**, bukan diteruskan apa adanya: kode `ML`/`UL`/`G`/`BLOK`/`SLIDE` yang diminta blueprint tidak akan pernah ada karena `MstMeasurement` memakai seri tergenerasi `STN`. **Satu gap baru dicatat:** penanda `IsForLaboratory` jauh lebih longgar daripada yang diandaikan rancangan — galon dan meter kubik ikut membawanya — dan `VAL-57` **sengaja tidak dipersempit** untuk menutupinya. Pelajarannya sejajar dengan `LAB-CONFLICT-004` sampai `006`: yang di sana adalah acceptance criteria yang tidak pernah diadu dengan model data, dan yang di sini adalah **penahan yang tidak pernah diadu dengan isi database** | `DRAFT` |
+| 16 | 2026-09-15 | **Pembaruan bukti pelaksanaan `BE-LAB-22`, ditulis `build-module-backend`.** `FR-11.5` berpindah menjadi **`SELESAI SEBAGIAN`**. Dua acceptance criteria terbukti **tanpa menunggu apa pun**, dan keduanya dibuktikan dengan pencarian yang tidak menemukan apa-apa: `AC-65` lewat nol ruas permintaan bernama `ReceivedAt` pada seluruh DTO Laboratorium, dan `AC-17` lewat nol rujukan `PhysicallyReceivedAt` pada ketiga berkas perhitungan cito beserta nol diff pada ketiganya. `AC-67` terpenuhi pada source. **Satu penahan baru dibuka sebagai `LAB-CONFLICT-006`:** `VAL-59` terbukti **tidak dapat dilaksanakan** pada kontrak `r7` — pembandingnya, waktu pengambilan yang dinyatakan petugas, tidak ada pada satu pun DTO permintaan, dan `CollectedAt` yang tersimpan adalah cap waktu server yang pada jalur rujukan luar justru lebih akhir daripada waktu kedatangan. Menegakkannya pada tindakan pengambilan akan menolak skenario contoh `BR-37` sendiri. **Ini temuan ketiga dengan pola yang sama** setelah `LAB-CONFLICT-004` dan `LAB-CONFLICT-005`, dan ketiganya menguatkan catatan pada bagian 5: acceptance criteria baru dari artifact lapangan wajib diadu dengan ERD dan alur yang sudah berjalan **sebelum** disetujui, bukan sesudah implementasinya dicoba. Gap eksekusi migration diperluas mencakup kedua migration yang kini menunggu pada tabel yang sama | `DRAFT` |
+| 15 | 2026-09-15 | **Pembaruan bukti pelaksanaan `BE-LAB-21`, ditulis `build-module-backend`.** Tiga baris FR berpindah status. `FR-11.1` menjadi **`SELESAI SECARA KODE`**: `AC-58` kini terpenuhi di kedua sisinya — data induknya oleh `BE-LAB-20` dan penolakan teks bebas saat mencatat wadah oleh `BE-LAB-21`, sehingga kata "sebagian" dicabut. `FR-11.3` dan `FR-11.4` berpindah dari `BELUM DIMULAI`. **`AC-63` adalah satu-satunya AC gelombang ini yang terbukti penuh tanpa menunggu apa pun**, karena bentuknya ketiadaan aturan: penelusuran seluruh rujukan `VolumeAmount` menemukan nol pembandingan terhadap batas. Dua gap dicatat pada 4.1b, dan keduanya **bukan gap desain maupun gap kode**: pembuktian runtime menunggu wewenang eksekusi migration, dan verifikasi volume menunggu `DATA-MST-MEASUREMENT`. Penahan data itu **diperkuat, bukan sekadar diulang** — sekarang kodenya berdiri, akibatnya menjadi nyata: selama kelima baris satuan kosong, setiap satuan yang dikirim ditolak `VAL-57` | `DRAFT` |
+| 14 | 2026-09-14 | **`EPIC-LAB-11` dipetakan** — sepuluh FR, delapan di antaranya bertask dan dua berstatus `OPEN DECISION` tanpa ID task sama sekali. `FR-11.7` bukan `BELUM DIMULAI` melainkan `SEBAGIAN SUDAH ADA`: `VAL-18` sudah menegakkan penguncian pada jalur tambah sejak sebelum `LAB-DEC-039` ditulis. Dua gap baru dicatat pada 4.1b: ketiadaan grafik urutan dependency pada gelombang lama, dan verifikasi volume yang tertahan lima baris `MstMeasurement`. Penahan `DATA-MST-MEASUREMENT` ditambahkan sebagai **penahan jenis ketiga** — menahan pembuktian, bukan kode maupun approval — mengikuti pola `FE-LAB-05` yang selesai 2026-09-07 tetapi verifikasinya menunggu sampai hari ini | `DRAFT` |
 | 1 | 2026-09-02 | Traceability pertama. 45 FR, 28 AC, 10 epic, dan 10 slice dipetakan ke 18 task backend dan 9 task frontend. Dua coverage gap dalam scope ditemukan dan dicatat | `DRAFT` |
 | 2 | 2026-09-02 | Kedua coverage gap ditutup: `AC-11` alur pemesanan lintas unit dan `AC-19` batas reagen ditambahkan ke matriks uji. Cakupan acceptance criteria naik menjadi 30 dari 30. Utang pembukuan riwayat revisi decisions ikut ditutup | `DRAFT` |
 | 3 | 2026-09-02 | `input_hashes` dihitung ulang sebagai sha256 penuh setelah konvensinya ditemukan dari pharmacy dan billing-kasir dan diverifikasi. `LAB-OPEN-020` ditetapkan menjadi wewenang Andry Zain. Seluruh utang pembukuan tertutup | `DRAFT` |

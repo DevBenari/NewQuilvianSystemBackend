@@ -3,8 +3,10 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | `3` |
-| Status | `approved` — dikunci 2026-09-02 |
+| Revision | `4` |
+| Status | `approved` — revision 1-3 dikunci 2026-09-02; **revision 4 disetujui pemilik modul 2026-09-14** |
+| Revision 4 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
+| Isi amandemen revision 4 | Satu resource baru `LabSpecimenType` dengan tiga action (`Read`, `Create`, `Update`; tidak ada `Delete`). Tiga kemampuan baru lain **tidak menambah hak akses** karena sudah dijaga `LabSpecimen : Plan`, `LabExamination : Create`, dan `LabSpecimen : Accept`. Dua kejadian audit baru ditambahkan, termasuk kewajiban mencatat selisih waktu penerimaan fisik terhadap `ReceivedAt` sistem |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
@@ -200,3 +202,65 @@ pemisahan wadah dan pemeriksaan.
 | `LabCriticalBound : Approve` | `LAB-DEC-023` | AC-33 |
 | `LabRejectionReason : SystemFlag` | `LAB-DEC-019` | AC-26 |
 | `LabWorklist : Read` | `LAB-DEC-013` | AC-10, AC-17 |
+
+---
+
+## 7. Amandemen 2026-09-14 — Penerimaan Sampling/Specimen
+
+Menurunkan `LAB-DEC-040`, `LAB-DEC-041`, dan `LAB-DEC-042` dari decision log revision 26.
+
+### 7.1 Kewenangan baru
+
+| Resource | Action | String `[AccessPermission]` | Diberikan kepada | Kegunaan |
+|---|---|---|---|---|
+| `LabSpecimenType` | `Read` | `[AccessPermission("LabSpecimenType", "Read")]` | Petugas lab, kepala instalasi | Melihat daftar pilihan jenis specimen dan daftar pantau `Lainnya` |
+| `LabSpecimenType` | `Create` | `[AccessPermission("LabSpecimenType", "Create")]` | Kepala instalasi | Menambah jenis specimen |
+| `LabSpecimenType` | `Update` | `[AccessPermission("LabSpecimenType", "Update")]` | Kepala instalasi | Mengubah nama, keterangan, urutan, dan status aktif |
+
+**Tidak ada `Delete`.** Jenis yang pernah dipakai dinonaktifkan, bukan dihapus — sama seperti
+`MstLabRejectionReason`.
+
+**Mengikuti `RJ-BIL-GATE-DEC-003`.** Hak membaca daftar jenis specimen **tidak** memberi hak
+mengelolanya. Petugas penerimaan memerlukan `Read` agar dapat memilih jenis saat mencatat wadah;
+ia tidak memerlukan `Create` maupun `Update`, dan tidak mendapatkannya dari jabatannya.
+
+### 7.2 Kewenangan yang **tidak** bertambah
+
+| Kemampuan baru | Hak akses yang dipakai | Kenapa tidak ada yang baru |
+|---|---|---|
+| Mencatat jenis, volume, dan waktu penerimaan fisik | `LabSpecimen : Plan` yang sudah ada | Ketiganya adalah ruas tambahan pada pencatatan wadah, bukan kemampuan tersendiri |
+| Mengisi Qty pada daftar pemeriksaan | `LabExamination : Create` yang sudah ada | Qty hanya memperbanyak baris yang sudah boleh dibuat pemegang hak itu |
+| Menandai pemeriksaan sudah diproses | `LabSpecimen : Accept` yang sudah ada | `AC-56` — tidak ada aksi tersendiri; penguncian melekat pada penetapan kelayakan |
+
+Menambah hak akses untuk sesuatu yang sudah dijaga hak akses lain hanya melahirkan dua pintu
+untuk satu ruangan, dan salah satunya pasti lupa dikunci.
+
+### 7.3 Kejadian yang wajib menghasilkan jejak audit
+
+| Kejadian | Yang wajib tercatat |
+|---|---|
+| Jenis specimen ditambahkan, diubah, atau dinonaktifkan | Pelaku, waktu, nilai sebelum dan sesudah |
+| Wadah dicatat dengan jenis `Lainnya` | Pelaku, waktu, dan **keterangan yang diketik** — inilah bahan daftar pantau `AC-60` |
+| Waktu penerimaan fisik diisi atau diubah | Pelaku, waktu, nilai sebelum dan sesudah, **beserta `ReceivedAt` sistem** agar selisihnya dapat ditelusuri (`AC-67`) |
+
+**Kenapa selisih kedua waktu itu perlu tercatat, bukan dihitung ulang nanti.** `BR-37` memakai
+selisih itu untuk membedakan keterlambatan yang wajar — sampel datang pukul 21.00 dan dicatat
+pukul 08.00 keesokan hari — dari keterlambatan yang perlu ditanyakan. Bila hanya nilai akhirnya
+yang tersimpan, pertanyaan "kapan ini sebenarnya diisi" tidak lagi dapat dijawab.
+
+### 7.4 Privasi
+
+Tidak satu pun kolom baru amandemen ini bersifat sensitif. Jenis specimen, volume, satuan, dan
+waktu penerimaan tidak memuat identitas pasien.
+
+Satu batas tetap berlaku: `SpecimenTypeOtherNote` adalah kolom teks yang diisi bebas petugas.
+Layar pengisiannya **tidak boleh** mengajak petugas menuliskan identitas pasien di sana —
+kolom itu untuk jenis bahan, bukan untuk catatan tentang orangnya.
+
+### 7.5 Traceability
+
+| Kewenangan | Decision ID | Acceptance criteria |
+|---|---|---|
+| `LabSpecimenType : Read` | `LAB-DEC-040` | AC-58, AC-60 |
+| `LabSpecimenType : Create`, `: Update` | `LAB-DEC-040` | AC-60 |
+| Jejak audit waktu penerimaan | `LAB-DEC-042` | AC-65, AC-67 |

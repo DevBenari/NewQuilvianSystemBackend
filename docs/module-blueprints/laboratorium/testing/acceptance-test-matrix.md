@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` |
+| Revision | `4` |
 | Status | `draft` |
-| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
-| Backend SHA | `c87d9c0` |
+| Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
+| Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
 | Frontend SHA | `688daff90` |
 | Contract version | `LAB-API-v1` r3, `LAB-STATE-v1` r2, `LAB-VAL-v1` r3, `LAB-INT-v1` r3, `LAB-PERM-v1` r3 — `approved` 2026-09-02 |
 
@@ -260,3 +260,155 @@ Billing menerima dua konteks tagihan.
 **Yang perlu disadari.** Batas nilai dan batas kritis pada `S3` sudah diuji **bentuk dan
 wewenangnya**, tetapi belum diuji **pemakaiannya untuk menilai hasil** — karena hasil belum ada.
 Pengujian penilaian kritis baru dapat ditulis setelah `S4` dan `S5` dibuka.
+
+---
+
+## 11. Amandemen 2026-09-14 — Penerimaan Sampling/Specimen
+
+Menutup `AC-52` sampai `AC-67` dan `AC-75` sampai `AC-77` dari decision log revision 26.
+`AC-68` sampai `AC-74` dan `AC-78` sampai `AC-82` **tidak diuji di sini** — keduanya menunggu
+`LAB-REQ-005`.
+
+### 11.1 ~~Qty memperbanyak baris~~ — **dicabut `LAB-DEC-050`**
+
+> **Seluruh pengujian bagian ini dicabut pada 2026-09-14.** `BE-LAB-23` membuktikan `AC-52`
+> tidak dapat dipenuhi: index unik `(SpecimenId, ProcedureId)` yang dipasang atas dasar `BR-20`
+> dan `AC-35` menolak baris kedua untuk jenis pemeriksaan yang sama pada satu wadah. Pemilik
+> modul mencabut `LAB-DEC-038`; kolom Jumlah tidak dibuat, dan ruas `Quantity` dicabut dari
+> kontrak lewat `LAB-API-v1` `r9`.
+
+| ID | Keadaan |
+|---|---|
+| ~~`T-52a`~~, ~~`T-53a`~~, ~~`T-54a`~~, ~~`T-60a`~~, ~~`T-60b`~~ | **Dicabut.** Menguji perilaku yang tidak jadi dibangun |
+
+**Satu pengujian dipertahankan, dan justru berubah makna:**
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-52b` | Menelusuri seluruh model Laboratorium: **tidak ada satu pun** properti bernama `Qty` atau `Quantity` | Unit, refleksi | BR-45 |
+
+Semula `T-52b` menjaga agar Qty tidak diam-diam menjadi kolom. Kini ia menjaga hal yang lebih
+kuat: **Qty tidak pernah ada sama sekali**, termasuk sebagai ruas permintaan. Penjaga yang sama,
+alasan yang berbeda.
+
+**Satu pengujian baru menggantikan yang dicabut:**
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-45a` | Menambahkan jenis pemeriksaan yang sama dua kali pada satu wadah ditolak — oleh service dengan pesan `VAL-07`, dan oleh index unik bila keduanya datang bersamaan | Integrasi | BR-45, BR-20, AC-35 |
+
+`T-45a` menjaga justru aturan yang membatalkan `LAB-DEC-038`. Tanpa penjaga itu, index uniknya
+dapat dilepas seseorang di kemudian hari tanpa menyadari bahwa satu keputusan bergantung
+padanya.
+
+### 11.2 Titik kunci — `LAB-DEC-039`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-55a` | Menambah baris **berhasil** selama kelayakan belum ditetapkan | Integrasi | AC-55 |
+| `T-55b` | Menambah baris pada wadah ber-status `Accepted` ditolak `409` `VAL-18` | Integrasi | AC-55 |
+| `T-55c` | Menambah baris pada wadah ber-status `Rejected` juga ditolak `409` | Integrasi | AC-55 |
+| ~~`T-55d`~~ | **Dicabut `LAB-DEC-049`.** Semula: menghapus baris pada wadah yang sudah diputuskan ditolak | — |
+| `T-55e` | **Membatalkan** pemeriksaan pada wadah ber-status `Accepted` **tetap berhasil**; hanya `VAL-19` yang menahannya bila pemeriksaan sudah gugur | Integrasi | AC-55, AC-57, `LAB-INH-006` |
+| `T-56a` | Menelusuri seluruh controller Laboratorium: tidak ada route maupun aksi bernama `process`, `diproses`, atau sejenisnya **pada tingkat pemeriksaan** | Unit | AC-56 |
+
+> **`T-55b` dan `T-55c` menguji perilaku yang sudah ada**, bukan perilaku baru.
+> `LabExaminationService.cs:123@466a7127` sudah menegakkannya sebagai `VAL-18`. Keduanya tetap
+> ditulis sebagai penjaga: `LAB-DEC-039` menaikkan perilaku itu menjadi keputusan, dan keputusan
+> tanpa pengujian dapat hilang pada refactor berikutnya tanpa ada yang menyadarinya.
+>
+> **`T-55d` dicabut, dan `T-55e` mengambil tempatnya dengan arah yang berlawanan.** Pemeriksaan
+> `BE-LAB-24` menemukan jalur batal sengaja tidak terkunci: `VAL-18` memang hanya berlaku pada
+> penambahan, `LAB-INH-006` mengatur jalur pengajuan pembatalan, dan `LAB-INH-010` menyerahkan
+> koreksi tagihan kepada Billing. `LAB-DEC-049` mempersempit `AC-55`/`AC-57` sesuai temuan itu.
+>
+> `T-55e` karena itu menguji bahwa pembatalan **tetap berhasil** — penjaga terhadap seseorang
+> yang kelak menambahkan `VAL-18` ke jalur batal dengan maksud baik, lalu menutup jalur sah
+> tanpa ada yang menyadarinya.
+
+### 11.3 Jenis specimen — `LAB-DEC-040`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-58a` | Menyimpan wadah tanpa jenis ditolak `422` `VAL-51` | Unit | AC-58 |
+| `T-58b` | Mengirim jenis sebagai teks di luar jalur `Lainnya` ditolak `422` `VAL-52` | Unit | AC-58 |
+| `T-58c` | Jenis yang sudah dinonaktifkan ditolak `422` `VAL-55` | Integrasi | AC-58 |
+| `T-59a` | Memilih `Lainnya` tanpa keterangan ditolak `422` `VAL-53` | Unit | AC-59 |
+| `T-59b` | Keterangan `Lainnya` yang dikirim bersama jenis selain `Lainnya` ditolak `422` `VAL-54` | Unit | AC-59 |
+| `T-59c` | **Penerimaan wadah berjenis `Lainnya` berhasil disimpan** — tidak ada `422` yang menahannya | Integrasi | AC-59 |
+| `T-60c` | Menambah jenis berkode sama ditolak `409` `VAL-61` | Integrasi | `VAL-61` |
+| `T-62a` | Menyetel `IsOtherBucket` pada baris kedua ditolak `422` `VAL-62` | Integrasi | `VAL-62` |
+| `T-63a` | Menonaktifkan satu-satunya jenis `Lainnya` yang aktif ditolak `422` `VAL-63` | Integrasi | `VAL-63` |
+| `T-60d` | `GET /other-usage` mengembalikan keterangan `Lainnya` beserta jumlah dan pemakaian terakhirnya | Integrasi | AC-60 |
+| `T-61a` | Wadah lama yang hanya punya `SpecimenDescription` tetap terbaca setelah migration, dan tidak dihapus | Integrasi | AC-61 |
+
+`T-59c` adalah pengujian yang paling mudah lupa ditulis: seluruh pengujian lain memastikan sistem
+**menolak**, sedangkan yang ini memastikan sistem **tidak menolak**. `LAB-DEC-040` memilih
+`Lainnya` justru agar sampel tidak tertahan; tanpa `T-59c`, satu validasi yang terlalu ketat
+dapat mengembalikan jalan buntu itu tanpa ada pengujian yang gagal.
+
+### 11.4 Volume — `LAB-DEC-041`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-62b` | Volume dikirim tanpa satuan ditolak `422` `VAL-56` | Unit | AC-62 |
+| `T-62c` | Satuan yang tidak ber-`IsForLaboratory` ditolak `422` `VAL-57` | Integrasi | AC-62 |
+| `T-63b` | Volume bernilai sangat kecil **diterima** tanpa peringatan maupun penolakan | Unit | AC-63 |
+| `T-63c` | Tidak ada satu pun jalur kode yang membandingkan volume terhadap batas minimum | Unit, refleksi | AC-63, `RULE-021` |
+| `T-64a` | Specimen berjenis Jaringan dapat menyimpan volume bersatuan `gram`, `blok`, atau `slide` | Integrasi | AC-64 |
+
+`T-63b` dan `T-63c` menjaga keputusan yang bentuknya **ketiadaan aturan**. Keputusan semacam ini
+paling mudah dilanggar tanpa sengaja: seorang implementer yang bermaksud baik menambahkan
+"peringatan volume terlalu sedikit", dan `RULE-021` hilang tanpa seorang pun memutuskannya.
+
+### 11.5 Waktu penerimaan — `LAB-DEC-042`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-65a` | Mengirim `ReceivedAt` dari luar **diabaikan**; nilai yang tersimpan tetap dari server | Integrasi | AC-65 |
+| `T-65b` | Menelusuri seluruh DTO Laboratorium: tidak ada ruas permintaan bernama `ReceivedAt` | Unit, refleksi | AC-65 |
+| `T-66a` | Waktu penerimaan fisik di masa depan ditolak `422` `VAL-58` | Unit | AC-66 |
+| `T-66b` | Waktu penerimaan fisik yang mendahului waktu pengambilan ditolak `422` `VAL-59` | Unit | AC-66 |
+| `T-67a` | Wadah yang diterima pukul 21.10 dan dicatat pukul 08.05 keesokan hari muncul pada laporan penerimaan **hari pertama**, bukan hari kedua | Integrasi | AC-67 |
+| `T-67b` | Selisih waktu nyata terhadap waktu sistem dapat dibaca kepala instalasi | Integrasi | AC-67 |
+| `T-17a` | Perhitungan keterlambatan cito **tidak berubah** — tetap dari sampel `Accepted` sampai hasil `Released` | Integrasi | AC-17, BR-37 butir 6 |
+
+`T-67a` adalah skenario yang menjadi alasan `LAB-DEC-042` dibuat. Bila pengujian ini lulus
+dengan menempatkan wadah itu pada hari kedua, keputusannya tidak terpenuhi walaupun kolomnya ada.
+
+`T-17a` adalah penjaga regresi: kolom waktu baru **tidak boleh** diam-diam menjadi dasar
+perhitungan keterlambatan cito.
+
+### 11.6 Menu dan layar — `LAB-DEC-045`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-75a` | Satu pasien rujukan luar dapat diselesaikan dari identifikasi sampai penetapan kelayakan tanpa berpindah menu | Frontend, ujung ke ujung | AC-75 |
+| `T-76a` | Seluruh pengujian `lab-orders` dan layar specimen per pesanan yang sudah ada **tetap lulus tanpa perubahan** | Frontend, regresi | AC-76 |
+| `T-77a` | Daftar pemeriksaan dan wadahnya terlihat bersamaan sebelum kelayakan ditetapkan | Frontend | AC-77, `LAB-FE-010` |
+| `T-77b` | Peringatan penguncian terlihat sebelum tombol kelayakan dapat ditekan | Frontend | `LAB-FE-010` |
+
+`T-76a` adalah syarat yang membuat `LAB-DEC-045` dapat dipercaya. Keputusan itu menjanjikan
+layar lama tidak berubah perilakunya; janji itu hanya bermakna bila pengujiannya dijalankan
+kembali dan lulus **tanpa disentuh**.
+
+### 11.7 Pengujian migration
+
+| ID | Skenario | Yang membuktikan |
+|---|---|---|
+| `T-M1` | Ketiga migration berjalan berurutan pada basis data yang sudah berisi `LabSpecimen` | Rencana migration 11.8 |
+| `T-M2` | Baris `LabSpecimen` lama tetap ada, tetap terbaca, dan kelima kolom barunya kosong | AC-61 |
+| `T-M3` | Unique parsial `IX_LabSpecimenType_SingleOtherBucket` menolak baris `Lainnya` aktif kedua **di tingkat basis data** | `VAL-62` |
+| `T-M4` | Menghapus jenis specimen yang sudah dipakai wadah ditolak `DeleteBehavior.Restrict` | 12.1 |
+
+`T-M3` menguji penjagaan yang **juga** ada di service. Keduanya sengaja: aturan yang hanya
+dijaga service akan bocor lewat seeder, skrip perbaikan data, atau migration berikutnya.
+
+### 11.8 Yang tidak diuji pada amandemen ini
+
+| Yang tidak diuji | Kenapa |
+|---|---|
+| `AC-68` sampai `AC-71` — pengusulan instansi perujuk | Terblokir `LAB-COORD-006`; endpointnya belum ada bentuknya |
+| `AC-72` sampai `AC-74` — metode pembayaran | Terblokir `LAB-COORD-007`; sumber datanya belum ditetapkan |
+| `AC-78` sampai `AC-82` — perlakuan `PaymentType` per jalur dan nilai enum baru | Menunggu jawaban pemilik `registration-management` |
+| Pengisian lima baris `MstMeasurement` | Pekerjaan Master Data. Laboratorium menguji bahwa satuan non-laboratorium ditolak (`T-62c`), bukan bahwa barisnya ada |

@@ -5,8 +5,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` |
+| Revision | `4` |
 | Status | `draft` |
+| Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
 | Backend SHA | `c87d9c0` |
@@ -372,7 +373,13 @@ Diurutkan menurut ketergantungan, bukan tanggal.
 | **`MVP-2`** | `EPIC-LAB-02` pemisahan wadah dan pemeriksaan, `EPIC-LAB-05` fakta per pemeriksaan | Satu perubahan struktural yang tidak dapat dipisah; fakta mengikuti satuan baru | **`LAB-OPEN-012` wajib dijawab lebih dulu** |
 | **`MVP-3`** | `EPIC-LAB-04` daftar kerja, `EPIC-LAB-10` monitoring per disiplin | Keduanya membutuhkan penanda cito dari `MVP-1` dan satuan pekerjaan dari `MVP-2` | `MVP-1`, `MVP-2` |
 | **`MVP-4`** | `EPIC-LAB-07` layar Laboratorium | Layar hanya dapat dibangun setelah perilaku backendnya pasti | `MVP-0` sampai `MVP-3` |
+| **`MVP-5a`** | `EPIC-LAB-11` bagian yang bebas hambatan — jenis specimen, volume, waktu penerimaan, Qty, titik kunci, dan menu Penerimaan Sampling/Specimen | Ditambahkan 2026-09-14. Berdiri sebagai gelombang tersendiri agar penahan `LAB-REQ-005` tidak menular ke gelombang yang sudah siap jalan | `MVP-2`, `MVP-4`, dan lima baris satuan `MstMeasurement` dari Master Data |
 | **`POST-MVP`** | Slice `S1b`, `S2b`, `S4`, `S4b`, `S4c`, `S5`, `S6`, `S8`, `S9`, `S16`, `S17`, `S18`, `S19` | Seluruhnya masih terblokir pihak di luar modul atau belum diputuskan | `LAB-SIGN-001`, `LAB-P0-001` sampai `LAB-P0-008`, `LAB-COORD-001`, `LAB-COORD-002`, `LAB-AMD-001` |
+
+> **`FR-11.9` dan `FR-11.10` sengaja tidak muncul pada tabel di atas.** Keduanya berstatus
+> `OPEN DECISION`, dan kontrak PRD melarang epic berstatus itu masuk gelombang pengiriman mana
+> pun. Keduanya dicatat pada bagian 16.6 sebagai **pekerjaan yang belum dijadwalkan**, dan baru
+> memperoleh gelombang setelah `LAB-REQ-005` dijawab.
 
 **Perubahan urutan sejak revision 1, dan alasannya.** `EPIC-LAB-09` katalog dan harga naik ke
 `MVP-0` karena ternyata **nol tabel baru** — seluruhnya penyajian data milik Master Data. Ia
@@ -422,3 +429,179 @@ dijawab.
 | 3 | 2026-09-09 | Penahan bagian 7 dikoreksi: `LAB-COORD-001` dan `LAB-COORD-002` sudah `closed` sejak 2026-09-01 dan tidak lagi menahan `S5` maupun `S6`. Penahan `S5` yang sebenarnya diperjelas menjadi `LAB-P0-004` dan `LAB-OPEN-014`. Dicatat bahwa `LAB-SIGN-001` kini satu-satunya penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6`, dan permintaan tanda tangannya diajukan sebagai `LAB-REQ-004` | `draft` |
 | 2 | 2026-09-01 | Batas MVP diperluas ke hulu: dimulai dari pasien tiba di laboratorium, bukan dari pesanan dibuat. Tiga epic ditambahkan — `EPIC-LAB-08` pendaftaran, `EPIC-LAB-09` katalog dan harga, `EPIC-LAB-10` monitoring per disiplin. Gelombang pengiriman disusun ulang menjadi lima; `EPIC-LAB-09` naik ke `MVP-0` karena nol tabel baru | `draft` |
 | 1 | 2026-09-01 | PRD ke MVP pertama. Tujuh epic dengan 30 functional requirement, 14 skenario UAT berpasangan berhasil dan gagal, 13 butir Definition of Done, dan empat gelombang pengiriman. Lima pertanyaan terbuka memblokir handoff ke perencanaan delivery | `draft` |
+
+---
+
+## 16. Amandemen 2026-09-14 — `EPIC-LAB-11` Penerimaan Sampling/Specimen
+
+Menurunkan `LAB-DEC-038` sampai `LAB-DEC-042` dan `LAB-DEC-045` dari decision log revision 26.
+Seluruh entity, status, hak akses, dan endpoint yang disebut di bawah **sudah tercatat** pada
+`02-backend-architecture.md` bagian 11, `erd/data-dictionary.md` bagian 12, dan
+`contracts/api-contract.md` amandemen `r7`.
+
+### 16.1 Batas kemampuan — titik mulai dan titik akhir
+
+| Batas | Isi |
+|---|---|
+| **Mulai** | Petugas laboratorium membuka menu `Penerimaan Sampling/Specimen` dan mengidentifikasi pasien rujukan luar atau pasien datang langsung |
+| **Selesai** | Kelayakan wadah ditetapkan `Layak` atau `Tidak Layak`, daftar pemeriksaan terkunci, dan fakta kelayakan tagih terbit sebanyak baris pemeriksaannya |
+
+**Di luar batas ini**, dan tetap milik alur yang sudah ada: pengisian hasil, validasi, dan
+rilis hasil. Penerimaan berakhir tepat ketika pekerjaan analis dimulai.
+
+### 16.2 `EPIC-LAB-11` — functional requirement
+
+| ID | Kebutuhan | Kemampuan asal | Disposisi |
+|---|---|---|---|
+| `FR-11.1` | Jenis specimen dipilih dari daftar terkendali milik Laboratorium, dengan `Lainnya` yang wajib berketerangan | — | `MISSING / NEW` |
+| `FR-11.2` | Pemakaian `Lainnya` terlihat pada daftar pantau kepala instalasi, yang dapat menaikkannya menjadi nilai tetap | — | `MISSING / NEW` |
+| `FR-11.3` | Volume specimen tersimpan sebagai angka beserta satuannya, tanpa batas minimum maupun maksimum | — | `MISSING / NEW` |
+| `FR-11.4` | Satuan volume dibaca dari `MstMeasurement` yang ber-`IsForLaboratory`, bukan dari daftar milik Laboratorium | `LAB-CAP-*` data induk Master Data | `EXISTING / REUSE` |
+| `FR-11.5` | Waktu penerimaan fisik diisi petugas, terpisah dari `ReceivedAt` yang diisi server dan tidak dapat diubah | — | `EXTEND` |
+| ~~`FR-11.6`~~ | ~~Qty pada layar memperbanyak baris pemeriksaan~~ | — | **`DICABUT`** `LAB-DEC-050` 2026-09-14 — terbukti tidak dapat dipenuhi; index unik `(SpecimenId, ProcedureId)` menolak baris kedua |
+| `FR-11.7` | Daftar pemeriksaan terkunci saat kelayakan wadah ditetapkan — **hanya untuk penambahan**; pembatalan tetap terbuka (`LAB-DEC-049`) | `VAL-18` pada `LabExaminationService` | **`EXISTING / REUSE`** |
+| `FR-11.8` | Menu `Penerimaan Sampling/Specimen` berdiri sendiri; layar `lab-orders` yang ada tidak berubah perilakunya | Layar lab pada `9cd4cd03f` | `EXTEND` |
+| `FR-11.9` | Petugas dapat mengusulkan instansi perujuk baru tanpa menahan penerimaan pasien | — | **`OPEN DECISION`** |
+| `FR-11.10` | Metode pembayaran ditampilkan baca-saja untuk jalur rujukan | — | **`OPEN DECISION`** |
+
+**`FR-11.7` perlu dibaca dengan teliti.** Ia berdisposisi `EXISTING / REUSE`, bukan
+`MISSING / NEW`. `LabExaminationService.cs:123@466a7127` sudah menegakkannya sebagai `VAL-18`.
+Pekerjaannya bukan membangun, melainkan **memeriksa bahwa jalur hapus memakai penjagaan yang
+sama** dan menuliskan pengujian penjaganya (`T-55d`).
+
+**`FR-11.9` dan `FR-11.10` berstatus `OPEN DECISION`**, sehingga menurut kontrak PRD keduanya
+**tidak masuk gelombang pengiriman mana pun** sampai `LAB-REQ-005` dijawab.
+
+### 16.3 Kemampuan yang ditunda beserta penggantinya
+
+| Yang ditunda | Alasan | Yang dipakai selama menunggu |
+|---|---|---|
+| Pengusulan instansi perujuk (`FR-11.9`) | `LAB-COORD-006` — data induk perujuk tidak punya endpoint tulis sama sekali | `VAL-43` tetap berlaku: pendaftaran ditolak `422`, petugas menghubungi bagian data induk. **Jalan buntunya belum hilang** |
+| Metode pembayaran (`FR-11.10`) | `LAB-COORD-007` — `Piutang Mitra` belum punya nilai pada `EncounterPaymentType` | Wilayah metode pembayaran pada layar menampilkan *belum dapat ditentukan* |
+| Promo terhadap grand total | Di luar scope `LAB-DEC-037`; pemiliknya belum ditetapkan | Tidak ada. Grand total dihitung tanpa promo |
+| Penerimaan uang tunai di laboratorium | Ditolak `LAB-DEC-037`; melanggar `RJ-BIL-GATE-DEC-003` | Pasien membayar lewat kasir seperti biasa |
+| Batas volume minimal per jenis pemeriksaan | `LAB-DEC-001` menaruhnya di Rilis 2 sebagai bagian katalog mandiri | Petugas menilai kecukupan sampel lewat penetapan kelayakan |
+
+Tabel ini ditulis apa adanya: dua baris pertama berarti **menu ini belum menyelesaikan masalah
+yang melahirkannya**. Sampel dari klinik yang belum terdaftar masih tertahan di meja penerimaan.
+
+### 16.4 Skenario UAT
+
+**Jalur berhasil — `UAT-11.1` penerimaan rujukan luar:**
+
+1. Petugas membuka menu Penerimaan Sampling/Specimen, mencari pasien dengan NIK, dan menemukannya.
+2. Ia mengisi data pemeriksaan, memilih instansi perujuk **yang sudah ada di daftar**.
+3. Ia mencatat wadah: jenis `Blood`, volume `3` `mL`, waktu penerimaan fisik kemarin pukul 21.10.
+4. Ia memilih Hemoglobin, Leukosit, dan Trombosit.
+5. Ia melihat tabungnya hanya cukup untuk dua, lalu **menghapus Trombosit** — berhasil.
+6. Ia menetapkan `Layak`. Dua fakta kelayakan tagih terbit.
+7. Percobaan menambah Trombosit sesudahnya **ditolak** dengan pesan `VAL-18`.
+
+**Jalur berhasil — `UAT-11.2` dua pemeriksaan sejenis dipilih sebagai dua butir katalog:**
+
+> **Diganti `LAB-DEC-050` pada 2026-09-14.** Skenario semula memakai Qty `2` pada Glukosa.
+> Skenario itu terbukti mustahil: index unik `(SpecimenId, ProcedureId)` menolak baris kedua.
+
+1. Petugas memilih **Glukosa Puasa** dan **Glukosa 2 Jam PP** — dua butir katalog yang berbeda.
+2. Setelah tersimpan, layar detail menampilkan **dua baris**, masing-masing dengan nama,
+   tarif, dan batas nilainya sendiri.
+3. Analis mengisi baris pertama `96` dan baris kedua `143`. **Keduanya tersimpan utuh.**
+4. Petugas mencoba menambahkan Glukosa Puasa untuk kedua kalinya pada wadah yang sama.
+   **Ditolak** dengan pesan `VAL-07`.
+
+Langkah 4 adalah inti skenario ini: ia membuktikan aturan yang membatalkan `LAB-DEC-038` memang
+ditegakkan, bukan sekadar tertulis.
+
+**Jalur gagal — `UAT-11.3` jenis specimen belum terdaftar:**
+
+1. Sampel cairan kista datang pukul 21.00. Jenisnya belum ada di daftar.
+2. Petugas memilih `Lainnya` dan menuliskan "cairan kista" pada keterangan.
+3. **Penerimaan berhasil disimpan.** Tidak ada penolakan.
+4. Keesokan hari kepala instalasi membuka daftar pantau, melihat "cairan kista" dipakai tiga
+   kali dalam sebulan, lalu menaikkannya menjadi jenis tetap.
+
+**Jalur gagal — `UAT-11.4` volume tanpa satuan:**
+
+1. Petugas mengetik `5` pada volume lalu menekan simpan tanpa memilih satuan.
+2. Ditolak dengan pesan "Pilih satuan volumenya." (`VAL-56`).
+
+**Jalur gagal — `UAT-11.5` instansi perujuk belum terdaftar:**
+
+1. Sampel dari Klinik Sehat Sentosa datang. Kliniknya belum ada di daftar.
+2. Pendaftaran **ditolak** `422` `VAL-43`.
+3. **Ini jalur gagal yang belum punya jalan keluar** — lihat 16.3. Petugas menghubungi bagian
+   data induk, dan sampelnya menunggu.
+
+`UAT-11.5` sengaja dicantumkan walaupun hasilnya kegagalan. Menyembunyikannya akan membuat
+pembaca menyangka menu ini sudah utuh.
+
+### 16.5 Definition of Done — `EPIC-LAB-11`
+
+| Butir | Bukti yang menjawabnya |
+|---|---|
+| Tabel `LabSpecimenType` berdiri beserta unique parsial `Lainnya` | `T-M3` lulus |
+| Lima kolom `LabSpecimen` berdiri dan baris lama tetap terbaca | `T-M1`, `T-M2` lulus |
+| Tidak ada satu pun properti `Qty` atau `Quantity` pada model Laboratorium | `T-52b` lulus |
+| Menambah jenis pemeriksaan yang sama dua kali pada satu wadah **ditolak** | `T-45a` lulus |
+| Fakta kelayakan tagih terbit per baris pemeriksaan | `AC-37` yang sudah ada; tidak tersentuh amandemen |
+| Jalur **batal** tetap terbuka sesudah kelayakan, dan layar mengatakannya | `T-55e` lulus |
+| Specimen berjenis `Lainnya` **tidak pernah** tertahan | `T-59c` lulus |
+| Tidak ada jalur kode yang membandingkan volume terhadap batas minimum | `T-63c` lulus |
+| `ReceivedAt` tidak dapat diubah endpoint mana pun | `T-65a`, `T-65b` lulus |
+| Wadah malam hari muncul pada laporan hari kedatangannya | `T-67a` lulus |
+| Perhitungan keterlambatan cito tidak berubah | `T-17a` lulus |
+| Seluruh pengujian layar lab yang sudah ada tetap lulus **tanpa disentuh** | `T-76a` lulus |
+| Lima baris satuan `IsForLaboratory` terisi | Dikonfirmasi pemilik `master-data` — **bukan** dikerjakan Laboratorium |
+
+Butir terakhir sengaja tidak dapat dijawab Laboratorium sendiri. Tanpa kelima baris itu, kolom
+volume tidak dapat dipakai walaupun seluruh kode sudah benar.
+
+### 16.6 Urutan pengiriman — gelombang `MVP-5`
+
+Ditetapkan pemilik modul 2026-09-14. Berdiri **sebagai gelombang tersendiri**, bukan disisipkan
+ke `MVP-1` maupun `MVP-2`.
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-5a`** | `FR-11.1` sampai `FR-11.5`, `FR-11.7`, dan `FR-11.8` — jenis specimen, volume, waktu penerimaan, titik kunci, dan menu. **`FR-11.6` dicabut** `LAB-DEC-050` | `MVP-2` untuk satuan pemeriksaan; `MVP-4` untuk pola layar. Lima baris `MstMeasurement` dari Master Data |
+| **belum dijadwalkan** | `FR-11.9` dan `FR-11.10` | **`LAB-REQ-005` dijawab.** Keduanya berstatus `OPEN DECISION`, sehingga **tidak diberi gelombang** sesuai kontrak PRD |
+
+**Kenapa `FR-11.9` dan `FR-11.10` tidak diberi nama gelombang sama sekali.** Memberi nomor
+gelombang kepada pekerjaan yang belum diputuskan membuatnya terlihat terjadwal. Ia akan masuk
+rencana kapasitas, dihitung dalam perkiraan, dan pada akhirnya dikerjakan seseorang yang
+menyangka keputusannya sudah ada. Selama disposisinya `OPEN DECISION`, keduanya tetap tanpa
+gelombang.
+
+**Kenapa gelombang tersendiri, bukan disisipkan.** Penahan `LAB-REQ-005` adalah penahan milik
+modul lain. Bila `FR-11.9` dan `FR-11.10` disisipkan ke `MVP-1` atau `MVP-2`, kedua gelombang
+itu ikut tertahan menunggu jawaban yang tidak dipegang Laboratorium — termasuk pekerjaan di
+dalamnya yang sebenarnya sudah siap jalan. Memisahkannya menjaga penahan tetap berada pada
+bagian yang memang tertahan.
+
+### 16.6b Gerbang menuju `plan-module-delivery`
+
+Kontrak PRD menyatakan dokumen dengan pertanyaan memblokir yang belum terjawab **tidak boleh
+diteruskan** ke perencanaan delivery. Keadaan `EPIC-LAB-11` pada 2026-09-14:
+
+| Bagian | Pertanyaan memblokir | Boleh direncanakan |
+|---|---|---|
+| `FR-11.1`..`FR-11.5`, `FR-11.7`, `FR-11.8` (`MVP-5a`) | Tidak ada yang menghalangi perancangan task. `FR-11.6` dicabut `LAB-DEC-050` | **Ya** |
+| `FR-11.9`, `FR-11.10` | `LAB-COORD-006`, `LAB-COORD-007` | **Tidak** |
+| Kolom volume di dalam `MVP-5a` | Lima baris `MstMeasurement` belum diisi | Task boleh disusun; **pengujiannya belum dapat dijalankan** sampai barisnya ada |
+
+Perencanaan `MVP-5a` karena itu boleh berjalan, dengan satu batas yang harus tertulis pada
+roadmapnya: task kolom volume berstatus *menunggu data, bukan menunggu kode* — pola yang sama
+dengan `FE-LAB-05` yang layarnya selesai 2026-09-07 tetapi verifikasi manualnya tertahan
+karena daftar perujuk kosong.
+
+### 16.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `LAB-COORD-006` | Pengelolaan data induk instansi perujuk beserta status menunggu persetujuan | **`MVP-5b`** |
+| `LAB-COORD-007` | Nilai `EncounterPaymentType` baru untuk piutang mitra | **`MVP-5b`** |
+| `LAB-OPEN-024` | Umur usulan, akibat penolakan, dan wewenang penggabungan | `MVP-5b` tahap implementasi |
+| Pengisian `MstMeasurement` | Lima baris satuan ber-`IsForLaboratory` | **`MVP-5a`** — memblokir kolom volume, bukan seluruh gelombang |
+
+Tiga yang pertama diajukan sebagai `LAB-REQ-005` pada 2026-09-14. Yang keempat **belum
+diajukan** dan perlu dikoordinasikan terpisah dengan pemilik `master-data`.

@@ -3,8 +3,12 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `6` |
-| Status | `approved` — `r3` dikunci 2026-09-02; **amandemen `r4` dan `r5` disetujui pemilik modul 2026-09-03; amandemen `r6` disetujui 2026-09-08** |
+| Revision | `9` |
+| Status | `approved` — `r3`..`r6` dikunci sebelumnya; **amandemen `r7`, `r8`, dan `r9` disetujui pemilik modul 2026-09-14** |
+| `r7` / `r8` / `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
+| Isi amandemen `r9` | **Ruas `Quantity` pada `POST /lab-examinations` dicabut sebelum sempat dibangun.** `BE-LAB-23` menemukan index unik `(SpecimenId, ProcedureId)` — dipasang atas dasar `BR-20` dan `AC-35` pada 2026-09-01 — membuat `Quantity` > 1 untuk jenis pemeriksaan yang sama pada wadah yang sama mustahil. Akibatnya `POST /lab-examinations` **tidak berubah sama sekali** dari `r6` ke `r9`. Ditutup `LAB-DEC-050` |
+| Isi amandemen `r8` | Dua endpoint baca ditambahkan pada grup `Lab Specimen Type`: `GET /filters/metadata` dan `GET /summary`. **Aditif** — tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Keduanya adalah permukaan baseline yang diwajibkan `rules/backend/master-data-endpoint-standard.md` dan sudah menjadi pola nyata pada grup master data Laboratorium lain; ketiadaannya pada `r7` adalah kelalaian penulisan kontrak, bukan keputusan. Ditemukan dan ditutup saat `BE-LAB-20` dikerjakan. Jumlah endpoint grup naik dari **7 menjadi 9** |
+| Isi amandemen `r7` | Satu grup baru `Lab Specimen Type` berisi tujuh endpoint, ditambah perluasan aditif pada `POST /lab-specimens/by-order/{labOrderId}` (lima ruas jenis, volume, dan waktu penerimaan fisik) dan `POST /lab-examinations` (ruas `Quantity` yang memperbanyak baris). **Tidak satu pun endpoint, ruas, atau nilai enum `r3`..`r6` berubah, berganti nama, atau hilang.** Endpoint pengusulan instansi perujuk dan pembacaan metode pembayaran **sengaja tidak dicantumkan** karena milik modul lain dan masih menunggu `LAB-REQ-005`. Menurunkan `LAB-DEC-038`, `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042` |
 | Isi amandemen `r4` | Sepuluh endpoint baca ditambahkan: `GET /filters/metadata` dan `GET /summary` pada kelima grup Laboratorium yang sudah punya controller. Seluruhnya **aditif** — tidak satu pun endpoint, ruas, atau nilai enum `r3` yang berubah, berganti nama, atau hilang. Dikerjakan `BE-LAB-17` |
 | Isi amandemen `r5` | `GET /lab-orders` memperoleh penyaring, pengurutan, dan pagination di sisi server lewat `LabOrderPagedQuery`. **Ini satu-satunya perubahan breaking**: bentuk responsnya berubah dari `ApiResponse<List<LabOrderListResponse>>` menjadi `ApiResponse<PagedResult<LabOrderListResponse>>`. Dampak konsumen dinilai — lihat catatan di bawah. Dikerjakan `BE-LAB-18` |
 | Isi amandemen `r6` | Satu endpoint baca ditambahkan: `GET /lab-rejection-reasons/{id}`. **Aditif** — tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Grup ini semula satu-satunya grup Laboratorium tanpa jalur detail, sehingga formulir ubah `FE-LAB-03` memuat barisnya dari halaman daftar yang sedang terbuka dan diam-diam gagal pada tautan langsung maupun muat ulang. Jumlah endpoint grup naik dari **7 menjadi 8**, dan penjaga `ControllerPengelolaan_MemakaiBaseRouteYangDikunciKontrak` disesuaikan bersamaan |
@@ -323,3 +327,99 @@ yang belum pernah diterima di laboratorium.
 | Grup Lab Critical Bound Approval | `LAB-DEC-023` | AC-33, AC-34 |
 | Grup Lab Worklist | `LAB-DEC-013` | AC-10, AC-17 |
 | Grup Lab Rejection Reason | `LAB-DEC-019` | AC-26 |
+| Grup Lab Specimen Type | `LAB-DEC-040` | AC-58, AC-59, AC-60 |
+| `POST /lab-specimens/by-order/{labOrderId}` yang berubah — `r7` | `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042` | AC-58, AC-59, AC-62, AC-63, AC-64, AC-66 |
+| ~~`POST /lab-examinations` yang berubah — `r7`~~ | ~~`LAB-DEC-038`~~ | **Dicabut `r9` 2026-09-14** bersama `AC-52`..`AC-54`, oleh `LAB-DEC-050` |
+
+---
+
+## 6. Amandemen `r7` — 2026-09-14, Penerimaan Sampling/Specimen
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-14. Label
+`Rencana (belum tersedia)` pada tabel di bawah berarti **endpointnya belum ada di kode**, bukan
+kontraknya belum disetujui.
+
+**Aditif, dengan satu perluasan yang kompatibel ke belakang.** Tidak satu pun endpoint, ruas,
+atau nilai enum `r3`..`r6` yang berubah, berganti nama, atau hilang.
+
+> **Batas amandemen ini.** Endpoint untuk pengusulan instansi perujuk dan pembacaan metode
+> pembayaran **tidak dicantumkan**, karena keduanya milik modul lain dan masih menunggu
+> `LAB-REQ-005`. Menuliskan bentuknya sekarang akan dibaca implementer sebagai kesepakatan yang
+> belum pernah terjadi.
+
+### Health Services / Laboratory Management / Lab Specimen Type
+
+Base URL: `api/v1/health-services/laboratory-management/lab-specimen-types`
+Contract version: `LAB-API-v1` — amandemen `r7` dan `r8`, status `approved` 2026-09-14
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan urutan, ukuran halaman, dan penanda tidak-dapat-dihapus serta penanda `Lainnya` yang tidak dapat disetel | `LabSpecimenType : Read` | — | `ApiResponse<LabSpecimenTypeFilterMetadataResponse>` | **Tersedia** — `r8`, `BE-LAB-20` |
+| `GET` | `/summary` | Rekap total, aktif, nonaktif, dan jumlah jalan keluar `Lainnya` yang aktif | `LabSpecimenType : Read` | — | `ApiResponse<LabSpecimenTypeSummaryResponse>` | **Tersedia** — `r8`, `BE-LAB-20` |
+| `GET` | `/options` | Daftar pilihan jenis specimen untuk layar penerimaan, hanya yang aktif | `LabSpecimenType : Read` | `LabSpecimenTypeOptionQuery` | `ApiResponse<PagedResult<LabSpecimenTypeOptionResponse>>` | **Tersedia** — `BE-LAB-20` |
+| `GET` | `/` | Daftar jenis specimen untuk pengelolaan kepala instalasi | `LabSpecimenType : Read` | `LabSpecimenTypePagedQuery` | `ApiResponse<PagedResult<LabSpecimenTypeResponse>>` | **Tersedia** — `BE-LAB-20` |
+| `GET` | `/{id:guid}` | Detail satu jenis specimen | `LabSpecimenType : Read` | — | `ApiResponse<LabSpecimenTypeResponse>` | **Tersedia** — `BE-LAB-20` |
+| `GET` | `/other-usage` | **Daftar pantau** pemakaian `Lainnya`: keterangan yang pernah dipakai beserta jumlah dan pemakaian terakhirnya | `LabSpecimenType : Read` | `startDate`, `endDate` | `ApiResponse<PagedResult<LabSpecimenOtherUsageResponse>>` | **Tersedia** — `BE-LAB-25`, 2026-09-15 |
+| `POST` | `/` | Menambah jenis specimen | `LabSpecimenType : Create` | `CreateLabSpecimenTypeRequest` | `ApiResponse<LabSpecimenTypeResponse>` | **Tersedia** — `BE-LAB-20` |
+| `PUT` | `/{id:guid}` | Mengubah nama, keterangan, dan urutan | `LabSpecimenType : Update` | `UpdateLabSpecimenTypeRequest` | `ApiResponse<LabSpecimenTypeResponse>` | **Tersedia** — `BE-LAB-20` |
+| `PUT` | `/{id:guid}/activation` | Mengaktifkan atau menonaktifkan | `LabSpecimenType : Update` | `SetLabSpecimenTypeActivationRequest` | `ApiResponse<LabSpecimenTypeResponse>` | **Tersedia** — `BE-LAB-20` |
+
+**`GET /other-usage` adalah jalur yang menutup `AC-60`.** Ia tidak membaca tabel ringkasan;
+rekapnya diturunkan dengan mengelompokkan wadah yang jenisnya ber-`IsOtherBucket` menurut
+keterangannya. Dari layar ini kepala instalasi melihat bahwa "cairan kista", "Cairan Kista",
+dan "c. kista" sebenarnya satu hal, lalu menaikkannya menjadi nilai tetap lewat `POST /`.
+
+**Tidak ada `DELETE`.** Jenis yang sudah pernah dipakai wadah dinonaktifkan, bukan dihapus —
+sama seperti pola `MstLabRejectionReason` dan `VAL-38`.
+
+### Health Services / Laboratory Management / Lab Specimen — perluasan `r7`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-specimens`
+
+| Method | Path | Yang berubah pada `r7` | Sifat |
+|---|---|---|---|
+| `POST` | `/by-order/{labOrderId}` | `PlanLabSpecimenRequest` bertambah `SpecimenTypeId`, `SpecimenTypeOtherNote`, `VolumeAmount`, `VolumeUnitId`, dan `PhysicallyReceivedAt` | **Aditif.** Wajib untuk wadah baru; permintaan tanpa ruas ini ditolak `422` |
+| `GET` | `/{id}` dan seluruh jalur baca | `LabSpecimenResponse` bertambah kelima ruas di atas beserta nama jenis dan simbol satuannya | **Aditif.** Konsumen lama mengabaikan ruas yang tidak dikenalnya |
+
+**`ReceivedAt` tidak menjadi ruas permintaan pada endpoint mana pun.** Bila dikirim, diabaikan
+tanpa pesan kesalahan (`AC-65`). Yang diisi petugas adalah `PhysicallyReceivedAt`.
+
+### Health Services / Laboratory Management / Lab Examination — perluasan `r7`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+
+| Method | Path | Yang berubah pada `r7` | Keadaan pada `r9` |
+|---|---|---|---|
+| `POST` | `/` | ~~`CreateLabExaminationRequest` bertambah `Quantity` (`int`, bawaan `1`)~~ | **Dicabut `r9`, 2026-09-14.** Ruas `Quantity` **tidak jadi dibuat** |
+
+> **Kenapa dicabut sebelum sempat dibangun.** `BE-LAB-23` menemukan `LabExamination` memiliki
+> index unik di tingkat database atas `(SpecimenId, ProcedureId)`, dipasang atas dasar `BR-20`
+> dan `AC-35` pada 2026-09-01. `Quantity` bernilai lebih dari satu untuk jenis pemeriksaan yang
+> sama pada wadah yang sama karena itu **mustahil** — baris kedua ditolak service, dan bila
+> lolos, ditolak database.
+>
+> Petugas yang memerlukan dua pemeriksaan memilih **dua butir katalog yang berbeda**; pada
+> katalog yang tergolong benar, Glukosa Puasa dan Glukosa 2 Jam PP memang dua `MstProcedure`
+> terpisah. Ditutup `LAB-DEC-050`.
+>
+> **`POST /lab-examinations` karena itu tidak berubah sama sekali** dari `r6` ke `r9`.
+
+### Hak akses baru
+
+| Permission | Dipakai |
+|---|---|
+| `[AccessPermission("LabSpecimenType", "Read")]` | Keempat endpoint baca |
+| `[AccessPermission("LabSpecimenType", "Create")]` | `POST /` |
+| `[AccessPermission("LabSpecimenType", "Update")]` | `PUT /{id}` dan `PUT /{id}/activation` |
+
+Mengikuti `RJ-BIL-GATE-DEC-003`: hak membaca daftar jenis specimen tidak memberi hak
+mengelolanya, dan jabatan organisasi tidak memberi kewenangan apa pun dengan sendirinya.
+
+### Dampak kompatibilitas `r7`
+
+| Konsumen | Dampak |
+|---|---|
+| `FE-LAB-06` formulir wadah | **Perlu penyesuaian** — tiga ruas baru wajib diisi |
+| `FE-LAB-06` daftar dan detail wadah | Tidak ada. Ruas baru bersifat tambahan |
+| Konsumen `POST /lab-examinations` yang sudah ada | **Tidak ada.** `Quantity` bernilai bawaan `1` |
+| Penjaga base route yang dikunci kontrak | Perlu satu baris tambahan untuk grup `lab-specimen-types` |
