@@ -9,9 +9,10 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 |---|---|
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`approved`** — revision `6` beserta kontrak `0.8.0` disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105`; revision `5` sebelumnya `approved`. Revision `4` disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-074`; revision `3` sebelumnya lewat `RWI-DEC-067` |
-| `upstream_realignment` | **Tidak basi, tetapi terdampak sebagian — dicatat 2026-09-14.** `PRD-RWI-V2-001` v`2.0` menempatkan sub-modul ini sebagai **jangkar konteks** dan tidak mengubah desainnya. Namun menu keperawatan dan tab dokter pada PRD itu menampilkan kemampuan **milik sub-modul ini**: transfer `CAP-017`, pesan kamar operasi `CAP-018`, tagihan `CAP-019`, dan resume pulang `CAP-026`. Apakah itu sekadar permukaan tampilan atau perpindahan pemilik diputuskan pada `RLN-PH-02`, temuan `RLN-03` dan `RLN-06`. Enam task terbuka sub-modul ini **tidak** tertahan oleh PRD tersebut. Rincian di [`../blueprint-manifest.md`](../blueprint-manifest.md) bagian 0-B |
+| `revision` | **`7`** — satu angka, dipegang tingkat modul. Amandemen terbatas penyelarasan `PRD-RWI-V2-001` pada bagian 10 |
+| `status` | **`draft`** — amandemen terbatas revision `7` / kontrak `0.9.0` ditulis 2026-09-15 dan menunggu approval. Sebelumnya `approved`: revision `6` beserta kontrak `0.8.0` disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105`; revision `4` 2026-08-24 lewat `RWI-DEC-074`; revision `3` lewat `RWI-DEC-067` |
+| `contract_versions` | **`0.9.0`** — `draft`, bagian 10.1. `0.8.0` `approved` 2026-09-11 |
+| `upstream_realignment` | **`REALIGNED_DRAFT` sejak 2026-09-15** — amandemen terbatas bagian 10 menyerap permintaan `PRD-RWI-V2-001` terhadap sub-modul ini: census dokter, penugasan pendukung, resume delapan bagian, akibat penutupan. Kemampuan lain sub-modul ini dinyatakan tidak terdampak. Sebelumnya: terdampak sebagian, dicatat 2026-09-14 |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
 | `approved_at` | `2026-08-24` |
@@ -216,3 +217,57 @@ hulu, bukan diselesaikan pada tahap perencanaan atau implementasi:
 | Pertanyaan tidak memblokir ingin ditutup lebih dulu | `/qv-grill` Amendment Pass |
 | `backend_commit_sha` atau `frontend_commit_sha` berubah | `/qv-trace` impact scan |
 | `flowcharts/` ingin dilengkapi | `/qv-design` untuk sub-modul ini saja |
+
+---
+
+## 10. Amandemen terbatas revision `7` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status sub-modul: `draft`.** Pilihan pemilik 15 September 2026: **amandemen terbatas** — hanya yang diminta
+`dokter-rawat-inap` `0.6.0` dan `keperawatan` `0.5.0`. Approval revision `6` / kontrak `0.8.0` tetap sah untuk isi yang
+tidak berubah; task `✅` tetap sah; task baru hanya boleh diturunkan setelah revision ini disetujui.
+
+### 10.1 Tabel artefak dan hash
+
+| Artefak | Revision | Status | SHA-256 |
+| --- | --- | --- | --- |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | **`0.8`** — bagian 11 | `draft` | `062580a56bde353f67c12f0456bbd2833ad826c7cb4c22f9b6f1dcb6f5227cda` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | **`0.8`** — bagian 12 | `draft` | `efd00c4b73b4144cbe96fb9bc091a6b2940a0e5a2f409d9e1a2b687e0b9271ac` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | **`0.8.0`** — bagian 22 | `draft` | `d1550e4e72f548363b588c127dfb747176bfda3a64c608c5f6a5988c0341a2d3` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | **`0.5`** — bagian 18 | `draft` | `e3c05e2043856034ca9d6756c6466f5abfc5567947a1a9e5a4267f6430397407` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | **`0.9.0`** — bagian 10 | `draft` | `6219c2c53e29ac31631573699a20db13c5e684e0f961e8d2ab30f7934325ddec` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | **`0.9.0`** — bagian 8 | `draft` | `89d3948b58f23b13a8543f8382eaa042ef8659f45ffd3bd9f9321dbe78b72439` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | **`0.9.0`** — bagian 13 | `draft` | `501f9ce338eb201da3ff697c8adee67e7c9de86aff68efcc4aa3c14de7141b91` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | **`0.9.0`** — bagian 8 | `draft` | `a78d8250d5664c205bb8598ca8800a56d13c3a39ded2f8a989a554d49381ce8a` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | **`0.9.0`** — bagian 8 | `draft` | `ace9f1f53156e2a9454a31fc5183131302bbbdfe1a5981dbeaa6921617eb727b` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | **`0.9.0`** — bagian 18 | `draft` | `b5b290f221934ec1a6136066d47cee4b80ca256899db5bd750d839eb72a3a140` |
+
+Tiga kontrak pendamping (`bed-board-reservation-metadata`, `encounter-company-guarantor`,
+`encounter-payment-source-change`), `erd/`, dan `05-skema-tampilan.md` **tidak bergerak**.
+
+### 10.2 Yang berubah terhadap bagian 7 dan 8
+
+| Bagian | Perubahan |
+| --- | --- |
+| 7 Dependency | Dua baris "Tidak ada" untuk `keperawatan` dan `dokter-rawat-inap` **tidak lagi sepenuhnya benar**: langkah penutupan 4–6 memanggil service yang dirancang kedua sub-modul itu dan `MedicalRecordManagement`. Sub-modul ini tetap **boleh berjalan sendiri**, karena langkah yang service-nya belum ada tidak dipasang (`02-backend-architecture.md` 11.8) |
+| 8 butir 3 | Invariant bertambah `INV-INP-11` s.d. `13` — berlaku setelah revision `7` disetujui |
+| 8 butir 4 | Bentuk berperiode `InpDoctorAssignment` tetap; kolom tujuan tidak mengubahnya |
+
+### 10.3 Dependency dan gerbang — revision `7`
+
+| Bergantung pada | Untuk apa | Keadaan | Menahan |
+| --- | --- | --- | --- |
+| `dokter-rawat-inap` `0.6.0` | `PatientProcedureOrderService`, `CpptVerificationService` | Dirancang pada pass yang sama, `draft` | `FR-RI-199`; angka Perlu Review |
+| `keperawatan` `0.5.0` | `MedicationAdministrationService` | Dirancang pada pass yang sama, `draft` | `FR-RI-200` |
+| Yoga Aji Pratama — `MedicalRecordManagement` | Pemberitahuan pemanggil penguncian | **Belum diberitahu** | Rilis `RI-V2-1` |
+| Pemilik Billing | Nasib pesanan tertunda tertagih | Belum dibahas | Tidak menahan; daftar pantau tersedia |
+| Pemilik klinis | Isi minimal resume | **Belum ditunjuk** | Gerbang produksi |
+
+### 10.4 Handoff
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / `revision` | `RWI-BP-001` / `7` |
+| `contract_versions` | `0.9.0` |
+| `approval_status` | `draft` — `approved_by` dan `approved_at` untuk revision `7` kosong |
+| `blocking_questions` | **Nol** — `04-prd-to-mvp.md` 22.7 seluruhnya tidak memblokir |
+| `next_owner` | Approval pemilik atas revision `7`; setelah itu `plan-module-delivery` untuk `RI-V2-1` s.d. `RI-V2-3` |
