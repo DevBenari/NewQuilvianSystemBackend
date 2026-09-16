@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 
@@ -34,6 +34,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
 
             builder.Property(x => x.IsSuperseded)
                 .IsRequired();
+
+            // Sebab bukti gugur (BE-BD-009). Opsional: hanya terisi ketika kantong dialihkan.
+            builder.Property(x => x.SupersededReason)
+                .HasMaxLength(200);
 
             // Riwayat seluruh evidence satu kantong.
             builder.HasIndex(

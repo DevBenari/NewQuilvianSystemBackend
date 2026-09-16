@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
@@ -44,6 +44,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string CancelAllocationAction = "CancelAllocation";
         private const string IssueAction = "Issue";
         private const string EmergencyIssueAction = "EmergencyIssue";
+        private const string ReallocateAction = "Reallocate";
+        private const string ReturnToProviderAction = "ReturnToProvider";
+        private const string MarkNotUsableAction = "MarkNotUsable";
 
         /// <summary>Nama aksi pada <c>AvailableActions</c>.</summary>
         public const string AssignStorageLocationActionName = "AssignStorageLocation";
@@ -53,6 +56,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         public const string RecordCompatibilityEvidenceActionName = "RecordCompatibilityEvidence";
         public const string IssueActionName = "Issue";
         public const string EmergencyIssueActionName = "EmergencyIssue";
+
+        /// <summary>
+        /// Ketiga jalur penyelesaian <c>PendingReview</c> (<c>BE-BD-009</c>). Namanya sama persis
+        /// dengan butir hak akses penjaganya, karena <c>FE-BD-020</c> menuntut ketiga tombolnya
+        /// tampil terpisah dan tiap tombol dijaga butir yang berbeda (<c>INV-BD-034</c>).
+        /// </summary>
+        public const string ResolveReallocateActionName = "ResolveReallocate";
+        public const string ResolveReturnActionName = "ResolveReturn";
+        public const string ResolveNotUsableActionName = "ResolveNotUsable";
 
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
@@ -185,6 +197,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string ReasonCategoryMismatchMessage =
             "Alasan yang dipilih bukan alasan pembatalan alokasi kantong. Pilih alasan dari " +
             "kategori pembatalan alokasi.";
+
+        // Penyelesaian PendingReview — BE-BD-009.
+
+        /// <summary>
+        /// Penolakan ketika kantongnya tidak berada di <c>PendingReview</c>. Ketiga jalur
+        /// penyelesaian berangkat dari keadaan itu dan hanya dari situ (matriks §3), termasuk
+        /// status akhir <c>ReturnedToProvider</c> dan <c>NotUsable</c> yang tidak dapat dibuka
+        /// kembali.
+        /// </summary>
+        private const string NotPendingReviewMessageFormat =
+            "Kantong berstatus {0} tidak sedang menunggu keputusan, sehingga tidak ada yang dapat " +
+            "diselesaikan.";
+
+        /// <summary>
+        /// Kategori alasan menentukan maknanya. Alasan pembatalan alokasi atau jalur darurat tidak
+        /// boleh dipakai menyelesaikan kantong, walaupun keduanya sah sebagai alasan.
+        /// </summary>
+        private const string ResolutionReasonCategoryMismatchMessage =
+            "Alasan yang dipilih bukan alasan penyelesaian kantong menunggu keputusan. Pilih alasan " +
+            "dari kategori penyelesaian yang sesuai.";
+
+        /// <summary>Sebab bukti kecocokan lama gugur (<c>DEC-BD-028</c>).</summary>
+        private const string EvidenceSupersededByReallocationNote =
+            "Kantong dialihkan ke pasien lain.";
 
         /// <summary>Alasan sistem memasukkan kantong ke <c>PendingReview</c> (<c>DEC-BD-025</c>).</summary>
         private const string ExcessHoldNote = "Kiriman melebihi permintaan.";
@@ -1825,6 +1861,383 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         }
 
         // =================================================================
+        // Penyelesaian kantong PendingReview — BE-BD-009
+        // =================================================================
+
+        /// <summary>
+        /// Mengalihkan kantong <c>PendingReview</c> ke baris kebutuhan pasien lain:
+        /// <c>PendingReview</c> → <c>Reallocated</c> (matriks §3, <c>DEC-BD-019</c>,
+        /// <c>DEC-BD-028</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Pengalihan adalah alokasi dengan nama lain, dan karena itu memakai gerbang yang
+        /// sama.</b> <see cref="EvaluateAllocationGateAsync"/> dipanggil apa adanya —
+        /// <c>02-backend-architecture.md</c> §F.4 menetapkan satu gerbang untuk <c>allocate</c>
+        /// <b>dan</b> <c>reallocate</c>. Aturan lokasi <b>tidak</b> ditulis ulang di sini:
+        /// menyalinnya berarti kantong di lokasi nonaktif dapat ditolak lewat <c>allocate</c>
+        /// tetapi lolos lewat <c>reallocate</c>, yaitu persis lubang yang ditutup
+        /// <c>INV-BD-028</c> dan <c>AC-BD-071</c>.
+        /// </para>
+        /// <para>
+        /// <b>Bukti kecocokan lama gugur seketika</b> (<c>DEC-BD-028</c>, <c>INV-BD-020</c>). Bukti
+        /// selalu bermakna "kantong ini cocok untuk pasien <i>ini</i>", bukan "kantong ini baik",
+        /// sehingga tidak satu pun bukti yang berlaku sebelum pengalihan boleh terbawa ke pasien
+        /// tujuan. Barisnya <b>tidak dihapus</b>: ia ditandai gugur beserta sebabnya dan tetap
+        /// terbaca sebagai riwayat milik pasien asal.
+        /// </para>
+        /// <para>
+        /// <b>Rantai pasien asal → alasan pelepasan → pasien tujuan tidak boleh putus</b>
+        /// (<c>DEC-BD-019</c>, <c>AC-BD-024</c>). Karena itu alokasi asal yang masih aktif
+        /// dilepaskan dengan alasan yang sama — barisnya tetap ada — lalu satu baris alokasi baru
+        /// lahir untuk baris kebutuhan tujuan. Pasien tujuan <b>tidak</b> disalin dari body: ia
+        /// dibaca lewat baris kebutuhan, yang lebih dulu diperiksa sah dan masih berjalan.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> Kantong PRC disiapkan untuk Tn. S, lalu Tn. S pulang dan kantong masuk
+        /// <c>PendingReview</c>. Kantong dialihkan ke baris kebutuhan Ny. R dengan alasan
+        /// terkendali. Sesudahnya riwayat menjawab tiga pertanyaan sekaligus: pernah disiapkan
+        /// untuk Tn. S, dilepaskan karena alasan itu, kini terikat pada Ny. R — dan bukti terhadap
+        /// Tn. S tercatat gugur, bukan hilang.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodUnitResult> ReallocateAsync(
+            Guid id,
+            ReallocateUnitRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (request.BloodOrderLineId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, OrderLineRequiredMessage);
+
+            var (failure, unit) = await BeginResolutionAsync(
+                id,
+                request.ReasonCode,
+                request.Version,
+                actorUserId,
+                cancellationToken);
+
+            if (failure != null)
+                return failure;
+
+            // Gerbang alokasi BE-BD-015, dipakai apa adanya: VAL-BD-063 dan VAL-BD-064.
+            // Inilah satu-satunya tempat aturan lokasi dinilai pada jalur ini (AC-BD-071).
+            var gate = await EvaluateAllocationGateAsync(id, cancellationToken);
+
+            if (gate == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (!gate.IsOpen)
+                return Failed(BloodUnitOutcome.NotAllowedByState, gate.Message, gate.RuleCode);
+
+            // Pasien tujuan tidak dipercaya begitu saja: barisnya wajib ada, ordernya masih
+            // berjalan, dan kunjungan pasiennya belum berakhir — pemeriksaan yang sama persis
+            // dengan alokasi biasa.
+            var lineFailure = await CheckOrderLineAsync(request.BloodOrderLineId, cancellationToken);
+
+            if (lineFailure != null)
+                return lineFailure;
+
+            var (reasonFailure, reason) = await ResolveControlledReasonAsync(
+                request.ReasonCode,
+                BloodBankReasonCategories.PendingReviewResolution,
+                cancellationToken);
+
+            if (reasonFailure != null)
+                return reasonFailure;
+
+            var now = DateTime.UtcNow;
+
+            // Alokasi asal yang masih aktif dilepaskan dengan alasan yang sama, bukan dihapus.
+            // Tanpa ini baris alokasi baru akan bertabrakan dengan index unik terfilter, dan
+            // pertanyaan "kantong ini pernah disiapkan untuk siapa saja" kehilangan jawabannya.
+            var originAllocation = await _dbContext.Set<BbkBloodUnitAllocation>()
+                .FirstOrDefaultAsync(
+                    x => x.BloodUnitId == id &&
+                         x.AllocationStatus == BbkAllocationStatus.Active,
+                    cancellationToken);
+
+            if (originAllocation != null)
+            {
+                originAllocation.AllocationStatus = BbkAllocationStatus.Cancelled;
+                originAllocation.CancelReasonCode = reason!.ReasonCode;
+                originAllocation.CancelReasonNote = reason.ReasonText;
+                originAllocation.CancelledByUserId = actorUserId;
+                originAllocation.CancelledAt = now;
+                originAllocation.UpdateDateTime = now;
+                originAllocation.UpdateBy = actorUserId;
+            }
+
+            var reallocation = new BbkBloodUnitAllocation
+            {
+                Id = Guid.NewGuid(),
+                BloodUnitId = unit!.Id,
+                BloodOrderLineId = request.BloodOrderLineId,
+                AllocationStatus = BbkAllocationStatus.Active,
+                AllocatedByUserId = actorUserId,
+                AllocatedAt = now,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.Set<BbkBloodUnitAllocation>().Add(reallocation);
+
+            // DEC-BD-028: seluruh bukti yang masih berlaku pada kantong ini gugur. Saringannya
+            // sengaja tidak menyebut pasien: setiap bukti yang ada sebelum pengalihan dicatat
+            // terhadap pasien sebelumnya, dan menyimpulkan bukti mana yang "masih cocok" untuk
+            // pasien tujuan dilarang INV-BD-011 dan INV-BD-013.
+            var supersededEvidences = await _dbContext.Set<BbkCompatibilityEvidence>()
+                .Where(x => x.BloodUnitId == id && !x.IsDelete && !x.IsSuperseded)
+                .ToListAsync(cancellationToken);
+
+            foreach (var evidence in supersededEvidences)
+            {
+                evidence.IsSuperseded = true;
+                evidence.SupersededReason = EvidenceSupersededByReallocationNote;
+                evidence.UpdateDateTime = now;
+                evidence.UpdateBy = actorUserId;
+            }
+
+            unit.UnitStatus = BbkBloodUnitStatus.Reallocated;
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            AppendTransition(
+                unit.Id,
+                ReallocateAction,
+                BbkBloodUnitStatus.PendingReview,
+                BbkBloodUnitStatus.Reallocated,
+                reasonNote: reason!.ReasonText,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: reallocation.Id,
+                reasonCode: reason.ReasonCode);
+
+            if (!await TrySaveAsync(cancellationToken))
+                return Failed(BloodUnitOutcome.AllocationConflict, Val018cMessage, "VAL-BD-018c");
+
+            return Succeeded(
+                unit,
+                supersededEvidences.Count == 0
+                    ? "Kantong berhasil dialihkan ke baris kebutuhan pasien lain."
+                    : "Kantong berhasil dialihkan ke baris kebutuhan pasien lain. Bukti kecocokan " +
+                      "terhadap pasien sebelumnya gugur dan pasien tujuan memerlukan bukti sendiri.");
+        }
+
+        /// <summary>
+        /// Mengembalikan kantong <c>PendingReview</c> kepada PMI: <c>PendingReview</c> →
+        /// <c>ReturnedToProvider</c> (matriks §3, <c>DEC-BD-019</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Status akhir, dan tidak dapat dibuka kembali.</b> Kantong keluar dari peredaran;
+        /// tidak ada jalur bisnis yang mengembalikannya ke stok. Karena itu pemeriksaan
+        /// <c>PendingReview</c> di awal sekaligus menjadi penjaganya: kantong yang sudah
+        /// dikembalikan tidak dapat dikembalikan atau dialihkan lagi.
+        /// </para>
+        /// <para>
+        /// <b>Gerbang lokasi sengaja tidak berlaku di sini.</b> <c>INV-BD-028</c> menutup gerbang
+        /// <i>alokasi</i>, yaitu arah yang memasukkan darah ke tubuh pasien. Pengembalian bergerak
+        /// ke arah sebaliknya, dan menahan kantong di lokasi nonaktif agar tidak dapat dikembalikan
+        /// justru mengunci kantong yang memang sudah seharusnya keluar.
+        /// </para>
+        /// </remarks>
+        public Task<BloodUnitResult> ReturnToProviderAsync(
+            Guid id,
+            ResolveWithReasonRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+            => ResolveOutOfCirculationAsync(
+                id,
+                request,
+                actorUserId,
+                BbkBloodUnitStatus.ReturnedToProvider,
+                ReturnToProviderAction,
+                BloodBankReasonCategories.Return,
+                "Kantong berhasil dikembalikan kepada PMI.",
+                cancellationToken);
+
+        /// <summary>
+        /// Menyatakan kantong <c>PendingReview</c> tidak layak pakai: <c>PendingReview</c> →
+        /// <c>NotUsable</c> (matriks §3, <c>DEC-BD-019</c>, <c>DEC-BD-045</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Kelayakan dinyatakan manusia, tidak pernah disimpulkan sistem</b>
+        /// (<c>INV-BD-013</c>). Yang dilakukan di sini hanya mencatat pernyataan itu beserta alasan
+        /// terkendali, pelaku, dan waktunya. Butir hak aksesnya tetap terpisah dari pengembalian ke
+        /// PMI walaupun <c>DEC-BD-045</c> menempatkan keduanya pada peran yang sama — yang sama
+        /// adalah perannya, bukan butirnya (<c>INV-BD-034</c>).
+        /// </remarks>
+        public Task<BloodUnitResult> MarkNotUsableAsync(
+            Guid id,
+            ResolveWithReasonRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+            => ResolveOutOfCirculationAsync(
+                id,
+                request,
+                actorUserId,
+                BbkBloodUnitStatus.NotUsable,
+                MarkNotUsableAction,
+                BloodBankReasonCategories.NotUsable,
+                "Kantong dinyatakan tidak layak pakai dan keluar dari peredaran.",
+                cancellationToken);
+
+        /// <summary>
+        /// Jalan bersama kedua penyelesaian yang <b>mengeluarkan</b> kantong dari peredaran:
+        /// pengembalian ke PMI dan penetapan tidak layak.
+        /// </summary>
+        /// <remarks>
+        /// <b>Yang dibagi hanya jalannya, bukan penjaganya.</b> Kategori alasan yang sah, nama
+        /// tindakan pada riwayat, dan status tujuannya diberikan pemanggil; butir hak aksesnya
+        /// dijaga di controller dan tetap terpisah (<c>INV-BD-034</c>). Menyatukan keduanya menjadi
+        /// satu tindakan bersaklar akan membuat satu butir menjaga dua tindakan yang sengaja
+        /// dipisah <c>DEC-BD-043</c>.
+        /// </remarks>
+        private async Task<BloodUnitResult> ResolveOutOfCirculationAsync(
+            Guid id,
+            ResolveWithReasonRequest request,
+            Guid actorUserId,
+            BbkBloodUnitStatus targetStatus,
+            string action,
+            string requiredReasonCategory,
+            string successMessage,
+            CancellationToken cancellationToken)
+        {
+            var (failure, unit) = await BeginResolutionAsync(
+                id,
+                request.ReasonCode,
+                request.Version,
+                actorUserId,
+                cancellationToken);
+
+            if (failure != null)
+                return failure;
+
+            var (reasonFailure, reason) = await ResolveControlledReasonAsync(
+                request.ReasonCode,
+                requiredReasonCategory,
+                cancellationToken);
+
+            if (reasonFailure != null)
+                return reasonFailure;
+
+            var now = DateTime.UtcNow;
+
+            unit!.UnitStatus = targetStatus;
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            AppendTransition(
+                unit.Id,
+                action,
+                BbkBloodUnitStatus.PendingReview,
+                targetStatus,
+                reasonNote: reason!.ReasonText,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: unit.Id,
+                reasonCode: reason.ReasonCode);
+
+            if (!await TrySaveAsync(cancellationToken))
+                return Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage);
+
+            return Succeeded(unit, successMessage);
+        }
+
+        /// <summary>
+        /// Pemeriksaan pembuka yang sama bagi ketiga jalur penyelesaian: pelaku dikenali, alasan
+        /// terisi, kantongnya ada, tokennya cocok, dan kantongnya benar-benar menunggu keputusan.
+        /// </summary>
+        /// <remarks>
+        /// <b>Urutannya mengikuti pembatalan alokasi <c>BE-BD-006</c> apa adanya.</b> Body tanpa
+        /// kode alasan ditolak <c>VAL-BD-016</c> lebih dulu karena body seperti itu tidak sah bagi
+        /// tindakan penyelesaian mana pun, sebelum kantongnya dibaca sama sekali. Kode alasan yang
+        /// <i>terisi tetapi tidak ada di master</i> baru ditolak sesudah keadaan kantong diperiksa,
+        /// supaya kantong yang memang tidak dapat diselesaikan ditolak dengan sebab yang benar.
+        /// </remarks>
+        private async Task<(BloodUnitResult? Failure, BbkBloodUnit? Unit)> BeginResolutionAsync(
+            Guid id,
+            string? reasonCode,
+            int? version,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            if (actorUserId == Guid.Empty)
+                return (Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage), null);
+
+            // VAL-BD-016 (400): alasan wajib dipilih dari daftar terkendali, tidak diketik bebas.
+            if (NormalizeReasonCode(reasonCode).Length == 0)
+                return (Failed(BloodUnitOutcome.Invalid, Val016Message, "VAL-BD-016"), null);
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return (Failed(BloodUnitOutcome.NotFound, NotFoundMessage), null);
+
+            if (version.HasValue && version.Value != unit.Version)
+                return (Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage), null);
+
+            // Ketiga jalur berangkat dari PendingReview dan hanya dari situ. Pemeriksaan ini
+            // sekaligus menjaga status akhir Issued, ReturnedToProvider, dan NotUsable tetap
+            // tertutup — tidak ada jalur bisnis yang membukanya kembali.
+            if (unit.UnitStatus != BbkBloodUnitStatus.PendingReview)
+            {
+                return (
+                    Failed(
+                        BloodUnitOutcome.NotAllowedByState,
+                        string.Format(
+                            NotPendingReviewMessageFormat,
+                            BbkDisplayLabels.Of(unit.UnitStatus))),
+                    null);
+            }
+
+            return (null, unit);
+        }
+
+        /// <summary>
+        /// Mencari alasan terkendali yang dipakai satu penyelesaian, lalu memastikan kategorinya
+        /// memang kategori tindakan itu (<c>VAL-BD-016</c>, <c>INV-BD-016</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Kode yang diketik bebas ditolak di sini</b> (<c>AC-BD-029</c>): kode yang tidak ada
+        /// pada <c>MstBloodBankReason</c> aktif tidak pernah menjadi alasan yang sah. Teks alasannya
+        /// tidak dipulangkan kepada pemanggil untuk disunting — ia disalin apa adanya ke riwayat
+        /// supaya rekam lama tidak berubah makna ketika master disunting (<c>INV-BD-035</c>).
+        /// </remarks>
+        private async Task<(BloodUnitResult? Failure, MstBloodBankReason? Reason)> ResolveControlledReasonAsync(
+            string? reasonCode,
+            string requiredCategory,
+            CancellationToken cancellationToken)
+        {
+            var normalized = NormalizeReasonCode(reasonCode);
+
+            var reason = await _dbContext.Set<MstBloodBankReason>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => !x.IsDelete && x.IsActive && x.ReasonCode.ToUpper() == normalized,
+                    cancellationToken);
+
+            if (reason == null)
+                return (Failed(BloodUnitOutcome.Invalid, Val016Message, "VAL-BD-016"), null);
+
+            if (BloodBankReasonCategories.Normalize(reason.ReasonCategory) != requiredCategory)
+            {
+                return (
+                    Failed(
+                        BloodUnitOutcome.NotAllowedByState,
+                        ResolutionReasonCategoryMismatchMessage),
+                    null);
+            }
+
+            return (null, reason);
+        }
+
+        // =================================================================
         // Penolong
         // =================================================================
 
@@ -1938,6 +2351,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 // sini: gerbangnya dinilai saat tindakan dilakukan, dan menyembunyikan tombolnya
                 // justru menutup satu-satunya jalan keluar yang disediakan DEC-BD-038.
                 actions.Add(EmergencyIssueActionName);
+            }
+
+            // Ketiga jalur penyelesaian tampil terpisah, karena penjaganya memang tiga butir hak
+            // akses berbeda (FE-BD-020, INV-BD-034). Keaktifan lokasi TIDAK diperiksa di sini:
+            // gerbangnya dinilai saat pengalihan dicoba, dan dua jalur lainnya memang tidak
+            // dijaga gerbang lokasi sama sekali.
+            if (status == BbkBloodUnitStatus.PendingReview)
+            {
+                actions.Add(ResolveReallocateActionName);
+                actions.Add(ResolveReturnActionName);
+                actions.Add(ResolveNotUsableActionName);
             }
 
             return actions;
@@ -2171,6 +2595,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     ValidatedByUserId = x.ValidatedByUserId,
                     CheckedAt = x.CheckedAt,
                     IsSuperseded = x.IsSuperseded,
+                    SupersededReason = x.SupersededReason,
                     CreateDateTime = x.CreateDateTime
                 })
                 .ToListAsync(cancellationToken);

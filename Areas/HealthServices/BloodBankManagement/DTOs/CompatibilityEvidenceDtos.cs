@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 {
@@ -51,6 +51,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         /// Bukti tetap tersimpan sebagai riwayat.
         /// </summary>
         public bool IsSuperseded { get; set; }
+
+        /// <summary>
+        /// Sebab bukti ini gugur, misalnya karena kantong dialihkan ke pasien lain
+        /// (<c>DEC-BD-028</c>). Kosong selama bukti masih berlaku.
+        /// </summary>
+        public string? SupersededReason { get; set; }
 
         public DateTime CreateDateTime { get; set; }
     }

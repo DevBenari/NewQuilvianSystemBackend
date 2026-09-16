@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -82,5 +82,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
         /// Tidak berarti baris dihapus.
         /// </summary>
         public bool IsSuperseded { get; set; }
+
+        /// <summary>
+        /// Sebab bukti ini gugur, misalnya "kantong dialihkan" (kamus data
+        /// <c>BbkCompatibilityEvidence</c>). Kosong selama bukti masih berlaku.
+        /// </summary>
+        /// <remarks>
+        /// Kolomnya lahir bersama <c>BE-BD-009</c>, task yang benar-benar menggugurkan bukti.
+        /// Sebelum pengalihan ada, tidak satu pun jalur bisnis dapat mengisinya, dan kolom yang
+        /// tidak dapat diisi lebih baik tidak ada lebih dulu. <c>DEC-BD-028</c> menuntut riwayat
+        /// menjawab bukan hanya <i>bukti mana yang gugur</i> melainkan juga <i>karena apa</i>,
+        /// sehingga penanda boolean saja tidak cukup.
+        /// </remarks>
+        [MaxLength(200)]
+        public string? SupersededReason { get; set; }
     }
 }
