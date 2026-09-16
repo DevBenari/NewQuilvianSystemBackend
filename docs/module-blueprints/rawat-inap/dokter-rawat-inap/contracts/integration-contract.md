@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` |
-| Status | **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
+| Contract version | **`0.6.0`** |
+| `last_changed_in` | **`0.6.0`** — bagian 12 lahir: `INT-DOK-11` s.d. `INT-DOK-22`. Kontrak ini melompati `0.5.0` karena isinya tidak bergerak pada Gelombang 1A |
+| Status | **`draft`** untuk `0.6.0`. `0.4.0` **`approved`** — disetujui Muhammad Hamzah, 2026-09-09 |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2` bagian X |
@@ -322,3 +322,161 @@ menghadapi keterbatasan yang sama, karena pengkajian IGD sudah dilonggarkan dari
 | Antrean semu untuk pasien rawat inap | `RWI-RULE-026` aturan 2 |
 | Pembuatan **konsultasi bayangan** demi mengisi `ConsultationId` diagnosis | Menanam baris catatan dokter yang tidak pernah ditulis siapa pun ke dalam rekam medis. `INT-DOK-10` memilih melonggarkan kolomnya, bukan memalsukan isinya |
 | Pelonggaran nomor konsultasi pada **resep** dan **tindakan** | Tetap ditolak — `02-backend-architecture.md` bagian 9, dan alasannya masih berlaku bagi keduanya. Lihat 10.1 |
+
+---
+
+## 12. Perubahan pada `contract_version` `0.6.0` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Penomoran melanjutkan `INT-DOK-10`; `INT-DOK-01` s.d. `INT-DOK-10` tidak bergerak. Seluruh
+integrasi di bawah bersifat **internal dalam satu basis data dan satu proses**; tidak ada sistem luar, antrean pesan,
+maupun panggilan HTTP antar modul. "Transaksi yang sama" berarti satu `DbContext` transaction.
+
+### 12.0 Ringkasan
+
+| ID | Arah | Pemilik data | Pemakai | Sifat | Keadaan source `df3679c0` |
+| --- | --- | --- | --- | --- | --- |
+| `INT-DOK-11` | Baca | `InPatientManagement` | Ruang kerja dokter | Sinkron | `Extend` — census punya saringan DPJP dari query, bukan penugasan dari akun login |
+| `INT-DOK-12` | Baca | `InPatientManagement` | Penjaga penulis klinis | Sinkron | `Missing` — penanda penugasan singkat dan jalur tulis konsulen/dokter jaga belum ada (`RWI-FACT-030`) |
+| `INT-DOK-13` | Tulis, dipicu penutupan | `ClinicalManagement`, `MedicalRecordManagement` | `episode-rawat-inap` | Sinkron, satu transaksi | `Missing` — `RLN3-CAP-38` |
+| `INT-DOK-14` | Baca | `MedicalRecordManagement` | "Catatan Saya" | Sinkron | `Reuse with adapter` untuk konsep (`RLN3-CAP-37`); `Missing` untuk catatan terkunci |
+| `INT-DOK-15` | Tulis | `MedicalRecordManagement` | `ClinicalManagement` | Sinkron, satu transaksi | `Extend` — pendaftaran idempoten sudah ada (`RWI-FACT-040`), pemanggilan sejak konsep belum |
+| `INT-DOK-16` | Tulis, dipicu penghentian butir | `PharmacyManagement` MAR | Resep Harian | Sinkron, satu transaksi | `Missing` — MAR belum ada |
+| `INT-DOK-17` | Tulis | `PharmacyManagement`, `MasterData` | Rekonsiliasi | Sinkron | `Missing` — `RWI-FACT-032` |
+| `INT-DOK-18` | Baca oleh pelaksanaan | `PharmacyManagement` order | `keperawatan` | Sinkron | `Missing` |
+| `INT-DOK-19` | Tulis | `ClinicalManagement`, `LaboratoryManagement`, `RadiologyManagement` | Pesanan perawat | Sinkron | `Missing`; Lab/Rad menunggu persetujuan pemilik |
+| `INT-DOK-20` | Baca-tulis | `InPatientManagement` resume | Tab Resume Medis | Sinkron | `Extend` — resume ada, tiga isian belum |
+| `INT-DOK-21` | Frontend | Komponen milik `rawat-jalan` | Ruang kerja dokter | Pemakaian komponen | `Reuse with adapter` — `RLN3-CAP-03` |
+| `INT-DOK-22` | Perubahan perilaku | `PharmacyManagement` template | Poliklinik, Farmasi | Pemberitahuan | `Repair` — `RWI-FACT-035` |
+
+### 12.1 `INT-DOK-11` — Daftar pasien dokter dari penugasan aktif
+
+| Hal | Isinya |
+| --- | --- |
+| Tujuan | Daftar Pasien Rawat Inap berisi tepat pasien yang boleh ditulis dokter login — `RWI-DEC-111` |
+| Sumber | `GET census?assignedToMe=true` milik `episode-rawat-inap` kontrak `0.9.0` |
+| Aturan | Dokter dari `ApplicationUser` → `MstDoctor`; penugasan aktif = `StartDateTime ≤ sekarang` dan `EndDateTime` kosong atau `> sekarang`, peran apa pun, **termasuk** penugasan singkat |
+| Kegagalan | Akun tidak tertaut dokter → `403` "Akun Anda belum terhubung ke data dokter"; census gagal → panel kiri menampilkan galat dengan Coba Lagi, **bukan** daftar kosong |
+| Contoh | dr. Ahmad DPJP Budi dan konsulen Sari; 120 pasien lain dirawat → daftar dua kartu, Total Pasien 2 |
+
+### 12.2 `INT-DOK-12` — Penugasan singkat dan penugasan konsulen/dokter jaga
+
+| Hal | Isinya |
+| --- | --- |
+| Tujuan | Menyediakan satu-satunya jalan menulis catatan terlambat yang belum pernah dimulai — `RWI-DEC-128` butir (4), `RWI-DEC-130` |
+| Pemilik | `episode-rawat-inap` — `InpDoctorAssignment.AssignmentPurpose`, jalur tulis `POST /episodes/{id}/doctor-assignments/supporting` |
+| Yang dibaca sub-modul ini | `AssignmentRole`, `AssignmentPurpose`, `StartDateTime`, `EndDateTime` pada saat penilaian `INV-DOK-15` |
+| Batas yang wajib dijaga di sini | Penugasan `LateDocumentation` hanya memberi kewenangan **menulis**; `VAL-DOK-44` menolak verifikasi CPPT, dan penjaga `GUARD-INP-01` s.d. `04` milik episode menolak keputusan pulang, tanda tangan resume, perpindahan, dan isolasi |
+| Ketergantungan | **Menahan** `RWI-AC-184` jalur "kiriman ulang diterima". Sampai jalur tulis episode ada, catatan terlambat yang belum pernah dimulai **tidak dapat ditulis sama sekali** — `RWI-DEC-130` konsekuensi (2) |
+
+### 12.3 `INT-DOK-13` — Penutupan episode mengunci konsep dan membatalkan pesanan tertunda
+
+| Hal | Isinya |
+| --- | --- |
+| Pemicu | `POST discharges/{episodeId}/close` dan `close-with-override` milik `episode-rawat-inap` |
+| Langkah dalam satu transaksi | (1) status episode `Closed`; (2) `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync(encounterId)` — seluruh registrasi `Draft` kunjungan itu menjadi `LockedUnsigned`, `LockTrigger = EncounterClosed`; (3) `PatientProcedureOrderService.CancelPendingOrdersForClosureAsync(episodeId, closedByUserId)` — pesanan `Planned`/`Ordered` yang `IsExecuted = false` **dan** `IsBillingGenerated = false` menjadi `Cancelled` beralasan "episode ditutup sebelum dilaksanakan" |
+| Yang tidak menahan penutupan | Adanya konsep, adanya pesanan tertunda, adanya pesanan tertunda yang **sudah tertagih** (dibiarkan, masuk daftar pantau `monitoring/billed-pending-procedure-orders` milik episode) — `RWI-DEC-129` butir (4), `RWI-DEC-143` butir (5) |
+| Kegagalan teknis | Bila langkah (2) atau (3) melempar galat, **seluruh penutupan batal** dan petugas menerima "Penutupan gagal disimpan, coba lagi". Kiriman ulang aman karena kedua langkah idempoten |
+| Idempotensi | Langkah (2) hanya menyentuh `Draft`; langkah (3) hanya menyentuh pesanan tertunda. Menjalankan ulang pada episode yang sudah `Closed` tidak mengubah apa pun |
+| Pemberitahuan | Titik sentuh dengan `MedicalRecordManagement` — **wajib diberitahukan kepada Yoga Aji Pratama** (`RWI-DEC-138` konsekuensi 4). Mesin penguncian tidak diubah; yang bertambah hanya pemanggilnya |
+| Contoh | Episode Joko ditutup 13.00: konsep SOAP dr. Yoga → `LockedUnsigned`; pesanan cek GDS Ns. Siti → `Cancelled`; penutupan selesai |
+
+### 12.4 `INT-DOK-14` — "Catatan Saya"
+
+| Hal | Isinya |
+| --- | --- |
+| Sumber tunggal | Mesin keutuhan `MedicalRecordManagement` — `RWI-DEC-142` |
+| Konsep | `GET clinical-document-integrities/my-unsigned` **dipakai ulang**; permintaan tambahan query `serviceContext=Inpatient` dan empat kolom identitas minimum |
+| Catatan terkunci | `GET clinical-document-integrities/my-authored` **baru** di `MedicalRecordManagement` |
+| Status persetujuan | **Menunggu Yoga Aji Pratama** untuk kedua perubahan. Desain boleh disetujui; implementasi bagian terkunci tertahan |
+| Batas baca | Identitas minimum + isi catatan milik sendiri + addendum melekat — `RWI-DEC-127` butir (2). Tidak membuka CPPT orang lain, resep, pesanan, maupun hasil penunjang |
+| Kegagalan | Mesin keutuhan tidak terjangkau → "Catatan Saya gagal dimuat" beserta Coba Lagi, **bukan** daftar kosong — `RWI-DEC-142` jalur tidak normal (c) |
+| Keadaan antara | Sebelum `INT-DOK-15` berjalan, konsep SOAP dan kajian medis rawat inap tidak tampil pada daftar karena belum terdaftar — `RWI-DEC-142` jalur tidak normal (a). Layar menulis catatan kaki "Konsep SOAP dan kajian medis belum tercakup" selama keadaan itu |
+
+### 12.5 `INT-DOK-15` — Registrasi keutuhan sejak konsep
+
+| Hal | Isinya |
+| --- | --- |
+| Pemanggil | `InpatientClinicalDocumentRegistrationService` di `ClinicalManagement` |
+| Yang dipanggil | `ClinicalDocumentIntegrityService.RegisterAsync` (buat konsep), `SignAsync` (selesai), jalur batal registrasi (batal konsep) — **service yang sudah ada**, nol perubahan model `Mrc*` |
+| Jenis dokumen | `ClinicalDocumentKind.Consultation` untuk SOAP, `Assessment` untuk kajian medis — nol nilai enum baru |
+| Transaksi | Satu transaksi dengan penyimpanan dokumen. Gagal mendaftar → dokumen tidak tersimpan |
+| Batas scope | Hanya kunjungan yang punya episode rawat inap — `RWI-DEC-144` butir (7) |
+| Idempotensi | `RegisterAsync` mencari registrasi berdasarkan jenis dan id dokumen lalu mengembalikan yang ada (`RWI-FACT-040`). **Keunikan di tingkat basis data tidak ada**; dua transaksi paralel pada dokumen yang sama secara teoretis dapat membuat dua baris. Risiko diterima karena dokumen yang sama hanya dapat disunting penulisnya; unique index pada `(DocumentKind, DocumentId)` **diusulkan** kepada pemilik `MedicalRecordManagement`, tidak dikerjakan sub-modul ini |
+
+### 12.6 `INT-DOK-16` — Penghentian butir resep ke MAR
+
+| Hal | Isinya |
+| --- | --- |
+| Pemicu | `PATCH prescriptions/items/{itemId}/stop` |
+| Akibat | `MedicationAdministrationService.CancelDueDosesForItemAsync(itemId, stoppedAt, "resep dihentikan")` milik `keperawatan`; dosis `Administered`, `Held`, `Refused`, `Missed` yang sudah ada **tidak disentuh** |
+| Transaksi | Satu transaksi. Satu modul pemilik (`PharmacyManagement`), sehingga tidak ada pemanggilan lintas modul |
+| Contoh | `RWI-DEC-121`: dosis `Due` 20.00 → `Cancelled`; 08.00 `Administered` tetap |
+
+### 12.7 `INT-DOK-17` — Rekonsiliasi ke draft resep dan master obat
+
+| Hal | Isinya |
+| --- | --- |
+| "Lanjut Sama" | Membuat butir pada draft resep episode: obat, dosis, frekuensi, dan rute disalin dari obat bawaan; penanda formularium disalin ke `IsFormularySnapshot` (`RWI-FACT-033`) |
+| "Lanjut Ubah" | Sama, tetapi layar resep langsung membuka butir itu untuk diubah aturan pakainya |
+| "Hentikan" | Tidak menyentuh resep |
+| Draft resep | Memakai jalur draft resep yang sudah ada; bila episode belum punya draft, dibuat draft baru dengan `PrescriptionOrderType = Routine` |
+| Pendaftaran non-formularium | `POST drugs/non-formulary-registrations` milik `MasterData`; `IsFormulary = false` dipaksa server. Persetujuan pemilik `MasterData` sudah ada lewat `RWI-DEC-062`; **cara pemaksaannya** dicatat di sini sebagai desain yang dimintakan persetujuan pada approval ini |
+| Kegagalan | Draft resep gagal dibuat → keputusan ikut batal; tidak ada keputusan "Lanjut" tanpa butir draft |
+
+### 12.8 `INT-DOK-18` — Order sliding scale dibaca pelaksanaan
+
+| Hal | Isinya |
+| --- | --- |
+| Pembaca | Pelaksanaan sliding scale milik `keperawatan` kontrak `0.5.0` |
+| Yang dibaca | Order `Active`, versi order terbaru, rentangnya, dan `GlucoseUnit` versi template asal |
+| Aturan | Pelaksanaan menyimpan `OrderVersionId` yang dipakai; perubahan versi setelahnya tidak mengubah pelaksanaan lama — `RWI-DEC-146` butir (6) |
+| Sumber GDS | **Bukan** integrasi sub-modul ini. GDS dibaca pelaksanaan dari `ClinicalManagement` — `RWI-DEC-148` |
+
+### 12.9 `INT-DOK-19` — Pesanan perawat dengan dokter pemberi instruksi
+
+| Hal | Isinya |
+| --- | --- |
+| Modul tujuan | `ClinicalManagement` (tindakan), `LaboratoryManagement`, `RadiologyManagement` |
+| Data yang dikirim | Pesanan biasa + `InstructingDoctorId`; penginput dari akun login |
+| Pemeriksaan pemberi instruksi | `InpatientClinicalContextService.GetActiveAssignmentsForDoctorAsync` dipanggil dari ketiga modul; Lab dan Rad **membaca** penugasan episode lewat service bersama, bukan menyalinnya |
+| Verifikasi | Setiap modul menyimpan status verifikasinya sendiri; daftar tunggu verifikasi di ruang kerja dokter menggabungkan tiga endpoint |
+| Gerbang | Persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` belum tercatat — **menahan implementasi bagian Lab/Rad**, bukan desain. Pesanan tindakan tidak ikut tertahan |
+| Batas waktu verifikasi | Keputusan klinis, menunggu pemilik klinis seperti `RWI-RULE-021`; tidak ada angka pada rilis ini |
+
+### 12.10 `INT-DOK-20` — Tab Resume Medis
+
+| Hal | Isinya |
+| --- | --- |
+| Pemilik | `episode-rawat-inap` — `InpDischargeSummary` beserta tiga isian baru |
+| Yang dilakukan tab | Membaca, menyimpan draf, menandatangani lewat endpoint episode yang sama dengan `FE-INP-06` |
+| Isian otomatis | `GET summary-prefill` mengusulkan diagnosis terstruktur, tindakan terlaksana, hasil penunjang final, dan resep obat pulang beserta label sumber; dokter tetap meninjau — `RWI-DEC-112` |
+| Tidak menutup episode | Tanda tangan tidak memicu penutupan — PRD v`2.0` bagian 64 |
+| Resume ODC | Tidak ada integrasi — `RWI-DEC-123` |
+
+### 12.11 `INT-DOK-21` — Komponen tata letak Dokter Rawat Jalan
+
+| Hal | Isinya |
+| --- | --- |
+| Kebutuhan | `UI-AC-DOK-001` s.d. `012`: struktur, ukuran, tab, dan keadaan kosong **sama persis** |
+| Keadaan | `RLN3-CAP-03`: kelas tata letak CSS dan `EmptyState` dapat dipakai langsung; `SummaryBar`, `QueuePatientCard`, `ConsultationTabs`, `DoctorPatientContext` terikat data antrean |
+| Bentuk yang dipilih | **Ekstraksi komponen presentasional berbasis props** ke pustaka bersama, dipakai Rawat Jalan dan Rawat Inap. Rawat Inap memberi adapter data episode |
+| Yang ditolak | Menyalin keempat komponen ke folder Rawat Inap — dua salinan pasti menyimpang; memakai `doctor-clinical-base` yang tidak dipakai Rawat Jalan — melanggar `UI-AC-DOK-009` |
+| Ketergantungan | **Persetujuan pemilik blueprint `rawat-jalan`** atas ekstraksi. Tanpanya task layout tertahan; task isi tab tidak ikut tertahan |
+
+### 12.12 `INT-DOK-22` — Perubahan perilaku template resep bagi poliklinik
+
+| Hal | Isinya |
+| --- | --- |
+| Yang berubah bagi semua pemakai | Pemilik template dari akun login; ubah dan hapus hanya oleh pemilik — `RWI-DEC-135` butir (2) |
+| Yang tetap | Fitur Bersama pada poliklinik dan ruang kerja resep Farmasi; kolom `IsShared` |
+| Kewajiban | Diberitahukan kepada pemilik blueprint `rawat-jalan` **sebelum rilis**; dicatat pada task pelaksananya sebagai syarat selesai |
+| Risiko | Alur asisten yang membuatkan template atas nama dokter, bila ada, berhenti |
+
+### 12.13 Integrasi yang sengaja tidak dibuat pada `0.6.0`
+
+| Yang tidak dibuat | Alasan |
+| --- | --- |
+| Integrasi order dan hasil Gizi, Hemodialisa, Bank Darah, Rehab Medik | `RWI-DEC-108`, `113`; jawaban pemilik 15 September 2026. **Temuan dicatat:** `NutritionManagement` (`NutritionOrderController`) dan `BloodBankManagement` (`BbkBloodOrderController`) sudah ada pada `BE@df3679c0`; syarat "sampai modulnya ada" pada `RWI-DEC-108` mungkin sudah terpenuhi untuk keduanya dan diajukan sebagai pertanyaan non-blocking ke `grill-me` berikutnya |
+| Notifikasi aktif ke dokter dari rentang sliding scale atau dari pesanan perawat | Gate `G-24`, `G-15`; tidak ada requirement notifikasi yang diputuskan |
+| Aggregator lintas modul untuk daftar verifikasi instruksi | Tiga pemilik; penggabungan terjadi di layar |
+| Penguncian konsep saat **kunjungan** rawat inap diselesaikan lewat `PatientEncounterController` | Pemicu yang sah bagi rawat inap adalah penutupan **episode**. Mengubah status kunjungan rawat inap menjadi `Completed` di luar penutupan episode tetap dilarang alur episode |

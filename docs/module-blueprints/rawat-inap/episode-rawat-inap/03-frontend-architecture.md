@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
-| Status | `draft` |
+| Revision | **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, bagian 12, 15 September 2026. Sebelumnya: `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
+| Status | **`draft`** untuk `0.8` |
 | Apa yang berubah pada `0.7` | **Satu kode penolakan hilang dari layar.** `ROOM_GENDER_MIXED` tidak pernah terbit lagi dari server, sehingga pemetaan pesannya di frontend menjadi kode mati. Lihat bagian 4.3A. **Pekerjaan ini lintas repository** dan wajib satu gelombang dengan backend |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
@@ -714,3 +714,100 @@ sekaligus, lalu menyetel ringkasan pembayaran kunjungan. Karena `EncounterId` me
 masih menanam cara bayar tunai beserta kunjungan tanpa penjamin. Setelah revision ini tidak ada
 layar yang menempuhnya, tetapi jalurnya tetap terbuka bagi pemanggil lain. Perlu diputuskan apakah
 jalur itu ditutup. Owner: Backend/API bersama Product/Domain. **Di luar** wewenang dokumen ini.
+
+---
+
+## 12. Amandemen terbatas revision `0.8` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Status | **`draft`** — belum disetujui manusia |
+| Frontend SHA | `1ce219b40f8e411f3c4e66975626ab33ae81616a` |
+| Masukan | `02-backend-architecture.md` `0.8` bagian 11; kontrak `0.9.0` |
+| Peta menu | [`../02-module-map.md`](../02-module-map.md) bagian 3 revision `2` — **nol butir menu baru** dari sub-modul ini |
+
+### 12.1 Kebutuhan layar
+
+| ID | Layar | Tujuan | Pemakai utama | Keadaan |
+| --- | --- | --- | --- | --- |
+| `FE-INP-21` | **Dokter Pendukung** — dialog pada panel penugasan `FE-INP-04` | Melibatkan konsulen, memanggil dokter jaga, membuat penugasan singkat, mengakhiri penugasan | Kepala ruangan, supervisor | **Baru** |
+| `FE-INP-22` | **Resume delapan bagian** — perubahan formulir `FE-INP-06` | Tiga isian baru dan tombol "Isi dari data klinis" | DPJP | **Rework** |
+| `FE-INP-23` | **Peringatan dan akibat penutupan** — perubahan `FE-INP-07` | Menampilkan apa yang akan terkunci atau batal, lalu hasilnya | Petugas admisi, supervisor | **Rework** |
+| `FE-INP-24` | **Daftar pantau pesanan tertunda tertagih** — daftar baru pada `FE-INP-09` | Menindaklanjuti pesanan yang tidak dibatalkan saat penutupan | Supervisor, admisi, billing | **Baru** |
+
+Census `assignedToMe` **tidak** mengubah layar sub-modul ini; ia dipakai `FE-DOK-09` milik `dokter-rawat-inap`.
+
+### 12.2 Jalan masuk
+
+| Layar | Induk | Butir hak akses penjaga |
+| --- | --- | --- |
+| `FE-INP-21` | Tombol "Tambah Dokter Pendukung" pada panel Penugasan Dokter `FE-INP-04`; tombol "Akhiri" pada baris konsulen/dokter jaga | `InpatientEpisode : Update`; tombol **disembunyikan** bagi selain kepala ruangan/supervisor |
+| `FE-INP-22` | Bagian Resume pada `FE-INP-06`, dan tab Resume Medis `FE-DOK-12` yang memakai kontrak sama | `InpatientDischarge : Read`/`Update`/`Sign` |
+| `FE-INP-23` | `FE-INP-07` | `InpatientDischarge : Read`/`Close`/`CloseOverride` |
+| `FE-INP-24` | Kartu daftar pantau pada `FE-INP-09` | `InpatientMonitoring : Read` |
+
+### 12.3 Skema fitur per layar
+
+#### 12.3.1 `FE-INP-21` Dokter Pendukung
+
+```text
+Tambah Dokter Pendukung — Budi S. · Melati 302/2
+─────────────────────────────────────────────────
+Dokter            [ dr. Ahmad, Sp.PD        ▾ ]
+Peran             (•) Konsulen   ( ) Dokter jaga
+Tujuan            (•) Biasa      ( ) Penulisan catatan terlambat
+Mulai             [ 16/09/2026 10.00 ]
+Selesai           [                  ]  (wajib untuk catatan terlambat)
+Alasan            [ Konsultasi hiperglikemia            ]
+                                  [Batal] [Simpan]
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses | Keadaan kosong | Keadaan gagal |
+| --- | --- | --- | --- | --- | --- |
+| Pilihan dokter | Dokter aktif | Endpoint opsi dokter yang sudah dipakai admisi | — | "Tidak ada dokter aktif" | Pesan dan tombol simpan nonaktif |
+| Tujuan | Memilih "Penulisan catatan terlambat" **mengunci** peran ke Dokter jaga, mewajibkan Selesai, dan mengisi Mulai dengan waktu sekarang | — | — | — | — |
+| Simpan | Kirim + `Idempotency-Key` | `POST episodes/{id}/doctor-assignments/supporting` | `InpatientEpisode : Update` | — | `400`/`409`/`422` ditampilkan per isian |
+| Panel penugasan | Baris konsulen dan dokter jaga, periode, alasan, **label "Penugasan singkat"** bila tujuan `LateDocumentation`; tombol Akhiri | `GET episodes/{id}/doctor-assignments`, `PATCH …/end` | `InpatientEpisode : Read`/`Update` | "Belum ada dokter pendukung" | "Riwayat penugasan tidak dapat dimuat" |
+
+#### 12.3.2 `FE-INP-22` Resume delapan bagian
+
+| Wilayah | Isinya | Sumber data | Hak akses | Keadaan kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Delapan bagian urutan PRD bagian 21 | Diagnosis; Ringkasan Perawatan; **Pemeriksaan Penting**; Tindakan; Obat/Terapi; **Kondisi Saat Pulang**; Rencana Kontrol; **Edukasi** | `GET/PUT discharges/{episodeId}/summary` | `InpatientDischarge : Read`/`Update` | Resume belum ada → form kosong |
+| "Isi dari data klinis" | Mengisi **hanya isian yang kosong** di layar; isian yang sudah diketik dokter tidak ditimpa tanpa konfirmasi; label sumber di bawah setiap isian terisi | `GET /summary-prefill` | `InpatientDischarge : Read` | Sumber `Unavailable` → "Data {sumber} tidak dapat dimuat" pada isian itu saja |
+| Tanda tangan | Kalimat tetap "Menandatangani resume tidak menutup episode" | `PATCH /summary/sign` | `InpatientDischarge : Sign` | `403` → pesan DPJP aktif |
+
+#### 12.3.3 `FE-INP-23` Peringatan dan akibat penutupan
+
+```text
+Syarat penutupan                    ✓ 5 dari 5 terpenuhi
+Perlu diketahui — tidak menahan penutupan
+  ! 1 konsep catatan dokter akan terkunci "Tidak Ditandatangani" (dr. Yoga — SOAP)
+  ! 1 pesanan tindakan belum dilaksanakan akan dibatalkan
+  ! 1 dosis obat lewat jadwal belum dicatat
+                                              [Tutup Episode]
+```
+
+| Wilayah | Isinya | Sumber data | Hak akses | Keadaan gagal |
+| --- | --- | --- | --- | --- |
+| Syarat | Tidak berubah | `GET closure-readiness` | `InpatientDischarge : Read` | Tidak berubah |
+| Peringatan | `Warnings[]` dengan rincian dapat dibuka | Sama | Sama | Peringatan gagal dimuat → "Peringatan tidak dapat dimuat"; tombol Tutup **tetap** mengikuti syarat, bukan peringatan |
+| Hasil | Setelah berhasil: ringkasan `SideEffects` | Response `close` | `InpatientDischarge : Close` | `500` → "Penutupan gagal disimpan, coba lagi" — tidak ada yang berubah |
+
+Peringatan memakai warna netral atau kuning (`DEV_DISCRETION`), **tidak** merah yang terbaca sebagai penghalang.
+
+#### 12.3.4 `FE-INP-24` Daftar pantau pesanan tertunda tertagih
+
+| Wilayah | Isinya | Sumber data | Hak akses | Keadaan kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Tabel | Pasien, episode, unit, tindakan, penginput, waktu pesan, waktu tutup, nomor tagihan | `GET monitoring/billed-pending-procedure-orders` | `InpatientMonitoring : Read` | "Tidak ada pesanan tertunda yang sudah ditagih" / "Daftar tidak dapat dimuat" |
+| Tindak lanjut | Hanya baca; kalimat "Tindak lanjut bersama Billing" | — | — | — |
+
+### 12.4 Traceability
+
+| Layar | Keputusan | Acceptance |
+| --- | --- | --- |
+| `FE-INP-21` | `RWI-DEC-099`, `130` | Acceptance 18.2 |
+| `FE-INP-22` | `RWI-DEC-112` | Acceptance 18.3 |
+| `FE-INP-23` | `RWI-DEC-138`, `143`; `INT-KEP-15` | Acceptance 18.4 |
+| `FE-INP-24` | `RWI-DEC-143` (c) | Acceptance 18.4 |

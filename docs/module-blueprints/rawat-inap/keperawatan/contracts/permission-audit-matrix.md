@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` — bagian 3A lahir: kewenangan menulis perawat ditentukan unit |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Contract version | **`0.5.0`** — bagian 6, `draft` |
+| `last_changed_in` | **`0.5.0`** — bagian 6: sepuluh Resource baru, peta peran, audit, kolom sensitif. Sebelumnya `0.4.0` — bagian 3A |
+| Status | **`draft`** untuk `0.5.0`. `0.4.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
 | `input_revision` | `02-backend-architecture.md` `0.1`; `PRD-RWI-FINAL-001` v1.0.0 |
@@ -177,3 +177,99 @@ Kolom bertanda **Sensitif** pada [`../data/data-dictionary.md`](../data/data-dic
 **Masa simpan belum ditetapkan.** `RWI-OQ-035` sudah dijawab `RWI-DEC-060` tetapi menunggu pemilik
 hukum. Sampai itu turun, tidak ada penghapusan otomatis yang dirancang — dan itu keadaan yang
 lebih aman daripada menebak masa simpan rekam medis.
+
+---
+
+## 6. Perubahan pada `contract_version` `0.5.0` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Berbeda dari `0.4.0`, amandemen ini **melahirkan** Resource dan Action baru. Peta peran di bawah
+adalah usulan isi seeder; hak akses tetap data yang diatur pada layar Akses Role, bukan nama peran di kode (`G-11`).
+
+### 6.1 Butir hak akses baru
+
+| Resource | Action | Modul pemilik endpoint | Menjaga |
+| --- | --- | --- | --- |
+| `ClinicalInstrumentConfiguration` | `Read`, `Update`, `Approve` | `ClinicalManagement` | Konfigurasi instrumen dan formulir klinis |
+| `CaseManagementEvaluation` | `Read`, `Create`, `Update`, `Amend` | `ClinicalManagement` | Evaluasi Awal. **Memegang `Create`/`Update` adalah penanda MPP** — `G-11` |
+| `FluidBalance` | `Read`, `Create`, `Update` | `ClinicalManagement` | Cairan masuk dan keluar |
+| `BloodGlucose` | `Read`, `Create`, `Update` | `ClinicalManagement` | GDS bangsal |
+| `DailyObservation` | `Read`, `Create`, `Update` | `ClinicalManagement` | Diet, mobilisasi, observasi; `Read` juga menjaga ringkasan Pengawasan Harian |
+| `NursingShift` | `Read`, `Update` | `ClinicalManagement` | Jam shift |
+| `MedicationAdministration` | `Read`, `Create`, `Update`, `DoubleCheck` | `PharmacyManagement` | MAR |
+| `SlidingScaleExecution` | `Read`, `Create` | `PharmacyManagement` | Pelaksanaan sliding scale |
+| `MedicationScheduleSetting` | `Read`, `Update` | `PharmacyManagement` | Jadwal frekuensi dan pengaturan MAR |
+| `PatientBillingSummary` | `Read` | `BillingManagement` — **diminta** | Ringkasan tagihan di ruang kerja keperawatan — `RWI-DEC-137` |
+
+**Butir yang sudah ada dan dipakai jalur baru:** `PatientAssessment` (`Read`/`Create`/`Update`/`Amend`),
+`PatientVitalSign` (`Read`/`Create`/`Update`), `PatientAllergy` (`Create` untuk dugaan reaksi obat),
+`PatientIntegratedProgressNote`, dan butir milik `dokter-rawat-inap` `0.6.0` bagian 6–9 (`MedicationReconciliation :
+Create` untuk perawat mencatat obat bawaan, `PatientProcedure : Create`).
+
+### 6.2 Peta peran ke butir hak akses baru — usulan seeder
+
+| Peran rumah sakit | Resource | Action |
+| --- | --- | --- |
+| Perawat pelaksana | `FluidBalance`, `BloodGlucose`, `DailyObservation` | `Read`, `Create`, `Update` |
+| Perawat pelaksana | `MedicationAdministration` | `Read`, `Create`, `DoubleCheck` |
+| Perawat pelaksana | `SlidingScaleExecution` | `Read`, `Create` |
+| Perawat pelaksana | `CaseManagementEvaluation`, `NursingShift` | `Read` |
+| Perawat pelaksana | `PatientAllergy` | `Create` |
+| Kepala ruangan | Seluruh baris perawat pelaksana | ditambah `MedicationAdministration : Update` (koreksi MAR) |
+| MPP | `CaseManagementEvaluation` | `Read`, `Create`, `Update`, `Amend` |
+| MPP | `FluidBalance`, `BloodGlucose`, `DailyObservation`, `MedicationAdministration` | `Read` |
+| DPJP, konsulen, dokter jaga | `FluidBalance`, `BloodGlucose`, `DailyObservation`, `MedicationAdministration`, `SlidingScaleExecution`, `CaseManagementEvaluation` | `Read` **saja** |
+| Apoteker | `MedicationAdministration`, `SlidingScaleExecution` | `Read` |
+| Apoteker / admin Farmasi | `MedicationScheduleSetting` | `Read`, `Update` |
+| Admin konfigurasi klinis | `ClinicalInstrumentConfiguration` | `Read`, `Update` |
+| Komite keperawatan / pemilik klinis | `ClinicalInstrumentConfiguration` | `Read`, `Approve` |
+| Admin sistem keperawatan | `NursingShift` | `Read`, `Update` |
+| Petugas yang ditunjuk | `PatientBillingSummary` | `Read` — **tidak** otomatis semua perawat |
+| Petugas admisi, kasir | Seluruh Resource baru | **Tidak ada** |
+
+> **Pengubah dan pengesah konfigurasi sengaja dipisah perannya.** Satu orang yang memegang `Update` dan `Approve`
+> sekaligus tetap ditolak mengesahkan versi yang terakhir ia ubah (`VAL-KEP-20a`). Pemisahan peran hanya membuat
+> penolakan itu jarang terjadi.
+
+### 6.3 Kewenangan yang **tidak dapat** dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Kenapa bukan hak akses |
+| --- | --- | --- |
+| Perawat hanya menulis untuk pasien di unit penempatannya | `INT-KEP-07`, `VAL-KEP-05` | Bergantung pasien, bukan pengguna |
+| MPP hanya menulis Evaluasi Awal untuk pasien di unitnya | `VAL-KEP-23a` | Sama |
+| Pemeriksa kedua bukan pencatat | `VAL-KEP-31a` + check constraint | Bergantung baris |
+| Pengesah bukan pengubah terakhir | `VAL-KEP-20a` + check constraint | Bergantung baris |
+| Konsep Evaluasi Awal hanya diubah penulisnya | `VAL-KEP-23c` | Bergantung baris |
+| Butir sliding scale hanya dicatat lewat pelaksanaan | `VAL-KEP-29f` | Bergantung jenis dosis butir |
+| Pelaksanaan sliding scale menulis dosis MAR | Service memeriksa `MedicationAdministration : Create` **selain** atribut `SlidingScaleExecution : Create` | Satu endpoint menulis dua jenis data |
+| Ringkasan tagihan tanpa harga per item | Bentuk kontrak Billing | Bentuk data, bukan izin |
+
+### 6.4 Audit — kejadian yang wajib meninggalkan jejak tahan lama
+
+| Kejadian | Jejaknya | Dasar |
+| --- | --- | --- |
+| Pengesahan dan pemensiunan versi konfigurasi klinis | `ApprovedByUserId`, `ApprovedAt`, `ApprovalNote`, `DefinitionHash` | `RWI-DEC-136` |
+| Setiap hasil pengkajian berinstrumen | Versi, hash, skor, pita pada `CliAssessmentInstrumentResponse` | `RWI-AC-196` |
+| Setiap koreksi entri terukur dan dosis MAR | Baris revisi berisi nilai lama, alasan, pengoreksi, waktu | `INV-KEP-11`, `RWI-DEC-116` (c) |
+| Cek ganda dikonfirmasi atau ditolak | Pemeriksa, waktu, catatan | `INV-KEP-05` |
+| Pelaksanaan sliding scale | GDS salinan, rentang, dosis hitung, dosis aktual, pengecualian, pelaksana | `RWI-DEC-148` (4) |
+| Dosis dibatalkan sistem | `StatusReason` "resep dihentikan" atau "perawatan ditutup" | `INT-KEP-09`, `INT-KEP-15` |
+| Penyelesaian dan addendum Evaluasi Awal | Mesin keutuhan dokumen | `INT-KEP-12` |
+| Dugaan reaksi obat | Baris alergi tertaut dosis | `AC-MVP-029` |
+| Pembacaan ringkasan tagihan | Custom logger **tidak** mencatat `GET`; tidak ada jejak baca khusus pada rilis ini | `RWI-DEC-137` tidak memintanya |
+
+### 6.5 Kolom sensitif baru
+
+Kolom berikut **MUST NOT** masuk payload custom logger dan **MUST NOT** dipakai sebagai contoh berisi data asli.
+
+| Kolom | Tabel | Kenapa sensitif |
+| --- | --- | --- |
+| `ResponsesJson` | `CliAssessmentInstrumentResponse` | Jawaban pengkajian: keadaan kulit, eliminasi, psikososial |
+| `CancelReason`, `CorrectionReason` | Seluruh tabel entri terukur dan revisinya | Sering memuat alasan klinis |
+| `PreviousValuesJson` | `CliDailyObservationRevision` | Nilai klinis lama |
+| `DietNote`, `Note` | `CliDailyObservation` | Catatan bebas |
+| `StatusReason`, `DeviationNote`, `DoubleCheckNote`, `PrnIndication`, `PrnEvaluationNote` | `PhmMedicationAdministration` | Keadaan klinis dan alasan tidak memberi obat |
+| `PreviousStatusReason`, `CorrectionReason` | `PhmMedicationAdministrationRevision` | Sama |
+| `ExceptionReason` | `PhmSlidingScaleExecution` | Alasan klinis penyimpangan dosis insulin |
+| `ReactionDescription`, `ClinicalNote` pada baris dugaan reaksi | `TrxPatientAllergy` | Sudah sensitif pada tabel asal |
+
+**Masa simpan** tetap belum ditetapkan — bagian 5 berlaku.

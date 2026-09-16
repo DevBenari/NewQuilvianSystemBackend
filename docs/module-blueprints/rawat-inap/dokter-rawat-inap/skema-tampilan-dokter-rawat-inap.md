@@ -12,6 +12,13 @@
 | Scope | Rancangan tampilan frontend |
 | Catatan | Dokumen ini fokus pada skema UI/UX dan composition component. Detail menu sidebar mengikuti implementasi menu existing dan keputusan operasional tim. |
 
+> **Diperbarui 15 September 2026 — blueprint revision `7`.** Susunan dua halaman, daftar pasien dari census, tab
+> "Resep & Tindakan" gabungan, dan pemakaian `doctor-clinical-base` pada dokumen ini **tidak lagi berlaku**.
+> `PRD-RWI-V2-001` bagian 7–15 dan `RWI-DEC-107` menuntut susunan satu halaman yang sama persis dengan Dokter Rawat
+> Jalan V2 beserta delapan tab. Skema kanonis beserta sumber data dan hak akses tiap wilayah ada pada
+> [`03-frontend-architecture.md`](./03-frontend-architecture.md) bagian 10. Aturan keselamatan pada bagian 2 dokumen
+> ini — konteks pasti, alergi gagal terlihat, tanpa aksi antrean, koreksi lewat addendum — tetap berlaku.
+
 ---
 
 # 2. Prinsip Rancangan
