@@ -499,7 +499,12 @@ task revision `4` s.d. `6`.
 | [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `2` | Tetap berlaku | Task lama; **tidak menerima task baru** |
 | [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `3` | Tetap berlaku | Task lama; **tidak menerima task baru** |
 
-**Dua gerbang menahan sebagian task, turun dari tiga sejak 16 September 2026:** `{GATE-RAJAL}`
-ekstraksi komponen `rawat-jalan` menahan `FE-RWI-067` beserta sembilan tab di bawahnya, dan
-`{GATE-LABRAD}` menahan `BE-RWI-104`. ~~`{GATE-YOGA}`~~ **tertutup lewat `RWI-DEC-151`**, sehingga
-`BE-RWI-092` dan `FE-RWI-077` kini bebas. Rinciannya pada bagian gerbang masing-masing roadmap.
+**Nol gerbang menahan task, per 16 September 2026.** Ketiganya tertutup pada hari yang sama:
+`{GATE-YOGA}` lewat `RWI-DEC-151` (Yoga Aji Pratama), `{GATE-RAJAL}` lewat `RWI-DEC-152` (Sukma GP),
+dan `{GATE-LABRAD}` lewat `RWI-DEC-153` (Yoga Aji). Seluruh 32 task sub-modul ini kini hanya menunggu
+prasyarat berupa task lain.
+
+**Dua kewajiban yang tetap berlaku.** Persetujuan pemilik **tidak** menggantikan bukti: **regresi
+poliklinik** pada `BE-RWI-097` dan `BE-RWI-105` tetap wajib, begitu juga **regresi Lab/Rad** pada
+`BE-RWI-104`. Satu gerbang **produksi** juga masih menyisakan butir: `RWI-OQ-097` — nama pengesah isi
+protokol sliding scale belum ada, sehingga nol versi protokol dapat dinaikkan `Approved`.

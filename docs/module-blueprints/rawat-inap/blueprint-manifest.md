@@ -316,24 +316,25 @@ berjalan lurus melintasi berkas lama maupun baru.
 
 | Keadaan | Jumlah task | Keterangan |
 |---|---:|---|
-| **Boleh mulai tanpa menunggu siapa pun** | **7** backend | `BE-RWI-079` · `088` · `089` · `090` · `099` · `102` · `106` — gelombang 1 pada ketiga roadmap backend |
-| Menunggu task lain **di dalam** modul | **60** | Naik dua sejak `RWI-DEC-151`: `BE-RWI-092` dan `FE-RWI-077` pindah ke sini dari baris di bawah |
-| **Tertahan gerbang milik orang lain** | **13** | Turun dari 15. Backend: `BE-RWI-104`, `BE-RWI-126`. Frontend: `FE-RWI-067` beserta sembilan tab `FE-RWI-068` s.d. `076`, ditambah `FE-RWI-094` |
+| **Boleh mulai tanpa menunggu siapa pun** | **8** backend | `BE-RWI-079` · `088` · `089` · `090` · `099` · `102` · `106` · `126` — gelombang 1 pada ketiga roadmap backend |
+| Menunggu task lain **di dalam** modul | **72** | Urutannya ada pada grafik dependency tiap roadmap |
+| **Tertahan gerbang milik orang lain** | **0** | Turun dari 15 — kelima gerbang tertutup 2026-09-16 lewat `RWI-DEC-151` s.d. `RWI-DEC-155` |
 | **Total** | **80** | 48 backend + 32 frontend |
 
-#### Gerbang yang menahan task, dan pemiliknya
+#### Gerbang yang dulu menahan task — seluruhnya tertutup 16 September 2026
 
 | Gerbang | Menahan | Pemilik |
 |---|---|---|
-| `{GATE-RAJAL}` — ekstraksi komponen tata letak | `FE-RWI-067` dan sembilan tab di bawahnya | Pemilik blueprint `rawat-jalan` |
+| ~~`{GATE-RAJAL}` — ekstraksi komponen tata letak~~ | **TERTUTUP 2026-09-16** `RWI-DEC-152` | **Sukma GP** ✅ |
 | ~~`{GATE-YOGA}` — `my-authored` dan `serviceContext`~~ | ~~`BE-RWI-092`, `FE-RWI-077`~~ — **keduanya bebas sejak 2026-09-16** lewat `RWI-DEC-151` | Yoga Aji Pratama ✅ |
-| `{GATE-LABRAD}` — kolom instruksi Lab/Rad | `BE-RWI-104`; bagian pesanan `FE-RWI-089` | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| `{GATE-BILLING}` — kontrak Billing | `BE-RWI-126`, `FE-RWI-094` | Pemilik `BillingManagement` — `RWI-OQ-053`, **belum bernama** |
-| Pengesah isi protokol sliding scale | **Gerbang produksi**, bukan gerbang task: `BE-RWI-102`, `103`, `123`, `FE-RWI-079`, `087` | Manajemen rumah sakit |
+| ~~`{GATE-LABRAD}` — kolom instruksi Lab/Rad~~ | **TERTUTUP 2026-09-16** `RWI-DEC-153` | **Yoga Aji** ✅ |
+| ~~`{GATE-BILLING}` — kontrak Billing~~ | **TERTUTUP 2026-09-16** `RWI-DEC-154`; `RWI-OQ-053` ikut tertutup | **Yasmina** ✅ |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** `RWI-DEC-155`: kewenangan memakai sudah ada, **nama pengesah belum** | Manajemen rumah sakit |
 
-Selain kelimanya ada **dua kewajiban koordinasi** yang menahan **rilis**, bukan pengerjaan:
-pemberitahuan kepada pemilik `rawat-jalan` atas `R7`, `R9`, dan `K2` — tiga langkah yang mengubah
-perilaku poliklinik.
+Kedua kewajiban koordinasi yang dulu menahan **rilis** — pemberitahuan kepada pemilik `rawat-jalan`
+atas `R7`, `R9`, dan `K2` — juga **terpenuhi** lewat `RWI-DEC-152`. **Kewajiban regresi poliklinik
+pada `BE-RWI-097`, `BE-RWI-105`, dan `BE-RWI-109` tetap berlaku penuh**: persetujuan pemilik bukan
+pengganti bukti. Rincian penutupan keempat gerbang terakhir ada pada bagian 0-B.10.
 
 #### Yang tidak dilakukan fase ini
 
@@ -373,13 +374,15 @@ Rawat Inap terhadap mesin keutuhan dokumen. Keputusannya tercatat `RWI-DEC-151` 
 
 #### Yang **tidak** dicakup persetujuan ini
 
-Tiga gerbang lain tetap terbuka apa adanya, dan **tidak satu pun** ikut tertutup:
+Tiga gerbang lain **tidak** ikut tertutup oleh `RWI-DEC-151`. Ketiganya baru tertutup **beberapa jam
+kemudian pada hari yang sama**, lewat keputusan terpisah — lihat bagian 0-B.10. Tabel di bawah
+dipertahankan sebagai jejak keadaan saat `RWI-DEC-151` diambil:
 
-| Gerbang | Masih menahan | Pemiliknya |
-|---|---|---|
-| `{GATE-RAJAL}` ekstraksi komponen tata letak | `FE-RWI-067` beserta sembilan tab `FE-RWI-068` s.d. `076` | Pemilik blueprint `rawat-jalan` |
-| `{GATE-LABRAD}` kolom instruksi Lab/Rad | `BE-RWI-104`; bagian pesanan `FE-RWI-089` | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| `{GATE-BILLING}` kontrak Billing | `BE-RWI-126`, `FE-RWI-094` | Pemilik `BillingManagement` — `RWI-OQ-053`, **belum bernama** |
+| Gerbang | Yang ditahan saat itu | Pemiliknya | Nasibnya |
+|---|---|---|---|
+| ~~`{GATE-RAJAL}` ekstraksi komponen tata letak~~ | `FE-RWI-067` beserta sembilan tab `FE-RWI-068` s.d. `076` | **Sukma GP** | Tertutup `RWI-DEC-152` |
+| ~~`{GATE-LABRAD}` kolom instruksi Lab/Rad~~ | `BE-RWI-104`; bagian pesanan `FE-RWI-089` | **Yoga Aji** | Tertutup `RWI-DEC-153` |
+| ~~`{GATE-BILLING}` kontrak Billing~~ | `BE-RWI-126`, `FE-RWI-094` | **Yasmina** | Tertutup `RWI-DEC-154`; `RWI-OQ-053` ikut tertutup |
 
 Persetujuan ini juga **bukan wewenang menulis source, migration, database, maupun deployment** pada
 mesin keutuhan. Ia menyetujui **perubahannya**, bukan pelaksanaannya; wewenang tulis tetap
@@ -397,6 +400,81 @@ karena ketiganya sejak awal dikelompokkan sebagai **satu** gerbang `{GATE-YOGA}`
 Bila maksud Yoga Aji Pratama sebenarnya lebih sempit — misalnya hanya `my-authored` — baris ini
 diralat lewat `grill-me` **sebelum** `BE-RWI-082` dan `BE-RWI-091` dikerjakan, dan kedua butir DoD
 pemberitahuan itu dikembalikan.
+
+---
+
+### 0-B.10 Empat gerbang terakhir tertutup — `RWI-DEC-152` s.d. `155` ★ 16 September 2026
+
+Seluruh gerbang lintas modul revision `7` tertutup pada hari yang sama. **Nol task Rawat Inap kini
+menunggu orang lain.**
+
+#### Siapa menyetujui apa
+
+| Keputusan | Gerbang | Pemberi persetujuan | Yang terbuka |
+|---|---|---|---|
+| `RWI-DEC-151` | `{GATE-YOGA}` mesin keutuhan | **Yoga Aji Pratama** — `MedicalRecordManagement` | `BE-RWI-092`, `FE-RWI-077` |
+| `RWI-DEC-152` | `{GATE-RAJAL}` ekstraksi komponen + `R7`, `R9`, `K2` | **Sukma GP** — blueprint `rawat-jalan` | `FE-RWI-067` s.d. `FE-RWI-076` — **sepuluh task** |
+| `RWI-DEC-153` | `{GATE-LABRAD}` kolom instruksi | **Yoga Aji** — `LaboratoryManagement`, `RadiologyManagement` | `BE-RWI-104`; kontrol pesanan `FE-RWI-089` |
+| `RWI-DEC-154` | `{GATE-BILLING}` kontrak Billing | **Yasmina** — `BillingManagement` | `BE-RWI-126`, `FE-RWI-094` |
+| `RWI-DEC-155` | Gerbang produksi sliding scale | **Manajemen rumah sakit** | Kewenangan memakai — **sebagian**, lihat di bawah |
+
+Tiga nama pemilik modul tetangga yang sebelumnya kosong pada blueprint ini kini terisi: **Sukma GP**,
+**Yoga Aji**, dan **Yasmina**. `RWI-OQ-053`, yang sejak awal modul mencatat pemilik
+`BillingManagement` belum ditunjuk, **tertutup** oleh `RWI-DEC-154`.
+
+#### Keadaan task sesudahnya
+
+| Keadaan | Sebelum 16 Sep | Sesudah |
+|---|---:|---:|
+| Boleh mulai tanpa menunggu siapa pun | 7 | **8** |
+| Menunggu task lain di dalam modul | 58 | **72** |
+| Tertahan gerbang milik orang lain | 15 | **0** |
+| **Total** | 80 | 80 |
+
+Grafik dependency ikut menyusut karena empat node gerbang dicabut: `dokter` backend 19 → **17**,
+`dokter` frontend 28 → **27**, `keperawatan` backend 24 → **23**.
+
+#### Yang **tidak** ikut longgar
+
+Persetujuan membuka izin; ia **bukan pengganti bukti**. Empat kewajiban di bawah tetap berlaku penuh
+dan tetap menjadi syarat `✅`:
+
+| Kewajiban | Task | Kenapa tetap ada |
+|---|---|---|
+| **Regresi poliklinik** dijalankan sungguhan | `BE-RWI-097` (`R7`), `BE-RWI-105` (`R9`), `BE-RWI-109` (`K2`) | Sukma GP menyetujui perubahannya; ia tidak menyatakan alur rawat jalan masih bekerja |
+| **Regresi alur Lab/Rad** dijalankan sungguhan | `BE-RWI-104` | Yoga Aji menyetujui kolom barunya; ia tidak menyatakan alur pemesanan modulnya tidak berubah |
+| **Tangkapan layar bertopeng** tiga lebar | `FE-RWI-067` | Persetujuan ekstraksi bukan bukti hasilnya identik dengan Dokter Rawat Jalan |
+| **Nol harga per item, nol kontrol tulis** | `BE-RWI-126`, `FE-RWI-094` | Yasmina menyetujui permukaan **baca**; batas itu bagian dari yang disetujui |
+
+#### Dua hal yang masih terbuka, dan keduanya bukan gerbang task
+
+**`RWI-OQ-097` — nama pengesah isi protokol sliding scale.** Manajemen rumah sakit menyetujui
+**pemakaian** sliding scale, tetapi belum menyebut **siapa** yang berwenang menekan Sahkan pada versi
+protokolnya. `FR-DOK-095` dan `FR-KEP-040` menuntut pengesah **bukan** pengubah terakhir — kendali
+empat mata itu butuh sedikitnya satu akun berperan pengesah. Akibatnya konkret: `BE-RWI-102`,
+`BE-RWI-103`, `BE-RWI-123`, `FE-RWI-079`, dan `FE-RWI-087` **boleh dibangun dan diuji**, tetapi selama
+nama itu kosong **nol versi protokol dapat dinaikkan menjadi `Approved`**, sehingga sliding scale
+belum dapat dipakai pada pasien sungguhan.
+
+**`BE-BKC-040` kelayakan keuangan.** Tetap `P0 — external dependency` sesuai `RWI-DEC-102`. Yang
+Yasmina setujui adalah permukaan **baca** ringkasan tagihan, bukan pekerjaan kelayakan keuangan di
+dalam modul Billing. Ia tidak menahan satu pun task pada roadmap Rawat Inap, tetapi tetap menjadi
+gerbang kesiapan produksi modul ini.
+
+#### Catatan cara kelima persetujuan ini masuk
+
+Kelimanya **diteruskan Muhammad Hamzah**, bukan ditulis langsung oleh masing-masing pemilik. Agent
+mencatatnya sebagai persetujuan yang diteruskan dan menyatakan batas itu terbuka supaya dapat
+dikoreksi. Dua hal yang sebaiknya diperiksa pemilik:
+
+1. **Nama "Yoga Aji" muncul dua kali** — pada `RWI-DEC-151` sebagai pemilik `MedicalRecordManagement`
+   dengan nama lengkap Yoga Aji Pratama, dan pada `RWI-DEC-153` sebagai pemilik `LaboratoryManagement`
+   dan `RadiologyManagement`. Agent mencatat keduanya apa adanya dan **tidak** menyimpulkan keduanya
+   orang yang sama. Bila memang satu orang memegang tiga modul, atau justru dua orang berbeda, baris
+   itu diralat.
+2. **Penunjukan Yasmina sebagai pemilik `BillingManagement`** adalah tindakan organisasi, bukan
+   keputusan blueprint. Ia dicatat sebagai penunjukan yang diteruskan; bila penunjukan resminya belum
+   ada, `RWI-OQ-053` dibuka kembali.
 
 ---
 

@@ -32,11 +32,11 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-069` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | `UAT-45` | ⛔ `{GATE-RAJAL}` untuk FE |
-| `FR-DOK-070` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | ⛔ `{GATE-RAJAL}` untuk FE |
-| `FR-DOK-071` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | ⛔ `{GATE-RAJAL}` untuk FE |
-| `FR-DOK-072` | Frontend | — | `FE-RWI-067` | `UI-AC-DOK-001` s.d. `012` | Tangkapan layar bertopeng tiga lebar | ⛔ `{GATE-RAJAL}` |
-| `FR-DOK-073` | Frontend | — | `FE-RWI-067` | — | Verifikasi manual | ⛔ `{GATE-RAJAL}` |
+| `FR-DOK-069` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | `UAT-45` | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
+| `FR-DOK-070` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
+| `FR-DOK-071` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
+| `FR-DOK-072` | Frontend | — | `FE-RWI-067` | `UI-AC-DOK-001` s.d. `012` | Tangkapan layar bertopeng tiga lebar | **Bebas** — `RWI-DEC-152`; bukti tangkapan layar **tetap wajib** |
+| `FR-DOK-073` | Frontend | — | `FE-RWI-067` | — | Verifikasi manual | **Bebas** — `RWI-DEC-152` |
 
 ## 2. `EPIC DOK-11` — Kewenangan penulis, registrasi, penguncian, Catatan Saya
 
@@ -94,22 +94,22 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 | `FR-DOK-103` | `EXISTING / REUSE` | `BE-RWI-098` | `FE-RWI-073` | permission matrix | Verifikasi proses bisnis | Belum dikerjakan |
 | `FR-DOK-104` | `MISSING / NEW` | `BE-RWI-098` | `FE-RWI-073`, `FE-RWI-078` | state matrix | Verifikasi kontrak API | Belum dikerjakan |
 | `FR-DOK-105` | `MISSING / NEW` — dipicu `episode-rawat-inap` | `BE-RWI-083` [BE-INP] | `FE-RWI-066` [FE-INP] | `INT-INP-09` | `UAT-50` | Belum dikerjakan |
-| `FR-DOK-106` | `EXTEND` | `BE-RWI-104` ⛔ | `FE-RWI-076` ⛔ | integrasi Lab/Rad | Verifikasi skema | ⛔ `{GATE-LABRAD}` |
+| `FR-DOK-106` | `EXTEND` | `BE-RWI-104` | `FE-RWI-076` | integrasi Lab/Rad | Verifikasi skema; **regresi Lab/Rad** | **Bebas** — `{GATE-LABRAD}` tertutup `RWI-DEC-153` |
 
 ## 7. `EPIC DOK-16` — Tab Resume Medis
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-107` | `EXTEND` — dirancang `episode-rawat-inap` | `BE-RWI-085` [BE-INP] | `FE-RWI-074` ⛔ | `0.9.0` data 18.2–18.3 | Acceptance 18.3 | ⛔ `{GATE-RAJAL}` untuk FE |
-| `FR-DOK-108` | `MISSING / NEW` | `BE-RWI-086` [BE-INP] | `FE-RWI-074` ⛔ | `0.9.0` API 10.3 | Acceptance 18.3 | ⛔ `{GATE-RAJAL}` untuk FE |
-| `FR-DOK-109` | Frontend | — | `FE-RWI-074` ⛔ | — | Verifikasi manual | ⛔ `{GATE-RAJAL}` |
+| `FR-DOK-107` | `EXTEND` — dirancang `episode-rawat-inap` | `BE-RWI-085` [BE-INP] | `FE-RWI-074` | `0.9.0` data 18.2–18.3 | Acceptance 18.3 | **Bebas** — `RWI-DEC-152` |
+| `FR-DOK-108` | `MISSING / NEW` | `BE-RWI-086` [BE-INP] | `FE-RWI-074` | `0.9.0` API 10.3 | Acceptance 18.3 | **Bebas** — `RWI-DEC-152` |
+| `FR-DOK-109` | Frontend | — | `FE-RWI-074` | — | Verifikasi manual | **Bebas** — `RWI-DEC-152` |
 
 ## 8. `EPIC DOK-17` — Penunjang enam layanan
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-110` | `EXISTING / REUSE` | — (nol backend baru) | `FE-RWI-076` ⛔ | API Lab/Rad yang sudah ada | Verifikasi manual | ⛔ `{GATE-RAJAL}` |
-| `FR-DOK-111` | Frontend | — | `FE-RWI-076` ⛔ | — | Panel Network menunjukkan nol permintaan | ⛔ `{GATE-RAJAL}` |
+| `FR-DOK-110` | `EXISTING / REUSE` | — (nol backend baru) | `FE-RWI-076` | API Lab/Rad yang sudah ada | Verifikasi manual | **Bebas** — `RWI-DEC-152` |
+| `FR-DOK-111` | Frontend | — | `FE-RWI-076` | — | Panel Network menunjukkan nol permintaan | **Bebas** — `RWI-DEC-152` |
 
 ---
 
@@ -150,11 +150,11 @@ backend, dan itu **bukan** gap — buktinya berupa verifikasi manual dan tangkap
 
 | Gerbang | Jenis | Menahan | Pemilik |
 | --- | --- | --- | --- |
-| `{GATE-RAJAL}` ekstraksi komponen | Persetujuan lintas modul | `FE-RWI-067` dan sembilan tab di bawahnya | Pemilik blueprint `rawat-jalan` |
+| ~~`{GATE-RAJAL}` ekstraksi komponen~~ | **TERTUTUP 2026-09-16** `RWI-DEC-152` | ~~`FE-RWI-067` dan sembilan tab~~ — seluruhnya bebas | **Sukma GP** ✅ |
 | ~~`{GATE-YOGA}` `my-authored`~~ | **TERTUTUP 2026-09-16** `RWI-DEC-151` | ~~`BE-RWI-092`, `FE-RWI-077`~~ — keduanya bebas | Yoga Aji Pratama ✅ |
-| `{GATE-LABRAD}` kolom instruksi | Persetujuan pemilik modul | `BE-RWI-104` | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| Pemberitahuan `rawat-jalan` atas `R7` dan `R9` | Koordinasi | **Rilis** `BE-RWI-097` dan `BE-RWI-105` | Pemilik blueprint `rawat-jalan` |
-| Pengesah isi protokol sliding scale | Gerbang produksi | Pemakaian sliding scale pada pasien sungguhan | Manajemen rumah sakit |
+| ~~`{GATE-LABRAD}` kolom instruksi~~ | **TERTUTUP 2026-09-16** `RWI-DEC-153` | ~~`BE-RWI-104`~~ — bebas; **regresi Lab/Rad tetap wajib** | **Yoga Aji** ✅ |
+| ~~Pemberitahuan `rawat-jalan` atas `R7` dan `R9`~~ | **TERTUTUP 2026-09-16** `RWI-DEC-152` | ~~Rilis `BE-RWI-097` dan `BE-RWI-105`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** | Kewenangan memakai **sudah** ada `RWI-DEC-155`; **nama** pengesah belum, sehingga nol versi dapat `Approved` | Manajemen rumah sakit |
 
 ---
 

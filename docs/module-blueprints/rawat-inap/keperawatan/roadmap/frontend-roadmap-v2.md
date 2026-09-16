@@ -182,7 +182,7 @@ tabel task: **27**. Keduanya cocok.
 | 2 | `FE-RWI-081` dan `BE-RWI-125` [BE] | `FE-RWI-089` |
 | 2 | `FE-RWI-081` | `FE-RWI-090` |
 | 3 | `FE-RWI-082` dan `BE-RWI-107`, `BE-RWI-109` [BE] | `FE-RWI-083` |
-| — | ⛔ menunggu `{GATE-BILLING}` lewat `BE-RWI-126` [BE] | `FE-RWI-094` |
+| 1 | `BE-RWI-126` [BE] mendarat — gerbangnya tertutup `RWI-DEC-154` | `FE-RWI-094` |
 
 ---
 
@@ -198,12 +198,12 @@ tabel task: **27**. Keduanya cocok.
 | `FE-RWI-086` | Perawat menulis asuhan dan catatan dalam satu tempat | `FR-KEP-077`; `FR-KEP-056`; `RWI-DEC-113`, `114` | `0.5.0` + `0.6.0` [DOK] | `FE-KEP-04`, `FE-KEP-05` | `FE-KEP-12` — Vital Sign, SOAP, Catatan Terintegrasi, Tindakan Harian, Obat & Alkes, Catatan Keperawatan, Rencana Asuhan | `FE-RWI-081`, `BE-RWI-124` [BE], `BE-RWI-121` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | SOAP perawat masuk CPPT yang sama dengan dokter / Muhammad Hamzah | Kartu `FE-RWI-086` |
 | `FE-RWI-087` | Perawat memberikan obat dari daftar yang benar | `FR-KEP-064` s.d. `076`, `078`; `RWI-DEC-116`, `117`, `145` s.d. `148` | `0.5.0` state 5.5–5.6 | — (layar baru) | `FE-KEP-13` — Pemberian Obat (MAR), Sliding Scale, Obat Bawaan, Resep Aktif, Pemakaian Alkes | `FE-RWI-081`, `BE-RWI-115` [BE], `BE-RWI-123` [BE], `BE-RWI-125` [BE] | AC-1 s.d. AC-8 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | **Layar paling berbahaya di roadmap ini** — salah tampil dosis / pemilik klinis belum ditunjuk | Kartu `FE-RWI-087` |
 | `FE-RWI-088` | Perawat kedua menemukan dosis yang menunggu konfirmasinya | `FR-KEP-066`; `RWI-DEC-117` | `0.5.0` API double-check | — (layar baru) | `FE-KEP-22` — daftar tunggu cek ganda per unit; kartu keenam pada `FE-INP-09` | `BE-RWI-116` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Perawat kedua tidak boleh orang yang sama / Muhammad Hamzah | Kartu `FE-RWI-088` |
-| `FE-RWI-089` | Perawat memesan tindakan dan membaca hasil penunjang | `FR-KEP-079`, `FR-KEP-080`; `RWI-DEC-113` | `0.6.0` [DOK] `INT-DOK-19` | — (layar baru) | `FE-KEP-14` Tindakan dan `FE-KEP-15` Penunjang Medis enam kartu | `FE-RWI-081`, `BE-RWI-125` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Pesanan Lab/Rad perawat menunggu `{GATE-LABRAD}` / pemilik Lab/Rad | Kartu `FE-RWI-089` |
+| `FE-RWI-089` | Perawat memesan tindakan dan membaca hasil penunjang | `FR-KEP-079`, `FR-KEP-080`; `RWI-DEC-113` | `0.6.0` [DOK] `INT-DOK-19` | — (layar baru) | `FE-KEP-14` Tindakan dan `FE-KEP-15` Penunjang Medis enam kartu | `FE-RWI-081`, `BE-RWI-125` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Kontrol pesanan Lab/Rad menunggu `BE-RWI-104` [BE-DOK]; ~~`{GATE-LABRAD}`~~ tertutup `RWI-DEC-153` / **Yoga Aji** ✅ | Kartu `FE-RWI-089` |
 | `FE-RWI-090` | Perawat memindahkan pasien dan melihat permukaan yang belum terintegrasi | `FR-KEP-081`, `FR-KEP-036`; `RWI-DEC-113` | `CAP-017` yang sudah ada | Perpindahan tempat tidur `CAP-017` | `FE-KEP-16` Transfer Pasien dan `FE-KEP-17` permukaan "Integrasi belum tersedia" | `FE-RWI-081` | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Serah terima klinis **`DEFERRED`**, bukan dibuat setengah jadi / Muhammad Hamzah | Kartu `FE-RWI-090` |
 | `FE-RWI-091` | Komite keperawatan mengelola instrumen tanpa mengubah kode | `FR-KEP-039`, `040`, `041`, `042`; gate `G-06` | `0.5.0` state 5.1 | — (layar baru) | `FE-KEP-19` — butir menu **baru** di grup Master Data; kelola versi, uji hitung, sahkan | `BE-RWI-107` [BE], `BE-RWI-108` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | Pita bertumpuk atau berlubang wajib terlihat sebelum simpan / komite keperawatan | Kartu `FE-RWI-091` |
 | `FE-RWI-092` | Jam shift dikonfigurasi per unit | `FR-KEP-060`; `AC-KEP-093` | `0.5.0` API nursing-shifts | — (layar baru) | `FE-KEP-20` — butir menu **baru** di grup Master Data; tabel shift + garis waktu 24 jam | `BE-RWI-120` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Celah dan tumpang tindih wajib terlihat sebelum simpan / Muhammad Hamzah | Kartu `FE-RWI-092` |
 | `FE-RWI-093` | Farmasi mengatur jam pemberian obat per frekuensi | `FR-KEP-071`; gate `G-12` | `0.5.0` API 7.13 | — (layar baru) | `FE-KEP-21` — butir menu **baru** di grup Farmasi; Jadwal per frekuensi, Pengaturan MAR, Frekuensi tanpa jadwal | `BE-RWI-114` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Frekuensi tanpa jadwal **wajib terlihat**, bukan disembunyikan / apoteker | Kartu `FE-RWI-093` |
-| `FE-RWI-094` ⛔ | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (layar baru) | `FE-KEP-18` — ringkasan **baca-saja tanpa harga per item** | `BE-RWI-126` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | ⛔ **menunggu `{GATE-BILLING}`**; `RWI-OQ-053` pemiliknya belum bernama | Kartu `FE-RWI-094` |
+| `FE-RWI-094` | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (layar baru) | `FE-KEP-18` — ringkasan **baca-saja tanpa harga per item** | `BE-RWI-126` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | ~~menunggu `{GATE-BILLING}`~~ **tertutup 2026-09-16 `RWI-DEC-154`** / **Yasmina** ✅ | Kartu `FE-RWI-094` |
 
 ---
 
@@ -440,9 +440,11 @@ disimpan, dosis itu muncul **sekali** di MAR.
 Karena bagian sliding scale menampilkan angka hasil perhitungan, **test unit direkomendasikan**
 untuk utility pemetaan rentang ke dosis bila ada di `src/utils`.
 
-**Gerbang produksi.** Sliding scale **tidak boleh dipakai pada pasien sungguhan** sebelum pemilik
-klinis pengesah isi protokol ditunjuk. Gerbang itu dicatat pada laporan task, dan bukan milik task
-ini untuk ditutup.
+**Gerbang produksi — diperbarui 16 September 2026.** Manajemen rumah sakit sudah menyetujui
+**pemakaian** sliding scale lewat `RWI-DEC-155`; yang belum ada adalah **nama** pengesah isi protokol,
+dicatat `RWI-OQ-097`. Layar ini boleh dibangun dan diuji, tetapi selama nama itu kosong tidak ada
+order sliding scale yang berdiri di atas versi `Approved`, sehingga bagian Sliding Scale belum dapat
+dipakai pada pasien sungguhan.
 
 **Definition of Done.** Lint dan build hijau; verifikasi manual tercatat; gerbang produksi dicatat;
 laporan tracked ada; roadmap dan traceability diperbarui.
@@ -497,13 +499,15 @@ final Laboratorium dan Radiologi; empat layanan lain berupa permukaan "Integrasi
 3. History Tindakan menampilkan status verifikasi instruksi setiap pesanan.
 4. Penunjang menampilkan enam kartu; Laboratorium dan Radiologi berisi pesanan dan hasil final — `FR-KEP-080`.
 5. Empat kartu lain menampilkan konteks pasien dan "Integrasi belum tersedia", **tanpa permintaan jaringan**.
-6. Kontrol **memesan** Lab/Rad dari sisi perawat **tidak ditampilkan** selama `{GATE-LABRAD}` belum ditutup.
+6. Kontrol **memesan** Lab/Rad dari sisi perawat **ditampilkan** — `{GATE-LABRAD}` tertutup 2026-09-16 lewat `RWI-DEC-153`; kontrol ini tetap menunggu `BE-RWI-104` [BE-DOK] mendarat.
 
 **Bukti verifikasi.** `npm run lint`, `npm run build`, verifikasi manual; kriteria 5 dibuktikan lewat
 panel Network.
 
-**Catatan.** Kriteria 6 adalah pembatasan yang sengaja: pemesanan Lab/Rad oleh perawat menunggu
-persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` lewat `BE-RWI-104` [BE-DOK].
+**Catatan — diperbarui 16 September 2026.** Kriteria 6 dulu berupa pembatasan: pemesanan Lab/Rad oleh
+perawat menunggu persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement`. **Yoga Aji**
+sudah menyetujuinya lewat `RWI-DEC-153`, sehingga kontrolnya kini boleh dibangun — tinggal menunggu
+`BE-RWI-104` [BE-DOK] mendarat, dependency biasa, bukan gerbang.
 
 **Definition of Done.** Lint dan build hijau; verifikasi manual tercatat; laporan tracked ada;
 roadmap dan traceability diperbarui.
@@ -634,11 +638,12 @@ roadmap dan traceability diperbarui.
 
 ---
 
-### `FE-RWI-094` ⛔ — `FE-KEP-18` Tagihan Pasien
+### `FE-RWI-094` — `FE-KEP-18` Tagihan Pasien
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR** — menunggu `BE-RWI-126`, yang sendirinya menunggu `{GATE-BILLING}` |
+| **Status** | Belum dikerjakan. ~~⛔ menunggu `{GATE-BILLING}`~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-154`**; kini hanya menunggu `BE-RWI-126` |
+| **Gelombang** | 1 |
 | **Layar** | `FE-KEP-18` |
 | **Hak akses** | `PatientBillingSummary : Read` |
 
@@ -653,11 +658,15 @@ itu sudah dikerjakan `FE-RWI-081` kriteria 2.
 3. Tidak ada satu pun kontrol tulis pada layar ini.
 4. Selama kontrak Billing belum ada, layar tetap menampilkan "belum tersedia" tanpa data tiruan.
 
-**Blocker.** `{GATE-BILLING}` — kontrak Billing belum disetujui, dan `RWI-OQ-053` mencatat pemilik
-`BillingManagement` **belum bernama**.
+**~~Blocker~~ — tertutup 16 September 2026.** **Yasmina** ditetapkan sebagai pemilik
+`BillingManagement` dan menyetujui kontrak ringkasan tagihan, tercatat `RWI-DEC-154`. `RWI-OQ-053`
+ikut tertutup.
 
-**Definition of Done.** Kontrak Billing disetujui; lint dan build hijau; verifikasi manual tercatat;
-laporan tracked ada; roadmap dan traceability diperbarui.
+**Yang tidak ikut longgar.** Kriteria 1 dan 3 tetap mengikat: **tanpa harga per item**, dan **nol
+kontrol tulis** pada layar ini.
+
+**Definition of Done.** Laporan tracked merujuk `RWI-DEC-154`; lint dan build hijau; verifikasi manual
+tercatat; roadmap dan traceability diperbarui.
 
 ---
 
@@ -690,10 +699,10 @@ Mengikuti `rules/frontend/test-policy.md`:
 
 | Gerbang | Menahan | Siapa yang membukanya |
 | --- | --- | --- |
-| `{GATE-BILLING}` — kontrak Billing | `FE-RWI-094` lewat `BE-RWI-126` | Pemilik `BillingManagement` — `RWI-OQ-053`, **belum bernama** |
-| `{GATE-LABRAD}` — kolom instruksi Lab/Rad | Kontrol pemesanan Lab/Rad pada `FE-RWI-089` kriteria 6 | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
+| ~~`{GATE-BILLING}` — kontrak Billing~~ | **TERTUTUP 2026-09-16** `RWI-DEC-154` — `FE-RWI-094` bebas | **Yasmina** ✅ |
+| ~~`{GATE-LABRAD}` — kolom instruksi Lab/Rad~~ | **TERTUTUP 2026-09-16** `RWI-DEC-153` — `FE-RWI-089` kriteria 6 bebas | **Yoga Aji** ✅ |
 | Jenis dokumen `14` — `INT-KEP-12` | Jalur addendum pada `FE-RWI-085`; **tidak** menahan task-nya | Pemilik `MedicalRecordManagement` |
-| Pengesah isi protokol sliding scale | **Gerbang produksi** bagi `FE-RWI-087` | Manajemen rumah sakit |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi bagi `FE-RWI-087`, **sebagian tertutup**: kewenangan memakai sudah ada `RWI-DEC-155`, **nama pengesah belum** | Manajemen rumah sakit |
 | Serah Terima Klinis | `DEFERRED` — tidak ada task pada revision `7` | Muhammad Hamzah |
 
 ---

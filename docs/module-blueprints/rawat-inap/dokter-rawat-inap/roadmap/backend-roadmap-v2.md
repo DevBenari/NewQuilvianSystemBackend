@@ -155,18 +155,18 @@ Empat pasangan.
 ### `DOK-V2-3` — penunjang dan template
 
 ```text
-BE-RWI-097 [V1] ─┬─> BE-RWI-104
-                 │
-{GATE-LABRAD ⛔}─┘
+BE-RWI-097 [V1] ─> BE-RWI-104
 
 BE-RWI-099 [V2] ─> BE-RWI-105
 ```
 
-`{GATE-LABRAD}` = persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` atas kolom
-instruksi. Tiga pasangan.
+~~`{GATE-LABRAD}` = persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` atas kolom
+instruksi.~~ **Gerbang ini tertutup 2026-09-16 lewat `RWI-DEC-153`** — pemiliknya bernama **Yoga Aji** —
+sehingga node-nya dicabut dan `BE-RWI-104` kini hanya menunggu `BE-RWI-097`. Dua pasangan.
 
-**Jumlah pasangan seluruh grafik: 0 + 11 + 4 + 3 = 18.** Jumlah entri kolom `Dependency` pada tabel
-task: **18**. Keduanya cocok. Turun satu dari 19 sejak `RWI-DEC-151` mencabut node `{GATE-YOGA}`.
+**Jumlah pasangan seluruh grafik: 0 + 11 + 4 + 2 = 17.** Jumlah entri kolom `Dependency` pada tabel
+task: **17**. Keduanya cocok. Turun dari 19 karena `RWI-DEC-151` mencabut node `{GATE-YOGA}` dan
+`RWI-DEC-153` mencabut node `{GATE-LABRAD}`.
 
 ### Tabel gelombang eksekusi
 
@@ -181,9 +181,8 @@ task: **18**. Keduanya cocok. Turun satu dari 19 sejak `RWI-DEC-151` mencabut no
 | 2 | `BE-RWI-102` | `BE-RWI-103` |
 | 3 | `BE-RWI-091` | `BE-RWI-092`, `BE-RWI-093` — boleh paralel; `BE-RWI-092` lepas dari `⛔` lewat `RWI-DEC-151` |
 | 3 | `BE-RWI-094`, `BE-RWI-089` | `BE-RWI-095` |
-| 3 | `BE-RWI-097` | `BE-RWI-098` |
+| 3 | `BE-RWI-097` | `BE-RWI-098`, `BE-RWI-104` — boleh paralel; `BE-RWI-104` lepas dari `⛔` lewat `RWI-DEC-153` |
 | 4 | `BE-RWI-095` | `BE-RWI-096` |
-| — | ⛔ menunggu `{GATE-LABRAD}` dan `BE-RWI-097` | `BE-RWI-104` |
 
 Pemetaan gelombang PRD:
 
@@ -217,7 +216,7 @@ Pemetaan gelombang PRD:
 | `BE-RWI-101` | Obat bawaan pasien diputuskan nasibnya satu per satu | `FR-DOK-092`, `FR-DOK-093` | `0.6.0` data + state | Jalur resep dari `BE-RWI-099` | `R5` — tabel rekonsiliasi; keputusan Lanjut Sama, Lanjut Ubah, Hentikan; jalur obat non-formularium | `BE-RWI-099` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Perawat `403` pada jalur keputusan / Muhammad Hamzah | Kartu `BE-RWI-101` |
 | `BE-RWI-102` | Protokol sliding scale disahkan sebagai versi, bukan angka lepas | `FR-DOK-094`, `FR-DOK-095`; `RWI-DEC-146`, `RWI-DEC-147` | `0.6.0` data + state | — (`MISSING / NEW`) | `R6` — tabel template dan versi protokol; rentang menutup seluruh nilai tanpa tumpuk; pengesah bukan pengubah terakhir | — | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Rentang bertumpuk atau berlubang = dosis insulin salah / **pemilik klinis belum ditunjuk** | Kartu `BE-RWI-102` |
 | `BE-RWI-103` | Order sliding scale per pasien lahir dari versi yang sah | `FR-DOK-096`, `097`, `098`, `099`; `RWI-DEC-146` | `0.6.0` API + state | Tabel dari `BE-RWI-102` | Order hanya dari versi `Approved`; rentang **tersalin**; penyesuaian wajib beralasan dan membuat versi order baru | `BE-RWI-102` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Versi template baru tidak boleh mengubah order berjalan / Muhammad Hamzah | Kartu `BE-RWI-103` |
-| `BE-RWI-104` ⛔ | Pesanan Lab dan Radiologi membawa pemberi instruksi | `FR-DOK-106` | `0.6.0` integrasi | `LabOrder`, `RadOrder` | `R8` — empat kolom instruksi pada dua tabel milik modul lain | `BE-RWI-097`, `{GATE-LABRAD}` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi kontrak API | ⛔ **menunggu persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement`** | Kartu `BE-RWI-104` |
+| `BE-RWI-104` | Pesanan Lab dan Radiologi membawa pemberi instruksi | `FR-DOK-106` | `0.6.0` integrasi | `LabOrder`, `RadOrder` | `R8` — empat kolom instruksi pada dua tabel milik modul lain | `BE-RWI-097` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi kontrak API; **regresi alur Lab/Rad** | ~~menunggu pemilik Lab/Rad~~ **disetujui 2026-09-16 `RWI-DEC-153`**; regresi Lab/Rad tetap wajib / Yoga Aji | Kartu `BE-RWI-104` |
 | `BE-RWI-105` | Template resep benar-benar milik dokter yang membuatnya | `FR-DOK-088`, `089`, `090`, `091` | `0.6.0` permission + validation | `PrescriptionTemplateService` | `R9` — pemilik dari **akun login**; hanya template milik sendiri; template kosong ditolak; butir bentrok ditandai | `BE-RWI-099` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi proses bisnis; **regresi poliklinik** | **Mengubah perilaku poliklinik** — pemberitahuan pemilik `rawat-jalan` wajib / pemilik `rawat-jalan` | Kartu `BE-RWI-105` |
 
 ---
@@ -548,13 +547,18 @@ sebelumnya.
 **Bukti verifikasi.** `dotnet build`; verifikasi skema; verifikasi kontrak API; **verifikasi regresi
 poliklinik** dengan hasilnya ditempel apa adanya.
 
-**Risiko dan kewajiban koordinasi.** `R7` adalah salah satu dari **dua** langkah yang mengubah
-perilaku poliklinik. Pemberitahuan kepada pemilik blueprint `rawat-jalan` **wajib dilakukan dan
-dicatat sebelum rilis**. Mundurnya juga tidak simetris: mengembalikan `ConsultationId` menjadi
-`NOT NULL` gagal bila sudah ada pesanan perawat tanpa konsultasi.
+**Risiko dan kewajiban koordinasi.** `R7` adalah salah satu dari **dua** langkah `dokter-rawat-inap`
+yang mengubah perilaku poliklinik. ~~Pemberitahuan kepada pemilik blueprint `rawat-jalan` wajib
+dilakukan dan dicatat sebelum rilis~~ — **sudah terpenuhi**: **Sukma GP** menyetujui perubahan ini
+pada 16 September 2026, tercatat `RWI-DEC-152`. Mundurnya tetap tidak simetris: mengembalikan
+`ConsultationId` menjadi `NOT NULL` gagal bila sudah ada pesanan perawat tanpa konsultasi.
 
-**Definition of Done.** Pemberitahuan pemilik `rawat-jalan` tercatat pada laporan; regresi poliklinik
-hijau; laporan tracked ada; roadmap dan traceability diperbarui.
+**Yang tidak ikut longgar.** Kriteria 6 **regresi poliklinik tetap wajib dijalankan sungguhan**.
+Persetujuan Sukma GP menyatakan perubahannya boleh; ia tidak menggantikan bukti bahwa alur rawat
+jalan masih bekerja.
+
+**Definition of Done.** Laporan tracked merujuk `RWI-DEC-152`; regresi poliklinik hijau; roadmap dan
+traceability diperbarui.
 
 ---
 
@@ -731,13 +735,15 @@ dimulai dari 150 tanpa rentang di bawahnya ditolak karena nilai di bawah 150 tid
 **Bukti verifikasi.** `dotnet build`; verifikasi skema; verifikasi kontrak API; verifikasi proses
 bisnis termasuk kedua contoh penolakan di atas.
 
-**Risiko yang terbuka.** **Pemilik klinis pengesah isi protokol belum ditunjuk** — `04-prd-to-mvp.md`
-22.20 nomor 13. Itu **gerbang produksi**, bukan gerbang task: mesinnya boleh dibangun, tetapi sliding
-scale tidak boleh dipakai pada pasien sungguhan sebelum pengesahnya ada. Gerbang itu dicatat pada
-bagian gerbang di bawah.
+**Risiko yang terbuka — diperbarui 16 September 2026.** Manajemen rumah sakit sudah menyetujui
+**pemakaian** sliding scale pada layanan pasien lewat `RWI-DEC-155`, sehingga butir 22.20 nomor 13
+tertutup pada bagian kewenangannya. Yang **belum** ada adalah **nama** pengesah isi protokol, dicatat
+sebagai **`RWI-OQ-097`**. Akibatnya konkret: mesin ini boleh dibangun dan diuji, tetapi selama nama
+itu kosong **nol versi protokol dapat dinaikkan menjadi `Approved`**, karena kriteria 4 menuntut
+pengesah yang berbeda dari pengubah terakhir dan tidak ada akun yang berhak.
 
-**Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; gerbang produksi
-pengesah protokol dicatat sebagai masih terbuka.
+**Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; `RWI-OQ-097`
+dicatat sebagai masih terbuka.
 
 ---
 
@@ -772,12 +778,12 @@ di atas, termasuk pengesahan versi template baru.
 
 ---
 
-### `BE-RWI-104` ⛔ — Kolom instruksi pada pesanan Lab dan Radiologi (migration R8)
+### `BE-RWI-104` — Kolom instruksi pada pesanan Lab dan Radiologi (migration R8)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR** — menunggu persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| **Gelombang** | Tidak diberi nomor gelombang selama `{GATE-LABRAD}` terbuka |
+| **Status** | Belum dikerjakan. ~~⛔ menunggu pemilik Lab/Rad~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-153`** |
+| **Gelombang** | 3 — `DOK-V2-3` |
 | **Migration** | `R8` — empat kolom pada `LabOrder` dan `RadOrder`, **milik modul lain** |
 
 **Bisnis prosesnya.** Sama seperti pesanan tindakan, pesanan laboratorium dan radiologi di rawat
@@ -795,12 +801,17 @@ verifikasi.
 **Bukti verifikasi.** `dotnet build`; verifikasi skema; verifikasi kontrak API; regresi alur Lab/Rad
 yang sudah ada.
 
-**Blocker.** `{GATE-LABRAD}` — `04-prd-to-mvp.md` 22.20 nomor 9. Menambah kolom pada tabel milik
-modul lain **tanpa persetujuan pemiliknya dilarang**, seketat larangan membuat tabel tandingan.
-Task ini tidak boleh dimulai sebelum persetujuan itu tercatat.
+**~~Blocker~~ — tertutup 16 September 2026.** `{GATE-LABRAD}` sudah dijawab: **Yoga Aji**, pemilik
+`LaboratoryManagement` dan `RadiologyManagement`, menyetujui penambahan keempat kolom itu, tercatat
+`RWI-DEC-153`. Butir terbuka `04-prd-to-mvp.md` 22.20 nomor 9 ikut tertutup.
 
-**Definition of Done.** Persetujuan kedua pemilik modul tercatat; laporan tracked ada; roadmap dan
-traceability diperbarui.
+**Yang tidak ikut longgar.** Kriteria 3 tetap mengikat: alur pemesanan Lab/Rad dari modul lain
+**tidak boleh berubah perilakunya**, dan regresinya wajib dijalankan sungguhan. Persetujuan pemilik
+membuka izin menambah kolom, bukan izin mengubah alur mereka. Wewenang menulis source dan migration
+pada kedua modul itu juga tetap dinyatakan terpisah.
+
+**Definition of Done.** Laporan tracked ada dan merujuk `RWI-DEC-153`; regresi Lab/Rad hijau;
+roadmap dan traceability diperbarui.
 
 ---
 
@@ -830,10 +841,13 @@ kepemilikan ke **akun login**.
 dengan hasilnya ditempel apa adanya.
 
 **Risiko dan kewajiban koordinasi.** `R9` adalah langkah **kedua** yang mengubah perilaku poliklinik.
-Pemberitahuan kepada pemilik blueprint `rawat-jalan` **wajib dilakukan dan dicatat sebelum rilis**.
+~~Pemberitahuan kepada pemilik blueprint `rawat-jalan` wajib dilakukan dan dicatat sebelum rilis~~ —
+**sudah terpenuhi** lewat `RWI-DEC-152`, pemberi persetujuan **Sukma GP**.
 
-**Definition of Done.** Pemberitahuan pemilik `rawat-jalan` tercatat; regresi poliklinik hijau;
-laporan tracked ada; roadmap dan traceability diperbarui.
+**Yang tidak ikut longgar.** Kriteria 6 **regresi poliklinik tetap wajib dijalankan sungguhan**.
+
+**Definition of Done.** Laporan tracked merujuk `RWI-DEC-152`; regresi poliklinik hijau; roadmap dan
+traceability diperbarui.
 
 ---
 
@@ -854,10 +868,10 @@ Mengikuti `rules/backend/TEST_POLICY.md`:
 | Gerbang | Jenis | Menahan | Siapa yang membukanya |
 | --- | --- | --- | --- |
 | ~~`{GATE-YOGA}` — `my-authored` dan `serviceContext`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-151` | ~~`BE-RWI-092`~~ — kini bebas | Yoga Aji Pratama ✅ |
-| `{GATE-LABRAD}` — kolom instruksi Lab/Rad | Persetujuan pemilik modul | **Mulai** `BE-RWI-104` | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| Pemberitahuan pemilik `rawat-jalan` atas `R7` | Koordinasi lintas modul | **Rilis** `BE-RWI-097` | Pemilik blueprint `rawat-jalan` |
-| Pemberitahuan pemilik `rawat-jalan` atas `R9` | Koordinasi lintas modul | **Rilis** `BE-RWI-105` | Pemilik blueprint `rawat-jalan` |
-| Pengesah isi protokol sliding scale | **Gerbang produksi** | Pemakaian `BE-RWI-102` dan `BE-RWI-103` pada pasien sungguhan | Manajemen rumah sakit |
+| ~~`{GATE-LABRAD}` — kolom instruksi Lab/Rad~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-153` | ~~`BE-RWI-104`~~ — kini bebas | **Yoga Aji** ✅ |
+| ~~Pemberitahuan pemilik `rawat-jalan` atas `R7`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-152` | ~~Rilis `BE-RWI-097`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
+| ~~Pemberitahuan pemilik `rawat-jalan` atas `R9`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-152` | ~~Rilis `BE-RWI-105`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** | Kewenangan memakai **sudah** diberikan `RWI-DEC-155`; yang belum: **nama** pengesah isi, tanpanya nol versi dapat dinaikkan `Approved` | Manajemen rumah sakit |
 | `BE-RWI-079` [BE-INP] | Dependency lintas sub-modul | `BE-RWI-091`, `094`, `097` | Roadmap `episode-rawat-inap` |
 | `BE-RWI-114` [BE-KEP] | Dependency lintas sub-modul | `BE-RWI-100` | Roadmap `keperawatan` |
 

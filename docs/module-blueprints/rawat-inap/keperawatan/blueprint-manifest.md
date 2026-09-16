@@ -294,5 +294,13 @@ permintaan pemilik pada 16 September 2026. Berkas lama **tidak diganti dan tidak
 | [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `2` | Tetap berlaku | Task lama; **tidak menerima task baru** |
 
 **Yang berbeda dari `dokter-rawat-inap`:** layout V2 keperawatan **dipertahankan**, sehingga roadmap
-ini **tidak tertahan** `{GATE-RAJAL}`. Sepuluh dari empat belas task frontend boleh jalan begitu
-backend-nya mendarat. Yang tertahan hanya `FE-RWI-094` lewat `{GATE-BILLING}`.
+ini tidak pernah tertahan `{GATE-RAJAL}`.
+
+**Nol gerbang menahan task, per 16 September 2026.** `{GATE-BILLING}` tertutup lewat `RWI-DEC-154`
+dengan **Yasmina** ditetapkan sebagai pemilik `BillingManagement` — `RWI-OQ-053` ikut tertutup — dan
+`{GATE-LABRAD}` tertutup lewat `RWI-DEC-153`. Seluruh 35 task sub-modul ini kini hanya menunggu
+prasyarat berupa task lain.
+
+**Tiga hal yang tetap terbuka.** **Regresi poliklinik** pada `BE-RWI-109` tetap wajib; **`BE-BKC-040`**
+kelayakan keuangan tetap `P0 — external dependency` sebagai gerbang kesiapan produksi; dan
+**`RWI-OQ-097`** — nama pengesah isi protokol sliding scale belum ada.

@@ -116,14 +116,14 @@ mengadopsi usulan `G-22` — rentang 0 unit mencatat dosis `Held` beralasan. `EP
 | `FR-KEP-077` | `EXTEND` — kolom dari `dokter-rawat-inap` | `BE-RWI-124` | `FE-RWI-086` | `RWI-AC-204`, `205` | Menunggu `BE-RWI-094` [BE-DOK] |
 | `FR-KEP-078` | `EXTEND` — kontrak `dokter-rawat-inap` | `BE-RWI-125` | `FE-RWI-087` | API 7.15 | Menunggu `BE-RWI-101` [BE-DOK] |
 | `FR-KEP-079` | `EXTEND` — kontrak `dokter-rawat-inap` | `BE-RWI-125` | `FE-RWI-089` | `INT-DOK-19` | Menunggu `BE-RWI-097` [BE-DOK] |
-| `FR-KEP-080` | `EXTEND` | `BE-RWI-125`; pesanan perawat lewat `BE-RWI-104` [BE-DOK] ⛔ | `FE-RWI-089` | `03` 10.4.8 | Bagian pesanan ⛔ `{GATE-LABRAD}` |
+| `FR-KEP-080` | `EXTEND` | `BE-RWI-125`; pesanan perawat lewat `BE-RWI-104` [BE-DOK] | `FE-RWI-089` | `03` 10.4.8 | **Bebas** — `{GATE-LABRAD}` tertutup `RWI-DEC-153` |
 | `FR-KEP-081` | `EXISTING / REUSE` | — (`CAP-017` yang sudah ada) | `FE-RWI-090` | `RWI-DEC-113` | Belum dikerjakan |
 
 ## 9. `EPIC KEP-17` — Tagihan Pasien
 
 | FR | Disposisi | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-KEP-082` | `MISSING / NEW` — bergantung Billing | `BE-RWI-126` ⛔ | `FE-RWI-094` ⛔ | API 7.14 | ⛔ `{GATE-BILLING}` |
+| `FR-KEP-082` | `MISSING / NEW` | `BE-RWI-126` | `FE-RWI-094` | API 7.14 | **Bebas** — `{GATE-BILLING}` tertutup `RWI-DEC-154` |
 
 ---
 
@@ -181,11 +181,12 @@ saling menimpa; `BE-RWI-118` dikerjakan lebih dulu sebagai pemilik mesinnya.
 
 | Gerbang | Jenis | Menahan | Pemilik |
 | --- | --- | --- | --- |
-| `{GATE-BILLING}` | Kontrak eksternal | `BE-RWI-126`, `FE-RWI-094` | Pemilik `BillingManagement` — `RWI-OQ-053`, **belum bernama** |
-| `{GATE-LABRAD}` | Persetujuan pemilik modul | Bagian pesanan Lab/Rad pada `FR-KEP-080` | Pemilik `LaboratoryManagement` dan `RadiologyManagement` |
-| Pemberitahuan `rawat-jalan` atas `K2` | Koordinasi | **Rilis** `BE-RWI-109` | Pemilik blueprint `rawat-jalan` |
+| ~~`{GATE-BILLING}`~~ | **TERTUTUP 2026-09-16** `RWI-DEC-154` | ~~`BE-RWI-126`, `FE-RWI-094`~~ — keduanya bebas | **Yasmina** ✅; `RWI-OQ-053` tertutup |
+| `BE-BKC-040` kelayakan keuangan | `P0 — external dependency`, **tetap terbuka** | Gerbang kesiapan produksi; nol task di roadmap ini | Yasmina — `RWI-DEC-102` |
+| ~~`{GATE-LABRAD}`~~ | **TERTUTUP 2026-09-16** `RWI-DEC-153` | ~~Bagian pesanan Lab/Rad pada `FR-KEP-080`~~ — bebas | **Yoga Aji** ✅ |
+| ~~Pemberitahuan `rawat-jalan` atas `K2`~~ | **TERTUTUP 2026-09-16** `RWI-DEC-152` | ~~Rilis `BE-RWI-109`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
 | Jenis dokumen `14` — `INT-KEP-12` | Dependency yang diketahui | Jalur addendum `FR-KEP-055`; **tidak** menahan task-nya | Pemilik `MedicalRecordManagement` |
-| Pengesah isi protokol sliding scale | **Gerbang produksi** | Pemakaian `BE-RWI-123` dan `FE-RWI-087` pada pasien sungguhan | Manajemen rumah sakit |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** | Kewenangan memakai **sudah** ada `RWI-DEC-155`; **nama** pengesah belum | Manajemen rumah sakit |
 | Handover shift dan transfusi | `DEFERRED` | Nol task pada revision `7` | Muhammad Hamzah — gate `1.6` bagian 15 |
 
 ---

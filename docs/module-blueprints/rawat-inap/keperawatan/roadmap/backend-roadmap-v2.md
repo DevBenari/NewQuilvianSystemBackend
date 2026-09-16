@@ -175,19 +175,20 @@ Tiga pasangan.
 ### `KEP-V2-4` — tagihan pasien
 
 ```text
-{GATE-BILLING ⛔} ─> BE-RWI-126
+BE-RWI-126
 ```
 
-Satu pasangan.
+Tidak menunggu siapa pun. Nol pasangan — node `{GATE-BILLING}` dicabut 2026-09-16 setelah
+`RWI-DEC-154` menetapkan **Yasmina** sebagai pemilik `BillingManagement` dan menyetujui kontraknya.
 
-**Jumlah pasangan seluruh grafik: 0 + 8 + 5 + 7 + 3 + 1 = 24.** Jumlah entri kolom `Dependency`
-pada tabel task: **24**. Keduanya cocok.
+**Jumlah pasangan seluruh grafik: 0 + 8 + 5 + 7 + 3 + 0 = 23.** Jumlah entri kolom `Dependency`
+pada tabel task: **23**. Keduanya cocok. Turun satu sejak `RWI-DEC-154` mencabut `{GATE-BILLING}`.
 
 ### Tabel gelombang eksekusi
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-RWI-106` |
+| 1 | — | `BE-RWI-106`, `BE-RWI-126` — boleh paralel; `BE-RWI-126` lepas dari `⛔` lewat `RWI-DEC-154` |
 | 1 | `BE-RWI-094` [BE-DOK] mendarat | `BE-RWI-124` |
 | 1 | `BE-RWI-101` dan `BE-RWI-097` [BE-DOK] mendarat | `BE-RWI-125` |
 | 2 | `BE-RWI-106` | `BE-RWI-107`, `BE-RWI-114` — boleh paralel |
@@ -199,7 +200,6 @@ pada tabel task: **24**. Keduanya cocok.
 | 4 | `BE-RWI-119`, `BE-RWI-115` | `BE-RWI-122` |
 | 4 | `BE-RWI-119` **dan** `BE-RWI-103` [BE-DOK] | `BE-RWI-123` |
 | 5 | `BE-RWI-110`, `BE-RWI-111` | `BE-RWI-112` |
-| — | ⛔ menunggu `{GATE-BILLING}` | `BE-RWI-126` |
 
 Pemetaan gelombang PRD:
 
@@ -209,7 +209,7 @@ Pemetaan gelombang PRD:
 | `KEP-V2-1` | `EPIC KEP-09` s.d. `KEP-12` — migration `K1`–`K3` | `BE-RWI-107` s.d. `BE-RWI-113` |
 | `KEP-V2-2` | `EPIC KEP-13`, `14`, `15` — migration `K4`–`K7` | `BE-RWI-114` s.d. `BE-RWI-123` |
 | `KEP-V2-3` | `EPIC KEP-16` | `BE-RWI-124`, `BE-RWI-125` |
-| `KEP-V2-4` | `EPIC KEP-17` | `BE-RWI-126` ⛔ |
+| `KEP-V2-4` | `EPIC KEP-17` | `BE-RWI-126` |
 
 ---
 
@@ -237,7 +237,7 @@ Pemetaan gelombang PRD:
 | `BE-RWI-123` | Dosis insulin dihitung dari GDS bangsal menurut order yang aktif | `FR-KEP-072` s.d. `076`; `RWI-DEC-146`, `148` | `0.5.0` state 5.6, API 7.12 | Order dari `BE-RWI-103` [BE-DOK] | `K7` — tabel pelaksanaan; ditolak tanpa order aktif; hanya dari GDS bangsal bersatuan sama; GDS, dosis MAR, dan pelaksanaan dalam **satu transaksi idempoten** | `BE-RWI-119`, `BE-RWI-103` [BE-DOK] | AC-1 s.d. AC-7 | `dotnet build`; verifikasi skema; verifikasi proses bisnis; uji galat buatan | **Paling berbahaya di roadmap ini** — salah hitung = dosis insulin salah / pemilik klinis **belum ditunjuk** | Kartu `BE-RWI-123` |
 | `BE-RWI-124` | SOAP dan catatan keperawatan masuk ke CPPT yang sama | `FR-KEP-077`; `RWI-AC-204`, `205` | `0.5.0` + `0.6.0` [DOK] | Kolom `NoteKind` dari `BE-RWI-094` | SOAP dan Catatan Keperawatan disimpan sebagai CPPT berjenis `NursingSoap` dan `NursingNarrative`; menu masing-masing menyaring jenisnya | `BE-RWI-094` [BE-DOK] | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | Enum jenis dikunci `dokter-rawat-inap`, bukan di sini / Muhammad Hamzah | Kartu `BE-RWI-124` |
 | `BE-RWI-125` | Perawat mencatat obat bawaan dan memesan tindakan atas instruksi dokter | `FR-KEP-078`, `FR-KEP-079`; `INT-DOK-19` | `0.6.0` [DOK] API 7.15 | Kontrak `dokter-rawat-inap` | Perawat mencatat obat bawaan dan **membaca** keputusan rekonsiliasi; perawat memesan tindakan dengan dokter pemberi instruksi | `BE-RWI-101` [BE-DOK], `BE-RWI-097` [BE-DOK] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Perawat **tidak** memutuskan rekonsiliasi — hanya membaca / Muhammad Hamzah | Kartu `BE-RWI-125` |
-| `BE-RWI-126` ⛔ | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (`MISSING / NEW`) | Ringkasan **baca-saja tanpa harga per item**, hanya bagi pemegang `PatientBillingSummary : Read` | `{GATE-BILLING}` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | ⛔ **menunggu kontrak Billing**; `RWI-OQ-053` pemiliknya belum bernama | Kartu `BE-RWI-126` |
+| `BE-RWI-126` | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (`MISSING / NEW`) | Ringkasan **baca-saja tanpa harga per item**, hanya bagi pemegang `PatientBillingSummary : Read` | — | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | ~~menunggu kontrak Billing~~ **disetujui 2026-09-16 `RWI-DEC-154`**; `RWI-OQ-053` tertutup / **Yasmina** ✅ | Kartu `BE-RWI-126` |
 
 ---
 
@@ -365,13 +365,16 @@ pemilik `rawat-jalan` memutuskan sendiri.
 hasilnya ditempel apa adanya.
 
 **Risiko dan kewajiban koordinasi.** `K2` adalah salah satu dari **tiga** langkah revision `7` yang
-mengubah perilaku poliklinik (`R7`, `R9`, `K2`). Pemberitahuan kepada pemilik blueprint `rawat-jalan`
-**wajib tercatat sebelum rilis**. Bila langkah ini harus dimundurkan, pengkajian yang sudah menyimpan
-versi tetap terbaca, tetapi kembalinya ke perhitungan lama **wajib dicatat sebagai kejadian
-keselamatan**.
+mengubah perilaku poliklinik (`R7`, `R9`, `K2`). ~~Pemberitahuan kepada pemilik blueprint
+`rawat-jalan` wajib tercatat sebelum rilis~~ — **sudah terpenuhi**: **Sukma GP** menyetujui ketiga
+langkah itu pada 16 September 2026, tercatat `RWI-DEC-152`. Bila langkah ini harus dimundurkan,
+pengkajian yang sudah menyimpan versi tetap terbaca, tetapi kembalinya ke perhitungan lama **wajib
+dicatat sebagai kejadian keselamatan**.
 
-**Definition of Done.** Pemberitahuan pemilik `rawat-jalan` tercatat; regresi poliklinik hijau;
-laporan tracked ada; roadmap dan traceability diperbarui.
+**Yang tidak ikut longgar.** Kriteria 4 **regresi poliklinik tetap wajib dijalankan sungguhan**.
+
+**Definition of Done.** Laporan tracked merujuk `RWI-DEC-152`; regresi poliklinik hijau; roadmap dan
+traceability diperbarui.
 
 ---
 
@@ -787,12 +790,14 @@ itu sebelum disimpan. Setelah disimpan, dosis 3 unit muncul **sekali** di MAR.
 **Bukti verifikasi.** `dotnet build`; verifikasi skema; verifikasi proses bisnis untuk ketujuh
 kriteria; uji galat buatan pada setiap langkah transaksi.
 
-**Gerbang produksi.** Sliding scale **tidak boleh dipakai pada pasien sungguhan** sebelum pemilik
-klinis pengesah isi protokol ditunjuk — `04-prd-to-mvp.md` 22.20 nomor 13 pada `dokter-rawat-inap`.
-Gerbang itu bukan milik task ini untuk ditutup, tetapi wajib dicatat pada laporannya.
+**Gerbang produksi — diperbarui 16 September 2026.** Manajemen rumah sakit sudah menyetujui
+**pemakaian** sliding scale pada layanan pasien lewat `RWI-DEC-155`. Yang **belum** ada adalah **nama**
+pengesah isi protokol, dicatat `RWI-OQ-097`. Akibatnya konkret: task ini boleh dibangun dan diuji,
+tetapi selama nama itu kosong tidak ada versi protokol yang dapat dinaikkan menjadi `Approved`,
+sehingga pelaksanaan sliding scale pada pasien sungguhan belum mungkin terjadi.
 
-**Definition of Done.** Laporan tracked ada dan menyebut gerbang produksi yang masih terbuka;
-roadmap dan traceability diperbarui.
+**Definition of Done.** Laporan tracked ada dan menyebut `RWI-OQ-097` yang masih terbuka; roadmap dan
+traceability diperbarui.
 
 ---
 
@@ -849,12 +854,12 @@ percobaan perawat mengubah keputusan rekonsiliasi.
 
 ---
 
-### `BE-RWI-126` ⛔ — Ringkasan tagihan pasien baca-saja
+### `BE-RWI-126` — Ringkasan tagihan pasien baca-saja
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR** — menunggu kontrak Billing; `RWI-OQ-053` pemilik `BillingManagement` **belum bernama** |
-| **Gelombang** | Tidak diberi nomor gelombang selama `{GATE-BILLING}` terbuka |
+| **Status** | Belum dikerjakan. ~~⛔ menunggu kontrak Billing~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-154`** |
+| **Gelombang** | 1 — `KEP-V2-4`; tidak punya prasyarat sama sekali |
 
 **Bisnis prosesnya.** Perawat atau petugas tertentu kadang perlu tahu gambaran tagihan pasien —
 misalnya untuk mengarahkan keluarga ke bagian keuangan. Yang **tidak** boleh terbuka adalah harga per
@@ -867,11 +872,16 @@ item, karena itu bukan informasi yang tepat disampaikan dari sisi tempat tidur.
 3. Selama kontrak Billing belum ada, permukaannya menampilkan "belum tersedia" **tanpa data tiruan**.
 4. Tidak ada jalur tulis apa pun ke data tagihan dari sub-modul ini.
 
-**Blocker.** `{GATE-BILLING}` — kontrak Billing belum disetujui, dan `RWI-OQ-053` mencatat bahwa
-**pemilik `BillingManagement` belum bernama**. Task ini tidak boleh dimulai sebelum keduanya beres.
+**~~Blocker~~ — tertutup 16 September 2026.** Keduanya beres pada hari yang sama lewat `RWI-DEC-154`:
+pemilik `BillingManagement` kini bernama **Yasmina**, menutup `RWI-OQ-053` yang terbuka sejak awal
+modul ini; dan Yasmina menyetujui kontrak ringkasan tagihan `0.5.0` API 7.14.
 
-**Definition of Done.** Kontrak Billing disetujui dan pemiliknya bernama; laporan tracked ada;
-roadmap dan traceability diperbarui.
+**Yang tidak ikut tertutup.** **`BE-BKC-040` kelayakan keuangan tetap `P0 — external dependency`**
+sesuai `RWI-DEC-102`. Itu pekerjaan di dalam modul Billing, bukan permukaan baca yang disetujui di
+sini, dan ia tetap menjadi gerbang kesiapan produksi Rawat Inap. Kriteria 4 juga tetap mengikat:
+nol jalur tulis dari sub-modul ini ke data tagihan.
+
+**Definition of Done.** Laporan tracked merujuk `RWI-DEC-154`; roadmap dan traceability diperbarui.
 
 ---
 
@@ -891,9 +901,10 @@ Mengikuti `rules/backend/TEST_POLICY.md`:
 
 | Gerbang | Jenis | Menahan | Siapa yang membukanya |
 | --- | --- | --- | --- |
-| `{GATE-BILLING}` — kontrak Billing | Kontrak eksternal | **Mulai** `BE-RWI-126` | Pemilik `BillingManagement` — `RWI-OQ-053`, **belum bernama** |
-| Pemberitahuan pemilik `rawat-jalan` atas `K2` | Koordinasi lintas modul | **Rilis** `BE-RWI-109` | Pemilik blueprint `rawat-jalan` |
-| Pengesah isi protokol sliding scale | **Gerbang produksi** | Pemakaian `BE-RWI-123` pada pasien sungguhan | Manajemen rumah sakit |
+| ~~`{GATE-BILLING}` — kontrak Billing~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-154` | ~~`BE-RWI-126`~~ — kini bebas, gelombang 1 | **Yasmina** ✅ |
+| `BE-BKC-040` kelayakan keuangan | `P0 — external dependency`, **tetap terbuka** | Gerbang kesiapan produksi Rawat Inap; **tidak** menahan task mana pun di roadmap ini | Yasmina — `RWI-DEC-102` |
+| ~~Pemberitahuan pemilik `rawat-jalan` atas `K2`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-152` | ~~Rilis `BE-RWI-109`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
+| Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** | Kewenangan memakai **sudah** diberikan `RWI-DEC-155`; yang belum: **nama** pengesah isi | Manajemen rumah sakit |
 | Jenis dokumen `14` untuk addendum Evaluasi Awal — `INT-KEP-12` | Dependency yang diketahui | Jalur addendum `BE-RWI-113`; **tidak** menahan task-nya | Pemilik `MedicalRecordManagement` |
 | `BE-RWI-094`, `097`, `101`, `103` [BE-DOK] | Dependency lintas sub-modul | `BE-RWI-123`, `124`, `125` | Roadmap `dokter-rawat-inap` |
 | Handover shift dan transfusi | `DEFERRED` | Tidak ada task pada revision `7` | Muhammad Hamzah — gate `1.6` bagian 15 |
