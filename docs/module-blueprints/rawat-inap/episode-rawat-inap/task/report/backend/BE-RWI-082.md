@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source.** Cakupan nyatanya bertambah sendiri ketika `BE-RWI-091` mendarat — lihat bagian 6. `dotnet build`, `UAT-50`, `UAT-51`, dan uji galat buatan **`NOT RUN`** |
+| Status | **SELESAI.** `dotnet build` `0 Error(s)`. Cakupan nyatanya bertambah sendiri ketika `BE-RWI-091` mendarat — lihat bagian 6. `UAT-50`, `UAT-51`, dan uji galat buatan **`NOT RUN`** |
 
 ---
 
@@ -157,7 +157,8 @@ Tidak ada endpoint baru, dan tidak ada bentuk permintaan yang berubah.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| Pembentukan service provider aplikasi | Berhasil — `dotnet ef` membangun host penuh sebelum melepasnya | `PASS` | Membuktikan pendaftaran dependency baru pada `Program.cs` beserta konstruktor service yang berubah dapat di-resolve; `HostAbortedException` sesudahnya adalah perilaku normal EF design-time |
 | Verifikasi proses bisnis `UAT-50` dan `UAT-51` | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database; bersandar pada build yang dikecualikan |
 | Uji galat buatan pada Postgres sekali pakai — galat → nol perubahan tersimpan | Tidak dijalankan | `NOT RUN` | Alasan sama |
 | Pemeriksaan batas transaksi pada source | Langkah 4 berada **di antara** `BeginTransactionAsync` dan `SaveChangesAsync`/`CommitAsync`, sejajar dengan pelepasan tempat tidur dan penutupan penugasan. Blok `catch` yang sudah ada melakukan `RollbackAsync` lalu melempar ulang | `PASS` pemeriksaan source | `InpDischargeService.Closure.cs` — `CloseEpisodeInternalAsync` |
@@ -170,12 +171,11 @@ Tidak ada endpoint baru, dan tidak ada bentuk permintaan yang berubah.
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build`, `UAT-50`, `UAT-51`, dan uji galat buatan. Seluruhnya
-dikecualikan pemilik pekerjaan yang menyatakan akan menjalankan build sendiri. **Uji galat buatan
-adalah bukti yang diminta kartu task secara eksplisit untuk `NFR-025`, dan ketiadaannya disebut di
-sini apa adanya.**
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta episode yang siap ditutup dan konsep catatan dokter yang benar-benar ada.
+
+**Tidak dijalankan:** `UAT-50`, `UAT-51`, dan uji galat buatan. Ketiganya menuntut aplikasi berjalan beserta data klinis; **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. **Uji galat buatan adalah bukti yang diminta kartu task secara eksplisit untuk `NFR-025`, dan ketiadaannya disebut di sini apa adanya** — yang sudah terbukti barulah bahwa langkah 4 berada di dalam batas transaksi dan bahwa blok `catch` melakukan rollback.
 
 ---
 
@@ -217,10 +217,10 @@ sini. Tidak ada pekerjaan tersisa pada sisi `InPatientManagement`.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. Penambahan dependency `ClinicalDocumentIntegrityService` pada konstruktor `InpDischargeService` tidak menimbulkan satu pun galat resolusi ketika host dibangun |
 | Masalah yang diketahui | Cakupan dokumen yang terkunci belum penuh sampai `BE-RWI-091` mendarat — lihat bagian 6. Ini **bukan** kekurangan source pada sisi `InPatientManagement` |
 | Risiko tersisa | `NFR-025` belum terbukti runtime. Tanpa uji galat buatan, tidak ada yang memastikan rollback benar-benar membatalkan penguncian ketika langkah lain gagal |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Setelah build, jalankan `UAT-50`, `UAT-51`, dan uji galat buatan pada Postgres sekali pakai lalu tempelkan keluarannya ke bagian 5. Ketika `BE-RWI-091` mendarat, cukup jalankan ulang `UAT-50` untuk membuktikan cakupannya bertambah — tanpa perubahan source di sini |
+| Langkah berikutnya | Jalankan `UAT-50`, `UAT-51`, dan uji galat buatan pada lingkungan yang punya data klinis, lalu tempelkan keluarannya ke bagian 5. Ketika `BE-RWI-091` mendarat, cukup jalankan ulang `UAT-50` untuk membuktikan cakupannya bertambah — tanpa perubahan source di sini |

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source.** `dotnet build` dan verifikasi proses bisnis `UAT-46` s.d. `UAT-48` **`NOT RUN`** atas permintaan pemilik pekerjaan — lihat bagian 5 |
+| Status | **SELESAI.** `dotnet build` `0 Error(s)`; penjaga database `INV-INP-12` terbukti menolak keempat bentuk penugasan singkat yang salah. `UAT-46` s.d. `UAT-48` **`NOT RUN`** — lihat bagian 5 |
 
 ---
 
@@ -219,7 +219,8 @@ PATCH /api/v1/health-services/inpatient-management/episodes/{id}/doctor-assignme
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| **Penjaga database `INV-INP-12` — uji perilaku 6 kasus** | Penugasan biasa dan penugasan singkat yang lengkap **diterima**; penugasan singkat tanpa waktu selesai, berperan DPJP, beralasan kosong, dan berwaktu selesai mendahului waktu mulai **ditolak** `CK_InpDoctorAssignment_LateDocumentation` | `PASS` | Dijalankan pada container Postgres 16 sekali pakai; rinciannya pada [laporan `BE-RWI-079`](BE-RWI-079.md) bagian 5 |
 | Verifikasi proses bisnis `UAT-46`, `UAT-47`, `UAT-48` | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database yang sudah dimigrasi; keduanya bersandar pada build yang dikecualikan |
 | Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.2 | Route, verb, bentuk request, dan tabel kode status dibandingkan baris per baris. Empat selisih ditemukan dan seluruhnya dicatat pada bagian 4 | `PASS` dengan delta tercatat | Tabel "Delta kontrak yang dicatat" |
 | QBE Backend Governance Preflight | Area `HealthServices`, Module `InPatientManagement`, prefix `Inp` `ACTIVE`. Keberlakuan `NEW CODE` untuk dua metode dan dua endpoint baru | `PASS` | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
@@ -230,10 +231,11 @@ PATCH /api/v1/health-services/inpatient-management/episodes/{id}/doctor-assignme
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build` serta `UAT-46` s.d. `UAT-48`, keduanya dikecualikan pemilik
-pekerjaan yang menyatakan akan menjalankan build sendiri setelah implementasi source selesai.
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta data episode, dokter, dan pengguna berperan kepala ruangan.
+
+**Tidak dijalankan:** `UAT-46`, `UAT-47`, dan `UAT-48`. Ketiganya menuntut aplikasi berjalan beserta database yang sudah dimigrasi dan berisi data; **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Penjaga tingkat database-nya sudah diuji terpisah dan lulus, tetapi itu **tidak** menggantikan `UAT` — yang belum terbukti adalah perilaku endpoint, kode status, dan penjaga kewenangan kepala ruangan.
 
 ---
 
@@ -253,7 +255,7 @@ pekerjaan yang menyatakan akan menjalankan build sendiri setelah implementasi so
 | Butir | Status |
 | --- | --- |
 | Penjagaan penugasan singkat ada di **service dan database** | Terpenuhi di source — penjaga service pada `AssignSupportingDoctorAsync`, check constraint `CK_InpDoctorAssignment_LateDocumentation` dari `BE-RWI-079` |
-| Check constraint dari `BE-RWI-079` ikut diuji | **Belum terpenuhi** — `NOT RUN`, menuntut database yang sudah dimigrasi |
+| Check constraint dari `BE-RWI-079` ikut diuji | **Terpenuhi** — enam kasus dijalankan pada container Postgres sekali pakai; empat bentuk yang salah ditolak constraint |
 | Laporan tracked ada | Terpenuhi — berkas ini |
 | Roadmap dan traceability diperbarui | Terpenuhi |
 
@@ -263,11 +265,11 @@ pekerjaan yang menyatakan akan menjalankan build sendiri setelah implementasi so
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. Empat warning `CS1573` baru pada `AssignSupportingDoctorAsync` — tag `<param>` kurang pada komentar XML — sama persis dengan pola `HandoverDoctorAsync` yang sudah ada sebelum task ini |
 | Masalah yang diketahui | **Satu.** `SequenceNumber` penugasan baru diambil dengan `Max(SequenceNumber) + 1` pada episode yang sama — pola yang biasanya ditolak QBE. Pola itu **dipertahankan di sini dengan sengaja**: `HandoverDoctorAsync` sudah memakainya pada tabel yang sama, deret nomor urut berlaku satu per episode, dan unique index `(EpisodeId, SequenceNumber)` menolak tabrakan sehingga dua permintaan bersamaan tidak dapat menghasilkan nomor kembar. Mengganti polanya hanya di satu metode akan memecah deret yang sama menjadi dua cara penomoran |
 | Temuan pada kode lama | **Hardcode role access.** `Areas/.../Helpers/InpatientActorClaims.cs` menilai kepala ruangan, supervisor, dan kasir dari **daftar nama peran** lewat `IsInRole` — `SupervisorOrWardHeadRoles`, `SupervisorRoles`, `CashierOrBillingRoles`. Ini melanggar aturan "jangan pernah hardcode role access". Temuan ini **sudah ada sebelum task ini** (dicatat sejak laporan `BE-RWI-008` bagian 5.3) dan **tidak diperbaiki di sini** karena perbaikannya menuntut keputusan pemilik tentang cara menyatakan kewenangan kepala ruangan lewat layar Akses Role. Task ini memakai helper yang sudah ada, bukan menambah daftar nama peran baru. **Dilaporkan, bukan diperbaiki tanpa wewenang** |
-| Risiko tersisa | Kedua endpoint bersandar pada kolom `AssignmentPurpose` yang **belum ada di database mana pun**. Sampai migration `E1` dijalankan, keduanya gagal pada runtime |
+| Risiko tersisa | Kedua endpoint bersandar pada kolom `AssignmentPurpose`, yang sudah terbukti lahir dengan benar pada container sekali pakai tetapi **belum diterapkan ke database dev maupun seterusnya**. Sampai migration `E1` dijalankan di sana, keduanya gagal pada runtime di lingkungan tersebut. **Perilaku endpoint-nya sendiri belum pernah dijalankan** |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Pemilik menjalankan build; setelah migration `E1` dijalankan, jalankan `UAT-46` s.d. `UAT-48` lalu tempelkan hasilnya ke bagian 5. Putuskan juga nasib `Idempotency-Key` pada jalur ini |
+| Langkah berikutnya | Setelah migration `E1` diterapkan ke database dev, jalankan `UAT-46` s.d. `UAT-48` lalu tempelkan hasilnya ke bagian 5. Putuskan juga nasib `Idempotency-Key` pada jalur ini |

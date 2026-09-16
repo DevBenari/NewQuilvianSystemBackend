@@ -660,6 +660,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // dikendalikan oleh workflow NurseStationQueueController.FinishScreening
             // agar tidak terjadi double finalization antara assessment dan queue.
 
+            // =================================================================================
+            // BE-RWI-091 / FR-DOK-074, INV-DOK-18, RWI-DEC-144, RWI-DEC-151, migration R2
+            // =================================================================================
+            //
+            // KONSEP KAJIAN MEDIS MENDAPAT IDENTITAS SEJAK SIMPAN PERTAMA, dengan alasan yang
+            // sama seperti pada catatan dokter: konsep tanpa registrasi tidak dapat ditunjuk
+            // saat kunjungan ditutup, dan tidak dapat ditemukan dokter pada "Catatan Saya".
+            //
+            // BATASNYA: hanya kajian yang menempel pada perawatan rawat inap. Kajian
+            // poliklinik, medical check-up, dan IGD tetap didaftarkan pada saat finalisasi
+            // seperti sebelumnya (BE-RWI-038, BE-RWI-065) — perilakunya tidak bergeser.
+            //
+            // Kajian yang langsung diselesaikan lewat completeImmediately tidak dibedakan:
+            // RegisterAsync idempoten terhadap baris yang sudah ditambahkan pada unit kerja
+            // yang sama, sehingga jalur finalisasi hanya menaikkan statusnya.
+            if (entity.InpEpisodeId.HasValue &&
+                entity.InpEpisodeId.Value != Guid.Empty &&
+                entity.EncounterId != Guid.Empty)
+            {
+                var penulisKonsep = entity.AssessmentByUserId.HasValue &&
+                                    entity.AssessmentByUserId.Value != Guid.Empty
+                    ? entity.AssessmentByUserId.Value
+                    : actorUserId;
+
+                try
+                {
+                    await _integrityService.RegisterAsync(
+                        ClinicalDocumentKind.Assessment,
+                        entity.Id,
+                        entity.PatientId,
+                        entity.EncounterId,
+                        authorUserId: penulisKonsep);
+                }
+                catch (InvalidOperationException pendaftaranGagal)
+                {
+                    // Keluar sebelum SaveChanges dan sebelum Commit: nol baris tersimpan.
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Pengkajian tidak dapat dibuat karena pendaftaran pada rekam medis " +
+                        $"gagal: {pendaftaranGagal.Message}"
+                    ));
+                }
+            }
+
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
@@ -724,6 +768,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
                     kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diubah."
+                ));
+            }
+
+            // BE-RWI-088 titik panggil 5 dari 9. INV-DOK-14: konsep kajian hanya disunting
+            // penulisnya, termasuk oleh DPJP pasien itu.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+
+            if (!penjagaPenulis.IsValid)
+            {
+                return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
+                    penjagaPenulis.StatusCode,
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diubah."
                 ));
             }
 
@@ -892,6 +948,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
                     kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
+                ));
+            }
+
+            // BE-RWI-088 titik panggil 6 dari 9. Menyelesaikan kajian sama dengan
+            // menandatanganinya — api-contract.md 0.6.0 bagian 12.3. Dengan penjaga ini,
+            // penanda tangan yang tercatat di bawah dijamin orang yang sama dengan penulisnya,
+            // bukan siapa pun yang kebetulan menekan tombolnya.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+
+            if (!penjagaPenulis.IsValid)
+            {
+                return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
+                    penjagaPenulis.StatusCode,
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
                 ));
             }
 
@@ -1072,6 +1142,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-088 titik panggil 7 dari 9.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+
+            if (!penjagaPenulis.IsValid)
+            {
+                return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
+                    penjagaPenulis.StatusCode,
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat dibatalkan."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -1084,6 +1165,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.CancelBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            // BE-RWI-091 / RWI-AC-217. Registrasi keutuhannya menjadi Cancelled, barisnya tidak
+            // dihapus, dan keduanya tersimpan pada SaveChanges yang sama.
+            await _integrityService.MarkCancelledAsync(
+                ClinicalDocumentKind.Assessment,
+                entity.Id,
+                actorUserId,
+                entity.CancelReason,
+                now);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1689,6 +1779,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             Guid? inpEpisodeId,
             CancellationToken cancellationToken = default)
         {
+            // BE-RWI-088 / RLN3-CAP-34, api-contract.md 0.6.0 bagian 12.3. Kajian medis memang
+            // BUKAN urusan kewenangan unit perawat — ia dijaga penjaga penulis tunggal
+            // EnsureSoleAuthorAsync yang sekarang dipasang pada seluruh jalur ubah, selesaikan,
+            // dan batalkan. Yang dicabut di sini hanya anggapan bahwa "jenis medis lolos begitu
+            // saja"; penjagaannya berpindah tempat, tidak hilang.
             if (IsKajianMedis(assessmentType))
                 return CreateGuard.Ok();
 
@@ -1713,6 +1808,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 : CreateGuard.Fail(
                     InpatientClinicalContextService.PenolakanPerawatUnitLain,
                     StatusCodes.Status403Forbidden);
+        }
+
+        /// <summary>
+        /// Penjaga penulis tunggal atas satu pengkajian yang sudah ada — <c>BE-RWI-088</c>,
+        /// <c>INV-DOK-14</c>, <c>FR-DOK-075</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Penulisnya dibaca dari <c>AssessmentByUserId</c>, dan bila kosong dari kolom audit
+        /// <c>CreateBy</c>. Urutan itu mengikuti pendaftaran keutuhan yang sudah ada pada jalur
+        /// penyelesaian, sehingga penulis yang dijaga di sini sama persis dengan penulis yang
+        /// nanti tercatat sebagai penanda tangan.
+        /// </para>
+        /// <para>
+        /// <b>Poliklinik, medical check-up, dan IGD tidak berubah.</b> Kunjungan tanpa perawatan
+        /// rawat inap dijawab lolos.
+        /// </para>
+        /// </remarks>
+        private async Task<CreateGuard> EnsureSoleAuthorAsync(
+            TrxPatientAssessment entity,
+            CancellationToken cancellationToken = default)
+        {
+            var penulis = entity.AssessmentByUserId.HasValue &&
+                          entity.AssessmentByUserId.Value != Guid.Empty
+                ? entity.AssessmentByUserId
+                : entity.CreateBy;
+
+            var penjaga = await _inpatientClinicalContextService.ResolveForAuthorEditAsync(
+                entity.EncounterId,
+                documentAuthorUserId: penulis,
+                actorUserId: GetCurrentUserId(),
+                expectedEpisodeId: entity.InpEpisodeId,
+                cancellationToken: cancellationToken);
+
+            if (!InpatientClinicalContextService.PerluDitolak(penjaga))
+                return CreateGuard.Ok();
+
+            return CreateGuard.Fail(
+                penjaga.ErrorMessage ?? InpatientClinicalContextService.PenolakanBukanPenulisKonsep,
+                penjaga.StatusCode);
         }
 
         /// <summary>

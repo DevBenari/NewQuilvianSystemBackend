@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -12,6 +13,27 @@ using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 {
+    /// <summary>
+    /// Identitas profesi klinis yang diturunkan dari relasi akun, bukan dari payload klien.
+    /// </summary>
+    public sealed class CpptAuthorProfessionContext
+    {
+        public bool IsResolved { get; init; }
+        public string ProfessionType { get; init; } = string.Empty;
+        public string ProfessionName { get; init; } = string.Empty;
+
+        public static CpptAuthorProfessionContext Resolved(
+            string professionType,
+            string professionName) => new()
+        {
+            IsResolved = true,
+            ProfessionType = professionType,
+            ProfessionName = professionName
+        };
+
+        public static CpptAuthorProfessionContext Missing() => new();
+    }
+
     /// <summary>
     /// Sebab penolakan konteks klinis rawat inap. Setiap nilai memetakan tepat satu kode HTTP,
     /// sehingga pemanggil tidak perlu menerjemahkannya sendiri-sendiri.
@@ -64,7 +86,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         /// Penulis yang disebut payload berbeda dari dokter milik pengguna terautentikasi —
         /// <c>GUARD-INP-05</c>, <c>BE-RWI-076</c>.
         /// </summary>
-        DoctorImpersonation = 11
+        DoctorImpersonation = 11,
+
+        /// <summary>
+        /// Pengguna yang menyunting bukan penulis dokumennya — <c>INV-DOK-14</c>,
+        /// <c>FR-DOK-075</c>, <c>BE-RWI-088</c>.
+        /// </summary>
+        /// <remarks>
+        /// Sengaja terpisah dari <see cref="DoctorImpersonation"/>. Yang ini bukan soal payload
+        /// yang menyebut orang lain; ia soal <b>dokumen</b> yang sudah punya penulis, dan orang
+        /// lain mencoba menyelesaikan tulisan itu.
+        /// </remarks>
+        AuthorMismatch = 12,
+
+        /// <summary>
+        /// Penugasan dokter berlaku pada waktu klinis dokumen, tetapi sudah berakhir pada saat
+        /// dokumen itu disimpan — <c>INV-DOK-15</c>, <c>FR-DOK-076</c>, <c>BE-RWI-088</c>.
+        /// </summary>
+        AssignmentExpiredAtSave = 13
     }
 
     /// <summary>
@@ -225,16 +264,196 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             "disimpan atas nama siapa pun. Hubungi bagian kepegawaian untuk menautkannya.";
 
         /// <summary>
+        /// Kalimat penolakan <c>VAL-DOK-59a</c>: akun tidak tertaut ke profesi klinis aktif.
+        /// </summary>
+        public const string PenolakanTanpaProfesiKlinis =
+            "Akun Anda belum tertaut ke data dokter atau pegawai dengan profesi klinis aktif, " +
+            "sehingga jenis catatan tidak dapat ditentukan. Hubungi bagian kepegawaian untuk " +
+            "menautkan profesinya.";
+
+        /// <summary>
         /// Kalimat penolakan <c>GUARD-INP-05</c>: payload menyebut dokter lain sebagai penulis.
         /// </summary>
         public const string PenolakanMenulisAtasNamaDokterLain =
             "Catatan klinis hanya dapat disimpan atas nama dokter yang menuliskannya sendiri.";
+
+        /// <summary>
+        /// Kalimat penolakan <c>INV-DOK-14</c>: konsep orang lain hendak diselesaikan —
+        /// <c>BE-RWI-088</c>, <c>FR-DOK-075</c>.
+        /// </summary>
+        /// <remarks>
+        /// Kalimatnya menjelaskan <b>kenapa</b>, bukan hanya menyatakan tidak boleh. Yang ditolak
+        /// di sini sering kali DPJP pasien itu sendiri, yang secara wajar merasa berwenang; tanpa
+        /// alasannya ia akan mengira sistemnya salah menilai perannya.
+        /// </remarks>
+        public const string PenolakanBukanPenulisKonsep =
+            "Konsep catatan klinis hanya dapat disunting dan diselesaikan oleh dokter yang " +
+            "menuliskannya. Menyelesaikan konsep orang lain berarti menandatangani hasil " +
+            "pemeriksaan yang bukan Anda lakukan.";
+
+        /// <summary>
+        /// Kalimat penolakan <c>INV-DOK-15</c>: penugasan sudah berakhir saat dokumen disimpan —
+        /// <c>BE-RWI-088</c>, <c>FR-DOK-076</c>.
+        /// </summary>
+        /// <remarks>
+        /// Kalimatnya menyebut jalan keluarnya, yaitu penugasan singkat penulisan catatan
+        /// terlambat yang dibuat kepala ruangan (<c>BE-RWI-080</c>). Tanpa itu dokter yang
+        /// ditolak tidak punya langkah berikutnya selain menyerah.
+        /// </remarks>
+        public const string PenolakanPenugasanBerakhirSaatSimpan =
+            "Penugasan Anda atas pasien ini sudah berakhir, sehingga dokumen baru tidak dapat " +
+            "disimpan sekarang. Mintakan penugasan penulisan catatan terlambat kepada kepala " +
+            "ruangan, lalu kirim ulang.";
 
         private readonly ApplicationDbContext _dbContext;
 
         public InpatientClinicalContextService(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
+        }
+
+        /// <summary>
+        /// Menentukan profesi penulis CPPT dari relasi akun yang sedang masuk —
+        /// <c>BE-RWI-094</c>, <c>VAL-DOK-59</c>, <c>VAL-DOK-59a</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nilai <c>ProfessionType</c> dari request tidak pernah dipakai sebagai sumber
+        /// kewenangan. Urutan dokter, pegawai, lalu pengguna eksternal disengaja: satu profil
+        /// tenaga kerja dapat memiliki baris dokter sekaligus pegawai, dan keberadaan baris
+        /// dokter aktif adalah identitas klinis yang paling spesifik.
+        /// </remarks>
+        public async Task<CpptAuthorProfessionContext> ResolveCpptAuthorProfessionAsync(
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return CpptAuthorProfessionContext.Missing();
+
+            var account = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == actorUserId && x.IsActive)
+                .Select(x => new
+                {
+                    x.DoctorId,
+                    x.EmployeeId,
+                    x.ExternalUserId,
+                    x.WorkforceProfileId
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (account == null)
+                return CpptAuthorProfessionContext.Missing();
+
+            var doctorProfession = await (
+                    from doctor in _dbContext.Set<MstDoctor>().AsNoTracking()
+                    join profession in _dbContext.Set<MstProfession>().AsNoTracking()
+                        on doctor.ProfessionId equals profession.Id
+                    where !doctor.IsDelete && doctor.IsActive &&
+                          !profession.IsDelete && profession.IsActive &&
+                          profession.IsClinicalProfession &&
+                          ((account.DoctorId.HasValue && doctor.Id == account.DoctorId.Value) ||
+                           (account.WorkforceProfileId.HasValue &&
+                            doctor.WorkforceProfileId == account.WorkforceProfileId.Value))
+                    select profession.ProfessionName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(doctorProfession))
+            {
+                return CpptAuthorProfessionContext.Resolved(
+                    "Doctor", doctorProfession.Trim());
+            }
+
+            var employeeProfession = await (
+                    from employee in _dbContext.Set<MstEmployee>().AsNoTracking()
+                    join profession in _dbContext.Set<MstProfession>().AsNoTracking()
+                        on employee.ProfessionId equals profession.Id
+                    where !employee.IsDelete && employee.IsActive &&
+                          !profession.IsDelete && profession.IsActive &&
+                          profession.IsClinicalProfession &&
+                          ((account.EmployeeId.HasValue && employee.Id == account.EmployeeId.Value) ||
+                           (account.WorkforceProfileId.HasValue &&
+                            employee.WorkforceProfileId == account.WorkforceProfileId.Value))
+                    select new
+                    {
+                        profession.ProfessionCode,
+                        profession.ProfessionName,
+                        profession.ProfessionGroup
+                    })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (employeeProfession != null)
+            {
+                return CpptAuthorProfessionContext.Resolved(
+                    MapCpptProfessionType(
+                        employeeProfession.ProfessionCode,
+                        employeeProfession.ProfessionName,
+                        employeeProfession.ProfessionGroup),
+                    employeeProfession.ProfessionName.Trim());
+            }
+
+            var externalProfession = await (
+                    from externalUser in _dbContext.Set<MstExternalUser>().AsNoTracking()
+                    join profession in _dbContext.Set<MstProfession>().AsNoTracking()
+                        on externalUser.ProfessionId equals profession.Id
+                    where !externalUser.IsDelete && externalUser.IsActive &&
+                          !profession.IsDelete && profession.IsActive &&
+                          profession.IsClinicalProfession &&
+                          ((account.ExternalUserId.HasValue &&
+                            externalUser.Id == account.ExternalUserId.Value) ||
+                           (account.WorkforceProfileId.HasValue &&
+                            externalUser.WorkforceProfileId == account.WorkforceProfileId.Value))
+                    select new
+                    {
+                        profession.ProfessionCode,
+                        profession.ProfessionName,
+                        profession.ProfessionGroup
+                    })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (externalProfession == null)
+                return CpptAuthorProfessionContext.Missing();
+
+            return CpptAuthorProfessionContext.Resolved(
+                MapCpptProfessionType(
+                    externalProfession.ProfessionCode,
+                    externalProfession.ProfessionName,
+                    externalProfession.ProfessionGroup),
+                externalProfession.ProfessionName.Trim());
+        }
+
+        private static string MapCpptProfessionType(
+            string? professionCode,
+            string? professionName,
+            string? professionGroup)
+        {
+            var identity = $"{professionCode} {professionName} {professionGroup}"
+                .ToLowerInvariant();
+
+            if (identity.Contains("bidan") || identity.Contains("midwi"))
+                return "Midwife";
+
+            if (identity.Contains("perawat") || identity.Contains("nurs"))
+                return "Nurse";
+
+            if (identity.Contains("farm") || identity.Contains("apot") ||
+                identity.Contains("pharmac"))
+            {
+                return "Pharmacist";
+            }
+
+            if (identity.Contains("gizi") || identity.Contains("nutri"))
+                return "Nutritionist";
+
+            if (identity.Contains("fisioter") || identity.Contains("physiotherap"))
+                return "Physiotherapist";
+
+            if (identity.Contains("laborat") || identity.Contains("analis kesehatan"))
+                return "Laboratory";
+
+            if (identity.Contains("radiolog") || identity.Contains("radiograph"))
+                return "Radiology";
+
+            return "Other";
         }
 
         /// <summary>
@@ -531,6 +750,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PenolakanMenulisAtasNamaDokterLain);
             }
 
+            // INV-DOK-15, FR-DOK-076, BE-RWI-088. Penugasan wajib berlaku pada DUA saat
+            // sekaligus untuk dokumen baru: pada waktu klinis dokumen, dan pada saat dokumen
+            // itu disimpan.
+            //
+            // KENAPA DUA-DUANYA. Pemeriksaan waktu klinis sendirian menutup backdating melewati
+            // periode penugasan, tetapi membiarkan lubang yang sebaliknya: dokter yang
+            // penugasannya berakhir pukul 07.00 masih dapat mengirim dokumen baru pukul 08.10
+            // bertanggal klinis 05.00, kapan pun sesudahnya. Dengan begitu "dokter yang memang
+            // merawat pasien Selasa malam" tidak dapat lagi dibedakan dari "dokter mana pun yang
+            // kebetulan bisa membuka sistem hari Kamis".
+            //
+            // HANYA UNTUK DOKUMEN BARU. Menyelesaikan konsep yang dibuat saat penugasan masih
+            // aktif TIDAK tunduk pada pemeriksaan ini — RWI-DEC-128 butir 2, FR-DOK-077.
+            // Pemanggil jalur penyelesaian karena itu mengirim forNewDocument: false.
+            if (forNewDocument)
+            {
+                var saatSimpan = DateTime.UtcNow;
+
+                // Bila waktu klinisnya memang sekarang, pemeriksaan di ResolveAsync sudah
+                // menjawab pertanyaan yang sama. Selisih satu detik dibiarkan supaya permintaan
+                // biasa tidak membayar satu pembacaan basis data tambahan tanpa guna.
+                var waktuKlinis = atUtc ?? saatSimpan;
+                var perluDiperiksaUlang = (saatSimpan - waktuKlinis).Duration() > TimeSpan.FromSeconds(1);
+
+                if (perluDiperiksaUlang)
+                {
+                    var masihBertugas = await IsDoctorAssignedAsync(
+                        hasil.Context.EpisodeId, actorDoctorId.Value, saatSimpan, cancellationToken);
+
+                    if (!masihBertugas)
+                    {
+                        return InpatientClinicalContextResult.Fail(
+                            InpatientClinicalContextOutcome.AssignmentExpiredAtSave,
+                            StatusCodes.Status403Forbidden,
+                            PenolakanPenugasanBerakhirSaatSimpan);
+                    }
+                }
+            }
+
             return InpatientClinicalContextResult.Ok(new InpatientClinicalContext
             {
                 EpisodeId = hasil.Context!.EpisodeId,
@@ -547,6 +805,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ActorDoctorId = actorDoctorId
             });
         }
+
+        /// <summary>
+        /// Penjaga <b>penulis tunggal</b> atas satu dokumen klinis rawat inap yang sudah ada —
+        /// <c>INV-DOK-14</c>, <c>FR-DOK-075</c>, <c>BE-RWI-088</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Apa yang dijaga, dan kenapa bukan soal hak akses.</b> Konsep catatan klinis adalah
+        /// tulisan yang belum selesai. Yang boleh menyelesaikannya hanya orang yang menulisnya —
+        /// bukan DPJP, bukan supervisor, bukan siapa pun. Alasannya bukan kewenangan melainkan
+        /// isi: menyelesaikan konsep orang lain berarti menandatangani kalimat yang bukan hasil
+        /// pemeriksaan Anda. Karena itu penjaga ini <b>tidak</b> membaca peran, jabatan, maupun
+        /// hak akses; ia hanya membandingkan dua penanda pengguna.
+        /// </para>
+        /// <para>
+        /// <b>Poliklinik, medical check-up, dan IGD tidak berubah sedikit pun.</b> Penjaga hanya
+        /// menyala ketika kunjungan benar-benar menaungi perawatan rawat inap. Bila tidak,
+        /// hasilnya <see cref="InpatientClinicalContextOutcome.NoInpatientEpisode"/> dan
+        /// pemanggil meneruskan alurnya yang lama apa adanya. Inilah sebabnya pemanggil wajib
+        /// memperlakukan <c>NoInpatientEpisode</c> sebagai <b>lolos</b>, bukan sebagai penolakan.
+        /// </para>
+        /// <para>
+        /// <b>Perawatan yang sudah ditutup sengaja dibiarkan lewat di sini.</b> Pemeriksaannya
+        /// memakai <c>forNewDocument: false</c>, karena yang sedang dinilai adalah dokumen yang
+        /// <b>sudah ada</b>. Penguncian dokumen pada perawatan tertutup dijaga mesin keutuhan
+        /// <c>ClinicalDocumentIntegrityService.EnsureMutableAsync</c>, bukan di sini; memasang
+        /// dua penjaga untuk satu aturan berarti dua kalimat penolakan yang dapat berbeda.
+        /// </para>
+        /// <para>
+        /// <b>Penulis yang tidak diketahui dibiarkan lewat, dan itu keputusan sadar.</b> Baris
+        /// lama yang lahir sebelum penulisnya dicatat tidak punya nilai untuk dibandingkan.
+        /// Menolaknya berarti membekukan dokumen lama tanpa jalan keluar bagi siapa pun,
+        /// termasuk penulisnya sendiri. Sikapnya sama dengan yang sudah dipakai mesin keutuhan
+        /// terhadap dokumen yang belum terdaftar.
+        /// </para>
+        /// </remarks>
+        /// <param name="encounterId">Kunjungan yang menaungi dokumen.</param>
+        /// <param name="documentAuthorUserId">
+        /// Penulis dokumen menurut barisnya sendiri. Kosong berarti penulisnya tidak tercatat,
+        /// dan penjagaan penulis tidak dapat dinilai.
+        /// </param>
+        /// <param name="actorUserId">Pengguna yang sedang menyunting atau menyelesaikan.</param>
+        /// <param name="expectedEpisodeId">
+        /// Penanda perawatan yang ikut dikirim pemanggil, bila ada. Diteruskan apa adanya ke
+        /// <see cref="ResolveAsync"/>.
+        /// </param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<InpatientClinicalContextResult> ResolveForAuthorEditAsync(
+            Guid encounterId,
+            Guid? documentAuthorUserId,
+            Guid actorUserId,
+            Guid? expectedEpisodeId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await ResolveAsync(
+                encounterId,
+                expectedEpisodeId: expectedEpisodeId,
+                forNewDocument: false,
+                cancellationToken: cancellationToken);
+
+            // Kunjungan tanpa perawatan rawat inap, dan seluruh sebab penolakan lain, dijawab
+            // apa adanya. Jalur rawat jalan pemanggil hidup di sini.
+            if (!hasil.IsResolved)
+                return hasil;
+
+            if (!documentAuthorUserId.HasValue || documentAuthorUserId.Value == Guid.Empty)
+                return hasil;
+
+            if (actorUserId == Guid.Empty || documentAuthorUserId.Value != actorUserId)
+            {
+                return InpatientClinicalContextResult.Fail(
+                    InpatientClinicalContextOutcome.AuthorMismatch,
+                    StatusCodes.Status403Forbidden,
+                    PenolakanBukanPenulisKonsep);
+            }
+
+            return hasil;
+        }
+
+        /// <summary>
+        /// Menjawab apakah sebuah penolakan dari penjaga konteks klinis rawat inap memang perlu
+        /// diteruskan sebagai kegagalan permintaan — <c>BE-RWI-088</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dipakai pemanggil supaya satu aturan penting tidak perlu ditulis ulang di setiap
+        /// controller: <see cref="InpatientClinicalContextOutcome.NoInpatientEpisode"/> bukan
+        /// penolakan, ia hanya berarti "kunjungan ini bukan rawat inap, teruskan alur lamamu".
+        /// Sembilan titik panggil yang menegakkan penjaga penulis memakai pembantu yang sama,
+        /// sehingga tidak ada satu pun di antaranya yang dapat lupa membedakan keduanya.
+        /// </remarks>
+        public static bool PerluDitolak(InpatientClinicalContextResult hasil) =>
+            !hasil.IsResolved &&
+            hasil.Outcome != InpatientClinicalContextOutcome.NoInpatientEpisode;
 
         /// <summary>
         /// Menemukan baris dokter yang melekat pada pengguna yang sedang masuk —
@@ -725,6 +1076,96 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     x.StartDateTime <= atUtc &&
                     (x.EndDateTime == null || x.EndDateTime > atUtc),
                     cancellationToken);
+        }
+
+        /// <summary>
+        /// Menjawab apakah seorang dokter memegang penugasan <b>DPJP</b> yang berlaku pada
+        /// perawatan itu, pada saat tertentu — <c>INV-DOK-16</c>, <c>BE-RWI-089</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Bedanya dengan <see cref="IsDoctorAssignedAsync"/>, dan kenapa keduanya perlu
+        /// ada.</b> Yang itu menjawab "bolehkah dokter ini menulis di sini", dan jawabannya
+        /// terbuka bagi DPJP, konsulen, maupun dokter jaga — mereka semua memang merawat pasien
+        /// itu. Yang ini menjawab pertanyaan yang berbeda: "bolehkah dokter ini menyatakan sudah
+        /// membaca dan menyetujui catatan profesi lain". Pernyataan itu hanya berarti bila
+        /// datang dari penanggung jawab pelayanan; bila konsulen atau dokter jaga bisa
+        /// memberikannya, pernyataannya kehilangan arti.
+        /// </para>
+        /// <para>
+        /// <b>Dinilai pada saat yang ditanyakan, bukan pada saat catatan ditulis.</b> DPJP dapat
+        /// berganti di tengah perawatan. Yang bertanggung jawab atas catatan pasien hari ini
+        /// adalah DPJP hari ini, termasuk atas catatan yang ditulis sebelum ia mengambil alih;
+        /// DPJP lama justru sudah tidak lagi berwenang — <c>RWI-RULE-030</c>.
+        /// </para>
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang ditanyakan.</param>
+        /// <param name="doctorId">Dokter yang perannya diperiksa.</param>
+        /// <param name="atUtc">Saat yang dipakai memeriksa periode penugasan.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<bool> IsDpjpAssignedAsync(
+            Guid episodeId,
+            Guid doctorId,
+            DateTime atUtc,
+            CancellationToken cancellationToken = default)
+        {
+            if (episodeId == Guid.Empty || doctorId == Guid.Empty)
+                return false;
+
+            return await _dbContext.Set<InpDoctorAssignment>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.EpisodeId == episodeId &&
+                    x.DoctorId == doctorId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.StartDateTime <= atUtc &&
+                    (x.EndDateTime == null || x.EndDateTime > atUtc),
+                    cancellationToken);
+        }
+
+        /// <summary>
+        /// Menemukan DPJP <b>terakhir</b> sebuah perawatan, tanpa memeriksa masa berlakunya —
+        /// <c>RWI-DEC-126</c>, <c>BE-RWI-095</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Kenapa ini bukan sekadar <see cref="FindAttendingDoctorIdAsync"/> dengan waktu
+        /// penutupan.</b> Perawatan yang ditutup umumnya juga menutup penugasan DPJP-nya pada
+        /// saat yang sama atau sesudahnya, sehingga bertanya "siapa DPJP pada detik penutupan"
+        /// dapat menjawab kosong hanya karena selisih detik. Yang dicari di sini adalah baris
+        /// DPJP dengan waktu mulai paling akhir, apa pun keadaan masa berlakunya — itulah orang
+        /// yang terakhir memegang tanggung jawab pelayanan pasien itu.
+        /// </para>
+        /// <para>
+        /// <b>DPJP sebelumnya sengaja tidak ikut terjawab.</b> Yang dikembalikan tepat satu
+        /// dokter, bukan daftar. Dokter yang sudah digantikan tidak lagi bertanggung jawab atas
+        /// pasien itu, dan memberinya kewenangan verifikasi berarti mengembalikan hak yang
+        /// sudah berakhir — <c>BE-RWI-095</c> kriteria 2.
+        /// </para>
+        /// </remarks>
+        /// <param name="episodeId">Perawatan yang ditanyakan.</param>
+        /// <param name="cancellationToken">Token pembatalan permintaan.</param>
+        public async Task<Guid?> FindLastAttendingDoctorIdAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            if (episodeId == Guid.Empty)
+                return null;
+
+            return await _dbContext.Set<InpDoctorAssignment>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.EpisodeId == episodeId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    !x.IsDelete &&
+                    !x.IsCancel)
+                .OrderByDescending(x => x.StartDateTime)
+                .ThenByDescending(x => x.SequenceNumber)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.DoctorId)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>

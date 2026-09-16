@@ -64794,6 +64794,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime>("NoteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("NoteKind")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("NoteText")
                         .HasColumnType("text");
 
@@ -64916,6 +64921,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("VitalSignId");
 
                     b.HasIndex("InpEpisodeId", "NoteDateTime");
+
+                    b.HasIndex("InpEpisodeId", "NoteKind", "NoteDateTime")
+                        .HasDatabaseName("IX_TrxPatientIntegratedProgressNote_Episode_Kind_Time");
 
                     b.HasIndex("EncounterId", "NoteDateTime", "IsDelete");
 

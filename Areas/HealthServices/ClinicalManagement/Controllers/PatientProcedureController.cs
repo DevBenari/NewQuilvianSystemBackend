@@ -492,6 +492,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Hanya tindakan yang menyebut perawatan rawat inap yang dijaga. Tindakan
             // poliklinik dan IGD tidak membawa penanda perawatan sama sekali, dan perilakunya
             // karena itu tidak bergeser satu langkah pun.
+            // BE-RWI-090 / FR-DOK-081, RLN3-CAP-35. Penjaga perawatan tertutup, dan ia berdiri
+            // SENDIRI di depan penjaga penulis.
+            //
+            // KENAPA TERPISAH. Penjaga penulis di bawah hanya menyala ketika permintaan
+            // menyebutkan penanda perawatan. Jalur "tindakan dari catatan dokter" tidak selalu
+            // menyebutkannya — penandanya diturunkan dari kunjungan — sehingga sampai sebelum
+            // task ini tindakan baru masih dapat lahir pada perawatan yang sudah ditutup, dan
+            // tindakan itu ikut tertagih. Karena itu keadaan perawatan diperiksa dari
+            // kunjungannya, bukan dari isi permintaan.
+            //
+            // POLIKLINIK DAN IGD TIDAK BERUBAH. Kunjungan tanpa perawatan rawat inap dijawab
+            // NoInpatientEpisode dan diteruskan apa adanya; hanya perawatan Closed dan
+            // Cancelled yang ditolak, dan hanya dengan 422 beserta sebabnya — bukan galat umum.
+            var penjagaPerawatanTertutup = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (penjagaPerawatanTertutup.Outcome == InpatientClinicalContextOutcome.EpisodeClosed)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Perawatan rawat inap pasien ini sudah ditutup, sehingga tindakan baru " +
+                    "tidak dapat dicatat lagi. Bila tindakannya benar-benar terjadi sebelum " +
+                    "penutupan, mintakan sesi koreksi kepada supervisor."
+                ));
+            }
+
             if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
             {
                 var penjagaPenulis = await _inpatientClinicalContextService
@@ -501,7 +529,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         request.EncounterId,
                         expectedPatientId: request.PatientId,
                         expectedEpisodeId: request.InpEpisodeId,
-                        forNewDocument: false,
+                        // BE-RWI-090. Sebelumnya bernilai false, dan itulah lubang RLN3-CAP-35:
+                        // jalur ini menyatakan dirinya bukan dokumen baru, padahal ia justru
+                        // satu-satunya jalur yang melahirkan tindakan baru.
+                        forNewDocument: true,
                         atUtc: request.ProcedureDateTime);
 
                 if (!penjagaPenulis.IsResolved &&

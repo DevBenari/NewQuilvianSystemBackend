@@ -112,7 +112,7 @@ transaksi penutupan, bukan endpoint tersendiri.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Tidak ada perubahan source untuk dibangun; `dotnet build` juga dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 untuk rangkaian task ini secara keseluruhan. **Task ini sendiri tidak menyumbang satu berkas pun** |
 | Verifikasi proses bisnis `UAT-50` | Tidak dijalankan | `NOT RUN` | Tidak ada perilaku baru untuk diuji |
 | Uji galat buatan | Tidak dijalankan | `NOT RUN` | Tidak ada langkah baru di dalam transaksi |
 | Pencarian keberadaan tabel dan service MAR | `MedicationAdministrationService` dan `PhmMedicationAdministration` **tidak ada** di repository ini | `PASS` sebagai temuan | Pencarian nama berkas dan nama kelas pada seluruh `Areas/**` — nol hasil |
@@ -180,7 +180,7 @@ dua keterangan "belum terpasang" — bukan penelusuran ulang.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` |
+| Peringatan | `NONE` — task ini tidak mengubah satu berkas pun |
 | Masalah yang diketahui | `NONE` pada task ini |
 | Risiko tersisa | **Nyata dan perlu diketahui pemilik.** Sampai langkah 6 dipasang, dosis obat berjadwal setelah waktu tutup **tetap muncul di daftar perawat** untuk pasien yang sudah pulang. Risiko keselamatan pasiennya — obat tercatat diberikan kepada orang yang tidak ada di ruangan — **belum tertutup**. Ia hanya tertutup ketika `BE-RWI-114` mendarat dan langkah 6 dipasang. Perlu diketahui bahwa tabel MAR-nya sendiri juga belum ada, sehingga dosis berjadwal saat ini belum dibentuk sistem sama sekali; risiko ini **menjadi aktif** begitu MAR berjalan |
 | Perubahan sampingan | `NONE` |

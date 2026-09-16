@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Sebagian.** Daftar pantau dan perhitungannya selesai; **pembatalan pesanan (langkah 5) terblokir** `BE-RWI-097`. Lihat bagian 6 |
+| Status | **Sebagian.** `dotnet build` `0 Error(s)`. Daftar pantau dan perhitungannya selesai; **pembatalan pesanan (langkah 5) terblokir** `BE-RWI-097`. Lihat bagian 6 |
 
 ---
 
@@ -167,7 +167,8 @@ Pembedaan penginput dan pemberi instruksi adalah kolom yang dibuat `BE-RWI-097`,
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| Pembentukan service provider aplikasi | Berhasil — `dotnet ef` membangun host penuh sebelum melepasnya | `PASS` | Membuktikan pendaftaran dependency baru pada `Program.cs` beserta konstruktor service yang berubah dapat di-resolve; `HostAbortedException` sesudahnya adalah perilaku normal EF design-time |
 | Verifikasi proses bisnis `UAT-50` | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database; bersandar pada build yang dikecualikan |
 | Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.4 | Route, query, dan isi baris dibandingkan. Satu selisih penamaan kolom pemesan ditemukan dan dicatat pada bagian 4 | `PASS` dengan delta tercatat | Bagian 4 |
 | Pemeriksaan arah tulis lintas modul | Pencarian penulisan `TrxPatientProcedure` di dalam `InPatientManagement` — hanya ditemukan dua **pembacaan** (`CountAsync` pada transaksi penutupan dan daftar pantau), nol penulisan | `PASS` | `git diff` `InpDischargeService.Closure.cs` |
@@ -178,9 +179,11 @@ Pembedaan penginput dan pemberi instruksi adalah kolom yang dibuat `BE-RWI-097`,
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build` dan `UAT-50`, keduanya dikecualikan pemilik pekerjaan.
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta pesanan tindakan yang sudah dan belum ditagih.
+
+**Tidak dijalankan:** `UAT-50`. Ia menuntut aplikasi berjalan beserta data pesanan tindakan; **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Perlu diingat bahwa `UAT-50` sebagian besar menguji langkah 5 yang memang **belum terpasang**, sehingga menjalankannya sekarang pun belum dapat lulus penuh.
 
 ---
 
@@ -201,12 +204,14 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang 
 bagian 11.3 beserta `data-dictionary.md` 18.5 menegaskan bahwa langkah 4–6 **dipanggil lewat service
 pemiliknya, tidak menulis tabel modul lain secara langsung**.
 
-Hasil pemeriksaan source:
+Hasil pemeriksaan source, kolom per kolom:
 
 | Yang dibutuhkan | Keadaan |
 | --- | --- |
-| Tabel `TrxPatientProcedure` beserta kolom status, penagihan, dan pembatalan | **Sudah ada** |
-| `PatientProcedureOrderService` | **Tidak ada.** Dibuat `BE-RWI-097` pada roadmap `dokter-rawat-inap`, dan task itu belum mendarat |
+| `TrxPatientProcedure.InpEpisodeId`, `ProcedureStatus`, `IsBillingGenerated` | **Sudah ada** |
+| `TrxPatientProcedure.CancelledAt`, `CancelledByUserId`, `CancelReason` | **Sudah ada** |
+| `TrxPatientProcedure.CancelledByEpisodeClosure` `boolean NOT NULL DEFAULT false` | **Tidak ada.** Kolom ini dirancang `dokter-rawat-inap` `data-dictionary` 13.10 dan dibuat `BE-RWI-097`. Ia yang membedakan "dibatalkan sistem saat penutupan" dari "dibatalkan orang" — `RWI-DEC-143` butir (3). Tanpa kolom itu, pembatalan otomatis tidak dapat dibedakan dari pembatalan manual pada baris yang sama |
+| `PatientProcedureOrderService` | **Tidak ada.** Dibuat `BE-RWI-097`, dan task itu belum mendarat |
 
 Ada dua jalan, dan yang kedua ditolak:
 
@@ -234,11 +239,12 @@ bukan penelusuran ulang.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. `InpatientMonitoringController` yang kini menerima dua service tidak menimbulkan galat resolusi |
 | Masalah yang diketahui | Langkah 5 belum dipasang; AC-1 dan AC-5 belum terpenuhi. `sideEffects.cancelledProcedureOrderCount` karena itu selalu `0`, dan alasannya ikut dikembalikan pada `sideEffects.notYetWiredSteps` supaya angka nol tidak terbaca sebagai "tidak ada yang perlu dibatalkan" |
 | Risiko tersisa | **Pesanan tertunda yang belum ditagih masih menggantung di antrean tindakan** setelah episode ditutup — persis masalah yang task ini dimaksudkan menutupnya. Daftar pantau tidak menutupi risiko ini, karena ia hanya memuat pesanan **tertagih** |
 | Risiko yang terbuka di luar kendali task | Nasib pesanan tertagih setelah penutupan belum diputuskan — `04-prd-to-mvp.md` 22.7 nomor 1, menunggu Muhammad Hamzah bersama pemilik Billing. Bila keputusan itu turun, cakupan task ini dinilai ulang lebih dulu |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Kerjakan `BE-RWI-097` pada roadmap `dokter-rawat-inap`. Setelah `PatientProcedureOrderService` ada, pasang pemanggilannya pada titik yang sudah ditandai di `CloseEpisodeInternalAsync`, hapus `LangkahLimaBelumTerpasang` dari `notYetWiredSteps`, lalu perbarui laporan ini |
+| Rantai prasyarat yang sebenarnya | **Lebih panjang dari satu task.** `BE-RWI-097` sendiri menunggu `BE-RWI-090` pada roadmap `dokter-rawat-inap`, dan `BE-RWI-090` juga belum dikerjakan — folder `dokter-rawat-inap/task/report/backend/` tidak memuat satu pun laporan pada rentang `BE-RWI-088` ke atas. Jadi urutannya `BE-RWI-090` → `BE-RWI-097` → task ini. **Gerbang persetujuannya sudah tertutup**: pemberitahuan pemilik `rawat-jalan` atas `R7` ditutup 16 September 2026 lewat `RWI-DEC-152` oleh Sukma GP, dengan catatan regresi poliklinik tetap wajib. Yang tersisa murni pekerjaan, bukan menunggu keputusan orang |
+| Langkah berikutnya | Kerjakan `BE-RWI-090` lalu `BE-RWI-097` pada roadmap `dokter-rawat-inap`. Setelah `PatientProcedureOrderService` ada, pasang pemanggilannya pada titik yang sudah ditandai di `CloseEpisodeInternalAsync`, hapus `LangkahLimaBelumTerpasang` dari `notYetWiredSteps`, lalu perbarui laporan ini |

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source, dengan satu bagian yang belum penuh.** `NeedsReviewCount` baru mencakup satu dari dua sumber yang dirancang — lihat bagian 6. `dotnet build` dan pengambilan rencana eksekusi query **`NOT RUN`** |
+| Status | **SELESAI, dengan satu bagian di luar acceptance criteria yang belum penuh.** `dotnet build` `0 Error(s)`. `NeedsReviewCount` baru mencakup satu dari dua sumber yang dirancang — lihat bagian 6. Rencana eksekusi query `NFR-026` **`NOT RUN`** |
 
 ---
 
@@ -127,7 +127,7 @@ query.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | **Aditif.** Satu query baru, empat field balasan baru. Perilaku tanpa `assignedToMe` tidak berubah sama sekali |
-| Database | Tidak ada perubahan schema. Task ini **memakai** index `IX_InpDoctorAssignment_DoctorId_Active` dan kolom `AssignmentPurpose` dari `BE-RWI-079`; sampai migration `E1` dijalankan, jalur `assignedToMe` gagal pada runtime |
+| Database | Tidak ada perubahan schema. Task ini **memakai** index `IX_InpDoctorAssignment_DoctorId_Active` dan kolom `AssignmentPurpose` dari `BE-RWI-079`. Keduanya terbukti lahir pada container Postgres sekali pakai, tetapi migration `E1` belum diterapkan ke database dev; sampai itu terjadi, jalur `assignedToMe` gagal pada runtime di sana |
 | Keamanan/Auth | **Ada, dan ini inti task.** Identitas dokter diturunkan dari klaim akun, tidak pernah dari parameter permintaan. Tidak ada perubahan pada atribut akses; `InpatientCensus : Read` tetap |
 
 ---
@@ -183,9 +183,10 @@ GET /api/v1/health-services/inpatient-management/census:
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
-| Rencana eksekusi query menunjukkan pemakaian index penugasan per dokter (`NFR-026`) | Tidak dijalankan | `NOT RUN` | Menuntut database yang sudah dimigrasi berisi data; bersandar pada build dan migration `E1` yang keduanya dikecualikan |
-| Uji batas 06.59 dan 07.01 | Tidak dijalankan | `NOT RUN` | Alasan sama |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| Index `IX_InpDoctorAssignment_DoctorId_Active` benar-benar lahir di database | `CREATE INDEX "IX_InpDoctorAssignment_DoctorId_Active" ON public."InpDoctorAssignment" USING btree ("DoctorId", "EndDateTime") WHERE ("IsDelete" = false)` | `PASS` | Dibaca dari `pg_indexes` pada container Postgres 16 sekali pakai |
+| **Rencana eksekusi query menunjukkan index itu dipakai (`NFR-026`)** | Tidak dijalankan | `NOT RUN` | Menuntut tabel berisi data dalam jumlah nyata. Pada tabel kosong, PostgreSQL memilih `Seq Scan` apa pun index-nya, sehingga `EXPLAIN` di sana **tidak membuktikan apa pun** — dan menuliskannya sebagai bukti justru menyesatkan |
+| Uji batas 06.59 dan 07.01 | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta data penugasan berperiode |
 | Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.1 | Query, field balasan, dan perilaku `doctorId` dibandingkan baris per baris. Dua selisih penamaan ditemukan dan dicatat | `PASS` dengan delta tercatat | Tabel "Delta kontrak yang dicatat" |
 | Pemeriksaan statis — index yang dituju `NFR-026` benar-benar ada | Index `IX_InpDoctorAssignment_DoctorId_Active` atas `(DoctorId, EndDateTime)` berfilter `"IsDelete" = false` dibuat `BE-RWI-079`, dan penyaring `assignedToMe` menyaring persis pada `DoctorId` lalu menilai `EndDateTime` | `PASS` | `InpDoctorAssignmentConfiguration.cs` dan `BuildCensusQuery` |
 | Regresi census unit tanpa `assignedToMe` | Cabang `assignedToMe` tidak pernah dijalankan ketika nilainya salah; `BuildCensusQuery` mengembalikan query yang sama persis seperti sebelumnya; tiga field baru bernilai kosong | `PASS` pemeriksaan source | `git diff` `InpCensusQueryService.cs` — tidak ada satu pun penyaring lama yang berubah |
@@ -195,12 +196,11 @@ GET /api/v1/health-services/inpatient-management/census:
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build`, pengambilan rencana eksekusi query, dan uji batas waktu.
-Ketiganya dikecualikan pemilik pekerjaan yang menyatakan akan menjalankan build sendiri.
-**Rencana eksekusi query adalah bukti yang diminta kartu task secara eksplisit, dan ketiadaannya
-disebut di sini apa adanya.**
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta data pasien dan penugasan.
+
+**Tidak dijalankan:** pengambilan rencana eksekusi query dan uji batas waktu 06.59/07.01. Keduanya menuntut database berisi data dalam jumlah nyata. **Rencana eksekusi query adalah bukti yang diminta kartu task secara eksplisit untuk `NFR-026`, dan ketiadaannya disebut di sini apa adanya** — yang sudah terbukti barulah bahwa index-nya lahir dan bahwa penyaringnya menyaring persis pada kolom yang diindeks.
 
 ---
 
@@ -212,7 +212,7 @@ disebut di sini apa adanya.**
 | AC-2 — `doctorId` yang dikirim bersama `assignedToMe=true` diabaikan seluruhnya | Terpenuhi di source | Struktur `if` / `else if`; cabang `doctorId` tidak pernah dijalankan ketika `assignedToMe` menyala |
 | AC-3 — Ringkasan dihitung dari daftar yang sama, bukan dari query terpisah | Terpenuhi di source | `GetCensusSummaryAsync` memanggil `BuildCensusQuery` dengan argumen yang sama; `NeedsReviewCount` memakai `filtered.Select(x => x.EpisodeId)` sebagai subquery, bukan penyaring yang disalin ulang |
 | AC-4 — Akun tanpa data dokter menerima `200` dengan daftar kosong dan `emptyReason` terisi — bukan `403` | Terpenuhi di source | Penjaga di awal `GetCensusAsync` mengembalikan `CensusPagedResult` kosong berisi `EmptyReason`; tidak ada jalur yang menghasilkan `403` |
-| AC-5 — Keaktifan dinilai saat query dijalankan, tanpa proses latar; uji batas 06.59 dan 07.01 membedakan hasilnya | **Terpenuhi di source, belum terbukti runtime** | `evaluatedAt = DateTime.UtcNow` diambil pada setiap pemanggilan dan diteruskan ke penyaring; tidak ada hosted service maupun kolom turunan. Uji batasnya `NOT RUN` |
+| AC-5 — Keaktifan dinilai saat query dijalankan, tanpa proses latar; uji batas 06.59 dan 07.01 membedakan hasilnya | **Terpenuhi di source, belum terbukti runtime** | `evaluatedAt = DateTime.UtcNow` diambil pada setiap pemanggilan dan diteruskan ke penyaring; tidak ada hosted service maupun kolom turunan di seluruh jalur ini. Uji batasnya `NOT RUN` |
 
 **Butir yang belum penuh.**
 
@@ -238,10 +238,10 @@ pernah ditebak; keterbatasannya ditulis pada dokumentasi field itu sendiri.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. `InpCensusQueryService.cs` tidak menambah satu pun warning baru |
 | Masalah yang diketahui | `NeedsReviewCount` baru mencakup satu dari dua sumber — lihat bagian 6 |
-| Risiko tersisa | **Dua.** (1) Jalur `assignedToMe` bersandar pada kolom `AssignmentPurpose` yang belum ada di database; sampai migration `E1` dijalankan, proyeksi `myAssignmentPurpose` gagal pada runtime. (2) `NFR-026` belum terbukti: tanpa rencana eksekusi query, tidak ada yang memastikan index penugasan per dokter benar-benar terpakai pada tabel berisi data nyata |
+| Risiko tersisa | **Dua.** (1) Jalur `assignedToMe` bersandar pada kolom `AssignmentPurpose` yang sudah terbukti lahir pada container sekali pakai tetapi belum diterapkan ke database dev; sampai itu terjadi, proyeksi `myAssignmentPurpose` gagal pada runtime di sana. (2) **`NFR-026` belum terbukti.** Index-nya ada dan penyaringnya menyaring pada kolom yang tepat, tetapi tanpa rencana eksekusi pada tabel berisi data nyata, tidak ada yang memastikan perencana query benar-benar memakainya |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Setelah build dan migration `E1`, ambil rencana eksekusi query `assignedToMe` lalu tempelkan ke bagian 5. Lengkapi `NeedsReviewCount` ketika `BE-RWI-097` mendarat |
+| Langkah berikutnya | Setelah migration `E1` diterapkan ke database dev yang berisi data, ambil rencana eksekusi query `assignedToMe` lalu tempelkan ke bagian 5. Lengkapi `NeedsReviewCount` ketika `BE-RWI-097` mendarat |

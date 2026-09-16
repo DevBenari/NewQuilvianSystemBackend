@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source, dengan satu sumber yang belum tersedia dan dilaporkan apa adanya.** `dotnet build` dan **pengukuran waktu nyata per sumber `NOT RUN`** — bukti yang diminta `NFR-027` karena itu belum ada |
+| Status | **Sebagian.** `dotnet build` `0 Error(s)`. **Pengukuran waktu nyata per sumber `NOT RUN`** — bukti yang diminta `NFR-027` karena itu belum ada. Satu sumber (laboratorium) belum tersedia dan dilaporkan apa adanya |
 
 ---
 
@@ -230,7 +230,8 @@ Keempatnya bersifat aditif dan tidak mengubah satu pun field yang dikunci kontra
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| Pendaftaran `InpDischargeSummaryPrefillService` pada container DI | Berhasil — host aplikasi terbangun penuh | `PASS` | `dotnet ef` membangun host sebelum melepasnya; membuktikan service baru dan konstruktor controller yang berubah dapat di-resolve |
 | **Pengukuran waktu penyelesaian per sumber** | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database berisi data nyata; bersandar pada build dan migration `E2` yang keduanya dikecualikan. **Ini bukti yang diminta acceptance criteria 5 dan `NFR-027` secara eksplisit** |
 | Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.3 | Sembilan isian dan tabel sumber per isian dibandingkan. Empat penambahan aditif dan satu keterbatasan sumber dicatat | `PASS` dengan delta tercatat | Tabel "Delta kontrak yang dicatat" |
 | Pemeriksaan "tidak menyimpan apa pun" | Pencarian `SaveChanges` di dalam `InpDischargeSummaryPrefillService.cs` — **nol hasil**. Seluruh query memakai `AsNoTracking` | `PASS` | `InpDischargeSummaryPrefillService.cs` |
@@ -243,11 +244,11 @@ Keempatnya bersifat aditif dan tidak mengubah satu pun field yang dikunci kontra
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build` dan pengukuran waktu nyata per sumber. Keduanya dikecualikan
-pemilik pekerjaan yang menyatakan akan menjalankan build sendiri. **Alat ukurnya sudah terpasang dan
-angkanya keluar pada setiap balasan;** yang belum ada adalah angka dari data nyata.
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta episode berisi diagnosis, tindakan, resep pulang, bacaan radiologi, dan catatan edukasi.
+
+**Tidak dijalankan:** pengukuran waktu nyata per sumber. **Alat ukurnya sudah terpasang dan angkanya keluar pada setiap balasan lewat `sourceTimings`;** yang belum ada adalah angka dari data nyata. Menjalankannya menuntut lingkungan berisi data klinis, dan itu **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. **Ini bukti yang diminta acceptance criteria 5 dan `NFR-027` secara eksplisit, dan ketiadaannya disebut di sini apa adanya.**
 
 ---
 
@@ -274,13 +275,13 @@ angkanya keluar pada setiap balasan;** yang belum ada adalah angka dari data nya
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. `InpDischargeSummaryPrefillService.cs` — berkas baru terbesar pada rangkaian ini — **nol warning** |
 | Masalah yang diketahui | **Satu.** Sumber laboratorium untuk Pemeriksaan Penting belum tersedia di repository ini, dan keterangannya ikut pada setiap balasan. Ini keterbatasan **data**, bukan kelalaian implementasi |
 | Risiko tersisa | **`NFR-027` belum terbukti.** Batas 5 detik per sumber adalah angka usulan desain yang dikonfirmasi saat approval (`RWI-DEC-150`). Tanpa pengukuran nyata, tidak ada yang memastikan keenam sumber memenuhinya. Bila pengukuran nanti jauh melampaui 5 detik, angkanya **dilaporkan apa adanya dan dibawa kembali ke pemilik**, bukan diam-diam diubah di roadmap |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat di bawah |
-| Langkah berikutnya | Pemilik menjalankan build; setelah migration `E1` dan `E2` dijalankan, panggil `GET /{episodeId}/summary-prefill` pada episode berisi data lalu tempelkan `sourceTimings` apa adanya ke bagian 5 laporan ini. Bila ada sumber yang melampaui 5 detik, bawa angkanya ke pemilik |
+| Langkah berikutnya | Setelah migration `E1` dan `E2` diterapkan ke lingkungan berisi data, panggil `GET /{episodeId}/summary-prefill` pada episode yang punya diagnosis, tindakan, dan resep pulang, lalu tempelkan `sourceTimings` apa adanya ke bagian 5 laporan ini. Bila ada sumber yang melampaui 5 detik, bawa angkanya ke pemilik — jangan ubah angkanya di roadmap |
 
 ### Status Git — seluruh rangkaian `BE-RWI-079` s.d. `BE-RWI-086`
 

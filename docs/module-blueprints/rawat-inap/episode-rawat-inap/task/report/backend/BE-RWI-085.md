@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source.** `dotnet build`, verifikasi skema, dan uji migration **`NOT RUN`** atas permintaan pemilik pekerjaan |
+| Status | **SELESAI dan terverifikasi.** `dotnet build` `0 Error(s)`; keenam kolom, panjangnya, sifat nullable-nya, serta jalur migration maju dan mundur terbukti pada container Postgres 16 sekali pakai |
 
 ---
 
@@ -129,7 +129,7 @@ nama penandatangan lama dan waktunya. Keduanya tetap terbaca.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | **Aditif.** Tiga isian pada `GET`, `PUT`, dan pada setiap baris revisi. Tidak ada field existing yang berubah nama, tipe, maupun sifat wajibnya. `ClinicalSummary` **tidak berubah bentuk**; yang berubah hanya labelnya di layar |
-| Database | **Ada.** Enam kolom `varchar` nullable pada dua tabel. Migration `20260916001000_AddEightSectionColumnsToInpDischargeSummary` **sudah dibuat, belum dijalankan ke database mana pun.** Menjalankannya adalah wewenang terpisah |
+| Database | **Ada.** Enam kolom `varchar` nullable pada dua tabel. Migration **sudah dibuat dan terbukti berjalan maju serta mundur pada container Postgres 16 sekali pakai yang kemudian dibuang.** Ia **belum** diterapkan ke database dev, staging, maupun production; menjalankannya di sana tetap wewenang terpisah |
 | Keamanan/Auth | **Ada.** Ketiga kolom bertanda **SENSITIF** — memuat keterangan klinis. Tidak boleh masuk payload logger maupun endpoint daftar mana pun; keduanya sudah dipenuhi karena resume hanya muncul pada endpoint detail resume. Tidak ada perubahan atribut akses |
 
 ---
@@ -175,8 +175,14 @@ pada bentuk kedua, payload-nya tidak dapat berbeda antara dua permukaan itu.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
-| Verifikasi skema pada Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Menuntut migration dijalankan, dan itu bersandar pada build |
+| `dotnet restore` | `All projects are up-to-date for restore.` | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d` |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026. Nol `error CS`; seluruh warning modul ini bertipe `CS1573` (tag `<param>` kurang pada komentar XML), pola yang sudah ada di seluruh `InPatientManagement` |
+| `dotnet ef migrations has-pending-model-changes` | `No changes have been made to the model since the last migration.` | `PASS` | **Membuktikan suntingan tangan pada `ApplicationDbContextModelSnapshot.cs` cocok dengan model.** `HostAbortedException` yang menyertainya adalah perilaku normal EF design-time, bukan galat |
+| Migration `E2` diterapkan ke container Postgres 16 sekali pakai | `Done.` | `PASS` | Diterapkan dari nol bersama seluruh rantai migration; **tidak menyentuh database dev bersama** |
+| Verifikasi skema — enam kolom | `InpDischargeSummary` dan `InpDischargeSummaryRevision` masing-masing memuat `ImportantFindingsSummary` `character varying(4000)` `YES`, `DischargeConditionNote` `character varying(2000)` `YES`, `EducationSummary` `character varying(2000)` `YES` | `PASS` | Dibaca dari `information_schema.columns`; **sama persis** dengan DDL `data-dictionary.md` 18.4 |
+| Migration **mundur** ditolak ketika ada isian terisi | `P0001: BE-RWI-085: rollback ditolak. 1 baris resume atau revisi sudah mengisi Pemeriksaan Penting, Kondisi Saat Pulang, atau Edukasi. Membuang kolomnya menghapus isi rekam medis; ekspor lebih dulu bila memang dikehendaki.` | `PASS` | **Acceptance criteria 4 terbukti dari sisi penjaganya**, beserta jumlah barisnya |
+| Migration **mundur** berhasil sesudah ketiga isian dikosongkan | `Done.` | `PASS` | `dotnet ef database update 20260916000000_AddAssignmentPurposeToInpDoctorAssignment --connection …` |
+| Migration **maju lagi** sesudah mundur | `Done.` | `PASS` | Siklus penuh maju → mundur → maju terbukti |
 | Verifikasi kontrak API | Ketiga isian dibandingkan dengan `api-contract.md` `0.9.0` 10.3 dan `data-dictionary.md` 18.2–18.3: nama, panjang, sifat nullable, dan sensitivitasnya sama persis | `PASS` | Bandingkan bagian 4 dengan kedua dokumen |
 | Pemeriksaan kesesuaian DDL | Nama kolom, tipe, dan panjangnya sama persis dengan DDL pada `data-dictionary.md` 18.4 | `PASS` | `Migrations/20260916001000_AddEightSectionColumnsToInpDischargeSummary.cs` |
 | Pemeriksaan tiga tempat yang wajib ikut | (1) proyeksi `GetSummaryAsync` untuk resume **dan** revisi, (2) `ApplySummaryContent`, (3) `AddRevisionSnapshotAsync` — ketiganya membawa ketiga isian | `PASS` | `git diff` `InpDischargeService.cs` |
@@ -187,10 +193,11 @@ pada bentuk kedua, payload-nya tidak dapat berbeda antara dua permukaan itu.
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build`, verifikasi skema, dan uji migration maju/mundur. Seluruhnya
-dikecualikan pemilik pekerjaan yang menyatakan akan menjalankan build sendiri.
+Uji manual: `NOT FEASIBLE` — pengisian resume lewat layar menuntut aplikasi berjalan beserta data pasien.
+
+**Tidak dijalankan:** verifikasi kontrak API lewat pemanggilan `GET`/`PUT` yang sebenarnya. Kesesuaian bentuknya diperiksa terhadap dokumen kontrak dan terhadap source, bukan terhadap balasan runtime.
 
 ---
 
@@ -209,7 +216,7 @@ dikecualikan pemilik pekerjaan yang menyatakan akan menjalankan build sendiri.
 | --- | --- |
 | Laporan tracked ada | Terpenuhi — berkas ini |
 | Roadmap dan traceability diperbarui | Terpenuhi |
-| Verifikasi skema pada Postgres sekali pakai | **Belum terpenuhi** — `NOT RUN`, dikecualikan pemilik pekerjaan |
+| Verifikasi skema pada Postgres sekali pakai | **Terpenuhi** — keenam kolom dibaca dari `information_schema.columns`; maju dan mundur dijalankan |
 
 ---
 
@@ -217,10 +224,10 @@ dikecualikan pemilik pekerjaan yang menyatakan akan menjalankan build sendiri.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. Migration `E2` dan snapshot **nol warning** |
 | Masalah yang diketahui | `NONE` |
-| Risiko tersisa | **Kolom belum ada di database mana pun.** Sampai migration `E2` dijalankan, `GET` dan `PUT` resume gagal pada runtime karena proyeksinya menyebut kolom yang belum ada |
+| Risiko tersisa | **Kolom terbukti lahir dengan benar, tetapi baru pada container sekali pakai yang kemudian dibuang.** Migration `E2` **belum** diterapkan ke database dev, staging, maupun production; sampai itu terjadi, `GET` dan `PUT` resume gagal pada runtime di lingkungan tersebut karena proyeksinya menyebut kolom yang belum ada |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Pemilik menjalankan build; setelah hijau, jalankan migration `E2` maju dan mundur pada container Postgres sekali pakai lalu tempelkan keluarannya ke bagian 5. Selaraskan tab Resume Medis `FE-DOK-12` agar memakai payload yang sama |
+| Langkah berikutnya | Tidak ada pada sisi source. Selaraskan tab Resume Medis `FE-DOK-12` agar memakai payload yang sama, dan mintakan wewenang terpisah untuk menerapkan `E2` ke database dev |

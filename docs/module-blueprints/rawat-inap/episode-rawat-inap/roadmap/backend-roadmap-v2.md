@@ -59,7 +59,7 @@ write_authority: "TIDAK diberikan di sini. Wewenang tulis source, migration, dat
 | ⛔ | Prasyaratnya belum terpenuhi; nama blocker-nya disebut |
 | tanpa tanda | Belum disentuh sama sekali |
 
-Status per 16 September 2026, sesudah gelombang eksekusi pertama:
+Status per 16 September 2026, sesudah gelombang eksekusi pertama dan verifikasinya:
 empat task `✅`, tiga task `🟡`, satu task `⛔`, dan tidak ada lagi task tanpa tanda.
 Rinciannya ada pada kolom `Task ID` tabel task dan pada baris `Status` masing-masing kartu.
 
@@ -130,7 +130,7 @@ Pemetaan gelombang PRD ke gelombang eksekusi di atas:
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source: kolom `AssignmentPurpose` `integer NOT NULL DEFAULT 0`, check constraint `CK_InpDoctorAssignment_LateDocumentation`, pengisian baris lama menjadi `Regular` secara eksplisit, dan penjaga rollback yang menolak mundur bila sudah ada baris `LateDocumentation`. Migration `20260916000000_AddAssignmentPurposeToInpDoctorAssignment` **dibuat, belum dijalankan** — eksekusi database tetap wewenang terpisah. `dotnet restore`, `dotnet build`, verifikasi skema, serta uji migration maju/mundur pada Postgres sekali pakai `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026** yang menyatakan akan menjalankan build sendiri. Bukti: [laporan](../task/report/backend/BE-RWI-079.md) |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source **dan terbukti pada database.** `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. Migration `E1` dijalankan pada container Postgres 16 sekali pakai: kolom `AssignmentPurpose integer NOT NULL DEFAULT 0`, check constraint `CK_InpDoctorAssignment_LateDocumentation`, dan index `IX_InpDoctorAssignment_DoctorId_Active` dibaca dari katalog dan **sama persis** dengan DDL `data-dictionary` 18.4. Uji perilaku 6 kasus: 2 diterima, 4 ditolak constraint. Mundur **ditolak** saat ada baris `LateDocumentation` (`P0001: BE-RWI-079: rollback ditolak. 1 baris …`), mundur **berhasil** sesudah baris itu dihapus, lalu **maju lagi berhasil**. Container dibuang; migration **belum** diterapkan ke database dev. Bukti: [laporan](../task/report/backend/BE-RWI-079.md) |
 | **Gelombang** | 1 — `RI-V2-1` |
 | **Outcome** | Database membedakan penugasan biasa dari penugasan konsulen, dokter jaga, dan penugasan singkat penulisan catatan terlambat |
 | **Migration** | `E1` — `docs/module-blueprints/rawat-inap/episode-rawat-inap/02-backend-architecture.md` 11.8 |
@@ -174,7 +174,7 @@ container sekali pakai adalah wewenang terpisah dan **tidak** tercakup task ini.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 16 September 2026.** Keenam acceptance criteria terpetakan ke source: `AssignSupportingDoctorAsync` dan `EndSupportingAssignmentAsync` beserta dua endpoint `POST /{id}/doctor-assignments/supporting` dan `PATCH /{id}/doctor-assignments/{assignmentId}/end`. Kode status mengikuti kontrak `0.9.0` bagian 10.2 — `VAL-INP-08` menjadi `400` dan `VAL-INP-09` menjadi `409`, berbeda dari blok Swagger ilustratif kartu ini; selisihnya dicatat pada laporan. `Idempotency-Key` **belum dipasang** karena `InpDoctorAssignment` tidak punya kolomnya. `dotnet build` serta `UAT-46` s.d. `UAT-48` `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-080.md) |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keenam acceptance criteria terpetakan ke source. `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. Penjaga database `INV-INP-12` **diuji perilakunya**: penugasan singkat tanpa waktu selesai, berperan DPJP, beralasan kosong, dan berwaktu selesai mendahului waktu mulai seluruhnya **ditolak** `CK_InpDoctorAssignment_LateDocumentation` — butir DoD "check constraint ikut diuji" terpenuhi. Kode status mengikuti kontrak `0.9.0` 10.2 (`VAL-INP-08` → `400`, `VAL-INP-09` → `409`), berbeda dari blok Swagger ilustratif kartu ini; selisihnya dicatat pada laporan. `Idempotency-Key` **belum dipasang**. `UAT-46` s.d. `UAT-48` `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-080.md) |
 | **Gelombang** | 2 — `RI-V2-1` |
 | **Outcome** | Kepala ruangan dapat melibatkan dokter lain tanpa mengganggu DPJP |
 
@@ -248,7 +248,7 @@ constraint dari `BE-RWI-079` ikut diuji; laporan tracked ada; roadmap dan tracea
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 16 September 2026.** Kelima acceptance criteria terpetakan ke source: penyaring `assignedToMe` menilai keaktifan penugasan pada waktu query dijalankan, `doctorId` tidak pernah sampai ke query ketika `assignedToMe` menyala, ringkasan memakai `BuildCensusQuery` yang sama, dan akun tanpa data dokter menerima `200` berdaftar kosong beserta `emptyReason`. `NeedsReviewCount` baru mencakup entri CPPT; bagian pesanan tindakan menunggu `BE-RWI-097` [BE-DOK] — di luar acceptance criteria kartu ini, dan keterbatasannya ditulis pada dokumentasi field. `dotnet build`, rencana eksekusi query `NFR-026`, dan uji batas 06.59/07.01 `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-081.md) |
+| **Status** | ✅ **SELESAI 16 September 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. Index `IX_InpDoctorAssignment_DoctorId_Active` terbukti lahir di database. `NeedsReviewCount` baru mencakup entri CPPT; bagian pesanan tindakan menunggu `BE-RWI-097` [BE-DOK] — di luar acceptance criteria kartu ini. **Rencana eksekusi query `NFR-026` `NOT RUN`**: pada tabel kosong PostgreSQL memilih `Seq Scan` apa pun index-nya, sehingga `EXPLAIN` di sana tidak membuktikan apa pun. Uji batas 06.59/07.01 `NOT RUN`, dikecualikan atas keputusan pemilik pekerjaan 16 September 2026. Bukti: [laporan](../task/report/backend/BE-RWI-081.md) |
 | **Gelombang** | 2 — `RI-V2-1` |
 | **Outcome** | Daftar pasien dokter memuat persis pasien yang boleh ia tulis, tidak lebih |
 
@@ -312,7 +312,7 @@ seperti sebelumnya; laporan tracked ada; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source: langkah 4 memanggil `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` **di dalam** transaksi `CloseEpisodeInternalAsync`, lewat service pemiliknya dan bukan dengan menulis `MrcClinicalDocumentIntegrity` langsung. Persetujuan `INT-INP-08` dirujuk dari `RWI-DEC-151`. **Cakupan dokumen yang terkunci bertambah sendiri ketika `BE-RWI-091` [BE-DOK] mendarat** — tanpa perubahan source di sisi `InPatientManagement`; tidak ada pekerjaan tersisa di sini. `dotnet build`, `UAT-50`, `UAT-51`, dan uji galat buatan `NFR-025` `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-082.md) |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source. `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`, termasuk pembentukan host penuh yang membuktikan dependency baru `ClinicalDocumentIntegrityService` pada `InpDischargeService` dapat di-resolve. Langkah 4 berada di dalam transaksi `CloseEpisodeInternalAsync` dan memanggil service pemiliknya, bukan menulis `MrcClinicalDocumentIntegrity` langsung. Persetujuan `INT-INP-08` dirujuk dari `RWI-DEC-151`. **Cakupan dokumen yang terkunci bertambah sendiri ketika `BE-RWI-091` [BE-DOK] mendarat**, tanpa perubahan source di sini. `UAT-50`, `UAT-51`, dan uji galat buatan `NFR-025` `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-082.md) |
 | **Gelombang** | 2 — `RI-V2-1`, menunggu `BE-RWI-091` [BE-DOK] |
 | **Outcome** | Konsep yang tidak sempat ditandatangani tetap terbaca sebagai konsep yang terkunci, bukan hilang dan bukan tertanda tangan |
 
@@ -356,7 +356,7 @@ dinyatakan terpisah saat task ini dikirim ke builder.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN.** Tiga dari lima acceptance criteria terpetakan ke source — AC-2, AC-3, dan AC-4: pesanan tertagih tidak disentuh sama sekali, pesanan `Completed`/`Cancelled` tidak disentuh, dan daftar pantau `GET /monitoring/billed-pending-procedure-orders` memakai penyaring yang sama persis dengan perhitungan pada transaksi penutupan. **AC-1 dan AC-5 belum terpenuhi:** langkah 5 penutupan belum dipasang karena `PatientProcedureOrderService` milik `ClinicalManagement` dibuat `BE-RWI-097` [BE-DOK] dan belum ada di repository. Menulis `TrxPatientProcedure` langsung dari `InPatientManagement` ditolak `02-backend-architecture.md` 11.3. `dotnet build` dan `UAT-50` `NOT RUN`, dikecualikan atas keputusan pemilik pekerjaan 16 September 2026. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-083.md) |
+| **Status** | 🟡 **SEBAGIAN.** `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. Tiga dari lima acceptance criteria terpetakan ke source — AC-2, AC-3, dan AC-4. **AC-1 dan AC-5 belum terpenuhi:** langkah 5 penutupan belum dipasang karena `PatientProcedureOrderService` milik `ClinicalManagement` dibuat `BE-RWI-097` [BE-DOK] dan belum ada di repository; menulis `TrxPatientProcedure` langsung dari `InPatientManagement` ditolak `02-backend-architecture.md` 11.3. `UAT-50` `NOT RUN`, dan menjalankannya sekarang pun belum dapat lulus penuh karena langkah yang diujinya memang belum ada. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-083.md) |
 | **Gelombang** | 2 — `RI-V2-1`, menunggu `BE-RWI-097` [BE-DOK] |
 | **Outcome** | Pesanan yang tidak akan pernah dikerjakan ditutup rapi; pesanan yang sudah ditagih tidak dihapus diam-diam |
 
@@ -406,7 +406,7 @@ task dikerjakan, cakupannya dinilai ulang lebih dulu.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN.** AC-2 dan AC-4 terpetakan penuh ke source: `isReady` dan `isReadyWithOverride` dihitung dari `conditions` saja sehingga peringatan tidak pernah menahan, dan penutupan yang gagal di-rollback utuh. **AC-1 baru terpenuhi tiga dari empat peringatan** — konsep, pesanan belum ditagih, dan pesanan tertagih terbaca; `UNRECORDED_PAST_DOSES` belum dapat dibaca karena tabel MAR `BE-RWI-114` [BE-KEP] belum ada, dan ditandai `isMeasured = false` beserta alasannya, bukan dilaporkan nol. **AC-3 baru terpenuhi dua dari empat angka akibat** — `lockedDraftCount` dan `billedPendingProcedureOrderCount` nyata; `cancelledProcedureOrderCount` menunggu `BE-RWI-097`, `cancelledFutureDoseCount` menunggu `BE-RWI-114`, keduanya disertai `notYetWiredSteps`. `dotnet build`, `UAT-50`, dan `UAT-51` `NOT RUN`, dikecualikan atas keputusan pemilik pekerjaan 16 September 2026. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-084.md) |
+| **Status** | 🟡 **SEBAGIAN.** `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. AC-2 dan AC-4 terpetakan penuh ke source: `isReady` dan `isReadyWithOverride` dihitung dari `conditions` saja sehingga peringatan tidak pernah menahan. **AC-1 baru tiga dari empat peringatan** — `UNRECORDED_PAST_DOSES` belum dapat dibaca karena tabel MAR `BE-RWI-114` [BE-KEP] belum ada, dan ditandai `isMeasured = false`, bukan dilaporkan nol. **AC-3 baru dua dari empat angka akibat** — `cancelledProcedureOrderCount` menunggu `BE-RWI-097`, `cancelledFutureDoseCount` menunggu `BE-RWI-114`, keduanya disertai `notYetWiredSteps`. `UAT-50` dan `UAT-51` `NOT RUN`, dikecualikan atas keputusan pemilik pekerjaan 16 September 2026. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-084.md) |
 | **Gelombang** | 3 — `RI-V2-1` |
 | **Outcome** | Petugas tahu apa yang akan terjadi sebelum menekan tutup, dan tahu apa yang sudah terjadi sesudahnya |
 
@@ -439,7 +439,7 @@ laporan tracked ada; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source: enam kolom nullable pada `InpDischargeSummary` dan `InpDischargeSummaryRevision`, ketiga isian melewati baca, simpan, dan salinan versi, serta penjaga rollback yang menolak mundur bila ada baris terisi. Migration `20260916001000_AddEightSectionColumnsToInpDischargeSummary` **dibuat, belum dijalankan**. `dotnet build` dan verifikasi skema pada Postgres sekali pakai `NOT RUN`, **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-085.md) |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keempat acceptance criteria terpetakan ke source **dan terbukti pada database.** `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`. Migration `E2` dijalankan pada container Postgres 16 sekali pakai: keenam kolom dibaca dari `information_schema.columns` — `ImportantFindingsSummary varchar(4000)`, `DischargeConditionNote varchar(2000)`, `EducationSummary varchar(2000)`, seluruhnya nullable, pada kedua tabel. Mundur **ditolak** saat ada isian terisi (`P0001: BE-RWI-085: rollback ditolak. 1 baris …`), mundur **berhasil** sesudah dikosongkan, lalu **maju lagi berhasil**. Container dibuang; migration **belum** diterapkan ke database dev. Bukti: [laporan](../task/report/backend/BE-RWI-085.md) |
 | **Gelombang** | 4 — `RI-V2-2` |
 | **Outcome** | Resume pulang memuat Pemeriksaan Penting, Kondisi Saat Pulang, dan Edukasi |
 
@@ -474,7 +474,7 @@ kontrak API.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN.** AC-1 s.d. AC-4 terpetakan ke source: `InpDischargeSummaryPrefillService` mengembalikan usulan berlabel sumber, tidak punya satu pun `SaveChanges`, menangkap kegagalan per sumber sehingga satu sumber gagal tidak menggagalkan lainnya, dan menolak membentuk usulan untuk resume yang sudah ditandatangani. **AC-5 baru terpenuhi sebagian:** pengukuran waktu per sumber sudah terpasang dan keluar pada `sourceTimings`, tetapi **angka dari data nyata belum ada** karena `dotnet build` dan pemanggilan runtime `NOT RUN`, dikecualikan atas keputusan pemilik pekerjaan 16 September 2026 — sehingga bukti `NFR-027` belum ada. Sumber laboratorium untuk Pemeriksaan Penting dilaporkan belum tersedia pada setiap balasan: `LabExamination` belum menyimpan nilai hasil maupun penandaan kritis. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-086.md) |
+| **Status** | 🟡 **SEBAGIAN.** `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31`, termasuk pembentukan host penuh yang membuktikan `InpDischargeSummaryPrefillService` terdaftar dan dapat di-resolve; berkas baru terbesar pada rangkaian ini **nol warning**. AC-1 s.d. AC-4 terpetakan ke source: usulan berlabel sumber, nol `SaveChanges`, tahan sumber gagal per bagian, dan menolak membentuk usulan untuk resume yang sudah ditandatangani. **AC-5 baru sebagian:** pengukuran waktu terpasang dan keluar pada `sourceTimings`, tetapi **angka dari data nyata `NOT RUN`** karena menuntut lingkungan berisi data klinis — sehingga bukti `NFR-027` belum ada. Sumber laboratorium dilaporkan belum tersedia pada setiap balasan: `LabExamination` belum menyimpan nilai hasil maupun penandaan kritis. Bukti sejauh ini: [laporan](../task/report/backend/BE-RWI-086.md) |
 | **Gelombang** | 5 — `RI-V2-2` |
 | **Outcome** | Dokter mendapat usulan isian bersumber, dan tetap dialah yang memutuskan |
 
@@ -512,7 +512,7 @@ diubah di roadmap.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR `BE-RWI-114`** [BE-KEP] pada roadmap `keperawatan` — "MAR dan pembentukan dosis (migration `K4`)". Per 16 September 2026, `PhmMedicationAdministration` dan `MedicationAdministrationService` **tidak ada sama sekali** di repository; pencarian nama berkas dan nama kelas pada seluruh `Areas/**` mengembalikan nol hasil. `02-backend-architecture.md` 11.8 memerintahkannya apa adanya: "Selama tabel dosis belum ada, langkah 6 tidak dipasang." **Nol berkas source diubah.** Titik pemasangan langkah 6 sudah ditandai di dalam `CloseEpisodeInternalAsync`, dan `sideEffects.cancelledFutureDoseCount` sudah ada bentuknya bernilai `0` beserta `notYetWiredSteps`. Pemilik blocker: roadmap `keperawatan`. Bukti: [laporan](../task/report/backend/BE-RWI-087.md) |
+| **Status** | ⛔ **TERBLOKIR `BE-RWI-114`** [BE-KEP] pada roadmap `keperawatan` — "MAR dan pembentukan dosis (migration `K4`)". Per 16 September 2026, `PhmMedicationAdministration` dan `MedicationAdministrationService` **tidak ada sama sekali** di repository; pencarian nama berkas dan nama kelas pada seluruh `Areas/**` mengembalikan nol hasil. `02-backend-architecture.md` 11.8 memerintahkannya apa adanya: "Selama tabel dosis belum ada, langkah 6 tidak dipasang." **Nol berkas source diubah**, sehingga `dotnet build` `0 Error(s)`, `211 Warning(s)`, `00:04:31` pada rangkaian ini tidak memuat satu baris pun dari task ini. Titik pemasangan langkah 6 sudah ditandai di dalam `CloseEpisodeInternalAsync`, dan `sideEffects.cancelledFutureDoseCount` sudah ada bentuknya bernilai `0` beserta `notYetWiredSteps`. Pemilik blocker: roadmap `keperawatan`. Bukti: [laporan](../task/report/backend/BE-RWI-087.md) |
 | **Gelombang** | 4 — `RI-V2-3`, dirilis bersama `KEP-V2-2` |
 | **Outcome** | Tidak ada dosis obat yang menunggu diberikan kepada pasien yang sudah pulang |
 

@@ -6,6 +6,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -81,18 +83,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ConsultationFinalizationService _consultationFinalizationService;
         private readonly InpatientClinicalContextService _inpatientClinicalContextService;
 
+        /// <summary>
+        /// Mesin keutuhan dokumen klinis milik <c>MedicalRecordManagement</c> —
+        /// <c>BE-RWI-091</c>, <c>RWI-DEC-151</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dipakai mendaftarkan konsep catatan dokter rawat inap sejak simpan pertama, dan
+        /// menandai registrasinya dibatalkan ketika konsepnya dibatalkan. Tidak satu baris
+        /// keutuhan pun disimpan pada tabel milik <c>ClinicalManagement</c>.
+        /// </remarks>
+        private readonly ClinicalDocumentIntegrityService _integrityService;
+
         public DoctorConsultationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ConsultationValidationService consultationValidationService,
             ConsultationFinalizationService consultationFinalizationService,
-            InpatientClinicalContextService inpatientClinicalContextService)
+            InpatientClinicalContextService inpatientClinicalContextService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _consultationValidationService = consultationValidationService;
             _consultationFinalizationService = consultationFinalizationService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
+            _integrityService = integrityService;
         }
 
         [HttpGet("filters/metadata")]
@@ -563,6 +578,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             encounter.UpdateDateTime = now;
             encounter.UpdateBy = actorUserId;
 
+            // =================================================================================
+            // BE-RWI-091 / FR-DOK-074, INV-DOK-18, RWI-DEC-144, RWI-DEC-151, migration R2
+            // =================================================================================
+            //
+            // KONSEP MENDAPAT IDENTITAS SEJAK SIMPAN PERTAMA.
+            //
+            // Sampai sebelum task ini, mesin keutuhan baru mencatat catatan dokter pada saat ia
+            // DITANDATANGANI. Akibatnya konsep tidak punya identitas sama sekali: tidak ada
+            // yang dapat ditunjuk ketika kunjungan ditutup — sehingga konsep yang terlupakan
+            // tidak pernah terkunci — dan tidak ada yang dapat ditemukan dokter pada daftar
+            // "Catatan Saya".
+            //
+            // KENAPA DI DALAM TRANSAKSI YANG SAMA. Pendaftaran dan pembuatan catatan wajib
+            // berhasil atau gagal bersama. Konsep yang lahir tanpa baris keutuhan adalah konsep
+            // yang tidak dapat dikoreksi dan tidak dapat dikunci selamanya, dan itu persis
+            // keadaan yang sedang ditutup.
+            //
+            // BATASNYA: HANYA RAWAT INAP. Konsep poliklinik, medical check-up, dan IGD tidak
+            // didaftarkan sejak draf — perilaku mereka tidak bergeser satu langkah pun, dan
+            // pendaftaran mereka tetap terjadi pada saat finalisasi seperti sebelumnya
+            // (BE-RWI-038). Penyaringnya keberadaan perawatan rawat inap, bukan jenis catatan.
+            //
+            // CompleteImmediately SENGAJA TIDAK DIBEDAKAN. Catatan yang langsung diselesaikan
+            // tetap didaftarkan sebagai draf di sini, lalu dinaikkan menjadi tertanda tangan
+            // oleh jalur finalisasi. RegisterAsync idempoten terhadap baris yang sudah
+            // ditambahkan pada unit kerja yang sama, sehingga tidak ada registrasi kedua.
+            if (inpEpisodeId.HasValue && inpEpisodeId.Value != Guid.Empty)
+            {
+                try
+                {
+                    await _integrityService.RegisterAsync(
+                        ClinicalDocumentKind.Consultation,
+                        entity.Id,
+                        entity.PatientId,
+                        entity.EncounterId,
+                        authorUserId: actorUserId);
+                }
+                catch (InvalidOperationException pendaftaranGagal)
+                {
+                    // Keluar sebelum SaveChanges dan sebelum Commit: nol baris tersimpan, dan
+                    // catatan yang gagal didaftarkan karena itu tidak pernah ada.
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Catatan dokter tidak dapat dibuat karena pendaftaran pada rekam " +
+                        $"medis gagal: {pendaftaranGagal.Message}"
+                    ));
+                }
+            }
+
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
@@ -613,6 +677,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Konsultasi yang sudah cancelled tidak dapat diubah."
+                ));
+            }
+
+            // BE-RWI-088 titik panggil 1 dari 9. INV-DOK-14: konsep hanya disunting penulisnya.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
+
+            // BE-RWI-091 / api-contract.md 0.6.0 bagian 12.2. Sejak konsep terdaftar pada mesin
+            // keutuhan sejak simpan pertama, penjaga penguncian ini benar-benar punya baris
+            // untuk dinilai. Konsep yang terkunci "Tidak Ditandatangani" — karena kunjungannya
+            // ditutup sebelum penulisnya menandatangani — ditolak beserta ARAHAN memakai
+            // addendum, bukan dengan kalimat teknis "tidak dapat diubah".
+            //
+            // Catatan yang belum terdaftar dilewatkan apa adanya oleh EnsureMutableAsync,
+            // sehingga seluruh catatan poliklinik dan IGD, serta catatan rawat inap yang lahir
+            // sebelum task ini, tidak berubah perilakunya.
+            var penjagaKeutuhan = await _integrityService.EnsureMutableAsync(
+                ClinicalDocumentKind.Consultation, entity.Id);
+
+            if (!penjagaKeutuhan.IsAllowed)
+            {
+                return StatusCode(penjagaKeutuhan.StatusCode, ApiResponse<object>.Fail(
+                    penjagaKeutuhan.StatusCode,
+                    penjagaKeutuhan.ErrorMessage ?? "Catatan ini tidak dapat diubah."
                 ));
             }
 
@@ -716,6 +805,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-088 titik panggil 2 dari 9. Simpan otomatis memakai penjaga yang SAMA
+            // dengan PUT — tanpa itu penjaga penulis dapat dilewati hanya dengan memanggil
+            // endpoint simpan otomatis alih-alih endpoint ubah.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
+
+            // BE-RWI-091. Penjaga penguncian yang sama seperti pada PUT. Simpan otomatis
+            // SENGAJA tidak mendaftarkan apa pun: registrasinya sudah lahir bersama catatannya,
+            // dan simpan otomatis yang mendaftarkan akan menghasilkan satu registrasi per
+            // ketikan — api-contract.md 0.6.0 bagian 12.2 menuliskannya tegas.
+            var penjagaKeutuhan = await _integrityService.EnsureMutableAsync(
+                ClinicalDocumentKind.Consultation, entity.Id);
+
+            if (!penjagaKeutuhan.IsAllowed)
+            {
+                return StatusCode(penjagaKeutuhan.StatusCode, ApiResponse<object>.Fail(
+                    penjagaKeutuhan.StatusCode,
+                    penjagaKeutuhan.ErrorMessage ?? "SOAP catatan ini tidak dapat diubah."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -778,6 +889,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             CancellationToken cancellationToken = default)
         {
             var actorUserId = GetCurrentUserId();
+
+            // BE-RWI-088 titik panggil 3 dari 9. INV-DOK-14 pada jalur yang paling menentukan:
+            // menyelesaikan catatan sama dengan menandatanganinya, dan tanda tangan atas
+            // tulisan orang lain adalah kesalahan yang tidak dapat dibetulkan sesudahnya.
+            var entityUntukPenjaga = await _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entityUntukPenjaga == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Konsultasi dokter tidak ditemukan."
+                ));
+            }
+
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entityUntukPenjaga, cancellationToken);
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
+
             var result = await _consultationFinalizationService.FinalizeAsync(
                 id,
                 request,
@@ -853,6 +984,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-088 titik panggil 4 dari 9. Membatalkan konsep orang lain menghapus
+            // tulisannya dari lini masa; ia karena itu tunduk pada penjaga yang sama.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -866,6 +1003,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.CancelBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            // BE-RWI-091 / RWI-AC-217. Registrasi keutuhannya menjadi Cancelled, dan BARISNYA
+            // TIDAK DIHAPUS. Konsep yang dibatalkan tetap pernah ada, dan tanpa baris itu
+            // laporan kelengkapan rekam medis tidak dapat lagi menyebut berapa konsep yang
+            // dibatalkan. Berada pada SaveChanges yang sama dengan pembatalan catatannya,
+            // sehingga tidak pernah ada catatan yang dibatalkan tetapi registrasinya masih
+            // menyatakan draf — catatan seperti itu akan menghuni daftar "Konsep Saya"
+            // selamanya.
+            await _integrityService.MarkCancelledAsync(
+                ClinicalDocumentKind.Consultation,
+                entity.Id,
+                actorUserId,
+                entity.CancelReason,
+                now);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1847,6 +1998,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Guid.TryParse(userId, out var id)
                 ? id
                 : Guid.Empty;
+        }
+
+        /// <summary>
+        /// Penjaga penulis tunggal atas satu catatan dokter rawat inap yang sudah ada —
+        /// <c>BE-RWI-088</c>, <c>INV-DOK-14</c>, <c>FR-DOK-075</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Penulisnya dibaca dari <c>StartedByUserId</c>, yaitu pengguna yang membuka catatan
+        /// ini, dan bila kosong dari kolom audit <c>CreateBy</c>. Keduanya ditulis server pada
+        /// saat catatan lahir dan tidak pernah masuk ke satu pun DTO ubah, sehingga tidak dapat
+        /// dipindahkan lewat permintaan.
+        /// </para>
+        /// <para>
+        /// <b>Jalur poliklinik tidak berubah.</b> Bila kunjungan tidak menaungi perawatan rawat
+        /// inap, hasilnya <c>NoInpatientEpisode</c> dan metode ini mengembalikan <c>null</c> —
+        /// artinya lolos, dan pemanggil melanjutkan alurnya yang lama.
+        /// </para>
+        /// </remarks>
+        /// <returns>
+        /// <c>null</c> bila permintaan boleh dilanjutkan, atau hasil HTTP penolakan yang siap
+        /// dikembalikan controller.
+        /// </returns>
+        private async Task<IActionResult?> EnsureSoleAuthorAsync(
+            TrxDoctorConsultation entity,
+            CancellationToken cancellationToken = default)
+        {
+            var penulis = entity.StartedByUserId.HasValue && entity.StartedByUserId.Value != Guid.Empty
+                ? entity.StartedByUserId
+                : entity.CreateBy;
+
+            var penjaga = await _inpatientClinicalContextService.ResolveForAuthorEditAsync(
+                entity.EncounterId,
+                documentAuthorUserId: penulis,
+                actorUserId: GetCurrentUserId(),
+                expectedEpisodeId: entity.InpEpisodeId,
+                cancellationToken: cancellationToken);
+
+            if (!InpatientClinicalContextService.PerluDitolak(penjaga))
+                return null;
+
+            return StatusCode(penjaga.StatusCode, ApiResponse<object>.Fail(
+                penjaga.StatusCode,
+                penjaga.ErrorMessage ?? InpatientClinicalContextService.PenolakanBukanPenulisKonsep
+            ));
         }
 
         private class DoctorVitalSignSnapshot

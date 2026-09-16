@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Sebagian.** Bentuk kontraknya lengkap dan ketiga peringatan yang sumbernya tersedia benar-benar dihitung; satu peringatan dan satu angka akibat menunggu slice modul lain. Lihat bagian 6 |
+| Status | **Sebagian.** `dotnet build` `0 Error(s)`. Bentuk kontraknya lengkap dan ketiga peringatan yang sumbernya tersedia benar-benar dihitung; satu peringatan dan dua angka akibat menunggu slice modul lain. Lihat bagian 6 |
 
 ---
 
@@ -184,7 +184,8 @@ mengubah satu pun field yang dikunci kontrak. Hal yang sama berlaku untuk
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
+| Pembentukan service provider aplikasi | Berhasil — `dotnet ef` membangun host penuh sebelum melepasnya | `PASS` | Membuktikan pendaftaran dependency baru pada `Program.cs` beserta konstruktor service yang berubah dapat di-resolve; `HostAbortedException` sesudahnya adalah perilaku normal EF design-time |
 | Verifikasi proses bisnis `UAT-50` dan `UAT-51` | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database; bersandar pada build yang dikecualikan |
 | Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.3 | Nama field, kode peringatan, dan isi `SideEffects` dibandingkan baris per baris. Dua field aditif ditambahkan dan dicatat pada bagian 4 | `PASS` dengan delta tercatat | Bagian 4 |
 | Pemeriksaan "peringatan tidak menahan" pada source | `isReady = conditions.All(...)` dan `isReadyWithOverride = conditions.All(...)`. `warnings` **tidak muncul** pada satu pun perhitungan itu. `BuildClosureWarningsAsync` tidak pernah dipanggil dari `CloseEpisodeInternalAsync` | `PASS` | `InpDischargeService.Closure.cs` — `EvaluateClosureReadinessAsync` dan `CloseEpisodeInternalAsync` |
@@ -196,10 +197,11 @@ mengubah satu pun field yang dikunci kontrak. Hal yang sama berlaku untuk
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
 
-**Tidak dijalankan:** `dotnet build`, `UAT-50`, dan `UAT-51`. Seluruhnya dikecualikan pemilik
-pekerjaan.
+Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta episode yang siap ditutup.
+
+**Tidak dijalankan:** `UAT-50` dan `UAT-51`. Keduanya menuntut aplikasi berjalan beserta data klinis; **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Akibatnya, perilaku "peringatan tidak menahan" baru terbukti dari pembacaan source, belum dari permintaan yang benar-benar dijalankan.
 
 ---
 
@@ -245,10 +247,10 @@ dan setiap angka yang belum nyata membawa keterangannya sendiri agar tidak terba
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan |
+| Peringatan | Nol `error CS`. Enum `ClosureWarningCode` dan kedua bentuk balasan baru tidak menimbulkan satu pun warning |
 | Masalah yang diketahui | Satu dari empat peringatan dan dua dari empat angka akibat belum nyata — lihat bagian 6. Seluruhnya ditandai di dalam balasan, bukan didiamkan |
 | Risiko tersisa | **Layar dapat salah membaca angka nol.** Bila frontend mengabaikan `isMeasured` dan `notYetWiredSteps`, petugas akan membaca "0 dosis akan dibatalkan" sebagai jaminan padahal langkahnya belum berjalan. Keduanya wajib dibaca `FE-RWI-065` |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Setelah build, jalankan `UAT-50` dan `UAT-51` lalu tempelkan hasilnya ke bagian 5. Lengkapi peringatan dosis ketika `BE-RWI-114` mendarat, dan `cancelledProcedureOrderCount` ketika `BE-RWI-097` mendarat |
+| Langkah berikutnya | Jalankan `UAT-50` dan `UAT-51` pada lingkungan yang punya data klinis lalu tempelkan hasilnya ke bagian 5. Lengkapi peringatan dosis ketika `BE-RWI-114` mendarat, dan `cancelledProcedureOrderCount` ketika `BE-RWI-097` mendarat |

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
 | Tanggal | 2026-09-16 |
-| Status | **Selesai di source.** `dotnet build` dan verifikasi skema Postgres **`NOT RUN`** atas permintaan pemilik pekerjaan — lihat bagian 5 |
+| Status | **SELESAI dan terverifikasi.** `dotnet build` `0 Error(s)`; skema, check constraint, index, serta jalur migration maju dan mundur terbukti pada container Postgres 16 sekali pakai — lihat bagian 5 |
 
 ---
 
@@ -128,7 +128,7 @@ menghitung dokter yang hanya menulis catatan.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Tidak ada endpoint yang berubah pada task ini. Field `AssignmentPurpose` pada `InpatientDoctorAssignmentResponse` dipasang `BE-RWI-080` |
-| Database | **Ada.** Satu kolom `integer NOT NULL DEFAULT 0`, satu check constraint, satu index parsial. Migration `20260916000000_AddAssignmentPurposeToInpDoctorAssignment` **sudah dibuat, belum dijalankan ke database mana pun.** Menjalankannya adalah wewenang terpisah dan tidak tercakup task ini |
+| Database | **Ada.** Satu kolom `integer NOT NULL DEFAULT 0`, satu check constraint, satu index parsial. Migration **sudah dibuat dan terbukti berjalan maju serta mundur pada container Postgres 16 sekali pakai yang kemudian dibuang.** Ia **belum** diterapkan ke database dev, staging, maupun production; menjalankannya di sana tetap wewenang terpisah |
 | Keamanan/Auth | **Ada, tidak langsung.** Check constraint menutup kemungkinan jendela penulisan rekam medis yang tidak pernah tertutup. Tidak ada perubahan pada `[Authorize]`, `[AccessController]`, `[AccessAction]`, maupun `[AccessPermission]` |
 
 ---
@@ -143,29 +143,46 @@ menghitung dokter yang hanya menulis catatan.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet restore` | Tidak dijalankan | `NOT RUN` | Dikecualikan pemilik pekerjaan pada permintaan task ini: "Tanpa Melakukan dotnet build … nanti saya dotnet build mandiri" |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Alasan sama |
-| Verifikasi skema pada Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Verifikasi skema menuntut migration dijalankan, dan itu bersandar pada build. Ikut dikecualikan |
-| Migration maju dan mundur pada Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Alasan sama |
+| `dotnet restore` | `All projects are up-to-date for restore.` | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d` |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026. Nol `error CS`; seluruh warning modul ini bertipe `CS1573` (tag `<param>` kurang pada komentar XML), pola yang sudah ada di seluruh `InPatientManagement` |
+| `dotnet ef migrations has-pending-model-changes` | `No changes have been made to the model since the last migration.` | `PASS` | **Membuktikan suntingan tangan pada `ApplicationDbContextModelSnapshot.cs` cocok dengan model.** `HostAbortedException` yang menyertainya adalah perilaku normal EF design-time, bukan galat |
+| Seluruh rantai migration diterapkan dari nol ke container Postgres 16 sekali pakai | `Done.` | `PASS` | `dotnet ef database update 20260916001000_AddEightSectionColumnsToInpDischargeSummary --connection "Host=localhost;Port=55432;Database=quilvian_rwi_test;…" --no-build`. **Tidak menyentuh database dev bersama** |
+| Verifikasi skema — kolom | `AssignmentPurpose \| integer \| NO \| 0` | `PASS` | `SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_name='InpDoctorAssignment' AND column_name='AssignmentPurpose';` |
+| Verifikasi skema — check constraint | `CHECK ((("AssignmentPurpose" <> 1) OR (("AssignmentRole" = 3) AND ("EndDateTime" IS NOT NULL) AND ("EndDateTime" > "StartDateTime") AND ("HandoverReason" IS NOT NULL) AND (length(TRIM(BOTH FROM "HandoverReason")) > 0))))` | `PASS` | Dibaca dari `pg_constraint`; **sama persis** dengan DDL `data-dictionary.md` 18.4 |
+| Verifikasi skema — index | `CREATE INDEX "IX_InpDoctorAssignment_DoctorId_Active" ON public."InpDoctorAssignment" USING btree ("DoctorId", "EndDateTime") WHERE ("IsDelete" = false)` | `PASS` | Dibaca dari `pg_indexes` |
+| **Uji perilaku check constraint — 6 kasus** | 2 diterima, 4 ditolak, seluruhnya sesuai rancangan | `PASS` | Rinciannya pada tabel di bawah |
+| Migration **mundur** ditolak ketika ada baris `LateDocumentation` | `P0001: BE-RWI-079: rollback ditolak. 1 baris penugasan singkat penulisan catatan terlambat sudah tersimpan, dan membuang kolom AssignmentPurpose menghapus satu-satunya pembeda terhadap dokter jaga biasa. Pemulihan harus maju, bukan mundur.` | `PASS` | **Acceptance criteria 4 terbukti**, beserta jumlah barisnya |
+| Migration **mundur** berhasil sesudah baris itu dihapus | `Done.` | `PASS` | `dotnet ef database update 20260915074405_RevisiTablePettyCash --connection …` |
+| Migration **maju lagi** sesudah mundur | `Done.` | `PASS` | Siklus penuh maju → mundur → maju terbukti |
 | QBE Backend Governance Preflight | Area `HealthServices`, Module `InPatientManagement`, prefix `Inp` berstatus `ACTIVE` pada registry sejak 2026-08-24 (`RWI-DEC-068`). Keberlakuan `TOUCHED LEGACY` — entity `Inp*` sudah ada, task menambah satu kolom | `PASS` | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 23 dan 103 |
 | Pemeriksaan QBE yang berlaku | `QBE-MOD-002` tidak menahan (entry `ACTIVE`); `QBE-NAM-003` dan `QBE-NAM-004` tidak berlaku (tanpa rename, tanpa folder baru); `QBE-DB-001` dan `QBE-DB-002` diperhatikan — migration dibuat, eksekusi database dinyatakan terpisah | `PASS` | Bagian 3.3 baris Database |
 | Kesesuaian dengan `data-dictionary.md` 18.4 | Nama kolom, tipe, nilai bawaan, bunyi check constraint, nama dan filter index sama persis dengan DDL yang didokumentasikan | `PASS` | Bandingkan `data/data-dictionary.md` bagian 18.4 dengan `Migrations/20260916000000_AddAssignmentPurposeToInpDoctorAssignment.cs` |
 | Keseimbangan sintaks berkas yang berubah | Kurung kurawal, kurung biasa, dan kurung siku seimbang pada 27 berkas yang disentuh rangkaian task ini | `PASS` | Pemeriksaan statis; **bukan pengganti `dotnet build`** |
 | Review diff dan scope | Hanya 28 berkas yang disentuh rangkaian task `BE-RWI-079` s.d. `BE-RWI-086`; tidak ada berkas di luar `InPatientManagement`, `Repositories/Configurations`, `Migrations`, `Program.cs`, dan blueprint | `PASS` | `git status --short` pada bagian 7 |
 
+### Uji perilaku check constraint `CK_InpDoctorAssignment_LateDocumentation`
+
+Tabel diklon dengan `CREATE TABLE uji_ck (LIKE public."InpDoctorAssignment" INCLUDING ALL)` — klon membawa check constraint tetapi tidak membawa foreign key, sehingga barisnya dapat diisi langsung tanpa menyiapkan episode, dokter, dan pengguna. Constraint pada klon dibaca ulang dari `pg_constraint` dan **identik** dengan yang ada di tabel aslinya.
+
+| No | Baris yang dicoba | Yang diharapkan | Hasil sebenarnya |
+| ---: | --- | --- | --- |
+| 1 | Penugasan biasa (`Regular`), DPJP, tanpa waktu selesai | Diterima | `INSERT 0 1` — **diterima** |
+| 2 | `LateDocumentation` lengkap: dokter jaga, 10.00–11.00, beralasan | Diterima | `INSERT 0 1` — **diterima** |
+| 3 | `LateDocumentation` **tanpa waktu selesai** | Ditolak | `ERROR: new row … violates check constraint "CK_InpDoctorAssignment_LateDocumentation"` — **ditolak** |
+| 4 | `LateDocumentation` berperan **DPJP**, bukan dokter jaga | Ditolak | Ditolak constraint yang sama |
+| 5 | `LateDocumentation` **beralasan kosong** (hanya spasi) | Ditolak | Ditolak constraint yang sama |
+| 6 | `LateDocumentation` waktu selesai **mendahului** waktu mulai | Ditolak | Ditolak constraint yang sama |
+
+Pembacaan akhir tabel klon memuat **tepat dua baris** — nomor urut 1 dan 2. Keempat baris yang salah tidak satu pun tersimpan.
+
+**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
+
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang sudah dimigrasi.
+Uji manual: `NOT APPLICABLE` — task ini tidak menyentuh endpoint maupun layar.
 
-**Tidak dijalankan:**
-
-- `dotnet restore` dan `dotnet build` — dikecualikan pemilik pekerjaan pada permintaan task ini.
-  Pemilik menyatakan akan menjalankannya sendiri setelah seluruh implementasi source selesai.
-  **Ini pengecualian yang dinyatakan, bukan kelalaian**, dan tetap dicatat sebagai butir
-  Definition of Done yang belum terpenuhi.
-- Verifikasi skema dan uji migration maju/mundur pada container Postgres sekali pakai — keduanya
-  bersandar pada build yang dikecualikan di atas.
+**Tidak dijalankan:** tidak ada. Seluruh butir verifikasi yang diminta kartu task sudah dijalankan dan hasilnya dicatat di atas.
 
 ---
 
@@ -182,7 +199,7 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang 
 
 | Butir | Status |
 | --- | --- |
-| Migration maju dan mundur dijalankan pada Postgres sekali pakai | **Belum terpenuhi** — `NOT RUN`, dikecualikan pemilik pekerjaan |
+| Migration maju dan mundur dijalankan pada Postgres sekali pakai | **Terpenuhi** — maju, mundur ditolak saat ada data, mundur bersih saat kosong, lalu maju lagi |
 | Laporan tracked ada di `task/report/backend/BE-RWI-079.md` | Terpenuhi — berkas ini |
 | Baris status pada roadmap diperbarui | Terpenuhi |
 | `requirement-traceability-v2.md` membawa buktinya | Terpenuhi |
@@ -193,10 +210,10 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta database yang 
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` yang dapat dipastikan — compiler tidak dijalankan pada task ini |
+| Peringatan | Nol `error CS`. Modul ini menyumbang warning bertipe `CS1573` saja — tag `<param>` kurang pada komentar XML — pola yang sudah ada sebelum task ini pada `HandoverDoctorAsync`, `DecideDischargeAsync`, dan `CancelAdmissionAsync`. Migration baru dan snapshot **nol warning** |
 | Masalah yang diketahui | AC-2 dipenuhi oleh **dua penjaga yang berbeda**, bukan satu check constraint tunggal atas rentang nilai enum. Bentuk DDL pada `data-dictionary.md` 18.4 memang hanya menuliskan constraint `LateDocumentation`; implementasi mengikutinya dan menambahkan penjaga migration untuk nilai di luar `{0, 1}`. Selisih bentuk ini dicatat di sini, bukan didiamkan |
-| Risiko tersisa | **Kolom belum ada di database mana pun.** Sampai migration dijalankan, jalur tulis `BE-RWI-080` akan gagal pada runtime. Menjalankan migration adalah wewenang terpisah dan belum diberikan |
+| Risiko tersisa | **Kolom sudah terbukti lahir dengan benar, tetapi baru pada container sekali pakai yang kemudian dibuang.** Migration ini **belum** diterapkan ke database dev, staging, maupun production — menjalankannya di sana tetap wewenang terpisah yang belum diberikan. Sampai itu terjadi, jalur tulis `BE-RWI-080` gagal pada runtime di lingkungan tersebut |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Lihat `git status --short` pada laporan `BE-RWI-086` — seluruh rangkaian task `BE-RWI-079` s.d. `BE-RWI-086` dikerjakan pada satu working tree yang sama. Branch `MHamzah`, upstream `origin/MHamzah`, sesuai penetapan pemegang modul. Tidak ada `stage`, `commit`, `push`, `pull`, `merge`, `rebase`, maupun `deploy` yang dilakukan |
-| Langkah berikutnya | Pemilik menjalankan `dotnet restore` dan `dotnet build`; setelah hijau, jalankan migration `E1` pada container Postgres sekali pakai lalu tempelkan keluarannya ke bagian 5 laporan ini |
+| Langkah berikutnya | Tidak ada pada sisi source. Penerapan migration `E1` ke database dev atau seterusnya menunggu wewenang terpisah dari pemilik |
