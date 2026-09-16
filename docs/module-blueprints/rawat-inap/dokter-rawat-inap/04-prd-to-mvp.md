@@ -1032,7 +1032,7 @@ Nama gelombang memakai awalan `DOK-V2-` supaya tidak bertabrakan dengan `DOK-MVP
 | 7 | Jadwal pemeriksaan GDS pada order sliding scale dan status dosis bila hasil jatuh pada rentang 0 unit (usulan gate `G-22`: dosis terjadwal, `Held` beralasan) | Muhammad Hamzah | Kolom `CheckFrequencyCode` dan pembentukan dosis `Due` dirancang sebagai usulan; bila ditolak, hanya pembentukan dosis yang berubah | Tidak — dikonfirmasi saat approval |
 | 8 | Satuan GDS rumah sakit (usulan gate `G-25`: disimpan eksplisit, pencocokan menolak satuan berbeda) | Muhammad Hamzah / pemilik klinis | Satuan wajib dipilih per versi | Tidak |
 | 9 | Persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` atas kolom instruksi | Pemilik kedua modul | `FR-DOK-106` tertahan implementasinya | Tidak untuk desain; ya untuk task Lab/Rad |
-| 10 | Persetujuan Yoga Aji Pratama atas `my-authored` dan `serviceContext` | Yoga Aji Pratama | Tab Terkunci Catatan Saya tertahan | Tidak untuk desain |
+| 10 | ~~Persetujuan Yoga Aji Pratama atas `my-authored` dan `serviceContext`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | ~~Tab Terkunci Catatan Saya tertahan~~ — `BE-RWI-092` dan `FE-RWI-077` bebas | Tidak |
 | 11 | Persetujuan pemilik `rawat-jalan` atas ekstraksi komponen tata letak | Pemilik blueprint `rawat-jalan` | `DOK-V2-4` tertahan | Tidak untuk desain; ya untuk `DOK-V2-4` |
 | 12 | Apakah integrasi Gizi dan Bank Darah dibuka sekarang karena modulnya sudah ada di source | Muhammad Hamzah lewat `grill-me` | Tetap "Integrasi belum tersedia" | Tidak |
 | 13 | Penunjukan pemilik klinis pengesah isi protokol sliding scale | Manajemen rumah sakit | Sliding scale tidak dipakai pasien sungguhan | Gerbang produksi |

@@ -1636,4 +1636,4 @@ Nol epic `OPEN DECISION`.
 | 1 | Nasib pesanan tindakan tertunda yang sudah ditagih setelah penutupan | Muhammad Hamzah bersama pemilik Billing | Tidak — daftar pantau tersedia |
 | 2 | Dosis lewat jadwal yang belum dicatat saat penutupan tetap `Due` hanya-baca — sama dengan `keperawatan` 22.20 nomor 9 | Muhammad Hamzah | Tidak |
 | 3 | Isi minimal resume, termasuk apakah tiga isian baru wajib sebelum tanda tangan | Pemilik klinis, belum ditunjuk | Tidak untuk desain; gerbang produksi |
-| 4 | Persetujuan Yoga Aji Pratama atas pemanggil penguncian dari `InPatientManagement` | Yoga Aji Pratama | Tidak — mesin tidak diubah, tetapi pemberitahuan wajib sebelum rilis `RI-V2-1` |
+| 4 | ~~Persetujuan Yoga Aji Pratama atas pemanggil penguncian dari `InPatientManagement`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | Tidak — pemberitahuan sebelum rilis `RI-V2-1` **sudah terpenuhi**; DoD `BE-RWI-082` cukup merujuk keputusan itu |

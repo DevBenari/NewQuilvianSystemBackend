@@ -4,8 +4,8 @@
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
 | Revision | **`2`** — penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, 15 September 2026. Isi revision `2` ditandai ★ pada bagian 1, 2.5, 3.3, 3.4.1, 3.5, 4.5, 5, 6 |
-| Status | **`draft`** |
-| Tanggal | 2026-09-02; revision `2` 2026-09-15 |
+| Status | **`approved`** — revision `2` disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`, bersama blueprint revision `7` ketiga sub-modul. Sebelumnya `draft` |
+| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16 |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
 | Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `7` — `RWI-DEC-080` s.d. `RWI-DEC-083`, `RWI-OQ-047`. **Revision `2`:** revision `21` SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a` — `RWI-DEC-097` s.d. `149`; gate `1.6` SHA-256 `f31d207ae0cac120b0821d4474a3d952e109293c2b517aa630370396e49b5300` |
