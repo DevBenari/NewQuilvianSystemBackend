@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -6,11 +6,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
@@ -28,12 +34,15 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
@@ -169,6 +178,25 @@ try
         );
     });
 
+    // Factory konteks, dipakai NumberSeriesAllocator untuk membuka koneksi dan transaksinya
+    // SENDIRI. Tanpa ini, kenaikan pencacah nomor akan ikut dibatalkan bersama transaksi bisnis
+    // pemanggil, sehingga nomor yang sudah sempat terbit dipakai ulang - persis yang dilarang
+    // DEC-PLT-008.
+    //
+    // Lifetime SENGAJA Scoped, bukan Singleton yang menjadi bawaan AddDbContextFactory.
+    // Singleton akan mendaftarkan DbContextOptions<ApplicationDbContext> sebagai Singleton pula,
+    // berdampingan dengan pendaftaran Scoped milik AddDbContext di atas. Kompatibilitas keduanya
+    // sudah diverifikasi, bukan diasumsikan - lihat NumberSeriesCompositionTests, yang dijalankan
+    // dengan validateScopes aktif.
+    builder.Services.AddDbContextFactory<ApplicationDbContext>(
+        options =>
+        {
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection")
+            );
+        },
+        lifetime: ServiceLifetime.Scoped);
+
     // ASP.NET Core Identity
     builder.Services
         .AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -286,6 +314,10 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
@@ -303,12 +335,21 @@ try
     builder.Services.AddScoped<LabPatientRegistrationService>();
     builder.Services.AddScoped<RadOrderService>();
     builder.Services.AddScoped<RadStudyService>();
+    builder.Services.AddScoped<RadSafetyPolicyService>();
+    builder.Services.AddScoped<RadModalityService>();
+    builder.Services.AddScoped<RadSafetyRequirementService>();
+    builder.Services.AddScoped<RadReportService>();
+    builder.Services.AddScoped<RadReportNumberService>();
+    builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterIntakeService>();
+    builder.Services.AddScoped<PatientEncounterNumberService>();
+    builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
@@ -437,6 +478,35 @@ try
     // LAB-DEC-035.
     builder.Services.AddScoped<ReferralMasterDataService>();
 
+    // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
+    // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
+    // dan penyelesaiannya lewat pemeriksaan ulang (DEC-BD-031); keduanya dijaga dua butir hak
+    // akses yang berbeda pada controller, bukan oleh pemeriksaan peran di dalam kode.
+    builder.Services.AddScoped<BbkBloodGroupExamService>();
+    builder.Services.AddScoped<BbkEncounterStatusReader>();
+    builder.Services.AddScoped<BbkBloodOrderService>();
+    builder.Services.AddScoped<BbkProviderRequestService>();
+    builder.Services.AddScoped<BbkBloodUnitService>();
+    builder.Services.AddScoped<BbkBloodBankProcedureService>();
+
+    // Master data Bank Darah: katalog komponen darah, lokasi penyimpanan, dan daftar alasan
+    // terkendali. Ketiganya di-inject langsung oleh controller master masing-masing, sehingga
+    // tanpa registrasi ini controller-nya gagal diaktifkan dan setiap action-nya menjawab 500 —
+    // termasuk jalur yang menyuplai gerbang alokasi BE-BD-006 (VAL-BD-016, VAL-BD-063/064).
+    builder.Services.AddScoped<BloodComponentService>();
+    builder.Services.AddScoped<BloodStorageLocationService>();
+    builder.Services.AddScoped<BloodBankReasonService>();
+
+    // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
+    // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
+    // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
+    builder.Services.AddScoped<NumberSeriesAllocator>();
+
+    // Pembaca keadaan deret untuk layar pemantauan administrator (PLT-BE-005). Sengaja terpisah
+    // dari alokator: service ini hanya membaca dan tidak pernah memanggil SaveChanges, sehingga
+    // jalur layar tidak pernah menjadi jalan masuk untuk menyunting pencacah (INV-PLT-001).
+    builder.Services.AddScoped<NumberSeriesQueryService>();
+
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
@@ -486,9 +556,19 @@ try
     // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
     builder.Services.AddScoped<AccChartOfAccountService>();
     builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccEventTypeService>();
+    builder.Services.AddScoped<AccPostingRuleService>();
+    builder.Services.AddScoped<AccAccountingConfigurationService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccPeriodClosingService>();
+    builder.Services.AddScoped<AccYearEndClosingService>();
+    builder.Services.AddScoped<AccRecurringJournalService>();
+    builder.Services.Configure<AccRecurringJournalSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:RecurringJournalScheduler"));
+    builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
+    builder.Services.AddScoped<AccControlAccountReconciliationService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
@@ -609,6 +689,12 @@ try
     builder.Services.AddScoped<BillingFinalizationService>();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
+
+    builder.Services.AddScoped<BillingPayerEditService>();
+
+    builder.Services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
+
+    builder.Services.AddScoped<BillingReminderService>();
 
     builder.Services.AddScoped<BillingFinancialExceptionService>();
 
@@ -1183,6 +1269,24 @@ try
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+
+    // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
+    // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
+    // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
+    // (RJ-BIL-DEC-014, DEC-RAD-005).
+    await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
+    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
+    // proses bisnis lewat layar admin, bukan lewat seeder.
+    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+    if (runLabDummySeed)
+    {
+        await RunStartupSeederAsync(
+            "LabDummyDataSeeder",
+            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
+    }
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

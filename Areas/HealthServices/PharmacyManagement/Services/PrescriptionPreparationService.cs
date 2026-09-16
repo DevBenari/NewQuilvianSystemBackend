@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
         public async Task<PrescriptionPreparationResponse> StartAsync(Guid prescriptionId, Guid actorUserId, string? note, CancellationToken ct = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, ct)
                 ?? throw new InvalidOperationException("Resep tidak ditemukan.");
             if (prescription.FulfillmentStatus != PrescriptionFulfillmentStatus.VerifiedByPharmacy)
@@ -53,7 +53,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
         public async Task<PrescriptionPreparationResponse> CompleteAsync(Guid prescriptionId, CompletePrescriptionPreparationRequest request, Guid actorUserId, CancellationToken ct = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, ct)
                 ?? throw new InvalidOperationException("Resep tidak ditemukan.");
             var preparation = await _dbContext.Set<TrxPrescriptionPreparation>()

@@ -688,7 +688,7 @@ Ketiga tabel `Bbk*` di atas belum pernah dibuat di database mana pun — perubah
 `v1`**, bukan terhadap skema yang sudah berjalan. Karena itu tidak ada `ALTER TABLE` yang timbul
 darinya; seluruhnya masuk ke `CREATE TABLE` pada migration pertama modul.
 
-Tabel `Sudah ada` yang hanya dirujuk (`MstPatient`, `TrxPatientEncounter`, `InpEpisode`, `MstDoctor`,
+Tabel `Sudah ada` yang hanya dirujuk (`MstPatient`, `RegPatientEncounter`, `InpEpisode`, `MstDoctor`,
 `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`, tarif) **tidak** diubah.
 
 ---

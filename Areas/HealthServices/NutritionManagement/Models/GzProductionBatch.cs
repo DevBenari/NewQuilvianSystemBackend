@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
@@ -87,7 +87,7 @@ public class GzProductionBatchDetail : IdentityModel
 
     public GzProductionBatch? ProductionBatch { get; set; }
     public MstPatient? Patient { get; set; }
-    public TrxPatientEncounter? Encounter { get; set; }
+    public RegPatientEncounter? Encounter { get; set; }
     public GzPatientDiet? PatientDiet { get; set; }
     public ICollection<GzMealDelivery> Deliveries { get; set; } = [];
 }

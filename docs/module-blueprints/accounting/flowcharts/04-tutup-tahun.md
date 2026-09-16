@@ -80,4 +80,6 @@ Karena jurnal penutup adalah jurnal biasa, koreksinya memakai jalur yang sudah a
    lalu tutup lagi.
 3. Susun ulang jurnal penutup 2026.
 
-**Usulan ini belum diratifikasi owner** — lihat `DEC-ACC-P2-006`.
+**Diratifikasi owner 10 September 2026** — `ACC-DEC-068`, menutup `DEC-ACC-P2-006`. Sudah terbukti berjalan pada acceptance (6) `BE-ACC-P2-010`.
+
+**Satu urutan yang wajib diperhatikan.** Tutup **sementara** seluruh bulan, jalankan tutup tahun, **baru** tutup permanen. Menutup Desember secara permanen lebih dahulu akan mengunci tutup tahun selamanya: periode `Closed` tidak menerima jurnal apa pun, termasuk jurnal penutupnya sendiri (`ACC-DEC-067`).

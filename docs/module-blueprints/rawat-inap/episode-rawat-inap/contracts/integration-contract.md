@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
-| Status | `draft` |
+| `contract_version` | **`0.9.0`** — bagian 8, `draft`; isi sebelumnya `last_changed_in` `0.4.0` |
+| Status | **`draft`** |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
 | Backend SHA | `5afb54b` |
@@ -218,3 +218,52 @@ dari Billing. **Aturan penutupannya tidak berubah** — hanya sumber datanya. In
 | 4 | `DEC-INP-005`, `RWI-OQ-037`, baseline `ID-INP-INT-001` s.d. `005` |
 | 5 | Arsitektur domain bagian J.3, `ARCH-GAP-006` |
 | 6 | `RWI-RULE-028`, `DEC-INP-001`, `DEC-INP-002` |
+
+---
+
+## 8. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** Seluruhnya internal, satu `ApplicationDbContext`.
+
+| ID | Arah | Modul lawan | Pola | Pasangan | Keadaan |
+| --- | --- | --- | --- | --- | --- |
+| `INT-INP-08` | Tulis, dipicu penutupan | `MedicalRecordManagement` | Sinkron, satu transaksi | `INT-DOK-13` | `Missing` — `RLN3-CAP-38` |
+| `INT-INP-09` | Tulis, dipicu penutupan | `ClinicalManagement` pesanan tindakan | Sinkron, satu transaksi | `INT-DOK-13` | `Missing` |
+| `INT-INP-10` | Tulis, dipicu penutupan | `PharmacyManagement` dosis obat | Sinkron, satu transaksi | `INT-KEP-15` | `Missing` |
+| `INT-INP-11` | Baca | `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement` | Sinkron, hanya baca | `INT-DOK-20` | `Missing` — usulan isian resume |
+| `INT-INP-12` | Baca | `ClinicalManagement` | Sinkron, hanya baca | `INT-DOK-11` | `Missing` — `NeedsReviewCount` census |
+| `INT-INP-13` | Dibaca | `ClinicalManagement` penjaga penulis klinis | Sinkron | `INT-DOK-12` | `Extend` — `AssignmentPurpose` |
+
+### 8.1 `INT-INP-08` s.d. `INT-INP-10` — langkah akibat penutupan
+
+| Hal | Isinya |
+| --- | --- |
+| Urutan | Setelah status `Closed` diterapkan dan sebelum `SaveChanges`: (4) kunci konsep, (5) batalkan pesanan tertunda, (6) batalkan dosis masa depan |
+| Kenapa urutan itu | Penguncian tidak bergantung dua lainnya; pembatalan pesanan dan dosis tidak saling bergantung. Urutan dibuat tetap supaya log dan test dapat dibandingkan |
+| Kegagalan | Galat pada langkah mana pun → rollback seluruh transaksi, termasuk pengembalian tempat tidur dan penutupan penugasan |
+| Idempotensi | Menjalankan ulang pada episode `Closed` ditolak oleh penjaga status yang sudah ada; ketiga langkah juga hanya menyentuh keadaan awal yang benar |
+| Selama service tujuan belum dibangun | Langkah yang service-nya belum ada **tidak dipasang**; penutupan berjalan seperti hari ini. Tiap langkah dipasang pada gelombang pemiliknya — 11.8 |
+| Pemberitahuan | `INT-INP-08` adalah titik sentuh `MedicalRecordManagement` — **wajib diberitahukan kepada Yoga Aji Pratama**, satu paket dengan `INT-DOK-13` dan `INT-KEP-12` |
+| Contoh | Joko ditutup 13.00 → 1 konsep terkunci, 1 pesanan batal, 1 dosis 20.00 batal; response `SideEffects` menampilkan ketiga angka |
+
+### 8.2 `INT-INP-11` — usulan isian resume
+
+| Hal | Isinya |
+| --- | --- |
+| Yang dibaca | Diagnosis encounter; tindakan `Completed`; butir resep pulang; hasil laboratorium/radiologi final kritis atau abnormal; Assesment Edukasi selesai |
+| Batas tunggu | 5 detik per sumber; sumber lambat → `SourceStatus = Unavailable`, sumber lain tetap dikembalikan |
+| Privasi | Hanya dikirim kepada pemegang `InpatientDischarge : Read`; tidak dicatat ke custom logger |
+| Yang tidak dilakukan | Tidak menyimpan; tidak memperbarui resume otomatis |
+
+### 8.3 `INT-INP-12` — angka "Perlu Review"
+
+| Hal | Isinya |
+| --- | --- |
+| Yang dibaca | Jumlah entri CPPT menunggu verifikasi yang boleh diverifikasi dokter login (`RWI-DEC-125`, `126`) dan jumlah pesanan menunggu verifikasi instruksinya |
+| Kegagalan | `NeedsReviewCount = null` beserta penanda; angka lain tetap tampil |
+
+### 8.4 `INT-INP-13` — tujuan penugasan dibaca penjaga penulis klinis
+
+`InpatientClinicalContextService` membaca `AssignmentPurpose` untuk menegakkan `RWI-DEC-130` butir (5): dokter
+berpenugasan `LateDocumentation` tidak dapat memverifikasi CPPT. Keputusan pulang, tanda tangan resume, perpindahan, dan
+isolasi sudah tertutup bagi `OnCallDoctor` oleh `GUARD-INP-01` s.d. `04`.

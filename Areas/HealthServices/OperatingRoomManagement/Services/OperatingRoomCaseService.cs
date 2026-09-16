@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+﻿using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -197,7 +197,7 @@ public sealed class OperatingRoomCaseService
         Guid primarySurgeonId, IReadOnlyCollection<OprCaseProcedureRequest> procedures, Guid? currentCaseId,
         CancellationToken cancellationToken)
     {
-        var encounterValid = await _dbContext.Set<TrxPatientEncounter>().AsNoTracking()
+        var encounterValid = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
             .AnyAsync(x => x.Id == encounterId && x.PatientId == patientId && !x.IsDelete, cancellationToken);
         if (!encounterValid) throw new ArgumentException("Encounter tidak ditemukan atau tidak sesuai dengan pasien.");
 

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -61,7 +61,7 @@ public class GzNutritionOrder : IdentityModel
     public int Version { get; set; }
 
     public MstPatient? Patient { get; set; }
-    public TrxPatientEncounter? Encounter { get; set; }
+    public RegPatientEncounter? Encounter { get; set; }
     public MstDoctor? RequesterDoctor { get; set; }
     public MstWorkforceProfile? AssignedWorkforce { get; set; }
     public ICollection<GzNutritionCareRecord> CareRecords { get; set; } = [];

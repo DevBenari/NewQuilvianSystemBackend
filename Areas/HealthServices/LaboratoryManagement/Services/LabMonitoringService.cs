@@ -58,6 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var items = await source
                 .OrderByDescending(x => x.RequestedAt ?? x.CreateDateTime)
                 .ThenByDescending(x => x.CreateDateTime)
+                .ThenBy(x => x.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new LabMonitoringItemResponse

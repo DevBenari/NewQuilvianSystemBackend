@@ -45,6 +45,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime CreateDateTime { get; set; }
 
         public DateTime? UpdateDateTime { get; set; }
+
+        /// <summary>
+        /// Jumlah kantong yang penempatan berlakunya di lokasi ini dan masih berada di stok —
+        /// angka yang akan tertahan bila lokasi dinonaktifkan (<c>FE-BD-015</c>, <c>VAL-BD-068</c>).
+        /// Dihitung saat dibaca pada detail lokasi, tidak disimpan. Nol pada daftar dan tindakan tulis.
+        /// </summary>
+        public int HeldUnitCount { get; set; }
     }
 
     /// <summary>

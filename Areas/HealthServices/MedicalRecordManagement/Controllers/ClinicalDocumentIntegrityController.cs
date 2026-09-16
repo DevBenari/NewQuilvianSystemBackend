@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
@@ -362,7 +362,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 .Select(x => new { x.Id, x.FullName, x.MedicalRecordNumber })
                 .ToListAsync();
 
-            var kunjungan = await _dbContext.Set<TrxPatientEncounter>()
+            var kunjungan = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => encounterIds.Contains(x.Id))
                 .Select(x => new { x.Id, x.EncounterNumber })

@@ -195,7 +195,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public MstPatient? Patient { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public TrxDoctorConsultation? Consultation { get; set; }
 

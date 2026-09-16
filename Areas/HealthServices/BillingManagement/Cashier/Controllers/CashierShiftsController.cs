@@ -98,6 +98,37 @@ public sealed class CashierShiftsController : ControllerBase
         }
     }
 
+    [HttpGet("pending-handovers")]
+    [AccessAction("Read", "Read Pending Cashier Shift Handovers", AccessType = AccessTypes.Read, SortOrder = 9)]
+    [AccessPermission("CashierShift", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CashierShiftPendingHandoverResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingHandovers(
+        [FromQuery] string? search, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPendingHandoversForMeAsync(CurrentUserId(), search, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<CashierShiftPendingHandoverResponse>>.Ok(
+                result, "Handover shift yang menunggu konfirmasi Anda berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception))
+        {
+            return Failure(exception);
+        }
+    }
+
+    [HttpGet("receiving-cashier-options")]
+    [AccessAction("Read", "Read Receiving Cashier Options", AccessType = AccessTypes.Read, SortOrder = 10)]
+    [AccessPermission("CashierShift", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CashierUserOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReceivingCashierOptions(
+        [FromQuery] string? search, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetReceivingCashierOptionsAsync(CurrentUserId(), search, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<CashierUserOptionResponse>>.Ok(
+            result, "Daftar pilihan kasir penerima berhasil diambil."));
+    }
+
     [HttpPost("{id:guid}/handover")]
     [AccessAction("Handover", "Handover Cashier Shift", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("CashierShift", "Handover")]

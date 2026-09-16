@@ -10,6 +10,7 @@ public sealed class BilTender : IdentityModel
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid SettlementId { get; set; }
     public Guid PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
     public decimal Amount { get; set; }
     [Required, MaxLength(30)] public string Status { get; set; } = BillingTenderStatuses.Created;
     [MaxLength(150)] public string? ProviderReference { get; set; }

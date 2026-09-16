@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -16,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             builder.HasIndex(x => x.EncounterId)
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
-            builder.HasOne<TrxPatientEncounter>()
+            builder.HasOne<RegPatientEncounter>()
                 .WithMany()
                 .HasForeignKey(x => x.EncounterId)
                 .OnDelete(DeleteBehavior.Restrict);

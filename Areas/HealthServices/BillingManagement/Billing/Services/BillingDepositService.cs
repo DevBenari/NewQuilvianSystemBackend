@@ -2,9 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -48,6 +51,161 @@ public sealed class BillingDepositService
             ?? throw new KeyNotFoundException("Deposit rawat inap belum tersedia.");
 
         return MapDeposit(account);
+    }
+
+    public async Task<DepositPolicyResponse> GetDepositPolicyAsync(
+        Guid? guarantorId,
+        Guid? patientClassId,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        var activePolicies = await _dbContext.MstDepositPolicies.AsNoTracking()
+            .Where(x => x.IsActive
+                && !x.IsDelete
+                && !x.IsCancel
+                && x.EffectiveFrom <= now
+                && (x.EffectiveTo == null || x.EffectiveTo > now))
+            .ToListAsync(cancellationToken);
+
+        var policy = (guarantorId.HasValue && patientClassId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == guarantorId.Value && x.PatientClassId == patientClassId.Value)
+                : null)
+            ?? (guarantorId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == guarantorId.Value && x.PatientClassId == null)
+                : null)
+            ?? (patientClassId.HasValue
+                ? activePolicies.FirstOrDefault(x => x.GuarantorId == null && x.PatientClassId == patientClassId.Value)
+                : null)
+            ?? activePolicies.FirstOrDefault(x => x.GuarantorId == null && x.PatientClassId == null);
+
+        if (policy is not null)
+        {
+            return new DepositPolicyResponse
+            {
+                IsRequired = policy.IsRequired,
+                MinimumAmount = policy.MinimumAmount,
+                FollowUpIntervalDays = policy.FollowUpIntervalDays,
+                GuarantorId = policy.GuarantorId,
+                PatientClassId = policy.PatientClassId,
+                PolicyId = policy.Id,
+                PolicyCode = policy.Code,
+                PolicyName = policy.Name,
+                Description = policy.Description,
+                EffectiveFrom = policy.EffectiveFrom,
+                EffectiveTo = policy.EffectiveTo
+            };
+        }
+
+        return new DepositPolicyResponse
+        {
+            IsRequired = false,
+            MinimumAmount = 0m,
+            FollowUpIntervalDays = 0,
+            GuarantorId = guarantorId,
+            PatientClassId = patientClassId,
+            PolicyId = null,
+            PolicyCode = null,
+            PolicyName = null,
+            Description = "Tidak ada kebijakan deposit yang dikonfigurasi untuk penjamin dan kelas ini.",
+            EffectiveFrom = null,
+            EffectiveTo = null
+        };
+    }
+
+    public async Task<EpisodeDepositSummaryResponse> GetEpisodeDepositSummaryAsync(
+        Guid episodeId,
+        CancellationToken cancellationToken)
+    {
+        if (episodeId == Guid.Empty)
+            throw new BillingDepositValidationException("EpisodeId wajib diisi.");
+
+        var episode = await _dbContext.Set<InpEpisode>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Episode rawat inap tidak ditemukan.");
+
+        var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+            .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.Priority)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var guarantorId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId;
+        var patientClassId = episode.PatientClassId != Guid.Empty ? (Guid?)episode.PatientClassId : null;
+
+        var policy = await GetDepositPolicyAsync(guarantorId, patientClassId, cancellationToken);
+
+        var account = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .Include(x => x.Movements)
+            .FirstOrDefaultAsync(x => x.EncounterId == episode.EncounterId && !x.IsDelete, cancellationToken);
+
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => x.EncounterId == episode.EncounterId && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        decimal finalBillAmount = 0m;
+        if (invoice != null)
+        {
+            var calc = await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => x.InvoiceId == invoice.Id && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete)
+                .FirstOrDefaultAsync(cancellationToken);
+            finalBillAmount = calc?.PatientAmount ?? 0m;
+        }
+
+        decimal totalReceived = 0m;
+        decimal totalAllocated = 0m;
+        decimal totalRefunded = 0m;
+        decimal availableBalance = 0m;
+
+        if (account != null)
+        {
+            var activeMovements = account.Movements.Where(x => !x.IsDelete).ToList();
+            var totalTopUp = activeMovements
+                .Where(x => x.MovementType == BillingDepositMovementTypes.TopUp)
+                .Sum(x => x.Amount);
+            var totalReversal = activeMovements
+                .Where(x => x.MovementType == BillingDepositMovementTypes.Reversal)
+                .Sum(x => x.Amount);
+
+            totalReceived = Math.Max(0m, totalTopUp - totalReversal);
+            totalAllocated = activeMovements
+                .Where(x => x.MovementType == BillingDepositMovementTypes.Allocation)
+                .Sum(x => x.Amount);
+            totalRefunded = activeMovements
+                .Where(x => x.MovementType == BillingDepositMovementTypes.Release)
+                .Sum(x => x.Amount);
+            availableBalance = account.AvailableBalance;
+        }
+
+        var policyShortfallAmount = policy.IsRequired && policy.MinimumAmount > 0
+            ? Math.Max(0m, policy.MinimumAmount - totalReceived)
+            : 0m;
+        var finalBillShortfallAmount = Math.Max(0m, finalBillAmount - totalAllocated - availableBalance);
+        var outstandingTopUp = policyShortfallAmount;
+
+        return new EpisodeDepositSummaryResponse
+        {
+            EpisodeId = episode.Id,
+            EncounterId = episode.EncounterId,
+            DepositAccountId = account?.Id,
+            AccountNumber = account?.AccountNumber ?? string.Empty,
+            DepositStatus = account?.Status ?? string.Empty,
+            HasDepositAccount = account != null,
+            IsPolicyRequired = policy.IsRequired,
+            MinimumPolicyAmount = policy.MinimumAmount,
+            TotalReceived = totalReceived,
+            TotalAllocated = totalAllocated,
+            TotalRefunded = totalRefunded,
+            AvailableBalance = availableBalance,
+            PolicyShortfallAmount = policyShortfallAmount,
+            FinalBillAmount = finalBillAmount,
+            FinalBillShortfallAmount = finalBillShortfallAmount,
+            OutstandingTopUp = outstandingTopUp,
+            FollowUpIntervalDays = policy.FollowUpIntervalDays,
+            GuarantorId = guarantorId,
+            PatientClassId = patientClassId
+        };
     }
 
     public async Task<SettlementResponse> TopUpAsync(
@@ -95,7 +253,7 @@ public sealed class BillingDepositService
                 throw new BillingDepositConflictException(
                     "CorrelationId sudah diproses; gunakan correlation baru.");
 
-            var encounter = await _dbContext.TrxPatientEncounters.AsNoTracking()
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .SingleOrDefaultAsync(
                     x => x.Id == encounterId && !x.IsDelete && !x.IsCancel,
                     cancellationToken)
@@ -175,6 +333,8 @@ public sealed class BillingDepositService
                 MovementType = BillingDepositMovementTypes.TopUp,
                 Amount = request.Amount,
                 PaymentMethodId = request.PaymentMethodId,
+                PaymentMethodAccountId = request.PaymentMethodAccountId,
+                ReferenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim(),
                 CashierShiftId = cashierShift?.Id,
                 IdempotencyKey = idempotencyKey,
                 PayloadHash = payloadHash,
@@ -538,25 +698,61 @@ public sealed class BillingDepositService
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
-    private static SettlementResponse MapSettlement(
+    private SettlementResponse MapSettlement(
         BilDepositAccount account,
         BilDepositMovement movement,
         bool isReplay) => new()
-        {
-            RequestedAmount = movement.Amount,
-            SuccessfulAmount = movement.Amount,
-            AllocatedAmount = 0,
-            OutstandingAmount = 0,
-            CollectibleAmount = 0,
-            Status = BillingSettlementStatuses.Settled,
-            IsReplay = isReplay,
-            CorrelationId = movement.CorrelationId,
-            DepositMovementId = movement.Id,
-            Deposit = MapDeposit(account)
-        };
-
-    private static DepositResponse MapDeposit(BilDepositAccount account)
     {
+        RequestedAmount = movement.Amount,
+        SuccessfulAmount = movement.Amount,
+        AllocatedAmount = 0,
+        OutstandingAmount = 0,
+        CollectibleAmount = 0,
+        Status = BillingSettlementStatuses.Settled,
+        IsReplay = isReplay,
+        CorrelationId = movement.CorrelationId,
+        DepositMovementId = movement.Id,
+        Deposit = MapDeposit(account)
+    };
+
+    private DepositResponse MapDeposit(BilDepositAccount account)
+    {
+        var paymentMethodIds = account.Movements
+            .Where(x => x.PaymentMethodId.HasValue)
+            .Select(x => x.PaymentMethodId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethods = paymentMethodIds.Count > 0
+            ? _dbContext.MstPaymentMethods.AsNoTracking()
+                .Where(x => paymentMethodIds.Contains(x.Id))
+                .ToDictionary(x => x.Id)
+            : new Dictionary<Guid, MstPaymentMethod>();
+
+        var accountIds = account.Movements
+            .Where(x => x.PaymentMethodAccountId.HasValue)
+            .Select(x => x.PaymentMethodAccountId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethodAccounts = accountIds.Count > 0
+            ? _dbContext.MstPaymentMethodAccounts.AsNoTracking()
+                .Where(x => accountIds.Contains(x.Id))
+                .ToDictionary(x => x.Id)
+            : new Dictionary<Guid, MstPaymentMethodAccount>();
+
+        var cashierIds = account.Movements
+            .Where(x => x.CreateBy != Guid.Empty)
+            .Select(x => x.CreateBy)
+            .Distinct()
+            .ToList();
+
+        var cashierNames = cashierIds.Count > 0
+            ? _dbContext.Users.AsNoTracking()
+                .Where(x => cashierIds.Contains(x.Id))
+                .ToDictionary(x => x.Id, x => x.DisplayName ?? x.UserName ?? "Kasir")
+            : new Dictionary<Guid, string>();
+
         decimal runningBalance = 0;
         var movements = account.Movements
             .Where(x => !x.IsDelete)
@@ -569,6 +765,30 @@ public sealed class BillingDepositService
                     ? x.Amount
                     : -x.Amount;
                 runningBalance += effect;
+
+                string? pmName = null;
+                string? bankName = null;
+                string? accNum = null;
+
+                if (x.PaymentMethodAccountId.HasValue && paymentMethodAccounts.TryGetValue(x.PaymentMethodAccountId.Value, out var pma))
+                {
+                    bankName = pma.BankName;
+                    accNum = pma.AccountNumber;
+                }
+
+                if (x.PaymentMethodId.HasValue && paymentMethods.TryGetValue(x.PaymentMethodId.Value, out var pm))
+                {
+                    pmName = pm.PaymentMethodName;
+                    bankName ??= pm.BankName;
+                    accNum ??= pm.BankAccountNumber;
+                }
+                else if (x.MovementType == BillingDepositMovementTypes.Allocation)
+                {
+                    pmName = "Deposit";
+                }
+
+                cashierNames.TryGetValue(x.CreateBy, out var cashierName);
+
                 return new DepositMovementResponse
                 {
                     Id = x.Id,
@@ -578,6 +798,12 @@ public sealed class BillingDepositService
                     BalanceAfter = runningBalance,
                     SettlementId = x.SettlementId,
                     PaymentMethodId = x.PaymentMethodId,
+                    PaymentMethodAccountId = x.PaymentMethodAccountId,
+                    PaymentMethodName = pmName,
+                    BankName = bankName,
+                    AccountNumber = accNum,
+                    ReferenceNumber = x.ReferenceNumber ?? (x.SettlementId.HasValue ? $"INV-SETTLE-{x.SettlementId.Value:N}"[..15] : null),
+                    CashierName = cashierName ?? "Kasir",
                     CashierShiftId = x.CashierShiftId,
                     CorrelationId = x.CorrelationId,
                     OccurredAt = x.OccurredAt,

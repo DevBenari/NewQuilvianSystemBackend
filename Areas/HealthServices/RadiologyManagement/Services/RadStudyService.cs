@@ -38,16 +38,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
+        /// <summary>
+        /// Dipakai satu-satunya untuk melahirkan wadah bacaan ketika mutu citra diterima —
+        /// <c>RAD-STATE-001</c> bagian 3. Arahnya sengaja satu: <c>RadReportService</c> tidak
+        /// menginjeksi service ini balik, sehingga tidak ada lingkaran dependency.
+        /// </summary>
+        private readonly RadReportService _radReportService;
+
         public RadStudyService(
             ApplicationDbContext dbContext,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             IHttpContextAccessor httpContextAccessor,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            RadReportService radReportService)
         {
             _dbContext = dbContext;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
+            _radReportService = radReportService;
         }
 
         /* ================================================================ *
@@ -157,6 +166,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// Aturan khusus pemeriksaan dan aturan seluruh modalitas sama-sama ikut. Keduanya
         /// menumpuk, tidak saling menggantikan: aturan yang lebih spesifik menambah pertanyaan,
         /// bukan menghapus pertanyaan yang lebih umum.
+        ///
+        /// Yang menentukan sebuah aturan ikut dinilai adalah <c>RuleStatus</c>, bukan
+        /// <c>IsActive</c>. <c>RAD-DEC-005</c> memindahkan penentunya ke sana supaya aturan
+        /// hanya berlaku setelah disahkan penanggung jawab klinis; <c>IsActive</c> tinggal
+        /// sebagai kolom lama yang tidak lagi menentukan apa pun di sini.
         /// </summary>
         private async Task<List<MstRadModalitySafetyRule>> LoadApplicableRulesAsync(
             Guid modalityId,
@@ -168,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 .Include(x => x.SafetyRequirement)
                 .Where(x =>
                     !x.IsDelete &&
-                    x.IsActive &&
+                    x.RuleStatus == RadSafetyRuleStatus.Active &&
                     x.ModalityId == modalityId &&
                     (x.ProcedureId == null || x.ProcedureId == procedureId) &&
                     x.EffectiveFrom <= now &&
@@ -529,8 +543,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            await LahirkanBacaanAsync(study, cancellationToken);
+
             return RadOperationResult<RadStudyActionResult>.Success(
                 new RadStudyActionResult(MapStudy(study), handoff));
+        }
+
+        /// <summary>
+        /// Menyiapkan wadah bacaan berstatus <c>Pending</c> untuk study yang citranya baru
+        /// dinyatakan layak.
+        ///
+        /// <para>
+        /// <c>RAD-STATE-001</c> bagian 3 baris pertama menetapkannya: bacaan lahir
+        /// <b>otomatis</b> ketika study berpindah ke <c>QualityAccepted</c>, dan pelakunya
+        /// sistem. Tanpa panggilan ini tidak satu pun baris <c>RadReport</c> berstatus
+        /// <c>Pending</c> pernah ada, sehingga daftar bacaan yang menunggu dikerjakan selalu
+        /// kosong — bukan karena tidak ada pekerjaan, melainkan karena tidak ada yang pernah
+        /// mendaftarkannya.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Dipanggil paling akhir, di luar transaksi.</b> Penilaian mutu sudah tersimpan lewat
+        /// <c>SaveWithConcurrencyGuardAsync</c>, dan fakta kelayakan tagih sudah diserahkan.
+        /// <c>EnsurePendingReportAsync</c> membuka transaksinya sendiri beserta kunci penasihat
+        /// <c>RAD_REPORT_STUDY_*</c>; memanggilnya dari dalam transaksi lain akan menumpuk kunci
+        /// yang tidak perlu di jalur yang paling ramai pada modul ini.
+        /// </para>
+        /// <para>
+        /// <b>Kegagalannya tidak pernah menggagalkan penilaian mutu.</b> Pada titik ini citra
+        /// sudah dinyatakan layak dan faktanya sudah terkirim ke Billing — keduanya tidak dapat
+        /// ditarik kembali oleh kegagalan menyiapkan wadah bacaan. Membiarkan kegagalan itu
+        /// menjalar hanya akan membuat petugas melihat galat atas pekerjaan yang sebenarnya
+        /// sudah berhasil, lalu mencoba menilai mutu lagi dan ditolak karena statusnya sudah
+        /// berpindah.
+        /// </para>
+        /// <para>
+        /// <b>Kegagalannya juga tidak berakhir sebagai kehilangan permanen.</b>
+        /// <c>EnsurePendingReportAsync</c> idempoten, dan <c>CreateDraftAsync</c> tetap
+        /// melahirkan bacaannya sendiri bila wadahnya belum ada. Yang hilang ketika panggilan ini
+        /// gagal hanyalah kemunculan study itu pada daftar bacaan yang menunggu — dan itulah
+        /// sebabnya kegagalannya dicatat sebagai galat yang dapat dicari, bukan ditelan diam-diam.
+        /// </para>
+        /// </remarks>
+        private async Task LahirkanBacaanAsync(RadStudy study, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var hasil = await _radReportService.EnsurePendingReportAsync(
+                    study.Id, cancellationToken);
+
+                if (hasil.Kind == RadOperationResultKind.Success)
+                {
+                    return;
+                }
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "RadStudy.EnsureReportFailed",
+                    "Wadah bacaan gagal disiapkan setelah mutu citra diterima. Study tidak akan " +
+                    "muncul pada daftar bacaan yang menunggu sampai drafnya ditulis.",
+                    data: new
+                    {
+                        RadStudyId = study.Id,
+                        study.RadOrderId,
+                        Kode = hasil.ErrorCode,
+                        Pesan = hasil.ErrorMessage,
+                    });
+            }
+            catch (Exception exception)
+            {
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "RadStudy.EnsureReportFailed",
+                    "Wadah bacaan gagal disiapkan setelah mutu citra diterima.",
+                    exception,
+                    new { RadStudyId = study.Id, study.RadOrderId });
+            }
         }
 
         /* ================================================================ *
@@ -758,6 +847,189 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         }
 
         /* ================================================================ *
+         * Metadata penyaring dan ringkasan
+         * ================================================================ */
+
+        /// <summary>
+        /// Pilihan penyaring, pengurutan, dan parameter query untuk layar daftar study.
+        ///
+        /// Tidak menyentuh database: seluruh isinya berasal dari enum yang sudah dikunci
+        /// kontrak, termasuk keempat keadaan aturan keselamatan pada siklus pengesahannya.
+        /// </summary>
+        public RadStudyFilterMetadataResponse GetFilterMetadata() => new()
+        {
+            StudyStatuses = Enum.GetValues<RadStudyStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusStudy(x),
+                })
+                .ToList(),
+
+            SafetyCheckStates = Enum.GetValues<RadSafetyCheckState>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelKeadaanButir(x),
+                })
+                .ToList(),
+
+            SafetyRuleStatuses = Enum.GetValues<RadSafetyRuleStatus>()
+                .Select(x => new RadEnumOptionResponse
+                {
+                    Value = (int)x,
+                    Name = x.ToString(),
+                    Label = LabelStatusAturan(x),
+                })
+                .ToList(),
+
+            SortOptions =
+            [
+                new() { Value = "studySequence", Label = "Urutan study pada pesanan" },
+                new() { Value = "studyStatus", Label = "Status study" },
+                new() { Value = "createDateTime", Label = "Tanggal study dibuat" },
+            ],
+
+            SortDirections = ["asc", "desc"],
+
+            QueryParameters =
+            [
+                new()
+                {
+                    Name = "radOrderId",
+                    Type = "guid",
+                    Required = "Yes",
+                    Description = "Pesanan radiologi yang study-nya hendak dilihat.",
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Kolom pengurutan. Nilainya diambil dari SortOptions.",
+                    Example = "studySequence",
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Required = "No",
+                    Description = "Arah pengurutan, asc atau desc. Bawaannya asc.",
+                    Example = "asc",
+                },
+            ],
+        };
+
+        /// <summary>
+        /// Rekap study radiologi, ditambah dua angka yang tidak dapat dibaca dari status study
+        /// saja.
+        ///
+        /// <b>Yang pertama</b>, jumlah study yang identitasnya sudah diverifikasi tetapi
+        /// gerbang keselamatannya belum tuntas — inilah antrian yang benar-benar menunggu
+        /// jawaban petugas.
+        ///
+        /// <b>Yang kedua, dan yang paling penting</b>, jumlah alat aktif yang belum punya satu
+        /// pun aturan keselamatan berlaku. Gerbang bersifat fail-closed, sehingga setiap alat
+        /// yang terhitung di sana akan menolak seluruh pemeriksaannya. Angka itu wajib nol.
+        /// </summary>
+        public async Task<RadStudySummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var rekap = await _dbContext.RadStudies
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .GroupBy(x => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Direncanakan = g.Count(x => x.StudyStatus == RadStudyStatus.Planned),
+                    IdentitasTerverifikasi =
+                        g.Count(x => x.StudyStatus == RadStudyStatus.PatientVerified),
+                    LolosGerbang = g.Count(x => x.StudyStatus == RadStudyStatus.SafetyCleared),
+                    SedangDiambil =
+                        g.Count(x => x.StudyStatus == RadStudyStatus.AcquisitionStarted),
+                    CitraSudahDiambil = g.Count(x => x.StudyStatus == RadStudyStatus.Acquired),
+                    MutuDiterima = g.Count(x => x.StudyStatus == RadStudyStatus.QualityAccepted),
+                    MutuDitolak = g.Count(x => x.StudyStatus == RadStudyStatus.QualityRejected),
+                    Dihentikan = g.Count(x => x.StudyStatus == RadStudyStatus.Aborted),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Penyaringnya sama persis dengan yang dipakai gerbang keselamatan. Kalau keduanya
+            // berbeda, angka ini akan menyatakan semuanya beres sementara pemeriksaannya tetap
+            // ditolak — persis kekeliruan yang ditutup BE-RAD-06.
+            var alatTanpaAturan = await _dbContext.MstRadModalities
+                .AsNoTracking()
+                .CountAsync(
+                    x => !x.IsDelete &&
+                         x.IsActive &&
+                         !x.SafetyRules.Any(r =>
+                             !r.IsDelete &&
+                             r.RuleStatus == RadSafetyRuleStatus.Active &&
+                             r.EffectiveFrom <= now &&
+                             (r.EffectiveTo == null || r.EffectiveTo > now)),
+                    cancellationToken);
+
+            return new RadStudySummaryResponse
+            {
+                TotalStudy = rekap?.Total ?? 0,
+                Direncanakan = rekap?.Direncanakan ?? 0,
+                IdentitasTerverifikasi = rekap?.IdentitasTerverifikasi ?? 0,
+                LolosGerbangKeselamatan = rekap?.LolosGerbang ?? 0,
+                SedangDiambil = rekap?.SedangDiambil ?? 0,
+                CitraSudahDiambil = rekap?.CitraSudahDiambil ?? 0,
+                MutuDiterima = rekap?.MutuDiterima ?? 0,
+                MutuDitolak = rekap?.MutuDitolak ?? 0,
+                Dihentikan = rekap?.Dihentikan ?? 0,
+                MenungguGerbangKeselamatan = rekap?.IdentitasTerverifikasi ?? 0,
+                AlatTanpaAturanKeselamatanAktif = alatTanpaAturan,
+            };
+        }
+
+        /// <summary>
+        /// Teks keadaan study yang siap ditampilkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>internal</c> sejak <c>BE-RAD-13</c> supaya daftar kerja pada <c>RadOrderService</c>
+        /// memakai peta yang sama persis. Menyalinnya akan membuat dua layar menyebut keadaan
+        /// yang sama dengan dua kalimat berbeda begitu salah satunya disunting.
+        /// </remarks>
+        internal static string LabelStatusStudy(RadStudyStatus status) => status switch
+        {
+            RadStudyStatus.Planned => "Direncanakan",
+            RadStudyStatus.PatientVerified => "Identitas terverifikasi",
+            RadStudyStatus.SafetyCleared => "Lolos gerbang keselamatan",
+            RadStudyStatus.AcquisitionStarted => "Pengambilan citra dimulai",
+            RadStudyStatus.Acquired => "Citra sudah diambil",
+            RadStudyStatus.QualityAccepted => "Mutu citra diterima",
+            RadStudyStatus.OnHold => "Ditahan sementara",
+            RadStudyStatus.Aborted => "Dihentikan di tengah jalan",
+            RadStudyStatus.QualityRejected => "Mutu citra ditolak",
+            RadStudyStatus.RepeatRequired => "Perlu diulang",
+            _ => "Dibatalkan",
+        };
+
+        private static string LabelKeadaanButir(RadSafetyCheckState state) => state switch
+        {
+            RadSafetyCheckState.Pending => "Belum dijawab",
+            RadSafetyCheckState.Passed => "Dijawab aman",
+            RadSafetyCheckState.Failed => "Dinyatakan tidak aman",
+            _ => "Tidak berlaku bagi pasien ini",
+        };
+
+        private static string LabelStatusAturan(RadSafetyRuleStatus status) => status switch
+        {
+            RadSafetyRuleStatus.Draft => "Draf — belum berlaku",
+            RadSafetyRuleStatus.PendingApproval => "Menunggu pengesahan",
+            RadSafetyRuleStatus.Active => "Berlaku — dinilai gerbang",
+            _ => "Sudah dihentikan",
+        };
+
+        /* ================================================================ *
          * Pembacaan
          * ================================================================ */
 
@@ -767,6 +1039,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// Penanda itu perlu terlihat sebelum pasien dipanggil. Modalitas tanpa aturan aktif
         /// akan menolak setiap acquisition, dan mengetahuinya di depan jauh lebih baik daripada
         /// mengetahuinya ketika pasien sudah berbaring di meja pemeriksaan.
+        ///
+        /// Penandanya memakai penyaring yang sama persis dengan gerbang keselamatan, yaitu
+        /// <c>RuleStatus = Active</c>. Kalau keduanya berbeda, layar akan menyatakan sebuah
+        /// alat sudah siap sementara gerbangnya tetap menolak — dan petugas baru mengetahuinya
+        /// pada saat yang paling buruk.
         /// </summary>
         public async Task<List<RadModalityResponse>> GetModalitiesAsync(
             CancellationToken cancellationToken = default)
@@ -785,7 +1062,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     UsesIonisingRadiation = x.UsesIonisingRadiation,
                     SupportsContrast = x.SupportsContrast,
                     HasActiveSafetyRule = x.SafetyRules.Any(r =>
-                        !r.IsDelete && r.IsActive &&
+                        !r.IsDelete &&
+                        r.RuleStatus == RadSafetyRuleStatus.Active &&
                         r.EffectiveFrom <= now &&
                         (r.EffectiveTo == null || r.EffectiveTo > now)),
                     IsActive = x.IsActive,
@@ -822,17 +1100,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
         public async Task<List<RadStudyResponse>> GetByOrderAsync(
             Guid radOrderId,
+            string? sortBy = null,
+            string? sortDirection = null,
             CancellationToken cancellationToken = default)
         {
-            var studies = await _dbContext.RadStudies
+            var query = _dbContext.RadStudies
                 .AsNoTracking()
                 .Include(x => x.SafetyChecks.Where(c => !c.IsDelete))
                 .Include(x => x.Consumptions.Where(c => !c.IsDelete))
-                .Where(x => x.RadOrderId == radOrderId && !x.IsDelete)
-                .OrderBy(x => x.StudySequence)
+                .Where(x => x.RadOrderId == radOrderId && !x.IsDelete);
+
+            var studies = await Urutkan(query, sortBy, sortDirection)
                 .ToListAsync(cancellationToken);
 
             return studies.Select(MapStudy).ToList();
+        }
+
+        /// <summary>
+        /// Menerapkan pengurutan yang diminta layar.
+        ///
+        /// Hanya kolom yang benar-benar disebut <c>SortOptions</c> pada metadata penyaring yang
+        /// dilayani; nilai lain jatuh ke urutan bawaan, yaitu urutan study pada pesanannya.
+        /// </summary>
+        private static IOrderedQueryable<RadStudy> Urutkan(
+            IQueryable<RadStudy> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var menurun = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return sortBy?.Trim().ToLowerInvariant() switch
+            {
+                "studystatus" => menurun
+                    ? query.OrderByDescending(x => x.StudyStatus).ThenBy(x => x.StudySequence)
+                    : query.OrderBy(x => x.StudyStatus).ThenBy(x => x.StudySequence),
+
+                "createdatetime" => menurun
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime),
+
+                _ => menurun
+                    ? query.OrderByDescending(x => x.StudySequence)
+                    : query.OrderBy(x => x.StudySequence),
+            };
         }
 
         public async Task<List<RadTransitionHistoryResponse>> GetHistoryAsync(

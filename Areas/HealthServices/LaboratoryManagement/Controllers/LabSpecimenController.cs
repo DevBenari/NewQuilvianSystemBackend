@@ -132,7 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Create", "Plan Lab Specimen", Description = "Merencanakan sampel dan komponen pemeriksaan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Plan", "Plan Lab Specimen", Description = "Merencanakan sampel dan komponen pemeriksaan", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("LabSpecimen", "Plan")]
         public Task<IActionResult> Plan(
             Guid labOrderId,
@@ -148,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Collect Lab Specimen", Description = "Mencatat pengambilan sampel", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Collect", "Collect Lab Specimen", Description = "Mencatat pengambilan sampel", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabSpecimen", "Collect")]
         public Task<IActionResult> Collect(
             Guid id,
@@ -163,7 +163,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Receive Lab Specimen", Description = "Mencatat sampel tiba di laboratorium", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Receive", "Receive Lab Specimen", Description = "Mencatat sampel tiba di laboratorium", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("LabSpecimen", "Receive")]
         public Task<IActionResult> Receive(
             Guid id,
@@ -182,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Accept Lab Specimen", Description = "Menyatakan sampel layak periksa", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Accept", "Accept Lab Specimen", Description = "Menyatakan sampel layak periksa", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> Accept(
             Guid id,
@@ -198,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Accept Lab Specimen", Description = "Menolak sampel dengan alasan terkendali", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Accept", "Accept Lab Specimen", Description = "Menolak sampel dengan alasan terkendali", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> Reject(
             Guid id,
@@ -214,7 +214,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Accept Lab Specimen", Description = "Meminta pengambilan ulang sampel", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Accept", "Accept Lab Specimen", Description = "Meminta pengambilan ulang sampel", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("LabSpecimen", "Accept")]
         public Task<IActionResult> RequestRecollection(
             Guid id,
@@ -230,7 +230,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Hold Lab Specimen", Description = "Menahan sampel sementara", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessAction("Hold", "Hold Lab Specimen", Description = "Menahan sampel sementara", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("LabSpecimen", "Hold")]
         public Task<IActionResult> Hold(
             Guid id,
@@ -245,7 +245,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Hold Lab Specimen", Description = "Melanjutkan sampel yang ditahan", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessAction("Hold", "Hold Lab Specimen", Description = "Melanjutkan sampel yang ditahan", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("LabSpecimen", "Hold")]
         public Task<IActionResult> Resume(
             Guid id,
@@ -262,7 +262,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Cancel Lab Specimen", Description = "Membatalkan sampel secara klinis", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessAction("Cancel", "Cancel Lab Specimen", Description = "Membatalkan sampel secara klinis", AccessType = AccessTypes.Update, SortOrder = 7)]
         [AccessPermission("LabSpecimen", "Cancel")]
         public Task<IActionResult> Cancel(
             Guid id,

@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.4.0` |
-| Status | `draft` |
+| `contract_version` | **`0.9.0`** — bagian 18, `draft` |
+| `last_changed_in` | **`0.9.0`** — bagian 18. Sebelumnya `0.8.0` — bagian 2A.1 dan 4.1 |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
@@ -60,16 +61,24 @@ yang sedang terburu-buru.
 
 ### 2A.1 Pemisahan jenis kelamin
 
+**Ditulis ulang pada `0.8.0`, 11 September 2026.** `RWI-DEC-101` mencabut aturan jenis kelamin
+tingkat kamar, sehingga empat baris di bawah ini **berbalik arah**: skenario yang dulu wajib
+ditolak kini wajib berhasil. Baris lama dipertahankan dengan coretan supaya pembaca tahu
+pembalikannya disengaja, bukan test yang kendur.
+
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
 | --- | --- | --- | --- |
-| `RWI-AC-128` | Pasien perempuan ditempatkan pada tempat tidur bertanda hanya laki-laki | Integrasi | 422 dengan pesan "Tempat tidur ini hanya untuk pasien laki-laki" |
-| `RWI-AC-130` | Kamar sudah dihuni pasien perempuan, pasien laki-laki hendak masuk tempat tidur lain di kamar yang sama | Integrasi | 422, dan **pesannya menyebut nama kamarnya**. Pemeriksaannya membaca penghuni yang sedang ada, bukan penanda `MstRoom` |
-| — | Kamar yang sama, pasien berikutnya berjenis kelamin sama | Integrasi | **Berhasil.** Membuktikan aturan menolak pencampuran, bukan menolak kamar berpenghuni |
-| — | Kamar berisi satu tempat tidur | Integrasi | Aturan pencampuran tidak pernah menolak, apa pun jenis kelamin penghuni sebelumnya di kamar lain |
-| `RWI-AC-129` | Jenis kelamin pasien belum tercatat, tempat tidur menerima keduanya, kamar belum berpenghuni | Integrasi | **Berhasil** |
-| **Gagal** | Jenis kelamin belum tercatat, kamar sudah berpenghuni | Integrasi | 422. Membuktikan syaratnya dua-duanya, bukan salah satu |
-| **Gagal** | Jenis kelamin belum tercatat, tempat tidur hanya menerima satu jenis kelamin | Integrasi | 422 |
-| `RWI-AC-133` | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda | Integrasi | 422 dengan kode dan pesan **sama persis** seperti penempatan. Membuktikan kedua tindakan memanggil pemeriksaan yang sama |
+| `RWI-AC-128` | Pasien perempuan ditempatkan pada tempat tidur bertanda hanya laki-laki | Integrasi | 422 `BED_GENDER_MISMATCH` dengan pesan "Tempat tidur ini hanya untuk pasien laki-laki". **Tidak berubah** |
+| ~~`RWI-AC-130`~~ **BERBALIK** | Kamar sudah dihuni pasien perempuan, pasien laki-laki masuk tempat tidur lain di kamar yang sama, dan tempat tidur itu menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422 dengan pesan menyebut nama kamar~~. Membuktikan penghuni kamar **tidak lagi diperiksa** |
+| `RWI-AC-130a` ★ baru | Response `ineligible` maupun penolakan **tidak pernah** memuat kode `ROOM_GENDER_MIXED` | Integrasi | Kode itu tidak ada lagi di seluruh jalur: pencarian, pemesanan, penempatan, dan perpindahan |
+| — | Kamar yang sama, pasien berikutnya berjenis kelamin sama | Integrasi | **Berhasil.** Tetap berlaku, tetapi kini membuktikan hal yang berbeda: bahwa tidak ada aturan kamar sama sekali |
+| — | Kamar berisi satu tempat tidur | Integrasi | Tetap berhasil. Nilainya turun karena aturan kamar sudah tidak ada; dipertahankan sebagai regresi murah |
+| ~~`RWI-AC-129`~~ **DIPERSEMPIT** | Jenis kelamin pasien belum tercatat, tempat tidur menerima keduanya, **kamar sudah berpenghuni** | Integrasi | **Berhasil.** ~~Dulu mensyaratkan kamar belum berpenghuni~~ |
+| ~~**Gagal**~~ **BERBALIK** | Jenis kelamin belum tercatat, kamar sudah berpenghuni, tempat tidur menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422~~. Ini `AC-MVP-003` pada PRD V2 |
+| **Gagal** | Jenis kelamin belum tercatat, tempat tidur hanya menerima satu jenis kelamin | Integrasi | 422 `PATIENT_GENDER_UNKNOWN`. **Tidak berubah.** Membuktikan pencabutan tidak melonggarkan syarat tempat tidur |
+| ~~`RWI-AC-133`~~ **BERBALIK** | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda, tempat tidur tujuan menerima keduanya | Integrasi | **Berhasil.** ~~Dulu 422~~. Tetap membuktikan penempatan dan perpindahan memanggil pemeriksaan yang sama |
+| `RWI-AC-133a` ★ baru | Isolasi tetap menolak setelah aturan kamar dicabut | Integrasi | `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED` **tetap** 422. Ini regresi terpenting pass ini, karena kedua aturan itu bertetangga di dalam method yang sama dengan aturan yang dihapus |
+| `RWI-AC-133b` ★ baru | Pengecualian boks bayi tetap berlaku | Integrasi | Penempatan **ke** boks bayi tetap melewati kedua aturan jenis kelamin yang tersisa |
 
 ### 2A.2 Pengecualian boks bayi — dua arah
 
@@ -137,6 +146,23 @@ yang sedang terburu-buru.
 | `RWI-AC-102` | Peran selain kepala ruangan menugaskan perawat | Integrasi | 403 |
 | `RWI-AC-104` | Episode tanpa perawat tetap dapat menerima perpindahan | Integrasi | Perpindahan berhasil walaupun perawat belum ditugaskan |
 | `RWI-AC-105` | Episode tanpa perawat muncul pada daftar pantau | Integrasi | `GET /monitoring/unassigned-nurse-episodes` memuat episode itu |
+
+### 4.1 Peran penugasan dokter — lahir `0.8.0`
+
+Menyerap `RWI-DEC-099`. Satu baris lama **berubah maknanya** dan wajib dibaca ulang sebelum
+test-nya ditulis.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| ~~`RWI-AC-084`~~ **DIPERSEMPIT** | Episode aktif tidak pernah punya dua **DPJP** aktif | Integrasi | Index unik menolak baris `Dpjp` kedua yang `EndDateTime` kosong. ~~Dulu menolak penugasan terbuka kedua apa pun perannya~~ |
+| `RWI-AC-084a` ★ baru | Satu episode punya satu DPJP, dua konsulen, dan satu dokter jaga aktif bersamaan | Integrasi | **Keempatnya tersimpan.** Membuktikan filter index memandang peran, bukan sekadar `EndDateTime` |
+| `RWI-AC-084b` ★ baru | Migration mengisi seluruh baris lama menjadi `Dpjp` | Migration | Nol baris berperan kosong; jumlah baris sebelum dan sesudah sama persis |
+| `RWI-AC-084c` ★ baru | Urutan migration dijalankan terbalik, index diganti sebelum kolom terisi | Migration | **Gagal terkendali**, bukan diam-diam lolos. Membuktikan urutan tiga langkah memang mengikat |
+| `RWI-AC-084d` ★ baru | Konsulen mencoba mengubah perannya sendiri menjadi `Dpjp` pada baris yang sama | Integrasi | Ditolak. Peran diubah dengan menutup baris lalu membuka baru, bukan menimpa |
+| `RWI-AC-084e` ★ baru | Pengalihan DPJP menutup baris lama dan membuka baris baru dalam satu transaksi | Integrasi | Tidak pernah ada saat ketika dua baris `Dpjp` terbuka, dan tidak pernah ada saat tanpa DPJP |
+| `RWI-AC-084f` ★ baru | Dokter berperan `Consultant` meminta keputusan pulang | Integrasi | 403. Ini keadaan fail-closed `OPEN-MVP-004`, bukan kebijakan yang sudah diputuskan |
+| `RWI-AC-084g` ★ baru | Dokter berperan `OnCallDoctor` menandatangani resume | Integrasi | 403 |
+| `RWI-AC-084h` ★ baru | Rollback migration dijalankan setelah satu baris `Consultant` tersimpan | Migration | **Gagal terkendali.** Membuktikan batas rollback yang tertulis pada `data/data-dictionary.md` bagian 2.1 memang nyata |
 
 ## 4A. Kepergian fisik pasien
 
@@ -369,3 +395,65 @@ Dua belas acceptance criteria baru `RWI-AC-128` sampai `RWI-AC-139` seluruhnya t
 | Satu skenario kepemilikan riwayat lokasi pada bagian 12A | `RWI-DEC-053` |
 
 Tidak ada skenario yang dihapus pada revision ini.
+
+---
+
+## 18. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** Seluruh skenario negatif memakai peran nyata non-SuperAdmin.
+
+### 18.1 Census dokter — `RWI-DEC-111`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-191` | dr. Ahmad DPJP Budi, konsulen Sari, 120 pasien lain; `assignedToMe=true` | Integrasi | Dua baris; `TotalCount = 2`; baris Sari `MyAssignmentRole = Consultant` |
+| `FR-RI-191` | dr. Yoga jaga Joko 22.00–07.00; query 06.59 dan 07.01 | Integrasi | Joko ada pada 06.59, tidak ada pada 07.01, tanpa proses latar |
+| **Gagal** `FR-RI-191` | dr. Ahmad mengirim `DoctorId` dr. Rina bersama `assignedToMe=true` | Integrasi | Hasil tetap milik dr. Ahmad |
+| **Gagal** `FR-RI-192` | Akun tanpa data dokter | Integrasi | Daftar kosong beserta pesan; bukan `403` |
+| Regresi | Census tanpa `assignedToMe` oleh kepala ruangan | Integrasi | Hasil sama seperti sebelum perubahan |
+
+### 18.2 Penugasan pendukung — `RWI-DEC-099`, `RWI-DEC-130`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-193` | Kepala ruangan melibatkan dr. Ahmad sebagai konsulen | Integrasi | `201`; dr. Ahmad muncul pada census dirinya |
+| `FR-RI-194`, `RWI-AC-189` | Penugasan singkat dr. Rina Kamis 10.00–11.00 beralasan | Integrasi | `201`; peran `OnCallDoctor`; DPJP aktif tetap dr. Ahmad |
+| **Gagal** `RWI-AC-189` | Penugasan singkat tanpa waktu selesai | Integrasi | `400` `VAL-INP-01`; nol baris |
+| **Gagal** `FR-RI-194` | Penugasan singkat berperan konsulen | Integrasi | `400` `VAL-INP-01` |
+| **Gagal** `FR-RI-194` | Penugasan singkat berwaktu mulai Selasa | Integrasi | `400` `VAL-INP-08` |
+| **Gagal** `FR-RI-193` | Perawat pelaksana pemegang `InpatientEpisode : Update` membuat penugasan | Integrasi | `403` `GUARD-INP-09` |
+| **Gagal** `RWI-AC-190` | Selama penugasan singkat aktif, dr. Rina memverifikasi CPPT | Integrasi | `403` |
+| `FR-RI-195` | Kepala ruangan mengakhiri penugasan konsulen | Integrasi | `EndDateTime` terisi; dr. Ahmad hilang dari census dirinya |
+| **Gagal** `FR-RI-195` | Mengakhiri penugasan DPJP lewat `…/end` | Integrasi | `409` |
+| Database | Menyisipkan baris `LateDocumentation` tanpa waktu selesai langsung ke database | Integrasi PostgreSQL | Check constraint menolak |
+
+### 18.3 Resume — `RWI-DEC-112`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-196` | dr. Rina menyimpan draf dengan tiga isian baru lalu menandatangani | Integrasi | Tiga isian tersimpan; episode **tidak** tertutup |
+| `FR-RI-196` | Resume bertanda tangan dikoreksi lewat sesi koreksi | Integrasi | Versi lama menyimpan tiga isian lamanya |
+| `FR-RI-197` | `summary-prefill` untuk Budi | Integrasi | Diagnosis, tindakan, obat pulang, hasil kritis, edukasi terisi beserta sumber; nol baris resume berubah |
+| **Gagal** `FR-RI-197` | Modul laboratorium tidak menjawab | Integrasi | `ImportantFindingsSummary.SourceStatus = Unavailable`; isian lain tetap |
+| **Gagal** `FR-RI-196` | Edukasi 2.500 karakter | Integrasi | `400` `VAL-INP-12` |
+
+### 18.4 Penutupan episode — `RWI-DEC-138`, `RWI-DEC-143`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-198`, `RWI-AC-199` | Joko: satu konsep SOAP dr. Yoga; ditutup 13.00 | Integrasi | Konsep `LockedUnsigned`; `SideEffects.LockedDraftCount = 1` |
+| `FR-RI-199`, `RWI-AC-213` | Pesanan cek GDS Ns. Siti belum dilaksanakan | Integrasi | `Cancelled` "episode ditutup sebelum dilaksanakan" |
+| `FR-RI-199` | Pesanan tertunda sudah ditagih | Integrasi | Tidak dibatalkan; muncul pada `billed-pending-procedure-orders`; penutupan tidak tertahan |
+| `FR-RI-200`, `AC-KEP-113` | Dosis 08.00 belum dicatat, dosis 20.00 | Integrasi | 20.00 `Cancelled`; 08.00 tetap `Due` |
+| `FR-RI-201` | `closure-readiness` 12.55 | Integrasi | `CanClose = true`; tiga peringatan |
+| **Gagal** `INV-INP-11` | Galat buatan pada langkah penguncian | Integrasi PostgreSQL | Episode tetap `DischargePending`; tempat tidur tetap terisi; pesanan dan dosis tidak berubah |
+| **Gagal** `RWI-AC-201` | Episode dibuka kembali lewat sesi koreksi | Integrasi | Konsep tetap `LockedUnsigned`; pesanan dan dosis tetap batal |
+| `RWI-AC-214` | Setelah penutupan | Integrasi | Nol pesanan tindakan berstatus terkunci "Tidak Ditandatangani" |
+
+### 18.5 Yang belum dapat diuji pada `0.9.0`
+
+| Skenario | Sebab | Diuji setelah |
+| --- | --- | --- |
+| Langkah 5 penutupan | Kolom pesanan tindakan `dokter-rawat-inap` `DOK-V2-1` | `DOK-V2-1` |
+| Langkah 6 penutupan | Tabel dosis `keperawatan` `KEP-V2-2` | `KEP-V2-2` |
+| Bagian Lab/Rad `NeedsReviewCount` | Persetujuan pemilik Lab/Rad | Persetujuan tercatat |

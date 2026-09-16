@@ -10,13 +10,6 @@
 		<PlatformTarget>x64</PlatformTarget>
 
 		<!--
-		  Folder test terpisah dari web project.
-		  Tidak boleh ikut compile ke aplikasi utama.
-		-->
-		<DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
-
-
-		<!--
 		XML documentation diperlukan oleh Swagger dan acceptance test.
 		Harus tersedia pada Development maupun Release.
 		-->
@@ -111,6 +104,18 @@
 
 		<Compile Remove="Areas\SelfServices\Models\**" />
 		<Compile Remove="Areas\SelfServices\Views\**" />
+
+		<!--
+		Tests\ berisi proyek-proyek .csproj terpisah (masing-masing dengan referensi Xunit dan
+		AssemblyInfo-nya sendiri). Tanpa exclusion ini, glob default SDK-style project ini ikut
+		menyertakan berkas hasil generate mereka (obj\**\GlobalUsings.g.cs, AssemblyInfo.cs),
+		menyebabkan CS0579 (duplicate assembly attribute) dan CS0400 (Xunit tidak ditemukan,
+		karena proyek utama tidak mereferensikannya).
+		-->
+		<Compile Remove="Tests\**" />
+		<Content Remove="Tests\**" />
+		<EmbeddedResource Remove="Tests\**" />
+		<None Remove="Tests\**" />
 
 
 		<Content Remove="Areas\HealthServices\DeviceManagement\**" />

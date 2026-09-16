@@ -51,7 +51,7 @@ diselesaikan lebih dulu adalah **siapa pemilik master gabungannya**, bukan bentu
 | Batas | Produsen (sumber kebenaran) | Konsumen | Arah | Sifat | Idempotency | Bila gagal / rekonsiliasi |
 | --- | --- | --- | --- | --- | --- | --- |
 | Identitas pasien | PatientManagement — `MstPatient` | Bank Darah | Baca | Sinkron, saat dibutuhkan | Rujukan `PatientId`; tak menyalin | Pasien tak ditemukan → order ditolak `404`; tak ada rekonsiliasi |
-| Kunjungan & konteksnya | RegistrationManagement — `TrxPatientEncounter` | Bank Darah | Baca | Sinkron | Rujukan `EncounterId` | — |
+| Kunjungan & konteksnya | RegistrationManagement — `RegPatientEncounter` | Bank Darah | Baca | Sinkron | Rujukan `EncounterId` | — |
 | **Sinyal kunjungan berakhir** | RegistrationManagement (`EncounterStatus`) + InPatientManagement (`InpEpisode.PhysicallyLeftAt`) | `BbkEncounterStatusReader` | Baca | Sinkron/terjadwal | Dibaca per kebutuhan; adapter tak menyimpan keadaan sendiri | Bila status tak terbaca, order **tidak** boleh otomatis dianggap aktif maupun berakhir; keadaannya dilaporkan apa adanya (`ASM-BD-005`) |
 | Dokter | HR — `MstDoctor` | Bank Darah | Baca | Sinkron | Rujukan `DoctorId` | — |
 | Unit, klinik, ruangan, kelas | HealthServices Master Data | Bank Darah | Baca | Sinkron | Rujukan `Id` | — |

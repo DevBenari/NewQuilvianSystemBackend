@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public string? CheckNote { get; set; }
 
         public bool IsActive { get; set; } = true;
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
         public ICollection<TrxPrescriptionFinalCheckItem> Items { get; set; }
             = new List<TrxPrescriptionFinalCheckItem>();
     }

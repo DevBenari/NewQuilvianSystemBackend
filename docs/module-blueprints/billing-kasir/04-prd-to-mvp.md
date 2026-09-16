@@ -1787,3 +1787,567 @@ Epic berstatus `OPEN DECISION`: **tidak ada**. Seluruh `FR-BKC-045`–`063` berd
 **Status Bagian D: `draft`.** Tidak ada satu pun pertanyaan terbuka yang lahir dari amendment ini bertanda memblokir. Yang tersisa sebelum `/plan-module-delivery` untuk rumpun ini adalah **approval manusia atas `PC-DES-001`–`PC-DES-014`**.
 
 Perlu dicatat bahwa rumpun Petty Cash **tidak bergantung pada satu pun pertanyaan terbuka Bagian A, B, maupun C**. `BKC-OQ-083` dan `BKC-OQ-085` menyangkut PPN dan tanggungan penjamin pada tagihan pasien; keduanya tidak bersinggungan dengan kas kecil sama sekali. Karena itu ketiga gelombang `MVP-13`–`MVP-15` dapat direncanakan dan dikerjakan **secara mandiri**, tanpa menunggu sisa pertanyaan terbuka rumpun-rumpun sebelumnya terjawab.
+
+---
+
+# Bagian E — Edit Tagihan & Multi-Payer Coverage
+
+## E.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk | Quilvian System — Billing dan Kasir |
+| Rumpun | Edit Tagihan & Multi-Payer Coverage |
+| Status | **draft** — approval adalah tindakan manusia dan belum diberikan |
+| Repository target | `NewQuilvianSystemBackend` (branch `Yasmina`), `QuilvianSystemFrontendDev` (branch `yasmina`) |
+| Commit SHA baseline | Backend `d295c4d59b68d223edc597c8b165b7ef4282b49f`, Frontend `0eafa76bf397a47ceb9d44a6f69006ee25f8ba51` |
+| Ringkasan cakupan | Kasir dapat memperbaiki penanggung kunjungan, penanggung tiap baris biaya, dan daftar obat yang masuk tagihan — seluruhnya sebelum pasien membayar |
+| Masukan keputusan | `MPY-DEC-001`–`010` (`approved`), `MPY-DES-001`–`017` (`draft`), `CAP-33`–`CAP-41` |
+
+## E.2 Ringkasan eksekutif
+
+Tagihan yang penanggungnya keliru hari ini hanya bisa diperbaiki dengan membatalkan kunjungan dan mendaftar ulang. Itu memakan waktu pasien yang sudah berdiri di depan kasir, dan menghasilkan data kunjungan ganda yang mengotori laporan.
+
+Rumpun ini memberi kasir tiga kemampuan koreksi sebelum pembayaran: mengganti penanggung kunjungan, menentukan penanggung tiap baris biaya, dan menentukan obat mana yang benar-benar ditebus pasien. Ketiganya berhenti bekerja begitu pembayaran masuk — sesudah itu perbaikan adalah pekerjaan pembalikan, bukan pengeditan.
+
+Selain itu, rumpun ini **memperbaiki satu cacat yang sudah aktif hari ini**: kunjungan berpenjamin perusahaan saat ini menghasilkan peringatan "perusahaan asuransi belum dipilih" lalu membebankan seluruh biaya kepada pasien — padahal data penjaminnya sudah lengkap. Perbaikan itu sendiri sudah cukup menjadi alasan gelombang pertama dikerjakan.
+
+## E.3 Masalah produk
+
+| Kondisi sekarang | Bukti |
+| --- | --- |
+| Penanggung kunjungan hanya dapat ditetapkan saat pendaftaran, tidak pernah dapat diubah sesudahnya | `CAP-33` — nol endpoint ubah penanggung pada seluruh controller dan service Registrasi |
+| Kunjungan berpenjamin perusahaan menghasilkan peringatan palsu dan membebankan seluruh biaya ke pasien | `02-backend-architecture.md` § Bukti as-is baris keenam |
+| Tidak ada cara menandai sebagian biaya sebagai tanggungan pasien pada kunjungan berpenjamin | `CAP-37` — `BilInvoiceItem` tidak mengenal penanggung sama sekali |
+| Tidak ada cara menandai obat yang tidak ditebus pasien | `CAP-37` |
+| Perusahaan penjamin belum punya aturan tanggungan sendiri | `CAP-36` — entity-nya tidak ditemukan di seluruh repository |
+| Lembar tagihan untuk perusahaan penjamin belum ada | `CAP-38` — lembar yang ada menolak kasus ini secara tertulis |
+
+Yang **sudah ada dan tidak perlu dibangun ulang**: master perusahaan penjamin beserta kartu karyawan pasien (`CAP-35`), aturan tanggungan asuransi sebagai cetakan (`CAP-36`), mesin perhitungan tanggungan (`CAP-34`), pola lembar dokumen (`CAP-38`), pendaftaran hak akses (`CAP-39`), dan komponen dasar antarmuka (`CAP-40`).
+
+## E.4 Visi produk
+
+1. Pasien dilayani, tagihannya terbentuk seperti biasa.
+2. Kasir membuka tagihan dan melihat siapa penanggung kunjungan yang berlaku.
+3. Bila keliru, kasir memilih kartu lain milik pasien, membandingkan akibatnya terhadap angka tagihan, lalu menerapkannya.
+4. Bila sebagian biaya disepakati dibayar sendiri, kasir menandai baris itu sebagai tanggungan pasien.
+5. Bila pasien tidak menebus seluruh resep, kasir menandai obat mana yang benar-benar dibawa pulang.
+6. Tagihan dihitung ulang oleh server setelah setiap perubahan, dan kasir selalu melihat angka terakhir.
+7. Pasien membayar. Sejak saat itu ketiga kemampuan di atas tertutup.
+8. Untuk kunjungan berpenjamin perusahaan, lembar tagihan yang ditujukan kepada perusahaan dapat dicetak.
+
+## E.5 Batas MVP
+
+**Titik mulai:**
+
+1. Tagihan sudah terbentuk untuk satu kunjungan dan berstatus terbuka.
+2. Pasien belum melakukan pembayaran apa pun atas tagihan itu.
+3. Kartu penjamin yang hendak dipakai sudah terdaftar atas nama pasien.
+
+**Titik akhir:**
+
+1. Penanggung kunjungan, penanggung tiap baris biaya, dan daftar obat yang ditagihkan sudah sesuai kenyataan.
+2. Tagihan sudah dihitung ulang dan angkanya menjumlah tanpa selisih.
+3. Setiap perubahan meninggalkan jejak yang memuat pelaku, waktu, alasan, dan nilai sebelum-sesudah.
+4. Untuk kunjungan berpenjamin perusahaan, lembar tagihan perusahaan dapat dicetak.
+
+## E.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab di dalam MVP |
+| --- | --- |
+| Kasir | Menjalankan ketiga koreksi sebelum pembayaran, mengisi alasan setiap perubahan |
+| Admin Master Data | Mengisi rute reimbursement dan aturan tanggungan setiap perusahaan penjamin |
+| Finance / Akuntansi | Mencetak dan menagihkan lembar tagihan perusahaan |
+| Petugas Registrasi | **Tidak memakai rumpun ini** — tetap pemilik pendaftaran dan perubahan kartu penjamin pasien |
+| Pemilik `RegistrationManagement` | Menyetujui pembangunan layanan ubah penanggung di modulnya |
+
+## E.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Mesin tanggungan perusahaan penjamin beserta perbaikan peringatan palsu | `CAP-34`, `CAP-36` | **Wajib.** Tanpa ini kunjungan berpenjamin perusahaan tetap salah hitung — ini memperbaiki cacat yang sudah berjalan |
+| Master aturan tanggungan perusahaan | `CAP-36` | **Wajib.** Tanpa isinya, tanggungan perusahaan selalu nol |
+| Master rute reimbursement | `CAP-35` | **Wajib.** Dibutuhkan lembar tagihan perusahaan |
+| Penanggung per baris biaya | `CAP-37` | **Wajib.** Tanpa ini kasir tidak dapat memisahkan biaya yang dibayar sendiri |
+| Disposisi penebusan obat | `CAP-37` | **Wajib.** Tanpa ini obat yang tidak dibawa pulang tetap ditagihkan |
+| Ganti penanggung kunjungan | `CAP-33` | **Wajib.** Ini kebutuhan yang memicu seluruh rumpun |
+| Lembar tagihan perusahaan | `CAP-38` | **Wajib.** Tanpa ini perusahaan tidak dapat ditagih |
+
+## E.8 Kemampuan yang ditunda
+
+| Kemampuan | ID asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Dua penanggung aktif pada satu kunjungan | — | `MPY-DEC-001` menolaknya; skema satu penanggung dijaga kontrak milik modul Registrasi yang sudah disetujui dan sudah berjalan di basis data | Kasir mengganti penanggung yang berlaku, dan memisahkan biaya lewat penanggung per baris |
+| Membagi satu baris biaya ke dua penanggung secara nominal | — | Menuntut model alokasi pecahan yang belum pernah dibahas | Pisahkan pada tingkat baris, bukan di dalam satu baris |
+| Penebusan sebagian berdasarkan jumlah | — | `MPY-DEC-009` memilih baris utuh; pemecahan jumlah adalah urusan resep dan penyerahan milik Farmasi | Pilih baris utuh; selisih jumlah diselesaikan Farmasi |
+| Penebusan obat rawat inap | — | `MPY-DEC-009` — siklus tagihan obat rawat inap berbeda dan belum dibahas | Tagihan rawat inap diteruskan apa adanya |
+| Mengubah kartu penjamin pasien dari layar kasir | — | `MPY-DEC-003` — perubahan identitas penjamin bukan wewenang konteks penagihan | Kasir mengarahkan pasien ke Data Pasien/Registrasi |
+| Menagih langsung ke asuransi mitra perusahaan | — | Mengubah debitur dan penyerahan piutang, bukan sekadar keterangan | Rumah sakit tetap menagih perusahaan; mitra tampil sebagai keterangan |
+| Buku tarif khusus perusahaan | — | Belum ada kebutuhan yang menuntutnya | Tarif rumah sakit ditambah aturan tanggungan perusahaan |
+| Persetujuan tahap kedua untuk perubahan penanggung | — | `MPY-DEC-005` — alur kasir berlangsung di depan pasien yang menunggu | Jejak lengkap yang ditinjau sesudahnya |
+
+## E.9 Alur bisnis target
+
+1. Kasir membuka tagihan pasien dari Menu Pembayaran dan menekan Edit Tagihan.
+2. Sistem menampilkan penanggung kunjungan yang berlaku, rincian biaya, dan kewenangan apa saja yang boleh dipakai.
+3. Kasir memilih salah satu dari tiga mode koreksi.
+4. Bila mengganti penanggung, kasir memilih kartu lain milik pasien dan meminta perbandingan lebih dulu.
+5. Kasir mengisi alasan lalu menyimpan.
+6. Sistem memeriksa kelayakan, menerapkan perubahan, mengembalikan penanggung baris yang tidak lagi sah menjadi tanggungan pasien, menghitung ulang tagihan, dan mencatat jejaknya — seluruhnya sekaligus atau tidak sama sekali.
+7. Kasir melihat angka terbaru beserta pemberitahuan bila ada baris yang ikut berubah.
+8. Kasir kembali ke Menu Pembayaran dan memproses pembayaran seperti biasa.
+
+## E.10 Epic dan functional requirement
+
+### `EPIC BKC-13` — Tanggungan perusahaan penjamin dihitung benar
+
+**Disposisi backend:** `MISSING / NEW` untuk mesin tanggungan dan kedua master; `EXTEND` untuk adapter tanggungan yang sudah ada.
+
+> **`FR-BKC-064` — Aturan tanggungan perusahaan menentukan porsi penjamin**
+> Sistem menghitung porsi perusahaan penjamin memakai aturan tanggungan milik perusahaan itu, bukan aturan milik asuransi mitranya.
+> **Contoh:** PT Sejahtera punya aturan tanggungan 80% untuk tindakan. Konsultasi Rp 150.000 menghasilkan porsi penjamin Rp 120.000 dan porsi pasien Rp 30.000.
+
+> **`FR-BKC-065` — Peringatan palsu pada kunjungan berpenjamin perusahaan dihapus**
+> Kunjungan berpenjamin perusahaan tidak lagi menghasilkan peringatan "perusahaan asuransi belum dipilih".
+> **Contoh:** Tagihan kunjungan Ny. S yang sebelumnya menampilkan peringatan itu dan membebankan Rp 270.000 seluruhnya kepada pasien, sesudah perbaikan menampilkan porsi penjamin Rp 160.000 dan porsi pasien Rp 110.000 tanpa peringatan apa pun.
+
+> **`FR-BKC-066` — Urun biaya diturunkan server**
+> Sistem menghitung sendiri persentase urun biaya dari persentase tanggungan, dan mengabaikan nilai yang dikirim dari layar.
+> **Contoh:** Admin mengisi tanggungan 80% dan urun biaya 50%. Yang tersimpan adalah tanggungan 80% dan urun biaya 20%.
+
+> **`FR-BKC-067` — Aturan tanggungan bermasa berlaku dan berprioritas**
+> Sistem memilih aturan yang berlaku pada tanggal pelayanan, dan mendahulukan aturan berprioritas lebih tinggi bila lebih dari satu cocok.
+
+### `EPIC BKC-14` — Mengganti penanggung kunjungan dari layar kasir
+
+**Disposisi backend:** `MISSING / NEW` — termasuk satu layanan baru di modul Registrasi.
+
+> **`FR-BKC-068` — Penanggung kunjungan dapat diganti sebelum pembayaran**
+> Kasir dapat mengganti penanggung kunjungan ke tunai, asuransi, atau penjamin perusahaan, selama kartu tujuannya sudah terdaftar atas nama pasien itu.
+> **Contoh:** Kunjungan Ny. S didaftarkan tunai. Kasir menggantinya menjadi kartu Prudential milik Ny. S. Tagihan dihitung ulang, porsi penjamin naik dari Rp 0 menjadi Rp 216.000.
+
+> **`FR-BKC-069` — Kunjungan tetap punya tepat satu penanggung**
+> Sistem menolak keadaan apa pun yang membuat satu kunjungan memiliki lebih dari satu penanggung aktif.
+> **Contoh:** Sesudah lima kali penggantian berturut-turut, kunjungan tetap memiliki tepat satu baris penanggung.
+
+> **`FR-BKC-070` — Perbandingan sebelum mengganti tidak menyimpan apa pun**
+> Kasir dapat melihat tagihan sekarang berdampingan dengan tagihan bila kartu diganti, tanpa satu pun data berubah.
+> **Contoh:** Lima kali meminta perbandingan menghasilkan nol versi perhitungan baru dan nol jejak perubahan.
+
+> **`FR-BKC-071` — Kartu yang tidak sah ditolak beserta sebabnya**
+> Sistem menolak kartu milik pasien lain, kartu tidak aktif, kartu di luar masa berlaku pada tanggal pelayanan, dan kartu yang belum dinyatakan layak.
+> **Contoh:** Kartu PT Sejahtera berlaku sampai 31 Agustus 2026, pelayanan 11 September 2026. Permintaan ditolak dan penanggung tidak berubah.
+
+> **`FR-BKC-072` — Penanggung baris yang tidak lagi sah dikembalikan otomatis**
+> Ketika penggantian membuat jenis penanggung suatu baris tidak lagi tersedia, sistem mengembalikan baris itu menjadi tanggungan pasien dan memberitahukan jumlahnya.
+> **Contoh:** Tiga baris bertanda penjamin; kunjungan diganti menjadi tunai. Ketiganya kembali menjadi tanggungan pasien dan kasir melihat pemberitahuan "3 baris biaya dikembalikan menjadi tanggungan pasien".
+
+> **`FR-BKC-073` — Setiap penggantian meninggalkan jejak yang tidak dapat dihapus**
+> Sistem mencatat jenis dan nama penanggung sebelum dan sesudah, versi perhitungan sebelum dan sesudah, jumlah baris yang direset, alasan, dan pelakunya.
+
+### `EPIC BKC-15` — Menentukan penanggung tiap baris biaya
+
+**Disposisi backend:** `MISSING / NEW`.
+
+> **`FR-BKC-074` — Penanggung baris dapat diubah sebelum pembayaran**
+> Kasir dapat menandai tiap baris biaya sebagai tanggungan pasien, asuransi, atau penjamin perusahaan.
+> **Contoh:** Vitamin Rp 80.000 ditandai tanggungan pasien. Porsi pasien bertambah Rp 80.000 dan porsi penjamin berkurang sebesar porsi yang tadinya ditanggung.
+
+> **`FR-BKC-075` — Pilihan penanggung mengikuti penanggung kunjungan**
+> Pilihan asuransi hanya tersedia bila kunjungan memakai asuransi; pilihan penjamin hanya tersedia bila kunjungan memakai penjamin perusahaan. Pilihan yang tidak tersedia tampil nonaktif beserta alasannya.
+
+> **`FR-BKC-076` — Penandaan tidak digerbang hasil tanggungan**
+> Sistem tetap menerima penandaan ke asuransi atau penjamin walaupun aturan menyatakan baris itu tidak tertanggung; hasilnya nol tertanggung dan pasien membayar penuh.
+> **Contoh:** Obat di luar tanggungan ditandai ditanggung asuransi. Perintah berhasil; hasil perhitungan menunjukkan tertanggung Rp 0 dan pasien Rp 25.000.
+
+> **`FR-BKC-077` — Angka tagihan selalu menjumlah**
+> Setelah perubahan apa pun, jumlah porsi pasien, porsi penjamin, dan pajak sama dengan total tagihan tanpa selisih.
+
+### `EPIC BKC-16` — Menentukan obat yang masuk tagihan
+
+**Disposisi backend:** `MISSING / NEW`.
+
+> **`FR-BKC-078` — Obat yang tidak ditebus tidak ditagihkan**
+> Kasir dapat menandai seluruh, sebagian, atau tidak satu pun baris obat sebagai ditebus. Baris yang tidak ditebus keluar dari tagihan.
+> **Contoh:** Empat baris obat, dua dicentang. Dua baris lain tidak muncul sebagai porsi pasien maupun porsi penjamin, dan total tagihan berkurang sebesar harga keduanya.
+
+> **`FR-BKC-079` — Jumlah pada baris obat tidak pernah berubah**
+> Perintah ini tidak mengubah jumlah pada baris obat mana pun, dan layar tidak menyediakan cara mengubahnya.
+
+> **`FR-BKC-080` — Rawat inap ditolak, IGD diterima**
+> Sistem menolak pengaturan penebusan pada kunjungan rawat inap, dan menerimanya pada kunjungan rawat jalan, IGD, maupun pembelian langsung.
+> **Contoh:** Kunjungan IGD berhasil diatur penebusannya; kunjungan rawat inap ditolak beserta keterangan jenis kunjungan.
+
+> **`FR-BKC-081` — Catatan penyerahan obat tidak tersentuh**
+> Seluruh alur ini tidak membuat, mengubah, membatalkan, maupun menghapus satu baris pun catatan penyerahan obat milik Farmasi.
+
+### `EPIC BKC-17` — Lembar tagihan penjamin perusahaan
+
+**Disposisi backend:** `MISSING / NEW`, meniru pola lembar yang sudah ada.
+
+> **`FR-BKC-082` — Lembar tagihan perusahaan dapat dicetak**
+> Untuk kunjungan berpenjamin perusahaan, sistem menghasilkan lembar tagihan yang ditujukan kepada perusahaan, memuat identitas perusahaan, identitas karyawan, rincian biaya, dan porsi yang ditanggung.
+
+> **`FR-BKC-083` — Rute penggantian biaya tampil sebagai keterangan**
+> Bila perusahaan menggantikan biayanya lewat asuransi mitra, nama mitra itu tampil sebagai keterangan. Debitur pada lembar tetap perusahaan penjamin.
+
+> **`FR-BKC-084` — Lembar ini khusus kunjungan berpenjamin perusahaan**
+> Lembar ini tidak dapat dicetak untuk kunjungan tunai maupun kunjungan berasuransi pribadi.
+
+### Gerbang yang berlaku untuk kelima epic
+
+> **`FR-BKC-085` — Ketiga koreksi tertutup sesudah pembayaran**
+> Sistem menolak ketiga perintah bila tagihan sudah menerima pembayaran berhasil, sudah difinalisasi, atau sudah ditutup.
+
+> **`FR-BKC-086` — Perubahan bersifat sekaligus atau tidak sama sekali**
+> Bila satu langkah gagal, seluruh perubahan pada perintah itu dibatalkan dan tidak ada yang tersimpan sebagian.
+> **Contoh:** Dua kasir menyimpan pada tagihan yang sama. Yang kedua ditolak; penanggung, penanggung baris, dan versi perhitungan seluruhnya tetap seperti hasil kasir pertama.
+
+## E.11 Model status yang diusulkan
+
+Rumpun ini **tidak menambah satu pun status** pada tagihan maupun baris biaya. Yang ditambahkan adalah tiga hal di luar status tagihan: jenis penanggung kunjungan, penanggung per baris, dan disposisi penebusan. Daftar lengkap perpindahannya beserta yang tidak sah ada di [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md).
+
+Invariant utama: **satu kunjungan, satu penanggung aktif** — dijaga index unik pada tingkat basis data, bukan hanya oleh kode.
+
+## E.12 Sasaran arsitektur
+
+| Aspek | Keputusan |
+| --- | --- |
+| Dipakai ulang apa adanya | Master perusahaan penjamin dan kartu karyawan, pola pendaftaran hak akses, komponen dasar antarmuka, pola penomoran dokumen |
+| Diperluas | Mesin tanggungan asuransi dan adapter tanggungan — ditambah parameter penanggung eksplisit, tanpa mengubah pemanggil yang sudah ada |
+| Baru | Lima tabel, satu layanan di modul Registrasi, satu mesin tanggungan perusahaan, satu orkestrator edit, satu layanan lembar dokumen, dua CRUD master |
+| Tidak dibuat | Daftarnya ada di [`02-backend-architecture.md`](./02-backend-architecture.md) § Yang sengaja tidak dibuat |
+
+## E.13 Sasaran kemampuan API
+
+Daftar lengkap endpoint beserta bentuk request dan response ada di [`contracts/api-contract.md`](./contracts/api-contract.md). Ringkasannya:
+
+### Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+
+| Method | Path | Kegunaan | Hak akses | Epic | Status |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/{id}/edit-context` | Bahan layar Edit Tagihan dalam satu panggilan | `BillingInvoice : Read` | `EPIC BKC-14`–`16` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/payer-comparison-preview` | Perbandingan penanggung tanpa menyimpan | `BillingInvoice : Read` | `EPIC BKC-14` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/payment-source` | Mengganti penanggung kunjungan | `BillingInvoice : Update` | `EPIC BKC-14` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/item-payer-assignments` | Penanggung per baris biaya | `BillingInvoice : Update` | `EPIC BKC-15` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/drug-billing-disposition` | Obat yang masuk tagihan | `BillingInvoice : Update` | `EPIC BKC-16` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/company-guarantor-invoice-document` | Lembar tagihan perusahaan | `BillingInvoice : Read` | `EPIC BKC-17` | **Rencana (belum tersedia)** |
+
+### Administrator / Master Data / Company Guarantor Reimbursement Route
+
+Base URL: `api/v1/administrator/master-data/company-guarantor-reimbursement-routes` — CRUD lengkap, `EPIC BKC-13`, seluruhnya **Rencana (belum tersedia)**.
+
+### Health Services / Master Data / Company Guarantor Coverage Rule
+
+Base URL: `api/v1/health-services/master-data/company-guarantor-coverage-rules` — CRUD lengkap, `EPIC BKC-13`, seluruhnya **Rencana (belum tersedia)**.
+
+## E.14 Matriks kewenangan
+
+| Peran | Butir hak akses | Epic |
+| --- | --- | --- |
+| Kasir | `BillingInvoice : Read`, `BillingInvoice : Update` | `EPIC BKC-14`, `15`, `16` |
+| Finance / Akuntansi | `BillingInvoice : Read` | `EPIC BKC-17` |
+| Admin Master Data | `CompanyGuarantorReimbursementRoute : Read/Create/Update/Delete`, `CompanyGuarantorCoverageRule : Read/Create/Update/Delete` | `EPIC BKC-13` |
+
+Tidak ada butir hak akses baru pada `BillingInvoice`. Lembar tagihan perusahaan memakai ulang `BillingInvoice : Read` (`MPY-DEC-006`), beserta konsekuensinya yang dicatat terbuka di [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md).
+
+## E.15 Batas integrasi dan billing
+
+Modul ini **MUST NOT** membuat sendiri: kartu penjamin pasien, master perusahaan penjamin, catatan penyerahan obat, maupun baris penanggung kunjungan. Ketiga yang pertama dibaca dari pemiliknya; yang terakhir ditulis **hanya** lewat layanan milik modul Registrasi. Rinciannya di [`contracts/integration-contract.md`](./contracts/integration-contract.md).
+
+## E.16 Guardrail regulasi
+
+| Kewajiban | Penerapan |
+| --- | --- |
+| Ketertelusuran perubahan nilai tagihan | Setiap perubahan penanggung meninggalkan jejak yang memuat pelaku, waktu, alasan, dan nilai sebelum-sesudah, dan jejak itu tidak dapat dihapus |
+| Kerahasiaan data pasien dan karyawan | Nomor polis, nomor kartu, nomor karyawan, nama karyawan, dan golongan karyawan tidak masuk catatan log, tidak muncul pada pesan galat, dan tidak dipakai sebagai nama berkas |
+| Keutuhan catatan farmasi | Catatan penyerahan obat tidak dapat diubah dari konteks penagihan |
+| Ketepatan dokumen tagihan pihak ketiga | Lembar tagihan perusahaan hanya terbit untuk kunjungan yang memang berpenjamin perusahaan |
+
+## E.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-020` | Ketiga perintah bersifat sekaligus atau tidak sama sekali, termasuk pemanggilan lintas modul dan perhitungan ulang |
+| `NFR-021` | Versi baris tagihan wajib disertakan; versi basi ditolak tanpa perubahan tersimpan sebagian |
+| `NFR-022` | Kunci idempotensi wajib; perintah ganda hanya berpengaruh sekali |
+| `NFR-023` | Alasan wajib pada ketiga perintah |
+| `NFR-024` | Layar edit dimuat dalam satu panggilan, tanpa panggilan berulang per baris atau per penanggung |
+| `NFR-025` | Angka finansial tidak pernah dihitung di sisi peramban |
+| `NFR-026` | Perbandingan penanggung tidak menyimpan apa pun dan tidak menghasilkan versi perhitungan |
+| `NFR-027` | Tagihan kunjungan tunai dan berasuransi menghasilkan angka identik dengan sebelum rumpun ini |
+
+## E.18 Skenario UAT
+
+> **`UAT-43` — Pasien lupa membawa kartu asuransi (berhasil)**
+> **Kondisi awal:** kunjungan rawat jalan Ny. S didaftarkan tunai, tagihan Rp 270.000 belum dibayar. Ny. S punya kartu Prudential aktif.
+> **Langkah:** kasir membuka Edit Tagihan, memilih Asuransi, memilih kartu Prudential, menekan Bandingkan, lalu menyimpan dengan alasan "kartu baru ditunjukkan di kasir".
+> **Hasil yang diharapkan:** perbandingan menampilkan dua kolom angka. Sesudah disimpan, penanggung kunjungan menjadi Prudential, porsi penjamin Rp 216.000, porsi pasien Rp 54.000, dan tagihan menjumlah tanpa selisih.
+
+> **`UAT-44` — Kartu penjamin sudah kedaluwarsa (gagal)**
+> **Kondisi awal:** kartu PT Sejahtera milik Ny. S berlaku sampai 31 Agustus 2026; pelayanan 11 September 2026.
+> **Langkah:** kasir memilih kartu itu lalu menyimpan.
+> **Hasil yang diharapkan:** muncul pesan bahwa kartu tidak berlaku pada tanggal pelayanan. Penanggung kunjungan tidak berubah, dan tidak ada versi perhitungan baru.
+
+> **`UAT-45` — Tagihan sudah dibayar (gagal)**
+> **Kondisi awal:** tagihan sudah menerima pembayaran tunai Rp 100.000.
+> **Langkah:** kasir membuka Edit Tagihan.
+> **Hasil yang diharapkan:** ketiga tombol mode tidak aktif beserta keterangan bahwa tagihan sudah menerima pembayaran. Tidak ada cara menembusnya dari layar.
+
+> **`UAT-46` — Sebagian biaya dibayar sendiri (berhasil)**
+> **Kondisi awal:** kunjungan berpenjamin PT Sejahtera, ada baris vitamin Rp 80.000.
+> **Langkah:** kasir menandai baris vitamin sebagai tanggungan pasien lalu menyimpan.
+> **Hasil yang diharapkan:** porsi pasien bertambah Rp 80.000; jumlah porsi pasien, porsi penjamin, dan pajak tetap sama dengan total tagihan.
+
+> **`UAT-47` — Menandai penanggung yang tidak tersedia (gagal)**
+> **Kondisi awal:** kunjungan tunai.
+> **Langkah:** kasir membuka penanggung per baris dan mencoba memilih Penjamin.
+> **Hasil yang diharapkan:** pilihan Penjamin tampil nonaktif beserta alasannya. Bila dipaksakan lewat permintaan langsung, server menolak beserta pesan yang dapat dibaca.
+
+> **`UAT-48` — Penanggung baris ikut berubah saat penanggung kunjungan diganti (berhasil)**
+> **Kondisi awal:** kunjungan berpenjamin perusahaan, tiga baris bertanda penjamin.
+> **Langkah:** kasir mengganti penanggung kunjungan menjadi tunai.
+> **Hasil yang diharapkan:** ketiga baris kembali menjadi tanggungan pasien, kasir melihat pemberitahuan berisi angka tiga, dan tidak ada satu baris pun yang masih menunjuk penanggung yang sudah tidak ada.
+
+> **`UAT-49` — Pasien tidak menebus seluruh resep (berhasil)**
+> **Kondisi awal:** tagihan rawat jalan dengan empat baris obat.
+> **Langkah:** kasir memilih Tebus Sebagian, mencentang dua baris, lalu menyimpan.
+> **Hasil yang diharapkan:** dua baris keluar dari tagihan, total berkurang sebesar harga keduanya, jumlah pada keempat baris tidak berubah, dan catatan penyerahan obat di Farmasi tetap sama persis.
+
+> **`UAT-50` — Penebusan obat pada rawat inap (gagal)**
+> **Kondisi awal:** tagihan rawat inap dengan sembilan baris obat.
+> **Langkah:** kasir membuka Edit Billing.
+> **Hasil yang diharapkan:** panel menampilkan keterangan bahwa penebusan obat tidak dapat diubah untuk kunjungan rawat inap. Kesembilan baris tetap masuk tagihan.
+
+> **`UAT-51` — Kunjungan IGD tetap dapat diatur (berhasil)**
+> **Kondisi awal:** tagihan IGD dengan tiga baris obat.
+> **Langkah:** kasir memilih Tidak Ditebus lalu menyimpan.
+> **Hasil yang diharapkan:** ketiga baris obat keluar dari tagihan; baris non-obat tidak terpengaruh. Ini membuktikan IGD tidak ikut tertolak bersama rawat inap.
+
+> **`UAT-52` — Dua kasir menyimpan bersamaan (gagal)**
+> **Kondisi awal:** dua kasir membuka tagihan yang sama.
+> **Langkah:** Kasir A menyimpan perubahan penanggung. Kasir B menyimpan sesudahnya dengan data yang sudah basi.
+> **Hasil yang diharapkan:** Kasir B melihat pesan agar memuat ulang data. Tagihan mencerminkan perubahan Kasir A saja, tanpa satu pun bagian perubahan Kasir B tersimpan.
+
+> **`UAT-53` — Lembar tagihan perusahaan (berhasil)**
+> **Kondisi awal:** kunjungan berpenjamin PT Sejahtera yang menggantikan biayanya lewat asuransi mitra.
+> **Langkah:** Finance membuka Dokumen Kasir lalu memilih lembar tagihan perusahaan.
+> **Hasil yang diharapkan:** lembar memuat identitas PT Sejahtera, identitas karyawan, rincian biaya, porsi tertanggung, dan keterangan mitra penggantian biaya. Yang ditagih tetap PT Sejahtera.
+
+> **`UAT-54` — Perbaikan peringatan palsu (berhasil)**
+> **Kondisi awal:** tagihan lama berpenjamin perusahaan yang sebelumnya menampilkan peringatan "perusahaan asuransi belum dipilih".
+> **Langkah:** buka tagihan itu sesudah rumpun ini aktif dan aturan tanggungan perusahaannya sudah diisi.
+> **Hasil yang diharapkan:** peringatan itu hilang, porsi penjamin terhitung sesuai aturan, dan tagihan tunai maupun berasuransi lain tidak bergeser angkanya sama sekali.
+
+## E.19 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Kunjungan berpenjamin perusahaan menghasilkan porsi penjamin yang benar dan tanpa peringatan palsu | `UAT-54`, `BIL-AT-100` |
+| Kasir dapat mengganti penanggung kunjungan sebelum pembayaran | `UAT-43`, `BIL-AT-081` |
+| Kunjungan tidak pernah punya lebih dari satu penanggung aktif | `BIL-AT-082`, `FR-BKC-069` |
+| Kartu yang tidak sah selalu ditolak beserta sebab yang terbaca | `UAT-44`, `BIL-AT-083`, `BIL-AT-084` |
+| Perbandingan penanggung tidak menyimpan apa pun | `BIL-AT-087` |
+| Penanggung baris yang tidak lagi sah dikembalikan otomatis | `UAT-48`, `BIL-AT-092` |
+| Angka tagihan selalu menjumlah tanpa selisih sesudah setiap perubahan | `UAT-46`, `BIL-AT-089` |
+| Obat yang tidak ditebus keluar dari tagihan tanpa mengubah jumlah | `UAT-49`, `BIL-AT-094` |
+| Rawat inap ditolak dan IGD diterima | `UAT-50`, `UAT-51`, `BIL-AT-095` |
+| Catatan penyerahan obat milik Farmasi tidak tersentuh | `BIL-AT-096` |
+| Ketiga koreksi tertutup sesudah pembayaran | `UAT-45`, `BIL-AT-085` |
+| Perubahan bersifat sekaligus atau tidak sama sekali | `UAT-52`, `BIL-AT-086` |
+| Setiap perubahan penanggung meninggalkan jejak lengkap | `BIL-AT-088` |
+| Lembar tagihan perusahaan terbit hanya untuk kunjungan berpenjamin perusahaan | `UAT-53`, `FR-BKC-084` |
+| Data rahasia tidak masuk log maupun nama berkas | `BIL-AT-098` |
+| Kedua tabel master sudah terisi untuk seluruh perusahaan penjamin aktif | Rencana data master awal pada `02-backend-architecture.md` |
+| Kedua butir menu master data terdaftar dan terjangkau | Acceptance frontend nomor 69 |
+| Tagihan tunai dan berasuransi tidak bergeser angkanya | `BIL-AT-100`, `NFR-027` |
+
+## E.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+| --- | --- | --- |
+| `MVP-16` | `EPIC BKC-13` — lima tabel beserta satu migration, kedua CRUD master, mesin tanggungan perusahaan, dan perbaikan adapter tanggungan | Blueprint disetujui. **Tidak bergantung pada persetujuan modul lain** |
+| `MVP-17` | `EPIC BKC-14` — mengganti penanggung kunjungan, termasuk layanan baru di modul Registrasi | `MVP-16` selesai **dan** `MPY-OQ-004` terjawab |
+| `MVP-18` | `EPIC BKC-15` dan `EPIC BKC-16` — penanggung per baris dan penebusan obat | `MVP-16` selesai |
+| `MVP-19` | `EPIC BKC-17` — lembar tagihan perusahaan | `MVP-16` selesai |
+| `POST-MVP` | Seluruh kemampuan pada bagian E.8 | Di luar cakupan rilis pertama |
+
+`MVP-18` dan `MVP-19` **tidak** menunggu `MVP-17`. Keduanya hanya membutuhkan fondasi `MVP-16`, sehingga dapat dikerjakan sementara persetujuan modul Registrasi masih diproses.
+
+### Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | --- | --- | :---: |
+| `MPY-OQ-004` | Apakah pemilik `RegistrationManagement` menyetujui pembangunan layanan ubah penanggung di modulnya, dan bentuk apa yang disepakati? Desain mengusulkan satu layanan generik yang menerima jenis penanggung apa pun (`MPY-DES-001`, `MPY-DES-004`) | **Muhammad Hamzah** (`MPY-DEC-010`) beserta pemilik arsitektur backend | `MVP-17` tidak dapat dimulai. `MVP-16`, `MVP-18`, dan `MVP-19` **tidak terpengaruh** | **Ya — untuk `MVP-17` saja** |
+| `MPY-OQ-005` | Kolom penanda "sudah ditagih" pada catatan penyerahan obat Farmasi sudah ada tetapi belum diketahui dipakai proses apa. Apakah rumpun ini perlu mengisinya, atau membiarkannya? | Pemilik arsitektur backend beserta pemilik Pharmacy | `MVP-18` berisiko membuat mekanisme paralel yang bertentangan dengan kolom yang sudah ada | Tidak — dapat dijawab lewat pemeriksaan source sebelum `MVP-18` dimulai |
+| `MPY-OQ-006` | Siapa yang mengisi aturan tanggungan untuk setiap perusahaan penjamin yang sudah terdaftar, dan kapan? | Product/Domain Owner beserta Admin Master Data | Fitur aktif tetapi seluruh tanggungan perusahaan terhitung nol | Tidak — memblokir aktivasi, bukan pembangunan |
+
+**Status Bagian E: ~~draft~~ `approved`** — disetujui Product/Domain Owner 11 September 2026 (`MPY-DEC-012`), bersama seluruh `MPY-DES-001`–`017` yang menurunkannya.
+
+**`MPY-OQ-004` DITUTUP** 11 September 2026 oleh `MPY-DEC-011` (Muhammad Hamzah, pemilik `RegistrationManagement`). **Tidak ada lagi pertanyaan bertanda memblokir**, sehingga **keempat** gelombang `MVP-16` sampai `MVP-19` dapat diteruskan ke perencanaan pengiriman — termasuk `MVP-17` yang sebelumnya tertahan.
+
+Dua pertanyaan yang tersisa (`MPY-OQ-005`, `MPY-OQ-006`) beserta `MPY-CQ-03` **tidak memblokir perencanaan**: yang pertama dijawab lewat pembacaan source sebelum `MVP-18` dimulai, yang kedua memblokir aktivasi fitur dan bukan pembangunannya, dan yang ketiga murni koordinasi urutan commit.
+
+---
+
+# Bagian F — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+## Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Modul | Billing dan Kasir (`billing-kasir`), rumpun **Petty Cash** — **revisi atas Bagian D** |
+| Revisi blueprint | `1.2`, status **approved** (`PC-DEC-026`) |
+| Masukan keputusan bisnis | `PC-DEC-016`–`PC-DEC-025`, seluruhnya `approved` Product/Domain Owner 15 September 2026 |
+| Masukan arsitektur | `PC-DES-015`–`PC-DES-025` (**approved** 15 September 2026), `02-backend-architecture.md` amendment 15 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 20 |
+| Dokumen sumber | Paket BRD/PRD/MVP "Petty Cash Revisi" 15 September 2026 |
+| Backend SHA | `0ca85ba4610f2745b761d5e092b495bfc35396b0` |
+| Frontend SHA | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` |
+
+## Ringkasan eksekutif
+
+Petty Cash sudah berjalan sejak awal September dengan alur berpersetujuan: permintaan dibuat, Kepala Kasir menyetujui, baru uang boleh keluar. Pemilik memutuskan alur itu terlalu lambat untuk kebutuhan operasional kas kecil dan mencabutnya. Revisi ini membuat kasir dapat menyerahkan uang seketika, mengganti kolam anggaran tunggal dengan anggaran per periode yang dikelola Finance, menggabungkan dua halaman terpisah menjadi satu halaman kerja, dan menambahkan dua cara mengembalikan uang ke kolam.
+
+Yang **tidak** berubah, dan itu disengaja: bukti tetap berupa nomor nota (bukan unggahan berkas), kategori tetap wajib, penerima tetap teks bebas tanpa akun sistem, dan Petty Cash tetap tidak tersambung ke kas fisik shift kasir, ke tagihan pasien, maupun ke Accounting.
+
+## Masalah produk
+
+| Masalah | Bukti | Dampak |
+| --- | --- | --- |
+| Uang kas kecil tertahan menunggu persetujuan | Keputusan pemilik `PC-DEC-016` | Kebutuhan operasional kecil yang mendesak tertunda oleh langkah administratif |
+| Anggaran tidak punya batas waktu | `PC-DEC-010` menetapkan kolam tunggal tanpa periode | Finance tidak dapat menyatakan "anggaran bulan ini sekian" maupun menutup buku per bulan |
+| Monitoring dan anggaran terpisah di dua halaman | Route `.../petty-cash/vouchers` dan `.../petty-cash/budget` | Kasir berpindah halaman untuk memeriksa saldo sebelum mencairkan; keduanya dapat menampilkan angka yang tidak sinkron |
+| Tidak ada cara mengembalikan uang | Hanya ada `ADJUSTMENT` tanpa kaitan ke voucher | Sisa uang yang dikembalikan penerima tidak terlacak ke pengeluaran asalnya |
+
+## Batas rilis
+
+| Batas | Nilai |
+| --- | --- |
+| **Titik mulai** | Finance membuat dan mengaktifkan satu periode anggaran |
+| **Titik akhir** | Finance menutup periode itu, sisa saldonya berpindah ke periode berikutnya, dan seluruh permintaan periode itu berstatus `Selesai`, `Dibatalkan`, atau `Dibatalkan (Uang Dikembalikan)` |
+| **Pelaku sasaran** | Kasir/petugas administrasi (operator), Finance (pemilik anggaran) |
+| **Di luar batas** | Posting ke Accounting, unggahan berkas bukti, persetujuan berjenjang, anggaran per unit/departemen |
+
+## Kemampuan MUST HAVE
+
+| Kemampuan | ID kemampuan asal | Disposisi |
+| --- | --- | --- |
+| Permintaan dicairkan langsung tanpa persetujuan | `CAP-29` (§ 18), diperbarui § 20.2 | **EXTEND** — state machine yang sudah ada ditulis ulang |
+| Anggaran per periode dengan daur hidup Draf/Aktif/Ditutup | § 20.2 baris "Anggaran per periode" | **MISSING / NEW** — kolom dan aturannya belum ada |
+| Sisa saldo berpindah saat periode ditutup | § 20.2 baris "Carry-forward" | **MISSING / NEW** |
+| Pengembalian sisa uang dan pembalikan pencairan | § 20.2 baris "Reversal" | **MISSING / NEW** |
+| Satu halaman kerja gabungan | § 20.2 baris "Satu halaman gabungan" | **EXTEND** — komponen dan hook yang ada dipakai ulang sebagai panel |
+| Bukti menyusul tanpa memblokir pencairan | `CAP-29`, kolom bukti sudah ada | **EXISTING / REUSE** — hanya perilakunya yang berubah |
+| Kategori wajib pada setiap permintaan | `CAP-31` | **EXISTING / REUSE** — tidak disentuh |
+
+## Kemampuan yang ditunda
+
+| Yang ditunda | Alasan bersebab | Penggantinya selama MVP |
+| --- | --- | --- |
+| Posting otomatis ke Accounting | `AccJournalService` hanya melayani jurnal manual berjenjang persetujuan; memakainya akan memunculkan kembali gerbang persetujuan yang baru saja dicabut, di modul yang pemiliknya berbeda (`PC-DEC-023`) | Ledger pergerakan anggaran diperlakukan sebagai subledger kas kecil; Finance merekonsiliasi manual per periode dari laporan pergerakan |
+| Unggahan berkas nota/kwitansi | Keputusan pemilik `PC-DEC-021` | Nomor referensi nota yang diketik petugas, sama seperti yang sudah berjalan |
+| Anggaran per unit atau departemen | `PC-DEC-010`, tetap ditunda | Satu kolam untuk seluruh rumah sakit; kolom pengelompokannya sudah disiapkan |
+| Persetujuan berjenjang berdasarkan nominal | Di luar scope revisi | Tidak ada; kontrolnya audit setelah fakta |
+| Batas waktu penyerahan bukti beserta pengingatnya | `PC-DEC-006` tetap berlaku | Finance memantau jumlah "Menunggu Bukti" pada kartu ringkasan halaman gabungan |
+
+## Epic dan functional requirement
+
+### `EPIC BKC-18` — Pencairan langsung tanpa persetujuan
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-087` | Permintaan yang baru dibuat berstatus `Menunggu Pencairan` dan dapat langsung dicairkan kasir tanpa langkah persetujuan apa pun | **EXTEND** |
+| `FR-BKC-088` | Endpoint dan hak akses Setujui serta Tolak dihapus; pemanggilannya menghasilkan `404` | **EXTEND** |
+| `FR-BKC-089` | Permintaan warisan berstatus `Menunggu Persetujuan` maupun `Disetujui` seluruhnya menjadi `Menunggu Pencairan` dan dapat langsung dicairkan | **MISSING / NEW** — pemutakhiran data di dalam migration |
+| `FR-BKC-090` | Permintaan warisan berstatus `Ditolak` tetap terbaca lengkap beserta alasannya dan tidak dapat diubah | **EXISTING / REUSE** |
+| `FR-BKC-091` | Pemesanan saldo untuk permintaan yang belum dicairkan dihapus; sepuluh permintaan boleh berdiri di atas saldo yang hanya cukup untuk dua | **EXTEND** |
+
+### `EPIC BKC-19` — Anggaran per periode
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-092` | Finance dapat membuat periode anggaran bertanggal mulai, tanggal selesai opsional, dan plafon | **MISSING / NEW** |
+| `FR-BKC-093` | Paling banyak satu periode berstatus Aktif pada satu waktu, ditegakkan aturan bisnis **dan** index database | **MISSING / NEW** |
+| `FR-BKC-094` | Pencairan, penambahan saldo, pengembalian, dan pembalikan hanya berjalan pada periode Aktif | **MISSING / NEW** |
+| `FR-BKC-095` | Penutupan periode ditolak selama masih ada permintaan yang belum dicairkan | **MISSING / NEW** |
+| `FR-BKC-096` | Sisa saldo periode yang ditutup berpindah ke periode penerus sebagai dua pergerakan terpisah dalam satu transaksi | **MISSING / NEW** |
+| `FR-BKC-097` | Kolam anggaran warisan menjadi periode pertama tanpa kehilangan saldo maupun riwayat pergerakannya | **MISSING / NEW** |
+
+### `EPIC BKC-20` — Pengembalian dan pembalikan uang
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-098` | Kasir dapat mencatat sisa uang yang dikembalikan penerima, berkali-kali, selama totalnya tidak melampaui nominal permintaan | **MISSING / NEW** |
+| `FR-BKC-099` | Pengembalian sisa menambah saldo dan **tidak** mengubah status permintaan | **MISSING / NEW** |
+| `FR-BKC-100` | Kasir dapat membalik pencairan yang seharusnya tidak terjadi; saldo kembali sebesar yang benar-benar masih di tangan penerima | **MISSING / NEW** |
+| `FR-BKC-101` | Satu permintaan paling banyak satu kali dibalik, ditegakkan aturan bisnis **dan** index database | **MISSING / NEW** |
+| `FR-BKC-102` | Permintaan yang sudah dibalik berstatus terminal dan menolak seluruh aksi lain | **MISSING / NEW** |
+
+### `EPIC BKC-21` — Satu halaman kerja Petty Cash
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-103` | Satu halaman menampilkan ringkasan, panel anggaran, monitoring permintaan, dan riwayat pergerakan | **EXTEND** |
+| `FR-BKC-104` | Kelima angka kartu ringkasan datang dari satu panggilan server; layar tidak menjumlahkannya sendiri | **MISSING / NEW** |
+| `FR-BKC-105` | Kedua route lama tetap hidup sebagai pengalihan ke halaman kanonik | **MISSING / NEW** |
+| `FR-BKC-106` | Sidebar memuat satu butir Petty Cash; butir Anggaran Kas Kecil dihapus | **EXTEND** |
+| `FR-BKC-107` | Aksi per baris digerakkan daftar aksi dari server, bukan disimpulkan layar dari status | **EXISTING / REUSE** |
+| `FR-BKC-108` | Setiap aksi yang berhasil memuat ulang ringkasan dan daftar terdampak dari server | **EXTEND** |
+
+## Model status
+
+Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 15 September 2026. Empat status hidup (`Menunggu Pencairan`, `Menunggu Bukti`, `Selesai`, `Dibatalkan (Uang Dikembalikan)`), satu status warisan (`Ditolak (arsip)`), dan satu penanda terpisah (`Dibatalkan`). Tiga status periode anggaran: `Draf`, `Aktif`, `Ditutup`.
+
+## Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-55` | `BKC-18` | **Berhasil** | Kasir membuat permintaan Rp 300.000 lalu langsung menyerahkan uangnya | Status berpindah ke `Menunggu Bukti`; saldo berkurang Rp 300.000; tidak ada langkah persetujuan yang diminta di layar mana pun |
+| `UAT-56` | `BKC-18` | **Gagal** | Kasir mencoba mencairkan Rp 800.000 saat saldo tinggal Rp 500.000 | Ditolak dengan pesan saldo tidak mencukupi; permintaan tetap `Menunggu Pencairan` dan dapat dicairkan lagi setelah Finance menambah saldo |
+| `UAT-57` | `BKC-18` | **Berhasil** | Petugas membuka permintaan warisan yang kemarin berstatus `Disetujui` | Kini tampil `Menunggu Pencairan` dan tombol Cairkan tersedia; jejak siapa yang dulu menyetujui tetap terbaca pada detailnya |
+| `UAT-58` | `BKC-19` | **Berhasil** | Finance membuat periode Oktober berplafon Rp 12.000.000 lalu mengaktifkannya setelah menutup September | Oktober menjadi Aktif; September Ditutup; sisa saldo September muncul di Oktober |
+| `UAT-59` | `BKC-19` | **Gagal** | Finance mencoba mengaktifkan Oktober sementara September masih Aktif | Ditolak dengan pesan yang meminta periode berjalan ditutup lebih dulu; kedua periode tidak berubah statusnya |
+| `UAT-60` | `BKC-19` | **Gagal** | Finance menutup periode yang masih punya dua permintaan belum dicairkan | Ditolak; pesan menyebut permintaan yang menggantung; tidak ada saldo yang berpindah |
+| `UAT-61` | `BKC-20` | **Berhasil** | Penerima mengembalikan sisa Rp 110.000 dari uang Rp 500.000, lalu notanya menyusul | Saldo bertambah Rp 110.000; status permintaan tidak berubah; setelah nota masuk status menjadi `Selesai` |
+| `UAT-62` | `BKC-20` | **Gagal** | Kasir mencoba membalik pencairan yang sudah pernah dibalik kemarin | Ditolak; saldo tidak bertambah dua kali; status tetap `Dibatalkan (Uang Dikembalikan)` |
+| `UAT-63` | `BKC-21` | **Berhasil** | Kasir membuka menu Petty Cash | Satu halaman menampilkan saldo, anggaran periode, daftar permintaan, dan riwayat pergerakan tanpa berpindah halaman |
+| `UAT-64` | `BKC-21` | **Gagal** | Petugas membuka penanda halaman lama ke route Anggaran Kas Kecil | Diarahkan ke halaman Petty Cash gabungan, bukan halaman kosong maupun `404` |
+
+## Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Permintaan dapat dicairkan tanpa persetujuan | `BIL-AT-101` lulus |
+| Endpoint Setujui dan Tolak benar-benar hilang | `BIL-AT-102`, `BIL-AT-103` lulus |
+| Data warisan terbaca benar setelah pemutakhiran | `BIL-AT-104`, `BIL-AT-105`, `BIL-AT-106` lulus |
+| Pemesanan saldo benar-benar dicabut | `BIL-AT-107`, `BIL-AT-108` lulus |
+| Saldo tidak dapat menjadi negatif walau dua kasir mencairkan bersamaan | `BIL-AT-109` lulus |
+| Daur hidup periode bekerja beserta penolakannya | `BIL-AT-110`, `BIL-AT-112`, `BIL-AT-113`, `BIL-AT-114`, `BIL-AT-115` lulus |
+| Sisa saldo berpindah utuh saat periode ditutup | `BIL-AT-111` lulus |
+| Pengembalian dan pembalikan bekerja beserta batasnya | `BIL-AT-116`–`BIL-AT-119` lulus |
+| Tidak ada jurnal yang terbentuk | `BIL-AT-120` lulus |
+| Satu halaman kerja terjangkau dari sidebar dan route lama tidak mati | `UAT-63`, `UAT-64` lulus |
+| Permission Approve/Reject dibersihkan tanpa meninggalkan peran yatim | Laporan pemeriksaan peran sebelum migration, `contracts/permission-audit-matrix.md` |
+| Migration dijalankan atas otorisasi terpisah | Konfirmasi eksplisit pemilik, bukan turunan approval desain |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+| --- | --- | --- |
+| `MVP-20` | `EPIC BKC-19` — anggaran per periode beserta migration dan pemutakhiran data | Seluruh gelombang lain berdiri di atas keberadaan periode Aktif. Dikerjakan lebih dulu supaya tidak ada tahap di mana pencairan berjalan tanpa wadah anggaran |
+| `MVP-21` | `EPIC BKC-18` — pencairan langsung beserta penghapusan persetujuan | Inti permintaan pemilik. Bergantung pada `MVP-20` karena penjaga saldonya kini memeriksa periode Aktif |
+| `MVP-22` | `EPIC BKC-20` — pengembalian dan pembalikan | Bergantung pada `MVP-21`: keduanya hanya bermakna atas pencairan yang sudah terjadi |
+| `MVP-23` | `EPIC BKC-21` — satu halaman kerja gabungan | Dikerjakan terakhir supaya layar dibangun di atas kontrak backend yang sudah tetap, bukan di atas sasaran yang masih bergerak |
+| `POST-MVP` | Posting ke Accounting, unggahan berkas bukti, anggaran per unit, batas waktu bukti | Seluruhnya sudah ditunda lewat keputusan bernomor, bukan dilupakan |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | :---: | --- |
+| `PC-OQ-007` | Apakah ada Departemen × Posisi yang **hanya** memegang hak akses Setujui/Tolak Petty Cash dan akan kehilangan seluruh aksesnya saat butir itu dihapus? | **Tidak memblokir desain; memblokir langkah penghapusan permission** | Pemilik arsitektur backend, lewat pemeriksaan data peran sebelum migration |
+| `PC-OQ-008` | Siapa yang membuat periode anggaran pertama setelah rilis, dan berapa plafonnya? | **Tidak memblokir pembangunan; memblokir aktivasi fitur** | Finance |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic: tidak ada epic yang menunggu jawabannya untuk dapat dirancang maupun dikerjakan. Keempat gelombang `MVP-20`–`MVP-23` siap diteruskan ke `plan-module-delivery`.

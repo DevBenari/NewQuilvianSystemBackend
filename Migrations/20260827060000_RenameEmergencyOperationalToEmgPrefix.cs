@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260827060000_RenameEmergencyOperationalToEmgPrefix")]
     public partial class RenameEmergencyOperationalToEmgPrefix : Migration
     {
         // Tujuh tabel operasional IGD yang tersisa pindah ke prefix registry `Emg`.

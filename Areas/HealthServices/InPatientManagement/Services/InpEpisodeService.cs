@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
@@ -175,14 +175,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return contextCheck;
             }
 
-            TrxPatientEncounter? encounter = null;
+            RegPatientEncounter? encounter = null;
             var encounterCreatedByAdmission = false;
 
             if (request.EncounterId.HasValue && request.EncounterId.Value != Guid.Empty)
             {
                 var requestedEncounterId = request.EncounterId.Value;
 
-                var existingEncounter = await _dbContext.Set<TrxPatientEncounter>()
+                var existingEncounter = await _dbContext.Set<RegPatientEncounter>()
                     .FirstOrDefaultAsync(
                         x => x.Id == requestedEncounterId && !x.IsDelete,
                         cancellationToken);
@@ -271,7 +271,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     encounter = BuildInpatientEncounter(request, actorUserId, now);
                     encounterCreatedByAdmission = true;
 
-                    _dbContext.Set<TrxPatientEncounter>().Add(encounter);
+                    _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 }
 
                 var episode = new InpEpisode
@@ -295,11 +295,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 // INV-INP-03 — DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
+                // Perannya ditulis eksplisit sejak BE-RWI-074; nilai bawaan database ada
+                // untuk baris lama, bukan sebagai pengganti nilai domain pada baris baru.
                 var doctorAssignment = new InpDoctorAssignment
                 {
                     Id = Guid.NewGuid(),
                     EpisodeId = episode.Id,
                     DoctorId = request.DoctorId,
+                    AssignmentRole = InpDoctorAssignmentRole.Dpjp,
                     SequenceNumber = 1,
                     StartDateTime = now,
                     EndDateTime = null,
@@ -908,7 +911,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
 
             if (encounter == null || encounter.EncounterStatus == EncounterStatus.Cancelled)
@@ -1002,8 +1005,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         : null,
                     CancelReason = x.CancelReason,
                     Notes = x.Notes,
+                    // DPJP aktif, bukan penugasan terbuka mana pun — BE-RWI-074.
                     ActiveDoctor = x.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => new InpatientEpisodeActiveDoctorResponse
                         {
@@ -1090,7 +1097,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// sama dengan <see cref="InpEpisodeNumberService"/>. Alokator lama milik pendaftaran
         /// menyisir seluruh baris lalu memakai celah pertama, dan cara itu dilarang
         /// QBE-CODE-003 untuk kode baru karena dua permintaan bersamaan membaca angka yang
-        /// sama. Index unik pada <c>TrxPatientEncounter.EncounterNumber</c> menjadi penjaga
+        /// sama. Index unik pada <c>RegPatientEncounter.EncounterNumber</c> menjadi penjaga
         /// terakhirnya. Bentuk nomor ini berbeda dari nomor kunjungan pendaftaran, dan
         /// bedanya dicatat pada laporan task untuk ditinjau pemilik modul Registrasi.
         ///
@@ -1101,12 +1108,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// inap tidak tersentuh olehnya.
         /// </para>
         /// </remarks>
-        private static TrxPatientEncounter BuildInpatientEncounter(
+        private static RegPatientEncounter BuildInpatientEncounter(
             OpenAdmissionRequest request,
             Guid actorUserId,
             DateTime now)
         {
-            return new TrxPatientEncounter
+            return new RegPatientEncounter
             {
                 Id = Guid.NewGuid(),
                 EncounterNumber = BuildInpatientEncounterNumber(now),

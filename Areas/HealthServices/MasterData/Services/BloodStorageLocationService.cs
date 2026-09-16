@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
@@ -223,6 +225,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             if (duplicateMessage != null)
                 return Failed(BloodStorageLocationStatus.DuplicateIdentity, duplicateMessage);
 
+            var wasActive = entity.IsActive;
+
             entity.StorageLocationCode = code;
             entity.StorageLocationName = name;
             entity.Description = NormalizeText(request.Description);
@@ -237,6 +241,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             catch (DbUpdateException)
             {
                 return Failed(BloodStorageLocationStatus.DuplicateIdentity, DuplicateCodeMessage());
+            }
+
+            // Penyuntingan yang ikut menonaktifkan lokasi membawa peringatan yang sama dengan
+            // PATCH status (VAL-BD-068) — penonaktifan tidak boleh diam-diam hanya karena lewat PUT.
+            if (wasActive && !entity.IsActive)
+            {
+                var heldUnitCount = await CountHeldUnitsAsync(entity.Id, cancellationToken);
+
+                if (heldUnitCount > 0)
+                {
+                    return new BloodStorageLocationResult(
+                        BloodStorageLocationStatus.Success,
+                        entity,
+                        HeldUnitsWarning(heldUnitCount),
+                        heldUnitCount);
+                }
             }
 
             return new BloodStorageLocationResult(
@@ -273,21 +293,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            if (isActive)
+            {
+                return new BloodStorageLocationResult(
+                    BloodStorageLocationStatus.Success,
+                    entity,
+                    "Lokasi penyimpanan darah berhasil diaktifkan.");
+            }
+
+            // VAL-BD-068 menyebut jumlah kantong yang kini tertahan, supaya pekerjaan yang menunggu
+            // terlihat. Menghitung saja — tidak ada satu baris kantong pun yang disentuh.
+            var heldUnitCount = await CountHeldUnitsAsync(id, cancellationToken);
+
             return new BloodStorageLocationResult(
                 BloodStorageLocationStatus.Success,
                 entity,
-                isActive
-                    ? "Lokasi penyimpanan darah berhasil diaktifkan."
-                    : "Lokasi penyimpanan darah berhasil dinonaktifkan. Kantong yang masih tercatat di sana tidak berpindah dan tidak berubah status, tetapi belum dapat dialokasikan sampai dipindahkan ke lokasi yang aktif.");
+                heldUnitCount > 0
+                    ? HeldUnitsWarning(heldUnitCount)
+                    : "Lokasi penyimpanan darah berhasil dinonaktifkan. Kantong yang masih tercatat di sana tidak berpindah dan tidak berubah status, tetapi belum dapat dialokasikan sampai dipindahkan ke lokasi yang aktif.",
+                heldUnitCount);
         }
 
         /// <summary>Menandai lokasi terhapus. Tidak pernah menghapus baris secara fisik.</summary>
         /// <remarks>
-        /// <b>Batas yang perlu diketahui pembaca berikutnya.</b> Standar master data menuntut
-        /// penghapusan memeriksa relasi pemakainya lebih dulu. Pemakai master ini adalah
-        /// <c>BbkBloodUnitPlacement</c>, yang <b>belum ada</b> di source karena dijadwalkan
-        /// pada <c>BE-BD-015</c>. Pemeriksaan pemakaian karena itu ditambahkan pada task yang
-        /// membuat tabel pemakainya, bukan di sini.
+        /// <b>Lokasi yang pernah dipakai tidak dapat dihapus</b> (<c>BE-BD-015</c>). Kontrak
+        /// menyatakan lokasi hanya dinonaktifkan, karena penempatan lama menunjuk ke sini dan
+        /// riwayat kantong wajib tetap terbaca. Pemeriksaan pemakaian ini sengaja ditunda
+        /// <c>BE-BD-014</c> sampai tabel pemakainya, <c>BbkBloodUnitPlacement</c>, ada.
         ///
         /// Untuk keadaan sehari-hari, <b>menonaktifkan lebih tepat daripada menghapus</b>:
         /// penonaktifan menutup gerbang tanpa memutus makna riwayat penempatan lama yang
@@ -302,6 +334,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             if (entity == null)
                 return Failed(BloodStorageLocationStatus.NotFound, NotFoundMessage);
+
+            var isUsed = await _dbContext.Set<BbkBloodUnitPlacement>()
+                .AsNoTracking()
+                .AnyAsync(x => x.StorageLocationId == id, cancellationToken);
+
+            if (isUsed)
+            {
+                return Failed(
+                    BloodStorageLocationStatus.InUse,
+                    "Lokasi penyimpanan ini sudah pernah dipakai menyimpan kantong darah, sehingga tidak dapat dihapus. Nonaktifkan lokasinya bila tidak dipakai lagi.");
+            }
 
             var now = DateTime.UtcNow;
 
@@ -547,6 +590,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
         private static string DuplicateCodeMessage()
             => "Kode lokasi penyimpanan itu sudah dipakai. Gunakan kode lain.";
 
+        /// <summary>Pesan kanonis <c>VAL-BD-068</c> — peringatan, bukan penolakan.</summary>
+        private static string HeldUnitsWarning(int heldUnitCount)
+            => $"Lokasi dinonaktifkan. Ada {heldUnitCount} kantong yang masih tercatat di sana dan belum dapat dialokasikan sampai dipindahkan ke lokasi aktif.";
+
+        /// <summary>
+        /// Kantong yang penempatan berlakunya menunjuk lokasi ini dan masih berada di stok.
+        /// </summary>
+        /// <remarks>
+        /// Dibaca lewat <c>CurrentPlacementId</c> kantong — penunjuk yang menjadi sumber jawaban
+        /// "kantong ini ada di mana" (<c>ARCH-BD-POS-05</c>). Kantong yang sudah diberikan,
+        /// dikembalikan ke PMI, atau dinyatakan tidak layak tidak lagi terhitung karena sudah keluar.
+        /// </remarks>
+        public Task<int> CountHeldUnitsAsync(Guid storageLocationId, CancellationToken cancellationToken = default)
+            => _dbContext.Set<BbkBloodUnit>()
+                .AsNoTracking()
+                .CountAsync(
+                    x => !x.IsDelete &&
+                         !x.IsCancel &&
+                         x.CurrentPlacement != null &&
+                         x.CurrentPlacement.StorageLocationId == storageLocationId &&
+                         BbkBloodUnitService.StillInStockStatuses.Contains(x.UnitStatus),
+                    cancellationToken);
+
         private static BloodStorageLocationResult Failed(
             BloodStorageLocationStatus status,
             string message)
@@ -583,11 +649,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
         Success = 0,
         NotFound = 1,
         Invalid = 2,
-        DuplicateIdentity = 3
+        DuplicateIdentity = 3,
+
+        /// <summary>Lokasi sudah pernah dipakai penempatan kantong, sehingga tidak dapat dihapus.</summary>
+        InUse = 4
     }
 
+    /// <param name="HeldUnitCount">
+    /// Jumlah kantong yang tertahan karena lokasinya dinonaktifkan (<c>VAL-BD-068</c>). Nol untuk
+    /// tindakan lain.
+    /// </param>
     public sealed record BloodStorageLocationResult(
         BloodStorageLocationStatus Status,
         MstBloodStorageLocation? Entity,
-        string Message);
+        string Message,
+        int HeldUnitCount = 0);
 }

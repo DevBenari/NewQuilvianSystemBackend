@@ -2,27 +2,70 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-XMOD-0.1` |
+| `contract_version` | `ACC-XMOD-0.2` |
+| `last_changed_in` | `ACC-XMOD-0.2` — 15 September 2026 |
 | Klasifikasi artefak | **`CROSS_MODULE_REQUIRED`** |
-| Status | `draft` — belum disetujui, belum berlaku |
+| Status | `draft` — sisi Accounting **diturunkan** dari kontrak yang sudah `approved` (`ACC-INTEGRATION-0.3` bagian 6, `ACC-API-0.10` grup Accounting Event); **ratifikasi owner Finance belum ada** |
 | Consumer | Accounting (owner: Rizki) |
 | Producer | Finance / AR / AP (owner: Yasmin) — **lifecycle internalnya bukan wewenang Accounting** |
-| `approved_by` / `approved_at` | Belum ada |
-| `input_revision` | `00-interview-decisions.md@3` |
-| Traceability | `ACC-DEC-002`, `ACC-DEC-003`, `ACC-DEC-005`, `ACC-DEC-011`, `ACC-DEC-020`, `ACC-DEC-021`, `ACC-DEC-035`, `ACC-DEC-036`; `ACC-XM-001`; `ACC-DEP-003`, `ACC-DEP-004` |
-| Implementasi | **Phase 2.** Kontrak ini tidak mengizinkan satu baris pun kode integrasi ditulis sekarang |
+| `approved_by` / `approved_at` | Belum ada. Versi ini baru berlaku sebagai kontrak dua pihak sesudah owner Finance meratifikasinya |
+| `input_revision` | `00-interview-decisions.md@9` (sampai `ACC-DEC-081`) |
+| `input_hash` | `00-interview-decisions.md` sha256 `de6bc421…9126a6`; `contracts/api-contract.md` sha256 `86979e11…bddef49` — diukur 15 September 2026 pada `rizkiG` `7b0c2ece` |
+| Compatibility impact | **Tidak kompatibel dengan `0.1`**: nama dan tipe bidang berubah (bagian 0a). **Nol penerbit terdampak** — modul Finance belum punya kode di branch mana pun (diperiksa 14 September 2026: nol kelas `Fin*` di `QuilvianIntegrationBackend`, `rizkiG`, dan `Yasmina`) |
+| Traceability | `ACC-DEC-002`, `003`, `020`, `021`, `035`, `044`, `046`, `047`, `048`, `049`, `051`, `056`, `058`, `059`, `060`, `071`, `075`; `ACC-XM-001` |
+| Sumber kebenaran | Bila berkas ini berbeda dengan `api-contract.md` bagian *Isi `ReceiveAccountingEventRequest`* atau `integration-contract.md` bagian 6, **kedua berkas itu yang berlaku**, dan selisihnya adalah cacat dokumen yang wajib diperbaiki dalam perubahan yang sama |
+| Implementasi | Kotak masuk kejadian **belum dibangun**. Kode integrasi tetap terkunci sampai `ACC-XM-001` diratifikasi owner Finance (`integration-contract.md` bagian 5) |
 
-## 0. Kenapa berkas ini ada sekarang, padahal implementasinya Phase 2
+## 0. Kenapa berkas ini ada
 
 Finance dikembangkan **paralel** oleh Yasmin, bukan setelah Accounting selesai. Kalau bentuk
-batas antar keduanya baru disepakati saat Phase 2 dimulai, Finance sudah terlanjur mengunci
-lifecycle AR/AP-nya dan Accounting terpaksa menerima apa pun yang sampai.
+batas antar keduanya baru disepakati saat penyambungan dimulai, Finance sudah terlanjur mengunci
+bentuk kejadiannya dan Accounting terpaksa menerima apa pun yang sampai — atau sebaliknya.
 
-Berkas ini karena itu mengunci **bentuk batas**, bukan implementasinya. Ia memberi tahu Finance
-apa yang Accounting butuhkan agar dapat membukukan dengan benar, dan menandai dengan jujur mana
-yang **bukan** hak Accounting untuk menentukan.
+Berkas ini mengunci **bentuk batas**, bukan implementasinya. Ia memberi tahu Finance apa yang
+Accounting butuhkan agar dapat membukukan dengan benar, dan menandai dengan jujur mana yang
+**bukan** hak Accounting untuk menentukan.
 
-`ACC-DEC-009` tidak berubah: tidak ada posting otomatis pada MVP.
+## 0a. Perubahan `0.1` → `0.2`
+
+`ACC-XMOD-0.1` disusun 1 September 2026, sebelum Phase 2 dirancang. Sesudah itu delapan keputusan
+owner mengunci bentuk pesan yang sesungguhnya (`ACC-DEC-048`, `058`, `060`, `075`), dan kontrak
+`ACC-API` serta `ACC-INTEGRATION` sudah memuatnya sejak 8 September 2026. Tetapi berkas ini **tidak
+ikut diperbarui**, sehingga dua kontrak yang sama-sama dirujuk untuk Finance berbeda isi.
+
+Akibatnya bila dibiarkan: penerbit yang dibangun dari `0.1` mengirim `EventId` bertipe `Guid` tanpa
+`EventOccurredAt` dan `LegalEntityId`, lalu **setiap pesannya ditolak `400`** oleh Accounting.
+
+`0.2` tidak menambah satu keputusan pun. Ia hanya menyamakan berkas ini dengan yang sudah berlaku.
+
+### Pemetaan bidang
+
+| `0.1` | `0.2` | Alasan |
+|---|---|---|
+| `EventId` (`Guid`) | **`EventNumber`** (`string`) | `ACC-DEC-048`. Nomor kejadian dibuat penerbit dan boleh berbentuk teks seperti `EVT-100` |
+| `EventType` (`string(60)`) | **`EventTypeCode`** (`string`, maks 50) | `ACC-DEC-048`, `ACC-DEC-075`. Kode disimpan apa adanya walaupun belum terdaftar di Accounting |
+| `SourceDomain` (`string(30)`) | **`SourceModule`** (`string`) | `ACC-DEC-048` |
+| `SourceTransactionId` (`Guid`) | `SourceTransactionId` (**`string`**) | Nomor transaksi Finance boleh berupa teks seperti `AR-2026-09-00871` |
+| `SourceVersion` (`int`) | `SourceVersion` (**`string`**) | `ACC-DEC-048` |
+| — | **`EventOccurredAt`** (`timestamptz`) | Baru. Tanggal dokumen asli, dipakai saat periodenya sudah tertutup (`ACC-DEC-047`) |
+| `AccountingDate` (`date`) | `AccountingDate` (`date`) | Tidak berubah |
+| `Amount` (`decimal(18,2)`) | `Amount` (`decimal(18,2)`) | Tidak berubah |
+| `CurrencyCode` (`string(3)`) | `CurrencyCode` (`string`) | Tidak berubah maknanya — hanya `IDR` |
+| — | **`LegalEntityId`** (`Guid`) | Baru. Buku badan hukum mana yang disentuh (`ACC-DEC-037`) |
+| `CorrelationId` (`Guid`) | `CorrelationId` (`Guid`) | Tidak berubah; kini wajib lewat keputusan tersendiri `ACC-DEC-060` |
+| `CausationId` (`Guid`) | `CausationId` (`Guid`) | Tidak berubah; wajib lewat `ACC-DEC-060` |
+| `IdempotencyKey` (`string(100)`) | **Dihapus** | Kunci anti-ganda pertama sudah dipegang `EventNumber`; bidang kedua dengan fungsi yang sama hanya menambah cara salah mengisi |
+| — | `Components` (daftar, **opsional**) | Baru. Rincian nilai per komponen (`ACC-DEC-058`) |
+
+### Perubahan lain
+
+| Bagian | `0.1` | `0.2` |
+|---|---|---|
+| Kunci anti-ganda kedua | `SourceDomain` + `SourceTransactionId` + `EventType` + `SourceVersion` | `SourceModule` + `SourceTransactionId` + **`EventTypeCode`** + `SourceVersion` (`ACC-DEC-075`) |
+| Periode sudah tertutup | Ditolak (`RejectedPeriodClosed`) | **Tidak ditolak.** Dicatat pada periode terbuka berikutnya (`ACC-DEC-047`) |
+| Mata uang bukan rupiah | Disimpan sebagai `RejectedUnsupportedCurrency` | Ditolak `409` di pintu masuk, **tidak** menjadi kejadian `Diterima` |
+| Nama status | "Belum final" | Final: `Diterima`, `Terjurnal`, `Tertahan`, `Gagal`, `Diabaikan` (`ACC-STATE` Phase 2 bagian 1) |
+| `ACC-XM-001` | Terbuka seluruhnya | Diputuskan sisi Accounting (`ACC-DEC-044`), dikonfirmasi owner Billing (`ACC-DEC-059`); **ratifikasi owner Finance belum ada** |
 
 ## 1. Batas kewenangan — dibaca lebih dahulu
 
@@ -33,7 +76,7 @@ yang **bukan** hak Accounting untuk menentukan.
 | Apa yang terjadi bila data itu kurang atau salah | Kapan Finance menerbitkan kejadian |
 | Bahwa pembukuan ganda harus dapat dicegah | Bagaimana Finance menyimpan piutang dan utangnya |
 
-Contoh yang sah: *"Accounting membutuhkan `ReceivableRecognized`."*
+Contoh yang sah: *"Accounting membutuhkan kejadian pengakuan piutang."*
 
 Contoh yang **tidak** sah: *"AR harus dianggap recognized ketika invoice difinalisasi."*
 Kalimat kedua menentukan lifecycle Finance, dan itu wewenang Yasmin.
@@ -41,126 +84,192 @@ Kalimat kedua menentukan lifecycle Finance, dan itu wewenang Yasmin.
 Setiap kali kontrak ini menyentuh wilayah kedua, ia menandainya
 **`CROSS_MODULE_DECISION_REQUIRED`** dan menyebut siapa pemiliknya.
 
-## 2. Arah aliran yang sudah terkunci oleh kontrak yang disetujui
-
-Ini bukan usulan Accounting. Ini keadaan yang sudah ada di repository.
-
-`BIL-INTEGRATION-0.4` berstatus **`approved`** sejak 20 Agustus 2026 dan mengunci semantik
-`BIL-INT-007`, `BIL-INT-008`, dan `BIL-INT-009` sebagai **Billing → AR/AP**, bukan Billing →
-Accounting. Kode produksinya sudah berdiri: `BilArHandoff`, `BilApHandoff`, dan
-`BilHandoffAdjustment` di `Areas/HealthServices/BillingManagement/Billing/Models/`.
-
-Sehingga bentuk rantainya:
+## 2. Arah aliran
 
 ```
-Billing  ──BIL-INT-007/008/009 (APPROVED)──▶  Finance (AR/AP)  ──ACC-XMOD (berkas ini)──▶  Accounting
+Billing  ──BIL-INT-007/008/009──▶  Finance (AR/AP)  ──ACC-XMOD (berkas ini)──▶  Accounting
 ```
 
-Accounting **tidak** berlangganan langsung ke Billing. Kalau ia melakukannya sementara Finance
-juga meneruskan kejadian yang sama, satu tagihan Rp 10.000.000 menghasilkan dua jurnal dan
-pendapatan tercatat Rp 20.000.000. Itulah risiko yang dijaga `ACC-DEP-003`.
-
-> **`ACC-XM-001` tetap `CROSS_MODULE_DECISION_REQUIRED`.** Diagram di atas adalah pembacaan
-> Accounting atas kontrak yang **sudah** disetujui, bukan keputusan yang Accounting ambil
-> sendiri. Yang mengesahkannya adalah owner Billing, owner Finance/Yasmin, dan Rizki bersama.
-> Sampai itu terjadi, `ACC-XM-001` **terbuka**.
-
-## 3. Envelope kejadian — bentuk minimum
-
-Sebelas field berikut adalah **minimum**. Producer boleh menambah; tidak boleh mengurangi.
-
-| Field | Tipe | Wajib | Pemilik makna | Kegunaan bagi Accounting |
-|---|---|:---:|---|---|
-| `EventId` | `Guid` | Ya | Producer | Identitas kejadian. Kunci idempotency lapis pertama (`ACC-DEC-035`) |
-| `EventType` | `string(60)` | Ya | **Bersama** | Menentukan pemetaan akun mana yang dipakai |
-| `SourceDomain` | `string(30)` | Ya | Producer | Modul asal, misalnya `FINANCE_AR`. Bagian dari kunci lapis kedua |
-| `SourceTransactionId` | `Guid` | Ya | Producer | Transaksi asal. Bagian dari kunci lapis kedua, dan akar penelusuran balik |
-| `SourceVersion` | `int` | Ya | Producer | Versi transaksi asal. Membedakan koreksi dari kiriman ulang |
-| `AccountingDate` | `date` | Ya | **Bersama** | Menentukan periode. **Bukan** waktu kirim |
-| `Amount` | `decimal(18,2)` | Ya | Producer | Nilai. Presisi wajib sama dengan `NFR-008` |
-| `CurrencyCode` | `string(3)` | Ya | Producer | ISO 4217. Wajib **walaupun MVP hanya IDR** — lihat bagian 4 |
-| `CorrelationId` | `Guid` | Ya | Producer | Merangkai satu alur bisnis lintas modul |
-| `CausationId` | `Guid` | Ya | Producer | Kejadian yang menyebabkan kejadian ini |
-| `IdempotencyKey` | `string(100)` | Ya | Producer | Kunci pengulangan aman pada batas transport |
-
-### Yang sudah ada di Billing, dan yang belum
-
-Envelope Billing yang berjalan hari ini sudah memuat `HandoffKey`, `CorrelationId`, `CausationId`,
-`Amount`, dan `Status`. Yang **belum ada sama sekali**:
-
-| Field | Keadaan di `BilArHandoff` / `BilApHandoff` | Akibat bila tetap tidak ada |
-|---|---|---|
-| `CurrencyCode` | **Tidak ada** | Accounting tidak dapat menolak mata uang asing secara sah — ia tidak tahu mata uangnya |
-| `AccountingDate` | **Tidak ada**; hanya `CreatedAt` dan `DueDate` | Periode ditentukan dari waktu kirim. Kejadian yang terlambat masuk ke periode yang salah |
-| `EventType` | **Tidak ada** | Pemetaan akun tidak dapat ditentukan |
-| `SourceVersion` | **Tidak ada** | Koreksi tidak dapat dibedakan dari kiriman ulang |
-
-**`CROSS_MODULE_DECISION_REQUIRED`.** Apakah Finance memperkaya envelope-nya sendiri, atau
-mengusulkan `BIL-INTEGRATION` naik versi, adalah keputusan owner Finance bersama owner Billing.
-Accounting hanya menyatakan: **tanpa empat field itu, ia tidak dapat membukukan dengan benar.**
-
-## 4. Mata uang — `ACC-DEC-020` dan `ACC-DEC-021`
-
-| Aspek | Ketentuan MVP |
+| Hal | Keadaan per 15 September 2026 |
 |---|---|
-| Base currency | `IDR` |
-| Mata uang transaksi yang diterima untuk posting | `IDR` **saja** |
-| Keseimbangan debit = kredit | Diukur dalam `IDR` (`ACC-DEC-021`) |
-| Kolom `CurrencyCode` pada tabel jurnal MVP | **Tidak ada.** Lihat bagian 6 |
+| Arah | **Satu arah**, Finance → Accounting |
+| Penerbit kejadian keuangan resmi | **Finance** — `ACC-DEC-044`, 8 September 2026 |
+| Konfirmasi owner Billing | **Sudah** — `ACC-DEC-059`, 9 September 2026. Finance menerbitkan kejadian **tersendiri**, bukan meneruskan `BilArHandoff` |
+| Ratifikasi owner Finance | **Belum** — `ACC-XM-001` tetap `CROSS_MODULE_DECISION_REQUIRED` sampai Yasmin meratifikasinya |
+| Yang dilarang Accounting | Membaca `BilArHandoff` atau tabel Billing lain secara langsung (`ACC-DEC-059`); menerbitkan kejadian ke modul lain (`ACC-DEC-002`) |
 
-Bila Accounting menerima `CurrencyCode != "IDR"`, maka pada MVP maupun Phase 2 awal:
+**Kenapa satu arah dan satu penerbit.** Bila Accounting membaca Billing sementara Finance juga
+menerbitkan kejadian atas tagihan yang sama, satu tagihan Rp 10.000.000 menghasilkan dua jurnal.
+Buku besar tetap seimbang, tetapi pendapatan rumah sakit tercatat Rp 20.000.000 — tanpa satu pun
+pesan galat.
 
-1. **Jangan** melakukan konversi otomatis.
-2. **Jangan** posting ke buku besar.
-3. Hasilkan state pemrosesan `RejectedUnsupportedCurrency` yang eksplisit, dapat dilihat, dan
-   dapat diambil ulang setelah keputusan multi-currency turun.
+## 3. Bentuk pesan — dua belas bidang wajib
 
-Kejadian yang ditolak **tidak hilang dan tidak diam-diam dibuang.** Ia tetap tersimpan di kotak
-masuk dengan alasan penolakan yang terbaca.
+Diambil apa adanya dari `api-contract.md` bagian *Isi `ReceiveAccountingEventRequest`*
+(`ACC-DEC-048` untuk sepuluh bidang pertama, `ACC-DEC-060` untuk dua bidang penelusuran).
 
-`DEFERRED` — jangan ditambahkan ke MVP dalam bentuk apa pun: posting multi-currency, kurs,
-selisih kurs terealisasi, selisih kurs belum terealisasi, dan revaluasi mata uang asing.
+| Bidang | Tipe | Wajib | Pemilik makna | Contoh | Kegunaan bagi Accounting |
+|---|---|:---:|---|---|---|
+| `EventNumber` | `string` | Ya | Finance | `EVT-100` | Nomor unik kejadian. Kunci anti-ganda **pertama** |
+| `EventTypeCode` | `string` (maks 50) | Ya | **Bersama** | `PENGAKUAN-PIUTANG` | Menentukan aturan posting mana yang dipakai. Daftarnya belum ditetapkan (`DEC-ACC-P2-002`) |
+| `SourceModule` | `string` | Ya | Finance | `Finance` | Modul asal. Bagian kunci anti-ganda kedua |
+| `SourceTransactionId` | `string` | Ya | Finance | `AR-2026-09-00871` | Nomor transaksi asal. Bagian kunci kedua, dan akar penelusuran balik |
+| `SourceVersion` | `string` | Ya | Finance | `1` | Versi transaksi asal. Membedakan koreksi dari kiriman ulang |
+| `EventOccurredAt` | `timestamptz` | Ya | Finance | `2026-09-08T10:15:00+07:00` | Waktu kejadian sebenarnya. Disimpan sebagai tanggal dokumen |
+| `AccountingDate` | `date` | Ya | **Bersama** | `2026-09-08` | Menentukan periode akuntansi. **Bukan** waktu kirim |
+| `Amount` | `decimal(18,2)` | Ya | Finance | `10000000.00` | Nilai total kejadian |
+| `CurrencyCode` | `string` | Ya | Finance | `IDR` | Hanya `IDR`; nilai lain ditolak `409` (bagian 7) |
+| `LegalEntityId` | `Guid` | Ya | Finance | Id badan hukum | Buku badan hukum mana yang disentuh |
+| `CorrelationId` | `Guid` | Ya | Finance | — | Merangkai satu alur bisnis sampai ke faktur Billing |
+| `CausationId` | `Guid` | Ya | Finance | — | Tindakan yang menyebabkan kejadian ini |
 
-## 5. Yang Accounting jamin kepada producer
+### Bidang opsional: `Components`
+
+| Bidang | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `Components` | daftar | Tidak | Rincian nilai. Setiap butir berisi `ComponentCode` dan `Amount`. Pesan tanpa `Components` berarti seluruh nilai memakai komponen `TOTAL` (`ACC-DEC-058`) |
+
+### Empat aturan yang mengikat kedua pihak
+
+1. **Kedua belas bidang wajib.** Pesan dengan satu bidang kosong ditolak `400`, bukan diterima
+   sebagian.
+2. **Mata uang hanya `IDR`.** Nilai lain ditolak `409`.
+3. **Nol pengenal pasien** (`ACC-DEC-056`). Nama pasien, nomor rekam medis, nomor kunjungan, dan
+   `DoctorId` **dilarang** ada di dalam pesan. Penelusuran ke pasien dilakukan lewat
+   `SourceTransactionId` dan `CorrelationId`, di modul asalnya.
+4. **`CorrelationId` dan `CausationId` wajib.** Tanpa keduanya, `SourceTransactionId` hanya
+   menunjuk catatan AR milik Finance, dan pertanyaan *"jurnal ini dari tagihan pasien yang mana"*
+   menuntut membuka Finance lebih dahulu.
+
+### Contoh lengkap — pendapatan rawat jalan dengan jasa medis dokter
+
+```json
+{
+  "EventNumber": "EVT-100",
+  "EventTypeCode": "PENGAKUAN-PIUTANG",
+  "SourceModule": "Finance",
+  "SourceTransactionId": "AR-2026-09-00871",
+  "SourceVersion": "1",
+  "EventOccurredAt": "2026-09-08T10:15:00+07:00",
+  "AccountingDate": "2026-09-08",
+  "Amount": 10000000.00,
+  "CurrencyCode": "IDR",
+  "LegalEntityId": "11111111-2222-4333-8444-555555555555",
+  "CorrelationId": "7d2f0c1e-5a3b-4c8d-9e21-0f6a4b7c8d90",
+  "CausationId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "Components": [
+    { "ComponentCode": "JASA_MEDIS", "Amount": 3000000.00 }
+  ]
+}
+```
+
+Seluruh id pada contoh adalah contoh, bukan data sungguhan. Aturan posting untuk jenis itu memuat
+empat baris — dua memakai `TOTAL`, dua memakai `JASA_MEDIS` — sehingga jurnal yang terbentuk
+berisi debit Rp 13.000.000 lawan kredit Rp 13.000.000.
+
+## 4. Pintu masuk
+
+#### Corporate - Accounting - Accounting Event
+
+Base URL: `api/v1/corporate/accounting/accounting-events` — **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/` | Menerima satu kejadian keuangan dari Finance | `AccountingEvent : Receive` — hanya akun layanan | `ReceiveAccountingEventRequest` | `ApiResponse<AccountingEventReceiptDto>` |
+
+| Kode | Arti bagi penerbit | Yang dilakukan Finance |
+|---|---|---|
+| `201` | Kejadian baru diterima dan dicatat | Tidak ada |
+| `200` | Kejadian **sudah pernah diterima**. Accounting mengembalikan nomor jurnal yang sama, tanpa membuat jurnal baru | Tidak ada. **Bukan** kesalahan — aman untuk kiriman ulang |
+| `400` | Salah satu dari kedua belas bidang kosong atau tidak masuk akal | Perbaiki pesan, kirim ulang |
+| `403` | Akun pengirim tidak punya hak `Receive`, atau badan hukumnya bukan haknya | Periksa akun layanan |
+| `409` | Mata uang bukan rupiah | Kiriman ulang akan ditolak lagi selama belum ada keputusan multi-mata uang |
+| `422` | Pesan sah, tetapi jenisnya belum punya aturan posting, kode jenisnya belum terdaftar, atau membawa komponen yang tidak dikenal aturannya. Kejadian **tetap tersimpan** berstatus **Tertahan** dan **tidak ada jurnal yang dibuat** | Tidak perlu kirim ulang. Accounting yang melengkapi aturannya, lalu memproses ulang |
+
+**Cara akun layanan penerbit melakukan autentikasi belum diputuskan** (`OD-ACC-05`,
+`CROSS_MODULE_DECISION_REQUIRED` — Rizki bersama Yasmin).
+
+## 5. Yang Accounting jamin kepada penerbit
 
 | Jaminan | Isi |
 |---|---|
-| Idempotency | Kejadian dengan `EventId` sama yang datang berkali-kali menghasilkan **tepat satu** jurnal. Pengiriman berikutnya mengembalikan nomor jurnal yang sama |
-| Lapis kedua | Gabungan `SourceDomain` + `SourceTransactionId` + `EventType` + `SourceVersion` juga unik, sebagai jaring pengaman bila producer keliru membuat `EventId` baru (`ACC-DEC-035`) |
-| Penelusuran balik | Dari baris buku besar mana pun dapat ditelusuri sampai `SourceTransactionId` |
-| Tidak menerbitkan balik | Accounting adalah muara. Ia **tidak** menerbitkan kejadian keuangan ke modul lain (`ACC-DEC-002`) |
-| Tidak menyentuh tabel Finance | Accounting tidak membaca dan tidak menulis tabel Finance (`ACC-DEC-003`) |
+| Anti-ganda lapis pertama | `EventNumber` yang sama datang berkali-kali menghasilkan **tepat satu** jurnal. Kiriman berikutnya dijawab `200` beserta nomor jurnal yang sama |
+| Anti-ganda lapis kedua | Gabungan `SourceModule` + `SourceTransactionId` + `EventTypeCode` + `SourceVersion` juga unik — jaring pengaman bila penerbit keliru membuat `EventNumber` baru untuk kejadian yang sama (`ACC-DEC-035`). Memakai **kode** jenis yang tersimpan, bukan id master, supaya kejadian berjenis yang belum terdaftar tetap tertangkap sebagai kiriman ulang (`ACC-DEC-075`) |
+| Tidak ada angka yang dibuang | Kejadian yang belum dapat dijurnal **ditahan**, tidak dibuang, dan tidak dipindahkan ke akun sementara (`ACC-DEC-046`) |
+| Penelusuran balik | Dari baris buku besar mana pun dapat ditelusuri sampai `SourceTransactionId` dan `CorrelationId` |
+| Tidak menerbitkan balik | Accounting adalah muara; ia **tidak** menerbitkan kejadian ke modul lain (`ACC-DEC-002`) |
+| Tidak menyentuh tabel Finance | Accounting tidak membaca dan tidak menulis tabel Finance, dan tidak menarik data lewat API Finance (`ACC-DEC-003`, `ACC-DEC-071`) |
 
-## 6. Semantik penolakan sisi consumer
+**Contoh lapis kedua.** Finance mengirim `EVT-100` untuk transaksi `AR-2026-09-00871` versi `1`.
+Karena gangguan, sistem Finance mengirim ulang kejadian yang sama tetapi dengan nomor `EVT-101`.
+Lapis pertama tidak menangkapnya karena nomornya berbeda; lapis kedua menangkapnya karena modul,
+transaksi, kode jenis, dan versinya sama. Buku besar tetap berisi satu jurnal.
 
-Empat keadaan yang harus dapat dibedakan producer. Ini requirement sisi consumer, dan Accounting
-berwenang penuh menentukannya.
+## 6. Perlakuan setiap keadaan
 
-| Keadaan | Perlakuan Accounting | Dapat diambil ulang? |
+Diambil dari `ACC-STATE` Phase 2 bagian 1 dan `integration-contract.md` bagian 6.5.
+
+| Keadaan | Status kejadian | Perlakuan | Dasar |
+|---|---|---|---|
+| Pesan sah, aturan posting ada, periode menerima pencatatan | `Diterima` → **`Terjurnal`** | Jurnal dibuat — langsung disahkan atau berupa draft untuk diperiksa, menurut perlakuan yang ditetapkan pada aturan posting jenis itu | `ACC-DEC-045` |
+| Jenis belum punya aturan posting, atau kode jenis belum terdaftar | `Diterima` → **`Tertahan`** | Nol jurnal. Diproses ulang begitu aturannya dilengkapi Accounting | `ACC-DEC-046`, `075` |
+| Gangguan teknis saat memproses | Dicoba ulang 3 kali dengan jeda makin panjang, lalu **`Gagal`** | Accounting Manager diberi tahu; dapat dicoba ulang manual | `ACC-DEC-049` |
+| Kejadian `Gagal` dinyatakan tidak perlu dijurnal | `Gagal` → **`Diabaikan`** | Alasan tertulis wajib. Kejadian `Tertahan` **tidak boleh** diabaikan | `ACC-DEC-078` |
+| Periode akuntansinya sudah tertutup | Tetap diproses | Jurnal dicatat pada **periode terbuka berikutnya**; tanggal dokumen asli tetap disimpan. Periode tertutup **tidak** dibuka otomatis | `ACC-DEC-047` |
+| Pesan tidak lengkap | — | Ditolak `400`, tidak tersimpan | `ACC-DEC-048` |
+| Mata uang bukan rupiah | — | Ditolak `409`, tidak tersimpan sebagai kejadian | `ACC-DEC-020` |
+
+**Dampak ke tutup bulan.** Kejadian `Gagal` **menahan** penutupan periode, sedangkan kejadian
+`Tertahan` hanya **memperingatkan** (`ACC-DEC-051`).
+
+## 7. Mata uang — `ACC-DEC-020` dan `ACC-DEC-021`
+
+| Aspek | Ketentuan |
+|---|---|
+| Base currency | `IDR` |
+| Mata uang yang diterima | `IDR` **saja** |
+| Keseimbangan debit = kredit | Diukur dalam `IDR` (`ACC-DEC-021`) |
+
+`DEFERRED` — tidak dirancang dalam bentuk apa pun: posting multi-mata uang, kurs, selisih kurs
+terealisasi, selisih kurs belum terealisasi, dan revaluasi mata uang asing.
+
+## 8. Saldo subledger per periode — untuk rekonsiliasi
+
+Diputuskan `ACC-DEC-071`, 10 September 2026:
+
+| Ketetapan | Isi |
+|---|---|
+| Waktu | Pada cut-off setiap periode akuntansi, bukan langsung |
+| Penerbit | **Finance**, sebagai saldo subledger **final** setiap control account pada periode itu |
+| Isi minimum | `LegalEntity`, `AccountingPeriod`, `ControlAccount`, `SubledgerBalance`, `AsOfDate` |
+| Cara sampai | Lewat pintu masuk kejadian yang sama. Accounting **tidak** menarik data dari Finance |
+| Akibat bagi Accounting | Penutupan periode tidak dianggap selesai bila saldo belum diterima atau belum cocok; toleransi selisih nol (`ACC-DEC-076`) |
+
+**Bentuk rinci pesan saldo subledger belum diputuskan** (`OD-ACC-08`,
+`CROSS_MODULE_DECISION_REQUIRED` — Rizki bersama Yasmin). Isi minimum di atas sudah mengikat;
+nama bidang dan tipenya belum.
+
+## 9. Yang masih terbuka
+
+| ID | Pertanyaan | Pemilik |
 |---|---|---|
-| Mata uang tidak didukung | `RejectedUnsupportedCurrency` | Ya, setelah keputusan multi-currency |
-| Pemetaan akun belum ada | `RejectedNoAccountMapping` | Ya, setelah pemetaan dilengkapi |
-| Periode akuntansinya sudah tertutup | `RejectedPeriodClosed` | Ya, sesuai kebijakan pembukaan kembali |
-| Envelope tidak lengkap atau tidak sah | `RejectedInvalidEnvelope` | Tidak, sampai producer mengirim ulang yang benar |
+| `ACC-XM-001` | Ratifikasi rantai Billing → Finance → Accounting dengan Finance sebagai penerbit | **Yasmin** — sisi Accounting dan Billing sudah |
+| Ratifikasi `ACC-DEC-048` + `ACC-DEC-060` | Bentuk pesan pada bagian 3 | **Yasmin** |
+| `DEC-ACC-P2-002` | Daftar jenis kejadian yang diterbitkan Finance beserta kodenya | Rizki dan Yasmin |
+| `OD-ACC-05` | Cara akun layanan penerbit melakukan autentikasi | Rizki dan Yasmin |
+| `OD-ACC-08` | Bentuk rinci pesan saldo subledger | Rizki dan Yasmin |
+| `OD-ACC-01` | Boleh tidaknya kotak masuk Accounting dibangun sebelum ratifikasi Finance | Rizki |
 
-Nama state di atas **belum final**. Ia bagian dari sembilan pertanyaan `DEFERRED` pada
-`ACC-DEC-036` dan dikunci saat Phase 2 dirancang. Yang **sudah** final adalah prinsipnya:
-kegagalan bersifat eksplisit, terlihat, dan tidak pernah diam.
+## 10. Yang sudah dan belum dibangun sisi Accounting
 
-## 7. Apa yang belum boleh dibuat sekarang
+| Bagian | Keadaan per 15 September 2026 |
+|---|---|
+| Master jenis kejadian (`GET/POST/PUT/PATCH api/v1/corporate/accounting/event-types`) | **Sudah berdiri** — `BE-ACC-P2-017`, terbukti dipanggil 15 September 2026 |
+| Master aturan posting (`api/v1/corporate/accounting/posting-rules`) | **Sudah berdiri** — `BE-ACC-P2-018` |
+| Pintu masuk `POST /accounting-events`, status kejadian, coba ulang, daftar gagal | **Belum** — menunggu `ACC-XM-001` dan `OD-ACC-01` |
+| Penerimaan saldo subledger dan penghalang rekonsiliasi | **Belum** — menunggu Finance dan `OD-ACC-08` |
 
-Tidak boleh ada, sampai `ACC-XM-001` diputuskan dan kedua gerbang skill dilewati:
-
-- entity, tabel, service, endpoint, maupun migration Finance;
-- tabel kotak masuk kejadian milik Accounting;
-- implementasi posting otomatis;
-- langganan Accounting langsung ke Billing.
-
-Gerbang yang dimaksud ada di [integration-contract.md](integration-contract.md) bagian 4:
-`requirement-completeness-gate` dan `hospital-domain-architect`, keduanya **wajib** sebelum
-Phase 2 dirancang.
-
-## 8. Aturan referensi revisi
+## 11. Aturan referensi revisi
 
 Supaya ketidakcocokan kontrak terlihat sebelum menjadi bug, kedua sisi mencatat revisi yang
 mereka pakai.
@@ -177,13 +286,20 @@ Accounting Blueprint rev Z
 | Kewajiban | Siapa |
 |---|---|
 | Membaca `ACC-XMOD` revisi `APPROVED` terakhir sebelum mengunci integrasi AR → Accounting, AP → Accounting, settlement yang berdampak Accounting, atau migration/artefak yang bergantung Accounting | Agent Finance / Yasmin |
-| Membaca kontrak cross-module Finance revisi `APPROVED` terakhir sebelum implementasi Phase 2 Finance → Accounting | Agent Accounting / Rizki |
+| Membaca kontrak cross-module Finance revisi `APPROVED` terakhir sebelum implementasi Finance → Accounting | Agent Accounting / Rizki |
+| Menaikkan `ACC-XMOD` pada perubahan yang sama setiap kali `api-contract.md` bagian *Isi `ReceiveAccountingEventRequest`* atau `integration-contract.md` bagian 6 berubah | Agent Accounting / Rizki |
 
 Bila versi yang tercatat pada satu sisi bukan versi `APPROVED` terakhir sisi lain, itu
 **contract mismatch** dan pekerjaan integrasi berhenti sampai didamaikan.
 
-## 9. Yang wajib dibaca Finance, dan yang tidak
+**Pelajaran dari `0.1`.** Baris ketiga tabel di atas baru ditambahkan pada `0.2`. Tanpanya,
+`ACC-API` bergerak dari `0.5` ke `0.10` sementara berkas ini diam di `0.1`, dan sejak 8 September
+2026 dua kontrak untuk pembaca yang sama berbeda isi.
+
+## 12. Yang wajib dibaca Finance, dan yang tidak
 
 Agent Finance **tidak perlu** membaca seluruh `docs/module-blueprints/accounting/`. Daftar
 artefak yang wajib dibaca beserta klasifikasinya ada di
-[../blueprint-manifest.md](../blueprint-manifest.md) bagian *Klasifikasi artefak*.
+[../blueprint-manifest.md](../blueprint-manifest.md) bagian *Klasifikasi artefak*. Ringkasan satu
+berkas untuk owner Finance ada di
+[../evidence/12-paket-kontrak-kejadian-untuk-finance.md](../evidence/12-paket-kontrak-kejadian-untuk-finance.md).

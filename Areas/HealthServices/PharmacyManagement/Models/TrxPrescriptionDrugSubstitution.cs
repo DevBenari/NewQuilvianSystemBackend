@@ -32,6 +32,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public string? DoctorApprovalNote { get; set; }
 
         public bool IsActive { get; set; } = true;
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
     }
 }

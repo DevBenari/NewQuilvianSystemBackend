@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
@@ -67,7 +67,7 @@ public class GzPatientDiet : IdentityModel
     public int Version { get; set; }
 
     public GzNutritionOrder? NutritionOrder { get; set; }
-    public TrxPatientEncounter? Encounter { get; set; }
+    public RegPatientEncounter? Encounter { get; set; }
     public MstPatient? Patient { get; set; }
     public GzDietType? DietType { get; set; }
     public GzFoodForm? FoodForm { get; set; }

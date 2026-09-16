@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
@@ -100,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             var dapatDiproses = belumTerdaftar
                 .Where(x => x.EncounterId != null && x.EncounterId != Guid.Empty && !x.IsCancel);
 
-            var kunjunganSelesaiIds = _dbContext.Set<TrxPatientEncounter>()
+            var kunjunganSelesaiIds = _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => StatusKunjunganSelesai.Contains(x.EncounterStatus)
                             || x.CompletedAt != null
@@ -194,7 +194,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 .Distinct()
                 .ToList();
 
-            var kunjungan = await _dbContext.Set<TrxPatientEncounter>()
+            var kunjungan = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .Where(x => encounterIds.Contains(x.Id))
                 .Select(x => new { x.Id, x.EncounterStatus, x.CompletedAt, x.IsCancel })

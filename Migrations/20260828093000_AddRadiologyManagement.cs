@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260828093000_AddRadiologyManagement")]
     public partial class AddRadiologyManagement : Migration
     {
         // Modul RadiologyManagement — RJ-BIL-BE-004, di bawah RJ-BIL-DEC-014.

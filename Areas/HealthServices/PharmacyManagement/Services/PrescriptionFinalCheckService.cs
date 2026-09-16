@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
         public async Task<PrescriptionFinalCheckResponse> CompleteAsync(Guid prescriptionId, CompletePrescriptionFinalCheckRequest request, Guid actorUserId, CancellationToken ct = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, ct)
                 ?? throw new InvalidOperationException("Resep tidak ditemukan.");
             if (prescription.FulfillmentStatus != PrescriptionFulfillmentStatus.ReadyToDispense)

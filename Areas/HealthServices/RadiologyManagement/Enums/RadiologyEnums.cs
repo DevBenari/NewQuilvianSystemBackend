@@ -195,4 +195,117 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums
         [Display(Name = "External Cause")]
         ExternalCause = 6
     }
+
+    /// <summary>
+    /// Keadaan sebuah aturan keselamatan pada siklus pengesahannya, sesuai
+    /// <c>RAD-DEC-005</c>.
+    ///
+    /// Hanya <see cref="Active"/> yang ikut dinilai gerbang keselamatan. Draf dan pengajuan
+    /// yang belum disahkan sengaja tidak berpengaruh apa pun: aturan yang belum disetujui
+    /// penanggung jawab klinis tidak boleh menentukan seorang pasien aman disinari atau tidak.
+    ///
+    /// Pemisahan <see cref="Draft"/> dari <see cref="Inactive"/> juga disengaja. Yang pertama
+    /// berarti aturannya sedang disusun dan belum pernah berlaku; yang kedua berarti aturannya
+    /// pernah berlaku lalu dihentikan. Study lama yang lolos memakai aturan yang kini
+    /// <see cref="Inactive"/> tetap sah, karena versinya sudah dibekukan pada study tersebut.
+    /// </summary>
+    public enum RadSafetyRuleStatus
+    {
+        [Display(Name = "Draft")]
+        Draft = 1,
+
+        [Display(Name = "Pending Approval")]
+        PendingApproval = 2,
+
+        [Display(Name = "Active")]
+        Active = 3,
+
+        [Display(Name = "Inactive")]
+        Inactive = 4
+    }
+
+    /// <summary>
+    /// Siklus hidup hasil bacaan radiologi sesuai <c>RAD-STATE-001</c> bagian 3.
+    ///
+    /// <b>Tidak ada status terminal.</b> Bacaan yang sudah dirilis selalu dapat diamandemen,
+    /// karena kekeliruan bacaan dapat ditemukan berbulan-bulan kemudian — dan menutup jalan
+    /// koreksi berarti memaksa orang memperbaikinya di luar sistem.
+    ///
+    /// Empat status terakhir mengulang tiga status pertama untuk koreksi. Dipisahkan, bukan
+    /// dipakai ulang, supaya sebuah bacaan yang sedang dikoreksi tetap dapat dibedakan dari
+    /// bacaan yang belum pernah dirilis sama sekali — bagi dokter pengirim, keduanya sangat
+    /// berbeda artinya.
+    /// </summary>
+    public enum RadReportStatus
+    {
+        [Display(Name = "Pending")]
+        Pending = 1,
+
+        [Display(Name = "Drafted")]
+        Drafted = 2,
+
+        [Display(Name = "Validated")]
+        Validated = 3,
+
+        [Display(Name = "Released")]
+        Released = 4,
+
+        [Display(Name = "Amendment Drafted")]
+        AmendmentDrafted = 5,
+
+        [Display(Name = "Amendment Validated")]
+        AmendmentValidated = 6,
+
+        [Display(Name = "Amendment Released")]
+        AmendmentReleased = 7
+    }
+
+    /// <summary>
+    /// Keadaan satu versi hasil bacaan sesuai <c>RAD-STATE-001</c> bagian 4.
+    ///
+    /// <see cref="Released"/> membekukan isinya. <see cref="Superseded"/> berarti versi ini
+    /// pernah berlaku lalu digantikan — <b>isinya tetap utuh dan tidak boleh berubah satu
+    /// huruf pun</b>. Mengembalikan <see cref="Superseded"/> menjadi <see cref="Released"/>
+    /// tidak sah: koreksi atas koreksi membuat versi baru lagi, bukan menghidupkan versi lama.
+    /// </summary>
+    public enum RadReportVersionStatus
+    {
+        [Display(Name = "Drafted")]
+        Drafted = 1,
+
+        [Display(Name = "Validated")]
+        Validated = 2,
+
+        [Display(Name = "Released")]
+        Released = 3,
+
+        [Display(Name = "Superseded")]
+        Superseded = 4
+    }
+
+    /// <summary>
+    /// Peran penulis draf pada saat draf itu ditulis, sesuai <c>RAD-DEC-003</c>.
+    ///
+    /// <b>Nilainya dibekukan, bukan dibaca ulang dari peran pengguna saat pengesahan.</b>
+    /// Seorang residen yang kemudian menjadi dokter radiolog tetap tidak boleh mengesahkan
+    /// draf yang ia tulis semasa menjadi residen — yang dinilai adalah keadaan saat bacaan itu
+    /// disusun, bukan jabatan hari ini.
+    ///
+    /// Hanya <see cref="Radiologist"/> yang boleh mengesahkan drafnya sendiri.
+    /// <see cref="AiAssisted"/> tidak pernah boleh mengesahkan apa pun: pengesah wajib manusia.
+    /// </summary>
+    public enum RadReportAuthorRole
+    {
+        [Display(Name = "Radiologist")]
+        Radiologist = 1,
+
+        [Display(Name = "Resident")]
+        Resident = 2,
+
+        [Display(Name = "Radiographer")]
+        Radiographer = 3,
+
+        [Display(Name = "AI Assisted")]
+        AiAssisted = 4
+    }
 }
