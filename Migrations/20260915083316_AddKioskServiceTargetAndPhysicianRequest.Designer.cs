@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915083316_AddKioskServiceTargetAndPhysicianRequest")]
+    partial class AddKioskServiceTargetAndPhysicianRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68884,12 +68887,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("ConfirmedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ConfirmedByUserId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
@@ -68906,9 +68903,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer");
 
                     b.Property<Guid>("EncounterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ExaminerDoctorId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("InpEpisodeId")
@@ -68950,8 +68944,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("Discipline");
 
                     b.HasIndex("EncounterId");
-
-                    b.HasIndex("ExaminerDoctorId");
 
                     b.HasIndex("OrderStatus");
 
@@ -104718,11 +104710,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", null)
-                        .WithMany()
-                        .HasForeignKey("ExaminerDoctorId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
                         .WithMany()

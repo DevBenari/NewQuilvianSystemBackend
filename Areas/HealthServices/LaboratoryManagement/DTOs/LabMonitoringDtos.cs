@@ -122,5 +122,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public bool HasCito { get; set; }
 
         public DateTime CreateDateTime { get; set; }
+
+        /// <summary>
+        /// Waktu pesanan dikonfirmasi (<c>LAB-API-v1</c> <c>r14</c>, <c>LAB-DEC-061</c>).
+        /// Kosong selama pesanan belum dikonfirmasi.
+        /// </summary>
+        public DateTime? ConfirmedAt { get; set; }
+
+        /// <summary>
+        /// Nama konfirmator, <b>siap ditampilkan</b> (<c>AC-94</c>).
+        /// </summary>
+        public string? ConfirmedByName { get; set; }
+
+        /// <summary>
+        /// Nama dokter pemeriksa, <b>siap ditampilkan</b> (<c>AC-95</c>).
+        ///
+        /// <para>
+        /// <b>Nol penunjuk dikirim pada ketiga ruas ini, dan itu disengaja.</b> Daftar pantau
+        /// adalah layar <b>baca</b>: ia menampilkan antrean dan tidak melakukan aksi apa pun
+        /// terhadap dokter pemeriksa maupun konfirmator. Penunjuk hanya dibutuhkan aksi, dan
+        /// aksi pada modul ini berjalan lewat detail pesanan — yang sudah membawa
+        /// <c>ConfirmedByUserId</c> dan <c>ExaminerDoctorId</c> sejak <c>r13</c>. Mengirim
+        /// penunjuk yang tidak dipakai berarti mengirim nilai yang tidak boleh ditampilkan
+        /// (<c>no-uuid-display</c>) ke layar yang tidak membutuhkannya.
+        /// </para>
+        /// </summary>
+        public string? ExaminerDoctorName { get; set; }
     }
 }

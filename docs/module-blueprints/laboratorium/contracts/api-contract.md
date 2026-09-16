@@ -3,9 +3,20 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `9` |
-| Status | `approved` — `r3`..`r6` dikunci sebelumnya; **amandemen `r7`, `r8`, dan `r9` disetujui pemilik modul 2026-09-14** |
+| Revision | `15` |
+| `r15` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-16 |
+| Isi amandemen `r15` | **`approved` — 2026-09-16.** Satu ruas `orderedProcedures` pada `LabOrderDetailResponse`, berisi pemeriksaan yang benar-benar dipesan. Menutup celah yang menahan `FE-LAB-17`: `LabOrderedProcedure` berdiri sejak `BE-LAB-26` dan terisi sejak `BE-LAB-27`, tetapi **nol DTO dan nol endpoint mengembalikannya**, sedangkan `LabOrder.ProcedureId` hanyalah penunjuk **wakil**. Aditif, nol migration, nol permission baru. Lihat bagian 10 |
+| `r14` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-16 |
+| Isi amandemen `r14` | **`approved` — 2026-09-16. Koreksi atas `r13`, bukan kebutuhan baru.** Tiga ruas tampil ditambahkan pada `LabMonitoringItemResponse`: `confirmedAt`, `confirmedByName`, dan `examinerDoctorName`. `r13` menyebut `LabOrderListResponse`, padahal ketiga menu pemeriksaan membaca grup `Lab Monitoring` — dan `GET /lab-orders/by-discipline/{discipline}` yang menerima ruas `r13` nol dipakai frontend. Nol penunjuk dikirim: daftar pantau adalah layar baca. Aditif, nol migration, nol permission baru. Lihat bagian 9 |
+| Status | `approved` — `r3`..`r6` dikunci sebelumnya; **amandemen `r7`, `r8`, dan `r9` disetujui pemilik modul 2026-09-14**; **amandemen `r10` disetujui pemilik modul 2026-09-15**; **amandemen `r11` (pencabutan satu ruas) disetujui pemilik modul 2026-09-15**; **amandemen `r12` disetujui pemilik modul 2026-09-15**; **amandemen `r13` disetujui pemilik modul 2026-09-16** |
+| `r13` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-16 |
+| Isi amandemen `r13` | **`approved` — 2026-09-16.** Lima ruas respons konfirmasi ditambahkan: `confirmedAt`, `confirmedByName`, dan `examinerDoctorName` pada `LabOrderListResponse`; `confirmedByUserId` dan `examinerDoctorId` pada `LabOrderDetailResponse`. **Seluruhnya aditif** — nol endpoint, ruas, nilai enum, permission, dan migration yang berubah. Menutup celah yang ditemukan `BE-LAB-31`: nilai konfirmasi sudah tersimpan sejak `BE-LAB-30` tetapi tidak punya jalan keluar, sehingga `FE-LAB-15` dan `FE-LAB-17` tertahan dan `AC-94`/`AC-95` hanya terpenuhi sebagian. Lihat bagian 8 |
+| `r11` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
+| Isi amandemen `r12` | **`approved` — 2026-09-15.** Satu endpoint baru `POST /lab-orders/{id}/confirm` menurunkan `LAB-DEC-061`, dan `PUT /lab-orders/{id}/cancel` diperketat menurunkan `LAB-DEC-063`: `cancelReason` menjadi **wajib** dan pembatalan hanya sah pada `Requested`/`Confirmed`. **Ini perubahan breaking pada endpoint yang sudah dipakai** — lihat bagian 7. Nol permission baru. Status pembayaran `LAB-DEC-062` sengaja tidak dikontrakkan di sini: endpointnya milik Billing dan tertahan `LAB-COORD-010` |
+| Isi amandemen `r11` | **`approved` — 2026-09-15. Ruas `clinicalNote` pada `POST /lab-orders/by-examinations` dicabut sebelum sempat dibangun.** `BE-LAB-27` menemukan `LabOrder` **tidak memiliki kolom catatan**, sedangkan cakupan task itu nol migration — sehingga ruas yang diterima kontrak tidak punya tempat disimpan. Menerima lalu membuangnya diam-diam ditolak: pemanggil akan mengira catatannya tersimpan dan baru tahu tidak ketika seseorang mencarinya. **Ini selisih pada kontrak yang ditulis sesi perancangan `r10` sendiri**, bukan temuan pada pekerjaan orang lain. Pemilik modul memilih mencabut, bukan menambah kolom, atas dasar **tidak ada peminta**: `FE-LAB-14` — satu-satunya layar yang memanggil endpoint ini — tidak menyebut catatan klinis sama sekali dan tidak memuat kotak isian untuknya. **Nol dampak kode**: penelusuran `ClinicalNote` di seluruh modul Laboratorium menemukan nol kemunculan, sehingga pencabutan ini menghapus janji, bukan perilaku. Bila catatan klinis kelak benar dibutuhkan, ia masuk sebagai task tersendiri berisi satu kolom beserta migration-nya, dengan peminta yang jelas |
+| `r10` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
 | `r7` / `r8` / `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
+| Isi amandemen `r10` | **`approved` — 2026-09-15.** Satu endpoint baru pada grup `Lab Order`: `POST /lab-orders/by-examinations`, yang menerima daftar pemeriksaan lalu membentuk **satu pesanan per disiplin**. **Aditif** — `POST /lab-orders` yang sudah ada tidak berubah bentuk, ruas, maupun perilakunya. Menurunkan `LAB-DEC-055`, `LAB-DEC-056`, dan `LAB-DEC-057`. Sambungan kiosk **dibuka penuh** oleh `LAB-REQ-006` pada 2026-09-15; endpoint pembacaan sesi kiosk milik `registration-management` dan dikontrakkan di sisi modul itu, bukan di sini |
 | Isi amandemen `r9` | **Ruas `Quantity` pada `POST /lab-examinations` dicabut sebelum sempat dibangun.** `BE-LAB-23` menemukan index unik `(SpecimenId, ProcedureId)` — dipasang atas dasar `BR-20` dan `AC-35` pada 2026-09-01 — membuat `Quantity` > 1 untuk jenis pemeriksaan yang sama pada wadah yang sama mustahil. Akibatnya `POST /lab-examinations` **tidak berubah sama sekali** dari `r6` ke `r9`. Ditutup `LAB-DEC-050` |
 | Isi amandemen `r8` | Dua endpoint baca ditambahkan pada grup `Lab Specimen Type`: `GET /filters/metadata` dan `GET /summary`. **Aditif** — tidak satu pun endpoint, ruas, atau nilai enum yang berubah, berganti nama, atau hilang. Keduanya adalah permukaan baseline yang diwajibkan `rules/backend/master-data-endpoint-standard.md` dan sudah menjadi pola nyata pada grup master data Laboratorium lain; ketiadaannya pada `r7` adalah kelalaian penulisan kontrak, bukan keputusan. Ditemukan dan ditutup saat `BE-LAB-20` dikerjakan. Jumlah endpoint grup naik dari **7 menjadi 9** |
 | Isi amandemen `r7` | Satu grup baru `Lab Specimen Type` berisi tujuh endpoint, ditambah perluasan aditif pada `POST /lab-specimens/by-order/{labOrderId}` (lima ruas jenis, volume, dan waktu penerimaan fisik) dan `POST /lab-examinations` (ruas `Quantity` yang memperbanyak baris). **Tidak satu pun endpoint, ruas, atau nilai enum `r3`..`r6` berubah, berganti nama, atau hilang.** Endpoint pengusulan instansi perujuk dan pembacaan metode pembayaran **sengaja tidak dicantumkan** karena milik modul lain dan masih menunggu `LAB-REQ-005`. Menurunkan `LAB-DEC-038`, `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042` |
@@ -120,6 +131,37 @@ Contract version: `LAB-API-v1` — status `approved`, dikunci 2026-09-02
 | `GET` | `/filters/metadata` | Pilihan penyaring, urutan, dan ukuran halaman untuk layar daftar pesanan | `LabOrder : Read` | — | `ApiResponse<LabOrderFilterMetadataResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/summary` | Rekap pesanan pada satu rentang waktu, per status dan per disiplin | `LabOrder : Read` | `startDate`, `endDate` | `ApiResponse<LabOrderSummaryResponse>` | **Tersedia** — `r4`, `BE-LAB-17` |
 | `GET` | `/by-discipline/{discipline}` | Daftar pesanan per disiplin: Patologi Klinik, Patologi Anatomi, atau Mikrobiologi | `LabOrder : Read` | `LabOrderPagedQuery` | `ApiResponse<PagedResult<LabOrderListResponse>>` | **Tersedia** — `BE-LAB-15` |
+| `POST` | `/by-examinations` | Membuat pesanan dari **daftar pemeriksaan sekaligus**, terpecah otomatis menjadi satu pesanan per disiplin | `LabOrder : Create` | `CreateLabOrderByExaminationsRequest` | `ApiResponse<List<LabOrderDetailResponse>>` | `Rencana (belum tersedia)` — **`r10` `approved`** |
+
+#### Perluasan `r10` — `POST /by-examinations`
+
+**Permintaan — `CreateLabOrderByExaminationsRequest`:**
+
+| Ruas | Tipe | Wajib | Catatan |
+|---|---|:---:|---|
+| `encounterId` | `guid` | ya | Kunjungan yang sudah ada, dari mana pun asalnya. **Laboratorium tidak membentuk kunjungan** (`AC-45`) |
+| `inpEpisodeId` | `guid?` | tidak | Diteruskan apa adanya ke setiap pesanan, mengikuti `CreateLabOrderRequest` |
+| `examinations` | `guid[]` | ya | Daftar `MstProcedure`. Sekurang-kurangnya satu (`VAL-64`), tidak boleh kembar (`VAL-65`) |
+| `citoExaminations` | `guid[]` | tidak | Bagian dari `examinations` yang ditandai cito. Penanda cito melekat pada pemeriksaan sejak `LAB-DEC-026` |
+
+**Respons.** Satu `LabOrderDetailResponse` **per disiplin**, terurut: Patologi Klinik, Patologi
+Anatomi, Mikrobiologi, lalu kelompok tanpa disiplin. DTO-nya **dipakai ulang apa adanya**, tidak
+dibuat varian baru.
+
+**Perilaku yang dikunci:**
+
+| Hal | Ketentuan |
+|---|---|
+| Pemecahan | Satu pesanan per nilai `MstProcedure.LabDiscipline`. Pemeriksaan yang belum digolongkan berkumpul menjadi **satu** pesanan ber-`discipline` `null` (`AC-85`, `AC-87`) |
+| Transaksi | **Seluruhnya satu transaksi.** Satu pemeriksaan ditolak berarti nol pesanan terbentuk |
+| `procedureId` pada tiap pesanan | Diisi pemeriksaan **pertama** kelompoknya sebagai penunjuk wakil, supaya pembaca lama tetap memperoleh nilai yang masuk akal |
+| Endpoint lama | `POST /lab-orders` **tidak berubah sama sekali** — bentuk, ruas, maupun perilakunya (`AC-88`) |
+
+> **Endpoint pembacaan sesi kiosk tidak ada di sini karena bukan milik Laboratorium.** Bentuknya
+> ditetapkan pemilik `registration-management` di bawah wewenang `LAB-REQ-006`, bukan oleh blueprint ini. Kewenangan Registrasi
+> membentuk serta menutup kunjungan tetap utuh (`AC-45`).
+> Endpoint di atas menerima `encounterId` yang sudah jadi, sehingga pembukaan kedua penahan itu
+> **tidak mengubah satu baris pun** pada kontraknya.
 
 Delapan endpoint pesanan yang sudah ada tetap berlaku apa adanya. `LabOrderDetailResponse`
 bertambah satu ruas: `discipline` (`LAB-DEC-025`).
@@ -423,3 +465,338 @@ mengelolanya, dan jabatan organisasi tidak memberi kewenangan apa pun dengan sen
 | `FE-LAB-06` daftar dan detail wadah | Tidak ada. Ruas baru bersifat tambahan |
 | Konsumen `POST /lab-examinations` yang sudah ada | **Tidak ada.** `Quantity` bernilai bawaan `1` |
 | Penjaga base route yang dikunci kontrak | Perlu satu baris tambahan untuk grup `lab-specimen-types` |
+
+---
+
+## 7. Amandemen `r12` — Konfirmasi pesanan dan pembatalan beralasan, 2026-09-15
+
+Menurunkan `LAB-DEC-061` dan `LAB-DEC-063`. Disetujui pemilik modul 2026-09-15.
+
+### 7.1 Satu endpoint baru — `POST /lab-orders/{id}/confirm`
+
+| Butir | Isi |
+|---|---|
+| Verb dan path | `POST /api/v1/health-services/laboratory-management/lab-orders/{id}/confirm` |
+| Hak akses | `LabOrder : Update` — **tidak** membuat resource permission baru |
+| Permintaan | `ConfirmLabOrderRequest` |
+| Respons | `ApiResponse<LabOrderDetailResponse>`, status `200` |
+
+**Permintaan.**
+
+| Ruas | Tipe | Wajib | Catatan |
+|---|---|:---:|---|
+| `examinerDoctorId` | `guid` | ya | Dokter pemeriksa. Wajib ada dan aktif (`VAL-72`, `VAL-73`) |
+
+**Yang sengaja tidak ada pada permintaan ini.** Nol ruas konfirmator dan nol ruas waktu
+konfirmasi. Keduanya diturunkan server dari pengguna yang login dan jam server — ruas yang dapat
+dikirim pemanggil adalah ruas yang dapat dipalsukan pemanggil, dan nama konfirmator adalah
+pertanyaan audit, bukan pertanyaan tampilan.
+
+**Akibat pada status.** `Requested` → `Confirmed` (`LAB-STATE-v1` `r3`). Konfirmasi hanya sah
+sekali (`VAL-70`, `VAL-71`).
+
+### 7.2 Satu endpoint yang sudah ada dan ruasnya diperketat — `PUT /lab-orders/{id}/cancel`
+
+| Butir | `r11` | `r12` |
+|---|---|---|
+| Badan permintaan | Tercatat `—` pada kontrak, padahal source menerima `CancelLabSpecimenRequest?` yang **opsional** | `CancelLabOrderRequest` dengan `cancelReason` **wajib** |
+| Status yang sah | Selain `Cancelled` dan `Completed` | Hanya `Requested` dan `Confirmed` (`VAL-75`) |
+
+> **Koreksi kontrak, bukan amandemen.** Baris `r11` menulis badan permintaan endpoint ini sebagai
+> `—`. Source menerima badan opsional bertipe `CancelLabSpecimenRequest` sejak jalur pembatalan
+> dibangun, dan alasannya sudah tersimpan sebagai `ReasonNote` pada `LabTransitionHistory`.
+> Kontraknya yang tertinggal, bukan sourcenya.
+
+**Ini perubahan breaking, dan ditulis terang.** Pemanggil yang hari ini membatalkan pesanan tanpa
+mengirim alasan akan mulai ditolak `422` (`VAL-74`), dan pembatalan dari `Accepted`, `InProcess`,
+atau `OnHold` akan mulai ditolak `409` (`VAL-75`).
+
+| Yang wajib diperiksa sebelum ditegakkan | Kenapa |
+|---|---|
+| Berapa pesanan berstatus `Accepted`, `InProcess`, `OnHold` hari ini | Mereka kehilangan jalur pembatalannya |
+| Siapa saja pemanggil `PUT /{id}/cancel` hari ini | Frontend yang belum punya kotak alasan akan gagal menyimpan |
+
+**Alasan pembatalan tetap disimpan di tempatnya yang sekarang** — `ReasonNote` pada jejak audit.
+Nol kolom baru pada `LabOrder`, dan nol migration untuk bagian ini.
+
+### 7.3 Yang **tidak** berubah
+
+`POST /lab-orders`, `POST /lab-orders/by-examinations`, seluruh endpoint wadah, pemeriksaan, dan
+data induk tidak berubah bentuk, ruas, maupun perilakunya. Nol permission baru pada seluruh
+amandemen `r12`.
+
+### 7.4 Status pembayaran — **tidak dikontrakkan di sini**
+
+`LAB-DEC-062` menetapkan layar Laboratorium mengunci tombol Proses Pemeriksaan bagi pasien
+Mandiri/tunai sampai `Lunas`, dengan nilainya **dibaca dari Billing**. Endpoint bacanya milik
+Billing dan belum ada; ia tertahan `LAB-COORD-010` dan **sengaja tidak** dicantumkan di sini,
+mengikuti cara `r10` memperlakukan endpoint sesi kiosk milik `registration-management`.
+
+---
+
+## 8. Amandemen `r13` — Ruas respons konfirmasi, 2026-09-16
+
+Menutup celah yang ditemukan `BE-LAB-31` saat endpoint konfirmasi selesai dibangun: `r12` §7.1
+mendefinisikan **badan permintaan** tetapi tidak menambah satu pun ruas respons, sehingga nilai
+yang sudah tersimpan tidak punya jalan keluar. Disetujui pemilik modul 2026-09-16.
+
+### 8.1 Masalahnya, ditulis terang
+
+`BE-LAB-30` mendirikan tiga kolom dan `BE-LAB-31` mengisinya. Ketiganya **tersimpan dengan benar
+dan terbukti** — tetapi tidak dapat dibaca siapa pun lewat API.
+
+Akibatnya berantai pada dua layar sekaligus:
+
+| Layar | Yang diwajibkan | Yang menghalanginya |
+|---|---|---|
+| `FE-LAB-15` | Kolom Konfirmasi memuat **nama konfirmator beserta tanggal dan waktu** | Ketiga nilai tidak dikembalikan endpoint mana pun |
+| `FE-LAB-17` | Tanda tangan **konfirmator** dan **dokter pemeriksa** pada ringkasan cetak | Sama |
+
+`AC-94` dan `AC-95` karena itu hanya terpenuhi sebagian, dan penyebabnya bukan pekerjaan yang
+kurang melainkan bentuk kontraknya.
+
+### 8.2 Lima ruas ditambahkan
+
+| Ruas | Tipe | Pada | Isi |
+|---|---|---|---|
+| `confirmedAt` | `datetime?` | `LabOrderListResponse` | Waktu konfirmasi. Kosong selama pesanan belum dikonfirmasi |
+| `confirmedByName` | `string?` | `LabOrderListResponse` | Nama konfirmator, **siap tampil** |
+| `examinerDoctorName` | `string?` | `LabOrderListResponse` | Nama dokter pemeriksa, **siap tampil** |
+| `confirmedByUserId` | `guid?` | `LabOrderDetailResponse` | Penunjuk konfirmator |
+| `examinerDoctorId` | `guid?` | `LabOrderDetailResponse` | Penunjuk dokter pemeriksa |
+
+`LabOrderDetailResponse` mewarisi `LabOrderListResponse`, sehingga detail memperoleh kelima-limanya.
+
+### 8.3 Kenapa nama di daftar dan penunjuk di detail
+
+**Nama ada di daftar karena layar tidak boleh menampilkan penunjuk.** Aturan `no-uuid-display`
+sudah dipakai `requestedByName`, dan kolom Konfirmasi menampilkan nama orang — bukan UUID. Daftar
+yang hanya membawa penunjuk memaksa layar memanggil endpoint kedua per baris hanya untuk
+menerjemahkannya.
+
+**Penunjuk ada di detail karena aksi membutuhkannya.** Layar yang kelak mengubah dokter pemeriksa
+perlu nilai yang dapat dikirim balik, dan nama bukan nilai yang dapat dikirim balik.
+
+Pembagian ini **sama persis** dengan `RequestedByUserId` dan `RequestedByName` yang sudah berlaku
+sejak `LAB-API-v1` `r3`; nol pola baru diperkenalkan.
+
+### 8.4 Aman bagi pembaca lama
+
+Kelimanya **penambahan**. Tidak satu pun endpoint, ruas, nilai enum, atau bentuk pembungkus yang
+berubah, berganti nama, atau hilang.
+
+| Yang dinilai | Hasil |
+|---|---|
+| Pemanggil yang mengabaikan ruas baru | Tidak terpengaruh — penilaian yang sama sudah dipakai `r3` untuk tiga ruas kesegeraan |
+| Pesanan yang belum pernah dikonfirmasi | Kelima ruas `null`, dan itu keadaan sah |
+| Permission | **Nol** resource maupun action baru |
+| Migration | **Nol.** Ketiga kolomnya sudah berdiri sejak `BE-LAB-30` |
+
+### 8.5 Sumber nilainya
+
+| Ruas | Dari mana |
+|---|---|
+| `confirmedAt`, `confirmedByUserId`, `examinerDoctorId` | Kolom `LabOrder` yang didirikan `BE-LAB-30`, dibaca apa adanya |
+| `confirmedByName` | `ResolveUserNameAsync` — **jalur yang sama** dengan `RequestedByName`, supaya satu orang tidak terbaca dengan dua nama berbeda antar layar |
+| `examinerDoctorName` | `MstDoctor.FullName` lewat penunjuk `ExaminerDoctorId` |
+
+### 8.6 Yang **tidak** berubah
+
+`POST /lab-orders/{id}/confirm` dan `PUT /lab-orders/{id}/cancel` tidak berubah sama sekali —
+badan permintaan, kode status, maupun aturan validasinya. Amandemen ini hanya menambah ruas pada
+respons yang sudah ada.
+
+**`LabOrderSummaryResponse` sengaja tidak disentuh.** Rekap pesanan belum mengenal `Confirmed` —
+tercatat pada [`BE-LAB-31.md`](../task/report/backend/BE-LAB-31.md) bagian 7.1 — tetapi
+memperbaikinya berarti menambah ember status, dan itu keputusan tersendiri yang tidak dibutuhkan
+`FE-LAB-15` maupun `FE-LAB-17`.
+
+---
+
+## 9. Amandemen `r14` — Ruas konfirmasi pada daftar pantau, 2026-09-16
+
+**Koreksi atas `r13`, bukan kebutuhan baru.** Disetujui pemilik modul 2026-09-16.
+
+### 9.1 Apa yang salah pada `r13`, ditulis terang
+
+`r13` bagian 8.1 menyatakan tujuannya sendiri: membuat nilai konfirmasi dapat dibaca layar yang
+membutuhkannya — `FE-LAB-15`, kolom Konfirmasi pada **ketiga menu pemeriksaan**. Tujuannya benar.
+**DTO yang disebutnya tidak.**
+
+| Yang disebut `r13` | Yang sebenarnya dibaca ketiga menu itu |
+|---|---|
+| `LabOrderListResponse` — dipakai `GET /lab-orders` dan `GET /lab-orders/by-discipline/{discipline}` | `LabMonitoringItemResponse` — dipakai grup `Lab Monitoring` |
+
+Ketiga menu pemeriksaan adalah `lab-monitoring/clinical-pathology`,
+`lab-monitoring/anatomic-pathology`, dan `lab-monitoring/microbiology`, dan seluruhnya membaca
+grup `Lab Monitoring`. Endpoint `GET /lab-orders/by-discipline/{discipline}` yang memang menerima
+kelima ruas `r13` **nol dipakai frontend**.
+
+**Yang tidak terbuang dari `r13`.** Detail pesanan dan setiap jawaban aksi yang melewati
+`GetDetailAsync` — termasuk `POST /lab-orders/{id}/confirm` — kini membawa kelima ruasnya. Pop-up
+konfirmasi `FE-LAB-15` memakai itu untuk menampilkan hasilnya seketika tanpa memuat ulang daftar.
+Yang belum tertutup hanyalah **kolomnya**.
+
+### 9.2 Tiga ruas ditambahkan
+
+| Ruas | Tipe | Pada | Isi |
+|---|---|---|---|
+| `confirmedAt` | `datetime?` | `LabMonitoringItemResponse` | Waktu konfirmasi. Kosong selama pesanan belum dikonfirmasi |
+| `confirmedByName` | `string?` | `LabMonitoringItemResponse` | Nama konfirmator, **siap tampil** |
+| `examinerDoctorName` | `string?` | `LabMonitoringItemResponse` | Nama dokter pemeriksa, **siap tampil** |
+
+### 9.3 Kenapa hanya tiga, bukan lima
+
+**Nol penunjuk dikirim, dan itu disengaja.** Daftar pantau adalah layar **baca**: ia menampilkan
+antrean, tidak melakukan aksi apa pun terhadap dokter pemeriksa maupun konfirmator. Penunjuk hanya
+dibutuhkan aksi, dan aksi pada modul ini berjalan lewat detail pesanan — yang sudah membawa
+`confirmedByUserId` dan `examinerDoctorId` sejak `r13`.
+
+Mengirim penunjuk yang tidak dipakai berarti mengirim nilai yang tidak boleh ditampilkan
+(`no-uuid-display`) ke layar yang tidak membutuhkannya.
+
+### 9.4 Aman bagi pembaca lama
+
+| Yang dinilai | Hasil |
+|---|---|
+| Bentuk respons | **Aditif.** Nol endpoint, ruas, nilai enum, atau pembungkus yang berubah, berganti nama, atau hilang |
+| Pesanan yang belum dikonfirmasi | Ketiganya `null`, dan itu keadaan sah |
+| Permission | **Nol** resource maupun action baru. Grup `Lab Monitoring` tetap `LabMonitoring : Read` |
+| Migration | **Nol.** Ketiga kolomnya sudah berdiri sejak `BE-LAB-30` |
+
+### 9.5 Sumber nilainya
+
+Sama persis dengan `r13` bagian 8.5: `ConfirmedAt` dibaca apa adanya dari `LabOrder`;
+`confirmedByName` lewat jalur yang sama dengan `RequestedByName`; `examinerDoctorName` dari
+`MstDoctor.FullName`. Nol jalur terjemahan baru diperkenalkan.
+
+### 9.6 Pelajaran yang dicatat, supaya tidak terulang
+
+`r13` disusun dengan membaca **apa yang dibutuhkan layar**, tetapi tanpa memeriksa **endpoint mana
+yang layar itu benar-benar panggil**. Keduanya pertanyaan yang berbeda, dan hanya yang kedua dapat
+dijawab dari source. Amandemen berikutnya yang menambah ruas respons wajib menyebut **endpoint dan
+DTO yang diverifikasi dari source konsumennya**, bukan DTO yang paling masuk akal namanya.
+
+---
+
+## 10. Amandemen `r15` — Daftar pemeriksaan terpesan pada detail pesanan, 2026-09-16
+
+> **Status: `approved` — disetujui pemilik modul 2026-09-16, pada hari yang sama ia diusulkan.**
+> Ditulis ketika `FE-LAB-17` diputuskan **ditunda sampai amandemen ini jalan**, bukan diturunkan
+> menjadi versi sebagian. `BE-LAB-35` boleh dimulai.
+
+### 10.1 Celah yang ditemukan, dan bagaimana ia lolos selama ini
+
+`BR-47` menetapkan satu tindakan petugas menghasilkan **satu pesanan per disiplin**, dan
+pemeriksaan yang sedisiplin **berkumpul pada pesanan yang sama**. `BE-LAB-26` mendirikan
+`LabOrderedProcedure` untuk menyimpan daftarnya, dan `BE-LAB-27` mengisinya.
+
+Yang tidak pernah dikerjakan: **mengembalikannya**.
+
+| Yang dinilai | Keadaan hari ini |
+|---|---|
+| DTO respons yang memuat daftar pemeriksaan terpesan | **Nol.** Pencarian `ProcedureNameSnapshot` pada seluruh area `LaboratoryManagement` menghasilkan nol kemunculan |
+| Endpoint yang mengembalikannya | **Nol** |
+| `LabOrder.ProcedureId` | **Penunjuk wakil, bukan satu-satunya.** Dinyatakan oleh komentar kodenya sendiri pada `LabOrderService.cs` — *"Penunjuk wakil, bukan satu-satunya pemeriksaan pesanan ini"* |
+| `LabMonitoringItemResponse.ExaminationCount` | Menghitung `LabExamination`, yaitu yang **sedang dikerjakan dari wadah** — bukan yang dipesan. Pesanan yang belum berwadah bernilai `0` |
+
+Akibatnya tunggal dan berkonsekuensi: **tidak ada satu pun konsumen yang dapat mengetahui isi
+sebuah pesanan.** Untuk pesanan Hemoglobin + Kalium yang sengaja digabung `BR-47`, layar hanya
+mengetahui satu nama.
+
+**Kenapa celah ini tidak ketahuan lebih awal.** Ia tidak memutus apa pun. Ketiga menu pemeriksaan
+adalah layar **antrean** — mereka memang tidak menampilkan isi pesanan, dan `VAL-68` serta `VAL-69`
+membaca `LabOrderedProcedure` **di dalam backend**, sehingga aturannya tetap tegak tanpa ruas
+respons. Yang pertama membutuhkannya adalah konsumen yang mencetak.
+
+### 10.2 Siapa yang membutuhkannya, dan endpointnya diverifikasi dari source
+
+`FE-LAB-17` — ringkasan cetak pesanan. Pemilik modul menetapkan 2026-09-16: **tombol berdiri per
+baris pada ketiga menu pemeriksaan, dan satu klik mencetak satu pesanan.**
+
+Mengikuti pelajaran `r14` bagian 9.6, jalur konsumennya ditelusuri dari source lebih dulu, bukan
+ditebak dari nama DTO:
+
+| Yang dibutuhkan dokumen cetak | Sudah tersedia? | Dari mana |
+|---|---|---|
+| Nama pasien dan No. Rekam Medis | **Ya** | `LabMonitoringItemResponse` — baris yang tombolnya ditekan |
+| No. Kunjungan, disiplin, status, kesegeraan, waktu diminta | **Ya** | Baris yang sama |
+| Tanda tangan konfirmator dan dokter pemeriksa | **Ya**, sejak `r13` dan `r14` | `confirmedByName`, `examinerDoctorName` |
+| Tanda tangan pembuat order | **Ya**, sejak `r3` | `LabOrderDetailResponse.requestedByName` |
+| **Daftar pemeriksaan yang dipesan** | **Tidak** | — inilah satu-satunya yang kurang |
+
+Jalur detailnya `GET /v1/health-services/laboratory-management/lab-orders/{id}`, mengembalikan
+`LabOrderDetailResponse` dengan hak akses `LabOrder : Read`. Jalur itu **sudah dipanggil
+frontend** lewat `getLabOrderDetail` pada `lab-order.service.js`, sehingga amandemen ini tidak
+melahirkan jalur baru — ia mengisi jalur yang sudah dipakai.
+
+### 10.3 Satu ruas ditambahkan
+
+| Ruas | Tipe | Pada | Isi |
+|---|---|---|---|
+| `orderedProcedures` | `LabOrderedProcedureResponse[]` | `LabOrderDetailResponse` | Pemeriksaan yang benar-benar dipesan, urut sesuai penyimpanannya |
+
+Bentuk `LabOrderedProcedureResponse`:
+
+| Ruas | Tipe | Isi |
+|---|---|---|
+| `procedureCode` | `string` | Kode pemeriksaan **pada saat dipesan** |
+| `procedureName` | `string` | Nama pemeriksaan **pada saat dipesan**, siap tampil |
+| `urgency` | `string` | `Routine` atau `Cito`, mengikuti nama enum `LabExaminationUrgency` |
+| `orderedStatus` | `string` | `Ordered`, `Fulfilled`, atau `Cancelled`, mengikuti `LabOrderedProcedureStatus` |
+
+### 10.4 Kenapa nol penunjuk dikirim
+
+Sama dengan alasan `r14` bagian 9.3, dan diterapkan lagi di sini dengan sengaja: dokumen cetak
+adalah keluaran **baca**. Ia tidak melakukan aksi apa pun terhadap baris pemeriksaan, sehingga
+`procedureId` tidak dibutuhkan — dan mengirimnya berarti mengirim nilai yang tidak boleh
+ditampilkan (`no-uuid-display`) ke konsumen yang tidak membutuhkannya. Bila kelak ada layar yang
+benar-benar **mengubah** baris terpesan, penunjuknya ditambahkan oleh amandemen milik layar itu.
+
+### 10.5 Kenapa snapshot, bukan katalog hari ini
+
+Keempat ruas dibaca dari kolom snapshot `LabOrderedProcedure`, bukan dari `MstProcedure` yang
+berlaku saat dokumen dicetak. Dokumen resmi harus menyebut apa yang **dipesan waktu itu**; nama
+katalog yang kemudian diganti tidak boleh mengubah isi dokumen yang sudah pernah dicetak.
+
+### 10.6 Kenapa hanya pada detail, bukan pada daftar pantau
+
+Ketiga menu pemeriksaan menampilkan antrean, dan menambahkan daftar bersarang pada setiap baris
+akan memperbesar respons layar yang paling sering dimuat demi data yang hanya dibaca ketika
+tombol cetak ditekan. Cetak per baris memanggil detail **satu kali**, saat dibutuhkan.
+
+### 10.7 Pesanan lama tidak punya baris, dan itu keadaan sah
+
+Pesanan yang dibuat lewat `POST /lab-orders` — jalur lama berpemeriksaan tunggal — **nol
+memiliki** baris `LabOrderedProcedure`. Keadaan itu sudah diakui `LabSpecimenService` sejak
+`BE-LAB-28`, yang menegakkan `VAL-69` hanya bila pesanannya memiliki baris terpesan.
+
+`orderedProcedures` karena itu mengembalikan **array kosong**, bukan galat. Aturan bagi
+konsumennya ditulis di sini supaya tidak ditafsirkan sendiri-sendiri:
+
+> Bila `orderedProcedures` **kosong**, pesanan itu berpemeriksaan tunggal dan `procedureName`
+> pada pesanan **adalah** isi lengkapnya — cetak itu. Bila **terisi**, `procedureName` hanyalah
+> wakil dan **tidak boleh** dicetak sebagai isi pesanan; yang dicetak adalah daftarnya.
+
+### 10.8 Aman bagi pembaca lama
+
+| Yang dinilai | Hasil |
+|---|---|
+| Bentuk respons | **Aditif.** Nol endpoint, ruas, nilai enum, atau pembungkus yang berubah, berganti nama, atau hilang |
+| Pembaca lama `GET /lab-orders/{id}` | Menerima satu ruas tambahan yang boleh diabaikan |
+| Permission | **Nol** resource maupun action baru. Tetap `LabOrder : Read` |
+| Migration | **Nol.** Tabel beserta keempat kolom snapshotnya sudah berdiri sejak `BE-LAB-26` |
+| Pesanan lama | Array kosong — lihat 10.7 |
+
+### 10.9 Pelajaran yang dicatat
+
+Celah ini lahir dari pola yang sudah tiga kali muncul pada modul ini — `LAB-CONFLICT-007`,
+`r13`, dan kedua cacat `FE-LAB-14`: **tabel yang ditulis tanpa pembacanya tidak akan menghasilkan
+galat apa pun sampai seseorang membutuhkannya.** `LabOrderedProcedure` berdiri, terisi, dan
+menegakkan dua aturan validasi dengan benar selama dua hari, sementara isinya tidak pernah dapat
+dilihat siapa pun di luar backend.
+
+Yang menemukannya bukan lint, build, uji, maupun tinjauan kontrak — melainkan pertanyaan
+"apa yang akan tercetak pada dokumen ini". **Task yang menghasilkan dokumen resmi wajib
+menelusuri setiap ruas dokumennya sampai ke sumbernya sebelum dimulai**, karena dokumen yang
+salah tidak menimbulkan galat; ia hanya dipercaya orang.

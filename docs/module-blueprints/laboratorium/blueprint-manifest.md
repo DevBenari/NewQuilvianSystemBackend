@@ -5,11 +5,11 @@ blueprint_id: LAB-BP-001
 module_name: Laboratorium
 module_slug: laboratorium
 module_prefix: LAB
-revision: 26
-status: approved-with-pending-reconciliation   # rev 26: amandemen Penerimaan Sampling/Specimen berstatus draft, dua bagiannya menunggu LAB-REQ-005
+revision: 34
+status: approved-with-pending-reconciliation   # rev 33: bukti putaran 2 RECONCILED lewat LAB-DEC-060..063. Menuntut amandemen LAB-STATE-v1, LAB-VAL-v1, LAB-API-v1 dan satu migration empat kolom. Sisa penahan LAB-COORD-006, LAB-COORD-007, LAB-COORD-010, LAB-OPEN-025, LAB-OPEN-026
 bentuk: SINGLE
 created_at: 2026-09-01T00:00:00+07:00
-updated_at: 2026-09-14T00:00:00+07:00
+updated_at: 2026-09-15T00:00:00+07:00
 
 scope:
   release: MVP Rilis 1 — bagian yang sudah lolos kedua gerbang
@@ -27,8 +27,8 @@ owners:
 approved_by: Yoga Aji Pratama <yogaaji452@gmail.com>
 approved_at: 2026-09-01
 
-backend_commit_sha: "466a7127"  # cabang yoga, 2026-09-14. HEAD bergeser ke 9067fa73 saat sesi berjalan; diff atas seluruh berkas yang menjadi dasar temuan KOSONG, sehingga audit tetap sahih. Nilai lama c87d9c0 tertinggal 298 commit
-backend_commit_sha_previous: "c87d9c0"   # cabang yoga, sinkron dengan origin/yoga per 2026-09-01
+backend_commit_sha: "e2152709"  # cabang yoga, 2026-09-15. Naik dari 9067fa73 setelah BE-LAB-20..25 di-commit (7cd82c26) lalu di-merge dari origin/QuilvianIntegrationBackend. Diperiksa: merge itu tidak menyentuh satu pun berkas Laboratorium di luar commit tersebut
+backend_commit_sha_previous: "9067fa73"   # titik pindai amandemen putaran 4; kedelapan berkas yang menjadi dasarnya diverifikasi tidak berubah sejak 466a7127
 backend_impact_scan:
   from: "9124900"
   to: "c87d9c0"
@@ -45,7 +45,7 @@ frontend_commit_sha: "9cd4cd03f"  # 2026-09-14. Nilai lama 688daff90 tertinggal 
 frontend_commit_sha_previous: "688daff90"
 
 input_revisions:                # diperbarui 2026-09-14, menutup LAB-OPEN-023
-  decisions: 28   # rev 23 amandemen Penerimaan Sampling/Specimen; rev 24 hasil impact scan; rev 25 amandemen metode pembayaran; rev 26 LAB-REQ-005 diajukan; rev 27 LAB-DEC-048 susunan menu dirapikan; rev 28 LAB-DEC-049 dan LAB-DEC-050 menutup dua pertentangan yang ditemukan saat implementasi
+  decisions: 32   # rev 32 — LAB-DEC-060..063 menutup rekonsiliasi bukti putaran 2; rev 30 persetujuan Andry Zain lewat LAB-REQ-006; keempat keputusan kiosk naik menjadi approved
   capability_map: 3   # impact scan 2026-09-14 atas BE 466a7127 + FE 9cd4cd03f. Sebagian besar peta revision 1-2 STALE; F5 dicabut
   requirement_gate: LAB-RCG-001-r4
   domain_architecture: LAB-DA-001-r4
@@ -69,9 +69,9 @@ domain_architecture_readiness: DOMAIN_ARCHITECTURE_READY
 domain_architecture_revision: LAB-DA-001-r4
 
 contract_versions:            # r3 dan sebelumnya dikunci 2026-09-02; amandemen 2026-09-14 disetujui Yoga Aji Pratama selaku pemilik modul
-  - LAB-API-v1: approved      # revision 9 — r3 dikunci 2026-09-02; r4 (BE-LAB-17) dan r5 (BE-LAB-18) disetujui 2026-09-03; r6 disetujui 2026-09-08; r7 (grup Lab Specimen Type beserta perluasan aditif pada lab-specimens dan lab-examinations) dan r8 (GET /filters/metadata dan GET /summary pada grup itu, ditemukan saat BE-LAB-20) dan r9 (ruas Quantity dicabut sebelum dibangun, temuan BE-LAB-23) disetujui 2026-09-14
-  - LAB-STATE-v1: approved    # revision 2 — tidak tersentuh amandemen 2026-09-14; tidak ada status baru
-  - LAB-VAL-v1: approved      # revision 4 — VAL-51..VAL-63 disetujui 2026-09-14; VAL-60 kemudian dicabut LAB-DEC-050 hari yang sama karena ruas Quantity tidak jadi dibuat
+  - LAB-API-v1: approved      # revision 14 — r14 (KOREKSI atas r13: tiga ruas tampil confirmedAt/confirmedByName/examinerDoctorName pada LabMonitoringItemResponse) disetujui pemilik modul 2026-09-16. r13 menyebut LabOrderListResponse, padahal ketiga menu pemeriksaan membaca grup Lab Monitoring; endpoint by-discipline yang menerima ruas r13 nol dipakai frontend. Aditif, nol migration. revision 13 — r13 (lima ruas respons konfirmasi: confirmedAt/confirmedByName/examinerDoctorName pada list, confirmedByUserId/examinerDoctorId pada detail) disetujui pemilik modul 2026-09-16; seluruhnya aditif, nol migration, menutup celah yang ditemukan BE-LAB-31 dan menahan FE-LAB-15 serta FE-LAB-17. revision 12 — r12 (POST /lab-orders/{id}/confirm + pembatalan wajib beralasan) disetujui pemilik modul 2026-09-15. revision 11 — r3..r9 approved; r10 (POST /lab-orders/by-examinations) disetujui pemilik modul 2026-09-15; r11 mencabut ruas clinicalNote sebelum sempat dibangun — LabOrder tidak punya kolom catatan, nol peminta di FE-LAB-14, nol dampak kode
+  - LAB-STATE-v1: approved    # revision 3 — status Confirmed masuk antara Requested dan Accepted; pembatalan dipersempit. Disetujui 2026-09-15. revision 2 — tidak tersentuh amandemen 2026-09-14; tidak ada status baru
+  - LAB-VAL-v1: approved      # revision 6 — VAL-70..VAL-75 disetujui pemilik modul 2026-09-15. revision 5 — VAL-01..VAL-63 approved (VAL-60 dicabut LAB-DEC-050); VAL-64..VAL-69 disetujui pemilik modul 2026-09-15
   - LAB-INT-v1: approved      # revision 3 — tidak tersentuh amandemen 2026-09-14; tidak ada integrasi baru
   - LAB-PERM-v1: approved     # revision 4 — resource LabSpecimenType disetujui 2026-09-14; tidak tersentuh pencabutan Quantity
 contract_lock_scope: |
@@ -88,8 +88,12 @@ evidence_baseline:
   limitation: audio video belum ditranskripsi; aturan yang hanya disampaikan lisan belum tercakup
 
 active_blockers:
+  - LAB-COORD-010   # Laboratorium memerlukan jalur baca status pembayaran milik Billing untuk satu kunjungan atau satu pesanan. Diturunkan LAB-DEC-062: layar lab mengunci tombol Proses Pemeriksaan bagi Mandiri/tunai sampai Lunas, tetapi Laboratorium nol menyimpan kolom pembayaran. Sampai jalur bacanya ada, penguncian tidak dapat ditegakkan backend. Perlu permintaan persetujuan ke pemilik Billing
+  - LAB-OPEN-027    # apakah konfirmasi menjadi WAJIB sebelum Accepted. LAB-STATE-v1 r3 membiarkan jalur Requested -> Accepted tetap sah supaya pesanan yang sedang berjalan tidak berhenti dapat diproses. Menutupnya menuntut perlakuan atas pesanan in-flight dan kepastian setiap jalur pembuat pesanan melewati layar bertombol Konfirmasi. Tidak memblokir MVP-5c
   - LAB-COORD-006   # data induk instansi perujuk TIDAK punya endpoint tulis sama sekali; satu-satunya pengisinya LabDummyDataSeeder. Memblokir bagian pendaftaran rujukan pada menu Penerimaan Sampling/Specimen. Diajukan LAB-REQ-005 butir 1-3 pada 2026-09-14
   - LAB-COORD-007   # satu nilai EncounterPaymentType baru untuk piutang mitra, secara aditif, beserta penurunannya dari status PKS. Memblokir bagian metode pembayaran pada menu yang sama. Diajukan LAB-REQ-005 butir 4-7 pada 2026-09-14
+  - LAB-OPEN-025    # apakah prinsipal kiosk (KioskReadPolicy) boleh membentuk kunjungan; EncounterIntakeService.RegisterAsync menuntut PatientEncounter:Create. Memblokir BE-EXT-05 — bila tidak dipegang, setiap pasien kiosk gagal didaftarkan dan gagalnya tidak terlihat sebagai galat sistem. Milik registration-management
+  - LAB-OPEN-026    # unit layanan SU-LAB-001 Laboratorium Klinik ber-IsAvailableForKiosk=false, sehingga kunjungan lab dari kiosk belum punya unit yang sah. Perubahan data induk, wewenang terpisah. Memblokir BE-EXT-05
   - LAB-OPEN-024    # berapa lama usulan instansi perujuk boleh menggantung, apa yang terjadi bila ditolak, siapa yang berhak menggabungkan dua baris. Milik master-data; memblokir IMPLEMENTATION jalur penolakan usulan
   - LAB-SIGN-001    # tanda tangan klinis — memblokir S4, S4b, S4c, S5, S6. SATU-SATUNYA penahan kelimanya: LAB-COORD-001 dan LAB-COORD-002 sudah ditutup 2026-09-01. Permintaan LAB-REQ-004 diajukan 2026-09-09, menunggu jawaban
   - LAB-AMD-001     # amandemen rawat-jalan — memblokir S1b
@@ -109,6 +113,10 @@ active_blockers:
   - LAB-P0-008      # penyelarasan antaraplikasi
 
 closed_blockers:                # ditutup 2026-09-02 kecuali yang bertanggal lain, disimpan sebagai jejak
+  - LAB-CONFLICT-008 # ditutup 2026-09-15 oleh LAB-DEC-060 sampai LAB-DEC-063 — rekonsiliasi bukti putaran 2 RECONCILED. Siklus hidup wadah bertahan; status Confirmed dan dokter pemeriksa diadopsi; alasan pembatalan wajib disimpan backend; pembayaran mengunci tombol Proses tetapi dibaca dari Billing
+  - LAB-CONFLICT-007 # ditutup 2026-09-15 oleh BE-LAB-29 — Discipline diturunkan dari katalog pada satu-satunya jalur tulis LabOrder; jalur itu dibuktikan tunggal lewat penelusuran new LabOrder dan LabOrders.Add di seluruh aplikasi. Katalog 10 dari 10 tergolong. Dua baris data lama sengaja tidak diperbaiki — perubahan data, wewenang terpisah
+  - LAB-COORD-008   # ditutup 2026-09-15 oleh LAB-REQ-006 — Andry Zain menyetujui kiosk bertambah bagian Laboratorium, secara aditif
+  - LAB-COORD-009   # ditutup 2026-09-15 oleh LAB-REQ-006 dan LAB-DEC-058 — kunjungan kiosk yang tidak dilanjutkan ditutup akhir hari layanan, biaya pendaftaran gugur
   - LAB-OPEN-022    # ditutup 2026-09-14 oleh impact scan capability map revision 3
   - LAB-OPEN-023    # ditutup 2026-09-14: input_revisions, input_hashes, dan kedua commit_sha pada manifest ini disinkronkan
   - LAB-CONFLICT-003 # ditutup 2026-09-14 oleh LAB-DEC-046 dan LAB-DEC-047
@@ -225,8 +233,6 @@ tr -d '\r' < 00-interview-decisions.md | sha256sum
 
 Hasilnya wajib sama dengan nilai pada `input_hashes`. Bila berbeda, berkas masukan berubah dan
 seluruh artefak turunannya — termasuk kontrak dan roadmap — menjadi stale.
-
-
 
 Nomor awalan berkas sengaja berulang — `02-` dan `03-` masing-masing dipakai dua kali. Ini
 mengikuti pola yang sudah dipakai modul `pharmacy` dan `operations`, di mana artefak gerbang

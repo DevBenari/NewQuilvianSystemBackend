@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `3` |
+| Revision | `4` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -35,6 +35,9 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`
 | `RequestedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu pesanan dibuat |
 | `RequestedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Dokter pemesan |
 | `CompletedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu pesanan diselesaikan |
+| **`ConfirmedByUserId`** | `Guid?` | Tidak | — | — | — | — | Tidak | **Baru `LAB-DEC-061`.** Konfirmator. Diturunkan server dari pengguna yang login, tidak pernah dari badan permintaan. Kosong selama pesanan belum dikonfirmasi |
+| **`ConfirmedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru `LAB-DEC-061`.** Waktu konfirmasi. Didenormalisasi dari jejak audit supaya daftar tidak perlu menggabung riwayat per baris |
+| **`ExaminerDoctorId`** | `Guid?` | Tidak | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | **Baru `LAB-DEC-061`.** Dokter pemeriksa, dipilih saat konfirmasi. Nullable karena seluruh pesanan yang sudah ada tidak memilikinya — kolom wajib akan menggagalkan migrationnya |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Token konkurensi |
 
 ---
@@ -681,3 +684,96 @@ pun dan tidak mengunci tabel yang sudah berisi data.
 | Tabel rekap pemakaian `Lainnya` | Diturunkan dari `LabSpecimen`; lihat `GET /lab-specimen-types/other-usage` |
 | Kolom usulan instansi perujuk | Milik Master Data, menunggu `LAB-REQ-005` |
 | Kolom metode pembayaran pada tabel Laboratorium | Milik Registrasi. Laboratorium tidak menyalinnya |
+
+---
+
+## 13. Amandemen 2026-09-15 — Pemesanan per disiplin
+
+Menurunkan `LAB-DEC-055`, `LAB-DEC-056`, dan `LAB-DEC-057` dari decision log revision 29.
+Diaudit pada backend `e2152709`.
+
+**Satu tabel baru. `LabOrder`, `LabExamination`, dan `LabSpecimen` tidak berubah sama sekali.**
+
+### 13.1 `LabOrderedProcedure` — `Baru`, milik Laboratorium
+
+Prefix `Lab`, sesuai baris registry 2026-09-02. Sepuluh kolom warisan `IdentityModel` tidak
+diulang di sini.
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | tidak | — | PK | tidak | — |
+| `LabOrderId` | `uuid` | tidak | — | Index; FK ke `LabOrder` | tidak | Pesanan yang memuat permintaan ini |
+| `ProcedureId` | `uuid` | tidak | — | FK ke `MstProcedure` | tidak | Jenis pemeriksaan yang diminta |
+| `ProcedureCodeSnapshot` | `varchar(50)` | tidak | — | — | tidak | Salinan saat dipesan |
+| `ProcedureNameSnapshot` | `varchar(200)` | tidak | — | — | tidak | Salinan saat dipesan |
+| `DisciplineSnapshot` | `integer` | ya | `null` | — | tidak | Disiplin **saat dipesan**; penggolongan katalog yang berubah kemudian tidak mengubah riwayat |
+| `Urgency` | `integer` | tidak | `1` (`Routine`) | — | tidak | Penanda cito melekat pada pemeriksaan (`LAB-DEC-026`) |
+| `OrderedStatus` | `integer` | tidak | `1` (`Ordered`) | Index | tidak | `Ordered` \| `Fulfilled` \| `Cancelled` |
+| `FulfilledExaminationId` | `uuid` | ya | `null` | FK ke `LabExamination` | tidak | Baris pemeriksaan yang akhirnya mengerjakan permintaan ini |
+
+**Perilaku hapus.** Ketiga foreign key `Restrict`. Pesanan, katalog, maupun baris pemeriksaan
+yang sudah tertaut tidak dapat dihapus selama permintaannya masih tercatat.
+
+**Unique.** `(LabOrderId, ProcedureId)` bila `IsDelete = false` — satu jenis pemeriksaan
+dipesan sekali per pesanan (`VAL-65`). Pengerjaan ganda tetap dinyatakan `IsDuplo` pada
+`LabExamination`, bukan dengan memesan dua kali.
+
+### 13.2 Bentuk DDL — dokumentasi, bukan skrip
+
+```sql
+CREATE TABLE public."LabOrderedProcedure" (
+    "Id"                     uuid         NOT NULL,
+    "LabOrderId"             uuid         NOT NULL,
+    "ProcedureId"            uuid         NOT NULL,
+    "ProcedureCodeSnapshot"  varchar(50)  NOT NULL,
+    "ProcedureNameSnapshot"  varchar(200) NOT NULL,
+    "DisciplineSnapshot"     integer      NULL,
+    "Urgency"                integer      NOT NULL DEFAULT 1,
+    "OrderedStatus"          integer      NOT NULL DEFAULT 1,
+    "FulfilledExaminationId" uuid         NULL,
+    -- sepuluh kolom IdentityModel menyusul di sini
+    CONSTRAINT "PK_LabOrderedProcedure" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX "IX_LabOrderedProcedure_LabOrderId_ProcedureId"
+    ON public."LabOrderedProcedure" ("LabOrderId", "ProcedureId")
+    WHERE "IsDelete" = false;
+
+CREATE INDEX "IX_LabOrderedProcedure_LabOrderId"    ON public."LabOrderedProcedure" ("LabOrderId");
+CREATE INDEX "IX_LabOrderedProcedure_OrderedStatus" ON public."LabOrderedProcedure" ("OrderedStatus");
+
+ALTER TABLE public."LabOrderedProcedure"
+    ADD CONSTRAINT "FK_LabOrderedProcedure_LabOrder_LabOrderId"
+    FOREIGN KEY ("LabOrderId") REFERENCES public."LabOrder" ("Id") ON DELETE RESTRICT;
+
+ALTER TABLE public."LabOrderedProcedure"
+    ADD CONSTRAINT "FK_LabOrderedProcedure_MstProcedure_ProcedureId"
+    FOREIGN KEY ("ProcedureId") REFERENCES public."MstProcedure" ("Id") ON DELETE RESTRICT;
+
+ALTER TABLE public."LabOrderedProcedure"
+    ADD CONSTRAINT "FK_LabOrderedProcedure_LabExamination_FulfilledExaminationId"
+    FOREIGN KEY ("FulfilledExaminationId") REFERENCES public."LabExamination" ("Id") ON DELETE RESTRICT;
+```
+
+**Tabel baru tanpa satu pun yang menunjuk padanya**, sehingga migrationnya tidak mengunci tabel
+mana pun dan jalur `Down`-nya cukup `DROP TABLE`.
+
+### 13.3 Dua konsep yang selama ini menumpang pada satu tabel
+
+| Tabel | Menjawab | Umurnya | Akibat finansial |
+|---|---|---|---|
+| `LabOrderedProcedure` | **Apa yang diminta** untuk pasien ini | Lahir saat pendaftaran | Tidak ada |
+| `LabExamination` | **Apa yang dikerjakan** dari sebuah wadah | Lahir saat wadah dicatat | Menerbitkan fakta kelayakan tagih per baris (`AC-37`) |
+
+Sebelum amandemen ini keduanya dipaksa berbagi satu tabel, dan karena `LabExamination.SpecimenId`
+wajib, permintaan pemeriksaan tidak dapat hidup sebelum ada wadah fisiknya. Itulah sebab
+`LAB-DEC-056` sempat tidak dapat dilaksanakan.
+
+### 13.4 Yang tidak ada di kamus ini
+
+| Yang dicari pembaca | Kenapa tidak ada |
+|---|---|
+| Kolom tujuan layanan pada sesi kiosk | Milik `registration-management`, tertahan `LAB-COORD-008` |
+| Kolom jalur permintaan dokter | Milik `registration-management`, tertahan `LAB-COORD-008` |
+| Kolom kedaluwarsa kunjungan kiosk | Milik Registrasi, tertahan `LAB-COORD-009`. `AC-45` melarang Laboratorium menyentuh kunjungan |
+| Perubahan pada `LabExamination` | Disengaja. Unique index `(SpecimenId, ProcedureId)` tidak disentuh |

@@ -756,6 +756,8 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabExamination> LabExaminations { get; set; }
 
+        public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
+
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }

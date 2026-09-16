@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -101,7 +102,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     HasCito = _dbContext.LabExaminations
                         .Any(e => e.LabOrderId == x.Id && !e.IsDelete &&
                                   e.Urgency == LabExaminationUrgency.Cito),
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+
+                    // LAB-API-v1 r14. Kedua nama diterjemahkan di dalam proyeksi yang sama,
+                    // mengikuti cara PatientName dan MedicalRecordNumber di atas — bukan lewat
+                    // pencarian per baris sesudahnya. Jalur terjemahannya sama persis dengan
+                    // yang dipakai LabOrderService, supaya satu orang tidak terbaca dengan dua
+                    // nama berbeda antar layar.
+                    ConfirmedAt = x.ConfirmedAt,
+                    ConfirmedByName = x.ConfirmedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.ConfirmedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    ExaminerDoctorName = x.ExaminerDoctorId == null
+                        ? null
+                        : _dbContext.Set<MstDoctor>()
+                            .Where(d => d.Id == x.ExaminerDoctorId)
+                            .Select(d => d.FullName)
+                            .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
 

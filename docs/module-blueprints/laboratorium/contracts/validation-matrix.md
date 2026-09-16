@@ -3,8 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | `4` |
-| Status | `approved` — `VAL-01`..`VAL-50` dikunci 2026-09-02; **`VAL-51`..`VAL-63` disetujui pemilik modul 2026-09-14** |
+| Revision | `6` |
+| Status | `approved` — `VAL-01`..`VAL-50` dikunci 2026-09-02; **`VAL-51`..`VAL-63` disetujui pemilik modul 2026-09-14**; **`VAL-64`..`VAL-69` disetujui pemilik modul 2026-09-15** |; **`VAL-70`..`VAL-75` disetujui pemilik modul 2026-09-15**
+| `r5` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
+| Isi amandemen `r5` | **`approved` — 2026-09-15.** Enam aturan untuk pemesanan per disiplin. `VAL-64`..`VAL-67` menjaga isi permintaan pemesanan massal; `VAL-68` dan `VAL-69` menjaga agar wadah hanya memuat pemeriksaan yang memang dipesan, dan keduanya **hanya berlaku bila pesanannya punya baris terpesan** sehingga pesanan lama tidak berubah perilakunya. Tidak satu pun aturan `VAL-01`..`VAL-63` berubah. Menurunkan `LAB-DEC-055`..`LAB-DEC-057` |
+| Isi amandemen `r6` | **`approved` — 2026-09-15.** Enam aturan menurunkan `LAB-DEC-061` dan `LAB-DEC-063`: konfirmasi pesanan hanya sah sekali dan menuntut dokter pemeriksa, serta pembatalan menuntut alasan dan hanya sah pada `Requested`/`Confirmed`. **`VAL-75` satu-satunya pengetatan**; lima lainnya menjaga tindakan yang belum ada sama sekali. Tidak satu pun aturan `VAL-01`..`VAL-69` berubah |
 | `r4` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
 | Isi amandemen `r4` | Tiga belas aturan baru untuk Penerimaan Sampling/Specimen: jenis specimen terkendali beserta jalan keluar `Lainnya` yang wajib berketerangan, volume yang wajib bersatuan tanpa batas minimum/maksimum, waktu penerimaan fisik, dan `Quantity` pemeriksaan. **`VAL-60` kemudian dicabut `LAB-DEC-050` pada 2026-09-14** karena ruas `Quantity` tidak jadi dibuat. **Tidak satu pun aturan `VAL-01`..`VAL-50` berubah.** `VAL-43` dan `VAL-44` tetap berlaku apa adanya sampai `LAB-REQ-005` dijawab |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
@@ -180,6 +183,65 @@ data induk yang belum lengkap.
 | `VAL-62` | Menambah atau mengubah jenis specimen | Permintaan mencoba menyetel penanda `Lainnya` pada baris kedua | "Hanya boleh ada satu jenis Lainnya yang aktif." | `422` |
 | `VAL-63` | Menonaktifkan jenis specimen | Baris yang dinonaktifkan adalah satu-satunya jenis `Lainnya` yang aktif | "Jenis Lainnya harus tetap aktif, karena menjadi jalan keluar ketika jenis specimen belum terdaftar." | `422` |
 
+---
+
+## 7c. Pemesanan per disiplin — amandemen `r5`, 2026-09-15
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-64` | Membuat pesanan dari daftar pemeriksaan | Daftar pemeriksaan kosong | "Pilih sekurang-kurangnya satu pemeriksaan." | `422` |
+| `VAL-65` | Membuat pesanan dari daftar pemeriksaan | Satu jenis pemeriksaan dipilih dua kali | "Pemeriksaan yang sama tidak boleh dipilih dua kali. Untuk pengerjaan ganda, tandai duplo saat mencatat wadah." | `422` |
+| `VAL-66` | Membuat pesanan dari daftar pemeriksaan | Ada pilihan yang bukan pemeriksaan laboratorium, sudah dinonaktifkan, atau tidak ditemukan | "Ada pemeriksaan yang tidak dapat dipesan. Periksa kembali pilihan Anda." | `422` |
+| `VAL-67` | Membuat pesanan dari daftar pemeriksaan | Kunjungan yang dituju sudah ditutup atau dibatalkan | "Kunjungan ini sudah selesai, pemeriksaan baru tidak dapat dipesankan." | `422` |
+| `VAL-68` | Mencatat wadah | Pemeriksaan yang dimasukkan ke wadah **tidak ada** pada daftar terpesan pesanan itu | "Pemeriksaan ini tidak ada pada daftar yang dipesan untuk pasien ini." | `422` |
+| `VAL-69` | Mencatat wadah | Pemeriksaan terpesan yang **sudah** masuk wadah lain dimasukkan lagi | "Pemeriksaan ini sudah masuk wadah lain." | `409` |
+
+
+### Amandemen `r6` — Konfirmasi dan pembatalan beralasan, 2026-09-15
+
+Menurunkan `LAB-DEC-061` dan `LAB-DEC-063`.
+
+| ID | Kapan | Kondisi yang ditolak | Pesan | Kode |
+|---|---|---|---|---|
+| `VAL-70` | Mengonfirmasi pesanan | Pesanan sudah pernah dikonfirmasi | "Pesanan ini sudah dikonfirmasi." | `409` |
+| `VAL-71` | Mengonfirmasi pesanan | Status pesanan bukan `Requested` | "Pesanan ini sudah melewati tahap konfirmasi." | `409` |
+| `VAL-72` | Mengonfirmasi pesanan | Dokter pemeriksa belum dipilih | "Pilih dokter pemeriksa terlebih dahulu." | `422` |
+| `VAL-73` | Mengonfirmasi pesanan | Dokter pemeriksa yang dipilih tidak ditemukan atau tidak aktif | "Dokter pemeriksa tidak ditemukan atau tidak aktif." | `422` |
+| `VAL-74` | Membatalkan pesanan | Alasan pembatalan kosong atau hanya spasi | "Alasan pembatalan wajib diisi." | `422` |
+| `VAL-75` | Membatalkan pesanan | Status pesanan bukan `Requested` maupun `Confirmed` | "Pesanan yang sudah diproses tidak dapat dibatalkan." | `409` |
+
+**`VAL-74` menuntut alasannya ada, bukan menuntut berapa kali petugas ditanya.** Pop-up alert
+konfirmasi akhir yang ditetapkan `LAB-DEC-063` adalah kewenangan UI dan **tidak** memiliki aturan
+validasi di sini — backend tidak dapat, dan tidak perlu, membuktikan bahwa seseorang sempat
+ditanya dua kali.
+
+**`VAL-75` adalah satu-satunya pengetatan pada amandemen ini.** Ia mempersempit pembatalan yang
+sebelumnya sah dari hampir semua status. Dampaknya pada data berjalan wajib diperiksa sebelum
+ditegakkan: berapa pesanan hari ini berstatus `Accepted`, `InProcess`, atau `OnHold`, dan apakah
+ada alur yang masih membatalkannya. Sisanya — `VAL-70` sampai `VAL-74` — menjaga tindakan yang
+**belum ada sama sekali**, sehingga nol permintaan yang hari ini berhasil akan menjadi gagal.
+
+**`VAL-68` dan `VAL-69` bersifat aditif, bukan pengetatan diam-diam.** Keduanya **hanya berlaku
+bila pesanannya memiliki baris `LabOrderedProcedure`**. Pesanan yang dibuat lewat
+`POST /lab-orders` yang lama tidak memilikinya, sehingga
+`POST /lab-specimens/by-order/{labOrderId}` berperilaku persis seperti sebelumnya bagi mereka.
+
+Batasan ini disengaja dan alasannya baru saja terbukti mahal: `BE-LAB-21` membuat
+`specimenTypeId` wajib pada endpoint yang sedang dipakai, dan layar wadah menjawab `422` sejak
+migrationnya diterapkan.
+
+**Kenapa tidak ada aturan yang menolak pemesanan lintas disiplin.** Justru itu yang dilayani
+`LAB-DEC-055`: petugas memilih bebas, dan sistem yang memecah. `VAL-46` tetap berlaku apa adanya
+pada jalur lama — menambahkan pemeriksaan berdisiplin lain ke sebuah pesanan yang sudah berdiri
+tetap ditolak, karena di sana tidak ada pemecahan yang bisa menolong.
+
+**Kenapa `VAL-65` menyebut duplo pada pesannya.** Tanpa itu petugas yang benar-benar perlu
+mengerjakan satu pemeriksaan dua kali akan mencoba memilihnya dua kali, ditolak, lalu tidak tahu
+harus berbuat apa. `IsDuplo` adalah jawabannya sejak `LAB-DEC-026`, dan pesan penolakan adalah
+tempat paling murah untuk mengajarkannya.
+
+---
+
 **Kenapa `VAL-63` ada.** `LAB-DEC-040` memilih `Lainnya` justru untuk mencegah jalan buntu di
 meja penerimaan. Bila baris itu dapat dinonaktifkan, jalan buntunya kembali — dan kembalinya
 diam-diam, lewat satu klik pada layar pengelolaan yang tidak terlihat hubungannya dengan
@@ -202,6 +264,10 @@ sampai jawabannya datang.
 |---|---|---|
 | `VAL-51` sampai `VAL-55`, `VAL-61` sampai `VAL-63` | `LAB-DEC-040` | AC-58, AC-59, AC-60, AC-61 |
 | `VAL-56`, `VAL-57` | `LAB-DEC-041` | AC-62, AC-64 |
+| `VAL-64` sampai `VAL-67` | `LAB-DEC-055`, `LAB-DEC-056` | AC-86, AC-87 |
+| `VAL-68`, `VAL-69` | `LAB-DEC-057` | AC-91 |
+| `VAL-70` sampai `VAL-73` | `LAB-DEC-061` | AC-94, AC-95 |
+| `VAL-74`, `VAL-75` | `LAB-DEC-063` | AC-96, AC-97 |
 | `VAL-58`, `VAL-59` | `LAB-DEC-042` | AC-66 |
 | ~~`VAL-60`~~ | ~~`LAB-DEC-038`~~ | **Dicabut `LAB-DEC-050`** bersama `AC-52` |
 | `VAL-03`, `VAL-04` | `LAB-DEC-013` | AC-18 |

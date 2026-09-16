@@ -145,6 +145,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Procedure komponen pemeriksaan tidak ditemukan, tidak aktif, atau bukan procedure laboratorium.");
             }
 
+            // VAL-68 dan VAL-69 (LAB-DEC-057). Ditegakkan di sini — sesudah daftar
+            // pemeriksaannya sah, sebelum satu baris pun dibuat — dengan alasan yang sama
+            // seperti pemeriksaan bahan di bawah: permintaan yang ditolak tidak boleh
+            // meninggalkan wadah setengah jadi.
+            await EnsureOrderedProcedureGuardAsync(order, procedureIds, cancellationToken);
+
             // VAL-51 .. VAL-57. Bahan yang dibawa wadah — jenisnya dan volumenya — diperiksa di
             // sini, sebelum satu baris pun dibuat, supaya permintaan yang ditolak tidak
             // meninggalkan wadah setengah jadi.
@@ -220,11 +226,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             DateTime now,
             CancellationToken cancellationToken)
         {
+            var dibuat = new List<LabExamination>(procedures.Count);
+
             foreach (var procedure in procedures)
             {
                 var tariff = await ResolveTariffAsync(procedure.Id, now, cancellationToken);
 
-                _dbContext.LabExaminations.Add(new LabExamination
+                var examination = new LabExamination
                 {
                     LabOrderId = order.Id,
                     SpecimenId = specimen.Id,
@@ -238,10 +246,177 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     Urgency = LabExaminationUrgency.Routine,
                     CreateDateTime = now,
                     CreateBy = actorUserId
-                });
+                };
+
+                _dbContext.LabExaminations.Add(examination);
+                dibuat.Add(examination);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // AC-91. Penandaan sengaja diletakkan di sini, bukan di PlanAsync, supaya jalur
+            // pengambilan ulang ikut tertandai: wadah pengganti memanggil method yang sama, dan
+            // tautannya berpindah ke baris pemeriksaan yang benar-benar akan dikerjakan.
+            await MarkOrderedProceduresFulfilledAsync(order, dibuat, actorUserId, now, cancellationToken);
+        }
+
+        /// <summary>
+        /// <c>VAL-68</c> dan <c>VAL-69</c> — wadah hanya boleh memuat pemeriksaan yang memang
+        /// dipesan untuk pasien itu (<c>LAB-DEC-057</c>).
+        ///
+        /// <b>Keduanya aditif, bukan pengetatan diam-diam.</b> Penjagaan ini hanya berlaku bila
+        /// pesanannya memiliki baris <see cref="LabOrderedProcedure"/>. Pesanan lama tidak
+        /// memilikinya — tabelnya baru berdiri lewat <c>BE-LAB-26</c> — sehingga bagi mereka
+        /// jalur ini berperilaku persis seperti sebelum penjagaan ini ada. Bagian 12.5 arsitektur
+        /// backend menuliskannya sebagai keputusan, bukan sebagai kelonggaran sementara:
+        /// <c>BE-LAB-21</c> sudah menunjukkan berapa mahal harga ruas wajib yang ditambahkan
+        /// diam-diam ke endpoint yang sedang dipakai.
+        /// </summary>
+        private async Task EnsureOrderedProcedureGuardAsync(
+            LabOrder order,
+            IReadOnlyList<Guid> procedureIds,
+            CancellationToken cancellationToken)
+        {
+            var terpesan = await _dbContext.LabOrderedProcedures
+                .AsNoTracking()
+                .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            // Inilah satu-satunya pintu keluar yang membuat penjagaan ini aditif.
+            if (terpesan.Count == 0) return;
+
+            // VAL-68. Permintaan yang sudah dibatalkan diperlakukan sebagai TIDAK ada pada
+            // daftar: ia pernah dipesan, tetapi tidak lagi diminta. Membiarkannya lolos berarti
+            // permintaan yang sudah dicabut hidup kembali lewat pintu wadah, tanpa ada yang
+            // memutuskannya.
+            var diminta = terpesan
+                .Where(x => x.OrderedStatus != LabOrderedProcedureStatus.Cancelled)
+                .Select(x => x.ProcedureId)
+                .ToHashSet();
+
+            if (procedureIds.Any(id => !diminta.Contains(id)))
+            {
+                throw new LabSpecimenValidationException(
+                    "Pemeriksaan ini tidak ada pada daftar yang dipesan untuk pasien ini.");
+            }
+
+            // VAL-69. Dinilai dari baris pemeriksaan yang benar-benar hidup, bukan dari penanda
+            // Fulfilled pada baris terpesan.
+            //
+            // Sebabnya satu perkara nyata: membatalkan wadah TIDAK membatalkan pemeriksaan di
+            // dalamnya, dan penanda pada baris terpesan akan tetap Fulfilled sesudahnya. Bila
+            // penjagaan ini membaca penanda itu, pemeriksaan yang wadahnya dibatalkan tidak akan
+            // pernah bisa diwadahi ulang — petugas terkunci tanpa jalan keluar, atas permintaan
+            // yang masih sah. Membaca keadaan yang sebenarnya membuat penjagaan ini pulih
+            // sendiri: wadah dibatalkan, pemeriksaannya ikut tidak dihitung, dan perencanaan
+            // ulang terbuka lagi.
+            var sudahBerwadah = await _dbContext.LabExaminations
+                .AsNoTracking()
+                .AnyAsync(
+                    x =>
+                        x.LabOrderId == order.Id &&
+                        procedureIds.Contains(x.ProcedureId) &&
+                        !x.IsDelete &&
+                        x.ExaminationStatus != LabExaminationStatus.Cancelled &&
+                        x.Specimen != null &&
+                        !x.Specimen.IsDelete &&
+                        x.Specimen.SpecimenStatus != LabSpecimenStatus.Cancelled,
+                    cancellationToken);
+
+            if (sudahBerwadah)
+            {
+                throw new LabSpecimenConflictException(
+                    "Pemeriksaan ini sudah masuk wadah lain.");
+            }
+        }
+
+        /// <summary>
+        /// <c>AC-91</c> — menandai permintaan yang baru saja memperoleh wadahnya, dan menautkannya
+        /// ke baris pemeriksaan yang mengerjakannya.
+        ///
+        /// Tautan inilah yang membuat pertanyaan "mana yang masih menunggu wadah" dapat dijawab
+        /// tanpa menebak. Tanpanya, permintaan dan pemeriksaan hanya bertemu lewat kesamaan
+        /// <c>ProcedureId</c> — cukup untuk menghitung, tidak cukup untuk menunjuk.
+        ///
+        /// Pesanan tanpa baris terpesan tidak menghasilkan apa pun di sini, sejalan dengan
+        /// <see cref="EnsureOrderedProcedureGuardAsync"/>.
+        /// </summary>
+        private async Task MarkOrderedProceduresFulfilledAsync(
+            LabOrder order,
+            IReadOnlyList<LabExamination> dibuat,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            if (dibuat.Count == 0) return;
+
+            var procedureIds = dibuat.Select(x => x.ProcedureId).ToList();
+
+            var terpesan = await _dbContext.LabOrderedProcedures
+                .Where(x =>
+                    x.LabOrderId == order.Id &&
+                    !x.IsDelete &&
+                    x.OrderedStatus != LabOrderedProcedureStatus.Cancelled &&
+                    procedureIds.Contains(x.ProcedureId))
+                .ToListAsync(cancellationToken);
+
+            if (terpesan.Count == 0) return;
+
+            foreach (var baris in terpesan)
+            {
+                var examination = dibuat.First(x => x.ProcedureId == baris.ProcedureId);
+
+                baris.OrderedStatus = LabOrderedProcedureStatus.Fulfilled;
+                baris.FulfilledExaminationId = examination.Id;
+                baris.UpdateDateTime = now;
+                baris.UpdateBy = actorUserId;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Mengembalikan permintaan menjadi <c>Ordered</c> ketika wadah yang memenuhinya
+        /// dibatalkan.
+        ///
+        /// <b>Kenapa ini ada.</b> Membatalkan wadah tidak membatalkan permintaan dokternya —
+        /// bahannya yang gugur, bukan yang diminta. Tanpa pengembalian ini permintaan itu akan
+        /// terbaca <c>Fulfilled</c> selamanya sambil menunjuk pemeriksaan pada wadah yang sudah
+        /// dibatalkan, dan daftar "menunggu wadah" pada <c>AC-91</c> akan diam-diam kehilangan
+        /// satu baris yang sebenarnya masih menunggu.
+        ///
+        /// Hanya baris yang benar-benar menunjuk pemeriksaan wadah ini yang dikembalikan.
+        /// </summary>
+        private async Task ReleaseOrderedProceduresAsync(
+            LabOrder order,
+            LabSpecimen specimen,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            var examinationIds = await _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x => x.SpecimenId == specimen.Id && !x.IsDelete)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (examinationIds.Count == 0) return;
+
+            var terpesan = await _dbContext.LabOrderedProcedures
+                .Where(x =>
+                    x.LabOrderId == order.Id &&
+                    !x.IsDelete &&
+                    x.FulfilledExaminationId != null &&
+                    examinationIds.Contains(x.FulfilledExaminationId.Value))
+                .ToListAsync(cancellationToken);
+
+            foreach (var baris in terpesan)
+            {
+                baris.OrderedStatus = LabOrderedProcedureStatus.Ordered;
+                baris.FulfilledExaminationId = null;
+                baris.UpdateDateTime = now;
+                baris.UpdateBy = actorUserId;
+            }
         }
 
         /// <summary>
@@ -455,7 +630,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             // Pesanan mengikuti sampel pertama yang dinyatakan layak. Turunan ini dicatat
             // sebagai inferensi pada execution evidence, bukan aturan yang tertulis eksplisit.
-            if (order.OrderStatus is LabOrderStatus.Draft or LabOrderStatus.Requested)
+            //
+            // Confirmed ikut di sini sejak BE-LAB-31, dan itu bukan kerapian melainkan keharusan:
+            // LAB-STATE-v1 r3 bagian 1a menuliskan Confirmed -> Accepted sebagai turunan otomatis
+            // sistem, persis seperti Requested -> Accepted. Tanpa baris ini pesanan yang sudah
+            // dikonfirmasi akan berhenti selamanya di Confirmed — StartProcessAsync hanya
+            // menerima Accepted — sehingga mengonfirmasi pesanan justru membuatnya tidak dapat
+            // dikerjakan. Penambahannya aman: nol pesanan berstatus Confirmed sebelum endpoint
+            // konfirmasi ada, sehingga tidak ada perilaku lama yang berubah.
+            if (order.OrderStatus is LabOrderStatus.Draft
+                or LabOrderStatus.Requested
+                or LabOrderStatus.Confirmed)
             {
                 var orderFrom = order.OrderStatus;
                 order.OrderStatus = LabOrderStatus.Accepted;
@@ -881,6 +1066,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
             CancelSpecimenInMemory(order, specimen, reason, actorUserId, now);
+
+            // AC-91. Wadahnya gugur, permintaannya tidak — baris terpesan yang menunjuk
+            // pemeriksaan wadah ini dikembalikan menjadi menunggu supaya dapat diwadahi ulang.
+            await ReleaseOrderedProceduresAsync(order, specimen, actorUserId, now, cancellationToken);
 
             await SaveWithConcurrencyGuardAsync(cancellationToken);
 

@@ -3,8 +3,9 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | `4` |
-| Status | `approved` — revision 1-3 dikunci 2026-09-02; **revision 4 disetujui pemilik modul 2026-09-14** |
+| Revision | `5` |
+| Status | `approved` — revision 1-3 dikunci 2026-09-02; **revision 4 disetujui pemilik modul 2026-09-14**; **revision 5 disetujui 2026-09-15** |
+| Revision 5 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
 | Revision 4 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
 | Isi amandemen revision 4 | Satu resource baru `LabSpecimenType` dengan tiga action (`Read`, `Create`, `Update`; tidak ada `Delete`). Tiga kemampuan baru lain **tidak menambah hak akses** karena sudah dijaga `LabSpecimen : Plan`, `LabExamination : Create`, dan `LabSpecimen : Accept`. Dua kejadian audit baru ditambahkan, termasuk kewajiban mencatat selisih waktu penerimaan fisik terhadap `ReceivedAt` sistem |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
@@ -31,6 +32,7 @@ boleh** memuat kolom bertanda sensitif pada kamus data.
 | `GET /lab-orders` | `LabOrder` | `Read` | `[AccessPermission("LabOrder", "Read")]` | Tidak |
 | `GET /lab-orders/{id}` | `LabOrder` | `Read` | `[AccessPermission("LabOrder", "Read")]` | Tidak |
 | `POST /lab-orders` | `LabOrder` | `Create` | `[AccessPermission("LabOrder", "Create")]` | Ya |
+| `POST /lab-orders/by-examinations` | `LabOrder` | `Create` | `[AccessPermission("LabOrder", "Create")]` | Ya |
 | `PUT /lab-orders/{id}/start-process` | `LabOrder` | `Process` | `[AccessPermission("LabOrder", "Process")]` | Ya |
 | `PUT /lab-orders/{id}/complete` | `LabOrder` | `Process` | `[AccessPermission("LabOrder", "Process")]` | Ya |
 | `PUT /lab-orders/{id}/hold` | `LabOrder` | `Hold` | `[AccessPermission("LabOrder", "Hold")]` | Ya |

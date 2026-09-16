@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `8` |
+| Roadmap revision | `21` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -557,6 +557,380 @@ tiga baris sementara formulirnya menampilkan satu, petugas akan menyangka ada ya
 seluruh guna kolom baru itu hilang tanpa satu pun kesalahan yang terlihat — layarnya tetap
 tampil benar, hanya tanggalnya yang salah.
 
+## 6c. Task Gelombang `MVP-5b` — Kiosk dan Pemesanan per Disiplin
+
+Ditambahkan 2026-09-15. Menurunkan `LAB-DEC-051`, `LAB-DEC-052`, `LAB-DEC-055`, dan
+`LAB-DEC-056` di bawah `LAB-REQ-006`. Kontrak `LAB-API-v1` `r11` dan `LAB-VAL-v1` `r5`
+`approved` 2026-09-15, sehingga kedua task boleh berjalan paralel dengan backendnya.
+
+**Layar kiosk sudah ada di repo ini** — `src/app/kiosk/` beserta `registration/new-patient`,
+`old-patient`, `patient-card`, dan `doctor-schedule`. Yang ditambahkan adalah pilihan
+layanannya, bukan kiosknya.
+
+### `FE-LAB-13` ✅ — Kiosk: pilihan layanan Laboratorium
+
+> **Status: `SELESAI` — 2026-09-16.** Keempat butir DoD terpenuhi. Laporan lengkap beserta
+> buktinya: [`task/report/frontend/FE-LAB-13.md`](../task/report/frontend/FE-LAB-13.md).
+>
+> **Tiga temuan dari source menentukan letak pilihannya, dan ketiganya tidak terlihat dari kartu
+> task ini.** Pertama, kedua ruas sesi kiosk hanya dapat ditulis **sekali**, yaitu saat sesinya
+> dibentuk — `BE-EXT-04b` sengaja tidak membangun jalur ubah. Kedua, pada alur Pasien Lama sesi
+> dibentuk di langkah **pertama**, saat kartu dipindai, yakni lima langkah sebelum
+> `Layanan & Dokter`; memasang pertanyaannya di langkah itu karena itu mustahil menulis apa pun.
+> Ketiga, dan yang paling menentukan: pada alur Pasien Baru sesi langsung dikonsumsi kunjungan
+> poliklinik — `PatientEncounterController.cs:686` menandainya `IsUsedForRegistration = true` —
+> sedangkan panel `FE-LAB-14` menyaring justru yang **belum** terpakai. Sesi bertujuan
+> Laboratorium dari alur itu **hilang pada detik yang sama ia dibuat**.
+>
+> **Akibatnya pada cakupan, dan itu keputusan pemilik modul, bukan penyempitan sepihak.** Tiga
+> hal ditanyakan sebelum satu baris pun ditulis: alur mana yang dipasangi, di mana alurnya
+> berhenti, dan apakah cabang poliklinik ikut menuliskan tujuan layanannya. Jawabannya
+> **Pasien Lama saja**, **berhenti sesudah identitas terbaca**, dan **cabang poliklinik tidak
+> menuliskan apa pun**. Alur Pasien Baru menyusul sebagai task tersendiri bila dikehendaki.
+>
+> **Satu temuan yang akan menjadi `400` bila tidak ketahuan lebih dulu:** `Program.cs` memanggil
+> `AddControllers()` tanpa satu pun `JsonStringEnumConverter`, sehingga enum pada body JSON hanya
+> terbaca sebagai angka. `targetService` karena itu dikirim sebagai `2`, bukan `"Laboratory"` —
+> bentuk yang dipakai `FE-LAB-14` dan memang sah **di sana**, karena yang itu query string.
+>
+> **Butir DoD yang paling mudah dilanggar diam-diam dibuktikan terbalik, bukan diasumsikan:**
+> muatan cabang poliklinik diperiksa kunci demi kunci dan terbukti **nol** `targetService`
+> maupun `hasPhysicianRequest` — bukan berisi `null`, melainkan memang tidak ada ruasnya.
+>
+> **Satu perbedaan tak terhindarkan disebut apa adanya:** pasien alur Pasien Lama kini melihat
+> satu layar tambahan di depan. Sesudah `Poliklinik` ditekan, nol perilaku berikutnya berubah.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Pasien memilih Laboratorium sendiri di kiosk, dan menyatakan apakah ia membawa permintaan dokter |
+| **Requirement/decision** | `LAB-DEC-051`, `LAB-DEC-052`; wewenang `LAB-REQ-006` |
+| **Kontrak** | Endpoint sesi kiosk milik `registration-management`, dibangun `BE-EXT-04` |
+| **Cakupan** | Satu pilihan layanan pada alur kiosk yang sudah ada, dan satu pertanyaan jalur permintaan dokter. **Nol layar baru** |
+| **Dependency** | `BE-EXT-04` |
+| **Acceptance criteria** | `AC-93` |
+| **Kewenangan UI** | Mengikuti pola layar kiosk yang sudah berjalan — huruf besar, sasaran sentuh lebar, dan langkah yang dapat dibatalkan. Pasien bukan petugas: tidak ada istilah teknis, dan **tidak ada** kata "disiplin" di layar mana pun |
+| **Verifikasi** | Lint bersih; build produksi; **seluruh uji layar kiosk yang sudah ada tetap lulus tanpa disentuh**; alur lama yang tidak memilih Laboratorium berperilaku persis seperti sebelumnya |
+| **Risiko/pemilik** | Sedang. Layar yang dipakai pasien tanpa pendamping. Pemilik layar: `registration-management` |
+| **DoD** | Pilihan Laboratorium tersedia; jalur permintaan dokter tercatat pada sesi; **nol perilaku alur kiosk lama yang berubah**; uji lama lulus tanpa diubah |
+
+### `FE-LAB-14` ✅ — Layar pendaftaran lab: sesi kiosk dan pemilih pemeriksaan
+
+> **Status: `SELESAI` — 2026-09-16.** Keempat butir DoD terpenuhi. Laporan lengkap beserta
+> buktinya: [`task/report/frontend/FE-LAB-14.md`](../task/report/frontend/FE-LAB-14.md).
+>
+> **Verifikasi layar menemukan dua cacat nyata, dan keduanya lolos dari lint, build, serta uji
+> unit.** Pertama, menarik pasien dari kiosk **tidak terlihat apa-apa**: pasien terpilih dulu
+> hanya dicari di dalam hasil pencarian, sedangkan pasien kiosk ditarik tanpa mengetik kata
+> kunci apa pun — tombolnya terasa tidak berfungsi padahal pasiennya sudah terpilih. Kedua,
+> rincian pemecahan **terhapus sendiri** sepersekian detik sesudah tampil, karena pemilih
+> katalog memancarkan callback pada setiap render ulang — termasuk saat harga selesai dimuat —
+> bukan hanya saat pilihan berubah. Keduanya diperbaiki dan diuji ulang.
+>
+> **Satu keputusan teknis menentukan apakah layar ini dapat dipakai sama sekali.** Backend
+> menyediakan dua jalur baca sesi kiosk dengan isi identik; `GET /kiosk-scan-sessions/options`
+> dijaga `KioskReadPolicy` yang **hanya** mengakui SuperAdmin, Administrator, dan akun kiosk —
+> sehingga akan menjawab `403` untuk setiap petugas laboratorium, yakni pengguna yang justru
+> dituju layar ini. Yang dipakai karena itu `admin/options`, dijaga izin aplikasi biasa
+> `KioskScanSession : Read`. **Prasyarat konfigurasi:** izin itu perlu diberikan kepada peran
+> petugas laboratorium; selama belum, panelnya menyebut nama izinnya apa adanya dan pendaftaran
+> manual tetap berjalan.
+>
+> **Satu bagian verifikasi tidak selesai dan disebut apa adanya:** panel rincian **sesudah**
+> simpan belum pernah dilihat pada layar sungguhan, karena pada harness bertopeng nilai kotak
+> pilihan Kunjungan Pasien tidak bertahan sampai penyimpanan. Gejalanya **tidak berhasil
+> dipisahkan** dari cara harness memalsukan jalur itu, sehingga **tidak** dilaporkan sebagai
+> cacat produk yang terkonfirmasi. Logika yang seharusnya dibuktikan panel itu tetap teruji
+> lewat uji unit.
+>
+> **Satu temuan di luar cakupan:** penurunan disiplin yang ditambahkan commit `4031fd3d7`
+> **tidak pernah menghasilkan nilai** — ia membaca ruas yang tidak pernah ada. Akibatnya nol,
+> karena `BE-LAB-29` sudah membuat backend menurunkannya dari katalog. Kodenya mati, bukan
+> salah, dan task ini mencabutnya.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas menarik pasien dari daftar sesi kiosk, memilih pemeriksaan sekali, dan melihat pesanan yang terbentuk beserta disiplinnya |
+| **Requirement/decision** | `LAB-DEC-055`, `LAB-DEC-056` |
+| **Kontrak** | `LAB-API-v1` `r11` `POST /lab-orders/by-examinations`; jalur baca sesi kiosk dari `BE-EXT-04` |
+| **Cakupan** | Daftar sesi kiosk bertujuan Laboratorium pada layar pendaftaran yang sudah ada, pemilih pemeriksaan, dan pemberitahuan hasil pemecahan |
+| **Dependency** | `BE-EXT-04`, `BE-LAB-27` |
+| **Acceptance criteria** | `AC-86`, `AC-87` |
+| **Kewenangan UI** | **Disiplin tidak ditanyakan sama sekali** (`LAB-DEC-048` butir 6). Sesudah simpan, layar **wajib** menyebutkan bahwa pilihan tadi menjadi lebih dari satu pesanan beserta disiplin masing-masing. Pemeriksaan yang belum digolongkan disebut apa adanya: tersimpan, tetapi tidak akan muncul di menu disiplin mana pun |
+| **Verifikasi** | Lint bersih; build produksi; uji unit atas bentuk muatan yang dikirim; verifikasi manual: memilih Hemoglobin dan kultur darah menghasilkan dua nomor pesanan yang **terlihat jelas** di layar |
+| **Risiko/pemilik** | Sedang. Satu tindakan menghasilkan lebih dari satu objek bisnis. Pemilik: Laboratorium |
+| **DoD** | Daftar sesi kiosk tampil dan dapat ditarik; pemilih pemeriksaan mengirim satu permintaan; **hasil pemecahan diberitahukan, bukan dibiarkan ditemukan sendiri**; nol kotak pilihan disiplin |
+
+**Kenapa pemberitahuan pemecahan masuk DoD, bukan sekadar saran.** Ini satu-satunya tempat pada
+modul ini di mana satu tindakan petugas menghasilkan lebih dari satu objek bisnis. Tanpa
+pemberitahuan, satu-satunya cara petugas mengetahuinya adalah menemukan dua baris di layar
+lain — dan dugaan pertama yang wajar adalah ia tidak sengaja menekan simpan dua kali.
+
+---
+
+## 6d. Task Gelombang `MVP-5c` — Konfirmasi Pesanan dan Pembatalan Beralasan
+
+**Ditambahkan 2026-09-15**, menurunkan `LAB-DEC-061` dan `LAB-DEC-063`. Kontrak `LAB-API-v1`
+`r12` dan `LAB-VAL-v1` `r6` `approved` pada tanggal yang sama.
+
+### `FE-LAB-15` ✅ — Kolom Konfirmasi dan pop-up konfirmasi
+
+> **Status: `SELESAI` — 2026-09-16.** Keempat butir DoD terpenuhi dan **terbukti pada aplikasi
+> yang benar-benar berjalan**, termasuk butir yang paling menentukan: **konfirmasi kedua tidak
+> mungkin dilakukan dari layar** — dua tombol Konfirmasi, baris `Requested` aktif dan baris
+> `Confirmed` nonaktif. Laporan:
+> [`task/report/frontend/FE-LAB-15.md`](../task/report/frontend/FE-LAB-15.md).
+>
+> **Kewenangan UI ditegakkan kata demi kata:** kolomnya berbunyi `Belum Terkonfirmasi` sebelum
+> konfirmasi, lalu `Dewi` · `16 Sep 2026, 09.30` sesudahnya — **nol label `Terkonfirmasi`
+> tambahan**, diperiksa dari teks tabel sesudah teks bawaannya dibuang. **Nol kotak isian
+> konfirmator** pada pop-up, diperiksa dari teks pop-upnya sendiri. Muatan yang dikirim tepat
+> satu ruas.
+>
+> **Baris diperbarui dari jawaban server, bukan ditebak layar.** Kolomnya menampilkan nama dan
+> waktu yang benar-benar tersimpan, dan tombolnya nonaktif karena statusnya memang sudah
+> berpindah — bukan karena layar mengingat pernah menekannya.
+>
+> **Satu asersi uji sempat gagal, dan yang salah adalah ujinya**, bukan produknya: regexnya ikut
+> mencocoki kata di dalam "Belum Terkonfirmasi" — teks yang memang seharusnya ada.
+>
+> **Satu bagian `AC-95` sempat tetap terbuka** — "tampil pada **ringkasan cetak**" milik
+> `FE-LAB-17`, yang saat task ini selesai masih ⛔. **Ditutup pada hari yang sama**: `FE-LAB-17`
+> ✅ selesai 2026-09-16, dan `AC-95` kini terpenuhi penuh.
+
+<details>
+<summary>Riwayat: keadaan sebelum task ini dikerjakan</summary>
+
+> **Status: SIAP DIMULAI — penahan terangkat 2026-09-16, pada hari yang sama ia ditemukan.**
+>
+> Ketiga nilai yang wajib ditampilkan kolom Konfirmasi — `confirmedAt`, `confirmedByName`, dan
+> `examinerDoctorName` — kini terbaca pada jalur daftar, dan **terbukti dari database** lewat
+> [`BE-LAB-33.md`](../task/report/backend/BE-LAB-33.md). **Nol penahan tersisa.**
+>
+> **Riwayat penahannya dipertahankan di bawah**, bukan dihapus, karena urutan kejadiannya pantas
+> dibaca ulang: celah kontrak ini **tidak** ditemukan oleh build, uji, maupun tinjauan kontrak —
+> ketiganya hijau ketika celahnya masih ada. Ia ditemukan dengan membaca apa yang dibutuhkan
+> layar konsumennya, saat `BE-LAB-31` hendak ditandai selesai.
+
+<details>
+<summary>Riwayat: penahan yang sudah ditutup</summary>
+
+> **Status: ⛔ `TERTAHAN` — ditemukan 2026-09-16 saat `BE-LAB-31` selesai, sebelum satu baris pun
+> ditulis.**
+>
+> **Penahannya konkret, bukan kehati-hatian umum.** Kewenangan UI di bawah mewajibkan kolom
+> Konfirmasi menampilkan **nama konfirmator beserta tanggal dan waktu**, dan `AC-95` mewajibkan
+> dokter pemeriksa **tampil pada daftar serta ringkasan cetak**. Ketiga nilai itu **tidak
+> dikembalikan endpoint mana pun**: `LAB-API-v1` `r12` §7.1 hanya mendefinisikan badan permintaan
+> dan tidak menambah satu pun ruas pada `LabOrderListResponse` maupun `LabOrderDetailResponse`.
+>
+> **Backendnya sendiri sudah siap** — `POST /lab-orders/{id}/confirm` berdiri dan terbukti,
+> dan ketiga nilainya **sudah tersimpan** di database sejak `BE-LAB-30`. Yang hilang hanyalah
+> jalan keluarnya.
+>
+> **Yang dibutuhkan:** `LAB-API-v1` `r13` menambahkan lima ruas respons — `confirmedAt`,
+> `confirmedByUserId`, `confirmedByName`, `examinerDoctorId`, `examinerDoctorName`. Usulnya
+> ditulis lengkap pada [`BE-LAB-31.md`](../task/report/backend/BE-LAB-31.md) bagian 7.2, beserta
+> alasan kenapa kelimanya aman bagi pembaca lama. Sesudah disetujui, satu task backend kecil
+> memasang ruasnya, lalu layar ini dapat dimulai.
+>
+> **Tombol Konfirmasinya sendiri tidak tertahan** — pemanggilan endpointnya sudah dapat dibangun
+> hari ini. Yang tertahan adalah kolom yang menampilkan hasilnya.
+
+**Ditutup 2026-09-16** oleh `LAB-API-v1` `r13` yang disetujui pemilik modul, lalu dilaksanakan
+`BE-LAB-33` — dan disempurnakan `r14` beserta `BE-LAB-34`, karena `r13` menyebut DTO yang keliru.
+
+</details>
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas melihat mana yang belum terkonfirmasi, lalu mengonfirmasi lewat satu pop-up berisi ringkasan pasien dan pemilih dokter pemeriksa |
+| **Requirement/decision** | `FR-11.12`; `LAB-DEC-061` |
+| **Kontrak** | `LAB-API-v1` `r12` §7.1 `POST /lab-orders/{id}/confirm` |
+| **Cakupan** | Satu kolom pada ketiga datatable pemeriksaan, satu pop-up, satu pemanggilan endpoint |
+| **Dependency** | `BE-LAB-31` |
+| **Acceptance criteria** | `AC-94`, `AC-95` |
+| **Kewenangan UI** | Kolom Konfirmasi berisi `Belum Terkonfirmasi` sebelum konfirmasi, lalu **nama konfirmator beserta tanggal dan waktu** — **tanpa** label `Terkonfirmasi` tambahan pada kolom itu. Tombol Konfirmasi **nonaktif** sesudah berhasil sekali. **Nol kotak isian konfirmator**: namanya datang dari server, dan ruasnya memang tidak ada pada DTO permintaan |
+| **Verifikasi** | Lint bersih; build produksi; uji unit atas bentuk muatan yang dikirim; verifikasi manual: konfirmasi kedua tidak mungkin dilakukan dari layar |
+| **Risiko/pemilik** | Rendah. Menambah satu kolom dan satu pop-up. Pemilik: Laboratorium |
+| **DoD** | Kolom menampilkan nama dan waktu sesudah konfirmasi; tombol nonaktif sesudahnya; pemilih dokter wajib terisi sebelum simpan; ketiga menu memakai komponen yang sama |
+
+### `FE-LAB-16` ✅ — Pop-up pembatalan beralasan dan alert konfirmasi akhir
+
+> **Status: `SELESAI` — 2026-09-16.** Ketiga butir DoD terpenuhi dan **terbukti pada aplikasi
+> yang benar-benar berjalan**, termasuk butir yang paling menentukan: **menutup alert konfirmasi
+> akhir tidak mengirim permintaan apa pun** — nol permintaan tercatat sesudah `Kembali` ditekan,
+> dan barisnya tidak berubah. Laporan:
+> [`task/report/frontend/FE-LAB-16.md`](../task/report/frontend/FE-LAB-16.md).
+>
+> **Dua tahap disimpan sebagai dua keadaan terpisah**, bukan satu keadaan dengan penanda di
+> dalamnya — sehingga keduanya tidak dapat terbuka bersamaan dan menutup tahap 2 benar-benar
+> berarti tidak ada yang dikirim.
+>
+> **Daftar status ditulis sebagai yang diizinkan, bukan yang dilarang**, supaya status baru yang
+> kelak ditambahkan tidak otomatis menjadi dapat dibatalkan.
+>
+> **Satu selisih terhadap kewenangan UI, dilaporkan bukan didiamkan:** kewenangan menulis tiga
+> status yang dilarang, sedangkan `VAL-75` mempersempit lebih jauh — `Accepted` dan `OnHold` juga
+> ditolak backend. Yang diikuti kontraknya, karena menampilkan aksi di sana berarti memasang
+> tombol yang **selalu gagal** `409`. Bila pemilik menghendaki aksinya tetap tampil, itu perubahan
+> kewenangan UI tersendiri.
+>
+> **`FR-11.13` kini tertutup ujung ke ujung** — backend sejak `BE-LAB-32`, layar sejak task ini.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas tidak dapat membatalkan pesanan tanpa menuliskan alasannya, dan tidak dapat membatalkan hanya karena salah klik |
+| **Requirement/decision** | `FR-11.13`; `LAB-DEC-063` |
+| **Kontrak** | `LAB-API-v1` `r12` §7.2 `PUT /lab-orders/{id}/cancel` |
+| **Cakupan** | Satu pop-up berisi isian alasan, satu alert konfirmasi akhir, penyesuaian tampilnya aksi Batalkan |
+| **Dependency** | `BE-LAB-32` |
+| **Acceptance criteria** | `AC-96`, `AC-97` |
+| **Kewenangan UI** | Pop-up **Batalkan Pemeriksaan** memuat isian Alasan Pembatalan **wajib** dan tombol `Lanjut Pembatalan`. Sesudah tombol itu dipilih, muncul **alert konfirmasi akhir** sebelum permintaan dikirim. Aksi Batalkan **tidak ditampilkan** pada pesanan yang sudah `Diproses`, `Selesai`, atau `Dibatalkan` |
+| **Verifikasi** | Lint bersih; build produksi; uji unit atas muatan yang dikirim; verifikasi manual: menutup alert konfirmasi akhir **tidak** membatalkan pesanan |
+| **Risiko/pemilik** | Sedang. Layar ini menghapus pekerjaan pasien bila salah. Pemilik: Laboratorium |
+| **DoD** | Alasan wajib ditegakkan di layar **dan** tetap ditegakkan backend; aksi Batalkan tidak tampil pada status yang tidak sah; menutup alert tidak mengirim permintaan |
+
+> **Label tombol alert konfirmasi akhir — DITETAPKAN 2026-09-16.**
+>
+> | Butir | Nilai |
+> |---|---|
+> | Tombol yang **benar-benar membatalkan** | **`Konfirmasi Pembatalan`** |
+> | Ditetapkan oleh | Yoga Aji Pratama, pemilik modul, 2026-09-16 |
+>
+> Nada netral dan formal dipilih, tanpa kata "Ya", supaya selaras dengan tombol konfirmasi lain
+> di sistem. Label ini **tidak boleh diubah** tanpa keputusan pemilik berikutnya.
+>
+> **Riwayat butir ini pantas dibaca:** sebelumnya berbunyi *"belum ditentukan; tanyakan pemilik
+> modul sebelum menulis teksnya; jangan mengarang 'Ya, Batalkan' atau sejenisnya."* Larangan itu
+> sudah dijalankan — labelnya ditanyakan, bukan dikarang.
+
+### `FE-LAB-17` ✅ — Print membuka preview lebih dulu
+
+> **Status: ✅ `SELESAI` — 2026-09-16.** Ketiga butir DoD terpenuhi dan **terbukti pada aplikasi
+> yang benar-benar berjalan**: 8 pemeriksaan layar, 8 lolos. Laporan:
+> [`task/report/frontend/FE-LAB-17.md`](../task/report/frontend/FE-LAB-17.md).
+>
+> **`AC-95` TERPENUHI PENUH, dan dengan itu `FR-11.12` tertutup ujung ke ujung.** Ketiga nama
+> tanda tangan terbukti tercetak pada pesanan yang sudah dikonfirmasi.
+>
+> **Butir DoD yang paling menentukan dibuktikan terbalik**, bukan diasumsikan: `window.print`
+> diganti pencatat, dan sesudah satu klik Cetak pada baris ia tercatat **nol kali** — kertas
+> benar-benar tidak keluar sampai tombol di dalam pratinjau ditekan. Menutup pratinjau juga
+> tercatat nol cetak dan nol permintaan tulis.
+>
+> **Satu asersi sempat gagal dan yang salah adalah ujinya, bukan produknya.** `react-to-print` v3
+> mencetak lewat **iframe**, sehingga stub pada `window.print` halaman utama memang tidak akan
+> tertangkap. Penyebabnya **diperiksa, bukan langsung dianggap masalah harness** — dugaan itu
+> menyembunyikan cacat sungguhan bila keliru.
+>
+> **Satu pemeriksaan ditambahkan menyusul sesudah celahnya terlihat:** pemeriksaan tanda tangan
+> semula memakai baris yang **belum** dikonfirmasi, sehingga hanya membuktikan bloknya ada, bukan
+> namanya tercetak. Padahal itulah kriteria yang menjadi alasan task ini ada. Pelajaran `AC-83`
+> dipakai lagi di sini.
+>
+> **Status sebelumnya ⛔ `TERTAHAN` pada pagi hari yang sama.** Riwayat ketiga penahannya
+> **dipertahankan di bawah, bukan dihapus**, karena urutan kejadiannya pantas dibaca ulang:
+> sebuah task dapat berpindah dari tertahan menjadi selesai dalam satu hari — yang berubah lebih
+> dulu adalah keputusan yang diambil dan kontrak yang dibuka, bukan kodenya.
+>
+> **Bukan kehati-hatian umum; ketiga penahannya konkret dan terukur.**
+>
+> **Penahan pertama: tombol Print yang hendak diubah perilakunya tidak pernah ada.** Cakupan
+> task ini berbunyi "perubahan perilaku tombol Print pada ketiga menu pemeriksaan". Pencarian
+> kata `print` dan `cetak` pada seluruh view, hook, constant, service, dan slice modul
+> Laboratorium menghasilkan **0 kemunculan**. Ketiga menu pemeriksaan hanya memiliki satu
+> tombol, yaitu **Muat ulang**. `05-evidence-reconciliation.md` sendiri sudah mencatatnya pada
+> baris `REC2-NEW-006`: *"Nol kemunculan pada kontrak maupun roadmap frontend"*. Kalimat
+> "perubahan perilaku" datang dari artifact — sistem yang dipakai pemilik di tempat lain —
+> bukan dari codebase ini. Yang sesungguhnya diminta adalah **membangun fitur cetak dari nol**,
+> bukan mengubah satu tombol.
+>
+> **Penahan kedua — DITUTUP 2026-09-16.** Kewenangan UI menuntut tanda tangan **pembuat order,
+> konfirmator, dan dokter pemeriksa** tetap tampil, dan sebelumnya hanya yang pertama tersedia.
+> `r13` beserta `BE-LAB-33` lalu `r14` beserta `BE-LAB-34` menutupnya: `confirmedByName` dan
+> `examinerDoctorName` kini terbaca pada jalur daftar maupun detail, dan `requestedByName` sudah
+> ada sejak `r3`. **Ketiga tanda tangan dapat diisi.**
+>
+> **Penahan ketiga, ditemukan 2026-09-16 dan belum pernah tercatat: isi pesanan tidak dapat
+> dibaca.** `BR-47` menetapkan pemeriksaan sedisiplin **berkumpul pada satu pesanan**, dan
+> daftarnya disimpan `LabOrderedProcedure` sejak `BE-LAB-26`. Tetapi **nol DTO dan nol endpoint
+> mengembalikannya** — pencarian `ProcedureNameSnapshot` pada seluruh area `LaboratoryManagement`
+> menghasilkan nol kemunculan — sedangkan `LabOrder.ProcedureId` hanyalah **penunjuk wakil**,
+> dinyatakan oleh komentar kodenya sendiri. `ExaminationCount` pun menghitung `LabExamination`,
+> yaitu yang sedang dikerjakan dari wadah, bukan yang dipesan.
+>
+> Akibatnya: dokumen cetak **hanya dapat menyebut satu nama pemeriksaan**. Untuk pesanan
+> Hemoglobin + Kalium yang sengaja digabung `BR-47`, dokumennya akan menyebut satu dan diam soal
+> yang lain. **Pemilik modul memilih menunda, bukan mencetak apa adanya** — kelas bahaya yang sama
+> dengan alasan task ini ditolak pertama kali.
+>
+> **Penahan ketiga — DITUTUP 2026-09-16, pada hari yang sama ia ditemukan.** `LAB-API-v1` `r15`
+> disetujui lalu dilaksanakan `BE-LAB-35` ✅: `GET /lab-orders/{id}` kini mengembalikan
+> `orderedProcedures`, terbukti dari database lewat 12 pemeriksaan.
+>
+> **⚠ Satu hal yang wajib dibaca sebelum layar ini dimulai.** `LabOrderedProcedure` berisi
+> **0 baris** pada database. Artinya **seluruh 5 pesanan nyata hari ini menempuh jalur array
+> kosong**, dan itulah jalur yang paling mungkin dilihat saat verifikasi layar. Layar cetak wajib
+> menanganinya sebagai keadaan **sah** — bukan data rusak, bukan galat — dan mencetak
+> `procedureName` sebagai isi lengkap pesanan pada jalur itu.
+>
+> **Ketiga keputusan pemilik — DITETAPKAN 2026-09-16.** Sebelumnya ketiganya kosong dan roadmap
+> melarang mengarangnya. Larangan itu dijalankan: ketiganya ditanyakan sebelum satu baris pun
+> ditulis.
+>
+> | Butir | Ketetapan |
+> |---|---|
+> | **Isi ringkasan cetak** | **Ditunda sampai `r15` jalan.** Dokumen wajib memuat daftar pemeriksaan yang benar-benar dipesan; mencetak nama wakilnya saja maupun mencetak tanpa menyebut pemeriksaan sama-sama ditolak |
+> | **Letak tombol dan satuan cetak** | **Per baris** pada kolom aksi ketiga menu pemeriksaan, bersebelahan dengan Konfirmasi dan Batalkan. Satu klik membuka preview **satu pesanan** milik satu pasien — satuan yang sama dengan blok tanda tangan yang diminta DoD. Cetak rekap daftar **tidak** termasuk |
+> | **Bentuk blok tanda tangan** | **Tiga kolom sejajar** di kaki halaman: Pembuat Order, Konfirmator, Dokter Pemeriksa. Masing-masing memuat nama tercetak, ruang tanda tangan, dan tanggal. **Yang belum terisi tetap dicetak dengan garis kosong** — DoD menuntut ketiganya tetap tampil, dan garis kosong itu sendiri adalah jejak bahwa pesanannya belum dikonfirmasi |
+>
+> Ketiga ketetapan ini **tidak boleh diubah** tanpa keputusan pemilik berikutnya.
+>
+> **Satu aturan turunan yang wajib diikuti ketika task ini kelak dikerjakan**, ditulis di sini
+> supaya tidak ditafsirkan sendiri: bila `orderedProcedures` **kosong**, pesanan itu berpemeriksaan
+> tunggal dan `procedureName` **adalah** isi lengkapnya — cetak itu. Bila **terisi**,
+> `procedureName` hanyalah wakil dan **tidak boleh** dicetak sebagai isi pesanan. Lihat kontrak
+> bagian 10.7.
+>
+> **Satu hal yang justru memudahkan ketika penahannya dibuka:** infrastruktur cetak sudah ada
+> dan sudah dipakai modul lain — `react-to-print` pada resep, signa obat, surat pengantar dokter,
+> kartu pasien kiosk, dan persetujuan rawat inap. Tidak ada yang perlu dibangun dari nol di sisi
+> mekanismenya.
+>
+> **Yang dibutuhkan agar task ini dapat berjalan:**
+>
+> | Kebutuhan | Keadaan per 2026-09-16 |
+> |---|---|
+> | `LAB-API-v1` `r13` — ruas `confirmedByName`, `confirmedAt`, `examinerDoctorName` | ✅ **Terpenuhi.** `r13` lalu `r14`, dilaksanakan `BE-LAB-33` dan `BE-LAB-34` |
+> | Isi ringkasan cetak dan bentuk blok tanda tangannya | ✅ **Ditetapkan** — lihat tabel ketetapan di atas |
+> | Letak tombol Print dan satuan yang dicetak | ✅ **Ditetapkan** — per baris, satu pesanan |
+> | `LAB-API-v1` `r15` — ruas `orderedProcedures` | ✅ **`approved` 2026-09-16** |
+> | `BE-LAB-35` — pelaksanaan `r15` | ✅ **Selesai 2026-09-16**, terbukti dari database — [laporan](../task/report/backend/BE-LAB-35.md) |
+>
+> **Nol kebutuhan tersisa. Task ini siap dikerjakan.**
+>
+> **Nol berkas frontend diubah.** Task ini **tetap** tidak diturunkan menjadi versi sebagian,
+> dan alasannya kini berpindah bersama penahannya — itu pantas dibaca karena kesimpulannya sama
+> dua kali berturut-turut. Pada 2026-09-16 pagi alasannya **dua dari tiga tanda tangan kosong**;
+> hari yang sama, sesudah penahan itu ditutup, alasannya menjadi **dokumen yang menyebut satu
+> pemeriksaan padahal pesanannya memuat beberapa**. Keduanya cacat yang sama bentuknya: dokumen
+> resmi yang **salah tanpa terlihat salah**. Dokumen semacam itu lebih berbahaya daripada tidak
+> ada tombol cetak sama sekali, karena ketiadaan tombol segera terlihat sedangkan dokumen yang
+> keliru hanya dipercaya orang.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas melihat ringkasan order sebelum kertas keluar |
+| **Requirement/decision** | `REC2-NEW-006` — kewenangan UI, nol kontrak backend |
+| **Cakupan** | Perubahan perilaku tombol Print pada ketiga menu pemeriksaan |
+| **Dependency** | — |
+| **Kewenangan UI** | Tombol Print **membuka preview**, tidak langsung mencetak. Pencetakan dilakukan dari preview. Tanda tangan pembuat order, konfirmator, dan dokter pemeriksa tetap tampil sesuai kebutuhan yang sudah ada |
+| **Verifikasi** | Lint bersih; build produksi; verifikasi manual: satu klik Print tidak lagi mengeluarkan kertas |
+| **Risiko/pemilik** | Rendah. Pemilik: Laboratorium |
+| **DoD** | Print membuka preview; preview dapat dicetak; tanda tangan tetap tampil |
+
+---
+
 ## 7. Layar yang Sengaja Tidak Dibuat
 
 Kelima layar berikut **tidak boleh** dibangun lebih dulu "sekalian", karena perilakunya belum
@@ -576,7 +950,12 @@ diputuskan:
 
 | Task | Gelombang | Slice | Pasangan backend | Status rencana |
 |---|---|---|---|---|
+| `FE-LAB-15` ✅ | `MVP-5c` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Kolom Konfirmasi pada ketiga menu, pop-up berisi ringkasan pasien dan pemilih dokter, satu pemanggilan endpoint. Keempat butir DoD **terbukti pada aplikasi yang benar-benar berjalan**, termasuk "konfirmasi kedua tidak mungkin dilakukan dari layar". Lint bersih, build produksi hijau, 11 uji unit baru, 943/943 uji repository lolos — [laporan](../task/report/frontend/FE-LAB-15.md). **Sisanya ditutup hari itu juga:** bagian `AC-95` "tampil pada ringkasan cetak" diselesaikan `FE-LAB-17` ✅ | `BE-LAB-31` ✅ dan `BE-LAB-33` ✅ keduanya selesai. Ia sempat ⛔ `TERTAHAN` karena `r12` tidak menambah ruas respons, sehingga ketiga nilai yang wajib ditampilkan kolom Konfirmasi tidak dikembalikan endpoint mana pun. **`r13` disetujui lalu dilaksanakan `BE-LAB-33`** — tetapi `r13` menyebut DTO yang keliru: ketiga menu pemeriksaan membaca grup `Lab Monitoring`, bukan `LabOrderListResponse`. **`r14` dan `BE-LAB-34` menutupnya pada hari yang sama**: `confirmedAt`, `confirmedByName`, dan `examinerDoctorName` kini terbaca pada **jalur yang benar-benar dipakai ketiga menu**, dan terbukti dari database — [`BE-LAB-34.md`](../task/report/backend/BE-LAB-34.md). **Nol penahan tersisa** |
+| `FE-LAB-16` ✅ | `MVP-5c` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Pop-up beralasan dan alert konfirmasi akhir berlabel `Konfirmasi Pembatalan`; aksi Batalkan disembunyikan pada status yang tidak sah. Ketiga butir DoD **terbukti pada aplikasi yang benar-benar berjalan**, termasuk "menutup alert tidak mengirim permintaan". 9 uji unit baru, 952/952 uji repository lolos — [laporan](../task/report/frontend/FE-LAB-16.md). **`FR-11.13` tertutup ujung ke ujung** | `BE-LAB-32` ✅ selesai 2026-09-16; **penahan terangkat dan tidak ada penahan kontrak**: layar ini hanya mengirim `cancelReason` dan membaca `orderStatus` yang sudah lama ada, sehingga tidak tersentuh celah `r13` yang menahan `FE-LAB-15`. Backend menolak `422` bila alasan kosong dan `409` bila status tidak sah, jadi penegakan di layar tidak berdiri sendiri. **Nol butir terbuka:** label tombol alert konfirmasi akhir **ditetapkan 2026-09-16** — `Konfirmasi Pembatalan` |
+| `FE-LAB-17` ✅ | `MVP-5c` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Tombol Cetak per baris membuka pratinjau berisi ringkasan satu pesanan: daftar pemeriksaan terpesan, dan tiga blok tanda tangan sejajar. **Ketiga butir DoD terbukti pada aplikasi yang benar-benar berjalan** — termasuk yang paling menentukan, **satu klik Cetak tercatat nol memanggil `window.print`**. Lint bersih, build hijau, 14 uji unit baru, 977/977 uji repository lolos, 8 pemeriksaan layar — [laporan](../task/report/frontend/FE-LAB-17.md). **`AC-95` TERPENUHI PENUH; `FR-11.12` tertutup ujung ke ujung** | **Tiga penahan, dua sudah ditutup.** **(a)** Tombol Print **tidak pernah ada** — 0 kemunculan `print`/`cetak` di seluruh modul; yang diminta sebenarnya membangun fitur cetak dari nol. Ini **cakupan, bukan penahan**: infrastruktur `react-to-print` sudah dipakai lima layar lain. **(b) DITUTUP** — ketiga tanda tangan kini dapat diisi lewat `r13`/`BE-LAB-33` dan `r14`/`BE-LAB-34`. **(c) TERSISA, ditemukan 2026-09-16:** daftar pemeriksaan yang benar-benar dipesan **tidak dikembalikan DTO maupun endpoint mana pun** — `LabOrderedProcedure` berdiri sejak `BE-LAB-26` tetapi nol pembaca, dan `LabOrder.ProcedureId` hanyalah penunjuk **wakil**. Mencetak sekarang berarti dokumen resmi yang menyebut satu pemeriksaan padahal pesanannya memuat beberapa. **Ditutup hari itu juga** oleh `r15` `approved` beserta **`BE-LAB-35`** ✅. **Ketiga keputusan pemilik DITETAPKAN 2026-09-16:** isi cetak memuat daftar pemeriksaan terpesan, tombol **per baris** mencetak **satu pesanan**, dan blok tanda tangan **tiga kolom sejajar** dengan yang belum terisi tetap dicetak bergaris kosong. **⚠ Peringatan untuk pelaksananya:** `LabOrderedProcedure` berisi 0 baris pada database, sehingga 5 pesanan nyata menempuh jalur **array kosong** — jalur itu sah dan wajib mencetak `procedureName` sebagai isi lengkap |
 | `FE-LAB-01` | `MVP-0` | — | — | **`SELESAI`** 2026-09-04 |
+| `FE-LAB-13` ✅ | `MVP-5b` | `EPIC-LAB-11` | `BE-EXT-04` ✅, `BE-EXT-04b` ✅ | **`SELESAI`** — 2026-09-16. Langkah **Tujuan Layanan** berdiri di depan alur kiosk Pasien Lama: `Poliklinik` atau `Laboratorium`, dan bila Laboratorium dipilih ditambah satu pertanyaan surat dokter. Keempat butir DoD **terbukti pada aplikasi yang benar-benar berjalan** — termasuk yang paling menentukan, **muatan cabang poliklinik nol ruas tambahan**, diperiksa kunci demi kunci. Lint bersih, build produksi hijau, 11 uji unit baru, 963/963 uji repository lolos, 5 pemeriksaan layar — [laporan](../task/report/frontend/FE-LAB-13.md). **Panel kiosk `FE-LAB-14` kini benar-benar dapat terisi.** **Batas yang disebut apa adanya:** pasien Laboratorium belum memperoleh kunjungan maupun nomor antrean di kiosk — itu milik `BE-EXT-05` yang masih ⛔. **Cakupannya dipersempit atas keputusan pemilik modul:** alur Pasien Baru **tidak** ikut, karena sesinya langsung tertandai terpakai oleh kunjungan poliklinik dan tidak akan pernah terbaca panel Laboratorium |
+| `FE-LAB-14` ✅ | `MVP-5b` | `EPIC-LAB-11` | `BE-EXT-04` ✅, `BE-LAB-27` ✅ | **`SELESAI`** — 2026-09-16. Panel sesi kiosk, pemilih pemeriksaan jamak lewat `POST /lab-orders/by-examinations`, dan pemberitahuan hasil pemecahan. Lint bersih, build produksi hijau, 11 uji unit baru, 932/932 uji repository lolos, dan tiga pemeriksaan layar dijalankan terhadap aplikasi yang benar-benar berjalan — [laporan](../task/report/frontend/FE-LAB-14.md). **Prasyarat konfigurasi:** peran petugas lab perlu izin `KioskScanSession : Read`. **Satu bagian verifikasi tidak selesai** — panel rincian sesudah simpan belum dilihat pada layar sungguhan; logikanya teruji unit |
 | `FE-LAB-02` | `MVP-0` | `S3` | `BE-LAB-04`, `BE-LAB-05` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-03` | `MVP-0` | `S11` | `BE-LAB-06` | **`SELESAI`** 2026-09-04 |
 | `FE-LAB-04` | `MVP-0` | `S14` | `BE-LAB-07` | **`SELESAI`** 2026-09-04 |
@@ -660,7 +1039,20 @@ mengosongkan disiplin mencabut golongannya.
 ## 9. Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
+| 21 | 2026-09-16 | **`FE-LAB-17` SELESAI. Seluruh layar modul Laboratorium tuntas, dan `FR-11.12` tertutup ujung ke ujung.** Tombol Cetak berdiri per baris pada ketiga menu pemeriksaan dan membuka pratinjau berisi ringkasan **satu** pesanan: daftar pemeriksaan yang benar-benar dipesan, beserta tiga blok tanda tangan sejajar. **Butir DoD yang paling menentukan dibuktikan terbalik**, bukan diasumsikan: `window.print` diganti pencatat, dan sesudah satu klik Cetak pada baris ia tercatat **nol kali** — kertas benar-benar tidak keluar sampai tombol di dalam pratinjau ditekan; menutup pratinjau pun tercatat nol cetak dan nol permintaan tulis. **`AC-95` TERPENUHI PENUH**: ketiga nama tanda tangan terbukti tercetak pada pesanan yang sudah dikonfirmasi. **Dua catatan proses pantas dibaca ulang.** Pertama, satu asersi sempat gagal dan **yang salah adalah ujinya** — `react-to-print` v3 mencetak lewat iframe, sehingga stub pada `window.print` halaman utama memang tidak akan tertangkap; penyebabnya diperiksa, bukan langsung dianggap masalah harness, karena dugaan itu menyembunyikan cacat sungguhan bila keliru. Kedua, **satu pemeriksaan ditambahkan menyusul**: pemeriksaan tanda tangan semula memakai baris yang belum dikonfirmasi, sehingga hanya membuktikan bloknya ada dan bukan namanya tercetak — padahal itulah kriteria yang menjadi alasan task ini ada. Pelajaran `AC-83` dipakai lagi. **Satu batas disebut apa adanya:** jalur daftar terpesan **terisi** belum pernah terlihat pada data sungguhan karena `LabOrderedProcedure` masih berisi 0 baris; ia terbukti lewat jawaban yang dipalsukan dan uji unit, sedangkan jalur kosongnya — yang ditempuh seluruh pesanan nyata hari ini — terbukti pada keduanya. Pencetakan ke printer fisik juga belum dijalankan; yang terbukti adalah permintaan cetaknya dipicu. Empat belas uji unit baru; **977 dari 977** uji repository lolos; nol berkas uji layar tertinggal | `DRAFT` |
+| 20 | 2026-09-16 | **`FE-LAB-17` berpindah dari ⛔ `TERTAHAN` menjadi SIAP DIKERJAKAN — nol penahan, nol keputusan terbuka — dan seluruhnya terjadi pada hari yang sama.** `r15` disetujui lalu dilaksanakan `BE-LAB-35` ✅, terbukti dari database lewat 12 pemeriksaan. **Ketiga penahannya kini tertutup**, dan riwayatnya sengaja **dipertahankan** pada kartu task, bukan dihapus: sebuah task dapat berpindah dari tertahan menjadi siap tanpa satu baris pun ditulis untuknya — yang berubah adalah keputusan yang diambil dan kontrak yang dibuka. **Satu peringatan diteruskan dari `BE-LAB-35` dan ditulis pada kartu task, bukan disimpan di laporan backend saja:** `LabOrderedProcedure` berisi **0 baris** pada database, sehingga **seluruh 5 pesanan nyata menempuh jalur array kosong** — dan jalur itulah yang paling mungkin terlihat saat verifikasi layar nanti. Layar cetak wajib memperlakukannya sebagai keadaan **sah**, bukan data rusak, dan mencetak `procedureName` sebagai isi lengkap pesanan pada jalur itu. Peringatan ini ditulis di depan supaya pelaksananya tidak menyimpulkan fiturnya rusak ketika yang dilihatnya justru jalur normal untuk data hari ini. **Nol berkas frontend diubah pada revisi ini** | `DRAFT` |
+| 19 | 2026-09-16 | **`FE-LAB-17` tetap ⛔, tetapi bentuk penahannya berubah menyeluruh: ketiga keputusan pemilik kini tertutup, dan yang tersisa tinggal satu — dan itu penahan yang baru ditemukan hari ini.** **Penahan (b) ditutup:** ketiga tanda tangan dapat diisi sejak `r13`/`BE-LAB-33` dan `r14`/`BE-LAB-34`. **Penahan (a) diturunkan statusnya menjadi cakupan, bukan penahan** — fitur cetak memang harus dibangun dari nol, tetapi `react-to-print` sudah dipakai lima layar lain. **Penahan (c) ditemukan dan ia menentukan:** daftar pemeriksaan yang benar-benar dipesan **tidak dapat dibaca siapa pun di luar backend**. `LabOrderedProcedure` berdiri sejak `BE-LAB-26` dan terisi sejak `BE-LAB-27`, tetapi nol DTO dan nol endpoint mengembalikannya; `LabOrder.ProcedureId` hanyalah **penunjuk wakil**, dinyatakan komentar kodenya sendiri; dan `ExaminationCount` menghitung yang sedang dikerjakan dari wadah, bukan yang dipesan. Mencetak hari ini berarti dokumen resmi yang menyebut satu pemeriksaan padahal pesanan gabungan `BR-47` memuat beberapa. **Pemilik modul memilih menunda, bukan mencetak apa adanya** — kelas bahaya yang sama dengan alasan task ini ditolak pertama kali, dan konsisten dengan penolakan versi dua tanda tangan kosong. Usul **`LAB-API-v1` `r15`** ditulis beserta pelaksanaannya **`BE-LAB-35`** ⛔, keduanya menunggu persetujuan. **Ketiga keputusan pemilik ditetapkan, sesudah ditanyakan dan bukan dikarang:** isi cetak ditunda sampai `r15` jalan; tombol berdiri **per baris** pada kolom aksi ketiga menu dan mencetak **satu pesanan**, bukan rekap daftar; blok tanda tangan **tiga kolom sejajar** dan **yang belum terisi tetap dicetak bergaris kosong**, karena garis kosong itu sendiri adalah jejak bahwa pesanannya belum dikonfirmasi. **Satu aturan turunan dikunci pada kartu task** supaya tidak ditafsirkan sendiri kelak: `orderedProcedures` kosong berarti pesanan berpemeriksaan tunggal dan `procedureName` adalah isi lengkapnya; terisi berarti `procedureName` hanya wakil dan **tidak boleh** dicetak sebagai isi pesanan. **Nol berkas frontend diubah** | `DRAFT` |
+| 18 | 2026-09-16 | **Bukti pelaksanaan `FE-LAB-13`. Gelombang `MVP-5b` tuntas, dan panel kiosk `FE-LAB-14` kini punya yang mengisinya.** Langkah **Tujuan Layanan** berdiri di depan alur kiosk Pasien Lama, beserta satu pertanyaan surat dokter yang hanya muncul bila Laboratorium dipilih. **Tiga temuan dari source menentukan letaknya, dan ketiganya membalik dugaan yang wajar.** Pertama, kedua ruas sesi kiosk hanya dapat ditulis **sekali** — `BE-EXT-04b` sengaja tidak membangun jalur ubah. Kedua, pada alur Pasien Lama sesi dibentuk di langkah **pertama**, lima langkah sebelum `Layanan & Dokter`; memasang pertanyaannya pada langkah yang namanya paling cocok justru mustahil menulis apa pun. Ketiga, dan yang paling menentukan: pada alur Pasien Baru sesi **langsung dikonsumsi** kunjungan poliklinik lewat `PatientEncounterController.cs:686`, sedangkan panel `FE-LAB-14` menyaring justru yang belum terpakai — sesi Laboratorium dari alur itu hilang pada detik yang sama ia dibuat. **Akibatnya pada cakupan diputuskan pemilik modul, bukan disempitkan sepihak:** tiga hal ditanyakan sebelum satu baris pun ditulis — alur mana yang dipasangi, di mana alurnya berhenti, dan apakah cabang poliklinik ikut menulis tujuan layanannya. Jawabannya Pasien Lama saja, berhenti sesudah identitas terbaca, dan cabang poliklinik tidak menulis apa pun. **Satu temuan menghindarkan `400` yang pasti terjadi:** `Program.cs` nol mendaftarkan `JsonStringEnumConverter`, sehingga enum pada body JSON hanya terbaca sebagai angka; `targetService` dikirim `2`, bukan `"Laboratory"` seperti penyaring query milik `FE-LAB-14`. **Butir DoD yang paling mudah dilanggar diam-diam dibuktikan terbalik:** muatan cabang poliklinik diperiksa kunci demi kunci dan terbukti nol ruas tambahan — bukan berisi `null`, melainkan memang tidak ada ruasnya. **Satu perbedaan tak terhindarkan disebut apa adanya**, bukan disamarkan: pasien alur Pasien Lama kini melihat satu layar tambahan di depan; sesudah `Poliklinik` ditekan, nol perilaku berikutnya berubah. **Satu batas ditulis terang:** pasien Laboratorium belum memperoleh kunjungan maupun nomor antrean di kiosk — itu milik `BE-EXT-05` yang masih ⛔, dan `AC-45` melarang Laboratorium membentuknya. Sebelas uji unit baru; **963 dari 963** uji repository lolos; lima pemeriksaan layar terhadap build produksi yang benar-benar berjalan; nol berkas uji layar tertinggal | `DRAFT` |
+| 17 | 2026-09-16 | **Bukti pelaksanaan `FE-LAB-16`. `FR-11.13` kini tertutup ujung ke ujung, dan gelombang `MVP-5c` tinggal `FE-LAB-17`.** Pop-up pembatalan beralasan beserta alert konfirmasi akhir berlabel `Konfirmasi Pembatalan` — label yang ditetapkan pemilik modul hari ini, sesudah roadmap melarang mengarangnya. **Ketiga butir DoD terbukti pada aplikasi yang benar-benar berjalan**, termasuk yang paling menentukan: **menutup alert konfirmasi akhir tidak mengirim permintaan apa pun**, diperiksa dengan mencatat setiap permintaan yang tiba dan memastikan jumlahnya tetap nol. **Dua keputusan implementasi pantas dibaca ulang.** Pertama, kedua tahap disimpan sebagai **dua keadaan terpisah** — bukan satu keadaan dengan penanda di dalamnya — sehingga keduanya tidak dapat terbuka bersamaan dan menutup tahap 2 benar-benar berarti tidak ada yang dikirim. Kedua, daftar status yang boleh dibatalkan ditulis sebagai **yang diizinkan**, bukan yang dilarang, supaya status baru yang kelak ditambahkan tidak otomatis menjadi dapat dibatalkan; hal itu diuji langsung. **Satu selisih terhadap kewenangan UI dilaporkan, bukan didiamkan:** kewenangan menulis tiga status yang dilarang, sedangkan `VAL-75` mempersempit lebih jauh — `Accepted` dan `OnHold` juga ditolak backend. Yang diikuti kontraknya, karena menampilkan aksi di sana berarti memasang tombol yang selalu gagal `409`; bila pemilik menghendaki lain, itu perubahan kewenangan UI tersendiri. Sembilan uji unit baru; 952 dari 952 uji repository lolos; nol berkas uji layar tertinggal | `DRAFT` |
+| 16 | 2026-09-16 | **Bukti pelaksanaan `FE-LAB-15`.** Kolom Konfirmasi berdiri pada ketiga menu pemeriksaan beserta pop-up berisi ringkasan pasien dan pemilih dokter pemeriksa. **Keempat butir DoD terbukti pada aplikasi yang benar-benar berjalan**, bukan hanya lolos lint dan build — termasuk butir yang paling menentukan: **konfirmasi kedua tidak mungkin dilakukan dari layar**. **Kewenangan UI ditegakkan kata demi kata dan diperiksa dari DOM**, bukan diasumsikan: nol label `Terkonfirmasi` tambahan pada kolom baris yang sudah dikonfirmasi — diperiksa sesudah teks bawaan "Belum Terkonfirmasi" dibuang — dan nol kotak isian konfirmator pada pop-up, diperiksa dari teks pop-upnya sendiri. Muatan yang dikirim tepat satu ruas. **Satu keputusan implementasi pantas dibaca ulang:** baris diperbarui dari **jawaban server**, bukan ditebak layar, sehingga kolomnya menampilkan nama dan waktu yang benar-benar tersimpan dan tombolnya nonaktif karena statusnya memang berpindah — bukan karena layar mengingat pernah menekannya. **Satu asersi uji sempat gagal dan yang salah adalah ujinya**, bukan produknya: regexnya ikut mencocoki kata di dalam "Belum Terkonfirmasi". Sebelas uji unit baru; 943 dari 943 uji repository lolos; nol berkas uji layar tertinggal. **Satu bagian `AC-95` tetap terbuka** — "tampil pada ringkasan cetak" milik `FE-LAB-17` yang masih ⛔ | `DRAFT` |
+| 15 | 2026-09-16 | **Penahan `FE-LAB-15` benar-benar terangkat — pada percobaan kedua.** Revisi 14 sempat menyatakannya siap dimulai atas dasar `BE-LAB-33`, dan **itu terlalu cepat**: `r13` menyebut `LabOrderListResponse`, padahal ketiga menu pemeriksaan membaca grup `Lab Monitoring`. Kekeliruannya ketahuan tepat ketika layar ini hendak dimulai, dan ditutup hari itu juga lewat `r14` beserta `BE-LAB-34` — ketiga ruas kini terbaca pada **jalur yang benar-benar dipanggil layar**, terbukti dari database. **Entri ini sengaja tidak menimpa revisi 14**, supaya urutan kejadiannya terbaca apa adanya: sebuah penahan pernah dinyatakan terangkat sebelum benar-benar terangkat, dan yang menemukannya adalah pekerjaan berikutnya, bukan tinjauan | `DRAFT` |
+| 14 | 2026-09-16 | **`FE-LAB-15` berpindah dari ⛔ `TERTAHAN` menjadi siap dimulai — penahannya terangkat pada hari yang sama ia ditemukan.** `LAB-API-v1` `r13` disetujui lalu dilaksanakan `BE-LAB-33`, sehingga `confirmedAt`, `confirmedByName`, dan `examinerDoctorName` kini terbaca pada jalur daftar dan **terbukti dari database**. **Nol penahan tersisa.** Riwayat penahannya **dipertahankan** pada entri task, bukan dihapus, karena urutan kejadiannya pantas dibaca ulang: celah kontrak itu tidak ditemukan oleh build, uji, maupun tinjauan kontrak — ketiganya hijau ketika celahnya masih ada — melainkan dengan membaca apa yang dibutuhkan layar konsumennya. **Dua layar kini siap dikerjakan tanpa penahan apa pun:** `FE-LAB-15` dan `FE-LAB-16`. **`FE-LAB-17` tetap ⛔**, dan pembedaannya ditulis tegas supaya tidak tertukar: `r13` hanya menutup penahan tanda tangannya; tombol Print yang tidak pernah ada dan ketiga keputusan pemilik tentang isi ringkasan cetak, letak tombol, serta bentuk blok tanda tangan **tidak tersentuh** | `DRAFT` |
+| 13 | 2026-09-16 | **Dua keputusan pemilik modul dicatat, dan keduanya membuka pekerjaan yang tertahan.** **Pertama, label tombol alert konfirmasi akhir `FE-LAB-16` ditetapkan: `Konfirmasi Pembatalan`.** Nada netral dan formal dipilih, tanpa kata "Ya", supaya selaras dengan tombol konfirmasi lain di sistem. Butir ini sebelumnya berbunyi "belum ditentukan; jangan mengarang" — larangan itu **dijalankan**: labelnya ditanyakan, bukan dikarang. **`FE-LAB-16` kini nol butir terbuka.** **Kedua, `LAB-API-v1` `r13` disetujui**, menambahkan lima ruas respons konfirmasi: `confirmedAt`, `confirmedByName`, dan `examinerDoctorName` pada `LabOrderListResponse`; `confirmedByUserId` dan `examinerDoctorId` pada `LabOrderDetailResponse`. Seluruhnya aditif — nol endpoint, ruas, nilai enum, permission, dan migration yang berubah. **Akibatnya pada kedua task yang tertahan berbeda, dan itu ditulis terang:** `FE-LAB-15` penahannya **tinggal satu** — pelaksanaan `r13` lewat `BE-LAB-33` — sehingga ia akan terbuka begitu task itu selesai; sedangkan `FE-LAB-17` **tetap tertahan**, karena penahan (a) — tombol Print yang tidak pernah ada — dan ketiga keputusan pemilik tentang isi ringkasan cetak, letak tombol, serta bentuk blok tanda tangan **tidak tersentuh** oleh `r13` | `DRAFT` |
+| 12 | 2026-09-16 | **`FE-LAB-17` dihentikan sebelum satu baris pun ditulis, dan penahannya dicatat bernomor.** Pemeriksaan pra-implementasi menemukan bahwa **tombol Print yang hendak diubah perilakunya tidak pernah ada**: pencarian `print` dan `cetak` pada seluruh view, hook, constant, service, dan slice modul Laboratorium menghasilkan **0 kemunculan**, dan ketiga menu pemeriksaan hanya memiliki tombol **Muat ulang**. `05-evidence-reconciliation.md` sudah mencatat hal yang sama pada `REC2-NEW-006` — *"Nol kemunculan pada kontrak maupun roadmap frontend"* — tetapi cakupan task terlanjur ditulis sebagai "perubahan perilaku tombol Print", kalimat yang datang dari **artifact**, bukan dari codebase ini. Yang sesungguhnya diminta adalah membangun fitur cetak dari nol. **Penahan kedua lebih menentukan:** kewenangan UI dan DoD sama-sama menuntut tanda tangan **pembuat order, konfirmator, dan dokter pemeriksa** tetap tampil, sedangkan hanya yang pertama tersedia hari ini. Konfirmator dan dokter pemeriksa **tidak dikembalikan endpoint mana pun** — **penahan yang sama persis dengan `FE-LAB-15`**, dan tertutup oleh usul `LAB-API-v1` `r13` yang sama. **Task ini sengaja tidak diturunkan menjadi versi sebagian**, karena versi sebagian berarti mencetak dokumen resmi dengan dua dari tiga tanda tangan kosong — lebih berbahaya daripada tidak ada tombol cetak sama sekali. **Tiga keputusan pemilik yang juga belum ada dicatat:** isi ringkasan cetak, letak tombolnya — menu pemeriksaan adalah layar daftar, sehingga mencetak "ringkasan order" dari sana menuntut keputusan per baris atau per pilihan — dan bentuk blok tanda tangannya. **Satu hal yang memudahkan ketika penahannya dibuka:** infrastruktur cetak `react-to-print` sudah ada dan dipakai resep, signa obat, surat pengantar dokter, kartu pasien kiosk, serta persetujuan rawat inap; mekanismenya tidak perlu dibangun. Nol berkas frontend diubah | `DRAFT` |
+| 11 | 2026-09-16 | **Bukti pelaksanaan `FE-LAB-14`, ditulis `build-module-frontend`. Sekaligus `FE-LAB-15` ditandai ⛔ `TERTAHAN` dan `FE-LAB-16` dinyatakan siap dimulai.** `FE-LAB-14` berpindah menjadi **✅ `SELESAI`**: panel **Menunggu dari Kiosk** pada layar pendaftaran, pemilih pemeriksaan **jamak** yang mengirim **satu** permintaan ke `POST /lab-orders/by-examinations`, dan pemberitahuan hasil pemecahan sebelum maupun sesudah simpan. **Verifikasi dijalankan terhadap aplikasi yang benar-benar berjalan**, bukan hanya lint dan build — dan itulah yang menyelamatkannya: **dua cacat nyata ditemukan yang seluruhnya lolos dari lint, build, dan uji unit.** Pertama, menarik pasien dari kiosk tidak terlihat apa-apa karena pasien terpilih hanya dicari di dalam hasil pencarian, sedangkan pasien kiosk ditarik tanpa mengetik kata kunci apa pun. Kedua, rincian pemecahan terhapus sendiri sepersekian detik sesudah tampil, karena pemilih katalog memancarkan callback pada setiap render ulang — termasuk saat harga selesai dimuat — bukan hanya saat pilihan berubah. **Satu keputusan teknis menentukan apakah layar ini dapat dipakai sama sekali:** dari dua jalur baca sesi kiosk yang isinya identik, yang dipakai adalah `admin/options` — karena `options` dijaga `KioskReadPolicy` yang hanya mengakui SuperAdmin, Administrator, dan akun kiosk, sehingga akan menjawab `403` untuk **setiap petugas laboratorium**, yakni pengguna yang justru dituju layar ini. **Prasyarat konfigurasi dicatat:** izin `KioskScanSession : Read` perlu diberikan kepada peran petugas lab. **Satu bagian verifikasi tidak selesai dan disebut apa adanya**, bukan didiamkan: panel rincian sesudah simpan belum pernah dilihat pada layar sungguhan karena nilai kotak pilihan Kunjungan Pasien tidak bertahan pada harness bertopeng; gejalanya tidak berhasil dipisahkan dari cara harness memalsukan jalur itu, sehingga **tidak** dilaporkan sebagai cacat produk yang terkonfirmasi, dan logikanya tetap teruji lewat uji unit. **Satu temuan di luar cakupan:** penurunan disiplin yang ditambahkan commit `4031fd3d7` tidak pernah menghasilkan nilai — ia membaca ruas yang tidak pernah ada; akibatnya nol karena `BE-LAB-29` sudah menurunkannya di backend, dan task ini mencabutnya. Sebelas uji unit baru ditulis; 932 dari 932 uji repository lolos; nol berkas uji layar tertinggal di repository | `DRAFT` |
 |---:|---|---|---|
+| 10 | 2026-09-15 | **Gelombang `MVP-5c` ditambahkan.** Tiga layar menurunkan `LAB-DEC-061` dan `LAB-DEC-063`: `FE-LAB-15` kolom Konfirmasi beserta pop-upnya, `FE-LAB-16` pop-up pembatalan beralasan beserta alert konfirmasi akhir, dan `FE-LAB-17` Print yang membuka preview lebih dulu. **Satu kewenangan UI ditulis tegas sebagai larangan:** nol kotak isian konfirmator — namanya datang dari server, dan ruasnya memang tidak ada pada DTO permintaan `r12`. **Satu hal sengaja dibiarkan kosong:** label tombol di dalam alert konfirmasi akhir belum ditetapkan pemilik modul, dan `FE-LAB-16` dilarang mengarangnya | `DRAFT` |
+| 14 | 2026-09-15 | **Gelombang `MVP-5b` ditambahkan** — dua task, `FE-LAB-13` dan `FE-LAB-14`, di bawah persetujuan lintas modul `LAB-REQ-006`. **Temuan yang memperkecil pekerjaannya:** layar kiosk **sudah ada di repo frontend ini** — `src/app/kiosk/` beserta `registration/new-patient`, `old-patient`, `patient-card`, dan `doctor-schedule` — sehingga `FE-LAB-13` menambahkan **pilihan layanan pada alur yang sudah berjalan, bukan kiosk baru**, dan DoD-nya menuntut nol perilaku alur lama yang berubah beserta uji lama yang lulus tanpa disentuh. `FE-LAB-14` menambahkan daftar sesi kiosk dan pemilih pemeriksaan pada layar pendaftaran laboratorium yang sudah ada. **Dua kewenangan UI dikunci.** Pertama, disiplin **tidak ditanyakan sama sekali** — `LAB-DEC-048` butir 6 sudah mencabut kotak pilihannya, dan menanyakan ulang jawaban yang sudah ada di katalog hanya menambah kesempatan menjawab keliru. Kedua, layar **wajib memberitahukan hasil pemecahan**: ini satu-satunya tempat pada modul ini di mana satu tindakan petugas menghasilkan lebih dari satu objek bisnis, dan tanpa pemberitahuan dugaan pertama yang wajar adalah petugas tidak sengaja menekan simpan dua kali. Pada `FE-LAB-13` ditegaskan pula bahwa pemakainya **pasien, bukan petugas**: tidak ada istilah teknis, dan kata "disiplin" tidak muncul di layar mana pun | `DRAFT` |
 | 13 | 2026-09-14 | **Gelombang `MVP-5a` ditambahkan** — tiga task `FE-LAB-10` sampai `FE-LAB-12`. `FE-LAB-10` mengelola jenis specimen beserta daftar pantau `Lainnya`, ditempatkan di `health-services/master-data/` sesuai `AC-49`, bukan di folder laboratorium. `FE-LAB-11` formulir penerimaan memuat wilayah A sampai E; **dua wilayahnya digambar sebagai tempat tanpa isi yang dikunci** karena `FR-11.9` dan `FR-11.10` menunggu `LAB-REQ-005` — dan layar itu tidak boleh berpura-pura jalan buntunya sudah hilang. `FE-LAB-12` daftar dan detail penerimaan, dengan butir DoD bahwa daftarnya memakai **waktu penerimaan nyata**, bukan `ReceivedAt`. `AC-76` masuk DoD `FE-LAB-11` sebagai regresi: seluruh uji layar lab lama wajib lulus **tanpa disentuh**. Grafik urutan dependency ditulis untuk `MVP-5a`; ketiadaannya pada gelombang lama dicatat sebagai gap | `DRAFT` |
 | 12 | 2026-09-08 | **Percobaan verifikasi manual dan koreksi penahannya, ditulis manual atas instruksi pemilik modul.** Backend dan frontend dijalankan lokal terhadap `QuilvianNewDevYoga`; keduanya sehat. Ke-32 skenario tetap **tidak dapat dijalankan**, tetapi sebabnya berbeda dari yang tercatat: basis data dev tidak memiliki **satu pun** jenis pemeriksaan laboratorium — 0 dari 1 prosedur di seluruh basis data — sehingga pesanan tidak dapat dibuat sama sekali. Catatan lama *"menunggu backend dijalankan"* untuk `FE-LAB-07`, `FE-LAB-08`, dan `FE-LAB-09` karena itu menyesatkan; ketiganya menunggu **data**, bukan proses. Angkanya dihitung lewat API dan dicatat pada bagian 8.1. Yang berhasil diverifikasi dijalankan lewat Playwright terhadap aplikasi berjalan, **21 dari 21 lolos**: login, kesembilan menu Laboratorium muncul di sidebar, kesembilan halaman terbuka tanpa error boundary maupun galat runtime, dan ruas **Disiplin Laboratorium** tampil beserta ketiga pilihannya. Ini sekaligus menutup temuan bahwa enam route milik `FE-LAB-05`, `FE-LAB-08`, dan `FE-LAB-09` tidak pernah terdaftar di sidebar sejak dibangun, sehingga selama ini hanya terbuka lewat pengetikan URL. Rantai Master Data → katalog terbukti terpisah, 9 dari 9, memakai prosedur uji yang dibuat lalu dihapus kembali | `DRAFT` |
 | 1 | 2026-09-02 | Roadmap frontend pertama. 9 task disusun dan dipasangkan ke gelombang backendnya, bukan ditumpuk pada `MVP-4`, setelah kontrak dikunci mengizinkan kerja paralel | `DRAFT` |

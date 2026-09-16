@@ -4,10 +4,11 @@
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
 | Reconciliation ID | `LAB-REC-001` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `draft` |
-| Revision efektif | `2` — seluruh pertentangan sudah ditutup |
-| **Verdict** | **`RECONCILED`** — 5 pertentangan ditutup `LAB-DEC-025` sampai `LAB-DEC-029`; 11 kemampuan dimasukkan scope lewat `LAB-DEC-030` |
+| Verdict putaran 1 | **`RECONCILED`** — 5 pertentangan ditutup `LAB-DEC-025` sampai `LAB-DEC-029`; 11 kemampuan dimasukkan scope lewat `LAB-DEC-030` |
+| **Verdict putaran 2** | **`RECONCILED`** — 2026-09-15. Ketiga pertentangan ditutup `LAB-DEC-060` sampai `LAB-DEC-063` pada hari yang sama. Satu penahan baru terbuka: `LAB-COORD-010`, jalur baca status pembayaran milik Billing |
+| Revision efektif | `2` — pertentangan putaran 1 sudah ditutup; putaran 2 membuka tiga yang baru |
 
 ## 0. Penutupan — 2026-09-01
 
@@ -329,8 +330,109 @@ dikerjakan laboratorium.
 
 ---
 
+
+---
+
+## 10. Putaran 2 — Artifact "Module Artifact - Laboratorium", 2026-09-15
+
+**Bukti baru.** Pemilik modul menyerahkan satu artifact konsolidasi tiga menu pemeriksaan —
+Patologi Klinik, Patologi Anatomi, Mikrobiologi — yang menyatakan dirinya berbasis
+`Laboratorium.md` ditambah **tiga putaran klarifikasi pemilik**: sepuluh jawaban awal,
+kewajiban alasan pembatalan, dan pop-up alert konfirmasi akhir.
+
+**Berkas baseline `Laboratorium.md` tidak ada di repository ini** dan tidak pernah tercatat pada
+putaran 1 — yang diadopsi 2026-09-01 adalah `Analisis_Konsolidasi_Modul_Laboratorium.md` beserta
+tiga artifact pengamatan. Artifact putaran 2 karena itu diperlakukan sebagai **bukti tingkat
+pemilik** atas isi klarifikasinya, dan **bukti tingkat pengamatan** atas sisanya.
+
+### 10.1 Yang menguatkan blueprint — nol pekerjaan baru
+
+| Isi artifact | Menguatkan | Catatan |
+|---|---|---|
+| Tiga menu identik, berbeda hanya konteks disiplin | `LAB-DEC-025` | Tepat sama |
+| Satu No. Order = satu baris, memuat beberapa `Nama Pemeriksaan` | `LAB-DEC-057`, `BE-LAB-26` | **Inilah `LabOrderedProcedure`.** Tabel yang dibangun 2026-09-15 menjawab persis kebutuhan ini |
+| Satu order = satu hasil walaupun berisi beberapa pemeriksaan | `BR-23` + `LAB-DEC-055` | **Cocok justru karena `BE-LAB-27`:** pesanan kini dipecah per disiplin, sehingga satu pesanan selalu satu disiplin — dan satu disiplin selalu satu bentuk hasil |
+| Order CITO ditandai pada barisnya | `LAB-DEC-026` | Penanda melekat pada pemeriksaan; tampilan baris adalah turunannya |
+| Order terbaru di atas, filter sudah tersedia | `FE-LAB-*` | Kewenangan UI, tidak menyentuh backend |
+
+### 10.2 Yang benar-benar baru — nol kemunculan di blueprint maupun source
+
+| ID | Isi | Keadaan blueprint hari ini |
+|---|---|---|
+| `REC2-NEW-001` | **Status `Terkonfirmasi`** sebagai langkah tersendiri: konfirmasi sekali, merekam nama konfirmator dan tanggal/waktu, memilih dokter pemeriksa | `LabOrderStatus` = `Draft`, `Requested`, `Accepted`, `InProcess`, `Completed`, `Cancelled`, `OnHold`. **Tidak ada `Confirmed`.** `LAB-P0-002` justru masih membuka pertanyaan ini sejak 2026-09-01 |
+| `REC2-NEW-002` | **Dokter pemeriksa** dipilih petugas dan tampil pada daftar serta ringkasan cetak | `LabOrder` **tidak punya** kolom dokter pemeriksa |
+| `REC2-NEW-003` | **Alasan pembatalan pesanan wajib** diisi manual dan disimpan | Nol aturan pembatalan **pesanan** pada `LAB-VAL-v1`. `VAL-19` hanya mengatur pembatalan **pemeriksaan**. `LAB-P0-003` masih terbuka |
+| `REC2-NEW-004` | **Pop-up alert konfirmasi akhir** sesudah `Lanjut Pembatalan`, sebelum status berubah | Nol kemunculan. Ini klarifikasi terbaru pemilik |
+| `REC2-NEW-005` | **Status pembayaran pada layar lab** — `Belum ditagihkan`, `Belum Lunas`, `Lunas` — dan **Proses Pemeriksaan terkunci sampai `Lunas`** bagi pasien Mandiri/tunai | `LabOrder` nol kolom pembayaran. `RJ-BIL-GATE-DEC-003` menetapkan akibat finansial sepenuhnya milik Billing. `LAB-P0-007` masih terbuka |
+| `REC2-NEW-006` | **Print membuka preview lebih dulu**, baru dicetak | Nol kemunculan pada kontrak maupun roadmap frontend |
+| `REC2-NEW-007` | **Alert order baru 10 detik**, dapat ditutup manual | Kewenangan UI; belum tercatat sebagai kebutuhan |
+
+### 10.3 Yang bertentangan — perlu keputusan pemilik, tidak dijawab dokumen ini
+
+| ID | Pertentangan | Sisi artifact | Sisi blueprint dan source |
+|---|---|---|---|
+| `REC2-CONF-001` | **Letak penerimaan sampling** | Sebuah **checkbox `Sampling diterima`** di dalam pop-up Proses Pemeriksaan | Siklus hidup wadah penuh: `Planned` → `Collected` → `Received` → `Accepted`/`Rejected`, beserta pengambilan ulang, penolakan beralasan, dan penjagaan `VAL-68`/`VAL-69`. Dibangun `BE-LAB-21` sampai `BE-LAB-28` dan **sudah berjalan** |
+| `REC2-CONF-002` | **Status `Accepted`** | Tidak muncul sebagai status pesanan | `Accepted` adalah status pesanan yang **diturunkan otomatis** saat wadah pertama dinyatakan layak — `state-transition-matrix` bagian 1 |
+| `REC2-CONF-003` | **Pembayaran menahan pekerjaan klinis** | Proses Pemeriksaan **nonaktif** sampai `Lunas` bagi Mandiri/tunai | `RJ-BIL-GATE-DEC-003`: keputusan uang milik Billing; Laboratorium menerbitkan fakta kelayakan tagih **sesudah** wadah layak (`AC-37`), bukan sebaliknya |
+
+**`REC2-CONF-001` dan `REC2-CONF-002` adalah satu perkara yang sama dilihat dari dua sisi.**
+Artifact ini memotret layar yang berjalan hari ini, ketika penerimaan sampling memang hanya satu
+centang. Blueprint memperluasnya menjadi siklus hidup wadah karena bukti lapangan putaran 1
+menunjukkan penolakan dan pengambilan ulang benar-benar terjadi. Menerima artifact apa adanya
+berarti membatalkan delapan task yang sudah selesai; menolaknya apa adanya berarti layar yang
+dipakai petugas tidak pernah cocok dengan sistemnya.
+
+**`REC2-CONF-003` berkonsekuensi paling jauh.** Menahan pemeriksaan sampai lunas adalah kebijakan
+rumah sakit, bukan pilihan teknis — dan ia bertabrakan dengan gerbang billing yang sudah dikunci
+modul `rawat-jalan`. Ia juga menyentuh `LAB-COORD-007` yang masih tertahan.
+
+### 10.4 Yang ikut terjawab
+
+| Pertanyaan terbuka | Dijawab artifact? |
+|---|---|
+| `LAB-P0-002` urutan status resmi termasuk `Confirmed` | **Sebagian** — artifact menyatakan `Terkonfirmasi` ada dan letaknya sesudah `Menunggu`. Belum menyatakan hubungannya dengan `Accepted` |
+| `LAB-P0-003` aturan pembatalan dan koreksi | **Sebagian** — batas pembatalan (`Menunggu`/`Terkonfirmasi` saja) dan kewajiban alasan ditetapkan. Koreksi hasil tidak disinggung |
+| `LAB-P0-007` aturan tagihan dan cakupan | **Tidak** — artifact justru menambah pertanyaan lewat `REC2-CONF-003` |
+
+### 10.5 Verdict putaran 2
+
+**`RECONCILED` — 2026-09-15.** Ketiga pertentangan dijawab pemilik modul pada hari yang sama.
+
+| Pertentangan | Ditutup oleh | Arah keputusan |
+|---|---|---|
+| `REC2-CONF-001` letak penerimaan sampling | `LAB-DEC-060` | **Blueprint bertahan.** Centang `Sampling diterima` menjadi jalan pintas satu klik ke siklus hidup wadah, bukan penggantinya. `BE-LAB-21`..`BE-LAB-28` tetap berlaku |
+| `REC2-CONF-002` keberadaan status `Accepted` | `LAB-DEC-060` | **Tetap ada**, tetap diturunkan otomatis saat wadah pertama dinyatakan layak. Ia tidak muncul di layar bukan berarti ia tidak ada |
+| `REC2-CONF-003` pembayaran menahan pekerjaan klinis | `LAB-DEC-062` | **Diadopsi dengan batas tegas.** Layar mengunci tombol Proses bagi Mandiri/tunai, tetapi nilainya **dibaca dari Billing** — Laboratorium nol kolom pembayaran. `RJ-BIL-GATE-DEC-003` tidak dilanggar |
+
+**Tujuh butir baru: lima diadopsi, dua menjadi kewenangan UI.**
+
+| Butir | Keadaan sesudah keputusan |
+|---|---|
+| `REC2-NEW-001` status `Terkonfirmasi` | Diadopsi `LAB-DEC-061`. Menuntut amandemen `LAB-STATE-v1` dan satu migration |
+| `REC2-NEW-002` dokter pemeriksa | Diadopsi `LAB-DEC-061`. Kolom baru pada `LabOrder` |
+| `REC2-NEW-003` alasan pembatalan wajib | Diadopsi `LAB-DEC-063`. **Nol kolom baru** — sudah tersimpan pada jejak audit; yang dibutuhkan hanya mewajibkan ruas yang hari ini opsional |
+| `REC2-NEW-004` alert konfirmasi akhir | **Kewenangan UI** (`LAB-DEC-063`). Backend menuntut alasannya ada, bukan berapa kali petugas ditanya |
+| `REC2-NEW-005` status pembayaran mengunci Proses | Diadopsi `LAB-DEC-062`, **tertahan** `LAB-COORD-010` |
+| `REC2-NEW-006` print preview | **Kewenangan UI.** Tidak menyentuh kontrak backend |
+| `REC2-NEW-007` alert order baru 10 detik | **Kewenangan UI** |
+
+**Biaya yang muncul bersamaan — ditulis supaya tidak ditemukan belakangan.**
+
+| Hal | Akibat |
+|---|---|
+| `LAB-STATE-v1` | Naik revisi: `Confirmed` masuk sebagai status pesanan, beserta transisi sah dari `Requested` dan ke `Accepted` |
+| `LAB-VAL-v1` | Naik revisi: aturan konfirmasi sekali, dan aturan pembatalan beralasan beserta batas statusnya |
+| `LAB-API-v1` | Naik revisi: jalur konfirmasi dan jalur pembatalan beralasan |
+| Migration | **Tiga kolom** pada `LabOrder`: konfirmator, waktu konfirmasi, dokter pemeriksa. Nol kolom pembayaran, dan **nol kolom alasan pembatalan** — alasannya sudah tersimpan sebagai `ReasonNote` pada `LabTransitionHistory` sejak jalur pembatalan dibangun |
+| `LAB-COORD-010` | **Penahan baru.** Jalur baca status pembayaran milik Billing belum ada; sampai ada, penguncian tombol Proses tidak dapat ditegakkan backend |
+
+**Langkah berikutnya:** amandemen kontrak — `LAB-STATE-v1`, `LAB-VAL-v1`, `LAB-API-v1` — lalu
+`plan-module-delivery` menurunkannya menjadi task. `LAB-COORD-010` diajukan terpisah ke pemilik
+Billing, mengikuti pola `LAB-REQ-005` dan `LAB-REQ-006`.
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-01 | Rekonsiliasi pertama terhadap tiga artifact bukti lapangan. 8 keputusan dikuatkan, 5 bertentangan, 11 kemampuan belum tercakup, 3 pertanyaan terjawab sebagian | `draft` |
+| 2 | 2026-09-15 | **Putaran 2 — artifact "Module Artifact - Laboratorium".** Tujuh butir benar-benar baru dicatat, dipimpin status `Terkonfirmasi` yang selama ini justru menjadi pertanyaan terbuka `LAB-P0-002`, alasan pembatalan wajib beserta pop-up alert konfirmasi akhir, dan status pembayaran yang menahan Proses Pemeriksaan. Lima butir lain **menguatkan** blueprint tanpa pekerjaan baru — terutama satu order berisi beberapa nama pemeriksaan, yang persis dijawab `LabOrderedProcedure` milik `BE-LAB-26`, dan satu order satu hasil yang justru cocok **karena** `BE-LAB-27` memecah pesanan per disiplin. **Tiga pertentangan dibuka dan tidak dijawab dokumen ini:** letak penerimaan sampling (satu centang vs siklus hidup wadah yang sudah dibangun delapan task), keberadaan status `Accepted`, dan pembayaran yang menahan pekerjaan klinis — yang bertabrakan dengan `RJ-BIL-GATE-DEC-003` milik `rawat-jalan`. **Ketiganya ditutup pada hari yang sama** oleh `LAB-DEC-060` sampai `LAB-DEC-063`: siklus hidup wadah bertahan dan centang menjadi jalan pintasnya, status `Confirmed` diadopsi beserta dokter pemeriksa, alasan pembatalan wajib disimpan backend, dan pembayaran mengunci tombol Proses tetapi nilainya dibaca dari Billing sehingga `RJ-BIL-GATE-DEC-003` tidak dilanggar. Verdict putaran 2 menjadi `RECONCILED`, dengan satu penahan baru `LAB-COORD-010` | `draft` |

@@ -277,6 +277,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabOrderStatus.OnHold => "Ditahan",
             LabOrderStatus.CancelRequested => "Pembatalan diminta",
             LabOrderStatus.Cancelled => "Dibatalkan",
+            LabOrderStatus.Confirmed => "Dikonfirmasi",
             _ => x.ToString()
         };
 

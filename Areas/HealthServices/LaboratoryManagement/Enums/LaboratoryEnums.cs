@@ -57,7 +57,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         CancelRequested = 7,
 
         [Display(Name = "Cancelled")]
-        Cancelled = 8
+        Cancelled = 8,
+
+        /// <summary>
+        /// Pesanan sudah dikonfirmasi petugas laboratorium, beserta dokter pemeriksanya
+        /// (<c>LAB-DEC-061</c>, <c>LAB-STATE-v1</c> <c>r3</c> bagian 1a).
+        ///
+        /// Pada alur kerja status ini berdiri <b>antara</b> <see cref="Requested"/> dan
+        /// <see cref="Accepted"/>. Angkanya sengaja <b>9</b>, bukan 3: nilai enum ini
+        /// dipersistensi sebagai <c>integer</c> pada kolom <c>OrderStatus</c>, sehingga
+        /// menyisipkannya di tengah akan mengubah arti setiap pesanan yang sudah tersimpan.
+        /// Urutan alur kerja ditentukan matriks transisi, bukan oleh urutan angkanya.
+        ///
+        /// Jalur <see cref="Requested"/> ke <see cref="Accepted"/> <b>tidak dicabut</b>:
+        /// pesanan yang tidak pernah dikonfirmasi tetap dapat berjalan.
+        /// </summary>
+        [Display(Name = "Confirmed")]
+        Confirmed = 9
     }
 
     /// <summary>
@@ -267,5 +283,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         /// <summary>Ditarik oleh pengajunya sendiri sebelum diputuskan.</summary>
         [Display(Name = "Withdrawn")]
         Withdrawn = 4
+    }
+
+    /// <summary>
+    /// Keadaan satu baris pemeriksaan terpesan (<c>LAB-DEC-057</c>).
+    ///
+    /// Menjawab pertanyaan yang selama ini tidak dapat dijawab: dari seluruh pemeriksaan yang
+    /// diminta untuk pasien ini, mana yang <b>sudah masuk wadah</b> dan mana yang masih
+    /// menunggu. Sebelum ada entity terpesan, pemeriksaan baru muncul bersamaan dengan wadahnya,
+    /// sehingga yang belum berwadah tidak tercatat di mana pun.
+    /// </summary>
+    public enum LabOrderedProcedureStatus
+    {
+        /// <summary>Sudah dipesan, belum masuk wadah mana pun.</summary>
+        [Display(Name = "Ordered")]
+        Ordered = 1,
+
+        /// <summary>Sudah dikerjakan dari sebuah wadah; baris pemeriksaannya sudah terbentuk.</summary>
+        [Display(Name = "Fulfilled")]
+        Fulfilled = 2,
+
+        /// <summary>Dibatalkan sebelum sempat masuk wadah.</summary>
+        [Display(Name = "Cancelled")]
+        Cancelled = 3
     }
 }

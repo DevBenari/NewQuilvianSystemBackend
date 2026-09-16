@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `4` |
+| Revision | `5` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -928,9 +928,212 @@ Kelimanya harus ber-`IsForLaboratory = true`.
 
 ---
 
+## 12. Amandemen 2026-09-15 — Pemesanan per disiplin dari pendaftaran
+
+Menurunkan `LAB-DEC-055`, `LAB-DEC-056`, dan `LAB-DEC-057` dari decision log revision 29.
+Diaudit pada backend `e2152709`; kedelapan berkas yang menjadi dasar bagian ini diverifikasi
+**tidak berubah** sejak titik pindai capability map `466a7127`.
+
+**Bagian kiosk sengaja tidak dirancang di sini.** `LAB-DEC-051` sampai `LAB-DEC-054` berstatus
+`draft` dan tertahan `LAB-COORD-008` serta `LAB-COORD-009`; bentuk sambungannya ditulis pada
+12.6 sebagai titik terbuka, bukan sebagai kontrak.
+
+### 12.1 Masalah struktural yang ditemukan sebelum merancang
+
+Keputusan "petugas memilih daftar pemeriksaan, lalu pesanan terbentuk" bertabrakan dengan model
+yang sudah terkunci. Tiga fakta, seluruhnya dari source pada `e2152709`:
+
+| Fakta | Bukti |
+|---|---|
+| `LabOrder` memegang **tepat satu** `ProcedureId` | `LabOrder.cs`; `LabOrderService.CreateAsync` |
+| `LabExamination.SpecimenId` **wajib** dan bagian unique index `(SpecimenId, ProcedureId)` | `LabExaminationConfiguration.cs:15`, `:39-41` |
+| `LabSpecimen` mewajibkan jenis specimen sejak `BE-LAB-21` | `VAL-51` |
+
+Akibatnya daftar pemeriksaan yang dipilih saat pendaftaran **tidak punya tempat tinggal** sampai
+wadah fisiknya dicatat — padahal `LAB-DEC-045` sengaja memisahkan layar pendaftaran dari layar
+penerimaan specimen.
+
+`LAB-DEC-057` menyelesaikannya dengan memisahkan dua konsep yang selama ini menumpang pada satu
+tabel: **apa yang dipesan** dan **apa yang dikerjakan dari sebuah wadah**.
+
+### 12.2 `LabOrderedProcedure` — `New`, milik Laboratorium
+
+| Field | Isi |
+|---|---|
+| **Status** | `New` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabOrderedProcedure.cs` |
+| **Configuration** | `Repositories/Configurations/HealthServices/LaboratoryManagement/LabOrderedProcedureConfiguration.cs` |
+| **Prefix** | `Lab`, sesuai registry baris 21 |
+| **Dasar** | `LAB-DEC-055`, `LAB-DEC-056`, `LAB-DEC-057` |
+
+| Kolom | Tipe | Wajib | Catatan |
+|---|---|:---:|---|
+| `Id` | `Guid` | ya | PK |
+| `LabOrderId` | `Guid` | ya | FK ke `LabOrder`, `Restrict` |
+| `ProcedureId` | `Guid` | ya | FK ke `MstProcedure`, `Restrict` |
+| `ProcedureCodeSnapshot` | `string(50)` | ya | Salinan saat dipesan, pola sama dengan `LabExamination` |
+| `ProcedureNameSnapshot` | `string(200)` | ya | Salinan saat dipesan |
+| `DisciplineSnapshot` | `LabDiscipline?` | tidak | Disiplin **saat dipesan**. Penggolongan katalog yang berubah kemudian tidak boleh mengubah riwayat |
+| `Urgency` | `LabExaminationUrgency` | ya | `Routine` bawaan. Penanda cito melekat pada pemeriksaan sejak `LAB-DEC-026` |
+| `OrderedStatus` | `LabOrderedProcedureStatus` | ya | `Ordered` \| `Fulfilled` \| `Cancelled` |
+| `FulfilledExaminationId` | `Guid?` | tidak | FK ke `LabExamination`, `Restrict`. Terisi ketika pemeriksaan ini benar-benar dikerjakan dari sebuah wadah |
+
+**Index.** Unique atas `(LabOrderId, ProcedureId)` bila `IsDelete = false` — satu jenis
+pemeriksaan dipesan sekali per pesanan. Ini sejajar dengan `VAL-07` pada tingkat wadah, dan
+pengerjaan ganda tetap dinyatakan `IsDuplo`, bukan dengan memesan dua kali. Index biasa atas
+`LabOrderId` dan `OrderedStatus`.
+
+**Kenapa tabel baru, bukan `SpecimenId` dibuat nullable.** Membuat `LabExamination.SpecimenId`
+nullable akan melubangi unique index `(SpecimenId, ProcedureId)` yang menjadi dasar `BR-20` dan
+`AC-35`: di PostgreSQL dua baris ber-`NULL` **tidak** saling bentrok, sehingga penjagaan itu
+bocor diam-diam. Index yang sama sudah membatalkan `BE-LAB-23`; melemahkannya sekarang berarti
+membayar dua kali untuk pelajaran yang sama.
+
+**Kenapa bukan `LabExamination` dipakai apa adanya.** `LabExamination` adalah **satuan kerja yang
+lahir dari sebuah wadah** — ia membawa salinan tarif, `ChargeEligibleAt`, dan menerbitkan fakta
+kelayakan tagih per baris (`AC-37`). `LabOrderedProcedure` adalah **daftar permintaan**. Keduanya
+berbeda umur dan berbeda akibat finansial; menumpuknya pada satu tabel adalah persis sebab
+masalah 12.1.
+
+### 12.3 Pemecahan pesanan menurut disiplin
+
+**Algoritmanya, diturunkan `LAB-DEC-055`:**
+
+1. Muat `MstProcedure` untuk setiap pilihan; tolak yang bukan laboratorium, tidak aktif, atau
+   tidak ditemukan (`VAL-66`).
+2. Kelompokkan menurut `MstProcedure.LabDiscipline`.
+3. Untuk setiap kelompok, bentuk **satu `LabOrder`** ber-`Discipline` sama dengan kunci
+   kelompoknya.
+4. Untuk setiap pemeriksaan pada kelompok itu, bentuk satu `LabOrderedProcedure`.
+5. Seluruhnya dalam **satu transaksi**. Bila satu pemeriksaan ditolak, tidak satu pun pesanan
+   terbentuk.
+
+**Kelompok tanpa disiplin tetap dibentuk.** Pemeriksaan yang `LabDiscipline`-nya kosong
+berkumpul menjadi satu pesanan ber-`Discipline` `null`. `AC-85` menyatakan keadaan itu sah dan
+**tidak dicabut**; pesanan itu memang tidak muncul di ketiga layar Pemeriksaan, dan itulah
+sebabnya penggolongan katalog perlu dirawat.
+
+**`LabOrder.ProcedureId` diisi pemeriksaan pertama kelompoknya.** Kolom itu tidak dapat
+dikosongkan tanpa mengubah endpoint lama, dan pembacanya yang sudah ada tetap mendapat nilai
+yang masuk akal. Maknanya dipertegas pada dokumentasi kode: **penunjuk wakil**, bukan
+satu-satunya pemeriksaan pesanan itu.
+
+### 12.4 Service dan Controller
+
+| Nama | Status | Fungsi | Transaksi DB |
+|---|---|---|---|
+| `LabOrderService` | `Diperbarui` | Bertambah satu method pemesanan massal yang memecah per disiplin. Method `CreateAsync` yang sudah ada **tidak disentuh** | Ya |
+| `LabSpecimenService` | `Diperbarui` | Saat wadah dicatat, baris `LabOrderedProcedure` yang terpenuhi ditandai `Fulfilled` dan ditautkan ke pemeriksaannya | Sudah ada |
+| `LabOrderController` | `Diperbarui` | Satu endpoint baru; endpoint lama tidak berubah | — |
+
+### 12.5 Penjagaan yang bersifat aditif, bukan pengetatan diam-diam
+
+`VAL-68` dan `VAL-69` menjaga agar wadah hanya memuat pemeriksaan yang memang dipesan. Keduanya
+**hanya berlaku bila pesanannya memiliki baris `LabOrderedProcedure`**.
+
+Pesanan lama — seluruhnya, karena tabelnya baru — tidak memilikinya, sehingga
+`POST /lab-specimens/by-order/{labOrderId}` berperilaku **persis seperti sebelumnya** bagi
+mereka. Ini disengaja: `BE-LAB-21` baru saja membuktikan berapa mahal harga ruas wajib yang
+ditambahkan ke endpoint yang sedang dipakai.
+
+### 12.6 Sambungan kiosk — terbuka penuh sejak `LAB-REQ-006`
+
+> **Bagian ini ditulis ulang 2026-09-15.** Sebelumnya ia mencatat dua titik sambung yang
+> sengaja dibiarkan terbuka karena `LAB-COORD-008` dan `LAB-COORD-009` belum dijawab. **Keduanya
+> ditutup** oleh persetujuan Andry Zain lewat
+> [`LAB-REQ-006`](approval-requests/2026-09-15-persetujuan-bagian-lab-di-kiosk.md), sehingga
+> bentuknya kini boleh dikunci.
+
+**Kiosk sudah ada dan sudah dipakai.** `TrxKioskScanSession`, `KioskScanSessionController`, dan
+`MstKioskDevice` milik `registration-management` sudah memindai identitas dan mencocokkannya ke
+`PatientId` — **16 sesi nyata, 15 cocok**. Yang ditambahkan hanya dua ruas, dan keduanya
+**aditif**.
+
+#### 12.6.1 `TrxKioskScanSession` — `Extend`, milik `registration-management`
+
+| Kolom | Tipe | Wajib | Catatan |
+|---|---|:---:|---|
+| `TargetServiceId` atau nilai enum layanan | — | tidak | Layanan yang dipilih pasien; Laboratorium salah satu nilainya |
+| `HasPhysicianRequest` | `bool?` | tidak | Pasien membawa permintaan dokter, atau memeriksakan diri sendiri (`LAB-DEC-052`) |
+
+**Keduanya nullable, dan itu bukan kelonggaran.** Enam belas sesi sudah tersimpan tanpa kedua
+ruas itu; kolom wajib akan menggagalkan migrationnya atau memaksa pengisian tebakan. `AC-93`
+mensyaratkan tidak satu pun perilaku sesi kiosk yang sudah ada berubah.
+
+> **Catatan pelaksanaan, ditambahkan 2026-09-15 — kolom saja belum cukup.** `BE-EXT-04`
+> mendirikan kedua kolom beserta penyaring bacanya, tetapi **jalur tulisnya tidak ikut dibuka**:
+> `CreateKioskScanSessionRequest` nol memuat keduanya, sehingga kolomnya berdiri tanpa satu pun
+> cara mengisinya. Terbukti pada data — **16 dari 16 sesi bernilai `null`**, termasuk yang dibuat
+> sesudah kolomnya ada. Ditutup `BE-EXT-04b`, yang menambahkan kedua ruas sebagai **opsional**
+> pada `POST /scan-result`.
+>
+> **Yang belum diputuskan:** apakah kiosk menanyakan layanan **sebelum** atau **sesudah** kartu
+> dipindai. Hari ini kedua ruas hanya dapat dikirim saat sesi dibuat, karena `POST /scan-result`
+> adalah satu-satunya jalur tulis yang ada. Bila urutannya terbalik di lapangan, diperlukan satu
+> jalur ubah tersendiri — keputusan milik `registration-management`.
+
+**Bentuk persisnya ditetapkan pemilik `registration-management`**, bukan di sini. Yang dikunci
+`LAB-REQ-006` adalah **kebutuhannya**, bukan nama kolomnya — dan blueprint ini tidak berwenang
+menamai kolom pada tabel milik modul lain.
+
+#### 12.6.2 Kunjungan — dibentuk dan ditutup Registrasi
+
+| Butir | Ketentuan | Dasar |
+|---|---|---|
+| Pembentukan | Kunjungan terbentuk **begitu pasien selesai di kiosk**, dikerjakan Registrasi | `LAB-DEC-053` |
+| Penutupan | Kunjungan yang tidak dilanjutkan ditutup **saat hari layanan berakhir**, otomatis, sebab "tidak dilanjutkan" | `LAB-DEC-054`, `LAB-DEC-058` |
+| Biaya pendaftaran | **Gugur** bersama kunjungannya | `LAB-DEC-058` |
+| Kewenangan Laboratorium | **Nol.** `AC-45` tidak dicabut — Laboratorium tidak membentuk, mengubah, maupun menutup kunjungan | `AC-45` |
+
+#### 12.6.3 Bagaimana Laboratorium membacanya
+
+Laboratorium **tidak menyalin** satu pun data sesi kiosk. Layar pendaftaran pasien laboratorium
+membaca daftar sesi kiosk bertujuan Laboratorium yang belum diproses lewat endpoint milik
+`registration-management`, lalu memakai `encounterId` yang sudah terbentuk.
+
+**Endpoint pemesanan massal pada 12.3 tidak berubah sedikit pun karenanya.** Ia sudah menerima
+`encounterId` yang sudah jadi, dari mana pun kunjungan itu berasal — kiosk, loket, atau poli.
+Itulah sebabnya ia dirancang begitu sejak awal, ketika kedua penahan masih terbuka.
+
+#### 12.6.4 Pembagian pekerjaan
+
+Mengikuti pola `BE-EXT-01` sampai `BE-EXT-03`: perubahan pada milik modul lain dikerjakan sebagai
+task berawalan `BE-EXT` pada roadmap Laboratorium, atas wewenang `LAB-REQ-006` — bukan atas
+asumsi kepemilikan.
+
+| Pekerjaan | Pemilik tabel | Bentuk task |
+|---|---|---|
+| Dua ruas pada `TrxKioskScanSession` beserta jalur bacanya | `registration-management` | `BE-EXT` |
+| Kunjungan dibentuk dari sesi kiosk, dan ditutup otomatis akhir hari | `registration-management` | `BE-EXT` |
+| Endpoint pemesanan massal per disiplin | Laboratorium | `BE-LAB` |
+| Layar pendaftaran membaca daftar sesi kiosk | Laboratorium | `FE-LAB` |
+
+#### 12.6.5 Yang tetap tertahan
+
+| Hal | Penahan | Akibat |
+|---|---|---|
+| Jalur bawa permintaan dokter **luar** | `LAB-COORD-006` | Data induk instansi perujuk belum punya endpoint tulis; jalur ini belum dapat dipakai penuh walaupun kiosk sudah menanyakannya |
+| Metode pembayaran piutang mitra | `LAB-COORD-007` | Tidak menahan pendaftaran maupun pemesanan |
+
+`LAB-REQ-006` **tidak** mencakup keduanya, dan itu ditulis eksplisit pada bagian 2 dokumen itu
+supaya persetujuannya tidak terbaca lebih luas daripada yang diberikan.
+
+### 12.7 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Kenapa ditolak |
+|---|---|
+| `LabExamination.SpecimenId` dibuat nullable | Melubangi unique index yang menjadi dasar `BR-20` dan `AC-35`; `NULL` tidak saling bentrok di PostgreSQL |
+| Pendaftaran sekalian membentuk wadah | `VAL-51` memaksa jenis specimen dinyatakan sebelum sampelnya diambil, di layar yang bukan tempatnya (`LAB-DEC-045`) |
+| Satu pesanan per pemeriksaan | Mencabut `LAB-DEC-055`, dan memenuhi ketiga layar Pemeriksaan dengan satu baris per jenis tes |
+| Memperluas `POST /lab-orders` | Mengubah bentuk respons endpoint yang sudah dipakai — `LAB-DEC-056` menolaknya secara tegas |
+| Disiplin dipindah ke `LabExamination` | Membongkar `INV-21`, `VAL-46`, dan penyaring ketiga layar Pemeriksaan sekaligus |
+
+---
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 5 | 2026-09-15 | **Amandemen pemesanan per disiplin** (bagian 12), menurunkan `LAB-DEC-055`, `LAB-DEC-056`, dan `LAB-DEC-057`. Satu tabel baru `LabOrderedProcedure` yang memisahkan **apa yang dipesan** dari **apa yang dikerjakan dari sebuah wadah** — dua konsep yang selama ini menumpang pada `LabExamination`. `LabExamination` **tidak berubah sama sekali**, dan unique index `(SpecimenId, ProcedureId)` yang sudah membatalkan `BE-LAB-23` tidak disentuh. Satu endpoint pemesanan massal yang memecah pesanan per disiplin; `POST /lab-orders` yang sudah ada tidak diubah bentuk maupun perilakunya. `VAL-68` dan `VAL-69` dibuat **aditif** — hanya berlaku bagi pesanan yang memiliki baris terpesan, sehingga pesanan lama tidak berubah perilakunya. Titik sambung kiosk dibiarkan terbuka tanpa kontrak karena `LAB-COORD-008` dan `LAB-COORD-009` belum dijawab | `draft` |
 | 4 | 2026-09-14 | **Amandemen Penerimaan Sampling/Specimen** (bagian 11), menurunkan `LAB-DEC-038`..`042` dan `045`. Satu tabel baru `LabSpecimenType` — memakai prefix `Lab`, bukan `Mst`, sesuai baris riwayat registry 2026-09-02. Lima kolom nullable ditambahkan ke `LabSpecimen`. **`LabExamination` tidak berubah sama sekali**: Qty diperbanyak menjadi baris di lapisan service, bukan disimpan sebagai kolom. Titik kunci `LAB-DEC-039` terbukti **sudah berjalan** sebagai `VAL-18` dan tidak dibangun ulang. Satuan volume **dipakai ulang** dari `MstMeasurement.IsForLaboratory`, bukan daftar baru — dan pengisian kelima barisnya dinyatakan sebagai pekerjaan Master Data agar `LAB-DEBT-001` tidak berulang. Dua titik sambung dibiarkan terbuka tanpa kontrak terkunci karena `LAB-REQ-005` belum dijawab | `draft` |
 | 1 | 2026-09-01 | Arsitektur backend pertama untuk enam slice yang lolos kedua gerbang. Delapan model ditetapkan, tiga di antaranya diperbarui dan lima baru. Tiga utang teknis struktur folder ditemukan dan dicatat tanpa dirapikan | `draft` |

@@ -8,6 +8,7 @@
 | Revision | `4` |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
+| Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
 | Backend SHA | `c87d9c0` |
@@ -605,3 +606,49 @@ karena daftar perujuk kosong.
 
 Tiga yang pertama diajukan sebagai `LAB-REQ-005` pada 2026-09-14. Yang keempat **belum
 diajukan** dan perlu dikoordinasikan terpisah dengan pemilik `master-data`.
+
+---
+
+## 17. Amandemen 2026-09-15 — `EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan
+
+**Dasar bukti:** rekonsiliasi putaran 2 atas artifact "Module Artifact - Laboratorium"
+(`05-evidence-reconciliation.md` bagian 10). **Dasar keputusan:** `LAB-DEC-061` dan
+`LAB-DEC-063`, disetujui pemilik modul 2026-09-15.
+
+### 17.1 Kenapa epic ini berdiri sendiri
+
+Tiga menu pemeriksaan menampilkan kolom **Konfirmasi** dan **Status Pemeriksaan** yang memuat
+`Terkonfirmasi` — dua hal yang selama ini tidak punya padanan sama sekali di sistem. `LAB-P0-002`
+justru mencatatnya sebagai pertanyaan terbuka sejak 2026-09-01: di mana `Confirmed` berdiri.
+
+Artifact menjawabnya, dan jawabannya membawa serta dua hal lain: **dokter pemeriksa** yang dipilih
+saat konfirmasi, dan **alasan pembatalan** yang wajib.
+
+### 17.2 Functional requirement
+
+| ID | Kebutuhan | Turunan |
+|---|---|---|
+| `FR-11.12` | Petugas mengonfirmasi pesanan **satu kali**, memilih dokter pemeriksa, dan namanya tercatat sebagai konfirmator beserta waktunya | `LAB-DEC-061` |
+| `FR-11.13` | Pembatalan pesanan **wajib beralasan**, dan hanya sah selama pesanan belum dikerjakan | `LAB-DEC-063` |
+
+### 17.3 Batas rilis pertama
+
+| Masuk | Tidak masuk |
+|---|---|
+| Status `Confirmed` beserta konfirmator, waktu, dan dokter pemeriksa | Konfirmasi menjadi **wajib** sebelum `Accepted` — tertahan `LAB-OPEN-027` |
+| Endpoint konfirmasi dan layar pop-upnya | Status pembayaran mengunci tombol Proses — tertahan `LAB-COORD-010` |
+| Pembatalan beralasan beserta batas statusnya | Aturan **koreksi** hasil — `LAB-P0-003` tetap terbuka untuk bagian itu |
+| Print membuka preview lebih dulu | Alert order baru 10 detik |
+
+### 17.4 Definition of Done — `EPIC-LAB-12`
+
+1. `AC-94` sampai `AC-97` terpenuhi dan terbukti.
+2. **`T-97c` terbukti**: jalur `Requested` → `Accepted` tanpa konfirmasi masih berjalan. Epic ini
+   menambah tahap, bukan menutup jalur yang sudah ada.
+3. **`T-97b` terbukti**: pesanan `Requested` dan `Confirmed` tetap dapat dibatalkan.
+4. Konfirmator dan waktu konfirmasi **diturunkan server**, tidak pernah dari badan permintaan.
+5. Nol permission baru; nol kolom pembayaran pada `LabOrder`.
+
+> **Satu butir DoD sengaja berbentuk ketiadaan perubahan**, sama seperti `EPIC-LAB-11`. Epic ini
+> mengandung satu-satunya pengetatan gelombang `MVP-5c` — `VAL-75` — dan pengetatan pada endpoint
+> yang sedang dipakai adalah hal yang paling mahal bila tidak dihitung dampaknya lebih dulu.

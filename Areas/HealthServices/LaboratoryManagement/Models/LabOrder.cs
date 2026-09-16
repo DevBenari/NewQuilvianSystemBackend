@@ -69,6 +69,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         public DateTime? CompletedAt { get; set; }
 
         /// <summary>
+        /// Petugas yang mengonfirmasi pesanan ini (<c>LAB-DEC-061</c>).
+        ///
+        /// Nilainya diturunkan server dari pengguna yang sedang login, tidak pernah dari badan
+        /// permintaan. Kosong selama pesanan belum pernah dikonfirmasi.
+        /// </summary>
+        public Guid? ConfirmedByUserId { get; set; }
+
+        /// <summary>
+        /// Waktu pesanan dikonfirmasi (<c>LAB-DEC-061</c>).
+        ///
+        /// Sengaja didenormalisasi dari jejak audit supaya daftar pesanan tidak perlu menggabung
+        /// riwayat baris per baris hanya untuk menampilkan satu tanggal.
+        /// </summary>
+        public DateTime? ConfirmedAt { get; set; }
+
+        /// <summary>
+        /// Dokter pemeriksa yang dipilih saat konfirmasi (<c>LAB-DEC-061</c>). Menunjuk
+        /// <c>MstDoctor</c>.
+        ///
+        /// Boleh kosong semata-mata karena seluruh pesanan yang sudah ada tidak pernah memilih
+        /// dokter pemeriksa. Kolom wajib akan menggagalkan migrationnya atau memaksa pengisian
+        /// tebakan atas pesanan yang benar-benar sudah terjadi.
+        /// </summary>
+        public Guid? ExaminerDoctorId { get; set; }
+
+        /// <summary>
         /// Token konkurensi. Dua petugas yang memindahkan status pesanan yang sama secara
         /// bersamaan tidak boleh sama-sama berhasil.
         /// </summary>

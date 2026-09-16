@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `5` |
+| Revision | `6` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -433,3 +433,42 @@ dirombak ketika `LAB-REQ-005` dijawab. Isinya belum dikunci.
 | Route `lab-specimens` tersendiri | Penanganan wadah per pesanan sudah dicapai lewat `lab-orders/[slug]/specimens`. Menambah jalan kedua ke layar yang sama tidak menambah kemampuan |
 | Menu Jenis Specimen di dalam folder Laboratorium | `AC-49` — seluruh menu data induk frontend berada di `health-services/master-data/` |
 | Tombol `Pemeriksaan Diproses` tersendiri | `AC-56`. Penguncian melekat pada aksi penetapan kelayakan yang sudah ada |
+
+---
+
+## 11. Amandemen 2026-09-15 — Pemesanan per disiplin dari pendaftaran
+
+Menurunkan `LAB-DEC-055` dan `LAB-DEC-056`. Bagian kiosk **tidak dirancang di sini** karena
+`LAB-DEC-051`..`LAB-DEC-054` berstatus `draft` dan tertahan `LAB-COORD-008` serta
+`LAB-COORD-009`.
+
+### 11.1 Layar yang berubah
+
+| Layar | Status | Perubahan |
+|---|---|---|
+| `health-services/laboratory-management/lab-patient-registrations` | `Diperbarui` | Sesudah identitas pasien terisi, petugas memilih **daftar pemeriksaan** pada satu pemilih, lalu menekan simpan **sekali** |
+| Ketiga layar Pemeriksaan (PK, PA, Mikrobiologi) | **Tidak berubah** | Sudah menyaring `LabOrder.Discipline`; pemecahan membuat pasien muncul di menu yang benar tanpa satu baris kode layar pun berubah |
+| `lab-orders/create` | **Tidak berubah** | Jalur lama tetap ada dan tetap membuat satu pesanan |
+
+### 11.2 Kewenangan UI yang ditetapkan
+
+| Butir | Ketentuan |
+|---|---|
+| Disiplin | **Tidak ditanyakan sama sekali.** `LAB-DEC-048` butir 6 sudah mencabut kotak pilihannya; layar hanya menampilkan hasil pemecahan sesudah simpan |
+| Hasil pemecahan | Layar **wajib memberi tahu** bahwa pilihan tadi menjadi lebih dari satu pesanan, beserta disiplin masing-masing. Petugas yang menekan simpan sekali lalu melihat dua nomor pesanan tanpa penjelasan akan mengira sistemnya salah |
+| Pemeriksaan belum digolongkan | Bila ada, layar menyebutkannya apa adanya: pemeriksaan itu tersimpan tetapi **tidak akan muncul di menu disiplin mana pun** sampai katalognya digolongkan (`AC-85`, `AC-87`) |
+| Cito | Ditandai per pemeriksaan pada pemilih yang sama, bukan per pesanan (`LAB-DEC-026`) |
+
+**Kenapa butir kedua masuk kewenangan UI, bukan sekadar saran.** Pemecahan adalah satu-satunya
+tempat pada modul ini di mana **satu tindakan petugas menghasilkan lebih dari satu objek
+bisnis**. Tanpa pemberitahuan, satu-satunya cara petugas mengetahuinya adalah menemukan sendiri
+dua baris di layar lain — dan dugaan pertama yang wajar adalah ia tidak sengaja menekan simpan
+dua kali.
+
+### 11.3 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Kenapa ditolak |
+|---|---|
+| Pemilih disiplin pada layar pendaftaran | `LAB-DEC-048` butir 6 mencabutnya; menanyakan ulang jawaban yang sudah ada di katalog hanya menambah kesempatan menjawab keliru |
+| Layar tersendiri untuk daftar pemeriksaan terpesan | Isinya sudah terlihat pada detail pesanan dan pada layar penerimaan specimen |
+| Tombol "pecah pesanan" manual | Pemecahan diturunkan dari data, bukan dari keputusan petugas. Tombolnya akan menawarkan pilihan yang tidak boleh ada |

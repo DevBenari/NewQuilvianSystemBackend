@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `4` |
+| Revision | `5` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -378,6 +378,84 @@ dengan menempatkan wadah itu pada hari kedua, keputusannya tidak terpenuhi walau
 
 `T-17a` adalah penjaga regresi: kolom waktu baru **tidak boleh** diam-diam menjadi dasar
 perhitungan keterlambatan cito.
+
+### 11.5b Pemesanan per disiplin — `LAB-DEC-055` .. `LAB-DEC-057` (`draft`, 2026-09-15)
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-86a` | Memilih Hemoglobin (PK) dan kultur darah (Mikrobiologi) sekaligus menghasilkan **dua pesanan**, masing-masing berdisiplin tunggal | Integrasi | AC-86 |
+| `T-86b` | Kedua pesanan itu **muncul pada menu Pemeriksaan-nya masing-masing**, bukan salah satu saja | Integrasi | AC-86, AC-84 |
+| `T-86c` | Memilih tiga pemeriksaan yang seluruhnya Patologi Klinik menghasilkan **satu** pesanan, bukan tiga | Integrasi | AC-86 |
+| `T-87a` | Pemeriksaan yang `LabDiscipline`-nya kosong berkumpul menjadi **satu** pesanan tanpa disiplin, dan pemeriksaan lain tetap terpesan | Integrasi | AC-87, `AC-85` |
+| `T-88a` | `POST /lab-orders` dipanggil dengan muatan lama **tetap mengembalikan tepat satu pesanan** dengan bentuk respons yang sama | Integrasi, regresi | AC-88 |
+| `T-91a` | Setiap baris terpesan dapat ditelusuri ke pemeriksaan yang memenuhinya; yang belum berwadah terbaca sebagai menunggu | Integrasi | AC-91 |
+| `T-64a2` | Daftar pemeriksaan kosong ditolak `422` `VAL-64` | Unit | `VAL-64` |
+| `T-65a2` | Satu jenis pemeriksaan dipilih dua kali ditolak `422` `VAL-65` | Unit | `VAL-65` |
+| `T-66a2` | Pemeriksaan nonaktif atau bukan laboratorium ditolak `422` `VAL-66` | Integrasi | `VAL-66` |
+| `T-67a2` | Kunjungan yang sudah ditutup ditolak `422` `VAL-67` | Integrasi | `VAL-67` |
+| `T-68a` | Wadah yang memuat pemeriksaan di luar daftar terpesan ditolak `422` `VAL-68` | Integrasi | `VAL-68` |
+| `T-69a` | Pemeriksaan terpesan yang sudah berwadah, dimasukkan lagi ke wadah lain, ditolak `409` `VAL-69` | Integrasi | `VAL-69` |
+| `T-68b` | **Pesanan lama tanpa baris terpesan tetap menerima wadah apa pun seperti sebelumnya** — `VAL-68` dan `VAL-69` tidak menyentuhnya | Integrasi, regresi | 12.5 arsitektur backend |
+| `T-94a` | Konfirmasi pertama berhasil: status `Requested` → `Confirmed`, konfirmator dan waktu terekam dari server | Integrasi | AC-94 |
+| `T-94b` | Konfirmasi kedua atas pesanan yang sama ditolak `409` `VAL-70` | Integrasi | AC-94, `VAL-70` |
+| `T-94c` | Konfirmasi atas pesanan berstatus `Accepted` atau `InProcess` ditolak `409` `VAL-71` | Integrasi | AC-94, `VAL-71` |
+| `T-95a` | Konfirmasi tanpa dokter pemeriksa ditolak `422` `VAL-72`; dokter yang tidak aktif ditolak `422` `VAL-73` | Integrasi | AC-95, `VAL-72`, `VAL-73` |
+| `T-95b` | Konfirmator dan waktu konfirmasi **tidak dapat dikirim pemanggil** — ruasnya tidak ada pada DTO permintaan | Unit | AC-95 |
+| `T-96a` | Pembatalan tanpa alasan ditolak `422` `VAL-74`; alasan yang diterima terbaca kembali sebagai `ReasonNote` pada jejak audit pesanan itu | Integrasi | AC-96, `VAL-74` |
+| `T-97a` | Pembatalan atas pesanan `Accepted`, `InProcess`, `Completed`, atau `Cancelled` ditolak `409` `VAL-75` | Integrasi | AC-97, `VAL-75` |
+| `T-97b` | **Pesanan `Requested` dan `Confirmed` tetap dapat dibatalkan seperti sebelumnya** — pengetatan `VAL-75` tidak menutup jalur yang sah | Integrasi, regresi | AC-97 |
+| `T-97c` | **Jalur `Requested` → `Accepted` tetap berjalan tanpa konfirmasi** — `LAB-STATE-v1` `r3` tidak mewajibkan `Confirmed` | Integrasi, regresi | `LAB-STATE-v1` `r3` bagian 1a |
+| `T-90a` | Satu pemeriksaan ditolak berarti **nol pesanan terbentuk** — transaksinya utuh | Integrasi | 12.3 arsitektur backend |
+| `T-83a` | `POST /lab-orders` dipanggil **tanpa ruas disiplin** atas prosedur yang sudah digolongkan: pesanan tersimpan **berdisiplin**, dan muncul pada menu Pemeriksaan yang sesuai | Integrasi | AC-83 |
+| `T-83b` | `POST /lab-orders` atas prosedur yang **belum digolongkan**: pesanan tetap tersimpan **tanpa disiplin**, dan itu sah | Integrasi | AC-83, `AC-85` |
+| `T-83c` | `POST /lab-orders` yang **membawa** disiplin: nilainya dihormati apa adanya, tidak ditimpa hasil penurunan | Integrasi | AC-83 |
+| `T-83d` | **Nol permintaan yang sebelumnya berhasil menjadi gagal** — penurunan disiplin tidak menambah satu pun penolakan baru | Integrasi, regresi | AC-83 |
+
+> **`AC-83` semula tidak punya satu pun baris uji.** Ditemukan pada gate `BE-LAB-29`, 2026-09-15,
+> dan ditutup di sini. Kelalaiannya berarti: janji *"tidak ada jalan menyimpan pesanan berdisiplin
+> kosong"* tercatat sejak revision 27 tanpa pernah ada cara memeriksanya — dan memang tidak
+> pernah diperiksa, sampai pembacaan database menemukan 2 dari 5 pesanan tanpa disiplin.
+>
+### 11.5c Pendaftaran lewat kiosk — `LAB-DEC-051` .. `LAB-DEC-054`, `LAB-DEC-058`
+
+| ID | Skenario | Jenis | Yang membuktikan |
+|---|---|---|---|
+| `T-93a` | **Ke-16 sesi kiosk yang sudah tersimpan tetap terbaca** sesudah kedua ruas baru ditambahkan, dengan kedua ruas itu kosong | Integrasi | AC-93 |
+| `T-93b` | Alur kiosk yang **tidak** menyebut tujuan layanan berperilaku persis seperti sebelumnya — nol penolakan baru | Integrasi, regresi | AC-93 |
+| `T-93c` | Sesi bertujuan Laboratorium yang belum dipakai registrasi muncul pada jalur baca; yang sudah dipakai **tidak** muncul | Integrasi | AC-93 |
+| `T-93d` | Sesi bertujuan **selain** Laboratorium tidak ikut muncul ketika penyaring tujuan dipakai | Integrasi | AC-93 |
+| `T-92a` | Pasien memilih Laboratorium di kiosk lalu tidak pernah sampai ke meja lab: kunjungannya **tertutup saat hari layanan berakhir** dengan sebab "tidak dilanjutkan" | Integrasi | AC-92 |
+| `T-92b` | **Biaya pendaftaran gugur** bersama kunjungan yang tertutup itu | Integrasi | AC-92, `LAB-DEC-058` |
+| `T-92c` | Pasien yang **dilanjutkan** petugas **tidak** ikut tertutup | Integrasi, regresi | AC-92 |
+| `T-92d` | Pasien yang batal **tidak menghasilkan satu pun tagihan pemeriksaan laboratorium** | Integrasi | AC-90, `AC-37` |
+
+`T-92c` adalah penjaga yang paling penting pada kelompok ini. Penutupan otomatis yang terlalu
+rakus tidak muncul sebagai galat — ia muncul sebagai pasien yang pendaftarannya hilang saat ia
+sedang duduk menunggu dipanggil, dan yang pertama mengetahuinya adalah pasien itu.
+
+`T-93a` dan `T-93b` menguji **ketiadaan perubahan** pada tabel milik modul lain yang sudah
+berisi data nyata. Keduanya syarat yang membuat klaim "aditif" pada `LAB-REQ-006` dapat
+dipercaya.
+
+> **`AC-92` dan `AC-93` semula tidak punya satu pun baris uji.** Ditemukan pada gate `BE-EXT-04`,
+> 2026-09-15 — pola yang sama persis dengan `AC-83` sehari sebelumnya. Dua kejadian berturut-turut
+> menunjukkan ini bukan kelalaian sekali, melainkan celah proses: acceptance criteria yang ditulis
+> pada decision log tidak otomatis memperoleh baris uji, dan tidak ada langkah yang memeriksanya.
+
+---
+
+> `T-83d` adalah baris yang paling penting di antara keempatnya. Penurunan disiplin memperluas
+> apa yang **berhasil**, bukan memperketat apa yang ditolak; begitu ia mulai menolak sesuatu, ia
+> sudah berubah menjadi hal lain.
+
+`T-88a` dan `T-68b` adalah dua pengujian yang paling mudah lupa ditulis, dan keduanya menguji
+**ketiadaan perubahan**. `BE-LAB-21` baru saja membuktikan berapa mahal harga endpoint berjalan
+yang diam-diam menjadi lebih ketat: layar wadah menjawab `422` sejak migrationnya diterapkan.
+Tanpa kedua pengujian ini, klaim "aditif" pada `r10` tidak pernah benar-benar diperiksa.
+
+`T-90a` menjaga janji transaksi. Pemesanan yang gagal separuh akan meninggalkan pasien dengan
+satu disiplin terpesan dan satu disiplin hilang — dan hilangnya tidak terlihat sampai hasil yang
+ditunggu tidak pernah keluar.
 
 ### 11.6 Menu dan layar — `LAB-DEC-045`
 
