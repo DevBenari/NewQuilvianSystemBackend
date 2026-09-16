@@ -59234,6 +59234,12 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("BudgetAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -59273,6 +59279,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTimeOffset?>("LastMovementAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateOnly?>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("date");
+
                     b.Property<string>("PoolCode")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -59293,6 +59305,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasDefaultValue("ACTIVE");
+
+                    b.Property<Guid?>("SupersededByBudgetId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("TotalDisbursedAmount")
                         .ValueGeneratedOnAdd()
@@ -59316,25 +59331,28 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PoolCode")
                         .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudget_PoolCode")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("Status")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudget_ActiveSingleton")
+                        .HasDatabaseName("IX_BilPettyCashBudget_ActivePerPool")
                         .HasFilter("\"Status\" = 'ACTIVE' AND \"IsDelete\" = false");
+
+                    b.HasIndex("SupersededByBudgetId");
+
+                    b.HasIndex("PoolCode", "PeriodStart")
+                        .HasDatabaseName("IX_BilPettyCashBudget_PoolCode_PeriodStart");
 
                     b.ToTable("BilPettyCashBudget", "public", t =>
                         {
+                            t.HasCheckConstraint("CK_BilPettyCashBudget_BudgetAmount", "\"BudgetAmount\" >= 0");
+
                             t.HasCheckConstraint("CK_BilPettyCashBudget_CurrentBalance", "\"CurrentBalance\" >= 0");
 
-                            t.HasCheckConstraint("CK_BilPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE')");
+                            t.HasCheckConstraint("CK_BilPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE','DRAFT','CLOSED')");
                         });
 
                     b.HasData(
                         new
                         {
                             Id = new Guid("b7c1f5a2-9d34-4e88-9a10-000000000001"),
+                            BudgetAmount = 0m,
                             CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -59342,6 +59360,7 @@ namespace QuilvianSystemBackend.Migrations
                             DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             IsCancel = false,
                             IsDelete = false,
+                            PeriodStart = new DateOnly(2026, 9, 7),
                             PoolCode = "HOSPITAL_MAIN",
                             PoolName = "Kas Kecil Rumah Sakit",
                             RowVersion = new Guid("b7c1f5a2-9d34-4e88-9a10-0000000000f1"),
@@ -59442,8 +59461,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("VoucherId")
                         .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudgetMovement_Voucher_Disbursement")
-                        .HasFilter("\"MovementType\" = 'DISBURSEMENT' AND \"IsDelete\" = false");
+                        .HasDatabaseName("IX_BilPettyCashBudgetMovement_Voucher_Reversal")
+                        .HasFilter("\"MovementType\" = 'REVERSAL' AND \"IsDelete\" = false");
 
                     b.HasIndex("BudgetId", "OccurredAt")
                         .HasDatabaseName("IX_BilPettyCashBudgetMovement_Budget_OccurredAt");
@@ -59454,11 +59473,11 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_BalanceAfter", "\"BalanceAfter\" >= 0");
 
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT')");
+                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT','RETURN','REVERSAL','CARRY_FORWARD_OUT','CARRY_FORWARD_IN')");
 
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" NOT IN ('TOP_UP','ADJUSTMENT') OR \"Reason\" IS NOT NULL");
+                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" = 'DISBURSEMENT' OR \"Reason\" IS NOT NULL");
 
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_VoucherId", "(\"MovementType\" = 'DISBURSEMENT' AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" <> 'DISBURSEMENT' AND \"VoucherId\" IS NULL)");
+                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_VoucherId", "(\"MovementType\" IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" NOT IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NULL)");
                         });
                 });
 
@@ -59550,6 +59569,22 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RequestedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("ReturnedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("ReversalReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("ReversedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReversedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
@@ -59602,7 +59637,11 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_BilPettyCashVoucher_RejectionReason", "(\"Status\" = 'REJECTED' AND \"RejectionReason\" IS NOT NULL) OR (\"Status\" <> 'REJECTED' AND \"RejectionReason\" IS NULL)");
 
-                            t.HasCheckConstraint("CK_BilPettyCashVoucher_Status", "\"Status\" IN ('WAITING_APPROVAL','APPROVED','CASH_RECEIVED','COMPLETED','REJECTED')");
+                            t.HasCheckConstraint("CK_BilPettyCashVoucher_ReturnedAmount", "\"ReturnedAmount\" >= 0 AND \"ReturnedAmount\" <= \"Amount\"");
+
+                            t.HasCheckConstraint("CK_BilPettyCashVoucher_ReversalReason", "(\"Status\" = 'REVERSED' AND \"ReversalReason\" IS NOT NULL) OR (\"Status\" <> 'REVERSED' AND \"ReversalReason\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_BilPettyCashVoucher_Status", "\"Status\" IN ('WAITING_APPROVAL','APPROVED','CASH_RECEIVED','COMPLETED','REJECTED','REQUESTED','REVERSED')");
                         });
                 });
 
@@ -59719,9 +59758,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("BilPettyCashVoucherCommand", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_BilPettyCashVoucherCommand_CommandType", "\"CommandType\" IN ('SUBMIT','APPROVE','REJECT','CANCEL','DISBURSE','ATTACH_PROOF','PROOF_CORRECTED')");
+                            t.HasCheckConstraint("CK_BilPettyCashVoucherCommand_CommandType", "\"CommandType\" IN ('SUBMIT','APPROVE','REJECT','CANCEL','DISBURSE','ATTACH_PROOF','PROOF_CORRECTED','RETURN','REVERSAL')");
 
-                            t.HasCheckConstraint("CK_BilPettyCashVoucherCommand_Reason", "\"CommandType\" NOT IN ('REJECT','CANCEL') OR \"Reason\" IS NOT NULL");
+                            t.HasCheckConstraint("CK_BilPettyCashVoucherCommand_Reason", "\"CommandType\" NOT IN ('REJECT','CANCEL','RETURN','REVERSAL') OR \"Reason\" IS NOT NULL");
                         });
                 });
 
@@ -102183,6 +102222,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models.BilFolio", null)
                         .WithMany()
                         .HasForeignKey("FolioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", null)
+                        .WithMany()
+                        .HasForeignKey("SupersededByBudgetId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

@@ -1,5 +1,13 @@
 # Skema Tampilan Frontend — Keperawatan Rawat Inap
 
+> **Catatan 15 September 2026 — sebagian basi.** Blueprint revision `7` (`draft`) menetapkan isi ruang kerja keperawatan
+> mengikuti `PRD-RWI-V2-001` bagian 24–49: **layout V2 yang sudah dibangun dipertahankan**, navigasi internal kiri berisi
+> **delapan menu** (Pengkajian Pasien, Asuhan Keperawatan, Tindakan, Penunjang Medis, Pemakaian Alat, Transfer Pasien,
+> Pemesanan Ruangan Bedah, Tagihan Pasien), dan Pengkajian Pasien memiliki progres lima bagian. Susunan menu, isi
+> formulir, dan skema layar yang berlaku ada di [`03-frontend-architecture.md`](./03-frontend-architecture.md) bagian 10.
+> Bila dokumen ini berbeda dari bagian 10 itu, **bagian 10 yang berlaku**. Prinsip visual umum di bawah tetap dapat
+> dibaca sebagai rujukan `DEV_DISCRETION`.
+
 ## 1. Tujuan
 
 Dokumen ini menjadi rancangan tampilan frontend untuk submodul **Keperawatan Rawat Inap**.

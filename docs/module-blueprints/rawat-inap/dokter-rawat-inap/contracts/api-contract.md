@@ -4,14 +4,15 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.5.0` |
-| `last_changed_in` | `0.5.0` — Gelombang 1A: jalur hapus CPPT ditutup, penulis dan kewenangan dokter ditegakkan |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Contract version | **`0.6.0`** |
+| `last_changed_in` | **`0.6.0`** — penyelarasan `PRD-RWI-V2-001`: kewenangan penulis konsep, verifikasi CPPT hanya DPJP, pesanan dengan pemberi instruksi, Resep Harian, rekonsiliasi obat, sliding scale, template resep, Catatan Saya. Seluruh isi baru pada **bagian 12** |
+| Status | **`draft`** untuk `0.6.0`. `0.5.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement`, `MedicalRecordManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `02-backend-architecture.md` `0.2`; arsitektur domain `0.2`; `PRD-RWI-FINAL-001` v1.0.0 |
 | `input_hash` | Arsitektur domain SHA-256 `226c6ef1e4bfec544c366b265fe1e4530e80c510da33c1a9eaf2e62161d0b717` |
-| Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
+| Backend SHA | `93b3227c431401d8f586dec4e1fb25fbf41766e3`; **bagian 12 dibaca pada `df3679c0d5b2f08106702153eb242d3a6cb2929b`** |
+| `input_revision` `0.6.0` | `02-backend-architecture.md` `0.5` bagian 11; decision log revision `21` SHA-256 `1c55c80a…2d45102a`; gate `1.6` SHA-256 `f31d207a…e49b5300`; `PRD-RWI-V2-001` SHA-256 `2b3b2f29…0a679f` |
 | Compatibility impact | **Tidak ada endpoint yang dihapus atau berubah bentuknya.** `0.4.0` mendaftarkan grup **Patient Diagnosis** yang selama ini terlewat, dan membuka satu jalur baru: diagnosis terstruktur boleh lahir dari kajian medis tanpa nomor konsultasi. **Permintaan lama tetap sah apa adanya** — nomor konsultasi yang dikirim tetap diterima dan tetap diperlakukan sama. Perilaku rawat jalan dan medical check-up tidak berubah — `RWI-AC-143` |
 | Tanggal | 2 September 2026; diamendemen 9 September 2026 |
 
@@ -448,3 +449,301 @@ Judul grup: `[Tags("Health Services / Medical Record Management / Clinical Note 
 | Diagnosis tanpa nomor konsultasi pada kunjungan **IGD** | Pemilik `EmergencyInstallationManagement` adalah **Rizki Gunawan**; `RWI-DEC-069` mencabut IGD dari persetujuan lintas modul `RWI-DEC-062`. Lihat catatan pada bagian 2.1.2 |
 | Melonggarkan `ConsultationId` pada **resep** dan **tindakan** | Tetap ditolak. Keduanya memang lahir dari catatan dokter, dan catatan dokter sendiri sudah dibuka `BE-RWI-043` — `02-backend-architecture.md` bagian 9 |
 | Endpoint menghapus diagnosis | Diagnosis salah catat **dibatalkan beralasan**, tidak dihapus. Baris tetap terbaca |
+
+> **Dua baris di atas diperbarui `0.6.0`.** "Melonggarkan `ConsultationId` pada tindakan" **tidak lagi
+> ditolak** — lihat 12.5. "Endpoint resume pulang" tetap milik `episode-rawat-inap`, tetapi ditulis dari tab
+> Resume Medis ruang kerja dokter — lihat 12.14.
+
+---
+
+## 12. Perubahan pada `contract_version` `0.6.0` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Seluruh endpoint baru berlabel **Rencana (belum tersedia)**. Endpoint yang sudah ada
+tetapi perilakunya berubah berlabel **Tersedia, perilaku Rencana**. Kolom `Hak akses` tetap satu-satunya
+tempat pemetaan endpoint ke hak akses.
+
+### 12.0 Dampak kompatibilitas
+
+| Perubahan | Siapa yang terkena | Dampak |
+| --- | --- | --- |
+| Konsep SOAP dan kajian medis rawat inap hanya disunting dan diselesaikan penulisnya | Pengguna yang selama ini menyelesaikan konsep orang lain | Sebelumnya lolos dan tercatat atas nama penulis (`RWI-FACT-029`); kini `403`. **Poliklinik dan IGD tidak berubah** |
+| Verifikasi CPPT hanya DPJP | Konsulen dan dokter jaga | Sebelumnya lolos (`RLN3-CAP-25`); kini `403` |
+| Tindakan baru pada episode `Closed` | Siapa pun | Sebelumnya diterima (`RLN3-CAP-35`); kini `422` |
+| `ConsultationId` pesanan tindakan boleh kosong pada rawat inap | Klien yang membaca `ConsultationId` sebagai selalu terisi | Wajib menangani `null` pada respons pesanan rawat inap |
+| Template resep: pemilik dari akun login | **Poliklinik dan Farmasi** | Permintaan yang menyebut dokter lain sebagai pemilik kini `403`. **Wajib diberitahukan pemilik `rawat-jalan`** sebelum dirilis — `RWI-DEC-135` konsekuensi (1) |
+| Pakai template dengan obat tidak tersedia | Semua pemakai | Sebelumnya seluruh pemakaian gagal (`RLN3-CAP-43`); kini butir itu ditandai dan yang lain tetap masuk draft |
+| Endpoint lain | — | Tambahan murni; permintaan lama tetap sah |
+
+### 12.1 Health Services / Inpatient Management / Inpatient Census — dipakai, dirancang `episode-rawat-inap`
+
+Base URL: `api/v1/health-services/inpatient-management/census`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Census")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | **Daftar Pasien Rawat Inap dokter**: hanya pasien yang dokter login punya penugasan aktif sebagai DPJP, konsulen, atau dokter jaga | `InpatientCensus : Read` | Query **`assignedToMe=true`**, `search` (nama / No. RM / kamar), `pageNumber`, `pageSize` | `ApiResponse<PagedResult<CensusItemResponse>>` **+ `MyAssignmentRole`, `DischargePending`, `RequiresIsolation`** | **Tersedia**, penyaring **Rencana** |
+| `GET` | `/summary` | Angka Total Pasien, Dirawat, Discharge Pending, Perlu Review dari daftar yang sama | `InpatientCensus : Read` | Query `assignedToMe=true` | `ApiResponse<CensusSummaryResponse>` | **Tersedia**, penyaring **Rencana** |
+
+Kontrak kanonisnya `../../episode-rawat-inap/contracts/api-contract.md` bagian `0.9.0`. Aturannya dicantumkan di
+sini karena menentukan layar `FE-DOK-09`: bila `assignedToMe=true`, `DoctorId` pada query **diabaikan** dan dokter
+diambil dari akun login — `RWI-DEC-111`. "Perlu Review" dihitung dari entri CPPT yang menunggu verifikasi dokter itu
+ditambah pesanan perawat yang menunggu verifikasi instruksinya.
+
+### 12.2 Health Services / Clinical Management / Doctor Consultation — `CAP-020`, perubahan perilaku
+
+Base URL: `api/v1/health-services/clinical-management/doctor-consultations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Membuat catatan dokter rawat inap. **Perubahan `0.6.0`:** mensyaratkan penugasan pada waktu klinis **dan** aktif saat disimpan (`INV-DOK-15`); membentuk registrasi `Draft` pada mesin keutuhan dalam transaksi yang sama (`INV-DOK-18`) | `DoctorConsultation : Create` | Sama; `Idempotency-Key` wajib pada rawat inap | `ApiResponse<DoctorConsultationResponse>` | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}` | Mengubah konsep. **Perubahan:** hanya penulis (`INV-DOK-14`); konsep terkunci "Tidak Ditandatangani" ditolak dengan arahan addendum | `DoctorConsultation : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/soap` | Simpan otomatis. **Perubahan:** penjaga sama dengan `PUT`; tidak menambah registrasi | `DoctorConsultation : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/complete` | Menyelesaikan = tanda tangan penulis. **Perubahan:** hanya penulis; registrasi yang sama berubah `Signed`; tanpa penugasan aktif tetap diterima bila konsep dibuat saat penugasan aktif dan waktu klinisnya di dalam periode itu (`RWI-DEC-128` butir 2) | `DoctorConsultation : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/cancel` | Membatalkan konsep. **Perubahan:** registrasinya menjadi `Cancelled`, baris tidak dihapus (`RWI-AC-217`) | `DoctorConsultation : Update` | Alasan wajib | Sama | **Tersedia**, perilaku **Rencana** |
+
+Seluruh perubahan hanya menyala bila kunjungan punya episode rawat inap. Kunjungan poliklinik dan IGD tetap memakai
+perilaku lama — `RWI-AC-186`, `RWI-AC-218`.
+
+### 12.3 Health Services / Clinical Management / Patient Assessment — kajian medis `CAP-022`, perubahan perilaku
+
+Base URL: `api/v1/health-services/clinical-management/patient-assessments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Membuat kajian medis (`MedicalInitial`/`MedicalReassessment`). **Perubahan:** penjaga `INV-DOK-15`; registrasi `Draft` sejak dibuat | `PatientAssessment : Create` | Sama | `ApiResponse<PatientAssessmentResponse>` | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}` | Mengubah konsep kajian medis. **Perubahan:** hanya penulis; `EnsureNursingUnitAuthorityAsync` **tidak lagi** meloloskan jenis medis tanpa pemeriksaan (`RLN3-CAP-34`) | `PatientAssessment : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/complete` | Menyelesaikan. **Perubahan:** hanya penulis; tanda tangan atas nama penekan tombol yang sama dengan penulis, bukan `AssessmentByUserId ?? CreateBy` | `PatientAssessment : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/cancel` | **Perubahan:** registrasi `Cancelled` | `PatientAssessment : Update` | Alasan wajib | Sama | **Tersedia**, perilaku **Rencana** |
+
+### 12.4 Health Services / Clinical Management / Patient Integrated Progress Note — `CAP-021`
+
+Base URL: `api/v1/health-services/clinical-management/patient-integrated-progress-notes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Menulis catatan terpadu. **Perubahan `0.6.0`:** menerima `NoteKind`; nilai diperiksa terhadap profesi penulis dari akun login (`VAL-DOK-59`) | `PatientIntegratedProgressNote : Create` | `CreateProgressNoteRequest` **+ `NoteKind`** | `ApiResponse<ProgressNoteResponse>` **+ `NoteKind`** | **Tersedia**, perilaku **Rencana** |
+| `GET` | `/episodes/{episodeId}` | Lini masa lintas profesi. **Perubahan:** saring `noteKind` dan `professionType`; menampilkan penulis, profesi, jenis, waktu klinis, sumber, status verifikasi | `PatientIntegratedProgressNote : Read` | Query `noteKind`, `professionType`, `from`, `to`, `verificationStatus` | `ApiResponse<PagedResult<ProgressNoteListItem>>` | **Tersedia**, penyaring **Rencana** |
+| `PATCH` | `/{id}/verify` | **Perubahan `0.6.0`:** hanya dokter berperan **DPJP** yang aktif pada detik verifikasi; untuk episode `Closed`, hanya **DPJP terakhir** dan hanya entri yang ditulis sebelum penutupan (`INV-DOK-16`) | `PatientIntegratedProgressNote : Verify` | — | `ApiResponse<ProgressNoteResponse>` | **Tersedia**, perilaku **Rencana** |
+| `GET` | `/verification-worklist` | Daftar pantau verifikasi milik dokter login: entri pasien yang ia DPJP aktifnya, ditambah episode `Closed` yang ia DPJP terakhirnya dan masih punya entri tertinggal | `PatientIntegratedProgressNote : Read` | Query `pageNumber`, `pageSize`, `includeClosedEpisodes` (bawaan `true`) | `ApiResponse<PagedResult<VerificationWorklistItem>>` | **Rencana (belum tersedia)** |
+
+`VerificationWorklistItem`: `EpisodeId`, `EpisodeNumber`, `PatientName`, `MedicalRecordNumber`, `EpisodeStatus`,
+`PendingCount`, `OldestPendingNoteDateTime`, `IsOverdue`. Lamanya keterlambatan dihitung dari kebijakan aktif; bila
+kebijakan kosong, `IsOverdue = false` — `RWI-RULE-021` belum final.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `200` | Terverifikasi |
+| `403` | "Hanya DPJP yang sedang bertugas atas pasien ini yang dapat memverifikasi." Termasuk konsulen, dokter jaga, dan DPJP sebelum DPJP terakhir |
+| `409` | Catatan sudah diverifikasi |
+| `422` | Entri ditulis setelah episode ditutup, atau catatan dibatalkan |
+
+### 12.5 Health Services / Clinical Management / Patient Procedure — `CAP-024`
+
+Base URL: `api/v1/health-services/clinical-management/patient-procedures`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/inpatient-orders` | Membuat **pesanan tindakan rawat inap** oleh dokter atau perawat. Perawat **wajib** menyebut dokter pemberi instruksi yang punya penugasan aktif; penginput dari akun login. Tidak menuntut `ConsultationId` | `PatientProcedure : Create` | `CreateInpatientProcedureOrderRequest` (`InpEpisodeId`, `ProcedureId`, `Quantity`, `Priority`, `ClinicalReason`, `Instruction`, `InstructingDoctorId` bila perawat) + `Idempotency-Key` | `ApiResponse<PatientProcedureResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Jalur lama dari catatan dokter. **Perubahan:** tindakan baru pada episode `Closed` ditolak `422` (`forNewDocument: true`) | `PatientProcedure : Create` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}` | Mengubah pesanan yang belum dilaksanakan. **Perubahan:** hanya penginput (`INV-DOK-17`); dokter pemberi instruksi pun ditolak | `PatientProcedure : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/cancel` | Membatalkan pesanan yang belum dilaksanakan. **Perubahan:** hanya penginput atau DPJP aktif; alasan wajib; pesanan tertagih tetap ditolak seperti hari ini | `PatientProcedure : Update` | `CancelProcedureRequest` (`Reason` wajib) | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/execute` | Menandai dilaksanakan. **Perubahan:** pelaksana dari akun login menjadi penulis dan penanda tangan catatan pelaksanaan; kewenangan pelaksana dokter lewat penugasan, perawat lewat unit | `PatientProcedure : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PATCH` | `/{id}/verify-instruction` | Dokter pemberi instruksi memverifikasi pesanan yang dibuat perawat. **Tidak** mengubah penginput maupun isi pesanan | `PatientProcedure : Verify` | — | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/instruction-verification-worklist` | Pesanan tindakan yang menunggu verifikasi dokter login | `PatientProcedure : Read` | Query `pageNumber`, `pageSize` | `ApiResponse<PagedResult<InstructionVerificationItem>>` | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `201` | Pesanan tersimpan dan langsung diteruskan |
+| `200` | Kiriman ulang dengan kunci yang sama — pesanan yang sama dikembalikan |
+| `400` | Dokter pemberi instruksi belum dipilih, alasan pembatalan kosong, atau isian pesanan tidak lengkap |
+| `403` | Anda bukan penginput pesanan ini; atau dokter yang dipilih tidak sedang bertugas atas pasien ini; atau Anda bukan dokter pemberi instruksinya |
+| `409` | Pesanan sudah dilaksanakan, sudah dibatalkan, sudah diverifikasi, atau sudah menimbulkan tagihan |
+| `422` | Perawatan pasien sudah ditutup |
+
+### 12.6 Health Services / Pharmacy Management / Prescription — `CAP-023-RSP`
+
+Base URL: `api/v1/health-services/pharmacy-management/prescriptions`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/episodes/{episodeId}` | **Resep Harian**: seluruh resep episode termasuk racikan, obat pulang terbedakan, butir yang dihentikan tetap tampil. **Perubahan:** saring periode | `Prescription : Read` | Query `period` (`today`, `week`, `month`) atau `from`/`to`, `orderType` | `ApiResponse<PagedResult<InpatientPrescriptionListItem>>` **+ butir beserta `IsStopped`, `StoppedAt`, `StoppedByName`, `StopReason`** | **Tersedia**, penyaring **Rencana** |
+| `PATCH` | `/items/{itemId}/stop` | **Menghentikan satu butir obat.** Dokter dengan penugasan aktif; alasan wajib; riwayat butir tidak dihapus; dosis MAR `Due` sesudahnya menjadi `Cancelled` dalam transaksi yang sama; butir insulin berdosis skala ikut menghentikan order sliding scale-nya | **`Prescription : Stop`** | `StopPrescriptionItemRequest` (`Reason` wajib) | `ApiResponse<InpatientPrescriptionItemResponse>` | **Rencana (belum tersedia)** |
+
+**Contoh.** 4 September 09.10 dr. Rina menghentikan Ceftriaxone dengan alasan "kultur sensitif, ganti oral". Dosis
+`Due` pukul 20.00 menjadi `Cancelled` beralasan "resep dihentikan"; dosis 08.00 yang `Administered` tetap utuh. Ns.
+Siti membuka Obat & Alkes dan melihat daftar yang sama **tanpa** tombol hentikan.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | "Alasan penghentian wajib diisi." |
+| `403` | Anda tidak sedang bertugas atas pasien ini |
+| `409` | Butir sudah dihentikan, atau resepnya sudah dibatalkan |
+| `422` | Perawatan pasien sudah ditutup |
+
+### 12.7 Health Services / Pharmacy Management / Prescription Template — `CAP-023-RSP`, perubahan perilaku
+
+Base URL: `api/v1/health-services/pharmacy-management/prescription-templates`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | **Perubahan:** query `ownerScope=Mine` hanya mengembalikan template milik dokter login, **tanpa** template Bersama milik dokter lain | `PrescriptionTemplate : Read` | Query **+ `ownerScope`** | Sama | **Tersedia**, penyaring **Rencana** |
+| `POST` | `/` | **Perubahan untuk semua pemakai:** pemilik diambil dari dokter akun login. `OwnerDoctorId` yang berbeda → `403`, nol baris; akun tanpa tautan dokter → `403`. Dari ruang kerja rawat inap `IsShared` dipaksa `false` | `PrescriptionTemplate : Create` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `POST` | `/from-prescription` | Sama dengan `POST /` | `PrescriptionTemplate : Create` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}` | **Perubahan:** hanya pemilik; pemindahan pemilik ditolak; template kosong ditolak | `PrescriptionTemplate : Update` | Sama | Sama | **Tersedia**, perilaku **Rencana** |
+| `DELETE` | `/{id}` | **Perubahan:** hanya pemilik | `PrescriptionTemplate : Delete` | — | Sama | **Tersedia**, perilaku **Rencana** |
+| `POST` | `/{id}/apply` | **Perubahan:** bila resep tujuan berkonteks rawat inap, hanya template milik dokter login dan hanya oleh dokter; setiap butir diperiksa ulang terhadap alergi aktif pasien (`TrxPatientAllergy`) dan ketersediaan obat (`IsActive`, `IsPrescribable`); butir bermasalah **ditandai**, bukan menggagalkan seluruh pemakaian; tidak pernah langsung menghasilkan resep final | `PrescriptionTemplate : Create` | `ApplyPrescriptionTemplateRequest` | `ApiResponse<ApplyPrescriptionTemplateResponse>` **+ `Items[].Flags` (`AllergyConflict`, `Unavailable`)** | **Tersedia**, perilaku **Rencana** |
+
+**Contoh.** Budi alergi Paracetamol. dr. Rina memakai "Pneumonia dewasa": tiga butir masuk draft; butir Paracetamol
+bertanda `AllergyConflict` "bentrok alergi: Paracetamol". Menyimpan draft dengan butir bertanda itu ditolak sampai
+butirnya dihapus atau diganti — `VAL-DOK-57`.
+
+### 12.8 Health Services / Pharmacy Management / Medication Reconciliation — grup baru — `CAP-023-RSP`
+
+Base URL: `api/v1/health-services/pharmacy-management/medication-reconciliations`
+Judul grup: `[Tags("Health Services / Pharmacy Management / Medication Reconciliation")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/episodes/{episodeId}` | Daftar obat bawaan satu episode beserta keputusan terakhir | `MedicationReconciliation : Read` | — | `ApiResponse<List<ReconciliationItemResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | **Perawat** mencatat obat yang sedang dipakai pasien. `DrugId` wajib; tidak ada nama teks bebas | `MedicationReconciliation : Create` | `CreateReconciliationItemRequest` (`InpEpisodeId`, `DrugId`, `Dose`, `DoseUnitMeasurementId`, `FrequencyText`, `Route`, `Note`) + `Idempotency-Key` | `ApiResponse<ReconciliationItemResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/cancel` | Membatalkan baris salah catat **sebelum** ada keputusan dokter | `MedicationReconciliation : Update` | Alasan wajib | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/decisions` | **Dokter** memutuskan: `ContinueSame`, `ContinueModified`, `Stopped`. "Lanjut" mengisi butir pada draft resep episode yang sedang dibuka dokter, atau membuat draft baru bila belum ada | **`MedicationReconciliation : Decide`** | `CreateReconciliationDecisionRequest` (`DecisionType`, `DecisionNote`, `TargetDraftPrescriptionId` opsional) | `ApiResponse<ReconciliationDecisionResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/decisions` | Riwayat keputusan satu obat | `MedicationReconciliation : Read` | — | `ApiResponse<List<ReconciliationDecisionResponse>>` | **Rencana (belum tersedia)** |
+
+**Contoh dan jalur tidak normal.** Senin 14.20 Ns. Siti mencatat Amlodipin dan Metformin Budi → `201` dua kali.
+15.00 dr. Rina `ContinueSame` Amlodipin → butir draft resep 1×1 terbentuk; `Stopped` Metformin dengan catatan
+"pasien dipuasakan". Ns. Siti mencoba `POST /{id}/decisions` → `403`. dr. Rina tidak menyelesaikan resepnya → MAR
+tidak membuat dosis Amlodipin sampai resep aktif.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | Obat belum dipilih dari master obat; rute belum dipilih |
+| `403` | Keputusan per obat hanya dapat diambil dokter yang berwenang menulis resep untuk pasien ini |
+| `409` | Keputusan tidak dapat diganti karena resep hasilnya sudah aktif; atau baris sudah punya keputusan sehingga tidak dapat dibatalkan perawat |
+| `422` | Perawatan pasien sudah ditutup |
+
+### 12.9 Health Services / Master Data / Drug — pendaftaran non-formularium
+
+Base URL: `api/v1/health-services/master-data/drugs`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/non-formulary-registrations` | Mendaftarkan obat bawaan yang belum ada di master obat. Server **selalu** menulis `IsFormulary = false`, apa pun isi permintaan | `Drug : Create` | `CreateNonFormularyDrugRequest` (`DrugCategoryId`, `DrugName` wajib; generik, bentuk, kekuatan, satuan opsional) | `ApiResponse<DrugResponse>` | **Rencana (belum tersedia)** |
+
+Nol hak akses baru. Siapa yang boleh ditentukan butir `Drug : Create` pada Akses Role — `RWI-DEC-134` butir (3).
+
+### 12.10 Health Services / Pharmacy Management / Sliding Scale Template — grup baru
+
+Base URL: `api/v1/health-services/pharmacy-management/sliding-scale-templates`
+Judul grup: `[Tags("Health Services / Pharmacy Management / Sliding Scale Template")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar template beserta versi sah yang berlaku | `SlidingScaleTemplate : Read` | Query `isActive` | `ApiResponse<List<SlidingScaleTemplateListItem>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Template beserta seluruh versinya | `SlidingScaleTemplate : Read` | — | `ApiResponse<SlidingScaleTemplateResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat template baru tanpa versi | `SlidingScaleTemplate : Update` | `CreateSlidingScaleTemplateRequest` | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/versions` | Membuat versi `Draft` baru beserta rentangnya | `SlidingScaleTemplate : Update` | `SaveSlidingScaleVersionRequest` (`GlucoseUnit`, `Ranges[]`) | `ApiResponse<SlidingScaleVersionResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/versions/{versionId}` | Mengubah versi yang masih `Draft`; mencatat pengubah terakhir | `SlidingScaleTemplate : Update` | Sama | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/versions/{versionId}/approve` | Mengesahkan. Pengesah ≠ pengubah terakhir; versi sah sebelumnya menjadi `Retired` dalam transaksi yang sama | **`SlidingScaleTemplate : Approve`** | `ApproveSlidingScaleVersionRequest` (`ApprovalNote` opsional) | Sama | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | Rentang bertumpuk, berlubang, atau tidak menutup seluruh nilai; dosis negatif; satuan belum dipilih |
+| `403` | Anda tidak punya hak mengesahkan, atau Anda pengubah terakhir versi ini |
+| `409` | Versi sudah disahkan atau sudah diganti sehingga tidak dapat diubah |
+
+### 12.11 Health Services / Pharmacy Management / Sliding Scale Order — grup baru
+
+Base URL: `api/v1/health-services/pharmacy-management/sliding-scale-orders`
+Judul grup: `[Tags("Health Services / Pharmacy Management / Sliding Scale Order")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Dokter memesan sliding scale pada butir insulin draft resep. Rentang versi template **disalin**; bila dokter mengubah rentang atau dosis, alasan wajib | `SlidingScaleOrder : Create` | `CreateSlidingScaleOrderRequest` (`PrescriptionItemId`, `TemplateVersionId`, `Ranges[]` opsional, `AdjustmentReason`, `CheckFrequencyCode` usulan `G-22`) + `Idempotency-Key` | `ApiResponse<SlidingScaleOrderResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/episodes/{episodeId}` | Order sliding scale satu episode | `SlidingScaleOrder : Read` | Query `status` | `ApiResponse<List<SlidingScaleOrderListItem>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Order beserta seluruh versi dan rentangnya | `SlidingScaleOrder : Read` | — | `ApiResponse<SlidingScaleOrderResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/versions` | Menyesuaikan order → versi baru; pelaksanaan lama tetap menunjuk versi lama | `SlidingScaleOrder : Update` | `AdjustSlidingScaleOrderRequest` (`ExpectedVersionNumber`, `Ranges[]`, `AdjustmentReason` wajib) | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/stop` | Menghentikan order; pelaksanaan berikutnya ditolak | `SlidingScaleOrder : Update` | Alasan wajib | Sama | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | Alasan penyesuaian kosong; rentang tidak sah |
+| `403` | Anda tidak berwenang menulis resep untuk pasien ini |
+| `409` | Versi template bukan versi yang sah; butir resep bukan insulin berdosis skala atau sudah punya order; order sudah dihentikan; nomor versi yang dikirim sudah basi karena dokter lain lebih dulu menyesuaikan |
+| `422` | Perawatan pasien sudah ditutup; atau belum ada satu pun protokol yang disahkan |
+
+### 12.12 Laboratory dan Radiology — pesanan perawat dengan pemberi instruksi `CAP-015-LAB`, `CAP-015-RAD`
+
+**Gerbang implementasi:** persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` belum tercatat.
+
+#### Health Services / Laboratory Management / Lab Order
+
+Base URL: `api/v1/health-services/laboratory-management/lab-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | **Perubahan:** menerima `InstructingDoctorId`; wajib bila penginput perawat; status verifikasi `Pending` | `LabOrder : Create` | `CreateLabOrderRequest` **+ `InstructingDoctorId`** | `ApiResponse<LabOrderResponse>` | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}/verify-instruction` | Dokter pemberi instruksi memverifikasi | **`LabOrder : Verify`** | — | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/instruction-verification-worklist` | Pesanan laboratorium menunggu verifikasi dokter login | `LabOrder : Read` | Query paging | `ApiResponse<PagedResult<InstructionVerificationItem>>` | **Rencana (belum tersedia)** |
+
+#### Health Services / Radiology Management / Rad Order
+
+Base URL: `api/v1/health-services/radiology-management/rad-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | **Perubahan:** sama dengan laboratorium | `RadOrder : Create` | `CreateRadOrderRequest` **+ `InstructingDoctorId`** | `ApiResponse<RadOrderResponse>` | **Tersedia**, perilaku **Rencana** |
+| `PUT` | `/{id}/verify-instruction` | Dokter pemberi instruksi memverifikasi | **`RadOrder : Verify`** | — | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/instruction-verification-worklist` | Pesanan radiologi menunggu verifikasi dokter login | `RadOrder : Read` | Query paging | `ApiResponse<PagedResult<InstructionVerificationItem>>` | **Rencana (belum tersedia)** |
+
+Verb `PUT` mengikuti konvensi transisi yang sudah dipakai kedua controller (`/{id}/complete`, `/{id}/hold`).
+
+### 12.13 Health Services / Medical Record Management / Clinical Document Integrity — "Catatan Saya"
+
+Base URL: `api/v1/health-services/medical-record-management/clinical-document-integrities`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/my-unsigned` | Konsep milik pengguna login. **Perubahan diminta:** query `serviceContext=Inpatient` hanya mengembalikan konsep di bawah episode rawat inap | `ClinicalDocumentIntegrity : Read` | Query `pageNumber`, `pageSize` **+ `serviceContext`** | `ApiResponse<ResponseUnsignedDocumentPagedResult>` **+ `PatientName`, `MedicalRecordNumber`, `EpisodeNumber`, `ClinicalDateTime`** | **Tersedia**, penyaring **Rencana** |
+| `GET` | `/my-authored` | **Catatan terkunci milik penulis** — `Signed` dan `LockedUnsigned` — sebagai jalan masuk addendum setelah penugasan berakhir | `ClinicalDocumentIntegrity : Read` | Query `status`, `serviceContext`, `from`, `to`, paging | `ApiResponse<PagedResult<AuthoredDocumentItem>>` | **Rencana (belum tersedia)** — **menunggu persetujuan Yoga Aji Pratama** (`RWI-DEC-142` butir 3) |
+
+Kedua endpoint menyaring `AuthorUserId` = pengguna login **di server**. Data pasien yang dikembalikan hanya identitas
+minimum `RWI-DEC-127` butir (2). Detail catatan dibuka lewat endpoint dokumen pemiliknya, dan detail milik penulis
+lain ditolak — `RWI-DEC-142` jalur tidak normal (b). Addendum memakai grup bagian 9 apa adanya; jalur penulis tidak
+memeriksa penugasan (`RWI-FACT-028` butir 1).
+
+### 12.14 Health Services / Inpatient Management / Inpatient Discharge — tab Resume Medis, dirancang `episode-rawat-inap`
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{episodeId}/summary` | Resume yang sama dengan `FE-INP-06`. **Perubahan:** tiga isian baru | `InpatientDischarge : Read` | — | `ApiResponse<DischargeSummaryResponse>` **+ `ImportantFindingsSummary`, `DischargeConditionNote`, `EducationSummary`** | **Tersedia**, isian **Rencana** |
+| `GET` | `/{episodeId}/summary-prefill` | Usulan isian dari sumber klinis beserta label sumbernya; **tidak menyimpan apa pun** | `InpatientDischarge : Read` | — | `ApiResponse<DischargeSummaryPrefillResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{episodeId}/summary` | Menyimpan draf. **Perubahan:** tiga isian baru | `InpatientDischarge : Update` | Sama **+ 3 isian** | Sama | **Tersedia**, isian **Rencana** |
+| `PATCH` | `/{episodeId}/summary/sign` | Menandatangani. Tidak menutup episode | `InpatientDischarge : Sign` | — | Sama | **Tersedia** |
+| `GET` | `/{episodeId}/summary` | History Resume — versi yang pernah ditandatangani | `InpatientDischarge : Read` | Query `includeRevisions=true` | `ApiResponse<DischargeSummaryResponse>` beserta daftar versi | **Tersedia** — dipakai apa adanya |
+
+Resume ODC: **tidak ada endpoint** — tab menampilkan "Integrasi belum tersedia" (`RWI-DEC-123`).
+
+### 12.15 Penunjang Medis — empat layanan tanpa endpoint
+
+| Layanan | Endpoint pada rilis ini | Perilaku layar | Dasar |
+| --- | --- | --- | --- |
+| Gizi / Konsultasi Gizi | **Tidak ada** | Konteks pasien + "Integrasi belum tersedia" | `RWI-DEC-108`, `113`; `NutritionManagement` sudah ada di source tetapi integrasinya ditunda atas jawaban pemilik 15 September 2026 |
+| Hemodialisa | **Tidak ada** | Sama | Modul belum ada |
+| Bank Darah | **Tidak ada** | Sama | `BloodBankManagement` ada; ditunda seperti Gizi |
+| Rehab Medik | **Tidak ada** | Sama | Modul belum ada |
+
+### 12.16 Yang tidak ada di kontrak `0.6.0`
+
+| Yang tidak ada | Alasan |
+| --- | --- |
+| Endpoint daftar "catatan saya" di `ClinicalManagement` atau `InPatientManagement` | `RWI-DEC-142`, `RWI-AC-211` |
+| Endpoint verifikasi resep | `RWI-DEC-121` butir (6) |
+| Endpoint menulis resep oleh perawat | `RWI-DEC-114`, `RWI-DEC-116` |
+| Aggregator satu endpoint untuk seluruh pesanan yang menunggu verifikasi | Tiga pemilik data; layar menggabungkan tiga daftar, masing-masing dijaga modulnya |
+| Endpoint menghitung dosis sliding scale dari hasil laboratorium | `RUL-DOK-03` |
+| Endpoint pelaksanaan sliding scale dan MAR | Dirancang `keperawatan` kontrak `0.5.0` |
+| Endpoint handover shift dan transfusi | `RWI-DEC-145` butir (4) |
+| Endpoint notifikasi "lapor dokter" | Gate `G-24`; penanda tampilan saja |

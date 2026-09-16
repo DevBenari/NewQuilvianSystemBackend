@@ -8,7 +8,7 @@
 | Task mode | `FRONTEND` (backend read-only — ketiga endpoint `BE-BKC-047` dibaca langsung dari source dan dikonfirmasi ada persis sesuai kontrak, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `BE-BKC-047` ✅, `BE-BKC-048` ✅, `BE-BKC-049` ✅ — ketiga endpoint dasarnya (`edit-context`, `item-payer-assignments`, `drug-billing-disposition`) dikonfirmasi ada di `BillingInvoicesController.cs`; hanya tiga endpoint milik `BE-BKC-047` yang dipakai task ini |
-| Status task | 🟡 **Sebagian.** Source untuk kerangka `FE-MPY-01`, panel `FE-MPY-02`/`03`/`04`, dan amendment 14 September 2026 (refactor tabel tunggal) sudah lengkap ditulis. `npm run lint`/`test:unit`/`build` dan klik-coba ter-autentikasi **belum dijalankan** — lihat § DoD. Belum di-commit |
+| Status task | 🟡 **Sebagian.** Source untuk kerangka `FE-MPY-01`, panel `FE-MPY-02`/`03`/`04`, dan tiga amendment UI/UX 14 September 2026 (refactor tabel tunggal; rapikan Menu Pembayaran & Edit Tagihan; perbaikan whitespace/placement/comparison sizing) sudah lengkap ditulis. `npm run lint`/`test:unit`/`build` dan klik-coba ter-autentikasi **belum dijalankan** — lihat § DoD. Belum di-commit |
 
 ## Amendment 14 September 2026 — Refactor tabel tunggal (konsolidasi Edit Asuransi/Status Tagihan/Billing)
 
@@ -109,6 +109,276 @@ terbuka/tertutup, prop yang dikonsumsi memang dikirim, tidak ada import yang tid
 
 - MANUAL TEST: NOT FEASIBLE pada sesi ini — perlu environment ter-autentikasi (sama seperti seluruh rumpun task frontend modul ini)
 - AUTOMATED TEST: SKIPPED (instruksi baku pengguna) — `lint`/`test:unit`/`build` menunggu dijalankan pengguna sendiri
+
+## Amendment 14 September 2026 (lanjutan) — Rapikan UI/UX Menu Pembayaran dan Edit Tagihan
+
+**Latar belakang.** Setelah amendment "Refactor tabel tunggal" di atas, pengguna meninjau tampilan
+lebih lanjut lewat screenshot dan menemukan masalah tampilan/layout murni (bukan struktural): (1)
+header "Rincian Tagihan" pada Menu Pembayaran menampilkan dua tombol berdampingan padahal
+seharusnya hanya satu; (2) halaman Edit Tagihan masih terasa seperti dua card form sempit
+bertumpuk di tengah halaman, bukan satu workspace lebar; (3) kartu kategori penjamin masih
+menampilkan "-" sebagai filler; (4) Ringkasan Pembayaran hanya `<dl>` polos tanpa hierarki visual;
+(5) tabel tagihan pada Edit Tagihan memakai kotak scroll internal pendek (360px) yang cocok untuk
+Menu Pembayaran tetapi tidak untuk halaman penuh.
+
+**1. Header "Rincian Tagihan" — hanya `Edit Tagihan` (§2-4 spesifikasi).**
+`menu-pembayaran-view.jsx`: tombol "➕ Tambah Biaya Lain-lain" dipindah keluar dari
+`.tagihanHeaderArea` (yang sekarang HANYA berisi judul + tombol "✏️ Edit Tagihan") ke baris aksi
+sekunder baru (`.secondaryActionsRow`, class baru di `menu-pembayaran.module.css`) tepat di
+bawahnya, rata kanan, variant `ghost` (bukan `secondary`) supaya terasa sebagai aksi sekunder,
+bukan setara "Edit Tagihan". **Fitur, form, endpoint, dan validasi "Tambah Biaya Lain-lain" TIDAK
+disentuh sama sekali** — hanya lokasi tombol pemicunya (`onClick`, `disabled`, `title` persis
+sama). Posisi barunya BUKAN "dikembalikan ke lokasi lama" secara harfiah — audit source
+mengonfirmasi kedua tombol itu sudah berdampingan di header sejak sebelum sesi ini (bukan sesuatu
+yang dipindahkan session-session sebelumnya di sesi ini) — melainkan dipisah ke baris tersendiri
+sesuai instruksi eksplisit "HANYA Edit Tagihan di header", supaya tidak ada dua tujuan aksi
+tercampur dalam satu baris judul.
+
+**2. Edit Tagihan full-width, satu workspace card (§5-8 spesifikasi).**
+`edit-tagihan.module.css`: `.page` kehilangan `max-width: 1080px; margin: 0 auto;`, diganti
+`width: 100%`. `edit-tagihan-view.jsx`: wrapper halaman kini `region-page-shell` +
+`baseStyles.dataShell` + `styles.page` — pola persis yang dipakai `menu-pembayaran-view.jsx`
+(`region-page-shell ${baseStyles.dataShell} ${styles.paymentShell}`). Dua card terpisah
+(`.headerCard` lalu `.panelCard` yang membungkus panel aktif) digabung menjadi **satu**
+`.workspaceCard`: judul+tombol Kembali → subjudul penanggung kunjungan → toolbar tiga mode →
+`<hr className={styles.workspaceDivider}>` → konten mode aktif (`.panelBody`) — seluruhnya di
+dalam satu elemen. Ketiga komponen panel (`EditAsuransiPanel`, `EditStatusTagihanPanel`,
+`EditBillingPanel`) tidak lagi merender `<div className={styles.panelCard}>` pembungkus sendiri —
+kontennya (termasuk bar Batal Edit/Simpan Perubahan di ujung masing-masing) sekarang mengalir
+langsung di dalam `.panelBody` milik parent, sehingga secara visual jadi satu workspace, bukan
+kotak-dalam-kotak.
+
+**3. Payer category — tidak ada lagi "-" filler (§9-10 spesifikasi).**
+`base-payer-workspace.jsx` (`BasePayerCategorySelector`, komponen BASE bersama — juga dipakai
+langkah pembayaran admisi Rawat Inap): baris `<em>{category.subtitle || category.description ||
+"-"}</em>` diubah jadi hanya merender `<em>` bila memang ada `subtitle`/`description` — bila tidak
+ada, elemen itu sama sekali tidak dirender (bukan diganti teks kosong). Perubahan **aditif murni**:
+kategori yang sudah mengirim `subtitle`/`description` tidak berubah tampilannya sama sekali;
+konsumen lain komponen ini (Rawat Inap) hanya terdampak bila kategorinya JUGA sebelumnya jatuh ke
+fallback "-" — dan bila iya, itu perbaikan yang sama, bukan regresi. Tidak ada perubahan pada
+`BaseSavedPayerCard` (kartu kandidat asuransi/penjamin tersimpan) — fallback "-" di situ (untuk
+`title`/`numberValue` yang benar-benar kosong) tetap dipertahankan karena itu bukan filler
+kosmetik, melainkan indikator data yang sungguh tidak ada.
+
+Kompaksi tinggi kartu kategori (§9, "buat lebih compact") **TIDAK dikerjakan pada amendment ini** —
+`BasePayerCategorySelector`/`BaseSavedPayerCard` adalah komponen BASE bersama dengan konsumen lain
+(Rawat Inap); mengubah dimensi/padding-nya secara visual berisiko regresi di luar cakupan yang bisa
+diverifikasi sesi ini tanpa environment ter-autentikasi. Diprioritaskan sesuai §30 spesifikasi
+task (item compaction ada di urutan lebih rendah dari struktur/lebar/tabel/summary yang sudah
+dikerjakan) dan dilaporkan sebagai risiko tersisa, bukan diam-diam dilewati.
+
+**4. Tabel tagihan — page-level scroll, bukan kotak scroll pendek (§14-16 spesifikasi).**
+`billing-invoice-items-table.jsx`: prop opsional baru `scrollable` (default `true` — perilaku Menu
+Pembayaran TIDAK berubah sama sekali). `edit-tagihan-view.jsx` dan kedua tabel perbandingan di
+`edit-asuransi-panel.jsx` mengirim `scrollable={false}`, melepas kelas `.itemTableScroll`
+(`max-height: 360px; overflow-y: auto;`) sehingga tabel tumbuh mengikuti konten dan halaman
+memakai scroll level-halaman, sesuai preferensi eksplisit spesifikasi ("page-level scroll lebih
+disukai").
+
+**5. Ringkasan Pembayaran — hierarki visual (§19-21 spesifikasi).**
+`edit-tagihan.module.css`: `<dl>` polos (memakai class `.comparisonColumn` yang sebenarnya dibuat
+untuk konteks lain) diganti class baru khusus ringkasan (`.summaryCard`, `.summaryHeading`,
+`.summaryList`, `.summaryRow`, `.summaryTotalGroup`) mengikuti pola `.summaryRow`/`.summaryTotal`
+yang SUDAH dipakai `menu-pembayaran.module.css` — bukan warna/gradient baru, murni border +
+typography + `text-align: right` dan `font-variant-numeric: tabular-nums` pada angka, dua baris
+Total Tagihan/Harus Dibayar Pasien dipisah kelompok sendiri dengan border-top dan font lebih tebal
+supaya lebih menonjol. `.summaryCard` juga membawa
+`margin-bottom: var(--app-footer-safe-space, 96px) !important` (lihat butir 7 di bawah).
+
+**6. Loading state saat pratinjau (§23 spesifikasi).**
+Baris "Menghitung ulang tagihan..." (`.summaryLoadingHint`) muncul di atas Ringkasan Pembayaran
+saat `asuransiPanel.comparisonLoading` true (mode Edit Asuransi, saat tombol "Bandingkan" ditekan)
+— satu-satunya mode yang memang punya endpoint pratinjau (lihat constraint §22 di bawah).
+
+**7. Footer overlap (§26 spesifikasi).**
+Diaudit: `base-data-components.module.css` `.tableCard` sudah membawa
+`margin-bottom: var(--app-footer-safe-space, 96px)` bawaan — token yang sama dipakai luas di
+seluruh project (dikonfirmasi dipakai `menu-pembayaran.module.css`, `base-editor.module.css`, dan
+belasan modul lain, dihitung dinamis oleh `Footer.jsx`). Section Ringkasan Pembayaran (section
+PALING BAWAH halaman Edit Tagihan) sudah memakai `baseStyles.tableCard` sejak awal, jadi ruang
+aman footer semestinya sudah ada; `.summaryCard` di atas menambahkan `margin-bottom` yang sama
+secara eksplisit (dengan `!important`, pola yang sama dipakai `menu-pembayaran.module.css` untuk
+alasan spesifisitas urutan modul CSS) supaya tidak bergantung diam-diam pada urutan muat CSS.
+**Tidak dipakai trik `z-index`** sesuai larangan eksplisit spesifikasi.
+
+**Constraint kontrak yang dikonfirmasi ULANG masih berlaku (tidak berubah dari amendment
+sebelumnya, source backend diperiksa ulang pada sesi ini):**
+
+1. **§11 "Alasan opsional":** label ketiga panel diubah menjadi "Alasan perubahan (opsional)" TANPA
+   asterisk (`required: false` pada definisi field — dikonfirmasi hanya mengubah tampilan visual,
+   `BaseTextAreaField`/`BaseTextField` tidak dibungkus `<form>` di panel manapun sehingga atribut
+   HTML `required` yang ikut terpasang tidak pernah punya efek fungsional di sini). **Tombol Simpan
+   TETAP digerbang non-aktif selama textarea kosong** (`panel.canSave` di ketiga hook, tidak
+   diubah) — karena `BillingPayerEditService` (backend) masih menolak keras (`400`, `BIL-VAL-062`)
+   permintaan dengan alasan kosong pada ketiga endpoint edit. Ini **bukan** "opsional penuh"
+   sebagaimana secara eksplisit diperingatkan pada instruksi task — dilaporkan apa adanya.
+2. **§22 "Summary must react":** dikonfirmasi ulang backend HANYA punya satu endpoint pratinjau
+   (`payer-comparison-preview`, Edit Asuransi). Edit Status Tagihan dan Edit Billing tetap tidak
+   punya endpoint pratinjau — Ringkasan pada dua mode itu baru berubah setelah Simpan Perubahan
+   berhasil (reload `edit-context`), bukan reaktif per-draft. Tidak ada endpoint baru dibuat, tidak
+   ada perhitungan coverage disimulasikan di React (keduanya dilarang eksplisit task ini).
+
+**File yang berubah pada amendment ini:**
+
+| File | Perubahan |
+| --- | --- |
+| `menu-pembayaran-view.jsx` | Tombol "Tambah Biaya Lain-lain" dipindah dari header Rincian Tagihan ke baris aksi sekunder baru |
+| `menu-pembayaran.module.css` | Kelas baru `.secondaryActionsRow`; komentar `.tagihanHeaderActions` diperbarui |
+| `edit-tagihan.module.css` | `.page` full-width; `.headerCard`+`.panelCard` digabung jadi `.workspaceCard`+`.workspaceDivider`+`.panelBody`; kelas ringkasan baru (`.summaryCard` dst.) |
+| `edit-tagihan-view.jsx` | Header+toolbar+panel digabung satu `<div className={styles.workspaceCard}>`; page shell disamakan Menu Pembayaran; tabel utama `scrollable={false}`; Ringkasan dirender ulang dengan kelas baru + loading hint |
+| `edit-asuransi-panel.jsx` | Wrapper `panelCard` dihapus (fragment); kedua tabel perbandingan `scrollable={false}`; label Reason → "(opsional)" visual |
+| `edit-status-tagihan-panel.jsx` | Wrapper `panelCard` dihapus (fragment); label Reason → "(opsional)" visual |
+| `edit-billing-panel.jsx` | Wrapper `panelCard` dihapus (fragment); label Reason → "(opsional)" visual |
+| `billing-invoice-items-table.jsx` | Prop opsional baru `scrollable` (default `true`, Menu Pembayaran tidak terdampak) |
+| `base-payer-workspace.jsx` | `BasePayerCategorySelector`: `<em>` fallback "-" dihapus, hanya dirender bila ada subtitle/description sungguhan (aditif, base component bersama Rawat Inap) |
+
+**Base Component Decision Gate (amendment ini):**
+
+| Elemen | Status | Bukti/alasan |
+| --- | --- | --- |
+| Workspace card gabungan, divider, baris ringkasan | `REUSE` (styling lokal) | Class CSS module lokal baru (`.workspaceCard` dst.), bukan komponen React baru — murni penataan ulang elemen yang sudah ada (`BaseButton`, `BaseTextAreaField`, dst. tidak diganti) |
+| Baris aksi sekunder "Tambah Biaya Lain-lain" | `REUSE` | `BaseButton` variant `ghost` (variant yang sudah ada di `VARIANT_CLASS`, bukan variant baru) |
+| Penghapusan fallback "-" pada `BasePayerCategorySelector` | `EXTEND` (aditif, tidak mengubah default konsumen existing) | Base component bersama Rawat Inap — perubahan hanya menghapus rendering fallback teks, tidak mengubah props/behavior API komponen; konsumen yang sudah mengirim `subtitle`/`description` sungguhan (termasuk kemungkinan Rawat Inap) tidak berubah tampilannya sama sekali |
+| Kompaksi tinggi kartu payer | **Tidak dikerjakan** | Lihat butir 3 di atas — dilaporkan sebagai risiko tersisa, bukan gerbang keputusan yang menunggu (bukan `NEW`, tidak butuh komponen baru — murni diprioritaskan lebih rendah dan ditinggalkan eksplisit) |
+
+`UI GATE: 0 elemen NEW, 1 elemen EXTEND aditif (base-payer-workspace.jsx, tidak mengubah default konsumen existing), sisanya REUSE`
+
+**Validasi amendment ini:** sama seperti amendment sebelumnya — **`npm run lint`/`test:unit`/`build`
+TIDAK dijalankan** sesuai instruksi eksplisit pengguna yang berulang di sesi ini. Diverifikasi
+lewat pembacaan ulang menyeluruh source (tag JSX terbuka/tertutup, prop yang dikonsumsi memang
+dikirim). `git status --short` dikonfirmasi menyentuh persis 10 berkas di atas — nihil perubahan
+sampingan (satu berkas lain, `billing-invoices-view.jsx`, sudah berubah dari pekerjaan lain di
+working tree yang sama sebelum amendment ini dimulai — tidak disentuh).
+
+- MANUAL TEST: NOT FEASIBLE — tidak ada environment ter-autentikasi pada sesi ini untuk QA visual 5 breakpoint (1366×768, 1440×900, 1920×1080, 1024×768, 768px) maupun skenario Cash/Insurance/Company Guarantor/multiple comparison/long table yang diminta §35 spesifikasi
+- AUTOMATED TEST: SKIPPED (instruksi baku pengguna)
+
+**Risiko tersisa (amendment ini):**
+
+1. Kompaksi tinggi kartu payer category/saved-payer (§9 spesifikasi) belum dikerjakan — lihat butir 3 di atas.
+2. Tidak ada verifikasi visual nyata (screenshot/browser) atas restrukturisasi ini — seluruh klaim "full-width", "satu workspace", "tidak ada dash" didasarkan pembacaan source dan CSS, bukan render sungguhan.
+3. Constraint Reason wajib dan absennya endpoint pratinjau untuk 2 dari 3 mode (lihat di atas) tetap berlaku — task backend terpisah dibutuhkan bila produk menghendaki penuh sesuai spesifikasi asli.
+
+## Amendment 14 September 2026 (lanjutan 2) — Perbaikan whitespace, placement Tambah Biaya Lain-lain, dan comparison table sizing
+
+**Latar belakang.** Pengguna meninjau screenshot terbaru dan menemukan tiga masalah konkret sisa
+dari dua amendment sebelumnya: (1) tombol toggle "Tambah Biaya Lain-lain" masih ada padahal
+seharusnya dihapus dan section-nya selalu tampil langsung di bawah tabel Rincian Tagihan; (2)
+jarak vertikal sangat besar sebelum Ringkasan Pembayaran; (3) pada mode perbandingan asuransi,
+masing-masing tabel membutuhkan scroll horizontal sendiri di desktop.
+
+**1. Tombol "Tambah Biaya Lain-lain" dihapus, section selalu tampil (§2-5 spesifikasi).**
+`menu-pembayaran-view.jsx`: `useState` `isEditing`/`setIsEditing` **dihapus seluruhnya** (diaudit
+lebih dulu — hanya dipakai untuk toggle tombol dan gating render, tidak ada dependency lain).
+Tombol toggle dan baris `.secondaryActionsRow` (dibuat amendment sebelumnya) **dihapus dari
+render**, bukan disembunyikan CSS. Section `Tambah Biaya Lain-Lain` (`<section
+className={styles.adhocPanel}>`) sekarang **selalu dirender** tanpa kondisi apa pun, dan
+**dipindah ke bawah tabel Rincian Tagihan** — sebelumnya JSX-nya justru berada DI ATAS tabel
+(ditemukan saat audit: urutan lama bertentangan dengan komentar CSS `.adhocPanel` sendiri yang
+sejak awal berbunyi *"Duduk tepat di bawah tabel Tagihan Pasien"*, jadi ini menyelaraskan JSX
+dengan niat desain aslinya, bukan mendesain ulang). **Nol perubahan** pada form/field/validasi/
+`onSubmit={confirmAdhoc}`/`handleAdhocChange`/endpoint/audit logging — hanya visibility dan
+posisi.
+
+**2. Akar penyebab whitespace ditemukan dan diperbaiki (§6-9 spesifikasi).**
+Diaudit `baseStyles.tableCard` (base component bersama): membawa `margin-bottom:
+var(--app-footer-safe-space, 96px)` bawaan — benar untuk elemen paling bawah halaman, tetapi
+salah untuk tabel mana pun yang masih diikuti section lain.
+- Menu Pembayaran: tabel Rincian Tagihan **sudah** memakai `className={styles.section}`
+  (`margin-bottom: 0 !important`) sejak sebelum sesi ini — tidak ada perubahan diperlukan di situ.
+  Section "Tambah Biaya Lain-Lain" yang baru dipindah juga diberi `className={styles.section}`
+  yang sama, supaya jaraknya ke grid Promo/Diskon/Ringkasan konsisten.
+- **Edit Tagihan: DITEMUKAN belum pernah diberi override ini sama sekali** — tabel tagihan utama
+  (`edit-tagihan-view.jsx`) dan kedua tabel perbandingan asuransi (`edit-asuransi-panel.jsx`)
+  masing-masing mewarisi `margin-bottom: 96px` tanpa disadari, persis akar penyebab "jarak vertikal
+  sangat besar sebelum Ringkasan Pembayaran" yang dilaporkan. Kelas baru `.flushTableCard`
+  (`edit-tagihan.module.css`) dibuat dan dipasang ke ketiganya via prop `className` yang memang
+  sudah didukung `BillingInvoiceItemsTable` sejak awal — tidak ada API baru pada komponen.
+- Tidak ditemukan `height`/`min-height`/`max-height` tetap lain pada container terkait (diaudit
+  `.adhocPanel`, `.editWorkspace` [sudah dihapus], `.paymentThreeColGrid`, `.workspaceCard`,
+  `.summaryCard`) selain `.itemTableScroll` (360px, sudah dinonaktifkan `scrollable={false}` pada
+  amendment sebelumnya untuk Edit Tagihan) dan `.itemTableScroll` bawaan Menu Pembayaran (memang
+  disengaja untuk tabel yang berbagi halaman dengan 3-kolom Pembayaran).
+
+**3. Comparison table sizing — akar penyebab horizontal scroll ditemukan dan diperbaiki
+(§13-27 spesifikasi).**
+Diaudit `baseStyles.dataTable` (base component bersama, dipakai HAMPIR SELURUH tabel aplikasi):
+membawa `min-width: max(840px, 100%)` — benar untuk tabel satu-kolom penuh, tetapi memaksa DUA
+tabel di dalam grid 2-kolom `.comparisonGrid` melebihi lebar sel grid-nya masing-masing, persis
+penyebab horizontal scroll yang dilaporkan.
+- `billing-invoice-items-table.jsx`: prop opsional baru `compact` (default `false`, Menu
+  Pembayaran dan tabel utama Edit Tagihan TIDAK terdampak). Saat `true`, tabel memakai kelas baru
+  `.compactTable` (`billing-invoice-items-table.module.css`): `min-width: 0 !important` (melepas
+  batas 840px), `table-layout: fixed; width: 100%`, padding lebih rapat (`0.5rem 0.55rem` vs
+  bawaan `~0.85rem`), dan proporsi kolom via `nth-child` mengikuti panduan §16 (Deskripsi 38%,
+  Satuan 9%, Status 13%, Harga Satuan 16%, Qty 7%, Harga 17%). Deskripsi (`nth-child(1)`) dan
+  Satuan (`nth-child(2)`) diizinkan wrap (`white-space: normal; word-break: break-word` pada
+  Deskripsi); keempat kolom lain (Status, Harga Satuan, Qty, Harga) tetap `white-space: nowrap`.
+- `edit-asuransi-panel.jsx`: kedua tabel perbandingan diberi prop `compact` — **komponen dan
+  logika render yang SAMA PERSIS** dengan tabel utama (§28 spesifikasi: dilarang membuat komponen
+  tabel comparison terpisah; tidak ada `PrimaryInsuranceTable.jsx`/`ComparisonInsuranceTable.jsx`
+  baru).
+- `edit-tagihan.module.css` `.comparisonGrid`: diganti dari `repeat(auto-fit, minmax(240px,
+  1fr))` (yang MEMBIARKAN lebar intrinsik tabel memaksa sel grid melebar) menjadi
+  `grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)` eksplisit — angka `0` pada `minmax`
+  secara eksplisit mengizinkan sel mengecil di bawah lebar konten intrinsiknya (§14 spesifikasi).
+  `.comparisonColumn` diberi `min-width: 0` tambahan. Breakpoint tablet `@media (max-width:
+  1024px)` (pola sama dengan `.paymentThreeColGrid`) meruntuhkan grid jadi 1 kolom — pada lebar
+  itu `.itemTableScroll` TIDAK dipakai (comparison table tetap `scrollable={false}`), sehingga
+  scroll fallback di layar sempit berasal dari `overflow-x: auto` bawaan `baseStyles.tableWrapper`
+  (§26: "scroll acceptable sebagai fallback" pada mobile/tablet), bukan mekanisme baru.
+- **Bug tambahan ditemukan saat audit ini dan ikut diperbaiki:** `.numericCell { text-align:
+  right }` sebelumnya diselector bersarang `.itemTableScroll .numericCell` — begitu
+  `scrollable={false}` dipakai (amendment sebelumnya), kelas `.itemTableScroll` tidak lagi
+  terpasang sehingga kolom Harga Satuan/Qty/Harga pada tabel utama Edit Tagihan DAN kedua tabel
+  perbandingan diam-diam kembali rata kiri tanpa disadari siapa pun. Diperbaiki jadi selector
+  berdiri sendiri dengan `!important` (mengalahkan `baseStyles.dataTable th { text-align: left }`
+  bawaan).
+
+**4. Edit Tagihan lain — tidak ada regresi disengaja (§30 spesifikasi).**
+Struktur workspace tunggal, tabel tunggal, inline status edit, label Reason opsional (dengan
+gerbang Simpan yang tetap dipertahankan), dan tidak-ada-dash dari dua amendment sebelumnya **tidak
+diubah** pada amendment ini — hanya ditambah `className={styles.flushTableCard}` (kosmetik
+spacing) dan prop `compact` pada tabel comparison.
+
+**5. Add Other Cost pada Edit Tagihan (§31 spesifikasi) — TIDAK APLIKABEL.**
+Diaudit: `edit-tagihan-view.jsx`, ketiga panel mode, dan hook `use-billing-invoice-edit-tagihan.js`
+sama sekali tidak memiliki form/section "Tambah Biaya Lain-lain" — fitur ini eksklusif milik Menu
+Pembayaran. Tidak ada duplikasi untuk dicegah, tidak ada perubahan diperlukan di Edit Tagihan
+untuk butir ini.
+
+**File yang berubah pada amendment ini:**
+
+| File | Perubahan |
+| --- | --- |
+| `menu-pembayaran-view.jsx` | `isEditing`/`setIsEditing` dihapus; tombol toggle dihapus; section Tambah Biaya Lain-lain dipindah ke bawah tabel, selalu dirender |
+| `menu-pembayaran.module.css` | `.secondaryActionsRow`, `.editWorkspace`, `@keyframes editWorkspaceFadeIn` dihapus (tidak dipakai lagi) |
+| `edit-tagihan-view.jsx` | Tabel utama diberi `className={styles.flushTableCard}` |
+| `edit-tagihan.module.css` | Kelas baru `.flushTableCard`; `.comparisonGrid` diubah ke `minmax(0,1fr)` eksplisit + breakpoint 1024px; `.comparisonColumn` diberi `min-width: 0` |
+| `edit-asuransi-panel.jsx` | Kedua tabel perbandingan diberi prop `compact` dan `className={styles.flushTableCard}` |
+| `billing-invoice-items-table.jsx` | Prop opsional baru `compact` (default `false`, tabel lain tidak terdampak) |
+| `billing-invoice-items-table.module.css` | Kelas baru `.compactTable` + proporsi kolom; bug fix `.numericCell` (selector berdiri sendiri + `!important`) |
+
+**Base Component Decision Gate (amendment ini):** `UI GATE: 0 elemen NEW, 0 elemen EXTEND yang
+mengubah default konsumen lain, seluruh elemen REUSE.` Prop `compact` pada
+`BillingInvoiceItemsTable` adalah domain component milik modul ini sendiri (bukan base component
+`src/components/features/base-features/`), default `false` menjaga seluruh 3 pemanggil lama
+(Menu Pembayaran, tabel utama Edit Tagihan) identik seperti sebelumnya.
+
+**Validasi amendment ini:** **`npm run lint`/`test:unit`/`build` TIDAK dijalankan** sesuai
+instruksi eksplisit pengguna yang berulang di sesi ini. Diverifikasi lewat pembacaan ulang
+menyeluruh source dan CSS (tag JSX terbuka/tertutup, spesifisitas selector, prop yang dikirim
+memang dikonsumsi). `git status --short` dikonfirmasi menyentuh persis 7 berkas di atas — nihil
+perubahan sampingan.
+
+- MANUAL TEST: NOT FEASIBLE — tidak ada environment ter-autentikasi/browser pada sesi ini untuk QA 6 breakpoint (1366×768, 1440×900, 1600×900, 1920×1080, 1024×768, 768px) maupun skenario long description/multiple categories/large Rupiah yang diminta §38 spesifikasi
+- AUTOMATED TEST: SKIPPED (instruksi baku pengguna)
+
+**Risiko tersisa (amendment ini):**
+
+1. Tidak ada verifikasi visual nyata — seluruh klaim "tanpa horizontal scroll", "whitespace hilang" didasarkan audit CSS/source (spesifisitas selector, nilai `min-width`/`margin-bottom` yang saling menimpa), bukan render sungguhan di browser pada breakpoint yang diminta.
+2. Proporsi kolom `.compactTable` (38/9/13/16/7/17%) adalah estimasi mengikuti panduan §16 spesifikasi (eksplisit "guideline, bukan hardcode mutlak") — belum divalidasi dengan data nyata (nama obat panjang, dsb.) yang diminta §38.
+3. Bug `.numericCell` yang ditemukan (butir 3 di atas) sudah ada sejak amendment sebelumnya (saat prop `scrollable` ditambahkan) dan kemungkinan sudah terlihat di screenshot yang mendasari task ini — kini sudah ikut diperbaiki dalam amendment yang sama, tidak menunggu laporan terpisah.
 
 ## Update 12 September 2026 — pembersihan pasca `BE-BKC-FIX-009`
 

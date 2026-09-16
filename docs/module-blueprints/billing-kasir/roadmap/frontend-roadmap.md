@@ -1259,3 +1259,146 @@ selesai bersama `BE-BKC-042`/`043`, admin sudah dapat mengisi aturan tanggungan,
 perhitungan kunjungan berpenjamin perusahaan dari `BE-BKC-044` langsung terasa pada tagihan —
 tanpa menunggu satu pun layar edit selesai.
 
+
+---
+
+# Amendment 15 September 2026 — Revisi rumpun Petty Cash: satu halaman kerja
+
+| Field | Isi |
+| --- | --- |
+| Blueprint | `BIL-CASH-001`, revisi `1.2`, status **approved** |
+| Masukan keputusan bisnis | `PC-DEC-016`–`PC-DEC-026`, seluruhnya `approved` 15 September 2026 |
+| Masukan keputusan arsitektur | `PC-DES-015`–`PC-DES-025`, `approved`; layar dirinci `03-frontend-architecture.md` amendment 15 September 2026 |
+| Kontrak yang berlaku | `BIL-API-1.1`, `BIL-STATE-1.0`, `BIL-PERMISSION-0.9` — seluruhnya `approved` |
+| Frontend SHA | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`) |
+| Task | `FE-BKC-035`–`FE-BKC-038` (empat task) |
+
+## 0. Kenapa seluruh task di sini menunggu backend
+
+Layar Petty Cash yang berjalan hari ini memanggil `POST /vouchers/{id}/approve` dan
+`/reject`, menampilkan `reservedAmount`, dan membandingkan status dengan nilai `WAITING_APPROVAL`
+serta `APPROVED`. Keempat hal itu **hilang atau berganti** pada revisi backend.
+
+Karena itu tidak ada satu pun task frontend di gelombang ini yang boleh dimulai sebelum task
+backend pasangannya selesai. Ini bukan kehati-hatian berlebih: mengerjakannya lebih dulu berarti
+menulis layar terhadap kontrak yang sedang berubah, lalu menulisnya ulang.
+
+**Yang tetap dipakai ulang, bukan ditulis ulang:** komponen, hook, dan slice Petty Cash yang
+sudah ada seluruhnya dipertahankan dan dipindahkan menjadi panel di dalam halaman gabungan.
+Modul ini sudah punya preseden mahal dari menulis ulang logika yang sudah benar — rumus Subtotal
+dan Pajak pada Menu Pembayaran menyimpang tiga kali karena ditulis ulang di tempat berbeda.
+
+## Grafik Urutan Dependency
+
+```text
+BE-BKC-058 [BE] ─> FE-BKC-035 ─┐
+                               │
+BE-BKC-054 [BE] ───────────────┴─> FE-BKC-037
+
+BE-BKC-055 [BE] ─> FE-BKC-036 ─┐
+                               │
+BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, cermin baca-saja.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-BKC-058` | `FE-BKC-035` |
+| 1 | `BE-BKC-055` | `FE-BKC-036` — boleh paralel dengan `FE-BKC-035` |
+| 2 | `FE-BKC-035`, `BE-BKC-054` | `FE-BKC-037` |
+| 2 | `FE-BKC-036`, `BE-BKC-057` | `FE-BKC-038` |
+
+## 1. Pemetaan gelombang MVP ke gelombang eksekusi
+
+| Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
+| --- | --- | --- |
+| `MVP-21` (pencairan langsung) | `FE-BKC-036` | Kasir tidak lagi melihat tombol Setujui/Tolak, dan dapat mencairkan langsung dari daftar |
+| `MVP-22` (uang kembali) | `FE-BKC-038` | Kasir dapat mencatat sisa uang yang dikembalikan dan membatalkan pencairan yang salah |
+| `MVP-23` (halaman gabungan) | `FE-BKC-035`, `FE-BKC-037` | Monitoring dan anggaran tampil pada satu halaman; Finance mengelola periode dari halaman yang sama |
+
+## `FE-BKC-035` — Halaman kanonik Petty Cash dan pengalihan route lama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Satu halaman menampilkan ringkasan, panel anggaran, monitoring permintaan, dan riwayat pergerakan; penanda halaman lama tidak mati |
+| Gelombang | `MVP-23` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-103`, `FR-BKC-104`, `FR-BKC-105`, `FR-BKC-106`, `FR-BKC-108`; `PC-DES-025` |
+| Kontrak | `GET /budget/overview`, `GET /vouchers`, `GET /budget/movements` (`BIL-API-1.1`) |
+| Layar | `FE-PC-09` (baru); `FE-PC-01` dan `FE-PC-05` menjadi panel |
+| Reuse | **Wajib**: `petty-cash-vouchers-view.jsx` dan `petty-cash-budget-view.jsx` dipakai ulang sebagai panel; kedua hook dan kedua slice dipertahankan |
+| Scope | Halaman baru pada route induk `/health-services/billing-management/petty-cash`; kedua route lama menjadi pengalihan permanen; sidebar kehilangan butir Anggaran Kas Kecil dan `pathname` butir Petty Cash berubah; lima kartu ringkasan dari satu panggilan |
+| Dependency | `BE-BKC-058` [BE] |
+| Acceptance | `UAT-63`, `UAT-64`; tabel wilayah pada `03-frontend-architecture.md` — setiap wilayah memuat sumber data, hak akses tombol, bunyi keadaan kosong dan gagal |
+| Verifikasi | `npm run build` lulus; verifikasi manual di browser atas ketiga wilayah; verifikasi kedua route lama mengarah ke halaman kanonik; verifikasi kartu gagal-memuat menampilkan tanda hubung, bukan `Rp 0` |
+| Kewenangan UI | Penggabungan halaman, route kanonik, sumber data per wilayah, dan urutan wilayah **dikunci**. Bentuk wadah panel, warna, jarak, ikon, dan component library `DEV_DISCRETION` |
+| Risiko/pemilik | Pendaftaran butir menu **MUST** menjadi acceptance criteria task ini, bukan pekerjaan yang menganggur. Modul ini punya preseden lima halaman selesai tetapi tidak terjangkau sampai task menu tersendiri dikerjakan. Owner Frontend |
+| DoD | Halaman kanonik terjangkau dari sidebar; kedua route lama mengalihkan; kelima kartu dari satu panggilan; keadaan memuat, kosong, dan gagal tertangani per wilayah; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## `FE-BKC-036` — Kosakata status baru dan pembuangan aksi persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Layar tidak lagi menampilkan tombol Setujui maupun Tolak, dan seluruh label status memakai kosakata baru |
+| Gelombang | `MVP-21` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-088`, `FR-BKC-107`; `PC-DES-015`, `PC-DES-021` |
+| Kontrak | `POST /vouchers/{id}/disburse`, `POST /vouchers/{id}/cancel`, `GET /vouchers` (`BIL-API-1.1`); `BIL-STATE-1.0` |
+| Layar | `FE-PC-01` (panel monitoring), `FE-PC-02`, `FE-PC-04` |
+| Reuse | `use-petty-cash-vouchers.js` dan `petty-cash-voucher-slice.jsx` dipertahankan; hanya aksi dan konstanta yang berubah |
+| Scope | Aksi `approve`/`reject` dibuang dari hook, slice, dan komponen; konstanta status dan labelnya diperbarui menjadi `Menunggu Pencairan`, `Menunggu Bukti`, `Selesai`, `Dibatalkan (Uang Dikembalikan)`, `Ditolak (arsip)`; aksi per baris diambil dari `availableActions` server, **bukan** disimpulkan layar dari status; judul modal berubah menjadi Buat Permintaan |
+| Dependency | `BE-BKC-055` [BE] |
+| Acceptance | `UAT-55`, `UAT-56`, `UAT-57`; tabel Penanda status pada `03-frontend-architecture.md` |
+| Verifikasi | `npm run build` lulus; verifikasi manual bahwa tombol Setujui/Tolak tidak ada di layar mana pun; verifikasi voucher warisan tampil `Menunggu Pencairan` dengan tombol Cairkan tersedia; verifikasi baris `Ditolak (arsip)` hanya menampilkan Detail |
+| Kewenangan UI | Label status dan hak akses tombol **dikunci**. Bentuk penanda status dan tata letak aksi baris `DEV_DISCRETION` |
+| Risiko/pemilik | Layar yang masih membandingkan status dengan `WAITING_APPROVAL` atau `APPROVED` akan diam-diam menyembunyikan tombol Cairkan — gagalnya tidak berupa error, melainkan tombol yang tidak pernah muncul. Owner Frontend |
+| DoD | Tidak ada pemanggilan endpoint persetujuan tersisa; seluruh label memakai kosakata baru; aksi baris digerakkan server; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## `FE-BKC-037` — Layar Kelola Periode Anggaran
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Finance dapat membuat, mengaktifkan, dan menutup periode anggaran dari halaman Petty Cash, dan melihat ke mana sisa saldonya berpindah |
+| Gelombang | `MVP-23` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-092`, `FR-BKC-095`, `FR-BKC-096`; `PC-DES-017`, `PC-DES-018` |
+| Kontrak | `GET /budget/periods`, `POST /budget/periods`, `POST /budget/periods/{id}/activate`, `POST /budget/periods/{id}/close` (`BIL-API-1.1`) |
+| Layar | `FE-PC-12` (baru) |
+| Reuse | Pola modal master data yang sudah dipakai `adjust-budget-modal.jsx` dan `top-up-budget-modal.jsx` |
+| Scope | Layar anak berisi daftar periode beserta status dan aksinya; modal buat periode; dialog tutup periode yang **MUST** menampilkan sisa saldo dan meminta periode penerus ketika sisanya lebih besar dari nol, disertai kalimat bahwa sisa itu dipindahkan — bukan hilang |
+| Dependency | `FE-BKC-035` (halaman induknya harus sudah ada), `BE-BKC-054` [BE] |
+| Acceptance | `UAT-58`, `UAT-59`, `UAT-60`; tabel wilayah `FE-PC-12` pada `03-frontend-architecture.md` |
+| Verifikasi | `npm run build` lulus; verifikasi manual alur buat lalu aktifkan lalu tutup; verifikasi pesan `BIL-VAL-102`, `103`, dan `104` ditampilkan apa adanya dari server; verifikasi dialog tutup menampilkan sisa saldo dan tujuan pemindahannya |
+| Kewenangan UI | Isi dialog tutup periode dan sumber datanya **dikunci**. Bentuk wadah (modal, laci, halaman anak) `DEV_DISCRETION` |
+| Risiko/pemilik | Dialog tutup tanpa kalimat pemindahan membuat Finance tidak punya cara tahu ke mana uangnya pergi. Owner Frontend bersama Finance |
+| DoD | Ketiga aksi daur hidup berjalan dari layar; dialog tutup menampilkan sisa dan periode penerus; pesan penolakan server tampil apa adanya; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## `FE-BKC-038` — Kembalikan sisa uang dan batalkan pencairan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dapat mencatat sisa uang yang dikembalikan penerima dan membatalkan pencairan yang salah, langsung dari baris permintaan |
+| Gelombang | `MVP-22` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-098`, `FR-BKC-099`, `FR-BKC-100`, `FR-BKC-102`; `PC-DES-020` |
+| Kontrak | `POST /vouchers/{id}/returns`, `POST /vouchers/{id}/reversals` (`BIL-API-1.1`); `BIL-VAL-098`–`BIL-VAL-101` |
+| Layar | `FE-PC-10`, `FE-PC-11` (keduanya baru); `FE-PC-04` diperbarui |
+| Reuse | Pola modal beralasan wajib yang sudah dipakai `attach-proof-modal.jsx`; kunci idempotensi pada aksi finansial yang sudah ada |
+| Scope | Dua modal beserta aksinya pada hook dan slice; detail voucher diperbarui menampilkan saldo sebelum/sesudah dan riwayat pengembalian; sisa yang masih di tangan penerima ditampilkan sebagai batas nominal pengembalian |
+| Dependency | `FE-BKC-036` (kosakata status dan aksi baris dari server sudah benar), `BE-BKC-057` [BE] |
+| Acceptance | `UAT-61`, `UAT-62` |
+| Verifikasi | `npm run build` lulus; verifikasi manual pengembalian bertahap dua kali; verifikasi pengembalian melebihi sisa ditolak dengan pesan server; verifikasi pembalikan kedua ditolak; verifikasi baris `Dibatalkan (Uang Dikembalikan)` hanya menampilkan Detail |
+| Kewenangan UI | Alasan wajib pada kedua aksi dan penampilan sisa di tangan penerima **dikunci**. Bentuk wadah (modal atau laci) `DEV_DISCRETION` |
+| Risiko/pemilik | Keduanya memindahkan uang. Tombol **MUST** dinonaktifkan selama pengiriman **dan** memakai kunci idempotensi — keduanya, bukan salah satu. Owner Frontend |
+| DoD | Kedua aksi berjalan dari baris permintaan; batas nominal pengembalian terbaca pengguna sebelum mengirim; pengiriman ganda tidak menambah saldo dua kali; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | Belum dikerjakan |
+
+## Paralelisme dan urutan ringkas
+
+`FE-BKC-035` dan `FE-BKC-036` boleh paralel: yang pertama menyusun halaman gabungan, yang kedua
+membereskan kosakata dan aksi di dalam panel monitoring. Keduanya menyentuh berkas yang berbeda,
+tetapi **MUST** dikoordinasikan pada satu titik — `petty-cash-vouchers-view.jsx` disentuh
+keduanya. Sepakati urutan commit sebelum mulai.
+
+Dua task gelombang 2 masing-masing menempel pada satu task gelombang 1, sehingga tidak ada
+titik sempit di roadmap ini. Yang menentukan kecepatan seluruhnya adalah backend.

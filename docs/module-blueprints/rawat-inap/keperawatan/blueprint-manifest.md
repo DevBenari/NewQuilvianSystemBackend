@@ -10,11 +10,13 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `submodule_slug` | `keperawatan` |
 | `judul` | Keperawatan Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | `5` — satu angka, dipegang tingkat modul |
-| `status` | **`approved`** — dirancang 2026-09-02, diamandemen menyerap `RWI-DEC-089` dan `RWI-DEC-091`, lalu **disetujui Muhammad Hamzah 2026-09-03** lewat `RWI-DEC-092` |
+| `revision` | **`7`** — satu angka, dipegang tingkat modul. Amandemen penyelarasan `PRD-RWI-V2-001` pada bagian 8 |
+| `status` | **`approved`** — amandemen revision `7` / kontrak `0.5.0` **disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`**; ditulis 2026-09-15. Sebelumnya `approved`: revision `5` disetujui Muhammad Hamzah 2026-09-03 lewat `RWI-DEC-092`; kontrak `0.4.0` 2026-09-11 lewat `RWI-DEC-105` |
+| `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150`; `REALIGNED_DRAFT` sejak 2026-09-15. Temuan `RLN-04`, `RLN-06` s.d. `RLN-09` diserap revision `7` bagian 8; `RWI-DEC-089` diamendemen `RWI-DEC-108` (menu tampil, backend tetap nol). Sebelumnya `STALE_AGAINST_UPSTREAM` sejak 2026-09-14. Revision `7` sudah disetujui 2026-09-16, sehingga task baru kini boleh diturunkan |
+| `contract_versions` | **`0.5.0`** — seluruh enam kontrak, **`approved` 2026-09-16 lewat `RWI-DEC-150`**, bagian 8.1. `0.4.0` `approved` 2026-09-11 lewat `RWI-DEC-105`. Tabel bagian 4 tetap sebagai jejak `0.3.0` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
-| `approved_at` | `2026-09-03` |
+| `approved_at` | **`2026-09-16`** untuk revision `7` / kontrak `0.5.0` lewat `RWI-DEC-150`; `2026-09-11` untuk kontrak `0.4.0`; `2026-09-03` untuk revision `5` |
 | `rumpun kemampuan` | Pengkajian, asuhan, dan tindakan keperawatan, ditambah gizi dan pemakaian alat |
 | `kemampuan` | **5** — `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`, sesuai `RWI-DEC-083`. Empat aktif; **`CAP-016` berstatus `DEFERRED`** sejak `RWI-DEC-089` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
@@ -186,3 +188,119 @@ Dua hal tetap wajib dibaca sebelum task pertama dibangun, dan keduanya **bukan**
 
 1. `INT-KEP-01` *shared inpatient clinical context resolver* masih menahan **pemakaian** kelima kemampuan untuk pasien sungguhan. Ia penghalang teknis milik `ClinicalManagement`, bukan keputusan bisnis.
 2. Butir konsistensi mesin koreksi pada `04-prd-to-mvp.md` bagian 20.1 wajib dijawab **sebelum** `EPIC KEP-01` s.d. `EPIC KEP-04` dibangun, karena jawabannya menentukan bentuk mesin amandemen keempatnya.
+
+---
+
+## 8. Amandemen revision `7` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status sub-modul: `approved`.** ~~`draft` — menunggu approval manusia~~ — **disetujui Muhammad Hamzah 2026-09-16
+lewat `RWI-DEC-150`**. Approval revision `5` (2026-09-03) dan kontrak `0.4.0` (2026-09-11) tetap sah untuk isi yang
+tidak berubah; task `✅` `BE-RWI-054` s.d. `065`, `077`, `078` dan `FE-RWI-051` s.d. `056` tetap sah; **task baru kini
+boleh diturunkan dari revision ini**, mulai `BE-RWI-079` dan `FE-RWI-063`, lewat `plan-module-delivery` fase
+`RLN-PH-07`. Approval ini adalah approval **desain dan kontrak**, bukan wewenang menulis source, migration,
+database, maupun deployment — ketiganya tetap dinyatakan terpisah per task.
+
+Bagian 3 dan 4 di atas dipertahankan sebagai jejak revision `5`; nilai yang berlaku ada di bagian ini.
+
+### 8.1 Tabel artefak dan hash
+
+| Artefak | Revision | Status | SHA-256 |
+| --- | --- | --- | --- |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | **`0.4`** — bagian 11 | `approved` | `e7e2bcff7a0add53f4533b8d20ad94f8634bda77ee0463dab24e071b8c6579cf` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | **`0.3`** — bagian 10 | `approved` | `778167c91c60d903921adad99f6bad8aed4c2961832ae2b18598ced7a8f65446` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | **`0.4`** — bagian 22 | `approved` | `eb4e691c54c2a459cde74a05945ec28801702ea8270addc7b7bc874457c73433` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | **`0.3`** — bagian 4 | `approved` | `84e24a5540f1aed7eb3079ecdff91a653e70af74c2b2cacf6d0433fc6c412ebe` |
+| [`flowcharts/01-pengkajian-awal.md`](./flowcharts/01-pengkajian-awal.md) | `0.2` — tidak bergerak; dibaca bersama `02-…` untuk jenis dokumen V2 | `approved` | `01705b6c2e40b803884706e8eab0fe3abea715582a2b4836f5964bd9a1346b55` |
+| [`flowcharts/02-pengkajian-pasien-dan-instrumen.md`](./flowcharts/02-pengkajian-pasien-dan-instrumen.md) | **`0.3`** — baru | `approved` | `e759445e2185ce30ee84cf0ab07483496b3d020bfa729736c5f9bb3f09d78c39` |
+| [`flowcharts/03-obat-mar-dan-sliding-scale.md`](./flowcharts/03-obat-mar-dan-sliding-scale.md) | **`0.3`** — baru | `approved` | `c966b0eb660e7c3c7695d2e4a906bbe5c5d8dee1b509a901c2687732d5761067` |
+| [`flowcharts/04-pengawasan-harian-dan-cairan.md`](./flowcharts/04-pengawasan-harian-dan-cairan.md) | **`0.3`** — baru | `approved` | `042c798d962279a655811af7914ac2c607007d56b72657edc74081f9a88dd17e` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | **`0.4`** — bagian 11 | `approved` | `a5c86ce91d80d7d47d37e8c041abe836a867407346b650e00f1ebdb1f543ac56` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | **`0.5.0`** — bagian 7 | `approved` | `ce1015c2a12d13a89359f497bf49869b2585cb411c9cea7070726d6f320f1cf0` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | **`0.5.0`** — bagian 5 | `approved` | `f4d6debb8bd5f6dba51288c900f25986936c88b6e58c726d107bd4e8ce909ec3` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | **`0.5.0`** — bagian 6 | `approved` | `e68e4a20afb0b2b2b009341643553cb746afcb05d33e3d04c70e4097a908bc82` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | **`0.5.0`** — bagian 8 | `approved` | `e421eb31816ad2ee63b3ee6746702c3709ba4ba5ae07f3ed6beb0fbc0ef6e14c` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | **`0.5.0`** — bagian 6 | `approved` | `5de18c7195f08213dc3d1906660fc9e1017cded16bc664db798f189c810a231e` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | **`0.5.0`** — bagian 9 | `approved` | `ad5c4384deb77ddb70f9de6445ba29867a32266c3360829f1b8706ad0dae3c33` |
+| [`skema-tampilan-keperawatan-rawat-inap.md`](./skema-tampilan-keperawatan-rawat-inap.md) | Pendamping, bukan himpunan canonical | Ditandai sebagian basi | `a96d205331d4412c67a2846bbe902cef93ea53d2e884ae3cdea49c6a606c860c` |
+
+> **Status artefak 2026-09-16.** 14 artefak revision `7` naik dari `draft` menjadi `approved` lewat `RWI-DEC-150`. Baris bertanda "tidak bergerak" sudah `approved` sejak revision sebelumnya. SHA-256 di atas adalah hash saat approval dan menjadi acuan deteksi perubahan berikutnya.
+
+**Seluruh enam kontrak naik ke `0.5.0`**, termasuk validation dan integration yang melompati versi di antaranya karena
+isinya tidak bergerak. `roadmap/` revision `2` tetap `APPROVED` untuk isi lamanya dan **tidak** memuat task revision `7`.
+
+### 8.2 Masukan yang diserap
+
+| Masukan | Revision / hash |
+| --- | --- |
+| `00-interview-decisions.md` | revision `21`, `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a` |
+| `01-existing-capability-map.md` | revision `1.4`, `337a10f09d6e91b06395405098bad09623452de062e10a720a637bd22daa543a` — bagian 17 |
+| `evidence/02-requirement-completeness-gate.md` | revision `1.6`, `f31d207ae0cac120b0821d4474a3d952e109293c2b517aa630370396e49b5300` |
+| `PRD-RWI-V2-001` v`2.0` | `2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f` |
+| Backend / frontend | `df3679c0d5b2f08106702153eb242d3a6cb2929b` / `1ce219b40f8e411f3c4e66975626ab33ae81616a` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — gate `1.6` bagian 15.15 |
+
+### 8.3 Kemampuan setelah amandemen
+
+| Kemampuan | ID | Keadaan |
+| --- | --- | --- |
+| Pengkajian Pasien tujuh isi, progres, konfigurasi berversi, Pengawasan Harian, Evaluasi Awal | `CAP-012` | Dirancang |
+| Rencana asuhan | `CAP-013` | Tetap — di dalam Asuhan Keperawatan |
+| Tindakan harian, SOAP dan Catatan Keperawatan | `CAP-014` | Diperluas — jenis catatan dari `dokter-rawat-inap` |
+| MAR, obat bawaan dicatat perawat, pelaksanaan sliding scale | **`CAP-023-MAR`** | Dirancang |
+| Pemakaian alat | `CAP-016` | `DEFERRED`; menu "Integrasi belum tersedia" |
+| Asuhan gizi | `CAP-027` | `POST-MVP`; kartu Konsultasi Gizi "Integrasi belum tersedia" |
+| Handover shift, transfusi | — | **`DEFERRED`** — `RWI-DEC-145`; tanpa menu, tabel, endpoint |
+| Permukaan `CAP-015-LAB`, `RAD`, `GIZ`, `HD`, `BDR`, `RHB`, `CAP-017`, `CAP-018`, `CAP-019` | Milik sub-modul lain | Tampil di ruang kerja perawat |
+
+### 8.4 Dependency dan gerbang — revision `7`
+
+| Bergantung pada | Untuk apa | Keadaan | Menahan |
+| --- | --- | --- | --- |
+| `dokter-rawat-inap` `0.6.0` | Jenis catatan CPPT, pesanan dengan pemberi instruksi, rekonsiliasi, penghentian butir, order sliding scale | Dirancang pada pass yang sama, `draft` | `KEP-V2-2`, `KEP-V2-3` |
+| `episode-rawat-inap` `0.9.0` | Langkah penutupan `INT-KEP-15`; perpindahan tempat tidur | Dirancang pada pass yang sama, `draft` | Bagian penutupan `KEP-V2-2` |
+| Yoga Aji Pratama — `MedicalRecordManagement` | Jenis dokumen `CaseManagementEvaluation = 14` | **Belum ada persetujuan** | Addendum dan penguncian Evaluasi Awal |
+| Pemilik `BillingManagement` | Ringkasan tagihan | **Belum ada kontrak** | `KEP-V2-4` |
+| Pemilik `LaboratoryManagement` dan `RadiologyManagement` | Pesanan perawat | **Belum tercatat** | Bagian Lab/Rad `KEP-V2-3` |
+| Pemilik blueprint `rawat-jalan` | Pemberitahuan perubahan perhitungan risiko jatuh sebelum migration K2 | **Belum diberitahu** | Rilis K2 |
+| Pemilik klinis | Isi instrumen, checklist MPP, isian wajib, daftar high-alert | **Belum ditunjuk** | Gerbang produksi |
+| Farmasi | Jam pemberian per frekuensi | Belum diisi | Pemakaian MAR untuk pasien sungguhan |
+
+### 8.5 Handoff
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / `revision` | `RWI-BP-001` / `7` |
+| `contract_versions` | `0.5.0` |
+| `approval_status` | **`approved`** — `approved_by` Muhammad Hamzah, `approved_at` 2026-09-16, lewat `RWI-DEC-150` |
+| `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` — gate `1.6` |
+| `blocking_questions` | **Nol.** Non-blocking untuk dikonfirmasi saat approval: `04-prd-to-mvp.md` 22.20 nomor 5 s.d. 9 |
+| `next_owner` | ~~Approval pemilik atas revision `7`~~ **SELESAI 2026-09-16** — `plan-module-delivery` untuk `KEP-V2-0` s.d. `KEP-V2-4` |
+| `expected_output` | `roadmap_revision` `3` sub-modul ini dengan task mulai nomor berikut deret bersama `BE-RWI-###`/`FE-RWI-###`; task Evaluasi Awal addendum, Tagihan Pasien, dan pesanan Lab/Rad ditandai tertahan pemilik modul tetangga |
+
+
+---
+
+### 8.6 Roadmap revision `7` — berkas baru ★ 16 September 2026
+
+`plan-module-delivery` fase `RLN-PH-07` menurunkan task revision `7` ke **berkas terpisah**, atas
+permintaan pemilik pada 16 September 2026. Berkas lama **tidak diganti dan tidak diarsipkan**.
+
+| Artefak | Revision | Status | Isi |
+|---|---|---|---|
+| [`roadmap/backend-roadmap-v2.md`](./roadmap/backend-roadmap-v2.md) ★ | `1` | **`APPROVED`** | 21 task `BE-RWI-106` s.d. `BE-RWI-126`; gelombang `KEP-V2-0` s.d. `KEP-V2-4`; migration `K0`–`K7` |
+| [`roadmap/frontend-roadmap-v2.md`](./roadmap/frontend-roadmap-v2.md) ★ | `1` | **`APPROVED`** | 14 task `FE-RWI-081` s.d. `FE-RWI-094`; `FE-KEP-07` s.d. `FE-KEP-22` |
+| [`roadmap/requirement-traceability-v2.md`](./roadmap/requirement-traceability-v2.md) ★ | `1` | **`APPROVED`** | 48 FR `FR-KEP-035` s.d. `FR-KEP-082`; nol gap requirement ke bukti |
+| [`roadmap/backend-roadmap.md`](./roadmap/backend-roadmap.md) | `2` | Tetap berlaku | Task lama; **tidak menerima task baru** |
+| [`roadmap/frontend-roadmap.md`](./roadmap/frontend-roadmap.md) | `2` | Tetap berlaku | Task lama; **tidak menerima task baru** |
+
+**Yang berbeda dari `dokter-rawat-inap`:** layout V2 keperawatan **dipertahankan**, sehingga roadmap
+ini tidak pernah tertahan `{GATE-RAJAL}`.
+
+**Nol gerbang menahan task, per 16 September 2026.** `{GATE-BILLING}` tertutup lewat `RWI-DEC-154`
+dengan **Yasmina** ditetapkan sebagai pemilik `BillingManagement` — `RWI-OQ-053` ikut tertutup — dan
+`{GATE-LABRAD}` tertutup lewat `RWI-DEC-153`. Seluruh 35 task sub-modul ini kini hanya menunggu
+prasyarat berupa task lain.
+
+**Tiga hal yang tetap terbuka.** **Regresi poliklinik** pada `BE-RWI-109` tetap wajib; **`BE-BKC-040`**
+kelayakan keuangan tetap `P0 — external dependency` sebagai gerbang kesiapan produksi; dan
+**`RWI-OQ-097`** — nama pengesah isi protokol sliding scale belum ada.

@@ -27,17 +27,6 @@ public sealed class CreatePettyCashVoucherRequest
     [Required, MaxLength(500)] public string Purpose { get; set; } = string.Empty;
 }
 
-public sealed class ApprovePettyCashVoucherRequest
-{
-    public Guid ExpectedRowVersion { get; set; }
-}
-
-public sealed class RejectPettyCashVoucherRequest
-{
-    public Guid ExpectedRowVersion { get; set; }
-    [MaxLength(500)] public string RejectionReason { get; set; } = string.Empty;
-}
-
 public sealed class CancelPettyCashVoucherRequest
 {
     public Guid ExpectedRowVersion { get; set; }
@@ -53,6 +42,27 @@ public sealed class AttachPettyCashProofRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     [MaxLength(60)] public string ProofReferenceNumber { get; set; } = string.Empty;
+}
+
+/// <summary>BE-BKC-057, PC-DES-019. Total seluruh pengembalian pada satu voucher MUST NOT
+/// melampaui Amount voucher (BIL-VAL-098) — ditegakkan di service, bukan data annotation,
+/// karena batasnya bergantung pada ReturnedAmount voucher saat ini.</summary>
+public sealed class PettyCashVoucherReturnRequest
+{
+    [Range(typeof(decimal), "0.01", "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Amount { get; set; }
+    [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    public Guid ExpectedRowVersion { get; set; }
+}
+
+/// <summary>BE-BKC-057, PC-DES-020. Tidak ada field Amount — pembalikan selalu sebesar
+/// Amount voucher dikurangi ReturnedAmount yang sudah kembali lebih dulu.</summary>
+public sealed class PettyCashVoucherReversalRequest
+{
+    [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    public Guid ExpectedRowVersion { get; set; }
 }
 
 public sealed class PettyCashVoucherResponse
@@ -81,6 +91,18 @@ public sealed class PettyCashVoucherResponse
     public string? DisbursedByName { get; set; }
     public string? RejectionReason { get; set; }
     public string? ProofReferenceNumber { get; set; }
+
+    /// <summary>BE-BKC-057. Akumulasi sisa yang sudah dikembalikan penerima. 0 bila belum ada.</summary>
+    public decimal ReturnedAmount { get; set; }
+
+    /// <summary>BE-BKC-057. Amount − ReturnedAmount — nilai yang benar-benar masih di tangan penerima.</summary>
+    public decimal OutstandingAmount { get; set; }
+
+    /// <summary>BE-BKC-057. Terisi hanya pada status REVERSED.</summary>
+    public DateTimeOffset? ReversedAt { get; set; }
+    public string? ReversedByName { get; set; }
+    public string? ReversalReason { get; set; }
+
     public List<string> AvailableActions { get; set; } = new();
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }
@@ -107,13 +129,18 @@ public sealed class PettyCashVoucherDetailResponse
 
 public sealed class PettyCashVoucherSummaryResponse
 {
-    public int WaitingApprovalCount { get; set; }
-    public int ApprovedCount { get; set; }
+    /// <summary>Menggantikan WaitingApprovalCount + ApprovedCount (PC-DES-015) — kini satu
+    /// hitungan "belum dicairkan" karena gerbang persetujuan dicabut (PC-DEC-016).</summary>
+    public int PendingDisbursementCount { get; set; }
     public int CashReceivedCount { get; set; }
     public int CompletedCount { get; set; }
+
+    /// <summary>Hanya baris warisan sebelum 15 September 2026 (PC-DEC-016).</summary>
     public int RejectedCount { get; set; }
     public int CancelledCount { get; set; }
-    public decimal TotalWaitingApprovalAmount { get; set; }
+
+    /// <summary>Menggantikan TotalWaitingApprovalAmount.</summary>
+    public decimal TotalPendingDisbursementAmount { get; set; }
 }
 
 public sealed class PettyCashVoucherDefaultFilterResponse
