@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
+using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using QuilvianSystemBackend.Attributes;
@@ -32,6 +36,40 @@ namespace QuilvianSystemBackend.Services.Security
     /// </summary>
     public static class PermissionRegistryDescriptor
     {
+        /// <summary>
+        /// Baseline warisan endpoint naked yang sudah diketahui dan <b>dibekukan</b>.
+        ///
+        /// <para>Isinya adalah <c>WfpWorkScheduleAssignmentController</c> - delapan endpoint yang
+        /// seluruhnya hanya dilindungi <c>[Authorize]</c>, ditemukan saat invarian ini dibuat pada
+        /// <c>BE-SEC-012</c>. Controller itu berada di modul <c>HUMAN_RESOURCE_SCHEDULING</c>, di
+        /// luar scope blocker yang diberi wewenang, dan memasangkan <c>[AccessPermission]</c> di
+        /// sana akan mengubah siapa yang boleh memanggilnya - keputusan pemilik modul, bukan
+        /// keputusan task ini.</para>
+        ///
+        /// <para><b>Daftar ini hanya memaafkan yang sudah ada, tidak pernah yang baru.</b> Endpoint
+        /// naked yang tidak tercantum di sini membuat verifier gagal. Entri yang endpoint-nya sudah
+        /// hilang juga membuat verifier gagal, supaya daftar ini tidak membusuk menjadi izin
+        /// terbuka bagi endpoint yang belum pernah diperiksa siapa pun.</para>
+        ///
+        /// <para>Menghapus sebuah baris dari sini adalah cara yang benar untuk menutup utangnya:
+        /// pasang <c>[AccessAction]</c> + <c>[AccessPermission]</c> pada endpoint-nya, lalu hapus
+        /// barisnya. Menambah baris baru ke sini menuntut keputusan pemilik dan alasan tertulis.</para>
+        /// </summary>
+        public static readonly IReadOnlyCollection<string> KnownUnenforcedBusinessEndpoints =
+            new HashSet<string>(StringComparer.Ordinal)
+            {
+                "WorkScheduleAssignment.GetFilterMetadata",
+                "WorkScheduleAssignment.GetSummary",
+                "WorkScheduleAssignment.GetWorkScheduleAssignments",
+                "WorkScheduleAssignment.GetWorkScheduleAssignmentById",
+                "WorkScheduleAssignment.CreateWorkScheduleAssignment",
+                "WorkScheduleAssignment.UpdateWorkScheduleAssignment",
+                "WorkScheduleAssignment.UpdateWorkScheduleAssignmentStatus",
+                "WorkScheduleAssignment.DeleteWorkScheduleAssignment"
+            };
+
+
+
         public sealed record ModuleDescriptor(
             string ModuleCode,
             string ModuleName,
@@ -70,6 +108,28 @@ namespace QuilvianSystemBackend.Services.Security
             string DeclaringController,
             string MethodName);
 
+        /// <summary>
+        /// Endpoint yang dapat dijangkau pengguna terautentikasi tetapi tidak ditegakkan apa pun
+        /// selain <c>[Authorize]</c>: tanpa <c>[AccessPermission]</c>, tanpa <c>[AccessAction]</c>,
+        /// tanpa <c>[AllowAnonymous]</c>, dan tanpa policy bernama yang disetujui.
+        ///
+        /// <para>Inilah bentuk kegagalan yang paling sulit terlihat. Endpoint ber-<c>[AccessAction]</c>
+        /// tanpa permission setidaknya muncul di layar Akses Role dan terhitung pada
+        /// <c>UnenforcedActions</c>. Endpoint yang tidak membawa atribut mana pun tidak muncul di
+        /// mana pun: ia tidak terdaftar, tidak terhitung, dan tidak pernah dilaporkan — sementara
+        /// siapa pun yang punya login dapat memanggilnya.</para>
+        /// </summary>
+        public sealed record NakedEndpoint(
+            string ModuleCode,
+            string DeclaringController,
+            string MethodName,
+            string? HttpMethod,
+            string? RoutePath)
+        {
+            /// <summary>Kunci baseline. Stabil terhadap perubahan route maupun verb.</summary>
+            public string BaselineKey => $"{DeclaringController}.{MethodName}";
+        }
+
         public sealed class RegistrySnapshot
         {
             public List<ModuleDescriptor> Modules { get; } = new();
@@ -81,6 +141,25 @@ namespace QuilvianSystemBackend.Services.Security
 
             /// <summary>Endpoint ber-<c>[AccessAction]</c> yang tidak ditegakkan permission apa pun.</summary>
             public List<MetadataGap> UnenforcedActions { get; } = new();
+
+            /// <summary>
+            /// Endpoint naked yang <b>belum</b> diakui baseline. Setiap baris di sini adalah
+            /// endpoint bisnis yang dapat dipanggil siapa pun yang punya login.
+            /// </summary>
+            public List<NakedEndpoint> NakedEndpoints { get; } = new();
+
+            /// <summary>
+            /// Endpoint naked yang sudah tercatat pada baseline warisan. Bukan kegagalan, tetapi
+            /// tetap utang yang dilaporkan supaya tidak menjadi normal.
+            /// </summary>
+            public List<NakedEndpoint> AcknowledgedNakedEndpoints { get; } = new();
+
+            /// <summary>
+            /// Entri baseline yang endpoint-nya sudah tidak ada lagi. Dilaporkan sebagai kegagalan
+            /// supaya baseline tidak membusuk menjadi daftar yang memaafkan endpoint yang belum
+            /// pernah diperiksa siapa pun.
+            /// </summary>
+            public List<string> StaleNakedBaselineEntries { get; } = new();
 
             public HashSet<string> DeclaredKeys { get; } = new(StringComparer.Ordinal);
 
@@ -95,7 +174,9 @@ namespace QuilvianSystemBackend.Services.Security
             string DeclaringControllerName,
             string MethodName,
             string? HttpMethod,
-            string? RoutePath);
+            string? RoutePath,
+            bool AllowAnonymous,
+            IReadOnlyList<string> AuthorizePolicies);
 
         public static RegistrySnapshot Build(IActionDescriptorCollectionProvider provider)
         {
@@ -113,6 +194,10 @@ namespace QuilvianSystemBackend.Services.Security
                         return null;
                     }
 
+                    var authorization = ReadAuthorizationFacts(
+                        descriptor.MethodInfo,
+                        descriptor.ControllerTypeInfo.AsType());
+
                     return new EndpointFacts(
                         controllerAttribute,
                         descriptor.MethodInfo.GetCustomAttribute<AccessActionAttribute>(),
@@ -120,7 +205,9 @@ namespace QuilvianSystemBackend.Services.Security
                         ResolveControllerName(controllerAttribute, descriptor.ControllerName),
                         descriptor.MethodInfo.Name,
                         GetHttpMethod(descriptor),
-                        BuildActionRoutePath(descriptor));
+                        BuildActionRoutePath(descriptor),
+                        authorization.AllowAnonymous,
+                        authorization.Policies);
                 })
                 .Where(x => x != null)
                 .Select(x => x!)
@@ -166,10 +253,29 @@ namespace QuilvianSystemBackend.Services.Security
                     var actionAttribute = method.GetCustomAttribute<AccessActionAttribute>();
                     var permissions = method.GetCustomAttributes<AccessPermissionAttribute>().ToList();
 
-                    if (actionAttribute == null && permissions.Count == 0)
+                    // Method yang bukan endpoint HTTP tidak pernah dapat dipanggil pengguna,
+                    // sehingga tidak relevan bagi invarian apa pun di sini.
+                    var httpMethods = method
+                        .GetCustomAttributes<HttpMethodAttribute>()
+                        .SelectMany(x => x.HttpMethods)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    var isReachableEndpoint =
+                        httpMethods.Count > 0 &&
+                        method.GetCustomAttribute<NonActionAttribute>() == null;
+
+                    if (!isReachableEndpoint)
                     {
                         continue;
                     }
+
+                    // Sebelumnya endpoint tanpa [AccessAction] DAN tanpa [AccessPermission]
+                    // dilewati di sini. Itulah titik buta yang membuat 20 endpoint tulis HR
+                    // hilang sepenuhnya dari analisis otorisasi: tidak terdaftar, tidak
+                    // terhitung, tidak pernah dilaporkan. Endpoint semacam itu kini tetap masuk
+                    // supaya BuildCore dapat mengklasifikasikannya.
+                    var authorization = ReadAuthorizationFacts(method, controllerType);
 
                     endpoints.Add(new EndpointFacts(
                         controllerAttribute,
@@ -177,8 +283,10 @@ namespace QuilvianSystemBackend.Services.Security
                         permissions,
                         controllerName,
                         method.Name,
+                        string.Join(",", httpMethods),
                         null,
-                        null));
+                        authorization.AllowAnonymous,
+                        authorization.Policies));
                 }
             }
 
@@ -244,6 +352,27 @@ namespace QuilvianSystemBackend.Services.Security
                             snapshot, resourceSeen, actionSeen, controllerAttribute, endpoint,
                             endpoint.DeclaringControllerName, endpoint.Action.ActionName,
                             controllerIsSystemOnly, controllerVisible);
+                    }
+                    else if (!HasApprovedAlternativeAuthorization(endpoint))
+                    {
+                        // Endpoint tanpa [AccessPermission], tanpa [AccessAction], tanpa
+                        // [AllowAnonymous], dan tanpa policy bernama yang disetujui. Siapa pun
+                        // yang punya login dapat memanggilnya.
+                        var naked = new NakedEndpoint(
+                            controllerAttribute.ModuleCode,
+                            endpoint.DeclaringControllerName,
+                            endpoint.MethodName,
+                            endpoint.HttpMethod,
+                            endpoint.RoutePath);
+
+                        if (KnownUnenforcedBusinessEndpoints.Contains(naked.BaselineKey))
+                        {
+                            snapshot.AcknowledgedNakedEndpoints.Add(naked);
+                        }
+                        else
+                        {
+                            snapshot.NakedEndpoints.Add(naked);
+                        }
                     }
 
                     continue;
@@ -341,6 +470,21 @@ namespace QuilvianSystemBackend.Services.Security
                 }
             }
 
+            // Entri baseline yang endpoint-nya sudah tidak ditemukan lagi. Dilaporkan sebagai
+            // kegagalan, bukan dibersihkan diam-diam: baris yang tertinggal akan memaafkan method
+            // lain yang kebetulan bernama sama di kemudian hari.
+            var observedNakedKeys = snapshot.AcknowledgedNakedEndpoints
+                .Select(x => x.BaselineKey)
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (var baselineKey in KnownUnenforcedBusinessEndpoints)
+            {
+                if (!observedNakedKeys.Contains(baselineKey))
+                {
+                    snapshot.StaleNakedBaselineEntries.Add(baselineKey);
+                }
+            }
+
             return snapshot;
         }
 
@@ -398,6 +542,40 @@ namespace QuilvianSystemBackend.Services.Security
 
             snapshot.DeclaredKeys.Add(RegistrySnapshot.Key(resourceName, actionName));
         }
+
+        /// <summary>
+        /// Membaca fakta otorisasi non-permission milik sebuah endpoint. <c>[AllowAnonymous]</c>
+        /// dan <c>[Authorize(Policy = ...)]</c> sah ditulis pada method maupun pada class
+        /// controllernya, sehingga keduanya dibaca dari dua tempat itu.
+        /// </summary>
+        private static (bool AllowAnonymous, IReadOnlyList<string> Policies) ReadAuthorizationFacts(
+            MethodInfo method,
+            Type controllerType)
+        {
+            var allowAnonymous =
+                method.GetCustomAttributes<AllowAnonymousAttribute>().Any() ||
+                controllerType.GetCustomAttributes<AllowAnonymousAttribute>(inherit: true).Any();
+
+            var policies = method
+                .GetCustomAttributes<AuthorizeAttribute>()
+                .Concat(controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true))
+                .Select(x => x.Policy)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            return (allowAnonymous, policies);
+        }
+
+        /// <summary>
+        /// Apakah endpoint ini punya otorisasi sah selain matriks Akses Role — yaitu
+        /// <c>[AllowAnonymous]</c> atau policy bernama yang terdaftar pada
+        /// <see cref="AuthorizationPolicies.ApprovedAlternativeAuthorization"/>.
+        /// </summary>
+        private static bool HasApprovedAlternativeAuthorization(EndpointFacts endpoint) =>
+            endpoint.AllowAnonymous ||
+            endpoint.AuthorizePolicies.Any(AuthorizationPolicies.IsApprovedAlternativeAuthorization);
 
         private static string ResolveControllerName(AccessControllerAttribute attribute, string fallback) =>
             string.IsNullOrWhiteSpace(attribute.ControllerName) ? fallback : attribute.ControllerName!;

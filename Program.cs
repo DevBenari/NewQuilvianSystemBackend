@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -678,7 +679,7 @@ try
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("KioskRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.KioskRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -705,7 +706,7 @@ try
         // Policy khusus akun display antrian.
         // Dipakai untuk endpoint runtime display supaya akun QueueDisplayDevice
         // tidak perlu lewat AccessPermission role/menu aplikasi umum.
-        options.AddPolicy("QueueDisplayRuntimeRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRuntimeRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -736,7 +737,7 @@ try
         });
 
         // Alias jika nanti ada controller lain yang ingin memakai nama policy lebih umum.
-        options.AddPolicy("QueueDisplayRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 

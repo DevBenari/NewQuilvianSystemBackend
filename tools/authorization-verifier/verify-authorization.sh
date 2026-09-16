@@ -153,6 +153,8 @@ Console.WriteLine($"  Resources     = {snapshot.Resources.Count}");
 Console.WriteLine($"  Actions       = {snapshot.Actions.Count}");
 Console.WriteLine($"  Fallback      = {snapshot.UnenforcedActions.Count}");
 Console.WriteLine($"  Metadata gaps = {snapshot.MetadataGaps.Count}");
+Console.WriteLine($"  Naked (new)   = {snapshot.NakedEndpoints.Count}");
+Console.WriteLine($"  Naked (known) = {snapshot.AcknowledgedNakedEndpoints.Count}");
 Console.WriteLine();
 
 // ---- Invarian 1: nol metadata gap.
@@ -248,6 +250,49 @@ if (missing.Count > 0)
 }
 Console.WriteLine();
 
+// ---- Invarian 5: tidak ada endpoint bisnis yang telanjang.
+// Endpoint yang dapat dijangkau pengguna terautentikasi tetapi tidak membawa
+// [AccessPermission], [AllowAnonymous], maupun policy bernama yang disetujui.
+// Kelas kesalahan ini TIDAK terlihat oleh invarian 1-4: tanpa atribut apa pun,
+// endpoint semacam itu tidak pernah masuk registry sehingga tidak terhitung
+// sebagai metadata gap maupun fallback. Klasifikasinya datang dari BuildCore
+// yang sama, bukan dari grep di dalam script ini.
+if (snapshot.NakedEndpoints.Count > 0)
+{
+    failures.Add($"[5] {snapshot.NakedEndpoints.Count} endpoint bisnis tanpa penegakan otorisasi:");
+    foreach (var n in snapshot.NakedEndpoints
+                 .OrderBy(x => x.DeclaringController, StringComparer.Ordinal)
+                 .ThenBy(x => x.MethodName, StringComparer.Ordinal))
+    {
+        var verb = n.HttpMethod ?? "?";
+        failures.Add($"      {n.BaselineKey}  [{verb}]  modul {n.ModuleCode}");
+    }
+    failures.Add("    Pasang [AccessAction] + [AccessPermission], atau pakai policy yang");
+    failures.Add("    terdaftar pada AuthorizationPolicies.ApprovedAlternativeAuthorization.");
+}
+
+if (snapshot.StaleNakedBaselineEntries.Count > 0)
+{
+    failures.Add($"[5] {snapshot.StaleNakedBaselineEntries.Count} entri baseline naked sudah basi:");
+    foreach (var k in snapshot.StaleNakedBaselineEntries.OrderBy(x => x, StringComparer.Ordinal))
+        failures.Add($"      {k}");
+    failures.Add("    Endpoint-nya tidak ditemukan lagi. Hapus barisnya dari");
+    failures.Add("    PermissionRegistryDescriptor.KnownUnenforcedBusinessEndpoints.");
+}
+
+if (snapshot.AcknowledgedNakedEndpoints.Count > 0)
+{
+    Console.WriteLine($"Known unenforced business endpoints (baseline debt): {snapshot.AcknowledgedNakedEndpoints.Count}");
+    foreach (var n in snapshot.AcknowledgedNakedEndpoints
+                 .OrderBy(x => x.DeclaringController, StringComparer.Ordinal)
+                 .ThenBy(x => x.MethodName, StringComparer.Ordinal))
+    {
+        var verb = n.HttpMethod ?? "?";
+        Console.WriteLine($"  {n.BaselineKey}  [{verb}]  modul {n.ModuleCode}");
+    }
+    Console.WriteLine();
+}
+
 if (failures.Count > 0)
 {
     Console.WriteLine("AUTHORIZATION VERIFIER: FAIL");
@@ -261,6 +306,7 @@ Console.WriteLine("  [1] metadata gap                 : 0");
 Console.WriteLine($"  [2] fallback himpunan disetujui  : {actualFallback.Count} cocok persis");
 Console.WriteLine("  [3] identitas kanonik            : tidak ganda, satu resource satu modul");
 Console.WriteLine($"  [4] identitas wajib BE-SEC-003   : {requiredIdentities.Count} / {requiredIdentities.Count}");
+Console.WriteLine($"  [5] endpoint bisnis telanjang    : 0 baru, {snapshot.AcknowledgedNakedEndpoints.Count} utang baseline");
 return 0;
 PROG
 

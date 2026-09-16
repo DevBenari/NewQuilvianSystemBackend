@@ -17,6 +17,13 @@ namespace QuilvianSystemBackend.Services.Security
     /// registry menjadi ambigu.</item>
     /// <item><c>AccessType</c> di luar Read/Create/Update/Delete, yang membuat kemampuannya
     /// tersaring keluar dari layar Akses Role.</item>
+    /// <item><b>Endpoint naked</b> — dapat dijangkau pengguna terautentikasi tetapi tidak membawa
+    /// <c>[AccessPermission]</c>, <c>[AccessAction]</c>, <c>[AllowAnonymous]</c>, maupun policy
+    /// bernama yang disetujui. Ini kelas kesalahan yang paling sulit terlihat: endpoint semacam
+    /// itu tidak terdaftar di registry, tidak terhitung pada metrik mana pun, dan karena itu tidak
+    /// pernah muncul pada audit — sementara siapa pun yang punya login dapat memanggilnya.
+    /// Ditemukan pada <c>BE-SEC-012</c>, ketika 20 endpoint tulis HR ternyata hanya dilindungi
+    /// <c>[Authorize]</c> sementara audit drift melaporkan nol metadata gap.</item>
     /// </list>
     ///
     /// Di Development dan CI kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
@@ -47,13 +54,27 @@ namespace QuilvianSystemBackend.Services.Security
             /// <summary>Informasi saja: endpoint ber-[AccessAction] yang tidak ditegakkan permission.</summary>
             public List<string> UnenforcedEndpoints { get; } = new();
 
+            /// <summary>
+            /// Endpoint bisnis yang dapat dijangkau pengguna terautentikasi tanpa penegakan apa pun.
+            /// Ini kegagalan keras.
+            /// </summary>
+            public List<string> NakedBusinessEndpoints { get; } = new();
+
+            /// <summary>Utang warisan yang sudah diakui baseline. Dilaporkan, tidak menggagalkan.</summary>
+            public List<string> AcknowledgedNakedEndpoints { get; } = new();
+
+            /// <summary>Entri baseline yang endpoint-nya sudah tidak ada. Kegagalan keras.</summary>
+            public List<string> StaleNakedBaselineEntries { get; } = new();
+
             public int TotalDeclaredKeys { get; init; }
             public int TotalActions { get; init; }
 
             public bool IsValid =>
                 UnregisterableEndpoints.Count == 0 &&
                 DuplicateResourceIdentities.Count == 0 &&
-                InvalidAccessTypes.Count == 0;
+                InvalidAccessTypes.Count == 0 &&
+                NakedBusinessEndpoints.Count == 0 &&
+                StaleNakedBaselineEntries.Count == 0;
         }
 
         public ValidationResult Validate() =>
@@ -98,6 +119,30 @@ namespace QuilvianSystemBackend.Services.Security
                 result.UnenforcedEndpoints.Add($"{unenforced.DeclaringController}.{unenforced.MethodName}");
             }
 
+            foreach (var naked in snapshot.NakedEndpoints)
+            {
+                result.NakedBusinessEndpoints.Add(
+                    $"{naked.BaselineKey} [{naked.HttpMethod ?? "?"}] pada modul '{naked.ModuleCode}' " +
+                    "dapat dijangkau siapa pun yang punya login: tidak ada [AccessPermission], " +
+                    "tidak ada [AllowAnonymous], dan tidak ada policy bernama yang disetujui. " +
+                    "Pasang [AccessAction] + [AccessPermission], atau pakai policy yang terdaftar " +
+                    "pada AuthorizationPolicies.ApprovedAlternativeAuthorization.");
+            }
+
+            foreach (var acknowledged in snapshot.AcknowledgedNakedEndpoints)
+            {
+                result.AcknowledgedNakedEndpoints.Add(
+                    $"{acknowledged.BaselineKey} [{acknowledged.HttpMethod ?? "?"}] pada modul " +
+                    $"'{acknowledged.ModuleCode}'");
+            }
+
+            foreach (var stale in snapshot.StaleNakedBaselineEntries)
+            {
+                result.StaleNakedBaselineEntries.Add(
+                    $"'{stale}' tercantum pada KnownUnenforcedBusinessEndpoints tetapi endpoint-nya " +
+                    "sudah tidak ditemukan. Hapus barisnya bila utangnya memang sudah ditutup.");
+            }
+
             return result;
         }
 
@@ -113,6 +158,16 @@ namespace QuilvianSystemBackend.Services.Security
                     result.UnenforcedEndpoints.Count);
             }
 
+            if (result.AcknowledgedNakedEndpoints.Count > 0)
+            {
+                _logger.LogWarning(
+                    "{Count} endpoint bisnis masih hanya dilindungi [Authorize] dan sudah tercatat " +
+                    "pada baseline warisan. Ini utang otorisasi yang menunggu keputusan pemilik modul, " +
+                    "bukan keadaan normal: {Endpoints}",
+                    result.AcknowledgedNakedEndpoints.Count,
+                    string.Join("; ", result.AcknowledgedNakedEndpoints));
+            }
+
             if (result.IsValid)
             {
                 _logger.LogInformation(
@@ -125,7 +180,9 @@ namespace QuilvianSystemBackend.Services.Security
 
             foreach (var detail in result.UnregisterableEndpoints
                          .Concat(result.DuplicateResourceIdentities)
-                         .Concat(result.InvalidAccessTypes))
+                         .Concat(result.InvalidAccessTypes)
+                         .Concat(result.NakedBusinessEndpoints)
+                         .Concat(result.StaleNakedBaselineEntries))
             {
                 _logger.LogCritical("Permission registry bermasalah: {Detail}", detail);
             }
@@ -133,7 +190,9 @@ namespace QuilvianSystemBackend.Services.Security
             var message =
                 $"Permission registry tidak konsisten: {result.UnregisterableEndpoints.Count} endpoint tanpa " +
                 $"metadata Akses Role, {result.DuplicateResourceIdentities.Count} resource ganda, " +
-                $"{result.InvalidAccessTypes.Count} AccessType tidak sah.";
+                $"{result.InvalidAccessTypes.Count} AccessType tidak sah, " +
+                $"{result.NakedBusinessEndpoints.Count} endpoint bisnis tanpa penegakan otorisasi, " +
+                $"{result.StaleNakedBaselineEntries.Count} entri baseline naked yang sudah basi.";
 
             if (throwOnFailure)
             {
