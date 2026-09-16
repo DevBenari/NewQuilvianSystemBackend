@@ -787,10 +787,10 @@ public sealed class BillingCalculationService
         return new ItemTaxResult(items, [], discounts);
     }
 
-    // Pajak dikenakan atas subtotal tagihan, jadi kategori item tidak lagi dipakai untuk
-    // mencocokkan rule. Yang menentukan sebuah rule berlaku hanyalah: aktif, dan periode
-    // efektifnya mencakup waktu perhitungan. Isi TaxableCategory kini murni label bagi pengguna
-    // dan tidak memengaruhi perhitungan sama sekali.
+    // Pajak dikenakan atas subtotal tagihan, jadi kategori item tidak dipakai untuk mencocokkan
+    // rule. Yang menentukan sebuah rule berlaku hanyalah: aktif, dan periode efektifnya mencakup
+    // waktu perhitungan (BKC-DEC-098/099: kolom TaxableCategory pada MstTaxRule sudah dihapus dari
+    // model karena sudah tidak punya konsekuensi kalkulasi apa pun).
     private async Task<MstTaxRule?> LoadInvoiceTaxRuleAsync(
         DateTimeOffset effectiveAt,
         CancellationToken cancellationToken)

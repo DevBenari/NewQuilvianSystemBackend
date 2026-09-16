@@ -43,6 +43,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component tests per master, lint/build |
 | Risiko/pemilik | UI menyiratkan update retroaktif. Owner Finance/Product |
 | DoD | Empat workspace atau tab setara, tests, accessibility, no hardcoded business values |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Field "Kategori Kena Pajak"/`taxableCategory` dihapus total dari form create/update, kolom list, dan teks deskripsi CRUD Tax Rule — mengikuti penghapusan kolom `TaxableCategory` di backend (`BKC-DEC-098`). Lint/test/build **belum dijalankan** (instruksi baku pengguna). Laporan: [BE-BKC-FIX-010](../task/report/frontend/BE-BKC-FIX-010.md) |
 
 ## `FE-BKC-003` — Workspace charge, recalculation, dan void
 
