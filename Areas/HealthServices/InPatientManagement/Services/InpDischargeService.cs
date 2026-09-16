@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -38,6 +39,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly InpEpisodeService _episodeService;
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly ClinicalDocumentIntegrityService _clinicalDocumentIntegrityService;
+        private readonly PatientProcedureOrderService _patientProcedureOrderService;
 
         /// <remarks>
         /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
@@ -60,17 +62,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// bukan dengan menulis <c>MrcClinicalDocumentIntegrity</c> langsung dari sini; keduanya
         /// memakai <c>ApplicationDbContext</c> yang sama sehingga ikut satu transaksi.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Kenapa service ini boleh memakai <c>PatientProcedureOrderService</c>.</b>
+        /// Langkah 5 penutupan episode membatalkan pesanan tindakan rawat inap tertunda milik
+        /// <c>ClinicalManagement</c> — <c>BE-RWI-083</c>, <c>BE-RWI-097</c>, <c>INT-INP-09</c>.
+        /// Pemanggilannya lewat service pemilik; keduanya memakai <c>ApplicationDbContext</c>
+        /// yang sama sehingga ikut satu transaksi penutupan.
+        /// </para>
         /// </remarks>
         public InpDischargeService(
             ApplicationDbContext dbContext,
             InpEpisodeService episodeService,
             InpBedOccupancyService bedOccupancyService,
-            ClinicalDocumentIntegrityService clinicalDocumentIntegrityService)
+            ClinicalDocumentIntegrityService clinicalDocumentIntegrityService,
+            PatientProcedureOrderService patientProcedureOrderService)
         {
             _dbContext = dbContext;
             _episodeService = episodeService;
             _bedOccupancyService = bedOccupancyService;
             _clinicalDocumentIntegrityService = clinicalDocumentIntegrityService;
+            _patientProcedureOrderService = patientProcedureOrderService;
         }
 
         // =====================================================================

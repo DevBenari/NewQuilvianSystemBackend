@@ -744,6 +744,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Patient Assessment", Description = "Mengubah assessment pasien", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientAssessment", "Update")]
@@ -900,6 +901,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/complete")]
         [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCompleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Complete Patient Assessment", Description = "Menyelesaikan dokumen assessment pasien tanpa mengubah status antrean", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PatientAssessment", "Update")]
@@ -1113,6 +1115,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Cancel Patient Assessment", Description = "Membatalkan assessment pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("PatientAssessment", "Update")]

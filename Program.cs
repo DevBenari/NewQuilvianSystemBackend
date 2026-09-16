@@ -368,6 +368,10 @@ try
     builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
     builder.Services.AddScoped<CpptVerificationService>();
 
+    // BE-RWI-097 / R7. Service pesanan tindakan rawat inap oleh dokter atau perawat atas instruksi,
+    // aturan penginput (INV-DOK-17), dan pembatalan otomatis saat penutupan episode (Langkah 5).
+    builder.Services.AddScoped<PatientProcedureOrderService>();
+
     // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
     // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
     builder.Services.AddScoped<NursingAssessmentMonitoringService>();

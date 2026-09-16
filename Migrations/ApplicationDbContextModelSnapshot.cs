@@ -65287,6 +65287,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("CancelledByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CancelledByEpisodeClosure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid?>("ClinicId")
                         .HasColumnType("uuid");
 
@@ -65301,7 +65306,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("ConsultationId")
+                    b.Property<Guid?>("ConsultationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("CoverageNote")
@@ -65376,6 +65381,20 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("InstructionNote")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("InstructingDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("InstructionVerificationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("InstructionVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InstructionVerifiedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal?>("InsuranceContractPrice")
                         .HasColumnType("numeric(18,2)");
@@ -65472,6 +65491,9 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<Guid?>("OrderedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PatientClassNameSnapshot")
                         .HasMaxLength(100)
@@ -65626,6 +65648,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ServiceUnitId");
 
                     b.HasIndex("TariffId");
+
+                    b.HasIndex("InstructingDoctorId", "InstructionVerificationStatus")
+                        .HasDatabaseName("IX_TrxPatientProcedure_InstructingDoctor_Verification");
+
+                    b.HasIndex("InstructionVerifiedByUserId");
+
+                    b.HasIndex("OrderedByUserId");
 
                     b.HasIndex("ConsultationId", "ProcedureId")
                         .IsUnique()
@@ -103693,7 +103722,6 @@ namespace QuilvianSystemBackend.Migrations
                         .WithMany()
                         .HasForeignKey("ConsultationId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "Doctor")
                         .WithMany()
@@ -103759,6 +103787,21 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("TariffId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "InstructingDoctor")
+                        .WithMany()
+                        .HasForeignKey("InstructingDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "InstructionVerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("InstructionVerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "OrderedByUser")
+                        .WithMany()
+                        .HasForeignKey("OrderedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("CancelledByUser");
@@ -103786,6 +103829,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ServiceUnit");
 
                     b.Navigation("Tariff");
+
+                    b.Navigation("InstructingDoctor");
+
+                    b.Navigation("InstructionVerifiedByUser");
+
+                    b.Navigation("OrderedByUser");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientVitalSign", b =>

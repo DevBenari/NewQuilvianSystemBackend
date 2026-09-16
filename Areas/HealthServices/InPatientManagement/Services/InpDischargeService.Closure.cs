@@ -710,9 +710,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ? "Tidak ada pesanan tindakan tertunda yang akan dibatalkan."
                     : $"{unbilledPendingCount} pesanan tindakan yang belum dilaksanakan akan " +
                       "dibatalkan.",
-                // Angkanya terbaca; yang belum terpasang adalah tindakan pembatalannya.
-                IsMeasured = true,
-                Details = { LangkahLimaBelumTerpasang }
+                // Angkanya terbaca dan tindakan pembatalannya sudah terpasang lewat BE-RWI-097.
+                IsMeasured = true
             });
 
             warnings.Add(new ClosureWarningResponse
@@ -1042,17 +1041,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         cancellationToken: cancellationToken);
 
                 // ---------------------------------------------------------------------
-                // Langkah 5 — BE-RWI-083 / INT-INP-09 — BELUM TERPASANG.
+                // Langkah 5 — BE-RWI-083 / INT-INP-09 / BE-RWI-097.
                 //
-                // Pembatalan pesanan tindakan tertunda milik ClinicalManagement dan dipanggil
-                // lewat PatientProcedureOrderService, yang dibuat BE-RWI-097 pada sub-modul
-                // dokter-rawat-inap dan belum mendarat. Menulis TrxPatientProcedure langsung
-                // dari sini dilarang 02-backend-architecture.md bagian 11.3 dan 11.5.4: tabel
-                // itu bukan milik modul ini, dan menulisnya sendiri akan melewati seluruh
-                // aturan pemiliknya.
-                //
-                // Yang dapat dilakukan sekarang tanpa menyentuh tabel milik orang lain adalah
-                // MEMBACA: jumlah pesanan tertagih yang sengaja tidak dibatalkan dihitung di
+                // Pembatalan pesanan tindakan tertunda milik ClinicalManagement dipanggil
+                // lewat PatientProcedureOrderService.CancelPendingOrdersForClosureAsync.
+                var cancelledProcedureOrderCount = await _patientProcedureOrderService
+                    .CancelPendingOrdersForClosureAsync(
+                        episode.Id,
+                        actorUserId,
+                        cancellationToken);
+
+                // Jumlah pesanan tertagih yang sengaja tidak dibatalkan dihitung di
                 // sini dan dimunculkan pada ringkasan akibat serta daftar pantau
                 // GET /monitoring/billed-pending-procedure-orders — RWI-DEC-143 (c).
                 var billedPendingCount = await _dbContext.Set<TrxPatientProcedure>()
@@ -1112,12 +1111,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 result.SideEffects = new ClosureSideEffectsResponse
                 {
                     LockedDraftCount = lockedDraftCount,
-                    CancelledProcedureOrderCount = 0,
+                    CancelledProcedureOrderCount = cancelledProcedureOrderCount,
                     BilledPendingProcedureOrderCount = billedPendingCount,
                     CancelledFutureDoseCount = 0,
                     NotYetWiredSteps =
                     {
-                        LangkahLimaBelumTerpasang,
                         LangkahEnamBelumTerpasang
                     }
                 };

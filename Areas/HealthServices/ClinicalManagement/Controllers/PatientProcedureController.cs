@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -49,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly InpatientClinicalContextService _inpatientClinicalContextService;
+        private readonly PatientProcedureOrderService _procedureOrderService;
         private readonly LoggerService _loggerService;
 
         public PatientProcedureController(
@@ -58,6 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             ClinicalDocumentIntegrityService integrityService,
             InpatientClinicalContextService inpatientClinicalContextService,
+            PatientProcedureOrderService procedureOrderService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -66,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _integrityService = integrityService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
+            _procedureOrderService = procedureOrderService;
             _loggerService = loggerService;
         }
 
@@ -452,6 +455,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return await CreateProcedure(createRequest);
         }
 
+        [HttpPost("inpatient-orders")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Create", "Create Inpatient Patient Procedure Order", Description = "Membuat pesanan tindakan rawat inap oleh dokter atau perawat atas instruksi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientProcedure", "Create")]
+        public async Task<IActionResult> CreateInpatientOrder(
+            [FromBody] CreateInpatientProcedureOrderRequest request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _procedureOrderService.CreateInpatientOrderAsync(request, actorUserId, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            if (result.StatusCode == StatusCodes.Status200OK)
+            {
+                return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+            }
+
+            return StatusCode(StatusCodes.Status201Created, ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -710,6 +742,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 FollowUpInstruction = NormalizeNullableText(request.FollowUpInstruction),
 
                 IsBillingGenerated = false,
+                OrderedByUserId = actorUserId,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -777,6 +810,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     StatusCodes.Status404NotFound,
                     "Tindakan pasien tidak ditemukan."
                 ));
+            }
+
+            var actorUserId = GetCurrentUserId();
+
+            // INV-DOK-17 / BE-RWI-097: Pesanan tindakan yang belum dilaksanakan hanya diubah penginputnya.
+            if (entity.OrderedByUserId.HasValue && entity.OrderedByUserId.Value != actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Hanya penginput pesanan ini yang dapat mengubah pesanan."
+                ));
+            }
+
+            if (entity.InpEpisodeId.HasValue)
+            {
+                var episode = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == entity.InpEpisodeId.Value && !x.IsDelete);
+
+                if (episode != null && (episode.EpisodeStatus == InpEpisodeStatus.Closed || episode.EpisodeStatus == InpEpisodeStatus.Cancelled))
+                {
+                    return UnprocessableEntity(ApiResponse<object>.Fail(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Perawatan rawat inap sudah ditutup; tindakan tidak dapat diubah."
+                    ));
+                }
             }
 
             if (entity.Consultation?.ConsultationStatus == DoctorConsultationStatus.Completed)
@@ -896,13 +955,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.ProcedureDateTime != serviceDate;
 
             var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (request.IsPrimaryProcedure)
+            if (request.IsPrimaryProcedure && entity.ConsultationId.HasValue)
             {
-                await ClearPrimaryProcedureAsync(entity.ConsultationId, actorUserId, now, entity.Id);
+                await ClearPrimaryProcedureAsync(entity.ConsultationId.Value, actorUserId, now, entity.Id);
             }
 
             entity.TariffId = pricing.TariffId;
@@ -1270,6 +1328,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            var actorUserId = GetCurrentUserId();
+
+            // FR-DOK-102: Pesanan hanya dibatalkan oleh penginput atau DPJP aktif.
+            if (entity.InpEpisodeId.HasValue && entity.OrderedByUserId.HasValue)
+            {
+                var isSubmitter = entity.OrderedByUserId.Value == actorUserId;
+                var isDpjp = false;
+
+                var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(actorUserId);
+                if (doctorId.HasValue)
+                {
+                    isDpjp = await _inpatientClinicalContextService.IsDpjpAssignedAsync(
+                        entity.InpEpisodeId.Value, doctorId.Value, DateTime.UtcNow);
+                }
+
+                if (!isSubmitter && !isDpjp)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Hanya penginput pesanan atau DPJP yang sedang bertugas yang dapat membatalkan pesanan ini."
+                    ));
+                }
+            }
+
             if (entity.IsBillingGenerated)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -1279,7 +1361,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -1389,6 +1470,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.ExecutedByUser)
                 .Include(x => x.PerformedByUser)
                 .Include(x => x.CancelledByUser)
+                .Include(x => x.OrderedByUser)
+                .Include(x => x.InstructingDoctor)
+                .Include(x => x.InstructionVerifiedByUser)
                 .Where(x => !x.IsDelete);
         }
 
@@ -1726,12 +1810,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// percobaan ulang yang seharusnya tidak berdampak apa-apa justru meninggalkan jejak.
         /// </remarks>
         private async Task<ProcedureSummaryResult> ReadConsultationProcedureSummaryAsync(
-            Guid consultationId)
+            Guid? consultationId)
         {
+            if (!consultationId.HasValue)
+            {
+                return new ProcedureSummaryResult
+                {
+                    ProcedureText = null,
+                    ProcedureCount = 0,
+                    HasProcedure = false
+                };
+            }
+
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.ConsultationId == consultationId &&
+                    x.ConsultationId == consultationId.Value &&
                     x.IsActive &&
                     !x.IsDelete &&
                     x.ProcedureStatus != PatientProcedureStatus.Cancelled)
@@ -1755,18 +1849,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private async Task<ProcedureSummaryResult> UpdateConsultationProcedureSummaryAsync(
-            Guid consultationId,
+        private async Task<ProcedureSummaryResult?> UpdateConsultationProcedureSummaryAsync(
+            Guid? consultationId,
             Guid actorUserId,
             DateTime now)
         {
+            if (!consultationId.HasValue)
+            {
+                return null;
+            }
+
             var consultation = await _dbContext.Set<TrxDoctorConsultation>()
-                .FirstAsync(x => x.Id == consultationId && !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == consultationId.Value && !x.IsDelete);
+
+            if (consultation == null)
+            {
+                return null;
+            }
 
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.ConsultationId == consultationId &&
+                    x.ConsultationId == consultationId.Value &&
                     x.IsActive &&
                     !x.IsDelete &&
                     x.ProcedureStatus != PatientProcedureStatus.Cancelled)
@@ -1835,7 +1939,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                    !entity.IsExecuted &&
                    !entity.IsBillingGenerated &&
                    entity.ProcedureStatus != PatientProcedureStatus.Cancelled &&
-                   !IsConsultationLocked(entity.Consultation);
+                   (entity.ConsultationId == null || !IsConsultationLocked(entity.Consultation));
         }
 
         private static bool CanRemoveProcedureFromDraft(TrxPatientProcedure entity)
@@ -1962,6 +2066,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                OrderedByUserName = x.OrderedByUser != null ? x.OrderedByUser.DisplayName : null,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructingDoctorName = x.InstructingDoctor != null ? x.InstructingDoctor.FullName : null,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                InstructionVerifiedAt = x.InstructionVerifiedAt,
+                InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
+                InstructionVerifiedByUserName = x.InstructionVerifiedByUser != null ? x.InstructionVerifiedByUser.DisplayName : null,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
@@ -2066,13 +2179,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             response.IsActive = x.IsActive;
             response.CreateDateTime = x.CreateDateTime;
             response.UpdateDateTime = x.UpdateDateTime;
+            response.OrderedByUserId = x.OrderedByUserId;
+            response.OrderedByUserName = x.OrderedByUser != null ? x.OrderedByUser.DisplayName : null;
+            response.InstructingDoctorId = x.InstructingDoctorId;
+            response.InstructingDoctorName = x.InstructingDoctor != null ? x.InstructingDoctor.FullName : null;
+            response.InstructionVerificationStatus = x.InstructionVerificationStatus;
+            response.InstructionVerifiedAt = x.InstructionVerifiedAt;
+            response.InstructionVerifiedByUserId = x.InstructionVerifiedByUserId;
+            response.InstructionVerifiedByUserName = x.InstructionVerifiedByUser != null ? x.InstructionVerifiedByUser.DisplayName : null;
+            response.CancelledByEpisodeClosure = x.CancelledByEpisodeClosure;
             response.CanEdit = CanEditProcedure(x);
             response.CanRemoveFromDraft = CanRemoveProcedureFromDraft(x);
         }
 
         private static PatientProcedureCreateResponse ToCreateResponse(
             TrxPatientProcedure x,
-            ProcedureSummaryResult summary)
+            ProcedureSummaryResult? summary)
         {
             return new PatientProcedureCreateResponse
             {
@@ -2102,10 +2224,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CoverageStatus = x.CoverageStatus,
                 IsNeedApproval = x.IsNeedApproval,
                 IsExecuted = x.IsExecuted,
-                ProcedureCount = summary.ProcedureCount,
-                HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText,
+                ProcedureCount = summary?.ProcedureCount ?? 0,
+                HasProcedure = summary?.HasProcedure ?? false,
+                ProcedureText = summary?.ProcedureText,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
@@ -2113,7 +2239,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private static PatientProcedureUpdateResponse ToUpdateResponse(
             TrxPatientProcedure x,
-            ProcedureSummaryResult summary)
+            ProcedureSummaryResult? summary)
         {
             return new PatientProcedureUpdateResponse
             {
@@ -2143,10 +2269,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CoverageStatus = x.CoverageStatus,
                 IsNeedApproval = x.IsNeedApproval,
                 IsExecuted = x.IsExecuted,
-                ProcedureCount = summary.ProcedureCount,
-                HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText,
+                ProcedureCount = summary?.ProcedureCount ?? 0,
+                HasProcedure = summary?.HasProcedure ?? false,
+                ProcedureText = summary?.ProcedureText,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
