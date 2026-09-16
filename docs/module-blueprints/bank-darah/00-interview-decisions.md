@@ -439,6 +439,8 @@ tertunggak ditetapkan sebagai daftar kerja wajib pada `DEC-BD-023`.
 | `CONF-BD-005` | `MstPatient.BloodType` mudah dikira hasil pemeriksaan yang sah | Diselesaikan `DEC-BD-015`; sumber sah adalah hasil pemeriksaan milik Bank Darah |
 | `CONF-BD-006` | Baris peran Petugas BDRS umum pada `permission-audit-matrix.md` memuat `BloodUnit : Compatibility`, bertentangan dengan `DEC-BD-042`, `VAL-BD-078`, dan `AC-BD-090` yang membatasinya pada petugas berwenang validasi | Diselesaikan `DEC-BD-047`; butir dicabut dari baris peran umum. Ditemukan `BE-BD-016` saat menyandingkan matriks hak akses dengan matriks validasi |
 
+| `CONF-BD-007` | Pemicu `VAL-BD-021` pada `validation-matrix.md` berbunyi "bukan peran berwenang, **atau** alasan kosong", sehingga beririsan dengan `VAL-BD-072` yang pemicunya juga kewenangan penerbit; akibatnya `AC-BD-021` dan `AC-BD-083` menuntut kode berbeda untuk kejadian runtime yang sama | Diselesaikan `DEC-BD-050`; `VAL-BD-072` menjadi kode kewenangan dan `VAL-BD-021` menjadi kode alasan. Ditemukan runtime `BE-BD-008` 16 September 2026 |
+
 ### 8.7 Architecture gap closure pass
 
 Enam gap arsitektur yang dibuka `03-domain-architecture.md` ditutup pada sesi ini. Tidak ada satu pun
@@ -1486,6 +1488,37 @@ ditutup `DEC-BD-046` (bukti `Incompatible` menahan pemberian, `VAL-BD-079` diteg
 commit `8075784` pada 3 September 2026.
 Permission conflict closure pass: `CONF-BD-006` ditutup `DEC-BD-047` — butir `BloodUnit : Compatibility`
 dicabut dari baris peran Petugas BDRS umum dan hanya diberikan kepada petugas berwenang validasi.
+
+Emergency validation-code closure pass: `CONF-BD-007` ditutup `DEC-BD-050` — `VAL-BD-072` menjadi kode
+kewenangan jalur darurat dan `VAL-BD-021` menjadi kode alasan darurat.
+
+### 8.20 Rincian keputusan emergency validation-code closure pass
+
+**`DEC-BD-050` — satu pemicu, satu kode pada jalur darurat.**
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-050` | `CONF-BD-007` | `Decision` | Pada jalur darurat, **`VAL-BD-072`** adalah kode kanonik ketika pelaku tidak memegang kewenangan `BloodUnit : EmergencyIssue`, dan **`VAL-BD-021`** dipakai ketika alasan darurat yang wajib kosong atau tidak sah. Pemicu keduanya tidak lagi beririsan | Pemilik kontrak Bank Darah | `approved` | `Sukmagp` 2026-09-16 |
+
+Turunannya: **nol invariant baru, nol kode validasi baru, nol entity baru.** Yang berubah hanya
+pembagian pemicu antara dua kode yang sudah ada, ditambah penyelarasan `AC-BD-021`.
+
+**Kenapa `VAL-BD-072` yang memegang kewenangan.** Pemicunya persis itu, kalimatnya menyebut kedua
+peran yang berwenang (Dokter Bank Darah dan DPJP pasien), dan ia lahir pada *role & authority closure
+pass* (`DEC-BD-040`) yang lebih baru dan lebih spesifik daripada `DEC-BD-017` yang melahirkan
+`VAL-BD-021`. `state-transition-matrix.md` §3 baris jalur darurat sudah lebih dulu memakai pembagian
+ini — dokumen itu menulis "`VAL-BD-021` alasan · `VAL-BD-072` bukan penerbit berwenang" — sehingga
+keputusan ini **menyelaraskan** `validation-matrix.md` dan `acceptance-test-matrix.md` ke bacaan yang
+sudah berlaku, bukan menetapkan aturan baru.
+
+**Dampak pada `AC-BD-021`.** Skenarionya tetap "jalur darurat oleh peran tak berwenang"; kode yang
+diharapkan berubah dari `VAL-BD-021` menjadi `VAL-BD-072`. Runtime `BE-BD-008` sudah berperilaku
+demikian sejak semula, sehingga **tidak ada source yang berubah dan tidak ada runtime acceptance yang
+perlu dijalankan ulang** ([laporan](task/report/backend/BE-BD-008.md) bagian 3.2).
+
+**Yang sengaja belum dikerjakan.** Kalimat `VAL-BD-021` masih menyebut "hanya untuk peran berwenang".
+Menyempitkannya menuntut perubahan source dan build ulang; `DEC-BD-050` hanya membagi pemicu dan tidak
+menulis ulang pesan.
 
 ---
 

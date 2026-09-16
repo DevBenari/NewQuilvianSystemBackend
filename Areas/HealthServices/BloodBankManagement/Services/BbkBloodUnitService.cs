@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const int DefaultPageSize = 25;
         private const int MaxPageSize = 100;
         private const int NoteMaxLength = 500;
+        private const int ReasonCodeMaxLength = 30;
 
         /// <summary>Nama tindakan pada <c>BbkTransitionHistory</c>.</summary>
         private const string StoreAction = "Store";
@@ -42,6 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string AllocateAction = "Allocate";
         private const string CancelAllocationAction = "CancelAllocation";
         private const string IssueAction = "Issue";
+        private const string EmergencyIssueAction = "EmergencyIssue";
 
         /// <summary>Nama aksi pada <c>AvailableActions</c>.</summary>
         public const string AssignStorageLocationActionName = "AssignStorageLocation";
@@ -50,6 +52,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         public const string CancelAllocationActionName = "CancelAllocation";
         public const string RecordCompatibilityEvidenceActionName = "RecordCompatibilityEvidence";
         public const string IssueActionName = "Issue";
+        public const string EmergencyIssueActionName = "EmergencyIssue";
 
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
@@ -132,6 +135,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string Val079Message =
             "Hasil pemeriksaan kecocokan menyatakan kantong ini tidak cocok untuk pasien tersebut. " +
             "Kantong tidak dapat diberikan.";
+
+        // Pesan validasi pemberian jalur darurat — BE-BD-008.
+        private const string Val021Message =
+            "Jalur darurat hanya untuk peran berwenang dan wajib mengisi alasan.";
+
+        private const string Val066Message =
+            "Pemberian darurat wajib menyebutkan apa yang dilewati: bukti kecocokan, " +
+            "lokasi penyimpanan yang tidak aktif, atau keduanya.";
+
+        private const string Val070Message =
+            "Sebutkan keadaan yang membuat pemberian ini harus dilakukan sekarang.";
+
+        private const string Val071Message =
+            "Sebutkan Anda menerbitkan otorisasi ini sebagai Dokter Bank Darah atau sebagai " +
+            "dokter penanggung jawab pasien.";
+
+        private const string EmergencyReasonCategoryMismatchMessage =
+            "Alasan yang dipilih bukan alasan jalur darurat.";
 
         private const string CheckedAtRequiredMessage =
             "Waktu pemeriksaan kecocokan wajib diisi.";
@@ -230,7 +251,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             string? sortDirection,
             int pageNumber,
             int pageSize,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool? emergencyPendingEvidence = null)
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
@@ -238,6 +260,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             if (unitStatus.HasValue)
                 query = query.Where(x => x.UnitStatus == unitStatus.Value);
+
+            // Daftar kerja #3 (api-contract baris 100): kantong yang diberikan lewat jalur darurat
+            // dan melewati gerbang bukti kecocokan, sehingga buktinya masih harus disusulkan.
+            // Pemberian darurat yang hanya melewati gerbang lokasi tetap menunjuk bukti yang sah
+            // dan karena itu tidak masuk daftar ini.
+            if (emergencyPendingEvidence.HasValue)
+            {
+                query = emergencyPendingEvidence.Value
+                    ? query.Where(x =>
+                        x.IssuedViaEmergency && x.CompatibilityEvidenceIdUsed == null)
+                    : query.Where(x =>
+                        !x.IssuedViaEmergency || x.CompatibilityEvidenceIdUsed != null);
+            }
 
             if (isExcess.HasValue)
                 query = query.Where(x => x.IsExcess == isExcess.Value);
@@ -369,6 +404,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             var compatibilityEvidences = await ReadCompatibilityEvidencesAsync(
                 entity.Id,
                 cancellationToken);
+            var emergencyAuthorizations = await ReadEmergencyAuthorizationsAsync(
+                entity.Id,
+                cancellationToken);
 
             return new BloodUnitDetailDto
             {
@@ -412,6 +450,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     .FirstOrDefault(x => x.AllocationStatus == BbkAllocationStatus.Active),
                 CompatibilityEvidences = compatibilityEvidences,
                 CompatibilityEvidenceIdUsed = entity.CompatibilityEvidenceIdUsed,
+                EmergencyAuthorizations = emergencyAuthorizations,
                 AvailableActions = AvailableActionsFor(
                     entity.UnitStatus,
                     entity.CurrentPlacementId,
@@ -1286,6 +1325,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             var patientId = activeAllocation.PatientId.Value;
 
+            return await EvaluateCompatibilityEvidenceGateAsync(
+                unitId,
+                patientId,
+                unit.ValidityHours,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Menilai gerbang bukti kecocokan saja, terlepas dari status dan lokasi kantong.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dipakai bersama oleh gerbang pemberian normal (<c>BE-BD-007</c>) dan penilaian bypass
+        /// jalur darurat (<c>BE-BD-008</c>). Keduanya wajib membaca aturan yang sama: kalau
+        /// aturannya disalin, jalur darurat dapat menyatakan gerbang bukti "terbuka" pada keadaan
+        /// yang justru ditahan jalur normal, dan penanda daruratnya menjadi keterangan palsu
+        /// (<c>INV-BD-030</c>).
+        /// </para>
+        /// <para>
+        /// Urutan penilaiannya tidak diubah dari <c>BE-BD-007</c>:
+        /// <c>VAL-BD-018</c> → <c>VAL-BD-019</c> → <c>VAL-BD-020b</c> → <c>VAL-BD-079</c> →
+        /// <c>VAL-BD-020</c>.
+        /// </para>
+        /// </remarks>
+        private async Task<BloodUnitIssuanceGateResult> EvaluateCompatibilityEvidenceGateAsync(
+            Guid unitId,
+            Guid patientId,
+            int? validityHours,
+            CancellationToken cancellationToken)
+        {
             var evidences = await _dbContext
                 .Set<BbkCompatibilityEvidence>()
                 .AsNoTracking()
@@ -1325,7 +1394,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     patientId);
             }
 
-            if (!unit.ValidityHours.HasValue || unit.ValidityHours.Value <= 0)
+            if (!validityHours.HasValue || validityHours.Value <= 0)
             {
                 return new BloodUnitIssuanceGateResult(
                     false,
@@ -1348,7 +1417,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             try
             {
-                validUntil = latestPatientEvidence.CheckedAt.AddHours(unit.ValidityHours.Value);
+                validUntil = latestPatientEvidence.CheckedAt.AddHours(validityHours.Value);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -1455,6 +1524,304 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             return Succeeded(
                 unit,
                 "Kantong berhasil diberikan kepada pasien.");
+        }
+
+        // =================================================================
+        // Pemberian jalur darurat — BE-BD-008
+        // =================================================================
+
+        /// <summary>
+        /// Menilai kedua gerbang yang dapat dilewati otorisasi darurat, masing-masing terpisah.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Gerbang pemberian normal berhenti pada penolakan pertama, sehingga ia tidak dapat
+        /// menjawab "apakah gerbang bukti juga tertutup" ketika lokasinya sudah tertutup lebih
+        /// dulu. Jalur darurat justru menuntut jawaban atas <b>keduanya</b>, karena otorisasinya
+        /// wajib menyatakan gerbang mana yang dilewati (<c>INV-BD-030</c>).
+        /// </para>
+        /// <para>
+        /// Aturan buktinya tetap dibaca dari
+        /// <see cref="EvaluateCompatibilityEvidenceGateAsync"/> yang sama dengan jalur normal,
+        /// bukan disalin.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodUnitEmergencyBypassState?> EvaluateEmergencyBypassAsync(
+            Guid unitId,
+            CancellationToken cancellationToken = default)
+        {
+            var unit = await BaseQuery()
+                .Where(x => x.Id == unitId)
+                .Select(x => new
+                {
+                    x.UnitStatus,
+                    x.CurrentPlacementId,
+                    IsLocationActive =
+                        x.CurrentPlacement != null &&
+                        x.CurrentPlacement.StorageLocation != null &&
+                        x.CurrentPlacement.StorageLocation.IsActive &&
+                        !x.CurrentPlacement.StorageLocation.IsDelete &&
+                        !x.CurrentPlacement.StorageLocation.IsCancel,
+                    ValidityHours =
+                        x.BloodComponent != null
+                            ? x.BloodComponent.CompatibilityEvidenceValidityHours
+                            : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (unit == null)
+                return null;
+
+            var activeAllocation = await _dbContext
+                .Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    x.AllocationStatus == BbkAllocationStatus.Active)
+                .Select(x => new
+                {
+                    PatientId =
+                        x.BloodOrderLine != null &&
+                        x.BloodOrderLine.BloodOrder != null
+                            ? (Guid?)x.BloodOrderLine.BloodOrder.PatientId
+                            : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Lokasi dinilai apa adanya. Kantong tanpa penempatan sama sekali dihitung tertutup,
+            // sama seperti pada gerbang normal: yang belum pernah disimpan tidak boleh diberikan
+            // hanya karena jalurnya darurat.
+            var locationGateClosed =
+                !unit.CurrentPlacementId.HasValue || !unit.IsLocationActive;
+
+            if (activeAllocation == null || !activeAllocation.PatientId.HasValue)
+            {
+                return new BloodUnitEmergencyBypassState(
+                    EvidenceGateClosed: true,
+                    LocationGateClosed: locationGateClosed,
+                    PatientId: null,
+                    ValidCompatibilityEvidenceId: null);
+            }
+
+            var patientId = activeAllocation.PatientId.Value;
+
+            var evidenceGate = await EvaluateCompatibilityEvidenceGateAsync(
+                unitId,
+                patientId,
+                unit.ValidityHours,
+                cancellationToken);
+
+            return new BloodUnitEmergencyBypassState(
+                EvidenceGateClosed: !evidenceGate.IsOpen,
+                LocationGateClosed: locationGateClosed,
+                PatientId: patientId,
+                ValidCompatibilityEvidenceId:
+                    evidenceGate.IsOpen ? evidenceGate.CompatibilityEvidenceId : null);
+        }
+
+        /// <summary>
+        /// Memberikan kantong lewat jalur darurat, melewati gerbang bukti kecocokan dan/atau
+        /// gerbang lokasi penyimpanan aktif. Pemberian bersifat terminal.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Jalur ini tidak melewati status.</b> Kantong tetap wajib berstatus
+        /// <c>Allocated</c> dan tetap wajib punya alokasi aktif — keadaan darurat memperbolehkan
+        /// melewati bukti dan lokasi, bukan memberikan darah yang tidak ditujukan kepada siapa pun
+        /// (<c>state-transition</c> §3 baris jalur darurat).
+        /// </para>
+        /// <para>
+        /// <b>Kewenangan penerbit dijaga hak akses, bukan dihitung ulang di sini.</b>
+        /// <c>BloodUnit : EmergencyIssue</c> menahan pelaku yang bukan Dokter BDRS maupun DPJP
+        /// (<c>VAL-BD-072</c>). Peran yang dinyatakan penerbit <b>direkam, tidak diverifikasi</b>:
+        /// <c>validation-matrix</c> menegaskan Quilvian tidak memeriksa kebenaran penugasan DPJP
+        /// karena Bank Darah bukan pemilik data penugasan itu.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodUnitResult> EmergencyIssueAsync(
+            Guid id,
+            EmergencyIssueRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            // VAL-BD-021 memegang alasan darurat yang kosong atau tidak sah (DEC-BD-050).
+            // Kewenangan penerbit bukan urusan kode ini: pelaku yang tidak memegang
+            // BloodUnit : EmergencyIssue sudah ditahan hak akses dengan VAL-BD-072 sebelum action
+            // ini dijalankan, sehingga tidak ada pemeriksaan kewenangan kedua di sini yang dapat
+            // menyimpang dari yang pertama.
+            var reasonCode = request.ReasonCode?.Trim().ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(reasonCode))
+                return Failed(BloodUnitOutcome.Forbidden, Val021Message, "VAL-BD-021");
+
+            if (reasonCode.Length > ReasonCodeMaxLength)
+                return Failed(BloodUnitOutcome.Forbidden, Val021Message, "VAL-BD-021");
+
+            // VAL-BD-071 sebelum VAL-BD-070 dan VAL-BD-066: ketiganya soal kelengkapan otorisasi,
+            // dan petugas perlu tahu bagian mana yang kurang, bukan satu pesan gabungan.
+            if (!request.AuthorizerRole.HasValue ||
+                !Enum.IsDefined(request.AuthorizerRole.Value))
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val071Message,
+                    "VAL-BD-071");
+            }
+
+            var conditionNote = request.EmergencyConditionNote?.Trim();
+
+            if (string.IsNullOrWhiteSpace(conditionNote))
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val070Message,
+                    "VAL-BD-070");
+            }
+
+            if (conditionNote.Length > NoteMaxLength)
+                return Failed(BloodUnitOutcome.Invalid, NoteTooLongMessage);
+
+            if (!request.BypassScope.HasValue ||
+                !Enum.IsDefined(request.BypassScope.Value))
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val066Message,
+                    "VAL-BD-066");
+            }
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+                return Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage);
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Allocated)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val017Message,
+                    "VAL-BD-017");
+            }
+
+            var reason = await _dbContext.Set<MstBloodBankReason>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => !x.IsDelete && x.IsActive && x.ReasonCode.ToUpper() == reasonCode,
+                    cancellationToken);
+
+            if (reason == null)
+                return Failed(BloodUnitOutcome.Forbidden, Val021Message, "VAL-BD-021");
+
+            if (BloodBankReasonCategories.Normalize(reason.ReasonCategory)
+                != BloodBankReasonCategories.Emergency)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    EmergencyReasonCategoryMismatchMessage);
+            }
+
+            var bypass = await EvaluateEmergencyBypassAsync(id, cancellationToken);
+
+            if (bypass == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (!bypass.PatientId.HasValue)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val017Message,
+                    "VAL-BD-017");
+            }
+
+            // VAL-BD-066 bagian "tidak sesuai keadaan kantong". Penanda darurat yang menyebut
+            // gerbang yang sebenarnya tidak tertutup adalah keterangan palsu pada rekam klinis,
+            // dan penanda yang tidak menyebut gerbang yang benar-benar dilewati meninggalkan
+            // pemberian tanpa keterangan (INV-BD-030).
+            var declared = request.BypassScope.Value;
+
+            var declaredEvidence =
+                declared == BbkEmergencyBypassScope.CompatibilityEvidence ||
+                declared == BbkEmergencyBypassScope.Both;
+
+            var declaredLocation =
+                declared == BbkEmergencyBypassScope.InactiveStorageLocation ||
+                declared == BbkEmergencyBypassScope.Both;
+
+            if (declaredEvidence != bypass.EvidenceGateClosed ||
+                declaredLocation != bypass.LocationGateClosed)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val066Message,
+                    "VAL-BD-066");
+            }
+
+            var now = DateTime.UtcNow;
+            var fromStatus = unit.UnitStatus;
+            var patientId = bypass.PatientId.Value;
+
+            var authorization = new BbkEmergencyAuthorization
+            {
+                Id = Guid.NewGuid(),
+                BloodUnitId = unit.Id,
+                PatientId = patientId,
+                AuthorizedByUserId = actorUserId,
+                AuthorizedAt = now,
+                ReasonCode = reason.ReasonCode,
+                ReasonNote = reason.ReasonText,
+                BypassScope = declared,
+                AuthorizerRole = request.AuthorizerRole.Value,
+                EmergencyConditionNote = conditionNote,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.Set<BbkEmergencyAuthorization>().Add(authorization);
+
+            unit.UnitStatus = BbkBloodUnitStatus.Issued;
+            unit.IssuedToPatientId = patientId;
+            unit.IssuedAt = now;
+            unit.IssuedByUserId = actorUserId;
+            unit.IssuedViaEmergency = true;
+
+            // Ketika gerbang bukti TIDAK dilewati, buktinya memang berlaku dan wajib ikut
+            // tercatat: pemberian darurat karena lokasi nonaktif tetap punya bukti kecocokan yang
+            // sah, dan menghapus jejaknya akan membuat kantong ini terbaca seolah diberikan tanpa
+            // bukti sama sekali.
+            unit.CompatibilityEvidenceIdUsed = bypass.ValidCompatibilityEvidenceId;
+
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            AppendTransition(
+                unit.Id,
+                EmergencyIssueAction,
+                fromStatus,
+                BbkBloodUnitStatus.Issued,
+                reasonNote: reason.ReasonText,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: authorization.Id,
+                reasonCode: reason.ReasonCode);
+
+            if (!await TrySaveAsync(cancellationToken))
+            {
+                return Failed(
+                    BloodUnitOutcome.VersionConflict,
+                    ConcurrencyMessage);
+            }
+
+            return Succeeded(
+                unit,
+                "Kantong berhasil diberikan lewat jalur darurat. Otorisasi darurat tercatat.");
         }
 
         // =================================================================
@@ -1565,6 +1932,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 actions.Add(CancelAllocationActionName);
                 actions.Add(RecordCompatibilityEvidenceActionName);
                 actions.Add(IssueActionName);
+
+                // Jalur darurat layak dicoba pada setiap kantong Allocated, termasuk yang
+                // lokasinya nonaktif. Keaktifan lokasi dan kelengkapan bukti TIDAK diperiksa di
+                // sini: gerbangnya dinilai saat tindakan dilakukan, dan menyembunyikan tombolnya
+                // justru menutup satu-satunya jalan keluar yang disediakan DEC-BD-038.
+                actions.Add(EmergencyIssueActionName);
             }
 
             return actions;
@@ -1735,6 +2108,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         /// Riwayat seluruh bukti kecocokan satu kantong, terbaru lebih dulu.
         /// Bukti incompatible maupun superseded tetap disimpan dan dibaca.
         /// </summary>
+        /// <summary>
+        /// Otorisasi darurat satu kantong, terbaru lebih dulu. Melekat permanen; tidak ada jalur
+        /// bisnis yang menghapusnya (<c>INV-BD-032</c>).
+        /// </summary>
+        private async Task<List<EmergencyAuthorizationDto>> ReadEmergencyAuthorizationsAsync(
+            Guid unitId,
+            CancellationToken cancellationToken)
+            => await _dbContext.Set<BbkEmergencyAuthorization>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    !x.IsDelete)
+                .OrderByDescending(x => x.AuthorizedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new EmergencyAuthorizationDto
+                {
+                    Id = x.Id,
+                    BloodUnitId = x.BloodUnitId,
+                    PatientId = x.PatientId,
+                    AuthorizedByUserId = x.AuthorizedByUserId,
+                    AuthorizedAt = x.AuthorizedAt,
+                    ReasonCode = x.ReasonCode,
+                    ReasonNote = x.ReasonNote,
+                    BypassScope = x.BypassScope,
+                    BypassScopeLabel =
+                        x.BypassScope == BbkEmergencyBypassScope.CompatibilityEvidence
+                            ? "Melewati bukti kecocokan"
+                            : x.BypassScope == BbkEmergencyBypassScope.InactiveStorageLocation
+                                ? "Melewati lokasi penyimpanan tidak aktif"
+                                : "Melewati bukti kecocokan dan lokasi penyimpanan tidak aktif",
+                    AuthorizerRole = x.AuthorizerRole,
+                    AuthorizerRoleLabel =
+                        x.AuthorizerRole == BbkEmergencyAuthorizerRole.BloodBankDoctor
+                            ? "Dokter Bank Darah"
+                            : "Dokter penanggung jawab pasien",
+                    EmergencyConditionNote = x.EmergencyConditionNote,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync(cancellationToken);
+
         private async Task<List<CompatibilityEvidenceDto>> ReadCompatibilityEvidencesAsync(
             Guid unitId,
             CancellationToken cancellationToken)
@@ -1962,7 +2375,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         /// <see cref="VersionConflict"/> karena sebabnya berbeda: bukan datanya sudah berubah,
         /// melainkan kantongnya sudah terikat pada baris kebutuhan lain.
         /// </summary>
-        AllocationConflict = 5
+        AllocationConflict = 5,
+
+        /// <summary>
+        /// Pelaku tidak berwenang atas tindakan ini — <c>403</c>. Dipisahkan dari
+        /// <see cref="Invalid"/> karena sebabnya bukan bentuk isian yang salah melainkan
+        /// kewenangan; <c>400</c> akan menyesatkan pembaca log. Dipakai <c>VAL-BD-021</c>
+        /// pada jalur darurat (<c>BE-BD-008</c>).
+        /// </summary>
+        Forbidden = 6
     }
 
     /// <summary>

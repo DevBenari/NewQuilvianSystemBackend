@@ -126,9 +126,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 
         /// <summary>
         /// Bukti yang benar-benar digunakan saat pemberian jalur normal.
-        /// Kosong sebelum pemberian dan kosong untuk pemberian jalur darurat.
+        /// Kosong sebelum pemberian dan kosong untuk pemberian jalur darurat yang melewati
+        /// gerbang bukti kecocokan.
         /// </summary>
         public Guid? CompatibilityEvidenceIdUsed { get; set; }
+
+        /// <summary>
+        /// Otorisasi darurat yang melekat pada kantong ini, terbaru lebih dulu (BE-BD-008).
+        /// Penanda melekat permanen dan menyebutkan gerbang mana yang dilewati, peran penerbit,
+        /// serta keterangan kondisi kedaruratannya (INV-BD-030, INV-BD-032).
+        /// </summary>
+        public List<EmergencyAuthorizationDto> EmergencyAuthorizations { get; set; } = new();
 
         /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;

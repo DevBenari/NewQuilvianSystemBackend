@@ -117,6 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             [FromQuery] string? sortDirection,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] bool? emergencyPendingEvidence = null,
             CancellationToken cancellationToken = default)
         {
             var result = await _bloodUnitService.GetPagedAsync(
@@ -129,7 +130,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 sortDirection,
                 pageNumber,
                 pageSize,
-                cancellationToken);
+                cancellationToken,
+                emergencyPendingEvidence);
 
             return Ok(ApiResponse<BloodUnitPagedResult>.Ok(
                 result,
@@ -447,6 +449,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 result.Message));
         }
 
+        /// <summary>Memberikan kantong melalui jalur darurat.</summary>
+        /// <remarks>
+        /// <para>
+        /// Jalur ini melewati gerbang bukti kecocokan dan/atau gerbang lokasi penyimpanan aktif
+        /// (<c>DEC-BD-017</c>, <c>DEC-BD-038</c>), dan otorisasinya <b>wajib menyebutkan gerbang
+        /// mana</b> yang dilewati (<c>INV-BD-030</c>). Jalur ini <b>tidak</b> melewati status:
+        /// kantong tetap harus <c>Allocated</c> dengan alokasi aktif.
+        /// </para>
+        /// <para>
+        /// Penerbit adalah Dokter BDRS atau DPJP pasien (<c>DEC-BD-040</c>), dijaga hak akses
+        /// <c>BloodUnit : EmergencyIssue</c>. Peran yang dinyatakan penerbit direkam apa adanya;
+        /// kebenaran penugasan DPJP tidak diverifikasi Quilvian sesuai
+        /// <c>contracts/validation-matrix.md</c>.
+        /// </para>
+        /// </remarks>
+        [HttpPost("{id:guid}/emergency-issue")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("EmergencyIssue", "Emergency Issue Blood Unit", Description = "Memberikan kantong darah melalui jalur darurat dengan otorisasi tercatat penuh", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission(
+            "BloodUnit",
+            "EmergencyIssue",
+            DeniedCode = "VAL-BD-072",
+            DeniedMessage =
+                "Hanya Dokter Bank Darah atau dokter penanggung jawab pasien yang boleh " +
+                "menerbitkan otorisasi darurat.")]
+        public async Task<IActionResult> EmergencyIssue(
+            Guid id,
+            [FromBody] EmergencyIssueRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.EmergencyIssueAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogBloodUnitActionAsync(
+                "BloodUnit.EmergencyIssue",
+                "Memberikan kantong darah melalui jalur darurat.",
+                result,
+                "EmergencyIssue");
+
+            var detail = await _bloodUnitService.GetDetailAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                detail,
+                result.Message));
+        }
+
         /// <remarks>
         /// Log tindakan klinis sengaja hanya menyimpan identifier internal kantong dan status.
         /// Nomor kantong PMI, nama pasien, nomor rekam medis, dan PatientId tidak ditulis ke log.
@@ -535,6 +594,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             {
                 BloodUnitOutcome.NotFound => NotFound(
                     ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message, errors)),
+
+                BloodUnitOutcome.Forbidden => StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, result.Message, errors)),
 
                 BloodUnitOutcome.VersionConflict or BloodUnitOutcome.AllocationConflict => Conflict(
                     ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message, errors)),
